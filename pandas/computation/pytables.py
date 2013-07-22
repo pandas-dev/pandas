@@ -340,7 +340,6 @@ class UnaryOp(ops.UnaryOp):
 
 _op_classes = {'unary': UnaryOp}
 
-
 class ExprVisitor(BaseExprVisitor):
     def __init__(self, env, **kwargs):
         super(ExprVisitor, self).__init__(env)
@@ -365,6 +364,7 @@ class ExprVisitor(BaseExprVisitor):
 
     def visit_Index(self, node, **kwargs):
         return self.visit(node.value).value
+
 
 class Expr(expr.Expr):
 

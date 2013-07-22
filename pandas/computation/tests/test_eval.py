@@ -23,7 +23,7 @@ from pandas.computation.engines import _engines
 from pandas.computation.expr import PythonExprVisitor, PandasExprVisitor
 from pandas.computation.ops import (_binary_ops_dict, _unary_ops_dict,
                                     _special_case_arith_ops_syms,
-                                    _arith_ops_syms)
+                                    _arith_ops_syms, Constant)
 import pandas.computation.expr as expr
 from pandas.computation import pytables
 from pandas.computation.expressions import _USE_NUMEXPR
@@ -599,39 +599,6 @@ def test_is_expr():
         check_is_expr(engine)
 
 
-def check_not_fails(engine):
-    x = True
-    assert_raises(NotImplementedError, pd.eval, 'not x', engine=engine,
-                  local_dict={'x': x})
-
-
-def test_not_fails():
-    for engine in _engines:
-        check_not_fails(engine)
-
-
-def check_and_fails(engine):
-    x, y = False, True
-    assert_raises(NotImplementedError, pd.eval, 'x and y', engine=engine,
-                  local_dict={'x': x, 'y': y})
-
-
-def test_and_fails():
-    for engine in _engines:
-        check_and_fails(engine)
-
-
-def check_or_fails(engine):
-    x, y = True, False
-    assert_raises(NotImplementedError, pd.eval, 'x or y', engine=engine,
-                  local_dict={'x': x, 'y': y})
-
-
-def test_or_fails():
-    for engine in _engines:
-        check_or_fails(engine)
-
-
 _parsers = {'python': PythonExprVisitor, 'pytables': pytables.ExprVisitor,
              'pandas': PandasExprVisitor}
 
@@ -641,8 +608,9 @@ def check_disallowed_nodes(visitor):
     VisitorClass = _parsers[visitor]
     uns_ops = VisitorClass.unsupported_nodes
     inst = VisitorClass('x + 1')
+
     for ops in uns_ops:
-        assert_raises(NotImplementedError, getattr(inst, ops), inst, ast.AST())
+        assert_raises(NotImplementedError, getattr(inst, ops))
 
 
 def test_disallowed_nodes():

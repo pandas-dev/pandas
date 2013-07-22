@@ -107,11 +107,15 @@ def _print_operand(opr):
     return opr.name if is_term(opr) else unicode(opr)
 
 
+def _get_op(op):
+    return {'not': '~', 'and': '&', 'or': '|'}.get(op, op)
+
+
 class Op(StringMixin):
     """Hold an operator of unknown arity
     """
     def __init__(self, op, operands, *args, **kwargs):
-        self.op = op
+        self.op = _get_op(op)
         self.operands = operands
 
     def __iter__(self):
@@ -137,8 +141,8 @@ _cmp_ops_syms = '>', '<', '>=', '<=', '==', '!='
 _cmp_ops_funcs = op.gt, op.lt, op.ge, op.le, op.eq, op.ne
 _cmp_ops_dict = dict(zip(_cmp_ops_syms, _cmp_ops_funcs))
 
-_bool_ops_syms = '&', '|'
-_bool_ops_funcs = op.and_, op.or_
+_bool_ops_syms = '&', '|', 'and', 'or'
+_bool_ops_funcs = op.and_, op.or_, op.and_, op.or_
 _bool_ops_dict = dict(zip(_bool_ops_syms, _bool_ops_funcs))
 
 _arith_ops_syms = '+', '-', '*', '/', '**', '//', '%'
@@ -237,8 +241,8 @@ class Mod(BinOp):
         _cast_inplace(self.operands, np.float_)
 
 
-_unary_ops_syms = '+', '-', '~'
-_unary_ops_funcs = op.pos, op.neg, op.invert
+_unary_ops_syms = '+', '-', '~', 'not'
+_unary_ops_funcs = op.pos, op.neg, op.invert, op.invert
 _unary_ops_dict = dict(zip(_unary_ops_syms, _unary_ops_funcs))
 
 

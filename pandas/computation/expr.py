@@ -151,8 +151,8 @@ _unsupported_nodes = ((_stmt_nodes | _mod_nodes | _handler_nodes |
                                                         'IfExp', 'DictComp',
                                                         'SetComp', 'Repr',
                                                         'Lambda', 'Set', 'In',
-                                                        'NotIn', 'AST',
-                                                        'Is', 'IsNot'])) -
+                                                        'NotIn', 'AST', 'Is',
+                                                        'IsNot'])) -
                       _hacked_nodes)
 
 # we're adding a different assignment in some cases to be equality comparison
@@ -211,12 +211,12 @@ class BaseExprVisitor(ast.NodeVisitor):
     """
     binary_ops = _cmp_ops_syms + _bool_ops_syms + _arith_ops_syms
     binary_op_nodes = ('Gt', 'Lt', 'GtE', 'LtE', 'Eq', 'NotEq', 'BitAnd',
-                       'BitOr', 'Add', 'Sub', 'Mult', 'Div', 'Pow', 'FloorDiv',
-                       'Mod')
+                       'BitOr', 'And', 'Or', 'Add', 'Sub', 'Mult', 'Div',
+                       'Pow', 'FloorDiv', 'Mod')
     binary_op_nodes_map = dict(itertools.izip(binary_ops, binary_op_nodes))
 
     unary_ops = _unary_ops_syms
-    unary_op_nodes = 'UAdd', 'USub', 'Invert'
+    unary_op_nodes = 'UAdd', 'USub', 'Invert', 'Not'
     unary_op_nodes_map = dict(itertools.izip(unary_ops, unary_op_nodes))
 
     def __init__(self, env, preparser=_preparse):
@@ -354,13 +354,31 @@ class BaseExprVisitor(ast.NodeVisitor):
                        self.visit(comp, side='right'))
         return node
 
+    def visit_BoolOp(self, node, **kwargs):
+        op = self.visit(node.op)
+        def visitor(x, y):
+            try:
+                lhs = self.visit(x)
+            except TypeError:
+                lhs = x
 
-_python_not_supported = frozenset(['Assign', 'BoolOp', 'Not', 'Str', 'Slice',
-                                   'Index', 'Subscript', 'Tuple', 'List',
-                                   'Dict', 'Call'])
+            try:
+                rhs = self.visit(y)
+            except TypeError:
+                rhs = y
+
+            return op(lhs, rhs)
+
+        operands = node.values
+        return reduce(visitor, operands)
+
+
+_python_not_supported = frozenset(['Assign', 'Str', 'Slice', 'Index',
+                                   'Subscript', 'Tuple', 'List', 'Dict',
+                                   'Call'])
 _numexpr_supported_calls = frozenset(_reductions + _mathops)
 
-@disallow(_unsupported_nodes | _python_not_supported)
+@disallow((_unsupported_nodes | _python_not_supported) - _boolop_nodes)
 class PandasExprVisitor(BaseExprVisitor):
     def __init__(self, env, preparser=_preparse):
         super(PandasExprVisitor, self).__init__(env, preparser)
