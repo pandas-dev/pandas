@@ -18,6 +18,11 @@ import pandas.util.testing as tm
 
 N, K = 100, 10
 
+def _skip_if_no_scipy():
+    try:
+        import scipy.stats
+    except ImportError:
+        raise nose.SkipTest
 
 class TestMoments(unittest.TestCase):
 
@@ -64,6 +69,7 @@ class TestMoments(unittest.TestCase):
         self._check_moment_func(mom.rolling_mean, np.mean)
 
     def test_cmov_mean(self):
+        _skip_if_no_scipy()
         try:
             from scikits.timeseries.lib import cmov_mean
         except ImportError:
@@ -81,6 +87,7 @@ class TestMoments(unittest.TestCase):
         assert_series_equal(xp, rs)
 
     def test_cmov_window(self):
+        _skip_if_no_scipy()
         try:
             from scikits.timeseries.lib import cmov_window
         except ImportError:
@@ -98,6 +105,7 @@ class TestMoments(unittest.TestCase):
         assert_series_equal(xp, rs)
 
     def test_cmov_window_corner(self):
+        _skip_if_no_scipy()
         try:
             from scikits.timeseries.lib import cmov_window
         except ImportError:
@@ -121,6 +129,7 @@ class TestMoments(unittest.TestCase):
         self.assert_(len(rs) == 5)
 
     def test_cmov_window_frame(self):
+        _skip_if_no_scipy()
         try:
             from scikits.timeseries.lib import cmov_window
         except ImportError:
@@ -133,6 +142,7 @@ class TestMoments(unittest.TestCase):
         assert_frame_equal(DataFrame(xp), rs)
 
     def test_cmov_window_na_min_periods(self):
+        _skip_if_no_scipy()
         try:
             from scikits.timeseries.lib import cmov_window
         except ImportError:
@@ -149,6 +159,7 @@ class TestMoments(unittest.TestCase):
         assert_series_equal(xp, rs)
 
     def test_cmov_window_regular(self):
+        _skip_if_no_scipy()
         try:
             from scikits.timeseries.lib import cmov_window
         except ImportError:
@@ -164,6 +175,7 @@ class TestMoments(unittest.TestCase):
             assert_series_equal(Series(xp), rs)
 
     def test_cmov_window_special(self):
+        _skip_if_no_scipy()
         try:
             from scikits.timeseries.lib import cmov_window
         except ImportError:
