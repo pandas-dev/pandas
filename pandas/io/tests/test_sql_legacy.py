@@ -272,7 +272,9 @@ class TestMySQL(unittest.TestCase):
     def test_basic(self):
         _skip_if_no_MySQLdb()
         frame = tm.makeTimeDataFrame()
-        self._check_roundtrip(frame)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", "For more robust support.*")
+            self._check_roundtrip(frame)
 
     def test_write_row_by_row(self):
         _skip_if_no_MySQLdb()
