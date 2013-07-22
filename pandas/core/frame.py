@@ -5705,29 +5705,19 @@ def extract_index(data):
             elif isinstance(v, dict):
                 have_dicts = True
                 indexes.append(v.keys())
-            elif not (isinstance(v, str) or \
-                          isinstance(v, unicode)):
+            elif com._is_sequence(v):
+                # This is a sequence-but-not-a-string
                 # Although strings have a __len__,
-                # they are likely to be considered scalars.
-                try:
-                    l = len(v)
-                except TypeError:
-                    # Item v silently ignored (to conserve
-                    # the original behaviour - see also
-                    # test of __getitem__ below).
-                    # This behaviour is kept, but I think
-                    # that an exception (TypeError) should be raised instead.
-                    continue
-                # Anything else with a __len__ is considered
-                # a sequence (to be safe, we check
-                # that there is __getitem__)
-                if hasattr(v, '__getitem__'):
-                    have_raw_arrays = True
-                    raw_lengths.append(l)
-                else:
-                    # The original code skipped silently invalid
-                    # objects (see note at TypeError above).
-                    pass
+                # they will be considered scalar.
+                have_raw_arrays = True
+                raw_lengths.append(len(v))
+            else:
+                # Item v silently ignored (to conserve
+                # the original behaviour - see also
+                # test of __getitem__ below).
+                # This behaviour is kept, but I think
+                # that an exception (TypeError) should be raised instead.
+                pass
 
         if not indexes and not raw_lengths:
             raise ValueError('If using all scalar values, you must pass'
