@@ -5,7 +5,6 @@ import numpy as np
 from pandas.util.py3compat import PY3
 import pandas.core.common as com
 from pandas.core.base import StringMixin
-from pandas.computation.common import flatten
 
 
 _reductions = 'sum', 'prod'
@@ -134,7 +133,7 @@ class Op(StringMixin):
         # clobber types to bool if the op is a boolean operator
         if self.op in (_cmp_ops_syms + _bool_ops_syms):
             return np.bool_
-        return np.result_type(*(term.type for term in flatten(self)))
+        return np.result_type(*(term.type for term in com.flatten(self)))
 
 
 _cmp_ops_syms = '>', '<', '>=', '<=', '==', '!='

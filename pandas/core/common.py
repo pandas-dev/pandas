@@ -3,6 +3,7 @@ Misc tools for implementing data structures
 """
 
 import re
+import collections
 import codecs
 import csv
 import sys
@@ -222,6 +223,15 @@ def notnull(obj):
     if np.isscalar(res):
         return not res
     return -res
+
+
+def flatten(l):
+    for el in l:
+        if isinstance(el, collections.Iterable) and not is_string(el):
+            for s in flatten(el):
+                yield s
+        else:
+            yield el
 
 
 def mask_missing(arr, values_to_mask):

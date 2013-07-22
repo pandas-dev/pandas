@@ -27,12 +27,12 @@ def _ensure_decoded(s):
 class Scope(expr.Scope):
     __slots__ = 'globals', 'locals', 'queryables'
 
-    def __init__(self, gbls=None, lcls=None, queryables=None, frame_level=1):
+    def __init__(self, gbls=None, lcls=None, queryables=None, level=1):
         super(
             Scope,
             self).__init__(gbls=gbls,
                            lcls=lcls,
-                           frame_level=frame_level)
+                           level=level)
         self.queryables = queryables or dict()
 
 

@@ -38,7 +38,7 @@ from pandas.core.series import Series, _radd_compat
 from pandas.sparse.array import SparseArray
 import pandas.computation.expressions as expressions
 from pandas.computation.eval import eval as _eval
-from pandas.computation.expr import maybe_expression
+from pandas.computation.expr import maybe_expression, _ensure_scope
 from pandas.compat.scipy import scoreatpercentile as _quantile
 from pandas.compat import(range, zip, lrange, lmap, lzip, StringIO, u,
                           OrderedDict, raise_with_traceback)
@@ -1837,7 +1837,8 @@ class DataFrame(NDFrame):
                 return self._getitem_column(key)
             except KeyError:
                 if maybe_expression(key):
-                    return self.query(key)
+                    env = _ensure_scope(level=2)
+                    return self.query(key, local_dict=env)
                 raise
 
     def _getitem_column(self, key):
@@ -1912,11 +1913,11 @@ class DataFrame(NDFrame):
         expr : string
             The query string to evaluate. The result of the evaluation of this
             expression is passed to
-            :meth:`~pandas.core.frame.DataFrame.__getitem__`.
+            :meth:`~pandas.DataFrame.__getitem__`.
         kwargs : dict
-            See the documentation for :func:`~pandas.computation.eval.eval` for
-            complete details on the keyword arguments accepted by
-            :meth:`~pandas.core.frame.DataFrame.query`.
+            See the documentation for :func:`~pandas.eval` for complete details
+            on the keyword arguments accepted by
+            :meth:`~pandas.DataFrame.query`.
 
         Returns
         -------
@@ -1924,30 +1925,32 @@ class DataFrame(NDFrame):
 
         Notes
         -----
-        This method uses the top-level :func:`~pandas.computation.eval.eval`
-        function to evaluate the passed query.
+        This method uses the top-level :func:`~pandas.eval` function to
+        evaluate the passed query.
 
-        The :meth:`~pandas.core.frame.DataFrame.query` method uses a slightly
+        The :meth:`~pandas.DataFrame.query` method uses a slightly
         modified Python syntax by default. For example, the ``&`` and ``|``
         (bitwise) operators have the precedence of their boolean cousins,
-        ``and`` and ``or``. This *is* syntactically valid Python, however the
-        semantics are different.
+        :keyword:`and` and :keyword:`or`. This *is* syntactically valid Python,
+        however the semantics are different.
 
         You can use a syntax that is semantically identical to Python by
-        passing the keyword argument ``parser='numexpr'``.
+        passing the keyword argument ``parser='python'``.
 
-        The ``index`` of the :class:`~pandas.core.frame.DataFrame` instance is
-        placed in the namespace by default, which allows you to treat the index
-        as a column in the frame. The identifier ``index`` is used for this
-        variable, and you can also use the name of the index to identify it in
-        a query.
+        The :attr:`~pandas.DataFrame.index` and
+        :attr:`~pandas.DataFrame.columns` attributes of the
+        :class:`~pandas.DataFrame` instance is placed in the namespace by
+        default, which allows you to treat both the index and columns of the
+        frame as a column in the frame.
+        The identifier ``index`` is used for this variable, and you can also
+        use the name of the index to identify it in a query.
 
         Raises
         ------
         NameError
-          * if not all identifiers in the query can be found
+          * If not all identifiers in the query can be found
         SyntaxError
-          * if a syntactically *invalid* Python expression is passed
+          * If a syntactically invalid Python expression is passed
 
         Examples
         --------
@@ -1986,9 +1989,9 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        pandas.computation.eval.eval
+        pandas.eval
         """
-        resolvers = kwargs.get('resolvers', None)
+        resolvers = kwargs.pop('resolvers', None)
         if resolvers is None:
             index_resolvers = {}
             if self.index.name is not None:
@@ -1996,7 +1999,7 @@ class DataFrame(NDFrame):
             index_resolvers.update({'index': self.index,
                                     'columns': self.columns})
             resolvers = [self, index_resolvers]
-            kwargs.update({'resolvers': resolvers})
+        kwargs['local_dict'] = _ensure_scope(resolvers=resolvers, **kwargs)
         return self[_eval(expr, **kwargs)]
 
     def _slice(self, slobj, axis=0, raise_on_error=False):

@@ -20,7 +20,7 @@ from distutils.version import LooseVersion
 from numpy.random import randn, rand
 import numpy as np
 
-from pandas.core.common import isnull, _is_sequence, is_list_like
+from pandas.core.common import isnull, _is_sequence
 import pandas.core.index as index
 import pandas.core.series as series
 import pandas.core.frame as frame
@@ -1138,7 +1138,7 @@ class _AssertRaisesContextmanager(object):
 
 
 @contextmanager
-def assert_produces_warning(expected_warning=None, filter_level="always"):
+def assert_produces_warning(expected_warning=Warning, filter_level="always"):
     """
     Context manager for running code that expects to raise (or not raise)
     warnings.  Checks that code raises the expected warning and only the
@@ -1164,25 +1164,19 @@ def assert_produces_warning(expected_warning=None, filter_level="always"):
 
     ..warn:: This is *not* thread-safe.
     """
-    if expected_warning is None:
-        expected_warning = [Warning]
-    elif not is_list_like(expected_warning):
-        expected_warning = [expected_warning]
     with warnings.catch_warnings(record=True) as w:
         saw_warning = False
         warnings.simplefilter(filter_level)
         yield w
         extra_warnings = []
         for actual_warning in w:
-            if (expected_warning and any(issubclass(actual_warning.category,
-                                                    ew) for ew in
-                                         expected_warning)):
+            if (expected_warning and issubclass(actual_warning.category,
+                                                expected_warning)):
                 saw_warning = True
             else:
                 extra_warnings.append(actual_warning.category.__name__)
         if expected_warning:
-            msg = ', '.join(ew.__name__ for ew in expected_warning)
-            assert saw_warning, ("Did not see expected warning(s) of "
-                                 "class(es): %s." % msg)
+            assert saw_warning, ("Did not see expected warning of class %r."
+                                 % expected_warning.__name__)
         assert not extra_warnings, ("Caused unexpected warning(s): %r."
                                     % extra_warnings)

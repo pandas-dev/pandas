@@ -18,16 +18,33 @@ import pandas.lib as lib
 import datetime
 
 
-class Scope(object):
+def _ensure_scope(level=2, global_dict=None, local_dict=None, resolvers=None,
+                  **kwargs):
+    """ ensure that we are grabbing the correct scope """
+    return Scope(global_dict, local_dict, level=level, resolvers=resolvers)
+
+
+class Scope(StringMixin):
     __slots__ = ('globals', 'locals', 'resolvers', '_global_resolvers',
-                 'resolver_keys', '_resolver')
+                 'resolver_keys', '_resolver', 'level')
 
-    def __init__(self, gbls=None, lcls=None, frame_level=1, resolvers=None):
-        frame = sys._getframe(frame_level)
+    def __init__(self, gbls=None, lcls=None, level=1, resolvers=None):
+        self.level = level
+        self.resolvers = resolvers or []
+        self.globals = dict()
+        self.locals = dict()
 
+        if isinstance(lcls, Scope):
+            ld, lcls = lcls, dict()
+            self.locals.update(ld.locals)
+            self.globals.update(ld.globals)
+            self.resolvers.extend(ld.resolvers)
+            self.update(ld.level)
+
+        frame = sys._getframe(level)
         try:
-            self.globals = gbls or frame.f_globals.copy()
-            self.locals = lcls or frame.f_locals.copy()
+            self.globals.update(gbls or frame.f_globals.copy())
+            self.locals.update(lcls or frame.f_locals.copy())
         finally:
             del frame
 
@@ -39,11 +56,18 @@ class Scope(object):
         self.globals['True'] = True
         self.globals['False'] = False
 
-        self.resolvers = resolvers or []
         self.resolver_keys = set(reduce(operator.add, (list(o.keys()) for o in
                                                        self.resolvers), []))
         self._global_resolvers = self.resolvers + [self.locals, self.globals]
         self._resolver = None
+
+    def __unicode__(self):
+        return "locals: {0}\nglobals: {0}\nresolvers: {0}".format(self.locals.keys(),
+                                                                  self.globals.keys(),
+                                                                  self.resolver_keys)
+
+    def __getitem__(self, key):
+        return self.locals.get(key,self.globals[key])
 
     @property
     def resolver(self):
@@ -58,14 +82,14 @@ class Scope(object):
 
         return self._resolver
 
-    def update(self, scope_level=None):
+    def update(self, level=None):
 
         # we are always 2 levels below the caller
         # plus the caller maybe below the env level
         # in which case we need addtl levels
         sl = 2
-        if scope_level is not None:
-            sl += scope_level
+        if level is not None:
+            sl += level
 
         # add sl frames to the scope starting with the
         # most distant and overwritting with more current
@@ -79,6 +103,7 @@ class Scope(object):
                 frames.append(frame)
             for f in frames[::-1]:
                 self.locals.update(f.f_locals)
+                self.globals.update(f.f_globals)
         finally:
             del frame
             del frames
@@ -312,7 +337,15 @@ class BaseExprVisitor(ast.NodeVisitor):
         ctx = node.ctx.__class__
         if ctx == ast.Load:
             # resolve the value
-            return getattr(self.visit(value).value, attr)
+            resolved = self.visit(value).value
+            try:
+                return getattr(resolved, attr)
+            except (AttributeError):
+
+                # something like datetime.datetime where scope is overriden
+                if isinstance(value, ast.Name) and value.id == attr:
+                    return resolved
+
         raise ValueError("Invalid Attribute context {0}".format(ctx.__name__))
 
     def visit_Call(self, node, **kwargs):
@@ -348,11 +381,17 @@ class BaseExprVisitor(ast.NodeVisitor):
     def visit_Compare(self, node, **kwargs):
         ops = node.ops
         comps = node.comparators
+        if len(comps) == 1:
+            return self.visit(ops[0])(self.visit(node.left, side='left'),
+                                      self.visit(comps[0], side='right'))
+        left = node.left
+        values = []
         for op, comp in itertools.izip(ops, comps):
-            vop = self.visit(op)
-            node = vop(self.visit(node.left, side='left'),
-                       self.visit(comp, side='right'))
-        return node
+            new_node = self.visit(ast.Compare(comparators=[comp], left=left,
+                                              ops=[op]))
+            left = comp
+            values.append(new_node)
+        return self.visit(ast.BoolOp(op=ast.And(), values=values))
 
     def visit_BoolOp(self, node, **kwargs):
         op = self.visit(node.op)
@@ -396,7 +435,7 @@ class Expr(StringMixin):
     def __init__(self, expr, engine='numexpr', parser='pandas', env=None,
                  truediv=True):
         self.expr = expr
-        self.env = env or Scope(frame_level=2)
+        self.env = _ensure_scope(level=2,local_dict=env)
         self._visitor = _parsers[parser](self.env)
         self.terms = self.parse()
         self.engine = engine
@@ -421,21 +460,25 @@ class Expr(StringMixin):
         return self.terms.align(self.env)
 
 
-def maybe_expression(s, kind='python'):
+_needs_filter = frozenset(['and', 'or', 'not'])
+
+
+def maybe_expression(s, kind='pandas'):
     """ loose checking if s is an expression """
     if not isinstance(s, basestring):
         return False
-    try:
-        visitor = _parsers[kind]
-        # make sure we have an op at least
-        return any(op in s for op in visitor.binary_ops)
-    except:
-        return False
+    visitor = _parsers[kind]
+    ops = visitor.binary_ops + visitor.unary_ops
+    filtered = frozenset(ops) - _needs_filter
+    # make sure we have an op at least
+    return any(op in s or ' and ' in s or ' or ' in s or ' not ' in s
+               for op in filtered)
 
 
 def isexpr(s, check_names=True):
+    env = _ensure_scope()
     try:
-        Expr(s)
+        Expr(s,env=env)
     except SyntaxError:
         return False
     except NameError:

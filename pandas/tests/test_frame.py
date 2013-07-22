@@ -8097,6 +8097,25 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expec = DataFrame([[nan, 2]])
         assert_frame_equal(res, expec)
 
+    def test_query_expressions_correct_failure(self):
+        try:
+            import numexpr as ne
+        except ImportError:
+            raise nose.SkipTest("cannot query engine numexpr when numexpr not installed")
+        df = self.frame
+        exprs = 'and', 'or', 'not'
+        exprs += tuple(x + tm.rands(5) for x in exprs)
+        exprs += tuple(tm.rands(5) + x for x in exprs)
+
+        for e in exprs:
+            self.assertRaises(KeyError, df.__getitem__, e)
+
+        for e in (' and ', ' or ', ' not '):
+            self.assertRaises(SyntaxError, df.__getitem__, e)
+
+        x = tm.randbool(size=(self.frame.shape[0],))
+        self.assertRaises(KeyError, df.__getitem__, 'x')
+
     def test_query_expressions(self):
         try:
             import numexpr as ne

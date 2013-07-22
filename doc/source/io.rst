@@ -2003,8 +2003,9 @@ These rules are similar to how boolean expressions are used in pandas for indexi
 .. note::
 
    - ``=`` will be automatically expanded to the comparison operator ``==``
-   - ``~`` is the not operator, but can only be used in very limited circumstances
-   - If a list/tuple of expressions are passed they will be combined via ``&``.
+   - ``~`` is the not operator, but can only be used in very limited
+     circumstances
+   - If a list/tuple of expressions is passed they will be combined via ``&``
 
 The following are valid expressions:
 
@@ -2022,7 +2023,7 @@ The ``indexers`` are on the left-hand side of the sub-expression:
 
    - ``columns``, ``major_axis``, ``ts``
 
-The right-hand side of the sub-expression (after a comparsion operator), can be:
+The right-hand side of the sub-expression (after a comparsion operator) can be:
 
    - functions that will be evaluated, e.g. ``Timestamp('2012-02-01')``
    - strings, e.g. ``"bar"``
@@ -2038,8 +2039,9 @@ Here is an example:
    store
    store.select('wp', "major_axis>Timestamp('20000102') & minor_axis=['A', 'B']")
 
-The ``columns`` keyword can be supplied to select a list of columns to be returned,
-this is equivalent to passing a ``'columns=list_of_columns_to_filter'``:
+The ``columns`` keyword can be supplied to select a list of columns to be
+returned, this is equivalent to passing a
+``'columns=list_of_columns_to_filter'``:
 
 .. ipython:: python
 

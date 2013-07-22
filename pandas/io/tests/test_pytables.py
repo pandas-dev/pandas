@@ -2126,6 +2126,28 @@ class TestHDFStore(unittest.TestCase):
             for t in terms:
                 store.select('p4d', t)
 
+    def test_same_name_scoping(self):
+
+        with ensure_clean(self.path) as store:
+
+            import pandas as pd
+            df  = DataFrame(np.random.randn(20, 2),index=pd.date_range('20130101',periods=20))
+            store.put('df', df, table=True)
+            expected = df[df.index>pd.Timestamp('20130105')]
+
+            import datetime
+            result = store.select('df','index>datetime.datetime(2013,1,5)')
+            assert_frame_equal(result,expected)
+
+            from datetime import datetime
+
+            # technically an error, but allow it
+            result = store.select('df','index>datetime.datetime(2013,1,5)')
+            assert_frame_equal(result,expected)
+
+            result = store.select('df','index>datetime(2013,1,5)')
+            assert_frame_equal(result,expected)
+
     def test_series(self):
 
         s = tm.makeStringSeries()
