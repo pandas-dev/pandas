@@ -5680,6 +5680,9 @@ def _arrays_to_mgr(arrays, arr_names, index, columns, dtype=None):
     return create_block_manager_from_arrays(arrays, arr_names, axes)
 
 def extract_index(data):
+    # Slightly misleading name.
+    # Indexes are only extracted for elements in the iterable
+    # `data` inheriting from Series.
     from pandas.core.index import _union_indexes
 
     index = None
@@ -5693,6 +5696,8 @@ def extract_index(data):
         have_series = False
         have_dicts = False
 
+        # Loop over the element, such as vectors `v` corresponding
+        # to columns in the DataFrame  
         for v in data:
             if isinstance(v, Series):
                 have_series = True
@@ -5707,6 +5712,11 @@ def extract_index(data):
                 try:
                     l = len(v)
                 except TypeError:
+                    # Item v silently ignored (to conserve
+                    # the original behaviour - see also
+                    # test of __getitem__ below).
+                    # This behaviour is kept, but I think
+                    # that an exception (TypeError) should be raised instead.
                     continue
                 # Anything else with a __len__ is considered
                 # a sequence (to be safe, we check
@@ -5714,6 +5724,10 @@ def extract_index(data):
                 if hasattr(v, '__getitem__'):
                     have_raw_arrays = True
                     raw_lengths.append(l)
+                else:
+                    # The original code skipped silently invalid
+                    # objects (see note at TypeError above).
+                    pass
 
         if not indexes and not raw_lengths:
             raise ValueError('If using all scalar values, you must pass'
@@ -5725,7 +5739,7 @@ def extract_index(data):
         if have_raw_arrays:
             lengths = list(set(raw_lengths))
             if len(lengths) > 1:
-                raise ValueError('arrays must all be same length')
+                raise ValueError('Arrays must all be same length')
 
             if have_dicts:
                 raise ValueError('Mixing dicts with non-Series may lead to '
@@ -5733,7 +5747,7 @@ def extract_index(data):
 
             if have_series:
                 if lengths[0] != len(index):
-                    msg = ('array length %d does not match index length %d'
+                    msg = ('Array length %d does not match index length %d'
                            % (lengths[0], len(index)))
                     raise ValueError(msg)
             else:
