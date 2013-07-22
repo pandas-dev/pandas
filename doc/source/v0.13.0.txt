@@ -87,6 +87,9 @@ API changes
     and arithmetic flex methods (add, sub, mul, etc.). ``SparsePanel`` does not
     support ``pow`` or ``mod`` with non-scalars. (:issue:`3765`)
 
+  - ``to_csv`` now takes a ``date_format`` keyword argument that specifies how
+    output datetime objects should be formatted. Datetimes encountered in the
+    index, columns, and values will all have this formatting applied. (:issue:`4313`)
 
 Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

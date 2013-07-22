@@ -1030,7 +1030,7 @@ class DataFrame(NDFrame):
                cols=None, header=True, index=True, index_label=None,
                mode='w', nanRep=None, encoding=None, quoting=None,
                line_terminator='\n', chunksize=None,
-               tupleize_cols=False, **kwds):
+               tupleize_cols=False, date_format=None, **kwds):
         r"""Write DataFrame to a comma-separated values (csv) file
 
         Parameters
@@ -1073,6 +1073,8 @@ class DataFrame(NDFrame):
         tupleize_cols : boolean, default False
             write multi_index columns as a list of tuples (if True)
             or new (expanded format) if False)
+        date_format : string, default None
+            Format string for datetime objects.
         """
         if nanRep is not None:  # pragma: no cover
             warnings.warn("nanRep is deprecated, use na_rep",
@@ -1088,7 +1090,8 @@ class DataFrame(NDFrame):
                                      index_label=index_label, mode=mode,
                                      chunksize=chunksize, engine=kwds.get(
                                          "engine"),
-                                     tupleize_cols=tupleize_cols)
+                                     tupleize_cols=tupleize_cols,
+                                     date_format=date_format)
         formatter.save()
 
     def to_excel(self, excel_writer, sheet_name='Sheet1', na_rep='',

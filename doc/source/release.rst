@@ -60,6 +60,9 @@ New features
   - Clipboard functionality now works with PySide (:issue:`4282`)
   - New ``extract`` string method returns regex matches more conveniently (:issue:`4685`)
   - Auto-detect field widths in read_fwf when unspecified (:issue:`4488`)
+  - ``to_csv()`` now outputs datetime objects according to a specified format string
+    via the ``date_format`` keyword (:issue:`4313`)
+
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~

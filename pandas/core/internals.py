@@ -22,7 +22,7 @@ import pandas.computation.expressions as expressions
 
 from pandas.tslib import Timestamp
 from pandas import compat
-from pandas.compat import range, lrange, lmap, callable, map, zip
+from pandas.compat import range, lrange, lmap, callable, map, zip, u
 from pandas.tseries.timedeltas import _coerce_scalar_to_timedelta_type
 
 class Block(PandasObject):
@@ -1396,7 +1396,7 @@ class DatetimeBlock(Block):
         return [self if inplace else make_block(values, self.items,
                                                 self.ref_items, fastpath=True)]
 
-    def to_native_types(self, slicer=None, na_rep=None, **kwargs):
+    def to_native_types(self, slicer=None, na_rep=None, date_format=None, **kwargs):
         """ convert to our native types format, slicing if desired """
 
         values = self.values
@@ -1409,8 +1409,14 @@ class DatetimeBlock(Block):
             na_rep = 'NaT'
         rvalues[mask] = na_rep
         imask = (-mask).ravel()
-        rvalues.flat[imask] = np.array(
-            [Timestamp(val)._repr_base for val in values.ravel()[imask]], dtype=object)
+
+        if date_format is None:
+            date_formatter = lambda x: Timestamp(x)._repr_base
+        else:
+            date_formatter = lambda x: Timestamp(x).strftime(date_format)
+
+        rvalues.flat[imask] = np.array([date_formatter(val) for val in
+                                        values.ravel()[imask]], dtype=object)
 
         return rvalues.tolist()
 
