@@ -40,6 +40,7 @@ class SparsePanelAxis(object):
 
 
 class SparsePanel(Panel):
+
     """
     Sparse version of Panel
 
@@ -78,7 +79,6 @@ class SparsePanel(Panel):
 
         if not (isinstance(frames, dict)):
             raise AssertionError()
-
 
         self.default_fill_value = fill_value = default_fill_value
         self.default_kind = kind = default_kind
@@ -235,7 +235,6 @@ class SparsePanel(Panel):
         self._minor_axis = _ensure_index(com._unpickle_array(minor))
         self._frames = frames
 
-
     def copy(self):
         """
         Make a (shallow) copy of the sparse panel
@@ -336,7 +335,7 @@ class SparsePanel(Panel):
                     new_frames[item] = self._frames[item]
                 else:
                     raise NotImplementedError('Reindexing with new items not yet '
-                                    'supported')
+                                              'supported')
         else:
             new_frames = self._frames
 

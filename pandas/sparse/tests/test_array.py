@@ -33,17 +33,18 @@ class TestSparseArray(unittest.TestCase):
 
     def test_get_item(self):
         errmsg = re.compile("bounds")
-        assertRaisesRegexp(IndexError, errmsg, lambda : self.arr[11])
-        assertRaisesRegexp(IndexError, errmsg, lambda : self.arr[-11])
+        assertRaisesRegexp(IndexError, errmsg, lambda: self.arr[11])
+        assertRaisesRegexp(IndexError, errmsg, lambda: self.arr[-11])
         self.assertEqual(self.arr[-1], self.arr[len(self.arr) - 1])
 
     def test_bad_take(self):
-        assertRaisesRegexp(IndexError, "bounds", lambda : self.arr.take(11))
-        self.assertRaises(IndexError, lambda : self.arr.take(-11))
+        assertRaisesRegexp(IndexError, "bounds", lambda: self.arr.take(11))
+        self.assertRaises(IndexError, lambda: self.arr.take(-11))
 
     def test_set_item(self):
         def setitem():
             self.arr[5] = 3
+
         def setslice():
             self.arr[1:5] = 2
         assertRaisesRegexp(TypeError, "item assignment", setitem)

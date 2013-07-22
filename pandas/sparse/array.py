@@ -24,6 +24,7 @@ def _sparse_op_wrap(op, name):
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
     """
+
     def wrapper(self, other):
         if isinstance(other, np.ndarray):
             if not ((len(self) == len(other))):
@@ -87,7 +88,9 @@ def _sparse_fillop(this, other, name):
 
     return result, result_index
 
+
 class SparseArray(PandasObject, np.ndarray):
+
     """Data structure for labeled, sparse floating point data
 
 Parameters
@@ -112,15 +115,16 @@ to sparse
     sp_index = None
     fill_value = None
 
-    def __new__(cls, data, sparse_index=None, index=None, kind='integer', fill_value=None,
-                dtype=np.float64, copy=False):
+    def __new__(
+        cls, data, sparse_index=None, index=None, kind='integer', fill_value=None,
+            dtype=np.float64, copy=False):
 
         if index is not None:
             if data is None:
                 data = np.nan
             if not np.isscalar(data):
                 raise Exception("must only pass scalars with an index ")
-            values = np.empty(len(index),dtype='float64')
+            values = np.empty(len(index), dtype='float64')
             values.fill(data)
             data = values
 
@@ -152,9 +156,8 @@ to sparse
         else:
             subarr = np.asarray(values, dtype=dtype)
 
-
         # if we have a bool type, make sure that we have a bool fill_value
-        if (dtype is not None and issubclass(dtype.type,np.bool_)) or (data is not None and lib.is_bool_array(subarr)):
+        if (dtype is not None and issubclass(dtype.type, np.bool_)) or (data is not None and lib.is_bool_array(subarr)):
             if np.isnan(fill_value) or not fill_value:
                 fill_value = False
             else:
@@ -335,7 +338,8 @@ to sparse
             raise IndexError('out of bounds access')
 
         if self.sp_index.npoints > 0:
-            locs = np.array([self.sp_index.lookup(loc) if loc > -1 else -1 for loc in indices ])
+            locs = np.array(
+                [self.sp_index.lookup(loc) if loc > -1 else -1 for loc in indices])
             result = self.sp_values.take(locs)
             mask = locs == -1
             if mask.any():
@@ -353,11 +357,12 @@ to sparse
         return result
 
     def __setitem__(self, key, value):
-        #if com.is_integer(key):
+        # if com.is_integer(key):
         #    self.values[key] = value
-        #else:
+        # else:
         #    raise Exception("SparseArray does not support seting non-scalars via setitem")
-        raise TypeError("SparseArray does not support item assignment via setitem")
+        raise TypeError(
+            "SparseArray does not support item assignment via setitem")
 
     def __setslice__(self, i, j, value):
         if i < 0:
@@ -366,13 +371,14 @@ to sparse
             j = 0
         slobj = slice(i, j)
 
-        #if not np.isscalar(value):
+        # if not np.isscalar(value):
         #    raise Exception("SparseArray does not support seting non-scalars via slices")
 
         #x = self.values
         #x[slobj] = value
         #self.values = x
-        raise TypeError("SparseArray does not support item assignment via slices")
+        raise TypeError(
+            "SparseArray does not support item assignment via slices")
 
     def astype(self, dtype=None):
         """
@@ -393,7 +399,7 @@ to sparse
         else:
             values = self.sp_values
         return SparseArray(values, sparse_index=self.sp_index,
-                           dtype = self.dtype,
+                           dtype=self.dtype,
                            fill_value=self.fill_value)
 
     def count(self):
@@ -477,16 +483,19 @@ to sparse
 
 def _maybe_to_dense(obj):
     """ try to convert to dense """
-    if hasattr(obj,'to_dense'):
+    if hasattr(obj, 'to_dense'):
         return obj.to_dense()
     return obj
 
+
 def _maybe_to_sparse(array):
     if com.is_sparse_series(array):
-        array = SparseArray(array.values,sparse_index=array.sp_index,fill_value=array.fill_value,copy=True)
+        array = SparseArray(
+            array.values, sparse_index=array.sp_index, fill_value=array.fill_value, copy=True)
     if not isinstance(array, SparseArray):
         array = com._values_from_object(array)
     return array
+
 
 def make_sparse(arr, kind='block', fill_value=nan):
     """
@@ -502,11 +511,11 @@ def make_sparse(arr, kind='block', fill_value=nan):
     -------
     (sparse_values, index) : (ndarray, SparseIndex)
     """
-    if hasattr(arr,'values'):
+    if hasattr(arr, 'values'):
         arr = arr.values
     else:
         if np.isscalar(arr):
-            arr = [ arr ]
+            arr = [arr]
         arr = np.asarray(arr)
 
     length = len(arr)
