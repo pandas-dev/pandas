@@ -279,3 +279,76 @@ def use_inf_as_null_cb(key):
 with cf.config_prefix('mode'):
     cf.register_option('use_inf_as_null', False, use_inf_as_null_doc,
                        cb=use_inf_as_null_cb)
+
+
+sb_xp_dgrep_doc = """
+: boolean
+    Enables the experimental df.dgrep() method, for selecting series/DataFrame
+    rows by regex/predicate match against *data* values.
+
+    Features exposed via the sandbox are subject to change or removal, and are not
+    yet part of the official API.
+
+"""
+
+def sandbox(gh_issue_num,msg=None):
+    def inner(cb):
+        def f(key):
+
+            s = """
+This is an experimental feature being considered for inclusion in pandas core.
+We'd appreciate your feedback on it in the Github issue page:
+
+    http://github.com/pydata/pandas/issues/%d
+
+If you find this useful, lacking in major functionality or buggy please
+take a moment to let us know, so we can make pandas (even) better.
+
+Thank you,
+
+The Pandas dev team
+
+""" % gh_issue_num
+
+            if msg:
+                s += "P.S.\n\n" + msg
+
+            # don't print( the msessage on turn off
+            val = cf.get_option(key)
+            if val:
+                print(s)
+
+            return cb(key)
+
+        return f
+    return inner
+
+@sandbox(3276,msg="""
+Series/DataFrame now have the `dgrep` and `neighbours` methods.
+See the docstrings for usage examples.
+""")
+def xp_dgrep_cb(key):
+    import pandas
+    val = cf.get_option(key)
+    if val:
+        from pandas.sandbox.dgrep import dgrep,neighbours
+        pandas.DataFrame.dgrep = dgrep
+        pandas.Series.dgrep = dgrep
+        pandas.DataFrame.neighbours = neighbours
+        pandas.Series.neighbours = neighbours
+
+    else:
+        try:
+            del pandas.DataFrame.dgrep
+            del pandas.DataFrame.context
+        except:
+            pass
+        try:
+            del pandas.series.dgrep
+            del pandas.series.context
+        except:
+            pass
+
+with cf.config_prefix('sandbox'):
+        cf.register_option('dgrep', False, sb_xp_dgrep_doc,
+                       validator=is_bool, cb=xp_dgrep_cb)
