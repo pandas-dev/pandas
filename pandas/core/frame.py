@@ -5688,7 +5688,7 @@ def extract_index(data):
     index = None
     if len(data) == 0:
         index = Index([])
-    elif len(data) > 0 and index is None:
+    elif len(data) > 0:
         raw_lengths = []
         indexes = []
 
