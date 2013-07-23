@@ -848,12 +848,17 @@ class DataFrame(NDFrame):
     # boolean operators
     __and__ = _arith_method(operator.and_, '__and__', '&')
     __or__ = _arith_method(operator.or_, '__or__', '|')
-    __xor__ = _arith_method(operator.xor, '__xor__')
+    __xor__ = _arith_method(operator.xor, '__xor__', '^')
+
+    __rand__ = _arith_method(lambda x, y: operator.and_(y, x), '__rand__', '&')
+    __ror__ = _arith_method(lambda x, y: operator.or_(y, x), '__ror__', '|')
+    __rxor__ = _arith_method(lambda x, y: operator.xor(y, x), '__rxor__', '^')
 
     # Python 2 division methods
     if not py3compat.PY3:
         __div__ = _arith_method(operator.div, '__div__', '/',
-                                default_axis=None, fill_zeros=np.inf, truediv=False)
+                                default_axis=None, fill_zeros=np.inf,
+                                truediv=False)
         __rdiv__ = _arith_method(lambda x, y: y / x, '__rdiv__',
                                  default_axis=None, fill_zeros=np.inf)
 
@@ -5938,6 +5943,7 @@ def _homogenize(data, index, dtype=None):
         homogenized.append(v)
 
     return homogenized
+
 
 def _from_nested_dict(data):
     # TODO: this should be seriously cythonized

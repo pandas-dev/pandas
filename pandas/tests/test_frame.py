@@ -4098,11 +4098,30 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         import operator
 
         def _check_bin_op(op):
-            result = op(df1, df2)
-            expected = DataFrame(op(df1.values, df2.values), index=df1.index,
-                                 columns=df1.columns)
-            self.assert_(result.values.dtype == np.bool_)
-            assert_frame_equal(result, expected)
+            import itertools
+            operands = itertools.product((df1, s1), (df2, s2))
+            for opr_set in operands:
+                lhs, rhs = opr_set
+                if not (isinstance(lhs, Series) or isinstance(rhs, Series)):
+                    result = op(*opr_set)
+                    expected = DataFrame(op(lhs.values, rhs.values),
+                                         index=lhs.index, columns=lhs.columns)
+                    self.assert_(result.values.dtype == np.bool_)
+                    assert_frame_equal(result, expected)
+
+            for df in (df1, df2):
+                for b in (True, False):
+                    lhs, rhs = b, df
+                    result = op(lhs, rhs)
+                    expected = DataFrame(op(lhs, rhs.values), index=rhs.index,
+                                         columns=rhs.columns)
+                    assert_frame_equal(result, expected)
+
+                    lhs, rhs = df, b
+                    result = op(lhs, rhs)
+                    expected = DataFrame(op(lhs.values, rhs), index=lhs.index,
+                                         columns=lhs.columns)
+                    assert_frame_equal(result, expected)
 
         def _check_unary_op(op):
             result = op(df1)
@@ -4130,10 +4149,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         df1 = DataFrame(df1)
         df2 = DataFrame(df2)
+        s1 = df1.a
+        s2 = df2.b
 
-        _check_bin_op(operator.and_)
-        _check_bin_op(operator.or_)
-        _check_bin_op(operator.xor)
+        ops = (operator.and_, operator.or_, operator.xor,
+               lambda x, y: operator.and_(y, x),
+               lambda x, y: operator.or_(y, x),
+               lambda x, y: operator.xor(y, x))
+
+        for binop in ops:
+            _check_bin_op(binop)
 
         _check_unary_op(operator.neg)
 
