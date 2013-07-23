@@ -5712,11 +5712,9 @@ def extract_index(data):
                 have_raw_arrays = True
                 raw_lengths.append(len(v))
             else:
-                # Item v silently ignored (to conserve
-                # the original behaviour - see also
-                # test of __getitem__ below).
-                # This behaviour is kept, but I think
-                # that an exception (TypeError) should be raised instead.
+                # Item v is silently ignored,
+                # as it is not anything an index can be inferred
+                # from.
                 pass
 
         if not indexes and not raw_lengths:
