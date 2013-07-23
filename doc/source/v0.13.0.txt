@@ -9,6 +9,9 @@ enhancements along with a large number of bug fixes.
 API changes
 ~~~~~~~~~~~
 
+- ``DataFrame`` now supports being the right hand side operand in boolean
+  operators (:issue:`4331`)
+
 Enhancements
 ~~~~~~~~~~~~
 

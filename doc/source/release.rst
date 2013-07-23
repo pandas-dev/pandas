@@ -35,6 +35,9 @@ pandas 0.13
 
 **API Changes**
 
+- ``DataFrame`` now supports being the right hand side operand in boolean
+  operators (:issue:`4331`)
+
 **Experimental Features**
 
 **Bug Fixes**
