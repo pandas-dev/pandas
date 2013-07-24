@@ -3795,6 +3795,18 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = Series([False, True, False], index=[1, 2, 3])
         assert_series_equal(result, expected)
 
+        #------------------------------------------------------------
+        # empty
+        empty = Series()
+
+        result = empty.reindex([1, 2, 3])
+        expected = Series([np.nan, np.nan, np.nan], index=[1, 2, 3])
+        assert_series_equal(result, expected)
+
+        result = empty.reindex([1, 2, 3], fill_value=0.0)
+        expected = Series([0.0, 0.0, 0.0], index=[1, 2, 3])
+        assert_series_equal(result, expected)
+
     def test_rename(self):
         renamer = lambda x: x.strftime('%Y%m%d')
         renamed = self.ts.rename(renamer)
