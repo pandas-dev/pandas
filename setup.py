@@ -165,7 +165,7 @@ the ideal tool for all of these tasks.
 
 Note
 ----
-Windows binaries built against NumPy 1.6.1
+Windows binaries built against NumPy 1.7.1
 """
 
 DISTNAME = 'pandas'
