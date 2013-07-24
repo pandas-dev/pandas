@@ -10633,6 +10633,55 @@ starting,ending,measure
         f = lambda x: x.rename({1: 'foo'}, inplace=True)
         _check_f(data.copy()['c'], f)
 
+    def test_isin(self):
+        # GH #4211
+        df = DataFrame({'vals': [1, 2, 3, 4], 'ids': ['a', 'b', 'f', 'n'],
+                        'ids2': ['a', 'n', 'c', 'n']},
+                        index=['foo', 'bar', 'baz', 'qux'])
+        other = ['a', 'b', 'c']
+
+        result = df.isin(other)
+        expected = DataFrame([df.loc[s].isin(other) for s in df.index])
+        assert_frame_equal(result, expected)
+
+    def test_isin_empty(self):
+        df = DataFrame({'A': ['a', 'b', 'c'], 'B': ['a', 'e', 'f']})
+        result = df.isin([])
+        expected = pd.DataFrame(False, df.index, df.columns)
+        assert_frame_equal(result, expected)
+
+    def test_isin_dict(self):
+        df = DataFrame({'A': ['a', 'b', 'c'], 'B': ['a', 'e', 'f']})
+        d = {'A': ['a']}
+
+        expected = DataFrame(False, df.index, df.columns)
+        expected.loc[0, 'A'] = True
+
+        result = df.isin(d)
+        assert_frame_equal(result, expected)
+
+        # non unique columns
+        df = DataFrame({'A': ['a', 'b', 'c'], 'B': ['a', 'e', 'f']})
+        df.columns = ['A', 'A']
+        expected = DataFrame(False, df.index, df.columns)
+        expected.loc[0, 'A'] = True
+        result = df.isin(d)
+        assert_frame_equal(result, expected)
+
+        # iloc
+        df = DataFrame({'A': ['a', 'b', 'c'], 'B': ['a', 'e', 'f']})
+        d = {0: ['a']}
+        expected = DataFrame(False, df.index, df.columns)
+
+        # without using iloc
+        result = df.isin(d)
+        assert_frame_equal(result, expected)        
+
+        # using iloc
+        result = df.isin(d, iloc=True)
+        expected.iloc[0, 0] = True
+        assert_frame_equal(result, expected)        
+
 
 if __name__ == '__main__':
     # unittest.main()
