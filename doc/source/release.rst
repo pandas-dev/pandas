@@ -42,7 +42,7 @@ pandas 0.13
 pandas 0.12
 ===========
 
-**Release date:** soon-to-be-released
+**Release date:** 2013-07-24
 
 **New features**
 

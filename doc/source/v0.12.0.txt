@@ -1,6 +1,6 @@
 .. _whatsnew_0120:
 
-v0.12.0 (July ??, 2013)
+v0.12.0 (July 24, 2013)
 ------------------------
 
 This is a major release from 0.11.0 and includes several new features and
