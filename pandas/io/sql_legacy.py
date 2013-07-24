@@ -7,12 +7,8 @@ from datetime import datetime, date
 import numpy as np
 import traceback
 
-import sqlite3
-import warnings
-
 from pandas.core.datetools import format as date_format
 from pandas.core.api import DataFrame, isnull
-from pandas.io import sql_legacy
 
 #------------------------------------------------------------------------------
 # Helper execution function
@@ -136,85 +132,8 @@ def uquery(sql, con=None, cur=None, retry=True, params=None):
             return uquery(sql, con, retry=False)
     return result
 
-class SQLAlchemyRequired(Exception):
-    pass
 
-class LegacyMySQLConnection(Exception):
-    pass
-
-def get_connection(con, dialect, driver, username, password, 
-                   host, port, database):
-    if isinstance(con, basestring):
-        try:
-            import sqlalchemy
-            return _alchemy_connect_sqlite(con)
-        except:
-            return sqlite3.connect(con)
-    if isinstance(con, sqlite3.Connection):
-        return con
-    try:
-        import MySQLdb
-    except ImportError:
-        # If we don't have MySQLdb, this can't be a MySQLdb connection.
-        pass
-    else:
-        if isinstance(con, MySQLdb.connection):
-            raise LegacyMySQLConnection
-    # If we reach here, SQLAlchemy will be needed.
-    try:
-        import sqlalchemy
-    except ImportError:
-        raise SQLAlchemyRequired
-    if isinstance(con, sqlalchemy.engine.Engine):
-        return con.connect()
-    if isinstance(con, sqlalchemy.engine.Connection):
-        return con 
-    if con is None:
-        url_params = (dialect, driver, username, \
-                      password, host, port, database)
-        url = _build_url(*url_params)
-        engine = sqlalchemy.create_engine(url)
-        return engine.connect()
-    if hasattr(con, 'cursor') and callable(con.cursor):
-        # This looks like some Connection object from a driver module.
-        raise NotImplementedError, \
-           """To ensure robust support of varied SQL dialects, pandas
-           only supports database connections from SQLAlchemy. (Legacy
-           support for MySQLdb connections are available but buggy.)"""
-    else:
-        raise ValueError, \
-           """con must be a string, a Connection to a sqlite Database,
-           or a SQLAlchemy Connection or Engine object."""
-       
-
-def _alchemy_connect_sqlite(path):
-    if path == ':memory:':
-        return create_engine('sqlite://').connect()
-    else:
-        return create_engine('sqlite:///%s' % path).connect()
-
-def _build_url(dialect, driver, username, password, host, port, database):
-    # Create an Engine and from that a Connection.
-    # We use a string instead of sqlalchemy.engine.url.URL because
-    # we do not necessarily know the driver; we know the dialect.
-    required_params = [dialect, username, password, host, database]
-    for p in required_params:
-        if not isinstance(p, basestring):
-            raise ValueError, \
-                "Insufficient information to connect to a database;" \
-                "see docstring."
-    url = dialect
-    if driver is not None:
-        url += "+%s" % driver
-    url += "://%s:%s@%s" % (username, password, host)
-    if port is not None:
-        url += ":%d" % port
-    url += "/%s" % database
-    return url
-
-def read_sql(sql, con=None, index_col=None, flavor=None, driver=None,
-             username=None, password=None, host=None, port=None, 
-             database=None, coerce_float=True, params=None):
+def read_frame(sql, con, index_col=None, coerce_float=True, params=None):
     """
     Returns a DataFrame corresponding to the result set of the query
     string.
@@ -226,52 +145,32 @@ def read_sql(sql, con=None, index_col=None, flavor=None, driver=None,
     ----------
     sql: string
         SQL query to be executed
-    con : Connection object, SQLAlchemy Engine object, a filepath string 
-        (sqlite only) or the string ':memory:' (sqlite only). Alternatively, 
-        specify a user, passwd, host, and db below.
+    con: DB connection object, optional
     index_col: string, optional
         column name to use for the returned DataFrame object.
-    flavor : string specifying the flavor of SQL to use
-    driver : string specifying SQL driver (e.g., MySQLdb), optional
-    username: username for database authentication
-        only needed if a Connection, Engine, or filepath are not given
-    password: password for database authentication
-        only needed if a Connection, Engine, or filepath are not given
-    host: host for database connection
-        only needed if a Connection, Engine, or filepath are not given
-    database: database name
-        only needed if a Connection, Engine, or filepath are not given
     coerce_float : boolean, default True
         Attempt to convert values to non-string, non-numeric objects (like
         decimal.Decimal) to floating point, useful for SQL result sets
     params: list or tuple, optional
         List of parameters to pass to execute method.
     """
-    dialect = flavor
-    try:
-        connection = get_connection(con, dialect, driver, username, password, 
-                                    host, port, database)
-    except LegacyMySQLConnection:
-        warnings.warn("For more robust support, connect using " \
-                      "SQLAlchemy. See documentation.")
-        return sql_legacy.read_frame(sql, con, index_col, coerce_float, params)
+    cur = execute(sql, con, params=params)
+    rows = _safe_fetch(cur)
+    columns = [col_desc[0] for col_desc in cur.description]
 
-    if params is None:
-        params = []
-    cursor = connection.execute(sql, *params)
-    result = _safe_fetch(cursor)
-    columns = [col_desc[0] for col_desc in cursor.description]
-    cursor.close()
+    cur.close()
+    con.commit()
 
-    result = DataFrame.from_records(result, columns=columns)
+    result = DataFrame.from_records(rows, columns=columns,
+                                    coerce_float=coerce_float)
 
     if index_col is not None:
         result = result.set_index(index_col)
 
     return result
 
-frame_query = read_sql
-read_frame = read_sql
+frame_query = read_frame
+read_sql = read_frame
 
 def write_frame(frame, name, con, flavor='sqlite', if_exists='fail', **kwargs):
     """

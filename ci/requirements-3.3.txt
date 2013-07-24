@@ -12,3 +12,4 @@ patsy==0.1.0
 lxml==3.2.1
 scipy==0.12.0
 beautifulsoup4==4.2.1
+sqlalchemy==0.8
