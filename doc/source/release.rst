@@ -31,6 +31,8 @@ pandas 0.13
 
 **New features**
 
+  - Added ``isin`` method to DataFrame (:issue:`4211`)
+
 **Improvements to existing features**
 
 **API Changes**
@@ -72,7 +74,6 @@ pandas 0.12
   - Access to historical Google Finance data in pandas.io.data (:issue:`3814`)
   - DataFrame plotting methods can sample column colors from a Matplotlib
     colormap via the ``colormap`` keyword. (:issue:`3860`)
-  - Added ``isin`` method to DataFrame (:issue:`4211`)
 
 **Improvements to existing features**
 
