@@ -37,6 +37,8 @@ pandas 0.13
 
   - ``read_html`` now raises a ``URLError`` instead of catching and raising a
     ``ValueError`` (:issue:`4303`, :issue:`4305`)
+  - ``read_excel`` now supports an integer in its ``sheetname`` argument giving
+    the index of the sheet to read in (:issue:`4301`).
 
 **API Changes**
 
