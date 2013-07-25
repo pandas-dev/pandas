@@ -1934,8 +1934,12 @@ class DataFrame(NDFrame):
         :keyword:`and` and :keyword:`or`. This *is* syntactically valid Python,
         however the semantics are different.
 
-        You can use a syntax that is semantically identical to Python by
-        passing the keyword argument ``parser='python'``.
+        You can change the semantics of the expression by passing the keyword
+        argument ``parser='python'``. This enforces the same semantics as
+        evaluation in Python space. Likewise, you can pass ``engine='python'``
+        to evaluate an expression using Python itself as a backend. This is not
+        recommended as it is inefficient compared to using ``numexpr`` as the
+        engine.
 
         The :attr:`~pandas.DataFrame.index` and
         :attr:`~pandas.DataFrame.columns` attributes of the
@@ -1945,47 +1949,15 @@ class DataFrame(NDFrame):
         The identifier ``index`` is used for this variable, and you can also
         use the name of the index to identify it in a query.
 
+        For further details and examples see the ``query`` documentation in
+        :ref:`indexing <indexing.query>`.
+
         Raises
         ------
         NameError
           * If not all identifiers in the query can be found
         SyntaxError
           * If a syntactically invalid Python expression is passed
-
-        Examples
-        --------
-        Get the value of the frame where column ``b`` has values between the
-        values of columns ``a`` and ``c``.
-
-            >>> from pandas import DataFrame
-            >>> from numpy.random import randn
-            >>> df = DataFrame(randn(100, 3), columns=list('abc'))
-            >>> result = df.query('a < b & b < c')
-
-        Do the same thing but fallback on a named index if there is no column
-        with the name ``a``.
-
-            >>> from pandas import DataFrame, Index
-            >>> from numpy.random import randn
-            >>> n = 10
-            >>> index = Index(randn(n), name='a')
-            >>> df = DataFrame(randn(n, 2), index=index, columns=list('bc'))
-            >>> result = df.query('a < b & b < c')
-
-        A use case for :meth:`~pandas.core.frame.DataFrame.query` is when you
-        have a collection of :class:`~pandas.core.frame.DataFrame` s that have
-        a subset of column names in common. You can pass the same query to both
-        frames *without* having to specify which frame you're interested in
-        querying
-
-            >>> from pandas import DataFrame, Index
-            >>> from numpy.random import randn
-            >>> n = 100
-            >>> index = Index(randn(n), name='a')
-            >>> df = DataFrame(randn(n, 2), index=index, columns=list('bc'))
-            >>> df2 = DataFrame(randn(n + 10, 3))
-            >>> expr = 'a < b & b < c'
-            >>> results = map(lambda frame: frame.query(expr), [df, df2])
 
         See Also
         --------

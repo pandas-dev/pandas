@@ -4,6 +4,7 @@ Misc tools for implementing data structures
 
 import re
 import collections
+import numbers
 import codecs
 import csv
 import sys
@@ -1668,7 +1669,7 @@ def is_bool(obj):
 
 
 def is_string(obj):
-    return isinstance(obj, (basestring, np.str_, np.unicode_))
+    return isinstance(obj, basestring)
 
 
 def is_series(obj):
@@ -1690,8 +1691,9 @@ def is_pd_obj(obj):
 def is_ndframe(obj):
     return isinstance(obj, pd.core.generic.NDFrame)
 
+
 def is_integer(obj):
-    return isinstance(obj, (int, long, np.integer))
+    return isinstance(obj, (numbers.Integral, np.integer))
 
 
 def is_float(obj):
@@ -1699,7 +1701,7 @@ def is_float(obj):
 
 
 def is_complex(obj):
-    return isinstance(obj, (complex, np.complexfloating))
+    return isinstance(obj, (numbers.Complex, np.complexfloating))
 
 
 def is_iterator(obj):
@@ -1708,7 +1710,7 @@ def is_iterator(obj):
 
 
 def is_number(obj):
-    return isinstance(obj, (np.number, int, long, float, complex))
+    return isinstance(obj, (numbers.Number, np.number))
 
 
 def is_integer_dtype(arr_or_dtype):

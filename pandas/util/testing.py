@@ -14,7 +14,6 @@ from datetime import datetime
 from functools import wraps, partial
 from contextlib import contextmanager
 from httplib import HTTPException
-from urllib2 import urlopen
 from distutils.version import LooseVersion
 
 from numpy.random import randn, rand
@@ -36,7 +35,7 @@ from pandas import bdate_range
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
 
-from pandas.io.common import urlopen, HTTPException
+from pandas.io.common import urlopen
 
 Index = index.Index
 MultiIndex = index.MultiIndex

@@ -1008,14 +1008,121 @@ convert to an integer index:
 
 .. _indexing.query:
 
-The ``query`` Method
-~~~~~~~~~~~~~~~~~~~~
-New in pandas v0.13, :class:`~pandas.core.frame.DataFrame` objects have a
-:meth:`~pandas.core.frame.DataFrame.query` method that allows selection using a
-string consisting of columns of the calling
-:class:`~pandas.core.frame.DataFrame`.
+.. versionadded:: 0.13
 
+The :meth:`~pandas.DataFrame.query` Method
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+:class:`~pandas.DataFrame` objects have a :meth:`~pandas.DataFrame.query`
+method that allows selection using a string consisting of columns of the
+calling :class:`~pandas.DataFrame`.
 
+You can get the value of the frame where column ``b`` has values
+between the values of columns ``a`` and ``c``.
+
+.. ipython:: python
+   :suppress:
+
+   from numpy.random import randint, rand
+
+.. ipython:: python
+
+   n = 20
+   df = DataFrame(rand(n, 3), columns=list('abc'))
+   df
+   df[(df.a < df.b) & (df.b < df.c)]
+   df.query('(a < b) & (b < c)')
+
+Do the same thing but fallback on a named index if there is no column
+with the name ``a``.
+
+.. ipython:: python
+
+   index = Index(np.arange(n), name='a')
+   df = DataFrame(randint(n, size=(n, 2)), index=index, columns=list('bc'))
+   df
+   df.query('a < b and b < c')
+
+A use case for :meth:`~pandas.DataFrame.query` is when you have a collection of
+:class:`~pandas.DataFrame` s that have a subset of column names (or index
+names) in common. You can pass the same query to both frames *without* having
+to specify which frame you're interested in querying
+
+.. ipython:: python
+
+   df2 = DataFrame(randint(n + 10, size=(n + 10, 3)), columns=list('abc'))
+   df2
+   expr = 'a < b & b < c'
+   map(lambda frame: frame.query(expr), [df, df2])
+
+A chained comparison would also work in this situation, yielding slightly
+cleaner syntax
+
+.. ipython:: python
+
+   expr = 'a < b < c'
+   map(lambda frame: frame.query(expr), [df, df2])
+
+One neat feature of :meth:`~pandas.DataFrame.query` is that you can pass an
+expression ``expr`` into ``df[]``, e.g., ``df[expr]``.
+
+This functionality can of course be combined with a slightly modified and more
+readable Python syntax implemented in the workhorse function that underlies
+:meth:`~pandas.DataFrame.query`--:func:`~pandas.eval`.
+
+Full numpy-like syntax
+
+.. ipython:: python
+
+   df['(a < b) & (b < c)']
+
+Slightly nicer by removing the parentheses
+
+.. ipython:: python
+
+   df['a < b & b < c']
+
+Use English instead of symbols
+
+.. ipython:: python
+
+   df['a < b and b < c']
+
+Pretty close to how you might write it on paper
+
+.. ipython:: python
+
+   df['a < b < c']
+
+As you can see, these are all equivalent ways to express the same operation (in
+fact, they are all ultimately parsed into something very similar to the first
+example of the indexing syntax above).
+
+You can also negate boolean expressions with the word ``not`` or the ``~``
+operator.
+
+.. ipython:: python
+
+   df = DataFrame(rand(n, 3), columns=list('abc'))
+   df['bools'] = rand(len(df)) > 0.5
+   df['~bools']
+   df['not bools']
+   df['not bools'] == df['~bools']
+   df['not bools'] == df[~df.bools]
+
+Of course, expressions can be arbitrarily complex too
+
+.. ipython:: python
+
+   # nice short query syntax
+   pretty = df['a < b < c and (not bools) or bools > 2']
+
+   # equivalent in pure Python, yuck!
+   yuck = df[(df.a < df.b) & (df.b < df.c) & (~df.bools) | (df.bools > 2)]
+
+   pretty
+   yuck
+
+   yuck == pretty
 
 .. _indexing.class:
 

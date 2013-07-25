@@ -27,6 +27,7 @@ def _check_parser(parser):
         raise KeyError('Invalid parser {0!r} passed, valid parsers are'
                        ' {1}'.format(parser, _parsers.keys()))
 
+
 def eval(expr, parser='pandas', engine='numexpr', truediv=True,
          local_dict=None, global_dict=None, resolvers=None):
     """Evaluate a Python expression as a string using various backends.

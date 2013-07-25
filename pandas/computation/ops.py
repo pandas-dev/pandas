@@ -93,6 +93,12 @@ class Term(StringMixin):
 
     return_type = type
 
+    @property
+    def raw(self):
+        return com.pprint_thing('{0}(name={1!r}, type={2})'
+                                ''.format(self.__class__.__name__, self.name,
+                                          self.type))
+
 
 class Constant(Term):
     def __init__(self, value, env):
@@ -103,7 +109,7 @@ class Constant(Term):
 
 
 def _print_operand(opr):
-    return opr.name if is_term(opr) else unicode(opr)
+    return opr.name if is_term(opr) else com.pprint_thing(opr)
 
 
 def _get_op(op):
@@ -135,6 +141,12 @@ class Op(StringMixin):
             return np.bool_
         return np.result_type(*(term.type for term in com.flatten(self)))
 
+    @property
+    def raw(self):
+        parened = ('{0}({1!r}, {2})'.format(self.__class__.__name__, self.op,
+                                            ', '.join('{0}'.format(opr.raw) for
+                                                      opr in self.operands)))
+        return parened
 
 _cmp_ops_syms = '>', '<', '>=', '<=', '==', '!='
 _cmp_ops_funcs = op.gt, op.lt, op.ge, op.le, op.eq, op.ne
@@ -279,4 +291,3 @@ class UnaryOp(Op):
 
     def __unicode__(self):
         return com.pprint_thing('{0}({1})'.format(self.op, self.operand))
-

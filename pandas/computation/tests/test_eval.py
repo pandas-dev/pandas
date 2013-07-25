@@ -7,8 +7,7 @@ from itertools import product
 import ast
 
 import nose
-from nose.tools import assert_raises, assert_tuple_equal
-from nose.tools import assert_true, assert_false, assert_equal
+from nose.tools import assert_raises, assert_true, assert_false, assert_equal
 
 from numpy.random import randn, rand
 import numpy as np
@@ -29,7 +28,7 @@ from pandas.computation import pytables
 from pandas.computation.expressions import _USE_NUMEXPR
 from pandas.util.testing import (assert_frame_equal, randbool,
                                  assertRaisesRegexp,
-                                 assert_produces_warning)
+                                 assert_produces_warning, assert_series_equal)
 from pandas.util.py3compat import PY3
 
 
@@ -77,8 +76,7 @@ def skip_incompatible_operand(f):
     return wrapper
 
 
-_good_arith_ops = tuple(set(_arith_ops_syms) -
-                        set(_special_case_arith_ops_syms))
+_good_arith_ops = com.difference(_arith_ops_syms, _special_case_arith_ops_syms)
 
 class TestEvalPandas(unittest.TestCase):
 
@@ -160,6 +158,7 @@ class TestEvalPandas(unittest.TestCase):
         for lhs, rhs in product(self.lhses, self.rhses):
             self.check_floor_division(lhs, '//', rhs)
 
+    @slow
     def test_pow(self):
         for lhs, rhs in product(self.lhses, self.rhses):
             self.check_pow(lhs, '**', rhs)
@@ -391,11 +390,11 @@ class TestAlignment(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.INDEX_TYPES = 'i', 'f', 's', 'u', 'dt', # 'p'
+        cls.index_types = 'i', 'f', 's', 'u', 'dt', # 'p'
 
     @classmethod
     def tearDownClass(cls):
-        del cls.INDEX_TYPES
+        del cls.index_types
 
     def check_align_nested_unary_op(self, engine):
         skip_numexpr_engine(engine)
@@ -408,15 +407,35 @@ class TestAlignment(unittest.TestCase):
         for engine in _engines:
             self.check_align_nested_unary_op(engine)
 
-    def check_basic_frame_alignment(self, engine):
-        df = mkdf(10, 10, data_gen_f=f)
-        df2 = mkdf(20, 10, data_gen_f=f)
+    def check_basic_frame_alignment(self, engine, r_idx_type, c_idx_type):
+        df = mkdf(10, 10, data_gen_f=f, r_idx_type=r_idx_type,
+                  c_idx_type=c_idx_type)
+        df2 = mkdf(20, 10, data_gen_f=f, r_idx_type=r_idx_type,
+                   c_idx_type=c_idx_type)
         res = pd.eval('df + df2', engine=engine)
         assert_frame_equal(res, df + df2)
 
+    @slow
     def test_basic_frame_alignment(self):
-        for engine in _engines:
-            self.check_basic_frame_alignment(engine)
+        args = product(_engines, self.index_types, self.index_types)
+        for engine, r, c in args:
+            self.check_basic_frame_alignment(engine, r, c)
+
+    def check_frame_comparison(self, engine, r_idx_type, c_idx_type):
+        df = mkdf(10, 10, data_gen_f=f, r_idx_type=r_idx_type,
+                  c_idx_type=c_idx_type)
+        res = pd.eval('df < 2', engine=engine)
+        assert_frame_equal(res, df < 2)
+
+        df3 = DataFrame(randn(*df.shape), index=df.index, columns=df.columns)
+        res = pd.eval('df < df3', engine=engine)
+        assert_frame_equal(res, df < df3)
+
+    @slow
+    def test_frame_comparison(self):
+        args = product(_engines, self.index_types, self.index_types)
+        for engine, r, c in args:
+            self.check_frame_comparison(engine, r, c)
 
     def check_medium_complex_frame_alignment(self, engine, r1, r2, c1, c2):
         skip_numexpr_engine(engine)
@@ -428,7 +447,7 @@ class TestAlignment(unittest.TestCase):
 
     @slow
     def test_medium_complex_frame_alignment(self):
-        args = product(_engines, *([self.INDEX_TYPES[:4]] * 4))
+        args = product(_engines, *([self.index_types] * 4))
         for engine, r1, r2, c1, c2 in args:
             self.check_medium_complex_frame_alignment(engine, r1, r2, c1, c2)
 
@@ -455,7 +474,7 @@ class TestAlignment(unittest.TestCase):
 
     @slow
     def test_basic_frame_series_alignment(self):
-        args = product(_engines, self.INDEX_TYPES, self.INDEX_TYPES,
+        args = product(_engines, self.index_types, self.index_types,
                        ('index', 'columns'))
         for engine, r_idx_type, c_idx_type, index_name in args:
             self.check_basic_frame_series_alignment(engine, r_idx_type,
@@ -484,7 +503,7 @@ class TestAlignment(unittest.TestCase):
 
     @slow
     def test_basic_series_frame_alignment(self):
-        args = product(_engines, self.INDEX_TYPES, self.INDEX_TYPES,
+        args = product(_engines, self.index_types, self.index_types,
                        ('index', 'columns'))
         for engine, r_idx_type, c_idx_type, index_name in args:
             self.check_basic_series_frame_alignment(engine, r_idx_type,
@@ -509,7 +528,7 @@ class TestAlignment(unittest.TestCase):
 
     @slow
     def test_series_frame_commutativity(self):
-        args = product(_engines, self.INDEX_TYPES, self.INDEX_TYPES, ('+',
+        args = product(_engines, self.index_types, self.index_types, ('+',
                                                                       '*'),
                        ('index', 'columns'))
         for engine, r_idx_type, c_idx_type, op, index_name in args:
@@ -519,27 +538,41 @@ class TestAlignment(unittest.TestCase):
     def check_complex_series_frame_alignment(self, engine, index_name, obj, r1,
                                              r2, c1, c2):
         skip_numexpr_engine(engine)
-        df = mkdf(10, 10, data_gen_f=f, r_idx_type=r1, c_idx_type=c1)
-        df2 = mkdf(20, 10, data_gen_f=f, r_idx_type=r2, c_idx_type=c2)
+        df = mkdf(10, 5, data_gen_f=f, r_idx_type=r1, c_idx_type=c1)
+        df2 = mkdf(20, 5, data_gen_f=f, r_idx_type=r2, c_idx_type=c2)
         index = getattr(locals()[obj], index_name)
         s = Series(np.random.randn(5), index[:5])
-        if engine != 'python':
-            expected = df2.add(s, axis=1).add(df)
+
+        if r2 == 'dt' or c2 == 'dt':
+            if engine == 'numexpr':
+                expected2 = df2.add(s)
+            else:
+                expected2 = df2 + s
         else:
-            expected = df2 + s + df
+            expected2 = df2 + s
+
+        if r1 == 'dt' or c1 == 'dt':
+            if engine == 'numexpr':
+                expected = expected2.add(df)
+            else:
+                expected = expected2 + df
+        else:
+            expected = expected2 + df
+
         res = pd.eval('df2 + s + df', engine=engine)
-        expected = df2 + s + df
-        assert_tuple_equal(res.shape, expected.shape)
+        self.assertEqual(res.shape, expected.shape)
         assert_frame_equal(res, expected)
 
     @slow
     def test_complex_series_frame_alignment(self):
+        index_types = [self.index_types] * 4
         args = product(_engines, ('index', 'columns'), ('df', 'df2'),
-                    *([self.INDEX_TYPES[:4]] * 4))
+                       *index_types)
         for engine, index_name, obj, r1, r2, c1, c2 in args:
             self.check_complex_series_frame_alignment(engine, index_name, obj,
                                                       r1, r2, c1, c2)
 
+    @slow
     def test_performance_warning_for_asenine_alignment(self):
         df = DataFrame(randn(1000, 10))
         s = Series(randn(10000))
@@ -554,6 +587,7 @@ class TestAlignment(unittest.TestCase):
         s = Series(randn(10000))
         with assert_produces_warning(False):
             pd.eval('df + s')
+
 
 class TestOperations(unittest.TestCase):
 
@@ -659,6 +693,131 @@ class TestOperations(unittest.TestCase):
             res = pd.eval(ex, truediv=True)
             assert_array_equal(res, np.array([1.0]))
 
+    def test_python_fails_and(self):
+        df = DataFrame(np.random.randn(5, 3))
+        self.assertRaises(NotImplementedError, pd.eval, 'df > 2 and df > 3',
+                          local_dict={'df': df}, parser='python')
+
+    def test_python_fails_or(self):
+        df = DataFrame(np.random.randn(5, 3))
+        self.assertRaises(NotImplementedError, pd.eval, 'df > 2 or df > 3',
+                          local_dict={'df': df}, parser='python')
+
+    def test_python_fails_not(self):
+        df = DataFrame(np.random.randn(5, 3))
+        self.assertRaises(NotImplementedError, pd.eval, 'not df > 2',
+                          local_dict={'df': df}, parser='python')
+
+    def test_python_fails_ampersand(self):
+        df = DataFrame(np.random.randn(5, 3))
+        self.assertRaises(TypeError, pd.eval,
+                          '(df + 2)[df > 1] > 0 & (df > 0)',
+                          local_dict={'df': df}, parser='python')
+
+    def test_python_fails_pipe(self):
+        df = DataFrame(np.random.randn(5, 3))
+        self.assertRaises(TypeError, pd.eval,
+                          '(df + 2)[df > 1] > 0 | (df > 0)',
+                          local_dict={'df': df}, parser='python')
+
+    def check_failing_subscript_with_name_error(self, engine):
+        df = DataFrame(np.random.randn(5, 3))
+        self.assertRaises(NameError, pd.eval, 'df[x > 2] > 2',
+                          local_dict={'df': df}, engine=engine)
+
+    def test_failing_subscript_with_name_error(self):
+        for engine in _engines:
+            self.check_failing_subscript_with_name_error(engine)
+
+    def check_lhs_expression_subscript(self, engine):
+        df = DataFrame(np.random.randn(5, 3))
+        result = pd.eval('(df + 1)[df > 2]', engine=engine)
+        expected = (df + 1)[df > 2]
+        assert_frame_equal(result, expected)
+
+    def test_lhs_expression_subscript(self):
+        for engine in _engines:
+            self.check_lhs_expression_subscript(engine)
+
+    def check_attr_expression(self, engine):
+        df = DataFrame(np.random.randn(5, 3), columns=list('abc'))
+        expr1 = 'df.a < df.b'
+        expec1 = df.a < df.b
+        expr2 = 'df.a + df.b + df.c'
+        expec2 = df.a + df.b + df.c
+        expr3 = 'df.a + df.b + df.c[df.b < 0]'
+        expec3 = df.a + df.b + df.c[df.b < 0]
+        exprs = expr1, expr2, expr3
+        expecs = expec1, expec2, expec3
+        for e, expec in zip(exprs, expecs):
+            assert_series_equal(expec, pd.eval(e, engine=engine))
+
+    def test_attr_expression(self):
+        for engine in _engines:
+            self.check_attr_expression(engine)
+
+    def check_assignment_fails(self, engine, parser):
+        df = DataFrame(np.random.randn(5, 3), columns=list('abc'))
+        df2 = DataFrame(np.random.randn(5, 3))
+        expr1 = 'df = df2'
+        self.assertRaises(NotImplementedError, pd.eval, expr1,
+                          local_dict={'df': df, 'df2': df2}, engine=engine,
+                          parser=parser)
+
+    def test_assignment_fails(self):
+        for engine, parser in product(_engines.iterkeys(), ('pandas',
+                                                            'python')):
+            self.check_assignment_fails(engine, parser)
+
+    def check_basic_period_index_boolean_expression(self, engine):
+        df = mkdf(2, 2, data_gen_f=f, c_idx_type='p', r_idx_type='i')
+
+        e = df < 2
+        r = pd.eval('df < 2', engine=engine)
+        x = df < 2
+
+        assert_frame_equal(r, e)
+        assert_frame_equal(x, e)
+
+    def test_basic_period_index_expression_python(self):
+        for engine in _engines:
+            self.check_basic_period_index_boolean_expression(engine)
+
+    def check_basic_period_index_subscript_expression(self, engine):
+        df = mkdf(2, 2, data_gen_f=f, c_idx_type='p', r_idx_type='i')
+        r = pd.eval('df[df < 2 + 3]', engine=engine)
+        e = df[df < 2 + 3]
+        assert_frame_equal(r, e)
+
+    def test_basic_period_index_subscript_expression(self):
+        for engine in _engines:
+            self.check_basic_period_index_subscript_expression(engine)
+
+    def check_nested_period_index_subscript_expression(self, engine):
+        df = mkdf(2, 2, data_gen_f=f, c_idx_type='p', r_idx_type='i')
+        r = pd.eval('df[df[df < 2] < 2] + df * 2', engine=engine)
+        e = df[df[df < 2] < 2] + df * 2
+        assert_frame_equal(r, e)
+
+    def test_nested_period_index_subscript_expression(self):
+        for engine in _engines:
+            self.check_nested_period_index_subscript_expression(engine)
+
+    def test_simple_not_expression(self):
+        df = DataFrame(randn(10, 3), columns=list('abc'))
+        df['bools'] = rand(len(df)) > 0.5
+        res = df['not bools']
+        res2 = df['~bools']
+        expec = df[~df.bools]
+        assert_frame_equal(res, expec)
+        assert_frame_equal(res2, expec)
+
+    def test_complex_boolean_expression(self):
+        df = DataFrame(randn(10, 3), columns=list('abc'))
+        df['bools'] = rand(len(df)) > 0.5
+        res = df['a < b < c and (not bools) or bools > 2']
+        expec = df[(df.a < df.b) & (df.b < df.c) & (~df.bools) | (df.bools > 2)]
+        assert_frame_equal(res, expec)
 
 _var_s = randn(10)
 
@@ -695,28 +854,36 @@ class TestScope(unittest.TestCase):
         for engine in _engines:
             self.check_no_new_globals(engine)
 
-    def test_nested_scope(self):
+    def check_nested_scope(self, engine):
+        # smoke test
         x = 1
-        result = pd.eval('x + 1')
+        result = pd.eval('x + 1', engine=engine)
         self.assertEqual(result, 2)
 
-        df  = DataFrame(np.random.randn(2000, 10))
-        df2 = DataFrame(np.random.randn(2000, 10))
+        df  = DataFrame(np.random.randn(5, 3))
+        df2 = DataFrame(np.random.randn(5, 3))
         expected = df[(df>0) & (df2>0)]
 
         result = df['(df>0) & (df2>0)']
-        assert_frame_equal(result,expected)
+        assert_frame_equal(result, expected)
 
-        result = df.query('(df>0) & (df2>0)')
-        assert_frame_equal(result,expected)
+        result = df.query('(df>0) & (df2>0)', engine=engine)
+        assert_frame_equal(result, expected)
 
-        ##### this fails ####
-        #result = pd.eval('df[(df>0) & (df2>0)]')
-        #assert_frame_equal(result,expected)
+        result = pd.eval('df[(df > 0) and (df2 > 0)]', engine=engine)
+        assert_frame_equal(result, expected)
 
-        #### also fails ####
-        #self.assertRaises(NotImplementedError, pd.eval,
-                          #'df[(df > 0) & (df2 > 0)]')
+        result = pd.eval('df[(df > 0) and (df2 > 0) and df[df > 0] > 0]', engine=engine)
+        expected = df[(df > 0) & (df2 > 0) & (df[df > 0] > 0)]
+        assert_frame_equal(result, expected)
+
+        result = pd.eval('df[(df>0) & (df2>0)]',engine=engine)
+        expected = df.query('(df>0) & (df2>0)', engine=engine)
+        assert_frame_equal(result, expected)
+
+    def test_nested_scope(self):
+        for engine in _engines:
+            self.check_nested_scope(engine)
 
 
 def test_invalid_engine():
