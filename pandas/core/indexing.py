@@ -6,7 +6,7 @@ from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.compat import range, zip
 import pandas.compat as compat
 import pandas.core.common as com
-from pandas.core.common import _is_bool_indexer, is_series, is_dataframe
+from pandas.core.common import _is_bool_indexer, ABCSeries, ABCDataFrame
 import pandas.lib as lib
 
 import numpy as np
@@ -111,7 +111,7 @@ class _NDFrameIndexer(object):
             if not isinstance(indexer, tuple):
                 indexer = self._tuplify(indexer)
 
-            if is_series(value):
+            if isinstance(value, ABCSeries):
                 value = self._align_series(indexer, value)
 
             info_axis = self.obj._info_axis_number
@@ -135,7 +135,7 @@ class _NDFrameIndexer(object):
             if _is_list_like(value):
 
                 # we have an equal len Frame
-                if is_dataframe(value) and value.ndim > 1:
+                if isinstance(value, ABCDataFrame) and value.ndim > 1:
 
                     for item in labels:
 
@@ -176,10 +176,10 @@ class _NDFrameIndexer(object):
             if isinstance(indexer, tuple):
                 indexer = _maybe_convert_ix(*indexer)
 
-            if is_series(value):
+            if isinstance(value, ABCSeries):
                 value = self._align_series(indexer, value)
 
-            elif is_dataframe(value):
+            elif isinstance(value, ABCDataFrame):
                 value = self._align_frame(indexer, value)
 
             if isinstance(value, Panel):
@@ -396,7 +396,7 @@ class _NDFrameIndexer(object):
 
                     # unfortunately need an odious kludge here because of
                     # DataFrame transposing convention
-                    if (is_dataframe(section) and i > 0
+                    if (isinstance(section, ABCDataFrame) and i > 0
                             and len(new_key) == 2):
                         a, b = new_key
                         new_key = b, a
@@ -1027,7 +1027,7 @@ def _check_bool_indexer(ax, key):
     # this function assumes that com._is_bool_indexer(key) == True
 
     result = key
-    if is_series(key) and not key.index.equals(ax):
+    if isinstance(key, ABCSeries) and not key.index.equals(ax):
         result = result.reindex(ax)
         mask = com.isnull(result.values)
         if mask.any():
@@ -1041,6 +1041,7 @@ def _check_bool_indexer(ax, key):
         result = np.asarray(result, dtype=bool)
 
     return result
+
 
 def _maybe_convert_indices(indices, n):
     """ if we have negative indicies, translate to postive here
@@ -1063,7 +1064,7 @@ def _maybe_convert_ix(*args):
 
     ixify = True
     for arg in args:
-        if not (isinstance(arg, (np.ndarray, list)) or is_series(arg)):
+        if not isinstance(arg, (np.ndarray, list, ABCSeries)):
             ixify = False
 
     if ixify:

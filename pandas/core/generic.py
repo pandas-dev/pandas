@@ -36,7 +36,7 @@ class NDFrame(PandasObject):
     copy : boolean, default False
     """
     _internal_names = [
-        '_data', 'name', '_subtyp', '_index', '_default_kind', '_default_fill_value']
+        '_data', 'name', '_cacher', '_subtyp', '_index', '_default_kind', '_default_fill_value']
     _internal_names_set = set(_internal_names)
     _prop_attributes = []
 
@@ -697,14 +697,13 @@ class NDFrame(PandasObject):
 
     def _get_item_cache(self, item):
         cache = self._item_cache
-        try:
-            return cache[item]
-        except Exception:
+        res = cache.get(item)
+        if res is None:
             values = self._data.get(item)
             res = self._box_item_values(item, values)
             cache[item] = res
             res._cacher = (item,weakref.ref(self))
-            return res
+        return res
 
     def _box_item_values(self, key, values):
         raise NotImplementedError
@@ -1440,7 +1439,7 @@ class NDFrame(PandasObject):
 
             if len(self._get_axis(axis)) == 0:
                 return self
-            if isinstance(value, dict) or com.is_series(value):
+            if isinstance(value, (dict, com.ABCSeries)):
                 if axis == 1:
                     raise NotImplementedError('Currently only can fill '
                                               'with dict/Series column '
@@ -1585,7 +1584,7 @@ class NDFrame(PandasObject):
         self._consolidate_inplace()
 
         def is_dictlike(x):
-            return isinstance(x, dict) or com.is_series(x)
+            return isinstance(x, (dict, com.ABCSeries))
 
         if value is None:
             if not is_dictlike(to_replace):

@@ -127,12 +127,13 @@ and behaviors. Series formerly subclassed directly from ``ndarray``. (:issue:`40
   - added _setup_axes to created generic NDFrame structures
   - moved methods
 
-    - from_axes,_wrap_array,axes,ix,shape,empty,swapaxes,transpose,pop
+    - from_axes,_wrap_array,axes,ix,loc,iloc,shape,empty,swapaxes,transpose,pop
     - __iter__,keys,__contains__,__len__,__neg__,__invert__
     - convert_objects,as_blocks,as_matrix,values
     - __getstate__,__setstate__ (though compat remains in frame/panel)
     - __getattr__,__setattr__
     - _indexed_same,reindex_like,reindex,align,where,mask
+    - fillna,replace
     - filter (also added axis argument to selectively filter on a different axis)
     - reindex,reindex_axis (which was the biggest change to make generic)
     - truncate (moved to become part of ``NDFrame``)
@@ -176,6 +177,9 @@ and behaviors. Series formerly subclassed directly from ``ndarray``. (:issue:`40
 - All ``NDFrame`` objects now have a ``_prop_attributes``, which can be used to indcated various
   values to propogate to a new object from an existing (e.g. name in ``Series`` will follow
   more automatically now)
+
+- Internal type checking is now done via a suite of generated classes, allowing ``isinstance(value, klass)``
+  without having to directly import the klass, courtesy of @jtratner
 
 - Bug in Series update where the parent frame is not updating its cache based on
   changes (:issue:`4080`) or types (:issue:`3217`), fillna (:issue:`3386`)

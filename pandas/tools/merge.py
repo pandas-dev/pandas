@@ -17,7 +17,7 @@ from pandas.core.index import (Index, MultiIndex, _get_combined_index,
 from pandas.core.internals import (IntBlock, BoolBlock, BlockManager,
                                    make_block, _consolidate)
 from pandas.util.decorators import cache_readonly, Appender, Substitution
-from pandas.core.common import PandasError
+from pandas.core.common import PandasError, ABCSeries
 import pandas.core.common as com
 
 import pandas.lib as lib
@@ -304,8 +304,8 @@ class _MergeOperation(object):
         left_drop = []
         left, right = self.left, self.right
 
-        is_lkey = lambda x: isinstance(x, (np.ndarray, Series)) and len(x) == len(left)
-        is_rkey = lambda x: isinstance(x, (np.ndarray, Series)) and len(x) == len(right)
+        is_lkey = lambda x: isinstance(x, (np.ndarray, ABCSeries)) and len(x) == len(left)
+        is_rkey = lambda x: isinstance(x, (np.ndarray, ABCSeries)) and len(x) == len(right)
 
         # ugh, spaghetti re #733
         if _any(self.left_on) and _any(self.right_on):
@@ -941,7 +941,7 @@ class _Concatenator(object):
         if isinstance(sample, DataFrame):
             axis = 1 if axis == 0 else 0
 
-        self._is_series = isinstance(sample, Series)
+        self._is_series = isinstance(sample, ABCSeries)
         if not ((0 <= axis <= sample.ndim)):
             raise AssertionError()
 

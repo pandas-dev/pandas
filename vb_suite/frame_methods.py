@@ -83,7 +83,7 @@ frame_boolean_row_select = Benchmark('df[bool_arr]', setup,
 # iteritems (monitor no-copying behaviour)
 
 setup = common_setup + """
-df = DataFrame(randn(10000, 100))
+df = DataFrame(randn(10000, 1000))
 
 def f():
     if hasattr(df, '_item_cache'):

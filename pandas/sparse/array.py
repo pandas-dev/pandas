@@ -489,7 +489,7 @@ def _maybe_to_dense(obj):
 
 
 def _maybe_to_sparse(array):
-    if com.is_sparse_series(array):
+    if isinstance(array, com.ABCSparseSeries):
         array = SparseArray(
             array.values, sparse_index=array.sp_index, fill_value=array.fill_value, copy=True)
     if not isinstance(array, SparseArray):

@@ -48,30 +48,26 @@ _TD_DTYPE = np.dtype('m8[ns]')
 _INT64_DTYPE = np.dtype(np.int64)
 _DATELIKE_DTYPES = set([np.dtype(t) for t in ['M8[ns]', 'm8[ns]']])
 
+# define abstract base classes to enable isinstance type checking on our objects
+def create_pandas_abc_type(name, attr, comp):
+    @classmethod
+    def _check(cls, inst):
+        return getattr(inst, attr, None) in comp
+    dct = dict(__instancecheck__=_check,
+               __subclasscheck__=_check)
+    meta = type("ABCBase", (type,), dct)
+    return meta(name, tuple(), dct)
 
-def is_series(obj):
-    return getattr(obj, '_typ', None) == 'series'
+ABCSeries = create_pandas_abc_type("ABCSeries", "_typ", ("series",))
+ABCDataFrame = create_pandas_abc_type("ABCDataFrame", "_typ", ("dataframe",))
+ABCPanel = create_pandas_abc_type("ABCPanel", "_typ", ("panel",))
+ABCSparseSeries = create_pandas_abc_type("ABCSparseSeries", "_subtyp", ('sparse_series', 'sparse_time_series'))
+ABCSparseArray = create_pandas_abc_type("ABCSparseArray", "_subtyp", ('sparse_array', 'sparse_series'))
 
-
-def is_sparse_series(obj):
-    return getattr(obj, '_subtyp', None) in ('sparse_series', 'sparse_time_series')
-
-
-def is_sparse_array_like(obj):
-    return getattr(obj, '_subtyp', None) in ['sparse_array', 'sparse_series', 'sparse_array']
-
-
-def is_dataframe(obj):
-    return getattr(obj, '_typ', None) == 'dataframe'
-
-
-def is_panel(obj):
-    return getattr(obj, '_typ', None) == 'panel'
-
-
-def is_generic(obj):
-    return getattr(obj, '_data', None) is not None
-
+class _ABCGeneric(type):
+    def __instancecheck__(cls, inst):
+        return hasattr(inst, "_data")
+ABCGeneric = _ABCGeneric("ABCGeneric", tuple(), {})
 
 def isnull(obj):
     """Detect missing values (NaN in numeric arrays, None/NaN in object arrays)
@@ -94,9 +90,9 @@ def _isnull_new(obj):
     if lib.isscalar(obj):
         return lib.checknull(obj)
 
-    if is_series(obj) or isinstance(obj, np.ndarray):
+    if isinstance(obj, (ABCSeries, np.ndarray)):
         return _isnull_ndarraylike(obj)
-    elif is_generic(obj):
+    elif isinstance(obj, ABCGeneric):
         return obj.apply(isnull)
     elif isinstance(obj, list) or hasattr(obj, '__array__'):
         return _isnull_ndarraylike(np.asarray(obj))
@@ -119,9 +115,9 @@ def _isnull_old(obj):
     if lib.isscalar(obj):
         return lib.checknull_old(obj)
 
-    if is_series(obj) or isinstance(obj, np.ndarray):
+    if isinstance(obj, (ABCSeries, np.ndarray)):
         return _isnull_ndarraylike_old(obj)
-    elif is_generic(obj):
+    elif isinstance(obj, ABCGeneric):
         return obj.apply(_isnull_old)
     elif isinstance(obj, list) or hasattr(obj, '__array__'):
         return _isnull_ndarraylike_old(np.asarray(obj))
@@ -182,7 +178,7 @@ def _isnull_ndarraylike(obj):
     else:
         result = np.isnan(obj)
 
-    if is_series(obj):
+    if isinstance(obj, ABCSeries):
         from pandas import Series
         result = Series(result, index=obj.index, copy=False)
 
@@ -213,7 +209,7 @@ def _isnull_ndarraylike_old(obj):
     else:
         result = -np.isfinite(obj)
 
-    if is_series(obj):
+    if isinstance(obj, ABCSeries):
         from pandas import Series
         result = Series(result, index=obj.index, copy=False)
 
@@ -1300,7 +1296,7 @@ def _possibly_cast_to_timedelta(value, coerce=True):
         return np.array([ convert(v,dtype) for v in value ], dtype='m8[ns]')
 
     # deal with numpy not being able to handle certain timedelta operations
-    if (isinstance(value, np.ndarray) or is_series(value)) and value.dtype.kind == 'm':
+    if isinstance(value, (ABCSeries, np.ndarray)) and value.dtype.kind == 'm':
         if value.dtype != 'timedelta64[ns]':
             value = value.astype('timedelta64[ns]')
         return value
@@ -1384,7 +1380,7 @@ def _possibly_cast_to_datetime(value, dtype, coerce=False):
 
 
 def _is_bool_indexer(key):
-    if isinstance(key, np.ndarray) or is_series(key):
+    if isinstance(key, (ABCSeries, np.ndarray)):
         if key.dtype == np.object_:
             key = np.asarray(_values_from_object(key))
 
