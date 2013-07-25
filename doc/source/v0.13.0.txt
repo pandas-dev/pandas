@@ -9,6 +9,9 @@ enhancements along with a large number of bug fixes.
 API changes
 ~~~~~~~~~~~
 
+  - ``read_excel`` now supports an integer in its ``sheetname`` argument giving
+    the index of the sheet to read in (:issue:`4301`).
+
 Enhancements
 ~~~~~~~~~~~~
 

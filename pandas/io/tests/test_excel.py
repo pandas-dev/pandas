@@ -82,6 +82,7 @@ class ExcelTests(unittest.TestCase):
         self.csv1 = os.path.join(self.dirpath, 'test1.csv')
         self.csv2 = os.path.join(self.dirpath, 'test2.csv')
         self.xls1 = os.path.join(self.dirpath, 'test.xls')
+        self.xlsx1 = os.path.join(self.dirpath, 'test.xlsx')
         self.frame = _frame.copy()
         self.frame2 = _frame2.copy()
         self.tsframe = _tsframe.copy()
@@ -197,6 +198,49 @@ class ExcelTests(unittest.TestCase):
         expected = DataFrame([[np.nan], [1], [np.nan], [np.nan], ['rabbit']],
                              columns=['Test'])
         tm.assert_frame_equal(parsed, expected)
+
+    def check_excel_table_sheet_by_index(self, filename, csvfile):
+        import xlrd
+
+        pth = os.path.join(self.dirpath, filename)
+        xls = ExcelFile(pth)
+        df = xls.parse(0, index_col=0, parse_dates=True)
+        df2 = self.read_csv(csvfile, index_col=0, parse_dates=True)
+        df3 = xls.parse(1, skiprows=[1], index_col=0, parse_dates=True)
+        tm.assert_frame_equal(df, df2, check_names=False)
+        tm.assert_frame_equal(df3, df2, check_names=False)
+
+        df4 = xls.parse(0, index_col=0, parse_dates=True, skipfooter=1)
+        df5 = xls.parse(0, index_col=0, parse_dates=True, skip_footer=1)
+        tm.assert_frame_equal(df4, df.ix[:-1])
+        tm.assert_frame_equal(df4, df5)
+
+        self.assertRaises(xlrd.XLRDError, xls.parse, 'asdf')
+
+    def test_excel_table_sheet_by_index(self):
+        _skip_if_no_xlrd()
+        for filename, csvfile in [(self.xls1, self.csv1),
+                                  (self.xlsx1, self.csv1)]:
+            self.check_excel_table_sheet_by_index(filename, csvfile)
+
+    def check_excel_sheet_by_name_raise(self, ext):
+        import xlrd
+        pth = os.path.join(self.dirpath, 'testit.{0}'.format(ext))
+
+        with ensure_clean(pth) as pth:
+            gt = DataFrame(np.random.randn(10, 2))
+            gt.to_excel(pth)
+            xl = ExcelFile(pth)
+            df = xl.parse(0)
+            tm.assert_frame_equal(gt, df)
+
+            self.assertRaises(xlrd.XLRDError, xl.parse, '0')
+
+    def test_excel_sheet_by_name_raise(self):
+        _skip_if_no_xlrd()
+        _skip_if_no_xlwt()
+        for ext in ('xls', 'xlsx'):
+            self.check_excel_sheet_by_name_raise(ext)
 
     def test_excel_table(self):
         _skip_if_no_xlrd()
@@ -437,7 +481,6 @@ class ExcelTests(unittest.TestCase):
             np.testing.assert_equal(2, len(reader.sheet_names))
             np.testing.assert_equal('test1', reader.sheet_names[0])
             np.testing.assert_equal('test2', reader.sheet_names[1])
-
 
     def test_excel_roundtrip_xls_colaliases(self):
         _skip_if_no_excelsuite()
@@ -891,6 +934,7 @@ class ExcelTests(unittest.TestCase):
             with ensure_clean('test.xls') as path:
                 from pandas.io.parsers import ExcelWriter as xw
                 xw(path)
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

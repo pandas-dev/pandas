@@ -48,8 +48,9 @@ def read_excel(path_or_buf, sheetname, kind=None, **kwds):
     parsed : DataFrame
         DataFrame from the passed in Excel file
     """
-    return ExcelFile(path_or_buf,kind=kind).parse(sheetname=sheetname,
-                                                  kind=kind, **kwds)
+    return ExcelFile(path_or_buf, kind=kind).parse(sheetname=sheetname,
+                                                   kind=kind, **kwds)
+
 
 class ExcelFile(object):
     """
@@ -86,8 +87,8 @@ class ExcelFile(object):
 
         Parameters
         ----------
-        sheetname : string
-            Name of Excel sheet
+        sheetname : string or integer
+            Name of Excel sheet or the page number of the sheet
         header : int, default 0
             Row to use for the column labels of the parsed DataFrame
         skiprows : list-like
@@ -117,27 +118,20 @@ class ExcelFile(object):
         parsed : DataFrame
             DataFrame parsed from the Excel file
         """
-
-        # has_index_names: boolean, default False
-        #     True if the cols defined in index_col have an index name and are
-        #     not in the header
         has_index_names = False  # removed as new argument of API function
 
         skipfooter = kwds.pop('skipfooter', None)
         if skipfooter is not None:
             skip_footer = skipfooter
 
-        return  self._parse_excel(sheetname, header=header,
-                                     skiprows=skiprows, index_col=index_col,
-                                     has_index_names=has_index_names,
-                                     parse_cols=parse_cols,
-                                     parse_dates=parse_dates,
-                                     date_parser=date_parser,
-                                     na_values=na_values,
-                                     thousands=thousands,
-                                     chunksize=chunksize,
-                                     skip_footer=skip_footer,
-                                     **kwds)
+        return  self._parse_excel(sheetname, header=header, skiprows=skiprows,
+                                  index_col=index_col,
+                                  has_index_names=has_index_names,
+                                  parse_cols=parse_cols,
+                                  parse_dates=parse_dates,
+                                  date_parser=date_parser, na_values=na_values,
+                                  thousands=thousands, chunksize=chunksize,
+                                  skip_footer=skip_footer, **kwds)
 
     def _should_parse(self, i, parse_cols):
 
@@ -171,20 +165,22 @@ class ExcelFile(object):
         else:
             return i in parse_cols
 
-    def _parse_excel(self, sheetname, header=0, skiprows=None,
-                   skip_footer=0, index_col=None, has_index_names=None,
-                   parse_cols=None, parse_dates=False, date_parser=None,
-                   na_values=None, thousands=None, chunksize=None,
-                   **kwds):
+    def _parse_excel(self, sheetname, header=0, skiprows=None, skip_footer=0,
+                     index_col=None, has_index_names=None, parse_cols=None,
+                     parse_dates=False, date_parser=None, na_values=None,
+                     thousands=None, chunksize=None, **kwds):
         from xlrd import (xldate_as_tuple, XL_CELL_DATE,
                           XL_CELL_ERROR, XL_CELL_BOOLEAN)
 
         datemode = self.book.datemode
-        sheet = self.book.sheet_by_name(sheetname)
+        if isinstance(sheetname, basestring):
+            sheet = self.book.sheet_by_name(sheetname)
+        else:  # assume an integer if not a string
+            sheet = self.book.sheet_by_index(sheetname)
 
         data = []
         should_parse = {}
-        for i in range(sheet.nrows):
+        for i in xrange(sheet.nrows):
             row = []
             for j, (value, typ) in enumerate(izip(sheet.row_values(i),
                                                   sheet.row_types(i))):
@@ -225,7 +221,7 @@ class ExcelFile(object):
 
     @property
     def sheet_names(self):
-            return self.book.sheet_names()
+        return self.book.sheet_names()
 
 
 def _trim_excel_header(row):
