@@ -1,10 +1,12 @@
 import unittest
 import warnings
-import nose
-from nose.tools import assert_equal
 from datetime import datetime
 
+import nose
+from nose.tools import assert_equal
 import numpy as np
+from numpy.testing import assert_array_equal
+
 import pandas as pd
 from pandas import DataFrame
 from pandas.io import data as web

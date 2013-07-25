@@ -4,19 +4,17 @@ SparseArray data structure
 
 # pylint: disable=E1101,E1103,W0231
 
+import operator
+
 from numpy import nan, ndarray
 import numpy as np
-
-import operator
-from pandas.core.base import PandasObject
-import pandas.core.common as com
-
-from pandas.util import py3compat
-
 from pandas._sparse import BlockIndex, IntIndex
 import pandas._sparse as splib
-import pandas.lib as lib
 import pandas.index as _index
+
+from pandas.core.base import PandasObject
+import pandas.core.common as com
+from pandas.util import py3compat
 
 
 def _sparse_op_wrap(op, name):

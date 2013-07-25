@@ -1,9 +1,10 @@
 from datetime import datetime
-import sys
 import re
+import unittest
 
 import nose
-import unittest
+import numpy as np
+from pandas.tslib import iNaT
 
 from pandas import Series, DataFrame, date_range, DatetimeIndex, Timestamp
 from pandas.core.common import notnull, isnull
@@ -11,10 +12,6 @@ import pandas.core.common as com
 import pandas.util.testing as tm
 import pandas.core.config as cf
 
-import numpy as np
-
-from pandas.tslib import iNaT
-from pandas.util import py3compat
 
 _multiprocess_can_split_ = True
 

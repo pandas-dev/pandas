@@ -1,26 +1,11 @@
-from pandas.util.py3compat import StringIO, BytesIO
 from datetime import date, datetime
-import csv
-import os
-import sys
-import re
 import unittest
 
 import nose
-
-from numpy import nan
 import numpy as np
-from numpy.testing.decorators import slow
 
-from pandas import DataFrame, Series, Index, isnull
-import pandas.io.parsers as parsers
-from pandas.io.parsers import (read_csv, read_table, read_fwf,
-                               TextParser)
-from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
-                                 assert_series_equal, network)
-import pandas.lib as lib
-from pandas.util import py3compat
-from pandas.lib import Timestamp
+from pandas.util.py3compat import StringIO
+from pandas.io.parsers import (read_csv, read_table )
 import pandas.io.date_converters as conv
 
 

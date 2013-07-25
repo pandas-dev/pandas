@@ -2,14 +2,14 @@ from datetime import datetime
 import re
 
 import numpy as np
+import pandas.lib as lib
+import pandas.tslib as tslib
 
 from pandas.core.algorithms import unique
 from pandas.tseries.offsets import DateOffset
 from pandas.util.decorators import cache_readonly
 import pandas.tseries.offsets as offsets
 import pandas.core.common as com
-import pandas.lib as lib
-import pandas.tslib as tslib
 
 
 class FreqGroup(object):

@@ -36,7 +36,6 @@ def create_data():
     """ create the pickle data """
     
     import numpy as np
-    import pandas
     from pandas import (Series,DataFrame,Panel,
                         SparseSeries,SparseDataFrame,SparsePanel,
                         Index,MultiIndex,PeriodIndex,
@@ -82,9 +81,7 @@ def write_legacy_pickles():
     sys.path.insert(0,'.')
 
     import os
-    import numpy as np
     import pandas
-    import pandas.util.testing as tm
     import platform as pl
     import cPickle as pickle
 

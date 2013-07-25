@@ -3,10 +3,12 @@ import unittest
 from datetime import datetime
 
 import nose
+from numpy.testing.decorators import slow
+
 import pandas as pd
 from pandas import DataFrame
 from pandas.util.testing import network, assert_frame_equal, with_connectivity_check
-from numpy.testing.decorators import slow
+
 
 try:
     import httplib2

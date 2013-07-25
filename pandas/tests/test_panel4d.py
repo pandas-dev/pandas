@@ -1,20 +1,17 @@
 from datetime import datetime
-import os
 import operator
 import unittest
 import nose
 
 import numpy as np
 
-from pandas import DataFrame, Index, isnull, notnull, pivot, MultiIndex
+from pandas import Index, isnull, notnull
 from pandas.core.datetools import bday
 from pandas.core.frame import group_agg
 from pandas.core.panel import Panel
 from pandas.core.panel4d import Panel4D
 from pandas.core.series import remove_na
 import pandas.core.common as com
-import pandas.core.panel as panelmod
-from pandas.util import py3compat
 
 from pandas.util.testing import (assert_panel_equal,
                                  assert_panel4d_equal,

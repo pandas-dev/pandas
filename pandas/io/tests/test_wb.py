@@ -1,9 +1,9 @@
 import nose
+from numpy.testing.decorators import slow
 
 import pandas
 from pandas.util.testing import network
 from pandas.util.testing import assert_frame_equal
-from numpy.testing.decorators import slow
 from pandas.io.wb import search, download
 
 

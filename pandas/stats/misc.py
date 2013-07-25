@@ -1,7 +1,7 @@
 from numpy import NaN
 import numpy as np
 
-from pandas.core.api import Series, DataFrame, isnull, notnull
+from pandas.core.api import Series, DataFrame
 from pandas.core.series import remove_na
 
 

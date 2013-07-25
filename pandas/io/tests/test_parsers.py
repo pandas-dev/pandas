@@ -1,6 +1,5 @@
 # pylint: disable=E1101
 
-from pandas.util.py3compat import StringIO, BytesIO, PY3
 from datetime import datetime
 import csv
 import os
@@ -11,10 +10,14 @@ from contextlib import closing
 from urllib2 import urlopen
 
 import nose
-
 from numpy import nan
 import numpy as np
+import pandas.lib as lib
+from pandas.lib import Timestamp
+from numpy.testing.decorators import slow
+from pandas.parser import OverflowError
 
+from pandas.util.py3compat import StringIO, BytesIO, PY3
 from pandas import DataFrame, Series, Index, MultiIndex, DatetimeIndex
 import pandas.io.parsers as parsers
 from pandas.io.parsers import (read_csv, read_table, read_fwf,
@@ -26,16 +29,9 @@ from pandas.util.testing import (assert_almost_equal,
                                  ensure_clean)
 import pandas.util.testing as tm
 import pandas as pd
-
-import pandas.lib as lib
 from pandas.util import py3compat
-from pandas.lib import Timestamp
 from pandas.tseries.index import date_range
 import pandas.tseries.tools as tools
-
-from numpy.testing.decorators import slow
-
-from pandas.parser import OverflowError
 
 
 class ParserTests(object):

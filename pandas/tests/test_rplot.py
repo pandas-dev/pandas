@@ -1,9 +1,10 @@
 import unittest
-import pandas.tools.rplot as rplot
-from pandas import read_csv
 import os
 
 import nose
+
+import pandas.tools.rplot as rplot
+from pandas import read_csv
 
 
 try:

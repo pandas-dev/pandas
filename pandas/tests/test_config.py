@@ -1,10 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 from __future__ import with_statement  # support python 2.5
-import pandas as pd
 import unittest
 import warnings
+
 import nose
+
+import pandas as pd
 
 
 class TestConfig(unittest.TestCase):

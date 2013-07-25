@@ -1,19 +1,17 @@
 import os
-import nose
 import unittest
 
+import nose
 import numpy as np
+from numpy.testing import assert_equal, assert_almost_equal
 
-from pandas import DataFrame, Series, unique
+from pandas import Series
 import pandas.util.testing as tm
 from pandas.util.testing import assertRaisesRegexp
 import pandas.core.common as com
-
 from pandas.core.algorithms import quantile
 from pandas.tools.tile import cut, qcut
 import pandas.tools.tile as tmod
-
-from numpy.testing import assert_equal, assert_almost_equal
 
 
 class TestCut(unittest.TestCase):

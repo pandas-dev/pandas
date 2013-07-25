@@ -1,6 +1,8 @@
 from datetime import timedelta
 
 import numpy as np
+from pandas.lib import Timestamp
+import pandas.lib as lib
 
 from pandas.core.groupby import BinGrouper, CustomGrouper
 from pandas.tseries.frequencies import to_offset, is_subperiod, is_superperiod
@@ -9,9 +11,6 @@ from pandas.tseries.offsets import DateOffset, Tick, _delta_to_nanoseconds
 from pandas.tseries.period import PeriodIndex, period_range
 import pandas.tseries.tools as tools
 import pandas.core.common as com
-
-from pandas.lib import Timestamp
-import pandas.lib as lib
 
 
 _DEFAULT_METHOD = 'mean'
@@ -277,7 +276,6 @@ class TimeGrouper(CustomGrouper):
 
 def _take_new_index(obj, indexer, new_index, axis=0):
     from pandas.core.api import Series, DataFrame
-    from pandas.core.internals import BlockManager
 
     if isinstance(obj, Series):
         new_values = com.take_1d(obj.values, indexer)

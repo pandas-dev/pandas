@@ -8,7 +8,7 @@ import nose
 import numpy as np
 
 from pandas import DataFrame, bdate_range
-from pandas.util.testing import assert_almost_equal  # imported in other tests
+
 N = 100
 K = 4
 

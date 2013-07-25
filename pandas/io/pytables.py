@@ -10,8 +10,13 @@ import re
 import copy
 import itertools
 import warnings
+from contextlib import contextmanager
 
 import numpy as np
+import pandas.lib as lib
+import pandas.algos as algos
+import pandas.tslib as tslib
+
 from pandas import (Series, TimeSeries, DataFrame, Panel, Panel4D, Index,
                     MultiIndex, Int64Index, Timestamp)
 from pandas.sparse.api import SparseSeries, SparseDataFrame, SparsePanel
@@ -30,11 +35,6 @@ from pandas.tools.merge import concat
 from pandas.util import py3compat
 from pandas.io.common import PerformanceWarning
 
-import pandas.lib as lib
-import pandas.algos as algos
-import pandas.tslib as tslib
-
-from contextlib import contextmanager
 
 # versioning attribute
 _version = '0.10.1'

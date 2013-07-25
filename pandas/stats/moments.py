@@ -3,16 +3,14 @@ Provides rolling statistical moments and related descriptive
 statistics implemented in Cython
 """
 from __future__ import division
-
 from functools import wraps
 
 from numpy import NaN
 import numpy as np
+import pandas.algos as algos
 
 from pandas.core.api import DataFrame, Series, Panel, notnull
-import pandas.algos as algos
 import pandas.core.common as com
-
 from pandas.util.decorators import Substitution, Appender
 
 __all__ = ['rolling_count', 'rolling_max', 'rolling_min',

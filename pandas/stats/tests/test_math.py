@@ -1,18 +1,14 @@
 import unittest
-import nose
-
 from datetime import datetime
+
+import nose
 from numpy.random import randn
 import numpy as np
 
 from pandas.core.api import Series, DataFrame, date_range
-from pandas.util.testing import assert_almost_equal
-import pandas.core.datetools as datetools
-import pandas.stats.moments as mom
-import pandas.util.testing as tm
 import pandas.stats.math as pmath
-import pandas.tests.test_series as ts
 from pandas import ols
+
 
 N, K = 100, 10
 

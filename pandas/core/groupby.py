@@ -1,6 +1,10 @@
 from itertools import izip
 import types
+
 import numpy as np
+import pandas.lib as lib
+import pandas.algos as _algos
+import pandas.hashtable as _hash
 
 from pandas.core.base import PandasObject
 from pandas.core.categorical import Categorical
@@ -16,9 +20,6 @@ import pandas.core.algorithms as algos
 import pandas.core.common as com
 from pandas.core.common import _possibly_downcast_to_dtype, notnull
 
-import pandas.lib as lib
-import pandas.algos as _algos
-import pandas.hashtable as _hash
 
 _agg_doc = """Aggregate using input function or dict of {column -> function}
 

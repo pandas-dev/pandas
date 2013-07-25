@@ -1,27 +1,23 @@
-import nose
 import unittest
-
 from datetime import datetime
+from collections import defaultdict
+
+import nose
 from numpy import nan
+import numpy as np
 
 from pandas import bdate_range
 from pandas.core.index import Index, MultiIndex
 from pandas.core.common import rands
 from pandas.core.api import Categorical, DataFrame
-from pandas.core.groupby import GroupByError, SpecificationError, DataError
+from pandas.core.groupby import SpecificationError, DataError
 from pandas.core.series import Series
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
                                  assert_series_equal, assert_almost_equal)
 from pandas.core.panel import Panel
 from pandas.tools.merge import concat
-from collections import defaultdict
 import pandas.core.common as com
-import pandas.core.datetools as dt
-import numpy as np
-from numpy.testing import assert_equal
-
 import pandas.core.nanops as nanops
-
 import pandas.util.testing as tm
 
 

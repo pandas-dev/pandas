@@ -1,21 +1,18 @@
 # pylint: disable=E1101
 
 from datetime import datetime, timedelta
+import unittest
 
 import numpy as np
+import nose
 
 from pandas import Series, TimeSeries, DataFrame, Panel, isnull, notnull, Timestamp
-
 from pandas.tseries.index import date_range
 from pandas.tseries.offsets import Minute, BDay
 from pandas.tseries.period import period_range, PeriodIndex, Period
 from pandas.tseries.resample import DatetimeIndex, TimeGrouper
 import pandas.tseries.offsets as offsets
 import pandas as pd
-
-import unittest
-import nose
-
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
                                  assert_frame_equal)
 import pandas.util.testing as tm

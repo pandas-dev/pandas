@@ -4,18 +4,17 @@
 import itertools
 
 import numpy as np
+import six
+import pandas.algos as algos
 
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
-
 from pandas.core.categorical import Categorical
 from pandas.core.common import (notnull, _ensure_platform_int, _maybe_promote,
                                 isnull)
 from pandas.core.groupby import (get_group_index, _compress_group_index,
                                  decons_group_index)
 import pandas.core.common as com
-import pandas.algos as algos
-
 from pandas.core.index import MultiIndex
 
 

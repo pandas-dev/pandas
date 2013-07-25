@@ -1,9 +1,9 @@
 # import unittest
 
+import numpy as np
+
 from pandas import DataFrame
 from pandas.tools.describe import value_range
-
-import numpy as np
 
 
 def test_value_range():

@@ -1,14 +1,11 @@
-import nose
 import unittest
+from datetime import datetime, date
 
+import nose
 import numpy as np
-from numpy.testing.decorators import slow
 
 from pandas import Series, date_range
 import pandas.util.testing as tm
-
-from datetime import datetime, date
-
 from pandas.tseries.tools import normalize_date
 from pandas.tseries.util import pivot_annual, isleapyear
 

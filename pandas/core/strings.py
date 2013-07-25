@@ -1,10 +1,11 @@
-import numpy as np
-
 from itertools import izip
+import re
+
+import numpy as np
+import pandas.lib as lib
+
 from pandas.core.common import isnull
 from pandas.core.series import Series
-import re
-import pandas.lib as lib
 
 
 def _get_array_list(arr, others):

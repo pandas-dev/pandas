@@ -1,6 +1,4 @@
-from datetime import datetime, time, timedelta
-import sys
-import os
+from datetime import datetime, timedelta
 import unittest
 
 import nose
@@ -13,8 +11,6 @@ from pandas.tseries.frequencies import to_offset, infer_freq
 from pandas.tseries.tools import to_datetime
 import pandas.tseries.frequencies as fmod
 import pandas.tseries.offsets as offsets
-
-import pandas.lib as lib
 
 
 def test_to_offset_multiple():

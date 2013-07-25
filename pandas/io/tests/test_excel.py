@@ -1,12 +1,6 @@
 # pylint: disable=E1101
 
-from pandas.util.py3compat import StringIO, BytesIO, PY3
-from datetime import datetime
-from os.path import split as psplit
-import csv
 import os
-import sys
-import re
 import unittest
 
 import nose
@@ -15,26 +9,12 @@ from numpy import nan
 import numpy as np
 
 from pandas import DataFrame, Series, Index, MultiIndex, DatetimeIndex
-import pandas.io.parsers as parsers
-from pandas.io.parsers import (read_csv, read_table, read_fwf,
-                                TextParser, TextFileReader)
+from pandas.io.parsers import (read_csv )
 from pandas.io.excel import ExcelFile, ExcelWriter, read_excel
-from pandas.util.testing import (assert_almost_equal,
-                                 assert_series_equal,
-                                 network,
-                                 ensure_clean)
+from pandas.util.testing import (  ensure_clean)
 import pandas.util.testing as tm
 import pandas as pd
 
-import pandas.lib as lib
-from pandas.util import py3compat
-from pandas.lib import Timestamp
-from pandas.tseries.index import date_range
-import pandas.tseries.tools as tools
-
-from numpy.testing.decorators import slow
-
-from pandas.parser import OverflowError
 
 def _skip_if_no_xlrd():
     try:

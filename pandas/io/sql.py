@@ -2,10 +2,10 @@
 Collection of query wrappers / abstractions to both facilitate data
 retrieval and to reduce dependency on DB-specific API.
 """
-from datetime import datetime, date
+from datetime import datetime
+import traceback
 
 import numpy as np
-import traceback
 
 from pandas.core.datetools import format as date_format
 from pandas.core.api import DataFrame, isnull

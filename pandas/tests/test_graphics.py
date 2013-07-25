@@ -1,21 +1,18 @@
-import nose
 import os
 import string
 import unittest
-
 from datetime import datetime, date
+
+import nose
+import numpy as np
+from numpy import random
+from numpy.testing import assert_array_equal
+from numpy.testing.decorators import slow
 
 from pandas import Series, DataFrame, MultiIndex, PeriodIndex, date_range
 import pandas.util.testing as tm
 from pandas.util.testing import ensure_clean
 from pandas.core.config import set_option
-
-
-import numpy as np
-from numpy import random
-
-from numpy.testing import assert_array_equal
-from numpy.testing.decorators import slow
 import pandas.tools.plotting as plotting
 
 

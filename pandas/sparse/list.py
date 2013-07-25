@@ -1,9 +1,9 @@
 import numpy as np
+import pandas._sparse as splib
+
 from pandas.core.base import PandasObject
 from pandas.core.common import pprint_thing
-
 from pandas.sparse.array import SparseArray
-import pandas._sparse as splib
 
 
 class SparseList(PandasObject):

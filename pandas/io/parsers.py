@@ -6,23 +6,21 @@ import re
 from itertools import izip
 import csv
 from warnings import warn
+import datetime
 
 import numpy as np
+import pandas.lib as lib
+import pandas.tslib as tslib
+import pandas.parser as _parser
 
 from pandas.core.index import Index, MultiIndex
 from pandas.core.frame import DataFrame
-import datetime
 import pandas.core.common as com
 from pandas.util import py3compat
 from pandas.io.date_converters import generic_parser
 from pandas.io.common import get_filepath_or_buffer
-
 from pandas.util.decorators import Appender
 
-import pandas.lib as lib
-import pandas.tslib as tslib
-import pandas.parser as _parser
-from pandas.tseries.period import Period
 
 _parser_params = """Also supports optionally iterating or breaking of the file
 into chunks.

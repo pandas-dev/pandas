@@ -10,16 +10,16 @@ You can find more information on http://presbrey.mit.edu/PyDTA and
 http://statsmodels.sourceforge.net/devel/
 """
 
-from StringIO import StringIO
-import numpy as np
-
 import sys
 import struct
+import datetime
+
+import numpy as np
+
 from pandas.core.base import StringMixin
 from pandas.core.frame import DataFrame
 from pandas.core.series import Series
 from pandas.core.categorical import Categorical
-import datetime
 from pandas.util import py3compat
 from pandas import isnull
 from pandas.io.parsers import _parser_params, Appender

@@ -11,6 +11,7 @@ from datetime import datetime, date, timedelta
 import unittest
 
 from numpy.ma.testutils import assert_equal
+import numpy as np
 
 from pandas import Timestamp
 from pandas.tseries.frequencies import MONTHS, DAYS
@@ -18,10 +19,9 @@ from pandas.tseries.period import Period, PeriodIndex, period_range
 from pandas.tseries.index import DatetimeIndex, date_range, Index
 from pandas.tseries.tools import to_datetime
 import pandas.tseries.period as pmod
-
 import pandas.core.datetools as datetools
 import pandas as pd
-import numpy as np
+
 randn = np.random.randn
 
 from pandas import Series, TimeSeries, DataFrame

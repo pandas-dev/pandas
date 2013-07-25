@@ -1,8 +1,6 @@
 # pylint: disable-msg=E1101,W0612
 
-from datetime import datetime, timedelta, date
-import os
-import operator
+from datetime import datetime
 import re
 import unittest
 
@@ -13,11 +11,10 @@ import numpy as np
 from numpy.testing import assert_array_equal
 from numpy.random import randint
 
-from pandas import (Index, Series, TimeSeries, DataFrame, isnull, notnull,
-                    bdate_range, date_range)
+from pandas import Series, isnull
 import pandas.core.common as com
 
-from pandas.util.testing import assert_series_equal, assert_almost_equal
+from pandas.util.testing import assert_series_equal
 import pandas.util.testing as tm
 
 import pandas.core.strings as strings
@@ -776,7 +773,6 @@ class TestStringMethods(unittest.TestCase):
 
     def test_more_contains(self):
         # PR #1179
-        import re
 
         s = Series(['A', 'B', 'C', 'Aaba', 'Baca', '', NA,
                     'CABA', 'dog', 'cat'])
@@ -808,7 +804,6 @@ class TestStringMethods(unittest.TestCase):
 
     def test_more_replace(self):
         # PR #1179
-        import re
         s = Series(['A', 'B', 'C', 'Aaba', 'Baca',
                     '', NA, 'CABA', 'dog', 'cat'])
 

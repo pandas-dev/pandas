@@ -1,9 +1,11 @@
 from datetime import date, datetime, timedelta
 import unittest
+
 import nose
 from nose.tools import assert_raises
-
 import numpy as np
+from pandas.tslib import monthrange
+from pandas.lib import Timestamp
 
 from pandas.core.datetools import (
     bday, BDay, cday, CDay, BQuarterEnd, BMonthEnd, BYearEnd, MonthEnd,
@@ -11,17 +13,14 @@ from pandas.core.datetools import (
     DateOffset, Week, YearBegin, YearEnd, Hour, Minute, Second, Day, Micro,
     Milli, Nano,
     WeekOfMonth, format, ole2datetime, QuarterEnd, to_datetime, normalize_date,
-    get_offset, get_offset_name, inferTimeRule, hasOffsetName,
+    get_offset, get_offset_name, hasOffsetName,
     get_standard_freq)
-
 from pandas.tseries.frequencies import _offset_map
 from pandas.tseries.index import _to_m8
 from pandas.tseries.tools import parse_time_string
 import pandas.tseries.offsets as offsets
-
-from pandas.tslib import monthrange
-from pandas.lib import Timestamp
 from pandas.util.testing import assertRaisesRegexp
+
 
 _multiprocess_can_split_ = True
 

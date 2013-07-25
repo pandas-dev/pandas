@@ -1,13 +1,11 @@
 import re
-from numpy import nan, ndarray
-import numpy as np
-
 import operator
 import pickle
 import unittest
 
-from pandas.core.series import Series
-from pandas.core.common import notnull
+from numpy import nan
+import numpy as np
+
 from pandas.sparse.api import SparseArray
 from pandas.util.testing import assert_almost_equal, assertRaisesRegexp
 

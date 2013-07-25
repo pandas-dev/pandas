@@ -4,24 +4,21 @@ from datetime import datetime, timedelta
 import operator
 import pickle
 import unittest
-import nose
 import os
 
+import nose
 import numpy as np
 from numpy.testing import assert_array_equal
+from pandas.lib import Timestamp
 
 from pandas.core.index import Index, Int64Index, MultiIndex
 from pandas.util.testing import assert_almost_equal
 from pandas.util import py3compat
-
 import pandas.util.testing as tm
 import pandas.core.config as cf
-
 from pandas.tseries.index import _to_m8
 import pandas.tseries.offsets as offsets
-
 import pandas as pd
-from pandas.lib import Timestamp
 
 
 class TestIndex(unittest.TestCase):

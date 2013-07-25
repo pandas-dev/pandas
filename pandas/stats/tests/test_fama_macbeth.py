@@ -1,8 +1,9 @@
+import numpy as np
+
 from pandas import DataFrame, Panel
 from pandas.stats.api import fama_macbeth
-from common import assert_almost_equal, BaseTest
-
-import numpy as np
+from pandas.util.testing import assert_almost_equal
+from common import BaseTest
 
 
 class TestFamaMacBeth(BaseTest):

@@ -1,10 +1,14 @@
 # pylint: disable=E1101
 import operator
-
 from datetime import time, datetime
 from datetime import timedelta
 
 import numpy as np
+from pandas.lib import Timestamp
+import pandas.lib as lib
+import pandas.tslib as tslib
+import pandas.algos as _algos
+import pandas.index as _index
 
 from pandas.core.common import isnull, _NS_DTYPE, _INT64_DTYPE
 from pandas.core.index import Index, Int64Index
@@ -17,12 +21,6 @@ from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
 import pandas.tseries.offsets as offsets
 import pandas.tseries.tools as tools
-
-from pandas.lib import Timestamp
-import pandas.lib as lib
-import pandas.tslib as tslib
-import pandas.algos as _algos
-import pandas.index as _index
 
 
 def _utc():

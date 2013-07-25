@@ -4,22 +4,18 @@ Pierre GF Gerard-Marchant & Matt Knox
 """
 
 #!!! TODO: Use the fact that axis can have units to simplify the process
-import datetime as pydt
 from datetime import datetime
 
 from matplotlib import pylab
-import matplotlib.units as units
 
 import numpy as np
 
-from pandas import isnull
-from pandas.tseries.period import Period
-from pandas.tseries.offsets import DateOffset
-import pandas.tseries.frequencies as frequencies
-from pandas.tseries.index import DatetimeIndex
 import pandas.core.common as com
-
-from pandas.tseries.converter import (PeriodConverter, TimeSeries_DateLocator,
+import pandas.tseries.frequencies as frequencies
+from pandas import isnull
+from pandas.tseries.offsets import DateOffset
+from pandas.tseries.index import DatetimeIndex
+from pandas.tseries.converter import (TimeSeries_DateLocator,
                                       TimeSeries_DateFormatter)
 
 #----------------------------------------------------------------------

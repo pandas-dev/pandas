@@ -2,12 +2,11 @@ import unittest
 
 from numpy import nan
 import numpy as np
-from pandas import Index, isnull, Timestamp
-from pandas.util.testing import assert_almost_equal
-import pandas.util.testing as common
 import pandas.lib as lib
 import pandas.algos as algos
-from datetime import datetime
+
+from pandas import Index, isnull, Timestamp
+from pandas.util.testing import assert_almost_equal
 
 
 class TestTseriesUtil(unittest.TestCase):

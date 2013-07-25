@@ -1,11 +1,10 @@
-import nose
 import unittest
 
+import nose
 from numpy import nan
 import numpy as np
 
 from pandas import Series, DataFrame
-
 from pandas.util.compat import product
 from pandas.util.testing import (assert_frame_equal,
                                  assert_series_equal,

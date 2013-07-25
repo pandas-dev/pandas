@@ -6,7 +6,6 @@ import numpy as np
 
 from pandas import Index, MultiIndex, DataFrame, Series
 from pandas.core.internals import *
-import pandas.core.internals as internals
 import pandas.util.testing as tm
 
 from pandas.util.testing import (

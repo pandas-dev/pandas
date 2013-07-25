@@ -1,8 +1,10 @@
 from urllib2 import urlopen
-import json
 from contextlib import closing
-import pandas
+
 import numpy as np
+
+import json
+import pandas
 
 
 def download(country=['MX', 'CA', 'US'], indicator=['GDPPCKD', 'GDPPCKN'],
