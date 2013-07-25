@@ -2672,7 +2672,7 @@ class Table(Storer):
                     b = by_items.pop(items)
                     new_blocks.append(b)
                 except:
-                    raise ValueError("cannot match existing table structure for [%s] on appending data" % items)
+                    raise ValueError("cannot match existing table structure for [%s] on appending data" % ','.join(items))
             blocks = new_blocks
 
         # add my values
