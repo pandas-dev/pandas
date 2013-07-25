@@ -158,14 +158,12 @@ class TestSeriesPlots(unittest.TestCase):
             for r in ax.patches:
                 self.assert_(r.get_linewidth() == 2)
 
-    @slow
     def test_rotation(self):
         df = DataFrame(np.random.randn(5, 5))
         ax = df.plot(rot=30)
         for l in ax.get_xticklabels():
             self.assert_(l.get_rotation() == 30)
 
-    @slow
     def test_irregular_datetime(self):
         rng = date_range('1/1/2000', '3/1/2000')
         rng = rng[[0, 1, 2, 3, 5, 9, 10, 11, 12]]
@@ -195,6 +193,36 @@ class TestSeriesPlots(unittest.TestCase):
         self.assertRaises(ValueError, self.ts.hist, by=self.ts.index,
                           figure=fig)
 
+    @slow
+    def test_hist_layout(self):
+        n = 10
+        df = DataFrame({'gender': np.array(['Male',
+                                            'Female'])[random.randint(2,
+                                                                      size=n)],
+                        'height': random.normal(66, 4, size=n), 'weight':
+                        random.normal(161, 32, size=n)})
+        self.assertRaises(ValueError, df.height.hist, layout=(1, 1))
+        self.assertRaises(ValueError, df.height.hist, layout=[1, 1])
+
+    @slow
+    def test_hist_layout_with_by(self):
+        import matplotlib.pyplot as plt
+        n = 10
+        df = DataFrame({'gender': np.array(['Male',
+                                            'Female'])[random.randint(2,
+                                                                      size=n)],
+                        'height': random.normal(66, 4, size=n), 'weight':
+                        random.normal(161, 32, size=n),
+                        'category': random.randint(4, size=n)})
+        _check_plot_works(df.height.hist, by=df.gender, layout=(2, 1))
+        plt.close('all')
+        _check_plot_works(df.height.hist, by=df.gender, layout=(1, 2))
+        plt.close('all')
+        _check_plot_works(df.weight.hist, by=df.category, layout=(1, 4))
+        plt.close('all')
+        _check_plot_works(df.weight.hist, by=df.category, layout=(4, 1))
+        plt.close('all')
+
     def test_plot_fails_when_ax_differs_from_figure(self):
         from pylab import figure
         fig1 = figure()
@@ -210,7 +238,6 @@ class TestSeriesPlots(unittest.TestCase):
         ax = self.ts.plot(kind='kde', logy=True)
         self.assert_(ax.get_yscale() == 'log')
 
-    @slow
     def test_kde_color(self):
         _skip_if_no_scipy()
         ax = self.ts.plot(kind='kde', logy=True, color='r')
@@ -257,7 +284,6 @@ class TestSeriesPlots(unittest.TestCase):
         for kind in kinds:
             self.assertRaises(TypeError, s.plot, kind=kind)
 
-    @slow
     def test_invalid_kind(self):
         s = Series([1, 2])
         self.assertRaises(ValueError, s.plot, kind='aasdf')
@@ -323,7 +349,6 @@ class TestDataFramePlots(unittest.TestCase):
                        index=index)
         _check_plot_works(df.plot, title=u'\u03A3')
 
-    @slow
     def test_nonnumeric_exclude(self):
         import matplotlib.pyplot as plt
         plt.close('all')
@@ -410,10 +435,9 @@ class TestDataFramePlots(unittest.TestCase):
         lines = ax.get_lines()
         self.assert_(isinstance(lines[0].get_xdata(), PeriodIndex))
 
-    @slow
     def test_unsorted_index(self):
-        df = DataFrame({'y': range(100)},
-                       index=range(99, -1, -1))
+        df = DataFrame({'y': np.arange(100)},
+                       index=np.arange(99, -1, -1))
         ax = df.plot()
         l = ax.get_lines()[0]
         rs = l.get_xydata()
@@ -479,7 +503,6 @@ class TestDataFramePlots(unittest.TestCase):
         df = DataFrame({'a': [0, 1], 'b': [1, 0]})
         _check_plot_works(df.plot, kind='bar')
 
-    @slow
     def test_bar_stacked_center(self):
         # GH2157
         df = DataFrame({'A': [3] * 5, 'B': range(5)}, index=range(5))
@@ -487,7 +510,6 @@ class TestDataFramePlots(unittest.TestCase):
         self.assertEqual(ax.xaxis.get_ticklocs()[0],
                          ax.patches[0].get_x() + ax.patches[0].get_width() / 2)
 
-    @slow
     def test_bar_center(self):
         df = DataFrame({'A': [3] * 5, 'B': range(5)}, index=range(5))
         ax = df.plot(kind='bar', grid=True)
@@ -710,7 +732,6 @@ class TestDataFramePlots(unittest.TestCase):
         df = DataFrame(np.random.randn(100, 4)).cumsum()
         _check_plot_works(df.plot, legend=True)
 
-    @slow
     def test_legend_name(self):
         multi = DataFrame(np.random.randn(4, 4),
                           columns=[np.array(['a', 'a', 'b', 'b']),
@@ -800,7 +821,6 @@ class TestDataFramePlots(unittest.TestCase):
         plt.close('all')
         df.ix[:, [0]].plot(color='DodgerBlue')
 
-    @slow
     def test_default_color_cycle(self):
         import matplotlib.pyplot as plt
         plt.rcParams['axes.color_cycle'] = list('rgbk')
@@ -815,7 +835,6 @@ class TestDataFramePlots(unittest.TestCase):
             rs = l.get_color()
             self.assert_(xp == rs)
 
-    @slow
     def test_unordered_ts(self):
         df = DataFrame(np.array([3.0, 2.0, 1.0]),
                        index=[date(2012, 10, 1),
@@ -828,7 +847,6 @@ class TestDataFramePlots(unittest.TestCase):
         ydata = ax.lines[0].get_ydata()
         self.assert_(np.all(ydata == np.array([1.0, 2.0, 3.0])))
 
-    @slow
     def test_all_invalid_plot_data(self):
         kinds = 'line', 'bar', 'barh', 'kde', 'density'
         df = DataFrame(list('abcd'))
@@ -843,7 +861,6 @@ class TestDataFramePlots(unittest.TestCase):
         for kind in kinds:
             self.assertRaises(TypeError, df.plot, kind=kind)
 
-    @slow
     def test_invalid_kind(self):
         df = DataFrame(np.random.randn(10, 2))
         self.assertRaises(ValueError, df.plot, kind='aasdf')
@@ -880,7 +897,6 @@ class TestDataFrameGroupByPlots(unittest.TestCase):
         _check_plot_works(grouped.boxplot)
         _check_plot_works(grouped.boxplot, subplots=False)
 
-    @slow
     def test_series_plot_color_kwargs(self):
         # #1890
         import matplotlib.pyplot as plt
@@ -890,7 +906,6 @@ class TestDataFrameGroupByPlots(unittest.TestCase):
         line = ax.get_lines()[0]
         self.assert_(line.get_color() == 'green')
 
-    @slow
     def test_time_series_plot_color_kwargs(self):
         # #1890
         import matplotlib.pyplot as plt
@@ -901,7 +916,6 @@ class TestDataFrameGroupByPlots(unittest.TestCase):
         line = ax.get_lines()[0]
         self.assert_(line.get_color() == 'green')
 
-    @slow
     def test_time_series_plot_color_with_empty_kwargs(self):
         import matplotlib.pyplot as plt
 
@@ -949,6 +963,33 @@ class TestDataFrameGroupByPlots(unittest.TestCase):
         # propagate attr exception from matplotlib.Axes.hist
         self.assertRaises(AttributeError, plotting.grouped_hist, df.A,
                           by=df.C, foo='bar')
+
+    @slow
+    def test_grouped_hist_layout(self):
+        import matplotlib.pyplot as plt
+        n = 100
+        df = DataFrame({'gender': np.array(['Male',
+                                            'Female'])[random.randint(2,
+                                                                      size=n)],
+                        'height': random.normal(66, 4, size=n),
+                        'weight': random.normal(161, 32, size=n),
+                        'category': random.randint(4, size=n)})
+        self.assertRaises(ValueError, df.hist, column='weight', by=df.gender,
+                          layout=(1, 1))
+        self.assertRaises(ValueError, df.hist, column='weight', by=df.gender,
+                          layout=(1,))
+        self.assertRaises(ValueError, df.hist, column='height', by=df.category,
+                          layout=(1, 3))
+        self.assertRaises(ValueError, df.hist, column='height', by=df.category,
+                          layout=(2, 1))
+        self.assertEqual(df.hist(column='height', by=df.gender,
+                                 layout=(2, 1)).shape, (2,))
+        plt.close('all')
+        self.assertEqual(df.hist(column='height', by=df.category,
+                                 layout=(4, 1)).shape, (4,))
+        plt.close('all')
+        self.assertEqual(df.hist(column='height', by=df.category,
+                                 layout=(4, 2)).shape, (4, 2))
 
     @slow
     def test_axis_shared(self):
