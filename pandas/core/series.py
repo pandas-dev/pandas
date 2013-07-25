@@ -27,6 +27,7 @@ from pandas.core.indexing import (
     _is_index_slice, _maybe_convert_indices)
 from pandas.core import generic
 from pandas.core.internals import SingleBlockManager
+import pandas.core.expressions as expressions
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex, Period
 from pandas.tseries.offsets import DateOffset
@@ -2306,7 +2307,9 @@ class Series(generic.NDFrame):
         """
         other = other.reindex_like(self)
         mask = notnull(other)
-        com._maybe_upcast_putmask(self.values, mask, other, change=self.values)
+
+        self._data = self._data.putmask(mask, other, inplace=True)
+        self._maybe_update_cacher()
 
     #----------------------------------------------------------------------
     # Reindexing, sorting

@@ -121,7 +121,7 @@ pandas 0.13
 
 In 0.13.0 there is a major refactor primarily to subclass ``Series`` from ``NDFrame``,
 which is the base class currently for ``DataFrame`` and ``Panel``, to unify methods
-and behaviors. Series formerly subclassed directly from ``ndarray``.
+and behaviors. Series formerly subclassed directly from ``ndarray``. (:issue:`4080`,:issue:`3862`,:issue:`816`)
 
 - Refactor of series.py/frame.py/panel.py to move common code to generic.py
   - added _setup_axes to created generic NDFrame structures
@@ -176,6 +176,9 @@ and behaviors. Series formerly subclassed directly from ``ndarray``.
 - All ``NDFrame`` objects now have a ``_prop_attributes``, which can be used to indcated various
   values to propogate to a new object from an existing (e.g. name in ``Series`` will follow
   more automatically now)
+
+- Bug in Series update where the parent frame is not updating its cache based on
+  changes (:issue:`4080`) or types (:issue:`3217`), fillna (:issue:`3386`)
 
 **Experimental Features**
 

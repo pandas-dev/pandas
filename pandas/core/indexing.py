@@ -1027,7 +1027,7 @@ def _check_bool_indexer(ax, key):
     # this function assumes that com._is_bool_indexer(key) == True
 
     result = key
-    if _is_series(key) and not key.index.equals(ax):
+    if is_series(key) and not key.index.equals(ax):
         result = result.reindex(ax)
         mask = com.isnull(result.values)
         if mask.any():
@@ -1041,10 +1041,6 @@ def _check_bool_indexer(ax, key):
         result = np.asarray(result, dtype=bool)
 
     return result
-
-def _is_series(obj):
-    return is_series(obj)
-
 
 def _maybe_convert_indices(indices, n):
     """ if we have negative indicies, translate to postive here

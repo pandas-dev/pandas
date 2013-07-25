@@ -3,6 +3,7 @@ import warnings
 from pandas import compat
 import itertools
 import operator
+import weakref
 import numpy as np
 import pandas.lib as lib
 from pandas.core.base import PandasObject
@@ -702,10 +703,22 @@ class NDFrame(PandasObject):
             values = self._data.get(item)
             res = self._box_item_values(item, values)
             cache[item] = res
+            res._cacher = (item,weakref.ref(self))
             return res
 
     def _box_item_values(self, key, values):
         raise NotImplementedError
+
+    def _maybe_cache_changed(self, item, value):
+        """ the object has called back to us saying
+        maybe it has changed """
+        self._data.set(item, value)
+
+    def _maybe_update_cacher(self):
+        """ see if we need to update our parent cacher """
+        cacher = getattr(self,'_cacher',None)
+        if cacher is not None:
+            cacher[1]()._maybe_cache_changed(cacher[0],self)
 
     def _clear_item_cache(self):
         self._item_cache.clear()
@@ -1437,7 +1450,9 @@ class NDFrame(PandasObject):
                 for k, v in value.iteritems():
                     if k not in result:
                         continue
-                    result[k].fillna(v, inplace=True)
+                    obj = result[k]
+                    obj.fillna(v, inplace=True)
+                    obj._maybe_update_cacher()
                 return result
             else:
                 new_data = self._data.fillna(value, inplace=inplace,
