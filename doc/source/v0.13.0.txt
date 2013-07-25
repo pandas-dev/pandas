@@ -18,6 +18,9 @@ Enhancements
 Bug Fixes
 ~~~~~~~~~
 
+  - ``HDFStore`` raising an invalid ``TypeError`` rather than ``ValueError`` when appending
+    with a different block ordering (:issue:`4096`)
+
 See the :ref:`full release notes
 <release>` or issue tracker
 on GitHub for a complete list.
