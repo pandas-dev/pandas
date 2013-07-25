@@ -125,6 +125,7 @@ See the package overview for more detail about what's in the library.
     visualization
     rplot
     io
+    remote_data
     enhancingperf
     sparse
     gotchas
