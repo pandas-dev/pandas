@@ -44,6 +44,9 @@ pandas 0.13
 
 **Bug Fixes**
 
+  - ``fill_value`` parameter was ignored in ``Series.reindex()`` if the object
+    was empty (:issue:`4346`)
+
 pandas 0.12
 ===========
 

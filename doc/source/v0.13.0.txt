@@ -18,6 +18,9 @@ Enhancements
 Bug Fixes
 ~~~~~~~~~
 
+  - ``fill_value`` parameter was ignored in ``Series.reindex()`` if the object
+    was empty (:issue:`4346`)
+
 See the :ref:`full release notes
 <release>` or issue tracker
 on GitHub for a complete list.
