@@ -2636,7 +2636,7 @@ class Series(generic.PandasContainer, pa.Array):
                 return self
 
         if len(self.index) == 0:
-            return Series(nan, index=index, name=self.name)
+            return Series(fill_value, index=index, name=self.name)
 
         new_index, indexer = self.index.reindex(index, method=method,
                                                 level=level, limit=limit,
