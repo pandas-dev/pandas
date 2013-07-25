@@ -46,6 +46,8 @@ pandas 0.13
 
   - ``HDFStore`` raising an invalid ``TypeError`` rather than ``ValueError`` when appending
     with a different block ordering (:issue:`4096`)
+  - The ``by`` argument now works correctly with the ``layout`` argument
+    (:issue:`4102`, :issue:`4014`) in ``*.hist`` plotting methods
 
 pandas 0.12
 ===========

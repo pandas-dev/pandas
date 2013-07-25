@@ -21,6 +21,9 @@ Bug Fixes
   - ``HDFStore`` raising an invalid ``TypeError`` rather than ``ValueError`` when appending
     with a different block ordering (:issue:`4096`)
 
+  - The ``by`` argument now works correctly with the ``layout`` argument
+    (:issue:`4102`, :issue:`4014`) in ``*.hist`` plotting methods
+
 See the :ref:`full release notes
 <release>` or issue tracker
 on GitHub for a complete list.

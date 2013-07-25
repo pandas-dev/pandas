@@ -1929,9 +1929,9 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
         data = data[column]
 
     if by is not None:
-
         axes = grouped_hist(data, by=by, ax=ax, grid=grid, figsize=figsize,
-                            sharex=sharex, sharey=sharey, **kwds)
+                            sharex=sharex, sharey=sharey, layout=layout,
+                            **kwds)
 
         for ax in axes.ravel():
             if xlabelsize is not None:
@@ -2030,6 +2030,9 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
         fig.set_size_inches(*figsize, forward=True)
 
     if by is None:
+        if kwds.get('layout', None):
+            raise ValueError("The 'layout' keyword is not supported when "
+                             "'by' is None")
         if ax is None:
             ax = fig.add_subplot(111)
         if ax.get_figure() != fig:
@@ -2146,8 +2149,11 @@ def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
         grouped = grouped[column]
 
     ngroups = len(grouped)
-
     nrows, ncols = layout or _get_layout(ngroups)
+
+    if nrows * ncols < ngroups:
+        raise ValueError("Number of plots in 'layout' must greater than or "
+                         "equal to the number " "of groups in 'by'")
 
     if figsize is None:
         # our favorite default beating matplotlib's idea of the
