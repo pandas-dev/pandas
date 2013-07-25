@@ -61,6 +61,69 @@ docstring_to_string = """
     -------
     formatted : string (or unicode, depending on data and options)"""
 
+class CategoricalFormatter(object):
+    def __init__(self, categorical, buf=None, length=True,
+                 na_rep='NaN', name=False, footer=True):
+        self.categorical = categorical
+        self.buf = buf if buf is not None else StringIO(u"")
+        self.name = name
+        self.na_rep = na_rep
+        self.length = length
+        self.footer = footer
+
+    def _get_footer(self):
+        footer = u''
+
+        if self.name:
+            name = com.pprint_thing(self.categorical.name,
+                                    escape_chars=('\t', '\r', '\n'))
+            footer += ('Name: %s' %
+                        name) if self.categorical.name is not None else ""
+
+        if self.length:
+            if footer:
+                footer += u', '
+            footer += "Length: %d" % len(self.categorical)
+
+        levheader = 'Levels (%d): ' % len(self.categorical.levels)
+
+        #TODO: should max_line_width respect a setting?
+        levstring = np.array_repr(self.categorical.levels, max_line_width=60)
+        indent = ' ' * (levstring.find('[') + len(levheader) + 1)
+        lines = levstring.split('\n')
+        levstring = '\n'.join([lines[0]] +
+                              [indent + x.lstrip() for x in lines[1:]])
+        if footer:
+            footer += u', '
+        footer += levheader + levstring
+
+        return footer
+
+    def _get_formatted_values(self):
+        return format_array(np.asarray(self.categorical), None,
+                            float_format=None,
+                            na_rep=self.na_rep)
+
+    def to_string(self):
+        categorical = self.categorical
+
+        if len(categorical) == 0:
+            if self.footer:
+                return self._get_footer()
+            else:
+                return u''
+
+        fmt_values = self._get_formatted_values()
+        pad_space = 10
+
+        result = [u'%s' % i for i in fmt_values]
+        if self.footer:
+            footer = self._get_footer()
+            if footer:
+                result.append(footer)
+
+        return u'\n'.join(result)
+
 
 class SeriesFormatter(object):
 

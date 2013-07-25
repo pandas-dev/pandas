@@ -233,6 +233,7 @@ API Changes
     This enables a pure label-based slicing paradigm that makes ``[],ix,loc`` for scalar indexing and slicing work exactly the same.
     Indexing on other index types are preserved (and positional fallback for ``[],ix``), with the exception, that floating point slicing
     on indexes on non ``Float64Index`` will raise a ``TypeError``, e.g. ``Series(range(5))[3.5:4.5]`` (:issue:`263`)
+  - Make Categorical repr nicer (:issue:`4368`)
 
 Internal Refactoring
 ~~~~~~~~~~~~~~~~~~~~
