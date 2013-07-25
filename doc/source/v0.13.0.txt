@@ -41,6 +41,8 @@ Bug Fixes
   - Fixed an issue where ``DataFrame.sum`` was slower than ``DataFrame.mean``
     for integer valued frames (:issue:`4365`)
 
+  - ``read_html`` tests now work with Python 2.6 (:issue:`4351`)
+
 See the :ref:`full release notes
 <release>` or issue tracker
 on GitHub for a complete list.
