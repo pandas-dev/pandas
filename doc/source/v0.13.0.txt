@@ -30,6 +30,9 @@ Bug Fixes
   - Fixed bug in ``PeriodIndex.map`` where using ``str`` would return the str
     representation of the index (:issue:`4136`)
 
+  - Fix running of stata IO tests. Now uses temporary files to write
+    (:issue:`4353`)
+
 See the :ref:`full release notes
 <release>` or issue tracker
 on GitHub for a complete list.

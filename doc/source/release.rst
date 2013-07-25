@@ -52,6 +52,8 @@ pandas 0.13
     (:issue:`4102`, :issue:`4014`) in ``*.hist`` plotting methods
   - Fixed bug in ``PeriodIndex.map`` where using ``str`` would return the str
     representation of the index (:issue:`4136`)
+  - Fix running of stata IO tests. Now uses temporary files to write
+    (:issue:`4353`)
 
 pandas 0.12
 ===========

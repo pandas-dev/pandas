@@ -86,7 +86,7 @@ def set_trace():
 #------------------------------------------------------------------------------
 # contextmanager to ensure the file cleanup
 @contextmanager
-def ensure_clean(filename = None):
+def ensure_clean(filename=None):
     # if we are not passed a filename, generate a temporary
     if filename is None:
         filename = tempfile.mkstemp()[1]
