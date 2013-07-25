@@ -513,6 +513,12 @@ input data shape. ``where`` is used under the hood as the implementation.
 Equivalent is ``df.where(df < 0)``
 
 .. ipython:: python
+   :suppress:
+
+   dates = date_range('1/1/2000', periods=8)
+   df = DataFrame(randn(8, 4), index=dates, columns=['A', 'B', 'C', 'D'])
+
+.. ipython:: python
 
    df[df < 0]
 
