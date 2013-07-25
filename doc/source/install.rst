@@ -103,6 +103,15 @@ Optional Dependencies
      * Needed for Excel I/O
   * `boto <https://pypi.python.org/pypi/boto>`__: necessary for Amazon S3
     access.
+  * One of `PyQt4
+    <http://www.riverbankcomputing.com/software/pyqt/download>`__, `PySide
+    <http://qt-project.org/wiki/Category:LanguageBindings::PySide>`__, `pygtk
+    <http://www.pygtk.org/>`__, `xsel
+    <http://www.vergenet.net/~conrad/software/xsel/>`__, or `xclip
+    <http://sourceforge.net/projects/xclip/>`__: necessary to use
+    :func:`~pandas.io.parsers.read_clipboard`. Most package managers on Linux
+    distributions will have xclip and/or xsel immediately available for
+    installation.
   * One of the following combinations of libraries is needed to use the
     top-level :func:`~pandas.io.html.read_html` function:
 
