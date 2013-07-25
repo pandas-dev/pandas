@@ -44,6 +44,9 @@ pandas 0.13
 
 **Bug Fixes**
 
+  - ``HDFStore`` raising an invalid ``TypeError`` rather than ``ValueError`` when appending
+    with a different block ordering (:issue:`4096`)
+
 pandas 0.12
 ===========
 

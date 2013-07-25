@@ -620,6 +620,21 @@ class TestHDFStore(unittest.TestCase):
 
                 store.append('df',df)
 
+        # test a different ordering but with more fields (like invalid combinate)
+        with ensure_clean(self.path) as store:
+
+            df = DataFrame(np.random.randn(10,2),columns=list('AB'), dtype='float64')
+            df['int64'] = Series([1]*len(df),dtype='int64')
+            df['int16'] = Series([1]*len(df),dtype='int16')
+            store.append('df',df)
+
+            # store additonal fields in different blocks
+            df['int16_2'] = Series([1]*len(df),dtype='int16')
+            self.assertRaises(ValueError, store.append, 'df', df)
+
+            # store multile additonal fields in different blocks
+            df['float_3'] = Series([1.]*len(df),dtype='float64')
+            self.assertRaises(ValueError, store.append, 'df', df)
 
     def test_ndim_indexables(self):
         """ test using ndim tables in new ways"""
