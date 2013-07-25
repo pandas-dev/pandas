@@ -27,6 +27,7 @@ randn = np.random.randn
 from pandas import Series, TimeSeries, DataFrame
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
+from pandas.util import py3compat
 from numpy.testing import assert_array_equal
 
 
@@ -1990,7 +1991,30 @@ class TestPeriodIndex(TestCase):
 
         result = index.map(lambda x: x.ordinal)
         exp = [x.ordinal for x in index]
-        self.assert_(np.array_equal(result, exp))
+        assert_array_equal(result, exp)
+
+    def test_map_with_string_constructor(self):
+        raw = [2005, 2007, 2009]
+        index = PeriodIndex(raw, freq='A')
+        types = str,
+        if not py3compat.PY3:
+            types += unicode,
+
+        for t in types:
+            expected = np.array(map(t, raw), dtype=object)
+            res = index.map(t)
+
+            # should return an array
+            self.assert_(isinstance(res, np.ndarray))
+
+            # preserve element types
+            self.assert_(all(isinstance(resi, t) for resi in res))
+
+            # dtype should be object
+            self.assertEqual(res.dtype, np.dtype('object').type)
+
+            # lastly, values should compare equal
+            assert_array_equal(res, expected)
 
     def test_convert_array_of_periods(self):
         rng = period_range('1/1/2000', periods=20, freq='D')
