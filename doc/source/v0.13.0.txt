@@ -12,6 +12,9 @@ API changes
 Enhancements
 ~~~~~~~~~~~~
 
+  - ``read_html`` now raises a ``URLError`` instead of catching and raising a
+    ``ValueError`` (:issue:`4303`, :issue:`4305`)
+
 Bug Fixes
 ~~~~~~~~~
 
