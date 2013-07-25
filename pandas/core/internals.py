@@ -8,7 +8,7 @@ import numpy as np
 from pandas.core.base import PandasObject
 
 from pandas.core.common import (_possibly_downcast_to_dtype, isnull, _NS_DTYPE,
-                                _TD_DTYPE, is_series, is_sparse_series)
+                                _TD_DTYPE, ABCSeries, ABCSparseSeries)
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
                                _handle_legacy_indexes)
 from pandas.core.indexing import _check_slice_bounds, _maybe_convert_indices
@@ -2945,7 +2945,7 @@ def form_blocks(arrays, names, axes):
     datetime_items = []
 
     for i, (k, v) in enumerate(zip(names, arrays)):
-        if isinstance(v, SparseArray) or is_sparse_series(v):
+        if isinstance(v, (SparseArray, ABCSparseSeries)):
             sparse_items.append((i, k, v))
         elif issubclass(v.dtype.type, np.floating):
             float_items.append((i, k, v))
@@ -3075,13 +3075,13 @@ def _stack_arrays(tuples, ref_items, dtype):
 
     # fml
     def _asarray_compat(x):
-        if is_series(x):
+        if isinstance(x, ABCSeries):
             return x.values
         else:
             return np.asarray(x)
 
     def _shape_compat(x):
-        if is_series(x):
+        if isinstance(x, ABCSeries):
             return len(x),
         else:
             return x.shape

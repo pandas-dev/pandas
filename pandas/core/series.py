@@ -19,7 +19,7 @@ from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _asarray_tuplesafe, is_integer_dtype,
                                 _NS_DTYPE, _TD_DTYPE,
                                 _infer_dtype_from_scalar, is_list_like, _values_from_object,
-                                is_sparse_array_like)
+                                ABCSparseArray)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                _ensure_index, _handle_legacy_indexes)
 from pandas.core.indexing import (
@@ -584,7 +584,7 @@ class Series(generic.NDFrame):
             else:
 
                 # handle sparse passed here (and force conversion)
-                if is_sparse_array_like(data):
+                if isinstance(data, ABCSparseArray):
                     data = data.to_dense()
 
             if index is None:
@@ -613,7 +613,7 @@ class Series(generic.NDFrame):
     def from_array(cls, arr, index=None, name=None, copy=False, fastpath=False):
 
         # return a sparse series here
-        if is_sparse_array_like(arr):
+        if isinstance(arr, ABCSparseArray):
             from pandas.sparse.series import SparseSeries
             cls = SparseSeries
 
