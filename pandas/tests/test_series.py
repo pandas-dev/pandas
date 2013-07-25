@@ -2550,6 +2550,37 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = tsdf.max()
         assert_series_equal(result,expected)
 
+    def test_underlying_data_conversion(self):
+
+        # GH 4080
+        df = DataFrame(dict((c, [1,2,3]) for c in ['a', 'b', 'c']))
+        df.set_index(['a', 'b', 'c'], inplace=True)
+        s = Series([1], index=[(2,2,2)])
+        df['val'] = 0
+        df
+        df['val'].update(s)
+
+        expected = DataFrame(dict(a = [1,2,3], b = [1,2,3], c = [1,2,3], val = [0,1,0]))
+        expected.set_index(['a', 'b', 'c'], inplace=True)
+        tm.assert_frame_equal(df,expected)
+
+        # GH 3970
+        df = DataFrame({ "aa":range(5), "bb":[2.2]*5})
+        df["cc"] = 0.0
+        ck = [True]*len(df)
+        df["bb"].iloc[0] = .13
+        df_tmp = df.iloc[ck]
+        df["bb"].iloc[0] = .15
+        self.assert_(df['bb'].iloc[0] == 0.15)
+
+        # GH 3217
+        df = DataFrame(dict(a = [1,3], b = [np.nan, 2]))
+        df['c'] = np.nan
+        df['c'].update(pd.Series(['foo'],index=[0]))
+
+        expected = DataFrame(dict(a = [1,3], b = [np.nan, 2], c = ['foo',np.nan]))
+        tm.assert_frame_equal(df,expected)
+
     def test_operators_corner(self):
         series = self.ts
 

@@ -297,17 +297,13 @@ class Block(PandasObject):
             else:
                 return self.copy()
 
-        new_values = self.values if inplace else self.values.copy()
-        mask = com.isnull(new_values)
-
+        mask = com.isnull(self.values)
         value = self._try_fill(value)
-        np.putmask(new_values, mask, value)
+        blocks = self.putmask(mask, value, inplace=inplace)
 
-        block = make_block(
-            new_values, self.items, self.ref_items, fastpath=True)
         if downcast:
-            block = block.downcast()
-        return block
+            blocks = [ b.downcast() for b in blocks ]
+        return blocks
 
     def downcast(self, dtypes=None):
         """ try to downcast each item to the dict of dtypes if present """

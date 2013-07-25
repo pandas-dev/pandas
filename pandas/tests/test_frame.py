@@ -6221,6 +6221,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             df.x.fillna(method=m,inplace=1)
             df.x.fillna(method=m)
 
+        # with different dtype (GH3386)
+        df = DataFrame([['a','a',np.nan,'a'],['b','b',np.nan,'b'],['c','c',np.nan,'c']])
+
+        result = df.fillna({ 2: 'foo' })
+        expected = DataFrame([['a','a','foo','a'],['b','b','foo','b'],['c','c','foo','c']])
+        assert_frame_equal(result, expected)
+
+        df.fillna({ 2: 'foo' }, inplace=True)
+        assert_frame_equal(df, expected)
+
     def test_ffill(self):
         self.tsframe['A'][:5] = nan
         self.tsframe['A'][-5:] = nan
