@@ -108,7 +108,10 @@ class CategoricalFormatter(object):
         categorical = self.categorical
 
         if len(categorical) == 0:
-            return u''
+            if self.footer:
+                return self._get_footer()
+            else:
+                return u''
 
         fmt_values = self._get_formatted_values()
         pad_space = 10

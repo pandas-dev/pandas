@@ -180,8 +180,11 @@ class Categorical(PandasObject):
         elif len(self.labels) > 0:
             result = self._get_repr(length=len(self) > 50,
                                     name=True)
-        else: #TODO: still try to print levels?
-            result = u'Categorical: %s\n[]\n[]'
+        else:
+            result = u'Categorical([], %s' % self._get_repr(name=True,
+                                                            length=False,
+                                                            footer=True,
+                                                            )
 
         if not ( type(result) == unicode):
             raise AssertionError("Result is not unicode. Got %s." % type(self))
