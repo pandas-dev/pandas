@@ -123,6 +123,39 @@ class TestCategorical(unittest.TestCase):
                                             ).set_index('levels')
         tm.assert_frame_equal(desc, expected)
 
+    def test_print(self):
+        expected = [" a", " b", " b", " a", " a", " c", " c", " c",
+                    "Levels (3): Index(['a', 'b', 'c'], dtype=object)"]
+        expected = "\n".join(expected)
+        self.assertEquals(repr(self.factor), expected)
+
+    def test_big_print(self):
+        factor = Categorical([0,1,2,0,1,2]*100, ['a', 'b', 'c'], name='cat')
+        expected = [" a", " b", " c", " a", " b", " c", " a", " b", " c",
+                    " a", " b", " c", " a", "...", " c", " a", " b", " c",
+                    " a", " b", " c", " a", " b", " c", " a", " b", " c",
+                    "Levels (3): Index(['a', 'b', 'c'], dtype=object)",
+                    "Name: cat, Length: 600" ]
+        expected = "\n".join(expected)
+        self.assertEquals(repr(factor), expected)
+
+    def test_empty_print(self):
+        factor = Categorical([], ["a","b","c"], name="cat")
+        expected = ("Categorical([], Name: cat, Levels (3): "
+                    "Index(['a', 'b', 'c'], dtype=object)")
+        self.assertEqual(repr(factor), expected)
+
+        factor = Categorical([], ["a","b","c"])
+        expected = ("Categorical([], Levels (3): "
+                    "Index(['a', 'b', 'c'], dtype=object)")
+        self.assertEqual(repr(factor), expected)
+
+        factor = Categorical([], [])
+        expected = ("Categorical([], Levels (0): "
+                    "Index([], dtype=object)")
+        self.assertEqual(repr(factor), expected)
+
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
