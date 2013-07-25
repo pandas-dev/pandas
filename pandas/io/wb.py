@@ -75,6 +75,7 @@ def download(country=['MX', 'CA', 'US'], indicator=['GDPPCKD', 'GDPPCKN'],
         # Clean
         out = out.drop('iso2c', axis=1)
         out = out.set_index(['country', 'year'])
+        out = out.convert_objects(convert_numeric=True)
         return out
 
 
