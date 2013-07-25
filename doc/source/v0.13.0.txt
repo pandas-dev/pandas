@@ -33,6 +33,9 @@ Bug Fixes
   - Fix running of stata IO tests. Now uses temporary files to write
     (:issue:`4353`)
 
+  - Fixed an issue where ``DataFrame.sum`` was slower than ``DataFrame.mean``
+    for integer valued frames (:issue:`4365`)
+
 See the :ref:`full release notes
 <release>` or issue tracker
 on GitHub for a complete list.
