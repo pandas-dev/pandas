@@ -10,9 +10,8 @@ import numpy as np
 
 from pandas.core.frame import DataFrame, Series
 from pandas.io.parsers import read_csv
-from pandas.io.stata import read_stata, StataReader, StataWriter
+from pandas.io.stata import read_stata, StataReader
 import pandas.util.testing as tm
-from pandas.util.testing import ensure_clean
 from pandas.util.misc import is_little_endian
 
 
@@ -27,15 +26,12 @@ class StataTests(unittest.TestCase):
         self.dta3 = os.path.join(self.dirpath, 'stata3.dta')
         self.csv3 = os.path.join(self.dirpath, 'stata3.csv')
         self.dta4 = os.path.join(self.dirpath, 'stata4.dta')
-        self.dta5 = os.path.join(self.dirpath, 'stata5.dta')
-        self.dta6 = os.path.join(self.dirpath, 'stata6.dta')
         self.dta7 = os.path.join(self.dirpath, 'cancer.dta')
         self.csv7 = os.path.join(self.dirpath, 'cancer.csv')
         self.dta8 = os.path.join(self.dirpath, 'tbl19-3.dta')
         self.csv8 = os.path.join(self.dirpath, 'tbl19-3.csv')
         self.dta9 = os.path.join(self.dirpath, 'lbw.dta')
         self.csv9 = os.path.join(self.dirpath, 'lbw.csv')
-        self.dta10 = os.path.join(self.dirpath, 'stata10.dta')
 
     def read_dta(self, file):
         return read_stata(file, convert_dates=True)
@@ -46,9 +42,11 @@ class StataTests(unittest.TestCase):
     def test_read_dta1(self):
         reader = StataReader(self.dta1)
         parsed = reader.data()
-        # Pandas uses np.nan as missing value. Thus, all columns will be of type float, regardless of their name.
+        # Pandas uses np.nan as missing value.
+        # Thus, all columns will be of type float, regardless of their name.
         expected = DataFrame([(np.nan, np.nan, np.nan, np.nan, np.nan)],
-                             columns=['float_miss', 'double_miss', 'byte_miss', 'int_miss', 'long_miss'])
+                             columns=['float_miss', 'double_miss', 'byte_miss',
+                                      'int_miss', 'long_miss'])
 
         for i, col in enumerate(parsed.columns):
             np.testing.assert_almost_equal(
@@ -90,7 +88,9 @@ class StataTests(unittest.TestCase):
                     np.datetime64('NaT')
                 )
             ],
-            columns=['datetime_c', 'datetime_big_c', 'date', 'weekly_date', 'monthly_date', 'quarterly_date', 'half_yearly_date', 'yearly_date']
+            columns=['datetime_c', 'datetime_big_c', 'date', 'weekly_date',
+                     'monthly_date', 'quarterly_date', 'half_yearly_date',
+                     'yearly_date']
         )
 
         with warnings.catch_warnings(record=True) as w:
@@ -125,34 +125,40 @@ class StataTests(unittest.TestCase):
                 ["nine", "two", 9, np.nan, "nine"],
                 ["ten", "one", "ten", np.nan, "ten"]
             ],
-            columns=['fully_labeled', 'fully_labeled2', 'incompletely_labeled', 'labeled_with_missings', 'float_labelled'])
+            columns=['fully_labeled', 'fully_labeled2', 'incompletely_labeled',
+                     'labeled_with_missings', 'float_labelled'])
 
         tm.assert_frame_equal(parsed, expected)
 
-    def test_write_dta5(self):
+    def test_read_write_dta5(self):
         if not is_little_endian():
-            raise nose.SkipTest("known failure of test_write_dta5 on non-little endian")
+            raise nose.SkipTest("known failure of test_write_dta5 on "
+                                "non-little endian")
 
         original = DataFrame([(np.nan, np.nan, np.nan, np.nan, np.nan)],
-                             columns=['float_miss', 'double_miss', 'byte_miss', 'int_miss', 'long_miss'])
+                             columns=['float_miss', 'double_miss', 'byte_miss',
+                                      'int_miss', 'long_miss'])
         original.index.name = 'index'
 
-        with ensure_clean(self.dta5) as path:
+        with tm.ensure_clean() as path:
             original.to_stata(path, None, False)
             written_and_read_again = self.read_dta(path)
-            tm.assert_frame_equal(written_and_read_again.set_index('index'), original)
+            tm.assert_frame_equal(written_and_read_again.set_index('index'),
+                                  original)
 
     def test_write_dta6(self):
         if not is_little_endian():
-            raise nose.SkipTest("known failure of test_write_dta6 on non-little endian")
+            raise nose.SkipTest("known failure of test_write_dta6 on "
+                                "non-little endian")
 
         original = self.read_csv(self.csv3)
         original.index.name = 'index'
 
-        with ensure_clean(self.dta6) as path:
+        with tm.ensure_clean() as path:
             original.to_stata(path, None, False)
             written_and_read_again = self.read_dta(path)
-            tm.assert_frame_equal(written_and_read_again.set_index('index'), original)
+            tm.assert_frame_equal(written_and_read_again.set_index('index'),
+                                  original)
 
     @nose.tools.nottest
     def test_read_dta7(self):
@@ -190,28 +196,29 @@ class StataTests(unittest.TestCase):
                 decimal=3
             )
 
-    def test_read_dta10(self):
+    def test_read_write_dta10(self):
         if not is_little_endian():
-            raise nose.SkipTest("known failure of test_write_dta10 on non-little endian")
+            raise nose.SkipTest("known failure of test_write_dta10 on "
+                                "non-little endian")
 
-        original = DataFrame(
-            data=
-            [
-                ["string", "object", 1, 1.1, np.datetime64('2003-12-25')]
-            ],
-            columns=['string', 'object', 'integer', 'float', 'datetime'])
+        original = DataFrame(data=[["string", "object", 1, 1.1,
+                                    np.datetime64('2003-12-25')]],
+                             columns=['string', 'object', 'integer', 'float',
+                                      'datetime'])
         original["object"] = Series(original["object"], dtype=object)
         original.index.name = 'index'
 
-        with ensure_clean(self.dta10) as path:
+        with tm.ensure_clean() as path:
             original.to_stata(path, {'datetime': 'tc'}, False)
             written_and_read_again = self.read_dta(path)
-            tm.assert_frame_equal(written_and_read_again.set_index('index'), original)
+            tm.assert_frame_equal(written_and_read_again.set_index('index'),
+                                  original)
 
     def test_stata_doc_examples(self):
-        with ensure_clean(self.dta5) as path:
+        with tm.ensure_clean() as path:
             df = DataFrame(np.random.randn(10, 2), columns=list('AB'))
             df.to_stata(path)
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
