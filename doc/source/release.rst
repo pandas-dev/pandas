@@ -32,6 +32,7 @@ pandas 0.13
 **New features**
 
   - Added ``isin`` method to DataFrame (:issue:`4211`)
+  - Clipboard functionality now works with PySide (:issue:`4282`)
 
 **Improvements to existing features**
 
@@ -39,6 +40,7 @@ pandas 0.13
     ``ValueError`` (:issue:`4303`, :issue:`4305`)
   - ``read_excel`` now supports an integer in its ``sheetname`` argument giving
     the index of the sheet to read in (:issue:`4301`).
+  - Added a test for ``read_clipboard()`` and ``to_clipboard()`` (:issue:`4282`)
 
 **API Changes**
 

@@ -31,5 +31,3 @@ def to_clipboard(obj):  # pragma: no cover
     """
     from pandas.util.clipboard import clipboard_set
     clipboard_set(str(obj))
-
-
