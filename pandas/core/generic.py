@@ -1620,8 +1620,11 @@ class NDFrame(PandasObject):
             return self.replace(to_replace, value, inplace=inplace,
                                 limit=limit, regex=regex)
         else:
-            if not len(self.columns):
-                return self
+
+            # need a non-zero len on all axes
+            for a in self._AXIS_ORDERS:
+                if not len(self._get_axis(a)):
+                    return self
 
             new_data = self._data
             if is_dictlike(to_replace):
