@@ -4338,16 +4338,6 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         rs2 = ser.replace([np.nan, 'foo', 'bar'], [-1, -2, -3])
         assert_series_equal(rs, rs2)
 
-        # replace with forward fill not considering np.nan missing
-        s2 = ser.copy()
-        s2[5] = np.nan
-        rs3 = s2.replace(['foo', 'bar'])
-        self.assert_(isnull(rs3[6]))
-
-        # replace with back fill considering np.nan as missing
-        rs4 = ser.replace([np.nan, 'foo', 'bar'], method='bfill')
-        assert_almost_equal(rs4[4], ser[5])
-
         # replace inplace
         ser.replace([np.nan, 'foo', 'bar'], -1, inplace=True)
 
@@ -4369,7 +4359,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         # malformed
         self.assertRaises(ValueError, ser.replace, [1, 2, 3], [np.nan, 0])
-        self.assertRaises(ValueError, ser.replace, range(1, 3), [np.nan, 0])
+        self.assertRaises(TypeError, ser.replace, range(1, 3), [np.nan, 0])
 
         ser = Series([0, 1, 2, 3, 4])
         result = ser.replace([0, 1, 2, 3, 4], [4, 3, 2, 1, 0])
@@ -4686,16 +4676,6 @@ class TestSeriesNonUnique(unittest.TestCase):
         # replace with different values with 2 lists
         rs2 = ser.replace([np.nan, 'foo', 'bar'], [-1, -2, -3])
         assert_series_equal(rs, rs2)
-
-        # replace with forward fill not considering np.nan missing
-        s2 = ser.copy()
-        s2[5] = np.nan
-        rs3 = s2.replace(['foo', 'bar'])
-        self.assert_(isnull(rs3[6]))
-
-        # replace with back fill considering np.nan as missing
-        rs4 = ser.replace([np.nan, 'foo', 'bar'], method='bfill')
-        assert_almost_equal(rs4[4], ser[5])
 
         # replace inplace
         ser.replace([np.nan, 'foo', 'bar'], -1, inplace=True)

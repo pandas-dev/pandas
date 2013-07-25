@@ -175,16 +175,6 @@ class Block(PandasObject):
     def dtype(self):
         return self.values.dtype
 
-    def copy(self, deep=True, ref_items=None):
-        values = self.values
-        if deep:
-            values = values.copy()
-        if ref_items is None:
-            ref_items = self.ref_items
-        return make_block(
-            values, self.items, ref_items, ndim=self.ndim, klass=self.__class__,
-            fastpath=True, placement=self._ref_locs)
-
     @property
     def ftype(self):
         return "%s:%s" % (self.dtype, self._ftype)
@@ -293,17 +283,23 @@ class Block(PandasObject):
     def fillna(self, value, inplace=False, downcast=None):
         if not self._can_hold_na:
             if inplace:
-                return self
+                return [self]
             else:
-                return self.copy()
+                return [self.copy()]
 
         mask = com.isnull(self.values)
         value = self._try_fill(value)
         blocks = self.putmask(mask, value, inplace=inplace)
 
-        if downcast:
-            blocks = [ b.downcast() for b in blocks ]
-        return blocks
+        # possibily downcast the blocks
+        if not downcast:
+            return blocks
+
+        result_blocks = []
+        for b in blocks:
+            result_blocks.extend(b.downcast())
+
+        return result_blocks
 
     def downcast(self, dtypes=None):
         """ try to downcast each item to the dict of dtypes if present """
@@ -361,14 +357,14 @@ class Block(PandasObject):
                                 "(%s [%s]) with smaller itemsize that current "
                                 "(%s [%s])" % (copy, self.dtype.name,
                                                self.itemsize, newb.dtype.name, newb.itemsize))
-        return newb
+        return [ newb ]
 
     def convert(self, copy=True, **kwargs):
         """ attempt to coerce any object types to better types
             return a copy of the block (if copy = True)
             by definition we are not an ObjectBlock here!  """
 
-        return self.copy() if copy else self
+        return [ self.copy() ] if copy else [ self ]
 
     def prepare_for_merge(self, **kwargs):
         """ a regular block is ok to merge as is """
@@ -427,6 +423,17 @@ class Block(PandasObject):
         mask = isnull(values)
         values[mask] = na_rep
         return values.tolist()
+
+    #### block actions ####
+    def copy(self, deep=True, ref_items=None):
+        values = self.values
+        if deep:
+            values = values.copy()
+        if ref_items is None:
+            ref_items = self.ref_items
+        return make_block(
+            values, self.items, ref_items, ndim=self.ndim, klass=self.__class__,
+            fastpath=True, placement=self._ref_locs)
 
     def replace(self, to_replace, value, inplace=False, filter=None,
                 regex=False):
@@ -541,7 +548,7 @@ class Block(PandasObject):
         if inplace:
             return [self]
 
-        return make_block(new_values, self.items, self.ref_items, fastpath=True)
+        return [make_block(new_values, self.items, self.ref_items, fastpath=True)]
 
     def interpolate(self, method='pad', axis=0, inplace=False,
                     limit=None, missing=None, coerce=False):
@@ -551,20 +558,20 @@ class Block(PandasObject):
         if coerce:
             if not self._can_hold_na:
                 if inplace:
-                    return self
+                    return [self]
                 else:
-                    return self.copy()
+                    return [self.copy()]
 
         values = self.values if inplace else self.values.copy()
         values = com.interpolate_2d(values, method, axis, limit, missing)
-        return make_block(values, self.items, self.ref_items, ndim=self.ndim, klass=self.__class__, fastpath=True)
+        return [make_block(values, self.items, self.ref_items, ndim=self.ndim, klass=self.__class__, fastpath=True)]
 
     def take(self, indexer, ref_items, axis=1):
         if axis < 1:
             raise AssertionError('axis must be at least 1, got %d' % axis)
         new_values = com.take_nd(self.values, indexer, axis=axis,
                                  allow_fill=False)
-        return make_block(new_values, self.items, ref_items, ndim=self.ndim, klass=self.__class__, fastpath=True)
+        return [make_block(new_values, self.items, ref_items, ndim=self.ndim, klass=self.__class__, fastpath=True)]
 
     def get_values(self, dtype=None):
         return self.values
@@ -575,7 +582,7 @@ class Block(PandasObject):
     def diff(self, n):
         """ return block for the diff of the values """
         new_values = com.diff(self.values, n, axis=1)
-        return make_block(new_values, self.items, self.ref_items, ndim=self.ndim, fastpath=True)
+        return [make_block(new_values, self.items, self.ref_items, ndim=self.ndim, fastpath=True)]
 
     def shift(self, indexer, periods):
         """ shift the block by periods, possibly upcast """
@@ -588,7 +595,7 @@ class Block(PandasObject):
             new_values[:, :periods] = fill_value
         else:
             new_values[:, periods:] = fill_value
-        return make_block(new_values, self.items, self.ref_items, ndim=self.ndim, fastpath=True)
+        return [make_block(new_values, self.items, self.ref_items, ndim=self.ndim, fastpath=True)]
 
     def eval(self, func, other, raise_on_error=True, try_cast=False):
         """
@@ -644,7 +651,7 @@ class Block(PandasObject):
         if try_cast:
             result = self._try_cast_result(result)
 
-        return make_block(result, self.items, self.ref_items, ndim=self.ndim, fastpath=True)
+        return [make_block(result, self.items, self.ref_items, ndim=self.ndim, fastpath=True)]
 
     def where(self, other, cond, raise_on_error=True, try_cast=False):
         """
@@ -1054,6 +1061,14 @@ class DatetimeBlock(Block):
             value = tslib.iNaT
         return value
 
+    def fillna(self, value, inplace=False, downcast=None):
+        values = self.values if inplace else self.values.copy()
+        mask = com.isnull(self.values)
+        value = self._try_fill(value)
+        np.putmask(values,mask,value)
+        return [self if inplace else make_block(values, self.items,
+                                                self.ref_items, fastpath=True)]
+
     def to_native_types(self, slicer=None, na_rep=None, **kwargs):
         """ convert to our native types format, slicing if desired """
 
@@ -1250,7 +1265,7 @@ class SparseBlock(Block):
         if issubclass(self.dtype.type, np.floating):
             value = float(value)
         values = self.values if inplace else self.values.copy()
-        return self.make_block(values.get_values(value), fill_value=value)
+        return [ self.make_block(values.get_values(value), fill_value=value) ]
 
     def shift(self, indexer, periods):
         """ shift the block by periods """
@@ -1263,7 +1278,7 @@ class SparseBlock(Block):
             new_values[:periods] = fill_value
         else:
             new_values[periods:] = fill_value
-        return self.make_block(new_values)
+        return [ self.make_block(new_values) ]
 
     def take(self, indexer, ref_items, axis=1):
         """ going to take our items
@@ -1271,7 +1286,7 @@ class SparseBlock(Block):
         if axis < 1:
             raise AssertionError('axis must be at least 1, got %d' % axis)
 
-        return self.make_block(self.values.take(indexer))
+        return [ self.make_block(self.values.take(indexer)) ]
 
     def reindex_axis(self, indexer, method=None, axis=1, fill_value=None, limit=None, mask_info=None):
         """
