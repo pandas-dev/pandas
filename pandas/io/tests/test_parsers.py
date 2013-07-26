@@ -108,6 +108,27 @@ g,7,seven
                                   np.nan, 'seven']})
         tm.assert_frame_equal(xp.reindex(columns=df.columns), df)
 
+
+        # GH4318, passing na_values=None and keep_default_na=False yields 'None' as a na_value
+        data = """\
+One,Two,Three
+a,1,None
+b,2,two
+,3,None
+d,4,nan
+e,5,five
+nan,6,
+g,7,seven
+"""
+        df = self.read_csv(
+            StringIO(data), keep_default_na=False)
+        xp = DataFrame({'One': ['a', 'b', '', 'd', 'e', 'nan', 'g'],
+                        'Two': [1, 2, 3, 4, 5, 6, 7],
+                        'Three': ['None', 'two', 'None', 'nan', 'five', '',
+                                  'seven']})
+        tm.assert_frame_equal(xp.reindex(columns=df.columns), df)
+
+
     def test_read_csv(self):
         if not compat.PY3:
             if 'win' in sys.platform:
