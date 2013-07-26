@@ -82,6 +82,7 @@ pandas 0.13
     local variable was undefined (:issue:`4381`)
   - In ``to_json``, raise if a passed ``orient`` would cause loss of data because
     of a duplicate index (:issue:`4359`)
+  - Fixed passing ``keep_default_na=False`` when ``na_values=None`` (:issue:`4318`)
 
 pandas 0.12
 ===========
