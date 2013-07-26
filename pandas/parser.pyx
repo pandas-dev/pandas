@@ -3,7 +3,7 @@
 
 from libc.stdio cimport fopen, fclose
 from libc.stdlib cimport malloc, free
-from libc.string cimport strncpy, strlen, strcmp
+from libc.string cimport strncpy, strlen, strcmp, strcasecmp
 cimport libc.stdio as stdio
 
 from cpython cimport (PyObject, PyBytes_FromString,
@@ -1399,9 +1399,9 @@ cdef _try_double(parser_t *parser, int col, int line_start, int line_end,
             else:
                 error = to_double(word, data, parser.sci, parser.decimal)
                 if error != 1:
-                    if strcmp(word, cinf) == 0:
+                    if strcasecmp(word, cinf) == 0:
                         data[0] = INF
-                    elif strcmp(word, cneginf) == 0:
+                    elif strcasecmp(word, cneginf) == 0:
                         data[0] = NEGINF
                     else:
                         return None, None
@@ -1415,9 +1415,9 @@ cdef _try_double(parser_t *parser, int col, int line_start, int line_end,
             word = COLITER_NEXT(it)
             error = to_double(word, data, parser.sci, parser.decimal)
             if error != 1:
-                if strcmp(word, cinf) == 0:
+                if strcasecmp(word, cinf) == 0:
                     data[0] = INF
-                elif strcmp(word, cneginf) == 0:
+                elif strcasecmp(word, cneginf) == 0:
                     data[0] = NEGINF
                 else:
                     return None, None

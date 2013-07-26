@@ -167,9 +167,22 @@ c,3
         data = """\
 ,A
 a,inf
-b,-inf"""
+b,-inf
+c,Inf
+d,-Inf
+e,INF
+f,-INF
+g,INf
+h,-INf
+i,inF
+j,-inF"""
+        inf = float('inf')
+        expected = Series([inf, -inf] * 5)
         df = read_csv(StringIO(data), index_col=0)
-        self.assertTrue(np.isinf(np.abs(df['A'])).all())
+        assert_almost_equal(df['A'].values, expected.values)
+        df = read_csv(StringIO(data), index_col=0, na_filter=False)
+        print df['A'].values
+        assert_almost_equal(df['A'].values, expected.values)
 
     def test_multiple_date_col(self):
         # Can use multiple date parsers

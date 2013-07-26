@@ -11,6 +11,9 @@ API changes
 
   - ``read_excel`` now supports an integer in its ``sheetname`` argument giving
     the index of the sheet to read in (:issue:`4301`).
+  - Text parser now treats anything that reads like inf ("inf", "Inf", "-Inf",
+    "iNf", etc.) to infinity. (:issue:`4220`, :issue:`4219`), affecting
+    ``read_table``, ``read_csv``, etc.
 
 Enhancements
 ~~~~~~~~~~~~
