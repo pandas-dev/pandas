@@ -71,7 +71,9 @@ class bottleneck_switch(object):
 
                 if _USE_BOTTLENECK and skipna and _bn_ok_dtype(values.dtype):
                     result = bn_func(values, axis=axis, **kwds)
-                    # prefer to treat inf/-inf as NA
+
+                    # prefer to treat inf/-inf as NA, but must compute the func
+                    # twice :(
                     if _has_infs(result):
                         result = alt(values, axis=axis, skipna=skipna, **kwds)
                 else:
@@ -86,7 +88,8 @@ class bottleneck_switch(object):
 
 def _bn_ok_dtype(dt):
     # Bottleneck chokes on datetime64
-    return dt != np.object_ and not issubclass(dt.type, (np.datetime64,np.timedelta64))
+    time_types = np.datetime64, np.timedelta64
+    return dt != np.object_ and not issubclass(dt.type, time_types)
 
 
 def _has_infs(result):
@@ -95,10 +98,8 @@ def _has_infs(result):
             return lib.has_infs_f8(result)
         elif result.dtype == 'f4':
             return lib.has_infs_f4(result)
-        else:  # pragma: no cover
-            raise TypeError('Only suppose float32/64 here')
-    else:
-        return np.isinf(result) or np.isneginf(result)
+        return False
+    return np.isinf(result) or np.isneginf(result)
 
 def _get_fill_value(dtype, fill_value=None, fill_value_typ=None):
     """ return the correct fill value for the dtype of the values """
