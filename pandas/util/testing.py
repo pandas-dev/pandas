@@ -126,7 +126,7 @@ def assert_almost_equal(a, b, check_less_precise = False):
         return assert_dict_equal(a, b)
 
     if isinstance(a, basestring):
-        assert a == b, "%s != %s" % (a, b)
+        assert a == b, "%r != %r" % (a, b)
         return True
 
     if isiterable(a):
