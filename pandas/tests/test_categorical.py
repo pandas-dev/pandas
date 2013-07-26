@@ -4,6 +4,7 @@ from datetime import datetime
 from pandas.compat import range, lrange
 import unittest
 import nose
+import re
 
 import numpy as np
 
@@ -125,30 +126,55 @@ class TestCategorical(unittest.TestCase):
 
     def test_print(self):
         expected = [" a", " b", " b", " a", " a", " c", " c", " c",
-                    "Levels (3): Index(['a', 'b', 'c'], dtype=object)"]
+                    "Levels (3): Index([a, b, c], dtype=object)"]
         expected = "\n".join(expected)
-        self.assertEquals(repr(self.factor), expected)
+        # hack because array_repr changed in numpy > 1.6.x
+        actual = repr(self.factor)
+        pat = "Index\(\['a', 'b', 'c']"
+        sub = "Index([a, b, c]"
+        actual = re.sub(pat, sub, actual)
+
+        self.assertEquals(actual, expected)
 
     def test_big_print(self):
         factor = Categorical([0,1,2,0,1,2]*100, ['a', 'b', 'c'], name='cat')
         expected = [" a", " b", " c", " a", " b", " c", " a", " b", " c",
                     " a", " b", " c", " a", "...", " c", " a", " b", " c",
                     " a", " b", " c", " a", " b", " c", " a", " b", " c",
-                    "Levels (3): Index(['a', 'b', 'c'], dtype=object)",
+                    "Levels (3): Index([a, b, c], dtype=object)",
                     "Name: cat, Length: 600" ]
         expected = "\n".join(expected)
-        self.assertEquals(repr(factor), expected)
+
+        # hack because array_repr changed in numpy > 1.6.x
+        actual = repr(factor)
+        pat = "Index\(\['a', 'b', 'c']"
+        sub = "Index([a, b, c]"
+        actual = re.sub(pat, sub, actual)
+
+        self.assertEquals(actual, expected)
 
     def test_empty_print(self):
         factor = Categorical([], ["a","b","c"], name="cat")
         expected = ("Categorical([], Name: cat, Levels (3): "
-                    "Index(['a', 'b', 'c'], dtype=object)")
-        self.assertEqual(repr(factor), expected)
+                    "Index([a, b, c], dtype=object)")
+        # hack because array_repr changed in numpy > 1.6.x
+        actual = repr(factor)
+        pat = "Index\(\['a', 'b', 'c']"
+        sub = "Index([a, b, c]"
+        actual = re.sub(pat, sub, actual)
+
+        self.assertEqual(actual, expected)
 
         factor = Categorical([], ["a","b","c"])
         expected = ("Categorical([], Levels (3): "
-                    "Index(['a', 'b', 'c'], dtype=object)")
-        self.assertEqual(repr(factor), expected)
+                    "Index([a, b, c], dtype=object)")
+        # hack because array_repr changed in numpy > 1.6.x
+        actual = repr(factor)
+        pat = "Index\(\['a', 'b', 'c']"
+        sub = "Index([a, b, c]"
+        actual = re.sub(pat, sub, actual)
+
+        self.assertEqual(actual, expected)
 
         factor = Categorical([], [])
         expected = ("Categorical([], Levels (0): "
