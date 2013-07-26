@@ -59,6 +59,8 @@ pandas 0.13
     representation of the index (:issue:`4136`)
   - Fix running of stata IO tests. Now uses temporary files to write
     (:issue:`4353`)
+  - Fixed an issue where ``DataFrame.sum`` was slower than ``DataFrame.mean``
+    for integer valued frames (:issue:`4365`)
 
 pandas 0.12
 ===========
