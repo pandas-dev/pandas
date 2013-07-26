@@ -61,6 +61,7 @@ pandas 0.13
     (:issue:`4353`)
   - Fixed an issue where ``DataFrame.sum`` was slower than ``DataFrame.mean``
     for integer valued frames (:issue:`4365`)
+  - ``read_html`` tests now work with Python 2.6 (:issue:`4351`)
 
 pandas 0.12
 ===========
