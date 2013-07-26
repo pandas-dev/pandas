@@ -25,7 +25,7 @@ from pandas import DataFrame, MultiIndex, read_csv, Timestamp
 from pandas.util.testing import (assert_frame_equal, network,
                                  get_data_path)
 
-from pandas.util.testing import makeCustomDataframe as mkdf, rands
+from pandas.util.testing import makeCustomDataframe as mkdf
 
 
 def _have_module(module_name):
@@ -157,12 +157,12 @@ class TestReadHtmlBase(TestCase):
     def test_spam_no_match(self):
         dfs = self.run_read_html(self.spam_data)
         for df in dfs:
-            self.assertIsInstance(df, DataFrame)
+            self.assert_(isinstance(df, DataFrame))
 
     def test_banklist_no_match(self):
         dfs = self.run_read_html(self.banklist_data, attrs={'id': 'table'})
         for df in dfs:
-            self.assertIsInstance(df, DataFrame)
+            self.assert_(isinstance(df, DataFrame))
 
     def test_spam_header(self):
         df = self.run_read_html(self.spam_data, '.*Water.*', header=0)
@@ -301,9 +301,9 @@ class TestReadHtmlBase(TestCase):
         url = self.banklist_data
         dfs = self.run_read_html('file://' + url, 'First',
                                  attrs={'id': 'table'})
-        self.assertIsInstance(dfs, list)
+        self.assert_(isinstance(dfs, list))
         for df in dfs:
-            self.assertIsInstance(df, DataFrame)
+            self.assert_(isinstance(df, DataFrame))
 
     @slow
     def test_invalid_table_attrs(self):
@@ -319,28 +319,28 @@ class TestReadHtmlBase(TestCase):
     @slow
     def test_multiindex_header(self):
         df = self._bank_data(header=[0, 1])[0]
-        self.assertIsInstance(df.columns, MultiIndex)
+        self.assert_(isinstance(df.columns, MultiIndex))
 
     @slow
     def test_multiindex_index(self):
         df = self._bank_data(index_col=[0, 1])[0]
-        self.assertIsInstance(df.index, MultiIndex)
+        self.assert_(isinstance(df.index, MultiIndex))
 
     @slow
     def test_multiindex_header_index(self):
         df = self._bank_data(header=[0, 1], index_col=[0, 1])[0]
-        self.assertIsInstance(df.columns, MultiIndex)
-        self.assertIsInstance(df.index, MultiIndex)
+        self.assert_(isinstance(df.columns, MultiIndex))
+        self.assert_(isinstance(df.index, MultiIndex))
 
     @slow
     def test_multiindex_header_skiprows(self):
         df = self._bank_data(header=[0, 1], skiprows=1)[0]
-        self.assertIsInstance(df.columns, MultiIndex)
+        self.assert_(isinstance(df.columns, MultiIndex))
 
     @slow
     def test_multiindex_header_index_skiprows(self):
         df = self._bank_data(header=[0, 1], index_col=[0, 1], skiprows=1)[0]
-        self.assertIsInstance(df.index, MultiIndex)
+        self.assert_(isinstance(df.index, MultiIndex))
 
     @slow
     def test_regex_idempotency(self):
@@ -348,9 +348,9 @@ class TestReadHtmlBase(TestCase):
         dfs = self.run_read_html('file://' + url,
                                  match=re.compile(re.compile('Florida')),
                                  attrs={'id': 'table'})
-        self.assertIsInstance(dfs, list)
+        self.assert_(isinstance(dfs, list))
         for df in dfs:
-            self.assertIsInstance(df, DataFrame)
+            self.assert_(isinstance(df, DataFrame))
 
     def test_negative_skiprows_spam(self):
         url = self.spam_data
@@ -367,7 +367,7 @@ class TestReadHtmlBase(TestCase):
         url = 'http://code.google.com/p/pythonxy/wiki/StandardPlugins'
         dfs = self.run_read_html(url, match='Python',
                                  attrs={'class': 'wikitable'})
-        self.assertGreater(len(dfs), 1)
+        self.assert_(len(dfs) > 1)
 
     @network
     def test_pythonxy_plugins_table(self):
@@ -375,7 +375,7 @@ class TestReadHtmlBase(TestCase):
         dfs = self.run_read_html(url, match='Python',
                                  attrs={'class': 'wikitable'})
         zz = [df.iloc[0, 0] for df in dfs]
-        self.assertListEqual(sorted(zz), sorted(['Python', 'SciTE']))
+        self.assertEqual(sorted(zz), sorted(['Python', 'SciTE']))
 
     @slow
     def test_banklist_header(self):
@@ -391,7 +391,7 @@ class TestReadHtmlBase(TestCase):
         ground_truth = read_csv(os.path.join(DATA_PATH, 'banklist.csv'),
                                 converters={'Updated Date': Timestamp,
                                             'Closing Date': Timestamp})
-        self.assertTupleEqual(df.shape, ground_truth.shape)
+        self.assertEqual(df.shape, ground_truth.shape)
         old = ['First Vietnamese American BankIn Vietnamese',
                'Westernbank Puerto RicoEn Espanol',
                'R-G Premier Bank of Puerto RicoEn Espanol',
@@ -422,7 +422,7 @@ class TestReadHtmlBase(TestCase):
         self.assert_(gc in raw_text)
         df = self.run_read_html(self.banklist_data, 'Gold Canyon',
                                 attrs={'id': 'table'}, infer_types=False)[0]
-        self.assertIn(gc, df.to_string())
+        self.assert_(gc in df.to_string())
 
 
 class TestReadHtmlLxml(TestCase):
@@ -449,8 +449,8 @@ class TestReadHtmlLxml(TestCase):
     def test_works_on_valid_markup(self):
         filename = os.path.join(DATA_PATH, 'valid_markup.html')
         dfs = self.run_read_html(filename, index_col=0, flavor=['lxml'])
-        self.assertIsInstance(dfs, list)
-        self.assertIsInstance(dfs[0], DataFrame)
+        self.assert_(isinstance(dfs, list))
+        self.assert_(isinstance(dfs[0], DataFrame))
 
     def setUp(self):
         self.try_skip()
