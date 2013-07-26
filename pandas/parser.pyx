@@ -57,6 +57,9 @@ cdef extern from "headers/stdint.h":
     enum: INT64_MAX
     enum: INT64_MIN
 
+cdef extern from "headers/portable.h":
+    pass
+
 try:
     basestring
 except NameError:
