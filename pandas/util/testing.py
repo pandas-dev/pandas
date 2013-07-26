@@ -692,7 +692,7 @@ _network_error_classes = IOError, HTTPException
 
 @optional_args
 def network(t, raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
-            error_classes=_network_error_classes):
+            error_classes=_network_error_classes, num_runs=2):
     """
     Label a test as requiring network connection and skip test if it encounters a ``URLError``.
 
@@ -707,12 +707,15 @@ def network(t, raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
     ----------
     t : callable
         The test requiring network connectivity.
-    raise_on_error : bool
+    raise_on_error : bool, optional
         If True, never catches errors.
-    error_classes : iterable
+    error_classes : tuple, optional
         error classes to ignore. If not in ``error_classes``, raises the error.
         defaults to URLError. Be careful about changing the error classes here,
         it may result in undefined behavior.
+    num_runs : int, optional
+        Number of times to run test. If fails on last try, will raise. Default
+        is 2 runs.
 
     Returns
     -------
@@ -754,6 +757,9 @@ def network(t, raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
     ``pandas/util/testing.py`` sets the default behavior (currently False).
     """
     from nose import SkipTest
+
+    if num_runs < 1:
+        raise ValueError("Must set at least 1 run")
     t.network = True
 
     @wraps(t)
@@ -761,10 +767,19 @@ def network(t, raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
         if raise_on_error:
             return t(*args, **kwargs)
         else:
-            try:
-                return t(*args, **kwargs)
-            except error_classes as e:
-                raise SkipTest("Skipping test %s" % e)
+            for _ in range(num_runs):
+                try:
+                    try:
+                        return t(*args, **kwargs)
+                    except error_classes as e:
+                        raise SkipTest("Skipping test %s" % e)
+                except SkipTest:
+                    raise
+                except Exception as e:
+                    if runs < num_runs:
+                       print("Failed: %r" % e)
+                    else:
+                       raise
 
     return network_wrapper
 
