@@ -97,7 +97,7 @@ class CategoricalFormatter(object):
             footer += u', '
         footer += levheader + levstring
 
-        return unicode(footer)
+        return footer
 
     def _get_formatted_values(self):
         return format_array(np.asarray(self.categorical), None,
@@ -122,7 +122,7 @@ class CategoricalFormatter(object):
             if footer:
                 result.append(footer)
 
-        return unicode(u'\n'.join(result))
+        return u'\n'.join(result)
 
 
 class SeriesFormatter(object):

@@ -148,7 +148,7 @@ class Categorical(PandasObject):
         #TODO: tidy_repr for footer since there may be a ton of levels?
         result = '%s\n%s' % (result, self._repr_footer())
 
-        return unicode(result)
+        return result
 
     def _repr_footer(self):
         levheader = 'Levels (%d): ' % len(self.levels)
@@ -185,9 +185,6 @@ class Categorical(PandasObject):
                                                             length=False,
                                                             footer=True,
                                                             )
-
-        if not ( type(result) == unicode):
-            raise AssertionError("Result is not unicode. Got %s." % type(self))
 
         return result
 
