@@ -1,6 +1,7 @@
 from pandas.util.py3compat import range
 import unittest
 import pandas.tools.rplot as rplot
+import pandas.util.testing as tm
 from pandas import read_csv
 import os
 
@@ -51,7 +52,7 @@ class TestUtilityFunctions(unittest.TestCase):
         self.assertTrue(aes['colour'] is None)
         self.assertTrue(aes['shape'] is None)
         self.assertTrue(aes['alpha'] is None)
-        self.assertTrue(type(aes) is dict)
+        self.assertTrue(isinstance(aes, dict))
 
     def test_make_aes2(self):
         self.assertRaises(ValueError, rplot.make_aes,

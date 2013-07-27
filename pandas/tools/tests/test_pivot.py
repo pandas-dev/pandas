@@ -210,7 +210,7 @@ class TestPivotTable(unittest.TestCase):
         # no rows
         rtable = self.data.pivot_table(cols=['AA', 'BB'], margins=True,
                                        aggfunc=np.mean)
-        self.assert_(isinstance(rtable, Series))
+        tm.assert_isinstance(rtable, Series)
         for item in ['DD', 'EE', 'FF']:
             gmarg = table[item]['All', '']
             self.assertEqual(gmarg, self.data[item].mean())

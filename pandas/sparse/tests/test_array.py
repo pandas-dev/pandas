@@ -11,6 +11,7 @@ from pandas.core.series import Series
 from pandas.core.common import notnull
 from pandas.sparse.api import SparseArray
 from pandas.util.testing import assert_almost_equal, assertRaisesRegexp
+import pandas.util.testing as tm
 
 
 def assert_sp_array_equal(left, right):
@@ -129,19 +130,19 @@ class TestSparseArray(unittest.TestCase):
             res = op(first, second)
             exp = SparseArray(op(first.values, second.values),
                               fill_value=first.fill_value)
-            self.assert_(isinstance(res, SparseArray))
+            tm.assert_isinstance(res, SparseArray)
             assert_almost_equal(res.values, exp.values)
 
             res2 = op(first, second.values)
-            self.assert_(isinstance(res2, SparseArray))
+            tm.assert_isinstance(res2, SparseArray)
             assert_sp_array_equal(res, res2)
 
             res3 = op(first.values, second)
-            self.assert_(isinstance(res3, SparseArray))
+            tm.assert_isinstance(res3, SparseArray)
             assert_sp_array_equal(res, res3)
 
             res4 = op(first, 4)
-            self.assert_(isinstance(res4, SparseArray))
+            tm.assert_isinstance(res4, SparseArray)
             exp = op(first.values, 4)
             exp_fv = op(first.fill_value, 4)
             assert_almost_equal(res4.fill_value, exp_fv)

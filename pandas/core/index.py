@@ -261,7 +261,7 @@ class Index(PandasObject, np.ndarray):
         counter = defaultdict(lambda: 0)
         for k in self.values:
             counter[k] += 1
-        return sorted(k for k, v in counter.iteritems() if v > 1)
+        return sorted(k for k, v in compat.iteritems(counter) if v > 1)
 
     _get_duplicates = get_duplicates
 

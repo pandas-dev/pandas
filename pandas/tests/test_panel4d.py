@@ -23,6 +23,7 @@ from pandas.util.testing import (assert_panel_equal,
                                  assert_series_equal,
                                  assert_almost_equal)
 import pandas.util.testing as tm
+import pandas.util.compat as compat
 
 
 def add_nans(panel4d):
@@ -221,7 +222,7 @@ class SafeForSparse(object):
     def test_iteritems(self):
         """Test panel4d.iteritems()"""
 
-        self.assertEqual(len(list(self.panel4d.iteritems())),
+        self.assertEqual(len(list(compat.iteritems(self.panel4d))),
                          len(self.panel4d.labels))
 
     def test_combinePanel4d(self):
@@ -534,7 +535,7 @@ class CheckIndexing(object):
 
         # resize
         res = self.panel4d.set_value('l4', 'ItemE', 'foo', 'bar', 1.5)
-        self.assert_(isinstance(res, Panel4D))
+        tm.assert_isinstance(res, Panel4D)
         self.assert_(res is not self.panel4d)
         self.assertEqual(res.get_value('l4', 'ItemE', 'foo', 'bar'), 1.5)
 
@@ -656,7 +657,7 @@ class TestPanel4d(unittest.TestCase, CheckIndexing, SafeForSparse,
         # assert_panel_equal(result, expected)
 
     def test_constructor_dict_mixed(self):
-        data = dict((k, v.values) for k, v in self.panel4d.iteritems())
+        data = dict((k, v.values) for k, v in compat.iteritems(self.panel4d))
         result = Panel4D(data)
         exp_major = Index(np.arange(len(self.panel4d.major_axis)))
         self.assert_(result.major_axis.equals(exp_major))

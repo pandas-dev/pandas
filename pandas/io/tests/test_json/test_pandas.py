@@ -29,7 +29,7 @@ _tsd = tm.getTimeSeriesData()
 _frame = DataFrame(_seriesd)
 _frame2 = DataFrame(_seriesd, columns=['D', 'C', 'B', 'A'])
 _intframe = DataFrame(dict((k, v.astype(np.int64))
-                           for k, v in _seriesd.iteritems()))
+                           for k, v in compat.iteritems(_seriesd)))
 
 _tsframe = DataFrame(_tsd)
 
@@ -95,7 +95,7 @@ class TestPandasContainer(unittest.TestCase):
                                   numpy=numpy, convert_axes=convert_axes)
             except (Exception) as detail:
                 if raise_ok is not None:
-                    if type(detail) == raise_ok:
+                    if isinstance(detail, raise_ok):
                         return
                     raise
 

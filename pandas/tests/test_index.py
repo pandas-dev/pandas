@@ -45,7 +45,7 @@ class TestIndex(unittest.TestCase):
     def test_new_axis(self):
         new_index = self.dateIndex[None, :]
         self.assert_(new_index.ndim == 2)
-        self.assert_(type(new_index) == np.ndarray)
+        tm.assert_isinstance(new_index, np.ndarray)
 
     def test_deepcopy(self):
         from copy import deepcopy
@@ -77,7 +77,7 @@ class TestIndex(unittest.TestCase):
         # copy
         arr = np.array(self.strIndex)
         index = Index(arr, copy=True, name='name')
-        self.assert_(isinstance(index, Index))
+        tm.assert_isinstance(index, Index)
         self.assert_(index.name == 'name')
         assert_array_equal(arr, index)
 
@@ -94,7 +94,7 @@ class TestIndex(unittest.TestCase):
         xp = period_range('2012-1-1', freq='M', periods=3)
         rs = Index(xp)
         assert_array_equal(rs, xp)
-        self.assert_(isinstance(rs, PeriodIndex))
+        tm.assert_isinstance(rs, PeriodIndex)
 
     def test_copy(self):
         i = Index([], name='Foo')
@@ -142,7 +142,7 @@ class TestIndex(unittest.TestCase):
         self.assert_(self.dateIndex.asof(d + timedelta(1)) == d)
 
         d = self.dateIndex[0].to_datetime()
-        self.assert_(isinstance(self.dateIndex.asof(d), Timestamp))
+        tm.assert_isinstance(self.dateIndex.asof(d), Timestamp)
 
     def test_argsort(self):
         result = self.strIndex.argsort()
@@ -160,7 +160,7 @@ class TestIndex(unittest.TestCase):
             arr_result = op(arr, element)
             index_result = op(index, element)
 
-            self.assert_(isinstance(index_result, np.ndarray))
+            tm.assert_isinstance(index_result, np.ndarray)
             self.assert_(not isinstance(index_result, Index))
             self.assert_(np.array_equal(arr_result, index_result))
 
@@ -334,7 +334,7 @@ class TestIndex(unittest.TestCase):
             pickled = pickle.dumps(index)
             unpickled = pickle.loads(pickled)
 
-            self.assert_(isinstance(unpickled, Index))
+            tm.assert_isinstance(unpickled, Index)
             self.assert_(np.array_equal(unpickled, index))
             self.assertEquals(unpickled.name, index.name)
 
@@ -600,11 +600,11 @@ class TestInt64Index(unittest.TestCase):
     def test_coerce_list(self):
         # coerce things
         arr = Index([1, 2, 3, 4])
-        self.assert_(type(arr) == Int64Index)
+        tm.assert_isinstance(arr, Int64Index)
 
         # but not if explicit dtype passed
         arr = Index([1, 2, 3, 4], dtype=object)
-        self.assert_(type(arr) == Index)
+        tm.assert_isinstance(arr, Index)
 
     def test_dtype(self):
         self.assert_(self.index.dtype == np.int64)
@@ -655,7 +655,7 @@ class TestInt64Index(unittest.TestCase):
         eridx = np.array([-1, 3, 4, -1, 5, -1, 0, -1, -1, 1, -1, -1, -1, 2],
                          dtype=np.int64)
 
-        self.assert_(isinstance(res, Int64Index))
+        tm.assert_isinstance(res, Int64Index)
         self.assert_(res.equals(eres))
         self.assert_(np.array_equal(lidx, elidx))
         self.assert_(np.array_equal(ridx, eridx))
@@ -668,7 +668,7 @@ class TestInt64Index(unittest.TestCase):
 
         eridx = np.array([-1, 0, 1, -1, 2, -1, 3, -1, -1, 4, -1, -1, -1, 5],
                          dtype=np.int64)
-        self.assert_(isinstance(res, Int64Index))
+        tm.assert_isinstance(res, Int64Index)
         self.assert_(res.equals(eres))
         self.assert_(np.array_equal(lidx, elidx))
         self.assert_(np.array_equal(ridx, eridx))
@@ -691,7 +691,7 @@ class TestInt64Index(unittest.TestCase):
         elidx = np.array([1, 6])
         eridx = np.array([4, 1])
 
-        self.assert_(isinstance(res, Int64Index))
+        tm.assert_isinstance(res, Int64Index)
         self.assert_(res.equals(eres))
         self.assert_(np.array_equal(lidx, elidx))
         self.assert_(np.array_equal(ridx, eridx))
@@ -704,7 +704,7 @@ class TestInt64Index(unittest.TestCase):
         self.assert_(res.equals(res2))
 
         eridx = np.array([1, 4])
-        self.assert_(isinstance(res, Int64Index))
+        tm.assert_isinstance(res, Int64Index)
         self.assert_(res.equals(eres))
         self.assert_(np.array_equal(lidx, elidx))
         self.assert_(np.array_equal(ridx, eridx))
@@ -720,7 +720,7 @@ class TestInt64Index(unittest.TestCase):
         eridx = np.array([-1, 4, -1, -1, -1, -1, 1, -1, -1, -1],
                          dtype=np.int64)
 
-        self.assert_(isinstance(res, Int64Index))
+        tm.assert_isinstance(res, Int64Index)
         self.assert_(res.equals(eres))
         self.assert_(lidx is None)
         self.assert_(np.array_equal(ridx, eridx))
@@ -730,7 +730,7 @@ class TestInt64Index(unittest.TestCase):
                                           return_indexers=True)
         eridx = np.array([-1, 1, -1, -1, -1, -1, 4, -1, -1, -1],
                          dtype=np.int64)
-        self.assert_(isinstance(res, Int64Index))
+        tm.assert_isinstance(res, Int64Index)
         self.assert_(res.equals(eres))
         self.assert_(lidx is None)
         self.assert_(np.array_equal(ridx, eridx))
@@ -759,7 +759,7 @@ class TestInt64Index(unittest.TestCase):
         elidx = np.array([-1, 6, -1, -1, 1, -1],
                          dtype=np.int64)
 
-        self.assert_(isinstance(other, Int64Index))
+        tm.assert_isinstance(other, Int64Index)
         self.assert_(res.equals(eres))
         self.assert_(np.array_equal(lidx, elidx))
         self.assert_(ridx is None)
@@ -770,7 +770,7 @@ class TestInt64Index(unittest.TestCase):
         eres = other_mono
         elidx = np.array([-1, 1, -1, -1, 6, -1],
                          dtype=np.int64)
-        self.assert_(isinstance(other, Int64Index))
+        tm.assert_isinstance(other, Int64Index)
         self.assert_(res.equals(eres))
         self.assert_(np.array_equal(lidx, elidx))
         self.assert_(ridx is None)
@@ -947,7 +947,7 @@ class TestMultiIndex(unittest.TestCase):
         single_level = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],
                                   labels=[[0, 1, 2, 3]],
                                   names=['first'])
-        self.assert_(isinstance(single_level, Index))
+        tm.assert_isinstance(single_level, Index)
         self.assert_(not isinstance(single_level, MultiIndex))
         self.assert_(single_level.name == 'first')
 
@@ -1504,7 +1504,7 @@ class TestMultiIndex(unittest.TestCase):
                                           sortorder=0,
                                           names=self.index.names)
 
-        self.assert_(isinstance(result, MultiIndex))
+        tm.assert_isinstance(result, MultiIndex)
         self.assert_(result.equals(expected))
         self.assertEqual(result.names, self.index.names)
 
@@ -1725,16 +1725,16 @@ class TestMultiIndex(unittest.TestCase):
         # some corner cases
         idx = Index(['three', 'one', 'two'])
         result = idx.join(self.index, level='second')
-        self.assert_(isinstance(result, MultiIndex))
+        tm.assert_isinstance(result, MultiIndex)
 
         self.assertRaises(Exception, self.index.join, self.index, level=1)
 
     def test_reindex(self):
         result, indexer = self.index.reindex(list(self.index[:4]))
-        self.assert_(isinstance(result, MultiIndex))
+        tm.assert_isinstance(result, MultiIndex)
 
         result, indexer = self.index.reindex(list(self.index))
-        self.assert_(isinstance(result, MultiIndex))
+        tm.assert_isinstance(result, MultiIndex)
         self.assert_(indexer is None)
 
     def test_reindex_level(self):

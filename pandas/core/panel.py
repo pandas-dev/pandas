@@ -282,14 +282,14 @@ class Panel(NDFrame):
         if haxis is not None:
             haxis = _ensure_index(haxis)
             data = OrderedDict((k, v) for k, v
-                               in data.iteritems() if k in haxis)
+                               in compat.iteritems(data) if k in haxis)
         else:
             ks = data.keys()
             if not isinstance(data,OrderedDict):
                 ks = _try_sort(ks)
             haxis = Index(ks)
 
-        for k, v in data.iteritems():
+        for k, v in compat.iteritems(data):
             if isinstance(v, dict):
                 data[k] = self._constructor_sliced(v)
 
@@ -352,8 +352,8 @@ class Panel(NDFrame):
         orient = orient.lower()
         if orient == 'minor':
             new_data = OrderedDefaultdict(dict)
-            for col, df in data.iteritems():
-                for item, s in df.iteritems():
+            for col, df in compat.iteritems(data):
+                for item, s in compat.iteritems(df):
                     new_data[item][col] = s
             data = new_data
         elif orient != 'items':  # pragma: no cover
@@ -544,7 +544,7 @@ class Panel(NDFrame):
         y : SparseDataFrame
         """
         from pandas.core.sparse import SparsePanel
-        frames = dict(self.iteritems())
+        frames = dict(compat.iteritems(self))
         return SparsePanel(frames, items=self.items,
                            major_axis=self.major_axis,
                            minor_axis=self.minor_axis,
@@ -564,7 +564,7 @@ class Panel(NDFrame):
         """
         from pandas.io.excel import ExcelWriter
         writer = ExcelWriter(path)
-        for item, df in self.iteritems():
+        for item, df in compat.iteritems(self):
             name = str(item)
             df.to_excel(writer, name, na_rep=na_rep)
         writer.save()
@@ -980,7 +980,7 @@ class Panel(NDFrame):
             if method is None:
                 raise ValueError('must specify a fill method or value')
             result = {}
-            for col, s in self.iteritems():
+            for col, s in compat.iteritems(self):
                 result[col] = s.fillna(method=method, value=value)
 
             return self._constructor.from_dict(result)
@@ -1137,7 +1137,7 @@ class Panel(NDFrame):
         """
         # construct the args
         args = list(args)
-        aliases = tuple(kwargs.iterkeys())
+        aliases = tuple(six.iterkeys(kwargs))
 
         for a in self._AXIS_ORDERS:
             if not a in kwargs:
@@ -1518,7 +1518,7 @@ class Panel(NDFrame):
             result = OrderedDict()
 
         adj_frames = OrderedDict()
-        for k, v in frames.iteritems():
+        for k, v in compat.iteritems(frames):
             if isinstance(v, dict):
                 adj_frames[k] = self._constructor_sliced(v)
             else:
@@ -1531,7 +1531,7 @@ class Panel(NDFrame):
         reindex_dict = dict(
             [(self._AXIS_SLICEMAP[a], axes_dict[a]) for a in axes])
         reindex_dict['copy'] = False
-        for key, frame in adj_frames.iteritems():
+        for key, frame in compat.iteritems(adj_frames):
             if frame is not None:
                 result[key] = frame.reindex(**reindex_dict)
             else:

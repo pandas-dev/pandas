@@ -1,9 +1,11 @@
 import types
 import numpy as np
-from pandas.util.py3compat import range, long
+
 import six
-from six.moves import zip
+from pandas.util.py3compat import range, long
+from pandas.util.compat import OrderedDict
 from pandas.util import compat
+from six.moves import zip, builtins
 
 from pandas.core.base import PandasObject
 from pandas.core.categorical import Categorical
@@ -14,7 +16,6 @@ from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
 from pandas.core.panel import Panel
 from pandas.util.decorators import cache_readonly, Appender
-from pandas.util.compat import OrderedDict
 import pandas.core.algorithms as algos
 import pandas.core.common as com
 from pandas.core.common import _possibly_downcast_to_dtype, notnull
@@ -487,7 +488,7 @@ class GroupBy(PandasObject):
         if self.grouper._filter_empty_groups:
 
             mask = counts.ravel() > 0
-            for name, result in output.iteritems():
+            for name, result in compat.iteritems(output):
 
                 # since we are masking, make sure that we have a float object
                 values = result
@@ -1705,7 +1706,7 @@ class NDFrameGroupBy(GroupBy):
 
             if any(isinstance(x, (list, tuple, dict)) for x in arg.values()):
                 new_arg = OrderedDict()
-                for k, v in arg.iteritems():
+                for k, v in compat.iteritems(arg):
                     if not isinstance(v, (tuple, list, dict)):
                         new_arg[k] = [v]
                     else:
@@ -1718,13 +1719,13 @@ class NDFrameGroupBy(GroupBy):
                 if isinstance(subset, DataFrame):
                     raise NotImplementedError
 
-                for fname, agg_how in arg.iteritems():
+                for fname, agg_how in compat.iteritems(arg):
                     colg = SeriesGroupBy(subset, selection=self._selection,
                                          grouper=self.grouper)
                     result[fname] = colg.aggregate(agg_how)
                     keys.append(fname)
             else:
-                for col, agg_how in arg.iteritems():
+                for col, agg_how in compat.iteritems(arg):
                     colg = SeriesGroupBy(obj[col], selection=col,
                                          grouper=self.grouper)
                     result[col] = colg.aggregate(agg_how)
@@ -2606,14 +2607,14 @@ def _reorder_by_uniques(uniques, labels):
 
     return uniques, labels
 
-import __builtin__
 
 _func_table = {
-    __builtin__.sum: np.sum
+    builtins.sum: np.sum
 }
 
+
 _cython_table = {
-    __builtin__.sum: 'sum',
+    builtins.sum: 'sum',
     np.sum: 'sum',
     np.mean: 'mean',
     np.prod: 'prod',

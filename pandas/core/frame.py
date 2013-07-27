@@ -384,7 +384,7 @@ class DataFrame(NDFrame):
         'columns': 1
     }
 
-    _AXIS_NAMES = dict((v, k) for k, v in _AXIS_NUMBERS.iteritems())
+    _AXIS_NAMES = dict((v, k) for k, v in compat.iteritems(_AXIS_NUMBERS))
 
     def __init__(self, data=None, index=None, columns=None, dtype=None,
                  copy=False):
@@ -493,7 +493,7 @@ class DataFrame(NDFrame):
 
             # prefilter if columns passed
 
-            data = dict((k, v) for k, v in data.iteritems() if k in columns)
+            data = dict((k, v) for k, v in compat.iteritems(data) if k in columns)
 
             if index is None:
                 index = extract_index(data.values())
@@ -986,11 +986,11 @@ class DataFrame(NDFrame):
             warnings.warn("DataFrame columns are not unique, some "
                           "columns will be omitted.", UserWarning)
         if outtype.lower().startswith('d'):
-            return dict((k, v.to_dict()) for k, v in self.iteritems())
+            return dict((k, v.to_dict()) for k, v in compat.iteritems(self))
         elif outtype.lower().startswith('l'):
-            return dict((k, v.tolist()) for k, v in self.iteritems())
+            return dict((k, v.tolist()) for k, v in compat.iteritems(self))
         elif outtype.lower().startswith('s'):
-            return dict((k, v) for k, v in self.iteritems())
+            return dict((k, v) for k, v in compat.iteritems(self))
         else:  # pragma: no cover
             raise ValueError("outtype %s not understood" % outtype)
 
@@ -1063,7 +1063,7 @@ class DataFrame(NDFrame):
             else:
                 arrays = []
                 arr_columns = []
-                for k, v in data.iteritems():
+                for k, v in compat.iteritems(data):
                     if k in columns:
                         arr_columns.append(k)
                         arrays.append(v)
@@ -1682,7 +1682,7 @@ class DataFrame(NDFrame):
             counts = self.count()
             if len(cols) != len(counts):
                 raise AssertionError('Columns must equal counts')
-            for col, count in counts.iteritems():
+            for col, count in compat.iteritems(counts):
                 col = com.pprint_thing(col)
                 lines.append(_put_str(col, space) +
                              '%d  non-null values' % count)
@@ -1690,7 +1690,7 @@ class DataFrame(NDFrame):
             lines.append(self.columns.summary(name='Columns'))
 
         counts = self.get_dtype_counts()
-        dtypes = ['%s(%d)' % k for k in sorted(counts.iteritems())]
+        dtypes = ['%s(%d)' % k for k in sorted(compat.iteritems(counts))]
         lines.append('dtypes: %s' % ', '.join(dtypes))
         _put_lines(buf, lines)
 
@@ -3457,7 +3457,7 @@ class DataFrame(NDFrame):
                                               'by column')
 
                 result = self if inplace else self.copy()
-                for k, v in value.iteritems():
+                for k, v in compat.iteritems(value):
                     if k not in result:
                         continue
                     result[k].fillna(v, inplace=True)
@@ -3632,7 +3632,7 @@ class DataFrame(NDFrame):
             if isinstance(to_replace, (dict, Series)):
                 if isinstance(value, (dict, Series)):  # {'A' : NA} -> {'A' : 0}
                     new_data = self._data
-                    for c, src in to_replace.iteritems():
+                    for c, src in compat.iteritems(to_replace):
                         if c in value and c in self:
                             new_data = new_data.replace(src, value[c],
                                                         filter=[c],
@@ -3641,7 +3641,7 @@ class DataFrame(NDFrame):
 
                 elif not isinstance(value, (list, np.ndarray)):  # {'A': NA} -> 0
                     new_data = self._data
-                    for k, src in to_replace.iteritems():
+                    for k, src in compat.iteritems(to_replace):
                         if k in self:
                             new_data = new_data.replace(src, value,
                                                         filter=[k],
@@ -3681,7 +3681,7 @@ class DataFrame(NDFrame):
                 if isinstance(value, (dict, Series)):  # NA -> {'A' : 0, 'B' : -1}
                     new_data = self._data
 
-                    for k, v in value.iteritems():
+                    for k, v in compat.iteritems(value):
                         if k in self:
                             new_data = new_data.replace(to_replace, v,
                                                         filter=[k],
@@ -4864,7 +4864,7 @@ class DataFrame(NDFrame):
 
         if len(numdata.columns) == 0:
             return DataFrame(dict((k, v.describe())
-                                  for k, v in self.iteritems()),
+                                  for k, v in compat.iteritems(self)),
                              columns=self.columns)
 
         lb = .5 * (1. - percentile_width / 100.)
@@ -5803,7 +5803,7 @@ def _rec_to_dict(arr):
         sdict = dict((k, arr[k]) for k in columns)
     elif isinstance(arr, DataFrame):
         columns = list(arr.columns)
-        sdict = dict((k, v.values) for k, v in arr.iteritems())
+        sdict = dict((k, v.values) for k, v in compat.iteritems(arr))
     elif isinstance(arr, dict):
         columns = sorted(arr)
         sdict = arr.copy()
@@ -5978,8 +5978,8 @@ def _homogenize(data, index, dtype=None):
 def _from_nested_dict(data):
     # TODO: this should be seriously cythonized
     new_data = OrderedDict()
-    for index, s in data.iteritems():
-        for col, v in s.iteritems():
+    for index, s in compat.iteritems(data):
+        for col, v in compat.iteritems(s):
             new_data[col] = new_data.get(col, OrderedDict())
             new_data[col][index] = v
     return new_data

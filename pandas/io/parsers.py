@@ -486,7 +486,7 @@ class TextFileReader(object):
         kwds = self.orig_options
 
         options = {}
-        for argname, default in _parser_defaults.iteritems():
+        for argname, default in compat.iteritems(_parser_defaults):
             if argname in kwds:
                 value = kwds[argname]
             else:
@@ -494,7 +494,7 @@ class TextFileReader(object):
 
             options[argname] = value
 
-        for argname, default in _c_parser_defaults.iteritems():
+        for argname, default in compat.iteritems(_c_parser_defaults):
             if argname in kwds:
                 value = kwds[argname]
                 if engine != 'c' and value != default:
@@ -503,7 +503,7 @@ class TextFileReader(object):
             options[argname] = value
 
         if engine == 'python-fwf':
-            for argname, default in _fwf_defaults.iteritems():
+            for argname, default in compat.iteritems(_fwf_defaults):
                 if argname in kwds:
                     value = kwds[argname]
                 options[argname] = value
@@ -866,7 +866,7 @@ class ParserBase(object):
     def _convert_to_ndarrays(self, dct, na_values, na_fvalues, verbose=False,
                              converters=None):
         result = {}
-        for c, values in dct.iteritems():
+        for c, values in compat.iteritems(dct):
             conv_f = None if converters is None else converters.get(c, None)
             col_na_values, col_na_fvalues = _get_na_values(c, na_values, na_fvalues)
             coerce_type = True
@@ -1379,7 +1379,7 @@ class PythonParser(ParserBase):
         # apply converters
         clean_conv = {}
 
-        for col, f in self.converters.iteritems():
+        for col, f in compat.iteritems(self.converters):
             if isinstance(col, int) and col not in self.orig_names:
                 col = self.orig_names[col]
             clean_conv[col] = f
@@ -1733,7 +1733,7 @@ def _process_date_conversion(data_dict, converter, parse_spec,
 
     elif isinstance(parse_spec, dict):
         # dict of new name to column list
-        for new_name, colspec in parse_spec.iteritems():
+        for new_name, colspec in compat.iteritems(parse_spec):
             if new_name in data_dict:
                 raise ValueError('Date column %s already in dict' %
                                  new_name)
@@ -1782,7 +1782,7 @@ def _clean_na_values(na_values, keep_default_na=True):
         na_fvalues = set()
     elif isinstance(na_values, dict):
         if keep_default_na:
-            for k, v in na_values.iteritems():
+            for k, v in compat.iteritems(na_values):
                 v = set(list(v)) | _NA_VALUES
                 na_values[k] = v
         na_fvalues = dict([ (k, _floatify_na_values(v)) for k, v in na_values.items() ])

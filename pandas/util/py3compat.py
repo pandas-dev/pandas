@@ -14,6 +14,7 @@ if PY3:
 
     range = range
     long = int
+    unichr = chr
 else:
     # Python 2
     import re
@@ -30,6 +31,7 @@ else:
 
     range = xrange
     long = long
+    unichr = unichr
 
 try:
     # not writeable if instantiated with string, not good with unicode

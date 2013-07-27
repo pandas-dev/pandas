@@ -211,7 +211,7 @@ class TestIndexing(unittest.TestCase):
 
                 # if we are in fails, the ok, otherwise raise it
                 if fails is not None:
-                    if fails == type(detail):
+                    if isinstance(detail, fails):
                         result = 'ok (%s)' % type(detail).__name__
                         _print(result)
                         return

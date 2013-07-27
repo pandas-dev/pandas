@@ -285,11 +285,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
     def test_constructor(self):
         # Recognize TimeSeries
-        self.assert_(isinstance(self.ts, TimeSeries))
+        tm.assert_isinstance(self.ts, TimeSeries)
 
         # Pass in Series
         derived = Series(self.ts)
-        self.assert_(isinstance(derived, TimeSeries))
+        tm.assert_isinstance(derived, TimeSeries)
 
         self.assert_(tm.equalContents(derived.index, self.ts.index))
         # Ensure new index is not created
@@ -297,7 +297,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         # Pass in scalar
         scalar = Series(0.5)
-        self.assert_(isinstance(scalar, float))
+        tm.assert_isinstance(scalar, float)
 
         # Mixed type Series
         mixed = Series(['hello', np.NaN], index=[0, 1])
@@ -428,7 +428,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         df = tm.makeTimeDataFrame()
         objs = [df, df]
         s = Series(objs, index=[0, 1])
-        self.assert_(isinstance(s, Series))
+        tm.assert_isinstance(s, Series)
 
     def test_constructor_sanitize(self):
         s = Series(np.array([1., 1., 8.]), dtype='i8')
@@ -516,7 +516,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_constructor_subclass_dict(self):
         data = tm.TestSubDict((x, 10.0 * x) for x in range(10))
         series = Series(data)
-        refseries = Series(dict(data.iteritems()))
+        refseries = Series(dict(compat.iteritems(data)))
         assert_series_equal(refseries, series)
 
     def test_orderedDict_ctor(self):
@@ -583,7 +583,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # works
         series = self.series.copy()
         series.index = np.arange(len(series))
-        self.assert_(isinstance(series.index, Index))
+        tm.assert_isinstance(series.index, Index)
 
     def test_array_finalize(self):
         pass
@@ -780,7 +780,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
     def test_getitem_box_float64(self):
         value = self.ts[5]
-        self.assert_(isinstance(value, np.float64))
+        tm.assert_isinstance(value, np.float64)
 
     def test_getitem_ambiguous_keyerror(self):
         s = Series(list(range(10)), index=list(range(0, 20, 2)))
@@ -1415,10 +1415,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_(np.array_equal(self.ts, self.ts.values))
 
     def test_iteritems(self):
-        for idx, val in self.series.iteritems():
+        for idx, val in compat.iteritems(self.series):
             self.assertEqual(val, self.series[idx])
 
-        for idx, val in self.ts.iteritems():
+        for idx, val in compat.iteritems(self.ts):
             self.assertEqual(val, self.ts[idx])
 
     def test_sum(self):
@@ -1703,7 +1703,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
     def test_append(self):
         appendedSeries = self.series.append(self.objSeries)
-        for idx, value in appendedSeries.iteritems():
+        for idx, value in compat.iteritems(appendedSeries):
             if idx in self.series.index:
                 self.assertEqual(value, self.series[idx])
             elif idx in self.objSeries.index:
@@ -1907,7 +1907,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         # scalar Timestamp on rhs
         maxa = df['A'].max()
-        self.assert_(isinstance(maxa,Timestamp))
+        tm.assert_isinstance(maxa,Timestamp)
 
         resultb = df['A']- df['A'].max()
         self.assert_(resultb.dtype=='timedelta64[ns]')
@@ -2038,7 +2038,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_sub_of_datetime_from_TimeSeries(self):
         from pandas.core import common as com
         from datetime import datetime
-        a = Timestamp(datetime(1993,01,07,13,30,00))
+        a = Timestamp(datetime(1993,0o1,0o7,13,30,00))
         b = datetime(1993, 6, 22, 13, 30)
         a = Series([a])
         result = com._possibly_cast_to_timedelta(np.abs(a - b))
@@ -2875,7 +2875,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         result = self.ts.clip(-0.5, 0.5)
         expected = np.clip(self.ts, -0.5, 0.5)
         assert_series_equal(result, expected)
-        self.assert_(isinstance(expected, Series))
+        tm.assert_isinstance(expected, Series)
 
     def test_clip_types_and_nulls(self):
 
@@ -3369,13 +3369,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         merged = target.map(source)
 
-        for k, v in merged.iteritems():
+        for k, v in compat.iteritems(merged):
             self.assertEqual(v, source[target[k]])
 
         # input could be a dict
         merged = target.map(source.to_dict())
 
-        for k, v in merged.iteritems():
+        for k, v in compat.iteritems(merged):
             self.assertEqual(v, source[target[k]])
 
         # function
@@ -3404,7 +3404,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         result = self.series.map(lambda x: Decimal(str(x)))
         self.assert_(result.dtype == np.object_)
-        self.assert_(isinstance(result[0], Decimal))
+        tm.assert_isinstance(result[0], Decimal)
 
     def test_map_na_exclusion(self):
         s = Series([1.5, np.nan, 3, np.nan, 5])
@@ -3655,13 +3655,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         subIndex = self.series.index[10:20]
         subSeries = self.series.reindex(subIndex)
 
-        for idx, val in subSeries.iteritems():
+        for idx, val in compat.iteritems(subSeries):
             self.assertEqual(val, self.series[idx])
 
         subIndex2 = self.ts.index[10:20]
         subTS = self.ts.reindex(subIndex2)
 
-        for idx, val in subTS.iteritems():
+        for idx, val in compat.iteritems(subTS):
             self.assertEqual(val, self.ts[idx])
         stuffSeries = self.ts.reindex(subIndex)
 
@@ -3670,7 +3670,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # This is extremely important for the Cython code to not screw up
         nonContigIndex = self.ts.index[::2]
         subNonContig = self.ts.reindex(nonContigIndex)
-        for idx, val in subNonContig.iteritems():
+        for idx, val in compat.iteritems(subNonContig):
             self.assertEqual(val, self.ts[idx])
 
         self.assertRaises(ValueError, self.ts.reindex)
@@ -4301,7 +4301,7 @@ class TestSeriesNonUnique(unittest.TestCase):
 
         rs = s.reset_index(level=[0, 2], drop=True)
         self.assert_(rs.index.equals(Index(index.get_level_values(1))))
-        self.assert_(isinstance(rs, Series))
+        tm.assert_isinstance(rs, Series)
 
     def test_set_index_makes_timeseries(self):
         idx = tm.makeDateIndex(10)
@@ -4314,8 +4314,8 @@ class TestSeriesNonUnique(unittest.TestCase):
     def test_timeseries_coercion(self):
         idx = tm.makeDateIndex(10000)
         ser = Series(np.random.randn(len(idx)), idx.astype(object))
-        self.assert_(isinstance(ser, TimeSeries))
-        self.assert_(isinstance(ser.index, DatetimeIndex))
+        tm.assert_isinstance(ser, TimeSeries)
+        tm.assert_isinstance(ser.index, DatetimeIndex)
 
     def test_replace(self):
         N = 100

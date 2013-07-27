@@ -22,6 +22,7 @@ from pandas.core.series import Series
 from pandas.core.categorical import Categorical
 import datetime
 from pandas.util import py3compat
+from pandas.util import compat
 from pandas.util.py3compat import long
 from pandas import isnull
 from pandas.io.parsers import _parser_params, Appender
@@ -546,12 +547,12 @@ class StataReader(StataParser):
                 data[col] = data[col].apply(_stata_elapsed_date_to_datetime, args=(self.fmtlist[i],))
 
         if convert_categoricals:
-            cols = np.where(map(lambda x: x in self.value_label_dict.iterkeys(), self.lbllist))[0]
+            cols = np.where(map(lambda x: x in six.iterkeys(self.value_label_dict), self.lbllist))[0]
             for i in cols:
                 col = data.columns[i]
                 labeled_data = np.copy(data[col])
                 labeled_data = labeled_data.astype(object)
-                for k, v in self.value_label_dict[self.lbllist[i]].iteritems():
+                for k, v in compat.iteritems(self.value_label_dict[self.lbllist[i]]):
                     labeled_data[data[col] == k] = v
                 data[col] = Categorical.from_array(labeled_data)
 

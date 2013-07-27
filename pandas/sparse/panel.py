@@ -17,6 +17,7 @@ from pandas.sparse.frame import SparseDataFrame
 from pandas.util.decorators import deprecate
 
 import pandas.core.common as com
+import six
 
 
 class SparsePanelAxis(object):
@@ -34,7 +35,7 @@ class SparsePanelAxis(object):
         if isinstance(value, MultiIndex):
             raise NotImplementedError
 
-        for v in obj._frames.itervalues():
+        for v in six.itervalues(obj._frames):
             setattr(v, self.frame_attr, value)
 
         setattr(obj, self.cache_field, value)
@@ -334,7 +335,7 @@ class SparsePanel(Panel):
             new_frames = self._frames
 
         if copy:
-            new_frames = dict((k, v.copy()) for k, v in new_frames.iteritems())
+            new_frames = dict((k, v.copy()) for k, v in compat.iteritems(new_frames))
 
         return SparsePanel(new_frames, items=items,
                            major_axis=major,
@@ -349,7 +350,7 @@ class SparsePanel(Panel):
             return self._combinePanel(other, func)
         elif np.isscalar(other):
             new_frames = dict((k, func(v, other))
-                              for k, v in self.iteritems())
+                              for k, v in compat.iteritems(self))
             return self._new_like(new_frames)
 
     def _combineFrame(self, other, func, axis=0):
@@ -426,7 +427,7 @@ class SparsePanel(Panel):
         y : DataFrame
             index -> minor axis, columns -> items
         """
-        slices = dict((k, v.xs(key)) for k, v in self.iteritems())
+        slices = dict((k, v.xs(key)) for k, v in compat.iteritems(self))
         return DataFrame(slices, index=self.minor_axis, columns=self.items)
 
     def minor_xs(self, key):
@@ -443,7 +444,7 @@ class SparsePanel(Panel):
         y : SparseDataFrame
             index -> major axis, columns -> items
         """
-        slices = dict((k, v[key]) for k, v in self.iteritems())
+        slices = dict((k, v[key]) for k, v in compat.iteritems(self))
         return SparseDataFrame(slices, index=self.major_axis,
                                columns=self.items,
                                default_fill_value=self.default_fill_value,
@@ -455,7 +456,7 @@ SparseWidePanel = SparsePanel
 def _convert_frames(frames, index, columns, fill_value=np.nan, kind='block'):
     from pandas.core.panel import _get_combined_index
     output = {}
-    for item, df in frames.iteritems():
+    for item, df in compat.iteritems(frames):
         if not isinstance(df, SparseDataFrame):
             df = SparseDataFrame(df, default_kind=kind,
                                  default_fill_value=fill_value)
@@ -472,7 +473,7 @@ def _convert_frames(frames, index, columns, fill_value=np.nan, kind='block'):
     index = _ensure_index(index)
     columns = _ensure_index(columns)
 
-    for item, df in output.iteritems():
+    for item, df in compat.iteritems(output):
         if not (df.index.equals(index) and df.columns.equals(columns)):
             output[item] = df.reindex(index=index, columns=columns)
 
@@ -480,7 +481,7 @@ def _convert_frames(frames, index, columns, fill_value=np.nan, kind='block'):
 
 
 def _stack_sparse_info(frame):
-    lengths = [s.sp_index.npoints for _, s in frame.iteritems()]
+    lengths = [s.sp_index.npoints for _, s in compat.iteritems(frame)]
 
     # this is pretty fast
     minor_labels = np.repeat(np.arange(len(frame.columns)), lengths)

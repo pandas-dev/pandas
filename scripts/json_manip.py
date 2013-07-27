@@ -211,7 +211,7 @@ def denorm(queries,iterable_of_things,default=None):
             #print "-- result: ", r
             if not r:
                 r = [default]
-            if type(r[0]) is type({}):
+            if isinstance(r[0], type({})):
                 fields.append(sorted(r[0].keys()))  # dicty answers
             else:
                 fields.append([q])  # stringy answer
@@ -227,7 +227,7 @@ def denorm(queries,iterable_of_things,default=None):
             U = dict()
             for (ii,thing) in enumerate(p):
                 #print ii,thing
-                if type(thing) is type({}):
+                if isinstance(thing, type({})):
                     U.update(thing)
                 else:
                     U[fields[ii][0]] = thing
@@ -284,11 +284,11 @@ def flatten(*stack):
 def _Q(filter_, thing):
     """ underlying machinery for Q function recursion """
     T = type(thing)
-    if T is type({}):
+    if isinstance({}, T):
         for k,v in compat.iteritems(thing):
             #print k,v
             if filter_ == k:
-                if type(v) is type([]):
+                if isinstance(v, type([])):
                     yield iter(v)
                 else:
                     yield v
@@ -296,7 +296,7 @@ def _Q(filter_, thing):
             if type(v)  in (type({}),type([])):
                 yield Q(filter_,v)
 
-    elif T is type([]):
+    elif isinstance([], T):
         for k in thing:
             #print k
             yield Q(filter_,k)
@@ -318,9 +318,9 @@ def Q(filter_,thing):
     [3] returns a generator.  Use ``Ql`` if you want a list.
 
     """
-    if type(filter_) is type([]):
+    if isinstance(filter_, type([])):
         return flatten(*[_Q(x,thing) for x in filter_])
-    elif type(filter_) is type({}):
+    elif isinstance(filter_, type({})):
         d = dict.fromkeys(filter_.keys())
         #print d
         for k in d:
@@ -346,7 +346,7 @@ def Ql(filter_,thing):
     """ same as Q, but returns a list, not a generator """
     res = Q(filter_,thing)
 
-    if type(filter_) is type({}):
+    if isinstance(filter_, type({})):
         for k in res:
             res[k] = list(res[k])
         return res

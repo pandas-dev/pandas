@@ -376,12 +376,12 @@ for _i, _weekday in enumerate(['MON', 'TUE', 'WED', 'THU', 'FRI']):
 # Note that _rule_aliases is not 1:1 (d[BA]==d[A@DEC]), and so traversal
 # order matters when constructing an inverse. we pick one. #2331
 _legacy_reverse_map = dict((v, k) for k, v in
-                           reversed(sorted(_rule_aliases.iteritems())))
+                           reversed(sorted(compat.iteritems(_rule_aliases))))
 
 # for helping out with pretty-printing and name-lookups
 
 _offset_names = {}
-for name, offset in _offset_map.iteritems():
+for name, offset in compat.iteritems(_offset_map):
     if offset is None:
         continue
     offset.name = name
@@ -614,7 +614,7 @@ _period_code_map = {
 }
 
 _reverse_period_code_map = {}
-for _k, _v in _period_code_map.iteritems():
+for _k, _v in compat.iteritems(_period_code_map):
     _reverse_period_code_map[_v] = _k
 
 # Additional aliases

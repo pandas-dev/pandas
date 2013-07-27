@@ -729,15 +729,16 @@ def is_instance_factory(_type):
                 True if x is an instance of `_type`
 
     """
+    if isinstance(_type, (tuple, list)):
+        _type = tuple(_type)
+        from pandas.core.common import pprint_thing
+        type_repr = "|".join(map(pprint_thing, _type))
+    else:
+        type_repr = "'%s'" % _type
 
     def inner(x):
-        if isinstance(_type,(tuple,list)) :
-            if not any([isinstance(x,t) for t in _type]):
-                from pandas.core.common import pprint_thing as pp
-                pp_values = list(map(pp, _type))
-                raise ValueError("Value must be an instance of %s" % pp("|".join(pp_values)))
-        elif not isinstance(x, _type):
-            raise ValueError("Value must be an instance of '%s'" % str(_type))
+        if not isinstance(x, _type):
+            raise ValueError("Value must be an instance of %s" % type_repr)
 
     return inner
 
@@ -757,4 +758,4 @@ is_bool = is_type_factory(bool)
 is_float = is_type_factory(float)
 is_str = is_type_factory(str)
 is_unicode = is_type_factory(six.text_type)
-is_text = is_instance_factory(basestring)
+is_text = is_instance_factory((str, bytes))

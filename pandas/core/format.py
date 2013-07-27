@@ -872,7 +872,7 @@ class CSVFormatter(object):
             cols = self.columns
 
         series = {}
-        for k, v in self.obj._series.iteritems():
+        for k, v in compat.iteritems(self.obj._series):
             series[k] = v.values
 
 

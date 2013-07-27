@@ -1471,7 +1471,7 @@ raise NotImplementedError("Implement this test!")
 """
 
 def _clean_dict(d):
-    return dict((str(k), v) for k, v in d.iteritems())
+    return dict((str(k), v) for k, v in compat.iteritems(d))
 
 if __name__ == '__main__':
     # unittest.main()

@@ -1064,7 +1064,7 @@ class TestPeriodIndex(TestCase):
     def test_make_time_series(self):
         index = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
         series = Series(1, index=index)
-        self.assert_(isinstance(series, TimeSeries))
+        tm.assert_isinstance(series, TimeSeries)
 
     def test_astype(self):
         idx = period_range('1990', '2009', freq='A')
@@ -1181,7 +1181,7 @@ class TestPeriodIndex(TestCase):
 
         result = idx[:, None]
         # MPL kludge
-        self.assert_(type(result) == PeriodIndex)
+        tm.assert_isinstance(result, PeriodIndex)
 
     def test_getitem_partial(self):
         rng = period_range('2007-01', periods=50, freq='M')
@@ -1238,7 +1238,7 @@ class TestPeriodIndex(TestCase):
     def test_tolist(self):
         index = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
         rs = index.tolist()
-        [self.assert_(isinstance(x, Period)) for x in rs]
+        [tm.assert_isinstance(x, Period) for x in rs]
 
         recon = PeriodIndex(rs)
         self.assert_(index.equals(recon))
@@ -1335,7 +1335,7 @@ class TestPeriodIndex(TestCase):
         self.assert_(rs.equals(rng))
 
         rs = df.reset_index().set_index('index')
-        self.assert_(isinstance(rs.index, PeriodIndex))
+        tm.assert_isinstance(rs.index, PeriodIndex)
         self.assert_(rs.index.equals(rng))
 
     def test_nested_dict_frame_constructor(self):
@@ -1835,7 +1835,7 @@ class TestPeriodIndex(TestCase):
         index = PeriodIndex(start='1/1/10', periods=4, freq='B')
 
         result = list(index)
-        self.assert_(isinstance(result[0], Period))
+        tm.assert_isinstance(result[0], Period)
         self.assert_(result[0].freq == index.freq)
 
     def test_take(self):
@@ -1843,9 +1843,9 @@ class TestPeriodIndex(TestCase):
 
         taken = index.take([5, 6, 8, 12])
         taken2 = index[[5, 6, 8, 12]]
-        self.assert_(isinstance(taken, PeriodIndex))
+        tm.assert_isinstance(taken, PeriodIndex)
         self.assert_(taken.freq == index.freq)
-        self.assert_(isinstance(taken2, PeriodIndex))
+        tm.assert_isinstance(taken2, PeriodIndex)
         self.assert_(taken2.freq == index.freq)
 
     def test_joins(self):
@@ -1854,7 +1854,7 @@ class TestPeriodIndex(TestCase):
         for kind in ['inner', 'outer', 'left', 'right']:
             joined = index.join(index[:-5], how=kind)
 
-            self.assert_(isinstance(joined, PeriodIndex))
+            tm.assert_isinstance(joined, PeriodIndex)
             self.assert_(joined.freq == index.freq)
 
     def test_align_series(self):
@@ -2008,7 +2008,7 @@ class TestPeriodIndex(TestCase):
             res = index.map(t)
 
             # should return an array
-            self.assert_(isinstance(res, np.ndarray))
+            tm.assert_isinstance(res, np.ndarray)
 
             # preserve element types
             self.assert_(all(isinstance(resi, t) for resi in res))
@@ -2024,7 +2024,7 @@ class TestPeriodIndex(TestCase):
         periods = list(rng)
 
         result = pd.Index(periods)
-        self.assert_(isinstance(result, PeriodIndex))
+        tm.assert_isinstance(result, PeriodIndex)
 
     def test_with_multi_index(self):
         # #1705
@@ -2033,9 +2033,9 @@ class TestPeriodIndex(TestCase):
 
         s = Series([0, 1, 2, 3], index_as_arrays)
 
-        self.assert_(isinstance(s.index.levels[0], PeriodIndex))
+        tm.assert_isinstance(s.index.levels[0], PeriodIndex)
 
-        self.assert_(isinstance(s.index.values[0][0], Period))
+        tm.assert_isinstance(s.index.values[0][0], Period)
 
     def test_to_datetime_1703(self):
         index = period_range('1/1/2012', periods=4, freq='D')
@@ -2066,7 +2066,7 @@ class TestPeriodIndex(TestCase):
 
         # drops index
         result = pd.concat([s1, s2])
-        self.assert_(isinstance(result.index, PeriodIndex))
+        tm.assert_isinstance(result.index, PeriodIndex)
         self.assertEquals(result.index[0], s1.index[0])
 
     def test_pickle_freq(self):

@@ -123,8 +123,21 @@ def equalContents(arr1, arr2):
     return frozenset(arr1) == frozenset(arr2)
 
 
+def assert_isinstance(obj, class_type_or_tuple):
+    """asserts that obj is an instance of class_type_or_tuple"""
+    assert isinstance(obj, class_type_or_tuple), (
+        "Expected object to be of type %r, found %r instead" % (
+            type(obj), class_type_or_tuple))
+
+
 def isiterable(obj):
     return hasattr(obj, '__iter__')
+
+
+def assert_isinstance(obj, class_type_or_tuple):
+    """asserts that obj is an instance of class_type_or_tuple"""
+    assert isinstance(obj, class_type_or_tuple), (
+        "Expected object to be of type %r, found %r instead" % (type(obj), class_type_or_tuple))
 
 
 def assert_almost_equal(a, b, check_less_precise = False):
@@ -199,7 +212,7 @@ def assert_series_equal(left, right, check_dtype=True,
                         check_series_type=False,
                         check_less_precise=False):
     if check_series_type:
-        assert(type(left) == type(right))
+        assert_isinstance(left, type(right))
     assert_almost_equal(left.values, right.values, check_less_precise)
     if check_dtype:
         assert(left.dtype == right.dtype)
@@ -208,7 +221,7 @@ def assert_series_equal(left, right, check_dtype=True,
     else:
         assert(left.index.equals(right.index))
     if check_index_type:
-        assert(type(left.index) == type(right.index))
+        assert_isinstance(left.index, type(right.index))
         assert(left.index.dtype == right.index.dtype)
         assert(left.index.inferred_type == right.index.inferred_type)
     if check_index_freq:
@@ -223,9 +236,9 @@ def assert_frame_equal(left, right, check_dtype=True,
                        check_less_precise=False,
                        check_names=True):
     if check_frame_type:
-        assert(type(left) == type(right))
-    assert(isinstance(left, DataFrame))
-    assert(isinstance(right, DataFrame))
+        assert_isinstance(left, type(right))
+    assert_isinstance(left, DataFrame)
+    assert_isinstance(right, DataFrame)
 
     if check_less_precise:
         assert_almost_equal(left.columns,right.columns)
@@ -244,11 +257,11 @@ def assert_frame_equal(left, right, check_dtype=True,
                             check_less_precise=check_less_precise)
 
     if check_index_type:
-        assert(type(left.index) == type(right.index))
+        assert_isinstance(left.index, type(right.index))
         assert(left.index.dtype == right.index.dtype)
         assert(left.index.inferred_type == right.index.inferred_type)
     if check_column_type:
-        assert(type(left.columns) == type(right.columns))
+        assert_isinstance(left.columns, type(right.columns))
         assert(left.columns.dtype == right.columns.dtype)
         assert(left.columns.inferred_type == right.columns.inferred_type)
     if check_names:
@@ -260,7 +273,7 @@ def assert_panel_equal(left, right,
                        check_panel_type=False,
                        check_less_precise=False):
     if check_panel_type:
-        assert(type(left) == type(right))
+        assert_isinstance(left, type(right))
 
     assert(left.items.equals(right.items))
     assert(left.major_axis.equals(right.major_axis))
