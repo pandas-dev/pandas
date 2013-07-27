@@ -78,6 +78,9 @@ class SeriesWriter(Writer):
     _default_orient = 'index'
 
     def _format_axes(self):
+        if not self.obj.index.is_unique and self.orient == 'index':
+            raise ValueError("Series index must be unique for orient="
+                             "'%s'" % self.orient)
         if self._needs_to_date(self.obj.index):
             self.copy_if_needed()
             self.obj.index = self._format_to_date(self.obj.index.to_series())
@@ -97,6 +100,15 @@ class FrameWriter(Writer):
 
     def _format_axes(self):
         """ try to axes if they are datelike """
+        if not self.obj.index.is_unique and self.orient in (
+                'index', 'columns'):
+            raise ValueError("DataFrame index must be unique for orient="
+                             "'%s'." % self.orient)
+        if not self.obj.columns.is_unique and self.orient in (
+                'index', 'columns', 'records'):
+            raise ValueError("DataFrame columns must be unique for orient="
+                             "'%s'." % self.orient)
+
         if self.orient == 'columns':
             axis = 'index'
         elif self.orient == 'index':
@@ -134,10 +146,14 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
         Series :
           default is 'index'
           allowed values are: {'split','records','index'}
+          The Series index must be unique for orient 'index'.
 
         DataFrame :
           default is 'columns'
           allowed values are: {'split','records','index','columns','values'}
+          The DataFrame index must be unique for orients 'index' and 'columns'.
+          The DataFrame columns must be unique for orients 'index', 'columns',
+          and 'records'.
 
         The format of the JSON string
           split : dict like {index -> [index], columns -> [columns], data -> [values]}
