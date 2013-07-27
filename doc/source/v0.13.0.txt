@@ -43,6 +43,9 @@ Bug Fixes
 
   - ``read_html`` tests now work with Python 2.6 (:issue:`4351`)
 
+  - Fixed bug where ``network`` testing was throwing ``NameError`` because a
+    local variable was undefined (:issue:`4381`)
+
 See the :ref:`full release notes
 <release>` or issue tracker
 on GitHub for a complete list.
