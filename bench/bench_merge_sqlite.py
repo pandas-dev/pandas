@@ -4,12 +4,14 @@ import gc
 import time
 from pandas import DataFrame
 from pandas.util.testing import rands
+from pandas.util.py3compat import range
+from six.moves import zip
 import random
 
 N = 10000
 
-indices = np.array([rands(10) for _ in xrange(N)], dtype='O')
-indices2 = np.array([rands(10) for _ in xrange(N)], dtype='O')
+indices = np.array([rands(10) for _ in range(N)], dtype='O')
+indices2 = np.array([rands(10) for _ in range(N)], dtype='O')
 key = np.tile(indices[:8000], 10)
 key2 = np.tile(indices2[:8000], 10)
 
@@ -67,7 +69,7 @@ for sort in [False]:
         g = lambda: conn.execute(sql)  # list fetches results
         gc.disable()
         start = time.time()
-        # for _ in xrange(niter):
+        # for _ in range(niter):
         g()
         elapsed = (time.time() - start) / niter
         gc.enable()

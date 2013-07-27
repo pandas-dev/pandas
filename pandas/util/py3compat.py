@@ -12,7 +12,8 @@ if PY3:
     def bytes_to_str(b, encoding='utf-8'):
         return b.decode(encoding)
 
-    lzip = lambda *args: list(zip(*args))
+    range = range
+    long = int
 else:
     # Python 2
     import re
@@ -27,12 +28,18 @@ else:
     def bytes_to_str(b, encoding='ascii'):
         return b
 
-    lzip = zip
+    range = xrange
+    long = long
 
 try:
-    from cStringIO import StringIO
+    # not writeable if instantiated with string, not good with unicode
+    from cStringIO import StringIO as cStringIO
+    # writeable and handles unicode
+    from StringIO import StringIO
 except:
+    # no more StringIO
     from io import StringIO
+    cStringIO = StringIO
 
 try:
     from io import BytesIO

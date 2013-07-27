@@ -5,7 +5,11 @@ from pandas.core.index import MultiIndex
 from pandas.core.reshape import _unstack_multiple
 from pandas.tools.merge import concat
 from pandas.tools.util import cartesian_product
+from pandas.util.py3compat import range
+from pandas.util import compat
+import six
 import pandas.core.common as com
+from six.moves import zip
 import numpy as np
 
 
@@ -151,7 +155,7 @@ def _add_margins(table, data, values, rows=None, cols=None, aggfunc=np.mean):
     grand_margin = {}
     for k, v in data[values].iteritems():
         try:
-            if isinstance(aggfunc, basestring):
+            if isinstance(aggfunc, six.string_types):
                 grand_margin[k] = getattr(v, aggfunc)()
             else:
                 grand_margin[k] = aggfunc(v)
@@ -196,7 +200,7 @@ def _add_margins(table, data, values, rows=None, cols=None, aggfunc=np.mean):
         row_margin = row_margin.stack()
 
         # slight hack
-        new_order = [len(cols)] + range(len(cols))
+        new_order = [len(cols)] + list(range(len(cols)))
         row_margin.index = row_margin.index.reorder_levels(new_order)
     else:
         row_margin = Series(np.nan, index=result.columns)

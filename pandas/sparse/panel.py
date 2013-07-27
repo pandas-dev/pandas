@@ -5,6 +5,9 @@ with float64 data
 
 # pylint: disable=E1101,E1103,W0231
 
+from pandas.util.py3compat import range
+from six.moves import zip
+from pandas.util import compat
 import numpy as np
 
 from pandas.core.index import Index, MultiIndex, _ensure_index
@@ -205,7 +208,7 @@ class SparsePanel(Panel):
 
     def __delitem__(self, key):
         loc = self.items.get_loc(key)
-        indices = range(loc) + range(loc + 1, len(self.items))
+        indices = list(range(loc)) + list(range(loc + 1, len(self.items)))
         del self._frames[key]
         self._items = self._items.take(indices)
 
@@ -346,7 +349,7 @@ class SparsePanel(Panel):
             return self._combinePanel(other, func)
         elif np.isscalar(other):
             new_frames = dict((k, func(v, other))
-                              for k, v in self.iterkv())
+                              for k, v in self.iteritems())
             return self._new_like(new_frames)
 
     def _combineFrame(self, other, func, axis=0):
@@ -423,7 +426,7 @@ class SparsePanel(Panel):
         y : DataFrame
             index -> minor axis, columns -> items
         """
-        slices = dict((k, v.xs(key)) for k, v in self.iterkv())
+        slices = dict((k, v.xs(key)) for k, v in self.iteritems())
         return DataFrame(slices, index=self.minor_axis, columns=self.items)
 
     def minor_xs(self, key):
@@ -440,7 +443,7 @@ class SparsePanel(Panel):
         y : SparseDataFrame
             index -> major axis, columns -> items
         """
-        slices = dict((k, v[key]) for k, v in self.iterkv())
+        slices = dict((k, v[key]) for k, v in self.iteritems())
         return SparseDataFrame(slices, index=self.major_axis,
                                columns=self.items,
                                default_fill_value=self.default_fill_value,

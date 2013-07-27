@@ -7,6 +7,7 @@ Unit test suite for OLS and PanelOLS classes
 from __future__ import division
 
 from datetime import datetime
+from pandas.util import compat
 import unittest
 import nose
 import numpy as np
@@ -23,6 +24,7 @@ from pandas.util.testing import (assert_almost_equal, assert_series_equal,
 import pandas.util.testing as tm
 
 from common import BaseTest
+import six
 
 _have_statsmodels = True
 try:
@@ -196,7 +198,7 @@ class TestOLS(BaseTest):
             date = index[i]
 
             x_iter = {}
-            for k, v in x.iteritems():
+            for k, v in compat.iteritems(x):
                 x_iter[k] = v.truncate(before=prior_date, after=date)
             y_iter = y.truncate(before=prior_date, after=date)
 
@@ -529,7 +531,7 @@ class TestPanelOLS(BaseTest):
 
         stack_y = y.stack()
         stack_x = DataFrame(dict((k, v.stack())
-                                 for k, v in x.iterkv()))
+                                 for k, v in x.iteritems()))
 
         weights = x.std('items')
         stack_weights = weights.stack()
@@ -722,7 +724,7 @@ class TestPanelOLS(BaseTest):
             date = index[i]
 
             x_iter = {}
-            for k, v in x.iteritems():
+            for k, v in compat.iteritems(x):
                 x_iter[k] = v.truncate(before=prior_date, after=date)
             y_iter = y.truncate(before=prior_date, after=date)
 

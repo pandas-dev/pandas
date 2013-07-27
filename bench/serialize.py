@@ -1,3 +1,5 @@
+from __future__ import print_function
+from pandas.util.py3compat import range
 import time
 import os
 import numpy as np
@@ -9,7 +11,7 @@ import pandas
 def timeit(f, iterations):
     start = time.clock()
 
-    for i in xrange(iterations):
+    for i in range(iterations):
         f()
 
     return time.clock() - start
@@ -20,7 +22,7 @@ def roundtrip_archive(N, iterations=10):
     # Create data
     arr = np.random.randn(N, N)
     lar = la.larry(arr)
-    dma = pandas.DataFrame(arr, range(N), range(N))
+    dma = pandas.DataFrame(arr, list(range(N)), list(range(N)))
 
     # filenames
     filename_numpy = '/Users/wesm/tmp/numpy.npz'
@@ -51,9 +53,9 @@ def roundtrip_archive(N, iterations=10):
     pandas_f = lambda: pandas_roundtrip(filename_pandas, dma, dma)
     pandas_time = timeit(pandas_f, iterations) / iterations
 
-    print 'Numpy (npz)   %7.4f seconds' % numpy_time
-    print 'larry (HDF5)  %7.4f seconds' % larry_time
-    print 'pandas (HDF5) %7.4f seconds' % pandas_time
+    print('Numpy (npz)   %7.4f seconds' % numpy_time)
+    print('larry (HDF5)  %7.4f seconds' % larry_time)
+    print('pandas (HDF5) %7.4f seconds' % pandas_time)
 
 
 def numpy_roundtrip(filename, arr1, arr2):

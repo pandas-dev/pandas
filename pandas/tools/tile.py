@@ -8,6 +8,7 @@ from pandas.core.index import _ensure_index
 import pandas.core.algorithms as algos
 import pandas.core.common as com
 import pandas.core.nanops as nanops
+from six.moves import zip
 
 import numpy as np
 

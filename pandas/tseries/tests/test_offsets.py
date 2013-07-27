@@ -1,4 +1,6 @@
 from datetime import date, datetime, timedelta
+from pandas.util.py3compat import range
+from pandas.util import compat
 import unittest
 import nose
 from nose.tools import assert_raises
@@ -1651,7 +1653,7 @@ def test_compare_ticks():
         three = kls(3)
         four = kls(4)
 
-        for _ in xrange(10):
+        for _ in range(10):
             assert(three < kls(4))
             assert(kls(3) < four)
             assert(four > kls(3))

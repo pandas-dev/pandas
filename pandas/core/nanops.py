@@ -1,3 +1,4 @@
+from pandas.util import compat
 import sys
 import itertools
 import functools
@@ -10,6 +11,7 @@ import pandas.lib as lib
 import pandas.algos as algos
 import pandas.hashtable as _hash
 import pandas.tslib as tslib
+import six
 
 try:
     import bottleneck as bn
@@ -30,7 +32,7 @@ class disallow(object):
     def __call__(self, f):
         @functools.wraps(f)
         def _f(*args, **kwargs):
-            obj_iter = itertools.chain(args, kwargs.itervalues())
+            obj_iter = itertools.chain(args, six.itervalues(kwargs))
             if any(self.check(obj) for obj in obj_iter):
                 raise TypeError('reduction operation {0!r} not allowed for '
                                 'this dtype'.format(f.__name__.replace('nan',
@@ -55,7 +57,7 @@ class bottleneck_switch(object):
         @functools.wraps(alt)
         def f(values, axis=None, skipna=True, **kwds):
             if len(self.kwargs) > 0:
-                for k, v in self.kwargs.iteritems():
+                for k, v in compat.iteritems(self.kwargs):
                     if k not in kwds:
                         kwds[k] = v
             try:

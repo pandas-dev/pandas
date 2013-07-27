@@ -13,6 +13,7 @@ from urllib2 import urlopen
 import json
 
 import pandas as pd
+import pandas.util.compat as compat
 
 WEB_TIMEOUT = 10
 
@@ -114,7 +115,7 @@ def main():
                 if d['succeeded']:
                     print("\nException:\n%s\n" % str(e))
                 else:
-                    for k, v in sorted(d.iteritems()):
+                    for k, v in sorted(compat.iteritems(d)):
                         print("{k}: {v}".format(k=k, v=v))
 
             print("------->\n")
@@ -238,6 +239,6 @@ def get_all_results_joined(repo_id=53976):
     dfs = get_all_results(repo_id)
     for k in dfs:
         dfs[k] = mk_unique(dfs[k])
-    ss = [pd.Series(v.timing, name=k) for k, v in dfs.iteritems()]
+    ss = [pd.Series(v.timing, name=k) for k, v in compat.iteritems(dfs)]
     results = pd.concat(reversed(ss), 1)
     return results

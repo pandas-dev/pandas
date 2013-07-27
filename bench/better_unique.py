@@ -1,9 +1,13 @@
+from __future__ import print_function
 from pandas import DataFrame
+from pandas.util.py3compat import range
+from six.moves import zip
 import timeit
 
 setup = """
 from pandas import Series
 import pandas._tseries as _tseries
+from pandas.util.py3compat import range
 import random
 import numpy as np
 
@@ -48,11 +52,11 @@ for sz, n in zip(group_sizes, numbers):
     numpy_timer = timeit.Timer(stmt='np.unique(arr)',
                                setup=setup % sz)
 
-    print n
+    print(n)
     numpy_result = numpy_timer.timeit(number=n) / n
     wes_result = wes_timer.timeit(number=n) / n
 
-    print 'Groups: %d, NumPy: %s, Wes: %s' % (sz, numpy_result, wes_result)
+    print('Groups: %d, NumPy: %s, Wes: %s' % (sz, numpy_result, wes_result))
 
     wes.append(wes_result)
     numpy.append(numpy_result)

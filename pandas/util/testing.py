@@ -2,6 +2,8 @@ from __future__ import division
 
 # pylint: disable-msg=W0402
 
+from pandas.util.py3compat import range
+from six.moves import zip
 import random
 import string
 import sys
@@ -26,10 +28,15 @@ import pandas.core.series as series
 import pandas.core.frame as frame
 import pandas.core.panel as panel
 import pandas.core.panel4d as panel4d
+import pandas.util.compat as compat
 
 from pandas import bdate_range
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
+
+from pandas.io.common import urlopen
+import six
+from six.moves import map
 
 Index = index.Index
 MultiIndex = index.MultiIndex
@@ -45,12 +52,13 @@ _RAISE_NETWORK_ERROR_DEFAULT = False
 
 def rands(n):
     choices = string.ascii_letters + string.digits
-    return ''.join(random.choice(choices) for _ in xrange(n))
+    return ''.join(random.choice(choices) for _ in range(n))
 
 
 def randu(n):
-    choices = u"".join(map(unichr, range(1488, 1488 + 26))) + string.digits
-    return ''.join([random.choice(choices) for _ in xrange(n)])
+    choices = six.u("").join(map(unichr, list(range(1488, 1488 + 26))))
+    choices += string.digits
+    return ''.join([random.choice(choices) for _ in range(n)])
 
 #------------------------------------------------------------------------------
 # Console debugging tools
@@ -123,8 +131,8 @@ def assert_almost_equal(a, b, check_less_precise = False):
     if isinstance(a, dict) or isinstance(b, dict):
         return assert_dict_equal(a, b)
 
-    if isinstance(a, basestring):
-        assert a == b, "%r != %r" % (a, b)
+    if isinstance(a, six.string_types):
+        assert a == b, "%s != %s" % (a, b)
         return True
 
     if isiterable(a):
@@ -135,7 +143,7 @@ def assert_almost_equal(a, b, check_less_precise = False):
         if np.array_equal(a, b):
             return True
         else:
-            for i in xrange(na):
+            for i in range(na):
                 assert_almost_equal(a[i], b[i], check_less_precise)
         return True
 
@@ -258,7 +266,7 @@ def assert_panel_equal(left, right,
     assert(left.major_axis.equals(right.major_axis))
     assert(left.minor_axis.equals(right.minor_axis))
 
-    for col, series in left.iterkv():
+    for col, series in compat.iteritems(left):
         assert(col in right)
         assert_frame_equal(series, right[col], check_less_precise=check_less_precise, check_names=False)  # TODO strangely check_names fails in py3 ?
 
@@ -273,7 +281,7 @@ def assert_panel4d_equal(left, right,
     assert(left.major_axis.equals(right.major_axis))
     assert(left.minor_axis.equals(right.minor_axis))
 
-    for col, series in left.iterkv():
+    for col, series in compat.iteritems(left):
         assert(col in right)
         assert_panel_equal(series, right[col], check_less_precise=check_less_precise)
 
@@ -291,15 +299,15 @@ def getCols(k):
 
 
 def makeStringIndex(k):
-    return Index([rands(10) for _ in xrange(k)])
+    return Index([rands(10) for _ in range(k)])
 
 
 def makeUnicodeIndex(k):
-    return Index([randu(10) for _ in xrange(k)])
+    return Index([randu(10) for _ in range(k)])
 
 
 def makeIntIndex(k):
-    return Index(range(k))
+    return Index(list(range(k)))
 
 
 def makeFloatIndex(k):
@@ -444,7 +452,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
         names = None
 
     # make singelton case uniform
-    if isinstance(names, basestring) and nlevels == 1:
+    if isinstance(names, six.string_types) and nlevels == 1:
         names = [names]
 
     # specific 1D index type requested?
@@ -471,7 +479,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
         def keyfunc(x):
             import re
             numeric_tuple = re.sub("[^\d_]_?","",x).split("_")
-            return map(int,numeric_tuple)
+            return list(map(int,numeric_tuple))
 
         # build a list of lists to create the index from
         div_factor = nentries // ndupe_l[i] + 1
@@ -483,7 +491,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
         result = list(sorted(cnt.elements(), key=keyfunc))[:nentries]
         tuples.append(result)
 
-    tuples = zip(*tuples)
+    tuples = list(zip(*tuples))
 
     # convert tuples to index
     if nentries == 1:

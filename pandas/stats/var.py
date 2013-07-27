@@ -1,5 +1,8 @@
 from __future__ import division
 
+from pandas.util.py3compat import range
+from six.moves import zip, reduce
+from pandas.util import compat
 import numpy as np
 from pandas.core.base import StringMixin
 from pandas.util.decorators import cache_readonly
@@ -77,7 +80,7 @@ class VAR(StringMixin):
         DataFrame
         """
         forecast = self._forecast_raw(h)[:, 0, :]
-        return DataFrame(forecast, index=xrange(1, 1 + h),
+        return DataFrame(forecast, index=range(1, 1 + h),
                          columns=self._columns)
 
     def forecast_cov(self, h):
@@ -100,7 +103,7 @@ class VAR(StringMixin):
         DataFrame
         """
         return DataFrame(self._forecast_std_err_raw(h),
-                         index=xrange(1, 1 + h), columns=self._columns)
+                         index=range(1, 1 + h), columns=self._columns)
 
     @cache_readonly
     def granger_causality(self):
@@ -128,7 +131,7 @@ class VAR(StringMixin):
         d = {}
         for col in self._columns:
             d[col] = {}
-            for i in xrange(1, 1 + self._p):
+            for i in range(1, 1 + self._p):
                 lagged_data = self._lagged_data[i].filter(
                     self._columns - [col])
 
@@ -190,7 +193,7 @@ class VAR(StringMixin):
         from pandas.stats.api import ols
 
         d = {}
-        for i in xrange(1, 1 + self._p):
+        for i in range(1, 1 + self._p):
             for col, series in self._lagged_data[i].iteritems():
                 d[_make_param_name(i, col)] = series
 
@@ -278,7 +281,7 @@ BIC:                            %(bic).3f
 
         result.append(trans_B)
 
-        for i in xrange(2, h):
+        for i in range(2, h):
             result.append(np.dot(trans_B, result[i - 1]))
 
         return result
@@ -287,7 +290,7 @@ BIC:                            %(bic).3f
     def _x(self):
         values = np.array([
             self._lagged_data[i][col].values()
-            for i in xrange(1, 1 + self._p)
+            for i in range(1, 1 + self._p)
             for col in self._columns
         ]).T
 
@@ -315,7 +318,7 @@ BIC:                            %(bic).3f
         resid = self._forecast_cov_resid_raw(n)
         # beta = self._forecast_cov_beta_raw(n)
 
-        # return [a + b for a, b in izip(resid, beta)]
+        # return [a + b for a, b in zip(resid, beta)]
         # TODO: ignore the beta forecast std err until it's verified
 
         return resid
@@ -332,7 +335,7 @@ BIC:                            %(bic).3f
 
         results = []
 
-        for h in xrange(1, n + 1):
+        for h in range(1, n + 1):
             psi = self._psi(h)
             trans_B = self._trans_B(h)
 
@@ -340,14 +343,14 @@ BIC:                            %(bic).3f
 
             cov_beta = self._cov_beta
 
-            for t in xrange(T + 1):
+            for t in range(T + 1):
                 index = t + p
-                y = values.take(xrange(index, index - p, -1), axis=0).ravel()
+                y = values.take(range(index, index - p, -1), axis=0).ravel()
                 trans_Z = np.hstack(([1], y))
                 trans_Z = trans_Z.reshape(1, len(trans_Z))
 
                 sum2 = 0
-                for i in xrange(h):
+                for i in range(h):
                     ZB = np.dot(trans_Z, trans_B[h - 1 - i])
 
                     prod = np.kron(ZB, psi[i])
@@ -367,7 +370,7 @@ BIC:                            %(bic).3f
         psi_values = self._psi(h)
         sum = 0
         result = []
-        for i in xrange(h):
+        for i in range(h):
             psi = psi_values[i]
             sum = sum + chain_dot(psi, self._sigma, psi.T)
             result.append(sum)
@@ -380,9 +383,9 @@ BIC:                            %(bic).3f
         """
         k = self._k
         result = []
-        for i in xrange(h):
+        for i in range(h):
             sum = self._alpha.reshape(1, k)
-            for j in xrange(self._p):
+            for j in range(self._p):
                 beta = self._lag_betas[j]
                 idx = i - j
                 if idx > 0:
@@ -429,12 +432,12 @@ BIC:                            %(bic).3f
         """
         k = self._k
         b = self._beta_raw
-        return [b[k * i: k * (i + 1)].T for i in xrange(self._p)]
+        return [b[k * i: k * (i + 1)].T for i in range(self._p)]
 
     @cache_readonly
     def _lagged_data(self):
         return dict([(i, self._data.shift(i))
-                     for i in xrange(1, 1 + self._p)])
+                     for i in range(1, 1 + self._p)])
 
     @cache_readonly
     def _nobs(self):
@@ -448,10 +451,10 @@ BIC:                            %(bic).3f
         """
         k = self._k
         result = [np.eye(k)]
-        for i in xrange(1, h):
+        for i in range(1, h):
             result.append(sum(
                 [np.dot(result[i - j], self._lag_betas[j - 1])
-                 for j in xrange(1, 1 + i)
+                 for j in range(1, 1 + i)
                  if j <= self._p]))
 
         return result
@@ -532,7 +535,7 @@ class PanelVAR(VAR):
         Returns the forecasts at 1, 2, ..., n timesteps in the future.
         """
         forecast = self._forecast_raw(h).T.swapaxes(1, 2)
-        index = xrange(1, 1 + h)
+        index = range(1, 1 + h)
         w = Panel(forecast, items=self._data.items, major_axis=index,
                   minor_axis=self._data.minor_axis)
         return w

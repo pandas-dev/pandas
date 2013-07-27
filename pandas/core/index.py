@@ -1,7 +1,9 @@
 # pylint: disable=E1101,E1103,W0232
 
-from itertools import izip
-
+from pandas.util.py3compat import range
+from six.moves import zip
+import six
+from pandas.util import compat
 import numpy as np
 
 import pandas.tslib as tslib
@@ -722,7 +724,7 @@ class Index(PandasObject, np.ndarray):
         """
         try:
             return self._engine.get_value(series, key)
-        except KeyError, e1:
+        except KeyError as e1:
             if len(self) > 0 and self.inferred_type == 'integer':
                 raise
 
@@ -1349,7 +1351,7 @@ class Int64Index(Index):
                 data = list(data)
             data = np.asarray(data)
 
-        if issubclass(data.dtype.type, basestring):
+        if issubclass(data.dtype.type, six.string_types):
             raise TypeError('String dtype not supported, you may need '
                             'to explicitly cast to int')
         elif issubclass(data.dtype.type, np.integer):
@@ -1593,7 +1595,7 @@ class MultiIndex(Index):
         # has duplicates
         shape = [len(lev) for lev in self.levels]
         group_index = np.zeros(len(self), dtype='i8')
-        for i in xrange(len(shape)):
+        for i in range(len(shape)):
             stride = np.prod([x for x in shape[i + 1:]], dtype='i8')
             group_index += self.labels[i] * stride
 
@@ -1610,7 +1612,7 @@ class MultiIndex(Index):
         # Label-based
         try:
             return self._engine.get_value(series, key)
-        except KeyError, e1:
+        except KeyError as e1:
             try:
                 # TODO: what if a level contains tuples??
                 loc = self.get_loc(key)
@@ -1800,7 +1802,7 @@ class MultiIndex(Index):
         elif isinstance(tuples, list):
             arrays = list(lib.to_object_array_tuples(tuples).T)
         else:
-            arrays = zip(*tuples)
+            arrays = list(zip(*tuples))
 
         return MultiIndex.from_arrays(arrays, sortorder=sortorder,
                                       names=names)
@@ -1940,7 +1942,7 @@ class MultiIndex(Index):
             if isinstance(loc, int):
                 inds.append(loc)
             else:
-                inds.extend(range(loc.start, loc.stop))
+                inds.extend(list(range(loc.start, loc.stop)))
 
         return self.delete(inds)
 
@@ -2236,7 +2238,7 @@ class MultiIndex(Index):
 
         n = len(tup)
         start, end = 0, len(self)
-        zipped = izip(tup, self.levels, self.labels)
+        zipped = zip(tup, self.levels, self.labels)
         for k, (lab, lev, labs) in enumerate(zipped):
             section = labs[start:end]
 
@@ -2445,7 +2447,7 @@ class MultiIndex(Index):
         if len(self) != len(other):
             return False
 
-        for i in xrange(self.nlevels):
+        for i in range(self.nlevels):
             svalues = com.take_nd(self.levels[i].values, self.labels[i],
                                   allow_fill=False)
             ovalues = com.take_nd(other.levels[i].values, other.labels[i],
@@ -2463,7 +2465,7 @@ class MultiIndex(Index):
         if self.nlevels != other.nlevels:
             return False
 
-        for i in xrange(self.nlevels):
+        for i in range(self.nlevels):
             if not self.levels[i].equals(other.levels[i]):
                 return False
         return True
@@ -2488,7 +2490,7 @@ class MultiIndex(Index):
         result_names = self.names if self.names == other.names else None
 
         uniq_tuples = lib.fast_unique_multiple([self.values, other.values])
-        return MultiIndex.from_arrays(zip(*uniq_tuples), sortorder=0,
+        return MultiIndex.from_arrays(list(zip(*uniq_tuples)), sortorder=0,
                                       names=result_names)
 
     def intersection(self, other):
@@ -2518,7 +2520,7 @@ class MultiIndex(Index):
                               labels=[[]] * self.nlevels,
                               names=result_names)
         else:
-            return MultiIndex.from_arrays(zip(*uniq_tuples), sortorder=0,
+            return MultiIndex.from_arrays(list(zip(*uniq_tuples)), sortorder=0,
                                           names=result_names)
 
     def diff(self, other):
@@ -2635,7 +2637,7 @@ class MultiIndex(Index):
 # For utility purposes
 
 def _sparsify(label_list, start=0,sentinal=''):
-    pivoted = zip(*label_list)
+    pivoted = list(zip(*label_list))
     k = len(label_list)
 
     result = pivoted[:start + 1]
@@ -2659,7 +2661,7 @@ def _sparsify(label_list, start=0,sentinal=''):
 
         prev = cur
 
-    return zip(*result)
+    return list(zip(*result))
 
 
 def _ensure_index(index_like):

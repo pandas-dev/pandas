@@ -5,13 +5,15 @@ Module parse to/from Excel
 #----------------------------------------------------------------------
 # ExcelFile class
 
+from pandas.util.py3compat import range
 import datetime
-from itertools import izip
 import numpy as np
 
 from pandas.io.parsers import TextParser
 from pandas.tseries.period import Period
 from pandas import json
+from six.moves import map, zip, reduce
+import six
 
 def read_excel(path_or_buf, sheetname, kind=None, **kwds):
     """Read an Excel table into a pandas DataFrame
@@ -73,7 +75,7 @@ class ExcelFile(object):
         self.path_or_buf = path_or_buf
         self.tmpfile = None
 
-        if isinstance(path_or_buf, basestring):
+        if isinstance(path_or_buf, six.string_types):
             self.book = xlrd.open_workbook(path_or_buf)
         else:
             data = path_or_buf.read()
@@ -153,14 +155,14 @@ class ExcelFile(object):
             for rng in areas.split(','):
                 if ':' in rng:
                     rng = rng.split(':')
-                    cols += range(_excel2num(rng[0]), _excel2num(rng[1]) + 1)
+                    cols += list(range(_excel2num(rng[0]), _excel2num(rng[1]) + 1))
                 else:
                     cols.append(_excel2num(rng))
             return cols
 
         if isinstance(parse_cols, int):
             return i <= parse_cols
-        elif isinstance(parse_cols, basestring):
+        elif isinstance(parse_cols, six.string_types):
             return i in _range2cols(parse_cols)
         else:
             return i in parse_cols
@@ -173,16 +175,16 @@ class ExcelFile(object):
                           XL_CELL_ERROR, XL_CELL_BOOLEAN)
 
         datemode = self.book.datemode
-        if isinstance(sheetname, basestring):
+        if isinstance(sheetname, six.string_types):
             sheet = self.book.sheet_by_name(sheetname)
         else:  # assume an integer if not a string
             sheet = self.book.sheet_by_index(sheetname)
 
         data = []
         should_parse = {}
-        for i in xrange(sheet.nrows):
+        for i in range(sheet.nrows):
             row = []
-            for j, (value, typ) in enumerate(izip(sheet.row_values(i),
+            for j, (value, typ) in enumerate(zip(sheet.row_values(i),
                                                   sheet.row_types(i))):
                 if parse_cols is not None and j not in should_parse:
                     should_parse[j] = self._should_parse(j, parse_cols)

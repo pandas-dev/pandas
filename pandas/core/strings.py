@@ -1,6 +1,6 @@
 import numpy as np
 
-from itertools import izip
+from six.moves import zip
 from pandas.core.common import isnull
 from pandas.core.series import Series
 import re
@@ -50,7 +50,7 @@ def str_cat(arr, others=None, sep=None, na_rep=None):
 
             notmask = -na_mask
 
-            tuples = izip(*[x[notmask] for x in arrays])
+            tuples = zip(*[x[notmask] for x in arrays])
             cats = [sep.join(tup) for tup in tuples]
 
             result[notmask] = cats
@@ -284,14 +284,14 @@ def str_repeat(arr, repeats):
             try:
                 return str.__mul__(x, repeats)
             except TypeError:
-                return unicode.__mul__(x, repeats)
+                return six.text_type.__mul__(x, repeats)
         return _na_map(rep, arr)
     else:
         def rep(x, r):
             try:
                 return str.__mul__(x, r)
             except TypeError:
-                return unicode.__mul__(x, r)
+                return six.text_type.__mul__(x, r)
         repeats = np.asarray(repeats, dtype=object)
         result = lib.vec_binop(arr, repeats, rep)
         return result

@@ -11,6 +11,8 @@ import pandas.util.testing as tm
 
 from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, randn)
+import six
+from six.moves import zip
 
 
 def assert_block_equal(left, right):
@@ -199,7 +201,7 @@ class TestBlock(unittest.TestCase):
         mat = np.empty((N, 2), dtype=object)
         mat[:, 0] = 'foo'
         mat[:, 1] = 'bar'
-        cols = ['b', u"\u05d0"]
+        cols = ['b', six.u("\u05d0")]
         str_repr = repr(make_block(mat.T, cols, TEST_COLS))
 
     def test_get(self):
@@ -385,7 +387,7 @@ class TestBlockManager(unittest.TestCase):
             self.assert_(tmgr.as_matrix().dtype == np.dtype(t))
 
     def test_convert(self):
-        
+
         def _compare(old_mgr, new_mgr):
             """ compare the blocks, numeric compare ==, object don't """
             old_blocks = set(old_mgr.blocks)
@@ -440,7 +442,7 @@ class TestBlockManager(unittest.TestCase):
         _check(new_mgr,FloatBlock,['b','g'])
         _check(new_mgr,IntBlock,['a','f'])
 
-        mgr = create_blockmanager([b, get_int_ex(['f'],np.int32), get_bool_ex(['bool']), get_dt_ex(['dt']), 
+        mgr = create_blockmanager([b, get_int_ex(['f'],np.int32), get_bool_ex(['bool']), get_dt_ex(['dt']),
                                    get_int_ex(['i'],np.int64), get_float_ex(['g'],np.float64), get_float_ex(['h'],np.float16)])
         new_mgr = mgr.convert(convert_numeric = True)
 
@@ -535,7 +537,7 @@ class TestBlockManager(unittest.TestCase):
     def test_missing_unicode_key(self):
         df = DataFrame({"a": [1]})
         try:
-            df.ix[:, u"\u05d0"]  # should not raise UnicodeEncodeError
+            df.ix[:, six.u("\u05d0")]  # should not raise UnicodeEncodeError
         except KeyError:
             pass  # this is the expected exception
 

@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as np
 
 from pandas import *
@@ -5,6 +6,7 @@ import pandas._tseries as lib
 
 from pandas import DataFrame
 import timeit
+from six.moves import zip
 
 setup = """
 from pandas import Series
@@ -35,7 +37,7 @@ def _timeit(stmt, size, k=5, iters=1000):
     return timer.timeit(n) / n
 
 for sz, its in zip(sizes, iters):
-    print sz
+    print(sz)
     fancy_2d.append(_timeit('arr[indexer]', sz, iters=its))
     take_2d.append(_timeit('arr.take(indexer, axis=0)', sz, iters=its))
     cython_2d.append(_timeit('lib.take_axis0(arr, indexer)', sz, iters=its))
@@ -44,7 +46,7 @@ df = DataFrame({'fancy': fancy_2d,
                 'take': take_2d,
                 'cython': cython_2d})
 
-print df
+print(df)
 
 from pandas.rpy.common import r
 r('mat <- matrix(rnorm(50000), nrow=10000, ncol=5)')

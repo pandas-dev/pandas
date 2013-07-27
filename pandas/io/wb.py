@@ -1,8 +1,11 @@
+from __future__ import print_function
 from urllib2 import urlopen
+from pandas.util.py3compat import range
 import json
 from contextlib import closing
 import pandas
 import numpy as np
+from six.moves import map, reduce
 
 
 def download(country=['MX', 'CA', 'US'], indicator=['GDPPCKD', 'GDPPCKN'],
@@ -65,10 +68,10 @@ def download(country=['MX', 'CA', 'US'], indicator=['GDPPCKD', 'GDPPCKN'],
             bad_indicators.append(ind)
     # Warn
     if len(bad_indicators) > 0:
-        print ('Failed to obtain indicator(s): %s' % '; '.join(bad_indicators))
+        print('Failed to obtain indicator(s): %s' % '; '.join(bad_indicators))
         print ('The data may still be available for download at http://data.worldbank.org')
     if len(bad_countries) > 0:
-        print ('Invalid ISO-2 codes: %s' % ' '.join(bad_countries))
+        print('Invalid ISO-2 codes: %s' % ' '.join(bad_countries))
     # Merge WDI series
     if len(data) > 0:
         out = reduce(lambda x, y: x.merge(y, how='outer'), data)
@@ -90,10 +93,10 @@ def _get_data(indicator="NY.GNS.ICTR.GN.ZS", country='US',
         data = response.read()
     # Parse JSON file
     data = json.loads(data)[1]
-    country = map(lambda x: x['country']['value'], data)
-    iso2c = map(lambda x: x['country']['id'], data)
-    year = map(lambda x: x['date'], data)
-    value = map(lambda x: x['value'], data)
+    country = list(map(lambda x: x['country']['value'], data))
+    iso2c = list(map(lambda x: x['country']['id'], data))
+    year = list(map(lambda x: x['date'], data))
+    value = list(map(lambda x: x['value'], data))
     # Prepare output
     out = pandas.DataFrame([country, iso2c, year, value]).T
     return out
@@ -107,10 +110,10 @@ def get_countries():
         data = response.read()
     data = json.loads(data)[1]
     data = pandas.DataFrame(data)
-    data.adminregion = map(lambda x: x['value'], data.adminregion)
-    data.incomeLevel = map(lambda x: x['value'], data.incomeLevel)
-    data.lendingType = map(lambda x: x['value'], data.lendingType)
-    data.region = map(lambda x: x['value'], data.region)
+    data.adminregion = list(map(lambda x: x['value'], data.adminregion))
+    data.incomeLevel = list(map(lambda x: x['value'], data.incomeLevel))
+    data.lendingType = list(map(lambda x: x['value'], data.lendingType))
+    data.region = list(map(lambda x: x['value'], data.region))
     data = data.rename(columns={'id': 'iso3c', 'iso2Code': 'iso2c'})
     return data
 
@@ -124,7 +127,7 @@ def get_indicators():
     data = json.loads(data)[1]
     data = pandas.DataFrame(data)
     # Clean fields
-    data.source = map(lambda x: x['value'], data.source)
+    data.source = list(map(lambda x: x['value'], data.source))
     fun = lambda x: x.encode('ascii', 'ignore')
     data.sourceOrganization = data.sourceOrganization.apply(fun)
     # Clean topic field
@@ -134,12 +137,12 @@ def get_indicators():
             return x['value']
         except:
             return ''
-    fun = lambda x: map(lambda y: get_value(y), x)
+    fun = lambda x: list(map(lambda y: get_value(y), x))
     data.topics = data.topics.apply(fun)
     data.topics = data.topics.apply(lambda x: ' ; '.join(x))
     # Clean outpu
     data = data.sort(columns='id')
-    data.index = pandas.Index(range(data.shape[0]))
+    data.index = pandas.Index(list(range(data.shape[0])))
     return data
 
 

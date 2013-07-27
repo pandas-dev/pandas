@@ -1,4 +1,8 @@
 from datetime import datetime
+from pandas.util.py3compat import range, long
+from pandas.util import compat
+from six.moves import zip
+import six
 import re
 
 import numpy as np
@@ -54,14 +58,14 @@ def get_to_timestamp_base(base):
 
 
 def get_freq_group(freq):
-    if isinstance(freq, basestring):
+    if isinstance(freq, six.string_types):
         base, mult = get_freq_code(freq)
         freq = base
     return (freq // 1000) * 1000
 
 
 def get_freq(freq):
-    if isinstance(freq, basestring):
+    if isinstance(freq, six.string_types):
         base, mult = get_freq_code(freq)
         freq = base
     return freq
@@ -364,7 +368,7 @@ _rule_aliases = {
 }
 
 for _i, _weekday in enumerate(['MON', 'TUE', 'WED', 'THU', 'FRI']):
-    for _iweek in xrange(4):
+    for _iweek in range(4):
         _name = 'WOM-%d%s' % (_iweek + 1, _weekday)
         _offset_map[_name] = offsets.WeekOfMonth(week=_iweek, weekday=_i)
         _rule_aliases[_name.replace('-', '@')] = _name
@@ -416,7 +420,7 @@ def to_offset(freqstr):
     if isinstance(freqstr, tuple):
         name = freqstr[0]
         stride = freqstr[1]
-        if isinstance(stride, basestring):
+        if isinstance(stride, six.string_types):
             name, stride = stride, name
         name, _ = _base_and_stride(name)
         delta = get_offset(name) * stride
@@ -770,7 +774,7 @@ def infer_freq(index, warn=True):
     inferer = _FrequencyInferer(index, warn=warn)
     return inferer.get_freq()
 
-_ONE_MICRO = 1000L
+_ONE_MICRO = long(1000)
 _ONE_MILLI = _ONE_MICRO * 1000
 _ONE_SECOND = _ONE_MILLI * 1000
 _ONE_MINUTE = 60 * _ONE_SECOND

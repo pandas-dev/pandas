@@ -71,7 +71,7 @@ def auto_update():
         html()
         upload()
         sendmail()
-    except (Exception, SystemExit), inst:
+    except (Exception, SystemExit) as inst:
         msg += str(inst) + '\n'
         sendmail(msg)
 

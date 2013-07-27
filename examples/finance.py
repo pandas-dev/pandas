@@ -19,7 +19,7 @@ endDate = datetime(2009, 9, 1)
 
 def getQuotes(symbol, start, end):
     quotes = fin.quotes_historical_yahoo(symbol, start, end)
-    dates, open, close, high, low, volume = zip(*quotes)
+    dates, open, close, high, low, volume = list(zip(*quotes))
 
     data = {
         'open': open,

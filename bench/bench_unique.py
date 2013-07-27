@@ -1,5 +1,8 @@
+from __future__ import print_function
 from pandas import *
 from pandas.util.testing import rands
+from pandas.util.py3compat import range
+from six.moves import zip
 import pandas._tseries as lib
 import numpy as np
 import matplotlib.pyplot as plt
@@ -7,8 +10,8 @@ import matplotlib.pyplot as plt
 N = 50000
 K = 10000
 
-groups = np.array([rands(10) for _ in xrange(K)], dtype='O')
-groups2 = np.array([rands(10) for _ in xrange(K)], dtype='O')
+groups = np.array([rands(10) for _ in range(K)], dtype='O')
+groups2 = np.array([rands(10) for _ in range(K)], dtype='O')
 
 labels = np.tile(groups, N // K)
 labels2 = np.tile(groups2, N // K)
@@ -20,7 +23,7 @@ def timeit(f, niter):
     import time
     gc.disable()
     start = time.time()
-    for _ in xrange(niter):
+    for _ in range(niter):
         f()
     elapsed = (time.time() - start) / niter
     gc.enable()
@@ -75,9 +78,8 @@ data = np.random.uniform(0, 1, 100000)
 
 
 def f():
-    from itertools import izip
     # groupby sum
-    for k, v in izip(x, data):
+    for k, v in zip(x, data):
         try:
             counts[k] += v
         except KeyError:
@@ -128,7 +130,7 @@ def algo4():
 # N = 10000000
 # K = 500000
 
-# groups = np.array([rands(10) for _ in xrange(K)], dtype='O')
+# groups = np.array([rands(10) for _ in range(K)], dtype='O')
 
 # labels = np.tile(groups, N // K)
 data = np.random.randn(N)
@@ -232,11 +234,11 @@ def hash_bench():
     khash_hint = []
     khash_nohint = []
     for K in Ks:
-        print K
-        # groups = np.array([rands(10) for _ in xrange(K)])
+        print(K)
+        # groups = np.array([rands(10) for _ in range(K)])
         # labels = np.tile(groups, N // K).astype('O')
 
-        groups = np.random.randint(0, 100000000000L, size=K)
+        groups = np.random.randint(0, long(100000000000), size=K)
         labels = np.tile(groups, N // K)
         dict_based.append(timeit(lambda: dict_unique(labels, K), 20))
         khash_nohint.append(timeit(lambda: khash_unique_int64(labels, K), 20))
@@ -245,11 +247,11 @@ def hash_bench():
 
         # memory, hard to get
         # dict_based.append(np.mean([dict_unique(labels, K, memory=True)
-        #                            for _ in xrange(10)]))
+        #                            for _ in range(10)]))
         # khash_nohint.append(np.mean([khash_unique(labels, K, memory=True)
-        #                              for _ in xrange(10)]))
+        #                              for _ in range(10)]))
         # khash_hint.append(np.mean([khash_unique(labels, K, size_hint=True, memory=True)
-        #                            for _ in xrange(10)]))
+        #                            for _ in range(10)]))
 
         # dict_based_sort.append(timeit(lambda: dict_unique(labels, K,
         #                                                   sort=True), 10))

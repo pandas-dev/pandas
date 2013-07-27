@@ -1184,7 +1184,7 @@ You can even pass in an instance of ``StringIO`` if you so desire
 
 .. ipython:: python
 
-   from cStringIO import StringIO
+   from six.moves import cStringIO as StringIO
 
    with open(file_path, 'r') as f:
        sio = StringIO(f.read())

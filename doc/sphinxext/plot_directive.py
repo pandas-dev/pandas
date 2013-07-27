@@ -75,10 +75,13 @@ TODO
 
 """
 
-import sys, os, glob, shutil, imp, warnings, cStringIO, re, textwrap, traceback
+from pandas.util.py3compat import range
+import sys, os, glob, shutil, imp, warnings, re, textwrap, traceback
+from six.moves import cStringIO as StringIO
 import sphinx
 
 import warnings
+from six.moves import map
 warnings.warn("A plot_directive module is also available under "
               "matplotlib.sphinxext; expect this numpydoc.plot_directive "
               "module to be deprecated after relevant features have been "
@@ -257,7 +260,7 @@ def run(arguments, content, options, state_machine, state, lineno):
 
     # is it in doctest format?
     is_doctest = contains_doctest(code)
-    if options.has_key('format'):
+    if 'format' in options:
         if options['format'] == 'python':
             is_doctest = False
         else:
@@ -291,7 +294,7 @@ def run(arguments, content, options, state_machine, state, lineno):
         results = makefig(code, source_file_name, build_dir, output_base,
                           config)
         errors = []
-    except PlotError, err:
+    except PlotError as err:
         reporter = state.memo.reporter
         sm = reporter.system_message(
             2, "Exception occurred in plotting %s: %s" % (output_base, err),
@@ -448,7 +451,7 @@ def run_code(code, code_path, ns=None):
 
     # Redirect stdout
     stdout = sys.stdout
-    sys.stdout = cStringIO.StringIO()
+    sys.stdout = StringIO()
 
     # Reset sys.argv
     old_sys_argv = sys.argv
@@ -460,9 +463,9 @@ def run_code(code, code_path, ns=None):
             if ns is None:
                 ns = {}
             if not ns:
-                exec setup.config.plot_pre_code in ns
-            exec code in ns
-        except (Exception, SystemExit), err:
+                exec(setup.config.plot_pre_code, ns)
+            exec(code, ns)
+        except (Exception, SystemExit) as err:
             raise PlotError(traceback.format_exc())
     finally:
         os.chdir(pwd)
@@ -524,7 +527,7 @@ def makefig(code, code_path, output_dir, output_base, config):
     all_exists = True
     for i, code_piece in enumerate(code_pieces):
         images = []
-        for j in xrange(1000):
+        for j in range(1000):
             img = ImageFile('%s_%02d_%02d' % (output_base, i, j), output_dir)
             for format, dpi in formats:
                 if out_of_date(code_path, img.filename(format)):
@@ -570,7 +573,7 @@ def makefig(code, code_path, output_dir, output_base, config):
                 try:
                     figman.canvas.figure.savefig(img.filename(format), dpi=dpi,
                                                  bbox_inches='tight')
-                except exceptions.BaseException, err:
+                except exceptions.BaseException as err:
                     raise PlotError(traceback.format_exc())
                 img.formats.append(format)
 

@@ -35,7 +35,7 @@ def create_panels_append(cls, panels):
         # concatenate values
         try:
                 values = np.concatenate([p.values for p in panels], axis=1)
-        except (Exception), detail:
+        except Exception as detail:
                 raise Exception("cannot append values that dont' match dimensions! -> [%s] %s"
                                 % (','.join(["%s" % p for p in panels]), str(detail)))
         # pm('append - create_panel')

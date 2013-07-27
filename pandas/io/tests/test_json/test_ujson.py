@@ -1,7 +1,6 @@
 ﻿import unittest
 from unittest import TestCase
 
-import pandas.json as ujson
 try:
     import json
 except ImportError:
@@ -13,11 +12,15 @@ import sys
 import time
 import datetime
 import calendar
-import StringIO
 import re
 import random
 import decimal
 from functools import partial
+from pandas.util.py3compat import range, StringIO
+from pandas.util import compat
+import pandas.json as ujson
+import six
+from six.moves import zip
 import pandas.util.py3compat as py3compat
 
 import numpy as np
@@ -69,7 +72,7 @@ class UltraJSONTests(TestCase):
         helper(html_encoded, ensure_ascii=False, encode_html_chars=True)
 
     def test_doubleLongIssue(self):
-        sut = {u'a': -4342969734183514}
+        sut = {six.u('a'): -4342969734183514}
         encoded = json.dumps(sut)
         decoded = json.loads(encoded)
         self.assertEqual(sut, decoded)
@@ -78,7 +81,7 @@ class UltraJSONTests(TestCase):
         self.assertEqual(sut, decoded)
 
     def test_doubleLongDecimalIssue(self):
-        sut = {u'a': -12345678901234.56789012}
+        sut = {six.u('a'): -12345678901234.56789012}
         encoded = json.dumps(sut)
         decoded = json.loads(encoded)
         self.assertEqual(sut, decoded)
@@ -88,12 +91,12 @@ class UltraJSONTests(TestCase):
 
 
     def test_encodeDecodeLongDecimal(self):
-        sut = {u'a': -528656961.4399388}
+        sut = {six.u('a'): -528656961.4399388}
         encoded = ujson.dumps(sut, double_precision=15)
         ujson.decode(encoded)
 
     def test_decimalDecodeTestPrecise(self):
-        sut = {u'a': 4.56}
+        sut = {six.u('a'): 4.56}
         encoded = ujson.encode(sut)
         decoded = ujson.decode(encoded, precise_float=True)
         self.assertEqual(sut, decoded)
@@ -109,10 +112,16 @@ class UltraJSONTests(TestCase):
         self.assert_(np.allclose(num, ujson.decode(ujson.encode(num))))
 
     def test_encodeDictWithUnicodeKeys(self):
-        input = { u"key1": u"value1", u"key1": u"value1", u"key1": u"value1", u"key1": u"value1", u"key1": u"value1", u"key1": u"value1" }
+        input = {six.u("key1"): six.u("value1"), six.u("key1"):
+                six.u("value1"), six.u("key1"): six.u("value1"),
+                six.u("key1"): six.u("value1"), six.u("key1"):
+                six.u("value1"), six.u("key1"): six.u("value1")}
         output = ujson.encode(input)
 
-        input = { u"بن": u"value1", u"بن": u"value1", u"بن": u"value1", u"بن": u"value1", u"بن": u"value1", u"بن": u"value1", u"بن": u"value1" }
+        input = {six.u("بن"): six.u("value1"), six.u("بن"): six.u("value1"),
+                six.u("بن"): six.u("value1"), six.u("بن"): six.u("value1"),
+                six.u("بن"): six.u("value1"), six.u("بن"): six.u("value1"),
+                six.u("بن"): six.u("value1")}
         output = ujson.encode(input)
 
         pass
@@ -361,7 +370,7 @@ class UltraJSONTests(TestCase):
         self.assertEquals(dec, json.loads(enc))
 
     def test_decodeFromUnicode(self):
-        input = u"{\"obj\": 31337}"
+        input = six.u("{\"obj\": 31337}")
         dec1 = ujson.decode(input)
         dec2 = ujson.decode(str(input))
         self.assertEquals(dec1, dec2)
@@ -520,18 +529,18 @@ class UltraJSONTests(TestCase):
 
     def test_decodeBrokenDictKeyTypeLeakTest(self):
         input = '{{1337:""}}'
-        for x in xrange(1000):
+        for x in range(1000):
             try:
                 ujson.decode(input)
                 assert False, "Expected exception!"
-            except(ValueError),e:
+            except ValueError as e:
                 continue
 
             assert False, "Wrong exception"
 
     def test_decodeBrokenDictLeakTest(self):
         input = '{{"key":"}'
-        for x in xrange(1000):
+        for x in range(1000):
             try:
                 ujson.decode(input)
                 assert False, "Expected exception!"
@@ -542,7 +551,7 @@ class UltraJSONTests(TestCase):
 
     def test_decodeBrokenListLeakTest(self):
         input = '[[[true'
-        for x in xrange(1000):
+        for x in range(1000):
             try:
                 ujson.decode(input)
                 assert False, "Expected exception!"
@@ -611,7 +620,7 @@ class UltraJSONTests(TestCase):
         self.assertEquals(output, json.dumps(input))
         self.assertEquals(input, ujson.decode(output))
 
-        self.assertEquals('"  \\u0000\\r\\n "', ujson.dumps(u"  \u0000\r\n "))
+        self.assertEquals('"  \\u0000\\r\\n "', ujson.dumps(six.u("  \u0000\r\n ")))
         pass
 
     def test_decodeNullCharacter(self):
@@ -678,7 +687,7 @@ class UltraJSONTests(TestCase):
         self.assertAlmostEqual(output, json.loads(input))
 
     def test_dumpToFile(self):
-        f = StringIO.StringIO()
+        f = StringIO()
         ujson.dump([1, 2, 3], f)
         self.assertEquals("[1,2,3]", f.getvalue())
 
@@ -701,9 +710,9 @@ class UltraJSONTests(TestCase):
             assert False, 'expected TypeError'
 
     def test_loadFile(self):
-        f = StringIO.StringIO("[1,2,3,4]")
+        f = StringIO("[1,2,3,4]")
         self.assertEquals([1, 2, 3, 4], ujson.load(f))
-        f = StringIO.StringIO("[1,2,3,4]")
+        f = StringIO("[1,2,3,4]")
         assert_array_equal(np.array([1, 2, 3, 4]), ujson.load(f, numpy=True))
 
     def test_loadFileLikeObject(self):
@@ -740,7 +749,7 @@ class UltraJSONTests(TestCase):
             assert False, "expected OverflowError"
 
     def test_encodeNumericOverflowNested(self):
-        for n in xrange(0, 100):
+        for n in range(0, 100):
             class Nested:
                 x = 12839128391289382193812939
 
@@ -769,7 +778,7 @@ class UltraJSONTests(TestCase):
             self.assertEqual(ujson.decode(doc)['id'], result)
 
     def test_encodeBigEscape(self):
-        for x in xrange(10):
+        for x in range(10):
             if py3compat.PY3:
                 base = '\u00e5'.encode('utf-8')
             else:
@@ -778,7 +787,7 @@ class UltraJSONTests(TestCase):
             output = ujson.encode(input)
 
     def test_decodeBigEscape(self):
-        for x in xrange(10):
+        for x in range(10):
             if py3compat.PY3:
                 base = '\u00e5'.encode('utf-8')
             else:
@@ -788,7 +797,7 @@ class UltraJSONTests(TestCase):
             output = ujson.decode(input)
 
     def test_toDict(self):
-        d = {u"key": 31337}
+        d = {six.u("key"): 31337}
 
         class DictTest:
             def toDict(self):
@@ -1034,7 +1043,7 @@ class NumpyJSONTests(TestCase):
         output = ujson.loads(ujson.dumps(input), numpy=True, labelled=True)
         self.assertTrue((np.array([42]) == output[0]).all())
         self.assertTrue(output[1] is None)
-        self.assertTrue((np.array([u'a']) == output[2]).all())
+        self.assertTrue((np.array([six.u('a')]) == output[2]).all())
 
         # py3 is non-determinstic on the ordering......
         if not py3compat.PY3:
@@ -1043,7 +1052,7 @@ class NumpyJSONTests(TestCase):
             expectedvals = np.array([42, 31, 24, 99, 2.4, 78], dtype=int).reshape((3,2))
             self.assertTrue((expectedvals == output[0]).all())
             self.assertTrue(output[1] is None)
-            self.assertTrue((np.array([u'a', 'b']) == output[2]).all())
+            self.assertTrue((np.array([six.u('a'), 'b']) == output[2]).all())
 
 
             input = {1: {'a': 42, 'b':31}, 2: {'a': 24, 'c': 99}, 3: {'a': 2.4, 'b': 78}}
@@ -1331,7 +1340,7 @@ class PandasJSONTests(TestCase):
         try:
             input = "9223372036854775808"
             ujson.decode(input)
-        except ValueError, e:
+        except ValueError as e:
             pass
         else:
             assert False, "expected ValueError"
@@ -1340,7 +1349,7 @@ class PandasJSONTests(TestCase):
         try:
             input = "-90223372036854775809"
             ujson.decode(input)
-        except ValueError,e:
+        except ValueError as e:
             pass
         else:
             assert False, "expected ValueError"
@@ -1418,7 +1427,7 @@ class PandasJSONTests(TestCase):
 
     def test_encodeBigSet(self):
         s = set()
-        for x in xrange(0, 100000):
+        for x in range(0, 100000):
             s.add(x)
         ujson.encode(s)
 

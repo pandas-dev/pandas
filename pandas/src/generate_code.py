@@ -1,5 +1,7 @@
+from __future__ import print_function
+from pandas.util.py3compat import range
 import os
-from cStringIO import StringIO
+from pandas.util.py3compat import cStringIO as StringIO
 
 header = """
 cimport numpy as np
@@ -2290,21 +2292,21 @@ take_templates = [take_1d_template,
 
 def generate_take_cython_file(path='generated.pyx'):
     with open(path, 'w') as f:
-        print >> f, header
+        print(header, file=f)
 
-        print >> f, generate_ensure_dtypes()
+        print(generate_ensure_dtypes(), file=f)
 
         for template in templates_1d:
-            print >> f, generate_from_template(template)
+            print(generate_from_template(template), file=f)
 
         for template in take_templates:
-            print >> f, generate_take_template(template)
+            print(generate_take_template(template), file=f)
 
         for template in put_2d:
-            print >> f, generate_put_template(template)
+            print(generate_put_template(template), file=f)
 
         for template in groupbys:
-            print >> f, generate_put_template(template, use_ints = False)
+            print(generate_put_template(template, use_ints = False), file=f)
 
         # for template in templates_1d_datetime:
         #     print >> f, generate_from_template_datetime(template)
@@ -2313,7 +2315,7 @@ def generate_take_cython_file(path='generated.pyx'):
         #     print >> f, generate_from_template_datetime(template, ndim=2)
 
         for template in nobool_1d_templates:
-            print >> f, generate_from_template(template, exclude=['bool'])
+            print(generate_from_template(template, exclude=['bool']), file=f)
 
 if __name__ == '__main__':
     generate_take_cython_file()

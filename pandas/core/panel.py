@@ -3,6 +3,8 @@ Contains data structures designed for manipulating panel (3-dimensional) data
 """
 # pylint: disable=E1103,W0231,W0212,W0621
 
+from pandas.util.py3compat import range
+from pandas.util import compat
 import operator
 import sys
 import numpy as np
@@ -25,6 +27,8 @@ from pandas.util.decorators import deprecate, Appender, Substitution
 import pandas.core.common as com
 import pandas.core.nanops as nanops
 import pandas.lib as lib
+import six
+from six.moves import map, zip
 
 
 def _ensure_like_indices(time, panels):
@@ -473,17 +477,17 @@ class Panel(NDFrame):
         class_name = str(self.__class__)
 
         shape = self.shape
-        dims = u'Dimensions: %s' % ' x '.join(
+        dims = six.u('Dimensions: %s') % ' x '.join(
             ["%d (%s)" % (s, a) for a, s in zip(self._AXIS_ORDERS, shape)])
 
         def axis_pretty(a):
             v = getattr(self, a)
             if len(v) > 0:
-                return u'%s axis: %s to %s' % (a.capitalize(),
+                return six.u('%s axis: %s to %s') % (a.capitalize(),
                                                com.pprint_thing(v[0]),
                                                com.pprint_thing(v[-1]))
             else:
-                return u'%s axis: None' % a.capitalize()
+                return six.u('%s axis: None') % a.capitalize()
 
         output = '\n'.join(
             [class_name, dims] + [axis_pretty(a) for a in self._AXIS_ORDERS])
@@ -540,7 +544,7 @@ class Panel(NDFrame):
         y : SparseDataFrame
         """
         from pandas.core.sparse import SparsePanel
-        frames = dict(self.iterkv())
+        frames = dict(self.iteritems())
         return SparsePanel(frames, items=self.items,
                            major_axis=self.major_axis,
                            minor_axis=self.minor_axis,
@@ -804,13 +808,13 @@ class Panel(NDFrame):
         new_minor, indexer2 = self.minor_axis.reindex(minor)
 
         if indexer0 is None:
-            indexer0 = range(len(new_items))
+            indexer0 = list(range(len(new_items)))
 
         if indexer1 is None:
-            indexer1 = range(len(new_major))
+            indexer1 = list(range(len(new_major)))
 
         if indexer2 is None:
-            indexer2 = range(len(new_minor))
+            indexer2 = list(range(len(new_minor)))
 
         for i, ind in enumerate(indexer0):
             com.take_2d_multi(values[ind], (indexer1, indexer2),
@@ -976,7 +980,7 @@ class Panel(NDFrame):
             if method is None:
                 raise ValueError('must specify a fill method or value')
             result = {}
-            for col, s in self.iterkv():
+            for col, s in self.iteritems():
                 result[col] = s.fillna(method=method, value=value)
 
             return self._constructor.from_dict(result)
@@ -1137,7 +1141,7 @@ class Panel(NDFrame):
 
         for a in self._AXIS_ORDERS:
             if not a in kwargs:
-                where = map(a.startswith, aliases)
+                where = list(map(a.startswith, aliases))
 
                 if any(where):
                     if sum(where) != 1:
@@ -1483,7 +1487,7 @@ class Panel(NDFrame):
         if not isinstance(values, np.ndarray):
             values = np.asarray(values)
             # NumPy strings are a pain, convert to object
-            if issubclass(values.dtype.type, basestring):
+            if issubclass(values.dtype.type, six.string_types):
                 values = np.array(values, dtype=object, copy=True)
         else:
             if copy:
@@ -1711,7 +1715,7 @@ def install_ipython_completers():  # pragma: no cover
     @complete_object.when_type(Panel)
     def complete_dataframe(obj, prev_completions):
         return prev_completions + [c for c in obj.keys()
-                                   if isinstance(c, basestring)
+                                   if isinstance(c, six.string_types)
                                         and py3compat.isidentifier(c)]
 
 # Importing IPython brings in about 200 modules, so we want to avoid it unless

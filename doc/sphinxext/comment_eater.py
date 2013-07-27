@@ -1,10 +1,10 @@
-from cStringIO import StringIO
+from six.moves import cStringIO
 import compiler
 import inspect
 import textwrap
 import tokenize
 
-from compiler_unparse import unparse
+from .compiler_unparse import unparse
 
 
 class Comment(object):
@@ -95,7 +95,7 @@ class CommentBlocker(object):
 
     def new_comment(self, string, start, end, line):
         """ Possibly add a new comment.
-        
+
         Only adds a new comment if this comment is the only thing on the line.
         Otherwise, it extends the noncomment block.
         """

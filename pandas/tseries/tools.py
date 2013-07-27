@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 import re
 import sys
 
+import six
 import numpy as np
 
 import pandas.lib as lib
@@ -40,7 +41,7 @@ def _infer_tzinfo(start, end):
 
 
 def _maybe_get_tz(tz):
-    if isinstance(tz, basestring):
+    if isinstance(tz, six.string_types):
         import pytz
         tz = pytz.timezone(tz)
     if com.is_integer(tz):
@@ -91,7 +92,7 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
             if box and not isinstance(arg, DatetimeIndex):
                 try:
                     return DatetimeIndex(arg, tz='utc' if utc else None)
-                except ValueError, e:
+                except ValueError as e:
                     values, tz = tslib.datetime_to_datetime64(arg)
                     return DatetimeIndex._simple_new(values, None, tz=tz)
 
@@ -109,7 +110,7 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
                 result = DatetimeIndex(result, tz='utc' if utc else None)
             return result
 
-        except ValueError, e:
+        except ValueError as e:
             try:
                 values, tz = tslib.datetime_to_datetime64(arg)
                 return DatetimeIndex._simple_new(values, None, tz=tz)
@@ -148,7 +149,7 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
 
     Parameters
     ----------
-    arg : basestring
+    arg : six.string_types
     freq : str or DateOffset, default None
         Helps with interpreting time string if supplied
     dayfirst : bool, default None
@@ -165,7 +166,7 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     from pandas.tseries.frequencies import (_get_rule_month, _month_numbers,
                                             _get_freq_str)
 
-    if not isinstance(arg, basestring):
+    if not isinstance(arg, six.string_types):
         return arg
 
     arg = arg.upper()
@@ -236,7 +237,7 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     try:
         parsed, reso = dateutil_parse(arg, default, dayfirst=dayfirst,
                                       yearfirst=yearfirst)
-    except Exception, e:
+    except Exception as e:
         raise DateParseError(e)
 
     if parsed is None:
@@ -278,7 +279,7 @@ def dateutil_parse(timestr, default,
                 tzdata = tzinfos.get(res.tzname)
             if isinstance(tzdata, datetime.tzinfo):
                 tzinfo = tzdata
-            elif isinstance(tzdata, basestring):
+            elif isinstance(tzdata, six.string_types):
                 tzinfo = tz.tzstr(tzdata)
             elif isinstance(tzdata, int):
                 tzinfo = tz.tzoffset(res.tzname, tzdata)

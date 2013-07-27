@@ -1,7 +1,8 @@
 # pylint: disable-msg=W0612,E1101
 from copy import deepcopy
 from datetime import datetime, timedelta
-from StringIO import StringIO
+from pandas.util.py3compat import StringIO
+from pandas.util.py3compat import range
 import cPickle as pickle
 import operator
 import os

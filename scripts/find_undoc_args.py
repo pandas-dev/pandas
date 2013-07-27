@@ -41,18 +41,18 @@ def entry_gen(root_ns,module_name):
                 seen.add(cand.__name__)
                 q.insert(0,cand)
             elif (isinstance(cand,(types.MethodType,types.FunctionType)) and
-                  cand not in seen and cand.func_doc):
+                  cand not in seen and cand.__doc__):
                 seen.add(cand)
                 yield cand
 
 def cmp_docstring_sig(f):
     def build_loc(f):
-        path=f.func_code.co_filename.split(args.path,1)[-1][1:]
-        return dict(path=path,lnum=f.func_code.co_firstlineno)
+        path=f.__code__.co_filename.split(args.path,1)[-1][1:]
+        return dict(path=path,lnum=f.__code__.co_firstlineno)
 
     import inspect
     sig_names=set(inspect.getargspec(f).args)
-    doc = f.func_doc.lower()
+    doc = f.__doc__.lower()
     doc = re.split("^\s*parameters\s*",doc,1,re.M)[-1]
     doc = re.split("^\s*returns*",doc,1,re.M)[0]
     doc_names={x.split(":")[0].strip() for x in doc.split("\n")

@@ -4,6 +4,7 @@ C/Cython ascii file parser tests
 
 from pandas.util.py3compat import StringIO, BytesIO
 from datetime import datetime
+from pandas.util import compat
 import csv
 import os
 import sys
@@ -29,6 +30,8 @@ import pandas.util.testing as tm
 
 from pandas.parser import TextReader
 import pandas.parser as parser
+import six
+from six.moves import map
 
 
 class TestCParser(unittest.TestCase):
@@ -325,7 +328,7 @@ a,b,c
 
 
 def assert_array_dicts_equal(left, right):
-    for k, v in left.iteritems():
+    for k, v in compat.iteritems(left):
         assert(np.array_equal(v, right[k]))
 
 if __name__ == '__main__':

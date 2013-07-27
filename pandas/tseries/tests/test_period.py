@@ -22,6 +22,9 @@ import pandas.tseries.period as pmod
 import pandas.core.datetools as datetools
 import pandas as pd
 import numpy as np
+import six
+from pandas.util.py3compat import range
+from six.moves import map, zip
 randn = np.random.randn
 
 from pandas import Series, TimeSeries, DataFrame
@@ -209,8 +212,8 @@ class TestPeriodProperties(TestCase):
     def test_strftime(self):
         p = Period('2000-1-1 12:34:12', freq='S')
         res = p.strftime('%Y-%m-%d %H:%M:%S')
-        self.assert_( res ==  '2000-01-01 12:34:12')
-        self.assert_( isinstance(res,unicode)) # GH3363
+        self.assertEqual(res,  '2000-01-01 12:34:12')
+        tm.assert_isinstance(res, six.text_type) # GH3363
 
     def test_sub_delta(self):
         left, right = Period('2011', freq='A'), Period('2007', freq='A')
@@ -1115,7 +1118,7 @@ class TestPeriodIndex(TestCase):
 
     def test_constructor_arrays_negative_year(self):
         years = np.arange(1960, 2000).repeat(4)
-        quarters = np.tile(range(1, 5), 40)
+        quarters = np.tile(list(range(1, 5)), 40)
 
         pindex = PeriodIndex(year=years, quarter=quarters)
 
@@ -1123,8 +1126,8 @@ class TestPeriodIndex(TestCase):
         self.assert_(np.array_equal(pindex.quarter, quarters))
 
     def test_constructor_invalid_quarters(self):
-        self.assertRaises(ValueError, PeriodIndex, year=range(2000, 2004),
-                          quarter=range(4), freq='Q-DEC')
+        self.assertRaises(ValueError, PeriodIndex, year=list(range(2000, 2004)),
+                          quarter=list(range(4)), freq='Q-DEC')
 
     def test_constructor_corner(self):
         self.assertRaises(ValueError, PeriodIndex, periods=10, freq='A')
@@ -1213,7 +1216,7 @@ class TestPeriodIndex(TestCase):
 
     def test_getitem_datetime(self):
         rng = period_range(start='2012-01-01', periods=10, freq='W-MON')
-        ts = Series(range(len(rng)), index=rng)
+        ts = Series(list(range(len(rng))), index=rng)
 
         dt1 = datetime(2011, 10, 2)
         dt4 = datetime(2012, 4, 20)
@@ -1285,7 +1288,7 @@ class TestPeriodIndex(TestCase):
 
     def test_to_timestamp_quarterly_bug(self):
         years = np.arange(1960, 2000).repeat(4)
-        quarters = np.tile(range(1, 5), 40)
+        quarters = np.tile(list(range(1, 5)), 40)
 
         pindex = PeriodIndex(year=years, quarter=quarters)
 
@@ -1622,45 +1625,45 @@ class TestPeriodIndex(TestCase):
     def test_period_index_unicode(self):
         pi = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
         assert_equal(len(pi), 9)
-        assert_equal(pi, eval(unicode(pi)))
+        assert_equal(pi, eval(six.text_type(pi)))
 
         pi = PeriodIndex(freq='Q', start='1/1/2001', end='12/1/2009')
         assert_equal(len(pi), 4 * 9)
-        assert_equal(pi, eval(unicode(pi)))
+        assert_equal(pi, eval(six.text_type(pi)))
 
         pi = PeriodIndex(freq='M', start='1/1/2001', end='12/1/2009')
         assert_equal(len(pi), 12 * 9)
-        assert_equal(pi, eval(unicode(pi)))
+        assert_equal(pi, eval(six.text_type(pi)))
 
         start = Period('02-Apr-2005', 'B')
         i1 = PeriodIndex(start=start, periods=20)
         assert_equal(len(i1), 20)
         assert_equal(i1.freq, start.freq)
         assert_equal(i1[0], start)
-        assert_equal(i1, eval(unicode(i1)))
+        assert_equal(i1, eval(six.text_type(i1)))
 
         end_intv = Period('2006-12-31', 'W')
         i1 = PeriodIndex(end=end_intv, periods=10)
         assert_equal(len(i1), 10)
         assert_equal(i1.freq, end_intv.freq)
         assert_equal(i1[-1], end_intv)
-        assert_equal(i1, eval(unicode(i1)))
+        assert_equal(i1, eval(six.text_type(i1)))
 
         end_intv = Period('2006-12-31', '1w')
         i2 = PeriodIndex(end=end_intv, periods=10)
         assert_equal(len(i1), len(i2))
         self.assert_((i1 == i2).all())
         assert_equal(i1.freq, i2.freq)
-        assert_equal(i1, eval(unicode(i1)))
-        assert_equal(i2, eval(unicode(i2)))
+        assert_equal(i1, eval(six.text_type(i1)))
+        assert_equal(i2, eval(six.text_type(i2)))
 
         end_intv = Period('2006-12-31', ('w', 1))
         i2 = PeriodIndex(end=end_intv, periods=10)
         assert_equal(len(i1), len(i2))
         self.assert_((i1 == i2).all())
         assert_equal(i1.freq, i2.freq)
-        assert_equal(i1, eval(unicode(i1)))
-        assert_equal(i2, eval(unicode(i2)))
+        assert_equal(i1, eval(six.text_type(i1)))
+        assert_equal(i2, eval(six.text_type(i2)))
 
         try:
             PeriodIndex(start=start, end=end_intv)
@@ -1670,7 +1673,7 @@ class TestPeriodIndex(TestCase):
 
         end_intv = Period('2005-05-01', 'B')
         i1 = PeriodIndex(start=start, end=end_intv)
-        assert_equal(i1, eval(unicode(i1)))
+        assert_equal(i1, eval(six.text_type(i1)))
 
         try:
             PeriodIndex(start=start)
@@ -1683,12 +1686,12 @@ class TestPeriodIndex(TestCase):
         i2 = PeriodIndex([end_intv, Period('2005-05-05', 'B')])
         assert_equal(len(i2), 2)
         assert_equal(i2[0], end_intv)
-        assert_equal(i2, eval(unicode(i2)))
+        assert_equal(i2, eval(six.text_type(i2)))
 
         i2 = PeriodIndex(np.array([end_intv, Period('2005-05-05', 'B')]))
         assert_equal(len(i2), 2)
         assert_equal(i2[0], end_intv)
-        assert_equal(i2, eval(unicode(i2)))
+        assert_equal(i2, eval(six.text_type(i2)))
 
         # Mixed freq should fail
         vals = [end_intv, Period('2006-12-31', 'w')]
@@ -2001,7 +2004,7 @@ class TestPeriodIndex(TestCase):
             types += unicode,
 
         for t in types:
-            expected = np.array(map(t, raw), dtype=object)
+            expected = np.array(list(map(t, raw)), dtype=object)
             res = index.map(t)
 
             # should return an array

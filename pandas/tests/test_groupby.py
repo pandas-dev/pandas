@@ -1,3 +1,6 @@
+from __future__ import print_function
+from pandas.util.py3compat import range, long
+from pandas.util import compat
 import nose
 import unittest
 
@@ -23,11 +26,13 @@ from numpy.testing import assert_equal
 import pandas.core.nanops as nanops
 
 import pandas.util.testing as tm
+from six.moves import map
+from six.moves import zip
 
 
 def commonSetUp(self):
     self.dateRange = bdate_range('1/1/2005', periods=250)
-    self.stringIndex = Index([rands(8).upper() for x in xrange(250)])
+    self.stringIndex = Index([rands(8).upper() for x in range(250)])
 
     self.groupId = Series([x[0] for x in self.stringIndex],
                           index=self.stringIndex)
@@ -189,9 +194,9 @@ class TestGroupBy(unittest.TestCase):
         assert_frame_equal(nth, expected, check_names=False)
 
         # GH 2763, first/last shifting dtypes
-        idx = range(10)
+        idx = list(range(10))
         idx.append(9)
-        s = Series(data=range(11), index=idx, name='IntCol')
+        s = Series(data=list(range(11)), index=idx, name='IntCol')
         self.assert_(s.dtype == 'int64')
         f = s.groupby(level=0).first()
         self.assert_(f.dtype == 'int64')
@@ -263,7 +268,7 @@ class TestGroupBy(unittest.TestCase):
 
         # GH 3911, mixed frame non-conversion
         df = self.df_mixed_floats.copy()
-        df['value'] = range(len(df))
+        df['value'] = list(range(len(df)))
 
         def max_value(group):
             return group.ix[group['value'].idxmax()]
@@ -278,7 +283,7 @@ class TestGroupBy(unittest.TestCase):
     def test_groupby_return_type(self):
 
         # GH2893, return a reduced type
-        df1 = DataFrame([{"val1": 1, "val2" : 20}, {"val1":1, "val2": 19}, 
+        df1 = DataFrame([{"val1": 1, "val2" : 20}, {"val1":1, "val2": 19},
                          {"val1":2, "val2": 27}, {"val1":2, "val2": 12}])
 
         def func(dataf):
@@ -287,7 +292,7 @@ class TestGroupBy(unittest.TestCase):
         result = df1.groupby("val1", squeeze=True).apply(func)
         self.assert_(isinstance(result,Series))
 
-        df2 = DataFrame([{"val1": 1, "val2" : 20}, {"val1":1, "val2": 19}, 
+        df2 = DataFrame([{"val1": 1, "val2" : 20}, {"val1":1, "val2": 19},
                          {"val1":1, "val2": 27}, {"val1":1, "val2": 12}])
         def func(dataf):
             return dataf["val2"]  - dataf["val2"].mean()
@@ -500,7 +505,7 @@ class TestGroupBy(unittest.TestCase):
 
         def raiseException(df):
           print ('----------------------------------------')
-          print (df.to_string())
+          print(df.to_string())
           raise TypeError
 
         self.assertRaises(TypeError, df.groupby(0).agg,
@@ -508,11 +513,11 @@ class TestGroupBy(unittest.TestCase):
 
     def test_basic_regression(self):
         # regression
-        T = [1.0 * x for x in range(1, 10) * 10][:1095]
-        result = Series(T, range(0, len(T)))
+        T = [1.0 * x for x in list(range(1, 10)) * 10][:1095]
+        result = Series(T, list(range(0, len(T))))
 
         groupings = np.random.random((1100,))
-        groupings = Series(groupings, range(0, len(groupings))) * 10.
+        groupings = Series(groupings, list(range(0, len(groupings)))) * 10.
 
         grouped = result.groupby(groupings)
         grouped.mean()
@@ -707,12 +712,12 @@ class TestGroupBy(unittest.TestCase):
                 return y
 
         df = DataFrame({'a':[1,2,2,2],
-                        'b':range(4),
-                        'c':range(5,9)})
+                        'b':list(range(4)),
+                        'c':list(range(5,9))})
 
         df2 = DataFrame({'a':[3,2,2,2],
-                         'b':range(4),
-                         'c':range(5,9)})
+                         'b':list(range(4)),
+                         'c':list(range(5,9))})
 
 
         # correct result
@@ -1153,7 +1158,7 @@ class TestGroupBy(unittest.TestCase):
         result = grouped.mean()
         expected = data.groupby(['A', 'B']).mean()
 
-        arrays = zip(*expected.index._tuple_index)
+        arrays = list(zip(*expected.index._tuple_index))
         expected.insert(0, 'A', arrays[0])
         expected.insert(1, 'B', arrays[1])
         expected.index = np.arange(len(expected))
@@ -1416,7 +1421,7 @@ class TestGroupBy(unittest.TestCase):
 
     def test_groupby_level_index_names(self):
         ## GH4014 this used to raise ValueError since 'exp'>1 (in py2)
-        df = DataFrame({'exp' : ['A']*3 + ['B']*3, 'var1' : range(6),}).set_index('exp')
+        df = DataFrame({'exp' : ['A']*3 + ['B']*3, 'var1' : list(range(6)),}).set_index('exp')
         df.groupby(level='exp')
         self.assertRaises(ValueError, df.groupby, level='foo')
 
@@ -1565,7 +1570,7 @@ class TestGroupBy(unittest.TestCase):
         mydf = DataFrame({
                 'cat1' : ['a'] * 8 + ['b'] * 6,
                 'cat2' : ['c'] * 2 + ['d'] * 2 + ['e'] * 2 + ['f'] * 2 + ['c'] * 2 + ['d'] * 2 + ['e'] * 2,
-                'cat3' : map(lambda x: 'g%s' % x, range(1,15)),
+                'cat3' : list(map(lambda x: 'g%s' % x, list(range(1,15)))),
                 'val' : np.random.randint(100, size=14),
                 })
 
@@ -1585,7 +1590,7 @@ class TestGroupBy(unittest.TestCase):
     def test_apply_chunk_view(self):
         # Low level tinkering could be unsafe, make sure not
         df = DataFrame({'key': [1, 1, 1, 2, 2, 2, 3, 3, 3],
-                        'value': range(9)})
+                        'value': list(range(9))})
 
         # return view
         f = lambda x: x[:2]
@@ -1597,7 +1602,7 @@ class TestGroupBy(unittest.TestCase):
     def test_apply_no_name_column_conflict(self):
         df = DataFrame({'name': [1, 1, 1, 1, 1, 1, 2, 2, 2, 2],
                         'name2': [0, 0, 0, 1, 1, 1, 0, 0, 1, 1],
-                        'value': range(10)[::-1]})
+                        'value': list(range(10))[::-1]})
 
         # it works! #2605
         grouped = df.groupby(['name', 'name2'])
@@ -1615,10 +1620,10 @@ class TestGroupBy(unittest.TestCase):
         assert_series_equal(agged, exp)
 
     def test_groupby_with_hier_columns(self):
-        tuples = zip(*[['bar', 'bar', 'baz', 'baz',
+        tuples = list(zip(*[['bar', 'bar', 'baz', 'baz',
                         'foo', 'foo', 'qux', 'qux'],
                        ['one', 'two', 'one', 'two',
-                        'one', 'two', 'one', 'two']])
+                        'one', 'two', 'one', 'two']]))
         index = MultiIndex.from_tuples(tuples)
         columns = MultiIndex.from_tuples([('A', 'cat'), ('B', 'dog'),
                                           ('B', 'cat'), ('A', 'dog')])
@@ -1849,14 +1854,14 @@ class TestGroupBy(unittest.TestCase):
     def test_cython_grouper_series_bug_noncontig(self):
         arr = np.empty((100, 100))
         arr.fill(np.nan)
-        obj = Series(arr[:, 0], index=range(100))
-        inds = np.tile(range(10), 10)
+        obj = Series(arr[:, 0], index=list(range(100)))
+        inds = np.tile(list(range(10)), 10)
 
         result = obj.groupby(inds).agg(Series.median)
         self.assert_(result.isnull().all())
 
     def test_series_grouper_noncontig_index(self):
-        index = Index([tm.rands(10) for _ in xrange(100)])
+        index = Index([tm.rands(10) for _ in range(100)])
 
         values = Series(np.random.randn(50), index=index[::2])
         labels = np.random.randint(0, 5, 50)
@@ -1872,7 +1877,7 @@ class TestGroupBy(unittest.TestCase):
 
         from decimal import Decimal
 
-        s = Series(range(5))
+        s = Series(list(range(5)))
         labels = np.array(['a', 'b', 'c', 'd', 'e'], dtype='O')
 
         def convert_fast(x):
@@ -1987,7 +1992,7 @@ class TestGroupBy(unittest.TestCase):
         assert_almost_equal(result, expected)
 
     def test_groupby_2d_malformed(self):
-        d = DataFrame(index=range(2))
+        d = DataFrame(index=list(range(2)))
         d['group'] = ['g1', 'g2']
         d['zeros'] = [0, 0]
         d['ones'] = [1, 1]
@@ -2031,8 +2036,8 @@ class TestGroupBy(unittest.TestCase):
         exp_index, _ = right.index.sortlevel(0)
         self.assert_(right.index.equals(exp_index))
 
-        tups = map(tuple, df[['A', 'B', 'C', 'D',
-                              'E', 'F', 'G', 'H']].values)
+        tups = list(map(tuple, df[['A', 'B', 'C', 'D',
+                              'E', 'F', 'G', 'H']].values))
         tups = com._asarray_tuplesafe(tups)
         expected = df.groupby(tups).sum()['values']
 
@@ -2046,18 +2051,18 @@ class TestGroupBy(unittest.TestCase):
                         'c': [0, 1, 2],
                         'd': np.random.randn(3)})
 
-        tups = map(tuple, df[['a', 'b', 'c']].values)
+        tups = list(map(tuple, df[['a', 'b', 'c']].values))
         tups = com._asarray_tuplesafe(tups)
         result = df.groupby(['a', 'b', 'c'], sort=True).sum()
         self.assert_(np.array_equal(result.index.values,
                                     tups[[1, 2, 0]]))
 
-        tups = map(tuple, df[['c', 'a', 'b']].values)
+        tups = list(map(tuple, df[['c', 'a', 'b']].values))
         tups = com._asarray_tuplesafe(tups)
         result = df.groupby(['c', 'a', 'b'], sort=True).sum()
         self.assert_(np.array_equal(result.index.values, tups))
 
-        tups = map(tuple, df[['b', 'c', 'a']].values)
+        tups = list(map(tuple, df[['b', 'c', 'a']].values))
         tups = com._asarray_tuplesafe(tups)
         result = df.groupby(['b', 'c', 'a'], sort=True).sum()
         self.assert_(np.array_equal(result.index.values,
@@ -2092,8 +2097,8 @@ class TestGroupBy(unittest.TestCase):
         assert_frame_equal(result, expected)
 
     def test_rank_apply(self):
-        lev1 = np.array([rands(10) for _ in xrange(100)], dtype=object)
-        lev2 = np.array([rands(10) for _ in xrange(130)], dtype=object)
+        lev1 = np.array([rands(10) for _ in range(100)], dtype=object)
+        lev2 = np.array([rands(10) for _ in range(130)], dtype=object)
         lab1 = np.random.randint(0, 100, size=500)
         lab2 = np.random.randint(0, 130, size=500)
 
@@ -2410,7 +2415,7 @@ class TestGroupBy(unittest.TestCase):
         l = [['count', 'values'], ['to filter', '']]
         midx = MultiIndex.from_tuples(l)
 
-        df = DataFrame([[1L, 'A']], columns=midx)
+        df = DataFrame([[long(1), 'A']], columns=midx)
 
         grouped = df.groupby('to filter').groups
         self.assert_(np.array_equal(grouped['A'], [0]))
@@ -2418,13 +2423,13 @@ class TestGroupBy(unittest.TestCase):
         grouped = df.groupby([('to filter', '')]).groups
         self.assert_(np.array_equal(grouped['A'], [0]))
 
-        df = DataFrame([[1L, 'A'], [2L, 'B']], columns=midx)
+        df = DataFrame([[long(1), 'A'], [long(2), 'B']], columns=midx)
 
         expected = df.groupby('to filter').groups
         result = df.groupby([('to filter', '')]).groups
         self.assertEquals(result, expected)
 
-        df = DataFrame([[1L, 'A'], [2L, 'A']], columns=midx)
+        df = DataFrame([[long(1), 'A'], [long(2), 'A']], columns=midx)
 
         expected = df.groupby('to filter').groups
         result = df.groupby([('to filter', '')]).groups
@@ -2553,7 +2558,7 @@ class TestGroupBy(unittest.TestCase):
             grouped.filter(lambda x: x.mean() < 10, dropna=False),
                            expected_odd.reindex(df.index))
         assert_frame_equal(
-            grouped.filter(lambda x: x.mean() > 10, dropna=False), 
+            grouped.filter(lambda x: x.mean() > 10, dropna=False),
                            expected_even.reindex(df.index))
 
     def test_filter_multi_column_df(self):
@@ -2570,7 +2575,7 @@ class TestGroupBy(unittest.TestCase):
         df = pd.DataFrame({'A': [1, 12, 12, 1], 'B': 'a b c d'.split()})
         grouper = df['A'].apply(lambda x: x % 2)
         grouped = df.groupby(grouper)
-        expected = pd.DataFrame({'A': [12, 12], 'B': ['b', 'c']}, 
+        expected = pd.DataFrame({'A': [12, 12], 'B': ['b', 'c']},
                                 index=[1, 2])
         assert_frame_equal(
             grouped.filter(lambda x: x['A'].sum() > 10), expected)
@@ -2613,7 +2618,7 @@ class TestGroupBy(unittest.TestCase):
         s = pd.Series([-1,0,1,2])
         grouper = s.apply(lambda x: x % 2)
         grouped = s.groupby(grouper)
-        self.assertRaises(ValueError, 
+        self.assertRaises(ValueError,
                           lambda: grouped.filter(raise_if_sum_is_zero))
 
     def test_filter_against_workaround(self):
@@ -2673,7 +2678,7 @@ def assert_fp_equal(a, b):
 
 
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
-    tups = map(tuple, df[keys].values)
+    tups = list(map(tuple, df[keys].values))
     tups = com._asarray_tuplesafe(tups)
     expected = f(df.groupby(tups)[field])
     for k, v in expected.iteritems():

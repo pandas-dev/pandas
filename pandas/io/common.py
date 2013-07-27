@@ -5,7 +5,7 @@ import urlparse
 import urllib2
 import zipfile
 from contextlib import contextmanager, closing
-from StringIO import StringIO
+from pandas.util.py3compat import StringIO
 
 from pandas.util import py3compat
 

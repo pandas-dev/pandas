@@ -1,4 +1,5 @@
 """This module is designed for community supported date conversion functions"""
+from pandas.util.py3compat import range
 import numpy as np
 import pandas.lib as lib
 
@@ -32,7 +33,7 @@ def generic_parser(parse_func, *cols):
     N = _check_columns(cols)
     results = np.empty(N, dtype=object)
 
-    for i in xrange(N):
+    for i in range(N):
         args = [c[i] for c in cols]
         results[i] = parse_func(*args)
 

@@ -1,9 +1,7 @@
 """
 The config module holds package-wide configurables and provides
 a uniform API for working with them.
-"""
 
-"""
 Overview
 ========
 
@@ -54,6 +52,8 @@ import re
 
 from collections import namedtuple
 import warnings
+import six
+from six.moves import map
 
 DeprecatedOption = namedtuple('DeprecatedOption', 'key msg rkey removal_ver')
 RegisteredOption = namedtuple(
@@ -149,7 +149,7 @@ def _describe_option(pat='', _print_desc=True):
     if len(keys) == 0:
         raise KeyError('No such keys(s)')
 
-    s = u''
+    s = six.u('')
     for k in keys:  # filter by pat
         s += _build_option_description(k)
 
@@ -588,9 +588,9 @@ def _build_option_description(k):
     o = _get_registered_option(k)
     d = _get_deprecated_option(k)
 
-    s = u'%s: ' % k
+    s = six.u('%s: ') % k
     if o:
-        s += u'[default: %s] [currently: %s]' % (o.defval, _get_option(k, True))
+        s += six.u('[default: %s] [currently: %s]') % (o.defval, _get_option(k, True))
 
     if o.doc:
         s += '\n' + '\n    '.join(o.doc.strip().split('\n'))
@@ -598,9 +598,9 @@ def _build_option_description(k):
         s += 'No description available.\n'
 
     if d:
-        s += u'\n\t(Deprecated'
-        s += (u', use `%s` instead.' % d.rkey if d.rkey else '')
-        s += u')\n'
+        s += six.u('\n\t(Deprecated')
+        s += (six.u(', use `%s` instead.') % d.rkey if d.rkey else '')
+        s += six.u(')\n')
 
     s += '\n'
     return s
@@ -734,7 +734,7 @@ def is_instance_factory(_type):
         if isinstance(_type,(tuple,list)) :
             if not any([isinstance(x,t) for t in _type]):
                 from pandas.core.common import pprint_thing as pp
-                pp_values = map(pp, _type)
+                pp_values = list(map(pp, _type))
                 raise ValueError("Value must be an instance of %s" % pp("|".join(pp_values)))
         elif not isinstance(x, _type):
             raise ValueError("Value must be an instance of '%s'" % str(_type))
@@ -745,7 +745,7 @@ def is_one_of_factory(legal_values):
     def inner(x):
         from pandas.core.common import pprint_thing as pp
         if not x in legal_values:
-            pp_values = map(pp, legal_values)
+            pp_values = list(map(pp, legal_values))
             raise ValueError("Value must be one of %s" % pp("|".join(pp_values)))
 
     return inner
@@ -756,5 +756,5 @@ is_int = is_type_factory(int)
 is_bool = is_type_factory(bool)
 is_float = is_type_factory(float)
 is_str = is_type_factory(str)
-is_unicode = is_type_factory(unicode)
+is_unicode = is_type_factory(six.text_type)
 is_text = is_instance_factory(basestring)
