@@ -2,13 +2,17 @@
 Collection of query wrappers / abstractions to both facilitate data
 retrieval and to reduce dependency on DB-specific API.
 """
+from __future__ import print_function
 from datetime import datetime, date
 
+from pandas.util.py3compat import range
 import numpy as np
 import traceback
 
 from pandas.core.datetools import format as date_format
 from pandas.core.api import DataFrame, isnull
+from six.moves import map, zip
+import six
 
 #------------------------------------------------------------------------------
 # Helper execution function
@@ -51,7 +55,7 @@ def execute(sql, con, retry=True, cur=None, params=None):
         except Exception:  # pragma: no cover
             pass
 
-        print ('Error on sql %s' % sql)
+        print('Error on sql %s' % sql)
         raise
 
 
@@ -61,7 +65,7 @@ def _safe_fetch(cur):
         if not isinstance(result, list):
             result = list(result)
         return result
-    except Exception, e:  # pragma: no cover
+    except Exception as e:  # pragma: no cover
         excName = e.__class__.__name__
         if excName == 'OperationalError':
             return []
@@ -91,7 +95,7 @@ def tquery(sql, con=None, cur=None, retry=True):
         try:
             cur.close()
             con.commit()
-        except Exception, e:
+        except Exception as e:
             excName = e.__class__.__name__
             if excName == 'OperationalError':  # pragma: no cover
                 print ('Failed to commit, may need to restart interpreter')
@@ -121,7 +125,7 @@ def uquery(sql, con=None, cur=None, retry=True, params=None):
     result = cur.rowcount
     try:
         con.commit()
-    except Exception, e:
+    except Exception as e:
         excName = e.__class__.__name__
         if excName != 'OperationalError':
             raise
@@ -198,7 +202,7 @@ def write_frame(frame, name, con, flavor='sqlite', if_exists='fail', **kwargs):
             if_exists='fail'
     exists = table_exists(name, con, flavor)
     if if_exists == 'fail' and exists:
-        raise ValueError, "Table '%s' already exists." % name
+        raise ValueError("Table '%s' already exists." % name)
 
     #create or drop-recreate if necessary
     create = None
@@ -289,7 +293,7 @@ def get_schema(frame, name, flavor, keys=None):
     lookup_type = lambda dtype: get_sqltype(dtype.type, flavor)
     # Replace spaces in DataFrame column names with _.
     safe_columns = [s.replace(' ', '_').strip() for s in frame.dtypes.index]
-    column_types = zip(safe_columns, map(lookup_type, frame.dtypes))
+    column_types = list(zip(safe_columns, map(lookup_type, frame.dtypes)))
     if flavor == 'sqlite':
         columns = ',\n  '.join('[%s] %s' % x for x in column_types)
     else:
@@ -297,7 +301,7 @@ def get_schema(frame, name, flavor, keys=None):
 
     keystr = ''
     if keys is not None:
-        if isinstance(keys, basestring):
+        if isinstance(keys, six.string_types):
             keys = (keys,)
         keystr = ', PRIMARY KEY (%s)' % ','.join(keys)
     template = """CREATE TABLE %(name)s (

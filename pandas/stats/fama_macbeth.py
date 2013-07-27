@@ -1,6 +1,7 @@
 from pandas.core.base import StringMixin
 from pandas.util.py3compat import StringIO
 
+from pandas.util.py3compat import range
 import numpy as np
 
 from pandas.core.api import Series, DataFrame
@@ -173,7 +174,7 @@ class MovingFamaMacBeth(FamaMacBeth):
 
         start = self._window - 1
         betas = self._beta_raw
-        for i in xrange(start, self._T):
+        for i in range(start, self._T):
             if self._is_rolling:
                 begin = i - start
             else:
@@ -213,7 +214,7 @@ def _calc_t_stat(beta, nw_lags_beta):
     C = np.dot(B.T, B) / N
 
     if nw_lags_beta is not None:
-        for i in xrange(nw_lags_beta + 1):
+        for i in range(nw_lags_beta + 1):
 
             cov = np.dot(B[i:].T, B[:(N - i)]) / N
             weight = i / (nw_lags_beta + 1)

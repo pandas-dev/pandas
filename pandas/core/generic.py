@@ -1,5 +1,6 @@
 # pylint: disable=W0231,E1101
 
+from pandas.util import compat
 import numpy as np
 import pandas.lib as lib
 from pandas.core.base import PandasObject
@@ -9,6 +10,8 @@ import pandas.core.indexing as indexing
 from pandas.core.indexing import _maybe_convert_indices
 from pandas.tseries.index import DatetimeIndex
 import pandas.core.common as com
+import six
+from six.moves import map, zip
 
 
 class PandasError(Exception):
@@ -23,7 +26,7 @@ class PandasContainer(PandasObject):
     }
 
     _AXIS_ALIASES = {}
-    _AXIS_NAMES = dict((v, k) for k, v in _AXIS_NUMBERS.iteritems())
+    _AXIS_NAMES = dict((v, k) for k, v in compat.iteritems(_AXIS_NUMBERS))
 
     def to_pickle(self, path):
         """
@@ -77,7 +80,7 @@ class PandasContainer(PandasObject):
 
     def _get_axis_name(self, axis):
         axis = self._AXIS_ALIASES.get(axis, axis)
-        if isinstance(axis, basestring):
+        if isinstance(axis, six.string_types):
             if axis in self._AXIS_NUMBERS:
                 return axis
         else:

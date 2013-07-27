@@ -2,7 +2,10 @@
 Utilities for making working with rpy2 more user- and
 developer-friendly.
 """
+from __future__ import print_function
 
+from six.moves import zip
+from pandas.util.py3compat import range
 import numpy as np
 
 import pandas as pd
@@ -73,7 +76,7 @@ def _convert_array(obj):
                             major_axis=name_list[0],
                             minor_axis=name_list[1])
         else:
-            print ('Cannot handle dim=%d' % len(dim))
+            print('Cannot handle dim=%d' % len(dim))
     else:
         return arr
 

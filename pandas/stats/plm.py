@@ -6,6 +6,8 @@ Linear regression objects for panel data
 # pylint: disable-msg=E1101,E1103
 
 from __future__ import division
+from pandas.util.py3compat import range
+from pandas.util import compat
 import warnings
 
 import numpy as np

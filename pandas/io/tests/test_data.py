@@ -1,3 +1,5 @@
+from __future__ import print_function
+from pandas.util import compat
 import unittest
 import warnings
 import nose
@@ -12,11 +14,12 @@ from pandas.io.data import DataReader, SymbolWarning
 from pandas.util.testing import (assert_series_equal, assert_produces_warning,
                                  network, assert_frame_equal)
 from numpy.testing import assert_array_equal
+import six
 
 
 def assert_n_failed_equals_n_null_columns(wngs, obj, cls=SymbolWarning):
     all_nan_cols = pd.Series(dict((k, pd.isnull(v).all()) for k, v in
-                                  obj.iteritems()))
+                                  compat.iteritems(obj)))
     n_all_nan_cols = all_nan_cols.sum()
     valid_warnings = pd.Series([wng for wng in wngs if isinstance(wng, cls)])
     assert_equal(len(valid_warnings), n_all_nan_cols)
@@ -33,7 +36,7 @@ class TestGoogle(unittest.TestCase):
         # an exception when DataReader can't get a 200 response from
         # google
         start = datetime(2010, 1, 1)
-        end = datetime(2013, 01, 27)
+        end = datetime(2013, 1, 27)
 
         self.assertEquals(
             web.DataReader("F", 'google', start, end)['Close'][-1],
@@ -97,7 +100,7 @@ class TestYahoo(unittest.TestCase):
         # an exception when DataReader can't get a 200 response from
         # yahoo
         start = datetime(2010, 1, 1)
-        end = datetime(2013, 01, 27)
+        end = datetime(2013, 1, 27)
 
         self.assertEquals( web.DataReader("F", 'yahoo', start,
                                           end)['Close'][-1], 13.68)
@@ -105,7 +108,7 @@ class TestYahoo(unittest.TestCase):
     @network
     def test_yahoo_fails(self):
         start = datetime(2010, 1, 1)
-        end = datetime(2013, 01, 27)
+        end = datetime(2013, 1, 27)
         self.assertRaises(Exception, web.DataReader, "NON EXISTENT TICKER",
                           'yahoo', start, end)
 
@@ -363,7 +366,7 @@ class TestFred(unittest.TestCase):
         FRED.
         """
         start = datetime(2010, 1, 1)
-        end = datetime(2013, 01, 27)
+        end = datetime(2013, 1, 27)
 
         self.assertEquals(
             web.DataReader("GDP", "fred", start, end)['GDP'].tail(1),
@@ -375,14 +378,14 @@ class TestFred(unittest.TestCase):
     @network
     def test_fred_nan(self):
         start = datetime(2010, 1, 1)
-        end = datetime(2013, 01, 27)
+        end = datetime(2013, 1, 27)
         df = web.DataReader("DFII5", "fred", start, end)
         assert pd.isnull(df.ix['2010-01-01'])
 
     @network
     def test_fred_parts(self):
         start = datetime(2010, 1, 1)
-        end = datetime(2013, 01, 27)
+        end = datetime(2013, 1, 27)
         df = web.get_data_fred("CPIAUCSL", start, end)
         self.assertEqual(df.ix['2010-05-01'], 217.23)
 

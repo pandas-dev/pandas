@@ -2,7 +2,9 @@
 SQL-style merge routines
 """
 
-import itertools
+from pandas.util.py3compat import range, long
+from six.moves import zip
+import six
 import numpy as np
 import types
 from pandas.core.categorical import Categorical
@@ -441,7 +443,7 @@ def _get_join_indexers(left_keys, right_keys, sort=False, how='inner'):
         right_labels.append(rlab)
         group_sizes.append(count)
 
-    max_groups = 1L
+    max_groups = long(1)
     for x in group_sizes:
         max_groups *= long(x)
 
@@ -892,7 +894,7 @@ class _Concatenator(object):
             raise AssertionError('first argument must be a list-like of pandas '
                                  'objects, you passed an object of type '
                                  '"{0}"'.format(type(objs).__name__))
-        
+
         if join == 'outer':
             self.intersect = False
         elif join == 'inner':
@@ -959,7 +961,7 @@ class _Concatenator(object):
             name = com._consensus_name_attr(self.objs)
             return Series(new_data, index=self.new_axes[0], name=name)
         elif self._is_series:
-            data = dict(itertools.izip(xrange(len(self.objs)), self.objs))
+            data = dict(zip(range(len(self.objs)), self.objs))
             index, columns = self.new_axes
             tmpdf = DataFrame(data, index=index)
             if columns is not None:
@@ -1057,7 +1059,7 @@ class _Concatenator(object):
                 concat_items = indexer
             else:
                 concat_items = self.new_axes[0].take(indexer)
-                
+
             if self.ignore_index:
                 ref_items = self._get_fresh_axis()
                 return make_block(concat_values, concat_items, ref_items)
@@ -1134,7 +1136,7 @@ class _Concatenator(object):
                 raise AssertionError()
 
             # ufff...
-            indices = range(ndim)
+            indices = list(range(ndim))
             indices.remove(self.axis)
 
             for i, ax in zip(indices, self.join_axes):
@@ -1199,7 +1201,7 @@ def _concat_indexes(indexes):
 def _make_concat_multiindex(indexes, keys, levels=None, names=None):
     if ((levels is None and isinstance(keys[0], tuple)) or
             (levels is not None and len(levels) > 1)):
-        zipped = zip(*keys)
+        zipped = list(zip(*keys))
         if names is None:
             names = [None] * len(zipped)
 
@@ -1297,7 +1299,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
 
 
 def _should_fill(lname, rname):
-    if not isinstance(lname, basestring) or not isinstance(rname, basestring):
+    if not isinstance(lname, six.string_types) or not isinstance(rname, six.string_types):
         return True
     return lname == rname
 

@@ -6,6 +6,8 @@ with float64 data
 # pylint: disable=E1101,E1103,W0231,E0202
 
 from numpy import nan
+from pandas.util.py3compat import range
+from pandas.util import compat
 import numpy as np
 
 from pandas.core.common import _pickle_array, _unpickle_array, _try_sort
@@ -21,6 +23,7 @@ import pandas.core.datetools as datetools
 from pandas.sparse.series import SparseSeries
 from pandas.util.decorators import Appender
 import pandas.lib as lib
+from six.moves import map
 
 
 class _SparseMockBlockManager(object):
@@ -259,7 +262,7 @@ class SparseDataFrame(DataFrame):
         for k, v in self.iteritems():
             d[v.dtype.name] += 1
         return Series(d)
-     
+
     def astype(self, dtype):
         raise NotImplementedError
 
@@ -649,7 +652,7 @@ class SparseDataFrame(DataFrame):
 
     def _rename_index_inplace(self, mapper):
         self.index = [mapper(x) for x in self.index]
- 
+
     def _rename_columns_inplace(self, mapper):
         new_series = {}
         new_columns = []
@@ -850,7 +853,7 @@ class SparseDataFrame(DataFrame):
     def applymap(self, func):
         """
         Apply a function to a DataFrame that is intended to operate
-        elementwise, i.e. like doing map(func, series) for each series in the
+        elementwise, i.e. like doing list(map(func, series)) for each series in the
         DataFrame
 
         Parameters
@@ -862,12 +865,12 @@ class SparseDataFrame(DataFrame):
         -------
         applied : DataFrame
         """
-        return self.apply(lambda x: map(func, x))
+        return self.apply(lambda x: list(map(func, x)))
 
     @Appender(DataFrame.fillna.__doc__)
     def fillna(self, value=None, method=None, inplace=False, limit=None):
         new_series = {}
-        for k, v in self.iterkv():
+        for k, v in self.iteritems():
             new_series[k] = v.fillna(value=value, method=method, limit=limit)
 
         if inplace:

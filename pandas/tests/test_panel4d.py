@@ -1,4 +1,5 @@
 from datetime import datetime
+from pandas.util.py3compat import range
 import os
 import operator
 import unittest
@@ -218,12 +219,9 @@ class SafeForSparse(object):
         tm.equalContents(self.panel4d.keys(), self.panel4d.labels)
 
     def test_iteritems(self):
-        """Test panel4d.iteritems(), aka panel4d.iterkv()"""
-        # just test that it works
-        for k, v in self.panel4d.iterkv():
-            pass
+        """Test panel4d.iteritems()"""
 
-        self.assertEqual(len(list(self.panel4d.iterkv())),
+        self.assertEqual(len(list(self.panel4d.iteritems())),
                          len(self.panel4d.labels))
 
     def test_combinePanel4d(self):
@@ -308,7 +306,7 @@ class CheckIndexing(object):
         values[2] = 2
         values[3] = 3
 
-        panel4d = Panel4D(values, range(4), range(4), range(4), range(4))
+        panel4d = Panel4D(values, list(range(4)), list(range(4)), list(range(4)), list(range(4)))
 
         # did we delete the right row?
 
@@ -610,8 +608,8 @@ class TestPanel4d(unittest.TestCase, CheckIndexing, SafeForSparse,
 
     def test_constructor_observe_dtype(self):
         # GH #411
-        panel = Panel(items=range(3), major_axis=range(3),
-                      minor_axis=range(3), dtype='O')
+        panel = Panel(items=list(range(3)), major_axis=list(range(3)),
+                      minor_axis=list(range(3)), dtype='O')
         self.assert_(panel.values.dtype == np.object_)
 
     def test_consolidate(self):
@@ -658,7 +656,7 @@ class TestPanel4d(unittest.TestCase, CheckIndexing, SafeForSparse,
         # assert_panel_equal(result, expected)
 
     def test_constructor_dict_mixed(self):
-        data = dict((k, v.values) for k, v in self.panel4d.iterkv())
+        data = dict((k, v.values) for k, v in self.panel4d.iteritems())
         result = Panel4D(data)
         exp_major = Index(np.arange(len(self.panel4d.major_axis)))
         self.assert_(result.major_axis.equals(exp_major))
@@ -721,7 +719,7 @@ class TestPanel4d(unittest.TestCase, CheckIndexing, SafeForSparse,
 
     def test_values(self):
         self.assertRaises(Exception, Panel, np.random.randn(5, 5, 5),
-                          range(5), range(5), range(4))
+                          list(range(5)), list(range(5)), list(range(4)))
 
     def test_conform(self):
         p = self.panel4d['l1'].filter(items=['ItemA', 'ItemB'])

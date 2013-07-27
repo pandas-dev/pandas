@@ -1,3 +1,5 @@
+from pandas.util.py3compat import range
+from six.moves import zip
 import numpy as np
 import random
 from copy import deepcopy

@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 import sys
 
@@ -6,6 +7,7 @@ import matplotlib.pyplot as plt
 
 from pandas import DataFrame
 from pandas.util.testing import set_trace
+from pandas.util import compat
 
 dirs = []
 names = []
@@ -154,13 +156,13 @@ assert(result == expected)
 
 def doit():
     for directory, _, files in walked:
-        print directory
+        print(directory)
         for path in files:
             if not _should_count_file(path):
                 continue
 
             full_path = os.path.join(directory, path)
-            print full_path
+            print(full_path)
             lines = len(open(full_path).readlines())
 
             dirs.append(directory)
@@ -174,7 +176,7 @@ def doit():
 def doit2():
     counts = {}
     for directory, _, files in walked:
-        print directory
+        print(directory)
         for path in files:
             if not _should_count_file(path) or path.startswith('test_'):
                 continue
@@ -189,7 +191,7 @@ counts = doit2()
 # counts = _get_file_function_lengths('pandas/tests/test_series.py')
 
 all_counts = []
-for k, v in counts.iteritems():
+for k, v in compat.iteritems(counts):
     all_counts.extend(v)
 all_counts = np.array(all_counts)
 

@@ -12,12 +12,13 @@ labeling information
 # pylint: disable=E1101,E1103
 # pylint: disable=W0212,W0231,W0703,W0622
 
-from itertools import izip
-from StringIO import StringIO
+from six.moves import zip
+from pandas.util.py3compat import StringIO
+from pandas.util.py3compat import range
+from pandas.util import compat
 import operator
 import sys
 import collections
-import itertools
 
 from numpy import nan as NA
 import numpy as np
@@ -57,6 +58,8 @@ import pandas.tslib as tslib
 import pandas.algos as _algos
 
 from pandas.core.config import get_option, set_option
+import six
+from six.moves import map
 
 #----------------------------------------------------------------------
 # Docstring templates
@@ -440,7 +443,7 @@ class DataFrame(NDFrame):
                                   'incompatible data and dtype')
 
             if arr.ndim == 0 and index is not None and columns is not None:
-                if isinstance(data, basestring) and dtype is None:
+                if isinstance(data, six.string_types) and dtype is None:
                     dtype = np.object_
                 if dtype is None:
                     dtype, data = _infer_dtype_from_scalar(data)
@@ -656,7 +659,7 @@ class DataFrame(NDFrame):
         Invoked by unicode(df) in py2 only. Yields a Unicode String in both
         py2/py3.
         """
-        buf = StringIO(u"")
+        buf = StringIO(six.u(""))
         fits_vertical = self._repr_fits_vertical_()
         fits_horizontal = False
         if fits_vertical:
@@ -683,7 +686,7 @@ class DataFrame(NDFrame):
                 self.info(buf=buf, verbose=verbose)
 
         value = buf.getvalue()
-        if not  type(value) == unicode:
+        if not isinstance(value, six.text_type):
             raise AssertionError()
 
         return value
@@ -715,7 +718,7 @@ class DataFrame(NDFrame):
                         'max-width:1500px;overflow:auto;">\n' +
                         self.to_html() + '\n</div>')
             else:
-                buf = StringIO(u"")
+                buf = StringIO(six.u(""))
                 max_info_rows = get_option('display.max_info_rows')
                 verbose = (max_info_rows is None or
                            self.shape[0] <= max_info_rows)
@@ -769,7 +772,7 @@ class DataFrame(NDFrame):
             A generator that iterates over the rows of the frame.
         """
         columns = self.columns
-        for k, v in izip(self.index, self.values):
+        for k, v in zip(self.index, self.values):
             s = v.view(Series)
             s.index = columns
             s.name = k
@@ -785,8 +788,8 @@ class DataFrame(NDFrame):
             arrays.append(self.index)
 
         # use integer indexing because of possible duplicate column names
-        arrays.extend(self.iloc[:, k] for k in xrange(len(self.columns)))
-        return izip(*arrays)
+        arrays.extend(self.iloc[:, k] for k in range(len(self.columns)))
+        return zip(*arrays)
 
     iterkv = iteritems
     if py3compat.PY3:  # pragma: no cover
@@ -1031,7 +1034,7 @@ class DataFrame(NDFrame):
                 if py3compat.PY3:
                     first_row = next(data)
                 else:
-                    first_row = data.next()
+                    first_row = next(data)
             except StopIteration:
                 return cls(index=index, columns=columns)
 
@@ -1093,7 +1096,7 @@ class DataFrame(NDFrame):
 
         result_index = None
         if index is not None:
-            if (isinstance(index, basestring) or
+            if (isinstance(index, six.string_types) or
                     not hasattr(index, "__iter__")):
                 i = columns.get_loc(index)
                 exclude.add(index)
@@ -1148,7 +1151,7 @@ class DataFrame(NDFrame):
             else:
                 if isinstance(self.index, MultiIndex):
                     # array of tuples to numpy cols. copy copy copy
-                    ix_vals = map(np.array,zip(*self.index.values))
+                    ix_vals = list(map(np.array,zip(*self.index.values)))
                 else:
                     ix_vals = [self.index.values]
 
@@ -1194,7 +1197,7 @@ class DataFrame(NDFrame):
         -------
         frame : DataFrame
         """
-        keys, values = zip(*items)
+        keys, values = list(zip(*items))
 
         if orient == 'columns':
             if columns is not None:
@@ -1452,7 +1455,7 @@ class DataFrame(NDFrame):
         """
         from pandas.io.excel import ExcelWriter
         need_save = False
-        if isinstance(excel_writer, basestring):
+        if isinstance(excel_writer, six.string_types):
             excel_writer = ExcelWriter(excel_writer)
             need_save = True
 
@@ -2419,8 +2422,6 @@ class DataFrame(NDFrame):
             The found values
 
         """
-        from itertools import izip
-
         n = len(row_labels)
         if n != len(col_labels):
             raise AssertionError('Row labels must have same size as '
@@ -2439,7 +2440,7 @@ class DataFrame(NDFrame):
             result = values.flat[flat_index]
         else:
             result = np.empty(n, dtype='O')
-            for i, (r, c) in enumerate(izip(row_labels, col_labels)):
+            for i, (r, c) in enumerate(zip(row_labels, col_labels)):
                 result[i] = self.get_value(r, c)
 
         if result.dtype == 'O':
@@ -2910,7 +2911,7 @@ class DataFrame(NDFrame):
 
             if not drop:
                 names = self.index.names
-                zipped = zip(self.index.levels, self.index.labels)
+                zipped = list(zip(self.index.levels, self.index.labels))
 
                 multi_col = isinstance(self.columns, MultiIndex)
                 for i, (lev, lab) in reversed(list(enumerate(zipped))):
@@ -3030,7 +3031,7 @@ class DataFrame(NDFrame):
         if items is not None:
             return self.reindex(columns=[r for r in items if r in self])
         elif like:
-            matchf = lambda x: (like in x if isinstance(x, basestring)
+            matchf = lambda x: (like in x if isinstance(x, six.string_types)
                                 else like in str(x))
             return self.select(matchf, axis=1)
         elif regex:
@@ -3152,7 +3153,7 @@ class DataFrame(NDFrame):
         if cols is None:
             values = list(_m8_to_i8(self.values.T))
         else:
-            if np.iterable(cols) and not isinstance(cols, basestring):
+            if np.iterable(cols) and not isinstance(cols, six.string_types):
                 if isinstance(cols, tuple):
                     if cols in self.columns:
                         values = [self[cols]]
@@ -3600,7 +3601,7 @@ class DataFrame(NDFrame):
                 regex = True
 
             items = to_replace.items()
-            keys, values = itertools.izip(*items)
+            keys, values = zip(*items)
 
             are_mappings = [isinstance(v, (dict, Series)) for v in values]
 
@@ -4315,7 +4316,7 @@ class DataFrame(NDFrame):
 
         offset = _resolve_offset(freq, kwds)
 
-        if isinstance(offset, basestring):
+        if isinstance(offset, six.string_types):
             offset = datetools.to_offset(offset)
 
         if offset is None:
@@ -4456,7 +4457,7 @@ class DataFrame(NDFrame):
             values = self.values
             series_gen = (Series.from_array(arr, index=res_columns, name=name)
                           for i, (arr, name) in
-                          enumerate(izip(values, res_index)))
+                          enumerate(zip(values, res_index)))
         else:
             raise ValueError('Axis must be 0 or 1, got %s' % str(axis))
 
@@ -4479,7 +4480,7 @@ class DataFrame(NDFrame):
                 for i, v in enumerate(series_gen):
                     results[i] = func(v)
                     keys.append(v.name)
-            except Exception, e:
+            except Exception as e:
                 try:
                     if hasattr(e, 'args'):
                         k = res_index[i]
@@ -4535,7 +4536,7 @@ class DataFrame(NDFrame):
     def applymap(self, func):
         """
         Apply a function to a DataFrame that is intended to operate
-        elementwise, i.e. like doing map(func, series) for each series in the
+        elementwise, i.e. like doing list(map(func, series)) for each series in the
         DataFrame
 
         Parameters
@@ -4888,7 +4889,7 @@ class DataFrame(NDFrame):
                            series.min(), series.quantile(lb), series.median(),
                            series.quantile(ub), series.max()])
 
-        return self._constructor(map(list, zip(*destat)), index=destat_columns,
+        return self._constructor(list(map(list, zip(*destat))), index=destat_columns,
                                  columns=numdata.columns)
 
     #----------------------------------------------------------------------
@@ -4947,7 +4948,7 @@ class DataFrame(NDFrame):
         # python 2.5
         mask = notnull(frame.values).view(np.uint8)
 
-        if isinstance(level, basestring):
+        if isinstance(level, six.string_types):
             level = self.index._get_level_number(level)
 
         level_index = frame.index.levels[level]
@@ -5849,7 +5850,7 @@ def _to_arrays(data, columns, coerce_float=False, dtype=None):
         return arrays, columns
     else:
         # last ditch effort
-        data = map(tuple, data)
+        data = list(map(tuple, data))
         return _list_to_arrays(data, columns,
                                coerce_float=coerce_float,
                                dtype=dtype)
@@ -5923,7 +5924,7 @@ def _convert_object_array(content, columns, coerce_float=False, dtype=None):
 
 
 def _get_names_from_index(data):
-    index = range(len(data))
+    index = list(range(len(data)))
     has_some_name = any([s.name is not None for s in data])
     if not has_some_name:
         return index
@@ -5996,7 +5997,7 @@ def install_ipython_completers():  # pragma: no cover
     @complete_object.when_type(DataFrame)
     def complete_dataframe(obj, prev_completions):
         return prev_completions + [c for c in obj.columns
-                                   if isinstance(c, basestring) and py3compat.isidentifier(c)]
+                                   if isinstance(c, six.string_types) and py3compat.isidentifier(c)]
 
 
 # Importing IPython brings in about 200 modules, so we want to avoid it unless

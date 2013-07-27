@@ -1,6 +1,9 @@
-from itertools import izip
 import types
 import numpy as np
+from pandas.util.py3compat import range, long
+import six
+from six.moves import zip
+from pandas.util import compat
 
 from pandas.core.base import PandasObject
 from pandas.core.categorical import Categorical
@@ -588,7 +591,7 @@ class Grouper(object):
         splitter = self._get_splitter(data, axis=axis,
                                       keep_internal=keep_internal)
         keys = self._get_group_keys()
-        for key, (i, group) in izip(keys, splitter):
+        for key, (i, group) in zip(keys, splitter):
             yield key, group
 
     def _get_splitter(self, data, axis=0, keep_internal=True):
@@ -616,13 +619,13 @@ class Grouper(object):
             try:
                 values, mutated = splitter.fast_apply(f, group_keys)
                 return group_keys, values, mutated
-            except (Exception), detail:
+            except (Exception) as detail:
                 # we detect a mutatation of some kind
                 # so take slow path
                 pass
 
         result_values = []
-        for key, (i, group) in izip(group_keys, splitter):
+        for key, (i, group) in zip(group_keys, splitter):
             object.__setattr__(group, 'name', key)
 
             # group might be modified
@@ -671,7 +674,7 @@ class Grouper(object):
         if len(self.groupings) == 1:
             return self.groupings[0].groups
         else:
-            to_groupby = zip(*(ping.grouper for ping in self.groupings))
+            to_groupby = list(zip(*(ping.grouper for ping in self.groupings)))
             to_groupby = Index(to_groupby)
 
             return self.axis.groupby(to_groupby)
@@ -727,12 +730,12 @@ class Grouper(object):
             return [self.groupings[0].group_index]
 
         if self._overflow_possible:
-            recons_labels = [np.array(x) for x in izip(*obs_ids)]
+            recons_labels = [np.array(x) for x in zip(*obs_ids)]
         else:
             recons_labels = decons_group_index(obs_ids, self.shape)
 
         name_list = []
-        for ping, labels in izip(self.groupings, recons_labels):
+        for ping, labels in zip(self.groupings, recons_labels):
             labels = com._ensure_platform_int(labels)
             name_list.append(ping.group_index.take(labels))
 
@@ -1004,7 +1007,7 @@ class BinGrouper(Grouper):
         """
         if axis == 0:
             start = 0
-            for edge, label in izip(self.bins, self.binlabels):
+            for edge, label in zip(self.bins, self.binlabels):
                 yield label, data[start:edge]
                 start = edge
 
@@ -1012,14 +1015,14 @@ class BinGrouper(Grouper):
                 yield self.binlabels[-1], data[start:]
         else:
             start = 0
-            for edge, label in izip(self.bins, self.binlabels):
-                inds = range(start, edge)
+            for edge, label in zip(self.bins, self.binlabels):
+                inds = list(range(start, edge))
                 yield label, data.take(inds, axis=axis)
                 start = edge
 
             n = len(data.axes[axis])
             if start < n:
-                inds = range(start, n)
+                inds = list(range(start, n))
                 yield self.binlabels[-1], data.take(inds, axis=axis)
 
     def apply(self, f, data, axis=0, keep_internal=False):
@@ -1257,12 +1260,12 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
 
     if level is not None:
         if not isinstance(group_axis, MultiIndex):
-            if isinstance(level, basestring):
+            if isinstance(level, six.string_types):
                 if obj.index.name != level:
                     raise ValueError('level name %s is not the name of the index' % level)
             elif level > 0:
                 raise ValueError('level > 0 only valid with MultiIndex')
-            
+
             level = None
             key = group_axis
 
@@ -1305,7 +1308,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
 
     groupings = []
     exclusions = []
-    for i, (gpr, level) in enumerate(izip(keys, levels)):
+    for i, (gpr, level) in enumerate(zip(keys, levels)):
         name = None
         try:
             obj._data.items.get_loc(gpr)
@@ -1334,7 +1337,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
 
 
 def _is_label_like(val):
-    return isinstance(val, basestring) or np.isscalar(val)
+    return isinstance(val, six.string_types) or np.isscalar(val)
 
 
 def _convert_grouper(axis, grouper):
@@ -1406,7 +1409,7 @@ class SeriesGroupBy(GroupBy):
         -------
         Series or DataFrame
         """
-        if isinstance(func_or_funcs, basestring):
+        if isinstance(func_or_funcs, six.string_types):
             return getattr(self, func_or_funcs)(*args, **kwargs)
 
         if hasattr(func_or_funcs, '__iter__'):
@@ -1446,11 +1449,11 @@ class SeriesGroupBy(GroupBy):
             # list of functions / function names
             columns = []
             for f in arg:
-                if isinstance(f, basestring):
+                if isinstance(f, six.string_types):
                     columns.append(f)
                 else:
                     columns.append(f.__name__)
-            arg = zip(columns, arg)
+            arg = list(zip(columns, arg))
 
         results = {}
 
@@ -1534,7 +1537,7 @@ class SeriesGroupBy(GroupBy):
             result = result.values
         dtype = result.dtype
 
-        if isinstance(func, basestring):
+        if isinstance(func, six.string_types):
             wrapper = lambda x: getattr(x, func)(*args, **kwargs)
         else:
             wrapper = lambda x: func(x, *args, **kwargs)
@@ -1576,7 +1579,7 @@ class SeriesGroupBy(GroupBy):
         -------
         filtered : Series
         """
-        if isinstance(func, basestring):
+        if isinstance(func, six.string_types):
             wrapper = lambda x: getattr(x, func)(*args, **kwargs)
         else:
             wrapper = lambda x: func(x, *args, **kwargs)
@@ -1690,7 +1693,7 @@ class NDFrameGroupBy(GroupBy):
 
     @Appender(_agg_doc)
     def aggregate(self, arg, *args, **kwargs):
-        if isinstance(arg, basestring):
+        if isinstance(arg, six.string_types):
             return getattr(self, arg)(*args, **kwargs)
 
         result = OrderedDict()
@@ -1905,7 +1908,7 @@ class NDFrameGroupBy(GroupBy):
                     if not all_indexed_same:
                         return self._concat_objects(keys, values,
                                                     not_indexed_same=not_indexed_same)
-                    
+
                 try:
                     if self.axis == 0:
 
@@ -1998,13 +2001,13 @@ class NDFrameGroupBy(GroupBy):
         return concatenated
 
     def _define_paths(self, func, *args, **kwargs):
-        if isinstance(func, basestring):
+        if isinstance(func, six.string_types):
             fast_path = lambda group: getattr(group, func)(*args, **kwargs)
             slow_path = lambda group: group.apply(lambda x: getattr(x, func)(*args, **kwargs), axis=self.axis)
         else:
             fast_path = lambda group: func(group, *args, **kwargs)
             slow_path = lambda group: group.apply(lambda x: func(x, *args, **kwargs), axis=self.axis)
-        return fast_path, slow_path 
+        return fast_path, slow_path
 
     def _choose_path(self, fast_path, slow_path, group):
         path = slow_path
@@ -2249,7 +2252,7 @@ class PanelGroupBy(NDFrameGroupBy):
         -------
         aggregated : Panel
         """
-        if isinstance(arg, basestring):
+        if isinstance(arg, six.string_types):
             return getattr(self, arg)(*args, **kwargs)
 
         return self._aggregate_generic(arg, *args, **kwargs)
@@ -2332,7 +2335,7 @@ class DataSplitter(object):
 
         starts, ends = lib.generate_slices(self.slabels, self.ngroups)
 
-        for i, (start, end) in enumerate(izip(starts, ends)):
+        for i, (start, end) in enumerate(zip(starts, ends)):
             # Since I'm now compressing the group ids, it's now not "possible"
             # to produce empty slices because such groups would not be observed
             # in the data
@@ -2436,7 +2439,7 @@ def get_group_index(label_list, shape):
     n = len(label_list[0])
     group_index = np.zeros(n, dtype=np.int64)
     mask = np.zeros(n, dtype=bool)
-    for i in xrange(len(shape)):
+    for i in range(len(shape)):
         stride = np.prod([x for x in shape[i + 1:]], dtype=np.int64)
         group_index += com._ensure_int64(label_list[i]) * stride
         mask |= label_list[i] < 0
@@ -2448,7 +2451,7 @@ _INT64_MAX = np.iinfo(np.int64).max
 
 
 def _int64_overflow_possible(shape):
-    the_prod = 1L
+    the_prod = long(1)
     for x in shape:
         the_prod *= long(x)
 
@@ -2461,7 +2464,7 @@ def decons_group_index(comp_labels, shape):
     factor = 1
     y = 0
     x = comp_labels
-    for i in reversed(xrange(len(shape))):
+    for i in reversed(range(len(shape))):
         labels = (x - y) % (factor * shape[i]) // factor
         np.putmask(labels, comp_labels < 0, -1)
         label_list.append(labels)
@@ -2503,7 +2506,7 @@ def _lexsort_indexer(keys, orders=None):
     elif orders is None:
         orders = [True] * len(keys)
 
-    for key, order in izip(keys, orders):
+    for key, order in zip(keys, orders):
         rizer = _hash.Factorizer(len(key))
 
         if not key.dtype == np.object_:
@@ -2537,12 +2540,12 @@ class _KeyMapper(object):
         self._populate_tables()
 
     def _populate_tables(self):
-        for labs, table in izip(self.labels, self.tables):
+        for labs, table in zip(self.labels, self.tables):
             table.map(self.comp_ids, labs.astype(np.int64))
 
     def get_key(self, comp_id):
         return tuple(level[table.get_item(comp_id)]
-                     for table, level in izip(self.tables, self.levels))
+                     for table, level in zip(self.tables, self.levels))
 
 
 def _get_indices_dict(label_list, keys):
@@ -2664,7 +2667,7 @@ def install_ipython_completers():  # pragma: no cover
     @complete_object.when_type(DataFrameGroupBy)
     def complete_dataframe(obj, prev_completions):
         return prev_completions + [c for c in obj.obj.columns
-                                   if isinstance(c, basestring) and py3compat.isidentifier(c)]
+                                   if isinstance(c, six.string_types) and py3compat.isidentifier(c)]
 
 
 # Importing IPython brings in about 200 modules, so we want to avoid it unless

@@ -9,8 +9,9 @@ improved version.
 You can find more information on http://presbrey.mit.edu/PyDTA and
 http://statsmodels.sourceforge.net/devel/
 """
-
+# TODO: Fix this module so it can use cross-compatible zip, map, and range
 from StringIO import StringIO
+from pandas.util import compat
 import numpy as np
 
 import sys
@@ -21,6 +22,7 @@ from pandas.core.series import Series
 from pandas.core.categorical import Categorical
 import datetime
 from pandas.util import py3compat
+from pandas.util.py3compat import long
 from pandas import isnull
 from pandas.io.parsers import _parser_params, Appender
 from pandas.io.common import get_filepath_or_buffer
@@ -225,7 +227,7 @@ class StataParser(object):
         # we're going to drop the label and cast to int
         self.DTYPE_MAP = \
             dict(
-                zip(range(1, 245), ['a' + str(i) for i in range(1, 245)]) +
+                list(zip(range(1, 245), ['a' + str(i) for i in range(1, 245)])) +
                 [
                     (251, np.int16),
                     (252, np.int32),
@@ -234,7 +236,7 @@ class StataParser(object):
                     (255, np.float64)
                 ]
             )
-        self.TYPE_MAP = range(251) + list('bhlfd')
+        self.TYPE_MAP = list(range(251)) + list('bhlfd')
         #NOTE: technically, some of these are wrong. there are more numbers
         # that can be represented. it's the 27 ABOVE and BELOW the max listed
         # numeric data type in [U] 12.2.2 of the 11.2 manual
@@ -384,7 +386,7 @@ class StataReader(StataParser):
     def _col_size(self, k=None):
         """Calculate size of a data record."""
         if len(self.col_sizes) == 0:
-            self.col_sizes = map(lambda x: self._calcsize(x), self.typlist)
+            self.col_sizes = list(map(lambda x: self._calcsize(x), self.typlist))
         if k is None:
             return self.col_sizes
         else:
@@ -427,9 +429,9 @@ class StataReader(StataParser):
                     data[i] = self._unpack(typlist[i], self.path_or_buf.read(self._col_size(i)))
             return data
         else:
-            return map(lambda i: self._unpack(typlist[i],
+            return list(map(lambda i: self._unpack(typlist[i],
                                               self.path_or_buf.read(self._col_size(i))),
-                       range(self.nvar))
+                       range(self.nvar)))
 
     def _dataset(self):
         """

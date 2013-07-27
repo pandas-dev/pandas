@@ -11,7 +11,7 @@ class TestNewOffsets(unittest.TestCase):
             self.assert_(t.day == 1)
             self.assert_(t.month == 1)
             self.assert_(t.year == 2002 + i)
-            off.next()
+            next(off)
 
         for i in range(499, -1, -1):
             off.prev()
@@ -27,7 +27,7 @@ class TestNewOffsets(unittest.TestCase):
             self.assert_(t.month == 12)
             self.assert_(t.day == 31)
             self.assert_(t.year == 2001 + i)
-            off.next()
+            next(off)
 
         for i in range(499, -1, -1):
             off.prev()
@@ -47,7 +47,7 @@ class TestNewOffsets(unittest.TestCase):
             self.assert_(t.day == 31 or t.day == 30 or t.day == 29)
             self.assert_(t.year == 2001 + i)
             self.assert_(t.weekday() < 5)
-            off.next()
+            next(off)
 
         for i in range(499, -1, -1):
             off.prev()
@@ -66,7 +66,7 @@ class TestNewOffsets(unittest.TestCase):
             self.assert_(t.day == 1)
             self.assert_(t.month == 1 + i)
             self.assert_(t.year == 2002)
-            off.next()
+            next(off)
 
         for i in range(11, -1, -1):
             off.prev()
@@ -82,7 +82,7 @@ class TestNewOffsets(unittest.TestCase):
             self.assert_(t.day >= 28)
             self.assert_(t.month == (12 if i == 0 else i))
             self.assert_(t.year == 2001 + (i != 0))
-            off.next()
+            next(off)
 
         for i in range(11, -1, -1):
             off.prev()
@@ -103,7 +103,7 @@ class TestNewOffsets(unittest.TestCase):
             else:
                 self.assert_(t.day >= 26)
             self.assert_(t.weekday() < 5)
-            off.next()
+            next(off)
 
         for i in range(499, -1, -1):
             off.prev()
@@ -124,8 +124,8 @@ class TestNewOffsets(unittest.TestCase):
 
                 for k in range(500):
                     self.assert_(off1.ts == off2.ts)
-                    off1.next()
-                    off2.next()
+                    next(off1)
+                    next(off2)
 
                 for k in range(500):
                     self.assert_(off1.ts == off2.ts)
@@ -139,7 +139,7 @@ class TestNewOffsets(unittest.TestCase):
 
         t0 = lib.Timestamp(off.ts)
         for i in range(500):
-            off.next()
+            next(off)
             t1 = lib.Timestamp(off.ts)
             self.assert_(t1.value - t0.value == us_in_day)
             t0 = t1
@@ -155,7 +155,7 @@ class TestNewOffsets(unittest.TestCase):
 
         t0 = lib.Timestamp(off.ts)
         for i in range(500):
-            off.next()
+            next(off)
             t1 = lib.Timestamp(off.ts)
             self.assert_(t1.weekday() < 5)
             self.assert_(t1.value - t0.value == us_in_day or
@@ -184,7 +184,7 @@ class TestNewOffsets(unittest.TestCase):
                     t = lib.Timestamp(off.ts)
                     stack.append(t)
                     self.assert_(t.weekday() == day)
-                    off.next()
+                    next(off)
 
                 for i in range(499, -1, -1):
                     off.prev()

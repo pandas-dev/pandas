@@ -3,9 +3,9 @@ Module contains tools for collecting data from various remote sources
 
 
 """
+from pandas.util.py3compat import range
 import warnings
 import tempfile
-import itertools
 import datetime as dt
 import urllib
 import time
@@ -20,6 +20,8 @@ from pandas.core.common import PandasError
 from pandas.io.parsers import TextParser
 from pandas.io.common import urlopen, ZipFile
 from pandas.util.testing import _network_error_classes
+import six
+from six.moves import map, zip
 
 
 class SymbolWarning(UserWarning):
@@ -95,7 +97,7 @@ def _in_chunks(seq, size):
     """
     Return sequence in 'chunks' of size defined by size
     """
-    return (seq[pos:pos + size] for pos in xrange(0, len(seq), size))
+    return (seq[pos:pos + size] for pos in range(0, len(seq), size))
 
 
 _yahoo_codes = {'symbol': 's', 'last': 'l1', 'change_pct': 'p2', 'PE': 'r',
@@ -107,13 +109,13 @@ def get_quote_yahoo(symbols):
 
     Returns a DataFrame
     """
-    if isinstance(symbols, basestring):
+    if isinstance(symbols, six.string_types):
         sym_list = symbols
     else:
         sym_list = '+'.join(symbols)
 
     # for codes see: http://www.gummy-stuff.org/Yahoo-data.htm
-    request = ''.join(_yahoo_codes.itervalues())  # code request string
+    request = ''.join(six.itervalues(_yahoo_codes))  # code request string
     header = _yahoo_codes.keys()
 
     data = defaultdict(list)
@@ -147,7 +149,7 @@ def get_quote_google(symbols):
 
 
 def _retry_read_url(url, retry_count, pause, name):
-    for _ in xrange(retry_count):
+    for _ in range(retry_count):
         time.sleep(pause)
 
         # kludge to close the socket ASAP
@@ -332,7 +334,7 @@ def _get_data_from(symbols, start, end, retry_count, pause, adjust_price,
     src_fn = _source_functions[source]
 
     # If a single symbol, (e.g., 'GOOG')
-    if isinstance(symbols, (basestring, int)):
+    if isinstance(symbols, (six.string_types, int)):
         hist_data = src_fn(symbols, start, end, retry_count, pause)
     # Or multiple symbols, (e.g., ['GOOG', 'AAPL', 'MSFT'])
     elif isinstance(symbols, DataFrame):
@@ -465,15 +467,15 @@ def get_data_famafrench(name):
         with ZipFile(tmpf, 'r') as zf:
             data = zf.open(name + '.txt').readlines()
 
-    line_lengths = np.array(map(len, data))
+    line_lengths = np.array(list(map(len, data)))
     file_edges = np.where(line_lengths == 2)[0]
 
     datasets = {}
-    edges = itertools.izip(file_edges + 1, file_edges[1:])
+    edges = zip(file_edges + 1, file_edges[1:])
     for i, (left_edge, right_edge) in enumerate(edges):
         dataset = [d.split() for d in data[left_edge:right_edge]]
         if len(dataset) > 10:
-            ncol_raw = np.array(map(len, dataset))
+            ncol_raw = np.array(list(map(len, dataset)))
             ncol = np.median(ncol_raw)
             header_index = np.where(ncol_raw == ncol - 1)[0][-1]
             header = dataset[header_index]
@@ -809,18 +811,18 @@ class Options(object):
         data : dict of str, DataFrame
         """
         warnings.warn("get_forward_data() is deprecated", FutureWarning)
-        in_months = xrange(CUR_MONTH, CUR_MONTH + months + 1)
+        in_months = range(CUR_MONTH, CUR_MONTH + months + 1)
         in_years = [CUR_YEAR] * (months + 1)
 
         # Figure out how many items in in_months go past 12
         to_change = 0
-        for i in xrange(months):
+        for i in range(months):
             if in_months[i] > 12:
                 in_months[i] -= 12
                 to_change += 1
 
         # Change the corresponding items in the in_years list.
-        for i in xrange(1, to_change + 1):
+        for i in range(1, to_change + 1):
             in_years[-i] += 1
 
         to_ret = Series({'calls': call, 'puts': put})
@@ -830,7 +832,7 @@ class Options(object):
         for name in to_ret:
             all_data = DataFrame()
 
-            for mon in xrange(months):
+            for mon in range(months):
                 m2 = in_months[mon]
                 y2 = in_years[mon]
 

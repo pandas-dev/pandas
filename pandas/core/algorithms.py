@@ -4,6 +4,7 @@ intended for public consumption
 """
 
 import numpy as np
+import six
 
 import pandas.core.common as com
 import pandas.algos as algos
@@ -31,7 +32,7 @@ def match(to_match, values, na_sentinel=-1):
     match : ndarray of integers
     """
     values = com._asarray_tuplesafe(values)
-    if issubclass(values.dtype.type, basestring):
+    if issubclass(values.dtype.type, six.string_types):
         values = np.array(values, dtype='O')
 
     f = lambda htype, caster: _match_generic(to_match, values, htype, caster)

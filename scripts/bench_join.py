@@ -1,3 +1,4 @@
+from pandas.util.py3compat import range
 import numpy as np
 import pandas.lib as lib
 from pandas import *
@@ -27,8 +28,8 @@ bvf = np.random.randn(n, K)
 a_series = Series(av, index=a)
 b_series = Series(bv, index=b)
 
-a_frame = DataFrame(avf, index=a, columns=range(K))
-b_frame = DataFrame(bvf, index=b, columns=range(K, 2 * K))
+a_frame = DataFrame(avf, index=a, columns=list(range(K)))
+b_frame = DataFrame(bvf, index=b, columns=list(range(K, 2 * K)))
 
 
 def do_left_join(a, b, av, bv):
@@ -77,7 +78,7 @@ def do_left_join_python(a, b, av, bv):
 def _take_multi(data, indexer, out):
     if not data.flags.c_contiguous:
         data = data.copy()
-    for i in xrange(data.shape[0]):
+    for i in range(data.shape[0]):
         data[i].take(indexer, out=out[i])
 
 
@@ -162,8 +163,8 @@ def bench_python(n=100000, pct_overlap=0.20, K=1):
         avf = np.random.randn(n, K)
         bvf = np.random.randn(n, K)
 
-        a_frame = DataFrame(avf, index=a, columns=range(K))
-        b_frame = DataFrame(bvf, index=b, columns=range(K, 2 * K))
+        a_frame = DataFrame(avf, index=a, columns=list(range(K)))
+        b_frame = DataFrame(bvf, index=b, columns=list(range(K, 2 * K)))
 
         all_results[logn] = result = {}
 

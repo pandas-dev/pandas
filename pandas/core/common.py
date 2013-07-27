@@ -2,6 +2,7 @@
 Misc tools for implementing data structures
 """
 
+from pandas.util.py3compat import range, long
 import itertools
 import re
 from datetime import datetime
@@ -21,6 +22,8 @@ from pandas.util.py3compat import StringIO, BytesIO
 
 from pandas.core.config import get_option
 from pandas.core import array as pa
+import six
+from six.moves import map
 
 # XXX: HACK for NumPy 1.5.1 to suppress warnings
 try:
@@ -688,7 +691,7 @@ def _infer_dtype_from_scalar(val):
         dtype = val.dtype
         val   = val.item()
 
-    elif isinstance(val, basestring):
+    elif isinstance(val, six.string_types):
 
         # If we create an empty array using a string to infer
         # the dtype, NumPy will only allocate one character per entry
@@ -781,7 +784,7 @@ def _maybe_promote(dtype, fill_value=np.nan):
         dtype = np.object_
 
     # in case we have a string that looked like a number
-    if issubclass(np.dtype(dtype).type, basestring):
+    if issubclass(np.dtype(dtype).type, six.string_types):
         dtype = np.object_
 
     return dtype, fill_value
@@ -1168,7 +1171,7 @@ def _possibly_cast_to_datetime(value, dtype, coerce = False):
     """ try to cast the array/value to a datetimelike dtype, converting float nan to iNaT """
 
     if dtype is not None:
-        if isinstance(dtype, basestring):
+        if isinstance(dtype, six.string_types):
             dtype = np.dtype(dtype)
 
         is_datetime64  = is_datetime64_dtype(dtype)
@@ -1338,7 +1341,7 @@ def _join_unicode(lines, sep=''):
     try:
         return sep.join(lines)
     except UnicodeDecodeError:
-        sep = unicode(sep)
+        sep = six.text_type(sep)
         return sep.join([x.decode('utf-8') if isinstance(x, str) else x
                          for x in lines])
 
@@ -1398,7 +1401,7 @@ def banner(message):
     return '%s\n%s\n%s' % (bar, message, bar)
 
 def _long_prod(vals):
-    result = 1L
+    result = long(1)
     for x in vals:
         result *= x
     return result
@@ -1478,7 +1481,7 @@ def _asarray_tuplesafe(values, dtype=None):
 
     result = np.asarray(values, dtype=dtype)
 
-    if issubclass(result.dtype.type, basestring):
+    if issubclass(result.dtype.type, six.string_types):
         result = np.asarray(values, dtype=object)
 
     if result.ndim == 2:
@@ -1494,7 +1497,7 @@ def _asarray_tuplesafe(values, dtype=None):
 
 
 def _index_labels_to_array(labels):
-    if isinstance(labels, (basestring, tuple)):
+    if isinstance(labels, (six.string_types, tuple)):
         labels = [labels]
 
     if not isinstance(labels, (list, np.ndarray)):
@@ -1609,13 +1612,13 @@ def is_re_compilable(obj):
 
 
 def is_list_like(arg):
-    return hasattr(arg, '__iter__') and not isinstance(arg, basestring)
+    return hasattr(arg, '__iter__') and not isinstance(arg, six.string_types)
 
 def _is_sequence(x):
     try:
         iter(x)
         len(x) # it has a length
-        return not isinstance(x, basestring) and True
+        return not isinstance(x, six.string_types) and True
     except Exception:
         return False
 
@@ -1703,7 +1706,10 @@ class UTF8Recoder:
         return self.reader.readline().encode('utf-8')
 
     def next(self):
-        return self.reader.next().encode("utf-8")
+        return next(self.reader).encode("utf-8")
+
+    # Python 3 iterator
+    __next__ = next
 
 
 def _get_handle(path, mode, encoding=None, compression=None):
@@ -1752,8 +1758,11 @@ else:
             self.reader = csv.reader(f, dialect=dialect, **kwds)
 
         def next(self):
-            row = self.reader.next()
-            return [unicode(s, "utf-8") for s in row]
+            row = next(self.reader)
+            return [six.text_type(s, "utf-8") for s in row]
+
+        # python 3 iterator
+        __next__ = next
 
         def __iter__(self):  # pragma: no cover
             return self
@@ -1951,9 +1960,9 @@ def _pprint_seq(seq, _nest_lvl=0, **kwds):
     bounds length of printed sequence, depending on options
     """
     if isinstance(seq,set):
-        fmt = u"set([%s])"
+        fmt = six.u("set([%s])")
     else:
-        fmt = u"[%s]" if hasattr(seq, '__setitem__') else u"(%s)"
+        fmt = six.u("[%s]") if hasattr(seq, '__setitem__') else six.u("(%s)")
 
     nitems = get_option("max_seq_items") or len(seq)
 
@@ -1976,10 +1985,10 @@ def _pprint_dict(seq, _nest_lvl=0,**kwds):
     internal. pprinter for iterables. you should probably use pprint_thing()
     rather then calling this directly.
     """
-    fmt = u"{%s}"
+    fmt = six.u("{%s}")
     pairs = []
 
-    pfmt = u"%s: %s"
+    pfmt = six.u("%s: %s")
 
     nitems = get_option("max_seq_items") or len(seq)
 
@@ -2025,7 +2034,7 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
         #should deal with it himself.
 
         try:
-            result = unicode(thing)  # we should try this first
+            result = six.text_type(thing)  # we should try this first
         except UnicodeDecodeError:
             # either utf-8 or we replace errors
             result = str(thing).decode('utf-8', "replace")
@@ -2045,11 +2054,11 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
         for c in escape_chars:
             result = result.replace(c, translate[c])
 
-        return unicode(result)
+        return six.text_type(result)
 
     if (py3compat.PY3 and hasattr(thing, '__next__')) or \
             hasattr(thing, 'next'):
-        return unicode(thing)
+        return six.text_type(thing)
     elif (isinstance(thing, dict) and
           _nest_lvl < get_option("display.pprint_nest_depth")):
         result = _pprint_dict(thing, _nest_lvl,quote_strings=True)
@@ -2057,7 +2066,7 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
             get_option("display.pprint_nest_depth"):
         result = _pprint_seq(thing, _nest_lvl, escape_chars=escape_chars,
                              quote_strings=quote_strings)
-    elif isinstance(thing,basestring) and quote_strings:
+    elif isinstance(thing,six.string_types) and quote_strings:
         if py3compat.PY3:
             fmt = "'%s'"
         else:
@@ -2066,7 +2075,7 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
     else:
         result = as_escaped_unicode(thing)
 
-    return unicode(result)  # always unicode
+    return six.text_type(result)  # always unicode
 
 
 def pprint_thing_encoded(object, encoding='utf-8', errors='replace', **kwds):

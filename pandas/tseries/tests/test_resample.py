@@ -2,6 +2,8 @@
 
 from datetime import datetime, timedelta
 
+from pandas.util.py3compat import range
+from six.moves import zip
 import numpy as np
 
 from pandas import Series, TimeSeries, DataFrame, Panel, isnull, notnull, Timestamp
@@ -860,7 +862,7 @@ class TestResamplePeriodIndex(unittest.TestCase):
 
     def test_resample_tz_localized(self):
         dr = date_range(start='2012-4-13', end='2012-5-1')
-        ts = Series(range(len(dr)), dr)
+        ts = Series(list(range(len(dr))), dr)
 
         ts_utc = ts.tz_localize('UTC')
         ts_local = ts_utc.tz_convert('America/Los_Angeles')

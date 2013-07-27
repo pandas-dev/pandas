@@ -1,3 +1,4 @@
+from __future__ import print_function
 import sys
 import urllib2
 import json
@@ -93,4 +94,4 @@ def release_notes(milestone):
 if __name__ == '__main__':
 
     rs = release_notes(sys.argv[1])
-    print rs
+    print(rs)

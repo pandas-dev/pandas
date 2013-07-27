@@ -1,3 +1,4 @@
+from pandas.util.py3compat import range
 import unittest
 import pandas.tools.rplot as rplot
 from pandas import read_csv

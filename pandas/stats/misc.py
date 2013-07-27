@@ -1,8 +1,11 @@
 from numpy import NaN
+from pandas.util import compat
 import numpy as np
 
 from pandas.core.api import Series, DataFrame, isnull, notnull
 from pandas.core.series import remove_na
+import six
+from six.moves import zip
 
 
 def zscore(series):
@@ -21,7 +24,7 @@ def correl_ts(frame1, frame2):
     y : Series
     """
     results = {}
-    for col, series in frame1.iteritems():
+    for col, series in compat.iteritems(frame1):
         if col in frame2:
             other = frame2[col]
 
@@ -82,15 +85,15 @@ def percentileRank(frame, column=None, kind='mean'):
     framet = frame.T
     if column is not None:
         if isinstance(column, Series):
-            for date, xs in frame.T.iteritems():
+            for date, xs in compat.iteritems(frame.T):
                 results[date] = fun(xs, column.get(date, NaN))
         else:
-            for date, xs in frame.T.iteritems():
+            for date, xs in compat.iteritems(frame.T):
                 results[date] = fun(xs, xs[column])
         results = Series(results)
     else:
         for column in frame.columns:
-            for date, xs in framet.iteritems():
+            for date, xs in compat.iteritems(framet):
                 results.setdefault(date, {})[column] = fun(xs, xs[column])
         results = DataFrame(results).T
     return results

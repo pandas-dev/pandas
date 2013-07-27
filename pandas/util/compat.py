@@ -1,12 +1,15 @@
 # itertools.product not in Python 2.5
 
+import sys
+import six
+from six.moves import map
 try:
     from itertools import product
 except ImportError:  # python 2.5
     def product(*args, **kwds):
         # product('ABCD', 'xy') --> Ax Ay Bx By Cx Cy Dx Dy
         # product(range(2), repeat=3) --> 000 001 010 011 100 101 110 111
-        pools = map(tuple, args) * kwds.get('repeat', 1)
+        pools = list(map(tuple, args) * kwds.get('repeat', 1))
         result = [[]]
         for pool in pools:
             result = [x + [y] for x in result for y in pool]
@@ -17,7 +20,6 @@ except ImportError:  # python 2.5
 # OrderedDict Shim from  Raymond Hettinger, python core dev
 # http://code.activestate.com/recipes/576693-ordered-dictionary-for-py24/
 # here to support versions before 2.6
-import sys
 try:
     from thread import get_ident as _get_ident
 except ImportError:
@@ -27,6 +29,14 @@ try:
     from _abcoll import KeysView, ValuesView, ItemsView
 except ImportError:
     pass
+
+
+def iteritems(obj):
+    """replacement for six's iteritems to use iteritems on PandasObjects"""
+    if hasattr(obj, "iteritems"):
+        return obj.iteritems()
+    else:
+        return obj.items()
 
 
 class _OrderedDict(dict):
@@ -98,7 +108,7 @@ class _OrderedDict(dict):
     def clear(self):
         'od.clear() -> None.  Remove all items from od.'
         try:
-            for node in self.__map.itervalues():
+            for node in six.itervalues(self.__map):
                 del node[:]
             root = self.__root
             root[:] = [root, root, None]
@@ -323,8 +333,8 @@ class _Counter(dict):
 
         '''
         if n is None:
-            return sorted(self.iteritems(), key=itemgetter(1), reverse=True)
-        return nlargest(n, self.iteritems(), key=itemgetter(1))
+            return sorted(iteritems(self), key=itemgetter(1), reverse=True)
+        return nlargest(n, iteritems(self), key=itemgetter(1))
 
     def elements(self):
         '''Iterator over elements repeating each as many times as its count.
@@ -337,7 +347,7 @@ class _Counter(dict):
         elements() will ignore it.
 
         '''
-        for elem, count in self.iteritems():
+        for elem, count in iteritems(self):
             for _ in repeat(None, count):
                 yield elem
 
@@ -491,7 +501,7 @@ class OrderedDefaultdict(OrderedDict):
         self.default_factory = newdefault
         super(self.__class__, self).__init__(*newargs, **kwargs)
 
-    def __missing__ (self, key):
+    def __missing__(self, key):
         if self.default_factory is None:
             raise KeyError(key)
         self[key] = value = self.default_factory()

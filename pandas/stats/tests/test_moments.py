@@ -1,3 +1,5 @@
+from pandas.util.py3compat import range
+from six.moves import zip
 import unittest
 import nose
 import sys
@@ -487,7 +489,7 @@ class TestMoments(unittest.TestCase):
             assert_frame_equal(frame_xp, frame_rs)
 
     def test_legacy_time_rule_arg(self):
-        from StringIO import StringIO
+        from pandas.util.py3compat import StringIO
         # suppress deprecation warnings
         sys.stderr = StringIO()
 

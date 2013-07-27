@@ -3,6 +3,8 @@ HTML IO.
 
 """
 
+from pandas.util.py3compat import range
+from pandas.util import compat
 import os
 import re
 import numbers
@@ -16,6 +18,8 @@ import numpy as np
 
 from pandas import DataFrame, MultiIndex, isnull
 from pandas.io.common import _is_url, urlopen
+import six
+from six.moves import map
 
 
 try:
@@ -91,9 +95,9 @@ def _get_skiprows_iter(skiprows):
         A proper iterator to use to skip rows of a DataFrame.
     """
     if isinstance(skiprows, slice):
-        return range(skiprows.start or 0, skiprows.stop, skiprows.step or 1)
+        return list(range(skiprows.start or 0, skiprows.stop, skiprows.step or 1))
     elif isinstance(skiprows, numbers.Integral):
-        return range(skiprows)
+        return list(range(skiprows))
     elif isinstance(skiprows, collections.Container):
         return skiprows
     else:
@@ -120,7 +124,7 @@ def _read(io):
     elif os.path.isfile(io):
         with open(io) as f:
             raw_text = f.read()
-    elif isinstance(io, basestring):
+    elif isinstance(io, six.string_types):
         raw_text = io
     else:
         raise TypeError("Cannot read object of type "
@@ -343,14 +347,14 @@ class _HtmlFrameParser(object):
         thead = self._parse_thead(table)
         res = []
         if thead:
-            res = map(self._text_getter, self._parse_th(thead[0]))
+            res = list(map(self._text_getter, self._parse_th(thead[0])))
         return np.array(res).squeeze() if res and len(res) == 1 else res
 
     def _parse_raw_tfoot(self, table):
         tfoot = self._parse_tfoot(table)
         res = []
         if tfoot:
-            res = map(self._text_getter, self._parse_td(tfoot[0]))
+            res = list(map(self._text_getter, self._parse_td(tfoot[0])))
         return np.array(res).squeeze() if res and len(res) == 1 else res
 
     def _parse_raw_tbody(self, table):
@@ -450,8 +454,8 @@ def _build_node_xpath_expr(attrs):
     if 'class_' in attrs:
         attrs['class'] = attrs.pop('class_')
 
-    s = (u"@{k}='{v}'".format(k=k, v=v) for k, v in attrs.iteritems())
-    return u'[{0}]'.format(' and '.join(s))
+    s = (six.u("@{k}='{v}'").format(k=k, v=v) for k, v in attrs.iteritems())
+    return six.u('[{0}]').format(' and '.join(s))
 
 
 _re_namespace = {'re': 'http://exslt.org/regular-expressions'}
@@ -492,9 +496,9 @@ class _LxmlFrameParser(_HtmlFrameParser):
         pattern = match.pattern
 
         # check all descendants for the given pattern
-        check_all_expr = u'//*'
+        check_all_expr = six.u('//*')
         if pattern:
-            check_all_expr += u"[re:test(text(), '{0}')]".format(pattern)
+            check_all_expr += six.u("[re:test(text(), '{0}')]").format(pattern)
 
         # go up the tree until we find a table
         check_table_expr = '/ancestor::table'
@@ -733,10 +737,10 @@ def _parser_dispatch(flavor):
 def _validate_parser_flavor(flavor):
     if flavor is None:
         flavor = ['lxml', 'bs4']
-    elif isinstance(flavor, basestring):
+    elif isinstance(flavor, six.string_types):
         flavor = [flavor]
     elif isinstance(flavor, collections.Iterable):
-        if not all(isinstance(flav, basestring) for flav in flavor):
+        if not all(isinstance(flav, six.string_types) for flav in flavor):
             raise TypeError('{0} is not an iterable of strings'.format(flavor))
     else:
         raise TypeError('{0} is not a valid "flavor"'.format(flavor))

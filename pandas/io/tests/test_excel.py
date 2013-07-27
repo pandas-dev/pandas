@@ -3,6 +3,7 @@
 from pandas.util.py3compat import StringIO, BytesIO, PY3
 from datetime import datetime
 from os.path import split as psplit
+from pandas.util.py3compat import range
 import csv
 import os
 import sys
@@ -35,6 +36,8 @@ import pandas.tseries.tools as tools
 from numpy.testing.decorators import slow
 
 from pandas.parser import OverflowError
+import six
+from six.moves import map
 
 def _skip_if_no_xlrd():
     try:
@@ -707,7 +710,7 @@ class ExcelTests(unittest.TestCase):
         _skip_if_no_excelsuite()
 
         for ext in ['xls', 'xlsx']:
-            filename = u'\u0192u.' + ext
+            filename = six.u('\u0192u.') + ext
 
             try:
                 f = open(filename, 'wb')
@@ -769,7 +772,7 @@ class ExcelTests(unittest.TestCase):
     # def test_to_excel_header_styling_xls(self):
 
     #     import StringIO
-    #     s = StringIO.StringIO(
+    #     s = StringIO(
     #     """Date,ticker,type,value
     #     2001-01-01,x,close,12.2
     #     2001-01-01,x,open ,12.1
@@ -816,7 +819,7 @@ class ExcelTests(unittest.TestCase):
     #     os.remove(filename)
     # def test_to_excel_header_styling_xlsx(self):
     #     import StringIO
-    #     s = StringIO.StringIO(
+    #     s = StringIO(
     #     """Date,ticker,type,value
     #     2001-01-01,x,close,12.2
     #     2001-01-01,x,open ,12.1

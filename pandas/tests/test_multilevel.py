@@ -1,5 +1,6 @@
 # pylint: disable-msg=W0612,E1101,W0141
 from pandas.util.py3compat import StringIO
+from pandas.util.py3compat import range
 import nose
 import unittest
 
@@ -18,6 +19,8 @@ from pandas.util.compat import product as cart_product
 import pandas as pd
 
 import pandas.index as _index
+import six
+from six.moves import zip
 
 
 class TestMultiLevel(unittest.TestCase):
@@ -43,7 +46,7 @@ class TestMultiLevel(unittest.TestCase):
         # create test series object
         arrays = [['bar', 'bar', 'baz', 'baz', 'qux', 'qux', 'foo', 'foo'],
                   ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
-        tuples = zip(*arrays)
+        tuples = list(zip(*arrays))
         index = MultiIndex.from_tuples(tuples)
         s = Series(randn(8), index=index)
         s[3] = np.NaN
@@ -89,7 +92,7 @@ class TestMultiLevel(unittest.TestCase):
                                   ['x', 'y', 'x', 'y']])
         self.assert_(isinstance(multi.index, MultiIndex))
 
-        multi = Series(range(4), index=[['a', 'a', 'b', 'b'],
+        multi = Series(list(range(4)), index=[['a', 'a', 'b', 'b'],
                                         ['x', 'y', 'x', 'y']])
         self.assert_(isinstance(multi.index, MultiIndex))
 
@@ -349,8 +352,8 @@ class TestMultiLevel(unittest.TestCase):
 
     def test_getitem_tuple_plus_slice(self):
         # GH #671
-        df = DataFrame({'a': range(10),
-                        'b': range(10),
+        df = DataFrame({'a': list(range(10)),
+                        'b': list(range(10)),
                         'c': np.random.randn(10),
                         'd': np.random.randn(10)})
 
@@ -429,7 +432,7 @@ class TestMultiLevel(unittest.TestCase):
 
     def test_xs_level_multiple(self):
         from pandas import read_table
-        from StringIO import StringIO
+        from pandas.util.py3compat import StringIO
         text = """                      A       B       C       D        E
 one two three   four
 a   b   10.0032 5    -0.5109 -2.3358 -0.4645  0.05076  0.3640
@@ -443,7 +446,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         assert_frame_equal(result, expected)
 
         # GH2107
-        dates = range(20111201, 20111205)
+        dates = list(range(20111201, 20111205))
         ids = 'abcde'
         idx = MultiIndex.from_tuples([x for x in cart_product(dates, ids)])
         idx.names = ['date', 'secid']
@@ -454,7 +457,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
     def test_xs_level0(self):
         from pandas import read_table
-        from StringIO import StringIO
+        from pandas.util.py3compat import StringIO
         text = """                      A       B       C       D        E
 one two three   four
 a   b   10.0032 5    -0.5109 -2.3358 -0.4645  0.05076  0.3640
@@ -588,7 +591,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         # with integer labels
         df = self.frame.copy()
-        df.columns = range(3)
+        df.columns = list(range(3))
         df.ix[('bar', 'two'), 1] = 7
         self.assertEquals(df.ix[('bar', 'two'), 1], 7)
 
@@ -950,8 +953,8 @@ Thur,Lunch,Yes,51.51,17"""
 
     def test_stack_dropna(self):
         # GH #3997
-        df = pd.DataFrame({'A': ['a1', 'a2'], 
-                           'B': ['b1', 'b2'], 
+        df = pd.DataFrame({'A': ['a1', 'a2'],
+                           'B': ['b1', 'b2'],
                            'C': [1, 1]})
         df = df.set_index(['A', 'B'])
 
@@ -1167,7 +1170,7 @@ Thur,Lunch,Yes,51.51,17"""
     def test_series_getitem_not_sorted(self):
         arrays = [['bar', 'bar', 'baz', 'baz', 'qux', 'qux', 'foo', 'foo'],
                  ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
-        tuples = zip(*arrays)
+        tuples = list(zip(*arrays))
         index = MultiIndex.from_tuples(tuples)
         s = Series(randn(8), index=index)
 
@@ -1211,7 +1214,7 @@ Thur,Lunch,Yes,51.51,17"""
 
     def test_series_group_min_max(self):
         for op, level, skipna in cart_product(self.AGG_FUNCTIONS,
-                                              range(2),
+                                              list(range(2)),
                                               [False, True]):
             grouped = self.series.groupby(level=level)
             aggf = lambda x: getattr(x, op)(skipna=skipna)
@@ -1225,7 +1228,7 @@ Thur,Lunch,Yes,51.51,17"""
         self.frame.ix[7, [0, 1]] = np.nan
 
         for op, level, axis, skipna in cart_product(self.AGG_FUNCTIONS,
-                                                    range(2), range(2),
+                                                    list(range(2)), list(range(2)),
                                                     [False, True]):
             if axis == 0:
                 frame = self.frame
@@ -1496,7 +1499,7 @@ Thur,Lunch,Yes,51.51,17"""
                   ['', 'OD', 'OD', 'result1', 'result2', 'result1'],
                   ['', 'wx', 'wy', '', '', '']]
 
-        tuples = zip(*arrays)
+        tuples = list(zip(*arrays))
         tuples.sort()
         index = MultiIndex.from_tuples(tuples)
         df = DataFrame(randn(4, 6), columns=index)
@@ -1516,7 +1519,7 @@ Thur,Lunch,Yes,51.51,17"""
                   ['', 'OD', 'OD', 'result1', 'result2', 'result1'],
                   ['', 'wx', 'wy', '', '', '']]
 
-        tuples = zip(*arrays)
+        tuples = list(zip(*arrays))
         tuples.sort()
         index = MultiIndex.from_tuples(tuples)
         df = DataFrame(randn(4, 6), columns=index)
@@ -1532,7 +1535,7 @@ Thur,Lunch,Yes,51.51,17"""
                   ['', 'OD', 'OD', 'result1', 'result2', 'result1'],
                   ['', 'wx', 'wy', '', '', '']]
 
-        tuples = zip(*arrays)
+        tuples = list(zip(*arrays))
         tuples.sort()
         index = MultiIndex.from_tuples(tuples)
         df = DataFrame(randn(4, 6), columns=index)
@@ -1584,7 +1587,7 @@ Thur,Lunch,Yes,51.51,17"""
                   ['', 'OD', 'OD', 'result1', 'result2', 'result1'],
                   ['', 'wx', 'wy', '', '', '']]
 
-        tuples = zip(*arrays)
+        tuples = list(zip(*arrays))
         tuples.sort()
         index = MultiIndex.from_tuples(tuples)
         df = DataFrame(randn(4, 6), columns=index)
@@ -1677,7 +1680,7 @@ Thur,Lunch,Yes,51.51,17"""
         self.assert_(result.index.names == ['one', 'two'])
 
     def test_unicode_repr_issues(self):
-        levels = [Index([u'a/\u03c3', u'b/\u03c3', u'c/\u03c3']),
+        levels = [Index([six.u('a/\u03c3'), six.u('b/\u03c3'), six.u('c/\u03c3')]),
                   Index([0, 1])]
         labels = [np.arange(3).repeat(2), np.tile(np.arange(2), 3)]
         index = MultiIndex(levels=levels, labels=labels)
@@ -1689,9 +1692,9 @@ Thur,Lunch,Yes,51.51,17"""
 
     def test_unicode_repr_level_names(self):
         index = MultiIndex.from_tuples([(0, 0), (1, 1)],
-                                       names=[u'\u0394', 'i1'])
+                                       names=[six.u('\u0394'), 'i1'])
 
-        s = Series(range(2), index=index)
+        s = Series(list(range(2)), index=index)
         df = DataFrame(np.random.randn(2, 4), index=index)
         repr(s)
         repr(df)

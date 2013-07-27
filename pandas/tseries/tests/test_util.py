@@ -1,3 +1,4 @@
+from pandas.util.py3compat import range
 import nose
 import unittest
 

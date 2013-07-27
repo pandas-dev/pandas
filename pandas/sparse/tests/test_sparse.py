@@ -1,6 +1,8 @@
 # pylint: disable-msg=E1101,W0612
 
 from unittest import TestCase
+from pandas.util.py3compat import range
+from pandas.util import compat
 import cPickle as pickle
 import operator
 from datetime import datetime
@@ -36,7 +38,7 @@ import pandas.tests.test_panel as test_panel
 import pandas.tests.test_series as test_series
 from pandas.util.py3compat import StringIO
 
-from test_array import assert_sp_array_equal
+from .test_array import assert_sp_array_equal
 
 import warnings
 warnings.filterwarnings(action='ignore', category=FutureWarning)
@@ -105,7 +107,7 @@ def assert_sp_frame_equal(left, right, exact_indices=True):
 
 
 def assert_sp_panel_equal(left, right, exact_indices=True):
-    for item, frame in left.iterkv():
+    for item, frame in left.iteritems():
         assert(item in right)
         # trade-off?
         assert_sp_frame_equal(frame, right[item], exact_indices=exact_indices)
@@ -315,7 +317,7 @@ class TestSparseSeries(TestCase,
             for idx, val in dense.iteritems():
                 assert_almost_equal(val, sp[idx])
 
-            for i in xrange(len(dense)):
+            for i in range(len(dense)):
                 assert_almost_equal(sp[i], dense[i])
                 # j = np.float64(i)
                 # assert_almost_equal(sp[j], dense[j])
@@ -826,7 +828,7 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
 
     def test_constructor_convert_index_once(self):
         arr = np.array([1.5, 2.5, 3.5])
-        sdf = SparseDataFrame(columns=range(4), index=arr)
+        sdf = SparseDataFrame(columns=list(range(4)), index=arr)
         self.assertTrue(sdf[0].index is sdf[1].index)
 
     def test_constructor_from_series(self):
@@ -843,7 +845,7 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         x2 = x.astype(float)
         x2.ix[:9998] = np.NaN
         x_sparse = x2.to_sparse(fill_value=np.NaN)
-        
+
         # Currently fails too with weird ufunc error
         # df1 = SparseDataFrame([x_sparse, y])
 
@@ -867,7 +869,7 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         sdf = df.to_sparse()
 
         str(sdf)
-        
+
     def test_array_interface(self):
         res = np.sqrt(self.frame)
         dres = np.sqrt(self.frame.to_dense())
@@ -1217,7 +1219,7 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         self.assertRaises(Exception, self.frame.astype, np.int64)
 
     def test_fillna(self):
-        df = self.zframe.reindex(range(5))
+        df = self.zframe.reindex(list(range(5)))
         result = df.fillna(0)
         expected = df.to_dense().fillna(0).to_sparse(fill_value=0)
         assert_sp_frame_equal(result, expected)

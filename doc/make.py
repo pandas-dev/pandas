@@ -14,6 +14,7 @@ Usage
 python make.py clean
 python make.py html
 """
+from __future__ import print_function
 
 import glob
 import os
@@ -60,7 +61,7 @@ def upload_prev(ver, doc_root='./'):
     remote_dir = '/usr/share/nginx/pandas/pandas-docs/version/%s/' % ver
     cmd = 'cd %s; rsync -avz . pandas@pandas.pydata.org:%s -essh'
     cmd = cmd % (local_dir, remote_dir)
-    print cmd
+    print(cmd)
     if os.system(cmd):
         raise SystemExit(
             'Upload to %s from %s failed' % (remote_dir, local_dir))
@@ -154,7 +155,7 @@ def auto_dev_build(debug=False):
         upload_dev_pdf()
         if not debug:
             sendmail(step)
-    except (Exception, SystemExit), inst:
+    except (Exception, SystemExit) as inst:
         msg = str(inst) + '\n'
         sendmail(step, '[ERROR] ' + msg)
 

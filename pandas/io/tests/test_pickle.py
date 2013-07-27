@@ -27,7 +27,7 @@ class TestPickle(unittest.TestCase):
     def compare(self, vf):
 
         # py3 compat when reading py2 pickle
-        
+
         try:
             with open(vf,'rb') as fh:
                 data = pickle.load(fh)

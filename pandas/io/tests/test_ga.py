@@ -82,8 +82,8 @@ class TestGoogle(unittest.TestCase):
                 dimensions='date',
                 max_results=10, chunksize=5)
 
-            df1 = it.next()
-            df2 = it.next()
+            df1 = next(it)
+            df2 = next(it)
 
             for df in [df1, df2]:
                 assert isinstance(df, DataFrame)

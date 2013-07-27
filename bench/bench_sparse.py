@@ -3,6 +3,7 @@ import numpy as np
 
 from pandas import *
 import pandas.core.sparse as spm
+import pandas.util.compat as compat
 reload(spm)
 from pandas.core.sparse import *
 
@@ -41,7 +42,7 @@ sdf = dm.to_sparse()
 
 def new_data_like(sdf):
     new_data = {}
-    for col, series in sdf.iteritems():
+    for col, series in compat.iteritems(sdf):
         new_data[col] = SparseSeries(np.random.randn(len(series.sp_values)),
                                      index=sdf.index,
                                      sparse_index=series.sp_index,

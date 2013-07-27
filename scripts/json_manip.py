@@ -65,6 +65,7 @@ Simplifying
     themselves.
 
 """
+from __future__ import print_function
 
 from collections import Counter, namedtuple
 import csv
@@ -73,7 +74,9 @@ from itertools import product
 from operator import attrgetter as aget, itemgetter as iget
 import operator
 import sys
-
+import six
+from six.moves import map
+import pandas.util.compat as compat
 
 
 ##  note 'url' appears multiple places and not all extensions have same struct
@@ -89,77 +92,77 @@ ex1 = {
 }
 
 ## much longer example
-ex2 = {u'metadata': {u'accessibilities': [{u'name': u'accessibility.tabfocus',
-    u'value': 7},
-   {u'name': u'accessibility.mouse_focuses_formcontrol', u'value': False},
-   {u'name': u'accessibility.browsewithcaret', u'value': False},
-   {u'name': u'accessibility.win32.force_disabled', u'value': False},
-   {u'name': u'accessibility.typeaheadfind.startlinksonly', u'value': False},
-   {u'name': u'accessibility.usebrailledisplay', u'value': u''},
-   {u'name': u'accessibility.typeaheadfind.timeout', u'value': 5000},
-   {u'name': u'accessibility.typeaheadfind.enabletimeout', u'value': True},
-   {u'name': u'accessibility.tabfocus_applies_to_xul', u'value': False},
-   {u'name': u'accessibility.typeaheadfind.flashBar', u'value': 1},
-   {u'name': u'accessibility.typeaheadfind.autostart', u'value': True},
-   {u'name': u'accessibility.blockautorefresh', u'value': False},
-   {u'name': u'accessibility.browsewithcaret_shortcut.enabled',
-    u'value': True},
-   {u'name': u'accessibility.typeaheadfind.enablesound', u'value': True},
-   {u'name': u'accessibility.typeaheadfind.prefillwithselection',
-    u'value': True},
-   {u'name': u'accessibility.typeaheadfind.soundURL', u'value': u'beep'},
-   {u'name': u'accessibility.typeaheadfind', u'value': False},
-   {u'name': u'accessibility.typeaheadfind.casesensitive', u'value': 0},
-   {u'name': u'accessibility.warn_on_browsewithcaret', u'value': True},
-   {u'name': u'accessibility.usetexttospeech', u'value': u''},
-   {u'name': u'accessibility.accesskeycausesactivation', u'value': True},
-   {u'name': u'accessibility.typeaheadfind.linksonly', u'value': False},
-   {u'name': u'isInstantiated', u'value': True}],
-  u'extensions': [{u'id': u'216ee7f7f4a5b8175374cd62150664efe2433a31',
-    u'isEnabled': True},
-   {u'id': u'1aa53d3b720800c43c4ced5740a6e82bb0b3813e', u'isEnabled': False},
-   {u'id': u'01ecfac5a7bd8c9e27b7c5499e71c2d285084b37', u'isEnabled': True},
-   {u'id': u'1c01f5b22371b70b312ace94785f7b0b87c3dfb2', u'isEnabled': True},
-   {u'id': u'fb723781a2385055f7d024788b75e959ad8ea8c3', u'isEnabled': True}],
-  u'fxVersion': u'9.0',
-  u'location': u'zh-CN',
-  u'operatingSystem': u'WINNT Windows NT 5.1',
-  u'surveyAnswers': u'',
-  u'task_guid': u'd69fbd15-2517-45b5-8a17-bb7354122a75',
-  u'tpVersion': u'1.2',
-  u'updateChannel': u'beta'},
- u'survey_data': {
-  u'extensions': [{u'appDisabled': False,
-    u'id': u'testpilot?labs.mozilla.com',
-    u'isCompatible': True,
-    u'isEnabled': True,
-    u'isPlatformCompatible': True,
-    u'name': u'Test Pilot'},
-   {u'appDisabled': True,
-    u'id': u'dict?www.youdao.com',
-    u'isCompatible': False,
-    u'isEnabled': False,
-    u'isPlatformCompatible': True,
-    u'name': u'Youdao Word Capturer'},
-   {u'appDisabled': False,
-    u'id': u'jqs?sun.com',
-    u'isCompatible': True,
-    u'isEnabled': True,
-    u'isPlatformCompatible': True,
-    u'name': u'Java Quick Starter'},
-   {u'appDisabled': False,
-    u'id': u'?20a82645-c095-46ed-80e3-08825760534b?',
-    u'isCompatible': True,
-    u'isEnabled': True,
-    u'isPlatformCompatible': True,
-    u'name': u'Microsoft .NET Framework Assistant'},
-   {u'appDisabled': False,
-    u'id': u'?a0d7ccb3-214d-498b-b4aa-0e8fda9a7bf7?',
-    u'isCompatible': True,
-    u'isEnabled': True,
-    u'isPlatformCompatible': True,
-    u'name': u'WOT'}],
-  u'version_number': 1}}
+ex2 = {six.u('metadata'): {six.u('accessibilities'): [{six.u('name'): six.u('accessibility.tabfocus'),
+    six.u('value'): 7},
+   {six.u('name'): six.u('accessibility.mouse_focuses_formcontrol'), six.u('value'): False},
+   {six.u('name'): six.u('accessibility.browsewithcaret'), six.u('value'): False},
+   {six.u('name'): six.u('accessibility.win32.force_disabled'), six.u('value'): False},
+   {six.u('name'): six.u('accessibility.typeaheadfind.startlinksonly'), six.u('value'): False},
+   {six.u('name'): six.u('accessibility.usebrailledisplay'), six.u('value'): six.u('')},
+   {six.u('name'): six.u('accessibility.typeaheadfind.timeout'), six.u('value'): 5000},
+   {six.u('name'): six.u('accessibility.typeaheadfind.enabletimeout'), six.u('value'): True},
+   {six.u('name'): six.u('accessibility.tabfocus_applies_to_xul'), six.u('value'): False},
+   {six.u('name'): six.u('accessibility.typeaheadfind.flashBar'), six.u('value'): 1},
+   {six.u('name'): six.u('accessibility.typeaheadfind.autostart'), six.u('value'): True},
+   {six.u('name'): six.u('accessibility.blockautorefresh'), six.u('value'): False},
+   {six.u('name'): six.u('accessibility.browsewithcaret_shortcut.enabled'),
+    six.u('value'): True},
+   {six.u('name'): six.u('accessibility.typeaheadfind.enablesound'), six.u('value'): True},
+   {six.u('name'): six.u('accessibility.typeaheadfind.prefillwithselection'),
+    six.u('value'): True},
+   {six.u('name'): six.u('accessibility.typeaheadfind.soundURL'), six.u('value'): six.u('beep')},
+   {six.u('name'): six.u('accessibility.typeaheadfind'), six.u('value'): False},
+   {six.u('name'): six.u('accessibility.typeaheadfind.casesensitive'), six.u('value'): 0},
+   {six.u('name'): six.u('accessibility.warn_on_browsewithcaret'), six.u('value'): True},
+   {six.u('name'): six.u('accessibility.usetexttospeech'), six.u('value'): six.u('')},
+   {six.u('name'): six.u('accessibility.accesskeycausesactivation'), six.u('value'): True},
+   {six.u('name'): six.u('accessibility.typeaheadfind.linksonly'), six.u('value'): False},
+   {six.u('name'): six.u('isInstantiated'), six.u('value'): True}],
+  six.u('extensions'): [{six.u('id'): six.u('216ee7f7f4a5b8175374cd62150664efe2433a31'),
+    six.u('isEnabled'): True},
+   {six.u('id'): six.u('1aa53d3b720800c43c4ced5740a6e82bb0b3813e'), six.u('isEnabled'): False},
+   {six.u('id'): six.u('01ecfac5a7bd8c9e27b7c5499e71c2d285084b37'), six.u('isEnabled'): True},
+   {six.u('id'): six.u('1c01f5b22371b70b312ace94785f7b0b87c3dfb2'), six.u('isEnabled'): True},
+   {six.u('id'): six.u('fb723781a2385055f7d024788b75e959ad8ea8c3'), six.u('isEnabled'): True}],
+  six.u('fxVersion'): six.u('9.0'),
+  six.u('location'): six.u('zh-CN'),
+  six.u('operatingSystem'): six.u('WINNT Windows NT 5.1'),
+  six.u('surveyAnswers'): six.u(''),
+  six.u('task_guid'): six.u('d69fbd15-2517-45b5-8a17-bb7354122a75'),
+  six.u('tpVersion'): six.u('1.2'),
+  six.u('updateChannel'): six.u('beta')},
+ six.u('survey_data'): {
+  six.u('extensions'): [{six.u('appDisabled'): False,
+    six.u('id'): six.u('testpilot?labs.mozilla.com'),
+    six.u('isCompatible'): True,
+    six.u('isEnabled'): True,
+    six.u('isPlatformCompatible'): True,
+    six.u('name'): six.u('Test Pilot')},
+   {six.u('appDisabled'): True,
+    six.u('id'): six.u('dict?www.youdao.com'),
+    six.u('isCompatible'): False,
+    six.u('isEnabled'): False,
+    six.u('isPlatformCompatible'): True,
+    six.u('name'): six.u('Youdao Word Capturer')},
+   {six.u('appDisabled'): False,
+    six.u('id'): six.u('jqs?sun.com'),
+    six.u('isCompatible'): True,
+    six.u('isEnabled'): True,
+    six.u('isPlatformCompatible'): True,
+    six.u('name'): six.u('Java Quick Starter')},
+   {six.u('appDisabled'): False,
+    six.u('id'): six.u('?20a82645-c095-46ed-80e3-08825760534b?'),
+    six.u('isCompatible'): True,
+    six.u('isEnabled'): True,
+    six.u('isPlatformCompatible'): True,
+    six.u('name'): six.u('Microsoft .NET Framework Assistant')},
+   {six.u('appDisabled'): False,
+    six.u('id'): six.u('?a0d7ccb3-214d-498b-b4aa-0e8fda9a7bf7?'),
+    six.u('isCompatible'): True,
+    six.u('isEnabled'): True,
+    six.u('isPlatformCompatible'): True,
+    six.u('name'): six.u('WOT')}],
+  six.u('version_number'): 1}}
 
 # class SurveyResult(object):
 
@@ -267,7 +270,7 @@ def flatten(*stack):
     """
     stack = list(stack)
     while stack:
-        try: x = stack[0].next()
+        try: x = next(stack[0])
         except StopIteration:
             stack.pop(0)
             continue
@@ -282,7 +285,7 @@ def _Q(filter_, thing):
     """ underlying machinery for Q function recursion """
     T = type(thing)
     if T is type({}):
-        for k,v in thing.iteritems():
+        for k,v in compat.iteritems(thing):
             #print k,v
             if filter_ == k:
                 if type(v) is type([]):
@@ -386,34 +389,34 @@ def printout(queries,things,default=None, f=sys.stdout, **kwargs):
 
 
 def test_run():
-    print "\n>>> print list(Q('url',ex1))"
-    print list(Q('url',ex1))
+    print("\n>>> print list(Q('url',ex1))")
+    print(list(Q('url',ex1)))
     assert  list(Q('url',ex1)) == ['url1','url2','url3']
     assert Ql('url',ex1) == ['url1','url2','url3']
 
-    print "\n>>>  print list(Q(['name','id'],ex1))"
-    print list(Q(['name','id'],ex1))
+    print("\n>>>  print list(Q(['name','id'],ex1))")
+    print(list(Q(['name','id'],ex1)))
     assert Ql(['name','id'],ex1) == ['Gregg','hello','gbye']
 
 
-    print "\n>>> print Ql('more url',ex1)"
-    print Ql('more url',ex1)
+    print("\n>>> print Ql('more url',ex1)")
+    print(Ql('more url',ex1))
 
 
-    print "\n>>> list(Q('extensions',ex1))"
-    print list(Q('extensions',ex1))
+    print("\n>>> list(Q('extensions',ex1))")
+    print(list(Q('extensions',ex1)))
 
-    print "\n>>> print Ql('extensions',ex1)"
-    print Ql('extensions',ex1)
+    print("\n>>> print Ql('extensions',ex1)")
+    print(Ql('extensions',ex1))
 
-    print "\n>>> printout(['name','extensions'],[ex1,], extrasaction='ignore')"
+    print("\n>>> printout(['name','extensions'],[ex1,], extrasaction='ignore')")
     printout(['name','extensions'],[ex1,], extrasaction='ignore')
 
-    print "\n\n"
+    print("\n\n")
 
     from pprint import pprint as pp
 
-    print "-- note that the extension fields are also flattened!  (and N/A) -- "
+    print("-- note that the extension fields are also flattened!  (and N/A) -- ")
     pp(denorm(['location','fxVersion','notthere','survey_data extensions'],[ex2,], default="N/A")[:2])
 
 

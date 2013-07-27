@@ -1,3 +1,4 @@
+from pandas.util.py3compat import range
 import unittest
 
 import numpy as np
@@ -46,7 +47,7 @@ class TestUnique(unittest.TestCase):
 
     def test_object_refcount_bug(self):
         lst = ['A', 'B', 'C', 'D', 'E']
-        for i in xrange(1000):
+        for i in range(1000):
             len(algos.unique(lst))
 
     def test_on_index_object(self):

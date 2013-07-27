@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+import six
 import numpy as np
 
 from pandas.core.groupby import BinGrouper, CustomGrouper
@@ -230,7 +231,7 @@ class TimeGrouper(CustomGrouper):
                                        limit=self.limit)
 
         loffset = self.loffset
-        if isinstance(loffset, basestring):
+        if isinstance(loffset, six.string_types):
             loffset = to_offset(self.loffset)
 
         if isinstance(loffset, (DateOffset, timedelta)):
@@ -291,7 +292,7 @@ def _take_new_index(obj, indexer, new_index, axis=0):
 
 
 def _get_range_edges(axis, offset, closed='left', base=0):
-    if isinstance(offset, basestring):
+    if isinstance(offset, six.string_types):
         offset = to_offset(offset)
 
     if isinstance(offset, Tick):

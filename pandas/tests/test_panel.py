@@ -1,6 +1,8 @@
 # pylint: disable=W0612,E1101
 
 from datetime import datetime
+from pandas.util.py3compat import range
+from pandas.util import compat
 import operator
 import unittest
 import nose
@@ -269,12 +271,12 @@ class SafeForSparse(object):
         tm.equalContents(self.panel.keys(), self.panel.items)
 
     def test_iteritems(self):
-        # Test panel.iteritems(), aka panel.iterkv()
+        # Test panel.iteritems(), aka panel.iteritems()
         # just test that it works
-        for k, v in self.panel.iterkv():
+        for k, v in self.panel.iteritems():
             pass
 
-        self.assertEqual(len(list(self.panel.iterkv())),
+        self.assertEqual(len(list(self.panel.iteritems())),
                          len(self.panel.items))
 
     def test_combineFrame(self):
@@ -390,7 +392,7 @@ class CheckIndexing(object):
         values[1] = 1
         values[2] = 2
 
-        panel = Panel(values, range(3), range(3), range(3))
+        panel = Panel(values, list(range(3)), list(range(3)), list(range(3)))
 
         # did we delete the right row?
 
@@ -811,8 +813,8 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
 
     def test_constructor_observe_dtype(self):
         # GH #411
-        panel = Panel(items=range(3), major_axis=range(3),
-                      minor_axis=range(3), dtype='O')
+        panel = Panel(items=list(range(3)), major_axis=list(range(3)),
+                      minor_axis=list(range(3)), dtype='O')
         self.assert_(panel.values.dtype == np.object_)
 
     def test_constructor_dtypes(self):
@@ -824,19 +826,19 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
 
         # only nan holding types allowed here
         for dtype in ['float64','float32','object']:
-            panel = Panel(items=range(2),major_axis=range(10),minor_axis=range(5),dtype=dtype)
+            panel = Panel(items=list(range(2)),major_axis=list(range(10)),minor_axis=list(range(5)),dtype=dtype)
             _check_dtype(panel,dtype)
 
         for dtype in ['float64','float32','int64','int32','object']:
-            panel = Panel(np.array(np.random.randn(2,10,5),dtype=dtype),items=range(2),major_axis=range(10),minor_axis=range(5),dtype=dtype)
+            panel = Panel(np.array(np.random.randn(2,10,5),dtype=dtype),items=list(range(2)),major_axis=list(range(10)),minor_axis=list(range(5)),dtype=dtype)
             _check_dtype(panel,dtype)
 
         for dtype in ['float64','float32','int64','int32','object']:
-            panel = Panel(np.array(np.random.randn(2,10,5),dtype='O'),items=range(2),major_axis=range(10),minor_axis=range(5),dtype=dtype)
+            panel = Panel(np.array(np.random.randn(2,10,5),dtype='O'),items=list(range(2)),major_axis=list(range(10)),minor_axis=list(range(5)),dtype=dtype)
             _check_dtype(panel,dtype)
 
         for dtype in ['float64','float32','int64','int32','object']:
-            panel = Panel(np.random.randn(2,10,5),items=range(2),major_axis=range(10),minor_axis=range(5),dtype=dtype)
+            panel = Panel(np.random.randn(2,10,5),items=list(range(2)),major_axis=list(range(10)),minor_axis=list(range(5)),dtype=dtype)
             _check_dtype(panel,dtype)
 
     def test_consolidate(self):
@@ -892,7 +894,7 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         assert_panel_equal(result, expected)
 
     def test_constructor_dict_mixed(self):
-        data = dict((k, v.values) for k, v in self.panel.iterkv())
+        data = dict((k, v.values) for k, v in self.panel.iteritems())
         result = Panel(data)
         exp_major = Index(np.arange(len(self.panel.major_axis)))
         self.assert_(result.major_axis.equals(exp_major))
@@ -961,15 +963,15 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
     def test_constructor_error_msgs(self):
 
         def testit():
-            Panel(np.random.randn(3,4,5), range(4), range(5), range(5))
+            Panel(np.random.randn(3,4,5), list(range(4)), list(range(5)), list(range(5)))
         assertRaisesRegexp(ValueError, "Shape of passed values is \(3, 4, 5\), indices imply \(4, 5, 5\)", testit)
 
         def testit():
-            Panel(np.random.randn(3,4,5), range(5), range(4), range(5))
+            Panel(np.random.randn(3,4,5), list(range(5)), list(range(4)), list(range(5)))
         assertRaisesRegexp(ValueError, "Shape of passed values is \(3, 4, 5\), indices imply \(5, 4, 5\)", testit)
 
         def testit():
-            Panel(np.random.randn(3,4,5), range(5), range(5), range(4))
+            Panel(np.random.randn(3,4,5), list(range(5)), list(range(5)), list(range(4)))
         assertRaisesRegexp(ValueError, "Shape of passed values is \(3, 4, 5\), indices imply \(5, 5, 4\)", testit)
 
     def test_conform(self):
@@ -1282,7 +1284,7 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         # negative numbers, #2164
         result = self.panel.shift(-1)
         expected = Panel(dict((i, f.shift(-1)[:-1])
-                              for i, f in self.panel.iterkv()))
+                              for i, f in self.panel.iteritems()))
         assert_panel_equal(result, expected)
 
     def test_multiindex_get(self):
@@ -1381,7 +1383,7 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
                 except ImportError:
                     raise nose.SkipTest
 
-                for item, df in self.panel.iterkv():
+                for item, df in self.panel.iteritems():
                     recdf = reader.parse(str(item), index_col=0)
                     assert_frame_equal(df, recdf)
 

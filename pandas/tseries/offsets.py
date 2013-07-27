@@ -1,4 +1,7 @@
 from datetime import date, datetime, timedelta
+from pandas.util.py3compat import range
+from pandas.util import compat
+import six
 import numpy as np
 
 from pandas.tseries.tools import to_datetime
@@ -80,10 +83,10 @@ class DateOffset(object):
     def apply(self, other):
         if len(self.kwds) > 0:
             if self.n > 0:
-                for i in xrange(self.n):
+                for i in range(self.n):
                     other = other + self._offset
             else:
-                for i in xrange(-self.n):
+                for i in range(-self.n):
                     other = other - self._offset
             return other
         else:
@@ -137,7 +140,7 @@ class DateOffset(object):
         if other is None:
             return False
 
-        if isinstance(other, basestring):
+        if isinstance(other, six.string_types):
             from pandas.tseries.frequencies import to_offset
             other = to_offset(other)
 
@@ -428,7 +431,7 @@ class CustomBusinessDay(BusinessDay):
 
     @staticmethod
     def _to_dt64(dt, dtype='datetime64'):
-        if isinstance(dt, (datetime, basestring)):
+        if isinstance(dt, (datetime, six.string_types)):
             dt = np.datetime64(dt, dtype=dtype)
         if isinstance(dt, np.datetime64):
             dt = dt.astype(dtype)
@@ -622,14 +625,14 @@ class Week(DateOffset, CacheableOffset):
             if otherDay != self.weekday:
                 other = other + timedelta((self.weekday - otherDay) % 7)
                 k = k - 1
-            for i in xrange(k):
+            for i in range(k):
                 other = other + self._inc
         else:
             k = self.n
             otherDay = other.weekday()
             if otherDay != self.weekday:
                 other = other + timedelta((self.weekday - otherDay) % 7)
-            for i in xrange(-k):
+            for i in range(-k):
                 other = other - self._inc
         return other
 
@@ -713,7 +716,7 @@ class WeekOfMonth(DateOffset, CacheableOffset):
 
         d = w.rollforward(d)
 
-        for i in xrange(self.week):
+        for i in range(self.week):
             d = w.apply(d)
 
         return d
@@ -1166,7 +1169,7 @@ class Tick(DateOffset):
         return self.apply(other)
 
     def __eq__(self, other):
-        if isinstance(other, basestring):
+        if isinstance(other, six.string_types):
             from pandas.tseries.frequencies import to_offset
             other = to_offset(other)
 
@@ -1181,7 +1184,7 @@ class Tick(DateOffset):
         return hash(self._params())
 
     def __ne__(self, other):
-        if isinstance(other, basestring):
+        if isinstance(other, six.string_types):
             from pandas.tseries.frequencies import to_offset
             other = to_offset(other)
 
@@ -1315,7 +1318,7 @@ def generate_range(start=None, end=None, periods=None,
     end : datetime (default None)
     periods : int, optional
     time_rule : (legacy) name of DateOffset object to be used, optional
-        Corresponds with names expected by tseries.frequencies.get_offset        
+        Corresponds with names expected by tseries.frequencies.get_offset
 
     Note
     ----

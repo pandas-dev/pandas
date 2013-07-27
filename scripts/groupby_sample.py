@@ -1,6 +1,8 @@
 from pandas import *
 import numpy as np
 import string
+import six
+import pandas.util.compat as compat
 
 g1 = np.array(list(string.letters))[:-1]
 g2 = np.arange(510)
@@ -30,7 +32,7 @@ def random_sample_v2():
     grouped = df.groupby(['group1', 'group2'])['value']
     from random import choice
     choose = lambda group: choice(group.index)
-    indices = [choice(v) for k, v in grouped.groups.iteritems()]
+    indices = [choice(v) for k, v in compat.iteritems(grouped.groups)]
     return df.reindex(indices)
 
 
@@ -43,7 +45,7 @@ def do_shuffle(arr):
 
 def shuffle_uri(df, grouped):
     perm = np.r_[tuple([np.random.permutation(
-        idxs) for idxs in grouped.groups.itervalues()])]
+        idxs) for idxs in six.itervalues(grouped.groups)])]
     df['state_permuted'] = np.asarray(df.ix[perm]['value'])
 
 df2 = df.copy()

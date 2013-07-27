@@ -1,3 +1,4 @@
+from pandas.util.py3compat import range
 import unittest
 
 import numpy as np
@@ -7,6 +8,7 @@ from pandas import DataFrame, Series, Index, MultiIndex
 from pandas.tools.merge import concat
 from pandas.tools.pivot import pivot_table, crosstab
 import pandas.util.testing as tm
+import six
 
 
 class TestPivotTable(unittest.TestCase):
@@ -72,9 +74,18 @@ class TestPivotTable(unittest.TestCase):
         pv_col = df.pivot_table('quantity', 'month', ['customer', 'product'], dropna=False)
         pv_ind = df.pivot_table('quantity', ['customer', 'product'], 'month', dropna=False)
 
-        m = MultiIndex.from_tuples([(u'A', u'a'), (u'A', u'b'), (u'A', u'c'), (u'A', u'd'), 
-                                   (u'B', u'a'), (u'B', u'b'), (u'B', u'c'), (u'B', u'd'),
-                                   (u'C', u'a'), (u'C', u'b'), (u'C', u'c'), (u'C', u'd')])
+        m = MultiIndex.from_tuples([(six.u('A'), six.u('a')),
+                                    (six.u('A'), six.u('b')),
+                                    (six.u('A'), six.u('c')),
+                                    (six.u('A'), six.u('d')),
+                                    (six.u('B'), six.u('a')),
+                                    (six.u('B'), six.u('b')),
+                                    (six.u('B'), six.u('c')),
+                                    (six.u('B'), six.u('d')),
+                                    (six.u('C'), six.u('a')),
+                                    (six.u('C'), six.u('b')),
+                                    (six.u('C'), six.u('c')),
+                                    (six.u('C'), six.u('d'))])
 
         assert_equal(pv_col.columns.values, m.values)
         assert_equal(pv_ind.index.values, m.values)
@@ -212,7 +223,7 @@ class TestPivotTable(unittest.TestCase):
 
         d = datetime.date.min
         data = list(product(['foo', 'bar'], ['A', 'B', 'C'], ['x1', 'x2'],
-                            [d + datetime.timedelta(i) for i in xrange(20)], [1.0]))
+                            [d + datetime.timedelta(i) for i in range(20)], [1.0]))
         df = pandas.DataFrame(data)
         table = df.pivot_table(values=4, rows=[0, 1, 3], cols=[2])
 

@@ -20,6 +20,8 @@ from pandas.lib import Timestamp
 import pandas.lib as lib
 import pandas.tslib as tslib
 import pandas.algos as _algos
+import six
+from six.moves import map, zip
 
 
 #---------------
@@ -47,7 +49,7 @@ class Period(PandasObject):
 
     Parameters
     ----------
-    value : Period or basestring, default None
+    value : Period or six.string_types, default None
         The time period represented (e.g., '4Q2005')
     freq : str, default None
         e.g., 'B' for businessday, ('T', 5) or '5T' for 5 minutes
@@ -99,7 +101,7 @@ class Period(PandasObject):
                 converted = other.asfreq(freq)
                 self.ordinal = converted.ordinal
 
-        elif isinstance(value, basestring) or com.is_integer(value):
+        elif isinstance(value, six.string_types) or com.is_integer(value):
             if com.is_integer(value):
                 value = str(value)
 
@@ -666,7 +668,7 @@ class PeriodIndex(Int64Index):
 
     def __contains__(self, key):
         if not isinstance(key, Period) or key.freq != self.freq:
-            if isinstance(key, basestring):
+            if isinstance(key, six.string_types):
                 try:
                     self.get_loc(key)
                     return True
@@ -946,7 +948,7 @@ class PeriodIndex(Int64Index):
         """
         Index.slice_locs, customized to handle partial ISO-8601 string slicing
         """
-        if isinstance(start, basestring) or isinstance(end, basestring):
+        if isinstance(start, six.string_types) or isinstance(end, six.string_types):
             try:
                 if start:
                     start_loc = self._get_string_slice(start).start
@@ -1057,14 +1059,14 @@ class PeriodIndex(Int64Index):
     def _format_with_header(self, header, **kwargs):
         return header + self._format_native_types(**kwargs)
 
-    def _format_native_types(self, na_rep=u'NaT', **kwargs):
+    def _format_native_types(self, na_rep=six.u('NaT'), **kwargs):
 
         values = np.array(list(self),dtype=object)
         mask = isnull(self.values)
         values[mask] = na_rep
 
         imask = -mask
-        values[imask] = np.array([ u'%s' % dt for dt in values[imask] ])
+        values[imask] = np.array([six.u('%s') % dt for dt in values[imask]])
         return values.tolist()
 
     def __array_finalize__(self, obj):
@@ -1084,7 +1086,7 @@ class PeriodIndex(Int64Index):
 
     def __unicode__(self):
         output = self.__class__.__name__
-        output += u'('
+        output += six.u('(')
         prefix = '' if py3compat.PY3 else 'u'
         mapper = "{0}'{{0}}'".format(prefix)
         output += '[{0}]'.format(', '.join(map(mapper.format, self)))

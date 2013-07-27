@@ -1,7 +1,9 @@
+from pandas.util.py3compat import range
 import numpy as np
 import itertools
 import collections
 import scipy.ndimage as ndi
+from six.moves import zip
 
 N = 10000
 

@@ -1,6 +1,10 @@
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
 
+from pandas.util.py3compat import range
+from pandas.util import compat
+from six.moves import zip
+import six
 import itertools
 
 import numpy as np
@@ -187,7 +191,7 @@ class _Unstacker(object):
         new_mask = np.zeros(result_shape, dtype=bool)
 
         # is there a simpler / faster way of doing this?
-        for i in xrange(values.shape[1]):
+        for i in range(values.shape[1]):
             chunk = new_values[:, i * width: (i + 1) * width]
             mask_chunk = new_mask[:, i * width: (i + 1) * width]
 
@@ -397,7 +401,7 @@ def _slow_pivot(index, columns, values):
     Could benefit from some Cython here.
     """
     tree = {}
-    for i, (idx, col) in enumerate(itertools.izip(index, columns)):
+    for i, (idx, col) in enumerate(zip(index, columns)):
         if col not in tree:
             tree[col] = {}
         branch = tree[col]
@@ -685,11 +689,11 @@ def melt(frame, id_vars=None, value_vars=None,
                 var_name = frame.columns.names
             else:
                 var_name = ['variable_%s' % i for i in
-                            xrange(len(frame.columns.names))]
+                            range(len(frame.columns.names))]
         else:
             var_name = [frame.columns.name if frame.columns.name is not None
                         else 'variable']
-    if isinstance(var_name, basestring):
+    if isinstance(var_name, six.string_types):
         var_name = [var_name]
 
     N, K = frame.shape
@@ -898,7 +902,7 @@ def block2d_to_blocknd(values, items, shape, labels, ref_items=None):
         pvalues.fill(fill_value)
 
     values = values
-    for i in xrange(len(items)):
+    for i in range(len(items)):
         pvalues[i].flat[mask] = values[:, i]
 
     if ref_items is None:

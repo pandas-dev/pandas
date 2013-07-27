@@ -1,3 +1,4 @@
+from pandas.util.py3compat import range
 import numpy as np
 
 import pandas as pd
@@ -53,12 +54,12 @@ def pivot_annual(series, freq=None):
         # adjust for leap year
         offset[(-isleapyear(year)) & (offset >= 59)] += 1
 
-        columns = range(1, 367)
+        columns = list(range(1, 367))
         # todo: strings like 1/1, 1/25, etc.?
     elif freq in ('M', 'BM'):
         width = 12
         offset = index.month - 1
-        columns = range(1, 13)
+        columns = list(range(1, 13))
     elif freq == 'H':
         width = 8784
         grouped = series.groupby(series.index.year)
@@ -66,7 +67,7 @@ def pivot_annual(series, freq=None):
         defaulted.index = defaulted.index.droplevel(0)
         offset = np.asarray(defaulted.index)
         offset[-isleapyear(year) & (offset >= 1416)] += 24
-        columns = range(1, 8785)
+        columns = list(range(1, 8785))
     else:
         raise NotImplementedError(freq)
 

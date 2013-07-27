@@ -1,6 +1,8 @@
+from __future__ import print_function
 # -*- encoding:utf-8 -*-
 
 import sys, os
+import six
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from docscrape import NumpyDocString, FunctionDoc, ClassDoc
@@ -143,7 +145,7 @@ def test_examples():
 
 def test_index():
     assert_equal(doc['index']['default'], 'random')
-    print doc['index']
+    print(doc['index'])
     assert_equal(len(doc['index']), 2)
     assert_equal(len(doc['index']['refguide']), 2)
 
@@ -491,7 +493,7 @@ def test_unicode():
         äää
 
     """)
-    assert doc['Summary'][0] == u'öäöäöäöäöåååå'.encode('utf-8')
+    assert doc['Summary'][0] == six.u('öäöäöäöäöåååå').encode('utf-8')
 
 def test_plot_examples():
     cfg = dict(use_plots=True)

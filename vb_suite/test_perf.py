@@ -25,7 +25,10 @@ everything and calculate a ration for the timing information.
 5) print the results to the log file and to stdout.
 
 """
+from __future__ import print_function
 
+from pandas.util.py3compat import range
+from six.moves import map
 import shutil
 import os
 import sys
@@ -275,7 +278,8 @@ def profile_head_single(benchmark):
                         err = str(e)
                 except:
                     pass
-                print("%s died with:\n%s\nSkipping...\n" % (benchmark.name, err))
+                print("%s died with:\n%s\nSkipping...\n" % (benchmark.name,
+                                                            err))
 
             results.append(d.get('timing',np.nan))
             gc.enable()
@@ -296,7 +300,8 @@ def profile_head_single(benchmark):
     # return df.set_index("name")[HEAD_COL]
 
 def profile_head(benchmarks):
-    print( "Performing %d benchmarks (%d runs each)" % ( len(benchmarks), args.hrepeats))
+    print("Performing %d benchmarks (%d runs each)" % (len(benchmarks),
+                                                       args.hrepeats))
 
     ss= [profile_head_single(b) for b in benchmarks]
     print("\n")
