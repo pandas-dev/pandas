@@ -1864,6 +1864,13 @@ class TestPeriodIndex(TestCase):
             tm.assert_isinstance(joined, PeriodIndex)
             self.assert_(joined.freq == index.freq)
 
+    def test_join_self(self):
+        index = period_range('1/1/2000', '1/20/2000', freq='D')
+
+        for kind in ['inner', 'outer', 'left', 'right']:
+            res = index.join(index, how=kind)
+            self.assert_(index is res)
+
     def test_align_series(self):
         rng = period_range('1/1/2000', '1/1/2010', freq='A')
         ts = Series(np.random.randn(len(rng)), index=rng)

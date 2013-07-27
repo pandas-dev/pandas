@@ -1960,6 +1960,12 @@ class TestDatetimeIndex(unittest.TestCase):
         dr = pd.date_range(st, et, freq='H', name='timebucket')
         self.assertEqual(dr[1:].name, dr.name)
 
+    def test_join_self(self):
+        index = date_range('1/1/2000', periods=10)
+        kinds = 'outer', 'inner', 'left', 'right'
+        for kind in kinds:
+            joined = index.join(index, how=kind)
+            self.assert_(index is joined)
 
 class TestLegacySupport(unittest.TestCase):
     _multiprocess_can_split_ = True
