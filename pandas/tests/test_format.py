@@ -292,7 +292,7 @@ class TestDataFrameFormatting(unittest.TestCase):
         buf.getvalue()
 
         result = self.frame.to_string()
-        self.assert_(isinstance(result, unicode))
+        tm.assert_isinstance(result, six.text_type)
 
     def test_to_string_utf8_columns(self):
         n = six.u("\u05d0").encode('utf-8')

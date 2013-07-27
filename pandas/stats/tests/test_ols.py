@@ -22,9 +22,8 @@ from pandas.stats.plm import NonPooledPanelOLS, PanelOLS
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal, assertRaisesRegexp)
 import pandas.util.testing as tm
-
-from common import BaseTest
-import six
+import pandas.util.compat as compat
+from .common import BaseTest
 
 _have_statsmodels = True
 try:
@@ -42,7 +41,7 @@ def _check_repr(obj):
 
 
 def _compare_ols_results(model1, model2):
-    assert(type(model1) == type(model2))
+    tm.assert_isinstance(model1, type(model2))
 
     if hasattr(model1, '_window_type'):
         _compare_moving_ols(model1, model2)
@@ -369,7 +368,7 @@ class TestOLSMisc(unittest.TestCase):
         y = lp.pop('ItemA')
         model = ols(y=y, x=lp, entity_effects=True, window=20)
         self.assert_(notnull(model.beta.values).all())
-        self.assert_(isinstance(model, PanelOLS))
+        tm.assert_isinstance(model, PanelOLS)
         model.summary
 
     def test_series_rhs(self):
@@ -390,7 +389,7 @@ class TestOLSMisc(unittest.TestCase):
 
         for attr in series_attrs:
             value = getattr(model, attr)
-            self.assert_(isinstance(value, Series))
+            tm.assert_isinstance(value, Series)
 
         # works
         model._results
@@ -531,7 +530,7 @@ class TestPanelOLS(BaseTest):
 
         stack_y = y.stack()
         stack_x = DataFrame(dict((k, v.stack())
-                                 for k, v in x.iteritems()))
+                                 for k, v in compat.iteritems(x)))
 
         weights = x.std('items')
         stack_weights = weights.stack()

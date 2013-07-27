@@ -102,7 +102,7 @@ class DateOffset(object):
         return self.isAnchored() and self._cacheable
 
     def _params(self):
-        attrs = [(k, v) for k, v in vars(self).iteritems()
+        attrs = [(k, v) for k, v in compat.iteritems(vars(self))
                  if k not in ['kwds', '_offset', 'name', 'normalize',
                  'busdaycalendar']]
         attrs.extend(self.kwds.items())

@@ -13,6 +13,7 @@ from pandas.io.parsers import read_csv
 from pandas.io.stata import read_stata, StataReader
 import pandas.util.testing as tm
 from pandas.util.misc import is_little_endian
+import six
 
 
 class StataTests(unittest.TestCase):

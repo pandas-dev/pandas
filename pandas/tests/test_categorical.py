@@ -95,7 +95,7 @@ class TestCategorical(unittest.TestCase):
         arr = np.random.randn(4)
         factor = cut(arr, 4)
 
-        self.assert_(isinstance(factor, Categorical))
+        tm.assert_isinstance(factor, Categorical)
 
         result = value_counts(factor)
         expected = value_counts(np.asarray(factor))

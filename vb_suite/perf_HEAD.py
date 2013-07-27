@@ -105,7 +105,7 @@ def main():
 
         except Exception as e:
             exit_code = 1
-            if (type(e) == KeyboardInterrupt or
+            if (isinstance(e, KeyboardInterrupt) or
                     'KeyboardInterrupt' in str(d)):
                 raise KeyboardInterrupt()
 

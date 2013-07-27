@@ -5,7 +5,7 @@ _WINDOW_TYPES = {
     2: 'expanding'
 }
 # also allow 'rolling' as key
-_WINDOW_TYPES.update((v, v) for k,v in _WINDOW_TYPES.items())
+_WINDOW_TYPES.update((v, v) for k,v in list(_WINDOW_TYPES.items()))
 _ADDITIONAL_CLUSTER_TYPES = set(("entity", "time"))
 
 def _get_cluster_type(cluster_type):

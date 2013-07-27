@@ -1729,7 +1729,7 @@ class GenericStorer(Storer):
     """ a generified storer version """
     _index_type_map    = { DatetimeIndex: 'datetime',
                            PeriodIndex: 'period'}
-    _reverse_index_map = dict([ (v,k) for k, v in _index_type_map.iteritems() ])
+    _reverse_index_map = dict([ (v,k) for k, v in compat.iteritems(_index_type_map) ])
     attributes = []
 
     # indexer helpders
@@ -2104,7 +2104,7 @@ class SparseFrameStorer(GenericStorer):
     def write(self, obj, **kwargs):
         """ write it as a collection of individual sparse series """
         super(SparseFrameStorer, self).write(obj, **kwargs)
-        for name, ss in obj.iteritems():
+        for name, ss in compat.iteritems(obj):
             key = 'sparse_series_%s' % name
             if key not in self.group._v_children:
                 node = self._handle.createGroup(self.group, key)
@@ -2140,7 +2140,7 @@ class SparsePanelStorer(GenericStorer):
         self.attrs.default_kind       = obj.default_kind
         self.write_index('items', obj.items)
 
-        for name, sdf in obj.iteritems():
+        for name, sdf in compat.iteritems(obj):
             key = 'sparse_frame_%s' % name
             if key not in self.group._v_children:
                 node = self._handle.createGroup(self.group, key)

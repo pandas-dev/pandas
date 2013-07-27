@@ -36,14 +36,14 @@ class TestStringMethods(unittest.TestCase):
 
         for s in ds.str:
             # iter must yield a Series
-            self.assert_(isinstance(s, Series))
+            tm.assert_isinstance(s, Series)
 
             # indices of each yielded Series should be equal to the index of
             # the original Series
             assert_array_equal(s.index, ds.index)
 
             for el in s:
-                # each element of the series is either a six.string_types or nan
+                # each element of the series is either a basestring/str or nan
                 self.assert_(isinstance(el, six.string_types) or isnull(el))
 
         # desired behavior is to iterate until everything would be nan on the
@@ -142,7 +142,7 @@ class TestStringMethods(unittest.TestCase):
         tm.assert_almost_equal(result, exp)
 
         result = Series(values).str.count('f[o]+')
-        self.assert_(isinstance(result, Series))
+        tm.assert_isinstance(result, Series)
         tm.assert_almost_equal(result, exp)
 
         # mixed
@@ -152,7 +152,7 @@ class TestStringMethods(unittest.TestCase):
         tm.assert_almost_equal(rs, xp)
 
         rs = Series(mixed).str.count('a')
-        self.assert_(isinstance(rs, Series))
+        tm.assert_isinstance(rs, Series)
         tm.assert_almost_equal(rs, xp)
 
         # unicode
@@ -163,7 +163,7 @@ class TestStringMethods(unittest.TestCase):
         tm.assert_almost_equal(result, exp)
 
         result = Series(values).str.count('f[o]+')
-        self.assert_(isinstance(result, Series))
+        tm.assert_isinstance(result, Series)
         tm.assert_almost_equal(result, exp)
 
     def test_contains(self):
@@ -187,7 +187,7 @@ class TestStringMethods(unittest.TestCase):
         tm.assert_almost_equal(rs, xp)
 
         rs = Series(mixed).str.contains('o')
-        self.assert_(isinstance(rs, Series))
+        tm.assert_isinstance(rs, Series)
         tm.assert_almost_equal(rs, xp)
 
         # unicode
@@ -227,7 +227,7 @@ class TestStringMethods(unittest.TestCase):
         tm.assert_almost_equal(rs, xp)
 
         rs = Series(mixed).str.startswith('f')
-        self.assert_(isinstance(rs, Series))
+        tm.assert_isinstance(rs, Series)
         tm.assert_almost_equal(rs, xp)
 
         # unicode
@@ -255,7 +255,7 @@ class TestStringMethods(unittest.TestCase):
         tm.assert_almost_equal(rs, xp)
 
         rs = Series(mixed).str.endswith('f')
-        self.assert_(isinstance(rs, Series))
+        tm.assert_isinstance(rs, Series)
         tm.assert_almost_equal(rs, xp)
 
         # unicode
@@ -307,7 +307,7 @@ class TestStringMethods(unittest.TestCase):
         mixed = mixed.str.upper()
         rs = Series(mixed).str.lower()
         xp = ['a', NA, 'b', NA, NA, 'foo', NA, NA, NA]
-        self.assert_(isinstance(rs, Series))
+        tm.assert_isinstance(rs, Series)
         tm.assert_almost_equal(rs, xp)
 
         # unicode
@@ -337,7 +337,7 @@ class TestStringMethods(unittest.TestCase):
 
         rs = Series(mixed).str.replace('BAD[_]*', '')
         xp = ['a', NA, 'b', NA, NA, 'foo', NA, NA, NA]
-        self.assert_(isinstance(rs, Series))
+        tm.assert_isinstance(rs, Series)
         tm.assert_almost_equal(rs, xp)
 
         # unicode
@@ -375,7 +375,7 @@ class TestStringMethods(unittest.TestCase):
 
         rs = Series(mixed).str.repeat(3)
         xp = ['aaa', NA, 'bbb', NA, NA, 'foofoofoo', NA, NA, NA]
-        self.assert_(isinstance(rs, Series))
+        tm.assert_isinstance(rs, Series)
         tm.assert_almost_equal(rs, xp)
 
         # unicode
@@ -405,7 +405,7 @@ class TestStringMethods(unittest.TestCase):
 
         rs = Series(mixed).str.match('.*(BAD[_]+).*(BAD)')
         xp = [('BAD_', 'BAD'), NA, ('BAD_', 'BAD'), NA, NA, [], NA, NA, NA]
-        self.assert_(isinstance(rs, Series))
+        tm.assert_isinstance(rs, Series)
         tm.assert_almost_equal(rs, xp)
 
         # unicode
@@ -427,7 +427,7 @@ class TestStringMethods(unittest.TestCase):
         rs = Series(mixed).str.split('_').str.join('_')
         xp = Series(['a_b', NA, 'asdf_cas_asdf', NA, NA, 'foo', NA, NA, NA])
 
-        self.assert_(isinstance(rs, Series))
+        tm.assert_isinstance(rs, Series)
         tm.assert_almost_equal(rs, xp)
 
         # unicode
@@ -450,7 +450,7 @@ class TestStringMethods(unittest.TestCase):
         rs = Series(mixed).str.len()
         xp = Series([3, NA, 13, NA, NA, 3, NA, NA, NA])
 
-        self.assert_(isinstance(rs, Series))
+        tm.assert_isinstance(rs, Series)
         tm.assert_almost_equal(rs, xp)
 
         # unicode
@@ -475,7 +475,7 @@ class TestStringMethods(unittest.TestCase):
         rs = Series(mixed).str.findall('BAD[_]*')
         xp = Series([['BAD__', 'BAD'], NA, [], NA, NA, ['BAD'], NA, NA, NA])
 
-        self.assert_(isinstance(rs, Series))
+        tm.assert_isinstance(rs, Series)
         tm.assert_almost_equal(rs, xp)
 
         # unicode
@@ -508,7 +508,7 @@ class TestStringMethods(unittest.TestCase):
         rs = Series(mixed).str.pad(5, side='left')
         xp = Series(['    a', NA, '    b', NA, NA, '   ee', NA, NA, NA])
 
-        self.assert_(isinstance(rs, Series))
+        tm.assert_isinstance(rs, Series)
         tm.assert_almost_equal(rs, xp)
 
         mixed = Series(['a', NA, 'b', True, datetime.today(),
@@ -517,7 +517,7 @@ class TestStringMethods(unittest.TestCase):
         rs = Series(mixed).str.pad(5, side='right')
         xp = Series(['a    ', NA, 'b    ', NA, NA, 'ee   ', NA, NA, NA])
 
-        self.assert_(isinstance(rs, Series))
+        tm.assert_isinstance(rs, Series)
         tm.assert_almost_equal(rs, xp)
 
         mixed = Series(['a', NA, 'b', True, datetime.today(),
@@ -526,7 +526,7 @@ class TestStringMethods(unittest.TestCase):
         rs = Series(mixed).str.pad(5, side='both')
         xp = Series(['  a  ', NA, '  b  ', NA, NA, '  ee ', NA, NA, NA])
 
-        self.assert_(isinstance(rs, Series))
+        tm.assert_isinstance(rs, Series)
         tm.assert_almost_equal(rs, xp)
 
         # unicode
@@ -563,7 +563,7 @@ class TestStringMethods(unittest.TestCase):
         xp = Series(['  a  ', NA, '  b  ', NA, NA, '  c  ', ' eee ', NA, NA,
                      NA])
 
-        self.assert_(isinstance(rs, Series))
+        tm.assert_isinstance(rs, Series)
         tm.assert_almost_equal(rs, xp)
 
         # unicode
@@ -595,7 +595,7 @@ class TestStringMethods(unittest.TestCase):
         xp = Series([['a', 'b', 'c'], NA, ['d', 'e', 'f'], NA, NA,
                      NA, NA, NA])
 
-        self.assert_(isinstance(rs, Series))
+        tm.assert_isinstance(rs, Series)
         tm.assert_almost_equal(rs, xp)
 
         # unicode
@@ -661,7 +661,7 @@ class TestStringMethods(unittest.TestCase):
         xp = Series(['foo', NA, 'bar', NA, NA,
                      NA, NA, NA])
 
-        self.assert_(isinstance(rs, Series))
+        tm.assert_isinstance(rs, Series)
         tm.assert_almost_equal(rs, xp)
 
         # unicode
@@ -699,21 +699,21 @@ class TestStringMethods(unittest.TestCase):
         xp = Series(['aa', NA, 'bb', NA, NA,
                      NA, NA, NA])
 
-        self.assert_(isinstance(rs, Series))
+        tm.assert_isinstance(rs, Series)
         tm.assert_almost_equal(rs, xp)
 
         rs = Series(mixed).str.lstrip()
         xp = Series(['aa  ', NA, 'bb \t\n', NA, NA,
                      NA, NA, NA])
 
-        self.assert_(isinstance(rs, Series))
+        tm.assert_isinstance(rs, Series)
         tm.assert_almost_equal(rs, xp)
 
         rs = Series(mixed).str.rstrip()
         xp = Series(['  aa', NA, ' bb', NA, NA,
                      NA, NA, NA])
 
-        self.assert_(isinstance(rs, Series))
+        tm.assert_isinstance(rs, Series)
         tm.assert_almost_equal(rs, xp)
 
     def test_strip_lstrip_rstrip_unicode(self):
@@ -782,7 +782,7 @@ class TestStringMethods(unittest.TestCase):
         xp = Series(['b', NA, 'd', NA, NA,
                      NA, NA, NA])
 
-        self.assert_(isinstance(rs, Series))
+        tm.assert_isinstance(rs, Series)
         tm.assert_almost_equal(rs, xp)
 
         # unicode

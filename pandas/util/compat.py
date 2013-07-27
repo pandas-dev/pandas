@@ -1,20 +1,8 @@
-# itertools.product not in Python 2.5
-
 import sys
 import six
-from six.moves import map
-try:
-    from itertools import product
-except ImportError:  # python 2.5
-    def product(*args, **kwds):
-        # product('ABCD', 'xy') --> Ax Ay Bx By Cx Cy Dx Dy
-        # product(range(2), repeat=3) --> 000 001 010 011 100 101 110 111
-        pools = list(map(tuple, args) * kwds.get('repeat', 1))
-        result = [[]]
-        for pool in pools:
-            result = [x + [y] for x in result for y in pool]
-        for prod in result:
-            yield tuple(prod)
+from six.moves import map, filter
+from pandas.util.py3compat import range
+from itertools import product
 
 
 # OrderedDict Shim from  Raymond Hettinger, python core dev
@@ -31,12 +19,15 @@ except ImportError:
     pass
 
 
-def iteritems(obj):
-    """replacement for six's iteritems to use iteritems on PandasObjects"""
+def iteritems(obj, **kwargs):
+    """replacement for six's iteritems for Python2/3 compat
+       uses 'iteritems' if available and otherwise uses 'items'.
+
+       Passes kwargs to method."""
     if hasattr(obj, "iteritems"):
-        return obj.iteritems()
+        return obj.iteritems(**kwargs)
     else:
-        return obj.items()
+        return obj.items(**kwargs)
 
 
 class _OrderedDict(dict):
@@ -293,7 +284,6 @@ class _OrderedDict(dict):
 try:
     from operator import itemgetter
     from heapq import nlargest
-    from itertools import repeat, ifilter
 except ImportError:
     pass
 
@@ -348,7 +338,7 @@ class _Counter(dict):
 
         '''
         for elem, count in iteritems(self):
-            for _ in repeat(None, count):
+            for _ in range(count):
                 yield elem
 
     # Override dict methods where the meaning changes for Counter objects.
@@ -375,7 +365,7 @@ class _Counter(dict):
             if hasattr(iterable, 'iteritems'):
                 if self:
                     self_get = self.get
-                    for elem, count in iterable.iteritems():
+                    for elem, count in iteritems(iterable):
                         self[elem] = self_get(elem, 0) + count
                 else:
                     dict.update(
@@ -474,7 +464,7 @@ class _Counter(dict):
         result = Counter()
         if len(self) < len(other):
             self, other = other, self
-        for elem in ifilter(self.__contains__, other):
+        for elem in filter(self.__contains__, other):
             newcount = _min(self[elem], other[elem])
             if newcount > 0:
                 result[elem] = newcount

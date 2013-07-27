@@ -62,7 +62,7 @@ class VAR(StringMixin):
         DataFrame
         """
         d = dict([(key, value.beta)
-                  for (key, value) in self.ols_results.iteritems()])
+                  for (key, value) in compat.iteritems(self.ols_results)])
         return DataFrame(d)
 
     def forecast(self, h):
@@ -80,7 +80,7 @@ class VAR(StringMixin):
         DataFrame
         """
         forecast = self._forecast_raw(h)[:, 0, :]
-        return DataFrame(forecast, index=range(1, 1 + h),
+        return DataFrame(forecast, index=list(range(1, 1 + h)),
                          columns=self._columns)
 
     def forecast_cov(self, h):
@@ -103,7 +103,7 @@ class VAR(StringMixin):
         DataFrame
         """
         return DataFrame(self._forecast_std_err_raw(h),
-                         index=range(1, 1 + h), columns=self._columns)
+                         index=list(range(1, 1 + h)), columns=self._columns)
 
     @cache_readonly
     def granger_causality(self):
@@ -135,13 +135,13 @@ class VAR(StringMixin):
                 lagged_data = self._lagged_data[i].filter(
                     self._columns - [col])
 
-                for key, value in lagged_data.iteritems():
+                for key, value in compat.iteritems(lagged_data):
                     d[col][_make_param_name(i, key)] = value
 
         f_stat_dict = {}
         p_value_dict = {}
 
-        for col, y in self._data.iteritems():
+        for col, y in compat.iteritems(self._data):
             ssr_full = (self.resid[col] ** 2).sum()
 
             f_stats = []
@@ -194,11 +194,11 @@ class VAR(StringMixin):
 
         d = {}
         for i in range(1, 1 + self._p):
-            for col, series in self._lagged_data[i].iteritems():
+            for col, series in compat.iteritems(self._lagged_data[i]):
                 d[_make_param_name(i, col)] = series
 
         result = dict([(col, ols(y=y, x=d, intercept=self._intercept))
-                       for col, y in self._data.iteritems()])
+                       for col, y in compat.iteritems(self._data)])
 
         return result
 
@@ -214,7 +214,7 @@ class VAR(StringMixin):
         DataFrame
         """
         d = dict([(col, series.resid)
-                  for (col, series) in self.ols_results.iteritems()])
+                  for (col, series) in compat.iteritems(self.ols_results)])
         return DataFrame(d, index=self._index)
 
     @cache_readonly
@@ -345,7 +345,7 @@ BIC:                            %(bic).3f
 
             for t in range(T + 1):
                 index = t + p
-                y = values.take(range(index, index - p, -1), axis=0).ravel()
+                y = values.take(list(range(index, index - p, -1)), axis=0).ravel()
                 trans_Z = np.hstack(([1], y))
                 trans_Z = trans_Z.reshape(1, len(trans_Z))
 
@@ -535,7 +535,7 @@ class PanelVAR(VAR):
         Returns the forecasts at 1, 2, ..., n timesteps in the future.
         """
         forecast = self._forecast_raw(h).T.swapaxes(1, 2)
-        index = range(1, 1 + h)
+        index = list(range(1, 1 + h))
         w = Panel(forecast, items=self._data.items, major_axis=index,
                   minor_axis=self._data.minor_axis)
         return w
@@ -552,7 +552,7 @@ class PanelVAR(VAR):
         DataFrame
         """
         d = dict([(key, value.resid)
-                  for (key, value) in self.ols_results.iteritems()])
+                  for (key, value) in compat.iteritems(self.ols_results)])
         return Panel.fromDict(d)
 
     def _data_xs(self, i):

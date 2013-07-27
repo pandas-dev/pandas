@@ -7,6 +7,7 @@ from numpy import nan
 import numpy as np
 import operator
 from numpy.testing import assert_almost_equal, assert_equal
+import pandas.util.testing as tm
 
 from pandas.core.sparse import SparseSeries
 from pandas import DataFrame
@@ -288,7 +289,7 @@ class TestIntIndex(TestCase):
             # see if survive the round trip
             xbindex = xindex.to_int_index().to_block_index()
             ybindex = yindex.to_int_index().to_block_index()
-            self.assert_(isinstance(xbindex, BlockIndex))
+            tm.assert_isinstance(xbindex, BlockIndex)
             self.assert_(xbindex.equals(xindex))
             self.assert_(ybindex.equals(yindex))
         check_cases(_check_case)

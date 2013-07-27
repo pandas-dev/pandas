@@ -11,7 +11,10 @@ import pandas.lib as lib
 import pandas.algos as algos
 import pandas.hashtable as _hash
 import pandas.tslib as tslib
+
+from six.moves import builtins
 import six
+
 
 try:
     import bottleneck as bn
@@ -286,12 +289,11 @@ def nanmin(values, axis=None, skipna=True):
     # numpy 1.6.1 workaround in Python 3.x
     if (values.dtype == np.object_
             and sys.version_info[0] >= 3):  # pragma: no cover
-        import __builtin__
         if values.ndim > 1:
             apply_ax = axis if axis is not None else 0
-            result = np.apply_along_axis(__builtin__.min, apply_ax, values)
+            result = np.apply_along_axis(builtins.min, apply_ax, values)
         else:
-            result = __builtin__.min(values)
+            result = builtins.min(values)
     else:
         if ((axis is not None and values.shape[axis] == 0)
                 or values.size == 0):
@@ -311,13 +313,12 @@ def nanmax(values, axis=None, skipna=True):
     # numpy 1.6.1 workaround in Python 3.x
     if (values.dtype == np.object_
             and sys.version_info[0] >= 3):  # pragma: no cover
-        import __builtin__
 
         if values.ndim > 1:
             apply_ax = axis if axis is not None else 0
-            result = np.apply_along_axis(__builtin__.max, apply_ax, values)
+            result = np.apply_along_axis(builtins.max, apply_ax, values)
         else:
-            result = __builtin__.max(values)
+            result = builtins.max(values)
     else:
         if ((axis is not None and values.shape[axis] == 0)
                 or values.size == 0):

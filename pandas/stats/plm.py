@@ -263,7 +263,7 @@ class PanelOLS(OLS):
 
             val_map = cat_mappings.get(effect)
             if val_map:
-                val_map = dict((v, k) for k, v in val_map.iteritems())
+                val_map = dict((v, k) for k, v in compat.iteritems(val_map))
 
             if dropped_dummy or not self._use_all_dummies:
                 if effect in self._dropped_dummies:
@@ -672,7 +672,7 @@ class MovingPanelOLS(MovingOLS, PanelOLS):
 def create_ols_dict(attr):
     def attr_getter(self):
         d = {}
-        for k, v in self.results.iteritems():
+        for k, v in compat.iteritems(self.results):
             result = getattr(v, attr)
             d[k] = result
 

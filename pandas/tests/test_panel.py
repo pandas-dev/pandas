@@ -273,10 +273,10 @@ class SafeForSparse(object):
     def test_iteritems(self):
         # Test panel.iteritems(), aka panel.iteritems()
         # just test that it works
-        for k, v in self.panel.iteritems():
+        for k, v in compat.iteritems(self.panel):
             pass
 
-        self.assertEqual(len(list(self.panel.iteritems())),
+        self.assertEqual(len(list(compat.iteritems(self.panel))),
                          len(self.panel.items))
 
     def test_combineFrame(self):
@@ -731,7 +731,7 @@ class CheckIndexing(object):
 
         # resize
         res = self.panel.set_value('ItemE', 'foo', 'bar', 1.5)
-        self.assert_(isinstance(res, Panel))
+        tm.assert_isinstance(res, Panel)
         self.assert_(res is not self.panel)
         self.assertEqual(res.get_value('ItemE', 'foo', 'bar'), 1.5)
 
@@ -882,19 +882,19 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
 
         # cast
         dcasted = dict((k, v.reindex(wp.major_axis).fillna(0))
-                       for k, v in d.iteritems())
+                       for k, v in compat.iteritems(d))
         result = Panel(dcasted, dtype=int)
         expected = Panel(dict((k, v.astype(int))
-                              for k, v in dcasted.iteritems()))
+                              for k, v in compat.iteritems(dcasted)))
         assert_panel_equal(result, expected)
 
         result = Panel(dcasted, dtype=np.int32)
         expected = Panel(dict((k, v.astype(np.int32))
-                              for k, v in dcasted.iteritems()))
+                              for k, v in compat.iteritems(dcasted)))
         assert_panel_equal(result, expected)
 
     def test_constructor_dict_mixed(self):
-        data = dict((k, v.values) for k, v in self.panel.iteritems())
+        data = dict((k, v.values) for k, v in compat.iteritems(self.panel))
         result = Panel(data)
         exp_major = Index(np.arange(len(self.panel.major_axis)))
         self.assert_(result.major_axis.equals(exp_major))
@@ -1284,7 +1284,7 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         # negative numbers, #2164
         result = self.panel.shift(-1)
         expected = Panel(dict((i, f.shift(-1)[:-1])
-                              for i, f in self.panel.iteritems()))
+                              for i, f in compat.iteritems(self.panel)))
         assert_panel_equal(result, expected)
 
     def test_multiindex_get(self):
@@ -1383,7 +1383,7 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
                 except ImportError:
                     raise nose.SkipTest
 
-                for item, df in self.panel.iteritems():
+                for item, df in compat.iteritems(self.panel):
                     recdf = reader.parse(str(item), index_col=0)
                     assert_frame_equal(df, recdf)
 

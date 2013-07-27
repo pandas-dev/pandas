@@ -484,7 +484,7 @@ class TestTSPlot(unittest.TestCase):
         self.assert_(len(lines) == 1)
         l = lines[0]
         data = l.get_xydata()
-        self.assert_(isinstance(data, np.ma.core.MaskedArray))
+        tm.assert_isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
         self.assert_(mask[5:25, 1].all())
 
@@ -498,7 +498,7 @@ class TestTSPlot(unittest.TestCase):
         self.assert_(len(lines) == 1)
         l = lines[0]
         data = l.get_xydata()
-        self.assert_(isinstance(data, np.ma.core.MaskedArray))
+        tm.assert_isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
         self.assert_(mask[2:5, 1].all())
 
@@ -512,7 +512,7 @@ class TestTSPlot(unittest.TestCase):
         self.assert_(len(lines) == 1)
         l = lines[0]
         data = l.get_xydata()
-        self.assert_(isinstance(data, np.ma.core.MaskedArray))
+        tm.assert_isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
         self.assert_(mask[2:5, 1].all())
 
@@ -532,7 +532,7 @@ class TestTSPlot(unittest.TestCase):
         self.assert_(len(ax.right_ax.get_lines()) == 1)
         l = lines[0]
         data = l.get_xydata()
-        self.assert_(isinstance(data, np.ma.core.MaskedArray))
+        tm.assert_isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
         self.assert_(mask[5:25, 1].all())
 

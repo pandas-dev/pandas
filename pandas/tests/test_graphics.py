@@ -425,7 +425,7 @@ class TestDataFramePlots(unittest.TestCase):
         pd.plot_params['x_compat'] = False
         ax = df.plot()
         lines = ax.get_lines()
-        self.assert_(isinstance(lines[0].get_xdata(), PeriodIndex))
+        tm.assert_isinstance(lines[0].get_xdata(), PeriodIndex)
 
         plt.close('all')
         # useful if you're plotting a bunch together
@@ -437,7 +437,7 @@ class TestDataFramePlots(unittest.TestCase):
         plt.close('all')
         ax = df.plot()
         lines = ax.get_lines()
-        self.assert_(isinstance(lines[0].get_xdata(), PeriodIndex))
+        tm.assert_isinstance(lines[0].get_xdata(), PeriodIndex)
 
     def test_unsorted_index(self):
         df = DataFrame({'y': np.arange(100)},

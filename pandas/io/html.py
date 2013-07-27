@@ -454,7 +454,7 @@ def _build_node_xpath_expr(attrs):
     if 'class_' in attrs:
         attrs['class'] = attrs.pop('class_')
 
-    s = (six.u("@{k}='{v}'").format(k=k, v=v) for k, v in attrs.iteritems())
+    s = (six.u("@{k}='{v}'").format(k=k, v=v) for k, v in compat.iteritems(attrs))
     return six.u('[{0}]').format(' and '.join(s))
 
 

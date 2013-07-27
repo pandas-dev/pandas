@@ -153,7 +153,7 @@ DataFrame.pivot_table = pivot_table
 
 def _add_margins(table, data, values, rows=None, cols=None, aggfunc=np.mean):
     grand_margin = {}
-    for k, v in data[values].iteritems():
+    for k, v in compat.iteritems(data[values]):
         try:
             if isinstance(aggfunc, six.string_types):
                 grand_margin[k] = getattr(v, aggfunc)()

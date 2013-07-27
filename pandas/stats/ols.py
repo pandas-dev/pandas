@@ -1254,7 +1254,7 @@ def _safe_update(d, other):
     """
     Combine dictionaries with non-overlapping keys
     """
-    for k, v in other.iteritems():
+    for k, v in compat.iteritems(other):
         if k in d:
             raise Exception('Duplicate regressor: %s' % k)
 
@@ -1320,7 +1320,7 @@ def _combine_rhs(rhs):
     elif isinstance(rhs, DataFrame):
         series = rhs.copy()
     elif isinstance(rhs, dict):
-        for name, value in rhs.iteritems():
+        for name, value in compat.iteritems(rhs):
             if isinstance(value, Series):
                 _safe_update(series, {name: value})
             elif isinstance(value, (dict, DataFrame)):

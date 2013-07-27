@@ -1,8 +1,5 @@
 # pylint: disable=E1103
 
-from pandas.util.py3compat import range
-from six.moves import zip
-from pandas.util import compat
 import nose
 import unittest
 
@@ -12,12 +9,15 @@ from numpy import nan
 import numpy as np
 import random
 
-from pandas import *
+from pandas.util.py3compat import range
+from six.moves import zip
+from pandas.util import compat
 from pandas.tseries.index import DatetimeIndex
 from pandas.tools.merge import merge, concat, ordered_merge, MergeError
 from pandas.util.testing import (assert_frame_equal, assert_series_equal,
                                  assert_almost_equal, rands,
                                  makeCustomDataframe as mkdf)
+from pandas import isnull, DataFrame, Index, MultiIndex, Panel, Series, date_range
 import pandas.algos as algos
 import pandas.util.testing as tm
 
@@ -1025,7 +1025,7 @@ def _join_by_hand(a, b, how='left'):
 
     result_columns = a.columns.append(b.columns)
 
-    for col, s in b_re.iteritems():
+    for col, s in compat.iteritems(b_re):
         a_re[col] = s
     return a_re.reindex(columns=result_columns)
 
@@ -1472,7 +1472,7 @@ class TestConcatenate(unittest.TestCase):
 
         data_dict = {}
         for p in panels:
-            data_dict.update(p.iteritems())
+            data_dict.update(compat.iteritems(p))
 
         joined = panels[0].join(panels[1:], how='inner')
         expected = Panel.from_dict(data_dict, intersect=True)
@@ -1766,6 +1766,5 @@ class TestOrderedMerge(unittest.TestCase):
         self.assert_(result['group'].notnull().all())
 
 if __name__ == '__main__':
-    import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

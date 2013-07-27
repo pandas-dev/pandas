@@ -811,7 +811,7 @@ class Options(object):
         data : dict of str, DataFrame
         """
         warnings.warn("get_forward_data() is deprecated", FutureWarning)
-        in_months = range(CUR_MONTH, CUR_MONTH + months + 1)
+        in_months = list(range(CUR_MONTH, CUR_MONTH + months + 1))
         in_years = [CUR_YEAR] * (months + 1)
 
         # Figure out how many items in in_months go past 12

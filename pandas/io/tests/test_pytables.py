@@ -1041,8 +1041,9 @@ class TestHDFStore(unittest.TestCase):
         print ("\nbig_table2 start")
         import time
         start_time = time.time()
-        df = DataFrame(np.random.randn(1000 * 1000, 60), index=range(int(
-            1000 * 1000)), columns=['E%03d' % i for i in range(60)])
+        df = DataFrame(np.random.randn(1000 * 1000, 60),
+                       index=list(range(int(1000 * 1000))),
+                       columns=['E%03d' % i for i in range(60)])
         for x in range(20):
             df['String%03d' % x] = 'string%03d' % x
         for x in range(20):
@@ -1070,8 +1071,8 @@ class TestHDFStore(unittest.TestCase):
         print ("\nbig_put start")
         import time
         start_time = time.time()
-        df = DataFrame(np.random.randn(1000 * 1000, 60), index=range(int(
-            1000 * 1000)), columns=['E%03d' % i for i in range(60)])
+        df = DataFrame(np.random.randn(1000 * 1000, 60), index=list(range(int(
+            1000 * 1000))), columns=['E%03d' % i for i in range(60)])
         for x in range(20):
             df['String%03d' % x] = 'string%03d' % x
         for x in range(20):
@@ -1405,7 +1406,7 @@ class TestHDFStore(unittest.TestCase):
         with ensure_clean(self.path) as store:
 
             # GH 4098 example
-            df = DataFrame(dict(A = Series(range(3), index=date_range('2000-1-1',periods=3,freq='H', tz='US/Eastern'))))
+            df = DataFrame(dict(A = Series(list(range(3)), index=date_range('2000-1-1',periods=3,freq='H', tz='US/Eastern'))))
 
             _maybe_remove(store, 'df')
             store.put('df',df)
@@ -2214,7 +2215,7 @@ class TestHDFStore(unittest.TestCase):
     def test_retain_index_attributes(self):
 
         # GH 3499, losing frequency info on index recreation
-        df = DataFrame(dict(A = Series(range(3),
+        df = DataFrame(dict(A = Series(list(range(3)),
                                        index=date_range('2000-1-1',periods=3,freq='H'))))
 
         with ensure_clean(self.path) as store:
@@ -2231,7 +2232,7 @@ class TestHDFStore(unittest.TestCase):
 
             # try to append a table with a different frequency
             warnings.filterwarnings('ignore', category=AttributeConflictWarning)
-            df2 = DataFrame(dict(A = Series(range(3),
+            df2 = DataFrame(dict(A = Series(list(range(3)),
                                             index=date_range('2002-1-1',periods=3,freq='D'))))
             store.append('data',df2)
             warnings.filterwarnings('always', category=AttributeConflictWarning)
@@ -2240,10 +2241,10 @@ class TestHDFStore(unittest.TestCase):
 
             # this is ok
             _maybe_remove(store,'df2')
-            df2 = DataFrame(dict(A = Series(range(3),
+            df2 = DataFrame(dict(A = Series(list(range(3)),
                                             index=[Timestamp('20010101'),Timestamp('20010102'),Timestamp('20020101')])))
             store.append('df2',df2)
-            df3 = DataFrame(dict(A = Series(range(3),index=date_range('2002-1-1',periods=3,freq='D'))))
+            df3 = DataFrame(dict(A = Series(list(range(3)),index=date_range('2002-1-1',periods=3,freq='D'))))
             store.append('df2',df3)
 
     def test_retain_index_attributes2(self):
@@ -2252,20 +2253,20 @@ class TestHDFStore(unittest.TestCase):
 
             warnings.filterwarnings('ignore', category=AttributeConflictWarning)
 
-            df  = DataFrame(dict(A = Series(range(3), index=date_range('2000-1-1',periods=3,freq='H'))))
+            df  = DataFrame(dict(A = Series(list(range(3)), index=date_range('2000-1-1',periods=3,freq='H'))))
             df.to_hdf(path,'data',mode='w',append=True)
-            df2 = DataFrame(dict(A = Series(range(3), index=date_range('2002-1-1',periods=3,freq='D'))))
+            df2 = DataFrame(dict(A = Series(list(range(3)), index=date_range('2002-1-1',periods=3,freq='D'))))
             df2.to_hdf(path,'data',append=True)
 
             idx = date_range('2000-1-1',periods=3,freq='H')
             idx.name = 'foo'
-            df  = DataFrame(dict(A = Series(range(3), index=idx)))
+            df  = DataFrame(dict(A = Series(list(range(3)), index=idx)))
             df.to_hdf(path,'data',mode='w',append=True)
             self.assert_(read_hdf(path,'data').index.name == 'foo')
 
             idx2 = date_range('2001-1-1',periods=3,freq='H')
             idx2.name = 'bar'
-            df2 = DataFrame(dict(A = Series(range(3), index=idx2)))
+            df2 = DataFrame(dict(A = Series(list(range(3)), index=idx2)))
             df2.to_hdf(path,'data',append=True)
             self.assert_(read_hdf(path,'data').index.name is None)
 
@@ -2389,7 +2390,7 @@ class TestHDFStore(unittest.TestCase):
             # valid
             result = store.select_column('df', 'index')
             tm.assert_almost_equal(result.values, Series(df.index).values)
-            self.assert_(isinstance(result,Series))
+            tm.assert_isinstance(result,Series)
 
             # not a data indexable column
             self.assertRaises(
@@ -2558,7 +2559,7 @@ class TestHDFStore(unittest.TestCase):
             result = store.select(
                 'df', [Term("columns", "=", ["A"])], start=30, stop=40)
             assert(len(result) == 0)
-            assert(type(result) == DataFrame)
+            tm.assert_isinstance(result, DataFrame)
 
     def test_select_filter_corner(self):
 

@@ -65,8 +65,8 @@ class TestTimeSeriesDuplicates(unittest.TestCase):
         self.dups = Series(np.random.randn(len(dates)), index=dates)
 
     def test_constructor(self):
-        self.assert_(isinstance(self.dups, TimeSeries))
-        self.assert_(isinstance(self.dups.index, DatetimeIndex))
+        tm.assert_isinstance(self.dups, TimeSeries)
+        tm.assert_isinstance(self.dups.index, DatetimeIndex)
 
     def test_is_unique_monotonic(self):
         self.assert_(not self.dups.index.is_unique)
@@ -325,13 +325,13 @@ class TestTimeSeries(unittest.TestCase):
         rng = date_range('20090415', '20090519', freq='B')
         s = Series(rng)
 
-        self.assert_(isinstance(s[5], Timestamp))
+        tm.assert_isinstance(s[5], Timestamp)
 
         rng = date_range('20090415', '20090519', freq='B')
         s = Series(rng, index=rng)
-        self.assert_(isinstance(s[5], Timestamp))
+        tm.assert_isinstance(s[5], Timestamp)
 
-        self.assert_(isinstance(s.iget_value(5), Timestamp))
+        tm.assert_isinstance(s.iget_value(5), Timestamp)
 
     def test_date_range_ambiguous_arguments(self):
         # #2538
@@ -356,9 +356,9 @@ class TestTimeSeries(unittest.TestCase):
 
         def _check_rng(rng):
             converted = rng.to_pydatetime()
-            self.assert_(isinstance(converted, np.ndarray))
+            tm.assert_isinstance(converted, np.ndarray)
             for x, stamp in zip(converted, rng):
-                self.assert_(type(x) is datetime)
+                tm.assert_isinstance(x, datetime)
                 self.assertEquals(x, stamp.to_pydatetime())
                 self.assertEquals(x.tzinfo, stamp.tzinfo)
 
@@ -657,7 +657,7 @@ class TestTimeSeries(unittest.TestCase):
 
         casted = idx.astype(np.dtype('M8[D]'))
         expected = DatetimeIndex(idx.values)
-        self.assert_(isinstance(casted, DatetimeIndex))
+        tm.assert_isinstance(casted, DatetimeIndex)
         self.assert_(casted.equals(expected))
 
     def test_reindex_series_add_nat(self):
@@ -749,7 +749,7 @@ class TestTimeSeries(unittest.TestCase):
         assert_almost_equal(result, expected)
 
         result2 = to_datetime(strings)
-        self.assert_(isinstance(result2, DatetimeIndex))
+        tm.assert_isinstance(result2, DatetimeIndex)
         assert_almost_equal(result, result2)
 
         malformed = np.array(['1/100/2000', np.nan], dtype=object)
@@ -1695,7 +1695,7 @@ class TestDatetimeIndex(unittest.TestCase):
         idx = Index(['a', 'b', 'c', 'd'])
 
         result = rng.append(idx)
-        self.assert_(isinstance(result[0], Timestamp))
+        tm.assert_isinstance(result[0], Timestamp)
 
         # it works
         rng.join(idx, how='outer')
@@ -1790,7 +1790,7 @@ class TestDatetimeIndex(unittest.TestCase):
     def test_misc_coverage(self):
         rng = date_range('1/1/2000', periods=5)
         result = rng.groupby(rng.day)
-        self.assert_(isinstance(result.values()[0][0], Timestamp))
+        tm.assert_isinstance(result.values()[0][0], Timestamp)
 
         idx = DatetimeIndex(['2000-01-03', '2000-01-01', '2000-01-02'])
         self.assert_(idx.equals(list(idx)))
@@ -1898,7 +1898,7 @@ class TestDatetimeIndex(unittest.TestCase):
         monthly_group = df.groupby(lambda x: (x.year, x.month))
 
         result = monthly_group.mean()
-        self.assert_(isinstance(result.index[0], tuple))
+        tm.assert_isinstance(result.index[0], tuple)
 
     def test_append_numpy_bug_1681(self):
         # another datetime64 bug
@@ -2022,7 +2022,7 @@ class TestLegacySupport(unittest.TestCase):
         ex_index = DatetimeIndex([], freq='B')
 
         self.assert_(result.index.equals(ex_index))
-        self.assert_(isinstance(result.index.freq, offsets.BDay))
+        tm.assert_isinstance(result.index.freq, offsets.BDay)
         self.assert_(len(result) == 0)
 
     def test_arithmetic_interaction(self):
@@ -2034,12 +2034,12 @@ class TestLegacySupport(unittest.TestCase):
 
         result = dseries + oseries
         expected = dseries * 2
-        self.assert_(isinstance(result.index, DatetimeIndex))
+        tm.assert_isinstance(result.index, DatetimeIndex)
         assert_series_equal(result, expected)
 
         result = dseries + oseries[:5]
         expected = dseries + dseries[:5]
-        self.assert_(isinstance(result.index, DatetimeIndex))
+        tm.assert_isinstance(result.index, DatetimeIndex)
         assert_series_equal(result, expected)
 
     def test_join_interaction(self):
@@ -2051,7 +2051,7 @@ class TestLegacySupport(unittest.TestCase):
             ea, eb, ec = left.join(DatetimeIndex(right), how=how,
                                    return_indexers=True)
 
-            self.assert_(isinstance(ra, DatetimeIndex))
+            tm.assert_isinstance(ra, DatetimeIndex)
             self.assert_(ra.equals(ea))
 
             assert_almost_equal(rb, eb)
@@ -2075,8 +2075,8 @@ class TestLegacySupport(unittest.TestCase):
         filepath = os.path.join(pth, 'data', 'daterange_073.pickle')
 
         rng = read_pickle(filepath)
-        self.assert_(type(rng[0]) == datetime)
-        self.assert_(isinstance(rng.offset, offsets.BDay))
+        tm.assert_isinstance(rng[0], datetime)
+        tm.assert_isinstance(rng.offset, offsets.BDay)
         self.assert_(rng.values.dtype == object)
 
     def test_setops(self):
@@ -2085,17 +2085,17 @@ class TestLegacySupport(unittest.TestCase):
 
         result = index[:5].union(obj_index[5:])
         expected = index
-        self.assert_(isinstance(result, DatetimeIndex))
+        tm.assert_isinstance(result, DatetimeIndex)
         self.assert_(result.equals(expected))
 
         result = index[:10].intersection(obj_index[5:])
         expected = index[5:10]
-        self.assert_(isinstance(result, DatetimeIndex))
+        tm.assert_isinstance(result, DatetimeIndex)
         self.assert_(result.equals(expected))
 
         result = index[:10] - obj_index[5:]
         expected = index[:5]
-        self.assert_(isinstance(result, DatetimeIndex))
+        tm.assert_isinstance(result, DatetimeIndex)
         self.assert_(result.equals(expected))
 
     def test_index_conversion(self):
@@ -2111,7 +2111,7 @@ class TestLegacySupport(unittest.TestCase):
         rng = date_range('1/1/2000', periods=10)
 
         result = rng.tolist()
-        self.assert_(isinstance(result[0], Timestamp))
+        tm.assert_isinstance(result[0], Timestamp)
 
     def test_object_convert_fail(self):
         idx = DatetimeIndex([NaT])
@@ -2336,8 +2336,8 @@ class TestLegacySupport(unittest.TestCase):
 
         the_min = rng2.min()
         the_max = rng2.max()
-        self.assert_(isinstance(the_min, Timestamp))
-        self.assert_(isinstance(the_max, Timestamp))
+        tm.assert_isinstance(the_min, Timestamp)
+        tm.assert_isinstance(the_max, Timestamp)
         self.assertEqual(the_min, rng[0])
         self.assertEqual(the_max, rng[-1])
 
@@ -2623,11 +2623,11 @@ class TestDatetime64(unittest.TestCase):
         empty = Index([])
 
         result = dti.union(empty)
-        self.assert_(isinstance(result, DatetimeIndex))
+        tm.assert_isinstance(result, DatetimeIndex)
         self.assert_(result is result)
 
         result = dti.join(empty)
-        self.assert_(isinstance(result, DatetimeIndex))
+        tm.assert_isinstance(result, DatetimeIndex)
 
     def test_series_set_value(self):
         # #1561
