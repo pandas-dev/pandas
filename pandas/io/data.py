@@ -3,7 +3,6 @@ Module contains tools for collecting data from various remote sources
 
 
 """
-from pandas.util.py3compat import range
 import warnings
 import tempfile
 import datetime as dt
@@ -14,7 +13,7 @@ from collections import defaultdict
 
 import numpy as np
 
-from pandas.util.py3compat import StringIO, bytes_to_str
+from pandas.util.py3compat import StringIO, bytes_to_str, range
 from pandas import Panel, DataFrame, Series, read_csv, concat
 from pandas.core.common import PandasError
 from pandas.io.parsers import TextParser

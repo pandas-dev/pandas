@@ -1283,7 +1283,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
 
     # what are we after, exactly?
     match_axis_length = len(keys) == len(group_axis)
-    any_callable = any(callable(g) or isinstance(g, dict) for g in keys)
+    any_callable = any(six.callable(g) or isinstance(g, dict) for g in keys)
     any_arraylike = any(isinstance(g, (list, tuple, np.ndarray))
                         for g in keys)
 

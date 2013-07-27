@@ -485,7 +485,7 @@ class OrderedDefaultdict(OrderedDict):
         newargs = ()
         if args:
             newdefault = args[0]
-            if not (newdefault is None or callable(newdefault)):
+            if not (newdefault is None or six.callable(newdefault)):
                 raise TypeError('first argument must be callable or None')
             newargs = args[1:]
         self.default_factory = newdefault

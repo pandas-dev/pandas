@@ -3,13 +3,9 @@ HTML IO.
 
 """
 
-from pandas.util.py3compat import range
-from pandas.util import compat
 import os
 import re
 import numbers
-import urllib2
-import urlparse
 import collections
 
 from distutils.version import LooseVersion
@@ -17,7 +13,9 @@ from distutils.version import LooseVersion
 import numpy as np
 
 from pandas import DataFrame, MultiIndex, isnull
-from pandas.io.common import _is_url, urlopen
+from pandas.io.common import _is_url, urlopen, parse_url
+from pandas.util.py3compat import range
+from pandas.util import compat
 import six
 from six.moves import map
 
@@ -553,7 +551,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
                     pass
             else:
                 # not a url
-                scheme = urlparse.urlparse(self.io).scheme
+                scheme = parse_url(self.io).scheme
                 if scheme not in _valid_schemes:
                     # lxml can't parse it
                     msg = ('{0} is not a valid url scheme, valid schemes are '

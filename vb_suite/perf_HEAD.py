@@ -7,9 +7,7 @@ from __future__ import print_function
 
 """
 
-import urllib2
-from contextlib import closing
-from urllib2 import urlopen
+from pandas.io.common import urlopen
 import json
 
 import pandas as pd
@@ -26,7 +24,7 @@ def get_travis_data():
     if not jobid:
         return None, None
 
-    with closing(urlopen("https://api.travis-ci.org/workers/")) as resp:
+    with urlopen("https://api.travis-ci.org/workers/") as resp:
         workers = json.loads(resp.read())
 
     host = njobs = None
@@ -134,7 +132,7 @@ if __name__ == "__main__":
 
 
 def get_vbench_log(build_url):
-    with closing(urllib2.urlopen(build_url)) as r:
+    with urlopen(build_url) as r:
         if not (200 <= r.getcode() < 300):
             return
 
@@ -145,7 +143,7 @@ def get_vbench_log(build_url):
         if not s:
             return
         id = s[0]['id']  # should be just one for now
-        with closing(urllib2.urlopen("https://api.travis-ci.org/jobs/%s" % id)) as r2:
+        with urlopen("https://api.travis-ci.org/jobs/%s" % id) as r2:
             if not 200 <= r.getcode() < 300:
                 return
             s2 = json.loads(r2.read())
@@ -173,7 +171,7 @@ def convert_json_to_df(results_url):
     df contains timings for all successful vbenchmarks
     """
 
-    with closing(urlopen(results_url)) as resp:
+    with urlopen(results_url) as resp:
         res = json.loads(resp.read())
     timings = res.get("timings")
     if not timings:
@@ -217,7 +215,7 @@ def get_all_results(repo_id=53976):  # travis pydata/pandas id
     dfs = OrderedDict()
 
     while True:
-        with closing(urlopen(url)) as r:
+        with urlopen(url) as r:
             if not (200 <= r.getcode() < 300):
                 break
             builds = json.loads(r.read())

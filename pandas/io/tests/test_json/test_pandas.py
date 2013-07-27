@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from pandas.util.py3compat import StringIO
 from pandas.util.py3compat import range
 from pandas.util import compat
+from pandas.io.common import URLError
 import cPickle as pickle
 import operator
 import os
@@ -473,7 +474,6 @@ class TestPandasContainer(unittest.TestCase):
     @network
     @slow
     def test_url(self):
-        import urllib2
         try:
 
             url = 'https://api.github.com/repos/pydata/pandas/issues?per_page=5'
@@ -484,5 +484,5 @@ class TestPandasContainer(unittest.TestCase):
             url = 'http://search.twitter.com/search.json?q=pandas%20python'
             result = read_json(url)
 
-        except urllib2.URLError:
+        except URLError:
             raise nose.SkipTest

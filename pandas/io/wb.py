@@ -1,8 +1,7 @@
 from __future__ import print_function
-from urllib2 import urlopen
 from pandas.util.py3compat import range
-import json
-from contextlib import closing
+from pandas.io.common import urlopen
+from pandas.io import json
 import pandas
 import numpy as np
 from six.moves import map, reduce
@@ -89,7 +88,7 @@ def _get_data(indicator="NY.GNS.ICTR.GN.ZS", country='US',
         indicator + "?date=" + str(start) + ":" + str(end) + "&per_page=25000" + \
         "&format=json"
     # Download
-    with closing(urlopen(url)) as response:
+    with urlopen(url) as response:
         data = response.read()
     # Parse JSON file
     data = json.loads(data)[1]
@@ -106,7 +105,7 @@ def get_countries():
     '''Query information about countries
     '''
     url = 'http://api.worldbank.org/countries/all?format=json'
-    with closing(urlopen(url)) as response:
+    with urlopen(url) as response:
         data = response.read()
     data = json.loads(data)[1]
     data = pandas.DataFrame(data)
@@ -122,7 +121,7 @@ def get_indicators():
     '''Download information about all World Bank data series
     '''
     url = 'http://api.worldbank.org/indicators?per_page=50000&format=json'
-    with closing(urlopen(url)) as response:
+    with urlopen(url) as response:
         data = response.read()
     data = json.loads(data)[1]
     data = pandas.DataFrame(data)

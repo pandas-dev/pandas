@@ -1,5 +1,6 @@
 from pandas.util.py3compat import StringIO
 from pandas.lib import cache_readonly
+import six
 import sys
 import warnings
 
@@ -163,7 +164,7 @@ def knownfailureif(fail_condition, msg=None):
         msg = 'Test skipped due to known failure'
 
     # Allow for both boolean or callable known failure conditions.
-    if callable(fail_condition):
+    if six.callable(fail_condition):
         fail_val = fail_condition
     else:
         fail_val = lambda: fail_condition

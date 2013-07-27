@@ -274,7 +274,7 @@ def flatten(*stack):
         except StopIteration:
             stack.pop(0)
             continue
-        if hasattr(x,'next') and callable(getattr(x,'next')):
+        if hasattr(x,'next') and six.callable(getattr(x,'next')):
             stack.insert(0, x)
 
         #if isinstance(x, (GeneratorType,listerator)):

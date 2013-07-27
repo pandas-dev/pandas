@@ -1,22 +1,19 @@
 # pylint: disable=E1101
 
-from pandas.util.py3compat import StringIO, BytesIO, PY3
 from datetime import datetime
-from pandas.util.py3compat import range, long
 import csv
 import os
 import sys
 import re
 import unittest
-from contextlib import closing
-from urllib2 import urlopen
-
 import nose
 
 from numpy import nan
 import numpy as np
 
 from pandas import DataFrame, Series, Index, MultiIndex, DatetimeIndex
+from pandas.util.py3compat import StringIO, BytesIO, PY3, range, long
+from pandas.io.common import urlopen, URLError
 import pandas.io.parsers as parsers
 from pandas.io.parsers import (read_csv, read_table, read_fwf,
                                TextFileReader, TextParser)
@@ -1393,7 +1390,6 @@ a,b,c,d
     @slow
     @network
     def test_url(self):
-        import urllib2
         try:
             # HTTP(S)
             url = ('https://raw.github.com/pydata/pandas/master/'
@@ -1405,18 +1401,17 @@ a,b,c,d
             tm.assert_frame_equal(url_table, local_table)
             # TODO: ftp testing
 
-        except urllib2.URLError:
+        except URLError:
             try:
                 with closing(urlopen('http://www.google.com')) as resp:
                     pass
-            except urllib2.URLError:
+            except URLError:
                 raise nose.SkipTest
             else:
                 raise
 
     @slow
     def test_file(self):
-        import urllib2
 
         # FILE
         if sys.version_info[:2] < (2, 6):
@@ -1427,7 +1422,7 @@ a,b,c,d
 
         try:
             url_table = self.read_table('file://localhost/' + localtable)
-        except urllib2.URLError:
+        except URLError:
             # fails on some systems
             raise nose.SkipTest
 

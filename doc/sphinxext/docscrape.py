@@ -491,7 +491,7 @@ class ClassDoc(NumpyDocString):
         if self._cls is None:
             return []
         return [name for name,func in inspect.getmembers(self._cls)
-                if not name.startswith('_') and callable(func)]
+                if not name.startswith('_') and six.callable(func)]
 
     @property
     def properties(self):
