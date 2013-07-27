@@ -5,8 +5,6 @@ import os
 import unittest
 import nose
 
-from pandas.util.py3compat import range
-from six.moves import zip
 import numpy as np
 import pytz
 
@@ -26,11 +24,12 @@ from pandas.util.testing import assert_series_equal, assert_almost_equal, assert
 import pandas.util.testing as tm
 
 import pandas.lib as lib
-import cPickle as pickle
 import pandas.core.datetools as dt
 from numpy.random import rand
 from pandas.util.testing import assert_frame_equal
 import pandas.util.py3compat as py3compat
+from pandas.util.py3compat import range
+from six.moves import zip, cPickle as pickle
 from pandas.core.datetools import BDay
 import pandas.core.common as com
 

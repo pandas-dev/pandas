@@ -2700,7 +2700,7 @@ class TestHDFStore(unittest.TestCase):
 
                 # check keys
                 if keys is None:
-                    keys = store.keys()
+                    keys = list(store.keys())
                 self.assert_(set(keys) == set(tstore.keys()))
 
                 # check indicies & nrows

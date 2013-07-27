@@ -525,7 +525,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         import pandas, random
         data = OrderedDict([('col%s' % i, random.random()) for i in range(12)])
         s = pandas.Series(data)
-        self.assertTrue(all(s.values == data.values()))
+        self.assertTrue(all(s.values == list(data.values())))
 
     def test_orderedDict_subclass_ctor(self):
         # GH3283
@@ -535,7 +535,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             pass
         data = A([('col%s' % i, random.random()) for i in range(12)])
         s = pandas.Series(data)
-        self.assertTrue(all(s.values == data.values()))
+        self.assertTrue(all(s.values == list(data.values())))
 
     def test_constructor_list_of_tuples(self):
         data = [(1, 1), (2, 2), (2, 3)]

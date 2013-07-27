@@ -321,7 +321,7 @@ def Q(filter_,thing):
     if isinstance(filter_, type([])):
         return flatten(*[_Q(x,thing) for x in filter_])
     elif isinstance(filter_, type({})):
-        d = dict.fromkeys(filter_.keys())
+        d = dict.fromkeys(list(filter_.keys()))
         #print d
         for k in d:
             #print flatten(Q(k,thing))

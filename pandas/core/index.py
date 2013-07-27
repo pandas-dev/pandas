@@ -2704,7 +2704,7 @@ def _get_combined_index(indexes, intersect=False):
 
 
 def _get_distinct_indexes(indexes):
-    return dict((id(x), x) for x in indexes).values()
+    return list(dict((id(x), x) for x in indexes).values())
 
 
 def _union_indexes(indexes):

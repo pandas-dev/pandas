@@ -543,9 +543,9 @@ def _stack_multi_columns(frame, level=-1, dropna=True):
 
     # tuple list excluding level for grouping columns
     if len(frame.columns.levels) > 2:
-        tuples = zip(*[lev.values.take(lab)
+        tuples = list(zip(*[lev.values.take(lab)
                        for lev, lab in zip(this.columns.levels[:-1],
-                                           this.columns.labels[:-1])])
+                                           this.columns.labels[:-1])]))
         unique_groups = [key for key, _ in itertools.groupby(tuples)]
         new_names = this.columns.names[:-1]
         new_columns = MultiIndex.from_tuples(unique_groups, names=new_names)
@@ -747,8 +747,8 @@ def lreshape(data, groups, dropna=True, label=None):
     reshaped : DataFrame
     """
     if isinstance(groups, dict):
-        keys = groups.keys()
-        values = groups.values()
+        keys = list(groups.keys())
+        values = list(groups.values())
     else:
         keys, values = zip(*groups)
 

@@ -385,8 +385,8 @@ def _maybe_add_arg(query, field, data, prefix='ga'):
 def _get_match(obj_store, name, id, **kwargs):
     key, val = None, None
     if len(kwargs) > 0:
-        key = kwargs.keys()[0]
-        val = kwargs.values()[0]
+        key = list(kwargs.keys())[0]
+        val = list(kwargs.values())[0]
 
     if name is None and id is None and key is None:
         return obj_store.get('items')[0]

@@ -93,7 +93,7 @@ if __name__ == '__main__':
     result = pd.DataFrame({'downloads': totals,
                            'release_date': first_upload})
     result = result.sort('release_date')
-    result = result.drop(to_omit + rollup.keys())
+    result = result.drop(to_omit + list(rollup.keys()))
     result.index.name = 'release'
 
     by_date = result.reset_index().set_index('release_date').downloads

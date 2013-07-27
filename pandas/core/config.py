@@ -128,8 +128,8 @@ def _set_option(*args, **kwargs):
 
     # if 1 kwarg then it must be silent=True or silent=False
     if nkwargs:
-        k, = kwargs.keys()
-        v, = kwargs.values()
+        k, = list(kwargs.keys())
+        v, = list(kwargs.values())
 
         if k != 'silent':
             raise ValueError("the only allowed keyword argument is 'silent', "
@@ -209,7 +209,7 @@ class DictWrapper(object):
             return _get_option(prefix)
 
     def __dir__(self):
-        return self.d.keys()
+        return list(self.d.keys())
 
 # For user convenience,  we'd like to have the available options described
 # in the docstring. For dev convenience we'd like to generate the docstrings
@@ -232,7 +232,7 @@ class CallableDynamicDoc(object):
     @property
     def __doc__(self):
         opts_desc = _describe_option('all', _print_desc=False)
-        opts_list = pp_options_list(_registered_options.keys())
+        opts_list = pp_options_list(list(_registered_options.keys()))
         return self.__doc_tmpl__.format(opts_desc=opts_desc,
                                         opts_list=opts_list)
 
@@ -351,7 +351,7 @@ class option_context(object):
            errmsg =  "Need to invoke as option_context(pat,val,[(pat,val),..))."
            raise AssertionError(errmsg)
 
-        ops = zip(args[::2], args[1::2])
+        ops = list(zip(args[::2], args[1::2]))
         undo = []
         for pat, val in ops:
             undo.append((pat, _get_option(pat, silent=True)))

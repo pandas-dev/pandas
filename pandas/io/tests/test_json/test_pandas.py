@@ -6,7 +6,7 @@ from pandas.util.py3compat import StringIO
 from pandas.util.py3compat import range
 from pandas.util import compat
 from pandas.io.common import URLError
-import cPickle as pickle
+from six.moves import cPickle as pickle
 import operator
 import os
 import unittest

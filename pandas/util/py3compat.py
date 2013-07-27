@@ -39,12 +39,12 @@ try:
     from cStringIO import StringIO as cStringIO
     # writeable and handles unicode
     from StringIO import StringIO
-except:
+except ImportError:
     # no more StringIO
     from io import StringIO
     cStringIO = StringIO
 
 try:
     from io import BytesIO
-except:
+except ImportError:
     from cStringIO import StringIO as BytesIO

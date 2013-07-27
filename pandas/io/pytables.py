@@ -324,7 +324,7 @@ class HDFStore(StringMixin):
     def __unicode__(self):
         output = '%s\nFile path: %s\n' % (type(self), pprint_thing(self._path))
 
-        if len(self.keys()):
+        if len(list(self.keys())):
             keys   = []
             values = []
 
@@ -372,6 +372,8 @@ class HDFStore(StringMixin):
         self._mode = mode
         if warn and mode == 'w':  # pragma: no cover
             while True:
+                if py3compat.PY3:
+                    raw_input = input
                 response = raw_input("Re-opening as mode='w' will delete the "
                                      "current file. Continue (y/n)?")
                 if response == 'y':
@@ -787,7 +789,7 @@ class HDFStore(StringMixin):
         """
         new_store = HDFStore(file, mode = mode, complib = complib, complevel = complevel, fletcher32 = fletcher32)
         if keys is None:
-            keys = self.keys()
+            keys = list(self.keys())
         if not isinstance(keys, (tuple,list)):
             keys = [ keys ]
         for k in keys:

@@ -2729,7 +2729,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         a = {'hi': [32, 3, 3],
              'there': [3, 5, 3]}
         rs = DataFrame.from_dict(a, orient='index')
-        xp = DataFrame.from_dict(a).T.reindex(a.keys())
+        xp = DataFrame.from_dict(a).T.reindex(list(a.keys()))
         assert_frame_equal(rs, xp)
 
     def test_constructor_Series_named(self):

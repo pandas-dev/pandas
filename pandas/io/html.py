@@ -708,7 +708,7 @@ def _parser_dispatch(flavor):
     ImportError
         * If you do not have the requested `flavor`
     """
-    valid_parsers = _valid_parsers.keys()
+    valid_parsers = list(_valid_parsers.keys())
     if flavor not in valid_parsers:
         raise AssertionError('"{0!r}" is not a valid flavor, valid flavors are'
                              ' {1}'.format(flavor, valid_parsers))
@@ -744,7 +744,7 @@ def _validate_parser_flavor(flavor):
         raise TypeError('{0} is not a valid "flavor"'.format(flavor))
 
     flavor = list(flavor)
-    valid_flavors = _valid_parsers.keys()
+    valid_flavors = list(_valid_parsers.keys())
 
     if not set(flavor) & set(valid_flavors):
         raise ValueError('{0} is not a valid set of flavors, valid flavors are'

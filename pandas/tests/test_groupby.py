@@ -2376,7 +2376,7 @@ class TestGroupBy(unittest.TestCase):
 
         # it works!
         groups = grouped.groups
-        tm.assert_isinstance(groups.keys()[0], datetime)
+        tm.assert_isinstance(list(groups.keys())[0], datetime)
 
     def test_groupby_reindex_inside_function(self):
         from pandas.tseries.api import DatetimeIndex

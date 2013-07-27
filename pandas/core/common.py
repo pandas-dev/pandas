@@ -2,10 +2,10 @@
 Misc tools for implementing data structures
 """
 
-from pandas.util.py3compat import range, long
-import itertools
 import re
 from datetime import datetime
+import codecs
+import csv
 
 from numpy.lib.format import read_array, write_array
 import numpy as np
@@ -15,15 +15,13 @@ import pandas.lib as lib
 import pandas.tslib as tslib
 
 from pandas.util import py3compat
-import codecs
-import csv
+from pandas.util.py3compat import StringIO, BytesIO, range, long
+from six.moves import zip, map
+import six
 
-from pandas.util.py3compat import StringIO, BytesIO
 
 from pandas.core.config import get_option
 from pandas.core import array as pa
-import six
-from six.moves import map
 
 # XXX: HACK for NumPy 1.5.1 to suppress warnings
 try:
@@ -1366,7 +1364,7 @@ def iterpairs(seq):
     seq_it_next = iter(seq)
     next(seq_it_next)
 
-    return itertools.izip(seq_it, seq_it_next)
+    return zip(seq_it, seq_it_next)
 
 
 def split_ranges(mask):
@@ -1992,7 +1990,7 @@ def _pprint_dict(seq, _nest_lvl=0,**kwds):
 
     nitems = get_option("max_seq_items") or len(seq)
 
-    for k, v in seq.items()[:nitems]:
+    for k, v in list(seq.items())[:nitems]:
         pairs.append(pfmt % (pprint_thing(k,_nest_lvl+1,**kwds),
                              pprint_thing(v,_nest_lvl+1,**kwds)))
 
@@ -2048,7 +2046,7 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
                 translate.update(escape_chars)
             else:
                 translate = escape_chars
-            escape_chars = escape_chars.keys()
+            escape_chars = list(escape_chars.keys())
         else:
             escape_chars = escape_chars or tuple()
         for c in escape_chars:

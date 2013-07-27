@@ -2000,8 +2000,10 @@ class TestPeriodIndex(TestCase):
         raw = [2005, 2007, 2009]
         index = PeriodIndex(raw, freq='A')
         types = str,
-        if not py3compat.PY3:
-            types += unicode,
+
+        if py3compat.PY3:
+            # unicode
+            types += six.text_type,
 
         for t in types:
             expected = np.array(list(map(t, raw)), dtype=object)

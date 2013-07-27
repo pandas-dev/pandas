@@ -69,7 +69,7 @@ class TestUtilityFunctions(unittest.TestCase):
         dict2 = {1 : 1, 2 : 2, 4 : 4}
         union = rplot.dictionary_union(dict1, dict2)
         self.assertEqual(len(union), 4)
-        keys = union.keys()
+        keys = list(union.keys())
         self.assertTrue(1 in keys)
         self.assertTrue(2 in keys)
         self.assertTrue(3 in keys)

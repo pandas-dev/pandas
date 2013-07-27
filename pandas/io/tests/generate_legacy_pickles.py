@@ -1,6 +1,7 @@
 """ self-contained to write legacy pickle files """
 from __future__ import print_function
-from six.moves import zip
+
+from six.moves import zip, cPickle as pickle
 
 def _create_sp_series():
 
@@ -88,7 +89,6 @@ def write_legacy_pickles():
     import pandas
     import pandas.util.testing as tm
     import platform as pl
-    import cPickle as pickle
 
     print("This script generates a pickle file for the current arch, system, and python version")
 

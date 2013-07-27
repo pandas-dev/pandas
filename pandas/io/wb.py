@@ -1,10 +1,11 @@
 from __future__ import print_function
+
+from six.moves import map, reduce
 from pandas.util.py3compat import range
 from pandas.io.common import urlopen
 from pandas.io import json
 import pandas
 import numpy as np
-from six.moves import map, reduce
 
 
 def download(country=['MX', 'CA', 'US'], indicator=['GDPPCKD', 'GDPPCKN'],
@@ -92,10 +93,10 @@ def _get_data(indicator="NY.GNS.ICTR.GN.ZS", country='US',
         data = response.read()
     # Parse JSON file
     data = json.loads(data)[1]
-    country = list(map(lambda x: x['country']['value'], data))
-    iso2c = list(map(lambda x: x['country']['id'], data))
-    year = list(map(lambda x: x['date'], data))
-    value = list(map(lambda x: x['value'], data))
+    country = [x['country']['value'] for x in data]
+    iso2c = [x['country']['id'] for x in data]
+    year = [x['date'] for x in data]
+    value = [x['value'] for x in data]
     # Prepare output
     out = pandas.DataFrame([country, iso2c, year, value]).T
     return out
@@ -109,10 +110,10 @@ def get_countries():
         data = response.read()
     data = json.loads(data)[1]
     data = pandas.DataFrame(data)
-    data.adminregion = list(map(lambda x: x['value'], data.adminregion))
-    data.incomeLevel = list(map(lambda x: x['value'], data.incomeLevel))
-    data.lendingType = list(map(lambda x: x['value'], data.lendingType))
-    data.region = list(map(lambda x: x['value'], data.region))
+    data.adminregion = [x['value'] for x in data.adminregion]
+    data.incomeLevel = [x['value'] for x in data.incomeLevel]
+    data.lendingType = [x['value'] for x in data.lendingType]
+    data.region = [x['value'] for x in data.region]
     data = data.rename(columns={'id': 'iso3c', 'iso2Code': 'iso2c'})
     return data
 
@@ -126,7 +127,7 @@ def get_indicators():
     data = json.loads(data)[1]
     data = pandas.DataFrame(data)
     # Clean fields
-    data.source = list(map(lambda x: x['value'], data.source))
+    data.source = [x['value'] for x in data.source]
     fun = lambda x: x.encode('ascii', 'ignore')
     data.sourceOrganization = data.sourceOrganization.apply(fun)
     # Clean topic field
@@ -136,7 +137,7 @@ def get_indicators():
             return x['value']
         except:
             return ''
-    fun = lambda x: list(map(lambda y: get_value(y), x))
+    fun = lambda x: [get_value(y) for y in x]
     data.topics = data.topics.apply(fun)
     data.topics = data.topics.apply(lambda x: ' ; '.join(x))
     # Clean outpu
