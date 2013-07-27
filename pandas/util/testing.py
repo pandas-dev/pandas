@@ -768,7 +768,6 @@ def network(t, raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
             runs = 0
 
             for _ in range(num_runs):
-
                 try:
                     try:
                         return t(*args, **kwargs)
