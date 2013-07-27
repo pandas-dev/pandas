@@ -89,6 +89,9 @@ pandas 0.13
   - Fixed bug with duplicate columns and type conversion in ``read_json`` when
     ``orient='split'`` (:issue:`4377`)
   - Fix ``.iat`` indexing with a ``PeriodIndex`` (:issue:`4390`)
+  - Fixed an issue where ``PeriodIndex`` joining with self was returning a new
+    instance rather than the same instance (:issue:`4379`); also adds a test
+    for this for the other index types
 
 pandas 0.12
 ===========

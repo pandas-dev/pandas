@@ -553,11 +553,9 @@ class PeriodIndex(Int64Index):
     __le__ = _period_index_cmp('__le__')
     __ge__ = _period_index_cmp('__ge__')
 
-    def __new__(cls, data=None, ordinal=None,
-                freq=None, start=None, end=None, periods=None,
-                copy=False, name=None,
-                year=None, month=None, quarter=None, day=None,
-                hour=None, minute=None, second=None,
+    def __new__(cls, data=None, ordinal=None, freq=None, start=None, end=None,
+                periods=None, copy=False, name=None, year=None, month=None,
+                quarter=None, day=None, hour=None, minute=None, second=None,
                 tz=None):
 
         freq = _freq_mod.get_standard_freq(freq)
@@ -649,19 +647,18 @@ class PeriodIndex(Int64Index):
                     freq = getattr(data[0], 'freq', None)
 
                 if freq is None:
-                    raise ValueError(('freq not specified and cannot be '
-                                      'inferred from first element'))
+                    raise ValueError('freq not specified and cannot be '
+                                     'inferred from first element')
 
-                if np.issubdtype(data.dtype, np.datetime64):
-                    data = dt64arr_to_periodarr(data, freq, tz)
-                elif data.dtype == np.int64:
-                    pass
-                else:
-                    try:
-                        data = com._ensure_int64(data)
-                    except (TypeError, ValueError):
-                        data = com._ensure_object(data)
-                        data = _get_ordinals(data, freq)
+                if data.dtype != np.int64:
+                    if np.issubdtype(data.dtype, np.datetime64):
+                        data = dt64arr_to_periodarr(data, freq, tz)
+                    else:
+                        try:
+                            data = com._ensure_int64(data)
+                        except (TypeError, ValueError):
+                            data = com._ensure_object(data)
+                            data = _get_ordinals(data, freq)
 
         return data, freq
 
@@ -1013,8 +1010,7 @@ class PeriodIndex(Int64Index):
         if return_indexers:
             result, lidx, ridx = result
             return self._apply_meta(result), lidx, ridx
-        else:
-            return self._apply_meta(result)
+        return self._apply_meta(result)
 
     def _assert_can_do_setop(self, other):
         if not isinstance(other, PeriodIndex):
@@ -1031,9 +1027,10 @@ class PeriodIndex(Int64Index):
         return result
 
     def _apply_meta(self, rawarr):
-        idx = rawarr.view(PeriodIndex)
-        idx.freq = self.freq
-        return idx
+        if not isinstance(rawarr, PeriodIndex):
+            rawarr = rawarr.view(PeriodIndex)
+        rawarr.freq = self.freq
+        return rawarr
 
     def __getitem__(self, key):
         """Override numpy.ndarray's __getitem__ method to work as desired"""
@@ -1069,18 +1066,19 @@ class PeriodIndex(Int64Index):
         return values.tolist()
 
     def __array_finalize__(self, obj):
-        if self.ndim == 0:  # pragma: no cover
+        if not self.ndim:  # pragma: no cover
             return self.item()
 
         self.freq = getattr(obj, 'freq', None)
         self.name = getattr(obj, 'name', None)
 
     def __repr__(self):
-        output = str(self.__class__) + '\n'
-        output += 'freq: ''%s''\n' % self.freq
-        if len(self) > 0:
+        output = com.pprint_thing(self.__class__) + '\n'
+        output += 'freq: %s\n' % self.freq
+        n = len(self)
+        if n:
             output += '[%s, ..., %s]\n' % (self[0], self[-1])
-        output += 'length: %d' % len(self)
+        output += 'length: %d' % n
         return output
 
     def __unicode__(self):
