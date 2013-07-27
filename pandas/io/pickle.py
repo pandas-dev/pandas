@@ -1,4 +1,7 @@
-import cPickle as pkl
+try:
+    import cPickle as pkl
+except ImportError:
+    import pickle as pkl
 
 
 def to_pickle(obj, path):

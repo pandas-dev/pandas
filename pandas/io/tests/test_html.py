@@ -6,7 +6,7 @@ from unittest import TestCase
 import warnings
 import six
 from distutils.version import LooseVersion
-import urllib2
+from pandas.io.common import URLError
 
 import nose
 from nose.tools import assert_raises
@@ -291,12 +291,12 @@ class TestReadHtmlBase(TestCase):
 
     @network
     def test_bad_url_protocol(self):
-        self.assertRaises(urllib2.URLError, self.run_read_html,
+        self.assertRaises(URLError, self.run_read_html,
                           'git://github.com', '.*Water.*')
 
     @network
     def test_invalid_url(self):
-        self.assertRaises(urllib2.URLError, self.run_read_html,
+        self.assertRaises(URLError, self.run_read_html,
                           'http://www.a23950sdfa908sd.com')
 
     @slow

@@ -1266,7 +1266,7 @@ class BlockManager(PandasObject):
                 if not blk.items.isin(filter).any():
                     result_blocks.append(blk)
                     continue
-            if callable(f):
+            if six.callable(f):
                 applied = f(blk, *args, **kwargs)
             else:
                 applied = getattr(blk,f)(*args, **kwargs)

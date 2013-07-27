@@ -30,6 +30,7 @@ else:
         return b
 
     range = xrange
+    # have to explicitly put builtins into the namespace
     long = long
     unichr = unichr
 

@@ -272,8 +272,8 @@ def dateutil_parse(timestr, default,
     if res.weekday is not None and not res.day:
         ret = ret + relativedelta.relativedelta(weekday=res.weekday)
     if not ignoretz:
-        if callable(tzinfos) or tzinfos and res.tzname in tzinfos:
-            if callable(tzinfos):
+        if six.callable(tzinfos) or tzinfos and res.tzname in tzinfos:
+            if six.callable(tzinfos):
                 tzdata = tzinfos(res.tzname, res.tzoffset)
             else:
                 tzdata = tzinfos.get(res.tzname)

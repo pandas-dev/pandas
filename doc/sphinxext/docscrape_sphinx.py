@@ -212,7 +212,7 @@ def get_doc_object(obj, what=None, doc=None, config={}):
             what = 'class'
         elif inspect.ismodule(obj):
             what = 'module'
-        elif callable(obj):
+        elif six.callable(obj):
             what = 'function'
         else:
             what = 'object'

@@ -2,7 +2,7 @@ from __future__ import division
 
 # pylint: disable-msg=W0402
 
-from pandas.util.py3compat import range
+from pandas.util.py3compat import range, unichr
 from six.moves import zip
 import random
 import string
@@ -14,9 +14,7 @@ import os
 
 from datetime import datetime
 from functools import wraps
-from contextlib import contextmanager
-from httplib import HTTPException
-from urllib2 import urlopen
+from contextlib import contextmanager, closing
 from distutils.version import LooseVersion
 
 from numpy.random import randn
@@ -34,7 +32,7 @@ from pandas import bdate_range
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
 
-from pandas.io.common import urlopen
+from pandas.io.common import urlopen, HTTPException
 import six
 from six.moves import map
 
@@ -696,7 +694,7 @@ def optional_args(decorator):
         def dec(f):
             return decorator(f, *args, **kwargs)
 
-        is_decorating = not kwargs and len(args) == 1 and callable(args[0])
+        is_decorating = not kwargs and len(args) == 1 and six.callable(args[0])
         if is_decorating:
             f = args[0]
             args = []
@@ -746,11 +744,12 @@ def network(t, raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
     A test can be decorated as requiring network like this::
 
       >>> from pandas.util.testing import network
-      >>> import urllib2
+      >>> from pandas.io.common import urlopen
       >>> import nose
       >>> @network
       ... def test_network():
-      ...   urllib2.urlopen("rabbit://bonanza.com")
+      ...   with urlopen("rabbit://bonanza.com") as f:
+      ...     pass
       ...
       >>> try:
       ...   test_network()
@@ -764,7 +763,8 @@ def network(t, raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
 
       >>> @network(raise_on_error=True)
       ... def test_network():
-      ...   urllib2.urlopen("complaint://deadparrot.com")
+      ...   with urlopen("complaint://deadparrot.com") as f:
+      ...     pass
       ...
       >>> test_network()
       Traceback (most recent call last):
@@ -852,7 +852,7 @@ def with_connectivity_check(t, url="http://www.google.com",
     t : callable
         The test requiring network connectivity.
     url : path
-        The url to test via ``urllib2.urlopen`` to check for connectivity.
+        The url to test via ``pandas.io.common.urlopen`` to check for connectivity.
         Defaults to 'http://www.google.com'.
     raise_on_error : bool
         If True, never catches errors.
