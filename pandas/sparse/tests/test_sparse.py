@@ -1,9 +1,6 @@
 # pylint: disable-msg=E1101,W0612
 
 from unittest import TestCase
-from pandas.util.py3compat import range
-from pandas.util import compat
-import cPickle as pickle
 import operator
 from datetime import datetime
 
@@ -25,6 +22,9 @@ from pandas.tseries.index import DatetimeIndex
 import pandas.core.datetools as datetools
 from pandas.core.common import isnull
 import pandas.util.testing as tm
+from pandas.util.py3compat import range
+from pandas.util import compat
+from six.moves import cPickle as pickle
 
 import pandas.sparse.frame as spf
 

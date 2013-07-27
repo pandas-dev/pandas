@@ -1,6 +1,4 @@
 # pylint: disable-msg=W0612,E1101,W0141
-from pandas.util.py3compat import StringIO
-from pandas.util.py3compat import range
 import nose
 import unittest
 
@@ -15,12 +13,14 @@ from pandas.util.testing import (assert_almost_equal,
                                  assert_frame_equal)
 import pandas.core.common as com
 import pandas.util.testing as tm
+from pandas.util.py3compat import StringIO
+from pandas.util.py3compat import range
 from pandas.util.compat import product as cart_product
 import pandas as pd
 
 import pandas.index as _index
 import six
-from six.moves import zip
+from six.moves import zip, cPickle
 
 
 class TestMultiLevel(unittest.TestCase):
@@ -139,7 +139,6 @@ class TestMultiLevel(unittest.TestCase):
         _check_op('div')
 
     def test_pickle(self):
-        import cPickle
 
         def _test_roundtrip(frame):
             pickled = cPickle.dumps(frame)

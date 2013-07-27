@@ -1438,8 +1438,8 @@ class SeriesGroupBy(GroupBy):
 
     def _aggregate_multiple_funcs(self, arg):
         if isinstance(arg, dict):
-            columns = arg.keys()
-            arg = arg.items()
+            columns = list(arg.keys())
+            arg = list(arg.items())
         elif any(isinstance(x, (tuple, list)) for x in arg):
             arg = [(x, x) if not isinstance(x, (tuple, list)) else x
                    for x in arg]
@@ -1731,7 +1731,7 @@ class NDFrameGroupBy(GroupBy):
                     result[col] = colg.aggregate(agg_how)
                     keys.append(col)
 
-            if isinstance(result.values()[0], DataFrame):
+            if isinstance(list(result.values())[0], DataFrame):
                 from pandas.tools.merge import concat
                 result = concat([result[k] for k in keys], keys=keys, axis=1)
             else:

@@ -496,7 +496,7 @@ class DataFrame(NDFrame):
             data = dict((k, v) for k, v in compat.iteritems(data) if k in columns)
 
             if index is None:
-                index = extract_index(data.values())
+                index = extract_index(list(data.values()))
             else:
                 index = _ensure_index(index)
 
@@ -521,9 +521,9 @@ class DataFrame(NDFrame):
                 data_names.append(k)
                 arrays.append(v)
         else:
-            keys = data.keys()
+            keys = list(data.keys())
             if not isinstance(data, OrderedDict):
-                keys = _try_sort(data.keys())
+                keys = _try_sort(list(data.keys()))
             columns = data_names = Index(keys)
             arrays = [data[k] for k in columns]
 
@@ -954,10 +954,10 @@ class DataFrame(NDFrame):
         if orient == 'index':
             if len(data) > 0:
                 # TODO speed up Series case
-                if isinstance(data.values()[0], (Series, dict)):
+                if isinstance(list(data.values())[0], (Series, dict)):
                     data = _from_nested_dict(data)
                 else:
-                    data, index = data.values(), data.keys()
+                    data, index = list(data.values()), list(data.keys())
         elif orient != 'columns':  # pragma: no cover
             raise ValueError('only recognize index or columns for orient')
 
@@ -3600,7 +3600,7 @@ class DataFrame(NDFrame):
                 to_replace = regex
                 regex = True
 
-            items = to_replace.items()
+            items = list(to_replace.items())
             keys, values = zip(*items)
 
             are_mappings = [isinstance(v, (dict, Series)) for v in values]
@@ -3615,8 +3615,8 @@ class DataFrame(NDFrame):
                 value_dict = {}
 
                 for k, v in items:
-                    to_rep_dict[k] = v.keys()
-                    value_dict[k] = v.values()
+                    to_rep_dict[k] = list(v.keys())
+                    value_dict[k] = list(v.values())
 
                 to_replace, value = to_rep_dict, value_dict
             else:
@@ -5735,7 +5735,7 @@ def extract_index(data):
                 indexes.append(v.index)
             elif isinstance(v, dict):
                 have_dicts = True
-                indexes.append(v.keys())
+                indexes.append(list(v.keys()))
             elif isinstance(v, (list, tuple, np.ndarray)):
                 have_raw_arrays = True
                 raw_lengths.append(len(v))
@@ -5895,7 +5895,7 @@ def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
 
 def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
     if columns is None:
-        gen = (x.keys() for x in data)
+        gen = (list(x.keys()) for x in data)
         columns = lib.fast_unique_multiple_list_gen(gen)
 
     # assure that they are of the base dict class and not of derived

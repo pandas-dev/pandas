@@ -7,9 +7,6 @@ import unittest
 import nose
 
 import numpy as np
-from pandas.util.py3compat import range, long, StringIO
-from pandas.util.compat import product
-from six.moves import map, zip
 randn = np.random.randn
 
 from pandas import (Index, Series, TimeSeries, DataFrame,
@@ -31,7 +28,9 @@ import pandas.tslib as tslib
 
 import pandas.index as _index
 
-import cPickle as pickle
+from pandas.util.py3compat import range, long, StringIO
+from pandas.util.compat import product
+from six.moves import map, zip, cPickle as pickle
 from pandas import read_pickle
 import pandas.core.datetools as dt
 from numpy.random import rand
@@ -1790,7 +1789,7 @@ class TestDatetimeIndex(unittest.TestCase):
     def test_misc_coverage(self):
         rng = date_range('1/1/2000', periods=5)
         result = rng.groupby(rng.day)
-        tm.assert_isinstance(result.values()[0][0], Timestamp)
+        tm.assert_isinstance(list(result.values())[0][0], Timestamp)
 
         idx = DatetimeIndex(['2000-01-03', '2000-01-01', '2000-01-02'])
         self.assert_(idx.equals(list(idx)))

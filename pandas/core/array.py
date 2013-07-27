@@ -2,7 +2,6 @@
 Isolate pandas's exposure to NumPy
 """
 
-from pandas.util import compat
 import numpy as np
 import six
 
@@ -18,7 +17,7 @@ _dtypes = {
 
 _lift_types = []
 
-for _k, _v in compat.iteritems(_dtypes):
+for _k, _v in _dtypes.items():
     for _i in _v:
         _lift_types.append(_k + str(_i))
 

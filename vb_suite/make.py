@@ -159,7 +159,7 @@ if len(sys.argv) > 1:
         func = funcd.get(arg)
         if func is None:
             raise SystemExit('Do not know how to handle %s; valid args are %s' % (
-                arg, funcd.keys()))
+                arg, list(funcd.keys())))
         func()
 else:
     small_docs = False

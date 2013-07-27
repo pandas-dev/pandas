@@ -987,7 +987,7 @@ class MPLPlot(object):
 
         if self._need_to_set_index:
             labels = [com.pprint_thing(key) for key in self.data.index]
-            labels = dict(zip(list(range(len(self.data.index))), labels))
+            labels = dict(zip(range(len(self.data.index)), labels))
 
             for ax_ in self.axes:
                 # ax_.set_xticks(self.xticks)

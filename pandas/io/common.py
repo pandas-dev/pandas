@@ -10,13 +10,15 @@ from pandas.util import py3compat
 
 if py3compat.PY3:
     from urllib.request import urlopen
+    _urlopen = urlopen
     from urllib.parse import urlparse as parse_url
     import urllib.parse as compat_parse
-    from urllib.parse import uses_relative, uses_netloc, uses_params
+    from urllib.parse import uses_relative, uses_netloc, uses_params, urlencode
     from urllib.error import URLError
     from http.client import HTTPException
 else:
     from urllib2 import urlopen as _urlopen
+    from urllib import urlencode
     from urlparse import urlparse as parse_url
     from urlparse import uses_relative, uses_netloc, uses_params
     from urllib2 import URLError
@@ -24,7 +26,7 @@ else:
     from contextlib import contextmanager, closing
     from functools import wraps
 
-    @wraps(_urlopen)
+    # @wraps(_urlopen)
     @contextmanager
     def urlopen(*args, **kwargs):
         with closing(_urlopen(*args, **kwargs)) as f:
@@ -80,8 +82,7 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None):
     """
 
     if _is_url(filepath_or_buffer):
-        from urllib2 import urlopen
-        filepath_or_buffer = urlopen(filepath_or_buffer)
+        req = _urlopen(filepath_or_buffer)
         if py3compat.PY3:  # pragma: no cover
             if encoding:
                 errors = 'strict'
@@ -101,7 +102,7 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None):
             raise ImportError("boto is required to handle s3 files")
         # Assuming AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
         # are environment variables
-        parsed_url = urlparse.urlparse(filepath_or_buffer)
+        parsed_url = parse_url(filepath_or_buffer)
         conn = boto.connect_s3()
         b = conn.get_bucket(parsed_url.netloc)
         k = boto.s3.key.Key(b)

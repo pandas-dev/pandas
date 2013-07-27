@@ -1,6 +1,7 @@
 import numpy as np
 
 from six.moves import zip
+import six
 from pandas.core.common import isnull
 from pandas.core.series import Series
 import re
@@ -282,16 +283,18 @@ def str_repeat(arr, repeats):
     if np.isscalar(repeats):
         def rep(x):
             try:
-                return str.__mul__(x, repeats)
+                return six.binary_type.__mul__(x, repeats)
             except TypeError:
                 return six.text_type.__mul__(x, repeats)
+
         return _na_map(rep, arr)
     else:
         def rep(x, r):
             try:
-                return str.__mul__(x, r)
+                return six.binary_type.__mul__(x, r)
             except TypeError:
                 return six.text_type.__mul__(x, r)
+
         repeats = np.asarray(repeats, dtype=object)
         result = lib.vec_binop(arr, repeats, rep)
         return result

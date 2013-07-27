@@ -33,7 +33,7 @@ class TestClipboard(unittest.TestCase):
         cls.data['mixed'] = DataFrame({'a': np.arange(1.0, 6.0) + 0.01,
                                        'b': np.arange(1, 6),
                                        'c': list('abcde')})
-        cls.data_types = cls.data.keys()
+        cls.data_types = list(cls.data.keys())
 
     @classmethod
     def tearDownClass(cls):

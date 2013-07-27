@@ -1,8 +1,4 @@
-try:
-    import cPickle as pkl
-except ImportError:
-    import pickle as pkl
-
+from six.moves import cPickle as pkl
 
 def to_pickle(obj, path):
     """

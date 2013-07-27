@@ -16,6 +16,7 @@ from pandas.core.panel import Panel
 from pandas.core.series import remove_na
 import pandas.core.common as com
 from pandas.util import py3compat
+from six.moves import cPickle
 
 from pandas.util.testing import (assert_panel_equal,
                                  assert_frame_equal,
@@ -40,7 +41,6 @@ class PanelTests(object):
     panel = None
 
     def test_pickle(self):
-        import cPickle
         pickled = cPickle.dumps(self.panel)
         unpickled = cPickle.loads(pickled)
         assert_frame_equal(unpickled['ItemA'], self.panel['ItemA'])
@@ -268,7 +268,7 @@ class SafeForSparse(object):
         assert_frame_equal(result['ItemA'], op(panel['ItemA'], 1))
 
     def test_keys(self):
-        tm.equalContents(self.panel.keys(), self.panel.items)
+        tm.equalContents(list(self.panel.keys()), self.panel.items)
 
     def test_iteritems(self):
         # Test panel.iteritems(), aka panel.iteritems()

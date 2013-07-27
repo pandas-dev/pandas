@@ -10,8 +10,6 @@ You can find more information on http://presbrey.mit.edu/PyDTA and
 http://statsmodels.sourceforge.net/devel/
 """
 # TODO: Fix this module so it can use cross-compatible zip, map, and range
-from StringIO import StringIO
-from pandas.util import compat
 import numpy as np
 
 import sys
@@ -23,7 +21,7 @@ from pandas.core.categorical import Categorical
 import datetime
 from pandas.util import py3compat
 from pandas.util import compat
-from pandas.util.py3compat import long
+from pandas.util.py3compat import StringIO, long
 from pandas import isnull
 from pandas.io.parsers import _parser_params, Appender
 from pandas.io.common import get_filepath_or_buffer
@@ -541,13 +539,13 @@ class StataReader(StataParser):
                     data[col] = Series(data[col], data[col].index, self.dtyplist[i])
 
         if convert_dates:
-            cols = np.where(map(lambda x: x in _date_formats, self.fmtlist))[0]
+            cols = np.where(list(map(lambda x: x in _date_formats, self.fmtlist)))[0]
             for i in cols:
                 col = data.columns[i]
                 data[col] = data[col].apply(_stata_elapsed_date_to_datetime, args=(self.fmtlist[i],))
 
         if convert_categoricals:
-            cols = np.where(map(lambda x: x in six.iterkeys(self.value_label_dict), self.lbllist))[0]
+            cols = np.where(list(map(lambda x: x in six.iterkeys(self.value_label_dict), self.lbllist)))[0]
             for i in cols:
                 col = data.columns[i]
                 labeled_data = np.copy(data[col])

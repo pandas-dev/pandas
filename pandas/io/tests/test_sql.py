@@ -1,7 +1,4 @@
 from __future__ import print_function
-from __future__ import with_statement
-from pandas.util.py3compat import StringIO
-from pandas.util.py3compat import range
 import unittest
 import sqlite3
 import sys
@@ -14,6 +11,8 @@ import numpy as np
 
 from pandas.core.datetools import format as date_format
 from pandas.core.api import DataFrame, isnull
+from pandas.util.py3compat import StringIO, range
+import six
 
 import pandas.io.sql as sql
 import pandas.util.testing as tm
@@ -24,7 +23,8 @@ _formatters = {
     datetime: lambda dt: "'%s'" % date_format(dt),
     str: lambda x: "'%s'" % x,
     np.str_: lambda x: "'%s'" % x,
-    unicode: lambda x: "'%s'" % x,
+    six.text_type: lambda x: "'%s'" % x,
+    six.binary_type: lambda x: "'%s'" % x,
     float: lambda x: "%.8f" % x,
     int: lambda x: "%s" % x,
     type(None): lambda x: "NULL",

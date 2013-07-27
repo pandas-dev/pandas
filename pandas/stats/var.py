@@ -255,7 +255,7 @@ BIC:                            %(bic).3f
 
     @cache_readonly
     def _beta_raw(self):
-        return np.array([self.beta[col].values() for col in self._columns]).T
+        return np.array([list(self.beta[col].values()) for col in self._columns]).T
 
     def _trans_B(self, h):
         """
@@ -289,7 +289,7 @@ BIC:                            %(bic).3f
     @cache_readonly
     def _x(self):
         values = np.array([
-            self._lagged_data[i][col].values()
+            list(self._lagged_data[i][col].values())
             for i in range(1, 1 + self._p)
             for col in self._columns
         ]).T

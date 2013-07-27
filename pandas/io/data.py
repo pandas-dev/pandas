@@ -6,7 +6,6 @@ Module contains tools for collecting data from various remote sources
 import warnings
 import tempfile
 import datetime as dt
-import urllib
 import time
 
 from collections import defaultdict
@@ -17,7 +16,7 @@ from pandas.util.py3compat import StringIO, bytes_to_str, range
 from pandas import Panel, DataFrame, Series, read_csv, concat
 from pandas.core.common import PandasError
 from pandas.io.parsers import TextParser
-from pandas.io.common import urlopen, ZipFile
+from pandas.io.common import urlopen, ZipFile, urlencode
 from pandas.util.testing import _network_error_classes
 import six
 from six.moves import map, zip
@@ -115,7 +114,7 @@ def get_quote_yahoo(symbols):
 
     # for codes see: http://www.gummy-stuff.org/Yahoo-data.htm
     request = ''.join(six.itervalues(_yahoo_codes))  # code request string
-    header = _yahoo_codes.keys()
+    header = list(_yahoo_codes.keys())
 
     data = defaultdict(list)
 
@@ -202,7 +201,7 @@ def _get_hist_google(sym, start, end, retry_count, pause):
     google_URL = 'http://www.google.com/finance/historical?'
 
     # www.google.com/finance/historical?q=GOOG&startdate=Jun+9%2C+2011&enddate=Jun+8%2C+2013&output=csv
-    url = google_URL + urllib.urlencode({"q": sym,
+    url = google_URL + urlencode({"q": sym,
                                          "startdate": start.strftime('%b %d, '
                                                                      '%Y'),
                                          "enddate": end.strftime('%b %d, %Y'),

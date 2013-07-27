@@ -71,7 +71,7 @@ def dump_as_gist(data, desc="The Commit", njobs=None):
                 print("\n\n" + "-" * 80)
 
                 gist = json.loads(r.read())
-                file_raw_url = gist['files'].items()[0][1]['raw_url']
+                file_raw_url = list(gist['files'].items())[0][1]['raw_url']
                 print("[vbench-gist-raw_url] %s" % file_raw_url)
                 print("[vbench-html-url] %s" % gist['html_url'])
                 print("[vbench-api-url] %s" % gist['url'])

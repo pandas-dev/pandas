@@ -217,7 +217,7 @@ class SafeForSparse(object):
         assert_panel_equal(result['l1'], op(panel4d['l1'], 1))
 
     def test_keys(self):
-        tm.equalContents(self.panel4d.keys(), self.panel4d.labels)
+        tm.equalContents(list(self.panel4d.keys()), self.panel4d.labels)
 
     def test_iteritems(self):
         """Test panel4d.iteritems()"""

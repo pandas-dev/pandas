@@ -5,7 +5,6 @@ Module parse to/from Excel
 #----------------------------------------------------------------------
 # ExcelFile class
 
-from pandas.util.py3compat import range
 import datetime
 import numpy as np
 
@@ -13,6 +12,7 @@ from pandas.io.parsers import TextParser
 from pandas.tseries.period import Period
 from pandas import json
 from six.moves import map, zip, reduce
+from pandas.util.py3compat import range
 import six
 
 def read_excel(path_or_buf, sheetname, kind=None, **kwds):

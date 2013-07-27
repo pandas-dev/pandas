@@ -105,7 +105,7 @@ class DateOffset(object):
         attrs = [(k, v) for k, v in compat.iteritems(vars(self))
                  if k not in ['kwds', '_offset', 'name', 'normalize',
                  'busdaycalendar']]
-        attrs.extend(self.kwds.items())
+        attrs.extend(list(self.kwds.items()))
         attrs = sorted(set(attrs))
 
         params = tuple([str(self.__class__)] + attrs)

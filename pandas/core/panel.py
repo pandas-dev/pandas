@@ -284,7 +284,7 @@ class Panel(NDFrame):
             data = OrderedDict((k, v) for k, v
                                in compat.iteritems(data) if k in haxis)
         else:
-            ks = data.keys()
+            ks = list(data.keys())
             if not isinstance(data,OrderedDict):
                 ks = _try_sort(ks)
             haxis = Index(ks)
@@ -360,7 +360,7 @@ class Panel(NDFrame):
             raise ValueError('Orientation must be one of {items, minor}.')
 
         d = cls._homogenize_dict(cls, data, intersect=intersect, dtype=dtype)
-        ks = d['data'].keys()
+        ks = list(d['data'].keys())
         if not isinstance(d['data'],OrderedDict):
             ks = list(sorted(ks))
         d[cls._info_axis] = Index(ks)
