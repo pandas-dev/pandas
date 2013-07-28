@@ -1323,6 +1323,15 @@ class TestPeriodIndex(TestCase):
         ts = df['1/1/2000']
         assert_series_equal(ts, df.ix[:, 0])
 
+    def test_indexing(self):
+
+        # GH 4390, iat incorrectly indexing
+        index = period_range('1/1/2001', periods=10)
+        s = Series(randn(10), index=index)
+        expected = s[index[0]]
+        result = s.iat[0]
+        self.assert_(expected == result)
+
     def test_frame_setitem(self):
         rng = period_range('1/1/2000', periods=5)
         rng.name = 'index'
