@@ -14,7 +14,6 @@ from pandas.io.data import DataReader, SymbolWarning
 from pandas.util.testing import (assert_series_equal, assert_produces_warning,
                                  network, assert_frame_equal)
 from numpy.testing import assert_array_equal
-import six
 
 
 def assert_n_failed_equals_n_null_columns(wngs, obj, cls=SymbolWarning):

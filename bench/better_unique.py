@@ -1,13 +1,12 @@
 from __future__ import print_function
 from pandas import DataFrame
-from pandas.util.py3compat import range
-from pandas.util.py3compat import zip
+from pandas.util.compat import range, zip
 import timeit
 
 setup = """
 from pandas import Series
 import pandas._tseries as _tseries
-from pandas.util.py3compat import range
+from pandas.util.compat import range
 import random
 import numpy as np
 

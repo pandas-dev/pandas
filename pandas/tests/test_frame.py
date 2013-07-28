@@ -7,13 +7,11 @@ import re
 import unittest
 import nose
 
-from pandas.util import py3compat
-from pandas.util.py3compat import cPickle as pickle
-from pandas.util.py3compat import StringIO, range, long, lrange, lmap, lzip
-from pandas.util.compat import OrderedDict
+from pandas.util.compat import(
+    map, zip, range, long, lrange, lmap, lzip,
+    OrderedDict, cPickle as pickle, u, StringIO
+)
 from pandas.util import compat
-import six
-from pandas.util.py3compat import map, zip
 
 from numpy import random, nan
 from numpy.random import randn
@@ -63,7 +61,7 @@ def _check_mixed_float(df, dtype = None):
 
     # float16 are most likely to be upcasted to float32
     dtypes = dict(A = 'float32', B = 'float32', C = 'float16', D = 'float64')
-    if isinstance(dtype, six.string_types):
+    if isinstance(dtype, compat.string_types):
         dtypes = dict([ (k,dtype) for k, v in dtypes.items() ])
     elif isinstance(dtype, dict):
         dtypes.update(dtype)
@@ -78,7 +76,7 @@ def _check_mixed_float(df, dtype = None):
 
 def _check_mixed_int(df, dtype = None):
     dtypes = dict(A = 'int32', B = 'uint64', C = 'uint8', D = 'int64')
-    if isinstance(dtype, six.string_types):
+    if isinstance(dtype, compat.string_types):
         dtypes = dict([ (k,dtype) for k, v in dtypes.items() ])
     elif isinstance(dtype, dict):
         dtypes.update(dtype)
@@ -3843,7 +3841,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         warnings.filters = warn_filters
 
     def test_repr_unicode(self):
-        uval = six.u('\u03c3\u03c3\u03c3\u03c3')
+        uval = u('\u03c3\u03c3\u03c3\u03c3')
         bval = uval.encode('utf-8')
         df = DataFrame({'A': [uval, uval]})
 
@@ -3856,16 +3854,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertEqual(result.split('\n')[0].rstrip(), ex_top)
 
     def test_unicode_string_with_unicode(self):
-        df = DataFrame({'A': [six.u("\u05d0")]})
+        df = DataFrame({'A': [u("\u05d0")]})
 
-        if py3compat.PY3:
+        if compat.PY3:
             str(df)
         else:
-            six.text_type(df)
+            compat.text_type(df)
 
     def test_bytestring_with_unicode(self):
-        df = DataFrame({'A': [six.u("\u05d0")]})
-        if py3compat.PY3:
+        df = DataFrame({'A': [u("\u05d0")]})
+        if compat.PY3:
             bytes(df)
         else:
             str(df)
@@ -4144,7 +4142,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         _check_unary_op(operator.neg)
 
     def test_logical_typeerror(self):
-        if py3compat.PY3:
+        if compat.PY3:
             pass
         else:
             self.assertRaises(TypeError, self.frame.__eq__, 'foo')
@@ -4823,7 +4821,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                        recons = DataFrame.from_csv(path,header=0,parse_dates=False)
 
                def _to_uni(x):
-                   if not isinstance(x, six.text_type):
+                   if not isinstance(x, compat.text_type):
                        return x.decode('utf8')
                    return x
                if dupe_col:
@@ -5282,7 +5280,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
     def test_to_csv_unicode(self):
 
-        df = DataFrame({six.u('c/\u03c3'): [1, 2, 3]})
+        df = DataFrame({u('c/\u03c3'): [1, 2, 3]})
         with ensure_clean() as path:
 
             df.to_csv(path, encoding='UTF-8')
@@ -5296,10 +5294,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_to_csv_unicode_index_col(self):
         buf = StringIO('')
         df = DataFrame(
-            [[six.u("\u05d0"), "d2", "d3", "d4"], ["a1", "a2", "a3", "a4"]],
-            columns=[six.u("\u05d0"),
-                     six.u("\u05d1"), six.u("\u05d2"), six.u("\u05d3")],
-            index=[six.u("\u05d0"), six.u("\u05d1")])
+            [[u("\u05d0"), "d2", "d3", "d4"], ["a1", "a2", "a3", "a4"]],
+            columns=[u("\u05d0"),
+                     u("\u05d1"), u("\u05d2"), u("\u05d3")],
+            index=[u("\u05d0"), u("\u05d1")])
 
         df.to_csv(buf, encoding='UTF-8')
         buf.seek(0)
@@ -8311,7 +8309,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_('foo' in filtered)
 
         # unicode columns, won't ascii-encode
-        df = self.frame.rename(columns={'B': six.u('\u2202')})
+        df = self.frame.rename(columns={'B': u('\u2202')})
         filtered = df.filter(like='C')
         self.assertTrue('C' in filtered)
 

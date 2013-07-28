@@ -17,13 +17,13 @@ It will:
 """
 
 import sphinx
-import six
 
 if sphinx.__version__ < '1.0.1':
     raise RuntimeError("Sphinx 1.0.1 or newer is required")
 
 import os, re, pydoc
 from .docscrape_sphinx import get_doc_object, SphinxDocString
+from pandas.util.compat import u, callable
 from sphinx.util.compat import Directive
 import inspect
 
@@ -35,28 +35,28 @@ def mangle_docstrings(app, what, name, obj, options, lines,
 
     if what == 'module':
         # Strip top title
-        title_re = re.compile(six.u(r'^\s*[#*=]{4,}\n[a-z0-9 -]+\n[#*=]{4,}\s*'),
+        title_re = re.compile(u(r'^\s*[#*=]{4,}\n[a-z0-9 -]+\n[#*=]{4,}\s*'),
                               re.I|re.S)
-        lines[:] = title_re.sub(six.u(''), six.u("\n").join(lines)).split(six.u("\n"))
+        lines[:] = title_re.sub(u(''), u("\n").join(lines)).split(u("\n"))
     else:
-        doc = get_doc_object(obj, what, six.u("\n").join(lines), config=cfg)
-        lines[:] = six.text_type(doc).split(six.u("\n"))
+        doc = get_doc_object(obj, what, u("\n").join(lines), config=cfg)
+        lines[:] = compat.text_type(doc).split(u("\n"))
 
     if app.config.numpydoc_edit_link and hasattr(obj, '__name__') and \
            obj.__name__:
         if hasattr(obj, '__module__'):
-            v = dict(full_name=six.u("%s.%s") % (obj.__module__, obj.__name__))
+            v = dict(full_name=u("%s.%s") % (obj.__module__, obj.__name__))
         else:
             v = dict(full_name=obj.__name__)
-        lines += [six.u(''), six.u('.. htmlonly::'), '']
-        lines += [six.u('    %s') % x for x in
+        lines += [u(''), u('.. htmlonly::'), '']
+        lines += [u('    %s') % x for x in
                   (app.config.numpydoc_edit_link % v).split("\n")]
 
     # replace reference numbers so that there are no duplicates
     references = []
     for line in lines:
         line = line.strip()
-        m = re.match(six.u(r'^.. \[([a-z0-9_.-])\]'), line, re.I)
+        m = re.match(u(r'^.. \[([a-z0-9_.-])\]'), line, re.I)
         if m:
             references.append(m.group(1))
 
@@ -65,14 +65,14 @@ def mangle_docstrings(app, what, name, obj, options, lines,
     if references:
         for i, line in enumerate(lines):
             for r in references:
-                if re.match(six.u(r'^\d+$'), r):
-                    new_r = six.u("R%d") % (reference_offset[0] + int(r))
+                if re.match(u(r'^\d+$'), r):
+                    new_r = u("R%d") % (reference_offset[0] + int(r))
                 else:
-                    new_r = six.u("%s%d") % (r, reference_offset[0])
-                lines[i] = lines[i].replace(six.u('[%s]_') % r,
-                                            six.u('[%s]_') % new_r)
-                lines[i] = lines[i].replace(six.u('.. [%s]') % r,
-                                            six.u('.. [%s]') % new_r)
+                    new_r = u("%s%d") % (r, reference_offset[0])
+                lines[i] = lines[i].replace(u('[%s]_') % r,
+                                            u('[%s]_') % new_r)
+                lines[i] = lines[i].replace(u('.. [%s]') % r,
+                                            u('.. [%s]') % new_r)
 
     reference_offset[0] += len(references)
 
@@ -83,13 +83,13 @@ def mangle_signature(app, what, name, obj, options, sig, retann):
         'initializes x; see ' in pydoc.getdoc(obj.__init__))):
         return '', ''
 
-    if not (six.callable(obj) or hasattr(obj, '__argspec_is_invalid_')): return
+    if not (callable(obj) or hasattr(obj, '__argspec_is_invalid_')): return
     if not hasattr(obj, '__doc__'): return
 
     doc = SphinxDocString(pydoc.getdoc(obj))
     if doc['Signature']:
-        sig = re.sub(six.u("^[^(]*"), six.u(""), doc['Signature'])
-        return sig, six.u('')
+        sig = re.sub(u("^[^(]*"), u(""), doc['Signature'])
+        return sig, u('')
 
 def setup(app, get_doc_object_=get_doc_object):
     global get_doc_object

@@ -8,7 +8,7 @@ import os
 
 from vbench.api import Benchmark
 from pandas.util.testing import rands
-from pandas.util.py3compat import range
+from pandas.util.compat import range
 import pandas._tseries as lib
 import pandas._sandbox as sbx
 import time

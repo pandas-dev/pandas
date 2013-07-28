@@ -3,10 +3,9 @@
 from datetime import datetime
 from pandas.core.common import _asarray_tuplesafe
 from pandas.core.index import Index, MultiIndex, _ensure_index
-from pandas.util.py3compat import range
-from pandas.util.py3compat import zip
+from pandas.util.compat import range, zip
+import pandas.util.compat as compat
 import pandas.core.common as com
-import six
 import pandas.lib as lib
 
 import numpy as np
@@ -923,7 +922,7 @@ def _convert_to_index_sliceable(obj, key):
             indexer = obj.ix._convert_to_indexer(key, axis=0)
         return indexer
 
-    elif isinstance(key, six.string_types):
+    elif isinstance(key, compat.string_types):
 
         # we are an actual column
         if key in obj._data.items:
@@ -1080,7 +1079,7 @@ def _is_label_like(key):
 def _is_list_like(obj):
     # Consider namedtuples to be not list like as they are useful as indices
     return (np.iterable(obj)
-            and not isinstance(obj, six.string_types)
+            and not isinstance(obj, compat.string_types)
             and not (isinstance(obj, tuple) and type(obj) is not tuple))
 
 

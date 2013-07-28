@@ -12,8 +12,7 @@ import pandas.algos as algos
 import pandas.hashtable as _hash
 import pandas.tslib as tslib
 
-from pandas.util.py3compat import builtins
-import six
+from pandas.util.compat import builtins
 
 
 try:
@@ -35,7 +34,7 @@ class disallow(object):
     def __call__(self, f):
         @functools.wraps(f)
         def _f(*args, **kwargs):
-            obj_iter = itertools.chain(args, six.itervalues(kwargs))
+            obj_iter = itertools.chain(args, compat.itervalues(kwargs))
             if any(self.check(obj) for obj in obj_iter):
                 raise TypeError('reduction operation {0!r} not allowed for '
                                 'this dtype'.format(f.__name__.replace('nan',

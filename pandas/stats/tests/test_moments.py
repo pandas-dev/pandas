@@ -1,5 +1,3 @@
-from pandas.util.py3compat import range
-from pandas.util.py3compat import zip
 import unittest
 import nose
 import sys
@@ -13,10 +11,10 @@ from pandas import Series, DataFrame, bdate_range, isnull, notnull
 from pandas.util.testing import (
     assert_almost_equal, assert_series_equal, assert_frame_equal
 )
-from pandas.util.py3compat import PY3
 import pandas.core.datetools as datetools
 import pandas.stats.moments as mom
 import pandas.util.testing as tm
+from pandas.util.compat import range, zip, PY3, StringIO
 
 N, K = 100, 10
 
@@ -489,7 +487,6 @@ class TestMoments(unittest.TestCase):
             assert_frame_equal(frame_xp, frame_rs)
 
     def test_legacy_time_rule_arg(self):
-        from pandas.util.py3compat import StringIO
         # suppress deprecation warnings
         sys.stderr = StringIO()
 

@@ -1,11 +1,10 @@
 import types
 import numpy as np
 
-import six
-from pandas.util.py3compat import range, long, lrange, lzip
-from pandas.util.compat import OrderedDict
+from pandas.util.compat import(
+    zip, builtins, range, long, lrange, lzip, OrderedDict, callable
+)
 from pandas.util import compat
-from pandas.util.py3compat import zip, builtins
 
 from pandas.core.base import PandasObject
 from pandas.core.categorical import Categorical
@@ -1261,7 +1260,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
 
     if level is not None:
         if not isinstance(group_axis, MultiIndex):
-            if isinstance(level, six.string_types):
+            if isinstance(level, compat.string_types):
                 if obj.index.name != level:
                     raise ValueError('level name %s is not the name of the index' % level)
             elif level > 0:
@@ -1283,7 +1282,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
 
     # what are we after, exactly?
     match_axis_length = len(keys) == len(group_axis)
-    any_callable = any(six.callable(g) or isinstance(g, dict) for g in keys)
+    any_callable = any(callable(g) or isinstance(g, dict) for g in keys)
     any_arraylike = any(isinstance(g, (list, tuple, np.ndarray))
                         for g in keys)
 
@@ -1338,7 +1337,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
 
 
 def _is_label_like(val):
-    return isinstance(val, six.string_types) or np.isscalar(val)
+    return isinstance(val, compat.string_types) or np.isscalar(val)
 
 
 def _convert_grouper(axis, grouper):
@@ -1410,7 +1409,7 @@ class SeriesGroupBy(GroupBy):
         -------
         Series or DataFrame
         """
-        if isinstance(func_or_funcs, six.string_types):
+        if isinstance(func_or_funcs, compat.string_types):
             return getattr(self, func_or_funcs)(*args, **kwargs)
 
         if hasattr(func_or_funcs, '__iter__'):
@@ -1450,7 +1449,7 @@ class SeriesGroupBy(GroupBy):
             # list of functions / function names
             columns = []
             for f in arg:
-                if isinstance(f, six.string_types):
+                if isinstance(f, compat.string_types):
                     columns.append(f)
                 else:
                     columns.append(f.__name__)
@@ -1538,7 +1537,7 @@ class SeriesGroupBy(GroupBy):
             result = result.values
         dtype = result.dtype
 
-        if isinstance(func, six.string_types):
+        if isinstance(func, compat.string_types):
             wrapper = lambda x: getattr(x, func)(*args, **kwargs)
         else:
             wrapper = lambda x: func(x, *args, **kwargs)
@@ -1580,7 +1579,7 @@ class SeriesGroupBy(GroupBy):
         -------
         filtered : Series
         """
-        if isinstance(func, six.string_types):
+        if isinstance(func, compat.string_types):
             wrapper = lambda x: getattr(x, func)(*args, **kwargs)
         else:
             wrapper = lambda x: func(x, *args, **kwargs)
@@ -1694,7 +1693,7 @@ class NDFrameGroupBy(GroupBy):
 
     @Appender(_agg_doc)
     def aggregate(self, arg, *args, **kwargs):
-        if isinstance(arg, six.string_types):
+        if isinstance(arg, compat.string_types):
             return getattr(self, arg)(*args, **kwargs)
 
         result = OrderedDict()
@@ -2002,7 +2001,7 @@ class NDFrameGroupBy(GroupBy):
         return concatenated
 
     def _define_paths(self, func, *args, **kwargs):
-        if isinstance(func, six.string_types):
+        if isinstance(func, compat.string_types):
             fast_path = lambda group: getattr(group, func)(*args, **kwargs)
             slow_path = lambda group: group.apply(lambda x: getattr(x, func)(*args, **kwargs), axis=self.axis)
         else:
@@ -2253,7 +2252,7 @@ class PanelGroupBy(NDFrameGroupBy):
         -------
         aggregated : Panel
         """
-        if isinstance(arg, six.string_types):
+        if isinstance(arg, compat.string_types):
             return getattr(self, arg)(*args, **kwargs)
 
         return self._aggregate_generic(arg, *args, **kwargs)
@@ -2656,7 +2655,7 @@ def numpy_groupby(data, labels, axis=0):
 # Helper functions
 
 
-from pandas.util import py3compat
+from pandas.util import compat
 import sys
 
 
@@ -2668,7 +2667,7 @@ def install_ipython_completers():  # pragma: no cover
     @complete_object.when_type(DataFrameGroupBy)
     def complete_dataframe(obj, prev_completions):
         return prev_completions + [c for c in obj.obj.columns
-                                   if isinstance(c, six.string_types) and py3compat.isidentifier(c)]
+                                   if isinstance(c, compat.string_types) and compat.isidentifier(c)]
 
 
 # Importing IPython brings in about 200 modules, so we want to avoid it unless

@@ -1,7 +1,6 @@
 from datetime import date, datetime, timedelta
-from pandas.util.py3compat import range
+from pandas.util.compat import range
 from pandas.util import compat
-import six
 import numpy as np
 
 from pandas.tseries.tools import to_datetime
@@ -140,7 +139,7 @@ class DateOffset(object):
         if other is None:
             return False
 
-        if isinstance(other, six.string_types):
+        if isinstance(other, compat.string_types):
             from pandas.tseries.frequencies import to_offset
             other = to_offset(other)
 
@@ -431,7 +430,7 @@ class CustomBusinessDay(BusinessDay):
 
     @staticmethod
     def _to_dt64(dt, dtype='datetime64'):
-        if isinstance(dt, (datetime, six.string_types)):
+        if isinstance(dt, (datetime, compat.string_types)):
             dt = np.datetime64(dt, dtype=dtype)
         if isinstance(dt, np.datetime64):
             dt = dt.astype(dtype)
@@ -1169,7 +1168,7 @@ class Tick(DateOffset):
         return self.apply(other)
 
     def __eq__(self, other):
-        if isinstance(other, six.string_types):
+        if isinstance(other, compat.string_types):
             from pandas.tseries.frequencies import to_offset
             other = to_offset(other)
 
@@ -1184,7 +1183,7 @@ class Tick(DateOffset):
         return hash(self._params())
 
     def __ne__(self, other):
-        if isinstance(other, six.string_types):
+        if isinstance(other, compat.string_types):
             from pandas.tseries.frequencies import to_offset
             other = to_offset(other)
 

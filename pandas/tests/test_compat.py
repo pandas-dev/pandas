@@ -1,8 +1,8 @@
 """
-Testing that functions from py3compat work as expected
+Testing that functions from compat work as expected
 """
 
-from pandas.util.py3compat import (
+from pandas.util.compat import (
     range, zip, map, filter,
     lrange, lzip, lmap, lfilter,
     builtins

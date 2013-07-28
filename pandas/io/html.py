@@ -14,10 +14,8 @@ import numpy as np
 
 from pandas import DataFrame, MultiIndex, isnull
 from pandas.io.common import _is_url, urlopen, parse_url
-from pandas.util.py3compat import range, lrange, lmap
+from pandas.util.compat import range, lrange, lmap, u, map
 from pandas.util import compat
-import six
-from pandas.util.py3compat import map
 
 
 try:
@@ -122,7 +120,7 @@ def _read(io):
     elif os.path.isfile(io):
         with open(io) as f:
             raw_text = f.read()
-    elif isinstance(io, six.string_types):
+    elif isinstance(io, compat.string_types):
         raw_text = io
     else:
         raise TypeError("Cannot read object of type "
@@ -452,8 +450,8 @@ def _build_node_xpath_expr(attrs):
     if 'class_' in attrs:
         attrs['class'] = attrs.pop('class_')
 
-    s = (six.u("@{k}='{v}'").format(k=k, v=v) for k, v in compat.iteritems(attrs))
-    return six.u('[{0}]').format(' and '.join(s))
+    s = (u("@{k}='{v}'").format(k=k, v=v) for k, v in compat.iteritems(attrs))
+    return u('[{0}]').format(' and '.join(s))
 
 
 _re_namespace = {'re': 'http://exslt.org/regular-expressions'}
@@ -494,9 +492,9 @@ class _LxmlFrameParser(_HtmlFrameParser):
         pattern = match.pattern
 
         # check all descendants for the given pattern
-        check_all_expr = six.u('//*')
+        check_all_expr = u('//*')
         if pattern:
-            check_all_expr += six.u("[re:test(text(), '{0}')]").format(pattern)
+            check_all_expr += u("[re:test(text(), '{0}')]").format(pattern)
 
         # go up the tree until we find a table
         check_table_expr = '/ancestor::table'
@@ -735,10 +733,10 @@ def _parser_dispatch(flavor):
 def _validate_parser_flavor(flavor):
     if flavor is None:
         flavor = ['lxml', 'bs4']
-    elif isinstance(flavor, six.string_types):
+    elif isinstance(flavor, compat.string_types):
         flavor = [flavor]
     elif isinstance(flavor, collections.Iterable):
-        if not all(isinstance(flav, six.string_types) for flav in flavor):
+        if not all(isinstance(flav, compat.string_types) for flav in flavor):
             raise TypeError('{0} is not an iterable of strings'.format(flavor))
     else:
         raise TypeError('{0} is not a valid "flavor"'.format(flavor))

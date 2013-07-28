@@ -6,7 +6,7 @@ from __future__ import print_function
 
 # pylint: disable-msg=E1101,W0613,W0603
 from datetime import datetime, date
-from pandas.util.py3compat import range, lrange, lmap
+from pandas.util.compat import map, range, zip, lrange, lmap, u
 from pandas.util import compat
 import time
 import re
@@ -30,7 +30,7 @@ from pandas.core.reshape import block2d_to_blocknd, factor_indexer
 from pandas.core.index import _ensure_index
 import pandas.core.common as com
 from pandas.tools.merge import concat
-from pandas.util import py3compat
+from pandas.util import compat
 from pandas.io.common import PerformanceWarning
 
 import pandas.lib as lib
@@ -38,8 +38,6 @@ import pandas.algos as algos
 import pandas.tslib as tslib
 
 from contextlib import contextmanager
-import six
-from pandas.util.py3compat import map, zip
 
 # versioning attribute
 _version = '0.10.1'
@@ -58,7 +56,7 @@ def _ensure_decoded(s):
 def _ensure_encoding(encoding):
     # set the encoding if we need
     if encoding is None:
-        if py3compat.PY3:
+        if compat.PY3:
             encoding = _default_encoding
     return encoding
 
@@ -92,40 +90,40 @@ map directly to c-types [inferred_type->%s,key->%s] [items->%s]
 # map object types
 _TYPE_MAP = {
 
-    Series: six.u('series'),
-    SparseSeries: six.u('sparse_series'),
-    TimeSeries: six.u('series'),
-    DataFrame: six.u('frame'),
-    SparseDataFrame: six.u('sparse_frame'),
-    Panel: six.u('wide'),
-    Panel4D: six.u('ndim'),
-    SparsePanel: six.u('sparse_panel')
+    Series: u('series'),
+    SparseSeries: u('sparse_series'),
+    TimeSeries: u('series'),
+    DataFrame: u('frame'),
+    SparseDataFrame: u('sparse_frame'),
+    Panel: u('wide'),
+    Panel4D: u('ndim'),
+    SparsePanel: u('sparse_panel')
 }
 
 # storer class map
 _STORER_MAP = {
-    six.u('TimeSeries')    : 'LegacySeriesStorer',
-    six.u('Series')        : 'LegacySeriesStorer',
-    six.u('DataFrame')     : 'LegacyFrameStorer',
-    six.u('DataMatrix')    : 'LegacyFrameStorer',
-    six.u('series')        : 'SeriesStorer',
-    six.u('sparse_series') : 'SparseSeriesStorer',
-    six.u('frame')         : 'FrameStorer',
-    six.u('sparse_frame')  : 'SparseFrameStorer',
-    six.u('wide')          : 'PanelStorer',
-    six.u('sparse_panel')  : 'SparsePanelStorer',
+    u('TimeSeries')    : 'LegacySeriesStorer',
+    u('Series')        : 'LegacySeriesStorer',
+    u('DataFrame')     : 'LegacyFrameStorer',
+    u('DataMatrix')    : 'LegacyFrameStorer',
+    u('series')        : 'SeriesStorer',
+    u('sparse_series') : 'SparseSeriesStorer',
+    u('frame')         : 'FrameStorer',
+    u('sparse_frame')  : 'SparseFrameStorer',
+    u('wide')          : 'PanelStorer',
+    u('sparse_panel')  : 'SparsePanelStorer',
 }
 
 # table class map
 _TABLE_MAP = {
-    six.u('generic_table')    : 'GenericTable',
-    six.u('appendable_frame')      : 'AppendableFrameTable',
-    six.u('appendable_multiframe') : 'AppendableMultiFrameTable',
-    six.u('appendable_panel') : 'AppendablePanelTable',
-    six.u('appendable_ndim')  : 'AppendableNDimTable',
-    six.u('worm')             : 'WORMTable',
-    six.u('legacy_frame')     : 'LegacyFrameTable',
-    six.u('legacy_panel')     : 'LegacyPanelTable',
+    u('generic_table')    : 'GenericTable',
+    u('appendable_frame')      : 'AppendableFrameTable',
+    u('appendable_multiframe') : 'AppendableMultiFrameTable',
+    u('appendable_panel') : 'AppendablePanelTable',
+    u('appendable_ndim')  : 'AppendableNDimTable',
+    u('worm')             : 'WORMTable',
+    u('legacy_frame')     : 'LegacyFrameTable',
+    u('legacy_panel')     : 'LegacyPanelTable',
 }
 
 # axes map
@@ -194,7 +192,7 @@ def to_hdf(path_or_buf, key, value, mode=None, complevel=None, complib=None, app
     else:
         f = lambda store: store.put(key, value, **kwargs)
 
-    if isinstance(path_or_buf, six.string_types):
+    if isinstance(path_or_buf, compat.string_types):
         with get_store(path_or_buf, mode=mode, complevel=complevel, complib=complib) as store:
             f(store)
     else:
@@ -204,7 +202,7 @@ def read_hdf(path_or_buf, key, **kwargs):
     """ read from the store, closeit if we opened it """
     f = lambda store, auto_close: store.select(key, auto_close=auto_close, **kwargs)
 
-    if isinstance(path_or_buf, six.string_types):
+    if isinstance(path_or_buf, compat.string_types):
 
         # can't auto open/close if we are using an iterator
         # so delegate to the iterator
@@ -372,7 +370,7 @@ class HDFStore(StringMixin):
         self._mode = mode
         if warn and mode == 'w':  # pragma: no cover
             while True:
-                if py3compat.PY3:
+                if compat.PY3:
                     raw_input = input
                 response = raw_input("Re-opening as mode='w' will delete the "
                                      "current file. Continue (y/n)?")
@@ -520,7 +518,7 @@ class HDFStore(StringMixin):
         # default to single select
         if isinstance(keys, (list, tuple)) and len(keys) == 1:
             keys = keys[0]
-        if isinstance(keys, six.string_types):
+        if isinstance(keys, compat.string_types):
             return self.select(key=keys, where=where, columns=columns, start=start, stop=stop, iterator=iterator, chunksize=chunksize, **kwargs)
 
         if not isinstance(keys, (list, tuple)):
@@ -751,7 +749,7 @@ class HDFStore(StringMixin):
         """ return a list of all the top-level nodes (that are not themselves a pandas storage object) """
         _tables()
         return [ g for g in self._handle.walkNodes() if getattr(g._v_attrs,'pandas_type',None) or getattr(
-            g,'table',None) or (isinstance(g,_table_mod.table.Table) and g._v_name != six.u('table')) ]
+            g,'table',None) or (isinstance(g,_table_mod.table.Table) and g._v_name != u('table')) ]
 
     def get_node(self, key):
         """ return the node with the key or None if it does not exist """
@@ -830,8 +828,8 @@ class HDFStore(StringMixin):
 
                 _tables()
                 if getattr(group,'table',None) or isinstance(group,_table_mod.table.Table):
-                    pt = six.u('frame_table')
-                    tt = six.u('generic_table')
+                    pt = u('frame_table')
+                    tt = u('generic_table')
                 else:
                     raise TypeError("cannot create a storer if the object is not existing nor a value are passed")
             else:
@@ -843,10 +841,10 @@ class HDFStore(StringMixin):
 
                 # we are actually a table
                 if table or append:
-                    pt += six.u('_table')
+                    pt += u('_table')
 
         # a storer node
-        if six.u('table') not in pt:
+        if u('table') not in pt:
             try:
                 return globals()[_STORER_MAP[pt]](self, group, **kwargs)
             except:
@@ -858,26 +856,26 @@ class HDFStore(StringMixin):
             # if we are a writer, determin the tt
             if value is not None:
 
-                if pt == six.u('frame_table'):
+                if pt == u('frame_table'):
                     index = getattr(value,'index',None)
                     if index is not None:
                         if index.nlevels == 1:
-                            tt = six.u('appendable_frame')
+                            tt = u('appendable_frame')
                         elif index.nlevels > 1:
-                            tt = six.u('appendable_multiframe')
-                elif pt == six.u('wide_table'):
-                    tt  = six.u('appendable_panel')
-                elif pt == six.u('ndim_table'):
-                    tt = six.u('appendable_ndim')
+                            tt = u('appendable_multiframe')
+                elif pt == u('wide_table'):
+                    tt  = u('appendable_panel')
+                elif pt == u('ndim_table'):
+                    tt = u('appendable_ndim')
 
             else:
 
                 # distiguish between a frame/table
-                tt = six.u('legacy_panel')
+                tt = u('legacy_panel')
                 try:
                     fields = group.table._v_attrs.fields
-                    if len(fields) == 1 and fields[0] == six.u('value'):
-                        tt = six.u('legacy_frame')
+                    if len(fields) == 1 and fields[0] == u('value'):
+                        tt = u('legacy_frame')
                 except:
                     pass
 
@@ -1147,7 +1145,7 @@ class IndexCol(StringMixin):
     def maybe_set_size(self, min_itemsize=None, **kwargs):
         """ maybe set a string col itemsize:
                min_itemsize can be an interger or a dict with this columns name with an integer size """
-        if _ensure_decoded(self.kind) == six.u('string'):
+        if _ensure_decoded(self.kind) == u('string'):
 
             if isinstance(min_itemsize, dict):
                 min_itemsize = min_itemsize.get(self.name)
@@ -1167,7 +1165,7 @@ class IndexCol(StringMixin):
 
         # validate this column for string truncation (or reset to the max size)
         dtype = getattr(self, 'dtype', None)
-        if _ensure_decoded(self.kind) == six.u('string'):
+        if _ensure_decoded(self.kind) == u('string'):
 
             c = self.col
             if c is not None:
@@ -1297,7 +1295,7 @@ class DataCol(IndexCol):
         super(DataCol, self).__init__(
             values=values, kind=kind, typ=typ, cname=cname, **kwargs)
         self.dtype = None
-        self.dtype_attr = six.u("%s_dtype") % self.name
+        self.dtype_attr = u("%s_dtype") % self.name
         self.set_data(data)
 
     def __unicode__(self):
@@ -1326,15 +1324,15 @@ class DataCol(IndexCol):
         # set my kind if we can
         if self.dtype is not None:
             dtype = _ensure_decoded(self.dtype)
-            if dtype.startswith(six.u('string')) or dtype.startswith(six.u('bytes')):
+            if dtype.startswith(u('string')) or dtype.startswith(u('bytes')):
                 self.kind = 'string'
-            elif dtype.startswith(six.u('float')):
+            elif dtype.startswith(u('float')):
                 self.kind = 'float'
-            elif dtype.startswith(six.u('int')) or dtype.startswith(six.u('uint')):
+            elif dtype.startswith(u('int')) or dtype.startswith(u('uint')):
                 self.kind = 'integer'
-            elif dtype.startswith(six.u('date')):
+            elif dtype.startswith(u('date')):
                 self.kind = 'datetime'
-            elif dtype.startswith(six.u('bool')):
+            elif dtype.startswith(u('bool')):
                 self.kind = 'bool'
             else:
                 raise AssertionError("cannot interpret dtype of [%s] in [%s]" % (dtype,self))
@@ -1508,7 +1506,7 @@ class DataCol(IndexCol):
             dtype = _ensure_decoded(self.dtype)
 
             # reverse converts
-            if dtype == six.u('datetime64'):
+            if dtype == u('datetime64'):
                 # recreate the timezone
                 if self.tz is not None:
 
@@ -1521,10 +1519,10 @@ class DataCol(IndexCol):
                 else:
                     self.data = np.asarray(self.data, dtype='M8[ns]')
 
-            elif dtype == six.u('date'):
+            elif dtype == u('date'):
                 self.data = np.array(
                     [date.fromtimestamp(v) for v in self.data], dtype=object)
-            elif dtype == six.u('datetime'):
+            elif dtype == u('datetime'):
                 self.data = np.array(
                     [datetime.fromtimestamp(v) for v in self.data],
                     dtype=object)
@@ -1536,7 +1534,7 @@ class DataCol(IndexCol):
                     self.data = self.data.astype('O')
 
         # convert nans / decode
-        if _ensure_decoded(self.kind) == six.u('string'):
+        if _ensure_decoded(self.kind) == u('string'):
             self.data = _unconvert_string_array(self.data, nan_rep=nan_rep, encoding=encoding)
 
         return self
@@ -1560,7 +1558,7 @@ class DataIndexableCol(DataCol):
 
     @property
     def is_searchable(self):
-        return _ensure_decoded(self.kind) == six.u('string')
+        return _ensure_decoded(self.kind) == u('string')
 
     def get_atom_string(self, block, itemsize):
         return _tables().StringCol(itemsize=itemsize)
@@ -1797,7 +1795,7 @@ class GenericStorer(Storer):
             else:
                 ret = data
 
-            if dtype == six.u('datetime64'):
+            if dtype == u('datetime64'):
                 ret = np.array(ret, dtype='M8[ns]')
 
         if transposed:
@@ -1808,13 +1806,13 @@ class GenericStorer(Storer):
     def read_index(self, key):
         variety = _ensure_decoded(getattr(self.attrs, '%s_variety' % key))
 
-        if variety == six.u('multi'):
+        if variety == u('multi'):
             return self.read_multi_index(key)
-        elif variety == six.u('block'):
+        elif variety == u('block'):
             return self.read_block_index(key)
-        elif variety == six.u('sparseint'):
+        elif variety == u('sparseint'):
             return self.read_sparse_intindex(key)
-        elif variety == six.u('regular'):
+        elif variety == u('regular'):
             _, index = self.read_index_node(getattr(self.group, key))
             return index
         else:  # pragma: no cover
@@ -1923,13 +1921,13 @@ class GenericStorer(Storer):
         factory = self._get_index_factory(index_class)
 
         kwargs = {}
-        if six.u('freq') in node._v_attrs:
+        if u('freq') in node._v_attrs:
             kwargs['freq'] = node._v_attrs['freq']
 
-        if six.u('tz') in node._v_attrs:
+        if u('tz') in node._v_attrs:
             kwargs['tz'] = node._v_attrs['tz']
 
-        if kind in (six.u('date'), six.u('datetime')):
+        if kind in (u('date'), u('datetime')):
             index = factory(_unconvert_index(data, kind, encoding=self.encoding), dtype=object,
                             **kwargs)
         else:
@@ -2038,7 +2036,7 @@ class LegacyFrameStorer(LegacyStorer):
         return DataFrame(values, index=index, columns=columns)
 
 class SeriesStorer(GenericStorer):
-    pandas_kind = six.u('series')
+    pandas_kind = u('series')
     attributes = ['name']
 
     @property
@@ -2065,7 +2063,7 @@ class SeriesStorer(GenericStorer):
         self.attrs.name = obj.name
 
 class SparseSeriesStorer(GenericStorer):
-    pandas_kind = six.u('sparse_series')
+    pandas_kind = u('sparse_series')
     attributes = ['name','fill_value','kind']
 
     def read(self, **kwargs):
@@ -2074,7 +2072,7 @@ class SparseSeriesStorer(GenericStorer):
         sp_values = self.read_array('sp_values')
         sp_index = self.read_index('sp_index')
         return SparseSeries(sp_values, index=index, sparse_index=sp_index,
-                            kind=self.kind or six.u('block'), fill_value=self.fill_value,
+                            kind=self.kind or u('block'), fill_value=self.fill_value,
                             name=self.name)
 
     def write(self, obj, **kwargs):
@@ -2087,7 +2085,7 @@ class SparseSeriesStorer(GenericStorer):
         self.attrs.kind = obj.kind
 
 class SparseFrameStorer(GenericStorer):
-    pandas_kind = six.u('sparse_frame')
+    pandas_kind = u('sparse_frame')
     attributes = ['default_kind','default_fill_value']
 
     def read(self, **kwargs):
@@ -2119,7 +2117,7 @@ class SparseFrameStorer(GenericStorer):
         self.write_index('columns', obj.columns)
 
 class SparsePanelStorer(GenericStorer):
-    pandas_kind = six.u('sparse_panel')
+    pandas_kind = u('sparse_panel')
     attributes = ['default_kind','default_fill_value']
 
     def read(self, **kwargs):
@@ -2223,11 +2221,11 @@ class BlockManagerStorer(GenericStorer):
             self.write_index('block%d_items' % i, blk.items)
 
 class FrameStorer(BlockManagerStorer):
-    pandas_kind = six.u('frame')
+    pandas_kind = u('frame')
     obj_type    = DataFrame
 
 class PanelStorer(BlockManagerStorer):
-    pandas_kind = six.u('wide')
+    pandas_kind = u('wide')
     obj_type    = Panel
     is_shape_reversed = True
 
@@ -2252,7 +2250,7 @@ class Table(Storer):
         levels        : the names of levels
 
         """
-    pandas_kind = six.u('wide_table')
+    pandas_kind = u('wide_table')
     table_type  = None
     levels      = 1
     is_table    = True
@@ -2326,7 +2324,7 @@ class Table(Storer):
     @property
     def is_exists(self):
         """ has this table been created """
-        return six.u('table') in self.group
+        return u('table') in self.group
 
     @property
     def storable(self):
@@ -2845,7 +2843,7 @@ class WORMTable(Table):
          table. writing is a one-time operation the data are stored in a format
          that allows for searching the data on disk
          """
-    table_type = six.u('worm')
+    table_type = u('worm')
 
     def read(self, **kwargs):
         """ read the indicies and the indexing array, calculate offset rows and
@@ -2870,7 +2868,7 @@ class LegacyTable(Table):
                    IndexCol(name='column', axis=2,
                             pos=1, index_kind='columns_kind'),
                    DataCol(name='fields', cname='values', kind_attr='fields', pos=2)]
-    table_type = six.u('legacy')
+    table_type = u('legacy')
     ndim = 3
 
     def write(self, **kwargs):
@@ -2960,8 +2958,8 @@ class LegacyTable(Table):
 
 class LegacyFrameTable(LegacyTable):
     """ support the legacy frame table """
-    pandas_kind = six.u('frame_table')
-    table_type = six.u('legacy_frame')
+    pandas_kind = u('frame_table')
+    table_type = u('legacy_frame')
     obj_type = Panel
 
     def read(self, *args, **kwargs):
@@ -2970,14 +2968,14 @@ class LegacyFrameTable(LegacyTable):
 
 class LegacyPanelTable(LegacyTable):
     """ support the legacy panel table """
-    table_type = six.u('legacy_panel')
+    table_type = u('legacy_panel')
     obj_type = Panel
 
 
 class AppendableTable(LegacyTable):
     """ suppor the new appendable table formats """
     _indexables = None
-    table_type = six.u('appendable')
+    table_type = u('appendable')
 
     def write(self, obj, axes=None, append=False, complib=None,
               complevel=None, fletcher32=None, min_itemsize=None, chunksize=None,
@@ -3140,8 +3138,8 @@ class AppendableTable(LegacyTable):
 
 class AppendableFrameTable(AppendableTable):
     """ suppor the new appendable table formats """
-    pandas_kind = six.u('frame_table')
-    table_type = six.u('appendable_frame')
+    pandas_kind = u('frame_table')
+    table_type = u('appendable_frame')
     ndim = 2
     obj_type = DataFrame
 
@@ -3195,8 +3193,8 @@ class AppendableFrameTable(AppendableTable):
 
 class GenericTable(AppendableFrameTable):
     """ a table that read/writes the generic pytables table format """
-    pandas_kind = six.u('frame_table')
-    table_type = six.u('generic_table')
+    pandas_kind = u('frame_table')
+    table_type = u('generic_table')
     ndim = 2
     obj_type = DataFrame
 
@@ -3240,13 +3238,13 @@ class GenericTable(AppendableFrameTable):
 
 class AppendableMultiFrameTable(AppendableFrameTable):
     """ a frame with a multi-index """
-    table_type = six.u('appendable_multiframe')
+    table_type = u('appendable_multiframe')
     obj_type = DataFrame
     ndim = 2
 
     @property
     def table_type_short(self):
-        return six.u('appendable_multi')
+        return u('appendable_multi')
 
     def write(self, obj, data_columns=None, **kwargs):
         if data_columns is None:
@@ -3271,7 +3269,7 @@ class AppendableMultiFrameTable(AppendableFrameTable):
 
 class AppendablePanelTable(AppendableTable):
     """ suppor the new appendable table formats """
-    table_type = six.u('appendable_panel')
+    table_type = u('appendable_panel')
     ndim = 3
     obj_type = Panel
 
@@ -3288,7 +3286,7 @@ class AppendablePanelTable(AppendableTable):
 
 class AppendableNDimTable(AppendablePanelTable):
     """ suppor the new appendable table formats """
-    table_type = six.u('appendable_ndim')
+    table_type = u('appendable_ndim')
     ndim = 4
     obj_type = Panel4D
 
@@ -3356,18 +3354,18 @@ def _convert_index(index, encoding=None):
 
 def _unconvert_index(data, kind, encoding=None):
     kind = _ensure_decoded(kind)
-    if kind == six.u('datetime64'):
+    if kind == u('datetime64'):
         index = DatetimeIndex(data)
-    elif kind == six.u('datetime'):
+    elif kind == u('datetime'):
         index = np.array([datetime.fromtimestamp(v) for v in data],
                          dtype=object)
-    elif kind == six.u('date'):
+    elif kind == u('date'):
         index = np.array([date.fromtimestamp(v) for v in data], dtype=object)
-    elif kind in (six.u('integer'), six.u('float')):
+    elif kind in (u('integer'), u('float')):
         index = np.array(data)
-    elif kind in (six.u('string')):
+    elif kind in (u('string')):
         index = _unconvert_string_array(data, nan_rep=None, encoding=encoding)
-    elif kind == six.u('object'):
+    elif kind == u('object'):
         index = np.array(data[0])
     else:  # pragma: no cover
         raise ValueError('unrecognized index type %s' % kind)
@@ -3375,11 +3373,11 @@ def _unconvert_index(data, kind, encoding=None):
 
 def _unconvert_index_legacy(data, kind, legacy=False, encoding=None):
     kind = _ensure_decoded(kind)
-    if kind == six.u('datetime'):
+    if kind == u('datetime'):
         index = lib.time64_to_datetime(data)
-    elif kind in (six.u('integer')):
+    elif kind in (u('integer')):
         index = np.array(data, dtype=object)
-    elif kind in (six.u('string')):
+    elif kind in (u('string')):
         index = _unconvert_string_array(data, nan_rep=None, encoding=encoding)
     else:  # pragma: no cover
         raise ValueError('unrecognized index type %s' % kind)
@@ -3437,7 +3435,7 @@ def _get_converter(kind, encoding):
 
 def _need_convert(kind):
     kind = _ensure_decoded(kind)
-    if kind in (six.u('datetime'), six.u('datetime64'), six.u('string')):
+    if kind in (u('datetime'), u('datetime64'), u('string')):
         return True
     return False
 
@@ -3503,7 +3501,7 @@ class Term(StringMixin):
             self.value = field.value
 
         # a string expression (or just the field)
-        elif isinstance(field, six.string_types):
+        elif isinstance(field, compat.string_types):
 
             # is a term is passed
             s = self._search.match(field)
@@ -3516,7 +3514,7 @@ class Term(StringMixin):
                 self.field = field
 
                 # is an op passed?
-                if isinstance(op, six.string_types) and op in self._ops:
+                if isinstance(op, compat.string_types) and op in self._ops:
                     self.op = op
                     self.value = value
                 else:
@@ -3537,7 +3535,7 @@ class Term(StringMixin):
 
         # we have valid conditions
         if self.op in ['>', '>=', '<', '<=']:
-            if hasattr(self.value, '__iter__') and len(self.value) > 1 and not isinstance(self.value,six.string_types):
+            if hasattr(self.value, '__iter__') and len(self.value) > 1 and not isinstance(self.value,compat.string_types):
                 raise ValueError("an inequality condition cannot have multiple values [%s]" % str(self))
 
         if not is_list_like(self.value):
@@ -3627,36 +3625,36 @@ class Term(StringMixin):
             return value
 
         kind = _ensure_decoded(self.kind)
-        if kind == six.u('datetime64') or kind == six.u('datetime'):
+        if kind == u('datetime64') or kind == u('datetime'):
             v = lib.Timestamp(v)
             if v.tz is not None:
                 v = v.tz_convert('UTC')
             return TermValue(v,v.value,kind)
         elif (isinstance(v, datetime) or hasattr(v, 'timetuple')
-              or kind == six.u('date')):
+              or kind == u('date')):
             v = time.mktime(v.timetuple())
             return TermValue(v,Timestamp(v),kind)
-        elif kind == six.u('integer'):
+        elif kind == u('integer'):
             v = int(float(v))
             return TermValue(v,v,kind)
-        elif kind == six.u('float'):
+        elif kind == u('float'):
             v = float(v)
             return TermValue(v,v,kind)
-        elif kind == six.u('bool'):
-            if isinstance(v, six.string_types):
-                poss_vals = [six.u('false'), six.u('f'), six.u('no'),
-                             six.u('n'), six.u('none'), six.u('0'),
-                             six.u('[]'), six.u('{}'), six.u('')]
+        elif kind == u('bool'):
+            if isinstance(v, compat.string_types):
+                poss_vals = [u('false'), u('f'), u('no'),
+                             u('n'), u('none'), u('0'),
+                             u('[]'), u('{}'), u('')]
                 v = not v.strip().lower() in poss_vals
             else:
                 v = bool(v)
             return TermValue(v,v,kind)
-        elif not isinstance(v, six.string_types):
+        elif not isinstance(v, compat.string_types):
             v = stringify(v)
-            return TermValue(v,stringify(v),six.u('string'))
+            return TermValue(v,stringify(v),u('string'))
 
         # string quoting
-        return TermValue(v,stringify(v),six.u('string'))
+        return TermValue(v,stringify(v),u('string'))
 
 class TermValue(object):
     """ hold a term value the we use to construct a condition/filter """
@@ -3669,7 +3667,7 @@ class TermValue(object):
     def tostring(self, encoding):
         """ quote the string if not encoded
             else encode and return """
-        if self.kind == six.u('string'):
+        if self.kind == u('string'):
             if encoding is not None:
                 return self.converted
             return '"%s"' % self.converted
@@ -3744,7 +3742,7 @@ class Selection(object):
             # operands inside any terms
             if not any([isinstance(w, (list, tuple, Term)) for w in where]):
 
-                if not any([isinstance(w, six.string_types) and Term._search.match(w) for w in where]):
+                if not any([isinstance(w, compat.string_types) and Term._search.match(w) for w in where]):
                     where = [where]
 
         queryables = self.table.queryables()

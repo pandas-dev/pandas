@@ -1,7 +1,7 @@
 """
 Base class(es) for all pandas objects.
 """
-from pandas.util import py3compat
+from pandas.util import compat
 
 class StringMixin(object):
     """implements string methods so long as object defines a `__unicode__` method.
@@ -15,7 +15,7 @@ class StringMixin(object):
         Yields Bytestring in Py2, Unicode String in py3.
         """
 
-        if py3compat.PY3:
+        if compat.PY3:
             return self.__unicode__()
         return self.__bytes__()
 

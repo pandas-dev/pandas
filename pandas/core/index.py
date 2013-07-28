@@ -1,7 +1,6 @@
 # pylint: disable=E1101,E1103,W0232
 
-from pandas.util.py3compat import range, zip, lrange, lzip
-import six
+from pandas.util.compat import range, zip, lrange, lzip
 from pandas.util import compat
 import numpy as np
 
@@ -1350,7 +1349,7 @@ class Int64Index(Index):
                 data = list(data)
             data = np.asarray(data)
 
-        if issubclass(data.dtype.type, six.string_types):
+        if issubclass(data.dtype.type, compat.string_types):
             raise TypeError('String dtype not supported, you may need '
                             'to explicitly cast to int')
         elif issubclass(data.dtype.type, np.integer):

@@ -2,7 +2,7 @@
 
 from random import random
 from math import log, ceil
-from pandas.util.py3compat import range
+from pandas.util.compat import range
 from numpy.random import randn
 from pandas.lib.skiplist import rolling_median
 

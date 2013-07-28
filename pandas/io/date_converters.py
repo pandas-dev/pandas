@@ -1,5 +1,5 @@
 """This module is designed for community supported date conversion functions"""
-from pandas.util.py3compat import range
+from pandas.util.compat import range
 import numpy as np
 import pandas.lib as lib
 

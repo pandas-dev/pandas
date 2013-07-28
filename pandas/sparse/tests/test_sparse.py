@@ -22,9 +22,8 @@ from pandas.tseries.index import DatetimeIndex
 import pandas.core.datetools as datetools
 from pandas.core.common import isnull
 import pandas.util.testing as tm
-from pandas.util.py3compat import range, lrange
+from pandas.util.compat import range, lrange, cPickle as pickle, StringIO, lrange
 from pandas.util import compat
-from pandas.util.py3compat import cPickle as pickle
 
 import pandas.sparse.frame as spf
 
@@ -36,7 +35,6 @@ from pandas.sparse.api import (SparseSeries, SparseTimeSeries,
 import pandas.tests.test_frame as test_frame
 import pandas.tests.test_panel as test_panel
 import pandas.tests.test_series as test_series
-from pandas.util.py3compat import StringIO, lrange
 
 from .test_array import assert_sp_array_equal
 

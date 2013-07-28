@@ -25,9 +25,9 @@ from pandas.core.indexing import (_SeriesIndexer, _check_bool_indexer,
                                   _check_slice_bounds, _maybe_convert_indices)
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex, Period
-from pandas.util import py3compat
+from pandas.util import compat
 from pandas.util.terminal import get_terminal_size
-from pandas.util.py3compat import zip, lzip
+from pandas.util.compat import zip, lzip, u, OrderedDict
 
 import pandas.core.array as pa
 
@@ -44,7 +44,6 @@ import pandas.index as _index
 
 from pandas.compat.scipy import scoreatpercentile as _quantile
 from pandas.core.config import get_option
-import six
 
 __all__ = ['Series', 'TimeSeries']
 
@@ -450,7 +449,6 @@ class Series(generic.PandasContainer, pa.Array):
                 data = data.reindex(index).values
         elif isinstance(data, dict):
             if index is None:
-                from pandas.util.compat import OrderedDict
                 if isinstance(data, OrderedDict):
                     index = Index(data)
                 else:
@@ -1118,9 +1116,9 @@ class Series(generic.PandasContainer, pa.Array):
                                     name=True,
                                     dtype=True)
         else:
-            result = six.u('Series([], dtype: %s)') % self.dtype
+            result = u('Series([], dtype: %s)') % self.dtype
 
-        if not (isinstance(result, six.text_type)):
+        if not (isinstance(result, compat.text_type)):
             raise AssertionError()
         return result
 
@@ -1139,12 +1137,12 @@ class Series(generic.PandasContainer, pa.Array):
         result = head + '\n...\n' + tail
         result = '%s\n%s' % (result, self._repr_footer())
 
-        return six.text_type(result)
+        return compat.text_type(result)
 
     def _repr_footer(self):
-        namestr = six.u("Name: %s, ") % com.pprint_thing(
+        namestr = u("Name: %s, ") % com.pprint_thing(
             self.name) if self.name is not None else ""
-        return six.u('%sLength: %d, dtype: %s') % (namestr, len(self),
+        return u('%sLength: %d, dtype: %s') % (namestr, len(self),
                                              str(self.dtype.name))
 
     def to_string(self, buf=None, na_rep='NaN', float_format=None,
@@ -1182,7 +1180,7 @@ class Series(generic.PandasContainer, pa.Array):
                                   length=length, dtype=dtype, name=name)
 
         # catch contract violations
-        if not isinstance(the_repr, six.text_type):
+        if not isinstance(the_repr, compat.text_type):
             raise AssertionError("expected unicode string")
 
         if buf is None:
@@ -1205,7 +1203,7 @@ class Series(generic.PandasContainer, pa.Array):
                                         length=length, dtype=dtype, na_rep=na_rep,
                                         float_format=float_format)
         result = formatter.to_string()
-        if not (isinstance(result, six.text_type)):
+        if not (isinstance(result, compat.text_type)):
             raise AssertionError()
         return result
 
@@ -1222,7 +1220,7 @@ class Series(generic.PandasContainer, pa.Array):
         return lzip(iter(self.index), iter(self))
 
     iterkv = iteritems
-    if py3compat.PY3:  # pragma: no cover
+    if compat.PY3:  # pragma: no cover
         items = iteritems
 
     #----------------------------------------------------------------------
@@ -1275,7 +1273,7 @@ class Series(generic.PandasContainer, pa.Array):
     __ipow__ = __pow__
 
     # Python 2 division operators
-    if not py3compat.PY3:
+    if not compat.PY3:
         __div__ = _arith_method(operator.div, '__div__', fill_zeros=np.inf)
         __rdiv__ = _arith_method(lambda x, y: y / x, '__div__', fill_zeros=np.inf)
         __idiv__ = __div__
@@ -1386,7 +1384,7 @@ class Series(generic.PandasContainer, pa.Array):
         if level is not None:
             mask = notnull(self.values)
 
-            if isinstance(level, six.string_types):
+            if isinstance(level, compat.string_types):
                 level = self.index._get_level_number(level)
 
             level_index = self.index.levels[level]
@@ -3048,7 +3046,7 @@ class Series(generic.PandasContainer, pa.Array):
 
         offset = _resolve_offset(freq, kwds)
 
-        if isinstance(offset, six.string_types):
+        if isinstance(offset, compat.string_types):
             offset = datetools.to_offset(offset)
 
         def _get_values():
@@ -3101,7 +3099,7 @@ class Series(generic.PandasContainer, pa.Array):
         -------
         value or NaN
         """
-        if isinstance(where, six.string_types):
+        if isinstance(where, compat.string_types):
             where = datetools.to_datetime(where)
 
         values = self.values
@@ -3409,7 +3407,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 
     # This is to prevent mixed-type Series getting all casted to
     # NumPy string type, e.g. NaN --> '-1#IND'.
-    if issubclass(subarr.dtype.type, six.string_types):
+    if issubclass(subarr.dtype.type, compat.string_types):
         subarr = pa.array(data, dtype=object, copy=copy)
 
     return subarr
@@ -3432,7 +3430,7 @@ def _resolve_offset(freq, kwds):
     if 'timeRule' in kwds or 'offset' in kwds:
         offset = kwds.get('offset', None)
         offset = kwds.get('timeRule', offset)
-        if isinstance(offset, six.string_types):
+        if isinstance(offset, compat.string_types):
             offset = datetools.getOffset(offset)
         warn = True
     else:

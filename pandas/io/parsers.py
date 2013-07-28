@@ -2,7 +2,7 @@
 Module contains tools for processing files into DataFrames or other objects
 """
 from __future__ import print_function
-from pandas.util.py3compat import range, lrange, StringIO, lzip
+from pandas.util.compat import range, lrange, StringIO, lzip, zip
 from pandas.util import compat
 import re
 import csv
@@ -14,7 +14,7 @@ from pandas.core.index import Index, MultiIndex
 from pandas.core.frame import DataFrame
 import datetime
 import pandas.core.common as com
-from pandas.util import py3compat
+from pandas.util import compat
 from pandas.io.date_converters import generic_parser
 from pandas.io.common import get_filepath_or_buffer
 
@@ -24,8 +24,6 @@ import pandas.lib as lib
 import pandas.tslib as tslib
 import pandas.parser as _parser
 from pandas.tseries.period import Period
-import six
-from pandas.util.py3compat import zip
 
 _parser_params = """Also supports optionally iterating or breaking of the file
 into chunks.
@@ -787,7 +785,7 @@ class ParserBase(object):
 
     def _get_simple_index(self, data, columns):
         def ix(col):
-            if not isinstance(col, six.string_types):
+            if not isinstance(col, compat.string_types):
                 return col
             raise ValueError('Index %s invalid' % col)
         index = None
@@ -810,7 +808,7 @@ class ParserBase(object):
 
     def _get_complex_date_index(self, data, col_names):
         def _get_name(icol):
-            if isinstance(icol, six.string_types):
+            if isinstance(icol, compat.string_types):
                 return icol
 
             if col_names is None:
@@ -949,7 +947,7 @@ class CParserWrapper(ParserBase):
         ParserBase.__init__(self, kwds)
 
         if 'utf-16' in (kwds.get('encoding') or ''):
-            if isinstance(src, six.string_types):
+            if isinstance(src, compat.string_types):
                 src = open(src, 'rb')
             src = com.UTF8Recoder(src, kwds['encoding'])
             kwds['encoding'] = 'utf-8'
@@ -1230,7 +1228,7 @@ class PythonParser(ParserBase):
         self.comment = kwds['comment']
         self._comment_lines = []
 
-        if isinstance(f, six.string_types):
+        if isinstance(f, compat.string_types):
             f = com._get_handle(f, 'r', encoding=self.encoding,
                                 compression=self.compression)
         elif self.compression:
@@ -1320,7 +1318,7 @@ class PythonParser(ParserBase):
             def _read():
                 line = next(f)
                 pat = re.compile(sep)
-                if (py3compat.PY3 and isinstance(line, bytes)):
+                if (compat.PY3 and isinstance(line, bytes)):
                     yield pat.split(line.decode('utf-8').strip())
                     for line in f:
                         yield pat.split(line.decode('utf-8').strip())
@@ -1490,7 +1488,7 @@ class PythonParser(ParserBase):
         for l in lines:
             rl = []
             for x in l:
-                if (not isinstance(x, six.string_types) or
+                if (not isinstance(x, compat.string_types) or
                         self.comment not in x):
                     rl.append(x)
                 else:
@@ -1509,7 +1507,7 @@ class PythonParser(ParserBase):
         for l in lines:
             rl = []
             for x in l:
-                if (not isinstance(x, six.string_types) or
+                if (not isinstance(x, compat.string_types) or
                     self.thousands not in x or
                         nonnum.search(x.strip())):
                     rl.append(x)
@@ -1809,7 +1807,7 @@ def _clean_index_names(columns, index_col):
     index_col = list(index_col)
 
     for i, c in enumerate(index_col):
-        if isinstance(c, six.string_types):
+        if isinstance(c, compat.string_types):
             index_names.append(c)
             for j, name in enumerate(cp_cols):
                 if name == c:
@@ -1822,7 +1820,7 @@ def _clean_index_names(columns, index_col):
             index_names.append(name)
 
     # hack
-    if isinstance(index_names[0], six.string_types) and 'Unnamed' in index_names[0]:
+    if isinstance(index_names[0], compat.string_types) and 'Unnamed' in index_names[0]:
         index_names[0] = None
 
     return index_names, columns, index_col
@@ -1903,13 +1901,13 @@ def _get_col_names(colspec, columns):
 
 def _concat_date_cols(date_cols):
     if len(date_cols) == 1:
-        if py3compat.PY3:
-            return np.array([six.text_type(x) for x in date_cols[0]], dtype=object)
+        if compat.PY3:
+            return np.array([compat.text_type(x) for x in date_cols[0]], dtype=object)
         else:
-            return np.array([str(x) if not isinstance(x, six.string_types) else x
+            return np.array([str(x) if not isinstance(x, compat.string_types) else x
                              for x in date_cols[0]], dtype=object)
 
-    rs = np.array([' '.join([six.text_type(y) for y in x])
+    rs = np.array([' '.join([compat.text_type(y) for y in x])
                    for x in zip(*date_cols)], dtype=object)
     return rs
 

@@ -1,7 +1,7 @@
 # pylint: disable=W0612,E1101
 
 from datetime import datetime
-from pandas.util.py3compat import range, lrange, StringIO
+from pandas.util.compat import range, lrange, StringIO, cPickle, OrderedDict
 from pandas.util import compat
 import operator
 import unittest
@@ -15,8 +15,7 @@ from pandas.core.frame import group_agg
 from pandas.core.panel import Panel
 from pandas.core.series import remove_na
 import pandas.core.common as com
-from pandas.util import py3compat
-from pandas.util.py3compat import cPickle
+from pandas.util import compat
 
 from pandas.util.testing import (assert_panel_equal,
                                  assert_frame_equal,
@@ -311,7 +310,7 @@ class SafeForSparse(object):
         check_op(operator.add, 'add')
         check_op(operator.sub, 'subtract')
         check_op(operator.mul, 'multiply')
-        if py3compat.PY3:
+        if compat.PY3:
             check_op(operator.truediv, 'divide')
         else:
             check_op(operator.div, 'divide')
@@ -916,7 +915,6 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         self.assertRaises(Exception, Panel, data)
 
     def test_ctor_orderedDict(self):
-        from pandas.util.compat import OrderedDict
         keys = list(set(np.random.randint(0,5000,100)))[:50] # unique random int  keys
         d = OrderedDict([(k,mkdf(10,5)) for k in keys])
         p = Panel(d)

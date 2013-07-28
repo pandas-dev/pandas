@@ -1,5 +1,5 @@
 from datetime import datetime
-from pandas.util.py3compat import range
+from pandas.util.compat import range
 import pickle
 import unittest
 import nose

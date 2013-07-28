@@ -18,6 +18,7 @@ import inspect
 import os
 import pydoc
 
+from pandas.util.compat import callable
 from . import docscrape
 from . import docscrape_sphinx
 from .docscrape_sphinx import SphinxClassDoc, SphinxFunctionDoc, SphinxDocString
@@ -117,7 +118,7 @@ def get_doc_object(obj, what=None, config=None):
             what = 'class'
         elif inspect.ismodule(obj):
             what = 'module'
-        elif six.callable(obj):
+        elif callable(obj):
             what = 'function'
         else:
             what = 'object'

@@ -28,15 +28,15 @@ import pandas.tslib as tslib
 
 import pandas.index as _index
 
-from pandas.util.py3compat import range, long, StringIO, lrange, lmap
-from pandas.util.compat import product
-from pandas.util.py3compat import map, zip, cPickle as pickle
+from pandas.util.compat import(
+    range, long, StringIO, lrange, lmap, map, zip, cPickle as pickle, product
+)
 from pandas import read_pickle
 import pandas.core.datetools as dt
 from numpy.random import rand
 from numpy.testing import assert_array_equal
 from pandas.util.testing import assert_frame_equal
-import pandas.util.py3compat as py3compat
+import pandas.util.compat as compat
 from pandas.core.datetools import BDay
 import pandas.core.common as com
 from pandas import concat
@@ -1966,7 +1966,7 @@ class TestLegacySupport(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        if py3compat.PY3:
+        if compat.PY3:
             raise nose.SkipTest
 
         pth, _ = os.path.split(os.path.abspath(__file__))
@@ -2816,7 +2816,7 @@ class TestTimestamp(unittest.TestCase):
         check(days,unit='D',h=0)
 
         # using truediv, so these are like floats
-        if py3compat.PY3:
+        if compat.PY3:
             check((val+500000)/long(1000000000),unit='s',us=500)
             check((val+500000000)/long(1000000000),unit='s',us=500000)
             check((val+500000)/long(1000000),unit='ms',us=500)

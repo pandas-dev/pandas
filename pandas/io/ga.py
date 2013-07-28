@@ -17,10 +17,9 @@ from pandas.util.decorators import Appender, Substitution
 
 from apiclient.errors import HttpError
 from oauth2client.client import AccessTokenRefreshError
-import six
-from pandas.util.py3compat import zip
+from pandas.util.compat import zip, u
 
-TYPE_MAP = {six.u('INTEGER'): int, six.u('FLOAT'): float, six.u('TIME'): int}
+TYPE_MAP = {u('INTEGER'): int, u('FLOAT'): float, u('TIME'): int}
 
 NO_CALLBACK = auth.OOB_CALLBACK_URN
 DOC_URL = auth.DOC_URL
@@ -264,7 +263,7 @@ class GDataReader(OAuthDataReader):
         profile_id = profile.get('id')
 
         if index_col is None and dimensions is not None:
-            if isinstance(dimensions, six.string_types):
+            if isinstance(dimensions, compat.string_types):
                 dimensions = [dimensions]
             index_col = _clean_index(list(dimensions), parse_dates)
 
@@ -315,7 +314,7 @@ class GDataReader(OAuthDataReader):
 
         if isinstance(sort, bool) and sort:
             return df.sort_index()
-        elif isinstance(sort, (six.string_types, list, tuple, np.ndarray)):
+        elif isinstance(sort, (compat.string_types, list, tuple, np.ndarray)):
             return df.sort_index(by=sort)
 
         return df
@@ -340,7 +339,7 @@ class GAnalytics(GDataReader):
 def format_query(ids, metrics, start_date, end_date=None, dimensions=None,
                  segment=None, filters=None, sort=None, start_index=None,
                  max_results=10000, **kwargs):
-    if isinstance(metrics, six.string_types):
+    if isinstance(metrics, compat.string_types):
         metrics = [metrics]
     met = ','.join(['ga:%s' % x for x in metrics])
 
@@ -359,7 +358,7 @@ def format_query(ids, metrics, start_date, end_date=None, dimensions=None,
     lst = [dimensions, filters, sort]
     [_maybe_add_arg(qry, n, d) for n, d in zip(names, lst)]
 
-    if isinstance(segment, six.string_types):
+    if isinstance(segment, compat.string_types):
         _maybe_add_arg(qry, 'segment', segment, 'dynamic::ga')
     elif isinstance(segment, int):
         _maybe_add_arg(qry, 'segment', segment, 'gaid:')
@@ -377,7 +376,7 @@ def format_query(ids, metrics, start_date, end_date=None, dimensions=None,
 
 def _maybe_add_arg(query, field, data, prefix='ga'):
     if data is not None:
-        if isinstance(data, (six.string_types, int)):
+        if isinstance(data, (compat.string_types, int)):
             data = [data]
         data = ','.join(['%s:%s' % (prefix, x) for x in data])
         query[field] = data
@@ -438,12 +437,12 @@ def _get_column_types(header_info):
 
 def _get_dim_names(header_info):
     return [x['name'][3:] for x in header_info
-            if x['columnType'] == six.u('DIMENSION')]
+            if x['columnType'] == u('DIMENSION')]
 
 
 def _get_met_names(header_info):
     return [x['name'][3:] for x in header_info
-            if x['columnType'] == six.u('METRIC')]
+            if x['columnType'] == u('METRIC')]
 
 
 def _get_data_types(header_info):

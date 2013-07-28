@@ -1,6 +1,5 @@
 import itertools
 import re
-import six
 from datetime import datetime
 
 from numpy import nan
@@ -18,9 +17,8 @@ import pandas.tslib as tslib
 import pandas.core.expressions as expressions
 
 from pandas.tslib import Timestamp
-from pandas.util import py3compat
-from pandas.util.py3compat import range, lrange, lmap
-from pandas.util.py3compat import map, zip
+from pandas.util import compat
+from pandas.util.compat import range, lrange, lmap, callable, map, zip
 
 
 class Block(PandasObject):
@@ -689,7 +687,7 @@ class ObjectBlock(Block):
     _can_hold_na = True
 
     def __init__(self, values, items, ref_items, ndim=2, fastpath=False, placement=None):
-        if issubclass(values.dtype.type, six.string_types):
+        if issubclass(values.dtype.type, compat.string_types):
             values = np.array(values, dtype=object)
 
         super(ObjectBlock, self).__init__(values, items, ref_items,
@@ -815,7 +813,7 @@ class ObjectBlock(Block):
 
         # deal with replacing values with objects (strings) that match but
         # whose replacement is not a string (numeric, nan, object)
-        if isnull(value) or not isinstance(value, six.string_types):
+        if isnull(value) or not isinstance(value, compat.string_types):
             def re_replacer(s):
                 try:
                     return value if rx.search(s) is not None else s
@@ -1269,7 +1267,7 @@ class BlockManager(PandasObject):
                 if not blk.items.isin(filter).any():
                     result_blocks.append(blk)
                     continue
-            if six.callable(f):
+            if callable(f):
                 applied = f(blk, *args, **kwargs)
             else:
                 applied = getattr(blk,f)(*args, **kwargs)

@@ -6,7 +6,7 @@ import unittest
 from datetime import datetime, date
 
 from pandas import Series, DataFrame, MultiIndex, PeriodIndex, date_range
-from pandas.util.py3compat import range, lrange, StringIO, lmap, lzip
+from pandas.util.compat import range, lrange, StringIO, lmap, lzip, u, map, zip
 import pandas.util.testing as tm
 from pandas.util.testing import ensure_clean
 from pandas.core.config import set_option
@@ -18,9 +18,6 @@ from numpy import random
 from numpy.testing import assert_array_equal
 from numpy.testing.decorators import slow
 import pandas.tools.plotting as plotting
-import six
-from pandas.util.py3compat import map
-from pandas.util.py3compat import zip
 
 
 def _skip_if_no_scipy():
@@ -337,21 +334,21 @@ class TestDataFramePlots(unittest.TestCase):
         _check_plot_works(df.plot, use_index=True)
 
         # unicode
-        index = MultiIndex.from_tuples([(six.u('\u03b1'), 0),
-                                        (six.u('\u03b1'), 1),
-                                        (six.u('\u03b2'), 2),
-                                        (six.u('\u03b2'), 3),
-                                        (six.u('\u03b3'), 4),
-                                        (six.u('\u03b3'), 5),
-                                        (six.u('\u03b4'), 6),
-                                        (six.u('\u03b4'), 7)], names=['i0', 'i1'])
-        columns = MultiIndex.from_tuples([('bar', six.u('\u0394')),
-                                        ('bar', six.u('\u0395'))], names=['c0',
+        index = MultiIndex.from_tuples([(u('\u03b1'), 0),
+                                        (u('\u03b1'), 1),
+                                        (u('\u03b2'), 2),
+                                        (u('\u03b2'), 3),
+                                        (u('\u03b3'), 4),
+                                        (u('\u03b3'), 5),
+                                        (u('\u03b4'), 6),
+                                        (u('\u03b4'), 7)], names=['i0', 'i1'])
+        columns = MultiIndex.from_tuples([('bar', u('\u0394')),
+                                        ('bar', u('\u0395'))], names=['c0',
                                                                     'c1'])
         df = DataFrame(np.random.randint(0, 10, (8, 2)),
                        columns=columns,
                        index=index)
-        _check_plot_works(df.plot, title=six.u('\u03A3'))
+        _check_plot_works(df.plot, title=u('\u03A3'))
 
     def test_nonnumeric_exclude(self):
         import matplotlib.pyplot as plt

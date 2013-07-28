@@ -4,7 +4,6 @@ from datetime import timedelta
 from numpy.random import randn
 from numpy.random import randint
 from numpy.random import permutation
-import pandas.util.compat as compat
 import pandas.util.testing as tm
 import random
 import numpy as np
@@ -22,11 +21,5 @@ except Exception:
 # didn't add to namespace until later
 try:
     from pandas.core.index import MultiIndex
-except ImportError:
-    pass
-try:
-    # if no range in py3compat, then don't import zip or map either
-    from pandas.util.py3compat import range
-    from pandas.util.py3compat import zip, map
 except ImportError:
     pass

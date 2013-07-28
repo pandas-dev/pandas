@@ -1,5 +1,5 @@
 from pandas import *
-from pandas.util.py3compat import range
+from pandas.util.compat import range
 try:
     import pandas.core.internals as internals
     reload(internals)

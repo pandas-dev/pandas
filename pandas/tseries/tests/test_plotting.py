@@ -3,8 +3,7 @@ from datetime import datetime, timedelta, date, time
 
 import unittest
 import nose
-from pandas.util.py3compat import range, lrange
-from pandas.util.py3compat import zip
+from pandas.util.compat import range, lrange, zip
 
 import numpy as np
 from numpy.testing.decorators import slow

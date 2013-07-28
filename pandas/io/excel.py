@@ -11,9 +11,9 @@ import numpy as np
 from pandas.io.parsers import TextParser
 from pandas.tseries.period import Period
 from pandas import json
-from pandas.util.py3compat import map, zip, reduce
-from pandas.util.py3compat import range, lrange
-import six
+from pandas.util.compat import map, zip, reduce, range, lrange
+import pandas.util.compat as compat
+
 
 def read_excel(path_or_buf, sheetname, kind=None, **kwds):
     """Read an Excel table into a pandas DataFrame
@@ -67,15 +67,17 @@ class ExcelFile(object):
     def __init__(self, path_or_buf, kind=None, **kwds):
         self.kind = kind
 
-        import xlrd # throw an ImportError if we need to
-        ver = tuple(map(int,xlrd.__VERSION__.split(".")[:2]))
+        import xlrd  # throw an ImportError if we need to
+
+        ver = tuple(map(int, xlrd.__VERSION__.split(".")[:2]))
         if ver < (0, 9):
-            raise ImportError("pandas requires xlrd >= 0.9.0 for excel support, current version "+xlrd.__VERSION__)
+            raise ImportError("pandas requires xlrd >= 0.9.0 for excel "
+                              "support, current version " + xlrd.__VERSION__)
 
         self.path_or_buf = path_or_buf
         self.tmpfile = None
 
-        if isinstance(path_or_buf, six.string_types):
+        if isinstance(path_or_buf, compat.string_types):
             self.book = xlrd.open_workbook(path_or_buf)
         else:
             data = path_or_buf.read()
@@ -110,8 +112,8 @@ class ExcelFile(object):
         na_values : list-like, default None
             List of additional strings to recognize as NA/NaN
         keep_default_na : bool, default True
-            If na_values are specified and keep_default_na is False the default NaN
-            values are overridden, otherwise they're appended to
+            If na_values are specified and keep_default_na is False the default
+            NaN values are overridden, otherwise they're appended to
         verbose : boolean, default False
             Indicate number of NA values placed in non-numeric columns
 
@@ -126,14 +128,14 @@ class ExcelFile(object):
         if skipfooter is not None:
             skip_footer = skipfooter
 
-        return  self._parse_excel(sheetname, header=header, skiprows=skiprows,
-                                  index_col=index_col,
-                                  has_index_names=has_index_names,
-                                  parse_cols=parse_cols,
-                                  parse_dates=parse_dates,
-                                  date_parser=date_parser, na_values=na_values,
-                                  thousands=thousands, chunksize=chunksize,
-                                  skip_footer=skip_footer, **kwds)
+        return self._parse_excel(sheetname, header=header, skiprows=skiprows,
+                                 index_col=index_col,
+                                 has_index_names=has_index_names,
+                                 parse_cols=parse_cols,
+                                 parse_dates=parse_dates,
+                                 date_parser=date_parser, na_values=na_values,
+                                 thousands=thousands, chunksize=chunksize,
+                                 skip_footer=skip_footer, **kwds)
 
     def _should_parse(self, i, parse_cols):
 
@@ -149,7 +151,8 @@ class ExcelFile(object):
             """
             def _excel2num(x):
                 "Convert Excel column name like 'AB' to 0-based column index"
-                return reduce(lambda s, a: s * 26 + ord(a) - ord('A') + 1, x.upper().strip(), 0) - 1
+                return reduce(lambda s, a: s * 26 + ord(a) - ord('A') + 1,
+                              x.upper().strip(), 0) - 1
 
             cols = []
             for rng in areas.split(','):
@@ -162,7 +165,7 @@ class ExcelFile(object):
 
         if isinstance(parse_cols, int):
             return i <= parse_cols
-        elif isinstance(parse_cols, six.string_types):
+        elif isinstance(parse_cols, compat.string_types):
             return i in _range2cols(parse_cols)
         else:
             return i in parse_cols
@@ -175,7 +178,7 @@ class ExcelFile(object):
                           XL_CELL_ERROR, XL_CELL_BOOLEAN)
 
         datemode = self.book.datemode
-        if isinstance(sheetname, six.string_types):
+        if isinstance(sheetname, compat.string_types):
             sheet = self.book.sheet_by_name(sheetname)
         else:  # assume an integer if not a string
             sheet = self.book.sheet_by_index(sheetname)
@@ -185,7 +188,7 @@ class ExcelFile(object):
         for i in range(sheet.nrows):
             row = []
             for j, (value, typ) in enumerate(zip(sheet.row_values(i),
-                                                  sheet.row_types(i))):
+                                                 sheet.row_types(i))):
                 if parse_cols is not None and j not in should_parse:
                     should_parse[j] = self._should_parse(j, parse_cols)
 
@@ -458,4 +461,3 @@ class ExcelWriter(object):
                 wks.write(startrow + cell.row,
                           startcol + cell.col,
                           val, style)
-

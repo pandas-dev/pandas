@@ -16,12 +16,10 @@ import re
 import random
 import decimal
 from functools import partial
-from pandas.util.py3compat import range, StringIO
+from pandas.util.compat import range, zip, StringIO, u
 from pandas.util import compat
 import pandas.json as ujson
-import six
-from pandas.util.py3compat import zip
-import pandas.util.py3compat as py3compat
+import pandas.util.compat as compat
 
 import numpy as np
 from pandas.util.testing import assert_almost_equal
@@ -72,7 +70,7 @@ class UltraJSONTests(TestCase):
         helper(html_encoded, ensure_ascii=False, encode_html_chars=True)
 
     def test_doubleLongIssue(self):
-        sut = {six.u('a'): -4342969734183514}
+        sut = {u('a'): -4342969734183514}
         encoded = json.dumps(sut)
         decoded = json.loads(encoded)
         self.assertEqual(sut, decoded)
@@ -81,7 +79,7 @@ class UltraJSONTests(TestCase):
         self.assertEqual(sut, decoded)
 
     def test_doubleLongDecimalIssue(self):
-        sut = {six.u('a'): -12345678901234.56789012}
+        sut = {u('a'): -12345678901234.56789012}
         encoded = json.dumps(sut)
         decoded = json.loads(encoded)
         self.assertEqual(sut, decoded)
@@ -91,12 +89,12 @@ class UltraJSONTests(TestCase):
 
 
     def test_encodeDecodeLongDecimal(self):
-        sut = {six.u('a'): -528656961.4399388}
+        sut = {u('a'): -528656961.4399388}
         encoded = ujson.dumps(sut, double_precision=15)
         ujson.decode(encoded)
 
     def test_decimalDecodeTestPrecise(self):
-        sut = {six.u('a'): 4.56}
+        sut = {u('a'): 4.56}
         encoded = ujson.encode(sut)
         decoded = ujson.decode(encoded, precise_float=True)
         self.assertEqual(sut, decoded)
@@ -112,16 +110,16 @@ class UltraJSONTests(TestCase):
         self.assert_(np.allclose(num, ujson.decode(ujson.encode(num))))
 
     def test_encodeDictWithUnicodeKeys(self):
-        input = {six.u("key1"): six.u("value1"), six.u("key1"):
-                six.u("value1"), six.u("key1"): six.u("value1"),
-                six.u("key1"): six.u("value1"), six.u("key1"):
-                six.u("value1"), six.u("key1"): six.u("value1")}
+        input = {u("key1"): u("value1"), u("key1"):
+                u("value1"), u("key1"): u("value1"),
+                u("key1"): u("value1"), u("key1"):
+                u("value1"), u("key1"): u("value1")}
         output = ujson.encode(input)
 
-        input = {six.u("بن"): six.u("value1"), six.u("بن"): six.u("value1"),
-                six.u("بن"): six.u("value1"), six.u("بن"): six.u("value1"),
-                six.u("بن"): six.u("value1"), six.u("بن"): six.u("value1"),
-                six.u("بن"): six.u("value1")}
+        input = {u("بن"): u("value1"), u("بن"): u("value1"),
+                u("بن"): u("value1"), u("بن"): u("value1"),
+                u("بن"): u("value1"), u("بن"): u("value1"),
+                u("بن"): u("value1")}
         output = ujson.encode(input)
 
         pass
@@ -370,7 +368,7 @@ class UltraJSONTests(TestCase):
         self.assertEquals(dec, json.loads(enc))
 
     def test_decodeFromUnicode(self):
-        input = six.u("{\"obj\": 31337}")
+        input = u("{\"obj\": 31337}")
         dec1 = ujson.decode(input)
         dec2 = ujson.decode(str(input))
         self.assertEquals(dec1, dec2)
@@ -620,7 +618,7 @@ class UltraJSONTests(TestCase):
         self.assertEquals(output, json.dumps(input))
         self.assertEquals(input, ujson.decode(output))
 
-        self.assertEquals('"  \\u0000\\r\\n "', ujson.dumps(six.u("  \u0000\r\n ")))
+        self.assertEquals('"  \\u0000\\r\\n "', ujson.dumps(u("  \u0000\r\n ")))
         pass
 
     def test_decodeNullCharacter(self):
@@ -779,7 +777,7 @@ class UltraJSONTests(TestCase):
 
     def test_encodeBigEscape(self):
         for x in range(10):
-            if py3compat.PY3:
+            if compat.PY3:
                 base = '\u00e5'.encode('utf-8')
             else:
                 base = "\xc3\xa5"
@@ -788,16 +786,16 @@ class UltraJSONTests(TestCase):
 
     def test_decodeBigEscape(self):
         for x in range(10):
-            if py3compat.PY3:
+            if compat.PY3:
                 base = '\u00e5'.encode('utf-8')
             else:
                 base = "\xc3\xa5"
-            quote = py3compat.str_to_bytes("\"")
+            quote = compat.str_to_bytes("\"")
             input = quote + (base * 1024 * 1024 * 2) + quote
             output = ujson.decode(input)
 
     def test_toDict(self):
-        d = {six.u("key"): 31337}
+        d = {u("key"): 31337}
 
         class DictTest:
             def toDict(self):
@@ -1043,16 +1041,16 @@ class NumpyJSONTests(TestCase):
         output = ujson.loads(ujson.dumps(input), numpy=True, labelled=True)
         self.assertTrue((np.array([42]) == output[0]).all())
         self.assertTrue(output[1] is None)
-        self.assertTrue((np.array([six.u('a')]) == output[2]).all())
+        self.assertTrue((np.array([u('a')]) == output[2]).all())
 
         # py3 is non-determinstic on the ordering......
-        if not py3compat.PY3:
+        if not compat.PY3:
             input = [{'a': 42, 'b':31}, {'a': 24, 'c': 99}, {'a': 2.4, 'b': 78}]
             output = ujson.loads(ujson.dumps(input), numpy=True, labelled=True)
             expectedvals = np.array([42, 31, 24, 99, 2.4, 78], dtype=int).reshape((3,2))
             self.assertTrue((expectedvals == output[0]).all())
             self.assertTrue(output[1] is None)
-            self.assertTrue((np.array([six.u('a'), 'b']) == output[2]).all())
+            self.assertTrue((np.array([u('a'), 'b']) == output[2]).all())
 
 
             input = {1: {'a': 42, 'b':31}, 2: {'a': 24, 'c': 99}, 3: {'a': 2.4, 'b': 78}}

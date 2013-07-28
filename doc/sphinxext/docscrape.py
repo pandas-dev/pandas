@@ -8,8 +8,7 @@ import textwrap
 import re
 import pydoc
 from warnings import warn
-from six import StringIO
-import six
+from pandas.util.compat import StringIO, callable
 
 class Reader(object):
     """A line-based string reader.
@@ -372,7 +371,7 @@ class NumpyDocString(object):
         idx = self['index']
         out = []
         out += ['.. index:: %s' % idx.get('default','')]
-        for section, references in six.iteritems(idx):
+        for section, references in compat.iteritems(idx):
             if section == 'default':
                 continue
             out += ['   :%s: %s' % (section, ', '.join(references))]
@@ -491,7 +490,7 @@ class ClassDoc(NumpyDocString):
         if self._cls is None:
             return []
         return [name for name,func in inspect.getmembers(self._cls)
-                if not name.startswith('_') and six.callable(func)]
+                if not name.startswith('_') and callable(func)]
 
     @property
     def properties(self):

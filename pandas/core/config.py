@@ -52,8 +52,8 @@ import re
 
 from collections import namedtuple
 import warnings
-import six
-from pandas.util.py3compat import map, lmap
+from pandas.util.compat import map, lmap, u
+import pandas.util.compat as compat
 
 DeprecatedOption = namedtuple('DeprecatedOption', 'key msg rkey removal_ver')
 RegisteredOption = namedtuple(
@@ -149,7 +149,7 @@ def _describe_option(pat='', _print_desc=True):
     if len(keys) == 0:
         raise KeyError('No such keys(s)')
 
-    s = six.u('')
+    s = u('')
     for k in keys:  # filter by pat
         s += _build_option_description(k)
 
@@ -588,9 +588,9 @@ def _build_option_description(k):
     o = _get_registered_option(k)
     d = _get_deprecated_option(k)
 
-    s = six.u('%s: ') % k
+    s = u('%s: ') % k
     if o:
-        s += six.u('[default: %s] [currently: %s]') % (o.defval, _get_option(k, True))
+        s += u('[default: %s] [currently: %s]') % (o.defval, _get_option(k, True))
 
     if o.doc:
         s += '\n' + '\n    '.join(o.doc.strip().split('\n'))
@@ -598,9 +598,9 @@ def _build_option_description(k):
         s += 'No description available.\n'
 
     if d:
-        s += six.u('\n\t(Deprecated')
-        s += (six.u(', use `%s` instead.') % d.rkey if d.rkey else '')
-        s += six.u(')\n')
+        s += u('\n\t(Deprecated')
+        s += (u(', use `%s` instead.') % d.rkey if d.rkey else '')
+        s += u(')\n')
 
     s += '\n'
     return s
@@ -757,5 +757,5 @@ is_int = is_type_factory(int)
 is_bool = is_type_factory(bool)
 is_float = is_type_factory(float)
 is_str = is_type_factory(str)
-is_unicode = is_type_factory(six.text_type)
+is_unicode = is_type_factory(compat.text_type)
 is_text = is_instance_factory((str, bytes))

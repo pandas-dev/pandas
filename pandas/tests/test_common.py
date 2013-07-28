@@ -1,5 +1,4 @@
 from datetime import datetime
-from pandas.util.py3compat import range, long, lrange, lmap
 import sys
 import re
 
@@ -7,6 +6,7 @@ import nose
 import unittest
 
 from pandas import Series, DataFrame, date_range, DatetimeIndex, Timestamp
+from pandas.util.compat import range, long, lrange, lmap, u, map
 from pandas.core.common import notnull, isnull
 import pandas.core.common as com
 import pandas.util.testing as tm
@@ -15,9 +15,7 @@ import pandas.core.config as cf
 import numpy as np
 
 from pandas.tslib import iNaT
-from pandas.util import py3compat
-import six
-from pandas.util.py3compat import map
+from pandas.util import compat
 
 _multiprocess_can_split_ = True
 
@@ -27,7 +25,7 @@ def test_is_sequence():
     assert(is_seq((1, 2)))
     assert(is_seq([1, 2]))
     assert(not is_seq("abcd"))
-    assert(not is_seq(six.u("abcd")))
+    assert(not is_seq(u("abcd")))
     assert(not is_seq(np.int64))
 
     class A(object):
@@ -97,7 +95,7 @@ def test_isnull_lists():
     result = isnull(['foo', 'bar'])
     assert(not result.any())
 
-    result = isnull([six.u('foo'), six.u('bar')])
+    result = isnull([u('foo'), u('bar')])
     assert(not result.any())
 
 
@@ -314,7 +312,7 @@ def test_ensure_platform_int():
 #     On Python 2, if sys.stdin.encoding is None (IPython with zmq frontend)
 #     common.console_encode should encode things as utf-8.
 #     """
-#     if py3compat.PY3:
+#     if compat.PY3:
 #         raise nose.SkipTest
 
 #     with tm.stdin_encoding(encoding=None):
@@ -335,8 +333,8 @@ def test_is_re():
 
 
 def test_is_recompilable():
-    passes = (r'a', six.u('x'), r'asdf', re.compile('adsf'),
-              six.u(r'\u2233\s*'), re.compile(r''))
+    passes = (r'a', u('x'), r'asdf', re.compile('adsf'),
+              u(r'\u2233\s*'), re.compile(r''))
     fails = 1, [], object()
 
     for p in passes:

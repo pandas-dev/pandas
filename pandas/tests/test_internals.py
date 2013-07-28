@@ -11,8 +11,7 @@ import pandas.util.testing as tm
 
 from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, randn)
-import six
-from pandas.util.py3compat import zip
+from pandas.util.compat import zip, u
 
 
 def assert_block_equal(left, right):
@@ -201,7 +200,7 @@ class TestBlock(unittest.TestCase):
         mat = np.empty((N, 2), dtype=object)
         mat[:, 0] = 'foo'
         mat[:, 1] = 'bar'
-        cols = ['b', six.u("\u05d0")]
+        cols = ['b', u("\u05d0")]
         str_repr = repr(make_block(mat.T, cols, TEST_COLS))
 
     def test_get(self):
@@ -537,7 +536,7 @@ class TestBlockManager(unittest.TestCase):
     def test_missing_unicode_key(self):
         df = DataFrame({"a": [1]})
         try:
-            df.ix[:, six.u("\u05d0")]  # should not raise UnicodeEncodeError
+            df.ix[:, u("\u05d0")]  # should not raise UnicodeEncodeError
         except KeyError:
             pass  # this is the expected exception
 

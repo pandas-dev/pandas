@@ -1,9 +1,8 @@
 from pandas import *
 
 import numpy as np
-from pandas.util.py3compat import zip
+from pandas.util.compat import zip, range, lzip
 from pandas.util.testing import rands
-from pandas.util.py3compat import range, lzip
 import pandas.lib as lib
 
 N = 100000

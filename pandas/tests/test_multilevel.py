@@ -13,13 +13,11 @@ from pandas.util.testing import (assert_almost_equal,
                                  assert_frame_equal)
 import pandas.core.common as com
 import pandas.util.testing as tm
-from pandas.util.py3compat import range, lrange, StringIO, lzip
-from pandas.util.compat import product as cart_product
+from pandas.util.compat import (range, lrange, StringIO, lzip, u, cPickle,
+                                product as cart_product, zip)
 import pandas as pd
 
 import pandas.index as _index
-import six
-from pandas.util.py3compat import zip, cPickle
 
 
 class TestMultiLevel(unittest.TestCase):
@@ -430,7 +428,6 @@ class TestMultiLevel(unittest.TestCase):
 
     def test_xs_level_multiple(self):
         from pandas import read_table
-        from pandas.util.py3compat import StringIO, lrange, lzip
         text = """                      A       B       C       D        E
 one two three   four
 a   b   10.0032 5    -0.5109 -2.3358 -0.4645  0.05076  0.3640
@@ -455,7 +452,6 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
     def test_xs_level0(self):
         from pandas import read_table
-        from pandas.util.py3compat import StringIO, lrange, lzip
         text = """                      A       B       C       D        E
 one two three   four
 a   b   10.0032 5    -0.5109 -2.3358 -0.4645  0.05076  0.3640
@@ -1674,7 +1670,7 @@ Thur,Lunch,Yes,51.51,17"""
         self.assert_(result.index.names == ['one', 'two'])
 
     def test_unicode_repr_issues(self):
-        levels = [Index([six.u('a/\u03c3'), six.u('b/\u03c3'), six.u('c/\u03c3')]),
+        levels = [Index([u('a/\u03c3'), u('b/\u03c3'), u('c/\u03c3')]),
                   Index([0, 1])]
         labels = [np.arange(3).repeat(2), np.tile(np.arange(2), 3)]
         index = MultiIndex(levels=levels, labels=labels)
@@ -1686,7 +1682,7 @@ Thur,Lunch,Yes,51.51,17"""
 
     def test_unicode_repr_level_names(self):
         index = MultiIndex.from_tuples([(0, 0), (1, 1)],
-                                       names=[six.u('\u0394'), 'i1'])
+                                       names=[u('\u0394'), 'i1'])
 
         s = Series(lrange(2), index=index)
         df = DataFrame(np.random.randn(2, 4), index=index)

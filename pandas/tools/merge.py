@@ -1,12 +1,11 @@
 """
 SQL-style merge routines
 """
-
-from pandas.util.py3compat import range, long, lrange, lzip
-from pandas.util.py3compat import zip
-import six
-import numpy as np
 import types
+
+import numpy as np
+from pandas.util.compat import range, long, lrange, lzip, zip
+import pandas.util.compat as compat
 from pandas.core.categorical import Categorical
 from pandas.core.frame import DataFrame, _merge_doc
 from pandas.core.generic import NDFrame
@@ -1299,7 +1298,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
 
 
 def _should_fill(lname, rname):
-    if not isinstance(lname, six.string_types) or not isinstance(rname, six.string_types):
+    if not isinstance(lname, compat.string_types) or not isinstance(rname, compat.string_types):
         return True
     return lname == rname
 

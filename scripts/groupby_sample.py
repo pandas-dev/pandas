@@ -1,7 +1,6 @@
 from pandas import *
 import numpy as np
 import string
-import six
 import pandas.util.compat as compat
 
 g1 = np.array(list(string.letters))[:-1]
@@ -45,7 +44,7 @@ def do_shuffle(arr):
 
 def shuffle_uri(df, grouped):
     perm = np.r_[tuple([np.random.permutation(
-        idxs) for idxs in six.itervalues(grouped.groups)])]
+        idxs) for idxs in compat.itervalues(grouped.groups)])]
     df['state_permuted'] = np.asarray(df.ix[perm]['value'])
 
 df2 = df.copy()

@@ -2,13 +2,13 @@ from datetime import datetime, timedelta
 import re
 import sys
 
-import six
 import numpy as np
 
 import pandas.lib as lib
 import pandas.tslib as tslib
 import pandas.core.common as com
-from pandas.util.py3compat import StringIO
+from pandas.util.compat import StringIO, callable
+import pandas.util.compat as compat
 
 try:
     import dateutil
@@ -41,7 +41,7 @@ def _infer_tzinfo(start, end):
 
 
 def _maybe_get_tz(tz):
-    if isinstance(tz, six.string_types):
+    if isinstance(tz, compat.string_types):
         import pytz
         tz = pytz.timezone(tz)
     if com.is_integer(tz):
@@ -149,7 +149,7 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
 
     Parameters
     ----------
-    arg : six.string_types
+    arg : compat.string_types
     freq : str or DateOffset, default None
         Helps with interpreting time string if supplied
     dayfirst : bool, default None
@@ -166,7 +166,7 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     from pandas.tseries.frequencies import (_get_rule_month, _month_numbers,
                                             _get_freq_str)
 
-    if not isinstance(arg, six.string_types):
+    if not isinstance(arg, compat.string_types):
         return arg
 
     arg = arg.upper()
@@ -272,14 +272,14 @@ def dateutil_parse(timestr, default,
     if res.weekday is not None and not res.day:
         ret = ret + relativedelta.relativedelta(weekday=res.weekday)
     if not ignoretz:
-        if six.callable(tzinfos) or tzinfos and res.tzname in tzinfos:
-            if six.callable(tzinfos):
+        if callable(tzinfos) or tzinfos and res.tzname in tzinfos:
+            if callable(tzinfos):
                 tzdata = tzinfos(res.tzname, res.tzoffset)
             else:
                 tzdata = tzinfos.get(res.tzname)
             if isinstance(tzdata, datetime.tzinfo):
                 tzinfo = tzdata
-            elif isinstance(tzdata, six.string_types):
+            elif isinstance(tzdata, compat.string_types):
                 tzinfo = tz.tzstr(tzdata)
             elif isinstance(tzdata, int):
                 tzinfo = tz.tzoffset(res.tzname, tzdata)

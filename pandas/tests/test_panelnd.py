@@ -9,7 +9,7 @@ import numpy as np
 from pandas.core import panelnd
 from pandas.core.panel import Panel
 import pandas.core.common as com
-from pandas.util import py3compat
+from pandas.util import compat
 
 from pandas.util.testing import (assert_panel_equal,
                                  assert_panel4d_equal,

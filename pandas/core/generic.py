@@ -10,8 +10,7 @@ import pandas.core.indexing as indexing
 from pandas.core.indexing import _maybe_convert_indices
 from pandas.tseries.index import DatetimeIndex
 import pandas.core.common as com
-import six
-from pandas.util.py3compat import map, zip
+from pandas.util.compat import map, zip
 
 
 class PandasError(Exception):
@@ -80,7 +79,7 @@ class PandasContainer(PandasObject):
 
     def _get_axis_name(self, axis):
         axis = self._AXIS_ALIASES.get(axis, axis)
-        if isinstance(axis, six.string_types):
+        if isinstance(axis, compat.string_types):
             if axis in self._AXIS_NUMBERS:
                 return axis
         else:

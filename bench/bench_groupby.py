@@ -1,6 +1,6 @@
 from pandas import *
 from pandas.util.testing import rands
-from pandas.util.py3compat import range
+from pandas.util.compat import range
 
 import string
 import random
