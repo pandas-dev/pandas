@@ -1,5 +1,5 @@
 # Setup
-from pandas.util.compat import range, lrange
+from pandas.compat import range, lrange
 import numpy as np
 import pandas
 import la

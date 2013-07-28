@@ -1,5 +1,5 @@
 from __future__ import print_function
-from pandas.util.compat import range, lrange, u
+from pandas.compat import range, lrange, u
 import nose
 import unittest
 import os
@@ -19,7 +19,7 @@ import pandas.util.testing as tm
 from pandas.tests.test_series import assert_series_equal
 from pandas.tests.test_frame import assert_frame_equal
 from pandas import concat, Timestamp
-from pandas.util import compat
+from pandas import compat
 
 from numpy.testing.decorators import slow
 

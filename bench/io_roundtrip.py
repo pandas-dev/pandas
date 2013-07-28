@@ -5,7 +5,7 @@ import numpy as np
 
 import la
 import pandas
-from pandas.util.compat import range
+from pandas.compat import range
 from pandas import datetools, DateRange
 
 

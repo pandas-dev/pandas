@@ -8,7 +8,7 @@ import pandas
 from pandas import DataFrame, Series, Index, MultiIndex
 from pandas.tools.merge import concat
 from pandas.tools.pivot import pivot_table, crosstab
-from pandas.util.compat import range, u, product
+from pandas.compat import range, u, product
 import pandas.util.testing as tm
 
 

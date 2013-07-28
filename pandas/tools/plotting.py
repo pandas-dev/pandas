@@ -15,8 +15,8 @@ from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex, Period
 from pandas.tseries.frequencies import get_period_alias, get_base_alias
 from pandas.tseries.offsets import DateOffset
-from pandas.util.compat import range, lrange, lmap, map, zip
-import pandas.util.compat as compat
+from pandas.compat import range, lrange, lmap, map, zip
+import pandas.compat as compat
 
 try:  # mpl optional
     import pandas.tseries.converter as conv

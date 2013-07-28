@@ -74,8 +74,8 @@ from itertools import product
 from operator import attrgetter as aget, itemgetter as iget
 import operator
 import sys
-from pandas.util.compat import map, u, callable, Counter
-import pandas.util.compat as compat
+from pandas.compat import map, u, callable, Counter
+import pandas.compat as compat
 
 
 ##  note 'url' appears multiple places and not all extensions have same struct

@@ -1,5 +1,5 @@
 from pandas.core.base import StringMixin
-from pandas.util.compat import StringIO, range
+from pandas.compat import StringIO, range
 
 import numpy as np
 

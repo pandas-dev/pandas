@@ -8,7 +8,7 @@ def match(needles, haystack):
 
 def cartesian_product(X):
     '''
-    Numpy version of itertools.product or pandas.util.compat.product.
+    Numpy version of itertools.product or pandas.compat.product.
     Sometimes faster (for large inputs)...
 
     Examples

@@ -4,7 +4,7 @@
 # copryright 2013, y-p @ github
 
 from __future__ import print_function
-from pandas.util.compat import range, lrange, map
+from pandas.compat import range, lrange, map
 
 """Search the git history for all commits touching a named method
 

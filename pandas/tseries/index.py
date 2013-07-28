@@ -8,8 +8,8 @@ import numpy as np
 
 from pandas.core.common import isnull, _NS_DTYPE, _INT64_DTYPE
 from pandas.core.index import Index, Int64Index
-import pandas.util.compat as compat
-from pandas.util.compat import u
+import pandas.compat as compat
+from pandas.compat import u
 from pandas.tseries.frequencies import (
     infer_freq, to_offset, get_period_alias,
     Resolution, get_reso_string)

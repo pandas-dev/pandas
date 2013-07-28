@@ -6,7 +6,7 @@ import unittest
 import nose
 
 import numpy as np
-from pandas.util.compat import u
+from pandas.compat import u
 
 try:
     import pandas.tseries.converter as converter

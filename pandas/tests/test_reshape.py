@@ -15,7 +15,7 @@ import numpy as np
 
 from pandas.core.reshape import melt, convert_dummies, lreshape
 import pandas.util.testing as tm
-from pandas.util.compat import StringIO, cPickle, range
+from pandas.compat import StringIO, cPickle, range
 
 _multiprocess_can_split_ = True
 

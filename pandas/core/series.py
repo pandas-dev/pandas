@@ -5,7 +5,7 @@ Data structure for 1-dimensional cross-sectional and time series data
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
 
-from pandas.util import compat
+from pandas import compat
 import operator
 from distutils.version import LooseVersion
 import types
@@ -26,9 +26,9 @@ from pandas.core.indexing import (_SeriesIndexer, _check_bool_indexer,
                                   _check_slice_bounds, _maybe_convert_indices)
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex, Period
-from pandas.util import compat
+from pandas import compat
 from pandas.util.terminal import get_terminal_size
-from pandas.util.compat import zip, lzip, u, OrderedDict
+from pandas.compat import zip, lzip, u, OrderedDict
 
 import pandas.core.array as pa
 

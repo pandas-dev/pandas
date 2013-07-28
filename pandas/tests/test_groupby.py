@@ -13,10 +13,10 @@ from pandas.core.groupby import GroupByError, SpecificationError, DataError
 from pandas.core.series import Series
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
                                  assert_series_equal, assert_almost_equal)
-from pandas.util.compat import(
+from pandas.compat import(
     range, long, lrange, StringIO, lmap, lzip, map, zip, builtins, OrderedDict
 )
-from pandas.util import compat
+from pandas import compat
 from pandas.core.panel import Panel
 from pandas.tools.merge import concat
 from collections import defaultdict

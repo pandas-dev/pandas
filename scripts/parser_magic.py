@@ -1,6 +1,6 @@
 from pandas.util.testing import set_trace
 import pandas.util.testing as tm
-import pandas.util.compat as compat
+import pandas.compat as compat
 
 from pandas import *
 import ast

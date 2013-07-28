@@ -12,7 +12,7 @@ from numpy import nan
 import numpy as np
 
 from pandas import DataFrame, Series, Index, MultiIndex, DatetimeIndex
-from pandas.util.compat import(
+from pandas.compat import(
     StringIO, BytesIO, PY3, range, long, lrange, lmap, u, map, StringIO
 )
 from pandas.io.common import urlopen, URLError
@@ -28,7 +28,7 @@ import pandas.util.testing as tm
 import pandas as pd
 
 import pandas.lib as lib
-from pandas.util import compat
+from pandas import compat
 from pandas.lib import Timestamp
 from pandas.tseries.index import date_range
 import pandas.tseries.tools as tools

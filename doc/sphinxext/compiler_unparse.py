@@ -12,7 +12,7 @@
 """
 
 import sys
-from pandas.util.compat import cStringIO as StringIO
+from pandas.compat import cStringIO as StringIO
 from compiler.ast import Const, Name, Tuple, Div, Mul, Sub, Add
 
 def unparse(ast, single_line_functions=False):

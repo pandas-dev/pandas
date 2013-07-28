@@ -19,8 +19,9 @@ API changes
     also led to the introduction of substantive parts of the Benjamin
     Peterson's ``six`` library into compat. (:issue:`4384`, :issue:`4375`,
     :issue:`4372`)
-  - ``pandas.util.py3compat`` has been merged into ``pandas.util.compat`` and
-    removed from pandas. It contains both list and iterator versions of range,
+  - ``pandas.util.compat`` and ``pandas.util.py3compat`` have been merged into
+    ``pandas.compat``. ``pandas.compat`` now includes many functions allowing
+    2/3 compatibility. It contains both list and iterator versions of range,
     filter, map and zip, plus other necessary elements for Python 3
     compatibility. ``lmap``, ``lzip``, ``lrange`` and ``lfilter`` all produce
     lists instead of iterators, for compatibility with ``numpy``, subscripting

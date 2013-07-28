@@ -1,10 +1,10 @@
 import types
 import numpy as np
 
-from pandas.util.compat import(
+from pandas.compat import(
     zip, builtins, range, long, lrange, lzip, OrderedDict, callable
 )
-from pandas.util import compat
+from pandas import compat
 
 from pandas.core.base import PandasObject
 from pandas.core.categorical import Categorical
@@ -2655,7 +2655,7 @@ def numpy_groupby(data, labels, axis=0):
 # Helper functions
 
 
-from pandas.util import compat
+from pandas import compat
 import sys
 
 

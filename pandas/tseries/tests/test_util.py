@@ -1,4 +1,4 @@
-from pandas.util.compat import range
+from pandas.compat import range
 import nose
 import unittest
 

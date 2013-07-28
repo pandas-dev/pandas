@@ -3,8 +3,8 @@
 from datetime import datetime
 from pandas.core.common import _asarray_tuplesafe
 from pandas.core.index import Index, MultiIndex, _ensure_index
-from pandas.util.compat import range, zip
-import pandas.util.compat as compat
+from pandas.compat import range, zip
+import pandas.compat as compat
 import pandas.core.common as com
 import pandas.lib as lib
 

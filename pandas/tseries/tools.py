@@ -7,8 +7,8 @@ import numpy as np
 import pandas.lib as lib
 import pandas.tslib as tslib
 import pandas.core.common as com
-from pandas.util.compat import StringIO, callable
-import pandas.util.compat as compat
+from pandas.compat import StringIO, callable
+import pandas.compat as compat
 
 try:
     import dateutil

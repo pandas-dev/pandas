@@ -1,10 +1,10 @@
 from numpy import NaN
-from pandas.util import compat
+from pandas import compat
 import numpy as np
 
 from pandas.core.api import Series, DataFrame, isnull, notnull
 from pandas.core.series import remove_na
-from pandas.util.compat import zip
+from pandas.compat import zip
 
 
 def zscore(series):

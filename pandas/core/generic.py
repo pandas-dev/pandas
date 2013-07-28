@@ -1,6 +1,6 @@
 # pylint: disable=W0231,E1101
 import warnings
-from pandas.util import compat
+from pandas import compat
 import numpy as np
 import pandas.lib as lib
 from pandas.core.base import PandasObject
@@ -10,7 +10,7 @@ import pandas.core.indexing as indexing
 from pandas.core.indexing import _maybe_convert_indices
 from pandas.tseries.index import DatetimeIndex
 import pandas.core.common as com
-from pandas.util.compat import map, zip
+from pandas.compat import map, zip
 
 
 class PandasError(Exception):

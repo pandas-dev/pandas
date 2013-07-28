@@ -5,8 +5,8 @@ with float64 data
 
 # pylint: disable=E1101,E1103,W0231
 
-from pandas.util.compat import range, lrange, zip
-from pandas.util import compat
+from pandas.compat import range, lrange, zip
+from pandas import compat
 import numpy as np
 
 from pandas.core.index import Index, MultiIndex, _ensure_index

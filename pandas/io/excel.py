@@ -11,8 +11,8 @@ import numpy as np
 from pandas.io.parsers import TextParser
 from pandas.tseries.period import Period
 from pandas import json
-from pandas.util.compat import map, zip, reduce, range, lrange
-import pandas.util.compat as compat
+from pandas.compat import map, zip, reduce, range, lrange
+import pandas.compat as compat
 
 
 def read_excel(path_or_buf, sheetname, kind=None, **kwds):

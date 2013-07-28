@@ -58,7 +58,7 @@ from __future__ import print_function
 #-----------------------------------------------------------------------------
 
 # Stdlib
-from pandas.util.compat import zip, range, map, lmap, u, cStringIO as StringIO
+from pandas.compat import zip, range, map, lmap, u, cStringIO as StringIO
 import ast
 import os
 import re

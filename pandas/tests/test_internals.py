@@ -11,7 +11,7 @@ import pandas.util.testing as tm
 
 from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, randn)
-from pandas.util.compat import zip, u
+from pandas.compat import zip, u
 
 
 def assert_block_equal(left, right):

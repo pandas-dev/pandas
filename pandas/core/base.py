@@ -1,7 +1,7 @@
 """
 Base class(es) for all pandas objects.
 """
-from pandas.util import compat
+from pandas import compat
 
 class StringMixin(object):
     """implements string methods so long as object defines a `__unicode__` method.

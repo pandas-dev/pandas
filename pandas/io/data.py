@@ -12,10 +12,10 @@ from collections import defaultdict
 
 import numpy as np
 
-from pandas.util.compat import(
+from pandas.compat import(
     StringIO, bytes_to_str, range, lrange, lmap, zip
 )
-import pandas.util.compat as compat
+import pandas.compat as compat
 from pandas import Panel, DataFrame, Series, read_csv, concat
 from pandas.core.common import PandasError
 from pandas.io.parsers import TextParser

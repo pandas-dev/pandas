@@ -1,6 +1,6 @@
 from vbench.api import Benchmark
 from datetime import datetime
-from pandas.util.compat import map
+from pandas.compat import map
 
 common_setup = """from pandas_vb_common import *
 """

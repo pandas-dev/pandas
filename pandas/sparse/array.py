@@ -11,7 +11,7 @@ import operator
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 
-from pandas.util import compat
+from pandas import compat
 
 from pandas._sparse import BlockIndex, IntIndex
 import pandas._sparse as splib

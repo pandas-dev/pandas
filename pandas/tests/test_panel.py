@@ -1,8 +1,8 @@
 # pylint: disable=W0612,E1101
 
 from datetime import datetime
-from pandas.util.compat import range, lrange, StringIO, cPickle, OrderedDict
-from pandas.util import compat
+from pandas.compat import range, lrange, StringIO, cPickle, OrderedDict
+from pandas import compat
 import operator
 import unittest
 import nose
@@ -15,7 +15,7 @@ from pandas.core.frame import group_agg
 from pandas.core.panel import Panel
 from pandas.core.series import remove_na
 import pandas.core.common as com
-from pandas.util import compat
+from pandas import compat
 
 from pandas.util.testing import (assert_panel_equal,
                                  assert_frame_equal,

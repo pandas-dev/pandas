@@ -1,4 +1,4 @@
-from pandas.util.compat import range
+from pandas.compat import range
 import unittest
 import pandas.tools.rplot as rplot
 import pandas.util.testing as tm

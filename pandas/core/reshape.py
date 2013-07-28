@@ -1,8 +1,8 @@
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
 
-from pandas.util.compat import range, zip
-from pandas.util import compat
+from pandas.compat import range, zip
+from pandas import compat
 import itertools
 
 import numpy as np

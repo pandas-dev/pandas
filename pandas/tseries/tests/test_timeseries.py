@@ -28,7 +28,7 @@ import pandas.tslib as tslib
 
 import pandas.index as _index
 
-from pandas.util.compat import(
+from pandas.compat import(
     range, long, StringIO, lrange, lmap, map, zip, cPickle as pickle, product
 )
 from pandas import read_pickle
@@ -36,7 +36,7 @@ import pandas.core.datetools as dt
 from numpy.random import rand
 from numpy.testing import assert_array_equal
 from pandas.util.testing import assert_frame_equal
-import pandas.util.compat as compat
+import pandas.compat as compat
 from pandas.core.datetools import BDay
 import pandas.core.common as com
 from pandas import concat

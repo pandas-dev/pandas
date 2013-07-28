@@ -1,8 +1,8 @@
 from __future__ import print_function
 # -*- coding: utf-8 -*-
 
-from pandas.util.compat import range, zip, lrange, StringIO, PY3, lzip, u
-import pandas.util.compat as compat
+from pandas.compat import range, zip, lrange, StringIO, PY3, lzip, u
+import pandas.compat as compat
 import os
 import sys
 import unittest

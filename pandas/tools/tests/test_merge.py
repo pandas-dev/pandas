@@ -9,8 +9,8 @@ from numpy import nan
 import numpy as np
 import random
 
-from pandas.util.compat import range, lrange, lzip, zip
-from pandas.util import compat
+from pandas.compat import range, lrange, lzip, zip
+from pandas import compat
 from pandas.tseries.index import DatetimeIndex
 from pandas.tools.merge import merge, concat, ordered_merge, MergeError
 from pandas.util.testing import (assert_frame_equal, assert_series_equal,

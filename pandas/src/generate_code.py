@@ -1,5 +1,5 @@
 from __future__ import print_function
-from pandas.util.compat import range, cStringIO as StringIO
+from pandas.compat import range, cStringIO as StringIO
 import os
 
 header = """

@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 from pandas import DataFrame
 from pandas.util.testing import set_trace
-from pandas.util import compat
+from pandas import compat
 
 dirs = []
 names = []

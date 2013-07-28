@@ -14,7 +14,7 @@ import pandas.util.testing as tm
 import pandas as pd
 from pandas import Index
 from pandas.sparse.tests import test_sparse
-from pandas.util import compat
+from pandas import compat
 from pandas.util.misc import is_little_endian
 
 class TestPickle(unittest.TestCase):

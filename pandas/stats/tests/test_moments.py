@@ -14,7 +14,7 @@ from pandas.util.testing import (
 import pandas.core.datetools as datetools
 import pandas.stats.moments as mom
 import pandas.util.testing as tm
-from pandas.util.compat import range, zip, PY3, StringIO
+from pandas.compat import range, zip, PY3, StringIO
 
 N, K = 100, 10
 

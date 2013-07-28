@@ -1,6 +1,6 @@
 # pylint: disable=E1101
 
-from pandas.util.compat import StringIO, BytesIO, PY3, u, range, map
+from pandas.compat import StringIO, BytesIO, PY3, u, range, map
 from datetime import datetime
 from os.path import split as psplit
 import csv
@@ -27,7 +27,7 @@ import pandas.util.testing as tm
 import pandas as pd
 
 import pandas.lib as lib
-from pandas.util import compat
+from pandas import compat
 from pandas.lib import Timestamp
 from pandas.tseries.index import date_range
 import pandas.tseries.tools as tools

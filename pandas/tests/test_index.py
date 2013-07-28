@@ -1,7 +1,7 @@
 # pylint: disable=E1101,E1103,W0232
 
 from datetime import datetime, timedelta
-from pandas.util.compat import range, lrange, lzip, u, zip
+from pandas.compat import range, lrange, lzip, u, zip
 import operator
 import pickle
 import unittest
@@ -13,7 +13,7 @@ from numpy.testing import assert_array_equal
 
 from pandas.core.index import Index, Int64Index, MultiIndex
 from pandas.util.testing import assert_almost_equal
-from pandas.util import compat
+from pandas import compat
 
 import pandas.util.testing as tm
 import pandas.core.config as cf

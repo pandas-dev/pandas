@@ -1,6 +1,6 @@
 from datetime import datetime
-from pandas.util.compat import range, long, zip
-from pandas.util import compat
+from pandas.compat import range, long, zip
+from pandas import compat
 import re
 
 import numpy as np

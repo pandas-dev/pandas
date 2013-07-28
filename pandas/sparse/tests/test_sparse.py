@@ -22,8 +22,8 @@ from pandas.tseries.index import DatetimeIndex
 import pandas.core.datetools as datetools
 from pandas.core.common import isnull
 import pandas.util.testing as tm
-from pandas.util.compat import range, lrange, cPickle as pickle, StringIO, lrange
-from pandas.util import compat
+from pandas.compat import range, lrange, cPickle as pickle, StringIO, lrange
+from pandas import compat
 
 import pandas.sparse.frame as spf
 

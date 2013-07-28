@@ -6,7 +6,7 @@ import nose
 import unittest
 
 from pandas import Series, DataFrame, date_range, DatetimeIndex, Timestamp
-from pandas.util.compat import range, long, lrange, lmap, u, map
+from pandas.compat import range, long, lrange, lmap, u, map
 from pandas.core.common import notnull, isnull
 import pandas.core.common as com
 import pandas.util.testing as tm
@@ -15,7 +15,7 @@ import pandas.core.config as cf
 import numpy as np
 
 from pandas.tslib import iNaT
-from pandas.util import compat
+from pandas import compat
 
 _multiprocess_can_split_ = True
 

@@ -52,8 +52,8 @@ import re
 
 from collections import namedtuple
 import warnings
-from pandas.util.compat import map, lmap, u
-import pandas.util.compat as compat
+from pandas.compat import map, lmap, u
+import pandas.compat as compat
 
 DeprecatedOption = namedtuple('DeprecatedOption', 'key msg rkey removal_ver')
 RegisteredOption = namedtuple(

@@ -2,9 +2,9 @@
 C/Cython ascii file parser tests
 """
 
-from pandas.util.compat import StringIO, BytesIO, map
+from pandas.compat import StringIO, BytesIO, map
 from datetime import datetime
-from pandas.util import compat
+from pandas import compat
 import csv
 import os
 import sys
@@ -23,7 +23,7 @@ from pandas.io.parsers import (read_csv, read_table, read_fwf,
 from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
                                  assert_series_equal, network)
 import pandas.lib as lib
-from pandas.util import compat
+from pandas import compat
 from pandas.lib import Timestamp
 
 import pandas.util.testing as tm

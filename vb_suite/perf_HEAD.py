@@ -11,7 +11,7 @@ from pandas.io.common import urlopen
 import json
 
 import pandas as pd
-import pandas.util.compat as compat
+import pandas.compat as compat
 
 WEB_TIMEOUT = 10
 

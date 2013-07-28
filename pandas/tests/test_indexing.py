@@ -3,7 +3,7 @@ import unittest
 import nose
 import itertools
 
-from pandas.util.compat import range, lrange, StringIO, lmap, map
+from pandas.compat import range, lrange, StringIO, lmap, map
 from numpy import random, nan
 from numpy.random import randn
 import numpy as np
@@ -15,7 +15,7 @@ from pandas.core.api import (DataFrame, Index, Series, Panel, notnull, isnull,
                              MultiIndex, DatetimeIndex, Timestamp)
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal, assert_panel_equal)
-from pandas.util import compat
+from pandas import compat
 
 import pandas.util.testing as tm
 import pandas.lib as lib

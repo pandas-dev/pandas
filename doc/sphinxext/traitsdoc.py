@@ -18,7 +18,7 @@ import inspect
 import os
 import pydoc
 
-from pandas.util.compat import callable
+from pandas.compat import callable
 from . import docscrape
 from . import docscrape_sphinx
 from .docscrape_sphinx import SphinxClassDoc, SphinxFunctionDoc, SphinxDocString

@@ -2,8 +2,8 @@ from pandas import DataFrame, Panel
 from pandas.stats.api import fama_macbeth
 from .common import assert_almost_equal, BaseTest
 
-from pandas.util.compat import range
-from pandas.util import compat
+from pandas.compat import range
+from pandas import compat
 import numpy as np
 
 

@@ -24,8 +24,8 @@ import pandas.core.series as series
 import pandas.core.frame as frame
 import pandas.core.panel as panel
 import pandas.core.panel4d as panel4d
-import pandas.util.compat as compat
-from pandas.util.compat import(
+import pandas.compat as compat
+from pandas.compat import(
     map, zip, range, unichr, lrange, lmap, lzip, u, callable, Counter
 )
 

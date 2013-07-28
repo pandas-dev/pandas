@@ -13,8 +13,8 @@ import numpy as np
 from numpy.testing import assert_array_equal
 from numpy.random import randint
 
-from pandas.util.compat import range, lrange, u
-import pandas.util.compat as compat
+from pandas.compat import range, lrange, u
+import pandas.compat as compat
 from pandas import (Index, Series, TimeSeries, DataFrame, isnull, notnull,
                     bdate_range, date_range)
 import pandas.core.common as com

@@ -1,7 +1,7 @@
 from pandas import *
 import numpy as np
 import string
-import pandas.util.compat as compat
+import pandas.compat as compat
 
 g1 = np.array(list(string.letters))[:-1]
 g2 = np.arange(510)

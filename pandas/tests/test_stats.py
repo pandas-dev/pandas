@@ -1,4 +1,4 @@
-from pandas.util import compat
+from pandas import compat
 import nose
 import unittest
 
@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas import Series, DataFrame
 
-from pandas.util.compat import product
+from pandas.compat import product
 from pandas.util.testing import (assert_frame_equal,
                                  assert_series_equal,
                                  assert_almost_equal)
