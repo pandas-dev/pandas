@@ -83,6 +83,10 @@ pandas 0.13
   - In ``to_json``, raise if a passed ``orient`` would cause loss of data because
     of a duplicate index (:issue:`4359`)
   - Fixed passing ``keep_default_na=False`` when ``na_values=None`` (:issue:`4318`)
+  - Fixed bug with ``values`` raising an error on a DataFrame with duplicate columns and mixed
+    dtypes, surfaced in (:issue:`4377`)
+  - Fixed bug with duplicate columns and type conversion in ``read_json`` when
+    ``orient='split'`` (:issue:`4377`)
 
 pandas 0.12
 ===========
