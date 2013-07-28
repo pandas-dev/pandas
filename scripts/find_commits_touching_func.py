@@ -16,7 +16,7 @@ import logging
 import re
 import os
 from collections import namedtuple
-from dateutil import parser
+from pandas.compat import parse_date
 
 try:
     import sh
@@ -98,7 +98,7 @@ def get_commit_info(c,fmt,sep='\t'):
 
 def get_commit_vitals(c,hlen=HASH_LEN):
     h,s,d= get_commit_info(c,'%H\t%s\t%ci',"\t")
-    return h[:hlen],s,parser.parse(d)
+    return h[:hlen],s,parse_date(d)
 
 def file_filter(state,dirname,fnames):
     if args.dir_masks and not any([re.search(x,dirname) for x in args.dir_masks]):

@@ -27,6 +27,7 @@ from pandas.util.testing import (assert_almost_equal,
 import pandas.util.testing as tm
 import pandas as pd
 
+from pandas.compat import parse_date
 import pandas.lib as lib
 from pandas import compat
 from pandas.lib import Timestamp
@@ -1254,13 +1255,13 @@ a,1,2,01/01/2009
 b,3,4,01/02/2009
 c,4,5,01/03/2009
 """
-        from dateutil import parser
+        from pandas.compat import parse_date
 
-        result = self.read_csv(StringIO(data), converters={'D': parser.parse})
-        result2 = self.read_csv(StringIO(data), converters={3: parser.parse})
+        result = self.read_csv(StringIO(data), converters={'D': parse_date})
+        result2 = self.read_csv(StringIO(data), converters={3: parse_date})
 
         expected = self.read_csv(StringIO(data))
-        expected['D'] = expected['D'].map(parser.parse)
+        expected['D'] = expected['D'].map(parse_date)
 
         tm.assert_isinstance(result['D'][0], (datetime, Timestamp))
         tm.assert_frame_equal(result, expected)
@@ -1327,13 +1328,12 @@ bar"""
         tm.assert_frame_equal(df, expected)
 
     def test_parse_dates_custom_euroformat(self):
-        from dateutil.parser import parse
         text = """foo,bar,baz
 31/01/2010,1,2
 01/02/2010,1,NA
 02/02/2010,1,2
 """
-        parser = lambda d: parse(d, dayfirst=True)
+        parser = lambda d: parse_date(d, dayfirst=True)
         df = self.read_csv(StringIO(text),
                            names=['time', 'Q', 'NTU'], header=0,
                            index_col=0, parse_dates=True,
@@ -1345,7 +1345,7 @@ bar"""
                              index=exp_index, columns=['Q', 'NTU'])
         tm.assert_frame_equal(df, expected)
 
-        parser = lambda d: parse(d, day_first=True)
+        parser = lambda d: parse_date(d, day_first=True)
         self.assertRaises(Exception, self.read_csv,
                           StringIO(text), skiprows=[0],
                           names=['time', 'Q', 'NTU'], index_col=0,

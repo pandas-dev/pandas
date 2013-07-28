@@ -732,7 +732,7 @@ class TestTimeSeries(unittest.TestCase):
     def test_string_na_nat_conversion(self):
         # GH #999, #858
 
-        from dateutil.parser import parse
+        from pandas.compat import parse_date
 
         strings = np.array(['1/1/2000', '1/2/2000', np.nan,
                             '1/4/2000, 12:34:56'], dtype=object)
@@ -742,7 +742,7 @@ class TestTimeSeries(unittest.TestCase):
             if com.isnull(val):
                 expected[i] = iNaT
             else:
-                expected[i] = parse(val)
+                expected[i] = parse_date(val)
 
         result = tslib.array_to_datetime(strings)
         assert_almost_equal(result, expected)

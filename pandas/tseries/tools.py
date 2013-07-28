@@ -238,6 +238,7 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
         parsed, reso = dateutil_parse(arg, default, dayfirst=dayfirst,
                                       yearfirst=yearfirst)
     except Exception as e:
+        # TODO: allow raise of errors within instead
         raise DateParseError(e)
 
     if parsed is None:
@@ -252,19 +253,25 @@ def dateutil_parse(timestr, default,
     """ lifted from dateutil to get resolution"""
     from dateutil import tz
     import time
+    fobj = StringIO(str(timestr))
 
-    res = DEFAULTPARSER._parse(StringIO(timestr), **kwargs)
+    res = DEFAULTPARSER._parse(fobj, **kwargs)
 
     if res is None:
         raise ValueError("unknown string format")
 
     repl = {}
+    reso = None
     for attr in ["year", "month", "day", "hour",
                  "minute", "second", "microsecond"]:
         value = getattr(res, attr)
         if value is not None:
             repl[attr] = value
             reso = attr
+
+    if reso is None:
+        raise ValueError("Cannot parse date.")
+
     if reso == 'microsecond' and repl['microsecond'] == 0:
         reso = 'second'
 

@@ -28,6 +28,7 @@ Other items:
 # pylint disable=W0611
 import functools
 import itertools
+from distutils.version import LooseVersion
 from itertools import product
 import sys
 import types
@@ -663,6 +664,15 @@ else:
 # http://stackoverflow.com/questions/4126348
 # Thanks to @martineau at SO
 
+from dateutil import parser as _date_parser
+import dateutil
+if LooseVersion(dateutil.__version__) < '2.0':
+    @functools.wraps(_date_parser.parse)
+    def parse_date(timestr, *args, **kwargs):
+        timestr = bytes(timestr)
+        return _date_parser.parse(timestr, *args, **kwargs)
+else:
+    parse_date = _date_parser.parse
 
 class OrderedDefaultdict(OrderedDict):
 
