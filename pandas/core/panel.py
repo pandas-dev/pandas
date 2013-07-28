@@ -496,10 +496,6 @@ class Panel(NDFrame):
         for h in getattr(self, self._info_axis):
             yield h, self[h]
 
-    # Name that won't get automatically converted to items by 2to3. items is
-    # already in use for the first axis.
-    iterkv = iteritems
-
     def _get_plane_axes(self, axis):
         """
         Get my plane axes: these are already
