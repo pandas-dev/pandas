@@ -1721,7 +1721,8 @@ def get_console_size():
     Returns (None,None) in non-interactive session.
     """
     display_width = get_option('display.width')
-    display_height = get_option('display.height')
+    # deprecated.
+    display_height = get_option('display.height', silent=True)
 
     # Consider
     # interactive shell terminal, can detect term size
