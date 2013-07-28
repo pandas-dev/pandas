@@ -196,15 +196,23 @@ def write_frame(frame, name, con, flavor='sqlite', if_exists='fail', **kwargs):
             if_exists='append'
         else:
             if_exists='fail'
-    exists = table_exists(name, con, flavor)
-    if if_exists == 'fail' and exists:
-        raise ValueError, "Table '%s' already exists." % name
+    
+    if if_exists not in ('fail', 'replace', 'append'):
+        raise ValueError, "'%s' is not valid for if_exists" % if_exists
 
-    #create or drop-recreate if necessary
+    exists = table_exists(name, con, flavor)
+
+    # creation/replacement dependent on the table existing and if_exist criteria
     create = None
-    if exists and if_exists == 'replace':
-        create = "DROP TABLE %s" % name
-    elif not exists:
+    if exists:
+        if if_exists == 'fail':
+            raise ValueError, "Table '%s' already exists." % name
+        elif if_exists == 'replace':
+            cur = con.cursor()
+            cur.execute("DROP TABLE %s;" % name)
+            cur.close()
+            create = get_schema(frame, name, flavor)
+    else:
         create = get_schema(frame, name, flavor)
 
     if create is not None:
