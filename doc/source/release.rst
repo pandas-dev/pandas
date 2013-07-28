@@ -62,6 +62,7 @@ pandas 0.13
   - deprecated ``iterkv``, which will be removed in a future release (was just
     an alias of iteritems used to get around ``2to3``'s changes).
     (:issue:`4384`, :issue:`4375`, :issue:`4372`)
+  - ``Series.get`` with negative indexers now returns the same as ``[]`` (:issue:`4390`)
 
 **Experimental Features**
 
@@ -87,6 +88,7 @@ pandas 0.13
     dtypes, surfaced in (:issue:`4377`)
   - Fixed bug with duplicate columns and type conversion in ``read_json`` when
     ``orient='split'`` (:issue:`4377`)
+  - Fix ``.iat`` indexing with a ``PeriodIndex`` (:issue:`4390`)
 
 pandas 0.12
 ===========
