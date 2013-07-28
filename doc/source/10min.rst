@@ -279,7 +279,7 @@ by the indexes
 
 .. ipython:: python
 
-   s1 = pd.Series([1,2,3,4,5,6],index=date_range('20130102',periods=6))
+   s1 = pd.Series([1,2,3,4,5,6],index=pd.date_range('20130102',periods=6))
    s1
    df['F'] = s1
 
@@ -400,7 +400,7 @@ See more at :ref:`Histogramming and Discretization <basics.discretization>`
 
 .. ipython:: python
 
-   s = Series(np.random.randint(0,7,size=10))
+   s = pd.Series(np.random.randint(0,7,size=10))
    s
    s.value_counts()
 
@@ -411,7 +411,7 @@ See more at :ref:`Vectorized String Methods <basics.string_methods>`
 
 .. ipython:: python
 
-   s = Series(['A', 'B', 'C', 'Aaba', 'Baca', np.nan, 'CABA', 'dog', 'cat'])
+   s = pd.Series(['A', 'B', 'C', 'Aaba', 'Baca', np.nan, 'CABA', 'dog', 'cat'])
    s.str.lower()
 
 Merge
@@ -437,7 +437,7 @@ Concatenating pandas objects together
    # break it into pieces
    pieces = [df[:3], df[3:7], df[7:]]
 
-   concat(pieces)
+   pd.concat(pieces)
 
 Join
 ~~~~
@@ -450,7 +450,7 @@ SQL style merges. See the :ref:`Database style joining <merging.join>`
    right = pd.DataFrame({'key': ['foo', 'foo'], 'rval': [4, 5]})
    left
    right
-   merge(left, right, on='key')
+   pd.merge(left, right, on='key')
 
 Append
 ~~~~~~
@@ -542,7 +542,7 @@ See the section on :ref:`Pivot Tables <reshaping.pivot>`.
 
 .. ipython:: python
 
-   df = DataFrame({'A' : ['one', 'one', 'two', 'three'] * 3,
+   df = pd.DataFrame({'A' : ['one', 'one', 'two', 'three'] * 3,
                    'B' : ['A', 'B', 'C'] * 4,
                    'C' : ['foo', 'foo', 'foo', 'bar', 'bar', 'bar'] * 2,
                    'D' : np.random.randn(12),
@@ -553,7 +553,7 @@ We can produce pivot tables from this data very easily:
 
 .. ipython:: python
 
-   pivot_table(df, values='D', rows=['A', 'B'], cols=['C'])
+   pd.pivot_table(df, values='D', rows=['A', 'B'], cols=['C'])
 
 
 Time Series
@@ -603,8 +603,8 @@ the quarter end:
 
 .. ipython:: python
 
-   prng = period_range('1990Q1', '2000Q4', freq='Q-NOV')
-   ts = Series(randn(len(prng)), prng)
+   prng = pd.period_range('1990Q1', '2000Q4', freq='Q-NOV')
+   ts = pd.Series(randn(len(prng)), prng)
    ts.index = (prng.asfreq('M', 'e') + 1).asfreq('H', 's') + 9
    ts.head()
 
@@ -678,7 +678,7 @@ Reading from a HDF5 Store
 
 .. ipython:: python
 
-   read_hdf('foo.h5','df')
+   pd.read_hdf('foo.h5','df')
 
 .. ipython:: python
    :suppress:
@@ -700,7 +700,7 @@ Reading from an excel file
 
 .. ipython:: python
 
-   read_excel('foo.xlsx', 'sheet1', index_col=None, na_values=['NA'])
+   pd.read_excel('foo.xlsx', 'sheet1', index_col=None, na_values=['NA'])
 
 .. ipython:: python
    :suppress:
