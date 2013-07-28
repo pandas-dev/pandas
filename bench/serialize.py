@@ -1,5 +1,5 @@
 from __future__ import print_function
-from pandas.util.py3compat import range
+from pandas.util.py3compat import range, lrange
 import time
 import os
 import numpy as np
@@ -22,7 +22,7 @@ def roundtrip_archive(N, iterations=10):
     # Create data
     arr = np.random.randn(N, N)
     lar = la.larry(arr)
-    dma = pandas.DataFrame(arr, list(range(N)), list(range(N)))
+    dma = pandas.DataFrame(arr, lrange(N), lrange(N))
 
     # filenames
     filename_numpy = '/Users/wesm/tmp/numpy.npz'

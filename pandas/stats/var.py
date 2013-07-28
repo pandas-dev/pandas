@@ -1,7 +1,7 @@
 from __future__ import division
 
-from pandas.util.py3compat import range
-from six.moves import zip, reduce
+from pandas.util.py3compat import range, lrange
+from pandas.util.py3compat import zip, reduce
 from pandas.util import compat
 import numpy as np
 from pandas.core.base import StringMixin
@@ -80,7 +80,7 @@ class VAR(StringMixin):
         DataFrame
         """
         forecast = self._forecast_raw(h)[:, 0, :]
-        return DataFrame(forecast, index=list(range(1, 1 + h)),
+        return DataFrame(forecast, index=lrange(1, 1 + h),
                          columns=self._columns)
 
     def forecast_cov(self, h):
@@ -103,7 +103,7 @@ class VAR(StringMixin):
         DataFrame
         """
         return DataFrame(self._forecast_std_err_raw(h),
-                         index=list(range(1, 1 + h)), columns=self._columns)
+                         index=lrange(1, 1 + h), columns=self._columns)
 
     @cache_readonly
     def granger_causality(self):
@@ -345,7 +345,7 @@ BIC:                            %(bic).3f
 
             for t in range(T + 1):
                 index = t + p
-                y = values.take(list(range(index, index - p, -1)), axis=0).ravel()
+                y = values.take(lrange(index, index - p, -1), axis=0).ravel()
                 trans_Z = np.hstack(([1], y))
                 trans_Z = trans_Z.reshape(1, len(trans_Z))
 
@@ -535,7 +535,7 @@ class PanelVAR(VAR):
         Returns the forecasts at 1, 2, ..., n timesteps in the future.
         """
         forecast = self._forecast_raw(h).T.swapaxes(1, 2)
-        index = list(range(1, 1 + h))
+        index = lrange(1, 1 + h)
         w = Panel(forecast, items=self._data.items, major_axis=index,
                   minor_axis=self._data.minor_axis)
         return w

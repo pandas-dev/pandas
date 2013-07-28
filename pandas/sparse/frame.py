@@ -6,7 +6,7 @@ with float64 data
 # pylint: disable=E1101,E1103,W0231,E0202
 
 from numpy import nan
-from pandas.util.py3compat import range
+from pandas.util.py3compat import range, lmap
 from pandas.util import compat
 import numpy as np
 
@@ -23,7 +23,7 @@ import pandas.core.datetools as datetools
 from pandas.sparse.series import SparseSeries
 from pandas.util.decorators import Appender
 import pandas.lib as lib
-from six.moves import map
+from pandas.util.py3compat import map
 
 
 class _SparseMockBlockManager(object):
@@ -853,7 +853,7 @@ class SparseDataFrame(DataFrame):
     def applymap(self, func):
         """
         Apply a function to a DataFrame that is intended to operate
-        elementwise, i.e. like doing list(map(func, series)) for each series in the
+        elementwise, i.e. like doing map(func, series) for each series in the
         DataFrame
 
         Parameters
@@ -865,7 +865,7 @@ class SparseDataFrame(DataFrame):
         -------
         applied : DataFrame
         """
-        return self.apply(lambda x: list(map(func, x)))
+        return self.apply(lambda x: lmap(func, x))
 
     @Appender(DataFrame.fillna.__doc__)
     def fillna(self, value=None, method=None, inplace=False, limit=None):

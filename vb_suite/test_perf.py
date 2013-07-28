@@ -28,7 +28,7 @@ everything and calculate a ration for the timing information.
 from __future__ import print_function
 
 from pandas.util.py3compat import range
-from six.moves import map
+from pandas.util.py3compat import map
 import shutil
 import os
 import sys

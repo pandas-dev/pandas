@@ -2,7 +2,7 @@ from __future__ import print_function
 from pandas import *
 from pandas.util.testing import rands
 from pandas.util.py3compat import range
-from six.moves import zip
+from pandas.util.py3compat import zip
 import pandas._tseries as lib
 import numpy as np
 import matplotlib.pyplot as plt

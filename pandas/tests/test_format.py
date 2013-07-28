@@ -1,13 +1,7 @@
 from __future__ import print_function
 # -*- coding: utf-8 -*-
 
-try:
-    from pandas.util.py3compat import StringIO
-except:
-    from io import StringIO
-
-from pandas.util.py3compat import range
-from six.moves import zip
+from pandas.util.py3compat import range, zip, lrange, StringIO, PY3, lzip
 import os
 import sys
 import unittest
@@ -19,7 +13,6 @@ from numpy.random import randn
 import numpy as np
 
 from pandas import DataFrame, Series, Index
-from pandas.util.py3compat import PY3
 
 import pandas.core.format as fmt
 import pandas.util.testing as tm
@@ -90,7 +83,7 @@ class TestDataFrameFormatting(unittest.TestCase):
     def test_repr_tuples(self):
         buf = StringIO()
 
-        df = DataFrame({'tups': list(zip(range(10), range(10)))})
+        df = DataFrame({'tups': lzip(range(10), range(10))})
         repr(df)
         df.to_string(col_space=10, buf=buf)
 
@@ -105,7 +98,7 @@ class TestDataFrameFormatting(unittest.TestCase):
 
             _strlen = fmt._strlen_func()
 
-            for line, value in list(zip(r.split('\n'), df['B'])):
+            for line, value in lzip(r.split('\n'), df['B']):
                 if _strlen(value) + 1 > max_len:
                     self.assert_('...' in line)
                 else:
@@ -136,10 +129,10 @@ class TestDataFrameFormatting(unittest.TestCase):
 
         #unlimited
         reset_option("display.max_seq_items")
-        self.assertTrue(len(com.pprint_thing(list(range(1000))))> 2000)
+        self.assertTrue(len(com.pprint_thing(lrange(1000)))> 2000)
 
         with option_context("display.max_seq_items",5):
-            self.assertTrue(len(com.pprint_thing(list(range(1000))))< 100)
+            self.assertTrue(len(com.pprint_thing(lrange(1000)))< 100)
 
     def test_repr_is_valid_construction_code(self):
         import pandas as pd
@@ -171,8 +164,8 @@ class TestDataFrameFormatting(unittest.TestCase):
 
     def test_expand_frame_repr(self):
         df_small = DataFrame('hello', [0], [0])
-        df_wide = DataFrame('hello', [0], list(range(10)))
-        df_tall = DataFrame('hello', list(range(30)), list(range(5)))
+        df_wide = DataFrame('hello', [0], lrange(10))
+        df_tall = DataFrame('hello', lrange(30), lrange(5))
 
         with option_context('mode.sim_interactive', True):
             with option_context('display.max_columns', 10,
@@ -197,7 +190,7 @@ class TestDataFrameFormatting(unittest.TestCase):
     def test_repr_non_interactive(self):
         # in non interactive mode, there can be no dependency on the
         # result of terminal auto size detection
-        df = DataFrame('hello', list(range(1000)), list(range(5)))
+        df = DataFrame('hello', lrange(1000), lrange(5))
 
         with option_context('mode.sim_interactive', False,
                             'display.width', 0,
@@ -321,7 +314,7 @@ class TestDataFrameFormatting(unittest.TestCase):
                       ('float', lambda x: '[% 4.1f]' % x),
                       ('object', lambda x: '-%s-' % str(x))]
         result = df.to_string(formatters=dict(formatters))
-        result2 = df.to_string(formatters=list(zip(*formatters))[1])
+        result2 = df.to_string(formatters=lzip(*formatters)[1])
         self.assertEqual(result, ('  int  float    object\n'
                                   '0 0x1 [ 1.0]  -(1, 2)-\n'
                                   '1 0x2 [ 2.0]    -True-\n'
@@ -661,7 +654,7 @@ class TestDataFrameFormatting(unittest.TestCase):
 
     def test_to_html_index_formatter(self):
         df = DataFrame([[0, 1], [2, 3], [4, 5], [6, 7]],
-                       columns=['foo', None], index=list(range(4)))
+                       columns=['foo', None], index=lrange(4))
 
         f = lambda x: 'abcd'[x]
         result = df.to_html(formatters={'__index__': f})
@@ -974,7 +967,7 @@ class TestDataFrameFormatting(unittest.TestCase):
         # big mixed
         biggie = DataFrame({'A': randn(200),
                             'B': tm.makeStringIndex(200)},
-                           index=list(range(200)))
+                           index=lrange(200))
 
         biggie['A'][:20] = nan
         biggie['B'][:20] = nan
@@ -1112,7 +1105,7 @@ class TestDataFrameFormatting(unittest.TestCase):
 
     def test_to_string_float_index(self):
         index = Index([1.5, 2, 3, 4, 5])
-        df = DataFrame(list(range(5)), index=index)
+        df = DataFrame(lrange(5), index=index)
 
         result = df.to_string()
         expected = ('     0\n'
@@ -1147,7 +1140,7 @@ class TestDataFrameFormatting(unittest.TestCase):
         self.assertEqual(output, expected)
 
     def test_to_string_index_formatter(self):
-        df = DataFrame([list(range(5)), list(range(5, 10)), list(range(10, 15))])
+        df = DataFrame([lrange(5), lrange(5, 10), lrange(10, 15)])
 
         rs = df.to_string(formatters={'__index__': lambda x: 'abc'[x]})
 
@@ -1195,7 +1188,7 @@ c  10  11  12  13  14\
         self.assertEqual(result, expected)
 
     def test_to_string_line_width(self):
-        df = pd.DataFrame(123, list(range(10, 15)), list(range(30)))
+        df = pd.DataFrame(123, lrange(10, 15), lrange(30))
         s = df.to_string(line_width=80)
         self.assertEqual(max(len(l) for l in s.split('\n')), 80)
 
@@ -1203,7 +1196,7 @@ c  10  11  12  13  14\
         # big mixed
         biggie = DataFrame({'A': randn(200),
                             'B': tm.makeStringIndex(200)},
-                           index=list(range(200)))
+                           index=lrange(200))
 
         biggie['A'][:20] = nan
         biggie['B'][:20] = nan
@@ -1230,7 +1223,7 @@ c  10  11  12  13  14\
     def test_to_html_filename(self):
         biggie = DataFrame({'A': randn(200),
                             'B': tm.makeStringIndex(200)},
-                           index=list(range(200)))
+                           index=lrange(200))
 
         biggie['A'][:20] = nan
         biggie['B'][:20] = nan
@@ -1258,7 +1251,7 @@ c  10  11  12  13  14\
 
     def test_to_html_multiindex(self):
         columns = pandas.MultiIndex.from_tuples(list(zip(np.arange(2).repeat(2),
-                                                    np.mod(list(range(4)), 2))),
+                                                    np.mod(lrange(4), 2))),
                                                 names=['CL0', 'CL1'])
         df = pandas.DataFrame([list('abcd'), list('efgh')], columns=columns)
         result = df.to_html(justify='left')
@@ -1298,7 +1291,7 @@ c  10  11  12  13  14\
         self.assertEqual(result, expected)
 
         columns = pandas.MultiIndex.from_tuples(list(zip(range(4),
-                                                    np.mod(list(range(4)), 2))))
+                                                    np.mod(lrange(4), 2))))
         df = pandas.DataFrame([list('abcd'), list('efgh')], columns=columns)
 
         result = df.to_html(justify='right')

@@ -1,7 +1,7 @@
 """ self-contained to write legacy pickle files """
 from __future__ import print_function
 
-from six.moves import zip, cPickle as pickle
+from pandas.util.py3compat import zip, cPickle as pickle
 
 def _create_sp_series():
 

@@ -53,7 +53,7 @@ import re
 from collections import namedtuple
 import warnings
 import six
-from six.moves import map
+from pandas.util.py3compat import map, lmap
 
 DeprecatedOption = namedtuple('DeprecatedOption', 'key msg rkey removal_ver')
 RegisteredOption = namedtuple(
@@ -746,7 +746,7 @@ def is_one_of_factory(legal_values):
     def inner(x):
         from pandas.core.common import pprint_thing as pp
         if not x in legal_values:
-            pp_values = list(map(pp, legal_values))
+            pp_values = lmap(pp, legal_values)
             raise ValueError("Value must be one of %s" % pp("|".join(pp_values)))
 
     return inner

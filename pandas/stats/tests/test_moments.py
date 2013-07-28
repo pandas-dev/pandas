@@ -1,5 +1,5 @@
 from pandas.util.py3compat import range
-from six.moves import zip
+from pandas.util.py3compat import zip
 import unittest
 import nose
 import sys

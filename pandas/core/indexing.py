@@ -4,7 +4,7 @@ from datetime import datetime
 from pandas.core.common import _asarray_tuplesafe
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.util.py3compat import range
-from six.moves import zip
+from pandas.util.py3compat import zip
 import pandas.core.common as com
 import six
 import pandas.lib as lib

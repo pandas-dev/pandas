@@ -17,7 +17,7 @@ from pandas.core.reshape import melt, convert_dummies, lreshape
 import pandas.util.testing as tm
 from pandas.util.py3compat import StringIO
 from pandas.util.py3compat import range
-from six.moves import cPickle
+from pandas.util.py3compat import cPickle
 
 _multiprocess_can_split_ = True
 

@@ -1,4 +1,4 @@
-from pandas.util.py3compat import range
+from pandas.util.py3compat import range, lrange
 import numpy as np
 import pandas.lib as lib
 from pandas import *
@@ -28,8 +28,8 @@ bvf = np.random.randn(n, K)
 a_series = Series(av, index=a)
 b_series = Series(bv, index=b)
 
-a_frame = DataFrame(avf, index=a, columns=list(range(K)))
-b_frame = DataFrame(bvf, index=b, columns=list(range(K, 2 * K)))
+a_frame = DataFrame(avf, index=a, columns=lrange(K))
+b_frame = DataFrame(bvf, index=b, columns=lrange(K, 2 * K))
 
 
 def do_left_join(a, b, av, bv):
@@ -163,8 +163,8 @@ def bench_python(n=100000, pct_overlap=0.20, K=1):
         avf = np.random.randn(n, K)
         bvf = np.random.randn(n, K)
 
-        a_frame = DataFrame(avf, index=a, columns=list(range(K)))
-        b_frame = DataFrame(bvf, index=b, columns=list(range(K, 2 * K)))
+        a_frame = DataFrame(avf, index=a, columns=lrange(K))
+        b_frame = DataFrame(bvf, index=b, columns=lrange(K, 2 * K))
 
         all_results[logn] = result = {}
 

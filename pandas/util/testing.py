@@ -2,8 +2,8 @@ from __future__ import division
 
 # pylint: disable-msg=W0402
 
-from pandas.util.py3compat import range, unichr
-from six.moves import zip
+from pandas.util.py3compat import range, unichr, lrange, lmap, lzip
+from pandas.util.py3compat import zip
 import random
 import string
 import sys
@@ -34,7 +34,7 @@ from pandas.tseries.period import PeriodIndex
 
 from pandas.io.common import urlopen, HTTPException
 import six
-from six.moves import map
+from pandas.util.py3compat import map
 
 Index = index.Index
 MultiIndex = index.MultiIndex
@@ -54,7 +54,7 @@ def rands(n):
 
 
 def randu(n):
-    choices = six.u("").join(map(unichr, list(range(1488, 1488 + 26))))
+    choices = six.u("").join(map(unichr, lrange(1488, 1488 + 26)))
     choices += string.digits
     return ''.join([random.choice(choices) for _ in range(n)])
 
@@ -318,7 +318,7 @@ def makeUnicodeIndex(k):
 
 
 def makeIntIndex(k):
-    return Index(list(range(k)))
+    return Index(lrange(k))
 
 
 def makeFloatIndex(k):
@@ -490,7 +490,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
         def keyfunc(x):
             import re
             numeric_tuple = re.sub("[^\d_]_?","",x).split("_")
-            return list(map(int,numeric_tuple))
+            return lmap(int,numeric_tuple)
 
         # build a list of lists to create the index from
         div_factor = nentries // ndupe_l[i] + 1
@@ -502,7 +502,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
         result = list(sorted(cnt.elements(), key=keyfunc))[:nentries]
         tuples.append(result)
 
-    tuples = list(zip(*tuples))
+    tuples = lzip(*tuples)
 
     # convert tuples to index
     if nentries == 1:

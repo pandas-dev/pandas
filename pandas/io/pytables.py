@@ -6,7 +6,7 @@ from __future__ import print_function
 
 # pylint: disable-msg=E1101,W0613,W0603
 from datetime import datetime, date
-from pandas.util.py3compat import range
+from pandas.util.py3compat import range, lrange, lmap
 from pandas.util import compat
 import time
 import re
@@ -39,7 +39,7 @@ import pandas.tslib as tslib
 
 from contextlib import contextmanager
 import six
-from six.moves import map, zip
+from pandas.util.py3compat import map, zip
 
 # versioning attribute
 _version = '0.10.1'
@@ -3127,7 +3127,7 @@ class AppendableTable(LegacyTable):
             # we must remove in reverse order!
             pg = groups.pop()
             for g in reversed(groups):
-                rows = l.take(list(range(g, pg)))
+                rows = l.take(lrange(g, pg))
                 table.removeRows(start=rows[rows.index[0]
                                             ], stop=rows[rows.index[-1]] + 1)
                 pg = g
@@ -3547,7 +3547,7 @@ class Term(StringMixin):
             self.eval()
 
     def __unicode__(self):
-        attrs = list(map(pprint_thing, (self.field, self.op, self.value)))
+        attrs = lmap(pprint_thing, (self.field, self.op, self.value))
         return "field->%s,op->%s,value->%s" % tuple(attrs)
 
     @property

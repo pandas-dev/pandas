@@ -21,7 +21,7 @@ import pandas.lib as lib
 import pandas.tslib as tslib
 import pandas.algos as _algos
 import six
-from six.moves import map, zip
+from pandas.util.py3compat import map, zip
 
 
 #---------------

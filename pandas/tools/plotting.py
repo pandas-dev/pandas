@@ -16,8 +16,8 @@ from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex, Period
 from pandas.tseries.frequencies import get_period_alias, get_base_alias
 from pandas.tseries.offsets import DateOffset
-from pandas.util.py3compat import range
-from six.moves import map, zip
+from pandas.util.py3compat import range, lrange, lmap
+from pandas.util.py3compat import map, zip
 
 try:  # mpl optional
     import pandas.tseries.converter as conv
@@ -105,7 +105,7 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
             colormap = cm.get_cmap(colormap)
             if colormap is None:
                 raise ValueError("Colormap {0} is not recognized".format(cmap))
-        colors = list(map(colormap, np.linspace(0, 1, num=num_colors)))
+        colors = lmap(colormap, np.linspace(0, 1, num=num_colors))
     elif color is not None:
         if colormap is not None:
             warnings.warn("'color' and 'colormap' cannot be used "
@@ -122,7 +122,7 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
                 random.seed(column)
                 return [random.random() for _ in range(3)]
 
-            colors = list(map(random_color, list(range(num_colors))))
+            colors = lmap(random_color, lrange(num_colors))
         else:
             raise NotImplementedError
 
@@ -243,8 +243,8 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
 
     marker = _get_marker_compat(marker)
 
-    for i, a in zip(list(range(n)), df.columns):
-        for j, b in zip(list(range(n)), df.columns):
+    for i, a in zip(lrange(n), df.columns):
+        for j, b in zip(lrange(n), df.columns):
             ax = axes[i, j]
 
             if i == j:
@@ -503,7 +503,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
                           for sampling in samplings])
     if fig is None:
         fig = plt.figure()
-    x = list(range(samples))
+    x = lrange(samples)
     axes = []
     ax1 = fig.add_subplot(2, 3, 1)
     ax1.set_xlabel("Sample")
@@ -601,7 +601,7 @@ def parallel_coordinates(data, class_column, cols=None, ax=None, colors=None,
             raise ValueError('Length of xticks must match number of columns')
         x = xticks
     else:
-        x = list(range(ncols))
+        x = lrange(ncols)
 
     if ax is None:
         ax = plt.gca()
@@ -684,7 +684,7 @@ def autocorrelation_plot(series, ax=None):
     def r(h):
         return ((data[:n - h] - mean) * (data[h:] - mean)).sum() / float(n) / c0
     x = np.arange(n) + 1
-    y = list(map(r, x))
+    y = lmap(r, x)
     z95 = 1.959963984540054
     z99 = 2.5758293035489004
     ax.axhline(y=z99 / np.sqrt(n), linestyle='--', color='grey')
@@ -1038,9 +1038,9 @@ class MPLPlot(object):
                 x = self.data.index._mpl_repr()
             else:
                 self._need_to_set_index = True
-                x = list(range(len(index)))
+                x = lrange(len(index))
         else:
-            x = list(range(len(index)))
+            x = lrange(len(index))
 
         return x
 

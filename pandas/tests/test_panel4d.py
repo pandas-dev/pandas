@@ -1,5 +1,5 @@
 from datetime import datetime
-from pandas.util.py3compat import range
+from pandas.util.py3compat import range, lrange
 import os
 import operator
 import unittest
@@ -307,7 +307,7 @@ class CheckIndexing(object):
         values[2] = 2
         values[3] = 3
 
-        panel4d = Panel4D(values, list(range(4)), list(range(4)), list(range(4)), list(range(4)))
+        panel4d = Panel4D(values, lrange(4), lrange(4), lrange(4), lrange(4))
 
         # did we delete the right row?
 
@@ -609,8 +609,8 @@ class TestPanel4d(unittest.TestCase, CheckIndexing, SafeForSparse,
 
     def test_constructor_observe_dtype(self):
         # GH #411
-        panel = Panel(items=list(range(3)), major_axis=list(range(3)),
-                      minor_axis=list(range(3)), dtype='O')
+        panel = Panel(items=lrange(3), major_axis=lrange(3),
+                      minor_axis=lrange(3), dtype='O')
         self.assert_(panel.values.dtype == np.object_)
 
     def test_consolidate(self):
@@ -720,7 +720,7 @@ class TestPanel4d(unittest.TestCase, CheckIndexing, SafeForSparse,
 
     def test_values(self):
         self.assertRaises(Exception, Panel, np.random.randn(5, 5, 5),
-                          list(range(5)), list(range(5)), list(range(4)))
+                          lrange(5), lrange(5), lrange(4))
 
     def test_conform(self):
         p = self.panel4d['l1'].filter(items=['ItemA', 'ItemB'])

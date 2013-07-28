@@ -75,7 +75,7 @@ from operator import attrgetter as aget, itemgetter as iget
 import operator
 import sys
 import six
-from six.moves import map
+from pandas.util.py3compat import map
 import pandas.util.compat as compat
 
 

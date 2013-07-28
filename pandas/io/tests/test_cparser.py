@@ -31,7 +31,7 @@ import pandas.util.testing as tm
 from pandas.parser import TextReader
 import pandas.parser as parser
 import six
-from six.moves import map
+from pandas.util.py3compat import map
 
 
 class TestCParser(unittest.TestCase):

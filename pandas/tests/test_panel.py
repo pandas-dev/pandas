@@ -1,7 +1,7 @@
 # pylint: disable=W0612,E1101
 
 from datetime import datetime
-from pandas.util.py3compat import range
+from pandas.util.py3compat import range, lrange, StringIO
 from pandas.util import compat
 import operator
 import unittest
@@ -16,7 +16,7 @@ from pandas.core.panel import Panel
 from pandas.core.series import remove_na
 import pandas.core.common as com
 from pandas.util import py3compat
-from six.moves import cPickle
+from pandas.util.py3compat import cPickle
 
 from pandas.util.testing import (assert_panel_equal,
                                  assert_frame_equal,
@@ -392,7 +392,7 @@ class CheckIndexing(object):
         values[1] = 1
         values[2] = 2
 
-        panel = Panel(values, list(range(3)), list(range(3)), list(range(3)))
+        panel = Panel(values, lrange(3), lrange(3), lrange(3))
 
         # did we delete the right row?
 
@@ -813,8 +813,8 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
 
     def test_constructor_observe_dtype(self):
         # GH #411
-        panel = Panel(items=list(range(3)), major_axis=list(range(3)),
-                      minor_axis=list(range(3)), dtype='O')
+        panel = Panel(items=lrange(3), major_axis=lrange(3),
+                      minor_axis=lrange(3), dtype='O')
         self.assert_(panel.values.dtype == np.object_)
 
     def test_constructor_dtypes(self):
@@ -826,19 +826,19 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
 
         # only nan holding types allowed here
         for dtype in ['float64','float32','object']:
-            panel = Panel(items=list(range(2)),major_axis=list(range(10)),minor_axis=list(range(5)),dtype=dtype)
+            panel = Panel(items=lrange(2),major_axis=lrange(10),minor_axis=lrange(5),dtype=dtype)
             _check_dtype(panel,dtype)
 
         for dtype in ['float64','float32','int64','int32','object']:
-            panel = Panel(np.array(np.random.randn(2,10,5),dtype=dtype),items=list(range(2)),major_axis=list(range(10)),minor_axis=list(range(5)),dtype=dtype)
+            panel = Panel(np.array(np.random.randn(2,10,5),dtype=dtype),items=lrange(2),major_axis=lrange(10),minor_axis=lrange(5),dtype=dtype)
             _check_dtype(panel,dtype)
 
         for dtype in ['float64','float32','int64','int32','object']:
-            panel = Panel(np.array(np.random.randn(2,10,5),dtype='O'),items=list(range(2)),major_axis=list(range(10)),minor_axis=list(range(5)),dtype=dtype)
+            panel = Panel(np.array(np.random.randn(2,10,5),dtype='O'),items=lrange(2),major_axis=lrange(10),minor_axis=lrange(5),dtype=dtype)
             _check_dtype(panel,dtype)
 
         for dtype in ['float64','float32','int64','int32','object']:
-            panel = Panel(np.random.randn(2,10,5),items=list(range(2)),major_axis=list(range(10)),minor_axis=list(range(5)),dtype=dtype)
+            panel = Panel(np.random.randn(2,10,5),items=lrange(2),major_axis=lrange(10),minor_axis=lrange(5),dtype=dtype)
             _check_dtype(panel,dtype)
 
     def test_consolidate(self):
@@ -963,15 +963,15 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
     def test_constructor_error_msgs(self):
 
         def testit():
-            Panel(np.random.randn(3,4,5), list(range(4)), list(range(5)), list(range(5)))
+            Panel(np.random.randn(3,4,5), lrange(4), lrange(5), lrange(5))
         assertRaisesRegexp(ValueError, "Shape of passed values is \(3, 4, 5\), indices imply \(4, 5, 5\)", testit)
 
         def testit():
-            Panel(np.random.randn(3,4,5), list(range(5)), list(range(4)), list(range(5)))
+            Panel(np.random.randn(3,4,5), lrange(5), lrange(4), lrange(5))
         assertRaisesRegexp(ValueError, "Shape of passed values is \(3, 4, 5\), indices imply \(5, 4, 5\)", testit)
 
         def testit():
-            Panel(np.random.randn(3,4,5), list(range(5)), list(range(5)), list(range(4)))
+            Panel(np.random.randn(3,4,5), lrange(5), lrange(5), lrange(4))
         assertRaisesRegexp(ValueError, "Shape of passed values is \(3, 4, 5\), indices imply \(5, 5, 4\)", testit)
 
     def test_conform(self):
@@ -1617,8 +1617,6 @@ class TestLongPanel(unittest.TestCase):
         self.assert_(is_sorted(sorted_major.index.labels[0]))
 
     def test_to_string(self):
-        from pandas.util.py3compat import StringIO
-
         buf = StringIO()
         self.panel.to_string(buf)
 

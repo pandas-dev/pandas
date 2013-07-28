@@ -2,7 +2,7 @@
 Shipping functions from SciPy to reduce dependency on having SciPy installed
 """
 
-from pandas.util.py3compat import range
+from pandas.util.py3compat import range, lrange
 import numpy as np
 
 
@@ -224,9 +224,9 @@ def percentileofscore(a, score, kind='rank'):
     if kind == 'rank':
         if not(np.any(a == score)):
             a = np.append(a, score)
-            a_len = np.array(list(range(len(a))))
+            a_len = np.array(lrange(len(a)))
         else:
-            a_len = np.array(list(range(len(a)))) + 1.0
+            a_len = np.array(lrange(len(a))) + 1.0
 
         a = np.sort(a)
         idx = [a == score]

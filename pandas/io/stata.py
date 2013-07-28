@@ -21,7 +21,7 @@ from pandas.core.categorical import Categorical
 import datetime
 from pandas.util import py3compat
 from pandas.util import compat
-from pandas.util.py3compat import StringIO, long
+from pandas.util.py3compat import StringIO, long, lrange, lmap, lzip
 from pandas import isnull
 from pandas.io.parsers import _parser_params, Appender
 from pandas.io.common import get_filepath_or_buffer
@@ -226,7 +226,7 @@ class StataParser(object):
         # we're going to drop the label and cast to int
         self.DTYPE_MAP = \
             dict(
-                list(zip(range(1, 245), ['a' + str(i) for i in range(1, 245)])) +
+                lzip(range(1, 245), ['a' + str(i) for i in range(1, 245)]) +
                 [
                     (251, np.int16),
                     (252, np.int32),
@@ -235,7 +235,7 @@ class StataParser(object):
                     (255, np.float64)
                 ]
             )
-        self.TYPE_MAP = list(range(251)) + list('bhlfd')
+        self.TYPE_MAP = lrange(251) + list('bhlfd')
         #NOTE: technically, some of these are wrong. there are more numbers
         # that can be represented. it's the 27 ABOVE and BELOW the max listed
         # numeric data type in [U] 12.2.2 of the 11.2 manual
@@ -385,7 +385,7 @@ class StataReader(StataParser):
     def _col_size(self, k=None):
         """Calculate size of a data record."""
         if len(self.col_sizes) == 0:
-            self.col_sizes = list(map(lambda x: self._calcsize(x), self.typlist))
+            self.col_sizes = lmap(lambda x: self._calcsize(x), self.typlist)
         if k is None:
             return self.col_sizes
         else:
@@ -539,13 +539,13 @@ class StataReader(StataParser):
                     data[col] = Series(data[col], data[col].index, self.dtyplist[i])
 
         if convert_dates:
-            cols = np.where(list(map(lambda x: x in _date_formats, self.fmtlist)))[0]
+            cols = np.where(lmap(lambda x: x in _date_formats, self.fmtlist))[0]
             for i in cols:
                 col = data.columns[i]
                 data[col] = data[col].apply(_stata_elapsed_date_to_datetime, args=(self.fmtlist[i],))
 
         if convert_categoricals:
-            cols = np.where(list(map(lambda x: x in six.iterkeys(self.value_label_dict), self.lbllist)))[0]
+            cols = np.where(lmap(lambda x: x in six.iterkeys(self.value_label_dict), self.lbllist))[0]
             for i in cols:
                 col = data.columns[i]
                 labeled_data = np.copy(data[col])

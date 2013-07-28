@@ -3,8 +3,8 @@ from datetime import datetime, timedelta, date, time
 
 import unittest
 import nose
-from pandas.util.py3compat import range
-from six.moves import zip
+from pandas.util.py3compat import range, lrange
+from pandas.util.py3compat import zip
 
 import numpy as np
 from numpy.testing.decorators import slow
@@ -188,7 +188,7 @@ class TestTSPlot(unittest.TestCase):
         plt.clf()
         fig.add_subplot(111)
         rng = date_range('2001-1-1', '2001-1-10')
-        ts = Series(list(range(len(rng))), rng)
+        ts = Series(lrange(len(rng)), rng)
         ts = ts[:3].append(ts[5:])
         ax = ts.plot()
         self.assert_(not hasattr(ax, 'freq'))
@@ -944,7 +944,7 @@ class TestTSPlot(unittest.TestCase):
     def test_ax_plot(self):
         x = DatetimeIndex(start='2012-01-02', periods=10,
                           freq='D')
-        y = list(range(len(x)))
+        y = lrange(len(x))
         import matplotlib.pyplot as plt
         fig = plt.figure()
         ax = fig.add_subplot(111)

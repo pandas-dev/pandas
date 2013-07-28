@@ -11,7 +11,7 @@ import numpy as np
 
 from pandas.core.datetools import format as date_format
 from pandas.core.api import DataFrame, isnull
-from pandas.util.py3compat import StringIO, range
+from pandas.util.py3compat import StringIO, range, lrange
 import six
 
 import pandas.io.sql as sql
@@ -173,12 +173,12 @@ class TestSQLite(unittest.TestCase):
 
         frame['txt'] = ['a'] * len(frame)
         frame2 = frame.copy()
-        frame2['Idx'] = Index(list(range(len(frame2)))) + 10
+        frame2['Idx'] = Index(lrange(len(frame2))) + 10
         sql.write_frame(frame2, name='test_table2', con=self.db)
         result = sql.read_frame("select * from test_table2", self.db,
                                 index_col='Idx')
         expected = frame.copy()
-        expected.index = Index(list(range(len(frame2)))) + 10
+        expected.index = Index(lrange(len(frame2))) + 10
         expected.index.name = 'Idx'
         print(expected.index.names)
         print(result.index.names)
@@ -410,7 +410,7 @@ class TestMySQL(unittest.TestCase):
 
         frame['txt'] = ['a'] * len(frame)
         frame2 = frame.copy()
-        index = Index(list(range(len(frame2)))) + 10
+        index = Index(lrange(len(frame2))) + 10
         frame2['Idx'] = index
         drop_sql = "DROP TABLE IF EXISTS test_table2"
         cur = self.db.cursor()

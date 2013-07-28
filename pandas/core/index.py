@@ -1,7 +1,6 @@
 # pylint: disable=E1101,E1103,W0232
 
-from pandas.util.py3compat import range
-from six.moves import zip
+from pandas.util.py3compat import range, zip, lrange, lzip
 import six
 from pandas.util import compat
 import numpy as np
@@ -1802,7 +1801,7 @@ class MultiIndex(Index):
         elif isinstance(tuples, list):
             arrays = list(lib.to_object_array_tuples(tuples).T)
         else:
-            arrays = list(zip(*tuples))
+            arrays = lzip(*tuples)
 
         return MultiIndex.from_arrays(arrays, sortorder=sortorder,
                                       names=names)
@@ -1942,7 +1941,7 @@ class MultiIndex(Index):
             if isinstance(loc, int):
                 inds.append(loc)
             else:
-                inds.extend(list(range(loc.start, loc.stop)))
+                inds.extend(lrange(loc.start, loc.stop))
 
         return self.delete(inds)
 
@@ -2490,7 +2489,7 @@ class MultiIndex(Index):
         result_names = self.names if self.names == other.names else None
 
         uniq_tuples = lib.fast_unique_multiple([self.values, other.values])
-        return MultiIndex.from_arrays(list(zip(*uniq_tuples)), sortorder=0,
+        return MultiIndex.from_arrays(lzip(*uniq_tuples), sortorder=0,
                                       names=result_names)
 
     def intersection(self, other):
@@ -2520,7 +2519,7 @@ class MultiIndex(Index):
                               labels=[[]] * self.nlevels,
                               names=result_names)
         else:
-            return MultiIndex.from_arrays(list(zip(*uniq_tuples)), sortorder=0,
+            return MultiIndex.from_arrays(lzip(*uniq_tuples), sortorder=0,
                                           names=result_names)
 
     def diff(self, other):
@@ -2637,7 +2636,7 @@ class MultiIndex(Index):
 # For utility purposes
 
 def _sparsify(label_list, start=0,sentinal=''):
-    pivoted = list(zip(*label_list))
+    pivoted = lzip(*label_list)
     k = len(label_list)
 
     result = pivoted[:start + 1]
@@ -2661,7 +2660,7 @@ def _sparsify(label_list, start=0,sentinal=''):
 
         prev = cur
 
-    return list(zip(*result))
+    return lzip(*result)
 
 
 def _ensure_index(index_like):

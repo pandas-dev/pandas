@@ -1,6 +1,6 @@
 import numpy as np
 
-from six.moves import zip
+from pandas.util.py3compat import zip
 import six
 from pandas.core.common import isnull
 from pandas.core.series import Series

@@ -11,8 +11,8 @@ import numpy as np
 from pandas.io.parsers import TextParser
 from pandas.tseries.period import Period
 from pandas import json
-from six.moves import map, zip, reduce
-from pandas.util.py3compat import range
+from pandas.util.py3compat import map, zip, reduce
+from pandas.util.py3compat import range, lrange
 import six
 
 def read_excel(path_or_buf, sheetname, kind=None, **kwds):
@@ -155,7 +155,7 @@ class ExcelFile(object):
             for rng in areas.split(','):
                 if ':' in rng:
                     rng = rng.split(':')
-                    cols += list(range(_excel2num(rng[0]), _excel2num(rng[1]) + 1))
+                    cols += lrange(_excel2num(rng[0]), _excel2num(rng[1]) + 1)
                 else:
                     cols.append(_excel2num(rng))
             return cols

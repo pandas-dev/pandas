@@ -12,7 +12,7 @@ import pandas.algos as algos
 import pandas.hashtable as _hash
 import pandas.tslib as tslib
 
-from six.moves import builtins
+from pandas.util.py3compat import builtins
 import six
 
 

@@ -19,8 +19,8 @@ import pandas.core.expressions as expressions
 
 from pandas.tslib import Timestamp
 from pandas.util import py3compat
-from pandas.util.py3compat import range
-from six.moves import map, zip
+from pandas.util.py3compat import range, lrange, lmap
+from pandas.util.py3compat import map, zip
 
 
 class Block(PandasObject):
@@ -833,7 +833,7 @@ class ObjectBlock(Block):
         f = np.vectorize(re_replacer, otypes=[self.dtype])
 
         try:
-            filt = list(map(self.items.get_loc, filter))
+            filt = lmap(self.items.get_loc, filter)
         except TypeError:
             filt = slice(None)
 
@@ -1925,7 +1925,7 @@ class BlockManager(PandasObject):
 
             # need to shift elements to the right
             if self._ref_locs[loc] is not None:
-                for i in reversed(list(range(loc+1,len(self._ref_locs)))):
+                for i in reversed(lrange(loc+1,len(self._ref_locs))):
                     self._ref_locs[i] = self._ref_locs[i-1]
 
             self._ref_locs[loc] = (new_block, 0)
@@ -2535,5 +2535,5 @@ def _possibly_convert_to_indexer(loc):
     if com._is_bool_indexer(loc):
         loc = [i for i, v in enumerate(loc) if v]
     elif isinstance(loc,slice):
-        loc = list(range(loc.start,loc.stop))
+        loc = lrange(loc.start,loc.stop)
     return loc

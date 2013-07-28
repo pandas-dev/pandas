@@ -27,6 +27,6 @@ except ImportError:
 try:
     # if no range in py3compat, then don't import zip or map either
     from pandas.util.py3compat import range
-    from six.moves import zip, map
+    from pandas.util.py3compat import zip, map
 except ImportError:
     pass

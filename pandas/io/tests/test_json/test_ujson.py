@@ -20,7 +20,7 @@ from pandas.util.py3compat import range, StringIO
 from pandas.util import compat
 import pandas.json as ujson
 import six
-from six.moves import zip
+from pandas.util.py3compat import zip
 import pandas.util.py3compat as py3compat
 
 import numpy as np

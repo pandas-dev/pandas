@@ -4,7 +4,7 @@ Ordinary least squares regression
 
 # pylint: disable-msg=W0201
 
-from six.moves import zip
+from pandas.util.py3compat import zip
 from itertools import starmap
 from pandas.util.py3compat import StringIO
 

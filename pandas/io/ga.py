@@ -18,7 +18,7 @@ from pandas.util.decorators import Appender, Substitution
 from apiclient.errors import HttpError
 from oauth2client.client import AccessTokenRefreshError
 import six
-from six.moves import zip
+from pandas.util.py3compat import zip
 
 TYPE_MAP = {six.u('INTEGER'): int, six.u('FLOAT'): float, six.u('TIME'): int}
 

@@ -1,7 +1,7 @@
 from __future__ import print_function
 
-from six.moves import map, reduce
-from pandas.util.py3compat import range
+from pandas.util.py3compat import map, reduce
+from pandas.util.py3compat import range, lrange
 from pandas.io.common import urlopen
 from pandas.io import json
 import pandas
@@ -142,7 +142,7 @@ def get_indicators():
     data.topics = data.topics.apply(lambda x: ' ; '.join(x))
     # Clean outpu
     data = data.sort(columns='id')
-    data.index = pandas.Index(list(range(data.shape[0])))
+    data.index = pandas.Index(lrange(data.shape[0]))
     return data
 
 

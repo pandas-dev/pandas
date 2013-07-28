@@ -1,5 +1,5 @@
 from __future__ import print_function
-from pandas.util.py3compat import range
+from pandas.util.py3compat import range, lrange
 import nose
 import unittest
 import os
@@ -130,7 +130,7 @@ class TestHDFStore(unittest.TestCase):
             tm.assert_panel_equal(o, roundtrip('panel',o))
 
             # table
-            df = DataFrame(dict(A=list(range(5)), B=list(range(5))))
+            df = DataFrame(dict(A=lrange(5), B=lrange(5)))
             df.to_hdf(self.path,'table',append=True)
             result = read_hdf(self.path, 'table', where = ['index>2'])
             assert_frame_equal(df[df.index>2],result)
@@ -484,7 +484,7 @@ class TestHDFStore(unittest.TestCase):
             raise nose.SkipTest('system byteorder is not little, skipping test_encoding!')
 
         with ensure_clean(self.path) as store:
-            df = DataFrame(dict(A='foo',B='bar'),index=list(range(5)))
+            df = DataFrame(dict(A='foo',B='bar'),index=lrange(5))
             df.loc[2,'A'] = np.nan
             df.loc[3,'B'] = np.nan
             _maybe_remove(store, 'df')
@@ -607,7 +607,7 @@ class TestHDFStore(unittest.TestCase):
             for i in range(10):
 
                 df = DataFrame(np.random.randn(10,2),columns=list('AB'))
-                df['index'] = list(range(10))
+                df['index'] = lrange(10)
                 df['index'] += i*10
                 df['int64'] = Series([1]*len(df),dtype='int64')
                 df['int16'] = Series([1]*len(df),dtype='int16')
@@ -783,7 +783,7 @@ class TestHDFStore(unittest.TestCase):
             def check_col(key,name,size):
                 self.assert_(getattr(store.get_storer(key).table.description,name).itemsize == size)
 
-            df = DataFrame(dict(A = 'foo', B = 'bar'),index=list(range(10)))
+            df = DataFrame(dict(A = 'foo', B = 'bar'),index=lrange(10))
 
             # a min_itemsize that creates a data_column
             _maybe_remove(store, 'df')
@@ -1018,8 +1018,9 @@ class TestHDFStore(unittest.TestCase):
         raise nose.SkipTest('no big table frame')
 
         # create and write a big table
-        df = DataFrame(np.random.randn(2000 * 100, 100), index=list(range(
-            2000 * 100)), columns=['E%03d' % i for i in range(100)])
+        df = DataFrame(np.random.randn(2000 * 100, 100),
+                       index=lrange(2000 * 100),
+                       columns=['E%03d' % i for i in range(100)])
         for x in range(20):
             df['String%03d' % x] = 'string%03d' % x
 
@@ -1042,7 +1043,7 @@ class TestHDFStore(unittest.TestCase):
         import time
         start_time = time.time()
         df = DataFrame(np.random.randn(1000 * 1000, 60),
-                       index=list(range(int(1000 * 1000))),
+                       index=lrange(int(1000 * 1000)),
                        columns=['E%03d' % i for i in range(60)])
         for x in range(20):
             df['String%03d' % x] = 'string%03d' % x
@@ -1071,8 +1072,8 @@ class TestHDFStore(unittest.TestCase):
         print ("\nbig_put start")
         import time
         start_time = time.time()
-        df = DataFrame(np.random.randn(1000 * 1000, 60), index=list(range(int(
-            1000 * 1000))), columns=['E%03d' % i for i in range(60)])
+        df = DataFrame(np.random.randn(1000 * 1000, 60), index=lrange(int(
+            1000 * 1000)), columns=['E%03d' % i for i in range(60)])
         for x in range(20):
             df['String%03d' % x] = 'string%03d' % x
         for x in range(20):
@@ -1381,14 +1382,14 @@ class TestHDFStore(unittest.TestCase):
             compare(store.select('df_tz',where=Term('A','>=',df.A[3])),df[df.A>=df.A[3]])
 
             _maybe_remove(store, 'df_tz')
-            df = DataFrame(dict(A = Timestamp('20130102',tz='US/Eastern'), B = Timestamp('20130103',tz='US/Eastern')),index=list(range(5)))
+            df = DataFrame(dict(A = Timestamp('20130102',tz='US/Eastern'), B = Timestamp('20130103',tz='US/Eastern')),index=lrange(5))
             store.append('df_tz',df)
             result = store['df_tz']
             compare(result,df)
             assert_frame_equal(result,df)
 
             _maybe_remove(store, 'df_tz')
-            df = DataFrame(dict(A = Timestamp('20130102',tz='US/Eastern'), B = Timestamp('20130102',tz='EET')),index=list(range(5)))
+            df = DataFrame(dict(A = Timestamp('20130102',tz='US/Eastern'), B = Timestamp('20130102',tz='EET')),index=lrange(5))
             self.assertRaises(TypeError, store.append, 'df_tz', df)
 
             # this is ok
@@ -1399,14 +1400,14 @@ class TestHDFStore(unittest.TestCase):
             assert_frame_equal(result,df)
 
             # can't append with diff timezone
-            df = DataFrame(dict(A = Timestamp('20130102',tz='US/Eastern'), B = Timestamp('20130102',tz='CET')),index=list(range(5)))
+            df = DataFrame(dict(A = Timestamp('20130102',tz='US/Eastern'), B = Timestamp('20130102',tz='CET')),index=lrange(5))
             self.assertRaises(ValueError, store.append, 'df_tz', df)
 
         # as index
         with ensure_clean(self.path) as store:
 
             # GH 4098 example
-            df = DataFrame(dict(A = Series(list(range(3)), index=date_range('2000-1-1',periods=3,freq='H', tz='US/Eastern'))))
+            df = DataFrame(dict(A = Series(lrange(3), index=date_range('2000-1-1',periods=3,freq='H', tz='US/Eastern'))))
 
             _maybe_remove(store, 'df')
             store.put('df',df)
@@ -2096,7 +2097,7 @@ class TestHDFStore(unittest.TestCase):
 
             df = DataFrame(dict(ts=bdate_range('2012-01-01', periods=300),
                                 A=np.random.randn(300),
-                                B=list(range(300)),
+                                B=lrange(300),
                                 users = ['a']*50 + ['b']*50 + ['c']*100 + ['a%03d' % i for i in range(100)]))
             _maybe_remove(store, 'df')
             store.append('df', df, data_columns=['ts', 'A', 'B', 'users'])
@@ -2117,7 +2118,7 @@ class TestHDFStore(unittest.TestCase):
             expected = df[ (df.ts >= Timestamp('2012-02-01')) & df.users.isin(selector) ]
             tm.assert_frame_equal(expected, result)
 
-            selector = list(range(100,200))
+            selector = lrange(100,200)
             result = store.select('df', [Term('B', selector)])
             expected = df[ df.B.isin(selector) ]
             tm.assert_frame_equal(expected, result)
@@ -2215,7 +2216,7 @@ class TestHDFStore(unittest.TestCase):
     def test_retain_index_attributes(self):
 
         # GH 3499, losing frequency info on index recreation
-        df = DataFrame(dict(A = Series(list(range(3)),
+        df = DataFrame(dict(A = Series(lrange(3),
                                        index=date_range('2000-1-1',periods=3,freq='H'))))
 
         with ensure_clean(self.path) as store:
@@ -2232,7 +2233,7 @@ class TestHDFStore(unittest.TestCase):
 
             # try to append a table with a different frequency
             warnings.filterwarnings('ignore', category=AttributeConflictWarning)
-            df2 = DataFrame(dict(A = Series(list(range(3)),
+            df2 = DataFrame(dict(A = Series(lrange(3),
                                             index=date_range('2002-1-1',periods=3,freq='D'))))
             store.append('data',df2)
             warnings.filterwarnings('always', category=AttributeConflictWarning)
@@ -2241,10 +2242,10 @@ class TestHDFStore(unittest.TestCase):
 
             # this is ok
             _maybe_remove(store,'df2')
-            df2 = DataFrame(dict(A = Series(list(range(3)),
+            df2 = DataFrame(dict(A = Series(lrange(3),
                                             index=[Timestamp('20010101'),Timestamp('20010102'),Timestamp('20020101')])))
             store.append('df2',df2)
-            df3 = DataFrame(dict(A = Series(list(range(3)),index=date_range('2002-1-1',periods=3,freq='D'))))
+            df3 = DataFrame(dict(A = Series(lrange(3),index=date_range('2002-1-1',periods=3,freq='D'))))
             store.append('df2',df3)
 
     def test_retain_index_attributes2(self):
@@ -2253,20 +2254,20 @@ class TestHDFStore(unittest.TestCase):
 
             warnings.filterwarnings('ignore', category=AttributeConflictWarning)
 
-            df  = DataFrame(dict(A = Series(list(range(3)), index=date_range('2000-1-1',periods=3,freq='H'))))
+            df  = DataFrame(dict(A = Series(lrange(3), index=date_range('2000-1-1',periods=3,freq='H'))))
             df.to_hdf(path,'data',mode='w',append=True)
-            df2 = DataFrame(dict(A = Series(list(range(3)), index=date_range('2002-1-1',periods=3,freq='D'))))
+            df2 = DataFrame(dict(A = Series(lrange(3), index=date_range('2002-1-1',periods=3,freq='D'))))
             df2.to_hdf(path,'data',append=True)
 
             idx = date_range('2000-1-1',periods=3,freq='H')
             idx.name = 'foo'
-            df  = DataFrame(dict(A = Series(list(range(3)), index=idx)))
+            df  = DataFrame(dict(A = Series(lrange(3), index=idx)))
             df.to_hdf(path,'data',mode='w',append=True)
             self.assert_(read_hdf(path,'data').index.name == 'foo')
 
             idx2 = date_range('2001-1-1',periods=3,freq='H')
             idx2.name = 'bar'
-            df2 = DataFrame(dict(A = Series(list(range(3)), index=idx2)))
+            df2 = DataFrame(dict(A = Series(lrange(3), index=idx2)))
             df2.to_hdf(path,'data',append=True)
             self.assert_(read_hdf(path,'data').index.name is None)
 
@@ -2426,7 +2427,7 @@ class TestHDFStore(unittest.TestCase):
             # get coordinates back & test vs frame
             _maybe_remove(store, 'df')
 
-            df = DataFrame(dict(A=list(range(5)), B=list(range(5))))
+            df = DataFrame(dict(A=lrange(5), B=lrange(5)))
             store.append('df', df)
             c = store.select_as_coordinates('df', ['index<3'])
             assert((c.values == np.arange(3)).all() == True)
@@ -2755,7 +2756,7 @@ class TestHDFStore(unittest.TestCase):
                        columns=['A', 'B', 'C'])
         store.append('mi', df)
 
-        df = DataFrame(dict(A = 'foo', B = 'bar'),index=list(range(10)))
+        df = DataFrame(dict(A = 'foo', B = 'bar'),index=lrange(10))
         store.append('df', df, data_columns = ['B'], min_itemsize={'A' : 200 })
 
         store.close()

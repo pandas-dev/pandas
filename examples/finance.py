@@ -3,6 +3,7 @@ Some examples playing around with yahoo finance data
 """
 
 from datetime import datetime
+from pandas.util.py3compat import zip
 
 import matplotlib.finance as fin
 import numpy as np
@@ -19,7 +20,7 @@ endDate = datetime(2009, 9, 1)
 
 def getQuotes(symbol, start, end):
     quotes = fin.quotes_historical_yahoo(symbol, start, end)
-    dates, open, close, high, low, volume = list(zip(*quotes))
+    dates, open, close, high, low, volume = zip(*quotes)
 
     data = {
         'open': open,

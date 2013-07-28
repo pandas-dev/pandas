@@ -5,8 +5,8 @@ with float64 data
 
 # pylint: disable=E1101,E1103,W0231
 
-from pandas.util.py3compat import range
-from six.moves import zip
+from pandas.util.py3compat import range, lrange
+from pandas.util.py3compat import zip
 from pandas.util import compat
 import numpy as np
 
@@ -209,7 +209,7 @@ class SparsePanel(Panel):
 
     def __delitem__(self, key):
         loc = self.items.get_loc(key)
-        indices = list(range(loc)) + list(range(loc + 1, len(self.items)))
+        indices = lrange(loc) + lrange(loc + 1, len(self.items))
         del self._frames[key]
         self._items = self._items.take(indices)
 

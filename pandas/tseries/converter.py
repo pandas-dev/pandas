@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from pandas.util.py3compat import range
+from pandas.util.py3compat import range, lrange
 import six
 import datetime as pydt
 import numpy as np
@@ -886,7 +886,7 @@ class TimeSeries_DateLocator(Locator):
             base = self.base
             (d, m) = divmod(vmin, base)
             vmin = (d + 1) * base
-            locs = list(range(vmin, vmax + 1, base))
+            locs = lrange(vmin, vmax + 1, base)
         return locs
 
     def autoscale(self):

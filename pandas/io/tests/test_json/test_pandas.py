@@ -2,11 +2,10 @@
 # pylint: disable-msg=W0612,E1101
 from copy import deepcopy
 from datetime import datetime, timedelta
-from pandas.util.py3compat import StringIO
-from pandas.util.py3compat import range
+from pandas.util.py3compat import range, lrange, StringIO
 from pandas.util import compat
 from pandas.io.common import URLError
-from six.moves import cPickle as pickle
+from pandas.util.py3compat import cPickle as pickle
 import operator
 import os
 import unittest
@@ -323,7 +322,7 @@ class TestPandasContainer(unittest.TestCase):
         _check_all_orients(self.ts)
 
         # dtype
-        s = Series(list(range(6)), index=['a','b','c','d','e','f'])
+        s = Series(lrange(6), index=['a','b','c','d','e','f'])
         _check_all_orients(Series(s, dtype=np.float64), dtype=np.float64)
         _check_all_orients(Series(s, dtype=np.int), dtype=np.int)
 
@@ -343,7 +342,7 @@ class TestPandasContainer(unittest.TestCase):
 
     def test_typ(self):
 
-        s = Series(list(range(6)), index=['a','b','c','d','e','f'], dtype='int64')
+        s = Series(lrange(6), index=['a','b','c','d','e','f'], dtype='int64')
         result = read_json(s.to_json(),typ=None)
         assert_series_equal(result,s)
 
@@ -442,7 +441,7 @@ class TestPandasContainer(unittest.TestCase):
     def test_doc_example(self):
         dfj2 = DataFrame(np.random.randn(5, 2), columns=list('AB'))
         dfj2['date'] = Timestamp('20130101')
-        dfj2['ints'] = list(range(5))
+        dfj2['ints'] = lrange(5)
         dfj2['bools'] = True
         dfj2.index = pd.date_range('20130101',periods=5)
 
