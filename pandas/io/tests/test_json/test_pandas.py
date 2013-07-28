@@ -54,6 +54,34 @@ class TestPandasContainer(unittest.TestCase):
         self.tsframe = _tsframe.copy()
         self.mixed_frame = _mixed_frame.copy()
 
+    def test_frame_non_unique_index(self):
+        df = DataFrame([['a', 'b'], ['c', 'd']], index=[1, 1],
+                       columns=['x', 'y'])
+
+        self.assertRaises(ValueError, df.to_json, orient='index')
+        self.assertRaises(ValueError, df.to_json, orient='columns')
+
+        assert_frame_equal(
+            df, read_json(df.to_json(orient='split'), orient='split'))
+        unser = read_json(df.to_json(orient='records'), orient='records')
+        self.assert_(df.columns.equals(unser.columns))
+        np.testing.assert_equal(df.values, unser.values)
+        unser = read_json(df.to_json(orient='values'), orient='values')
+        np.testing.assert_equal(df.values, unser.values)
+
+    def test_frame_non_unique_columns(self):
+        df = DataFrame([['a', 'b'], ['c', 'd']], index=[1, 2],
+                       columns=['x', 'x'])
+
+        self.assertRaises(ValueError, df.to_json, orient='index')
+        self.assertRaises(ValueError, df.to_json, orient='columns')
+        self.assertRaises(ValueError, df.to_json, orient='records')
+
+        assert_frame_equal(df, read_json(df.to_json(orient='split'),
+                                         orient='split', dtype=False))
+        unser = read_json(df.to_json(orient='values'), orient='values')
+        np.testing.assert_equal(df.values, unser.values)
+
     def test_frame_from_json_to_json(self):
 
         def _check_orient(df, orient, dtype=None, numpy=False, convert_axes=True, check_dtype=True, raise_ok=None):
@@ -235,6 +263,17 @@ class TestPandasContainer(unittest.TestCase):
     def test_frame_to_json_except(self):
         df = DataFrame([1, 2, 3])
         self.assertRaises(ValueError, df.to_json, orient="garbage")
+
+    def test_series_non_unique_index(self):
+        s = Series(['a', 'b'], index=[1, 1])
+
+        self.assertRaises(ValueError, s.to_json, orient='index')
+
+        assert_series_equal(s, read_json(s.to_json(orient='split'),
+                            orient='split', typ='series'))
+        unser = read_json(s.to_json(orient='records'),
+                          orient='records', typ='series')
+        np.testing.assert_equal(s.values, unser.values)
 
     def test_series_from_json_to_json(self):
 
