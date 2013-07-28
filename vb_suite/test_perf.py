@@ -45,6 +45,15 @@ DEFAULT_MIN_DURATION = 0.01
 HEAD_COL="head[ms]"
 BASE_COL="base[ms]"
 
+
+class RevParseAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        import subprocess
+        cmd = 'git rev-parse {0}'.format(values)
+        rev_parse = subprocess.check_output(cmd, shell=True)
+        setattr(namespace, self.dest, rev_parse.strip())
+
+
 parser = argparse.ArgumentParser(description='Use vbench to measure and compare the performance of commits.')
 parser.add_argument('-H', '--head',
                     help='Execute vbenches using the currently checked out copy.',
@@ -53,10 +62,10 @@ parser.add_argument('-H', '--head',
                     default=False)
 parser.add_argument('-b', '--base-commit',
                     help='The commit serving as performance baseline ',
-                    type=str)
+                    type=str, action=RevParseAction)
 parser.add_argument('-t', '--target-commit',
                     help='The commit to compare against the baseline (default: HEAD).',
-                    type=str)
+                    type=str, action=RevParseAction)
 parser.add_argument('-m', '--min-duration',
                     help='Minimum duration (in ms) of baseline test for inclusion in report (default: %.3f).' % DEFAULT_MIN_DURATION,
                     type=float,
