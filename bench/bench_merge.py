@@ -1,6 +1,6 @@
 from pandas import *
 from pandas.util.testing import rands
-from pandas.util.py3compat import range
+from pandas.util.py3compat import range, lrange
 import random
 
 N = 10000
@@ -8,7 +8,7 @@ ngroups = 10
 
 
 def get_test_data(ngroups=100, n=N):
-    unique_groups = list(range(ngroups))
+    unique_groups = lrange(ngroups)
     arr = np.asarray(np.tile(unique_groups, n / ngroups), dtype=object)
 
     if len(arr) < n:
@@ -66,7 +66,7 @@ results.columns = ['dont_sort', 'sort']
 
 
 # R results
-from pandas.util.py3compat import StringIO
+from pandas.util.py3compat import StringIO, lrange
 # many to one
 r_results = read_table(StringIO("""      base::merge   plyr data.table
 inner      0.2475 0.1183     0.1100
@@ -94,7 +94,7 @@ nosort_results['Ratio'] = nosort_results['R'] / nosort_results['pandas']
 
 # many to many
 
-from pandas.util.py3compat import StringIO
+from pandas.util.py3compat import StringIO, lrange
 # many to one
 r_results = read_table(StringIO("""base::merge   plyr data.table
 inner      0.4610 0.1276     0.1269

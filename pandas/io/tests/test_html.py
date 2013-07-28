@@ -14,7 +14,7 @@ from nose.tools import assert_raises
 import numpy as np
 from numpy.random import rand
 from numpy.testing.decorators import slow
-from six.moves import map, zip
+from pandas.util.py3compat import map, zip
 
 try:
     from importlib import import_module

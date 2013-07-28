@@ -2,10 +2,10 @@ import types
 import numpy as np
 
 import six
-from pandas.util.py3compat import range, long
+from pandas.util.py3compat import range, long, lrange, lzip
 from pandas.util.compat import OrderedDict
 from pandas.util import compat
-from six.moves import zip, builtins
+from pandas.util.py3compat import zip, builtins
 
 from pandas.core.base import PandasObject
 from pandas.core.categorical import Categorical
@@ -675,7 +675,7 @@ class Grouper(object):
         if len(self.groupings) == 1:
             return self.groupings[0].groups
         else:
-            to_groupby = list(zip(*(ping.grouper for ping in self.groupings)))
+            to_groupby = lzip(*(ping.grouper for ping in self.groupings))
             to_groupby = Index(to_groupby)
 
             return self.axis.groupby(to_groupby)
@@ -1017,13 +1017,13 @@ class BinGrouper(Grouper):
         else:
             start = 0
             for edge, label in zip(self.bins, self.binlabels):
-                inds = list(range(start, edge))
+                inds = lrange(start, edge)
                 yield label, data.take(inds, axis=axis)
                 start = edge
 
             n = len(data.axes[axis])
             if start < n:
-                inds = list(range(start, n))
+                inds = lrange(start, n)
                 yield self.binlabels[-1], data.take(inds, axis=axis)
 
     def apply(self, f, data, axis=0, keep_internal=False):
@@ -1445,7 +1445,7 @@ class SeriesGroupBy(GroupBy):
                    for x in arg]
 
             # indicated column order
-            columns = list(zip(*arg))[0]
+            columns = lzip(*arg)[0]
         else:
             # list of functions / function names
             columns = []
@@ -1454,7 +1454,7 @@ class SeriesGroupBy(GroupBy):
                     columns.append(f)
                 else:
                     columns.append(f.__name__)
-            arg = list(zip(columns, arg))
+            arg = lzip(columns, arg)
 
         results = {}
 

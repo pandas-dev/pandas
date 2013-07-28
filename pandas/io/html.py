@@ -14,10 +14,10 @@ import numpy as np
 
 from pandas import DataFrame, MultiIndex, isnull
 from pandas.io.common import _is_url, urlopen, parse_url
-from pandas.util.py3compat import range
+from pandas.util.py3compat import range, lrange, lmap
 from pandas.util import compat
 import six
-from six.moves import map
+from pandas.util.py3compat import map
 
 
 try:
@@ -93,9 +93,9 @@ def _get_skiprows_iter(skiprows):
         A proper iterator to use to skip rows of a DataFrame.
     """
     if isinstance(skiprows, slice):
-        return list(range(skiprows.start or 0, skiprows.stop, skiprows.step or 1))
+        return lrange(skiprows.start or 0, skiprows.stop, skiprows.step or 1)
     elif isinstance(skiprows, numbers.Integral):
-        return list(range(skiprows))
+        return lrange(skiprows)
     elif isinstance(skiprows, collections.Container):
         return skiprows
     else:
@@ -345,14 +345,14 @@ class _HtmlFrameParser(object):
         thead = self._parse_thead(table)
         res = []
         if thead:
-            res = list(map(self._text_getter, self._parse_th(thead[0])))
+            res = lmap(self._text_getter, self._parse_th(thead[0]))
         return np.array(res).squeeze() if res and len(res) == 1 else res
 
     def _parse_raw_tfoot(self, table):
         tfoot = self._parse_tfoot(table)
         res = []
         if tfoot:
-            res = list(map(self._text_getter, self._parse_td(tfoot[0])))
+            res = lmap(self._text_getter, self._parse_td(tfoot[0]))
         return np.array(res).squeeze() if res and len(res) == 1 else res
 
     def _parse_raw_tbody(self, table):

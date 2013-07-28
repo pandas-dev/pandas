@@ -1,13 +1,11 @@
 from __future__ import print_function
 # pylint: disable=W0141
 
-from pandas.util.py3compat import range
 from pandas.util import compat
 import sys
 import six
-from six.moves import map, zip, reduce
 
-from pandas.util.py3compat import StringIO
+from pandas.util.py3compat import StringIO, lzip, range, map, zip, reduce
 from pandas.core.common import adjoin, isnull, notnull
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.util import py3compat
@@ -419,7 +417,7 @@ class DataFrameFormatter(TableFormatter):
 
         if isinstance(self.columns, MultiIndex):
             fmt_columns = self.columns.format(sparsify=False, adjoin=False)
-            fmt_columns = list(zip(*fmt_columns))
+            fmt_columns = lzip(*fmt_columns)
             dtypes = self.frame.dtypes.values
             need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
             str_columns = list(zip(*[[' ' + y
@@ -718,7 +716,7 @@ class HTMLFormatter(TableFormatter):
 
         idx_values = frame.index.format(sparsify=False, adjoin=False,
                                         names=False)
-        idx_values = list(zip(*idx_values))
+        idx_values = lzip(*idx_values)
 
         if self.fmt.sparsify:
 

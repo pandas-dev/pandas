@@ -1,7 +1,7 @@
 from datetime import datetime
 from pandas.util.py3compat import range, long
 from pandas.util import compat
-from six.moves import zip
+from pandas.util.py3compat import zip
 import six
 import re
 

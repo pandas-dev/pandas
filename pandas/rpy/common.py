@@ -4,7 +4,7 @@ developer-friendly.
 """
 from __future__ import print_function
 
-from six.moves import zip
+from pandas.util.py3compat import zip
 from pandas.util.py3compat import range
 import numpy as np
 

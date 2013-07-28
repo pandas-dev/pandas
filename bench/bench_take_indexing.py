@@ -6,7 +6,7 @@ import pandas._tseries as lib
 
 from pandas import DataFrame
 import timeit
-from six.moves import zip
+from pandas.util.py3compat import zip
 
 setup = """
 from pandas import Series

@@ -1,6 +1,22 @@
 import sys
 
 PY3 = (sys.version_info[0] >= 3)
+# import iterator versions of these functions
+from six.moves import zip, filter, reduce, map
+
+try:
+    import __builtin__ as builtins
+    # not writeable when instantiated with string, doesn't handle unicode well
+    from cStringIO import StringIO as StringIO
+    # always writeable
+    from StringIO import StringIO
+    BytesIO = StringIO
+    import cPickle
+except ImportError:
+    import builtins
+    from io import StringIO, BytesIO
+    cStringIO = StringIO
+    import pickle as cPickle
 
 if PY3:
     def isidentifier(s):
@@ -12,6 +28,20 @@ if PY3:
     def bytes_to_str(b, encoding='utf-8'):
         return b.decode(encoding)
 
+    # list-producing versions of the major Python iterating functions
+    def lrange(*args, **kwargs):
+        return list(range(*args, **kwargs))
+
+    def lzip(*args, **kwargs):
+        return list(zip(*args, **kwargs))
+
+    def lmap(*args, **kwargs):
+        return list(map(*args, **kwargs))
+
+    def lfilter(*args, **kwargs):
+        return list(filter(*args, **kwargs))
+
+    # need to put range in the namespace
     range = range
     long = int
     unichr = chr
@@ -29,22 +59,14 @@ else:
     def bytes_to_str(b, encoding='ascii'):
         return b
 
-    range = xrange
+    # Python 2-builtin ranges produce lists
+    lrange = builtins.range
+    lzip = builtins.zip
+    lmap = builtins.map
+    lfilter = builtins.filter
+
     # have to explicitly put builtins into the namespace
+    range = xrange
     long = long
     unichr = unichr
 
-try:
-    # not writeable if instantiated with string, not good with unicode
-    from cStringIO import StringIO as cStringIO
-    # writeable and handles unicode
-    from StringIO import StringIO
-except ImportError:
-    # no more StringIO
-    from io import StringIO
-    cStringIO = StringIO
-
-try:
-    from io import BytesIO
-except ImportError:
-    from cStringIO import StringIO as BytesIO

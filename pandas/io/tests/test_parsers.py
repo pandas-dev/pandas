@@ -12,7 +12,7 @@ from numpy import nan
 import numpy as np
 
 from pandas import DataFrame, Series, Index, MultiIndex, DatetimeIndex
-from pandas.util.py3compat import StringIO, BytesIO, PY3, range, long
+from pandas.util.py3compat import StringIO, BytesIO, PY3, range, long, lrange, lmap
 from pandas.io.common import urlopen, URLError
 import pandas.io.parsers as parsers
 from pandas.io.parsers import (read_csv, read_table, read_fwf,
@@ -35,7 +35,7 @@ from numpy.testing.decorators import slow
 
 from pandas.parser import OverflowError
 import six
-from six.moves import map
+from pandas.util.py3compat import map
 
 
 class ParserTests(object):
@@ -609,7 +609,7 @@ ignore,this,row
 
         # GH 3062
         df = DataFrame(dict({
-                    'A' : np.asarray(list(range(10)),dtype='float64'),
+                    'A' : np.asarray(lrange(10),dtype='float64'),
                     'B' : pd.Timestamp('20010101') }))
         df.iloc[3:6,:] = np.nan
 
@@ -639,7 +639,7 @@ ignore,this,row
 1/2/2000,4,5,6
 1/3/2000,7,8,9
 """
-        data = self.read_csv(StringIO(text), skiprows=list(range(6)), header=None,
+        data = self.read_csv(StringIO(text), skiprows=lrange(6), header=None,
                              index_col=0, parse_dates=True)
 
         data2 = self.read_csv(StringIO(text), skiprows=6, header=None,
@@ -792,20 +792,20 @@ c,4,5
 15/01/2010;P;P;50;1;14/1/2011
 01/05/2010;P;P;50;1;15/1/2011'''
 
-        expected = self.read_csv(StringIO(data), sep=";", index_col=list(range(4)))
+        expected = self.read_csv(StringIO(data), sep=";", index_col=lrange(4))
 
         lev = expected.index.levels[0]
         expected.index.levels[0] = lev.to_datetime(dayfirst=True)
         expected['aux_date'] = to_datetime(expected['aux_date'],
                                            dayfirst=True)
-        expected['aux_date'] = list(map(Timestamp, expected['aux_date']))
+        expected['aux_date'] = lmap(Timestamp, expected['aux_date'])
         tm.assert_isinstance(expected['aux_date'][0], datetime)
 
-        df = self.read_csv(StringIO(data), sep=";", index_col=list(range(4)),
+        df = self.read_csv(StringIO(data), sep=";", index_col=lrange(4),
                            parse_dates=[0, 5], dayfirst=True)
         tm.assert_frame_equal(df, expected)
 
-        df = self.read_csv(StringIO(data), sep=";", index_col=list(range(4)),
+        df = self.read_csv(StringIO(data), sep=";", index_col=lrange(4),
                            parse_dates=['date', 'aux_date'], dayfirst=True)
         tm.assert_frame_equal(df, expected)
 
@@ -828,7 +828,7 @@ c,4,5
 
         self.assert_(np.array_equal(df_pref.columns,
                                     ['X0', 'X1', 'X2', 'X3', 'X4']))
-        self.assert_(np.array_equal(df.columns, list(range(5))))
+        self.assert_(np.array_equal(df.columns, lrange(5)))
 
         self.assert_(np.array_equal(df2.columns, names))
 
@@ -1550,7 +1550,7 @@ False,NA,True"""
 
         sfile = StringIO(s)
         # it's 33 columns
-        result = self.read_csv(sfile, names=list(range(33)), na_values=['-9999.0'],
+        result = self.read_csv(sfile, names=lrange(33), na_values=['-9999.0'],
                                header=None, skipinitialspace=True)
         self.assertTrue(pd.isnull(result.ix[0, 29]))
 
@@ -1607,7 +1607,7 @@ A,B,C
         if hash(np.int64(-1)) != -2:
             raise nose.SkipTest
 
-        from pandas.util.py3compat import StringIO
+        from pandas.util.py3compat import StringIO, lrange, lmap
         csv = """id,score,days
 1,2,12
 2,2-5,
@@ -1643,7 +1643,7 @@ A,B,C
             if not x:
                 return np.nan
             if x.find('-') > 0:
-                valmin, valmax = list(map(int, x.split('-')))
+                valmin, valmax = lmap(int, x.split('-'))
                 val = 0.5 * (valmin + valmax)
             else:
                 val = float(x)
@@ -2322,9 +2322,9 @@ No,No,No"""
         data = "1,2\n3,4,5"
 
         result = self.read_csv(StringIO(data), header=None,
-                               names=list(range(50)))
+                               names=lrange(50))
         expected = self.read_csv(StringIO(data), header=None,
-                                 names=list(range(3))).reindex(columns=list(range(50)))
+                                 names=lrange(3)).reindex(columns=lrange(50))
 
         tm.assert_frame_equal(result, expected)
 

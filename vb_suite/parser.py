@@ -44,7 +44,7 @@ read_csv_comment2 = Benchmark(stmt, setup,
                               start_date=datetime(2011, 11, 1))
 
 setup = common_setup + """
-from six.moves import cStringIO as StringIO
+from pandas.util.py3compat import cStringIO as StringIO
 import os
 N = 10000
 K = 8
@@ -63,7 +63,7 @@ sdate = datetime(2012, 5, 7)
 read_table_multiple_date = Benchmark(cmd, setup, start_date=sdate)
 
 setup = common_setup + """
-from six.moves import cStringIO as StringIO
+from pandas.util.py3compat import cStringIO as StringIO
 import os
 N = 10000
 K = 8

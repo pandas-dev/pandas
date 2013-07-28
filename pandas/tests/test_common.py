@@ -1,5 +1,5 @@
 from datetime import datetime
-from pandas.util.py3compat import range, long
+from pandas.util.py3compat import range, long, lrange, lmap
 import sys
 import re
 
@@ -17,7 +17,7 @@ import numpy as np
 from pandas.tslib import iNaT
 from pandas.util import py3compat
 import six
-from six.moves import map
+from pandas.util.py3compat import map
 
 _multiprocess_can_split_ = True
 
@@ -123,7 +123,7 @@ def test_datetimeindex_from_empty_datetime64_array():
 def test_nan_to_nat_conversions():
 
     df = DataFrame(dict({
-        'A' : np.asarray(list(range(10)),dtype='float64'),
+        'A' : np.asarray(lrange(10),dtype='float64'),
         'B' : Timestamp('20010101') }))
     df.iloc[3:6,:] = np.nan
     result = df.loc[4,'B'].value
@@ -196,7 +196,7 @@ def test_split_ranges():
     # exhaustively test all possible mask sequences of length 8
     ncols = 8
     for i in range(2 ** ncols):
-        cols = list(map(int, list(_bin(i, ncols))))  # count up in base2
+        cols = lmap(int, list(_bin(i, ncols)))  # count up in base2
         mask = [cols[i] == 1 for i in range(len(cols))]
         test_locs(mask)
 

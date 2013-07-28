@@ -16,7 +16,7 @@ import pandas.tslib as tslib
 
 from pandas.util import py3compat
 from pandas.util.py3compat import StringIO, BytesIO, range, long
-from six.moves import zip, map
+from pandas.util.py3compat import zip, map
 import six
 
 

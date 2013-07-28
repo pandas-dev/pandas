@@ -2,8 +2,8 @@
 SQL-style merge routines
 """
 
-from pandas.util.py3compat import range, long
-from six.moves import zip
+from pandas.util.py3compat import range, long, lrange, lzip
+from pandas.util.py3compat import zip
 import six
 import numpy as np
 import types
@@ -1136,7 +1136,7 @@ class _Concatenator(object):
                 raise AssertionError()
 
             # ufff...
-            indices = list(range(ndim))
+            indices = lrange(ndim)
             indices.remove(self.axis)
 
             for i, ax in zip(indices, self.join_axes):
@@ -1201,7 +1201,7 @@ def _concat_indexes(indexes):
 def _make_concat_multiindex(indexes, keys, levels=None, names=None):
     if ((levels is None and isinstance(keys[0], tuple)) or
             (levels is not None and len(levels) > 1)):
-        zipped = list(zip(*keys))
+        zipped = lzip(*keys)
         if names is None:
             names = [None] * len(zipped)
 

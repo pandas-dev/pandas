@@ -1,7 +1,7 @@
 # pylint: disable-msg=E1101,W0612
 
 from datetime import datetime, timedelta, date
-from pandas.util.py3compat import range
+from pandas.util.py3compat import range, lrange
 import os
 import operator
 import re
@@ -75,7 +75,7 @@ class TestStringMethods(unittest.TestCase):
 
     def test_iter_numeric_try_string(self):
         # behavior identical to empty series
-        dsi = Series(list(range(4)))
+        dsi = Series(lrange(4))
 
         i, s = 100, 'h'
 

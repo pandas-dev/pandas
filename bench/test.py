@@ -3,7 +3,7 @@ import numpy as np
 import itertools
 import collections
 import scipy.ndimage as ndi
-from six.moves import zip
+from pandas.util.py3compat import zip
 
 N = 10000
 

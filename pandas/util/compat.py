@@ -1,6 +1,6 @@
 import sys
 import six
-from six.moves import map, filter
+from pandas.util.py3compat import map, filter
 from pandas.util.py3compat import range
 from itertools import product
 

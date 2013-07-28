@@ -13,14 +13,13 @@ from pandas.util.testing import (assert_almost_equal,
                                  assert_frame_equal)
 import pandas.core.common as com
 import pandas.util.testing as tm
-from pandas.util.py3compat import StringIO
-from pandas.util.py3compat import range
+from pandas.util.py3compat import range, lrange, StringIO, lzip
 from pandas.util.compat import product as cart_product
 import pandas as pd
 
 import pandas.index as _index
 import six
-from six.moves import zip, cPickle
+from pandas.util.py3compat import zip, cPickle
 
 
 class TestMultiLevel(unittest.TestCase):
@@ -46,7 +45,7 @@ class TestMultiLevel(unittest.TestCase):
         # create test series object
         arrays = [['bar', 'bar', 'baz', 'baz', 'qux', 'qux', 'foo', 'foo'],
                   ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
-        tuples = list(zip(*arrays))
+        tuples = lzip(*arrays)
         index = MultiIndex.from_tuples(tuples)
         s = Series(randn(8), index=index)
         s[3] = np.NaN
@@ -92,7 +91,7 @@ class TestMultiLevel(unittest.TestCase):
                                   ['x', 'y', 'x', 'y']])
         tm.assert_isinstance(multi.index, MultiIndex)
 
-        multi = Series(list(range(4)), index=[['a', 'a', 'b', 'b'],
+        multi = Series(lrange(4), index=[['a', 'a', 'b', 'b'],
                                         ['x', 'y', 'x', 'y']])
         tm.assert_isinstance(multi.index, MultiIndex)
 
@@ -351,8 +350,8 @@ class TestMultiLevel(unittest.TestCase):
 
     def test_getitem_tuple_plus_slice(self):
         # GH #671
-        df = DataFrame({'a': list(range(10)),
-                        'b': list(range(10)),
+        df = DataFrame({'a': lrange(10),
+                        'b': lrange(10),
                         'c': np.random.randn(10),
                         'd': np.random.randn(10)})
 
@@ -431,7 +430,7 @@ class TestMultiLevel(unittest.TestCase):
 
     def test_xs_level_multiple(self):
         from pandas import read_table
-        from pandas.util.py3compat import StringIO
+        from pandas.util.py3compat import StringIO, lrange, lzip
         text = """                      A       B       C       D        E
 one two three   four
 a   b   10.0032 5    -0.5109 -2.3358 -0.4645  0.05076  0.3640
@@ -445,7 +444,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         assert_frame_equal(result, expected)
 
         # GH2107
-        dates = list(range(20111201, 20111205))
+        dates = lrange(20111201, 20111205)
         ids = 'abcde'
         idx = MultiIndex.from_tuples([x for x in cart_product(dates, ids)])
         idx.names = ['date', 'secid']
@@ -456,7 +455,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
     def test_xs_level0(self):
         from pandas import read_table
-        from pandas.util.py3compat import StringIO
+        from pandas.util.py3compat import StringIO, lrange, lzip
         text = """                      A       B       C       D        E
 one two three   four
 a   b   10.0032 5    -0.5109 -2.3358 -0.4645  0.05076  0.3640
@@ -590,7 +589,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         # with integer labels
         df = self.frame.copy()
-        df.columns = list(range(3))
+        df.columns = lrange(3)
         df.ix[('bar', 'two'), 1] = 7
         self.assertEquals(df.ix[('bar', 'two'), 1], 7)
 
@@ -1169,7 +1168,7 @@ Thur,Lunch,Yes,51.51,17"""
     def test_series_getitem_not_sorted(self):
         arrays = [['bar', 'bar', 'baz', 'baz', 'qux', 'qux', 'foo', 'foo'],
                  ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
-        tuples = list(zip(*arrays))
+        tuples = lzip(*arrays)
         index = MultiIndex.from_tuples(tuples)
         s = Series(randn(8), index=index)
 
@@ -1213,7 +1212,7 @@ Thur,Lunch,Yes,51.51,17"""
 
     def test_series_group_min_max(self):
         for op, level, skipna in cart_product(self.AGG_FUNCTIONS,
-                                              list(range(2)),
+                                              lrange(2),
                                               [False, True]):
             grouped = self.series.groupby(level=level)
             aggf = lambda x: getattr(x, op)(skipna=skipna)
@@ -1227,7 +1226,7 @@ Thur,Lunch,Yes,51.51,17"""
         self.frame.ix[7, [0, 1]] = np.nan
 
         for op, level, axis, skipna in cart_product(self.AGG_FUNCTIONS,
-                                                    list(range(2)), list(range(2)),
+                                                    lrange(2), lrange(2),
                                                     [False, True]):
             if axis == 0:
                 frame = self.frame
@@ -1689,7 +1688,7 @@ Thur,Lunch,Yes,51.51,17"""
         index = MultiIndex.from_tuples([(0, 0), (1, 1)],
                                        names=[six.u('\u0394'), 'i1'])
 
-        s = Series(list(range(2)), index=index)
+        s = Series(lrange(2), index=index)
         df = DataFrame(np.random.randn(2, 4), index=index)
         repr(s)
         repr(df)

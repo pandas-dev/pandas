@@ -5,13 +5,13 @@ retrieval and to reduce dependency on DB-specific API.
 from __future__ import print_function
 from datetime import datetime, date
 
-from pandas.util.py3compat import range
+from pandas.util.py3compat import range, lzip
 import numpy as np
 import traceback
 
 from pandas.core.datetools import format as date_format
 from pandas.core.api import DataFrame, isnull
-from six.moves import map, zip
+from pandas.util.py3compat import map, zip
 import six
 
 #------------------------------------------------------------------------------
@@ -108,7 +108,7 @@ def tquery(sql, con=None, cur=None, retry=True):
 
     if result and len(result[0]) == 1:
         # python 3 compat
-        result = list(list(zip(*result))[0])
+        result = list(lzip(*result)[0])
     elif result is None:  # pragma: no cover
         result = []
 
@@ -293,7 +293,7 @@ def get_schema(frame, name, flavor, keys=None):
     lookup_type = lambda dtype: get_sqltype(dtype.type, flavor)
     # Replace spaces in DataFrame column names with _.
     safe_columns = [s.replace(' ', '_').strip() for s in frame.dtypes.index]
-    column_types = list(zip(safe_columns, map(lookup_type, frame.dtypes)))
+    column_types = lzip(safe_columns, map(lookup_type, frame.dtypes))
     if flavor == 'sqlite':
         columns = ',\n  '.join('[%s] %s' % x for x in column_types)
     else:

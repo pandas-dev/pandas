@@ -6,7 +6,6 @@ Data structure for 1-dimensional cross-sectional and time series data
 # pylint: disable=W0703,W0622,W0613,W0201
 
 from pandas.util import compat
-from six.moves import zip
 import operator
 from distutils.version import LooseVersion
 import types
@@ -28,6 +27,7 @@ from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex, Period
 from pandas.util import py3compat
 from pandas.util.terminal import get_terminal_size
+from pandas.util.py3compat import zip, lzip
 
 import pandas.core.array as pa
 
@@ -1219,7 +1219,7 @@ class Series(generic.PandasContainer, pa.Array):
         """
         Lazily iterate over (index, value) tuples
         """
-        return list(zip(iter(self.index), iter(self)))
+        return lzip(iter(self.index), iter(self))
 
     iterkv = iteritems
     if py3compat.PY3:  # pragma: no cover

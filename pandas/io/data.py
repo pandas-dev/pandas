@@ -12,14 +12,14 @@ from collections import defaultdict
 
 import numpy as np
 
-from pandas.util.py3compat import StringIO, bytes_to_str, range
+from pandas.util.py3compat import StringIO, bytes_to_str, range, lrange, lmap
 from pandas import Panel, DataFrame, Series, read_csv, concat
 from pandas.core.common import PandasError
 from pandas.io.parsers import TextParser
 from pandas.io.common import urlopen, ZipFile, urlencode
 from pandas.util.testing import _network_error_classes
 import six
-from six.moves import map, zip
+from pandas.util.py3compat import map, zip
 
 
 class SymbolWarning(UserWarning):
@@ -465,7 +465,7 @@ def get_data_famafrench(name):
         with ZipFile(tmpf, 'r') as zf:
             data = zf.open(name + '.txt').readlines()
 
-    line_lengths = np.array(list(map(len, data)))
+    line_lengths = np.array(lmap(len, data))
     file_edges = np.where(line_lengths == 2)[0]
 
     datasets = {}
@@ -473,7 +473,7 @@ def get_data_famafrench(name):
     for i, (left_edge, right_edge) in enumerate(edges):
         dataset = [d.split() for d in data[left_edge:right_edge]]
         if len(dataset) > 10:
-            ncol_raw = np.array(list(map(len, dataset)))
+            ncol_raw = np.array(lmap(len, dataset))
             ncol = np.median(ncol_raw)
             header_index = np.where(ncol_raw == ncol - 1)[0][-1]
             header = dataset[header_index]
@@ -809,7 +809,7 @@ class Options(object):
         data : dict of str, DataFrame
         """
         warnings.warn("get_forward_data() is deprecated", FutureWarning)
-        in_months = list(range(CUR_MONTH, CUR_MONTH + months + 1))
+        in_months = lrange(CUR_MONTH, CUR_MONTH + months + 1)
         in_years = [CUR_YEAR] * (months + 1)
 
         # Figure out how many items in in_months go past 12

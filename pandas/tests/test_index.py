@@ -1,7 +1,7 @@
 # pylint: disable=E1101,E1103,W0232
 
 from datetime import datetime, timedelta
-from pandas.util.py3compat import range
+from pandas.util.py3compat import range, lrange, lzip
 import operator
 import pickle
 import unittest
@@ -24,7 +24,7 @@ import pandas.tseries.offsets as offsets
 import pandas as pd
 from pandas.lib import Timestamp
 import six
-from six.moves import zip
+from pandas.util.py3compat import zip
 
 
 class TestIndex(unittest.TestCase):
@@ -37,7 +37,7 @@ class TestIndex(unittest.TestCase):
         self.intIndex = tm.makeIntIndex(100)
         self.floatIndex = tm.makeFloatIndex(100)
         self.empty = Index([])
-        self.tuples = Index(list(zip(['foo', 'bar', 'baz'], [1, 2, 3])))
+        self.tuples = Index(lzip(['foo', 'bar', 'baz'], [1, 2, 3]))
 
     def test_hash_error(self):
         self.assertRaises(TypeError, hash, self.strIndex)
@@ -470,8 +470,8 @@ class TestIndex(unittest.TestCase):
     def test_drop(self):
         n = len(self.strIndex)
 
-        dropped = self.strIndex.drop(self.strIndex[list(range(5, 10))])
-        expected = self.strIndex[list(range(5)) + list(range(10, n))]
+        dropped = self.strIndex.drop(self.strIndex[lrange(5, 10)])
+        expected = self.strIndex[lrange(5) + lrange(10, n)]
         self.assert_(dropped.equals(expected))
 
         self.assertRaises(ValueError, self.strIndex.drop, ['foo', 'bar'])
@@ -893,8 +893,8 @@ class TestInt64Index(unittest.TestCase):
     def test_int_name_format(self):
         from pandas import Series, DataFrame
         index = Index(['a', 'b', 'c'], name=0)
-        s = Series(list(range(3)), index)
-        df = DataFrame(list(range(3)), index=index)
+        s = Series(lrange(3), index)
+        df = DataFrame(lrange(3), index=index)
         repr(s)
         repr(df)
 
@@ -910,7 +910,7 @@ class TestInt64Index(unittest.TestCase):
             self.assertTrue("..." in r)
 
     def test_unicode_string_with_unicode(self):
-        idx = Index(list(range(1000)))
+        idx = Index(lrange(1000))
 
         if py3compat.PY3:
             str(idx)
@@ -918,7 +918,7 @@ class TestInt64Index(unittest.TestCase):
             six.text_type(idx)
 
     def test_bytestring_with_unicode(self):
-        idx = Index(list(range(1000)))
+        idx = Index(lrange(1000))
         if py3compat.PY3:
             bytes(idx)
         else:
@@ -1154,9 +1154,9 @@ class TestMultiIndex(unittest.TestCase):
         self.assertRaises(KeyError, self.index.get_loc, 'quux')
 
         # 3 levels
-        index = MultiIndex(levels=[Index(list(range(4))),
-                                   Index(list(range(4))),
-                                   Index(list(range(4)))],
+        index = MultiIndex(levels=[Index(lrange(4)),
+                                   Index(lrange(4)),
+                                   Index(lrange(4))],
                            labels=[np.array([0, 0, 1, 2, 2, 2, 3, 3]),
                                    np.array([0, 1, 0, 0, 0, 1, 0, 1]),
                                    np.array([1, 0, 1, 1, 0, 0, 1, 0])])
@@ -1176,9 +1176,9 @@ class TestMultiIndex(unittest.TestCase):
         assert(rs == xp)
 
     def test_get_loc_level(self):
-        index = MultiIndex(levels=[Index(list(range(4))),
-                                   Index(list(range(4))),
-                                   Index(list(range(4)))],
+        index = MultiIndex(levels=[Index(lrange(4)),
+                                   Index(lrange(4)),
+                                   Index(lrange(4))],
                            labels=[np.array([0, 0, 1, 2, 2, 2, 3, 3]),
                                    np.array([0, 1, 0, 0, 0, 1, 0, 1]),
                                    np.array([1, 0, 1, 1, 0, 0, 1, 0])])
@@ -1196,7 +1196,7 @@ class TestMultiIndex(unittest.TestCase):
 
         self.assertRaises(KeyError, index.get_loc_level, (2, 2))
 
-        index = MultiIndex(levels=[[2000], list(range(4))],
+        index = MultiIndex(levels=[[2000], lrange(4)],
                            labels=[np.array([0, 0, 0, 0]),
                                    np.array([0, 1, 2, 3])])
         result, new_index = index.get_loc_level((2000, slice(None, None)))
@@ -1222,9 +1222,9 @@ class TestMultiIndex(unittest.TestCase):
         tm.assert_almost_equal(sliced.values, expected.values)
 
     def test_slice_locs_not_sorted(self):
-        index = MultiIndex(levels=[Index(list(range(4))),
-                                   Index(list(range(4))),
-                                   Index(list(range(4)))],
+        index = MultiIndex(levels=[Index(lrange(4)),
+                                   Index(lrange(4)),
+                                   Index(lrange(4))],
                            labels=[np.array([0, 0, 1, 2, 2, 2, 3, 3]),
                                    np.array([0, 1, 0, 0, 0, 1, 0, 1]),
                                    np.array([1, 0, 1, 1, 0, 0, 1, 0])])
@@ -1279,11 +1279,11 @@ class TestMultiIndex(unittest.TestCase):
 
     def test_consistency(self):
         # need to construct an overflow
-        major_axis = list(range(70000))
-        minor_axis = list(range(10))
+        major_axis = lrange(70000)
+        minor_axis = lrange(10)
 
         major_labels = np.arange(70000)
-        minor_labels = np.repeat(list(range(10)), 7000)
+        minor_labels = np.repeat(lrange(10), 7000)
 
         # the fact that is works means it's consistent
         index = MultiIndex(levels=[major_axis, minor_axis],
@@ -1298,8 +1298,8 @@ class TestMultiIndex(unittest.TestCase):
         self.assert_(not index.is_unique)
 
     def test_truncate(self):
-        major_axis = Index(list(range(4)))
-        minor_axis = Index(list(range(2)))
+        major_axis = Index(lrange(4))
+        minor_axis = Index(lrange(2))
 
         major_labels = np.array([0, 0, 1, 2, 3, 3])
         minor_labels = np.array([0, 1, 0, 1, 0, 1])
@@ -1322,8 +1322,8 @@ class TestMultiIndex(unittest.TestCase):
         self.assertRaises(ValueError, index.truncate, 3, 1)
 
     def test_get_indexer(self):
-        major_axis = Index(list(range(4)))
-        minor_axis = Index(list(range(2)))
+        major_axis = Index(lrange(4))
+        minor_axis = Index(lrange(2))
 
         major_labels = np.array([0, 0, 1, 2, 2, 3, 3])
         minor_labels = np.array([0, 1, 0, 0, 1, 0, 1])
@@ -1405,9 +1405,9 @@ class TestMultiIndex(unittest.TestCase):
         self.assert_(self.index.equals(self.index._tuple_index))
 
         # different number of levels
-        index = MultiIndex(levels=[Index(list(range(4))),
-                                   Index(list(range(4))),
-                                   Index(list(range(4)))],
+        index = MultiIndex(levels=[Index(lrange(4)),
+                                   Index(lrange(4)),
+                                   Index(lrange(4))],
                            labels=[np.array([0, 0, 1, 2, 2, 2, 3, 3]),
                                    np.array([0, 1, 0, 0, 0, 1, 0, 1]),
                                    np.array([1, 0, 1, 1, 0, 0, 1, 0])])
@@ -1418,8 +1418,8 @@ class TestMultiIndex(unittest.TestCase):
         self.assert_(not index.equal_levels(index2))
 
         # levels are different
-        major_axis = Index(list(range(4)))
-        minor_axis = Index(list(range(2)))
+        major_axis = Index(lrange(4))
+        minor_axis = Index(lrange(2))
 
         major_labels = np.array([0, 0, 1, 2, 2, 3])
         minor_labels = np.array([0, 1, 0, 0, 1, 0])
@@ -1638,9 +1638,9 @@ class TestMultiIndex(unittest.TestCase):
         dropped = index.droplevel(0)
         self.assertEqual(dropped.name, 'second')
 
-        index = MultiIndex(levels=[Index(list(range(4))),
-                                   Index(list(range(4))),
-                                   Index(list(range(4)))],
+        index = MultiIndex(levels=[Index(lrange(4)),
+                                   Index(lrange(4)),
+                                   Index(lrange(4))],
                            labels=[np.array([0, 0, 1, 2, 2, 2, 3, 3]),
                                    np.array([0, 1, 0, 0, 0, 1, 0, 1]),
                                    np.array([1, 0, 1, 1, 0, 0, 1, 0])],
@@ -1653,9 +1653,9 @@ class TestMultiIndex(unittest.TestCase):
         self.assert_(dropped.equals(expected))
 
     def test_droplevel_multiple(self):
-        index = MultiIndex(levels=[Index(list(range(4))),
-                                   Index(list(range(4))),
-                                   Index(list(range(4)))],
+        index = MultiIndex(levels=[Index(lrange(4)),
+                                   Index(lrange(4)),
+                                   Index(lrange(4))],
                            labels=[np.array([0, 0, 1, 2, 2, 2, 3, 3]),
                                    np.array([0, 1, 0, 0, 0, 1, 0, 1]),
                                    np.array([1, 0, 1, 1, 0, 0, 1, 0])],

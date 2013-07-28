@@ -58,8 +58,8 @@ from __future__ import print_function
 #-----------------------------------------------------------------------------
 
 # Stdlib
-from pandas.util.py3compat import range
-from six.moves import map, cStringIO as StringIO
+from pandas.util.py3compat import range, lmap
+from pandas.util.py3compat import map, cStringIO as StringIO
 import ast
 import os
 import re
@@ -72,7 +72,7 @@ from docutils.parsers.rst import directives
 from docutils import nodes
 from sphinx.util.compat import Directive
 import six
-from six.moves import zip
+from pandas.util.py3compat import zip
 
 matplotlib.use('Agg')
 
@@ -303,7 +303,7 @@ class EmbeddedSphinxShell(object):
         def _remove_first_space_if_any(line):
             return line[1:] if line.startswith(' ') else line
 
-        input_lines = list(map(_remove_first_space_if_any, input.split('\n')))
+        input_lines = lmap(_remove_first_space_if_any, input.split('\n'))
 
         self.datacontent = data
 

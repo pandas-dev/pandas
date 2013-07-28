@@ -2,8 +2,7 @@
 Module contains tools for processing files into DataFrames or other objects
 """
 from __future__ import print_function
-from pandas.util.py3compat import StringIO
-from pandas.util.py3compat import range
+from pandas.util.py3compat import range, lrange, StringIO, lzip
 from pandas.util import compat
 import re
 import csv
@@ -26,7 +25,7 @@ import pandas.tslib as tslib
 import pandas.parser as _parser
 from pandas.tseries.period import Period
 import six
-from six.moves import zip
+from pandas.util.py3compat import zip
 
 _parser_params = """Also supports optionally iterating or breaking of the file
 into chunks.
@@ -562,7 +561,7 @@ class TextFileReader(object):
         na_values, na_fvalues = _clean_na_values(na_values, keep_default_na)
 
         if com.is_integer(skiprows):
-            skiprows = list(range(skiprows))
+            skiprows = lrange(skiprows)
         skiprows = set() if skiprows is None else set(skiprows)
 
         # put stuff back
@@ -731,7 +730,7 @@ class ParserBase(object):
         field_count = len(header[0])
         def extract(r):
             return tuple([ r[i] for i in range(field_count) if i not in sic ])
-        columns = list(zip(*[ extract(r) for r in header ]))
+        columns = lzip(*[ extract(r) for r in header ])
         names = ic + columns
 
         # if we find 'Unnamed' all of a single level, then our header was too long
@@ -980,7 +979,7 @@ class CParserWrapper(ParserBase):
                 self.names = ['X%d' % i
                               for i in range(self._reader.table_width)]
             else:
-                self.names = list(range(self._reader.table_width))
+                self.names = lrange(self._reader.table_width)
 
         # XXX
         self._set_noconvert_columns()
@@ -1454,7 +1453,7 @@ class PythonParser(ParserBase):
                 if self.prefix:
                     columns = [ ['X%d' % i for i in range(ncols)] ]
                 else:
-                    columns = [ list(range(ncols)) ]
+                    columns = [ lrange(ncols) ]
             else:
                 columns = [ names ]
 
@@ -1552,7 +1551,7 @@ class PythonParser(ParserBase):
                     # column and index names on diff rows
                     implicit_first_cols = 0
 
-                    self.index_col = list(range(len(line)))
+                    self.index_col = lrange(len(line))
                     self.buf = self.buf[1:]
 
                     for c in reversed(line):
@@ -1563,7 +1562,7 @@ class PythonParser(ParserBase):
         if implicit_first_cols > 0:
             self._implicit_index = True
             if self.index_col is None:
-                self.index_col = list(range(implicit_first_cols))
+                self.index_col = lrange(implicit_first_cols)
             index_name = None
 
         else:

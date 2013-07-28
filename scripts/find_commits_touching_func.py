@@ -4,9 +4,9 @@
 # copryright 2013, y-p @ github
 
 from __future__ import print_function
-from pandas.util.py3compat import range
+from pandas.util.py3compat import range, lrange
 import six
-from six.moves import map
+from pandas.util.py3compat import map
 
 """Search the git history for all commits touching a named method
 
@@ -162,7 +162,7 @@ def pprint_hits(hits):
 
     print("\nThese commits touched the %s method in these files on these dates:\n" \
           % args.funcname)
-    for i in sorted(list(range(len(hits))),key=sorter):
+    for i in sorted(lrange(len(hits)),key=sorter):
         hit = hits[i]
         h,s,d=get_commit_vitals(hit.commit)
         p=hit.path.split(os.path.realpath(os.curdir)+os.path.sep)[-1]

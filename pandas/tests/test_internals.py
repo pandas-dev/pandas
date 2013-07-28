@@ -12,7 +12,7 @@ import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, randn)
 import six
-from six.moves import zip
+from pandas.util.py3compat import zip
 
 
 def assert_block_equal(left, right):

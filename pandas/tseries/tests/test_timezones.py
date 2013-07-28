@@ -28,8 +28,8 @@ import pandas.core.datetools as dt
 from numpy.random import rand
 from pandas.util.testing import assert_frame_equal
 import pandas.util.py3compat as py3compat
-from pandas.util.py3compat import range
-from six.moves import zip, cPickle as pickle
+from pandas.util.py3compat import range, lrange
+from pandas.util.py3compat import zip, cPickle as pickle
 from pandas.core.datetools import BDay
 import pandas.core.common as com
 
@@ -394,7 +394,7 @@ class TestTimeZoneSupport(unittest.TestCase):
         _skip_if_no_pytz()
         rng = date_range('1/1/2000', periods=20, tz='US/Eastern')
 
-        result = rng.take(list(range(5)))
+        result = rng.take(lrange(5))
         self.assert_(result.tz == rng.tz)
         self.assert_(result.freq == rng.freq)
 
@@ -747,7 +747,7 @@ class TestTimeZones(unittest.TestCase):
         test2 = DataFrame(np.zeros((3, 3)),
                           index=date_range("2012-11-15 00:00:00", periods=3,
                                            freq="250L", tz="US/Central"),
-                          columns=list(range(3, 6)))
+                          columns=lrange(3, 6))
 
         result = test1.join(test2, how='outer')
         ex_index = test1.index.union(test2.index)
@@ -816,7 +816,7 @@ class TestTimeZones(unittest.TestCase):
         # mixed
 
         rng1 = date_range('1/1/2011 01:00', periods=1, freq='H')
-        rng2 = list(range(100))
+        rng2 = lrange(100)
         ts1 = Series(np.random.randn(len(rng1)), index=rng1)
         ts2 = Series(np.random.randn(len(rng2)), index=rng2)
         ts_result = ts1.append(ts2)

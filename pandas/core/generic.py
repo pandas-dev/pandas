@@ -11,7 +11,7 @@ from pandas.core.indexing import _maybe_convert_indices
 from pandas.tseries.index import DatetimeIndex
 import pandas.core.common as com
 import six
-from six.moves import map, zip
+from pandas.util.py3compat import map, zip
 
 
 class PandasError(Exception):

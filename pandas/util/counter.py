@@ -6,7 +6,7 @@ import heapq as _heapq
 from itertools import repeat as _repeat, chain as _chain, starmap as _starmap
 from operator import itemgetter as _itemgetter
 import six
-from six.moves import map
+from pandas.util.py3compat import map
 
 try:
     from collections import Mapping

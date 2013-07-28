@@ -28,9 +28,9 @@ import pandas.tslib as tslib
 
 import pandas.index as _index
 
-from pandas.util.py3compat import range, long, StringIO
+from pandas.util.py3compat import range, long, StringIO, lrange, lmap
 from pandas.util.compat import product
-from six.moves import map, zip, cPickle as pickle
+from pandas.util.py3compat import map, zip, cPickle as pickle
 from pandas import read_pickle
 import pandas.core.datetools as dt
 from numpy.random import rand
@@ -238,17 +238,17 @@ class TestTimeSeriesDuplicates(unittest.TestCase):
 
         # GH3546 (not including times on the last day)
         idx = date_range(start='2013-05-31 00:00', end='2013-05-31 23:00', freq='H')
-        ts  = Series(list(range(len(idx))), index=idx)
+        ts  = Series(lrange(len(idx)), index=idx)
         expected = ts['2013-05']
         assert_series_equal(expected,ts)
 
         idx = date_range(start='2013-05-31 00:00', end='2013-05-31 23:59', freq='S')
-        ts  = Series(list(range(len(idx))), index=idx)
+        ts  = Series(lrange(len(idx)), index=idx)
         expected = ts['2013-05']
         assert_series_equal(expected,ts)
 
         idx = [ Timestamp('2013-05-31 00:00'), Timestamp(datetime(2013,5,31,23,59,59,999999))]
-        ts  = Series(list(range(len(idx))), index=idx)
+        ts  = Series(lrange(len(idx)), index=idx)
         expected = ts['2013']
         assert_series_equal(expected,ts)
 
@@ -452,7 +452,7 @@ class TestTimeSeries(unittest.TestCase):
         # 2155
         columns = DatetimeIndex(start='1/1/2012', end='2/1/2012',
                                 freq=datetools.bday)
-        index = list(range(10))
+        index = lrange(10)
         data = DataFrame(columns=columns, index=index)
         t = datetime(2012, 11, 1)
         ts = Timestamp(t)
@@ -663,7 +663,7 @@ class TestTimeSeries(unittest.TestCase):
         rng = date_range('1/1/2000 00:00:00', periods=10, freq='10s')
         series = Series(rng)
 
-        result = series.reindex(list(range(15)))
+        result = series.reindex(lrange(15))
         self.assert_(np.issubdtype(result.dtype, np.dtype('M8[ns]')))
 
         mask = result.isnull()
@@ -674,7 +674,7 @@ class TestTimeSeries(unittest.TestCase):
         rng = date_range('1/1/2000 00:00:00', periods=10, freq='10s')
         df = DataFrame({'A': np.random.randn(len(rng)), 'B': rng})
 
-        result = df.reindex(list(range(15)))
+        result = df.reindex(lrange(15))
         self.assert_(np.issubdtype(result['B'].dtype, np.dtype('M8[ns]')))
 
         mask = com.isnull(result)['B']
@@ -889,7 +889,7 @@ class TestTimeSeries(unittest.TestCase):
         ### array = ['2012','20120101','20120101 12:01:01']
         array = ['20120101','20120101 12:01:01']
         expected = list(to_datetime(array))
-        result = list(map(Timestamp,array))
+        result = lmap(Timestamp,array)
         tm.assert_almost_equal(result,expected)
 
         ### currently fails ###
@@ -1512,11 +1512,11 @@ class TestTimeSeries(unittest.TestCase):
         dr = date_range(start='1/1/2012', freq='5min', periods=10)
 
         # BAD Example, datetimes first
-        s = Series(np.arange(10), index=[dr, list(range(10))])
+        s = Series(np.arange(10), index=[dr, lrange(10)])
         grouped = s.groupby(lambda x: x[1] % 2 == 0)
         result = grouped.count()
 
-        s = Series(np.arange(10), index=[list(range(10)), dr])
+        s = Series(np.arange(10), index=[lrange(10), dr])
         grouped = s.groupby(lambda x: x[0] % 2 == 0)
         expected = grouped.count()
 
@@ -1667,7 +1667,7 @@ class TestTimeSeries(unittest.TestCase):
         df2_obj = DataFrame.from_records(rows, columns=['date', 'test'])
 
         ind = date_range(start="2000/1/1", freq="D", periods=10)
-        df1 = DataFrame({'date': ind, 'test':list(range(10))})
+        df1 = DataFrame({'date': ind, 'test':lrange(10)})
 
         # it works!
         pd.concat([df1, df2_obj])
@@ -1686,7 +1686,7 @@ class TestDatetimeIndex(unittest.TestCase):
         import datetime
         start=datetime.datetime.now()
         idx=DatetimeIndex(start=start,freq="1d",periods=10)
-        df=DataFrame(list(range(10)),index=idx)
+        df=DataFrame(lrange(10),index=idx)
         df["2013-01-14 23:44:34.437768-05:00":] # no exception here
 
     def test_append_join_nondatetimeindex(self):
@@ -1980,7 +1980,6 @@ class TestLegacySupport(unittest.TestCase):
             cls.series = pickle.load(f)
 
     def test_pass_offset_warn(self):
-        from pandas.util.py3compat import StringIO
         buf = StringIO()
 
         sys.stderr = buf
@@ -2401,7 +2400,6 @@ class TestLegacySupport(unittest.TestCase):
 class TestLegacyCompat(unittest.TestCase):
 
     def setUp(self):
-        from pandas.util.py3compat import StringIO
         # suppress deprecation warnings
         sys.stderr = StringIO()
 
@@ -2649,7 +2647,7 @@ class TestDatetime64(unittest.TestCase):
     def test_slice_locs_indexerror(self):
         times = [datetime(2000, 1, 1) + timedelta(minutes=i * 10)
                  for i in range(100000)]
-        s = Series(list(range(100000)), times)
+        s = Series(lrange(100000), times)
         s.ix[datetime(1900, 1, 1):datetime(2100, 1, 1)]
 
 

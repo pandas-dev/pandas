@@ -1,5 +1,5 @@
-from pandas.util.py3compat import range
-from six.moves import zip
+from pandas.util.py3compat import range, lrange
+from pandas.util.py3compat import zip
 import unittest
 
 from numpy import nan
@@ -32,7 +32,7 @@ class TestTseriesUtil(unittest.TestCase):
 
     def test_backfill(self):
         old = Index([1, 5, 10])
-        new = Index(list(range(12)))
+        new = Index(lrange(12))
 
         filler = algos.backfill_int64(old, new)
 
@@ -41,7 +41,7 @@ class TestTseriesUtil(unittest.TestCase):
 
         # corner case
         old = Index([1, 4])
-        new = Index(list(range(5, 10)))
+        new = Index(lrange(5, 10))
         filler = algos.backfill_int64(old, new)
 
         expect_filler = [-1, -1, -1, -1, -1]
@@ -49,7 +49,7 @@ class TestTseriesUtil(unittest.TestCase):
 
     def test_pad(self):
         old = Index([1, 5, 10])
-        new = Index(list(range(12)))
+        new = Index(lrange(12))
 
         filler = algos.pad_int64(old, new)
 
@@ -58,7 +58,7 @@ class TestTseriesUtil(unittest.TestCase):
 
         # corner case
         old = Index([5, 10])
-        new = Index(list(range(5)))
+        new = Index(lrange(5))
         filler = algos.pad_int64(old, new)
         expect_filler = [-1, -1, -1, -1, -1]
         self.assert_(np.array_equal(filler, expect_filler))

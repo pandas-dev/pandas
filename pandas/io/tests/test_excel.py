@@ -37,7 +37,7 @@ from numpy.testing.decorators import slow
 
 from pandas.parser import OverflowError
 import six
-from six.moves import map
+from pandas.util.py3compat import map
 
 def _skip_if_no_xlrd():
     try:

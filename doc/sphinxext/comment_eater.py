@@ -1,4 +1,4 @@
-from six.moves import cStringIO
+from pandas.util.py3compat import cStringIO
 import compiler
 import inspect
 import textwrap

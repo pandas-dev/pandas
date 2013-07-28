@@ -3,7 +3,7 @@
 
 from pandas.util.py3compat import range
 from pandas.util import compat
-from six.moves import zip
+from pandas.util.py3compat import zip
 import six
 import itertools
 

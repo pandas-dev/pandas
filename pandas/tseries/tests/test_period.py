@@ -23,8 +23,8 @@ import pandas.core.datetools as datetools
 import pandas as pd
 import numpy as np
 import six
-from pandas.util.py3compat import range
-from six.moves import map, zip
+from pandas.util.py3compat import range, lrange, lmap
+from pandas.util.py3compat import map, zip
 randn = np.random.randn
 
 from pandas import Series, TimeSeries, DataFrame
@@ -1118,7 +1118,7 @@ class TestPeriodIndex(TestCase):
 
     def test_constructor_arrays_negative_year(self):
         years = np.arange(1960, 2000).repeat(4)
-        quarters = np.tile(list(range(1, 5)), 40)
+        quarters = np.tile(lrange(1, 5), 40)
 
         pindex = PeriodIndex(year=years, quarter=quarters)
 
@@ -1126,8 +1126,8 @@ class TestPeriodIndex(TestCase):
         self.assert_(np.array_equal(pindex.quarter, quarters))
 
     def test_constructor_invalid_quarters(self):
-        self.assertRaises(ValueError, PeriodIndex, year=list(range(2000, 2004)),
-                          quarter=list(range(4)), freq='Q-DEC')
+        self.assertRaises(ValueError, PeriodIndex, year=lrange(2000, 2004),
+                          quarter=lrange(4), freq='Q-DEC')
 
     def test_constructor_corner(self):
         self.assertRaises(ValueError, PeriodIndex, periods=10, freq='A')
@@ -1216,7 +1216,7 @@ class TestPeriodIndex(TestCase):
 
     def test_getitem_datetime(self):
         rng = period_range(start='2012-01-01', periods=10, freq='W-MON')
-        ts = Series(list(range(len(rng))), index=rng)
+        ts = Series(lrange(len(rng)), index=rng)
 
         dt1 = datetime(2011, 10, 2)
         dt4 = datetime(2012, 4, 20)
@@ -1288,7 +1288,7 @@ class TestPeriodIndex(TestCase):
 
     def test_to_timestamp_quarterly_bug(self):
         years = np.arange(1960, 2000).repeat(4)
-        quarters = np.tile(list(range(1, 5)), 40)
+        quarters = np.tile(lrange(1, 5), 40)
 
         pindex = PeriodIndex(year=years, quarter=quarters)
 
@@ -2006,7 +2006,7 @@ class TestPeriodIndex(TestCase):
             types += six.text_type,
 
         for t in types:
-            expected = np.array(list(map(t, raw)), dtype=object)
+            expected = np.array(lmap(t, raw), dtype=object)
             res = index.map(t)
 
             # should return an array

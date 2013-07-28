@@ -1,4 +1,4 @@
-from six.moves import cPickle as pkl
+from pandas.util.py3compat import cPickle as pkl
 
 def to_pickle(obj, path):
     """

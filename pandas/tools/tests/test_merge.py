@@ -9,8 +9,8 @@ from numpy import nan
 import numpy as np
 import random
 
-from pandas.util.py3compat import range
-from six.moves import zip
+from pandas.util.py3compat import range, lrange, lzip
+from pandas.util.py3compat import zip
 from pandas.util import compat
 from pandas.tseries.index import DatetimeIndex
 from pandas.tools.merge import merge, concat, ordered_merge, MergeError
@@ -29,7 +29,7 @@ JOIN_TYPES = ['inner', 'outer', 'left', 'right']
 
 
 def get_test_data(ngroups=NGROUPS, n=N):
-    unique_groups = list(range(ngroups))
+    unique_groups = lrange(ngroups)
     arr = np.asarray(np.tile(unique_groups, n // ngroups))
 
     if len(arr) < n:
@@ -558,8 +558,8 @@ class TestMerge(unittest.TestCase):
         assert_almost_equal(merged['value_y'], [6, np.nan, 5, 8, 5, 8, 7])
 
     def test_merge_nocopy(self):
-        left = DataFrame({'a': 0, 'b': 1}, index=list(range(10)))
-        right = DataFrame({'c': 'foo', 'd': 'bar'}, index=list(range(10)))
+        left = DataFrame({'a': 0, 'b': 1}, index=lrange(10))
+        right = DataFrame({'c': 'foo', 'd': 'bar'}, index=lrange(10))
 
         merged = merge(left, right, left_index=True,
                        right_index=True, copy=False)
@@ -585,15 +585,15 @@ class TestMerge(unittest.TestCase):
 
         # smoke test
         joined = left.join(right, on='key', sort=False)
-        self.assert_(np.array_equal(joined.index, list(range(4))))
+        self.assert_(np.array_equal(joined.index, lrange(4)))
 
     def test_intelligently_handle_join_key(self):
         # #733, be a bit more 1337 about not returning unconsolidated DataFrame
 
         left = DataFrame({'key': [1, 1, 2, 2, 3],
-                          'value': list(range(5))}, columns=['value', 'key'])
+                          'value': lrange(5)}, columns=['value', 'key'])
         right = DataFrame({'key': [1, 1, 2, 3, 4, 5],
-                           'rvalue': list(range(6))})
+                           'rvalue': lrange(6)})
 
         joined = merge(left, right, on='key', how='outer')
         expected = DataFrame({'key': [1, 1, 1, 1, 2, 2, 3, 4, 5.],
@@ -607,8 +607,8 @@ class TestMerge(unittest.TestCase):
 
     def test_handle_join_key_pass_array(self):
         left = DataFrame({'key': [1, 1, 2, 2, 3],
-                          'value': list(range(5))}, columns=['value', 'key'])
-        right = DataFrame({'rvalue': list(range(6))})
+                          'value': lrange(5)}, columns=['value', 'key'])
+        right = DataFrame({'rvalue': lrange(6)})
         key = np.array([1, 1, 2, 3, 4, 5])
 
         merged = merge(left, right, left_on='key', right_on=key, how='outer')
@@ -618,8 +618,8 @@ class TestMerge(unittest.TestCase):
         self.assert_(merged['key'].notnull().all())
         self.assert_(merged2['key'].notnull().all())
 
-        left = DataFrame({'value': list(range(5))}, columns=['value'])
-        right = DataFrame({'rvalue': list(range(6))})
+        left = DataFrame({'value': lrange(5)}, columns=['value'])
+        right = DataFrame({'rvalue': lrange(6)})
         lkey = np.array([1, 1, 2, 2, 3])
         rkey = np.array([1, 1, 2, 3, 4, 5])
 
@@ -627,8 +627,8 @@ class TestMerge(unittest.TestCase):
         self.assert_(np.array_equal(merged['key_0'],
                                     np.array([1, 1, 1, 1, 2, 2, 3, 4, 5])))
 
-        left = DataFrame({'value': list(range(3))})
-        right = DataFrame({'rvalue': list(range(6))})
+        left = DataFrame({'value': lrange(3)})
+        right = DataFrame({'rvalue': lrange(6)})
 
         key = np.array([0, 1, 1, 2, 2, 3])
         merged = merge(left, right, left_index=True, right_on=key, how='outer')
@@ -790,7 +790,7 @@ class TestMergeMulti(unittest.TestCase):
     def test_merge_on_multikey(self):
         joined = self.data.join(self.to_join, on=['key1', 'key2'])
 
-        join_key = Index(list(zip(self.data['key1'], self.data['key2'])))
+        join_key = Index(lzip(self.data['key1'], self.data['key2']))
         indexer = self.to_join.index.get_indexer(join_key)
         ex_values = self.to_join.values.take(indexer, axis=0)
         ex_values[indexer == -1] = np.nan
@@ -1616,7 +1616,7 @@ class TestConcatenate(unittest.TestCase):
 
         s2.name = None
         result = concat([s, s2], axis=1)
-        self.assertTrue(np.array_equal(result.columns, list(range(2))))
+        self.assertTrue(np.array_equal(result.columns, lrange(2)))
 
         # must reindex, #2603
         s = Series(randn(3), index=['c', 'a', 'b'], name='A')

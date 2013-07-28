@@ -1,6 +1,6 @@
 from vbench.api import Benchmark
 from datetime import datetime
-from six.moves import map
+from pandas.util.py3compat import map
 
 common_setup = """from pandas_vb_common import *
 """
@@ -285,12 +285,12 @@ n_columns = 3
 share_na = 0.1
 
 dates = date_range('1997-12-31', periods=n_dates, freq='B')
-dates = Index(list(map(lambda x: x.year * 10000 + x.month * 100 + x.day, dates)))
+dates = Index(lmap(lambda x: x.year * 10000 + x.month * 100 + x.day, dates))
 
 secid_min = int('10000000', 16)
 secid_max = int('F0000000', 16)
 step = (secid_max - secid_min) // (n_securities - 1)
-security_ids = list(map(lambda x: hex(x)[2:10].upper(), range(secid_min, secid_max + 1, step)))
+security_ids = lmap(lambda x: hex(x)[2:10].upper(), range(secid_min, secid_max + 1, step))
 
 data_index = MultiIndex(levels=[dates.values, security_ids],
     labels=[[i for i in xrange(n_dates) for _ in xrange(n_securities)], range(n_securities) * n_dates],

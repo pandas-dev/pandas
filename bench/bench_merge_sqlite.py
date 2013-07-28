@@ -4,8 +4,7 @@ import gc
 import time
 from pandas import DataFrame
 from pandas.util.testing import rands
-from pandas.util.py3compat import range
-from six.moves import zip
+from pandas.util.py3compat import range, zip
 import random
 
 N = 10000

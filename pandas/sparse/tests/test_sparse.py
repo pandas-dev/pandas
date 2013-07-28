@@ -22,9 +22,9 @@ from pandas.tseries.index import DatetimeIndex
 import pandas.core.datetools as datetools
 from pandas.core.common import isnull
 import pandas.util.testing as tm
-from pandas.util.py3compat import range
+from pandas.util.py3compat import range, lrange
 from pandas.util import compat
-from six.moves import cPickle as pickle
+from pandas.util.py3compat import cPickle as pickle
 
 import pandas.sparse.frame as spf
 
@@ -36,7 +36,7 @@ from pandas.sparse.api import (SparseSeries, SparseTimeSeries,
 import pandas.tests.test_frame as test_frame
 import pandas.tests.test_panel as test_panel
 import pandas.tests.test_series as test_series
-from pandas.util.py3compat import StringIO
+from pandas.util.py3compat import StringIO, lrange
 
 from .test_array import assert_sp_array_equal
 
@@ -828,7 +828,7 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
 
     def test_constructor_convert_index_once(self):
         arr = np.array([1.5, 2.5, 3.5])
-        sdf = SparseDataFrame(columns=list(range(4)), index=arr)
+        sdf = SparseDataFrame(columns=lrange(4), index=arr)
         self.assertTrue(sdf[0].index is sdf[1].index)
 
     def test_constructor_from_series(self):
@@ -1219,7 +1219,7 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         self.assertRaises(Exception, self.frame.astype, np.int64)
 
     def test_fillna(self):
-        df = self.zframe.reindex(list(range(5)))
+        df = self.zframe.reindex(lrange(5))
         result = df.fillna(0)
         expected = df.to_dense().fillna(0).to_sparse(fill_value=0)
         assert_sp_frame_equal(result, expected)

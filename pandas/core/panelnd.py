@@ -1,7 +1,7 @@
 """ Factory methods to create N-D panels """
 
 import pandas.lib as lib
-from six.moves import zip
+from pandas.util.py3compat import zip
 import six
 
 

@@ -3,7 +3,7 @@ Contains data structures designed for manipulating panel (3-dimensional) data
 """
 # pylint: disable=E1103,W0231,W0212,W0621
 
-from pandas.util.py3compat import range
+from pandas.util.py3compat import range, lrange, lmap
 from pandas.util import compat
 import operator
 import sys
@@ -28,7 +28,7 @@ import pandas.core.common as com
 import pandas.core.nanops as nanops
 import pandas.lib as lib
 import six
-from six.moves import map, zip
+from pandas.util.py3compat import map, zip
 
 
 def _ensure_like_indices(time, panels):
@@ -808,13 +808,13 @@ class Panel(NDFrame):
         new_minor, indexer2 = self.minor_axis.reindex(minor)
 
         if indexer0 is None:
-            indexer0 = list(range(len(new_items)))
+            indexer0 = lrange(len(new_items))
 
         if indexer1 is None:
-            indexer1 = list(range(len(new_major)))
+            indexer1 = lrange(len(new_major))
 
         if indexer2 is None:
-            indexer2 = list(range(len(new_minor)))
+            indexer2 = lrange(len(new_minor))
 
         for i, ind in enumerate(indexer0):
             com.take_2d_multi(values[ind], (indexer1, indexer2),
@@ -1141,7 +1141,7 @@ class Panel(NDFrame):
 
         for a in self._AXIS_ORDERS:
             if not a in kwargs:
-                where = list(map(a.startswith, aliases))
+                where = lmap(a.startswith, aliases)
 
                 if any(where):
                     if sum(where) != 1:

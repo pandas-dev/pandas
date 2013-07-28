@@ -1,5 +1,5 @@
 # Setup
-from pandas.util.py3compat import range
+from pandas.util.py3compat import range, lrange
 import numpy as np
 import pandas
 import la
@@ -7,8 +7,8 @@ N = 1000
 K = 50
 arr1 = np.random.randn(N, K)
 arr2 = np.random.randn(N, K)
-idx1 = list(range(N))
-idx2 = list(range(K))
+idx1 = lrange(N)
+idx2 = lrange(K)
 
 # pandas
 dma1 = pandas.DataFrame(arr1, idx1, idx2)

@@ -12,9 +12,7 @@ labeling information
 # pylint: disable=E1101,E1103
 # pylint: disable=W0212,W0231,W0703,W0622
 
-from six.moves import zip
-from pandas.util.py3compat import StringIO
-from pandas.util.py3compat import range
+from pandas.util.py3compat import range, zip, lrange, lmap, lzip, StringIO
 from pandas.util import compat
 import operator
 import sys
@@ -59,7 +57,6 @@ import pandas.algos as _algos
 
 from pandas.core.config import get_option, set_option
 import six
-from six.moves import map
 
 #----------------------------------------------------------------------
 # Docstring templates
@@ -1151,7 +1148,7 @@ class DataFrame(NDFrame):
             else:
                 if isinstance(self.index, MultiIndex):
                     # array of tuples to numpy cols. copy copy copy
-                    ix_vals = list(map(np.array,zip(*self.index.values)))
+                    ix_vals = lmap(np.array,zip(*self.index.values))
                 else:
                     ix_vals = [self.index.values]
 
@@ -1166,10 +1163,10 @@ class DataFrame(NDFrame):
                         count += 1
             elif index_names[0] is None:
                 index_names = ['index']
-            names = index_names + list(map(str, self.columns))
+            names = index_names + lmap(str, self.columns)
         else:
             arrays = [self[c].values for c in self.columns]
-            names = list(map(str, self.columns))
+            names = lmap(str, self.columns)
 
         dtype = np.dtype([(x, v.dtype) for x, v in zip(names, arrays)])
         return np.rec.fromarrays(arrays, dtype=dtype, names=names)
@@ -1197,7 +1194,7 @@ class DataFrame(NDFrame):
         -------
         frame : DataFrame
         """
-        keys, values = list(zip(*items))
+        keys, values = lzip(*items)
 
         if orient == 'columns':
             if columns is not None:
@@ -2911,7 +2908,7 @@ class DataFrame(NDFrame):
 
             if not drop:
                 names = self.index.names
-                zipped = list(zip(self.index.levels, self.index.labels))
+                zipped = lzip(self.index.levels, self.index.labels)
 
                 multi_col = isinstance(self.columns, MultiIndex)
                 for i, (lev, lab) in reversed(list(enumerate(zipped))):
@@ -4536,7 +4533,7 @@ class DataFrame(NDFrame):
     def applymap(self, func):
         """
         Apply a function to a DataFrame that is intended to operate
-        elementwise, i.e. like doing list(map(func, series)) for each series in the
+        elementwise, i.e. like doing map(func, series) for each series in the
         DataFrame
 
         Parameters
@@ -4889,7 +4886,7 @@ class DataFrame(NDFrame):
                            series.min(), series.quantile(lb), series.median(),
                            series.quantile(ub), series.max()])
 
-        return self._constructor(list(map(list, zip(*destat))), index=destat_columns,
+        return self._constructor(lmap(list, zip(*destat)), index=destat_columns,
                                  columns=numdata.columns)
 
     #----------------------------------------------------------------------
@@ -5850,7 +5847,7 @@ def _to_arrays(data, columns, coerce_float=False, dtype=None):
         return arrays, columns
     else:
         # last ditch effort
-        data = list(map(tuple, data))
+        data = lmap(tuple, data)
         return _list_to_arrays(data, columns,
                                coerce_float=coerce_float,
                                dtype=dtype)
@@ -5924,7 +5921,7 @@ def _convert_object_array(content, columns, coerce_float=False, dtype=None):
 
 
 def _get_names_from_index(data):
-    index = list(range(len(data)))
+    index = lrange(len(data))
     has_some_name = any([s.name is not None for s in data])
     if not has_some_name:
         return index
