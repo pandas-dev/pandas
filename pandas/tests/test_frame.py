@@ -10305,6 +10305,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             expected = df.ix[:, ['B', 'C', 'A', 'D']]
             assert_frame_equal(result, expected)
 
+    def test_iterkv_deprecation(self):
+        with tm.assert_produces_warning(DeprecationWarning):
+            self.mixed_float.iterkv()
+
     def test_iterkv_names(self):
         for k, v in compat.iteritems(self.mixed_frame):
             self.assertEqual(v.name, k)

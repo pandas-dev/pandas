@@ -1,5 +1,5 @@
 # pylint: disable=W0231,E1101
-
+import warnings
 from pandas.util import compat
 import numpy as np
 import pandas.lib as lib
@@ -40,13 +40,11 @@ class PandasContainer(PandasObject):
         return to_pickle(self, path)
 
     def save(self, path):  # TODO remove in 0.13
-        import warnings
         from pandas.io.pickle import to_pickle
         warnings.warn("save is deprecated, use to_pickle", FutureWarning)
         return to_pickle(self, path)
 
     def load(self, path):  # TODO remove in 0.13
-        import warnings
         from pandas.io.pickle import read_pickle
         warnings.warn("load is deprecated, use pd.read_pickle", FutureWarning)
         return read_pickle(path)
@@ -716,6 +714,13 @@ class NDFrame(PandasContainer):
             del self._item_cache[key]
         except KeyError:
             pass
+
+    # originally used to get around 2to3's changes to iteritems.
+    # Now unnecessary.
+    def iterkv(self, *args, **kwargs):
+        warnings.warn("iterkv is deprecated and will be removed in a future "
+                      "release, use ``iteritems`` instead.", DeprecationWarning)
+        return self.iteritems(*args, **kwargs)
 
     def get_dtype_counts(self):
         """ return the counts of dtypes in this frame """

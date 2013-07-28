@@ -9,6 +9,7 @@ from pandas.util import compat
 import operator
 from distutils.version import LooseVersion
 import types
+import warnings
 
 from numpy import nan, ndarray
 import numpy as np
@@ -1219,7 +1220,11 @@ class Series(generic.PandasContainer, pa.Array):
         """
         return lzip(iter(self.index), iter(self))
 
-    iterkv = iteritems
+    def iterkv(self):
+        warnings.warn("iterkv is deprecated and will be removed in a future "
+                      "release. Use ``iteritems`` instead", DeprecationWarning)
+        return self.iteritems()
+
     if compat.PY3:  # pragma: no cover
         items = iteritems
 

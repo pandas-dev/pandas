@@ -17,6 +17,7 @@ from pandas.util import compat
 import operator
 import sys
 import collections
+import warnings
 
 from numpy import nan as NA
 import numpy as np
@@ -564,14 +565,12 @@ class DataFrame(NDFrame):
 
     @property
     def _verbose_info(self):
-        import warnings
         warnings.warn('The _verbose_info property will be removed in version '
                       '0.13. please use "max_info_rows"', FutureWarning)
         return get_option('display.max_info_rows') is None
 
     @_verbose_info.setter
     def _verbose_info(self, value):
-        import warnings
         warnings.warn('The _verbose_info property will be removed in version '
                       '0.13. please use "max_info_rows"', FutureWarning)
 
@@ -786,7 +785,6 @@ class DataFrame(NDFrame):
         arrays.extend(self.iloc[:, k] for k in range(len(self.columns)))
         return zip(*arrays)
 
-    iterkv = iteritems
     if compat.PY3:  # pragma: no cover
         items = iteritems
 
@@ -976,7 +974,6 @@ class DataFrame(NDFrame):
         -------
         result : dict like {column -> {index -> value}}
         """
-        import warnings
         if not self.columns.is_unique:
             warnings.warn("DataFrame columns are not unique, some "
                           "columns will be omitted.", UserWarning)
@@ -1391,7 +1388,6 @@ class DataFrame(NDFrame):
             or new (expanded format) if False)
         """
         if nanRep is not None:  # pragma: no cover
-            import warnings
             warnings.warn("nanRep is deprecated, use na_rep",
                           FutureWarning)
             na_rep = nanRep
@@ -1527,7 +1523,6 @@ class DataFrame(NDFrame):
         """
         Render a DataFrame to a console-friendly tabular output.
         """
-        import warnings
         if force_unicode is not None:  # pragma: no cover
             warnings.warn("force_unicode is deprecated, it will have no "
                           "effect", FutureWarning)
@@ -1576,7 +1571,6 @@ class DataFrame(NDFrame):
         Render a DataFrame as an HTML table.
         """
 
-        import warnings
         if force_unicode is not None:  # pragma: no cover
             warnings.warn("force_unicode is deprecated, it will have no "
                           "effect", FutureWarning)
@@ -1615,7 +1609,6 @@ class DataFrame(NDFrame):
         You can splice this into a LaTeX document.
         """
 
-        import warnings
         if force_unicode is not None:  # pragma: no cover
             warnings.warn("force_unicode is deprecated, it will have no "
                           "effect", FutureWarning)
@@ -2014,7 +2007,6 @@ class DataFrame(NDFrame):
             # go with the __setitem__ behavior since that is more consistent
             # with all other indexing behavior
             if isinstance(key, Series) and not key.index.equals(self.index):
-                import warnings
                 warnings.warn("Boolean Series key will be reindexed to match "
                               "DataFrame index.", UserWarning)
             elif len(key) != len(self.index):
@@ -3194,7 +3186,6 @@ class DataFrame(NDFrame):
         sorted : DataFrame
         """
         if column is not None:  # pragma: no cover
-            import warnings
             warnings.warn("column is deprecated, use columns", FutureWarning)
             columns = column
         return self.sort_index(by=columns, axis=axis, ascending=ascending,
@@ -3576,13 +3567,11 @@ class DataFrame(NDFrame):
             raise AssertionError("'to_replace' must be 'None' if 'regex' is "
                                  "not a bool")
         if method is not None:
-            from warnings import warn
-            warn('the "method" argument is deprecated and will be removed in'
+            warnings.warn('the "method" argument is deprecated and will be removed in'
                  'v0.13; this argument has no effect')
 
         if axis is not None:
-            from warnings import warn
-            warn('the "axis" argument is deprecated and will be removed in'
+            warnings.warn('the "axis" argument is deprecated and will be removed in'
                  'v0.13; this argument has no effect')
 
         self._consolidate_inplace()
@@ -3717,7 +3706,6 @@ class DataFrame(NDFrame):
         --------
         reindex, replace, fillna
         """
-        from warnings import warn
         warn('DataFrame.interpolate will be removed in v0.13, please use '
              'either DataFrame.fillna or DataFrame.replace instead',
              FutureWarning)
@@ -3867,7 +3855,6 @@ class DataFrame(NDFrame):
 
         # teeny hack because one does DataFrame + TimeSeries all the time
         if self.index.is_all_dates and other.index.is_all_dates:
-            import warnings
             warnings.warn(("TimeSeries broadcasting along DataFrame index "
                            "by default is deprecated. Please use "
                            "DataFrame.<op> to explicitly broadcast arithmetic "
