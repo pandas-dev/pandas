@@ -2950,6 +2950,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = DataFrame([[1],[1],[1]],columns=['bar'])
         check(df,expected)
 
+        # values
+        df = DataFrame([[1,2.5],[3,4.5]], index=[1,2], columns=['x','x'])
+        result = df.values
+        expected = np.array([[1,2.5],[3,4.5]])
+        self.assert_((result == expected).all().all())
+
     def test_insert_benchmark(self):
         # from the vb_suite/frame_methods/frame_insert_columns
         N = 10

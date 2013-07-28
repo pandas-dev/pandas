@@ -83,6 +83,21 @@ class TestPandasContainer(unittest.TestCase):
         unser = read_json(df.to_json(orient='values'), orient='values')
         np.testing.assert_equal(df.values, unser.values)
 
+        # GH4377; duplicate columns not processing correctly
+        df = DataFrame([['a','b'],['c','d']], index=[1,2], columns=['x','y'])
+        result = read_json(df.to_json(orient='split'), orient='split')
+        assert_frame_equal(result, df)
+
+        def _check(df):
+            result = read_json(df.to_json(orient='split'), orient='split', convert_dates=['x'])
+            assert_frame_equal(result, df)
+
+        for o in [[['a','b'],['c','d']],
+                  [[1.5,2.5],[3.5,4.5]],
+                  [[1,2.5],[3,4.5]],
+                  [[Timestamp('20130101'),3.5],[Timestamp('20130102'),4.5]]]:
+            _check(DataFrame(o, index=[1,2], columns=['x','x']))
+
     def test_frame_from_json_to_json(self):
 
         def _check_orient(df, orient, dtype=None, numpy=False, convert_axes=True, check_dtype=True, raise_ok=None):

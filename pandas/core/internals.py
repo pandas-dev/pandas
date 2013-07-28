@@ -1538,23 +1538,23 @@ class BlockManager(PandasObject):
         # By construction, all of the item should be covered by one of the
         # blocks
         if items.is_unique:
+
             for block in self.blocks:
                 indexer = items.get_indexer(block.items)
                 if (indexer == -1).any():
                     raise AssertionError('Items must contain all block items')
                 result[indexer] = block.get_values(dtype)
                 itemmask[indexer] = 1
-        else:
-            for block in self.blocks:
-                mask = items.isin(block.items)
-                indexer = mask.nonzero()[0]
-                if (len(indexer) != len(block.items)):
-                    raise AssertionError('All items must be in block items')
-                result[indexer] = block.get_values(dtype)
-                itemmask[indexer] = 1
 
-        if not itemmask.all():
-            raise AssertionError('Some items were not contained in blocks')
+            if not itemmask.all():
+                raise AssertionError('Some items were not contained in blocks')
+
+        else:
+
+            # non-unique, must use ref_locs
+            rl = self._set_ref_locs()
+            for i, (block, idx) in enumerate(rl):
+                result[i] = block.iget(idx)
 
         return result
 
