@@ -1016,6 +1016,9 @@ class BlockManager(PandasObject):
     def __nonzero__(self):
         return True
 
+    # Python3 compat
+    __bool__ = __nonzero__
+
     @property
     def ndim(self):
         return len(self.axes)

@@ -651,6 +651,9 @@ class NDFrame(PandasContainer):
     def __nonzero__(self):
         return not self.empty
 
+    # Python 3 compat
+    __bool__ = __nonzero__
+
     @property
     def ndim(self):
         return self._data.ndim
