@@ -4,11 +4,8 @@ Ordinary least squares regression
 
 # pylint: disable-msg=W0201
 
-from pandas.util.py3compat import zip
+from pandas.util.compat import zip, range, StringIO
 from itertools import starmap
-from pandas.util.py3compat import StringIO
-
-from pandas.util.py3compat import range
 from pandas.util import compat
 import numpy as np
 

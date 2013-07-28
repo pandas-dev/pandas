@@ -12,7 +12,9 @@ from numpy import nan
 import numpy as np
 
 from pandas import DataFrame, Series, Index, MultiIndex, DatetimeIndex
-from pandas.util.py3compat import StringIO, BytesIO, PY3, range, long, lrange, lmap
+from pandas.util.compat import(
+    StringIO, BytesIO, PY3, range, long, lrange, lmap, u, map, StringIO
+)
 from pandas.io.common import urlopen, URLError
 import pandas.io.parsers as parsers
 from pandas.io.parsers import (read_csv, read_table, read_fwf,
@@ -26,7 +28,7 @@ import pandas.util.testing as tm
 import pandas as pd
 
 import pandas.lib as lib
-from pandas.util import py3compat
+from pandas.util import compat
 from pandas.lib import Timestamp
 from pandas.tseries.index import date_range
 import pandas.tseries.tools as tools
@@ -34,8 +36,6 @@ import pandas.tseries.tools as tools
 from numpy.testing.decorators import slow
 
 from pandas.parser import OverflowError
-import six
-from pandas.util.py3compat import map
 
 
 class ParserTests(object):
@@ -108,12 +108,12 @@ g,7,seven
         tm.assert_frame_equal(xp.reindex(columns=df.columns), df)
 
     def test_read_csv(self):
-        if not py3compat.PY3:
+        if not compat.PY3:
             if 'win' in sys.platform:
-                prefix = six.u("file:///")
+                prefix = u("file:///")
             else:
-                prefix = six.u("file://")
-            fname = prefix + six.text_type(self.csv1)
+                prefix = u("file://")
+            fname = prefix + compat.text_type(self.csv1)
             # it works!
             df1 = read_csv(fname, index_col=0, parse_dates=True)
 
@@ -315,7 +315,7 @@ KORD,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
 KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
 
         df = self.read_csv(StringIO(data), parse_dates={'nominal': [1, 2]})
-        self.assert_(not isinstance(df.nominal[0], six.string_types))
+        self.assert_(not isinstance(df.nominal[0], compat.string_types))
 
     ts_data = """\
 ID,date,nominalTime,actualTime,A,B,C,D,E
@@ -869,9 +869,9 @@ baz,7,8,9
         tm.assert_frame_equal(df, df2)
 
     def test_read_table_unicode(self):
-        fin = BytesIO(six.u('\u0141aski, Jan;1').encode('utf-8'))
+        fin = BytesIO(u('\u0141aski, Jan;1').encode('utf-8'))
         df1 = read_table(fin, sep=";", encoding="utf-8", header=None)
-        tm.assert_isinstance(df1[0].values[0], six.text_type)
+        tm.assert_isinstance(df1[0].values[0], compat.text_type)
 
     def test_read_table_wrong_num_columns(self):
         # too few!
@@ -1556,13 +1556,13 @@ False,NA,True"""
 
     def test_utf16_bom_skiprows(self):
         # #2298
-        data = six.u("""skip this
+        data = u("""skip this
 skip this too
 A\tB\tC
 1\t2\t3
 4\t5\t6""")
 
-        data2 = six.u("""skip this
+        data2 = u("""skip this
 skip this too
 A,B,C
 1,2,3
@@ -1578,7 +1578,7 @@ A,B,C
                         f.write(bytes)
 
                     s = BytesIO(dat.encode('utf-8'))
-                    if py3compat.PY3:
+                    if compat.PY3:
                         # somewhat False since the code never sees bytes
                         from io import TextIOWrapper
                         s = TextIOWrapper(s, encoding='utf-8')
@@ -1597,7 +1597,7 @@ A,B,C
         result = self.read_table(path, encoding='utf-16')
         self.assertEquals(len(result), 50)
 
-        if not py3compat.PY3:
+        if not compat.PY3:
             buf = BytesIO(open(path, 'rb').read())
             result = self.read_table(buf, encoding='utf-16')
             self.assertEquals(len(result), 50)
@@ -1607,7 +1607,6 @@ A,B,C
         if hash(np.int64(-1)) != -2:
             raise nose.SkipTest
 
-        from pandas.util.py3compat import StringIO, lrange, lmap
         csv = """id,score,days
 1,2,12
 2,2-5,
@@ -1669,7 +1668,7 @@ A,B,C
         result = result.set_index(0)
 
         got = result[1][1632]
-        expected = six.u('\xc1 k\xf6ldum klaka (Cold Fever) (1994)')
+        expected = u('\xc1 k\xf6ldum klaka (Cold Fever) (1994)')
 
         self.assertEquals(got, expected)
 
@@ -1797,7 +1796,7 @@ baz|7|8|9
                               sep=None, skiprows=2)
         tm.assert_frame_equal(data, data3)
 
-        text = six.u("""ignore this
+        text = u("""ignore this
 ignore this too
 index|A|B|C
 foo|1|2|3
@@ -1806,7 +1805,7 @@ baz|7|8|9
 """).encode('utf-8')
 
         s = BytesIO(text)
-        if py3compat.PY3:
+        if compat.PY3:
             # somewhat False since the code never sees bytes
             from io import TextIOWrapper
             s = TextIOWrapper(s, encoding='utf-8')
@@ -2371,10 +2370,10 @@ class TestParseSQL(unittest.TestCase):
         assert_same_values_and_dtype(result, expected)
 
     def test_convert_sql_column_unicode(self):
-        arr = np.array([six.u('1.5'), None, six.u('3'), six.u('4.2')],
+        arr = np.array([u('1.5'), None, u('3'), u('4.2')],
                        dtype=object)
         result = lib.convert_sql_column(arr)
-        expected = np.array([six.u('1.5'), np.nan, six.u('3'), six.u('4.2')],
+        expected = np.array([u('1.5'), np.nan, u('3'), u('4.2')],
                             dtype=object)
         assert_same_values_and_dtype(result, expected)
 

@@ -1,8 +1,8 @@
 """ Factory methods to create N-D panels """
 
 import pandas.lib as lib
-from pandas.util.py3compat import zip
-import six
+from pandas.util.compat import zip
+import pandas.util.compat as compat
 
 
 def create_nd_panel_factory(klass_name, axis_orders, axis_slices, slicer, axis_aliases=None, stat_axis=2,ns=None):
@@ -29,7 +29,7 @@ def create_nd_panel_factory(klass_name, axis_orders, axis_slices, slicer, axis_a
     """
 
     # if slicer is a name, get the object
-    if isinstance(slicer, six.string_types):
+    if isinstance(slicer, compat.string_types):
         import pandas
         try:
             slicer = getattr(pandas, slicer)

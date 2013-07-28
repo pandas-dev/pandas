@@ -1,5 +1,5 @@
 from __future__ import print_function
-from pandas.util.py3compat import range, lrange
+from pandas.util.compat import range, lrange, u
 import nose
 import unittest
 import os
@@ -19,10 +19,9 @@ import pandas.util.testing as tm
 from pandas.tests.test_series import assert_series_equal
 from pandas.tests.test_frame import assert_frame_equal
 from pandas import concat, Timestamp
-from pandas.util import py3compat
+from pandas.util import compat
 
 from numpy.testing.decorators import slow
-import six
 
 try:
     import tables
@@ -1332,8 +1331,8 @@ class TestHDFStore(unittest.TestCase):
             l = [('date', datetime.date(2001, 1, 2))]
 
             # py3 ok for unicode
-            if not py3compat.PY3:
-                l.append(('unicode', six.u('\u03c3')))
+            if not compat.PY3:
+                l.append(('unicode', u('\u03c3')))
 
             ### currently not supported dtypes ####
             for n, f in l:
@@ -2813,7 +2812,7 @@ class TestHDFStore(unittest.TestCase):
 
     def test_unicode_index(self):
 
-        unicode_values = [six.u('\u03c3'), six.u('\u03c3\u03c3')]
+        unicode_values = [u('\u03c3'), u('\u03c3\u03c3')]
         warnings.filterwarnings('ignore', category=PerformanceWarning)
         s = Series(np.random.randn(len(unicode_values)), unicode_values)
         self._check_roundtrip(s, tm.assert_series_equal)

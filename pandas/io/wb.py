@@ -1,7 +1,6 @@
 from __future__ import print_function
 
-from pandas.util.py3compat import map, reduce
-from pandas.util.py3compat import range, lrange
+from pandas.util.compat import map, reduce, range, lrange
 from pandas.io.common import urlopen
 from pandas.io import json
 import pandas

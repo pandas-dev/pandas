@@ -2,12 +2,12 @@ from __future__ import print_function
 # -*- encoding:utf-8 -*-
 
 import sys, os
-import six
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from docscrape import NumpyDocString, FunctionDoc, ClassDoc
 from docscrape_sphinx import SphinxDocString, SphinxClassDoc
 from nose.tools import *
+from pandas.util.compat import u
 
 doc_txt = '''\
   numpy.multivariate_normal(mean, cov, shape=None)
@@ -289,7 +289,7 @@ of the one-dimensional normal distribution to higher dimensions.
         The drawn samples, arranged according to `shape`.  If the
         shape given is (m,n,...), then the shape of `out` is is
         (m,n,...,N).
-        
+
         In other words, each entry ``out[i,j,...,:]`` is an N-dimensional
         value drawn from the distribution.
 
@@ -298,12 +298,12 @@ of the one-dimensional normal distribution to higher dimensions.
     Certain warnings apply.
 
 .. seealso::
-    
+
     :obj:`some`, :obj:`other`, :obj:`funcs`
-    
+
     :obj:`otherfunc`
         relationship
-    
+
 .. rubric:: Notes
 
 Instead of specifying the full covariance matrix, popular
@@ -350,7 +350,7 @@ standard deviation:
 [True, True]
 """)
 
-       
+
 doc2 = NumpyDocString("""
     Returns array of indices of the maximum values of along the given axis.
 
@@ -493,7 +493,7 @@ def test_unicode():
         äää
 
     """)
-    assert doc['Summary'][0] == six.u('öäöäöäöäöåååå').encode('utf-8')
+    assert doc['Summary'][0] == u('öäöäöäöäöåååå').encode('utf-8')
 
 def test_plot_examples():
     cfg = dict(use_plots=True)
@@ -511,7 +511,7 @@ def test_plot_examples():
     Examples
     --------
     .. plot::
-    
+
        import matplotlib.pyplot as plt
        plt.plot([1,2,3],[4,5,6])
        plt.show()

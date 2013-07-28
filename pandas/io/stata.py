@@ -19,9 +19,9 @@ from pandas.core.frame import DataFrame
 from pandas.core.series import Series
 from pandas.core.categorical import Categorical
 import datetime
-from pandas.util import py3compat
 from pandas.util import compat
-from pandas.util.py3compat import StringIO, long, lrange, lmap, lzip
+from pandas.util import compat
+from pandas.util.compat import StringIO, long, lrange, lmap, lzip
 from pandas import isnull
 from pandas.io.parsers import _parser_params, Appender
 from pandas.io.common import get_filepath_or_buffer
@@ -256,7 +256,7 @@ class StataParser(object):
             }
 
     def _decode_bytes(self, str, errors=None):
-        if py3compat.PY3:
+        if compat.PY3:
             return str.decode(self._encoding, errors)
         else:
             return str
@@ -298,7 +298,7 @@ class StataReader(StataParser):
             if encoding is not None:
                 self._encoding = encoding
 
-        if type(path_or_buf) is str:
+        if isinstance(path_or_buf, (str, compat.text_type, bytes)):
             self.path_or_buf = open(path_or_buf, 'rb')
         else:
             self.path_or_buf = path_or_buf
@@ -403,7 +403,7 @@ class StataReader(StataParser):
         return d
 
     def _null_terminate(self, s):
-        if py3compat.PY3:  # have bytes not strings, so must decode
+        if compat.PY3:  # have bytes not strings, so must decode
             null_byte = b"\0"
             try:
                 s = s[:s.index(null_byte)]
@@ -545,7 +545,7 @@ class StataReader(StataParser):
                 data[col] = data[col].apply(_stata_elapsed_date_to_datetime, args=(self.fmtlist[i],))
 
         if convert_categoricals:
-            cols = np.where(lmap(lambda x: x in six.iterkeys(self.value_label_dict), self.lbllist))[0]
+            cols = np.where(lmap(lambda x: x in compat.iterkeys(self.value_label_dict), self.lbllist))[0]
             for i in cols:
                 col = data.columns[i]
                 labeled_data = np.copy(data[col])
@@ -751,7 +751,7 @@ class StataWriter(StataParser):
         """
         Helper to call encode before writing to file for Python 3 compat.
         """
-        if py3compat.PY3:
+        if compat.PY3:
             self._file.write(to_write.encode(self._encoding))
         else:
             self._file.write(to_write)
@@ -907,7 +907,7 @@ class StataWriter(StataParser):
 
     def _null_terminate(self, s, as_string=False):
         null_byte = '\x00'
-        if py3compat.PY3 and not as_string:
+        if compat.PY3 and not as_string:
             s += null_byte
             return s.encode(self._encoding)
         else:

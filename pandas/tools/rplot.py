@@ -1,9 +1,8 @@
-from pandas.util.py3compat import range
-from pandas.util.py3compat import zip
-import numpy as np
 import random
 from copy import deepcopy
 
+import numpy as np
+from pandas.util.compat import range, zip
 #
 # TODO:
 # * Make sure legends work properly

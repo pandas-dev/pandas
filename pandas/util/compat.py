@@ -1,22 +1,113 @@
-import sys
-import six
-from pandas.util.py3compat import map, filter
-from pandas.util.py3compat import range
+"""
+compat
+======
+
+Cross-compatible functions for Python 2 and 3.
+
+Key items to import for 2/3 compatible code:
+* iterators: range(), map(), zip(), filter(), reduce()
+* lists: lrange(), lmap(), lzip(), lfilter()
+* unicode: u() [u"" is a syntax error in Python 3.0-3.2]
+* longs: long (int in Python 3)
+* callable
+* iterable method compatibility: iteritems, iterkeys, itervalues
+  * Uses the original method if available, otherwise uses items, keys, values.
+* types:
+    * text_type: unicode in Python 2, str in Python 3
+    * binary_type: str in Python 2, bythes in Python 3
+    * string_types: basestring in Python 2, str in Python 3
+* bind_method: binds functions to classes
+
+Python 2.6 compatibility:
+* OrderedDict
+* Counter
+
+Other items:
+* OrderedDefaultDict
+"""
+# pylint disable=W0611
+import functools
+import itertools
 from itertools import product
+import sys
+import types
 
-
-# OrderedDict Shim from  Raymond Hettinger, python core dev
-# http://code.activestate.com/recipes/576693-ordered-dictionary-for-py24/
-# here to support versions before 2.6
-try:
-    from thread import get_ident as _get_ident
-except ImportError:
-    from dummy_thread import get_ident as _get_ident
+PY3 = (sys.version_info[0] >= 3)
+# import iterator versions of these functions
 
 try:
-    from _abcoll import KeysView, ValuesView, ItemsView
+    import __builtin__ as builtins
+    # not writeable when instantiated with string, doesn't handle unicode well
+    from cStringIO import StringIO as cStringIO
+    # always writeable
+    from StringIO import StringIO
+    BytesIO = StringIO
+    import cPickle
 except ImportError:
-    pass
+    import builtins
+    from io import StringIO, BytesIO
+    cStringIO = StringIO
+    import pickle as cPickle
+
+
+if PY3:
+    def isidentifier(s):
+        return s.isidentifier()
+
+    def str_to_bytes(s, encoding='ascii'):
+        return s.encode(encoding)
+
+    def bytes_to_str(b, encoding='utf-8'):
+        return b.decode(encoding)
+
+    # have to explicitly put builtins into the namespace
+    range = range
+    map = map
+    zip = zip
+    filter = filter
+    reduce = functools.reduce
+    long = int
+    unichr = chr
+
+    # list-producing versions of the major Python iterating functions
+    def lrange(*args, **kwargs):
+        return list(range(*args, **kwargs))
+
+    def lzip(*args, **kwargs):
+        return list(zip(*args, **kwargs))
+
+    def lmap(*args, **kwargs):
+        return list(map(*args, **kwargs))
+
+    def lfilter(*args, **kwargs):
+        return list(filter(*args, **kwargs))
+else:
+    # Python 2
+    import re
+    _name_re = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*$")
+
+    def isidentifier(s, dotted=False):
+        return bool(_name_re.match(s))
+
+    def str_to_bytes(s, encoding='ascii'):
+        return s
+
+    def bytes_to_str(b, encoding='ascii'):
+        return b
+
+    range = xrange
+    zip = itertools.izip
+    filter = itertools.ifilter
+    map = itertools.imap
+    reduce = reduce
+    long = long
+    unichr = unichr
+
+    # Python 2-builtin ranges produce lists
+    lrange = builtins.range
+    lzip = builtins.zip
+    lmap = builtins.map
+    lfilter = builtins.filter
 
 
 def iteritems(obj, **kwargs):
@@ -24,13 +115,104 @@ def iteritems(obj, **kwargs):
        uses 'iteritems' if available and otherwise uses 'items'.
 
        Passes kwargs to method."""
-    if hasattr(obj, "iteritems"):
-        return obj.iteritems(**kwargs)
+    func = getattr(obj, "iteritems", None)
+    if not func:
+        func = obj.items
+    return func(**kwargs)
+
+
+def iterkeys(obj, **kwargs):
+    func = getattr(obj, "iterkeys", None)
+    if not func:
+        func = obj.keys
+    return func(**kwargs)
+
+
+def itervalues(obj, **kwargs):
+    func = getattr(obj, "itervalues", None)
+    if not func:
+        func = obj.values
+    return func(**kwargs)
+
+
+def bind_method(cls, name, func):
+    """Bind a method to class, python 2 and python 3 compatible.
+
+    Parameters
+    ----------
+
+    cls : type
+        class to receive bound method
+    name : basestring
+        name of method on class instance
+    func : function
+        function to be bound as method
+
+
+    Returns
+    -------
+    None
+    """
+    # only python 2 has bound/unbound method issue
+    if not PY3:
+        setattr(cls, name, types.MethodType(func, None, cls))
     else:
-        return obj.items(**kwargs)
+        setattr(cls, name, func)
+# ----------------------------------------------------------------------------
+# functions largely based / taken from the six module
+
+# Much of the code in this module comes from Benjamin Peterson's six library.
+# The license for this library can be found in LICENSES/SIX and the code can be
+# found at https://bitbucket.org/gutworth/six
+
+if PY3:
+    string_types = str,
+    integer_types = int,
+    class_types = type,
+    text_type = str
+    binary_type = bytes
+
+    def u(s):
+        return s
+else:
+    string_types = basestring,
+    integer_types = (int, long)
+    class_types = (type, types.ClassType)
+    text_type = unicode
+    binary_type = str
+
+    def u(s):
+        return unicode(s, "unicode_escape")
+
+try:
+    # callable reintroduced in later versions of Python
+    callable = callable
+except NameError:
+    def callable(obj):
+        return any("__call__" in klass.__dict__ for klass in type(obj).__mro__)
+
+# ----------------------------------------------------------------------------
+# Python 2.6 compatibility shims
+#
+
+# OrderedDict Shim from  Raymond Hettinger, python core dev
+# http://code.activestate.com/recipes/576693-ordered-dictionary-for-py24/
+# here to support versions before 2.6
+if not PY3:
+    # don't need this except in 2.6
+    try:
+        from thread import get_ident as _get_ident
+    except ImportError:
+        from dummy_thread import get_ident as _get_ident
+
+try:
+    from _abcoll import KeysView, ValuesView, ItemsView
+except ImportError:
+    pass
 
 
 class _OrderedDict(dict):
+
     'Dictionary that remembers insertion order'
     # An inherited dict maps keys to values.
     # The inherited dict provides __getitem__, __len__, __contains__, and get.
@@ -38,10 +220,11 @@ class _OrderedDict(dict):
     # Big-O running times for all methods are the same as for regular
     # dictionaries.
 
-    # The internal self.__map dictionary maps keys to links in a doubly linked list.
-    # The circular doubly linked list starts and ends with a sentinel element.
-    # The sentinel element never gets deleted (this simplifies the algorithm).
-    # Each link is stored as a list of length three:  [PREV, NEXT, KEY].
+    # The internal self.__map dictionary maps keys to links in a doubly linked
+    # list.  The circular doubly linked list starts and ends with a sentinel
+    # element.  The sentinel element never gets deleted (this simplifies the
+    # algorithm).  Each link is stored as a list of length three:  [PREV, NEXT,
+    # KEY].
 
     def __init__(self, *args, **kwds):
         '''Initialize an ordered dictionary.  Signature is the same as for
@@ -61,9 +244,9 @@ class _OrderedDict(dict):
 
     def __setitem__(self, key, value, dict_setitem=dict.__setitem__):
         'od.__setitem__(i, y) <==> od[i]=y'
-        # Setting a new item creates a new link which goes at the end of the linked
-        # list, and the inherited dictionary is updated with the new key/value
-        # pair.
+        # Setting a new item creates a new link which goes at the end of the
+        # linked list, and the inherited dictionary is updated with the new
+        # key/value pair.
         if key not in self:
             root = self.__root
             last = root[0]
@@ -99,7 +282,7 @@ class _OrderedDict(dict):
     def clear(self):
         'od.clear() -> None.  Remove all items from od.'
         try:
-            for node in six.itervalues(self.__map):
+            for node in itervalues(self.__map):
                 del node[:]
             root = self.__root
             root[:] = [root, root, None]
@@ -110,8 +293,8 @@ class _OrderedDict(dict):
 
     def popitem(self, last=True):
         '''od.popitem() -> (k, v), return and remove a (key, value) pair.
-        Pairs are returned in LIFO order if last is true or FIFO order if false.
-
+        Pairs are returned in LIFO order if last is true or FIFO order if
+        false.
         '''
         if not self:
             raise KeyError('dictionary is empty')
@@ -162,11 +345,10 @@ class _OrderedDict(dict):
     def update(*args, **kwds):
         '''od.update(E, **F) -> None.  Update od from dict/iterable E and F.
 
-        If E is a dict instance, does:           for k in E: od[k] = E[k]
-        If E has a .keys() method, does:         for k in E.keys(): od[k] = E[k]
-        Or if E is an iterable of items, does:   for k, v in E: od[k] = v
-        In either case, this is followed by:     for k, v in F.items(): od[k] = v
-
+        If E is a dict instance, does:        for k in E: od[k] = E[k]
+        If E has a .keys() method, does:      for k in E.keys(): od[k] = E[k]
+        Or if E is an iterable of items, does:for k, v in E: od[k] = v
+        In either case, this is followed by:  for k, v in F.items(): od[k] = v
         '''
         if len(args) > 2:
             raise TypeError('update() takes at most 2 positional '
@@ -189,15 +371,15 @@ class _OrderedDict(dict):
                 self[key] = value
         for key, value in kwds.items():
             self[key] = value
-
-    __update = update  # let subclasses override update without breaking __init__
+    # let subclasses override update without breaking __init__
+    __update = update
 
     __marker = object()
 
     def pop(self, key, default=__marker):
-        '''od.pop(k[,d]) -> v, remove specified key and return the corresponding value.
-        If key is not found, d is returned if given, otherwise KeyError is raised.
-
+        '''od.pop(k[,d]) -> v, remove specified key and return the\
+        corresponding value.  If key is not found, d is returned if given,
+        otherwise KeyError is raised.
         '''
         if key in self:
             result = self[key]
@@ -243,9 +425,8 @@ class _OrderedDict(dict):
 
     @classmethod
     def fromkeys(cls, iterable, value=None):
-        '''OD.fromkeys(S[, v]) -> New ordered dictionary with keys from S
-        and values equal to v (which defaults to None).
-
+        '''OD.fromkeys(S[, v]) -> New ordered dictionary with keys from S and
+        values equal to v (which defaults to None).
         '''
         d = cls()
         for key in iterable:
@@ -253,12 +434,13 @@ class _OrderedDict(dict):
         return d
 
     def __eq__(self, other):
-        '''od.__eq__(y) <==> od==y.  Comparison to another OD is order-sensitive
-        while comparison to a regular mapping is order-insensitive.
-
+        '''od.__eq__(y) <==> od==y.  Comparison to another OD is
+        order-sensitive while comparison to a regular mapping is
+        order-insensitive.
         '''
         if isinstance(other, OrderedDict):
-            return len(self) == len(other) and list(self.items()) == list(other.items())
+            return (len(self) == len(other) and
+                    list(self.items()) == list(other.items()))
         return dict.__eq__(self, other)
 
     def __ne__(self, other):
@@ -279,7 +461,7 @@ class _OrderedDict(dict):
         return ItemsView(self)
 
 
-## {{{ http://code.activestate.com/recipes/576611/ (r11)
+# {{{ http://code.activestate.com/recipes/576611/ (r11)
 
 try:
     from operator import itemgetter
@@ -289,6 +471,7 @@ except ImportError:
 
 
 class _Counter(dict):
+
     '''Dict subclass for counting hashable objects.  Sometimes called a bag
     or multiset.  Elements are stored as dictionary keys and their counts
     are stored as dictionary values.
@@ -303,10 +486,10 @@ class _Counter(dict):
         from an input iterable.  Or, initialize the count from another mapping
         of elements to their counts.
 
-        >>> c = Counter()                           # a new, empty counter
-        >>> c = Counter('gallahad')                 # a new counter from an iterable
-        >>> c = Counter({'a': 4, 'b': 2})           # a new counter from a mapping
-        >>> c = Counter(a=4, b=2)                   # a new counter from keyword args
+        >>> c = Counter()                    # a new, empty counter
+        >>> c = Counter('gallahad')          # a new counter from an iterable
+        >>> c = Counter({'a': 4, 'b': 2})    # a new counter from a mapping
+        >>> c = Counter(a=4, b=2)            # a new counter from keyword args
 
         '''
         self.update(iterable, **kwds)
@@ -382,7 +565,8 @@ class _Counter(dict):
         return Counter(self)
 
     def __delitem__(self, elem):
-        'Like dict.__delitem__() but does not raise KeyError for missing values.'
+        '''Like dict.__delitem__() but does not raise KeyError for missing
+        values.'''
         if elem in self:
             dict.__delitem__(self, elem)
 
@@ -479,13 +663,15 @@ else:
 # http://stackoverflow.com/questions/4126348
 # Thanks to @martineau at SO
 
+
 class OrderedDefaultdict(OrderedDict):
+
     def __init__(self, *args, **kwargs):
         newdefault = None
         newargs = ()
         if args:
             newdefault = args[0]
-            if not (newdefault is None or six.callable(newdefault)):
+            if not (newdefault is None or callable(newdefault)):
                 raise TypeError('first argument must be callable or None')
             newargs = args[1:]
         self.default_factory = newdefault

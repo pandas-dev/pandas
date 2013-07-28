@@ -1,7 +1,6 @@
 from __future__ import print_function
-from pandas.util.py3compat import range
+from pandas.util.compat import range, cStringIO as StringIO
 import os
-from pandas.util.py3compat import cStringIO as StringIO
 
 header = """
 cimport numpy as np

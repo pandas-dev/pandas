@@ -1,5 +1,5 @@
 """ io on the clipboard """
-from pandas.util.py3compat import StringIO
+from pandas.util.compat import StringIO
 
 def read_clipboard(**kwargs):  # pragma: no cover
     """

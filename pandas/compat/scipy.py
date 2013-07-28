@@ -2,7 +2,7 @@
 Shipping functions from SciPy to reduce dependency on having SciPy installed
 """
 
-from pandas.util.py3compat import range, lrange
+from pandas.util.compat import range, lrange
 import numpy as np
 
 

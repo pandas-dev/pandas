@@ -75,13 +75,11 @@ TODO
 
 """
 
-from pandas.util.py3compat import range
+from pandas.util.compat import range, cStringIO as StringIO, map
 import sys, os, glob, shutil, imp, warnings, re, textwrap, traceback
-from pandas.util.py3compat import cStringIO as StringIO
 import sphinx
 
 import warnings
-from pandas.util.py3compat import map
 warnings.warn("A plot_directive module is also available under "
               "matplotlib.sphinxext; expect this numpydoc.plot_directive "
               "module to be deprecated after relevant features have been "

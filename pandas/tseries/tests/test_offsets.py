@@ -1,5 +1,5 @@
 from datetime import date, datetime, timedelta
-from pandas.util.py3compat import range
+from pandas.util.compat import range
 from pandas.util import compat
 import unittest
 import nose

@@ -3,7 +3,6 @@ Isolate pandas's exposure to NumPy
 """
 
 import numpy as np
-import six
 
 Array = np.ndarray
 

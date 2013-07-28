@@ -1,7 +1,4 @@
 from __future__ import print_function
-from pandas.util.py3compat import range, long, lrange, StringIO, lmap, lzip
-from pandas.util import compat
-from pandas.util.py3compat import map, zip, builtins
 import nose
 import unittest
 
@@ -16,6 +13,10 @@ from pandas.core.groupby import GroupByError, SpecificationError, DataError
 from pandas.core.series import Series
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
                                  assert_series_equal, assert_almost_equal)
+from pandas.util.compat import(
+    range, long, lrange, StringIO, lmap, lzip, map, zip, builtins, OrderedDict
+)
+from pandas.util import compat
 from pandas.core.panel import Panel
 from pandas.tools.merge import concat
 from collections import defaultdict
@@ -443,7 +444,6 @@ class TestGroupBy(unittest.TestCase):
             self.assert_((self.df.ix[v]['B'] == k[1]).all())
 
     def test_aggregate_str_func(self):
-        from pandas.util.compat import OrderedDict
 
         def _check_results(grouped):
             # single series
@@ -1068,7 +1068,6 @@ class TestGroupBy(unittest.TestCase):
         assert_series_equal(result, expected)
 
     def test_groupby_as_index_agg(self):
-        from pandas.util.compat import OrderedDict
         grouped = self.df.groupby('A', as_index=False)
 
         # single-key
@@ -2238,7 +2237,6 @@ class TestGroupBy(unittest.TestCase):
 
     def test_more_flexible_frame_multi_function(self):
         from pandas import concat
-        from pandas.util.compat import OrderedDict
 
         grouped = self.df.groupby('A')
 
@@ -2277,7 +2275,6 @@ class TestGroupBy(unittest.TestCase):
 
     def test_multi_function_flexible_mix(self):
         # GH #1268
-        from pandas.util.compat import OrderedDict
         grouped = self.df.groupby('A')
 
         d = OrderedDict([['C', OrderedDict([['foo', 'mean'],

@@ -1,10 +1,8 @@
 from __future__ import print_function
 import os
 import re
-from pandas.util.py3compat import StringIO
 from unittest import TestCase
 import warnings
-import six
 from distutils.version import LooseVersion
 from pandas.io.common import URLError
 
@@ -14,7 +12,8 @@ from nose.tools import assert_raises
 import numpy as np
 from numpy.random import rand
 from numpy.testing.decorators import slow
-from pandas.util.py3compat import map, zip
+from pandas.util.compat import map, zip, StringIO
+import pandas.util.compat as compat
 
 try:
     from importlib import import_module
@@ -45,7 +44,7 @@ def _skip_if_no(module_name):
 
 
 def _skip_if_none_of(module_names):
-    if isinstance(module_names, six.string_types):
+    if isinstance(module_names, compat.string_types):
         _skip_if_no(module_names)
         if module_names == 'bs4':
             import bs4

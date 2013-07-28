@@ -58,8 +58,7 @@ from __future__ import print_function
 #-----------------------------------------------------------------------------
 
 # Stdlib
-from pandas.util.py3compat import range, lmap
-from pandas.util.py3compat import map, cStringIO as StringIO
+from pandas.util.compat import zip, range, map, lmap, u, cStringIO as StringIO
 import ast
 import os
 import re
@@ -71,8 +70,6 @@ import matplotlib
 from docutils.parsers.rst import directives
 from docutils import nodes
 from sphinx.util.compat import Directive
-import six
-from pandas.util.py3compat import zip
 
 matplotlib.use('Agg')
 
@@ -493,7 +490,7 @@ class EmbeddedSphinxShell(object):
                     multiline = True
                     cont_len = len(str(lineno)) + 2
                     line_to_process = line.strip('\\')
-                    output.extend([six.u("%s %s") % (fmtin%lineno,line)])
+                    output.extend([u("%s %s") % (fmtin%lineno,line)])
                     continue
                 else: # no we're still not
                     line_to_process = line.strip('\\')
@@ -501,12 +498,12 @@ class EmbeddedSphinxShell(object):
                 line_to_process += line.strip('\\')
                 if line_stripped.endswith('\\'): # and we still are
                     continuation = '.' * cont_len
-                    output.extend([(six.u('   %s: ')+line_stripped) % continuation])
+                    output.extend([(u('   %s: ')+line_stripped) % continuation])
                     continue
                 # else go ahead and run this multiline then carry on
 
             # get output of line
-            self.process_input_line(six.text_type(line_to_process.strip()),
+            self.process_input_line(compat.text_type(line_to_process.strip()),
                                     store_history=False)
             out_line = self.cout.getvalue()
             self.clear_cout()
@@ -520,15 +517,15 @@ class EmbeddedSphinxShell(object):
 
             # line numbers don't actually matter, they're replaced later
             if not multiline:
-                in_line = six.u("%s %s") % (fmtin%lineno,line)
+                in_line = u("%s %s") % (fmtin%lineno,line)
 
                 output.extend([in_line])
             else:
-                output.extend([(six.u('   %s: ')+line_stripped) % continuation])
+                output.extend([(u('   %s: ')+line_stripped) % continuation])
                 multiline = False
             if len(out_line):
                 output.extend([out_line])
-            output.extend([six.u('')])
+            output.extend([u('')])
 
         return output
 
@@ -570,19 +567,19 @@ class EmbeddedSphinxShell(object):
                 output.extend([line])
                 continue
 
-            continuation  = six.u('   %s:')% ''.join(['.']*(len(str(ct))+2))
+            continuation  = u('   %s:')% ''.join(['.']*(len(str(ct))+2))
             if not multiline:
-                modified = six.u("%s %s") % (fmtin % ct, line_stripped)
+                modified = u("%s %s") % (fmtin % ct, line_stripped)
                 output.append(modified)
                 ct += 1
                 try:
                     ast.parse(line_stripped)
-                    output.append(six.u(''))
+                    output.append(u(''))
                 except Exception:
                     multiline = True
                     multiline_start = lineno
             else:
-                modified = six.u('%s %s') % (continuation, line)
+                modified = u('%s %s') % (continuation, line)
                 output.append(modified)
 
                 try:
@@ -594,7 +591,7 @@ class EmbeddedSphinxShell(object):
 
                         continue
 
-                    output.extend([continuation, six.u('')])
+                    output.extend([continuation, u('')])
                     multiline = False
                 except Exception:
                     pass

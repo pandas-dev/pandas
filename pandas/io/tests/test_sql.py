@@ -11,8 +11,8 @@ import numpy as np
 
 from pandas.core.datetools import format as date_format
 from pandas.core.api import DataFrame, isnull
-from pandas.util.py3compat import StringIO, range, lrange
-import six
+from pandas.util.compat import StringIO, range, lrange
+import pandas.util.compat as compat
 
 import pandas.io.sql as sql
 import pandas.util.testing as tm
@@ -23,8 +23,8 @@ _formatters = {
     datetime: lambda dt: "'%s'" % date_format(dt),
     str: lambda x: "'%s'" % x,
     np.str_: lambda x: "'%s'" % x,
-    six.text_type: lambda x: "'%s'" % x,
-    six.binary_type: lambda x: "'%s'" % x,
+    compat.text_type: lambda x: "'%s'" % x,
+    compat.binary_type: lambda x: "'%s'" % x,
     float: lambda x: "%.8f" % x,
     int: lambda x: "%s" % x,
     type(None): lambda x: "NULL",

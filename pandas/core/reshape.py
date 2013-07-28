@@ -1,10 +1,8 @@
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
 
-from pandas.util.py3compat import range
+from pandas.util.compat import range, zip
 from pandas.util import compat
-from pandas.util.py3compat import zip
-import six
 import itertools
 
 import numpy as np
@@ -693,7 +691,7 @@ def melt(frame, id_vars=None, value_vars=None,
         else:
             var_name = [frame.columns.name if frame.columns.name is not None
                         else 'variable']
-    if isinstance(var_name, six.string_types):
+    if isinstance(var_name, compat.string_types):
         var_name = [var_name]
 
     N, K = frame.shape

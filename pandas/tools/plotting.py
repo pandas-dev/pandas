@@ -1,6 +1,5 @@
 # being a bit too dynamic
 # pylint: disable=E1101
-import six
 import datetime
 import warnings
 import re
@@ -16,8 +15,8 @@ from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex, Period
 from pandas.tseries.frequencies import get_period_alias, get_base_alias
 from pandas.tseries.offsets import DateOffset
-from pandas.util.py3compat import range, lrange, lmap
-from pandas.util.py3compat import map, zip
+from pandas.util.compat import range, lrange, lmap, map, zip
+import pandas.util.compat as compat
 
 try:  # mpl optional
     import pandas.tseries.converter as conv
@@ -99,7 +98,7 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
     import matplotlib.pyplot as plt
 
     if color is None and colormap is not None:
-        if isinstance(colormap, six.string_types):
+        if isinstance(colormap, compat.string_types):
             import matplotlib.cm as cm
             cmap = colormap
             colormap = cm.get_cmap(colormap)
@@ -114,7 +113,7 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
     else:
         if color_type == 'default':
             colors = plt.rcParams.get('axes.color_cycle', list('bgrcmyk'))
-            if isinstance(colors, six.string_types):
+            if isinstance(colors, compat.string_types):
                 colors = list(colors)
         elif color_type == 'random':
             import random

@@ -1,8 +1,6 @@
 from datetime import datetime
-from pandas.util.py3compat import range, long
+from pandas.util.compat import range, long, zip
 from pandas.util import compat
-from pandas.util.py3compat import zip
-import six
 import re
 
 import numpy as np
@@ -58,14 +56,14 @@ def get_to_timestamp_base(base):
 
 
 def get_freq_group(freq):
-    if isinstance(freq, six.string_types):
+    if isinstance(freq, compat.string_types):
         base, mult = get_freq_code(freq)
         freq = base
     return (freq // 1000) * 1000
 
 
 def get_freq(freq):
-    if isinstance(freq, six.string_types):
+    if isinstance(freq, compat.string_types):
         base, mult = get_freq_code(freq)
         freq = base
     return freq
@@ -420,7 +418,7 @@ def to_offset(freqstr):
     if isinstance(freqstr, tuple):
         name = freqstr[0]
         stride = freqstr[1]
-        if isinstance(stride, six.string_types):
+        if isinstance(stride, compat.string_types):
             name, stride = stride, name
         name, _ = _base_and_stride(name)
         delta = get_offset(name) * stride

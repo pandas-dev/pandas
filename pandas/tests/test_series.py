@@ -23,14 +23,12 @@ import pandas.lib as lib
 import pandas.core.datetools as datetools
 import pandas.core.nanops as nanops
 
-from pandas.util.py3compat import StringIO, lrange, range, zip
+from pandas.util.compat import StringIO, lrange, range, zip, u, OrderedDict
 from pandas.util import compat
-from pandas.util import py3compat
 from pandas.util.testing import (assert_series_equal,
                                  assert_almost_equal,
                                  ensure_clean)
 import pandas.util.testing as tm
-import six
 
 
 def _skip_if_no_scipy():
@@ -519,7 +517,6 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
     def test_orderedDict_ctor(self):
         # GH3283
-        from pandas.util.compat import OrderedDict
         import pandas, random
         data = OrderedDict([('col%s' % i, random.random()) for i in range(12)])
         s = pandas.Series(data)
@@ -527,7 +524,6 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
     def test_orderedDict_subclass_ctor(self):
         # GH3283
-        from pandas.util.compat import OrderedDict
         import pandas, random
         class A(OrderedDict):
             pass
@@ -1288,13 +1284,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         repr(ots)
 
         # various names
-        for name in ['', 1, 1.2, 'foo', six.u('\u03B1\u03B2\u03B3'),
+        for name in ['', 1, 1.2, 'foo', u('\u03B1\u03B2\u03B3'),
                      'loooooooooooooooooooooooooooooooooooooooooooooooooooong',
                      ('foo', 'bar', 'baz'),
                      (1, 2),
                      ('foo', 1, 2.3),
-                     (six.u('\u03B1'), six.u('\u03B2'), six.u('\u03B3')),
-                     (six.u('\u03B1'), 'bar')]:
+                     (u('\u03B1'), u('\u03B2'), u('\u03B3')),
+                     (u('\u03B1'), 'bar')]:
             self.series.name = name
             repr(self.series)
 
@@ -1318,7 +1314,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertFalse("a\n" in repr(ser))
 
     def test_tidy_repr(self):
-        a = Series([six.u("\u05d0")] * 1000)
+        a = Series([u("\u05d0")] * 1000)
         a.name = 'title1'
         repr(a)         # should not raise exception
 
@@ -1343,7 +1339,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # it works!
         repr(s)
 
-        s.name = (six.u("\u05d0"),) * 2
+        s.name = (u("\u05d0"),) * 2
         repr(s)
 
     def test_repr_should_return_str(self):
@@ -1356,20 +1352,20 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         """
         data = [8, 5, 3, 5]
-        index1 = [six.u("\u03c3"), six.u("\u03c4"), six.u("\u03c5"), six.u("\u03c6")]
+        index1 = [u("\u03c3"), u("\u03c4"), u("\u03c5"), u("\u03c6")]
         df = Series(data, index=index1)
         self.assertTrue(type(df.__repr__() == str))  # both py2 / 3
 
     def test_unicode_string_with_unicode(self):
-        df = Series([six.u("\u05d0")], name=six.u("\u05d1"))
-        if py3compat.PY3:
+        df = Series([u("\u05d0")], name=u("\u05d1"))
+        if compat.PY3:
             str(df)
         else:
-            six.text_type(df)
+            compat.text_type(df)
 
     def test_bytestring_with_unicode(self):
-        df = Series([six.u("\u05d0")], name=six.u("\u05d1"))
-        if py3compat.PY3:
+        df = Series([u("\u05d0")], name=u("\u05d1"))
+        if compat.PY3:
             bytes(df)
         else:
             str(df)
@@ -1790,7 +1786,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         p = DataFrame({ 'first' : [3,4,5,8], 'second' : [1,1,1,1] })
         result = p['first'] / p['second']
-        if py3compat.PY3:
+        if compat.PY3:
             assert_series_equal(result,p['first'].astype('float64'))
         else:
             assert_series_equal(result,p['first'])
@@ -2406,7 +2402,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         ops = [Series.add, Series.sub, Series.mul, Series.div]
         equivs = [operator.add, operator.sub, operator.mul]
-        if py3compat.PY3:
+        if compat.PY3:
             equivs.append(operator.truediv)
         else:
             equivs.append(operator.div)
@@ -2622,7 +2618,6 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(hist, expected)
 
         # GH 3002, datetime64[ns]
-        from pandas.util.py3compat import StringIO, lrange
         import pandas as pd
         f = StringIO("xxyyzz20100101PIE\nxxyyzz20100101GUM\nxxyyww20090101EGG\nfoofoo20080909PIE")
         df = pd.read_fwf(f, widths=[6,8,3], names=["person_id", "dt", "food"], parse_dates=["dt"])
@@ -2821,7 +2816,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
     def test_to_csv_unicode_index(self):
         buf = StringIO()
-        s = Series([six.u("\u05d0"), "d2"], index=[six.u("\u05d0"), six.u("\u05d1")])
+        s = Series([u("\u05d0"), "d2"], index=[u("\u05d0"), u("\u05d1")])
 
         s.to_csv(buf, encoding='UTF-8')
         buf.seek(0)

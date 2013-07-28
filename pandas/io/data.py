@@ -12,14 +12,15 @@ from collections import defaultdict
 
 import numpy as np
 
-from pandas.util.py3compat import StringIO, bytes_to_str, range, lrange, lmap
+from pandas.util.compat import(
+    StringIO, bytes_to_str, range, lrange, lmap, zip
+)
+import pandas.util.compat as compat
 from pandas import Panel, DataFrame, Series, read_csv, concat
 from pandas.core.common import PandasError
 from pandas.io.parsers import TextParser
 from pandas.io.common import urlopen, ZipFile, urlencode
 from pandas.util.testing import _network_error_classes
-import six
-from pandas.util.py3compat import map, zip
 
 
 class SymbolWarning(UserWarning):
@@ -101,19 +102,20 @@ def _in_chunks(seq, size):
 _yahoo_codes = {'symbol': 's', 'last': 'l1', 'change_pct': 'p2', 'PE': 'r',
                 'time': 't1', 'short_ratio': 's7'}
 
+
 def get_quote_yahoo(symbols):
     """
     Get current yahoo quote
 
     Returns a DataFrame
     """
-    if isinstance(symbols, six.string_types):
+    if isinstance(symbols, compat.string_types):
         sym_list = symbols
     else:
         sym_list = '+'.join(symbols)
 
     # for codes see: http://www.gummy-stuff.org/Yahoo-data.htm
-    request = ''.join(six.itervalues(_yahoo_codes))  # code request string
+    request = ''.join(compat.itervalues(_yahoo_codes))  # code request string
     header = list(_yahoo_codes.keys())
 
     data = defaultdict(list)
@@ -202,10 +204,9 @@ def _get_hist_google(sym, start, end, retry_count, pause):
 
     # www.google.com/finance/historical?q=GOOG&startdate=Jun+9%2C+2011&enddate=Jun+8%2C+2013&output=csv
     url = google_URL + urlencode({"q": sym,
-                                         "startdate": start.strftime('%b %d, '
-                                                                     '%Y'),
-                                         "enddate": end.strftime('%b %d, %Y'),
-                                         "output": "csv"})
+                                  "startdate": start.strftime('%b %d, ' '%Y'),
+                                  "enddate": end.strftime('%b %d, %Y'),
+                                  "output": "csv"})
     return _retry_read_url(url, retry_count, pause, 'Google')
 
 
@@ -322,6 +323,7 @@ def _dl_mult_symbols(symbols, start, end, chunksize, retry_count, pause,
 
 _source_functions = {'google': _get_hist_google, 'yahoo': _get_hist_yahoo}
 
+
 def _get_data_from(symbols, start, end, retry_count, pause, adjust_price,
                    ret_index, chunksize, source, name):
     if name is not None:
@@ -332,7 +334,7 @@ def _get_data_from(symbols, start, end, retry_count, pause, adjust_price,
     src_fn = _source_functions[source]
 
     # If a single symbol, (e.g., 'GOOG')
-    if isinstance(symbols, (six.string_types, int)):
+    if isinstance(symbols, (compat.string_types, int)):
         hist_data = src_fn(symbols, start, end, retry_count, pause)
     # Or multiple symbols, (e.g., ['GOOG', 'AAPL', 'MSFT'])
     elif isinstance(symbols, DataFrame):

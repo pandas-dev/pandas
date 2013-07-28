@@ -2,8 +2,6 @@ from __future__ import division
 
 # pylint: disable-msg=W0402
 
-from pandas.util.py3compat import range, unichr, lrange, lmap, lzip
-from pandas.util.py3compat import zip
 import random
 import string
 import sys
@@ -14,7 +12,7 @@ import os
 
 from datetime import datetime
 from functools import wraps
-from contextlib import contextmanager, closing
+from contextlib import contextmanager
 from distutils.version import LooseVersion
 
 from numpy.random import randn
@@ -27,14 +25,15 @@ import pandas.core.frame as frame
 import pandas.core.panel as panel
 import pandas.core.panel4d as panel4d
 import pandas.util.compat as compat
+from pandas.util.compat import(
+    map, zip, range, unichr, lrange, lmap, lzip, u, callable, Counter
+)
 
 from pandas import bdate_range
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
 
 from pandas.io.common import urlopen, HTTPException
-import six
-from pandas.util.py3compat import map
 
 Index = index.Index
 MultiIndex = index.MultiIndex
@@ -54,7 +53,7 @@ def rands(n):
 
 
 def randu(n):
-    choices = six.u("").join(map(unichr, lrange(1488, 1488 + 26)))
+    choices = u("").join(map(unichr, lrange(1488, 1488 + 26)))
     choices += string.digits
     return ''.join([random.choice(choices) for _ in range(n)])
 
@@ -142,7 +141,7 @@ def assert_almost_equal(a, b, check_less_precise = False):
     if isinstance(a, dict) or isinstance(b, dict):
         return assert_dict_equal(a, b)
 
-    if isinstance(a, six.string_types):
+    if isinstance(a, compat.string_types):
         assert a == b, "%s != %s" % (a, b)
         return True
 
@@ -446,7 +445,6 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
         if unspecified, string labels will be generated.
     """
 
-    from pandas.util.compat import Counter
     if ndupe_l is None:
         ndupe_l = [1] * nlevels
     assert (_is_sequence(ndupe_l) and len(ndupe_l) <= nlevels)
@@ -463,7 +461,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
         names = None
 
     # make singelton case uniform
-    if isinstance(names, six.string_types) and nlevels == 1:
+    if isinstance(names, compat.string_types) and nlevels == 1:
         names = [names]
 
     # specific 1D index type requested?
@@ -694,7 +692,7 @@ def optional_args(decorator):
         def dec(f):
             return decorator(f, *args, **kwargs)
 
-        is_decorating = not kwargs and len(args) == 1 and six.callable(args[0])
+        is_decorating = not kwargs and len(args) == 1 and callable(args[0])
         if is_decorating:
             f = args[0]
             args = []

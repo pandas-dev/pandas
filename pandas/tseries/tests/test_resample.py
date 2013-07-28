@@ -2,8 +2,7 @@
 
 from datetime import datetime, timedelta
 
-from pandas.util.py3compat import range, lrange
-from pandas.util.py3compat import zip
+from pandas.util.compat import range, lrange, zip, product
 import numpy as np
 
 from pandas import Series, TimeSeries, DataFrame, Panel, isnull, notnull, Timestamp
@@ -605,7 +604,6 @@ def _simple_pts(start, end, freq='D'):
 
 
 from pandas.tseries.frequencies import MONTHS, DAYS
-from pandas.util.compat import product
 
 
 class TestResamplePeriodIndex(unittest.TestCase):

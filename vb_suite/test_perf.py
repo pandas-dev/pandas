@@ -27,8 +27,7 @@ everything and calculate a ration for the timing information.
 """
 from __future__ import print_function
 
-from pandas.util.py3compat import range
-from pandas.util.py3compat import map
+from pandas.util.compat import range, lmap
 import shutil
 import os
 import sys
@@ -140,7 +139,7 @@ def get_results_df(db, rev):
     """Takes a git commit hash and returns a Dataframe of benchmark results
     """
     bench = DataFrame(db.get_benchmarks())
-    results = DataFrame(map(list,db.get_rev_results(rev).values()))
+    results = DataFrame(lmap(list,db.get_rev_results(rev).values()))
 
     # Sinch vbench.db._reg_rev_results returns an unlabeled dict,
     # we have to break encapsulation a bit.

@@ -1,14 +1,12 @@
 
 # pylint: disable-msg=E1101,W0613,W0603
-from pandas.util.py3compat import StringIO
+from pandas.util.compat import StringIO, long
 from pandas.util import compat
-from pandas.util.py3compat import long
 import os
 
 from pandas import Series, DataFrame, to_datetime
 from pandas.io.common import get_filepath_or_buffer
 import pandas.json as _json
-import six
 loads = _json.loads
 dumps = _json.dumps
 
@@ -29,7 +27,7 @@ def to_json(path_or_buf, obj, orient=None, date_format='epoch', double_precision
     else:
         raise NotImplementedError
 
-    if isinstance(path_or_buf, six.string_types):
+    if isinstance(path_or_buf, compat.string_types):
         with open(path_or_buf,'w') as fh:
             fh.write(s)
     elif path_or_buf is None:
@@ -185,7 +183,7 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     """
 
     filepath_or_buffer,_ = get_filepath_or_buffer(path_or_buf)
-    if isinstance(filepath_or_buffer, six.string_types):
+    if isinstance(filepath_or_buffer, compat.string_types):
         if os.path.exists(filepath_or_buffer):
             with open(filepath_or_buffer,'r') as fh:
                 json = fh.read()
@@ -470,7 +468,7 @@ class FrameParser(Parser):
 
         def is_ok(col):
             """ return if this col is ok to try for a date parse """
-            if not isinstance(col, six.string_types): return False
+            if not isinstance(col, compat.string_types): return False
 
             if (col.endswith('_at') or
                 col.endswith('_time') or

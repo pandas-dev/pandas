@@ -6,7 +6,7 @@ with float64 data
 # pylint: disable=E1101,E1103,W0231,E0202
 
 from numpy import nan
-from pandas.util.py3compat import range, lmap
+from pandas.util.compat import range, lmap, map
 from pandas.util import compat
 import numpy as np
 
@@ -23,7 +23,6 @@ import pandas.core.datetools as datetools
 from pandas.sparse.series import SparseSeries
 from pandas.util.decorators import Appender
 import pandas.lib as lib
-from pandas.util.py3compat import map
 
 
 class _SparseMockBlockManager(object):

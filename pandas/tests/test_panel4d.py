@@ -1,5 +1,5 @@
 from datetime import datetime
-from pandas.util.py3compat import range, lrange
+from pandas.util.compat import range, lrange
 import os
 import operator
 import unittest
@@ -15,7 +15,7 @@ from pandas.core.panel4d import Panel4D
 from pandas.core.series import remove_na
 import pandas.core.common as com
 import pandas.core.panel as panelmod
-from pandas.util import py3compat
+from pandas.util import compat
 
 from pandas.util.testing import (assert_panel_equal,
                                  assert_panel4d_equal,

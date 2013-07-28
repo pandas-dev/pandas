@@ -3,13 +3,11 @@ from __future__ import print_function
 
 from pandas.util import compat
 import sys
-import six
 
-from pandas.util.py3compat import StringIO, lzip, range, map, zip, reduce
+from pandas.util.compat import StringIO, lzip, range, map, zip, reduce, u, OrderedDict
 from pandas.core.common import adjoin, isnull, notnull
 from pandas.core.index import Index, MultiIndex, _ensure_index
-from pandas.util import py3compat
-from pandas.util.compat import OrderedDict
+from pandas.util import compat
 from pandas.util.terminal import get_terminal_size
 from pandas.core.config import get_option, set_option, reset_option
 import pandas.core.common as com
@@ -81,7 +79,7 @@ class SeriesFormatter(object):
         self.dtype  = dtype
 
     def _get_footer(self):
-        footer = six.u('')
+        footer = u('')
 
         if self.name:
             if getattr(self.series.index, 'freq', None):
@@ -106,7 +104,7 @@ class SeriesFormatter(object):
                     footer += ', '
                 footer += 'dtype: %s' % com.pprint_thing(self.series.dtype.name)
 
-        return six.text_type(footer)
+        return compat.text_type(footer)
 
     def _get_formatted_index(self):
         index = self.series.index
@@ -129,7 +127,7 @@ class SeriesFormatter(object):
         series = self.series
 
         if len(series) == 0:
-            return six.u('')
+            return u('')
 
         fmt_index, have_header = self._get_formatted_index()
         fmt_values = self._get_formatted_values()
@@ -149,10 +147,10 @@ class SeriesFormatter(object):
         if footer:
             result.append(footer)
 
-        return six.text_type(six.u('\n').join(result))
+        return compat.text_type(u('\n').join(result))
 
 def _strlen_func():
-    if py3compat.PY3:  # pragma: no cover
+    if compat.PY3:  # pragma: no cover
         _strlen = len
     else:
         encoding = get_option("display.encoding")
@@ -283,7 +281,7 @@ class DataFrameFormatter(TableFormatter):
         frame = self.frame
 
         if len(frame.columns) == 0 or len(frame.index) == 0:
-            info_line = (six.u('Empty %s\nColumns: %s\nIndex: %s')
+            info_line = (u('Empty %s\nColumns: %s\nIndex: %s')
                          % (type(self.frame).__name__,
                             com.pprint_thing(frame.columns),
                             com.pprint_thing(frame.index)))
@@ -345,7 +343,7 @@ class DataFrameFormatter(TableFormatter):
         frame = self.frame
 
         if len(frame.columns) == 0 or len(frame.index) == 0:
-            info_line = (six.u('Empty %s\nColumns: %s\nIndex: %s')
+            info_line = (u('Empty %s\nColumns: %s\nIndex: %s')
                          % (type(self.frame).__name__,
                             frame.columns, frame.index))
             strcols = [[info_line]]
@@ -358,7 +356,7 @@ class DataFrameFormatter(TableFormatter):
                 column_format = 'l%s' % ''.join(map(get_col_type, dtypes))
             else:
                 column_format = '%s' % ''.join(map(get_col_type, dtypes))
-        elif not isinstance(column_format, six.string_types):
+        elif not isinstance(column_format, compat.string_types):
             raise AssertionError(('column_format must be str or unicode, not %s'
                                   % type(column_format)))
 
@@ -381,7 +379,7 @@ class DataFrameFormatter(TableFormatter):
 
         if hasattr(self.buf, 'write'):
             write(self.buf, frame, column_format, strcols)
-        elif isinstance(self.buf, six.string_types):
+        elif isinstance(self.buf, compat.string_types):
             with open(self.buf, 'w') as f:
                 write(f, frame, column_format, strcols)
         else:
@@ -402,7 +400,7 @@ class DataFrameFormatter(TableFormatter):
         html_renderer = HTMLFormatter(self, classes=classes)
         if hasattr(self.buf, 'write'):
             html_renderer.write_result(self.buf)
-        elif isinstance(self.buf, six.string_types):
+        elif isinstance(self.buf, compat.string_types):
             with open(self.buf, 'w') as f:
                 html_renderer.write_result(f)
         else:
@@ -1834,9 +1832,9 @@ class EngFormatter(object):
         mant = sign * dnum / (10 ** pow10)
 
         if self.accuracy is None:  # pragma: no cover
-            format_str = six.u("% g%s")
+            format_str = u("% g%s")
         else:
-            format_str = (six.u("%% .%if%%s") % self.accuracy)
+            format_str = (u("%% .%if%%s") % self.accuracy)
 
         formatted = format_str % (mant, prefix)
 
@@ -1862,8 +1860,8 @@ def set_eng_float_format(precision=None, accuracy=3, use_eng_prefix=False):
 
 
 def _put_lines(buf, lines):
-    if any(isinstance(x, six.text_type) for x in lines):
-        lines = [six.text_type(x) for x in lines]
+    if any(isinstance(x, compat.text_type) for x in lines):
+        lines = [compat.text_type(x) for x in lines]
     buf.write('\n'.join(lines))
 
 

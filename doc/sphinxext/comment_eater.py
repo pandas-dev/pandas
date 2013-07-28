@@ -1,4 +1,4 @@
-from pandas.util.py3compat import cStringIO
+from pandas.util.compat import cStringIO
 import compiler
 import inspect
 import textwrap

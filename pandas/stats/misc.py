@@ -4,8 +4,7 @@ import numpy as np
 
 from pandas.core.api import Series, DataFrame, isnull, notnull
 from pandas.core.series import remove_na
-import six
-from pandas.util.py3compat import zip
+from pandas.util.compat import zip
 
 
 def zscore(series):

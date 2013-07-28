@@ -1,7 +1,6 @@
 from pandas.core.base import StringMixin
-from pandas.util.py3compat import StringIO
+from pandas.util.compat import StringIO, range
 
-from pandas.util.py3compat import range
 import numpy as np
 
 from pandas.core.api import Series, DataFrame

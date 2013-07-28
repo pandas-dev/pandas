@@ -3,7 +3,7 @@ Some examples playing around with yahoo finance data
 """
 
 from datetime import datetime
-from pandas.util.py3compat import zip
+from pandas.util.compat import zip
 
 import matplotlib.finance as fin
 import numpy as np

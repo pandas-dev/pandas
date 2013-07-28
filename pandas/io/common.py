@@ -4,11 +4,11 @@ import sys
 import zipfile
 from contextlib import contextmanager, closing
 
-from pandas.util.py3compat import StringIO
-from pandas.util import py3compat
+from pandas.util.compat import StringIO
+from pandas.util import compat
 
 
-if py3compat.PY3:
+if compat.PY3:
     from urllib.request import urlopen
     _urlopen = urlopen
     from urllib.parse import urlparse as parse_url
@@ -83,7 +83,7 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None):
 
     if _is_url(filepath_or_buffer):
         req = _urlopen(filepath_or_buffer)
-        if py3compat.PY3:  # pragma: no cover
+        if compat.PY3:  # pragma: no cover
             if encoding:
                 errors = 'strict'
             else:

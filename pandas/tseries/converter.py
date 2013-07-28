@@ -1,6 +1,4 @@
 from datetime import datetime, timedelta
-from pandas.util.py3compat import range, lrange
-import six
 import datetime as pydt
 import numpy as np
 
@@ -12,6 +10,8 @@ import matplotlib.dates as dates
 from matplotlib.ticker import Formatter, AutoLocator, Locator
 from matplotlib.transforms import nonsingular
 
+from pandas.util.compat import range, lrange
+import pandas.util.compat as compat
 import pandas.lib as lib
 import pandas.core.common as com
 from pandas.core.index import Index
@@ -38,7 +38,7 @@ def _to_ordinalf(tm):
 
 
 def time2num(d):
-    if isinstance(d, six.string_types):
+    if isinstance(d, compat.string_types):
         parsed = tools.to_datetime(d)
         if not isinstance(parsed, datetime):
             raise ValueError('Could not parse time %s' % d)
@@ -163,7 +163,7 @@ class DatetimeConverter(dates.DateConverter):
             return dates.date2num(values)
         elif (com.is_integer(values) or com.is_float(values)):
             return values
-        elif isinstance(values, six.string_types):
+        elif isinstance(values, compat.string_types):
             return try_parse(values)
         elif isinstance(values, (list, tuple, np.ndarray)):
             if not isinstance(values, np.ndarray):
@@ -810,7 +810,7 @@ def _annual_finder(vmin, vmax, freq):
 
 
 def get_finder(freq):
-    if isinstance(freq, six.string_types):
+    if isinstance(freq, compat.string_types):
         freq = frequencies.get_freq(freq)
     fgroup = frequencies.get_freq_group(freq)
 
@@ -847,7 +847,7 @@ class TimeSeries_DateLocator(Locator):
 
     def __init__(self, freq, minor_locator=False, dynamic_mode=True,
                  base=1, quarter=1, month=1, day=1, plot_obj=None):
-        if isinstance(freq, six.string_types):
+        if isinstance(freq, compat.string_types):
             freq = frequencies.get_freq(freq)
         self.freq = freq
         self.base = base
@@ -926,7 +926,7 @@ class TimeSeries_DateFormatter(Formatter):
 
     def __init__(self, freq, minor_locator=False, dynamic_mode=True,
                  plot_obj=None):
-        if isinstance(freq, six.string_types):
+        if isinstance(freq, compat.string_types):
             freq = frequencies.get_freq(freq)
         self.format = None
         self.freq = freq

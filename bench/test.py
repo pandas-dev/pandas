@@ -1,9 +1,8 @@
-from pandas.util.py3compat import range
 import numpy as np
 import itertools
 import collections
 import scipy.ndimage as ndi
-from pandas.util.py3compat import zip
+from pandas.util.compat import zip, range
 
 N = 10000
 

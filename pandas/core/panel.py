@@ -3,7 +3,7 @@ Contains data structures designed for manipulating panel (3-dimensional) data
 """
 # pylint: disable=E1103,W0231,W0212,W0621
 
-from pandas.util.py3compat import range, lrange, lmap
+from pandas.util.compat import map, zip, range, lrange, lmap, u, OrderedDict, OrderedDefaultdict
 from pandas.util import compat
 import operator
 import sys
@@ -22,13 +22,11 @@ from pandas.core.internals import (BlockManager,
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.util import py3compat
+from pandas.util import compat
 from pandas.util.decorators import deprecate, Appender, Substitution
 import pandas.core.common as com
 import pandas.core.nanops as nanops
 import pandas.lib as lib
-import six
-from pandas.util.py3compat import map, zip
 
 
 def _ensure_like_indices(time, panels):
@@ -227,7 +225,7 @@ class Panel(NDFrame):
     __rfloordiv__ = _arith_method(lambda x, y: y // x, '__rfloordiv__')
     __rpow__ = _arith_method(lambda x, y: y ** x, '__rpow__')
 
-    if not py3compat.PY3:
+    if not compat.PY3:
         __div__ = _arith_method(operator.div, '__div__')
         __rdiv__ = _arith_method(lambda x, y: y / x, '__rdiv__')
 
@@ -275,7 +273,6 @@ class Panel(NDFrame):
             return cls(data, **d)
 
     def _init_dict(self, data, axes, dtype=None):
-        from pandas.util.compat import OrderedDict
         haxis = axes.pop(self._het_axis)
 
         # prefilter if haxis passed
@@ -347,7 +344,6 @@ class Panel(NDFrame):
         -------
         Panel
         """
-        from pandas.util.compat import OrderedDict,OrderedDefaultdict
 
         orient = orient.lower()
         if orient == 'minor':
@@ -477,17 +473,17 @@ class Panel(NDFrame):
         class_name = str(self.__class__)
 
         shape = self.shape
-        dims = six.u('Dimensions: %s') % ' x '.join(
+        dims = u('Dimensions: %s') % ' x '.join(
             ["%d (%s)" % (s, a) for a, s in zip(self._AXIS_ORDERS, shape)])
 
         def axis_pretty(a):
             v = getattr(self, a)
             if len(v) > 0:
-                return six.u('%s axis: %s to %s') % (a.capitalize(),
+                return u('%s axis: %s to %s') % (a.capitalize(),
                                                com.pprint_thing(v[0]),
                                                com.pprint_thing(v[-1]))
             else:
-                return six.u('%s axis: None') % a.capitalize()
+                return u('%s axis: None') % a.capitalize()
 
         output = '\n'.join(
             [class_name, dims] + [axis_pretty(a) for a in self._AXIS_ORDERS])
@@ -1137,7 +1133,7 @@ class Panel(NDFrame):
         """
         # construct the args
         args = list(args)
-        aliases = tuple(six.iterkeys(kwargs))
+        aliases = tuple(compat.iterkeys(kwargs))
 
         for a in self._AXIS_ORDERS:
             if not a in kwargs:
@@ -1487,7 +1483,7 @@ class Panel(NDFrame):
         if not isinstance(values, np.ndarray):
             values = np.asarray(values)
             # NumPy strings are a pain, convert to object
-            if issubclass(values.dtype.type, six.string_types):
+            if issubclass(values.dtype.type, compat.string_types):
                 values = np.array(values, dtype=object, copy=True)
         else:
             if copy:
@@ -1511,7 +1507,6 @@ class Panel(NDFrame):
         -------
         dict of aligned results & indicies
         """
-        from pandas.util.compat import OrderedDict
 
         result = dict()
         if isinstance(frames,OrderedDict): # caller differs dict/ODict, presered type
@@ -1715,8 +1710,8 @@ def install_ipython_completers():  # pragma: no cover
     @complete_object.when_type(Panel)
     def complete_dataframe(obj, prev_completions):
         return prev_completions + [c for c in obj.keys()
-                                   if isinstance(c, six.string_types)
-                                        and py3compat.isidentifier(c)]
+                                   if isinstance(c, compat.string_types)
+                                        and compat.isidentifier(c)]
 
 # Importing IPython brings in about 200 modules, so we want to avoid it unless
 # we're in IPython (when those modules are loaded anyway).

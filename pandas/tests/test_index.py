@@ -1,7 +1,7 @@
 # pylint: disable=E1101,E1103,W0232
 
 from datetime import datetime, timedelta
-from pandas.util.py3compat import range, lrange, lzip
+from pandas.util.compat import range, lrange, lzip, u, zip
 import operator
 import pickle
 import unittest
@@ -13,7 +13,7 @@ from numpy.testing import assert_array_equal
 
 from pandas.core.index import Index, Int64Index, MultiIndex
 from pandas.util.testing import assert_almost_equal
-from pandas.util import py3compat
+from pandas.util import compat
 
 import pandas.util.testing as tm
 import pandas.core.config as cf
@@ -23,8 +23,6 @@ import pandas.tseries.offsets as offsets
 
 import pandas as pd
 from pandas.lib import Timestamp
-import six
-from pandas.util.py3compat import zip
 
 
 class TestIndex(unittest.TestCase):
@@ -371,13 +369,13 @@ class TestIndex(unittest.TestCase):
         # 2845
         index = Index([1, 2.0+3.0j, np.nan])
         formatted = index.format()
-        expected = [str(index[0]), str(index[1]), six.u('NaN')]
+        expected = [str(index[0]), str(index[1]), u('NaN')]
         self.assertEquals(formatted, expected)
 
         # is this really allowed?
         index = Index([1, 2.0+3.0j, None])
         formatted = index.format()
-        expected = [str(index[0]), str(index[1]), six.u('NaN')]
+        expected = [str(index[0]), str(index[1]), u('NaN')]
         self.assertEquals(formatted, expected)
 
         self.strIndex[:0].format()
@@ -900,7 +898,7 @@ class TestInt64Index(unittest.TestCase):
 
     def test_print_unicode_columns(self):
         df = pd.DataFrame(
-            {six.u("\u05d0"): [1, 2, 3], "\u05d1": [4, 5, 6], "c": [7, 8, 9]})
+            {u("\u05d0"): [1, 2, 3], "\u05d1": [4, 5, 6], "c": [7, 8, 9]})
         repr(df.columns)  # should not raise UnicodeDecodeError
 
     def test_repr_summary(self):
@@ -912,14 +910,14 @@ class TestInt64Index(unittest.TestCase):
     def test_unicode_string_with_unicode(self):
         idx = Index(lrange(1000))
 
-        if py3compat.PY3:
+        if compat.PY3:
             str(idx)
         else:
-            six.text_type(idx)
+            compat.text_type(idx)
 
     def test_bytestring_with_unicode(self):
         idx = Index(lrange(1000))
-        if py3compat.PY3:
+        if compat.PY3:
             bytes(idx)
         else:
             str(idx)
@@ -1065,7 +1063,7 @@ class TestMultiIndex(unittest.TestCase):
         self.assert_(self.index.equals(unpickled))
 
     def test_legacy_pickle(self):
-        if py3compat.PY3:
+        if compat.PY3:
             raise nose.SkipTest
 
         def curpath():
@@ -1775,24 +1773,24 @@ class TestMultiIndex(unittest.TestCase):
         self.assertEqual(result, exp)
 
     def test_repr_with_unicode_data(self):
-        d = {"a": [six.u("\u05d0"), 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]}
+        d = {"a": [u("\u05d0"), 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]}
         index = pd.DataFrame(d).set_index(["a", "b"]).index
         self.assertFalse("\\u" in repr(index))  # we don't want unicode-escaped
 
     def test_unicode_string_with_unicode(self):
-        d = {"a": [six.u("\u05d0"), 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]}
+        d = {"a": [u("\u05d0"), 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]}
         idx = pd.DataFrame(d).set_index(["a", "b"]).index
 
-        if py3compat.PY3:
+        if compat.PY3:
             str(idx)
         else:
-            six.text_type(idx)
+            compat.text_type(idx)
 
     def test_bytestring_with_unicode(self):
-        d = {"a": [six.u("\u05d0"), 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]}
+        d = {"a": [u("\u05d0"), 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]}
         idx = pd.DataFrame(d).set_index(["a", "b"]).index
 
-        if py3compat.PY3:
+        if compat.PY3:
             bytes(idx)
         else:
             str(idx)

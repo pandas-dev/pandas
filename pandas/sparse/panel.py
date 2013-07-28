@@ -5,8 +5,7 @@ with float64 data
 
 # pylint: disable=E1101,E1103,W0231
 
-from pandas.util.py3compat import range, lrange
-from pandas.util.py3compat import zip
+from pandas.util.compat import range, lrange, zip
 from pandas.util import compat
 import numpy as np
 
@@ -17,7 +16,6 @@ from pandas.sparse.frame import SparseDataFrame
 from pandas.util.decorators import deprecate
 
 import pandas.core.common as com
-import six
 
 
 class SparsePanelAxis(object):
@@ -35,7 +33,7 @@ class SparsePanelAxis(object):
         if isinstance(value, MultiIndex):
             raise NotImplementedError
 
-        for v in six.itervalues(obj._frames):
+        for v in compat.itervalues(obj._frames):
             setattr(v, self.frame_attr, value)
 
         setattr(obj, self.cache_field, value)

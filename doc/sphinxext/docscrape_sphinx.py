@@ -1,7 +1,7 @@
 import re, inspect, textwrap, pydoc
 import sphinx
 from .docscrape import NumpyDocString, FunctionDoc, ClassDoc
-import six
+from pandas.util.compat import callable
 
 class SphinxDocString(NumpyDocString):
     def __init__(self, docstring, config={}):
@@ -128,7 +128,7 @@ class SphinxDocString(NumpyDocString):
             return out
 
         out += ['.. index:: %s' % idx.get('default','')]
-        for section, references in six.iteritems(idx):
+        for section, references in compat.iteritems(idx):
             if section == 'default':
                 continue
             elif section == 'refguide':
@@ -212,7 +212,7 @@ def get_doc_object(obj, what=None, doc=None, config={}):
             what = 'class'
         elif inspect.ismodule(obj):
             what = 'module'
-        elif six.callable(obj):
+        elif callable(obj):
             what = 'function'
         else:
             what = 'object'

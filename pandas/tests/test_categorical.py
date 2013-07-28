@@ -1,7 +1,7 @@
 # pylint: disable=E1101,E1103,W0232
 
 from datetime import datetime
-from pandas.util.py3compat import range, lrange
+from pandas.util.compat import range, lrange
 import unittest
 import nose
 

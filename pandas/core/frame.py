@@ -12,7 +12,7 @@ labeling information
 # pylint: disable=E1101,E1103
 # pylint: disable=W0212,W0231,W0703,W0622
 
-from pandas.util.py3compat import range, zip, lrange, lmap, lzip, StringIO
+from pandas.util.compat import range, zip, lrange, lmap, lzip, StringIO, u, OrderedDict
 from pandas.util import compat
 import operator
 import sys
@@ -36,8 +36,7 @@ from pandas.core.internals import (BlockManager,
 from pandas.core.series import Series, _radd_compat
 import pandas.core.expressions as expressions
 from pandas.compat.scipy import scoreatpercentile as _quantile
-from pandas.util.compat import OrderedDict
-from pandas.util import py3compat
+from pandas.util import compat
 from pandas.util.terminal import get_terminal_size
 from pandas.util.decorators import deprecate, Appender, Substitution
 
@@ -56,7 +55,6 @@ import pandas.tslib as tslib
 import pandas.algos as _algos
 
 from pandas.core.config import get_option, set_option
-import six
 
 #----------------------------------------------------------------------
 # Docstring templates
@@ -440,7 +438,7 @@ class DataFrame(NDFrame):
                                   'incompatible data and dtype')
 
             if arr.ndim == 0 and index is not None and columns is not None:
-                if isinstance(data, six.string_types) and dtype is None:
+                if isinstance(data, compat.string_types) and dtype is None:
                     dtype = np.object_
                 if dtype is None:
                     dtype, data = _infer_dtype_from_scalar(data)
@@ -656,7 +654,7 @@ class DataFrame(NDFrame):
         Invoked by unicode(df) in py2 only. Yields a Unicode String in both
         py2/py3.
         """
-        buf = StringIO(six.u(""))
+        buf = StringIO(u(""))
         fits_vertical = self._repr_fits_vertical_()
         fits_horizontal = False
         if fits_vertical:
@@ -683,7 +681,7 @@ class DataFrame(NDFrame):
                 self.info(buf=buf, verbose=verbose)
 
         value = buf.getvalue()
-        if not isinstance(value, six.text_type):
+        if not isinstance(value, compat.text_type):
             raise AssertionError()
 
         return value
@@ -715,7 +713,7 @@ class DataFrame(NDFrame):
                         'max-width:1500px;overflow:auto;">\n' +
                         self.to_html() + '\n</div>')
             else:
-                buf = StringIO(six.u(""))
+                buf = StringIO(u(""))
                 max_info_rows = get_option('display.max_info_rows')
                 verbose = (max_info_rows is None or
                            self.shape[0] <= max_info_rows)
@@ -789,7 +787,7 @@ class DataFrame(NDFrame):
         return zip(*arrays)
 
     iterkv = iteritems
-    if py3compat.PY3:  # pragma: no cover
+    if compat.PY3:  # pragma: no cover
         items = iteritems
 
     def __len__(self):
@@ -851,7 +849,7 @@ class DataFrame(NDFrame):
     __xor__ = _arith_method(operator.xor, '__xor__')
 
     # Python 2 division methods
-    if not py3compat.PY3:
+    if not compat.PY3:
         __div__ = _arith_method(operator.div, '__div__', '/',
                                 default_axis=None, fill_zeros=np.inf, truediv=False)
         __rdiv__ = _arith_method(lambda x, y: y / x, '__rdiv__',
@@ -1028,7 +1026,7 @@ class DataFrame(NDFrame):
                 return cls()
 
             try:
-                if py3compat.PY3:
+                if compat.PY3:
                     first_row = next(data)
                 else:
                     first_row = next(data)
@@ -1093,7 +1091,7 @@ class DataFrame(NDFrame):
 
         result_index = None
         if index is not None:
-            if (isinstance(index, six.string_types) or
+            if (isinstance(index, compat.string_types) or
                     not hasattr(index, "__iter__")):
                 i = columns.get_loc(index)
                 exclude.add(index)
@@ -1452,7 +1450,7 @@ class DataFrame(NDFrame):
         """
         from pandas.io.excel import ExcelWriter
         need_save = False
-        if isinstance(excel_writer, six.string_types):
+        if isinstance(excel_writer, compat.string_types):
             excel_writer = ExcelWriter(excel_writer)
             need_save = True
 
@@ -3028,7 +3026,7 @@ class DataFrame(NDFrame):
         if items is not None:
             return self.reindex(columns=[r for r in items if r in self])
         elif like:
-            matchf = lambda x: (like in x if isinstance(x, six.string_types)
+            matchf = lambda x: (like in x if isinstance(x, compat.string_types)
                                 else like in str(x))
             return self.select(matchf, axis=1)
         elif regex:
@@ -3150,7 +3148,7 @@ class DataFrame(NDFrame):
         if cols is None:
             values = list(_m8_to_i8(self.values.T))
         else:
-            if np.iterable(cols) and not isinstance(cols, six.string_types):
+            if np.iterable(cols) and not isinstance(cols, compat.string_types):
                 if isinstance(cols, tuple):
                     if cols in self.columns:
                         values = [self[cols]]
@@ -4313,7 +4311,7 @@ class DataFrame(NDFrame):
 
         offset = _resolve_offset(freq, kwds)
 
-        if isinstance(offset, six.string_types):
+        if isinstance(offset, compat.string_types):
             offset = datetools.to_offset(offset)
 
         if offset is None:
@@ -4945,7 +4943,7 @@ class DataFrame(NDFrame):
         # python 2.5
         mask = notnull(frame.values).view(np.uint8)
 
-        if isinstance(level, six.string_types):
+        if isinstance(level, compat.string_types):
             level = self.index._get_level_number(level)
 
         level_index = frame.index.levels[level]
@@ -5994,7 +5992,7 @@ def install_ipython_completers():  # pragma: no cover
     @complete_object.when_type(DataFrame)
     def complete_dataframe(obj, prev_completions):
         return prev_completions + [c for c in obj.columns
-                                   if isinstance(c, six.string_types) and py3compat.isidentifier(c)]
+                                   if isinstance(c, compat.string_types) and compat.isidentifier(c)]
 
 
 # Importing IPython brings in about 200 modules, so we want to avoid it unless

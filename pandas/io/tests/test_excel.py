@@ -1,9 +1,8 @@
 # pylint: disable=E1101
 
-from pandas.util.py3compat import StringIO, BytesIO, PY3
+from pandas.util.compat import StringIO, BytesIO, PY3, u, range, map
 from datetime import datetime
 from os.path import split as psplit
-from pandas.util.py3compat import range
 import csv
 import os
 import sys
@@ -28,7 +27,7 @@ import pandas.util.testing as tm
 import pandas as pd
 
 import pandas.lib as lib
-from pandas.util import py3compat
+from pandas.util import compat
 from pandas.lib import Timestamp
 from pandas.tseries.index import date_range
 import pandas.tseries.tools as tools
@@ -36,8 +35,6 @@ import pandas.tseries.tools as tools
 from numpy.testing.decorators import slow
 
 from pandas.parser import OverflowError
-import six
-from pandas.util.py3compat import map
 
 def _skip_if_no_xlrd():
     try:
@@ -710,7 +707,7 @@ class ExcelTests(unittest.TestCase):
         _skip_if_no_excelsuite()
 
         for ext in ['xls', 'xlsx']:
-            filename = six.u('\u0192u.') + ext
+            filename = u('\u0192u.') + ext
 
             try:
                 f = open(filename, 'wb')

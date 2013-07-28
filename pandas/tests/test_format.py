@@ -1,7 +1,8 @@
 from __future__ import print_function
 # -*- coding: utf-8 -*-
 
-from pandas.util.py3compat import range, zip, lrange, StringIO, PY3, lzip
+from pandas.util.compat import range, zip, lrange, StringIO, PY3, lzip, u
+import pandas.util.compat as compat
 import os
 import sys
 import unittest
@@ -21,7 +22,6 @@ import pandas
 import pandas as pd
 from pandas.core.config import (set_option, get_option,
                                 option_context, reset_option)
-import six
 
 _frame = DataFrame(tm.getSeriesData())
 
@@ -151,9 +151,9 @@ class TestDataFrameFormatting(unittest.TestCase):
 
 
         data = [8, 5, 3, 5]
-        index1 = [six.u("\u03c3"), six.u("\u03c4"), six.u("\u03c5"),
-                  six.u("\u03c6")]
-        cols = [six.u("\u03c8")]
+        index1 = [u("\u03c3"), u("\u03c4"), u("\u03c5"),
+                  u("\u03c6")]
+        cols = [u("\u03c8")]
         df = DataFrame(data, columns=cols, index=index1)
         self.assertTrue(type(df.__repr__() == str))  # both py2 / 3
 
@@ -245,7 +245,7 @@ class TestDataFrameFormatting(unittest.TestCase):
     def test_to_string_repr_unicode(self):
         buf = StringIO()
 
-        unicode_values = [six.u('\u03c3')] * 10
+        unicode_values = [u('\u03c3')] * 10
         unicode_values = np.array(unicode_values, dtype=object)
         df = DataFrame({'unicode': unicode_values})
         df.to_string(col_space=10, buf=buf)
@@ -253,7 +253,7 @@ class TestDataFrameFormatting(unittest.TestCase):
         # it works!
         repr(df)
 
-        idx = Index(['abc', six.u('\u03c3a'), 'aegdvg'])
+        idx = Index(['abc', u('\u03c3a'), 'aegdvg'])
         ser = Series(np.random.randn(len(idx)), idx)
         rs = repr(ser).split('\n')
         line_len = len(rs[0])
@@ -274,7 +274,7 @@ class TestDataFrameFormatting(unittest.TestCase):
             sys.stdin = _stdin
 
     def test_to_string_unicode_columns(self):
-        df = DataFrame({six.u('\u03c3'): np.arange(10.)})
+        df = DataFrame({u('\u03c3'): np.arange(10.)})
 
         buf = StringIO()
         df.to_string(buf=buf)
@@ -285,17 +285,17 @@ class TestDataFrameFormatting(unittest.TestCase):
         buf.getvalue()
 
         result = self.frame.to_string()
-        tm.assert_isinstance(result, six.text_type)
+        tm.assert_isinstance(result, compat.text_type)
 
     def test_to_string_utf8_columns(self):
-        n = six.u("\u05d0").encode('utf-8')
+        n = u("\u05d0").encode('utf-8')
 
         with option_context('display.max_rows', 1):
             df = pd.DataFrame([1, 2], columns=[n])
             repr(df)
 
     def test_to_string_unicode_two(self):
-        dm = DataFrame({six.u('c/\u03c3'): []})
+        dm = DataFrame({u('c/\u03c3'): []})
         buf = StringIO()
         dm.to_string(buf)
 
@@ -322,17 +322,17 @@ class TestDataFrameFormatting(unittest.TestCase):
         self.assertEqual(result, result2)
 
     def test_to_string_with_formatters_unicode(self):
-        df = DataFrame({six.u('c/\u03c3'): [1, 2, 3]})
-        result = df.to_string(formatters={six.u('c/\u03c3'):
+        df = DataFrame({u('c/\u03c3'): [1, 2, 3]})
+        result = df.to_string(formatters={u('c/\u03c3'):
                               lambda x: '%s' % x})
-        self.assertEqual(result, six.u('  c/\u03c3\n') +
+        self.assertEqual(result, u('  c/\u03c3\n') +
                                  '0   1\n1   2\n2   3')
 
     def test_to_string_buffer_all_unicode(self):
         buf = StringIO()
 
-        empty = DataFrame({six.u('c/\u03c3'): Series()})
-        nonempty = DataFrame({six.u('c/\u03c3'): Series([1, 2, 3])})
+        empty = DataFrame({u('c/\u03c3'): Series()})
+        nonempty = DataFrame({u('c/\u03c3'): Series([1, 2, 3])})
 
         print(empty, file=buf)
         print(nonempty, file=buf)
@@ -373,9 +373,9 @@ class TestDataFrameFormatting(unittest.TestCase):
 
     def test_to_html_unicode(self):
         # it works!
-        df = DataFrame({six.u('\u03c3'): np.arange(10.)})
+        df = DataFrame({u('\u03c3'): np.arange(10.)})
         df.to_html()
-        df = DataFrame({'A': [six.u('\u03c3')]})
+        df = DataFrame({'A': [u('\u03c3')]})
         df.to_html()
 
     def test_to_html_escaped(self):
@@ -699,8 +699,8 @@ class TestDataFrameFormatting(unittest.TestCase):
         self.assert_(len(lines[1]) == len(lines[2]))
 
     def test_unicode_problem_decoding_as_ascii(self):
-        dm = DataFrame({six.u('c/\u03c3'): Series({'test': np.NaN})})
-        six.text_type(dm.to_string())
+        dm = DataFrame({u('c/\u03c3'): Series({'test': np.NaN})})
+        compat.text_type(dm.to_string())
 
     def test_string_repr_encoding(self):
         filepath = tm.get_data_path('unicode_series.csv')
@@ -768,24 +768,24 @@ class TestDataFrameFormatting(unittest.TestCase):
         if PY3:
             raise nose.SkipTest()
 
-        self.assertEquals(pp_t('a') , six.u('a'))
-        self.assertEquals(pp_t(six.u('a')) , six.u('a'))
+        self.assertEquals(pp_t('a') , u('a'))
+        self.assertEquals(pp_t(u('a')) , u('a'))
         self.assertEquals(pp_t(None) , 'None')
-        self.assertEquals(pp_t(six.u('\u05d0'), quote_strings=True),
-                          six.u("u'\u05d0'"))
-        self.assertEquals(pp_t(six.u('\u05d0'), quote_strings=False),
-                          six.u('\u05d0'))
-        self.assertEquals(pp_t((six.u('\u05d0'),
-                                six.u('\u05d1')), quote_strings=True),
-                          six.u("(u'\u05d0', u'\u05d1')"))
-        self.assertEquals(pp_t((six.u('\u05d0'), (six.u('\u05d1'),
-                                                  six.u('\u05d2'))),
+        self.assertEquals(pp_t(u('\u05d0'), quote_strings=True),
+                          u("u'\u05d0'"))
+        self.assertEquals(pp_t(u('\u05d0'), quote_strings=False),
+                          u('\u05d0'))
+        self.assertEquals(pp_t((u('\u05d0'),
+                                u('\u05d1')), quote_strings=True),
+                          u("(u'\u05d0', u'\u05d1')"))
+        self.assertEquals(pp_t((u('\u05d0'), (u('\u05d1'),
+                                                  u('\u05d2'))),
                                quote_strings=True),
-                          six.u("(u'\u05d0', (u'\u05d1', u'\u05d2'))"))
-        self.assertEquals(pp_t(('foo', six.u('\u05d0'), (six.u('\u05d0'),
-                                                         six.u('\u05d0'))),
+                          u("(u'\u05d0', (u'\u05d1', u'\u05d2'))"))
+        self.assertEquals(pp_t(('foo', u('\u05d0'), (u('\u05d0'),
+                                                         u('\u05d0'))),
                                quote_strings=True),
-                          six.u("(u'foo', u'\u05d0', (u'\u05d0', u'\u05d0'))"))
+                          u("(u'foo', u'\u05d0', (u'\u05d0', u'\u05d0'))"))
 
         # escape embedded tabs in string
         # GH #2038
@@ -927,13 +927,13 @@ class TestDataFrameFormatting(unittest.TestCase):
         # multi-index
         y = df.set_index(['id1', 'id2', 'id3'])
         result = y.to_string()
-        expected = six.u('             value\nid1 id2 id3       \n1a3 NaN 78d    123\n9h4 d67 79d     64')
+        expected = u('             value\nid1 id2 id3       \n1a3 NaN 78d    123\n9h4 d67 79d     64')
         self.assert_(result == expected)
 
         # index
         y = df.set_index('id2')
         result = y.to_string()
-        expected = six.u('     id1  id3  value\nid2                 \nNaN  1a3  78d    123\nd67  9h4  79d     64')
+        expected = u('     id1  id3  value\nid2                 \nNaN  1a3  78d    123\nd67  9h4  79d     64')
         self.assert_(result == expected)
 
         # all-nan in mi
@@ -941,7 +941,7 @@ class TestDataFrameFormatting(unittest.TestCase):
         df2.ix[:,'id2'] = np.nan
         y = df2.set_index('id2')
         result = y.to_string()
-        expected = six.u('     id1  id3  value\nid2                 \nNaN  1a3  78d    123\nNaN  9h4  79d     64')
+        expected = u('     id1  id3  value\nid2                 \nNaN  1a3  78d    123\nNaN  9h4  79d     64')
         self.assert_(result == expected)
 
         # partial nan in mi
@@ -949,7 +949,7 @@ class TestDataFrameFormatting(unittest.TestCase):
         df2.ix[:,'id2'] = np.nan
         y = df2.set_index(['id2','id3'])
         result = y.to_string()
-        expected = six.u('         id1  value\nid2 id3            \nNaN 78d  1a3    123\n    79d  9h4     64')
+        expected = u('         id1  value\nid2 id3            \nNaN 78d  1a3    123\n    79d  9h4     64')
         self.assert_(result == expected)
 
         df = DataFrame({'id1': {0: np.nan, 1: '9h4'}, 'id2': {0: np.nan, 1: 'd67'},
@@ -957,7 +957,7 @@ class TestDataFrameFormatting(unittest.TestCase):
 
         y = df.set_index(['id1','id2','id3'])
         result = y.to_string()
-        expected = six.u('             value\nid1 id2 id3       \nNaN NaN NaN    123\n9h4 d67 79d     64')
+        expected = u('             value\nid1 id2 id3       \nNaN NaN NaN    123\n9h4 d67 79d     64')
         self.assert_(result == expected)
 
     def test_to_string(self):
@@ -978,7 +978,7 @@ class TestDataFrameFormatting(unittest.TestCase):
         self.assert_(retval is None)
         self.assertEqual(buf.getvalue(), s)
 
-        tm.assert_isinstance(s, six.string_types)
+        tm.assert_isinstance(s, compat.string_types)
 
         # print in right order
         result = biggie.to_string(columns=['B', 'A'], col_space=17,
@@ -1118,8 +1118,8 @@ class TestDataFrameFormatting(unittest.TestCase):
 
     def test_to_string_ascii_error(self):
         data = [('0  ',
-                 six.u('                        .gitignore '),
-                 six.u('     5 '),
+                 u('                        .gitignore '),
+                 u('     5 '),
                  ' \xe2\x80\xa2\xe2\x80\xa2\xe2\x80'
                  '\xa2\xe2\x80\xa2\xe2\x80\xa2')]
         df = DataFrame(data)
@@ -1207,7 +1207,7 @@ c  10  11  12  13  14\
         self.assert_(retval is None)
         self.assertEqual(buf.getvalue(), s)
 
-        tm.assert_isinstance(s, six.string_types)
+        tm.assert_isinstance(s, compat.string_types)
 
         biggie.to_html(columns=['B', 'A'], col_space=17)
         biggie.to_html(columns=['B', 'A'],
@@ -1542,10 +1542,10 @@ class TestSeriesFormatting(unittest.TestCase):
         self.ts = tm.makeTimeSeries()
 
     def test_repr_unicode(self):
-        s = Series([six.u('\u03c3')] * 10)
+        s = Series([u('\u03c3')] * 10)
         repr(s)
 
-        a = Series([six.u("\u05d0")] * 1000)
+        a = Series([u("\u05d0")] * 1000)
         a.name = 'title1'
         repr(a)
 
@@ -1589,16 +1589,16 @@ class TestSeriesFormatting(unittest.TestCase):
     def test_to_string_mixed(self):
         s = Series(['foo', np.nan, -1.23, 4.56])
         result = s.to_string()
-        expected = (six.u('0     foo\n') +
-                    six.u('1     NaN\n') +
-                    six.u('2   -1.23\n') +
-                    six.u('3    4.56'))
+        expected = (u('0     foo\n') +
+                    u('1     NaN\n') +
+                    u('2   -1.23\n') +
+                    u('3    4.56'))
         self.assertEqual(result, expected)
 
         # but don't count NAs as floats
         s = Series(['foo', np.nan, 'bar', 'baz'])
         result = s.to_string()
-        expected = (six.u('0    foo\n') +
+        expected = (u('0    foo\n') +
                     '1    NaN\n' +
                     '2    bar\n' +
                     '3    baz')
@@ -1606,7 +1606,7 @@ class TestSeriesFormatting(unittest.TestCase):
 
         s = Series(['foo', 5, 'bar', 'baz'])
         result = s.to_string()
-        expected = (six.u('0    foo\n') +
+        expected = (u('0    foo\n') +
                     '1      5\n' +
                     '2    bar\n' +
                     '3    baz')
@@ -1617,7 +1617,7 @@ class TestSeriesFormatting(unittest.TestCase):
         s[::2] = np.nan
 
         result = s.to_string()
-        expected = (six.u('0       NaN\n') +
+        expected = (u('0       NaN\n') +
                     '1    1.5678\n' +
                     '2       NaN\n' +
                     '3   -3.0000\n' +
@@ -1625,8 +1625,8 @@ class TestSeriesFormatting(unittest.TestCase):
         self.assertEqual(result, expected)
 
     def test_unicode_name_in_footer(self):
-        s = Series([1, 2], name=six.u('\u05e2\u05d1\u05e8\u05d9\u05ea'))
-        sf = fmt.SeriesFormatter(s, name=six.u('\u05e2\u05d1\u05e8\u05d9\u05ea'))
+        s = Series([1, 2], name=u('\u05e2\u05d1\u05e8\u05d9\u05ea'))
+        sf = fmt.SeriesFormatter(s, name=u('\u05e2\u05d1\u05e8\u05d9\u05ea'))
         sf._get_footer()  # should not raise exception
 
     def test_float_trim_zeros(self):
@@ -1920,7 +1920,7 @@ class TestEngFormatter(unittest.TestCase):
 
         formatter = fmt.EngFormatter(accuracy=3, use_eng_prefix=True)
         result = formatter(0)
-        self.assertEqual(result, six.u(' 0.000'))
+        self.assertEqual(result, u(' 0.000'))
 
 
 def _three_digit_exp():

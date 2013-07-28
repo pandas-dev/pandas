@@ -1,9 +1,9 @@
 import numpy as np
 
-from pandas.util.py3compat import zip
-import six
+from pandas.util.compat import zip
 from pandas.core.common import isnull
 from pandas.core.series import Series
+import pandas.util.compat as compat
 import re
 import pandas.lib as lib
 
@@ -283,17 +283,17 @@ def str_repeat(arr, repeats):
     if np.isscalar(repeats):
         def rep(x):
             try:
-                return six.binary_type.__mul__(x, repeats)
+                return compat.binary_type.__mul__(x, repeats)
             except TypeError:
-                return six.text_type.__mul__(x, repeats)
+                return compat.text_type.__mul__(x, repeats)
 
         return _na_map(rep, arr)
     else:
         def rep(x, r):
             try:
-                return six.binary_type.__mul__(x, r)
+                return compat.binary_type.__mul__(x, r)
             except TypeError:
-                return six.text_type.__mul__(x, r)
+                return compat.text_type.__mul__(x, r)
 
         repeats = np.asarray(repeats, dtype=object)
         result = lib.vec_binop(arr, repeats, rep)

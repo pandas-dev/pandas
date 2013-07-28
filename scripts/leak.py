@@ -1,5 +1,5 @@
 from pandas import *
-from pandas.util.py3compat import range
+from pandas.util.compat import range
 import numpy as np
 import pandas.util.testing as tm
 import os
