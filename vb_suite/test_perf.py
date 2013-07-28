@@ -466,7 +466,7 @@ def main():
 def _parse_commit_log(this,repo_path,base_commit=None):
     from vbench.git import _convert_timezones
     from pandas import Series
-    from dateutil import parser as dparser
+    from pandas.compat import parse_date
 
     git_cmd = 'git --git-dir=%s/.git --work-tree=%s ' % (repo_path, repo_path)
     githist = git_cmd + ('log --graph --pretty=format:'+
@@ -488,7 +488,7 @@ def _parse_commit_log(this,repo_path,base_commit=None):
         _, sha, stamp, message, author = line.split('::', 4)
 
         # parse timestamp into datetime object
-        stamp = dparser.parse(stamp)
+        stamp = parse_date(stamp)
 
         shas.append(sha)
         timestamps.append(stamp)
