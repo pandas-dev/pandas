@@ -3,6 +3,8 @@ from copy import deepcopy
 from datetime import datetime, timedelta, time
 from StringIO import StringIO
 import cPickle as pickle
+import functools
+import itertools
 import operator
 import re
 import unittest
@@ -12,6 +14,7 @@ from numpy import random, nan
 from numpy.random import randn
 import numpy as np
 import numpy.ma as ma
+import numpy.ma.mrecords as mrecords
 from numpy.testing import assert_array_equal
 
 import pandas as pan
@@ -2496,6 +2499,39 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         frame = DataFrame(mat2, columns=['A', 'B', 'C'], index=[1, 2])
         self.assertEqual(True, frame['A'][1])
         self.assertEqual(False, frame['C'][2])
+
+    def test_constructor_mrecarray(self):
+        """Ensure mrecarray produces frame identical to dict of masked arrays
+        """
+        assert_fr_equal = functools.partial(assert_frame_equal,
+                                               check_index_type=True,
+                                               check_column_type=True,
+                                               check_frame_type=True)
+        arrays = [
+            ('float', np.array([1.5, 2.0])),
+            ('int', np.array([1, 2])),
+            ('str', np.array(['abc', 'def'])),
+        ]
+        for name, arr in arrays[:]:
+            arrays.append(('masked1_' + name,
+                           np.ma.masked_array(arr, mask=[False, True])))
+        arrays.append(('masked_all', np.ma.masked_all((2,))))
+        arrays.append(('masked_none',
+                       np.ma.masked_array([1.0, 2.5], mask=False)))
+
+        # call assert_frame_equal for all selections of 3 arrays
+        for comb in itertools.combinations(arrays, 3):
+            names, data = zip(*comb)
+            print(names)
+            mrecs = mrecords.fromarrays(data, names=names)
+            assert_fr_equal(DataFrame(mrecs),
+                            DataFrame(dict(comb), columns=names))
+            # specify columns
+            assert_fr_equal(DataFrame(mrecs, columns=names[::-1]),
+                            DataFrame(dict(comb), columns=names[::-1]))
+            # specify index
+            assert_fr_equal(DataFrame(mrecs, index=[1, 2]),
+                            DataFrame(dict(comb), columns=names, index=[1,2]))
 
     def test_constructor_corner(self):
         df = DataFrame(index=[])

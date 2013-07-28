@@ -395,15 +395,6 @@ class DataFrame(NDFrame):
             mgr = self._init_mgr(data, index, columns, dtype=dtype, copy=copy)
         elif isinstance(data, dict):
             mgr = self._init_dict(data, index, columns, dtype=dtype)
-        elif isinstance(data, ma.MaskedArray):
-            mask = ma.getmaskarray(data)
-            if mask.any():
-                data, fill_value = _maybe_upcast(data, copy=True)
-                data[mask] = fill_value
-            else:
-                data = data.copy()
-            mgr = self._init_ndarray(data, index, columns, dtype=dtype,
-                                     copy=copy)
         elif isinstance(data, np.ndarray):
             if data.dtype.names:
                 data_columns, data = _rec_to_dict(data)
@@ -411,8 +402,8 @@ class DataFrame(NDFrame):
                     columns = data_columns
                 mgr = self._init_dict(data, index, columns, dtype=dtype)
             else:
-                mgr = self._init_ndarray(data, index, columns, dtype=dtype,
-                                         copy=copy)
+                mgr = self._init_ndarray(_unmask(data), index, columns,
+                                         dtype=dtype, copy=copy)
         elif isinstance(data, list):
             if len(data) > 0:
                 if index is None and isinstance(data[0], Series):
@@ -5796,10 +5787,21 @@ def _prep_ndarray(values, copy=True):
     return values
 
 
+def _unmask(arr):
+    if isinstance(arr, ma.MaskedArray):
+        mask = ma.getmaskarray(arr)
+        if mask.any():
+            arr, fill_value = _maybe_upcast(arr, copy=True)
+            arr[mask] = fill_value
+            return arr.copy()
+        return arr.copy()
+    return arr
+
+
 def _rec_to_dict(arr):
     if isinstance(arr, np.ndarray):
         columns = list(arr.dtype.names)
-        sdict = dict((k, arr[k]) for k in columns)
+        sdict = dict((k, _unmask(arr[k])) for k in columns)
     elif isinstance(arr, DataFrame):
         columns = list(arr.columns)
         sdict = dict((k, v.values) for k, v in arr.iteritems())
