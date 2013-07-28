@@ -3,8 +3,8 @@ Contains data structures designed for manipulating panel (3-dimensional) data
 """
 # pylint: disable=E1103,W0231,W0212,W0621
 
-from pandas.util.compat import map, zip, range, lrange, lmap, u, OrderedDict, OrderedDefaultdict
-from pandas.util import compat
+from pandas.compat import map, zip, range, lrange, lmap, u, OrderedDict, OrderedDefaultdict
+from pandas import compat
 import operator
 import sys
 import numpy as np
@@ -22,7 +22,7 @@ from pandas.core.internals import (BlockManager,
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.util import compat
+from pandas import compat
 from pandas.util.decorators import deprecate, Appender, Substitution
 import pandas.core.common as com
 import pandas.core.nanops as nanops

@@ -1,6 +1,6 @@
 from datetime import date, datetime, timedelta
-from pandas.util.compat import range
-from pandas.util import compat
+from pandas.compat import range
+from pandas import compat
 import unittest
 import nose
 from nose.tools import assert_raises

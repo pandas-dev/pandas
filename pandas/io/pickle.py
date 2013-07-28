@@ -1,4 +1,4 @@
-from pandas.util.compat import cPickle as pkl, PY3
+from pandas.compat import cPickle as pkl, PY3
 
 def to_pickle(obj, path):
     """

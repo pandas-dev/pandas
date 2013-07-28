@@ -1,7 +1,7 @@
 from __future__ import division
 
-from pandas.util.compat import range, lrange, zip, reduce
-from pandas.util import compat
+from pandas.compat import range, lrange, zip, reduce
+from pandas import compat
 import numpy as np
 from pandas.core.base import StringMixin
 from pandas.util.decorators import cache_readonly

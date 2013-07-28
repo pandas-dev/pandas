@@ -2,7 +2,7 @@
 
 from datetime import datetime, timedelta
 
-from pandas.util.compat import range, lrange, zip, product
+from pandas.compat import range, lrange, zip, product
 import numpy as np
 
 from pandas import Series, TimeSeries, DataFrame, Panel, isnull, notnull, Timestamp

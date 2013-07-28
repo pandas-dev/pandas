@@ -1,13 +1,13 @@
 from __future__ import print_function
 # pylint: disable=W0141
 
-from pandas.util import compat
+from pandas import compat
 import sys
 
-from pandas.util.compat import StringIO, lzip, range, map, zip, reduce, u, OrderedDict
+from pandas.compat import StringIO, lzip, range, map, zip, reduce, u, OrderedDict
 from pandas.core.common import adjoin, isnull, notnull
 from pandas.core.index import Index, MultiIndex, _ensure_index
-from pandas.util import compat
+from pandas import compat
 from pandas.util.terminal import get_terminal_size
 from pandas.core.config import get_option, set_option, reset_option
 import pandas.core.common as com

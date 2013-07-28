@@ -3,7 +3,7 @@ from numpy.testing import run_module_suite, assert_equal, TestCase
 
 from pandas.util.testing import assert_almost_equal
 
-from pandas.util.compat import range
+from pandas.compat import range
 import nose
 import unittest
 

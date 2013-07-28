@@ -4,8 +4,8 @@ import sys
 import zipfile
 from contextlib import contextmanager, closing
 
-from pandas.util.compat import StringIO
-from pandas.util import compat
+from pandas.compat import StringIO
+from pandas import compat
 
 
 if compat.PY3:

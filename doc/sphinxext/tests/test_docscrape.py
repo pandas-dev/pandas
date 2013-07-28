@@ -7,7 +7,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from docscrape import NumpyDocString, FunctionDoc, ClassDoc
 from docscrape_sphinx import SphinxDocString, SphinxClassDoc
 from nose.tools import *
-from pandas.util.compat import u
+from pandas.compat import u
 
 doc_txt = '''\
   numpy.multivariate_normal(mean, cov, shape=None)

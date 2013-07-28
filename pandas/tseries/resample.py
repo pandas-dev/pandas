@@ -9,7 +9,7 @@ from pandas.tseries.offsets import DateOffset, Tick, _delta_to_nanoseconds
 from pandas.tseries.period import PeriodIndex, period_range
 import pandas.tseries.tools as tools
 import pandas.core.common as com
-import pandas.util.compat as compat
+import pandas.compat as compat
 
 from pandas.lib import Timestamp
 import pandas.lib as lib

@@ -7,11 +7,11 @@ import re
 import unittest
 import nose
 
-from pandas.util.compat import(
+from pandas.compat import(
     map, zip, range, long, lrange, lmap, lzip,
     OrderedDict, cPickle as pickle, u, StringIO
 )
-from pandas.util import compat
+from pandas import compat
 
 from numpy import random, nan
 from numpy.random import randn

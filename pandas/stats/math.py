@@ -3,7 +3,7 @@
 
 from __future__ import division
 
-from pandas.util.compat import range
+from pandas.compat import range
 import numpy as np
 import numpy.linalg as linalg
 

@@ -5,8 +5,8 @@ retrieval and to reduce dependency on DB-specific API.
 from __future__ import print_function
 from datetime import datetime, date
 
-from pandas.util.compat import range, lzip, map, zip
-import pandas.util.compat as compat
+from pandas.compat import range, lzip, map, zip
+import pandas.compat as compat
 import numpy as np
 import traceback
 

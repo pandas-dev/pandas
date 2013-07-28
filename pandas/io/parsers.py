@@ -2,8 +2,8 @@
 Module contains tools for processing files into DataFrames or other objects
 """
 from __future__ import print_function
-from pandas.util.compat import range, lrange, StringIO, lzip, zip
-from pandas.util import compat
+from pandas.compat import range, lrange, StringIO, lzip, zip
+from pandas import compat
 import re
 import csv
 from warnings import warn
@@ -14,7 +14,7 @@ from pandas.core.index import Index, MultiIndex
 from pandas.core.frame import DataFrame
 import datetime
 import pandas.core.common as com
-from pandas.util import compat
+from pandas import compat
 from pandas.io.date_converters import generic_parser
 from pandas.io.common import get_filepath_or_buffer
 

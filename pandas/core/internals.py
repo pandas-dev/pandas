@@ -17,8 +17,8 @@ import pandas.tslib as tslib
 import pandas.core.expressions as expressions
 
 from pandas.tslib import Timestamp
-from pandas.util import compat
-from pandas.util.compat import range, lrange, lmap, callable, map, zip
+from pandas import compat
+from pandas.compat import range, lrange, lmap, callable, map, zip
 
 
 class Block(PandasObject):

@@ -1,7 +1,7 @@
 import re, inspect, textwrap, pydoc
 import sphinx
 from .docscrape import NumpyDocString, FunctionDoc, ClassDoc
-from pandas.util.compat import callable
+from pandas.compat import callable
 
 class SphinxDocString(NumpyDocString):
     def __init__(self, docstring, config={}):

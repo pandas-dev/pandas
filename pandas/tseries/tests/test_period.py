@@ -22,13 +22,13 @@ import pandas.tseries.period as pmod
 import pandas.core.datetools as datetools
 import pandas as pd
 import numpy as np
-from pandas.util.compat import range, lrange, lmap, map, zip
+from pandas.compat import range, lrange, lmap, map, zip
 randn = np.random.randn
 
 from pandas import Series, TimeSeries, DataFrame
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
-from pandas.util import compat
+from pandas import compat
 from numpy.testing import assert_array_equal
 
 

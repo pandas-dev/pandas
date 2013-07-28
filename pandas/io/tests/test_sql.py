@@ -11,8 +11,8 @@ import numpy as np
 
 from pandas.core.datetools import format as date_format
 from pandas.core.api import DataFrame, isnull
-from pandas.util.compat import StringIO, range, lrange
-import pandas.util.compat as compat
+from pandas.compat import StringIO, range, lrange
+import pandas.compat as compat
 
 import pandas.io.sql as sql
 import pandas.util.testing as tm

@@ -1,4 +1,4 @@
-from pandas.util import compat
+from pandas import compat
 import sys
 import itertools
 import functools
@@ -12,7 +12,7 @@ import pandas.algos as algos
 import pandas.hashtable as _hash
 import pandas.tslib as tslib
 
-from pandas.util.compat import builtins
+from pandas.compat import builtins
 
 
 try:

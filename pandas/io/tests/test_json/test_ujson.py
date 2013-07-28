@@ -16,10 +16,10 @@ import re
 import random
 import decimal
 from functools import partial
-from pandas.util.compat import range, zip, StringIO, u
-from pandas.util import compat
+from pandas.compat import range, zip, StringIO, u
+from pandas import compat
 import pandas.json as ujson
-import pandas.util.compat as compat
+import pandas.compat as compat
 
 import numpy as np
 from pandas.util.testing import assert_almost_equal

@@ -1,7 +1,7 @@
 
 # pylint: disable-msg=E1101,W0613,W0603
-from pandas.util.compat import StringIO, long
-from pandas.util import compat
+from pandas.compat import StringIO, long
+from pandas import compat
 import os
 
 from pandas import Series, DataFrame, to_datetime

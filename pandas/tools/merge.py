@@ -4,8 +4,8 @@ SQL-style merge routines
 import types
 
 import numpy as np
-from pandas.util.compat import range, long, lrange, lzip, zip
-import pandas.util.compat as compat
+from pandas.compat import range, long, lrange, lzip, zip
+import pandas.compat as compat
 from pandas.core.categorical import Categorical
 from pandas.core.frame import DataFrame, _merge_doc
 from pandas.core.generic import NDFrame

@@ -23,8 +23,8 @@ import pandas.lib as lib
 import pandas.core.datetools as datetools
 import pandas.core.nanops as nanops
 
-from pandas.util.compat import StringIO, lrange, range, zip, u, OrderedDict
-from pandas.util import compat
+from pandas.compat import StringIO, lrange, range, zip, u, OrderedDict
+from pandas import compat
 from pandas.util.testing import (assert_series_equal,
                                  assert_almost_equal,
                                  ensure_clean)

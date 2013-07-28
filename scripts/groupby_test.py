@@ -8,7 +8,7 @@ from pandas import *
 import pandas.lib as tseries
 import pandas.core.groupby as gp
 import pandas.util.testing as tm
-from pandas.util.compat import range
+from pandas.compat import range
 reload(gp)
 
 """

@@ -2,7 +2,7 @@ import random
 import gc
 import time
 from pandas import *
-from pandas.util.compat import range, lrange, StringIO
+from pandas.compat import range, lrange, StringIO
 from pandas.util.testing import rands
 
 N = 10000

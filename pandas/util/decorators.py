@@ -1,4 +1,4 @@
-from pandas.util.compat import StringIO, callable
+from pandas.compat import StringIO, callable
 from pandas.lib import cache_readonly
 import sys
 import warnings

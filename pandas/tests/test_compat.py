@@ -2,7 +2,7 @@
 Testing that functions from compat work as expected
 """
 
-from pandas.util.compat import (
+from pandas.compat import (
     range, zip, map, filter,
     lrange, lzip, lmap, lfilter,
     builtins

@@ -27,8 +27,8 @@ import pandas.lib as lib
 import pandas.core.datetools as dt
 from numpy.random import rand
 from pandas.util.testing import assert_frame_equal
-import pandas.util.compat as compat
-from pandas.util.compat import range, lrange, zip, cPickle as pickle
+import pandas.compat as compat
+from pandas.compat import range, lrange, zip, cPickle as pickle
 from pandas.core.datetools import BDay
 import pandas.core.common as com
 

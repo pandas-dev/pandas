@@ -2,7 +2,7 @@ import random
 from copy import deepcopy
 
 import numpy as np
-from pandas.util.compat import range, zip
+from pandas.compat import range, zip
 #
 # TODO:
 # * Make sure legends work properly

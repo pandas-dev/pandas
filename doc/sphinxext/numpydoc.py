@@ -23,7 +23,7 @@ if sphinx.__version__ < '1.0.1':
 
 import os, re, pydoc
 from .docscrape_sphinx import get_doc_object, SphinxDocString
-from pandas.util.compat import u, callable
+from pandas.compat import u, callable
 from sphinx.util.compat import Directive
 import inspect
 

@@ -17,7 +17,7 @@ from pandas.core.frame import DataFrame
 import pandas.core.common as com
 import pandas.core.datetools as datetools
 
-from pandas.util import compat
+from pandas import compat
 
 from pandas.sparse.array import (make_sparse, _sparse_array_op, SparseArray)
 from pandas._sparse import BlockIndex, IntIndex

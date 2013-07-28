@@ -106,7 +106,7 @@ indexing_dataframe_boolean = \
               start_date=datetime(2012, 1, 1))
 
 setup = common_setup + """
-from pandas.util.compat import range
+from pandas.compat import range
 import pandas.core.expressions as expr
 df  = DataFrame(np.random.randn(50000, 100))
 df2 = DataFrame(np.random.randn(50000, 100))

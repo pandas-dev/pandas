@@ -6,7 +6,7 @@ import pandas._tseries as lib
 
 from pandas import DataFrame
 import timeit
-from pandas.util.compat import zip
+from pandas.compat import zip
 
 setup = """
 from pandas import Series

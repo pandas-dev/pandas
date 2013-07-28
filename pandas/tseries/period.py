@@ -14,13 +14,13 @@ import pandas.tseries.frequencies as _freq_mod
 
 import pandas.core.common as com
 from pandas.core.common import isnull, _NS_DTYPE, _INT64_DTYPE
-from pandas.util import compat
+from pandas import compat
 
 from pandas.lib import Timestamp
 import pandas.lib as lib
 import pandas.tslib as tslib
 import pandas.algos as _algos
-from pandas.util.compat import map, zip, u
+from pandas.compat import map, zip, u
 
 
 #---------------

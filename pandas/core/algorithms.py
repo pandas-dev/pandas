@@ -8,7 +8,7 @@ import numpy as np
 import pandas.core.common as com
 import pandas.algos as algos
 import pandas.hashtable as htable
-import pandas.util.compat as compat
+import pandas.compat as compat
 
 
 def match(to_match, values, na_sentinel=-1):

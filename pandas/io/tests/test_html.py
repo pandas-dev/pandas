@@ -12,8 +12,8 @@ from nose.tools import assert_raises
 import numpy as np
 from numpy.random import rand
 from numpy.testing.decorators import slow
-from pandas.util.compat import map, zip, StringIO
-import pandas.util.compat as compat
+from pandas.compat import map, zip, StringIO
+import pandas.compat as compat
 
 try:
     from importlib import import_module

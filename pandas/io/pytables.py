@@ -6,8 +6,8 @@ from __future__ import print_function
 
 # pylint: disable-msg=E1101,W0613,W0603
 from datetime import datetime, date
-from pandas.util.compat import map, range, zip, lrange, lmap, u
-from pandas.util import compat
+from pandas.compat import map, range, zip, lrange, lmap, u
+from pandas import compat
 import time
 import re
 import copy
@@ -30,7 +30,7 @@ from pandas.core.reshape import block2d_to_blocknd, factor_indexer
 from pandas.core.index import _ensure_index
 import pandas.core.common as com
 from pandas.tools.merge import concat
-from pandas.util import compat
+from pandas import compat
 from pandas.io.common import PerformanceWarning
 
 import pandas.lib as lib

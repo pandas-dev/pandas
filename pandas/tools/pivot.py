@@ -5,8 +5,8 @@ from pandas.core.index import MultiIndex
 from pandas.core.reshape import _unstack_multiple
 from pandas.tools.merge import concat
 from pandas.tools.util import cartesian_product
-from pandas.util.compat import range, lrange, zip
-from pandas.util import compat
+from pandas.compat import range, lrange, zip
+from pandas import compat
 import pandas.core.common as com
 import numpy as np
 

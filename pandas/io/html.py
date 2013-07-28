@@ -14,8 +14,8 @@ import numpy as np
 
 from pandas import DataFrame, MultiIndex, isnull
 from pandas.io.common import _is_url, urlopen, parse_url
-from pandas.util.compat import range, lrange, lmap, u, map
-from pandas.util import compat
+from pandas.compat import range, lrange, lmap, u, map
+from pandas import compat
 
 
 try:

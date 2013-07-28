@@ -1,5 +1,5 @@
 from __future__ import print_function
-from pandas.util.compat import range, lrange
+from pandas.compat import range, lrange
 import time
 import os
 import numpy as np

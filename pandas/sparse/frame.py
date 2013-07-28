@@ -6,8 +6,8 @@ with float64 data
 # pylint: disable=E1101,E1103,W0231,E0202
 
 from numpy import nan
-from pandas.util.compat import range, lmap, map
-from pandas.util import compat
+from pandas.compat import range, lmap, map
+from pandas import compat
 import numpy as np
 
 from pandas.core.common import _pickle_array, _unpickle_array, _try_sort

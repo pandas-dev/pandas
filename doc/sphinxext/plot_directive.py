@@ -75,7 +75,7 @@ TODO
 
 """
 
-from pandas.util.compat import range, cStringIO as StringIO, map
+from pandas.compat import range, cStringIO as StringIO, map
 import sys, os, glob, shutil, imp, warnings, re, textwrap, traceback
 import sphinx
 

@@ -17,7 +17,7 @@ from pandas.core import expressions as expr
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
                                  assert_frame_equal)
-from pandas.util import compat
+from pandas import compat
 
 import pandas.util.testing as tm
 import pandas.lib as lib

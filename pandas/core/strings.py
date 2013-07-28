@@ -1,9 +1,9 @@
 import numpy as np
 
-from pandas.util.compat import zip
+from pandas.compat import zip
 from pandas.core.common import isnull
 from pandas.core.series import Series
-import pandas.util.compat as compat
+import pandas.compat as compat
 import re
 import pandas.lib as lib
 

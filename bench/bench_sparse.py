@@ -3,7 +3,7 @@ import numpy as np
 
 from pandas import *
 import pandas.core.sparse as spm
-import pandas.util.compat as compat
+import pandas.compat as compat
 reload(spm)
 from pandas.core.sparse import *
 

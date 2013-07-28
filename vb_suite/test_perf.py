@@ -27,7 +27,7 @@ everything and calculate a ration for the timing information.
 """
 from __future__ import print_function
 
-from pandas.util.compat import range, lmap
+from pandas.compat import range, lmap
 import shutil
 import os
 import sys

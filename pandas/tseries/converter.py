@@ -10,8 +10,8 @@ import matplotlib.dates as dates
 from matplotlib.ticker import Formatter, AutoLocator, Locator
 from matplotlib.transforms import nonsingular
 
-from pandas.util.compat import range, lrange
-import pandas.util.compat as compat
+from pandas.compat import range, lrange
+import pandas.compat as compat
 import pandas.lib as lib
 import pandas.core.common as com
 from pandas.core.index import Index

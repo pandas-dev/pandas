@@ -1,5 +1,5 @@
 from datetime import datetime, time, timedelta
-from pandas.util.compat import range
+from pandas.compat import range
 import sys
 import os
 import unittest

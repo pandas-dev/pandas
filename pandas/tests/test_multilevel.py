@@ -13,7 +13,7 @@ from pandas.util.testing import (assert_almost_equal,
                                  assert_frame_equal)
 import pandas.core.common as com
 import pandas.util.testing as tm
-from pandas.util.compat import (range, lrange, StringIO, lzip, u, cPickle,
+from pandas.compat import (range, lrange, StringIO, lzip, u, cPickle,
                                 product as cart_product, zip)
 import pandas as pd
 

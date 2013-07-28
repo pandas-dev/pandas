@@ -14,8 +14,8 @@ import pandas.algos as algos
 import pandas.lib as lib
 import pandas.tslib as tslib
 
-from pandas.util import compat
-from pandas.util.compat import StringIO, BytesIO, range, long, u, zip, map
+from pandas import compat
+from pandas.compat import StringIO, BytesIO, range, long, u, zip, map
 
 
 from pandas.core.config import get_option

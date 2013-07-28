@@ -8,7 +8,7 @@ import textwrap
 import re
 import pydoc
 from warnings import warn
-from pandas.util.compat import StringIO, callable
+from pandas.compat import StringIO, callable
 
 class Reader(object):
     """A line-based string reader.

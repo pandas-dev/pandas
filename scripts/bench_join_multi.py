@@ -1,7 +1,7 @@
 from pandas import *
 
 import numpy as np
-from pandas.util.compat import zip, range, lzip
+from pandas.compat import zip, range, lzip
 from pandas.util.testing import rands
 import pandas.lib as lib
 

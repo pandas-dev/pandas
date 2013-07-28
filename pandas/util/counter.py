@@ -1,11 +1,11 @@
 # This is copied from collections in Python 2.7, for compatibility with older
 # versions of Python. It can be dropped when we depend on Python 2.7/3.1
 
-from pandas.util import compat
+from pandas import compat
 import heapq as _heapq
 from itertools import repeat as _repeat, chain as _chain, starmap as _starmap
 from operator import itemgetter as _itemgetter
-from pandas.util.compat import map
+from pandas.compat import map
 
 try:
     from collections import Mapping

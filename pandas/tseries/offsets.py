@@ -1,6 +1,6 @@
 from datetime import date, datetime, timedelta
-from pandas.util.compat import range
-from pandas.util import compat
+from pandas.compat import range
+from pandas import compat
 import numpy as np
 
 from pandas.tseries.tools import to_datetime

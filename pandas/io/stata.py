@@ -19,9 +19,9 @@ from pandas.core.frame import DataFrame
 from pandas.core.series import Series
 from pandas.core.categorical import Categorical
 import datetime
-from pandas.util import compat
-from pandas.util import compat
-from pandas.util.compat import StringIO, long, lrange, lmap, lzip
+from pandas import compat
+from pandas import compat
+from pandas.compat import StringIO, long, lrange, lmap, lzip
 from pandas import isnull
 from pandas.io.parsers import _parser_params, Appender
 from pandas.io.common import get_filepath_or_buffer

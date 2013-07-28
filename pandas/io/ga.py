@@ -5,7 +5,7 @@
 4. Download JSON secret file and move into same directory as this file
 """
 from datetime import datetime
-from pandas.util import compat
+from pandas import compat
 import numpy as np
 from pandas import DataFrame
 import pandas as pd
@@ -17,7 +17,7 @@ from pandas.util.decorators import Appender, Substitution
 
 from apiclient.errors import HttpError
 from oauth2client.client import AccessTokenRefreshError
-from pandas.util.compat import zip, u
+from pandas.compat import zip, u
 
 TYPE_MAP = {u('INTEGER'): int, u('FLOAT'): float, u('TIME'): int}
 

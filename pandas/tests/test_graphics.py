@@ -6,7 +6,7 @@ import unittest
 from datetime import datetime, date
 
 from pandas import Series, DataFrame, MultiIndex, PeriodIndex, date_range
-from pandas.util.compat import range, lrange, StringIO, lmap, lzip, u, map, zip
+from pandas.compat import range, lrange, StringIO, lmap, lzip, u, map, zip
 import pandas.util.testing as tm
 from pandas.util.testing import ensure_clean
 from pandas.core.config import set_option

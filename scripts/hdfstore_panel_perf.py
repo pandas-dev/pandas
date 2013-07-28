@@ -1,6 +1,6 @@
 from pandas import *
 from pandas.util.testing import rands
-from pandas.util.compat import range
+from pandas.compat import range
 
 i, j, k = 7, 771, 5532
 

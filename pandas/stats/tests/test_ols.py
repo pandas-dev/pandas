@@ -7,7 +7,7 @@ Unit test suite for OLS and PanelOLS classes
 from __future__ import division
 
 from datetime import datetime
-from pandas.util import compat
+from pandas import compat
 import unittest
 import nose
 import numpy as np
@@ -22,7 +22,7 @@ from pandas.stats.plm import NonPooledPanelOLS, PanelOLS
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal, assertRaisesRegexp)
 import pandas.util.testing as tm
-import pandas.util.compat as compat
+import pandas.compat as compat
 from .common import BaseTest
 
 _have_statsmodels = True

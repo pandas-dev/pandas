@@ -1,5 +1,5 @@
 from __future__ import print_function
-from pandas.util import compat
+from pandas import compat
 import unittest
 import warnings
 import nose

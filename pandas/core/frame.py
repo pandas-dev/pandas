@@ -12,8 +12,8 @@ labeling information
 # pylint: disable=E1101,E1103
 # pylint: disable=W0212,W0231,W0703,W0622
 
-from pandas.util.compat import range, zip, lrange, lmap, lzip, StringIO, u, OrderedDict
-from pandas.util import compat
+from pandas.compat import range, zip, lrange, lmap, lzip, StringIO, u, OrderedDict
+from pandas import compat
 import operator
 import sys
 import collections
@@ -37,7 +37,7 @@ from pandas.core.internals import (BlockManager,
 from pandas.core.series import Series, _radd_compat
 import pandas.core.expressions as expressions
 from pandas.compat.scipy import scoreatpercentile as _quantile
-from pandas.util import compat
+from pandas import compat
 from pandas.util.terminal import get_terminal_size
 from pandas.util.decorators import deprecate, Appender, Substitution
 
