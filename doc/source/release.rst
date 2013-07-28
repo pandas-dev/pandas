@@ -64,6 +64,8 @@ pandas 0.13
   - ``read_html`` tests now work with Python 2.6 (:issue:`4351`)
   - Fixed bug where ``network`` testing was throwing ``NameError`` because a
     local variable was undefined (:issue:`4381`)
+  - In ``to_json``, raise if a passed ``orient`` would cause loss of data because
+    of a duplicate index (:issue:`4359`)
 
 pandas 0.12
 ===========

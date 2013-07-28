@@ -46,6 +46,9 @@ Bug Fixes
   - Fixed bug where ``network`` testing was throwing ``NameError`` because a
     local variable was undefined (:issue:`4381`)
 
+  - In ``to_json``, raise if a passed ``orient`` would cause loss of data because
+    of a duplicate index (:issue:`4359`)
+
 See the :ref:`full release notes
 <release>` or issue tracker
 on GitHub for a complete list.
