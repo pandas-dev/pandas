@@ -66,8 +66,6 @@ Bug Fixes
 
   - Suppressed DeprecationWarning associated with internal calls issued by repr() (:issue:`4391`)
 
-  - Fixed passing ``keep_default_na=False`` when ``na_values=None`` (:issue:`4318`)
-
 See the :ref:`full release notes
 <release>` or issue tracker
 on GitHub for a complete list.
