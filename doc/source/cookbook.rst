@@ -279,6 +279,9 @@ The :ref:`Plotting <visualization>` docs.
 `Annotate a time-series plot
 <http://stackoverflow.com/questions/11067368/annotate-time-series-plot-in-matplotlib>`__
 
+`Annotate a time-series plot #2
+<http://stackoverflow.com/questions/17891493/annotating-points-from-a-pandas-dataframe-in-matplotlib-plot`__
+
 Data In/Out
 -----------
 
@@ -366,6 +369,9 @@ csv file and creating a store by chunks, with date parsing as well.
 `See here
 <http://stackoverflow.com/questions/16110252/need-to-compare-very-large-files-around-1-5gb-in-python/16110391#16110391>`__
 
+`Appending to a store, while creating a unique index
+<http://stackoverflow.com/questions/16997048/how-does-one-append-large-amounts-of-data-to-a-pandas-hdfstore-and-get-a-natural/16999397#16999397>`__
+
 `Large Data work flows
 <http://stackoverflow.com/questions/14262433/large-data-work-flows-using-pandas>`__
 
@@ -380,6 +386,9 @@ csv file and creating a store by chunks, with date parsing as well.
 
 `Setting min_itemsize with strings
 <http://stackoverflow.com/questions/15988871/hdfstore-appendstring-dataframe-fails-when-string-column-contents-are-longer>`__
+
+`Using ptrepack to create a completely-sorted-index on a store
+<http://stackoverflow.com/questions/17893370/ptrepack-sortby-needs-full-index>`__
 
 Storing Attributes to a group node
 
