@@ -1,16 +1,18 @@
+from __future__ import print_function
 import time
 import os
 import numpy as np
 
 import la
 import pandas
+from pandas.compat import range
 from pandas import datetools, DateRange
 
 
 def timeit(f, iterations):
     start = time.clock()
 
-    for i in xrange(iterations):
+    for i in range(iterations):
         f()
 
     return time.clock() - start
@@ -54,11 +56,11 @@ def rountrip_archive(N, K=50, iterations=10):
 
     pandas_f = lambda: pandas_roundtrip(filename_pandas, dma, dma)
     pandas_time = timeit(pandas_f, iterations) / iterations
-    print 'pandas (HDF5) %7.4f seconds' % pandas_time
+    print('pandas (HDF5) %7.4f seconds' % pandas_time)
 
     pickle_f = lambda: pandas_roundtrip(filename_pandas, dma, dma)
     pickle_time = timeit(pickle_f, iterations) / iterations
-    print 'pandas (pickle) %7.4f seconds' % pickle_time
+    print('pandas (pickle) %7.4f seconds' % pickle_time)
 
     # print 'Numpy (npz)   %7.4f seconds' % numpy_time
     # print 'larry (HDF5)  %7.4f seconds' % larry_time

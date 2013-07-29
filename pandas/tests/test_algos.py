@@ -1,3 +1,4 @@
+from pandas.compat import range
 import unittest
 
 import numpy as np
@@ -36,17 +37,17 @@ class TestUnique(unittest.TestCase):
         arr = np.random.randint(0, 100, size=50)
 
         result = algos.unique(arr)
-        self.assert_(isinstance(result, np.ndarray))
+        tm.assert_isinstance(result, np.ndarray)
 
     def test_objects(self):
         arr = np.random.randint(0, 100, size=50).astype('O')
 
         result = algos.unique(arr)
-        self.assert_(isinstance(result, np.ndarray))
+        tm.assert_isinstance(result, np.ndarray)
 
     def test_object_refcount_bug(self):
         lst = ['A', 'B', 'C', 'D', 'E']
-        for i in xrange(1000):
+        for i in range(1000):
             len(algos.unique(lst))
 
     def test_on_index_object(self):

@@ -9,8 +9,7 @@ improved version.
 You can find more information on http://presbrey.mit.edu/PyDTA and
 http://statsmodels.sourceforge.net/devel/
 """
-
-from StringIO import StringIO
+# TODO: Fix this module so it can use cross-compatible zip, map, and range
 import numpy as np
 
 import sys
@@ -20,7 +19,9 @@ from pandas.core.frame import DataFrame
 from pandas.core.series import Series
 from pandas.core.categorical import Categorical
 import datetime
-from pandas.util import py3compat
+from pandas import compat
+from pandas import compat
+from pandas.compat import StringIO, long, lrange, lmap, lzip
 from pandas import isnull
 from pandas.io.parsers import _parser_params, Appender
 from pandas.io.common import get_filepath_or_buffer
@@ -225,7 +226,7 @@ class StataParser(object):
         # we're going to drop the label and cast to int
         self.DTYPE_MAP = \
             dict(
-                zip(range(1, 245), ['a' + str(i) for i in range(1, 245)]) +
+                lzip(range(1, 245), ['a' + str(i) for i in range(1, 245)]) +
                 [
                     (251, np.int16),
                     (252, np.int32),
@@ -234,7 +235,7 @@ class StataParser(object):
                     (255, np.float64)
                 ]
             )
-        self.TYPE_MAP = range(251) + list('bhlfd')
+        self.TYPE_MAP = lrange(251) + list('bhlfd')
         #NOTE: technically, some of these are wrong. there are more numbers
         # that can be represented. it's the 27 ABOVE and BELOW the max listed
         # numeric data type in [U] 12.2.2 of the 11.2 manual
@@ -255,7 +256,7 @@ class StataParser(object):
             }
 
     def _decode_bytes(self, str, errors=None):
-        if py3compat.PY3:
+        if compat.PY3:
             return str.decode(self._encoding, errors)
         else:
             return str
@@ -297,7 +298,7 @@ class StataReader(StataParser):
             if encoding is not None:
                 self._encoding = encoding
 
-        if type(path_or_buf) is str:
+        if isinstance(path_or_buf, (str, compat.text_type, bytes)):
             self.path_or_buf = open(path_or_buf, 'rb')
         else:
             self.path_or_buf = path_or_buf
@@ -384,7 +385,7 @@ class StataReader(StataParser):
     def _col_size(self, k=None):
         """Calculate size of a data record."""
         if len(self.col_sizes) == 0:
-            self.col_sizes = map(lambda x: self._calcsize(x), self.typlist)
+            self.col_sizes = lmap(lambda x: self._calcsize(x), self.typlist)
         if k is None:
             return self.col_sizes
         else:
@@ -402,7 +403,7 @@ class StataReader(StataParser):
         return d
 
     def _null_terminate(self, s):
-        if py3compat.PY3:  # have bytes not strings, so must decode
+        if compat.PY3:  # have bytes not strings, so must decode
             null_byte = b"\0"
             try:
                 s = s[:s.index(null_byte)]
@@ -427,9 +428,9 @@ class StataReader(StataParser):
                     data[i] = self._unpack(typlist[i], self.path_or_buf.read(self._col_size(i)))
             return data
         else:
-            return map(lambda i: self._unpack(typlist[i],
+            return list(map(lambda i: self._unpack(typlist[i],
                                               self.path_or_buf.read(self._col_size(i))),
-                       range(self.nvar))
+                       range(self.nvar)))
 
     def _dataset(self):
         """
@@ -538,18 +539,18 @@ class StataReader(StataParser):
                     data[col] = Series(data[col], data[col].index, self.dtyplist[i])
 
         if convert_dates:
-            cols = np.where(map(lambda x: x in _date_formats, self.fmtlist))[0]
+            cols = np.where(lmap(lambda x: x in _date_formats, self.fmtlist))[0]
             for i in cols:
                 col = data.columns[i]
                 data[col] = data[col].apply(_stata_elapsed_date_to_datetime, args=(self.fmtlist[i],))
 
         if convert_categoricals:
-            cols = np.where(map(lambda x: x in self.value_label_dict.iterkeys(), self.lbllist))[0]
+            cols = np.where(lmap(lambda x: x in compat.iterkeys(self.value_label_dict), self.lbllist))[0]
             for i in cols:
                 col = data.columns[i]
                 labeled_data = np.copy(data[col])
                 labeled_data = labeled_data.astype(object)
-                for k, v in self.value_label_dict[self.lbllist[i]].iteritems():
+                for k, v in compat.iteritems(self.value_label_dict[self.lbllist[i]]):
                     labeled_data[data[col] == k] = v
                 data[col] = Categorical.from_array(labeled_data)
 
@@ -750,7 +751,7 @@ class StataWriter(StataParser):
         """
         Helper to call encode before writing to file for Python 3 compat.
         """
-        if py3compat.PY3:
+        if compat.PY3:
             self._file.write(to_write.encode(self._encoding))
         else:
             self._file.write(to_write)
@@ -906,7 +907,7 @@ class StataWriter(StataParser):
 
     def _null_terminate(self, s, as_string=False):
         null_byte = '\x00'
-        if py3compat.PY3 and not as_string:
+        if compat.PY3 and not as_string:
             s += null_byte
             return s.encode(self._encoding)
         else:

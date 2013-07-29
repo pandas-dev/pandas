@@ -1,9 +1,7 @@
 """
 The config module holds package-wide configurables and provides
 a uniform API for working with them.
-"""
 
-"""
 Overview
 ========
 
@@ -54,6 +52,8 @@ import re
 
 from collections import namedtuple
 import warnings
+from pandas.compat import map, lmap, u
+import pandas.compat as compat
 
 DeprecatedOption = namedtuple('DeprecatedOption', 'key msg rkey removal_ver')
 RegisteredOption = namedtuple(
@@ -128,8 +128,8 @@ def _set_option(*args, **kwargs):
 
     # if 1 kwarg then it must be silent=True or silent=False
     if nkwargs:
-        k, = kwargs.keys()
-        v, = kwargs.values()
+        k, = list(kwargs.keys())
+        v, = list(kwargs.values())
 
         if k != 'silent':
             raise ValueError("the only allowed keyword argument is 'silent', "
@@ -149,7 +149,7 @@ def _describe_option(pat='', _print_desc=True):
     if len(keys) == 0:
         raise KeyError('No such keys(s)')
 
-    s = u''
+    s = u('')
     for k in keys:  # filter by pat
         s += _build_option_description(k)
 
@@ -209,7 +209,7 @@ class DictWrapper(object):
             return _get_option(prefix)
 
     def __dir__(self):
-        return self.d.keys()
+        return list(self.d.keys())
 
 # For user convenience,  we'd like to have the available options described
 # in the docstring. For dev convenience we'd like to generate the docstrings
@@ -232,7 +232,7 @@ class CallableDynamicDoc(object):
     @property
     def __doc__(self):
         opts_desc = _describe_option('all', _print_desc=False)
-        opts_list = pp_options_list(_registered_options.keys())
+        opts_list = pp_options_list(list(_registered_options.keys()))
         return self.__doc_tmpl__.format(opts_desc=opts_desc,
                                         opts_list=opts_list)
 
@@ -351,7 +351,7 @@ class option_context(object):
            errmsg =  "Need to invoke as option_context(pat,val,[(pat,val),..))."
            raise AssertionError(errmsg)
 
-        ops = zip(args[::2], args[1::2])
+        ops = list(zip(args[::2], args[1::2]))
         undo = []
         for pat, val in ops:
             undo.append((pat, _get_option(pat, silent=True)))
@@ -588,9 +588,9 @@ def _build_option_description(k):
     o = _get_registered_option(k)
     d = _get_deprecated_option(k)
 
-    s = u'%s: ' % k
+    s = u('%s: ') % k
     if o:
-        s += u'[default: %s] [currently: %s]' % (o.defval, _get_option(k, True))
+        s += u('[default: %s] [currently: %s]') % (o.defval, _get_option(k, True))
 
     if o.doc:
         s += '\n' + '\n    '.join(o.doc.strip().split('\n'))
@@ -598,9 +598,9 @@ def _build_option_description(k):
         s += 'No description available.\n'
 
     if d:
-        s += u'\n\t(Deprecated'
-        s += (u', use `%s` instead.' % d.rkey if d.rkey else '')
-        s += u')\n'
+        s += u('\n\t(Deprecated')
+        s += (u(', use `%s` instead.') % d.rkey if d.rkey else '')
+        s += u(')\n')
 
     s += '\n'
     return s
@@ -729,15 +729,16 @@ def is_instance_factory(_type):
                 True if x is an instance of `_type`
 
     """
+    if isinstance(_type, (tuple, list)):
+        _type = tuple(_type)
+        from pandas.core.common import pprint_thing
+        type_repr = "|".join(map(pprint_thing, _type))
+    else:
+        type_repr = "'%s'" % _type
 
     def inner(x):
-        if isinstance(_type,(tuple,list)) :
-            if not any([isinstance(x,t) for t in _type]):
-                from pandas.core.common import pprint_thing as pp
-                pp_values = map(pp, _type)
-                raise ValueError("Value must be an instance of %s" % pp("|".join(pp_values)))
-        elif not isinstance(x, _type):
-            raise ValueError("Value must be an instance of '%s'" % str(_type))
+        if not isinstance(x, _type):
+            raise ValueError("Value must be an instance of %s" % type_repr)
 
     return inner
 
@@ -745,7 +746,7 @@ def is_one_of_factory(legal_values):
     def inner(x):
         from pandas.core.common import pprint_thing as pp
         if not x in legal_values:
-            pp_values = map(pp, legal_values)
+            pp_values = lmap(pp, legal_values)
             raise ValueError("Value must be one of %s" % pp("|".join(pp_values)))
 
     return inner
@@ -756,5 +757,5 @@ is_int = is_type_factory(int)
 is_bool = is_type_factory(bool)
 is_float = is_type_factory(float)
 is_str = is_type_factory(str)
-is_unicode = is_type_factory(unicode)
-is_text = is_instance_factory(basestring)
+is_unicode = is_type_factory(compat.text_type)
+is_text = is_instance_factory((str, bytes))

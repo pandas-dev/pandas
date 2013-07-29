@@ -1,11 +1,14 @@
+import datetime
 import unittest
 
 import numpy as np
 from numpy.testing import assert_equal
 
+import pandas
 from pandas import DataFrame, Series, Index, MultiIndex
 from pandas.tools.merge import concat
 from pandas.tools.pivot import pivot_table, crosstab
+from pandas.compat import range, u, product
 import pandas.util.testing as tm
 
 
@@ -72,9 +75,18 @@ class TestPivotTable(unittest.TestCase):
         pv_col = df.pivot_table('quantity', 'month', ['customer', 'product'], dropna=False)
         pv_ind = df.pivot_table('quantity', ['customer', 'product'], 'month', dropna=False)
 
-        m = MultiIndex.from_tuples([(u'A', u'a'), (u'A', u'b'), (u'A', u'c'), (u'A', u'd'), 
-                                   (u'B', u'a'), (u'B', u'b'), (u'B', u'c'), (u'B', u'd'),
-                                   (u'C', u'a'), (u'C', u'b'), (u'C', u'c'), (u'C', u'd')])
+        m = MultiIndex.from_tuples([(u('A'), u('a')),
+                                    (u('A'), u('b')),
+                                    (u('A'), u('c')),
+                                    (u('A'), u('d')),
+                                    (u('B'), u('a')),
+                                    (u('B'), u('b')),
+                                    (u('B'), u('c')),
+                                    (u('B'), u('d')),
+                                    (u('C'), u('a')),
+                                    (u('C'), u('b')),
+                                    (u('C'), u('c')),
+                                    (u('C'), u('d'))])
 
         assert_equal(pv_col.columns.values, m.values)
         assert_equal(pv_ind.index.values, m.values)
@@ -151,7 +163,7 @@ class TestPivotTable(unittest.TestCase):
         nan = np.nan
         df = DataFrame({"a":['R1', 'R2', nan, 'R4'], 'b':["C1", "C2", "C3" , "C4"], "c":[10, 15, nan , 20]})
         result = df.pivot('a','b','c')
-        expected = DataFrame([[nan,nan,nan,nan],[nan,10,nan,nan], 
+        expected = DataFrame([[nan,nan,nan,nan],[nan,10,nan,nan],
                               [nan,nan,nan,nan],[nan,nan,15,20]],
                              index = Index(['R1','R2',nan,'R4'],name='a'),
                              columns = Index(['C1','C2','C3','C4'],name='b'))
@@ -199,20 +211,17 @@ class TestPivotTable(unittest.TestCase):
         # no rows
         rtable = self.data.pivot_table(cols=['AA', 'BB'], margins=True,
                                        aggfunc=np.mean)
-        self.assert_(isinstance(rtable, Series))
+        tm.assert_isinstance(rtable, Series)
         for item in ['DD', 'EE', 'FF']:
             gmarg = table[item]['All', '']
             self.assertEqual(gmarg, self.data[item].mean())
 
     def test_pivot_integer_columns(self):
         # caused by upstream bug in unstack
-        from pandas.util.compat import product
-        import datetime
-        import pandas
 
         d = datetime.date.min
         data = list(product(['foo', 'bar'], ['A', 'B', 'C'], ['x1', 'x2'],
-                            [d + datetime.timedelta(i) for i in xrange(20)], [1.0]))
+                            [d + datetime.timedelta(i) for i in range(20)], [1.0]))
         df = pandas.DataFrame(data)
         table = df.pivot_table(values=4, rows=[0, 1, 3], cols=[2])
 
@@ -236,9 +245,6 @@ class TestPivotTable(unittest.TestCase):
         tm.assert_frame_equal(table, expected)
 
     def test_pivot_columns_lexsorted(self):
-        import datetime
-        import numpy as np
-        import pandas
 
         n = 10000
 

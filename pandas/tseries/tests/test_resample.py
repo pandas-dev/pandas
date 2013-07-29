@@ -2,6 +2,7 @@
 
 from datetime import datetime, timedelta
 
+from pandas.compat import range, lrange, zip, product
 import numpy as np
 
 from pandas import Series, TimeSeries, DataFrame, Panel, isnull, notnull, Timestamp
@@ -266,7 +267,7 @@ class TestResample(unittest.TestCase):
         bs = s.resample('B', closed='right', label='right')
         result = bs.resample('8H')
         self.assertEquals(len(result), 22)
-        self.assert_(isinstance(result.index.freq, offsets.DateOffset))
+        tm.assert_isinstance(result.index.freq, offsets.DateOffset)
         self.assert_(result.index.freq == offsets.Hour(8))
 
     def test_resample_timestamp_to_period(self):
@@ -535,7 +536,7 @@ class TestResample(unittest.TestCase):
         ts = Series(np.random.randn(len(rng)), index=rng)
 
         result = ts.resample('20min', how=['mean', 'sum'])
-        self.assert_(isinstance(result, DataFrame))
+        tm.assert_isinstance(result, DataFrame)
 
     def test_resample_not_monotonic(self):
         rng = pd.date_range('2012-06-12', periods=200, freq='h')
@@ -603,7 +604,6 @@ def _simple_pts(start, end, freq='D'):
 
 
 from pandas.tseries.frequencies import MONTHS, DAYS
-from pandas.util.compat import product
 
 
 class TestResamplePeriodIndex(unittest.TestCase):
@@ -860,7 +860,7 @@ class TestResamplePeriodIndex(unittest.TestCase):
 
     def test_resample_tz_localized(self):
         dr = date_range(start='2012-4-13', end='2012-5-1')
-        ts = Series(range(len(dr)), dr)
+        ts = Series(lrange(len(dr)), dr)
 
         ts_utc = ts.tz_localize('UTC')
         ts_local = ts_utc.tz_convert('America/Los_Angeles')

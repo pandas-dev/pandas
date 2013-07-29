@@ -5,6 +5,8 @@ from pandas.core.index import MultiIndex
 from pandas.core.reshape import _unstack_multiple
 from pandas.tools.merge import concat
 from pandas.tools.util import cartesian_product
+from pandas.compat import range, lrange, zip
+from pandas import compat
 import pandas.core.common as com
 import numpy as np
 
@@ -149,9 +151,9 @@ DataFrame.pivot_table = pivot_table
 
 def _add_margins(table, data, values, rows=None, cols=None, aggfunc=np.mean):
     grand_margin = {}
-    for k, v in data[values].iteritems():
+    for k, v in compat.iteritems(data[values]):
         try:
-            if isinstance(aggfunc, basestring):
+            if isinstance(aggfunc, compat.string_types):
                 grand_margin[k] = getattr(v, aggfunc)()
             else:
                 grand_margin[k] = aggfunc(v)
@@ -196,7 +198,7 @@ def _add_margins(table, data, values, rows=None, cols=None, aggfunc=np.mean):
         row_margin = row_margin.stack()
 
         # slight hack
-        new_order = [len(cols)] + range(len(cols))
+        new_order = [len(cols)] + lrange(len(cols))
         row_margin.index = row_margin.index.reorder_levels(new_order)
     else:
         row_margin = Series(np.nan, index=result.columns)

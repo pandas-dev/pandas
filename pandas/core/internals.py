@@ -17,7 +17,8 @@ import pandas.tslib as tslib
 import pandas.core.expressions as expressions
 
 from pandas.tslib import Timestamp
-from pandas.util import py3compat
+from pandas import compat
+from pandas.compat import range, lrange, lmap, callable, map, zip
 
 
 class Block(PandasObject):
@@ -471,7 +472,7 @@ class Block(PandasObject):
         args = [ values, other ]
         try:
             result = self._try_coerce_result(func(*args))
-        except (Exception), detail:
+        except (Exception) as detail:
             if raise_on_error:
                 raise TypeError('Could not operate [%s] with block values [%s]'
                                 % (repr(other),str(detail)))
@@ -546,7 +547,7 @@ class Block(PandasObject):
             v, o = self._try_coerce_args(v, o)
             try:
                 return self._try_coerce_result(expressions.where(c, v, o, raise_on_error=True))
-            except (Exception), detail:
+            except (Exception) as detail:
                 if raise_on_error:
                     raise TypeError('Could not operate [%s] with block values [%s]'
                                     % (repr(o),str(detail)))
@@ -576,7 +577,7 @@ class Block(PandasObject):
         # might need to separate out blocks
         axis = cond.ndim - 1
         cond = cond.swapaxes(axis, 0)
-        mask = np.array([cond[i].all() for i in xrange(cond.shape[0])],
+        mask = np.array([cond[i].all() for i in range(cond.shape[0])],
                         dtype=bool)
 
         result_blocks = []
@@ -686,7 +687,7 @@ class ObjectBlock(Block):
     _can_hold_na = True
 
     def __init__(self, values, items, ref_items, ndim=2, fastpath=False, placement=None):
-        if issubclass(values.dtype.type, basestring):
+        if issubclass(values.dtype.type, compat.string_types):
             values = np.array(values, dtype=object)
 
         super(ObjectBlock, self).__init__(values, items, ref_items,
@@ -757,7 +758,7 @@ class ObjectBlock(Block):
                                                    inplace=inplace,
                                                    filter=filter, regex=regex)
         elif both_lists:
-            for to_rep, v in itertools.izip(to_replace, value):
+            for to_rep, v in zip(to_replace, value):
                 blk[0], = blk[0]._replace_single(to_rep, v, inplace=inplace,
                                                  filter=filter, regex=regex)
         elif to_rep_is_list and regex:
@@ -812,7 +813,7 @@ class ObjectBlock(Block):
 
         # deal with replacing values with objects (strings) that match but
         # whose replacement is not a string (numeric, nan, object)
-        if isnull(value) or not isinstance(value, basestring):
+        if isnull(value) or not isinstance(value, compat.string_types):
             def re_replacer(s):
                 try:
                     return value if rx.search(s) is not None else s
@@ -830,7 +831,7 @@ class ObjectBlock(Block):
         f = np.vectorize(re_replacer, otypes=[self.dtype])
 
         try:
-            filt = map(self.items.get_loc, filter)
+            filt = lmap(self.items.get_loc, filter)
         except TypeError:
             filt = slice(None)
 
@@ -1012,6 +1013,9 @@ class BlockManager(PandasObject):
 
     def __nonzero__(self):
         return True
+
+    # Python3 compat
+    __bool__ = __nonzero__
 
     @property
     def ndim(self):
@@ -1922,7 +1926,7 @@ class BlockManager(PandasObject):
 
             # need to shift elements to the right
             if self._ref_locs[loc] is not None:
-                for i in reversed(range(loc+1,len(self._ref_locs))):
+                for i in reversed(lrange(loc+1,len(self._ref_locs))):
                     self._ref_locs[i] = self._ref_locs[i-1]
 
             self._ref_locs[loc] = (new_block, 0)
@@ -2532,5 +2536,5 @@ def _possibly_convert_to_indexer(loc):
     if com._is_bool_indexer(loc):
         loc = [i for i, v in enumerate(loc) if v]
     elif isinstance(loc,slice):
-        loc = range(loc.start,loc.stop)
+        loc = lrange(loc.start,loc.stop)
     return loc

@@ -14,12 +14,13 @@ import pandas.tseries.frequencies as _freq_mod
 
 import pandas.core.common as com
 from pandas.core.common import isnull, _NS_DTYPE, _INT64_DTYPE
-from pandas.util import py3compat
+from pandas import compat
 
 from pandas.lib import Timestamp
 import pandas.lib as lib
 import pandas.tslib as tslib
 import pandas.algos as _algos
+from pandas.compat import map, zip, u
 
 
 #---------------
@@ -47,7 +48,7 @@ class Period(PandasObject):
 
     Parameters
     ----------
-    value : Period or basestring, default None
+    value : Period or compat.string_types, default None
         The time period represented (e.g., '4Q2005')
     freq : str, default None
         e.g., 'B' for businessday, ('T', 5) or '5T' for 5 minutes
@@ -99,7 +100,7 @@ class Period(PandasObject):
                 converted = other.asfreq(freq)
                 self.ordinal = converted.ordinal
 
-        elif isinstance(value, basestring) or com.is_integer(value):
+        elif isinstance(value, compat.string_types) or com.is_integer(value):
             if com.is_integer(value):
                 value = str(value)
 
@@ -267,7 +268,7 @@ class Period(PandasObject):
         formatted = tslib.period_format(self.ordinal, base)
         freqstr = _freq_mod._reverse_period_code_map[base]
 
-        if not py3compat.PY3:
+        if not compat.PY3:
             encoding = com.get_option("display.encoding")
             formatted = formatted.encode(encoding)
 
@@ -666,7 +667,7 @@ class PeriodIndex(Int64Index):
 
     def __contains__(self, key):
         if not isinstance(key, Period) or key.freq != self.freq:
-            if isinstance(key, basestring):
+            if isinstance(key, compat.string_types):
                 try:
                     self.get_loc(key)
                     return True
@@ -946,7 +947,7 @@ class PeriodIndex(Int64Index):
         """
         Index.slice_locs, customized to handle partial ISO-8601 string slicing
         """
-        if isinstance(start, basestring) or isinstance(end, basestring):
+        if isinstance(start, compat.string_types) or isinstance(end, compat.string_types):
             try:
                 if start:
                     start_loc = self._get_string_slice(start).start
@@ -1057,14 +1058,14 @@ class PeriodIndex(Int64Index):
     def _format_with_header(self, header, **kwargs):
         return header + self._format_native_types(**kwargs)
 
-    def _format_native_types(self, na_rep=u'NaT', **kwargs):
+    def _format_native_types(self, na_rep=u('NaT'), **kwargs):
 
         values = np.array(list(self),dtype=object)
         mask = isnull(self.values)
         values[mask] = na_rep
 
         imask = -mask
-        values[imask] = np.array([ u'%s' % dt for dt in values[imask] ])
+        values[imask] = np.array([u('%s') % dt for dt in values[imask]])
         return values.tolist()
 
     def __array_finalize__(self, obj):
@@ -1084,8 +1085,8 @@ class PeriodIndex(Int64Index):
 
     def __unicode__(self):
         output = self.__class__.__name__
-        output += u'('
-        prefix = '' if py3compat.PY3 else 'u'
+        output += u('(')
+        prefix = '' if compat.PY3 else 'u'
         mapper = "{0}'{{0}}'".format(prefix)
         output += '[{0}]'.format(', '.join(map(mapper.format, self)))
         output += ", freq='{0}'".format(self.freq)
@@ -1097,7 +1098,7 @@ class PeriodIndex(Int64Index):
         return self.__unicode__().encode(encoding, 'replace')
 
     def __str__(self):
-        if py3compat.PY3:
+        if compat.PY3:
             return self.__unicode__()
         return self.__bytes__()
 

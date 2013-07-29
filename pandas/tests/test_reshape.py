@@ -1,8 +1,6 @@
 # pylint: disable-msg=W0612,E1101
 from copy import deepcopy
 from datetime import datetime, timedelta
-from StringIO import StringIO
-import cPickle as pickle
 import operator
 import os
 import unittest
@@ -17,6 +15,7 @@ import numpy as np
 
 from pandas.core.reshape import melt, convert_dummies, lreshape
 import pandas.util.testing as tm
+from pandas.compat import StringIO, cPickle, range
 
 _multiprocess_can_split_ = True
 
@@ -56,9 +55,9 @@ class TestMelt(unittest.TestCase):
                                'id2': self.df['id2'].tolist() * 2,
                                'variable': ['A']*10 + ['B']*10,
                                'value': self.df['A'].tolist() + self.df['B'].tolist()},
-                              columns=['id1', 'id2', 'variable', 'value'])                  
+                              columns=['id1', 'id2', 'variable', 'value'])
         tm.assert_frame_equal(result4, expected4)
-      
+
     def test_custom_var_name(self):
         result5 = melt(self.df, var_name=self.var_name)
         self.assertEqual(result5.columns.tolist(), ['var', 'value'])
@@ -79,7 +78,7 @@ class TestMelt(unittest.TestCase):
                                'id2': self.df['id2'].tolist() * 2,
                                self.var_name: ['A']*10 + ['B']*10,
                                'value': self.df['A'].tolist() + self.df['B'].tolist()},
-                              columns=['id1', 'id2', self.var_name, 'value'])                  
+                              columns=['id1', 'id2', self.var_name, 'value'])
         tm.assert_frame_equal(result9, expected9)
 
     def test_custom_value_name(self):
@@ -97,12 +96,12 @@ class TestMelt(unittest.TestCase):
         self.assertEqual(result13.columns.tolist(), ['id1', 'id2', 'variable', 'val'])
 
         result14 = melt(self.df, id_vars=['id1', 'id2'],
-                        value_vars=['A', 'B'], value_name=self.value_name)         
+                        value_vars=['A', 'B'], value_name=self.value_name)
         expected14 = DataFrame({'id1': self.df['id1'].tolist() * 2,
                                 'id2': self.df['id2'].tolist() * 2,
                                 'variable': ['A']*10 + ['B']*10,
                                 self.value_name: self.df['A'].tolist() + self.df['B'].tolist()},
-                               columns=['id1', 'id2', 'variable', self.value_name])                  
+                               columns=['id1', 'id2', 'variable', self.value_name])
         tm.assert_frame_equal(result14, expected14)
 
     def test_custom_var_and_value_name(self):
@@ -122,12 +121,12 @@ class TestMelt(unittest.TestCase):
         self.assertEqual(result18.columns.tolist(), ['id1', 'id2', 'var', 'val'])
 
         result19 = melt(self.df, id_vars=['id1', 'id2'],
-                        value_vars=['A', 'B'], var_name=self.var_name, value_name=self.value_name)                        
+                        value_vars=['A', 'B'], var_name=self.var_name, value_name=self.value_name)
         expected19 = DataFrame({'id1': self.df['id1'].tolist() * 2,
                                 'id2': self.df['id2'].tolist() * 2,
                                 var_name: ['A']*10 + ['B']*10,
                                 value_name: self.df['A'].tolist() + self.df['B'].tolist()},
-                               columns=['id1', 'id2', self.var_name, self.value_name])                  
+                               columns=['id1', 'id2', self.var_name, self.value_name])
         tm.assert_frame_equal(result19, expected19)
 
     def test_custom_var_and_value_name(self):

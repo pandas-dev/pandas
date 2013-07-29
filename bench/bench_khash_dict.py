@@ -1,12 +1,14 @@
 """
 Some comparisons of khash.h to Python dict
 """
+from __future__ import print_function
 
 import numpy as np
 import os
 
 from vbench.api import Benchmark
 from pandas.util.testing import rands
+from pandas.compat import range
 import pandas._tseries as lib
 import pandas._sandbox as sbx
 import time
@@ -22,7 +24,7 @@ def object_test_data(n):
 
 
 def string_test_data(n):
-    return np.array([rands(10) for _ in xrange(n)], dtype='O')
+    return np.array([rands(10) for _ in range(n)], dtype='O')
 
 
 def int_test_data(n):
@@ -50,7 +52,7 @@ def map_locations_khash_object():
 
 def _timeit(f, iterations=10):
     start = time.time()
-    for _ in xrange(iterations):
+    for _ in range(iterations):
         foo = f()
     elapsed = time.time() - start
     return elapsed
@@ -73,8 +75,8 @@ def lookup_khash(values):
 
 
 def leak(values):
-    for _ in xrange(100):
-        print proc.get_memory_info()
+    for _ in range(100):
+        print(proc.get_memory_info())
         table = lookup_khash(values)
         # table.destroy()
 

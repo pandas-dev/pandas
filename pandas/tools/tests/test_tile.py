@@ -3,6 +3,7 @@ import nose
 import unittest
 
 import numpy as np
+from pandas.compat import zip
 
 from pandas import DataFrame, Series, unique
 import pandas.util.testing as tm

@@ -16,7 +16,7 @@ _dtypes = {
 
 _lift_types = []
 
-for _k, _v in _dtypes.iteritems():
+for _k, _v in _dtypes.items():
     for _i in _v:
         _lift_types.append(_k + str(_i))
 

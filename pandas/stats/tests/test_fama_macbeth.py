@@ -1,7 +1,9 @@
 from pandas import DataFrame, Panel
 from pandas.stats.api import fama_macbeth
-from common import assert_almost_equal, BaseTest
+from .common import assert_almost_equal, BaseTest
 
+from pandas.compat import range
+from pandas import compat
 import numpy as np
 
 
@@ -28,7 +30,7 @@ class TestFamaMacBeth(BaseTest):
         index = result._index
         time = len(index)
 
-        for i in xrange(time - window + 1):
+        for i in range(time - window + 1):
             if window_type == 'rolling':
                 start = index[i]
             else:
@@ -37,7 +39,7 @@ class TestFamaMacBeth(BaseTest):
             end = index[i + window - 1]
 
             x2 = {}
-            for k, v in x.iterkv():
+            for k, v in compat.iteritems(x):
                 x2[k] = v.truncate(start, end)
             y2 = y.truncate(start, end)
 

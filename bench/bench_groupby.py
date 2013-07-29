@@ -1,5 +1,6 @@
 from pandas import *
 from pandas.util.testing import rands
+from pandas.compat import range
 
 import string
 import random
@@ -7,7 +8,7 @@ import random
 k = 20000
 n = 10
 
-foo = np.tile(np.array([rands(10) for _ in xrange(k)], dtype='O'), n)
+foo = np.tile(np.array([rands(10) for _ in range(k)], dtype='O'), n)
 foo2 = list(foo)
 random.shuffle(foo)
 random.shuffle(foo2)

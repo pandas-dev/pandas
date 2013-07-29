@@ -1,7 +1,7 @@
+from __future__ import print_function
 import sys
-import urllib2
 import json
-from contextlib import closing
+from pandas.io.common import urlopen
 from datetime import datetime
 
 
@@ -48,8 +48,7 @@ def get_issues():
 def _get_page(page_number):
     gh_url = ('https://api.github.com/repos/pydata/pandas/issues?'
               'milestone=*&state=closed&assignee=*&page=%d') % page_number
-    req = urllib2.Request(gh_url)
-    with closing(urllib2.urlopen(req)) as resp:
+    with urlopen(gh_url) as resp:
         rs = resp.readlines()[0]
     jsondata = json.loads(rs)
     issues = [Issue(x['title'], x['labels'], x['number'],
@@ -93,4 +92,4 @@ def release_notes(milestone):
 if __name__ == '__main__':
 
     rs = release_notes(sys.argv[1])
-    print rs
+    print(rs)

@@ -11,10 +11,10 @@ from pandas import Series, DataFrame, bdate_range, isnull, notnull
 from pandas.util.testing import (
     assert_almost_equal, assert_series_equal, assert_frame_equal
 )
-from pandas.util.py3compat import PY3
 import pandas.core.datetools as datetools
 import pandas.stats.moments as mom
 import pandas.util.testing as tm
+from pandas.compat import range, zip, PY3, StringIO
 
 N, K = 100, 10
 
@@ -432,7 +432,7 @@ class TestMoments(unittest.TestCase):
                           fill_value=None):
 
         series_result = func(self.series, 50)
-        self.assert_(isinstance(series_result, Series))
+        tm.assert_isinstance(series_result, Series)
 
         frame_result = func(self.frame, 50)
         self.assertEquals(type(frame_result), DataFrame)
@@ -487,7 +487,6 @@ class TestMoments(unittest.TestCase):
             assert_frame_equal(frame_xp, frame_rs)
 
     def test_legacy_time_rule_arg(self):
-        from StringIO import StringIO
         # suppress deprecation warnings
         sys.stderr = StringIO()
 
@@ -566,7 +565,7 @@ class TestMoments(unittest.TestCase):
 
     def _check_ew_structures(self, func):
         series_result = func(self.series, com=10)
-        self.assert_(isinstance(series_result, Series))
+        tm.assert_isinstance(series_result, Series)
         frame_result = func(self.frame, com=10)
         self.assertEquals(type(frame_result), DataFrame)
 
@@ -767,7 +766,7 @@ class TestMoments(unittest.TestCase):
 
     def _check_expanding_structures(self, func):
         series_result = func(self.series)
-        self.assert_(isinstance(series_result, Series))
+        tm.assert_isinstance(series_result, Series)
         frame_result = func(self.frame)
         self.assertEquals(type(frame_result), DataFrame)
 

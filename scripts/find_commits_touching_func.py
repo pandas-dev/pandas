@@ -4,6 +4,7 @@
 # copryright 2013, y-p @ github
 
 from __future__ import print_function
+from pandas.compat import range, lrange, map
 
 """Search the git history for all commits touching a named method
 
@@ -15,7 +16,7 @@ import logging
 import re
 import os
 from collections import namedtuple
-from dateutil import parser
+from pandas.compat import parse_date
 
 try:
     import sh
@@ -93,11 +94,11 @@ def get_hits(defname,files=()):
 
 def get_commit_info(c,fmt,sep='\t'):
     r=sh.git('log', "--format={}".format(fmt), '{}^..{}'.format(c,c),"-n","1",_tty_out=False)
-    return unicode(r).split(sep)
+    return compat.text_type(r).split(sep)
 
 def get_commit_vitals(c,hlen=HASH_LEN):
     h,s,d= get_commit_info(c,'%H\t%s\t%ci',"\t")
-    return h[:hlen],s,parser.parse(d)
+    return h[:hlen],s,parse_date(d)
 
 def file_filter(state,dirname,fnames):
     if args.dir_masks and not any([re.search(x,dirname) for x in args.dir_masks]):
@@ -159,7 +160,7 @@ def pprint_hits(hits):
 
     print("\nThese commits touched the %s method in these files on these dates:\n" \
           % args.funcname)
-    for i in sorted(range(len(hits)),key=sorter):
+    for i in sorted(lrange(len(hits)),key=sorter):
         hit = hits[i]
         h,s,d=get_commit_vitals(hit.commit)
         p=hit.path.split(os.path.realpath(os.curdir)+os.path.sep)[-1]
@@ -182,11 +183,11 @@ You must specify the -y argument to ignore this warning.
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 """)
         return
-    if isinstance(args.file_masks,basestring):
+    if isinstance(args.file_masks,compat.string_types):
         args.file_masks = args.file_masks.split(',')
-    if isinstance(args.path_masks,basestring):
+    if isinstance(args.path_masks,compat.string_types):
         args.path_masks = args.path_masks.split(',')
-    if isinstance(args.dir_masks,basestring):
+    if isinstance(args.dir_masks,compat.string_types):
         args.dir_masks = args.dir_masks.split(',')
 
     logger.setLevel(getattr(logging,args.debug_level))

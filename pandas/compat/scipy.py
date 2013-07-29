@@ -2,6 +2,7 @@
 Shipping functions from SciPy to reduce dependency on having SciPy installed
 """
 
+from pandas.compat import range, lrange
 import numpy as np
 
 
@@ -118,12 +119,12 @@ def rankdata(a):
     sumranks = 0
     dupcount = 0
     newarray = np.zeros(n, float)
-    for i in xrange(n):
+    for i in range(n):
         sumranks += i
         dupcount += 1
         if i == n - 1 or svec[i] != svec[i + 1]:
             averank = sumranks / float(dupcount) + 1
-            for j in xrange(i - dupcount + 1, i + 1):
+            for j in range(i - dupcount + 1, i + 1):
                 newarray[ivec[j]] = averank
             sumranks = 0
             dupcount = 0
@@ -223,9 +224,9 @@ def percentileofscore(a, score, kind='rank'):
     if kind == 'rank':
         if not(np.any(a == score)):
             a = np.append(a, score)
-            a_len = np.array(range(len(a)))
+            a_len = np.array(lrange(len(a)))
         else:
-            a_len = np.array(range(len(a))) + 1.0
+            a_len = np.array(lrange(len(a))) + 1.0
 
         a = np.sort(a)
         idx = [a == score]

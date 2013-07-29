@@ -1,5 +1,6 @@
 # pylint: disable=W0231,E1101
-
+import warnings
+from pandas import compat
 import numpy as np
 import pandas.lib as lib
 from pandas.core.base import PandasObject
@@ -9,6 +10,7 @@ import pandas.core.indexing as indexing
 from pandas.core.indexing import _maybe_convert_indices
 from pandas.tseries.index import DatetimeIndex
 import pandas.core.common as com
+from pandas.compat import map, zip
 
 
 class PandasError(Exception):
@@ -23,7 +25,7 @@ class PandasContainer(PandasObject):
     }
 
     _AXIS_ALIASES = {}
-    _AXIS_NAMES = dict((v, k) for k, v in _AXIS_NUMBERS.iteritems())
+    _AXIS_NAMES = dict((v, k) for k, v in compat.iteritems(_AXIS_NUMBERS))
 
     def to_pickle(self, path):
         """
@@ -38,13 +40,11 @@ class PandasContainer(PandasObject):
         return to_pickle(self, path)
 
     def save(self, path):  # TODO remove in 0.13
-        import warnings
         from pandas.io.pickle import to_pickle
         warnings.warn("save is deprecated, use to_pickle", FutureWarning)
         return to_pickle(self, path)
 
     def load(self, path):  # TODO remove in 0.13
-        import warnings
         from pandas.io.pickle import read_pickle
         warnings.warn("load is deprecated, use pd.read_pickle", FutureWarning)
         return read_pickle(path)
@@ -77,7 +77,7 @@ class PandasContainer(PandasObject):
 
     def _get_axis_name(self, axis):
         axis = self._AXIS_ALIASES.get(axis, axis)
-        if isinstance(axis, basestring):
+        if isinstance(axis, compat.string_types):
             if axis in self._AXIS_NUMBERS:
                 return axis
         else:
@@ -648,6 +648,9 @@ class NDFrame(PandasContainer):
     def __nonzero__(self):
         return not self.empty
 
+    # Python 3 compat
+    __bool__ = __nonzero__
+
     @property
     def ndim(self):
         return self._data.ndim
@@ -711,6 +714,13 @@ class NDFrame(PandasContainer):
             del self._item_cache[key]
         except KeyError:
             pass
+
+    # originally used to get around 2to3's changes to iteritems.
+    # Now unnecessary.
+    def iterkv(self, *args, **kwargs):
+        warnings.warn("iterkv is deprecated and will be removed in a future "
+                      "release, use ``iteritems`` instead.", DeprecationWarning)
+        return self.iteritems(*args, **kwargs)
 
     def get_dtype_counts(self):
         """ return the counts of dtypes in this frame """

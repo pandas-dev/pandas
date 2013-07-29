@@ -1,5 +1,7 @@
+from pandas.compat import range
 import unittest
 import pandas.tools.rplot as rplot
+import pandas.util.testing as tm
 from pandas import read_csv
 import os
 
@@ -50,7 +52,7 @@ class TestUtilityFunctions(unittest.TestCase):
         self.assertTrue(aes['colour'] is None)
         self.assertTrue(aes['shape'] is None)
         self.assertTrue(aes['alpha'] is None)
-        self.assertTrue(type(aes) is dict)
+        self.assertTrue(isinstance(aes, dict))
 
     def test_make_aes2(self):
         self.assertRaises(ValueError, rplot.make_aes,
@@ -67,7 +69,7 @@ class TestUtilityFunctions(unittest.TestCase):
         dict2 = {1 : 1, 2 : 2, 4 : 4}
         union = rplot.dictionary_union(dict1, dict2)
         self.assertEqual(len(union), 4)
-        keys = union.keys()
+        keys = list(union.keys())
         self.assertTrue(1 in keys)
         self.assertTrue(2 in keys)
         self.assertTrue(3 in keys)

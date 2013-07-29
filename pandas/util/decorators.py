@@ -1,11 +1,11 @@
-from pandas.util.py3compat import StringIO
+from pandas.compat import StringIO, callable
 from pandas.lib import cache_readonly
 import sys
 import warnings
 
 
 def deprecate(name, alternative):
-    alt_name = alternative.func_name
+    alt_name = alternative.__name__
 
     def wrapper(*args, **kwargs):
         warnings.warn("%s is deprecated. Use %s instead" % (name, alt_name),
@@ -107,7 +107,7 @@ class Appender(object):
 
 
 def indent(text, indents=1):
-    if not text or type(text) != str:
+    if not text or not isinstance(text, str):
         return ''
     jointext = ''.join(['\n'] + ['    '] * indents)
     return jointext.join(text.split('\n'))

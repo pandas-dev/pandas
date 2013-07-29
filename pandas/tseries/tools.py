@@ -7,7 +7,8 @@ import numpy as np
 import pandas.lib as lib
 import pandas.tslib as tslib
 import pandas.core.common as com
-from pandas.util.py3compat import StringIO
+from pandas.compat import StringIO, callable
+import pandas.compat as compat
 
 try:
     import dateutil
@@ -40,7 +41,7 @@ def _infer_tzinfo(start, end):
 
 
 def _maybe_get_tz(tz):
-    if isinstance(tz, basestring):
+    if isinstance(tz, compat.string_types):
         import pytz
         tz = pytz.timezone(tz)
     if com.is_integer(tz):
@@ -91,7 +92,7 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
             if box and not isinstance(arg, DatetimeIndex):
                 try:
                     return DatetimeIndex(arg, tz='utc' if utc else None)
-                except ValueError, e:
+                except ValueError as e:
                     values, tz = tslib.datetime_to_datetime64(arg)
                     return DatetimeIndex._simple_new(values, None, tz=tz)
 
@@ -109,7 +110,7 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
                 result = DatetimeIndex(result, tz='utc' if utc else None)
             return result
 
-        except ValueError, e:
+        except ValueError as e:
             try:
                 values, tz = tslib.datetime_to_datetime64(arg)
                 return DatetimeIndex._simple_new(values, None, tz=tz)
@@ -148,7 +149,7 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
 
     Parameters
     ----------
-    arg : basestring
+    arg : compat.string_types
     freq : str or DateOffset, default None
         Helps with interpreting time string if supplied
     dayfirst : bool, default None
@@ -165,7 +166,7 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     from pandas.tseries.frequencies import (_get_rule_month, _month_numbers,
                                             _get_freq_str)
 
-    if not isinstance(arg, basestring):
+    if not isinstance(arg, compat.string_types):
         return arg
 
     arg = arg.upper()
@@ -236,7 +237,8 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     try:
         parsed, reso = dateutil_parse(arg, default, dayfirst=dayfirst,
                                       yearfirst=yearfirst)
-    except Exception, e:
+    except Exception as e:
+        # TODO: allow raise of errors within instead
         raise DateParseError(e)
 
     if parsed is None:
@@ -251,19 +253,25 @@ def dateutil_parse(timestr, default,
     """ lifted from dateutil to get resolution"""
     from dateutil import tz
     import time
+    fobj = StringIO(str(timestr))
 
-    res = DEFAULTPARSER._parse(StringIO(timestr), **kwargs)
+    res = DEFAULTPARSER._parse(fobj, **kwargs)
 
     if res is None:
         raise ValueError("unknown string format")
 
     repl = {}
+    reso = None
     for attr in ["year", "month", "day", "hour",
                  "minute", "second", "microsecond"]:
         value = getattr(res, attr)
         if value is not None:
             repl[attr] = value
             reso = attr
+
+    if reso is None:
+        raise ValueError("Cannot parse date.")
+
     if reso == 'microsecond' and repl['microsecond'] == 0:
         reso = 'second'
 
@@ -278,7 +286,7 @@ def dateutil_parse(timestr, default,
                 tzdata = tzinfos.get(res.tzname)
             if isinstance(tzdata, datetime.tzinfo):
                 tzinfo = tzdata
-            elif isinstance(tzdata, basestring):
+            elif isinstance(tzdata, compat.string_types):
                 tzinfo = tz.tzstr(tzdata)
             elif isinstance(tzdata, int):
                 tzinfo = tz.tzoffset(res.tzname, tzdata)

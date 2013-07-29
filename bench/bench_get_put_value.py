@@ -1,12 +1,13 @@
 from pandas import *
 from pandas.util.testing import rands
+from pandas.compat import range
 
 N = 1000
 K = 50
 
 
 def _random_index(howmany):
-    return Index([rands(10) for _ in xrange(howmany)])
+    return Index([rands(10) for _ in range(howmany)])
 
 df = DataFrame(np.random.randn(N, K), index=_random_index(N),
                columns=_random_index(K))

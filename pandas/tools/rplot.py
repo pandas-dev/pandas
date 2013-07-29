@@ -1,7 +1,8 @@
-import numpy as np
 import random
 from copy import deepcopy
 
+import numpy as np
+from pandas.compat import range, zip
 #
 # TODO:
 # * Make sure legends work properly
@@ -600,7 +601,7 @@ class TrellisGrid(Layer):
                 grouped = data.groupby(self.by[0])
             else:
                 grouped = data.groupby(self.by)
-            groups = grouped.groups.keys()
+            groups = list(grouped.groups.keys())
             if self.by[0] == '.' or self.by[1] == '.':
                 shingle1 = set([g for g in groups])
             else:
@@ -644,8 +645,8 @@ def dictionary_union(dict1, dict2):
     A union of the dictionaries. It assumes that values
     with the same keys are identical.
     """
-    keys1 = dict1.keys()
-    keys2 = dict2.keys()
+    keys1 = list(dict1.keys())
+    keys2 = list(dict2.keys())
     result = {}
     for key1 in keys1:
         result[key1] = dict1[key1]
@@ -771,13 +772,13 @@ def adjust_subplots(fig, axes, trellis, layers):
         legend = dictionary_union(legend, layer.legend)
     patches = []
     labels = []
-    if len(legend.keys()) == 0:
+    if len(list(legend.keys())) == 0:
         key_function = lambda tup: tup
-    elif len(legend.keys()[0]) == 2:
+    elif len(list(legend.keys())[0]) == 2:
         key_function = lambda tup: (tup[1])
     else:
         key_function = lambda tup: (tup[1], tup[3])
-    for key in sorted(legend.keys(), key=key_function):
+    for key in sorted(list(legend.keys()), key=key_function):
         value = legend[key]
         patches.append(value)
         if len(key) == 2:
@@ -844,13 +845,13 @@ class RPlot:
                 legend = dictionary_union(legend, layer.legend)
             patches = []
             labels = []
-            if len(legend.keys()) == 0:
+            if len(list(legend.keys())) == 0:
                 key_function = lambda tup: tup
-            elif len(legend.keys()[0]) == 2:
+            elif len(list(legend.keys())[0]) == 2:
                 key_function = lambda tup: (tup[1])
             else:
                 key_function = lambda tup: (tup[1], tup[3])
-            for key in sorted(legend.keys(), key=key_function):
+            for key in sorted(list(legend.keys()), key=key_function):
                 value = legend[key]
                 patches.append(value)
                 if len(key) == 2:

@@ -5,10 +5,11 @@ Data structure for 1-dimensional cross-sectional and time series data
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
 
-from itertools import izip
+from pandas import compat
 import operator
 from distutils.version import LooseVersion
 import types
+import warnings
 
 from numpy import nan, ndarray
 import numpy as np
@@ -25,8 +26,9 @@ from pandas.core.indexing import (_SeriesIndexer, _check_bool_indexer,
                                   _check_slice_bounds, _maybe_convert_indices)
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex, Period
-from pandas.util import py3compat
+from pandas import compat
 from pandas.util.terminal import get_terminal_size
+from pandas.compat import zip, lzip, u, OrderedDict
 
 import pandas.core.array as pa
 
@@ -425,7 +427,7 @@ class Series(generic.PandasContainer, pa.Array):
         'index': 0
     }
 
-    _AXIS_NAMES = dict((v, k) for k, v in _AXIS_NUMBERS.iteritems())
+    _AXIS_NAMES = dict((v, k) for k, v in compat.iteritems(_AXIS_NUMBERS))
 
     def __new__(cls, data=None, index=None, dtype=None, name=None,
                 copy=False):
@@ -448,7 +450,6 @@ class Series(generic.PandasContainer, pa.Array):
                 data = data.reindex(index).values
         elif isinstance(data, dict):
             if index is None:
-                from pandas.util.compat import OrderedDict
                 if isinstance(data, OrderedDict):
                     index = Index(data)
                 else:
@@ -829,7 +830,7 @@ class Series(generic.PandasContainer, pa.Array):
                 return
 
             raise KeyError('%s not in this series!' % str(key))
-        except TypeError, e:
+        except TypeError as e:
             # python 3 type errors should be raised
             if 'unorderable' in str(e):  # pragma: no cover
                 raise IndexError(key)
@@ -1116,9 +1117,9 @@ class Series(generic.PandasContainer, pa.Array):
                                     name=True,
                                     dtype=True)
         else:
-            result = u'Series([], dtype: %s)' % self.dtype
+            result = u('Series([], dtype: %s)') % self.dtype
 
-        if not ( type(result) == unicode):
+        if not (isinstance(result, compat.text_type)):
             raise AssertionError()
         return result
 
@@ -1137,12 +1138,12 @@ class Series(generic.PandasContainer, pa.Array):
         result = head + '\n...\n' + tail
         result = '%s\n%s' % (result, self._repr_footer())
 
-        return unicode(result)
+        return compat.text_type(result)
 
     def _repr_footer(self):
-        namestr = u"Name: %s, " % com.pprint_thing(
+        namestr = u("Name: %s, ") % com.pprint_thing(
             self.name) if self.name is not None else ""
-        return u'%sLength: %d, dtype: %s' % (namestr, len(self),
+        return u('%sLength: %d, dtype: %s') % (namestr, len(self),
                                              str(self.dtype.name))
 
     def to_string(self, buf=None, na_rep='NaN', float_format=None,
@@ -1180,7 +1181,7 @@ class Series(generic.PandasContainer, pa.Array):
                                   length=length, dtype=dtype, name=name)
 
         # catch contract violations
-        if not  type(the_repr) == unicode:
+        if not isinstance(the_repr, compat.text_type):
             raise AssertionError("expected unicode string")
 
         if buf is None:
@@ -1203,7 +1204,7 @@ class Series(generic.PandasContainer, pa.Array):
                                         length=length, dtype=dtype, na_rep=na_rep,
                                         float_format=float_format)
         result = formatter.to_string()
-        if not ( type(result) == unicode):
+        if not (isinstance(result, compat.text_type)):
             raise AssertionError()
         return result
 
@@ -1217,10 +1218,14 @@ class Series(generic.PandasContainer, pa.Array):
         """
         Lazily iterate over (index, value) tuples
         """
-        return izip(iter(self.index), iter(self))
+        return lzip(iter(self.index), iter(self))
 
-    iterkv = iteritems
-    if py3compat.PY3:  # pragma: no cover
+    def iterkv(self):
+        warnings.warn("iterkv is deprecated and will be removed in a future "
+                      "release. Use ``iteritems`` instead", DeprecationWarning)
+        return self.iteritems()
+
+    if compat.PY3:  # pragma: no cover
         items = iteritems
 
     #----------------------------------------------------------------------
@@ -1273,7 +1278,7 @@ class Series(generic.PandasContainer, pa.Array):
     __ipow__ = __pow__
 
     # Python 2 division operators
-    if not py3compat.PY3:
+    if not compat.PY3:
         __div__ = _arith_method(operator.div, '__div__', fill_zeros=np.inf)
         __rdiv__ = _arith_method(lambda x, y: y / x, '__div__', fill_zeros=np.inf)
         __idiv__ = __div__
@@ -1333,7 +1338,7 @@ class Series(generic.PandasContainer, pa.Array):
         -------
         value_dict : dict
         """
-        return dict(self.iteritems())
+        return dict(compat.iteritems(self))
 
     def to_sparse(self, kind='block', fill_value=None):
         """
@@ -1384,7 +1389,7 @@ class Series(generic.PandasContainer, pa.Array):
         if level is not None:
             mask = notnull(self.values)
 
-            if isinstance(level, basestring):
+            if isinstance(level, compat.string_types):
                 level = self.index._get_level_number(level)
 
             level_index = self.index.levels[level]
@@ -2817,20 +2822,20 @@ class Series(generic.PandasContainer, pa.Array):
 
             all_src = set()
             dd = {}  # group by unique destination value
-            for s, d in to_rep.iteritems():
+            for s, d in compat.iteritems(to_rep):
                 dd.setdefault(d, []).append(s)
                 all_src.add(s)
 
             if any(d in all_src for d in dd.keys()):
                 # don't clobber each other at the cost of temporaries
                 masks = {}
-                for d, sset in dd.iteritems():  # now replace by each dest
+                for d, sset in compat.iteritems(dd):  # now replace by each dest
                     masks[d] = com.mask_missing(rs.values, sset)
 
-                for d, m in masks.iteritems():
+                for d, m in compat.iteritems(masks):
                     com._maybe_upcast_putmask(rs.values,m,d,change=change)
             else:  # if no risk of clobbering then simple
-                for d, sset in dd.iteritems():
+                for d, sset in compat.iteritems(dd):
                     _rep_one(rs, sset, d)
 
         if np.isscalar(to_replace):
@@ -3046,7 +3051,7 @@ class Series(generic.PandasContainer, pa.Array):
 
         offset = _resolve_offset(freq, kwds)
 
-        if isinstance(offset, basestring):
+        if isinstance(offset, compat.string_types):
             offset = datetools.to_offset(offset)
 
         def _get_values():
@@ -3099,7 +3104,7 @@ class Series(generic.PandasContainer, pa.Array):
         -------
         value or NaN
         """
-        if isinstance(where, basestring):
+        if isinstance(where, compat.string_types):
             where = datetools.to_datetime(where)
 
         values = self.values
@@ -3407,7 +3412,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 
     # This is to prevent mixed-type Series getting all casted to
     # NumPy string type, e.g. NaN --> '-1#IND'.
-    if issubclass(subarr.dtype.type, basestring):
+    if issubclass(subarr.dtype.type, compat.string_types):
         subarr = pa.array(data, dtype=object, copy=copy)
 
     return subarr
@@ -3430,7 +3435,7 @@ def _resolve_offset(freq, kwds):
     if 'timeRule' in kwds or 'offset' in kwds:
         offset = kwds.get('offset', None)
         offset = kwds.get('timeRule', offset)
-        if isinstance(offset, basestring):
+        if isinstance(offset, compat.string_types):
             offset = datetools.getOffset(offset)
         warn = True
     else:

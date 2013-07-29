@@ -1,5 +1,6 @@
 from pandas.util.testing import set_trace
 import pandas.util.testing as tm
+import pandas.compat as compat
 
 from pandas import *
 import ast
@@ -45,7 +46,7 @@ def _format_call(call):
     if args:
         content += ', '.join(args)
     if kwds:
-        fmt_kwds = ['%s=%s' % item for item in kwds.iteritems()]
+        fmt_kwds = ['%s=%s' % item for item in compat.iteritems(kwds)]
         joined_kwds = ', '.join(fmt_kwds)
         if args:
             content = content + ', ' + joined_kwds

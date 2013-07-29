@@ -1,8 +1,9 @@
 import numpy as np
 
-from itertools import izip
+from pandas.compat import zip
 from pandas.core.common import isnull
 from pandas.core.series import Series
+import pandas.compat as compat
 import re
 import pandas.lib as lib
 
@@ -50,7 +51,7 @@ def str_cat(arr, others=None, sep=None, na_rep=None):
 
             notmask = -na_mask
 
-            tuples = izip(*[x[notmask] for x in arrays])
+            tuples = zip(*[x[notmask] for x in arrays])
             cats = [sep.join(tup) for tup in tuples]
 
             result[notmask] = cats
@@ -282,16 +283,18 @@ def str_repeat(arr, repeats):
     if np.isscalar(repeats):
         def rep(x):
             try:
-                return str.__mul__(x, repeats)
+                return compat.binary_type.__mul__(x, repeats)
             except TypeError:
-                return unicode.__mul__(x, repeats)
+                return compat.text_type.__mul__(x, repeats)
+
         return _na_map(rep, arr)
     else:
         def rep(x, r):
             try:
-                return str.__mul__(x, r)
+                return compat.binary_type.__mul__(x, r)
             except TypeError:
-                return unicode.__mul__(x, r)
+                return compat.text_type.__mul__(x, r)
+
         repeats = np.asarray(repeats, dtype=object)
         result = lib.vec_binop(arr, repeats, rep)
         return result

@@ -2,6 +2,9 @@
 
 from random import random
 from math import log, ceil
+from pandas.compat import range
+from numpy.random import randn
+from pandas.lib.skiplist import rolling_median
 
 
 class Node(object):
@@ -138,8 +141,6 @@ def test():
 
     _test(arr, K)
 
-from numpy.random import randn
-from pandas.lib.skiplist import rolling_median
 
 
 def test2():

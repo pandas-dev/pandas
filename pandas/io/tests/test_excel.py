@@ -1,6 +1,6 @@
 # pylint: disable=E1101
 
-from pandas.util.py3compat import StringIO, BytesIO, PY3
+from pandas.compat import StringIO, BytesIO, PY3, u, range, map
 from datetime import datetime
 from os.path import split as psplit
 import csv
@@ -27,7 +27,7 @@ import pandas.util.testing as tm
 import pandas as pd
 
 import pandas.lib as lib
-from pandas.util import py3compat
+from pandas import compat
 from pandas.lib import Timestamp
 from pandas.tseries.index import date_range
 import pandas.tseries.tools as tools
@@ -707,7 +707,7 @@ class ExcelTests(unittest.TestCase):
         _skip_if_no_excelsuite()
 
         for ext in ['xls', 'xlsx']:
-            filename = u'\u0192u.' + ext
+            filename = u('\u0192u.') + ext
 
             try:
                 f = open(filename, 'wb')
@@ -769,7 +769,7 @@ class ExcelTests(unittest.TestCase):
     # def test_to_excel_header_styling_xls(self):
 
     #     import StringIO
-    #     s = StringIO.StringIO(
+    #     s = StringIO(
     #     """Date,ticker,type,value
     #     2001-01-01,x,close,12.2
     #     2001-01-01,x,open ,12.1
@@ -816,7 +816,7 @@ class ExcelTests(unittest.TestCase):
     #     os.remove(filename)
     # def test_to_excel_header_styling_xlsx(self):
     #     import StringIO
-    #     s = StringIO.StringIO(
+    #     s = StringIO(
     #     """Date,ticker,type,value
     #     2001-01-01,x,close,12.2
     #     2001-01-01,x,open ,12.1

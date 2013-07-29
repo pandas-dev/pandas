@@ -1,4 +1,5 @@
 from pandas import *
+from pandas.compat import range
 import numpy as np
 import pandas.util.testing as tm
 import os

@@ -10,6 +10,8 @@ import matplotlib.dates as dates
 from matplotlib.ticker import Formatter, AutoLocator, Locator
 from matplotlib.transforms import nonsingular
 
+from pandas.compat import range, lrange
+import pandas.compat as compat
 import pandas.lib as lib
 import pandas.core.common as com
 from pandas.core.index import Index
@@ -36,7 +38,7 @@ def _to_ordinalf(tm):
 
 
 def time2num(d):
-    if isinstance(d, basestring):
+    if isinstance(d, compat.string_types):
         parsed = tools.to_datetime(d)
         if not isinstance(parsed, datetime):
             raise ValueError('Could not parse time %s' % d)
@@ -161,7 +163,7 @@ class DatetimeConverter(dates.DateConverter):
             return dates.date2num(values)
         elif (com.is_integer(values) or com.is_float(values)):
             return values
-        elif isinstance(values, basestring):
+        elif isinstance(values, compat.string_types):
             return try_parse(values)
         elif isinstance(values, (list, tuple, np.ndarray)):
             if not isinstance(values, np.ndarray):
@@ -330,7 +332,7 @@ class MilliSecondLocator(dates.DateLocator):
             if len(all_dates) > 0:
                 locs = self.raise_if_exceeds(dates.date2num(all_dates))
                 return locs
-        except Exception, e:  # pragma: no cover
+        except Exception as e:  # pragma: no cover
             pass
 
         lims = dates.date2num([dmin, dmax])
@@ -808,7 +810,7 @@ def _annual_finder(vmin, vmax, freq):
 
 
 def get_finder(freq):
-    if isinstance(freq, basestring):
+    if isinstance(freq, compat.string_types):
         freq = frequencies.get_freq(freq)
     fgroup = frequencies.get_freq_group(freq)
 
@@ -845,7 +847,7 @@ class TimeSeries_DateLocator(Locator):
 
     def __init__(self, freq, minor_locator=False, dynamic_mode=True,
                  base=1, quarter=1, month=1, day=1, plot_obj=None):
-        if isinstance(freq, basestring):
+        if isinstance(freq, compat.string_types):
             freq = frequencies.get_freq(freq)
         self.freq = freq
         self.base = base
@@ -884,7 +886,7 @@ class TimeSeries_DateLocator(Locator):
             base = self.base
             (d, m) = divmod(vmin, base)
             vmin = (d + 1) * base
-            locs = range(vmin, vmax + 1, base)
+            locs = lrange(vmin, vmax + 1, base)
         return locs
 
     def autoscale(self):
@@ -924,7 +926,7 @@ class TimeSeries_DateFormatter(Formatter):
 
     def __init__(self, freq, minor_locator=False, dynamic_mode=True,
                  plot_obj=None):
-        if isinstance(freq, basestring):
+        if isinstance(freq, compat.string_types):
             freq = frequencies.get_freq(freq)
         self.format = None
         self.freq = freq

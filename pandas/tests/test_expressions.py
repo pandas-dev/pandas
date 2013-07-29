@@ -1,3 +1,4 @@
+from __future__ import print_function
 # pylint: disable-msg=W0612,E1101
 
 import unittest
@@ -16,7 +17,7 @@ from pandas.core import expressions as expr
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
                                  assert_frame_equal)
-from pandas.util import py3compat
+from pandas import compat
 
 import pandas.util.testing as tm
 import pandas.lib as lib
@@ -54,7 +55,7 @@ class TestExpressions(unittest.TestCase):
     def run_arithmetic_test(self, df, assert_func, check_dtype=False):
         expr._MIN_ELEMENTS = 0
         operations = ['add', 'sub', 'mul','mod','truediv','floordiv','pow']
-        if not py3compat.PY3:
+        if not compat.PY3:
             operations.append('div')
         for arith in operations:
             op = getattr(operator, arith)

@@ -5,20 +5,21 @@ Module contains tools for collecting data from various remote sources
 """
 import warnings
 import tempfile
-import itertools
 import datetime as dt
-import urllib
 import time
 
 from collections import defaultdict
 
 import numpy as np
 
-from pandas.util.py3compat import StringIO, bytes_to_str
+from pandas.compat import(
+    StringIO, bytes_to_str, range, lrange, lmap, zip
+)
+import pandas.compat as compat
 from pandas import Panel, DataFrame, Series, read_csv, concat
 from pandas.core.common import PandasError
 from pandas.io.parsers import TextParser
-from pandas.io.common import urlopen, ZipFile
+from pandas.io.common import urlopen, ZipFile, urlencode
 from pandas.util.testing import _network_error_classes
 
 
@@ -95,11 +96,12 @@ def _in_chunks(seq, size):
     """
     Return sequence in 'chunks' of size defined by size
     """
-    return (seq[pos:pos + size] for pos in xrange(0, len(seq), size))
+    return (seq[pos:pos + size] for pos in range(0, len(seq), size))
 
 
 _yahoo_codes = {'symbol': 's', 'last': 'l1', 'change_pct': 'p2', 'PE': 'r',
                 'time': 't1', 'short_ratio': 's7'}
+
 
 def get_quote_yahoo(symbols):
     """
@@ -107,14 +109,14 @@ def get_quote_yahoo(symbols):
 
     Returns a DataFrame
     """
-    if isinstance(symbols, basestring):
+    if isinstance(symbols, compat.string_types):
         sym_list = symbols
     else:
         sym_list = '+'.join(symbols)
 
     # for codes see: http://www.gummy-stuff.org/Yahoo-data.htm
-    request = ''.join(_yahoo_codes.itervalues())  # code request string
-    header = _yahoo_codes.keys()
+    request = ''.join(compat.itervalues(_yahoo_codes))  # code request string
+    header = list(_yahoo_codes.keys())
 
     data = defaultdict(list)
 
@@ -147,7 +149,7 @@ def get_quote_google(symbols):
 
 
 def _retry_read_url(url, retry_count, pause, name):
-    for _ in xrange(retry_count):
+    for _ in range(retry_count):
         time.sleep(pause)
 
         # kludge to close the socket ASAP
@@ -201,11 +203,10 @@ def _get_hist_google(sym, start, end, retry_count, pause):
     google_URL = 'http://www.google.com/finance/historical?'
 
     # www.google.com/finance/historical?q=GOOG&startdate=Jun+9%2C+2011&enddate=Jun+8%2C+2013&output=csv
-    url = google_URL + urllib.urlencode({"q": sym,
-                                         "startdate": start.strftime('%b %d, '
-                                                                     '%Y'),
-                                         "enddate": end.strftime('%b %d, %Y'),
-                                         "output": "csv"})
+    url = google_URL + urlencode({"q": sym,
+                                  "startdate": start.strftime('%b %d, ' '%Y'),
+                                  "enddate": end.strftime('%b %d, %Y'),
+                                  "output": "csv"})
     return _retry_read_url(url, retry_count, pause, 'Google')
 
 
@@ -322,6 +323,7 @@ def _dl_mult_symbols(symbols, start, end, chunksize, retry_count, pause,
 
 _source_functions = {'google': _get_hist_google, 'yahoo': _get_hist_yahoo}
 
+
 def _get_data_from(symbols, start, end, retry_count, pause, adjust_price,
                    ret_index, chunksize, source, name):
     if name is not None:
@@ -332,7 +334,7 @@ def _get_data_from(symbols, start, end, retry_count, pause, adjust_price,
     src_fn = _source_functions[source]
 
     # If a single symbol, (e.g., 'GOOG')
-    if isinstance(symbols, (basestring, int)):
+    if isinstance(symbols, (compat.string_types, int)):
         hist_data = src_fn(symbols, start, end, retry_count, pause)
     # Or multiple symbols, (e.g., ['GOOG', 'AAPL', 'MSFT'])
     elif isinstance(symbols, DataFrame):
@@ -465,15 +467,15 @@ def get_data_famafrench(name):
         with ZipFile(tmpf, 'r') as zf:
             data = zf.open(name + '.txt').readlines()
 
-    line_lengths = np.array(map(len, data))
+    line_lengths = np.array(lmap(len, data))
     file_edges = np.where(line_lengths == 2)[0]
 
     datasets = {}
-    edges = itertools.izip(file_edges + 1, file_edges[1:])
+    edges = zip(file_edges + 1, file_edges[1:])
     for i, (left_edge, right_edge) in enumerate(edges):
         dataset = [d.split() for d in data[left_edge:right_edge]]
         if len(dataset) > 10:
-            ncol_raw = np.array(map(len, dataset))
+            ncol_raw = np.array(lmap(len, dataset))
             ncol = np.median(ncol_raw)
             header_index = np.where(ncol_raw == ncol - 1)[0][-1]
             header = dataset[header_index]
@@ -809,18 +811,18 @@ class Options(object):
         data : dict of str, DataFrame
         """
         warnings.warn("get_forward_data() is deprecated", FutureWarning)
-        in_months = xrange(CUR_MONTH, CUR_MONTH + months + 1)
+        in_months = lrange(CUR_MONTH, CUR_MONTH + months + 1)
         in_years = [CUR_YEAR] * (months + 1)
 
         # Figure out how many items in in_months go past 12
         to_change = 0
-        for i in xrange(months):
+        for i in range(months):
             if in_months[i] > 12:
                 in_months[i] -= 12
                 to_change += 1
 
         # Change the corresponding items in the in_years list.
-        for i in xrange(1, to_change + 1):
+        for i in range(1, to_change + 1):
             in_years[-i] += 1
 
         to_ret = Series({'calls': call, 'puts': put})
@@ -830,7 +832,7 @@ class Options(object):
         for name in to_ret:
             all_data = DataFrame()
 
-            for mon in xrange(months):
+            for mon in range(months):
                 m2 = in_months[mon]
                 y2 = in_years[mon]
 

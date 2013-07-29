@@ -3,6 +3,8 @@ Contains data structures designed for manipulating panel (3-dimensional) data
 """
 # pylint: disable=E1103,W0231,W0212,W0621
 
+from pandas.compat import map, zip, range, lrange, lmap, u, OrderedDict, OrderedDefaultdict
+from pandas import compat
 import operator
 import sys
 import numpy as np
@@ -20,7 +22,7 @@ from pandas.core.internals import (BlockManager,
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.util import py3compat
+from pandas import compat
 from pandas.util.decorators import deprecate, Appender, Substitution
 import pandas.core.common as com
 import pandas.core.nanops as nanops
@@ -223,7 +225,7 @@ class Panel(NDFrame):
     __rfloordiv__ = _arith_method(lambda x, y: y // x, '__rfloordiv__')
     __rpow__ = _arith_method(lambda x, y: y ** x, '__rpow__')
 
-    if not py3compat.PY3:
+    if not compat.PY3:
         __div__ = _arith_method(operator.div, '__div__')
         __rdiv__ = _arith_method(lambda x, y: y / x, '__rdiv__')
 
@@ -271,21 +273,20 @@ class Panel(NDFrame):
             return cls(data, **d)
 
     def _init_dict(self, data, axes, dtype=None):
-        from pandas.util.compat import OrderedDict
         haxis = axes.pop(self._het_axis)
 
         # prefilter if haxis passed
         if haxis is not None:
             haxis = _ensure_index(haxis)
             data = OrderedDict((k, v) for k, v
-                               in data.iteritems() if k in haxis)
+                               in compat.iteritems(data) if k in haxis)
         else:
-            ks = data.keys()
+            ks = list(data.keys())
             if not isinstance(data,OrderedDict):
                 ks = _try_sort(ks)
             haxis = Index(ks)
 
-        for k, v in data.iteritems():
+        for k, v in compat.iteritems(data):
             if isinstance(v, dict):
                 data[k] = self._constructor_sliced(v)
 
@@ -343,20 +344,19 @@ class Panel(NDFrame):
         -------
         Panel
         """
-        from pandas.util.compat import OrderedDict,OrderedDefaultdict
 
         orient = orient.lower()
         if orient == 'minor':
             new_data = OrderedDefaultdict(dict)
-            for col, df in data.iteritems():
-                for item, s in df.iteritems():
+            for col, df in compat.iteritems(data):
+                for item, s in compat.iteritems(df):
                     new_data[item][col] = s
             data = new_data
         elif orient != 'items':  # pragma: no cover
             raise ValueError('Orientation must be one of {items, minor}.')
 
         d = cls._homogenize_dict(cls, data, intersect=intersect, dtype=dtype)
-        ks = d['data'].keys()
+        ks = list(d['data'].keys())
         if not isinstance(d['data'],OrderedDict):
             ks = list(sorted(ks))
         d[cls._info_axis] = Index(ks)
@@ -473,17 +473,17 @@ class Panel(NDFrame):
         class_name = str(self.__class__)
 
         shape = self.shape
-        dims = u'Dimensions: %s' % ' x '.join(
+        dims = u('Dimensions: %s') % ' x '.join(
             ["%d (%s)" % (s, a) for a, s in zip(self._AXIS_ORDERS, shape)])
 
         def axis_pretty(a):
             v = getattr(self, a)
             if len(v) > 0:
-                return u'%s axis: %s to %s' % (a.capitalize(),
+                return u('%s axis: %s to %s') % (a.capitalize(),
                                                com.pprint_thing(v[0]),
                                                com.pprint_thing(v[-1]))
             else:
-                return u'%s axis: None' % a.capitalize()
+                return u('%s axis: None') % a.capitalize()
 
         output = '\n'.join(
             [class_name, dims] + [axis_pretty(a) for a in self._AXIS_ORDERS])
@@ -495,10 +495,6 @@ class Panel(NDFrame):
     def iteritems(self):
         for h in getattr(self, self._info_axis):
             yield h, self[h]
-
-    # Name that won't get automatically converted to items by 2to3. items is
-    # already in use for the first axis.
-    iterkv = iteritems
 
     def _get_plane_axes(self, axis):
         """
@@ -540,7 +536,7 @@ class Panel(NDFrame):
         y : SparseDataFrame
         """
         from pandas.core.sparse import SparsePanel
-        frames = dict(self.iterkv())
+        frames = dict(compat.iteritems(self))
         return SparsePanel(frames, items=self.items,
                            major_axis=self.major_axis,
                            minor_axis=self.minor_axis,
@@ -560,7 +556,7 @@ class Panel(NDFrame):
         """
         from pandas.io.excel import ExcelWriter
         writer = ExcelWriter(path)
-        for item, df in self.iteritems():
+        for item, df in compat.iteritems(self):
             name = str(item)
             df.to_excel(writer, name, na_rep=na_rep)
         writer.save()
@@ -804,13 +800,13 @@ class Panel(NDFrame):
         new_minor, indexer2 = self.minor_axis.reindex(minor)
 
         if indexer0 is None:
-            indexer0 = range(len(new_items))
+            indexer0 = lrange(len(new_items))
 
         if indexer1 is None:
-            indexer1 = range(len(new_major))
+            indexer1 = lrange(len(new_major))
 
         if indexer2 is None:
-            indexer2 = range(len(new_minor))
+            indexer2 = lrange(len(new_minor))
 
         for i, ind in enumerate(indexer0):
             com.take_2d_multi(values[ind], (indexer1, indexer2),
@@ -976,7 +972,7 @@ class Panel(NDFrame):
             if method is None:
                 raise ValueError('must specify a fill method or value')
             result = {}
-            for col, s in self.iterkv():
+            for col, s in compat.iteritems(self):
                 result[col] = s.fillna(method=method, value=value)
 
             return self._constructor.from_dict(result)
@@ -1133,11 +1129,11 @@ class Panel(NDFrame):
         """
         # construct the args
         args = list(args)
-        aliases = tuple(kwargs.iterkeys())
+        aliases = tuple(compat.iterkeys(kwargs))
 
         for a in self._AXIS_ORDERS:
             if not a in kwargs:
-                where = map(a.startswith, aliases)
+                where = lmap(a.startswith, aliases)
 
                 if any(where):
                     if sum(where) != 1:
@@ -1483,7 +1479,7 @@ class Panel(NDFrame):
         if not isinstance(values, np.ndarray):
             values = np.asarray(values)
             # NumPy strings are a pain, convert to object
-            if issubclass(values.dtype.type, basestring):
+            if issubclass(values.dtype.type, compat.string_types):
                 values = np.array(values, dtype=object, copy=True)
         else:
             if copy:
@@ -1507,14 +1503,13 @@ class Panel(NDFrame):
         -------
         dict of aligned results & indicies
         """
-        from pandas.util.compat import OrderedDict
 
         result = dict()
         if isinstance(frames,OrderedDict): # caller differs dict/ODict, presered type
             result = OrderedDict()
 
         adj_frames = OrderedDict()
-        for k, v in frames.iteritems():
+        for k, v in compat.iteritems(frames):
             if isinstance(v, dict):
                 adj_frames[k] = self._constructor_sliced(v)
             else:
@@ -1527,7 +1522,7 @@ class Panel(NDFrame):
         reindex_dict = dict(
             [(self._AXIS_SLICEMAP[a], axes_dict[a]) for a in axes])
         reindex_dict['copy'] = False
-        for key, frame in adj_frames.iteritems():
+        for key, frame in compat.iteritems(adj_frames):
             if frame is not None:
                 result[key] = frame.reindex(**reindex_dict)
             else:
@@ -1711,8 +1706,8 @@ def install_ipython_completers():  # pragma: no cover
     @complete_object.when_type(Panel)
     def complete_dataframe(obj, prev_completions):
         return prev_completions + [c for c in obj.keys()
-                                   if isinstance(c, basestring)
-                                        and py3compat.isidentifier(c)]
+                                   if isinstance(c, compat.string_types)
+                                        and compat.isidentifier(c)]
 
 # Importing IPython brings in about 200 modules, so we want to avoid it unless
 # we're in IPython (when those modules are loaded anyway).

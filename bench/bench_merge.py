@@ -1,13 +1,16 @@
-from pandas import *
-from pandas.util.testing import rands
 import random
+import gc
+import time
+from pandas import *
+from pandas.compat import range, lrange, StringIO
+from pandas.util.testing import rands
 
 N = 10000
 ngroups = 10
 
 
 def get_test_data(ngroups=100, n=N):
-    unique_groups = range(ngroups)
+    unique_groups = lrange(ngroups)
     arr = np.asarray(np.tile(unique_groups, n / ngroups), dtype=object)
 
     if len(arr) < n:
@@ -28,14 +31,10 @@ def get_test_data(ngroups=100, n=N):
 #                  'value' : np.random.randn(N // 10)})
 # result = merge.merge(df, df2, on='key2')
 
-from collections import defaultdict
-import gc
-import time
-from pandas.util.testing import rands
 N = 10000
 
-indices = np.array([rands(10) for _ in xrange(N)], dtype='O')
-indices2 = np.array([rands(10) for _ in xrange(N)], dtype='O')
+indices = np.array([rands(10) for _ in range(N)], dtype='O')
+indices2 = np.array([rands(10) for _ in range(N)], dtype='O')
 key = np.tile(indices[:8000], 10)
 key2 = np.tile(indices2[:8000], 10)
 
@@ -55,7 +54,7 @@ for sort in [False, True]:
         f = lambda: merge(left, right, how=join_method, sort=sort)
         gc.disable()
         start = time.time()
-        for _ in xrange(niter):
+        for _ in range(niter):
             f()
         elapsed = (time.time() - start) / niter
         gc.enable()
@@ -65,7 +64,6 @@ results.columns = ['dont_sort', 'sort']
 
 
 # R results
-from StringIO import StringIO
 # many to one
 r_results = read_table(StringIO("""      base::merge   plyr data.table
 inner      0.2475 0.1183     0.1100
@@ -93,7 +91,6 @@ nosort_results['Ratio'] = nosort_results['R'] / nosort_results['pandas']
 
 # many to many
 
-from StringIO import StringIO
 # many to one
 r_results = read_table(StringIO("""base::merge   plyr data.table
 inner      0.4610 0.1276     0.1269
