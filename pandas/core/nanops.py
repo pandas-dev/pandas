@@ -1,3 +1,4 @@
+from pandas import compat
 import sys
 import itertools
 import functools
@@ -10,6 +11,9 @@ import pandas.lib as lib
 import pandas.algos as algos
 import pandas.hashtable as _hash
 import pandas.tslib as tslib
+
+from pandas.compat import builtins
+
 
 try:
     import bottleneck as bn
@@ -30,7 +34,7 @@ class disallow(object):
     def __call__(self, f):
         @functools.wraps(f)
         def _f(*args, **kwargs):
-            obj_iter = itertools.chain(args, kwargs.itervalues())
+            obj_iter = itertools.chain(args, compat.itervalues(kwargs))
             if any(self.check(obj) for obj in obj_iter):
                 raise TypeError('reduction operation {0!r} not allowed for '
                                 'this dtype'.format(f.__name__.replace('nan',
@@ -55,7 +59,7 @@ class bottleneck_switch(object):
         @functools.wraps(alt)
         def f(values, axis=None, skipna=True, **kwds):
             if len(self.kwargs) > 0:
-                for k, v in self.kwargs.iteritems():
+                for k, v in compat.iteritems(self.kwargs):
                     if k not in kwds:
                         kwds[k] = v
             try:
@@ -284,12 +288,11 @@ def nanmin(values, axis=None, skipna=True):
     # numpy 1.6.1 workaround in Python 3.x
     if (values.dtype == np.object_
             and sys.version_info[0] >= 3):  # pragma: no cover
-        import __builtin__
         if values.ndim > 1:
             apply_ax = axis if axis is not None else 0
-            result = np.apply_along_axis(__builtin__.min, apply_ax, values)
+            result = np.apply_along_axis(builtins.min, apply_ax, values)
         else:
-            result = __builtin__.min(values)
+            result = builtins.min(values)
     else:
         if ((axis is not None and values.shape[axis] == 0)
                 or values.size == 0):
@@ -309,13 +312,12 @@ def nanmax(values, axis=None, skipna=True):
     # numpy 1.6.1 workaround in Python 3.x
     if (values.dtype == np.object_
             and sys.version_info[0] >= 3):  # pragma: no cover
-        import __builtin__
 
         if values.ndim > 1:
             apply_ax = axis if axis is not None else 0
-            result = np.apply_along_axis(__builtin__.max, apply_ax, values)
+            result = np.apply_along_axis(builtins.max, apply_ax, values)
         else:
-            result = __builtin__.max(values)
+            result = builtins.max(values)
     else:
         if ((axis is not None and values.shape[axis] == 0)
                 or values.size == 0):

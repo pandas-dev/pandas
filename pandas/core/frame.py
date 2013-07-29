@@ -12,12 +12,12 @@ labeling information
 # pylint: disable=E1101,E1103
 # pylint: disable=W0212,W0231,W0703,W0622
 
-from itertools import izip
-from StringIO import StringIO
+from pandas.compat import range, zip, lrange, lmap, lzip, StringIO, u, OrderedDict
+from pandas import compat
 import operator
 import sys
 import collections
-import itertools
+import warnings
 
 from numpy import nan as NA
 import numpy as np
@@ -37,8 +37,7 @@ from pandas.core.internals import (BlockManager,
 from pandas.core.series import Series, _radd_compat
 import pandas.core.expressions as expressions
 from pandas.compat.scipy import scoreatpercentile as _quantile
-from pandas.util.compat import OrderedDict
-from pandas.util import py3compat
+from pandas import compat
 from pandas.util.terminal import get_terminal_size
 from pandas.util.decorators import deprecate, Appender, Substitution
 
@@ -381,7 +380,7 @@ class DataFrame(NDFrame):
         'columns': 1
     }
 
-    _AXIS_NAMES = dict((v, k) for k, v in _AXIS_NUMBERS.iteritems())
+    _AXIS_NAMES = dict((v, k) for k, v in compat.iteritems(_AXIS_NUMBERS))
 
     def __init__(self, data=None, index=None, columns=None, dtype=None,
                  copy=False):
@@ -440,7 +439,7 @@ class DataFrame(NDFrame):
                                   'incompatible data and dtype')
 
             if arr.ndim == 0 and index is not None and columns is not None:
-                if isinstance(data, basestring) and dtype is None:
+                if isinstance(data, compat.string_types) and dtype is None:
                     dtype = np.object_
                 if dtype is None:
                     dtype, data = _infer_dtype_from_scalar(data)
@@ -490,10 +489,10 @@ class DataFrame(NDFrame):
 
             # prefilter if columns passed
 
-            data = dict((k, v) for k, v in data.iteritems() if k in columns)
+            data = dict((k, v) for k, v in compat.iteritems(data) if k in columns)
 
             if index is None:
-                index = extract_index(data.values())
+                index = extract_index(list(data.values()))
             else:
                 index = _ensure_index(index)
 
@@ -518,9 +517,9 @@ class DataFrame(NDFrame):
                 data_names.append(k)
                 arrays.append(v)
         else:
-            keys = data.keys()
+            keys = list(data.keys())
             if not isinstance(data, OrderedDict):
-                keys = _try_sort(data.keys())
+                keys = _try_sort(list(data.keys()))
             columns = data_names = Index(keys)
             arrays = [data[k] for k in columns]
 
@@ -566,14 +565,12 @@ class DataFrame(NDFrame):
 
     @property
     def _verbose_info(self):
-        import warnings
         warnings.warn('The _verbose_info property will be removed in version '
                       '0.13. please use "max_info_rows"', FutureWarning)
         return get_option('display.max_info_rows') is None
 
     @_verbose_info.setter
     def _verbose_info(self, value):
-        import warnings
         warnings.warn('The _verbose_info property will be removed in version '
                       '0.13. please use "max_info_rows"', FutureWarning)
 
@@ -656,7 +653,7 @@ class DataFrame(NDFrame):
         Invoked by unicode(df) in py2 only. Yields a Unicode String in both
         py2/py3.
         """
-        buf = StringIO(u"")
+        buf = StringIO(u(""))
         fits_vertical = self._repr_fits_vertical_()
         fits_horizontal = False
         if fits_vertical:
@@ -683,7 +680,7 @@ class DataFrame(NDFrame):
                 self.info(buf=buf, verbose=verbose)
 
         value = buf.getvalue()
-        if not  type(value) == unicode:
+        if not isinstance(value, compat.text_type):
             raise AssertionError()
 
         return value
@@ -715,7 +712,7 @@ class DataFrame(NDFrame):
                         'max-width:1500px;overflow:auto;">\n' +
                         self.to_html() + '\n</div>')
             else:
-                buf = StringIO(u"")
+                buf = StringIO(u(""))
                 max_info_rows = get_option('display.max_info_rows')
                 verbose = (max_info_rows is None or
                            self.shape[0] <= max_info_rows)
@@ -769,7 +766,7 @@ class DataFrame(NDFrame):
             A generator that iterates over the rows of the frame.
         """
         columns = self.columns
-        for k, v in izip(self.index, self.values):
+        for k, v in zip(self.index, self.values):
             s = v.view(Series)
             s.index = columns
             s.name = k
@@ -785,11 +782,10 @@ class DataFrame(NDFrame):
             arrays.append(self.index)
 
         # use integer indexing because of possible duplicate column names
-        arrays.extend(self.iloc[:, k] for k in xrange(len(self.columns)))
-        return izip(*arrays)
+        arrays.extend(self.iloc[:, k] for k in range(len(self.columns)))
+        return zip(*arrays)
 
-    iterkv = iteritems
-    if py3compat.PY3:  # pragma: no cover
+    if compat.PY3:  # pragma: no cover
         items = iteritems
 
     def __len__(self):
@@ -851,7 +847,7 @@ class DataFrame(NDFrame):
     __xor__ = _arith_method(operator.xor, '__xor__')
 
     # Python 2 division methods
-    if not py3compat.PY3:
+    if not compat.PY3:
         __div__ = _arith_method(operator.div, '__div__', '/',
                                 default_axis=None, fill_zeros=np.inf, truediv=False)
         __rdiv__ = _arith_method(lambda x, y: y / x, '__rdiv__',
@@ -951,10 +947,10 @@ class DataFrame(NDFrame):
         if orient == 'index':
             if len(data) > 0:
                 # TODO speed up Series case
-                if isinstance(data.values()[0], (Series, dict)):
+                if isinstance(list(data.values())[0], (Series, dict)):
                     data = _from_nested_dict(data)
                 else:
-                    data, index = data.values(), data.keys()
+                    data, index = list(data.values()), list(data.keys())
         elif orient != 'columns':  # pragma: no cover
             raise ValueError('only recognize index or columns for orient')
 
@@ -978,16 +974,15 @@ class DataFrame(NDFrame):
         -------
         result : dict like {column -> {index -> value}}
         """
-        import warnings
         if not self.columns.is_unique:
             warnings.warn("DataFrame columns are not unique, some "
                           "columns will be omitted.", UserWarning)
         if outtype.lower().startswith('d'):
-            return dict((k, v.to_dict()) for k, v in self.iteritems())
+            return dict((k, v.to_dict()) for k, v in compat.iteritems(self))
         elif outtype.lower().startswith('l'):
-            return dict((k, v.tolist()) for k, v in self.iteritems())
+            return dict((k, v.tolist()) for k, v in compat.iteritems(self))
         elif outtype.lower().startswith('s'):
-            return dict((k, v) for k, v in self.iteritems())
+            return dict((k, v) for k, v in compat.iteritems(self))
         else:  # pragma: no cover
             raise ValueError("outtype %s not understood" % outtype)
 
@@ -1028,10 +1023,10 @@ class DataFrame(NDFrame):
                 return cls()
 
             try:
-                if py3compat.PY3:
+                if compat.PY3:
                     first_row = next(data)
                 else:
-                    first_row = data.next()
+                    first_row = next(data)
             except StopIteration:
                 return cls(index=index, columns=columns)
 
@@ -1060,7 +1055,7 @@ class DataFrame(NDFrame):
             else:
                 arrays = []
                 arr_columns = []
-                for k, v in data.iteritems():
+                for k, v in compat.iteritems(data):
                     if k in columns:
                         arr_columns.append(k)
                         arrays.append(v)
@@ -1093,7 +1088,7 @@ class DataFrame(NDFrame):
 
         result_index = None
         if index is not None:
-            if (isinstance(index, basestring) or
+            if (isinstance(index, compat.string_types) or
                     not hasattr(index, "__iter__")):
                 i = columns.get_loc(index)
                 exclude.add(index)
@@ -1148,7 +1143,7 @@ class DataFrame(NDFrame):
             else:
                 if isinstance(self.index, MultiIndex):
                     # array of tuples to numpy cols. copy copy copy
-                    ix_vals = map(np.array,zip(*self.index.values))
+                    ix_vals = lmap(np.array,zip(*self.index.values))
                 else:
                     ix_vals = [self.index.values]
 
@@ -1163,10 +1158,10 @@ class DataFrame(NDFrame):
                         count += 1
             elif index_names[0] is None:
                 index_names = ['index']
-            names = index_names + list(map(str, self.columns))
+            names = index_names + lmap(str, self.columns)
         else:
             arrays = [self[c].values for c in self.columns]
-            names = list(map(str, self.columns))
+            names = lmap(str, self.columns)
 
         dtype = np.dtype([(x, v.dtype) for x, v in zip(names, arrays)])
         return np.rec.fromarrays(arrays, dtype=dtype, names=names)
@@ -1194,7 +1189,7 @@ class DataFrame(NDFrame):
         -------
         frame : DataFrame
         """
-        keys, values = zip(*items)
+        keys, values = lzip(*items)
 
         if orient == 'columns':
             if columns is not None:
@@ -1393,7 +1388,6 @@ class DataFrame(NDFrame):
             or new (expanded format) if False)
         """
         if nanRep is not None:  # pragma: no cover
-            import warnings
             warnings.warn("nanRep is deprecated, use na_rep",
                           FutureWarning)
             na_rep = nanRep
@@ -1452,7 +1446,7 @@ class DataFrame(NDFrame):
         """
         from pandas.io.excel import ExcelWriter
         need_save = False
-        if isinstance(excel_writer, basestring):
+        if isinstance(excel_writer, compat.string_types):
             excel_writer = ExcelWriter(excel_writer)
             need_save = True
 
@@ -1529,7 +1523,6 @@ class DataFrame(NDFrame):
         """
         Render a DataFrame to a console-friendly tabular output.
         """
-        import warnings
         if force_unicode is not None:  # pragma: no cover
             warnings.warn("force_unicode is deprecated, it will have no "
                           "effect", FutureWarning)
@@ -1578,7 +1571,6 @@ class DataFrame(NDFrame):
         Render a DataFrame as an HTML table.
         """
 
-        import warnings
         if force_unicode is not None:  # pragma: no cover
             warnings.warn("force_unicode is deprecated, it will have no "
                           "effect", FutureWarning)
@@ -1617,7 +1609,6 @@ class DataFrame(NDFrame):
         You can splice this into a LaTeX document.
         """
 
-        import warnings
         if force_unicode is not None:  # pragma: no cover
             warnings.warn("force_unicode is deprecated, it will have no "
                           "effect", FutureWarning)
@@ -1679,7 +1670,7 @@ class DataFrame(NDFrame):
             counts = self.count()
             if len(cols) != len(counts):
                 raise AssertionError('Columns must equal counts')
-            for col, count in counts.iteritems():
+            for col, count in compat.iteritems(counts):
                 col = com.pprint_thing(col)
                 lines.append(_put_str(col, space) +
                              '%d  non-null values' % count)
@@ -1687,7 +1678,7 @@ class DataFrame(NDFrame):
             lines.append(self.columns.summary(name='Columns'))
 
         counts = self.get_dtype_counts()
-        dtypes = ['%s(%d)' % k for k in sorted(counts.iteritems())]
+        dtypes = ['%s(%d)' % k for k in sorted(compat.iteritems(counts))]
         lines.append('dtypes: %s' % ', '.join(dtypes))
         _put_lines(buf, lines)
 
@@ -2016,7 +2007,6 @@ class DataFrame(NDFrame):
             # go with the __setitem__ behavior since that is more consistent
             # with all other indexing behavior
             if isinstance(key, Series) and not key.index.equals(self.index):
-                import warnings
                 warnings.warn("Boolean Series key will be reindexed to match "
                               "DataFrame index.", UserWarning)
             elif len(key) != len(self.index):
@@ -2419,8 +2409,6 @@ class DataFrame(NDFrame):
             The found values
 
         """
-        from itertools import izip
-
         n = len(row_labels)
         if n != len(col_labels):
             raise AssertionError('Row labels must have same size as '
@@ -2439,7 +2427,7 @@ class DataFrame(NDFrame):
             result = values.flat[flat_index]
         else:
             result = np.empty(n, dtype='O')
-            for i, (r, c) in enumerate(izip(row_labels, col_labels)):
+            for i, (r, c) in enumerate(zip(row_labels, col_labels)):
                 result[i] = self.get_value(r, c)
 
         if result.dtype == 'O':
@@ -2910,7 +2898,7 @@ class DataFrame(NDFrame):
 
             if not drop:
                 names = self.index.names
-                zipped = zip(self.index.levels, self.index.labels)
+                zipped = lzip(self.index.levels, self.index.labels)
 
                 multi_col = isinstance(self.columns, MultiIndex)
                 for i, (lev, lab) in reversed(list(enumerate(zipped))):
@@ -3030,7 +3018,7 @@ class DataFrame(NDFrame):
         if items is not None:
             return self.reindex(columns=[r for r in items if r in self])
         elif like:
-            matchf = lambda x: (like in x if isinstance(x, basestring)
+            matchf = lambda x: (like in x if isinstance(x, compat.string_types)
                                 else like in str(x))
             return self.select(matchf, axis=1)
         elif regex:
@@ -3152,7 +3140,7 @@ class DataFrame(NDFrame):
         if cols is None:
             values = list(_m8_to_i8(self.values.T))
         else:
-            if np.iterable(cols) and not isinstance(cols, basestring):
+            if np.iterable(cols) and not isinstance(cols, compat.string_types):
                 if isinstance(cols, tuple):
                     if cols in self.columns:
                         values = [self[cols]]
@@ -3198,7 +3186,6 @@ class DataFrame(NDFrame):
         sorted : DataFrame
         """
         if column is not None:  # pragma: no cover
-            import warnings
             warnings.warn("column is deprecated, use columns", FutureWarning)
             columns = column
         return self.sort_index(by=columns, axis=axis, ascending=ascending,
@@ -3456,7 +3443,7 @@ class DataFrame(NDFrame):
                                               'by column')
 
                 result = self if inplace else self.copy()
-                for k, v in value.iteritems():
+                for k, v in compat.iteritems(value):
                     if k not in result:
                         continue
                     result[k].fillna(v, inplace=True)
@@ -3580,13 +3567,11 @@ class DataFrame(NDFrame):
             raise AssertionError("'to_replace' must be 'None' if 'regex' is "
                                  "not a bool")
         if method is not None:
-            from warnings import warn
-            warn('the "method" argument is deprecated and will be removed in'
+            warnings.warn('the "method" argument is deprecated and will be removed in'
                  'v0.13; this argument has no effect')
 
         if axis is not None:
-            from warnings import warn
-            warn('the "axis" argument is deprecated and will be removed in'
+            warnings.warn('the "axis" argument is deprecated and will be removed in'
                  'v0.13; this argument has no effect')
 
         self._consolidate_inplace()
@@ -3599,8 +3584,8 @@ class DataFrame(NDFrame):
                 to_replace = regex
                 regex = True
 
-            items = to_replace.items()
-            keys, values = itertools.izip(*items)
+            items = list(to_replace.items())
+            keys, values = zip(*items)
 
             are_mappings = [isinstance(v, (dict, Series)) for v in values]
 
@@ -3614,8 +3599,8 @@ class DataFrame(NDFrame):
                 value_dict = {}
 
                 for k, v in items:
-                    to_rep_dict[k] = v.keys()
-                    value_dict[k] = v.values()
+                    to_rep_dict[k] = list(v.keys())
+                    value_dict[k] = list(v.values())
 
                 to_replace, value = to_rep_dict, value_dict
             else:
@@ -3631,7 +3616,7 @@ class DataFrame(NDFrame):
             if isinstance(to_replace, (dict, Series)):
                 if isinstance(value, (dict, Series)):  # {'A' : NA} -> {'A' : 0}
                     new_data = self._data
-                    for c, src in to_replace.iteritems():
+                    for c, src in compat.iteritems(to_replace):
                         if c in value and c in self:
                             new_data = new_data.replace(src, value[c],
                                                         filter=[c],
@@ -3640,7 +3625,7 @@ class DataFrame(NDFrame):
 
                 elif not isinstance(value, (list, np.ndarray)):  # {'A': NA} -> 0
                     new_data = self._data
-                    for k, src in to_replace.iteritems():
+                    for k, src in compat.iteritems(to_replace):
                         if k in self:
                             new_data = new_data.replace(src, value,
                                                         filter=[k],
@@ -3680,7 +3665,7 @@ class DataFrame(NDFrame):
                 if isinstance(value, (dict, Series)):  # NA -> {'A' : 0, 'B' : -1}
                     new_data = self._data
 
-                    for k, v in value.iteritems():
+                    for k, v in compat.iteritems(value):
                         if k in self:
                             new_data = new_data.replace(to_replace, v,
                                                         filter=[k],
@@ -3721,7 +3706,6 @@ class DataFrame(NDFrame):
         --------
         reindex, replace, fillna
         """
-        from warnings import warn
         warn('DataFrame.interpolate will be removed in v0.13, please use '
              'either DataFrame.fillna or DataFrame.replace instead',
              FutureWarning)
@@ -3871,7 +3855,6 @@ class DataFrame(NDFrame):
 
         # teeny hack because one does DataFrame + TimeSeries all the time
         if self.index.is_all_dates and other.index.is_all_dates:
-            import warnings
             warnings.warn(("TimeSeries broadcasting along DataFrame index "
                            "by default is deprecated. Please use "
                            "DataFrame.<op> to explicitly broadcast arithmetic "
@@ -4315,7 +4298,7 @@ class DataFrame(NDFrame):
 
         offset = _resolve_offset(freq, kwds)
 
-        if isinstance(offset, basestring):
+        if isinstance(offset, compat.string_types):
             offset = datetools.to_offset(offset)
 
         if offset is None:
@@ -4456,7 +4439,7 @@ class DataFrame(NDFrame):
             values = self.values
             series_gen = (Series.from_array(arr, index=res_columns, name=name)
                           for i, (arr, name) in
-                          enumerate(izip(values, res_index)))
+                          enumerate(zip(values, res_index)))
         else:
             raise ValueError('Axis must be 0 or 1, got %s' % str(axis))
 
@@ -4479,7 +4462,7 @@ class DataFrame(NDFrame):
                 for i, v in enumerate(series_gen):
                     results[i] = func(v)
                     keys.append(v.name)
-            except Exception, e:
+            except Exception as e:
                 try:
                     if hasattr(e, 'args'):
                         k = res_index[i]
@@ -4863,7 +4846,7 @@ class DataFrame(NDFrame):
 
         if len(numdata.columns) == 0:
             return DataFrame(dict((k, v.describe())
-                                  for k, v in self.iteritems()),
+                                  for k, v in compat.iteritems(self)),
                              columns=self.columns)
 
         lb = .5 * (1. - percentile_width / 100.)
@@ -4888,7 +4871,7 @@ class DataFrame(NDFrame):
                            series.min(), series.quantile(lb), series.median(),
                            series.quantile(ub), series.max()])
 
-        return self._constructor(map(list, zip(*destat)), index=destat_columns,
+        return self._constructor(lmap(list, zip(*destat)), index=destat_columns,
                                  columns=numdata.columns)
 
     #----------------------------------------------------------------------
@@ -4947,7 +4930,7 @@ class DataFrame(NDFrame):
         # python 2.5
         mask = notnull(frame.values).view(np.uint8)
 
-        if isinstance(level, basestring):
+        if isinstance(level, compat.string_types):
             level = self.index._get_level_number(level)
 
         level_index = frame.index.levels[level]
@@ -5734,7 +5717,7 @@ def extract_index(data):
                 indexes.append(v.index)
             elif isinstance(v, dict):
                 have_dicts = True
-                indexes.append(v.keys())
+                indexes.append(list(v.keys()))
             elif isinstance(v, (list, tuple, np.ndarray)):
                 have_raw_arrays = True
                 raw_lengths.append(len(v))
@@ -5802,7 +5785,7 @@ def _rec_to_dict(arr):
         sdict = dict((k, arr[k]) for k in columns)
     elif isinstance(arr, DataFrame):
         columns = list(arr.columns)
-        sdict = dict((k, v.values) for k, v in arr.iteritems())
+        sdict = dict((k, v.values) for k, v in compat.iteritems(arr))
     elif isinstance(arr, dict):
         columns = sorted(arr)
         sdict = arr.copy()
@@ -5849,7 +5832,7 @@ def _to_arrays(data, columns, coerce_float=False, dtype=None):
         return arrays, columns
     else:
         # last ditch effort
-        data = map(tuple, data)
+        data = lmap(tuple, data)
         return _list_to_arrays(data, columns,
                                coerce_float=coerce_float,
                                dtype=dtype)
@@ -5894,7 +5877,7 @@ def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
 
 def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
     if columns is None:
-        gen = (x.keys() for x in data)
+        gen = (list(x.keys()) for x in data)
         columns = lib.fast_unique_multiple_list_gen(gen)
 
     # assure that they are of the base dict class and not of derived
@@ -5923,7 +5906,7 @@ def _convert_object_array(content, columns, coerce_float=False, dtype=None):
 
 
 def _get_names_from_index(data):
-    index = range(len(data))
+    index = lrange(len(data))
     has_some_name = any([s.name is not None for s in data])
     if not has_some_name:
         return index
@@ -5977,8 +5960,8 @@ def _homogenize(data, index, dtype=None):
 def _from_nested_dict(data):
     # TODO: this should be seriously cythonized
     new_data = OrderedDict()
-    for index, s in data.iteritems():
-        for col, v in s.iteritems():
+    for index, s in compat.iteritems(data):
+        for col, v in compat.iteritems(s):
             new_data[col] = new_data.get(col, OrderedDict())
             new_data[col][index] = v
     return new_data
@@ -5996,7 +5979,7 @@ def install_ipython_completers():  # pragma: no cover
     @complete_object.when_type(DataFrame)
     def complete_dataframe(obj, prev_completions):
         return prev_completions + [c for c in obj.columns
-                                   if isinstance(c, basestring) and py3compat.isidentifier(c)]
+                                   if isinstance(c, compat.string_types) and compat.isidentifier(c)]
 
 
 # Importing IPython brings in about 200 modules, so we want to avoid it unless

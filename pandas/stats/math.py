@@ -3,6 +3,7 @@
 
 from __future__ import division
 
+from pandas.compat import range
 import numpy as np
 import numpy.linalg as linalg
 
@@ -70,7 +71,7 @@ def newey_west(m, max_lags, nobs, df, nw_overlap=False):
     Covariance Matrix, Econometrica, vol. 55(3), 703-708
     """
     Xeps = np.dot(m.T, m)
-    for lag in xrange(1, max_lags + 1):
+    for lag in range(1, max_lags + 1):
         auto_cov = np.dot(m[:-lag].T, m[lag:])
         weight = lag / (max_lags + 1)
         if nw_overlap:

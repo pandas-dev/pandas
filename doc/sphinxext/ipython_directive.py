@@ -51,14 +51,15 @@ Authors
 - VĂĄclavĹ milauer <eudoxos-AT-arcig.cz>: Prompt generalizations.
 - Skipper Seabold, refactoring, cleanups, pure python addition
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Imports
 #-----------------------------------------------------------------------------
 
 # Stdlib
+from pandas.compat import zip, range, map, lmap, u, cStringIO as StringIO
 import ast
-import cStringIO
 import os
 import re
 import sys
@@ -114,7 +115,7 @@ def block_parser(part, rgxin, rgxout, fmtin, fmtout):
     N = len(lines)
     i = 0
     decorator = None
-    while 1:
+    while True:
 
         if i==N:
             # nothing left to parse -- the last line
@@ -186,7 +187,7 @@ class EmbeddedSphinxShell(object):
 
     def __init__(self):
 
-        self.cout = cStringIO.StringIO()
+        self.cout = StringIO()
 
         # Create config object for IPython
         config = Config()
@@ -299,7 +300,7 @@ class EmbeddedSphinxShell(object):
         def _remove_first_space_if_any(line):
             return line[1:] if line.startswith(' ') else line
 
-        input_lines = map(_remove_first_space_if_any, input.split('\n'))
+        input_lines = lmap(_remove_first_space_if_any, input.split('\n'))
 
         self.datacontent = data
 
@@ -489,7 +490,7 @@ class EmbeddedSphinxShell(object):
                     multiline = True
                     cont_len = len(str(lineno)) + 2
                     line_to_process = line.strip('\\')
-                    output.extend([u"%s %s" % (fmtin%lineno,line)])
+                    output.extend([u("%s %s") % (fmtin%lineno,line)])
                     continue
                 else: # no we're still not
                     line_to_process = line.strip('\\')
@@ -497,12 +498,12 @@ class EmbeddedSphinxShell(object):
                 line_to_process += line.strip('\\')
                 if line_stripped.endswith('\\'): # and we still are
                     continuation = '.' * cont_len
-                    output.extend([(u'   %s: '+line_stripped) % continuation])
+                    output.extend([(u('   %s: ')+line_stripped) % continuation])
                     continue
                 # else go ahead and run this multiline then carry on
 
             # get output of line
-            self.process_input_line(unicode(line_to_process.strip()),
+            self.process_input_line(compat.text_type(line_to_process.strip()),
                                     store_history=False)
             out_line = self.cout.getvalue()
             self.clear_cout()
@@ -516,15 +517,15 @@ class EmbeddedSphinxShell(object):
 
             # line numbers don't actually matter, they're replaced later
             if not multiline:
-                in_line = u"%s %s" % (fmtin%lineno,line)
+                in_line = u("%s %s") % (fmtin%lineno,line)
 
                 output.extend([in_line])
             else:
-                output.extend([(u'   %s: '+line_stripped) % continuation])
+                output.extend([(u('   %s: ')+line_stripped) % continuation])
                 multiline = False
             if len(out_line):
                 output.extend([out_line])
-            output.extend([u''])
+            output.extend([u('')])
 
         return output
 
@@ -566,19 +567,19 @@ class EmbeddedSphinxShell(object):
                 output.extend([line])
                 continue
 
-            continuation  = u'   %s:'% ''.join(['.']*(len(str(ct))+2))
+            continuation  = u('   %s:')% ''.join(['.']*(len(str(ct))+2))
             if not multiline:
-                modified = u"%s %s" % (fmtin % ct, line_stripped)
+                modified = u("%s %s") % (fmtin % ct, line_stripped)
                 output.append(modified)
                 ct += 1
                 try:
                     ast.parse(line_stripped)
-                    output.append(u'')
+                    output.append(u(''))
                 except Exception:
                     multiline = True
                     multiline_start = lineno
             else:
-                modified = u'%s %s' % (continuation, line)
+                modified = u('%s %s') % (continuation, line)
                 output.append(modified)
 
                 try:
@@ -590,7 +591,7 @@ class EmbeddedSphinxShell(object):
 
                         continue
 
-                    output.extend([continuation, u''])
+                    output.extend([continuation, u('')])
                     multiline = False
                 except Exception:
                     pass
@@ -732,7 +733,7 @@ class IpythonDirective(Directive):
         #print lines
         if len(lines)>2:
             if debug:
-                print '\n'.join(lines)
+                print('\n'.join(lines))
             else: #NOTE: this raises some errors, what's it for?
                 #print 'INSERTING %d lines'%len(lines)
                 self.state_machine.insert_input(
@@ -910,4 +911,4 @@ if __name__=='__main__':
     if not os.path.isdir('_static'):
         os.mkdir('_static')
     test()
-    print 'All OK? Check figures in _static/'
+    print('All OK? Check figures in _static/')

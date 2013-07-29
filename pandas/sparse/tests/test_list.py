@@ -1,3 +1,4 @@
+from pandas.compat import range
 import unittest
 
 from numpy import nan
@@ -6,7 +7,7 @@ import numpy as np
 from pandas.sparse.api import SparseList, SparseArray
 from pandas.util.testing import assert_almost_equal
 
-from test_sparse import assert_sp_array_equal
+from .test_sparse import assert_sp_array_equal
 
 
 def assert_sp_list_equal(left, right):

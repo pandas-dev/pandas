@@ -13,8 +13,6 @@ import os
 from datetime import datetime
 from functools import wraps
 from contextlib import contextmanager
-from httplib import HTTPException
-from urllib2 import urlopen
 from distutils.version import LooseVersion
 
 from numpy.random import randn
@@ -26,10 +24,16 @@ import pandas.core.series as series
 import pandas.core.frame as frame
 import pandas.core.panel as panel
 import pandas.core.panel4d as panel4d
+import pandas.compat as compat
+from pandas.compat import(
+    map, zip, range, unichr, lrange, lmap, lzip, u, callable, Counter
+)
 
 from pandas import bdate_range
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
+
+from pandas.io.common import urlopen, HTTPException
 
 Index = index.Index
 MultiIndex = index.MultiIndex
@@ -45,12 +49,13 @@ _RAISE_NETWORK_ERROR_DEFAULT = False
 
 def rands(n):
     choices = string.ascii_letters + string.digits
-    return ''.join(random.choice(choices) for _ in xrange(n))
+    return ''.join(random.choice(choices) for _ in range(n))
 
 
 def randu(n):
-    choices = u"".join(map(unichr, range(1488, 1488 + 26))) + string.digits
-    return ''.join([random.choice(choices) for _ in xrange(n)])
+    choices = u("").join(map(unichr, lrange(1488, 1488 + 26)))
+    choices += string.digits
+    return ''.join([random.choice(choices) for _ in range(n)])
 
 #------------------------------------------------------------------------------
 # Console debugging tools
@@ -115,16 +120,29 @@ def equalContents(arr1, arr2):
     return frozenset(arr1) == frozenset(arr2)
 
 
+def assert_isinstance(obj, class_type_or_tuple):
+    """asserts that obj is an instance of class_type_or_tuple"""
+    assert isinstance(obj, class_type_or_tuple), (
+        "Expected object to be of type %r, found %r instead" % (
+            type(obj), class_type_or_tuple))
+
+
 def isiterable(obj):
     return hasattr(obj, '__iter__')
+
+
+def assert_isinstance(obj, class_type_or_tuple):
+    """asserts that obj is an instance of class_type_or_tuple"""
+    assert isinstance(obj, class_type_or_tuple), (
+        "Expected object to be of type %r, found %r instead" % (type(obj), class_type_or_tuple))
 
 
 def assert_almost_equal(a, b, check_less_precise = False):
     if isinstance(a, dict) or isinstance(b, dict):
         return assert_dict_equal(a, b)
 
-    if isinstance(a, basestring):
-        assert a == b, "%r != %r" % (a, b)
+    if isinstance(a, compat.string_types):
+        assert a == b, "%s != %s" % (a, b)
         return True
 
     if isiterable(a):
@@ -135,7 +153,7 @@ def assert_almost_equal(a, b, check_less_precise = False):
         if np.array_equal(a, b):
             return True
         else:
-            for i in xrange(na):
+            for i in range(na):
                 assert_almost_equal(a[i], b[i], check_less_precise)
         return True
 
@@ -191,7 +209,7 @@ def assert_series_equal(left, right, check_dtype=True,
                         check_series_type=False,
                         check_less_precise=False):
     if check_series_type:
-        assert(type(left) == type(right))
+        assert_isinstance(left, type(right))
     assert_almost_equal(left.values, right.values, check_less_precise)
     if check_dtype:
         assert(left.dtype == right.dtype)
@@ -200,7 +218,7 @@ def assert_series_equal(left, right, check_dtype=True,
     else:
         assert(left.index.equals(right.index))
     if check_index_type:
-        assert(type(left.index) == type(right.index))
+        assert_isinstance(left.index, type(right.index))
         assert(left.index.dtype == right.index.dtype)
         assert(left.index.inferred_type == right.index.inferred_type)
     if check_index_freq:
@@ -215,9 +233,9 @@ def assert_frame_equal(left, right, check_dtype=True,
                        check_less_precise=False,
                        check_names=True):
     if check_frame_type:
-        assert(type(left) == type(right))
-    assert(isinstance(left, DataFrame))
-    assert(isinstance(right, DataFrame))
+        assert_isinstance(left, type(right))
+    assert_isinstance(left, DataFrame)
+    assert_isinstance(right, DataFrame)
 
     if check_less_precise:
         assert_almost_equal(left.columns,right.columns)
@@ -236,11 +254,11 @@ def assert_frame_equal(left, right, check_dtype=True,
                             check_less_precise=check_less_precise)
 
     if check_index_type:
-        assert(type(left.index) == type(right.index))
+        assert_isinstance(left.index, type(right.index))
         assert(left.index.dtype == right.index.dtype)
         assert(left.index.inferred_type == right.index.inferred_type)
     if check_column_type:
-        assert(type(left.columns) == type(right.columns))
+        assert_isinstance(left.columns, type(right.columns))
         assert(left.columns.dtype == right.columns.dtype)
         assert(left.columns.inferred_type == right.columns.inferred_type)
     if check_names:
@@ -252,13 +270,13 @@ def assert_panel_equal(left, right,
                        check_panel_type=False,
                        check_less_precise=False):
     if check_panel_type:
-        assert(type(left) == type(right))
+        assert_isinstance(left, type(right))
 
     assert(left.items.equals(right.items))
     assert(left.major_axis.equals(right.major_axis))
     assert(left.minor_axis.equals(right.minor_axis))
 
-    for col, series in left.iterkv():
+    for col, series in compat.iteritems(left):
         assert(col in right)
         assert_frame_equal(series, right[col], check_less_precise=check_less_precise, check_names=False)  # TODO strangely check_names fails in py3 ?
 
@@ -273,7 +291,7 @@ def assert_panel4d_equal(left, right,
     assert(left.major_axis.equals(right.major_axis))
     assert(left.minor_axis.equals(right.minor_axis))
 
-    for col, series in left.iterkv():
+    for col, series in compat.iteritems(left):
         assert(col in right)
         assert_panel_equal(series, right[col], check_less_precise=check_less_precise)
 
@@ -291,15 +309,15 @@ def getCols(k):
 
 
 def makeStringIndex(k):
-    return Index([rands(10) for _ in xrange(k)])
+    return Index([rands(10) for _ in range(k)])
 
 
 def makeUnicodeIndex(k):
-    return Index([randu(10) for _ in xrange(k)])
+    return Index([randu(10) for _ in range(k)])
 
 
 def makeIntIndex(k):
-    return Index(range(k))
+    return Index(lrange(k))
 
 
 def makeFloatIndex(k):
@@ -427,7 +445,6 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
         if unspecified, string labels will be generated.
     """
 
-    from pandas.util.compat import Counter
     if ndupe_l is None:
         ndupe_l = [1] * nlevels
     assert (_is_sequence(ndupe_l) and len(ndupe_l) <= nlevels)
@@ -444,7 +461,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
         names = None
 
     # make singelton case uniform
-    if isinstance(names, basestring) and nlevels == 1:
+    if isinstance(names, compat.string_types) and nlevels == 1:
         names = [names]
 
     # specific 1D index type requested?
@@ -471,7 +488,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
         def keyfunc(x):
             import re
             numeric_tuple = re.sub("[^\d_]_?","",x).split("_")
-            return map(int,numeric_tuple)
+            return lmap(int,numeric_tuple)
 
         # build a list of lists to create the index from
         div_factor = nentries // ndupe_l[i] + 1
@@ -483,7 +500,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
         result = list(sorted(cnt.elements(), key=keyfunc))[:nentries]
         tuples.append(result)
 
-    tuples = zip(*tuples)
+    tuples = lzip(*tuples)
 
     # convert tuples to index
     if nentries == 1:
@@ -725,11 +742,12 @@ def network(t, raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
     A test can be decorated as requiring network like this::
 
       >>> from pandas.util.testing import network
-      >>> import urllib2
+      >>> from pandas.io.common import urlopen
       >>> import nose
       >>> @network
       ... def test_network():
-      ...   urllib2.urlopen("rabbit://bonanza.com")
+      ...   with urlopen("rabbit://bonanza.com") as f:
+      ...     pass
       ...
       >>> try:
       ...   test_network()
@@ -743,7 +761,8 @@ def network(t, raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
 
       >>> @network(raise_on_error=True)
       ... def test_network():
-      ...   urllib2.urlopen("complaint://deadparrot.com")
+      ...   with urlopen("complaint://deadparrot.com") as f:
+      ...     pass
       ...
       >>> test_network()
       Traceback (most recent call last):
@@ -831,7 +850,7 @@ def with_connectivity_check(t, url="http://www.google.com",
     t : callable
         The test requiring network connectivity.
     url : path
-        The url to test via ``urllib2.urlopen`` to check for connectivity.
+        The url to test via ``pandas.io.common.urlopen`` to check for connectivity.
         Defaults to 'http://www.google.com'.
     raise_on_error : bool
         If True, never catches errors.

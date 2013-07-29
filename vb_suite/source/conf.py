@@ -13,6 +13,8 @@
 import sys
 import os
 
+from pandas.compat import u
+
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
@@ -49,8 +51,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'pandas'
-copyright = u'2008-2011, the pandas development team'
+project = u('pandas')
+copyright = u('2008-2011, the pandas development team')
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -197,8 +199,8 @@ htmlhelp_basename = 'performance'
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
     ('index', 'performance.tex',
-     u'pandas vbench Performance Benchmarks',
-     u'Wes McKinney', 'manual'),
+     u('pandas vbench Performance Benchmarks'),
+     u('Wes McKinney'), 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of

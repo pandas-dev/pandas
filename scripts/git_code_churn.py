@@ -1,4 +1,3 @@
-from dateutil import parser
 import subprocess
 import os
 import re

@@ -1,1 +1,1 @@
-from numpydoc import setup
+from .numpydoc import setup

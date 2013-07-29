@@ -1,4 +1,5 @@
 from datetime import datetime
+from pandas.compat import range, lrange
 import os
 import operator
 import unittest
@@ -14,7 +15,7 @@ from pandas.core.panel4d import Panel4D
 from pandas.core.series import remove_na
 import pandas.core.common as com
 import pandas.core.panel as panelmod
-from pandas.util import py3compat
+from pandas import compat
 
 from pandas.util.testing import (assert_panel_equal,
                                  assert_panel4d_equal,
@@ -22,6 +23,7 @@ from pandas.util.testing import (assert_panel_equal,
                                  assert_series_equal,
                                  assert_almost_equal)
 import pandas.util.testing as tm
+import pandas.compat as compat
 
 
 def add_nans(panel4d):
@@ -215,15 +217,12 @@ class SafeForSparse(object):
         assert_panel_equal(result['l1'], op(panel4d['l1'], 1))
 
     def test_keys(self):
-        tm.equalContents(self.panel4d.keys(), self.panel4d.labels)
+        tm.equalContents(list(self.panel4d.keys()), self.panel4d.labels)
 
     def test_iteritems(self):
-        """Test panel4d.iteritems(), aka panel4d.iterkv()"""
-        # just test that it works
-        for k, v in self.panel4d.iterkv():
-            pass
+        """Test panel4d.iteritems()"""
 
-        self.assertEqual(len(list(self.panel4d.iterkv())),
+        self.assertEqual(len(list(compat.iteritems(self.panel4d))),
                          len(self.panel4d.labels))
 
     def test_combinePanel4d(self):
@@ -308,7 +307,7 @@ class CheckIndexing(object):
         values[2] = 2
         values[3] = 3
 
-        panel4d = Panel4D(values, range(4), range(4), range(4), range(4))
+        panel4d = Panel4D(values, lrange(4), lrange(4), lrange(4), lrange(4))
 
         # did we delete the right row?
 
@@ -536,7 +535,7 @@ class CheckIndexing(object):
 
         # resize
         res = self.panel4d.set_value('l4', 'ItemE', 'foo', 'bar', 1.5)
-        self.assert_(isinstance(res, Panel4D))
+        tm.assert_isinstance(res, Panel4D)
         self.assert_(res is not self.panel4d)
         self.assertEqual(res.get_value('l4', 'ItemE', 'foo', 'bar'), 1.5)
 
@@ -610,8 +609,8 @@ class TestPanel4d(unittest.TestCase, CheckIndexing, SafeForSparse,
 
     def test_constructor_observe_dtype(self):
         # GH #411
-        panel = Panel(items=range(3), major_axis=range(3),
-                      minor_axis=range(3), dtype='O')
+        panel = Panel(items=lrange(3), major_axis=lrange(3),
+                      minor_axis=lrange(3), dtype='O')
         self.assert_(panel.values.dtype == np.object_)
 
     def test_consolidate(self):
@@ -658,7 +657,7 @@ class TestPanel4d(unittest.TestCase, CheckIndexing, SafeForSparse,
         # assert_panel_equal(result, expected)
 
     def test_constructor_dict_mixed(self):
-        data = dict((k, v.values) for k, v in self.panel4d.iterkv())
+        data = dict((k, v.values) for k, v in compat.iteritems(self.panel4d))
         result = Panel4D(data)
         exp_major = Index(np.arange(len(self.panel4d.major_axis)))
         self.assert_(result.major_axis.equals(exp_major))
@@ -721,7 +720,7 @@ class TestPanel4d(unittest.TestCase, CheckIndexing, SafeForSparse,
 
     def test_values(self):
         self.assertRaises(Exception, Panel, np.random.randn(5, 5, 5),
-                          range(5), range(5), range(4))
+                          lrange(5), lrange(5), lrange(4))
 
     def test_conform(self):
         p = self.panel4d['l1'].filter(items=['ItemA', 'ItemB'])

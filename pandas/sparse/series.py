@@ -17,7 +17,7 @@ from pandas.core.frame import DataFrame
 import pandas.core.common as com
 import pandas.core.datetools as datetools
 
-from pandas.util import py3compat
+from pandas import compat
 
 from pandas.sparse.array import (make_sparse, _sparse_array_op, SparseArray)
 from pandas._sparse import BlockIndex, IntIndex
@@ -265,7 +265,7 @@ class SparseSeries(SparseArray, Series):
     __rpow__ = _sparse_op_wrap(lambda x, y: y ** x, '__rpow__')
 
     # Python 2 division operators
-    if not py3compat.PY3:
+    if not compat.PY3:
         __div__ = _sparse_op_wrap(operator.div, 'div')
         __rdiv__ = _sparse_op_wrap(lambda x, y: y / x, '__rdiv__')
 

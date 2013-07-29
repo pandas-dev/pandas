@@ -1,5 +1,4 @@
-import cPickle as pkl
-
+from pandas.compat import cPickle as pkl, PY3
 
 def to_pickle(obj, path):
     """
@@ -36,7 +35,6 @@ def read_pickle(path):
         with open(path, 'rb') as fh:
             return pkl.load(fh)
     except:
-        from pandas.util.py3compat import PY3
         if PY3:
             with open(path, 'rb') as fh:
                 return pkl.load(fh, encoding='latin1')

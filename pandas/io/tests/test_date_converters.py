@@ -1,4 +1,4 @@
-from pandas.util.py3compat import StringIO, BytesIO
+from pandas.compat import StringIO, BytesIO
 from datetime import date, datetime
 import csv
 import os
@@ -19,7 +19,7 @@ from pandas.io.parsers import (read_csv, read_table, read_fwf,
 from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
                                  assert_series_equal, network)
 import pandas.lib as lib
-from pandas.util import py3compat
+from pandas import compat
 from pandas.lib import Timestamp
 import pandas.io.date_converters as conv
 

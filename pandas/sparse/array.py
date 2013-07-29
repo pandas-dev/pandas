@@ -11,7 +11,7 @@ import operator
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 
-from pandas.util import py3compat
+from pandas import compat
 
 from pandas._sparse import BlockIndex, IntIndex
 import pandas._sparse as splib
@@ -216,7 +216,7 @@ to sparse
     __ipow__ = disable
 
     # Python 2 division operators
-    if not py3compat.PY3:
+    if not compat.PY3:
         __div__ = _sparse_op_wrap(operator.div, 'div')
         __rdiv__ = _sparse_op_wrap(lambda x, y: y / x, '__rdiv__')
         __idiv__ = disable

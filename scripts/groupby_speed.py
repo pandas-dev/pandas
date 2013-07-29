@@ -1,3 +1,4 @@
+from __future__ import print_function
 from pandas import *
 
 rng = DateRange('1/3/2011', '11/30/2011', offset=datetools.Minute())
@@ -23,12 +24,12 @@ def get2(dt):
 def f():
     for i, date in enumerate(df.index):
         if i % 10000 == 0:
-            print i
+            print(i)
         get1(date)
 
 
 def g():
     for i, date in enumerate(df.index):
         if i % 10000 == 0:
-            print i
+            print(i)
         get2(date)

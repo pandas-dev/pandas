@@ -1,9 +1,11 @@
 # This is copied from collections in Python 2.7, for compatibility with older
 # versions of Python. It can be dropped when we depend on Python 2.7/3.1
 
+from pandas import compat
 import heapq as _heapq
 from itertools import repeat as _repeat, chain as _chain, starmap as _starmap
 from operator import itemgetter as _itemgetter
+from pandas.compat import map
 
 try:
     from collections import Mapping
@@ -92,8 +94,8 @@ class Counter(dict):
         '''
         # Emulate Bag.sortedByCount from Smalltalk
         if n is None:
-            return sorted(self.iteritems(), key=_itemgetter(1), reverse=True)
-        return _heapq.nlargest(n, self.iteritems(), key=_itemgetter(1))
+            return sorted(compat.iteritems(self), key=_itemgetter(1), reverse=True)
+        return _heapq.nlargest(n, compat.iteritems(self), key=_itemgetter(1))
 
     def elements(self):
         '''Iterator over elements repeating each as many times as its count.
@@ -115,7 +117,7 @@ class Counter(dict):
 
         '''
         # Emulate Bag.do from Smalltalk and Multiset.begin from C++.
-        return _chain.from_iterable(_starmap(_repeat, self.iteritems()))
+        return _chain.from_iterable(_starmap(_repeat, compat.iteritems(self)))
 
     # Override dict methods where necessary
 
@@ -150,7 +152,7 @@ class Counter(dict):
             if isinstance(iterable, Mapping):
                 if self:
                     self_get = self.get
-                    for elem, count in iterable.iteritems():
+                    for elem, count in compat.iteritems(iterable):
                         self[elem] = self_get(elem, 0) + count
                 else:
                     # fast path when counter is empty

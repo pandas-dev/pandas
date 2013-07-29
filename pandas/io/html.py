@@ -6,8 +6,6 @@ HTML IO.
 import os
 import re
 import numbers
-import urllib2
-import urlparse
 import collections
 
 from distutils.version import LooseVersion
@@ -15,7 +13,9 @@ from distutils.version import LooseVersion
 import numpy as np
 
 from pandas import DataFrame, MultiIndex, isnull
-from pandas.io.common import _is_url, urlopen
+from pandas.io.common import _is_url, urlopen, parse_url
+from pandas.compat import range, lrange, lmap, u, map
+from pandas import compat
 
 
 try:
@@ -91,9 +91,9 @@ def _get_skiprows_iter(skiprows):
         A proper iterator to use to skip rows of a DataFrame.
     """
     if isinstance(skiprows, slice):
-        return range(skiprows.start or 0, skiprows.stop, skiprows.step or 1)
+        return lrange(skiprows.start or 0, skiprows.stop, skiprows.step or 1)
     elif isinstance(skiprows, numbers.Integral):
-        return range(skiprows)
+        return lrange(skiprows)
     elif isinstance(skiprows, collections.Container):
         return skiprows
     else:
@@ -120,7 +120,7 @@ def _read(io):
     elif os.path.isfile(io):
         with open(io) as f:
             raw_text = f.read()
-    elif isinstance(io, basestring):
+    elif isinstance(io, compat.string_types):
         raw_text = io
     else:
         raise TypeError("Cannot read object of type "
@@ -343,14 +343,14 @@ class _HtmlFrameParser(object):
         thead = self._parse_thead(table)
         res = []
         if thead:
-            res = map(self._text_getter, self._parse_th(thead[0]))
+            res = lmap(self._text_getter, self._parse_th(thead[0]))
         return np.array(res).squeeze() if res and len(res) == 1 else res
 
     def _parse_raw_tfoot(self, table):
         tfoot = self._parse_tfoot(table)
         res = []
         if tfoot:
-            res = map(self._text_getter, self._parse_td(tfoot[0]))
+            res = lmap(self._text_getter, self._parse_td(tfoot[0]))
         return np.array(res).squeeze() if res and len(res) == 1 else res
 
     def _parse_raw_tbody(self, table):
@@ -450,8 +450,8 @@ def _build_node_xpath_expr(attrs):
     if 'class_' in attrs:
         attrs['class'] = attrs.pop('class_')
 
-    s = (u"@{k}='{v}'".format(k=k, v=v) for k, v in attrs.iteritems())
-    return u'[{0}]'.format(' and '.join(s))
+    s = (u("@{k}='{v}'").format(k=k, v=v) for k, v in compat.iteritems(attrs))
+    return u('[{0}]').format(' and '.join(s))
 
 
 _re_namespace = {'re': 'http://exslt.org/regular-expressions'}
@@ -492,9 +492,9 @@ class _LxmlFrameParser(_HtmlFrameParser):
         pattern = match.pattern
 
         # check all descendants for the given pattern
-        check_all_expr = u'//*'
+        check_all_expr = u('//*')
         if pattern:
-            check_all_expr += u"[re:test(text(), '{0}')]".format(pattern)
+            check_all_expr += u("[re:test(text(), '{0}')]").format(pattern)
 
         # go up the tree until we find a table
         check_table_expr = '/ancestor::table'
@@ -549,7 +549,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
                     pass
             else:
                 # not a url
-                scheme = urlparse.urlparse(self.io).scheme
+                scheme = parse_url(self.io).scheme
                 if scheme not in _valid_schemes:
                     # lxml can't parse it
                     msg = ('{0} is not a valid url scheme, valid schemes are '
@@ -706,7 +706,7 @@ def _parser_dispatch(flavor):
     ImportError
         * If you do not have the requested `flavor`
     """
-    valid_parsers = _valid_parsers.keys()
+    valid_parsers = list(_valid_parsers.keys())
     if flavor not in valid_parsers:
         raise AssertionError('"{0!r}" is not a valid flavor, valid flavors are'
                              ' {1}'.format(flavor, valid_parsers))
@@ -733,16 +733,16 @@ def _parser_dispatch(flavor):
 def _validate_parser_flavor(flavor):
     if flavor is None:
         flavor = ['lxml', 'bs4']
-    elif isinstance(flavor, basestring):
+    elif isinstance(flavor, compat.string_types):
         flavor = [flavor]
     elif isinstance(flavor, collections.Iterable):
-        if not all(isinstance(flav, basestring) for flav in flavor):
+        if not all(isinstance(flav, compat.string_types) for flav in flavor):
             raise TypeError('{0} is not an iterable of strings'.format(flavor))
     else:
         raise TypeError('{0} is not a valid "flavor"'.format(flavor))
 
     flavor = list(flavor)
-    valid_flavors = _valid_parsers.keys()
+    valid_flavors = list(_valid_parsers.keys())
 
     if not set(flavor) & set(valid_flavors):
         raise ValueError('{0} is not a valid set of flavors, valid flavors are'

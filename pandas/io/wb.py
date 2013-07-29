@@ -1,6 +1,8 @@
-from urllib2 import urlopen
-import json
-from contextlib import closing
+from __future__ import print_function
+
+from pandas.compat import map, reduce, range, lrange
+from pandas.io.common import urlopen
+from pandas.io import json
 import pandas
 import numpy as np
 
@@ -65,10 +67,10 @@ def download(country=['MX', 'CA', 'US'], indicator=['GDPPCKD', 'GDPPCKN'],
             bad_indicators.append(ind)
     # Warn
     if len(bad_indicators) > 0:
-        print ('Failed to obtain indicator(s): %s' % '; '.join(bad_indicators))
+        print('Failed to obtain indicator(s): %s' % '; '.join(bad_indicators))
         print ('The data may still be available for download at http://data.worldbank.org')
     if len(bad_countries) > 0:
-        print ('Invalid ISO-2 codes: %s' % ' '.join(bad_countries))
+        print('Invalid ISO-2 codes: %s' % ' '.join(bad_countries))
     # Merge WDI series
     if len(data) > 0:
         out = reduce(lambda x, y: x.merge(y, how='outer'), data)
@@ -86,14 +88,14 @@ def _get_data(indicator="NY.GNS.ICTR.GN.ZS", country='US',
         indicator + "?date=" + str(start) + ":" + str(end) + "&per_page=25000" + \
         "&format=json"
     # Download
-    with closing(urlopen(url)) as response:
+    with urlopen(url) as response:
         data = response.read()
     # Parse JSON file
     data = json.loads(data)[1]
-    country = map(lambda x: x['country']['value'], data)
-    iso2c = map(lambda x: x['country']['id'], data)
-    year = map(lambda x: x['date'], data)
-    value = map(lambda x: x['value'], data)
+    country = [x['country']['value'] for x in data]
+    iso2c = [x['country']['id'] for x in data]
+    year = [x['date'] for x in data]
+    value = [x['value'] for x in data]
     # Prepare output
     out = pandas.DataFrame([country, iso2c, year, value]).T
     return out
@@ -103,14 +105,14 @@ def get_countries():
     '''Query information about countries
     '''
     url = 'http://api.worldbank.org/countries/all?format=json'
-    with closing(urlopen(url)) as response:
+    with urlopen(url) as response:
         data = response.read()
     data = json.loads(data)[1]
     data = pandas.DataFrame(data)
-    data.adminregion = map(lambda x: x['value'], data.adminregion)
-    data.incomeLevel = map(lambda x: x['value'], data.incomeLevel)
-    data.lendingType = map(lambda x: x['value'], data.lendingType)
-    data.region = map(lambda x: x['value'], data.region)
+    data.adminregion = [x['value'] for x in data.adminregion]
+    data.incomeLevel = [x['value'] for x in data.incomeLevel]
+    data.lendingType = [x['value'] for x in data.lendingType]
+    data.region = [x['value'] for x in data.region]
     data = data.rename(columns={'id': 'iso3c', 'iso2Code': 'iso2c'})
     return data
 
@@ -119,12 +121,12 @@ def get_indicators():
     '''Download information about all World Bank data series
     '''
     url = 'http://api.worldbank.org/indicators?per_page=50000&format=json'
-    with closing(urlopen(url)) as response:
+    with urlopen(url) as response:
         data = response.read()
     data = json.loads(data)[1]
     data = pandas.DataFrame(data)
     # Clean fields
-    data.source = map(lambda x: x['value'], data.source)
+    data.source = [x['value'] for x in data.source]
     fun = lambda x: x.encode('ascii', 'ignore')
     data.sourceOrganization = data.sourceOrganization.apply(fun)
     # Clean topic field
@@ -134,12 +136,12 @@ def get_indicators():
             return x['value']
         except:
             return ''
-    fun = lambda x: map(lambda y: get_value(y), x)
+    fun = lambda x: [get_value(y) for y in x]
     data.topics = data.topics.apply(fun)
     data.topics = data.topics.apply(lambda x: ' ; '.join(x))
     # Clean outpu
     data = data.sort(columns='id')
-    data.index = pandas.Index(range(data.shape[0]))
+    data.index = pandas.Index(lrange(data.shape[0]))
     return data
 
 

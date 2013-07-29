@@ -1,21 +1,21 @@
 # pylint: disable=E1101
 
-from pandas.util.py3compat import StringIO, BytesIO, PY3
 from datetime import datetime
 import csv
 import os
 import sys
 import re
 import unittest
-from contextlib import closing
-from urllib2 import urlopen
-
 import nose
 
 from numpy import nan
 import numpy as np
 
 from pandas import DataFrame, Series, Index, MultiIndex, DatetimeIndex
+from pandas.compat import(
+    StringIO, BytesIO, PY3, range, long, lrange, lmap, u, map, StringIO
+)
+from pandas.io.common import urlopen, URLError
 import pandas.io.parsers as parsers
 from pandas.io.parsers import (read_csv, read_table, read_fwf,
                                TextFileReader, TextParser)
@@ -27,8 +27,9 @@ from pandas.util.testing import (assert_almost_equal,
 import pandas.util.testing as tm
 import pandas as pd
 
+from pandas.compat import parse_date
 import pandas.lib as lib
-from pandas.util import py3compat
+from pandas import compat
 from pandas.lib import Timestamp
 from pandas.tseries.index import date_range
 import pandas.tseries.tools as tools
@@ -108,12 +109,12 @@ g,7,seven
         tm.assert_frame_equal(xp.reindex(columns=df.columns), df)
 
     def test_read_csv(self):
-        if not py3compat.PY3:
+        if not compat.PY3:
             if 'win' in sys.platform:
-                prefix = u"file:///"
+                prefix = u("file:///")
             else:
-                prefix = u"file://"
-            fname = prefix + unicode(self.csv1)
+                prefix = u("file://")
+            fname = prefix + compat.text_type(self.csv1)
             # it works!
             df1 = read_csv(fname, index_col=0, parse_dates=True)
 
@@ -160,7 +161,7 @@ c,3
         expected = Series([1, 2, 3], ['a', 'b', 'c'])
         result = self.read_table(StringIO(data), sep=',', index_col=0,
                                  header=None, squeeze=True)
-        self.assert_(isinstance(result, Series))
+        tm.assert_isinstance(result, Series)
         assert_series_equal(result, expected)
 
     def test_inf_parsing(self):
@@ -181,7 +182,6 @@ j,-inF"""
         df = read_csv(StringIO(data), index_col=0)
         assert_almost_equal(df['A'].values, expected.values)
         df = read_csv(StringIO(data), index_col=0, na_filter=False)
-        print df['A'].values
         assert_almost_equal(df['A'].values, expected.values)
 
     def test_multiple_date_col(self):
@@ -316,7 +316,7 @@ KORD,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
 KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
 
         df = self.read_csv(StringIO(data), parse_dates={'nominal': [1, 2]})
-        self.assert_(not isinstance(df.nominal[0], basestring))
+        self.assert_(not isinstance(df.nominal[0], compat.string_types))
 
     ts_data = """\
 ID,date,nominalTime,actualTime,A,B,C,D,E
@@ -423,7 +423,7 @@ A,B,C
             df = self.read_table(
                 StringIO(data), sep=',', header=1, comment='#')
             self.assert_(False)
-        except Exception, inst:
+        except Exception as inst:
             self.assert_('Expected 3 fields in line 4, saw 5' in str(inst))
 
         # skip_footer
@@ -440,7 +440,7 @@ footer
                 StringIO(data), sep=',', header=1, comment='#',
                 skip_footer=1)
             self.assert_(False)
-        except Exception, inst:
+        except Exception as inst:
             self.assert_('Expected 3 fields in line 4, saw 5' in str(inst))
 
         # first chunk
@@ -458,7 +458,7 @@ skip
                                  skiprows=[2])
             df = it.read(5)
             self.assert_(False)
-        except Exception, inst:
+        except Exception as inst:
             self.assert_('Expected 3 fields in line 6, saw 5' in str(inst))
 
         # middle chunk
@@ -477,7 +477,7 @@ skip
             df = it.read(1)
             it.read(2)
             self.assert_(False)
-        except Exception, inst:
+        except Exception as inst:
             self.assert_('Expected 3 fields in line 6, saw 5' in str(inst))
 
         # last chunk
@@ -496,7 +496,7 @@ skip
             df = it.read(1)
             it.read()
             self.assert_(False)
-        except Exception, inst:
+        except Exception as inst:
             self.assert_('Expected 3 fields in line 6, saw 5' in str(inst))
 
     def test_passing_dtype(self):
@@ -610,7 +610,7 @@ ignore,this,row
 
         # GH 3062
         df = DataFrame(dict({
-                    'A' : np.asarray(range(10),dtype='float64'),
+                    'A' : np.asarray(lrange(10),dtype='float64'),
                     'B' : pd.Timestamp('20010101') }))
         df.iloc[3:6,:] = np.nan
 
@@ -640,7 +640,7 @@ ignore,this,row
 1/2/2000,4,5,6
 1/3/2000,7,8,9
 """
-        data = self.read_csv(StringIO(text), skiprows=range(6), header=None,
+        data = self.read_csv(StringIO(text), skiprows=lrange(6), header=None,
                              index_col=0, parse_dates=True)
 
         data2 = self.read_csv(StringIO(text), skiprows=6, header=None,
@@ -793,20 +793,20 @@ c,4,5
 15/01/2010;P;P;50;1;14/1/2011
 01/05/2010;P;P;50;1;15/1/2011'''
 
-        expected = self.read_csv(StringIO(data), sep=";", index_col=range(4))
+        expected = self.read_csv(StringIO(data), sep=";", index_col=lrange(4))
 
         lev = expected.index.levels[0]
         expected.index.levels[0] = lev.to_datetime(dayfirst=True)
         expected['aux_date'] = to_datetime(expected['aux_date'],
                                            dayfirst=True)
-        expected['aux_date'] = map(Timestamp, expected['aux_date'])
-        self.assert_(isinstance(expected['aux_date'][0], datetime))
+        expected['aux_date'] = lmap(Timestamp, expected['aux_date'])
+        tm.assert_isinstance(expected['aux_date'][0], datetime)
 
-        df = self.read_csv(StringIO(data), sep=";", index_col=range(4),
+        df = self.read_csv(StringIO(data), sep=";", index_col=lrange(4),
                            parse_dates=[0, 5], dayfirst=True)
         tm.assert_frame_equal(df, expected)
 
-        df = self.read_csv(StringIO(data), sep=";", index_col=range(4),
+        df = self.read_csv(StringIO(data), sep=";", index_col=lrange(4),
                            parse_dates=['date', 'aux_date'], dayfirst=True)
         tm.assert_frame_equal(df, expected)
 
@@ -829,7 +829,7 @@ c,4,5
 
         self.assert_(np.array_equal(df_pref.columns,
                                     ['X0', 'X1', 'X2', 'X3', 'X4']))
-        self.assert_(np.array_equal(df.columns, range(5)))
+        self.assert_(np.array_equal(df.columns, lrange(5)))
 
         self.assert_(np.array_equal(df2.columns, names))
 
@@ -870,9 +870,9 @@ baz,7,8,9
         tm.assert_frame_equal(df, df2)
 
     def test_read_table_unicode(self):
-        fin = BytesIO(u'\u0141aski, Jan;1'.encode('utf-8'))
+        fin = BytesIO(u('\u0141aski, Jan;1').encode('utf-8'))
         df1 = read_table(fin, sep=";", encoding="utf-8", header=None)
-        self.assert_(isinstance(df1[0].values[0], unicode))
+        tm.assert_isinstance(df1[0].values[0], compat.text_type)
 
     def test_read_table_wrong_num_columns(self):
         # too few!
@@ -1049,7 +1049,7 @@ baz,7,8,9
 
         treader = self.read_table(StringIO(self.data1), sep=',', index_col=0,
                                   iterator=True)
-        self.assert_(isinstance(treader, TextFileReader))
+        tm.assert_isinstance(treader, TextFileReader)
 
         # stopping iteration when on chunksize is specified, GH 3967
         data = """A,B,C
@@ -1255,15 +1255,15 @@ a,1,2,01/01/2009
 b,3,4,01/02/2009
 c,4,5,01/03/2009
 """
-        from dateutil import parser
+        from pandas.compat import parse_date
 
-        result = self.read_csv(StringIO(data), converters={'D': parser.parse})
-        result2 = self.read_csv(StringIO(data), converters={3: parser.parse})
+        result = self.read_csv(StringIO(data), converters={'D': parse_date})
+        result2 = self.read_csv(StringIO(data), converters={3: parse_date})
 
         expected = self.read_csv(StringIO(data))
-        expected['D'] = expected['D'].map(parser.parse)
+        expected['D'] = expected['D'].map(parse_date)
 
-        self.assert_(isinstance(result['D'][0], (datetime, Timestamp)))
+        tm.assert_isinstance(result['D'][0], (datetime, Timestamp))
         tm.assert_frame_equal(result, expected)
         tm.assert_frame_equal(result2, expected)
 
@@ -1328,13 +1328,12 @@ bar"""
         tm.assert_frame_equal(df, expected)
 
     def test_parse_dates_custom_euroformat(self):
-        from dateutil.parser import parse
         text = """foo,bar,baz
 31/01/2010,1,2
 01/02/2010,1,NA
 02/02/2010,1,2
 """
-        parser = lambda d: parse(d, dayfirst=True)
+        parser = lambda d: parse_date(d, dayfirst=True)
         df = self.read_csv(StringIO(text),
                            names=['time', 'Q', 'NTU'], header=0,
                            index_col=0, parse_dates=True,
@@ -1346,7 +1345,7 @@ bar"""
                              index=exp_index, columns=['Q', 'NTU'])
         tm.assert_frame_equal(df, expected)
 
-        parser = lambda d: parse(d, day_first=True)
+        parser = lambda d: parse_date(d, day_first=True)
         self.assertRaises(Exception, self.read_csv,
                           StringIO(text), skiprows=[0],
                           names=['time', 'Q', 'NTU'], index_col=0,
@@ -1391,7 +1390,6 @@ a,b,c,d
     @slow
     @network
     def test_url(self):
-        import urllib2
         try:
             # HTTP(S)
             url = ('https://raw.github.com/pydata/pandas/master/'
@@ -1403,18 +1401,17 @@ a,b,c,d
             tm.assert_frame_equal(url_table, local_table)
             # TODO: ftp testing
 
-        except urllib2.URLError:
+        except URLError:
             try:
                 with closing(urlopen('http://www.google.com')) as resp:
                     pass
-            except urllib2.URLError:
+            except URLError:
                 raise nose.SkipTest
             else:
                 raise
 
     @slow
     def test_file(self):
-        import urllib2
 
         # FILE
         if sys.version_info[:2] < (2, 6):
@@ -1425,7 +1422,7 @@ a,b,c,d
 
         try:
             url_table = self.read_table('file://localhost/' + localtable)
-        except urllib2.URLError:
+        except URLError:
             # fails on some systems
             raise nose.SkipTest
 
@@ -1553,23 +1550,23 @@ False,NA,True"""
 
         sfile = StringIO(s)
         # it's 33 columns
-        result = self.read_csv(sfile, names=range(33), na_values=['-9999.0'],
+        result = self.read_csv(sfile, names=lrange(33), na_values=['-9999.0'],
                                header=None, skipinitialspace=True)
         self.assertTrue(pd.isnull(result.ix[0, 29]))
 
     def test_utf16_bom_skiprows(self):
         # #2298
-        data = u"""skip this
+        data = u("""skip this
 skip this too
 A\tB\tC
 1\t2\t3
-4\t5\t6"""
+4\t5\t6""")
 
-        data2 = u"""skip this
+        data2 = u("""skip this
 skip this too
 A,B,C
 1,2,3
-4,5,6"""
+4,5,6""")
 
         path = '__%s__.csv' % tm.rands(10)
 
@@ -1581,7 +1578,7 @@ A,B,C
                         f.write(bytes)
 
                     s = BytesIO(dat.encode('utf-8'))
-                    if py3compat.PY3:
+                    if compat.PY3:
                         # somewhat False since the code never sees bytes
                         from io import TextIOWrapper
                         s = TextIOWrapper(s, encoding='utf-8')
@@ -1600,7 +1597,7 @@ A,B,C
         result = self.read_table(path, encoding='utf-16')
         self.assertEquals(len(result), 50)
 
-        if not py3compat.PY3:
+        if not compat.PY3:
             buf = BytesIO(open(path, 'rb').read())
             result = self.read_table(buf, encoding='utf-16')
             self.assertEquals(len(result), 50)
@@ -1610,7 +1607,6 @@ A,B,C
         if hash(np.int64(-1)) != -2:
             raise nose.SkipTest
 
-        import StringIO
         csv = """id,score,days
 1,2,12
 2,2-5,
@@ -1646,20 +1642,20 @@ A,B,C
             if not x:
                 return np.nan
             if x.find('-') > 0:
-                valmin, valmax = map(int, x.split('-'))
+                valmin, valmax = lmap(int, x.split('-'))
                 val = 0.5 * (valmin + valmax)
             else:
                 val = float(x)
 
             return val
 
-        fh = StringIO.StringIO(csv)
+        fh = StringIO(csv)
         result = self.read_csv(fh, converters={'score': convert_score,
                                                'days': convert_days},
                                na_values=['', None])
         self.assert_(pd.isnull(result['days'][1]))
 
-        fh = StringIO.StringIO(csv)
+        fh = StringIO(csv)
         result2 = self.read_csv(fh, converters={'score': convert_score,
                                                 'days': convert_days_sentinel},
                                 na_values=['', None])
@@ -1672,7 +1668,7 @@ A,B,C
         result = result.set_index(0)
 
         got = result[1][1632]
-        expected = u'\xc1 k\xf6ldum klaka (Cold Fever) (1994)'
+        expected = u('\xc1 k\xf6ldum klaka (Cold Fever) (1994)')
 
         self.assertEquals(got, expected)
 
@@ -1800,16 +1796,16 @@ baz|7|8|9
                               sep=None, skiprows=2)
         tm.assert_frame_equal(data, data3)
 
-        text = u"""ignore this
+        text = u("""ignore this
 ignore this too
 index|A|B|C
 foo|1|2|3
 bar|4|5|6
 baz|7|8|9
-""".encode('utf-8')
+""").encode('utf-8')
 
         s = BytesIO(text)
-        if py3compat.PY3:
+        if compat.PY3:
             # somewhat False since the code never sees bytes
             from io import TextIOWrapper
             s = TextIOWrapper(s, encoding='utf-8')
@@ -2325,9 +2321,9 @@ No,No,No"""
         data = "1,2\n3,4,5"
 
         result = self.read_csv(StringIO(data), header=None,
-                               names=range(50))
+                               names=lrange(50))
         expected = self.read_csv(StringIO(data), header=None,
-                                 names=range(3)).reindex(columns=range(50))
+                                 names=lrange(3)).reindex(columns=lrange(50))
 
         tm.assert_frame_equal(result, expected)
 
@@ -2374,9 +2370,11 @@ class TestParseSQL(unittest.TestCase):
         assert_same_values_and_dtype(result, expected)
 
     def test_convert_sql_column_unicode(self):
-        arr = np.array([u'1.5', None, u'3', u'4.2'], dtype=object)
+        arr = np.array([u('1.5'), None, u('3'), u('4.2')],
+                       dtype=object)
         result = lib.convert_sql_column(arr)
-        expected = np.array([u'1.5', np.nan, u'3', u'4.2'], dtype=object)
+        expected = np.array([u('1.5'), np.nan, u('3'), u('4.2')],
+                            dtype=object)
         assert_same_values_and_dtype(result, expected)
 
     def test_convert_sql_column_ints(self):
@@ -2394,12 +2392,12 @@ class TestParseSQL(unittest.TestCase):
         assert_same_values_and_dtype(result, expected)
 
     def test_convert_sql_column_longs(self):
-        arr = np.array([1L, 2L, 3L, 4L], dtype='O')
+        arr = np.array([long(1), long(2), long(3), long(4)], dtype='O')
         result = lib.convert_sql_column(arr)
         expected = np.array([1, 2, 3, 4], dtype='i8')
         assert_same_values_and_dtype(result, expected)
 
-        arr = np.array([1L, 2L, 3L, None, 4L], dtype='O')
+        arr = np.array([long(1), long(2), long(3), None, long(4)], dtype='O')
         result = lib.convert_sql_column(arr)
         expected = np.array([1, 2, 3, np.nan, 4], dtype='f8')
         assert_same_values_and_dtype(result, expected)

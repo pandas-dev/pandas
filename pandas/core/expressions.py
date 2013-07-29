@@ -93,10 +93,10 @@ def _evaluate_numexpr(op, op_str, a, b, raise_on_error = False, **eval_kwargs):
                                  local_dict={ 'a_value' : a_value, 
                                               'b_value' : b_value }, 
                                  casting='safe', **eval_kwargs)
-        except (ValueError), detail:
+        except (ValueError) as detail:
             if 'unknown type object' in str(detail):
                 pass
-        except (Exception), detail:
+        except (Exception) as detail:
             if raise_on_error:
                 raise TypeError(str(detail))
 
@@ -126,10 +126,10 @@ def _where_numexpr(cond, a, b, raise_on_error = False):
                                               'a_value' : a_value, 
                                               'b_value' : b_value }, 
                                  casting='safe')
-        except (ValueError), detail:
+        except (ValueError) as detail:
             if 'unknown type object' in str(detail):
                 pass
-        except (Exception), detail:
+        except (Exception) as detail:
             if raise_on_error:
                 raise TypeError(str(detail))
 

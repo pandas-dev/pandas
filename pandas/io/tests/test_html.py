@@ -1,10 +1,10 @@
+from __future__ import print_function
 import os
 import re
-from cStringIO import StringIO
 from unittest import TestCase
 import warnings
 from distutils.version import LooseVersion
-import urllib2
+from pandas.io.common import URLError
 
 import nose
 from nose.tools import assert_raises
@@ -12,6 +12,8 @@ from nose.tools import assert_raises
 import numpy as np
 from numpy.random import rand
 from numpy.testing.decorators import slow
+from pandas.compat import map, zip, StringIO
+import pandas.compat as compat
 
 try:
     from importlib import import_module
@@ -42,7 +44,7 @@ def _skip_if_no(module_name):
 
 
 def _skip_if_none_of(module_names):
-    if isinstance(module_names, basestring):
+    if isinstance(module_names, compat.string_types):
         _skip_if_no(module_names)
         if module_names == 'bs4':
             import bs4
@@ -112,8 +114,8 @@ class TestReadHtmlBase(TestCase):
         out = df.to_html()
         res = self.run_read_html(out, attrs={'class': 'dataframe'},
                                  index_col=0)[0]
-        print (df.dtypes)
-        print (res.dtypes)
+        print(df.dtypes)
+        print(res.dtypes)
         assert_frame_equal(res, df)
 
     @network
@@ -149,7 +151,7 @@ class TestReadHtmlBase(TestCase):
         df2 = self.run_read_html(self.spam_data, 'Unit', infer_types=False)
 
         assert_framelist_equal(df1, df2)
-        print (df1[0])
+        print(df1[0])
 
         self.assertEqual(df1[0].ix[0, 0], 'Proximates')
         self.assertEqual(df1[0].columns[0], 'Nutrient')
@@ -178,7 +180,7 @@ class TestReadHtmlBase(TestCase):
 
     def test_skiprows_xrange(self):
         df1 = [self.run_read_html(self.spam_data, '.*Water.*').pop()[2:]]
-        df2 = self.run_read_html(self.spam_data, 'Unit', skiprows=xrange(2))
+        df2 = self.run_read_html(self.spam_data, 'Unit', skiprows=range(2))
 
         assert_framelist_equal(df1, df2)
 
@@ -288,12 +290,12 @@ class TestReadHtmlBase(TestCase):
 
     @network
     def test_bad_url_protocol(self):
-        self.assertRaises(urllib2.URLError, self.run_read_html,
+        self.assertRaises(URLError, self.run_read_html,
                           'git://github.com', '.*Water.*')
 
     @network
     def test_invalid_url(self):
-        self.assertRaises(urllib2.URLError, self.run_read_html,
+        self.assertRaises(URLError, self.run_read_html,
                           'http://www.a23950sdfa908sd.com')
 
     @slow

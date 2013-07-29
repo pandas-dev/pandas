@@ -85,6 +85,10 @@ cdef class _Offset:
     cpdef next(self):
         pass
 
+    cpdef __next__(self):
+        """wrapper around next"""
+        return self.next()
+
     cpdef prev(self):
         pass
 

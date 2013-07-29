@@ -11,6 +11,7 @@ Harco Kuppens (http://stackoverflow.com/users/825214/harco-kuppens)
 It is mentioned in the stackoverflow response that this code works
 on linux, os x, windows and cygwin (windows).
 """
+from __future__ import print_function
 
 import os
 
@@ -117,4 +118,4 @@ def _get_terminal_size_linux():
 
 if __name__ == "__main__":
     sizex, sizey = get_terminal_size()
-    print ('width = %s height = %s' % (sizex, sizey))
+    print('width = %s height = %s' % (sizex, sizey))

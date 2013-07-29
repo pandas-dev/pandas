@@ -47,6 +47,22 @@ pandas 0.13
 
 **API Changes**
 
+  - ``pandas`` now is Python 2/3 compatible without the need for 2to3 thanks to
+    @jtratner. As a result, pandas now uses iterators more extensively. This
+    also led to the introduction of substantive parts of the Benjamin
+    Peterson's ``six`` library into compat. (:issue:`4384`, :issue:`4375`,
+    :issue:`4372`)
+  - ``pandas.util.compat`` and ``pandas.util.py3compat`` have been merged into
+    ``pandas.compat``. ``pandas.compat`` now includes many functions allowing
+    2/3 compatibility. It contains both list and iterator versions of range,
+    filter, map and zip, plus other necessary elements for Python 3
+    compatibility. ``lmap``, ``lzip``, ``lrange`` and ``lfilter`` all produce
+    lists instead of iterators, for compatibility with ``numpy``, subscripting
+    and ``pandas`` constructors.(:issue:`4384`, :issue:`4375`, :issue:`4372`)
+  - deprecated ``iterkv``, which will be removed in a future release (was just
+    an alias of iteritems used to get around ``2to3``'s changes).
+    (:issue:`4384`, :issue:`4375`, :issue:`4372`)
+
 **Experimental Features**
 
 **Bug Fixes**

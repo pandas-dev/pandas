@@ -1,6 +1,7 @@
 
 # pylint: disable-msg=E1101,W0613,W0603
-from StringIO import StringIO
+from pandas.compat import StringIO, long
+from pandas import compat
 import os
 
 from pandas import Series, DataFrame, to_datetime
@@ -26,7 +27,7 @@ def to_json(path_or_buf, obj, orient=None, date_format='epoch', double_precision
     else:
         raise NotImplementedError
 
-    if isinstance(path_or_buf, basestring):
+    if isinstance(path_or_buf, compat.string_types):
         with open(path_or_buf,'w') as fh:
             fh.write(s)
     elif path_or_buf is None:
@@ -182,7 +183,7 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     """
 
     filepath_or_buffer,_ = get_filepath_or_buffer(path_or_buf)
-    if isinstance(filepath_or_buffer, basestring):
+    if isinstance(filepath_or_buffer, compat.string_types):
         if os.path.exists(filepath_or_buffer):
             with open(filepath_or_buffer,'r') as fh:
                 json = fh.read()
@@ -342,7 +343,7 @@ class Parser(object):
 
         # ignore numbers that are out of range
         if issubclass(new_data.dtype.type,np.number):
-            if not ((new_data == iNaT) | (new_data > 31536000000000000L)).all():
+            if not ((new_data == iNaT) | (new_data > long(31536000000000000))).all():
                 return data, False
 
         try:
@@ -369,9 +370,9 @@ class SeriesParser(Parser):
         orient = self.orient
         if orient == "split":
             decoded = dict((str(k), v)
-                           for k, v in loads(
+                           for k, v in compat.iteritems(loads(
                                json,
-                               precise_float=self.precise_float).iteritems())
+                               precise_float=self.precise_float)))
             self.obj = Series(dtype=None, **decoded)
         else:
             self.obj = Series(
@@ -384,7 +385,7 @@ class SeriesParser(Parser):
         if orient == "split":
             decoded = loads(json, dtype=None, numpy=True,
                             precise_float=self.precise_float)
-            decoded = dict((str(k), v) for k, v in decoded.iteritems())
+            decoded = dict((str(k), v) for k, v in compat.iteritems(decoded))
             self.obj = Series(**decoded)
         elif orient == "columns" or orient == "index":
             self.obj = Series(*loads(json, dtype=None, numpy=True,
@@ -417,7 +418,7 @@ class FrameParser(Parser):
         elif orient == "split":
             decoded = loads(json, dtype=None, numpy=True,
                             precise_float=self.precise_float)
-            decoded = dict((str(k), v) for k, v in decoded.iteritems())
+            decoded = dict((str(k), v) for k, v in compat.iteritems(decoded))
             self.obj = DataFrame(**decoded)
         elif orient == "values":
             self.obj = DataFrame(loads(json, dtype=None, numpy=True,
@@ -436,9 +437,9 @@ class FrameParser(Parser):
                 loads(json, precise_float=self.precise_float), dtype=None)
         elif orient == "split":
             decoded = dict((str(k), v)
-                           for k, v in loads(
+                           for k, v in compat.iteritems(loads(
                                json,
-                               precise_float=self.precise_float).iteritems())
+                               precise_float=self.precise_float)))
             self.obj = DataFrame(dtype=None, **decoded)
         elif orient == "index":
             self.obj = DataFrame(
@@ -467,7 +468,7 @@ class FrameParser(Parser):
 
         def is_ok(col):
             """ return if this col is ok to try for a date parse """
-            if not isinstance(col, basestring): return False
+            if not isinstance(col, compat.string_types): return False
 
             if (col.endswith('_at') or
                 col.endswith('_time') or

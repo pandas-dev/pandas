@@ -4,9 +4,9 @@ Ordinary least squares regression
 
 # pylint: disable-msg=W0201
 
-from itertools import izip, starmap
-from StringIO import StringIO
-
+from pandas.compat import zip, range, StringIO
+from itertools import starmap
+from pandas import compat
 import numpy as np
 
 from pandas.core.api import DataFrame, Series, isnull
@@ -41,7 +41,7 @@ class OLS(StringMixin):
         Number of Newey-West lags.
     nw_overlap : boolean, default False
         Assume data is overlapping when computing Newey-West estimator
-    
+
     """
     _panel_model = False
 
@@ -610,15 +610,15 @@ class MovingOLS(OLS):
     window : int
         size of window (for rolling/expanding OLS)
     min_periods : int
-        Threshold of non-null data points to require. 
-        If None, defaults to size of window. 
+        Threshold of non-null data points to require.
+        If None, defaults to size of window.
     intercept : bool
         True if you want an intercept.
     nw_lags : None or int
         Number of Newey-West lags.
     nw_overlap : boolean, default False
         Assume data is overlapping when computing Newey-West estimator
-    
+
     """
     def __init__(self, y, x, weights=None, window_type='expanding',
                  window=None, min_periods=None, intercept=True,
@@ -743,7 +743,7 @@ class MovingOLS(OLS):
         """Returns the covariance of beta."""
         result = {}
         result_index = self._result_index
-        for i in xrange(len(self._var_beta_raw)):
+        for i in range(len(self._var_beta_raw)):
             dm = DataFrame(self._var_beta_raw[i], columns=self.beta.columns,
                            index=self.beta.columns)
             result[result_index[i]] = dm
@@ -803,7 +803,7 @@ class MovingOLS(OLS):
         cum_xx = self._cum_xx(x)
         cum_xy = self._cum_xy(x, y)
 
-        for i in xrange(N):
+        for i in range(N):
             if not valid[i] or not enough[i]:
                 continue
 
@@ -948,7 +948,7 @@ class MovingOLS(OLS):
                 return Fst, (q, d), 1 - f.cdf(Fst, q, d)
 
             # Compute the P-value for each pair
-            result = starmap(get_result_simple, izip(F, df_resid))
+            result = starmap(get_result_simple, zip(F, df_resid))
 
             return list(result)
 
@@ -968,7 +968,7 @@ class MovingOLS(OLS):
             return math.calc_F(R, r, beta, vcov, n, d)
 
         results = starmap(get_result,
-                          izip(self._beta_raw, self._var_beta_raw, nobs, df))
+                          zip(self._beta_raw, self._var_beta_raw, nobs, df))
 
         return list(results)
 
@@ -978,7 +978,7 @@ class MovingOLS(OLS):
         from scipy.stats import t
 
         result = [2 * t.sf(a, b)
-                  for a, b in izip(np.fabs(self._t_stat_raw),
+                  for a, b in zip(np.fabs(self._t_stat_raw),
                                    self._df_resid_raw)]
 
         return np.array(result)
@@ -1062,7 +1062,7 @@ class MovingOLS(OLS):
     def _std_err_raw(self):
         """Returns the raw standard err values."""
         results = []
-        for i in xrange(len(self._var_beta_raw)):
+        for i in range(len(self._var_beta_raw)):
             results.append(np.sqrt(np.diag(self._var_beta_raw[i])))
 
         return np.array(results)
@@ -1251,7 +1251,7 @@ def _safe_update(d, other):
     """
     Combine dictionaries with non-overlapping keys
     """
-    for k, v in other.iteritems():
+    for k, v in compat.iteritems(other):
         if k in d:
             raise Exception('Duplicate regressor: %s' % k)
 
@@ -1317,7 +1317,7 @@ def _combine_rhs(rhs):
     elif isinstance(rhs, DataFrame):
         series = rhs.copy()
     elif isinstance(rhs, dict):
-        for name, value in rhs.iteritems():
+        for name, value in compat.iteritems(rhs):
             if isinstance(value, Series):
                 _safe_update(series, {name: value})
             elif isinstance(value, (dict, DataFrame)):

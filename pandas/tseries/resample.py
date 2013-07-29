@@ -9,6 +9,7 @@ from pandas.tseries.offsets import DateOffset, Tick, _delta_to_nanoseconds
 from pandas.tseries.period import PeriodIndex, period_range
 import pandas.tseries.tools as tools
 import pandas.core.common as com
+import pandas.compat as compat
 
 from pandas.lib import Timestamp
 import pandas.lib as lib
@@ -230,7 +231,7 @@ class TimeGrouper(CustomGrouper):
                                        limit=self.limit)
 
         loffset = self.loffset
-        if isinstance(loffset, basestring):
+        if isinstance(loffset, compat.string_types):
             loffset = to_offset(self.loffset)
 
         if isinstance(loffset, (DateOffset, timedelta)):
@@ -291,7 +292,7 @@ def _take_new_index(obj, indexer, new_index, axis=0):
 
 
 def _get_range_edges(axis, offset, closed='left', base=0):
-    if isinstance(offset, basestring):
+    if isinstance(offset, compat.string_types):
         offset = to_offset(offset)
 
     if isinstance(offset, Tick):

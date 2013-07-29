@@ -1,6 +1,7 @@
 # pylint: disable=E1101,E1103,W0232
 
 from datetime import datetime
+from pandas.compat import range, lrange
 import unittest
 import nose
 
@@ -94,7 +95,7 @@ class TestCategorical(unittest.TestCase):
         arr = np.random.randn(4)
         factor = cut(arr, 4)
 
-        self.assert_(isinstance(factor, Categorical))
+        tm.assert_isinstance(factor, Categorical)
 
         result = value_counts(factor)
         expected = value_counts(np.asarray(factor))
@@ -103,7 +104,7 @@ class TestCategorical(unittest.TestCase):
     def test_na_flags_int_levels(self):
         # #1457
 
-        levels = range(10)
+        levels = lrange(10)
         labels = np.random.randint(0, 10, 20)
         labels[::5] = -1
 

@@ -40,14 +40,12 @@ if sys.version_info[0] >= 3:
     if sys.version_info[1] >= 3:  # 3.3 needs numpy 1.7+
         min_numpy_ver = "1.7.0b2"
 
-    setuptools_kwargs = {'use_2to3': True,
+    setuptools_kwargs = {
                          'zip_safe': False,
                          'install_requires': ['python-dateutil >= 2',
                                               'pytz >= 2011k',
                                               'numpy >= %s' % min_numpy_ver],
                          'setup_requires': ['numpy >= %s' % min_numpy_ver],
-                         'use_2to3_exclude_fixers': ['lib2to3.fixes.fix_next',
-                                                     ],
                          }
     if not _have_setuptools:
         sys.exit("need setuptools/distribute for Py3k"

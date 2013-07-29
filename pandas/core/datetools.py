@@ -3,7 +3,6 @@
 from pandas.tseries.tools import *
 from pandas.tseries.offsets import *
 from pandas.tseries.frequencies import *
-from dateutil import parser
 
 day = DateOffset()
 bday = BDay()

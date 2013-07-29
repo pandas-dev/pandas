@@ -1,5 +1,4 @@
-from __future__ import with_statement
-from pandas.util.py3compat import StringIO
+from __future__ import print_function
 import unittest
 import sqlite3
 import sys
@@ -12,6 +11,8 @@ import numpy as np
 
 from pandas.core.datetools import format as date_format
 from pandas.core.api import DataFrame, isnull
+from pandas.compat import StringIO, range, lrange
+import pandas.compat as compat
 
 import pandas.io.sql as sql
 import pandas.util.testing as tm
@@ -22,7 +23,8 @@ _formatters = {
     datetime: lambda dt: "'%s'" % date_format(dt),
     str: lambda x: "'%s'" % x,
     np.str_: lambda x: "'%s'" % x,
-    unicode: lambda x: "'%s'" % x,
+    compat.text_type: lambda x: "'%s'" % x,
+    compat.binary_type: lambda x: "'%s'" % x,
     float: lambda x: "%.8f" % x,
     int: lambda x: "%s" % x,
     type(None): lambda x: "NULL",
@@ -171,15 +173,15 @@ class TestSQLite(unittest.TestCase):
 
         frame['txt'] = ['a'] * len(frame)
         frame2 = frame.copy()
-        frame2['Idx'] = Index(range(len(frame2))) + 10
+        frame2['Idx'] = Index(lrange(len(frame2))) + 10
         sql.write_frame(frame2, name='test_table2', con=self.db)
         result = sql.read_frame("select * from test_table2", self.db,
                                 index_col='Idx')
         expected = frame.copy()
-        expected.index = Index(range(len(frame2))) + 10
+        expected.index = Index(lrange(len(frame2))) + 10
         expected.index.name = 'Idx'
-        print expected.index.names
-        print result.index.names
+        print(expected.index.names)
+        print(result.index.names)
         tm.assert_frame_equal(expected, result)
 
     def test_tquery(self):
@@ -257,12 +259,12 @@ class TestMySQL(unittest.TestCase):
             return
         try:
             self.db = MySQLdb.connect(read_default_group='pandas')
-        except MySQLdb.ProgrammingError, e:
+        except MySQLdb.ProgrammingError as e:
             raise nose.SkipTest(
                 "Create a group of connection parameters under the heading "
                 "[pandas] in your system's mysql default file, "
                 "typically located at ~/.my.cnf or /etc/.my.cnf. ")
-        except MySQLdb.Error, e:
+        except MySQLdb.Error as e:
             raise nose.SkipTest(
                 "Cannot connect to database. "
                 "Create a group of connection parameters under the heading "
@@ -408,7 +410,7 @@ class TestMySQL(unittest.TestCase):
 
         frame['txt'] = ['a'] * len(frame)
         frame2 = frame.copy()
-        index = Index(range(len(frame2))) + 10
+        index = Index(lrange(len(frame2))) + 10
         frame2['Idx'] = index
         drop_sql = "DROP TABLE IF EXISTS test_table2"
         cur = self.db.cursor()

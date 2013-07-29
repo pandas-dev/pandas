@@ -15,6 +15,8 @@ from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex, Period
 from pandas.tseries.frequencies import get_period_alias, get_base_alias
 from pandas.tseries.offsets import DateOffset
+from pandas.compat import range, lrange, lmap, map, zip
+import pandas.compat as compat
 
 try:  # mpl optional
     import pandas.tseries.converter as conv
@@ -96,13 +98,13 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
     import matplotlib.pyplot as plt
 
     if color is None and colormap is not None:
-        if isinstance(colormap, basestring):
+        if isinstance(colormap, compat.string_types):
             import matplotlib.cm as cm
             cmap = colormap
             colormap = cm.get_cmap(colormap)
             if colormap is None:
                 raise ValueError("Colormap {0} is not recognized".format(cmap))
-        colors = map(colormap, np.linspace(0, 1, num=num_colors))
+        colors = lmap(colormap, np.linspace(0, 1, num=num_colors))
     elif color is not None:
         if colormap is not None:
             warnings.warn("'color' and 'colormap' cannot be used "
@@ -111,7 +113,7 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
     else:
         if color_type == 'default':
             colors = plt.rcParams.get('axes.color_cycle', list('bgrcmyk'))
-            if isinstance(colors, basestring):
+            if isinstance(colors, compat.string_types):
                 colors = list(colors)
         elif color_type == 'random':
             import random
@@ -119,7 +121,7 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
                 random.seed(column)
                 return [random.random() for _ in range(3)]
 
-            colors = map(random_color, range(num_colors))
+            colors = lmap(random_color, lrange(num_colors))
         else:
             raise NotImplementedError
 
@@ -240,8 +242,8 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
 
     marker = _get_marker_compat(marker)
 
-    for i, a in zip(range(n), df.columns):
-        for j, b in zip(range(n), df.columns):
+    for i, a in zip(lrange(n), df.columns):
+        for j, b in zip(lrange(n), df.columns):
             ax = axes[i, j]
 
             if i == j:
@@ -500,7 +502,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
                           for sampling in samplings])
     if fig is None:
         fig = plt.figure()
-    x = range(samples)
+    x = lrange(samples)
     axes = []
     ax1 = fig.add_subplot(2, 3, 1)
     ax1.set_xlabel("Sample")
@@ -598,7 +600,7 @@ def parallel_coordinates(data, class_column, cols=None, ax=None, colors=None,
             raise ValueError('Length of xticks must match number of columns')
         x = xticks
     else:
-        x = range(ncols)
+        x = lrange(ncols)
 
     if ax is None:
         ax = plt.gca()
@@ -681,7 +683,7 @@ def autocorrelation_plot(series, ax=None):
     def r(h):
         return ((data[:n - h] - mean) * (data[h:] - mean)).sum() / float(n) / c0
     x = np.arange(n) + 1
-    y = map(r, x)
+    y = lmap(r, x)
     z95 = 1.959963984540054
     z99 = 2.5758293035489004
     ax.axhline(y=z99 / np.sqrt(n), linestyle='--', color='grey')
@@ -1035,9 +1037,9 @@ class MPLPlot(object):
                 x = self.data.index._mpl_repr()
             else:
                 self._need_to_set_index = True
-                x = range(len(index))
+                x = lrange(len(index))
         else:
-            x = range(len(index))
+            x = lrange(len(index))
 
         return x
 
@@ -1711,7 +1713,7 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
         if ax.get_yaxis().get_ticks_position().strip().lower() == 'right':
             fig = _gcf()
             axes = fig.get_axes()
-            for i in range(len(axes))[::-1]:
+            for i in reversed(range(len(axes))):
                 ax = axes[i]
                 ypos = ax.get_yaxis().get_ticks_position().strip().lower()
                 if ypos == 'left':

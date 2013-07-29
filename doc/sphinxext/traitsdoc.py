@@ -18,13 +18,14 @@ import inspect
 import os
 import pydoc
 
-import docscrape
-import docscrape_sphinx
-from docscrape_sphinx import SphinxClassDoc, SphinxFunctionDoc, SphinxDocString
+from pandas.compat import callable
+from . import docscrape
+from . import docscrape_sphinx
+from .docscrape_sphinx import SphinxClassDoc, SphinxFunctionDoc, SphinxDocString
 
-import numpydoc
+from . import numpydoc
 
-import comment_eater
+from . import comment_eater
 
 class SphinxTraitsDoc(SphinxClassDoc):
     def __init__(self, cls, modulename='', func_doc=SphinxFunctionDoc):

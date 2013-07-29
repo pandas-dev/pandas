@@ -1,18 +1,40 @@
 """Common IO api utilities"""
 
 import sys
-import urlparse
-import urllib2
 import zipfile
 from contextlib import contextmanager, closing
-from StringIO import StringIO
 
-from pandas.util import py3compat
+from pandas.compat import StringIO
+from pandas import compat
 
-_VALID_URLS = set(urlparse.uses_relative + urlparse.uses_netloc +
-                  urlparse.uses_params)
+
+if compat.PY3:
+    from urllib.request import urlopen
+    _urlopen = urlopen
+    from urllib.parse import urlparse as parse_url
+    import urllib.parse as compat_parse
+    from urllib.parse import uses_relative, uses_netloc, uses_params, urlencode
+    from urllib.error import URLError
+    from http.client import HTTPException
+else:
+    from urllib2 import urlopen as _urlopen
+    from urllib import urlencode
+    from urlparse import urlparse as parse_url
+    from urlparse import uses_relative, uses_netloc, uses_params
+    from urllib2 import URLError
+    from httplib import HTTPException
+    from contextlib import contextmanager, closing
+    from functools import wraps
+
+    # @wraps(_urlopen)
+    @contextmanager
+    def urlopen(*args, **kwargs):
+        with closing(_urlopen(*args, **kwargs)) as f:
+            yield f
+
+
+_VALID_URLS = set(uses_relative + uses_netloc + uses_params)
 _VALID_URLS.discard('')
-
 
 class PerformanceWarning(Warning):
     pass
@@ -31,7 +53,7 @@ def _is_url(url):
         If `url` has a valid protocol return True otherwise False.
     """
     try:
-        return urlparse.urlparse(url).scheme in _VALID_URLS
+        return parse_url(url).scheme in _VALID_URLS
     except:
         return False
 
@@ -60,18 +82,18 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None):
     """
 
     if _is_url(filepath_or_buffer):
-        from urllib2 import urlopen
-        filepath_or_buffer = urlopen(filepath_or_buffer)
-        if py3compat.PY3:  # pragma: no cover
+        req = _urlopen(str(filepath_or_buffer))
+        if compat.PY3:  # pragma: no cover
             if encoding:
                 errors = 'strict'
             else:
                 errors = 'replace'
                 encoding = 'utf-8'
-            bytes = filepath_or_buffer.read().decode(encoding, errors)
-            filepath_or_buffer = StringIO(bytes)
-            return filepath_or_buffer, encoding
-        return filepath_or_buffer, None
+            out = StringIO(req.read().decode(encoding, errors))
+        else:
+            encoding = None
+            out = req
+        return out, encoding
 
     if _is_s3_url(filepath_or_buffer):
         try:
@@ -80,7 +102,7 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None):
             raise ImportError("boto is required to handle s3 files")
         # Assuming AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
         # are environment variables
-        parsed_url = urlparse.urlparse(filepath_or_buffer)
+        parsed_url = parse_url(filepath_or_buffer)
         conn = boto.connect_s3()
         b = conn.get_bucket(parsed_url.netloc)
         k = boto.s3.key.Key(b)
@@ -90,16 +112,6 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None):
 
     return filepath_or_buffer, None
 
-
-# ----------------------
-# Prevent double closing
-if py3compat.PY3:
-    urlopen = urllib2.urlopen
-else:
-    @contextmanager
-    def urlopen(*args, **kwargs):
-        with closing(urllib2.urlopen(*args, **kwargs)) as f:
-            yield f
 
 # ZipFile is not a context manager for <= 2.6
 # must be tuple index here since 2.6 doesn't use namedtuple for version_info

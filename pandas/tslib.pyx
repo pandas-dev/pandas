@@ -28,7 +28,7 @@ cimport cython
 
 from datetime import timedelta, datetime
 from datetime import time as datetime_time
-from dateutil.parser import parse as parse_date
+from pandas.compat import parse_date
 
 cdef extern from "Python.h":
     int PySlice_Check(object)
@@ -852,8 +852,6 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
         _TSObject _ts
         int64_t m = cast_from_unit(unit,None)
 
-    from dateutil.parser import parse
-
     try:
         result = np.empty(n, dtype='M8[ns]')
         iresult = result.view('i8')
@@ -917,7 +915,7 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                         elif raise_:
                             raise
                     try:
-                        result[i] = parse(val, dayfirst=dayfirst)
+                        result[i] = parse_date(val, dayfirst=dayfirst)
                     except Exception:
                         if coerce:
                            iresult[i] = iNaT
@@ -946,7 +944,7 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                     oresult[i] = 'NaT'
                     continue
                 try:
-                    oresult[i] = parse(val, dayfirst=dayfirst)
+                    oresult[i] = parse_date(val, dayfirst=dayfirst)
                 except Exception:
                     if raise_:
                         raise

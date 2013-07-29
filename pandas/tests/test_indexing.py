@@ -2,8 +2,8 @@
 import unittest
 import nose
 import itertools
-from StringIO import StringIO
 
+from pandas.compat import range, lrange, StringIO, lmap, map
 from numpy import random, nan
 from numpy.random import randn
 import numpy as np
@@ -15,7 +15,7 @@ from pandas.core.api import (DataFrame, Index, Series, Panel, notnull, isnull,
                              MultiIndex, DatetimeIndex, Timestamp)
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal, assert_panel_equal)
-from pandas.util import py3compat
+from pandas import compat
 
 import pandas.util.testing as tm
 import pandas.lib as lib
@@ -36,7 +36,7 @@ def _generate_indices(f, values=False):
 
     axes = f.axes
     if values:
-        axes = [ range(len(a)) for a in axes ]
+        axes = [ lrange(len(a)) for a in axes ]
 
     return itertools.product(*axes)
 
@@ -94,9 +94,9 @@ class TestIndexing(unittest.TestCase):
         import warnings
         warnings.filterwarnings(action='ignore', category=FutureWarning)
 
-        self.series_ints   = Series(np.random.rand(4), index=range(0,8,2))
-        self.frame_ints    = DataFrame(np.random.randn(4, 4), index=range(0, 8, 2), columns=range(0,12,3))
-        self.panel_ints    = Panel(np.random.rand(4,4,4), items=range(0,8,2),major_axis=range(0,12,3),minor_axis=range(0,16,4))
+        self.series_ints = Series(np.random.rand(4), index=lrange(0,8,2))
+        self.frame_ints = DataFrame(np.random.randn(4, 4), index=lrange(0, 8, 2), columns=lrange(0,12,3))
+        self.panel_ints = Panel(np.random.rand(4,4,4), items=lrange(0,8,2),major_axis=lrange(0,12,3),minor_axis=lrange(0,16,4))
 
         self.series_labels = Series(np.random.randn(4), index=list('abcd'))
         self.frame_labels  = DataFrame(np.random.randn(4, 4), index=list('abcd'), columns=list('ABCD'))
@@ -201,15 +201,15 @@ class TestIndexing(unittest.TestCase):
 
                 _print(result)
 
-            except (AssertionError):
+            except AssertionError:
                 raise
-            except (TypeError):
+            except TypeError:
                 raise AssertionError(_print('type error'))
-            except (Exception), detail:
+            except Exception as detail:
 
                 # if we are in fails, the ok, otherwise raise it
                 if fails is not None:
-                    if fails == type(detail):
+                    if isinstance(detail, fails):
                         result = 'ok (%s)' % type(detail).__name__
                         _print(result)
                         return
@@ -342,7 +342,7 @@ class TestIndexing(unittest.TestCase):
     def test_iloc_getitem_array(self):
 
         # array like
-        s = Series(index=range(1,4))
+        s = Series(index=lrange(1,4))
         self.check_result('array like', 'iloc', s.index, 'ix', { 0 : [2,4,6], 1 : [3,6,9], 2: [4,8,12] }, typs = ['ints'])
 
     def test_iloc_getitem_bool(self):
@@ -547,7 +547,7 @@ class TestIndexing(unittest.TestCase):
 
     def test_iloc_getitem_frame(self):
         """ originally from test_frame.py"""
-        df = DataFrame(np.random.randn(10, 4), index=range(0, 20, 2), columns=range(0,8,2))
+        df = DataFrame(np.random.randn(10, 4), index=lrange(0, 20, 2), columns=lrange(0,8,2))
 
         result = df.iloc[2]
         exp = df.ix[4]
@@ -586,7 +586,7 @@ class TestIndexing(unittest.TestCase):
         assert_frame_equal(result, expected)
 
         # with index-like
-        s = Series(index=range(1,5))
+        s = Series(index=lrange(1,5))
         result = df.iloc[s.index]
         expected = df.ix[[2,4,6,8]]
         assert_frame_equal(result, expected)
@@ -633,7 +633,7 @@ class TestIndexing(unittest.TestCase):
         assert_frame_equal(result, expected)
 
     def test_iloc_setitem_series(self):
-        s = Series(np.random.randn(10), index=range(0,20,2))
+        s = Series(np.random.randn(10), index=lrange(0,20,2))
 
         s.iloc[1] = 1
         result = s.iloc[1]
@@ -796,7 +796,7 @@ class TestIndexing(unittest.TestCase):
 
         # GH 3561, dups not in selected order
         ind = ['A', 'A', 'B', 'C']
-        df = DataFrame({'test':range(len(ind))}, index=ind)
+        df = DataFrame({'test':lrange(len(ind))}, index=ind)
         rows = ['C', 'B']
         res = df.ix[rows]
         self.assert_(rows == list(res.index))
@@ -878,8 +878,8 @@ class TestIndexing(unittest.TestCase):
         # GH 3626, an assignement of a sub-df to a df
         df = DataFrame({'FC':['a','b','a','b','a','b'],
                         'PF':[0,0,0,0,1,1],
-                        'col1':range(6),
-                        'col2':range(6,12)})
+                        'col1':lrange(6),
+                        'col2':lrange(6,12)})
         df.ix[1,0]=np.nan
         df2 = df.copy()
 
@@ -918,7 +918,7 @@ class TestIndexing(unittest.TestCase):
         assert_series_equal(df.B, orig + 1)
 
         # GH 3668, mixed frame with series value
-        df = DataFrame({'x':range(10), 'y':range(10,20),'z' : 'bar'})
+        df = DataFrame({'x':lrange(10), 'y':lrange(10,20),'z' : 'bar'})
         expected = df.copy()
         expected.ix[0, 'y'] = 1000
         expected.ix[2, 'y'] = 1200
@@ -932,10 +932,10 @@ class TestIndexing(unittest.TestCase):
     def test_iloc_mask(self):
 
         # GH 3631, iloc with a mask (of a series) should raise
-        df = DataFrame(range(5), list('ABCDE'), columns=['a'])
+        df = DataFrame(lrange(5), list('ABCDE'), columns=['a'])
         mask = (df.a%2 == 0)
         self.assertRaises(ValueError, df.iloc.__getitem__, tuple([mask]))
-        mask.index = range(len(mask))
+        mask.index = lrange(len(mask))
         self.assertRaises(NotImplementedError, df.iloc.__getitem__, tuple([mask]))
 
         # ndarray ok
@@ -945,7 +945,7 @@ class TestIndexing(unittest.TestCase):
         # the possibilities
         locs = np.arange(4)
         nums = 2**locs
-        reps = map(bin, nums)
+        reps = lmap(bin, nums)
         df = DataFrame({'locs':locs, 'nums':nums}, reps)
 
         expected = {
@@ -974,7 +974,7 @@ class TestIndexing(unittest.TestCase):
                     else:
                         accessor = df
                     ans = str(bin(accessor[mask]['nums'].sum()))
-                except Exception, e:
+                except Exception as e:
                     ans = str(e)
 
                 key = tuple([idx,method])
@@ -1042,7 +1042,7 @@ class TestIndexing(unittest.TestCase):
 
         #GH 4017, non-unique indexing (on the axis)
         df = DataFrame({'A' : [0.1] * 3000, 'B' : [1] * 3000})
-        idx = np.array(range(30)) * 99
+        idx = np.array(lrange(30)) * 99
         expected = df.iloc[idx]
 
         df3 = pd.concat([df, 2*df, 3*df])
@@ -1109,7 +1109,7 @@ class TestIndexing(unittest.TestCase):
 
         columns = list('ABCDEFG')
         def gen_test(l,l2):
-            return pd.concat([ DataFrame(randn(l,len(columns)),index=range(l),columns=columns),
+            return pd.concat([ DataFrame(randn(l,len(columns)),index=lrange(l),columns=columns),
                                DataFrame(np.ones((l2,len(columns))),index=[0]*l2,columns=columns) ])
 
 

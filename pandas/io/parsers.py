@@ -1,9 +1,10 @@
 """
 Module contains tools for processing files into DataFrames or other objects
 """
-from StringIO import StringIO
+from __future__ import print_function
+from pandas.compat import range, lrange, StringIO, lzip, zip
+from pandas import compat
 import re
-from itertools import izip
 import csv
 from warnings import warn
 
@@ -13,7 +14,7 @@ from pandas.core.index import Index, MultiIndex
 from pandas.core.frame import DataFrame
 import datetime
 import pandas.core.common as com
-from pandas.util import py3compat
+from pandas import compat
 from pandas.io.date_converters import generic_parser
 from pandas.io.common import get_filepath_or_buffer
 
@@ -482,7 +483,7 @@ class TextFileReader(object):
         kwds = self.orig_options
 
         options = {}
-        for argname, default in _parser_defaults.iteritems():
+        for argname, default in compat.iteritems(_parser_defaults):
             if argname in kwds:
                 value = kwds[argname]
             else:
@@ -490,7 +491,7 @@ class TextFileReader(object):
 
             options[argname] = value
 
-        for argname, default in _c_parser_defaults.iteritems():
+        for argname, default in compat.iteritems(_c_parser_defaults):
             if argname in kwds:
                 value = kwds[argname]
                 if engine != 'c' and value != default:
@@ -499,7 +500,7 @@ class TextFileReader(object):
             options[argname] = value
 
         if engine == 'python-fwf':
-            for argname, default in _fwf_defaults.iteritems():
+            for argname, default in compat.iteritems(_fwf_defaults):
                 if argname in kwds:
                     value = kwds[argname]
                 options[argname] = value
@@ -558,7 +559,7 @@ class TextFileReader(object):
         na_values, na_fvalues = _clean_na_values(na_values, keep_default_na)
 
         if com.is_integer(skiprows):
-            skiprows = range(skiprows)
+            skiprows = lrange(skiprows)
         skiprows = set() if skiprows is None else set(skiprows)
 
         # put stuff back
@@ -727,7 +728,7 @@ class ParserBase(object):
         field_count = len(header[0])
         def extract(r):
             return tuple([ r[i] for i in range(field_count) if i not in sic ])
-        columns = zip(*[ extract(r) for r in header ])
+        columns = lzip(*[ extract(r) for r in header ])
         names = ic + columns
 
         # if we find 'Unnamed' all of a single level, then our header was too long
@@ -784,7 +785,7 @@ class ParserBase(object):
 
     def _get_simple_index(self, data, columns):
         def ix(col):
-            if not isinstance(col, basestring):
+            if not isinstance(col, compat.string_types):
                 return col
             raise ValueError('Index %s invalid' % col)
         index = None
@@ -807,7 +808,7 @@ class ParserBase(object):
 
     def _get_complex_date_index(self, data, col_names):
         def _get_name(icol):
-            if isinstance(icol, basestring):
+            if isinstance(icol, compat.string_types):
                 return icol
 
             if col_names is None:
@@ -851,7 +852,7 @@ class ParserBase(object):
                     col_na_values, col_na_fvalues = _get_na_values(col_name,
                                                                    self.na_values,
                                                                    self.na_fvalues)
-                    
+
             arr, _ = self._convert_types(arr, col_na_values | col_na_fvalues)
             arrays.append(arr)
 
@@ -862,7 +863,7 @@ class ParserBase(object):
     def _convert_to_ndarrays(self, dct, na_values, na_fvalues, verbose=False,
                              converters=None):
         result = {}
-        for c, values in dct.iteritems():
+        for c, values in compat.iteritems(dct):
             conv_f = None if converters is None else converters.get(c, None)
             col_na_values, col_na_fvalues = _get_na_values(c, na_values, na_fvalues)
             coerce_type = True
@@ -874,7 +875,7 @@ class ParserBase(object):
                                                   coerce_type)
             result[c] = cvals
             if verbose and na_count:
-                print ('Filled %d NA values in column %s' % (na_count, str(c)))
+                print('Filled %d NA values in column %s' % (na_count, str(c)))
         return result
 
     def _convert_types(self, values, na_values, try_num_bool=True):
@@ -928,7 +929,7 @@ class ParserBase(object):
                     offset += 1
                 data[col] = alldata[i + offset]
         else:
-            data = dict((k, v) for k, v in izip(self.orig_names, alldata))
+            data = dict((k, v) for k, v in zip(self.orig_names, alldata))
 
         return data
 
@@ -946,7 +947,7 @@ class CParserWrapper(ParserBase):
         ParserBase.__init__(self, kwds)
 
         if 'utf-16' in (kwds.get('encoding') or ''):
-            if isinstance(src, basestring):
+            if isinstance(src, compat.string_types):
                 src = open(src, 'rb')
             src = com.UTF8Recoder(src, kwds['encoding'])
             kwds['encoding'] = 'utf-8'
@@ -976,7 +977,7 @@ class CParserWrapper(ParserBase):
                 self.names = ['X%d' % i
                               for i in range(self._reader.table_width)]
             else:
-                self.names = range(self._reader.table_width)
+                self.names = lrange(self._reader.table_width)
 
         # XXX
         self._set_noconvert_columns()
@@ -1227,7 +1228,7 @@ class PythonParser(ParserBase):
         self.comment = kwds['comment']
         self._comment_lines = []
 
-        if isinstance(f, basestring):
+        if isinstance(f, compat.string_types):
             f = com._get_handle(f, 'r', encoding=self.encoding,
                                 compression=self.compression)
         elif self.compression:
@@ -1317,7 +1318,7 @@ class PythonParser(ParserBase):
             def _read():
                 line = next(f)
                 pat = re.compile(sep)
-                if (py3compat.PY3 and isinstance(line, bytes)):
+                if (compat.PY3 and isinstance(line, bytes)):
                     yield pat.split(line.decode('utf-8').strip())
                     for line in f:
                         yield pat.split(line.decode('utf-8').strip())
@@ -1375,7 +1376,7 @@ class PythonParser(ParserBase):
         # apply converters
         clean_conv = {}
 
-        for col, f in self.converters.iteritems():
+        for col, f in compat.iteritems(self.converters):
             if isinstance(col, int) and col not in self.orig_names:
                 col = self.orig_names[col]
             clean_conv[col] = f
@@ -1450,7 +1451,7 @@ class PythonParser(ParserBase):
                 if self.prefix:
                     columns = [ ['X%d' % i for i in range(ncols)] ]
                 else:
-                    columns = [ range(ncols) ]
+                    columns = [ lrange(ncols) ]
             else:
                 columns = [ names ]
 
@@ -1487,7 +1488,7 @@ class PythonParser(ParserBase):
         for l in lines:
             rl = []
             for x in l:
-                if (not isinstance(x, basestring) or
+                if (not isinstance(x, compat.string_types) or
                         self.comment not in x):
                     rl.append(x)
                 else:
@@ -1506,7 +1507,7 @@ class PythonParser(ParserBase):
         for l in lines:
             rl = []
             for x in l:
-                if (not isinstance(x, basestring) or
+                if (not isinstance(x, compat.string_types) or
                     self.thousands not in x or
                         nonnum.search(x.strip())):
                     rl.append(x)
@@ -1548,7 +1549,7 @@ class PythonParser(ParserBase):
                     # column and index names on diff rows
                     implicit_first_cols = 0
 
-                    self.index_col = range(len(line))
+                    self.index_col = lrange(len(line))
                     self.buf = self.buf[1:]
 
                     for c in reversed(line):
@@ -1559,7 +1560,7 @@ class PythonParser(ParserBase):
         if implicit_first_cols > 0:
             self._implicit_index = True
             if self.index_col is None:
-                self.index_col = range(implicit_first_cols)
+                self.index_col = lrange(implicit_first_cols)
             index_name = None
 
         else:
@@ -1629,7 +1630,7 @@ class PythonParser(ParserBase):
                 new_rows = []
                 try:
                     if rows is not None:
-                        for _ in xrange(rows):
+                        for _ in range(rows):
                             new_rows.append(next(source))
                         lines.extend(new_rows)
                     else:
@@ -1638,7 +1639,7 @@ class PythonParser(ParserBase):
                             try:
                                 new_rows.append(next(source))
                                 rows += 1
-                            except csv.Error, inst:
+                            except csv.Error as inst:
                                 if 'newline inside string' in str(inst):
                                     row_num = str(self.pos + rows)
                                     msg = ('EOF inside string starting with line '
@@ -1729,7 +1730,7 @@ def _process_date_conversion(data_dict, converter, parse_spec,
 
     elif isinstance(parse_spec, dict):
         # dict of new name to column list
-        for new_name, colspec in parse_spec.iteritems():
+        for new_name, colspec in compat.iteritems(parse_spec):
             if new_name in data_dict:
                 raise ValueError('Date column %s already in dict' %
                                  new_name)
@@ -1778,7 +1779,7 @@ def _clean_na_values(na_values, keep_default_na=True):
         na_fvalues = set()
     elif isinstance(na_values, dict):
         if keep_default_na:
-            for k, v in na_values.iteritems():
+            for k, v in compat.iteritems(na_values):
                 v = set(list(v)) | _NA_VALUES
                 na_values[k] = v
         na_fvalues = dict([ (k, _floatify_na_values(v)) for k, v in na_values.items() ])
@@ -1806,7 +1807,7 @@ def _clean_index_names(columns, index_col):
     index_col = list(index_col)
 
     for i, c in enumerate(index_col):
-        if isinstance(c, basestring):
+        if isinstance(c, compat.string_types):
             index_names.append(c)
             for j, name in enumerate(cp_cols):
                 if name == c:
@@ -1819,7 +1820,7 @@ def _clean_index_names(columns, index_col):
             index_names.append(name)
 
     # hack
-    if isinstance(index_names[0], basestring) and 'Unnamed' in index_names[0]:
+    if isinstance(index_names[0], compat.string_types) and 'Unnamed' in index_names[0]:
         index_names[0] = None
 
     return index_names, columns, index_col
@@ -1900,14 +1901,13 @@ def _get_col_names(colspec, columns):
 
 def _concat_date_cols(date_cols):
     if len(date_cols) == 1:
-        if py3compat.PY3:
-            return np.array([unicode(x) for x in date_cols[0]], dtype=object)
+        if compat.PY3:
+            return np.array([compat.text_type(x) for x in date_cols[0]], dtype=object)
         else:
-            return np.array([str(x) if not isinstance(x, basestring) else x
+            return np.array([str(x) if not isinstance(x, compat.string_types) else x
                              for x in date_cols[0]], dtype=object)
 
-    # stripped = [map(str.strip, x) for x in date_cols]
-    rs = np.array([' '.join([unicode(y) for y in x])
+    rs = np.array([' '.join([compat.text_type(y) for y in x])
                    for x in zip(*date_cols)], dtype=object)
     return rs
 

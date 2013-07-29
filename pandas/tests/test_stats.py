@@ -1,3 +1,4 @@
+from pandas import compat
 import nose
 import unittest
 
@@ -6,7 +7,7 @@ import numpy as np
 
 from pandas import Series, DataFrame
 
-from pandas.util.compat import product
+from pandas.compat import product
 from pandas.util.testing import (assert_frame_equal,
                                  assert_series_equal,
                                  assert_almost_equal)
@@ -106,7 +107,7 @@ class TestRank(unittest.TestCase):
     def test_rank_int(self):
         s = self.s.dropna().astype('i8')
 
-        for method, res in self.results.iteritems():
+        for method, res in compat.iteritems(self.results):
             result = s.rank(method=method)
             expected = Series(res).dropna()
             expected.index = result.index

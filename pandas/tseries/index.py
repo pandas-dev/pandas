@@ -8,6 +8,8 @@ import numpy as np
 
 from pandas.core.common import isnull, _NS_DTYPE, _INT64_DTYPE
 from pandas.core.index import Index, Int64Index
+import pandas.compat as compat
+from pandas.compat import u
 from pandas.tseries.frequencies import (
     infer_freq, to_offset, get_period_alias,
     Resolution, get_reso_string)
@@ -70,7 +72,7 @@ def _dt_index_cmp(opname):
             other = _to_m8(other, tz=self.tz)
         elif isinstance(other, list):
             other = DatetimeIndex(other)
-        elif isinstance(other, basestring):
+        elif isinstance(other, compat.string_types):
             other = _to_m8(other, tz=self.tz)
         elif not isinstance(other, np.ndarray):
             other = _ensure_datetime64(other)
@@ -207,7 +209,7 @@ class DatetimeIndex(Int64Index):
 
                     return data
 
-        if issubclass(data.dtype.type, basestring):
+        if issubclass(data.dtype.type, compat.string_types):
             data = _str_to_dt_array(data, offset, dayfirst=dayfirst,
                                       yearfirst=yearfirst)
 
@@ -581,21 +583,23 @@ class DatetimeIndex(Int64Index):
     def _format_with_header(self, header, **kwargs):
         return header + self._format_native_types(**kwargs)
 
-    def _format_native_types(self, na_rep=u'NaT', **kwargs):
+    def _format_native_types(self, na_rep=u('NaT'), **kwargs):
         data = list(self)
 
         # tz formatter or time formatter
         zero_time = time(0, 0)
         for d in data:
             if d.time() != zero_time or d.tzinfo is not None:
-                return [u'%s' % x for x in data ]
+                return [u('%s') % x for x in data]
 
         values = np.array(data,dtype=object)
         mask = isnull(self.values)
         values[mask] = na_rep
 
         imask = -mask
-        values[imask] = np.array([ u'%d-%.2d-%.2d' % (dt.year, dt.month, dt.day) for dt in values[imask] ])
+        values[imask] = np.array([u('%d-%.2d-%.2d') % (
+                                  dt.year, dt.month, dt.day)
+                                  for dt in values[imask] ])
         return values.tolist()
 
     def isin(self, values):
@@ -766,7 +770,7 @@ class DatetimeIndex(Int64Index):
         shifted : DatetimeIndex
         """
         if freq is not None and freq != self.offset:
-            if isinstance(freq, basestring):
+            if isinstance(freq, compat.string_types):
                 freq = to_offset(freq)
             result = Index.shift(self, n, freq)
             result.tz = self.tz
@@ -1230,7 +1234,7 @@ class DatetimeIndex(Int64Index):
         """
         Index.slice_locs, customized to handle partial ISO-8601 string slicing
         """
-        if isinstance(start, basestring) or isinstance(end, basestring):
+        if isinstance(start, compat.string_types) or isinstance(end, compat.string_types):
 
             if self.is_monotonic:
                 try:
@@ -1543,7 +1547,7 @@ class DatetimeIndex(Int64Index):
         if asof:
             raise NotImplementedError
 
-        if isinstance(time, basestring):
+        if isinstance(time, compat.string_types):
             time = parse(time).time()
 
         if time.tzinfo:
@@ -1573,10 +1577,10 @@ class DatetimeIndex(Int64Index):
         """
         from dateutil.parser import parse
 
-        if isinstance(start_time, basestring):
+        if isinstance(start_time, compat.string_types):
             start_time = parse(start_time).time()
 
-        if isinstance(end_time, basestring):
+        if isinstance(end_time, compat.string_types):
             end_time = parse(end_time).time()
 
         if start_time.tzinfo or end_time.tzinfo:

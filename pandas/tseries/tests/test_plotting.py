@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, date, time
 
 import unittest
 import nose
+from pandas.compat import range, lrange, zip
 
 import numpy as np
 from numpy.testing.decorators import slow
@@ -186,7 +187,7 @@ class TestTSPlot(unittest.TestCase):
         plt.clf()
         fig.add_subplot(111)
         rng = date_range('2001-1-1', '2001-1-10')
-        ts = Series(range(len(rng)), rng)
+        ts = Series(lrange(len(rng)), rng)
         ts = ts[:3].append(ts[5:])
         ax = ts.plot()
         self.assert_(not hasattr(ax, 'freq'))
@@ -482,7 +483,7 @@ class TestTSPlot(unittest.TestCase):
         self.assert_(len(lines) == 1)
         l = lines[0]
         data = l.get_xydata()
-        self.assert_(isinstance(data, np.ma.core.MaskedArray))
+        tm.assert_isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
         self.assert_(mask[5:25, 1].all())
 
@@ -496,7 +497,7 @@ class TestTSPlot(unittest.TestCase):
         self.assert_(len(lines) == 1)
         l = lines[0]
         data = l.get_xydata()
-        self.assert_(isinstance(data, np.ma.core.MaskedArray))
+        tm.assert_isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
         self.assert_(mask[2:5, 1].all())
 
@@ -510,7 +511,7 @@ class TestTSPlot(unittest.TestCase):
         self.assert_(len(lines) == 1)
         l = lines[0]
         data = l.get_xydata()
-        self.assert_(isinstance(data, np.ma.core.MaskedArray))
+        tm.assert_isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
         self.assert_(mask[2:5, 1].all())
 
@@ -530,7 +531,7 @@ class TestTSPlot(unittest.TestCase):
         self.assert_(len(ax.right_ax.get_lines()) == 1)
         l = lines[0]
         data = l.get_xydata()
-        self.assert_(isinstance(data, np.ma.core.MaskedArray))
+        tm.assert_isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
         self.assert_(mask[5:25, 1].all())
 
@@ -942,7 +943,7 @@ class TestTSPlot(unittest.TestCase):
     def test_ax_plot(self):
         x = DatetimeIndex(start='2012-01-02', periods=10,
                           freq='D')
-        y = range(len(x))
+        y = lrange(len(x))
         import matplotlib.pyplot as plt
         fig = plt.figure()
         ax = fig.add_subplot(111)

@@ -6,6 +6,7 @@ import unittest
 from datetime import datetime, date
 
 from pandas import Series, DataFrame, MultiIndex, PeriodIndex, date_range
+from pandas.compat import range, lrange, StringIO, lmap, lzip, u, map, zip
 import pandas.util.testing as tm
 from pandas.util.testing import ensure_clean
 from pandas.core.config import set_option
@@ -115,7 +116,7 @@ class TestSeriesPlots(unittest.TestCase):
 
         rects = ax.patches
 
-        rgba_colors = map(cm.jet, np.linspace(0, 1, 5))
+        rgba_colors = lmap(cm.jet, np.linspace(0, 1, 5))
         for i, rect in enumerate(rects[::5]):
             xp = rgba_colors[i]
             rs = rect.get_facecolor()
@@ -128,7 +129,7 @@ class TestSeriesPlots(unittest.TestCase):
 
         rects = ax.patches
 
-        rgba_colors = map(cm.jet, np.linspace(0, 1, 5))
+        rgba_colors = lmap(cm.jet, np.linspace(0, 1, 5))
         for i, rect in enumerate(rects[::5]):
             xp = rgba_colors[i]
             rs = rect.get_facecolor()
@@ -271,7 +272,7 @@ class TestSeriesPlots(unittest.TestCase):
 
     @slow
     def test_valid_object_plot(self):
-        s = Series(range(10), dtype=object)
+        s = Series(lrange(10), dtype=object)
         kinds = 'line', 'bar', 'barh', 'kde', 'density'
 
         for kind in kinds:
@@ -327,27 +328,27 @@ class TestDataFramePlots(unittest.TestCase):
         _check_plot_works(df.plot, subplots=True, title='blah')
         _check_plot_works(df.plot, title='blah')
 
-        tuples = zip(list(string.ascii_letters[:10]), range(10))
+        tuples = lzip(string.ascii_letters[:10], range(10))
         df = DataFrame(np.random.rand(10, 3),
                        index=MultiIndex.from_tuples(tuples))
         _check_plot_works(df.plot, use_index=True)
 
         # unicode
-        index = MultiIndex.from_tuples([(u'\u03b1', 0),
-                                        (u'\u03b1', 1),
-                                        (u'\u03b2', 2),
-                                        (u'\u03b2', 3),
-                                        (u'\u03b3', 4),
-                                        (u'\u03b3', 5),
-                                        (u'\u03b4', 6),
-                                        (u'\u03b4', 7)], names=['i0', 'i1'])
-        columns = MultiIndex.from_tuples([('bar', u'\u0394'),
-                                        ('bar', u'\u0395')], names=['c0',
+        index = MultiIndex.from_tuples([(u('\u03b1'), 0),
+                                        (u('\u03b1'), 1),
+                                        (u('\u03b2'), 2),
+                                        (u('\u03b2'), 3),
+                                        (u('\u03b3'), 4),
+                                        (u('\u03b3'), 5),
+                                        (u('\u03b4'), 6),
+                                        (u('\u03b4'), 7)], names=['i0', 'i1'])
+        columns = MultiIndex.from_tuples([('bar', u('\u0394')),
+                                        ('bar', u('\u0395'))], names=['c0',
                                                                     'c1'])
         df = DataFrame(np.random.randint(0, 10, (8, 2)),
                        columns=columns,
                        index=index)
-        _check_plot_works(df.plot, title=u'\u03A3')
+        _check_plot_works(df.plot, title=u('\u03A3'))
 
     def test_nonnumeric_exclude(self):
         import matplotlib.pyplot as plt
@@ -384,7 +385,7 @@ class TestDataFramePlots(unittest.TestCase):
         self._check_data(df.plot(y='B'), df.B.plot())
 
         # columns.inferred_type == 'integer'
-        df.columns = range(1, len(df.columns) + 1)
+        df.columns = lrange(1, len(df.columns) + 1)
         self._check_data(df.plot(x=1, y=2),
                          df.set_index(1)[2].plot())
         self._check_data(df.plot(x=1), df.set_index(1).plot())
@@ -421,7 +422,7 @@ class TestDataFramePlots(unittest.TestCase):
         pd.plot_params['x_compat'] = False
         ax = df.plot()
         lines = ax.get_lines()
-        self.assert_(isinstance(lines[0].get_xdata(), PeriodIndex))
+        tm.assert_isinstance(lines[0].get_xdata(), PeriodIndex)
 
         plt.close('all')
         # useful if you're plotting a bunch together
@@ -433,7 +434,7 @@ class TestDataFramePlots(unittest.TestCase):
         plt.close('all')
         ax = df.plot()
         lines = ax.get_lines()
-        self.assert_(isinstance(lines[0].get_xdata(), PeriodIndex))
+        tm.assert_isinstance(lines[0].get_xdata(), PeriodIndex)
 
     def test_unsorted_index(self):
         df = DataFrame({'y': np.arange(100)},
@@ -497,7 +498,7 @@ class TestDataFramePlots(unittest.TestCase):
 
         df = DataFrame(np.random.randn(10, 15),
                        index=list(string.ascii_letters[:10]),
-                       columns=range(15))
+                       columns=lrange(15))
         _check_plot_works(df.plot, kind='bar')
 
         df = DataFrame({'a': [0, 1], 'b': [1, 0]})
@@ -505,13 +506,13 @@ class TestDataFramePlots(unittest.TestCase):
 
     def test_bar_stacked_center(self):
         # GH2157
-        df = DataFrame({'A': [3] * 5, 'B': range(5)}, index=range(5))
+        df = DataFrame({'A': [3] * 5, 'B': lrange(5)}, index=lrange(5))
         ax = df.plot(kind='bar', stacked='True', grid=True)
         self.assertEqual(ax.xaxis.get_ticklocs()[0],
                          ax.patches[0].get_x() + ax.patches[0].get_width() / 2)
 
     def test_bar_center(self):
-        df = DataFrame({'A': [3] * 5, 'B': range(5)}, index=range(5))
+        df = DataFrame({'A': [3] * 5, 'B': lrange(5)}, index=lrange(5))
         ax = df.plot(kind='bar', grid=True)
         self.assertEqual(ax.xaxis.get_ticklocs()[0],
                          ax.patches[0].get_x() + ax.patches[0].get_width())
@@ -521,7 +522,7 @@ class TestDataFramePlots(unittest.TestCase):
         # GH3254, GH3298 matplotlib/matplotlib#1882, #1892
         # regressions in 1.2.1
 
-        df = DataFrame({'A': [3] * 5, 'B': range(1, 6)}, index=range(5))
+        df = DataFrame({'A': [3] * 5, 'B': lrange(1, 6)}, index=lrange(5))
         ax = df.plot(kind='bar', grid=True, log=True)
         self.assertEqual(ax.yaxis.get_ticklocs()[0], 1.0)
 
@@ -765,7 +766,6 @@ class TestDataFramePlots(unittest.TestCase):
     def test_line_colors(self):
         import matplotlib.pyplot as plt
         import sys
-        from StringIO import StringIO
         from matplotlib import cm
 
         custom_colors = 'rgcby'
@@ -796,7 +796,7 @@ class TestDataFramePlots(unittest.TestCase):
 
         ax = df.plot(colormap='jet')
 
-        rgba_colors = map(cm.jet, np.linspace(0, 1, len(df)))
+        rgba_colors = lmap(cm.jet, np.linspace(0, 1, len(df)))
 
         lines = ax.get_lines()
         for i, l in enumerate(lines):
@@ -808,7 +808,7 @@ class TestDataFramePlots(unittest.TestCase):
 
         ax = df.plot(colormap=cm.jet)
 
-        rgba_colors = map(cm.jet, np.linspace(0, 1, len(df)))
+        rgba_colors = lmap(cm.jet, np.linspace(0, 1, len(df)))
 
         lines = ax.get_lines()
         for i, l in enumerate(lines):
@@ -887,7 +887,7 @@ class TestDataFrameGroupByPlots(unittest.TestCase):
         _check_plot_works(grouped.boxplot)
         _check_plot_works(grouped.boxplot, subplots=False)
 
-        tuples = zip(list(string.ascii_letters[:10]), range(10))
+        tuples = lzip(string.ascii_letters[:10], range(10))
         df = DataFrame(np.random.rand(10, 3),
                        index=MultiIndex.from_tuples(tuples))
         grouped = df.groupby(level=1)

@@ -6,6 +6,7 @@ import nose
 import unittest
 
 from pandas import Series, DataFrame, date_range, DatetimeIndex, Timestamp
+from pandas.compat import range, long, lrange, lmap, u, map
 from pandas.core.common import notnull, isnull
 import pandas.core.common as com
 import pandas.util.testing as tm
@@ -14,7 +15,7 @@ import pandas.core.config as cf
 import numpy as np
 
 from pandas.tslib import iNaT
-from pandas.util import py3compat
+from pandas import compat
 
 _multiprocess_can_split_ = True
 
@@ -24,7 +25,7 @@ def test_is_sequence():
     assert(is_seq((1, 2)))
     assert(is_seq([1, 2]))
     assert(not is_seq("abcd"))
-    assert(not is_seq(u"abcd"))
+    assert(not is_seq(u("abcd")))
     assert(not is_seq(np.int64))
 
     class A(object):
@@ -94,7 +95,7 @@ def test_isnull_lists():
     result = isnull(['foo', 'bar'])
     assert(not result.any())
 
-    result = isnull([u'foo', u'bar'])
+    result = isnull([u('foo'), u('bar')])
     assert(not result.any())
 
 
@@ -120,7 +121,7 @@ def test_datetimeindex_from_empty_datetime64_array():
 def test_nan_to_nat_conversions():
 
     df = DataFrame(dict({
-        'A' : np.asarray(range(10),dtype='float64'),
+        'A' : np.asarray(lrange(10),dtype='float64'),
         'B' : Timestamp('20010101') }))
     df.iloc[3:6,:] = np.nan
     result = df.loc[4,'B'].value
@@ -176,7 +177,7 @@ def test_iterpairs():
 def test_split_ranges():
     def _bin(x, width):
         "return int(x) as a base2 string of given width"
-        return ''.join(str((x >> i) & 1) for i in xrange(width - 1, -1, -1))
+        return ''.join(str((x >> i) & 1) for i in range(width - 1, -1, -1))
 
     def test_locs(mask):
         nfalse = sum(np.array(mask) == 0)
@@ -193,7 +194,7 @@ def test_split_ranges():
     # exhaustively test all possible mask sequences of length 8
     ncols = 8
     for i in range(2 ** ncols):
-        cols = map(int, list(_bin(i, ncols)))  # count up in base2
+        cols = lmap(int, list(_bin(i, ncols)))  # count up in base2
         mask = [cols[i] == 1 for i in range(len(cols))]
         test_locs(mask)
 
@@ -311,7 +312,7 @@ def test_ensure_platform_int():
 #     On Python 2, if sys.stdin.encoding is None (IPython with zmq frontend)
 #     common.console_encode should encode things as utf-8.
 #     """
-#     if py3compat.PY3:
+#     if compat.PY3:
 #         raise nose.SkipTest
 
 #     with tm.stdin_encoding(encoding=None):
@@ -332,8 +333,8 @@ def test_is_re():
 
 
 def test_is_recompilable():
-    passes = (r'a', u'x', r'asdf', re.compile('adsf'), ur'\u2233\s*',
-              re.compile(r''))
+    passes = (r'a', u('x'), r'asdf', re.compile('adsf'),
+              u(r'\u2233\s*'), re.compile(r''))
     fails = 1, [], object()
 
     for p in passes:
@@ -720,7 +721,7 @@ class TestTake(unittest.TestCase):
 
     def test_2d_datetime64(self):
         # 2005/01/01 - 2006/01/01
-        arr = np.random.randint(11045376L, 11360736L, (5,3))*100000000000
+        arr = np.random.randint(long(11045376), long(11360736), (5,3))*100000000000
         arr = arr.view(dtype='datetime64[ns]')
         indexer = [0, 2, -1, 1, -1]
 
