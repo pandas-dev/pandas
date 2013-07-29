@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 
 import numbers
-
 import numpy as np
 
-from pandas.computation.expr import Expr, _parsers, _ensure_scope
+from pandas import compat
+from pandas.compat import string_types
+from pandas.computation.expr import (Expr, _parsers, _ensure_scope,
+                                     _check_syntax)
 from pandas.computation.engines import _engines
 
 
@@ -29,7 +31,7 @@ def _check_parser(parser):
 
 
 def eval(expr, parser='pandas', engine='numexpr', truediv=True,
-         local_dict=None, global_dict=None, resolvers=None):
+         local_dict=None, global_dict=None, resolvers=None, level=2):
     """Evaluate a Python expression as a string using various backends.
 
     The following arithmetic operations are supported: ``+``, ``-``, ``*``,
@@ -74,6 +76,9 @@ def eval(expr, parser='pandas', engine='numexpr', truediv=True,
         :attr:`~pandas.DataFrame.index` and :attr:`~pandas.DataFrame.columns`
         variables that refer to their respective :class:`~pandas.DataFrame`
         instance attributes.
+    level : int, optional, default 2
+        The number of prior stack frames to traverse and add to the current
+        scope.
 
     Returns
     -------
@@ -96,9 +101,9 @@ def eval(expr, parser='pandas', engine='numexpr', truediv=True,
     _check_parser(parser)
 
     env = _ensure_scope(global_dict=global_dict, local_dict=local_dict,
-                        resolvers=resolvers)
+                        resolvers=resolvers, level=level)
 
-    if isinstance(expr, basestring):
+    if isinstance(expr, string_types):
         parsed_expr = Expr(expr, engine=engine, parser=parser, env=env,
                            truediv=truediv)
     else:

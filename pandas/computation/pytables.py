@@ -6,22 +6,13 @@ import warnings
 from functools import partial
 from datetime import datetime
 
-import numpy as np
-
+import pandas as pd
+from pandas.compat import u, string_types
 import pandas.core.common as com
-import pandas.lib as lib
 from pandas.computation import expr, ops
-from pandas.computation.ops import is_term, Constant
+from pandas.computation.ops import is_term
 from pandas.computation.expr import BaseExprVisitor
-from pandas import Index
-from pandas.core.common import is_list_like
-
-
-def _ensure_decoded(s):
-    """ if we have bytes, decode them to unicode """
-    if isinstance(s, (np.bytes_, bytes)):
-        s = s.decode('UTF-8')
-    return s
+from pandas.computation.common import _ensure_decoded
 
 
 class Scope(expr.Scope):
@@ -42,7 +33,6 @@ class Term(ops.Term):
         super(Term, self).__init__(name, env, side=side)
 
     def _resolve_name(self):
-
         # must be a queryables
         if self.side == 'left':
             if self.name not in self.env.queryables:
@@ -52,6 +42,22 @@ class Term(ops.Term):
         # resolve the rhs (and allow to be None)
         return self.env.locals.get(self.name,
                                    self.env.globals.get(self.name, self.name))
+
+    @property
+    def value(self):
+        return self._value
+
+
+class Constant(Term):
+    def __init__(self, value, env):
+        super(Constant, self).__init__(value, env)
+
+    def _resolve_name(self):
+        return self._name
+
+    @property
+    def name(self):
+        return self._value
 
 
 class BinOp(ops.BinOp):
@@ -112,7 +118,7 @@ class BinOp(ops.BinOp):
 
     def conform(self, rhs):
         """ inplace conform rhs """
-        if not is_list_like(rhs):
+        if not com.is_list_like(rhs):
             rhs = [rhs]
         if hasattr(self.rhs, 'ravel'):
             rhs = rhs.ravel()
@@ -144,43 +150,48 @@ class BinOp(ops.BinOp):
         accepted by pytables """
 
         def stringify(value):
-            value = str(value)
             if self.encoding is not None:
-                value = value.encode(self.encoding)
-            return value
+                encoder = partial(com.pprint_thing_encoded,
+                                  encoding=self.encoding)
+            else:
+                encoder = com.pprint_thing
+            return encoder(value)
 
         kind = _ensure_decoded(self.kind)
-        if kind == u'datetime64' or kind == u'datetime':
-
+        if kind == u('datetime64') or kind == u('datetime'):
             if isinstance(v, (int, float)):
                 v = stringify(v)
             v = _ensure_decoded(v)
-            v = lib.Timestamp(v)
+            v = pd.Timestamp(v)
             if v.tz is not None:
                 v = v.tz_convert('UTC')
             return TermValue(v, v.value, kind)
-        elif isinstance(v, datetime) or hasattr(v, 'timetuple') or kind == u'date':
+        elif isinstance(v, datetime) or hasattr(v, 'timetuple') or kind == u('date'):
             v = time.mktime(v.timetuple())
-            return TermValue(v, lib.Timestamp(v), kind)
-        elif kind == u'integer':
+            return TermValue(v, pd.Timestamp(v), kind)
+        elif kind == u('integer'):
             v = int(float(v))
             return TermValue(v, v, kind)
-        elif kind == u'float':
+        elif kind == u('float'):
             v = float(v)
             return TermValue(v, v, kind)
-        elif kind == u'bool':
-            if isinstance(v, basestring):
-                v = not v.strip().lower() in [u'false', u'f', u'no', u'n',
-                                              u'none', u'0', u'[]', u'{}', u'']
+        elif kind == u('bool'):
+            if isinstance(v, string_types):
+                v = not v.strip().lower() in [u('false'), u('f'), u('no'),
+                                              u('n'), u('none'), u('0'),
+                                              u('[]'), u('{}'), u('')]
             else:
                 v = bool(v)
             return TermValue(v, v, kind)
-        elif not isinstance(v, basestring):
+        elif not isinstance(v, string_types):
             v = stringify(v)
-            return TermValue(v, stringify(v), u'string')
+            return TermValue(v, stringify(v), u('string'))
 
         # string quoting
-        return TermValue(v, stringify(v), u'string')
+        return TermValue(v, stringify(v), u('string'))
+
+    def convert_values(self):
+        pass
 
 
 class FilterBinOp(BinOp):
@@ -203,7 +214,7 @@ class FilterBinOp(BinOp):
 
     def evaluate(self):
 
-        if not isinstance(self.lhs, basestring):
+        if not isinstance(self.lhs, string_types):
             return self
 
         if not self.is_valid:
@@ -221,7 +232,7 @@ class FilterBinOp(BinOp):
                 self.filter = (
                     self.lhs,
                     filter_op,
-                    Index([v.value for v in values]))
+                    pd.Index([v.value for v in values]))
 
                 return self
             return None
@@ -233,7 +244,7 @@ class FilterBinOp(BinOp):
             self.filter = (
                 self.lhs,
                 filter_op,
-                Index([v.value for v in values]))
+                pd.Index([v.value for v in values]))
 
         else:
             raise TypeError(
@@ -276,7 +287,7 @@ class ConditionBinOp(BinOp):
 
     def evaluate(self):
 
-        if not isinstance(self.lhs, basestring):
+        if not isinstance(self.lhs, string_types):
             return self
 
         if not self.is_valid:
@@ -341,26 +352,26 @@ class UnaryOp(ops.UnaryOp):
 _op_classes = {'unary': UnaryOp}
 
 class ExprVisitor(BaseExprVisitor):
-    def __init__(self, env, **kwargs):
-        super(ExprVisitor, self).__init__(env)
+    const_type = Constant
+    term_type = Term
+
+    def __init__(self, env, engine, parser, **kwargs):
+        super(ExprVisitor, self).__init__(env, engine, parser)
         for bin_op in self.binary_ops:
             setattr(self, 'visit_{0}'.format(self.binary_op_nodes_map[bin_op]),
                     lambda node, bin_op=bin_op: partial(BinOp, bin_op,
                                                         **kwargs))
 
-    def visit_Name(self, node, side=None, **kwargs):
-        return Term(node.id, self.env, side=side, **kwargs)
-
     def visit_UnaryOp(self, node, **kwargs):
         if isinstance(node.op, (ast.Not, ast.Invert)):
             return UnaryOp('~', self.visit(node.operand))
         elif isinstance(node.op, ast.USub):
-            return Constant(-self.visit(node.operand).value, self.env)
+            return self.const_type(-self.visit(node.operand).value, self.env)
         elif isinstance(node.op, ast.UAdd):
             raise NotImplementedError('Unary addition not supported')
 
     def visit_USub(self, node, **kwargs):
-        return Constant(-self.visit(node.operand).value, self.env)
+        return self.const_type(-self.visit(node.operand).value, self.env)
 
     def visit_Index(self, node, **kwargs):
         return self.visit(node.value).value
@@ -369,7 +380,7 @@ class ExprVisitor(BaseExprVisitor):
         value = self.visit(node.value)
         slobj = self.visit(node.slice)
         try:
-            return Constant(value[slobj], self.env)
+            return self.const_type(value[slobj], self.env)
         except TypeError:
             raise ValueError("cannot subscript {0!r} with "
                             "{1!r}".format(value, slobj))
@@ -400,7 +411,7 @@ class Expr(expr.Expr):
     Parameters
     ----------
     where : string term expression, Expr, or list-like of Exprs
-    queryables : a kinds map (dict of column name -> kind), or None i column is non-indexable
+    queryables : a "kinds" map (dict of column name -> kind), or None if column is non-indexable
     encoding : an encoding that will encode the query terms
 
     Returns
@@ -457,6 +468,7 @@ class Expr(expr.Expr):
         if queryables is not None:
             self.env.queryables.update(queryables)
             self._visitor = ExprVisitor(self.env, queryables=queryables,
+                                        parser='pytables', engine='pytables',
                                         encoding=encoding)
             self.terms = self.parse()
 
@@ -465,7 +477,7 @@ class Expr(expr.Expr):
 
         if isinstance(w, dict):
             w, op, value = w.get('field'), w.get('op'), w.get('value')
-            if not isinstance(w, basestring):
+            if not isinstance(w, string_types):
                 raise TypeError(
                     "where must be passed as a string if op/value are passed")
             warnings.warn("passing a dict to Expr is deprecated, "
@@ -473,7 +485,7 @@ class Expr(expr.Expr):
                           DeprecationWarning)
 
         if op is not None:
-            if not isinstance(w, basestring):
+            if not isinstance(w, string_types):
                 raise TypeError(
                     "where must be passed as a string if op/value are passed")
 
@@ -493,7 +505,7 @@ class Expr(expr.Expr):
 
     def __unicode__(self):
         if self.terms is not None:
-            return unicode(self.terms)
+            return com.pprint_thing(self.terms)
         return self.expr
 
     def evaluate(self):
@@ -525,7 +537,7 @@ class TermValue(object):
     def tostring(self, encoding):
         """ quote the string if not encoded
             else encode and return """
-        if self.kind == u'string':
+        if self.kind == u('string'):
             if encoding is not None:
                 return self.converted
             return '"%s"' % self.converted

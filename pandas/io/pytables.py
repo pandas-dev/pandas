@@ -2,12 +2,9 @@
 High level interface to PyTables for reading and writing pandas data structures
 to disk
 """
-from __future__ import print_function
 
 # pylint: disable-msg=E1101,W0613,W0603
 from datetime import datetime, date
-from pandas.compat import map, range, zip, lrange, lmap, u
-from pandas import compat
 import time
 import re
 import copy
@@ -22,7 +19,7 @@ from pandas.sparse.api import SparseSeries, SparseDataFrame, SparsePanel
 from pandas.sparse.array import BlockIndex, IntIndex
 from pandas.tseries.api import PeriodIndex, DatetimeIndex
 from pandas.core.base import StringMixin
-from pandas.core.common import adjoin, is_list_like, pprint_thing
+from pandas.core.common import adjoin, pprint_thing
 from pandas.core.algorithms import match, unique
 from pandas.core.categorical import Categorical
 from pandas.core.common import _asarray_tuplesafe
@@ -32,6 +29,8 @@ from pandas.core.index import _ensure_index
 from pandas.tseries.timedeltas import _coerce_scalar_to_timedelta_type
 import pandas.core.common as com
 from pandas.tools.merge import concat
+from pandas import compat
+from pandas.compat import u, PY3, range
 from pandas.io.common import PerformanceWarning
 from pandas.core.config import get_option
 from pandas.computation.pytables import Expr
@@ -59,7 +58,7 @@ def _ensure_decoded(s):
 def _ensure_encoding(encoding):
     # set the encoding if we need
     if encoding is None:
-        if compat.PY3:
+        if PY3:
             encoding = _default_encoding
     return encoding
 
@@ -264,7 +263,8 @@ def to_hdf(path_or_buf, key, value, mode=None, complevel=None, complib=None,
         f = lambda store: store.put(key, value, **kwargs)
 
     if isinstance(path_or_buf, compat.string_types):
-        with get_store(path_or_buf, mode=mode, complevel=complevel, complib=complib) as store:
+        with get_store(path_or_buf, mode=mode, complevel=complevel,
+                       complib=complib) as store:
             f(store)
     else:
         f(path_or_buf)
@@ -499,7 +499,7 @@ class HDFStore(StringMixin):
             self._handle = h5_open(self._path, self._mode)
         except IOError as e:  # pragma: no cover
             if 'can not be written' in str(e):
-                print('Opening %s in read-only mode' % self._path)
+                print ('Opening %s in read-only mode' % self._path)
                 self._handle = h5_open(self._path, 'r')
             else:
                 raise
@@ -654,7 +654,9 @@ class HDFStore(StringMixin):
         if isinstance(keys, (list, tuple)) and len(keys) == 1:
             keys = keys[0]
         if isinstance(keys, compat.string_types):
-            return self.select(key=keys, where=where, columns=columns, start=start, stop=stop, iterator=iterator, chunksize=chunksize, **kwargs)
+            return self.select(key=keys, where=where, columns=columns,
+                               start=start, stop=stop, iterator=iterator,
+                               chunksize=chunksize, **kwargs)
 
         if not isinstance(keys, (list, tuple)):
             raise TypeError("keys must be a list/tuple")
@@ -1537,7 +1539,7 @@ class DataCol(IndexCol):
         super(DataCol, self).__init__(
             values=values, kind=kind, typ=typ, cname=cname, **kwargs)
         self.dtype = None
-        self.dtype_attr = u("%s_dtype") % self.name
+        self.dtype_attr = u("%s_dtype" % self.name)
         self.set_data(data)
 
     def __unicode__(self):
@@ -3474,15 +3476,14 @@ class AppendableTable(LegacyTable):
             rows = rows[~mask.ravel().astype(bool)]
 
         except Exception as detail:
-            raise Exception("cannot create row-data -> %s" % str(detail))
+            raise Exception("cannot create row-data -> %s" % detail)
 
         try:
             if len(rows):
                 self.table.append(rows)
                 self.table.flush()
         except Exception as detail:
-            raise Exception(
-                "tables cannot write this data -> %s" % str(detail))
+            raise TypeError("tables cannot write this data -> %s" % detail)
 
     def delete(self, where=None, **kwargs):
 
@@ -3526,7 +3527,7 @@ class AppendableTable(LegacyTable):
             # we must remove in reverse order!
             pg = groups.pop()
             for g in reversed(groups):
-                rows = l.take(lrange(g, pg))
+                rows = l.take(range(g, pg))
                 table.removeRows(start=rows[rows.index[0]
                                             ], stop=rows[rows.index[-1]] + 1)
                 pg = g
@@ -4239,19 +4240,7 @@ class Selection(object):
         if where is None:
             return None
 
-        if not isinstance(where, (list, tuple)):
-            where = [where]
-        else:
-
-            # make this a list of we think that we only have a sigle term & no
-            # operands inside any terms
-            if not any([isinstance(w, (list, tuple, Term)) for w in where]):
-
-                if not any([isinstance(w, compat.string_types) and Term._search.match(w) for w in where]):
-                    where = [where]
-
-        queryables = self.table.queryables()
-        return [Term(c, queryables=queryables, encoding=self.table.encoding) for c in where]
+        return Expr(where, queryables=self.table.queryables(), encoding=self.table.encoding)
 
     def select(self):
         """

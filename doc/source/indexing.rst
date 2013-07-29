@@ -1037,8 +1037,8 @@ with the name ``a``.
 
 .. ipython:: python
 
-   index = Index(np.arange(n), name='a')
-   df = DataFrame(randint(n, size=(n, 2)), index=index, columns=list('bc'))
+   df = DataFrame(randint(n, size=(n, 2)), columns=list('bc'))
+   df.index.name = 'a'
    df
    df.query('a < b and b < c')
 

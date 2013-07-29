@@ -13,7 +13,6 @@ import os
 from datetime import datetime
 from functools import wraps, partial
 from contextlib import contextmanager
-from httplib import HTTPException
 from distutils.version import LooseVersion
 
 from numpy.random import randn, rand
@@ -28,7 +27,7 @@ import pandas.core.panel4d as panel4d
 import pandas.compat as compat
 from pandas.compat import(
     map, zip, range, unichr, lrange, lmap, lzip, u, callable, Counter,
-    raise_with_traceback
+    raise_with_traceback, httplib
 )
 
 from pandas import bdate_range
@@ -52,6 +51,7 @@ _RAISE_NETWORK_ERROR_DEFAULT = False
 def randbool(size=(), p=0.5):
     return rand(*size) <= p
 
+
 def rands(n):
     choices = string.ascii_letters + string.digits
     return ''.join(random.choice(choices) for _ in range(n))
@@ -64,7 +64,6 @@ def randu(n):
 
 #------------------------------------------------------------------------------
 # Console debugging tools
-
 
 def debug(f, *args, **kwargs):
     from pdb import Pdb as OldPdb
@@ -756,7 +755,7 @@ def optional_args(decorator):
     return wrapper
 
 
-_network_error_classes = IOError, HTTPException
+_network_error_classes = IOError, httplib.HTTPException
 
 
 @optional_args
@@ -800,13 +799,13 @@ def network(t, raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
       >>> import nose
       >>> @network
       ... def test_network():
-      ...   with urlopen("rabbit://bonanza.com") as f:
-      ...     pass
+      ...     with urlopen("rabbit://bonanza.com") as f:
+      ...         pass
       ...
       >>> try:
-      ...   test_network()
+      ...     test_network()
       ... except nose.SkipTest:
-      ...   print "SKIPPING!"
+      ...     print("SKIPPING!")
       ...
       SKIPPING!
 
@@ -815,8 +814,8 @@ def network(t, raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
 
       >>> @network(raise_on_error=True)
       ... def test_network():
-      ...   with urlopen("complaint://deadparrot.com") as f:
-      ...     pass
+      ...     with urlopen("complaint://deadparrot.com") as f:
+      ...         pass
       ...
       >>> test_network()
       Traceback (most recent call last):

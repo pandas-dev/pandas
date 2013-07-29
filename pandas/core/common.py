@@ -9,8 +9,11 @@ import codecs
 import csv
 import sys
 
+from distutils.version import LooseVersion
+
 from numpy.lib.format import read_array, write_array
 import numpy as np
+
 import pandas.algos as algos
 import pandas.lib as lib
 import pandas.tslib as tslib
@@ -227,6 +230,21 @@ def notnull(obj):
 
 
 def flatten(l):
+    """Flatten an arbitrarily nested sequence.
+
+    Parameters
+    ----------
+    l : sequence
+        The non string sequence to flatten
+
+    Notes
+    -----
+    This doesn't consider strings sequences.
+
+    Returns
+    -------
+    flattened : generator
+    """
     for el in l:
         if isinstance(el, collections.Iterable) and not is_string(el):
             for s in flatten(el):
@@ -1669,7 +1687,7 @@ def is_bool(obj):
 
 
 def is_string(obj):
-    return isinstance(obj, basestring)
+    return isinstance(obj, string_types)
 
 
 def is_series(obj):

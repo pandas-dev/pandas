@@ -2,26 +2,39 @@ import ast
 import operator
 import sys
 import inspect
-import itertools
 import tokenize
 import datetime
 
-from cStringIO import StringIO
 from functools import partial
 
 import pandas as pd
+from pandas import compat
+from pandas.compat import StringIO, zip, reduce, string_types
 from pandas.core.base import StringMixin
 from pandas.core import common as com
+from pandas.computation.common import NameResolutionError
 from pandas.computation.ops import (_cmp_ops_syms, _bool_ops_syms,
-                                    _arith_ops_syms, _unary_ops_syms)
-from pandas.computation.ops import _reductions, _mathops
-from pandas.computation.ops import BinOp, UnaryOp, Term, Constant
+                                    _arith_ops_syms, _unary_ops_syms, is_term)
+from pandas.computation.ops import _reductions, _mathops, _LOCAL_TAG
+from pandas.computation.ops import BinOp, UnaryOp, Term, Constant, Div
 
 
 def _ensure_scope(level=2, global_dict=None, local_dict=None, resolvers=None,
                   **kwargs):
     """ ensure that we are grabbing the correct scope """
     return Scope(global_dict, local_dict, level=level, resolvers=resolvers)
+
+
+def _check_disjoint_resolver_names(resolver_keys, local_keys, global_keys):
+    res_locals = com.intersection(resolver_keys, local_keys)
+    if res_locals:
+        msg = "resolvers and locals overlap on names {0}".format(res_locals)
+        raise NameResolutionError(msg)
+
+    res_globals = com.intersection(resolver_keys, global_keys)
+    if res_globals:
+        msg = "resolvers and globals overlap on names {0}".format(res_globals)
+        raise NameResolutionError(msg)
 
 
 class Scope(StringMixin):
@@ -75,12 +88,15 @@ class Scope(StringMixin):
         self.globals['True'] = True
         self.globals['False'] = False
 
+
         self.resolver_keys = frozenset(reduce(operator.add, (list(o.keys()) for
                                                              o in
                                                              self.resolvers),
                                               []))
         self._global_resolvers = self.resolvers + (self.locals, self.globals)
         self._resolver = None
+        self.resolver_dict = dict((k, self.resolve(k))
+                                  for k in self.resolver_keys)
 
     def __unicode__(self):
         return com.pprint_thing("locals: {0}\nglobals: {0}\nresolvers: "
@@ -89,20 +105,18 @@ class Scope(StringMixin):
                                              self.resolver_keys))
 
     def __getitem__(self, key):
-        return self.resolver(key)
+        return self.resolve(key, globally=False)
 
-    @property
-    def resolver(self):
-        if self._resolver is None:
-            def resolve_key(key):
-                for resolver in self._global_resolvers:
-                    try:
-                        return resolver[key]
-                    except KeyError:
-                        pass
-            self._resolver = resolve_key
+    def resolve(self, key, globally=False):
+        resolvers = self.locals, self.globals
+        if globally:
+            resolvers = self._global_resolvers
 
-        return self._resolver
+        for resolver in resolvers:
+            try:
+                return resolver[key]
+            except KeyError:
+                pass
 
     def update(self, level=None):
         """Update the current scope by going back `level` levels.
@@ -176,6 +190,10 @@ def _rewrite_assign(source):
 
 def _replace_booleans(source):
     return source.replace('|', ' or ').replace('&', ' and ')
+
+
+def _replace_locals(source, local_symbol='@'):
+    return source.replace(local_symbol, _LOCAL_TAG)
 
 
 def _preparse(source):
@@ -265,12 +283,14 @@ _op_classes = {'binary': BinOp, 'unary': UnaryOp}
 
 def add_ops(op_classes):
     def f(cls):
-        for op_attr_name, op_class in op_classes.iteritems():
+        for op_attr_name, op_class in compat.iteritems(op_classes):
             ops = getattr(cls, '{0}_ops'.format(op_attr_name))
             ops_map = getattr(cls, '{0}_op_nodes_map'.format(op_attr_name))
             for op in ops:
-                setattr(cls, 'visit_{0}'.format(ops_map[op]),
-                        _op_maker(op_class, op))
+                op_node = ops_map[op]
+                if op_node is not None:
+                    setattr(cls, 'visit_{0}'.format(op_node),
+                            _op_maker(op_class, op))
         return cls
     return f
 
@@ -278,26 +298,30 @@ def add_ops(op_classes):
 @disallow(_unsupported_nodes)
 @add_ops(_op_classes)
 class BaseExprVisitor(ast.NodeVisitor):
+    const_type = Constant
+    term_type = Term
 
     """Custom ast walker
     """
     binary_ops = _cmp_ops_syms + _bool_ops_syms + _arith_ops_syms
     binary_op_nodes = ('Gt', 'Lt', 'GtE', 'LtE', 'Eq', 'NotEq', 'BitAnd',
-                       'BitOr', 'And', 'Or', 'Add', 'Sub', 'Mult', 'Div',
+                       'BitOr', 'And', 'Or', 'Add', 'Sub', 'Mult', None,
                        'Pow', 'FloorDiv', 'Mod')
-    binary_op_nodes_map = dict(itertools.izip(binary_ops, binary_op_nodes))
+    binary_op_nodes_map = dict(zip(binary_ops, binary_op_nodes))
 
     unary_ops = _unary_ops_syms
     unary_op_nodes = 'UAdd', 'USub', 'Invert', 'Not'
-    unary_op_nodes_map = dict(itertools.izip(unary_ops, unary_op_nodes))
+    unary_op_nodes_map = dict(zip(unary_ops, unary_op_nodes))
 
-    def __init__(self, env, preparser=_preparse):
+    def __init__(self, env, engine, parser, preparser=_preparse):
         self.env = env
+        self.engine = engine
+        self.parser = parser
         self.preparser = preparser
 
     def visit(self, node, **kwargs):
         parse = ast.parse
-        if isinstance(node, basestring):
+        if isinstance(node, string_types):
             clean = self.preparser(node)
         elif isinstance(node, ast.AST):
             clean = node
@@ -325,21 +349,27 @@ class BaseExprVisitor(ast.NodeVisitor):
         right = self.visit(node.right, side='right')
         return op(left, right)
 
+    def visit_Div(self, node, **kwargs):
+        return lambda lhs, rhs: Div(lhs, rhs,
+                                    truediv=self.env.locals['truediv'])
+
     def visit_UnaryOp(self, node, **kwargs):
         op = self.visit(node.op)
-        return op(self.visit(node.operand))
+        operand = self.visit(node.operand)
+        return op(operand)
 
     def visit_Name(self, node, **kwargs):
-        return Term(node.id, self.env)
+        return self.term_type(node.id, self.env, **kwargs)
 
     def visit_Num(self, node, **kwargs):
-        return Constant(node.n, self.env)
+        return self.const_type(node.n, self.env)
 
     def visit_Str(self, node, **kwargs):
-        return Constant(node.s, self.env)
+        return self.const_type(node.s, self.env)
 
     def visit_List(self, node, **kwargs):
-        return Constant([self.visit(e).value for e in node.elts], self.env)
+        return self.const_type([self.visit(e).value for e in node.elts],
+                               self.env)
 
     visit_Tuple = visit_List
 
@@ -351,20 +381,18 @@ class BaseExprVisitor(ast.NodeVisitor):
         value = self.visit(node.value)
         slobj = self.visit(node.slice)
         expr = com.pprint_thing(slobj)
-        result = pd.eval(expr, local_dict=self.env.locals,
-                         global_dict=self.env.globals,
-                         resolvers=self.env.resolvers)
+        result = pd.eval(expr, local_dict=self.env, engine=self.engine,
+                         parser=self.parser)
         try:
             # a Term instance
             v = value.value[result]
         except AttributeError:
             # an Op instance
-            lhs = pd.eval(com.pprint_thing(value), local_dict=self.env.locals,
-                          global_dict=self.env.globals,
-                          resolvers=self.env.resolvers)
+            lhs = pd.eval(com.pprint_thing(value), local_dict=self.env,
+                          engine=self.engine, parser=self.parser)
             v = lhs[result]
         name = self.env.add_tmp(v)
-        return Term(name, env=self.env)
+        return self.term_type(name, env=self.env)
 
     def visit_Slice(self, node, **kwargs):
         """ df.index[slice(4,6)] """
@@ -396,7 +424,7 @@ class BaseExprVisitor(ast.NodeVisitor):
             try:
                 v = getattr(resolved, attr)
                 name = self.env.add_tmp(v)
-                return Term(name, self.env)
+                return self.term_type(name, self.env)
             except AttributeError:
                 # something like datetime.datetime where scope is overriden
                 if isinstance(value, ast.Name) and value.id == attr:
@@ -432,19 +460,25 @@ class BaseExprVisitor(ast.NodeVisitor):
         if node.kwargs is not None:
             keywords.update(self.visit(node.kwargs).value)
 
-        return Constant(res(*args, **keywords), self.env)
+        return self.const_type(res(*args, **keywords), self.env)
 
     def visit_Compare(self, node, **kwargs):
         ops = node.ops
         comps = node.comparators
+
+        def translate(op):
+            if isinstance(op,ast.In):
+                return ast.Eq()
+            return op
+
         if len(comps) == 1:
-            return self.visit(ops[0])(self.visit(node.left, side='left'),
-                                      self.visit(comps[0], side='right'))
+            return self.visit(translate(ops[0]))(self.visit(node.left, side='left'),
+                                                 self.visit(comps[0], side='right'))
         left = node.left
         values = []
-        for op, comp in itertools.izip(ops, comps):
+        for op, comp in zip(ops, comps):
             new_node = self.visit(ast.Compare(comparators=[comp], left=left,
-                                              ops=[op]))
+                                              ops=[translate(op)]))
             left = comp
             values.append(new_node)
         return self.visit(ast.BoolOp(op=ast.And(), values=values))
@@ -476,32 +510,43 @@ _numexpr_supported_calls = frozenset(_reductions + _mathops)
 @disallow((_unsupported_nodes | _python_not_supported) -
           (_boolop_nodes | frozenset(['BoolOp', 'Attribute'])))
 class PandasExprVisitor(BaseExprVisitor):
-    def __init__(self, env, preparser=_replace_booleans):
-        super(PandasExprVisitor, self).__init__(env, preparser)
+    def __init__(self, env, engine, parser,
+                 preparser=lambda x: _replace_locals(_replace_booleans(x))):
+        super(PandasExprVisitor, self).__init__(env, engine, parser, preparser)
 
 
 @disallow(_unsupported_nodes | _python_not_supported | frozenset(['Not']))
 class PythonExprVisitor(BaseExprVisitor):
-    def __init__(self, env, preparser=lambda x: x):
-        super(PythonExprVisitor, self).__init__(env, preparser=preparser)
+    def __init__(self, env, engine, parser, preparser=lambda x: x):
+        super(PythonExprVisitor, self).__init__(env, engine, parser,
+                                                preparser=preparser)
 
 
 class Expr(StringMixin):
+    """Expr object holding scope
 
-    """Expr object"""
-
+    Parameters
+    ----------
+    expr : str
+    engine : str, optional, default 'numexpr'
+    parser : str, optional, default 'pandas'
+    env : Scope, optional, default None
+    truediv : bool, optional, default True
+    level : int, optional, default 2
+    """
     def __init__(self, expr, engine='numexpr', parser='pandas', env=None,
-                 truediv=True):
+                 truediv=True, level=2):
         self.expr = expr
-        self.env = _ensure_scope(level=2,local_dict=env)
-        self._visitor = _parsers[parser](self.env)
-        self.terms = self.parse()
+        self.env = _ensure_scope(level=level, local_dict=env)
         self.engine = engine
+        self.parser = parser
+        self._visitor = _parsers[parser](self.env, self.engine, self.parser)
+        self.terms = self.parse()
         self.truediv = truediv
 
-    def __call__(self, env):
-        env.locals['truediv'] = self.truediv
-        return self.terms(env)
+    def __call__(self):
+        self.env.locals['truediv'] = self.truediv
+        return self.terms(self.env)
 
     def __unicode__(self):
         return com.pprint_thing(self.terms)
@@ -510,12 +555,30 @@ class Expr(StringMixin):
         return len(self.expr)
 
     def parse(self):
-        """return a Termset"""
+        """Parse an expression"""
         return self._visitor.visit(self.expr)
 
     def align(self):
         """align a set of Terms"""
         return self.terms.align(self.env)
+
+    @property
+    def names(self):
+        """Get the names in an expression"""
+        if is_term(self.terms):
+            return frozenset([self.terms.name])
+        return frozenset(term.name for term in com.flatten(self.terms))
+
+    def check_name_clashes(self):
+        env = self.env
+        names = self.names
+        res_keys = frozenset(env.resolver_dict.iterkeys()) & names
+        lcl_keys = frozenset(env.locals.iterkeys()) & names
+        gbl_keys = frozenset(env.globals.iterkeys()) & names
+        _check_disjoint_resolver_names(res_keys, lcl_keys, gbl_keys)
+
+    def add_resolvers_to_locals(self):
+        self.env.locals.update(self.env.resolver_dict)
 
 
 _needs_filter = frozenset(['and', 'or', 'not'])
@@ -523,7 +586,7 @@ _needs_filter = frozenset(['and', 'or', 'not'])
 
 def maybe_expression(s, kind='pandas'):
     """ loose checking if s is an expression """
-    if not isinstance(s, basestring):
+    if not isinstance(s, string_types):
         return False
     visitor = _parsers[kind]
     ops = visitor.binary_ops + visitor.unary_ops
@@ -534,15 +597,17 @@ def maybe_expression(s, kind='pandas'):
 
 
 def isexpr(s, check_names=True):
-    env = _ensure_scope()
     try:
-        Expr(s,env=env)
+        Expr(s, env=_ensure_scope() if check_names else None)
     except SyntaxError:
         return False
     except NameError:
         return not check_names
-    else:
-        return True
+    return True
+
+
+def _check_syntax(s):
+    ast.parse(s)
 
 
 _parsers = {'python': PythonExprVisitor, 'pandas': PandasExprVisitor}

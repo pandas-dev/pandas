@@ -1,10 +1,11 @@
 import warnings
 from functools import partial, wraps
-from itertools import izip
+from pandas.compat import zip, range
 
 import numpy as np
 
 import pandas as pd
+from pandas import compat
 import pandas.core.common as com
 from pandas.computation.ops import is_const
 
@@ -25,7 +26,7 @@ def _align_core_single_unary_op(term):
 
 def _zip_axes_from_type(typ, new_axes):
     axes = {}
-    for ax_ind, ax_name in typ._AXIS_NAMES.iteritems():
+    for ax_ind, ax_name in compat.iteritems(typ._AXIS_NAMES):
         axes[ax_name] = new_axes[ax_ind]
     return axes
 
@@ -47,7 +48,7 @@ def _maybe_promote_shape(values, naxes):
     axes_slice = [slice(None)] * naxes
 
     # set difference of numaxes and ndims
-    slices = com.difference(nax, ndim)
+    slices = list(set(nax) - set(ndim))
 
     if ndims == naxes:
         if slices:
@@ -100,7 +101,7 @@ def _align_core(terms):
     term_index = [i for i, term in enumerate(terms) if hasattr(term.value,
                                                                'axes')]
     term_dims = [terms[i].value.ndim for i in term_index]
-    ndims = pd.Series(dict(izip(term_index, term_dims)))
+    ndims = pd.Series(dict(zip(term_index, term_dims)))
 
     # initial axes are the axes of the largest-axis'd term
     biggest = terms[ndims.idxmax()].value
@@ -114,11 +115,10 @@ def _align_core(terms):
                 ax, itm = naxes - 1, term.value.index
             else:
                 ax, itm = axis, items
-            if not axes[ax].equals(itm):
-                axes[ax] = axes[ax].join(itm, how='outer')
+            axes[ax] = axes[ax].join(itm, how='outer')
 
-    for i, ndim in ndims.iteritems():
-        for axis, items in izip(xrange(ndim), axes):
+    for i, ndim in compat.iteritems(ndims):
+        for axis, items in zip(range(ndim), axes):
             ti = terms[i].value
 
             if hasattr(ti, 'reindex_axis'):
@@ -216,17 +216,21 @@ def _reconstruct_object(typ, obj, axes, dtype):
         An object of type ``typ`` with the value `obj` and possible axes
         `axes`.
     """
-    #import ipdb; ipdb.set_trace()
     try:
         typ = typ.type
     except AttributeError:
         pass
 
+    try:
+        res_t = np.result_type(obj.dtype, dtype)
+    except AttributeError:
+        res_t = dtype
+
     if (not isinstance(typ, partial) and
         issubclass(typ, pd.core.generic.PandasObject)):
-        return typ(obj, dtype=dtype, **axes)
+        return typ(obj, dtype=res_t, **axes)
 
-    ret_value = typ(obj).astype(dtype)
+    ret_value = typ(obj).astype(res_t)
 
     try:
         ret = ret_value.item()
