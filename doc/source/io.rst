@@ -1936,6 +1936,7 @@ specify. This behavior can be turned off by passing ``index=False`` to
    i = store.root.df.table.cols.index.index
    i.optlevel, i.kind
 
+See `here <http://stackoverflow.com/questions/17893370/ptrepack-sortby-needs-full-index>`__ for how to create a completely-sorted-index (CSI) on an existing store.
 
 Query via Data Columns
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -2182,8 +2183,7 @@ Notes & Caveats
      processes). If you need reading and writing *at the same time*, you
      need to serialize these operations in a single thread in a single
      process. You will corrupt your data otherwise. See the issue
-     <https://github.com/pydata/pandas/issues/2397> for more
-     information.
+     (:`2397`) for more information.
    - ``PyTables`` only supports fixed-width string columns in
      ``tables``. The sizes of a string based indexing column
      (e.g. *columns* or *minor_axis*) are determined as the maximum size
@@ -2333,7 +2333,7 @@ Performance
    - A ``PerformanceWarning`` will be raised if you are attempting to
      store types that will be pickled by PyTables (rather than stored as
      endemic types). See
-     <http://stackoverflow.com/questions/14355151/how-to-make-pandas-hdfstore-put-operation-faster/14370190#14370190>
+     `Here <http://stackoverflow.com/questions/14355151/how-to-make-pandas-hdfstore-put-operation-faster/14370190#14370190>`__
      for more information and some solutions.
 
 Experimental
