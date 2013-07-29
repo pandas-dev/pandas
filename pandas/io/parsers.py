@@ -1774,8 +1774,11 @@ def _try_convert_dates(parser, colspec, data_dict, columns):
 
 def _clean_na_values(na_values, keep_default_na=True):
 
-    if na_values is None and keep_default_na:
-        na_values = _NA_VALUES
+    if na_values is None:
+        if keep_default_na:
+            na_values = _NA_VALUES
+        else:
+            na_values = []
         na_fvalues = set()
     elif isinstance(na_values, dict):
         if keep_default_na:
