@@ -184,6 +184,8 @@ and behaviors. Series formerly subclassed directly from ``ndarray``. (:issue:`40
 - Bug in Series update where the parent frame is not updating its cache based on
   changes (:issue:`4080`) or types (:issue:`3217`), fillna (:issue:`3386`)
 
+- Indexing with dtype conversions fixed (:issue:`4463`, :issue:`4204`)
+
 **Experimental Features**
 
 **Bug Fixes**

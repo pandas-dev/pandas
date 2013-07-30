@@ -8,7 +8,8 @@ import numpy as np
 from pandas.core.base import PandasObject
 
 from pandas.core.common import (_possibly_downcast_to_dtype, isnull, _NS_DTYPE,
-                                _TD_DTYPE, ABCSeries, ABCSparseSeries)
+                                _TD_DTYPE, ABCSeries, ABCSparseSeries,
+                                is_list_like)
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
                                _handle_legacy_indexes)
 from pandas.core.indexing import _check_slice_bounds, _maybe_convert_indices
@@ -453,6 +454,32 @@ class Block(PandasObject):
             return [self.copy()]
         return self.putmask(mask, value, inplace=inplace)
 
+    def setitem(self, indexer, value):
+        """ set the value inplace; return a new block (of a possibly different dtype)
+            indexer is a direct slice/positional indexer; value must be a compaitable shape """
+
+        values = self.values
+        if self.ndim == 2:
+            values = values.T
+
+        # 2-d (DataFrame) are represented as a transposed array
+        if self._can_hold_element(value):
+            try:
+                values[indexer] = value
+                return [ self ]
+            except (IndexError):
+                return [ self ]
+            except:
+                pass
+
+        # create an indexing mask, the putmask which potentially changes the dtype
+        indices = np.arange(np.prod(values.shape)).reshape(values.shape)
+        mask = indices[indexer] == indices
+        if self.ndim == 2:
+            mask = mask.T
+
+        return self.putmask(mask, value, inplace=True)
+
     def putmask(self, mask, new, inplace=False):
         """ putmask the data to the block; it is possible that we may create a new dtype of block
             return the resulting block(s) """
@@ -764,7 +791,8 @@ class FloatBlock(NumericBlock):
     _downcast_dtype = 'int64'
 
     def _can_hold_element(self, element):
-        if isinstance(element, np.ndarray):
+        if is_list_like(element):
+            element = np.array(element)
             return issubclass(element.dtype.type, (np.floating, np.integer))
         return isinstance(element, (float, int))
 
@@ -814,7 +842,8 @@ class IntBlock(NumericBlock):
     _can_hold_na = False
 
     def _can_hold_element(self, element):
-        if isinstance(element, np.ndarray):
+        if is_list_like(element):
+            element = np.array(element)
             return issubclass(element.dtype.type, np.integer)
         return com.is_integer(element)
 
@@ -833,6 +862,9 @@ class BoolBlock(NumericBlock):
     _can_hold_na = False
 
     def _can_hold_element(self, element):
+        if is_list_like(element):
+            element = np.array(element)
+            return issubclass(element.dtype.type, np.integer)
         return isinstance(element, (int, bool))
 
     def _try_cast(self, element):
@@ -1023,6 +1055,9 @@ class DatetimeBlock(Block):
         return lib.Timestamp(self.values[arg])
 
     def _can_hold_element(self, element):
+        if is_list_like(element):
+            element = np.array(element)
+            return element.dtype == _NS_DTYPE
         return com.is_integer(element) or isinstance(element, datetime)
 
     def _try_cast(self, element):
@@ -1719,6 +1754,9 @@ class BlockManager(PandasObject):
 
     def eval(self, *args, **kwargs):
         return self.apply('eval', *args, **kwargs)
+
+    def setitem(self, *args, **kwargs):
+        return self.apply('setitem', *args, **kwargs)
 
     def putmask(self, *args, **kwargs):
         return self.apply('putmask', *args, **kwargs)

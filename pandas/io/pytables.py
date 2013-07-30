@@ -2673,13 +2673,9 @@ class Table(Storer):
 
         # reindex by our non_index_axes & compute data_columns
         for a in self.non_index_axes:
-<<<<<<< HEAD
-            obj = obj.reindex_axis(a[1], axis=a[0])
-=======
             labels = _ensure_index(a[1])
             if not labels.equals(obj._get_axis(a[0])):
                 obj = obj.reindex_axis(labels, axis=a[0])
->>>>>>> ENH/CLN: refactor of common code from frame/panel to generic.py
 
         # figure out data_columns and get out blocks
         block_obj = self.get_object(obj).consolidate()

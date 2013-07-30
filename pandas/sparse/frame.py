@@ -269,7 +269,6 @@ class SparseDataFrame(DataFrame):
     @property
     def default_kind(self):
         return self._default_kind
->>>>>>> ENH/CLN: refactor of common code from frame/panel to generic.py
 
     @property
     def density(self):

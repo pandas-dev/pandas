@@ -4,7 +4,7 @@ import sys
 import pickle
 import numpy as np
 import pandas
-from pandas.util import py3compat
+from pandas import compat
 from pandas.core.series import Series
 from pandas.sparse.series import SparseSeries
 
@@ -20,7 +20,7 @@ def load_reduce(self):
         elif n == 'DeprecatedSparseSeries':
             stack[-1] = object.__new__(SparseSeries)
             return
-            
+
     try:
         value = func(*args)
     except:
@@ -30,7 +30,7 @@ def load_reduce(self):
 
     stack[-1] = value
 
-if py3compat.PY3:
+if compat.PY3:
     class Unpickler(pickle._Unpickler):
         pass
 else:

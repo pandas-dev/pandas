@@ -109,7 +109,7 @@ def _arith_method(op, name, fill_zeros=None):
                 inferred_type = lib.infer_dtype(values)
                 if inferred_type in set(['datetime64','datetime','date','time']):
                     # a datetlike
-                    if not (isinstance(values, pa.Array) and com.is_datetime64_dtype(values)):
+                    if not (isinstance(values, (pa.Array, Series)) and com.is_datetime64_dtype(values)):
                         values = tslib.array_to_datetime(values)
                 elif inferred_type in set(['timedelta']):
                     # have a timedelta, convert to to ns here
@@ -553,7 +553,6 @@ class Series(generic.NDFrame):
                 data = data._data
             elif isinstance(data, dict):
                 if index is None:
-                    from pandas.util.compat import OrderedDict
                     if isinstance(data, OrderedDict):
                         index = Index(data)
                     else:
@@ -663,6 +662,21 @@ class Series(generic.NDFrame):
             object.__setattr__(self, '_subtyp', 'series')
 
     # ndarray compatibility
+    def item(self):
+        return self.values.item()
+
+    @property
+    def data(self):
+        return self.values.data
+
+    @property
+    def strides(self):
+        return self.values.strides
+
+    @property
+    def size(self):
+        return self.values.size
+
     @property
     def flags(self):
         return self.values.flags
@@ -730,13 +744,13 @@ class Series(generic.NDFrame):
     __float__ = _coerce_method(float)
     __long__ = _coerce_method(int)
     __int__ = _coerce_method(int)
-    __bool__ = _coerce_method(bool)
 
     def __nonzero__(self):
         # special case of a single element bool series degenerating to a scalar
         if self.dtype == np.bool_ and len(self) == 1:
             return bool(self.iloc[0])
         return not self.empty
+    __bool__ = __nonzero__
 
     # we are preserving name here
     def __getstate__(self):
@@ -966,9 +980,10 @@ class Series(generic.NDFrame):
                     except (TypeError):
                         pass
 
-            raise KeyError('%s not in this series!' % str(key))
+            self.loc[key] = value
+            return
 
-        except TypeError, e:
+        except TypeError as e:
             # python 3 type errors should be raised
             if 'unorderable' in str(e):  # pragma: no cover
                 raise IndexError(key)
@@ -1245,19 +1260,20 @@ class Series(generic.NDFrame):
         # time series
         if self.is_time_series:
             if self.index.freq is not None:
-                freqstr = 'Freq: %s, ' % self.index.freqstr
+                freqstr = u('Freq: %s, ') % self.index.freqstr
             else:
-                freqstr = ''
+                freqstr = u('')
 
-            namestr = "Name: %s, " % str(
+            namestr = u("Name: %s, ") % com.prrint_thing(
                 self.name) if self.name is not None else ""
-            return '%s%sLength: %d' % (freqstr, namestr, len(self))
+            return u('%s%sLength: %d') % (freqstr, namestr, len(self))
 
         # reg series
-        namestr = u"Name: %s, " % com.pprint_thing(
+        namestr = u("Name: %s, ") % com.pprint_thing(
             self.name) if self.name is not None else ""
-        return u('%sLength: %d, dtype: %s') % (namestr, len(self),
-                                             str(self.dtype.name))
+        return u('%sLength: %d, dtype: %s') % (namestr,
+                                               len(self),
+                                               str(self.dtype.name))
 
     def to_string(self, buf=None, na_rep='NaN', float_format=None,
                   nanRep=None, length=False, dtype=False, name=False):
@@ -1333,11 +1349,6 @@ class Series(generic.NDFrame):
         Lazily iterate over (index, value) tuples
         """
         return lzip(iter(self.index), iter(self))
-
-    def iterkv(self):
-        warnings.warn("iterkv is deprecated and will be removed in a future "
-                      "release. Use ``iteritems`` instead", DeprecationWarning)
-        return self.iteritems()
 
     if compat.PY3:  # pragma: no cover
         items = iteritems
