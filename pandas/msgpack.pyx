@@ -110,7 +110,7 @@ cdef class Packer(object):
     * *defaut* - Convert user type to builtin type that Packer supports.
       See also simplejson's document.
     * *encoding* - Convert unicode to bytes with this encoding. (default: 'utf-8')
-    * *unicode_erros* - Error handler for encoding unicode. (default: 'strict')
+    * *unicode_errors* - Error handler for encoding unicode. (default: 'strict')
     * *use_single_float* - Use single precision float type for float. (default: False)
     * *autoreset* - Reset buffer after each pack and return it's content as `bytes`. (default: True).
       If set this to false, use `bytes()` to get content and `.reset()` to clear buffer.
@@ -242,7 +242,7 @@ cdef class Packer(object):
                     if ret != 0: break
 
         # ndarray support ONLY (and float64/int64) for now
-        elif isinstance(o, np.ndarray) and not hasattr(o,'values') and (o.dtype == 'float64' or o.dtype == 'int64'): 
+        elif isinstance(o, np.ndarray) and not hasattr(o,'values') and (o.dtype == 'float64' or o.dtype == 'int64'):
 
             ret = msgpack_pack_map(&self.pk, 5)
             if ret != 0: return -1
@@ -276,7 +276,7 @@ cdef class Packer(object):
                 for i in range(n):
 
                    i8val = array_int[i]
-                   ret = msgpack_pack_long(&self.pk, i8val)
+                   ret = msgpack_pack_long_long(&self.pk, i8val)
                    if ret != 0: break
 
         elif self._default:

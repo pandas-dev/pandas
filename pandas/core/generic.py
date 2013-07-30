@@ -806,6 +806,21 @@ class NDFrame(PandasObject):
         return pytables.to_hdf(path_or_buf, key, self, **kwargs)
 
     def to_msgpack(self, path_or_buf, **kwargs):
+        """
+        msgpack (serialize) object to input file path
+
+        THIS IS AN EXPERIMENTAL LIBRARY and the storage format
+        may not be stable until a future release.
+
+        Parameters
+        ----------
+        path : string File path
+        args : an object or objects to serialize
+        append : boolean whether to append to an existing msgpack
+                (default is False)
+        compress : type of compressor (zlib or blosc), default to None (no compression)
+        """
+
         from pandas.io import packers
         return packers.to_msgpack(path_or_buf, self, **kwargs)
 

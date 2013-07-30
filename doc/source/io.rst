@@ -36,7 +36,7 @@ object.
     * ``read_hdf``
     * ``read_sql``
     * ``read_json``
-    * ``read_msgpack``
+    * ``read_msgpack`` (experimental)
     * ``read_html``
     * ``read_stata``
     * ``read_clipboard``
@@ -49,7 +49,7 @@ The corresponding ``writer`` functions are object methods that are accessed like
     * ``to_hdf``
     * ``to_sql``
     * ``to_json``
-    * ``to_msgpack``
+    * ``to_msgpack`` (experimental)
     * ``to_html``
     * ``to_stata``
     * ``to_clipboard``
@@ -1737,23 +1737,23 @@ module is installed you can use it as a xlsx writer engine as follows:
 Serialization
 -------------
 
-msgpack
-~~~~~~~
+msgpack (experimental)
+~~~~~~~~~~~~~~~~~~~~~~
 
 .. _io.msgpack:
 
-.. versionadded:: 0.11.1
+.. versionadded:: 0.13.0
 
-Starting in 0.11.1, pandas is supporting the ``msgpack`` format for 
+Starting in 0.13.0, pandas is supporting the ``msgpack`` format for
 object serialization. This is a lightweight portable binary format, similar
-to binary JSON, that is highly space efficient, and provides good performance 
+to binary JSON, that is highly space efficient, and provides good performance
 both on the writing (serialization), and reading (deserialization).
 
 .. warning::
 
-   This is a very new feature of pandas. We intend to provide certain 
+   This is a very new feature of pandas. We intend to provide certain
    optimizations in the io of the ``msgpack`` data. We do not intend this
-   format to change (and will be backward compatible if we do).
+   format to change (however it is experimental)
 
 .. ipython:: python
 

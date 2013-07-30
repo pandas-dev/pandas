@@ -49,9 +49,11 @@ import warnings
 from dateutil.parser import parse
 
 import numpy as np
+from pandas import compat
+from pandas.compat import u
 from pandas import (
     Timestamp, Period, Series, TimeSeries, DataFrame, Panel, Panel4D,
-    Index, MultiIndex, Int64Index, PeriodIndex, DatetimeIndex, NaT
+    Index, MultiIndex, Int64Index, PeriodIndex, DatetimeIndex, Float64Index, NaT
 )
 from pandas.sparse.api import SparseSeries, SparseDataFrame, SparsePanel
 from pandas.sparse.array import BlockIndex, IntIndex
@@ -80,12 +82,13 @@ def to_msgpack(path, *args, **kwargs):
     """
     msgpack (serialize) object to input file path
 
+    THIS IS AN EXPERIMENTAL LIBRARY and the storage format
+    may not be stable until a future release.
+
     Parameters
     ----------
-    path : string
-        File path
+    path : string File path
     args : an object or objects to serialize
-
     append : boolean whether to append to an existing msgpack
              (default is False)
     compress : type of compressor (zlib or blosc), default to None (no compression)
@@ -112,6 +115,9 @@ def read_msgpack(path, iterator=False, **kwargs):
     Load msgpack pandas object from the specified
     file path
 
+    THIS IS AN EXPERIMENTAL LIBRARY and the storage format
+    may not be stable until a future release.
+
     Parameters
     ----------
     path : string
@@ -134,11 +140,11 @@ def read_msgpack(path, iterator=False, **kwargs):
         return l
 
 dtype_dict = { 21 : np.dtype('M8[ns]'),
-               u'datetime64[ns]' : np.dtype('M8[ns]'),
-               u'datetime64[us]' : np.dtype('M8[us]'),
+               u('datetime64[ns]') : np.dtype('M8[ns]'),
+               u('datetime64[us]') : np.dtype('M8[us]'),
                22 : np.dtype('m8[ns]'),
-               u'timedelta64[ns]' : np.dtype('m8[ns]'),
-               u'timedelta64[us]' : np.dtype('m8[us]') }
+               u('timedelta64[ns]') : np.dtype('m8[ns]'),
+               u('timedelta64[us]') : np.dtype('m8[us]') }
 
 def dtype_for(t):
     if t in dtype_dict:
@@ -157,7 +163,7 @@ def c2f(r, i, ctype_name):
     """
     Convert strings to complex number instance with specified numpy type.
     """
-    
+
     ftype = c2f_dict[ctype_name]
     return np.typeDict[ctype_name](ftype(r)+1j*ftype(i))
 
@@ -224,7 +230,7 @@ def encode(obj):
     """
     Data encoder
     """
-        
+
     tobj = type(obj)
     if isinstance(obj, Index):
         if isinstance(obj, PeriodIndex):
@@ -281,7 +287,7 @@ def encode(obj):
                  'columns' : obj.columns }
             for f in ['default_fill_value','default_kind']:
                 d[f] = getattr(obj,f,None)
-            d['data'] = dict([ (name,ss) for name,ss in obj.iterkv() ])
+            d['data'] = dict([ (name,ss) for name,ss in compat.iteritems(obj) ])
             return d
         elif isinstance(obj, SparsePanel):
             d = {'typ' : 'sparse_panel',
@@ -289,7 +295,7 @@ def encode(obj):
                  'items' : obj.items }
             for f in ['default_fill_value','default_kind']:
                 d[f] = getattr(obj,f,None)
-            d['data'] = dict([ (name,df) for name,df in obj.iterkv() ])
+            d['data'] = dict([ (name,df) for name,df in compat.iteritems(obj) ])
             return d
         else:
 
@@ -301,8 +307,8 @@ def encode(obj):
             return {'typ' : 'block_manager',
                     'klass'  : obj.__class__.__name__,
                     'axes'   : data.axes,
-                    'blocks' : [ { 'items'  : b.items, 
-                                   'values' : convert(b.values), 
+                    'blocks' : [ { 'items'  : b.items,
+                                   'values' : convert(b.values),
                                    'shape'  : b.values.shape,
                                    'dtype'  : b.dtype.num,
                                    'klass' : b.__class__.__name__,
@@ -381,7 +387,7 @@ def decode(obj):
     """
     Decoder for deserializing numpy data types.
     """
-    
+
     typ = obj.get('typ')
     if typ is None:
         return obj
@@ -408,7 +414,7 @@ def decode(obj):
 
         def create_block(b):
             dtype = dtype_for(b['dtype'])
-            return make_block(unconvert(b['values'],dtype,b['compress']).reshape(b['shape']),b['items'],axes[0],klass=getattr(internals,b['klass'])) 
+            return make_block(unconvert(b['values'],dtype,b['compress']).reshape(b['shape']),b['items'],axes[0],klass=getattr(internals,b['klass']))
 
         blocks = [ create_block(b) for b in obj['blocks'] ]
         return globals()[obj['klass']](BlockManager(blocks, axes))
@@ -454,17 +460,17 @@ def decode(obj):
     else:
         return obj
 
-def pack(o, default=encode, 
+def pack(o, default=encode,
          encoding='utf-8', unicode_errors='strict', use_single_float=False):
     """
     Pack an object and return the packed bytes.
     """
 
     return Packer(default=default, encoding=encoding,
-           unicode_errors=unicode_errors, 
+           unicode_errors=unicode_errors,
            use_single_float=use_single_float).pack(o)
 
-def unpack(packed, object_hook=decode, 
+def unpack(packed, object_hook=decode,
            list_hook=None, use_list=False, encoding='utf-8',
            unicode_errors='strict', object_pairs_hook=None):
     """
@@ -473,17 +479,17 @@ def unpack(packed, object_hook=decode,
     """
 
     return Unpacker(packed, object_hook=object_hook,
-                    list_hook=list_hook, 
+                    list_hook=list_hook,
                     use_list=use_list, encoding=encoding,
-                    unicode_errors=unicode_errors, 
+                    unicode_errors=unicode_errors,
                     object_pairs_hook=object_pairs_hook)
 
 class Packer(_Packer):
-    def __init__(self, default=encode, 
+    def __init__(self, default=encode,
                  encoding='utf-8',
                  unicode_errors='strict',
                  use_single_float=False):
-        super(Packer, self).__init__(default=default, 
+        super(Packer, self).__init__(default=default,
                                      encoding=encoding,
                                      unicode_errors=unicode_errors,
                                      use_single_float=use_single_float)
@@ -493,14 +499,14 @@ class Unpacker(_Unpacker):
                  object_hook=decode,
                  object_pairs_hook=None, list_hook=None, encoding='utf-8',
                  unicode_errors='strict', max_buffer_size=0):
-        super(Unpacker, self).__init__(file_like=file_like, 
-                                       read_size=read_size,    
-                                       use_list=use_list, 
-                                       object_hook=object_hook, 
-                                       object_pairs_hook=object_pairs_hook, 
+        super(Unpacker, self).__init__(file_like=file_like,
+                                       read_size=read_size,
+                                       use_list=use_list,
+                                       object_hook=object_hook,
+                                       object_pairs_hook=object_pairs_hook,
                                        list_hook=list_hook,
-                                       encoding=encoding, 
-                                       unicode_errors=unicode_errors, 
+                                       encoding=encoding,
+                                       unicode_errors=unicode_errors,
                                        max_buffer_size=max_buffer_size)
 
 class Iterator(object):

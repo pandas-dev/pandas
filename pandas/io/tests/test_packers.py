@@ -7,6 +7,8 @@ import warnings
 import datetime
 import numpy as np
 
+from pandas import compat
+from pandas.compat import u
 from pandas import (Series, DataFrame, Panel, MultiIndex, bdate_range,
                     date_range, period_range, Index, SparseSeries, SparseDataFrame,
                     SparsePanel)
@@ -146,7 +148,7 @@ class TestNumpy(Test):
                        x.dtype == x_rec.dtype)
 
     def test_list_mixed(self):
-        x = [1.0, np.float32(3.5), np.complex128(4.25), u'foo']
+        x = [1.0, np.float32(3.5), np.complex128(4.25), u('foo')]
         x_rec = self.encode_decode(x)
         self.assert_(all(map(lambda x,y: x == y, x, x_rec)) and \
                            all(map(lambda x,y: type(x) == type(y), x, x_rec)))
