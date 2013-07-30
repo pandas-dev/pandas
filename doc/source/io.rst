@@ -546,6 +546,53 @@ The ``thousands`` keyword allows integers to be parsed correctly
 
    os.remove('tmp.csv')
 
+.. _io.na_values:
+
+NA Values
+~~~~~~~~~
+
+To control which values are parsed as missing values (which are signified by ``NaN``), specifiy a
+list of strings in ``na_values``. If you specify a number (a ``float``, like ``5.0`` or an ``integer`` like ``5``),
+the corresponding equivalent values will also imply a missing value (in this case effectively
+``[5.0,5]`` are recognized as ``NaN``.
+
+To completely override the default values that are recognized as missing, specify ``keep_default_na=False``.
+The default ``NaN`` recognized values are ``['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', 'NA',
+'#NA', 'NULL', 'NaN', 'nan']``.
+
+.. code-block:: python
+
+   read_csv(path, na_values=[5])
+
+the default values, in addition to ``5`` , ``5.0`` when interpreted as numbers are recognized as ``NaN``
+
+.. code-block:: python
+
+   read_csv(path, keep_default_na=False, na_values=[""])
+
+only an empty field will be ``NaN``
+
+.. code-block:: python
+
+   read_csv(path, keep_default_na=False, na_values=["NA", "0"])
+
+only ``NA`` and ``0`` as strings are ``NaN``
+
+.. code-block:: python
+
+   read_csv(path, na_values=["Nope"])
+
+the default values, in addition to the string ``"Nope"`` are recognized as ``NaN``
+
+.. _io.infinity:
+
+Infinity
+~~~~~~~~
+
+``inf`` like values will be parsed as ``np.inf`` (positive infinity), and ``-inf`` as ``-np.inf`` (negative infinity).
+These will ignore the case of the value, meaning ``Inf``, will also be parsed as ``np.inf``.
+
+
 .. _io.comments:
 
 Comments
