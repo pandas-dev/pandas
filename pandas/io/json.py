@@ -52,19 +52,24 @@ class Writer(object):
         self._format_axes()
         self._format_dates()
 
+    def _needs_to_date(self, obj):
+        return obj.dtype == 'datetime64[ns]'
+
     def _format_dates(self):
         raise NotImplementedError
 
     def _format_axes(self):
         raise NotImplementedError
 
-    def _needs_to_date(self, data):
-        return self.date_format == 'iso' and data.dtype == 'datetime64[ns]'
-
     def _format_to_date(self, data):
-        if self._needs_to_date(data):
+
+        # iso
+        if self.date_format == 'iso':
             return data.apply(lambda x: x.isoformat())
-        return data
+
+        # int64
+        else:
+            return data.astype(np.int64)
 
     def copy_if_needed(self):
         """ copy myself if necessary """
@@ -87,13 +92,11 @@ class SeriesWriter(Writer):
             self.obj.index = self._format_to_date(self.obj.index.to_series())
 
     def _format_dates(self):
-        if self._needs_to_date(self.obj):
-            self.copy_if_needed()
+        if self.obj.dtype == 'datetime64[ns]':
             self.obj = self._format_to_date(self.obj)
 
     def _format_bools(self):
         if self._needs_to_bool(self.obj):
-            self.copy_if_needed()
             self.obj = self._format_to_bool(self.obj)
 
 class FrameWriter(Writer):
@@ -123,13 +126,22 @@ class FrameWriter(Writer):
             setattr(self.obj,axis,self._format_to_date(a.to_series()))
 
     def _format_dates(self):
-        if self.date_format == 'iso':
-            dtypes = self.obj.dtypes
-            dtypes = dtypes[dtypes == 'datetime64[ns]']
-            if len(dtypes):
-                self.copy_if_needed()
-                for c in dtypes.index:
-                    self.obj[c] = self._format_to_date(self.obj[c])
+        dtypes = self.obj.dtypes
+        if len(dtypes[dtypes == 'datetime64[ns]']):
+
+            # need to create a new object
+            d = {}
+
+            for i, (col, c) in enumerate(self.obj.iteritems()):
+
+                if c.dtype == 'datetime64[ns]':
+                    c = self._format_to_date(c)
+
+                d[i] = c
+
+            d = DataFrame(d,index=self.obj.index)
+            d.columns = self.obj.columns
+            self.obj = d
 
 def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
               convert_axes=True, convert_dates=True, keep_default_dates=True,
@@ -291,14 +303,16 @@ class Parser(object):
             except:
                 pass
 
-        if data.dtype == 'float':
+        if data.dtype.kind == 'f':
 
-            # coerce floats to 64
-            try:
-                data = data.astype('float64')
-                result = True
-            except:
-                pass
+            if data.dtype != 'float64':
+
+                # coerce floats to 64
+                try:
+                    data = data.astype('float64')
+                    result = True
+                except:
+                    pass
 
         # do't coerce 0-len data
         if len(data) and (data.dtype == 'float' or data.dtype == 'object'):
@@ -448,14 +462,35 @@ class FrameParser(Parser):
             self.obj = DataFrame(
                 loads(json, precise_float=self.precise_float), dtype=None)
 
+    def _process_converter(self, f, filt=None):
+        """ take a conversion function and possibly recreate the frame """
+
+        if filt is None:
+            filt = lambda col, c: True
+
+        needs_new_obj = False
+        new_obj = dict()
+        for i, (col, c) in enumerate(self.obj.iteritems()):
+            if filt(col, c):
+                new_data, result = f(col, c)
+                if result:
+                    c = new_data
+                    needs_new_obj = True
+            new_obj[i] = c
+
+        if needs_new_obj:
+
+            # possibly handle dup columns
+            new_obj = DataFrame(new_obj,index=self.obj.index)
+            new_obj.columns = self.obj.columns
+            self.obj = new_obj
+
     def _try_convert_types(self):
         if self.obj is None: return
         if self.convert_dates:
             self._try_convert_dates()
-        for col in self.obj.columns:
-            new_data, result = self._try_convert_data(col, self.obj[col], convert_dates=False)
-            if result:
-                self.obj[col] = new_data
+
+        self._process_converter(lambda col, c: self._try_convert_data(col, c, convert_dates=False))
 
     def _try_convert_dates(self):
         if self.obj is None: return
@@ -478,9 +513,6 @@ class FrameParser(Parser):
                     return True
             return False
 
+        self._process_converter(lambda col, c: self._try_convert_to_date(c),
+                                lambda col, c: (self.keep_default_dates and is_ok(col)) or col in convert_dates)
 
-        for col in self.obj.columns:
-            if (self.keep_default_dates and is_ok(col)) or col in convert_dates:
-                new_data, result = self._try_convert_to_date(self.obj[col])
-                if result:
-                    self.obj[col] = new_data
