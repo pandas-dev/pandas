@@ -74,6 +74,8 @@ pandas 0.13
     (:issue:`4102`, :issue:`4014`) in ``*.hist`` plotting methods
   - Fixed bug in ``PeriodIndex.map`` where using ``str`` would return the str
     representation of the index (:issue:`4136`)
+  - Fixed test failure ``test_time_series_plot_color_with_empty_kwargs`` when
+    using custom matplotlib default colors (:issue:`4345`)
   - Fix running of stata IO tests. Now uses temporary files to write
     (:issue:`4353`)
   - Fixed an issue where ``DataFrame.sum`` was slower than ``DataFrame.mean``

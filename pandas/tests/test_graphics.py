@@ -917,7 +917,10 @@ class TestDataFrameGroupByPlots(unittest.TestCase):
         self.assert_(line.get_color() == 'green')
 
     def test_time_series_plot_color_with_empty_kwargs(self):
+        import matplotlib as mpl
         import matplotlib.pyplot as plt
+        
+        def_colors = mpl.rcParams['axes.color_cycle']
 
         plt.close('all')
         for i in range(3):
@@ -925,7 +928,7 @@ class TestDataFrameGroupByPlots(unittest.TestCase):
                                                             periods=12)).plot()
 
         line_colors = [l.get_color() for l in ax.get_lines()]
-        self.assert_(line_colors == ['b', 'g', 'r'])
+        self.assertEqual(line_colors, def_colors[:3])
 
     @slow
     def test_grouped_hist(self):
