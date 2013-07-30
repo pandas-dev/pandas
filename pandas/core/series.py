@@ -1018,7 +1018,7 @@ class Series(generic.PandasContainer, pa.Array):
         -------
         value : scalar value
         """
-        return self.index._engine.get_value(self, label)
+        return self.index.get_value(self, label)
 
     def set_value(self, label, value):
         """

@@ -629,7 +629,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertEqual(self.series[idx1], self.series[5])
         self.assertEqual(self.objSeries[idx2], self.objSeries[5])
 
-        self.assert_(self.series.get(-1) is None)
+        self.assertEqual(self.series.get(-1), self.series.get(self.series.index[-1]))
         self.assertEqual(self.series[5], self.series.get(self.series.index[5]))
 
         # missing
