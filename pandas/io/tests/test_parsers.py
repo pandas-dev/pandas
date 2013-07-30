@@ -2138,6 +2138,28 @@ a,b,c
         self.assertRaises(ValueError, self.read_csv, StringIO(data),
                           names=['a', 'b'], usecols=[1], header=None)
 
+    def test_usecols_dtypes(self):
+        data = """\
+1,2,3
+4,5,6
+7,8,9
+10,11,12"""
+        result = self.read_csv(StringIO(data), usecols=(0, 1, 2), 
+                               names=('a', 'b', 'c'), 
+                               header=None,
+                               converters={'a': str},
+                               dtype={'b': int, 'c': float},
+                              )                               
+        result2 = self.read_csv(StringIO(data), usecols=(0, 2),
+                               names=('a', 'b', 'c'), 
+                               header=None,
+                               converters={'a': str},
+                               dtype={'b': int, 'c': float},
+                              )
+        self.assertTrue((result.dtypes == [object, np.int, np.float]).all())
+        self.assertTrue((result2.dtypes == [object, np.float]).all())
+
+
     def test_usecols_implicit_index_col(self):
         # #2654
         data = 'a,b,c\n4,apple,bat,5.7\n8,orange,cow,10'
