@@ -555,6 +555,15 @@ class TestIndex(unittest.TestCase):
         idx = Index(['a', 'b'], name='asdf')
         self.assertEqual(idx.name, idx[1:].name)
 
+    def test_join_self(self):
+        indices = 'unicode', 'str', 'date', 'int', 'float'
+        kinds = 'outer', 'inner', 'left', 'right'
+        for index_kind in indices:
+            for kind in kinds:
+                res = getattr(self, '{0}Index'.format(index_kind))
+                joined = res.join(res, how=kind)
+                self.assert_(res is joined)
+
 
 class TestInt64Index(unittest.TestCase):
     _multiprocess_can_split_ = True
@@ -833,6 +842,12 @@ class TestInt64Index(unittest.TestCase):
 
         exp_ridx = np.array([2, 3, 2, 3, 0, 1, 0, 1], dtype=np.int64)
         self.assert_(np.array_equal(ridx, exp_ridx))
+
+    def test_join_self(self):
+        kinds = 'outer', 'inner', 'left', 'right'
+        for kind in kinds:
+            joined = self.index.join(self.index, how=kind)
+            self.assert_(self.index is joined)
 
     def test_intersection(self):
         other = Index([1, 2, 3, 4, 5])
@@ -1726,6 +1741,13 @@ class TestMultiIndex(unittest.TestCase):
         tm.assert_isinstance(result, MultiIndex)
 
         self.assertRaises(Exception, self.index.join, self.index, level=1)
+
+    def test_join_self(self):
+        kinds = 'outer', 'inner', 'left', 'right'
+        for kind in kinds:
+            res = self.index
+            joined = res.join(res, how=kind)
+            self.assert_(res is joined)
 
     def test_reindex(self):
         result, indexer = self.index.reindex(list(self.index[:4]))
