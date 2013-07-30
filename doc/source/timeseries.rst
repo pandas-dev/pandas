@@ -333,7 +333,7 @@ We are stopping on the included end-point as its part of the index
 
 .. warning::
 
-   The following selection will raises a ``KeyError``; otherwise this selection methodology
+   The following selection will raise a ``KeyError``; otherwise this selection methodology
    would be inconsistent with other selection methods in pandas (as this is not a *slice*, nor does it
    resolve to one)
 
