@@ -13,7 +13,7 @@ from pandas.tseries.tools import parse_time_string
 import pandas.tseries.frequencies as _freq_mod
 
 import pandas.core.common as com
-from pandas.core.common import (isnull, _NS_DTYPE, _INT64_DTYPE
+from pandas.core.common import (isnull, _NS_DTYPE, _INT64_DTYPE,
                                 _maybe_box, _values_from_object)
 from pandas import compat
 from pandas.lib import Timestamp

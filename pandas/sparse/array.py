@@ -12,6 +12,7 @@ from pandas.core.base import PandasObject
 import pandas.core.common as com
 
 from pandas import compat
+from pandas.compat import range
 
 from pandas._sparse import BlockIndex, IntIndex
 import pandas._sparse as splib
@@ -284,7 +285,7 @@ to sparse
         return values
 
     def __iter__(self):
-        for i in xrange(len(self)):
+        for i in range(len(self)):
             yield self._get_val_at(i)
         raise StopIteration
 

@@ -1,27 +1,22 @@
 # pylint: disable=W0231,E1101
 import warnings
-from pandas import compat
-import itertools
 import operator
 import weakref
 import numpy as np
 import pandas.lib as lib
-from pandas.core.base import PandasObject
 
+from pandas.core.base import PandasObject
 from pandas.core.index import Index, MultiIndex, _ensure_index
 import pandas.core.indexing as indexing
 from pandas.core.indexing import _maybe_convert_indices
 from pandas.tseries.index import DatetimeIndex
 from pandas.core.internals import BlockManager
-import pandas.lib as lib
-from pandas.util import py3compat
 import pandas.core.common as com
+from pandas import compat
 from pandas.compat import map, zip
 from pandas.core.common import (isnull, notnull, is_list_like,
                                 _values_from_object,
                                 _infer_dtype_from_scalar, _maybe_promote)
-from pandas.core.base import PandasObject
-
 
 class NDFrame(PandasObject):
 
@@ -78,35 +73,6 @@ class NDFrame(PandasObject):
     def _constructor(self):
         raise NotImplementedError
 
-<<<<<<< HEAD
-    def to_pickle(self, path):
-        """
-        Pickle (serialize) object to input file path
-
-        Parameters
-        ----------
-        path : string
-            File path
-        """
-        from pandas.io.pickle import to_pickle
-        return to_pickle(self, path)
-
-    def save(self, path):  # TODO remove in 0.13
-        from pandas.io.pickle import to_pickle
-        warnings.warn("save is deprecated, use to_pickle", FutureWarning)
-        return to_pickle(self, path)
-
-    def load(self, path):  # TODO remove in 0.13
-        from pandas.io.pickle import read_pickle
-        warnings.warn("load is deprecated, use pd.read_pickle", FutureWarning)
-        return read_pickle(path)
-
-=======
->>>>>>> CLN: rebase to 0.12
-    def __hash__(self):
-        raise TypeError('{0!r} objects are mutable, thus they cannot be'
-                        ' hashed'.format(self.__class__.__name__))
-
     def __unicode__(self):
         # unicode representation based upon iterating over self
         # (since, by definition, `PandasContainers` are iterable)
@@ -136,12 +102,12 @@ class NDFrame(PandasObject):
             """
 
         cls._AXIS_ORDERS = axes
-        cls._AXIS_NUMBERS = dict([(a, i) for i, a in enumerate(axes)])
+        cls._AXIS_NUMBERS = dict((a, i) for i, a in enumerate(axes))
         cls._AXIS_LEN = len(axes)
         cls._AXIS_ALIASES = aliases or dict()
-        cls._AXIS_IALIASES = dict([(v, k)
-                                  for k, v in cls._AXIS_ALIASES.items()])
-        cls._AXIS_NAMES = dict([(i, a) for i, a in enumerate(axes)])
+        cls._AXIS_IALIASES = dict((v, k)
+                                  for k, v in cls._AXIS_ALIASES.items())
+        cls._AXIS_NAMES = dict(enumerate(axes))
         cls._AXIS_SLICEMAP = slicers or None
         cls._AXIS_REVERSED = axes_are_reversed
 
@@ -295,23 +261,6 @@ class NDFrame(PandasObject):
         """ we do it this way because if we have reversed axes, then
         the block manager shows then reversed """
         return [self._get_axis(a) for a in self._AXIS_ORDERS]
-
-    def _construct_axes_dict(self, axes=None, **kwargs):
-        """ return an axes dictionary for myself """
-        d = dict([(a, getattr(self, a)) for a in (axes or self._AXIS_ORDERS)])
-        d.update(kwargs)
-        return d
-
-    @staticmethod
-    def _construct_axes_dict_from(self, axes, **kwargs):
-        """ return an axes dictionary for the passed axes """
-        d = dict([(a, ax) for a, ax in zip(self._AXIS_ORDERS, axes)])
-        d.update(kwargs)
-        return d
-
-    @property
-    def values(self):
-        return self._data.as_matrix()
 
     @property
     def ndim(self):
@@ -470,9 +419,6 @@ class NDFrame(PandasObject):
     def _indexed_same(self, other):
         return all([self._get_axis(a).equals(other._get_axis(a)) for a in self._AXIS_ORDERS])
 
-    def reindex(self, *args, **kwds):
-        raise NotImplementedError
-
     def __neg__(self):
         arr = operator.neg(_values_from_object(self))
         return self._wrap_array(arr, self.axes, copy=False)
@@ -485,7 +431,8 @@ class NDFrame(PandasObject):
     # Iteration
 
     def __hash__(self):
-        raise TypeError
+        raise TypeError('{0!r} objects are mutable, thus they cannot be'
+                        ' hashed'.format(self.__class__.__name__))
 
     def __iter__(self):
         """
@@ -507,7 +454,6 @@ class NDFrame(PandasObject):
         warnings.warn("iterkv is deprecated and will be removed in a future "
                       "release, use ``iteritems`` instead.", DeprecationWarning)
         return self.iteritems(*args, **kwargs)
-
 
     def __len__(self):
         """Returns length of info axis """
@@ -1170,7 +1116,7 @@ class NDFrame(PandasObject):
         if items is not None:
             return self.reindex(**{axis_name: [r for r in items if r in axis_values]})
         elif like:
-            matchf = lambda x: (like in x if isinstance(x, basestring)
+            matchf = lambda x: (like in x if isinstance(x, compat.string_types)
                                 else like in str(x))
             return self.select(matchf, axis=axis_name)
         elif regex:
@@ -1317,6 +1263,7 @@ class NDFrame(PandasObject):
 
     def get_ftype_counts(self):
         """ return the counts of ftypes in this frame """
+        from pandas import Series
         return Series(self._data.get_ftype_counts())
 
     def as_blocks(self, columns=None):
@@ -1478,7 +1425,7 @@ class NDFrame(PandasObject):
                                               'by column')
 
                 result = self if inplace else self.copy()
-                for k, v in value.iteritems():
+                for k, v in compat.iteritems(value):
                     if k not in result:
                         continue
                     obj = result[k]
@@ -1627,7 +1574,7 @@ class NDFrame(PandasObject):
                 regex = True
 
             items = to_replace.items()
-            keys, values = itertools.izip(*items)
+            keys, values = zip(*items)
 
             are_mappings = [is_dictlike(v) for v in values]
 
@@ -1661,7 +1608,7 @@ class NDFrame(PandasObject):
             if is_dictlike(to_replace):
                 if is_dictlike(value):  # {'A' : NA} -> {'A' : 0}
                     new_data = self._data
-                    for c, src in to_replace.iteritems():
+                    for c, src in compat.iteritems(to_replace):
                         if c in value and c in self:
                             new_data = new_data.replace(src, value[c],
                                                         filter=[c],
@@ -1671,7 +1618,7 @@ class NDFrame(PandasObject):
                 # {'A': NA} -> 0
                 elif not isinstance(value, (list, np.ndarray)):
                     new_data = self._data
-                    for k, src in to_replace.iteritems():
+                    for k, src in compat.iteritems(to_replace):
                         if k in self:
                             new_data = new_data.replace(src, value,
                                                         filter=[k],
@@ -1711,7 +1658,7 @@ class NDFrame(PandasObject):
                 if is_dictlike(value):  # NA -> {'A' : 0, 'B' : -1}
                     new_data = self._data
 
-                    for k, v in value.iteritems():
+                    for k, v in compat.iteritems(value):
                         if k in self:
                             new_data = new_data.replace(to_replace, v,
                                                         filter=[k],
@@ -1761,7 +1708,7 @@ class NDFrame(PandasObject):
 
         method = com._clean_fill_method(method)
 
-        if isinstance(to_replace, (dict, Series)):
+        if isinstance(to_replace, (dict, com.ABCSeries)):
             if axis == 0:
                 return self.replace(to_replace, method=method, inplace=inplace,
                                     limit=limit, axis=axis)
@@ -2019,11 +1966,6 @@ class NDFrame(PandasObject):
         start_date = start = self.index[-1] - offset
         start = self.index.searchsorted(start_date, side='right')
         return self.ix[start:]
-
-    def to_hdf(self, path_or_buf, key, **kwargs):
-        """ activate the HDFStore """
-        from pandas.io import pytables
-        return pytables.to_hdf(path_or_buf, key, self, **kwargs)
 
     def align(self, other, join='outer', axis=None, level=None, copy=True,
               fill_value=np.nan, method=None, limit=None, fill_axis=0):

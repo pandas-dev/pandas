@@ -25,7 +25,7 @@ import pandas.core.common as com
 import pandas.core.datetools as datetools
 import pandas.core.nanops as nanops
 
-from pandas.compat import StringIO, lrange, range, zip, u, OrderedDict
+from pandas.compat import StringIO, lrange, range, zip, u, OrderedDict, long
 from pandas import compat
 from pandas.util.testing import (assert_series_equal,
                                  assert_almost_equal,
@@ -943,6 +943,32 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertRaises(Exception, self.series.__setitem__,
                           'foobar', 1)
 
+    def test_setitem_dtypes(self):
+
+        # change dtypes
+        # GH 4463
+        expected = Series([np.nan,2,3])
+
+        s = Series([1,2,3])
+        s.iloc[0] = np.nan
+        assert_series_equal(s,expected)
+
+        s = Series([1,2,3])
+        s.loc[0] = np.nan
+        assert_series_equal(s,expected)
+
+        s = Series([1,2,3])
+        s[0] = np.nan
+        assert_series_equal(s,expected)
+
+        s = Series([False])
+        s.loc[0] = np.nan
+        assert_series_equal(s,Series([np.nan]))
+
+        s = Series([False,True])
+        s.loc[0] = np.nan
+        assert_series_equal(s,Series([np.nan,1.0]))
+
     def test_set_value(self):
         idx = self.ts.index[10]
         res = self.ts.set_value(idx, 0)
@@ -1200,7 +1226,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         s = Series(np.arange(10))
         mask = s > 5
-        self.assertRaises(ValueError, s.__setitem__, mask, ([0] * 5,))
+        def f():
+            s[mask] = [5,4,3,2,1]
+        self.assertRaises(ValueError, f)
+        def f():
+            s[mask] = [0] * 5
+        self.assertRaises(ValueError, f)
 
     def test_where_broadcast(self):
         # Test a variety of differently sized series
@@ -2549,6 +2580,18 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         result = tsdf.apply(f)
         expected = tsdf.max()
         assert_series_equal(result,expected)
+
+        # .item()
+        s = Series([1])
+        result = s.item()
+        self.assert_(result == 1)
+        self.assert_(s.item() == s.iloc[0])
+
+        # using an ndarray like function
+        s = Series(np.random.randn(10))
+        result = np.ones_like(s)
+        expected = Series(1,index=range(10),dtype='float64')
+        #assert_series_equal(result,expected)
 
     def test_underlying_data_conversion(self):
 

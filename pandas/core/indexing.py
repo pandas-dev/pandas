@@ -6,7 +6,8 @@ from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.compat import range, zip
 import pandas.compat as compat
 import pandas.core.common as com
-from pandas.core.common import _is_bool_indexer, ABCSeries, ABCDataFrame
+from pandas.core.common import (_is_bool_indexer,
+                                ABCSeries, ABCDataFrame, ABCPanel)
 import pandas.lib as lib
 
 import numpy as np
@@ -104,7 +105,6 @@ class _NDFrameIndexer(object):
     def _setitem_with_indexer(self, indexer, value):
 
         # also has the side effect of consolidating in-place
-
         # mmm, spaghetti
 
         if self.obj._is_mixed_type:
@@ -182,13 +182,10 @@ class _NDFrameIndexer(object):
             elif isinstance(value, ABCDataFrame):
                 value = self._align_frame(indexer, value)
 
-            if isinstance(value, Panel):
+            if isinstance(value, ABCPanel):
                 value = self._align_panel(indexer, value)
 
-            # 2096
-            values = self.obj.values
-            if np.prod(values.shape):
-                values[indexer] = value
+            self.obj._data = self.obj._data.setitem(indexer,value)
 
     def _align_series(self, indexer, ser):
         # indexer to assign Series can be tuple or scalar

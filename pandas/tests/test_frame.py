@@ -407,6 +407,16 @@ class CheckIndexing(object):
             self.frame[dtype] = np.array(arr,dtype=dtype)
             self.assert_(self.frame[dtype].dtype.name == dtype)
 
+        # dtype changing GH4204
+        df = DataFrame([[0,0]])
+        df.iloc[0] = np.nan
+        expected = DataFrame([[np.nan,np.nan]])
+        assert_frame_equal(df,expected)
+
+        df = DataFrame([[0,0]])
+        df.loc[0] = np.nan
+        assert_frame_equal(df,expected)
+
     def test_setitem_tuple(self):
         self.frame['A', 'B'] = self.frame['A']
         assert_series_equal(self.frame['A', 'B'], self.frame['A'])
@@ -2739,10 +2749,35 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(df.columns[0] == 'x')
         self.assert_(df.index.equals(a.index))
 
+        # ndarray like
+        arr = np.random.randn(10)
+        s = Series(arr,name='x')
+        df = DataFrame(s)
+        expected = DataFrame(dict(x = s))
+        assert_frame_equal(df,expected)
+
+        s = Series(arr,index=range(3,13))
+        df = DataFrame(s)
+        expected = DataFrame({ 0 : s })
+        assert_frame_equal(df,expected)
+
+        self.assertRaises(ValueError, DataFrame, s, columns=[1,2])
+
         # #2234
         a = Series([], name='x')
         df = DataFrame(a)
         self.assert_(df.columns[0] == 'x')
+
+        # series with name and w/o
+        s1 = Series(arr,name='x')
+        df = DataFrame([s1, arr]).T
+        expected = DataFrame({ 'x' : s1, 'Unnamed 0' : arr },columns=['x','Unnamed 0'])
+        assert_frame_equal(df,expected)
+
+        # this is a bit non-intuitive here; the series collapse down to arrays
+        df = DataFrame([arr, s1]).T
+        expected = DataFrame({ 1 : s1, 0 : arr },columns=[0,1])
+        assert_frame_equal(df,expected)
 
     def test_constructor_Series_differently_indexed(self):
         # name

@@ -15,7 +15,6 @@ from pandas.util.decorators import cache_readonly, deprecate
 from pandas.core.common import isnull
 import pandas.core.common as com
 from pandas.core.common import _values_from_object
-from pandas.util import py3compat
 from pandas.core.config import get_option
 import warnings
 
@@ -808,7 +807,7 @@ class Index(FrozenNDArray):
         k = _values_from_object(key)
         try:
             return self._engine.get_value(s, k)
-        except KeyError, e1:
+        except KeyError as e1:
             if len(self) > 0 and self.inferred_type == 'integer':
                 raise
 
@@ -1447,7 +1446,7 @@ class Int64Index(Index):
                     data = list(data)
                 data = np.asarray(data)
 
-            if issubclass(data.dtype.type, basestring):
+            if issubclass(data.dtype.type, compat.string_types):
                 raise TypeError('String dtype not supported, you may need '
                                 'to explicitly cast to int')
             elif issubclass(data.dtype.type, np.integer):
@@ -1865,7 +1864,7 @@ class MultiIndex(Index):
         k = _values_from_object(key)
         try:
             return self._engine.get_value(s, k)
-        except KeyError, e1:
+        except KeyError as e1:
             try:
                 # TODO: what if a level contains tuples??
                 loc = self.get_loc(key)

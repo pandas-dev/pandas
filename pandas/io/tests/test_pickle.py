@@ -31,13 +31,13 @@ class TestPickle(unittest.TestCase):
         try:
             with open(vf,'rb') as fh:
                 data = pickle.load(fh)
-        except (ValueError), detail:
+        except ValueError as detail:
 
             # we are trying to read a py3 pickle in py2.....
             return
 
         # we have a deprecated klass
-        except (TypeError), detail:
+        except TypeError as detail:
 
             from pandas.compat.pickle_compat import load
             data = load(vf)
