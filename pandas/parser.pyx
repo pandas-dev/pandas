@@ -869,6 +869,7 @@ cdef class TextReader:
                 if self.has_usecols and not (i in self.usecols or
                                              name in self.usecols):
                     continue
+                nused += 1
 
             conv = self._get_converter(i, name)
 
@@ -906,10 +907,6 @@ cdef class TextReader:
                 raise Exception('Unable to parse column %d' % i)
 
             results[i] = col_res
-
-            # number of used column names
-            if i > self.leading_cols:
-                nused += 1
 
         self.parser_start += end - start
 
