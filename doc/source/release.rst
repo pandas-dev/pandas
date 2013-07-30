@@ -94,6 +94,8 @@ pandas 0.13
   - Fixed an issue where ``PeriodIndex`` joining with self was returning a new
     instance rather than the same instance (:issue:`4379`); also adds a test
     for this for the other index types
+  - Fixed a bug with all the dtypes being converted to object when using the CSV cparser 
+    with the usecols parameter (:issue: `3192`)
 
 pandas 0.12
 ===========
