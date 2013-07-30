@@ -29,6 +29,7 @@ API changes
   - deprecated ``iterkv``, which will be removed in a future release (was just
     an alias of iteritems used to get around ``2to3``'s changes).
     (:issue:`4384`, :issue:`4375`, :issue:`4372`)
+  - ``Series.get`` with negative indexers now returns the same as ``[]`` (:issue:`4390`)
 
 Enhancements
 ~~~~~~~~~~~~
