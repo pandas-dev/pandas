@@ -78,10 +78,10 @@ class ExcelFile(object):
         self.tmpfile = None
 
         if isinstance(path_or_buf, compat.string_types):
-            self.book = xlrd.open_workbook(path_or_buf)
+            self.book = xlrd.open_workbook(path_or_buf, **kwds)
         else:
             data = path_or_buf.read()
-            self.book = xlrd.open_workbook(file_contents=data)
+            self.book = xlrd.open_workbook(file_contents=data, **kwds)
 
     def parse(self, sheetname, header=0, skiprows=None, skip_footer=0,
               index_col=None, parse_cols=None, parse_dates=False,
