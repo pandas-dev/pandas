@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from __future__ import print_function
 # pylint: disable-msg=W0612,E1101
 from copy import deepcopy
@@ -2955,6 +2957,27 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = df.values
         expected = np.array([[1,2.5],[3,4.5]])
         self.assert_((result == expected).all().all())
+
+        # rename, GH 4403
+        df4 = DataFrame({'TClose': [22.02],
+                         'RT': [0.0454],
+                         'TExg': [0.0422]},
+                        index=MultiIndex.from_tuples([(600809, 20130331)], names=['STK_ID', 'RPT_Date']))
+
+        df5 = DataFrame({'STK_ID': [600809] * 3,
+                         'RPT_Date': [20120930,20121231,20130331],
+                         'STK_Name': [u('饡驦'), u('饡驦'), u('饡驦')],
+                         'TClose': [38.05, 41.66, 30.01]},
+                        index=MultiIndex.from_tuples([(600809, 20120930), (600809, 20121231),(600809,20130331)], names=['STK_ID', 'RPT_Date']))
+
+        k = pd.merge(df4,df5,how='inner',left_index=True,right_index=True)
+        result = k.rename(columns={'TClose_x':'TClose', 'TClose_y':'QT_Close'})
+        str(result)
+        result.dtypes
+
+        expected = DataFrame([[0.0454, 22.02, 0.0422, 20130331, 600809, u('饡驦'), 30.01 ]],
+                             columns=['RT','TClose','TExg','RPT_Date','STK_ID','STK_Name','QT_Close']).set_index(['STK_ID','RPT_Date'],drop=False)
+        assert_frame_equal(result,expected)
 
     def test_insert_benchmark(self):
         # from the vb_suite/frame_methods/frame_insert_columns
