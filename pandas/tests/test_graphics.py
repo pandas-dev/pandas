@@ -663,10 +663,23 @@ class TestDataFramePlots(unittest.TestCase):
         self.assertRaises(ValueError, df.hist, layout=(1,))
 
     @slow
+    def test_hist_no_overlap(self):
+        from matplotlib.pyplot import subplot, close, gcf
+        x = Series(np.random.randn(2))
+        y = Series(np.random.randn(2))
+        subplot(121)
+        x.hist()
+        subplot(122)
+        y.hist()
+        fig = gcf()
+        axes = fig.get_axes()
+        self.assertEqual(len(axes), 2)
+        close('all')
+
+    @slow
     def test_scatter(self):
         _skip_if_no_scipy()
 
-        df = DataFrame(np.random.randn(100, 4))
         df = DataFrame(np.random.randn(100, 2))
         import pandas.tools.plotting as plt
 
@@ -919,7 +932,7 @@ class TestDataFrameGroupByPlots(unittest.TestCase):
     def test_time_series_plot_color_with_empty_kwargs(self):
         import matplotlib as mpl
         import matplotlib.pyplot as plt
-        
+
         def_colors = mpl.rcParams['axes.color_cycle']
 
         plt.close('all')

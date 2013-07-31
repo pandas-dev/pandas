@@ -98,6 +98,8 @@ pandas 0.13
     with the usecols parameter (:issue: `3192`)
   - Fix an issue in merging blocks where the resulting DataFrame had partially
     set _ref_locs (:issue:`4403`)
+  - Fixed an issue where hist subplots were being overwritten when they were
+    called using the top level matplotlib API (:issue:`4408`)
 
 pandas 0.12
 ===========
