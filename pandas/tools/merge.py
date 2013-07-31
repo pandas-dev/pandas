@@ -683,6 +683,7 @@ class _BlockJoinOperation(object):
         blockmaps = self._prepare_blocks()
         kinds = _get_merge_block_kinds(blockmaps)
 
+        result_is_unique = self.result_axes[0].is_unique
         result_blocks = []
 
         # maybe want to enable flexible copying <-- what did I mean?
@@ -692,6 +693,12 @@ class _BlockJoinOperation(object):
                 if klass in mapping:
                     klass_blocks.extend((unit, b) for b in mapping[klass])
             res_blk = self._get_merged_block(klass_blocks)
+
+            # if we have a unique result index, need to clear the _ref_locs
+            # a non-unique is set as we are creating
+            if result_is_unique:
+                res_blk.set_ref_locs(None)
+
             result_blocks.append(res_blk)
 
         return BlockManager(result_blocks, self.result_axes)
@@ -1070,7 +1077,7 @@ class _Concatenator(object):
             # map the column location to the block location
             # GH3602
             if not self.new_axes[0].is_unique:
-                block._ref_locs = indexer
+                block.set_ref_locs(indexer)
 
             return block
 
