@@ -44,6 +44,8 @@ pandas 0.13
   - Text parser now treats anything that reads like inf ("inf", "Inf", "-Inf",
     "iNf", etc.) to infinity. (:issue:`4220`, :issue:`4219`), affecting
     ``read_table``, ``read_csv``, etc.
+  - Added a more informative error message when plot arguments contain
+    overlapping color and style arguments (:issue:`4402`)
 
 **API Changes**
 

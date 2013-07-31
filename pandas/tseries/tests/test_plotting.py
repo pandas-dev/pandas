@@ -127,11 +127,10 @@ class TestTSPlot(unittest.TestCase):
         plt.close('all')
 
         ts = tm.makeTimeSeries()
-        ts.plot(style='b-', color='#000099')  # works
+        self.assertRaises(ValueError, ts.plot, style='b-', color='#000099')
 
-        plt.close('all')
         s = ts.reset_index(drop=True)
-        s.plot(style='b-', color='#000099')  # non-tsplot
+        self.assertRaises(ValueError, s.plot, style='b-', color='#000099')
 
     @slow
     def test_high_freq(self):

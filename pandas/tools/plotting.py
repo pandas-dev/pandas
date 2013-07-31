@@ -821,6 +821,14 @@ class MPLPlot(object):
             warnings.warn("'color' and 'colormap' cannot be used "
                           "simultaneously. Using 'color'")
 
+        if 'color' in self.kwds and self.style is not None:
+            # need only a single match
+            if re.match('^[a-z]+?', self.style) is not None:
+                raise ValueError("Cannot pass 'style' string with a color "
+                                 "symbol and 'color' keyword argument. Please"
+                                 " use one or the other or pass 'style' "
+                                 "without a color symbol")
+
     def _iter_data(self):
         from pandas.core.frame import DataFrame
         if isinstance(self.data, (Series, np.ndarray)):

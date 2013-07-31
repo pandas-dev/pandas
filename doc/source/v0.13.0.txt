@@ -38,6 +38,8 @@ Enhancements
     ``ValueError`` (:issue:`4303`, :issue:`4305`)
   - Added a test for ``read_clipboard()`` and ``to_clipboard()`` (:issue:`4282`)
   - Clipboard functionality now works with PySide (:issue:`4282`)
+  - Added a more informative error message when plot arguments contain
+    overlapping color and style arguments (:issue:`4402`)
 
 Bug Fixes
 ~~~~~~~~~
