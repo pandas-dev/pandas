@@ -6,7 +6,7 @@ import unittest
 from datetime import datetime, date
 
 from pandas import Series, DataFrame, MultiIndex, PeriodIndex, date_range
-from pandas.compat import range, lrange, StringIO, lmap, lzip, u, map, zip
+from pandas.compat import range, lrange, StringIO, lmap, lzip, u, zip
 import pandas.util.testing as tm
 from pandas.util.testing import ensure_clean
 from pandas.core.config import set_option
@@ -14,6 +14,7 @@ from pandas.core.config import set_option
 
 import numpy as np
 from numpy import random
+from numpy.random import randn
 
 from numpy.testing import assert_array_equal
 from numpy.testing.decorators import slow
@@ -64,7 +65,7 @@ class TestSeriesPlots(unittest.TestCase):
         _check_plot_works(self.series[:5].plot, kind='barh')
         _check_plot_works(self.series[:10].plot, kind='barh')
 
-        Series(np.random.randn(10)).plot(kind='bar', color='black')
+        Series(randn(10)).plot(kind='bar', color='black')
 
         # figsize and title
         import matplotlib.pyplot as plt
@@ -84,7 +85,7 @@ class TestSeriesPlots(unittest.TestCase):
         custom_colors = 'rgcby'
 
         plt.close('all')
-        df = DataFrame(np.random.randn(5, 5))
+        df = DataFrame(randn(5, 5))
         ax = df.plot(kind='bar')
 
         rects = ax.patches
@@ -141,7 +142,7 @@ class TestSeriesPlots(unittest.TestCase):
 
     @slow
     def test_bar_linewidth(self):
-        df = DataFrame(np.random.randn(5, 5))
+        df = DataFrame(randn(5, 5))
 
         # regular
         ax = df.plot(kind='bar', linewidth=2)
@@ -160,7 +161,7 @@ class TestSeriesPlots(unittest.TestCase):
                 self.assert_(r.get_linewidth() == 2)
 
     def test_rotation(self):
-        df = DataFrame(np.random.randn(5, 5))
+        df = DataFrame(randn(5, 5))
         ax = df.plot(rot=30)
         for l in ax.get_xticklabels():
             self.assert_(l.get_rotation() == 30)
@@ -168,7 +169,7 @@ class TestSeriesPlots(unittest.TestCase):
     def test_irregular_datetime(self):
         rng = date_range('1/1/2000', '3/1/2000')
         rng = rng[[0, 1, 2, 3, 5, 9, 10, 11, 12]]
-        ser = Series(np.random.randn(len(rng)), rng)
+        ser = Series(randn(len(rng)), rng)
         ax = ser.plot()
         xp = datetime(1999, 1, 1).toordinal()
         ax.set_xlim('1/1/1999', '1/1/2001')
@@ -223,6 +224,25 @@ class TestSeriesPlots(unittest.TestCase):
         plt.close('all')
         _check_plot_works(df.weight.hist, by=df.category, layout=(4, 1))
         plt.close('all')
+
+    @slow
+    def test_hist_no_overlap(self):
+        from matplotlib.pyplot import subplot, gcf, close
+        x = Series(randn(2))
+        y = Series(randn(2))
+        subplot(121)
+        x.hist()
+        subplot(122)
+        y.hist()
+        fig = gcf()
+        axes = fig.get_axes()
+        self.assertEqual(len(axes), 2)
+        close('all')
+
+    @slow
+    def test_plot_fails_with_dupe_color_and_style(self):
+        x = Series(randn(2))
+        self.assertRaises(ValueError, x.plot, style='k--', color='k')
 
     def test_plot_fails_when_ax_differs_from_figure(self):
         from pylab import figure
@@ -362,7 +382,7 @@ class TestDataFramePlots(unittest.TestCase):
     def test_label(self):
         import matplotlib.pyplot as plt
         plt.close('all')
-        df = DataFrame(np.random.randn(10, 3), columns=['a', 'b', 'c'])
+        df = DataFrame(randn(10, 3), columns=['a', 'b', 'c'])
         ax = df.plot(x='a', y='b')
         self.assert_(ax.xaxis.get_label().get_text() == 'a')
 
@@ -487,7 +507,7 @@ class TestDataFramePlots(unittest.TestCase):
 
     @slow
     def test_plot_bar(self):
-        df = DataFrame(np.random.randn(6, 4),
+        df = DataFrame(randn(6, 4),
                        index=list(string.ascii_letters[:6]),
                        columns=['one', 'two', 'three', 'four'])
 
@@ -496,7 +516,7 @@ class TestDataFramePlots(unittest.TestCase):
         _check_plot_works(df.plot, kind='bar', subplots=True)
         _check_plot_works(df.plot, kind='bar', stacked=True)
 
-        df = DataFrame(np.random.randn(10, 15),
+        df = DataFrame(randn(10, 15),
                        index=list(string.ascii_letters[:10]),
                        columns=lrange(15))
         _check_plot_works(df.plot, kind='bar')
@@ -537,7 +557,7 @@ class TestDataFramePlots(unittest.TestCase):
 
     @slow
     def test_boxplot(self):
-        df = DataFrame(np.random.randn(6, 4),
+        df = DataFrame(randn(6, 4),
                        index=list(string.ascii_letters[:6]),
                        columns=['one', 'two', 'three', 'four'])
         df['indic'] = ['foo', 'bar'] * 3
@@ -563,7 +583,7 @@ class TestDataFramePlots(unittest.TestCase):
     @slow
     def test_kde(self):
         _skip_if_no_scipy()
-        df = DataFrame(np.random.randn(100, 4))
+        df = DataFrame(randn(100, 4))
         _check_plot_works(df.plot, kind='kde')
         _check_plot_works(df.plot, kind='kde', subplots=True)
         ax = df.plot(kind='kde')
@@ -575,21 +595,21 @@ class TestDataFramePlots(unittest.TestCase):
     @slow
     def test_hist(self):
         import matplotlib.pyplot as plt
-        df = DataFrame(np.random.randn(100, 4))
+        df = DataFrame(randn(100, 4))
         _check_plot_works(df.hist)
         _check_plot_works(df.hist, grid=False)
 
         # make sure layout is handled
-        df = DataFrame(np.random.randn(100, 3))
+        df = DataFrame(randn(100, 3))
         _check_plot_works(df.hist)
         axes = df.hist(grid=False)
         self.assert_(not axes[1, 1].get_visible())
 
-        df = DataFrame(np.random.randn(100, 1))
+        df = DataFrame(randn(100, 1))
         _check_plot_works(df.hist)
 
         # make sure layout is handled
-        df = DataFrame(np.random.randn(100, 6))
+        df = DataFrame(randn(100, 6))
         _check_plot_works(df.hist)
 
         # make sure sharex, sharey is handled
@@ -641,7 +661,7 @@ class TestDataFramePlots(unittest.TestCase):
     def test_hist_layout(self):
         import matplotlib.pyplot as plt
         plt.close('all')
-        df = DataFrame(np.random.randn(100, 4))
+        df = DataFrame(randn(100, 4))
 
         layout_to_expected_size = (
             {'layout': None, 'expected_size': (2, 2)},  # default is 2x2
@@ -666,8 +686,7 @@ class TestDataFramePlots(unittest.TestCase):
     def test_scatter(self):
         _skip_if_no_scipy()
 
-        df = DataFrame(np.random.randn(100, 4))
-        df = DataFrame(np.random.randn(100, 2))
+        df = DataFrame(randn(100, 2))
         import pandas.tools.plotting as plt
 
         def scat(**kwds):
@@ -730,11 +749,11 @@ class TestDataFramePlots(unittest.TestCase):
 
     @slow
     def test_plot_int_columns(self):
-        df = DataFrame(np.random.randn(100, 4)).cumsum()
+        df = DataFrame(randn(100, 4)).cumsum()
         _check_plot_works(df.plot, legend=True)
 
     def test_legend_name(self):
-        multi = DataFrame(np.random.randn(4, 4),
+        multi = DataFrame(randn(4, 4),
                           columns=[np.array(['a', 'a', 'b', 'b']),
                                    np.array(['x', 'y', 'x', 'y'])])
         multi.columns.names = ['group', 'individual']
@@ -751,7 +770,7 @@ class TestDataFramePlots(unittest.TestCase):
         import matplotlib.pyplot as plt
         fig = plt.gcf()
 
-        df = DataFrame(np.random.randn(100, 3))
+        df = DataFrame(randn(100, 3))
         for markers in [{0: '^', 1: '+', 2: 'o'},
                         {0: '^', 1: '+'},
                         ['^', '+', 'o'],
@@ -771,7 +790,7 @@ class TestDataFramePlots(unittest.TestCase):
         custom_colors = 'rgcby'
 
         plt.close('all')
-        df = DataFrame(np.random.randn(5, 5))
+        df = DataFrame(randn(5, 5))
 
         ax = df.plot(color=custom_colors)
 
@@ -826,7 +845,7 @@ class TestDataFramePlots(unittest.TestCase):
         plt.rcParams['axes.color_cycle'] = list('rgbk')
 
         plt.close('all')
-        df = DataFrame(np.random.randn(5, 3))
+        df = DataFrame(randn(5, 3))
         ax = df.plot()
 
         lines = ax.get_lines()
@@ -856,13 +875,13 @@ class TestDataFramePlots(unittest.TestCase):
     @slow
     def test_partially_invalid_plot_data(self):
         kinds = 'line', 'bar', 'barh', 'kde', 'density'
-        df = DataFrame(np.random.randn(10, 2), dtype=object)
+        df = DataFrame(randn(10, 2), dtype=object)
         df[np.random.rand(df.shape[0]) > 0.5] = 'a'
         for kind in kinds:
             self.assertRaises(TypeError, df.plot, kind=kind)
 
     def test_invalid_kind(self):
-        df = DataFrame(np.random.randn(10, 2))
+        df = DataFrame(randn(10, 2))
         self.assertRaises(ValueError, df.plot, kind='aasdf')
 
 
@@ -919,7 +938,7 @@ class TestDataFrameGroupByPlots(unittest.TestCase):
     def test_time_series_plot_color_with_empty_kwargs(self):
         import matplotlib as mpl
         import matplotlib.pyplot as plt
-        
+
         def_colors = mpl.rcParams['axes.color_cycle']
 
         plt.close('all')
@@ -933,7 +952,7 @@ class TestDataFrameGroupByPlots(unittest.TestCase):
     @slow
     def test_grouped_hist(self):
         import matplotlib.pyplot as plt
-        df = DataFrame(np.random.randn(500, 2), columns=['A', 'B'])
+        df = DataFrame(randn(500, 2), columns=['A', 'B'])
         df['C'] = np.random.randint(0, 4, 500)
         axes = plotting.grouped_hist(df.A, by=df.C)
         self.assert_(len(axes.ravel()) == 4)
@@ -1036,7 +1055,7 @@ class TestDataFrameGroupByPlots(unittest.TestCase):
             pass
 
     def test_invalid_colormap(self):
-        df = DataFrame(np.random.randn(3, 2), columns=['A', 'B'])
+        df = DataFrame(randn(3, 2), columns=['A', 'B'])
         self.assertRaises(ValueError, df.plot, colormap='invalid_colormap')
 
 

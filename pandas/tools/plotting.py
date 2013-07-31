@@ -821,6 +821,14 @@ class MPLPlot(object):
             warnings.warn("'color' and 'colormap' cannot be used "
                           "simultaneously. Using 'color'")
 
+        if 'color' in self.kwds and self.style is not None:
+            # need only a single match
+            if re.match('^[a-z]+?', self.style) is not None:
+                raise ValueError("Cannot pass 'style' string with a color "
+                                 "symbol and 'color' keyword argument. Please"
+                                 " use one or the other or pass 'style' "
+                                 "without a color symbol")
+
     def _iter_data(self):
         from pandas.core.frame import DataFrame
         if isinstance(self.data, (Series, np.ndarray)):
@@ -2026,7 +2034,7 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
     """
     import matplotlib.pyplot as plt
 
-    fig = kwds.get('figure', plt.gcf()
+    fig = kwds.get('figure', _gcf()
                    if plt.get_fignums() else plt.figure(figsize=figsize))
     if figsize is not None and tuple(figsize) != tuple(fig.get_size_inches()):
         fig.set_size_inches(*figsize, forward=True)
@@ -2036,8 +2044,8 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
             raise ValueError("The 'layout' keyword is not supported when "
                              "'by' is None")
         if ax is None:
-            ax = fig.add_subplot(111)
-        if ax.get_figure() != fig:
+            ax = fig.gca()
+        elif ax.get_figure() != fig:
             raise AssertionError('passed axis not bound to passed figure')
         values = self.dropna().values
 

@@ -44,6 +44,8 @@ pandas 0.13
   - Text parser now treats anything that reads like inf ("inf", "Inf", "-Inf",
     "iNf", etc.) to infinity. (:issue:`4220`, :issue:`4219`), affecting
     ``read_table``, ``read_csv``, etc.
+  - Added a more informative error message when plot arguments contain
+    overlapping color and style arguments (:issue:`4402`)
 
 **API Changes**
 
@@ -98,6 +100,8 @@ pandas 0.13
     with the usecols parameter (:issue: `3192`)
   - Fix an issue in merging blocks where the resulting DataFrame had partially
     set _ref_locs (:issue:`4403`)
+  - Fixed an issue where hist subplots were being overwritten when they were
+    called using the top level matplotlib API (:issue:`4408`)
 
 pandas 0.12
 ===========
