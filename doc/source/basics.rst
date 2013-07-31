@@ -8,6 +8,7 @@
    from pandas import *
    randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
+   from pandas.compat import lrange 
 
 ==============================
  Essential Basic Functionality
@@ -1090,16 +1091,16 @@ By default integer types are ``int64`` and float types are ``float64``,
 
 .. ipython:: python
 
-    DataFrame([1,2],columns=['a']).dtypes
-    DataFrame({'a' : [1,2] }).dtypes
-    DataFrame({'a' : 1 }, index=range(2)).dtypes
+   DataFrame([1, 2], columns=['a']).dtypes
+   DataFrame({'a': [1, 2]}).dtypes
+   DataFrame({'a': 1 }, index=lrange(2)).dtypes
 
 Numpy, however will choose *platform-dependent* types when creating arrays.
 The following **WILL** result in ``int32`` on 32-bit platform.
 
 .. ipython:: python
 
-    frame = DataFrame(np.array([1,2]))
+   frame = DataFrame(np.array([1, 2]))
 
 
 upcasting

@@ -1,6 +1,7 @@
 from distutils.core import setup
 import setuptools
-import sys, os
+import sys
+import os
 
 version = "0.3.dev"
 

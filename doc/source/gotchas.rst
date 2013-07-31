@@ -9,6 +9,7 @@
    from pandas import *
    randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
+   from pandas.compat import lrange
 
 *******************
 Caveats and Gotchas
@@ -437,8 +438,8 @@ parse HTML tables in the top-level pandas io function ``read_html``.
          # install the latest version of beautifulsoup4
          pip install 'bzr+lp:beautifulsoup'
 
-      Note that you need `bzr <http://bazaar.canonical.com/en>`_ and `git
-      <http://git-scm.com>`_ installed to perform the last two operations.
+      Note that you need `bzr <http://bazaar.canonical.com/en>`__ and `git
+      <http://git-scm.com>`__ installed to perform the last two operations.
 
 .. |svm| replace:: **strictly valid markup**
 .. _svm: http://validator.w3.org/docs/help.html#validation_basics
@@ -466,7 +467,7 @@ using something similar to the following:
 
 .. ipython:: python
 
-   x = np.array(range(10), '>i4') # big endian
+   x = np.array(lrange(10), '>i4') # big endian
    newx = x.byteswap().newbyteorder() # force native byteorder
    s = Series(newx)
 

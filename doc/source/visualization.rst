@@ -13,6 +13,7 @@
    import matplotlib.pyplot as plt
    plt.close('all')
    options.display.mpl_style = 'default'
+   from pandas.compat import lrange
 
 ************************
 Plotting with matplotlib
@@ -101,7 +102,7 @@ You can plot one column versus another using the `x` and `y` keywords in
    plt.figure()
 
    df3 = DataFrame(randn(1000, 2), columns=['B', 'C']).cumsum()
-   df3['A'] = Series(range(len(df)))
+   df3['A'] = Series(lrange(len(df)))
 
    @savefig df_plot_xy.png
    df3.plot(x='A', y='B')
