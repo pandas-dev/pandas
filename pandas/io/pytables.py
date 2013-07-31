@@ -61,9 +61,14 @@ def _ensure_encoding(encoding):
     return encoding
 
 
-class IncompatibilityWarning(Warning):
+class PossibleDataLossError(Exception):
     pass
 
+class ClosedFileError(Exception):
+    pass
+
+class IncompatibilityWarning(Warning):
+    pass
 
 incompatibility_doc = """
 where criteria is being ignored as this version [%s] is too old (or
@@ -71,16 +76,20 @@ not-defined), read the file in and write it out to a new file to upgrade (with
 the copy_to method)
 """
 
-
 class AttributeConflictWarning(Warning):
     pass
-
 
 attribute_conflict_doc = """
 the [%s] attribute of the existing index is [%s] which conflicts with the new
 [%s], resetting the attribute to None
 """
 
+class DuplicateWarning(Warning):
+    pass
+
+duplicate_doc = """
+duplicate entries in table, taking most recently appended
+"""
 
 performance_doc = """
 your performance may suffer as PyTables will pickle object types that it cannot
@@ -263,7 +272,6 @@ class HDFStore(StringMixin):
     >>> bar = store['foo']   # retrieve
     >>> store.close()
     """
-    _quiet = False
 
     def __init__(self, path, mode=None, complevel=None, complib=None,
                  fletcher32=False):
@@ -281,11 +289,12 @@ class HDFStore(StringMixin):
         self._complib = complib
         self._fletcher32 = fletcher32
         self._filters = None
-        self.open(mode=mode, warn=False)
+        self.open(mode=mode)
 
     @property
     def root(self):
         """ return the root node """
+        self._check_if_open()
         return self._handle.root
 
     def __getitem__(self, key):
@@ -299,6 +308,7 @@ class HDFStore(StringMixin):
 
     def __getattr__(self, name):
         """ allow attribute access to get stores """
+        self._check_if_open()
         try:
             return self.get(name)
         except:
@@ -321,24 +331,26 @@ class HDFStore(StringMixin):
 
     def __unicode__(self):
         output = '%s\nFile path: %s\n' % (type(self), pprint_thing(self._path))
+        if self.is_open:
+            if len(list(self.keys())):
+                keys   = []
+                values = []
 
-        if len(list(self.keys())):
-            keys   = []
-            values = []
+                for k in self.keys():
+                    try:
+                        s = self.get_storer(k)
+                        if s is not None:
+                            keys.append(pprint_thing(s.pathname or k))
+                            values.append(pprint_thing(s or 'invalid_HDFStore node'))
+                    except Exception as detail:
+                        keys.append(k)
+                        values.append("[invalid_HDFStore node: %s]" % pprint_thing(detail))
 
-            for k in self.keys():
-                try:
-                    s = self.get_storer(k)
-                    if s is not None:
-                        keys.append(pprint_thing(s.pathname or k))
-                        values.append(pprint_thing(s or 'invalid_HDFStore node'))
-                except Exception as detail:
-                    keys.append(k)
-                    values.append("[invalid_HDFStore node: %s]" % pprint_thing(detail))
-
-            output += adjoin(12, keys, values)
+                output += adjoin(12, keys, values)
+            else:
+                output += 'Empty'
         else:
-            output += 'Empty'
+            output += "File is CLOSED"
 
         return output
 
@@ -358,7 +370,7 @@ class HDFStore(StringMixin):
 
     iteritems = items
 
-    def open(self, mode='a', warn=True):
+    def open(self, mode='a'):
         """
         Open the file in the specified mode
 
@@ -367,19 +379,23 @@ class HDFStore(StringMixin):
         mode : {'a', 'w', 'r', 'r+'}, default 'a'
             See HDFStore docstring or tables.openFile for info about modes
         """
-        self._mode = mode
-        if warn and mode == 'w':  # pragma: no cover
-            while True:
-                if compat.PY3:
-                    raw_input = input
-                response = raw_input("Re-opening as mode='w' will delete the "
-                                     "current file. Continue (y/n)?")
-                if response == 'y':
-                    break
-                elif response == 'n':
-                    return
-        if self._handle is not None and self._handle.isopen:
-            self._handle.close()
+        if self._mode != mode:
+
+            # if we are chaning a write mode to read, ok
+            if self._mode in ['a','w'] and mode in ['r','r+']:
+                pass
+            elif mode in ['w']:
+
+                # this would truncate, raise here
+                if self.is_open:
+                    raise PossibleDataLossError("Re-opening the file [{0}] with mode [{1}] "
+                                                "will delete the current file!".format(self._path,self._mode))
+
+            self._mode = mode
+
+        # close and reopen the handle
+        if self.is_open:
+            self.close()
 
         if self._complib is not None:
             if self._complevel is None:
@@ -401,13 +417,24 @@ class HDFStore(StringMixin):
         """
         Close the PyTables file handle
         """
-        self._handle.close()
+        if self._handle is not None:
+            self._handle.close()
+        self._handle = None
+
+    @property
+    def is_open(self):
+        """
+        return a boolean indicating whether the file is open
+        """
+        if self._handle is None: return False
+        return bool(self._handle.isopen)
 
     def flush(self):
         """
         Force all buffered modifications to be written to disk
         """
-        self._handle.flush()
+        if self._handle is not None:
+            self._handle.flush()
 
     def get(self, key):
         """
@@ -748,11 +775,13 @@ class HDFStore(StringMixin):
     def groups(self):
         """ return a list of all the top-level nodes (that are not themselves a pandas storage object) """
         _tables()
+        self._check_if_open()
         return [ g for g in self._handle.walkNodes() if getattr(g._v_attrs,'pandas_type',None) or getattr(
             g,'table',None) or (isinstance(g,_table_mod.table.Table) and g._v_name != u('table')) ]
 
     def get_node(self, key):
         """ return the node with the key or None if it does not exist """
+        self._check_if_open()
         try:
             if not key.startswith('/'):
                 key = '/' + key
@@ -811,6 +840,9 @@ class HDFStore(StringMixin):
         return new_store
 
     ###### private methods ######
+    def _check_if_open(self):
+        if not self.is_open:
+            raise ClosedFileError("{0} file is not open!".format(self._path))
 
     def _create_storer(self, group, value = None, table = False, append = False, **kwargs):
         """ return a suitable Storer class to operate """
@@ -1646,10 +1678,6 @@ class Storer(StringMixin):
     @property
     def _handle(self):
         return self.parent._handle
-
-    @property
-    def _quiet(self):
-        return self.parent._quiet
 
     @property
     def _filters(self):
@@ -2918,9 +2946,7 @@ class LegacyTable(Table):
                 objs.append(obj)
 
         else:
-            if not self._quiet:  # pragma: no cover
-                print ('Duplicate entries in table, taking most recently '
-                       'appended')
+            warnings.warn(duplicate_doc, DuplicateWarning)
 
             # reconstruct
             long_index = MultiIndex.from_arrays(
