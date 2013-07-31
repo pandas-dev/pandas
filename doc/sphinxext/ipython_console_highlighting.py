@@ -26,7 +26,9 @@ line_re = re.compile('.*?\n')
 #-----------------------------------------------------------------------------
 # Code begins - classes and functions
 
+
 class IPythonConsoleLexer(Lexer):
+
     """
     For IPython console output or doctests, such as:
 

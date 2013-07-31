@@ -25,7 +25,7 @@ Trellis plotting interface
 .. note::
 
    The tips data set can be downloaded `here
-   <http://wesmckinney.com/files/tips.csv>`_. Once you download it execute
+   <http://wesmckinney.com/files/tips.csv>`__. Once you download it execute
 
    .. code-block:: python
 

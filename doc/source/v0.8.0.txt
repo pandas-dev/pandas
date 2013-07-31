@@ -157,7 +157,7 @@ New plotting methods
    :suppress:
 
    import pandas as pd
-   fx = pd.load('data/fx_prices')
+   fx = pd.read_pickle('data/fx_prices')
    import matplotlib.pyplot as plt
 
 ``Series.plot`` now supports a ``secondary_y`` option:

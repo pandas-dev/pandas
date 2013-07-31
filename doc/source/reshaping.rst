@@ -12,6 +12,7 @@
    randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
    from pandas.tools.tile import *
+   from pandas.compat import lzip
 
 **************************
 Reshaping and Pivot Tables
@@ -116,7 +117,7 @@ from the hierarchical indexing section:
 
 .. ipython:: python
 
-   tuples = zip(*[['bar', 'bar', 'baz', 'baz',
+   tuples = lzip(*[['bar', 'bar', 'baz', 'baz',
                    'foo', 'foo', 'qux', 'qux'],
                   ['one', 'two', 'one', 'two',
                    'one', 'two', 'one', 'two']])

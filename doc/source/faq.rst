@@ -21,6 +21,7 @@ Frequently Asked Questions (FAQ)
    import matplotlib.pyplot as plt
    plt.close('all')
    options.display.mpl_style='default'
+   from pandas.compat import lrange
 
 
 .. _ref-repr-control:
@@ -65,7 +66,7 @@ operations implemented, most of them are very fast as well.
 It's very possible however that certain functionality that would make your
 life easier is missing. In that case you have several options:
 
-1) Open an issue on `Github <https://github.com/pydata/pandas/issues/>`_ , explain your need and the sort of functionality you would like to see implemented.
+1) Open an issue on `Github <https://github.com/pydata/pandas/issues/>`__ , explain your need and the sort of functionality you would like to see implemented.
 2) Fork the repo, Implement the functionality yourself and open a PR
    on Github.
 3) Write a method that performs the operation you are interested in and
@@ -85,7 +86,7 @@ life easier is missing. In that case you have several options:
        return [x for x in self.columns if 'foo' in x]
 
    pd.DataFrame.just_foo_cols = just_foo_cols # monkey-patch the DataFrame class
-   df = pd.DataFrame([range(4)],columns= ["A","foo","foozball","bar"])
+   df = pd.DataFrame([lrange(4)],columns= ["A","foo","foozball","bar"])
    df.just_foo_cols()
    del pd.DataFrame.just_foo_cols # you can also remove the new method
 
@@ -258,7 +259,7 @@ using something similar to the following:
 
 .. ipython:: python
 
-   x = np.array(range(10), '>i4') # big endian
+   x = np.array(lrange(10), '>i4') # big endian
    newx = x.byteswap().newbyteorder() # force native byteorder
    s = Series(newx)
 
