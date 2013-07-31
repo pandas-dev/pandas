@@ -133,7 +133,10 @@ Improvements to existing features
     (0.4.3 and 0.5.0) (:issue:`4981`).
   - Better string representations of ``MultiIndex`` (including ability to roundtrip
     via ``repr``). (:issue:`3347`, :issue:`4935`)
-
+  - Both ExcelFile and read_excel to accept an xlrd.Book for the io
+    (formerly path_or_buf) argument; this requires engine to be set.
+    (:issue:`4961`).
+    
 API Changes
 ~~~~~~~~~~~
 

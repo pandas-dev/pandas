@@ -254,6 +254,26 @@ class ExcelReaderTests(SharedItems, unittest.TestCase):
         f = open(pth, 'rb')
         xl = ExcelFile(f)
         xl.parse('Sheet1', index_col=0, parse_dates=True)
+        
+    def test_read_xlrd_Book(self):
+        _skip_if_no_xlrd()
+        _skip_if_no_xlwt()
+        
+        import xlrd
+        
+        pth = '__tmp_excel_read_worksheet__.xls'
+        df = self.frame
+        
+        with ensure_clean(pth) as pth:
+            df.to_excel(pth, "SheetA")
+            book = xlrd.open_workbook(pth)
+            
+            with ExcelFile(book, engine="xlrd") as xl:
+                result = xl.parse("SheetA")
+                tm.assert_frame_equal(df, result)
+
+            result = read_excel(book, sheetname="SheetA", engine="xlrd")
+            tm.assert_frame_equal(df, result)
 
     def test_xlsx_table(self):
         _skip_if_no_xlrd()

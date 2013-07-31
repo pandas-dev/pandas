@@ -45,11 +45,13 @@ def get_writer(engine_name):
     except KeyError:
         raise ValueError("No Excel writer '%s'" % engine_name)
 
-def read_excel(path_or_buf, sheetname, **kwds):
+def read_excel(io, sheetname, **kwds):
     """Read an Excel table into a pandas DataFrame
 
     Parameters
     ----------
+    io : string, file-like object or xlrd workbook
+        If a string, expected to be a path to xls or xlsx file
     sheetname : string
          Name of Excel sheet
     header : int, default 0
@@ -74,7 +76,10 @@ def read_excel(path_or_buf, sheetname, **kwds):
         values are overridden, otherwise they're appended to
     verbose : boolean, default False
         Indicate number of NA values placed in non-numeric columns
-
+    engine: string, default None
+        If io is not a buffer or path, this must be set to identify io.
+        Acceptable values are None or xlrd
+        
     Returns
     -------
     parsed : DataFrame
@@ -84,7 +89,10 @@ def read_excel(path_or_buf, sheetname, **kwds):
         kwds.pop('kind')
         warn("kind keyword is no longer supported in read_excel and may be "
              "removed in a future version", FutureWarning)
-    return ExcelFile(path_or_buf).parse(sheetname=sheetname, **kwds)
+    
+    engine = kwds.pop('engine', None)   
+        
+    return ExcelFile(io, engine=engine).parse(sheetname=sheetname, **kwds)
 
 
 class ExcelFile(object):
@@ -94,10 +102,13 @@ class ExcelFile(object):
 
     Parameters
     ----------
-    path : string or file-like object
-        Path to xls or xlsx file
+    io : string, file-like object or xlrd workbook
+        If a string, expected to be a path to xls or xlsx file
+    engine: string, default None
+        If io is not a buffer or path, this must be set to identify io.
+        Acceptable values are None or xlrd
     """
-    def __init__(self, path_or_buf, **kwds):
+    def __init__(self, io, **kwds):
 
         import xlrd  # throw an ImportError if we need to
 
@@ -106,14 +117,22 @@ class ExcelFile(object):
             raise ImportError("pandas requires xlrd >= 0.9.0 for excel "
                               "support, current version " + xlrd.__VERSION__)
 
-        self.path_or_buf = path_or_buf
-        self.tmpfile = None
+        self.io = io
+        
+        engine = kwds.pop('engine', None)
+        
+        if engine is not None and engine != 'xlrd':
+            raise ValueError("Unknown engine: %s" % engine)
 
-        if isinstance(path_or_buf, compat.string_types):
-            self.book = xlrd.open_workbook(path_or_buf)
-        else:
-            data = path_or_buf.read()
+        if isinstance(io, compat.string_types):
+            self.book = xlrd.open_workbook(io)
+        elif engine == "xlrd" and isinstance(io, xlrd.Book):
+            self.book = io
+        elif hasattr(io, "read"):
+            data = io.read()
             self.book = xlrd.open_workbook(file_contents=data)
+        else:
+            raise ValueError('Must explicitly set engine if not passing in buffer or path for io.')            
 
     def parse(self, sheetname, header=0, skiprows=None, skip_footer=0,
               index_col=None, parse_cols=None, parse_dates=False,
@@ -261,9 +280,9 @@ class ExcelFile(object):
         return self.book.sheet_names()
 
     def close(self):
-        """close path_or_buf if necessary"""
-        if hasattr(self.path_or_buf, 'close'):
-            self.path_or_buf.close()
+        """close io if necessary"""
+        if hasattr(self.io, 'close'):
+            self.io.close()
 
     def __enter__(self):
         return self
