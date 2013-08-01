@@ -11,35 +11,12 @@ API changes
 
   - ``read_excel`` now supports an integer in its ``sheetname`` argument giving
     the index of the sheet to read in (:issue:`4301`).
-  - Text parser now treats anything that reads like inf ("inf", "Inf", "-Inf",
-    "iNf", etc.) as infinity. (:issue:`4220`, :issue:`4219`), affecting
-    ``read_table``, ``read_csv``, etc.
-  - ``pandas`` now is Python 2/3 compatible without the need for 2to3 thanks to
-    @jtratner. As a result, pandas now uses iterators more extensively. This
-    also led to the introduction of substantive parts of the Benjamin
-    Peterson's ``six`` library into compat. (:issue:`4384`, :issue:`4375`,
-    :issue:`4372`)
-  - ``pandas.util.compat`` and ``pandas.util.py3compat`` have been merged into
-    ``pandas.compat``. ``pandas.compat`` now includes many functions allowing
-    2/3 compatibility. It contains both list and iterator versions of range,
-    filter, map and zip, plus other necessary elements for Python 3
-    compatibility. ``lmap``, ``lzip``, ``lrange`` and ``lfilter`` all produce
-    lists instead of iterators, for compatibility with ``numpy``, subscripting
-    and ``pandas`` constructors.(:issue:`4384`, :issue:`4375`, :issue:`4372`)
-  - deprecated ``iterkv``, which will be removed in a future release (was just
-    an alias of iteritems used to get around ``2to3``'s changes).
-    (:issue:`4384`, :issue:`4375`, :issue:`4372`)
-  - ``Series.get`` with negative indexers now returns the same as ``[]`` (:issue:`4390`)
 
 Enhancements
 ~~~~~~~~~~~~
 
   - ``read_html`` now raises a ``URLError`` instead of catching and raising a
     ``ValueError`` (:issue:`4303`, :issue:`4305`)
-  - Added a test for ``read_clipboard()`` and ``to_clipboard()`` (:issue:`4282`)
-  - Clipboard functionality now works with PySide (:issue:`4282`)
-  - Added a more informative error message when plot arguments contain
-    overlapping color and style arguments (:issue:`4402`)
 
 Bug Fixes
 ~~~~~~~~~
@@ -52,22 +29,9 @@ Bug Fixes
 
   - Fixed bug in ``PeriodIndex.map`` where using ``str`` would return the str
     representation of the index (:issue:`4136`)
+    
+  - Fixed (:issue:`3334`). Margins did not compute if values is the index.
 
-  - Fixed test failure ``test_time_series_plot_color_with_empty_kwargs`` when
-    using custom matplotlib default colors (:issue:`4345`)
-
-  - Fix running of stata IO tests. Now uses temporary files to write
-    (:issue:`4353`)
-
-  - Fixed an issue where ``DataFrame.sum`` was slower than ``DataFrame.mean``
-    for integer valued frames (:issue:`4365`)
-
-  - ``read_html`` tests now work with Python 2.6 (:issue:`4351`)
-
-  - Fixed bug where ``network`` testing was throwing ``NameError`` because a
-    local variable was undefined (:issue:`4381`)
-
-  - Suppressed DeprecationWarning associated with internal calls issued by repr() (:issue:`4391`)
 
 See the :ref:`full release notes
 <release>` or issue tracker
