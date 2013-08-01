@@ -296,6 +296,28 @@ class TestPivotTable(unittest.TestCase):
 
         tm.assert_frame_equal(result, expected)
 
+    def test_margins_no_values_no_cols(self):
+        # Regression test on pivot table: no values or cols passed.
+        result = self.data[['A', 'B']].pivot_table(rows=['A', 'B'], aggfunc=len, margins=True)
+        result_list = result.tolist()
+        self.assertEqual(sum(result_list[:-1]), result_list[-1])
+
+    def test_margins_no_values_two_rows(self):
+        # Regression test on pivot table: no values passed but rows are a multi-index
+        result = self.data[['A', 'B', 'C']].pivot_table(rows=['A', 'B'], cols='C', aggfunc=len, margins=True)
+        self.assertEqual(result.All.tolist(), [3.0, 1.0, 4.0, 3.0, 11.0])
+
+    def test_margins_no_values_one_row_one_col(self):
+        # Regression test on pivot table: no values passed but row and col defined
+        result = self.data[['A', 'B']].pivot_table(rows='A', cols='B', aggfunc=len, margins=True)
+        self.assertEqual(result.All.tolist(), [4.0, 7.0, 11.0])
+
+    def test_margins_no_values_two_row_two_cols(self):
+        # Regression test on pivot table: no values passed but rows and cols are multi-indexed
+        self.data['D'] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k']
+        result = self.data[['A', 'B', 'C', 'D']].pivot_table(rows=['A', 'B'], cols=['C', 'D'], aggfunc=len, margins=True)
+        self.assertEqual(result.All.tolist(), [3.0, 1.0, 4.0, 3.0, 11.0])
+
 
 class TestCrosstab(unittest.TestCase):
 
