@@ -9,18 +9,16 @@
    import random
    import os
    np.random.seed(123456)
-   from pandas import *
+   from pandas import options
    import pandas as pd
-   randn = np.random.randn
-   randint = np.random.randint
    np.set_printoptions(precision=4, suppress=True)
    options.display.mpl_style='default'
    from pandas.compat import lrange, lzip
 
    #### portions of this were borrowed from the
-   #### Pandas cheatsheet  
-   #### created during the PyData Workshop-Sprint 2012 
-   #### Hannah Chen, Henry Chow, Eric Cox, Robert Mauriello 
+   #### Pandas cheatsheet
+   #### created during the PyData Workshop-Sprint 2012
+   #### Hannah Chen, Henry Chow, Eric Cox, Robert Mauriello
 
 
 ********************
@@ -42,7 +40,7 @@ Object Creation
 
 See the :ref:`Data Structure Intro section <dsintro>`
 
-Creating a ``Series`` by passing a list of values, letting pandas create a default 
+Creating a ``Series`` by passing a list of values, letting pandas create a default
 integer index
 
 .. ipython:: python
@@ -63,10 +61,10 @@ Creating a ``DataFrame`` by passing a dict of objects that can be converted to s
 
 .. ipython:: python
 
-   df2 = pd.DataFrame({ 'A' : 1., 
-                        'B' : pd.Timestamp('20130102'), 
+   df2 = pd.DataFrame({ 'A' : 1.,
+                        'B' : pd.Timestamp('20130102'),
                         'C' : pd.Series(1,index=lrange(4),dtype='float32'),
-                        'D' : np.array([3] * 4,dtype='int32'), 
+                        'D' : np.array([3] * 4,dtype='int32'),
                         'E' : 'foo' })
    df2
 
@@ -123,7 +121,7 @@ Sorting by values
 Selection
 ---------
 
-.. note:: 
+.. note::
 
    While standard Python / Numpy expressions for selecting and setting are
    intuitive and come in handy for interactive work, for production code, we
@@ -248,7 +246,7 @@ error.
     x[4:10]
     x[8:10]
 
-Pandas will detect this and raise ``IndexError``, rather than return an empty 
+Pandas will detect this and raise ``IndexError``, rather than return an empty
 structure.
 
 ::
@@ -280,7 +278,7 @@ by the indexes
 
 .. ipython:: python
 
-   s1 = pd.Series([1,2,3,4,5,6],index=date_range('20130102',periods=6))
+   s1 = pd.Series([1,2,3,4,5,6],index=pd.date_range('20130102',periods=6))
    s1
    df['F'] = s1
 
@@ -401,7 +399,7 @@ See more at :ref:`Histogramming and Discretization <basics.discretization>`
 
 .. ipython:: python
 
-   s = Series(np.random.randint(0,7,size=10))
+   s = pd.Series(np.random.randint(0,7,size=10))
    s
    s.value_counts()
 
@@ -412,7 +410,7 @@ See more at :ref:`Vectorized String Methods <basics.string_methods>`
 
 .. ipython:: python
 
-   s = Series(['A', 'B', 'C', 'Aaba', 'Baca', np.nan, 'CABA', 'dog', 'cat'])
+   s = pd.Series(['A', 'B', 'C', 'Aaba', 'Baca', np.nan, 'CABA', 'dog', 'cat'])
    s.str.lower()
 
 Merge
@@ -428,7 +426,7 @@ operations.
 
 See the :ref:`Merging section <merging>`
 
-Concatenating pandas objects together 
+Concatenating pandas objects together
 
 .. ipython:: python
 
@@ -438,7 +436,7 @@ Concatenating pandas objects together
    # break it into pieces
    pieces = [df[:3], df[3:7], df[7:]]
 
-   concat(pieces)
+   pd.concat(pieces)
 
 Join
 ~~~~
@@ -451,7 +449,7 @@ SQL style merges. See the :ref:`Database style joining <merging.join>`
    right = pd.DataFrame({'key': ['foo', 'foo'], 'rval': [4, 5]})
    left
    right
-   merge(left, right, on='key')
+   pd.merge(left, right, on='key')
 
 Append
 ~~~~~~
@@ -484,7 +482,8 @@ See the :ref:`Grouping section <groupby>`
                             'foo', 'bar', 'foo', 'foo'],
                       'B' : ['one', 'one', 'two', 'three',
                             'two', 'two', 'one', 'three'],
-                      'C' : randn(8), 'D' : randn(8)})
+                      'C' : np.random.randn(8),
+                      'D' : np.random.randn(8)})
    df
 
 Grouping and then applying a function ``sum`` to the resulting groups.
@@ -493,7 +492,7 @@ Grouping and then applying a function ``sum`` to the resulting groups.
 
    df.groupby('A').sum()
 
-Grouping by multiple columns forms a hierarchical index, which we then apply 
+Grouping by multiple columns forms a hierarchical index, which we then apply
 the function.
 
 .. ipython:: python
@@ -516,7 +515,7 @@ Stack
                   ['one', 'two', 'one', 'two',
                    'one', 'two', 'one', 'two']])
    index = pd.MultiIndex.from_tuples(tuples, names=['first', 'second'])
-   df = pd.DataFrame(randn(8, 2), index=index, columns=['A', 'B'])
+   df = pd.DataFrame(np.random.randn(8, 2), index=index, columns=['A', 'B'])
    df2 = df[:4]
    df2
 
@@ -543,18 +542,18 @@ See the section on :ref:`Pivot Tables <reshaping.pivot>`.
 
 .. ipython:: python
 
-   df = DataFrame({'A' : ['one', 'one', 'two', 'three'] * 3,
-                   'B' : ['A', 'B', 'C'] * 4,
-                   'C' : ['foo', 'foo', 'foo', 'bar', 'bar', 'bar'] * 2,
-                   'D' : np.random.randn(12),
-                   'E' : np.random.randn(12)})
+   df = pd.DataFrame({'A' : ['one', 'one', 'two', 'three'] * 3,
+                      'B' : ['A', 'B', 'C'] * 4,
+                      'C' : ['foo', 'foo', 'foo', 'bar', 'bar', 'bar'] * 2,
+                      'D' : np.random.randn(12),
+                      'E' : np.random.randn(12)})
    df
 
 We can produce pivot tables from this data very easily:
 
 .. ipython:: python
 
-   pivot_table(df, values='D', rows=['A', 'B'], cols=['C'])
+   pd.pivot_table(df, values='D', rows=['A', 'B'], cols=['C'])
 
 
 Time Series
@@ -568,7 +567,7 @@ financial applications. See the :ref:`Time Series section <timeseries>`
 .. ipython:: python
 
    rng = pd.date_range('1/1/2012', periods=100, freq='S')
-   ts = pd.Series(randint(0, 500, len(rng)), index=rng)
+   ts = pd.Series(np.random.randint(0, 500, len(rng)), index=rng)
    ts.resample('5Min', how='sum')
 
 Time zone representation
@@ -576,7 +575,7 @@ Time zone representation
 .. ipython:: python
 
    rng = pd.date_range('3/6/2012 00:00', periods=5, freq='D')
-   ts = pd.Series(randn(len(rng)), rng)
+   ts = pd.Series(np.random.randn(len(rng)), rng)
    ts_utc = ts.tz_localize('UTC')
    ts_utc
 
@@ -591,7 +590,7 @@ Converting between time span representations
 .. ipython:: python
 
    rng = pd.date_range('1/1/2012', periods=5, freq='M')
-   ts = pd.Series(randn(len(rng)), index=rng)
+   ts = pd.Series(np.random.randn(len(rng)), index=rng)
    ts
    ps = ts.to_period()
    ps
@@ -604,8 +603,8 @@ the quarter end:
 
 .. ipython:: python
 
-   prng = period_range('1990Q1', '2000Q4', freq='Q-NOV')
-   ts = Series(randn(len(prng)), prng)
+   prng = pd.period_range('1990Q1', '2000Q4', freq='Q-NOV')
+   ts = pd.Series(np.random.randn(len(prng)), prng)
    ts.index = (prng.asfreq('M', 'e') + 1).asfreq('H', 's') + 9
    ts.head()
 
@@ -624,7 +623,7 @@ Plotting
 
 .. ipython:: python
 
-   ts = pd.Series(randn(1000), index=pd.date_range('1/1/2000', periods=1000))
+   ts = pd.Series(np.random.randn(1000), index=pd.date_range('1/1/2000', periods=1000))
    ts = ts.cumsum()
 
    @savefig series_plot_basic.png
@@ -634,7 +633,7 @@ On DataFrame, ``plot`` is a convenience to plot all of the columns with labels:
 
 .. ipython:: python
 
-   df = pd.DataFrame(randn(1000, 4), index=ts.index,
+   df = pd.DataFrame(np.random.randn(1000, 4), index=ts.index,
                      columns=['A', 'B', 'C', 'D'])
    df = df.cumsum()
 
@@ -679,7 +678,7 @@ Reading from a HDF5 Store
 
 .. ipython:: python
 
-   read_hdf('foo.h5','df')
+   pd.read_hdf('foo.h5','df')
 
 .. ipython:: python
    :suppress:
@@ -701,7 +700,7 @@ Reading from an excel file
 
 .. ipython:: python
 
-   read_excel('foo.xlsx', 'sheet1', index_col=None, na_values=['NA'])
+   pd.read_excel('foo.xlsx', 'sheet1', index_col=None, na_values=['NA'])
 
 .. ipython:: python
    :suppress:
