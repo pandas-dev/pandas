@@ -12,6 +12,7 @@
    import matplotlib.pyplot as plt
    plt.close('all')
    options.display.mpl_style='default'
+   from pandas.compat import lzip
 
 *****************************
 Group By: split-apply-combine
@@ -198,9 +199,10 @@ natural to group by one of the levels of the hierarchy.
 .. ipython:: python
    :suppress:
 
+
    arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
              ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
-   tuples = zip(*arrays)
+   tuples = lzip(*arrays)
    tuples
    index = MultiIndex.from_tuples(tuples, names=['first', 'second'])
    s = Series(randn(8), index=index)
@@ -234,7 +236,7 @@ Also as of v0.6, grouping with multiple levels is supported.
    arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
              ['doo', 'doo', 'bee', 'bee', 'bop', 'bop', 'bop', 'bop'],
              ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
-   tuples = zip(*arrays)
+   tuples = lzip(*arrays)
    index = MultiIndex.from_tuples(tuples, names=['first', 'second', 'third'])
    s = Series(randn(8), index=index)
 

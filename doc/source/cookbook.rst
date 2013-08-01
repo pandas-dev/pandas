@@ -56,8 +56,7 @@ Indexing using both row labels and conditionals, see
 <http://stackoverflow.com/questions/14725068/pandas-using-row-labels-in-boolean-indexing>`__
 
 Use loc for label-oriented slicing and iloc positional slicing, see
-`here
-<https://github.com/pydata/pandas/issues/2904>`__
+`here <https://github.com/pydata/pandas/issues/2904>`__
 
 Extend a panel frame by transposing, adding a new dimension, and transposing back to the original dimensions, see
 `here
@@ -280,7 +279,7 @@ The :ref:`Plotting <visualization>` docs.
 <http://stackoverflow.com/questions/11067368/annotate-time-series-plot-in-matplotlib>`__
 
 `Annotate a time-series plot #2
-<http://stackoverflow.com/questions/17891493/annotating-points-from-a-pandas-dataframe-in-matplotlib-plot`__
+<http://stackoverflow.com/questions/17891493/annotating-points-from-a-pandas-dataframe-in-matplotlib-plot>`__
 
 Data In/Out
 -----------
@@ -295,8 +294,7 @@ CSV
 
 The :ref:`CSV <io.read_csv_table>` docs
 
-`read_csv in action
-<http://wesmckinney.com/blog/?p=635>`__
+`read_csv in action <http://wesmckinney.com/blog/?p=635>`__
 
 `appending to a csv
 <http://stackoverflow.com/questions/17134942/pandas-dataframe-output-end-of-csv>`__
@@ -317,7 +315,7 @@ using that handle to read.
 <http://stackoverflow.com/questions/15555005/get-inferred-dataframe-types-iteratively-using-chunksize>`__
 
 `Dealing with bad lines
-<https://github.com/pydata/pandas/issues/2886>`__
+<http://github.com/pydata/pandas/issues/2886>`__
 
 `Dealing with bad lines II
 <http://nipunbatra.wordpress.com/2013/06/06/reading-unclean-data-csv-using-pandas/>`__
@@ -359,7 +357,7 @@ The :ref:`HDFStores <io.hdf5>` docs
 <http://stackoverflow.com/questions/13926089/selecting-columns-from-pandas-hdfstore-table>`__
 
 `Managing heteregenous data using a linked multiple table hierarchy
-<https://github.com/pydata/pandas/issues/3032>`__
+<http://github.com/pydata/pandas/issues/3032>`__
 
 `Merging on-disk tables with millions of rows
 <http://stackoverflow.com/questions/14614512/merging-two-tables-with-millions-of-rows-in-python/14617925#14617925>`__
@@ -420,7 +418,7 @@ Miscellaneous
 The :ref:`Timedeltas <timeseries.timedeltas>` docs.
 
 `Operating with timedeltas
-<https://github.com/pydata/pandas/pull/2899>`__
+<http://github.com/pydata/pandas/pull/2899>`__
 
 `Create timedeltas with date differences
 <http://stackoverflow.com/questions/15683588/iterating-through-a-pandas-dataframe>`__

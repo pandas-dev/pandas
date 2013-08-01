@@ -14,6 +14,7 @@ pandas.
    import numpy as np; randn = np.random.randn; randint =np.random.randint
    from pandas import *
    import matplotlib.pyplot as plt
+   from pandas.compat import lrange
 
 .. note::
 
@@ -348,7 +349,7 @@ String/Regular Expression Replacement
    backslashes than strings without this prefix. Backslashes in raw strings
    will be interpreted as an escaped backslash, e.g., ``r'\' == '\\'``. You
    should `read about them
-   <http://docs.python.org/2/reference/lexical_analysis.html#string-literals>`_
+   <http://docs.python.org/2/reference/lexical_analysis.html#string-literals>`__
    if this is unclear.
 
 Replace the '.' with ``nan`` (str -> str)
@@ -362,7 +363,7 @@ Replace the '.' with ``nan`` (str -> str)
 
 .. ipython:: python
 
-   d = {'a': range(4), 'b': list('ab..'), 'c': ['a', 'b', nan, 'd']}
+   d = {'a': lrange(4), 'b': list('ab..'), 'c': ['a', 'b', nan, 'd']}
    df = DataFrame(d)
    df.replace('.', nan)
 
@@ -499,7 +500,7 @@ For example:
    s = Series(randn(5), index=[0, 2, 4, 6, 7])
    s > 0
    (s > 0).dtype
-   crit = (s > 0).reindex(range(8))
+   crit = (s > 0).reindex(lrange(8))
    crit
    crit.dtype
 
@@ -511,7 +512,7 @@ contains NAs, an exception will be generated:
 .. ipython:: python
    :okexcept:
 
-   reindexed = s.reindex(range(8)).fillna(0)
+   reindexed = s.reindex(lrange(8)).fillna(0)
    reindexed[crit]
 
 However, these can be filled in using **fillna** and it will work fine:

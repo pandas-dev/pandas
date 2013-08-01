@@ -87,7 +87,7 @@ Fama/French
 -----------
 
 Tthe dataset names are listed at `Fama/French Data Library
-<http://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html>`_)
+<http://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html>`__)
 
 .. ipython:: python
 
@@ -101,7 +101,7 @@ World Bank
 ----------
 
 ``Pandas`` users can easily access thousands of panel data series from the
-`World Bank's World Development Indicators <http://data.worldbank.org>`_
+`World Bank's World Development Indicators <http://data.worldbank.org>`__
 by using the ``wb`` I/O functions.
 
 For example, if you wanted to compare the Gross Domestic Products per capita in
