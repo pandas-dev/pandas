@@ -234,8 +234,13 @@ Enhancements
     - support ``read_hdf/to_hdf`` API similar to ``read_csv/to_csv``
 
       .. ipython:: python
+          :suppress:
 
-          df = DataFrame(dict(A=range(5), B=range(5)))
+          from pandas.compat import lrange
+
+      .. ipython:: python
+
+          df = DataFrame(dict(A=lrange(5), B=lrange(5)))
           df.to_hdf('store.h5','table',append=True)
           read_hdf('store.h5', 'table', where = ['index>2'])
 

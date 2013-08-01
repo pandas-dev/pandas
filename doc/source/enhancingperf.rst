@@ -28,14 +28,14 @@ Cython (Writing C extensions for pandas)
 
 For many use cases writing pandas in pure python and numpy is sufficient. In some 
 computationally heavy applications however, it can be possible to achieve sizeable
-speed-ups by offloading work to `cython <http://cython.org/>`_.
+speed-ups by offloading work to `cython <http://cython.org/>`__.
 
 This tutorial assumes you have refactored as much as possible in python, for example
 trying to remove for loops and making use of numpy vectorization, it's always worth
 optimising in python first.
 
 This tutorial walks through a "typical" process of cythonizing a slow computation.
-We use an `example from the cython documentation <http://docs.cython.org/src/quickstart/cythonize.html>`_ 
+We use an `example from the cython documentation <http://docs.cython.org/src/quickstart/cythonize.html>`__
 but in the context of pandas. Our final cythonized solution is around 100 times
 faster than the pure python.
 
@@ -73,7 +73,7 @@ We achieve our result by by using ``apply`` (row-wise):
 
 But clearly this isn't fast enough for us. Let's take a look and see where the
 time is spent during this operation (limited to the most time consuming
-four calls) using the `prun ipython magic function <http://ipython.org/ipython-doc/stable/api/generated/IPython.core.magics.execution.html#IPython.core.magics.execution.ExecutionMagics.prun>`_:
+four calls) using the `prun ipython magic function <http://ipython.org/ipython-doc/stable/api/generated/IPython.core.magics.execution.html#IPython.core.magics.execution.ExecutionMagics.prun>`__:
 
 .. ipython:: python
 
@@ -270,4 +270,4 @@ Further topics
 
 - Loading C modules into cython.
 
-Read more in the `cython docs <http://docs.cython.org/>`_.
+Read more in the `cython docs <http://docs.cython.org/>`__.

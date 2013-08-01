@@ -15,6 +15,7 @@
    randint = np.random.randint
    np.set_printoptions(precision=4, suppress=True)
    options.display.mpl_style='default'
+   from pandas.compat import lrange, lzip
 
    #### portions of this were borrowed from the
    #### Pandas cheatsheet  
@@ -64,7 +65,7 @@ Creating a ``DataFrame`` by passing a dict of objects that can be converted to s
 
    df2 = pd.DataFrame({ 'A' : 1., 
                         'B' : pd.Timestamp('20130102'), 
-                        'C' : pd.Series(1,index=range(4),dtype='float32'),
+                        'C' : pd.Series(1,index=lrange(4),dtype='float32'),
                         'D' : np.array([3] * 4,dtype='int32'), 
                         'E' : 'foo' })
    df2
@@ -510,7 +511,7 @@ Stack
 
 .. ipython:: python
 
-   tuples = zip(*[['bar', 'bar', 'baz', 'baz',
+   tuples = lzip(*[['bar', 'bar', 'baz', 'baz',
                    'foo', 'foo', 'qux', 'qux'],
                   ['one', 'two', 'one', 'two',
                    'one', 'two', 'one', 'two']])

@@ -13,6 +13,7 @@
    randn = np.random.randn
    randint = np.random.randint
    np.set_printoptions(precision=4, suppress=True)
+   from pandas.compat import lrange, lzip
 
 ***************************
 Indexing and Selecting Data
@@ -293,7 +294,7 @@ The ``.iloc`` attribute is the primary access method. The following are valid in
 
 .. ipython:: python
 
-   s1 = Series(np.random.randn(5),index=range(0,10,2))
+   s1 = Series(np.random.randn(5),index=lrange(0,10,2))
    s1
    s1.iloc[:3]
    s1.iloc[3]
@@ -310,8 +311,8 @@ With a DataFrame
 .. ipython:: python
 
    df1 = DataFrame(np.random.randn(6,4),
-                   index=range(0,12,2),
-                   columns=range(0,8,2))
+                   index=lrange(0,12,2),
+                   columns=lrange(0,8,2))
    df1
 
 Select via integer slicing
@@ -786,7 +787,7 @@ numpy array.  For instance,
 .. ipython:: python
 
   dflookup = DataFrame(np.random.rand(20,4), columns = ['A','B','C','D'])
-  dflookup.lookup(xrange(0,10,2), ['B','C','A','B','D'])
+  dflookup.lookup(lrange(0,10,2), ['B','C','A','B','D'])
 
 Setting values in mixed-type DataFrame
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -896,7 +897,7 @@ display:
 
 .. ipython:: python
 
-   index = Index(range(5), name='rows')
+   index = Index(lrange(5), name='rows')
    columns = Index(['A', 'B', 'C'], name='cols')
    df = DataFrame(np.random.randn(5, 3), index=index, columns=columns)
    df
@@ -971,7 +972,7 @@ can think of ``MultiIndex`` an array of tuples where each tuple is unique. A
 
    arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
              ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
-   tuples = zip(*arrays)
+   tuples = lzip(*arrays)
    tuples
    index = MultiIndex.from_tuples(tuples, names=['first', 'second'])
    s = Series(randn(8), index=index)

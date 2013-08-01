@@ -15,19 +15,18 @@ for Traits is required.
 """
 
 import inspect
-import os
 import pydoc
 
-from pandas.compat import callable
-from . import docscrape
-from . import docscrape_sphinx
-from .docscrape_sphinx import SphinxClassDoc, SphinxFunctionDoc, SphinxDocString
+import docscrape
+from docscrape_sphinx import SphinxClassDoc, SphinxFunctionDoc, SphinxDocString
 
-from . import numpydoc
+import numpydoc
 
-from . import comment_eater
+import comment_eater
+
 
 class SphinxTraitsDoc(SphinxClassDoc):
+
     def __init__(self, cls, modulename='', func_doc=SphinxFunctionDoc):
         if not inspect.isclass(cls):
             raise ValueError("Initialise using a class. Got %r" % cls)
@@ -49,7 +48,7 @@ class SphinxTraitsDoc(SphinxClassDoc):
         except ValueError:
             indent = 0
 
-        for n,line in enumerate(docstring):
+        for n, line in enumerate(docstring):
             docstring[n] = docstring[n][indent:]
 
         self._doc = docscrape.Reader(docstring)
@@ -71,7 +70,7 @@ class SphinxTraitsDoc(SphinxClassDoc):
             'Example': '',
             'Examples': '',
             'index': {}
-            }
+        }
 
         self._parse()
 
@@ -88,15 +87,16 @@ class SphinxTraitsDoc(SphinxClassDoc):
         out += self._str_summary()
         out += self._str_extended_summary()
         for param_list in ('Parameters', 'Traits', 'Methods',
-                           'Returns','Raises'):
+                           'Returns', 'Raises'):
             out += self._str_param_list(param_list)
         out += self._str_see_also("obj")
         out += self._str_section('Notes')
         out += self._str_references()
         out += self._str_section('Example')
         out += self._str_section('Examples')
-        out = self._str_indent(out,indent)
+        out = self._str_indent(out, indent)
         return '\n'.join(out)
+
 
 def looks_like_issubclass(obj, classname):
     """ Return True if the object has a class or superclass with the given class
@@ -112,6 +112,7 @@ def looks_like_issubclass(obj, classname):
             return True
     return False
 
+
 def get_doc_object(obj, what=None, config=None):
     if what is None:
         if inspect.isclass(obj):
@@ -123,7 +124,8 @@ def get_doc_object(obj, what=None, config=None):
         else:
             what = 'object'
     if what == 'class':
-        doc = SphinxTraitsDoc(obj, '', func_doc=SphinxFunctionDoc, config=config)
+        doc = SphinxTraitsDoc(
+            obj, '', func_doc=SphinxFunctionDoc, config=config)
         if looks_like_issubclass(obj, 'HasTraits'):
             for name, trait, comment in comment_eater.get_class_traits(obj):
                 # Exclude private traits.
@@ -135,7 +137,7 @@ def get_doc_object(obj, what=None, config=None):
     else:
         return SphinxDocString(pydoc.getdoc(obj), config=config)
 
+
 def setup(app):
     # init numpydoc
     numpydoc.setup(app, get_doc_object)
-

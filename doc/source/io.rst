@@ -1061,7 +1061,7 @@ Writing to a file, with a date index and a date column
 
    dfj2 = dfj.copy()
    dfj2['date'] = Timestamp('20130101')
-   dfj2['ints'] = range(5)
+   dfj2['ints'] = lrange(5)
    dfj2['bools'] = True
    dfj2.index = date_range('20130101',periods=5)
    dfj2.to_json('test.json')
@@ -1156,7 +1156,7 @@ I like my string indicies
 .. ipython:: python
 
    si = DataFrame(np.zeros((4, 4)),
-            columns=range(4),
+            columns=lrange(4),
             index=[str(i) for i in range(4)])
    si
    si.index
@@ -1649,7 +1649,7 @@ HDF5 (PyTables)
 
 ``HDFStore`` is a dict-like object which reads and writes pandas using
 the high performance HDF5 format using the excellent `PyTables
-<http://www.pytables.org/>`__ library. See the :ref:`cookbook<cookbook.hdf>`
+<http://www.pytables.org/>`__ library. See the :ref:`cookbook <cookbook.hdf>`
 for some advanced strategies
 
 .. note::
@@ -1740,7 +1740,7 @@ similar to how ``read_csv`` and ``to_csv`` work. (new in 0.11.0)
 
 .. ipython:: python
 
-   df_tl = DataFrame(dict(A=range(5), B=range(5)))
+   df_tl = DataFrame(dict(A=lrange(5), B=lrange(5)))
    df_tl.to_hdf('store_tl.h5','table',append=True)
    read_hdf('store_tl.h5', 'table', where = ['index>2'])
 
@@ -1862,7 +1862,7 @@ defaults to `nan`.
                            'int' : 1,
                            'bool' : True,
                            'datetime64' : Timestamp('20010102')},
-                         index=range(8))
+                         index=lrange(8))
     df_mixed.ix[3:5,['A', 'B', 'string', 'datetime64']] = np.nan
 
     store.append('df_mixed', df_mixed, min_itemsize = {'values': 50})
@@ -2287,7 +2287,7 @@ Starting in 0.11, passing a ``min_itemsize`` dict will cause all passed columns 
 
 .. ipython:: python
 
-   dfs = DataFrame(dict(A = 'foo', B = 'bar'),index=range(5))
+   dfs = DataFrame(dict(A = 'foo', B = 'bar'),index=lrange(5))
    dfs
 
    # A and B have a size of 30
@@ -2424,7 +2424,7 @@ SQL Queries
 The :mod:`pandas.io.sql` module provides a collection of query wrappers to both
 facilitate data retrieval and to reduce dependency on DB-specific API. These
 wrappers only support the Python database adapters which respect the `Python
-DB-API <http://www.python.org/dev/peps/pep-0249/>`_. See some
+DB-API <http://www.python.org/dev/peps/pep-0249/>`__. See some
 :ref:`cookbook examples <cookbook.sql>` for some advanced strategies
 
 For example, suppose you want to query some data with different types from a
@@ -2443,7 +2443,7 @@ table such as:
 
 
 Functions from :mod:`pandas.io.sql` can extract some data into a DataFrame. In
-the following example, we use the `SQlite <http://www.sqlite.org/>`_ SQL database
+the following example, we use the `SQlite <http://www.sqlite.org/>`__ SQL database
 engine. You can use a temporary SQLite database where data are stored in
 "memory". Just do:
 
