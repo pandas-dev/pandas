@@ -267,28 +267,34 @@ def table_exists(name, con, flavor):
 
 def get_sqltype(pytype, flavor):
     sqltype = {'mysql': 'VARCHAR (63)',
-               'sqlite': 'TEXT'}
+               'sqlite': 'TEXT',
+               'postgres': 'text'}
 
     if issubclass(pytype, np.floating):
         sqltype['mysql'] = 'FLOAT'
         sqltype['sqlite'] = 'REAL'
+        sqltype['postgres'] = 'real'
 
     if issubclass(pytype, np.integer):
         #TODO: Refine integer size.
         sqltype['mysql'] = 'BIGINT'
         sqltype['sqlite'] = 'INTEGER'
+        sqltype['postgres'] = 'integer'
 
     if issubclass(pytype, np.datetime64) or pytype is datetime:
         # Caution: np.datetime64 is also a subclass of np.number.
         sqltype['mysql'] = 'DATETIME'
         sqltype['sqlite'] = 'TIMESTAMP'
+        sqltype['postgres'] = 'timestamp'
 
     if pytype is datetime.date:
         sqltype['mysql'] = 'DATE'
         sqltype['sqlite'] = 'TIMESTAMP'
+        sqltype['postgres'] = 'date'
 
     if issubclass(pytype, np.bool_):
         sqltype['sqlite'] = 'INTEGER'
+        sqltype['postgres'] = 'boolean'
 
     return sqltype[flavor]
 
@@ -301,8 +307,12 @@ def get_schema(frame, name, flavor, keys=None):
     column_types = lzip(safe_columns, map(lookup_type, frame.dtypes))
     if flavor == 'sqlite':
         columns = ',\n  '.join('[%s] %s' % x for x in column_types)
-    else:
+    elif flavor == 'mysql':
         columns = ',\n  '.join('`%s` %s' % x for x in column_types)
+    elif flavor == 'postgres':
+        columns = ',\n  '.join('%s %s' % x for x in column_types)
+    else:
+        raise ValueError("Don't have a template for that database flavor.")
 
     keystr = ''
     if keys is not None:
