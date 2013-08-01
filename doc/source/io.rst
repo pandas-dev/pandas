@@ -1717,13 +1717,14 @@ Closing a Store, Context Manager
 
 .. ipython:: python
 
-   # closing a store
    store.close()
+   store
+   store.is_open
 
    # Working with, and automatically closing the store with the context
    # manager
    with get_store('store.h5') as store:
-        store.keys()
+       store.keys()
 
 .. ipython:: python
    :suppress:

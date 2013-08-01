@@ -65,6 +65,21 @@ pandas 0.13
     an alias of iteritems used to get around ``2to3``'s changes).
     (:issue:`4384`, :issue:`4375`, :issue:`4372`)
   - ``Series.get`` with negative indexers now returns the same as ``[]`` (:issue:`4390`)
+  - ``HDFStore``
+
+    - added an ``is_open`` property to indicate if the underlying file handle is_open;
+      a closed store will now report 'CLOSED' when viewing the store (rather than raising an error)
+      (:issue:`4409`)
+    - a close of a ``HDFStore`` now will close that instance of the ``HDFStore``
+      but will only close the actual file if the ref count (by ``PyTables``) w.r.t. all of the open handles
+      are 0. Essentially you have a local instance of ``HDFStore`` referenced by a variable. Once you
+      close it, it will report closed. Other references (to the same file) will continue to operate
+      until they themselves are closed. Performing an action on a closed file will raise
+      ``ClosedFileError``
+    - removed the ``_quiet`` attribute, replace by a ``DuplicateWarning`` if retrieving
+      duplicate rows from a table (:issue:`4367`)
+    - removed the ``warn`` argument from ``open``. Instead a ``PossibleDataLossError`` exception will
+      be raised if you try to use ``mode='w'`` with an OPEN file handle (:issue:`4367`)
 
 **Experimental Features**
 
