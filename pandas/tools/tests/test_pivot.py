@@ -1,14 +1,11 @@
-import datetime
 import unittest
 
 import numpy as np
 from numpy.testing import assert_equal
 
-import pandas
 from pandas import DataFrame, Series, Index, MultiIndex
 from pandas.tools.merge import concat
 from pandas.tools.pivot import pivot_table, crosstab
-from pandas.compat import range, u, product
 import pandas.util.testing as tm
 
 
@@ -75,18 +72,9 @@ class TestPivotTable(unittest.TestCase):
         pv_col = df.pivot_table('quantity', 'month', ['customer', 'product'], dropna=False)
         pv_ind = df.pivot_table('quantity', ['customer', 'product'], 'month', dropna=False)
 
-        m = MultiIndex.from_tuples([(u('A'), u('a')),
-                                    (u('A'), u('b')),
-                                    (u('A'), u('c')),
-                                    (u('A'), u('d')),
-                                    (u('B'), u('a')),
-                                    (u('B'), u('b')),
-                                    (u('B'), u('c')),
-                                    (u('B'), u('d')),
-                                    (u('C'), u('a')),
-                                    (u('C'), u('b')),
-                                    (u('C'), u('c')),
-                                    (u('C'), u('d'))])
+        m = MultiIndex.from_tuples([(u'A', u'a'), (u'A', u'b'), (u'A', u'c'), (u'A', u'd'), 
+                                   (u'B', u'a'), (u'B', u'b'), (u'B', u'c'), (u'B', u'd'),
+                                   (u'C', u'a'), (u'C', u'b'), (u'C', u'c'), (u'C', u'd')])
 
         assert_equal(pv_col.columns.values, m.values)
         assert_equal(pv_ind.index.values, m.values)
@@ -211,17 +199,20 @@ class TestPivotTable(unittest.TestCase):
         # no rows
         rtable = self.data.pivot_table(cols=['AA', 'BB'], margins=True,
                                        aggfunc=np.mean)
-        tm.assert_isinstance(rtable, Series)
+        self.assert_(isinstance(rtable, Series))
         for item in ['DD', 'EE', 'FF']:
             gmarg = table[item]['All', '']
             self.assertEqual(gmarg, self.data[item].mean())
 
     def test_pivot_integer_columns(self):
         # caused by upstream bug in unstack
+        from pandas.util.compat import product
+        import datetime
+        import pandas
 
         d = datetime.date.min
         data = list(product(['foo', 'bar'], ['A', 'B', 'C'], ['x1', 'x2'],
-                            [d + datetime.timedelta(i) for i in range(20)], [1.0]))
+                            [d + datetime.timedelta(i) for i in xrange(20)], [1.0]))
         df = pandas.DataFrame(data)
         table = df.pivot_table(values=4, rows=[0, 1, 3], cols=[2])
 
@@ -245,6 +236,9 @@ class TestPivotTable(unittest.TestCase):
         tm.assert_frame_equal(table, expected)
 
     def test_pivot_columns_lexsorted(self):
+        import datetime
+        import numpy as np
+        import pandas
 
         n = 10000
 
@@ -295,6 +289,28 @@ class TestPivotTable(unittest.TestCase):
         result = self.data.pivot_table(rows='A', cols='B', aggfunc=f)
 
         tm.assert_frame_equal(result, expected)
+
+    def test_margins_no_values_no_cols(self):
+        # Regression test on pivot table: no values or cols passed.
+        result = self.data[['A', 'B']].pivot_table(rows=['A', 'B'], aggfunc=len, margins=True)
+        result_list = result.tolist()
+        self.assertEqual(sum(result_list[:-1]), result_list[-1])
+
+    def test_margins_no_values_two_rows(self):
+        # Regression test on pivot table: no values passed but rows are a multi-index
+        result = self.data[['A', 'B', 'C']].pivot_table(rows=['A', 'B'], cols='C', aggfunc=len, margins=True)
+        self.assertEqual(result.All.tolist(), [3.0, 1.0, 4.0, 3.0, 11.0])
+
+    def test_margins_no_values_one_row_one_col(self):
+        # Regression test on pivot table: no values passed but row and col defined
+        result = self.data[['A', 'B']].pivot_table(rows='A', cols='B', aggfunc=len, margins=True)
+        self.assertEqual(result.All.tolist(), [4.0, 7.0, 11.0])
+
+    def test_margins_no_values_two_row_two_cols(self):
+        # Regression test on pivot table: no values passed but rows and cols are multi-indexed
+        self.data['D'] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k']
+        result = self.data[['A', 'B', 'C', 'D']].pivot_table(rows=['A', 'B'], cols=['C', 'D'], aggfunc=len, margins=True)
+        self.assertEqual(result.All.tolist(), [3.0, 1.0, 4.0, 3.0, 11.0])
 
 
 class TestCrosstab(unittest.TestCase):

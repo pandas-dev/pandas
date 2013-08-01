@@ -102,6 +102,7 @@ pandas 0.13
     set _ref_locs (:issue:`4403`)
   - Fixed an issue where hist subplots were being overwritten when they were
     called using the top level matplotlib API (:issue:`4408`)
+  - Fixed (:issue:`3334`). Margins did not compute if values is the index.
 
 pandas 0.12
 ===========
