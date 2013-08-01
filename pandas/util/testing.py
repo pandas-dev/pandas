@@ -88,6 +88,8 @@ def set_trace():
 
 #------------------------------------------------------------------------------
 # contextmanager to ensure the file cleanup
+
+
 @contextmanager
 def ensure_clean(filename=None):
     # if we are not passed a filename, generate a temporary
@@ -114,6 +116,8 @@ def get_data_path(f=''):
 
 #------------------------------------------------------------------------------
 # Comparators
+
+
 def equalContents(arr1, arr2):
     """Checks if the set of unique elements of arr1 and arr2 are equivalent.
     """
@@ -127,6 +131,20 @@ def assert_isinstance(obj, class_type_or_tuple):
             type(obj), class_type_or_tuple))
 
 
+def assert_index_equal(left, right):
+    assert left.equals(
+        right), "[index] left [{0}], right [{0}]".format(left, right)
+
+
+def assert_attr_equal(attr, left, right):
+    left_attr = getattr(left, attr, None)
+    right_attr = getattr(right, attr, None)
+    assert left_attr == right_attr, "[{0}] left [{1}], right [{2}]".format(
+        attr,
+        left_attr,
+        right_attr)
+
+
 def isiterable(obj):
     return hasattr(obj, '__iter__')
 
@@ -137,7 +155,7 @@ def assert_isinstance(obj, class_type_or_tuple):
         "Expected object to be of type %r, found %r instead" % (type(obj), class_type_or_tuple))
 
 
-def assert_almost_equal(a, b, check_less_precise = False):
+def assert_almost_equal(a, b, check_less_precise=False):
     if isinstance(a, dict) or isinstance(b, dict):
         return assert_dict_equal(a, b)
 
@@ -212,18 +230,18 @@ def assert_series_equal(left, right, check_dtype=True,
         assert_isinstance(left, type(right))
     assert_almost_equal(left.values, right.values, check_less_precise)
     if check_dtype:
-        assert(left.dtype == right.dtype)
+        assert_attr_equal('dtype', left, right)
     if check_less_precise:
-        assert_almost_equal(left.index.values, right.index.values, check_less_precise)
+        assert_almost_equal(
+            left.index.values, right.index.values, check_less_precise)
     else:
-        assert(left.index.equals(right.index))
+        assert_index_equal(left.index, right.index)
     if check_index_type:
         assert_isinstance(left.index, type(right.index))
-        assert(left.index.dtype == right.index.dtype)
-        assert(left.index.inferred_type == right.index.inferred_type)
+        assert_attr_equal('dtype', left.index, right.index)
+        assert_attr_equal('inferred_type', left.index, right.index)
     if check_index_freq:
-        assert(getattr(left, 'freqstr', None) ==
-               getattr(right, 'freqstr', None))
+        assert_attr_equal('freqstr', left.index, right.index)
 
 
 def assert_frame_equal(left, right, check_dtype=True,
@@ -238,11 +256,11 @@ def assert_frame_equal(left, right, check_dtype=True,
     assert_isinstance(right, DataFrame)
 
     if check_less_precise:
-        assert_almost_equal(left.columns,right.columns)
-        assert_almost_equal(left.index,right.index)
+        assert_almost_equal(left.columns, right.columns)
+        assert_almost_equal(left.index, right.index)
     else:
-        assert(left.columns.equals(right.columns))
-        assert(left.index.equals(right.index))
+        assert_index_equal(left.columns, right.columns)
+        assert_index_equal(left.index, right.index)
 
     for i, col in enumerate(left.columns):
         assert(col in right)
@@ -255,15 +273,15 @@ def assert_frame_equal(left, right, check_dtype=True,
 
     if check_index_type:
         assert_isinstance(left.index, type(right.index))
-        assert(left.index.dtype == right.index.dtype)
-        assert(left.index.inferred_type == right.index.inferred_type)
+        assert_attr_equal('dtype', left.index, right.index)
+        assert_attr_equal('inferred_type', left.index, right.index)
     if check_column_type:
         assert_isinstance(left.columns, type(right.columns))
-        assert(left.columns.dtype == right.columns.dtype)
-        assert(left.columns.inferred_type == right.columns.inferred_type)
+        assert_attr_equal('dtype', left.columns, right.columns)
+        assert_attr_equal('inferred_type', left.columns, right.columns)
     if check_names:
-        assert(left.index.names == right.index.names)
-        assert(left.columns.names == right.columns.names)
+        assert_attr_equal('names', left.index, right.index)
+        assert_attr_equal('names', left.columns, right.columns)
 
 
 def assert_panel_equal(left, right,
@@ -272,13 +290,15 @@ def assert_panel_equal(left, right,
     if check_panel_type:
         assert_isinstance(left, type(right))
 
-    assert(left.items.equals(right.items))
-    assert(left.major_axis.equals(right.major_axis))
-    assert(left.minor_axis.equals(right.minor_axis))
+    for axis in ['items', 'major_axis', 'minor_axis']:
+        assert_index_equal(
+            getattr(left, axis, None), getattr(right, axis, None))
 
     for col, series in compat.iteritems(left):
         assert(col in right)
-        assert_frame_equal(series, right[col], check_less_precise=check_less_precise, check_names=False)  # TODO strangely check_names fails in py3 ?
+        # TODO strangely check_names fails in py3 ?
+        assert_frame_equal(
+            series, right[col], check_less_precise=check_less_precise, check_names=False)
 
     for col in right:
         assert(col in left)
@@ -286,14 +306,14 @@ def assert_panel_equal(left, right,
 
 def assert_panel4d_equal(left, right,
                          check_less_precise=False):
-    assert(left.labels.equals(right.labels))
-    assert(left.items.equals(right.items))
-    assert(left.major_axis.equals(right.major_axis))
-    assert(left.minor_axis.equals(right.minor_axis))
+    for axis in ['labels', 'items', 'major_axis', 'minor_axis']:
+        assert_index_equal(
+            getattr(left, axis, None), getattr(right, axis, None))
 
     for col, series in compat.iteritems(left):
         assert(col in right)
-        assert_panel_equal(series, right[col], check_less_precise=check_less_precise)
+        assert_panel_equal(
+            series, right[col], check_less_precise=check_less_precise)
 
     for col in right:
         assert(col in left)
@@ -487,8 +507,8 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
     for i in range(nlevels):
         def keyfunc(x):
             import re
-            numeric_tuple = re.sub("[^\d_]_?","",x).split("_")
-            return lmap(int,numeric_tuple)
+            numeric_tuple = re.sub("[^\d_]_?", "", x).split("_")
+            return lmap(int, numeric_tuple)
 
         # build a list of lists to create the index from
         div_factor = nentries // ndupe_l[i] + 1
@@ -604,6 +624,7 @@ def add_nans_panel4d(panel4d):
 
 
 class TestSubDict(dict):
+
     def __init__(self, *args, **kwargs):
         dict.__init__(self, *args, **kwargs)
 
@@ -677,6 +698,7 @@ def skip_if_no_package(*args, **kwargs):
 # Additional tags decorators for nose
 #
 
+
 def optional_args(decorator):
     """allows a decorator to take optional positional and keyword arguments.
     Assumes that taking a single, callable, positional argument means that
@@ -704,6 +726,7 @@ def optional_args(decorator):
 
 
 _network_error_classes = IOError, HTTPException
+
 
 @optional_args
 def network(t, raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
@@ -796,9 +819,9 @@ def network(t, raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
                     raise
                 except Exception as e:
                     if runs < num_runs:
-                       print("Failed: %r" % e)
+                        print("Failed: %r" % e)
                     else:
-                       raise
+                        raise
 
                 runs += 1
 
@@ -913,6 +936,7 @@ def with_connectivity_check(t, url="http://www.google.com",
 
 
 class SimpleMock(object):
+
     """
     Poor man's mocking object
 
@@ -926,6 +950,7 @@ class SimpleMock(object):
     >>> a.attr1 == "fizz" and a.attr2 == "buzz"
     True
     """
+
     def __init__(self, obj, *args, **kwds):
         assert(len(args) % 2 == 0)
         attrs = kwds.get("attrs", {})
@@ -1010,7 +1035,8 @@ def assertRaisesRegexp(exception, regexp, callable, *args, **kwargs):
             raise AssertionError('"%s" does not match "%s"' %
                                  (expected_regexp.pattern, str(e)))
     else:
-        # Apparently some exceptions don't have a __name__ attribute? Just aping unittest library here
+        # Apparently some exceptions don't have a __name__ attribute? Just
+        # aping unittest library here
         name = getattr(exception, "__name__", str(exception))
         raise AssertionError("{0} not raised".format(name))
 
