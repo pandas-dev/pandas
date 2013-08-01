@@ -927,7 +927,7 @@ class HDFStore(StringMixin):
 
         s.write(obj = value, append=append, complib=complib, **kwargs)
         if s.is_table and index:
-            s.create_index(columns = index)
+            s.create_index(columns=index, **kwargs)
 
     def _read_group(self, group, **kwargs):
         s = self._create_storer(group)
