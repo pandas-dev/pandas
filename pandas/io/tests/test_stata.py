@@ -33,7 +33,6 @@ class StataTests(unittest.TestCase):
         self.dta9 = os.path.join(self.dirpath, 'lbw.dta')
         self.csv9 = os.path.join(self.dirpath, 'lbw.csv')
         self.dta_encoding = os.path.join(self.dirpath, 'stata1_encoding.dta')
-
     def read_dta(self, file):
         return read_stata(file, convert_dates=True)
 
@@ -197,6 +196,17 @@ class StataTests(unittest.TestCase):
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(written_and_read_again.set_index('index'),
                                   original)
+
+    def test_read_dta11(self):
+        reader = StataReader(self.dta11)
+        parsed = reader.data()
+        # Pandas uses np.nan as missing value.
+        # Thus, all columns will be of type float, regardless of their name.
+        expected = DataFrame([(np.nan, np.nan, np.nan, np.nan, np.nan)],
+                             columns=['float_miss', 'double_miss', 'byte_miss',
+                                      'int_miss', 'long_miss'])
+
+        tm.assert_frame_equal(parsed, expected)
 
     def test_stata_doc_examples(self):
         with tm.ensure_clean() as path:
