@@ -1061,7 +1061,7 @@ Writing to a file, with a date index and a date column
 
    dfj2 = dfj.copy()
    dfj2['date'] = Timestamp('20130101')
-   dfj2['ints'] = lrange(5)
+   dfj2['ints'] = list(range(5))
    dfj2['bools'] = True
    dfj2.index = date_range('20130101',periods=5)
    dfj2.to_json('test.json')
@@ -1156,7 +1156,7 @@ I like my string indicies
 .. ipython:: python
 
    si = DataFrame(np.zeros((4, 4)),
-            columns=lrange(4),
+            columns=list(range(4)),
             index=[str(i) for i in range(4)])
    si
    si.index
@@ -1741,7 +1741,7 @@ similar to how ``read_csv`` and ``to_csv`` work. (new in 0.11.0)
 
 .. ipython:: python
 
-   df_tl = DataFrame(dict(A=lrange(5), B=lrange(5)))
+   df_tl = DataFrame(dict(A=list(range(5)), B=list(range(5))))
    df_tl.to_hdf('store_tl.h5','table',append=True)
    read_hdf('store_tl.h5', 'table', where = ['index>2'])
 
@@ -1863,7 +1863,7 @@ defaults to `nan`.
                            'int' : 1,
                            'bool' : True,
                            'datetime64' : Timestamp('20010102')},
-                         index=lrange(8))
+                         index=list(range(8)))
     df_mixed.ix[3:5,['A', 'B', 'string', 'datetime64']] = np.nan
 
     store.append('df_mixed', df_mixed, min_itemsize = {'values': 50})
@@ -2288,7 +2288,7 @@ Starting in 0.11, passing a ``min_itemsize`` dict will cause all passed columns 
 
 .. ipython:: python
 
-   dfs = DataFrame(dict(A = 'foo', B = 'bar'),index=lrange(5))
+   dfs = DataFrame(dict(A = 'foo', B = 'bar'),index=list(range(5)))
    dfs
 
    # A and B have a size of 30

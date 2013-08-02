@@ -467,7 +467,7 @@ using something similar to the following:
 
 .. ipython:: python
 
-   x = np.array(lrange(10), '>i4') # big endian
+   x = np.array(list(range(10)), '>i4') # big endian
    newx = x.byteswap().newbyteorder() # force native byteorder
    s = Series(newx)
 
