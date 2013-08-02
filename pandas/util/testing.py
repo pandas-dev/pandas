@@ -130,24 +130,22 @@ def assert_isinstance(obj, class_type_or_tuple):
         "Expected object to be of type %r, found %r instead" % (
             type(obj), class_type_or_tuple))
 
+def assert_equal(actual, expected, msg=""):
+     assert expected == actual, "%s: %r != %r" % (msg, actual, expected)
 
 def assert_index_equal(left, right):
-    assert left.equals(
-        right), "[index] left [{0}], right [{0}]".format(left, right)
-
-
+    if not left.equals(right):
+        raise AssertionError("[index] left [{0} {1}], right [{2} {3}]".format(left.dtype,
+                                                                              left,
+                                                                              right,
+                                                                              right.dtype))
 def assert_attr_equal(attr, left, right):
     left_attr = getattr(left, attr, None)
     right_attr = getattr(right, attr, None)
-    assert left_attr == right_attr, "[{0}] left [{1}], right [{2}]".format(
-        attr,
-        left_attr,
-        right_attr)
-
+    assert_equal(left_attr,right_attr,"attr is not equal [{0}]" .format(attr))
 
 def isiterable(obj):
     return hasattr(obj, '__iter__')
-
 
 def assert_isinstance(obj, class_type_or_tuple):
     """asserts that obj is an instance of class_type_or_tuple"""
