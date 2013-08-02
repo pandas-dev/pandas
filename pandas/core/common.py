@@ -3,7 +3,6 @@ Misc tools for implementing data structures
 """
 
 import re
-from datetime import datetime
 import codecs
 import csv
 
@@ -1628,7 +1627,7 @@ _ensure_platform_int = algos.ensure_platform_int
 _ensure_object = algos.ensure_object
 
 
-def _astype_nansafe(arr, dtype, copy = True):
+def _astype_nansafe(arr, dtype, copy=True):
     """ return a view if copy is False """
     if not isinstance(dtype, np.dtype):
         dtype = np.dtype(dtype)
@@ -1659,6 +1658,8 @@ def _astype_nansafe(arr, dtype, copy = True):
     elif arr.dtype == np.object_ and np.issubdtype(dtype.type, np.integer):
         # work around NumPy brokenness, #1987
         return lib.astype_intsafe(arr.ravel(), dtype).reshape(arr.shape)
+    elif issubclass(dtype.type, compat.string_types):
+        return lib.astype_str(arr.ravel()).reshape(arr.shape)
 
     if copy:
         return arr.astype(dtype)
