@@ -1763,7 +1763,10 @@ class TestHDFStore(unittest.TestCase):
 
         values = np.random.randn(2)
 
-        func = lambda l, r: tm.assert_series_equal(l, r, True, True, True)
+        func = lambda l, r: tm.assert_series_equal(l, r,
+                                                   check_dtype=True,
+                                                   check_index_type=True,
+                                                   check_series_type=True)
 
         with tm.assert_produces_warning(expected_warning=PerformanceWarning):
             ser = Series(values, [0, 'y'])
