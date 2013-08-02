@@ -13,7 +13,6 @@
    import pandas as pd
    np.set_printoptions(precision=4, suppress=True)
    options.display.mpl_style='default'
-   from pandas.compat import lrange, lzip
 
    #### portions of this were borrowed from the
    #### Pandas cheatsheet
@@ -63,7 +62,7 @@ Creating a ``DataFrame`` by passing a dict of objects that can be converted to s
 
    df2 = pd.DataFrame({ 'A' : 1.,
                         'B' : pd.Timestamp('20130102'),
-                        'C' : pd.Series(1,index=lrange(4),dtype='float32'),
+                        'C' : pd.Series(1,index=list(range(4)),dtype='float32'),
                         'D' : np.array([3] * 4,dtype='int32'),
                         'E' : 'foo' })
    df2
@@ -510,10 +509,10 @@ Stack
 
 .. ipython:: python
 
-   tuples = lzip(*[['bar', 'bar', 'baz', 'baz',
-                   'foo', 'foo', 'qux', 'qux'],
-                  ['one', 'two', 'one', 'two',
-                   'one', 'two', 'one', 'two']])
+   tuples = list(zip(*[['bar', 'bar', 'baz', 'baz',
+                        'foo', 'foo', 'qux', 'qux'],
+                       ['one', 'two', 'one', 'two',
+                        'one', 'two', 'one', 'two']]))
    index = pd.MultiIndex.from_tuples(tuples, names=['first', 'second'])
    df = pd.DataFrame(np.random.randn(8, 2), index=index, columns=['A', 'B'])
    df2 = df[:4]
@@ -619,6 +618,7 @@ Plotting
 
    import matplotlib.pyplot as plt
    plt.close('all')
+   from pandas import options
    options.display.mpl_style='default'
 
 .. ipython:: python
