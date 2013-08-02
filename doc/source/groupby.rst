@@ -513,7 +513,7 @@ than 2.
    sf = Series([1, 1, 2, 3, 3, 3])
    sf.groupby(sf).filter(lambda x: x.sum() > 2)
 
-The argument of ``filter`` must a function that, applied to the group as a 
+The argument of ``filter`` must be a function that, applied to the group as a
 whole, returns ``True`` or ``False``.
 
 Another useful operation is filtering out elements that belong to groups
