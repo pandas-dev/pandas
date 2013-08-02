@@ -363,7 +363,7 @@ Replace the '.' with ``nan`` (str -> str)
 
 .. ipython:: python
 
-   d = {'a': lrange(4), 'b': list('ab..'), 'c': ['a', 'b', nan, 'd']}
+   d = {'a': list(range(4)), 'b': list('ab..'), 'c': ['a', 'b', nan, 'd']}
    df = DataFrame(d)
    df.replace('.', nan)
 
@@ -500,7 +500,7 @@ For example:
    s = Series(randn(5), index=[0, 2, 4, 6, 7])
    s > 0
    (s > 0).dtype
-   crit = (s > 0).reindex(lrange(8))
+   crit = (s > 0).reindex(list(range(8)))
    crit
    crit.dtype
 
@@ -512,7 +512,7 @@ contains NAs, an exception will be generated:
 .. ipython:: python
    :okexcept:
 
-   reindexed = s.reindex(lrange(8)).fillna(0)
+   reindexed = s.reindex(list(range(8))).fillna(0)
    reindexed[crit]
 
 However, these can be filled in using **fillna** and it will work fine:

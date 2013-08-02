@@ -12,7 +12,7 @@
    randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
    from pandas.tools.tile import *
-   from pandas.compat import lzip
+   from pandas.compat import zip
 
 **************************
 Reshaping and Pivot Tables
@@ -117,10 +117,10 @@ from the hierarchical indexing section:
 
 .. ipython:: python
 
-   tuples = lzip(*[['bar', 'bar', 'baz', 'baz',
+   tuples = list(zip(*[['bar', 'bar', 'baz', 'baz',
                    'foo', 'foo', 'qux', 'qux'],
                   ['one', 'two', 'one', 'two',
-                   'one', 'two', 'one', 'two']])
+                   'one', 'two', 'one', 'two']]))
    index = MultiIndex.from_tuples(tuples, names=['first', 'second'])
    df = DataFrame(randn(8, 2), index=index, columns=['A', 'B'])
    df2 = df[:4]

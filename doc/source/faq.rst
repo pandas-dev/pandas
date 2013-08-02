@@ -86,7 +86,7 @@ life easier is missing. In that case you have several options:
        return [x for x in self.columns if 'foo' in x]
 
    pd.DataFrame.just_foo_cols = just_foo_cols # monkey-patch the DataFrame class
-   df = pd.DataFrame([lrange(4)],columns= ["A","foo","foozball","bar"])
+   df = pd.DataFrame([list(range(4))], columns=["A","foo","foozball","bar"])
    df.just_foo_cols()
    del pd.DataFrame.just_foo_cols # you can also remove the new method
 
@@ -259,7 +259,7 @@ using something similar to the following:
 
 .. ipython:: python
 
-   x = np.array(lrange(10), '>i4') # big endian
+   x = np.array(list(range(10)), '>i4') # big endian
    newx = x.byteswap().newbyteorder() # force native byteorder
    s = Series(newx)
 

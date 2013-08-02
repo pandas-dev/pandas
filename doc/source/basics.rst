@@ -1093,7 +1093,7 @@ By default integer types are ``int64`` and float types are ``float64``,
 
    DataFrame([1, 2], columns=['a']).dtypes
    DataFrame({'a': [1, 2]}).dtypes
-   DataFrame({'a': 1 }, index=lrange(2)).dtypes
+   DataFrame({'a': 1 }, index=list(range(2))).dtypes
 
 Numpy, however will choose *platform-dependent* types when creating arrays.
 The following **WILL** result in ``int32`` on 32-bit platform.
