@@ -174,7 +174,7 @@ def _add_margins(table, data, values, rows, cols, aggfunc):
     row_margin = row_margin.reindex(result.columns)
     # populate grand margin
     for k in margin_keys:
-        if isinstance(k, basestring):
+        if isinstance(k, compat.string_types):
             row_margin[k] = grand_margin[k]
         else:
             row_margin[k] = grand_margin[k[0]]
@@ -194,7 +194,7 @@ def _compute_grand_margin(data, values, aggfunc):
         grand_margin = {}
         for k, v in data[values].iteritems():
             try:
-                if isinstance(aggfunc, basestring):
+                if isinstance(aggfunc, compat.string_types):
                     grand_margin[k] = getattr(v, aggfunc)()
                 else:
                     grand_margin[k] = aggfunc(v)
