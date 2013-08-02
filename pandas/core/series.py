@@ -5,7 +5,6 @@ Data structure for 1-dimensional cross-sectional and time series data
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
 
-from pandas import compat
 import operator
 from distutils.version import LooseVersion
 import types
