@@ -33,6 +33,7 @@ Customarily, we import as follows
 
    import pandas as pd
    import numpy as np
+   import matplotlib.pyplot as plt
 
 Object Creation
 ---------------
@@ -575,8 +576,7 @@ Time zone representation
 
    rng = pd.date_range('3/6/2012 00:00', periods=5, freq='D')
    ts = pd.Series(np.random.randn(len(rng)), rng)
-   ts_utc = ts.tz_localize('UTC')
-   ts_utc
+   ts.tz_localize('UTC')
 
 Convert to another time zone
 
