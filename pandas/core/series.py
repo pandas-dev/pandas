@@ -1654,7 +1654,8 @@ class Series(generic.PandasContainer, pa.Array):
         """
         arr = self.values.copy()
 
-        do_mask = skipna and not issubclass(self.dtype.type, np.integer)
+        do_mask = skipna and not issubclass(self.dtype.type,
+                                            (np.integer, np.bool_))
         if do_mask:
             mask = isnull(arr)
             np.putmask(arr, mask, 0.)
@@ -1683,7 +1684,8 @@ class Series(generic.PandasContainer, pa.Array):
         """
         arr = self.values.copy()
 
-        do_mask = skipna and not issubclass(self.dtype.type, np.integer)
+        do_mask = skipna and not issubclass(self.dtype.type,
+                                            (np.integer, np.bool_))
         if do_mask:
             mask = isnull(arr)
             np.putmask(arr, mask, 1.)
