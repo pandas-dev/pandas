@@ -1037,7 +1037,6 @@ class IndexCol(StringMixin):
         """
     is_an_indexable = True
     is_data_indexable = True
-    is_searchable = False
     _info_fields = ['freq','tz','index_name']
 
     def __init__(self, values=None, kind=None, typ=None, cname=None, itemsize=None,
@@ -1299,7 +1298,6 @@ class DataCol(IndexCol):
         """
     is_an_indexable = False
     is_data_indexable = False
-    is_searchable = False
     _info_fields = ['tz']
 
     @classmethod
@@ -1587,10 +1585,6 @@ class DataCol(IndexCol):
 class DataIndexableCol(DataCol):
     """ represent a data column that can be indexed """
     is_data_indexable = True
-
-    @property
-    def is_searchable(self):
-        return _ensure_decoded(self.kind) == u('string')
 
     def get_atom_string(self, block, itemsize):
         return _tables().StringCol(itemsize=itemsize)
@@ -3061,8 +3055,6 @@ class AppendableTable(LegacyTable):
 
         # the arguments
         indexes = [a.cvalues for a in self.index_axes]
-        search = np.array(
-            [a.is_searchable for a in self.values_axes]).astype('u1')
         values = [a.take_data() for a in self.values_axes]
 
         # transpose the values so first dimension is last
@@ -3083,22 +3075,49 @@ class AppendableTable(LegacyTable):
             self.write_data_chunk(
                 indexes=[a[start_i:end_i] for a in indexes],
                 mask=mask[start_i:end_i],
-                search=search,
                 values=[v[start_i:end_i] for v in values])
 
-    def write_data_chunk(self, indexes, mask, search, values):
+    def write_data_chunk(self, indexes, mask, values):
 
         # 0 len
         for v in values:
             if not np.prod(v.shape):
                 return
 
-        # get our function
         try:
-            func = getattr(lib, "create_hdf_rows_%sd" % self.ndim)
-            args = list(indexes)
-            args.extend([self.dtype, mask, search, values])
-            rows = func(*args)
+            nrows = np.prod([ idx.shape[0] for idx in indexes ])
+            rows = np.empty(nrows,dtype=self.dtype)
+            names = self.dtype.names
+
+            # indexes
+            nindexes = len(indexes)
+            for i, idx in enumerate(indexes):
+
+                # broadcast to all other indexes except myself
+                if i > 0 and i < nindexes:
+                    repeater = np.prod([indexes[bi].shape[0] for bi in range(0,i)])
+                    idx = np.tile(idx,repeater)
+
+                if i < nindexes-1:
+                    repeater = np.prod([indexes[bi].shape[0] for bi in range(i+1,nindexes)])
+                    idx = np.repeat(idx,repeater)
+
+                rows[names[i]] = idx
+
+            # values
+            for i, v in enumerate(values):
+                name = names[nindexes + i]
+                b = values[i]
+
+                # reshape
+                new_shape = (nrows,) + self.dtype[name].shape
+                b = b.ravel().reshape(new_shape)
+
+                rows[name] = b
+
+            # mask
+            rows = rows[~mask.ravel().astype(bool)]
+
         except Exception as detail:
             raise Exception("cannot create row-data -> %s" % str(detail))
 

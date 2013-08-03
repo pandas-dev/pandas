@@ -32,6 +32,7 @@ API changes
   - ``Series.get`` with negative indexers now returns the same as ``[]`` (:issue:`4390`)
   - ``HDFStore``
 
+    - Significant table writing performance improvements
     - added an ``is_open`` property to indicate if the underlying file handle is_open;
       a closed store will now report 'CLOSED' when viewing the store (rather than raising an error)
       (:issue:`4409`)
