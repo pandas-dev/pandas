@@ -46,6 +46,7 @@ pandas 0.13
     ``read_table``, ``read_csv``, etc.
   - Added a more informative error message when plot arguments contain
     overlapping color and style arguments (:issue:`4402`)
+  - Significant table writing performance improvements in ``HDFStore``
 
 **API Changes**
 
