@@ -18,7 +18,7 @@ from pandas.core.groupby import (get_group_index, _compress_group_index,
 import pandas.core.common as com
 import pandas.algos as algos
 
-from pandas.core.index import MultiIndex
+from pandas.core.index import Index, MultiIndex
 
 
 class ReshapeError(Exception):
@@ -805,7 +805,7 @@ def convert_dummies(data, cat_variables, prefix_sep='_'):
     return result
 
 
-def get_dummies(data, prefix=None, prefix_sep='_'):
+def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False):
     """
     Convert categorical variable into dummy/indicator variables
 
@@ -816,19 +816,67 @@ def get_dummies(data, prefix=None, prefix_sep='_'):
         String to append DataFrame column names
     prefix_sep : string, default '_'
         If appending prefix, separator/delimiter to use
+    dummy_na : bool, default False
+        Add a column to indicate NaNs, if False NaNs are ignored.
 
     Returns
     -------
     dummies : DataFrame
+
+    Examples
+    --------
+    >>> s = pd.Series(list('abca'))
+
+    >>> get_dummies(s)
+       a  b  c
+    0  1  0  0
+    1  0  1  0
+    2  0  0  1
+    3  1  0  0
+
+    >>> s1 = ['a', 'b', np.nan]
+
+    >>> get_dummies(s1)
+       a  b
+    0  1  0
+    1  0  1
+    2  0  0
+
+    >>> get_dummies(s1, dummy_na=True)
+       a  b  NaN
+    0  1  0    0
+    1  0  1    0
+    2  0  0    1
+
     """
-    cat = Categorical.from_array(np.asarray(data))
-    dummy_mat = np.eye(len(cat.levels)).take(cat.labels, axis=0)
+    cat = Categorical.from_array(Series(data))  # Series avoids inconsistent NaN handling
+    levels = cat.levels
+
+    # if all NaN
+    if not dummy_na and len(levels) == 0:
+        if isinstance(data, Series):
+            index = data.index
+        else:
+            index = np.arange(len(data))
+        return DataFrame(index=index)
+
+    number_of_cols = len(levels)
+    if dummy_na:
+        number_of_cols += 1
+
+    dummy_mat = np.eye(number_of_cols).take(cat.labels, axis=0)
+
+    if dummy_na:
+        levels = np.append(cat.levels, np.nan)
+    else:
+        # reset NaN GH4446
+        dummy_mat[cat.labels == -1] = 0
 
     if prefix is not None:
         dummy_cols = ['%s%s%s' % (prefix, prefix_sep, str(v))
-                      for v in cat.levels]
+                      for v in levels]
     else:
-        dummy_cols = cat.levels
+        dummy_cols = levels
 
     if isinstance(data, Series):
         index = data.index
