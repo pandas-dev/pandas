@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, date
 import os
 import operator
 import unittest
+import string
 
 import nose
 
@@ -2029,6 +2030,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = Series([timedelta(1)],dtype='timedelta64[ns]')
         assert_series_equal(result,expected)
 
+
     def test_sub_of_datetime_from_TimeSeries(self):
         from pandas.core import common as com
         from datetime import datetime
@@ -3353,6 +3355,19 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_(s.dtype == 'M8[ns]')
         s = s.astype('O')
         self.assert_(s.dtype == np.object_)
+
+    def test_astype_str(self):
+        # GH4405
+        digits = string.digits
+        s1 = Series([digits * 10, tm.rands(63), tm.rands(64),
+                    tm.rands(1000)])
+        s2 = Series([digits * 10, tm.rands(63), tm.rands(64), nan, 1.0])
+        types = (compat.text_type,) + (np.str_, np.unicode_)
+        for typ in types:
+            for s in (s1, s2):
+                res = s.astype(typ)
+                expec = s.map(compat.text_type)
+                assert_series_equal(res, expec)
 
     def test_map(self):
         index, data = tm.getMixedTypeDict()

@@ -117,6 +117,8 @@ pandas 0.13
     set _ref_locs (:issue:`4403`)
   - Fixed an issue where hist subplots were being overwritten when they were
     called using the top level matplotlib API (:issue:`4408`)
+  - Fixed a bug where calling ``Series.astype(str)`` would truncate the string
+    (:issue:`4405`, :issue:`4437`)
 
 pandas 0.12
 ===========
