@@ -1613,7 +1613,7 @@ def _is_sequence(x):
     try:
         iter(x)
         len(x)  # it has a length
-        return not isinstance(x, compat.string_types + (compat.binary_type,))
+        return not isinstance(x, compat.string_and_binary_types)
     except (TypeError, AttributeError):
         return False
 

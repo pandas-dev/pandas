@@ -185,6 +185,10 @@ else:
     def u(s):
         return unicode(s, "unicode_escape")
 
+
+string_and_binary_types = string_types + (binary_type,)
+
+
 try:
     # callable reintroduced in later versions of Python
     callable = callable
