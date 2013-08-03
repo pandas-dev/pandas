@@ -1613,7 +1613,8 @@ def _is_sequence(x):
     try:
         iter(x)
         len(x) # it has a length
-        return not isinstance(x, compat.string_types) and True
+        return not isinstance(x, compat.string_types +
+                              (compat.binary_type,)) and True
     except Exception:
         return False
 
@@ -2053,8 +2054,7 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
 
         return compat.text_type(result)
 
-    if (compat.PY3 and hasattr(thing, '__next__')) or \
-            hasattr(thing, 'next'):
+    if (compat.PY3 and hasattr(thing, '__next__')) or hasattr(thing, 'next'):
         return compat.text_type(thing)
     elif (isinstance(thing, dict) and
           _nest_lvl < get_option("display.pprint_nest_depth")):
