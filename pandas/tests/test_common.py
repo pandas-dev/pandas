@@ -1,12 +1,12 @@
 from datetime import datetime
-import sys
 import re
 
 import nose
+from nose.tools import assert_equal
 import unittest
 
 from pandas import Series, DataFrame, date_range, DatetimeIndex, Timestamp
-from pandas.compat import range, long, lrange, lmap, u, map
+from pandas.compat import range, long, lrange, lmap, u
 from pandas.core.common import notnull, isnull
 import pandas.core.common as com
 import pandas.util.testing as tm
@@ -145,6 +145,21 @@ def test_all_not_none():
     assert(com._all_not_none(1, 2, 3, 4))
     assert(not com._all_not_none(1, 2, 3, None))
     assert(not com._all_not_none(None, None, None, None))
+
+
+def test_repr_binary_type():
+    import string
+    letters = string.ascii_letters
+    btype = compat.binary_type
+    try:
+        raw = btype(letters, encoding=cf.get_option('display.encoding'))
+    except TypeError:
+        raw = btype(letters)
+    b = compat.text_type(compat.bytes_to_str(raw))
+    res = com.pprint_thing(b, quote_strings=True)
+    assert_equal(res, repr(b))
+    res = com.pprint_thing(b, quote_strings=False)
+    assert_equal(res, b)
 
 
 def test_rands():
