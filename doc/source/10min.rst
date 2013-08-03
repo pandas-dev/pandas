@@ -576,7 +576,9 @@ Time zone representation
 
    rng = pd.date_range('3/6/2012 00:00', periods=5, freq='D')
    ts = pd.Series(np.random.randn(len(rng)), rng)
-   ts.tz_localize('UTC')
+   ts
+   ts_utc = ts.tz_localize('UTC')
+   ts_utc
 
 Convert to another time zone
 
