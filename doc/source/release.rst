@@ -119,6 +119,8 @@ pandas 0.13
     called using the top level matplotlib API (:issue:`4408`)
   - Fixed a bug where calling ``Series.astype(str)`` would truncate the string
     (:issue:`4405`, :issue:`4437`)
+  - Fixed a py3 compat issue where bytes were being repr'd as tuples
+    (:issue:`4455`)
 
 pandas 0.12
 ===========
