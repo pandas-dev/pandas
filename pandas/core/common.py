@@ -1612,10 +1612,9 @@ def is_list_like(arg):
 def _is_sequence(x):
     try:
         iter(x)
-        len(x) # it has a length
-        return not isinstance(x, compat.string_types +
-                              (compat.binary_type,)) and True
-    except Exception:
+        len(x)  # it has a length
+        return not isinstance(x, compat.string_types + (compat.binary_type,))
+    except (TypeError, AttributeError):
         return False
 
 _ensure_float64 = algos.ensure_float64
