@@ -1546,15 +1546,16 @@ class BlockManager(PandasObject):
                 result[indexer] = block.get_values(dtype)
                 itemmask[indexer] = 1
 
-            if not itemmask.all():
-                raise AssertionError('Some items were not contained in blocks')
-
         else:
 
             # non-unique, must use ref_locs
             rl = self._set_ref_locs()
             for i, (block, idx) in enumerate(rl):
-                result[i] = block.iget(idx)
+                result[i] = block.get_values(dtype)[idx]
+                itemmask[i] = 1
+
+        if not itemmask.all():
+            raise AssertionError('Some items were not contained in blocks')
 
         return result
 
