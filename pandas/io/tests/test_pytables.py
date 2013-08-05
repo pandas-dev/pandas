@@ -1237,6 +1237,29 @@ class TestHDFStore(unittest.TestCase):
             result = store.select('df1')
             tm.assert_frame_equal(result, df)
 
+        # more chunksize in append tests
+        def check(obj, comparator):
+            for c in [10, 200, 1000]:
+                with ensure_clean(self.path,mode='w') as store:
+                    store.append('obj', obj, chunksize=c)
+                    result = store.select('obj')
+                    comparator(result,obj)
+
+        df = tm.makeDataFrame()
+        df['string'] = 'foo'
+        df['float322'] = 1.
+        df['float322'] = df['float322'].astype('float32')
+        df['bool']     = df['float322'] > 0
+        df['time1']    = Timestamp('20130101')
+        df['time2']    = Timestamp('20130102')
+        check(df, tm.assert_frame_equal)
+
+        p = tm.makePanel()
+        check(p, tm.assert_panel_equal)
+
+        p4d = tm.makePanel4D()
+        check(p4d, tm.assert_panel4d_equal)
+
     def test_append_raise(self):
 
         with ensure_clean(self.path) as store:
