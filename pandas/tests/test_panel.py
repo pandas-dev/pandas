@@ -1340,6 +1340,12 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
     def test_get_attr(self):
         assert_frame_equal(self.panel['ItemA'], self.panel.ItemA)
 
+        # specific cases from #3440
+        self.panel['a'] = self.panel['ItemA']
+        assert_frame_equal(self.panel['a'], self.panel.a)
+        self.panel['i'] = self.panel['ItemA']
+        assert_frame_equal(self.panel['i'], self.panel.i)
+
     def test_group_agg(self):
         values = np.ones((10, 2)) * np.arange(10).reshape((10, 1))
         bounds = np.arange(5) * 2

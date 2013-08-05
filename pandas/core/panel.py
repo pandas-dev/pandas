@@ -165,12 +165,12 @@ class Panel(NDFrame):
     """
 
     _AXIS_ORDERS = ['items', 'major_axis', 'minor_axis']
-    _AXIS_NUMBERS = dict([(a, i) for i, a in enumerate(_AXIS_ORDERS)])
+    _AXIS_NUMBERS = dict((a, i) for i, a in enumerate(_AXIS_ORDERS))
     _AXIS_ALIASES = {
         'major': 'major_axis',
         'minor': 'minor_axis'
     }
-    _AXIS_NAMES = dict([(i, a) for i, a in enumerate(_AXIS_ORDERS)])
+    _AXIS_NAMES = dict(enumerate(_AXIS_ORDERS))
     _AXIS_SLICEMAP = {
         'major_axis': 'index',
         'minor_axis': 'columns'

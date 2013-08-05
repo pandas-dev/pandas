@@ -121,6 +121,8 @@ pandas 0.13
     (:issue:`4405`, :issue:`4437`)
   - Fixed a py3 compat issue where bytes were being repr'd as tuples
     (:issue:`4455`)
+  - Fixed Panel attribute naming conflict if item is named 'a'
+    (:issue:`3440`)
 
 pandas 0.12
 ===========
