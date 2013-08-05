@@ -1931,8 +1931,8 @@ class TestHDFStore(unittest.TestCase):
             # try to remove non-table (with crit)
             # non-table ok (where = None)
             wp = tm.makePanel()
-            store.put('wp', wp, fmt='t')
-            store.remove('wp', [("minor_axis=['A', 'D']")])
+            store.put('wp', wp, format='table')
+            store.remove('wp', ["minor_axis=['A', 'D']"])
             rs = store.select('wp')
             expected = wp.reindex(minor_axis=['B', 'C'])
             assert_panel_equal(rs, expected)
@@ -2031,6 +2031,7 @@ class TestHDFStore(unittest.TestCase):
             df.ix[0:4,'string'] = 'bar'
             wp = tm.makePanel()
             p4d = tm.makePanel4D()
+            store.put('df', df, format='table')
             store.put('wp', wp, format='table')
             store.put('p4d', p4d, format='table')
 

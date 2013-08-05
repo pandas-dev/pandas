@@ -1,6 +1,7 @@
 import re
 import operator as op
 from functools import partial
+from itertools import product, islice, chain
 
 import numpy as np
 
@@ -23,8 +24,12 @@ _TAG_RE = re.compile('^{0}'.format(_LOCAL_TAG))
 
 class UndefinedVariableError(NameError):
     def __init__(self, *args):
-        super(UndefinedVariableError,
-              self).__init__('name {0!r} is not defined'.format(args[0]))
+        msg = 'name {0!r} is not defined'
+        subbed = _TAG_RE.sub('', args[0])
+        if subbed != args[0]:
+            subbed = '@' + subbed
+            msg = 'local variable {0!r} is not defined'
+        super(UndefinedVariableError, self).__init__(msg.format(subbed))
 
 
 class OperatorError(Exception):
@@ -37,6 +42,19 @@ class UnaryOperatorError(OperatorError):
 
 class BinaryOperatorError(OperatorError):
     pass
+
+
+def _possibly_update_key(d, value, old_key, new_key=None):
+    if new_key is None:
+        new_key = old_key
+
+    try:
+        del d[old_key]
+    except KeyError:
+        return False
+    else:
+        d[new_key] = value
+        return True
 
 
 class Term(StringMixin):
@@ -76,37 +94,40 @@ class Term(StringMixin):
         return res
 
     def update(self, value):
+        """
+        search order for local (i.e., @variable) variables:
+
+        scope, key_variable
+        [('locals', 'local_name'),
+         ('globals', 'local_name'),
+         ('locals', 'key'),
+         ('globals', 'key')]
+        """
         env = self.env
         key = self.name
+
+        # if it's a variable name (otherwise a constant)
         if isinstance(key, string_types):
             if self.local:
+                # get it's name WITHOUT the local tag (defined above)
                 local_name = self.local_name
 
-                try:
-                    del env.locals[local_name]
-                    env.locals[key] = value
-                except KeyError:
-                    try:
-                        del env.globals[local_name]
-                        env.globals[key] = value
-                    except KeyError:
-                        try:
-                            del env.locals[key]
-                            env.locals[key] = value
-                        except KeyError:
-                            try:
-                                del env.globals[key]
-                                env.globals[key] = value
-                            except KeyError:
-                                raise UndefinedVariableError(key)
+                # search for the local in the above specified order
+                scope_pairs = product([env.locals, env.globals],
+                                      [local_name, key])
+
+                # a[::2] + a[1::2] but iterators
+                scope_iter = chain(islice(scope_pairs, None, None, 2),
+                                   islice(scope_pairs, 1, None, 2))
+                for d, k in scope_iter:
+                    if _possibly_update_key(d, value, k, key):
+                        break
+                else:
+                    raise UndefinedVariableError(key)
             else:
+                # otherwise we look in resolvers -> locals -> globals
                 for r in (env.resolver_dict, env.locals, env.globals):
-                    try:
-                        del r[key]
-                    except KeyError:
-                        pass
-                    else:
-                        r[key] = value
+                    if _possibly_update_key(r, value, key):
                         break
                 else:
                     raise UndefinedVariableError(key)
@@ -332,7 +353,7 @@ class BinOp(Op):
         lhs, rhs = self.lhs, self.rhs
 
         if (is_term(lhs) and lhs.kind.startswith('datetime') and is_term(rhs)
-            and rhs.isscalar):
+                and rhs.isscalar):
             v = rhs.value
             if isinstance(v, (int, float)):
                 v = stringify(v)
@@ -343,7 +364,7 @@ class BinOp(Op):
             self.rhs.update(v)
 
         if (is_term(rhs) and rhs.kind.startswith('datetime') and
-            is_term(lhs) and lhs.isscalar):
+                is_term(lhs) and lhs.isscalar):
             v = lhs.value
             if isinstance(v, (int, float)):
                 v = stringify(v)

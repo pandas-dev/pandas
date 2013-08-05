@@ -12,7 +12,6 @@ import itertools
 import warnings
 
 import numpy as np
-import pandas
 from pandas import (Series, TimeSeries, DataFrame, Panel, Panel4D, Index,
                     MultiIndex, Int64Index, Timestamp, _np_version_under1p7)
 from pandas.sparse.api import SparseSeries, SparseDataFrame, SparsePanel
@@ -30,10 +29,10 @@ from pandas.tseries.timedeltas import _coerce_scalar_to_timedelta_type
 import pandas.core.common as com
 from pandas.tools.merge import concat
 from pandas import compat
-from pandas.compat import u, PY3, range
+from pandas.compat import u, PY3, range, lrange
 from pandas.io.common import PerformanceWarning
 from pandas.core.config import get_option
-from pandas.computation.pytables import Expr
+from pandas.computation.pytables import Expr, maybe_expression
 
 import pandas.lib as lib
 import pandas.algos as algos
@@ -62,21 +61,26 @@ def _ensure_encoding(encoding):
             encoding = _default_encoding
     return encoding
 
+
 Term = Expr
 
-def _ensure_term(where):
-    """ ensure that the where is a Term or a list of Term
-        this makes sure that we are capturing the scope of variables
-        that are passed """
 
-    # create the terms here with a frame_level=2 (we are 2 levels down)
-    if isinstance(where, (list, tuple)):
-        where = [ w if isinstance(w, Term) else Term(w, scope_level=2) for w in where if w is not None ]
-    elif where is None or isinstance(where, Coordinates):
-        pass
-    elif not isinstance(where, Term):
+def _ensure_term(where):
+    """
+    ensure that the where is a Term or a list of Term
+    this makes sure that we are capturing the scope of variables
+    that are passed
+    create the terms here with a frame_level=2 (we are 2 levels down)
+    """
+
+    # only consider list/tuple here as an ndarray is automaticaly a coordinate list
+    if isinstance(where, (list,tuple)):
+        where = [w if not maybe_expression(w) else Term(w, scope_level=2)
+                 for w in where if w is not None ]
+    elif maybe_expression(where):
         where = Term(where, scope_level=2)
     return where
+
 
 class PossibleDataLossError(Exception):
     pass
@@ -2438,7 +2442,7 @@ class SparsePanelFixed(GenericFixed):
         sdict = {}
         for name in items:
             key = 'sparse_frame_%s' % name
-            s = SparseFrameStorer(self.parent, getattr(self.group, key))
+            s = SparseFrameFixed(self.parent, getattr(self.group, key))
             s.infer_axes()
             sdict[name] = s.read()
         return SparsePanel(sdict, items=items, default_kind=self.default_kind,
@@ -3527,7 +3531,7 @@ class AppendableTable(LegacyTable):
             # we must remove in reverse order!
             pg = groups.pop()
             for g in reversed(groups):
-                rows = l.take(range(g, pg))
+                rows = l.take(lrange(g, pg))
                 table.removeRows(start=rows[rows.index[0]
                                             ], stop=rows[rows.index[-1]] + 1)
                 pg = g

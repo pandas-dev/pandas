@@ -18,18 +18,22 @@ import pandas as pd
 from pandas.core import common as com
 from pandas import DataFrame, Series, Panel, date_range
 from pandas.util.testing import makeCustomDataframe as mkdf
+
+from pandas.computation import pytables
+from pandas.computation.expressions import _USE_NUMEXPR
 from pandas.computation.engines import _engines
 from pandas.computation.expr import PythonExprVisitor, PandasExprVisitor
 from pandas.computation.ops import (_binary_ops_dict, _unary_ops_dict,
                                     _special_case_arith_ops_syms,
-                                    _arith_ops_syms)
+                                    _arith_ops_syms, _bool_ops_syms)
 import pandas.computation.expr as expr
-from pandas.computation import pytables
-from pandas.computation.expressions import _USE_NUMEXPR
 from pandas.util.testing import (assert_frame_equal, randbool,
                                  assertRaisesRegexp,
                                  assert_produces_warning, assert_series_equal)
 from pandas.compat import PY3, u
+
+_series_frame_incompatible = _bool_ops_syms
+_scalar_skip = 'in', 'not in'
 
 def skip_if_no_ne(engine='numexpr'):
     if not _USE_NUMEXPR and engine == 'numexpr':
@@ -59,13 +63,19 @@ def _eval_single_bin(lhs, cmp1, rhs, engine):
 
 
 def _series_and_2d_ndarray(lhs, rhs):
-    return (com.is_series(lhs) and isinstance(rhs, np.ndarray) and rhs.ndim > 1
-            or com.is_series(rhs) and isinstance(lhs, np.ndarray) and lhs.ndim
-            > 1)
+    return ((isinstance(lhs, Series) and
+             isinstance(rhs, np.ndarray) and rhs.ndim > 1)
+            or (isinstance(rhs, Series) and
+                isinstance(lhs, np.ndarray) and lhs.ndim > 1))
+
+
+def _series_and_frame(lhs, rhs):
+    return ((isinstance(lhs, Series) and isinstance(rhs, DataFrame))
+            or (isinstance(rhs, Series) and isinstance(lhs, DataFrame)))
 
 
 def _bool_and_frame(lhs, rhs):
-    return isinstance(lhs, bool) and com.is_frame(rhs)
+    return isinstance(lhs, bool) and isinstance(rhs, pd.core.generic.NDFrame)
 
 
 def skip_incompatible_operand(f):
@@ -86,6 +96,7 @@ def _is_py3_complex_incompat(result, expected):
 
 
 _good_arith_ops = com.difference(_arith_ops_syms, _special_case_arith_ops_syms)
+
 
 class TestEvalNumexprPandas(unittest.TestCase):
     @classmethod
@@ -115,10 +126,8 @@ class TestEvalNumexprPandas(unittest.TestCase):
         self.scalar_lhses = randn(), np.float64(randn()), np.nan
         self.scalar_rhses = randn(), np.float64(randn()), np.nan
 
-        self.lhses = self.pandas_lhses + self.scalar_lhses + (randn(10, 5),
-                                                              randn(5))
-        self.rhses = self.pandas_rhses + self.scalar_rhses + (randn(10, 5),
-                                                              randn(5))
+        self.lhses = self.pandas_lhses + self.scalar_lhses
+        self.rhses = self.pandas_rhses + self.scalar_rhses
 
     def setup_ops(self):
         self.cmp_ops = expr._cmp_ops_syms
@@ -191,44 +200,79 @@ class TestEvalNumexprPandas(unittest.TestCase):
     def test_chained_cmp_op(self):
         mids = self.lhses
         cmp_ops = tuple(set(self.cmp_ops) - set(['==', '!=', '<=', '>=']))
-        for lhs, cmp1, mid, cmp2, rhs in product(self.lhses, self.cmp_ops,
+        for lhs, cmp1, mid, cmp2, rhs in product(self.lhses, cmp_ops,
                                                  mids, cmp_ops, self.rhses):
             self.check_chained_cmp_op(lhs, cmp1, mid, cmp2, rhs)
 
-    @skip_incompatible_operand
     def check_complex_cmp_op(self, lhs, cmp1, rhs, binop, cmp2):
+        skip_these = 'in', 'not in'
         ex = '(lhs {cmp1} rhs) {binop} (lhs {cmp2} rhs)'.format(cmp1=cmp1,
                                                                 binop=binop,
                                                                 cmp2=cmp2)
-        lhs_new = _eval_single_bin(lhs, cmp1, rhs, self.engine)
-        rhs_new = _eval_single_bin(lhs, cmp2, rhs, self.engine)
-        expected = _eval_single_bin(lhs_new, binop, rhs_new, self.engine)
-        result = pd.eval(ex, engine=self.engine, parser=self.parser)
-        assert_array_equal(result, expected)
+        scalar_with_in_notin = (np.isscalar(rhs) and (cmp1 in skip_these or
+                                cmp2 in skip_these))
+        if scalar_with_in_notin:
+            self.assertRaises(TypeError, pd.eval, ex, engine=self.engine,
+                              parser=self.parser, local_dict={'lhs': lhs,
+                                                              'rhs': rhs})
+        elif (_series_and_frame(lhs, rhs) and (cmp1 in
+              _series_frame_incompatible or
+              cmp2 in _series_frame_incompatible)):
+            self.assertRaises(TypeError, pd.eval, ex,
+                              local_dict={'lhs': lhs, 'rhs': rhs},
+                              engine=self.engine, parser=self.parser)
+        else:
+            lhs_new = _eval_single_bin(lhs, cmp1, rhs, self.engine)
+            rhs_new = _eval_single_bin(lhs, cmp2, rhs, self.engine)
+            if (isinstance(lhs_new, Series) and isinstance(rhs_new, DataFrame)
+                    and binop in _series_frame_incompatible):
+                pass
+                # TODO: the code below should be added back when left and right
+                # hand side bool ops are fixed.
 
+                #try:
+                    #self.assertRaises(Exception, pd.eval, ex,
+                                    #local_dict={'lhs': lhs, 'rhs': rhs},
+                                    #engine=self.engine, parser=self.parser)
+                #except AssertionError:
+                    #import ipdb; ipdb.set_trace()
+                    #raise
+
+            else:
+                expected = _eval_single_bin(lhs_new, binop, rhs_new, self.engine)
+                result = pd.eval(ex, engine=self.engine, parser=self.parser)
+                assert_array_equal(result, expected)
+
+    @skip_incompatible_operand
     def check_chained_cmp_op(self, lhs, cmp1, mid, cmp2, rhs):
-        # these are not compatible operands
-        if _series_and_2d_ndarray(lhs, mid):
-            self.assertRaises(ValueError, _eval_single_bin, lhs, cmp2, mid,
-                              self.engine)
-        else:
-            lhs_new = _eval_single_bin(lhs, cmp1, mid, self.engine)
+        skip_these = 'in', 'not in'
 
-        if _series_and_2d_ndarray(mid, rhs):
-            self.assertRaises(ValueError, _eval_single_bin, mid, cmp2, rhs,
-                              self.engine)
-        else:
-            rhs_new = _eval_single_bin(mid, cmp2, rhs, self.engine)
+        def check_operands(left, right, cmp_op):
+            if (np.isscalar(right) and not np.isscalar(left) and cmp_op in
+                    skip_these):
+                self.assertRaises(Exception, _eval_single_bin, left, cmp_op,
+                                  right, self.engine)
+            elif _series_and_2d_ndarray(right, left):
+                self.assertRaises(Exception, _eval_single_bin, right, cmp_op,
+                                  left, self.engine)
+            elif (np.isscalar(right) and np.isscalar(left) and cmp_op in
+                    skip_these):
+                self.assertRaises(Exception, _eval_single_bin, right, cmp_op,
+                                  left, self.engine)
+            else:
+                new = _eval_single_bin(left, cmp_op, right, self.engine)
+                return new
+            return
 
-        try:
-            lhs_new
-            rhs_new
-        except NameError:
-            pass
-        else:
+        lhs_new = check_operands(lhs, mid, cmp1)
+        rhs_new = check_operands(mid, rhs, cmp2)
+
+        if lhs_new is not None and rhs_new is not None:
             # these are not compatible operands
-            if (com.is_series(lhs_new) and com.is_frame(rhs_new) or
-                _bool_and_frame(lhs_new, rhs_new)):
+            if isinstance(lhs_new, Series) and isinstance(rhs_new, DataFrame):
+                self.assertRaises(TypeError, _eval_single_bin, lhs_new, '&',
+                                  rhs_new, self.engine)
+            elif (_bool_and_frame(lhs_new, rhs_new)):
                 self.assertRaises(TypeError, _eval_single_bin, lhs_new, '&',
                                   rhs_new, self.engine)
             elif _series_and_2d_ndarray(lhs_new, rhs_new):
@@ -240,7 +284,11 @@ class TestEvalNumexprPandas(unittest.TestCase):
                 ex1 = 'lhs {0} mid {1} rhs'.format(cmp1, cmp2)
                 ex2 = 'lhs {0} mid and mid {1} rhs'.format(cmp1, cmp2)
                 ex3 = '(lhs {0} mid) & (mid {1} rhs)'.format(cmp1, cmp2)
-                expected = _eval_single_bin(lhs_new, '&', rhs_new, self.engine)
+                try:
+                    expected = _eval_single_bin(lhs_new, '&', rhs_new, self.engine)
+                except TypeError:
+                    import ipdb; ipdb.set_trace()
+                    raise
 
                 for ex in (ex1, ex2, ex3):
                     result = pd.eval(ex, engine=self.engine,
@@ -250,9 +298,14 @@ class TestEvalNumexprPandas(unittest.TestCase):
     @skip_incompatible_operand
     def check_simple_cmp_op(self, lhs, cmp1, rhs):
         ex = 'lhs {0} rhs'.format(cmp1)
-        expected = _eval_single_bin(lhs, cmp1, rhs, self.engine)
-        result = pd.eval(ex, engine=self.engine, parser=self.parser)
-        assert_array_equal(result, expected)
+        if cmp1 in ('in', 'not in') and not com.is_list_like(rhs):
+            self.assertRaises(TypeError, pd.eval, ex, engine=self.engine,
+                              parser=self.parser, local_dict={'lhs': lhs,
+                                                              'rhs': rhs})
+        else:
+            expected = _eval_single_bin(lhs, cmp1, rhs, self.engine)
+            result = pd.eval(ex, engine=self.engine, parser=self.parser)
+            assert_array_equal(result, expected)
 
     @skip_incompatible_operand
     def check_binary_arith_op(self, lhs, arith1, rhs):
@@ -360,19 +413,26 @@ class TestEvalNumexprPandas(unittest.TestCase):
 
     @skip_incompatible_operand
     def check_compound_invert_op(self, lhs, cmp1, rhs):
-        # compound
+        skip_these = 'in', 'not in'
         ex = '~(lhs {0} rhs)'.format(cmp1)
-        if np.isscalar(lhs) and np.isscalar(rhs):
-            lhs, rhs = map(lambda x: np.array([x]), (lhs, rhs))
-        expected = ~_eval_single_bin(lhs, cmp1, rhs, self.engine)
-        result = pd.eval(ex, engine=self.engine, parser=self.parser)
-        assert_array_equal(expected, result)
 
-        # make sure the other engines work the same as this one
-        for engine in self.current_engines:
-            skip_if_no_ne(engine)
-            ev = pd.eval(ex, engine=self.engine, parser=self.parser)
-            assert_array_equal(ev, result)
+        if np.isscalar(rhs) and cmp1 in skip_these:
+            self.assertRaises(TypeError, pd.eval, ex, engine=self.engine,
+                              parser=self.parser, local_dict={'lhs': lhs,
+                                                              'rhs': rhs})
+        else:
+            # compound
+            if np.isscalar(lhs) and np.isscalar(rhs):
+                lhs, rhs = map(lambda x: np.array([x]), (lhs, rhs))
+            expected = ~_eval_single_bin(lhs, cmp1, rhs, self.engine)
+            result = pd.eval(ex, engine=self.engine, parser=self.parser)
+            assert_array_equal(expected, result)
+
+            # make sure the other engines work the same as this one
+            for engine in self.current_engines:
+                skip_if_no_ne(engine)
+                ev = pd.eval(ex, engine=self.engine, parser=self.parser)
+                assert_array_equal(ev, result)
 
     @skip_incompatible_operand
     def check_unary_arith_op(self, lhs, arith1, rhs, unary_op):
@@ -461,46 +521,8 @@ class TestEvalPythonPandas(TestEvalPythonPython):
         cls.parser = 'pandas'
 
     def check_chained_cmp_op(self, lhs, cmp1, mid, cmp2, rhs):
-        # these are not compatible operands
-        if _series_and_2d_ndarray(lhs, mid):
-            self.assertRaises(ValueError, _eval_single_bin, lhs, cmp2, mid,
-                              self.engine)
-        else:
-            lhs_new = _eval_single_bin(lhs, cmp1, mid, self.engine)
-
-        if _series_and_2d_ndarray(mid, rhs):
-            self.assertRaises(ValueError, _eval_single_bin, mid, cmp2, rhs,
-                              self.engine)
-        else:
-            rhs_new = _eval_single_bin(mid, cmp2, rhs, self.engine)
-
-        try:
-            lhs_new
-            rhs_new
-        except NameError:
-            pass
-        else:
-            # these are not compatible operands
-            if (com.is_series(lhs_new) and com.is_frame(rhs_new) or
-                _bool_and_frame(lhs_new, rhs_new)):
-                self.assertRaises(TypeError, _eval_single_bin, lhs_new, '&',
-                                  rhs_new, self.engine)
-            elif _series_and_2d_ndarray(lhs_new, rhs_new):
-                # TODO: once #4319 is fixed add this test back in
-                #self.assertRaises(Exception, _eval_single_bin, lhs_new, '&',
-                                  #rhs_new, self.engine)
-                pass
-            else:
-                ex1 = 'lhs {0} mid {1} rhs'.format(cmp1, cmp2)
-                ex2 = 'lhs {0} mid and mid {1} rhs'.format(cmp1, cmp2)
-                ex3 = '(lhs {0} mid) & (mid {1} rhs)'.format(cmp1, cmp2)
-                expected = _eval_single_bin(lhs_new, '&', rhs_new, self.engine)
-
-                for ex in (ex1, ex2, ex3):
-                    result = pd.eval(ex, engine=self.engine,
-                                     parser=self.parser)
-                    assert_array_equal(result, expected)
-
+        TestEvalNumexprPandas.check_chained_cmp_op(self, lhs, cmp1, mid, cmp2,
+                                                   rhs)
 
 
 f = lambda *args, **kwargs: np.random.randn()
@@ -741,24 +763,35 @@ class TestOperationsNumExprPandas(unittest.TestCase):
         ops = expr._arith_ops_syms + expr._cmp_ops_syms
 
         for op in filter(lambda x: x != '//', ops):
-            expec = _eval_single_bin(1, op, 1, self.engine)
-            x = self.eval('1 {0} 1'.format(op))
-            assert_equal(x, expec)
+            ex = '1 {0} 1'.format(op)
+            ex2 = 'x {0} 1'.format(op)
+            ex3 = '1 {0} (x + 1)'.format(op)
 
-            expec = _eval_single_bin(x, op, 1, self.engine)
-            y = self.eval('x {0} 1'.format(op), local_dict={'x': x})
-            assert_equal(y, expec)
+            if op in ('in', 'not in'):
+                self.assertRaises(TypeError, pd.eval, ex,
+                                  engine=self.engine, parser=self.parser)
+            else:
+                expec = _eval_single_bin(1, op, 1, self.engine)
+                x = self.eval(ex, engine=self.engine, parser=self.parser)
+                assert_equal(x, expec)
 
-            expec = _eval_single_bin(1, op, x + 1, self.engine)
-            y = self.eval('1 {0} (x + 1)'.format(op), local_dict={'x': x})
-            assert_equal(y, expec)
+                expec = _eval_single_bin(x, op, 1, self.engine)
+                y = self.eval(ex2, local_dict={'x': x}, engine=self.engine,
+                              parser=self.parser)
+                assert_equal(y, expec)
+
+                expec = _eval_single_bin(1, op, x + 1, self.engine)
+                y = self.eval(ex3, local_dict={'x': x},
+                              engine=self.engine, parser=self.parser)
+                assert_equal(y, expec)
 
     def test_simple_bool_ops(self):
-        for op, lhs, rhs in product(expr._bool_ops_syms, (True, False), (True,
-                                                                        False)):
+        for op, lhs, rhs in product(expr._bool_ops_syms, (True, False),
+                                    (True, False)):
             expec = _eval_single_bin(lhs, op, rhs, self.engine)
             x = self.eval('lhs {0} rhs'.format(op), local_dict={'lhs': lhs,
-                                                                'rhs': rhs})
+                                                                'rhs': rhs},
+                          engine=self.engine, parser=self.parser)
             assert_equal(x, expec)
 
     def test_bool_ops_with_constants(self):

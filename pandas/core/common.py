@@ -18,12 +18,12 @@ import pandas.algos as algos
 import pandas.lib as lib
 import pandas.tslib as tslib
 from pandas import compat
-from pandas.compat import StringIO, BytesIO, range, long, u, zip, map
+from pandas.compat import (StringIO, BytesIO, range, long, u, zip, map,
+                           string_types)
 from datetime import timedelta
 
 from pandas.core.config import get_option
 from pandas.core import array as pa
-import pandas as pd
 
 class PandasError(Exception):
     pass
@@ -33,14 +33,18 @@ class AmbiguousIndexError(PandasError, KeyError):
     pass
 
 _POSSIBLY_CAST_DTYPES = set([np.dtype(t)
-                            for t in ['M8[ns]', 'm8[ns]', 'O', 'int8', 'uint8', 'int16', 'uint16', 'int32', 'uint32', 'int64', 'uint64']])
+                            for t in ['M8[ns]', 'm8[ns]', 'O', 'int8',
+                                      'uint8', 'int16', 'uint16', 'int32',
+                                      'uint32', 'int64', 'uint64']])
 
 _NS_DTYPE = np.dtype('M8[ns]')
 _TD_DTYPE = np.dtype('m8[ns]')
 _INT64_DTYPE = np.dtype(np.int64)
 _DATELIKE_DTYPES = set([np.dtype(t) for t in ['M8[ns]', 'm8[ns]']])
 
-# define abstract base classes to enable isinstance type checking on our objects
+
+# define abstract base classes to enable isinstance type checking on our
+# objects
 def create_pandas_abc_type(name, attr, comp):
     @classmethod
     def _check(cls, inst):
@@ -50,15 +54,22 @@ def create_pandas_abc_type(name, attr, comp):
     meta = type("ABCBase", (type,), dct)
     return meta(name, tuple(), dct)
 
+
 ABCSeries = create_pandas_abc_type("ABCSeries", "_typ", ("series",))
 ABCDataFrame = create_pandas_abc_type("ABCDataFrame", "_typ", ("dataframe",))
 ABCPanel = create_pandas_abc_type("ABCPanel", "_typ", ("panel",))
-ABCSparseSeries = create_pandas_abc_type("ABCSparseSeries", "_subtyp", ('sparse_series', 'sparse_time_series'))
-ABCSparseArray = create_pandas_abc_type("ABCSparseArray", "_subtyp", ('sparse_array', 'sparse_series'))
+ABCSparseSeries = create_pandas_abc_type("ABCSparseSeries", "_subtyp",
+                                         ('sparse_series',
+                                          'sparse_time_series'))
+ABCSparseArray = create_pandas_abc_type("ABCSparseArray", "_subtyp",
+                                        ('sparse_array', 'sparse_series'))
+
 
 class _ABCGeneric(type):
     def __instancecheck__(cls, inst):
         return hasattr(inst, "_data")
+
+
 ABCGeneric = _ABCGeneric("ABCGeneric", tuple(), {})
 
 def isnull(obj):
@@ -229,6 +240,11 @@ def notnull(obj):
     return -res
 
 
+def _iterable_not_string(x):
+    return (isinstance(x, collections.Iterable) and
+            not isinstance(x, compat.string_types))
+
+
 def flatten(l):
     """Flatten an arbitrarily nested sequence.
 
@@ -246,7 +262,7 @@ def flatten(l):
     flattened : generator
     """
     for el in l:
-        if isinstance(el, collections.Iterable) and not is_string(el):
+        if _iterable_not_string(el):
             for s in flatten(el):
                 yield s
         else:
@@ -1684,30 +1700,6 @@ def _maybe_make_list(obj):
 
 def is_bool(obj):
     return isinstance(obj, (bool, np.bool_))
-
-
-def is_string(obj):
-    return isinstance(obj, string_types)
-
-
-def is_series(obj):
-    return isinstance(obj, pd.Series)
-
-
-def is_frame(obj):
-    return isinstance(obj, pd.DataFrame)
-
-
-def is_panel(obj):
-    return isinstance(obj, pd.Panel)
-
-
-def is_pd_obj(obj):
-    return isinstance(obj, pd.core.generic.PandasObject)
-
-
-def is_ndframe(obj):
-    return isinstance(obj, pd.core.generic.NDFrame)
 
 
 def is_integer(obj):

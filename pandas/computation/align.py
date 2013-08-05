@@ -11,7 +11,7 @@ from pandas.computation.ops import is_const
 
 
 def _align_core_single_unary_op(term):
-    if isinstance(term.value, np.ndarray) and not com.is_series(term.value):
+    if isinstance(term.value, np.ndarray):
         typ = partial(np.asanyarray, dtype=term.value.dtype)
     else:
         typ = type(term.value)
@@ -67,7 +67,8 @@ def _maybe_promote_shape(values, naxes):
 
 def _any_pandas_objects(terms):
     """Check a sequence of terms for instances of PandasObject."""
-    return any(com.is_pd_obj(term.value) for term in terms)
+    return any(isinstance(term.value, pd.core.generic.PandasObject)
+               for term in terms)
 
 
 def _filter_special_cases(f):
@@ -111,7 +112,7 @@ def _align_core(terms):
 
     for term in (terms[i] for i in term_index):
         for axis, items in enumerate(term.value.axes):
-            if com.is_series(term.value) and naxes > 1:
+            if isinstance(term.value, pd.Series) and naxes > 1:
                 ax, itm = naxes - 1, term.value.index
             else:
                 ax, itm = axis, items
@@ -122,7 +123,7 @@ def _align_core(terms):
             ti = terms[i].value
 
             if hasattr(ti, 'reindex_axis'):
-                transpose = com.is_series(ti) and naxes > 1
+                transpose = isinstance(ti, pd.Series) and naxes > 1
                 reindexer = axes[naxes - 1] if transpose else items
 
                 term_axis_size = len(ti.axes[axis])
@@ -183,7 +184,7 @@ def _align(terms):
         terms = list(com.flatten(terms))
     except TypeError:
         # can't iterate so it must just be a constant or single variable
-        if isinstance(terms.value, (pd.Series, pd.core.generic.NDFrame)):
+        if isinstance(terms.value, pd.core.generic.NDFrame):
             typ = type(terms.value)
             return typ, _zip_axes_from_type(typ, terms.value.axes)
         return np.result_type(terms.type), None

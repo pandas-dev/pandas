@@ -35,7 +35,6 @@ from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_arrays,
                                    create_block_manager_from_blocks)
 from pandas.core.series import Series, _radd_compat
-from pandas.sparse.array import SparseArray
 import pandas.computation.expressions as expressions
 from pandas.computation.eval import eval as _eval
 from pandas.computation.expr import maybe_expression, _ensure_scope
@@ -53,13 +52,12 @@ import pandas.core.algorithms as algos
 import pandas.core.datetools as datetools
 import pandas.core.common as com
 import pandas.core.format as fmt
-import pandas.core.generic as generic
 import pandas.core.nanops as nanops
 
 import pandas.lib as lib
 import pandas.algos as _algos
 
-from pandas.core.config import get_option, set_option
+from pandas.core.config import get_option
 
 #----------------------------------------------------------------------
 # Docstring templates
@@ -1963,6 +1961,20 @@ class DataFrame(NDFrame):
         --------
         pandas.eval
         """
+        # need to go up at least 4 stack frames
+        # 4 expr.Scope
+        # 3 expr._ensure_scope
+        # 2 self.eval
+        # 1 self.query
+        # 0 self.query caller (implicit)
+        level = kwargs.setdefault('level', 4)
+        if level < 4:
+            raise ValueError("Going up fewer than 4 stack frames will not"
+                             " capture the necessary variable scope for a "
+                             "query expression")
+        return self[self.eval(expr, **kwargs)]
+
+    def eval(self, expr, **kwargs):
         resolvers = kwargs.pop('resolvers', None)
         if resolvers is None:
             index_resolvers = {}
@@ -1970,9 +1982,9 @@ class DataFrame(NDFrame):
                 index_resolvers[self.index.name] = self.index
             index_resolvers.update({'index': self.index,
                                     'columns': self.columns})
-            resolvers = [self, index_resolvers]
+            resolvers = [index_resolvers, self]
         kwargs['local_dict'] = _ensure_scope(resolvers=resolvers, **kwargs)
-        return self[_eval(expr, **kwargs)]
+        return _eval(expr, **kwargs)
 
     def _slice(self, slobj, axis=0, raise_on_error=False):
         axis = self._get_block_manager_axis(axis)

@@ -26,12 +26,12 @@ def _ensure_scope(level=2, global_dict=None, local_dict=None, resolvers=None,
 
 
 def _check_disjoint_resolver_names(resolver_keys, local_keys, global_keys):
-    res_locals = com.intersection(resolver_keys, local_keys)
+    res_locals = list(com.intersection(resolver_keys, local_keys))
     if res_locals:
         msg = "resolvers and locals overlap on names {0}".format(res_locals)
         raise NameResolutionError(msg)
 
-    res_globals = com.intersection(resolver_keys, global_keys)
+    res_globals = list(com.intersection(resolver_keys, global_keys))
     if res_globals:
         msg = "resolvers and globals overlap on names {0}".format(res_globals)
         raise NameResolutionError(msg)
@@ -172,7 +172,9 @@ class Scope(StringMixin):
             raise TypeError("Cannot add value to object of type {0!r}, "
                             "scope must be a dictionary"
                             "".format(d.__class__.__name__))
-        name = 'tmp_var_{0}_{1}'.format(self.ntemps, pd.util.testing.rands(10))
+        name = 'tmp_var_{0}_{1}_{2}'.format(value.__class__.__name__,
+                                            self.ntemps,
+                                            pd.util.testing.rands(10))
         d[name] = value
 
         # only increment if the variable gets put in the scope
@@ -320,18 +322,15 @@ class BaseExprVisitor(ast.NodeVisitor):
         self.preparser = preparser
 
     def visit(self, node, **kwargs):
-        parse = ast.parse
         if isinstance(node, string_types):
             clean = self.preparser(node)
-        elif isinstance(node, ast.AST):
-            clean = node
-        else:
+            node = ast.fix_missing_locations(ast.parse(clean))
+        elif not isinstance(node, ast.AST):
             raise TypeError("Cannot visit objects of type {0!r}"
                             "".format(node.__class__.__name__))
-        node = parse(clean)
 
         method = 'visit_' + node.__class__.__name__
-        visitor = getattr(self, method, None)
+        visitor = getattr(self, method)
         return visitor(node, **kwargs)
 
     def visit_Module(self, node, **kwargs):
@@ -365,11 +364,12 @@ class BaseExprVisitor(ast.NodeVisitor):
         return self.const_type(node.n, self.env)
 
     def visit_Str(self, node, **kwargs):
-        return self.const_type(node.s, self.env)
+        name = self.env.add_tmp(node.s)
+        return self.term_type(name, self.env)
 
     def visit_List(self, node, **kwargs):
-        return self.const_type([self.visit(e).value for e in node.elts],
-                               self.env)
+        name = self.env.add_tmp([self.visit(e).value for e in node.elts])
+        return self.term_type(name, self.env)
 
     visit_Tuple = visit_List
 
@@ -467,7 +467,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         comps = node.comparators
 
         def translate(op):
-            if isinstance(op,ast.In):
+            if isinstance(op, ast.In):
                 return ast.Eq()
             return op
 
@@ -502,8 +502,8 @@ class BaseExprVisitor(ast.NodeVisitor):
         return reduce(visitor, operands)
 
 
-_python_not_supported = frozenset(['Assign', 'Str', 'Tuple', 'List', 'Dict',
-                                   'Call', 'BoolOp'])
+_python_not_supported = frozenset(['Assign', 'Tuple', 'Dict', 'Call',
+                                   'BoolOp'])
 _numexpr_supported_calls = frozenset(_reductions + _mathops)
 
 
@@ -572,9 +572,9 @@ class Expr(StringMixin):
     def check_name_clashes(self):
         env = self.env
         names = self.names
-        res_keys = frozenset(env.resolver_dict.iterkeys()) & names
-        lcl_keys = frozenset(env.locals.iterkeys()) & names
-        gbl_keys = frozenset(env.globals.iterkeys()) & names
+        res_keys = frozenset(env.resolver_dict.keys()) & names
+        lcl_keys = frozenset(env.locals.keys()) & names
+        gbl_keys = frozenset(env.globals.keys()) & names
         _check_disjoint_resolver_names(res_keys, lcl_keys, gbl_keys)
 
     def add_resolvers_to_locals(self):

@@ -8,7 +8,6 @@ Data structure for 1-dimensional cross-sectional and time series data
 import operator
 from distutils.version import LooseVersion
 import types
-import warnings
 
 from numpy import nan, ndarray
 import numpy as np
@@ -18,8 +17,10 @@ from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _default_index, _maybe_promote, _maybe_upcast,
                                 _asarray_tuplesafe, is_integer_dtype,
                                 _NS_DTYPE, _TD_DTYPE,
-                                _infer_dtype_from_scalar, is_list_like, _values_from_object,
-                                _possibly_cast_to_datetime, _possibly_castable, _possibly_convert_platform,
+                                _infer_dtype_from_scalar, is_list_like,
+                                _values_from_object,
+                                _possibly_cast_to_datetime, _possibly_castable,
+                                _possibly_convert_platform,
                                 ABCSparseArray)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                _ensure_index, _handle_legacy_indexes)
@@ -29,7 +30,6 @@ from pandas.core.indexing import (
 from pandas.core import generic
 from pandas.core.internals import SingleBlockManager
 from pandas.core.categorical import Categorical
-import pandas.core.expressions as expressions
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex, Period
 from pandas.tseries.offsets import DateOffset
@@ -775,12 +775,9 @@ class Series(generic.NDFrame):
     def __len__(self):
         return len(self._data)
 
-    @property
-    def size(self):
-        return self.__len__()
-
     def view(self, dtype=None):
-        return self._constructor(self.values.view(dtype), index=self.index, name=self.name)
+        return self._constructor(self.values.view(dtype), index=self.index,
+                                 name=self.name)
 
     def __array__(self, result=None):
         """ the array interface, return my values """
@@ -790,7 +787,8 @@ class Series(generic.NDFrame):
         """
         Gets called prior to a ufunc (and after)
         """
-        return self._constructor(result, index=self.index, name=self.name, copy=False)
+        return self._constructor(result, index=self.index, name=self.name,
+                                 copy=False)
 
     def __contains__(self, key):
         return key in self.index

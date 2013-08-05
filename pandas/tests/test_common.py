@@ -7,17 +7,13 @@ from nose.tools import assert_equal
 import numpy as np
 from pandas.tslib import iNaT
 
-from pandas import (Series, DataFrame, date_range, DatetimeIndex, Timestamp,
-                    Panel)
+from pandas import Series, DataFrame, date_range, DatetimeIndex, Timestamp
 from pandas import compat
 from pandas.compat import range, long, lrange, lmap, u
 from pandas.core.common import notnull, isnull
-import pandas.compat as compat
 import pandas.core.common as com
 import pandas.util.testing as tm
 import pandas.core.config as cf
-
-from numpy.random import randn
 
 _multiprocess_can_split_ = True
 
@@ -108,64 +104,6 @@ def test_isnull_lists():
 
     result = isnull([u('foo'), u('bar')])
     assert(not result.any())
-
-
-def test_is_string():
-    class MyUnicode(compat.text_type):
-        pass
-
-    if not compat.PY3:
-        class MyString(str):
-            pass
-    else:
-        MyString = MyUnicode
-
-    strings = ('s', np.str_('a'), np.unicode_('unicode_string'),
-               MyString('asdfasdfasdf'), u('asdf'), MyUnicode(u('asdf')))
-    not_strings = [], 1, {}, set(), np.array(['1']), np.array([u('1')])
-
-    for string in strings:
-        assert com.is_string(string), '{0} is not a string'.format(string)
-
-    for not_string in not_strings:
-        assert not com.is_string(not_string), ('{0} is a '
-                                               'string'.format(not_string))
-
-
-def test_is_frame():
-    df = DataFrame(randn(2, 1))
-    assert com.is_frame(df)
-    assert not com.is_frame('s')
-
-
-def test_is_series():
-    s = Series(randn(2))
-    assert com.is_series(s)
-    assert not com.is_series(s.values)
-
-
-def test_is_panel():
-    p = Panel(randn(2, 3, 4))
-    assert com.is_panel(p)
-    assert not com.is_panel(2)
-
-
-def test_is_pd_obj():
-    df = DataFrame(randn(2, 1))
-    s = Series(randn(2))
-    p = Panel(randn(2, 3, 4))
-    for obj in (df, s, p):
-        assert com.is_pd_obj(obj)
-        assert not com.is_pd_obj(obj.values)
-
-
-def test_is_ndframe():
-    df = DataFrame(randn(2, 1))
-    p = Panel(randn(2, 3, 4))
-    # should add series after @jreback's ndframe to series pr
-    for obj in (df, p):
-        assert com.is_ndframe(obj)
-        assert not com.is_ndframe(obj.values)
 
 
 def test_isnull_datetime():
