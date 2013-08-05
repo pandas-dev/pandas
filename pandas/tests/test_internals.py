@@ -457,6 +457,17 @@ class TestBlockManager(unittest.TestCase):
     def test_interleave(self):
         pass
 
+    def test_interleave_non_unique_cols(self):
+        df = DataFrame([
+            [Timestamp('20130101'), 3.5],
+            [Timestamp('20130102'), 4.5]],
+            columns=['x', 'x'],
+            index=[1, 2])
+
+        df_unique = df.copy()
+        df_unique.columns = ['x', 'y']
+        np.testing.assert_array_equal(df_unique.values, df.values)
+
     def test_consolidate(self):
         pass
 
