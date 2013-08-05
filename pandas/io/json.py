@@ -1,9 +1,8 @@
 
 # pylint: disable-msg=E1101,W0613,W0603
-from pandas.compat import StringIO, long
-from pandas import compat
-import os
+from pandas.compat import long
 
+from pandas import compat, isnull
 from pandas import Series, DataFrame, to_datetime
 from pandas.io.common import get_filepath_or_buffer
 import pandas.json as _json
@@ -12,32 +11,39 @@ dumps = _json.dumps
 
 import numpy as np
 from pandas.tslib import iNaT
-import pandas.lib as lib
 
 ### interface to/from ###
 
-def to_json(path_or_buf, obj, orient=None, date_format='epoch', double_precision=10, force_ascii=True):
+
+def to_json(path_or_buf, obj, orient=None, date_format='epoch',
+            double_precision=10, force_ascii=True, date_unit='ms'):
 
     if isinstance(obj, Series):
-        s = SeriesWriter(obj, orient=orient, date_format=date_format, double_precision=double_precision,
-                         ensure_ascii=force_ascii).write()
+        s = SeriesWriter(
+            obj, orient=orient, date_format=date_format,
+            double_precision=double_precision, ensure_ascii=force_ascii,
+            date_unit=date_unit).write()
     elif isinstance(obj, DataFrame):
-        s = FrameWriter(obj, orient=orient, date_format=date_format, double_precision=double_precision,
-                        ensure_ascii=force_ascii).write()
+        s = FrameWriter(
+            obj, orient=orient, date_format=date_format,
+            double_precision=double_precision, ensure_ascii=force_ascii,
+            date_unit=date_unit).write()
     else:
         raise NotImplementedError
 
     if isinstance(path_or_buf, compat.string_types):
-        with open(path_or_buf,'w') as fh:
+        with open(path_or_buf, 'w') as fh:
             fh.write(s)
     elif path_or_buf is None:
         return s
     else:
         path_or_buf.write(s)
 
+
 class Writer(object):
 
-    def __init__(self, obj, orient, date_format, double_precision, ensure_ascii):
+    def __init__(self, obj, orient, date_format, double_precision,
+                 ensure_ascii, date_unit):
         self.obj = obj
 
         if orient is None:
@@ -47,38 +53,23 @@ class Writer(object):
         self.date_format = date_format
         self.double_precision = double_precision
         self.ensure_ascii = ensure_ascii
+        self.date_unit = date_unit
 
         self.is_copy = False
         self._format_axes()
-        self._format_dates()
-
-    def _needs_to_date(self, obj):
-        return obj.dtype == 'datetime64[ns]'
-
-    def _format_dates(self):
-        raise NotImplementedError
 
     def _format_axes(self):
         raise NotImplementedError
 
-    def _format_to_date(self, data):
-
-        # iso
-        if self.date_format == 'iso':
-            return data.apply(lambda x: x.isoformat())
-
-        # int64
-        else:
-            return data.astype(np.int64)
-
-    def copy_if_needed(self):
-        """ copy myself if necessary """
-        if not self.is_copy:
-            self.obj = self.obj.copy()
-            self.is_copy = True
-
     def write(self):
-        return dumps(self.obj, orient=self.orient, double_precision=self.double_precision, ensure_ascii=self.ensure_ascii)
+        return dumps(
+            self.obj,
+            orient=self.orient,
+            double_precision=self.double_precision,
+            ensure_ascii=self.ensure_ascii,
+            date_unit=self.date_unit,
+            iso_dates=self.date_format == 'iso')
+
 
 class SeriesWriter(Writer):
     _default_orient = 'index'
@@ -87,17 +78,7 @@ class SeriesWriter(Writer):
         if not self.obj.index.is_unique and self.orient == 'index':
             raise ValueError("Series index must be unique for orient="
                              "'%s'" % self.orient)
-        if self._needs_to_date(self.obj.index):
-            self.copy_if_needed()
-            self.obj.index = self._format_to_date(self.obj.index.to_series())
 
-    def _format_dates(self):
-        if self.obj.dtype == 'datetime64[ns]':
-            self.obj = self._format_to_date(self.obj)
-
-    def _format_bools(self):
-        if self._needs_to_bool(self.obj):
-            self.obj = self._format_to_bool(self.obj)
 
 class FrameWriter(Writer):
     _default_orient = 'columns'
@@ -113,39 +94,10 @@ class FrameWriter(Writer):
             raise ValueError("DataFrame columns must be unique for orient="
                              "'%s'." % self.orient)
 
-        if self.orient == 'columns':
-            axis = 'index'
-        elif self.orient == 'index':
-            axis = 'columns'
-        else:
-            return
-
-        a = getattr(self.obj,axis)
-        if self._needs_to_date(a):
-            self.copy_if_needed()
-            setattr(self.obj,axis,self._format_to_date(a.to_series()))
-
-    def _format_dates(self):
-        dtypes = self.obj.dtypes
-        if len(dtypes[dtypes == 'datetime64[ns]']):
-
-            # need to create a new object
-            d = {}
-
-            for i, (col, c) in enumerate(self.obj.iteritems()):
-
-                if c.dtype == 'datetime64[ns]':
-                    c = self._format_to_date(c)
-
-                d[i] = c
-
-            d = DataFrame(d,index=self.obj.index)
-            d.columns = self.obj.columns
-            self.obj = d
 
 def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
               convert_axes=True, convert_dates=True, keep_default_dates=True,
-              numpy=False, precise_float=False):
+              numpy=False, precise_float=False, date_unit=None):
     """
     Convert JSON string to pandas object
 
@@ -176,18 +128,28 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
           values : just the values array
 
     typ : type of object to recover (series or frame), default 'frame'
-    dtype : if True, infer dtypes, if a dict of column to dtype, then use those,
-        if False, then don't infer dtypes at all, default is True,
-        apply only to the data
-    convert_axes : boolean, try to convert the axes to the proper dtypes, default is True
-    convert_dates : a list of columns to parse for dates; If True, then try to parse datelike columns
-        default is True
-    keep_default_dates : boolean, default True. If parsing dates,
-        then parse the default datelike columns
-    numpy : direct decoding to numpy arrays. default is False.Note that the JSON ordering MUST be the same
-        for each term if numpy=True.
-    precise_float : boolean, default False. Set to enable usage of higher precision (strtod) function
-        when decoding string to double values. Default (False) is to use fast but less precise builtin functionality
+    dtype : boolean or dict, default True
+        If True, infer dtypes, if a dict of column to dtype, then use those,
+        if False, then don't infer dtypes at all, applies only to the data.
+    convert_axes : boolean, default True
+        Try to convert the axes to the proper dtypes.
+    convert_dates : boolean, default True
+        List of columns to parse for dates; If True, then try to parse
+        datelike columns default is True
+    keep_default_dates : boolean, default True.
+        If parsing dates, then parse the default datelike columns
+    numpy : boolean, default False
+        Direct decoding to numpy arrays. Note that the JSON ordering MUST be
+        the same for each term if numpy=True.
+    precise_float : boolean, default False.
+        Set to enable usage of higher precision (strtod) function when
+        decoding string to double values. Default (False) is to use fast but
+        less precise builtin functionality
+    date_unit : string, default None
+        The timestamp unit to detect if converting dates. The default behaviour
+        is to try and detect the correct precision, but if this is not desired
+        then pass one of 's', 'ms', 'us' or 'ns' to force parsing only seconds,
+        milliseconds, microseconds or nanoseconds respectively.
 
     Returns
     -------
@@ -208,20 +170,28 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
 
     obj = None
     if typ == 'frame':
-        obj = FrameParser(json, orient, dtype, convert_axes, convert_dates, keep_default_dates, numpy).parse()
+        obj = FrameParser(json, orient, dtype, convert_axes, convert_dates, keep_default_dates, numpy, precise_float, date_unit).parse()
 
     if typ == 'series' or obj is None:
         if not isinstance(dtype,bool):
             dtype = dict(data = dtype)
-        obj = SeriesParser(json, orient, dtype, convert_axes, convert_dates, keep_default_dates, numpy).parse()
+        obj = SeriesParser(json, orient, dtype, convert_axes, convert_dates, keep_default_dates, numpy, precise_float, date_unit).parse()
 
     return obj
 
+
 class Parser(object):
+
+    _STAMP_UNITS = ('s', 'ms', 'us', 'ns')
+    _MIN_STAMPS = {
+        's': long(31536000),
+        'ms': long(31536000000),
+        'us': long(31536000000000),
+        'ns': long(31536000000000000)}
 
     def __init__(self, json, orient, dtype=True, convert_axes=True,
                  convert_dates=True, keep_default_dates=False, numpy=False,
-                 precise_float=False):
+                 precise_float=False, date_unit=None):
         self.json = json
 
         if orient is None:
@@ -233,10 +203,20 @@ class Parser(object):
         if orient == "split":
             numpy = False
 
+        if date_unit is not None:
+            date_unit = date_unit.lower()
+            if date_unit not in self._STAMP_UNITS:
+                raise ValueError('date_unit must be one of %s' %
+                                 (self._STAMP_UNITS,))
+            self.min_stamp = self._MIN_STAMPS[date_unit]
+        else:
+            self.min_stamp = self._MIN_STAMPS['s']
+
         self.numpy = numpy
         self.precise_float = precise_float
-        self.convert_axes  = convert_axes
+        self.convert_axes = convert_axes
         self.convert_dates = convert_dates
+        self.date_unit = date_unit
         self.keep_default_dates = keep_default_dates
         self.obj = None
 
@@ -356,21 +336,23 @@ class Parser(object):
 
 
         # ignore numbers that are out of range
-        if issubclass(new_data.dtype.type,np.number):
-            if not ((new_data == iNaT) | (new_data > long(31536000000000000))).all():
+        if issubclass(new_data.dtype.type, np.number):
+            in_range = (isnull(new_data.values) | (new_data > self.min_stamp) |
+                        (new_data.values == iNaT))
+            if not in_range.all():
                 return data, False
 
-        try:
-            new_data = to_datetime(new_data)
-        except:
+        date_units = (self.date_unit,) if self.date_unit else self._STAMP_UNITS
+        for date_unit in date_units:
             try:
-                new_data = to_datetime(new_data.astype('int64'))
+                new_data = to_datetime(new_data, errors='raise',
+                                       unit=date_unit)
+            except OverflowError:
+                continue
             except:
-
-                # return old, noting more we can do
-                return data, False
-
-        return new_data, True
+                break
+            return new_data, True
+        return data, False
 
     def _try_convert_dates(self):
         raise NotImplementedError

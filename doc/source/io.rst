@@ -1107,8 +1107,11 @@ is ``None``. To explicity force ``Series`` parsing, pass ``typ=series``
 - ``keep_default_dates`` : boolean, default True. If parsing dates, then parse the default datelike columns
 - ``numpy`` : direct decoding to numpy arrays. default is False;
   Note that the JSON ordering **MUST** be the same for each term if ``numpy=True``
-- ``precise_float`` : boolean, default ``False``. Set to enable usage of higher precision (strtod) function
-  when decoding string to double values. Default (``False``) is to use fast but less precise builtin functionality
+- ``precise_float`` : boolean, default ``False``. Set to enable usage of higher precision (strtod) function when decoding string to double values. Default (``False``) is to use fast but less precise builtin functionality
+- ``date_unit`` : string, the timestamp unit to detect if converting dates. Default 
+  None. By default the timestamp precision will be detected, if this is not desired
+  then pass one of 's', 'ms', 'us' or 'ns' to force timestamp precision to
+  seconds, milliseconds, microseconds or nanoseconds respectively.
 
 The parser will raise one of ``ValueError/TypeError/AssertionError`` if the JSON is
 not parsable.
@@ -1167,6 +1170,25 @@ I like my string indicies
    sij
    sij.index
    sij.columns
+
+My dates have been written in nanoseconds, so they need to be read back in
+nanoseconds
+
+.. ipython:: python
+
+   json = dfj2.to_json(date_unit='ns')
+
+   # Try to parse timestamps as millseconds -> Won't Work
+   dfju = pd.read_json(json, date_unit='ms')
+   dfju
+
+   # Let Pandas detect the correct precision
+   dfju = pd.read_json(json)  
+   dfju
+
+   # Or specify that all timestamps are in nanoseconds
+   dfju = pd.read_json(json, date_unit='ns')  
+   dfju
 
 .. ipython:: python
    :suppress:
