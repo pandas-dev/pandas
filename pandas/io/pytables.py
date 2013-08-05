@@ -744,7 +744,7 @@ class HDFStore(StringMixin):
             dc = data_columns if k == selector else None
 
             # compute the val
-            val = value.reindex_axis(v, axis=axis, copy=False)
+            val = value.reindex_axis(v, axis=axis)
 
             self.append(k, val, data_columns=dc, **kwargs)
 
@@ -2674,7 +2674,7 @@ class Table(Storer):
 
         # reindex by our non_index_axes & compute data_columns
         for a in self.non_index_axes:
-            obj = obj.reindex_axis(a[1], axis=a[0], copy=False)
+            obj = obj.reindex_axis(a[1], axis=a[0])
 
         # figure out data_columns and get out blocks
         block_obj = self.get_object(obj).consolidate()
@@ -2684,10 +2684,10 @@ class Table(Storer):
             data_columns = self.validate_data_columns(data_columns, min_itemsize)
             if len(data_columns):
                 blocks = block_obj.reindex_axis(Index(axis_labels) - Index(
-                        data_columns), axis=axis, copy=False)._data.blocks
+                        data_columns), axis=axis)._data.blocks
                 for c in data_columns:
                     blocks.extend(block_obj.reindex_axis(
-                            [c], axis=axis, copy=False)._data.blocks)
+                            [c], axis=axis)._data.blocks)
 
         # reorder the blocks in the same order as the existing_table if we can
         if existing_table is not None:
@@ -2760,7 +2760,7 @@ class Table(Storer):
         for axis, labels in self.non_index_axes:
             if columns is not None:
                 labels = Index(labels) & Index(columns)
-            obj = obj.reindex_axis(labels, axis=axis, copy=False)
+            obj = obj.reindex_axis(labels, axis=axis)
 
         # apply the selection filters (but keep in the same order)
         if self.selection.filter:
@@ -3765,9 +3765,34 @@ class Selection(object):
         self.terms = None
         self.coordinates = None
 
+        # a coordinate
         if isinstance(where, Coordinates):
             self.coordinates = where.values
-        else:
+
+        elif com.is_list_like(where):
+
+            # see if we have a passed coordinate like
+            try:
+                inferred = lib.infer_dtype(where)
+                if inferred=='integer' or inferred=='boolean':
+                    where = np.array(where)
+                    if where.dtype == np.bool_:
+                        start, stop = self.start, self.stop
+                        if start is None:
+                            start = 0
+                        if stop is None:
+                            stop = self.table.nrows
+                        self.coordinates = np.arange(start,stop)[where]
+                    elif issubclass(where.dtype.type,np.integer):
+                        if (self.start is not None and (where<self.start).any()) or (self.stop is not None and (where>=self.stop).any()):
+                            raise ValueError("where must have index locations >= start and < stop")
+                        self.coordinates = where
+
+            except:
+                pass
+
+        if self.coordinates is None:
+
             self.terms = self.generate(where)
 
             # create the numexpr & the filter

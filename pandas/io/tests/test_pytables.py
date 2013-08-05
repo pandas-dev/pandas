@@ -11,7 +11,7 @@ import numpy as np
 
 import pandas
 from pandas import (Series, DataFrame, Panel, MultiIndex, bdate_range,
-                    date_range, Index)
+                    date_range, Index, DatetimeIndex)
 from pandas.io.pytables import (HDFStore, get_store, Term, read_hdf,
                                 IncompatibilityWarning, PerformanceWarning,
                                 AttributeConflictWarning, DuplicateWarning,
@@ -2534,6 +2534,43 @@ class TestHDFStore(unittest.TestCase):
             expected = concat([df1, df2], axis=1)
             expected = expected[(expected.A > 0) & (expected.B > 0)]
             tm.assert_frame_equal(result, expected)
+
+        # pass array/mask as the coordinates
+        with ensure_clean(self.path) as store:
+
+            df = DataFrame(np.random.randn(1000,2),index=date_range('20000101',periods=1000))
+            store.append('df',df)
+            c = store.select_column('df','index')
+            where = c[DatetimeIndex(c).month==5].index
+            expected = df.iloc[where]
+
+            # locations
+            result = store.select('df',where=where)
+            tm.assert_frame_equal(result,expected)
+
+            # boolean
+            result = store.select('df',where=where)
+            tm.assert_frame_equal(result,expected)
+
+            # invalid
+            self.assertRaises(ValueError, store.select, 'df',where=np.arange(len(df),dtype='float64'))
+            self.assertRaises(ValueError, store.select, 'df',where=np.arange(len(df)+1))
+            self.assertRaises(ValueError, store.select, 'df',where=np.arange(len(df)),start=5)
+            self.assertRaises(ValueError, store.select, 'df',where=np.arange(len(df)),start=5,stop=10)
+
+            # list
+            df = DataFrame(np.random.randn(10,2))
+            store.append('df2',df)
+            result = store.select('df2',where=[0,3,5])
+            expected = df.iloc[[0,3,5]]
+            tm.assert_frame_equal(result,expected)
+
+            # boolean
+            where = [True] * 10
+            where[-2] = False
+            result = store.select('df2',where=where)
+            expected = df.loc[where]
+            tm.assert_frame_equal(result,expected)
 
     def test_append_to_multiple(self):
         df1 = tm.makeTimeDataFrame()
