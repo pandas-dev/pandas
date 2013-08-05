@@ -2069,6 +2069,22 @@ These do not currently accept the ``where`` selector (coming soon)
    store.select_column('df_dc', 'index')
    store.select_column('df_dc', 'string')
 
+.. _io.hdf5-where_mask:
+
+**Selecting using a where mask**
+
+Sometime your query can involve creating a list of rows to select. Usually this ``mask`` would
+be a resulting ``index`` from an indexing operation. This example selects the months of
+a datetimeindex which are 5.
+
+.. ipython:: python
+
+   df_mask = DataFrame(np.random.randn(1000,2),index=date_range('20000101',periods=1000))
+   store.append('df_mask',df_mask)
+   c = store.select_column('df_mask','index')
+   where = c[DatetimeIndex(c).month==5].index
+   store.select('df_mask',where=where)
+
 **Replicating or**
 
 ``not`` and ``or`` conditions are unsupported at this time; however,
