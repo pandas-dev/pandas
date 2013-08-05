@@ -1,10 +1,11 @@
+import re
 import operator as op
 from functools import partial
 
 import numpy as np
 
 import pandas as pd
-from pandas.compat import PY3, string_types
+from pandas.compat import PY3, string_types, text_type
 import pandas.core.common as com
 from pandas.core.base import StringMixin
 from pandas.computation.common import _ensure_decoded
@@ -14,6 +15,16 @@ _reductions = 'sum', 'prod'
 _mathops = ('sin', 'cos', 'exp', 'log', 'expm1', 'log1p', 'pow', 'div', 'sqrt',
             'inv', 'sinh', 'cosh', 'tanh', 'arcsin', 'arccos', 'arctan',
             'arccosh', 'arcsinh', 'arctanh', 'arctan2', 'abs')
+
+
+_LOCAL_TAG = '__pd_eval_local_'
+_TAG_RE = re.compile('^{0}'.format(_LOCAL_TAG))
+
+
+class UndefinedVariableError(NameError):
+    def __init__(self, *args):
+        super(UndefinedVariableError,
+              self).__init__('name {0!r} is not defined'.format(args[0]))
 
 
 class OperatorError(Exception):
@@ -33,8 +44,13 @@ class Term(StringMixin):
         self._name = name
         self.env = env
         self.side = side
+        self.local = _TAG_RE.search(text_type(name)) is not None
         self._value = self._resolve_name()
         self.encoding = encoding
+
+    @property
+    def local_name(self):
+        return _TAG_RE.sub('', self.name)
 
     def __unicode__(self):
         return com.pprint_thing(self.name)
@@ -43,15 +59,16 @@ class Term(StringMixin):
         return self.value
 
     def _resolve_name(self):
+        #import ipdb; ipdb.set_trace()
         env = self.env
         key = self.name
-        res = env.resolver(key)
+        res = env.resolve(self.local_name, globally=not self.local)
         self.update(res)
 
         if res is None:
             if not isinstance(key, string_types):
                 return key
-            raise NameError('name {0!r} is not defined'.format(key))
+            raise UndefinedVariableError(key)
 
         if hasattr(res, 'ndim') and res.ndim > 2:
             raise NotImplementedError("N-dimensional objects, where N > 2, are"
@@ -62,19 +79,37 @@ class Term(StringMixin):
         env = self.env
         key = self.name
         if isinstance(key, string_types):
-            try:
-                del env.locals[key]
-                env.locals[key] = value
-            except KeyError:
-                if key in env.resolver_keys:
+            if self.local:
+                local_name = self.local_name
+
+                try:
+                    del env.locals[local_name]
                     env.locals[key] = value
-                else:
+                except KeyError:
                     try:
-                        del env.globals[key]
+                        del env.globals[local_name]
                         env.globals[key] = value
                     except KeyError:
-                        raise NameError('name {0!r} is not '
-                                        'defined'.format(key))
+                        try:
+                            del env.locals[key]
+                            env.locals[key] = value
+                        except KeyError:
+                            try:
+                                del env.globals[key]
+                                env.globals[key] = value
+                            except KeyError:
+                                raise UndefinedVariableError(key)
+            else:
+                for r in (env.resolver_dict, env.locals, env.globals):
+                    try:
+                        del r[key]
+                    except KeyError:
+                        pass
+                    else:
+                        r[key] = value
+                        break
+                else:
+                    raise UndefinedVariableError(key)
 
         self.value = value
 
