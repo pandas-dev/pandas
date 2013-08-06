@@ -86,9 +86,12 @@ def tquery(sql, con=None, cur=None, retry=True, engine=None, params=None):
     Provide a specific connection or a specific cursor if you are executing a
     lot of sequential statements and want to commit outside.
     """
+    if params is None:
+        params = []
+
     if engine:
-        engine.execute(str(sql), *params)
-        return None  # I don't think we use this...
+        result = engine.execute(sql, *params)
+        return result.fetchall()  # is this tuples?
     else:
         cur = execute(sql, con, cur=cur, params=params)
         result = _safe_fetch(cur)
@@ -117,14 +120,21 @@ def tquery(sql, con=None, cur=None, retry=True, engine=None, params=None):
     return result
 
 
-def uquery(sql, con=None, cur=None, retry=True, params=None):
+def uquery(sql, con=None, cur=None, retry=True, params=None, engine=None):
     """
     Does the same thing as tquery, but instead of returning results, it
     returns the number of rows affected.  Good for update queries.
     """
-    cur = execute(sql, con, cur=cur, retry=retry, params=params)
+    if params is None:
+        params = []
 
-    result = cur.rowcount
+
+    if engine:
+        result = engine.execute(sql, *params)
+        return result.rowcount
+
+    cur = execute(sql, con, cur=cur, retry=retry, params=params)
+    row_count = cur.rowcount
     try:
         con.commit()
     except Exception, e:
@@ -136,7 +146,7 @@ def uquery(sql, con=None, cur=None, retry=True, params=None):
         if retry:
             print ('Looks like your connection failed, reconnecting...')
             return uquery(sql, con, retry=False)
-    return result
+    return row_count
 
 class SQLAlchemyRequired(Exception):
     pass
@@ -179,12 +189,12 @@ def get_connection(con, dialect, driver, username, password,
         return engine.connect()
     if hasattr(con, 'cursor') and callable(con.cursor):
         # This looks like some Connection object from a driver module.
-        raise (NotImplementedError, 
+        raise NotImplementedError( 
            """To ensure robust support of varied SQL dialects, pandas
            only support database connections from SQLAlchemy. See 
            documentation.""")
     else:
-        raise (ValueError, 
+        raise ValueError(
            """con must be a string, a Connection to a sqlite Database,
            or a SQLAlchemy Connection or Engine object.""")
        
@@ -249,6 +259,7 @@ def read_sql(sql, con=None, index_col=None, flavor=None, driver=None,
     params: list or tuple, optional
         List of parameters to pass to execute method.
     engine : SQLAlchemy engine, optional
+
     """
     if params is None:
         params = []
@@ -257,6 +268,7 @@ def read_sql(sql, con=None, index_col=None, flavor=None, driver=None,
         result = engine.execute(sql, *params)
         data = result.fetchall()
         columns = result.keys()
+
     else:
         dialect = flavor
         try:
@@ -266,6 +278,11 @@ def read_sql(sql, con=None, index_col=None, flavor=None, driver=None,
             warnings.warn("For more robust support, connect using " \
                           "SQLAlchemy. See documentation.")
             return sql_legacy.read_frame(sql, con, index_col, coerce_float, params)
+
+        cursor = connection.execute(sql, *params)
+        data = _safe_fetch(cursor)
+        columns = [col_desc[0] for col_desc in cursor.description]
+        cursor.close()
 
     result = DataFrame.from_records(data, columns=columns)
 
@@ -277,7 +294,7 @@ def read_sql(sql, con=None, index_col=None, flavor=None, driver=None,
 frame_query = read_sql
 read_frame = read_sql
 
-def write_frame(frame, name, con, flavor='sqlite', if_exists='fail', **kwargs):
+def write_frame(frame, name, con=None, flavor='sqlite', if_exists='fail', engine=None, **kwargs):
     """
     Write records stored in a DataFrame to a SQL database.
 
@@ -301,34 +318,47 @@ def write_frame(frame, name, con, flavor='sqlite', if_exists='fail', **kwargs):
             if_exists='append'
         else:
             if_exists='fail'
-    exists = table_exists(name, con, flavor)
-    if if_exists == 'fail' and exists:
-        raise ValueError, "Table '%s' already exists." % name
 
-    #create or drop-recreate if necessary
-    create = None
-    if exists and if_exists == 'replace':
-        create = "DROP TABLE %s" % name
-    elif not exists:
-        create = get_schema(frame, name, flavor)
+    if engine:
+        exists = engine.has_table(name)
+    else:
+        exists = table_exists(name, con, flavor)
+
+    create = None  #create or drop-recreate if necessary
+    if exists:
+        if if_exists == 'fail':
+            raise ValueError, "Table '%s' already exists." % name
+        elif if_exists == 'replace':
+            if engine:
+                _engine_drop_table(name)
+            else:
+                create = "DROP TABLE %s" % name
+    else:
+        if engine:
+            _engine_create_table(frame, name, engine=engine)
+        else:
+            create = get_schema(frame, name, flavor)
 
     if create is not None:
         cur = con.cursor()
         cur.execute(create)
         cur.close()
 
-    cur = con.cursor()
-    # Replace spaces in DataFrame column names with _.
-    safe_names = [s.replace(' ', '_').strip() for s in frame.columns]
-    flavor_picker = {'sqlite' : _write_sqlite,
-                     'mysql' : _write_mysql}
+    if engine:
+        _engine_write(frame, name, engine)
+    else:
+        cur = con.cursor()
+        # Replace spaces in DataFrame column names with _.
+        safe_names = [s.replace(' ', '_').strip() for s in frame.columns]
+        flavor_picker = {'sqlite' : _write_sqlite,
+                         'mysql' : _write_mysql}
 
-    func = flavor_picker.get(flavor, None)
-    if func is None:
-        raise NotImplementedError
-    func(frame, name, safe_names, cur)
-    cur.close()
-    con.commit()
+        func = flavor_picker.get(flavor, None)
+        if func is None:
+            raise NotImplementedError
+        func(frame, name, safe_names, cur)
+        cur.close()
+        con.commit()
 
 def _write_sqlite(frame, table, names, cur):
     bracketed_names = ['[' + column + ']' for column in names]
@@ -351,6 +381,16 @@ def _write_mysql(frame, table, names, cur):
         table, col_names, wildcards)
     data = [tuple(x) for x in frame.values]
     cur.executemany(insert_query, data)
+
+def _engine_write(frame, table_name, engine):
+    table = _engine_get_table(table_name, engine)
+    ins = table.insert()
+    # TODO: do this in one pass
+    # engine.execute(ins, *(t[1:] for t in frame.itertuples())) # t[1:] doesn't include index
+    # engine.execute(ins, *[tuple(x) for x in frame.values])
+    for t in frame.iterrows():
+        engine.execute(ins, **dict(*t[1:]))
+
 
 def table_exists(name, con, flavor):
     flavor_map = {
@@ -428,3 +468,99 @@ def sequence2dict(seq):
     for k,v in zip(range(1, 1 + len(seq)), seq):
         d[str(k)] = v
     return d
+
+
+def _engine_drop_table(table_name, engine):
+    if engine.has_table(table_name):
+        table = _engine_get_table(table_name)
+        table.drop()
+
+def _engine_lookup_type(dtype):
+    from sqlalchemy import Table, Column, INT, FLOAT, TEXT, BOOLEAN
+
+    pytype = dtype.type
+
+    if issubclass(pytype, np.floating):
+        return FLOAT
+
+    if issubclass(pytype, np.integer):
+        #TODO: Refine integer size.
+        return INT
+
+    if issubclass(pytype, np.datetime64) or pytype is datetime:
+        # Caution: np.datetime64 is also a subclass of np.number.
+        return DATETIME
+
+    if pytype is datetime.date:
+        return DATE
+
+    if issubclass(pytype, np.bool_):
+        return BOOLEAN
+
+    return TEXT
+
+def _engine_create_table(frame, table_name, engine, keys=None, meta=None):
+    from sqlalchemy import Table, Column
+    if keys is None:
+        keys = []
+    if not meta:
+        from sqlalchemy.schema import MetaData
+        meta = MetaData(engine)
+        meta.reflect(engine)
+
+    safe_columns = [s.replace(' ', '_').strip() for s in frame.dtypes.index]  # may not be safe enough...
+    column_types = map(_engine_lookup_type, frame.dtypes)
+
+    columns = [(col_name, col_sqltype, col_name in keys)
+                    for col_name, col_sqltype in zip(safe_columns, column_types)]
+    columns = map(lambda (name, typ, pk): Column(name, typ, primary_key=pk), columns)
+
+    table = Table(table_name, meta, *columns)
+
+    table.create()
+
+def _engine_get_table(table_name, engine, meta=None):
+    if engine.has_table(table_name):
+        if not meta:
+            from sqlalchemy.schema import MetaData
+            meta = MetaData(engine)
+            meta.reflect(engine)
+            return meta.tables[table_name]
+    else:
+        return None
+
+def _engine_read_sql(sql, engine, params=None, index_col=None):
+
+    if params is None:
+        params = []
+
+    result = engine.execute(sql, *params)
+    data = result.fetchall()
+    columns = result.keys()
+
+    df = DataFrame.from_records(data, columns=columns)
+    if index_col is not None:
+        df.set_index(index_col, inplace=True)
+    return df
+
+def _engine_read_table_name(table_name, engine, meta=None, index_col=None):
+    table = _engine_get_table(table_name, engine=engine, meta=meta)
+
+    if table is not None:
+        sql_select = table.select()
+        return _engine_read_sql(sql_select, engine=engine, index_col=index_col)
+    else:
+        raise ValueError("Table %s not found with %s." % table_name, engine)
+
+def _engine_write_frame(frame, name, engine, if_exists='fail'):
+
+    exists = engine.has_table(name)
+    if exists:
+        if if_exists == 'fail':
+            raise ValueError, "Table '%s' already exists." % name
+        elif if_exists == 'replace':
+            _engine_drop_table(name)
+    else:
+        _engine_create_table(frame, name, engine=engine)
+
+    _engine_write(frame, name, engine)
