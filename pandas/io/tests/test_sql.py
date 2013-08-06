@@ -42,9 +42,10 @@ class TestSQLAlchemy(unittest.TestCase):
         drop_sql = "DROP TABLE IF EXISTS %s" % table_name
         self.engine.execute(drop_sql)
 
-    def create_table(self, frame, table_name):
+    def create_table(self, frame, table_name, keys=None):
         create_sql = sql.get_schema(frame, table_name, self.engine.dialect.name)  # TODO let get_schema use engine
         self.engine.execute(create_sql)
+        return None, create_sql  # return sql for testing purposes
 
     def get_table(self, table_name):
         self.meta.reflect(self.engine)
@@ -81,55 +82,34 @@ class TestSQLAlchemy(unittest.TestCase):
 
     def test_execute(self):
         # drop_sql = "DROP TABLE IF EXISTS test"  # should already be done
-        self.create_sql = sql.get_schema(self.frame, 'test', self.engine.dialect.name)
-        self.engine.execute(create_sql)
-        ins = "INSERT INTO test VALUES (%s, %s, %s, %s)"
+        self.create_table(self.frame, 'test')
 
-        row = frame.ix[0]
-        sql.execute(ins, self.db, params=tuple(row))
-        self.db.commit()
+        test_table = self.get_table('test')
+        
+        ins = test_table.insert() # INSERT INTO test VALUES (%s, %s, %s, %s)
 
-        result = sql.read_frame("select * from test", self.db)
-        result.index = frame.index[:1]
-        tm.assert_frame_equal(result, frame[:1])
+        row = self.frame.ix[0]
+        self.engine.execute(str(ins), *tuple(row))
 
-    def test_execute(self):
-        frame = tm.makeTimeDataFrame()
-        create_sql = sql.get_schema(frame, 'test', 'sqlite')
-        cur = self.db.cursor()
-        cur.execute(create_sql)
-        ins = "INSERT INTO test VALUES (?, ?, ?, ?)"
-
-        row = frame.ix[0]
-        sql.execute(ins, self.db, params=tuple(row))
-        self.db.commit()
-
-        result = sql.read_frame("select * from test", self.db)
-        result.index = frame.index[:1]
-        tm.assert_frame_equal(result, frame[:1])
+        select_test = str(test_table.select())  # SELECT * FROM test
+        result = self.read_frame(select_test)
+        result.index = self.frame.index[:1]
+        tm.assert_frame_equal(result, self.frame[:1])
 
     def test_schema(self):
-        _skip_if_no_MySQLdb()
-        frame = tm.makeTimeDataFrame()
-        create_sql = sql.get_schema(frame, 'test', 'mysql')
+        create_sql = create_table(self, self.frame, 'test')[1]
         lines = create_sql.splitlines()
         for l in lines:
             tokens = l.split(' ')
             if len(tokens) == 2 and tokens[0] == 'A':
                 self.assert_(tokens[1] == 'DATETIME')
 
-        frame = tm.makeTimeDataFrame()
-        drop_sql = "DROP TABLE IF EXISTS test"
-        create_sql = sql.get_schema(frame, 'test', 'mysql', keys=['A', 'B'],)
-        lines = create_sql.splitlines()
+        self.drop_table('test')
+        create_sql = self.create_table(frame, 'test', keys=['A', 'B'])[1]
         self.assert_('PRIMARY KEY (A,B)' in create_sql)
-        cur = self.db.cursor()
-        cur.execute(drop_sql)
-        cur.execute(create_sql)
 
     def test_execute_fail(self):
-        _skip_if_no_MySQLdb()
-        drop_sql = "DROP TABLE IF EXISTS test"
+        self.drop_sql('test')
         create_sql = """
         CREATE TABLE test
         (
@@ -277,21 +257,6 @@ class TestSQLAlchemy(unittest.TestCase):
 
 '''
 
-    def test_schema(self):
-        frame = tm.makeTimeDataFrame()
-        create_sql = sql.get_schema(frame, 'test', 'sqlite')
-        lines = create_sql.splitlines()
-        for l in lines:
-            tokens = l.split(' ')
-            if len(tokens) == 2 and tokens[0] == 'A':
-                self.assert_(tokens[1] == 'DATETIME')
-
-        frame = tm.makeTimeDataFrame()
-        create_sql = sql.get_schema(frame, 'test', 'sqlite', keys=['A', 'B'],)
-        lines = create_sql.splitlines()
-        self.assert_('PRIMARY KEY (A,B)' in create_sql)
-        cur = self.db.cursor()
-        cur.execute(create_sql)
 
     def test_execute_fail(self):
         create_sql = """
