@@ -2149,7 +2149,7 @@ class BlockManager(PandasObject):
 
         index = self.axes[axis]
         if isinstance(index, MultiIndex):
-            new_axis = MultiIndex.from_tuples([tuple(mapper(y) for y in x) for x in index], names=index.names)
+            new_axis = MultiIndex.from_tuples([mapper(x) for x in index], names=index.names)
         else:
             new_axis = Index([mapper(x) for x in index], name=index.name)
 
@@ -2162,7 +2162,7 @@ class BlockManager(PandasObject):
 
     def rename_items(self, mapper, copydata=True):
         if isinstance(self.items, MultiIndex):
-            items = [tuple(mapper(y) for y in x) for x in self.items]
+            items = [mapper(x) for x in self.items]
             new_items = MultiIndex.from_tuples(items, names=self.items.names)
         else:
             items = [mapper(x) for x in self.items]
