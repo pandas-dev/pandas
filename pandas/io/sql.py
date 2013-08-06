@@ -55,7 +55,7 @@ def execute(sql, con, retry=True, cur=None, params=None):
         except Exception:  # pragma: no cover
             pass
 
-        raise DatabaseError('Error on sql %s' % sql)
+        raise sqlite3.DatabaseError('Error on sql %s' % sql)
 
 def _safe_fetch(cur):
     try:
@@ -69,7 +69,7 @@ def _safe_fetch(cur):
             return []
 
 
-def tquery(sql, con=None, cur=None, retry=True):
+def tquery(sql, con=None, cur=None, retry=True, engine=None, params=None):
     """
     Returns list of tuples corresponding to each row in given sql
     query.
@@ -86,23 +86,27 @@ def tquery(sql, con=None, cur=None, retry=True):
     Provide a specific connection or a specific cursor if you are executing a
     lot of sequential statements and want to commit outside.
     """
-    cur = execute(sql, con, cur=cur)
-    result = _safe_fetch(cur)
+    if engine:
+        engine.execute(str(sql), *params)
+        return None  # I don't think we use this...
+    else:
+        cur = execute(sql, con, cur=cur, params=params)
+        result = _safe_fetch(cur)
 
-    if con is not None:
-        try:
-            cur.close()
-            con.commit()
-        except Exception, e:
-            excName = e.__class__.__name__
-            if excName == 'OperationalError':  # pragma: no cover
-                print ('Failed to commit, may need to restart interpreter')
-            else:
-                raise
+        if con is not None:
+            try:
+                cur.close()
+                con.commit()
+            except Exception, e:
+                excName = e.__class__.__name__
+                if excName == 'OperationalError':  # pragma: no cover
+                    print ('Failed to commit, may need to restart interpreter')
+                else:
+                    raise
 
-            traceback.print_exc()
-            if retry:
-                return tquery(sql, con=con, retry=False)
+                traceback.print_exc()
+                if retry:
+                    return tquery(sql, con=con, retry=False)
 
     if result and len(result[0]) == 1:
         # python 3 compat
@@ -175,14 +179,14 @@ def get_connection(con, dialect, driver, username, password,
         return engine.connect()
     if hasattr(con, 'cursor') and callable(con.cursor):
         # This looks like some Connection object from a driver module.
-        raise NotImplementedError, \
+        raise (NotImplementedError, 
            """To ensure robust support of varied SQL dialects, pandas
-           only supports database connections from SQLAlchemy. (Legacy
-           support for MySQLdb connections are available but buggy.)"""
+           only support database connections from SQLAlchemy. See 
+           documentation.""")
     else:
-        raise ValueError, \
+        raise (ValueError, 
            """con must be a string, a Connection to a sqlite Database,
-           or a SQLAlchemy Connection or Engine object."""
+           or a SQLAlchemy Connection or Engine object.""")
        
 
 def _alchemy_connect_sqlite(path):
@@ -212,7 +216,7 @@ def _build_url(dialect, driver, username, password, host, port, database):
 
 def read_sql(sql, con=None, index_col=None, flavor=None, driver=None,
              username=None, password=None, host=None, port=None, 
-             database=None, coerce_float=True, params=None):
+             database=None, coerce_float=True, params=None, engine=None):
     """
     Returns a DataFrame corresponding to the result set of the query
     string.
@@ -244,24 +248,26 @@ def read_sql(sql, con=None, index_col=None, flavor=None, driver=None,
         decimal.Decimal) to floating point, useful for SQL result sets
     params: list or tuple, optional
         List of parameters to pass to execute method.
+    engine : SQLAlchemy engine, optional
     """
-    dialect = flavor
-    try:
-        connection = get_connection(con, dialect, driver, username, password, 
-                                    host, port, database)
-    except LegacyMySQLConnection:
-        warnings.warn("For more robust support, connect using " \
-                      "SQLAlchemy. See documentation.")
-        return sql_legacy.read_frame(sql, con, index_col, coerce_float, params)
-
     if params is None:
         params = []
-    cursor = connection.execute(sql, *params)
-    result = _safe_fetch(cursor)
-    columns = [col_desc[0] for col_desc in cursor.description]
-    cursor.close()
 
-    result = DataFrame.from_records(result, columns=columns)
+    if engine:
+        result = engine.execute(sql, *params)
+        data = result.fetchall()
+        columns = result.keys()
+    else:
+        dialect = flavor
+        try:
+            connection = get_connection(con, dialect, driver, username, password, 
+                                        host, port, database)
+        except LegacyMySQLConnection:
+            warnings.warn("For more robust support, connect using " \
+                          "SQLAlchemy. See documentation.")
+            return sql_legacy.read_frame(sql, con, index_col, coerce_float, params)
+
+    result = DataFrame.from_records(data, columns=columns)
 
     if index_col is not None:
         result = result.set_index(index_col)
