@@ -2421,8 +2421,13 @@ class TestHDFStore(unittest.TestCase):
             expected = df[df.x == 'none']
             assert_frame_equal(result,expected)
 
+            print("bogus test")
+            print(df)
+            print(store)
             result = store.select('df',Term('x!=none'))
+            print(result)
             expected = df[df.x != 'none']
+            print(expected)
             assert_frame_equal(result,expected)
 
             df2 = df.copy()
