@@ -546,7 +546,7 @@ class TestTimeSeries(unittest.TestCase):
 
         rng2 = rng[::2][::-1]
 
-        self.assertRaises(AssertionError, rng2.get_indexer, rng,
+        self.assertRaises(ValueError, rng2.get_indexer, rng,
                           method='pad')
 
     def test_frame_ctor_datetime64_column(self):
