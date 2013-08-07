@@ -1048,7 +1048,7 @@ class Panel(NDFrame):
         self._consolidate_inplace()
         axis_number = self._get_axis_number(axis)
         new_data = self._data.xs(key, axis=axis_number, copy=copy)
-        return self._constructor_sliced(new_data)
+        return self._construct_return_type(new_data)
 
     _xs = xs
 
@@ -1263,8 +1263,25 @@ class Panel(NDFrame):
         if result.ndim == 2 and axis_name != self._info_axis:
             result = result.T
 
-        return self._constructor_sliced(result,
+        return self._construct_return_type(result, axes)
+
+    def _construct_return_type(self, result, axes=None, **kwargs):
+        """ return the type for the ndim of the result """
+        ndim = result.ndim
+        if self.ndim == ndim:
+            """ return the construction dictionary for these axes """
+            if axes is None:
+                return self._constructor(result)
+            return self._constructor(result, **self._construct_axes_dict())
+
+        elif self.ndim == ndim + 1:
+            if axes is None:
+                return self._constructor_sliced(result)
+            return self._constructor_sliced(result,
                                 **self._extract_axes_for_slice(self, axes))
+
+        raise PandasError("invalid _construct_return_type [self->%s] [result->%s]" %
+                          (self.ndim, result.ndim))
 
     def _wrap_result(self, result, axis):
         axis = self._get_axis_name(axis)
@@ -1272,15 +1289,7 @@ class Panel(NDFrame):
         if result.ndim == 2 and axis != self._info_axis:
             result = result.T
 
-        # do we have reduced dimensionalility?
-        if self.ndim == result.ndim:
-            return self._constructor(result, **self._construct_axes_dict())
-        elif self.ndim == result.ndim + 1:
-            return self._constructor_sliced(result,
-                                **self._extract_axes_for_slice(self, axes))
-
-        raise PandasError("invalid _wrap_result [self->%s] [result->%s]" %
-                          (self.ndim, result.ndim))
+        return self._construct_return_type(result, axes)
 
     def count(self, axis='major'):
         """
