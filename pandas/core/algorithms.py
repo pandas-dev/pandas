@@ -148,7 +148,7 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
     return labels, uniques
 
 
-def value_counts(values, sort=True, ascending=False, normalize=False):
+def value_counts(values, sort=True, ascending=False, normalize=False, bins=None):
     """
     Compute a histogram of the counts of non-null values
 
@@ -161,32 +161,50 @@ def value_counts(values, sort=True, ascending=False, normalize=False):
         Sort in ascending order
     normalize: boolean, default False
         If True then compute a relative histogram
+    bins : integer, optional
+        Rather than count values, group them into half-open bins,
+        convenience for pd.cut, only works with numeric data
 
     Returns
     -------
     value_counts : Series
+
     """
     from pandas.core.series import Series
+    from pandas.tools.tile import cut
 
-    values = np.asarray(values)
+    values = Series(values).values
+
+    if bins is not None:
+        try:
+            cat, bins = cut(values, bins, retbins=True)
+        except TypeError:
+            raise TypeError("bins argument only works with numeric data.")
+        values = cat.labels
 
     if com.is_integer_dtype(values.dtype):
         values = com._ensure_int64(values)
         keys, counts = htable.value_count_int64(values)
-    elif issubclass(values.dtype.type, (np.datetime64,np.timedelta64)):
 
+    elif issubclass(values.dtype.type, (np.datetime64,np.timedelta64)):
         dtype = values.dtype
         values = values.view(np.int64)
         keys, counts = htable.value_count_int64(values)
 
         # convert the keys back to the dtype we came in
-        keys = Series(keys,dtype=dtype)
+        keys = Series(keys, dtype=dtype)
+
     else:
         mask = com.isnull(values)
         values = com._ensure_object(values)
         keys, counts = htable.value_count_object(values, mask)
 
     result = Series(counts, index=com._values_from_object(keys))
+
+    if bins is not None:
+        # TODO: This next line should be more efficient
+        result = result.reindex(np.arange(len(cat.levels)), fill_value=0)
+        result.index = bins[:-1]
 
     if sort:
         result.sort()

@@ -7,7 +7,6 @@ import nose
 
 import numpy as np
 
-from pandas.core.api import value_counts
 from pandas.core.categorical import Categorical
 from pandas.core.index import Index, Int64Index, MultiIndex
 from pandas.core.frame import DataFrame
@@ -88,18 +87,6 @@ class TestCategorical(unittest.TestCase):
         result = self.factor == 'd'
         expected = np.repeat(False, len(self.factor))
         self.assert_(np.array_equal(result, expected))
-
-    def test_value_counts(self):
-        from pandas.tools.tile import cut
-
-        arr = np.random.randn(4)
-        factor = cut(arr, 4)
-
-        tm.assert_isinstance(factor, Categorical)
-
-        result = value_counts(factor)
-        expected = value_counts(np.asarray(factor))
-        tm.assert_series_equal(result, expected)
 
     def test_na_flags_int_levels(self):
         # #1457

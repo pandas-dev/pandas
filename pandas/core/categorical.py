@@ -6,7 +6,6 @@ from pandas.core.algorithms import factorize
 from pandas.core.base import PandasObject
 from pandas.core.index import Index
 import pandas.core.common as com
-from pandas.core.frame import DataFrame
 
 
 def _cat_compare_op(op):
@@ -182,6 +181,7 @@ class Categorical(PandasObject):
         Returns a dataframe with frequency and counts by level.
         """
         #Hack?
+        from pandas.core.frame import DataFrame
         grouped = DataFrame(self.labels).groupby(0)
         counts = grouped.count().values.squeeze()
         freqs = counts/float(counts.sum())
