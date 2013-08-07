@@ -133,6 +133,8 @@ pandas 0.13
     (:issue:`4016`)
   - Fixed Panel assignment with a transposed frame (:issue:`3830`)
   - Raise on set indexing with a Panel and a Panel as a value which needs alignment (:issue:`3777`)
+  - frozenset objects now raise in the ``Series`` constructor (:issue:`4482`,
+    :issue:`4480`)
 
 pandas 0.12
 ===========

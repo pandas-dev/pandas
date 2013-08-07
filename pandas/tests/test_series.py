@@ -544,7 +544,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
     def test_constructor_set(self):
         values = set([1, 2, 3, 4, 5])
-
+        self.assertRaises(TypeError, Series, values)
+        values = frozenset(values)
         self.assertRaises(TypeError, Series, values)
 
     def test_fromDict(self):
