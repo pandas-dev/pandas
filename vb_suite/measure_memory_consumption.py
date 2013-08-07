@@ -45,7 +45,7 @@ def main():
 
         s = Series(results)
         s.sort()
-        print(s)
+        print((s))
 
     finally:
         shutil.rmtree(TMP_DIR)

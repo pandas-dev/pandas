@@ -71,7 +71,7 @@ def auto_update():
         html()
         upload()
         sendmail()
-    except (Exception, SystemExit) as inst:
+    except (Exception, SystemExit), inst:
         msg += str(inst) + '\n'
         sendmail(msg)
 
@@ -159,7 +159,7 @@ if len(sys.argv) > 1:
         func = funcd.get(arg)
         if func is None:
             raise SystemExit('Do not know how to handle %s; valid args are %s' % (
-                arg, list(funcd.keys())))
+                arg, funcd.keys()))
         func()
 else:
     small_docs = False
