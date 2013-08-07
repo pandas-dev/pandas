@@ -1,4 +1,3 @@
-from __future__ import print_function
 from vbench.api import Benchmark, GitRepo
 from datetime import datetime
 
@@ -91,15 +90,15 @@ def generate_rst_files(benchmarks):
     fig_base_path = os.path.join(vb_path, 'figures')
 
     if not os.path.exists(vb_path):
-        print('creating %s' % vb_path)
+        print 'creating %s' % vb_path
         os.makedirs(vb_path)
 
     if not os.path.exists(fig_base_path):
-        print('creating %s' % fig_base_path)
+        print 'creating %s' % fig_base_path
         os.makedirs(fig_base_path)
 
     for bmk in benchmarks:
-        print('Generating rst file for %s' % bmk.name)
+        print 'Generating rst file for %s' % bmk.name
         rst_path = os.path.join(RST_BASE, 'vbench/%s.txt' % bmk.name)
 
         fig_full_path = os.path.join(fig_base_path, '%s.png' % bmk.name)
@@ -121,7 +120,7 @@ def generate_rst_files(benchmarks):
             f.write(rst_text)
 
     with open(os.path.join(RST_BASE, 'index.rst'), 'w') as f:
-        print("""
+        print >> f, """
 Performance Benchmarks
 ======================
 
@@ -142,15 +141,15 @@ Produced on a machine with
 .. toctree::
     :hidden:
     :maxdepth: 3
-""", file=f)
+"""
         for modname, mod_bmks in sorted(by_module.items()):
-            print('    vb_%s' % modname, file=f)
+            print >> f, '    vb_%s' % modname
             modpath = os.path.join(RST_BASE, 'vb_%s.rst' % modname)
             with open(modpath, 'w') as mh:
                 header = '%s\n%s\n\n' % (modname, '=' * len(modname))
-                print(header, file=mh)
+                print >> mh, header
 
                 for bmk in mod_bmks:
-                    print(bmk.name, file=mh)
-                    print('-' * len(bmk.name), file=mh)
-                    print('.. include:: vbench/%s.txt\n' % bmk.name, file=mh)
+                    print >> mh, bmk.name
+                    print >> mh, '-' * len(bmk.name)
+                    print >> mh, '.. include:: vbench/%s.txt\n' % bmk.name

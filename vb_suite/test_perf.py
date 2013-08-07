@@ -25,9 +25,7 @@ everything and calculate a ration for the timing information.
 5) print the results to the log file and to stdout.
 
 """
-from __future__ import print_function
 
-from pandas.compat import range, lmap
 import shutil
 import os
 import sys
@@ -139,11 +137,11 @@ def get_results_df(db, rev):
     """Takes a git commit hash and returns a Dataframe of benchmark results
     """
     bench = DataFrame(db.get_benchmarks())
-    results = DataFrame(lmap(list,db.get_rev_results(rev).values()))
+    results = DataFrame(map(list,db.get_rev_results(rev).values()))
 
     # Sinch vbench.db._reg_rev_results returns an unlabeled dict,
     # we have to break encapsulation a bit.
-    results.columns = list(db._results.c.keys())
+    results.columns = db._results.c.keys()
     results = results.join(bench['name'], on='checksum').set_index("checksum")
     return results
 
@@ -277,8 +275,7 @@ def profile_head_single(benchmark):
                         err = str(e)
                 except:
                     pass
-                print("%s died with:\n%s\nSkipping...\n" % (benchmark.name,
-                                                            err))
+                print("%s died with:\n%s\nSkipping...\n" % (benchmark.name, err))
 
             results.append(d.get('timing',np.nan))
             gc.enable()
@@ -299,8 +296,7 @@ def profile_head_single(benchmark):
     # return df.set_index("name")[HEAD_COL]
 
 def profile_head(benchmarks):
-    print("Performing %d benchmarks (%d runs each)" % (len(benchmarks),
-                                                       args.hrepeats))
+    print( "Performing %d benchmarks (%d runs each)" % ( len(benchmarks), args.hrepeats))
 
     ss= [profile_head_single(b) for b in benchmarks]
     print("\n")
@@ -466,7 +462,7 @@ def main():
 def _parse_commit_log(this,repo_path,base_commit=None):
     from vbench.git import _convert_timezones
     from pandas import Series
-    from pandas.compat import parse_date
+    from dateutil import parser as dparser
 
     git_cmd = 'git --git-dir=%s/.git --work-tree=%s ' % (repo_path, repo_path)
     githist = git_cmd + ('log --graph --pretty=format:'+
@@ -488,7 +484,7 @@ def _parse_commit_log(this,repo_path,base_commit=None):
         _, sha, stamp, message, author = line.split('::', 4)
 
         # parse timestamp into datetime object
-        stamp = parse_date(stamp)
+        stamp = dparser.parse(stamp)
 
         shas.append(sha)
         timestamps.append(stamp)
