@@ -602,7 +602,6 @@ class Series(generic.PandasContainer, pa.Array):
                 else:
                     return _index.get_value_at(self, i)
 
-
     @property
     def _is_mixed_type(self):
         return False
@@ -2646,8 +2645,10 @@ class Series(generic.PandasContainer, pa.Array):
                                                 level=level, limit=limit,
                                                 takeable=takeable)
 
-        # GH4246 (dispatch to a common method with frame to handle possibly duplicate index)
-        return self._reindex_with_indexers(new_index, indexer, copy=copy, fill_value=fill_value)
+        # GH4246 (dispatch to a common method with frame to handle possibly
+        # duplicate index)
+        return self._reindex_with_indexers(new_index, indexer, copy=copy,
+                                           fill_value=fill_value)
 
     def _reindex_with_indexers(self, index, indexer, copy, fill_value):
         new_values = com.take_1d(self.values, indexer, fill_value=fill_value)
