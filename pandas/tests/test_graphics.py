@@ -3,7 +3,7 @@ import os
 import string
 import unittest
 
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 
 from pandas import Series, DataFrame, MultiIndex, PeriodIndex, date_range
 from pandas.compat import range, lrange, StringIO, lmap, lzip, u, zip
@@ -308,6 +308,16 @@ class TestSeriesPlots(unittest.TestCase):
     def test_invalid_kind(self):
         s = Series([1, 2])
         self.assertRaises(ValueError, s.plot, kind='aasdf')
+
+    @slow
+    def test_dup_datetime_index_plot(self):
+        dr1 = date_range('1/1/2009', periods=4)
+        dr2 = date_range('1/2/2009', periods=4)
+        index = dr1.append(dr2)
+        values = randn(index.size)
+        s = Series(values, index=index)
+        _check_plot_works(s.plot)
+
 
 
 class TestDataFramePlots(unittest.TestCase):
