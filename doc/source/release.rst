@@ -127,6 +127,8 @@ pandas 0.13
     (:issue:`3440`)
   - Fixed an issue where duplicate indexes were raising when plotting
     (:issue:`4486`)
+  - Fixed an issue where cumsum and cumprod didn't work with bool dtypes
+    (:issue:`4170`, :issue:`4440`)
 
 pandas 0.12
 ===========
