@@ -11,7 +11,7 @@ import numpy as np
 
 import pandas
 from pandas import (Series, DataFrame, Panel, MultiIndex, bdate_range,
-                    date_range, Index, DatetimeIndex)
+                    date_range, Index, DatetimeIndex, isnull)
 from pandas.io.pytables import (HDFStore, get_store, Term, read_hdf,
                                 IncompatibilityWarning, PerformanceWarning,
                                 AttributeConflictWarning, DuplicateWarning,
@@ -2404,14 +2404,11 @@ class TestHDFStore(unittest.TestCase):
     def test_string_select(self):
 
         # GH 2973
-
-        df = tm.makeTimeDataFrame()
-
         with ensure_clean(self.path) as store:
 
+            df = tm.makeTimeDataFrame()
 
             # test string ==/!=
-
             df['x'] = 'none'
             df.ix[2:7,'x'] = ''
 
@@ -2421,24 +2418,17 @@ class TestHDFStore(unittest.TestCase):
             expected = df[df.x == 'none']
             assert_frame_equal(result,expected)
 
-            print("bogus test")
-            print(df)
-            print(store)
             result = store.select('df',Term('x!=none'))
-            print(result)
             expected = df[df.x != 'none']
-            print(expected)
             assert_frame_equal(result,expected)
 
             df2 = df.copy()
-            df2.x[df2.x==''] = np.nan
+            df2.loc[df2.x=='','x'] = np.nan
 
-            from pandas import isnull
             store.append('df2',df2,data_columns=['x'])
             result = store.select('df2',Term('x!=none'))
             expected = df2[isnull(df2.x)]
             assert_frame_equal(result,expected)
-
 
             # int ==/!=
             df['int'] = 1
