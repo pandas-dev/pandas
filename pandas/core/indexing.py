@@ -100,7 +100,7 @@ class _NDFrameIndexer(object):
         return tuple(keyidx)
 
     def _setitem_with_indexer(self, indexer, value):
-        from pandas.core.frame import DataFrame, Series
+        from pandas import Panel, DataFrame, Series
 
         # also has the side effect of consolidating in-place
 
@@ -181,6 +181,9 @@ class _NDFrameIndexer(object):
             if isinstance(value, DataFrame):
                 value = self._align_frame(indexer, value)
 
+            if isinstance(value, Panel):
+                value = self._align_panel(indexer, value)
+
             # 2096
             values = self.obj.values
             if np.prod(values.shape):
@@ -208,12 +211,11 @@ class _NDFrameIndexer(object):
         raise ValueError('Incompatible indexer with Series')
 
     def _align_frame(self, indexer, df):
-        from pandas import DataFrame
-        is_frame = isinstance(self.obj, DataFrame)
-        if not is_frame:
-            df = df.T
+        is_frame = self.obj.ndim == 2
+        is_panel = self.obj.ndim >= 3
         if isinstance(indexer, tuple):
             idx, cols = None, None
+            sindexers = []
             for i, ix in enumerate(indexer):
                 ax = self.obj.axes[i]
                 if com._is_sequence(ix) or isinstance(ix, slice):
@@ -223,6 +225,16 @@ class _NDFrameIndexer(object):
                         cols = ax[ix].ravel()
                     else:
                         break
+                else:
+                    sindexers.append(i)
+
+            # panel
+            if is_panel:
+                if len(sindexers) == 1 and idx is None and cols is None:
+                    if sindexers[0] == 0:
+                        df = df.T
+                    return self.obj.conform(df,axis=sindexers[0])
+                df = df.T
 
             if idx is not None and cols is not None:
                 if df.index.equals(idx) and df.columns.equals(cols):
@@ -244,11 +256,26 @@ class _NDFrameIndexer(object):
             idx = self.obj.axes[1]
             cols = self.obj.axes[2]
 
+            # by definition we are indexing on the 0th axis
+            if is_panel:
+                df = df.T
+
             if idx.equals(df.index) and cols.equals(df.columns):
                 return df.copy().values
+
+            # a passed in dataframe which is actually a transpose
+            # of what is needed
+            elif idx.equals(df.columns) and cols.equals(df.index):
+                return df.T.copy().values
+
             return df.reindex(idx, columns=cols).values
 
         raise ValueError('Incompatible indexer with DataFrame')
+
+    def _align_panel(self, indexer, df):
+        is_frame = self.obj.ndim == 2
+        is_panel = self.obj.ndim >= 3
+        raise NotImplementedError("cannot set using an indexer with a Panel yet!")
 
     def _getitem_tuple(self, tup):
         try:
