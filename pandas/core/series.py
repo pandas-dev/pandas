@@ -467,8 +467,9 @@ class Series(generic.PandasContainer, pa.Array):
                 data = [data.get(i, nan) for i in index]
         elif isinstance(data, types.GeneratorType):
             data = list(data)
-        elif isinstance(data, set):
-            raise TypeError('Set value is unordered')
+        elif isinstance(data, (set, frozenset)):
+            raise TypeError("{0!r} type is unordered"
+                            "".format(data.__class__.__name__))
 
         if dtype is not None:
             dtype = np.dtype(dtype)
