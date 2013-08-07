@@ -129,6 +129,8 @@ pandas 0.13
     (:issue:`4486`)
   - Fixed an issue where cumsum and cumprod didn't work with bool dtypes
     (:issue:`4170`, :issue:`4440`)
+  - Fixed Panel slicing issued in ``xs`` that was returning an incorrect dimmed object
+    (:issue:`4016`)
 
 pandas 0.12
 ===========

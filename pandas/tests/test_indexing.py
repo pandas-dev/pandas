@@ -873,6 +873,16 @@ class TestIndexing(unittest.TestCase):
         self.assert_(p.iloc[1, :3, 1].shape == (3,))
         self.assert_(p.iloc[:3, 1, 1].shape == (3,))
 
+    def test_panel_getitem(self):
+        # GH4016, date selection returns a frame when a partial string selection
+        ind = date_range(start="2000", freq="D", periods=1000)
+        df = DataFrame(np.random.randn(len(ind), 5), index=ind, columns=list('ABCDE'))
+        panel = Panel({'frame_'+c:df for c in list('ABC')})
+
+        test2 = panel.ix[:, "2002":"2002-12-31"]
+        test1 = panel.ix[:, "2002"]
+        tm.assert_panel_equal(test1,test2)
+
     def test_multi_assign(self):
 
         # GH 3626, an assignement of a sub-df to a df
