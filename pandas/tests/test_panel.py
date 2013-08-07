@@ -655,6 +655,31 @@ class CheckIndexing(object):
         out = p.ix[0, [0, 1, 3, 5], -2:]
         assert_frame_equal(out, df.T.reindex([0, 1, 3, 5], p.minor_axis[-2:]))
 
+        # GH3830, panel assignent by values/frame
+        for dtype in ['float64','int64']:
+
+            panel = Panel(np.arange(40).reshape((2,4,5)), items=['a1','a2'], dtype=dtype)
+            df1 = panel.iloc[0]
+            df2 = panel.iloc[1]
+
+            tm.assert_frame_equal(panel.loc['a1'], df1)
+            tm.assert_frame_equal(panel.loc['a2'], df2)
+
+            # Assignment by Value Passes for 'a2'
+            panel.loc['a2'] = df1.values
+            tm.assert_frame_equal(panel.loc['a1'], df1)
+            tm.assert_frame_equal(panel.loc['a2'], df1)
+
+            # Assignment by DataFrame Ok w/o loc 'a2'
+            panel['a2'] = df2
+            tm.assert_frame_equal(panel.loc['a1'], df1)
+            tm.assert_frame_equal(panel.loc['a2'], df2)
+
+            # Assignment by DataFrame Fails for 'a2'
+            panel.loc['a2'] = df2
+            tm.assert_frame_equal(panel.loc['a1'], df1)
+            tm.assert_frame_equal(panel.loc['a2'], df2)
+
     def _check_view(self, indexer, comp):
         cp = self.panel.copy()
         obj = cp.ix[indexer]
