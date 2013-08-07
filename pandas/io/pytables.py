@@ -332,11 +332,12 @@ class HDFStore(StringMixin):
     def __unicode__(self):
         output = '%s\nFile path: %s\n' % (type(self), pprint_thing(self._path))
         if self.is_open:
-            if len(list(self.keys())):
+            lkeys = list(self.keys())
+            if len(lkeys):
                 keys   = []
                 values = []
 
-                for k in self.keys():
+                for k in lkeys:
                     try:
                         s = self.get_storer(k)
                         if s is not None:
