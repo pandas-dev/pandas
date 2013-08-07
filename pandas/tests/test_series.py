@@ -3963,6 +3963,39 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         ts[2] = np.NaN
         assert_series_equal(ts.bfill(), ts.fillna(method='bfill'))
 
+    def test_cummethods_bool(self):
+        def cummin(x):
+            return np.minimum.accumulate(x)
+
+        def cummax(x):
+            return np.maximum.accumulate(x)
+
+        from itertools import product
+        a = pd.Series([False, False, False, True, True, False, False])
+        b = ~a
+        c = pd.Series([False] * len(b))
+        d = ~c
+        methods = {'cumsum': np.cumsum, 'cumprod': np.cumprod,
+                   'cummin': cummin, 'cummax': cummax}
+        args = product((a, b, c, d), methods)
+        for s, method in args:
+            expected = Series(methods[method](s.values))
+            result = getattr(s, method)()
+            assert_series_equal(result, expected)
+
+        e = pd.Series([False, True, nan, False])
+        cse = pd.Series([0, 1, nan, 1], dtype=object)
+        cpe = pd.Series([False, 0, nan, 0])
+        cmin = pd.Series([False, False, nan, False])
+        cmax = pd.Series([False, True, nan, True])
+        expecteds = {'cumsum': cse, 'cumprod': cpe, 'cummin': cmin,
+                     'cummax': cmax}
+
+        for method in methods:
+            res = getattr(e, method)()
+            assert_series_equal(res, expecteds[method])
+
+
     def test_replace(self):
         N = 100
         ser = Series(np.random.randn(N))
