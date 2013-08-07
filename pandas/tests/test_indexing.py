@@ -2,6 +2,7 @@
 import unittest
 import nose
 import itertools
+import warnings
 
 from pandas.compat import range, lrange, StringIO, lmap, map
 from numpy import random, nan
@@ -954,6 +955,24 @@ class TestIndexing(unittest.TestCase):
         df.ix[df.x % 2 == 0, 'y'] = df.ix[df.x % 2 == 0, 'y'] * 100
         assert_frame_equal(df,expected)
 
+        # GH 4508, making sure consistency of assignments
+        df = DataFrame({'a':[1,2,3],'b':[0,1,2]})
+        df.ix[[0,2,],'b'] = [100,-100]
+        expected = DataFrame({'a' : [1,2,3], 'b' : [100,1,-100] })
+        assert_frame_equal(df,expected)
+
+        df = pd.DataFrame({'a': lrange(4) })
+        df['b'] = np.nan
+        df.ix[[1,3],'b'] = [100,-100]
+        expected = DataFrame({'a' : [0,1,2,3], 'b' : [np.nan,100,np.nan,-100] })
+        assert_frame_equal(df,expected)
+
+        # ok, but chained assignments are dangerous
+        df = pd.DataFrame({'a': lrange(4) })
+        df['b'] = np.nan
+        df['b'].ix[[1,3]] = [100,-100]
+        assert_frame_equal(df,expected)
+
     def test_iloc_mask(self):
 
         # GH 3631, iloc with a mask (of a series) should raise
@@ -985,7 +1004,6 @@ class TestIndexing(unittest.TestCase):
             ('locs','.iloc')  : 'iLocation based boolean indexing on an integer type is not available',
             }
 
-        import warnings
         warnings.filterwarnings(action='ignore', category=UserWarning)
         result = dict()
         for idx in [None, 'index', 'locs']:
