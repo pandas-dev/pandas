@@ -1041,7 +1041,7 @@ class MPLPlot(object):
                 """
                 x = index._mpl_repr()
             elif is_datetype:
-                self.data = self.data.reindex(index=index.order())
+                self.data = self.data.sort_index()
                 x = self.data.index._mpl_repr()
             else:
                 self._need_to_set_index = True

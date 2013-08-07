@@ -125,6 +125,8 @@ pandas 0.13
     (:issue:`4455`)
   - Fixed Panel attribute naming conflict if item is named 'a'
     (:issue:`3440`)
+  - Fixed an issue where duplicate indexes were raising when plotting
+    (:issue:`4486`)
 
 pandas 0.12
 ===========
