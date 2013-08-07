@@ -132,6 +132,7 @@ pandas 0.13
   - Fixed Panel slicing issued in ``xs`` that was returning an incorrect dimmed object
     (:issue:`4016`)
   - Fixed Panel assignment with a transposed frame (:issue:`3830`)
+  - Raise on set indexing with a Panel and a Panel as a value which needs alignment (:issue:`3777`)
 
 pandas 0.12
 ===========

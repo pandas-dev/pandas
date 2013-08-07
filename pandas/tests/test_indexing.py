@@ -877,11 +877,26 @@ class TestIndexing(unittest.TestCase):
         # GH4016, date selection returns a frame when a partial string selection
         ind = date_range(start="2000", freq="D", periods=1000)
         df = DataFrame(np.random.randn(len(ind), 5), index=ind, columns=list('ABCDE'))
-        panel = Panel({'frame_'+c:df for c in list('ABC')})
+        panel = Panel(dict([ ('frame_'+c,df) for c in list('ABC') ]))
 
         test2 = panel.ix[:, "2002":"2002-12-31"]
         test1 = panel.ix[:, "2002"]
         tm.assert_panel_equal(test1,test2)
+
+    def test_panel_assignment(self):
+
+        # GH3777
+        wp = Panel(randn(2, 5, 4), items=['Item1', 'Item2'], major_axis=date_range('1/1/2000', periods=5), minor_axis=['A', 'B', 'C', 'D'])
+        wp2 = Panel(randn(2, 5, 4), items=['Item1', 'Item2'], major_axis=date_range('1/1/2000', periods=5), minor_axis=['A', 'B', 'C', 'D'])
+        expected = wp.loc[['Item1', 'Item2'], :, ['A', 'B']]
+
+        def f():
+            wp.loc[['Item1', 'Item2'], :, ['A', 'B']] = wp2.loc[['Item1', 'Item2'], :, ['A', 'B']]
+        self.assertRaises(NotImplementedError, f)
+
+        #wp.loc[['Item1', 'Item2'], :, ['A', 'B']] = wp2.loc[['Item1', 'Item2'], :, ['A', 'B']]
+        #result = wp.loc[['Item1', 'Item2'], :, ['A', 'B']]
+        #tm.assert_panel_equal(result,expected)
 
     def test_multi_assign(self):
 

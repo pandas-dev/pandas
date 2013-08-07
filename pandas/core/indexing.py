@@ -100,7 +100,7 @@ class _NDFrameIndexer(object):
         return tuple(keyidx)
 
     def _setitem_with_indexer(self, indexer, value):
-        from pandas.core.frame import DataFrame, Series
+        from pandas import Panel, DataFrame, Series
 
         # also has the side effect of consolidating in-place
 
@@ -180,6 +180,9 @@ class _NDFrameIndexer(object):
 
             if isinstance(value, DataFrame):
                 value = self._align_frame(indexer, value)
+
+            if isinstance(value, Panel):
+                value = self._align_panel(indexer, value)
 
             # 2096
             values = self.obj.values
@@ -268,6 +271,11 @@ class _NDFrameIndexer(object):
             return df.reindex(idx, columns=cols).values
 
         raise ValueError('Incompatible indexer with DataFrame')
+
+    def _align_panel(self, indexer, df):
+        is_frame = self.obj.ndim == 2
+        is_panel = self.obj.ndim >= 3
+        raise NotImplementedError("cannot set using an indexer with a Panel yet!")
 
     def _getitem_tuple(self, tup):
         try:
