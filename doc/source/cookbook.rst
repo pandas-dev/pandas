@@ -117,6 +117,15 @@ Missing Data
 
 The :ref:`missing data <missing_data>` docs.
 
+Fill forward a reversed timeseries
+
+.. ipython:: python
+
+   df = pd.DataFrame(np.random.randn(6,1), index=pd.date_range('2013-08-01', periods=6, freq='B'), columns=list('A'))
+   df.ix[3,'A'] = np.nan
+   df
+   df.reindex(df.index[::-1]).reset_index().ffill().set_index('index')
+
 Replace
 ~~~~~~~
 
