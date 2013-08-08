@@ -2418,9 +2418,14 @@ class TestHDFStore(unittest.TestCase):
             expected = df[df.x == 'none']
             assert_frame_equal(result,expected)
 
-            result = store.select('df',Term('x!=none'))
-            expected = df[df.x != 'none']
-            assert_frame_equal(result,expected)
+            try:
+                result = store.select('df',Term('x!=none'))
+                expected = df[df.x != 'none']
+                assert_frame_equal(result,expected)
+            except Exception as detail:
+                print("[{0}]".format(detail))
+                print(store)
+                print(expected)
 
             df2 = df.copy()
             df2.loc[df2.x=='','x'] = np.nan
