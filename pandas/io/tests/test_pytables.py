@@ -234,6 +234,56 @@ class TestHDFStore(unittest.TestCase):
             store.get_node('df2')._v_attrs.pandas_version = None
             self.assertRaises(Exception, store.select, 'df2')
 
+    def test_mode(self):
+
+        df = tm.makeTimeDataFrame()
+
+        def check(mode):
+
+            with tm.ensure_clean(self.path) as path:
+
+                # constructor
+                if mode in ['r','r+']:
+                    self.assertRaises(IOError, HDFStore, path, mode=mode)
+
+                else:
+                    store = HDFStore(path,mode=mode)
+                    self.assert_(store._handle.mode == mode)
+                    store.close()
+
+            with tm.ensure_clean(self.path) as path:
+
+                # context
+                if mode in ['r','r+']:
+                    def f():
+                        with get_store(path,mode=mode) as store:
+                            pass
+                    self.assertRaises(IOError, f)
+                else:
+                    with get_store(path,mode=mode) as store:
+                        self.assert_(store._handle.mode == mode)
+
+            with tm.ensure_clean(self.path) as path:
+
+                # conv write
+                if mode in ['r','r+']:
+                    self.assertRaises(IOError, df.to_hdf, path, 'df', mode=mode)
+                    df.to_hdf(path,'df',mode='w')
+                else:
+                    df.to_hdf(path,'df',mode=mode)
+
+                # conv read
+                if mode in ['w']:
+                    self.assertRaises(KeyError, read_hdf, path, 'df', mode=mode)
+                else:
+                    result = read_hdf(path,'df',mode=mode)
+                    assert_frame_equal(result,df)
+
+        check('r')
+        check('r+')
+        check('a')
+        check('w')
+
     def test_reopen_handle(self):
 
         with tm.ensure_clean(self.path) as path:

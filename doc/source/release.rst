@@ -87,8 +87,11 @@ pandas 0.13
 
 **Bug Fixes**
 
-  - ``HDFStore`` raising an invalid ``TypeError`` rather than ``ValueError`` when appending
-    with a different block ordering (:issue:`4096`)
+  - ``HDFStore``
+
+    - raising an invalid ``TypeError`` rather than ``ValueError`` when appending
+      with a different block ordering (:issue:`4096`)
+    - ``read_hdf`` was not respecting as passed ``mode`` (:issue:`4504`)
   - The ``by`` argument now works correctly with the ``layout`` argument
     (:issue:`4102`, :issue:`4014`) in ``*.hist`` plotting methods
   - Fixed bug in ``PeriodIndex.map`` where using ``str`` would return the str
