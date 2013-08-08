@@ -1,7 +1,7 @@
 # pylint: disable=W0223
 
 from datetime import datetime
-from pandas.core.common import _asarray_tuplesafe
+from pandas.core.common import _asarray_tuplesafe, is_list_like
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.compat import range, zip
 import pandas.compat as compat
@@ -86,27 +86,66 @@ class _NDFrameIndexer(object):
             if len(key) > self.ndim:
                 raise IndexingError('only tuples of length <= %d supported',
                                     self.ndim)
-            indexer = self._convert_tuple(key)
+            indexer = self._convert_tuple(key, is_setter=True)
         else:
-            indexer = self._convert_to_indexer(key)
+            indexer = self._convert_to_indexer(key, is_setter=True)
 
         self._setitem_with_indexer(indexer, value)
 
     def _has_valid_tuple(self, key):
         pass
 
-    def _convert_tuple(self, key):
+    def _convert_tuple(self, key, is_setter=False):
         keyidx = []
         for i, k in enumerate(key):
-            idx = self._convert_to_indexer(k, axis=i)
+            idx = self._convert_to_indexer(k, axis=i, is_setter=is_setter)
             keyidx.append(idx)
         return tuple(keyidx)
 
     def _setitem_with_indexer(self, indexer, value):
 
         # also has the side effect of consolidating in-place
-        # mmm, spaghetti
+        from pandas import Panel, DataFrame, Series
 
+        # maybe partial set
+        if isinstance(indexer,tuple):
+            nindexer = []
+            for i, idx in enumerate(indexer):
+                if isinstance(idx, dict):
+
+                    # reindex the axis to the new value
+                    # and set inplace
+                    key,_ = _convert_missing_indexer(idx)
+                    labels = self.obj._get_axis(i) + Index([key])
+                    self.obj._data = self.obj.reindex_axis(labels,i)._data
+
+                    nindexer.append(labels.get_loc(key))
+                else:
+                    nindexer.append(idx)
+
+            indexer = tuple(nindexer)
+        else:
+
+            indexer, missing = _convert_missing_indexer(indexer)
+
+            if missing:
+
+                # reindex the axis to the new value
+                # and set inplace
+                if self.ndim == 1:
+                    self.obj._data = self.obj.append(Series(value,index=[indexer]))._data
+                    return
+
+                elif self.ndim == 2:
+                    labels = self.obj._get_axis(0) + Index([indexer])
+                    self.obj._data = self.obj.reindex_axis(labels,0)._data
+                    return getattr(self.obj,self.name).__setitem__(indexer,value)
+
+                # set using setitem (Panel and > dims)
+                elif self.ndim >= 3:
+                    return self.obj.__setitem__(indexer,value)
+
+        # align and set the values
         if self.obj._is_mixed_type:
             if not isinstance(indexer, tuple):
                 indexer = self._tuplify(indexer)
@@ -192,13 +231,72 @@ class _NDFrameIndexer(object):
     def _align_series(self, indexer, ser):
         # indexer to assign Series can be tuple or scalar
         if isinstance(indexer, tuple):
+
+            aligners = [ not _is_null_slice(idx) for idx in indexer ]
+            single_aligner = sum(aligners) == 1
+            is_frame = self.obj.ndim == 2
+            is_panel = self.obj.ndim >= 3
+
+            # are we a single alignable value on a non-primary
+            # dim (e.g. panel: 1,2, or frame: 0) ?
+            # hence need to align to a single axis dimension
+            # rather that find all valid dims
+
+            # frame
+            if is_frame:
+                single_aligner = single_aligner and aligners[0]
+
+            # panel
+            elif is_panel:
+                single_aligner = single_aligner and (aligners[1] or aligners[2])
+
+            obj = self.obj
             for i, idx in enumerate(indexer):
-                ax = self.obj.axes[i]
+                ax = obj.axes[i]
+
+                # multiple aligners (or null slices)
                 if com._is_sequence(idx) or isinstance(idx, slice):
+                    if single_aligner and _is_null_slice(idx):
+                        continue
                     new_ix = ax[idx]
+                    if not is_list_like(new_ix):
+                        new_ix = Index([new_ix])
                     if ser.index.equals(new_ix):
                         return ser.values.copy()
                     return ser.reindex(new_ix).values
+
+                # 2 dims
+                elif single_aligner and is_frame:
+
+                    # reindex along index
+                    ax = self.obj.axes[1]
+                    if ser.index.equals(ax):
+                        return ser.values.copy()
+                    return ser.reindex(ax).values
+
+                # >2 dims
+                elif single_aligner:
+
+                    broadcast = []
+                    for n, labels in enumerate(self.obj._get_plane_axes(i)):
+
+                        # reindex along the matching dimensions
+                        if len(labels & ser.index):
+                            ser = ser.reindex(labels)
+                        else:
+                            broadcast.append((n,len(labels)))
+
+                    # broadcast along other dims
+                    ser = ser.values.copy()
+                    for (axis,l) in broadcast:
+                        shape = [ -1 ] * (len(broadcast)+1)
+                        shape[axis] = l
+                        ser = np.tile(ser,l).reshape(shape)
+
+                    if self.obj.ndim == 3:
+                        ser = ser.T
+
+                    return ser
 
         elif np.isscalar(indexer):
             ax = self.obj._get_axis(1)
@@ -521,7 +619,7 @@ class _NDFrameIndexer(object):
 
                 return result
 
-    def _convert_to_indexer(self, obj, axis=0):
+    def _convert_to_indexer(self, obj, axis=0, is_setter=False):
         """
         Convert indexing key into something we can use to do actual fancy
         indexing on an ndarray
@@ -639,7 +737,14 @@ class _NDFrameIndexer(object):
                 return indexer
 
         else:
-            return labels.get_loc(obj)
+            try:
+                return labels.get_loc(obj)
+            except (KeyError):
+
+                # allow a not found key only if we are a setter
+                if np.isscalar(obj) and is_setter:
+                    return { 'key' : obj }
+                raise
 
     def _tuplify(self, loc):
         tup = [slice(None, None) for _ in range(self.ndim)]
@@ -877,7 +982,7 @@ class _iLocIndexer(_LocationIndexer):
 
             return self._get_loc(key,axis=axis)
 
-    def _convert_to_indexer(self, obj, axis=0):
+    def _convert_to_indexer(self, obj, axis=0, is_setter=False):
         """ much simpler as we only have to deal with our valid types """
         if self._has_valid_type(obj,axis):
             return obj
@@ -1028,6 +1133,12 @@ class _SeriesIndexer(_NDFrameIndexer):
         return self.obj._get_values(indexer)
 
     def _setitem_with_indexer(self, indexer, value):
+
+        # need to delegate to the super setter
+        if isinstance(indexer, dict):
+            return super(_SeriesIndexer, self)._setitem_with_indexer(indexer, value)
+
+        # fast access
         self.obj._set_values(indexer, value)
 
 def _check_bool_indexer(ax, key):
@@ -1052,6 +1163,21 @@ def _check_bool_indexer(ax, key):
 
     return result
 
+
+def _convert_missing_indexer(indexer):
+    """ reverse convert a missing indexer, which is a dict
+        return the scalar indexer and a boolean indicating if we converted """
+
+    if isinstance(indexer, dict):
+
+        # a missing key (but not a tuple indexer)
+        indexer = indexer['key']
+
+        if isinstance(indexer, bool):
+            raise KeyError("cannot use a single bool to index into setitem")
+        return indexer, True
+
+    return indexer, False
 
 def _maybe_convert_indices(indices, n):
     """ if we have negative indicies, translate to postive here

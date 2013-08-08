@@ -1229,6 +1229,77 @@ class TestIndexing(unittest.TestCase):
         result = df.loc[1]
         assert_series_equal(result,expected)
 
+    def test_partial_setting(self):
+
+        # GH2578, allow ix and friends to partially set
+
+        ### frame ###
+
+        df_orig = DataFrame(np.arange(6).reshape(3,2),columns=['A','B'])
+
+        # row setting where it exists
+        expected = DataFrame(dict({ 'A' : [0,4,4], 'B' : [1,5,5] }))
+        df = df_orig.copy()
+        df.iloc[1] = df.iloc[2]
+        assert_frame_equal(df,expected)
+
+        expected = DataFrame(dict({ 'A' : [0,4,4], 'B' : [1,5,5] }))
+        df = df_orig.copy()
+        df.loc[1] = df.loc[2]
+        assert_frame_equal(df,expected)
+
+        expected = DataFrame(dict({ 'A' : [0,2,4,4], 'B' : [1,3,5,5] }),dtype='float64')
+        df = df_orig.copy()
+        df.loc[3] = df.loc[2]
+        assert_frame_equal(df,expected)
+
+        # single dtype frame, overwrite
+        expected = DataFrame(dict({ 'A' : [0,2,4], 'B' : [0,2,4] }))
+        df = df_orig.copy()
+        df.ix[:,'B'] = df.ix[:,'A']
+        assert_frame_equal(df,expected)
+
+        # mixed dtype frame, overwrite
+        expected = DataFrame(dict({ 'A' : [0,2,4], 'B' : Series([0.,2.,4.]) }))
+        df = df_orig.copy()
+        df['B'] = df['B'].astype(np.float64)
+        df.ix[:,'B'] = df.ix[:,'A']
+        assert_frame_equal(df,expected)
+
+        # single dtype frame, partial setting
+        expected = df_orig.copy()
+        expected['C'] = df['A'].astype(np.float64)
+        df = df_orig.copy()
+        df.ix[:,'C'] = df.ix[:,'A']
+        assert_frame_equal(df,expected)
+
+        # mixed frame, partial setting
+        expected = df_orig.copy()
+        expected['C'] = df['A'].astype(np.float64)
+        df = df_orig.copy()
+        df.ix[:,'C'] = df.ix[:,'A']
+        assert_frame_equal(df,expected)
+
+        ### panel ###
+        p_orig = Panel(np.arange(16).reshape(2,4,2),items=['Item1','Item2'],major_axis=pd.date_range('2001/1/12',periods=4),minor_axis=['A','B'],dtype='float64')
+
+        # panel setting via item
+        p_orig = Panel(np.arange(16).reshape(2,4,2),items=['Item1','Item2'],major_axis=pd.date_range('2001/1/12',periods=4),minor_axis=['A','B'],dtype='float64')
+        expected = p_orig.copy()
+        expected['Item3'] = expected['Item1']
+        p = p_orig.copy()
+        p.loc['Item3'] = p['Item1']
+        assert_panel_equal(p,expected)
+
+        # panel with aligned series
+        expected = p_orig.copy()
+        expected = expected.transpose(2,1,0)
+        expected['C'] = DataFrame({ 'Item1' : [30,30,30,30], 'Item2' : [32,32,32,32] },index=p_orig.major_axis)
+        expected = expected.transpose(2,1,0)
+        p = p_orig.copy()
+        p.loc[:,:,'C'] = Series([30,32],index=p_orig.items)
+        assert_panel_equal(p,expected)
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

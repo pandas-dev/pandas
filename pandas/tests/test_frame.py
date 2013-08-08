@@ -866,9 +866,11 @@ class CheckIndexing(object):
         self.assertRaises(KeyError,
                           self.frame.ix.__setitem__,
                           (slice(None, None), ['E']), 1)
-        self.assertRaises(KeyError,
-                          self.frame.ix.__setitem__,
-                          (slice(None, None), 'E'), 1)
+
+        # partial setting now allows this GH2578
+        #self.assertRaises(KeyError,
+        #                  self.frame.ix.__setitem__,
+        #                  (slice(None, None), 'E'), 1)
 
     def test_setitem_fancy_mixed_2d(self):
         self.mixed_frame.ix[:5, ['C', 'B', 'A']] = 5

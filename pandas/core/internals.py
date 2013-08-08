@@ -2647,7 +2647,7 @@ class BlockManager(PandasObject):
             if method is not None or limit is not None:
                 return self.reindex_axis0_with_method(new_axis, indexer=indexer,
                                                       method=method, fill_value=fill_value, limit=limit, copy=copy)
-            return self.reindex_items(new_axis, copy=copy, fill_value=fill_value)
+            return self.reindex_items(new_axis, indexer=indexer, copy=copy, fill_value=fill_value)
 
         new_axis, indexer = cur_axis.reindex(
             new_axis, method, copy_if_needed=True)
@@ -2709,7 +2709,7 @@ class BlockManager(PandasObject):
 
         return self.__class__(new_blocks, new_axes)
 
-    def reindex_items(self, new_items, copy=True, fill_value=None):
+    def reindex_items(self, new_items, indexer=None, copy=True, fill_value=None):
         """
 
         """
@@ -2719,8 +2719,8 @@ class BlockManager(PandasObject):
             data = data.consolidate()
             return data.reindex_items(new_items, copy=copy, fill_value=fill_value)
 
-        # TODO: this part could be faster (!)
-        new_items, indexer = self.items.reindex(new_items, copy_if_needed=True)
+        if indexer is None:
+            new_items, indexer = self.items.reindex(new_items, copy_if_needed=True)
         new_axes = [new_items] + self.axes[1:]
 
         # could have so me pathological (MultiIndex) issues here

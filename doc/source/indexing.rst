@@ -440,6 +440,40 @@ the object it modified, which in the case of enlargement, will be a **new object
    df.at[dates[5], 'E'] = 7
    df.iat[3, 0] = 7
 
+.. _indexing.basics.partial_setting:
+
+Setting With Enlargement
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``.loc/.iloc/[]`` operations can perform enlargement when setting a non-existant key for that axis.
+
+In the ``Series`` case this is effectively an appending operation
+
+.. ipython:: python
+
+   se = Series([1,2,3])
+   se
+   se[5] = 5.
+   se
+
+A ``DataFrame`` can be enlarged on either axis via ``.loc``
+
+.. ipython:: python
+
+   dfi = DataFrame(np.arange(6).reshape(3,2),
+                   columns=['A','B'])
+   dfi
+   dfi.loc[:,'C'] = dfi.loc[:,'A']
+   dfi
+
+This is like an ``append`` operation on the ``DataFrame``.
+
+.. ipython:: python
+
+   dfi.loc[3] = 5
+   dfi
+
+
 Boolean indexing
 ~~~~~~~~~~~~~~~~
 
