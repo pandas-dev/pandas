@@ -36,15 +36,15 @@ def DataReader(name, data_source=None, start=None, end=None,
     """
     Imports data from a number of online sources.
 
-    Currently supports Yahoo! finance, St. Louis FED (FRED), and Kenneth
-    French's data library.
+    Currently supports Yahoo! Finance, Google Finance, St. Louis FED (FRED)
+    and Kenneth French's data library.
 
     Parameters
     ----------
     name : str
         the name of the dataset
     data_source: str
-        the data source ("yahoo", "fred", or "ff")
+        the data source ("yahoo", "google", "fred", or "ff")
     start : {datetime, None}
         left boundary for range (defaults to 1/1/2010)
     end : {datetime, None}
@@ -53,8 +53,11 @@ def DataReader(name, data_source=None, start=None, end=None,
     Examples
     ----------
 
-    # Data from Yahoo!
+    # Data from Yahoo! Finance
     gs = DataReader("GS", "yahoo")
+
+    # Data from Google Finance
+    aapl = DataReader("AAPL", "google")
 
     # Data from FRED
     vix = DataReader("VIXCLS", "fred")
