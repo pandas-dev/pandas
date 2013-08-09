@@ -124,7 +124,7 @@ Fill forward a reversed timeseries
    df = pd.DataFrame(np.random.randn(6,1), index=pd.date_range('2013-08-01', periods=6, freq='B'), columns=list('A'))
    df.ix[3,'A'] = np.nan
    df
-   df.reindex(df.index[::-1]).reset_index().ffill().set_index('index')
+   df.reindex(df.index[::-1]).ffill()
 
 Replace
 ~~~~~~~
