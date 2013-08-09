@@ -3304,10 +3304,13 @@ class DataFrame(NDFrame):
         new_axis, indexer = the_axis.sortlevel(level, ascending=ascending)
 
         if self._is_mixed_type and not inplace:
-            if axis == 0:
-                return self.reindex(index=new_axis)
+            ax = 'index' if axis == 0 else 'columns'
+
+            if new_axis.is_unique:
+                d = { ax : new_axis }
             else:
-                return self.reindex(columns=new_axis)
+                d = { ax : indexer, 'takeable' : True }
+            return self.reindex(**d)
 
         if inplace:
             if axis == 1:
