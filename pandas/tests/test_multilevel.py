@@ -1828,6 +1828,18 @@ Thur,Lunch,Yes,51.51,17"""
         result = s.groupby(s.index).first()
         self.assertEquals(len(result), 3)
 
+    def test_duplicate_mi(self):
+        # GH 4516
+        df = DataFrame([['foo','bar',1.0,1],['foo','bar',2.0,2],['bah','bam',3.0,3],
+                        ['bah','bam',4.0,4],['foo','bar',5.0,5],['bah','bam',6.0,6]],
+                       columns=list('ABCD'))
+        df = df.set_index(['A','B'])
+        df = df.sortlevel(0)
+        result = df.loc[('foo','bar')]
+        expected = DataFrame([['foo','bar',1.0,1],['foo','bar',2.0,2],['foo','bar',5.0,5]],
+                             columns=list('ABCD')).set_index(['A','B'])
+        assert_frame_equal(result,expected)
+
     def test_multiindex_set_index(self):
         # segfault in #3308
         d = {'t1': [2, 2.5, 3], 't2': [4, 5, 6]}

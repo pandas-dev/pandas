@@ -2165,8 +2165,17 @@ class MultiIndex(Index):
             if self.equals(target):
                 indexer = None
             else:
-                indexer = self.get_indexer(target, method=method,
-                                           limit=limit)
+                if self.is_unique:
+                    indexer = self.get_indexer(target, method=method,
+                                               limit=limit)
+                else:
+                    if takeable:
+                        if method is not None or limit is not None:
+                            raise ValueError("cannot do a takeable reindex with "
+                                             "with a method or limit")
+                        return self[target], target
+
+                    raise Exception("cannot handle a non-takeable non-unique multi-index!")
 
         if not isinstance(target, MultiIndex):
             if indexer is None:
