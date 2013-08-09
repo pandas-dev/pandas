@@ -110,6 +110,9 @@ Bug Fixes
 
   - Suppressed DeprecationWarning associated with internal calls issued by repr() (:issue:`4391`)
 
+  - Fixed bug where timedelta and timedelta64 were treated differently when
+    being add to a Series (:issue:`4135`)
+
 See the :ref:`full release notes
 <release>` or issue tracker
 on GitHub for a complete list.

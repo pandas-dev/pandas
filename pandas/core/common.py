@@ -3,8 +3,10 @@ Misc tools for implementing data structures
 """
 
 import re
+from datetime import timedelta
 import codecs
 import csv
+from distutils.version import LooseVersion
 
 from numpy.lib.format import read_array, write_array
 import numpy as np
@@ -14,11 +16,15 @@ import pandas.lib as lib
 import pandas.tslib as tslib
 
 from pandas import compat
-from pandas.compat import StringIO, BytesIO, range, long, u, zip, map
+from pandas.compat import StringIO, BytesIO, range, long, u, zip, map, lmap
 
 
 from pandas.core.config import get_option
 from pandas.core import array as pa
+
+_np_version = np.version.short_version
+_np_version_under1p6 = LooseVersion(_np_version) < '1.6'
+_np_version_under1p7 = LooseVersion(_np_version) < '1.7'
 
 # XXX: HACK for NumPy 1.5.1 to suppress warnings
 try:
@@ -293,10 +299,10 @@ def _take_2d_multi_generic(arr, indexer, out, fill_value, mask_info):
         if col_needs:
             out[:, col_mask] = fill_value
     for i in range(len(row_idx)):
-        u = row_idx[i]
+        _u = row_idx[i]
         for j in range(len(col_idx)):
             v = col_idx[j]
-            out[i, j] = arr[u, v]
+            out[i, j] = arr[_u, v]
 
 
 def _take_nd_generic(arr, indexer, out, axis, fill_value, mask_info):
@@ -1099,6 +1105,18 @@ def _consensus_name_attr(objs):
 # Lots of little utilities
 
 
+def _td_to_us(td):
+    d = td.days
+    s = td.seconds
+    us = td.microseconds
+    v = us + (s + d * 24 * 3600) * 10 ** 6
+    return timedelta(microseconds=v)
+
+
+def _td_array_to_us(a):
+    return np.asanyarray(lmap(lambda x: x.item(), a))
+
+
 def _possibly_convert_objects(values, convert_dates=True, convert_numeric=True):
     """ if we have an object dtype, try to coerce dates and/or numers """
 
@@ -1149,8 +1167,10 @@ def _possibly_cast_to_timedelta(value, coerce=True):
         don't force the conversion unless coerce is True """
 
     # deal with numpy not being able to handle certain timedelta operations
-    if isinstance(value,np.ndarray) and value.dtype.kind == 'm':
+    if isinstance(value, np.ndarray) and value.dtype.kind == 'm':
         if value.dtype != 'timedelta64[ns]':
+            if _np_version_under1p7:
+                value = _td_array_to_us(value)
             value = value.astype('timedelta64[ns]')
         return value
 

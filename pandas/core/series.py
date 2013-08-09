@@ -47,9 +47,6 @@ from pandas.core.config import get_option
 
 __all__ = ['Series', 'TimeSeries']
 
-_np_version = np.version.short_version
-_np_version_under1p6 = LooseVersion(_np_version) < '1.6'
-_np_version_under1p7 = LooseVersion(_np_version) < '1.7'
 
 _SHOW_WARNINGS = True
 
@@ -104,8 +101,7 @@ def _arith_method(op, name, fill_zeros=None):
                 elif inferred_type in set(['timedelta','timedelta64']):
                     # need to convert timedelta to ns here
                     # safest to convert it to an object arrany to process
-                    if not (isinstance(values, pa.Array) and com.is_timedelta64_dtype(values)):
-                        values = com._possibly_cast_to_timedelta(values)
+                    values = com._possibly_cast_to_timedelta(values)
                 elif inferred_type in set(['integer']):
                     if values.dtype.kind == 'm':
                         values = values.astype('timedelta64[ns]')
@@ -126,7 +122,7 @@ def _arith_method(op, name, fill_zeros=None):
                 if is_datetime_lhs and name != '__sub__':
                     raise TypeError("can only operate on a datetimes for subtraction, "
                                     "but the operator [%s] was passed" % name)
-                elif is_timedelta_lhs and name not in ['__add__','__sub__']:
+                elif is_timedelta_lhs and name not in ['__add__', '__sub__']:
                     raise TypeError("can only operate on a timedeltas for "
                                     "addition and subtraction, but the operator [%s] was passed" % name)
 
@@ -143,13 +139,13 @@ def _arith_method(op, name, fill_zeros=None):
             # datetime and timedelta
             elif (is_timedelta_lhs and is_datetime_rhs) or (is_timedelta_rhs and is_datetime_lhs):
 
-                if name not in ['__add__','__sub__']:
+                if name not in ['__add__', '__sub__']:
                     raise TypeError("can only operate on a timedelta and a datetime for "
                                     "addition and subtraction, but the operator [%s] was passed" % name)
                 dtype = 'M8[ns]'
 
             else:
-                raise ValueError('cannot operate on a series with out a rhs '
+                raise ValueError('cannot operate on a series without a rhs '
                                  'of a series/ndarray of type datetime64[ns] '
                                  'or a timedelta')
 
@@ -291,8 +287,7 @@ def _radd_compat(left, right):
     try:
         output = radd(left, right)
     except TypeError:
-        cond = (_np_version_under1p6 and
-                left.dtype == np.object_)
+        cond = com._np_version_under1p6 and left.dtype == np.object_
         if cond:  # pragma: no cover
             output = np.empty_like(left)
             output.flat[:] = [radd(x, right) for x in left.flat]
@@ -806,8 +801,13 @@ class Series(generic.PandasContainer, pa.Array):
         abs: type of caller
         """
         obj = np.abs(self)
-        obj = com._possibly_cast_to_timedelta(obj, coerce=False)
-        return obj
+        return self._constructor(obj, name=self.name)
+
+    def __array_wrap__(self, out, ctx=None):
+        if (com._np_version_under1p7 and out.dtype.kind == 'm' and
+            out.dtype != _TD_DTYPE):
+            out = out.view('i8').astype(_TD_DTYPE)
+        return pa.Array.__array_wrap__(self, out, ctx)
 
     def __setitem__(self, key, value):
         try:
