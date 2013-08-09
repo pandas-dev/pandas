@@ -149,5 +149,9 @@ https://travis-ci.org/pydata/pandas.
 
 ####More developer docs
 
-Please see [Developers](http://pandas.pydata.org/developers.html) page on
-the project website for more details.
+* See the [developers](http://pandas.pydata.org/developers.html) page on the
+  project website for more details.
+* [`pandas` wiki](https://github.com/pydata/pandas/wiki)
+* [Tips and tricks](https://github.com/pydata/pandas/wiki/Tips-&-Tricks)
+* [Git tips and tricks](https://github.com/pydata/pandas/wiki/Using-Git)
+* [Testing advice and best practices in `pandas`](https://github.com/pydata/pandas/wiki/Testing)
