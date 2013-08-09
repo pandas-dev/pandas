@@ -135,6 +135,7 @@ pandas 0.13
   - Raise on set indexing with a Panel and a Panel as a value which needs alignment (:issue:`3777`)
   - frozenset objects now raise in the ``Series`` constructor (:issue:`4482`,
     :issue:`4480`)
+  - Fixed issue with sorting a duplicate multi-index that has multiple dtypes (:issue:`4516`)
 
 pandas 0.12
 ===========
