@@ -15,8 +15,18 @@ from pandas.io.date_converters import generic_parser
 import pandas.io.auth as auth
 from pandas.util.decorators import Appender, Substitution
 
-from apiclient.errors import HttpError
-from oauth2client.client import AccessTokenRefreshError
+try:
+    from apiclient.errors import HttpError
+    _APICLIENT_INSTALLED = True
+except:
+    _APICLIENT_INSTALLED = False
+
+try:
+    from oauth2client.client import AccessTokenRefreshError
+    _OAUTH2_INSTALLED = True
+except:
+    _OAUTH2_INSTALLED = False
+
 from pandas.compat import zip, u
 
 TYPE_MAP = {u('INTEGER'): int, u('FLOAT'): float, u('TIME'): int}
@@ -97,6 +107,12 @@ def reset_token_store():
 @Substitution(extras=_AUTH_PARAMS)
 @Appender(_GA_READER_DOC)
 def read_ga(metrics, dimensions, start_date, **kwargs):
+
+    if not _OAUTH2_INSTALLED:
+        raise ImportError('Could not import OAuth2.0 Client.')
+    elif not _APICLIENT_INSTALLED:
+        raise ImportError('Could not import Google Python API.')
+
     lst = ['secrets', 'scope', 'token_file_name', 'redirect']
     reader_kwds = dict((p, kwargs.pop(p)) for p in lst if p in kwargs)
     reader = GAnalytics(**reader_kwds)
@@ -254,13 +270,15 @@ class GDataReader(OAuthDataReader):
             raise ValueError('Google API returns maximum of 10,000 rows, '
                              'please set chunksize')
 
-        account = self.get_account(account_name, account_id)
-        web_property = self.get_web_property(account.get('id'), property_name,
-                                             property_id)
-        profile = self.get_profile(account.get('id'), web_property.get('id'),
-                                   profile_name, profile_id)
+        if not profile_id:
+            account = self.get_account(account_name, account_id)
+            web_property = self.get_web_property(account.get('id'),
+                                                 property_name, property_id)
+            profile = self.get_profile(account.get('id'),
+                                       web_property.get('id'), profile_name,
+                                       profile_id)
 
-        profile_id = profile.get('id')
+            profile_id = profile.get('id')
 
         if index_col is None and dimensions is not None:
             if isinstance(dimensions, compat.string_types):

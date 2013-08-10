@@ -129,4 +129,22 @@ try:
 except:
     print("html5lib: Not installed")
 
+try:
+    import apiclient
+    print("apiclient: %s" % apiclient.__version__)
+except:
+    print("apiclient: Not installed")
+
+try:
+    import oauth2client
+    print("oauth2client: %s" % oauth2client.__version__)
+except:
+    print("oauth2client: Not installed")
+
+try:
+    import httplib2
+    print("httplib2: %s" % httplib2.__version__)
+except:
+    print("httplib2: Not installed")
+
 print("\n")

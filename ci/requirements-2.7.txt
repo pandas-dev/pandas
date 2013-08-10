@@ -16,3 +16,6 @@ scikits.timeseries==0.91.3
 MySQL-python==1.2.4
 scipy==0.10.0
 beautifulsoup4==4.2.1
+google-api-python-client==1.2
+httplib2==0.8
+python-gflags==2.0
