@@ -166,6 +166,8 @@ pandas 0.13
   - Fixed issue where individual ``names``, ``levels`` and ``labels`` could be
     set on ``MultiIndex`` without validation (:issue:`3714`, :issue:`4039`)
   - Fixed (:issue:`3334`) in pivot_table. Margins did not compute if values is the index.
+  - Fix bug in having a rhs of ``np.timedelta64`` or ``np.offsets.DateOffset`` when operating
+    with datetimes (:issue:`4532`)
 
 pandas 0.12
 ===========

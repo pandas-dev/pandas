@@ -23,6 +23,7 @@ from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                _ensure_index, _handle_legacy_indexes)
 from pandas.core.indexing import (_SeriesIndexer, _check_bool_indexer,
                                   _check_slice_bounds, _maybe_convert_indices)
+from pandas.tseries.offsets import DateOffset
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex, Period
 from pandas import compat
@@ -99,16 +100,24 @@ def _arith_method(op, name, fill_zeros=None):
                     values = np.array([values])
                 inferred_type = lib.infer_dtype(values)
                 if inferred_type in set(['datetime64','datetime','date','time']):
+                    # a datetlike
                     if not (isinstance(values, pa.Array) and com.is_datetime64_dtype(values)):
                         values = tslib.array_to_datetime(values)
-                elif inferred_type in set(['timedelta','timedelta64']):
-                    # need to convert timedelta to ns here
-                    # safest to convert it to an object arrany to process
+                elif inferred_type in set(['timedelta']):
+                    # have a timedelta, convert to to ns here
                     if not (isinstance(values, pa.Array) and com.is_timedelta64_dtype(values)):
                         values = com._possibly_cast_to_timedelta(values)
+                elif inferred_type in set(['timedelta64']):
+                    # have a timedelta64, make sure dtype dtype is ns
+                    values = com._possibly_cast_to_timedelta(values)
                 elif inferred_type in set(['integer']):
+                    # py3 compat where dtype is 'm' but is an integer
                     if values.dtype.kind == 'm':
                         values = values.astype('timedelta64[ns]')
+                elif isinstance(values[0],DateOffset):
+                    # handle DateOffsets
+                    values = pa.array([ v.delta for v in values ])
+                    values = com._possibly_cast_to_timedelta(values)
                 else:
                     values = pa.array(values)
                 return values

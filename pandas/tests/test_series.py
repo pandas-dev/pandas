@@ -1949,6 +1949,27 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_(result.dtype=='m8[ns]')
         assert_series_equal(result,expected)
 
+        # GH 4532
+        # operate with pd.offsets
+        s = Series([Timestamp('20130101 9:01'),Timestamp('20130101 9:02')])
+
+        import pdb; pdb.set_trace()
+        result = s + pd.offsets.Second(5)
+        expected = Series([Timestamp('20130101 9:01:05'),Timestamp('20130101 9:02:05')])
+
+        result = s + pd.offsets.Milli(5)
+        expected = Series([Timestamp('20130101 9:01:00.005'),Timestamp('20130101 9:02:00.005')])
+        assert_series_equal(result,expected)
+
+        # operate with np.timedelta64 correctly
+        result = s + np.timedelta64(1,'s')
+        expected = Series([Timestamp('20130101 9:01:01'),Timestamp('20130101 9:02:01')])
+        assert_series_equal(result,expected)
+
+        result = s + np.timedelta64(5,'ms')
+        expected = Series([Timestamp('20130101 9:01:00.005'),Timestamp('20130101 9:02:00.005')])
+        assert_series_equal(result,expected)
+
     def test_operators_datetimelike(self):
 
         ### timedelta64 ###
