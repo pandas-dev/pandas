@@ -19,7 +19,7 @@ from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _asarray_tuplesafe, is_integer_dtype,
                                 _NS_DTYPE, _TD_DTYPE,
                                 _infer_dtype_from_scalar, is_list_like, _values_from_object,
-                                ABCSparseArray)
+                                ABCSparseArray, _maybe_match_name)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                _ensure_index, _handle_legacy_indexes)
 from pandas.core.indexing import (
@@ -27,7 +27,7 @@ from pandas.core.indexing import (
     _is_index_slice, _maybe_convert_indices)
 from pandas.core import generic
 from pandas.core.internals import SingleBlockManager
-import pandas.core.expressions as expressions
+from pandas.core.ops import _arith_method_SERIES, _comp_method_SERIES, _bool_method_SERIES, _radd_compat_SERIES, _flex_method_SERIES
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex, Period
 from pandas.tseries.offsets import DateOffset
@@ -40,6 +40,8 @@ import pandas.core.array as pa
 import pandas.core.common as com
 import pandas.core.datetools as datetools
 import pandas.core.format as fmt
+import pandas.core.expressions as expressions
+import pandas.core.generic as generic
 import pandas.core.nanops as nanops
 from pandas.util.decorators import Appender, Substitution, cache_readonly
 
@@ -52,334 +54,8 @@ from pandas.core.config import get_option
 
 __all__ = ['Series']
 
-_np_version = np.version.short_version
-_np_version_under1p6 = LooseVersion(_np_version) < '1.6'
-_np_version_under1p7 = LooseVersion(_np_version) < '1.7'
 
 _SHOW_WARNINGS = True
-
-#----------------------------------------------------------------------
-# Wrapper function for Series arithmetic methods
-
-
-def _arith_method(op, name, fill_zeros=None):
-    """
-    Wrapper function for Series arithmetic operations, to avoid
-    code duplication.
-    """
-    def na_op(x, y):
-        try:
-
-            result = op(x, y)
-            result = com._fill_zeros(result, y, fill_zeros)
-
-        except TypeError:
-            result = pa.empty(len(x), dtype=x.dtype)
-            if isinstance(y, (pa.Array, Series)):
-                mask = notnull(x) & notnull(y)
-                result[mask] = op(x[mask], y[mask])
-            else:
-                mask = notnull(x)
-                result[mask] = op(x[mask], y)
-
-            result, changed = com._maybe_upcast_putmask(result, -mask, pa.NA)
-
-        return result
-
-    def wrapper(self, other, name=name):
-        from pandas.core.frame import DataFrame
-        dtype = None
-        fill_value = tslib.iNaT
-        wrap_results = lambda x: x
-
-        lvalues, rvalues = self, other
-
-        is_timedelta_lhs = com.is_timedelta64_dtype(self)
-        is_datetime_lhs  = com.is_datetime64_dtype(self)
-        is_integer_lhs   = lvalues.dtype.kind in ['i','u']
-
-        if is_datetime_lhs or is_timedelta_lhs:
-
-            coerce = 'compat' if _np_version_under1p7 else True
-
-            # convert the argument to an ndarray
-            def convert_to_array(values):
-                if not is_list_like(values):
-                    values = np.array([values])
-                inferred_type = lib.infer_dtype(values)
-                if inferred_type in set(['datetime64','datetime','date','time']):
-                    # a datetlike
-                    if not (isinstance(values, (pa.Array, Series)) and com.is_datetime64_dtype(values)):
-                        values = tslib.array_to_datetime(values)
-                elif inferred_type in set(['timedelta']):
-                    # have a timedelta, convert to to ns here
-                    values = com._possibly_cast_to_timedelta(values, coerce=coerce)
-                elif inferred_type in set(['timedelta64']):
-                    # have a timedelta64, make sure dtype dtype is ns
-                    values = com._possibly_cast_to_timedelta(values, coerce=coerce)
-                elif inferred_type in set(['integer']):
-                    # py3 compat where dtype is 'm' but is an integer
-                    if values.dtype.kind == 'm':
-                        values = values.astype('timedelta64[ns]')
-                    elif name not in ['__truediv__','__div__','__mul__']:
-                        raise TypeError("incompatible type for a datetime/timedelta operation [{0}]".format(name))
-                elif isinstance(values[0],DateOffset):
-                    # handle DateOffsets
-                    os = pa.array([ getattr(v,'delta',None) for v in values ])
-                    mask = isnull(os)
-                    if mask.any():
-                        raise TypeError("cannot use a non-absolute DateOffset in "
-                                        "datetime/timedelta operations [{0}]".format(','.join([ com.pprint_thing(v) for v in values[mask] ])))
-                    values = com._possibly_cast_to_timedelta(os, coerce=coerce)
-                else:
-                    raise TypeError("incompatible type [{0}] for a datetime/timedelta operation".format(pa.array(values).dtype))
-
-                return values
-
-            # convert lhs and rhs
-            lvalues = convert_to_array(lvalues)
-            rvalues = convert_to_array(rvalues)
-
-            is_datetime_rhs  = com.is_datetime64_dtype(rvalues)
-            is_timedelta_rhs = com.is_timedelta64_dtype(rvalues) or (not is_datetime_rhs and _np_version_under1p7)
-            is_integer_rhs = rvalues.dtype.kind in ['i','u']
-            mask = None
-
-            # timedelta and integer mul/div
-            if (is_timedelta_lhs and is_integer_rhs) or (is_integer_lhs and is_timedelta_rhs):
-
-                if name not in ['__truediv__','__div__','__mul__']:
-                    raise TypeError("can only operate on a timedelta and an integer for "
-                                    "division, but the operator [%s] was passed" % name)
-                dtype = 'timedelta64[ns]'
-                mask = isnull(lvalues) | isnull(rvalues)
-                lvalues = lvalues.astype(np.int64)
-                rvalues = rvalues.astype(np.int64)
-
-            # 2 datetimes
-            elif is_datetime_lhs and is_datetime_rhs:
-                if name != '__sub__':
-                    raise TypeError("can only operate on a datetimes for subtraction, "
-                                    "but the operator [%s] was passed" % name)
-
-                dtype = 'timedelta64[ns]'
-                mask = isnull(lvalues) | isnull(rvalues)
-                lvalues = lvalues.view('i8')
-                rvalues = rvalues.view('i8')
-
-            # 2 timedeltas
-            elif is_timedelta_lhs and is_timedelta_rhs:
-                mask = isnull(lvalues) | isnull(rvalues)
-
-                # time delta division -> unit less
-                if name in ['__div__','__truediv__']:
-                    dtype = 'float64'
-                    fill_value = np.nan
-                    lvalues = lvalues.astype(np.int64).astype(np.float64)
-                    rvalues = rvalues.astype(np.int64).astype(np.float64)
-
-                # another timedelta
-                elif name in ['__add__','__sub__']:
-                    dtype = 'timedelta64[ns]'
-                    lvalues = lvalues.astype(np.int64)
-                    rvalues = rvalues.astype(np.int64)
-
-                else:
-                    raise TypeError("can only operate on a timedeltas for "
-                                    "addition, subtraction, and division, but the operator [%s] was passed" % name)
-
-            # datetime and timedelta
-            elif is_timedelta_rhs and is_datetime_lhs:
-
-                if name not in ['__add__','__sub__']:
-                    raise TypeError("can only operate on a datetime with a rhs of a timedelta for "
-                                    "addition and subtraction, but the operator [%s] was passed" % name)
-                dtype = 'M8[ns]'
-                lvalues = lvalues.view('i8')
-                rvalues = rvalues.view('i8')
-
-            elif is_timedelta_lhs and is_datetime_rhs:
-
-                if name not in ['__add__']:
-                    raise TypeError("can only operate on a timedelta and a datetime for "
-                                    "addition, but the operator [%s] was passed" % name)
-                dtype = 'M8[ns]'
-                lvalues = lvalues.view('i8')
-                rvalues = rvalues.view('i8')
-
-            else:
-                raise TypeError('cannot operate on a series with out a rhs '
-                                'of a series/ndarray of type datetime64[ns] '
-                                'or a timedelta')
-
-            # if we need to mask the results
-            if mask is not None:
-                if mask.any():
-                    def f(x):
-                        x = pa.array(x,dtype=dtype)
-                        np.putmask(x,mask,fill_value)
-                        return x
-                    wrap_results = f
-
-        if isinstance(rvalues, Series):
-
-            if hasattr(lvalues,'values'):
-                lvalues = lvalues.values
-            if hasattr(rvalues,'values'):
-                rvalues = rvalues.values
-
-            if self.index.equals(other.index):
-                name = _maybe_match_name(self, other)
-                return self._constructor(wrap_results(na_op(lvalues, rvalues)),
-                                         index=self.index, dtype=dtype, name=name)
-
-            join_idx, lidx, ridx = self.index.join(other.index, how='outer',
-                                                   return_indexers=True)
-
-            if lidx is not None:
-                lvalues = com.take_1d(lvalues, lidx)
-
-            if ridx is not None:
-                rvalues = com.take_1d(rvalues, ridx)
-
-            arr = na_op(lvalues, rvalues)
-
-            name = _maybe_match_name(self, other)
-            return self._constructor(wrap_results(arr), index=join_idx, name=name, dtype=dtype)
-        elif isinstance(other, DataFrame):
-            return NotImplemented
-        else:
-            # scalars
-            if hasattr(lvalues, 'values'):
-                lvalues = lvalues.values
-            return self._constructor(wrap_results(na_op(lvalues, rvalues)),
-                                     index=self.index, name=self.name, dtype=dtype)
-    return wrapper
-
-
-def _comp_method(op, name, masker=False):
-    """
-    Wrapper function for Series arithmetic operations, to avoid
-    code duplication.
-    """
-    def na_op(x, y):
-        if x.dtype == np.object_:
-            if isinstance(y, list):
-                y = lib.list_to_object_array(y)
-
-            if isinstance(y, (pa.Array, Series)):
-                if y.dtype != np.object_:
-                    result = lib.vec_compare(x, y.astype(np.object_), op)
-                else:
-                    result = lib.vec_compare(x, y, op)
-            else:
-                result = lib.scalar_compare(x, y, op)
-        else:
-            result = op(x, y)
-
-        return result
-
-    def wrapper(self, other):
-        from pandas.core.frame import DataFrame
-
-        if isinstance(other, Series):
-            name = _maybe_match_name(self, other)
-            if len(self) != len(other):
-                raise ValueError('Series lengths must match to compare')
-            return self._constructor(na_op(self.values, other.values),
-                                     index=self.index, name=name)
-        elif isinstance(other, DataFrame):  # pragma: no cover
-            return NotImplemented
-        elif isinstance(other, (pa.Array, Series)):
-            if len(self) != len(other):
-                raise ValueError('Lengths must match to compare')
-            return self._constructor(na_op(self.values, np.asarray(other)),
-                                     index=self.index, name=self.name)
-        else:
-
-            mask = isnull(self)
-
-            values = self.values
-            other = _index.convert_scalar(values, other)
-
-            if issubclass(values.dtype.type, np.datetime64):
-                values = values.view('i8')
-
-            # scalars
-            res = na_op(values, other)
-            if np.isscalar(res):
-                raise TypeError('Could not compare %s type with Series'
-                                % type(other))
-
-            # always return a full value series here
-            res = _values_from_object(res)
-
-            res = Series(res, index=self.index, name=self.name, dtype='bool')
-
-            # mask out the invalids
-            if mask.any():
-                res[mask.values] = masker
-
-            return res
-    return wrapper
-
-
-def _bool_method(op, name):
-    """
-    Wrapper function for Series arithmetic operations, to avoid
-    code duplication.
-    """
-    def na_op(x, y):
-        try:
-            result = op(x, y)
-        except TypeError:
-            if isinstance(y, list):
-                y = lib.list_to_object_array(y)
-
-            if isinstance(y, (pa.Array, Series)):
-                if (x.dtype == np.bool_ and
-                        y.dtype == np.bool_):  # pragma: no cover
-                    result = op(x, y)  # when would this be hit?
-                else:
-                    x = com._ensure_object(x)
-                    y = com._ensure_object(y)
-                    result = lib.vec_binop(x, y, op)
-            else:
-                result = lib.scalar_binop(x, y, op)
-
-        return result
-
-    def wrapper(self, other):
-        from pandas.core.frame import DataFrame
-
-        if isinstance(other, Series):
-            name = _maybe_match_name(self, other)
-            return self._constructor(na_op(self.values, other.values),
-                                     index=self.index, name=name)
-        elif isinstance(other, DataFrame):
-            return NotImplemented
-        else:
-            # scalars
-            return self._constructor(na_op(self.values, other),
-                                     index=self.index, name=self.name)
-    return wrapper
-
-
-def _radd_compat(left, right):
-    radd = lambda x, y: y + x
-    # GH #353, NumPy 1.5.1 workaround
-    try:
-        output = radd(left, right)
-    except TypeError:
-        cond = (_np_version_under1p6 and
-                left.dtype == np.object_)
-        if cond:  # pragma: no cover
-            output = np.empty_like(left)
-            output.flat[:] = [radd(x, right) for x in left.flat]
-        else:
-            raise
-
-    return output
 
 
 def _coerce_method(converter):
@@ -391,50 +67,6 @@ def _coerce_method(converter):
         raise TypeError(
             "cannot convert the series to {0}".format(str(converter)))
     return wrapper
-
-
-def _maybe_match_name(a, b):
-    name = None
-    if a.name == b.name:
-        name = a.name
-    return name
-
-
-def _flex_method(op, name):
-    doc = """
-    Binary operator %s with support to substitute a fill_value for missing data
-    in one of the inputs
-
-    Parameters
-    ----------
-    other: Series or scalar value
-    fill_value : None or float value, default None (NaN)
-        Fill missing (NaN) values with this value. If both Series are
-        missing, the result will be missing
-    level : int or name
-        Broadcast across a level, matching Index values on the
-        passed MultiIndex level
-
-    Returns
-    -------
-    result : Series
-    """ % name
-
-    @Appender(doc)
-    def f(self, other, level=None, fill_value=None):
-        if isinstance(other, Series):
-            return self._binop(other, op, level=level, fill_value=fill_value)
-        elif isinstance(other, (pa.Array, Series, list, tuple)):
-            if len(other) != len(self):
-                raise ValueError('Lengths must be equal')
-            return self._binop(self._constructor(other, self.index), op,
-                               level=level, fill_value=fill_value)
-        else:
-            return self._constructor(op(self.values, other), self.index,
-                                     name=self.name)
-
-    f.__name__ = name
-    return f
 
 
 def _unbox(func):
@@ -1353,37 +985,6 @@ class Series(generic.NDFrame):
     if compat.PY3:  # pragma: no cover
         items = iteritems
 
-    #----------------------------------------------------------------------
-    #   Arithmetic operators
-
-    __add__ = _arith_method(operator.add, '__add__')
-    __sub__ = _arith_method(operator.sub, '__sub__')
-    __mul__ = _arith_method(operator.mul, '__mul__')
-    __truediv__ = _arith_method(
-        operator.truediv, '__truediv__', fill_zeros=np.inf)
-    __floordiv__ = _arith_method(
-        operator.floordiv, '__floordiv__', fill_zeros=np.inf)
-    __pow__ = _arith_method(operator.pow, '__pow__')
-    __mod__ = _arith_method(operator.mod, '__mod__', fill_zeros=np.nan)
-
-    __radd__ = _arith_method(_radd_compat, '__add__')
-    __rmul__ = _arith_method(operator.mul, '__mul__')
-    __rsub__ = _arith_method(lambda x, y: y - x, '__sub__')
-    __rtruediv__ = _arith_method(
-        lambda x, y: y / x, '__truediv__', fill_zeros=np.inf)
-    __rfloordiv__ = _arith_method(
-        lambda x, y: y // x, '__floordiv__', fill_zeros=np.inf)
-    __rpow__ = _arith_method(lambda x, y: y ** x, '__pow__')
-    __rmod__ = _arith_method(lambda x, y: y % x, '__mod__', fill_zeros=np.nan)
-
-    # comparisons
-    __gt__ = _comp_method(operator.gt, '__gt__')
-    __ge__ = _comp_method(operator.ge, '__ge__')
-    __lt__ = _comp_method(operator.lt, '__lt__')
-    __le__ = _comp_method(operator.le, '__le__')
-    __eq__ = _comp_method(operator.eq, '__eq__')
-    __ne__ = _comp_method(operator.ne, '__ne__', True)
-
     # inversion
     def __neg__(self):
         arr = operator.neg(self.values)
@@ -1392,26 +993,6 @@ class Series(generic.NDFrame):
     def __invert__(self):
         arr = operator.inv(self.values)
         return self._constructor(arr, self.index, name=self.name)
-
-    # binary logic
-    __or__ = _bool_method(operator.or_, '__or__')
-    __and__ = _bool_method(operator.and_, '__and__')
-    __xor__ = _bool_method(operator.xor, '__xor__')
-
-    # Inplace operators
-    __iadd__ = __add__
-    __isub__ = __sub__
-    __imul__ = __mul__
-    __itruediv__ = __truediv__
-    __ifloordiv__ = __floordiv__
-    __ipow__ = __pow__
-
-    # Python 2 division operators
-    if not compat.PY3:
-        __div__ = _arith_method(operator.div, '__div__', fill_zeros=np.inf)
-        __rdiv__ = _arith_method(
-            lambda x, y: y / x, '__div__', fill_zeros=np.inf)
-        __idiv__ = __div__
 
     #----------------------------------------------------------------------
     # unbox reductions
@@ -2246,16 +1827,6 @@ class Series(generic.NDFrame):
         result = func(this_vals, other_vals)
         name = _maybe_match_name(self, other)
         return self._constructor(result, index=new_index, name=name)
-
-    add = _flex_method(operator.add, 'add')
-    sub = _flex_method(operator.sub, 'subtract')
-    mul = _flex_method(operator.mul, 'multiply')
-    try:
-        div = _flex_method(operator.div, 'divide')
-    except AttributeError:  # pragma: no cover
-        # Python 3
-        div = _flex_method(operator.truediv, 'divide')
-    mod = _flex_method(operator.mod, 'mod')
 
     def combine(self, other, func, fill_value=nan):
         """
@@ -3490,3 +3061,11 @@ import pandas.tools.plotting as _gfx
 
 Series.plot = _gfx.plot_series
 Series.hist = _gfx.hist_series
+
+import pandas.core.ops as ops
+# Add arithmetic!
+ops.add_flex_arithmetic_methods(Series, _flex_method_SERIES, radd_func=_radd_compat_SERIES,
+                                flex_comp_method=_comp_method_SERIES)
+ops.add_special_arithmetic_methods(Series, _arith_method_SERIES, radd_func=_radd_compat_SERIES,
+                                   comp_method=_comp_method_SERIES,
+                                   bool_method=_bool_method_SERIES)

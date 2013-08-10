@@ -34,7 +34,8 @@ from pandas.core.indexing import (_NDFrameIndexer, _maybe_droplevels,
 from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_arrays,
                                    create_block_manager_from_blocks)
-from pandas.core.series import Series, _radd_compat
+from pandas.core.ops import _radd_compat_SERIES
+from pandas.core.series import Series
 import pandas.core.expressions as expressions
 from pandas.sparse.array import SparseArray
 from pandas.compat.scipy import scoreatpercentile as _quantile
@@ -51,6 +52,7 @@ import pandas.core.common as com
 import pandas.core.format as fmt
 import pandas.core.generic as generic
 import pandas.core.nanops as nanops
+import pandas.core.ops as ops
 
 import pandas.lib as lib
 import pandas.tslib as tslib
@@ -60,31 +62,6 @@ from pandas.core.config import get_option, set_option
 
 #----------------------------------------------------------------------
 # Docstring templates
-
-_arith_doc = """
-Binary operator %s with support to substitute a fill_value for missing data in
-one of the inputs
-
-Parameters
-----------
-other : Series, DataFrame, or constant
-axis : {0, 1, 'index', 'columns'}
-    For Series input, axis to match Series index on
-fill_value : None or float value, default None
-    Fill missing (NaN) values with this value. If both DataFrame locations are
-    missing, the result will be missing
-level : int or name
-    Broadcast across a level, matching Index values on the
-    passed MultiIndex level
-
-Notes
------
-Mismatched indices will be unioned together
-
-Returns
--------
-result : DataFrame
-"""
 
 
 _stat_doc = """
@@ -185,152 +162,6 @@ merged : DataFrame
 
 class DataConflictError(Exception):
     pass
-
-#----------------------------------------------------------------------
-# Factory helper methods
-
-
-def _arith_method(op, name, str_rep=None, default_axis='columns', fill_zeros=None, **eval_kwargs):
-    def na_op(x, y):
-        try:
-            result = expressions.evaluate(
-                op, str_rep, x, y, raise_on_error=True, **eval_kwargs)
-            result = com._fill_zeros(result, y, fill_zeros)
-
-        except TypeError:
-            xrav = x.ravel()
-            result = np.empty(x.size, dtype=x.dtype)
-            if isinstance(y, (np.ndarray, Series)):
-                yrav = y.ravel()
-                mask = notnull(xrav) & notnull(yrav)
-                result[mask] = op(xrav[mask], yrav[mask])
-            else:
-                mask = notnull(xrav)
-                result[mask] = op(xrav[mask], y)
-
-            result, changed = com._maybe_upcast_putmask(result, -mask, np.nan)
-            result = result.reshape(x.shape)
-
-        return result
-
-    @Appender(_arith_doc % name)
-    def f(self, other, axis=default_axis, level=None, fill_value=None):
-        if isinstance(other, DataFrame):    # Another DataFrame
-            return self._combine_frame(other, na_op, fill_value, level)
-        elif isinstance(other, Series):
-            return self._combine_series(other, na_op, fill_value, axis, level)
-        elif isinstance(other, (list, tuple)):
-            if axis is not None and self._get_axis_name(axis) == 'index':
-                casted = Series(other, index=self.index)
-            else:
-                casted = Series(other, index=self.columns)
-            return self._combine_series(casted, na_op, fill_value, axis, level)
-        elif isinstance(other, np.ndarray):
-            if other.ndim == 1:
-                if axis is not None and self._get_axis_name(axis) == 'index':
-                    casted = Series(other, index=self.index)
-                else:
-                    casted = Series(other, index=self.columns)
-                return self._combine_series(casted, na_op, fill_value,
-                                            axis, level)
-            elif other.ndim == 2:
-                casted = DataFrame(other, index=self.index,
-                                   columns=self.columns)
-                return self._combine_frame(casted, na_op, fill_value, level)
-            else:  # pragma: no cover
-                raise ValueError("Bad argument shape")
-        else:
-            return self._combine_const(other, na_op)
-
-    f.__name__ = name
-
-    return f
-
-
-def _flex_comp_method(op, name, str_rep=None, default_axis='columns'):
-
-    def na_op(x, y):
-        try:
-            result = op(x, y)
-        except TypeError:
-            xrav = x.ravel()
-            result = np.empty(x.size, dtype=x.dtype)
-            if isinstance(y, (np.ndarray, Series)):
-                yrav = y.ravel()
-                mask = notnull(xrav) & notnull(yrav)
-                result[mask] = op(np.array(list(xrav[mask])),
-                                  np.array(list(yrav[mask])))
-            else:
-                mask = notnull(xrav)
-                result[mask] = op(np.array(list(xrav[mask])), y)
-
-            if op == operator.ne:  # pragma: no cover
-                np.putmask(result, -mask, True)
-            else:
-                np.putmask(result, -mask, False)
-            result = result.reshape(x.shape)
-
-        return result
-
-    @Appender('Wrapper for flexible comparison methods %s' % name)
-    def f(self, other, axis=default_axis, level=None):
-        if isinstance(other, DataFrame):    # Another DataFrame
-            return self._flex_compare_frame(other, na_op, str_rep, level)
-
-        elif isinstance(other, Series):
-            return self._combine_series(other, na_op, None, axis, level)
-
-        elif isinstance(other, (list, tuple)):
-            if axis is not None and self._get_axis_name(axis) == 'index':
-                casted = Series(other, index=self.index)
-            else:
-                casted = Series(other, index=self.columns)
-
-            return self._combine_series(casted, na_op, None, axis, level)
-
-        elif isinstance(other, np.ndarray):
-            if other.ndim == 1:
-                if axis is not None and self._get_axis_name(axis) == 'index':
-                    casted = Series(other, index=self.index)
-                else:
-                    casted = Series(other, index=self.columns)
-
-                return self._combine_series(casted, na_op, None, axis, level)
-
-            elif other.ndim == 2:
-                casted = DataFrame(other, index=self.index,
-                                   columns=self.columns)
-
-                return self._flex_compare_frame(casted, na_op, str_rep, level)
-
-            else:  # pragma: no cover
-                raise ValueError("Bad argument shape")
-
-        else:
-            return self._combine_const(other, na_op)
-
-    f.__name__ = name
-
-    return f
-
-
-def _comp_method(func, name, str_rep):
-    @Appender('Wrapper for comparison method %s' % name)
-    def f(self, other):
-        if isinstance(other, DataFrame):    # Another DataFrame
-            return self._compare_frame(other, func, str_rep)
-        elif isinstance(other, Series):
-            return self._combine_series_infer(other, func)
-        else:
-
-            # straight boolean comparisions we want to allow all columns
-            # (regardless of dtype to pass thru)
-            return self._combine_const(other, func, raise_on_error=False).fillna(True).astype(bool)
-
-    f.__name__ = name
-
-    return f
-
 
 #----------------------------------------------------------------------
 # DataFrame class
@@ -752,78 +583,17 @@ class DataFrame(NDFrame):
         """Returns length of info axis, but here we use the index """
         return len(self.index)
 
-    #----------------------------------------------------------------------
-    # Arithmetic methods
+    def __contains__(self, key):
+        """True if DataFrame has this column"""
+        return key in self.columns
 
-    add = _arith_method(operator.add, 'add', '+')
-    mul = _arith_method(operator.mul, 'multiply', '*')
-    sub = _arith_method(operator.sub, 'subtract', '-')
-    div = divide = _arith_method(lambda x, y: x / y, 'divide', '/')
-    pow = _arith_method(operator.pow, 'pow', '**')
-    mod = _arith_method(lambda x, y: x % y, 'mod')
+    def __neg__(self):
+        arr = operator.neg(self.values)
+        return self._wrap_array(arr, self.axes, copy=False)
 
-    radd = _arith_method(_radd_compat, 'radd')
-    rmul = _arith_method(operator.mul, 'rmultiply')
-    rsub = _arith_method(lambda x, y: y - x, 'rsubtract')
-    rdiv = _arith_method(lambda x, y: y / x, 'rdivide')
-    rpow = _arith_method(lambda x, y: y ** x, 'rpow')
-    rmod = _arith_method(lambda x, y: y % x, 'rmod')
-
-    __add__ = _arith_method(operator.add, '__add__', '+', default_axis=None)
-    __sub__ = _arith_method(operator.sub, '__sub__', '-', default_axis=None)
-    __mul__ = _arith_method(operator.mul, '__mul__', '*', default_axis=None)
-    __truediv__ = _arith_method(operator.truediv, '__truediv__', '/',
-                                default_axis=None, fill_zeros=np.inf, truediv=True)
-    # numexpr produces a different value (python/numpy: 0.000, numexpr: inf)
-    # when dividing by zero, so can't use floordiv speed up (yet)
-    # __floordiv__ = _arith_method(operator.floordiv, '__floordiv__', '//',
-    __floordiv__ = _arith_method(operator.floordiv, '__floordiv__',
-                                 default_axis=None, fill_zeros=np.inf)
-    __pow__ = _arith_method(operator.pow, '__pow__', '**', default_axis=None)
-
-    # currently causes a floating point exception to occur - so sticking with unaccelerated for now
-    # __mod__ = _arith_method(operator.mod, '__mod__', '%', default_axis=None, fill_zeros=np.nan)
-    __mod__ = _arith_method(
-        operator.mod, '__mod__', default_axis=None, fill_zeros=np.nan)
-
-    __radd__ = _arith_method(_radd_compat, '__radd__', default_axis=None)
-    __rmul__ = _arith_method(operator.mul, '__rmul__', default_axis=None)
-    __rsub__ = _arith_method(lambda x, y: y - x, '__rsub__', default_axis=None)
-    __rtruediv__ = _arith_method(lambda x, y: y / x, '__rtruediv__',
-                                 default_axis=None, fill_zeros=np.inf)
-    __rfloordiv__ = _arith_method(lambda x, y: y // x, '__rfloordiv__',
-                                  default_axis=None, fill_zeros=np.inf)
-    __rpow__ = _arith_method(lambda x, y: y ** x, '__rpow__',
-                             default_axis=None)
-    __rmod__ = _arith_method(lambda x, y: y % x, '__rmod__', default_axis=None,
-                             fill_zeros=np.nan)
-
-    # boolean operators
-    __and__ = _arith_method(operator.and_, '__and__', '&')
-    __or__ = _arith_method(operator.or_, '__or__', '|')
-    __xor__ = _arith_method(operator.xor, '__xor__')
-
-    # Python 2 division methods
-    if not compat.PY3:
-        __div__ = _arith_method(operator.div, '__div__', '/',
-                                default_axis=None, fill_zeros=np.inf, truediv=False)
-        __rdiv__ = _arith_method(lambda x, y: y / x, '__rdiv__',
-                                 default_axis=None, fill_zeros=np.inf)
-
-    # Comparison methods
-    __eq__ = _comp_method(operator.eq, '__eq__', '==')
-    __ne__ = _comp_method(operator.ne, '__ne__', '!=')
-    __lt__ = _comp_method(operator.lt, '__lt__', '<')
-    __gt__ = _comp_method(operator.gt, '__gt__', '>')
-    __le__ = _comp_method(operator.le, '__le__', '<=')
-    __ge__ = _comp_method(operator.ge, '__ge__', '>=')
-
-    eq = _flex_comp_method(operator.eq, 'eq', '==')
-    ne = _flex_comp_method(operator.ne, 'ne', '!=')
-    lt = _flex_comp_method(operator.lt, 'lt', '<')
-    gt = _flex_comp_method(operator.gt, 'gt', '>')
-    le = _flex_comp_method(operator.le, 'le', '<=')
-    ge = _flex_comp_method(operator.ge, 'ge', '>=')
+    def __invert__(self):
+        arr = operator.inv(self.values)
+        return self._wrap_array(arr, self.axes, copy=False)
 
     def dot(self, other):
         """
@@ -5135,7 +4905,17 @@ def boxplot(self, column=None, by=None, ax=None, fontsize=None,
     return ax
 DataFrame.boxplot = boxplot
 
+from pandas.core.ops import(_arith_method_FRAME, _radd_compat_SERIES,
+                            _flex_comp_method_FRAME, _comp_method_FRAME)
 
+ops.add_flex_arithmetic_methods(DataFrame, _arith_method_FRAME,
+                                radd_func=_radd_compat_SERIES,
+                                flex_comp_method=_flex_comp_method_FRAME)
+ops.add_special_arithmetic_methods(DataFrame,
+                                   _arith_method_FRAME,
+                                   radd_func=_radd_compat_SERIES,
+                                   comp_method=_comp_method_FRAME,
+                                   bool_method=_arith_method_FRAME)
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

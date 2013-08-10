@@ -15,7 +15,7 @@ import pandas.core.common as com
 from pandas import compat
 from pandas.compat import map, zip
 from pandas.core.common import (isnull, notnull, is_list_like,
-                                _values_from_object,
+                                _values_from_object, bind_method,
                                 _infer_dtype_from_scalar, _maybe_promote)
 
 class NDFrame(PandasObject):
@@ -2548,6 +2548,9 @@ class NDFrame(PandasObject):
             self._clear_item_cache()
 
         return new_obj
+
+
+
 
 # install the indexerse
 for _name, _indexer in indexing.get_indexers_list():

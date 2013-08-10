@@ -5,7 +5,9 @@ Misc tools for implementing data structures
 import re
 import codecs
 import csv
+import types
 
+from distutils.version import LooseVersion
 from numpy.lib.format import read_array, write_array
 import numpy as np
 import pandas.algos as algos
@@ -27,6 +29,9 @@ try:
 except Exception:  # pragma: no cover
     pass
 
+_np_version = np.version.short_version
+_np_version_under1p6 = LooseVersion(_np_version) < '1.6'
+_np_version_under1p7 = LooseVersion(_np_version) < '1.7'
 
 class PandasError(Exception):
     pass
@@ -68,6 +73,31 @@ class _ABCGeneric(type):
     def __instancecheck__(cls, inst):
         return hasattr(inst, "_data")
 ABCGeneric = _ABCGeneric("ABCGeneric", tuple(), {})
+
+
+def bind_method(cls, name, func):
+    """Bind a method to class, python 2 and python 3 compatible.
+
+    Parameters
+    ----------
+
+    cls : type
+        class to receive bound method
+    name : basestring
+        name of method on class instance
+    func : function
+        function to be bound as method
+
+
+    Returns
+    -------
+    None
+    """
+    # only python 2 has bound/unbound method issue
+    if not compat.PY3:
+        setattr(cls, name, types.MethodType(func, None, cls))
+    else:
+        setattr(cls, name, func)
 
 def isnull(obj):
     """Detect missing values (NaN in numeric arrays, None/NaN in object arrays)
@@ -2301,3 +2331,10 @@ def save(obj, path):  # TODO remove in 0.13
     warnings.warn("save is deprecated, use obj.to_pickle", FutureWarning)
     from pandas.io.pickle import to_pickle
     return to_pickle(obj, path)
+
+
+def _maybe_match_name(a, b):
+    name = None
+    if a.name == b.name:
+        name = a.name
+    return name

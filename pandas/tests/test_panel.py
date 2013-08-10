@@ -306,10 +306,26 @@ class SafeForSparse(object):
 
             assert_frame_equal(result.minor_xs(idx),
                                op(self.panel.minor_xs(idx), xs))
+        from pandas import SparsePanel
+        ops = ['add', 'sub', 'mul', 'truediv', 'floordiv']
+        if not compat.PY3:
+            ops.append('div')
+        # pow, mod not supported for SparsePanel as flex ops (for now)
+        if not isinstance(self.panel, SparsePanel):
+            ops.extend(['pow', 'mod'])
+        else:
+            idx = self.panel.minor_axis[1]
+            with assertRaisesRegexp(ValueError, "Simple arithmetic.*scalar"):
+                self.panel.pow(self.panel.minor_xs(idx), axis='minor')
+            with assertRaisesRegexp(ValueError, "Simple arithmetic.*scalar"):
+                self.panel.mod(self.panel.minor_xs(idx), axis='minor')
 
-        check_op(operator.add, 'add')
-        check_op(operator.sub, 'subtract')
-        check_op(operator.mul, 'multiply')
+        for op in ops:
+            try:
+                check_op(getattr(operator, op), op)
+            except:
+                print("Failing operation: %r" % op)
+                raise
         if compat.PY3:
             check_op(operator.truediv, 'divide')
         else:

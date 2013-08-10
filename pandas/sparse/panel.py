@@ -455,6 +455,18 @@ class SparsePanel(Panel):
                                default_fill_value=self.default_fill_value,
                                default_kind=self.default_kind)
 
+    # TODO: allow SparsePanel to work with flex arithmetic.
+    # pow and mod only work for scalars for now
+    def pow(self, val, *args, **kwargs):
+        """wrapper around `__pow__` (only works for scalar values)"""
+        return self.__pow__(val)
+
+    def mod(self, val, *args, **kwargs):
+        """wrapper around `__mod__` (only works for scalar values"""
+        return self.__mod__(val)
+
+# need to redo the aggregate funcs because SparsePanel doesn't respond to shape
+SparsePanel._add_aggregate_operations(use_numexpr=False)
 SparseWidePanel = SparsePanel
 
 
