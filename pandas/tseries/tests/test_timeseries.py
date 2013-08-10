@@ -2296,6 +2296,16 @@ class TestLegacySupport(unittest.TestCase):
         expected = index + timedelta(-1)
         self.assert_(result.equals(expected))
 
+        # GH4134, buggy with timedeltas
+        rng = date_range('2013', '2014')
+        s = Series(rng)
+        result1 = rng - pd.offsets.Hour(1)
+        result2 = DatetimeIndex(s - np.timedelta64(100000000))
+        result3 = rng - np.timedelta64(100000000)
+        result4 = DatetimeIndex(s - pd.offsets.Hour(1))
+        self.assert_(result1.equals(result4))
+        self.assert_(result2.equals(result3))
+
     def test_shift(self):
         ts = Series(np.random.randn(5),
                     index=date_range('1/1/2000', periods=5, freq='H'))

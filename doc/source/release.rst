@@ -168,6 +168,8 @@ pandas 0.13
   - Fixed (:issue:`3334`) in pivot_table. Margins did not compute if values is the index.
   - Fix bug in having a rhs of ``np.timedelta64`` or ``np.offsets.DateOffset`` when operating
     with datetimes (:issue:`4532`)
+  - Fix arithmetic with series/datetimeindex and ``np.timedelta64`` not working the same (:issue:`4134`)
+    and buggy timedelta in numpy 1.6 (:issue:`4135`)
 
 pandas 0.12
 ===========

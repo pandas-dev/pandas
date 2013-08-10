@@ -94,6 +94,8 @@ def _arith_method(op, name, fill_zeros=None):
 
         if is_datetime_lhs or is_timedelta_lhs:
 
+            coerce = 'compat' if _np_version_under1p7 else True
+
             # convert the argument to an ndarray
             def convert_to_array(values):
                 if not is_list_like(values):
@@ -105,19 +107,20 @@ def _arith_method(op, name, fill_zeros=None):
                         values = tslib.array_to_datetime(values)
                 elif inferred_type in set(['timedelta']):
                     # have a timedelta, convert to to ns here
-                    if not (isinstance(values, pa.Array) and com.is_timedelta64_dtype(values)):
-                        values = com._possibly_cast_to_timedelta(values)
+                    values = com._possibly_cast_to_timedelta(values, coerce=coerce)
                 elif inferred_type in set(['timedelta64']):
                     # have a timedelta64, make sure dtype dtype is ns
-                    values = com._possibly_cast_to_timedelta(values)
+                    values = com._possibly_cast_to_timedelta(values, coerce=coerce)
                 elif inferred_type in set(['integer']):
                     # py3 compat where dtype is 'm' but is an integer
                     if values.dtype.kind == 'm':
                         values = values.astype('timedelta64[ns]')
+                    else:
+                        raise ValueError("incompatible type for a datetime/timedelta operation")
                 elif isinstance(values[0],DateOffset):
                     # handle DateOffsets
                     values = pa.array([ v.delta for v in values ])
-                    values = com._possibly_cast_to_timedelta(values)
+                    values = com._possibly_cast_to_timedelta(values, coerce=coerce)
                 else:
                     values = pa.array(values)
                 return values
@@ -126,8 +129,8 @@ def _arith_method(op, name, fill_zeros=None):
             lvalues = convert_to_array(lvalues)
             rvalues = convert_to_array(rvalues)
 
-            is_timedelta_rhs = com.is_timedelta64_dtype(rvalues)
             is_datetime_rhs  = com.is_datetime64_dtype(rvalues)
+            is_timedelta_rhs = com.is_timedelta64_dtype(rvalues) or (not is_datetime_rhs and _np_version_under1p7)
 
             # 2 datetimes or 2 timedeltas
             if (is_timedelta_lhs and is_timedelta_rhs) or (is_datetime_lhs and
@@ -141,7 +144,6 @@ def _arith_method(op, name, fill_zeros=None):
 
                 dtype = 'timedelta64[ns]'
 
-                # we may have to convert to object unfortunately here
                 mask = isnull(lvalues) | isnull(rvalues)
                 if mask.any():
                     def wrap_results(x):
@@ -150,11 +152,18 @@ def _arith_method(op, name, fill_zeros=None):
                         return x
 
             # datetime and timedelta
-            elif (is_timedelta_lhs and is_datetime_rhs) or (is_timedelta_rhs and is_datetime_lhs):
+            elif is_timedelta_rhs and is_datetime_lhs:
 
                 if name not in ['__add__','__sub__']:
-                    raise TypeError("can only operate on a timedelta and a datetime for "
+                    raise TypeError("can only operate on a datetime with a rhs of a timedelta for "
                                     "addition and subtraction, but the operator [%s] was passed" % name)
+                dtype = 'M8[ns]'
+
+            elif is_timedelta_lhs and is_datetime_rhs:
+
+                if name not in ['__add__']:
+                    raise TypeError("can only operate on a timedelta and a datetime for "
+                                    "addition, but the operator [%s] was passed" % name)
                 dtype = 'M8[ns]'
 
             else:
@@ -166,8 +175,11 @@ def _arith_method(op, name, fill_zeros=None):
             rvalues = rvalues.view('i8')
 
         if isinstance(rvalues, Series):
-            lvalues = lvalues.values
-            rvalues = rvalues.values
+
+            if hasattr(lvalues,'values'):
+                lvalues = lvalues.values
+            if hasattr(rvalues,'values'):
+                rvalues = rvalues.values
 
             if self.index.equals(other.index):
                 name = _maybe_match_name(self, other)

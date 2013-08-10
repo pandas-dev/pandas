@@ -45,6 +45,8 @@ PyDateTime_IMPORT
 
 cdef int64_t NPY_NAT = util.get_nat()
 
+# < numpy 1.7 compat for NaT
+compat_NaT = np.array([NPY_NAT]).astype('m8[ns]').item()
 
 try:
     basestring
