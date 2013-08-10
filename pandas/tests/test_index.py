@@ -11,8 +11,8 @@ import os
 import numpy as np
 from numpy.testing import assert_array_equal
 
-from pandas.core.index import Index, Int64Index, MultiIndex
-from pandas.util.testing import assert_almost_equal
+from pandas.core.index import Index, Int64Index, MultiIndex, InvalidIndexError
+from pandas.util.testing import assert_almost_equal, assertRaisesRegexp
 from pandas import compat
 
 import pandas.util.testing as tm
@@ -37,6 +37,14 @@ class TestIndex(unittest.TestCase):
         self.empty = Index([])
         self.tuples = Index(lzip(['foo', 'bar', 'baz'], [1, 2, 3]))
 
+    def test_wrong_number_names(self):
+        def testit(ind):
+            ind.names = ["apple", "banana", "carrot"]
+
+        indices = (self.dateIndex, self.unicodeIndex, self.strIndex, self.intIndex, self.floatIndex, self.empty, self.tuples)
+        for ind in indices:
+            assertRaisesRegexp(ValueError, "^Length", testit, ind)
+
     def test_hash_error(self):
         self.assertRaises(TypeError, hash, self.strIndex)
 
@@ -56,10 +64,10 @@ class TestIndex(unittest.TestCase):
         self.assert_(not idx.is_unique)
 
     def test_sort(self):
-        self.assertRaises(Exception, self.strIndex.sort)
+        self.assertRaises(TypeError, self.strIndex.sort)
 
     def test_mutability(self):
-        self.assertRaises(Exception, self.strIndex.__setitem__, 0, 'foo')
+        self.assertRaises(TypeError, self.strIndex.__setitem__, 0, 'foo')
 
     def test_constructor(self):
         # regular instance creation
@@ -85,7 +93,7 @@ class TestIndex(unittest.TestCase):
 
     def test_constructor_corner(self):
         # corner case
-        self.assertRaises(Exception, Index, 0)
+        self.assertRaises(TypeError, Index, 0)
 
     def test_index_ctor_infer_periodindex(self):
         from pandas import period_range, PeriodIndex
@@ -219,7 +227,7 @@ class TestIndex(unittest.TestCase):
         self.assert_(inter is first)
 
         # non-iterable input
-        self.assertRaises(Exception, first.intersection, 0.5)
+        assertRaisesRegexp(TypeError, "iterable", first.intersection, 0.5)
 
     def test_union(self):
         first = self.strIndex[5:20]
@@ -239,7 +247,7 @@ class TestIndex(unittest.TestCase):
         self.assert_(union is first)
 
         # non-iterable input
-        self.assertRaises(Exception, first.union, 0.5)
+        assertRaisesRegexp(TypeError, "iterable", first.union, 0.5)
 
         # preserve names
         first.name = 'A'
@@ -325,7 +333,7 @@ class TestIndex(unittest.TestCase):
         self.assertEqual(result.name, first.name)
 
         # non-iterable input
-        self.assertRaises(Exception, first.diff, 0.5)
+        assertRaisesRegexp(TypeError, "iterable", first.diff, 0.5)
 
     def test_pickle(self):
         def testit(index):
@@ -570,6 +578,11 @@ class TestInt64Index(unittest.TestCase):
 
     def setUp(self):
         self.index = Int64Index(np.arange(0, 20, 2))
+
+    def test_too_many_names(self):
+        def testit():
+            self.index.names = ["roger", "harold"]
+        assertRaisesRegexp(ValueError, "^Length", testit)
 
     def test_constructor(self):
         # pass list, coerce fine
@@ -969,7 +982,15 @@ class TestMultiIndex(unittest.TestCase):
         self.assert_(single_level.name is None)
 
     def test_constructor_no_levels(self):
-        self.assertRaises(Exception, MultiIndex, levels=[], labels=[])
+        assertRaisesRegexp(TypeError, "non-zero number of levels/labels",
+                           MultiIndex, levels=[], labels=[])
+
+    def test_constructor_mismatched_label_levels(self):
+        levels = [np.array([1]), np.array([2]), np.array([3])]
+        labels = ["a"]
+        assertRaisesRegexp(ValueError, "Length of levels and labels must be"
+                           " the same", MultiIndex, levels=levels,
+                           labels=labels)
 
     def test_copy(self):
         i_copy = self.index.copy()
@@ -1017,15 +1038,16 @@ class TestMultiIndex(unittest.TestCase):
 
     def test_duplicate_names(self):
         self.index.names = ['foo', 'foo']
-        self.assertRaises(Exception, self.index._get_level_number, 'foo')
+        assertRaisesRegexp(KeyError, 'Level foo not found',
+                           self.index._get_level_number, 'foo')
 
     def test_get_level_number_integer(self):
         self.index.names = [1, 0]
         self.assertEqual(self.index._get_level_number(1), 0)
         self.assertEqual(self.index._get_level_number(0), 1)
-        self.assertRaises(Exception, self.index._get_level_number, 2)
-
-        self.assertRaises(Exception, self.index._get_level_number, 'fourth')
+        self.assertRaises(IndexError, self.index._get_level_number, 2)
+        assertRaisesRegexp(KeyError, 'Level fourth not found',
+                           self.index._get_level_number, 'fourth')
 
     def test_from_arrays(self):
         arrays = []
@@ -1060,8 +1082,8 @@ class TestMultiIndex(unittest.TestCase):
 
     def test_reorder_levels(self):
         # this blows up
-        self.assertRaises(Exception, self.index.reorder_levels,
-                          [2, 1, 0])
+        assertRaisesRegexp(IndexError, '^Too many levels',
+                           self.index.reorder_levels, [2, 1, 0])
 
     def test_nlevels(self):
         self.assertEquals(self.index.nlevels, 2)
@@ -1234,6 +1256,22 @@ class TestMultiIndex(unittest.TestCase):
         expected = df[6:15].stack()
         tm.assert_almost_equal(sliced.values, expected.values)
 
+    def test_slice_locs_with_type_mismatch(self):
+        df = tm.makeTimeDataFrame()
+        stacked = df.stack()
+        idx = stacked.index
+        assertRaisesRegexp(TypeError, '^Level type mismatch', idx.slice_locs,
+                           (1, 3))
+        assertRaisesRegexp(TypeError, '^Level type mismatch', idx.slice_locs,
+                           df.index[5] + timedelta(seconds=30), (5, 2))
+        df = tm.makeCustomDataframe(5, 5)
+        stacked = df.stack()
+        idx = stacked.index
+        assertRaisesRegexp(TypeError, '^Level type mismatch', idx.slice_locs, timedelta(seconds=30))
+        # TODO: Try creating a UnicodeDecodeError in exception message
+        assertRaisesRegexp(TypeError, '^Level type mismatch', idx.slice_locs,
+                           df.index[1], (16, "a"))
+
     def test_slice_locs_not_sorted(self):
         index = MultiIndex(levels=[Index(lrange(4)),
                                    Index(lrange(4)),
@@ -1242,8 +1280,9 @@ class TestMultiIndex(unittest.TestCase):
                                    np.array([0, 1, 0, 0, 0, 1, 0, 1]),
                                    np.array([1, 0, 1, 1, 0, 0, 1, 0])])
 
-        self.assertRaises(Exception, index.slice_locs, (1, 0, 1),
-                          (2, 1, 0))
+        assertRaisesRegexp(KeyError, "[Kk]ey length.*greater than MultiIndex"
+                           " lexsort depth", index.slice_locs, (1, 0, 1),
+                           (2, 1, 0))
 
         # works
         sorted_index, _ = index.sortlevel(0)
@@ -1369,6 +1408,12 @@ class TestMultiIndex(unittest.TestCase):
         r1 = idx1.get_indexer([1, 2, 3])
         self.assert_((r1 == [-1, -1, -1]).all())
 
+        # create index with duplicates
+        idx1 = Index(lrange(10) + lrange(10))
+        idx2 = Index(range(20))
+        assertRaisesRegexp(InvalidIndexError, "Reindexing only valid with"
+                           " uniquely valued Index objects",
+                           idx1.get_indexer, idx2)
 
     def test_format(self):
         self.index.format()
@@ -1564,9 +1609,12 @@ class TestMultiIndex(unittest.TestCase):
                                               ('qux', 'one'), ('qux', 'two')])
         expected.names = first.names
         self.assertEqual(first.names, result.names)
+        assertRaisesRegexp(TypeError, "other must be a MultiIndex or a list"
+                           " of tuples", first.diff, [1,2,3,4,5])
 
     def test_from_tuples(self):
-        self.assertRaises(Exception, MultiIndex.from_tuples, [])
+        assertRaisesRegexp(TypeError, 'Cannot infer number of levels from'
+                           ' empty list', MultiIndex.from_tuples, [])
 
         idx = MultiIndex.from_tuples(((1, 2), (3, 4)), names=['a', 'b'])
         self.assertEquals(len(idx), 2)
@@ -1638,8 +1686,8 @@ class TestMultiIndex(unittest.TestCase):
         self.assert_(dropped.equals(expected))
 
         index = MultiIndex.from_tuples([('bar', 'two')])
-        self.assertRaises(Exception, self.index.drop, [('bar', 'two')])
-        self.assertRaises(Exception, self.index.drop, index)
+        self.assertRaises(KeyError, self.index.drop, [('bar', 'two')])
+        self.assertRaises(KeyError, self.index.drop, index)
 
         # mixed partial / full drop
         dropped = self.index.drop(['foo', ('qux', 'one')])
@@ -1693,7 +1741,8 @@ class TestMultiIndex(unittest.TestCase):
         self.assert_(new_index[0] == ('abc', 'three'))
 
         # key wrong length
-        self.assertRaises(Exception, self.index.insert, 0, ('foo2',))
+        assertRaisesRegexp(ValueError, "Item must have length equal to number"
+                           " of levels", self.index.insert, 0, ('foo2',))
 
     def test_take_preserve_name(self):
         taken = self.index.take([3, 0, 1])
@@ -1740,7 +1789,8 @@ class TestMultiIndex(unittest.TestCase):
         result = idx.join(self.index, level='second')
         tm.assert_isinstance(result, MultiIndex)
 
-        self.assertRaises(Exception, self.index.join, self.index, level=1)
+        assertRaisesRegexp(TypeError, "Join.*MultiIndex.*ambiguous",
+                           self.index.join, self.index, level=1)
 
     def test_join_self(self):
         kinds = 'outer', 'inner', 'left', 'right'
@@ -1774,11 +1824,12 @@ class TestMultiIndex(unittest.TestCase):
         exp_indexer2 = np.array([0, -1, 0, -1, 0, -1])
         self.assert_(np.array_equal(indexer2, exp_indexer2))
 
-        self.assertRaises(ValueError, self.index.reindex,
-                          self.index, method='pad', level='second')
+        assertRaisesRegexp(TypeError, "Fill method not supported",
+                           self.index.reindex, self.index, method='pad',
+                           level='second')
 
-        self.assertRaises(ValueError, idx.reindex,
-                          idx, method='bfill', level='first')
+        assertRaisesRegexp(TypeError, "Fill method not supported",
+                           idx.reindex, idx, method='bfill', level='first')
 
     def test_has_duplicates(self):
         self.assert_(not self.index.has_duplicates)

@@ -109,7 +109,7 @@ class Index(PandasObject, np.ndarray):
 
             subarr = com._asarray_tuplesafe(data, dtype=object)
         elif np.isscalar(data):
-            raise ValueError('Index(...) must be called with a collection '
+            raise TypeError('Index(...) must be called with a collection '
                              'of some kind, %s was passed' % repr(data))
         else:
             # other iterable of some kind
@@ -201,7 +201,7 @@ class Index(PandasObject, np.ndarray):
 
     def _set_names(self, values):
         if len(values) != 1:
-            raise AssertionError('Length of new names must be 1, got %d'
+            raise ValueError('Length of new names must be 1, got %d'
                                  % len(values))
         self.name = values[0]
 
@@ -327,7 +327,7 @@ class Index(PandasObject, np.ndarray):
         return hash(self.view(np.ndarray))
 
     def __setitem__(self, key, value):
-        raise Exception(str(self.__class__) + ' object is immutable')
+        raise TypeError(str(self.__class__) + ' does not support item assignment')
 
     def __getitem__(self, key):
         """Override numpy.ndarray's __getitem__ method to work as desired"""
@@ -513,7 +513,7 @@ class Index(PandasObject, np.ndarray):
             return sorted_index
 
     def sort(self, *args, **kwargs):
-        raise Exception('Cannot sort an Index object')
+        raise TypeError('Cannot sort an %r object' % self.__class__.__name__)
 
     def shift(self, periods=1, freq=None):
         """
@@ -572,7 +572,7 @@ class Index(PandasObject, np.ndarray):
         union : Index
         """
         if not hasattr(other, '__iter__'):
-            raise Exception('Input must be iterable!')
+            raise TypeError('Input must be iterable.')
 
         if len(other) == 0 or self.equals(other):
             return self
@@ -637,7 +637,7 @@ class Index(PandasObject, np.ndarray):
         intersection : Index
         """
         if not hasattr(other, '__iter__'):
-            raise Exception('Input must be iterable!')
+            raise TypeError('Input must be iterable!')
 
         self._assert_can_do_setop(other)
 
@@ -679,7 +679,7 @@ class Index(PandasObject, np.ndarray):
         """
 
         if not hasattr(other, '__iter__'):
-            raise Exception('Input must be iterable!')
+            raise TypeError('Input must be iterable!')
 
         if self.equals(other):
             return Index([], name=self.name)
@@ -807,7 +807,7 @@ class Index(PandasObject, np.ndarray):
             return this.get_indexer(target, method=method, limit=limit)
 
         if not self.is_unique:
-            raise Exception('Reindexing only valid with uniquely valued Index '
+            raise InvalidIndexError('Reindexing only valid with uniquely valued Index '
                             'objects')
 
         if method == 'pad':
@@ -900,7 +900,7 @@ class Index(PandasObject, np.ndarray):
         target = _ensure_index(target)
         if level is not None:
             if method is not None:
-                raise ValueError('Fill method not supported if level passed')
+                raise TypeError('Fill method not supported if level passed')
             _, indexer, _ = self._join_level(target, level, how='right',
                                              return_indexers=True)
         else:
@@ -1055,7 +1055,7 @@ class Index(PandasObject, np.ndarray):
         the MultiIndex will not be changed (currently)
         """
         if isinstance(self, MultiIndex) and isinstance(other, MultiIndex):
-            raise Exception('Join on level between two MultiIndex objects '
+            raise TypeError('Join on level between two MultiIndex objects '
                             'is ambiguous')
 
         left, right = self, other
@@ -1429,11 +1429,10 @@ class MultiIndex(Index):
 
     def __new__(cls, levels=None, labels=None, sortorder=None, names=None):
         if len(levels) != len(labels):
-            raise AssertionError(
+            raise ValueError(
                 'Length of levels and labels must be the same')
         if len(levels) == 0:
-            raise Exception('Must pass non-zero number of levels/labels')
-
+            raise TypeError('Must pass non-zero number of levels/labels')
         if len(levels) == 1:
             if names:
                 name = names[0]
@@ -1534,17 +1533,17 @@ class MultiIndex(Index):
         try:
             count = self.names.count(level)
             if count > 1:
-                raise Exception('The name %s occurs multiple times, use a '
+                raise ValueError('The name %s occurs multiple times, use a '
                                 'level number' % level)
             level = self.names.index(level)
         except ValueError:
             if not isinstance(level, int):
-                raise Exception('Level %s not found' % str(level))
+                raise KeyError('Level %s not found' % str(level))
             elif level < 0:
                 level += self.nlevels
             # Note: levels are zero-based
             elif level >= self.nlevels:
-                raise ValueError('Index has only %d levels, not %d'
+                raise IndexError('Too many levels: Index has only %d levels, not %d'
                                  % (self.nlevels, level + 1))
         return level
 
@@ -1790,7 +1789,8 @@ class MultiIndex(Index):
         index : MultiIndex
         """
         if len(tuples) == 0:
-            raise Exception('Cannot infer number of levels from empty list')
+            # I think this is right? Not quite sure...
+            raise TypeError('Cannot infer number of levels from empty list')
 
         if isinstance(tuples, np.ndarray):
             if isinstance(tuples, Index):
@@ -2158,7 +2158,8 @@ class MultiIndex(Index):
         """
         if level is not None:
             if method is not None:
-                raise ValueError('Fill method not supported if level passed')
+                # FIXME: Should this actually be a TypeError [given that it's a signature issue] or ValueError
+                raise TypeError('Fill method not supported if level passed')
             target, indexer, _ = self._join_level(target, level, how='right',
                                                   return_indexers=True)
         else:
@@ -2202,7 +2203,7 @@ class MultiIndex(Index):
     def slice_locs(self, start=None, end=None, strict=False):
         """
         For an ordered MultiIndex, compute the slice locations for input
-        labels. They can tuples representing partial levels, e.g. for a
+        labels. They can be tuples representing partial levels, e.g. for a
         MultiIndex with 3 levels, you can pass a single value (corresponding to
         the first level), or a 1-, 2-, or 3-tuple.
 
@@ -2240,8 +2241,9 @@ class MultiIndex(Index):
 
     def _partial_tup_index(self, tup, side='left'):
         if len(tup) > self.lexsort_depth:
-            raise KeyError('MultiIndex lexsort depth %d, key was length %d' %
-                           (self.lexsort_depth, len(tup)))
+            raise KeyError('Key length (%d) was greater than MultiIndex'
+                           ' lexsort depth (%d)' %
+                           (len(tup), self.lexsort_depth))
 
         n = len(tup)
         start, end = 0, len(self)
@@ -2251,7 +2253,7 @@ class MultiIndex(Index):
 
             if lab not in lev:
                 if not lev.is_type_compatible(lib.infer_dtype([lab])):
-                    raise Exception('Level type mismatch: %s' % lab)
+                    raise TypeError('Level type mismatch: %s' % lab)
 
                 # short circuit
                 loc = lev.searchsorted(lab, side=side)
@@ -2546,7 +2548,7 @@ class MultiIndex(Index):
             try:
                 other = MultiIndex.from_tuples(other)
             except:
-                raise TypeError("other should be a MultiIndex or a list of tuples")
+                raise TypeError("other must be a MultiIndex or a list of tuples")
             result_names = self.names
         else:
             result_names = self.names if self.names == other.names else None
@@ -2588,7 +2590,7 @@ class MultiIndex(Index):
         if not isinstance(item, tuple):
             item = (item,) + ('',) * (self.nlevels - 1)
         elif len(item) != self.nlevels:
-            raise ValueError('Passed item incompatible tuple length')
+            raise ValueError('Item must have length equal to number of levels.')
 
         new_levels = []
         new_labels = []
@@ -2691,7 +2693,7 @@ def _ensure_index(index_like):
 
 def _validate_join_method(method):
     if method not in ['left', 'right', 'inner', 'outer']:
-        raise Exception('do not recognize join method %s' % method)
+        raise ValueError('do not recognize join method %s' % method)
 
 
 # TODO: handle index names!

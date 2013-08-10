@@ -1229,7 +1229,9 @@ However:
 ::
 
    >>> s.ix[('a', 'b'):('b', 'a')]
-   Exception: MultiIndex lexsort depth 1, key was length 2
+   Traceback (most recent call last)
+        ...
+   KeyError: Key length (3) was greater than MultiIndex lexsort depth (2)
 
 Swapping levels with ``swaplevel``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
