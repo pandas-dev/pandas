@@ -1227,7 +1227,7 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         assert_panel_equal(unfiltered.to_panel(), self.panel)
 
         # names
-        self.assertEqual(unfiltered.index.names, ['major', 'minor'])
+        self.assertEqual(unfiltered.index.names, ('major', 'minor'))
 
         # unsorted, round trip
         df = self.panel.to_frame(filter_observations=False)
@@ -1255,7 +1255,8 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         lp = panel.to_frame()
         wp = lp.to_panel()
         self.assertEqual(wp['bool'].values.dtype, np.bool_)
-        assert_frame_equal(wp['bool'], panel['bool'])
+        # Previously, this was mutating the underlying index and changing its name
+        assert_frame_equal(wp['bool'], panel['bool'], check_names=False)
 
     def test_to_panel_na_handling(self):
         df = DataFrame(np.random.randint(0, 10, size=20).reshape((10, 2)),

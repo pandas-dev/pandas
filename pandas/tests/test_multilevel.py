@@ -55,9 +55,11 @@ class TestMultiLevel(unittest.TestCase):
                                      lambda x: x.day]).sum()
 
         # use Int64Index, to make sure things work
-        self.ymd.index.levels = [lev.astype('i8')
-                                 for lev in self.ymd.index.levels]
-        self.ymd.index.names = ['year', 'month', 'day']
+        self.ymd.index.set_levels([lev.astype('i8')
+                                 for lev in self.ymd.index.levels],
+                                 inplace=True)
+        self.ymd.index.set_names(['year', 'month', 'day'],
+                                 inplace=True)
 
     def test_append(self):
         a, b = self.frame[:5], self.frame[5:]
@@ -1667,7 +1669,7 @@ Thur,Lunch,Yes,51.51,17"""
         df = DataFrame(np.random.randn(6, 3), index=index)
 
         result = df.drop([(0, 2)])
-        self.assert_(result.index.names == ['one', 'two'])
+        self.assert_(result.index.names == ('one', 'two'))
 
     def test_unicode_repr_issues(self):
         levels = [Index([u('a/\u03c3'), u('b/\u03c3'), u('c/\u03c3')]),

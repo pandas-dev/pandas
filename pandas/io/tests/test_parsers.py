@@ -817,7 +817,11 @@ c,4,5
         expected = self.read_csv(StringIO(data), sep=";", index_col=lrange(4))
 
         lev = expected.index.levels[0]
-        expected.index.levels[0] = lev.to_datetime(dayfirst=True)
+        levels = list(expected.index.levels)
+        levels[0] = lev.to_datetime(dayfirst=True)
+        # hack to get this to work - remove for final test
+        levels[0].name = lev.name
+        expected.index.set_levels(levels, inplace=True)
         expected['aux_date'] = to_datetime(expected['aux_date'],
                                            dayfirst=True)
         expected['aux_date'] = lmap(Timestamp, expected['aux_date'])
@@ -1335,7 +1339,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         # it works!
         df = self.read_table(StringIO(text), sep='\s+')
-        self.assertEquals(df.index.names, ['one', 'two', 'three', 'four'])
+        self.assertEquals(df.index.names, ('one', 'two', 'three', 'four'))
 
     def test_read_csv_parse_simple_list(self):
         text = """foo
@@ -2144,14 +2148,14 @@ a,b,c
 4,5,6
 7,8,9
 10,11,12"""
-        result = self.read_csv(StringIO(data), usecols=(0, 1, 2), 
-                               names=('a', 'b', 'c'), 
+        result = self.read_csv(StringIO(data), usecols=(0, 1, 2),
+                               names=('a', 'b', 'c'),
                                header=None,
                                converters={'a': str},
                                dtype={'b': int, 'c': float},
-                              )                               
+                              )
         result2 = self.read_csv(StringIO(data), usecols=(0, 2),
-                               names=('a', 'b', 'c'), 
+                               names=('a', 'b', 'c'),
                                header=None,
                                converters={'a': str},
                                dtype={'b': int, 'c': float},

@@ -1299,7 +1299,7 @@ class TestConcatenate(unittest.TestCase):
                           columns=Index(['A', 'B', 'C'], name='exp'))
         result = concat([frame, frame], keys=[0, 1], names=['iteration'])
 
-        self.assertEqual(result.index.names, ['iteration'] + index.names)
+        self.assertEqual(result.index.names, ('iteration',) + index.names)
         tm.assert_frame_equal(result.ix[0], frame)
         tm.assert_frame_equal(result.ix[1], frame)
         self.assertEqual(result.index.nlevels, 3)
@@ -1330,14 +1330,14 @@ class TestConcatenate(unittest.TestCase):
                         keys=[('foo', 'one'), ('foo', 'two'),
                               ('baz', 'one'), ('baz', 'two')],
                         levels=levels)
-        self.assertEqual(result.index.names, [None] * 3)
+        self.assertEqual(result.index.names, (None,) * 3)
 
         # no levels
         result = concat([df, df2, df, df2],
                         keys=[('foo', 'one'), ('foo', 'two'),
                               ('baz', 'one'), ('baz', 'two')],
                         names=['first', 'second'])
-        self.assertEqual(result.index.names, ['first', 'second'] + [None])
+        self.assertEqual(result.index.names, ('first', 'second') + (None,))
         self.assert_(np.array_equal(result.index.levels[0], ['baz', 'foo']))
 
     def test_concat_keys_levels_no_overlap(self):
@@ -1363,7 +1363,9 @@ class TestConcatenate(unittest.TestCase):
                         names=['lvl0', 'lvl1'])
 
         exp = concat([a, b], keys=['key0', 'key1'], names=['lvl0'])
-        exp.index.names[1] = 'lvl1'
+        names = list(exp.index.names)
+        names[1] = 'lvl1'
+        exp.index.set_names(names, inplace=True)
 
         tm.assert_frame_equal(result, exp)
         self.assertEqual(result.index.names, exp.index.names)
@@ -1391,7 +1393,7 @@ class TestConcatenate(unittest.TestCase):
         df2 = DataFrame(np.random.randn(1, 4), index=['b'])
         result = concat(
             [df, df2], keys=['one', 'two'], names=['first', 'second'])
-        self.assertEqual(result.index.names, ['first', 'second'])
+        self.assertEqual(result.index.names, ('first', 'second'))
 
     def test_handle_empty_objects(self):
         df = DataFrame(np.random.randn(10, 4), columns=list('abcd'))

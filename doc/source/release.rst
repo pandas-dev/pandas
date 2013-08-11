@@ -47,6 +47,12 @@ pandas 0.13
   - Added a more informative error message when plot arguments contain
     overlapping color and style arguments (:issue:`4402`)
   - Significant table writing performance improvements in ``HDFStore``
+  - ``Index.copy()`` and ``MultiIndex.copy()`` now accept keyword arguments to
+    change attributes (i.e., ``names``, ``levels``, ``labels``)
+    (:issue:`4039`)
+  - Add ``rename`` and ``set_names`` methods to ``Index`` as well as
+    ``set_names``, ``set_levels``, ``set_labels`` to ``MultiIndex``.
+    (:issue:`4039`)
 
 **API Changes**
 
@@ -66,6 +72,7 @@ pandas 0.13
     an alias of iteritems used to get around ``2to3``'s changes).
     (:issue:`4384`, :issue:`4375`, :issue:`4372`)
   - ``Series.get`` with negative indexers now returns the same as ``[]`` (:issue:`4390`)
+
   - ``HDFStore``
 
     - added an ``is_open`` property to indicate if the underlying file handle is_open;
@@ -82,6 +89,21 @@ pandas 0.13
     - removed the ``warn`` argument from ``open``. Instead a ``PossibleDataLossError`` exception will
       be raised if you try to use ``mode='w'`` with an OPEN file handle (:issue:`4367`)
     - allow a passed locations array or mask as a ``where`` condition (:issue:`4467`)
+
+  - ``Index`` and ``MultiIndex`` changes (:issue:`4039`):
+
+    - Setting ``levels`` and ``labels`` directly on ``MultiIndex`` is now
+      deprecated. Instead, you can use the ``set_levels()`` and
+      ``set_labels()`` methods.
+    - ``levels``, ``labels`` and ``names`` properties no longer return lists,
+      but instead return containers that do not allow setting of items
+      ('mostly immutable')
+    - ``levels``, ``labels`` and ``names`` are validated upon setting and are
+      either copied or shallow-copied.
+    - ``__deepcopy__`` now returns a shallow copy (currently: a view) of the
+      data - allowing metadata changes.
+    - ``MultiIndex.astype()`` now only allows ``np.object_``-like dtypes and
+      now returns a ``MultiIndex`` rather than an ``Index``. (:issue:`4039`)
 
 **Experimental Features**
 
@@ -136,6 +158,10 @@ pandas 0.13
   - frozenset objects now raise in the ``Series`` constructor (:issue:`4482`,
     :issue:`4480`)
   - Fixed issue with sorting a duplicate multi-index that has multiple dtypes (:issue:`4516`)
+  - Fixed bug in ``DataFrame.set_values`` which was causing name attributes to
+    be lost when expanding the index. (:issue:`3742`, :issue:`4039`)
+  - Fixed issue where individual ``names``, ``levels`` and ``labels`` could be
+    set on ``MultiIndex`` without validation (:issue:`3714`, :issue:`4039`)
 
 pandas 0.12
 ===========

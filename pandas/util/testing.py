@@ -176,7 +176,9 @@ def assert_almost_equal(a, b, check_less_precise=False):
         np.testing.assert_(isiterable(b))
         na, nb = len(a), len(b)
         assert na == nb, "%s != %s" % (na, nb)
-
+        # TODO: Figure out why I thought this needed instance cheacks...
+        # if (isinstance(a, np.ndarray) and isinstance(b, np.ndarray) and
+        #     np.array_equal(a, b)):
         if np.array_equal(a, b):
             return True
         else:
@@ -320,6 +322,18 @@ assert_panel4d_equal = partial(assert_panelnd_equal,
 def assert_contains_all(iterable, dic):
     for k in iterable:
         assert k in dic, "Did not contain item: '%r'" % k
+
+def assert_copy(iter1, iter2, **eql_kwargs):
+    """
+    iter1, iter2: iterables that produce elements comparable with assert_almost_equal
+
+    Checks that the elements are equal, but not the same object. (Does not
+    check that items in sequences are also not the same object)
+    """
+    for elem1, elem2 in zip(iter1, iter2):
+        assert_almost_equal(elem1, elem2, **eql_kwargs)
+        assert elem1 is not elem2, "Expected object %r and object %r to be different objects, were same." % (
+                                    type(elem1), type(elem2))
 
 
 def getCols(k):
