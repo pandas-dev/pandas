@@ -868,66 +868,6 @@ convert to an integer index:
     df_new[(df_new['index'] >= 1.0) & (df_new['index'] < 2)]
 
 
-.. _indexing.class:
-
-Index objects
--------------
-
-The pandas Index class and its subclasses can be viewed as implementing an
-*ordered set* in addition to providing the support infrastructure necessary for
-lookups, data alignment, and reindexing. The easiest way to create one directly
-is to pass a list or other sequence to ``Index``:
-
-.. ipython:: python
-
-   index = Index(['e', 'd', 'a', 'b'])
-   index
-   'd' in index
-
-You can also pass a ``name`` to be stored in the index:
-
-
-.. ipython:: python
-
-   index = Index(['e', 'd', 'a', 'b'], name='something')
-   index.name
-
-Starting with pandas 0.5, the name, if set, will be shown in the console
-display:
-
-.. ipython:: python
-
-   index = Index(list(range(5)), name='rows')
-   columns = Index(['A', 'B', 'C'], name='cols')
-   df = DataFrame(np.random.randn(5, 3), index=index, columns=columns)
-   df
-   df['A']
-
-
-Set operations on Index objects
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. _indexing.set_ops:
-
-The three main operations are ``union (|)``, ``intersection (&)``, and ``diff
-(-)``. These can be directly called as instance methods or used via overloaded
-operators:
-
-.. ipython:: python
-
-   a = Index(['c', 'b', 'a'])
-   b = Index(['c', 'e', 'd'])
-   a.union(b)
-   a | b
-   a & b
-   a - b
-
-``isin`` method of Index objects
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-One additional operation is the ``isin`` method that works analogously to the
-``Series.isin`` method found :ref:`here <indexing.boolean>`.
-
 .. _indexing.hierarchical:
 
 Hierarchical indexing (MultiIndex)
@@ -1189,7 +1129,7 @@ are named.
 
 .. ipython:: python
 
-   s.index.names = ['L1', 'L2']
+   s.index.set_names(['L1', 'L2'], inplace=True)
    s.sortlevel(level='L1')
    s.sortlevel(level='L2')
 
@@ -1229,7 +1169,9 @@ However:
 ::
 
    >>> s.ix[('a', 'b'):('b', 'a')]
-   Exception: MultiIndex lexsort depth 1, key was length 2
+   Traceback (most recent call last)
+        ...
+   KeyError: Key length (3) was greater than MultiIndex lexsort depth (2)
 
 Swapping levels with ``swaplevel``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1273,6 +1215,88 @@ note that sortedness is determined **solely** from the integer labels and does
 not check (or care) whether the levels themselves are sorted. Fortunately, the
 constructors ``from_tuples`` and ``from_arrays`` ensure that this is true, but
 if you compute the levels and labels yourself, please be careful.
+
+.. _indexing.class:
+
+Index objects
+-------------
+
+The pandas Index class and its subclasses can be viewed as implementing an
+*ordered set* in addition to providing the support infrastructure necessary for
+lookups, data alignment, and reindexing. The easiest way to create one directly
+is to pass a list or other sequence to ``Index``:
+
+.. ipython:: python
+
+   index = Index(['e', 'd', 'a', 'b'])
+   index
+   'd' in index
+
+You can also pass a ``name`` to be stored in the index:
+
+
+.. ipython:: python
+
+   index = Index(['e', 'd', 'a', 'b'], name='something')
+   index.name
+
+Starting with pandas 0.5, the name, if set, will be shown in the console
+display:
+
+.. ipython:: python
+
+   index = Index(list(range(5)), name='rows')
+   columns = Index(['A', 'B', 'C'], name='cols')
+   df = DataFrame(np.random.randn(5, 3), index=index, columns=columns)
+   df
+   df['A']
+
+
+Set operations on Index objects
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _indexing.set_ops:
+
+The three main operations are ``union (|)``, ``intersection (&)``, and ``diff
+(-)``. These can be directly called as instance methods or used via overloaded
+operators:
+
+.. ipython:: python
+
+   a = Index(['c', 'b', 'a'])
+   b = Index(['c', 'e', 'd'])
+   a.union(b)
+   a | b
+   a & b
+   a - b
+
+``isin`` method of Index objects
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+One additional operation is the ``isin`` method that works analogously to the
+``Series.isin`` method found :ref:`here <indexing.boolean>`.
+
+Setting index metadata (``name(s)``, ``levels``, ``labels``)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _indexing.set_metadata:
+
+Indexes are "mostly immutable", but it is possible to set and change their
+metadata, like the index ``name`` (or, for ``MultiIndex``, ``levels`` and
+``labels``).
+
+You can use the ``rename``, ``set_names``, ``set_levels``, and ``set_labels``
+to set these attributes directly. They default to returning a copy; however,
+you can specify ``inplace=True`` to have the data change inplace.
+
+.. ipython:: python
+
+  ind = Index([1, 2, 3])
+  ind.rename("apple")
+  ind
+  ind.set_names(["apple"], inplace=True)
+  ind.name = "bob"
+  ind
 
 Adding an index to an existing DataFrame
 ----------------------------------------

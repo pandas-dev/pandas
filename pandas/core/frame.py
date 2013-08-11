@@ -1150,7 +1150,7 @@ class DataFrame(NDFrame):
             arrays = ix_vals+ [self[c].values for c in self.columns]
 
             count = 0
-            index_names = self.index.names
+            index_names = list(self.index.names)
             if isinstance(self.index, MultiIndex):
                 for i, n in enumerate(index_names):
                     if n is None:

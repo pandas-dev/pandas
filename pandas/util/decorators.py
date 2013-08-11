@@ -4,8 +4,8 @@ import sys
 import warnings
 
 
-def deprecate(name, alternative):
-    alt_name = alternative.__name__
+def deprecate(name, alternative, alt_name=None):
+    alt_name = alt_name or alternative.__name__
 
     def wrapper(*args, **kwargs):
         warnings.warn("%s is deprecated. Use %s instead" % (name, alt_name),
