@@ -1527,17 +1527,29 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
 
     def test_comment(self):
         data = """A,B,C
-1,2.,4.#hello world
-5.,NaN,10.0
+#first line comment
+1,2.,4. # first end line comment
+# second line comment
+3,5.,7.#second end line comment
+6.,NaN,10.0
 """
-        expected = [[1., 2., 4.],
-                    [5., np.nan, 10.]]
-        df = self.read_csv(StringIO(data), comment='#')
-        assert_almost_equal(df.values, expected)
+        expected = {
+            'c': [[np.nan, np.nan, np.nan],
+                  [1., 2., 4.],
+                  [np.nan, np.nan, np.nan],
+                  [3., 5., 7.],
+                  [6., np.nan, 10.]],
+            'python': [[1., 2., 4.],
+                       [3., 5., 7.],
+                       [6., np.nan, 10.]]
+            }
+        for engine in ('c', 'python'):
+            df = self.read_csv(StringIO(data), comment='#', engine=engine)
+            assert_almost_equal(df.values, expected[engine])
 
-        df = self.read_table(StringIO(data), sep=',', comment='#',
-                             na_values=['NaN'])
-        assert_almost_equal(df.values, expected)
+            df = self.read_table(StringIO(data), sep=',', comment='#',
+                                 na_values=['NaN'], engine=engine)
+            assert_almost_equal(df.values, expected[engine])
 
     def test_bool_na_values(self):
         data = """A,B,C
