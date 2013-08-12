@@ -71,6 +71,10 @@ API changes
 
          import os
          os.remove(path)
+    - All non-Index NDFrames (``Series``, ``DataFrame``, ``Panel``, ``Panel4D``,
+      ``SparsePanel``, etc.), now support the entire set of arithmetic operators
+      and arithmetic flex methods (add, sub, mul, etc.). ``SparsePanel`` does not
+      support ``pow`` or ``mod`` with non-scalars. (:issue:`3765`)
 
   - Changes to how ``Index`` and ``MultiIndex`` handle metadata (``levels``,
     ``labels``, and ``names``) (:issue:`4039`):
