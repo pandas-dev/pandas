@@ -1999,6 +1999,51 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
                 [Timestamp('20130101 9:01:00.005'), Timestamp('20130101 9:02:00.005')])
             assert_series_equal(result, expected)
 
+        # GH 4521
+        # divide/multiply by integers
+        startdate = Series(date_range('2013-01-01', '2013-01-03'))
+        enddate = Series(date_range('2013-03-01', '2013-03-03'))
+
+        s1 = enddate - startdate
+        s1[2] = np.nan
+        s2 = Series([2, 3, 4])
+        expected = Series(s1.values.astype(np.int64) / s2, dtype='m8[ns]')
+        expected[2] = np.nan
+        result = s1 / s2
+        assert_series_equal(result,expected)
+
+        s2 = Series([20, 30, 40])
+        expected = Series(s1.values.astype(np.int64) / s2, dtype='m8[ns]')
+        expected[2] = np.nan
+        result = s1 / s2
+        assert_series_equal(result,expected)
+
+        result = s1 / 2
+        expected = Series(s1.values.astype(np.int64) / 2, dtype='m8[ns]')
+        expected[2] = np.nan
+        assert_series_equal(result,expected)
+
+        s2 = Series([20, 30, 40])
+        expected = Series(s1.values.astype(np.int64) * s2, dtype='m8[ns]')
+        expected[2] = np.nan
+        result = s1 * s2
+        assert_series_equal(result,expected)
+
+        result = s1 * 2
+        expected = Series(s1.values.astype(np.int64) * 2, dtype='m8[ns]')
+        expected[2] = np.nan
+        assert_series_equal(result,expected)
+
+        self.assertRaises(TypeError, s1.__div__, s2.astype(float))
+        self.assertRaises(TypeError, s1.__mul__, s2.astype(float))
+        self.assertRaises(TypeError, s1.__div__, 2.)
+        self.assertRaises(TypeError, s1.__mul__, 2.)
+
+        self.assertRaises(TypeError, s1.__add__, 1)
+        self.assertRaises(TypeError, s1.__sub__, 1)
+        self.assertRaises(TypeError, s1.__add__, s2.values)
+        self.assertRaises(TypeError, s1.__sub__, s2.values)
+
     def test_timedelta64_equal_timedelta_supported_ops(self):
         ser = Series([Timestamp('20130301'), Timestamp('20130228 23:00:00'),
                       Timestamp('20130228 22:00:00'),

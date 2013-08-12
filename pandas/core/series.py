@@ -91,6 +91,7 @@ def _arith_method(op, name, fill_zeros=None):
 
         is_timedelta_lhs = com.is_timedelta64_dtype(self)
         is_datetime_lhs  = com.is_datetime64_dtype(self)
+        is_integer_lhs   = lvalues.dtype == np.int64
 
         if is_datetime_lhs or is_timedelta_lhs:
 
@@ -115,8 +116,8 @@ def _arith_method(op, name, fill_zeros=None):
                     # py3 compat where dtype is 'm' but is an integer
                     if values.dtype.kind == 'm':
                         values = values.astype('timedelta64[ns]')
-                    else:
-                        raise ValueError("incompatible type for a datetime/timedelta operation")
+                    elif name not in ['__div__','__mul__']:
+                        raise TypeError("incompatible type for a datetime/timedelta operation")
                 elif isinstance(values[0],DateOffset):
                     # handle DateOffsets
                     values = pa.array([ v.delta for v in values ])
@@ -131,9 +132,22 @@ def _arith_method(op, name, fill_zeros=None):
 
             is_datetime_rhs  = com.is_datetime64_dtype(rvalues)
             is_timedelta_rhs = com.is_timedelta64_dtype(rvalues) or (not is_datetime_rhs and _np_version_under1p7)
+            is_integer_rhs = rvalues.dtype == np.int64
+            mask = None
+
+            # timedelta and integer mul/div
+            if (is_timedelta_lhs and is_integer_rhs) or (is_integer_lhs and is_timedelta_rhs):
+
+                if name not in ['__div__','__mul__']:
+                    raise TypeError("can only operate on a timedelta and an integer for "
+                                    "division, but the operator [%s] was passed" % name)
+                dtype = 'timedelta64[ns]'
+                mask = isnull(lvalues) | isnull(rvalues)
+                lvalues = lvalues.astype(np.int64)
+                rvalues = rvalues.astype(np.int64)
 
             # 2 datetimes or 2 timedeltas
-            if (is_timedelta_lhs and is_timedelta_rhs) or (is_datetime_lhs and
+            elif (is_timedelta_lhs and is_timedelta_rhs) or (is_datetime_lhs and
                     is_datetime_rhs):
                 if is_datetime_lhs and name != '__sub__':
                     raise TypeError("can only operate on a datetimes for subtraction, "
@@ -143,13 +157,7 @@ def _arith_method(op, name, fill_zeros=None):
                                     "addition and subtraction, but the operator [%s] was passed" % name)
 
                 dtype = 'timedelta64[ns]'
-
                 mask = isnull(lvalues) | isnull(rvalues)
-                if mask.any():
-                    def wrap_results(x):
-                        x = pa.array(x,dtype='timedelta64[ns]')
-                        np.putmask(x,mask,tslib.iNaT)
-                        return x
 
             # datetime and timedelta
             elif is_timedelta_rhs and is_datetime_lhs:
@@ -167,9 +175,18 @@ def _arith_method(op, name, fill_zeros=None):
                 dtype = 'M8[ns]'
 
             else:
-                raise ValueError('cannot operate on a series with out a rhs '
-                                 'of a series/ndarray of type datetime64[ns] '
-                                 'or a timedelta')
+                raise TypeError('cannot operate on a series with out a rhs '
+                                'of a series/ndarray of type datetime64[ns] '
+                                'or a timedelta')
+
+            # if we need to mask the results
+            if mask is not None:
+                if mask.any():
+                    def f(x):
+                        x = pa.array(x,dtype='timedelta64[ns]')
+                        np.putmask(x,mask,tslib.iNaT)
+                        return x
+                    wrap_results = f
 
             lvalues = lvalues.view('i8')
             rvalues = rvalues.view('i8')

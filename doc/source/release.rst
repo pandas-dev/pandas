@@ -53,6 +53,8 @@ pandas 0.13
   - Add ``rename`` and ``set_names`` methods to ``Index`` as well as
     ``set_names``, ``set_levels``, ``set_labels`` to ``MultiIndex``.
     (:issue:`4039`)
+  - A Series of dtype ``Timedelta64[ns]`` can now be divided/multiplied
+    by an integer series (:issue`4521`)
 
 **API Changes**
 
