@@ -1654,9 +1654,10 @@ for some advanced strategies
 
 .. note::
 
-   ``PyTables`` 3.0.0 was recently released to enables support for Python 3.
+   ``PyTables`` 3.0.0 was recently released to enable support for Python 3.
    Pandas should be fully compatible (and previously written stores should be
-   backwards compatible) with all ``PyTables`` >= 2.3
+   backwards compatible) with all ``PyTables`` >= 2.3. For ``python >= 3.2``,
+   ``pandas >= 0.12.0`` is required for compatibility.
 
 .. ipython:: python
    :suppress:
