@@ -53,8 +53,11 @@ pandas 0.13
   - Add ``rename`` and ``set_names`` methods to ``Index`` as well as
     ``set_names``, ``set_levels``, ``set_labels`` to ``MultiIndex``.
     (:issue:`4039`)
-  - A Series of dtype ``Timedelta64[ns]`` can now be divided/multiplied
+  - A Series of dtype ``timedelta64[ns]`` can now be divided/multiplied
     by an integer series (:issue`4521`)
+  - A Series of dtype ``timedelta64[ns]`` can now be divided by another
+    ``timedelta64[ns]`` object to yield a ``float64`` dtyped Series. This
+    is frequency conversion.
 
 **API Changes**
 

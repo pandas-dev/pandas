@@ -170,7 +170,7 @@ Take care, ``to_datetime`` may not act as you expect on mixed data:
 
 .. ipython:: python
 
-   pd.to_datetime([1, '1'])
+   to_datetime([1, '1'])
 
 .. _timeseries.daterange:
 
@@ -297,7 +297,7 @@ the year or year and month as strings:
 
    ts['2011-6']
 
-This type of slicing will work on a DataFrame with a ``DateTimeIndex`` as well. Since the 
+This type of slicing will work on a DataFrame with a ``DateTimeIndex`` as well. Since the
 partial string selection is a form of label slicing, the endpoints **will be** included. This
 would include matching times on an included date. Here's an example:
 
@@ -1112,7 +1112,8 @@ Time Deltas
 -----------
 
 Timedeltas are differences in times, expressed in difference units, e.g. days,hours,minutes,seconds.
-They can be both positive and negative.
+They can be both positive and negative. :ref:`DateOffsets<timeseries.offsets>` that are absolute in nature
+(``Day, Hour, Minute, Second, Milli, Micro, Nano``) can be used as ``timedeltas``.
 
 .. ipython:: python
 
@@ -1128,40 +1129,15 @@ They can be both positive and negative.
    s - s.max()
    s - datetime(2011,1,1,3,5)
    s + timedelta(minutes=5)
+   s + Minute(5)
+   s + Minute(5) + Milli(5)
 
 Getting scalar results from a ``timedelta64[ns]`` series
-
-.. ipython:: python
-   :suppress:
-
-   from distutils.version import LooseVersion
 
 .. ipython:: python
 
    y = s - s[0]
    y
-
-.. code-block:: python
-
-   if LooseVersion(np.__version__) <= '1.6.2':
-       y.apply(lambda x: x.item().total_seconds())
-       y.apply(lambda x: x.item().days)
-   else:
-       y.apply(lambda x: x / np.timedelta64(1, 's'))
-       y.apply(lambda x: x / np.timedelta64(1, 'D'))
-
-.. note::
-
-   As you can see from the conditional statement above, these operations are
-   different in numpy 1.6.2 and in numpy >= 1.7. The ``timedelta64[ns]`` scalar
-   type in 1.6.2 is much like a ``datetime.timedelta``, while in 1.7 it is a
-   nanosecond based integer.  A future version of pandas will make this
-   transparent.
-
-.. note::
-
-   In numpy >= 1.7 dividing a ``timedelta64`` array by another ``timedelta64``
-   array will yield an array with dtype ``np.float64``.
 
 Series of timedeltas with ``NaT`` values are supported
 
@@ -1218,3 +1194,55 @@ issues). ``idxmin, idxmax`` are supported as well.
 
    df.min().idxmax()
    df.min(axis=1).idxmin()
+
+.. _timeseries.timedeltas_convert:
+
+Time Deltas & Conversions
+-------------------------
+
+.. versionadded:: 0.13
+
+Timedeltas can be converted to other 'frequencies' by dividing by another timedelta.
+These operations yield ``float64`` dtyped Series.
+
+.. ipython:: python
+
+   td = Series(date_range('20130101',periods=4))-Series(date_range('20121201',periods=4))
+   td[2] += np.timedelta64(timedelta(minutes=5,seconds=3))
+   td[3] = np.nan
+   td
+
+   # to days
+   td / np.timedelta64(1,'D')
+
+   # to seconds
+   td / np.timedelta64(1,'s')
+
+Dividing or multiplying a ``timedelta64[ns]`` Series by an integer or integer Series
+yields another ``timedelta64[ns]`` dtypes Series.
+
+.. ipython:: python
+
+   td * -1
+   td * Series([1,2,3,4])
+
+Numpy < 1.7 Compatibility
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Numpy < 1.7 has a broken ``timedelta64`` type that does not correctly work
+for arithmetic. Pandas bypasses this, but for frequency conversion as above,
+you need to create the divisor yourself. The ``np.timetimedelta64`` type only
+has 1 argument, the number of **micro** seconds.
+
+The following are equivalent statements in the two versions of numpy.
+
+.. code-block:: python
+
+   from distutils.version import LooseVersion
+   if LooseVersion(np.__version__) <= '1.6.2':
+       y / np.timedelta(86400*int(1e6))
+       y / np.timedelta(int(1e6))
+   else:
+       y / np.timedelta64(1,'D')
+       y / np.timedelta64(1,'s')
+

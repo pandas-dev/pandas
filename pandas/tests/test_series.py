@@ -1964,14 +1964,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(df['A'], resultb)
         self.assert_(resultb.dtype == 'M8[ns]')
 
-        # td operate with td
-        td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
-        td2 = timedelta(minutes=5, seconds=4)
-        result = td1 - td2
-        expected = Series([timedelta(seconds=0)] * 3) -Series(
-            [timedelta(seconds=1)] * 3)
-        self.assert_(result.dtype == 'm8[ns]')
-        assert_series_equal(result, expected)
+        # inplace
+        value = rs[2] + np.timedelta64(timedelta(minutes=5,seconds=1))
+        rs[2] += np.timedelta64(timedelta(minutes=5,seconds=1))
+        self.assert_(rs[2] == value)
+
+    def test_timedeltas_with_DateOffset(self):
 
         # GH 4532
         # operate with pd.offsets
@@ -1986,6 +1984,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             [Timestamp('20130101 9:01:00.005'), Timestamp('20130101 9:02:00.005')])
         assert_series_equal(result, expected)
 
+        result = s + pd.offsets.Minute(5) + pd.offsets.Milli(5)
+        expected = Series(
+            [Timestamp('20130101 9:06:00.005'), Timestamp('20130101 9:07:00.005')])
+        assert_series_equal(result, expected)
+
         if not com._np_version_under1p7:
 
             # operate with np.timedelta64 correctly
@@ -1998,6 +2001,36 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             expected = Series(
                 [Timestamp('20130101 9:01:00.005'), Timestamp('20130101 9:02:00.005')])
             assert_series_equal(result, expected)
+
+        # valid DateOffsets
+        for do in [ 'Hour', 'Minute', 'Second', 'Day', 'Micro',
+                    'Milli', 'Nano' ]:
+            op = getattr(pd.offsets,do)
+            s + op(5)
+
+        # invalid DateOffsets
+        for do in [ 'Week', 'BDay', 'BQuarterEnd', 'BMonthEnd', 'BYearEnd',
+                    'BYearBegin','BQuarterBegin', 'BMonthBegin',
+                    'MonthEnd','YearBegin', 'YearEnd',
+                    'MonthBegin', 'QuarterBegin' ]:
+            op = getattr(pd.offsets,do)
+            self.assertRaises(TypeError, s.__add__, op(5))
+
+    def test_timedelta64_operations_with_timedeltas(self):
+
+        # td operate with td
+        td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
+        td2 = timedelta(minutes=5, seconds=4)
+        result = td1 - td2
+        expected = Series([timedelta(seconds=0)] * 3) -Series(
+            [timedelta(seconds=1)] * 3)
+        self.assert_(result.dtype == 'm8[ns]')
+        assert_series_equal(result, expected)
+
+        # roundtrip
+        assert_series_equal(result + td2,td1)
+
+    def test_timedelta64_operations_with_integers(self):
 
         # GH 4521
         # divide/multiply by integers
@@ -2029,20 +2062,51 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         result = s1 * s2
         assert_series_equal(result,expected)
 
+        for dtype in ['int32','int16','uint32','uint64','uint32','uint16','uint8']:
+            s2 = Series([20, 30, 40],dtype=dtype)
+            expected = Series(s1.values.astype(np.int64) * s2.astype(np.int64), dtype='m8[ns]')
+            expected[2] = np.nan
+            result = s1 * s2
+            assert_series_equal(result,expected)
+
         result = s1 * 2
         expected = Series(s1.values.astype(np.int64) * 2, dtype='m8[ns]')
         expected[2] = np.nan
         assert_series_equal(result,expected)
 
-        self.assertRaises(TypeError, s1.__div__, s2.astype(float))
-        self.assertRaises(TypeError, s1.__mul__, s2.astype(float))
-        self.assertRaises(TypeError, s1.__div__, 2.)
-        self.assertRaises(TypeError, s1.__mul__, 2.)
+        result = s1 * -1
+        expected = Series(s1.values.astype(np.int64) * -1, dtype='m8[ns]')
+        expected[2] = np.nan
+        assert_series_equal(result,expected)
 
-        self.assertRaises(TypeError, s1.__add__, 1)
-        self.assertRaises(TypeError, s1.__sub__, 1)
-        self.assertRaises(TypeError, s1.__add__, s2.values)
-        self.assertRaises(TypeError, s1.__sub__, s2.values)
+        # invalid ops
+        for op in ['__true_div__','__div__','__mul__']:
+            sop = getattr(s1,op,None)
+            if sop is not None:
+                self.assertRaises(TypeError, sop, s2.astype(float))
+                self.assertRaises(TypeError, sop, 2.)
+
+        for op in ['__add__','__sub__']:
+            sop = getattr(s1,op,None)
+            if sop is not None:
+                self.assertRaises(TypeError, sop, 1)
+                self.assertRaises(TypeError, sop, s2.values)
+
+    def test_timedelta64_conversions(self):
+        if com._np_version_under1p7:
+            raise nose.SkipTest("cannot use 2 argument form of timedelta64 conversions with numpy < 1.7")
+
+        startdate = Series(date_range('2013-01-01', '2013-01-03'))
+        enddate = Series(date_range('2013-03-01', '2013-03-03'))
+
+        s1 = enddate - startdate
+        s1[2] = np.nan
+
+        for m in [1, 3, 10]:
+            for unit in ['D','h','m','s','ms','us','ns']:
+                expected = s1.apply(lambda x: x / np.timedelta64(m,unit))
+                result = s1 / np.timedelta64(m,unit)
+                assert_series_equal(result, expected)
 
     def test_timedelta64_equal_timedelta_supported_ops(self):
         ser = Series([Timestamp('20130301'), Timestamp('20130228 23:00:00'),
@@ -2080,12 +2144,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # timedelta64 ###
         td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
         td2 = timedelta(minutes=5, seconds=4)
-        for op in ['__mul__', '__floordiv__', '__truediv__', '__div__', '__pow__']:
+        for op in ['__mul__', '__floordiv__', '__pow__']:
             op = getattr(td1, op, None)
             if op is not None:
                 self.assertRaises(TypeError, op, td2)
         td1 + td2
         td1 - td2
+        td1 / td2
 
         # datetime64 ###
         dt1 = Series(
