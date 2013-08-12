@@ -167,8 +167,7 @@ def h5_open(path, mode):
 
 
 @contextmanager
-def get_store(path, mode='a', complevel=None, complib=None,
-              fletcher32=False):
+def get_store(path, **kwargs):
     """
     Creates an HDFStore instance. This function can be used in a with statement
 
@@ -184,8 +183,7 @@ def get_store(path, mode='a', complevel=None, complib=None,
     """
     store = None
     try:
-        store = HDFStore(path, mode=mode, complevel=complevel,
-                         complib=complib, fletcher32=False)
+        store = HDFStore(path, **kwargs)
         yield store
     finally:
         if store is not None:
@@ -215,7 +213,7 @@ def read_hdf(path_or_buf, key, **kwargs):
 
         # can't auto open/close if we are using an iterator
         # so delegate to the iterator
-        store = HDFStore(path_or_buf)
+        store = HDFStore(path_or_buf,**kwargs)
         try:
             return f(store, True)
         except:
@@ -274,7 +272,7 @@ class HDFStore(StringMixin):
     """
 
     def __init__(self, path, mode=None, complevel=None, complib=None,
-                 fletcher32=False):
+                 fletcher32=False, **kwargs):
         try:
             import tables as _
         except ImportError:  # pragma: no cover
