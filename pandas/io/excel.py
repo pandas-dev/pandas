@@ -196,8 +196,16 @@ class ExcelFile(object):
                     if typ == XL_CELL_DATE:
                         dt = xldate_as_tuple(value, datemode)
                         # how to produce this first case?
+                        # if the year is ZERO that values are hours
                         if dt[0] < datetime.MINYEAR:  # pragma: no cover
-                            value = datetime.time(*dt[3:])
+                            datemode = 1
+                            dt = xldate_as_tuple(value, datemode)
+                            
+                            value = datetime.time(*dt[3:])  
+                            if date_parser:
+                                value = date_parser(value)
+
+                        #or insert a full date
                         else:
                             value = datetime.datetime(*dt)
                     elif typ == XL_CELL_ERROR:
