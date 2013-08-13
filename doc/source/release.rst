@@ -53,6 +53,11 @@ pandas 0.13
   - Add ``rename`` and ``set_names`` methods to ``Index`` as well as
     ``set_names``, ``set_levels``, ``set_labels`` to ``MultiIndex``.
     (:issue:`4039`)
+  - A Series of dtype ``timedelta64[ns]`` can now be divided/multiplied
+    by an integer series (:issue`4521`)
+  - A Series of dtype ``timedelta64[ns]`` can now be divided by another
+    ``timedelta64[ns]`` object to yield a ``float64`` dtyped Series. This
+    is frequency conversion.
 
 **API Changes**
 
@@ -166,6 +171,10 @@ pandas 0.13
   - Fixed issue where individual ``names``, ``levels`` and ``labels`` could be
     set on ``MultiIndex`` without validation (:issue:`3714`, :issue:`4039`)
   - Fixed (:issue:`3334`) in pivot_table. Margins did not compute if values is the index.
+  - Fix bug in having a rhs of ``np.timedelta64`` or ``np.offsets.DateOffset`` when operating
+    with datetimes (:issue:`4532`)
+  - Fix arithmetic with series/datetimeindex and ``np.timedelta64`` not working the same (:issue:`4134`)
+    and buggy timedelta in numpy 1.6 (:issue:`4135`)
 
 pandas 0.12
 ===========

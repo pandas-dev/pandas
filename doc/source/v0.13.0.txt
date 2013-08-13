@@ -100,6 +100,40 @@ Enhancements
   - Added a more informative error message when plot arguments contain
     overlapping color and style arguments (:issue:`4402`)
 
+  - ``timedelta64[ns]`` operations
+
+    - A Series of dtype ``timedelta64[ns]`` can now be divided by another
+      ``timedelta64[ns]`` object to yield a ``float64`` dtyped Series. This
+      is frequency conversion. See :ref:`here<timeseries.timedeltas_convert>` for the docs.
+
+      .. ipython:: python
+
+         from datetime import timedelta
+         td = Series(date_range('20130101',periods=4))-Series(date_range('20121201',periods=4))
+         td[2] += np.timedelta64(timedelta(minutes=5,seconds=3))
+         td[3] = np.nan
+         td
+
+         # to days
+         td / np.timedelta64(1,'D')
+
+         # to seconds
+         td / np.timedelta64(1,'s')
+
+    - Dividing or multiplying a ``timedelta64[ns]`` Series by an integer or integer Series
+
+      .. ipython:: python
+
+         td * -1
+         td * Series([1,2,3,4])
+
+    - Absolute ``DateOffset`` objects can act equivalenty to ``timedeltas``
+
+      .. ipython:: python
+
+         from pandas import offsets
+         td + offsets.Minute(5) + offsets.Milli(5)
+
 Bug Fixes
 ~~~~~~~~~
 
