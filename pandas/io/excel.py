@@ -201,7 +201,9 @@ class ExcelFile(object):
                             datemode = 1
                             dt = xldate_as_tuple(value, datemode)
                             
-                            value = datetime.time(*dt[3:])                        
+                            value = datetime.time(*dt[3:])  
+                            if date_parser:
+                                value = date_parser(value)
 
                         #or insert a full date
                         else:

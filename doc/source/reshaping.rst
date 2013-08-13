@@ -21,6 +21,8 @@ Reshaping and Pivot Tables
 Reshaping by pivoting DataFrame objects
 ---------------------------------------
 
+.. _reshaping.reshapeing-pivoting
+
 .. ipython::
    :suppress:
 

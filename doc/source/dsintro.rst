@@ -427,6 +427,9 @@ available to insert at a particular location in the columns:
 
 Indexing / Selection
 ~~~~~~~~~~~~~~~~~~~~
+
+.. _dsintro.basics-of-indexing:
+
 The basics of indexing are as follows:
 
 .. csv-table::
@@ -446,6 +449,20 @@ DataFrame:
 
    df.loc['b']
    df.iloc[2]
+   
+There is also support for purely integer-based indexing provided by the following methods:
+
+.. _dsintro.integer-indexing:
+
+.. csv-table::
+    :header: "Method","Description"
+    :widths: 40,60
+
+	``Series.iget_value(i)``, Retrieve value stored at location ``i``
+	``Series.iget(i)``, Alias for ``iget_value``
+	``DataFrame.irow(i)``, Retrieve the ``i``-th row
+	``DataFrame.icol(j)``, Retrieve the ``j``-th column
+	"``DataFrame.iget_value(i, j)``", Retrieve the value at row ``i`` and column ``j``
 
 For a more exhaustive treatment of more sophisticated label-based indexing and
 slicing, see the :ref:`section on indexing <indexing>`. We will address the
@@ -926,7 +943,7 @@ Here we slice to a Panel4D.
         klass_name   = 'Panel5D',
         axis_orders  = [ 'cool', 'labels','items','major_axis','minor_axis'],
         axis_slices  = { 'labels' : 'labels', 'items' : 'items',
-	                 'major_axis' : 'major_axis', 'minor_axis' : 'minor_axis' },
+   	                 'major_axis' : 'major_axis', 'minor_axis' : 'minor_axis' },
         slicer       = Panel4D,
         axis_aliases = { 'major' : 'major_axis', 'minor' : 'minor_axis' },
         stat_axis    = 2)

@@ -8,13 +8,16 @@ import os
 import sys
 import re
 import unittest
+from datetime.datetime import now, timedelta, combine
+
+from xlrd import open_workbook
 
 import nose
 
 from numpy import nan
 import numpy as np
 
-from pandas import DataFrame, Series, Index, MultiIndex, DatetimeIndex
+from pandas import DataFrame, Series, Index, MultiIndex, DatetimeIndex, datetime
 import pandas.io.parsers as parsers
 from pandas.io.parsers import (read_csv, read_table, read_fwf,
                                 TextParser, TextFileReader)
@@ -294,6 +297,90 @@ class ExcelTests(unittest.TestCase):
                          skip_footer=1)
         tm.assert_frame_equal(df4, df.ix[:-1])
         tm.assert_frame_equal(df4, df5)
+        
+    def test_xlsx_table_hours(self):
+        #check if the hours are read incorrectly
+        _skip_if_no_xlrd()
+        _skip_if_no_openpyxl()
+        
+        def correct_date_time(value):
+            # if a excel time like '24:00' it converted to 23.07.2013 00:00'
+            # here, we just want the time component, sinvce all inputs shall be equal
+            if type(value) != datetime.time:
+                value = value.time()
+
+            #apply offset
+            # if a excel time like '23.07.2013 24:00' they actually mean 
+            # in Python '23.07.2013 23:59', must be converted
+            offset = -10 # minutes
+            delta = timedelta(minutes=offset)
+            #get the actual datetime, 
+            dt_now = now()
+            ti_corr = (combine(dt_now, value) + delta).time()                           
+            # combine the corrected time component with the datetime
+#            dt_comb = dt.datetime.combine(dt_now, ti_corr)
+    
+            #since input is time, we return it.
+            #TODO:
+            #it is actually very strange that Pandas does consider an index
+            #of datetime.time as index of objects and not time
+
+            return ti_corr
+        
+        def read_excel_cell(filename):
+            wb = open_workbook(filename))
+            sh = wb.sheet_by_name('min')
+            #check first time stamp           
+            ti_start = xlrd.xldate_as_tuple(sh.row(12)[1].value, 1)
+            ti_end = xlrd.xldate_as_tuple(sh.row(154)[1].value, 1)
+            
+            return ti_start, ti_end
+
+        # 1900 datemode file
+        pth = os.path.join(self.dirpath, 'example_file_2013-07-25.xlsx')
+        xlsx = ExcelFile(pth)
+        # parse_dates=False is necessary to obtain right sorting of rows in df
+        df =xlsx.parse('min', skiprows=12, header=10, index_col=1, 
+                         parse_dates=False, date_parser=correct_date_time)
+        df_start = df.index[0]
+        df_end = df.index[-1:]
+        # test: are the first/last index equal to the cell read in diretly
+        self.assertEqual(df_start, read_excel_cell[0])
+        self.assertEqual(df_end, read_excel_cell[1])
+        
+        #test Excel 1904 datemode
+        pth = os.path.join(self.dirpath, 
+                           'example_file_2013-07-25_1904-dates.xlsx')
+        xlsx = ExcelFile(pth)
+        # parse_dates=False is necessary to obtain right sorting of roes in df
+        df =xlsx.parse('min', skiprows=12, header=10, index_col=1, 
+                         parse_dates=False, date_parser=correct_date_time)
+        df_start = df.index[0]
+        df_end = df.index[-1:]
+        # test: are the first/last index equal to the cell read in diretly
+        self.assertEqual(df_start, read_excel_cell[0])
+        self.assertEqual(df_end, read_excel_cell[1])
+        
+        # test if a produced datetime is equal to a datetime directly produced by xlrd
+        daydt_str = filename.split('.')[0][-10:]
+        daydt = dt.datetime.strptime(daydt_str, '%Y-%m-%d')
+
+        df.icol(1) = df.index
+        #TODO review this
+        df['datetime'] = df.apply(lambda x: pd.datetime.combine(daydt, 
+                                                                x.icol(1), 
+                                                                axis=1)
+        df = df.set_index(['datetime'])
+        dt_test = combine(daydt, read_excel_cell[1])
+        
+        pdt_test = df.index[-1]
+        
+        self.assertEqual(dt_test, pdt_test)
+        
+        # test two days
+        #TODO
+        
+        
 
     def test_specify_kind_xls(self):
         _skip_if_no_xlrd()

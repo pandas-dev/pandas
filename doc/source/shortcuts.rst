@@ -3,7 +3,7 @@
 .. currentmodule:: pandas
 
 ****************************************
-Shortcuts to Pandas Doucumentation
+Shortcuts wthin Pandas Doucumentation
 ****************************************
 
 This page shall give quick access to sections in the documentation on commonly used parameters.
@@ -15,6 +15,7 @@ Basics
 ~~~~~~~~~~~~~~~~~~~~
 
 * :ref:`The basics of indexing <dsintro.basics-of-indexing>` summarises the key methods for selction and indexing.
+* :ref:`Integer Indexing <dsintro.integer-indexing>` supplements with additional methods.
 
 Time Series
 ~~~~~~~~~~~~~~~~~~~~
