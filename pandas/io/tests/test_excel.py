@@ -328,7 +328,7 @@ class ExcelTests(unittest.TestCase):
             return ti_corr
         
         def read_excel_cell(filename):
-            wb = open_workbook(filename))
+            wb = open_workbook(filename)
             sh = wb.sheet_by_name('min')
             #check first time stamp           
             ti_start = xlrd.xldate_as_tuple(sh.row(12)[1].value, 1)
