@@ -126,6 +126,9 @@ Fill forward a reversed timeseries
    df
    df.reindex(df.index[::-1]).ffill()
 
+`cumsum reset at NaN values
+<http://stackoverflow.com/questions/18196811/cumsum-reset-at-nan>`__
+
 Replace
 ~~~~~~~
 
