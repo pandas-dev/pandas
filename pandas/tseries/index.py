@@ -6,7 +6,8 @@ from datetime import timedelta
 
 import numpy as np
 
-from pandas.core.common import isnull, _NS_DTYPE, _INT64_DTYPE
+from pandas.core.common import (isnull, _NS_DTYPE, _INT64_DTYPE,
+                                is_list_like,_possibly_cast_to_timedelta)
 from pandas.core.index import Index, Int64Index
 import pandas.compat as compat
 from pandas.compat import u
@@ -541,7 +542,7 @@ class DatetimeIndex(Int64Index):
         elif isinstance(other, (DateOffset, timedelta)):
             return self._add_delta(other)
         elif isinstance(other, np.timedelta64):
-            raise NotImplementedError
+            return self._add_delta(other)
         elif com.is_integer(other):
             return self.shift(other)
         else:  # pragma: no cover
@@ -553,7 +554,7 @@ class DatetimeIndex(Int64Index):
         elif isinstance(other, (DateOffset, timedelta)):
             return self._add_delta(-other)
         elif isinstance(other, np.timedelta64):
-            raise NotImplementedError
+            return self._add_delta(-other)
         elif com.is_integer(other):
             return self.shift(-other)
         else:  # pragma: no cover
@@ -568,6 +569,9 @@ class DatetimeIndex(Int64Index):
             utc = _utc()
             if self.tz is not None and self.tz is not utc:
                 result = result.tz_convert(self.tz)
+        elif isinstance(delta, np.timedelta64):
+            new_values = self.to_series() + delta
+            result = DatetimeIndex(new_values, tz=self.tz, freq='infer')
         else:
             new_values = self.astype('O') + delta
             result = DatetimeIndex(new_values, tz=self.tz, freq='infer')
