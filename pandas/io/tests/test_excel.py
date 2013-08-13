@@ -370,7 +370,7 @@ class ExcelTests(unittest.TestCase):
         df['datetime'] = df.apply(lambda x: pd.datetime.combine(daydt, 
                                                                 x.icol(1), 
                                                                 axis=1)
-        df = df.set_index(['datetime'])
+        df = df.set_index(df['datetime'])
         dt_test = combine(daydt, read_excel_cell[1])
         
         pdt_test = df.index[-1]
