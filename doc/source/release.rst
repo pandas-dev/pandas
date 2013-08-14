@@ -184,6 +184,8 @@ pandas 0.13
   - Fix arithmetic with series/datetimeindex and ``np.timedelta64`` not working the same (:issue:`4134`)
     and buggy timedelta in numpy 1.6 (:issue:`4135`)
   - Fix bug in ``pd.read_clipboard`` on windows with PY3 (:issue:`4561`); not decoding properly
+  - ``tslib.get_period_field()`` and ``tslib.get_period_field_arr()`` now raise
+    if code argument out of range (:issue:`4519`, :issue:`4520`)
 
 pandas 0.12
 ===========

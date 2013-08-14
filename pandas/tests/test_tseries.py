@@ -700,6 +700,16 @@ class TestTsUtil(unittest.TestCase):
         self.assertEqual(Timestamp(Timestamp.max.to_pydatetime()).value/1000, Timestamp.max.value/1000)
         self.assertEqual(Timestamp(Timestamp.min.to_pydatetime()).value/1000, Timestamp.min.value/1000)
 
+class TestPeriodField(unittest.TestCase):
+
+    def test_get_period_field_raises_on_out_of_range(self):
+        from pandas import tslib
+        self.assertRaises(ValueError, tslib.get_period_field, -1, 0, 0)
+
+    def test_get_period_field_array_raises_on_out_of_range(self):
+        from pandas import tslib
+        self.assertRaises(ValueError, tslib.get_period_field_arr, -1, np.empty(1), 0)
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
