@@ -43,7 +43,10 @@ indexing.
    standard operators has some optimization limits. For production code, we recommended
    that you take advantage of the optimized pandas data access methods exposed in this chapter.
 
-   In addition, whether a copy or a reference is returned for a selection operation, may depend on the context.
+.. warning::
+
+   Whether a copy or a reference is returned for a setting operation, may depend on the context.
+   This is sometimes called ``chained assignment`` and should be avoided.
    See :ref:`Returning a View versus Copy <indexing.view_versus_copy>`
 
 See the :ref:`cookbook<cookbook.selection>` for some advanced strategies
@@ -219,6 +222,12 @@ largely as a convenience since it is such a common operation.
 Selection By Label
 ~~~~~~~~~~~~~~~~~~
 
+.. warning::
+
+   Whether a copy or a reference is returned for a setting operation, may depend on the context.
+   This is sometimes called ``chained assignment`` and should be avoided.
+   See :ref:`Returning a View versus Copy <indexing.view_versus_copy>`
+
 Pandas provides a suite of methods in order to have **purely label based indexing**. This is a strict inclusion based protocol.
 **ALL** of the labels for which you ask, must be in the index or a ``KeyError`` will be raised! When slicing, the start bound is *included*, **AND** the stop bound is *included*. Integers are valid labels, but they refer to the label **and not the position**.
 
@@ -283,6 +292,12 @@ For getting a value explicity (equiv to deprecated ``df.get_value('a','A')``)
 
 Selection By Position
 ~~~~~~~~~~~~~~~~~~~~~
+
+.. warning::
+
+   Whether a copy or a reference is returned for a setting operation, may depend on the context.
+   This is sometimes called ``chained assignment`` and should be avoided.
+   See :ref:`Returning a View versus Copy <indexing.view_versus_copy>`
 
 Pandas provides a suite of methods in order to get **purely integer based indexing**. The semantics follow closely python and numpy slicing. These are ``0-based`` indexing. When slicing, the start bounds is *included*, while the upper bound is *excluded*. Trying to use a non-integer, even a **valid** label will raise a ``IndexError``.
 
@@ -822,11 +837,49 @@ In chained expressions, the order may determine whether a copy is returned or no
 .. ipython:: python
 
 
-   dfb = DataFrame({'a' : ['one', 'one', 'two', 'three', 'two', 'one', 'six'],
-                    'b' : ['x', 'y', 'y', 'x', 'y', 'x', 'x'],
+   dfb = DataFrame({'a' : ['one', 'one', 'two',
+                           'three', 'two', 'one', 'six'],
+                    'b' : ['x', 'y', 'y',
+                           'x', 'y', 'x', 'x'],
                     'c' : randn(7)})
-   dfb[dfb.a.str.startswith('o')]['c'] = 42  # goes to copy (will be lost)
-   dfb['c'][dfb.a.str.startswith('o')] = 42  # passed via reference (will stay)
+
+
+   # goes to copy (will be lost)
+   dfb[dfb.a.str.startswith('o')]['c'] = 42
+
+   # passed via reference (will stay)
+   dfb['c'][dfb.a.str.startswith('o')] = 42
+
+A chained assignment can also crop up in setting in a mixed dtype frame.
+
+.. note::
+
+   These setting rules apply to all of ``.loc/.iloc/.ix``
+
+This is the correct access method
+
+.. ipython:: python
+
+   dfc = DataFrame({'A':['aaa','bbb','ccc'],'B':[1,2,3]})
+   dfc_copy = dfc.copy()
+   dfc_copy.loc[0,'A'] = 11
+   dfc_copy
+
+This *can* work at times, but is not guaranteed, and so should be avoided
+
+.. ipython:: python
+
+   dfc_copy = dfc.copy()
+   dfc_copy['A'][0] = 111
+   dfc_copy
+
+This will **not** work at all, and so should be avoided
+
+.. ipython:: python
+
+   dfc_copy = dfc.copy()
+   dfc_copy.loc[0]['A'] = 1111
+   dfc_copy
 
 When assigning values to subsets of your data, thus, make sure to either use the
 pandas access methods or explicitly handle the assignment creating a copy.
