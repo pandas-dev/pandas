@@ -16,6 +16,7 @@ from pandas.sparse.frame import SparseDataFrame
 from pandas.util.decorators import deprecate
 
 import pandas.core.common as com
+import pandas.core.ops as ops
 
 
 class SparsePanelAxis(object):
@@ -465,8 +466,9 @@ class SparsePanel(Panel):
         """wrapper around `__mod__` (only works for scalar values"""
         return self.__mod__(val)
 
-# need to redo the aggregate funcs because SparsePanel doesn't respond to shape
+# Sparse objects opt out of numexpr
 SparsePanel._add_aggregate_operations(use_numexpr=False)
+ops.add_special_arithmetic_methods(SparsePanel, use_numexpr=False, **ops.panel_special_funcs)
 SparseWidePanel = SparsePanel
 
 

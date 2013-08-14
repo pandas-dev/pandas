@@ -18,6 +18,7 @@ from pandas._sparse import BlockIndex, IntIndex
 import pandas._sparse as splib
 import pandas.lib as lib
 import pandas.index as _index
+import pandas.core.ops as ops
 
 
 def _arith_method_SPARSEARRAY(op, name, str_rep=None, default_axis=None,
@@ -26,7 +27,6 @@ def _arith_method_SPARSEARRAY(op, name, str_rep=None, default_axis=None,
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
     """
-
     def wrapper(self, other):
         if isinstance(other, np.ndarray):
             if not ((len(self) == len(other))):
@@ -526,5 +526,6 @@ def make_sparse(arr, kind='block', fill_value=nan):
     sparsified_values = arr[mask]
     return sparsified_values, index
 
-import pandas.core.ops as ops
-ops.add_special_arithmetic_methods(SparseArray, arith_method=_arith_method_SPARSEARRAY)
+ops.add_special_arithmetic_methods(SparseArray,
+                                   arith_method=_arith_method_SPARSEARRAY,
+                                   use_numexpr=False)

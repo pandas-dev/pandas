@@ -34,7 +34,6 @@ from pandas.core.indexing import (_NDFrameIndexer, _maybe_droplevels,
 from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_arrays,
                                    create_block_manager_from_blocks)
-from pandas.core.ops import _radd_compat_SERIES
 from pandas.core.series import Series
 import pandas.core.expressions as expressions
 from pandas.sparse.array import SparseArray
@@ -4905,17 +4904,9 @@ def boxplot(self, column=None, by=None, ax=None, fontsize=None,
     return ax
 DataFrame.boxplot = boxplot
 
-from pandas.core.ops import(_arith_method_FRAME, _radd_compat_SERIES,
-                            _flex_comp_method_FRAME, _comp_method_FRAME)
+ops.add_flex_arithmetic_methods(DataFrame, **ops.frame_flex_funcs)
+ops.add_special_arithmetic_methods(DataFrame, **ops.frame_special_funcs)
 
-ops.add_flex_arithmetic_methods(DataFrame, _arith_method_FRAME,
-                                radd_func=_radd_compat_SERIES,
-                                flex_comp_method=_flex_comp_method_FRAME)
-ops.add_special_arithmetic_methods(DataFrame,
-                                   _arith_method_FRAME,
-                                   radd_func=_radd_compat_SERIES,
-                                   comp_method=_comp_method_FRAME,
-                                   bool_method=_arith_method_FRAME)
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

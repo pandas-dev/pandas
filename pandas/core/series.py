@@ -27,7 +27,6 @@ from pandas.core.indexing import (
     _is_index_slice, _maybe_convert_indices)
 from pandas.core import generic
 from pandas.core.internals import SingleBlockManager
-from pandas.core.ops import _arith_method_SERIES, _comp_method_SERIES, _bool_method_SERIES, _radd_compat_SERIES, _flex_method_SERIES
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex, Period
 from pandas.tseries.offsets import DateOffset
@@ -36,6 +35,7 @@ from pandas.util.terminal import get_terminal_size
 from pandas.compat import zip, lzip, u, OrderedDict
 
 import pandas.core.array as pa
+import pandas.core.ops as ops
 
 import pandas.core.common as com
 import pandas.core.datetools as datetools
@@ -3062,10 +3062,6 @@ import pandas.tools.plotting as _gfx
 Series.plot = _gfx.plot_series
 Series.hist = _gfx.hist_series
 
-import pandas.core.ops as ops
 # Add arithmetic!
-ops.add_flex_arithmetic_methods(Series, _flex_method_SERIES, radd_func=_radd_compat_SERIES,
-                                flex_comp_method=_comp_method_SERIES)
-ops.add_special_arithmetic_methods(Series, _arith_method_SERIES, radd_func=_radd_compat_SERIES,
-                                   comp_method=_comp_method_SERIES,
-                                   bool_method=_bool_method_SERIES)
+ops.add_flex_arithmetic_methods(Series, **ops.series_flex_funcs)
+ops.add_special_arithmetic_methods(Series, **ops.series_special_funcs)

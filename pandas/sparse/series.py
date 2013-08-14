@@ -652,10 +652,16 @@ class SparseSeries(Series):
         dense_combined = self.to_dense().combine_first(other)
         return dense_combined.to_sparse(fill_value=self.fill_value)
 
+# overwrite series methods with unaccelerated versions
+ops.add_special_arithmetic_methods(SparseSeries, use_numexpr=False,
+                                   **ops.series_special_funcs)
+ops.add_flex_arithmetic_methods(SparseSeries, use_numexpr=False,
+                                **ops.series_flex_funcs)
 # overwrite basic arithmetic to use SparseSeries version
+# force methods to overwrite previous definitions.
 ops.add_special_arithmetic_methods(SparseSeries, _sparse_op_wrap_SPARSESERIES,
-                                   radd_func=operator.add,
-                                   comp_method=None, bool_method=None)
+                                   radd_func=operator.add, comp_method=None,
+                                   bool_method=None, use_numexpr=False, force=True)
 
 # backwards compatiblity
 SparseTimeSeries = SparseSeries

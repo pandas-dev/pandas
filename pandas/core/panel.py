@@ -1301,9 +1301,8 @@ Panel._setup_axes(axes=['items', 'major_axis', 'minor_axis'],
                            'minor': 'minor_axis'},
                   slicers={'major_axis': 'index',
                            'minor_axis': 'columns'})
-ops.add_special_arithmetic_methods(Panel, ops._arith_method_PANEL,
-                                   comp_method=ops._comp_method_PANEL,
-                                   bool_method=ops._arith_method_PANEL)
+
+ops.add_special_arithmetic_methods(Panel, **ops.panel_special_funcs)
 Panel._add_aggregate_operations()
 
 WidePanel = Panel

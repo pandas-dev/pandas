@@ -99,10 +99,30 @@ def _create_methods(arith_method, radd_func, comp_method, bool_method,
     return new_methods
 
 
+def add_methods(cls, new_methods, force, select, exclude):
+    if select and exclude:
+        raise TypeError("May only pass either select or exclude")
+    methods = new_methods
+    if select:
+        select = set(select)
+        methods = {}
+        for key, method in new_methods.items():
+            if key in select:
+                methods[key] = method
+    if exclude:
+        for k in exclude:
+            new_methods.pop(k, None)
+
+    for name, method in new_methods.items():
+        if force or name not in cls.__dict__:
+            bind_method(cls, name, method)
+
 #----------------------------------------------------------------------
 # Arithmetic
-def add_special_arithmetic_methods(cls, arith_method=None, radd_func=None, comp_method=None, bool_method=None,
-                                    use_numexpr=True):
+def add_special_arithmetic_methods(cls, arith_method=None, radd_func=None,
+                                   comp_method=None, bool_method=None,
+                                   use_numexpr=True, force=False, select=None,
+                                   exclude=None):
     """
     Adds the full suite of special arithmetic methods (``__add__``, ``__sub__``, etc.) to the class.
 
@@ -117,6 +137,13 @@ def add_special_arithmetic_methods(cls, arith_method=None, radd_func=None, comp_
         factory for rich comparison - signature: f(op, name, str_rep)
     use_numexpr : bool, default True
         whether to accelerate with numexpr, defaults to True
+    force : bool, default False
+        if False, checks whether function is defined **on ``cls.__dict__``** before defining
+        if True, always defines functions on class base
+    select : iterable of strings (optional)
+        if passed, only sets functions with names in select
+    exclude : iterable of strings (optional)
+        if passed, will not set functions with names in exclude
     """
     radd_func = radd_func or operator.add
     # in frame, special methods have default_axis = None, comp methods use 'columns'
@@ -134,24 +161,37 @@ def add_special_arithmetic_methods(cls, arith_method=None, radd_func=None, comp_
     ))
     if not compat.PY3:
         new_methods["__idiv__"] = new_methods["__div__"]
-    for name, method in new_methods.items():
-        if name not in cls.__dict__:
-            bind_method(cls, name, method)
 
-def add_flex_arithmetic_methods(cls, flex_arith_method, radd_func=None, flex_comp_method=None,
-                                 flex_bool_method=None, use_numexpr=True):
+    add_methods(cls, new_methods=new_methods, force=force, select=select, exclude=exclude)
+
+
+def add_flex_arithmetic_methods(cls, flex_arith_method, radd_func=None,
+                                flex_comp_method=None, flex_bool_method=None,
+                                use_numexpr=True, force=False, select=None,
+                                exclude=None):
     """
     Adds the full suite of flex arithmetic methods (``pow``, ``mul``, ``add``) to the class.
 
     Parameters
     ----------
-    flex_arith_method : factory for flex arithmetic methods, with op string:
+    flex_arith_method : function (optional)
+        factory for special arithmetic methods, with op string:
         f(op, name, str_rep, default_axis=None, fill_zeros=None, **eval_kwargs)
-    radd_func :  Possible replacement for ``lambda x, y: y + x`` for compatibility
-    flex_comp_method : optional, factory for rich comparison - signature: f(op, name, str_rep)
-    use_numexpr : whether to accelerate with numexpr, defaults to True
+    radd_func :  function (optional)
+        Possible replacement for ``lambda x, y: operator.add(y, x)`` for compatibility
+    flex_comp_method : function, optional,
+        factory for rich comparison - signature: f(op, name, str_rep)
+    use_numexpr : bool, default True
+        whether to accelerate with numexpr, defaults to True
+    force : bool, default False
+        if False, checks whether function is defined **on ``cls.__dict__``** before defining
+        if True, always defines functions on class base
+    select : iterable of strings (optional)
+        if passed, only sets functions with names in select
+    exclude : iterable of strings (optional)
+        if passed, will not set functions with names in exclude
     """
-    radd_func = radd_func or operator.add
+    radd_func = radd_func or (lambda x, y: operator.add(y, x))
     # in frame, default axis is 'columns', doesn't matter for series and panel
     new_methods = _create_methods(
         flex_arith_method, radd_func, flex_comp_method, flex_bool_method,
@@ -162,9 +202,7 @@ def add_flex_arithmetic_methods(cls, flex_arith_method, radd_func=None, flex_com
         divide=new_methods['div']
     ))
 
-    for name, method in new_methods.items():
-        if name not in cls.__dict__:
-            bind_method(cls, name, method)
+    add_methods(cls, new_methods=new_methods, force=force, select=select, exclude=exclude)
 
 def cleanup_name(name):
     """cleanup special names
@@ -601,6 +639,13 @@ def _flex_method_SERIES(op, name, str_rep=None, default_axis=None, fill_zeros=No
     f.__name__ = name
     return f
 
+series_flex_funcs = dict(flex_arith_method=_flex_method_SERIES,
+                         radd_func=_radd_compat_SERIES,
+                         flex_comp_method=_comp_method_SERIES)
+series_special_funcs = dict(arith_method=_arith_method_SERIES,
+                            radd_func=_radd_compat_SERIES,
+                            comp_method=_comp_method_SERIES,
+                            bool_method=_bool_method_SERIES)
 
 _arith_doc_FRAME = """
 Binary operator %s with support to substitute a fill_value for missing data in
@@ -732,6 +777,15 @@ def _comp_method_FRAME(func, name, str_rep, masker=False):
 
     return f
 
+frame_flex_funcs = dict(flex_arith_method=_arith_method_FRAME,
+                        radd_func=_radd_compat_SERIES,
+                        flex_comp_method=_flex_comp_method_FRAME)
+
+frame_special_funcs = dict(arith_method=_arith_method_FRAME,
+                           radd_func=_radd_compat_SERIES,
+                           comp_method=_comp_method_FRAME,
+                           bool_method=_arith_method_FRAME)
+
 def _arith_method_PANEL(op, name, str_rep=None, fill_zeros=None, default_axis=None, **eval_kwargs):
     # work only for scalars
     def na_op(x, y):
@@ -771,3 +825,7 @@ def _comp_method_PANEL(op, name, str_rep=None, masker=False):
     f.__name__ = name
 
     return f
+
+panel_special_funcs = dict(arith_method=_arith_method_PANEL,
+                           comp_method=_comp_method_PANEL,
+                           bool_method=_arith_method_PANEL)
