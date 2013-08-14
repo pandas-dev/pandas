@@ -175,6 +175,7 @@ pandas 0.13
     with datetimes (:issue:`4532`)
   - Fix arithmetic with series/datetimeindex and ``np.timedelta64`` not working the same (:issue:`4134`)
     and buggy timedelta in numpy 1.6 (:issue:`4135`)
+  - Fix bug in ``pd.read_clipboard`` on windows with PY3 (:issue:`4561`); not decoding properly
 
 pandas 0.12
 ===========
