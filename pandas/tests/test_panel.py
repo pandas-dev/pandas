@@ -49,7 +49,7 @@ class PanelTests(object):
 
     def not_hashable(self):
         c_empty = Panel()
-        c = Panel(pd.Panel([[[1]]]))
+        c = Panel(Panel([[[1]]]))
         self.assertRaises(TypeError, hash, c_empty)
         self.assertRaises(TypeError, hash, c)
 
@@ -327,9 +327,9 @@ class SafeForSparse(object):
                 raise
         if compat.PY3:
             try:
-                check_op(operator.floordiv, 'div')
+                check_op(operator.truediv, 'div')
             except:
-                print("Failing operation: 'floordiv'")
+                print("Failing operation: %r" % name)
                 raise
 
     def test_combinePanel(self):

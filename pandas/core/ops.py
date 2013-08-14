@@ -4,6 +4,7 @@ Arithmetic operations for PandasObjects
 This is not a public API.
 """
 import operator
+from functools import partial
 import numpy as np
 from pandas import compat, lib, tslib
 import pandas.index as _index
@@ -15,6 +16,9 @@ from pandas.core.common import(bind_method, is_list_like, notnull, isnull,
                                _values_from_object, _np_version_under1p6,
                                _maybe_match_name)
 
+# -----------------------------------------------------------------------------
+# Functions that add arithmetic methods to objects, given arithmetic factory
+# methods
 
 def _create_methods(arith_method, radd_func, comp_method, bool_method,
                     use_numexpr, special=False, default_axis='columns'):
@@ -53,9 +57,9 @@ def _create_methods(arith_method, radd_func, comp_method, bool_method,
         # so it's here to maintain compatibility
         rmul=arith_method(operator.mul, names('rmul'), default_axis=default_axis),
         rsub=arith_method(lambda x, y: y - x, names('rsub'), default_axis=default_axis),
-        rtruediv=arith_method(lambda x, y: operator.truediv(y, x), names('rtruediv'), op('/'),
+        rtruediv=arith_method(lambda x, y: operator.truediv(y, x), names('rtruediv'),
                               truediv=True, fill_zeros=np.inf, default_axis=default_axis),
-        rfloordiv=arith_method(lambda x, y: operator.floordiv(y, x), names('rfloordiv'), op('//'),
+        rfloordiv=arith_method(lambda x, y: operator.floordiv(y, x), names('rfloordiv'),
                                default_axis=default_axis, fill_zeros=np.inf),
         rpow=arith_method(lambda x, y: y ** x, names('rpow'), default_axis=default_axis),
         rmod=arith_method(lambda x, y: y % x, names('rmod'), default_axis=default_axis),
@@ -63,11 +67,13 @@ def _create_methods(arith_method, radd_func, comp_method, bool_method,
     if not compat.PY3:
         new_methods["div"] = arith_method(operator.div, names('div'), op('/'),
                                           truediv=False, fill_zeros=np.inf, default_axis=default_axis)
-        new_methods["rdiv"] = arith_method(lambda x, y: operator.div(y, x), names('rdiv'), op('/'),
+        new_methods["rdiv"] = arith_method(lambda x, y: operator.div(y, x), names('rdiv'),
                                            truediv=False, fill_zeros=np.inf, default_axis=default_axis)
     else:
         new_methods["div"] = arith_method(operator.truediv, names('div'), op('/'),
                                           truediv=True, fill_zeros=np.inf, default_axis=default_axis)
+        new_methods["rdiv"] = arith_method(lambda x, y: operator.truediv(y, x), names('rdiv'),
+                                           truediv=False, fill_zeros=np.inf, default_axis=default_axis)
         # Comp methods never had a default axis set
     if comp_method:
         new_methods.update(dict(
@@ -81,9 +87,12 @@ def _create_methods(arith_method, radd_func, comp_method, bool_method,
     if bool_method:
         new_methods.update(dict(
         and_=bool_method(operator.and_, names('and_ [&]'), op('&')),
+        rand_=bool_method(lambda x, y: operator.and_(y, x), names('rand_[&]')),
         or_=bool_method(operator.or_, names('or_ [|]'), op('|')),
+        ror_=bool_method(lambda x, y: operator.or_(y, x), names('ror_ [|]')),
         # For some reason ``^`` wasn't used in original.
-        xor=bool_method(operator.xor, names('xor [^]'))
+        xor=bool_method(operator.xor, names('xor [^]')),
+        rxor=bool_method(lambda x, y: operator.xor(y, x), names('rxor [^]'))
         ))
 
     new_methods = dict((names(k), v) for k, v in new_methods.items())
@@ -175,32 +184,85 @@ def cleanup_name(name):
         name = "and_"
     return name
 
+# ----------------------------------------------------------------------------
+# Arithmetic factory methods
 
+def mask_no_list(obj, mask):
+    return obj[mask]
+
+def mask_with_list(obj, mask):
+    return np.array(list(obj[mask]))
+
+def _standard_na_op(x, y, op, str_rep=None, fill_zeros=None,
+                    convert_mask=False, masker=None, eval_kwargs={}):
+    """standard internal operation handler, generally you want to wrap it
+    in a partial so it can be called with just two arguments, e.g.
+    na_op = partial(_standard_na_op, op=op, str_rep=str_rep, fill_zeros=fill_zeros)
+
+    x : array-like
+        object to be operated open
+    y : object (e.g., scalar or ndarray-like)
+        object to perform arithmetic with
+    op : binary arithmetic function function
+    str_rep : str (optional)
+        string representation of operation to pass to expressions.evaluate.
+    fill_zeros : object (optional)
+        passes to com._fill_zeros (does nothing if None)
+    convert_mask : bool (default False)
+        if True, wraps mask with list and does not call upcast_putmask
+        if False, does not wrap mask, but calls upcast_putmask
+    masker : bool (optional)
+        Value to fill in for masked values. Must explicitly pass if using
+        convert_mask.
+    eval_kwargs : dict (optional)
+        Keyword arguments to pass to expressions.evaluate. Note that this must
+        be a literal dict, you can't pass as ``**eval_kwargs``
+    """
+    # generally used for bool methods
+    if convert_mask:
+        do_mask = lambda obj, mask: np.array(list(obj[mask]))
+        assert masker is not None, "With convert_mask, must also specify masker"
+    else:
+        do_mask = lambda obj, maks: obj[mask]
+
+    try:
+        result = expressions.evaluate(op, str_rep, x, y,
+                                        raise_on_error=True, **eval_kwargs)
+    except TypeError:
+        xrav = x.ravel()
+        result = np.empty(x.size, dtype=x.dtype)
+        if isinstance(y, (np.ndarray, com.ABCSeries)):
+            yrav = y.ravel()
+            mask = notnull(xrav) & notnull(yrav)
+            result[mask] = op(do_mask(xrav, mask), do_mask(yrav, mask))
+        else:
+            mask = notnull(xrav)
+            result[mask] = op(do_mask(xrav, mask), y)
+        if convert_mask:
+            if not mask.all():
+                result[-mask] = masker
+        else:
+            result, changed = com._maybe_upcast_putmask(result, -mask, np.nan)
+
+        result = result.reshape(x.shape)
+
+    # handles discrepancy between numpy and numexpr on division/mod by 0
+    if fill_zeros is not None:
+        result = com._fill_zeros(result, y, fill_zeros)
+    return result
+
+
+#----------------------------------------------------------------------
+# Wrapper function for Series arithmetic methods
 def _arith_method_SERIES(op, name, str_rep=None, fill_zeros=None, default_axis=None, **eval_kwargs):
-    #----------------------------------------------------------------------
-    # Wrapper function for Series arithmetic methods
     """
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
     """
     r_op = name.startswith("__r")
-    def na_op(x, y):
-        try:
-            result = expressions.evaluate(op, str_rep, x, y, raise_on_error=True, **eval_kwargs)
-        except TypeError:
-            result = pa.empty(len(x), dtype=x.dtype)
-            if isinstance(y, (pa.Array, com.ABCSeries)):
-                mask = notnull(x) & notnull(y)
-                result[mask] = op(x[mask], y[mask])
-            else:
-                mask = notnull(x)
-                result[mask] = op(x[mask], y)
-
-            result, changed = com._maybe_upcast_putmask(result, -mask, pa.NA)
-
-        # handles discrepancy between numpy and numexpr on division/mod by 0
-        result = com._fill_zeros(result,y,fill_zeros)
-        return result
+    na_op = partial(_standard_na_op, op=op, str_rep=str_rep,
+                    fill_zeros=fill_zeros, convert_mask=False,
+                    eval_kwargs=eval_kwargs)
 
     def wrapper(self, other, name=name):
         from pandas.core.frame import DataFrame
@@ -519,36 +581,21 @@ def _flex_method_SERIES(op, name, str_rep=None, default_axis=None, fill_zeros=No
     -------
     result : Series
     """ % name
-    # copied directly from _arith_method above...we'll see whether this works
-    def na_op(x, y):
-        try:
-            result = expressions.evaluate(op, str_rep, x, y, raise_on_error=True, **eval_kwargs)
-        except TypeError:
-            result = pa.empty(len(x), dtype=x.dtype)
-            if isinstance(y, pa.Array):
-                mask = notnull(x) & notnull(y)
-                result[mask] = op(x[mask], y[mask])
-            else:
-                mask = notnull(x)
-                result[mask] = op(x[mask], y)
-
-            result, changed = com._maybe_upcast_putmask(result,-mask,pa.NA)
-
-        # handles discrepancy between numpy and numexpr on division/mod by 0
-        result = com._fill_zeros(result,y,fill_zeros)
-        return result
+    na_op = partial(_standard_na_op, op=op, str_rep=str_rep,
+                    fill_zeros=fill_zeros, convert_mask=False,
+                    eval_kwargs=eval_kwargs)
 
     @Appender(doc)
     def f(self, other, level=None, fill_value=None):
         if isinstance(other, com.ABCSeries):
-            return self._binop(other, op, level=level, fill_value=fill_value)
+            return self._binop(other, na_op, level=level, fill_value=fill_value)
         elif isinstance(other, (pa.Array, com.ABCSeries, list, tuple)):
             if len(other) != len(self):
                 raise ValueError('Lengths must be equal')
-            return self._binop(self._constructor(other, self.index), op,
+            return self._binop(self._constructor(other, self.index), na_op,
                                level=level, fill_value=fill_value)
         else:
-            return self._constructor(op(self.values, other), self.index,
+            return self._constructor(na_op(self.values, other), self.index,
                                      name=self.name)
 
     f.__name__ = name
@@ -580,29 +627,11 @@ Returns
 result : DataFrame
 """
 
+
 def _arith_method_FRAME(op, name, str_rep=None, default_axis='columns', fill_zeros=None, **eval_kwargs):
-    def na_op(x, y):
-        try:
-            result = expressions.evaluate(op, str_rep, x, y,
-                                          raise_on_error=True, **eval_kwargs)
-
-        except TypeError:
-            xrav = x.ravel()
-            result = np.empty(x.size, dtype=x.dtype)
-            if isinstance(y, (np.ndarray, com.ABCSeries)):
-                yrav = y.ravel()
-                mask = notnull(xrav) & notnull(yrav)
-                result[mask] = op(xrav[mask], yrav[mask])
-            else:
-                mask = notnull(xrav)
-                result[mask] = op(xrav[mask], y)
-
-            result, changed = com._maybe_upcast_putmask(result, -mask, np.nan)
-            result = result.reshape(x.shape)
-
-        # handles discrepancy between numpy and numexpr on division/mod by 0
-        result = com._fill_zeros(result,y,fill_zeros)
-        return result
+    na_op = partial(_standard_na_op, op=op, str_rep=str_rep,
+                    fill_zeros=fill_zeros, convert_mask=False,
+                    eval_kwargs=eval_kwargs)
 
     @Appender(_arith_doc_FRAME % name)
     def f(self, other, axis=default_axis, level=None, fill_value=None):
@@ -641,28 +670,8 @@ def _arith_method_FRAME(op, name, str_rep=None, default_axis='columns', fill_zer
 def _flex_comp_method_FRAME(op, name, str_rep=None, default_axis='columns',
                             masker=False):
 
-    def na_op(x, y):
-        try:
-            result = expressions.evaluate(op, str_rep, x, y)
-        except TypeError:
-            xrav = x.ravel()
-            result = np.empty(x.size, dtype=x.dtype)
-            if isinstance(y, (np.ndarray, com.ABCSeries)):
-                yrav = y.ravel()
-                mask = notnull(xrav) & notnull(yrav)
-                result[mask] = op(np.array(list(xrav[mask])),
-                                  np.array(list(yrav[mask])))
-            else:
-                mask = notnull(xrav)
-                result[mask] = op(np.array(list(xrav[mask])), y)
-
-            not_mask = -mask
-            if not_mask.any():
-                result[not_mask] = masker
-
-            result = result.reshape(x.shape)
-
-        return result
+    na_op = partial(_standard_na_op, op=op, str_rep=str_rep, convert_mask=True,
+                    masker=masker)
 
     @Appender('Wrapper for flexible comparison methods %s' % name)
     def f(self, other, axis=default_axis, level=None):
@@ -718,6 +727,46 @@ def _comp_method_FRAME(func, name, str_rep, masker=False):
             # straight boolean comparisions we want to allow all columns
             # (regardless of dtype to pass thru) See #4537 for discussion.
             return self._combine_const(other, func, raise_on_error=False).fillna(True).astype(bool)
+
+    f.__name__ = name
+
+    return f
+
+def _arith_method_PANEL(op, name, str_rep=None, fill_zeros=None, default_axis=None, **eval_kwargs):
+    # work only for scalars
+    def na_op(x, y):
+        try:
+            result = expressions.evaluate(op, str_rep, x, y, raise_on_error=True, **eval_kwargs)
+        except TypeError:
+            result = op(x, y)
+
+        # handles discrepancy between numpy and numexpr on division/mod by 0
+        result = com._fill_zeros(result,y,fill_zeros)
+        return result
+
+    def f(self, other):
+        if not np.isscalar(other):
+            raise ValueError('Simple arithmetic with %s can only be '
+                             'done with scalar values' % self._constructor.__name__)
+
+        return self._combine(other, na_op)
+    f.__name__ = name
+    return f
+
+
+def _comp_method_PANEL(op, name, str_rep=None, masker=False):
+    na_op = partial(_standard_na_op, op=op, str_rep=str_rep, convert_mask=True,
+                    masker=masker)
+
+    @Appender('Wrapper for comparison method %s' % name)
+    def f(self, other):
+        if isinstance(other, self._constructor):
+            return self._compare_constructor(other, op)
+        elif isinstance(other, (self._constructor_sliced, com.ABCDataFrame, com.ABCSeries)):
+            raise Exception("input needs alignment for this object [%s]" %
+                            self._constructor)
+        else:
+            return self._combine_const(other, na_op)
 
     f.__name__ = name
 
