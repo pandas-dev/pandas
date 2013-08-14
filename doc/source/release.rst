@@ -175,6 +175,7 @@ pandas 0.13
     with datetimes (:issue:`4532`)
   - Fix arithmetic with series/datetimeindex and ``np.timedelta64`` not working the same (:issue:`4134`)
     and buggy timedelta in numpy 1.6 (:issue:`4135`)
+  - Fixed wrong check for overlapping in ``DatetimeIndex.union`` (:issue:`4564`)
 
 pandas 0.12
 ===========
