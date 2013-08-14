@@ -724,6 +724,8 @@ We illustrate these fill methods on a simple TimeSeries:
    ts2.reindex(ts.index, method='ffill')
    ts2.reindex(ts.index, method='bfill')
 
+Note these methods require that the indexes are **order increasing**.
+
 Note the same result could have been achieved using :ref:`fillna
 <missing_data.fillna>`:
 
@@ -731,9 +733,7 @@ Note the same result could have been achieved using :ref:`fillna
 
    ts2.reindex(ts.index).fillna(method='ffill')
 
-Note these methods generally assume that the indexes are **sorted**. They may
-be modified in the future to be a bit more flexible but as time series data is
-ordered most of the time anyway, this has not been a major priority.
+Note that this method does not check the order of the index.
 
 .. _basics.drop:
 
