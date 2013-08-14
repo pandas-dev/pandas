@@ -332,6 +332,10 @@ class TestOptionsWarnings(unittest.TestCase):
 
 
 class TestDataReader(unittest.TestCase):
+    def test_is_s3_url(self):
+        from pandas.io.common import _is_s3_url
+        self.assert_(_is_s3_url("s3://pandas/somethingelse.com"))
+
     @network
     def test_read_yahoo(self):
         gs = DataReader("GS", "yahoo")
