@@ -61,7 +61,7 @@ def _is_url(url):
 def _is_s3_url(url):
     """Check for an s3 url"""
     try:
-        return urlparse.urlparse(url).scheme == 's3'
+        return parse_url(url).scheme == 's3'
     except:
         return False
 
