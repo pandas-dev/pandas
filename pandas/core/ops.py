@@ -14,6 +14,7 @@ import pandas.core.array as pa
 import pandas.core.expressions as expressions
 from pandas.core.common import(bind_method, is_list_like, notnull, isnull,
                                _values_from_object, _np_version_under1p6,
+                               _np_version_under1p7,
                                _maybe_match_name)
 
 # -----------------------------------------------------------------------------
