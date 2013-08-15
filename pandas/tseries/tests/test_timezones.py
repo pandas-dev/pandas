@@ -3,6 +3,7 @@ from datetime import datetime, time, timedelta, tzinfo, date
 import sys
 import os
 import unittest
+import itertools
 import nose
 
 import numpy as np
@@ -12,6 +13,7 @@ from pandas import (Index, Series, TimeSeries, DataFrame, isnull,
                     date_range, Timestamp)
 
 from pandas import DatetimeIndex, Int64Index, to_datetime
+from pandas import tslib
 
 from pandas.core.daterange import DateRange
 import pandas.core.datetools as datetools
@@ -39,8 +41,19 @@ def _skip_if_no_pytz():
     except ImportError:
         raise nose.SkipTest("pytz not installed")
 
+def _skip_if_no_dateutil():
+    try:
+        import dateutil
+    except ImportError:
+        raise nose.SkipTest
+
 try:
     import pytz
+except ImportError:
+    pass
+
+try:
+    import dateutil
 except ImportError:
     pass
 
@@ -957,6 +970,201 @@ class TestTimeZones(unittest.TestCase):
         dates = date_range('2012-11-01', periods=3, tz='US/Pacific')
         offset = dates + offsets.Hour(5)
         self.assertEqual(dates[0] + offsets.Hour(5), offset[0])
+
+class TestPytzDateutilTimeZones(unittest.TestCase):
+    _multiprocess_can_split_ = True
+    FINANCIAL_TIMEZONE_NAMES = (
+        'Africa/Johannesburg',
+        'America/New_York', 'America/Chicago', 'America/Los_Angeles',
+        'Asia/Bangkok', 'Asia/Hong_Kong', 'Asia/Shanghai', 'Asia/Tokyo',
+        'Australia/Sydney',
+        'Europe/Berlin', 'Europe/London', 'Europe/Zurich',
+        'GMT', 'UTC',
+    )
+
+    def setUp(self):
+        _skip_if_no_pytz()
+        _skip_if_no_dateutil()
+        
+    def _gen_financial_timezone_pairs(self):
+        for pair in itertools.permutations(self.FINANCIAL_TIMEZONE_NAMES, 2):
+            yield pair
+            
+    def _assert_two_values_same_attributes(self, a, b, attrs):
+        for attr in attrs:
+            tm.assert_attr_equal(attr, a, b)
+            
+    def _assert_two_timestamp_values_same(self, a, b):
+        self._assert_two_values_same_attributes(a, b, \
+                    ('year', 'month', 'day', 'hour', 'minute', 'second', 'microsecond', 'nanosecond'))
+
+    def _assert_two_datetime_values_same(self, a, b):
+        self._assert_two_values_same_attributes(a, b, \
+                    ('year', 'month', 'day', 'hour', 'minute', 'second', 'microsecond'))
+        
+    def _clear_tslib_cache(self):
+        tslib.trans_cache = {}
+        tslib.utc_offset_cache = {}
+
+    def test_timestamp_tz_as_str(self):
+        """TestPytzDateutilTimeZones: Single date with default time zone, pytz and dateutil."""
+        ts = Timestamp('3/11/2012 04:00', tz='US/Eastern')
+        exp_pytz = Timestamp('3/11/2012 04:00', tz=pytz.timezone('US/Eastern'))
+        exp_du = Timestamp('3/11/2012 04:00', tz=dateutil.tz.gettz('US/Eastern'))
+        self.assertEquals(ts, exp_pytz)
+        self._assert_two_timestamp_values_same(ts, exp_pytz)
+        self.assertEquals(ts, exp_du)
+        self._assert_two_timestamp_values_same(ts, exp_du)
+        
+    def test_timestamp_tz_conversion(self):
+        """TestPytzDateutilTimeZones: Single date time zone conversion with pytz and dateutil."""
+        ts_base = Timestamp('3/11/2012 04:00', tz='US/Eastern')
+        ts_pytz = ts_base.astimezone(pytz.timezone('Europe/Moscow'))
+        ts_du = ts_base.astimezone(dateutil.tz.gettz('Europe/Moscow'))
+        self._assert_two_timestamp_values_same(ts_pytz, ts_du)
+
+    def test_eastern_london_large_year_range_jan_june(self):
+        """TestPytzDateutilTimeZones: Matches Eastern->London->Eastern Jan and Jun 1st for 1970-2049."""
+        for yr, mo in itertools.product(range(1970, 2050), (1, 6)):
+            # US->Europe
+            ts_base = Timestamp(datetime(yr, mo, 1, 12, 0), tz=pytz.timezone('US/Eastern'))
+            ts_pytz = ts_base.astimezone(pytz.timezone('Europe/London'))
+            ts_du = ts_base.astimezone(dateutil.tz.gettz('Europe/London'))
+            self._assert_two_timestamp_values_same(ts_pytz, ts_du)
+            # Europe->US
+            ts_base = Timestamp(datetime(yr, mo, 1, 12, 0), tz=pytz.timezone('Europe/London'))
+            ts_pytz = ts_base.astimezone(pytz.timezone('US/Eastern'))
+            ts_du = ts_base.astimezone(dateutil.tz.gettz('US/Eastern'))
+            self._assert_two_timestamp_values_same(ts_pytz, ts_du)
+
+    def test_eastern_london_every_day_2012_2013(self):
+        """TestPytzDateutilTimeZones: Matches for Eastern->London->Eastern daily for two years (one a leap year)."""
+        # 2012 is a leap year
+        for yr, mo, dy in itertools.product((2012, 2013), range(1, 13), range(1, 32)):
+            # US->Europe
+            try:
+                ts_base = Timestamp(datetime(yr, mo, dy, 12, 0), tz=pytz.timezone('US/Eastern'))
+            except ValueError:
+                continue
+            ts_pytz = ts_base.astimezone(pytz.timezone('Europe/London'))
+            ts_du = ts_base.astimezone(dateutil.tz.gettz('Europe/London'))
+            self._assert_two_timestamp_values_same(ts_pytz, ts_du)
+            # Europe->US
+            ts_base = Timestamp(datetime(yr, mo, dy, 12, 0), tz=pytz.timezone('Europe/London'))
+            ts_pytz = ts_base.astimezone(pytz.timezone('US/Eastern'))
+            ts_du = ts_base.astimezone(dateutil.tz.gettz('US/Eastern'))
+            self._assert_two_timestamp_values_same(ts_pytz, ts_du)
+            
+    def test_common_financial_timezones(self):
+        """TestPytzDateutilTimeZones: Permutations of time zones for major financial centres, midday, first day of each month, 2013."""
+        self._clear_tslib_cache()
+        for mo in range(1, 12):
+            for tz_from, tz_to in self._gen_financial_timezone_pairs():
+                ts_base = Timestamp(datetime(2013, mo, 1, 12, 0), tz=tz_from)
+                ts_pytz = ts_base.astimezone(pytz.timezone(tz_to))
+                ts_du = ts_base.astimezone(dateutil.tz.gettz(tz_to))
+                self._assert_two_timestamp_values_same(ts_pytz, ts_du)
+            
+    def test_common_financial_timezones_dateutil_loaded_first(self):
+        """TestPytzDateutilTimeZones: Permutations of time zones for major financial centres, midday, first day of each month, 2013. dateutil timezones loaded first"""
+        self._clear_tslib_cache()
+        for mo in range(1, 12):
+            for tz_from, tz_to in self._gen_financial_timezone_pairs():
+                ts_base = Timestamp(datetime(2013, mo, 1, 12, 0), tz=tz_from)
+                ts_du = ts_base.astimezone(dateutil.tz.gettz(tz_to))
+                ts_pytz = ts_base.astimezone(pytz.timezone(tz_to))
+                self._assert_two_timestamp_values_same(ts_pytz, ts_du)
+            
+    def test_conflict_dst_start_US_Eastern(self):
+        """TestPytzDateutilTimeZones: Demonstrate that libraries disagree about start of DST, US/Eastern 2012."""
+        #   tstamp 2012-03-11 02:00:00
+        #    pytz: 2012-03-11 02:00:00-05:00  UTC offset -1 day, 19:00:00  UTC time: 07:00:00
+        #dateutil: 2012-03-11 02:00:00-04:00  UTC offset -1 day, 20:00:00  UTC time: 06:00:00
+        tstamp = datetime(2012, 3, 11, 2, 0)
+        tz_name = 'US/Eastern'
+        ts_pytz = pytz.timezone(tz_name).localize(tstamp)
+        ts_du = tstamp.replace(tzinfo=dateutil.tz.gettz(tz_name))
+        self.assertEqual(str(ts_pytz), '2012-03-11 02:00:00-05:00')
+        self.assertEqual(str(ts_du),   '2012-03-11 02:00:00-04:00')
+        self._assert_two_datetime_values_same(ts_pytz, ts_du)
+        self.assertNotEqual(ts_pytz.utcoffset(), ts_du.utcoffset())
+        self.assertNotEqual(
+            str(ts_pytz.astimezone(pytz.timezone('UTC'))),
+            str(ts_du.astimezone(dateutil.tz.tzutc())),
+        )
+
+    def test_conflict_dst_start_UK(self):
+        """TestPytzDateutilTimeZones: Demonstrate that libraries disagree about start of DST, Europe/London 2013."""
+        #   tstamp 2013-03-31 01:00:00
+        #    pytz: 2013-03-31 01:00:00+00:00  UTC offset 0:00:00  UTC time: 01:00:00
+        #dateutil: 2013-03-31 01:00:00+01:00  UTC offset 1:00:00  UTC time: 00:00:00
+        tstamp = datetime(2013, 3, 31, 1, 0)
+        tz_name = 'Europe/London'
+        ts_pytz = pytz.timezone(tz_name).localize(tstamp)
+        ts_du = tstamp.replace(tzinfo=dateutil.tz.gettz(tz_name))
+        self.assertEqual(str(ts_pytz), '2013-03-31 01:00:00+00:00')
+        self.assertEqual(str(ts_du),   '2013-03-31 01:00:00+01:00')
+        self._assert_two_datetime_values_same(ts_pytz, ts_du)
+        self.assertNotEqual(ts_pytz.utcoffset(), ts_du.utcoffset())
+        self.assertNotEqual(
+            str(ts_pytz.astimezone(pytz.timezone('UTC'))),
+            str(ts_du.astimezone(dateutil.tz.tzutc())),
+        )
+
+    def test_date_range_us_pacific_weekly(self):
+        """TestPytzDateutilTimeZones: Test a date_range weekly US/Pacific through 2012."""
+        range_pytz = date_range('2012-01-01 12:00', periods=52, freq='W', tz=pytz.timezone('US/Pacific'))
+        range_du = date_range('2012-01-01 12:00', periods=52, freq='W', tz=dateutil.tz.gettz('US/Pacific'))
+        for a, b in zip(range_pytz, range_du):
+            self.assertEquals(a, b)
+
+    def test_series_us_eastern(self):
+        """TestPytzDateutilTimeZones: Test a Series with a timestamp index, US/Eastern Time across start DST 2012."""
+        rng = date_range('3/9/2012 12:00', periods=5, freq='D')
+        ts = Series(np.random.randn(len(rng)), rng)
+        # Localize to UTC and convert to Eastern time with default timezone library 
+        ts_utc = ts.tz_localize('UTC')
+        ser_std = ts_utc.tz_convert('US/Eastern')
+        # Convert to Eastern time specifically with pytz
+        ser_pytz = ts_utc.tz_convert(pytz.timezone('US/Eastern'))
+        # Now with dateutil
+        ser_du = ts_utc.tz_convert(dateutil.tz.gettz('US/Eastern'))
+        # Check the indicies, firstly Timestamps
+        for s, p, d in zip(ser_std.index, ser_pytz.index, ser_du.index):
+            self.assertEquals(s, p)
+            self.assertEquals(s, d)
+            self.assertEquals(p, d)
+        # assert_series_equal(ser_pytz, ser_du) fails as ser_pytz.tz != ser_du.tz
+        self.assertTrue(np.array_equal(ser_du.index.asi8, ser_pytz.index.asi8))
+        self.assertNotEqual(ser_pytz.index.tz, ser_du.index.tz)
+        
+    def test_series_subtract_pytz_dateutil(self):
+        """TestPytzDateutilTimeZones: Create two series of Timestamps 15:00 US/Pacific from pytz and 12:00 US/Eastern from dateutil and subtract them.""" 
+        dr_pytz = date_range('2012-06-15 12:00', periods=5, freq='D').tz_localize(pytz.timezone('US/Pacific'))
+        dr_du   = date_range('2012-06-15 15:00', periods=5, freq='D').tz_localize(dateutil.tz.gettz('US/Eastern'))
+        ts_pytz = Series(dr_pytz, range(5))
+        ts_du = Series(dr_du, range(5))
+        diff = ts_pytz - ts_du
+        # Should be 0 hours apart
+        exp = Series(np.zeros((5,), dtype='m8[ns]'), range(5))
+        self.assertEquals(diff.dtype, np.dtype('m8[ns]'))
+        tm.assert_series_equal(diff, exp)
+        # Check reverse
+        diff = ts_du - ts_pytz
+        self.assertEquals(diff.dtype, np.dtype('m8[ns]'))
+        tm.assert_series_equal(diff, exp)
+        
+    def test_common_financial_timezones_timedelta_zero(self):
+        """TestPytzDateutilTimeZones: Time zones for major financial centres in pytz and dateutil subtract to zero."""
+        self._clear_tslib_cache()
+        for mo in range(1, 12):
+            for tz_from, tz_to in self._gen_financial_timezone_pairs():
+                ts_base = Timestamp(datetime(2013, mo, 1, 12, 0), tz=tz_from)
+                ts_pytz = ts_base.astimezone(pytz.timezone(tz_to))
+                ts_du = ts_base.astimezone(dateutil.tz.gettz(tz_to))
+                diff = ts_pytz - ts_du
+                self.assertTrue(isinstance(diff, timedelta))
+                self.assertEqual(diff, timedelta(0), 'From: %s to: %s' % (tz_from, tz_to))
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
