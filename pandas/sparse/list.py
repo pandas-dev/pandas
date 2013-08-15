@@ -7,6 +7,7 @@ import pandas._sparse as splib
 
 
 class SparseList(PandasObject):
+
     """
     Data structure for accumulating data to be converted into a
     SparseArray. Has similar API to the standard Python list
@@ -16,6 +17,7 @@ class SparseList(PandasObject):
     data : scalar or array-like
     fill_value : scalar, default NaN
     """
+
     def __init__(self, data=None, fill_value=np.nan):
         self.fill_value = fill_value
         self._chunks = []

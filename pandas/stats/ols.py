@@ -65,14 +65,14 @@ class OLS(StringMixin):
         if self._weights is not None:
             self._x_trans = self._x.mul(np.sqrt(self._weights), axis=0)
             self._y_trans = self._y * np.sqrt(self._weights)
-            self.sm_ols = sm.WLS(self._y.values,
-                                 self._x.values,
+            self.sm_ols = sm.WLS(self._y.get_values(),
+                                 self._x.get_values(),
                                  weights=self._weights.values).fit()
         else:
             self._x_trans = self._x
             self._y_trans = self._y
-            self.sm_ols = sm.OLS(self._y.values,
-                                 self._x.values).fit()
+            self.sm_ols = sm.OLS(self._y.get_values(),
+                                 self._x.get_values()).fit()
 
     def _prepare_data(self):
         """
@@ -96,6 +96,9 @@ class OLS(StringMixin):
         if self._intercept:
             filt_rhs['intercept'] = 1.
             pre_filt_rhs['intercept'] = 1.
+
+        if hasattr(filt_weights,'to_dense'):
+            filt_weights = filt_weights.to_dense()
 
         return (filt_lhs, filt_rhs, filt_weights,
                 pre_filt_rhs, index, valid)
@@ -1301,8 +1304,11 @@ def _filter_data(lhs, rhs, weights=None):
     filt_lhs = combined.pop('__y__')
     filt_rhs = combined
 
-    return (filt_lhs, filt_rhs, filt_weights,
-            pre_filt_rhs, index, valid)
+    if hasattr(filt_weights,'to_dense'):
+        filt_weights = filt_weights.to_dense()
+
+    return (filt_lhs.to_dense(), filt_rhs.to_dense(), filt_weights,
+            pre_filt_rhs.to_dense(), index, valid)
 
 
 def _combine_rhs(rhs):

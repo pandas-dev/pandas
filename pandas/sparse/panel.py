@@ -16,6 +16,7 @@ from pandas.sparse.frame import SparseDataFrame
 from pandas.util.decorators import deprecate
 
 import pandas.core.common as com
+import pandas.core.ops as ops
 
 
 class SparsePanelAxis(object):
@@ -40,6 +41,7 @@ class SparsePanelAxis(object):
 
 
 class SparsePanel(Panel):
+
     """
     Sparse version of Panel
 
@@ -60,9 +62,12 @@ class SparsePanel(Panel):
     -----
     """
     ndim = 3
+    _typ = 'panel'
+    _subtyp = 'sparse_panel'
 
     def __init__(self, frames, items=None, major_axis=None, minor_axis=None,
-                 default_fill_value=np.nan, default_kind='block'):
+                 default_fill_value=np.nan, default_kind='block',
+                 copy=False):
         if isinstance(frames, np.ndarray):
             new_frames = {}
             for item, vals in zip(items, frames):
@@ -129,6 +134,9 @@ class SparsePanel(Panel):
         """
         return Panel(self.values, self.items, self.major_axis,
                      self.minor_axis)
+
+    def as_matrix(self):
+        return self.values
 
     @property
     def values(self):
@@ -328,7 +336,7 @@ class SparsePanel(Panel):
                     new_frames[item] = self._frames[item]
                 else:
                     raise NotImplementedError('Reindexing with new items not yet '
-                                    'supported')
+                                              'supported')
         else:
             new_frames = self._frames
 
@@ -448,6 +456,19 @@ class SparsePanel(Panel):
                                default_fill_value=self.default_fill_value,
                                default_kind=self.default_kind)
 
+    # TODO: allow SparsePanel to work with flex arithmetic.
+    # pow and mod only work for scalars for now
+    def pow(self, val, *args, **kwargs):
+        """wrapper around `__pow__` (only works for scalar values)"""
+        return self.__pow__(val)
+
+    def mod(self, val, *args, **kwargs):
+        """wrapper around `__mod__` (only works for scalar values"""
+        return self.__mod__(val)
+
+# Sparse objects opt out of numexpr
+SparsePanel._add_aggregate_operations(use_numexpr=False)
+ops.add_special_arithmetic_methods(SparsePanel, use_numexpr=False, **ops.panel_special_funcs)
 SparseWidePanel = SparsePanel
 
 

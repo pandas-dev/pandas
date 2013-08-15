@@ -1387,11 +1387,13 @@ ISITERABLE:
       return;
     }
 
+    pc->newObj = PyObject_GetAttrString(obj, "values");
+
     if (enc->outputFormat == INDEX || enc->outputFormat == COLUMNS)
     {
       PRINTMARK();
       tc->type = JT_OBJECT;
-      pc->columnLabelsLen = PyArray_SIZE(obj);
+      pc->columnLabelsLen = PyArray_DIM(pc->newObj, 0);
       pc->columnLabels = NpyArr_encodeLabels((PyArrayObject*) PyObject_GetAttrString(obj, "index"), (JSONObjectEncoder*) enc, pc->columnLabelsLen);
       if (!pc->columnLabels)
       {
@@ -1403,7 +1405,6 @@ ISITERABLE:
       PRINTMARK();
       tc->type = JT_ARRAY;
     }
-    pc->newObj = PyObject_GetAttrString(obj, "values");
     pc->iterBegin = NpyArr_iterBegin;
     pc->iterEnd = NpyArr_iterEnd;
     pc->iterNext = NpyArr_iterNext;

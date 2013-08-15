@@ -478,7 +478,7 @@ maximum value for each column occurred:
 
    tsdf = DataFrame(randn(1000, 3), columns=['A', 'B', 'C'],
                     index=date_range('1/1/2000', periods=1000))
-   tsdf.apply(lambda x: x.index[x.dropna().argmax()])
+   tsdf.apply(lambda x: x[x.idxmax()])
 
 You may also pass additional arguments and keyword arguments to the ``apply``
 method. For instance, consider the following function you would like to apply:

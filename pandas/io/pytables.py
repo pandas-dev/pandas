@@ -1430,7 +1430,7 @@ class DataCol(IndexCol):
 
     def set_atom_string(self, block, existing_col, min_itemsize, nan_rep, encoding):
         # fill nan items with myself
-        block = block.fillna(nan_rep)
+        block = block.fillna(nan_rep)[0]
         data  = block.values
 
         # see if we have a valid string type
@@ -2673,7 +2673,9 @@ class Table(Storer):
 
         # reindex by our non_index_axes & compute data_columns
         for a in self.non_index_axes:
-            obj = obj.reindex_axis(a[1], axis=a[0])
+            labels = _ensure_index(a[1])
+            if not labels.equals(obj._get_axis(a[0])):
+                obj = obj.reindex_axis(labels, axis=a[0])
 
         # figure out data_columns and get out blocks
         block_obj = self.get_object(obj).consolidate()
@@ -2759,7 +2761,9 @@ class Table(Storer):
         for axis, labels in self.non_index_axes:
             if columns is not None:
                 labels = Index(labels) & Index(columns)
-            obj = obj.reindex_axis(labels, axis=axis)
+            labels = _ensure_index(labels)
+            if not labels.equals(obj._get_axis(axis)):
+                obj = obj.reindex_axis(labels, axis=axis)
 
         # apply the selection filters (but keep in the same order)
         if self.selection.filter:

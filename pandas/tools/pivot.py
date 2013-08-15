@@ -291,7 +291,7 @@ def _generate_marginal_results_without_values(table, data, rows, cols, aggfunc):
 def _convert_by(by):
     if by is None:
         by = []
-    elif (np.isscalar(by) or isinstance(by, np.ndarray)
+    elif (np.isscalar(by) or isinstance(by, (np.ndarray, Series))
           or hasattr(by, '__call__')):
         by = [by]
     else:

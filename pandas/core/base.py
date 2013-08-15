@@ -3,16 +3,24 @@ Base and utility classes for pandas objects.
 """
 from pandas import compat
 import numpy as np
+from pandas.core import common as com
 
 class StringMixin(object):
     """implements string methods so long as object defines a `__unicode__` method.
     Handles Python2/3 compatibility transparently."""
     # side note - this could be made into a metaclass if more than one object nees
+
+    #----------------------------------------------------------------------
+    # Formatting
+
+    def __unicode__(self):
+        raise NotImplementedError
+
     def __str__(self):
         """
-        Return a string representation for a particular object.
+        Return a string representation for a particular Object
 
-        Invoked by str(obj) in both py2/py3.
+        Invoked by str(df) in both py2/py3.
         Yields Bytestring in Py2, Unicode String in py3.
         """
 

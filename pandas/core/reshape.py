@@ -343,7 +343,7 @@ def pivot(self, index=None, columns=None, values=None):
         return indexed.unstack(columns)
     else:
         indexed = Series(self[values].values,
-                         index=[self[index], self[columns]])
+                         index=MultiIndex.from_arrays([self[index], self[columns]]))
         return indexed.unstack(columns)
 
 
