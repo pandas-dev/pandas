@@ -2233,6 +2233,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         ops = ['__mul__','__floordiv__','__pow__']
         run_ops(ops, td1, td2)
         td1 + td2
+        td2 + td1
         td1 - td2
 
         ### datetime64 ###
