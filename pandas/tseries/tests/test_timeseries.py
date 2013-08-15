@@ -1859,6 +1859,15 @@ class TestDatetimeIndex(unittest.TestCase):
         exp = DatetimeIndex(sorted(set(list(left)) | set(list(right))))
         self.assert_(result.equals(exp))
 
+    def test_union_bug_4564(self):
+        from pandas import DateOffset
+        left = date_range("2013-01-01", "2013-02-01")
+        right = left + DateOffset(minutes=15)
+
+        result = left.union(right)
+        exp = DatetimeIndex(sorted(set(list(left)) | set(list(right))))
+        self.assert_(result.equals(exp))
+
     def test_intersection_bug_1708(self):
         from pandas import DateOffset
         index_1 = date_range('1/1/2012', periods=4, freq='12H')
