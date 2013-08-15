@@ -117,31 +117,32 @@ pandas 0.13
 
 **Internal Refactoring**
 
-.. _release.refactoring_0_13_0:
-
 In 0.13.0 there is a major refactor primarily to subclass ``Series`` from ``NDFrame``,
 which is the base class currently for ``DataFrame`` and ``Panel``, to unify methods
-and behaviors. Series formerly subclassed directly from ``ndarray``. (:issue:`4080`,:issue:`3862`,:issue:`816`)
+and behaviors. Series formerly subclassed directly from ``ndarray``. (:issue:`4080`, :issue:`3862`, :issue:`816`)
+See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
 
 - Refactor of series.py/frame.py/panel.py to move common code to generic.py
-  - added _setup_axes to created generic NDFrame structures
+
+  - added ``_setup_axes`` to created generic NDFrame structures
   - moved methods
 
-    - from_axes,_wrap_array,axes,ix,loc,iloc,shape,empty,swapaxes,transpose,pop
-    - __iter__,keys,__contains__,__len__,__neg__,__invert__
-    - convert_objects,as_blocks,as_matrix,values
-    - __getstate__,__setstate__ (though compat remains in frame/panel)
-    - __getattr__,__setattr__
-    - _indexed_same,reindex_like,reindex,align,where,mask
-    - fillna,replace
-    - filter (also added axis argument to selectively filter on a different axis)
-    - reindex,reindex_axis (which was the biggest change to make generic)
-    - truncate (moved to become part of ``NDFrame``)
+    - ``from_axes,_wrap_array,axes,ix,loc,iloc,shape,empty,swapaxes,transpose,pop``
+    - ``__iter__,keys,__contains__,__len__,__neg__,__invert__``
+    - ``convert_objects,as_blocks,as_matrix,values``
+    - ``__getstate__,__setstate__`` (compat remains in frame/panel)
+    - ``__getattr__,__setattr__``
+    - ``_indexed_same,reindex_like,align,where,mask``
+    - ``fillna,replace`` (``Series`` replace is now consistent with ``DataFrame``)
+    - ``filter`` (also added axis argument to selectively filter on a different axis)
+    - ``reindex,reindex_axis`` (which was the biggest change to make generic)
+    - ``truncate`` (moved to become part of ``NDFrame``)
 
 - These are API changes which make ``Panel`` more consistent with ``DataFrame``
-  - swapaxes on a Panel with the same axes specified now return a copy
+
+  - ``swapaxes`` on a ``Panel`` with the same axes specified now return a copy
   - support attribute access for setting
-  - filter supports same api as original DataFrame filter
+  - filter supports same api as original ``DataFrame`` filter
 
 - Reindex called with no arguments will now return a copy of the input object
 
@@ -149,11 +150,9 @@ and behaviors. Series formerly subclassed directly from ``ndarray``. (:issue:`40
   There are several minor changes that affect the API.
 
   - numpy functions that do not support the array interface will now
-    return ``ndarrays`` rather than series, e.g. ``np.diff`` and ``np.where``
+    return ``ndarrays`` rather than series, e.g. ``np.diff`` and ``np.ones_like``
   - ``Series(0.5)`` would previously return the scalar ``0.5``, this is no
     longer supported
-  - several methods from frame/series have moved to ``NDFrame``
-    (convert_objects,where,mask)
   - ``TimeSeries`` is now an alias for ``Series``. the property ``is_time_series``
     can be used to distinguish (if desired)
 

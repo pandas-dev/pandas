@@ -1456,8 +1456,8 @@ ISITERABLE:
     {
       PRINTMARK();
       tc->type = JT_OBJECT;
-      pc->columnLabelsLen = PyArray_SIZE(obj);
-      pc->columnLabels = NpyArr_encodeLabels((PyArrayObject*) PyObject_GetAttrString(PyObject_GetAttrString(obj, "index"), "values"), (JSONObjectEncoder*) enc, pc->columnLabelsLen);
+      pc->columnLabelsLen = PyArray_DIM(pc->newObj, 0);
+      pc->columnLabels = NpyArr_encodeLabels((PyArrayObject*) PyObject_GetAttrString(obj, "index"), (JSONObjectEncoder*) enc, pc->columnLabelsLen);
       if (!pc->columnLabels)
       {
         goto INVALID;

@@ -536,51 +536,11 @@ class NDFrame(PandasObject):
     #----------------------------------------------------------------------
     # IO
 
-    def to_pickle(self, path):
-        """
-        Pickle (serialize) object to input file path
-
-        Parameters
-        ----------
-        path : string
-            File path
-        """
-        from pandas.io.pickle import to_pickle
-        return to_pickle(self, path)
-
-    def save(self, path):  # TODO remove in 0.13
-        import warnings
-        from pandas.io.pickle import to_pickle
-        warnings.warn("save is deprecated, use to_pickle", FutureWarning)
-        return to_pickle(self, path)
-
-    def load(self, path):  # TODO remove in 0.13
-        import warnings
-        from pandas.io.pickle import read_pickle
-        warnings.warn("load is deprecated, use pd.read_pickle", FutureWarning)
-        return read_pickle(path)
-
-    def to_hdf(self, path_or_buf, key, **kwargs):
-        """ activate the HDFStore """
-        from pandas.io import pytables
-        return pytables.to_hdf(path_or_buf, key, self, **kwargs)
-
-    def to_clipboard(self):
-        """
-        Attempt to write text representation of object to the system clipboard
-
-        Notes
-        -----
-        Requirements for your platform
-          - Linux: xclip, or xsel (with gtk or PyQt4 modules)
-          - Windows:
-          - OS X:
-        """
-        from pandas.io import clipboard
-        clipboard.to_clipboard(self)
+    #----------------------------------------------------------------------
+    # I/O Methods
 
     def to_json(self, path_or_buf=None, orient=None, date_format='epoch',
-                double_precision=10, force_ascii=True):
+                double_precision=10, force_ascii=True, date_unit='ms'):
         """
         Convert the object to a JSON string.
 
@@ -616,18 +576,96 @@ class NDFrame(PandasObject):
         double_precision : The number of decimal places to use when encoding
             floating point values, default 10.
         force_ascii : force encoded string to be ASCII, default True.
+        date_unit : string, default 'ms' (milliseconds)
+            The time unit to encode to, governs timestamp and ISO8601
+            precision.  One of 's', 'ms', 'us', 'ns' for second, millisecond,
+            microsecond, and nanosecond respectively.
 
         Returns
         -------
-        result : a JSON compatible string written to the path_or_buf;
-                 if the path_or_buf is none, return a StringIO of the result
+        same type as input object with filtered info axis
 
         """
 
         from pandas.io import json
         return json.to_json(
-            path_or_buf=path_or_buf, obj=self, orient=orient, date_format=date_format,
-            double_precision=double_precision, force_ascii=force_ascii)
+            path_or_buf=path_or_buf,
+            obj=self, orient=orient,
+            date_format=date_format,
+            double_precision=double_precision,
+            force_ascii=force_ascii,
+            date_unit=date_unit)
+
+    def to_hdf(self, path_or_buf, key, **kwargs):
+        """ activate the HDFStore
+
+        Parameters
+        ----------
+        path_or_buf : the path (string) or buffer to put the store
+        key : string, an indentifier for the group in the store
+        mode : optional, {'a', 'w', 'r', 'r+'}, default 'a'
+
+          ``'r'``
+              Read-only; no data can be modified.
+          ``'w'``
+              Write; a new file is created (an existing file with the same
+              name would be deleted).
+          ``'a'``
+              Append; an existing file is opened for reading and writing,
+              and if the file does not exist it is created.
+          ``'r+'``
+              It is similar to ``'a'``, but the file must already exist.
+        complevel : int, 1-9, default 0
+            If a complib is specified compression will be applied
+            where possible
+        complib : {'zlib', 'bzip2', 'lzo', 'blosc', None}, default None
+            If complevel is > 0 apply compression to objects written
+            in the store wherever possible
+        fletcher32 : bool, default False
+            If applying compression use the fletcher32 checksum
+
+        """
+
+        from pandas.io import pytables
+        return pytables.to_hdf(path_or_buf, key, self, **kwargs)
+
+    def to_pickle(self, path):
+        """
+        Pickle (serialize) object to input file path
+
+        Parameters
+        ----------
+        path : string
+            File path
+        """
+        from pandas.io.pickle import to_pickle
+        return to_pickle(self, path)
+
+    def save(self, path):  # TODO remove in 0.13
+        import warnings
+        from pandas.io.pickle import to_pickle
+        warnings.warn("save is deprecated, use to_pickle", FutureWarning)
+        return to_pickle(self, path)
+
+    def load(self, path):  # TODO remove in 0.13
+        import warnings
+        from pandas.io.pickle import read_pickle
+        warnings.warn("load is deprecated, use pd.read_pickle", FutureWarning)
+        return read_pickle(path)
+
+    def to_clipboard(self):
+        """
+        Attempt to write text representation of object to the system clipboard
+
+        Notes
+        -----
+        Requirements for your platform
+          - Linux: xclip, or xsel (with gtk or PyQt4 modules)
+          - Windows:
+          - OS X:
+        """
+        from pandas.io import clipboard
+        clipboard.to_clipboard(self)
 
     #----------------------------------------------------------------------
     # Fancy Indexing
@@ -2541,77 +2579,6 @@ class NDFrame(PandasObject):
             self._clear_item_cache()
 
         return new_obj
-
-    #----------------------------------------------------------------------
-    # I/O Methods
-
-    def to_json(self, path_or_buf=None, orient=None, date_format='epoch',
-                double_precision=10, force_ascii=True, date_unit='ms'):
-        """
-        Parameters
-        ----------
-        columns : array-like
-            Specific column order
-        date_format : string, default 'epoch'
-            type of date conversion, 'epoch' for timestamp, 'iso' for ISO8601
-        double_precision : The number of decimal places to use when encoding
-            floating point values, default 10.
-        force_ascii : force encoded string to be ASCII, default True.
-        date_unit : string, default 'ms' (milliseconds)
-            The time unit to encode to, governs timestamp and ISO8601
-            precision.  One of 's', 'ms', 'us', 'ns' for second, millisecond,
-            microsecond, and nanosecond respectively.
-
-        Returns
-        -------
-        same type as input object with filtered info axis
-
-        """
-
-        from pandas.io import json
-        return json.to_json(
-            path_or_buf=path_or_buf,
-            obj=self, orient=orient,
-            date_format=date_format,
-            double_precision=double_precision,
-            force_ascii=force_ascii,
-            date_unit=date_unit)
-
-    def to_hdf(self, path_or_buf, key, **kwargs):
-        """ activate the HDFStore
-
-        Parameters
-        ----------
-        path_or_buf: the path or buffer to put the store
-        key: string, an indentifier for the group in the store
-
-        """
-
-        from pandas.io import pytables
-        return pytables.to_hdf(path_or_buf, key, self, **kwargs)
-
-    def to_pickle(self, path):
-        """
-        Pickle (serialize) object to input file path
-
-        Parameters
-        ----------
-        path : string
-            File path
-        """
-
-        from pandas.io.pickle import to_pickle
-        return to_pickle(self, path)
-
-    def save(self, path):  # TODO remove in 0.13
-        from pandas.io.pickle import to_pickle
-        warnings.warn("save is deprecated, use to_pickle", FutureWarning)
-        return to_pickle(self, path)
-
-    def load(self, path):  # TODO remove in 0.13
-        from pandas.io.pickle import read_pickle
-        warnings.warn("load is deprecated, use pd.read_pickle", FutureWarning)
-        return read_pickle(path)
 
 # install the indexerse
 for _name, _indexer in indexing.get_indexers_list():

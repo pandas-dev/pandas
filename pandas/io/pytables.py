@@ -206,7 +206,29 @@ def to_hdf(path_or_buf, key, value, mode=None, complevel=None, complib=None, app
         f(path_or_buf)
 
 def read_hdf(path_or_buf, key, **kwargs):
-    """ read from the store, closeit if we opened it """
+    """ read from the store, closeit if we opened it
+
+        Retrieve pandas object stored in file, optionally based on where
+        criteria
+
+        Parameters
+        ----------
+        path_or_buf : path (string), or buffer to read from
+        key : group identifier in the store
+        where : list of Term (or convertable) objects, optional
+        start : optional, integer (defaults to None), row number to start selection
+        stop  : optional, integer (defaults to None), row number to stop selection
+        columns : optional, a list of columns that if not None, will limit the return columns
+        iterator : optional, boolean, return an iterator, default False
+        chunksize : optional, nrows to include in iteration, return an iterator
+        auto_close : optional, boolean, should automatically close the store when finished, default is False
+
+        Returns
+        -------
+        The selected object
+
+        """
+
     f = lambda store, auto_close: store.select(key, auto_close=auto_close, **kwargs)
 
     if isinstance(path_or_buf, compat.string_types):
@@ -467,6 +489,10 @@ class HDFStore(StringMixin):
         iterator : boolean, return an iterator, default False
         chunksize : nrows to include in iteration, return an iterator
         auto_close : boolean, should automatically close the store when finished, default is False
+
+        Returns
+        -------
+        The selected object
 
         """
         group = self.get_node(key)

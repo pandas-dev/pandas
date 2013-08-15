@@ -6,6 +6,12 @@ v0.13.0 (August ??, 2013)
 This is a major release from 0.12.0 and includes several new features and
 enhancements along with a large number of bug fixes.
 
+.. warning::
+
+   In 0.13.0 ``Series`` has internaly been refactored to no longer sub-class ``ndarray``
+   but instead subclass ``NDFrame``, similarly to the rest of the pandas containers. This should be
+   a transparent change with only very limited API implications. See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
+
 API changes
 ~~~~~~~~~~~
 
@@ -134,32 +140,61 @@ Enhancements
          from pandas import offsets
          td + offsets.Minute(5) + offsets.Milli(5)
 
+.. _whatsnew_0130.refactoring:
+
 Internal Refactoring
 ~~~~~~~~~~~~~~~~~~~~
 
 In 0.13.0 there is a major refactor primarily to subclass ``Series`` from ``NDFrame``,
 which is the base class currently for ``DataFrame`` and ``Panel``, to unify methods
-and behaviors. Series formerly subclassed directly from ``ndarray``. (:issue:`4080`,:issue:`3862`,:issue:`816`)
+and behaviors. Series formerly subclassed directly from ``ndarray``. (:issue:`4080`, :issue:`3862`, :issue:`816`)
+
+.. warning::
+
+   There are two potential incompatibilities from < 0.13.0
+
+   - Using certain numpy functions would previously return a ``Series`` if passed a ``Series``
+     as an argument. This seems only to affect ``np.ones_like``, ``np.empty_like``, and
+     ``np.diff``. These now return ``ndarrays``.
+
+     .. ipython:: python
+
+        s = Series([1,2,3,4])
+
+        # numpy usage
+        np.ones_like(s)
+        np.diff(s)
+
+        # pandonic usage
+        Series(1,index=s.index)
+        s.diff()
+
+   - Passing a ``Series`` directly to a cython function expecting an ``ndarray`` type will no
+     long work directly, you must pass ``Series.values``, See :ref:`Enhancing Performance<enhancingperf.ndarray>`
+
+   - ``Series(0.5)`` would previously return the scalar ``0.5``, instead this will return a 1-element ``Series``
 
 - Refactor of series.py/frame.py/panel.py to move common code to generic.py
-  - added _setup_axes to created generic NDFrame structures
+
+  - added ``_setup_axes`` to created generic NDFrame structures
   - moved methods
 
-    - from_axes,_wrap_array,axes,ix,shape,empty,swapaxes,transpose,pop
-    - __iter__,keys,__contains__,__len__,__neg__,__invert__
-    - convert_objects,as_blocks,as_matrix,values
-    - __getstate__,__setstate__ (though compat remains in frame/panel)
-    - __getattr__,__setattr__
-    - _indexed_same,reindex_like,reindex,align,where,mask
-    - fillna,replace
-    - filter (also added axis argument to selectively filter on a different axis)
-    - reindex,reindex_axis (which was the biggest change to make generic)
-    - truncate (moved to become part of ``NDFrame``)
+    - ``from_axes,_wrap_array,axes,ix,loc,iloc,shape,empty,swapaxes,transpose,pop``
+    - ``__iter__,keys,__contains__,__len__,__neg__,__invert__``
+    - ``convert_objects,as_blocks,as_matrix,values``
+    - ``__getstate__,__setstate__`` (compat remains in frame/panel)
+    - ``__getattr__,__setattr__``
+    - ``_indexed_same,reindex_like,align,where,mask``
+    - ``fillna,replace`` (``Series`` replace is now consistent with ``DataFrame``)
+    - ``filter`` (also added axis argument to selectively filter on a different axis)
+    - ``reindex,reindex_axis`` (which was the biggest change to make generic)
+    - ``truncate`` (moved to become part of ``NDFrame``)
 
 - These are API changes which make ``Panel`` more consistent with ``DataFrame``
-  - swapaxes on a Panel with the same axes specified now return a copy
+
+  - ``swapaxes`` on a ``Panel`` with the same axes specified now return a copy
   - support attribute access for setting
-  - filter supports same api as original DataFrame filter
+  - filter supports same api as original ``DataFrame`` filter
 
 - Reindex called with no arguments will now return a copy of the input object
 
@@ -167,11 +202,9 @@ and behaviors. Series formerly subclassed directly from ``ndarray``. (:issue:`40
   There are several minor changes that affect the API.
 
   - numpy functions that do not support the array interface will now
-    return ``ndarrays`` rather than series, e.g. ``np.diff`` and ``np.where``
+    return ``ndarrays`` rather than series, e.g. ``np.diff`` and ``np.ones_like``
   - ``Series(0.5)`` would previously return the scalar ``0.5``, this is no
     longer supported
-  - several methods from frame/series have moved to ``NDFrame``
-    (convert_objects,where,mask)
   - ``TimeSeries`` is now an alias for ``Series``. the property ``is_time_series``
     can be used to distinguish (if desired)
 
@@ -199,7 +232,7 @@ and behaviors. Series formerly subclassed directly from ``ndarray``. (:issue:`40
 - Internal type checking is now done via a suite of generated classes, allowing ``isinstance(value, klass)``
   without having to directly import the klass, courtesy of @jtratner
 
-- Bug in Series update where the parent frame is not updating its cached based on
+- Bug in Series update where the parent frame is not updating its cache based on
   changes (:issue:`4080`) or types (:issue:`3217`), fillna (:issue:`3386`)
 
 - Indexing with dtype conversions fixed (:issue:`4463`, :issue:`4204`)

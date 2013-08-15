@@ -1233,6 +1233,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             s[mask] = [0] * 5
         self.assertRaises(ValueError, f)
 
+        # dtype changes
+        s = Series([1,2,3,4])
+        result = s.where(s>2,np.nan)
+        expected = Series([np.nan,np.nan,3,4])
+        assert_series_equal(result, expected)
+
     def test_where_broadcast(self):
         # Test a variety of differently sized series
         for size in range(2, 6):

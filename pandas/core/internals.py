@@ -745,8 +745,9 @@ class Block(PandasObject):
                     return result
 
         # see if we can operate on the entire block, or need item-by-item
+        # or if we are a single block (ndim == 1)
         result = func(cond, values, other)
-        if self._can_hold_na:
+        if self._can_hold_na or self.ndim == 1:
 
             if not isinstance(result, np.ndarray):
                 raise TypeError('Could not compare [%s] with block values'
