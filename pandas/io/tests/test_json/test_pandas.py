@@ -1,11 +1,7 @@
-
 # pylint: disable-msg=W0612,E1101
-from copy import deepcopy
-from datetime import datetime, timedelta
-from pandas.compat import range, lrange, StringIO, cPickle as pickle
+from pandas.compat import range, lrange, StringIO
 from pandas import compat
 from pandas.io.common import URLError
-import operator
 import os
 import unittest
 
@@ -37,6 +33,8 @@ _mixed_frame = _frame.copy()
 class TestPandasContainer(unittest.TestCase):
 
     def setUp(self):
+        self.dirpath = tm.get_data_path()
+
         self.ts = tm.makeTimeSeries()
         self.ts.name = 'ts'
 
@@ -119,7 +117,8 @@ class TestPandasContainer(unittest.TestCase):
                 check_dtype=False
 
             if not convert_axes and df.index.dtype.type == np.datetime64:
-                unser.index = DatetimeIndex(unser.index.values.astype('i8'))
+                unser.index = DatetimeIndex(
+                    unser.index.values.astype('i8') * 1e6)
             if orient == "records":
                 # index is not captured in this orientation
                 assert_almost_equal(df.values, unser.values)
@@ -280,6 +279,30 @@ class TestPandasContainer(unittest.TestCase):
         df = DataFrame([1, 2, 3])
         self.assertRaises(ValueError, df.to_json, orient="garbage")
 
+    def test_v12_compat(self):
+        df = DataFrame(
+            [[1.56808523,  0.65727391,  1.81021139, -0.17251653],
+             [-0.2550111, -0.08072427, -0.03202878, -0.17581665],
+             [1.51493992,  0.11805825,  1.629455, -1.31506612],
+             [-0.02765498,  0.44679743,  0.33192641, -0.27885413],
+             [0.05951614, -2.69652057,  1.28163262,  0.34703478]],
+            columns=['A', 'B', 'C', 'D'],
+            index=pd.date_range('2000-01-03', '2000-01-07'))
+        df['date'] = pd.Timestamp('19920106 18:21:32.12')
+        df.ix[3, 'date'] = pd.Timestamp('20130101')
+        df['modified'] = df['date']
+        df.ix[1, 'modified'] = pd.NaT
+
+        v12_json = os.path.join(self.dirpath, 'tsframe_v012.json')
+        df_unser = pd.read_json(v12_json)
+        df_unser = pd.read_json(v12_json)
+        assert_frame_equal(df, df_unser)
+
+        df_iso = df.drop(['modified'], axis=1)
+        v12_iso_json = os.path.join(self.dirpath, 'tsframe_iso_v012.json')
+        df_unser_iso = pd.read_json(v12_iso_json)
+        assert_frame_equal(df_iso, df_unser_iso)
+
     def test_series_non_unique_index(self):
         s = Series(['a', 'b'], index=[1, 1])
 
@@ -295,11 +318,10 @@ class TestPandasContainer(unittest.TestCase):
 
         def _check_orient(series, orient, dtype=None, numpy=False):
             series = series.sort_index()
-            unser = read_json(series.to_json(orient=orient), typ='series',
-                              orient=orient, numpy=numpy, dtype=dtype)
+            unser = read_json(series.to_json(orient=orient),
+                              typ='series', orient=orient, numpy=numpy,
+                              dtype=dtype)
             unser = unser.sort_index()
-            #if series.index.dtype.type == np.datetime64:
-            #    unser.index = DatetimeIndex(unser.index.values.astype('i8'))
             if orient == "records" or orient == "values":
                 assert_almost_equal(series.values, unser.values)
             else:
@@ -380,12 +402,12 @@ class TestPandasContainer(unittest.TestCase):
         # frame
         json = self.tsframe.to_json()
         result = read_json(json)
-        assert_frame_equal(result,self.tsframe)
+        assert_frame_equal(result, self.tsframe)
 
         # series
         json = self.ts.to_json()
-        result = read_json(json,typ='series')
-        assert_series_equal(result,self.ts)
+        result = read_json(json, typ='series')
+        assert_series_equal(result, self.ts)
 
     def test_convert_dates(self):
 
@@ -395,39 +417,84 @@ class TestPandasContainer(unittest.TestCase):
 
         json = df.to_json()
         result = read_json(json)
-        assert_frame_equal(result,df)
+        assert_frame_equal(result, df)
 
         df['foo'] = 1.
-        json = df.to_json()
-        result = read_json(json,convert_dates=False)
+        json = df.to_json(date_unit='ns')
+        result = read_json(json, convert_dates=False)
         expected = df.copy()
         expected['date'] = expected['date'].values.view('i8')
         expected['foo'] = expected['foo'].astype('int64')
-        assert_frame_equal(result,expected)
+        assert_frame_equal(result, expected)
 
         # series
-        ts = Series(Timestamp('20130101'),index=self.ts.index)
+        ts = Series(Timestamp('20130101'), index=self.ts.index)
         json = ts.to_json()
-        result = read_json(json,typ='series')
-        assert_series_equal(result,ts)
+        result = read_json(json, typ='series')
+        assert_series_equal(result, ts)
 
-    def test_date_format(self):
-
+    def test_date_format_frame(self):
         df = self.tsframe.copy()
-        df['date'] = Timestamp('20130101')
-        df_orig = df.copy()
 
-        json = df.to_json(date_format='iso')
-        result = read_json(json)
-        assert_frame_equal(result,df_orig)
+        def test_w_date(date, date_unit=None):
+            df['date'] = Timestamp(date)
+            df.ix[1, 'date'] = pd.NaT
+            df.ix[5, 'date'] = pd.NaT
+            if date_unit:
+                json = df.to_json(date_format='iso', date_unit=date_unit)
+            else:
+                json = df.to_json(date_format='iso')
+            result = read_json(json)
+            assert_frame_equal(result, df)
 
-        # make sure that we did in fact copy
-        assert_frame_equal(df,df_orig)
+        test_w_date('20130101 20:43:42.123')
+        test_w_date('20130101 20:43:42', date_unit='s')
+        test_w_date('20130101 20:43:42.123', date_unit='ms')
+        test_w_date('20130101 20:43:42.123456', date_unit='us')
+        test_w_date('20130101 20:43:42.123456789', date_unit='ns')
 
-        ts = Series(Timestamp('20130101'),index=self.ts.index)
-        json = ts.to_json(date_format='iso')
-        result = read_json(json,typ='series')
-        assert_series_equal(result,ts)
+        self.assertRaises(ValueError, df.to_json, date_format='iso',
+                          date_unit='foo')
+
+    def test_date_format_series(self):
+        def test_w_date(date, date_unit=None):
+            ts = Series(Timestamp(date), index=self.ts.index)
+            ts.ix[1] = pd.NaT
+            ts.ix[5] = pd.NaT
+            if date_unit:
+                json = ts.to_json(date_format='iso', date_unit=date_unit)
+            else:
+                json = ts.to_json(date_format='iso')
+            result = read_json(json, typ='series')
+            assert_series_equal(result, ts)
+
+        test_w_date('20130101 20:43:42.123')
+        test_w_date('20130101 20:43:42', date_unit='s')
+        test_w_date('20130101 20:43:42.123', date_unit='ms')
+        test_w_date('20130101 20:43:42.123456', date_unit='us')
+        test_w_date('20130101 20:43:42.123456789', date_unit='ns')
+
+        ts = Series(Timestamp('20130101 20:43:42.123'), index=self.ts.index)
+        self.assertRaises(ValueError, ts.to_json, date_format='iso',
+                          date_unit='foo')
+
+    def test_date_unit(self):
+        df = self.tsframe.copy()
+        df['date'] = Timestamp('20130101 20:43:42')
+        df.ix[1, 'date'] = Timestamp('19710101 20:43:42')
+        df.ix[2, 'date'] = Timestamp('21460101 20:43:42')
+        df.ix[4, 'date'] = pd.NaT
+
+        for unit in ('s', 'ms', 'us', 'ns'):
+            json = df.to_json(date_format='epoch', date_unit=unit)
+
+            # force date unit
+            result = read_json(json, date_unit=unit)
+            assert_frame_equal(result, df)
+
+            # detect date unit
+            result = read_json(json, date_unit=None)
+            assert_frame_equal(result, df)
 
     def test_weird_nested_json(self):
 

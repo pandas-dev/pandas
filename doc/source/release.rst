@@ -47,6 +47,7 @@ pandas 0.13
   - Added a more informative error message when plot arguments contain
     overlapping color and style arguments (:issue:`4402`)
   - Significant table writing performance improvements in ``HDFStore``
+  - JSON date serialisation now performed in low-level C code.
   - ``Index.copy()`` and ``MultiIndex.copy()`` now accept keyword arguments to
     change attributes (i.e., ``names``, ``levels``, ``labels``)
     (:issue:`4039`)
@@ -94,6 +95,10 @@ pandas 0.13
     - removed the ``warn`` argument from ``open``. Instead a ``PossibleDataLossError`` exception will
       be raised if you try to use ``mode='w'`` with an OPEN file handle (:issue:`4367`)
     - allow a passed locations array or mask as a ``where`` condition (:issue:`4467`)
+  - ``JSON``
+
+    - added ``date_unit`` parameter to specify resolution of timestamps. Options
+      are seconds, milliseconds, microseconds and nanoseconds. (:issue:`4362`, :issue:`4498`).
 
   - ``Index`` and ``MultiIndex`` changes (:issue:`4039`):
 
@@ -134,6 +139,9 @@ pandas 0.13
     local variable was undefined (:issue:`4381`)
   - In ``to_json``, raise if a passed ``orient`` would cause loss of data because
     of a duplicate index (:issue:`4359`)
+  - In ``to_json``, fix date handling so milliseconds are the default timestamp
+    as the docstring says (:issue:`4362`). 
+  - JSON NaT handling fixed, NaTs are now serialised to `null` (:issue:`4498`)
   - Fixed passing ``keep_default_na=False`` when ``na_values=None`` (:issue:`4318`)
   - Fixed bug with ``values`` raising an error on a DataFrame with duplicate columns and mixed
     dtypes, surfaced in (:issue:`4377`)

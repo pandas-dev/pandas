@@ -1,5 +1,4 @@
-﻿import unittest
-from unittest import TestCase
+﻿from unittest import TestCase
 
 try:
     import json
@@ -13,20 +12,17 @@ import time
 import datetime
 import calendar
 import re
-import random
 import decimal
 from functools import partial
 from pandas.compat import range, zip, StringIO, u
-from pandas import compat
 import pandas.json as ujson
 import pandas.compat as compat
 
 import numpy as np
-from pandas.util.testing import assert_almost_equal
 from numpy.testing import (assert_array_equal,
                            assert_array_almost_equal_nulp,
                            assert_approx_equal)
-from pandas import DataFrame, Series, Index
+from pandas import DataFrame, Series, Index, NaT, DatetimeIndex
 import pandas.util.testing as tm
 
 
@@ -327,37 +323,57 @@ class UltraJSONTests(TestCase):
         self.assertEquals(input, json.loads(output))
         self.assertEquals(output, json.dumps(input))
         self.assertEquals(input, ujson.decode(output))
-        pass
 
-    # def test_encodeDatetimeConversion(self):
-    #     ts = time.time()
-    #     input = datetime.datetime.fromtimestamp(ts)
-    #     output = ujson.encode(input)
-    #     expected = calendar.timegm(input.utctimetuple())
-    #     self.assertEquals(int(expected), json.loads(output))
-    #     self.assertEquals(int(expected), ujson.decode(output))
-    #     pass
+    def test_encodeDatetimeConversion(self):
+        ts = time.time()
+        input = datetime.datetime.fromtimestamp(ts)
+        output = ujson.encode(input, date_unit='s')
+        expected = calendar.timegm(input.utctimetuple())
+        self.assertEquals(int(expected), json.loads(output))
+        self.assertEquals(int(expected), ujson.decode(output))
 
-    # def test_encodeDateConversion(self):
-    #     ts = time.time()
-    #     input = datetime.date.fromtimestamp(ts)
+    def test_encodeDateConversion(self):
+        ts = time.time()
+        input = datetime.date.fromtimestamp(ts)
 
-    #     output = ujson.encode(input)
-    #     tup = ( input.year, input.month, input.day, 0, 0, 0 )
+        output = ujson.encode(input, date_unit='s')
+        tup = (input.year, input.month, input.day, 0, 0, 0)
 
-    #     expected = calendar.timegm(tup)
-    #     self.assertEquals(int(expected), json.loads(output))
-    #     self.assertEquals(int(expected), ujson.decode(output))
+        expected = calendar.timegm(tup)
+        self.assertEquals(int(expected), json.loads(output))
+        self.assertEquals(int(expected), ujson.decode(output))
 
-    def test_datetime_nanosecond_unit(self):
-        from datetime import datetime
+    def test_nat(self):
+        input = NaT
+        assert ujson.encode(input) == 'null', "Expected null"
+
+    def test_npy_nat(self):
+        from distutils.version import LooseVersion
+        if LooseVersion(np.__version__) < '1.7.0':
+            raise nose.SkipTest
+
+        input = np.datetime64('NaT')
+        assert ujson.encode(input) == 'null', "Expected null"
+
+    def test_datetime_units(self):
         from pandas.lib import Timestamp
 
-        val = datetime.now()
+        val = datetime.datetime.now()
         stamp = Timestamp(val)
 
-        roundtrip = ujson.decode(ujson.encode(val))
+        roundtrip = ujson.decode(ujson.encode(val, date_unit='s'))
+        self.assert_(roundtrip == stamp.value // 1e9)
+
+        roundtrip = ujson.decode(ujson.encode(val, date_unit='ms'))
+        self.assert_(roundtrip == stamp.value // 1e6)
+
+        roundtrip = ujson.decode(ujson.encode(val, date_unit='us'))
+        self.assert_(roundtrip == stamp.value / 1e3)
+
+        roundtrip = ujson.decode(ujson.encode(val, date_unit='ns'))
         self.assert_(roundtrip == stamp.value)
+
+        self.assertRaises(ValueError, ujson.encode, val, date_unit='foo')
 
     def test_encodeToUTF8(self):
         _skip_if_python_ver(2, 5)
@@ -1267,17 +1283,17 @@ class PandasJSONTests(TestCase):
         self.assert_(i.equals(outp))
 
     def test_datetimeindex(self):
-        from pandas.tseries.index import date_range, DatetimeIndex
+        from pandas.tseries.index import date_range
 
         rng = date_range('1/1/2000', periods=20)
 
-        encoded = ujson.encode(rng)
+        encoded = ujson.encode(rng, date_unit='ns')
         decoded = DatetimeIndex(np.array(ujson.decode(encoded)))
 
         self.assert_(rng.equals(decoded))
 
         ts = Series(np.random.randn(len(rng)), index=rng)
-        decoded = Series(ujson.decode(ujson.encode(ts)))
+        decoded = Series(ujson.decode(ujson.encode(ts, date_unit='ns')))
         idx_values = decoded.index.values.astype(np.int64)
         decoded.index = DatetimeIndex(idx_values)
         tm.assert_series_equal(ts, decoded)

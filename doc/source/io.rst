@@ -1034,11 +1034,12 @@ with optional parameters:
      ``columns``; dict like {column -> {index -> value}}
      ``values``; just the values array
 
-- ``date_format`` : type of date conversion (epoch = epoch milliseconds, iso = ISO8601), default is epoch
+- ``date_format`` : string, type of date conversion, 'epoch' for timestamp, 'iso' for ISO8601.
 - ``double_precision`` : The number of decimal places to use when encoding floating point values, default 10.
 - ``force_ascii`` : force encoded string to be ASCII, default True.
+- ``date_unit`` : The time unit to encode to, governs timestamp and ISO8601 precision. One of 's', 'ms', 'us' or 'ns' for seconds, milliseconds, microseconds and nanoseconds respectively. Default 'ms'.
 
-Note NaN's and None will be converted to null and datetime objects will be converted based on the date_format parameter
+Note NaN's, NaT's and None will be converted to null and datetime objects will be converted based on the date_format and date_unit parameters.
 
 .. ipython:: python
 
@@ -1055,6 +1056,20 @@ Writing in iso date format
    json = dfd.to_json(date_format='iso')
    json
 
+Writing in iso date format, with microseconds
+
+.. ipython:: python
+
+   json = dfd.to_json(date_format='iso', date_unit='us')
+   json
+
+Actually I prefer epoch timestamps, in seconds
+
+.. ipython:: python
+
+   json = dfd.to_json(date_format='epoch', date_unit='s')
+   json
+
 Writing to a file, with a date index and a date column
 
 .. ipython:: python
@@ -1063,7 +1078,7 @@ Writing to a file, with a date index and a date column
    dfj2['date'] = Timestamp('20130101')
    dfj2['ints'] = list(range(5))
    dfj2['bools'] = True
-   dfj2.index = date_range('20130101',periods=5)
+   dfj2.index = date_range('20130101', periods=5)
    dfj2.to_json('test.json')
    open('test.json').read()
 
@@ -1107,15 +1122,21 @@ is ``None``. To explicity force ``Series`` parsing, pass ``typ=series``
 - ``keep_default_dates`` : boolean, default True. If parsing dates, then parse the default datelike columns
 - ``numpy`` : direct decoding to numpy arrays. default is False;
   Note that the JSON ordering **MUST** be the same for each term if ``numpy=True``
-- ``precise_float`` : boolean, default ``False``. Set to enable usage of higher precision (strtod) function
-  when decoding string to double values. Default (``False``) is to use fast but less precise builtin functionality
+- ``precise_float`` : boolean, default ``False``. Set to enable usage of higher precision (strtod) function when decoding string to double values. Default (``False``) is to use fast but less precise builtin functionality
+- ``date_unit`` : string, the timestamp unit to detect if converting dates. Default 
+  None. By default the timestamp precision will be detected, if this is not desired
+  then pass one of 's', 'ms', 'us' or 'ns' to force timestamp precision to
+  seconds, milliseconds, microseconds or nanoseconds respectively.
 
-The parser will raise one of ``ValueError/TypeError/AssertionError`` if the JSON is
-not parsable.
+The parser will raise one of ``ValueError/TypeError/AssertionError`` if the JSON is not parsable.
 
 The default of ``convert_axes=True``, ``dtype=True``, and ``convert_dates=True`` will try to parse the axes, and all of the data
 into appropriate types, including dates. If you need to override specific dtypes, pass a dict to ``dtype``. ``convert_axes`` should only
 be set to ``False`` if you need to preserve string-like numbers (e.g. '1', '2') in an axes.
+
+.. note::
+
+  Large integer values may be converted to dates if ``convert_dates=True`` and the data and / or column labels appear 'date-like'. The exact threshold depends on the ``date_unit`` specified.
 
 .. warning::
 
@@ -1143,13 +1164,13 @@ Don't convert any data (but still convert axes and dates)
 
 .. ipython:: python
 
-   pd.read_json('test.json',dtype=object).dtypes
+   pd.read_json('test.json', dtype=object).dtypes
 
 Specify how I want to convert data
 
 .. ipython:: python
 
-   pd.read_json('test.json',dtype={'A' : 'float32', 'bools' : 'int8'}).dtypes
+   pd.read_json('test.json', dtype={'A' : 'float32', 'bools' : 'int8'}).dtypes
 
 I like my string indicies
 
@@ -1163,10 +1184,29 @@ I like my string indicies
    si.columns
    json = si.to_json()
 
-   sij = pd.read_json(json,convert_axes=False)
+   sij = pd.read_json(json, convert_axes=False)
    sij
    sij.index
    sij.columns
+
+My dates have been written in nanoseconds, so they need to be read back in
+nanoseconds
+
+.. ipython:: python
+
+   json = dfj2.to_json(date_unit='ns')
+
+   # Try to parse timestamps as millseconds -> Won't Work
+   dfju = pd.read_json(json, date_unit='ms')
+   dfju
+
+   # Let Pandas detect the correct precision
+   dfju = pd.read_json(json)  
+   dfju
+
+   # Or specify that all timestamps are in nanoseconds
+   dfju = pd.read_json(json, date_unit='ns')  
+   dfju
 
 .. ipython:: python
    :suppress:
