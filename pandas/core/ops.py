@@ -304,7 +304,9 @@ def _arith_method_SERIES(op, name, str_rep=None, fill_zeros=None, default_axis=N
                     eval_kwargs=eval_kwargs)
 
     def wrapper(self, other, name=name):
-        from pandas.core.frame import DataFrame
+        from pandas.tseries.offsets import DateOffset
+
+        name = cleanup_name(name)
         dtype = None
         fill_value = tslib.iNaT
         wrap_results = lambda x: x
@@ -316,8 +318,6 @@ def _arith_method_SERIES(op, name, str_rep=None, fill_zeros=None, default_axis=N
         is_integer_lhs   = lvalues.dtype.kind in ['i','u']
 
         if is_datetime_lhs or is_timedelta_lhs:
-            if r_op:
-                raise NotImplementedError('__r*__ operations for datetimes and timedeltas are not yet supported')
 
             coerce = 'compat' if _np_version_under1p7 else True
 
@@ -328,7 +328,7 @@ def _arith_method_SERIES(op, name, str_rep=None, fill_zeros=None, default_axis=N
                 inferred_type = lib.infer_dtype(values)
                 if inferred_type in set(['datetime64','datetime','date','time']):
                     # a datetlike
-                    if not (isinstance(values, pa.Array) and com.is_datetime64_dtype(values)):
+                    if not (isinstance(values, (pa.Array, com.ABCSeries)) and com.is_datetime64_dtype(values)):
                         values = tslib.array_to_datetime(values)
                 elif inferred_type in set(['timedelta']):
                     # have a timedelta, convert to to ns here
@@ -471,8 +471,6 @@ def _arith_method_SERIES(op, name, str_rep=None, fill_zeros=None, default_axis=N
             return self._constructor(wrap_results(na_op(lvalues, rvalues)),
                                      index=self.index, name=self.name, dtype=dtype)
     wrapper.__name__ = name
-    # handle r* methods, etc.
-    name = cleanup_name(name)
     return wrapper
 
 
