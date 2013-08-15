@@ -2419,6 +2419,8 @@ ctypedef int (*accessor)(int64_t ordinal, int freq) except INT32_MIN
 
 def get_period_field(int code, int64_t value, int freq):
     cdef accessor f = _get_accessor_func(code)
+    if f is NULL:
+        raise ValueError('Unrecognized period code: %d' % code)
     return f(value, freq)
 
 def get_period_field_arr(int code, ndarray[int64_t] arr, int freq):
@@ -2428,6 +2430,8 @@ def get_period_field_arr(int code, ndarray[int64_t] arr, int freq):
         accessor f
 
     f = _get_accessor_func(code)
+    if f is NULL:
+        raise ValueError('Unrecognized period code: %d' % code)
 
     sz = len(arr)
     out = np.empty(sz, dtype=np.int64)
@@ -2462,8 +2466,7 @@ cdef accessor _get_accessor_func(int code):
         return &pday_of_year
     elif code == 10:
         return &pweekday
-    else:
-        raise ValueError('Unrecognized code: %s' % code)
+    return NULL
 
 
 def extract_ordinals(ndarray[object] values, freq):
