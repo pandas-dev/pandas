@@ -1,43 +1,51 @@
-
 # pylint: disable-msg=E1101,W0613,W0603
-from pandas.compat import StringIO, long
-from pandas import compat
 import os
 
+import numpy as np
+
+import pandas.json as _json
+from pandas.tslib import iNaT
+from pandas.compat import long
+from pandas import compat, isnull
 from pandas import Series, DataFrame, to_datetime
 from pandas.io.common import get_filepath_or_buffer
-import pandas.json as _json
+
 loads = _json.loads
 dumps = _json.dumps
 
-import numpy as np
-from pandas.tslib import iNaT
-import pandas.lib as lib
 
 ### interface to/from ###
 
-def to_json(path_or_buf, obj, orient=None, date_format='epoch', double_precision=10, force_ascii=True):
+
+def to_json(path_or_buf, obj, orient=None, date_format='epoch',
+            double_precision=10, force_ascii=True, date_unit='ms'):
 
     if isinstance(obj, Series):
-        s = SeriesWriter(obj, orient=orient, date_format=date_format, double_precision=double_precision,
-                         ensure_ascii=force_ascii).write()
+        s = SeriesWriter(
+            obj, orient=orient, date_format=date_format,
+            double_precision=double_precision, ensure_ascii=force_ascii,
+            date_unit=date_unit).write()
     elif isinstance(obj, DataFrame):
-        s = FrameWriter(obj, orient=orient, date_format=date_format, double_precision=double_precision,
-                        ensure_ascii=force_ascii).write()
+        s = FrameWriter(
+            obj, orient=orient, date_format=date_format,
+            double_precision=double_precision, ensure_ascii=force_ascii,
+            date_unit=date_unit).write()
     else:
         raise NotImplementedError
 
     if isinstance(path_or_buf, compat.string_types):
-        with open(path_or_buf,'w') as fh:
+        with open(path_or_buf, 'w') as fh:
             fh.write(s)
     elif path_or_buf is None:
         return s
     else:
         path_or_buf.write(s)
 
+
 class Writer(object):
 
-    def __init__(self, obj, orient, date_format, double_precision, ensure_ascii):
+    def __init__(self, obj, orient, date_format, double_precision,
+                 ensure_ascii, date_unit):
         self.obj = obj
 
         if orient is None:
@@ -47,38 +55,23 @@ class Writer(object):
         self.date_format = date_format
         self.double_precision = double_precision
         self.ensure_ascii = ensure_ascii
+        self.date_unit = date_unit
 
         self.is_copy = False
         self._format_axes()
-        self._format_dates()
-
-    def _needs_to_date(self, obj):
-        return obj.dtype == 'datetime64[ns]'
-
-    def _format_dates(self):
-        raise NotImplementedError
 
     def _format_axes(self):
         raise NotImplementedError
 
-    def _format_to_date(self, data):
-
-        # iso
-        if self.date_format == 'iso':
-            return data.apply(lambda x: x.isoformat())
-
-        # int64
-        else:
-            return data.astype(np.int64)
-
-    def copy_if_needed(self):
-        """ copy myself if necessary """
-        if not self.is_copy:
-            self.obj = self.obj.copy()
-            self.is_copy = True
-
     def write(self):
-        return dumps(self.obj, orient=self.orient, double_precision=self.double_precision, ensure_ascii=self.ensure_ascii)
+        return dumps(
+            self.obj,
+            orient=self.orient,
+            double_precision=self.double_precision,
+            ensure_ascii=self.ensure_ascii,
+            date_unit=self.date_unit,
+            iso_dates=self.date_format == 'iso')
+
 
 class SeriesWriter(Writer):
     _default_orient = 'index'
@@ -87,17 +80,7 @@ class SeriesWriter(Writer):
         if not self.obj.index.is_unique and self.orient == 'index':
             raise ValueError("Series index must be unique for orient="
                              "'%s'" % self.orient)
-        if self._needs_to_date(self.obj.index):
-            self.copy_if_needed()
-            self.obj.index = self._format_to_date(self.obj.index.to_series())
 
-    def _format_dates(self):
-        if self.obj.dtype == 'datetime64[ns]':
-            self.obj = self._format_to_date(self.obj)
-
-    def _format_bools(self):
-        if self._needs_to_bool(self.obj):
-            self.obj = self._format_to_bool(self.obj)
 
 class FrameWriter(Writer):
     _default_orient = 'columns'
@@ -113,48 +96,19 @@ class FrameWriter(Writer):
             raise ValueError("DataFrame columns must be unique for orient="
                              "'%s'." % self.orient)
 
-        if self.orient == 'columns':
-            axis = 'index'
-        elif self.orient == 'index':
-            axis = 'columns'
-        else:
-            return
-
-        a = getattr(self.obj,axis)
-        if self._needs_to_date(a):
-            self.copy_if_needed()
-            setattr(self.obj,axis,self._format_to_date(a.to_series()))
-
-    def _format_dates(self):
-        dtypes = self.obj.dtypes
-        if len(dtypes[dtypes == 'datetime64[ns]']):
-
-            # need to create a new object
-            d = {}
-
-            for i, (col, c) in enumerate(self.obj.iteritems()):
-
-                if c.dtype == 'datetime64[ns]':
-                    c = self._format_to_date(c)
-
-                d[i] = c
-
-            d = DataFrame(d,index=self.obj.index)
-            d.columns = self.obj.columns
-            self.obj = d
 
 def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
               convert_axes=True, convert_dates=True, keep_default_dates=True,
-              numpy=False, precise_float=False):
+              numpy=False, precise_float=False, date_unit=None):
     """
     Convert JSON string to pandas object
 
     Parameters
     ----------
-    filepath_or_buffer : a VALID JSON string or file handle / StringIO. The string could be
-        a URL. Valid URL schemes include http, ftp, s3, and file. For file URLs, a host
-        is expected. For instance, a local file could be
-        file ://localhost/path/to/table.json
+    filepath_or_buffer : a VALID JSON string or file handle / StringIO. The
+        string could be a URL. Valid URL schemes include http, ftp, s3, and
+        file. For file URLs, a host is expected. For instance, a local file
+        could be file ://localhost/path/to/table.json
     orient :
         Series :
           default is 'index'
@@ -169,35 +123,46 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
           and 'records'.
 
         The format of the JSON string
-          split : dict like {index -> [index], columns -> [columns], data -> [values]}
+          split : dict like
+            {index -> [index], columns -> [columns], data -> [values]}
           records : list like [{column -> value}, ... , {column -> value}]
           index : dict like {index -> {column -> value}}
           columns : dict like {column -> {index -> value}}
           values : just the values array
 
     typ : type of object to recover (series or frame), default 'frame'
-    dtype : if True, infer dtypes, if a dict of column to dtype, then use those,
-        if False, then don't infer dtypes at all, default is True,
-        apply only to the data
-    convert_axes : boolean, try to convert the axes to the proper dtypes, default is True
-    convert_dates : a list of columns to parse for dates; If True, then try to parse datelike columns
-        default is True
-    keep_default_dates : boolean, default True. If parsing dates,
-        then parse the default datelike columns
-    numpy : direct decoding to numpy arrays. default is False.Note that the JSON ordering MUST be the same
-        for each term if numpy=True.
-    precise_float : boolean, default False. Set to enable usage of higher precision (strtod) function
-        when decoding string to double values. Default (False) is to use fast but less precise builtin functionality
+    dtype : boolean or dict, default True
+        If True, infer dtypes, if a dict of column to dtype, then use those,
+        if False, then don't infer dtypes at all, applies only to the data.
+    convert_axes : boolean, default True
+        Try to convert the axes to the proper dtypes.
+    convert_dates : boolean, default True
+        List of columns to parse for dates; If True, then try to parse
+        datelike columns default is True
+    keep_default_dates : boolean, default True.
+        If parsing dates, then parse the default datelike columns
+    numpy : boolean, default False
+        Direct decoding to numpy arrays. Note that the JSON ordering MUST be
+        the same for each term if numpy=True.
+    precise_float : boolean, default False.
+        Set to enable usage of higher precision (strtod) function when
+        decoding string to double values. Default (False) is to use fast but
+        less precise builtin functionality
+    date_unit : string, default None
+        The timestamp unit to detect if converting dates. The default behaviour
+        is to try and detect the correct precision, but if this is not desired
+        then pass one of 's', 'ms', 'us' or 'ns' to force parsing only seconds,
+        milliseconds, microseconds or nanoseconds respectively.
 
     Returns
     -------
     result : Series or DataFrame
     """
 
-    filepath_or_buffer,_ = get_filepath_or_buffer(path_or_buf)
+    filepath_or_buffer, _ = get_filepath_or_buffer(path_or_buf)
     if isinstance(filepath_or_buffer, compat.string_types):
         if os.path.exists(filepath_or_buffer):
-            with open(filepath_or_buffer,'r') as fh:
+            with open(filepath_or_buffer, 'r') as fh:
                 json = fh.read()
         else:
             json = filepath_or_buffer
@@ -208,20 +173,32 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
 
     obj = None
     if typ == 'frame':
-        obj = FrameParser(json, orient, dtype, convert_axes, convert_dates, keep_default_dates, numpy).parse()
+        obj = FrameParser(json, orient, dtype, convert_axes, convert_dates,
+                          keep_default_dates, numpy, precise_float,
+                          date_unit).parse()
 
     if typ == 'series' or obj is None:
-        if not isinstance(dtype,bool):
-            dtype = dict(data = dtype)
-        obj = SeriesParser(json, orient, dtype, convert_axes, convert_dates, keep_default_dates, numpy).parse()
+        if not isinstance(dtype, bool):
+            dtype = dict(data=dtype)
+        obj = SeriesParser(json, orient, dtype, convert_axes, convert_dates,
+                           keep_default_dates, numpy, precise_float,
+                           date_unit).parse()
 
     return obj
 
+
 class Parser(object):
+
+    _STAMP_UNITS = ('s', 'ms', 'us', 'ns')
+    _MIN_STAMPS = {
+        's': long(31536000),
+        'ms': long(31536000000),
+        'us': long(31536000000000),
+        'ns': long(31536000000000000)}
 
     def __init__(self, json, orient, dtype=True, convert_axes=True,
                  convert_dates=True, keep_default_dates=False, numpy=False,
-                 precise_float=False):
+                 precise_float=False, date_unit=None):
         self.json = json
 
         if orient is None:
@@ -233,10 +210,20 @@ class Parser(object):
         if orient == "split":
             numpy = False
 
+        if date_unit is not None:
+            date_unit = date_unit.lower()
+            if date_unit not in self._STAMP_UNITS:
+                raise ValueError('date_unit must be one of %s' %
+                                 (self._STAMP_UNITS,))
+            self.min_stamp = self._MIN_STAMPS[date_unit]
+        else:
+            self.min_stamp = self._MIN_STAMPS['s']
+
         self.numpy = numpy
         self.precise_float = precise_float
-        self.convert_axes  = convert_axes
+        self.convert_axes = convert_axes
         self.convert_dates = convert_dates
+        self.date_unit = date_unit
         self.keep_default_dates = keep_default_dates
         self.obj = None
 
@@ -250,7 +237,8 @@ class Parser(object):
         else:
             self._parse_no_numpy()
 
-        if self.obj is None: return None
+        if self.obj is None:
+            return None
         if self.convert_axes:
             self._convert_axes()
         self._try_convert_types()
@@ -259,14 +247,17 @@ class Parser(object):
     def _convert_axes(self):
         """ try to convert axes """
         for axis in self.obj._AXIS_NUMBERS.keys():
-            new_axis, result = self._try_convert_data(axis, self.obj._get_axis(axis), use_dtypes=False, convert_dates=True)
+            new_axis, result = self._try_convert_data(
+                axis, self.obj._get_axis(axis), use_dtypes=False,
+                convert_dates=True)
             if result:
-                setattr(self.obj,axis,new_axis)
+                setattr(self.obj, axis, new_axis)
 
     def _try_convert_types(self):
         raise NotImplementedError
 
-    def _try_convert_data(self, name, data, use_dtypes=True, convert_dates=True):
+    def _try_convert_data(self, name, data, use_dtypes=True,
+                          convert_dates=True):
         """ try to parse a ndarray like into a column by inferring dtype """
 
         # don't try to coerce, unless a force conversion
@@ -279,7 +270,8 @@ class Parser(object):
             else:
 
                 # dtype to force
-                dtype = self.dtype.get(name) if isinstance(self.dtype,dict) else self.dtype
+                dtype = (self.dtype.get(name)
+                         if isinstance(self.dtype, dict) else self.dtype)
                 if dtype is not None:
                     try:
                         dtype = np.dtype(dtype)
@@ -345,7 +337,8 @@ class Parser(object):
             was successful """
 
         # no conversion on empty
-        if not len(data): return data, False
+        if not len(data):
+            return data, False
 
         new_data = data
         if new_data.dtype == 'object':
@@ -354,26 +347,28 @@ class Parser(object):
             except:
                 pass
 
-
         # ignore numbers that are out of range
-        if issubclass(new_data.dtype.type,np.number):
-            if not ((new_data == iNaT) | (new_data > long(31536000000000000))).all():
+        if issubclass(new_data.dtype.type, np.number):
+            in_range = (isnull(new_data.values) | (new_data > self.min_stamp) |
+                        (new_data.values == iNaT))
+            if not in_range.all():
                 return data, False
 
-        try:
-            new_data = to_datetime(new_data)
-        except:
+        date_units = (self.date_unit,) if self.date_unit else self._STAMP_UNITS
+        for date_unit in date_units:
             try:
-                new_data = to_datetime(new_data.astype('int64'))
+                new_data = to_datetime(new_data, errors='raise',
+                                       unit=date_unit)
+            except OverflowError:
+                continue
             except:
-
-                # return old, noting more we can do
-                return data, False
-
-        return new_data, True
+                break
+            return new_data, True
+        return data, False
 
     def _try_convert_dates(self):
         raise NotImplementedError
+
 
 class SeriesParser(Parser):
     _default_orient = 'index'
@@ -410,10 +405,13 @@ class SeriesParser(Parser):
                                     precise_float=self.precise_float))
 
     def _try_convert_types(self):
-        if self.obj is None: return
-        obj, result = self._try_convert_data('data', self.obj, convert_dates=self.convert_dates)
+        if self.obj is None:
+            return
+        obj, result = self._try_convert_data(
+            'data', self.obj, convert_dates=self.convert_dates)
         if result:
             self.obj = obj
+
 
 class FrameParser(Parser):
     _default_orient = 'columns'
@@ -438,7 +436,8 @@ class FrameParser(Parser):
             self.obj = DataFrame(loads(json, dtype=None, numpy=True,
                                        precise_float=self.precise_float))
         else:
-            self.obj = DataFrame(*loads(json, dtype=None, numpy=True, labelled=True,
+            self.obj = DataFrame(*loads(json, dtype=None, numpy=True,
+                                        labelled=True,
                                         precise_float=self.precise_float))
 
     def _parse_no_numpy(self):
@@ -481,19 +480,22 @@ class FrameParser(Parser):
         if needs_new_obj:
 
             # possibly handle dup columns
-            new_obj = DataFrame(new_obj,index=self.obj.index)
+            new_obj = DataFrame(new_obj, index=self.obj.index)
             new_obj.columns = self.obj.columns
             self.obj = new_obj
 
     def _try_convert_types(self):
-        if self.obj is None: return
+        if self.obj is None:
+            return
         if self.convert_dates:
             self._try_convert_dates()
 
-        self._process_converter(lambda col, c: self._try_convert_data(col, c, convert_dates=False))
+        self._process_converter(
+            lambda col, c: self._try_convert_data(col, c, convert_dates=False))
 
     def _try_convert_dates(self):
-        if self.obj is None: return
+        if self.obj is None:
+            return
 
         # our columns to parse
         convert_dates = self.convert_dates
@@ -503,16 +505,18 @@ class FrameParser(Parser):
 
         def is_ok(col):
             """ return if this col is ok to try for a date parse """
-            if not isinstance(col, compat.string_types): return False
+            if not isinstance(col, compat.string_types):
+                return False
 
             if (col.endswith('_at') or
-                col.endswith('_time') or
-                col.lower() == 'modified' or
-                col.lower() == 'date' or
-                col.lower() == 'datetime'):
-                    return True
+                    col.endswith('_time') or
+                    col.lower() == 'modified' or
+                    col.lower() == 'date' or
+                    col.lower() == 'datetime'):
+                return True
             return False
 
-        self._process_converter(lambda col, c: self._try_convert_to_date(c),
-                                lambda col, c: (self.keep_default_dates and is_ok(col)) or col in convert_dates)
-
+        self._process_converter(
+            lambda col, c: self._try_convert_to_date(c),
+            lambda col, c: ((self.keep_default_dates and is_ok(col))
+                            or col in convert_dates))
