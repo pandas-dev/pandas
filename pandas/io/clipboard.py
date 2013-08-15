@@ -1,4 +1,5 @@
 """ io on the clipboard """
+from pandas import compat, get_option
 from pandas.compat import StringIO
 
 def read_clipboard(**kwargs):  # pragma: no cover
@@ -15,6 +16,13 @@ def read_clipboard(**kwargs):  # pragma: no cover
     from pandas.util.clipboard import clipboard_get
     from pandas.io.parsers import read_table
     text = clipboard_get()
+
+    # try to decode (if needed on PY3)
+    if compat.PY3:
+        try:
+            text = compat.bytes_to_str(text,encoding=kwargs.get('encoding') or get_option('display.encoding'))
+        except:
+            pass
     return read_table(StringIO(text), **kwargs)
 
 

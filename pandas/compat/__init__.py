@@ -55,11 +55,11 @@ if PY3:
     def isidentifier(s):
         return s.isidentifier()
 
-    def str_to_bytes(s, encoding='ascii'):
-        return s.encode(encoding)
+    def str_to_bytes(s, encoding=None):
+        return s.encode(encoding or 'ascii')
 
-    def bytes_to_str(b, encoding='utf-8'):
-        return b.decode(encoding)
+    def bytes_to_str(b, encoding=None):
+        return b.decode(encoding or 'utf-8')
 
     # have to explicitly put builtins into the namespace
     range = range
