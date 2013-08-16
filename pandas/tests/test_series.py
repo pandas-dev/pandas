@@ -186,6 +186,9 @@ class CheckNameIntegration(object):
         s.name = None
         self.assert_(not "Name:" in repr(s))
 
+        s = Series(index=date_range('20010101', '20020101'), name='test')
+        self.assert_("Name: test" in repr(s))
+
     def test_pickle_preserve_name(self):
         unpickled = self._pickle_roundtrip_name(self.ts)
         self.assertEquals(unpickled.name, self.ts.name)
