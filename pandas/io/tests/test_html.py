@@ -30,6 +30,12 @@ from pandas.util.testing import (assert_frame_equal, network,
 from pandas.util.testing import makeCustomDataframe as mkdf
 
 
+import urlparse, urllib
+
+def path2url(path):
+    return urlparse.urljoin(
+        'file:', urllib.pathname2url(path))
+      
 def _have_module(module_name):
     try:
         import_module(module_name)
@@ -301,7 +307,7 @@ class TestReadHtmlBase(TestCase):
     @slow
     def test_file_url(self):
         url = self.banklist_data
-        dfs = self.run_read_html('file://' + url, 'First',
+        dfs = self.run_read_html(path2url(url), 'First',
                                  attrs={'id': 'table'})
         self.assert_(isinstance(dfs, list))
         for df in dfs:
@@ -347,7 +353,7 @@ class TestReadHtmlBase(TestCase):
     @slow
     def test_regex_idempotency(self):
         url = self.banklist_data
-        dfs = self.run_read_html('file://' + url,
+        dfs = self.run_read_html(path2url(url),
                                  match=re.compile(re.compile('Florida')),
                                  attrs={'id': 'table'})
         self.assert_(isinstance(dfs, list))
@@ -473,7 +479,7 @@ def test_invalid_flavor():
 
 def get_elements_from_url(url, element='table', base_url="file://"):
     _skip_if_none_of(('bs4', 'html5lib'))
-    url = "".join([base_url, url])
+    url = path2url(url) if base_url == "file://" else "".join([base_url, url])
     from bs4 import BeautifulSoup
     with urlopen(url) as f:
         soup = BeautifulSoup(f, features='html5lib')
