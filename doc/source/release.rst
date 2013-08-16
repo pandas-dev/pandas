@@ -44,7 +44,8 @@ pandas 0.13
   - Text parser now treats anything that reads like inf ("inf", "Inf", "-Inf",
     "iNf", etc.) to infinity. (:issue:`4220`, :issue:`4219`), affecting
     ``read_table``, ``read_csv``, etc.
-
+  - Factored out excel_value_to_python_value from ExcelFile::_parse_excel (:issue:`4589`)
+  
 **API Changes**
 
   - ``pandas`` now is Python 2/3 compatible without the need for 2to3 thanks to

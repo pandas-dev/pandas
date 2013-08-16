@@ -18,7 +18,8 @@ from pandas import DataFrame, Series, Index, MultiIndex, DatetimeIndex
 import pandas.io.parsers as parsers
 from pandas.io.parsers import (read_csv, read_table, read_fwf,
                                 TextParser, TextFileReader)
-from pandas.io.excel import ExcelFile, ExcelWriter, read_excel
+from pandas.io.excel import ExcelFile, ExcelWriter, read_excel,\
+    excel_value_to_python_value
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
                                  network,
@@ -260,6 +261,32 @@ class ExcelTests(unittest.TestCase):
         tm.assert_frame_equal(df4, df.ix[:-1])
         tm.assert_frame_equal(df4, df5)
 
+    def test_excel_value_to_python_value(self):
+        _skip_if_no_xlrd()
+
+        pth = os.path.join(self.dirpath, 'types.xls')
+        xls = ExcelFile(pth)        
+        book = xls.book
+        sheet = book.sheet_by_index(0)
+        
+        cell = sheet.cell(0, 0)
+        self.assertEquals(excel_value_to_python_value(value=cell.value, typ=cell.ctype, datemode=book.datemode), 'date')
+
+        cell = sheet.cell(0, 1)
+        self.assertEquals(excel_value_to_python_value(value=cell.value, typ=cell.ctype, datemode=book.datemode), datetime(year=2013, month=4, day=1))  
+        
+        cell = sheet.cell(1, 1)
+        self.assertEquals(excel_value_to_python_value(value=cell.value, typ=cell.ctype, datemode=book.datemode), True)
+        
+        cell = sheet.cell(2, 1)
+        self.assertEquals(excel_value_to_python_value(value=cell.value, typ=cell.ctype, datemode=book.datemode), 1)
+
+        cell = sheet.cell(3, 1)
+        self.assertEquals(excel_value_to_python_value(value=cell.value, typ=cell.ctype, datemode=book.datemode), 1.1)
+        
+        cell = sheet.cell(4, 1)
+        self.assertIs(excel_value_to_python_value(value=cell.value, typ=cell.ctype, datemode=book.datemode), np.nan) #We need to use is here because value is NaN
+        
     def test_excel_read_buffer(self):
         _skip_if_no_xlrd()
         _skip_if_no_openpyxl()
