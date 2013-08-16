@@ -755,6 +755,8 @@ Bug Fixes
   - Bug when renaming then set_index on a DataFrame (:issue:`5344`)
   - Test suite no longer leaves around temporary files when testing graphics. (:issue:`5347`)
     (thanks for catching this @yarikoptic!)
+  - Fixed html tests on win32. (:issue:`4580`)
+
 
 pandas 0.12.0
 -------------

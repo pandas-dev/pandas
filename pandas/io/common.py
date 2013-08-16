@@ -9,18 +9,18 @@ from pandas import compat
 
 
 if compat.PY3:
-    from urllib.request import urlopen
+    from urllib.request import urlopen, pathname2url
     _urlopen = urlopen
     from urllib.parse import urlparse as parse_url
     import urllib.parse as compat_parse
-    from urllib.parse import uses_relative, uses_netloc, uses_params, urlencode
+    from urllib.parse import uses_relative, uses_netloc, uses_params, urlencode, urljoin
     from urllib.error import URLError
     from http.client import HTTPException
 else:
     from urllib2 import urlopen as _urlopen
-    from urllib import urlencode
+    from urllib import urlencode, pathname2url
     from urlparse import urlparse as parse_url
-    from urlparse import uses_relative, uses_netloc, uses_params
+    from urlparse import uses_relative, uses_netloc, uses_params, urljoin
     from urllib2 import URLError
     from httplib import HTTPException
     from contextlib import contextmanager, closing
@@ -132,6 +132,21 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None):
         return filepath_or_buffer, None
 
     return filepath_or_buffer, None
+
+
+def file_path_to_url(path):
+    """
+    converts an absolute native path to a FILE URL.
+
+    Parameters
+    ----------
+    path : a path in native format
+
+    Returns
+    -------
+    a valid FILE URL
+    """
+    return urljoin('file:', pathname2url(path))
 
 
 # ZipFile is not a context manager for <= 2.6

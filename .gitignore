@@ -38,3 +38,4 @@ pandas/io/*.json
 .pydevproject
 .settings
 .idea
+*.pdb
