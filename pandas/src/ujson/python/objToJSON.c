@@ -260,7 +260,7 @@ static void *PandasDateTimeStructToJSON(pandas_datetimestruct *dts, JSONTypeCont
       return NULL;
     }
   }
-  else 
+  else
   {
     PRINTMARK();
     *((JSINT64*)outValue) = pandas_datetimestruct_to_datetime(base, dts);
@@ -283,7 +283,7 @@ static void *PyDateTimeToJSON(JSOBJ _obj, JSONTypeContext *tc, void *outValue, s
   pandas_datetimestruct dts;
   PyObject *obj = (PyObject *) _obj;
 
-  
+
   if (!convert_pydatetime_to_datetimestruct(obj, &dts, NULL, 1))
   {
     PRINTMARK();
@@ -453,7 +453,7 @@ int NpyArr_iterNext(JSOBJ _obj, JSONTypeContext *tc)
   PRINTMARK();
   npyarr = GET_TC(tc)->npyarr;
 
-  if (PyErr_Occurred()) 
+  if (PyErr_Occurred())
   {
     PRINTMARK();
     return 0;
@@ -1234,7 +1234,7 @@ void Object_beginTypeContext (JSOBJ _obj, JSONTypeContext *tc)
 
     PRINTMARK();
     pc->PyTypeToJSON = NpyDateTimeToJSON;
-    if (enc->datetimeIso) 
+    if (enc->datetimeIso)
     {
       tc->type = JT_UTF8;
     }
@@ -1311,7 +1311,7 @@ void Object_beginTypeContext (JSOBJ _obj, JSONTypeContext *tc)
     }
     return;
   }
-  else 
+  else
   if (PyObject_IsInstance(obj, type_decimal))
   {
     PRINTMARK();
@@ -1337,7 +1337,7 @@ void Object_beginTypeContext (JSOBJ _obj, JSONTypeContext *tc)
 
     PRINTMARK();
     pc->PyTypeToJSON = PyDateTimeToJSON;
-    if (enc->datetimeIso) 
+    if (enc->datetimeIso)
     {
       PRINTMARK();
       tc->type = JT_UTF8;
@@ -1397,7 +1397,7 @@ ISITERABLE:
       pc->iterGetValue = Tuple_iterGetValue;
       pc->iterGetName = Tuple_iterGetName;
       return;
-  }       
+  }
   else
   if (PyAnySet_Check(obj))
   {
@@ -1450,12 +1450,14 @@ ISITERABLE:
       return;
     }
 
+    pc->newObj = PyObject_GetAttrString(obj, "values");
+
     if (enc->outputFormat == INDEX || enc->outputFormat == COLUMNS)
     {
       PRINTMARK();
       tc->type = JT_OBJECT;
-      pc->columnLabelsLen = PyArray_SIZE(obj);
-      pc->columnLabels = NpyArr_encodeLabels((PyArrayObject*) PyObject_GetAttrString(PyObject_GetAttrString(obj, "index"), "values"), (JSONObjectEncoder*) enc, pc->columnLabelsLen);
+      pc->columnLabelsLen = PyArray_DIM(pc->newObj, 0);
+      pc->columnLabels = NpyArr_encodeLabels((PyArrayObject*) PyObject_GetAttrString(obj, "index"), (JSONObjectEncoder*) enc, pc->columnLabelsLen);
       if (!pc->columnLabels)
       {
         goto INVALID;
@@ -1466,7 +1468,6 @@ ISITERABLE:
       PRINTMARK();
       tc->type = JT_ARRAY;
     }
-    pc->newObj = PyObject_GetAttrString(obj, "values");
     pc->iterBegin = NpyArr_iterBegin;
     pc->iterEnd = NpyArr_iterEnd;
     pc->iterNext = NpyArr_iterNext;
@@ -1715,7 +1716,7 @@ PyObject* objToJSON(PyObject* self, PyObject *args, PyObject *kwargs)
   PyObject *oencodeHTMLChars = NULL;
   char *sOrient = NULL;
   char *sdateFormat = NULL;
-  PyObject *oisoDates = 0; 
+  PyObject *oisoDates = 0;
 
   PyObjectEncoder pyEncoder =
   {
@@ -1765,11 +1766,11 @@ PyObject* objToJSON(PyObject* self, PyObject *args, PyObject *kwargs)
     encoder->encodeHTMLChars = 1;
   }
 
-  if (idoublePrecision > JSON_DOUBLE_MAX_DECIMALS || idoublePrecision < 0) 
+  if (idoublePrecision > JSON_DOUBLE_MAX_DECIMALS || idoublePrecision < 0)
   {
       PyErr_Format (
-          PyExc_ValueError, 
-          "Invalid value '%d' for option 'double_precision', max is '%u'", 
+          PyExc_ValueError,
+          "Invalid value '%d' for option 'double_precision', max is '%u'",
           idoublePrecision,
           JSON_DOUBLE_MAX_DECIMALS);
       return NULL;
@@ -1821,7 +1822,7 @@ PyObject* objToJSON(PyObject* self, PyObject *args, PyObject *kwargs)
     {
       pyEncoder.datetimeUnit = PANDAS_FR_us;
     }
-    else 
+    else
     if (strcmp(sdateFormat, "ns") == 0)
     {
       pyEncoder.datetimeUnit = PANDAS_FR_ns;

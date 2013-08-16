@@ -10,14 +10,18 @@ import numpy as np
 
 import operator
 
-from pandas.core.common import isnull
+from pandas.core.common import isnull, _values_from_object
 from pandas.core.index import Index, _ensure_index
-from pandas.core.series import Series, TimeSeries, _maybe_match_name
+from pandas.core.series import Series, _maybe_match_name
 from pandas.core.frame import DataFrame
+from pandas.core.internals import SingleBlockManager
+from pandas.core import generic
 import pandas.core.common as com
 import pandas.core.datetools as datetools
+import pandas.index as _index
 
 from pandas import compat
+from pandas.util import rwproperty
 
 from pandas.sparse.array import (make_sparse, _sparse_array_op, SparseArray)
 from pandas._sparse import BlockIndex, IntIndex
@@ -34,6 +38,7 @@ def _sparse_op_wrap(op, name):
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
     """
+
     def wrapper(self, other):
         if isinstance(other, Series):
             if not isinstance(other, SparseSeries):
@@ -66,14 +71,11 @@ def _sparse_series_op(left, right, op, name):
     new_name = _maybe_match_name(left, right)
 
     result = _sparse_array_op(left, right, op, name)
-    result = result.view(SparseSeries)
-    result.index = new_index
-    result.name = new_name
-
-    return result
+    return SparseSeries(result, index=new_index, name=new_name)
 
 
-class SparseSeries(SparseArray, Series):
+class SparseSeries(Series):
+
     """Data structure for labeled, sparse floating point data
 
     Parameters
@@ -91,111 +93,156 @@ class SparseSeries(SparseArray, Series):
     must change values, convert to dense, make your changes, then convert back
     to sparse
     """
-    __array_priority__ = 15
+    _subtyp = 'sparse_series'
 
-    sp_index = None
-    fill_value = None
+    def __init__(self, data, index=None, sparse_index=None, kind='block',
+                 fill_value=None, name=None, dtype=None, copy=False,
+                 fastpath=False):
 
-    def __new__(cls, data, index=None, sparse_index=None, kind='block',
-                fill_value=None, name=None, copy=False):
+        # we are called internally, so short-circuit
+        if fastpath:
 
-        is_sparse_array = isinstance(data, SparseArray)
-        if fill_value is None:
+            # data is an ndarray, index is defined
+            data = SingleBlockManager(data, index, fastpath=True)
+            if copy:
+                data = data.copy()
+        else:
+
+            is_sparse_array = isinstance(data, SparseArray)
+            if fill_value is None:
+                if is_sparse_array:
+                    fill_value = data.fill_value
+                else:
+                    fill_value = nan
+
             if is_sparse_array:
-                fill_value = data.fill_value
-            else:
-                fill_value = nan
+                if isinstance(data, SparseSeries) and index is None:
+                    index = data.index
+                elif index is not None:
+                    assert(len(index) == len(data))
 
-        if is_sparse_array:
-            if isinstance(data, SparseSeries) and index is None:
-                index = data.index
-            elif index is not None:
-                if not (len(index) == len(data)):
-                    raise AssertionError()
+                sparse_index = data.sp_index
+                data = np.asarray(data)
 
-            sparse_index = data.sp_index
-            values = np.asarray(data)
-        elif isinstance(data, (Series, dict)):
-            if index is None:
-                index = data.index
+            elif isinstance(data, SparseSeries):
+                if index is None:
+                    index = data.index
 
-            data = Series(data)
-            values, sparse_index = make_sparse(data, kind=kind,
-                                               fill_value=fill_value)
-        elif isinstance(data, (tuple, list, np.ndarray)):
-            # array-like
-            if sparse_index is None:
-                values, sparse_index = make_sparse(data, kind=kind,
-                                                   fill_value=fill_value)
-            else:
-                values = data
-                if not (len(values) == sparse_index.npoints):
-                    raise AssertionError()
-        else:
-            if index is None:
-                raise TypeError('must pass index!')
+                # extract the SingleBlockManager
+                data = data._data
 
-            length = len(index)
+            elif isinstance(data, (Series, dict)):
+                if index is None:
+                    index = data.index
 
-            if data == fill_value or (isnull(data)
-                                      and isnull(fill_value)):
-                if kind == 'block':
-                    sparse_index = BlockIndex(length, [], [])
+                data = Series(data)
+                data, sparse_index = make_sparse(data, kind=kind,
+                                                 fill_value=fill_value)
+
+            elif isinstance(data, (tuple, list, np.ndarray)):
+                # array-like
+                if sparse_index is None:
+                    data, sparse_index = make_sparse(data, kind=kind,
+                                                     fill_value=fill_value)
                 else:
-                    sparse_index = IntIndex(length, [])
-                values = np.array([])
-            else:
-                if kind == 'block':
-                    locs, lens = ([0], [length]) if length else ([], [])
-                    sparse_index = BlockIndex(length, locs, lens)
+                    assert(len(data) == sparse_index.npoints)
+
+            elif isinstance(data, SingleBlockManager):
+                if dtype is not None:
+                    data = data.astype(dtype)
+                if index is None:
+                    index = data.index
                 else:
-                    sparse_index = IntIndex(length, index)
-                values = np.empty(length)
-                values.fill(data)
+                    data = data.reindex(index, copy=False)
 
-        if index is None:
-            index = com._default_index(sparse_index.length)
-        index = _ensure_index(index)
+            else:
 
-        # Create array, do *not* copy data by default
-        if copy:
-            subarr = np.array(values, dtype=np.float64, copy=True)
-        else:
-            subarr = np.asarray(values, dtype=np.float64)
+                length = len(index)
 
-        if index.is_all_dates:
-            cls = SparseTimeSeries
+                if data == fill_value or (isnull(data)
+                                          and isnull(fill_value)):
+                    if kind == 'block':
+                        sparse_index = BlockIndex(length, [], [])
+                    else:
+                        sparse_index = IntIndex(length, [])
+                    data = np.array([])
 
-        # Change the class of the array to be the subclass type.
-        output = subarr.view(cls)
-        output.sp_index = sparse_index
-        output.fill_value = np.float64(fill_value)
-        output.index = index
-        output.name = name
-        return output
+                else:
+                    if kind == 'block':
+                        locs, lens = ([0], [length]) if length else ([], [])
+                        sparse_index = BlockIndex(length, locs, lens)
+                    else:
+                        sparse_index = IntIndex(length, index)
+                    v = data
+                    data = np.empty(length)
+                    data.fill(v)
 
-    def _make_time_series(self):
-        # oh boy #2139
-        self.__class__ = SparseTimeSeries
+            if index is None:
+                index = com._default_index(sparse_index.length)
+            index = _ensure_index(index)
+
+            # create/copy the manager
+            if isinstance(data, SingleBlockManager):
+
+                if copy:
+                    data = data.copy()
+            else:
+
+                # create a sparse array
+                if not isinstance(data, SparseArray):
+                    data = SparseArray(
+                        data, sparse_index=sparse_index, fill_value=fill_value, dtype=dtype, copy=copy)
+
+                data = SingleBlockManager(data, index)
+
+        generic.NDFrame.__init__(self, data)
+
+        self.index = index
+        self.name = name
+
+    @property
+    def values(self):
+        """ return the array """
+        return self._data._values
+
+    def get_values(self):
+        """ same as values """
+        return self._data._values.to_dense().view()
+
+    @property
+    def block(self):
+        return self._data._block
+
+    @rwproperty.getproperty
+    def fill_value(self):
+        return self.block.fill_value
+
+    @rwproperty.setproperty
+    def fill_value(self, v):
+        self.block.fill_value = v
+
+    @property
+    def sp_index(self):
+        return self.block.sp_index
+
+    @property
+    def sp_values(self):
+        return self.values.sp_values
+
+    @property
+    def npoints(self):
+        return self.sp_index.npoints
 
     @classmethod
-    def from_array(cls, arr, index=None, name=None, copy=False, fill_value=None):
+    def from_array(cls, arr, index=None, name=None, copy=False, fill_value=None, fastpath=False):
         """
         Simplified alternate constructor
         """
-        return SparseSeries(arr, index=index, name=name, copy=copy, fill_value=fill_value)
-
-    def __init__(self, data, index=None, sparse_index=None, kind='block',
-                 fill_value=None, name=None, copy=False):
-        pass
+        return cls(arr, index=index, name=name, copy=copy, fill_value=fill_value, fastpath=fastpath)
 
     @property
     def _constructor(self):
-        def make_sp_series(data, index=None, name=None):
-            return SparseSeries(data, index=index, fill_value=self.fill_value,
-                                kind=self.kind, name=name)
-
-        return make_sp_series
+        return SparseSeries
 
     @property
     def kind(self):
@@ -204,42 +251,21 @@ class SparseSeries(SparseArray, Series):
         elif isinstance(self.sp_index, IntIndex):
             return 'integer'
 
-    def __array_finalize__(self, obj):
-        """
-        Gets called after any ufunc or other array operations, necessary
-        to pass on the index.
-        """
-        self._index = getattr(obj, '_index', None)
-        self.name = getattr(obj, 'name', None)
-        self.sp_index = getattr(obj, 'sp_index', None)
-        self.fill_value = getattr(obj, 'fill_value', None)
+    def as_sparse_array(self, kind=None, fill_value=None, copy=False):
+        """ return my self as a sparse array, do not copy by default """
 
-    def __reduce__(self):
-        """Necessary for making this object picklable"""
-        object_state = list(ndarray.__reduce__(self))
-
-        subclass_state = (self.index, self.fill_value, self.sp_index,
-                          self.name)
-        object_state[2] = (object_state[2], subclass_state)
-        return tuple(object_state)
-
-    def __setstate__(self, state):
-        """Necessary for making this object picklable"""
-        nd_state, own_state = state
-        ndarray.__setstate__(self, nd_state)
-
-        index, fill_value, sp_index = own_state[:3]
-        name = None
-        if len(own_state) > 3:
-            name = own_state[3]
-
-        self.sp_index = sp_index
-        self.fill_value = fill_value
-        self.index = index
-        self.name = name
+        if fill_value is None:
+            fill_value = self.fill_value
+        if kind is None:
+            kind = self.kind
+        return SparseArray(self.values,
+                           sparse_index=self.sp_index,
+                           fill_value=fill_value,
+                           kind=kind,
+                           copy=copy)
 
     def __len__(self):
-        return self.sp_index.length
+        return len(self.block)
 
     def __unicode__(self):
         # currently, unicode is same as repr...fixes infinite loop
@@ -256,6 +282,14 @@ class SparseSeries(SparseArray, Series):
     __floordiv__ = _sparse_op_wrap(operator.floordiv, 'floordiv')
     __pow__ = _sparse_op_wrap(operator.pow, 'pow')
 
+    # Inplace operators
+    __iadd__ = __add__
+    __isub__ = __sub__
+    __imul__ = __mul__
+    __itruediv__ = __truediv__
+    __ifloordiv__ = __floordiv__
+    __ipow__ = __pow__
+
     # reverse operators
     __radd__ = _sparse_op_wrap(operator.add, '__radd__')
     __rsub__ = _sparse_op_wrap(lambda x, y: y - x, '__rsub__')
@@ -268,6 +302,71 @@ class SparseSeries(SparseArray, Series):
     if not compat.PY3:
         __div__ = _sparse_op_wrap(operator.div, 'div')
         __rdiv__ = _sparse_op_wrap(lambda x, y: y / x, '__rdiv__')
+
+    def __array_wrap__(self, result):
+        """
+        Gets called prior to a ufunc (and after)
+        """
+        return self._constructor(result,
+                                 index=self.index,
+                                 sparse_index=self.sp_index,
+                                 fill_value=self.fill_value,
+                                 copy=False)
+
+    def __array_finalize__(self, obj):
+        """
+        Gets called after any ufunc or other array operations, necessary
+        to pass on the index.
+        """
+        self.name = getattr(obj, 'name', None)
+        self.fill_value = getattr(obj, 'fill_value', None)
+
+    def __getstate__(self):
+        # pickling
+        return dict(_typ=self._typ,
+                    _subtyp=self._subtyp,
+                    _data=self._data,
+                    fill_value=self.fill_value,
+                    name=self.name)
+
+    def _unpickle_series_compat(self, state):
+
+        nd_state, own_state = state
+
+        # recreate the ndarray
+        data = np.empty(nd_state[1], dtype=nd_state[2])
+        np.ndarray.__setstate__(data, nd_state)
+
+        index, fill_value, sp_index = own_state[:3]
+        name = None
+        if len(own_state) > 3:
+            name = own_state[3]
+
+        # create a sparse array
+        if not isinstance(data, SparseArray):
+            data = SparseArray(
+                data, sparse_index=sp_index, fill_value=fill_value, copy=False)
+
+        # recreate
+        data = SingleBlockManager(data, index, fastpath=True)
+        generic.NDFrame.__init__(self, data)
+
+        self._set_axis(0, index)
+        self.name = name
+
+    def __iter__(self):
+        """ forward to the array """
+        return iter(self.values)
+
+    def _set_subtyp(self, is_all_dates):
+        if is_all_dates:
+            object.__setattr__(self, '_subtyp', 'sparse_time_series')
+        else:
+            object.__setattr__(self, '_subtyp', 'sparse_series')
+
+    def _get_val_at(self, loc):
+        """ forward to the array """
+        return self.block.values._get_val_at(loc)
 
     def __getitem__(self, key):
         """
@@ -288,9 +387,13 @@ class SparseSeries(SparseArray, Series):
         # is there a case where this would NOT be an ndarray?
         # need to find an example, I took out the case for now
 
+        key = _values_from_object(key)
         dataSlice = self.values[key]
         new_index = Index(self.index.view(ndarray)[key])
         return self._constructor(dataSlice, index=new_index, name=self.name)
+
+    def _set_with_engine(self, key, value):
+        return self.set_value(key, value)
 
     def abs(self):
         """
@@ -365,8 +468,33 @@ class SparseSeries(SparseArray, Series):
         -------
         series : SparseSeries
         """
-        dense = self.to_dense().set_value(label, value)
-        return dense.to_sparse(kind=self.kind, fill_value=self.fill_value)
+        values = self.to_dense()
+
+        # if the label doesn't exist, we will create a new object here
+        # and possibily change the index
+        new_values = values.set_value(label, value)
+        if new_values is not None:
+            values = new_values
+        new_index = values.index
+        values = SparseArray(
+            values, fill_value=self.fill_value, kind=self.kind)
+        self._data = SingleBlockManager(values, new_index)
+        self._index = new_index
+
+    def _set_values(self, key, value):
+
+        # this might be inefficient as we have to recreate the sparse array
+        # rather than setting individual elements, but have to convert
+        # the passed slice/boolean that's in dense space into a sparse indexer
+        # not sure how to do that!
+        if isinstance(key, Series):
+            key = key.values
+
+        values = self.values.to_dense()
+        values[key] = _index.convert_scalar(values, value)
+        values = SparseArray(
+            values, fill_value=self.fill_value, kind=self.kind)
+        self._data = SingleBlockManager(values, self.index)
 
     def to_dense(self, sparse_only=False):
         """
@@ -377,34 +505,25 @@ class SparseSeries(SparseArray, Series):
             index = self.index.take(int_index.indices)
             return Series(self.sp_values, index=index, name=self.name)
         else:
-            return Series(self.values, index=self.index, name=self.name)
+            return Series(self.values.to_dense(), index=self.index, name=self.name)
 
     @property
     def density(self):
         r = float(self.sp_index.npoints) / float(self.sp_index.length)
         return r
 
-    def astype(self, dtype=None):
-        """
-
-        """
-        if dtype is not None and dtype not in (np.float_, float):
-            raise TypeError('Can only support floating point data')
-
-        return self.copy()
-
     def copy(self, deep=True):
         """
         Make a copy of the SparseSeries. Only the actual sparse values need to
         be copied
         """
+        new_data = self._data
         if deep:
-            values = self.sp_values.copy()
-        else:
-            values = self.sp_values
-        return SparseSeries(values, index=self.index,
-                            sparse_index=self.sp_index,
-                            fill_value=self.fill_value, name=self.name)
+            new_data = self._data.copy()
+
+        return self._constructor(new_data, index=self.index,
+                                 sparse_index=self.sp_index,
+                                 fill_value=self.fill_value, name=self.name)
 
     def reindex(self, index=None, method=None, copy=True, limit=None):
         """
@@ -423,19 +542,7 @@ class SparseSeries(SparseArray, Series):
                 return self.copy()
             else:
                 return self
-
-        if len(self.index) == 0:
-            # FIXME: inelegant / slow
-            values = np.empty(len(new_index), dtype=np.float64)
-            values.fill(nan)
-            return SparseSeries(values, index=new_index,
-                                fill_value=self.fill_value)
-
-        new_index, fill_vec = self.index.reindex(index, method=method,
-                                                 limit=limit)
-        new_values = com.take_1d(self.values, fill_vec)
-        return SparseSeries(new_values, index=new_index,
-                            fill_value=self.fill_value, name=self.name)
+        return self._constructor(self._data.reindex(new_index, method=method, limit=limit, copy=copy), index=new_index, name=self.name)
 
     def sparse_reindex(self, new_index):
         """
@@ -452,25 +559,24 @@ class SparseSeries(SparseArray, Series):
         if not (isinstance(new_index, splib.SparseIndex)):
             raise AssertionError()
 
-        new_values = self.sp_index.to_int_index().reindex(self.sp_values,
-                                                          self.fill_value,
-                                                          new_index)
-        return SparseSeries(new_values, index=self.index,
-                            sparse_index=new_index,
-                            fill_value=self.fill_value)
+        block = self.block.sparse_reindex(new_index)
+        new_data = SingleBlockManager(block, block.ref_items)
+        return self._constructor(new_data, index=self.index,
+                                 sparse_index=new_index,
+                                 fill_value=self.fill_value)
 
-    @Appender(Series.fillna.__doc__)
-    def fillna(self, value=None, method=None, inplace=False, limit=None):
-        dense = self.to_dense()
-        filled = dense.fillna(value=value, method=method, limit=limit)
-        result = filled.to_sparse(kind=self.kind,
-                                  fill_value=self.fill_value)
-
-        if inplace:
-            self.sp_values[:] = result.values
-            return self
+    def _reindex_indexer(self, new_index, indexer, copy):
+        if indexer is not None:
+            new_values = com.take_1d(self.values.values, indexer)
         else:
+            if copy:
+                result = self.copy()
+            else:
+                result = self
             return result
+
+        # be subclass-friendly
+        return self._constructor(new_values, new_index, name=self.name)
 
     def take(self, indices, axis=0, convert=True):
         """
@@ -480,7 +586,7 @@ class SparseSeries(SparseArray, Series):
         -------
         taken : ndarray
         """
-        new_values = SparseArray.take(self, indices)
+        new_values = SparseArray.take(self.values, indices)
         new_index = self.index.take(indices)
         return self._constructor(new_values, index=new_index)
 
@@ -488,22 +594,14 @@ class SparseSeries(SparseArray, Series):
         """
         Cumulative sum of values. Preserves locations of NaN values
 
-        Extra parameters are to preserve ndarray interface.
-
         Returns
         -------
         cumsum : Series or SparseSeries
         """
-        result = SparseArray.cumsum(self)
-        if isinstance(result, SparseArray):
-            result = self._attach_meta(result)
-        return result
-
-    def _attach_meta(self, sparse_arr):
-        sparse_series = sparse_arr.view(SparseSeries)
-        sparse_series.index = self.index
-        sparse_series.name = self.name
-        return sparse_series
+        new_array = SparseArray.cumsum(self.values)
+        if isinstance(new_array, SparseArray):
+            return self._constructor(new_array, index=self.index, sparse_index=new_array.sp_index, name=self.name)
+        return Series(new_array, index=self.index, name=self.name)
 
     def dropna(self):
         """
@@ -514,6 +612,7 @@ class SparseSeries(SparseArray, Series):
         if isnull(self.fill_value):
             return dense_valid
         else:
+            dense_valid = dense_valid[dense_valid != self.fill_value]
             return dense_valid.to_sparse(fill_value=self.fill_value)
 
     def shift(self, periods, freq=None, **kwds):
@@ -535,10 +634,10 @@ class SparseSeries(SparseArray, Series):
             return self.copy()
 
         if offset is not None:
-            return SparseSeries(self.sp_values,
-                                sparse_index=self.sp_index,
-                                index=self.index.shift(periods, offset),
-                                fill_value=self.fill_value)
+            return self._constructor(self.sp_values,
+                                     sparse_index=self.sp_index,
+                                     index=self.index.shift(periods, offset),
+                                     fill_value=self.fill_value)
 
         int_index = self.sp_index.to_int_index()
         new_indices = int_index.indices + periods
@@ -550,10 +649,10 @@ class SparseSeries(SparseArray, Series):
         if isinstance(self.sp_index, BlockIndex):
             new_sp_index = new_sp_index.to_block_index()
 
-        return SparseSeries(self.sp_values[start:end].copy(),
-                            index=self.index,
-                            sparse_index=new_sp_index,
-                            fill_value=self.fill_value)
+        return self._constructor(self.sp_values[start:end].copy(),
+                                 index=self.index,
+                                 sparse_index=new_sp_index,
+                                 fill_value=self.fill_value)
 
     def combine_first(self, other):
         """
@@ -574,25 +673,5 @@ class SparseSeries(SparseArray, Series):
         dense_combined = self.to_dense().combine_first(other)
         return dense_combined.to_sparse(fill_value=self.fill_value)
 
-
-class SparseTimeSeries(SparseSeries, TimeSeries):
-    """Data structure for labeled, sparse floating point data, with `TimeStamp`
-    index labels
-
-    Parameters
-    ----------
-    data : {array-like, Series, SparseSeries, dict}
-    kind : {'block', 'integer'}
-    fill_value : float
-        Defaults to NaN (code for missing)
-    sparse_index : {BlockIndex, IntIndex}, optional
-        Only if you have one. Mainly used internally
-
-    Notes
-    -----
-    SparseSeries objects are immutable via the typical Python means. If you
-    must change values, convert to dense, make your changes, then convert back
-    to sparse
-    """
-
-    pass
+# backwards compatiblity
+SparseTimeSeries = SparseSeries

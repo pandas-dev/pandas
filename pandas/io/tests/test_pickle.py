@@ -16,6 +16,7 @@ from pandas import Index
 from pandas.sparse.tests import test_sparse
 from pandas import compat
 from pandas.util.misc import is_little_endian
+import pandas
 
 class TestPickle(unittest.TestCase):
     _multiprocess_can_split_ = True
@@ -27,14 +28,20 @@ class TestPickle(unittest.TestCase):
     def compare(self, vf):
 
         # py3 compat when reading py2 pickle
-
         try:
             with open(vf,'rb') as fh:
                 data = pickle.load(fh)
-        except (ValueError):
+        except ValueError as detail:
 
             # we are trying to read a py3 pickle in py2.....
             return
+
+        # we have a deprecated klass
+        except TypeError as detail:
+
+            from pandas.compat.pickle_compat import load
+            data = load(vf)
+
         except:
             if not compat.PY3:
                 raise

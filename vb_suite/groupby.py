@@ -261,7 +261,7 @@ def f(g):
 groupby_frame_apply_overhead = Benchmark("df.groupby('key').apply(f)", setup,
                                          start_date=datetime(2011, 10, 1))
 
-groupbym_frame_apply = Benchmark("df.groupby(['key', 'key2']).apply(f)", setup,
+groupby_frame_apply = Benchmark("df.groupby(['key', 'key2']).apply(f)", setup,
                                  start_date=datetime(2011, 10, 1))
 
 #----------------------------------------------------------------------

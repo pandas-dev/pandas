@@ -714,11 +714,20 @@ def vec_binop(ndarray[object] left, ndarray[object] right, object op):
 def astype_intsafe(ndarray[object] arr, new_dtype):
     cdef:
         Py_ssize_t i, n = len(arr)
+        object v
+        bint is_datelike
         ndarray result
+
+    # on 32-bit, 1.6.2 numpy M8[ns] is a subdtype of integer, which is weird
+    is_datelike = new_dtype in ['M8[ns]','m8[ns]']
 
     result = np.empty(n, dtype=new_dtype)
     for i in range(n):
-        util.set_value_at(result, i, arr[i])
+        v = arr[i]
+        if is_datelike and checknull(v):
+           result[i] = NPY_NAT
+        else:
+           util.set_value_at(result, i, v)
 
     return result
 

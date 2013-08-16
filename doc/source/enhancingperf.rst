@@ -26,7 +26,7 @@ Enhancing Performance
 Cython (Writing C extensions for pandas)
 ----------------------------------------
 
-For many use cases writing pandas in pure python and numpy is sufficient. In some 
+For many use cases writing pandas in pure python and numpy is sufficient. In some
 computationally heavy applications however, it can be possible to achieve sizeable
 speed-ups by offloading work to `cython <http://cython.org/>`__.
 
@@ -68,7 +68,7 @@ Here's the function in pure python:
 We achieve our result by by using ``apply`` (row-wise):
 
 .. ipython:: python
-   
+
    %timeit df.apply(lambda x: integrate_f(x['a'], x['b'], x['N']), axis=1)
 
 But clearly this isn't fast enough for us. Let's take a look and see where the
@@ -83,7 +83,7 @@ By far the majority of time is spend inside either ``integrate_f`` or ``f``,
 hence we'll concentrate our efforts cythonizing these two functions.
 
 .. note::
- 
+
   In python 2 replacing the ``range`` with its generator counterpart (``xrange``)
   would mean the ``range`` line would vanish. In python 3 range is already a generator.
 
@@ -125,7 +125,7 @@ is here to distinguish between function versions):
 
    %timeit df.apply(lambda x: integrate_f_plain(x['a'], x['b'], x['N']), axis=1)
 
-Already this has shaved a third off, not too bad for a simple copy and paste. 
+Already this has shaved a third off, not too bad for a simple copy and paste.
 
 .. _enhancingperf.type:
 
@@ -175,7 +175,7 @@ in python, so maybe we could minimise these by cythonizing the apply part.
   We are now passing ndarrays into the cython function, fortunately cython plays
   very nicely with numpy.
 
-.. ipython:: 
+.. ipython::
 
    In [4]: %%cython
       ...: cimport numpy as np
@@ -205,6 +205,24 @@ The implementation is simple, it creates an array of zeros and loops over
 the rows, applying our ``integrate_f_typed``, and putting this in the zeros array.
 
 
+.. warning::
+
+   In 0.13.0 since ``Series`` has internaly been refactored to no longer sub-class ``ndarray``
+   but instead subclass ``NDFrame``, you can **not pass** a ``Series`` directly as a ``ndarray`` typed parameter
+   to a cython function. Instead pass the actual ``ndarray`` using the ``.values`` attribute of the Series.
+
+   Prior to 0.13.0
+
+   .. code-block:: python
+
+        apply_integrate_f(df['a'], df['b'], df['N'])
+
+   Use ``.values`` to get the underlying ``ndarray``
+
+   .. code-block:: python
+
+        apply_integrate_f(df['a'].values, df['b'].values, df['N'].values)
+
 .. note::
 
     Loop like this would be *extremely* slow in python, but in cython looping over
@@ -212,13 +230,13 @@ the rows, applying our ``integrate_f_typed``, and putting this in the zeros arra
 
 .. ipython:: python
 
-   %timeit apply_integrate_f(df['a'], df['b'], df['N'])
+   %timeit apply_integrate_f(df['a'].values, df['b'].values, df['N'].values)
 
 We've gone another three times faster! Let's check again where the time is spent:
 
 .. ipython:: python
 
-   %prun -l 4 apply_integrate_f(df['a'], df['b'], df['N'])
+   %prun -l 4 apply_integrate_f(df['a'].values, df['b'].values, df['N'].values)
 
 As one might expect, the majority of the time is now spent in ``apply_integrate_f``,
 so if we wanted to make anymore efficiencies we must continue to concentrate our
@@ -261,7 +279,7 @@ advanced cython techniques:
 
 .. ipython:: python
 
-   %timeit apply_integrate_f_wrap(df['a'], df['b'], df['N'])
+   %timeit apply_integrate_f_wrap(df['a'].values, df['b'].values, df['N'].values)
 
 This shaves another third off!
 
