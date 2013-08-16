@@ -1264,7 +1264,7 @@ class Series(generic.NDFrame):
             else:
                 freqstr = u('')
 
-            namestr = u("Name: %s, ") % com.prrint_thing(
+            namestr = u("Name: %s, ") % com.pprint_thing(
                 self.name) if self.name is not None else ""
             return u('%s%sLength: %d') % (freqstr, namestr, len(self))
 
