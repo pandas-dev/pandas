@@ -14,6 +14,7 @@ from pandas.core.base import FrozenList, FrozenNDArray
 from pandas.util.decorators import cache_readonly, deprecate
 from pandas.core.common import isnull
 import pandas.core.common as com
+from pandas.core.common import _values_from_object
 from pandas.core.config import get_option
 import warnings
 
@@ -85,7 +86,15 @@ class Index(FrozenNDArray):
 
     _engine_type = _index.ObjectEngine
 
-    def __new__(cls, data, dtype=None, copy=False, name=None, **kwargs):
+    def __new__(cls, data, dtype=None, copy=False, name=None, fastpath=False,
+                **kwargs):
+
+        # no class inference!
+        if fastpath:
+            subarr = data.view(cls)
+            subarr.name = name
+            return subarr
+
         from pandas.tseries.period import PeriodIndex
         if isinstance(data, np.ndarray):
             if issubclass(data.dtype.type, np.datetime64):
@@ -129,10 +138,9 @@ class Index(FrozenNDArray):
                 return Int64Index(subarr.astype('i8'), copy=copy, name=name)
             elif inferred != 'string':
                 if (inferred.startswith('datetime') or
-                        tslib.is_timestamp_array(subarr)):
+                    tslib.is_timestamp_array(subarr)):
                     from pandas.tseries.index import DatetimeIndex
-                    return DatetimeIndex(subarr, copy=copy, name=name, **kwargs)
-
+                    return DatetimeIndex(data, copy=copy, name=name, **kwargs)
                 elif inferred == 'period':
                     return PeriodIndex(subarr, name=name, **kwargs)
 
@@ -306,6 +314,9 @@ class Index(FrozenNDArray):
     def values(self):
         return np.asarray(self)
 
+    def get_values(self):
+        return self.values
+
     @property
     def is_monotonic(self):
         return self._engine.is_monotonic
@@ -406,6 +417,15 @@ class Index(FrozenNDArray):
                 return result
 
             return Index(result, name=self.name)
+
+    def _getitem_slice(self, key):
+        """ getitem for a bool/sliceable, fallback to standard getitem """
+        try:
+            arr_idx = self.view(np.ndarray)
+            result = arr_idx[key]
+            return self.__class__(result, name=self.name, fastpath=True)
+        except:
+            return self.__getitem__(key)
 
     def append(self, other):
         """
@@ -776,21 +796,23 @@ class Index(FrozenNDArray):
         -------
         loc : int if unique index, possibly slice or mask if not
         """
-        return self._engine.get_loc(key)
+        return self._engine.get_loc(_values_from_object(key))
 
     def get_value(self, series, key):
         """
         Fast lookup of value from 1-dimensional ndarray. Only use this if you
         know what you're doing
         """
+        s = _values_from_object(series)
+        k = _values_from_object(key)
         try:
-            return self._engine.get_value(series, key)
+            return self._engine.get_value(s, k)
         except KeyError as e1:
             if len(self) > 0 and self.inferred_type == 'integer':
                 raise
 
             try:
-                return tslib.get_value_box(series, key)
+                return tslib.get_value_box(s, key)
             except IndexError:
                 raise
             except TypeError:
@@ -812,7 +834,7 @@ class Index(FrozenNDArray):
         Fast lookup of value from 1-dimensional ndarray. Only use this if you
         know what you're doing
         """
-        self._engine.set_value(arr, key, value)
+        self._engine.set_value(_values_from_object(arr), _values_from_object(key), value)
 
     def get_level_values(self, level):
         """
@@ -1402,11 +1424,44 @@ class Int64Index(Index):
 
     _engine_type = _index.Int64Engine
 
-    def __new__(cls, data, dtype=None, copy=False, name=None):
+    def __new__(cls, data, dtype=None, copy=False, name=None, fastpath=False):
+
+        if fastpath:
+            subarr = data.view(cls)
+            subarr.name = name
+            return subarr
+
         if not isinstance(data, np.ndarray):
             if np.isscalar(data):
                 raise ValueError('Index(...) must be called with a collection '
                                  'of some kind, %s was passed' % repr(data))
+
+            if not isinstance(data, np.ndarray):
+                if np.isscalar(data):
+                    raise ValueError('Index(...) must be called with a collection '
+                                     'of some kind, %s was passed' % repr(data))
+
+                # other iterable of some kind
+                if not isinstance(data, (list, tuple)):
+                    data = list(data)
+                data = np.asarray(data)
+
+            if issubclass(data.dtype.type, compat.string_types):
+                raise TypeError('String dtype not supported, you may need '
+                                'to explicitly cast to int')
+            elif issubclass(data.dtype.type, np.integer):
+                # don't force the upcast as we may be dealing
+                # with a platform int
+                if dtype is None or not issubclass(np.dtype(dtype).type, np.integer):
+                    dtype = np.int64
+
+                subarr = np.array(data, dtype=dtype, copy=copy)
+            else:
+                subarr = np.array(data, dtype=np.int64, copy=copy)
+                if len(data) > 0:
+                    if (subarr != data).any():
+                        raise TypeError('Unsafe NumPy casting, you must '
+                                        'explicitly cast')
 
             # other iterable of some kind
             if not isinstance(data, (list, tuple)):
@@ -1805,8 +1860,10 @@ class MultiIndex(Index):
         from pandas.core.series import Series
 
         # Label-based
+        s = _values_from_object(series)
+        k = _values_from_object(key)
         try:
-            return self._engine.get_value(series, key)
+            return self._engine.get_value(s, k)
         except KeyError as e1:
             try:
                 # TODO: what if a level contains tuples??
@@ -1819,7 +1876,7 @@ class MultiIndex(Index):
                 pass
 
             try:
-                return _index.get_value_at(series, key)
+                return _index.get_value_at(s, k)
             except IndexError:
                 raise
             except TypeError:
@@ -2066,6 +2123,8 @@ class MultiIndex(Index):
             result._set_names(self.names)
 
             return result
+
+    _getitem_slice = __getitem__
 
     def take(self, indexer, axis=None):
         """
@@ -2480,7 +2539,7 @@ class MultiIndex(Index):
         if isinstance(key, tuple):
             if len(key) == self.nlevels:
                 if self.is_unique:
-                    return self._engine.get_loc(key)
+                    return self._engine.get_loc(_values_from_object(key))
                 else:
                     return slice(*self.slice_locs(key, key))
             else:
@@ -2546,7 +2605,7 @@ class MultiIndex(Index):
             if not any(isinstance(k, slice) for k in key):
                 if len(key) == self.nlevels:
                     if self.is_unique:
-                        return self._engine.get_loc(key), None
+                        return self._engine.get_loc(_values_from_object(key)), None
                     else:
                         indexer = slice(*self.slice_locs(key, key))
                         return indexer, self[indexer]

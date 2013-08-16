@@ -115,6 +115,76 @@ pandas 0.13
     - ``MultiIndex.astype()`` now only allows ``np.object_``-like dtypes and
       now returns a ``MultiIndex`` rather than an ``Index``. (:issue:`4039`)
 
+**Internal Refactoring**
+
+In 0.13.0 there is a major refactor primarily to subclass ``Series`` from ``NDFrame``,
+which is the base class currently for ``DataFrame`` and ``Panel``, to unify methods
+and behaviors. Series formerly subclassed directly from ``ndarray``. (:issue:`4080`, :issue:`3862`, :issue:`816`)
+See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
+
+- Refactor of series.py/frame.py/panel.py to move common code to generic.py
+
+  - added ``_setup_axes`` to created generic NDFrame structures
+  - moved methods
+
+    - ``from_axes,_wrap_array,axes,ix,loc,iloc,shape,empty,swapaxes,transpose,pop``
+    - ``__iter__,keys,__contains__,__len__,__neg__,__invert__``
+    - ``convert_objects,as_blocks,as_matrix,values``
+    - ``__getstate__,__setstate__`` (compat remains in frame/panel)
+    - ``__getattr__,__setattr__``
+    - ``_indexed_same,reindex_like,align,where,mask``
+    - ``fillna,replace`` (``Series`` replace is now consistent with ``DataFrame``)
+    - ``filter`` (also added axis argument to selectively filter on a different axis)
+    - ``reindex,reindex_axis`` (which was the biggest change to make generic)
+    - ``truncate`` (moved to become part of ``NDFrame``)
+
+- These are API changes which make ``Panel`` more consistent with ``DataFrame``
+
+  - ``swapaxes`` on a ``Panel`` with the same axes specified now return a copy
+  - support attribute access for setting
+  - filter supports same api as original ``DataFrame`` filter
+
+- Reindex called with no arguments will now return a copy of the input object
+
+- Series now inherits from ``NDFrame`` rather than directly from ``ndarray``.
+  There are several minor changes that affect the API.
+
+  - numpy functions that do not support the array interface will now
+    return ``ndarrays`` rather than series, e.g. ``np.diff`` and ``np.ones_like``
+  - ``Series(0.5)`` would previously return the scalar ``0.5``, this is no
+    longer supported
+  - ``TimeSeries`` is now an alias for ``Series``. the property ``is_time_series``
+    can be used to distinguish (if desired)
+
+- Refactor of Sparse objects to use BlockManager
+
+  - Created a new block type in internals, ``SparseBlock``, which can hold multi-dtypes
+    and is non-consolidatable. ``SparseSeries`` and ``SparseDataFrame`` now inherit
+    more methods from there hierarchy (Series/DataFrame), and no longer inherit
+    from ``SparseArray`` (which instead is the object of the ``SparseBlock``)
+  - Sparse suite now supports integration with non-sparse data. Non-float sparse
+    data is supportable (partially implemented)
+  - Operations on sparse structures within DataFrames should preserve sparseness,
+    merging type operations will convert to dense (and back to sparse), so might
+    be somewhat inefficient
+  - enable setitem on ``SparseSeries`` for boolean/integer/slices
+  - ``SparsePanels`` implementation is unchanged (e.g. not using BlockManager, needs work)
+
+- added ``ftypes`` method to Series/DataFame, similar to ``dtypes``, but indicates
+  if the underlying is sparse/dense (as well as the dtype)
+
+- All ``NDFrame`` objects now have a ``_prop_attributes``, which can be used to indcated various
+  values to propogate to a new object from an existing (e.g. name in ``Series`` will follow
+  more automatically now)
+
+- Internal type checking is now done via a suite of generated classes, allowing ``isinstance(value, klass)``
+  without having to directly import the klass, courtesy of @jtratner
+
+- Bug in Series update where the parent frame is not updating its cache based on
+  changes (:issue:`4080`) or types (:issue:`3217`), fillna (:issue:`3386`)
+
+- Indexing with dtype conversions fixed (:issue:`4463`, :issue:`4204`)
+
 **Experimental Features**
 
 **Bug Fixes**

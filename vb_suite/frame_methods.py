@@ -40,8 +40,8 @@ frame_fillna_inplace = Benchmark('df.fillna(0, inplace=True)', setup,
 # reindex both axes
 
 setup = common_setup + """
-df = DataFrame(randn(1000, 1000))
-idx = np.arange(400, 700)
+df = DataFrame(randn(10000, 10000))
+idx = np.arange(4000, 7000)
 """
 
 frame_reindex_axis0 = Benchmark('df.reindex(idx)', setup)
@@ -83,7 +83,7 @@ frame_boolean_row_select = Benchmark('df[bool_arr]', setup,
 # iteritems (monitor no-copying behaviour)
 
 setup = common_setup + """
-df = DataFrame(randn(10000, 100))
+df = DataFrame(randn(10000, 1000))
 
 def f():
     if hasattr(df, '_item_cache'):

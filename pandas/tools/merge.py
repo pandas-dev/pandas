@@ -17,8 +17,7 @@ from pandas.core.index import (Index, MultiIndex, _get_combined_index,
 from pandas.core.internals import (IntBlock, BoolBlock, BlockManager,
                                    make_block, _consolidate)
 from pandas.util.decorators import cache_readonly, Appender, Substitution
-from pandas.core.common import PandasError
-from pandas.sparse.frame import SparseDataFrame
+from pandas.core.common import PandasError, ABCSeries
 import pandas.core.common as com
 
 import pandas.lib as lib
@@ -305,8 +304,8 @@ class _MergeOperation(object):
         left_drop = []
         left, right = self.left, self.right
 
-        is_lkey = lambda x: isinstance(x, np.ndarray) and len(x) == len(left)
-        is_rkey = lambda x: isinstance(x, np.ndarray) and len(x) == len(right)
+        is_lkey = lambda x: isinstance(x, (np.ndarray, ABCSeries)) and len(x) == len(left)
+        is_rkey = lambda x: isinstance(x, (np.ndarray, ABCSeries)) and len(x) == len(right)
 
         # ugh, spaghetti re #733
         if _any(self.left_on) and _any(self.right_on):
@@ -669,7 +668,7 @@ class _BlockJoinOperation(object):
             join_blocks = unit.get_upcasted_blocks()
             type_map = {}
             for blk in join_blocks:
-                type_map.setdefault(blk.dtype, []).append(blk)
+                type_map.setdefault(blk.ftype, []).append(blk)
             blockmaps.append((unit, type_map))
 
         return blockmaps
@@ -718,11 +717,11 @@ class _BlockJoinOperation(object):
         funit, fblock = merge_chunks[0]
         fidx = funit.indexer
 
-        out_shape = list(fblock.values.shape)
+        out_shape = list(fblock.get_values().shape)
 
         n = len(fidx) if fidx is not None else out_shape[self.axis]
 
-        out_shape[0] = sum(len(blk) for unit, blk in merge_chunks)
+        out_shape[0] = sum(blk.get_merge_length() for unit, blk in merge_chunks)
         out_shape[self.axis] = n
 
         # Should use Fortran order??
@@ -732,7 +731,7 @@ class _BlockJoinOperation(object):
         sofar = 0
         for unit, blk in merge_chunks:
             out_chunk = out[sofar: sofar + len(blk)]
-            com.take_nd(blk.values, unit.indexer, self.axis, out=out_chunk)
+            com.take_nd(blk.get_values(), unit.indexer, self.axis, out=out_chunk)
             sofar += len(blk)
 
         # does not sort
@@ -889,8 +888,7 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
 
 class _Concatenator(object):
     """
-    Orchestrates a concatenation operation for BlockManagers, with little hacks
-    to support sparse data structures, etc.
+    Orchestrates a concatenation operation for BlockManagers
     """
 
     def __init__(self, objs, axis=0, join='outer', join_axes=None,
@@ -943,7 +941,7 @@ class _Concatenator(object):
         if isinstance(sample, DataFrame):
             axis = 1 if axis == 0 else 0
 
-        self._is_series = isinstance(sample, Series)
+        self._is_series = isinstance(sample, ABCSeries)
         if not ((0 <= axis <= sample.ndim)):
             raise AssertionError()
 
@@ -963,8 +961,9 @@ class _Concatenator(object):
 
     def get_result(self):
         if self._is_series and self.axis == 0:
-            new_data = com._concat_compat([x.values for x in self.objs])
+            new_data = com._concat_compat([x.get_values() for x in self.objs])
             name = com._consensus_name_attr(self.objs)
+            new_data = self._post_merge(new_data)
             return Series(new_data, index=self.new_axes[0], name=name)
         elif self._is_series:
             data = dict(zip(range(len(self.objs)), self.objs))
@@ -975,7 +974,13 @@ class _Concatenator(object):
             return tmpdf
         else:
             new_data = self._get_concatenated_data()
+            new_data = self._post_merge(new_data)
             return self.objs[0]._from_axes(new_data, self.new_axes)
+
+    def _post_merge(self, data):
+        if isinstance(data, BlockManager):
+            data = data.post_merge(self.objs)
+        return data
 
     def _get_fresh_axis(self):
         return Index(np.arange(len(self._get_concat_axis())))
@@ -983,12 +988,11 @@ class _Concatenator(object):
     def _prepare_blocks(self):
         reindexed_data = self._get_reindexed_data()
 
+        # we are consolidating as we go, so just add the blocks, no-need for dtype mapping
         blockmaps = []
         for data in reindexed_data:
             data = data.consolidate()
-
-            type_map = dict((blk.dtype, blk) for blk in data.blocks)
-            blockmaps.append(type_map)
+            blockmaps.append(data.get_block_map(typ='dict'))
         return blockmaps, reindexed_data
 
     def _get_concatenated_data(self):
@@ -997,9 +1001,15 @@ class _Concatenator(object):
         kinds = _get_all_block_kinds(blockmaps)
 
         try:
+            # need to conform to same other (joined) axes for block join
             new_blocks = []
             for kind in kinds:
-                klass_blocks = [mapping.get(kind) for mapping in blockmaps]
+                klass_blocks = []
+                for mapping in blockmaps:
+                    l = mapping.get(kind)
+                    if l is None:
+                        l = [ None ]
+                    klass_blocks.extend(l)
                 stacked_block = self._concat_blocks(klass_blocks)
                 new_blocks.append(stacked_block)
 
@@ -1010,8 +1020,10 @@ class _Concatenator(object):
                 blk.ref_items = self.new_axes[0]
 
             new_data = BlockManager(new_blocks, self.new_axes)
+
         # Eventual goal would be to move everything to PandasError or other explicit error
         except (Exception, PandasError):  # EAFP
+
             # should not be possible to fail here for the expected reason with
             # axis = 0
             if self.axis == 0:  # pragma: no cover
@@ -1027,22 +1039,20 @@ class _Concatenator(object):
         # HACK: ugh
 
         reindexed_data = []
-        if isinstance(self.objs[0], SparseDataFrame):
-            pass
-        else:
-            axes_to_reindex = list(enumerate(self.new_axes))
-            axes_to_reindex.pop(self.axis)
+        axes_to_reindex = list(enumerate(self.new_axes))
+        axes_to_reindex.pop(self.axis)
 
-            for obj in self.objs:
-                data = obj._data
-                for i, ax in axes_to_reindex:
-                    data = data.reindex_axis(ax, axis=i, copy=False)
-                reindexed_data.append(data)
+        for obj in self.objs:
+            data = obj._data.prepare_for_merge()
+            for i, ax in axes_to_reindex:
+                data = data.reindex_axis(ax, axis=i, copy=False)
+            reindexed_data.append(data)
 
         return reindexed_data
 
     def _concat_blocks(self, blocks):
-        values_list = [b.values for b in blocks if b is not None]
+
+        values_list = [b.get_values() for b in blocks if b is not None]
         concat_values = com._concat_compat(values_list, axis=self.axis)
 
         if self.axis > 0:
@@ -1085,13 +1095,11 @@ class _Concatenator(object):
         all_values = []
         dtypes = set()
 
-        # le sigh
-        if isinstance(self.objs[0], SparseDataFrame):
-            objs = [x._data for x in self.objs]
-
         for data, orig in zip(objs, self.objs):
             if item in orig:
                 values = data.get(item)
+                if hasattr(values,'to_dense'):
+                    values = values.to_dense()
                 dtypes.add(values.dtype)
                 all_values.append(values)
             else:

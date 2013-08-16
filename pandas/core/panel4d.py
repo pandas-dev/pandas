@@ -5,12 +5,12 @@ from pandas.core.panel import Panel
 
 Panel4D = create_nd_panel_factory(
     klass_name='Panel4D',
-    axis_orders=['labels', 'items', 'major_axis', 'minor_axis'],
-    axis_slices={'labels': 'labels', 'items': 'items',
+    orders     =['labels', 'items', 'major_axis', 'minor_axis'],
+    slices     ={'labels': 'labels', 'items': 'items',
                  'major_axis': 'major_axis',
                  'minor_axis': 'minor_axis'},
     slicer=Panel,
-    axis_aliases={'major': 'major_axis', 'minor': 'minor_axis'},
+    aliases    ={'major': 'major_axis', 'minor': 'minor_axis'},
     stat_axis=2,
     ns=dict(__doc__=  """
     Represents a 4 dimensonal structured
@@ -32,7 +32,6 @@ Panel4D = create_nd_panel_factory(
 
         )
     )
-
 
 def panel4d_init(self, data=None, labels=None, items=None, major_axis=None,
                  minor_axis=None, copy=False, dtype=None):

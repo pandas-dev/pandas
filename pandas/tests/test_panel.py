@@ -1029,11 +1029,14 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
                                     major=self.panel.major_axis,
                                     minor=self.panel.minor_axis)
 
-        assert(result.items is self.panel.items)
-        assert(result.major_axis is self.panel.major_axis)
-        assert(result.minor_axis is self.panel.minor_axis)
+        self.assert_(result.items is self.panel.items)
+        self.assert_(result.major_axis is self.panel.major_axis)
+        self.assert_(result.minor_axis is self.panel.minor_axis)
 
-        self.assertRaises(Exception, self.panel.reindex)
+        # this ok
+        result = self.panel.reindex()
+        assert_panel_equal(result,self.panel)
+        self.assert_((result is self.panel) == False)
 
         # with filling
         smaller_major = self.panel.major_axis[::5]
@@ -1047,7 +1050,8 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
 
         # don't necessarily copy
         result = self.panel.reindex(major=self.panel.major_axis, copy=False)
-        self.assert_(result is self.panel)
+        assert_panel_equal(result,self.panel)
+        self.assert_((result is self.panel) == False)
 
     def test_reindex_like(self):
         # reindex_like
@@ -1161,8 +1165,10 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         result = self.panel.swapaxes(0, 1)
         self.assert_(result.items is self.panel.major_axis)
 
-        # this should not work
-        self.assertRaises(Exception, self.panel.swapaxes, 'items', 'items')
+        # this works, but return a copy
+        result = self.panel.swapaxes('items', 'items')
+        assert_panel_equal(self.panel,result)
+        self.assert_(id(self.panel) != id(result))
 
     def test_transpose(self):
         result = self.panel.transpose('minor', 'major', 'items')
@@ -1190,7 +1196,7 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
                           maj='major', majo='items')
 
         # test invalid kwargs
-        self.assertRaises(KeyError, self.panel.transpose, 'minor',
+        self.assertRaises(AssertionError, self.panel.transpose, 'minor',
                           maj='major', minor='items')
 
         result = self.panel.transpose(2, 1, 0)
@@ -1788,15 +1794,18 @@ class TestLongPanel(unittest.TestCase):
 def test_monotonic():
     pos = np.array([1, 2, 3, 5])
 
-    assert panelm._monotonic(pos)
+    def _monotonic(arr):
+        return not (arr[1:] < arr[:-1]).any()
+
+    assert _monotonic(pos)
 
     neg = np.array([1, 2, 3, 4, 3])
 
-    assert not panelm._monotonic(neg)
+    assert not _monotonic(neg)
 
     neg2 = np.array([5, 1, 2, 3, 4, 5])
 
-    assert not panelm._monotonic(neg2)
+    assert not _monotonic(neg2)
 
 
 def test_panel_index():

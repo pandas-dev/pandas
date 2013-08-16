@@ -17,15 +17,20 @@ import numpy.ma as ma
 from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _default_index, _maybe_promote, _maybe_upcast,
                                 _asarray_tuplesafe, is_integer_dtype,
-                                _infer_dtype_from_scalar, is_list_like,
-                                _NS_DTYPE, _TD_DTYPE)
+                                _NS_DTYPE, _TD_DTYPE,
+                                _infer_dtype_from_scalar, is_list_like, _values_from_object,
+                                ABCSparseArray)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                _ensure_index, _handle_legacy_indexes)
-from pandas.core.indexing import (_SeriesIndexer, _check_bool_indexer,
-                                  _check_slice_bounds, _maybe_convert_indices)
-from pandas.tseries.offsets import DateOffset
+from pandas.core.indexing import (
+    _SeriesIndexer, _check_bool_indexer, _check_slice_bounds,
+    _is_index_slice, _maybe_convert_indices)
+from pandas.core import generic
+from pandas.core.internals import SingleBlockManager
+import pandas.core.expressions as expressions
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex, Period
+from pandas.tseries.offsets import DateOffset
 from pandas import compat
 from pandas.util.terminal import get_terminal_size
 from pandas.compat import zip, lzip, u, OrderedDict
@@ -35,7 +40,6 @@ import pandas.core.array as pa
 import pandas.core.common as com
 import pandas.core.datetools as datetools
 import pandas.core.format as fmt
-import pandas.core.generic as generic
 import pandas.core.nanops as nanops
 from pandas.util.decorators import Appender, Substitution, cache_readonly
 
@@ -46,7 +50,7 @@ import pandas.index as _index
 from pandas.compat.scipy import scoreatpercentile as _quantile
 from pandas.core.config import get_option
 
-__all__ = ['Series', 'TimeSeries']
+__all__ = ['Series']
 
 _np_version = np.version.short_version
 _np_version_under1p6 = LooseVersion(_np_version) < '1.6'
@@ -67,18 +71,18 @@ def _arith_method(op, name, fill_zeros=None):
         try:
 
             result = op(x, y)
-            result = com._fill_zeros(result,y,fill_zeros)
+            result = com._fill_zeros(result, y, fill_zeros)
 
         except TypeError:
             result = pa.empty(len(x), dtype=x.dtype)
-            if isinstance(y, pa.Array):
+            if isinstance(y, (pa.Array, Series)):
                 mask = notnull(x) & notnull(y)
                 result[mask] = op(x[mask], y[mask])
             else:
                 mask = notnull(x)
                 result[mask] = op(x[mask], y)
 
-            result, changed = com._maybe_upcast_putmask(result,-mask,pa.NA)
+            result, changed = com._maybe_upcast_putmask(result, -mask, pa.NA)
 
         return result
 
@@ -105,7 +109,7 @@ def _arith_method(op, name, fill_zeros=None):
                 inferred_type = lib.infer_dtype(values)
                 if inferred_type in set(['datetime64','datetime','date','time']):
                     # a datetlike
-                    if not (isinstance(values, pa.Array) and com.is_datetime64_dtype(values)):
+                    if not (isinstance(values, (pa.Array, Series)) and com.is_datetime64_dtype(values)):
                         values = tslib.array_to_datetime(values)
                 elif inferred_type in set(['timedelta']):
                     # have a timedelta, convert to to ns here
@@ -226,8 +230,8 @@ def _arith_method(op, name, fill_zeros=None):
 
             if self.index.equals(other.index):
                 name = _maybe_match_name(self, other)
-                return Series(wrap_results(na_op(lvalues, rvalues)),
-                              index=self.index, name=name, dtype=dtype)
+                return self._constructor(wrap_results(na_op(lvalues, rvalues)),
+                                         index=self.index, dtype=dtype, name=name)
 
             join_idx, lidx, ridx = self.index.join(other.index, how='outer',
                                                    return_indexers=True)
@@ -241,19 +245,19 @@ def _arith_method(op, name, fill_zeros=None):
             arr = na_op(lvalues, rvalues)
 
             name = _maybe_match_name(self, other)
-            return Series(wrap_results(arr), index=join_idx, name=name,dtype=dtype)
+            return self._constructor(wrap_results(arr), index=join_idx, name=name, dtype=dtype)
         elif isinstance(other, DataFrame):
             return NotImplemented
         else:
             # scalars
-            if hasattr(lvalues,'values'):
+            if hasattr(lvalues, 'values'):
                 lvalues = lvalues.values
-            return Series(wrap_results(na_op(lvalues, rvalues)),
-                          index=self.index, name=self.name, dtype=dtype)
+            return self._constructor(wrap_results(na_op(lvalues, rvalues)),
+                                     index=self.index, name=self.name, dtype=dtype)
     return wrapper
 
 
-def _comp_method(op, name):
+def _comp_method(op, name, masker=False):
     """
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
@@ -263,7 +267,7 @@ def _comp_method(op, name):
             if isinstance(y, list):
                 y = lib.list_to_object_array(y)
 
-            if isinstance(y, pa.Array):
+            if isinstance(y, (pa.Array, Series)):
                 if y.dtype != np.object_:
                     result = lib.vec_compare(x, y.astype(np.object_), op)
                 else:
@@ -282,16 +286,19 @@ def _comp_method(op, name):
             name = _maybe_match_name(self, other)
             if len(self) != len(other):
                 raise ValueError('Series lengths must match to compare')
-            return Series(na_op(self.values, other.values),
-                          index=self.index, name=name)
+            return self._constructor(na_op(self.values, other.values),
+                                     index=self.index, name=name)
         elif isinstance(other, DataFrame):  # pragma: no cover
             return NotImplemented
-        elif isinstance(other, pa.Array):
+        elif isinstance(other, (pa.Array, Series)):
             if len(self) != len(other):
                 raise ValueError('Lengths must match to compare')
-            return Series(na_op(self.values, np.asarray(other)),
-                          index=self.index, name=self.name)
+            return self._constructor(na_op(self.values, np.asarray(other)),
+                                     index=self.index, name=self.name)
         else:
+
+            mask = isnull(self)
+
             values = self.values
             other = _index.convert_scalar(values, other)
 
@@ -303,8 +310,17 @@ def _comp_method(op, name):
             if np.isscalar(res):
                 raise TypeError('Could not compare %s type with Series'
                                 % type(other))
-            return Series(na_op(values, other),
-                          index=self.index, name=self.name)
+
+            # always return a full value series here
+            res = _values_from_object(res)
+
+            res = Series(res, index=self.index, name=self.name, dtype='bool')
+
+            # mask out the invalids
+            if mask.any():
+                res[mask.values] = masker
+
+            return res
     return wrapper
 
 
@@ -320,7 +336,7 @@ def _bool_method(op, name):
             if isinstance(y, list):
                 y = lib.list_to_object_array(y)
 
-            if isinstance(y, pa.Array):
+            if isinstance(y, (pa.Array, Series)):
                 if (x.dtype == np.bool_ and
                         y.dtype == np.bool_):  # pragma: no cover
                     result = op(x, y)  # when would this be hit?
@@ -338,14 +354,14 @@ def _bool_method(op, name):
 
         if isinstance(other, Series):
             name = _maybe_match_name(self, other)
-            return Series(na_op(self.values, other.values),
-                          index=self.index, name=name)
+            return self._constructor(na_op(self.values, other.values),
+                                     index=self.index, name=name)
         elif isinstance(other, DataFrame):
             return NotImplemented
         else:
             # scalars
-            return Series(na_op(self.values, other),
-                          index=self.index, name=self.name)
+            return self._constructor(na_op(self.values, other),
+                                     index=self.index, name=self.name)
     return wrapper
 
 
@@ -364,6 +380,17 @@ def _radd_compat(left, right):
             raise
 
     return output
+
+
+def _coerce_method(converter):
+    """ install the scalar coercion methods """
+
+    def wrapper(self):
+        if len(self) == 1:
+            return converter(self.iloc[0])
+        raise TypeError(
+            "cannot convert the series to {0}".format(str(converter)))
+    return wrapper
 
 
 def _maybe_match_name(a, b):
@@ -397,14 +424,14 @@ def _flex_method(op, name):
     def f(self, other, level=None, fill_value=None):
         if isinstance(other, Series):
             return self._binop(other, op, level=level, fill_value=fill_value)
-        elif isinstance(other, (pa.Array, list, tuple)):
+        elif isinstance(other, (pa.Array, Series, list, tuple)):
             if len(other) != len(self):
                 raise ValueError('Lengths must be equal')
-            return self._binop(Series(other, self.index), op,
+            return self._binop(self._constructor(other, self.index), op,
                                level=level, fill_value=fill_value)
         else:
-            return Series(op(self.values, other), self.index,
-                          name=self.name)
+            return self._constructor(op(self.values, other), self.index,
+                                     name=self.name)
 
     f.__name__ = name
     return f
@@ -413,8 +440,8 @@ def _flex_method(op, name):
 def _unbox(func):
     @Appender(func.__doc__)
     def f(self, *args, **kwargs):
-        result = func(self, *args, **kwargs)
-        if isinstance(result, pa.Array) and result.ndim == 0:
+        result = func(self.values, *args, **kwargs)
+        if isinstance(result, (pa.Array, Series)) and result.ndim == 0:
             # return NumPy type
             return result.dtype.type(result.item())
         else:  # pragma: no cover
@@ -452,14 +479,16 @@ def _make_stat_func(nanop, name, shortname, na_action=_doc_exclude_na,
     def f(self, axis=0, dtype=None, out=None, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level(shortname, level=level, skipna=skipna)
-        return nanop(self.values, skipna=skipna)
+        return nanop(_values_from_object(self), skipna=skipna)
     f.__name__ = shortname
     return f
 
 #----------------------------------------------------------------------
 # Series class
 
-class Series(generic.PandasContainer, pa.Array):
+
+class Series(generic.NDFrame):
+
     """
     One-dimensional ndarray with axis labels (including time series).
     Labels need not be unique but must be any hashable type. The object
@@ -486,159 +515,306 @@ class Series(generic.PandasContainer, pa.Array):
         If None, dtype will be inferred
     copy : boolean, default False, copy input data
     """
-    _AXIS_NUMBERS = {
-        'index': 0
-    }
-
-    _AXIS_NAMES = dict((v, k) for k, v in compat.iteritems(_AXIS_NUMBERS))
-
-    def __new__(cls, data=None, index=None, dtype=None, name=None,
-                copy=False):
-        if data is None:
-            data = {}
-
-        if isinstance(data, MultiIndex):
-            raise NotImplementedError
-
-        if index is not None:
-            index = _ensure_index(index)
-
-        if isinstance(data, Series):
-            if name is None:
-                name = data.name
-
-            if index is None:
-                index = data.index
-            else:
-                data = data.reindex(index).values
-        elif isinstance(data, dict):
-            if index is None:
-                if isinstance(data, OrderedDict):
-                    index = Index(data)
-                else:
-                    index = Index(sorted(data))
-            try:
-                if isinstance(index, DatetimeIndex):
-                    # coerce back to datetime objects for lookup
-                    data = lib.fast_multiget(data, index.astype('O'),
-                                             default=pa.NA)
-                elif isinstance(index, PeriodIndex):
-                    data = [data.get(i, nan) for i in index]
-                else:
-                    data = lib.fast_multiget(data, index.values,
-                                             default=pa.NA)
-            except TypeError:
-                data = [data.get(i, nan) for i in index]
-        elif isinstance(data, types.GeneratorType):
-            data = list(data)
-        elif isinstance(data, (set, frozenset)):
-            raise TypeError("{0!r} type is unordered"
-                            "".format(data.__class__.__name__))
-
-        if dtype is not None:
-            dtype = np.dtype(dtype)
-
-        subarr = _sanitize_array(data, index, dtype, copy,
-                                 raise_cast_failure=True)
-
-        if not isinstance(subarr, pa.Array):
-            return subarr
-
-        if index is None:
-            index = _default_index(len(subarr))
-
-        # Change the class of the array to be the subclass type.
-        if index.is_all_dates:
-            if not isinstance(index, (DatetimeIndex, PeriodIndex)):
-                index = DatetimeIndex(index)
-            subarr = subarr.view(TimeSeries)
-        else:
-            subarr = subarr.view(Series)
-        subarr.index = index
-        subarr.name = name
-
-        return subarr
-
-    def _make_time_series(self):
-        # oh boy #2139
-        self.__class__ = TimeSeries
-
-    @classmethod
-    def from_array(cls, arr, index=None, name=None, copy=False):
-        """
-        Simplified alternate constructor
-        """
-        if copy:
-            arr = arr.copy()
-
-        klass = Series
-        if index.is_all_dates:
-            if not isinstance(index, (DatetimeIndex, PeriodIndex)):
-                index = DatetimeIndex(index)
-            klass = TimeSeries
-
-        result = arr.view(klass)
-        result.index = index
-        result.name = name
-
-        return result
+    _prop_attributes = ['name']
 
     def __init__(self, data=None, index=None, dtype=None, name=None,
-                 copy=False):
-        pass
+                 copy=False, fastpath=False):
+
+        # we are called internally, so short-circuit
+        if fastpath:
+
+            # data is an ndarray, index is defined
+            if not isinstance(data, SingleBlockManager):
+                data = SingleBlockManager(data, index, fastpath=True)
+            if copy:
+                data = data.copy()
+            if index is None:
+                index = data.index
+
+        else:
+
+            if index is not None:
+                index = _ensure_index(index)
+
+            if data is None:
+                data = {}
+
+            if isinstance(data, MultiIndex):
+                raise NotImplementedError
+            elif isinstance(data, pa.Array):
+                pass
+            elif isinstance(data, Series):
+                if name is None:
+                    name = data.name
+                if index is None:
+                    index = data.index
+                else:
+                    data = data.reindex(index, copy=copy)
+                data = data._data
+            elif isinstance(data, dict):
+                if index is None:
+                    if isinstance(data, OrderedDict):
+                        index = Index(data)
+                    else:
+                        index = Index(sorted(data))
+                try:
+                    if isinstance(index, DatetimeIndex):
+                        # coerce back to datetime objects for lookup
+                        data = lib.fast_multiget(data, index.astype('O'),
+                                                 default=pa.NA)
+                    elif isinstance(index, PeriodIndex):
+                        data = [data.get(i, nan) for i in index]
+                    else:
+                        data = lib.fast_multiget(data, index.values,
+                                                 default=pa.NA)
+                except TypeError:
+                    data = [data.get(i, nan) for i in index]
+
+            elif isinstance(data, SingleBlockManager):
+                if index is None:
+                    index = data.index
+                else:
+                    data = data.reindex(index, copy=copy)
+            elif isinstance(data, types.GeneratorType):
+                data = list(data)
+            elif isinstance(data, (set, frozenset)):
+                raise TypeError("{0!r} type is unordered"
+                                "".format(data.__class__.__name__))
+            else:
+
+                # handle sparse passed here (and force conversion)
+                if isinstance(data, ABCSparseArray):
+                    data = data.to_dense()
+
+            if index is None:
+                if not is_list_like(data):
+                    data = [data]
+                index = _default_index(len(data))
+
+            # create/copy the manager
+            if isinstance(data, SingleBlockManager):
+                if dtype is not None:
+                    data = data.astype(dtype, raise_on_error=False)
+                elif copy:
+                    data = data.copy()
+            else:
+                data = _sanitize_array(data, index, dtype, copy,
+                                       raise_cast_failure=True)
+
+                data = SingleBlockManager(data, index, fastpath=True)
+
+        generic.NDFrame.__init__(self, data, fastpath=True)
+
+        object.__setattr__(self, 'name', name)
+        self._set_axis(0, index, fastpath=True)
+
+    @classmethod
+    def from_array(cls, arr, index=None, name=None, copy=False, fastpath=False):
+
+        # return a sparse series here
+        if isinstance(arr, ABCSparseArray):
+            from pandas.sparse.series import SparseSeries
+            cls = SparseSeries
+
+        return cls(arr, index=index, name=name, copy=copy, fastpath=fastpath)
 
     @property
+    def _constructor(self):
+        return Series
+
+    # types
+    @property
     def _can_hold_na(self):
-        return not is_integer_dtype(self.dtype)
+        return self._data._can_hold_na
+
+    @property
+    def is_time_series(self):
+        return self._subtyp in ['time_series', 'sparse_time_series']
 
     _index = None
-    index = lib.SeriesIndex()
 
-    def __array_finalize__(self, obj):
+    def _set_axis(self, axis, labels, fastpath=False):
+        """ override generic, we want to set the _typ here """
+
+        if not fastpath:
+            labels = _ensure_index(labels)
+
+        is_all_dates = labels.is_all_dates
+        if is_all_dates:
+            from pandas.tseries.index import DatetimeIndex
+            from pandas.tseries.period import PeriodIndex
+            if not isinstance(labels, (DatetimeIndex, PeriodIndex)):
+                labels = DatetimeIndex(labels)
+
+                # need to set here becuase we changed the index
+                if fastpath:
+                    self._data.set_axis(axis, labels)
+        self._set_subtyp(is_all_dates)
+
+        object.__setattr__(self, '_index', labels)
+        if not fastpath:
+            self._data.set_axis(axis, labels)
+
+    def _set_subtyp(self, is_all_dates):
+        if is_all_dates:
+            object.__setattr__(self, '_subtyp', 'time_series')
+        else:
+            object.__setattr__(self, '_subtyp', 'series')
+
+    # ndarray compatibility
+    def item(self):
+        return self.values.item()
+
+    @property
+    def data(self):
+        return self.values.data
+
+    @property
+    def strides(self):
+        return self.values.strides
+
+    @property
+    def size(self):
+        return self.values.size
+
+    @property
+    def flags(self):
+        return self.values.flags
+
+    @property
+    def dtype(self):
+        return self._data.dtype
+
+    @property
+    def ftype(self):
+        return self._data.ftype
+
+    @property
+    def shape(self):
+        return self._data.shape
+
+    @property
+    def ndim(self):
+        return 1
+
+    @property
+    def base(self):
+        return self.values.base
+
+    def ravel(self):
+        return self.values.ravel()
+
+    def transpose(self):
+        """ support for compatiblity """
+        return self
+
+    T = property(transpose)
+
+    def nonzero(self):
+        """ numpy like, returns same as nonzero """
+        return self.values.nonzero()
+
+    def put(self, *args, **kwargs):
+        self.values.put(*args, **kwargs)
+
+    def __len__(self):
+        return len(self._data)
+
+    @property
+    def size(self):
+        return self.__len__()
+
+    def view(self, dtype=None):
+        return self._constructor(self.values.view(dtype), index=self.index, name=self.name)
+
+    def __array__(self, result=None):
+        """ the array interface, return my values """
+        return self.values
+
+    def __array_wrap__(self, result):
         """
-        Gets called after any ufunc or other array operations, necessary
-        to pass on the index.
+        Gets called prior to a ufunc (and after)
         """
-        self._index = getattr(obj, '_index', None)
-        self.name = getattr(obj, 'name', None)
+        return self._constructor(result, index=self.index, name=self.name, copy=False)
 
     def __contains__(self, key):
         return key in self.index
 
-    def __reduce__(self):
-        """Necessary for making this object picklable"""
-        object_state = list(ndarray.__reduce__(self))
-        subclass_state = (self.index, self.name)
-        object_state[2] = (object_state[2], subclass_state)
-        return tuple(object_state)
+    # coercion
+    __float__ = _coerce_method(float)
+    __long__ = _coerce_method(int)
+    __int__ = _coerce_method(int)
 
-    def __setstate__(self, state):
-        """Necessary for making this object picklable"""
-        nd_state, own_state = state
-        ndarray.__setstate__(self, nd_state)
+    def __nonzero__(self):
+        # special case of a single element bool series degenerating to a scalar
+        if self.dtype == np.bool_ and len(self) == 1:
+            return bool(self.iloc[0])
+        return not self.empty
+    __bool__ = __nonzero__
 
-        # backwards compat
-        index, name = own_state[0], None
-        if len(own_state) > 1:
-            name = own_state[1]
+    # we are preserving name here
+    def __getstate__(self):
+        return dict(_data=self._data, name=self.name)
 
-        self.index = _handle_legacy_indexes([index])[0]
-        self.name = name
+    def _unpickle_series_compat(self, state):
+        if isinstance(state, dict):
+            self._data = state['_data']
+            self.name = state['name']
+            self.index = self._data.index
+
+        elif isinstance(state, tuple):
+
+            # < 0.12 series pickle
+
+            nd_state, own_state = state
+
+            # recreate the ndarray
+            data = np.empty(nd_state[1], dtype=nd_state[2])
+            np.ndarray.__setstate__(data, nd_state)
+
+            # backwards compat
+            index, name = own_state[0], None
+            if len(own_state) > 1:
+                name = own_state[1]
+            index = _handle_legacy_indexes([index])[0]
+
+            # recreate
+            self._data = SingleBlockManager(data, index, fastpath=True)
+            self.index = index
+            self.name = name
+
+        else:
+            raise Exception("cannot unpickle legacy formats -> [%s]" % state)
 
     # indexers
     @property
     def axes(self):
-        return [ self.index ]
+        return [self.index]
 
-    @property
-    def ix(self):
-        if self._ix is None: # defined in indexing.py; pylint: disable=E0203
-            self._ix = _SeriesIndexer(self, 'ix')
+    def _maybe_box(self, values):
+        """ genericically box the values """
 
-        return self._ix
+        if isinstance(values, self.__class__):
+            return values
+        elif not hasattr(values, '__iter__'):
+            v = lib.infer_dtype([values])
+            if v == 'datetime':
+                return lib.Timestamp(v)
+            return values
+
+        v = lib.infer_dtype(values)
+        if v == 'datetime':
+            return lib.map_infer(values, lib.Timestamp)
+
+        if isinstance(values, np.ndarray):
+            return self.__class__(values)
+
+        return values
 
     def _xs(self, key, axis=0, level=None, copy=True):
         return self.__getitem__(key)
+
+    xs = _xs
 
     def _ixs(self, i, axis=0):
         """
@@ -653,7 +829,7 @@ class Series(generic.PandasContainer, pa.Array):
         value : scalar (int) or Series (slice, sequence)
         """
         try:
-            return _index.get_value_at(self, i)
+            return _index.get_value_at(self.values, i)
         except IndexError:
             raise
         except:
@@ -675,19 +851,22 @@ class Series(generic.PandasContainer, pa.Array):
         if raise_on_error:
             _check_slice_bounds(slobj, self.values)
 
-        return self._constructor(self.values[slobj], index=self.index[slobj])
+        return self._constructor(self.values[slobj], index=self.index[slobj],
+                                 name=self.name)
 
     def __getitem__(self, key):
         try:
             return self.index.get_value(self, key)
         except InvalidIndexError:
             pass
-        except KeyError:
+        except (KeyError, ValueError):
             if isinstance(key, tuple) and isinstance(self.index, MultiIndex):
                 # kludge
                 pass
             elif key is Ellipsis:
                 return self
+            elif _is_bool_indexer(key):
+                pass
             else:
                 raise
         except Exception:
@@ -696,9 +875,6 @@ class Series(generic.PandasContainer, pa.Array):
         if com.is_iterator(key):
             key = list(key)
 
-        # boolean
-        # special handling of boolean data with NAs stored in object
-        # arrays. Since we can't represent NA with dtype=bool
         if _is_bool_indexer(key):
             key = _check_bool_indexer(self.index, key)
 
@@ -707,7 +883,6 @@ class Series(generic.PandasContainer, pa.Array):
     def _get_with(self, key):
         # other: fancy integer or otherwise
         if isinstance(key, slice):
-            from pandas.core.indexing import _is_index_slice
 
             idx_type = self.index.inferred_type
             if idx_type == 'floating':
@@ -728,7 +903,8 @@ class Series(generic.PandasContainer, pa.Array):
                             return self._get_values(key)
                     raise
 
-            if not isinstance(key, (list, pa.Array)):  # pragma: no cover
+            # pragma: no cover
+            if not isinstance(key, (list, pa.Array, Series)):
                 key = list(key)
 
             if isinstance(key, Index):
@@ -746,7 +922,7 @@ class Series(generic.PandasContainer, pa.Array):
             else:
                 try:
                     # handle the dup indexing case (GH 4246)
-                    if isinstance(key, (list,tuple)):
+                    if isinstance(key, (list, tuple)):
                         return self.ix[key]
 
                     return self.reindex(key)
@@ -768,121 +944,21 @@ class Series(generic.PandasContainer, pa.Array):
 
         # If key is contained, would have returned by now
         indexer, new_index = self.index.get_loc_level(key)
-        return Series(self.values[indexer], index=new_index, name=self.name)
+        return self._constructor(self.values[indexer], index=new_index, name=self.name)
 
     def _get_values(self, indexer):
         try:
-            return Series(self.values[indexer], index=self.index[indexer],
-                          name=self.name)
+            return self._constructor(self._data.get_slice(indexer),
+                                     name=self.name, fastpath=True)
         except Exception:
             return self.values[indexer]
 
-    def get_dtype_counts(self):
-        return Series({ self.dtype.name : 1 })
-
-    def where(self, cond, other=nan, inplace=False):
-        """
-        Return a Series where cond is True; otherwise values are from other
-
-        Parameters
-        ----------
-        cond: boolean Series or array
-        other: scalar or Series
-
-        Returns
-        -------
-        wh: Series
-        """
-        if isinstance(cond, Series):
-            cond = cond.reindex(self.index, fill_value=True)
-        if not hasattr(cond, 'shape'):
-            raise ValueError('where requires an ndarray like object for its '
-                             'condition')
-        if len(cond) != len(self):
-            raise ValueError('condition must have same length as series')
-
-        if cond.dtype != np.bool_:
-            cond = cond.astype(np.bool_)
-
-        ser = self if inplace else self.copy()
-        if not isinstance(other, (list, tuple, pa.Array)):
-            ser._set_with(~cond, other)
-            return None if inplace else ser
-
-        if isinstance(other, Series):
-            other = other.reindex(ser.index)
-        elif isinstance(other, (tuple,list)):
-
-            # try to set the same dtype as ourselves
-            new_other = np.array(other,dtype=self.dtype)
-            if not (new_other == np.array(other)).all():
-                other = np.array(other)
-            else:
-                other = new_other
-
-        if len(other) != len(ser):
-            icond = ~cond
-
-            # GH 2745
-            # treat like a scalar
-            if len(other) == 1:
-                other = np.array(other[0])
-
-            # GH 3235
-            # match True cond to other
-            elif len(icond[icond]) == len(other):
-                dtype, fill_value = _maybe_promote(other.dtype)
-                new_other = np.empty(len(cond),dtype=dtype)
-                new_other.fill(fill_value)
-                new_other[icond] = other
-                other = new_other
-
-            else:
-                raise ValueError('Length of replacements must equal series length')
-
-        change = ser if inplace else None
-        com._maybe_upcast_putmask(ser,~cond,other,change=change)
-
-        return None if inplace else ser
-
-    def mask(self, cond):
-        """
-        Returns copy of self whose values are replaced with nan if the
-        inverted condition is True
-
-        Parameters
-        ----------
-        cond: boolean Series or array
-
-        Returns
-        -------
-        wh: Series
-        """
-        return self.where(~cond, nan)
-
-    def abs(self):
-        """
-        Return an object with absolute value taken. Only applicable to objects
-        that are all numeric
-
-        Returns
-        -------
-        abs: type of caller
-        """
-        obj = np.abs(self)
-        obj = com._possibly_cast_to_timedelta(obj, coerce=False)
-        return obj
-
     def __setitem__(self, key, value):
         try:
-            try:
-                self.index._engine.set_value(self, key, value)
-                return
-            except KeyError:
-                values = self.values
-                values[self.index.get_loc(key)] = value
-                return
-        except KeyError:
+            self._set_with_engine(key, value)
+            return
+        except (KeyError, ValueError):
+            values = self.values
             if (com.is_integer(key)
                     and not self.index.inferred_type == 'integer'):
 
@@ -891,36 +967,46 @@ class Series(generic.PandasContainer, pa.Array):
             elif key is Ellipsis:
                 self[:] = value
                 return
+            elif _is_bool_indexer(key):
+                pass
+            elif com.is_timedelta64_dtype(self.dtype):
+                # reassign a null value to iNaT
+                if isnull(value):
+                    value = tslib.iNaT
 
-            raise KeyError('%s not in this series!' % str(key))
+                    try:
+                        self.index._engine.set_value(self.values, key, value)
+                        return
+                    except (TypeError):
+                        pass
+
+            self.loc[key] = value
+            return
+
         except TypeError as e:
             # python 3 type errors should be raised
             if 'unorderable' in str(e):  # pragma: no cover
                 raise IndexError(key)
             # Could not hash item
-        except ValueError:
-
-            # reassign a null value to iNaT
-            if com.is_timedelta64_dtype(self.dtype):
-                if isnull(value):
-                    value = tslib.iNaT
-
-                    try:
-                        self.index._engine.set_value(self, key, value)
-                        return
-                    except (TypeError):
-                        pass
 
         if _is_bool_indexer(key):
             key = _check_bool_indexer(self.index, key)
-            self.where(~key,value,inplace=True)
+            self.where(~key, value, inplace=True)
         else:
             self._set_with(key, value)
+
+    def _set_with_engine(self, key, value):
+        values = self.values
+        try:
+            self.index._engine.set_value(values, key, value)
+            return
+        except KeyError:
+            values[self.index.get_loc(key)] = value
+            return
 
     def _set_with(self, key, value):
         # other: fancy integer or otherwise
         if isinstance(key, slice):
-            from pandas.core.indexing import _is_index_slice
             if self.index.inferred_type == 'integer' or _is_index_slice(key):
                 indexer = key
             else:
@@ -933,7 +1019,7 @@ class Series(generic.PandasContainer, pa.Array):
                 except Exception:
                     pass
 
-            if not isinstance(key, (list, pa.Array)):
+            if not isinstance(key, (list, Series, pa.Array, Series)):
                 key = list(key)
 
             if isinstance(key, Index):
@@ -947,7 +1033,7 @@ class Series(generic.PandasContainer, pa.Array):
                 else:
                     return self._set_values(key, value)
             elif key_type == 'boolean':
-                    self._set_values(key, value)
+                    self._set_values(key.astype(np.bool_), value)
             else:
                 self._set_labels(key, value)
 
@@ -965,6 +1051,8 @@ class Series(generic.PandasContainer, pa.Array):
 
     def _set_values(self, key, value):
         values = self.values
+        if isinstance(key, Series):
+            key = key.values
         values[key] = _index.convert_scalar(values, value)
 
     # help out SparseSeries
@@ -976,7 +1064,7 @@ class Series(generic.PandasContainer, pa.Array):
         if j < 0:
             j = 0
         slobj = slice(i, j)
-        return self.__getitem__(slobj)
+        return self._slice(slobj)
 
     def __setslice__(self, i, j, value):
         """Set slice equal to given value(s)"""
@@ -987,57 +1075,21 @@ class Series(generic.PandasContainer, pa.Array):
         slobj = slice(i, j)
         return self.__setitem__(slobj, value)
 
-    def astype(self, dtype):
-        """
-        See numpy.ndarray.astype
-        """
-        dtype = np.dtype(dtype)
-        if dtype == _NS_DTYPE or dtype == _TD_DTYPE:
-            values = com._possibly_cast_to_datetime(self.values,dtype)
-        else:
-            values = com._astype_nansafe(self.values, dtype)
-        return self._constructor(values, index=self.index, name=self.name,
-                                 dtype=values.dtype)
-
-    def convert_objects(self, convert_dates=True, convert_numeric=False, copy=True):
-        """
-        Attempt to infer better dtype
-
-        Parameters
-        ----------
-        convert_dates : boolean, default True
-            if True, attempt to soft convert_dates, if 'coerce', force
-            conversion (and non-convertibles get NaT)
-        convert_numeric : boolean, default True
-            if True attempt to coerce to numbers (including strings),
-            non-convertibles get NaN
-        copy : boolean, default True
-            if True return a copy even if not object dtype
-
-        Returns
-        -------
-        converted : Series
-        """
-        if self.dtype == np.object_:
-            return Series(com._possibly_convert_objects(self.values,
-                convert_dates=convert_dates, convert_numeric=convert_numeric),
-                index=self.index, name=self.name)
-        return self.copy() if copy else self
-
     def repeat(self, reps):
         """
         See ndarray.repeat
         """
         new_index = self.index.repeat(reps)
         new_values = self.values.repeat(reps)
-        return Series(new_values, index=new_index, name=self.name)
+        return self._constructor(new_values, index=new_index, name=self.name)
 
     def reshape(self, newshape, order='C'):
         """
         See numpy.ndarray.reshape
         """
-        if order not in ['C','F']:
-            raise TypeError("must specify a tuple / singular length to reshape")
+        if order not in ['C', 'F']:
+            raise TypeError(
+                "must specify a tuple / singular length to reshape")
 
         if isinstance(newshape, tuple) and len(newshape) > 1:
             return self.values.reshape(newshape, order=order)
@@ -1081,7 +1133,7 @@ class Series(generic.PandasContainer, pa.Array):
         -------
         value : scalar value
         """
-        return self.index.get_value(self, label)
+        return self.index.get_value(self.values, label)
 
     def set_value(self, label, value):
         """
@@ -1103,7 +1155,7 @@ class Series(generic.PandasContainer, pa.Array):
             otherwise a new object
         """
         try:
-            self.index._engine.set_value(self, label, value)
+            self.index._engine.set_value(self.values, label, value)
             return self
         except KeyError:
             if len(self.index) == 0:
@@ -1112,7 +1164,7 @@ class Series(generic.PandasContainer, pa.Array):
                 new_index = self.index.insert(len(self), label)
 
             new_values = np.concatenate([self.values, [value]])
-            return Series(new_values, index=new_index, name=self.name)
+            return self._constructor(new_values, index=new_index, name=self.name)
 
     def reset_index(self, level=None, drop=False, name=None, inplace=False):
         """
@@ -1148,8 +1200,8 @@ class Series(generic.PandasContainer, pa.Array):
                 # set name if it was passed, otherwise, keep the previous name
                 self.name = name or self.name
             else:
-                return Series(self.values.copy(), index=new_index,
-                              name=self.name)
+                return self._constructor(self.values.copy(), index=new_index,
+                                         name=self.name)
         elif inplace:
             raise TypeError('Cannot reset_index inplace on a Series '
                             'to create a DataFrame')
@@ -1204,10 +1256,24 @@ class Series(generic.PandasContainer, pa.Array):
         return compat.text_type(result)
 
     def _repr_footer(self):
+
+        # time series
+        if self.is_time_series:
+            if self.index.freq is not None:
+                freqstr = u('Freq: %s, ') % self.index.freqstr
+            else:
+                freqstr = u('')
+
+            namestr = u("Name: %s, ") % com.prrint_thing(
+                self.name) if self.name is not None else ""
+            return u('%s%sLength: %d') % (freqstr, namestr, len(self))
+
+        # reg series
         namestr = u("Name: %s, ") % com.pprint_thing(
             self.name) if self.name is not None else ""
-        return u('%sLength: %d, dtype: %s') % (namestr, len(self),
-                                             str(self.dtype.name))
+        return u('%sLength: %d, dtype: %s') % (namestr,
+                                               len(self),
+                                               str(self.dtype.name))
 
     def to_string(self, buf=None, na_rep='NaN', float_format=None,
                   nanRep=None, length=False, dtype=False, name=False):
@@ -1256,8 +1322,9 @@ class Series(generic.PandasContainer, pa.Array):
                 with open(buf, 'w') as f:
                     f.write(the_repr)
 
-    def _get_repr(self, name=False, print_header=False, length=True, dtype=True,
-                  na_rep='NaN', float_format=None):
+    def _get_repr(
+        self, name=False, print_header=False, length=True, dtype=True,
+            na_rep='NaN', float_format=None):
         """
 
         Internal function, should always return unicode string
@@ -1283,11 +1350,6 @@ class Series(generic.PandasContainer, pa.Array):
         """
         return lzip(iter(self.index), iter(self))
 
-    def iterkv(self):
-        warnings.warn("iterkv is deprecated and will be removed in a future "
-                      "release. Use ``iteritems`` instead", DeprecationWarning)
-        return self.iteritems()
-
     if compat.PY3:  # pragma: no cover
         items = iteritems
 
@@ -1297,16 +1359,20 @@ class Series(generic.PandasContainer, pa.Array):
     __add__ = _arith_method(operator.add, '__add__')
     __sub__ = _arith_method(operator.sub, '__sub__')
     __mul__ = _arith_method(operator.mul, '__mul__')
-    __truediv__ = _arith_method(operator.truediv, '__truediv__', fill_zeros=np.inf)
-    __floordiv__ = _arith_method(operator.floordiv, '__floordiv__', fill_zeros=np.inf)
+    __truediv__ = _arith_method(
+        operator.truediv, '__truediv__', fill_zeros=np.inf)
+    __floordiv__ = _arith_method(
+        operator.floordiv, '__floordiv__', fill_zeros=np.inf)
     __pow__ = _arith_method(operator.pow, '__pow__')
     __mod__ = _arith_method(operator.mod, '__mod__', fill_zeros=np.nan)
 
     __radd__ = _arith_method(_radd_compat, '__add__')
     __rmul__ = _arith_method(operator.mul, '__mul__')
     __rsub__ = _arith_method(lambda x, y: y - x, '__sub__')
-    __rtruediv__ = _arith_method(lambda x, y: y / x, '__truediv__', fill_zeros=np.inf)
-    __rfloordiv__ = _arith_method(lambda x, y: y // x, '__floordiv__', fill_zeros=np.inf)
+    __rtruediv__ = _arith_method(
+        lambda x, y: y / x, '__truediv__', fill_zeros=np.inf)
+    __rfloordiv__ = _arith_method(
+        lambda x, y: y // x, '__floordiv__', fill_zeros=np.inf)
     __rpow__ = _arith_method(lambda x, y: y ** x, '__pow__')
     __rmod__ = _arith_method(lambda x, y: y % x, '__mod__', fill_zeros=np.nan)
 
@@ -1316,16 +1382,16 @@ class Series(generic.PandasContainer, pa.Array):
     __lt__ = _comp_method(operator.lt, '__lt__')
     __le__ = _comp_method(operator.le, '__le__')
     __eq__ = _comp_method(operator.eq, '__eq__')
-    __ne__ = _comp_method(operator.ne, '__ne__')
+    __ne__ = _comp_method(operator.ne, '__ne__', True)
 
     # inversion
     def __neg__(self):
         arr = operator.neg(self.values)
-        return Series(arr, self.index, name=self.name)
+        return self._constructor(arr, self.index, name=self.name)
 
     def __invert__(self):
         arr = operator.inv(self.values)
-        return Series(arr, self.index, name=self.name)
+        return self._constructor(arr, self.index, name=self.name)
 
     # binary logic
     __or__ = _bool_method(operator.or_, '__or__')
@@ -1343,7 +1409,8 @@ class Series(generic.PandasContainer, pa.Array):
     # Python 2 division operators
     if not compat.PY3:
         __div__ = _arith_method(operator.div, '__div__', fill_zeros=np.inf)
-        __rdiv__ = _arith_method(lambda x, y: y / x, '__div__', fill_zeros=np.inf)
+        __rdiv__ = _arith_method(
+            lambda x, y: y / x, '__div__', fill_zeros=np.inf)
         __idiv__ = __div__
 
     #----------------------------------------------------------------------
@@ -1359,9 +1426,6 @@ class Series(generic.PandasContainer, pa.Array):
         "Alias for index"
         return self.index
 
-    # alas, I wish this worked
-    # values = lib.ValuesProperty()
-
     @property
     def values(self):
         """
@@ -1371,7 +1435,7 @@ class Series(generic.PandasContainer, pa.Array):
         -------
         arr : numpy.ndarray
         """
-        return self.view(ndarray)
+        return self._data.values
 
     def copy(self, order='C', deep=False):
         """
@@ -1399,14 +1463,13 @@ class Series(generic.PandasContainer, pa.Array):
         return Series(self.values.copy(order), index=index,
                       name=name)
 
+    def get_values(self):
+        """ same as values (but handles sparseness conversions); is a view """
+        return self._data.values
+
     def tolist(self):
-        """
-        Convert Series to a nested list
-        Overrides numpy.ndarray.tolist
-        """
-        if com.is_datetime64_dtype(self):
-            return list(self)
-        return self.values.tolist()
+        """ Convert Series to a nested list """
+        return list(self)
 
     def to_dict(self):
         """
@@ -1473,16 +1536,16 @@ class Series(generic.PandasContainer, pa.Array):
             level_index = self.index.levels[level]
 
             if len(self) == 0:
-                return Series(0, index=level_index)
+                return self._constructor(0, index=level_index)
 
             # call cython function
             max_bin = len(level_index)
             labels = com._ensure_int64(self.index.labels[level])
             counts = lib.count_level_1d(mask.view(pa.uint8),
                                         labels, max_bin)
-            return Series(counts, index=level_index)
+            return self._constructor(counts, index=level_index)
 
-        return notnull(self.values).sum()
+        return notnull(_values_from_object(self)).sum()
 
     def value_counts(self, normalize=False):
         """
@@ -1556,7 +1619,7 @@ class Series(generic.PandasContainer, pa.Array):
         """
         keys = com._ensure_object(self.values)
         duplicated = lib.duplicated(keys, take_last=take_last)
-        return Series(duplicated, index=self.index, name=self.name)
+        return self._constructor(duplicated, index=self.index, name=self.name)
 
     sum = _make_stat_func(nanops.nansum, 'sum', 'sum')
     mean = _make_stat_func(nanops.nanmean, 'mean', 'mean')
@@ -1591,7 +1654,7 @@ class Series(generic.PandasContainer, pa.Array):
         """
         if level is not None:
             return self._agg_by_level('min', level=level, skipna=skipna)
-        return nanops.nanmin(self.values, skipna=skipna)
+        return nanops.nanmin(_values_from_object(self), skipna=skipna)
 
     @Substitution(name='maximum', shortname='max',
                   na_action=_doc_exclude_na, extras='')
@@ -1611,7 +1674,7 @@ class Series(generic.PandasContainer, pa.Array):
         """
         if level is not None:
             return self._agg_by_level('max', level=level, skipna=skipna)
-        return nanops.nanmax(self.values, skipna=skipna)
+        return nanops.nanmax(_values_from_object(self), skipna=skipna)
 
     @Substitution(name='standard deviation', shortname='stdev',
                   na_action=_doc_exclude_na, extras='')
@@ -1624,7 +1687,7 @@ class Series(generic.PandasContainer, pa.Array):
         if level is not None:
             return self._agg_by_level('std', level=level, skipna=skipna,
                                       ddof=ddof)
-        return np.sqrt(nanops.nanvar(self.values, skipna=skipna, ddof=ddof))
+        return np.sqrt(nanops.nanvar(_values_from_object(self), skipna=skipna, ddof=ddof))
 
     @Substitution(name='variance', shortname='var',
                   na_action=_doc_exclude_na, extras='')
@@ -1637,7 +1700,7 @@ class Series(generic.PandasContainer, pa.Array):
         if level is not None:
             return self._agg_by_level('var', level=level, skipna=skipna,
                                       ddof=ddof)
-        return nanops.nanvar(self.values, skipna=skipna, ddof=ddof)
+        return nanops.nanvar(_values_from_object(self), skipna=skipna, ddof=ddof)
 
     @Substitution(name='unbiased skewness', shortname='skew',
                   na_action=_doc_exclude_na, extras='')
@@ -1646,7 +1709,7 @@ class Series(generic.PandasContainer, pa.Array):
         if level is not None:
             return self._agg_by_level('skew', level=level, skipna=skipna)
 
-        return nanops.nanskew(self.values, skipna=skipna)
+        return nanops.nanskew(_values_from_object(self), skipna=skipna)
 
     @Substitution(name='unbiased kurtosis', shortname='kurt',
                   na_action=_doc_exclude_na, extras='')
@@ -1655,7 +1718,7 @@ class Series(generic.PandasContainer, pa.Array):
         if level is not None:
             return self._agg_by_level('kurt', level=level, skipna=skipna)
 
-        return nanops.nankurt(self.values, skipna=skipna)
+        return nanops.nankurt(_values_from_object(self), skipna=skipna)
 
     def _agg_by_level(self, name, level=0, skipna=True, **kwds):
         grouped = self.groupby(level=level)
@@ -1686,7 +1749,7 @@ class Series(generic.PandasContainer, pa.Array):
         --------
         DataFrame.idxmin
         """
-        i = nanops.nanargmin(self.values, skipna=skipna)
+        i = nanops.nanargmin(_values_from_object(self), skipna=skipna)
         if i == -1:
             return pa.NA
         return self.index[i]
@@ -1712,10 +1775,14 @@ class Series(generic.PandasContainer, pa.Array):
         --------
         DataFrame.idxmax
         """
-        i = nanops.nanargmax(self.values, skipna=skipna)
+        i = nanops.nanargmax(_values_from_object(self), skipna=skipna)
         if i == -1:
             return pa.NA
         return self.index[i]
+
+    # ndarray compat
+    argmin = idxmin
+    argmax = idxmax
 
     def cumsum(self, axis=0, dtype=None, out=None, skipna=True):
         """
@@ -1732,7 +1799,7 @@ class Series(generic.PandasContainer, pa.Array):
         -------
         cumsum : Series
         """
-        arr = self.values.copy()
+        arr = _values_from_object(self).copy()
 
         do_mask = skipna and not issubclass(self.dtype.type,
                                             (np.integer, np.bool_))
@@ -1745,7 +1812,7 @@ class Series(generic.PandasContainer, pa.Array):
         if do_mask:
             np.putmask(result, mask, pa.NA)
 
-        return Series(result, index=self.index)
+        return self._constructor(result, index=self.index, name=self.name)
 
     def cumprod(self, axis=0, dtype=None, out=None, skipna=True):
         """
@@ -1762,7 +1829,7 @@ class Series(generic.PandasContainer, pa.Array):
         -------
         cumprod : Series
         """
-        arr = self.values.copy()
+        arr = _values_from_object(self).copy()
 
         do_mask = skipna and not issubclass(self.dtype.type,
                                             (np.integer, np.bool_))
@@ -1775,7 +1842,7 @@ class Series(generic.PandasContainer, pa.Array):
         if do_mask:
             np.putmask(result, mask, pa.NA)
 
-        return Series(result, index=self.index)
+        return self._constructor(result, index=self.index, name=self.name)
 
     def cummax(self, axis=0, dtype=None, out=None, skipna=True):
         """
@@ -1792,7 +1859,7 @@ class Series(generic.PandasContainer, pa.Array):
         -------
         cummax : Series
         """
-        arr = self.values.copy()
+        arr = _values_from_object(self).copy()
 
         do_mask = skipna and not issubclass(self.dtype.type, np.integer)
         if do_mask:
@@ -1804,7 +1871,7 @@ class Series(generic.PandasContainer, pa.Array):
         if do_mask:
             np.putmask(result, mask, pa.NA)
 
-        return Series(result, index=self.index)
+        return self._constructor(result, index=self.index, name=self.name)
 
     def cummin(self, axis=0, dtype=None, out=None, skipna=True):
         """
@@ -1821,7 +1888,7 @@ class Series(generic.PandasContainer, pa.Array):
         -------
         cummin : Series
         """
-        arr = self.values.copy()
+        arr = _values_from_object(self).copy()
 
         do_mask = skipna and not issubclass(self.dtype.type, np.integer)
         if do_mask:
@@ -1833,16 +1900,17 @@ class Series(generic.PandasContainer, pa.Array):
         if do_mask:
             np.putmask(result, mask, pa.NA)
 
-        return Series(result, index=self.index)
+        return self._constructor(result, index=self.index, name=self.name)
 
     @Appender(pa.Array.round.__doc__)
     def round(self, decimals=0, out=None):
         """
 
         """
-        result = self.values.round(decimals, out=out)
+        result = _values_from_object(self).round(decimals, out=out)
         if out is None:
-            result = Series(result, index=self.index, name=self.name)
+            result = self._constructor(
+                result, index=self.index, name=self.name)
 
         return result
 
@@ -1866,7 +1934,7 @@ class Series(generic.PandasContainer, pa.Array):
         return _quantile(valid_values, q * 100)
 
     def ptp(self, axis=None, out=None):
-        return self.values.ptp(axis, out)
+        return _values_from_object(self).ptp(axis, out)
 
     def describe(self, percentile_width=50):
         """
@@ -1901,7 +1969,7 @@ class Series(generic.PandasContainer, pa.Array):
 
         elif issubclass(self.dtype.type, np.datetime64):
             names = ['count', 'unique']
-            asint = self.dropna().view('i8')
+            asint = self.dropna().values.view('i8')
             objcounts = Counter(asint)
             data = [self.count(), len(objcounts)]
             if data[1] > 0:
@@ -1928,10 +1996,10 @@ class Series(generic.PandasContainer, pa.Array):
                       pretty_name(ub), 'max']
             data += [self.mean(), self.std(), self.min(),
                      self.quantile(
-                     lb), self.median(), self.quantile(ub),
+                         lb), self.median(), self.quantile(ub),
                      self.max()]
 
-        return Series(data, index=names)
+        return self._constructor(data, index=names)
 
     def corr(self, other, method='pearson',
              min_periods=None):
@@ -1994,8 +2062,8 @@ class Series(generic.PandasContainer, pa.Array):
         -------
         diffed : Series
         """
-        result = com.diff(self.values, periods)
-        return Series(result, self.index, name=self.name)
+        result = com.diff(_values_from_object(self), periods)
+        return self._constructor(result, self.index, name=self.name)
 
     def autocorr(self):
         """
@@ -2124,6 +2192,7 @@ class Series(generic.PandasContainer, pa.Array):
         appended : Series
         """
         from pandas.tools.merge import concat
+
         if isinstance(to_append, (list, tuple)):
             to_concat = [self] + to_append
         else:
@@ -2176,7 +2245,7 @@ class Series(generic.PandasContainer, pa.Array):
 
         result = func(this_vals, other_vals)
         name = _maybe_match_name(self, other)
-        return Series(result, index=new_index, name=name)
+        return self._constructor(result, index=new_index, name=name)
 
     add = _flex_method(operator.add, 'add')
     sub = _flex_method(operator.sub, 'subtract')
@@ -2216,7 +2285,7 @@ class Series(generic.PandasContainer, pa.Array):
             new_index = self.index
             new_values = func(self.values, other)
             new_name = self.name
-        return Series(new_values, index=new_index, name=new_name)
+        return self._constructor(new_values, index=new_index, name=new_name)
 
     def combine_first(self, other):
         """
@@ -2235,8 +2304,8 @@ class Series(generic.PandasContainer, pa.Array):
         this = self.reindex(new_index, copy=False)
         other = other.reindex(new_index, copy=False)
         name = _maybe_match_name(self, other)
-        rs_vals = com._where_compat(isnull(this), other, this)
-        return Series(rs_vals, index=new_index, name=name)
+        rs_vals = com._where_compat(isnull(this), other.values, this.values)
+        return self._constructor(rs_vals, index=new_index, name=name)
 
     def update(self, other):
         """
@@ -2249,7 +2318,9 @@ class Series(generic.PandasContainer, pa.Array):
         """
         other = other.reindex_like(self)
         mask = notnull(other)
-        com._maybe_upcast_putmask(self.values,mask,other,change=self.values)
+
+        self._data = self._data.putmask(mask, other, inplace=True)
+        self._maybe_update_cacher()
 
     #----------------------------------------------------------------------
     # Reindexing, sorting
@@ -2276,7 +2347,7 @@ class Series(generic.PandasContainer, pa.Array):
         sortedSeries = self.order(na_last=True, kind=kind,
                                   ascending=ascending)
 
-        true_base = self
+        true_base = self.values
         while true_base.base is not None:
             true_base = true_base.base
 
@@ -2318,7 +2389,7 @@ class Series(generic.PandasContainer, pa.Array):
                                               ascending=ascending)
 
         new_values = self.values.take(indexer)
-        return Series(new_values, new_labels, name=self.name)
+        return self._constructor(new_values, new_labels, name=self.name)
 
     def argsort(self, axis=0, kind='quicksort', order=None):
         """
@@ -2342,13 +2413,15 @@ class Series(generic.PandasContainer, pa.Array):
         mask = isnull(values)
 
         if mask.any():
-            result = Series(-1,index=self.index,name=self.name,dtype='int64')
+            result = Series(
+                -1, index=self.index, name=self.name, dtype='int64')
             notmask = -mask
-            result.values[notmask] = np.argsort(self.values[notmask], kind=kind)
-            return result
+            result[notmask] = np.argsort(values[notmask], kind=kind)
+            return self._constructor(result, index=self.index, name=self.name)
         else:
-            return Series(np.argsort(values, kind=kind), index=self.index,
-                          name=self.name,dtype='int64')
+            return self._constructor(
+                np.argsort(values, kind=kind), index=self.index,
+                name=self.name, dtype='int64')
 
     def rank(self, method='average', na_option='keep', ascending=True):
         """
@@ -2374,7 +2447,7 @@ class Series(generic.PandasContainer, pa.Array):
         from pandas.core.algorithms import rank
         ranks = rank(self.values, method=method, na_option=na_option,
                      ascending=ascending)
-        return Series(ranks, index=self.index, name=self.name)
+        return self._constructor(ranks, index=self.index, name=self.name)
 
     def order(self, na_last=True, ascending=True, kind='mergesort'):
         """
@@ -2426,8 +2499,8 @@ class Series(generic.PandasContainer, pa.Array):
             sortedIdx[n:] = idx[good][argsorted]
             sortedIdx[:n] = idx[bad]
 
-        return Series(arr[sortedIdx], index=self.index[sortedIdx],
-                      name=self.name)
+        return self._constructor(arr[sortedIdx], index=self.index[sortedIdx],
+                                 name=self.name)
 
     def sortlevel(self, level=0, ascending=True):
         """
@@ -2449,7 +2522,7 @@ class Series(generic.PandasContainer, pa.Array):
 
         new_index, indexer = self.index.sortlevel(level, ascending=ascending)
         new_values = self.values.take(indexer)
-        return Series(new_values, index=new_index, name=self.name)
+        return self._constructor(new_values, index=new_index, name=self.name)
 
     def swaplevel(self, i, j, copy=True):
         """
@@ -2465,7 +2538,7 @@ class Series(generic.PandasContainer, pa.Array):
         swapped : Series
         """
         new_index = self.index.swaplevel(i, j)
-        return Series(self.values, index=new_index, copy=copy, name=self.name)
+        return self._constructor(self.values, index=new_index, copy=copy, name=self.name)
 
     def reorder_levels(self, order):
         """
@@ -2573,14 +2646,14 @@ class Series(generic.PandasContainer, pa.Array):
 
         if isinstance(arg, (dict, Series)):
             if isinstance(arg, dict):
-                arg = Series(arg)
+                arg = self._constructor(arg)
 
             indexer = arg.index.get_indexer(values)
             new_values = com.take_1d(arg.values, indexer)
-            return Series(new_values, index=self.index, name=self.name)
+            return self._constructor(new_values, index=self.index, name=self.name)
         else:
             mapped = map_f(values, arg)
-            return Series(mapped, index=self.index, name=self.name)
+            return self._constructor(mapped, index=self.index, name=self.name)
 
     def apply(self, func, convert_dtype=True, args=(), **kwds):
         """
@@ -2614,16 +2687,16 @@ class Series(generic.PandasContainer, pa.Array):
         if isinstance(f, np.ufunc):
             return f(self)
 
-        values = self.values
+        values = _values_from_object(self)
         if com.is_datetime64_dtype(values.dtype):
             values = lib.map_infer(values, lib.Timestamp)
 
         mapped = lib.map_infer(values, f, convert=convert_dtype)
-        if isinstance(mapped[0], Series):
+        if len(mapped) and isinstance(mapped[0], Series):
             from pandas.core.frame import DataFrame
             return DataFrame(mapped.tolist(), index=self.index)
         else:
-            return Series(mapped, index=self.index, name=self.name)
+            return self._constructor(mapped, index=self.index, name=self.name)
 
     def align(self, other, join='outer', level=None, copy=True,
               fill_value=None, method=None, limit=None):
@@ -2721,7 +2794,7 @@ class Series(generic.PandasContainer, pa.Array):
                 return self
 
         if len(self.index) == 0:
-            return Series(nan, index=index, name=self.name)
+            return self._constructor(nan, index=index, name=self.name)
 
         new_index, indexer = self.index.reindex(index, method=method,
                                                 level=level, limit=limit,
@@ -2729,42 +2802,18 @@ class Series(generic.PandasContainer, pa.Array):
 
         # GH4246 (dispatch to a common method with frame to handle possibly
         # duplicate index)
-        return self._reindex_with_indexers(new_index, indexer, copy=copy,
-                                           fill_value=fill_value)
+        return self._reindex_with_indexers({ 0 : [new_index, indexer] }, copy=copy, fill_value=fill_value)
 
-    def _reindex_with_indexers(self, index, indexer, copy, fill_value):
+    def _reindex_with_indexers(self, reindexers, copy, fill_value=None):
+        index, indexer = reindexers[0]
         new_values = com.take_1d(self.values, indexer, fill_value=fill_value)
-        return Series(new_values, index=index, name=self.name)
+        return self._constructor(new_values, index=index, name=self.name)
 
     def reindex_axis(self, labels, axis=0, **kwargs):
         """ for compatibility with higher dims """
         if axis != 0:
             raise ValueError("cannot reindex series on non-zero axis!")
-        return self.reindex(index=labels,**kwargs)
-
-    def reindex_like(self, other, method=None, limit=None, fill_value=pa.NA):
-        """
-        Reindex Series to match index of another Series, optionally with
-        filling logic
-
-        Parameters
-        ----------
-        other : Series
-        method : string or None
-            See Series.reindex docstring
-        limit : int, default None
-            Maximum size gap to forward or backward fill
-
-        Notes
-        -----
-        Like calling s.reindex(other.index, method=...)
-
-        Returns
-        -------
-        reindexed : Series
-        """
-        return self.reindex(other.index, method=method, limit=limit,
-                            fill_value=fill_value)
+        return self.reindex(index=labels, **kwargs)
 
     def take(self, indices, axis=0, convert=True):
         """
@@ -2780,180 +2829,15 @@ class Series(generic.PandasContainer, pa.Array):
         -------
         taken : Series
         """
+        # check/convert indicies here
+        if convert:
+            indices = _maybe_convert_indices(
+                indices, len(self._get_axis(axis)))
+
         indices = com._ensure_platform_int(indices)
         new_index = self.index.take(indices)
         new_values = self.values.take(indices)
-        return Series(new_values, index=new_index, name=self.name)
-
-    truncate = generic.truncate
-
-    def fillna(self, value=None, method=None, inplace=False,
-               limit=None):
-        """
-        Fill NA/NaN values using the specified method
-
-        Parameters
-        ----------
-        value : any kind (should be same type as array)
-            Value to use to fill holes (e.g. 0)
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default 'pad'
-            Method to use for filling holes in reindexed Series
-            pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill gap
-        inplace : boolean, default False
-            If True, fill the Series in place. Note: this will modify any other
-            views on this Series, for example a column in a DataFrame. Returns
-            a reference to the filled object, which is self if inplace=True
-        limit : int, default None
-            Maximum size gap to forward or backward fill
-
-        See also
-        --------
-        reindex, asfreq
-
-        Returns
-        -------
-        filled : Series
-        """
-        if isinstance(value, (list, tuple)):
-            raise TypeError('"value" parameter must be a scalar or dict, but '
-                            'you passed a "{0}"'.format(type(value).__name__))
-        if not self._can_hold_na:
-            return self.copy() if not inplace else None
-
-        if value is not None:
-            if method is not None:
-                raise ValueError('Cannot specify both a fill value and method')
-            result = self.copy() if not inplace else self
-            mask = isnull(self.values)
-            np.putmask(result, mask, value)
-        else:
-            if method is None:  # pragma: no cover
-                raise ValueError('must specify a fill method or value')
-
-            fill_f = _get_fill_func(method)
-
-            if inplace:
-                values = self.values
-            else:
-                values = self.values.copy()
-
-            fill_f(values, limit=limit)
-
-            if inplace:
-                result = self
-            else:
-                result = Series(values, index=self.index, name=self.name)
-
-        if not inplace:
-            return result
-
-    def ffill(self, inplace=False, limit=None):
-        return self.fillna(method='ffill', inplace=inplace, limit=limit)
-
-    def bfill(self, inplace=False, limit=None):
-        return self.fillna(method='bfill', inplace=inplace, limit=limit)
-
-    def replace(self, to_replace, value=None, method='pad', inplace=False,
-                limit=None):
-        """
-        Replace arbitrary values in a Series
-
-        Parameters
-        ----------
-        to_replace : list or dict
-            list of values to be replaced or dict of replacement values
-        value : anything
-            if to_replace is a list then value is the replacement value
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default 'pad'
-            Method to use for filling holes in reindexed Series
-            pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill gap
-        inplace : boolean, default False
-            If True, fill the Series in place. Note: this will modify any other
-            views on this Series, for example a column in a DataFrame. Returns
-            a reference to the filled object, which is self if inplace=True
-        limit : int, default None
-            Maximum size gap to forward or backward fill
-
-        Notes
-        -----
-        replace does not distinguish between NaN and None
-
-        See also
-        --------
-        fillna, reindex, asfreq
-
-        Returns
-        -------
-        replaced : Series
-        """
-
-        if inplace:
-            result = self
-            change = self
-        else:
-            result = self.copy()
-            change = None
-
-        def _rep_one(s, to_rep, v):  # replace single value
-            mask = com.mask_missing(s.values, to_rep)
-            com._maybe_upcast_putmask(s.values,mask,v,change=change)
-
-        def _rep_dict(rs, to_rep):  # replace {[src] -> dest}
-
-            all_src = set()
-            dd = {}  # group by unique destination value
-            for s, d in compat.iteritems(to_rep):
-                dd.setdefault(d, []).append(s)
-                all_src.add(s)
-
-            if any(d in all_src for d in dd.keys()):
-                # don't clobber each other at the cost of temporaries
-                masks = {}
-                for d, sset in compat.iteritems(dd):  # now replace by each dest
-                    masks[d] = com.mask_missing(rs.values, sset)
-
-                for d, m in compat.iteritems(masks):
-                    com._maybe_upcast_putmask(rs.values,m,d,change=change)
-            else:  # if no risk of clobbering then simple
-                for d, sset in compat.iteritems(dd):
-                    _rep_one(rs, sset, d)
-
-        if np.isscalar(to_replace):
-            to_replace = [to_replace]
-
-        if isinstance(to_replace, dict):
-            _rep_dict(result, to_replace)
-        elif isinstance(to_replace, (list, pa.Array)):
-
-            if isinstance(value, (list, pa.Array)):  # check same length
-                vl, rl = len(value), len(to_replace)
-                if vl == rl:
-                    _rep_dict(result, dict(zip(to_replace, value)))
-                else:
-                    raise ValueError('Got %d to replace but %d values'
-                                     % (rl, vl))
-
-            elif value is not None:  # otherwise all replaced with same value
-                _rep_one(result, to_replace, value)
-            else:  # method
-                if method is None:  # pragma: no cover
-                    raise ValueError('must specify a fill method')
-                fill_f = _get_fill_func(method)
-
-                mask = com.mask_missing(result, to_replace)
-                fill_f(result.values, limit=limit, mask=mask)
-
-                if not inplace:
-                    result = Series(result.values, index=self.index,
-                                    name=self.name)
-        else:
-            raise ValueError('Unrecognized to_replace type %s' %
-                             type(to_replace))
-
-        if not inplace:
-            return result
+        return self._constructor(new_values, index=new_index, name=self.name)
 
     def isin(self, values):
         """
@@ -2969,8 +2853,8 @@ class Series(generic.PandasContainer, pa.Array):
         isin : Series (boolean dtype)
         """
         value_set = set(values)
-        result = lib.ismember(self.values, value_set)
-        return Series(result, self.index, name=self.name)
+        result = lib.ismember(_values_from_object(self), value_set)
+        return self._constructor(result, self.index, name=self.name)
 
     def between(self, left, right, inclusive=True):
         """
@@ -3153,19 +3037,20 @@ class Series(generic.PandasContainer, pa.Array):
                 new_values[:periods] = self.values[-periods:]
                 new_values[periods:] = fill_value
 
-            return Series(new_values, index=self.index, name=self.name)
+            return self._constructor(new_values, index=self.index, name=self.name)
         elif isinstance(self.index, PeriodIndex):
             orig_offset = datetools.to_offset(self.index.freq)
             if orig_offset == offset:
-                return Series(_get_values(), self.index.shift(periods),
-                              name=self.name)
+                return self._constructor(
+                    _get_values(), self.index.shift(periods),
+                    name=self.name)
             msg = ('Given freq %s does not match PeriodIndex freq %s' %
                    (offset.rule_code, orig_offset.rule_code))
             raise ValueError(msg)
         else:
-            return Series(_get_values(),
-                          index=self.index.shift(periods, offset),
-                          name=self.name)
+            return self._constructor(_get_values(),
+                                     index=self.index.shift(periods, offset),
+                                     name=self.name)
 
     def asof(self, where):
         """
@@ -3211,7 +3096,7 @@ class Series(generic.PandasContainer, pa.Array):
 
         locs = self.index.asof_locs(where, notnull(values))
         new_values = com.take_1d(values, locs)
-        return Series(new_values, index=where, name=self.name)
+        return self._constructor(new_values, index=where, name=self.name)
 
     def interpolate(self, method='linear'):
         """
@@ -3230,7 +3115,7 @@ class Series(generic.PandasContainer, pa.Array):
         interpolated : Series
         """
         if method == 'time':
-            if not isinstance(self, TimeSeries):
+            if not self.is_time_series:
                 raise Exception('time-weighted interpolation only works'
                                 'on TimeSeries')
             method = 'values'
@@ -3262,7 +3147,7 @@ class Series(generic.PandasContainer, pa.Array):
             result[firstIndex:][invalid] = np.interp(
                 inds[invalid], inds[valid], values[firstIndex:][valid])
 
-        return Series(result, index=self.index, name=self.name)
+        return self._constructor(result, index=self.index, name=self.name)
 
     def rename(self, mapper, inplace=False):
         """
@@ -3300,14 +3185,15 @@ class Series(generic.PandasContainer, pa.Array):
         """
         mapper_f = _get_rename_function(mapper)
         result = self if inplace else self.copy()
-        result.index = Index([mapper_f(x) for x in self.index], name=self.index.name)
+        result.index = Index([mapper_f(x)
+                             for x in self.index], name=self.index.name)
 
         if not inplace:
             return result
 
     @property
     def weekday(self):
-        return Series([d.weekday() for d in self.index], index=self.index)
+        return self._constructor([d.weekday() for d in self.index], index=self.index)
 
     def tz_convert(self, tz, copy=True):
         """
@@ -3329,7 +3215,7 @@ class Series(generic.PandasContainer, pa.Array):
         if copy:
             new_values = new_values.copy()
 
-        return Series(new_values, index=new_index, name=self.name)
+        return self._constructor(new_values, index=new_index, name=self.name)
 
     def tz_localize(self, tz, copy=True):
         """
@@ -3364,27 +3250,80 @@ class Series(generic.PandasContainer, pa.Array):
         if copy:
             new_values = new_values.copy()
 
-        return Series(new_values, index=new_index, name=self.name)
+        return self._constructor(new_values, index=new_index, name=self.name)
 
     @cache_readonly
     def str(self):
         from pandas.core.strings import StringMethods
         return StringMethods(self)
 
+    def to_timestamp(self, freq=None, how='start', copy=True):
+        """
+        Cast to datetimeindex of timestamps, at *beginning* of period
+
+        Parameters
+        ----------
+        freq : string, default frequency of PeriodIndex
+            Desired frequency
+        how : {'s', 'e', 'start', 'end'}
+            Convention for converting period to timestamp; start of period
+            vs. end
+
+        Returns
+        -------
+        ts : TimeSeries with DatetimeIndex
+        """
+        new_values = self.values
+        if copy:
+            new_values = new_values.copy()
+
+        new_index = self.index.to_timestamp(freq=freq, how=how)
+        return self._constructor(new_values, index=new_index, name=self.name)
+
+    def to_period(self, freq=None, copy=True):
+        """
+        Convert TimeSeries from DatetimeIndex to PeriodIndex with desired
+        frequency (inferred from index if not passed)
+
+        Parameters
+        ----------
+        freq : string, default
+
+        Returns
+        -------
+        ts : TimeSeries with PeriodIndex
+        """
+        new_values = self.values
+        if copy:
+            new_values = new_values.copy()
+
+        if freq is None:
+            freq = self.index.freqstr or self.index.inferred_freq
+        new_index = self.index.to_period(freq=freq)
+        return self._constructor(new_values, index=new_index, name=self.name)
+
+Series._setup_axes(['index'], info_axis=0)
 _INDEX_TYPES = ndarray, Index, list, tuple
+
+# reinstall the SeriesIndexer
+# defined in indexing.py; pylint: disable=E0203
+Series._create_indexer('ix', _SeriesIndexer)
 
 #------------------------------------------------------------------------------
 # Supplementary functions
 
 
-def remove_na(arr):
+def remove_na(series):
     """
-    Return array containing only true/non-NaN values, possibly empty.
+    Return series containing only true/non-NaN values, possibly empty.
     """
-    return arr[notnull(arr)]
+    return series[notnull(_values_from_object(series))]
+
 
 def _sanitize_array(data, index, dtype=None, copy=False,
                     raise_cast_failure=False):
+    if dtype is not None:
+        dtype = np.dtype(dtype)
 
     if isinstance(data, ma.MaskedArray):
         mask = ma.getmaskarray(data)
@@ -3412,8 +3351,8 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         return subarr
 
     # GH #846
-    if isinstance(data, pa.Array):
-        subarr = data
+    if isinstance(data, (pa.Array, Series)):
+        subarr = np.array(data, copy=False)
         if dtype is not None:
 
             # possibility of nan -> garbage
@@ -3541,6 +3480,9 @@ def _get_fill_func(method):
         fill_f = com.backfill_1d
     return fill_f
 
+# backwards compatiblity
+TimeSeries = Series
+
 #----------------------------------------------------------------------
 # Add plotting methods to Series
 
@@ -3548,91 +3490,3 @@ import pandas.tools.plotting as _gfx
 
 Series.plot = _gfx.plot_series
 Series.hist = _gfx.hist_series
-
-# Put here, otherwise monkey-patching in methods fails
-
-
-class TimeSeries(Series):
-    """
-    The time series varians of Series, a One-dimensional ndarray with `TimeStamp`
-    axis labels.
-    Labels need not be unique but must be any hashable type. The object
-    supports both integer- and label-based indexing and provides a host of
-    methods for performing operations involving the index. Statistical
-    methods from ndarray have been overridden to automatically exclude
-    missing data (currently represented as NaN)
-
-    Operations between Series (+, -, /, *, **) align values based on their
-    associated index values-- they need not be the same length. The result
-    index will be the sorted union of the two indexes.
-
-    Parameters
-    ----------
-    data : array-like, dict, or scalar value
-        Contains data stored in Series
-    index : array-like or Index (1d)
-        Values must be unique and hashable, same length as data. Index
-        object (or other iterable of same length as data) Will default to
-        np.arange(len(data)) if not provided. If both a dict and index
-        sequence are used, the index will override the keys found in the
-        dict.
-    dtype : numpy.dtype or None
-        If None, dtype will be inferred copy : boolean, default False Copy
-        input data
-    copy : boolean, default False
-    """
-    def _repr_footer(self):
-        if self.index.freq is not None:
-            freqstr = 'Freq: %s, ' % self.index.freqstr
-        else:
-            freqstr = ''
-
-        namestr = "Name: %s, " % str(
-            self.name) if self.name is not None else ""
-        return '%s%sLength: %d, dtype: %s' % (freqstr, namestr, len(self),
-                                              com.pprint_thing(self.dtype.name))
-
-    def to_timestamp(self, freq=None, how='start', copy=True):
-        """
-        Cast to datetimeindex of timestamps, at *beginning* of period
-
-        Parameters
-        ----------
-        freq : string, default frequency of PeriodIndex
-            Desired frequency
-        how : {'s', 'e', 'start', 'end'}
-            Convention for converting period to timestamp; start of period
-            vs. end
-
-        Returns
-        -------
-        ts : TimeSeries with DatetimeIndex
-        """
-        new_values = self.values
-        if copy:
-            new_values = new_values.copy()
-
-        new_index = self.index.to_timestamp(freq=freq, how=how)
-        return Series(new_values, index=new_index, name=self.name)
-
-    def to_period(self, freq=None, copy=True):
-        """
-        Convert TimeSeries from DatetimeIndex to PeriodIndex with desired
-        frequency (inferred from index if not passed)
-
-        Parameters
-        ----------
-        freq : string, default
-
-        Returns
-        -------
-        ts : TimeSeries with PeriodIndex
-        """
-        new_values = self.values
-        if copy:
-            new_values = new_values.copy()
-
-        if freq is None:
-            freq = self.index.freqstr or self.index.inferred_freq
-        new_index = self.index.to_period(freq=freq)
-        return Series(new_values, index=new_index, name=self.name)
