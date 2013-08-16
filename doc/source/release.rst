@@ -186,6 +186,7 @@ pandas 0.12
     of the default datetime.min and datetime.max (respectively), thanks @SleepingPills
   - ``read_html`` now raises when no tables are found and BeautifulSoup==4.2.0
     is detected (:issue:`4214`)
+  - Factored out excel_value_to_python_value from ExcelFile::_parse_excel (:issue:`4589`)
 
 **API Changes**
 
