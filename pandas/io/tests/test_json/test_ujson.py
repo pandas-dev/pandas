@@ -356,20 +356,19 @@ class UltraJSONTests(TestCase):
         assert ujson.encode(input) == 'null', "Expected null"
 
     def test_datetime_units(self):
-        raise nose.SkipTest("skipping for now, test is buggy, pls fix me")
         from pandas.lib import Timestamp
 
-        val = datetime.datetime.now()
+        val = datetime.datetime(2013, 8, 17, 21, 17, 12, 215504)
         stamp = Timestamp(val)
 
         roundtrip = ujson.decode(ujson.encode(val, date_unit='s'))
-        self.assert_(roundtrip == stamp.value // 1e9)
+        self.assert_(roundtrip == stamp.value // 10**9)
 
         roundtrip = ujson.decode(ujson.encode(val, date_unit='ms'))
-        self.assert_(roundtrip == stamp.value // 1e6)
+        self.assert_(roundtrip == stamp.value // 10**6)
 
         roundtrip = ujson.decode(ujson.encode(val, date_unit='us'))
-        self.assert_(roundtrip == stamp.value / 1e3)
+        self.assert_(roundtrip == stamp.value // 10**3)
 
         roundtrip = ujson.decode(ujson.encode(val, date_unit='ns'))
         self.assert_(roundtrip == stamp.value)
