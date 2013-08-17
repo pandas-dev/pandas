@@ -488,6 +488,7 @@ JSOBJ NpyArr_iterGetValue(JSOBJ obj, JSONTypeContext *tc)
 
 char *NpyArr_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen)
 {
+  JSONObjectEncoder* enc = (JSONObjectEncoder*) tc->encoder;
   NpyArrContext* npyarr;
   npy_intp idx;
   PRINTMARK();
@@ -496,13 +497,19 @@ char *NpyArr_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen)
   {
     idx = npyarr->index[npyarr->stridedim] - 1;
     *outLen = strlen(npyarr->columnLabels[idx]);
-    return npyarr->columnLabels[idx];
+    memcpy(enc->offset, npyarr->columnLabels[idx], sizeof(char)*(*outLen));
+    enc->offset += *outLen;
+    *outLen = 0;
+    return NULL;
   }
   else
   {
     idx = npyarr->index[npyarr->stridedim - npyarr->inc] - 1;
     *outLen = strlen(npyarr->rowLabels[idx]);
-    return npyarr->rowLabels[idx];
+    memcpy(enc->offset, npyarr->rowLabels[idx], sizeof(char)*(*outLen));
+    enc->offset += *outLen;
+    *outLen = 0;
+    return NULL;
   }
 }
 
@@ -1064,7 +1071,7 @@ char** NpyArr_encodeLabels(PyArrayObject* labels, JSONObjectEncoder* enc, npy_in
     // NOTE this function steals a reference to labels.
     PyArrayObject* labelsTmp = NULL;
     PyObject* item = NULL;
-    npy_intp i, stride, len;
+    npy_intp i, stride, len, need_quotes;
     char** ret;
     char *dataptr, *cLabel, *origend, *origst, *origoffset;
     char labelBuffer[NPY_JSON_BUFSIZE];
@@ -1117,15 +1124,8 @@ char** NpyArr_encodeLabels(PyArrayObject* labels, JSONObjectEncoder* enc, npy_in
             break;
         }
 
-        // trim off any quotes surrounding the result
-        if (*cLabel == '\"')
-        {
-            cLabel++;
-            enc->offset -= 2;
-            *(enc->offset) = '\0';
-        }
-
-        len = enc->offset - cLabel + 1;
+        need_quotes = ((*cLabel) != '"');
+        len = enc->offset - cLabel + 1 + 2 * need_quotes;
         ret[i] = PyObject_Malloc(sizeof(char)*len);
 
         if (!ret[i])
@@ -1135,7 +1135,18 @@ char** NpyArr_encodeLabels(PyArrayObject* labels, JSONObjectEncoder* enc, npy_in
             break;
         }
 
-        memcpy(ret[i], cLabel, sizeof(char)*len);
+        if (need_quotes)
+        {
+          ret[i][0] = '"';
+          memcpy(ret[i]+1, cLabel, sizeof(char)*(len-4));
+          ret[i][len-3] = '"';
+        }
+        else
+        {
+          memcpy(ret[i], cLabel, sizeof(char)*(len-2));
+        }
+        ret[i][len-2] = ':';
+        ret[i][len-1] = '\0';
         dataptr += stride;
     }
 
