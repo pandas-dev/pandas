@@ -3,6 +3,7 @@
 import sys
 import urlparse
 import urllib2
+import urllib
 import zipfile
 from contextlib import contextmanager, closing
 from StringIO import StringIO
@@ -89,6 +90,22 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None):
         return filepath_or_buffer, None
 
     return filepath_or_buffer, None
+
+
+def path_to_url(path):
+    """
+    converts an absolute native path to a FILE URL.
+
+    Parameters
+    ----------
+    path : a path in native format
+
+    Returns
+    -------
+    a valid FILE URL
+    """
+    return urlparse.urljoin(
+        'file:', urllib.pathname2url(path))
 
 
 # ----------------------

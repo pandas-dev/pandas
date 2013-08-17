@@ -19,15 +19,13 @@ except ImportError:
 
 from pandas.io.html import read_html
 from pandas.io.common import urlopen
+from pandas.io.common import path_to_url
 
 from pandas import DataFrame, MultiIndex, read_csv, Timestamp
 from pandas.util.testing import (assert_frame_equal, network,
                                  get_data_path)
 
 from pandas.util.testing import makeCustomDataframe as mkdf
-
-
-import urlparse, urllib
 
 def path2url(path):
     return urlparse.urljoin(
@@ -298,7 +296,7 @@ class TestReadHtmlBase(TestCase):
     @slow
     def test_file_url(self):
         url = self.banklist_data
-        dfs = self.run_read_html(path2url(url), 'First',
+        dfs = self.run_read_html(path_to_url(url), 'First',
                                  attrs={'id': 'table'})
         self.assertIsInstance(dfs, list)
         for df in dfs:
@@ -344,7 +342,7 @@ class TestReadHtmlBase(TestCase):
     @slow
     def test_regex_idempotency(self):
         url = self.banklist_data
-        dfs = self.run_read_html(path2url(url),
+        dfs = self.run_read_html(path_to_url(url),
                                  match=re.compile(re.compile('Florida')),
                                  attrs={'id': 'table'})
         self.assertIsInstance(dfs, list)
@@ -470,7 +468,7 @@ def test_invalid_flavor():
 
 def get_elements_from_url(url, element='table', base_url="file://"):
     _skip_if_none_of(('bs4', 'html5lib'))
-    url = path2url(url) if base_url == "file://" else "".join([base_url, url])
+    url = path_to_url(url) if base_url == "file://" else "".join([base_url, url])
     from bs4 import BeautifulSoup
     with urlopen(url) as f:
         soup = BeautifulSoup(f, features='html5lib')

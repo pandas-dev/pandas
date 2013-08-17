@@ -39,6 +39,8 @@ pandas 0.13
 
 **Bug Fixes**
 
+  - Fixed html tests on win32. (:issue:`4580`)
+
 pandas 0.12
 ===========
 
