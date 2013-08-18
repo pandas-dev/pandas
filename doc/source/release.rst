@@ -429,7 +429,9 @@ Bug Fixes
     ``ascending`` was being interpreted as ``True`` (:issue:`4839`,
     :issue:`4846`)
   - Fixed ``Panel.tshift`` not working. Added `freq` support to ``Panel.shift`` (:issue:`4853`)
-
+  - Fix an issue in TextFileReader w/ Python engine (i.e. PythonParser) 
+    with thousands != "," (:issue:`4596`)
+    
 pandas 0.12.0
 -------------
 
