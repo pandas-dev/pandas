@@ -118,9 +118,11 @@ They can take a number of arguments:
     date_converters.py
   - ``dayfirst``: if True then uses the DD/MM international/European date format
     (This is False by default)
-  - ``thousands``: sepcifies the thousands separator. If not None, then parser
-    will try to look for it in the output and parse relevant data to integers.
-    Because it has to essentially scan through the data again, this causes a
+  - ``thousands``: specifies the thousands separator. If not None, this character will
+    be stripped from numeric dtypes. However, if it is the first character in a field,
+    that column will be imported as a string. In the PythonParser, if not None,
+    then parser will try to look for it in the output and parse relevant data to numeric
+    dtypes. Because it has to essentially scan through the data again, this causes a
     significant performance hit so only use if necessary.
   - ``lineterminator`` : string (length 1), default ``None``, Character to break file into lines. Only valid with C parser
   - ``quotechar`` : string, The character to used to denote the start and end of a quoted item.
@@ -506,8 +508,8 @@ DD/MM/YYYY instead. For convenience, a ``dayfirst`` keyword is provided:
 
 Thousand Separators
 ~~~~~~~~~~~~~~~~~~~
-For large integers that have been written with a thousands separator, you can
-set the ``thousands`` keyword to ``True`` so that integers will be parsed
+For large numbers that have been written with a thousands separator, you can
+set the ``thousands`` keyword to a string of length 1 so that integers will be parsed
 correctly:
 
 .. ipython:: python
@@ -521,7 +523,7 @@ correctly:
    with open('tmp.csv', 'w') as fh:
        fh.write(data)
 
-By default, integers with a thousands separator will be parsed as strings
+By default, numbers with a thousands separator will be parsed as strings
 
 .. ipython:: python
 
@@ -1123,7 +1125,7 @@ is ``None``. To explicity force ``Series`` parsing, pass ``typ=series``
 - ``numpy`` : direct decoding to numpy arrays. default is False;
   Note that the JSON ordering **MUST** be the same for each term if ``numpy=True``
 - ``precise_float`` : boolean, default ``False``. Set to enable usage of higher precision (strtod) function when decoding string to double values. Default (``False``) is to use fast but less precise builtin functionality
-- ``date_unit`` : string, the timestamp unit to detect if converting dates. Default 
+- ``date_unit`` : string, the timestamp unit to detect if converting dates. Default
   None. By default the timestamp precision will be detected, if this is not desired
   then pass one of 's', 'ms', 'us' or 'ns' to force timestamp precision to
   seconds, milliseconds, microseconds or nanoseconds respectively.
@@ -1201,11 +1203,11 @@ nanoseconds
    dfju
 
    # Let Pandas detect the correct precision
-   dfju = pd.read_json(json)  
+   dfju = pd.read_json(json)
    dfju
 
    # Or specify that all timestamps are in nanoseconds
-   dfju = pd.read_json(json, date_unit='ns')  
+   dfju = pd.read_json(json, date_unit='ns')
    dfju
 
 .. ipython:: python

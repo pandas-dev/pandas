@@ -272,6 +272,8 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
   - Fix selection with ``ix/loc`` and non_unique selectors (:issue:`4619`)
   - Fix assignment with iloc/loc involving a dtype change in an existing column (:issue:`4312`)
     have internal setitem_with_indexer in core/indexing to use Block.setitem
+  - Fixed bug where thousands operator was not handled correctly for floating point numbers
+    in csv_import (:issue:`4322`)
 
 pandas 0.12
 ===========

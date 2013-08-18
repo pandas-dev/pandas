@@ -19,7 +19,8 @@ from pandas.io.common import urlopen, URLError
 import pandas.io.parsers as parsers
 from pandas.io.parsers import (read_csv, read_table, read_fwf,
                                TextFileReader, TextParser)
-from pandas.util.testing import (assert_almost_equal,
+from pandas.util.testing import (assert_equal,
+                                 assert_almost_equal,
                                  assert_series_equal,
                                  makeCustomDataframe as mkdf,
                                  network,
@@ -66,6 +67,35 @@ bar2,12,13,14,15
         self.csv1 = os.path.join(self.dirpath, 'test1.csv')
         self.csv2 = os.path.join(self.dirpath, 'test2.csv')
         self.xls1 = os.path.join(self.dirpath, 'test.xls')
+
+    def test_multi_character_decimal_marker(self):
+        data = """A|B|C
+1|2,334|5
+10|13|10.
+"""
+        self.assertRaises(ValueError, read_csv, StringIO(data), decimal=',,')
+
+    def test_empty_decimal_marker(self):
+        data = """A|B|C
+1|2,334|5
+10|13|10.
+"""
+        self.assertRaises(ValueError, read_csv, StringIO(data), decimal='')
+
+    def test_empty_thousands_marker(self):
+        data = """A|B|C
+1|2,334|5
+10|13|10.
+"""
+        self.assertRaises(ValueError, read_csv, StringIO(data), thousands='')
+
+
+    def test_multi_character_decimal_marker(self):
+        data = """A|B|C
+1|2,334|5
+10|13|10.
+"""
+        self.assertRaises(ValueError, read_csv, StringIO(data), thousands=',,')
 
     def test_empty_string(self):
         data = """\
@@ -164,14 +194,48 @@ index2,b,d,f
 1|2,334|5
 10|13|10.
 """
-        expected = [[1, 2334., 5],
-                    [10, 13, 10]]
+        expected = DataFrame({
+            'A': [1, 10],
+            'B': [2334, 13],
+            'C': [5, 10.]
+        })
 
         df = self.read_csv(StringIO(data), sep='|', thousands=',')
-        assert_almost_equal(df.values, expected)
+        tm.assert_frame_equal(df, expected)
 
         df = self.read_table(StringIO(data), sep='|', thousands=',')
-        assert_almost_equal(df.values, expected)
+        tm.assert_frame_equal(df, expected)
+
+    def test_1000_sep_with_decimal(self):
+        data = """A|B|C
+1|2,334.01|5
+10|13|10.
+"""
+        expected = DataFrame({
+            'A': [1, 10],
+            'B': [2334.01, 13],
+            'C': [5, 10.]
+        })
+
+        assert_equal(expected.A.dtype, 'int64')
+        assert_equal(expected.B.dtype, 'float')
+        assert_equal(expected.C.dtype, 'float')
+
+        df = self.read_csv(StringIO(data), sep='|', thousands=',', decimal='.')
+        tm.assert_frame_equal(df, expected)
+
+        df = self.read_table(StringIO(data), sep='|', thousands=',', decimal='.')
+        tm.assert_frame_equal(df, expected)
+
+        data_with_odd_sep = """A|B|C
+1|2.334,01|5
+10|13|10,
+"""
+        df = self.read_csv(StringIO(data_with_odd_sep), sep='|', thousands='.', decimal=',')
+        tm.assert_frame_equal(df, expected)
+
+        df = self.read_table(StringIO(data_with_odd_sep), sep='|', thousands='.', decimal=',')
+        tm.assert_frame_equal(df, expected)
 
     def test_squeeze(self):
         data = """\
@@ -1861,6 +1925,24 @@ c   1   2   3   4
         df = read_fwf(StringIO(data), colspecs=[(0, 3), (3, 11), (12, 16)],
                       thousands=',')
         assert_almost_equal(df.values, expected)
+
+    def test_1000_sep_with_decimal(self):
+        data = """A|B|C
+1|2,334.01|5
+10|13|10.
+"""
+
+        expected = DataFrame({
+            'A': [1, 10],
+            'B': [2334.01, 13],
+            'C': [5, 10.]
+        })
+
+        df = self.read_csv(StringIO(data), sep='|', thousands=',')
+        tm.assert_frame_equal(df, expected)
+
+        df = self.read_table(StringIO(data), sep='|', thousands=',')
+        tm.assert_frame_equal(df, expected)
 
     def test_comment_fwf(self):
         data = """

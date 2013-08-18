@@ -278,6 +278,9 @@ Bug Fixes
 
   - Suppressed DeprecationWarning associated with internal calls issued by repr() (:issue:`4391`)
 
+  - Fixed bug where thousands operator was not handled correctly for floating point numbers
+    in csv_import (:issue:`4322`)
+
 See the :ref:`full release notes
 <release>` or issue tracker
 on GitHub for a complete list.
