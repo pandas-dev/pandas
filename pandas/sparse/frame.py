@@ -471,7 +471,6 @@ class SparseDataFrame(DataFrame):
 
         for col, series in compat.iteritems(this):
             new_data[col] = func(series.values, other.values)
-            #new_data[col] = func(series.as_sparse_array(fill_value=np.nan), other.as_sparse_array(fill_value=np.nan))
 
         # fill_value is a function of our operator
         if isnull(other.fill_value) or isnull(self.default_fill_value):
@@ -576,8 +575,8 @@ class SparseDataFrame(DataFrame):
 
     def _reindex_with_indexers(self, reindexers, method=None, fill_value=np.nan, limit=None, copy=False):
 
-        if limit is not None:
-            raise NotImplementedError("cannot take limit with a sparse tyep")
+        if method is not None or limit is not None:
+            raise NotImplementedError("cannot reindex with a method or limit with sparse")
 
         index,   row_indexer = reindexers.get(0, (None, None))
         columns, col_indexer = reindexers.get(1, (None, None))

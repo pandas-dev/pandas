@@ -155,6 +155,8 @@ class DatetimeIndex(Int64Index):
 
         freq_infer = False
         if not isinstance(freq, DateOffset):
+
+            # if a passed freq is None, don't infer automatically
             if freq != 'infer':
                 freq = to_offset(freq)
             else:

@@ -987,7 +987,7 @@ class NDFrame(PandasObject):
 
         # construct the args
         axes, kwargs = self._construct_axes_from_arguments(args, kwargs)
-        method = kwargs.get('method')
+        method = com._clean_fill_method(kwargs.get('method'))
         level = kwargs.get('level')
         copy = kwargs.get('copy', True)
         limit = kwargs.get('limit')
@@ -1082,6 +1082,7 @@ class NDFrame(PandasObject):
 
         axis_name = self._get_axis_name(axis)
         axis_values = self._get_axis(axis_name)
+        method = com._clean_fill_method(method)
         new_index, indexer = axis_values.reindex(labels, method, level,
                                                  limit=limit, copy_if_needed=True)
         return self._reindex_with_indexers({axis: [new_index, indexer]}, method=method, fill_value=fill_value,
@@ -1102,7 +1103,7 @@ class NDFrame(PandasObject):
             # reindex the axis
             if method is not None:
                 new_data = new_data.reindex_axis(
-                    index, method=method, axis=baxis,
+                    index, indexer=indexer, method=method, axis=baxis,
                     fill_value=fill_value, limit=limit, copy=copy)
 
             elif indexer is not None:
@@ -1419,7 +1420,8 @@ class NDFrame(PandasObject):
         limit : int, default None
             Maximum size gap to forward or backward fill
         downcast : dict, default is None, a dict of item->dtype of what to
-            downcast if possible
+            downcast if possible, or the string 'infer' which will try to
+            downcast to an appropriate equal type (e.g. float64 to int64 if possible)
 
         See also
         --------
@@ -1438,6 +1440,7 @@ class NDFrame(PandasObject):
         if axis + 1 > self._AXIS_LEN:
             raise ValueError(
                 "invalid axis passed for object type {0}".format(type(self)))
+        method = com._clean_fill_method(method)
 
         if value is None:
             if method is None:
@@ -1488,13 +1491,13 @@ class NDFrame(PandasObject):
         else:
             return self._constructor(new_data)
 
-    def ffill(self, axis=0, inplace=False, limit=None):
+    def ffill(self, axis=0, inplace=False, limit=None, downcast=None):
         return self.fillna(method='ffill', axis=axis, inplace=inplace,
-                           limit=limit, downcast='infer')
+                           limit=limit, downcast=downcast)
 
-    def bfill(self, axis=0, inplace=False, limit=None):
+    def bfill(self, axis=0, inplace=False, limit=None, downcast=None):
         return self.fillna(method='bfill', axis=axis, inplace=inplace,
-                           limit=limit, downcast='infer')
+                           limit=limit, downcast=downcast)
 
     def replace(self, to_replace=None, value=None, inplace=False, limit=None,
                 regex=False, method=None, axis=None):
@@ -2046,6 +2049,7 @@ class NDFrame(PandasObject):
             Aligned objects
         """
         from pandas import DataFrame, Series
+        method = com._clean_fill_method(method)
 
         if isinstance(other, DataFrame):
             return self._align_frame(other, join=join, axis=axis, level=level,

@@ -4074,6 +4074,9 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         # this changes dtype because the ffill happens after
         result = s.reindex(new_index).ffill()
+        assert_series_equal(result, expected.astype('float64'))
+
+        result = s.reindex(new_index).ffill(downcast='infer')
         assert_series_equal(result, expected)
 
         # this preserves dtype
@@ -4085,6 +4088,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         new_index='agc'
         result = s.reindex(list(new_index)).ffill()
         expected = Series([True,True,False],index=list(new_index))
+        assert_series_equal(result, expected)
+
+        # GH4618 shifted series downcasting
+        s = Series(False,index=lrange(0,5))
+        result = s.shift(1).fillna(method='bfill')
+        expected = Series(False,index=lrange(0,5))
         assert_series_equal(result, expected)
 
     def test_reindex_backfill(self):

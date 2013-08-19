@@ -990,14 +990,20 @@ def _possibly_downcast_to_dtype(result, dtype):
         if issubclass(dtype.type, np.floating):
             return result.astype(dtype)
         elif dtype == np.bool_ or issubclass(dtype.type, np.integer):
+
+            # do a test on the first element, if it fails then we are done
+            r = result.ravel()
+            arr = np.array([ r[0] ])
+            if (arr != arr.astype(dtype)).item():
+                return result
+
+            # a comparable, e.g. a Decimal may slip in here
+            elif not isinstance(r[0], (np.integer,np.floating,np.bool,int,float,bool)):
+                return result
+
             if issubclass(result.dtype.type, (np.object_,np.number)) and notnull(result).all():
                 new_result = result.astype(dtype)
                 if (new_result == result).all():
-
-                    # a comparable, e.g. a Decimal may slip in here
-                    if not isinstance(result.ravel()[0], (np.integer,np.floating,np.bool,int,float,bool)):
-                        return result
-
                     return new_result
     except:
         pass
@@ -1174,7 +1180,7 @@ def backfill_2d(values, limit=None, mask=None):
         pass
     return values
 
-def interpolate_2d(values, method='pad', axis=0, limit=None, missing=None):
+def interpolate_2d(values, method='pad', axis=0, limit=None, fill_value=None):
     """ perform an actual interpolation of values, values will be make 2-d if needed
         fills inplace, returns the result """
 
@@ -1187,10 +1193,10 @@ def interpolate_2d(values, method='pad', axis=0, limit=None, missing=None):
             raise Exception("cannot interpolate on a ndim == 1 with axis != 0")
         values = values.reshape(tuple((1,) + values.shape))
 
-    if missing is None:
+    if fill_value is None:
         mask = None
     else:  # todo create faster fill func without masking
-        mask = mask_missing(transf(values), missing)
+        mask = mask_missing(transf(values), fill_value)
 
     method = _clean_fill_method(method)
     if method == 'pad':
@@ -1870,6 +1876,7 @@ def _astype_nansafe(arr, dtype, copy=True):
 
 
 def _clean_fill_method(method):
+    if method is None: return None
     method = method.lower()
     if method == 'ffill':
         method = 'pad'

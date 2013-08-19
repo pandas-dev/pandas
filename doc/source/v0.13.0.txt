@@ -96,6 +96,8 @@ API changes
         # and all methods take an inplace kwarg
         index.set_names(["bob", "cranberry"], inplace=True)
 
+  - Infer and downcast dtype if ``downcast='infer'`` is passed to ``fillna/ffill/bfill`` (:issue:`4604`)
+
 Enhancements
 ~~~~~~~~~~~~
 
@@ -237,10 +239,8 @@ and behaviors. Series formerly subclassed directly from ``ndarray``. (:issue:`40
 
 - Indexing with dtype conversions fixed (:issue:`4463`, :issue:`4204`)
 
-- Refactor Series.reindex to core/generic.py (:issue:`4604`), allow ``method=`` in reindexing
+- Refactor Series.reindex to core/generic.py (:issue:`4604`, :issue:`4618`), allow ``method=`` in reindexing
   on a Series to work
-
-- Infer and downcast dtype if appropriate on ``ffill/bfill`` (:issue:`4604`)
 
 Bug Fixes
 ~~~~~~~~~

@@ -316,6 +316,23 @@ class TestDateRange(unittest.TestCase):
     def test_equals(self):
         self.assertFalse(self.rng.equals(list(self.rng)))
 
+    def test_identical(self):
+        t1 = self.rng.copy()
+        t2 = self.rng.copy()
+        self.assert_(t1.identical(t2))
+
+        # name
+        t1 = t1.rename('foo')
+        self.assert_(t1.equals(t2))
+        self.assert_(not t1.identical(t2))
+        t2 = t2.rename('foo')
+        self.assert_(t1.identical(t2))
+
+        # freq
+        t2v = Index(t2.values)
+        self.assert_(t1.equals(t2v))
+        self.assert_(not t1.identical(t2v))
+
     def test_daterange_bug_456(self):
         # GH #456
         rng1 = bdate_range('12/5/2011', '12/5/2011')

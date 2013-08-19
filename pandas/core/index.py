@@ -551,7 +551,7 @@ class Index(FrozenNDArray):
         Similar to equals, but check that other comparable attributes are also equal
         """
         return self.equals(other) and all(
-            [ getattr(self,c,None) == getattr(other,c,None) for c in self._comparables ])
+            ( getattr(self,c,None) == getattr(other,c,None) for c in self._comparables ))
 
     def asof(self, label):
         """
@@ -1555,6 +1555,7 @@ class MultiIndex(Index):
     _names = FrozenList()
     _levels = FrozenList()
     _labels = FrozenList()
+    _comparables = ['names']
 
     def __new__(cls, levels=None, labels=None, sortorder=None, names=None,
                 copy=False):
