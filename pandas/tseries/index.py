@@ -139,6 +139,7 @@ class DatetimeIndex(Int64Index):
     _engine_type = _index.DatetimeEngine
 
     offset = None
+    _comparables = ['name','freqstr','tz']
 
     def __new__(cls, data=None,
                 freq=None, start=None, end=None, periods=None,

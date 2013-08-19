@@ -144,8 +144,6 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
   - support attribute access for setting
   - filter supports same api as original ``DataFrame`` filter
 
-- Reindex called with no arguments will now return a copy of the input object
-
 - Series now inherits from ``NDFrame`` rather than directly from ``ndarray``.
   There are several minor changes that affect the API.
 
@@ -185,6 +183,11 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
 
 - Indexing with dtype conversions fixed (:issue:`4463`, :issue:`4204`)
 
+- Refactor Series.reindex to core/generic.py (:issue:`4604`), allow ``method=`` in reindexing
+  on a Series to work
+
+- Infer and downcast dtype if appropriate on ``ffill/bfill`` (:issue:`4604`)
+
 **Experimental Features**
 
 **Bug Fixes**
@@ -210,7 +213,7 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
   - In ``to_json``, raise if a passed ``orient`` would cause loss of data because
     of a duplicate index (:issue:`4359`)
   - In ``to_json``, fix date handling so milliseconds are the default timestamp
-    as the docstring says (:issue:`4362`). 
+    as the docstring says (:issue:`4362`).
   - JSON NaT handling fixed, NaTs are now serialised to `null` (:issue:`4498`)
   - Fixed passing ``keep_default_na=False`` when ``na_values=None`` (:issue:`4318`)
   - Fixed bug with ``values`` raising an error on a DataFrame with duplicate columns and mixed

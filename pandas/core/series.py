@@ -2737,77 +2737,18 @@ class Series(generic.NDFrame):
             return left, right
 
     def _reindex_indexer(self, new_index, indexer, copy):
-        if indexer is not None:
-            new_values = com.take_1d(self.values, indexer)
-        else:
+        if indexer is None:
             if copy:
-                result = self.copy()
-            else:
-                result = self
-            return result
+                return self.copy()
+            return self
 
         # be subclass-friendly
+        new_values = com.take_1d(self.get_values(), indexer)
         return self._constructor(new_values, new_index, name=self.name)
 
-    def reindex(self, index=None, method=None, level=None, fill_value=pa.NA,
-                limit=None, copy=True, takeable=False):
-        """Conform Series to new index with optional filling logic, placing
-        NA/NaN in locations having no value in the previous index. A new object
-        is produced unless the new index is equivalent to the current one and
-        copy=False
-
-        Parameters
-        ----------
-        index : array-like or Index
-            New labels / index to conform to. Preferably an Index object to
-            avoid duplicating data
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}
-            Method to use for filling holes in reindexed Series
-            pad / ffill: propagate LAST valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill gap
-        copy : boolean, default True
-            Return a new object, even if the passed indexes are the same
-        level : int or name
-            Broadcast across a level, matching Index values on the
-            passed MultiIndex level
-        fill_value : scalar, default NaN
-            Value to use for missing values. Defaults to NaN, but can be any
-            "compatible" value
-        limit : int, default None
-            Maximum size gap to forward or backward fill
-        takeable : the labels are locations (and not labels)
-
-        Returns
-        -------
-        reindexed : Series
-        """
-        if index is None:
-            raise ValueError('Must pass Index or sequence, not None')
-
-        index = _ensure_index(index)
-        if self.index.equals(index):
-            if copy:
-                result = self.copy()
-                result.index = index
-                return result
-            else:
-                return self
-
-        if len(self.index) == 0:
-            return self._constructor(nan, index=index, name=self.name)
-
-        new_index, indexer = self.index.reindex(index, method=method,
-                                                level=level, limit=limit,
-                                                takeable=takeable)
-
-        # GH4246 (dispatch to a common method with frame to handle possibly
-        # duplicate index)
-        return self._reindex_with_indexers({ 0 : [new_index, indexer] }, copy=copy, fill_value=fill_value)
-
-    def _reindex_with_indexers(self, reindexers, copy, fill_value=None):
-        index, indexer = reindexers[0]
-        new_values = com.take_1d(self.values, indexer, fill_value=fill_value)
-        return self._constructor(new_values, index=index, name=self.name)
+    def _needs_reindex_multi(self, axes, method, level):
+        """ check if we do need a multi reindex; this is for compat with higher dims """
+        return False
 
     def reindex_axis(self, labels, axis=0, **kwargs):
         """ for compatibility with higher dims """
@@ -3471,14 +3412,6 @@ def _resolve_offset(freq, kwds):
 
     return offset
 
-
-def _get_fill_func(method):
-    method = com._clean_fill_method(method)
-    if method == 'pad':
-        fill_f = com.pad_1d
-    elif method == 'backfill':
-        fill_f = com.backfill_1d
-    return fill_f
 
 # backwards compatiblity
 TimeSeries = Series

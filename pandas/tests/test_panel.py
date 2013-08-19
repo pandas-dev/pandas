@@ -1051,7 +1051,7 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         # don't necessarily copy
         result = self.panel.reindex(major=self.panel.major_axis, copy=False)
         assert_panel_equal(result,self.panel)
-        self.assert_((result is self.panel) == False)
+        self.assert_((result is self.panel) == True)
 
     def test_reindex_like(self):
         # reindex_like

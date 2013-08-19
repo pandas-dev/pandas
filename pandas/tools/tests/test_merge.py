@@ -316,6 +316,7 @@ class TestMerge(unittest.TestCase):
         df2['float'] = 1.
 
         for kind in JOIN_TYPES:
+
             joined = df1.join(df2, how=kind)
             expected = _join_by_hand(df1, df2, how=kind)
             assert_frame_equal(joined, expected)

@@ -4034,7 +4034,9 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         for idx, val in compat.iteritems(subNonContig):
             self.assertEqual(val, self.ts[idx])
 
-        self.assertRaises(ValueError, self.ts.reindex)
+        # return a copy the same index here
+        result = self.ts.reindex()
+        self.assert_((result is self.ts) == False)
 
     def test_reindex_corner(self):
         # (don't forget to fix this) I think it's fixed
@@ -4052,8 +4054,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertRaises(Exception, ts.reindex, self.ts.index, method='foo')
 
     def test_reindex_pad(self):
-        s = Series(np.arange(10), np.arange(10))
 
+        s = Series(np.arange(10), np.arange(10))
         s2 = s[::2]
 
         reindexed = s2.reindex(s.index, method='pad')
@@ -4064,6 +4066,26 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = Series([0, 0, 2, 2, 4, 4, 6, 6, 8, 8], dtype=int,
                           index=np.arange(10))
         assert_series_equal(reindexed, expected)
+
+        # GH4604
+        s = Series([1,2,3,4,5], index=['a', 'b', 'c', 'd', 'e'])
+        new_index = ['a','g','c','f']
+        expected = Series([1,1,3,3],index=new_index)
+
+        # this changes dtype because the ffill happens after
+        result = s.reindex(new_index).ffill()
+        assert_series_equal(result, expected)
+
+        # this preserves dtype
+        result = s.reindex(new_index, method='ffill')
+        assert_series_equal(result, expected)
+
+        # inferrence of new dtype
+        s = Series([True,False,False,True],index=list('abcd'))
+        new_index='agc'
+        result = s.reindex(list(new_index)).ffill()
+        expected = Series([True,True,False],index=list(new_index))
+        assert_series_equal(result, expected)
 
     def test_reindex_backfill(self):
         pass

@@ -237,6 +237,11 @@ and behaviors. Series formerly subclassed directly from ``ndarray``. (:issue:`40
 
 - Indexing with dtype conversions fixed (:issue:`4463`, :issue:`4204`)
 
+- Refactor Series.reindex to core/generic.py (:issue:`4604`), allow ``method=`` in reindexing
+  on a Series to work
+
+- Infer and downcast dtype if appropriate on ``ffill/bfill`` (:issue:`4604`)
+
 Bug Fixes
 ~~~~~~~~~
 
