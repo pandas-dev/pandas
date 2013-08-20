@@ -341,9 +341,7 @@ class DatetimeIndex(Int64Index):
                 if end.tz is None and start.tz is not None:
                     end = end.tz_localize(start.tz)
 
-            if (offset._should_cache() and
-                not (offset._normalize_cache and not _normalized) and
-                    _naive_in_cache_range(start, end)):
+            if _use_cached_range(offset, _normalized, start, end):
                 index = cls._cached_range(start, end, periods=periods,
                                           offset=offset, name=name)
             else:
@@ -366,9 +364,7 @@ class DatetimeIndex(Int64Index):
                 if end.tz is None and start.tz is not None:
                     start = start.replace(tzinfo=None)
 
-            if (offset._should_cache() and
-                not (offset._normalize_cache and not _normalized) and
-                    _naive_in_cache_range(start, end)):
+            if _use_cached_range(offset, _normalized, start, end):
                 index = cls._cached_range(start, end, periods=periods,
                                           offset=offset, name=name)
             else:
@@ -1835,6 +1831,10 @@ def _naive_in_cache_range(start, end):
 def _in_range(start, end, rng_start, rng_end):
     return start > rng_start and end < rng_end
 
+def _use_cached_range(offset, _normalized, start, end):
+    return (offset._should_cache() and
+                not (offset._normalize_cache and not _normalized) and
+                    _naive_in_cache_range(start, end))
 
 def _time_to_micros(time):
     seconds = time.hour * 60 * 60 + 60 * time.minute + time.second
