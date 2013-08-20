@@ -25,6 +25,7 @@ from pandas.tslib import monthrange
 from pandas.lib import Timestamp
 from pandas.util.testing import assertRaisesRegexp
 import pandas.util.testing as tm
+from pandas.tseries.offsets import BusinessMonthEnd
 
 _multiprocess_can_split_ = True
 
@@ -1790,6 +1791,13 @@ def test_freq_offsets():
     off = BDay(1, offset=timedelta(0, -1800))
     assert(off.freqstr == 'B-30Min')
 
+class TestCaching(unittest.TestCase):    
+    def test_should_cache_month_end(self):
+        self.assertTrue(MonthEnd()._should_cache())
+        
+    def test_should_cache_bmonth_end(self):
+        self.assertTrue(BusinessMonthEnd()._should_cache())
+         
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
