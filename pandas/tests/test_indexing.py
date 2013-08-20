@@ -942,6 +942,7 @@ class TestIndexing(unittest.TestCase):
         # frame on rhs
         df2.ix[mask, cols]= dft.ix[mask, cols]
         assert_frame_equal(df2,expected)
+
         df2.ix[mask, cols]= dft.ix[mask, cols]
         assert_frame_equal(df2,expected)
 

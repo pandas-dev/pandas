@@ -1557,7 +1557,9 @@ class SeriesGroupBy(GroupBy):
 
             # need to do a safe put here, as the dtype may be different
             # this needs to be an ndarray
-            result,_ = com._maybe_upcast_indexer(result, indexer, res)
+            result = Series(result)
+            result.loc[indexer] = res
+            result = result.values
 
         # downcast if we can (and need)
         result = _possibly_downcast_to_dtype(result, dtype)
