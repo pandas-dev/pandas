@@ -172,21 +172,19 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
 
 - added ``ftypes`` method to Series/DataFame, similar to ``dtypes``, but indicates
   if the underlying is sparse/dense (as well as the dtype)
-
 - All ``NDFrame`` objects now have a ``_prop_attributes``, which can be used to indcated various
   values to propogate to a new object from an existing (e.g. name in ``Series`` will follow
   more automatically now)
-
 - Internal type checking is now done via a suite of generated classes, allowing ``isinstance(value, klass)``
   without having to directly import the klass, courtesy of @jtratner
-
 - Bug in Series update where the parent frame is not updating its cache based on
   changes (:issue:`4080`) or types (:issue:`3217`), fillna (:issue:`3386`)
-
 - Indexing with dtype conversions fixed (:issue:`4463`, :issue:`4204`)
-
-- Refactor Series.reindex to core/generic.py (:issue:`4604`, :issue:`4618`), allow ``method=`` in reindexing
+- Refactor ``Series.reindex`` to core/generic.py (:issue:`4604`, :issue:`4618`), allow ``method=`` in reindexing
   on a Series to work
+- ``Series.copy`` no longer accepts the ``order`` parameter and is now consistent with ``NDFrame`` copy
+- Refactor ``rename`` methods to core/generic.py; fixes ``Series.rename`` for (:issue`4605`), and adds ``rename``
+  with the same signature for ``Panel``
 
 **Experimental Features**
 

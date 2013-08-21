@@ -1437,32 +1437,6 @@ class Series(generic.NDFrame):
         """
         return self._data.values
 
-    def copy(self, order='C', deep=False):
-        """
-        Return new Series with copy of underlying values
-
-        Parameters
-        ----------
-        deep : boolean, default False
-            deep copy index along with data
-        order : boolean, default 'C'
-            order for underlying numpy array
-
-        Returns
-        -------
-        cp : Series
-        """
-        if deep:
-            from copy import deepcopy
-            index = self.index.copy(deep=deep)
-            name = deepcopy(self.name)
-        else:
-            index = self.index
-            name = self.name
-
-        return Series(self.values.copy(order), index=index,
-                      name=name)
-
     def get_values(self):
         """ same as values (but handles sparseness conversions); is a view """
         return self._data.values
@@ -3090,48 +3064,6 @@ class Series(generic.NDFrame):
 
         return self._constructor(result, index=self.index, name=self.name)
 
-    def rename(self, mapper, inplace=False):
-        """
-        Alter Series index using dict or function
-
-        Parameters
-        ----------
-        mapper : dict-like or function
-            Transformation to apply to each index
-
-        Notes
-        -----
-        Function / dict values must be unique (1-to-1)
-
-        Examples
-        --------
-        >>> x
-        foo 1
-        bar 2
-        baz 3
-
-        >>> x.rename(str.upper)
-        FOO 1
-        BAR 2
-        BAZ 3
-
-        >>> x.rename({'foo' : 'a', 'bar' : 'b', 'baz' : 'c'})
-        a 1
-        b 2
-        c 3
-
-        Returns
-        -------
-        renamed : Series (new object)
-        """
-        mapper_f = _get_rename_function(mapper)
-        result = self if inplace else self.copy()
-        result.index = Index([mapper_f(x)
-                             for x in self.index], name=self.index.name)
-
-        if not inplace:
-            return result
-
     @property
     def weekday(self):
         return self._constructor([d.weekday() for d in self.index], index=self.index)
@@ -3378,20 +3310,6 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         subarr = pa.array(data, dtype=object, copy=copy)
 
     return subarr
-
-
-def _get_rename_function(mapper):
-    if isinstance(mapper, (dict, Series)):
-        def f(x):
-            if x in mapper:
-                return mapper[x]
-            else:
-                return x
-    else:
-        f = mapper
-
-    return f
-
 
 def _resolve_offset(freq, kwds):
     if 'timeRule' in kwds or 'offset' in kwds:

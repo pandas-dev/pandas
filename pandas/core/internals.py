@@ -2758,8 +2758,8 @@ class BlockManager(PandasObject):
                     return '%s%s' % (x, rsuffix)
                 return x
 
-            this = self.rename_items(lrenamer, copydata=copydata)
-            other = other.rename_items(rrenamer, copydata=copydata)
+            this = self.rename_items(lrenamer, copy=copydata)
+            other = other.rename_items(rrenamer, copy=copydata)
         else:
             this = self
 
@@ -2777,6 +2777,13 @@ class BlockManager(PandasObject):
                 return False
         return True
 
+    def rename(self, mapper, axis, copy=False):
+        """ generic rename """
+
+        if axis == 0:
+            return self.rename_items(mapper, copy=copy)
+        return self.rename_axis(mapper, axis=axis)
+
     def rename_axis(self, mapper, axis=1):
 
         index = self.axes[axis]
@@ -2793,7 +2800,7 @@ class BlockManager(PandasObject):
         new_axes[axis] = new_axis
         return self.__class__(self.blocks, new_axes)
 
-    def rename_items(self, mapper, copydata=True):
+    def rename_items(self, mapper, copy=True):
         if isinstance(self.items, MultiIndex):
             items = [tuple(mapper(y) for y in x) for x in self.items]
             new_items = MultiIndex.from_tuples(items, names=self.items.names)
@@ -2803,7 +2810,7 @@ class BlockManager(PandasObject):
 
         new_blocks = []
         for block in self.blocks:
-            newb = block.copy(deep=copydata)
+            newb = block.copy(deep=copy)
             newb.set_ref_items(new_items, maybe_rename=True)
             new_blocks.append(newb)
         new_axes = list(self.axes)
