@@ -891,42 +891,6 @@ def _maybe_upcast_putmask(result, mask, other, dtype=None, change=None):
 
     return result, False
 
-
-def _maybe_upcast_indexer(result, indexer, other, dtype=None):
-    """ a safe version of setitem that (potentially upcasts the result
-        return the result and a changed flag
-        """
-
-    other = _maybe_cast_scalar(result.dtype, other)
-    original_dtype = result.dtype
-
-    def changeit():
-        # our type is wrong here, need to upcast
-        r, fill_value = _maybe_upcast(
-            result, fill_value=other, dtype=dtype, copy=True)
-        try:
-            r[indexer] = other
-        except:
-
-            # if we hit this then we still have an incompatible type
-            r[indexer] = fill_value
-
-        # if we have changed to floats, might want to cast back if we can
-        r = _possibly_downcast_to_dtype(r, original_dtype)
-        return r, True
-
-    new_dtype, fill_value = _maybe_promote(original_dtype, other)
-    if new_dtype != result.dtype:
-        return changeit()
-
-    try:
-        result[indexer] = other
-    except:
-        return changeit()
-
-    return result, False
-
-
 def _maybe_upcast(values, fill_value=np.nan, dtype=None, copy=False):
     """ provide explicty type promotion and coercion
 
@@ -987,6 +951,12 @@ def _possibly_downcast_to_dtype(result, dtype):
         dtype = np.dtype(dtype)
 
     try:
+
+        # don't allow upcasts here
+        if dtype.kind == result.dtype.kind:
+            if result.dtype.itemsize <= dtype.itemsize:
+                return result
+
         if issubclass(dtype.type, np.floating):
             return result.astype(dtype)
         elif dtype == np.bool_ or issubclass(dtype.type, np.integer):

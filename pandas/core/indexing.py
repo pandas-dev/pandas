@@ -124,11 +124,13 @@ class _NDFrameIndexer(object):
             item_labels = self.obj._get_axis(info_axis)
 
             def setter(item, v):
-                data = self.obj[item]
-                values = data.values
-                if np.prod(values.shape):
-                    result, changed = com._maybe_upcast_indexer(values,plane_indexer,v,dtype=getattr(data,'dtype',None))
-                    self.obj[item] = result
+                s = self.obj[item]
+                pi = plane_indexer[0] if len(plane_indexer) == 1 else plane_indexer
+
+                # set the item, possibly having a dtype change
+                s = s.copy()
+                s._data = s._data.setitem(pi,v)
+                self.obj[item] = s
 
             labels = item_labels[info_idx]
 
