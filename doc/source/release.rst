@@ -265,6 +265,8 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
   - Fixed issue where ``DataFrame.apply`` was reraising exceptions incorrectly
     (causing the original stack trace to be truncated).
   - Fix selection with ``ix/loc`` and non_unique selectors (:issue:`4619`)
+  - Fix assignment with iloc/loc involving a dtype change in an existing column (:issue:`4312`)
+    have internal setitem_with_indexer in core/indexing to use Block.setitem
 
 pandas 0.12
 ===========

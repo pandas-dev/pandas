@@ -127,14 +127,14 @@ def test_nan_to_nat_conversions():
     result = df.loc[4,'B'].value
     assert(result == iNaT)
 
-    values = df['B'].values
-    result, changed = com._maybe_upcast_indexer(values,tuple([slice(8,9)]),np.nan)
-    assert(isnull(result[8]))
+    s = df['B'].copy()
+    s._data = s._data.setitem(tuple([slice(8,9)]),np.nan)
+    assert(isnull(s[8]))
 
     # numpy < 1.7.0 is wrong
     from distutils.version import LooseVersion
     if LooseVersion(np.__version__) >= '1.7.0':
-        assert(result[8] == np.datetime64('NaT'))
+        assert(s[8].value == np.datetime64('NaT').astype(np.int64))
 
 def test_any_none():
     assert(com._any_none(1, 2, 3, None))

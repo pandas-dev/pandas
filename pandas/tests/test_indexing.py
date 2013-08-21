@@ -942,6 +942,7 @@ class TestIndexing(unittest.TestCase):
         # frame on rhs
         df2.ix[mask, cols]= dft.ix[mask, cols]
         assert_frame_equal(df2,expected)
+
         df2.ix[mask, cols]= dft.ix[mask, cols]
         assert_frame_equal(df2,expected)
 
@@ -964,11 +965,12 @@ class TestIndexing(unittest.TestCase):
         # GH 3668, mixed frame with series value
         df = DataFrame({'x':lrange(10), 'y':lrange(10,20),'z' : 'bar'})
         expected = df.copy()
-        expected.ix[0, 'y'] = 1000
-        expected.ix[2, 'y'] = 1200
-        expected.ix[4, 'y'] = 1400
-        expected.ix[6, 'y'] = 1600
-        expected.ix[8, 'y'] = 1800
+
+        for i in range(5):
+            indexer = i*2
+            v = 1000 + i*200
+            expected.ix[indexer, 'y'] = v
+            self.assert_(expected.ix[indexer, 'y'] == v)
 
         df.ix[df.x % 2 == 0, 'y'] = df.ix[df.x % 2 == 0, 'y'] * 100
         assert_frame_equal(df,expected)
@@ -1196,6 +1198,22 @@ class TestIndexing(unittest.TestCase):
         result = df.loc[mask]
         expected = gen_expected(df,mask)
         assert_frame_equal(result,expected)
+
+    def test_astype_assignment_with_iloc(self):
+
+        # GH4312
+        df_orig = DataFrame([['1','2','3','.4',5,6.,'foo']],columns=list('ABCDEFG'))
+
+        df = df_orig.copy()
+        df.iloc[:,0:3] = df.iloc[:,0:3].astype(int)
+        result = df.get_dtype_counts().sort_index()
+        expected = Series({ 'int64' : 4, 'float64' : 1, 'object' : 2 }).sort_index()
+        assert_series_equal(result,expected)
+
+        df = df_orig.copy()
+        df.iloc[:,0:3] = df.iloc[:,0:3].convert_objects(convert_numeric=True)
+        result = df.get_dtype_counts().sort_index()
+        expected = Series({ 'int64' : 4, 'float64' : 1, 'object' : 2 }).sort_index()
 
 if __name__ == '__main__':
     import nose

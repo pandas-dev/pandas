@@ -39,6 +39,7 @@ class Block(PandasObject):
     is_float = False
     is_integer = False
     is_complex = False
+    is_datetime = False
     is_bool = False
     is_object = False
     is_sparse = False
@@ -453,10 +454,19 @@ class Block(PandasObject):
     def _try_cast(self, value):
         raise NotImplementedError()
 
-    def _try_cast_result(self, result):
+    def _try_cast_result(self, result, dtype=None):
         """ try to cast the result to our original type,
         we may have roundtripped thru object in the mean-time """
-        return result
+        if dtype is None:
+            dtype = self.dtype
+
+        if self.is_integer or self.is_bool or self.is_datetime:
+            pass
+        elif self.is_float and result.dtype == self.dtype:
+            return result
+
+        # may need to change the dtype here
+        return _possibly_downcast_to_dtype(result, dtype)
 
     def _try_coerce_args(self, values, other):
         """ provide coercion to our input arguments """
@@ -513,27 +523,29 @@ class Block(PandasObject):
         """ set the value inplace; return a new block (of a possibly different dtype)
             indexer is a direct slice/positional indexer; value must be a compaitable shape """
 
-        values = self.values
-        if self.ndim == 2:
-            values = values.T
+        # coerce args
+        values, value = self._try_coerce_args(self.values, value)
+        arr_value = np.array(value)
 
-        # 2-d (DataFrame) are represented as a transposed array
-        if self._can_hold_element(value):
-            try:
-                values[indexer] = value
-                return [ self ]
-            except (IndexError):
-                return [ self ]
-            except:
-                pass
+        # cast the values to a type that can hold nan (if necessary)
+        if not self._can_hold_element(value):
+            dtype, _ = com._maybe_promote(arr_value.dtype)
+            values = values.astype(dtype)
 
-        # create an indexing mask, the putmask which potentially changes the dtype
-        indices = np.arange(np.prod(values.shape)).reshape(values.shape)
-        mask = indices[indexer] == indices
-        if self.ndim == 2:
-            mask = mask.T
+        try:
+            # set and return a block
+            transf = (lambda x: x.T) if self.ndim == 2 else (lambda x: x)
+            values = transf(values)
+            values[indexer] = value
 
-        return self.putmask(mask, value, inplace=True)
+            # coerce and try to infer the dtypes of the result
+            values = self._try_coerce_result(values)
+            values = self._try_cast_result(values, 'infer')
+            return [make_block(transf(values), self.items, self.ref_items, ndim=self.ndim, fastpath=True)]
+        except:
+            pass
+
+        return [ self ]
 
     def putmask(self, mask, new, inplace=False):
         """ putmask the data to the block; it is possible that we may create a new dtype of block
@@ -585,7 +597,10 @@ class Block(PandasObject):
                 if nv is None:
                     dtype, _ = com._maybe_promote(n.dtype)
                     nv = v.astype(dtype)
-                    np.putmask(nv, m, n)
+                    try:
+                        nv[m] = n
+                    except:
+                        np.putmask(nv, m, n)
 
                 if reshape:
                     nv = _block_shape(nv)
@@ -841,10 +856,6 @@ class Block(PandasObject):
 class NumericBlock(Block):
     is_numeric = True
     _can_hold_na = True
-
-    def _try_cast_result(self, result):
-        return _possibly_downcast_to_dtype(result, self.dtype)
-
 
 class FloatBlock(NumericBlock):
     is_float = True
@@ -1104,6 +1115,7 @@ class ObjectBlock(Block):
 
 
 class DatetimeBlock(Block):
+    is_datetime = True
     _can_hold_na = True
 
     def __init__(self, values, items, ref_items, fastpath=False, placement=None, **kwargs):
@@ -1119,8 +1131,8 @@ class DatetimeBlock(Block):
     def _can_hold_element(self, element):
         if is_list_like(element):
             element = np.array(element)
-            return element.dtype == _NS_DTYPE
-        return com.is_integer(element) or isinstance(element, datetime)
+            return element.dtype == _NS_DTYPE or element.dtype == np.int64
+        return com.is_integer(element) or isinstance(element, datetime) or isnull(element)
 
     def _try_cast(self, element):
         try:
@@ -1133,10 +1145,10 @@ class DatetimeBlock(Block):
             we are going to compare vs i8, so coerce to integer
             values is always ndarra like, other may not be """
         values = values.view('i8')
-        if isinstance(other, datetime):
-            other = lib.Timestamp(other).asm8.view('i8')
-        elif isnull(other):
+        if isnull(other) or (np.isscalar(other) and other == tslib.iNaT):
             other = tslib.iNaT
+        elif isinstance(other, datetime):
+            other = lib.Timestamp(other).asm8.view('i8')
         else:
             other = other.view('i8')
 
@@ -1438,6 +1450,8 @@ class SparseBlock(Block):
             return []
         return super(SparseBlock, self).split_block_at(self, item)
 
+    def _try_cast_result(self, result, dtype=None):
+        return result
 
 def make_block(values, items, ref_items, klass=None, ndim=None, dtype=None, fastpath=False, placement=None):
 

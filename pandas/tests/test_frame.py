@@ -7669,10 +7669,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # upcasting case (GH # 2794)
         df = DataFrame(dict([ (c,Series([1]*3,dtype=c)) for c in ['int64','int32','float32','float64'] ]))
         df.ix[1,:] = 0
-
         result = df.where(df>=0).get_dtype_counts()
 
-        #### when we don't preserver boolean casts ####
+        #### when we don't preserve boolean casts ####
         #expected = Series({ 'float32' : 1, 'float64' : 3 })
 
         expected = Series({ 'float32' : 1, 'float64' : 1, 'int32' : 1, 'int64' : 1 })
