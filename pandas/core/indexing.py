@@ -476,8 +476,12 @@ class _NDFrameIndexer(object):
             else:
                 level = None
 
-            if labels.is_unique and Index(keyarr).is_unique:
+            keyarr_is_unique = Index(keyarr).is_unique
+
+            # existing labels are unique and indexer is unique
+            if labels.is_unique and keyarr_is_unique:
                 return _reindex(keyarr, level=level)
+
             else:
                 indexer, missing = labels.get_indexer_non_unique(keyarr)
                 check = indexer != -1
@@ -496,8 +500,15 @@ class _NDFrameIndexer(object):
                     new_labels = np.empty(tuple([len(indexer)]),dtype=object)
                     new_labels[cur_indexer]     = cur_labels
                     new_labels[missing_indexer] = missing_labels
-                    new_indexer = (Index(cur_indexer) + Index(missing_indexer)).values
-                    new_indexer[missing_indexer] = -1
+
+                    # a unique indexer
+                    if keyarr_is_unique:
+                        new_indexer = (Index(cur_indexer) + Index(missing_indexer)).values
+                        new_indexer[missing_indexer] = -1
+
+                    # we have a non_unique selector, need to use the original indexer here
+                    else:
+                        new_indexer = indexer
 
                     # reindex with the specified axis
                     ndim = self.obj.ndim

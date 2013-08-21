@@ -264,6 +264,7 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
     to a possible lazay frequency inference issue (:issue:`3317`)
   - Fixed issue where ``DataFrame.apply`` was reraising exceptions incorrectly
     (causing the original stack trace to be truncated).
+  - Fix selection with ``ix/loc`` and non_unique selectors (:issue:`4619`)
 
 pandas 0.12
 ===========
