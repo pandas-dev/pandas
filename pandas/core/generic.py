@@ -987,7 +987,7 @@ class NDFrame(PandasObject):
 
         # construct the args
         axes, kwargs = self._construct_axes_from_arguments(args, kwargs)
-        method = kwargs.get('method')
+        method = com._clean_fill_method(kwargs.get('method'))
         level = kwargs.get('level')
         copy = kwargs.get('copy', True)
         limit = kwargs.get('limit')
@@ -1003,11 +1003,15 @@ class NDFrame(PandasObject):
             except:
                 pass
 
-        # perform the reindex on the axes
-        if copy and not com._count_not_none(*axes.values()):
-            return self.copy()
+        # if all axes that are requested to reindex are equal, then only copy if indicated
+        # must have index names equal here as well as values
+        if all([ self._get_axis(axis).identical(ax) for axis, ax in axes.items() if ax is not None ]):
+            if copy:
+                return self.copy()
+            return self
 
-        return self._reindex_axes(axes, level, limit, method, fill_value, copy, takeable=takeable)
+        # perform the reindex on the axes
+        return self._reindex_axes(axes, level, limit, method, fill_value, copy, takeable=takeable)._propogate_attributes(self)
 
     def _reindex_axes(self, axes, level, limit, method, fill_value, copy, takeable=False):
         """ perform the reinxed for all the axes """
@@ -1025,7 +1029,8 @@ class NDFrame(PandasObject):
             new_index, indexer = self._get_axis(a).reindex(
                 labels, level=level, limit=limit, takeable=takeable)
             obj = obj._reindex_with_indexers(
-                {axis: [labels, indexer]}, method, fill_value, copy)
+                {axis: [new_index, indexer]}, method=method, fill_value=fill_value,
+                limit=limit, copy=copy)
 
         return obj
 
@@ -1077,11 +1082,13 @@ class NDFrame(PandasObject):
 
         axis_name = self._get_axis_name(axis)
         axis_values = self._get_axis(axis_name)
+        method = com._clean_fill_method(method)
         new_index, indexer = axis_values.reindex(labels, method, level,
                                                  limit=limit, copy_if_needed=True)
-        return self._reindex_with_indexers({axis: [new_index, indexer]}, method, fill_value, copy)
+        return self._reindex_with_indexers({axis: [new_index, indexer]}, method=method, fill_value=fill_value,
+                                           limit=limit, copy=copy)._propogate_attributes(self)
 
-    def _reindex_with_indexers(self, reindexers, method=None, fill_value=np.nan, copy=False):
+    def _reindex_with_indexers(self, reindexers, method=None, fill_value=np.nan, limit=None, copy=False):
 
         # reindex doing multiple operations on different axes if indiciated
         new_data = self._data
@@ -1089,11 +1096,15 @@ class NDFrame(PandasObject):
             index, indexer = reindexers[axis]
             baxis = self._get_block_manager_axis(axis)
 
+            if index is None:
+                continue
+            index = _ensure_index(index)
+
             # reindex the axis
             if method is not None:
                 new_data = new_data.reindex_axis(
-                    index, method=method, axis=baxis,
-                    fill_value=fill_value, copy=copy)
+                    index, indexer=indexer, method=method, axis=baxis,
+                    fill_value=fill_value, limit=limit, copy=copy)
 
             elif indexer is not None:
                 # TODO: speed up on homogeneous DataFrame objects
@@ -1409,7 +1420,8 @@ class NDFrame(PandasObject):
         limit : int, default None
             Maximum size gap to forward or backward fill
         downcast : dict, default is None, a dict of item->dtype of what to
-            downcast if possible
+            downcast if possible, or the string 'infer' which will try to
+            downcast to an appropriate equal type (e.g. float64 to int64 if possible)
 
         See also
         --------
@@ -1428,6 +1440,7 @@ class NDFrame(PandasObject):
         if axis + 1 > self._AXIS_LEN:
             raise ValueError(
                 "invalid axis passed for object type {0}".format(type(self)))
+        method = com._clean_fill_method(method)
 
         if value is None:
             if method is None:
@@ -1435,14 +1448,20 @@ class NDFrame(PandasObject):
             if self._is_mixed_type and axis == 1:
                 if inplace:
                     raise NotImplementedError()
-                return self.T.fillna(method=method, limit=limit).T
+                result = self.T.fillna(method=method, limit=limit).T
+
+                # need to downcast here because of all of the transposes
+                result._data = result._data.downcast()
+
+                return result
 
             method = com._clean_fill_method(method)
             new_data = self._data.interpolate(method=method,
                                               axis=axis,
                                               limit=limit,
                                               inplace=inplace,
-                                              coerce=True)
+                                              coerce=True,
+                                              downcast=downcast)
         else:
             if method is not None:
                 raise ValueError('cannot specify both a fill method and value')
@@ -1472,13 +1491,13 @@ class NDFrame(PandasObject):
         else:
             return self._constructor(new_data)
 
-    def ffill(self, axis=0, inplace=False, limit=None):
+    def ffill(self, axis=0, inplace=False, limit=None, downcast=None):
         return self.fillna(method='ffill', axis=axis, inplace=inplace,
-                           limit=limit)
+                           limit=limit, downcast=downcast)
 
-    def bfill(self, axis=0, inplace=False, limit=None):
+    def bfill(self, axis=0, inplace=False, limit=None, downcast=None):
         return self.fillna(method='bfill', axis=axis, inplace=inplace,
-                           limit=limit)
+                           limit=limit, downcast=downcast)
 
     def replace(self, to_replace=None, value=None, inplace=False, limit=None,
                 regex=False, method=None, axis=None):
@@ -2030,6 +2049,7 @@ class NDFrame(PandasObject):
             Aligned objects
         """
         from pandas import DataFrame, Series
+        method = com._clean_fill_method(method)
 
         if isinstance(other, DataFrame):
             return self._align_frame(other, join=join, axis=axis, level=level,

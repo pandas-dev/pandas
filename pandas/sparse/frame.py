@@ -573,7 +573,10 @@ class SparseDataFrame(DataFrame):
         return SparseDataFrame(sdict, index=self.index, columns=columns,
                                default_fill_value=self._default_fill_value)
 
-    def _reindex_with_indexers(self, reindexers, method=None, copy=False, fill_value=np.nan):
+    def _reindex_with_indexers(self, reindexers, method=None, fill_value=np.nan, limit=None, copy=False):
+
+        if method is not None or limit is not None:
+            raise NotImplementedError("cannot reindex with a method or limit with sparse")
 
         index,   row_indexer = reindexers.get(0, (None, None))
         columns, col_indexer = reindexers.get(1, (None, None))

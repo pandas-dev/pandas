@@ -961,14 +961,47 @@ def _possibly_downcast_to_dtype(result, dtype):
     """ try to cast to the specified dtype (e.g. convert back to bool/int
         or could be an astype of float64->float32 """
 
-    if np.isscalar(result):
+    if np.isscalar(result) or not len(result):
         return result
+
+    if isinstance(dtype, compat.string_types):
+        if dtype == 'infer':
+            inferred_type = lib.infer_dtype(_ensure_object(result.ravel()))
+            if inferred_type == 'boolean':
+                dtype = 'bool'
+            elif inferred_type == 'integer':
+                dtype = 'int64'
+            elif inferred_type == 'datetime64':
+                dtype = 'datetime64[ns]'
+            elif inferred_type == 'timedelta64':
+                dtype = 'timedelta64[ns]'
+
+            # try to upcast here
+            elif inferred_type == 'floating':
+                dtype = 'int64'
+
+            else:
+                dtype = 'object'
+
+    if isinstance(dtype, compat.string_types):
+        dtype = np.dtype(dtype)
 
     try:
         if issubclass(dtype.type, np.floating):
             return result.astype(dtype)
         elif dtype == np.bool_ or issubclass(dtype.type, np.integer):
-            if issubclass(result.dtype.type, np.number) and notnull(result).all():
+
+            # do a test on the first element, if it fails then we are done
+            r = result.ravel()
+            arr = np.array([ r[0] ])
+            if (arr != arr.astype(dtype)).item():
+                return result
+
+            # a comparable, e.g. a Decimal may slip in here
+            elif not isinstance(r[0], (np.integer,np.floating,np.bool,int,float,bool)):
+                return result
+
+            if issubclass(result.dtype.type, (np.object_,np.number)) and notnull(result).all():
                 new_result = result.astype(dtype)
                 if (new_result == result).all():
                     return new_result
@@ -1052,6 +1085,9 @@ def pad_1d(values, limit=None, mask=None):
         _method = getattr(algos, 'pad_inplace_%s' % dtype, None)
     elif is_datetime64_dtype(values):
         _method = _pad_1d_datetime
+    elif is_integer_dtype(values):
+        values = _ensure_float64(values)
+        _method = algos.pad_inplace_float64
     elif values.dtype == np.object_:
         _method = algos.pad_inplace_object
 
@@ -1062,7 +1098,7 @@ def pad_1d(values, limit=None, mask=None):
         mask = isnull(values)
     mask = mask.view(np.uint8)
     _method(values, mask, limit=limit)
-
+    return values
 
 def backfill_1d(values, limit=None, mask=None):
 
@@ -1072,6 +1108,9 @@ def backfill_1d(values, limit=None, mask=None):
         _method = getattr(algos, 'backfill_inplace_%s' % dtype, None)
     elif is_datetime64_dtype(values):
         _method = _backfill_1d_datetime
+    elif is_integer_dtype(values):
+        values = _ensure_float64(values)
+        _method = algos.backfill_inplace_float64
     elif values.dtype == np.object_:
         _method = algos.backfill_inplace_object
 
@@ -1083,7 +1122,7 @@ def backfill_1d(values, limit=None, mask=None):
     mask = mask.view(np.uint8)
 
     _method(values, mask, limit=limit)
-
+    return values
 
 def pad_2d(values, limit=None, mask=None):
 
@@ -1093,6 +1132,9 @@ def pad_2d(values, limit=None, mask=None):
         _method = getattr(algos, 'pad_2d_inplace_%s' % dtype, None)
     elif is_datetime64_dtype(values):
         _method = _pad_2d_datetime
+    elif is_integer_dtype(values):
+        values = _ensure_float64(values)
+        _method = algos.pad_2d_inplace_float64
     elif values.dtype == np.object_:
         _method = algos.pad_2d_inplace_object
 
@@ -1108,7 +1150,7 @@ def pad_2d(values, limit=None, mask=None):
     else:
         # for test coverage
         pass
-
+    return values
 
 def backfill_2d(values, limit=None, mask=None):
 
@@ -1118,6 +1160,9 @@ def backfill_2d(values, limit=None, mask=None):
         _method = getattr(algos, 'backfill_2d_inplace_%s' % dtype, None)
     elif is_datetime64_dtype(values):
         _method = _backfill_2d_datetime
+    elif is_integer_dtype(values):
+        values = _ensure_float64(values)
+        _method = algos.backfill_2d_inplace_float64
     elif values.dtype == np.object_:
         _method = algos.backfill_2d_inplace_object
 
@@ -1133,9 +1178,9 @@ def backfill_2d(values, limit=None, mask=None):
     else:
         # for test coverage
         pass
+    return values
 
-
-def interpolate_2d(values, method='pad', axis=0, limit=None, missing=None):
+def interpolate_2d(values, method='pad', axis=0, limit=None, fill_value=None):
     """ perform an actual interpolation of values, values will be make 2-d if needed
         fills inplace, returns the result """
 
@@ -1148,15 +1193,16 @@ def interpolate_2d(values, method='pad', axis=0, limit=None, missing=None):
             raise Exception("cannot interpolate on a ndim == 1 with axis != 0")
         values = values.reshape(tuple((1,) + values.shape))
 
-    if missing is None:
+    if fill_value is None:
         mask = None
     else:  # todo create faster fill func without masking
-        mask = mask_missing(transf(values), missing)
+        mask = mask_missing(transf(values), fill_value)
 
+    method = _clean_fill_method(method)
     if method == 'pad':
-        pad_2d(transf(values), limit=limit, mask=mask)
+        values = transf(pad_2d(transf(values), limit=limit, mask=mask))
     else:
-        backfill_2d(transf(values), limit=limit, mask=mask)
+        values = transf(backfill_2d(transf(values), limit=limit, mask=mask))
 
     # reshape back
     if ndim == 1:
@@ -1830,6 +1876,7 @@ def _astype_nansafe(arr, dtype, copy=True):
 
 
 def _clean_fill_method(method):
+    if method is None: return None
     method = method.lower()
     if method == 'ffill':
         method = 'pad'

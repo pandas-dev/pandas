@@ -61,6 +61,7 @@ class Period(PandasObject):
     second : int, default 0
     """
     __slots__ = ['freq', 'ordinal']
+    _comparables = ['name','freqstr']
 
     def __init__(self, value=None, freq=None, ordinal=None,
                  year=None, month=1, quarter=None, day=1,

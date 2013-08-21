@@ -565,19 +565,6 @@ class SparseSeries(Series):
                                  sparse_index=new_index,
                                  fill_value=self.fill_value)
 
-    def _reindex_indexer(self, new_index, indexer, copy):
-        if indexer is not None:
-            new_values = com.take_1d(self.values.values, indexer)
-        else:
-            if copy:
-                result = self.copy()
-            else:
-                result = self
-            return result
-
-        # be subclass-friendly
-        return self._constructor(new_values, new_index, name=self.name)
-
     def take(self, indices, axis=0, convert=True):
         """
         Sparse-compatible version of ndarray.take

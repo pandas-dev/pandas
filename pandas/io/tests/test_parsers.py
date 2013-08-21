@@ -774,7 +774,7 @@ c,4,5
 """
         rs = self.read_csv(
             StringIO(data), index_col='date', parse_dates='date')
-        idx = date_range('1/1/2009', periods=3).asobject
+        idx = date_range('1/1/2009', periods=3)
         idx.name = 'date'
         xp = DataFrame({'A': ['a', 'b', 'c'],
                         'B': [1, 3, 4],

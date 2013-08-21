@@ -51,7 +51,7 @@ reindex_multi = Benchmark(statement, setup,
 # Pad / backfill
 
 setup = common_setup + """
-rng = DateRange('1/1/2000', periods=10000, offset=datetools.Minute())
+rng = DateRange('1/1/2000', periods=100000, offset=datetools.Minute())
 
 ts = Series(np.random.randn(len(rng)), index=rng)
 ts2 = ts[::2]

@@ -115,6 +115,8 @@ pandas 0.13
     - ``MultiIndex.astype()`` now only allows ``np.object_``-like dtypes and
       now returns a ``MultiIndex`` rather than an ``Index``. (:issue:`4039`)
 
+  - Infer and downcast dtype if ``downcast='infer'`` is passed to ``fillna/ffill/bfill`` (:issue:`4604`)
+
 **Internal Refactoring**
 
 In 0.13.0 there is a major refactor primarily to subclass ``Series`` from ``NDFrame``,
@@ -143,8 +145,6 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
   - ``swapaxes`` on a ``Panel`` with the same axes specified now return a copy
   - support attribute access for setting
   - filter supports same api as original ``DataFrame`` filter
-
-- Reindex called with no arguments will now return a copy of the input object
 
 - Series now inherits from ``NDFrame`` rather than directly from ``ndarray``.
   There are several minor changes that affect the API.
@@ -185,6 +185,9 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
 
 - Indexing with dtype conversions fixed (:issue:`4463`, :issue:`4204`)
 
+- Refactor Series.reindex to core/generic.py (:issue:`4604`, :issue:`4618`), allow ``method=`` in reindexing
+  on a Series to work
+
 **Experimental Features**
 
 **Bug Fixes**
@@ -210,7 +213,7 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
   - In ``to_json``, raise if a passed ``orient`` would cause loss of data because
     of a duplicate index (:issue:`4359`)
   - In ``to_json``, fix date handling so milliseconds are the default timestamp
-    as the docstring says (:issue:`4362`). 
+    as the docstring says (:issue:`4362`).
   - JSON NaT handling fixed, NaTs are now serialised to `null` (:issue:`4498`)
   - Fixed JSON handling of escapable characters in JSON object keys (:issue:`4593`)
   - Fixed passing ``keep_default_na=False`` when ``na_values=None`` (:issue:`4318`)
@@ -257,6 +260,8 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
   - Fix bug in ``pd.read_clipboard`` on windows with PY3 (:issue:`4561`); not decoding properly
   - ``tslib.get_period_field()`` and ``tslib.get_period_field_arr()`` now raise
     if code argument out of range (:issue:`4519`, :issue:`4520`)
+  - Fix reindexing with multiple axes; if an axes match was not replacing the current axes, leading
+    to a possible lazay frequency inference issue (:issue:`3317`)
 
 pandas 0.12
 ===========
