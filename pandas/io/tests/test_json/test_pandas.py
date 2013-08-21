@@ -14,7 +14,7 @@ read_json = pd.read_json
 
 from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
                                  assert_series_equal, network,
-                                 ensure_clean)
+                                 ensure_clean, assert_index_equal)
 import pandas.util.testing as tm
 from numpy.testing.decorators import slow
 
@@ -52,6 +52,21 @@ class TestPandasContainer(unittest.TestCase):
         self.intframe = _intframe.copy()
         self.tsframe = _tsframe.copy()
         self.mixed_frame = _mixed_frame.copy()
+
+    def test_frame_double_encoded_labels(self):
+        df = DataFrame([['a', 'b'], ['c', 'd']],
+                       index=['index " 1', 'index / 2'],
+                       columns=['a \\ b', 'y / z'])
+
+        assert_frame_equal(
+            df, read_json(df.to_json(orient='split'), orient='split'))
+        assert_frame_equal(
+            df, read_json(df.to_json(orient='columns'), orient='columns'))
+        assert_frame_equal(
+            df, read_json(df.to_json(orient='index'), orient='index'))
+        df_unser = read_json(df.to_json(orient='records'), orient='records')
+        assert_index_equal(df.columns, df_unser.columns)
+        np.testing.assert_equal(df.values, df_unser.values)
 
     def test_frame_non_unique_index(self):
         df = DataFrame([['a', 'b'], ['c', 'd']], index=[1, 1],
