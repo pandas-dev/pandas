@@ -730,6 +730,7 @@ Reindexing / Selection / Label manipulation
    Panel.reindex
    Panel.reindex_axis
    Panel.reindex_like
+   Panel.rename
    Panel.select
    Panel.take
    Panel.truncate
