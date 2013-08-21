@@ -387,6 +387,8 @@ regularity will result in a ``DatetimeIndex`` (but frequency is lost):
 DateOffset objects
 ------------------
 
+.. _timeseries.dateoffset:
+
 In the preceding examples, we created DatetimeIndex objects at various
 frequencies by passing in frequency strings like 'M', 'W', and 'BM to the
 ``freq`` keyword. Under the hood, these frequency strings are being translated
@@ -546,6 +548,8 @@ calendars which account for local holidays and local weekend conventions.
 
 Offset Aliases
 ~~~~~~~~~~~~~~
+
+.. _timeseries.offset-aliases:
 
 A number of string aliases are given to useful common time series
 frequencies. We will refer to these aliases as *offset aliases*
@@ -1246,3 +1250,51 @@ The following are equivalent statements in the two versions of numpy.
        y / np.timedelta64(1,'D')
        y / np.timedelta64(1,'s')
 
+Working with timedate-based indices
+-------------------------------------------------------
+
+The :func:`pd.datetime` allows for vectorised operations using datetime information stored in a :ref:`timeseries.datetimeindex`.
+
+Use cases are:
+
+* calculation of sunsunrise, sunset, daylength
+* boolean test of working hours
+
+An example contributed by a savvy user at `Stackoverflow <http://stackoverflow.com/a/15839530>`_:
+
+.. ipython:: python
+
+   import pandas as pd
+
+   ###1) create a date column from indiviadual year, month, day columns
+   df = pd.DataFrame({"year": [1992, 2003, 2014], "month": [2,3,4], "day": [10,20,30]})
+   df
+
+   df["Date"] = df.apply(lambda x: pd.datetime(x['year'], x['month'], x['day']), axis=1)
+   df
+   
+   ###2) alternatively, use the equivalent to datetime.datetime.combine
+   import numpy as np
+   
+   #create a hourly timeseries
+   data_randints = np.random.randint(1, 10, 4000)
+   data_randints = data_randints.reshape(1000, 4)
+   ts = pd.Series(randn(1000), index=pd.date_range('1/1/2000', periods=1000, freq='H'))
+   df = pd.DataFrame(data_randints, index=ts.index, columns=['A', 'B', 'C', 'D'])
+   df.head()
+      
+   #only for examplary purposes: get the date & time from the df.index
+   #                             in real world, these would be read in or generated from different columns
+   df['date'] = df.index.date
+   df.head()
+   
+   df['time'] = df.index.time
+   df.head()
+   
+   #combine both:
+   df['datetime'] = df.apply((lambda x: pd.datetime.combine(x['date'], x['time'])), axis=1)
+   df.head()
+   
+   #the index could be set to the created column
+   df = df.set_index(['datetime'])
+   df.head()

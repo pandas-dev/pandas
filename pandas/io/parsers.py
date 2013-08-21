@@ -1150,7 +1150,11 @@ def TextParser(*args, **kwds):
         returns Series if only one column
     """
     kwds['engine'] = 'python'
-    return TextFileReader(*args, **kwds)
+    
+    res = TextFileReader(*args, **kwds)
+    
+    
+    return res
 
 # delimiter=None, dialect=None, names=None, header=0,
 # index_col=None,
@@ -1385,6 +1389,7 @@ class PythonParser(ParserBase):
                                          clean_conv)
 
     def _infer_columns(self):
+        #TODO: this full part is too complex and somewhat strage!!!
         names = self.names
 
         if self.header is not None:
@@ -1396,13 +1401,20 @@ class PythonParser(ParserBase):
                 header = list(header) + [header[-1]+1]
             else:
                 have_mi_columns = False
+                #TODO: explain why header (in this case 1 number) needs to be a list???
                 header = [ header ]
 
             columns = []
             for level, hr in enumerate(header):
-
+                #TODO: explain why self.buf is needed.
+                #      the header is correctly retrieved in excel.py by
+                #      data[header] = _trim_excel_header(data[header])
                 if len(self.buf) > 0:
                     line = self.buf[0]
+
+                elif (header[0] == hr) and (level == 0) and (header[0] > 0):
+                     line = self._get_header()
+                    
                 else:
                     line = self._next_line()
 
@@ -1456,8 +1468,24 @@ class PythonParser(ParserBase):
                 columns = [ names ]
 
         return columns
+        
+    def _get_header(self):
+        ''' reads header if e.g. header 
+        FIXME: this tshoul be turned into something much less complicates
+        FIXME: all due to the header assuming that there is never a row between
+               data and header
+        '''
+        if isinstance(self.data, list):
+            line = self.data[self.header]
+            self.pos = self.header +1
+        else:
+            line = self._next_line()
+        
+        return line
 
     def _next_line(self):
+        #FIXME: why is self.data at times a list and sometimes a _scv.reader??
+        #       reduce complexity here!!!
         if isinstance(self.data, list):
             while self.pos in self.skiprows:
                 self.pos += 1
