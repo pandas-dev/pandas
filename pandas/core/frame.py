@@ -2898,64 +2898,6 @@ class DataFrame(NDFrame):
         return result
 
     #----------------------------------------------------------------------
-    # Rename
-
-    def rename(self, index=None, columns=None, copy=True, inplace=False):
-        """
-        Alter index and / or columns using input function or
-        functions. Function / dict values must be unique (1-to-1). Labels not
-        contained in a dict / Series will be left as-is.
-
-        Parameters
-        ----------
-        index : dict-like or function, optional
-            Transformation to apply to index values
-        columns : dict-like or function, optional
-            Transformation to apply to column values
-        copy : boolean, default True
-            Also copy underlying data
-        inplace : boolean, default False
-            Whether to return a new DataFrame. If True then value of copy is
-            ignored.
-
-        See also
-        --------
-        Series.rename
-
-        Returns
-        -------
-        renamed : DataFrame (new object)
-        """
-        from pandas.core.series import _get_rename_function
-
-        if index is None and columns is None:
-            raise Exception('must pass either index or columns')
-
-        index_f = _get_rename_function(index)
-        columns_f = _get_rename_function(columns)
-
-        self._consolidate_inplace()
-
-        result = self if inplace else self.copy(deep=copy)
-
-        if index is not None:
-            result._rename_index_inplace(index_f)
-
-        if columns is not None:
-            result._rename_columns_inplace(columns_f)
-
-        if not inplace:
-            return result
-
-    def _rename_index_inplace(self, mapper):
-        self._data = self._data.rename_axis(mapper, axis=1)
-        self._clear_item_cache()
-
-    def _rename_columns_inplace(self, mapper):
-        self._data = self._data.rename_items(mapper, copydata=False)
-        self._clear_item_cache()
-
-    #----------------------------------------------------------------------
     # Arithmetic / combination related
 
     def _combine_frame(self, other, func, fill_value=None, level=None):

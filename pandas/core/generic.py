@@ -13,10 +13,11 @@ from pandas.tseries.index import DatetimeIndex
 from pandas.core.internals import BlockManager
 import pandas.core.common as com
 from pandas import compat
-from pandas.compat import map, zip
+from pandas.compat import map, zip, lrange
 from pandas.core.common import (isnull, notnull, is_list_like,
                                 _values_from_object,
-                                _infer_dtype_from_scalar, _maybe_promote)
+                                _infer_dtype_from_scalar, _maybe_promote,
+                                ABCSeries)
 
 class NDFrame(PandasObject):
 
@@ -382,7 +383,77 @@ class NDFrame(PandasObject):
         result._data.set_axis(axis, labels.swaplevel(i, j))
         return result
 
-    def rename_axis(self, mapper, axis=0, copy=True):
+    #----------------------------------------------------------------------
+    # Rename
+
+    def rename(self, *args, **kwargs):
+        """
+        Alter axes input function or
+        functions. Function / dict values must be unique (1-to-1). Labels not
+        contained in a dict / Series will be left as-is.
+
+        Parameters
+        ----------
+        axis keywords for this object
+          (e.g. index for Series,
+                index,columns for DataFrame,
+                items,major_axis,minor_axis for Panel)
+          : dict-like or function, optional
+            Transformation to apply to that axis values
+
+        copy : boolean, default True
+            Also copy underlying data
+        inplace : boolean, default False
+            Whether to return a new PandasObject. If True then value of copy is
+            ignored.
+
+        Returns
+        -------
+        renamed : PandasObject (new object)
+        """
+
+        axes, kwargs = self._construct_axes_from_arguments(args, kwargs)
+        copy = kwargs.get('copy', True)
+        inplace = kwargs.get('inplace', False)
+
+        if (com._count_not_none(*axes.values()) == 0):
+            raise Exception('must pass an index to rename')
+
+        # renamer function if passed a dict
+        def _get_rename_function(mapper):
+            if isinstance(mapper, (dict, ABCSeries)):
+                def f(x):
+                    if x in mapper:
+                        return mapper[x]
+                    else:
+                        return x
+            else:
+                f = mapper
+
+            return f
+
+
+        self._consolidate_inplace()
+        result = self if inplace else self.copy(deep=copy)
+
+        # start in the axis order to eliminate too many copies
+        for axis in lrange(self._AXIS_LEN):
+            v = axes.get(self._AXIS_NAMES[axis])
+            if v is None: continue
+            f = _get_rename_function(v)
+
+            baxis = self._get_block_manager_axis(axis)
+            result._data = result._data.rename(f, axis=baxis, copy=copy)
+            result._clear_item_cache()
+
+        if inplace:
+            self._data = result._data
+            self._clear_item_cache()
+
+        else:
+            return result._propogate_attributes(self)
+
+    def rename_axis(self, mapper, axis=0, copy=True, inplace=False):
         """
         Alter index and / or columns using input function or functions.
         Function / dict values must be unique (1-to-1). Labels not contained in
@@ -394,24 +465,16 @@ class NDFrame(PandasObject):
         axis : int, default 0
         copy : boolean, default True
             Also copy underlying data
+        inplace : boolean, default False
 
         Returns
         -------
         renamed : type of caller
         """
-        # should move this at some point
-        from pandas.core.series import _get_rename_function
-
-        mapper_f = _get_rename_function(mapper)
-
-        if axis == 0:
-            new_data = self._data.rename_items(mapper_f, copydata=copy)
-        else:
-            new_data = self._data.rename_axis(mapper_f, axis=axis)
-            if copy:
-                new_data = new_data.copy()
-
-        return self._constructor(new_data)
+        axis = self._AXIS_NAMES[axis]
+        d = { 'copy' : copy, 'inplace' : inplace }
+        d[axis] = mapper
+        return self.rename(**d)
 
     #----------------------------------------------------------------------
     # Comparisons
@@ -1373,7 +1436,7 @@ class NDFrame(PandasObject):
         data = self._data
         if deep:
             data = data.copy()
-        return self._constructor(data)
+        return self._constructor(data)._propogate_attributes(self)
 
     def convert_objects(self, convert_dates=True, convert_numeric=False, copy=True):
         """
