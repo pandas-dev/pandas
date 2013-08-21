@@ -129,7 +129,7 @@ def pivot_table(data, values=None, rows=None, cols=None, aggfunc='mean',
             table = table.sort_index(axis=1)
 
     if fill_value is not None:
-        table = table.fillna(value=fill_value, downcast=True)
+        table = table.fillna(value=fill_value, downcast='infer')
 
     if margins:
         table = _add_margins(table, data, values, rows=rows,

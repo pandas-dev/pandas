@@ -786,7 +786,7 @@ class TestPanel4d(unittest.TestCase, CheckIndexing, SafeForSparse,
         result = self.panel4d.reindex(
             major=self.panel4d.major_axis, copy=False)
         assert_panel4d_equal(result,self.panel4d)
-        self.assert_((result is self.panel4d) == False)
+        self.assert_((result is self.panel4d) == True)
 
     def test_not_hashable(self):
         p4D_empty = Panel4D()

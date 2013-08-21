@@ -2280,12 +2280,9 @@ class DataFrame(NDFrame):
                                            fill_value=fill_value)
             return self._constructor(new_values, index=new_index,
                                      columns=new_columns)
-        elif row_indexer is not None:
-            return self._reindex_with_indexers({0: [new_index,   row_indexer]}, copy=copy, fill_value=fill_value)
-        elif col_indexer is not None:
-            return self._reindex_with_indexers({1: [new_columns, col_indexer]}, copy=copy, fill_value=fill_value)
         else:
-            return self.copy() if copy else self
+            return self._reindex_with_indexers({0: [new_index,   row_indexer],
+                                                1: [new_columns, col_indexer]}, copy=copy, fill_value=fill_value)
 
     def reindex_like(self, other, method=None, copy=True, limit=None,
                      fill_value=NA):

@@ -7,8 +7,8 @@ from collections import defaultdict
 import numpy as np
 from pandas.core.base import PandasObject
 
-from pandas.core.common import (_possibly_downcast_to_dtype, isnull, _NS_DTYPE,
-                                _TD_DTYPE, ABCSeries, ABCSparseSeries,
+from pandas.core.common import (_possibly_downcast_to_dtype, isnull, notnull,
+                                _NS_DTYPE, _TD_DTYPE, ABCSeries, ABCSparseSeries,
                                 is_list_like)
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
                                _handle_legacy_indexes)
@@ -36,6 +36,9 @@ class Block(PandasObject):
     """
     __slots__ = ['items', 'ref_items', '_ref_locs', 'values', 'ndim']
     is_numeric = False
+    is_float = False
+    is_integer = False
+    is_complex = False
     is_bool = False
     is_object = False
     is_sparse = False
@@ -203,7 +206,7 @@ class Block(PandasObject):
             new_values, self.items, self.ref_items, ndim=self.ndim, fastpath=True,
             placement=self._ref_locs)
 
-    def reindex_items_from(self, new_ref_items, copy=True):
+    def reindex_items_from(self, new_ref_items, indexer=None, method=None, fill_value=None, limit=None, copy=True):
         """
         Reindex to only those items contained in the input set of items
 
@@ -214,17 +217,41 @@ class Block(PandasObject):
         -------
         reindexed : Block
         """
-        new_ref_items, indexer = self.items.reindex(new_ref_items)
-
         if indexer is None:
-            new_items = new_ref_items
+            new_ref_items, indexer = self.items.reindex(new_ref_items, limit=limit)
+
+        if fill_value is None:
+            fill_value = self.fill_value
+
+        new_items = new_ref_items
+        if indexer is None:
             new_values = self.values.copy() if copy else self.values
+
         else:
-            masked_idx = indexer[indexer != -1]
-            new_values = com.take_nd(self.values, masked_idx, axis=0,
-                                     allow_fill=False)
-            new_items = self.items.take(masked_idx)
-        return make_block(new_values, new_items, new_ref_items, ndim=self.ndim, fastpath=True)
+
+            # single block reindex
+            if self.ndim == 1:
+                new_values = com.take_1d(self.values, indexer,
+                                         fill_value=fill_value)
+            else:
+
+                masked_idx = indexer[indexer != -1]
+                new_values = com.take_nd(self.values, masked_idx, axis=0,
+                                         allow_fill=False)
+                new_items = self.items.take(masked_idx)
+
+        # fill if needed
+        fill_method = method is not None or limit is not None
+        if fill_method:
+            new_values = com.interpolate_2d(new_values, method=method, limit=limit, fill_value=fill_value)
+
+        block = make_block(new_values, new_items, new_ref_items, ndim=self.ndim, fastpath=True)
+
+        # down cast if needed
+        if not self.is_float and (fill_method or notnull(fill_value)):
+            block = block.downcast()
+
+        return block
 
     def get(self, item):
         loc = self.items.get_loc(item)
@@ -291,36 +318,64 @@ class Block(PandasObject):
         mask = com.isnull(self.values)
         value = self._try_fill(value)
         blocks = self.putmask(mask, value, inplace=inplace)
+        return self._maybe_downcast(blocks, downcast)
 
-        # possibily downcast the blocks
-        if not downcast:
+    def _maybe_downcast(self, blocks, downcast=None):
+
+        # no need to downcast our float
+        # unless indicated
+        if downcast is None and self.is_float:
             return blocks
 
         result_blocks = []
         for b in blocks:
-            result_blocks.extend(b.downcast())
+            result_blocks.extend(b.downcast(downcast))
 
         return result_blocks
 
     def downcast(self, dtypes=None):
         """ try to downcast each item to the dict of dtypes if present """
 
-        if dtypes is None:
-            dtypes = dict()
+        # turn it off completely
+        if dtypes is False:
+            return [ self ]
 
         values = self.values
+
+        # single block handling
+        if self._is_single_block:
+
+            # try to cast all non-floats here
+            if dtypes is None:
+                dtypes = 'infer'
+
+            nv = _possibly_downcast_to_dtype(values, dtypes)
+            return [ make_block(nv, self.items, self.ref_items, ndim=self.ndim, fastpath=True) ]
+
+        # ndim > 1
+        if dtypes is None:
+            return [ self ]
+
+        if not (dtypes == 'infer' or isinstance(dtypes, dict)):
+            raise ValueError("downcast must have a dictionary or 'infer' as its argument")
+
+        # item-by-item
+        # this is expensive as it splits the blocks items-by-item
         blocks = []
         for i, item in enumerate(self.items):
 
-            dtype = dtypes.get(item, self._downcast_dtype)
+            if dtypes == 'infer':
+                dtype = 'infer'
+            else:
+                dtype = dtypes.get(item, self._downcast_dtype)
+
             if dtype is None:
                 nv = _block_shape(values[i])
-                blocks.append(make_block(nv, [item], self.ref_items))
-                continue
+            else:
+                nv = _possibly_downcast_to_dtype(values[i], dtype)
+                nv = _block_shape(nv)
 
-            nv = _possibly_downcast_to_dtype(values[i], np.dtype(dtype))
-            nv = _block_shape(nv)
-            blocks.append(make_block(nv, [item], self.ref_items))
+            blocks.append(make_block(nv, Index([item]), self.ref_items, ndim=self.ndim, fastpath=True))
 
         return blocks
 
@@ -578,7 +633,8 @@ class Block(PandasObject):
         return [make_block(new_values, self.items, self.ref_items, fastpath=True)]
 
     def interpolate(self, method='pad', axis=0, inplace=False,
-                    limit=None, missing=None, coerce=False):
+                    limit=None, fill_value=None, coerce=False,
+                    downcast=None):
 
         # if we are coercing, then don't force the conversion
         # if the block can't hold the type
@@ -590,8 +646,10 @@ class Block(PandasObject):
                     return [self.copy()]
 
         values = self.values if inplace else self.values.copy()
-        values = com.interpolate_2d(values, method, axis, limit, missing)
-        return [make_block(values, self.items, self.ref_items, ndim=self.ndim, klass=self.__class__, fastpath=True)]
+        values = com.interpolate_2d(values, method, axis, limit, fill_value)
+
+        blocks = [ make_block(values, self.items, self.ref_items, ndim=self.ndim, klass=self.__class__, fastpath=True) ]
+        return self._maybe_downcast(blocks, downcast)
 
     def take(self, indexer, ref_items, axis=1):
         if axis < 1:
@@ -789,6 +847,7 @@ class NumericBlock(Block):
 
 
 class FloatBlock(NumericBlock):
+    is_float = True
     _downcast_dtype = 'int64'
 
     def _can_hold_element(self, element):
@@ -825,6 +884,7 @@ class FloatBlock(NumericBlock):
 
 
 class ComplexBlock(NumericBlock):
+    is_complex = True
 
     def _can_hold_element(self, element):
         return isinstance(element, complex)
@@ -840,6 +900,7 @@ class ComplexBlock(NumericBlock):
 
 
 class IntBlock(NumericBlock):
+    is_integer = True
     _can_hold_na = False
 
     def _can_hold_element(self, element):
@@ -1290,10 +1351,10 @@ class SparseBlock(Block):
         return make_block(new_values, items, ref_items, ndim=self.ndim, fastpath=fastpath)
 
     def interpolate(self, method='pad', axis=0, inplace=False,
-                    limit=None, missing=None, **kwargs):
+                    limit=None, fill_value=None, **kwargs):
 
         values = com.interpolate_2d(
-            self.values.to_dense(), method, axis, limit, missing)
+            self.values.to_dense(), method, axis, limit, fill_value)
         return self.make_block(values, self.items, self.ref_items)
 
     def fillna(self, value, inplace=False, downcast=None):
@@ -1336,7 +1397,7 @@ class SparseBlock(Block):
             fill_value = self.fill_value
         return self.make_block(self.values.take(indexer), items=self.items, fill_value=fill_value)
 
-    def reindex_items_from(self, new_ref_items, copy=True):
+    def reindex_items_from(self, new_ref_items, indexer=None, method=None, fill_value=None, limit=None, copy=True):
         """
         Reindex to only those items contained in the input set of items
 
@@ -1348,18 +1409,21 @@ class SparseBlock(Block):
         reindexed : Block
         """
 
-        # 2-d
-        if self.ndim >= 2:
-            if self.items[0] not in self.ref_items:
-                return None
-            return self.make_block(self.values, ref_items=new_ref_items, copy=copy)
-
-        # 1-d
-        new_ref_items, indexer = self.items.reindex(new_ref_items)
+        # 1-d always
+        if indexer is None:
+            new_ref_items, indexer = self.items.reindex(new_ref_items, limit=limit)
         if indexer is None:
             indexer = np.arange(len(self.items))
 
-        return self.make_block(com.take_1d(self.values.values, indexer), items=new_ref_items, ref_items=new_ref_items, copy=copy)
+        new_values = com.take_1d(self.values.values, indexer)
+
+        # fill if needed
+        if method is not None or limit is not None:
+            if fill_value is None:
+                fill_value = self.fill_value
+            new_values = com.interpolate_2d(new_values, method=method, limit=limit, fill_value=fill_value)
+
+        return self.make_block(new_values, items=new_ref_items, ref_items=new_ref_items, copy=copy)
 
     def sparse_reindex(self, new_index):
         """ sparse reindex and return a new block
@@ -2502,7 +2566,7 @@ class BlockManager(PandasObject):
         if item not in self.items:
             raise KeyError('no item named %s' % com.pprint_thing(item))
 
-    def reindex_axis(self, new_axis, method=None, axis=0, fill_value=None, limit=None, copy=True):
+    def reindex_axis(self, new_axis, indexer=None, method=None, axis=0, fill_value=None, limit=None, copy=True):
         new_axis = _ensure_index(new_axis)
         cur_axis = self.axes[axis]
 
@@ -2522,14 +2586,18 @@ class BlockManager(PandasObject):
                 return self
 
         if axis == 0:
-            if method is not None:
-                raise AssertionError('method argument not supported for '
-                                     'axis == 0')
+            if method is not None or limit is not None:
+                return self.reindex_axis0_with_method(new_axis, indexer=indexer,
+                                                      method=method, fill_value=fill_value, limit=limit, copy=copy)
             return self.reindex_items(new_axis, copy=copy, fill_value=fill_value)
 
         new_axis, indexer = cur_axis.reindex(
             new_axis, method, copy_if_needed=True)
         return self.reindex_indexer(new_axis, indexer, axis=axis, fill_value=fill_value)
+
+    def reindex_axis0_with_method(self, new_axis, indexer=None, method=None, fill_value=None, limit=None, copy=True):
+        raise AssertionError('method argument not supported for '
+                             'axis == 0')
 
     def reindex_indexer(self, new_axis, indexer, axis=1, fill_value=None):
         """
@@ -2843,18 +2911,26 @@ class SingleBlockManager(BlockManager):
             self._shape = tuple([len(self.axes[0])])
         return self._shape
 
-    def reindex(self, new_axis, method=None, limit=None, copy=True):
+    def reindex(self, new_axis, indexer=None, method=None, fill_value=None, limit=None, copy=True):
 
         # if we are the same and don't copy, just return
         if not copy and self.index.equals(new_axis):
             return self
-        block = self._block.reindex_items_from(new_axis, copy=copy)
 
-        if method is not None or limit is not None:
-            block = block.interpolate(method=method, limit=limit)
+        block = self._block.reindex_items_from(new_axis, indexer=indexer, method=method,
+                                               fill_value=fill_value, limit=limit, copy=copy)
         mgr = SingleBlockManager(block, new_axis)
         mgr._consolidate_inplace()
         return mgr
+
+    def _reindex_indexer_items(self, new_items, indexer, fill_value):
+        # equiv to a reindex
+        return self.reindex(new_items, indexer=indexer, fill_value=fill_value, copy=False)
+
+    def reindex_axis0_with_method(self, new_axis, indexer=None, method=None, fill_value=None, limit=None, copy=True):
+        if method is None:
+            indexer = None
+        return self.reindex(new_axis, indexer=indexer, method=method, fill_value=fill_value, limit=limit, copy=copy)
 
     def get_slice(self, slobj, raise_on_error=False):
         if raise_on_error:

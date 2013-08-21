@@ -566,19 +566,19 @@ class TestResample(unittest.TestCase):
     def test_how_lambda_functions(self):
 
         ts = _simple_ts('1/1/2000', '4/1/2000')
-                
+
         result = ts.resample('M', how=lambda x: x.mean())
         exp = ts.resample('M', how='mean')
         tm.assert_series_equal(result, exp)
-        
+
         self.assertRaises(Exception, ts.resample, 'M',
                           how=[lambda x: x.mean(), lambda x: x.std(ddof=1)])
-                
+
         result = ts.resample('M', how={'foo': lambda x: x.mean(),
                                        'bar': lambda x: x.std(ddof=1)})
         foo_exp = ts.resample('M', how='mean')
         bar_exp = ts.resample('M', how='std')
-        
+
         tm.assert_series_equal(result['foo'], foo_exp)
         tm.assert_series_equal(result['bar'], bar_exp)
 
@@ -771,7 +771,7 @@ class TestResamplePeriodIndex(unittest.TestCase):
                                   ts.index[-1].asfreq('D', 'end'),
                                   freq='Q-%s' % month)
 
-            expected = stamps.reindex(qdates.to_timestamp('D', 'e'),
+            expected = stamps.reindex(qdates.to_timestamp('D', 's'),
                                       method='ffill')
             expected.index = qdates
 

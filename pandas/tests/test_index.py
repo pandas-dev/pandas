@@ -151,6 +151,21 @@ class TestIndex(unittest.TestCase):
         # Must also be an Index
         self.assertFalse(Index(['a', 'b', 'c']).equals(['a', 'b', 'c']))
 
+    def test_identical(self):
+
+        # index
+        i1 = Index(['a', 'b', 'c'])
+        i2 = Index(['a', 'b', 'c'])
+
+        self.assert_(i1.identical(i2))
+
+        i1 = i1.rename('foo')
+        self.assert_(i1.equals(i2))
+        self.assert_(not i1.identical(i2))
+
+        i2 = i2.rename('foo')
+        self.assert_(i1.identical(i2))
+
     def test_asof(self):
         d = self.dateIndex[0]
         self.assert_(self.dateIndex.asof(d) is d)
@@ -659,6 +674,20 @@ class TestInt64Index(unittest.TestCase):
         same_values = Index(self.index, dtype=object)
         self.assert_(self.index.equals(same_values))
         self.assert_(same_values.equals(self.index))
+
+    def test_identical(self):
+
+        i = self.index.copy()
+        same_values = Index(i, dtype=object)
+        self.assert_(i.identical(same_values))
+
+        i = self.index.copy()
+        i = i.rename('foo')
+        same_values = Index(i, dtype=object)
+        self.assert_(same_values.identical(self.index))
+
+        self.assertFalse(i.identical(self.index))
+        self.assert_(Index(same_values, name='foo').identical(i))
 
     def test_get_indexer(self):
         target = Int64Index(np.arange(10))
@@ -1603,6 +1632,18 @@ class TestMultiIndex(unittest.TestCase):
         index = MultiIndex(levels=[major_axis, minor_axis],
                            labels=[major_labels, minor_labels])
         self.assert_(not self.index.equals(index))
+
+    def test_identical(self):
+        mi = self.index.copy()
+        mi2 = self.index.copy()
+        self.assert_(mi.identical(mi2))
+
+        mi = mi.set_names(['new1','new2'])
+        self.assert_(mi.equals(mi2))
+        self.assert_(not mi.identical(mi2))
+
+        mi2 = mi2.set_names(['new1','new2'])
+        self.assert_(mi.identical(mi2))
 
     def test_union(self):
         piece1 = self.index[:5][::-1]
