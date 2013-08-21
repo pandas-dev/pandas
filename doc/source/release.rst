@@ -59,6 +59,8 @@ pandas 0.13
   - A Series of dtype ``timedelta64[ns]`` can now be divided by another
     ``timedelta64[ns]`` object to yield a ``float64`` dtyped Series. This
     is frequency conversion.
+  - Border is not anymore hardcoded when a Dataframe is exported to 
+    HTML. (:issue:`4578`) 
 
 **API Changes**
 
