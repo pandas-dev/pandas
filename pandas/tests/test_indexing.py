@@ -796,25 +796,43 @@ class TestIndexing(unittest.TestCase):
         assert_frame_equal(df,result)
 
         # GH 3561, dups not in selected order
-        ind = ['A', 'A', 'B', 'C']
-        df = DataFrame({'test':lrange(len(ind))}, index=ind)
+        df = DataFrame({'test': [5,7,9,11]}, index=['A', 'A', 'B', 'C'])
         rows = ['C', 'B']
-        res = df.ix[rows]
-        self.assert_(rows == list(res.index))
+        expected = DataFrame({'test' : [11,9]},index=rows)
+        result = df.ix[rows]
+        assert_frame_equal(result, expected)
 
-        res = df.ix[Index(rows)]
-        self.assert_(Index(rows).equals(res.index))
+        result = df.ix[Index(rows)]
+        assert_frame_equal(result, expected)
 
         rows = ['C','B','E']
-        res = df.ix[rows]
-        self.assert_(rows == list(res.index))
+        expected = DataFrame({'test' : [11,9,np.nan]},index=rows)
+        result = df.ix[rows]
+        assert_frame_equal(result, expected)
 
-        # inconcistent returns for unique/duplicate indices when values are missing
+        # inconsistent returns for unique/duplicate indices when values are missing
         df = DataFrame(randn(4,3),index=list('ABCD'))
         expected = df.ix[['E']]
 
         dfnu = DataFrame(randn(5,3),index=list('AABCD'))
         result = dfnu.ix[['E']]
+        assert_frame_equal(result, expected)
+
+        # GH 4619; duplicate indexer with missing label
+        df = DataFrame({"A": [0, 1, 2]})
+        result = df.ix[[0,8,0]]
+        expected = DataFrame({"A": [0, np.nan, 0]},index=[0,8,0])
+        assert_frame_equal(result,expected)
+
+        df = DataFrame({"A": list('abc')})
+        result = df.ix[[0,8,0]]
+        expected = DataFrame({"A": ['a', np.nan, 'a']},index=[0,8,0])
+        assert_frame_equal(result,expected)
+
+        # non unique with non unique selector
+        df = DataFrame({'test': [5,7,9,11]}, index=['A','A','B','C'])
+        expected = DataFrame({'test' : [5,7,5,7,np.nan]},index=['A','A','A','A','E'])
+        result = df.ix[['A','A','E']]
         assert_frame_equal(result, expected)
 
     def test_indexing_mixed_frame_bug(self):
