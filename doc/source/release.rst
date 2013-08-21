@@ -262,6 +262,8 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
     if code argument out of range (:issue:`4519`, :issue:`4520`)
   - Fix reindexing with multiple axes; if an axes match was not replacing the current axes, leading
     to a possible lazay frequency inference issue (:issue:`3317`)
+  - Fixed issue where ``DataFrame.apply`` was reraising exceptions incorrectly
+    (causing the original stack trace to be truncated).
 
 pandas 0.12
 ===========
