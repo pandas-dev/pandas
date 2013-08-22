@@ -511,6 +511,8 @@ Enhancements
 - Python csv parser now supports usecols (:issue:`4335`)
 
 - DataFrame has a new ``interpolate`` method, similar to Series (:issue:`4434`, :issue:`1892`)
+- Added ``LastWeekOfMonth`` DateOffset (:issue:`4637`)
+- Added ``FY5253``, and ``FY5253Quarter`` DateOffsets (:issue:`4511`)
 
 
   .. ipython:: python
