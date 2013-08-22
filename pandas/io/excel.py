@@ -127,8 +127,9 @@ class ExcelFile(object):
         skipfooter = kwds.pop('skipfooter', None)
         if skipfooter is not None:
             skip_footer = skipfooter
-
-        return self._parse_excel(sheetname, header=header, skiprows=skiprows,
+        
+        # this now gives back a df
+        res = self._parse_excel(sheetname, header=header, skiprows=skiprows,
                                  index_col=index_col,
                                  has_index_names=has_index_names,
                                  parse_cols=parse_cols,
@@ -136,6 +137,8 @@ class ExcelFile(object):
                                  date_parser=date_parser, na_values=na_values,
                                  thousands=thousands, chunksize=chunksize,
                                  skip_footer=skip_footer, **kwds)
+                    
+        return res
 
     def _should_parse(self, i, parse_cols):
 
@@ -195,11 +198,24 @@ class ExcelFile(object):
                 if parse_cols is None or should_parse[j]:
                     if typ == XL_CELL_DATE:
                         dt = xldate_as_tuple(value, datemode)
+                        
                         # how to produce this first case?
+                        # if the year is ZERO then values are time/hours
                         if dt[0] < datetime.MINYEAR:  # pragma: no cover
-                            value = datetime.time(*dt[3:])
+                            datemode = 1
+                            dt = xldate_as_tuple(value, datemode)
+                            
+                            value = datetime.time(*dt[3:])  
+                                     
+
+                        #or insert a full date
                         else:
                             value = datetime.datetime(*dt)
+                        
+                        #apply eventual date_parser correction
+                        if date_parser:
+                                value = date_parser(value)    
+                            
                     elif typ == XL_CELL_ERROR:
                         value = np.nan
                     elif typ == XL_CELL_BOOLEAN:
@@ -221,8 +237,15 @@ class ExcelFile(object):
                             skip_footer=skip_footer,
                             chunksize=chunksize,
                             **kwds)
+        res = parser.read() 
+        
+        if header is not None:
 
-        return parser.read()
+            if len(data[header]) == len(res.columns.tolist()):
+                res.columns = data[header]
+        
+
+        return res
 
     @property
     def sheet_names(self):
