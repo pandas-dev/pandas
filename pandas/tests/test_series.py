@@ -2895,6 +2895,50 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # Did not modify original Series
         self.assertFalse(np.isnan(self.ts[0]))
 
+    def test_memory_cycles(self):
+        """
+        test that we are completely cleaning up memory and
+        not leaving uncollectable cycles
+        """
+
+        def f():
+            s = Series(np.random.randn(1000))
+            s[100]
+            return s
+        tm.assert_memory_is_clean(f)
+
+        def f():
+            s = Series(np.random.randn(1000))
+            return s.reindex(range(10))
+        tm.assert_memory_is_clean(f)
+
+        def f():
+            s = Series(np.random.randn(1000))
+            s = s.reindex(range(10))
+            s[5]
+            return s
+        tm.assert_memory_is_clean(f)
+
+        # reindex seems to not be destroying the engine mapping
+        # http://stackoverflow.com/questions/18070520/pandas-memory-usage-when-reindexing
+        idx =["%07d" % x for x in range(int(2e3))]
+        a = Series(np.arange(2e3, dtype=np.double), index=idx)
+        new_index = ["0000003", "0000020", "000002a"]
+
+        self.assert_(a.index._engine.mapping is None)
+        a.reindex(new_index)
+        self.assert_(a.index._engine.mapping is not None)
+
+        a = Series(np.arange(2e3, dtype=np.double), index=idx)
+        self.assert_(a.index._engine.mapping is None)
+        a.asof(new_index)
+        self.assert_(a.index._engine.mapping is None)
+
+        a = Series(np.arange(2e3, dtype=np.double), index=idx)
+        self.assert_(a.index._engine.mapping is None)
+        a[new_index[0]]
+        self.assert_(a.index._engine.mapping is not None)
+
     def test_count(self):
         self.assertEqual(self.ts.count(), len(self.ts))
 

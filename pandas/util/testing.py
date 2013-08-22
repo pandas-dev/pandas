@@ -1159,3 +1159,22 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always"):
                                  % expected_warning.__name__)
         assert not extra_warnings, ("Caused unexpected warning(s): %r."
                                     % extra_warnings)
+
+def assert_memory_is_clean(f):
+    """
+    assert that the function (which should return a reference to an object)
+    does not create memory cycles and cleans up after itself on deletion
+    """
+
+    import gc
+    gc.collect()
+    gc.garbage[:] = []
+    created = f()
+    gc.collect()
+    assert (gc.collect() == 0), "memory cycles are created"
+    assert (len(gc.garbage) == 0), "garbage is not empty after collection"
+    del created
+    gc.collect()
+    assert (gc.collect() == 0), "garbage is not collected post deletion"
+    assert (len(gc.garbage) == 0), "garbage is not empty post deletion"
+
