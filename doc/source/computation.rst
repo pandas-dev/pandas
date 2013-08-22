@@ -450,7 +450,7 @@ average as
 
 .. math::
 
-    y_t = \alpha y_{t-1} + (1 - \alpha) x_t
+    y_t = (1 - \alpha) y_{t-1} + \alpha x_t
 
 One must have :math:`0 < \alpha \leq 1`, but rather than pass :math:`\alpha`
 directly, it's easier to think about either the **span** or **center of mass
@@ -461,8 +461,18 @@ directly, it's easier to think about either the **span** or **center of mass
    \alpha =
     \begin{cases}
 	\frac{2}{s + 1}, s = \text{span}\\
-	\frac{1}{c + 1}, c = \text{center of mass}
+	\frac{1}{1 + c}, c = \text{center of mass}
     \end{cases}
+
+.. note::
+  
+  the equation above is sometimes written in the form
+
+  .. math::
+
+    y_t = \alpha' y_{t-1} + (1 - \alpha') x_t
+
+  where :math:`\alpha' = 1 - \alpha`.
 
 You can pass one or the other to these functions but not both. **Span**
 corresponds to what is commonly called a "20-day EW moving average" for
