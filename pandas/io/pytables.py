@@ -690,7 +690,7 @@ class HDFStore(StringMixin):
                 raise ValueError('can only remove with where on objects written as tables')
             return s.delete(where = where, start=start, stop=stop)
 
-    def append(self, key, value, columns=None, **kwargs):
+    def append(self, key, value, columns=None, append=True, **kwargs):
         """
         Append to Table in file. Node must already exist and be Table
         format.
@@ -699,6 +699,7 @@ class HDFStore(StringMixin):
         ----------
         key : object
         value : {Series, DataFrame, Panel, Panel4D}
+        append   : boolean, default True, append the input data to the existing
         data_columns : list of columns to create as data columns, or True to use all columns
         min_itemsize : dict of columns that specify minimum string sizes
         nan_rep      : string to use as string nan represenation
@@ -714,7 +715,8 @@ class HDFStore(StringMixin):
         if columns is not None:
             raise Exception("columns is not a supported keyword in append, try data_columns")
 
-        self._write_to_group(key, value, table=True, append=True, **kwargs)
+        kwargs['table'] = True
+        self._write_to_group(key, value, append=append, **kwargs)
 
     def append_to_multiple(self, d, value, selector, data_columns=None, axes=None, **kwargs):
         """

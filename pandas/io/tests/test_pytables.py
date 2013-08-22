@@ -147,6 +147,40 @@ class TestHDFStore(unittest.TestCase):
         finally:
             safe_remove(self.path)
 
+    def test_api(self):
+
+        # GH4584
+        # API issue when to_hdf doesn't acdept append AND table args
+        with tm.ensure_clean(self.path) as path:
+
+            df = tm.makeDataFrame()
+            df.iloc[:10].to_hdf(path,'df',append=True,table=True)
+            df.iloc[10:].to_hdf(path,'df',append=True,table=True)
+            assert_frame_equal(read_hdf(path,'df'),df)
+
+            # append to False
+            df.iloc[:10].to_hdf(path,'df',append=False,table=True)
+            df.iloc[10:].to_hdf(path,'df',append=True,table=True)
+            assert_frame_equal(read_hdf(path,'df'),df)
+
+        with tm.ensure_clean(self.path) as path:
+
+            df = tm.makeDataFrame()
+            df.to_hdf(path,'df',append=False,table=False)
+            assert_frame_equal(read_hdf(path,'df'),df)
+
+        with ensure_clean(self.path) as store:
+
+            df = tm.makeDataFrame()
+            store.append('df',df.iloc[:10],append=True,table=True)
+            store.append('df',df.iloc[10:],append=True,table=True)
+            assert_frame_equal(read_hdf(path,'df'),df)
+
+            # append to False
+            store.append('df',df.iloc[:10],append=False,table=True)
+            store.append('df',df.iloc[10:],append=True,table=True)
+            assert_frame_equal(read_hdf(path,'df'),df)
+
     def test_keys(self):
 
         with ensure_clean(self.path) as store:
