@@ -26,6 +26,21 @@ everything and calculate a ration for the timing information.
 
 """
 
+# IMPORTANT NOTE
+#
+# This script should run on pandas versions at least as far back as 0.9.1.
+# devs should be able to use the latest version of this script with
+# any dusty old commit and expect it to "just work".
+# One way in which this is useful is when collecting historical data,
+# where writing some logic around this script may prove easier
+# in some cases then running vbench directly (think perf bisection).
+#
+# *please*, when you modify this script for whatever reason,
+# make sure you do not break it's functionality when running under older
+# pandas versions.
+# Note that depreaction warnings are turned off in main(), so there's
+# no need to change the actual code to supress such warnings.
+
 import shutil
 import os
 import sys
@@ -302,7 +317,7 @@ def report_comparative(head_res,baseline_res):
 
     if args.outdf:
         prprint("The results DataFrame was written to '%s'\n" %  args.outdf)
-        totals.to_pickle(args.outdf)
+        totals.save(args.outdf)
 
 def profile_head_single(benchmark):
     import gc
@@ -378,7 +393,7 @@ def profile_head(benchmarks):
 
     if args.outdf:
         prprint("The results DataFrame was written to '%s'\n" %  args.outdf)
-        DataFrame(results).to_pickle(args.outdf)
+        DataFrame(results).save(args.outdf)
 
 def print_report(df,h_head=None,h_msg="",h_baseline=None,b_msg=""):
 
@@ -462,8 +477,8 @@ def main():
     np.random.seed(args.seed)
 
     if args.base_pickle and args.target_pickle:
-        baseline_res = prep_pickle_for_total(pd.read_pickle(args.base_pickle))
-        target_res = prep_pickle_for_total(pd.read_pickle(args.target_pickle))
+        baseline_res = prep_pickle_for_total(pd.load(args.base_pickle))
+        target_res = prep_pickle_for_total(pd.load(args.target_pickle))
 
         report_comparative(target_res, baseline_res)
         sys.exit(0)
