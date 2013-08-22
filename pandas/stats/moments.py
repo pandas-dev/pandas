@@ -56,9 +56,9 @@ Parameters
 ----------
 %s
 com : float. optional
-    Center of mass: \alpha = com / (1 + com),
+    Center of mass: :math:`\alpha = 1 / (1 + com)`,
 span : float, optional
-    Specify decay in terms of span, \alpha = 2 / (span + 1)
+    Specify decay in terms of span, :math:`\alpha = 2 / (span + 1)`
 min_periods : int, default 0
     Number of observations in sample to require (only affects
     beginning)
@@ -75,8 +75,8 @@ Notes
 Either center of mass or span must be specified
 
 EWMA is sometimes specified using a "span" parameter s, we have have that the
-decay parameter \alpha is related to the span as
-:math:`\alpha = 1 - 2 / (s + 1) = c / (1 + c)`
+decay parameter :math:`\alpha` is related to the span as
+:math:`\alpha = 2 / (s + 1) = 1 / (1 + c)`
 
 where c is the center of mass. Given a span, the associated center of mass is
 :math:`c = (s - 1) / 2`
