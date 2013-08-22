@@ -61,6 +61,8 @@ pandas 0.13
     is frequency conversion.
   - Performance improvements with ``__getitem__`` on ``DataFrames`` with
     when the key is a column
+  - Support for using a ``DatetimeIndex/PeriodsIndex`` directly in a datelike calculation
+    e.g. s-s.index (:issue:`4629`)
 
 **API Changes**
 

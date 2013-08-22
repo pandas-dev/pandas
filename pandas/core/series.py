@@ -103,7 +103,7 @@ def _arith_method(op, name, fill_zeros=None):
             coerce = 'compat' if _np_version_under1p7 else True
 
             # convert the argument to an ndarray
-            def convert_to_array(values):
+            def convert_to_array(values, other=None):
                 if not is_list_like(values):
                     values = np.array([values])
                 inferred_type = lib.infer_dtype(values)
@@ -111,6 +111,8 @@ def _arith_method(op, name, fill_zeros=None):
                     # a datetlike
                     if not (isinstance(values, (pa.Array, Series)) and com.is_datetime64_dtype(values)):
                         values = tslib.array_to_datetime(values)
+                    elif isinstance(values, DatetimeIndex):
+                        other = values = values.to_series()
                 elif inferred_type in set(['timedelta']):
                     # have a timedelta, convert to to ns here
                     values = com._possibly_cast_to_timedelta(values, coerce=coerce)
@@ -121,6 +123,8 @@ def _arith_method(op, name, fill_zeros=None):
                     # py3 compat where dtype is 'm' but is an integer
                     if values.dtype.kind == 'm':
                         values = values.astype('timedelta64[ns]')
+                    elif isinstance(values, PeriodIndex):
+                        other = values = values.to_timestamp().to_series()
                     elif name not in ['__truediv__','__div__','__mul__']:
                         raise TypeError("incompatible type for a datetime/timedelta operation [{0}]".format(name))
                 elif isinstance(values[0],DateOffset):
@@ -134,11 +138,11 @@ def _arith_method(op, name, fill_zeros=None):
                 else:
                     raise TypeError("incompatible type [{0}] for a datetime/timedelta operation".format(pa.array(values).dtype))
 
-                return values
+                return values, other
 
             # convert lhs and rhs
-            lvalues = convert_to_array(lvalues)
-            rvalues = convert_to_array(rvalues)
+            lvalues,_ = convert_to_array(lvalues)
+            rvalues,other = convert_to_array(rvalues,other)
 
             is_datetime_rhs  = com.is_datetime64_dtype(rvalues)
             is_timedelta_rhs = com.is_timedelta64_dtype(rvalues) or (not is_datetime_rhs and _np_version_under1p7)
