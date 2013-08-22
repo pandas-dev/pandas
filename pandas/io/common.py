@@ -66,6 +66,32 @@ def _is_s3_url(url):
         return False
 
 
+def maybe_read_encoded_stream(reader, encoding=None):
+    """ read an encoded stream from the reader and transform the bytes to unicode
+        if required based on the encoding
+
+        Parameters
+        ----------
+        reader : a streamable file-like object
+        encoding : optional, the encoding to attempt to read
+
+        Returns
+        -------
+        a tuple of (a stream of decoded bytes, the encoding which was used)
+
+        """
+
+    if compat.PY3 or encoding is not None:  # pragma: no cover
+        if encoding:
+            errors = 'strict'
+        else:
+            errors = 'replace'
+            encoding = 'utf-8'
+        reader = StringIO(reader.read().decode(encoding, errors))
+    else:
+        encoding = None
+    return reader, encoding
+
 def get_filepath_or_buffer(filepath_or_buffer, encoding=None):
     """
     If the filepath_or_buffer is a url, translate and return the buffer
@@ -83,17 +109,7 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None):
 
     if _is_url(filepath_or_buffer):
         req = _urlopen(str(filepath_or_buffer))
-        if compat.PY3:  # pragma: no cover
-            if encoding:
-                errors = 'strict'
-            else:
-                errors = 'replace'
-                encoding = 'utf-8'
-            out = StringIO(req.read().decode(encoding, errors))
-        else:
-            encoding = None
-            out = req
-        return out, encoding
+        return maybe_read_encoded_stream(req,encoding)
 
     if _is_s3_url(filepath_or_buffer):
         try:
