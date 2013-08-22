@@ -100,6 +100,23 @@ your performance may suffer as PyTables will pickle object types that it cannot
 map directly to c-types [inferred_type->%s,key->%s] [items->%s]
 """
 
+# formats
+_FORMAT_MAP = {
+    u('s') : 's',
+    u('storer') : 's',
+    u('t') : 't',
+    u('table') : 't',
+    }
+
+fmt_deprecate_doc = """
+the table keyword has been deprecated
+use the fmt='s|t' keyword instead
+  s : specifies the Storer format
+      and is the default for put operations
+  t : specifies the Table format
+      and is the default for append operations
+"""
+
 # map object types
 _TYPE_MAP = {
 
@@ -545,7 +562,7 @@ class HDFStore(StringMixin):
 
     def unique(self, key, column, **kwargs):
         warnings.warn("unique(key,column) is deprecated\n"
-                      "use select_column(key,column).unique() instead")
+                      "use select_column(key,column).unique() instead",FutureWarning)
         return self.get_storer(key).read_column(column=column, **kwargs).unique()
 
     def select_column(self, key, column, **kwargs):
@@ -641,7 +658,7 @@ class HDFStore(StringMixin):
 
         return TableIterator(self, func, nrows=nrows, start=start, stop=stop, auto_close=auto_close).get_values()
 
-    def put(self, key, value, table=None, append=False, **kwargs):
+    def put(self, key, value, fmt=None, append=False, **kwargs):
         """
         Store object in HDFStore
 
@@ -649,16 +666,20 @@ class HDFStore(StringMixin):
         ----------
         key      : object
         value    : {Series, DataFrame, Panel}
-        table    : boolean, default False
-            Write as a PyTables Table structure which may perform worse but
-            allow more flexible operations like searching / selecting subsets
-            of the data
+        fmt      : 's|t', default is 's' for storer format
+            s : storer format
+                Fast writing/reading. Not-appendable, nor searchable
+            t : table format
+                Write as a PyTables Table structure which may perform worse but
+                allow more flexible operations like searching / selecting subsets
+                of the data
         append   : boolean, default False
             For table data structures, append the input data to the existing
             table
         encoding : default None, provide an encoding for strings
         """
-        self._write_to_group(key, value, table=table, append=append, **kwargs)
+        kwargs = self._validate_format(fmt or 's', kwargs)
+        self._write_to_group(key, value, append=append, **kwargs)
 
     def remove(self, key, where=None, start=None, stop=None):
         """
@@ -709,7 +730,7 @@ class HDFStore(StringMixin):
                     'can only remove with where on objects written as tables')
             return s.delete(where=where, start=start, stop=stop)
 
-    def append(self, key, value, columns=None, append=True, **kwargs):
+    def append(self, key, value, fmt=None, append=True, columns=None, **kwargs):
         """
         Append to Table in file. Node must already exist and be Table
         format.
@@ -718,6 +739,11 @@ class HDFStore(StringMixin):
         ----------
         key : object
         value : {Series, DataFrame, Panel, Panel4D}
+        fmt   : 't', default is 't' for table format
+            t : table format
+                Write as a PyTables Table structure which may perform worse but
+                allow more flexible operations like searching / selecting subsets
+                of the data
         append   : boolean, default True, append the input data to the existing
         data_columns : list of columns to create as data columns, or True to use all columns
         min_itemsize : dict of columns that specify minimum string sizes
@@ -735,7 +761,7 @@ class HDFStore(StringMixin):
             raise Exception(
                 "columns is not a supported keyword in append, try data_columns")
 
-        kwargs['table'] = True
+        kwargs = self._validate_format(fmt or 't', kwargs)
         self._write_to_group(key, value, append=append, **kwargs)
 
     def append_to_multiple(self, d, value, selector, data_columns=None, axes=None, **kwargs):
@@ -901,13 +927,39 @@ class HDFStore(StringMixin):
         if not self.is_open:
             raise ClosedFileError("{0} file is not open!".format(self._path))
 
-    def _create_storer(self, group, value=None, table=False, append=False, **kwargs):
+    def _validate_format(self, fmt, kwargs):
+        """ validate / deprecate formats; return the new kwargs """
+        kwargs = kwargs.copy()
+
+        if 'format' in kwargs:
+            raise TypeError("pls specify an object format with the 'fmt' keyword")
+
+        # table arg
+        table = kwargs.pop('table',None)
+
+        if table is not None:
+            warnings.warn(fmt_deprecate_doc,FutureWarning)
+
+            if table:
+                fmt = 't'
+            else:
+                fmt = 's'
+
+        # validate
+        try:
+            kwargs['fmt'] = _FORMAT_MAP[fmt.lower()]
+        except:
+            raise TypeError("invalid HDFStore format specified [{0}]".format(fmt))
+
+        return kwargs
+
+    def _create_storer(self, group, fmt=None, value=None, append=False, **kwargs):
         """ return a suitable Storer class to operate """
 
         def error(t):
             raise TypeError(
-                "cannot properly create the storer for: [%s] [group->%s,value->%s,table->%s,append->%s,kwargs->%s]" %
-                            (t, group, type(value), table, append, kwargs))
+                "cannot properly create the storer for: [%s] [group->%s,value->%s,fmt->%s,append->%s,kwargs->%s]" %
+                            (t, group, type(value), fmt, append, kwargs))
 
         pt = _ensure_decoded(getattr(group._v_attrs, 'pandas_type', None))
         tt = _ensure_decoded(getattr(group._v_attrs, 'table_type', None))
@@ -931,7 +983,7 @@ class HDFStore(StringMixin):
                     error('_TYPE_MAP')
 
                 # we are actually a table
-                if table or append:
+                if fmt == 't':
                     pt += u('_table')
 
         # a storer node
@@ -983,7 +1035,7 @@ class HDFStore(StringMixin):
             error('_TABLE_MAP')
 
     def _write_to_group(
-        self, key, value, index=True, table=False, append=False,
+        self, key, value, fmt, index=True, append=False,
                         complib=None, encoding=None, **kwargs):
         group = self.get_node(key)
 
@@ -994,7 +1046,7 @@ class HDFStore(StringMixin):
 
         # we don't want to store a table node at all if are object is 0-len
         # as there are not dtypes
-        if getattr(value,'empty',None) and (table or append):
+        if getattr(value,'empty',None) and (fmt == 't' or append):
             return
 
         if group is None:
@@ -1014,12 +1066,12 @@ class HDFStore(StringMixin):
                     group = self._handle.createGroup(path, p)
                 path = new_path
 
-        s = self._create_storer(group, value, table=table, append=append,
+        s = self._create_storer(group, fmt, value, append=append,
                                 encoding=encoding, **kwargs)
         if append:
             # raise if we are trying to append to a non-table,
             #       or a table that exists (and we are putting)
-            if not s.is_table or (s.is_table and table is None and s.is_exists):
+            if not s.is_table or (s.is_table and fmt == 's' and s.is_exists):
                 raise ValueError('Can only append to Tables')
             if not s.is_exists:
                 s.set_object_info()

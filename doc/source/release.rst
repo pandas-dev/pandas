@@ -98,6 +98,7 @@ pandas 0.13
     - removed the ``warn`` argument from ``open``. Instead a ``PossibleDataLossError`` exception will
       be raised if you try to use ``mode='w'`` with an OPEN file handle (:issue:`4367`)
     - allow a passed locations array or mask as a ``where`` condition (:issue:`4467`)
+    - the ``fmt`` keyword now replaces the ``table`` keyword; allowed values are ``s|t``
   - ``JSON``
 
     - added ``date_unit`` parameter to specify resolution of timestamps. Options
