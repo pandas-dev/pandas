@@ -13,18 +13,13 @@ import numpy as np
 
 from pandas import DataFrame, Series, Index, MultiIndex, DatetimeIndex
 from pandas.compat import(
-    StringIO, BytesIO, PY3, range, long, lrange, lmap, u, map, StringIO
+    StringIO, BytesIO, PY3, range, long, lrange, lmap, u
 )
 from pandas.io.common import urlopen, URLError
 import pandas.io.parsers as parsers
 from pandas.io.parsers import (read_csv, read_table, read_fwf,
                                TextFileReader, TextParser)
-from pandas.util.testing import (assert_equal,
-                                 assert_almost_equal,
-                                 assert_series_equal,
-                                 makeCustomDataframe as mkdf,
-                                 network,
-                                 ensure_clean)
+
 import pandas.util.testing as tm
 import pandas as pd
 
@@ -217,9 +212,9 @@ index2,b,d,f
             'C': [5, 10.]
         })
 
-        assert_equal(expected.A.dtype, 'int64')
-        assert_equal(expected.B.dtype, 'float')
-        assert_equal(expected.C.dtype, 'float')
+        tm.assert_equal(expected.A.dtype, 'int64')
+        tm.assert_equal(expected.B.dtype, 'float')
+        tm.assert_equal(expected.C.dtype, 'float')
 
         df = self.read_csv(StringIO(data), sep='|', thousands=',', decimal='.')
         tm.assert_frame_equal(df, expected)
@@ -247,7 +242,7 @@ c,3
         result = self.read_table(StringIO(data), sep=',', index_col=0,
                                  header=None, squeeze=True)
         tm.assert_isinstance(result, Series)
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_inf_parsing(self):
         data = """\
@@ -265,9 +260,9 @@ j,-inF"""
         inf = float('inf')
         expected = Series([inf, -inf] * 5)
         df = read_csv(StringIO(data), index_col=0)
-        assert_almost_equal(df['A'].values, expected.values)
+        tm.assert_almost_equal(df['A'].values, expected.values)
         df = read_csv(StringIO(data), index_col=0, na_filter=False)
-        assert_almost_equal(df['A'].values, expected.values)
+        tm.assert_almost_equal(df['A'].values, expected.values)
 
     def test_multiple_date_col(self):
         # Can use multiple date parsers
@@ -588,7 +583,7 @@ skip
 
         df = DataFrame(np.random.rand(5,2),columns=list('AB'),index=['1A','1B','1C','1D','1E'])
 
-        with ensure_clean('__passing_str_as_dtype__.csv') as path:
+        with tm.ensure_clean('__passing_str_as_dtype__.csv') as path:
             df.to_csv(path)
 
             # GH 3795
@@ -630,7 +625,7 @@ Klosterdruckerei\tKlosterdruckerei <Kempten> (1609-1805)\tHochfurstliche Buchhan
 
     def test_non_string_na_values(self):
         # GH3611, na_values that are not a string are an issue
-        with ensure_clean('__non_string_na_values__.csv') as path:
+        with tm.ensure_clean('__non_string_na_values__.csv') as path:
             df = DataFrame({'A' : [-999, 2, 3], 'B' : [1.2, -999, 4.5]})
             df.to_csv(path, sep=' ', index=False)
             result1 = read_csv(path, sep= ' ', header=0, na_values=['-999.0','-999'])
@@ -681,15 +676,15 @@ ignore,this,row
                     [7, 8, nan]]
 
         df = self.read_csv(StringIO(data), na_values=['baz'], skiprows=[1])
-        assert_almost_equal(df.values, expected)
+        tm.assert_almost_equal(df.values, expected)
 
         df2 = self.read_table(StringIO(data), sep=',', na_values=['baz'],
                               skiprows=[1])
-        assert_almost_equal(df2.values, expected)
+        tm.assert_almost_equal(df2.values, expected)
 
         df3 = self.read_table(StringIO(data), sep=',', na_values='baz',
                               skiprows=[1])
-        assert_almost_equal(df3.values, expected)
+        tm.assert_almost_equal(df3.values, expected)
 
     def test_nat_parse(self):
 
@@ -699,7 +694,7 @@ ignore,this,row
                     'B' : pd.Timestamp('20010101') }))
         df.iloc[3:6,:] = np.nan
 
-        with ensure_clean('__nat_parse_.csv') as path:
+        with tm.ensure_clean('__nat_parse_.csv') as path:
             df.to_csv(path)
             result = read_csv(path,index_col=0,parse_dates=['B'])
             tm.assert_frame_equal(result,df)
@@ -750,7 +745,7 @@ NaN,nan
                     [nan, nan]]
 
         df = self.read_csv(StringIO(data))
-        assert_almost_equal(df.values, expected)
+        tm.assert_almost_equal(df.values, expected)
 
     def test_unnamed_columns(self):
         data = """A,B,C,,
@@ -762,7 +757,7 @@ NaN,nan
                     [6, 7, 8, 9, 10],
                     [11, 12, 13, 14, 15]]
         df = self.read_table(StringIO(data), sep=',')
-        assert_almost_equal(df.values, expected)
+        tm.assert_almost_equal(df.values, expected)
         self.assert_(np.array_equal(df.columns,
                                     ['A', 'B', 'C', 'Unnamed: 3',
                                      'Unnamed: 4']))
@@ -913,8 +908,8 @@ c,4,5
         expected = [[1, 2, 3, 4, 5.],
                     [6, 7, 8, 9, 10],
                     [11, 12, 13, 14, 15]]
-        assert_almost_equal(df.values, expected)
-        assert_almost_equal(df.values, df2.values)
+        tm.assert_almost_equal(df.values, expected)
+        tm.assert_almost_equal(df.values, df2.values)
 
         self.assert_(np.array_equal(df_pref.columns,
                                     ['X0', 'X1', 'X2', 'X3', 'X4']))
@@ -1177,7 +1172,7 @@ baz,12,13,14,15
         tm.assert_frame_equal(df, expected)
 
     def test_header_multi_index(self):
-        expected = mkdf(5,3,r_idx_nlevels=2,c_idx_nlevels=4)
+        expected = tm.makeCustomDataframe(5,3,r_idx_nlevels=2,c_idx_nlevels=4)
 
         data = """\
 C0,,C_l0_g0,C_l0_g1,C_l0_g2
@@ -1477,7 +1472,7 @@ a,b,c,d
         tm.assert_frame_equal(df, xp)
 
     @slow
-    @network
+    @tm.network
     def test_url(self):
         try:
             # HTTP(S)
@@ -1492,7 +1487,7 @@ a,b,c,d
 
         except URLError:
             try:
-                with closing(urlopen('http://www.google.com')) as resp:
+                with tm.closing(urlopen('http://www.google.com')) as resp:
                     pass
             except URLError:
                 raise nose.SkipTest
@@ -1597,11 +1592,11 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
         expected = [[1., 2., 4.],
                     [5., np.nan, 10.]]
         df = self.read_csv(StringIO(data), comment='#')
-        assert_almost_equal(df.values, expected)
+        tm.assert_almost_equal(df.values, expected)
 
         df = self.read_table(StringIO(data), sep=',', comment='#',
                              na_values=['NaN'])
-        assert_almost_equal(df.values, expected)
+        tm.assert_almost_equal(df.values, expected)
 
     def test_bool_na_values(self):
         data = """A,B,C
@@ -1659,7 +1654,7 @@ A,B,C
 
         path = '__%s__.csv' % tm.rands(10)
 
-        with ensure_clean(path) as path:
+        with tm.ensure_clean(path) as path:
             for sep, dat in [('\t', data), (',', data2)]:
                 for enc in ['utf-16', 'utf-16le', 'utf-16be']:
                     bytes = dat.encode(enc)
@@ -1924,7 +1919,7 @@ c   1   2   3   4
                     [10, 13, 10]]
         df = read_fwf(StringIO(data), colspecs=[(0, 3), (3, 11), (12, 16)],
                       thousands=',')
-        assert_almost_equal(df.values, expected)
+        tm.assert_almost_equal(df.values, expected)
 
     def test_1000_sep_with_decimal(self):
         data = """A|B|C
@@ -1953,7 +1948,7 @@ c   1   2   3   4
                     [5, np.nan, 10.]]
         df = read_fwf(StringIO(data), colspecs=[(0, 3), (4, 9), (9, 25)],
                       comment='#')
-        assert_almost_equal(df.values, expected)
+        tm.assert_almost_equal(df.values, expected)
 
     def test_fwf(self):
         data_expected = """\
@@ -2075,7 +2070,7 @@ eight,1,2,3"""
         if PY3:
             raise nose.SkipTest
 
-        with ensure_clean() as path:
+        with tm.ensure_clean() as path:
             with open(path, 'wb') as f:
                 f.write('AAA\nBBB\nCCC\nDDD\nEEE\nFFF\nGGG')
 
@@ -2294,7 +2289,7 @@ a,b,c
         data = open(self.csv1, 'rb').read()
         expected = self.read_csv(self.csv1)
 
-        with ensure_clean() as path:
+        with tm.ensure_clean() as path:
             tmp = gzip.GzipFile(path, mode='wb')
             tmp.write(data)
             tmp.close()
@@ -2305,7 +2300,7 @@ a,b,c
             result = self.read_csv(open(path, 'rb'), compression='gzip')
             tm.assert_frame_equal(result, expected)
 
-        with ensure_clean() as path:
+        with tm.ensure_clean() as path:
             tmp = bz2.BZ2File(path, mode='wb')
             tmp.write(data)
             tmp.close()
@@ -2330,7 +2325,7 @@ a,b,c
         data = data.replace(b',', b'::')
         expected = self.read_csv(self.csv1)
 
-        with ensure_clean() as path:
+        with tm.ensure_clean() as path:
             tmp = gzip.GzipFile(path, mode='wb')
             tmp.write(data)
             tmp.close()
@@ -2338,7 +2333,7 @@ a,b,c
             result = self.read_csv(path, sep='::', compression='gzip')
             tm.assert_frame_equal(result, expected)
 
-        with ensure_clean() as path:
+        with tm.ensure_clean() as path:
             tmp = bz2.BZ2File(path, mode='wb')
             tmp.write(data)
             tmp.close()
@@ -2552,7 +2547,7 @@ class TestParseSQL(unittest.TestCase):
 
 def assert_same_values_and_dtype(res, exp):
     assert(res.dtype == exp.dtype)
-    assert_almost_equal(res, exp)
+    tm.assert_almost_equal(res, exp)
 
 
 if __name__ == '__main__':
