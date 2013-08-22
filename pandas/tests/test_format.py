@@ -387,7 +387,7 @@ class TestDataFrameFormatting(unittest.TestCase):
                      'co>l2':{a: "<type 'str'>",
                               b: "<type 'str'>"}}
         rs = pd.DataFrame(test_dict).to_html()
-        xp = """<table border="1" class="dataframe">
+        xp = """<table class="dataframe">
   <thead>
     <tr style="text-align: right;">
       <th></th>
@@ -419,7 +419,7 @@ class TestDataFrameFormatting(unittest.TestCase):
                      'co>l2': {a: "<b>bold</b>",
                                b: "<b>bold</b>"}}
         rs = pd.DataFrame(test_dict).to_html(escape=False)
-        xp = """<table border="1" class="dataframe">
+        xp = """<table class="dataframe">
   <thead>
     <tr style="text-align: right;">
       <th></th>
@@ -451,7 +451,7 @@ class TestDataFrameFormatting(unittest.TestCase):
 
             result = df.to_html()
             expected = """\
-<table border="1" class="dataframe">
+<table class="dataframe">
   <thead>
     <tr style="text-align: right;">
       <th></th>
@@ -500,7 +500,7 @@ class TestDataFrameFormatting(unittest.TestCase):
 
             result = df.to_html()
             expected = """\
-<table border="1" class="dataframe">
+<table class="dataframe">
   <thead>
     <tr>
       <th></th>
@@ -557,7 +557,7 @@ class TestDataFrameFormatting(unittest.TestCase):
         df = DataFrame([[0, 1], [2, 3], [4, 5], [6, 7]], index=index)
 
         result = df.to_html()
-        expected = """<table border="1" class="dataframe">
+        expected = """<table class="dataframe">
   <thead>
     <tr style="text-align: right;">
       <th></th>
@@ -604,7 +604,7 @@ class TestDataFrameFormatting(unittest.TestCase):
 
         result = df.to_html()
         expected = """\
-<table border="1" class="dataframe">
+<table class="dataframe">
   <thead>
     <tr>
       <th></th>
@@ -659,7 +659,7 @@ class TestDataFrameFormatting(unittest.TestCase):
         f = lambda x: 'abcd'[x]
         result = df.to_html(formatters={'__index__': f})
         expected = """\
-<table border="1" class="dataframe">
+<table class="dataframe">
   <thead>
     <tr style="text-align: right;">
       <th></th>
@@ -1255,7 +1255,7 @@ c  10  11  12  13  14\
                                                 names=['CL0', 'CL1'])
         df = pandas.DataFrame([list('abcd'), list('efgh')], columns=columns)
         result = df.to_html(justify='left')
-        expected = ('<table border="1" class="dataframe">\n'
+        expected = ('<table class="dataframe">\n'
                     '  <thead>\n'
                     '    <tr>\n'
                     '      <th>CL0</th>\n'
@@ -1295,7 +1295,7 @@ c  10  11  12  13  14\
         df = pandas.DataFrame([list('abcd'), list('efgh')], columns=columns)
 
         result = df.to_html(justify='right')
-        expected = ('<table border="1" class="dataframe">\n'
+        expected = ('<table class="dataframe">\n'
                     '  <thead>\n'
                     '    <tr>\n'
                     '      <th></th>\n'
@@ -1338,7 +1338,7 @@ c  10  11  12  13  14\
                                'C': [223442, 0, 1]},
                               columns=['A', 'B', 'C'])
         result = df.to_html(justify='left')
-        expected = ('<table border="1" class="dataframe">\n'
+        expected = ('<table class="dataframe">\n'
                     '  <thead>\n'
                     '    <tr style="text-align: left;">\n'
                     '      <th></th>\n'
@@ -1372,7 +1372,7 @@ c  10  11  12  13  14\
         self.assertEqual(result, expected)
 
         result = df.to_html(justify='right')
-        expected = ('<table border="1" class="dataframe">\n'
+        expected = ('<table class="dataframe">\n'
                     '  <thead>\n'
                     '    <tr style="text-align: right;">\n'
                     '      <th></th>\n'
@@ -1452,7 +1452,7 @@ c  10  11  12  13  14\
         result = df.to_html(classes="sortable draggable")
         expected = dedent("""
 
-            <table border="1" class="dataframe sortable draggable">
+            <table class="dataframe sortable draggable">
               <tbody>
                 <tr>
                   <td>Index([], dtype=object)</td>

@@ -571,7 +571,7 @@ class HTMLFormatter(TableFormatter):
                                       'not %s') % type(self.classes))
             _classes.extend(self.classes)
 
-        self.write('<table border="1" class="%s">' % ' '.join(_classes),
+        self.write('<table class="%s">' % ' '.join(_classes),
                    indent)
 
         if len(frame.columns) == 0 or len(frame.index) == 0:
