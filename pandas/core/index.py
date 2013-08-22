@@ -905,12 +905,12 @@ class Index(FrozenNDArray):
                                     ' valued Index objects')
 
         if method == 'pad':
-            if not self.is_monotonic:
-                raise AssertionError('Must be monotonic for forward fill')
+            if not self.is_monotonic or not target.is_monotonic:
+                raise ValueError('Must be monotonic for forward fill')
             indexer = self._engine.get_pad_indexer(target.values, limit)
         elif method == 'backfill':
-            if not self.is_monotonic:
-                raise AssertionError('Must be monotonic for backward fill')
+            if not self.is_monotonic or not target.is_monotonic:
+                raise ValueError('Must be monotonic for backward fill')
             indexer = self._engine.get_backfill_indexer(target.values, limit)
         elif method is None:
             indexer = self._engine.get_indexer(target.values)

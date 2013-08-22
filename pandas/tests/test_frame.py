@@ -1641,6 +1641,29 @@ class CheckIndexing(object):
         except Exception as e:
             self.assertNotEqual(type(e), UnboundLocalError)
 
+    def test_reverse_reindex_ffill_raises(self):
+        dr = pd.date_range('2013-08-01', periods=6, freq='B')
+        data = np.random.randn(6,1)
+        df = pd.DataFrame(data, index=dr, columns=list('A'))
+        df['A'][3] = np.nan
+        df_rev = pd.DataFrame(data, index=dr[::-1], columns=list('A'))
+        # Reverse index is not 'monotonic'
+        self.assertRaises(ValueError, df_rev.reindex, df.index, method='pad')
+        self.assertRaises(ValueError, df_rev.reindex, df.index, method='ffill')
+        self.assertRaises(ValueError, df_rev.reindex, df.index, method='bfill')
+        
+    def test_reversed_reindex_ffill_raises(self):
+        dr = pd.date_range('2013-08-01', periods=6, freq='B')
+        data = np.random.randn(6,1)
+        df = pd.DataFrame(data, index=dr, columns=list('A'))
+        df['A'][3] = np.nan
+        df = pd.DataFrame(data, index=dr, columns=list('A'))
+        # Reversed reindex is not 'monotonic'
+        self.assertRaises(ValueError, df.reindex, dr[::-1], method='pad')
+        self.assertRaises(ValueError, df.reindex, dr[::-1], method='ffill')
+        self.assertRaises(ValueError, df.reindex, dr[::-1], method='bfill')
+
+
 _seriesd = tm.getSeriesData()
 _tsd = tm.getTimeSeriesData()
 
