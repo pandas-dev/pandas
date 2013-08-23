@@ -20,22 +20,29 @@ from pandas.core.series import Series
 from pandas.core.categorical import Categorical
 import datetime
 from pandas import compat
-from pandas import compat
-from pandas.compat import StringIO, long, lrange, lmap, lzip
+from pandas.compat import long, lrange, lmap, lzip
 from pandas import isnull
-from pandas.io.parsers import _parser_params, Appender
-from pandas.io.common import get_filepath_or_buffer, maybe_read_encoded_stream
+from pandas.io.common import get_filepath_or_buffer
 
 
-_read_stata_doc = """
-Read Stata file into DataFrame
-
-%s
-""" % (_parser_params)
-
-
-@Appender(_read_stata_doc)
 def read_stata(filepath_or_buffer, convert_dates=True, convert_categoricals=True, encoding=None, index=None):
+    """
+    Read Stata file into DataFrame
+
+    Parameters
+    ----------
+    filepath_or_buffer : string or file-like object
+        Path to .dta file or object implementing a binary read() functions
+    convert_dates : boolean, defaults to True
+        Convert date variables to DataFrame time values
+    convert_categoricals : boolean, defaults to True
+        Read value labels and convert columns to Categorical/Factor variables
+    encoding : string, None or encoding
+        Encoding used to parse the files. Note that Stata doesn't
+        support unicode. None defaults to cp1252.
+    index : identifier of index column
+        identifier of column that should be used as index of the DataFrame
+    """
     reader = StataReader(filepath_or_buffer, encoding)
 
     return reader.data(convert_dates, convert_categoricals, index)
@@ -206,7 +213,7 @@ class StataMissingValue(StringMixin):
 class StataParser(object):
     _default_encoding = 'cp1252'
 
-    def __init__(self, encoding=None):
+    def __init__(self, encoding):
         self._encoding = encoding
 
         #type          code.
@@ -316,7 +323,7 @@ class StataReader(StataParser):
         self._data_read = False
         self._value_labels_read = False
         if isinstance(path_or_buf, str):
-            path_or_buf, encoding = get_filepath_or_buffer(path_or_buf, encoding='cp1252')
+            path_or_buf, encoding = get_filepath_or_buffer(path_or_buf, encoding=self._default_encoding)
 
         if isinstance(path_or_buf, (str, compat.text_type, bytes)):
             self.path_or_buf = open(path_or_buf, 'rb')
@@ -327,13 +334,13 @@ class StataReader(StataParser):
 
     def _read_header(self):
         first_char = self.path_or_buf.read(1)
-        if struct.unpack('c', first_char)[0] is b'<':  # format 117 or higher (XML like)
+        if struct.unpack('c', first_char)[0] == b'<':  # format 117 or higher (XML like)
             self.path_or_buf.read(27)  # stata_dta><header><release>
             self.format_version = int(self.path_or_buf.read(3))
             if self.format_version not in [117]:
                 raise ValueError("Version of given Stata file is not 104, 105, 108, 113 (Stata 8/9), 114 (Stata 10/11), 115 (Stata 12) or 117 (Stata 13)")
             self.path_or_buf.read(21)  # </release><byteorder>
-            self.byteorder = self.path_or_buf.read(3) == "LSF" and '>' or '<'
+            self.byteorder = self.path_or_buf.read(3) == "MSF" and '>' or '<'
             self.path_or_buf.read(15)  # </byteorder><K>
             self.nvar = struct.unpack(self.byteorder + 'H', self.path_or_buf.read(2))[0]
             self.path_or_buf.read(7)  # </K><N>
@@ -566,7 +573,7 @@ class StataReader(StataParser):
 
         while True:
             if self.format_version >= 117:
-                if self._decode_bytes(self.path_or_buf.read(5), self._encoding) == '</val':  # <lbl>
+                if self.path_or_buf.read(5) == b'</val':  # <lbl>
                     break  # end o f variable lable table
 
             slength = self.path_or_buf.read(4)
@@ -596,7 +603,7 @@ class StataReader(StataParser):
         self.path_or_buf.seek(self.seek_strls)
         self.GSO = dict()
         while True:
-            if self.path_or_buf.read(3) is not 'GSO':
+            if self.path_or_buf.read(3) != b'GSO':
                 break
 
             v_o = struct.unpack(self.byteorder + 'L', self.path_or_buf.read(8))[0]
