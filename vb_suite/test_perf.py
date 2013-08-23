@@ -70,7 +70,7 @@ except Exception:
 class RevParseAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         import subprocess
-        cmd = 'git rev-parse {0}'.format(values)
+        cmd = 'git rev-parse --short {0}'.format(values)
         rev_parse = subprocess.check_output(cmd, shell=True)
         setattr(namespace, self.dest, rev_parse.strip())
 
@@ -454,11 +454,6 @@ def print_report(df,h_head=None,h_msg="",h_baseline=None,b_msg=""):
 
 def main():
     from suite import benchmarks
-    # GitRepo wants exactly 7 character hash?
-    if args.base_commit:
-        args.base_commit = args.base_commit[:7]
-    if args.target_commit:
-        args.target_commit = args.target_commit[:7]
 
     if not args.log_file:
         args.log_file = os.path.abspath(
