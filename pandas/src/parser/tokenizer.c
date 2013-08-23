@@ -823,7 +823,6 @@ int tokenize_delimited(parser_t *self, size_t line_limit)
             }
             else if (c == self->delimiter) {
                 // End of field. End of line not reached yet
-
                 END_FIELD();
                 self->state = START_FIELD;
             }
@@ -866,7 +865,7 @@ int tokenize_delimited(parser_t *self, size_t line_limit)
             } else {
                 /* \r line terminator */
 
-                /* UGH. we don't actually want to consume the token. fix this later */
+                /*FIXME UGH. we don't actually want to consume the token. */
                 self->stream_len = slen;
                 if (end_line(self) < 0) {
                     goto parsingerror;
@@ -875,7 +874,7 @@ int tokenize_delimited(parser_t *self, size_t line_limit)
                 slen = self->stream_len;
                 self->state = START_RECORD;
 
-                /* HACK, let's try this one again */
+                /*FIXME let's try this one again */
                 --i; buf--;
                 if (line_limit > 0 && self->lines == start_lines + line_limit) {
                     goto linelimit;

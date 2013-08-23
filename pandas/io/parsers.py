@@ -991,7 +991,6 @@ class CParserWrapper(ParserBase):
                 self._name_processed = True
                 (index_names, self.names,
                  self.index_col) = _clean_index_names(self.names, self.index_col)
-
                 if self.index_names is None:
                     self.index_names = index_names
 
@@ -1100,7 +1099,6 @@ class CParserWrapper(ParserBase):
         if self._reader.leading_cols == 0 and self.index_col is not None:
             (idx_names, names,
              self.index_col) = _clean_index_names(names, self.index_col)
-
         return names, idx_names
 
     def _maybe_parse_dates(self, values, index, try_parse_dates=True):
@@ -1282,9 +1280,8 @@ class PythonParser(ParserBase):
 
             sniff_sep = True
 
-            if sep is not None:
+            if (sep is not None) and (dia.quotechar is not None):
                 sniff_sep = False
-                dia.delimiter = sep
             # attempt to sniff the delimiter
             if sniff_sep:
                 line = f.readline()
@@ -1292,11 +1289,21 @@ class PythonParser(ParserBase):
                     self.pos += 1
                     line = f.readline()
 
-                line = self._check_comments([line])[0]
+                line = self._check_comments([[line]])
+
+                while not line:
+                    self.pos += 1
+                    line = f.readline()
+                    line = self._check_comments([[line]])
+
+                line = line[0][0]
 
                 self.pos += 1
                 sniffed = csv.Sniffer().sniff(line)
-                dia.delimiter = sniffed.delimiter
+                if not dia.delimiter:
+                    dia.delimiter = sniffed.delimiter
+                if not dia.quotechar:
+                    dia.quotechar = sniffed.quotechar
                 if self.encoding is not None:
                     self.buf.extend(list(
                         com.UnicodeReader(StringIO(line),
@@ -1466,14 +1473,26 @@ class PythonParser(ParserBase):
                 line = self.data[self.pos]
             except IndexError:
                 raise StopIteration
+
+            line = self._check_comments([line])
+
+            while not line:
+                self.pos += 1
+                try:
+                    line = self.data[self.pos]
+                except IndexError:
+                    raise StopIteration
+                line = self._check_comments([line])
+
+            line = line[0]
         else:
             while self.pos in self.skiprows:
                 next(self.data)
                 self.pos += 1
 
             line = next(self.data)
+            line = self._check_comments([line])[0]
 
-        line = self._check_comments([line])[0]
         line = self._check_thousands([line])[0]
 
         self.pos += 1
@@ -1496,7 +1515,10 @@ class PythonParser(ParserBase):
                     if len(x) > 0:
                         rl.append(x)
                     break
-            ret.append(rl)
+            if rl:
+                ret.append(rl)
+        if not ret:
+            ret = [[]];
         return ret
 
     def _check_thousands(self, lines):
@@ -1524,7 +1546,7 @@ class PythonParser(ParserBase):
     def _get_index_name(self, columns):
         orig_names = list(columns)
         columns = list(columns)
-
+        
         try:
             line = self._next_line()
         except StopIteration:
@@ -1539,7 +1561,7 @@ class PythonParser(ParserBase):
 
         # implicitly index_col=0 b/c 1 fewer column names
         implicit_first_cols = 0
-        if line is not None:
+        if line and (line is not None):
             # leave it 0, #2442
             if self.index_col is not False:
                 implicit_first_cols = len(line) - len(columns)
