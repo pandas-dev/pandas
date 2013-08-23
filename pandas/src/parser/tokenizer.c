@@ -1897,10 +1897,7 @@ static double xstrtod(const char *str, char **endptr, char decimal,
     p++;
     num_digits++;
 
-    if (tsep != '\0' && *p == tsep)
-    {
-      ++p;
-    }
+    p += (tsep != '\0' & *p == tsep);
   }
 
   // Process decimal part
