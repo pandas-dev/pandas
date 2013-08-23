@@ -950,6 +950,11 @@ class HDFStore(StringMixin):
             self._handle.removeNode(group, recursive=True)
             group = None
 
+        # we don't want to store a table node at all if are object is 0-len
+        # as there are not dtypes
+        if getattr(value,'empty',None) and (table or append):
+            return
+
         if group is None:
             paths = key.split('/')
 
@@ -982,6 +987,7 @@ class HDFStore(StringMixin):
         if not s.is_table and complib:
             raise ValueError('Compression not supported on non-table')
 
+        # write the object
         s.write(obj = value, append=append, complib=complib, **kwargs)
         if s.is_table and index:
             s.create_index(columns = index)

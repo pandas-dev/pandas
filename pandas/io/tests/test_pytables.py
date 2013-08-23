@@ -17,8 +17,10 @@ from pandas.io.pytables import (HDFStore, get_store, Term, read_hdf,
                                 AttributeConflictWarning, DuplicateWarning,
                                 PossibleDataLossError, ClosedFileError)
 import pandas.util.testing as tm
-from pandas.tests.test_series import assert_series_equal
-from pandas.tests.test_frame import assert_frame_equal
+from pandas.util.testing import (assert_panel4d_equal,
+                                 assert_panel_equal,
+                                 assert_frame_equal,
+                                 assert_series_equal)
 from pandas import concat, Timestamp
 from pandas import compat
 
@@ -134,7 +136,7 @@ class TestHDFStore(unittest.TestCase):
             assert_frame_equal(o, roundtrip('frame',o))
 
             o = tm.makePanel()
-            tm.assert_panel_equal(o, roundtrip('panel',o))
+            assert_panel_equal(o, roundtrip('panel',o))
 
             # table
             df = DataFrame(dict(A=lrange(5), B=lrange(5)))
@@ -521,14 +523,14 @@ class TestHDFStore(unittest.TestCase):
             _maybe_remove(store, 'wp1')
             store.append('wp1', wp.ix[:, :10, :])
             store.append('wp1', wp.ix[:, 10:, :])
-            tm.assert_panel_equal(store['wp1'], wp)
+            assert_panel_equal(store['wp1'], wp)
 
             # ndim
             p4d = tm.makePanel4D()
             _maybe_remove(store, 'p4d')
             store.append('p4d', p4d.ix[:, :, :10, :])
             store.append('p4d', p4d.ix[:, :, 10:, :])
-            tm.assert_panel4d_equal(store['p4d'], p4d)
+            assert_panel4d_equal(store['p4d'], p4d)
 
             # test using axis labels
             _maybe_remove(store, 'p4d')
@@ -536,7 +538,7 @@ class TestHDFStore(unittest.TestCase):
                     'items', 'major_axis', 'minor_axis'])
             store.append('p4d', p4d.ix[:, :, 10:, :], axes=[
                     'items', 'major_axis', 'minor_axis'])
-            tm.assert_panel4d_equal(store['p4d'], p4d)
+            assert_panel4d_equal(store['p4d'], p4d)
 
             # test using differnt number of items on each axis
             p4d2 = p4d.copy()
@@ -545,7 +547,7 @@ class TestHDFStore(unittest.TestCase):
             _maybe_remove(store, 'p4d2')
             store.append(
                 'p4d2', p4d2, axes=['items', 'major_axis', 'minor_axis'])
-            tm.assert_panel4d_equal(store['p4d2'], p4d2)
+            assert_panel4d_equal(store['p4d2'], p4d2)
 
             # test using differt order of items on the non-index axes
             _maybe_remove(store, 'wp1')
@@ -553,7 +555,7 @@ class TestHDFStore(unittest.TestCase):
             store.append('wp1', wp_append1)
             wp_append2 = wp.ix[:, 10:, :].reindex(items=wp.items[::-1])
             store.append('wp1', wp_append2)
-            tm.assert_panel_equal(store['wp1'], wp)
+            assert_panel_equal(store['wp1'], wp)
 
             # dtype issues - mizxed type in a single object column
             df = DataFrame(data=[[1, 2], [0, 1], [1, 2], [0, 0]])
@@ -757,7 +759,7 @@ class TestHDFStore(unittest.TestCase):
             _maybe_remove(store, 'p4d')
             store.append('p4d', p4d.ix[:, :, :10, :], axes=indexers)
             store.append('p4d', p4d.ix[:, :, 10:, :])
-            tm.assert_panel4d_equal(store.select('p4d'), p4d)
+            assert_panel4d_equal(store.select('p4d'), p4d)
             check_indexers('p4d', indexers)
 
             # same as above, but try to append with differnt axes
@@ -765,7 +767,7 @@ class TestHDFStore(unittest.TestCase):
             store.append('p4d', p4d.ix[:, :, :10, :], axes=indexers)
             store.append('p4d', p4d.ix[:, :, 10:, :], axes=[
                     'labels', 'items', 'major_axis'])
-            tm.assert_panel4d_equal(store.select('p4d'), p4d)
+            assert_panel4d_equal(store.select('p4d'), p4d)
             check_indexers('p4d', indexers)
 
             # pass incorrect number of axes
@@ -778,7 +780,7 @@ class TestHDFStore(unittest.TestCase):
             _maybe_remove(store, 'p4d')
             store.append('p4d', p4d.ix[:, :, :10, :], axes=indexers)
             store.append('p4d', p4d.ix[:, :, 10:, :])
-            tm.assert_panel4d_equal(store['p4d'], p4d)
+            assert_panel4d_equal(store['p4d'], p4d)
             check_indexers('p4d', indexers)
 
             # different than default indexables #2
@@ -786,26 +788,26 @@ class TestHDFStore(unittest.TestCase):
             _maybe_remove(store, 'p4d')
             store.append('p4d', p4d.ix[:, :, :10, :], axes=indexers)
             store.append('p4d', p4d.ix[:, :, 10:, :])
-            tm.assert_panel4d_equal(store['p4d'], p4d)
+            assert_panel4d_equal(store['p4d'], p4d)
             check_indexers('p4d', indexers)
 
             # partial selection
             result = store.select('p4d', ['labels=l1'])
             expected = p4d.reindex(labels=['l1'])
-            tm.assert_panel4d_equal(result, expected)
+            assert_panel4d_equal(result, expected)
 
             # partial selection2
             result = store.select('p4d', [Term(
                         'labels=l1'), Term('items=ItemA'), Term('minor_axis=B')])
             expected = p4d.reindex(
                 labels=['l1'], items=['ItemA'], minor_axis=['B'])
-            tm.assert_panel4d_equal(result, expected)
+            assert_panel4d_equal(result, expected)
 
             # non-existant partial selection
             result = store.select('p4d', [Term(
                         'labels=l1'), Term('items=Item1'), Term('minor_axis=B')])
             expected = p4d.reindex(labels=['l1'], items=[], minor_axis=['B'])
-            tm.assert_panel4d_equal(result, expected)
+            assert_panel4d_equal(result, expected)
 
     def test_append_with_strings(self):
 
@@ -821,7 +823,7 @@ class TestHDFStore(unittest.TestCase):
             store.append('s1', wp2)
             expected = concat([wp, wp2], axis=2)
             expected = expected.reindex(minor_axis=sorted(expected.minor_axis))
-            tm.assert_panel_equal(store['s1'], expected)
+            assert_panel_equal(store['s1'], expected)
             check_col('s1', 'minor_axis', 20)
 
             # test dict format
@@ -829,7 +831,7 @@ class TestHDFStore(unittest.TestCase):
             store.append('s2', wp2)
             expected = concat([wp, wp2], axis=2)
             expected = expected.reindex(minor_axis=sorted(expected.minor_axis))
-            tm.assert_panel_equal(store['s2'], expected)
+            assert_panel_equal(store['s2'], expected)
             check_col('s2', 'minor_axis', 20)
 
             # apply the wrong field (similar to #1)
@@ -1305,10 +1307,46 @@ class TestHDFStore(unittest.TestCase):
         check(df, tm.assert_frame_equal)
 
         p = tm.makePanel()
-        check(p, tm.assert_panel_equal)
+        check(p, assert_panel_equal)
 
         p4d = tm.makePanel4D()
-        check(p4d, tm.assert_panel4d_equal)
+        check(p4d, assert_panel4d_equal)
+
+        # empty frame, GH4273
+        with ensure_clean(self.path) as store:
+
+            # 0 len
+            df_empty = DataFrame(columns=list('ABC'))
+            store.append('df',df_empty)
+            self.assertRaises(KeyError,store.select, 'df')
+
+            # repeated append of 0/non-zero frames
+            df = DataFrame(np.random.rand(10,3),columns=list('ABC'))
+            store.append('df',df)
+            assert_frame_equal(store.select('df'),df)
+            store.append('df',df_empty)
+            assert_frame_equal(store.select('df'),df)
+
+            # store
+            df = DataFrame(columns=list('ABC'))
+            store.put('df2',df)
+            assert_frame_equal(store.select('df2'),df)
+
+            # 0 len
+            p_empty = Panel(items=list('ABC'))
+            store.append('p',p_empty)
+            self.assertRaises(KeyError,store.select, 'p')
+
+            # repeated append of 0/non-zero frames
+            p = Panel(np.random.randn(3,4,5),items=list('ABC'))
+            store.append('p',p)
+            assert_panel_equal(store.select('p'),p)
+            store.append('p',p_empty)
+            assert_panel_equal(store.select('p'),p)
+
+            # store
+            store.put('p2',p_empty)
+            assert_panel_equal(store.select('p2'),p_empty)
 
     def test_append_raise(self):
 
@@ -1433,7 +1471,7 @@ class TestHDFStore(unittest.TestCase):
 
         with ensure_clean(self.path) as store:
             store.append('p1_mixed', wp)
-            tm.assert_panel_equal(store.select('p1_mixed'), wp)
+            assert_panel_equal(store.select('p1_mixed'), wp)
 
         # ndim
         wp = tm.makePanel4D()
@@ -1447,7 +1485,7 @@ class TestHDFStore(unittest.TestCase):
 
         with ensure_clean(self.path) as store:
             store.append('p4d_mixed', wp)
-            tm.assert_panel4d_equal(store.select('p4d_mixed'), wp)
+            assert_panel4d_equal(store.select('p4d_mixed'), wp)
 
     def test_unimplemented_dtypes_table_columns(self):
 
@@ -1595,7 +1633,7 @@ class TestHDFStore(unittest.TestCase):
             store.remove('wp', [('minor_axis', ['A', 'D'])])
             rs = store.select('wp')
             expected = wp.reindex(minor_axis=['B', 'C'])
-            tm.assert_panel_equal(rs, expected)
+            assert_panel_equal(rs, expected)
 
             # empty where
             _maybe_remove(store, 'wp')
@@ -1630,7 +1668,7 @@ class TestHDFStore(unittest.TestCase):
             assert(n == 36)
             result = store.select('wp3')
             expected = wp.reindex(major_axis=wp.major_axis - date4)
-            tm.assert_panel_equal(result, expected)
+            assert_panel_equal(result, expected)
 
             # upper half
             store.put('wp', wp, table=True)
@@ -1647,7 +1685,7 @@ class TestHDFStore(unittest.TestCase):
 
             result = store['wp']
             expected = wp.truncate(after=date).reindex(minor=['B', 'C'])
-            tm.assert_panel_equal(result, expected)
+            assert_panel_equal(result, expected)
 
             # individual row elements
             store.put('wp2', wp, table=True)
@@ -1657,7 +1695,7 @@ class TestHDFStore(unittest.TestCase):
             store.remove('wp2', where=[crit1])
             result = store.select('wp2')
             expected = wp.reindex(major_axis=wp.major_axis - date1)
-            tm.assert_panel_equal(result, expected)
+            assert_panel_equal(result, expected)
 
             date2 = wp.major_axis[5]
             crit2 = Term('major_axis', date2)
@@ -1665,7 +1703,7 @@ class TestHDFStore(unittest.TestCase):
             result = store['wp2']
             expected = wp.reindex(
                 major_axis=wp.major_axis - date1 - Index([date2]))
-            tm.assert_panel_equal(result, expected)
+            assert_panel_equal(result, expected)
 
             date3 = [wp.major_axis[7], wp.major_axis[9]]
             crit3 = Term('major_axis', date3)
@@ -1673,14 +1711,14 @@ class TestHDFStore(unittest.TestCase):
             result = store['wp2']
             expected = wp.reindex(
                 major_axis=wp.major_axis - date1 - Index([date2]) - Index(date3))
-            tm.assert_panel_equal(result, expected)
+            assert_panel_equal(result, expected)
 
             # corners
             store.put('wp4', wp, table=True)
             n = store.remove(
                 'wp4', where=[Term('major_axis', '>', wp.major_axis[-1])])
             result = store.select('wp4')
-            tm.assert_panel_equal(result, wp)
+            assert_panel_equal(result, wp)
 
     def test_terms(self):
 
@@ -1710,7 +1748,7 @@ class TestHDFStore(unittest.TestCase):
             result = store.select('wp', [Term(
                         'major_axis<20000108'), Term('minor_axis', '=', ['A', 'B'])])
             expected = wp.truncate(after='20000108').reindex(minor=['A', 'B'])
-            tm.assert_panel_equal(result, expected)
+            assert_panel_equal(result, expected)
 
             # p4d
             result = store.select('p4d', [Term('major_axis<20000108'),
@@ -1718,7 +1756,7 @@ class TestHDFStore(unittest.TestCase):
                                           Term('items', '=', ['ItemA', 'ItemB'])])
             expected = p4d.truncate(after='20000108').reindex(
                 minor=['A', 'B'], items=['ItemA', 'ItemB'])
-            tm.assert_panel4d_equal(result, expected)
+            assert_panel4d_equal(result, expected)
 
             # valid terms
             terms = [
@@ -1805,15 +1843,15 @@ class TestHDFStore(unittest.TestCase):
         p = Panel(dict((i, tm.makeDataFrame().ix[:2, :2]) for i in items))
         sp = p.to_sparse()
 
-        self._check_double_roundtrip(sp, tm.assert_panel_equal,
+        self._check_double_roundtrip(sp, assert_panel_equal,
                                      check_panel_type=True)
 
         sp2 = p.to_sparse(kind='integer')
-        self._check_double_roundtrip(sp2, tm.assert_panel_equal,
+        self._check_double_roundtrip(sp2, assert_panel_equal,
                                      check_panel_type=True)
 
         sp3 = p.to_sparse(fill_value=0)
-        self._check_double_roundtrip(sp3, tm.assert_panel_equal,
+        self._check_double_roundtrip(sp3, assert_panel_equal,
                                      check_panel_type=True)
 
     def test_float_index(self):
@@ -2034,12 +2072,12 @@ class TestHDFStore(unittest.TestCase):
     def test_wide(self):
 
         wp = tm.makePanel()
-        self._check_roundtrip(wp, tm.assert_panel_equal)
+        self._check_roundtrip(wp, assert_panel_equal)
 
     def test_wide_table(self):
 
         wp = tm.makePanel()
-        self._check_roundtrip_table(wp, tm.assert_panel_equal)
+        self._check_roundtrip_table(wp, assert_panel_equal)
 
     def test_wide_table_dups(self):
         wp = tm.makePanel()
@@ -2050,11 +2088,11 @@ class TestHDFStore(unittest.TestCase):
             with tm.assert_produces_warning(expected_warning=DuplicateWarning):
                 recons = store['panel']
 
-            tm.assert_panel_equal(recons, wp)
+            assert_panel_equal(recons, wp)
 
     def test_long(self):
         def _check(left, right):
-            tm.assert_panel_equal(left.to_panel(), right.to_panel())
+            assert_panel_equal(left.to_panel(), right.to_panel())
 
         wp = tm.makePanel()
         self._check_roundtrip(wp.to_frame(), _check)
@@ -2129,7 +2167,7 @@ class TestHDFStore(unittest.TestCase):
             items = ['Item%03d' % i for i in range(80)]
             result = store.select('wp', Term('items', items))
             expected = wp.reindex(items=items)
-            tm.assert_panel_equal(expected, result)
+            assert_panel_equal(expected, result)
 
             # selectin non-table with a where
             # self.assertRaises(ValueError, store.select,
@@ -2414,12 +2452,12 @@ class TestHDFStore(unittest.TestCase):
 
             result = store.select('wp', [crit1, crit2])
             expected = wp.truncate(before=date).reindex(minor=['A', 'D'])
-            tm.assert_panel_equal(result, expected)
+            assert_panel_equal(result, expected)
 
             result = store.select(
                 'wp', ['major_axis>=20000124', ('minor_axis', '=', ['A', 'B'])])
             expected = wp.truncate(before='20000124').reindex(minor=['A', 'B'])
-            tm.assert_panel_equal(result, expected)
+            assert_panel_equal(result, expected)
 
     def test_frame_select(self):
 
