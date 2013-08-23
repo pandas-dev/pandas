@@ -1,7 +1,6 @@
 from __future__ import print_function
 import nose
 import unittest
-import itertools
 
 from datetime import datetime
 from numpy import nan
@@ -336,7 +335,7 @@ class TestGroupBy(unittest.TestCase):
         assert(len(gb1) == len(gb2))
 
     def test_agg_period_index(self):
-        from pandas import period_range, PeriodIndex
+        from pandas import PeriodIndex
         prng = period_range('2012-1-1', freq='M', periods=3)
         df = DataFrame(np.random.randn(3, 2), index=prng)
         rs = df.groupby(level=0).sum()
@@ -359,7 +358,7 @@ class TestGroupBy(unittest.TestCase):
     def test_agg_ser_multi_key(self):
         ser = self.df.C
         f = lambda x: x.sum()
-        results = self.df.C.groupby([self.df.A, self.df.B]).aggregate(f)
+        results = ser.groupby([self.df.A, self.df.B]).aggregate(f)
         expected = self.df.groupby(['A', 'B']).sum()['C']
         assert_series_equal(results, expected)
 
@@ -2756,7 +2755,6 @@ def test_decons():
 
 
 if __name__ == '__main__':
-    import nose
     nose.runmodule(
         argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure', '-s'],
         exit=False)
