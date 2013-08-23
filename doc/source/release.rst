@@ -275,6 +275,8 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
     have internal setitem_with_indexer in core/indexing to use Block.setitem
   - Fixed bug where thousands operator was not handled correctly for floating point numbers
     in csv_import (:issue:`4322`)
+  - The ``as_index=False`` argument to ``groupby`` now works with apply
+    (:issue:`4648`, :issue:`3417`)
 
 pandas 0.12
 ===========
