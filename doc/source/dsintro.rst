@@ -156,6 +156,8 @@ Using the ``get`` method, a missing label will return None or specified default:
 
    s.get('f', np.nan)
 
+See also the :ref:`section on attribute access<indexing.attribute_access>`.
+
 Vectorized operations and label alignment with Series
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

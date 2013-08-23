@@ -174,6 +174,8 @@ Attribute Access
 
 .. _indexing.df_cols:
 
+.. _indexing.attribute_access:
+
 You may access an index on a ``Series``, column on a ``DataFrame``, and a item on a ``Panel`` directly
 as an attribute:
 
@@ -199,7 +201,13 @@ Setting is allowed as well
 
 .. warning::
 
-   You can use this convience access only if the index element is a valid python string, e.g. ``s.1`` is not allowed.
+   - You can use this access only if the index element is a valid python identifier, e.g. ``s.1`` is not allowed.
+     see `here for an explanation of valid identifiers
+     <http://docs.python.org/2.7/reference/lexical_analysis.html#identifiers>`__.
+
+   - The attribute will not be available if it conflicts with an existing method name, e.g. ``s.min`` is not allowed.
+
+   - The ``Series/Panel`` accesses are available starting in 0.13.0.
 
 If you are using the IPython environment, you may also use tab-completion to
 see these accessable attributes.

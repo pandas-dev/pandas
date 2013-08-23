@@ -1123,7 +1123,7 @@ is ``None``. To explicity force ``Series`` parsing, pass ``typ=series``
 - ``numpy`` : direct decoding to numpy arrays. default is False;
   Note that the JSON ordering **MUST** be the same for each term if ``numpy=True``
 - ``precise_float`` : boolean, default ``False``. Set to enable usage of higher precision (strtod) function when decoding string to double values. Default (``False``) is to use fast but less precise builtin functionality
-- ``date_unit`` : string, the timestamp unit to detect if converting dates. Default 
+- ``date_unit`` : string, the timestamp unit to detect if converting dates. Default
   None. By default the timestamp precision will be detected, if this is not desired
   then pass one of 's', 'ms', 'us' or 'ns' to force timestamp precision to
   seconds, milliseconds, microseconds or nanoseconds respectively.
@@ -1201,11 +1201,11 @@ nanoseconds
    dfju
 
    # Let Pandas detect the correct precision
-   dfju = pd.read_json(json)  
+   dfju = pd.read_json(json)
    dfju
 
    # Or specify that all timestamps are in nanoseconds
-   dfju = pd.read_json(json, date_unit='ns')  
+   dfju = pd.read_json(json, date_unit='ns')
    dfju
 
 .. ipython:: python
