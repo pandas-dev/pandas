@@ -104,6 +104,12 @@ def _last_compat(x, axis=0):
         return _last(x)
 
 
+def _possibly_reset_index(obj, as_index):
+    if not as_index:
+        obj.reset_index(drop=True, inplace=True)
+    return obj
+
+
 class GroupBy(PandasObject):
     """
     Class for grouping and aggregating relational data. See aggregate,
@@ -525,7 +531,7 @@ class GroupBy(PandasObject):
         else:
             result = concat(values, axis=self.axis)
 
-        return result
+        return _possibly_reset_index(result, self.as_index)
 
 
 @Appender(GroupBy.__doc__)
@@ -1602,6 +1608,7 @@ class SeriesGroupBy(GroupBy):
         else:
             return filtered.reindex(self.obj.index) # Fill with NaNs.
 
+
 class NDFrameGroupBy(GroupBy):
 
     def _iterate_slices(self):
@@ -1786,7 +1793,7 @@ class NDFrameGroupBy(GroupBy):
                                      grouper=self.grouper)
                 results.append(colg.aggregate(arg))
                 keys.append(col)
-            except (TypeError, DataError) :
+            except (TypeError, DataError):
                 pass
             except SpecificationError:
                 raise
@@ -1933,13 +1940,16 @@ class NDFrameGroupBy(GroupBy):
                 except ValueError:
                     #GH1738,, values is list of arrays of unequal lengths
                     # fall through to the outer else caluse
-                    return Series(values, index=key_index)
+                    s = Series(values, index=key_index)
+                    return _possibly_reset_index(s, self.as_index)
 
-                return DataFrame(stacked_values, index=index,
-                                 columns=columns).convert_objects()
 
+                df = DataFrame(stacked_values, index=index,
+                               columns=columns).convert_objects()
+                return _possibly_reset_index(df, self.as_index)
             else:
-                return Series(values, index=key_index)
+                s = Series(values, index=key_index)
+                return _possibly_reset_index(s, self.as_index)
         else:
             # Handle cases like BinGrouper
             return self._concat_objects(keys, values,
