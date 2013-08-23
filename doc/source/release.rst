@@ -152,7 +152,7 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
   There are several minor changes that affect the API.
 
   - numpy functions that do not support the array interface will now
-    return ``ndarrays`` rather than series, e.g. ``np.diff`` and ``np.ones_like``
+    return ``ndarrays`` rather than series, e.g. ``np.diff``, ``np.ones_like``, ``np.where``
   - ``Series(0.5)`` would previously return the scalar ``0.5``, this is no
     longer supported
   - ``TimeSeries`` is now an alias for ``Series``. the property ``is_time_series``

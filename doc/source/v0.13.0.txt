@@ -156,20 +156,28 @@ and behaviors. Series formerly subclassed directly from ``ndarray``. (:issue:`40
    There are two potential incompatibilities from < 0.13.0
 
    - Using certain numpy functions would previously return a ``Series`` if passed a ``Series``
-     as an argument. This seems only to affect ``np.ones_like``, ``np.empty_like``, and
-     ``np.diff``. These now return ``ndarrays``.
+     as an argument. This seems only to affect ``np.ones_like``, ``np.empty_like``,
+     ``np.diff`` and ``np.where``. These now return ``ndarrays``.
 
      .. ipython:: python
 
         s = Series([1,2,3,4])
 
-        # numpy usage
+     Numpy Usage
+
+     .. ipython:: python
+
         np.ones_like(s)
         np.diff(s)
+        np.where(s>1,s,np.nan)
 
-        # pandonic usage
+     Pandonic Usage
+
+     .. ipython:: python
+
         Series(1,index=s.index)
         s.diff()
+        s.where(s>1)
 
    - Passing a ``Series`` directly to a cython function expecting an ``ndarray`` type will no
      long work directly, you must pass ``Series.values``, See :ref:`Enhancing Performance<enhancingperf.ndarray>`
