@@ -126,6 +126,8 @@ _STORER_MAP = {
 # table class map
 _TABLE_MAP = {
     u('generic_table')    : 'GenericTable',
+    u('appendable_series')     : 'AppendableSeriesTable',
+    u('appendable_multiseries'): 'AppendableMultiSeriesTable',
     u('appendable_frame')      : 'AppendableFrameTable',
     u('appendable_multiframe') : 'AppendableMultiFrameTable',
     u('appendable_panel') : 'AppendablePanelTable',
@@ -913,7 +915,14 @@ class HDFStore(StringMixin):
             # if we are a writer, determin the tt
             if value is not None:
 
-                if pt == u('frame_table'):
+                if pt == u('series_table'):
+                    index = getattr(value,'index',None)
+                    if index is not None:
+                        if index.nlevels == 1:
+                            tt = u('appendable_series')
+                        elif index.nlevels > 1:
+                            tt = u('appendable_multiseries')
+                elif pt == u('frame_table'):
                     index = getattr(value,'index',None)
                     if index is not None:
                         if index.nlevels == 1:
@@ -1693,6 +1702,10 @@ class Storer(StringMixin):
         return new_self
 
     @property
+    def storage_obj_type(self):
+        return self.obj_type
+
+    @property
     def shape(self):
         return self.nrows
 
@@ -2370,6 +2383,11 @@ class Table(Storer):
                 raise Exception("invalid combinate of [%s] on appending data [%s] vs current table [%s]" % (c,sv,ov))
 
     @property
+    def is_multi_index(self):
+        """ the levels attribute is 1 or a list in the case of a multi-index """
+        return isinstance(self.levels,list)
+
+    @property
     def nrows_expected(self):
         """ based on our axes, compute the expected nrows """
         return np.prod([ i.cvalues.shape[0] for i in self.index_axes ])
@@ -2419,7 +2437,7 @@ class Table(Storer):
 
         # compute the values_axes queryables
         return dict([(a.cname, a.kind) for a in self.index_axes] +
-                    [(self.obj_type._AXIS_NAMES[axis], None) for axis, values in self.non_index_axes] +
+                    [(self.storage_obj_type._AXIS_NAMES[axis], None) for axis, values in self.non_index_axes] +
                     [(v.cname, v.kind) for v in self.values_axes if v.name in set(self.data_columns)]
                     )
 
@@ -3276,6 +3294,62 @@ class AppendableFrameTable(AppendableTable):
 
         return df
 
+
+class AppendableSeriesTable(AppendableFrameTable):
+    """ support the new appendable table formats """
+    pandas_kind = u('series_table')
+    table_type = u('appendable_series')
+    ndim = 2
+    obj_type = Series
+    storage_obj_type = DataFrame
+
+    @property
+    def is_transposed(self):
+        return False
+
+    def get_object(self, obj):
+        return obj
+
+    def write(self, obj, data_columns=None, **kwargs):
+        """ we are going to write this as a frame table """
+        if not isinstance(obj, DataFrame):
+            name = obj.name or 'values'
+            obj = DataFrame({ name : obj }, index=obj.index)
+            obj.columns = [name]
+        return super(AppendableSeriesTable, self).write(obj=obj, data_columns=obj.columns, **kwargs)
+
+    def read(self, columns=None, **kwargs):
+
+        is_multi_index = self.is_multi_index
+        if columns is not None and is_multi_index:
+            for n in self.levels:
+                if n not in columns:
+                    columns.insert(0, n)
+        s = super(AppendableSeriesTable, self).read(columns=columns, **kwargs)
+        if is_multi_index:
+            s.set_index(self.levels, inplace=True)
+
+        s = s.iloc[:,0]
+
+        # remove the default name
+        if s.name == 'values':
+            s.name = None
+        return s
+
+class AppendableMultiSeriesTable(AppendableSeriesTable):
+    """ support the new appendable table formats """
+    pandas_kind = u('series_table')
+    table_type = u('appendable_multiseries')
+
+    def write(self, obj, **kwargs):
+        """ we are going to write this as a frame table """
+        name = obj.name or 'values'
+        cols = list(obj.index.names)
+        cols.append(name)
+        self.levels = list(obj.index.names)
+        obj = obj.reset_index()
+        obj.columns = cols
+        return super(AppendableMultiSeriesTable, self).write(obj=obj, **kwargs)
 
 class GenericTable(AppendableFrameTable):
     """ a table that read/writes the generic pytables table format """

@@ -580,6 +580,52 @@ class TestHDFStore(unittest.TestCase):
             store.append('uints', uint_data, data_columns=['u08','u16','u32']) # 64-bit indices not yet supported
             tm.assert_frame_equal(store['uints'], uint_data)
 
+    def test_append_series(self):
+
+        with ensure_clean(self.path) as store:
+
+            # basic
+            ss = tm.makeStringSeries()
+            ts = tm.makeTimeSeries()
+            ns = Series(np.arange(100))
+
+            store.append('ss', ss)
+            result = store['ss']
+            tm.assert_series_equal(result, ss)
+            self.assert_(result.name is None)
+
+            store.append('ts', ts)
+            result = store['ts']
+            tm.assert_series_equal(result, ts)
+            self.assert_(result.name is None)
+
+            ns.name = 'foo'
+            store.append('ns', ns)
+            result = store['ns']
+            tm.assert_series_equal(result, ns)
+            self.assert_(result.name == ns.name)
+
+            # select on the values
+            expected = ns[ns>60]
+            result = store.select('ns',Term('foo>60'))
+            tm.assert_series_equal(result,expected)
+
+            # select on the index and values
+            expected = ns[(ns>70) & (ns.index<90)]
+            result = store.select('ns',[Term('foo>70'), Term('index<90')])
+            tm.assert_series_equal(result,expected)
+
+            # multi-index
+            mi = DataFrame(np.random.randn(5,1),columns=['A'])
+            mi['B'] = np.arange(len(mi))
+            mi['C'] = 'foo'
+            mi.loc[3:5,'C'] = 'bar'
+            mi.set_index(['C','B'],inplace=True)
+            s = mi.stack()
+            s.index = s.index.droplevel(2)
+            store.append('mi', s)
+            tm.assert_series_equal(store['mi'], s)
+
     def test_encoding(self):
 
         if sys.byteorder != 'little':
@@ -1269,10 +1315,6 @@ class TestHDFStore(unittest.TestCase):
             # unsuported data types for non-tables
             p4d = tm.makePanel4D()
             self.assertRaises(TypeError, store.put,'p4d',p4d)
-
-            # unsupported data type for table
-            s = tm.makeStringSeries()
-            self.assertRaises(TypeError, store.append,'s',s)
 
             # unsuported data types
             self.assertRaises(TypeError, store.put,'abc',None)
