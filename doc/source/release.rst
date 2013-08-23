@@ -187,6 +187,7 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
 - ``Series.copy`` no longer accepts the ``order`` parameter and is now consistent with ``NDFrame`` copy
 - Refactor ``rename`` methods to core/generic.py; fixes ``Series.rename`` for (:issue:`4605`), and adds ``rename``
   with the same signature for ``Panel``
+- Series (for index) / Panel (for items) now as attribute access to its elements  (:issue:`1903`)
 
 **Experimental Features**
 

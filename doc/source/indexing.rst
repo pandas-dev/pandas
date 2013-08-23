@@ -174,13 +174,32 @@ Attribute Access
 
 .. _indexing.df_cols:
 
-You may access a column on a ``DataFrame``, and a item on a ``Panel`` directly
+You may access an index on a ``Series``, column on a ``DataFrame``, and a item on a ``Panel`` directly
 as an attribute:
 
 .. ipython:: python
 
-   df.A
+   sa = Series([1,2,3],index=list('abc'))
+   dfa = df.copy()
+
+.. ipython:: python
+
+   sa.b
+   dfa.A
    panel.one
+
+Setting is allowed as well
+
+.. ipython:: python
+
+   sa.a = 5
+   sa
+   dfa.A = list(range(len(dfa.index)))
+   dfa
+
+.. warning::
+
+   You can use this convience access only if the index element is a valid python string, e.g. ``s.1`` is not allowed.
 
 If you are using the IPython environment, you may also use tab-completion to
 see these accessable attributes.
