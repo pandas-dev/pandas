@@ -286,6 +286,10 @@ Bug Fixes
 
   - Suppressed DeprecationWarning associated with internal calls issued by repr() (:issue:`4391`)
 
+  - read_excel (:issue:`4332`) supports a date_parser. This enabales to reading in hours like 01:00-24:00 in both `Excel datemodes <http://support.microsoft.com/kb/214330/en-us>`_
+
+  - (Excel) parser (:issue:`4340`) allows skipping an arbitrary number of lines between header and first row. 
+
 See the :ref:`full release notes
 <release>` or issue tracker
 on GitHub for a complete list.

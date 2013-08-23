@@ -433,6 +433,9 @@ available to insert at a particular location in the columns:
 
 Indexing / Selection
 ~~~~~~~~~~~~~~~~~~~~
+
+.. _dsintro.basics-of-indexing:
+
 The basics of indexing are as follows:
 
 .. csv-table::
@@ -452,6 +455,20 @@ DataFrame:
 
    df.loc['b']
    df.iloc[2]
+   
+There is also support for purely integer-based indexing provided by the following methods:
+
+.. _dsintro.integer-indexing:
+
+.. csv-table::
+    :header: "Method","Description"
+    :widths: 40,60
+
+	``Series.iget_value(i)``, Retrieve value stored at location ``i``
+	``Series.iget(i)``, Alias for ``iget_value``
+	``DataFrame.irow(i)``, Retrieve the ``i``-th row
+	``DataFrame.icol(j)``, Retrieve the ``j``-th column
+	"``DataFrame.iget_value(i, j)``", Retrieve the value at row ``i`` and column ``j``
 
 For a more exhaustive treatment of more sophisticated label-based indexing and
 slicing, see the :ref:`section on indexing <indexing>`. We will address the

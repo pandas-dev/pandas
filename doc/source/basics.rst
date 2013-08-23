@@ -465,6 +465,9 @@ take an optional ``axis`` argument:
    df.apply(lambda x: x.max() - x.min())
    df.apply(np.cumsum)
    df.apply(np.exp)
+   
+Please note that the default is the application along the DataFrame's index
+(axis=0) whereas for applying along the columns (axis=1) axis must be specified explicitly (see also :ref:`api.dataframe` and :ref:`api.series`).
 
 Depending on the return type of the function passed to ``apply``, the result
 will either be of lower dimension or the same dimension.

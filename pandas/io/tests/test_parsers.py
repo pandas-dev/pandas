@@ -1,4 +1,6 @@
 # pylint: disable=E1101
+from __future__ import absolute_import
+
 
 from datetime import datetime
 import csv
@@ -37,6 +39,13 @@ import pandas.tseries.tools as tools
 from numpy.testing.decorators import slow
 
 from pandas.parser import OverflowError
+
+def _skip_if_no_mpl():
+    '''pandas.tseries.converter imports matplotlib'''
+    try:
+        import matplotlib
+    except ImportError:
+        raise nose.SkipTest('matplotlib not installed, skipping')
 
 
 class ParserTests(object):
@@ -2014,6 +2023,30 @@ eight,1,2,3"""
 
                 expected = Series(['DDD', 'EEE', 'FFF', 'GGG'])
                 tm.assert_series_equal(result, expected)
+
+    def test_infer_columns(self):
+        '''reads xls with certain order of header, skiprows / data'''
+        _skip_if_no_mpl()
+        from pandas.io.excel import ExcelFile
+        from . import test_excel
+        correct_date_time = test_excel._correct_date_time
+        test_excel._skip_if_no_excelsuite()
+
+        # test of the header column is read in nicely
+        # list with the expected column names from the excel file
+        headercols_target = ['blank', 'temperature', 'precipitation', 'Area']
+
+        # add the block reading the excel file into a DataFrame
+        filename = 'example_file_2013-07-25.xlsx'
+        pth = os.path.join(self.dirpath, filename)
+        xlsx = ExcelFile(pth)
+        df = xlsx.parse('min', skiprows=12, header=10, index_col=1,
+                        parse_dates=False, date_parser=correct_date_time)
+        #read in the excel file
+        headercols_df_in = df.columns.tolist()
+
+        self.assertEqual(headercols_df_in, headercols_target)
+
 
 class TestCParserHighMemory(ParserTests, unittest.TestCase):
 
