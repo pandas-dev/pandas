@@ -1432,9 +1432,11 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
     pos -= 1
 
     offset = deltas[pos]
+    cdef Py_ssize_t trans_len = len(trans)
+
     for i in range(n):
         v = utc_dates[i]
-        if v >= trans[pos + 1]:
+        if (pos + 1) < trans_len and v >= trans[pos + 1]:
             pos += 1
             offset = deltas[pos]
         result[i] = v + offset
