@@ -197,6 +197,8 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
     - raising an invalid ``TypeError`` rather than ``ValueError`` when appending
       with a different block ordering (:issue:`4096`)
     - ``read_hdf`` was not respecting as passed ``mode`` (:issue:`4504`)
+  - Fixed bug in tslib.tz_convert(vals, tz1, tz2): it could raise IndexError exception while 
+    trying to access trans[pos + 1] (:issue:`4496`)
   - The ``by`` argument now works correctly with the ``layout`` argument
     (:issue:`4102`, :issue:`4014`) in ``*.hist`` plotting methods
   - Fixed bug in ``PeriodIndex.map`` where using ``str`` would return the str
