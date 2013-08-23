@@ -798,13 +798,6 @@ class Series(generic.NDFrame):
     __long__ = _coerce_method(int)
     __int__ = _coerce_method(int)
 
-    def __nonzero__(self):
-        # special case of a single element bool series degenerating to a scalar
-        if self.dtype == np.bool_ and len(self) == 1:
-            return bool(self.iloc[0])
-        return not self.empty
-    __bool__ = __nonzero__
-
     # we are preserving name here
     def __getstate__(self):
         return dict(_data=self._data, name=self.name)

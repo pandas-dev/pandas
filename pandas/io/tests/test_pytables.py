@@ -1519,11 +1519,11 @@ class TestHDFStore(unittest.TestCase):
         with ensure_clean(self.path) as store:
             df1 = DataFrame({'a': [1, 2, 3]}, dtype='f8')
             store.append('df_f8', df1)
-            assert df1.dtypes == store['df_f8'].dtypes
+            assert_series_equal(df1.dtypes,store['df_f8'].dtypes)
 
             df2 = DataFrame({'a': [1, 2, 3]}, dtype='i8')
             store.append('df_i8', df2)
-            assert df2.dtypes == store['df_i8'].dtypes
+            assert_series_equal(df2.dtypes,store['df_i8'].dtypes)
 
             # incompatible dtype
             self.assertRaises(ValueError, store.append, 'df_i8', df1)
@@ -1531,7 +1531,7 @@ class TestHDFStore(unittest.TestCase):
             # check creation/storage/retrieval of float32 (a bit hacky to actually create them thought)
             df1 = DataFrame(np.array([[1],[2],[3]],dtype='f4'),columns = ['A'])
             store.append('df_f4', df1)
-            assert df1.dtypes == store['df_f4'].dtypes
+            assert_series_equal(df1.dtypes,store['df_f4'].dtypes)
             assert df1.dtypes[0] == 'float32'
 
             # check with mixed dtypes

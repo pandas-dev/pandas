@@ -296,12 +296,6 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_(int(Series([1.])) == 1)
         self.assert_(long(Series([1.])) == 1)
 
-        self.assert_(bool(Series([True])) == True)
-        self.assert_(bool(Series([False])) == False)
-
-        self.assert_(bool(Series([True,True])) == True)
-        self.assert_(bool(Series([False,True])) == True)
-
     def test_astype(self):
         s = Series(np.random.randn(5),name='foo')
 
