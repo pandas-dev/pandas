@@ -1633,7 +1633,7 @@ void test_count_lines(char *fname) {
 
 
 // forward declaration
-static double xstrtod(const char *p, char **q, char decimal, char sci, int skip_trailing);
+static double xstrtod(const char *p, char **q, char decimal, char sci, char tsep, int skip_trailing);
 
 
 P_INLINE void lowercase(char *p) {
@@ -1661,11 +1661,11 @@ P_INLINE void uppercase(char *p) {
  *
  */
 
-int to_double(char *item, double *p_value, char sci, char decimal)
+int to_double(char *item, double *p_value, char sci, char decimal, char tsep)
 {
     char *p_end;
 
-    *p_value = xstrtod(item, &p_end, decimal, sci, TRUE);
+    *p_value = xstrtod(item, &p_end, decimal, sci, tsep, TRUE);
 
     return (errno == 0) && (!*p_end);
 }
@@ -1675,7 +1675,7 @@ int P_INLINE to_complex(char *item, double *p_real, double *p_imag, char sci, ch
 {
     char *p_end;
 
-    *p_real = xstrtod(item, &p_end, decimal, sci, FALSE);
+    *p_real = xstrtod(item, &p_end, decimal, sci, '\0', FALSE);
     if (*p_end == '\0') {
         *p_imag = 0.0;
         return errno == 0;
@@ -1689,7 +1689,7 @@ int P_INLINE to_complex(char *item, double *p_real, double *p_imag, char sci, ch
         if (*p_end == '+') {
             ++p_end;
         }
-        *p_imag = xstrtod(p_end, &p_end, decimal, sci, FALSE);
+        *p_imag = xstrtod(p_end, &p_end, decimal, sci, '\0', FALSE);
         if (errno || ((*p_end != 'i') && (*p_end != 'j'))) {
             return FALSE;
         }
@@ -1856,10 +1856,12 @@ int main(int argc, char *argv[])
 // * Added decimal and sci arguments.
 // * Skip trailing spaces.
 // * Commented out the other functions.
+// Modifications by Richard T Guy, August 2013:
+// * Add tsep argument for thousands separator
 //
 
 static double xstrtod(const char *str, char **endptr, char decimal,
-                      char sci, int skip_trailing)
+                      char sci, char tsep, int skip_trailing)
 {
   double number;
   int exponent;
@@ -1894,6 +1896,8 @@ static double xstrtod(const char *str, char **endptr, char decimal,
     number = number * 10. + (*p - '0');
     p++;
     num_digits++;
+
+    p += (tsep != '\0' & *p == tsep);
   }
 
   // Process decimal part

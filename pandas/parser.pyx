@@ -186,7 +186,7 @@ cdef extern from "parser/tokenizer.h":
     uint64_t str_to_uint64(char *p_item, uint64_t uint_max, int *error)
 
     inline int to_double(char *item, double *p_value,
-                         char sci, char decimal)
+                         char sci, char decimal, char thousands)
     inline int to_complex(char *item, double *p_real,
                           double *p_imag, char sci, char decimal)
     inline int to_longlong(char *item, long long *p_value)
@@ -355,7 +355,7 @@ cdef class TextReader:
 
         if thousands is not None:
             if len(thousands) != 1:
-                raise ValueError('Only length-1 decimal markers supported')
+                raise ValueError('Only length-1 thousands markers supported')
             self.parser.thousands = ord(thousands)
 
         if escapechar is not None:
@@ -1397,7 +1397,7 @@ cdef _try_double(parser_t *parser, int col, int line_start, int line_end,
                 na_count += 1
                 data[0] = NA
             else:
-                error = to_double(word, data, parser.sci, parser.decimal)
+                error = to_double(word, data, parser.sci, parser.decimal, parser.thousands)
                 if error != 1:
                     if strcasecmp(word, cinf) == 0:
                         data[0] = INF
@@ -1413,7 +1413,7 @@ cdef _try_double(parser_t *parser, int col, int line_start, int line_end,
     else:
         for i in range(lines):
             word = COLITER_NEXT(it)
-            error = to_double(word, data, parser.sci, parser.decimal)
+            error = to_double(word, data, parser.sci, parser.decimal, parser.thousands)
             if error != 1:
                 if strcasecmp(word, cinf) == 0:
                     data[0] = INF
