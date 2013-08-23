@@ -1810,6 +1810,14 @@ class DataFrame(NDFrame):
 
     def __getitem__(self, key):
 
+        # shortcut if we are an actual column
+        is_mi_columns = isinstance(self.columns, MultiIndex)
+        try:
+            if key in self.columns and not is_mi_columns:
+                return self._getitem_column(key)
+        except:
+            pass
+
         # see if we can slice the rows
         indexer = _convert_to_index_sliceable(self, key)
         if indexer is not None:
@@ -1820,15 +1828,20 @@ class DataFrame(NDFrame):
             return self._getitem_array(key)
         elif isinstance(key, DataFrame):
             return self._getitem_frame(key)
-        elif isinstance(self.columns, MultiIndex):
+        elif is_mi_columns:
             return self._getitem_multilevel(key)
         else:
-            # get column
-            if self.columns.is_unique:
-                return self._get_item_cache(key)
+            return self._getitem_column(key)
 
-            # duplicate columns
-            return self._constructor(self._data.get(key))
+    def _getitem_column(self, key):
+        """ return the actual column """
+
+        # get column
+        if self.columns.is_unique:
+            return self._get_item_cache(key)
+
+        # duplicate columns
+        return self._constructor(self._data.get(key))
 
     def _getitem_slice(self, key):
         return self._slice(key, axis=0)
