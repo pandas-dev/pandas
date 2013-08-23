@@ -41,16 +41,16 @@ def infer_dtype(object _values):
             _values = list(_values)
         values = list_to_object_array(_values)
 
-    n = len(values)
-    if n == 0:
-        return 'empty'
-
     val_kind = values.dtype.type
     if val_kind in _TYPE_MAP:
         return _TYPE_MAP[val_kind]
 
     if values.dtype != np.object_:
         values = values.astype('O')
+
+    n = len(values)
+    if n == 0:
+        return 'empty'
 
     val = util.get_value_1d(values, 0)
 
