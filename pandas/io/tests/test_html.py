@@ -1,9 +1,15 @@
 import os
 import re
-from cStringIO import StringIO
 from unittest import TestCase
 import warnings
 from distutils.version import LooseVersion
+
+from pandas.util import py3compat
+
+if py3compat.PY3:
+    from io import StringIO
+else:
+    from cStringIO import StringIO
 
 import nose
 from nose.tools import assert_raises
@@ -27,10 +33,6 @@ from pandas.util.testing import (assert_frame_equal, network,
 
 from pandas.util.testing import makeCustomDataframe as mkdf
 
-def path2url(path):
-    return urlparse.urljoin(
-        'file:', urllib.pathname2url(path))
-      
 def _have_module(module_name):
     try:
         import_module(module_name)
@@ -466,9 +468,9 @@ def test_invalid_flavor():
                              flavor='not a* valid**++ flaver')
 
 
-def get_elements_from_url(url, element='table', base_url="file://"):
+def get_elements_from_file(url, element='table'):
     _skip_if_none_of(('bs4', 'html5lib'))
-    url = path_to_url(url) if base_url == "file://" else "".join([base_url, url])
+    url = path_to_url(url)
     from bs4 import BeautifulSoup
     with urlopen(url) as f:
         soup = BeautifulSoup(f, features='html5lib')
@@ -480,7 +482,7 @@ def test_bs4_finds_tables():
     filepath = os.path.join(DATA_PATH, "spam.html")
     with warnings.catch_warnings():
         warnings.filterwarnings('ignore')
-        assert get_elements_from_url(filepath, 'table')
+        assert get_elements_from_file(filepath, 'table')
 
 
 def get_lxml_elements(url, element):

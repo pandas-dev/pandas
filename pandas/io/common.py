@@ -1,14 +1,24 @@
 """Common IO api utilities"""
 
 import sys
-import urlparse
 import urllib2
-import urllib
 import zipfile
 from contextlib import contextmanager, closing
-from StringIO import StringIO
+
 
 from pandas.util import py3compat
+
+if py3compat.PY3: # pragma: no cover
+    import urllib.parse as urlparse
+    from urllib.parse import urljoin
+    from urllib.request import pathname2url
+    from io import StringIO
+else:
+    import urlparse
+    from urlparse import urljoin
+    from urllib import pathname2url
+    from StringIO import StringIO
+
 
 _VALID_URLS = set(urlparse.uses_relative + urlparse.uses_netloc +
                   urlparse.uses_params)
@@ -69,8 +79,8 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None):
             else:
                 errors = 'replace'
                 encoding = 'utf-8'
-            bytes = filepath_or_buffer.read().decode(encoding, errors)
-            filepath_or_buffer = StringIO(bytes)
+            raw_bytes = filepath_or_buffer.read().decode(encoding, errors)
+            filepath_or_buffer = StringIO(raw_bytes)
             return filepath_or_buffer, encoding
         return filepath_or_buffer, None
 
@@ -104,8 +114,7 @@ def path_to_url(path):
     -------
     a valid FILE URL
     """
-    return urlparse.urljoin(
-        'file:', urllib.pathname2url(path))
+    return urljoin('file:', pathname2url(path))
 
 
 # ----------------------
