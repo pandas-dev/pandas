@@ -260,6 +260,8 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
   - Fix bug in ``pd.read_clipboard`` on windows with PY3 (:issue:`4561`); not decoding properly
   - ``tslib.get_period_field()`` and ``tslib.get_period_field_arr()`` now raise
     if code argument out of range (:issue:`4519`, :issue:`4520`)
+  - Fix boolean indexing on an empty series loses index names (:issue:`4235`),
+  infer_dtype works with empty arrays.
   - Fix reindexing with multiple axes; if an axes match was not replacing the current axes, leading
     to a possible lazay frequency inference issue (:issue:`3317`)
   - Fixed issue where ``DataFrame.apply`` was reraising exceptions incorrectly

@@ -740,6 +740,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(result, expected)
         self.assert_(np.array_equal(result.index, s.index[mask]))
 
+    def test_getitem_boolean_empty(self):
+        s = Series([], dtype=np.int64)
+        s.index.name = 'index_name'
+        s = s[s.isnull()]
+        self.assertEqual(s.index.name, 'index_name')
+        self.assertEqual(s.dtype, np.int64)
+
     def test_getitem_generator(self):
         gen = (x > 0 for x in self.series)
         result = self.series[gen]
