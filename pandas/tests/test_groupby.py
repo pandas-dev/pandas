@@ -1,16 +1,17 @@
 from __future__ import print_function
 import nose
 import unittest
+import itertools
 
 from datetime import datetime
 from numpy import nan
 from numpy.testing import assert_array_equal
 
-from pandas import bdate_range
+from pandas import bdate_range, date_range, period_range
 from pandas.core.index import Index, MultiIndex
 from pandas.core.common import rands
 from pandas.core.api import Categorical, DataFrame
-from pandas.core.groupby import GroupByError, SpecificationError, DataError
+from pandas.core.groupby import SpecificationError, DataError
 from pandas.core.series import Series
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
                                  assert_series_equal, assert_almost_equal)
@@ -22,9 +23,7 @@ from pandas.core.panel import Panel
 from pandas.tools.merge import concat
 from collections import defaultdict
 import pandas.core.common as com
-import pandas.core.datetools as dt
 import numpy as np
-from numpy.testing import assert_equal
 
 import pandas.core.nanops as nanops
 
@@ -1563,38 +1562,58 @@ class TestGroupBy(unittest.TestCase):
             assert_frame_equal(result.ix[key], f(group))
 
     def test_apply_as_index_is_false_frame(self):
-        # test with head
-        df = DataFrame({'item_id': ['b', 'b', 'a', 'c', 'a', 'b'],
-                        'user_id': [1,2,1,1,3,1], 'time': lrange(6)})
-        gb = df.groupby('user_id', as_index=False)
-        assert_array_equal(gb.head(2).index, Index(np.arange(4)))
+        indexes = (None,
+                   list('abcdef'),
+                   date_range('20010101', periods=6),
+                   period_range('20010101', periods=6),
+                   Index(np.random.randn(6), name='a' + tm.rands(4)),
+                   MultiIndex.from_tuples(lzip(range(6), [1,1,1,2,2,2]),
+                                          names=['b' + tm.rands(4),
+                                                 'c' + tm.rands(4)]))
+        for index in indexes:
+            # test with head
+            df = DataFrame({'item_id': ['b', 'b', 'a', 'c', 'a', 'b'],
+                            'user_id': [1,2,1,1,3,1], 'time': lrange(6)},
+                           index=index)
+            gb = df.groupby('user_id', as_index=False)
+            assert_array_equal(gb.head(2).index, Index(np.arange(4)))
 
-        # test with replace
-        with tm.assert_produces_warning(UserWarning):
-            res = gb.replace({'item_id': {'b': 'c'}})
-        assert_array_equal(res.index, Index(np.arange(6)))
+            # test with replace
+            with tm.assert_produces_warning(UserWarning):
+                res = gb.replace({'item_id': {'b': 'c'}})
+            assert_array_equal(res.index, Index(np.arange(6)))
 
-        # test with dropna
-        df.item_id[0] = np.nan
-        gb = df.groupby('user_id', as_index=False)
-        res = gb.dropna()
-        assert_array_equal(res.index, Index(np.arange(5)))
+            # test with dropna
+            df.item_id[0] = np.nan
+            gb = df.groupby('user_id', as_index=False)
+            res = gb.dropna()
+            assert_array_equal(res.index, Index(np.arange(5)))
 
-    def test_apply_as_index_is_false_series(self):
-        # GH3417
-        df = DataFrame({'a': [1,1,1,2,2,2,3,3,3], 'b': range(1, 10)})
+    def test_apply_as_index_is_false_multiple_funcs(self):
+        indexes = (None,
+                   list('abcdefghi'),
+                   date_range('20010101', periods=9),
+                   period_range('20010101', periods=9),
+                   Index(np.random.randn(9), name='a' + tm.rands(4)),
+                   MultiIndex.from_tuples(lzip(range(9), [1,1,1,2,2,2,3,3,3]),
+                                          names=['b' + tm.rands(4),
+                                                 'c' + tm.rands(4)]))
+        for index in indexes:
+            # GH3417
+            df = DataFrame({'a': [1,1,1,2,2,2,3,3,3], 'b': range(1, 10)},
+                           index=index)
 
-        def f(x):
-            if x.a[:1] == 2:
-                mean, std = nan, nan
-            else:
-                mean, std = x.b.mean(), x.b.std()
-            return Series({'mean': mean, 'std': std})
+            def f(x):
+                if x.a[:1] == 2:
+                    mean, std = nan, nan
+                else:
+                    mean, std = x.b.mean(), x.b.std()
+                return Series({'mean': mean, 'std': std})
 
-        gb = df.groupby('a', as_index=False)
+            gb = df.groupby('a', as_index=False)
 
-        res = gb.apply(f)
-        assert_array_equal(res.index, Index(np.arange(3)))
+            res = gb.apply(f)
+            assert_array_equal(res.index, Index(np.arange(3)))
 
     def test_mutate_groups(self):
 
