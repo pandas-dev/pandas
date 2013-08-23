@@ -59,6 +59,8 @@ pandas 0.13
   - A Series of dtype ``timedelta64[ns]`` can now be divided by another
     ``timedelta64[ns]`` object to yield a ``float64`` dtyped Series. This
     is frequency conversion.
+  - Performance improvements with ``__getitem__`` on ``DataFrames`` with
+    when the key is a column
 
 **API Changes**
 
@@ -183,7 +185,7 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
 - Refactor ``Series.reindex`` to core/generic.py (:issue:`4604`, :issue:`4618`), allow ``method=`` in reindexing
   on a Series to work
 - ``Series.copy`` no longer accepts the ``order`` parameter and is now consistent with ``NDFrame`` copy
-- Refactor ``rename`` methods to core/generic.py; fixes ``Series.rename`` for (:issue`4605`), and adds ``rename``
+- Refactor ``rename`` methods to core/generic.py; fixes ``Series.rename`` for (:issue:`4605`), and adds ``rename``
   with the same signature for ``Panel``
 
 **Experimental Features**

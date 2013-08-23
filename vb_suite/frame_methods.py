@@ -84,6 +84,8 @@ frame_boolean_row_select = Benchmark('df[bool_arr]', setup,
 
 setup = common_setup + """
 df = DataFrame(randn(10000, 1000))
+df2 = DataFrame(randn(3000,1),columns=['A'])
+df3 = DataFrame(randn(3000,1))
 
 def f():
     if hasattr(df, '_item_cache'):
@@ -94,6 +96,15 @@ def f():
 def g():
     for name, col in df.iteritems():
         pass
+
+def h():
+    for i in xrange(10000):
+        df2['A']
+
+def j():
+    for i in xrange(10000):
+        df3[0]
+
 """
 
 # as far back as the earliest test currently in the suite
@@ -102,6 +113,12 @@ frame_iteritems = Benchmark('f()', setup,
 
 frame_iteritems_cached = Benchmark('g()', setup,
                                    start_date=datetime(2010, 6, 1))
+
+frame_getitem_single_column = Benchmark('h()', setup,
+                                        start_date=datetime(2010, 6, 1))
+
+frame_getitem_single_column2 = Benchmark('j()', setup,
+                                         start_date=datetime(2010, 6, 1))
 
 #----------------------------------------------------------------------
 # to_string
