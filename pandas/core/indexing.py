@@ -102,12 +102,41 @@ class _NDFrameIndexer(object):
             keyidx.append(idx)
         return tuple(keyidx)
 
+    def _has_valid_setitem_indexer(self, indexer):
+        return True
+
+    def _has_valid_positional_setitem_indexer(self, indexer):
+        """ validate that an positional indexer cannot enlarge its target
+            will raise if needed, does not modify the indexer externally """
+        if isinstance(indexer, dict):
+            raise IndexError("{0} cannot enlarge its target object".format(self.name))
+        else:
+            if not isinstance(indexer, tuple):
+                indexer = self._tuplify(indexer)
+            for ax, i in zip(self.obj.axes,indexer):
+                if isinstance(i, slice):
+                    # should check the stop slice?
+                    pass
+                elif is_list_like(i):
+                    # should check the elements?
+                    pass
+                elif com.is_integer(i):
+                    if i >= len(ax):
+                        raise IndexError("{0} cannot enlarge its target object".format(self.name))
+                elif isinstance(i, dict):
+                    raise IndexError("{0} cannot enlarge its target object".format(self.name))
+
+        return True
+
     def _setitem_with_indexer(self, indexer, value):
+
+        self._has_valid_setitem_indexer(indexer)
 
         # also has the side effect of consolidating in-place
         from pandas import Panel, DataFrame, Series
 
         # maybe partial set
+        take_split_path = self.obj._is_mixed_type
         if isinstance(indexer,tuple):
             nindexer = []
             for i, idx in enumerate(indexer):
@@ -116,10 +145,26 @@ class _NDFrameIndexer(object):
                     # reindex the axis to the new value
                     # and set inplace
                     key,_ = _convert_missing_indexer(idx)
-                    labels = self.obj._get_axis(i) + Index([key])
+
+                    # if this is the items axes, then take the main missing path
+                    # first; this correctly sets the dtype and avoids cache issues
+                    # essentially this separates out the block that is needed to possibly
+                    # be modified
+                    if self.ndim > 1 and i == self.obj._info_axis_number:
+
+                        # add the new item, and set the value
+                        new_indexer = _convert_from_missing_indexer_tuple(indexer)
+                        self.obj[key] = np.nan
+                        self.obj.loc[new_indexer] = value
+                        return self.obj
+
+                    # reindex the axis
+                    index = self.obj._get_axis(i)
+                    labels = _safe_append_to_index(index, key)
                     self.obj._data = self.obj.reindex_axis(labels,i)._data
 
                     nindexer.append(labels.get_loc(key))
+
                 else:
                     nindexer.append(idx)
 
@@ -133,11 +178,19 @@ class _NDFrameIndexer(object):
                 # reindex the axis to the new value
                 # and set inplace
                 if self.ndim == 1:
-                    self.obj._data = self.obj.append(Series(value,index=[indexer]))._data
-                    return
+                    index = self.obj.index
+                    if len(index) == 0:
+                        new_index = Index([indexer])
+                    else:
+                        new_index = _safe_append_to_index(index, indexer)
+
+                    new_values = np.concatenate([self.obj.values, [value]])
+                    self.obj._data = self.obj._constructor(new_values, index=new_index, name=self.obj.name)
+                    return self.obj
 
                 elif self.ndim == 2:
-                    labels = self.obj._get_axis(0) + Index([indexer])
+                    index = self.obj._get_axis(0)
+                    labels = _safe_append_to_index(index, indexer)
                     self.obj._data = self.obj.reindex_axis(labels,0)._data
                     return getattr(self.obj,self.name).__setitem__(indexer,value)
 
@@ -146,7 +199,7 @@ class _NDFrameIndexer(object):
                     return self.obj.__setitem__(indexer,value)
 
         # align and set the values
-        if self.obj._is_mixed_type:
+        if take_split_path:
             if not isinstance(indexer, tuple):
                 indexer = self._tuplify(indexer)
 
@@ -732,6 +785,10 @@ class _NDFrameIndexer(object):
 
                 mask = check == -1
                 if mask.any():
+
+                    # mi here
+                    if isinstance(obj, tuple) and is_setter:
+                        return { 'key' : obj }
                     raise KeyError('%s not in index' % objarr[mask])
 
                 return indexer
@@ -742,7 +799,7 @@ class _NDFrameIndexer(object):
             except (KeyError):
 
                 # allow a not found key only if we are a setter
-                if np.isscalar(obj) and is_setter:
+                if not is_list_like(obj) and is_setter:
                     return { 'key' : obj }
                 raise
 
@@ -933,6 +990,9 @@ class _iLocIndexer(_LocationIndexer):
 
         return isinstance(key, slice) or com.is_integer(key) or _is_list_like(key)
 
+    def _has_valid_setitem_indexer(self, indexer):
+        self._has_valid_positional_setitem_indexer(indexer)
+
     def _getitem_tuple(self, tup):
 
         self._has_valid_tuple(tup)
@@ -965,7 +1025,6 @@ class _iLocIndexer(_LocationIndexer):
             return self.obj.take(slice_obj, axis=axis)
 
     def _getitem_axis(self, key, axis=0):
-
         if isinstance(key, slice):
             self._has_valid_type(key,axis)
             return self._get_slice_axis(key, axis=axis)
@@ -1005,14 +1064,12 @@ class _ScalarAccessIndexer(_NDFrameIndexer):
             else:
                 raise ValueError('Invalid call for scalar access (getting)!')
 
-        if len(key) != self.obj.ndim:
-            raise ValueError('Not enough indexers for scalar access (getting)!')
         key = self._convert_key(key)
         return self.obj.get_value(*key)
 
     def __setitem__(self, key, value):
         if not isinstance(key, tuple):
-            raise ValueError('Invalid call for scalar access (setting)!')
+            key = self._tuplify(key)
         if len(key) != self.obj.ndim:
             raise ValueError('Not enough indexers for scalar access (setting)!')
         key = self._convert_key(key)
@@ -1025,6 +1082,9 @@ class _AtIndexer(_ScalarAccessIndexer):
 
 class _iAtIndexer(_ScalarAccessIndexer):
     """ integer based scalar accessor """
+
+    def _has_valid_setitem_indexer(self, indexer):
+        self._has_valid_positional_setitem_indexer(indexer)
 
     def _convert_key(self, key):
         """ require  integer args (and convert to label arguments) """
@@ -1178,6 +1238,19 @@ def _convert_missing_indexer(indexer):
         return indexer, True
 
     return indexer, False
+
+def _convert_from_missing_indexer_tuple(indexer):
+    """ create a filtered indexer that doesn't have any missing indexers """
+    def get_indexer(_idx):
+        return _idx['key'] if isinstance(_idx,dict) else _idx
+    return tuple([ get_indexer(_idx) for _i, _idx in enumerate(indexer) ])
+
+def _safe_append_to_index(index, key):
+    """ a safe append to an index, if incorrect type, then catch and recreate """
+    try:
+        return index.insert(len(index), key)
+    except:
+        return Index(np.concatenate([index.asobject.values,np.array([key])]))
 
 def _maybe_convert_indices(indices, n):
     """ if we have negative indicies, translate to postive here

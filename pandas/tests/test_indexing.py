@@ -1233,9 +1233,50 @@ class TestIndexing(unittest.TestCase):
 
         # GH2578, allow ix and friends to partially set
 
+        ### series ###
+        s_orig = Series([1,2,3])
+
+        s = s_orig.copy()
+        s[5] = 5
+        expected = Series([1,2,3,5],index=[0,1,2,5])
+        assert_series_equal(s,expected)
+
+        s = s_orig.copy()
+        s.loc[5] = 5
+        expected = Series([1,2,3,5],index=[0,1,2,5])
+        assert_series_equal(s,expected)
+
+        s = s_orig.copy()
+        s[5] = 5.
+        expected = Series([1,2,3,5.],index=[0,1,2,5])
+        assert_series_equal(s,expected)
+
+        s = s_orig.copy()
+        s.loc[5] = 5.
+        expected = Series([1,2,3,5.],index=[0,1,2,5])
+        assert_series_equal(s,expected)
+
+        # iloc/iat raise
+        s = s_orig.copy()
+        def f():
+            s.iloc[3] = 5.
+        self.assertRaises(IndexError, f)
+        def f():
+            s.iat[3] = 5.
+        self.assertRaises(IndexError, f)
+
         ### frame ###
 
         df_orig = DataFrame(np.arange(6).reshape(3,2),columns=['A','B'])
+
+        # iloc/iat raise
+        df = df_orig.copy()
+        def f():
+            df.iloc[4,2] = 5.
+        self.assertRaises(IndexError, f)
+        def f():
+            df.iat[4,2] = 5.
+        self.assertRaises(IndexError, f)
 
         # row setting where it exists
         expected = DataFrame(dict({ 'A' : [0,4,4], 'B' : [1,5,5] }))

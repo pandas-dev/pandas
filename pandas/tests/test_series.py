@@ -1000,10 +1000,17 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_(res is self.ts)
         self.assertEqual(self.ts[idx], 0)
 
-        res = self.series.set_value('foobar', 0)
-        self.assert_(res is not self.series)
+        # equiv
+        s = self.series.copy()
+        res = s.set_value('foobar', 0)
+        self.assert_(res is s)
         self.assert_(res.index[-1] == 'foobar')
         self.assertEqual(res['foobar'], 0)
+
+        s = self.series.copy()
+        s.loc['foobar'] = 0
+        self.assert_(s.index[-1] == 'foobar')
+        self.assertEqual(s['foobar'], 0)
 
     def test_setslice(self):
         sl = self.ts[5:20]
@@ -4761,13 +4768,16 @@ class TestSeriesNonUnique(unittest.TestCase):
         stamp = Timestamp('1/8/2000')
 
         self.assertRaises(KeyError, s.__getitem__, stamp)
-        self.assertRaises(KeyError, s.__setitem__, stamp, 0)
+        s[stamp] = 0
+        self.assert_(s[stamp] == 0)
 
         # not monotonic
+        s = Series(len(index), index=index)
         s = s[::-1]
 
         self.assertRaises(KeyError, s.__getitem__, stamp)
-        self.assertRaises(KeyError, s.__setitem__, stamp, 0)
+        s[stamp] = 0
+        self.assert_(s[stamp] == 0)
 
     def test_reset_index(self):
         df = tm.makeDataFrame()[:5]

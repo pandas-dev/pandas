@@ -9,7 +9,7 @@ from pandas.core.base import PandasObject
 
 from pandas.core.common import (_possibly_downcast_to_dtype, isnull, notnull,
                                 _NS_DTYPE, _TD_DTYPE, ABCSeries, ABCSparseSeries,
-                                is_list_like)
+                                is_list_like, _infer_dtype_from_scalar)
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
                                _handle_legacy_indexes)
 from pandas.core.indexing import _check_slice_bounds, _maybe_convert_indices
@@ -460,6 +460,24 @@ class Block(PandasObject):
         if self.is_integer or self.is_bool or self.is_datetime:
             pass
         elif self.is_float and result.dtype == self.dtype:
+
+            # protect against a bool/object showing up here
+            if isinstance(dtype,compat.string_types) and dtype == 'infer':
+                return result
+            if not isinstance(dtype,type):
+                dtype = dtype.type
+            if issubclass(dtype,(np.bool_,np.object_)):
+                if issubclass(dtype,np.bool_):
+                    if isnull(result).all():
+                        return result.astype(np.bool_)
+                    else:
+                        result = result.astype(np.object_)
+                        result[result==1] = True
+                        result[result==0] = False
+                        return result
+                else:
+                    return result.astype(np.object_)
+
             return result
 
         # may need to change the dtype here
@@ -536,8 +554,12 @@ class Block(PandasObject):
             values[indexer] = value
 
             # coerce and try to infer the dtypes of the result
+            if np.isscalar(value):
+                dtype,_ = _infer_dtype_from_scalar(value)
+            else:
+                dtype = 'infer'
             values = self._try_coerce_result(values)
-            values = self._try_cast_result(values, 'infer')
+            values = self._try_cast_result(values, dtype)
             return [make_block(transf(values), self.items, self.ref_items, ndim=self.ndim, fastpath=True)]
         except:
             pass
@@ -902,7 +924,7 @@ class FloatBlock(NumericBlock):
         if is_list_like(element):
             element = np.array(element)
             return issubclass(element.dtype.type, (np.floating, np.integer))
-        return isinstance(element, (float, int))
+        return isinstance(element, (float, int, np.float_, np.int_)) and not isinstance(bool,np.bool_)
 
     def _try_cast(self, element):
         try:

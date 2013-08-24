@@ -92,6 +92,9 @@ pandas 0.13
     an alias of iteritems used to get around ``2to3``'s changes).
     (:issue:`4384`, :issue:`4375`, :issue:`4372`)
   - ``Series.get`` with negative indexers now returns the same as ``[]`` (:issue:`4390`)
+  - allow ``ix/loc`` for Series/DataFrame/Panel to set on any axis even when the single-key is not currently contained in
+    the index for that axis (:issue:`2578`)
+  - ``at`` now will enlarge the object inplace (and return the same) (:issue:`2578`)
 
   - ``HDFStore``
 
@@ -123,8 +126,6 @@ pandas 0.13
 
     - added ``date_unit`` parameter to specify resolution of timestamps. Options
       are seconds, milliseconds, microseconds and nanoseconds. (:issue:`4362`, :issue:`4498`).
-    - allow ``ix/loc/iloc`` for Series/DataFrame/Panel to set on any axis even when the single-key is not currently contained in
-      the index for that axis (:issue:`2578`)
 
   - ``Index`` and ``MultiIndex`` changes (:issue:`4039`):
 

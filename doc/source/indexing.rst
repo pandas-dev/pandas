@@ -412,40 +412,14 @@ Pandas will detect this and raise ``IndexError``, rather than return an empty st
     >>> df.iloc[:,3:6]
     IndexError: out-of-bounds on slice (end)
 
-.. _indexing.basics.get_value:
-
-Fast scalar value getting and setting
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Since indexing with ``[]`` must handle a lot of cases (single-label access,
-slicing, boolean indexing, etc.), it has a bit of overhead in order to figure
-out what you're asking for. If you only want to access a scalar value, the
-fastest way is to use the ``at`` and ``iat`` methods, which are implemented on
-all of the data structures.
-
-Similary to ``loc``, ``at`` provides **label** based scalar lookups, while, ``iat`` provides **integer** based lookups analagously to ``iloc``
-
-.. ipython:: python
-
-   s.iat[5]
-   df.at[dates[5], 'A']
-   df.iat[3, 0]
-
-You can also set using these same indexers. These have the additional
-capability of enlarging an object. This method *always* returns a reference to
-the object it modified, which in the case of enlargement, will be a **new object**:
-
-.. ipython:: python
-
-   df.at[dates[5], 'E'] = 7
-   df.iat[3, 0] = 7
-
 .. _indexing.basics.partial_setting:
 
 Setting With Enlargement
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-The ``.loc/.iloc/[]`` operations can perform enlargement when setting a non-existant key for that axis.
+.. versionadded:: 0.13
+
+The ``.loc/.ix/[]`` operations can perform enlargement when setting a non-existant key for that axis.
 
 In the ``Series`` case this is effectively an appending operation
 
@@ -473,6 +447,38 @@ This is like an ``append`` operation on the ``DataFrame``.
    dfi.loc[3] = 5
    dfi
 
+.. _indexing.basics.get_value:
+
+Fast scalar value getting and setting
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Since indexing with ``[]`` must handle a lot of cases (single-label access,
+slicing, boolean indexing, etc.), it has a bit of overhead in order to figure
+out what you're asking for. If you only want to access a scalar value, the
+fastest way is to use the ``at`` and ``iat`` methods, which are implemented on
+all of the data structures.
+
+Similary to ``loc``, ``at`` provides **label** based scalar lookups, while, ``iat`` provides **integer** based lookups analagously to ``iloc``
+
+.. ipython:: python
+
+   s.iat[5]
+   df.at[dates[5], 'A']
+   df.iat[3, 0]
+
+You can also set using these same indexers.
+
+.. ipython:: python
+
+   df.at[dates[5], 'E'] = 7
+   df.iat[3, 0] = 7
+
+``at`` may enlarge the object in-place as above if the indexer is missing.
+
+.. ipython:: python
+
+   df.at[6, 0] = 7
+   df
 
 Boolean indexing
 ~~~~~~~~~~~~~~~~

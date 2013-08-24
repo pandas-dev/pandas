@@ -1075,6 +1075,7 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
                           type(iframe.icol(0).sp_index))
 
     def test_set_value(self):
+
         res = self.frame.set_value('foobar', 'B', 1.5)
         self.assert_(res is not self.frame)
         self.assert_(res.index[-1] == 'foobar')
