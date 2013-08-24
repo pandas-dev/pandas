@@ -2326,6 +2326,30 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         result = com._possibly_cast_to_timedelta(np.abs(a - b))
         self.assert_(result.dtype == 'timedelta64[ns]')
 
+    def test_datetime64_with_index(self):
+
+        # arithmetic integer ops with an index
+        s = Series(np.random.randn(5))
+        expected = s-s.index.to_series()
+        result = s-s.index
+        assert_series_equal(result,expected)
+
+        # GH 4629
+        # arithmetic datetime64 ops with an index
+        s = Series(date_range('20130101',periods=5),index=date_range('20130101',periods=5))
+        expected = s-s.index.to_series()
+        result = s-s.index
+        assert_series_equal(result,expected)
+
+        result = s-s.index.to_period()
+        assert_series_equal(result,expected)
+
+        df = DataFrame(np.random.randn(5,2),index=date_range('20130101',periods=5))
+        df['date'] = Timestamp('20130102')
+        df['expected'] = df['date']-df.index.to_series()
+        df['result'] = df['date']-df.index
+        assert_series_equal(df['result'],df['expected'])
+
     def test_timedelta64_nan(self):
 
         from pandas import tslib
