@@ -83,6 +83,7 @@ pandas 0.13
 
   - ``HDFStore``
 
+    - handle a passed ``Series`` in table format (:issue:`4330`)
     - added an ``is_open`` property to indicate if the underlying file handle is_open;
       a closed store will now report 'CLOSED' when viewing the store (rather than raising an error)
       (:issue:`4409`)
