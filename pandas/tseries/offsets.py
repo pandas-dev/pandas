@@ -477,7 +477,7 @@ class CustomBusinessDay(BusinessDay):
         return np.is_busday(day64, busdaycal=self.busdaycalendar)
 
 
-class MonthEnd(DateOffset, CacheableOffset):
+class MonthEnd(CacheableOffset, DateOffset):
     """DateOffset of one month end"""
 
     def apply(self, other):
@@ -502,7 +502,7 @@ class MonthEnd(DateOffset, CacheableOffset):
         return 'M'
 
 
-class MonthBegin(DateOffset, CacheableOffset):
+class MonthBegin(CacheableOffset, DateOffset):
     """DateOffset of one month at beginning"""
 
     def apply(self, other):
@@ -553,7 +553,7 @@ class BusinessMonthEnd(CacheableOffset, DateOffset):
         return 'BM'
 
 
-class BusinessMonthBegin(DateOffset, CacheableOffset):
+class BusinessMonthBegin(CacheableOffset, DateOffset):
     """DateOffset of one business month at beginning"""
 
     def apply(self, other):
@@ -590,7 +590,7 @@ class BusinessMonthBegin(DateOffset, CacheableOffset):
         return 'BMS'
 
 
-class Week(DateOffset, CacheableOffset):
+class Week(CacheableOffset, DateOffset):
     """
     Weekly offset
 
@@ -656,7 +656,7 @@ _weekday_dict = {
 }
 
 
-class WeekOfMonth(DateOffset, CacheableOffset):
+class WeekOfMonth(CacheableOffset, DateOffset):
     """
     Describes monthly dates like "the Tuesday of the 2nd week of each month"
 
@@ -729,7 +729,7 @@ class WeekOfMonth(DateOffset, CacheableOffset):
         return 'WOM' + suffix
 
 
-class BQuarterEnd(DateOffset, CacheableOffset):
+class BQuarterEnd(CacheableOffset, DateOffset):
     """DateOffset increments between business Quarter dates
     startingMonth = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
@@ -796,7 +796,7 @@ _month_dict = {
 }
 
 
-class BQuarterBegin(DateOffset, CacheableOffset):
+class BQuarterBegin(CacheableOffset, DateOffset):
     _outputName = "BusinessQuarterBegin"
 
     def __init__(self, n=1, **kwds):
@@ -843,7 +843,7 @@ class BQuarterBegin(DateOffset, CacheableOffset):
         return 'BQS' + suffix
 
 
-class QuarterEnd(DateOffset, CacheableOffset):
+class QuarterEnd(CacheableOffset, DateOffset):
     """DateOffset increments between business Quarter dates
     startingMonth = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
@@ -887,7 +887,7 @@ class QuarterEnd(DateOffset, CacheableOffset):
         return 'Q' + suffix
 
 
-class QuarterBegin(DateOffset, CacheableOffset):
+class QuarterBegin(CacheableOffset, DateOffset):
     _outputName = 'QuarterBegin'
 
     def __init__(self, n=1, **kwds):
@@ -924,7 +924,7 @@ class QuarterBegin(DateOffset, CacheableOffset):
         return 'QS' + suffix
 
 
-class BYearEnd(DateOffset, CacheableOffset):
+class BYearEnd(CacheableOffset, DateOffset):
     """DateOffset increments between business EOM dates"""
     _outputName = 'BusinessYearEnd'
 
@@ -971,7 +971,7 @@ class BYearEnd(DateOffset, CacheableOffset):
         return 'BA' + suffix
 
 
-class BYearBegin(DateOffset, CacheableOffset):
+class BYearBegin(CacheableOffset, DateOffset):
     """DateOffset increments between business year begin dates"""
     _outputName = 'BusinessYearBegin'
 
@@ -1013,7 +1013,7 @@ class BYearBegin(DateOffset, CacheableOffset):
         return 'BAS' + suffix
 
 
-class YearEnd(DateOffset, CacheableOffset):
+class YearEnd(CacheableOffset, DateOffset):
     """DateOffset increments between calendar year ends"""
 
     def __init__(self, n=1, **kwds):
@@ -1080,7 +1080,7 @@ class YearEnd(DateOffset, CacheableOffset):
         return 'A' + suffix
 
 
-class YearBegin(DateOffset, CacheableOffset):
+class YearBegin(CacheableOffset, DateOffset):
     """DateOffset increments between calendar year begin dates"""
 
     def __init__(self, n=1, **kwds):
@@ -1251,7 +1251,7 @@ def _delta_to_nanoseconds(delta):
             + delta.microseconds) * 1000
 
 
-class Day(Tick, CacheableOffset):
+class Day(CacheableOffset, Tick):
     _inc = timedelta(1)
     _rule_base = 'D'
 

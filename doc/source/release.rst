@@ -275,6 +275,8 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
     have internal setitem_with_indexer in core/indexing to use Block.setitem
   - Fixed bug where thousands operator was not handled correctly for floating point numbers
     in csv_import (:issue:`4322`)
+  - Fix an issue with CacheableOffset not properly being used by many DateOffset; this prevented
+    the DateOffset from being cached (:issue:`4609`)
 
 pandas 0.12
 ===========
