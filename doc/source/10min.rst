@@ -269,7 +269,6 @@ A ``where`` operation for getting.
 
    df[df > 0]
 
-
 Setting
 ~~~~~~~
 
@@ -708,3 +707,20 @@ Reading from an excel file
    :suppress:
 
    os.remove('foo.xlsx')
+
+Gotchas
+-------
+
+If you are trying an operation and you see an exception like:
+
+.. code-block:: python
+
+    >>> if pd.Series([False, True, False]):
+        print("I was true")
+    Traceback
+        ...
+    ValueError: The truth value of an array is ambiguous. Use a.empty, a.any() or a.all().
+
+See :ref:`Comparisons<basics.compare>` for an explanation and what to do.
+
+See :ref:`Gotachas<gotchas>` as well.

@@ -15,6 +15,58 @@
 Caveats and Gotchas
 *******************
 
+Using If/Truth Statements with Pandas
+-------------------------------------
+
+.. _gotchas.truth:
+
+Pandas follows the numpy convention of raising an error when you try to convert something to a ``bool``.
+This happens in a ``if`` or when using the boolean operations, ``and``, ``or``, or ``not``.  It is not clear
+what the result of
+
+.. code-block:: python
+
+    >>> if Series([False, True, False]):
+         ...
+
+should be. Should it be ``True`` because it's not zero-length? ``False`` because there are ``False`` values?
+It is unclear, so instead, pandas raises a ``ValueError``:
+
+.. code-block:: python
+
+    >>> if pd.Series([False, True, False]):
+        print("I was true")
+    Traceback
+        ...
+    ValueError: The truth value of an array is ambiguous. Use a.empty, a.any() or a.all().
+
+
+If you see that, you need to explicitly choose what you want to do with it (e.g., use `any()`, `all()` or `empty`).
+or, you might want to compare if the pandas object is ``None``
+
+.. code-block:: python
+
+    >>> if pd.Series([False, True, False]) is not None:
+           print("I was not None")
+    >>> I was not None
+
+Bitwise boolean
+~~~~~~~~~~~~~~~
+
+Bitwise boolean operators like ``==`` and ``!=`` will return a boolean ``Series``,
+which is almost always what you want anyways.
+
+.. code-block:: python
+
+   >>> s = pd.Series(range(5))
+   >>> s == 4
+   0    False
+   1    False
+   2    False
+   3    False
+   4     True
+   dtype: bool
+
 ``NaN``, Integer ``NA`` values and ``NA`` type promotions
 ---------------------------------------------------------
 
@@ -428,7 +480,7 @@ parse HTML tables in the top-level pandas io function ``read_html``.
       lxml will work correctly:
 
       .. code-block:: sh
-         
+
          # remove the included version
          conda remove lxml
 
