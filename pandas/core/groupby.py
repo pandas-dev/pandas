@@ -516,7 +516,7 @@ class GroupBy(PandasObject):
                 result = result.reindex(ax)
             else:
                 result = result.reindex_axis(ax, axis=self.axis)
-        elif self.group_keys:
+        elif self.group_keys and self.as_index:
             group_keys = keys
             group_levels = self.grouper.levels
             group_names = self.grouper.names
