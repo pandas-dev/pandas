@@ -1202,6 +1202,10 @@ class TestGroupBy(unittest.TestCase):
         res_not_as = g_not_as.apply(lambda x: x.head(2)).index
         assert_index_equal(res_not_as, exp_not_as)
 
+        ind = Index(list('abcde'))
+        df = DataFrame([[1, 2], [2, 3], [1, 4], [1, 5], [2, 6]], index=ind)
+        res = df.groupby(0, as_index=False).apply(lambda x: x).index
+        assert_index_equal(res, ind)
 
     def test_groupby_multiple_key(self):
         df = tm.makeTimeDataFrame()
