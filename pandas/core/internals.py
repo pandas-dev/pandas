@@ -1574,9 +1574,11 @@ class BlockManager(PandasObject):
         if not self.items.is_unique:
             self._set_ref_locs(do_refs=True)
 
-    @classmethod
-    def make_empty(cls):
-        return cls([], [[], []])
+    def make_empty(self, axes=None):
+        """ return an empty BlockManager with the items axis of len 0 """
+        if axes is None:
+            axes = [_ensure_index([]) ] + [ _ensure_index(a) for a in self.axes[1:] ]
+        return self.__class__(np.array([]), axes)
 
     def __nonzero__(self):
         return True
@@ -2074,7 +2076,7 @@ class BlockManager(PandasObject):
         blocks = self.get_block_map(
             typ='list', copy=copy, columns=columns, **kwargs)
         if len(blocks) == 0:
-            return self.__class__.make_empty()
+            return self.make_empty()
 
         return self.combine(blocks)
 

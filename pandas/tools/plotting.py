@@ -932,21 +932,7 @@ class MPLPlot(object):
         return (len(self.data.columns), 1)
 
     def _compute_plot_data(self):
-        try:
-            # might be an ndframe
-            numeric_data = self.data._get_numeric_data()
-        except AttributeError:  # TODO: rm in 0.13 (series-inherit-ndframe)
-            numeric_data = self.data
-            orig_dtype = numeric_data.dtype
-
-            # possible object array of numeric data
-            if orig_dtype == np.object_:
-                numeric_data = numeric_data.convert_objects()  # soft convert
-
-                # still an object dtype so we can't plot it
-                if numeric_data.dtype == np.object_:
-                    raise TypeError('Series has object dtype and cannot be'
-                                    ' converted: no numeric data to plot')
+        numeric_data = self.data.convert_objects()._get_numeric_data()
 
         try:
             is_empty = numeric_data.empty

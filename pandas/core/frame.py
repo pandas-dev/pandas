@@ -4388,12 +4388,6 @@ class DataFrame(NDFrame):
         else:
             raise Exception('Must have 0<= axis <= 1')
 
-    def _get_numeric_data(self):
-        return self._constructor(self._data.get_numeric_data(), index=self.index, copy=False)
-
-    def _get_bool_data(self):
-        return self._constructor(self._data.get_bool_data(), index=self.index, copy=False)
-
     def quantile(self, q=0.5, axis=0, numeric_only=True):
         """
         Return values at the given quantile over requested axis, a la
