@@ -27,6 +27,7 @@ from pandas.core.indexing import (
     _is_index_slice, _maybe_convert_indices)
 from pandas.core import generic
 from pandas.core.internals import SingleBlockManager
+from pandas.core.categorical import Categorical
 import pandas.core.expressions as expressions
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex, Period
@@ -579,6 +580,10 @@ class Series(generic.NDFrame):
                     index = data.index
                 else:
                     data = data.reindex(index, copy=copy)
+            elif isinstance(data, Categorical):
+                if name is None:
+                    name = data.name
+                data = np.asarray(data)
             elif isinstance(data, types.GeneratorType):
                 data = list(data)
             elif isinstance(data, (set, frozenset)):
@@ -1525,7 +1530,7 @@ class Series(generic.NDFrame):
 
         return notnull(_values_from_object(self)).sum()
 
-    def value_counts(self, normalize=False):
+    def value_counts(self, normalize=False, sort=True, ascending=False, bins=None):
         """
         Returns Series containing counts of unique values. The resulting Series
         will be in descending order so that the first element is the most
@@ -1536,14 +1541,21 @@ class Series(generic.NDFrame):
         normalize: boolean, default False
             If True then the Series returned will contain the relative
             frequencies of the unique values.
+        sort : boolean, default True
+            Sort by values
+        ascending : boolean, default False
+            Sort in ascending order
+        bins : integer, optional
+            Rather than count values, group them into half-open bins,
+            a convenience for pd.cut, only works with numeric data
 
         Returns
         -------
         counts : Series
         """
         from pandas.core.algorithms import value_counts
-        return value_counts(self.values, sort=True, ascending=False,
-                            normalize=normalize)
+        return value_counts(self.values, sort=sort, ascending=ascending,
+                            normalize=normalize, bins=bins)
 
     def unique(self):
         """

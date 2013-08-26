@@ -371,6 +371,16 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         exp.index = lrange(10, 20)
         assert_series_equal(result, exp)
 
+    def test_constructor_categorical(self):
+        cat = pd.Categorical([0, 1, 2, 0, 1, 2], ['a', 'b', 'c'])
+        res = Series(cat)
+        exp = Series({0: 'a', 1: 'b', 2: 'c', 3: 'a', 4: 'b', 5: 'c'})
+        assert_series_equal(res, exp)
+
+        cat.name = 'foo'
+        res = Series(cat)
+        self.assertEqual(res.name, cat.name)
+
     def test_constructor_maskedarray(self):
         data = ma.masked_all((3,), dtype=float)
         result = Series(data)
@@ -2979,12 +2989,42 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = Series([4, 3, 2, 1], index=['b', 'a', 'd', 'c'])
         assert_series_equal(hist, expected)
 
+        # don't sort, have to sort after the fact as not sorting is platform-dep
+        hist = s.value_counts(sort=False)
+        hist.sort()
+        expected = Series([3, 1, 4, 2], index=list('acbd'))
+        expected.sort()
+        assert_series_equal(hist, expected)
+
+        # sort ascending
+        hist = s.value_counts(ascending=True)
+        expected = Series([1, 2, 3, 4], index=list('cdab'))
+        assert_series_equal(hist, expected)
+
         # relative histogram.
         hist = s.value_counts(normalize=True)
         expected = Series([.4, .3, .2, .1], index=['b', 'a', 'd', 'c'])
         assert_series_equal(hist, expected)
 
         self.assertEquals(s.nunique(), 4)
+
+        # bins
+        self.assertRaises(TypeError, lambda bins: s.value_counts(bins=bins), 1)
+
+        s1 = Series([1, 1, 2, 3])
+        res1 = s1.value_counts(bins=1)
+        exp1 = Series({0.998: 4})
+        assert_series_equal(res1, exp1)
+        res1n = s1.value_counts(bins=1, normalize=True)
+        exp1n = Series({0.998: 1.0})
+        assert_series_equal(res1n, exp1n)
+
+        res4 = s1.value_counts(bins=4)
+        exp4 = Series({0.998: 2, 1.5: 1, 2.0: 0, 2.5: 1}, index=[0.998, 2.5, 1.5, 2.0])
+        assert_series_equal(res4, exp4)
+        res4n = s1.value_counts(bins=4, normalize=True)
+        exp4n = Series({0.998: 0.5, 1.5: 0.25, 2.0: 0.0, 2.5: 0.25}, index=[0.998, 2.5, 1.5, 2.0])
+        assert_series_equal(res4n, exp4n)
 
         # handle NA's properly
         s[5:7] = np.nan
