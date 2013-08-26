@@ -193,6 +193,7 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
 - Refactor ``rename`` methods to core/generic.py; fixes ``Series.rename`` for (:issue:`4605`), and adds ``rename``
   with the same signature for ``Panel``
 - Series (for index) / Panel (for items) now as attribute access to its elements  (:issue:`1903`)
+- Refactor of ``_get_numeric_data/_get_bool_data`` to core/generic.py, allowing Series/Panel functionaility
 
 **Experimental Features**
 

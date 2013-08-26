@@ -268,6 +268,7 @@ and behaviors. Series formerly subclassed directly from ``ndarray``. (:issue:`40
 - ``Series.copy`` no longer accepts the ``order`` parameter and is now consistent with ``NDFrame`` copy
 - Refactor ``rename`` methods to core/generic.py; fixes ``Series.rename`` for (:issue`4605`), and adds ``rename``
   with the same signature for ``Panel``
+- Refactor of ``_get_numeric_data/_get_bool_data`` to core/generic.py, allowing Series/Panel functionaility
 - ``Series`` (for index) / ``Panel`` (for items) now allow attribute access to its elements  (:issue:`1903`)
 
   .. ipython:: python
