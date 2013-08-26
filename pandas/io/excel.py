@@ -53,23 +53,6 @@ def read_excel(path_or_buf, sheetname, kind=None, **kwds):
     return ExcelFile(path_or_buf, kind=kind).parse(sheetname=sheetname,
                                                    kind=kind, **kwds)
 
-def excel_value_to_python_value(value, typ, datemode):
-    from xlrd import (xldate_as_tuple, XL_CELL_DATE,
-                      XL_CELL_ERROR, XL_CELL_BOOLEAN)
-            
-    if typ == XL_CELL_DATE:
-        dt = xldate_as_tuple(value, datemode)
-        # how to produce this first case?
-        if dt[0] < datetime.MINYEAR:  # pragma: no cover
-            value = datetime.time(*dt[3:])
-        else:
-            value = datetime.datetime(*dt)
-    elif typ == XL_CELL_ERROR:
-        value = np.nan
-    elif typ == XL_CELL_BOOLEAN:
-        value = bool(value)
-    
-    return value
 
 class ExcelFile(object):
     """
@@ -191,6 +174,8 @@ class ExcelFile(object):
                      index_col=None, has_index_names=None, parse_cols=None,
                      parse_dates=False, date_parser=None, na_values=None,
                      thousands=None, chunksize=None, **kwds):
+        from xlrd import (xldate_as_tuple, XL_CELL_DATE,
+                          XL_CELL_ERROR, XL_CELL_BOOLEAN)
 
         datemode = self.book.datemode
         if isinstance(sheetname, compat.string_types):
@@ -208,7 +193,17 @@ class ExcelFile(object):
                     should_parse[j] = self._should_parse(j, parse_cols)
 
                 if parse_cols is None or should_parse[j]:
-                    value = excel_value_to_python_value(value=value, typ=typ, datemode=datemode)
+                    if typ == XL_CELL_DATE:
+                        dt = xldate_as_tuple(value, datemode)
+                        # how to produce this first case?
+                        if dt[0] < datetime.MINYEAR:  # pragma: no cover
+                            value = datetime.time(*dt[3:])
+                        else:
+                            value = datetime.datetime(*dt)
+                    elif typ == XL_CELL_ERROR:
+                        value = np.nan
+                    elif typ == XL_CELL_BOOLEAN:
+                        value = bool(value)
                     row.append(value)
 
             data.append(row)
