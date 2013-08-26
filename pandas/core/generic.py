@@ -1319,6 +1319,12 @@ class NDFrame(PandasObject):
             self._clear_item_cache()
         return result
 
+    def _get_numeric_data(self):
+        return self._constructor(self._data.get_numeric_data())
+
+    def _get_bool_data(self):
+        return self._constructor(self._data.get_bool_data())
+
     #----------------------------------------------------------------------
     # Internal Interface Methods
 
