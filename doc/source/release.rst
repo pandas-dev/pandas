@@ -100,6 +100,7 @@ pandas 0.13
     - removed the ``warn`` argument from ``open``. Instead a ``PossibleDataLossError`` exception will
       be raised if you try to use ``mode='w'`` with an OPEN file handle (:issue:`4367`)
     - allow a passed locations array or mask as a ``where`` condition (:issue:`4467`)
+    - the ``fmt`` keyword now replaces the ``table`` keyword; allowed values are ``s|t``
   - ``JSON``
 
     - added ``date_unit`` parameter to specify resolution of timestamps. Options
@@ -203,6 +204,7 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
       with a different block ordering (:issue:`4096`)
     - ``read_hdf`` was not respecting as passed ``mode`` (:issue:`4504`)
     - appending a 0-len table will work correctly (:issue:`4273`)
+    - ``to_hdf`` was raising when passing both arguments ``append`` and ``table`` (:issue:`4584`)
   - Fixed bug in tslib.tz_convert(vals, tz1, tz2): it could raise IndexError exception while
     trying to access trans[pos + 1] (:issue:`4496`)
   - The ``by`` argument now works correctly with the ``layout`` argument

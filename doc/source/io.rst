@@ -1803,6 +1803,7 @@ The examples above show storing using ``put``, which write the HDF5 to ``PyTable
 the ``storer`` format. These types of stores are are **not** appendable once written (though you can simply
 remove them and rewrite). Nor are they **queryable**; they must be
 retrieved in their entirety. These offer very fast writing and slightly faster reading than ``table`` stores.
+This format is specified by default when using ``put`` or by ``fmt='s'``
 
 .. warning::
 
@@ -1826,7 +1827,7 @@ Table Format
 format. Conceptually a ``table`` is shaped very much like a DataFrame,
 with rows and columns. A ``table`` may be appended to in the same or
 other sessions.  In addition, delete & query type operations are
-supported.
+supported. This format is specified by ``fmt='t'`` to ``append`` or ``put``.
 
 .. ipython:: python
    :suppress:
@@ -1853,7 +1854,7 @@ supported.
 
 .. note::
 
-   You can also create a ``table`` by passing ``table=True`` to a ``put`` operation.
+   You can also create a ``table`` by passing ``fmt='t'`` to a ``put`` operation.
 
 .. _io.hdf5-keys:
 
