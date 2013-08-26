@@ -285,6 +285,7 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
   - Fix an issue with CacheableOffset not properly being used by many DateOffset; this prevented
     the DateOffset from being cached (:issue:`4609`)
   - Fix boolean comparison with a DataFrame on the lhs, and a list/tuple on the rhs (:issue:`4576`)
+  - Fix error/dtype conversion with setitem of ``None`` on ``Series/DataFrame`` (:issue:`4667`)
 
 pandas 0.12
 ===========

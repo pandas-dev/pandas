@@ -1249,6 +1249,19 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = Series([np.nan,np.nan,3,4])
         assert_series_equal(result, expected)
 
+        # GH 4667
+        # setting with None changes dtype
+        s = Series(range(10)).astype(float)
+        s[8] = None
+        result = s[8]
+        self.assert_(isnull(result))
+
+        s = Series(range(10)).astype(float)
+        s[s > 8] = None
+        result = s[isnull(s)]
+        expected = Series(np.nan,index=[9])
+        assert_series_equal(result, expected)
+
     def test_where_broadcast(self):
         # Test a variety of differently sized series
         for size in range(2, 6):
