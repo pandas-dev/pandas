@@ -461,3 +461,17 @@ class ExcelWriter(object):
                 wks.write(startrow + cell.row,
                           startcol + cell.col,
                           val, style)
+
+def get_effective_cell(sheet, rowx, colx):
+    import xlrd  # throw an ImportError if we need to
+    
+    cell_at_loc = sheet.cell(rowx, colx)
+    if len(sheet.merged_cells) == 0 or cell_at_loc.ctype != xlrd.XL_CELL_BLANK:
+        return sheet.cell(rowx, colx)
+    
+    for merged_cell in sheet.merged_cells:
+        rlo, rhi, clo, chi = merged_cell
+        if rowx >= rlo and rowx < rhi and colx >= clo and colx < chi:
+            return sheet.cell(rlo, clo)
+    
+    return cell_at_loc

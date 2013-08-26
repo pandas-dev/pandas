@@ -44,6 +44,8 @@ pandas 0.13
   - Text parser now treats anything that reads like inf ("inf", "Inf", "-Inf",
     "iNf", etc.) to infinity. (:issue:`4220`, :issue:`4219`), affecting
     ``read_table``, ``read_csv``, etc.
+  - Created get_effective_cell for getting the contents of Excel cell
+    when the cell is merged (:issue:`4672`)
 
 **API Changes**
 

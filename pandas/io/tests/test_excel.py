@@ -18,7 +18,7 @@ from pandas import DataFrame, Series, Index, MultiIndex, DatetimeIndex
 import pandas.io.parsers as parsers
 from pandas.io.parsers import (read_csv, read_table, read_fwf,
                                 TextParser, TextFileReader)
-from pandas.io.excel import ExcelFile, ExcelWriter, read_excel
+from pandas.io.excel import ExcelFile, ExcelWriter, read_excel, get_effective_cell
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
                                  network,
@@ -259,6 +259,35 @@ class ExcelTests(unittest.TestCase):
                         skip_footer=1)
         tm.assert_frame_equal(df4, df.ix[:-1])
         tm.assert_frame_equal(df4, df5)
+    
+    def test_read_effective_cells(self):
+        _skip_if_no_xlrd()
+        import xlrd
+
+        pth = os.path.join(self.dirpath, 'merged_effective.xls')
+        xls = ExcelFile(pth, formatting_info=True)        
+        book = xls.book
+        sheet = book.sheet_by_index(0)
+        self.assertEqual(get_effective_cell(sheet, 0, 0).value, 1)
+        self.assertEqual(get_effective_cell(sheet, 0, 4).value, 5)
+        
+        self.assertEqual(get_effective_cell(sheet, 1, 0).value, "a")
+        self.assertEqual(get_effective_cell(sheet, 1, 1).value, "b") #Top left of merged
+        self.assertEqual(get_effective_cell(sheet, 1, 2).value, "b") #merged
+        self.assertEqual(get_effective_cell(sheet, 1, 3).value, "c")
+        self.assertEqual(get_effective_cell(sheet, 1, 4).value, "d")
+        
+        self.assert_(get_effective_cell(sheet, 2, 0).ctype in(xlrd.XL_CELL_BLANK, xlrd.XL_CELL_EMPTY))
+        self.assertEqual(get_effective_cell(sheet, 2, 1).value, "b") #merged
+        self.assertEqual(get_effective_cell(sheet, 2, 2).value, "b") #merged        
+        self.assert_(get_effective_cell(sheet, 2, 3).ctype in(xlrd.XL_CELL_BLANK, xlrd.XL_CELL_EMPTY))
+        self.assert_(get_effective_cell(sheet, 2, 4).ctype in(xlrd.XL_CELL_BLANK, xlrd.XL_CELL_EMPTY))
+                
+        self.assertEqual(get_effective_cell(sheet, 3, 0).value, 1)
+        self.assert_(get_effective_cell(sheet, 3, 1).ctype in(xlrd.XL_CELL_BLANK, xlrd.XL_CELL_EMPTY))
+        self.assert_(get_effective_cell(sheet, 3, 2).ctype in(xlrd.XL_CELL_BLANK, xlrd.XL_CELL_EMPTY))
+        self.assertEqual(get_effective_cell(sheet, 3, 3).value, 4)
+        self.assertEqual(get_effective_cell(sheet, 3, 4).value, 5)
 
     def test_excel_read_buffer(self):
         _skip_if_no_xlrd()
