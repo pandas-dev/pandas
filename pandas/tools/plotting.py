@@ -1136,11 +1136,15 @@ class MPLPlot(object):
 
 
 class KdePlot(MPLPlot):
-    def __init__(self, data, **kwargs):
+    def __init__(self, data, bw_method=None, ind=None, **kwargs):
         MPLPlot.__init__(self, data, **kwargs)
+        self.bw_method=bw_method
+        self.ind=ind
 
     def _make_plot(self):
         from scipy.stats import gaussian_kde
+        from scipy import __version__ as spv
+        from distutils.version import LooseVersion
         plotf = self._get_plot_function()
         colors = self._get_colors()
         for i, (label, y) in enumerate(self._iter_data()):
@@ -1149,10 +1153,23 @@ class KdePlot(MPLPlot):
 
             label = com.pprint_thing(label)
 
-            gkde = gaussian_kde(y)
+            if LooseVersion(spv) >= '0.11.0':
+                gkde = gaussian_kde(y, bw_method=self.bw_method)
+            else:
+                gkde = gaussian_kde(y)
+                if self.bw_method is not None:
+                    msg = ('bw_method was added in Scipy 0.11.0.' +
+                           ' Scipy version in use is %s.' % spv)
+                    warnings.warn(msg)
+
             sample_range = max(y) - min(y)
-            ind = np.linspace(min(y) - 0.5 * sample_range,
-                              max(y) + 0.5 * sample_range, 1000)
+
+            if self.ind is None:
+                ind = np.linspace(min(y) - 0.5 * sample_range,
+                                  max(y) + 0.5 * sample_range, 1000)
+            else:
+                ind = self.ind
+
             ax.set_ylabel("Density")
 
             y = gkde.evaluate(ind)
