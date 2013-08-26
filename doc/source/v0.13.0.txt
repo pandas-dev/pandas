@@ -129,6 +129,17 @@ Enhancements
   - Added a more informative error message when plot arguments contain
     overlapping color and style arguments (:issue:`4402`)
 
+  - NaN handing in get_dummies (:issue:`4446`) with `dummy_na`
+
+    .. ipython:: python
+       # previously, nan was erroneously counted as 2 here
+       # now it is not counted at all
+       get_dummies([1, 2, np.nan])
+
+       # unless requested
+       get_dummies([1, 2, np.nan], dummy_na=True)
+
+
   - ``timedelta64[ns]`` operations
 
     - A Series of dtype ``timedelta64[ns]`` can now be divided by another

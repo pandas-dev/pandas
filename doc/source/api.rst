@@ -126,6 +126,13 @@ Data manipulations
    merge
    concat
 
+.. currentmodule:: pandas.core.reshape
+
+.. autosummary::
+   :toctree: generated/
+
+   get_dummies
+
 Top-level missing data
 ~~~~~~~~~~~~~~~~~~~~~~
 

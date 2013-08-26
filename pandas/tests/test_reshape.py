@@ -7,13 +7,15 @@ import unittest
 
 import nose
 
-from pandas import DataFrame
+from pandas import DataFrame, Series
 import pandas as pd
 
 from numpy import nan
 import numpy as np
 
-from pandas.core.reshape import melt, convert_dummies, lreshape
+from pandas.util.testing import assert_frame_equal
+
+from pandas.core.reshape import melt, convert_dummies, lreshape, get_dummies
 import pandas.util.testing as tm
 from pandas.compat import StringIO, cPickle, range
 
@@ -143,6 +145,60 @@ class TestMelt(unittest.TestCase):
     def test_multiindex(self):
         res = pd.melt(self.df1)
         self.assertEqual(res.columns.tolist(), ['CAP', 'low', 'value'])
+
+
+class TestGetDummies(unittest.TestCase):
+    def test_basic(self):
+        s_list = list('abc')
+        s_series = Series(s_list)
+        s_series_index = Series(s_list, list('ABC'))
+
+        expected = DataFrame({'a': {0: 1.0, 1: 0.0, 2: 0.0},
+                              'b': {0: 0.0, 1: 1.0, 2: 0.0},
+                              'c': {0: 0.0, 1: 0.0, 2: 1.0}})
+        assert_frame_equal(get_dummies(s_list), expected)
+        assert_frame_equal(get_dummies(s_series), expected)
+
+        expected.index = list('ABC')
+        assert_frame_equal(get_dummies(s_series_index), expected)
+
+    def test_just_na(self):
+        just_na_list = [np.nan]
+        just_na_series = Series(just_na_list)
+        just_na_series_index = Series(just_na_list, index = ['A'])
+
+        res_list = get_dummies(just_na_list)
+        res_series = get_dummies(just_na_series)
+        res_series_index = get_dummies(just_na_series_index)
+
+        self.assertEqual(res_list.empty, True)
+        self.assertEqual(res_series.empty, True)
+        self.assertEqual(res_series_index.empty, True)
+
+        self.assertEqual(res_list.index.tolist(), [0])
+        self.assertEqual(res_series.index.tolist(), [0])
+        self.assertEqual(res_series_index.index.tolist(), ['A'])
+
+    def test_include_na(self):
+        s = ['a', 'b', np.nan]
+        res = get_dummies(s)
+        exp = DataFrame({'a': {0: 1.0, 1: 0.0, 2: 0.0},
+                         'b': {0: 0.0, 1: 1.0, 2: 0.0}})
+        assert_frame_equal(res, exp)
+
+        res_na = get_dummies(s, dummy_na=True)
+        exp_na = DataFrame({nan: {0: 0.0, 1: 0.0, 2: 1.0},
+                            'a': {0: 1.0, 1: 0.0, 2: 0.0},
+                            'b': {0: 0.0, 1: 1.0, 2: 0.0}}).iloc[:, [1, 2, 0]]
+        # hack (NaN handling in assert_index_equal)
+        exp_na.columns = res_na.columns
+        assert_frame_equal(res_na, exp_na)
+
+        res_just_na = get_dummies([nan], dummy_na=True)
+        exp_just_na = DataFrame({nan: {0: 1.0}})
+        # hack (NaN handling in assert_index_equal)
+        exp_just_na.columns = res_just_na.columns
+        assert_frame_equal(res_just_na, exp_just_na)
 
 
 class TestConvertDummies(unittest.TestCase):
