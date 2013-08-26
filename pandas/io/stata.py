@@ -24,7 +24,7 @@ from pandas import compat
 from pandas.compat import StringIO, long, lrange, lmap, lzip
 from pandas import isnull
 from pandas.io.parsers import _parser_params, Appender
-from pandas.io.common import get_filepath_or_buffer
+from pandas.io.common import get_filepath_or_buffer, maybe_read_encoded_stream
 
 
 _read_stata_doc = """
@@ -203,11 +203,10 @@ class StataMissingValue(StringMixin):
 
 
 class StataParser(object):
-    def __init__(self, encoding):
-        if(encoding is None):
-            self._encoding = 'cp1252'
-        else:
-            self._encoding = encoding
+    _default_encoding = 'cp1252'
+
+    def __init__(self, encoding=None):
+        self._encoding = encoding
 
         #type          code.
         #--------------------
@@ -256,7 +255,7 @@ class StataParser(object):
             }
 
     def _decode_bytes(self, str, errors=None):
-        if compat.PY3:
+        if compat.PY3 or self._encoding is not None:
             return str.decode(self._encoding, errors)
         else:
             return str
@@ -286,7 +285,8 @@ class StataReader(StataParser):
         Encoding used to parse the files. Note that Stata doesn't
         support unicode. None defaults to cp1252.
     """
-    def __init__(self, path_or_buf, encoding=None):
+
+    def __init__(self, path_or_buf, encoding='cp1252'):
         super(StataReader, self).__init__(encoding)
         self.col_sizes = ()
         self._has_string_data = False
@@ -295,8 +295,6 @@ class StataReader(StataParser):
         self._value_labels_read = False
         if isinstance(path_or_buf, str):
             path_or_buf, encoding = get_filepath_or_buffer(path_or_buf, encoding='cp1252')
-            if encoding is not None:
-                self._encoding = encoding
 
         if isinstance(path_or_buf, (str, compat.text_type, bytes)):
             self.path_or_buf = open(path_or_buf, 'rb')
@@ -403,13 +401,13 @@ class StataReader(StataParser):
         return d
 
     def _null_terminate(self, s):
-        if compat.PY3:  # have bytes not strings, so must decode
+        if compat.PY3 or self._encoding is not None:  # have bytes not strings, so must decode
             null_byte = b"\0"
             try:
                 s = s[:s.index(null_byte)]
             except:
                 pass
-            return s.decode(self._encoding)
+            return s.decode(self._encoding or self._default_encoding)
         else:
             null_byte = "\0"
             try:
@@ -744,7 +742,7 @@ class StataWriter(StataParser):
         if byteorder is None:
             byteorder = sys.byteorder
         self._byteorder = _set_endianness(byteorder)
-        self._file = _open_file_binary_write(fname, self._encoding)
+        self._file = _open_file_binary_write(fname, self._encoding or self._default_encoding)
         self.type_converters = {253: np.long, 252: int}
 
     def _write(self, to_write):
@@ -752,7 +750,7 @@ class StataWriter(StataParser):
         Helper to call encode before writing to file for Python 3 compat.
         """
         if compat.PY3:
-            self._file.write(to_write.encode(self._encoding))
+            self._file.write(to_write.encode(self._encoding or self._default_encoding))
         else:
             self._file.write(to_write)
 
