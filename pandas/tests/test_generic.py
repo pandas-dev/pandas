@@ -129,6 +129,31 @@ class TestSeries(unittest.TestCase, Generic):
                    index=MultiIndex.from_tuples([("A",x) for x in ["a","B","c"]]))
         result = s.rename(str.lower)
 
+    def test_get_numeric_data_preserve_dtype(self):
+
+        # get the numeric data
+        o = Series([1,2,3])
+        result = o._get_numeric_data()
+        self._compare(result, o)
+
+        o = Series([1,'2',3.])
+        result = o._get_numeric_data()
+        expected = Series([],dtype=object)
+        self._compare(result, expected)
+
+        o = Series([True,False,True])
+        result = o._get_numeric_data()
+        self._compare(result, o)
+
+        o = Series([True,False,True])
+        result = o._get_bool_data()
+        self._compare(result, o)
+
+        o = Series(date_range('20130101',periods=3))
+        result = o._get_numeric_data()
+        expected = Series([],dtype='M8[ns]')
+        self._compare(result, expected)
+
 class TestDataFrame(unittest.TestCase, Generic):
     _typ = DataFrame
     _comparator = lambda self, x, y: assert_frame_equal(x,y)
@@ -137,6 +162,14 @@ class TestDataFrame(unittest.TestCase, Generic):
         df = DataFrame([11,21,31],
                        index=MultiIndex.from_tuples([("A",x) for x in ["a","B","c"]]))
         result = df.rename(str.lower)
+
+    def test_get_numeric_data_preserve_dtype(self):
+
+        # get the numeric data
+        o = DataFrame({'A' : [1,'2',3.] })
+        result = o._get_numeric_data()
+        expected = DataFrame(index=[0,1,2],dtype=object)
+        self._compare(result, expected)
 
 class TestPanel(unittest.TestCase, Generic):
     _typ = Panel
