@@ -283,6 +283,7 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
     in csv_import (:issue:`4322`)
   - Fix an issue with CacheableOffset not properly being used by many DateOffset; this prevented
     the DateOffset from being cached (:issue:`4609`)
+  - Fix boolean comparison with a DataFrame on the lhs, and a list/tuple on the rhs (:issue:`4576`)
 
 pandas 0.12
 ===========

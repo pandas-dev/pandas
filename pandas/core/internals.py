@@ -723,29 +723,65 @@ class Block(PandasObject):
         # make sure that we can broadcast
         is_transposed = False
         if hasattr(other, 'ndim') and hasattr(values, 'ndim'):
-            if values.ndim != other.ndim or values.shape == other.shape[::-1]:
-                values = values.T
-                is_transposed = True
+            if values.ndim != other.ndim:
+                    is_transposed = True
+            else:
+                if values.shape == other.shape[::-1]:
+                    is_transposed = True
+                elif values.shape[0] == other.shape[-1]:
+                    is_transposed = True
+                else:
+                    # this is a broadcast error heree
+                    raise ValueError("cannot broadcast shape [%s] with block values [%s]"
+                                     % (values.T.shape,other.shape))
 
-        values, other = self._try_coerce_args(values, other)
-        args = [values, other]
-        try:
-            result = self._try_coerce_result(func(*args))
-        except (Exception) as detail:
+        transf = (lambda x: x.T) if is_transposed else (lambda x: x)
+
+        # coerce/transpose the args if needed
+        values, other = self._try_coerce_args(transf(values), other)
+
+        # get the result, may need to transpose the other
+        def get_result(other):
+            return self._try_coerce_result(func(values, other))
+
+        # error handler if we have an issue operating with the function
+        def handle_error():
+
             if raise_on_error:
-                raise TypeError('Could not operate [%s] with block values [%s]'
+                raise TypeError('Could not operate %s with block values %s'
                                 % (repr(other), str(detail)))
             else:
                 # return the values
                 result = np.empty(values.shape, dtype='O')
                 result.fill(np.nan)
+                return result
 
+        # get the result
+        try:
+            result = get_result(other)
+
+        # if we have an invalid shape/broadcast error
+        # GH4576, so raise instead of allowing to pass thru
+        except (ValueError) as detail:
+            raise
+        except (Exception) as detail:
+            result = handle_error()
+
+        # technically a broadcast error in numpy can 'work' by returning a boolean False
         if not isinstance(result, np.ndarray):
-            raise TypeError('Could not compare [%s] with block values'
-                            % repr(other))
+            if not isinstance(result, np.ndarray):
 
-        if is_transposed:
-            result = result.T
+                # differentiate between an invalid ndarray-ndarray comparsion and
+                # an invalid type comparison
+                if isinstance(values, np.ndarray) and is_list_like(other):
+                    raise ValueError('Invalid broadcasting comparison [%s] with block values'
+                                     % repr(other))
+
+                raise TypeError('Could not compare [%s] with block values'
+                                % repr(other))
+
+        # transpose if needed
+        result = transf(result)
 
         # try to cast if requested
         if try_cast:
