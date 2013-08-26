@@ -4709,6 +4709,75 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         self.assertRaises(TypeError, df.__eq__, None)
 
+    def test_boolean_comparison(self):
+
+        # GH 4576
+        # boolean comparisons with a tuple/list give unexpected results
+        df = DataFrame(np.arange(6).reshape((3,2)))
+        b = np.array([2, 2])
+        b_r = np.atleast_2d([2,2])
+        b_c = b_r.T
+        l = (2,2,2)
+        tup = tuple(l)
+
+        # gt
+        expected = DataFrame([[False,False],[False,True],[True,True]])
+        result = df>b
+        assert_frame_equal(result,expected)
+
+        result = df.values>b
+        assert_array_equal(result,expected.values)
+
+        result = df>l
+        assert_frame_equal(result,expected)
+
+        result = df>tup
+        assert_frame_equal(result,expected)
+
+        result = df>b_r
+        assert_frame_equal(result,expected)
+
+        result = df.values>b_r
+        assert_array_equal(result,expected.values)
+
+        self.assertRaises(ValueError, df.__gt__, b_c)
+        self.assertRaises(ValueError, df.values.__gt__, b_c)
+
+        # ==
+        expected = DataFrame([[False,False],[True,False],[False,False]])
+        result = df == b
+        assert_frame_equal(result,expected)
+
+        result = df==l
+        assert_frame_equal(result,expected)
+
+        result = df==tup
+        assert_frame_equal(result,expected)
+
+        result = df == b_r
+        assert_frame_equal(result,expected)
+
+        result = df.values == b_r
+        assert_array_equal(result,expected.values)
+
+        self.assertRaises(ValueError, lambda : df == b_c)
+        self.assert_((df.values == b_c) is False)
+
+        # with alignment
+        df = DataFrame(np.arange(6).reshape((3,2)),columns=list('AB'),index=list('abc'))
+        expected.index=df.index
+        expected.columns=df.columns
+
+        result = df==l
+        assert_frame_equal(result,expected)
+
+        result = df==tup
+        assert_frame_equal(result,expected)
+
+        # not shape compatible
+        self.assertRaises(ValueError, lambda : df == (2,2))
+        self.assertRaises(ValueError, lambda : df == [2,2])
+
     def test_to_csv_deprecated_options(self):
 
         pname = '__tmp_to_csv_deprecated_options__'
