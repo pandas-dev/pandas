@@ -367,7 +367,7 @@ class TestFred(unittest.TestCase):
 
         self.assertEquals(
             web.DataReader("GDP", "fred", start, end)['GDP'].tail(1),
-            15984.1)
+            16535.3)
 
         self.assertRaises(Exception, web.DataReader, "NON EXISTENT SERIES",
                           'fred', start, end)
