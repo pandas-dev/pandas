@@ -159,9 +159,7 @@ def write_frame(frame, name, con=None, flavor='sqlite', if_exists='fail', engine
         append: If table exists, insert data. Create if does not exist.
     """
     pandas_sql = PandasSQL(con=con, engine=engine)
-    pandas_sql.write_frame(
-        frame, name, flavor=flavor, if_exists=if_exists, **kwargs)
-
+    pandas_sql.write_frame(frame, name, flavor=flavor, if_exists=if_exists, **kwargs)
 
 # This is an awesome function
 def _engine_read_table_name(table_name, engine, meta=None, index_col=None):
@@ -182,7 +180,6 @@ def _engine_read_table_name(table_name, engine, meta=None, index_col=None):
         return PandasSQLWithEngine(engine=engine).read_sql(sql_select, index_col=index_col)
     else:
         raise ValueError("Table %s not found with %s." % table_name, engine)
-
 
 #------------------------------------------------------------------------------
 # Helper connection functions
@@ -356,8 +353,12 @@ class PandasSQL(PandasObject):
         column_types = lzip(safe_columns, map(lookup_type, frame.dtypes))
         if flavor == 'sqlite':
             columns = ',\n  '.join('[%s] %s' % x for x in column_types)
+        elif flavor == 'mysql':
+             columns = ',\n  '.join('`%s` %s' % x for x in column_types)
+        elif flavor == 'postgres':
+            columns = ',\n  '.join('%s %s' % x for x in column_types)
         else:
-            columns = ',\n  '.join('`%s` %s' % x for x in column_types)
+            raise ValueError("Don't have a template for that database flavor.")
 
         keystr = ''
         if keys is not None:
@@ -406,28 +407,34 @@ class PandasSQL(PandasObject):
     @staticmethod
     def _get_sqltype(pytype, flavor):
         sqltype = {'mysql': 'VARCHAR (63)',
-                   'sqlite': 'TEXT'}
+                   'sqlite': 'TEXT',
+                   'postgres': 'text'}
 
         if issubclass(pytype, np.floating):
             sqltype['mysql'] = 'FLOAT'
             sqltype['sqlite'] = 'REAL'
+            sqltype['postgres'] = 'real'
 
         if issubclass(pytype, np.integer):
             # TODO: Refine integer size.
             sqltype['mysql'] = 'BIGINT'
             sqltype['sqlite'] = 'INTEGER'
+            sqltype['postgres'] = 'integer'
 
         if issubclass(pytype, np.datetime64) or pytype is datetime:
             # Caution: np.datetime64 is also a subclass of np.number.
             sqltype['mysql'] = 'DATETIME'
             sqltype['sqlite'] = 'TIMESTAMP'
+            sqltype['postgres'] = 'timestamp'
 
         if pytype is datetime.date:
             sqltype['mysql'] = 'DATE'
             sqltype['sqlite'] = 'TIMESTAMP'
+            sqltype['postgres'] = 'date'
 
         if issubclass(pytype, np.bool_):
             sqltype['sqlite'] = 'INTEGER'
+            sqltype['postgres'] = 'boolean'
 
         return sqltype[flavor]
 
