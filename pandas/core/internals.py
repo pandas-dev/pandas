@@ -564,6 +564,10 @@ class Block(PandasObject):
             mask = mask.reindex_axis(
                 self.items, axis=axis, copy=False).values.T
 
+        # if we are passed a scalar None, convert it here
+        if not is_list_like(new) and isnull(new):
+            new = np.nan
+
         if self._can_hold_element(new):
             new = self._try_cast(new)
             np.putmask(new_values, mask, new)
@@ -578,7 +582,7 @@ class Block(PandasObject):
                 """ return a new block, try to preserve dtype if possible """
 
                 # n should the length of the mask or a scalar here
-                if np.isscalar(n):
+                if not is_list_like(n):
                     n = np.array([n] * len(m))
 
                 # see if we are only masking values that if putted

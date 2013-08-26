@@ -7867,6 +7867,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected.loc[[0,1],'A'] = np.nan
         assert_frame_equal(result,expected)
 
+    def test_where_none(self):
+        # GH 4667
+        # setting with None changes dtype
+        df = DataFrame({'series': Series(range(10))}).astype(float)
+        df[df > 7] = None
+        expected = DataFrame({'series': Series([0,1,2,3,4,5,6,7,np.nan,np.nan]) })
+        assert_frame_equal(df, expected)
+
     def test_mask(self):
         df = DataFrame(np.random.randn(5, 3))
         cond = df > 0
