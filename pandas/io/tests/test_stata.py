@@ -13,7 +13,7 @@ from pandas.io.parsers import read_csv
 from pandas.io.stata import read_stata, StataReader
 import pandas.util.testing as tm
 from pandas.util.misc import is_little_endian
-
+from pandas import compat
 
 class StataTests(unittest.TestCase):
 
@@ -32,6 +32,7 @@ class StataTests(unittest.TestCase):
         self.csv8 = os.path.join(self.dirpath, 'tbl19-3.csv')
         self.dta9 = os.path.join(self.dirpath, 'lbw.dta')
         self.csv9 = os.path.join(self.dirpath, 'lbw.csv')
+        self.dta_encoding = os.path.join(self.dirpath, 'stata1_encoding.dta')
 
     def read_dta(self, file):
         return read_stata(file, convert_dates=True)
@@ -202,6 +203,21 @@ class StataTests(unittest.TestCase):
             df = DataFrame(np.random.randn(10, 2), columns=list('AB'))
             df.to_stata(path)
 
+    def test_encoding(self):
+
+        # GH 4626, proper encoding handling
+        raw = read_stata(self.dta_encoding)
+        encoded = read_stata(self.dta_encoding, encoding="latin-1")
+        result = encoded.kreis1849[0]
+
+        if compat.PY3:
+            expected = raw.kreis1849[0]
+            self.assert_(result == expected)
+            self.assert_(isinstance(result,compat.string_types))
+        else:
+            expected = raw.kreis1849.str.decode("latin-1")[0]
+            self.assert_(result == expected)
+            self.assert_(isinstance(result,unicode))
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
