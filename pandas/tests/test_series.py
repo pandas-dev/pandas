@@ -2445,6 +2445,38 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected[0] = np.nan
         assert_series_equal(result,expected)
 
+        # bfill
+        td[2] = np.nan
+        result = td.bfill()
+        expected = td.fillna(0)
+        expected[2] = timedelta(days=1,seconds=9*3600+60+1)
+        assert_series_equal(result,expected)
+
+    def test_datetime64_fillna(self):
+
+        s = Series([Timestamp('20130101'),Timestamp('20130101'),Timestamp('20130102'),Timestamp('20130103 9:01:01')])
+        s[2] = np.nan
+
+        # reg fillna
+        result = s.fillna(Timestamp('20130104'))
+        expected = Series([Timestamp('20130101'),Timestamp('20130101'),Timestamp('20130104'),Timestamp('20130103 9:01:01')])
+        assert_series_equal(result,expected)
+
+        from pandas import tslib
+        result = s.fillna(tslib.NaT)
+        expected = s
+        assert_series_equal(result,expected)
+
+        # ffill
+        result = s.ffill()
+        expected = Series([Timestamp('20130101'),Timestamp('20130101'),Timestamp('20130101'),Timestamp('20130103 9:01:01')])
+        assert_series_equal(result,expected)
+
+        # bfill
+        result = s.bfill()
+        expected = Series([Timestamp('20130101'),Timestamp('20130101'),Timestamp('20130103 9:01:01'),Timestamp('20130103 9:01:01')])
+        assert_series_equal(result,expected)
+
     def test_sub_of_datetime_from_TimeSeries(self):
         from pandas.core import common as com
         from datetime import datetime

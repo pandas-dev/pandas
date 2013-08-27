@@ -67,8 +67,9 @@ pandas 0.13
   - A Series of dtype ``timedelta64[ns]`` can now be divided by another
     ``timedelta64[ns]`` object to yield a ``float64`` dtyped Series. This
     is frequency conversion.
-  - Timedeltas support ``fillna`` with an integer interpreted as seconds,
+  - Timedelta64 support ``fillna/ffill/bfill`` with an integer interpreted as seconds,
     or a ``timedelta`` (:issue:`3371`)
+  - Datetime64 support ``ffill/bfill``
   - Performance improvements with ``__getitem__`` on ``DataFrames`` with
     when the key is a column
   - Support for using a ``DatetimeIndex/PeriodsIndex`` directly in a datelike calculation
