@@ -733,7 +733,8 @@ Note the same result could have been achieved using :ref:`fillna
 
    ts2.reindex(ts.index).fillna(method='ffill')
 
-Note that this method does not check the order of the index.
+Note that ``reindex`` will raise a ValueError if the index is not
+monotonic. ``fillna`` will not make any checks on the order of the index.
 
 .. _basics.drop:
 
