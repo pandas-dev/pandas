@@ -205,6 +205,9 @@ To remind you, these are the available filling methods:
 With time series data, using pad/ffill is extremely common so that the "last
 known value" is available at every time point.
 
+The ``ffill()`` function is equivalent to ``fillna(method='ffill')``
+and ``bfill()`` is equivalent to ``fillna(method='bfill')``
+
 .. _missing_data.dropna:
 
 Dropping axis labels with missing data: dropna
