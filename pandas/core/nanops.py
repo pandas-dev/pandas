@@ -287,8 +287,7 @@ def nanmin(values, axis=None, skipna=True):
     values, mask, dtype = _get_values(values, skipna, fill_value_typ = '+inf')
 
     # numpy 1.6.1 workaround in Python 3.x
-    if (values.dtype == np.object_
-            and sys.version_info[0] >= 3):  # pragma: no cover
+    if (values.dtype == np.object_ and compat.PY3):
         if values.ndim > 1:
             apply_ax = axis if axis is not None else 0
             result = np.apply_along_axis(builtins.min, apply_ax, values)
@@ -311,8 +310,7 @@ def nanmax(values, axis=None, skipna=True):
     values, mask, dtype = _get_values(values, skipna, fill_value_typ ='-inf')
 
     # numpy 1.6.1 workaround in Python 3.x
-    if (values.dtype == np.object_
-            and sys.version_info[0] >= 3):  # pragma: no cover
+    if (values.dtype == np.object_ and compat.PY3):
 
         if values.ndim > 1:
             apply_ax = axis if axis is not None else 0

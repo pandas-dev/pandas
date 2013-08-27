@@ -480,6 +480,9 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
                 seen_object = 1
                 # objects[i] = val.astype('O')
                 break
+        elif util.is_timedelta64_object(val):
+            seen_object = 1
+            break
         elif util.is_integer_object(val):
             seen_int = 1
             floats[i] = <float64_t> val

@@ -4277,16 +4277,14 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
     def test_reindex_pad(self):
 
-        s = Series(np.arange(10), np.arange(10))
+        s = Series(np.arange(10))
         s2 = s[::2]
 
         reindexed = s2.reindex(s.index, method='pad')
         reindexed2 = s2.reindex(s.index, method='ffill')
         assert_series_equal(reindexed, reindexed2)
 
-        # used platform int above, need to pass int explicitly here per #1219
-        expected = Series([0, 0, 2, 2, 4, 4, 6, 6, 8, 8], dtype=int,
-                          index=np.arange(10))
+        expected = Series([0, 0, 2, 2, 4, 4, 6, 6, 8, 8], index=np.arange(10))
         assert_series_equal(reindexed, expected)
 
         # GH4604
@@ -4696,7 +4694,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(s, ser)
 
     def test_replace_mixed_types(self):
-        s = Series(np.arange(5))
+        s = Series(np.arange(5),dtype='int64')
 
         def check_replace(to_rep, val, expected):
             sc = s.copy()

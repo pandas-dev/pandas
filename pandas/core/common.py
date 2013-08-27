@@ -705,6 +705,54 @@ def diff(arr, n, axis=0):
     return out_arr
 
 
+def _coerce_scalar_to_timedelta_type(r):
+    # kludgy here until we have a timedelta scalar
+    # handle the numpy < 1.7 case
+
+    if is_integer(r):
+        r = timedelta(microseconds=r/1000)
+
+    if _np_version_under1p7:
+        if not isinstance(r, timedelta):
+            raise AssertionError("Invalid type for timedelta scalar: %s" % type(r))
+        if compat.PY3:
+            # convert to microseconds in timedelta64
+            r = np.timedelta64(int(r.total_seconds()*1e9 + r.microseconds*1000))
+        else:
+            return r
+
+    if isinstance(r, timedelta):
+        r = np.timedelta64(r)
+    elif not isinstance(r, np.timedelta64):
+        raise AssertionError("Invalid type for timedelta scalar: %s" % type(r))
+    return r.astype('timedelta64[ns]')
+
+def _coerce_to_dtypes(result, dtypes):
+    """ given a dtypes and a result set, coerce the result elements to the dtypes """
+    if len(result) != len(dtypes):
+        raise AssertionError("_coerce_to_dtypes requires equal len arrays")
+
+    def conv(r,dtype):
+        try:
+            if isnull(r):
+                pass
+            elif dtype == _NS_DTYPE:
+                r = Timestamp(r)
+            elif dtype == _TD_DTYPE:
+                r = _coerce_scalar_to_timedelta_type(r)
+            elif dtype == np.bool_:
+                r = bool(r)
+            elif dtype.kind == 'f':
+                r = float(r)
+            elif dtype.kind == 'i':
+                r = int(r)
+        except:
+            pass
+
+        return r
+
+    return np.array([ conv(r,dtype) for r, dtype in zip(result,dtypes) ])
+
 def _infer_dtype_from_scalar(val):
     """ interpret the dtype from a scalar, upcast floats and ints
         return the new value and the dtype """
@@ -1288,7 +1336,7 @@ def _possibly_cast_to_timedelta(value, coerce=True):
     # coercion compatability
     if coerce == 'compat' and _np_version_under1p7:
 
-        def convert(td, type):
+        def convert(td, dtype):
 
             # we have an array with a non-object dtype
             if hasattr(td,'item'):
@@ -1317,6 +1365,7 @@ def _possibly_cast_to_timedelta(value, coerce=True):
         # < 1.7 coercion
         if not is_list_like(value):
             value = np.array([ value ])
+
         dtype = value.dtype
         return np.array([ convert(v,dtype) for v in value ], dtype='m8[ns]')
 

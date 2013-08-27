@@ -1021,6 +1021,7 @@ class IntBlock(NumericBlock):
 class TimeDeltaBlock(IntBlock):
     is_timedelta = True
     _can_hold_na = True
+    is_numeric = False
 
     def _try_fill(self, value):
         """ if we are a NaT, return the actual fill value """
