@@ -2063,7 +2063,7 @@ class DataFrame(NDFrame):
     def _series(self):
         return self._data.get_series_dict()
 
-    def xs(self, key, axis=0, level=None, copy=True):
+    def xs(self, key, axis=0, level=None, copy=True, drop_level=True):
         """
         Returns a cross-section (row(s) or column(s)) from the DataFrame.
         Defaults to cross-section on the rows (axis=0).
@@ -2079,6 +2079,8 @@ class DataFrame(NDFrame):
             which levels are used. Levels can be referred by label or position.
         copy : boolean, default True
             Whether to make a copy of the data
+        drop_level, default True
+            If False, returns object with same levels as self.
 
         Examples
         --------
@@ -2130,11 +2132,13 @@ class DataFrame(NDFrame):
         Returns
         -------
         xs : Series or DataFrame
+
         """
         axis = self._get_axis_number(axis)
         labels = self._get_axis(axis)
         if level is not None:
-            loc, new_ax = labels.get_loc_level(key, level=level)
+            loc, new_ax = labels.get_loc_level(key, level=level,
+                                    drop_level=drop_level)
 
             if not copy and not isinstance(loc, slice):
                 raise ValueError('Cannot retrieve view (copy=False)')
@@ -2168,7 +2172,8 @@ class DataFrame(NDFrame):
 
         index = self.index
         if isinstance(index, MultiIndex):
-            loc, new_index = self.index.get_loc_level(key)
+            loc, new_index = self.index.get_loc_level(key,
+                                    drop_level=drop_level)
         else:
             loc = self.index.get_loc(key)
 

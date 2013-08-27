@@ -2560,7 +2560,7 @@ class MultiIndex(Index):
         else:
             return self._get_level_indexer(key, level=0)
 
-    def get_loc_level(self, key, level=0):
+    def get_loc_level(self, key, level=0, drop_level=True):
         """
         Get integer location slice for requested label or tuple
 
@@ -2572,7 +2572,9 @@ class MultiIndex(Index):
         -------
         loc : int or slice object
         """
-        def _drop_levels(indexer, levels):
+        def _maybe_drop_levels(indexer, levels, drop_level):
+            if not drop_level:
+                return self[indexer]
             # kludgearound
             new_index = self[indexer]
             levels = [self._get_level_number(i) for i in levels]
@@ -2593,7 +2595,8 @@ class MultiIndex(Index):
                     loc = mask
 
                 result = loc if result is None else result & loc
-            return result, _drop_levels(result, level)
+
+            return result, _maybe_drop_levels(result, level, drop_level)
 
         level = self._get_level_number(level)
 
@@ -2606,7 +2609,7 @@ class MultiIndex(Index):
             try:
                 if key in self.levels[0]:
                     indexer = self._get_level_indexer(key, level=level)
-                    new_index = _drop_levels(indexer, [0])
+                    new_index = _maybe_drop_levels(indexer, [0], drop_level)
                     return indexer, new_index
             except TypeError:
                 pass
@@ -2625,7 +2628,7 @@ class MultiIndex(Index):
                         raise KeyError(key)
                     ilevels = [i for i in range(len(key))
                                if key[i] != slice(None, None)]
-                    return indexer, _drop_levels(indexer, ilevels)
+                    return indexer, _maybe_drop_levels(indexer, ilevels, drop_level)
             else:
                 indexer = None
                 for i, k in enumerate(key):
@@ -2652,10 +2655,10 @@ class MultiIndex(Index):
                     indexer = slice(None, None)
                 ilevels = [i for i in range(len(key))
                            if key[i] != slice(None, None)]
-                return indexer, _drop_levels(indexer, ilevels)
+                return indexer, _maybe_drop_levels(indexer, ilevels, drop_level)
         else:
             indexer = self._get_level_indexer(key, level=level)
-            new_index = _drop_levels(indexer, [level])
+            new_index = _maybe_drop_levels(indexer, [level], drop_level)
             return indexer, new_index
 
     def _get_level_indexer(self, key, level=0):

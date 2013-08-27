@@ -55,6 +55,7 @@ pandas 0.13
     overlapping color and style arguments (:issue:`4402`)
   - Significant table writing performance improvements in ``HDFStore``
   - JSON date serialisation now performed in low-level C code.
+  - Add ``drop_level`` argument to xs (:issue:`4180`)
   - ``Index.copy()`` and ``MultiIndex.copy()`` now accept keyword arguments to
     change attributes (i.e., ``names``, ``levels``, ``labels``)
     (:issue:`4039`)
