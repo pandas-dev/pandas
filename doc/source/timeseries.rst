@@ -1195,6 +1195,15 @@ issues). ``idxmin, idxmax`` are supported as well.
    df.min().idxmax()
    df.min(axis=1).idxmin()
 
+You can fillna on timedeltas. Integers will be interpreted as seconds. You can
+pass a timedelta to get a particular value.
+
+.. ipython:: python
+
+   y.fillna(0)
+   y.fillna(10)
+   y.fillna(timedelta(days=-1,seconds=5))
+
 .. _timeseries.timedeltas_convert:
 
 Time Deltas & Conversions

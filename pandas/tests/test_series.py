@@ -2405,6 +2405,46 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = Series([timedelta(1)], dtype='timedelta64[ns]')
         assert_series_equal(result, expected)
 
+    def test_timedelta_fillna(self):
+        if com._np_version_under1p7:
+            raise nose.SkipTest("timedelta broken in np 1.6.1")
+
+        #GH 3371
+        from datetime import timedelta
+
+        s = Series([Timestamp('20130101'),Timestamp('20130101'),Timestamp('20130102'),Timestamp('20130103 9:01:01')])
+        td = s.diff()
+
+        # reg fillna
+        result = td.fillna(0)
+        expected = Series([timedelta(0),timedelta(0),timedelta(1),timedelta(days=1,seconds=9*3600+60+1)])
+        assert_series_equal(result,expected)
+
+        # interprested as seconds
+        result = td.fillna(1)
+        expected = Series([timedelta(seconds=1),timedelta(0),timedelta(1),timedelta(days=1,seconds=9*3600+60+1)])
+        assert_series_equal(result,expected)
+
+        result = td.fillna(timedelta(days=1,seconds=1))
+        expected = Series([timedelta(days=1,seconds=1),timedelta(0),timedelta(1),timedelta(days=1,seconds=9*3600+60+1)])
+        assert_series_equal(result,expected)
+
+        result = td.fillna(np.timedelta64(int(1e9)))
+        expected = Series([timedelta(seconds=1),timedelta(0),timedelta(1),timedelta(days=1,seconds=9*3600+60+1)])
+        assert_series_equal(result,expected)
+
+        from pandas import tslib
+        result = td.fillna(tslib.NaT)
+        expected = Series([tslib.NaT,timedelta(0),timedelta(1),timedelta(days=1,seconds=9*3600+60+1)],dtype='m8[ns]')
+        assert_series_equal(result,expected)
+
+        # ffill
+        td[2] = np.nan
+        result = td.ffill()
+        expected = td.fillna(0)
+        expected[0] = np.nan
+        assert_series_equal(result,expected)
+
     def test_sub_of_datetime_from_TimeSeries(self):
         from pandas.core import common as com
         from datetime import datetime
