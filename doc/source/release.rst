@@ -46,6 +46,8 @@ pandas 0.13
     the index of the sheet to read in (:issue:`4301`).
   - ``get_dummies`` works with NaN (:issue:`4446`)
   - Added a test for ``read_clipboard()`` and ``to_clipboard()`` (:issue:`4282`)
+  - Added bins argument to ``value_counts`` (:issue:`3945`), also sort and
+  ascending, now available in Series method as well as top-level function.
   - Text parser now treats anything that reads like inf ("inf", "Inf", "-Inf",
     "iNf", etc.) to infinity. (:issue:`4220`, :issue:`4219`), affecting
     ``read_table``, ``read_csv``, etc.
