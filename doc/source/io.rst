@@ -2170,29 +2170,38 @@ multiple tables at once. The idea is to have one table (call it the
 selector table) that you index most/all of the columns, and perform your
 queries. The other table(s) are data tables with an index matching the
 selector table's index. You can then perform a very fast query
-on the selector table, yet get lots of data back. This method works similar to
-having a very wide table, but is more efficient in terms of queries.
+on the selector table, yet get lots of data back. This method is similar to
+having a very wide table, but enables more efficient queries.
 
-Note, **THE USER IS RESPONSIBLE FOR SYNCHRONIZING THE TABLES**. This
-means, append to the tables in the same order; ``append_to_multiple``
-splits a single object to multiple tables, given a specification (as a
-dictionary). This dictionary is a mapping of the table names to the
-'columns' you want included in that table. Pass a `None` for a single
-table (optional) to let it have the remaining columns. The argument
-``selector`` defines which table is the selector table.
+The ``append_to_multiple`` method splits a given single DataFrame
+into multiple tables according to ``d``, a dictionary that maps the
+table names to a list of 'columns' you want in that table. If `None`
+is used in place of a list, that table will have the remaining
+unspecified columns of the given DataFrame. The argument ``selector``
+defines which table is the selector table (which you can make queries from).
+The argument ``dropna`` will drop rows from the input DataFrame to ensure
+tables are synchronized.  This means that if a row for one of the tables
+being written to is entirely ``np.NaN``, that row will be dropped from all tables.
+
+If ``dropna`` is False, **THE USER IS RESPONSIBLE FOR SYNCHRONIZING THE TABLES**.
+Remember that entirely ``np.Nan`` rows are not written to the HDFStore, so if
+you choose to call ``dropna=False``, some tables may have more rows than others,
+and therefore ``select_as_multiple`` may not work or it may return unexpected
+results.
 
 .. ipython:: python
 
    df_mt = DataFrame(randn(8, 6), index=date_range('1/1/2000', periods=8),
                                   columns=['A', 'B', 'C', 'D', 'E', 'F'])
    df_mt['foo'] = 'bar'
+   df_mt.ix[1, ('A', 'B')] = np.nan
 
    # you can also create the tables individually
    store.append_to_multiple({'df1_mt': ['A', 'B'], 'df2_mt': None },
                              df_mt, selector='df1_mt')
    store
 
-   # indiviual tables were created
+   # individual tables were created
    store.select('df1_mt')
    store.select('df2_mt')
 
@@ -2200,7 +2209,6 @@ table (optional) to let it have the remaining columns. The argument
    store.select_as_multiple(['df1_mt', 'df2_mt'], where=['A>0', 'B>0'],
                              selector = 'df1_mt')
 
-.. _io.hdf5-delete:
 
 Delete from a Table
 ~~~~~~~~~~~~~~~~~~~

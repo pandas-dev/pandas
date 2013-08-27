@@ -786,7 +786,7 @@ class HDFStore(StringMixin):
         kwargs = self._validate_format(format, kwargs)
         self._write_to_group(key, value, append=append, dropna=dropna, **kwargs)
 
-    def append_to_multiple(self, d, value, selector, data_columns=None, axes=None, **kwargs):
+    def append_to_multiple(self, d, value, selector, data_columns=None, axes=None, dropna=True, **kwargs):
         """
         Append to multiple tables
 
@@ -798,6 +798,9 @@ class HDFStore(StringMixin):
         selector : a string that designates the indexable table; all of its columns will
                    be designed as data_columns, unless data_columns is passed, in which
                    case these are used
+        data_columns : list of columns to create as data columns, or True to use all columns
+        dropna : if evaluates to True, drop rows from all tables if any single
+                 row in each table has all NaN
 
         Notes
         -----
@@ -839,6 +842,14 @@ class HDFStore(StringMixin):
         # data_columns
         if data_columns is None:
             data_columns = d[selector]
+
+        # ensure rows are synchronized across the tables
+        if dropna:
+            idxs = (value[cols].dropna(how='all').index for cols in d.values())
+            valid_index = next(idxs)
+            for index in idxs:
+                valid_index = valid_index.intersection(index)
+            value = value.ix[valid_index]
 
         # append
         for k, v in d.items():
