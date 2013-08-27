@@ -59,9 +59,177 @@ _np_version_under1p7 = LooseVersion(_np_version) < '1.7'
 
 _SHOW_WARNINGS = True
 
+class _TimeOp(object):
+    """
+    Wrapper around Series datetime/time/timedelta arithmetic operations.
+    Generally, you should use classmethod ``maybe_convert_for_time_op`` as an
+    entry point.
+    """
+    fill_value = tslib.iNaT
+    wrap_results = staticmethod(lambda x: x)
+    dtype = None
+
+    def __init__(self, left, right, name):
+        self.name = name
+
+        lvalues = self._convert_to_array(left, name=name)
+        rvalues = self._convert_to_array(right, name=name)
+
+        self.is_timedelta_lhs = com.is_timedelta64_dtype(left)
+        self.is_datetime_lhs  = com.is_datetime64_dtype(left)
+        self.is_integer_lhs = left.dtype.kind in ['i','u']
+        self.is_datetime_rhs  = com.is_datetime64_dtype(rvalues)
+        self.is_timedelta_rhs = com.is_timedelta64_dtype(rvalues) or (not self.is_datetime_rhs and _np_version_under1p7)
+        self.is_integer_rhs = rvalues.dtype.kind in ('i','u')
+
+        self._validate()
+
+        self._convert_for_datetime(lvalues, rvalues)
+
+    def _validate(self):
+        # timedelta and integer mul/div
+
+        if (self.is_timedelta_lhs and self.is_integer_rhs) or\
+           (self.is_integer_lhs and self.is_timedelta_rhs):
+
+            if self.name not in ('__truediv__','__div__','__mul__'):
+                raise TypeError("can only operate on a timedelta and an integer for "
+                                "division, but the operator [%s] was passed" % self.name)
+
+        # 2 datetimes
+        elif self.is_datetime_lhs and self.is_datetime_rhs:
+            if self.name != '__sub__':
+                raise TypeError("can only operate on a datetimes for subtraction, "
+                                "but the operator [%s] was passed" % self.name)
+
+
+        # 2 timedeltas
+        elif self.is_timedelta_lhs and self.is_timedelta_rhs:
+
+            if self.name not in ('__div__', '__truediv__', '__add__', '__sub__'):
+                raise TypeError("can only operate on a timedeltas for "
+                                "addition, subtraction, and division, but the operator [%s] was passed" % self.name)
+
+        # datetime and timedelta
+        elif self.is_datetime_lhs and self.is_timedelta_rhs:
+
+            if self.name not in ('__add__','__sub__'):
+                raise TypeError("can only operate on a datetime with a rhs of a timedelta for "
+                                "addition and subtraction, but the operator [%s] was passed" % self.name)
+
+        elif self.is_timedelta_lhs and self.is_datetime_rhs:
+
+            if self.name != '__add__':
+                raise TypeError("can only operate on a timedelta and a datetime for "
+                                "addition, but the operator [%s] was passed" % self.name)
+        else:
+            raise TypeError('cannot operate on a series with out a rhs '
+                            'of a series/ndarray of type datetime64[ns] '
+                            'or a timedelta')
+
+    def _convert_to_array(self, values, name=None):
+        """converts values to ndarray"""
+        coerce = 'compat' if _np_version_under1p7 else True
+        if not is_list_like(values):
+            values = np.array([values])
+        inferred_type = lib.infer_dtype(values)
+        if inferred_type in ('datetime64','datetime','date','time'):
+            # a datetlike
+            if not (isinstance(values, (pa.Array, Series)) and com.is_datetime64_dtype(values)):
+                values = tslib.array_to_datetime(values)
+            elif isinstance(values, DatetimeIndex):
+                values = values.to_series()
+        elif inferred_type in ('timedelta', 'timedelta64'):
+            # have a timedelta, convert to to ns here
+            values = com._possibly_cast_to_timedelta(values, coerce=coerce)
+        elif inferred_type == 'integer':
+            # py3 compat where dtype is 'm' but is an integer
+            if values.dtype.kind == 'm':
+                values = values.astype('timedelta64[ns]')
+            elif isinstance(values, PeriodIndex):
+                values = values.to_timestamp().to_series()
+            elif name not in ('__truediv__','__div__','__mul__'):
+                raise TypeError("incompatible type for a datetime/timedelta "
+                                "operation [{0}]".format(name))
+        elif isinstance(values[0],DateOffset):
+            # handle DateOffsets
+            os = pa.array([ getattr(v,'delta',None) for v in values ])
+            mask = isnull(os)
+            if mask.any():
+                raise TypeError("cannot use a non-absolute DateOffset in "
+                                "datetime/timedelta operations [{0}]".format(
+                                    ','.join([ com.pprint_thing(v) for v in values[mask] ])))
+            values = com._possibly_cast_to_timedelta(os, coerce=coerce)
+        else:
+            raise TypeError("incompatible type [{0}] for a datetime/timedelta operation".format(pa.array(values).dtype))
+
+        return values
+
+    def _convert_for_datetime(self, lvalues, rvalues):
+        mask = None
+        # datetimes require views
+        if self.is_datetime_lhs or self.is_datetime_rhs:
+            # datetime subtraction means timedelta
+            if self.is_datetime_lhs and self.is_datetime_rhs:
+                self.dtype = 'timedelta64[ns]'
+            else:
+                self.dtype = 'datetime64[ns]'
+            mask = isnull(lvalues) | isnull(rvalues)
+            lvalues = lvalues.view(np.int64)
+            rvalues = rvalues.view(np.int64)
+
+        # otherwise it's a timedelta
+        else:
+            self.dtype = 'timedelta64[ns]'
+            mask = isnull(lvalues) | isnull(rvalues)
+            lvalues = lvalues.astype(np.int64)
+            rvalues = rvalues.astype(np.int64)
+
+            # time delta division -> unit less
+            # integer gets converted to timedelta in np < 1.6
+            if (self.is_timedelta_lhs and self.is_timedelta_rhs) and\
+               not self.is_integer_rhs and\
+               not self.is_integer_lhs and\
+               self.name in ('__div__', '__truediv__'):
+                self.dtype = 'float64'
+                self.fill_value = np.nan
+                lvalues = lvalues.astype(np.float64)
+                rvalues = rvalues.astype(np.float64)
+
+        # if we need to mask the results
+        if mask is not None:
+            if mask.any():
+                def f(x):
+                    x = pa.array(x,dtype=self.dtype)
+                    np.putmask(x,mask,self.fill_value)
+                    return x
+                self.wrap_results = f
+        self.lvalues = lvalues
+        self.rvalues = rvalues
+
+    @classmethod
+    def maybe_convert_for_time_op(cls, left, right, name):
+        """
+        if ``left`` and ``right`` are appropriate for datetime arithmetic with
+        operation ``name``, processes them and returns a ``_TimeOp`` object
+        that stores all the required values.  Otherwise, it will generate
+        either a ``NotImplementedError`` or ``None``, indicating that the
+        operation is unsupported for datetimes (e.g., an unsupported r_op) or
+        that the data is not the right type for time ops.
+        """
+        # decide if we can do it
+        is_timedelta_lhs = com.is_timedelta64_dtype(left)
+        is_datetime_lhs  = com.is_datetime64_dtype(left)
+        if not (is_datetime_lhs or is_timedelta_lhs):
+            return None
+        # rops currently disabled
+        if name.startswith('__r'):
+            return NotImplemented
+
+        return cls(left, right, name)
+
 #----------------------------------------------------------------------
 # Wrapper function for Series arithmetic methods
-
 
 def _arith_method(op, name, fill_zeros=None):
     """
@@ -87,178 +255,54 @@ def _arith_method(op, name, fill_zeros=None):
 
         return result
 
-    def wrapper(self, other, name=name):
+    def wrapper(left, right, name=name):
         from pandas.core.frame import DataFrame
-        dtype = None
-        fill_value = tslib.iNaT
-        wrap_results = lambda x: x
 
-        lvalues, rvalues = self, other
+        time_converted = _TimeOp.maybe_convert_for_time_op(left, right, name)
 
-        is_timedelta_lhs = com.is_timedelta64_dtype(self)
-        is_datetime_lhs  = com.is_datetime64_dtype(self)
-        is_integer_lhs   = lvalues.dtype.kind in ['i','u']
-
-        if is_datetime_lhs or is_timedelta_lhs:
-
-            coerce = 'compat' if _np_version_under1p7 else True
-
-            # convert the argument to an ndarray
-            def convert_to_array(values, other=None):
-                if not is_list_like(values):
-                    values = np.array([values])
-                inferred_type = lib.infer_dtype(values)
-                if inferred_type in set(['datetime64','datetime','date','time']):
-                    # a datetlike
-                    if not (isinstance(values, (pa.Array, Series)) and com.is_datetime64_dtype(values)):
-                        values = tslib.array_to_datetime(values)
-                    elif isinstance(values, DatetimeIndex):
-                        other = values = values.to_series()
-                elif inferred_type in set(['timedelta']):
-                    # have a timedelta, convert to to ns here
-                    values = com._possibly_cast_to_timedelta(values, coerce=coerce)
-                elif inferred_type in set(['timedelta64']):
-                    # have a timedelta64, make sure dtype dtype is ns
-                    values = com._possibly_cast_to_timedelta(values, coerce=coerce)
-                elif inferred_type in set(['integer']):
-                    # py3 compat where dtype is 'm' but is an integer
-                    if values.dtype.kind == 'm':
-                        values = values.astype('timedelta64[ns]')
-                    elif isinstance(values, PeriodIndex):
-                        other = values = values.to_timestamp().to_series()
-                    elif name not in ['__truediv__','__div__','__mul__']:
-                        raise TypeError("incompatible type for a datetime/timedelta operation [{0}]".format(name))
-                elif isinstance(values[0],DateOffset):
-                    # handle DateOffsets
-                    os = pa.array([ getattr(v,'delta',None) for v in values ])
-                    mask = isnull(os)
-                    if mask.any():
-                        raise TypeError("cannot use a non-absolute DateOffset in "
-                                        "datetime/timedelta operations [{0}]".format(','.join([ com.pprint_thing(v) for v in values[mask] ])))
-                    values = com._possibly_cast_to_timedelta(os, coerce=coerce)
-                else:
-                    raise TypeError("incompatible type [{0}] for a datetime/timedelta operation".format(pa.array(values).dtype))
-
-                return values, other
-
-            # convert lhs and rhs
-            lvalues,_ = convert_to_array(lvalues)
-            rvalues,other = convert_to_array(rvalues,other)
-
-            is_datetime_rhs  = com.is_datetime64_dtype(rvalues)
-            is_timedelta_rhs = com.is_timedelta64_dtype(rvalues) or (not is_datetime_rhs and _np_version_under1p7)
-            is_integer_rhs = rvalues.dtype.kind in ['i','u']
-            mask = None
-
-            # timedelta and integer mul/div
-            if (is_timedelta_lhs and is_integer_rhs) or (is_integer_lhs and is_timedelta_rhs):
-
-                if name not in ['__truediv__','__div__','__mul__']:
-                    raise TypeError("can only operate on a timedelta and an integer for "
-                                    "division, but the operator [%s] was passed" % name)
-                dtype = 'timedelta64[ns]'
-                mask = isnull(lvalues) | isnull(rvalues)
-                lvalues = lvalues.astype(np.int64)
-                rvalues = rvalues.astype(np.int64)
-
-            # 2 datetimes
-            elif is_datetime_lhs and is_datetime_rhs:
-                if name != '__sub__':
-                    raise TypeError("can only operate on a datetimes for subtraction, "
-                                    "but the operator [%s] was passed" % name)
-
-                dtype = 'timedelta64[ns]'
-                mask = isnull(lvalues) | isnull(rvalues)
-                lvalues = lvalues.view('i8')
-                rvalues = rvalues.view('i8')
-
-            # 2 timedeltas
-            elif is_timedelta_lhs and is_timedelta_rhs:
-                mask = isnull(lvalues) | isnull(rvalues)
-
-                # time delta division -> unit less
-                if name in ['__div__','__truediv__']:
-                    dtype = 'float64'
-                    fill_value = np.nan
-                    lvalues = lvalues.astype(np.int64).astype(np.float64)
-                    rvalues = rvalues.astype(np.int64).astype(np.float64)
-
-                # another timedelta
-                elif name in ['__add__','__sub__']:
-                    dtype = 'timedelta64[ns]'
-                    lvalues = lvalues.astype(np.int64)
-                    rvalues = rvalues.astype(np.int64)
-
-                else:
-                    raise TypeError("can only operate on a timedeltas for "
-                                    "addition, subtraction, and division, but the operator [%s] was passed" % name)
-
-            # datetime and timedelta
-            elif is_timedelta_rhs and is_datetime_lhs:
-
-                if name not in ['__add__','__sub__']:
-                    raise TypeError("can only operate on a datetime with a rhs of a timedelta for "
-                                    "addition and subtraction, but the operator [%s] was passed" % name)
-                dtype = 'M8[ns]'
-                lvalues = lvalues.view('i8')
-                rvalues = rvalues.view('i8')
-
-            elif is_timedelta_lhs and is_datetime_rhs:
-
-                if name not in ['__add__']:
-                    raise TypeError("can only operate on a timedelta and a datetime for "
-                                    "addition, but the operator [%s] was passed" % name)
-                dtype = 'M8[ns]'
-                lvalues = lvalues.view('i8')
-                rvalues = rvalues.view('i8')
-
-            else:
-                raise TypeError('cannot operate on a series with out a rhs '
-                                'of a series/ndarray of type datetime64[ns] '
-                                'or a timedelta')
-
-            # if we need to mask the results
-            if mask is not None:
-                if mask.any():
-                    def f(x):
-                        x = pa.array(x,dtype=dtype)
-                        np.putmask(x,mask,fill_value)
-                        return x
-                    wrap_results = f
+        if time_converted is None:
+            lvalues, rvalues = left, right
+            dtype = None
+            wrap_results = lambda x: x
+        elif time_converted == NotImplemented:
+            return NotImplemented
+        else:
+            lvalues = time_converted.lvalues
+            rvalues = time_converted.rvalues
+            dtype = time_converted.dtype
+            wrap_results = time_converted.wrap_results
 
         if isinstance(rvalues, Series):
 
-            if hasattr(lvalues,'values'):
-                lvalues = lvalues.values
-            if hasattr(rvalues,'values'):
-                rvalues = rvalues.values
-
-            if self.index.equals(other.index):
-                name = _maybe_match_name(self, other)
-                return self._constructor(wrap_results(na_op(lvalues, rvalues)),
-                                         index=self.index, dtype=dtype, name=name)
-
-            join_idx, lidx, ridx = self.index.join(other.index, how='outer',
+            join_idx, lidx, ridx = left.index.join(rvalues.index, how='outer',
                                                    return_indexers=True)
+            rindex = rvalues.index
+            name = _maybe_match_name(left, rvalues)
+            lvalues = getattr(lvalues, 'values', lvalues)
+            rvalues = getattr(rvalues, 'values', rvalues)
+            if left.index.equals(rindex):
+                index = left.index
+            else:
+                index = join_idx
 
-            if lidx is not None:
-                lvalues = com.take_1d(lvalues, lidx)
+                if lidx is not None:
+                    lvalues = com.take_1d(lvalues, lidx)
 
-            if ridx is not None:
-                rvalues = com.take_1d(rvalues, ridx)
+                if ridx is not None:
+                    rvalues = com.take_1d(rvalues, ridx)
 
             arr = na_op(lvalues, rvalues)
 
-            name = _maybe_match_name(self, other)
-            return self._constructor(wrap_results(arr), index=join_idx, name=name, dtype=dtype)
-        elif isinstance(other, DataFrame):
+            return left._constructor(wrap_results(arr), index=index,
+                                     name=name, dtype=dtype)
+        elif isinstance(right, DataFrame):
             return NotImplemented
         else:
             # scalars
             if hasattr(lvalues, 'values'):
                 lvalues = lvalues.values
-            return self._constructor(wrap_results(na_op(lvalues, rvalues)),
-                                     index=self.index, name=self.name, dtype=dtype)
+            return left._constructor(wrap_results(na_op(lvalues, rvalues)),
+                                     index=left.index, name=left.name, dtype=dtype)
     return wrapper
 
 
