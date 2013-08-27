@@ -189,7 +189,7 @@ class TestGetDummies(unittest.TestCase):
         res_na = get_dummies(s, dummy_na=True)
         exp_na = DataFrame({nan: {0: 0.0, 1: 0.0, 2: 1.0},
                             'a': {0: 1.0, 1: 0.0, 2: 0.0},
-                            'b': {0: 0.0, 1: 1.0, 2: 0.0}}).iloc[:, [1, 2, 0]]
+                            'b': {0: 0.0, 1: 1.0, 2: 0.0}}).reindex_axis(['a', 'b', nan], 1)
         # hack (NaN handling in assert_index_equal)
         exp_na.columns = res_na.columns
         assert_frame_equal(res_na, exp_na)
