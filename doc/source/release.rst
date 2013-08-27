@@ -231,6 +231,7 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
     of a duplicate index (:issue:`4359`)
   - In ``to_json``, fix date handling so milliseconds are the default timestamp
     as the docstring says (:issue:`4362`).
+  - ``as_index`` is no longer ignored when doing groupby apply (:issue:`4648`), (:issue:`3417`)
   - JSON NaT handling fixed, NaTs are now serialised to `null` (:issue:`4498`)
   - Fixed JSON handling of escapable characters in JSON object keys (:issue:`4593`)
   - Fixed passing ``keep_default_na=False`` when ``na_values=None`` (:issue:`4318`)

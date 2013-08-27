@@ -12,7 +12,8 @@ from pandas.core.api import Categorical, DataFrame
 from pandas.core.groupby import GroupByError, SpecificationError, DataError
 from pandas.core.series import Series
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
-                                 assert_series_equal, assert_almost_equal)
+                                 assert_series_equal, assert_almost_equal,
+                                 assert_index_equal)
 from pandas.compat import(
     range, long, lrange, StringIO, lmap, lzip, map, zip, builtins, OrderedDict
 )
@@ -1177,6 +1178,34 @@ class TestGroupBy(unittest.TestCase):
 
         self.assertRaises(ValueError, self.df.groupby,
                           lambda x: x.lower(), as_index=False, axis=1)
+
+    def test_groupby_as_index_apply(self):
+        # GH #4648 and #3417
+        df = DataFrame({'item_id': ['b', 'b', 'a', 'c', 'a', 'b'],
+                        'user_id': [1,2,1,1,3,1],
+                        'time': range(6)})
+
+        g_as = df.groupby('user_id', as_index=True)
+        g_not_as = df.groupby('user_id', as_index=False)
+
+        res_as = g_as.head(2).index
+        exp_as = MultiIndex.from_tuples([(1, 0), (1, 2), (2, 1), (3, 4)])
+        assert_index_equal(res_as, exp_as)
+
+        res_not_as = g_not_as.head(2).index
+        exp_not_as = Index([0, 2, 1, 4])
+        assert_index_equal(res_not_as, exp_not_as)
+
+        res_as = g_as.apply(lambda x: x.head(2)).index
+        assert_index_equal(res_not_as, exp_not_as)
+
+        res_not_as = g_not_as.apply(lambda x: x.head(2)).index
+        assert_index_equal(res_not_as, exp_not_as)
+
+        ind = Index(list('abcde'))
+        df = DataFrame([[1, 2], [2, 3], [1, 4], [1, 5], [2, 6]], index=ind)
+        res = df.groupby(0, as_index=False).apply(lambda x: x).index
+        assert_index_equal(res, ind)
 
     def test_groupby_multiple_key(self):
         df = tm.makeTimeDataFrame()
