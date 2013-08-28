@@ -1,33 +1,30 @@
 from __future__ import print_function
+
 import os
 import re
-from unittest import TestCase
 import warnings
-from distutils.version import LooseVersion
-from pandas.io.common import URLError
-
-import nose
-from nose.tools import assert_raises
-
-import numpy as np
-from numpy.random import rand
-from numpy.testing.decorators import slow
-from pandas.compat import map, zip, StringIO
-import pandas.compat as compat
 
 try:
     from importlib import import_module
 except ImportError:
     import_module = __import__
 
-from pandas.io.html import read_html
-from pandas.io.common import urlopen
+from unittest import TestCase
+from distutils.version import LooseVersion
+
+import nose
+
+import numpy as np
+from numpy.random import rand
+from numpy.testing.decorators import slow
 
 from pandas import DataFrame, MultiIndex, read_csv, Timestamp
-from pandas.util.testing import (assert_frame_equal, network,
-                                 get_data_path)
+from pandas.compat import map, zip, StringIO, string_types
+from pandas.io.common import URLError, urlopen
+from pandas.io.html import read_html
 
-from pandas.util.testing import makeCustomDataframe as mkdf
+import pandas.util.testing as tm
+from pandas.util.testing import makeCustomDataframe as mkdf, network
 
 
 def _have_module(module_name):
@@ -40,11 +37,11 @@ def _have_module(module_name):
 
 def _skip_if_no(module_name):
     if not _have_module(module_name):
-        raise nose.SkipTest("{0} not found".format(module_name))
+        raise nose.SkipTest("{0!r} not found".format(module_name))
 
 
 def _skip_if_none_of(module_names):
-    if isinstance(module_names, compat.string_types):
+    if isinstance(module_names, string_types):
         _skip_if_no(module_names)
         if module_names == 'bs4':
             import bs4
@@ -54,17 +51,14 @@ def _skip_if_none_of(module_names):
         not_found = [module_name for module_name in module_names if not
                      _have_module(module_name)]
         if set(not_found) & set(module_names):
-            raise nose.SkipTest("{0} not found".format(not_found))
+            raise nose.SkipTest("{0!r} not found".format(not_found))
         if 'bs4' in module_names:
             import bs4
             if bs4.__version__ == LooseVersion('4.2.0'):
                 raise nose.SkipTest("Bad version of bs4: 4.2.0")
 
 
-DATA_PATH = get_data_path()
-
-def isframe(x):
-    return isinstance(x, DataFrame)
+DATA_PATH = tm.get_data_path()
 
 
 def assert_framelist_equal(list1, list2, *args, **kwargs):
@@ -72,10 +66,12 @@ def assert_framelist_equal(list1, list2, *args, **kwargs):
                                       'len(list1) == {0}, '
                                       'len(list2) == {1}'.format(len(list1),
                                                                  len(list2)))
-    assert all(map(lambda x, y: isframe(x) and isframe(y), list1, list2)), \
-        'not all list elements are DataFrames'
+    msg = 'not all list elements are DataFrames'
+    both_frames = all(map(lambda x, y: isinstance(x, DataFrame) and
+                          isinstance(y, DataFrame), list1, list2))
+    assert both_frames, msg
     for frame_i, frame_j in zip(list1, list2):
-        assert_frame_equal(frame_i, frame_j, *args, **kwargs)
+        tm.assert_frame_equal(frame_i, frame_j, *args, **kwargs)
         assert not frame_i.empty, 'frames are both empty'
 
 
@@ -83,9 +79,9 @@ def test_bs4_version_fails():
     _skip_if_none_of(('bs4', 'html5lib'))
     import bs4
     if bs4.__version__ == LooseVersion('4.2.0'):
-        assert_raises(AssertionError, read_html, os.path.join(DATA_PATH,
-                                                              "spam.html"),
-                      flavor='bs4')
+        tm.assert_raises(AssertionError, read_html, os.path.join(DATA_PATH,
+                                                                 "spam.html"),
+                         flavor='bs4')
 
 
 class TestReadHtmlBase(TestCase):
@@ -116,7 +112,7 @@ class TestReadHtmlBase(TestCase):
                                  index_col=0)[0]
         print(df.dtypes)
         print(res.dtypes)
-        assert_frame_equal(res, df)
+        tm.assert_frame_equal(res, df)
 
     @network
     def test_banklist_url(self):
@@ -145,13 +141,20 @@ class TestReadHtmlBase(TestCase):
 
         assert_framelist_equal(df1, df2)
 
-    def test_spam(self):
+    def test_spam_no_types(self):
         df1 = self.run_read_html(self.spam_data, '.*Water.*',
                                  infer_types=False)
         df2 = self.run_read_html(self.spam_data, 'Unit', infer_types=False)
 
         assert_framelist_equal(df1, df2)
-        print(df1[0])
+
+        self.assertEqual(df1[0].ix[0, 0], 'Proximates')
+        self.assertEqual(df1[0].columns[0], 'Nutrient')
+
+    def test_spam_with_types(self):
+        df1 = self.run_read_html(self.spam_data, '.*Water.*')
+        df2 = self.run_read_html(self.spam_data, 'Unit')
+        assert_framelist_equal(df1, df2)
 
         self.assertEqual(df1[0].ix[0, 0], 'Proximates')
         self.assertEqual(df1[0].columns[0], 'Nutrient')
@@ -167,9 +170,8 @@ class TestReadHtmlBase(TestCase):
             self.assert_(isinstance(df, DataFrame))
 
     def test_spam_header(self):
-        df = self.run_read_html(self.spam_data, '.*Water.*', header=0)
         df = self.run_read_html(self.spam_data, '.*Water.*', header=1)[0]
-        self.assertEqual(df.columns[0], 'Water')
+        self.assertEqual(df.columns[0], 'Proximates')
         self.assertFalse(df.empty)
 
     def test_skiprows_int(self):
@@ -179,10 +181,10 @@ class TestReadHtmlBase(TestCase):
         assert_framelist_equal(df1, df2)
 
     def test_skiprows_xrange(self):
-        df1 = [self.run_read_html(self.spam_data, '.*Water.*').pop()[2:]]
-        df2 = self.run_read_html(self.spam_data, 'Unit', skiprows=range(2))
-
-        assert_framelist_equal(df1, df2)
+        df1 = self.run_read_html(self.spam_data, '.*Water.*',
+                                 skiprows=range(2))[0]
+        df2 = self.run_read_html(self.spam_data, 'Unit', skiprows=range(2))[0]
+        tm.assert_frame_equal(df1, df2)
 
     def test_skiprows_list(self):
         df1 = self.run_read_html(self.spam_data, '.*Water.*', skiprows=[1, 2])
@@ -226,7 +228,7 @@ class TestReadHtmlBase(TestCase):
         assert_framelist_equal(df1, df2)
 
     def test_skiprows_invalid(self):
-        self.assertRaises(ValueError, self.run_read_html, self.spam_data,
+        self.assertRaises(TypeError, self.run_read_html, self.spam_data,
                           '.*Water.*', skiprows='asdf')
 
     def test_index(self):
@@ -237,8 +239,8 @@ class TestReadHtmlBase(TestCase):
     def test_header_and_index_no_types(self):
         df1 = self.run_read_html(self.spam_data, '.*Water.*', header=1,
                                  index_col=0, infer_types=False)
-        df2 = self.run_read_html(self.spam_data, 'Unit', header=1, index_col=0,
-                                 infer_types=False)
+        df2 = self.run_read_html(self.spam_data, 'Unit', header=1,
+                                 index_col=0, infer_types=False)
         assert_framelist_equal(df1, df2)
 
     def test_header_and_index_with_types(self):
@@ -336,6 +338,7 @@ class TestReadHtmlBase(TestCase):
 
     @slow
     def test_multiindex_header_skiprows(self):
+        import ipdb; ipdb.set_trace()
         df = self._bank_data(header=[0, 1], skiprows=1)[0]
         self.assert_(isinstance(df.columns, MultiIndex))
 
@@ -343,6 +346,7 @@ class TestReadHtmlBase(TestCase):
     def test_multiindex_header_index_skiprows(self):
         df = self._bank_data(header=[0, 1], index_col=[0, 1], skiprows=1)[0]
         self.assert_(isinstance(df.index, MultiIndex))
+        self.assert_(isinstance(df.columns, MultiIndex))
 
     @slow
     def test_regex_idempotency(self):
@@ -382,6 +386,7 @@ class TestReadHtmlBase(TestCase):
     @slow
     def test_banklist_header(self):
         from pandas.io.html import _remove_whitespace
+
         def try_remove_ws(x):
             try:
                 return _remove_whitespace(x)
@@ -412,8 +417,8 @@ class TestReadHtmlBase(TestCase):
         dfnew = df.applymap(try_remove_ws).replace(old, new)
         gtnew = ground_truth.applymap(try_remove_ws)
         converted = dfnew.convert_objects(convert_numeric=True)
-        assert_frame_equal(converted.convert_objects(convert_dates='coerce'),
-                           gtnew)
+        tm.assert_frame_equal(converted.convert_objects(convert_dates='coerce'),
+                              gtnew)
 
     @slow
     def test_gold_canyon(self):
@@ -446,7 +451,8 @@ class TestReadHtmlLxml(TestCase):
     def test_banklist_data_fail(self):
         from lxml.etree import XMLSyntaxError
         banklist_data = os.path.join(DATA_PATH, 'banklist.html')
-        self.assertRaises(XMLSyntaxError, self.run_read_html, banklist_data, flavor=['lxml'])
+        self.assertRaises(XMLSyntaxError, self.run_read_html, banklist_data,
+                          flavor=['lxml'])
 
     def test_works_on_valid_markup(self):
         filename = os.path.join(DATA_PATH, 'valid_markup.html')

@@ -7,15 +7,18 @@ import os
 import re
 import numbers
 import collections
+import warnings
 
+from itertools import repeat
 from distutils.version import LooseVersion
 
 import numpy as np
 
-from pandas import DataFrame, MultiIndex, isnull
 from pandas.io.common import _is_url, urlopen, parse_url
-from pandas.compat import range, lrange, lmap, u, map
-from pandas import compat
+from pandas.io.parsers import TextParser
+from pandas.compat import lrange, lmap, u
+from pandas.core import common as com
+from pandas import compat, Series
 
 
 try:
@@ -67,7 +70,7 @@ def _remove_whitespace(s, regex=_RE_WHITESPACE):
     return regex.sub(' ', s.strip())
 
 
-def _get_skiprows_iter(skiprows):
+def _get_skiprows(skiprows):
     """Get an iterator given an integer, slice or container.
 
     Parameters
@@ -92,10 +95,10 @@ def _get_skiprows_iter(skiprows):
     """
     if isinstance(skiprows, slice):
         return lrange(skiprows.start or 0, skiprows.stop, skiprows.step or 1)
-    elif isinstance(skiprows, numbers.Integral):
-        return lrange(skiprows)
-    elif isinstance(skiprows, collections.Container):
+    elif isinstance(skiprows, numbers.Integral) or com.is_list_like(skiprows):
         return skiprows
+    elif skiprows is None:
+        return 0
     else:
         raise TypeError('{0} is not a valid type for skipping'
                         ' rows'.format(type(skiprows)))
@@ -583,101 +586,34 @@ class _LxmlFrameParser(_HtmlFrameParser):
                 table.xpath(expr)]
 
 
-def _data_to_frame(data, header, index_col, infer_types, skiprows):
-    """Parse a BeautifulSoup table into a DataFrame.
+def _nan_list(n):
+    return list(repeat(np.nan, n))
 
-    Parameters
-    ----------
-    data : tuple of lists
-        The raw data to be placed into a DataFrame. This is a list of lists of
-        strings or unicode. If it helps, it can be thought of as a matrix of
-        strings instead.
 
-    header : int or None
-        An integer indicating the row to use for the column header or None
-        indicating no header will be used.
+def _expand_elements(body):
+    lens = Series(lmap(len, body))
+    lens_max = lens.max()
+    not_max = lens[lens != lens_max]
 
-    index_col : int or None
-        An integer indicating the column to use for the index or None
-        indicating no column will be used.
+    for ind, length in not_max.iteritems():
+        body[ind] += _nan_list(lens_max - length)
 
-    infer_types : bool
-        Whether to convert numbers and dates.
 
-    skiprows : collections.Container or int or slice
-        Iterable used to skip rows.
+def _data_to_frame(data, header, index_col, skiprows, infer_types,
+                   parse_dates):
+    head, body, _ = data  # _ is footer which is rarely used: ignore for now
+    _expand_elements(body)
+    body = [head] + body
+    import ipdb; ipdb.set_trace()
+    tp = TextParser(body, header=header, index_col=index_col,
+                    skiprows=_get_skiprows(skiprows),
+                    parse_dates=parse_dates, tupleize_cols=False)
+    df = tp.read()
 
-    Returns
-    -------
-    df : DataFrame
-        A DataFrame containing the data from `data`
-
-    Raises
-    ------
-    ValueError
-        * If `skiprows` is not found in the rows of the parsed DataFrame.
-
-    Raises
-    ------
-    ValueError
-        * If `skiprows` is not found in the rows of the parsed DataFrame.
-
-    See Also
-    --------
-    read_html
-
-    Notes
-    -----
-    The `data` parameter is guaranteed not to be a list of empty lists.
-    """
-    thead, tbody, tfoot = data
-    columns = thead or None
-    df = DataFrame(tbody, columns=columns)
-
-    if skiprows is not None:
-        it = _get_skiprows_iter(skiprows)
-
-        try:
-            df = df.drop(it)
-        except ValueError:
-            raise ValueError('Labels {0} not found when trying to skip'
-                             ' rows'.format(it))
-
-    # convert to numbers/dates where possible
-    # must be sequential since dates trump numbers if both args are given
-    if infer_types:
-        df = df.convert_objects(convert_numeric=True)
+    if infer_types:  # remove in 0.14
         df = df.convert_objects(convert_dates='coerce')
-
-    if header is not None:
-        header_rows = df.iloc[header]
-
-        if header_rows.ndim == 2:
-            names = header_rows.index
-            df.columns = MultiIndex.from_arrays(header_rows.values,
-                                                names=names)
-        else:
-            df.columns = header_rows
-
-        df = df.drop(df.index[header])
-
-    if index_col is not None:
-        cols = df.columns[index_col]
-
-        try:
-            cols = cols.tolist()
-        except AttributeError:
-            pass
-
-        # drop by default
-        df.set_index(cols, inplace=True)
-        if df.index.nlevels == 1:
-            if isnull(df.index.name) or not df.index.name:
-                df.index.name = None
-        else:
-            names = [name or None for name in df.index.names]
-            df.index = MultiIndex.from_tuples(df.index.values, names=names)
-
+    else:
+        df = df.applymap(compat.text_type)
     return df
 
 
@@ -750,7 +686,8 @@ def _validate_parser_flavor(flavor):
     return flavor
 
 
-def _parse(flavor, io, match, header, index_col, skiprows, infer_types, attrs):
+def _parse(flavor, io, match, header, index_col, skiprows, infer_types,
+           parse_dates, attrs):
     # bonus: re.compile is idempotent under function iteration so you can pass
     # a compiled regex to it and it will return itself
     flavor = _validate_parser_flavor(flavor)
@@ -771,12 +708,12 @@ def _parse(flavor, io, match, header, index_col, skiprows, infer_types, attrs):
     else:
         raise retained
 
-    return [_data_to_frame(table, header, index_col, infer_types, skiprows)
-            for table in tables]
+    return [_data_to_frame(table, header, index_col, skiprows, infer_types,
+                           parse_dates) for table in tables]
 
 
-def read_html(io, match='.+', flavor=None, header=None, index_col=None,
-              skiprows=None, infer_types=True, attrs=None):
+def read_html(io, match='.+', flavor=None, header=0, index_col=None,
+              skiprows=None, infer_types=None, attrs=None, parse_dates=False):
     r"""Read an HTML table into a DataFrame.
 
     Parameters
@@ -801,7 +738,7 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
         compatibility. The default of ``None`` tries to use ``lxml`` to parse
         and if that fails it falls back on ``bs4`` + ``html5lib``.
 
-    header : int or array-like or None, optional, default ``None``
+    header : int or array-like, optional, default ``0``
         The row (or rows for a MultiIndex) to use to make the columns headers.
         Note that this row will be removed from the data.
 
@@ -828,9 +765,7 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
         it is treated as "skip :math:`n` rows", *not* as "skip the
         :math:`n^\textrm{th}` row".
 
-    infer_types : bool, optional, default ``True``
-        Whether to convert numeric types and date-appearing strings to numbers
-        and dates, respectively.
+    infer_types : bool or None, optional, default ``None``, deprecated since 0.13, removed in 0.14
 
     attrs : dict or None, optional, default ``None``
         This is a dictionary of attributes that you can pass to use to identify
@@ -896,8 +831,13 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
     """
     # Type check here. We don't want to parse only to fail because of an
     # invalid value of an integer skiprows.
+    if infer_types is not None:
+        warnings.warn("infer_types will be removed in 0.14", UserWarning)
+    else:
+        infer_types = True  # remove in 0.14
+
     if isinstance(skiprows, numbers.Integral) and skiprows < 0:
         raise AssertionError('cannot skip rows starting from the end of the '
                              'data (you passed a negative value)')
     return _parse(flavor, io, match, header, index_col, skiprows, infer_types,
-                  attrs)
+                  parse_dates, attrs)
