@@ -565,8 +565,7 @@ class TestDataFramePlots(unittest.TestCase):
 
         _check_plot_works(df.boxplot)
         _check_plot_works(df.boxplot, column=['one', 'two'])
-        _check_plot_works(df.boxplot, column=['one', 'two'],
-                          by='indic')
+        _check_plot_works(df.boxplot, column=['one', 'two'], by='indic')
         _check_plot_works(df.boxplot, column='one', by=['indic', 'indic2'])
         _check_plot_works(df.boxplot, by='indic')
         _check_plot_works(df.boxplot, by=['indic', 'indic2'])
@@ -1068,7 +1067,7 @@ def assert_is_valid_plot_return_object(objs):
                                               'type encountered {0!r}'
                                               ''.format(el.__class__.__name__))
     else:
-        assert isinstance(objs, (plt.Artist, tuple, dict)), \
+        assert isinstance(objs, plt.Axes), \
                 ('objs is neither an ndarray of Artist instances nor a '
                  'single Artist instance, tuple, or dict, "objs" is a {0!r} '
                  ''.format(objs.__class__.__name__))
