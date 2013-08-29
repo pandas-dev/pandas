@@ -1067,7 +1067,7 @@ def assert_is_valid_plot_return_object(objs):
                                               'type encountered {0!r}'
                                               ''.format(el.__class__.__name__))
     else:
-        assert isinstance(objs, plt.Axes), \
+        assert isinstance(objs, (plt.Artist, tuple, dict)), \
                 ('objs is neither an ndarray of Artist instances nor a '
                  'single Artist instance, tuple, or dict, "objs" is a {0!r} '
                  ''.format(objs.__class__.__name__))
