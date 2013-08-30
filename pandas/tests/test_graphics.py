@@ -60,6 +60,7 @@ class TestSeriesPlots(unittest.TestCase):
         _check_plot_works(self.ts.plot, style='.', logx=True)
         _check_plot_works(self.ts.plot, style='.', loglog=True)
         _check_plot_works(self.ts[:10].plot, kind='bar')
+        _check_plot_works(self.iseries.plot)
         _check_plot_works(self.series[:5].plot, kind='bar')
         _check_plot_works(self.series[:5].plot, kind='line')
         _check_plot_works(self.series[:5].plot, kind='barh')
