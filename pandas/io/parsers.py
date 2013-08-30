@@ -1979,6 +1979,6 @@ class ExcelWriter(excel.ExcelWriter):
         super(ExcelWriter, self).__init__(path)
 
 class ExcelFile(excel.ExcelFile):
-    def __init__(self, path_or_buf, kind=None, **kwds):
+    def __init__(self, path_or_buf, **kwds):
         warn("ExcelFile can now be imported from: pandas.io.excel", FutureWarning)
-        super(ExcelFile, self).__init__(path_or_buf, kind=kind, **kwds)
+        super(ExcelFile, self).__init__(path_or_buf, **kwds)
