@@ -2101,8 +2101,21 @@ class NDFrameGroupBy(GroupBy):
             else:
                 res = path(group)
 
-            if res:
+            def add_indexer():
                 indexers.append(self.obj.index.get_indexer(group.index))
+
+            # interpret the result of the filter
+            if isinstance(res,(bool,np.bool_)):
+                if res:
+                    add_indexer()
+            else:
+                if getattr(res,'ndim',None) == 1:
+                    if res.ravel()[0]:
+                        add_indexer()
+                else:
+
+                    # in theory you could do .all() on the boolean result ?
+                    raise TypeError("the filter must return a boolean result")
 
         if len(indexers) == 0:
             filtered = self.obj.take([]) # because np.concatenate would fail

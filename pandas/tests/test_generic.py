@@ -73,7 +73,6 @@ class Generic(object):
             arr = np.random.randn(*shape)
         return self._typ(arr,**kwargs)
 
-
     def _compare(self, result, expected):
         self._comparator(result,expected)
 
@@ -82,14 +81,14 @@ class Generic(object):
         # single axis
         for axis in self._axes():
             kwargs = { axis : list('ABCD') }
-            o = self._construct(4,**kwargs)
+            obj = self._construct(4,**kwargs)
 
             # no values passed
             #self.assertRaises(Exception, o.rename(str.lower))
 
             # rename a single axis
-            result = o.rename(**{ axis : str.lower })
-            expected = o.copy()
+            result = obj.rename(**{ axis : str.lower })
+            expected = obj.copy()
             setattr(expected,axis,list('abcd'))
             self._compare(result, expected)
 
@@ -119,6 +118,41 @@ class Generic(object):
         self._compare(result, o)
 
         # _get_numeric_data is includes _get_bool_data, so can't test for non-inclusion
+    def test_nonzero(self):
+
+        # GH 4633
+        # look at the boolean/nonzero behavior for objects
+        obj = self._construct(shape=4)
+        self.assertRaises(ValueError, lambda : bool(obj == 0))
+        self.assertRaises(ValueError, lambda : bool(obj == 1))
+        self.assertRaises(ValueError, lambda : bool(obj))
+
+        obj = self._construct(shape=4,value=1)
+        self.assertRaises(ValueError, lambda : bool(obj == 0))
+        self.assertRaises(ValueError, lambda : bool(obj == 1))
+        self.assertRaises(ValueError, lambda : bool(obj))
+
+        obj = self._construct(shape=4,value=np.nan)
+        self.assertRaises(ValueError, lambda : bool(obj == 0))
+        self.assertRaises(ValueError, lambda : bool(obj == 1))
+        self.assertRaises(ValueError, lambda : bool(obj))
+
+        # empty
+        obj = self._construct(shape=0)
+        self.assertRaises(ValueError, lambda : bool(obj))
+
+        # invalid behaviors
+
+        obj1 = self._construct(shape=4,value=1)
+        obj2 = self._construct(shape=4,value=1)
+
+        def f():
+            if obj1:
+                print("this works and shouldn't")
+        self.assertRaises(ValueError, f)
+        self.assertRaises(ValueError, lambda : obj1 and obj2)
+        self.assertRaises(ValueError, lambda : obj1 or obj2)
+        self.assertRaises(ValueError, lambda : not obj1)
 
 class TestSeries(unittest.TestCase, Generic):
     _typ = Series
@@ -153,6 +187,14 @@ class TestSeries(unittest.TestCase, Generic):
         result = o._get_numeric_data()
         expected = Series([],dtype='M8[ns]')
         self._compare(result, expected)
+
+    def test_nonzero_single_element(self):
+
+        s = Series([True])
+        self.assertRaises(ValueError, lambda : bool(s))
+
+        s = Series([False])
+        self.assertRaises(ValueError, lambda : bool(s))
 
 class TestDataFrame(unittest.TestCase, Generic):
     _typ = DataFrame

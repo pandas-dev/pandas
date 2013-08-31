@@ -10607,13 +10607,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df = DataFrame([(1, 2), (3, 4)], index=index, columns=["A", "B"])
         self.assertEqual(df.ix[IndexType("foo", "bar")]["A"], 1)
 
-    def test_bool_empty_nonzero(self):
+    def test_empty_nonzero(self):
         df = DataFrame([1, 2, 3])
-        self.assertTrue(bool(df))
         self.assertFalse(df.empty)
         df = DataFrame(index=['a', 'b'], columns=['c', 'd']).dropna()
-        self.assertFalse(bool(df))
-        self.assertFalse(bool(df.T))
         self.assertTrue(df.empty)
         self.assertTrue(df.T.empty)
 
