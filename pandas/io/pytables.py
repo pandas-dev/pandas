@@ -172,10 +172,17 @@ dropna_doc = """
 : boolean
     drop ALL nan rows when appending to a table
 """
+format_doc = """
+: format
+    default format writing format, if None, then
+    put will default to 'fixed' and append will default to 'table'
+"""
 
 with config.config_prefix('io.hdf'):
     config.register_option('dropna_table', True, dropna_doc,
                            validator=config.is_bool)
+    config.register_option('default_format', None, format_doc,
+                           validator=config.is_one_of_factory(['fixed','table',None]))
 
 # oh the troubles to reduce import time
 _table_mod = None
@@ -228,7 +235,7 @@ def get_store(path, **kwargs):
 
 # interface to/from ###
 
-def to_hdf(path_or_buf, key, value, mode=None, format=None, complevel=None, complib=None, append=None, **kwargs):
+def to_hdf(path_or_buf, key, value, mode=None, complevel=None, complib=None, append=None, **kwargs):
     """ store this object, close it if we opened it """
     if append:
         f = lambda store: store.append(key, value, **kwargs)
@@ -685,7 +692,9 @@ class HDFStore(StringMixin):
             For Table format, append the input data to the existing
         encoding : default None, provide an encoding for strings
         """
-        kwargs = self._validate_format(format or 'fixed', kwargs)
+        if format is None:
+            format = get_option("io.hdf.default_format") or 'fixed'
+        kwargs = self._validate_format(format, kwargs)
         self._write_to_group(key, value, append=append, **kwargs)
 
     def remove(self, key, where=None, start=None, stop=None):
@@ -771,7 +780,9 @@ class HDFStore(StringMixin):
 
         if dropna is None:
             dropna = get_option("io.hdf.dropna_table")
-        kwargs = self._validate_format(format or 'table', kwargs)
+        if format is None:
+            format = get_option("io.hdf.default_format") or 'table'
+        kwargs = self._validate_format(format, kwargs)
         self._write_to_group(key, value, append=append, dropna=dropna, **kwargs)
 
     def append_to_multiple(self, d, value, selector, data_columns=None, axes=None, **kwargs):

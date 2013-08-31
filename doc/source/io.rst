@@ -1831,7 +1831,11 @@ Table Format
 format. Conceptually a ``table`` is shaped very much like a DataFrame,
 with rows and columns. A ``table`` may be appended to in the same or
 other sessions.  In addition, delete & query type operations are
-supported. This format is specified by ``format='table'`` or ``format='t'`` to ``append`` or ``put`` or ``to_hdf``
+supported. This format is specified by ``format='table'`` or ``format='t'``
+to ``append`` or ``put`` or ``to_hdf``
+
+This format can be set as an option as well ``pd.set_option('io.hdf.default_format','table')`` to
+enable ``put/append/to_hdf`` to by default store in the ``table`` format.
 
 .. ipython:: python
    :suppress:

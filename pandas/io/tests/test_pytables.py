@@ -222,6 +222,49 @@ class TestHDFStore(unittest.TestCase):
             self.assertRaises(TypeError, df.to_hdf, path,'df',append=True,format='foo')
             self.assertRaises(TypeError, df.to_hdf, path,'df',append=False,format='bar')
 
+
+    def test_api_default_format(self):
+
+        # default_format option
+        with ensure_clean(self.path) as store:
+            df = tm.makeDataFrame()
+
+            pandas.set_option('io.hdf.default_format','fixed')
+            _maybe_remove(store,'df')
+            store.put('df',df)
+            self.assert_(not store.get_storer('df').is_table)
+            self.assertRaises(ValueError, store.append, 'df2',df)
+
+            pandas.set_option('io.hdf.default_format','table')
+            _maybe_remove(store,'df')
+            store.put('df',df)
+            self.assert_(store.get_storer('df').is_table)
+            _maybe_remove(store,'df2')
+            store.append('df2',df)
+            self.assert_(store.get_storer('df').is_table)
+
+            pandas.set_option('io.hdf.default_format',None)
+
+        with tm.ensure_clean(self.path) as path:
+
+            df = tm.makeDataFrame()
+
+            pandas.set_option('io.hdf.default_format','fixed')
+            df.to_hdf(path,'df')
+            with get_store(path) as store:
+                self.assert_(not store.get_storer('df').is_table)
+            self.assertRaises(ValueError, df.to_hdf, path,'df2', append=True)
+
+            pandas.set_option('io.hdf.default_format','table')
+            df.to_hdf(path,'df3')
+            with get_store(path) as store:
+                self.assert_(store.get_storer('df3').is_table)
+            df.to_hdf(path,'df4',append=True)
+            with get_store(path) as store:
+                self.assert_(store.get_storer('df4').is_table)
+
+            pandas.set_option('io.hdf.default_format',None)
+
     def test_keys(self):
 
         with ensure_clean(self.path) as store:
