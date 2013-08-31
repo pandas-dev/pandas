@@ -1,13 +1,13 @@
 from __future__ import print_function
 # pylint: disable=W0141
 
-from pandas import compat
 import sys
 
-from pandas.compat import StringIO, lzip, range, map, zip, reduce, u, OrderedDict
 from pandas.core.common import adjoin, isnull, notnull
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas import compat
+from pandas.compat import(StringIO, lzip, range, map, zip, reduce, u,
+                          OrderedDict)
 from pandas.util.terminal import get_terminal_size
 from pandas.core.config import get_option, set_option, reset_option
 import pandas.core.common as com
@@ -356,7 +356,7 @@ class DataFrameFormatter(TableFormatter):
                 column_format = 'l%s' % ''.join(map(get_col_type, dtypes))
             else:
                 column_format = '%s' % ''.join(map(get_col_type, dtypes))
-        elif not isinstance(column_format, compat.string_types):
+        elif not isinstance(column_format, compat.string_types):  # pragma: no cover
             raise AssertionError(('column_format must be str or unicode, not %s'
                                   % type(column_format)))
 
@@ -820,8 +820,9 @@ class CSVFormatter(object):
 
         # validate mi options
         if self.has_mi_columns:
-            if cols is not None:
-                raise Exception("cannot specify cols with a multi_index on the columns")
+            # guarded against in to_csv itself
+            if cols is not None: # pragma: no cover
+                raise AssertionError("cannot specify cols with a multi_index on the columns")
 
         if cols is not None:
             if isinstance(cols,Index):

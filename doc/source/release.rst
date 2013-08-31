@@ -71,6 +71,8 @@ pandas 0.13
     when the key is a column
   - Support for using a ``DatetimeIndex/PeriodsIndex`` directly in a datelike calculation
     e.g. s-s.index (:issue:`4629`)
+  - Better/cleaned up exceptions in core/common, io/excel and core/format.
+    (:issue:`4721`, :issue:`3954`)
 
 **API Changes**
 
