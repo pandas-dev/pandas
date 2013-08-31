@@ -757,19 +757,40 @@ class TestHDFStore(unittest.TestCase):
             store.append('df3', df3[10:])
             tm.assert_frame_equal(store['df3'], df3)
 
-            ##### THIS IS A BUG, should not drop these all-nan rows
-            ##### BUT need to store the index which we don't want to do....
-            # nan some entire rows
+    def test_append_all_nans(self):
+
+        with ensure_clean(self.path) as store:
+
             df = DataFrame({'A1' : np.random.randn(20),
                             'A2' : np.random.randn(20)},
                            index=np.arange(20))
-
-            _maybe_remove(store, 'df4')
             df.ix[0:15,:] = np.nan
+
+
+            # nan some entire rows (dropna=True)
+            _maybe_remove(store, 'df')
+            store.append('df', df[:10], dropna=True)
+            store.append('df', df[10:], dropna=True)
+            tm.assert_frame_equal(store['df'], df[-4:])
+
+            # nan some entire rows (dropna=False)
+            _maybe_remove(store, 'df2')
+            store.append('df2', df[:10], dropna=False)
+            store.append('df2', df[10:], dropna=False)
+            tm.assert_frame_equal(store['df2'], df)
+
+            # tests the option io.hdf.dropna_table
+            pandas.set_option('io.hdf.dropna_table',False)
+            _maybe_remove(store, 'df3')
+            store.append('df3', df[:10])
+            store.append('df3', df[10:])
+            tm.assert_frame_equal(store['df3'], df)
+
+            pandas.set_option('io.hdf.dropna_table',True)
+            _maybe_remove(store, 'df4')
             store.append('df4', df[:10])
             store.append('df4', df[10:])
             tm.assert_frame_equal(store['df4'], df[-4:])
-            self.assert_(store.get_storer('df4').nrows == 4)
 
             # nan some entire rows (string are still written!)
             df = DataFrame({'A1' : np.random.randn(20),
@@ -777,12 +798,17 @@ class TestHDFStore(unittest.TestCase):
                             'B' : 'foo', 'C' : 'bar'},
                            index=np.arange(20))
 
-            _maybe_remove(store, 'df5')
             df.ix[0:15,:] = np.nan
-            store.append('df5', df[:10])
-            store.append('df5', df[10:])
-            tm.assert_frame_equal(store['df5'], df)
-            self.assert_(store.get_storer('df5').nrows == 20)
+
+            _maybe_remove(store, 'df')
+            store.append('df', df[:10], dropna=True)
+            store.append('df', df[10:], dropna=True)
+            tm.assert_frame_equal(store['df'], df)
+
+            _maybe_remove(store, 'df2')
+            store.append('df2', df[:10], dropna=False)
+            store.append('df2', df[10:], dropna=False)
+            tm.assert_frame_equal(store['df2'], df)
 
             # nan some entire rows (but since we have dates they are still written!)
             df = DataFrame({'A1' : np.random.randn(20),
@@ -790,12 +816,17 @@ class TestHDFStore(unittest.TestCase):
                             'B' : 'foo', 'C' : 'bar', 'D' : Timestamp("20010101"), 'E' : datetime.datetime(2001,1,2,0,0) },
                            index=np.arange(20))
 
-            _maybe_remove(store, 'df6')
             df.ix[0:15,:] = np.nan
-            store.append('df6', df[:10])
-            store.append('df6', df[10:])
-            tm.assert_frame_equal(store['df6'], df)
-            self.assert_(store.get_storer('df6').nrows == 20)
+
+            _maybe_remove(store, 'df')
+            store.append('df', df[:10], dropna=True)
+            store.append('df', df[10:], dropna=True)
+            tm.assert_frame_equal(store['df'], df)
+
+            _maybe_remove(store, 'df2')
+            store.append('df2', df[:10], dropna=False)
+            store.append('df2', df[10:], dropna=False)
+            tm.assert_frame_equal(store['df2'], df)
 
     def test_append_frame_column_oriented(self):
 

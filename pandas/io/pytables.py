@@ -32,6 +32,7 @@ import pandas.core.common as com
 from pandas.tools.merge import concat
 from pandas import compat
 from pandas.io.common import PerformanceWarning
+from pandas.core.config import get_option
 
 import pandas.lib as lib
 import pandas.algos as algos
@@ -164,6 +165,17 @@ _AXES_MAP = {
     Panel: [1, 2],
     Panel4D: [1, 2, 3],
 }
+
+# register our configuration options
+from pandas.core import config
+dropna_doc = """
+: boolean
+    drop ALL nan rows when appending to a table
+"""
+
+with config.config_prefix('io.hdf'):
+    config.register_option('dropna_table', True, dropna_doc,
+                           validator=config.is_bool)
 
 # oh the troubles to reduce import time
 _table_mod = None
@@ -730,7 +742,7 @@ class HDFStore(StringMixin):
                     'can only remove with where on objects written as tables')
             return s.delete(where=where, start=start, stop=stop)
 
-    def append(self, key, value, fmt=None, append=True, columns=None, **kwargs):
+    def append(self, key, value, fmt=None, append=True, columns=None, dropna=None, **kwargs):
         """
         Append to Table in file. Node must already exist and be Table
         format.
@@ -751,7 +763,8 @@ class HDFStore(StringMixin):
         chunksize    : size to chunk the writing
         expectedrows : expected TOTAL row size of this table
         encoding     : default None, provide an encoding for strings
-
+        dropna       : boolean, default True, do not write an ALL nan row to the store
+                       settable by the option 'io.hdf.dropna_table'
         Notes
         -----
         Does *not* check if data being appended overlaps with existing
@@ -761,8 +774,10 @@ class HDFStore(StringMixin):
             raise Exception(
                 "columns is not a supported keyword in append, try data_columns")
 
+        if dropna is None:
+            dropna = get_option("io.hdf.dropna_table")
         kwargs = self._validate_format(fmt or 't', kwargs)
-        self._write_to_group(key, value, append=append, **kwargs)
+        self._write_to_group(key, value, append=append, dropna=dropna, **kwargs)
 
     def append_to_multiple(self, d, value, selector, data_columns=None, axes=None, **kwargs):
         """
@@ -3219,7 +3234,7 @@ class AppendableTable(LegacyTable):
 
     def write(self, obj, axes=None, append=False, complib=None,
               complevel=None, fletcher32=None, min_itemsize=None, chunksize=None,
-              expectedrows=None, **kwargs):
+              expectedrows=None, dropna=True, **kwargs):
 
         if not append and self.is_exists:
             self._handle.removeNode(self.group, 'table')
@@ -3254,29 +3269,36 @@ class AppendableTable(LegacyTable):
             a.validate_and_set(table, append)
 
         # add the rows
-        self.write_data(chunksize)
+        self.write_data(chunksize, dropna=dropna)
 
-    def write_data(self, chunksize):
+    def write_data(self, chunksize, dropna=True):
         """ we form the data into a 2-d including indexes,values,mask
             write chunk-by-chunk """
 
         names = self.dtype.names
         nrows = self.nrows_expected
 
-        # create the masks & values
-        masks = []
-        for a in self.values_axes:
+        # if dropna==True, then drop ALL nan rows
+        if dropna:
 
-            # figure the mask: only do if we can successfully process this
-            # column, otherwise ignore the mask
-            mask = com.isnull(a.data).all(axis=0)
-            masks.append(mask.astype('u1'))
+            masks = []
+            for a in self.values_axes:
 
-        # consolidate masks
-        mask = masks[0]
-        for m in masks[1:]:
-            mask = mask & m
-        mask = mask.ravel()
+                # figure the mask: only do if we can successfully process this
+                # column, otherwise ignore the mask
+                mask = com.isnull(a.data).all(axis=0)
+                masks.append(mask.astype('u1'))
+
+            # consolidate masks
+            mask = masks[0]
+            for m in masks[1:]:
+                mask = mask & m
+            mask = mask.ravel()
+
+        else:
+
+            mask = np.empty(nrows, dtype='u1')
+            mask.fill(False)
 
         # broadcast the indexes if needed
         indexes = [a.cvalues for a in self.index_axes]
