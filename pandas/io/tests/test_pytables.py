@@ -1448,6 +1448,32 @@ class TestHDFStore(unittest.TestCase):
             expected = df.reindex(columns=['A','B'])
             tm.assert_frame_equal(result,expected)
 
+    def test_column_multiindex(self):
+        # GH 4710
+        # recreate multi-indexes properly
+
+        index = MultiIndex.from_tuples([('A','a'), ('A','b'), ('B','a'), ('B','b')], names=['first','second'])
+        df = DataFrame(np.arange(12).reshape(3,4), columns=index)
+
+        with ensure_clean(self.path) as store:
+
+            store.put('df',df)
+            tm.assert_frame_equal(store['df'],df,check_index_type=True,check_column_type=True)
+
+            store.put('df1',df,format='table')
+            tm.assert_frame_equal(store['df1'],df,check_index_type=True,check_column_type=True)
+
+            self.assertRaises(ValueError, store.put, 'df2',df,format='table',data_columns=['A'])
+            self.assertRaises(ValueError, store.put, 'df3',df,format='table',data_columns=True)
+
+        # non_index_axes name
+        df = DataFrame(np.arange(12).reshape(3,4), columns=Index(list('ABCD'),name='foo'))
+
+        with ensure_clean(self.path) as store:
+
+            store.put('df1',df,format='table')
+            tm.assert_frame_equal(store['df1'],df,check_index_type=True,check_column_type=True)
+
     def test_pass_spec_to_storer(self):
 
         df = tm.makeDataFrame()

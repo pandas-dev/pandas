@@ -15,6 +15,7 @@ import itertools
 import warnings
 
 import numpy as np
+import pandas
 from pandas import (Series, TimeSeries, DataFrame, Panel, Panel4D, Index,
                     MultiIndex, Int64Index, Timestamp)
 from pandas.sparse.api import SparseSeries, SparseDataFrame, SparsePanel
@@ -1379,11 +1380,7 @@ class IndexCol(StringMixin):
         for key in self._info_fields:
 
             value = getattr(self, key, None)
-
-            try:
-                idx = info[self.name]
-            except:
-                idx = info[self.name] = dict()
+            idx = _get_info(info, self.name)
 
             existing_value = idx.get(key)
             if key in idx and value is not None and existing_value != value:
@@ -2783,7 +2780,10 @@ class Table(Fixed):
         if not len(self.non_index_axes):
             return []
 
-        axis_labels = self.non_index_axes[0][1]
+        axis, axis_labels = self.non_index_axes[0]
+        info = self.info.get(axis,dict())
+        if info.get('type') == 'MultiIndex' and data_columns is not None:
+            raise ValueError("cannot use a multi-index on axis [{0}] with data_columns".format(axis))
 
         # evaluate the passed data_columns, True == use all columns
         # take only valide axis labels
@@ -2878,6 +2878,11 @@ class Table(Fixed):
                         # ahah! -> reindex
                         if sorted(append_axis) == sorted(exist_axis):
                             append_axis = exist_axis
+
+                # the non_index_axes info
+                info = _get_info(self.info,i)
+                info['names'] = list(a.names)
+                info['type'] = a.__class__.__name__
 
                 self.non_index_axes.append((i, append_axis))
 
@@ -3459,10 +3464,20 @@ class AppendableFrameTable(AppendableTable):
         if not self.read_axes(where=where, **kwargs):
             return None
 
+        info = self.info.get(self.non_index_axes[0][0],dict()) if len(self.non_index_axes) else dict()
         index = self.index_axes[0].values
         frames = []
         for a in self.values_axes:
-            cols = Index(a.values)
+
+            # we could have a multi-index constructor here
+            # _ensure_index doesn't recognized our list-of-tuples here
+            if info.get('type') == 'MultiIndex':
+                cols = MultiIndex.from_tuples(a.values)
+            else:
+                cols = Index(a.values)
+            names = info.get('names')
+            if names is not None:
+                cols.set_names(names,inplace=True)
 
             if self.is_transposed:
                 values = a.cvalues
@@ -3656,6 +3671,14 @@ class AppendableNDimTable(AppendablePanelTable):
     ndim = 4
     obj_type = Panel4D
 
+
+def _get_info(info, name):
+    """ get/create the info for this name """
+    try:
+        idx = info[name]
+    except:
+        idx = info[name] = dict()
+    return idx
 
 def _convert_index(index, encoding=None):
     index_name = getattr(index, 'name', None)
