@@ -113,6 +113,8 @@ pandas 0.13
       via the option ``io.hdf.dropna_table`` (:issue:`4625`)
     - the ``format`` keyword now replaces the ``table`` keyword; allowed values are ``fixed(f)|table(t)``
       the ``Storer`` format has been renamed to ``Fixed``
+    - a column multi-index will be recreated properly (:issue:`4710`); raise on trying to use a multi-index
+      with data_columns on the same axis
   - ``JSON``
 
     - added ``date_unit`` parameter to specify resolution of timestamps. Options
