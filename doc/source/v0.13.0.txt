@@ -121,6 +121,18 @@ API changes
         index.set_names(["bob", "cranberry"], inplace=True)
 
   - Infer and downcast dtype if ``downcast='infer'`` is passed to ``fillna/ffill/bfill`` (:issue:`4604`)
+  - ``__nonzero__`` for all NDFrame objects, will now raise a ``ValueError``, this reverts back to (:issue:`1073`, :issue:`4633`)
+    behavior.
+
+    This prevent behaviors like (which will now all raise ``ValueError``)
+
+    ..code-block ::
+
+        if df:
+           ....
+
+        df1 and df2
+        s1 and s2
 
 Enhancements
 ~~~~~~~~~~~~

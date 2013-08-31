@@ -256,7 +256,7 @@ class TestTimeSeriesDuplicates(unittest.TestCase):
         df = DataFrame(randn(5,5),columns=['open','high','low','close','volume'],index=date_range('2012-01-02 18:01:00',periods=5,tz='US/Central',freq='s'))
         expected = df.loc[[df.index[2]]]
         result = df['2012-01-02 18:01:02']
-        self.assert_(result == expected)
+        assert_frame_equal(result,expected)
 
         # this is a single date, so will raise
         self.assertRaises(KeyError, df.__getitem__, df.index[2],)

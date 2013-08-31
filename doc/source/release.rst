@@ -134,6 +134,9 @@ pandas 0.13
       now returns a ``MultiIndex`` rather than an ``Index``. (:issue:`4039`)
 
   - Infer and downcast dtype if ``downcast='infer'`` is passed to ``fillna/ffill/bfill`` (:issue:`4604`)
+  - Factored out excel_value_to_python_value from ExcelFile::_parse_excel (:issue:`4589`)
+  - ``__nonzero__`` for all NDFrame objects, will now raise a ``ValueError``, this reverts back to (:issue:`1073`, :issue:`4633`)
+    behavior.
 
 **Internal Refactoring**
 

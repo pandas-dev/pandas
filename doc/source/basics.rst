@@ -8,7 +8,7 @@
    from pandas import *
    randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
-   from pandas.compat import lrange 
+   from pandas.compat import lrange
 
 ==============================
  Essential Basic Functionality
@@ -198,6 +198,9 @@ replace NaN with some other value using ``fillna`` if you wish).
 
 Flexible Comparisons
 ~~~~~~~~~~~~~~~~~~~~
+
+.. _basics.compare:
+
 Starting in v0.8, pandas introduced binary comparison methods eq, ne, lt, gt,
 le, and ge to Series and DataFrame whose behavior is analogous to the binary
 arithmetic operations described above:
@@ -205,8 +208,51 @@ arithmetic operations described above:
 .. ipython:: python
 
    df.gt(df2)
-
    df2.ne(df)
+
+These operations produce a pandas object the same type as the left-hand-side input
+that if of dtype ``bool``. These ``boolean`` objects can be used in indexing operations,
+see :ref:`here<indexing.boolean>`
+
+Furthermore, you can apply the reduction functions: ``any()`` and ``all()`` to provide a
+way to summarize these results.
+
+.. ipython:: python
+
+   (df>0).all()
+   (df>0).any()
+
+Finally you can test if a pandas object is empty, via the ``empty`` property.
+
+.. ipython:: python
+
+   df.empty
+   DataFrame(columns=list('ABC')).empty
+
+.. warning::
+
+   You might be tempted to do the following:
+
+   .. code-block:: python
+
+       >>>if df:
+            ...
+
+   Or
+
+   .. code-block:: python
+
+       >>> df and df2
+
+   These both will raise as you are trying to compare multiple values.
+
+   .. code-block:: python
+
+       ValueError: The truth value of an array is ambiguous. Use a.empty, a.any() or a.all().
+
+
+See :ref:`gotchas<gotchas.truth>` for a more detailed discussion.
+
 
 Combining overlapping data sets
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
