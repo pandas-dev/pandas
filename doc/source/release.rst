@@ -108,10 +108,11 @@ pandas 0.13
     - removed the ``warn`` argument from ``open``. Instead a ``PossibleDataLossError`` exception will
       be raised if you try to use ``mode='w'`` with an OPEN file handle (:issue:`4367`)
     - allow a passed locations array or mask as a ``where`` condition (:issue:`4467`)
-    - the ``fmt`` keyword now replaces the ``table`` keyword; allowed values are ``s|t``
     - add the keyword ``dropna=True`` to ``append`` to change whether ALL nan rows are not written
       to the store (default is ``True``, ALL nan rows are NOT written), also settable
       via the option ``io.hdf.dropna_table`` (:issue:`4625`)
+    - the ``format`` keyword now replaces the ``table`` keyword; allowed values are ``fixed(f)|table(t)``
+      the ``Storer`` format has been renamed to ``Fixed``
   - ``JSON``
 
     - added ``date_unit`` parameter to specify resolution of timestamps. Options

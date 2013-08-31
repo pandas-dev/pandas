@@ -103,19 +103,19 @@ map directly to c-types [inferred_type->%s,key->%s] [items->%s]
 
 # formats
 _FORMAT_MAP = {
-    u('s') : 's',
-    u('storer') : 's',
-    u('t') : 't',
-    u('table') : 't',
+    u('f') : 'fixed',
+    u('fixed') : 'fixed',
+    u('t') : 'table',
+    u('table') : 'table',
     }
 
-fmt_deprecate_doc = """
+format_deprecate_doc = """
 the table keyword has been deprecated
-use the fmt='s|t' keyword instead
-  s : specifies the Storer format
-      and is the default for put operations
-  t : specifies the Table format
-      and is the default for append operations
+use the format='fixed(f)|table(t)' keyword instead
+  fixed(f) : specifies the Fixed format
+             and is the default for put operations
+  table(t) : specifies the Table format
+             and is the default for append operations
 """
 
 # map object types
@@ -133,16 +133,16 @@ _TYPE_MAP = {
 
 # storer class map
 _STORER_MAP = {
-    u('TimeSeries'): 'LegacySeriesStorer',
-    u('Series'): 'LegacySeriesStorer',
-    u('DataFrame'): 'LegacyFrameStorer',
-    u('DataMatrix'): 'LegacyFrameStorer',
-    u('series'): 'SeriesStorer',
-    u('sparse_series'): 'SparseSeriesStorer',
-    u('frame'): 'FrameStorer',
-    u('sparse_frame'): 'SparseFrameStorer',
-    u('wide'): 'PanelStorer',
-    u('sparse_panel'): 'SparsePanelStorer',
+    u('TimeSeries'): 'LegacySeriesFixed',
+    u('Series'): 'LegacySeriesFixed',
+    u('DataFrame'): 'LegacyFrameFixed',
+    u('DataMatrix'): 'LegacyFrameFixed',
+    u('series'): 'SeriesFixed',
+    u('sparse_series'): 'SparseSeriesFixed',
+    u('frame'): 'FrameFixed',
+    u('sparse_frame'): 'SparseFrameFixed',
+    u('wide'): 'PanelFixed',
+    u('sparse_panel'): 'SparsePanelFixed',
 }
 
 # table class map
@@ -228,7 +228,7 @@ def get_store(path, **kwargs):
 
 # interface to/from ###
 
-def to_hdf(path_or_buf, key, value, mode=None, complevel=None, complib=None, append=None, **kwargs):
+def to_hdf(path_or_buf, key, value, mode=None, format=None, complevel=None, complib=None, append=None, **kwargs):
     """ store this object, close it if we opened it """
     if append:
         f = lambda store: store.append(key, value, **kwargs)
@@ -294,11 +294,7 @@ class HDFStore(StringMixin):
 
     """
     dict-like IO interface for storing pandas objects in PyTables
-    format.
-
-    DataFrame and Panel can be stored in Table format, which is slower to
-    read and write but can be searched and manipulated more like an SQL
-    table. See HDFStore.put for more information
+    either Fixed or Table format.
 
     Parameters
     ----------
@@ -670,7 +666,7 @@ class HDFStore(StringMixin):
 
         return TableIterator(self, func, nrows=nrows, start=start, stop=stop, auto_close=auto_close).get_values()
 
-    def put(self, key, value, fmt=None, append=False, **kwargs):
+    def put(self, key, value, format=None, append=False, **kwargs):
         """
         Store object in HDFStore
 
@@ -678,19 +674,18 @@ class HDFStore(StringMixin):
         ----------
         key      : object
         value    : {Series, DataFrame, Panel}
-        fmt      : 's|t', default is 's' for storer format
-            s : storer format
-                Fast writing/reading. Not-appendable, nor searchable
-            t : table format
-                Write as a PyTables Table structure which may perform worse but
-                allow more flexible operations like searching / selecting subsets
-                of the data
+        format   : 'fixed(f)|table(t)', default is 'fixed'
+            fixed(f) : Fixed format
+                       Fast writing/reading. Not-appendable, nor searchable
+            table(t) : Table format
+                       Write as a PyTables Table structure which may perform worse but
+                       allow more flexible operations like searching / selecting subsets
+                       of the data
         append   : boolean, default False
-            For table data structures, append the input data to the existing
-            table
+            For Table format, append the input data to the existing
         encoding : default None, provide an encoding for strings
         """
-        kwargs = self._validate_format(fmt or 's', kwargs)
+        kwargs = self._validate_format(format or 'fixed', kwargs)
         self._write_to_group(key, value, append=append, **kwargs)
 
     def remove(self, key, where=None, start=None, stop=None):
@@ -742,7 +737,7 @@ class HDFStore(StringMixin):
                     'can only remove with where on objects written as tables')
             return s.delete(where=where, start=start, stop=stop)
 
-    def append(self, key, value, fmt=None, append=True, columns=None, dropna=None, **kwargs):
+    def append(self, key, value, format=None, append=True, columns=None, dropna=None, **kwargs):
         """
         Append to Table in file. Node must already exist and be Table
         format.
@@ -751,11 +746,11 @@ class HDFStore(StringMixin):
         ----------
         key : object
         value : {Series, DataFrame, Panel, Panel4D}
-        fmt   : 't', default is 't' for table format
-            t : table format
-                Write as a PyTables Table structure which may perform worse but
-                allow more flexible operations like searching / selecting subsets
-                of the data
+        format: 'table' is the default
+            table(t) : table format
+                       Write as a PyTables Table structure which may perform worse but
+                       allow more flexible operations like searching / selecting subsets
+                       of the data
         append   : boolean, default True, append the input data to the existing
         data_columns : list of columns to create as data columns, or True to use all columns
         min_itemsize : dict of columns that specify minimum string sizes
@@ -776,7 +771,7 @@ class HDFStore(StringMixin):
 
         if dropna is None:
             dropna = get_option("io.hdf.dropna_table")
-        kwargs = self._validate_format(fmt or 't', kwargs)
+        kwargs = self._validate_format(format or 'table', kwargs)
         self._write_to_group(key, value, append=append, dropna=dropna, **kwargs)
 
     def append_to_multiple(self, d, value, selector, data_columns=None, axes=None, **kwargs):
@@ -864,7 +859,7 @@ class HDFStore(StringMixin):
             return
 
         if not s.is_table:
-            raise TypeError("cannot create table index on a non-table")
+            raise TypeError("cannot create table index on a Fixed format store")
         s.create_index(**kwargs)
 
     def groups(self):
@@ -942,39 +937,36 @@ class HDFStore(StringMixin):
         if not self.is_open:
             raise ClosedFileError("{0} file is not open!".format(self._path))
 
-    def _validate_format(self, fmt, kwargs):
+    def _validate_format(self, format, kwargs):
         """ validate / deprecate formats; return the new kwargs """
         kwargs = kwargs.copy()
-
-        if 'format' in kwargs:
-            raise TypeError("pls specify an object format with the 'fmt' keyword")
 
         # table arg
         table = kwargs.pop('table',None)
 
         if table is not None:
-            warnings.warn(fmt_deprecate_doc,FutureWarning)
+            warnings.warn(format_deprecate_doc,FutureWarning)
 
             if table:
-                fmt = 't'
+                format = 'table'
             else:
-                fmt = 's'
+                format = 'fixed'
 
         # validate
         try:
-            kwargs['fmt'] = _FORMAT_MAP[fmt.lower()]
+            kwargs['format'] = _FORMAT_MAP[format.lower()]
         except:
-            raise TypeError("invalid HDFStore format specified [{0}]".format(fmt))
+            raise TypeError("invalid HDFStore format specified [{0}]".format(format))
 
         return kwargs
 
-    def _create_storer(self, group, fmt=None, value=None, append=False, **kwargs):
-        """ return a suitable Storer class to operate """
+    def _create_storer(self, group, format=None, value=None, append=False, **kwargs):
+        """ return a suitable class to operate """
 
         def error(t):
             raise TypeError(
-                "cannot properly create the storer for: [%s] [group->%s,value->%s,fmt->%s,append->%s,kwargs->%s]" %
-                            (t, group, type(value), fmt, append, kwargs))
+                "cannot properly create the storer for: [%s] [group->%s,value->%s,format->%s,append->%s,kwargs->%s]" %
+                            (t, group, type(value), format, append, kwargs))
 
         pt = _ensure_decoded(getattr(group._v_attrs, 'pandas_type', None))
         tt = _ensure_decoded(getattr(group._v_attrs, 'table_type', None))
@@ -998,7 +990,7 @@ class HDFStore(StringMixin):
                     error('_TYPE_MAP')
 
                 # we are actually a table
-                if fmt == 't':
+                if format == 'table':
                     pt += u('_table')
 
         # a storer node
@@ -1050,7 +1042,7 @@ class HDFStore(StringMixin):
             error('_TABLE_MAP')
 
     def _write_to_group(
-        self, key, value, fmt, index=True, append=False,
+        self, key, value, format, index=True, append=False,
                         complib=None, encoding=None, **kwargs):
         group = self.get_node(key)
 
@@ -1061,7 +1053,7 @@ class HDFStore(StringMixin):
 
         # we don't want to store a table node at all if are object is 0-len
         # as there are not dtypes
-        if getattr(value,'empty',None) and (fmt == 't' or append):
+        if getattr(value,'empty',None) and (format == 'table' or append):
             return
 
         if group is None:
@@ -1081,12 +1073,12 @@ class HDFStore(StringMixin):
                     group = self._handle.createGroup(path, p)
                 path = new_path
 
-        s = self._create_storer(group, fmt, value, append=append,
+        s = self._create_storer(group, format, value, append=append,
                                 encoding=encoding, **kwargs)
         if append:
-            # raise if we are trying to append to a non-table,
+            # raise if we are trying to append to a Fixed format,
             #       or a table that exists (and we are putting)
-            if not s.is_table or (s.is_table and fmt == 's' and s.is_exists):
+            if not s.is_table or (s.is_table and format == 'fixed' and s.is_exists):
                 raise ValueError('Can only append to Tables')
             if not s.is_exists:
                 s.set_object_info()
@@ -1094,7 +1086,7 @@ class HDFStore(StringMixin):
             s.set_object_info()
 
         if not s.is_table and complib:
-            raise ValueError('Compression not supported on non-table')
+            raise ValueError('Compression not supported on Fixed format stores')
 
         # write the object
         s.write(obj=value, append=append, complib=complib, **kwargs)
@@ -1765,11 +1757,11 @@ class GenericDataIndexableCol(DataIndexableCol):
         pass
 
 
-class Storer(StringMixin):
+class Fixed(StringMixin):
 
     """ represent an object in my store
-          facilitate read/write of various types of objects
-          this is an abstract base class
+        facilitate read/write of various types of objects
+        this is an abstract base class
 
         Parameters
         ----------
@@ -1921,9 +1913,9 @@ class Storer(StringMixin):
         raise TypeError("cannot delete on an abstract storer")
 
 
-class GenericStorer(Storer):
+class GenericFixed(Fixed):
 
-    """ a generified storer version """
+    """ a generified fixed version """
     _index_type_map = {DatetimeIndex: 'datetime',
                            PeriodIndex: 'period'}
     _reverse_index_map = dict([(v, k)
@@ -1950,10 +1942,10 @@ class GenericStorer(Storer):
 
     def validate_read(self, kwargs):
         if kwargs.get('columns') is not None:
-            raise TypeError("cannot pass a column specification when reading a non-table "
+            raise TypeError("cannot pass a column specification when reading a Fixed format store."
                             "this store must be selected in its entirety")
         if kwargs.get('where') is not None:
-            raise TypeError("cannot pass a where specification when reading from a non-table "
+            raise TypeError("cannot pass a where specification when reading from a Fixed format store."
                             "this store must be selected in its entirety")
 
     @property
@@ -2212,7 +2204,7 @@ class GenericStorer(Storer):
         getattr(self.group, key)._v_attrs.transposed = transposed
 
 
-class LegacyStorer(GenericStorer):
+class LegacyFixed(GenericFixed):
 
     def read_index_legacy(self, key):
         node = getattr(self.group, key)
@@ -2221,7 +2213,7 @@ class LegacyStorer(GenericStorer):
         return _unconvert_index_legacy(data, kind, encoding=self.encoding)
 
 
-class LegacySeriesStorer(LegacyStorer):
+class LegacySeriesFixed(LegacyFixed):
 
     def read(self, **kwargs):
         self.validate_read(kwargs)
@@ -2230,7 +2222,7 @@ class LegacySeriesStorer(LegacyStorer):
         return Series(values, index=index)
 
 
-class LegacyFrameStorer(LegacyStorer):
+class LegacyFrameFixed(LegacyFixed):
 
     def read(self, **kwargs):
         self.validate_read(kwargs)
@@ -2240,7 +2232,7 @@ class LegacyFrameStorer(LegacyStorer):
         return DataFrame(values, index=index, columns=columns)
 
 
-class SeriesStorer(GenericStorer):
+class SeriesFixed(GenericFixed):
     pandas_kind = u('series')
     attributes = ['name']
 
@@ -2262,13 +2254,13 @@ class SeriesStorer(GenericStorer):
         return Series(values, index=index, name=self.name)
 
     def write(self, obj, **kwargs):
-        super(SeriesStorer, self).write(obj, **kwargs)
+        super(SeriesFixed, self).write(obj, **kwargs)
         self.write_index('index', obj.index)
         self.write_array('values', obj.values)
         self.attrs.name = obj.name
 
 
-class SparseSeriesStorer(GenericStorer):
+class SparseSeriesFixed(GenericFixed):
     pandas_kind = u('sparse_series')
     attributes = ['name', 'fill_value', 'kind']
 
@@ -2282,7 +2274,7 @@ class SparseSeriesStorer(GenericStorer):
                             name=self.name)
 
     def write(self, obj, **kwargs):
-        super(SparseSeriesStorer, self).write(obj, **kwargs)
+        super(SparseSeriesFixed, self).write(obj, **kwargs)
         self.write_index('index', obj.index)
         self.write_index('sp_index', obj.sp_index)
         self.write_array('sp_values', obj.sp_values)
@@ -2291,7 +2283,7 @@ class SparseSeriesStorer(GenericStorer):
         self.attrs.kind = obj.kind
 
 
-class SparseFrameStorer(GenericStorer):
+class SparseFrameFixed(GenericFixed):
     pandas_kind = u('sparse_frame')
     attributes = ['default_kind', 'default_fill_value']
 
@@ -2301,7 +2293,7 @@ class SparseFrameStorer(GenericStorer):
         sdict = {}
         for c in columns:
             key = 'sparse_series_%s' % c
-            s = SparseSeriesStorer(self.parent, getattr(self.group, key))
+            s = SparseSeriesFixed(self.parent, getattr(self.group, key))
             s.infer_axes()
             sdict[c] = s.read()
         return SparseDataFrame(sdict, columns=columns,
@@ -2310,21 +2302,21 @@ class SparseFrameStorer(GenericStorer):
 
     def write(self, obj, **kwargs):
         """ write it as a collection of individual sparse series """
-        super(SparseFrameStorer, self).write(obj, **kwargs)
+        super(SparseFrameFixed, self).write(obj, **kwargs)
         for name, ss in compat.iteritems(obj):
             key = 'sparse_series_%s' % name
             if key not in self.group._v_children:
                 node = self._handle.createGroup(self.group, key)
             else:
                 node = getattr(self.group, key)
-            s = SparseSeriesStorer(self.parent, node)
+            s = SparseSeriesFixed(self.parent, node)
             s.write(ss)
         self.attrs.default_fill_value = obj.default_fill_value
         self.attrs.default_kind = obj.default_kind
         self.write_index('columns', obj.columns)
 
 
-class SparsePanelStorer(GenericStorer):
+class SparsePanelFixed(GenericFixed):
     pandas_kind = u('sparse_panel')
     attributes = ['default_kind', 'default_fill_value']
 
@@ -2336,14 +2328,14 @@ class SparsePanelStorer(GenericStorer):
         for name in items:
             key = 'sparse_frame_%s' % name
             node = getattr(self.group, key)
-            s = SparseFrameStorer(self.parent, getattr(self.group, key))
+            s = SparseFrameFixed(self.parent, getattr(self.group, key))
             s.infer_axes()
             sdict[name] = s.read()
         return SparsePanel(sdict, items=items, default_kind=self.default_kind,
                            default_fill_value=self.default_fill_value)
 
     def write(self, obj, **kwargs):
-        super(SparsePanelStorer, self).write(obj, **kwargs)
+        super(SparsePanelFixed, self).write(obj, **kwargs)
         self.attrs.default_fill_value = obj.default_fill_value
         self.attrs.default_kind = obj.default_kind
         self.write_index('items', obj.items)
@@ -2354,11 +2346,11 @@ class SparsePanelStorer(GenericStorer):
                 node = self._handle.createGroup(self.group, key)
             else:
                 node = getattr(self.group, key)
-            s = SparseFrameStorer(self.parent, node)
+            s = SparseFrameFixed(self.parent, node)
             s.write(sdf)
 
 
-class BlockManagerStorer(GenericStorer):
+class BlockManagerFixed(GenericFixed):
     attributes = ['ndim', 'nblocks']
     is_shape_reversed = False
 
@@ -2412,7 +2404,7 @@ class BlockManagerStorer(GenericStorer):
         return self.obj_type(BlockManager(blocks, axes))
 
     def write(self, obj, **kwargs):
-        super(BlockManagerStorer, self).write(obj, **kwargs)
+        super(BlockManagerFixed, self).write(obj, **kwargs)
         data = obj._data
         if not data.is_consolidated():
             data = data.consolidate()
@@ -2430,22 +2422,22 @@ class BlockManagerStorer(GenericStorer):
             self.write_index('block%d_items' % i, blk.items)
 
 
-class FrameStorer(BlockManagerStorer):
+class FrameFixed(BlockManagerFixed):
     pandas_kind = u('frame')
     obj_type = DataFrame
 
 
-class PanelStorer(BlockManagerStorer):
+class PanelFixed(BlockManagerFixed):
     pandas_kind = u('wide')
     obj_type = Panel
     is_shape_reversed = True
 
     def write(self, obj, **kwargs):
         obj._consolidate_inplace()
-        return super(PanelStorer, self).write(obj, **kwargs)
+        return super(PanelFixed, self).write(obj, **kwargs)
 
 
-class Table(Storer):
+class Table(Fixed):
 
     """ represent a table:
           facilitate read/write of various types of tables
@@ -3992,7 +3984,7 @@ class Term(StringMixin):
             else:
 
                 raise TypeError(
-                    "passing a filterable condition to a non-table indexer [%s]" % str(self))
+                    "passing a filterable condition to a Fixed format indexer [%s]" % str(self))
 
     def convert_value(self, v):
         """ convert the expression that is in the term to something that is accepted by pytables """

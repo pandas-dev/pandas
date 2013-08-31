@@ -150,38 +150,38 @@ class TestHDFStore(unittest.TestCase):
     def test_api(self):
 
         # GH4584
-        # API issue when to_hdf doesn't acdept append AND table args
+        # API issue when to_hdf doesn't acdept append AND format args
         with tm.ensure_clean(self.path) as path:
 
             df = tm.makeDataFrame()
-            df.iloc[:10].to_hdf(path,'df',append=True,table=True)
-            df.iloc[10:].to_hdf(path,'df',append=True,table=True)
+            df.iloc[:10].to_hdf(path,'df',append=True,format='table')
+            df.iloc[10:].to_hdf(path,'df',append=True,format='table')
             assert_frame_equal(read_hdf(path,'df'),df)
 
             # append to False
-            df.iloc[:10].to_hdf(path,'df',append=False,table=True)
-            df.iloc[10:].to_hdf(path,'df',append=True,table=True)
+            df.iloc[:10].to_hdf(path,'df',append=False,format='table')
+            df.iloc[10:].to_hdf(path,'df',append=True,format='table')
             assert_frame_equal(read_hdf(path,'df'),df)
 
         with tm.ensure_clean(self.path) as path:
 
             df = tm.makeDataFrame()
             df.iloc[:10].to_hdf(path,'df',append=True)
-            df.iloc[10:].to_hdf(path,'df',append=True,table='t')
+            df.iloc[10:].to_hdf(path,'df',append=True,format='table')
             assert_frame_equal(read_hdf(path,'df'),df)
 
             # append to False
-            df.iloc[:10].to_hdf(path,'df',append=False,table='t')
+            df.iloc[:10].to_hdf(path,'df',append=False,format='table')
             df.iloc[10:].to_hdf(path,'df',append=True)
             assert_frame_equal(read_hdf(path,'df'),df)
 
         with tm.ensure_clean(self.path) as path:
 
             df = tm.makeDataFrame()
-            df.to_hdf(path,'df',append=False,table=False)
+            df.to_hdf(path,'df',append=False,format='fixed')
             assert_frame_equal(read_hdf(path,'df'),df)
 
-            df.to_hdf(path,'df',append=False,fmt='s')
+            df.to_hdf(path,'df',append=False,format='f')
             assert_frame_equal(read_hdf(path,'df'),df)
 
             df.to_hdf(path,'df',append=False)
@@ -193,34 +193,34 @@ class TestHDFStore(unittest.TestCase):
         with ensure_clean(self.path) as store:
 
             df = tm.makeDataFrame()
-            store.append('df',df.iloc[:10],append=True,table=True)
-            store.append('df',df.iloc[10:],append=True,table=True)
+            store.append('df',df.iloc[:10],append=True,format='table')
+            store.append('df',df.iloc[10:],append=True,format='table')
             assert_frame_equal(read_hdf(path,'df'),df)
 
             # append to False
-            store.append('df',df.iloc[:10],append=False,table=True)
-            store.append('df',df.iloc[10:],append=True,table=True)
+            store.append('df',df.iloc[:10],append=False,format='table')
+            store.append('df',df.iloc[10:],append=True,format='table')
             assert_frame_equal(read_hdf(path,'df'),df)
 
             # formats
-            store.append('df',df.iloc[:10],append=False,fmt='t')
-            store.append('df',df.iloc[10:],append=True,fmt='t')
+            store.append('df',df.iloc[:10],append=False,format='table')
+            store.append('df',df.iloc[10:],append=True,format='table')
             assert_frame_equal(read_hdf(path,'df'),df)
 
             _maybe_remove(store,'df')
-            store.append('df',df.iloc[:10],append=False,fmt='t')
-            store.append('df',df.iloc[10:],append=True,fmt=None)
+            store.append('df',df.iloc[:10],append=False,format='table')
+            store.append('df',df.iloc[10:],append=True,format=None)
             assert_frame_equal(read_hdf(path,'df'),df)
 
         with tm.ensure_clean(self.path) as path:
 
             # invalid
             df = tm.makeDataFrame()
-            self.assertRaises(ValueError, df.to_hdf, path,'df',append=True,fmt='s')
+            self.assertRaises(ValueError, df.to_hdf, path,'df',append=True,format='f')
+            self.assertRaises(ValueError, df.to_hdf, path,'df',append=True,format='fixed')
 
-            self.assertRaises(TypeError, df.to_hdf, path,'df',append=True,fmt='foo')
-            self.assertRaises(TypeError, df.to_hdf, path,'df',append=False,fmt='bar')
-            self.assertRaises(TypeError, df.to_hdf, path,'df',format='s')
+            self.assertRaises(TypeError, df.to_hdf, path,'df',append=True,format='foo')
+            self.assertRaises(TypeError, df.to_hdf, path,'df',append=False,format='bar')
 
     def test_keys(self):
 
@@ -466,7 +466,7 @@ class TestHDFStore(unittest.TestCase):
             store['foo/bar/bah'] = df[:10]
             store['foo'] = df[:10]
             store['/foo'] = df[:10]
-            store.put('c', df[:10], table=True)
+            store.put('c', df[:10], format='table')
 
             # not OK, not a table
             self.assertRaises(
@@ -481,7 +481,7 @@ class TestHDFStore(unittest.TestCase):
             self.assertRaises(ValueError, store.put, 'c', df[10:], append=True)
 
             # overwrite table
-            store.put('c', df[:10], table=True, append=False)
+            store.put('c', df[:10], format='table', append=False)
             tm.assert_frame_equal(df[:10], store['c'])
 
     def test_put_string_index(self):
@@ -514,12 +514,12 @@ class TestHDFStore(unittest.TestCase):
         with ensure_clean(self.path) as store:
             df = tm.makeTimeDataFrame()
 
-            store.put('c', df, table=True, complib='zlib')
+            store.put('c', df, format='table', complib='zlib')
             tm.assert_frame_equal(store['c'], df)
 
-            # can't compress if table=False
+            # can't compress if format='fixed'
             self.assertRaises(ValueError, store.put, 'b', df,
-                              table=False, complib='zlib')
+                              format='fixed', complib='zlib')
 
     def test_put_compression_blosc(self):
         tm.skip_if_no_package('tables', '2.2', app='blosc support')
@@ -527,11 +527,11 @@ class TestHDFStore(unittest.TestCase):
 
         with ensure_clean(self.path) as store:
 
-            # can't compress if table=False
+            # can't compress if format='fixed'
             self.assertRaises(ValueError, store.put, 'b', df,
-                              table=False, complib='blosc')
+                              format='fixed', complib='blosc')
 
-            store.put('c', df, table=True, complib='blosc')
+            store.put('c', df, format='table', complib='blosc')
             tm.assert_frame_equal(store['c'], df)
 
     def test_put_integer(self):
@@ -577,7 +577,7 @@ class TestHDFStore(unittest.TestCase):
             tm.assert_frame_equal(store['df1'], df)
 
             _maybe_remove(store, 'df2')
-            store.put('df2', df[:10], table=True)
+            store.put('df2', df[:10], format='table')
             store.append('df2', df[10:])
             tm.assert_frame_equal(store['df2'], df)
 
@@ -1376,7 +1376,7 @@ class TestHDFStore(unittest.TestCase):
         wp2 = wp.ix[['ItemC', 'ItemB', 'ItemA'], 10:, :]
 
         with ensure_clean(self.path) as store:
-            store.put('panel', wp1, table=True)
+            store.put('panel', wp1, format='table')
             self.assertRaises(ValueError, store.put, 'panel', wp2,
                               append=True)
 
@@ -1400,7 +1400,7 @@ class TestHDFStore(unittest.TestCase):
             tm.assert_frame_equal(result,expected)
 
         with tm.ensure_clean('test.hdf') as path:
-            df.to_hdf(path,'df',table=True)
+            df.to_hdf(path,'df',format='table')
             result = read_hdf(path,'df',columns=['A','B'])
             expected = df.reindex(columns=['A','B'])
             tm.assert_frame_equal(result,expected)
@@ -1541,9 +1541,9 @@ class TestHDFStore(unittest.TestCase):
                         index=date_range('1/1/2000', periods=3))
 
         with ensure_clean(self.path) as store:
-            store.put('frame', df1, table=True)
+            store.put('frame', df1, format='table')
             self.assertRaises(TypeError, store.put, 'frame', df2,
-                              table=True, append=True)
+                              format='table', append=True)
 
     def test_table_values_dtypes_roundtrip(self):
 
@@ -1777,7 +1777,7 @@ class TestHDFStore(unittest.TestCase):
             # try to remove non-table (with crit)
             # non-table ok (where = None)
             wp = tm.makePanel()
-            store.put('wp', wp, fmt='t')
+            store.put('wp', wp, format='t')
             store.remove('wp', [('minor_axis', ['A', 'D'])])
             rs = store.select('wp')
             expected = wp.reindex(minor_axis=['B', 'C'])
@@ -1785,7 +1785,7 @@ class TestHDFStore(unittest.TestCase):
 
             # empty where
             _maybe_remove(store, 'wp')
-            store.put('wp', wp, fmt='t')
+            store.put('wp', wp, format='table')
 
             # deleted number (entire table)
             n = store.remove('wp', [])
@@ -1793,12 +1793,12 @@ class TestHDFStore(unittest.TestCase):
 
             # non - empty where
             _maybe_remove(store, 'wp')
-            store.put('wp', wp, fmt='t')
+            store.put('wp', wp, format='table')
             self.assertRaises(ValueError, store.remove,
                               'wp', ['foo'])
 
             # selectin non-table with a where
-            # store.put('wp2', wp, fmt='s')
+            # store.put('wp2', wp, format='f')
             # self.assertRaises(ValueError, store.remove,
             #                  'wp2', [('column', ['A', 'D'])])
 
@@ -1811,7 +1811,7 @@ class TestHDFStore(unittest.TestCase):
             # group row removal
             date4 = wp.major_axis.take([0, 1, 2, 4, 5, 6, 8, 9, 10])
             crit4 = Term('major_axis', date4)
-            store.put('wp3', wp, fmt='t')
+            store.put('wp3', wp, format='table')
             n = store.remove('wp3', where=[crit4])
             assert(n == 36)
             result = store.select('wp3')
@@ -1819,7 +1819,7 @@ class TestHDFStore(unittest.TestCase):
             assert_panel_equal(result, expected)
 
             # upper half
-            store.put('wp', wp, fmt='t')
+            store.put('wp', wp, format='table')
             date = wp.major_axis[len(wp.major_axis) // 2]
 
             crit1 = Term('major_axis', '>', date)
@@ -1836,7 +1836,7 @@ class TestHDFStore(unittest.TestCase):
             assert_panel_equal(result, expected)
 
             # individual row elements
-            store.put('wp2', wp, fmt='t')
+            store.put('wp2', wp, format='table')
 
             date1 = wp.major_axis[1:3]
             crit1 = Term('major_axis', date1)
@@ -1862,7 +1862,7 @@ class TestHDFStore(unittest.TestCase):
             assert_panel_equal(result, expected)
 
             # corners
-            store.put('wp4', wp, fmt='t')
+            store.put('wp4', wp, format='table')
             n = store.remove(
                 'wp4', where=[Term('major_axis', '>', wp.major_axis[-1])])
             result = store.select('wp4')
@@ -1874,8 +1874,8 @@ class TestHDFStore(unittest.TestCase):
 
             wp = tm.makePanel()
             p4d = tm.makePanel4D()
-            store.put('wp', wp, fmt='t')
-            store.put('p4d', p4d, fmt='t')
+            store.put('wp', wp, format='table')
+            store.put('p4d', p4d, format='table')
 
             # some invalid terms
             terms = [
@@ -2230,8 +2230,8 @@ class TestHDFStore(unittest.TestCase):
     def test_wide_table_dups(self):
         wp = tm.makePanel()
         with ensure_clean(self.path) as store:
-            store.put('panel', wp, fmt='t')
-            store.put('panel', wp, fmt='t', append=True)
+            store.put('panel', wp, format='table')
+            store.put('panel', wp, format='table', append=True)
 
             with tm.assert_produces_warning(expected_warning=DuplicateWarning):
                 recons = store['panel']
@@ -2297,7 +2297,7 @@ class TestHDFStore(unittest.TestCase):
 
             # put/select ok
             _maybe_remove(store, 'wp')
-            store.put('wp', wp, fmt='t')
+            store.put('wp', wp, format='table')
             store.select('wp')
 
             # non-table ok (where = None)
@@ -2483,7 +2483,7 @@ class TestHDFStore(unittest.TestCase):
         with tm.ensure_clean(self.path) as path:
 
             df = tm.makeTimeDataFrame(500)
-            df.to_hdf(path,'df',fmt='t')
+            df.to_hdf(path,'df',format='table')
 
             results = []
             for x in read_hdf(path,'df',chunksize=100):
@@ -2534,7 +2534,7 @@ class TestHDFStore(unittest.TestCase):
 
         with ensure_clean(self.path) as store:
             _maybe_remove(store,'data')
-            store.put('data', df, fmt='t')
+            store.put('data', df, format='table')
 
             result = store.get('data')
             tm.assert_frame_equal(df,result)
@@ -2592,7 +2592,7 @@ class TestHDFStore(unittest.TestCase):
         wp = tm.makePanel()
 
         with ensure_clean(self.path) as store:
-            store.put('wp', wp, fmt='t')
+            store.put('wp', wp, format='table')
             date = wp.major_axis[len(wp.major_axis) // 2]
 
             crit1 = ('major_axis', '>=', date)
@@ -2612,7 +2612,7 @@ class TestHDFStore(unittest.TestCase):
         df = tm.makeTimeDataFrame()
 
         with ensure_clean(self.path) as store:
-            store.put('frame', df,fmt='t')
+            store.put('frame', df,format='table')
             date = df.index[len(df) // 2]
 
             crit1 = ('index', '>=', date)
@@ -2920,7 +2920,7 @@ class TestHDFStore(unittest.TestCase):
         df.columns = ['%.3d' % c for c in df.columns]
 
         with ensure_clean(self.path) as store:
-            store.put('frame', df, fmt='t')
+            store.put('frame', df, format='table')
 
             crit = Term('columns', df.columns[:75])
             result = store.select('frame', [crit])
@@ -2958,7 +2958,7 @@ class TestHDFStore(unittest.TestCase):
             options['complib'] = _default_compressor
 
         with ensure_clean(self.path, 'w', **options) as store:
-            store.put('obj', obj, fmt='t')
+            store.put('obj', obj, format='table')
             retrieved = store['obj']
             # sorted_obj = _test_sort(obj)
             comparator(retrieved, obj)
@@ -2969,7 +2969,7 @@ class TestHDFStore(unittest.TestCase):
         with tm.ensure_clean(self.path) as path:
 
             df = tm.makeDataFrame()
-            df.to_hdf(path,'df',mode='w',fmt='t')
+            df.to_hdf(path,'df',mode='w',format='table')
 
             # single
             store = HDFStore(path)
@@ -3031,7 +3031,7 @@ class TestHDFStore(unittest.TestCase):
         with tm.ensure_clean(self.path) as path:
 
             df = tm.makeDataFrame()
-            df.to_hdf(path,'df',mode='w',fmt='t')
+            df.to_hdf(path,'df',mode='w',format='table')
 
             store = HDFStore(path)
             store.close()
@@ -3274,7 +3274,7 @@ class TestHDFStore(unittest.TestCase):
     #                   index=[np.arange(5).repeat(2),
     #                          np.tile(np.arange(2), 5)])
 
-    #    self.assertRaises(Exception, store.put, 'foo', df, fmt='t')
+    #    self.assertRaises(Exception, store.put, 'foo', df, format='table')
 
 
 def _test_sort(obj):
