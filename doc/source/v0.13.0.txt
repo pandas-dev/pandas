@@ -79,17 +79,17 @@ API changes
     - allow a passed locations array or mask as a ``where`` condition (:issue:`4467`).
       See :ref:`here<io.hdf5-where_mask>` for an example.
 
-    - the ``fmt`` keyword now replaces the ``table`` keyword; allowed values are ``s|t``
-      the same defaults as prior < 0.13.0 remain, e.g. ``put`` implies 's' (Storer) format
-      and ``append`` imples 't' (Table) format
+    - the ``format`` keyword now replaces the ``table`` keyword; allowed values are ``fixed(f)`` or ``table(t)``
+      the same defaults as prior < 0.13.0 remain, e.g. ``put`` implies 'fixed` or 'f' (Fixed) format
+      and ``append`` imples 'table' or 't' (Table) format
 
       .. ipython:: python
 
          path = 'test.h5'
          df = DataFrame(randn(10,2))
-         df.to_hdf(path,'df_table',fmt='t')
+         df.to_hdf(path,'df_table',format='table')
          df.to_hdf(path,'df_table2',append=True)
-         df.to_hdf(path,'df_storer')
+         df.to_hdf(path,'df_fixed')
          with get_store(path) as store:
             print store
 

@@ -1794,27 +1794,31 @@ similar to how ``read_csv`` and ``to_csv`` work. (new in 0.11.0)
 
    os.remove('store_tl.h5')
 
-.. _io.hdf5-storer:
+.. _io.hdf5-fixed:
 
-Storer Format
-~~~~~~~~~~~~~
+Fixed Format
+~~~~~~~~~~~~
+
+.. note::
+
+   This was prior to 0.13.0 the ``Storer`` format.
 
 The examples above show storing using ``put``, which write the HDF5 to ``PyTables`` in a fixed array format, called
-the ``storer`` format. These types of stores are are **not** appendable once written (though you can simply
+the ``fixed`` format. These types of stores are are **not** appendable once written (though you can simply
 remove them and rewrite). Nor are they **queryable**; they must be
 retrieved in their entirety. These offer very fast writing and slightly faster reading than ``table`` stores.
-This format is specified by default when using ``put`` or by ``fmt='s'``
+This format is specified by default when using ``put`` or ``to_hdf`` or by ``format='fixed'`` or ``format='f'``
 
 .. warning::
 
-   A ``storer`` format will raise a ``TypeError`` if you try to retrieve using a ``where`` .
+   A ``fixed`` format will raise a ``TypeError`` if you try to retrieve using a ``where`` .
 
    .. code-block:: python
 
-       DataFrame(randn(10,2)).to_hdf('test_storer.h5','df')
+       DataFrame(randn(10,2)).to_hdf('test_fixed.h5','df')
 
-       pd.read_hdf('test_storer.h5','df',where='index>5')
-       TypeError: cannot pass a where specification when reading a non-table
+       pd.read_hdf('test_fixed.h5','df',where='index>5')
+       TypeError: cannot pass a where specification when reading a fixed format.
                   this store must be selected in its entirety
 
 
@@ -1827,7 +1831,11 @@ Table Format
 format. Conceptually a ``table`` is shaped very much like a DataFrame,
 with rows and columns. A ``table`` may be appended to in the same or
 other sessions.  In addition, delete & query type operations are
-supported. This format is specified by ``fmt='t'`` to ``append`` or ``put``.
+supported. This format is specified by ``format='table'`` or ``format='t'``
+to ``append`` or ``put`` or ``to_hdf``
+
+This format can be set as an option as well ``pd.set_option('io.hdf.default_format','table')`` to
+enable ``put/append/to_hdf`` to by default store in the ``table`` format.
 
 .. ipython:: python
    :suppress:
@@ -1854,7 +1862,7 @@ supported. This format is specified by ``fmt='t'`` to ``append`` or ``put``.
 
 .. note::
 
-   You can also create a ``table`` by passing ``fmt='t'`` to a ``put`` operation.
+   You can also create a ``table`` by passing ``format='table'`` or ``format='t'`` to a ``put`` operation.
 
 .. _io.hdf5-keys:
 
@@ -2363,7 +2371,7 @@ Starting in 0.11, passing a ``min_itemsize`` dict will cause all passed columns 
 External Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~
 
-``HDFStore`` write storer objects in specific formats suitable for
+``HDFStore`` write ``table`` format objects in specific formats suitable for
 producing loss-less roundtrips to pandas objects. For external
 compatibility, ``HDFStore`` can read native ``PyTables`` format
 tables. It is possible to write an ``HDFStore`` object that can easily

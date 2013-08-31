@@ -678,6 +678,15 @@ class NDFrame(PandasObject):
               and if the file does not exist it is created.
           ``'r+'``
               It is similar to ``'a'``, but the file must already exist.
+        format   : 'fixed(f)|table(t)', default is 'fixed'
+            fixed(f) : Fixed format
+                       Fast writing/reading. Not-appendable, nor searchable
+            table(t) : Table format
+                       Write as a PyTables Table structure which may perform worse but
+                       allow more flexible operations like searching / selecting subsets
+                       of the data
+        append   : boolean, default False
+            For Table formats, append the input data to the existing
         complevel : int, 1-9, default 0
             If a complib is specified compression will be applied
             where possible
