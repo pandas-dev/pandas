@@ -273,16 +273,33 @@ class Index(FrozenNDArray):
 
         Returns
         -------
-        new index (of same type and class...etc)
+        new index (of same type and class...etc) [if inplace, returns None]
         """
+        if not com.is_list_like(names):
+            raise TypeError("Must pass list-like as `names`.")
         if inplace:
             idx = self
         else:
             idx = self._shallow_copy()
         idx._set_names(names)
-        return idx
+        if not inplace:
+            return idx
 
     def rename(self, name, inplace=False):
+        """
+        Set new names on index. Defaults to returning new index.
+
+        Parameters
+        ----------
+        name : str or list
+            name to set
+        inplace : bool
+            if True, mutates in place
+
+        Returns
+        -------
+        new index (of same type and class...etc) [if inplace, returns None]
+        """
         return self.set_names([name], inplace=inplace)
 
     @property
@@ -1556,6 +1573,7 @@ class MultiIndex(Index):
     _levels = FrozenList()
     _labels = FrozenList()
     _comparables = ['names']
+    rename = Index.set_names
 
     def __new__(cls, levels=None, labels=None, sortorder=None, names=None,
                 copy=False):
