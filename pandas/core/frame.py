@@ -351,7 +351,8 @@ class DataFrame(NDFrame):
         Index to use for resulting frame. Will default to np.arange(n) if
         no indexing information part of input data and no index provided
     columns : Index or array-like
-        Will default to np.arange(n) if not column labels provided
+        Column labels to use for resulting frame. Will default to 
+        np.arange(n) if no column labels are provided
     dtype : dtype, default None
         Data type to force, otherwise infer
     copy : boolean, default False
