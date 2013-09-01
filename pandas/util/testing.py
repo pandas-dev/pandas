@@ -1032,7 +1032,7 @@ def assertRaises(_exception, _callable=None, *args, **kwargs):
     >>> assertRaises(TypeError, ",".join, [1, 3, 5]);
     """
     manager = _AssertRaisesContextmanager(exception=_exception)
-    # don't return anything if usedin function form
+    # don't return anything if used in function form
     if _callable is not None:
         with manager:
             _callable(*args, **kwargs)

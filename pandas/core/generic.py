@@ -417,7 +417,7 @@ class NDFrame(PandasObject):
         inplace = kwargs.get('inplace', False)
 
         if (com._count_not_none(*axes.values()) == 0):
-            raise Exception('must pass an index to rename')
+            raise TypeError('must pass an index to rename')
 
         # renamer function if passed a dict
         def _get_rename_function(mapper):
@@ -1242,7 +1242,7 @@ class NDFrame(PandasObject):
             matcher = re.compile(regex)
             return self.select(lambda x: matcher.search(x) is not None, axis=axis_name)
         else:
-            raise ValueError('items was None!')
+            raise TypeError('Must pass either `items`, `like`, or `regex`')
 
     #----------------------------------------------------------------------
     # Attribute access

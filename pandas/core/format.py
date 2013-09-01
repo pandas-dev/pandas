@@ -825,9 +825,8 @@ class CSVFormatter(object):
 
         # validate mi options
         if self.has_mi_columns:
-            # guarded against in to_csv itself
-            if cols is not None: # pragma: no cover
-                raise AssertionError("cannot specify cols with a multi_index on the columns")
+            if cols is not None:
+                raise TypeError("cannot specify cols with a MultiIndex on the columns")
 
         if cols is not None:
             if isinstance(cols,Index):
