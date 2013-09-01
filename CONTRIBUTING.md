@@ -32,8 +32,8 @@ your contribution or address the issue you're having.
   - **Make sure the test suite passes**., and that means on python3 as well.
     You can use "test_fast.sh", or tox locally and/or enable Travis-CI on your fork.
     See the "Getting Travis-CI going" below.
-  - We suggest you enable Travis-CI on your fork, to make it easier for the team
-     to see that the PR does indeed pass all the tests.
+  - If you are changing any code, you need to enable Travis-CI on your fork,
+    to make it easier for the team to see that the PR does indeed pass all the tests.
   - Back-compatibility **really** matters. Pandas already has a large user-base and
     a lot of existing user code. Don't break old code if you can avoid it
     Explain the need if there is one in the PR.
@@ -69,7 +69,8 @@ your contribution or address the issue you're having.
     with self.assertRaises(ValueError):
          foo
 
-    which fails on python 2.6, use `self.assertRaises(TheException,func,args)` instead.
+    which fails on python 2.6. You need to use `assertRaises` from
+    `pandas.util.testing` instead (or use `self.assertRaises(TheException,func,args)`).
 
   - doc/source/release.rst and doc/source/vx.y.z.txt contain an on-going
     changelog for each release as it is worked on. Add entries to these files
