@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from pandas.compat import range, lrange, lzip, u, zip
 import operator
 import pickle
+import re
 import unittest
 import nose
 import os
@@ -44,9 +45,34 @@ class TestIndex(unittest.TestCase):
         def testit(ind):
             ind.names = ["apple", "banana", "carrot"]
 
-        indices = (self.dateIndex, self.unicodeIndex, self.strIndex, self.intIndex, self.floatIndex, self.empty, self.tuples)
+        indices = (self.dateIndex, self.unicodeIndex, self.strIndex,
+                   self.intIndex, self.floatIndex, self.empty, self.tuples)
         for ind in indices:
             assertRaisesRegexp(ValueError, "^Length", testit, ind)
+
+    def test_set_name_methods(self):
+        new_name = "This is the new name for this index"
+        indices = (self.dateIndex, self.intIndex, self.unicodeIndex,
+                   self.empty)
+        for ind in indices:
+            original_name = ind.name
+            new_ind = ind.set_names([new_name])
+            self.assertEqual(new_ind.name, new_name)
+            self.assertEqual(ind.name, original_name)
+            res = ind.rename(new_name, inplace=True)
+            # should return None
+            self.assert_(res is None)
+            self.assertEqual(ind.name, new_name)
+            self.assertEqual(ind.names, [new_name])
+            with assertRaisesRegexp(TypeError, "list-like"):
+                # should still fail even if it would be the right length
+                ind.set_names("a")
+        # rename in place just leaves tuples and other containers alone
+        name = ('A', 'B')
+        ind = self.intIndex
+        ind.rename(name, inplace=True)
+        self.assertEqual(ind.name, name)
+        self.assertEqual(ind.names, [name])
 
     def test_hash_error(self):
         self.assertRaises(TypeError, hash, self.strIndex)
@@ -1017,6 +1043,48 @@ class TestMultiIndex(unittest.TestCase):
         self.index = MultiIndex(levels=[major_axis, minor_axis],
                                 labels=[major_labels, minor_labels],
                                 names=self.index_names)
+
+    def test_set_names_and_rename(self):
+        # so long as these are synonyms, we don't need to test set_names
+        self.assert_(self.index.rename == self.index.set_names)
+        new_names = [name + "SUFFIX" for name in self.index_names]
+        ind = self.index.set_names(new_names)
+        self.assertEqual(self.index.names, self.index_names)
+        self.assertEqual(ind.names, new_names)
+        with assertRaisesRegexp(ValueError, "^Length"):
+            ind.set_names(new_names + new_names)
+        new_names2 = [name + "SUFFIX2" for name in new_names]
+        res = ind.set_names(new_names2, inplace=True)
+        self.assert_(res is None)
+        self.assertEqual(ind.names, new_names2)
+
+    def test_set_levels_and_set_labels(self):
+        # side note - you probably wouldn't want to use levels and labels
+        # directly like this - but it is possible.
+        levels, labels = self.index.levels, self.index.labels
+        new_levels = [[lev + 'a' for lev in level] for level in levels]
+        major_labels, minor_labels = labels
+        major_labels = [(x + 1) % 3 for x in major_labels]
+        minor_labels = [(x + 1) % 1 for x in minor_labels]
+        new_labels = [major_labels, minor_labels]
+
+    def test_metadata_immutable(self):
+        levels, labels = self.index.levels, self.index.labels
+        # shouldn't be able to set at either the top level or base level
+        mutable_regex = re.compile('does not support mutable operations')
+        with assertRaisesRegexp(TypeError, mutable_regex):
+            levels[0] = levels[0]
+        with assertRaisesRegexp(TypeError, mutable_regex):
+            levels[0][0] = levels[0][0]
+        # ditto for labels
+        with assertRaisesRegexp(TypeError, mutable_regex):
+            labels[0] = labels[0]
+        with assertRaisesRegexp(TypeError, mutable_regex):
+            labels[0][0] = labels[0][0]
+        # and for names
+        names = self.index.names
+        with assertRaisesRegexp(TypeError, mutable_regex):
+            names[0] = names[0]
 
     def test_copy_in_constructor(self):
         levels = np.array(["a", "b", "c"])
