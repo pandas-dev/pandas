@@ -13,9 +13,10 @@ from pandas.tseries.period import Period
 from pandas import json
 from pandas.compat import map, zip, reduce, range, lrange
 import pandas.compat as compat
+from warnings import warn
 
 
-def read_excel(path_or_buf, sheetname, kind=None, **kwds):
+def read_excel(path_or_buf, sheetname, **kwds):
     """Read an Excel table into a pandas DataFrame
 
     Parameters
@@ -50,8 +51,11 @@ def read_excel(path_or_buf, sheetname, kind=None, **kwds):
     parsed : DataFrame
         DataFrame from the passed in Excel file
     """
-    return ExcelFile(path_or_buf, kind=kind).parse(sheetname=sheetname,
-                                                   kind=kind, **kwds)
+    if 'kind' in kwds:
+        kwds.pop('kind')
+        warn("kind keyword is no longer supported in read_excel and may be "
+             "removed in a future version", FutureWarning)
+    return ExcelFile(path_or_buf).parse(sheetname=sheetname, **kwds)
 
 
 class ExcelFile(object):
@@ -64,8 +68,7 @@ class ExcelFile(object):
     path : string or file-like object
         Path to xls or xlsx file
     """
-    def __init__(self, path_or_buf, kind=None, **kwds):
-        self.kind = kind
+    def __init__(self, path_or_buf, **kwds):
 
         import xlrd  # throw an ImportError if we need to
 
