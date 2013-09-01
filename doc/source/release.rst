@@ -306,8 +306,8 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
   - Fix boolean comparison with a DataFrame on the lhs, and a list/tuple on the rhs (:issue:`4576`)
   - Fix error/dtype conversion with setitem of ``None`` on ``Series/DataFrame`` (:issue:`4667`)
   - Fix decoding based on a passed in non-default encoding in ``pd.read_stata`` (:issue:`4626`)
-  - Fix some inconsistencies with ``Index.rename`` and ``MultiIndex.rename``,
-    etc. (:issue:`4718`, :issue:`4628`)
+  - Fix some inconsistencies with ``Index.rename`` and ``MultiIndex.rename`` (:issue:`4718`, :issue:`4628`)
+  - Fix ``DataFrame.from_records`` with a plain-vanilla ``ndarray``. (:issue:`4727`)
 
 pandas 0.12
 ===========

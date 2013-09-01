@@ -4876,7 +4876,9 @@ def _to_arrays(data, columns, coerce_float=False, dtype=None):
         return _list_of_series_to_arrays(data, columns,
                                          coerce_float=coerce_float,
                                          dtype=dtype)
-    elif isinstance(data, (np.ndarray, Series)):
+    elif (isinstance(data, (np.ndarray, Series))
+          and data.dtype.names is not None):
+
         columns = list(data.dtype.names)
         arrays = [data[k] for k in columns]
         return arrays, columns

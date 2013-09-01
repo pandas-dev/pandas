@@ -3468,12 +3468,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         indexed_frame = DataFrame.from_records(arr, index=index)
         self.assert_(np.array_equal(indexed_frame.index, index))
 
+        # without names, it should go to last ditch
+        arr2 = np.zeros((2,3))
+        tm.assert_frame_equal(DataFrame.from_records(arr2), DataFrame(arr2))
+
         # wrong length
         self.assertRaises(Exception, DataFrame.from_records, arr,
                           index=index[:-1])
 
         indexed_frame = DataFrame.from_records(arr, index='f1')
-        self.assertRaises(Exception, DataFrame.from_records, np.zeros((2, 3)))
 
         # what to do?
         records = indexed_frame.to_records()
