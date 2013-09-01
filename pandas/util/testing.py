@@ -26,7 +26,8 @@ import pandas.core.panel as panel
 import pandas.core.panel4d as panel4d
 import pandas.compat as compat
 from pandas.compat import(
-    map, zip, range, unichr, lrange, lmap, lzip, u, callable, Counter
+    map, zip, range, unichr, lrange, lmap, lzip, u, callable, Counter,
+    raise_with_traceback
 )
 
 from pandas import bdate_range
@@ -1111,8 +1112,9 @@ class _AssertRaisesContextmanager(object):
         if self.regexp is not None:
             val = str(exc_value)
             if not self.regexp.search(val):
-                raise AssertionError('"%s" does not match "%s"' %
-                                    (self.regexp.pattern, str(val)))
+                e = AssertionError('"%s" does not match "%s"' %
+                                   (self.regexp.pattern, str(val)))
+                raise_with_traceback(e, traceback)
         return True
 
 

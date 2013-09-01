@@ -12,8 +12,6 @@ labeling information
 # pylint: disable=E1101,E1103
 # pylint: disable=W0212,W0231,W0703,W0622
 
-from pandas.compat import range, zip, lrange, lmap, lzip, StringIO, u, OrderedDict
-from pandas import compat
 import operator
 import sys
 import collections
@@ -38,6 +36,8 @@ from pandas.core.series import Series, _radd_compat
 import pandas.core.expressions as expressions
 from pandas.sparse.array import SparseArray
 from pandas.compat.scipy import scoreatpercentile as _quantile
+from pandas.compat import(range, zip, lrange, lmap, lzip, StringIO, u,
+                          OrderedDict, raise_with_traceback)
 from pandas import compat
 from pandas.util.terminal import get_terminal_size
 from pandas.util.decorators import deprecate, Appender, Substitution
@@ -351,7 +351,7 @@ class DataFrame(NDFrame):
         Index to use for resulting frame. Will default to np.arange(n) if
         no indexing information part of input data and no index provided
     columns : Index or array-like
-        Column labels to use for resulting frame. Will default to 
+        Column labels to use for resulting frame. Will default to
         np.arange(n) if no column labels are provided
     dtype : dtype, default None
         Data type to force, otherwise infer
@@ -438,9 +438,10 @@ class DataFrame(NDFrame):
         else:
             try:
                 arr = np.array(data, dtype=dtype, copy=copy)
-            except (ValueError, TypeError):
-                raise PandasError('DataFrame constructor called with '
-                                  'incompatible data and dtype')
+            except (ValueError, TypeError) as e:
+                exc = TypeError('DataFrame constructor called with '
+                                'incompatible data and dtype: %s' % e)
+                raise_with_traceback(exc)
 
             if arr.ndim == 0 and index is not None and columns is not None:
                 if isinstance(data, compat.string_types) and dtype is None:
@@ -528,7 +529,8 @@ class DataFrame(NDFrame):
                 try:
                     values = values.astype(dtype)
                 except Exception:
-                    raise ValueError('failed to cast to %s' % dtype)
+                    e = ValueError('failed to cast to %s' % dtype)
+                    raise_with_traceback(e)
 
         N, K = values.shape
 
@@ -4282,13 +4284,16 @@ class DataFrame(NDFrame):
             try:
                 values = self.values
                 result = f(values)
-            except Exception:
+            except Exception as e:
                 if filter_type is None or filter_type == 'numeric':
                     data = self._get_numeric_data()
                 elif filter_type == 'bool':
                     data = self._get_bool_data()
-                else:
-                    raise NotImplementedError
+                else:  # pragma: no cover
+                    e = NotImplementedError("Handling exception with filter_"
+                                            "type %s not implemented."
+                                            % filter_type)
+                    raise_with_traceback(e)
                 result = f(data.values)
                 labels = data._get_agg_axis(axis)
         else:
@@ -4297,8 +4302,10 @@ class DataFrame(NDFrame):
                     data = self._get_numeric_data()
                 elif filter_type == 'bool':
                     data = self._get_bool_data()
-                else:
-                    raise NotImplementedError
+                else: # pragma: no cover
+                    msg = ("Generating numeric_only data with filter_type %s"
+                           "not supported." % filter_type)
+                    raise NotImplementedError(msg)
                 values = data.values
                 labels = data._get_agg_axis(axis)
             else:

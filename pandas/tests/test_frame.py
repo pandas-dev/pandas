@@ -4329,6 +4329,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         result = self.frame[:0].add(self.frame)
         assert_frame_equal(result, self.frame * np.nan)
+        with assertRaisesRegexp(NotImplementedError, 'fill_value'):
+            self.frame.add(self.frame.irow(0), fill_value=3)
 
     def test_arith_mixed(self):
 
@@ -8157,7 +8159,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(shifted2, shifted3)
         assert_frame_equal(ps, shifted2.shift(-1, 'B'))
 
-        self.assertRaises(ValueError, ps.shift, freq='D')
+        assertRaisesRegexp(ValueError, 'does not match PeriodIndex freq',
+                           ps.shift, freq='D')
 
     def test_shift_bool(self):
         df = DataFrame({'high': [True, False],
@@ -10588,7 +10591,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df = DataFrame(randn(3, 4), index=[1, 2, 3], columns=lrange(4))
         df2 = DataFrame(randn(5, 3), index=lrange(5), columns=[1, 2, 3])
 
-        self.assertRaises(ValueError, df.dot, df2)
+        assertRaisesRegexp(ValueError, 'aligned', df.dot, df2)
 
     def test_idxmin(self):
         frame = self.frame

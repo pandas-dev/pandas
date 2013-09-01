@@ -665,6 +665,25 @@ if sys.version_info[:2] < (2, 7):
 else:
     from collections import OrderedDict, Counter
 
+if PY3:
+    def raise_with_traceback(exc, traceback=Ellipsis):
+        if traceback == Ellipsis:
+            _, _, traceback = sys.exc_info()
+        raise exc.with_traceback(traceback)
+else:
+    # this version of raise is a syntax error in Python 3
+    exec("""
+def raise_with_traceback(exc, traceback=Ellipsis):
+    if traceback == Ellipsis:
+        _, _, traceback = sys.exc_info()
+    raise exc, None, traceback
+""")
+
+raise_with_traceback.__doc__ = (
+"""Raise exception with existing traceback.
+If traceback is not passed, uses sys.exc_info() to get traceback."""
+)
+
 # http://stackoverflow.com/questions/4126348
 # Thanks to @martineau at SO
 
