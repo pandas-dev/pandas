@@ -20,6 +20,14 @@ import pandas.core.config as cf
 _multiprocess_can_split_ = True
 
 
+def test_mut_exclusive():
+    msg = "mutually exclusive arguments: '[ab]' and '[ab]'"
+    with tm.assertRaisesRegexp(TypeError, msg):
+        com._mut_exclusive(a=1, b=2)
+    assert com._mut_exclusive(a=1, b=None) == 1
+    assert com._mut_exclusive(major=None, major_axis=None) is None
+
+
 def test_is_sequence():
     is_seq = com._is_sequence
     assert(is_seq((1, 2)))
@@ -360,6 +368,8 @@ def test_is_recompilable():
 
 
 class TestTake(unittest.TestCase):
+    # standard incompatible fill error
+    fill_error = re.compile("Incompatible type for fill_value")
 
     _multiprocess_can_split_ = True
 
@@ -381,8 +391,8 @@ class TestTake(unittest.TestCase):
                 expected[3] = np.nan
                 tm.assert_almost_equal(out, expected)
             else:
-                self.assertRaises(Exception, com.take_1d, data,
-                                  indexer, out=out)
+                with tm.assertRaisesRegexp(TypeError, self.fill_error):
+                    com.take_1d(data, indexer, out=out)
                 # no exception o/w
                 data.take(indexer, out=out)
 
@@ -466,13 +476,11 @@ class TestTake(unittest.TestCase):
                 tm.assert_almost_equal(out0, expected0)
                 tm.assert_almost_equal(out1, expected1)
             else:
-                self.assertRaises(Exception, com.take_nd, data,
-                                  indexer, out=out0, axis=0)
-                self.assertRaises(Exception, com.take_nd, data,
-                                  indexer, out=out1, axis=1)
-                # no exception o/w
-                data.take(indexer, out=out0, axis=0)
-                data.take(indexer, out=out1, axis=1)
+                for i, out in enumerate([out0, out1]):
+                    with tm.assertRaisesRegexp(TypeError, self.fill_error):
+                        com.take_nd(data, indexer, out=out, axis=i)
+                    # no exception o/w
+                    data.take(indexer, out=out, axis=i)
 
         _test_dtype(np.float64, True)
         _test_dtype(np.float32, True)
@@ -572,16 +580,11 @@ class TestTake(unittest.TestCase):
                 tm.assert_almost_equal(out1, expected1)
                 tm.assert_almost_equal(out2, expected2)
             else:
-                self.assertRaises(Exception, com.take_nd, data,
-                                  indexer, out=out0, axis=0)
-                self.assertRaises(Exception, com.take_nd, data,
-                                  indexer, out=out1, axis=1)
-                self.assertRaises(Exception, com.take_nd, data,
-                                  indexer, out=out2, axis=2)
-                # no exception o/w
-                data.take(indexer, out=out0, axis=0)
-                data.take(indexer, out=out1, axis=1)
-                data.take(indexer, out=out2, axis=2)
+                for i, out in enumerate([out0, out1, out2]):
+                    with tm.assertRaisesRegexp(TypeError, self.fill_error):
+                        com.take_nd(data, indexer, out=out, axis=i)
+                    # no exception o/w
+                    data.take(indexer, out=out, axis=i)
 
         _test_dtype(np.float64, True)
         _test_dtype(np.float32, True)

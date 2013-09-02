@@ -73,7 +73,7 @@ class ExcelFile(object):
         import xlrd  # throw an ImportError if we need to
 
         ver = tuple(map(int, xlrd.__VERSION__.split(".")[:2]))
-        if ver < (0, 9):
+        if ver < (0, 9):  # pragma: no cover
             raise ImportError("pandas requires xlrd >= 0.9.0 for excel "
                               "support, current version " + xlrd.__VERSION__)
 
@@ -382,8 +382,8 @@ class ExcelWriter(object):
         if sheet_name is None:
             sheet_name = self.cur_sheet
         if sheet_name is None:  # pragma: no cover
-            raise Exception('Must pass explicit sheet_name or set '
-                            'cur_sheet property')
+            raise ValueError('Must pass explicit sheet_name or set '
+                             'cur_sheet property')
         if self.use_xlsx:
             self._writecells_xlsx(cells, sheet_name, startrow, startcol)
         else:
