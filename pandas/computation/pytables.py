@@ -7,7 +7,8 @@ from functools import partial
 from datetime import datetime
 
 import pandas as pd
-from pandas.compat import u, string_types
+from pandas.compat import u, string_types, PY3
+from pandas.core.base import StringMixin
 import pandas.core.common as com
 from pandas.computation import expr, ops
 from pandas.computation.ops import is_term
@@ -28,9 +29,15 @@ class Scope(expr.Scope):
 
 
 class Term(ops.Term):
+    def __new__(cls, name, env, side=None, encoding=None):
+        klass = Constant if not isinstance(name, string_types) else cls
+        supr_new = StringMixin.__new__
+        if PY3:
+            return supr_new(klass)
+        return supr_new(klass, name, env, side=side, encoding=encoding)
 
-    def __init__(self, name, env, side=None):
-        super(Term, self).__init__(name, env, side=side)
+    def __init__(self, name, env, side=None, encoding=None):
+        super(Term, self).__init__(name, env, side=side, encoding=encoding)
 
     def _resolve_name(self):
         # must be a queryables
@@ -49,8 +56,9 @@ class Term(ops.Term):
 
 
 class Constant(Term):
-    def __init__(self, value, env):
-        super(Constant, self).__init__(value, env)
+    def __init__(self, value, env, side=None, encoding=None):
+        super(Constant, self).__init__(value, env, side=side,
+                                       encoding=encoding)
 
     def _resolve_name(self):
         return self._name
@@ -404,6 +412,9 @@ class ExprVisitor(BaseExprVisitor):
 
     def translate_In(self, op):
         return ast.Eq() if isinstance(op, ast.In) else op
+
+    def _rewrite_membership_op(self, node, left, right):
+        return self.visit(node.op), node.op, left, right
 
 
 class Expr(expr.Expr):

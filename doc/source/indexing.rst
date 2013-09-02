@@ -1008,10 +1008,11 @@ convert to an integer index:
 
 .. _indexing.query:
 
-.. versionadded:: 0.13
-
 The :meth:`~pandas.DataFrame.query` Method
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 0.13
+
 :class:`~pandas.DataFrame` objects have a :meth:`~pandas.DataFrame.query`
 method that allows selection using a string consisting of columns of the
 calling :class:`~pandas.DataFrame`.
@@ -1042,13 +1043,76 @@ with the name ``a``.
    df
    df.query('a < b and b < c')
 
-A use case for :meth:`~pandas.DataFrame.query` is when you have a collection of
-:class:`~pandas.DataFrame` s that have a subset of column names (or index
-names) in common. You can pass the same query to both frames *without* having
-to specify which frame you're interested in querying
+If instead you don't want to or cannot name your index, you can use the name
+``index`` in your query expression:
+
+.. ipython:: python
+   :suppress:
+
+   old_index = index
+   del index
 
 .. ipython:: python
 
+   df = DataFrame(randint(n, size=(n, 2)), columns=list('bc'))
+   df
+   df.query('index < b < c')
+
+.. ipython:: python
+   :suppress:
+
+   index = old_index
+   del old_index
+
+
+:class:`~pandas.MultiIndex` :meth:`~pandas.DataFrame.query` Syntax
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can also use the levels of a ``DataFrame`` with a
+:class:`~pandas.MultiIndex` as if they were columns in the frame:
+
+.. ipython:: python
+
+   import pandas.util.testing as tm
+
+   colors = tm.choice(['red', 'green'], size=10)
+   foods = tm.choice(['eggs', 'ham'], size=10)
+   colors
+   foods
+
+   index = MultiIndex.from_arrays([colors, foods], names=['color', 'food'])
+   df = DataFrame(randn(10, 2), index=index)
+   df
+   df.query('color == "red"')
+
+If the levels of the ``MultiIndex`` are unnamed, you can refer to them using
+special names:
+
+
+.. ipython:: python
+
+   index.names = [None, None]
+   df = DataFrame(randn(10, 2), index=index)
+   df
+   df.query('ilevel_0 == "red"')
+
+
+The convention is ``ilevel_0``, which means "index level 0" for the 0th level
+of the ``index``.
+
+
+:meth:`~pandas.DataFrame.query` Use Cases
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+One use case for :meth:`~pandas.DataFrame.query` is when you have a collection of
+:class:`~pandas.DataFrame` objects that have a subset of column names (or index
+levels/names) in common. You can pass the same query to both frames *without*
+having to specify which frame you're interested in querying
+
+.. ipython:: python
+
+   df = DataFrame(randint(n, size=(n, 2)), columns=list('bc'))
+   df.index.name = 'a'
    df2 = DataFrame(randint(n + 10, size=(n + 10, 3)), columns=list('abc'))
    df2
    expr = 'a < b & b < c'
@@ -1069,11 +1133,18 @@ This functionality can of course be combined with a slightly modified and more
 readable Python syntax implemented in the workhorse function that underlies
 :meth:`~pandas.DataFrame.query`--:func:`~pandas.eval`.
 
+
+:meth:`~pandas.DataFrame.query` Python versus pandas Syntax Comparison
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 Full numpy-like syntax
 
 .. ipython:: python
 
+   df = DataFrame(randint(n, size=(n, 3)), columns=list('abc'))
+   df
    df['(a < b) & (b < c)']
+   df[(df.a < df.b) & (df.b < df.c)]
 
 Slightly nicer by removing the parentheses
 
@@ -1097,8 +1168,94 @@ As you can see, these are all equivalent ways to express the same operation (in
 fact, they are all ultimately parsed into something very similar to the first
 example of the indexing syntax above).
 
-You can also negate boolean expressions with the word ``not`` or the ``~``
-operator.
+The ``in`` and ``not in`` operators
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:meth:`~pandas.DataFrame.query` also supports special use of Python's ``in`` and
+``not in`` comparison operators, providing a succint syntax for calling the
+``isin`` method of a ``Series`` or ``DataFrame``.
+
+.. ipython:: python
+   :suppress:
+
+   old_d = d
+   del d
+
+.. ipython:: python
+
+   # get all rows where columns "a" and "b" have overlapping values
+   df = DataFrame({'a': list('aaaabbbbcccc'), 'b': list('aabbccddeeff'),
+                   'c': randint(5, size=12), 'd': randint(9, size=12)})
+   df
+   df['a in b']
+
+   # How you'd do it in pure Python
+   df[df.b.isin(df.a)]
+
+   df['a not in b']
+
+   # pure Python
+   df[~df.b.isin(df.a)]
+
+
+You can, of course, combine this with other expressions for very succinct
+queries:
+
+
+.. ipython:: python
+
+   # rows where cols a and b have overlapping values and col c's values are less than col d's
+   df['a in b and c < d']
+
+   # pure Python
+   df[df.b.isin(df.a) & (df.c < df.d)]
+
+
+.. note::
+
+   Note that ``in`` and ``not in`` are evaluated in Python, since ``numexpr``
+   has no equivalent of this operation. However, **only the** ``in``/``not in``
+   **expression itself** is evaluated in vanilla Python. For example, in the
+   expression
+
+       .. code-block:: python
+
+          df['a in b + c + d']
+
+   ``(b + c + d)`` is evaluated by ``numexpr`` and *then* the ``in``
+   operation is evaluated in plain Python. In general, any operations that can
+   be evaluated using ``numexpr`` will be.
+
+Special use of the ``==`` operator with ``list`` objects
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Comparing a ``list`` of values to a column using ``==``/``!=`` works similarly
+to ``in``/``not in``
+
+.. ipython:: python
+
+   df['b == ["a", "b", "c"]']
+
+   # pure Python
+   df[df.b.isin(["a", "b", "c"])]
+
+   df['c == [1, 2]']
+
+   df['c != [1, 2]']
+
+   # using in/not in
+   df['[1, 2] in c']
+
+   df['[1, 2] not in c']
+
+   # pure Python
+   df[df.c.isin([1, 2])]
+
+
+Boolean Operators
+~~~~~~~~~~~~~~~~~
+
+You can negate boolean expressions with the word ``not`` or the ``~`` operator.
 
 .. ipython:: python
 
@@ -1113,26 +1270,38 @@ Of course, expressions can be arbitrarily complex too
 
 .. ipython:: python
 
-   # nice short query syntax
-   pretty = df['a < b < c and (not bools) or bools > 2']
+   # short query syntax
+   shorter = df['a < b < c and (not bools) or bools > 2']
 
-   # equivalent in pure Python, yuck!
-   yuck = df[(df.a < df.b) & (df.b < df.c) & (~df.bools) | (df.bools > 2)]
+   # equivalent in pure Python
+   longer = df[(df.a < df.b) & (df.b < df.c) & (~df.bools) | (df.bools > 2)]
 
-   pretty
-   yuck
+   shorter
+   longer
 
-   yuck == pretty
+   shorter == longer
+
+.. ipython:: python
+   :suppress:
+
+   d = old_d
+   del old_d
+
 
 .. _indexing.class:
 
 Index objects
 -------------
 
-The pandas Index class and its subclasses can be viewed as implementing an
-*ordered set* in addition to providing the support infrastructure necessary for
-lookups, data alignment, and reindexing. The easiest way to create one directly
-is to pass a list or other sequence to ``Index``:
+The pandas :class:`~pandas.Index` class and its subclasses can be viewed as
+implementing an *ordered multiset*. Duplicates are allowed. However, if you try
+to convert an :class:`~pandas.Index` object with duplicate entries into a
+``set``, an exception will be raised.
+
+:class:`~pandas.Index` also provides the infrastructure necessary for
+lookups, data alignment, and reindexing. The easiest way to create an
+:class:`~pandas.Index` directly is to pass a ``list`` or other sequence to
+:class:`~pandas.Index`:
 
 .. ipython:: python
 

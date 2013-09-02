@@ -9,6 +9,8 @@ import codecs
 import csv
 import sys
 
+from datetime import timedelta
+
 from distutils.version import LooseVersion
 
 from numpy.lib.format import read_array, write_array

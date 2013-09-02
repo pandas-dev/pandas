@@ -514,6 +514,7 @@ Computations / Descriptive Stats
    DataFrame.cumsum
    DataFrame.describe
    DataFrame.diff
+   DataFrame.eval
    DataFrame.kurt
    DataFrame.mad
    DataFrame.max

@@ -1,3 +1,6 @@
+"""Core eval alignment algorithms
+"""
+
 import warnings
 from functools import partial, wraps
 from pandas.compat import zip, range
@@ -7,7 +10,6 @@ import numpy as np
 import pandas as pd
 from pandas import compat
 import pandas.core.common as com
-from pandas.computation.ops import is_const
 
 
 def _align_core_single_unary_op(term):
@@ -129,11 +131,12 @@ def _align_core(terms):
                 term_axis_size = len(ti.axes[axis])
                 reindexer_size = len(reindexer)
 
-                if (np.log10(abs(reindexer_size - term_axis_size)) >= 1 and
-                    reindexer_size >= 10000):
+                ordm = np.log10(abs(reindexer_size - term_axis_size))
+                if ordm >= 1 and reindexer_size >= 10000:
                     warnings.warn("Alignment difference on axis {0} is larger"
                                   " than an order of magnitude on term {1!r}, "
-                                  "performance may suffer".format(axis, term),
+                                  "by more than {2:.4g}; performance may suffer"
+                                  "".format(axis, term.name, ordm),
                                   category=pd.io.common.PerformanceWarning)
 
                 if transpose:
@@ -164,7 +167,7 @@ def _align_core(terms):
 
 def _filter_terms(flat):
     # numeric literals
-    literals = frozenset(filter(is_const, flat))
+    literals = frozenset(filter(lambda x: isinstance(x, Constant), flat))
 
     # these are strings which are variable names
     names = frozenset(flat) - literals
@@ -213,7 +216,7 @@ def _reconstruct_object(typ, obj, axes, dtype):
 
     Returns
     -------
-    reconst : typ
+    ret : typ
         An object of type ``typ`` with the value `obj` and possible axes
         `axes`.
     """
@@ -231,7 +234,11 @@ def _reconstruct_object(typ, obj, axes, dtype):
         issubclass(typ, pd.core.generic.PandasObject)):
         return typ(obj, dtype=res_t, **axes)
 
-    ret_value = typ(obj).astype(res_t)
+    # special case for pathological things like ~True/~False
+    if hasattr(res_t, 'type') and typ == np.bool_ and res_t != np.bool_:
+        ret_value = res_t.type(obj)
+    else:
+        ret_value = typ(obj).astype(res_t)
 
     try:
         ret = ret_value.item()

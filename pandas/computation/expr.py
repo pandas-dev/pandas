@@ -1,9 +1,13 @@
+""":func:`~pandas.eval` parsers
+"""
+
 import ast
 import operator
 import sys
 import inspect
 import tokenize
 import datetime
+import struct
 
 from functools import partial
 
@@ -16,16 +20,20 @@ from pandas.computation.common import NameResolutionError
 from pandas.computation.ops import (_cmp_ops_syms, _bool_ops_syms,
                                     _arith_ops_syms, _unary_ops_syms, is_term)
 from pandas.computation.ops import _reductions, _mathops, _LOCAL_TAG
-from pandas.computation.ops import BinOp, UnaryOp, Term, Constant, Div
+from pandas.computation.ops import Op, BinOp, UnaryOp, Term, Constant, Div
 
 
 def _ensure_scope(level=2, global_dict=None, local_dict=None, resolvers=None,
                   **kwargs):
-    """ ensure that we are grabbing the correct scope """
-    return Scope(global_dict, local_dict, level=level, resolvers=resolvers)
+    """Ensure that we are grabbing the correct scope."""
+    return Scope(gbls=global_dict, lcls=local_dict, level=level,
+                 resolvers=resolvers)
 
 
 def _check_disjoint_resolver_names(resolver_keys, local_keys, global_keys):
+    """Make sure that variables in resolvers don't overlap with locals or
+    globals.
+    """
     res_locals = list(com.intersection(resolver_keys, local_keys))
     if res_locals:
         msg = "resolvers and locals overlap on names {0}".format(res_locals)
@@ -35,6 +43,29 @@ def _check_disjoint_resolver_names(resolver_keys, local_keys, global_keys):
     if res_globals:
         msg = "resolvers and globals overlap on names {0}".format(res_globals)
         raise NameResolutionError(msg)
+
+
+def _replacer(x, pad_size):
+    """Replace a number with its padded hexadecimal representation. Used to tag
+    temporary variables with their calling scope's id.
+    """
+    # get the hex repr of the binary char and remove 0x and pad by pad_size
+    # zeros
+    try:
+        hexin = ord(x)
+    except TypeError:
+        # bytes literals masquerade as ints when iterating in py3
+        hexin = x
+
+    return hex(hexin).replace('0x', '').rjust(pad_size, '0')
+
+
+def _raw_hex_id(obj, pad_size=2):
+    """Return the padded hexadecimal id of ``obj``."""
+    # interpret as a pointer since that's what really what id returns
+    packed = struct.pack('@P', id(obj))
+
+    return ''.join(_replacer(x, pad_size) for x in packed)
 
 
 class Scope(StringMixin):
@@ -57,14 +88,14 @@ class Scope(StringMixin):
     resolver_keys : frozenset
     """
     __slots__ = ('globals', 'locals', 'resolvers', '_global_resolvers',
-                 'resolver_keys', '_resolver', 'level')
+                 'resolver_keys', '_resolver', 'level', 'ntemps')
 
     def __init__(self, gbls=None, lcls=None, level=1, resolvers=None):
         self.level = level
         self.resolvers = tuple(resolvers or [])
         self.globals = dict()
         self.locals = dict()
-        self.ntemps = 0  # number of temporary variables in this scope
+        self.ntemps = 1  # number of temporary variables in this scope
 
         if isinstance(lcls, Scope):
             ld, lcls = lcls, dict()
@@ -88,21 +119,20 @@ class Scope(StringMixin):
         self.globals['True'] = True
         self.globals['False'] = False
 
-
-        self.resolver_keys = frozenset(reduce(operator.add, (list(o.keys()) for
-                                                             o in
-                                                             self.resolvers),
-                                              []))
+        res_keys = (list(o.keys()) for o in self.resolvers)
+        self.resolver_keys = frozenset(reduce(operator.add, res_keys, []))
         self._global_resolvers = self.resolvers + (self.locals, self.globals)
         self._resolver = None
-        self.resolver_dict = dict((k, self.resolve(k))
-                                  for k in self.resolver_keys)
+
+        self.resolver_dict = {}
+        for o in self.resolvers:
+            self.resolver_dict.update(dict(o))
 
     def __unicode__(self):
         return com.pprint_thing("locals: {0}\nglobals: {0}\nresolvers: "
-                                "{0}".format(self.locals.keys(),
-                                             self.globals.keys(),
-                                             self.resolver_keys))
+                                "{0}".format(list(self.locals.keys()),
+                                             list(self.globals.keys()),
+                                             list(self.resolver_keys)))
 
     def __getitem__(self, key):
         return self.resolve(key, globally=False)
@@ -171,18 +201,32 @@ class Scope(StringMixin):
         if not isinstance(d, dict):
             raise TypeError("Cannot add value to object of type {0!r}, "
                             "scope must be a dictionary"
-                            "".format(d.__class__.__name__))
-        name = 'tmp_var_{0}_{1}_{2}'.format(value.__class__.__name__,
-                                            self.ntemps,
-                                            pd.util.testing.rands(10))
+                            "".format(type(d).__name__))
+        name = 'tmp_var_{0}_{1}_{2}'.format(type(value).__name__, self.ntemps,
+                                            _raw_hex_id(self))
         d[name] = value
 
         # only increment if the variable gets put in the scope
         self.ntemps += 1
         return name
 
+    def remove_tmp(self, name, where='locals'):
+        d = getattr(self, where, None)
+        if d is None:
+            raise AttributeError("Cannot remove value from non-existent scope "
+                                 "{0!r}".format(where))
+        if not isinstance(d, dict):
+            raise TypeError("Cannot remove value from object of type {0!r}, "
+                            "scope must be a dictionary"
+                            "".format(type(d).__name__))
+        del d[name]
+        self.ntemps -= 1
+
 
 def _rewrite_assign(source):
+    """Rewrite the assignment operator for PyTables expression that want to use
+    ``=`` as a substitute for ``==``.
+    """
     res = []
     g = tokenize.generate_tokens(StringIO(source).readline)
     for toknum, tokval, _, _, _ in g:
@@ -191,16 +235,29 @@ def _rewrite_assign(source):
 
 
 def _replace_booleans(source):
+    """Replace ``&`` with ``and`` and ``|`` with ``or`` so that bitwise
+    precedence is changed to boolean precedence.
+    """
     return source.replace('|', ' or ').replace('&', ' and ')
 
 
 def _replace_locals(source, local_symbol='@'):
+    """Replace local variables with a syntacticall valid name."""
     return source.replace(local_symbol, _LOCAL_TAG)
 
 
 def _preparse(source):
+    """Compose assignment and boolean replacement."""
     return _replace_booleans(_rewrite_assign(source))
 
+
+def _is_type(t):
+    """Factory for a type checking function of type ``t`` or tuple of types."""
+    return lambda x: isinstance(x.value, t)
+
+
+_is_list = _is_type(list)
+_is_str = _is_type(string_types)
 
 
 # partition all AST nodes
@@ -210,6 +267,7 @@ _all_nodes = frozenset(filter(lambda x: isinstance(x, type) and
 
 
 def _filter_nodes(superclass, all_nodes=_all_nodes):
+    """Filter out AST nodes that are subclasses of ``superclass``."""
     node_names = (node.__name__ for node in all_nodes
                   if issubclass(node, superclass))
     return frozenset(node_names)
@@ -238,8 +296,7 @@ _hacked_nodes = frozenset(['Assign', 'Module', 'Expr'])
 
 _unsupported_expr_nodes = frozenset(['Yield', 'GeneratorExp', 'IfExp',
                                      'DictComp', 'SetComp', 'Repr', 'Lambda',
-                                     'Set', 'In', 'NotIn', 'AST', 'Is',
-                                     'IsNot'])
+                                     'Set', 'AST', 'Is', 'IsNot'])
 
 # these nodes are low priority or won't ever be supported (e.g., AST)
 _unsupported_nodes = ((_stmt_nodes | _mod_nodes | _handler_nodes |
@@ -257,6 +314,9 @@ assert not _unsupported_nodes & _base_supported_nodes, _msg
 
 
 def _node_not_implemented(node_name, cls):
+    """Return a function that raises a NotImplementedError with a passed node
+    name.
+    """
     def f(self, *args, **kwargs):
         raise NotImplementedError("{0!r} nodes are not "
                                   "implemented".format(node_name))
@@ -264,10 +324,17 @@ def _node_not_implemented(node_name, cls):
 
 
 def disallow(nodes):
+    """Decorator to disallow certain nodes from parsing. Raises a
+    NotImplementedError instead.
+
+    Returns
+    -------
+    disallowed : callable
+    """
     def disallowed(cls):
         cls.unsupported_nodes = ()
         for node in nodes:
-            new_method =  _node_not_implemented(node, cls)
+            new_method = _node_not_implemented(node, cls)
             name = 'visit_{0}'.format(node)
             cls.unsupported_nodes += (name,)
             setattr(cls, name, new_method)
@@ -276,14 +343,29 @@ def disallow(nodes):
 
 
 def _op_maker(op_class, op_symbol):
+    """Return a function to create an op class with its symbol already passed.
+
+    Returns
+    -------
+    f : callable
+    """
     def f(self, node, *args, **kwargs):
+        """Return a partial function with an Op subclass with an operator
+        already passed.
+
+        Returns
+        -------
+        f : callable
+        """
         return partial(op_class, op_symbol, *args, **kwargs)
     return f
 
 
 _op_classes = {'binary': BinOp, 'unary': UnaryOp}
 
+
 def add_ops(op_classes):
+    """Decorator to add default implementation of ops."""
     def f(cls):
         for op_attr_name, op_class in compat.iteritems(op_classes):
             ops = getattr(cls, '{0}_ops'.format(op_attr_name))
@@ -291,8 +373,8 @@ def add_ops(op_classes):
             for op in ops:
                 op_node = ops_map[op]
                 if op_node is not None:
-                    setattr(cls, 'visit_{0}'.format(op_node),
-                            _op_maker(op_class, op))
+                    made_op = _op_maker(op_class, op)
+                    setattr(cls, 'visit_{0}'.format(op_node), made_op)
         return cls
     return f
 
@@ -300,20 +382,35 @@ def add_ops(op_classes):
 @disallow(_unsupported_nodes)
 @add_ops(_op_classes)
 class BaseExprVisitor(ast.NodeVisitor):
+    """Custom ast walker. Parsers of other engines should subclass this class
+    if necessary.
+
+    Parameters
+    ----------
+    env : Scope
+    engine : str
+    parser : str
+    preparser : callable
+    """
     const_type = Constant
     term_type = Term
 
-    """Custom ast walker
-    """
     binary_ops = _cmp_ops_syms + _bool_ops_syms + _arith_ops_syms
-    binary_op_nodes = ('Gt', 'Lt', 'GtE', 'LtE', 'Eq', 'NotEq', 'BitAnd',
-                       'BitOr', 'And', 'Or', 'Add', 'Sub', 'Mult', None,
-                       'Pow', 'FloorDiv', 'Mod')
+    binary_op_nodes = ('Gt', 'Lt', 'GtE', 'LtE', 'Eq', 'NotEq', 'In', 'NotIn',
+                       'BitAnd', 'BitOr', 'And', 'Or', 'Add', 'Sub', 'Mult',
+                       None, 'Pow', 'FloorDiv', 'Mod')
     binary_op_nodes_map = dict(zip(binary_ops, binary_op_nodes))
 
     unary_ops = _unary_ops_syms
     unary_op_nodes = 'UAdd', 'USub', 'Invert', 'Not'
     unary_op_nodes_map = dict(zip(unary_ops, unary_op_nodes))
+
+    rewrite_map = {
+        ast.Eq: ast.In,
+        ast.NotEq: ast.NotIn,
+        ast.In: ast.In,
+        ast.NotIn: ast.NotIn
+    }
 
     def __init__(self, env, engine, parser, preparser=_preparse):
         self.env = env
@@ -342,11 +439,74 @@ class BaseExprVisitor(ast.NodeVisitor):
     def visit_Expr(self, node, **kwargs):
         return self.visit(node.value, **kwargs)
 
+    def _rewrite_membership_op(self, node, left, right):
+        # the kind of the operator (is actually an instance)
+        op_instance = node.op
+        op_type = type(op_instance)
+
+        # must be two terms and the comparison operator must be ==/!=/in/not in
+        if is_term(left) and is_term(right) and op_type in self.rewrite_map:
+
+            left_list, right_list = map(_is_list, (left, right))
+            left_str, right_str = map(_is_str, (left, right))
+
+            # if there are any strings or lists in the expression
+            if left_list or right_list or left_str or right_str:
+                op_instance = self.rewrite_map[op_type]()
+
+            # pop the string variable out of locals and replace it with a list
+            # of one string, kind of a hack
+            if right_str:
+                self.env.remove_tmp(right.name)
+                name = self.env.add_tmp([right.value])
+                right = self.term_type(name, self.env)
+
+            # swap the operands so things like a == [1, 2] are translated to
+            # [1, 2] in a -> a.isin([1, 2])
+            if right_list or right_str:
+                left, right = right, left
+
+        op = self.visit(op_instance)
+        return op, op_instance, left, right
+
+    def _possibly_transform_eq_ne(self, node, left=None, right=None):
+        if left is None:
+            left = self.visit(node.left, side='left')
+        if right is None:
+            right = self.visit(node.right, side='right')
+        op, op_class, left, right = self._rewrite_membership_op(node, left,
+                                                                right)
+        return op, op_class, left, right
+
+    def _possibly_eval(self, binop, eval_in_python):
+        # eval `in` and `not in` (for now) in "partial" python space
+        # things that can be evaluated in "eval" space will be turned into
+        # temporary variables. for example,
+        # [1,2] in a + 2 * b
+        # in that case a + 2 * b will be evaluated using numexpr, and the "in"
+        # call will be evaluated using isin (in python space)
+        return binop.evaluate(self.env, self.engine, self.parser,
+                              self.term_type, eval_in_python)
+
+    def _possibly_evaluate_binop(self, op, op_class, lhs, rhs,
+                                 eval_in_python=('in', 'not in'),
+                                 maybe_eval_in_python=('==', '!=')):
+        res = op(lhs, rhs)
+
+        # "in"/"not in" ops are always evaluated in python
+        if res.op in eval_in_python:
+            return self._possibly_eval(res, eval_in_python)
+        elif (lhs.return_type == object or rhs.return_type == object and
+              self.engine != 'pytables'):
+            # evaluate "==" and "!=" in python if either of our operands has an
+            # object return type
+            return self._possibly_eval(res, eval_in_python +
+                                       maybe_eval_in_python)
+        return res
+
     def visit_BinOp(self, node, **kwargs):
-        op = self.visit(node.op)
-        left = self.visit(node.left, side='left')
-        right = self.visit(node.right, side='right')
-        return op(left, right)
+        op, op_class, left, right = self._possibly_transform_eq_ne(node)
+        return self._possibly_evaluate_binop(op, op_class, left, right)
 
     def visit_Div(self, node, **kwargs):
         return lambda lhs, rhs: Div(lhs, rhs,
@@ -380,16 +540,15 @@ class BaseExprVisitor(ast.NodeVisitor):
     def visit_Subscript(self, node, **kwargs):
         value = self.visit(node.value)
         slobj = self.visit(node.slice)
-        expr = com.pprint_thing(slobj)
-        result = pd.eval(expr, local_dict=self.env, engine=self.engine,
+        result = pd.eval(slobj, local_dict=self.env, engine=self.engine,
                          parser=self.parser)
         try:
             # a Term instance
             v = value.value[result]
         except AttributeError:
             # an Op instance
-            lhs = pd.eval(com.pprint_thing(value), local_dict=self.env,
-                          engine=self.engine, parser=self.parser)
+            lhs = pd.eval(value, local_dict=self.env, engine=self.engine,
+                          parser=self.parser)
             v = lhs[result]
         name = self.env.add_tmp(v)
         return self.term_type(name, env=self.env)
@@ -454,61 +613,62 @@ class BaseExprVisitor(ast.NodeVisitor):
         keywords = {}
         for key in node.keywords:
             if not isinstance(key, ast.keyword):
-                raise ValueError(
-                    "keyword error in function call '{0}'".format(node.func.id))
+                raise ValueError("keyword error in function call "
+                                 "'{0}'".format(node.func.id))
             keywords[key.arg] = self.visit(key.value).value
         if node.kwargs is not None:
             keywords.update(self.visit(node.kwargs).value)
 
         return self.const_type(res(*args, **keywords), self.env)
 
+    def translate_In(self, op):
+        return op
+
     def visit_Compare(self, node, **kwargs):
         ops = node.ops
         comps = node.comparators
 
-        def translate(op):
-            if isinstance(op, ast.In):
-                return ast.Eq()
-            return op
-
+        # base case: we have something like a CMP b
         if len(comps) == 1:
-            return self.visit(translate(ops[0]))(self.visit(node.left, side='left'),
-                                                 self.visit(comps[0], side='right'))
+            op = self.translate_In(ops[0])
+            binop = ast.BinOp(op=op, left=node.left, right=comps[0])
+            return self.visit(binop)
+
+        # recursive case: we have a chained comparison, a CMP b CMP c, etc.
         left = node.left
         values = []
         for op, comp in zip(ops, comps):
             new_node = self.visit(ast.Compare(comparators=[comp], left=left,
-                                              ops=[translate(op)]))
+                                              ops=[self.translate_In(op)]))
             left = comp
             values.append(new_node)
         return self.visit(ast.BoolOp(op=ast.And(), values=values))
 
+    def _try_visit_binop(self, bop):
+        if isinstance(bop, (Op, Term)):
+            return bop
+        return self.visit(bop)
+
     def visit_BoolOp(self, node, **kwargs):
-        op = self.visit(node.op)
         def visitor(x, y):
-            try:
-                lhs = self.visit(x)
-            except TypeError:
-                lhs = x
+            lhs = self._try_visit_binop(x)
+            rhs = self._try_visit_binop(y)
 
-            try:
-                rhs = self.visit(y)
-            except TypeError:
-                rhs = y
-
-            return op(lhs, rhs)
+            op, op_class, lhs, rhs = self._possibly_transform_eq_ne(node, lhs,
+                                                                    rhs)
+            return self._possibly_evaluate_binop(op, node.op, lhs, rhs)
 
         operands = node.values
         return reduce(visitor, operands)
 
 
 _python_not_supported = frozenset(['Assign', 'Tuple', 'Dict', 'Call',
-                                   'BoolOp'])
+                                   'BoolOp', 'In', 'NotIn'])
 _numexpr_supported_calls = frozenset(_reductions + _mathops)
 
 
 @disallow((_unsupported_nodes | _python_not_supported) -
-          (_boolop_nodes | frozenset(['BoolOp', 'Attribute'])))
+          (_boolop_nodes | frozenset(['BoolOp', 'Attribute', 'In', 'NotIn'])))
 class PandasExprVisitor(BaseExprVisitor):
     def __init__(self, env, engine, parser,
                  preparser=lambda x: _replace_locals(_replace_booleans(x))):
@@ -523,7 +683,7 @@ class PythonExprVisitor(BaseExprVisitor):
 
 
 class Expr(StringMixin):
-    """Expr object holding scope
+    """Object encapsulating an expression.
 
     Parameters
     ----------
@@ -578,25 +738,58 @@ class Expr(StringMixin):
         _check_disjoint_resolver_names(res_keys, lcl_keys, gbl_keys)
 
     def add_resolvers_to_locals(self):
+        """Add the extra scope (resolvers) to local scope
+
+        Notes
+        -----
+        This should be done after parsing and pre-evaluation, otherwise
+        unnecessary name clashes will occur.
+        """
         self.env.locals.update(self.env.resolver_dict)
 
 
-_needs_filter = frozenset(['and', 'or', 'not'])
+# these we don't look for since column names can have these characters
+_needs_filter = frozenset(['and', 'or', 'not', 'not in', 'in'])
+
+# these OTOH can only be operators, so you cannot create column names that are
+# valid expressions
+_ops_to_filter = frozenset([' and ', ' or ', 'not ', ' in '])
+
+# if you don't filter out the above expressions you'll get a stack overflow,
+# because DataFrame.__getitem__ will continue to search for a column name then
+# an expression then a column name then an expression, and so on, until you
+# blow up the stack and kill a kitten.
 
 
 def maybe_expression(s, kind='pandas'):
-    """ loose checking if s is an expression """
+    """Loose checking if ``s`` is an expression.
+
+    Parameters
+    ----------
+    s : str or unicode
+        The expression to check
+    kind : str or unicode
+        The parser whose ops to check
+
+    Returns
+    -------
+    bool
+        ``True`` the expression contains some operators that would be valid
+        when parsed with the ``kind`` parser, otherwise ``False``.
+    """
     if not isinstance(s, string_types):
         return False
+
     visitor = _parsers[kind]
     ops = visitor.binary_ops + visitor.unary_ops
-    filtered = frozenset(ops) - _needs_filter
+    filtered = (frozenset(ops) | _ops_to_filter) - _needs_filter
+
     # make sure we have an op at least
-    return any(op in s or ' and ' in s or ' or ' in s or 'not ' in s for op in
-               filtered)
+    return any(op in s for op in filtered)
 
 
 def isexpr(s, check_names=True):
+    """Strict checking for a valid expression."""
     try:
         Expr(s, env=_ensure_scope() if check_names else None)
     except SyntaxError:
@@ -604,10 +797,6 @@ def isexpr(s, check_names=True):
     except NameError:
         return not check_names
     return True
-
-
-def _check_syntax(s):
-    ast.parse(s)
 
 
 _parsers = {'python': PythonExprVisitor, 'pandas': PandasExprVisitor}

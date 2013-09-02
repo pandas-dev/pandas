@@ -4244,7 +4244,17 @@ class Selection(object):
         if where is None:
             return None
 
-        return Expr(where, queryables=self.table.queryables(), encoding=self.table.encoding)
+        q = self.table.queryables()
+        try:
+            return Expr(where, queryables=q, encoding=self.table.encoding)
+        except (NameError) as detail:
+
+            # raise a nice message, suggesting that the user should use data_columns
+            raise ValueError("The passed where expression: {0}\n"
+                             "            contains an invalid variable reference\n"
+                             "            all of the variable refrences must be a reference to\n"
+                             "            an axis (e.g. 'index' or 'columns'), or a data_column\n"
+                             "            The currently defined references are: {1}\n".format(where,','.join(q.keys())))
 
     def select(self):
         """

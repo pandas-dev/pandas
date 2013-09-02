@@ -1,3 +1,6 @@
+"""Engine classes for :func:`~pandas.eval`
+"""
+
 import abc
 
 from pandas import compat
@@ -5,8 +8,10 @@ from pandas.core import common as com
 from pandas.computation.align import _align, _reconstruct_object
 from pandas.computation.ops import UndefinedVariableError
 
+
 class AbstractEngine(object):
-    """AbstractEngine object serving as a base class for all engines."""
+    """Object serving as a base class for all engines."""
+
     __metaclass__ = abc.ABCMeta
 
     has_neg_frac = False
@@ -62,7 +67,7 @@ class AbstractEngine(object):
 
         Notes
         -----
-        This method must be implemented by any class the subclasses this class.
+        Must be implemented by subclasses.
         """
         pass
 
@@ -74,13 +79,16 @@ class NumExprEngine(AbstractEngine):
     def __init__(self, expr):
         super(NumExprEngine, self).__init__(expr)
 
+    def convert(self):
+        return str(super(NumExprEngine, self).convert())
+
     def _evaluate(self):
         import numexpr as ne
 
         # add the resolvers to locals
         self.expr.add_resolvers_to_locals()
 
-        # convert the expression to syntactically valid Python
+        # convert the expression to a valid numexpr expression
         s = self.convert()
 
         try:

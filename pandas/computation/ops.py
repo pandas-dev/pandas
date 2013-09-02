@@ -1,3 +1,6 @@
+"""Operator classes for eval.
+"""
+
 import re
 import operator as op
 from functools import partial
@@ -23,6 +26,7 @@ _TAG_RE = re.compile('^{0}'.format(_LOCAL_TAG))
 
 
 class UndefinedVariableError(NameError):
+    """NameError subclass for local variables."""
     def __init__(self, *args):
         msg = 'name {0!r} is not defined'
         subbed = _TAG_RE.sub('', args[0])
@@ -30,18 +34,6 @@ class UndefinedVariableError(NameError):
             subbed = '@' + subbed
             msg = 'local variable {0!r} is not defined'
         super(UndefinedVariableError, self).__init__(msg.format(subbed))
-
-
-class OperatorError(Exception):
-    pass
-
-
-class UnaryOperatorError(OperatorError):
-    pass
-
-
-class BinaryOperatorError(OperatorError):
-    pass
 
 
 def _possibly_update_key(d, value, old_key, new_key=None):
@@ -58,6 +50,13 @@ def _possibly_update_key(d, value, old_key, new_key=None):
 
 
 class Term(StringMixin):
+    def __new__(cls, name, env, side=None, encoding=None):
+        klass = Constant if not isinstance(name, string_types) else cls
+        supr_new = super(Term, klass).__new__
+        if PY3:
+            return supr_new(klass)
+        return supr_new(klass, name, env, side=side, encoding=encoding)
+
     def __init__(self, name, env, side=None, encoding=None):
         self._name = name
         self.env = env
@@ -76,8 +75,10 @@ class Term(StringMixin):
     def __call__(self, *args, **kwargs):
         return self.value
 
+    def evaluate(self, *args, **kwargs):
+        return self
+
     def _resolve_name(self):
-        #import ipdb; ipdb.set_trace()
         env = self.env
         key = self.name
         res = env.resolve(self.local_name, globally=not self.local)
@@ -194,8 +195,9 @@ class Term(StringMixin):
 
 
 class Constant(Term):
-    def __init__(self, value, env):
-        super(Constant, self).__init__(value, env)
+    def __init__(self, value, env, side=None, encoding=None):
+        super(Constant, self).__init__(value, env, side=side,
+                                       encoding=encoding)
 
     def _resolve_name(self):
         return self._name
@@ -205,19 +207,14 @@ class Constant(Term):
         return self.value
 
 
-def _print_operand(opr):
-    return opr.name if is_term(opr) else com.pprint_thing(opr)
-
-
-def _get_op(op):
-    return {'not': '~', 'and': '&', 'or': '|'}.get(op, op)
+_bool_op_map = {'not': '~', 'and': '&', 'or': '|'}
 
 
 class Op(StringMixin):
     """Hold an operator of unknown arity
     """
     def __init__(self, op, operands, *args, **kwargs):
-        self.op = _get_op(op)
+        self.op = _bool_op_map.get(op, op)
         self.operands = operands
         self.encoding = kwargs.get('encoding', None)
 
@@ -228,7 +225,7 @@ class Op(StringMixin):
         """Print a generic n-ary operator and its operands using infix
         notation"""
         # recurse over the operands
-        parened = ('({0})'.format(_print_operand(opr))
+        parened = ('({0})'.format(com.pprint_thing(opr))
                    for opr in self.operands)
         return com.pprint_thing(' {0} '.format(self.op).join(parened))
 
@@ -239,16 +236,33 @@ class Op(StringMixin):
             return np.bool_
         return np.result_type(*(term.type for term in com.flatten(self)))
 
-    @property
-    def raw(self):
-        parened = ('{0}({1!r}, {2})'.format(self.__class__.__name__, self.op,
-                                            ', '.join('{0}'.format(opr.raw) for
-                                                      opr in self.operands)))
-        return parened
+
+def _in(x, y):
+    """Compute the vectorized membership of ``x in y`` if possible, otherwise
+    use Python.
+    """
+    try:
+        return y.isin(x)
+    except AttributeError:
+        return x in y
+    except TypeError:
+        return y.isin([x])
 
 
-_cmp_ops_syms = '>', '<', '>=', '<=', '==', '!='
-_cmp_ops_funcs = op.gt, op.lt, op.ge, op.le, op.eq, op.ne
+def _not_in(x, y):
+    """Compute the vectorized membership of ``x not in y`` if possible,
+    otherwise use Python.
+    """
+    try:
+        return ~y.isin(x)
+    except AttributeError:
+        return x not in y
+    except TypeError:
+        return ~y.isin([x])
+
+
+_cmp_ops_syms = '>', '<', '>=', '<=', '==', '!=', 'in', 'not in'
+_cmp_ops_funcs = op.gt, op.lt, op.ge, op.le, op.eq, op.ne, _in, _not_in
 _cmp_ops_dict = dict(zip(_cmp_ops_syms, _cmp_ops_funcs))
 
 _bool_ops_syms = '&', '|', 'and', 'or'
@@ -272,6 +286,15 @@ for d in (_cmp_ops_dict, _bool_ops_dict, _arith_ops_dict):
 
 
 def _cast_inplace(terms, dtype):
+    """Cast an expression inplace.
+
+    Parameters
+    ----------
+    terms : Op
+        The expression that should cast.
+    dtype : str or numpy.dtype
+        The dtype to cast to.
+    """
     dt = np.dtype(dtype)
     for term in terms:
         try:
@@ -285,18 +308,14 @@ def is_term(obj):
     return isinstance(obj, Term)
 
 
-def is_const(obj):
-    return isinstance(obj, Constant)
-
-
 class BinOp(Op):
     """Hold a binary operator and its operands
 
     Parameters
     ----------
-    op : str or Op
-    left : str or Op
-    right : str or Op
+    op : str
+    left : Term or Op
+    right : Term or Op
     """
     def __init__(self, op, lhs, rhs, **kwargs):
         super(BinOp, self).__init__(op, (lhs, rhs))
@@ -309,39 +328,71 @@ class BinOp(Op):
             self.func = _binary_ops_dict[op]
         except KeyError:
             keys = _binary_ops_dict.keys()
-            raise BinaryOperatorError('Invalid binary operator {0!r}, valid'
+            raise ValueError('Invalid binary operator {0!r}, valid'
                                       ' operators are {1}'.format(op, keys))
 
     def __call__(self, env):
+        """Recursively evaluate an expression in Python space.
+
+        Parameters
+        ----------
+        env : Scope
+
+        Returns
+        -------
+        object
+            The result of an evaluated expression.
+        """
         # handle truediv
         if self.op == '/' and env.locals['truediv']:
             self.func = op.truediv
 
-        # recurse over the left nodes
-        try:
-            left = self.lhs(env)
-        except TypeError:
-            left = self.lhs
+        # recurse over the left/right nodes
+        left = self.lhs(env)
+        right = self.rhs(env)
 
-        # recurse over the right nodes
-        try:
-            right = self.rhs(env)
-        except TypeError:
-            right = self.rhs
+        return self.func(left, right)
 
-        # base cases
-        if is_term(left) and is_term(right):
-            res = self.func(left.value, right.value)
-        elif not is_term(left) and is_term(right):
-            res = self.func(left, right.value)
-        elif is_term(left) and not is_term(right):
-            res = self.func(left.value, right)
-        elif not (is_term(left) or is_term(right)):
-            res = self.func(left, right)
+    def evaluate(self, env, engine, parser, term_type, eval_in_python):
+        """Evaluate a binary operation *before* being passed to the engine.
 
-        return res
+        Parameters
+        ----------
+        env : Scope
+        engine : str
+        parser : str
+        term_type : type
+        eval_in_python : list
+
+        Returns
+        -------
+        term_type
+            The "pre-evaluated" expression as an instance of ``term_type``
+        """
+        if engine == 'python':
+            res = self(env)
+        else:
+            # recurse over the left/right nodes
+            left = self.lhs.evaluate(env, engine=engine, parser=parser,
+                                     term_type=term_type,
+                                     eval_in_python=eval_in_python)
+            right = self.rhs.evaluate(env, engine=engine, parser=parser,
+                                      term_type=term_type,
+                                      eval_in_python=eval_in_python)
+
+            # base cases
+            if self.op in eval_in_python:
+                res = self.func(left.value, right.value)
+            else:
+                res = pd.eval(self, local_dict=env, engine=engine,
+                              parser=parser)
+
+        name = env.add_tmp(res)
+        return term_type(name, env=env)
 
     def convert_values(self):
+        """Convert datetimes to a comparable value in an expression.
+        """
         def stringify(value):
             if self.encoding is not None:
                 encoder = partial(com.pprint_thing_encoded,
@@ -376,8 +427,19 @@ class BinOp(Op):
 
 
 class Div(BinOp):
+    """Div operator to special case casting.
+
+    Parameters
+    ----------
+    lhs, rhs : Term or Op
+        The Terms or Ops in the ``/`` expression.
+    truediv : bool
+        Whether or not to use true division. With Python 3 this happens
+        regardless of the value of ``truediv``.
+    """
     def __init__(self, lhs, rhs, truediv=True, *args, **kwargs):
         super(Div, self).__init__('/', lhs, rhs, *args, **kwargs)
+
         if truediv or PY3:
             _cast_inplace(com.flatten(self), np.float_)
 
@@ -389,6 +451,18 @@ _unary_ops_dict = dict(zip(_unary_ops_syms, _unary_ops_funcs))
 
 class UnaryOp(Op):
     """Hold a unary operator and its operands
+
+    Parameters
+    ----------
+    op : str
+        The token used to represent the operator.
+    operand : Term or Op
+        The Term or Op operand to the operator.
+
+    Raises
+    ------
+    ValueError
+        * If no function associated with the passed operator token is found.
     """
     def __init__(self, op, operand):
         super(UnaryOp, self).__init__(op, (operand,))
@@ -397,27 +471,12 @@ class UnaryOp(Op):
         try:
             self.func = _unary_ops_dict[op]
         except KeyError:
-            raise UnaryOperatorError('Invalid unary operator {0}, valid '
-                                     'operators are '
-                                     '{1}'.format(op, _unary_ops_syms))
+            raise ValueError('Invalid unary operator {0!r}, valid operators '
+                             'are {1}'.format(op, _unary_ops_syms))
 
     def __call__(self, env):
-        operand = self.operand
-
-        # recurse if operand is an Op
-        try:
-            operand = self.operand(env)
-        except TypeError:
-            operand = self.operand
-
-        v = operand.value if is_term(operand) else operand
-
-        try:
-            res = self.func(v)
-        except TypeError:
-            res = self.func(v.values)
-
-        return res
+        operand = self.operand(env)
+        return self.func(operand)
 
     def __unicode__(self):
         return com.pprint_thing('{0}({1})'.format(self.op, self.operand))
