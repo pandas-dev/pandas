@@ -72,9 +72,6 @@ class Block(PandasObject):
             self.items = _ensure_index(items)
             self.ref_items = _ensure_index(ref_items)
 
-    def _gi(self, arg):
-        return self.values[arg]
-
     @property
     def _consolidate_key(self):
         return (self._can_consolidate, self.dtype.name)
@@ -1165,9 +1162,6 @@ class DatetimeBlock(Block):
         super(DatetimeBlock, self).__init__(values, items, ref_items,
                                             fastpath=True, placement=placement, **kwargs)
 
-    def _gi(self, arg):
-        return lib.Timestamp(self.values[arg])
-
     def _can_hold_element(self, element):
         if is_list_like(element):
             element = np.array(element)
@@ -1200,7 +1194,7 @@ class DatetimeBlock(Block):
             if result.dtype == 'i8':
                 result = tslib.array_to_datetime(
                     result.astype(object).ravel()).reshape(result.shape)
-        elif isinstance(result, np.integer):
+        elif isinstance(result, (np.integer, np.datetime64)):
             result = lib.Timestamp(result)
         return result
 
@@ -1267,10 +1261,9 @@ class DatetimeBlock(Block):
         self.values[loc] = value
 
     def get_values(self, dtype=None):
+        # return object dtype as Timestamps
         if dtype == object:
-            flat_i8 = self.values.ravel().view(np.int64)
-            res = tslib.ints_to_pydatetime(flat_i8)
-            return res.reshape(self.values.shape)
+            return lib.map_infer(self.values.ravel(), lib.Timestamp).reshape(self.values.shape)
         return self.values
 
 
@@ -2272,7 +2265,8 @@ class BlockManager(PandasObject):
 
     def fast_2d_xs(self, loc, copy=False):
         """
-
+        get a cross sectional for a given location in the
+        items ; handle dups
         """
         if len(self.blocks) == 1:
             result = self.blocks[0].values[:, loc]
@@ -2284,15 +2278,20 @@ class BlockManager(PandasObject):
             raise Exception('cannot get view of mixed-type or '
                             'non-consolidated DataFrame')
 
-        dtype = _interleaved_dtype(self.blocks)
-
         items = self.items
+
+        # non-unique (GH4726)
+        if not items.is_unique:
+            return self._interleave(items).ravel()
+
+        # unique
+        dtype = _interleaved_dtype(self.blocks)
         n = len(items)
         result = np.empty(n, dtype=dtype)
         for blk in self.blocks:
             for j, item in enumerate(blk.items):
                 i = items.get_loc(item)
-                result[i] = blk._gi((j, loc))
+                result[i] = blk._try_coerce_result(blk.iget((j, loc)))
 
         return result
 

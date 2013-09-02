@@ -1215,6 +1215,20 @@ class TestIndexing(unittest.TestCase):
         result = df.get_dtype_counts().sort_index()
         expected = Series({ 'int64' : 4, 'float64' : 1, 'object' : 2 }).sort_index()
 
+    def test_dups_loc(self):
+
+        # GH4726
+        # dup indexing with iloc/loc
+        df = DataFrame([[1,2,'foo','bar',Timestamp('20130101')]],
+                       columns=['a','a','a','a','a'],index=[1])
+        expected = Series([1,2,'foo','bar',Timestamp('20130101')],index=['a','a','a','a','a'])
+
+        result = df.iloc[0]
+        assert_series_equal(result,expected)
+
+        result = df.loc[1]
+        assert_series_equal(result,expected)
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
