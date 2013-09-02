@@ -541,7 +541,7 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan,
                     mask_info = mask, needs_masking
                 if needs_masking:
                     if out is not None and out.dtype != dtype:
-                        raise Exception('Incompatible type for fill_value')
+                        raise TypeError('Incompatible type for fill_value')
                 else:
                     # if not, then depromote, set fill_value to dummy
                     # (it won't be used but we don't want the cython code
@@ -612,7 +612,7 @@ def take_2d_multi(arr, indexer, out=None, fill_value=np.nan,
                     mask_info = (row_mask, col_mask), (row_needs, col_needs)
                 if row_needs or col_needs:
                     if out is not None and out.dtype != dtype:
-                        raise Exception('Incompatible type for fill_value')
+                        raise TypeError('Incompatible type for fill_value')
                 else:
                     # if not, then depromote, set fill_value to dummy
                     # (it won't be used but we don't want the cython code
@@ -857,8 +857,8 @@ def _maybe_upcast_putmask(result, mask, other, dtype=None, change=None):
 
                 # if we are trying to do something unsafe
                 # like put a bigger dtype in a smaller one, use the smaller one
-                if change.dtype.itemsize < r.dtype.itemsize:
-                    raise Exception(
+                if change.dtype.itemsize < r.dtype.itemsize: # pragma: no cover
+                    raise AssertionError(
                         "cannot change dtype of input to smaller size")
                 change.dtype = r.dtype
                 change[:] = r
@@ -1159,8 +1159,8 @@ def interpolate_2d(values, method='pad', axis=0, limit=None, fill_value=None):
     # reshape a 1 dim if needed
     ndim = values.ndim
     if values.ndim == 1:
-        if axis != 0:
-            raise Exception("cannot interpolate on a ndim == 1 with axis != 0")
+        if axis != 0: # pragma: no cover
+            raise AssertionError("cannot interpolate on a ndim == 1 with axis != 0")
         values = values.reshape(tuple((1,) + values.shape))
 
     if fill_value is None:
@@ -1434,13 +1434,17 @@ def ensure_float(arr):
     return arr
 
 
-def _mut_exclusive(arg1, arg2):
-    if arg1 is not None and arg2 is not None:
-        raise Exception('mutually exclusive arguments')
-    elif arg1 is not None:
-        return arg1
+def _mut_exclusive(**kwargs):
+    item1, item2 = kwargs.items()
+    label1, val1 = item1
+    label2, val2 = item2
+    if val1 is not None and val2 is not None:
+        raise TypeError('mutually exclusive arguments: %r and %r' %
+                        (label1, label2))
+    elif val1 is not None:
+        return val1
     else:
-        return arg2
+        return val2
 
 
 def _any_none(*args):

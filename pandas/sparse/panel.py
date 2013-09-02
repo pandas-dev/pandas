@@ -319,8 +319,8 @@ class SparsePanel(Panel):
         -------
         reindexed : SparsePanel
         """
-        major = com._mut_exclusive(major, major_axis)
-        minor = com._mut_exclusive(minor, minor_axis)
+        major = com._mut_exclusive(major=major, major_axis=major_axis)
+        minor = com._mut_exclusive(minor=minor, minor_axis=minor_axis)
 
         if com._all_none(items, major, minor):
             raise ValueError('Must specify at least one axis')
