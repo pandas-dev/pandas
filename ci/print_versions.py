@@ -93,6 +93,12 @@ except:
     print("openpyxl: Not installed")
 
 try:
+    import xlsxwriter
+    print("xlsxwriter: %s" % xlsxwriter.__version__)
+except:
+    print("xlwt: Not installed")
+
+try:
     import xlrd
     print("xlrd: %s" % xlrd.__VERSION__)
 except:

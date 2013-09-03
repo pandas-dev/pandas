@@ -1667,7 +1667,7 @@ written.  For example:
 
 .. code-block:: python
 
-   df.to_excel('path_to_file.xlsx', sheet_name='sheet1')
+   df.to_excel('path_to_file.xlsx', sheet_name='Sheet1')
 
 Files with a ``.xls`` extension will be written using ``xlwt`` and those with
 a ``.xlsx`` extension will be written using ``openpyxl``.
@@ -1680,8 +1680,8 @@ one can use the ExcelWriter class, as in the following example:
 .. code-block:: python
 
    writer = ExcelWriter('path_to_file.xlsx')
-   df1.to_excel(writer, sheet_name='sheet1')
-   df2.to_excel(writer, sheet_name='sheet2')
+   df1.to_excel(writer, sheet_name='Sheet1')
+   df2.to_excel(writer, sheet_name='Sheet2')
    writer.save()
 
 .. _io.hdf5:

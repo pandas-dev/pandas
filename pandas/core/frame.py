@@ -1356,9 +1356,10 @@ class DataFrame(NDFrame):
                                      tupleize_cols=tupleize_cols)
         formatter.save()
 
-    def to_excel(self, excel_writer, sheet_name='sheet1', na_rep='',
+    def to_excel(self, excel_writer, sheet_name='Sheet1', na_rep='',
                  float_format=None, cols=None, header=True, index=True,
-                 index_label=None, startrow=0, startcol=0):
+                 index_label=None, startrow=0, startcol=0,
+                 engine=None):
         """
         Write DataFrame to a excel sheet
 
@@ -1366,7 +1367,7 @@ class DataFrame(NDFrame):
         ----------
         excel_writer : string or ExcelWriter object
             File path or existing ExcelWriter
-        sheet_name : string, default 'sheet1'
+        sheet_name : string, default 'Sheet1'
             Name of sheet which will contain DataFrame
         na_rep : string, default ''
             Missing data representation
@@ -1385,6 +1386,7 @@ class DataFrame(NDFrame):
             sequence should be given if the DataFrame uses MultiIndex.
         startow : upper left cell row to dump data frame
         startcol : upper left cell column to dump data frame
+        engine : Excel writer class
 
 
         Notes
@@ -1393,14 +1395,14 @@ class DataFrame(NDFrame):
         to the existing workbook.  This can be used to save different
         DataFrames to one workbook
         >>> writer = ExcelWriter('output.xlsx')
-        >>> df1.to_excel(writer,'sheet1')
-        >>> df2.to_excel(writer,'sheet2')
+        >>> df1.to_excel(writer,'Sheet1')
+        >>> df2.to_excel(writer,'Sheet2')
         >>> writer.save()
         """
         from pandas.io.excel import ExcelWriter
         need_save = False
         if isinstance(excel_writer, compat.string_types):
-            excel_writer = ExcelWriter(excel_writer)
+            excel_writer = ExcelWriter(excel_writer, engine)
             need_save = True
 
         formatter = fmt.ExcelFormatter(self,
