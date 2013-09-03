@@ -430,6 +430,13 @@ class GroupBy(PandasObject):
 
         For multiple groupings, the result index will be a MultiIndex
         """
+        if isinstance(self.obj, com.ABCDataFrame):
+            from pandas.tools.merge import concat
+            return concat((col_groupby._cython_agg_general('ohlc')
+                                for _, col_groupby in self._iterate_column_groupbys()),
+                            keys=self.obj.columns,
+                            axis=1)
+
         return self._cython_agg_general('ohlc')
 
     def nth(self, n):
@@ -1619,7 +1626,6 @@ class NDFrameGroupBy(GroupBy):
         for val in slice_axis:
             if val in self.exclusions:
                 continue
-
             yield val, slicer(val)
 
     def _cython_agg_general(self, how, numeric_only=True):
@@ -2232,6 +2238,12 @@ class DataFrameGroupBy(NDFrameGroupBy):
             result = result.T
 
         return result.convert_objects()
+
+    def _iterate_column_groupbys(self):
+        for i, colname in enumerate(self.obj.columns):
+            yield colname, SeriesGroupBy(self.obj.iloc[:, i], selection=colname,
+                                         grouper=self.grouper,
+                                         exclusions=self.exclusions)
 
 
 from pandas.tools.plotting import boxplot_frame_groupby

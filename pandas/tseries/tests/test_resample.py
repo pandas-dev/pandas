@@ -259,6 +259,31 @@ class TestResample(unittest.TestCase):
         self.assertEquals(xs['low'], s[:5].min())
         self.assertEquals(xs['close'], s[4])
 
+    def test_resample_ohlc_dataframe(self):
+        df = (pd.DataFrame({'PRICE': {Timestamp('2011-01-06 10:59:05', tz=None): 24990,
+                                     Timestamp('2011-01-06 12:43:33', tz=None): 25499,
+                                     Timestamp('2011-01-06 12:54:09', tz=None): 25499},
+                           'VOLUME': {Timestamp('2011-01-06 10:59:05', tz=None): 1500000000,
+                                      Timestamp('2011-01-06 12:43:33', tz=None): 5000000000,
+                                      Timestamp('2011-01-06 12:54:09', tz=None): 100000000}})
+            ).reindex_axis(['VOLUME', 'PRICE'], axis=1)
+        res = df.resample('H', how='ohlc')
+        exp = pd.concat([df['VOLUME'].resample('H', how='ohlc'),
+                          df['PRICE'].resample('H', how='ohlc')],
+                        axis=1,
+                        keys=['VOLUME', 'PRICE'])
+        assert_frame_equal(exp, res)
+
+        df.columns = [['a', 'b'], ['c', 'd']]
+        res = df.resample('H', how='ohlc')
+        exp.columns = pd.MultiIndex.from_tuples([('a', 'c', 'open'), ('a', 'c', 'high'),
+            ('a', 'c', 'low'), ('a', 'c', 'close'), ('b', 'd', 'open'),
+            ('b', 'd', 'high'), ('b', 'd', 'low'), ('b', 'd', 'close')])
+        assert_frame_equal(exp, res)
+
+        # dupe columns fail atm
+        # df.columns = ['PRICE', 'PRICE']
+
     def test_resample_reresample(self):
         dti = DatetimeIndex(
             start=datetime(2005, 1, 1), end=datetime(2005, 1, 10),
