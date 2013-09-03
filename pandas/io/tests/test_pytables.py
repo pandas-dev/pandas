@@ -2902,6 +2902,32 @@ class TestHDFStore(unittest.TestCase):
             expected = df[(df.A > 0) & (df.B > 0)]
             tm.assert_frame_equal(result, expected)
 
+    def test_append_to_multiple_dropna(self):
+        df1 = tm.makeTimeDataFrame()
+        df2 = tm.makeTimeDataFrame().rename(columns=lambda x: "%s_2" % x)
+        df1.ix[1, ['A', 'B']] = np.nan
+        df = concat([df1, df2], axis=1)
+
+        with ensure_clean(self.path) as store:
+            # dropna=True should guarantee rows are synchronized
+            store.append_to_multiple(
+                {'df1': ['A', 'B'], 'df2': None}, df, selector='df1',
+                dropna=True)
+            result = store.select_as_multiple(['df1', 'df2'])
+            expected = df.dropna()
+            tm.assert_frame_equal(result, expected)
+            tm.assert_index_equal(store.select('df1').index,
+                                  store.select('df2').index)
+
+            # dropna=False shouldn't synchronize row indexes
+            store.append_to_multiple(
+                {'df1': ['A', 'B'], 'df2': None}, df, selector='df1',
+                dropna=False)
+            self.assertRaises(
+                ValueError, store.select_as_multiple, ['df1', 'df2'])
+            assert not store.select('df1').index.equals(
+                store.select('df2').index)
+
     def test_select_as_multiple(self):
 
         df1 = tm.makeTimeDataFrame()
