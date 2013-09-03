@@ -7,6 +7,7 @@ Data structure for 1-dimensional cross-sectional and time series data
 
 import operator
 import types
+import warnings
 
 from numpy import nan, ndarray
 import numpy as np
@@ -363,6 +364,17 @@ class Series(generic.NDFrame):
     __float__ = _coerce_method(float)
     __long__ = _coerce_method(int)
     __int__ = _coerce_method(int)
+
+    def __nonzero__(self):
+        if len(self) == 1 and self.dtype == np.bool_:
+            warnings.warn("bool on a single-element boolean dtyped Series is deprecated,\n"
+                          " please use a.empty, a.item(), a.any(), or a.all() instead\n",
+                          UserWarning)
+            return bool(self.iloc[0])
+        raise ValueError("The truth value of a {0} is ambiguous.\n"
+                         "Use a.empty, a.item(), a.any() or a.all().\n"
+                         "Currently, a boolean Series of length 1 is the exception\n".format(self.__class__.__name__))
+    __bool__ = __nonzero__
 
     # we are preserving name here
     def __getstate__(self):
@@ -913,7 +925,6 @@ class Series(generic.NDFrame):
         """
 
         if nanRep is not None:  # pragma: no cover
-            import warnings
             warnings.warn("nanRep is deprecated, use na_rep", FutureWarning)
             na_rep = nanRep
 

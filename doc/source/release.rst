@@ -241,7 +241,8 @@ API Changes
 
   - Infer and downcast dtype if ``downcast='infer'`` is passed to ``fillna/ffill/bfill`` (:issue:`4604`)
   - ``__nonzero__`` for all NDFrame objects, will now raise a ``ValueError``, this reverts back to (:issue:`1073`, :issue:`4633`)
-    behavior.
+    behavior (except for a single-element boolean Series, which mimics ``numpy`` behavior and will evaluate
+    to the bool of the element)
   - ``DataFrame.update()`` no longer raises a ``DataConflictError``, it now
     will raise a ``ValueError`` instead (if necessary) (:issue:`4732`)
   - ``Series.isin()`` and ``DataFrame.isin()``  now raise a ``TypeError`` when

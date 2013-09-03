@@ -205,11 +205,26 @@ class TestSeries(unittest.TestCase, Generic):
 
     def test_nonzero_single_element(self):
 
+        # single item to follow numpy
         s = Series([True])
-        self.assertRaises(ValueError, lambda : bool(s))
+        self.assert_(bool(s) == True)
 
         s = Series([False])
-        self.assertRaises(ValueError, lambda : bool(s))
+        self.assert_(bool(s) == False)
+
+        # single item nan to raise
+        for s in [ Series([np.nan]), Series([pd.NaT]) ]:
+            self.assertRaises(ValueError, lambda : bool(s))
+
+        # multiple bool are still an error
+        for s in [Series([True,True]), Series([False, False])]:
+            self.assertRaises(ValueError, lambda : bool(s))
+
+        # single non-bool are an error
+        for s in [Series([1]), Series([0]),
+                  Series(['a']), Series([0.0])]:
+                self.assertRaises(ValueError, lambda : bool(s))
+
 
 class TestDataFrame(unittest.TestCase, Generic):
     _typ = DataFrame
