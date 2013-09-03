@@ -868,3 +868,149 @@ Serialization / IO / Conversion
    Panel.to_frame
    Panel.to_clipboard
 
+.. currentmodule:: pandas.core.index
+
+.. _api.index
+
+Index
+-----
+
+**Many of these methods or variants thereof are available on the objects that contain an index (Series/Dataframe)
+and those should most likely be used before calling these methods directly.**
+
+   * **values**
+Modifying and Computations
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Index.copy
+   Index.delete
+   Index.diff
+   Index.drop
+   Index.equals
+   Index.identical
+   Index.insert
+   Index.order
+   Index.reindex
+   Index.repeat
+   Index.set_names
+   Index.unique
+
+Conversion
+~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Index.astype
+   Index.tolist
+   Index.to_datetime
+   Index.to_series
+
+Sorting
+~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Index.argsort
+   Index.order
+   Index.sort
+
+Time-specific operations
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Index.shift
+
+Combining / joining / merging
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Index.append
+   Index.intersection
+   Index.join
+   Index.union
+
+Selecting
+~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Index.get_indexer
+   Index.get_indexer_non_unique
+   Index.get_level_values
+   Index.get_loc
+   Index.get_value
+   Index.isin
+   Index.slice_indexer
+   Index.slice_locs
+
+Properties
+~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Index.is_monotonic
+   Index.is_numeric
+
+.. currentmodule:: pandas.tseries.index
+
+.. _api.datetimeindex:
+
+DatetimeIndex
+-------------
+
+Time/Date Components
+~~~~~~~~~~~~~~~~~~~~
+  * **year**
+  * **month**
+  * **day**
+  * **hour**
+  * **minute**
+  * **second**
+  * **microsecond**
+  * **nanosecond**
+
+  * **weekofyear**
+  * **week**: Same as weekofyear
+  * **dayofweek**: (0=Monday, 6=Sunday)
+  * **weekday**: (0=Monday, 6=Sunday)
+  * **dayofyear** 
+  * **quarter**
+
+  * **date**: Returns date component of Timestamps
+  * **time**: Returns time component of Timestamps
+
+
+Selecting
+~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   DatetimeIndex.indexer_at_time
+   DatetimeIndex.indexer_between_time
+   
+
+Time-specific operations
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   DatetimeIndex.normalize
+   DatetimeIndex.snap
+   DatetimeIndex.tz_convert
+   DatetimeIndex.tz_localize
+
+
+Conversion
+~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   DatetimeIndex.to_datetime
+   DatetimeIndex.to_period
+   DatetimeIndex.to_pydatetime
+
+
