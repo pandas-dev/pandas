@@ -152,6 +152,8 @@ pandas 0.13
     passed a string (:issue:`4763`). Pass a ``list`` of one element (containing
     the string) instead.
   - Remove undocumented/unused ``kind`` keyword argument from ``read_excel``, and ``ExcelFile``. (:issue:`4713`, :issue:`4712`)
+  - The ``method`` argument of ``NDFrame.replace()`` is valid again, so that a
+    a list can be passed to ``to_replace`` (:issue:`4743`).
 
 **Internal Refactoring**
 
