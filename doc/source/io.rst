@@ -1681,6 +1681,24 @@ one can use the ExcelWriter class, as in the following example:
    df2.to_excel(writer, sheet_name='sheet2')
    writer.save()
 
+.. _io.excel.writers:
+
+Excel writer engines
+~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 0.13
+
+``pandas`` chooses an Excel writer via two methods:
+
+1. the ``engine`` keyword argument
+2. the filename extension (via the default specified in config options)
+
+``pandas`` only supports ``openpyxl`` for ``.xlsx`` and ``.xlsm`` files and
+``xlwt`` for ``.xls`` files.  If you have multiple engines installed, you can choose the
+engine to use by default via the options ``io.excel.xlsx.writer`` and
+``io.excel.xls.writer``.
+
+
 .. _io.hdf5:
 
 HDF5 (PyTables)

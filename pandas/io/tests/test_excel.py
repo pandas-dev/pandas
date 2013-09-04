@@ -18,7 +18,10 @@ from pandas import DataFrame, Series, Index, MultiIndex, DatetimeIndex
 import pandas.io.parsers as parsers
 from pandas.io.parsers import (read_csv, read_table, read_fwf,
                                 TextParser, TextFileReader)
-from pandas.io.excel import ExcelFile, ExcelWriter, read_excel
+from pandas.io.excel import (
+    ExcelFile, ExcelWriter, read_excel, _XlwtWriter, _OpenpyxlWriter,
+    register_writer
+)
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
                                  network,
@@ -602,6 +605,59 @@ class ExcelTests(unittest.TestCase):
             recons = reader.parse('test1')
             tm.assert_frame_equal(self.tsframe, recons)
 
+    def test_ExcelWriter_dispatch(self):
+        with tm.assertRaisesRegexp(ValueError, 'No engine'):
+            writer = ExcelWriter('nothing')
+
+        _skip_if_no_openpyxl()
+        writer = ExcelWriter('apple.xlsx')
+        tm.assert_isinstance(writer, _OpenpyxlWriter)
+
+        _skip_if_no_xlwt()
+        writer = ExcelWriter('apple.xls')
+        tm.assert_isinstance(writer, _XlwtWriter)
+
+
+    def test_register_writer(self):
+        # some awkward mocking to test out dispatch and such actually works
+        called_save = []
+        called_write_cells = []
+        class DummyClass(ExcelWriter):
+            called_save = False
+            called_write_cells = False
+            supported_extensions = ['test', 'xlsx', 'xls']
+            engine = 'dummy'
+
+            def save(self):
+                called_save.append(True)
+
+            def write_cells(self, *args, **kwargs):
+                called_write_cells.append(True)
+
+        def check_called(func):
+            func()
+            self.assert_(len(called_save) >= 1)
+            self.assert_(len(called_write_cells) >= 1)
+            del called_save[:]
+            del called_write_cells[:]
+
+        register_writer(DummyClass)
+        writer = ExcelWriter('something.test')
+        tm.assert_isinstance(writer, DummyClass)
+        df = tm.makeCustomDataframe(1, 1)
+        panel = tm.makePanel()
+        func = lambda: df.to_excel('something.test')
+        check_called(func)
+        check_called(lambda: panel.to_excel('something.test'))
+        from pandas import set_option, get_option
+        val = get_option('io.excel.xlsx.writer')
+        set_option('io.excel.xlsx.writer', 'dummy')
+        check_called(lambda: df.to_excel('something.xlsx'))
+        check_called(lambda: df.to_excel('something.xls', engine='dummy'))
+        set_option('io.excel.xlsx.writer', val)
+
+
+
     def test_to_excel_periodindex(self):
         _skip_if_no_excelsuite()
 
@@ -731,13 +787,11 @@ class ExcelTests(unittest.TestCase):
                 tm.assert_frame_equal(rs, xp)
 
     def test_to_excel_styleconverter(self):
-        from pandas.io.excel import CellStyleConverter
+        _skip_if_no_xlwt()
+        _skip_if_no_openpyxl()
 
-        try:
-            import xlwt
-            import openpyxl
-        except ImportError:
-            raise nose.SkipTest
+        import xlwt
+        import openpyxl
 
         hstyle = {"font": {"bold": True},
                   "borders": {"top": "thin",
@@ -745,7 +799,7 @@ class ExcelTests(unittest.TestCase):
                               "bottom": "thin",
                               "left": "thin"},
                   "alignment": {"horizontal": "center"}}
-        xls_style = CellStyleConverter.to_xls(hstyle)
+        xls_style = _XlwtWriter._convert_to_style(hstyle)
         self.assertTrue(xls_style.font.bold)
         self.assertEquals(xlwt.Borders.THIN, xls_style.borders.top)
         self.assertEquals(xlwt.Borders.THIN, xls_style.borders.right)
@@ -753,7 +807,7 @@ class ExcelTests(unittest.TestCase):
         self.assertEquals(xlwt.Borders.THIN, xls_style.borders.left)
         self.assertEquals(xlwt.Alignment.HORZ_CENTER, xls_style.alignment.horz)
 
-        xlsx_style = CellStyleConverter.to_xlsx(hstyle)
+        xlsx_style = _OpenpyxlWriter._convert_to_style(hstyle)
         self.assertTrue(xlsx_style.font.bold)
         self.assertEquals(openpyxl.style.Border.BORDER_THIN,
                           xlsx_style.borders.top.border_style)
