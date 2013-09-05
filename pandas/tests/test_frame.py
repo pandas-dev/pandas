@@ -866,9 +866,11 @@ class CheckIndexing(object):
         self.assertRaises(KeyError,
                           self.frame.ix.__setitem__,
                           (slice(None, None), ['E']), 1)
-        self.assertRaises(KeyError,
-                          self.frame.ix.__setitem__,
-                          (slice(None, None), 'E'), 1)
+
+        # partial setting now allows this GH2578
+        #self.assertRaises(KeyError,
+        #                  self.frame.ix.__setitem__,
+        #                  (slice(None, None), 'E'), 1)
 
     def test_setitem_fancy_mixed_2d(self):
         self.mixed_frame.ix[:5, ['C', 'B', 'A']] = 5
@@ -1481,33 +1483,54 @@ class CheckIndexing(object):
                 assert_almost_equal(self.frame[col][idx], 1)
 
     def test_set_value_resize(self):
+
         res = self.frame.set_value('foobar', 'B', 0)
-        self.assert_(res is not self.frame)
+        self.assert_(res is self.frame)
         self.assert_(res.index[-1] == 'foobar')
         self.assertEqual(res.get_value('foobar', 'B'), 0)
 
-        res2 = res.set_value('foobar', 'qux', 0)
-        self.assert_(res2 is not res)
-        self.assert_(np.array_equal(res2.columns,
-                                    list(self.frame.columns) + ['qux']))
-        self.assertEqual(res2.get_value('foobar', 'qux'), 0)
+        self.frame.loc['foobar','qux'] = 0
+        self.assertEqual(self.frame.get_value('foobar', 'qux'), 0)
 
+        res = self.frame.copy()
         res3 = res.set_value('foobar', 'baz', 'sam')
         self.assert_(res3['baz'].dtype == np.object_)
 
+        res = self.frame.copy()
         res3 = res.set_value('foobar', 'baz', True)
         self.assert_(res3['baz'].dtype == np.object_)
 
+        res = self.frame.copy()
         res3 = res.set_value('foobar', 'baz', 5)
         self.assert_(com.is_float_dtype(res3['baz']))
         self.assert_(isnull(res3['baz'].drop(['foobar'])).values.all())
         self.assertRaises(ValueError, res3.set_value, 'foobar', 'baz', 'sam')
 
     def test_set_value_with_index_dtype_change(self):
-        df = DataFrame(randn(3, 3), index=lrange(3), columns=list('ABC'))
-        res = df.set_value('C', 2, 1.0)
-        self.assert_(list(res.index) == list(df.index) + ['C'])
-        self.assert_(list(res.columns) == list(df.columns) + [2])
+        df_orig = DataFrame(randn(3, 3), index=lrange(3), columns=list('ABC'))
+
+        # this is actually ambiguous as the 2 is interpreted as a positional
+        # so column is not created
+        df = df_orig.copy()
+        df.set_value('C', 2, 1.0)
+        self.assert_(list(df.index) == list(df_orig.index) + ['C'])
+        #self.assert_(list(df.columns) == list(df_orig.columns) + [2])
+
+        df = df_orig.copy()
+        df.loc['C', 2] = 1.0
+        self.assert_(list(df.index) == list(df_orig.index) + ['C'])
+        #self.assert_(list(df.columns) == list(df_orig.columns) + [2])
+
+        # create both new
+        df = df_orig.copy()
+        df.set_value('C', 'D', 1.0)
+        self.assert_(list(df.index) == list(df_orig.index) + ['C'])
+        self.assert_(list(df.columns) == list(df_orig.columns) + ['D'])
+
+        df = df_orig.copy()
+        df.loc['C', 'D'] = 1.0
+        self.assert_(list(df.index) == list(df_orig.index) + ['C'])
+        self.assert_(list(df.columns) == list(df_orig.columns) + ['D'])
 
     def test_get_set_value_no_partial_indexing(self):
         # partial w/ MultiIndex raise exception

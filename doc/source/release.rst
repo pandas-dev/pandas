@@ -92,6 +92,9 @@ pandas 0.13
     an alias of iteritems used to get around ``2to3``'s changes).
     (:issue:`4384`, :issue:`4375`, :issue:`4372`)
   - ``Series.get`` with negative indexers now returns the same as ``[]`` (:issue:`4390`)
+  - allow ``ix/loc`` for Series/DataFrame/Panel to set on any axis even when the single-key is not currently contained in
+    the index for that axis (:issue:`2578`)
+  - ``at`` now will enlarge the object inplace (and return the same) (:issue:`2578`)
 
   - ``HDFStore``
 
@@ -296,7 +299,7 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
   - ``tslib.get_period_field()`` and ``tslib.get_period_field_arr()`` now raise
     if code argument out of range (:issue:`4519`, :issue:`4520`)
   - Fix boolean indexing on an empty series loses index names (:issue:`4235`),
-  infer_dtype works with empty arrays.
+    infer_dtype works with empty arrays.
   - Fix reindexing with multiple axes; if an axes match was not replacing the current axes, leading
     to a possible lazay frequency inference issue (:issue:`3317`)
   - Fixed issue where ``DataFrame.apply`` was reraising exceptions incorrectly

@@ -1731,18 +1731,12 @@ class DataFrame(NDFrame):
             engine.set_value(series.values, index, value)
             return self
         except KeyError:
-            new_index, new_columns = self._expand_axes((index, col))
-            result = self.reindex(index=new_index, columns=new_columns,
-                                  copy=False)
-            likely_dtype, value = _infer_dtype_from_scalar(value)
 
-            made_bigger = not np.array_equal(new_columns, self.columns)
+            # set using a non-recursive method & reset the cache
+            self.loc[index,col] = value
+            self._item_cache.pop(col,None)
 
-            # how to make this logic simpler?
-            if made_bigger:
-                com._possibly_cast_item(result, col, likely_dtype)
-
-            return result.set_value(index, col, value)
+            return self
 
     def irow(self, i, copy=False):
         return self._ixs(i, axis=0)

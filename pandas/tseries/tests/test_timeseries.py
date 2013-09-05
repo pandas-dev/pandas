@@ -109,7 +109,10 @@ class TestTimeSeriesDuplicates(unittest.TestCase):
             assert_series_equal(cp, expected)
 
         self.assertRaises(KeyError, ts.__getitem__, datetime(2000, 1, 6))
-        self.assertRaises(KeyError, ts.__setitem__, datetime(2000, 1, 6), 0)
+
+        # new index
+        ts[datetime(2000,1,6)] = 0
+        self.assert_(ts[datetime(2000,1,6)] == 0)
 
     def test_range_slice(self):
         idx = DatetimeIndex(['1/1/2000', '1/2/2000', '1/2/2000', '1/3/2000',
