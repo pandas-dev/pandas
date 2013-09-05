@@ -6,6 +6,7 @@ from copy import deepcopy
 from datetime import datetime, timedelta, time
 import operator
 import re
+import csv
 import unittest
 import nose
 
@@ -5465,8 +5466,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             assert_frame_equal(rs, xp)
 
     def test_to_csv_quoting(self):
-        import csv
-
         df = DataFrame({'A': [1, 2, 3], 'B': ['foo', 'bar', 'baz']})
 
         buf = StringIO()
@@ -5489,8 +5488,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertEqual(buf.getvalue(), text)
 
     def test_to_csv_unicodewriter_quoting(self):
-        import csv
-
         df = DataFrame({'A': [1, 2, 3], 'B': ['foo', 'bar', 'baz']})
 
         buf = StringIO()
@@ -5504,6 +5501,17 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                     '3,"baz"\n')
 
         self.assertEqual(result, expected)
+
+    def test_to_csv_quote_none(self):
+        # GH4328
+        df = DataFrame({'A': ['hello', '{"hello"}']})
+        for encoding in (None, 'utf-8'):
+            buf = StringIO()
+            df.to_csv(buf, quoting=csv.QUOTE_NONE,
+                      encoding=encoding, index=False)
+            result = buf.getvalue()
+            expected = 'A\nhello\n{"hello"}\n'
+            self.assertEqual(result, expected)
 
     def test_to_csv_index_no_leading_comma(self):
         df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]},

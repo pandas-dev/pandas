@@ -787,7 +787,7 @@ class CSVFormatter(object):
                  cols=None, header=True, index=True, index_label=None,
                  mode='w', nanRep=None, encoding=None, quoting=None,
                  line_terminator='\n', chunksize=None, engine=None,
-                 tupleize_cols=True):
+                 tupleize_cols=True, quotechar='"'):
 
         self.engine = engine  # remove for 0.13
         self.obj = obj
@@ -806,6 +806,11 @@ class CSVFormatter(object):
         if quoting is None:
             quoting = csv.QUOTE_MINIMAL
         self.quoting = quoting
+
+        if quoting == csv.QUOTE_NONE:
+            # prevents crash in _csv
+            quotechar = None
+        self.quotechar = quotechar
 
         self.line_terminator = line_terminator
 
@@ -950,13 +955,14 @@ class CSVFormatter(object):
             close = True
 
         try:
+            writer_kwargs = dict(lineterminator=self.line_terminator,
+                                 delimiter=self.sep, quoting=self.quoting,
+                                 quotechar=self.quotechar)
             if self.encoding is not None:
-                self.writer = com.UnicodeWriter(f, lineterminator=self.line_terminator,
-                                                delimiter=self.sep, encoding=self.encoding,
-                                                quoting=self.quoting)
+                writer_kwargs['encoding'] = self.encoding
+                self.writer = com.UnicodeWriter(f, **writer_kwargs)
             else:
-                self.writer = csv.writer(f, lineterminator=self.line_terminator,
-                                         delimiter=self.sep, quoting=self.quoting)
+                self.writer = csv.writer(f, **writer_kwargs)
 
             if self.engine == 'python':
             # to be removed in 0.13
