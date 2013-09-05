@@ -1039,6 +1039,8 @@ pandas 0.10.1
   - Fix Period resampling bug when all values fall into a single bin (:issue:`2070`)
   - Fix buggy interaction with usecols argument in read_csv when there is an
     implicit first index column (:issue:`2654`)
+  - Fix bug in ``Index.summary()`` where string format methods were being called incorrectly.
+    (:issue:`3869`)
 
 
 pandas 0.10.0
