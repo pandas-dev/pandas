@@ -458,7 +458,7 @@ class Panel(NDFrame):
                            default_kind=kind,
                            default_fill_value=fill_value)
 
-    def to_excel(self, path, na_rep=''):
+    def to_excel(self, path, na_rep='', engine=None):
         """
         Write each DataFrame in Panel to a separate excel sheet
 
@@ -468,9 +468,10 @@ class Panel(NDFrame):
             File path or existing ExcelWriter
         na_rep : string, default ''
             Missing data representation
+        engine : string, Excel writer class
         """
         from pandas.io.excel import ExcelWriter
-        writer = ExcelWriter(path)
+        writer = ExcelWriter(path, engine=engine)
         for item, df in compat.iteritems(self):
             name = str(item)
             df.to_excel(writer, name, na_rep=na_rep)

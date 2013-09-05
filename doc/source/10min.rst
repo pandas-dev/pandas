@@ -695,13 +695,13 @@ Writing to an excel file
 
 .. ipython:: python
 
-   df.to_excel('foo.xlsx', sheet_name='sheet1')
+   df.to_excel('foo.xlsx', sheet_name='Sheet1')
 
 Reading from an excel file
 
 .. ipython:: python
 
-   pd.read_excel('foo.xlsx', 'sheet1', index_col=None, na_values=['NA'])
+   pd.read_excel('foo.xlsx', 'Sheet1', index_col=None, na_values=['NA'])
 
 .. ipython:: python
    :suppress:

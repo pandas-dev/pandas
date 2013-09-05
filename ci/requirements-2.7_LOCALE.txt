@@ -2,6 +2,7 @@ python-dateutil
 pytz==2013b
 xlwt==0.7.5
 openpyxl==1.6.2
+xlsxwriter==0.4.2
 xlrd==0.9.2
 numpy==1.6.1
 cython==0.19.1

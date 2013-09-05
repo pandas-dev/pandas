@@ -8,6 +8,7 @@ numexpr==2.1
 tables==2.3.1
 matplotlib==1.1.1
 openpyxl==1.6.2
+xlsxwriter==0.4.2
 xlrd==0.9.2
 patsy==0.1.0
 html5lib==1.0b2
