@@ -1400,8 +1400,10 @@ Thur,Lunch,Yes,51.51,17"""
         self.assertRaises(KeyError, self.frame.ix.__getitem__,
                           (('bar', 'three'), 'B'))
 
-        self.assertRaises(KeyError, self.frame.ix.__setitem__,
-                          (('bar', 'three'), 'B'), 0)
+
+        # in theory should be inserting in a sorted space????
+        self.frame.ix[('bar','three'),'B'] = 0
+        self.assert_(self.frame.sortlevel().ix[('bar','three'),'B'] == 0)
 
     #----------------------------------------------------------------------
     # AMBIGUOUS CASES!

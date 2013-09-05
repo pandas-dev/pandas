@@ -851,8 +851,17 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
     def test_setitem_ambiguous_keyerror(self):
         s = Series(lrange(10), index=lrange(0, 20, 2))
-        self.assertRaises(KeyError, s.__setitem__, 1, 5)
-        self.assertRaises(KeyError, s.ix.__setitem__, 1, 5)
+
+        # equivalent of an append
+        s2 = s.copy()
+        s2[1] = 5
+        expected = s.append(Series([5],index=[1]))
+        assert_series_equal(s2,expected)
+
+        s2 = s.copy()
+        s2.ix[1] = 5
+        expected = s.append(Series([5],index=[1]))
+        assert_series_equal(s2,expected)
 
     def test_setitem_float_labels(self):
         # note labels are floats
@@ -954,8 +963,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_((series[::2] == 0).all())
 
         # set item that's not contained
-        self.assertRaises(Exception, self.series.__setitem__,
-                          'foobar', 1)
+        s = self.series.copy()
+        s['foobar'] = 1
+        expected = self.series.append(Series([1],index=['foobar']))
+        assert_series_equal(s,expected)
 
     def test_setitem_dtypes(self):
 
@@ -989,10 +1000,17 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_(res is self.ts)
         self.assertEqual(self.ts[idx], 0)
 
-        res = self.series.set_value('foobar', 0)
-        self.assert_(res is not self.series)
+        # equiv
+        s = self.series.copy()
+        res = s.set_value('foobar', 0)
+        self.assert_(res is s)
         self.assert_(res.index[-1] == 'foobar')
         self.assertEqual(res['foobar'], 0)
+
+        s = self.series.copy()
+        s.loc['foobar'] = 0
+        self.assert_(s.index[-1] == 'foobar')
+        self.assertEqual(s['foobar'], 0)
 
     def test_setslice(self):
         sl = self.ts[5:20]
@@ -4719,33 +4737,26 @@ class TestSeriesNonUnique(unittest.TestCase):
         self.assertRaises(IndexError, s.__setitem__, 5, 0)
 
         self.assertRaises(KeyError, s.__getitem__, 'c')
-        self.assertRaises(KeyError, s.__setitem__, 'c', 0)
 
         s = s.sort_index()
 
         self.assertRaises(IndexError, s.__getitem__, 5)
         self.assertRaises(IndexError, s.__setitem__, 5, 0)
 
-        self.assertRaises(KeyError, s.__getitem__, 'c')
-        self.assertRaises(KeyError, s.__setitem__, 'c', 0)
 
     def test_int_indexing(self):
         s = Series(np.random.randn(6), index=[0, 0, 1, 1, 2, 2])
 
         self.assertRaises(KeyError, s.__getitem__, 5)
-        self.assertRaises(KeyError, s.__setitem__, 5, 0)
 
         self.assertRaises(KeyError, s.__getitem__, 'c')
-        self.assertRaises(KeyError, s.__setitem__, 'c', 0)
 
         # not monotonic
         s = Series(np.random.randn(6), index=[2, 2, 0, 0, 1, 1])
 
         self.assertRaises(KeyError, s.__getitem__, 5)
-        self.assertRaises(KeyError, s.__setitem__, 5, 0)
 
         self.assertRaises(KeyError, s.__getitem__, 'c')
-        self.assertRaises(KeyError, s.__setitem__, 'c', 0)
 
     def test_datetime_indexing(self):
         from pandas import date_range
@@ -4757,13 +4768,16 @@ class TestSeriesNonUnique(unittest.TestCase):
         stamp = Timestamp('1/8/2000')
 
         self.assertRaises(KeyError, s.__getitem__, stamp)
-        self.assertRaises(KeyError, s.__setitem__, stamp, 0)
+        s[stamp] = 0
+        self.assert_(s[stamp] == 0)
 
         # not monotonic
+        s = Series(len(index), index=index)
         s = s[::-1]
 
         self.assertRaises(KeyError, s.__getitem__, stamp)
-        self.assertRaises(KeyError, s.__setitem__, stamp, 0)
+        s[stamp] = 0
+        self.assert_(s[stamp] == 0)
 
     def test_reset_index(self):
         df = tm.makeDataFrame()[:5]

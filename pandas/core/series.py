@@ -1204,13 +1204,10 @@ class Series(generic.NDFrame):
             self.index._engine.set_value(self.values, label, value)
             return self
         except KeyError:
-            if len(self.index) == 0:
-                new_index = Index([label])
-            else:
-                new_index = self.index.insert(len(self), label)
 
-            new_values = np.concatenate([self.values, [value]])
-            return self._constructor(new_values, index=new_index, name=self.name)
+            # set using a non-recursive method
+            self.loc[label] = value
+            return self
 
     def reset_index(self, level=None, drop=False, name=None, inplace=False):
         """

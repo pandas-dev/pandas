@@ -134,6 +134,54 @@ API changes
         df1 and df2
         s1 and s2
 
+Indexing API Changes
+~~~~~~~~~~~~~~~~~~~~
+
+    Prior to 0.13, it was impossible to use an indexer (``.loc/.iloc/.ix``) to set a value that
+    was not contained in the index of a particular axis. (:issue:`2578`). See more at :ref:`here<indexing.basics.partial_setting>`
+
+    In the ``Series`` case this is effectively an appending operation
+
+    .. ipython:: python
+
+       s = Series([1,2,3])
+       s
+       s[5] = 5.
+       s
+
+    .. ipython:: python
+
+       dfi = DataFrame(np.arange(6).reshape(3,2),
+                       columns=['A','B'])
+       dfi
+
+    This would previously ``KeyError``
+
+    .. ipython:: python
+
+       dfi.loc[:,'C'] = dfi.loc[:,'A']
+       dfi
+
+    This is like an ``append`` operation.
+
+    .. ipython:: python
+
+       dfi.loc[3] = 5
+       dfi
+
+    A Panel setting operation on an arbitrary axis aligns the input to the Panel
+
+    .. ipython:: python
+
+       p = pd.Panel(np.arange(16).reshape(2,4,2),
+                   items=['Item1','Item2'],
+                   major_axis=pd.date_range('2001/1/12',periods=4),
+                   minor_axis=['A','B'],dtype='float64')
+       p
+       p.loc[:,:,'C'] = Series([30,32],index=p.items)
+       p
+       p.loc[:,:,'C']
+
 Enhancements
 ~~~~~~~~~~~~
 
