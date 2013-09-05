@@ -3164,11 +3164,14 @@ class DataFrame(NDFrame):
             If True, will raise an error if the DataFrame and other both
             contain data in the same place.
         """
-        if join != 'left':
+        if join != 'left' and join != 'outer':
             raise NotImplementedError
 
         if not isinstance(other, DataFrame):
             other = DataFrame(other)
+
+        if join == 'outer':
+            return other.combine_first(self)
 
         other = other.reindex_like(self)
 
