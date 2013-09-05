@@ -315,6 +315,7 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
   - Fix some inconsistencies with ``Index.rename`` and ``MultiIndex.rename``,
     etc. (:issue:`4718`, :issue:`4628`)
   - Bug in using ``iloc/loc`` with a cross-sectional and duplicate indicies (:issue:`4726`)
+  - Bug with using ``QUOTE_NONE`` with ``to_csv`` causing ``Exception``. (:issue:`4328`)
 
 pandas 0.12
 ===========
