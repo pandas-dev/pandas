@@ -198,6 +198,7 @@ class Block(PandasObject):
             raise AssertionError('axis must be at least 1, got %d' % axis)
         if fill_value is None:
             fill_value = self.fill_value
+
         new_values = com.take_nd(self.values, indexer, axis,
                                  fill_value=fill_value, mask_info=mask_info)
         return make_block(
@@ -2718,10 +2719,14 @@ class BlockManager(PandasObject):
         raise AssertionError('method argument not supported for '
                              'axis == 0')
 
-    def reindex_indexer(self, new_axis, indexer, axis=1, fill_value=None):
+    def reindex_indexer(self, new_axis, indexer, axis=1, fill_value=None, allow_dups=False):
         """
         pandas-indexer with -1's only.
         """
+        # trying to reindex on an axis with duplicates
+        if not allow_dups and not self.axes[axis].is_unique:
+            raise ValueError("cannot reindex from a duplicate axis")
+
         if axis == 0:
             return self._reindex_indexer_items(new_axis, indexer, fill_value)
 

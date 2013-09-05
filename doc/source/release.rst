@@ -326,6 +326,7 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
   - Bug with using ``QUOTE_NONE`` with ``to_csv`` causing ``Exception``. (:issue:`4328`)
   - Bug with Series indexing not raising an error when the right-hand-side has an incorrect length (:issue:`2702`)
   - Bug in multi-indexing with a partial string selection as one part of a MultIndex (:issue:`4758`)
+  - Bug with reindexing on the index with a non-unique index will now raise ``ValueError`` (:issue:`4746`)
 
 pandas 0.12
 ===========
