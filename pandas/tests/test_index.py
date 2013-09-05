@@ -418,6 +418,12 @@ class TestIndex(unittest.TestCase):
 
     def test_summary(self):
         self._check_method_works(Index.summary)
+        # GH3869
+        ind = Index(['{other}%s',"~:{range}:0"], name='A')
+        result = ind.summary()
+        # shouldn't be formatted accidentally.
+        self.assert_('~:{range}:0' in result)
+        self.assert_('{other}%s' in result)
 
     def test_format(self):
         self._check_method_works(Index.format)
