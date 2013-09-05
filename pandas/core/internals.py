@@ -1845,6 +1845,11 @@ class BlockManager(PandasObject):
 
         blocks = []
         for values, items in zip(bvalues, bitems):
+
+            # numpy < 1.7 pickle compat
+            if values.dtype == 'M8[us]':
+                values = values.astype('M8[ns]')
+
             blk = make_block(values, items, self.axes[0])
             blocks.append(blk)
         self.blocks = blocks
