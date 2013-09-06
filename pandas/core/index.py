@@ -2596,10 +2596,15 @@ class MultiIndex(Index):
             if not drop_level:
                 return self[indexer]
             # kludgearound
-            new_index = self[indexer]
+            orig_index = new_index = self[indexer]
             levels = [self._get_level_number(i) for i in levels]
             for i in sorted(levels, reverse=True):
-                new_index = new_index.droplevel(i)
+                try:
+                    new_index = new_index.droplevel(i)
+                except:
+
+                    # no dropping here
+                    return orig_index
             return new_index
 
         if isinstance(level, (tuple, list)):
@@ -2635,20 +2640,37 @@ class MultiIndex(Index):
                 pass
 
             if not any(isinstance(k, slice) for k in key):
-                if len(key) == self.nlevels:
-                    if self.is_unique:
-                        return self._engine.get_loc(_values_from_object(key)), None
-                    else:
-                        indexer = slice(*self.slice_locs(key, key))
-                        return indexer, self[indexer]
-                else:
-                    # partial selection
+
+                # partial selection
+                def partial_selection(key):
                     indexer = slice(*self.slice_locs(key, key))
                     if indexer.start == indexer.stop:
                         raise KeyError(key)
                     ilevels = [i for i in range(len(key))
                                if key[i] != slice(None, None)]
                     return indexer, _maybe_drop_levels(indexer, ilevels, drop_level)
+
+                if len(key) == self.nlevels:
+
+                    if self.is_unique:
+
+                        # here we have a completely specified key, but are using some partial string matching here
+                        # GH4758
+                        can_index_exactly = any([ l.is_all_dates and not isinstance(k,compat.string_types) for k, l in zip(key, self.levels) ])
+                        if any([ l.is_all_dates for k, l in zip(key, self.levels) ]) and not can_index_exactly:
+                            indexer = slice(*self.slice_locs(key, key))
+
+                            # we have a multiple selection here
+                            if not indexer.stop-indexer.start == 1:
+                                return partial_selection(key)
+
+                            key = tuple(self[indexer].tolist()[0])
+
+                        return self._engine.get_loc(_values_from_object(key)), None
+                    else:
+                        return partial_selection(key)
+                else:
+                    return partial_selection(key)
             else:
                 indexer = None
                 for i, k in enumerate(key):
