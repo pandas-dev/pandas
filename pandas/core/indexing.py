@@ -163,6 +163,10 @@ class _NDFrameIndexer(object):
                     labels = _safe_append_to_index(index, key)
                     self.obj._data = self.obj.reindex_axis(labels,i)._data
 
+                    if isinstance(labels,MultiIndex):
+                        self.obj.sortlevel(inplace=True)
+                        labels = self.obj._get_axis(i)
+
                     nindexer.append(labels.get_loc(key))
 
                 else:
@@ -198,33 +202,77 @@ class _NDFrameIndexer(object):
                 elif self.ndim >= 3:
                     return self.obj.__setitem__(indexer,value)
 
+        # set
+        info_axis = self.obj._info_axis_number
+        item_labels = self.obj._get_axis(info_axis)
+
+        # if we have a complicated setup, take the split path
+        if isinstance(indexer, tuple) and any([ isinstance(ax,MultiIndex) for ax in self.obj.axes ]):
+            take_split_path = True
+
         # align and set the values
         if take_split_path:
+
             if not isinstance(indexer, tuple):
                 indexer = self._tuplify(indexer)
 
             if isinstance(value, ABCSeries):
                 value = self._align_series(indexer, value)
 
-            info_axis = self.obj._info_axis_number
             info_idx = indexer[info_axis]
-
             if com.is_integer(info_idx):
                 info_idx = [info_idx]
+            labels = item_labels[info_idx]
 
-            plane_indexer = indexer[:info_axis] + indexer[info_axis + 1:]
-            item_labels = self.obj._get_axis(info_axis)
+            # if we have a partial multiindex, then need to adjust the plane indexer here
+            if len(labels) == 1 and isinstance(self.obj[labels[0]].index,MultiIndex):
+                index = self.obj[labels[0]].index
+                idx = indexer[:info_axis][0]
+                try:
+                    if idx in index:
+                        idx = index.get_loc(idx)
+                except:
+                    pass
+                plane_indexer = tuple([idx]) + indexer[info_axis + 1:]
+                lplane_indexer = _length_of_indexer(plane_indexer[0],index)
+
+                if is_list_like(value) and lplane_indexer != len(value):
+                    raise ValueError("cannot set using a multi-index selection indexer with a different length than the value")
+
+            # non-mi
+            else:
+                plane_indexer = indexer[:info_axis] + indexer[info_axis + 1:]
+                if info_axis > 0:
+                    plane_axis = self.obj.axes[:info_axis][0]
+                    lplane_indexer = _length_of_indexer(plane_indexer[0],plane_axis)
+                else:
+                    lplane_indexer = 0
 
             def setter(item, v):
                 s = self.obj[item]
-                pi = plane_indexer[0] if len(plane_indexer) == 1 else plane_indexer
+                pi = plane_indexer[0] if lplane_indexer == 1 else plane_indexer
 
                 # set the item, possibly having a dtype change
                 s = s.copy()
                 s._data = s._data.setitem(pi,v)
                 self.obj[item] = s
 
-            labels = item_labels[info_idx]
+            def can_do_equal_len():
+                """ return True if we have an equal len settable """
+                if not len(labels) == 1:
+                    return False
+
+                l = len(value)
+                item = labels[0]
+                index = self.obj[item].index
+
+                # equal len list/ndarray
+                if len(index) == l:
+                    return True
+                elif lplane_indexer == l:
+                    return True
+
+                return False
 
             if _is_list_like(value):
 
@@ -251,8 +299,7 @@ class _NDFrameIndexer(object):
                         setter(item, value[:,i])
 
                 # we have an equal len list/ndarray
-                elif len(labels) == 1 and (
-                    len(self.obj[labels[0]]) == len(value) or len(plane_indexer[0]) == len(value)):
+                elif can_do_equal_len():
                     setter(labels[0], value)
 
                 # per label values
@@ -1104,6 +1151,31 @@ class _iAtIndexer(_ScalarAccessIndexer):
 # 32-bit floating point machine epsilon
 _eps = np.finfo('f4').eps
 
+def _length_of_indexer(indexer,target=None):
+    """ return the length of a single non-tuple indexer which could be a slice """
+    if target is not None and isinstance(indexer, slice):
+        l = len(target)
+        start = indexer.start
+        stop = indexer.stop
+        step = indexer.step
+        if start is None:
+            start = 0
+        elif start < 0:
+            start += l
+        if stop is None or stop > l:
+            stop = l
+        elif stop < 0:
+            stop += l
+        if step is None:
+            step = 1
+        elif step < 0:
+            step = abs(step)
+        return (stop-start) / step
+    elif isinstance(indexer, (ABCSeries, np.ndarray, list)):
+        return len(indexer)
+    elif not is_list_like(indexer):
+        return 1
+    raise AssertionError("cannot find the length of the indexer")
 
 def _convert_to_index_sliceable(obj, key):
     """ if we are index sliceable, then return my slicer, otherwise return None """

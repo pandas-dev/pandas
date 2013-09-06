@@ -917,6 +917,60 @@ class TestIndexing(unittest.TestCase):
         #result = wp.loc[['Item1', 'Item2'], :, ['A', 'B']]
         #tm.assert_panel_equal(result,expected)
 
+    def test_multiindex_assignment(self):
+
+        # GH3777 part 2
+
+        # mixed dtype
+        df = DataFrame(np.random.randint(5,10,size=9).reshape(3, 3),
+                       columns=list('abc'),
+                       index=[[4,4,8],[8,10,12]])
+        df['d'] = np.nan
+        arr = np.array([0.,1.])
+
+        df.ix[4,'d'] = arr
+        assert_series_equal(df.ix[4,'d'],Series(arr,index=[8,10],name='d'))
+
+        # single dtype
+        df = DataFrame(np.random.randint(5,10,size=9).reshape(3, 3),
+                       columns=list('abc'),
+                       index=[[4,4,8],[8,10,12]])
+
+        df.ix[4,'c'] = arr
+        assert_series_equal(df.ix[4,'c'],Series(arr,index=[8,10],name='c',dtype='int64'))
+
+        # scalar ok
+        df.ix[4,'c'] = 10
+        assert_series_equal(df.ix[4,'c'],Series(10,index=[8,10],name='c',dtype='int64'))
+
+        # invalid assignments
+        def f():
+            df.ix[4,'c'] = [0,1,2,3]
+        self.assertRaises(ValueError, f)
+
+        def f():
+            df.ix[4,'c'] = [0]
+        self.assertRaises(ValueError, f)
+
+        # groupby example
+        NUM_ROWS = 100
+        NUM_COLS = 10
+        col_names = ['A'+num for num in map(str,np.arange(NUM_COLS).tolist())]
+        index_cols = col_names[:5]
+        df = DataFrame(np.random.randint(5, size=(NUM_ROWS,NUM_COLS)), dtype=np.int64, columns=col_names)
+        df = df.set_index(index_cols).sort_index()
+        grp = df.groupby(level=index_cols[:4])
+        df['new_col'] = np.nan
+
+        f_index = np.arange(5)
+        def f(name,df2):
+            return Series(np.arange(df2.shape[0]),name=df2.index.values[0]).reindex(f_index)
+        new_df = pd.concat([ f(name,df2) for name, df2 in grp ],axis=1).T
+
+        for name, df2 in grp:
+            new_vals = np.arange(df2.shape[0])
+            df.ix[name, 'new_col'] = new_vals
+
     def test_multi_assign(self):
 
         # GH 3626, an assignement of a sub-df to a df

@@ -12,7 +12,8 @@ from pandas.core.common import (_possibly_downcast_to_dtype, isnull, notnull,
                                 is_list_like, _infer_dtype_from_scalar)
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
                                _handle_legacy_indexes)
-from pandas.core.indexing import _check_slice_bounds, _maybe_convert_indices
+from pandas.core.indexing import (_check_slice_bounds, _maybe_convert_indices,
+                                  _length_of_indexer)
 import pandas.core.common as com
 from pandas.sparse.array import _maybe_to_sparse, SparseArray
 import pandas.lib as lib
@@ -563,22 +564,7 @@ class Block(PandasObject):
         elif isinstance(indexer, slice):
 
             if is_list_like(value) and l:
-                start = indexer.start
-                stop = indexer.stop
-                step = indexer.step
-                if start is None:
-                    start = 0
-                elif start < 0:
-                    start += l
-                if stop is None or stop > l:
-                    stop = len(values)
-                elif stop < 0:
-                    stop += l
-                if step is None:
-                    step = 1
-                elif step < 0:
-                    step = abs(step)
-                if (stop-start) / step != len(value):
+                if len(value) != _length_of_indexer(indexer, values):
                     raise ValueError("cannot set using a slice indexer with a different length than the value")
 
         try:
