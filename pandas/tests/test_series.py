@@ -1284,6 +1284,59 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = Series(np.nan,index=[9])
         assert_series_equal(result, expected)
 
+    def test_where_setitem_invalid(self):
+
+        # GH 2702
+        # make sure correct exceptions are raised on invalid list assignment
+
+        # slice
+        s = Series(list('abc'))
+        def f():
+            s[0:3] = list(range(27))
+        self.assertRaises(ValueError, f)
+
+        s[0:3] = list(range(3))
+        expected = Series([0,1,2])
+        assert_series_equal(s, expected)
+
+        # slice with step
+        s = Series(list('abcdef'))
+        def f():
+            s[0:4:2] = list(range(27))
+        self.assertRaises(ValueError, f)
+
+        s = Series(list('abcdef'))
+        s[0:4:2] = list(range(2))
+        expected = Series([0,'b',1,'d','e','f'])
+        assert_series_equal(s, expected)
+
+        # neg slices
+        s = Series(list('abcdef'))
+        def f():
+            s[:-1] = list(range(27))
+        self.assertRaises(ValueError, f)
+
+        s[-3:-1] = list(range(2))
+        expected = Series(['a','b','c',0,1,'f'])
+        assert_series_equal(s, expected)
+
+        # list
+        s = Series(list('abc'))
+        def f():
+            s[[0,1,2]] = list(range(27))
+        self.assertRaises(ValueError, f)
+
+        s = Series(list('abc'))
+        def f():
+            s[[0,1,2]] = list(range(2))
+        self.assertRaises(ValueError, f)
+
+        # scalar
+        s = Series(list('abc'))
+        s[0] = list(range(10))
+        expected = Series([list(range(10)),'b','c'])
+        assert_series_equal(s, expected)
+
     def test_where_broadcast(self):
         # Test a variety of differently sized series
         for size in range(2, 6):
@@ -2550,22 +2603,23 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = s[5:16].dropna()
         assert_series_equal(result, expected)
 
-    def test_setitem_na_exception(self):
-        def testme1():
-            s = Series([2, 3, 4, 5, 6, 7, 8, 9, 10])
-            s[::2] = np.nan
+    def test_setitem_na(self):
+        # these induce dtype changes
+        expected = Series([np.nan, 3, np.nan, 5, np.nan, 7, np.nan, 9, np.nan])
+        s = Series([2, 3, 4, 5, 6, 7, 8, 9, 10])
+        s[::2] = np.nan
+        assert_series_equal(s, expected)
 
-        def testme2():
-            s = Series([True, True, False, False])
-            s[::2] = np.nan
+        # get's coerced to float, right?
+        expected = Series([np.nan, 1, np.nan, 0])
+        s = Series([True, True, False, False])
+        s[::2] = np.nan
+        assert_series_equal(s, expected)
 
-        def testme3():
-            s = Series(np.arange(10))
-            s[:5] = np.nan
-
-        self.assertRaises(Exception, testme1)
-        self.assertRaises(Exception, testme2)
-        self.assertRaises(Exception, testme3)
+        expected = Series([np.nan, np.nan, np.nan, np.nan, np.nan, 5, 6, 7, 8, 9])
+        s = Series(np.arange(10))
+        s[:5] = np.nan
+        assert_series_equal(s, expected)
 
     def test_scalar_na_cmp_corners(self):
         s = Series([2, 3, 4, 5, 6, 7, 8, 9, 10])

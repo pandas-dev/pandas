@@ -547,10 +547,41 @@ class Block(PandasObject):
             dtype, _ = com._maybe_promote(arr_value.dtype)
             values = values.astype(dtype)
 
+        transf = (lambda x: x.T) if self.ndim == 2 else (lambda x: x)
+        values = transf(values)
+        l = len(values)
+
+        # length checking
+        # boolean with truth values == len of the value is ok too
+        if isinstance(indexer, (np.ndarray, list)):
+            if is_list_like(value) and len(indexer) != len(value):
+                if not (isinstance(indexer, np.ndarray) and indexer.dtype == np.bool_ and len(indexer[indexer]) == len(value)):
+                    raise ValueError("cannot set using a list-like indexer with a different length than the value")
+
+        # slice
+        elif isinstance(indexer, slice):
+
+            if is_list_like(value) and l:
+                start = indexer.start
+                stop = indexer.stop
+                step = indexer.step
+                if start is None:
+                    start = 0
+                elif start < 0:
+                    start += l
+                if stop is None or stop > l:
+                    stop = len(values)
+                elif stop < 0:
+                    stop += l
+                if step is None:
+                    step = 1
+                elif step < 0:
+                    step = abs(step)
+                if (stop-start) / step != len(value):
+                    raise ValueError("cannot set using a slice indexer with a different length than the value")
+
         try:
             # set and return a block
-            transf = (lambda x: x.T) if self.ndim == 2 else (lambda x: x)
-            values = transf(values)
             values[indexer] = value
 
             # coerce and try to infer the dtypes of the result
@@ -561,7 +592,9 @@ class Block(PandasObject):
             values = self._try_coerce_result(values)
             values = self._try_cast_result(values, dtype)
             return [make_block(transf(values), self.items, self.ref_items, ndim=self.ndim, fastpath=True)]
-        except:
+        except (ValueError, TypeError) as detail:
+            raise
+        except (Exception) as detail:
             pass
 
         return [ self ]
