@@ -1842,9 +1842,9 @@ Thur,Lunch,Yes,51.51,17"""
                        columns=list('ABCD'))
         df = df.set_index(['A','B'])
         df = df.sortlevel(0)
-        result = df.loc[('foo','bar')]
         expected = DataFrame([['foo','bar',1.0,1],['foo','bar',2.0,2],['foo','bar',5.0,5]],
                              columns=list('ABCD')).set_index(['A','B'])
+        result = df.loc[('foo','bar')]
         assert_frame_equal(result,expected)
 
     def test_multiindex_set_index(self):

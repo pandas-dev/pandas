@@ -952,8 +952,14 @@ class _LocIndexer(_LocationIndexer):
             if not len(ax):
                 raise KeyError("The [%s] axis is empty" % self.obj._get_axis_name(axis))
 
-            if not key in ax:
+            try:
+                if not key in ax:
+                    raise KeyError("the label [%s] is not in the [%s]" % (key,self.obj._get_axis_name(axis)))
+            except (TypeError):
+
+                # if we have a weird type of key/ax
                 raise KeyError("the label [%s] is not in the [%s]" % (key,self.obj._get_axis_name(axis)))
+
 
         return True
 
