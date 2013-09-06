@@ -148,6 +148,9 @@ pandas 0.13
     behavior.
   - ``DataFrame.update()`` no longer raises a ``DataConflictError``, it now
     will raise a ``ValueError`` instead (if necessary) (:issue:`4732`)
+  - ``Series.isin()`` and ``DataFrame.isin()``  now raise a ``TypeError`` when
+    passed a string (:issue:`4763`). Pass a ``list`` of one element (containing
+    the string) instead.
 
 **Internal Refactoring**
 

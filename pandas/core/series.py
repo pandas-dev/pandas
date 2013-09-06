@@ -2805,17 +2805,47 @@ class Series(generic.NDFrame):
 
     def isin(self, values):
         """
-        Return boolean vector showing whether each element in the Series is
-        exactly contained in the passed sequence of values
+        Return a boolean :ref:`~pandas.Series` showing whether each element in
+        the ref:`~pandas.Series` is exactly contained in the passed sequence of
+        ``values``.
 
         Parameters
         ----------
-        values : sequence
+        values : list-like
+            The sequence of values to test. Passing in a single string will
+            raise a ``TypeError``:
+
+                .. code-block:: python
+
+                   from pandas import Series
+                   s = Series(list('abc'))
+                   s.isin('a')
+
+            Instead, turn a single string into a ``list`` of one element:
+
+                .. code-block:: python
+
+                   from pandas import Series
+                   s = Series(list('abc'))
+                   s.isin(['a'])
 
         Returns
         -------
-        isin : Series (boolean dtype)
+        isin : Series (bool dtype)
+
+        Raises
+        ------
+        TypeError
+          * If ``values`` is a string
+
+        See Also
+        --------
+        pandas.DataFrame.isin
         """
+        if not com.is_list_like(values):
+            raise TypeError("only list-like objects are allowed to be passed"
+                            " to Series.isin(), you passed a "
+                            "{0!r}".format(type(values).__name__))
         value_set = set(values)
         result = lib.ismember(_values_from_object(self), value_set)
         return self._constructor(result, self.index, name=self.name)
