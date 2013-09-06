@@ -10915,6 +10915,16 @@ starting,ending,measure
         expected.iloc[0, 0] = True
         assert_frame_equal(result, expected)
 
+    def test_isin_with_string_scalar(self):
+        #GH4763
+        df = DataFrame({'vals': [1, 2, 3, 4], 'ids': ['a', 'b', 'f', 'n'],
+                        'ids2': ['a', 'n', 'c', 'n']},
+                        index=['foo', 'bar', 'baz', 'qux'])
+        with tm.assertRaises(TypeError):
+            df.isin('a')
+
+        with tm.assertRaises(TypeError):
+            df.isin('aaa')
 
 if __name__ == '__main__':
     # unittest.main()

@@ -4433,6 +4433,16 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = Series([True, False, True, False, False, False, True, True])
         assert_series_equal(result, expected)
 
+    def test_isin_with_string_scalar(self):
+        #GH4763
+        s = Series(['A', 'B', 'C', 'a', 'B', 'B', 'A', 'C'])
+        with tm.assertRaises(TypeError):
+            s.isin('a')
+
+        with tm.assertRaises(TypeError):
+            s = Series(['aaa', 'b', 'c'])
+            s.isin('aaa')
+
     def test_fillna_int(self):
         s = Series(np.random.randint(-100, 100, 50))
         s.fillna(method='ffill', inplace=True)

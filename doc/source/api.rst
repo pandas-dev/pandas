@@ -451,6 +451,7 @@ Indexing, iteration
    DataFrame.pop
    DataFrame.tail
    DataFrame.xs
+   DataFrame.isin
 
 Binary operator functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~
