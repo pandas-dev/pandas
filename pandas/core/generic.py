@@ -862,12 +862,13 @@ class NDFrame(PandasObject):
             indices = _maybe_convert_indices(
                 indices, len(self._get_axis(axis)))
 
-        if axis == 0:
+        baxis = self._get_block_manager_axis(axis)
+        if baxis == 0:
             labels = self._get_axis(axis)
             new_items = labels.take(indices)
-            new_data = self._data.reindex_axis(new_items, axis=0)
+            new_data = self._data.reindex_axis(new_items, indexer=indices, axis=0)
         else:
-            new_data = self._data.take(indices, axis=axis, verify=False)
+            new_data = self._data.take(indices, axis=baxis)
         return self._constructor(new_data)
 
     def select(self, crit, axis=0):

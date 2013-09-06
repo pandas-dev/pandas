@@ -151,6 +151,7 @@ pandas 0.13
   - ``Series.isin()`` and ``DataFrame.isin()``  now raise a ``TypeError`` when
     passed a string (:issue:`4763`). Pass a ``list`` of one element (containing
     the string) instead.
+  - Remove undocumented/unused ``kind`` keyword argument from ``read_excel``, and ``ExcelFile``. (:issue:`4713`, :issue:`4712`)
 
 **Internal Refactoring**
 
@@ -172,7 +173,7 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
     - ``_indexed_same,reindex_like,align,where,mask``
     - ``fillna,replace`` (``Series`` replace is now consistent with ``DataFrame``)
     - ``filter`` (also added axis argument to selectively filter on a different axis)
-    - ``reindex,reindex_axis`` (which was the biggest change to make generic)
+    - ``reindex,reindex_axis,take``
     - ``truncate`` (moved to become part of ``NDFrame``)
 
 - These are API changes which make ``Panel`` more consistent with ``DataFrame``
@@ -224,7 +225,6 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
 - Refactor of ``_get_numeric_data/_get_bool_data`` to core/generic.py, allowing Series/Panel functionaility
 - Refactor of Series arithmetic with time-like objects (datetime/timedelta/time
   etc.) into a separate, cleaned up wrapper class. (:issue:`4613`)
-- Remove undocumented/unused ``kind`` keyword argument from ``read_excel``, and ``ExcelFile``. (:issue:`4713`, :issue:`4712`)
 
 **Experimental Features**
 
