@@ -26,7 +26,8 @@ from pandas.compat import range, lrange, lmap, map, zip
 randn = np.random.randn
 
 from pandas import Series, TimeSeries, DataFrame
-from pandas.util.testing import assert_series_equal, assert_almost_equal
+from pandas.util.testing import(assert_series_equal, assert_almost_equal,
+                                assertRaisesRegexp)
 import pandas.util.testing as tm
 from pandas import compat
 from numpy.testing import assert_array_equal
@@ -272,7 +273,7 @@ class TestPeriodProperties(TestCase):
         result = p.to_timestamp('S', how='start')
         self.assertEquals(result, expected)
 
-        self.assertRaises(ValueError, p.to_timestamp, '5t')
+        assertRaisesRegexp(ValueError, 'Only mult == 1',  p.to_timestamp, '5t')
 
     def test_start_time(self):
         freq_lst = ['A', 'Q', 'M', 'D', 'H', 'T', 'S']
@@ -1427,7 +1428,8 @@ class TestPeriodIndex(TestCase):
         self.assert_(result.columns.equals(exp_index))
 
         # invalid axis
-        self.assertRaises(ValueError, df.to_timestamp, axis=2)
+        assertRaisesRegexp(ValueError, 'axis', df.to_timestamp, axis=2)
+        assertRaisesRegexp(ValueError, 'Only mult == 1',  df.to_timestamp, '5t', axis=1)
 
     def test_index_duplicate_periods(self):
         # monotonic
@@ -1886,9 +1888,8 @@ class TestPeriodIndex(TestCase):
         # it works!
         for kind in ['inner', 'outer', 'left', 'right']:
             ts.align(ts[::2], join=kind)
-
-        self.assertRaises(Exception, ts.__add__,
-                          ts.asfreq('D', how='end'))
+        with assertRaisesRegexp(ValueError, 'Only like-indexed'):
+            ts + ts.asfreq('D', how="end")
 
     def test_align_frame(self):
         rng = period_range('1/1/2000', '1/1/2010', freq='A')
@@ -1915,7 +1916,7 @@ class TestPeriodIndex(TestCase):
         # raise if different frequencies
         index = period_range('1/1/2000', '1/20/2000', freq='D')
         index2 = period_range('1/1/2000', '1/20/2000', freq='W-WED')
-        self.assertRaises(Exception, index.union, index2)
+        self.assertRaises(ValueError, index.union, index2)
 
         self.assertRaises(ValueError, index.join, index.to_timestamp())
 
@@ -1934,7 +1935,7 @@ class TestPeriodIndex(TestCase):
         # raise if different frequencies
         index = period_range('1/1/2000', '1/20/2000', freq='D')
         index2 = period_range('1/1/2000', '1/20/2000', freq='W-WED')
-        self.assertRaises(Exception, index.intersection, index2)
+        self.assertRaises(ValueError, index.intersection, index2)
 
     def test_fields(self):
         # year, month, day, hour, minute

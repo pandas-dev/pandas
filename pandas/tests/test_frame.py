@@ -40,6 +40,8 @@ from pandas.util.testing import (assert_almost_equal,
                                  assertRaisesRegexp,
                                  makeCustomDataframe as mkdf,
                                  ensure_clean)
+from pandas.core.indexing import IndexingError
+from pandas.core.common import PandasError
 
 import pandas.util.testing as tm
 import pandas.lib as lib
@@ -115,7 +117,8 @@ class CheckIndexing(object):
             self.assert_(self.frame[key] is not None)
 
         self.assert_('random' not in self.frame)
-        self.assertRaises(Exception, self.frame.__getitem__, 'random')
+        with assertRaisesRegexp(KeyError, 'no item named random'):
+            self.frame['random']
 
     def test_getitem_dupe_cols(self):
         df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=['a', 'a', 'b'])
@@ -154,10 +157,10 @@ class CheckIndexing(object):
 
         self.assertEqual(result.columns.name, 'foo')
 
-        self.assertRaises(Exception, self.frame.__getitem__,
-                          ['B', 'A', 'foo'])
-        self.assertRaises(Exception, self.frame.__getitem__,
-                          Index(['B', 'A', 'foo']))
+        with assertRaisesRegexp(KeyError, 'not in index'):
+            self.frame[['B', 'A', 'food']]
+        with assertRaisesRegexp(KeyError, 'not in index'):
+            self.frame[Index(['B', 'A', 'foo'])]
 
         # tuples
         df = DataFrame(randn(8, 3),
@@ -177,6 +180,12 @@ class CheckIndexing(object):
 
         assert_series_equal(self.frame['B'], data['A'])
         assert_series_equal(self.frame['A'], data['B'])
+
+        with assertRaisesRegexp(ValueError, 'Columns must be same length as key'):
+            data[['A']] = self.frame[['A', 'B']]
+        with assertRaisesRegexp(ValueError, 'Length of values does not match '
+                                'length of index'):
+            data['A'] = range(len(data.index) - 1)
 
         df = DataFrame(0, lrange(3), ['tt1', 'tt2'], dtype=np.int_)
         df.ix[1, ['tt1', 'tt2']] = [1, 2]
@@ -214,12 +223,14 @@ class CheckIndexing(object):
         subframe = self.tsframe[indexer]
 
         self.assert_(np.array_equal(subindex, subframe.index))
-        self.assertRaises(Exception, self.tsframe.__getitem__, indexer[:-1])
+        with assertRaisesRegexp(ValueError, 'Item wrong length'):
+            self.tsframe[indexer[:-1]]
 
         subframe_obj = self.tsframe[indexer_obj]
         assert_frame_equal(subframe_obj, subframe)
 
-        self.assertRaises(ValueError, self.tsframe.__getitem__, self.tsframe)
+        with tm.assertRaisesRegexp(ValueError, 'boolean values only'):
+            self.tsframe[self.tsframe]
 
         # test that Series work
         indexer_obj = Series(indexer_obj, self.tsframe.index)
@@ -381,8 +392,8 @@ class CheckIndexing(object):
         tm.assert_dict_equal(series, self.frame['col6'],
                              compare_keys=False)
 
-        self.assertRaises(Exception, self.frame.__setitem__,
-                          randn(len(self.frame) + 1))
+        with tm.assertRaises(KeyError):
+            self.frame[randn(len(self.frame) + 1)] = 1
 
         # set ndarray
         arr = randn(len(self.frame))
@@ -462,7 +473,9 @@ class CheckIndexing(object):
         values[values == 2] = 3
         assert_almost_equal(df.values, values)
 
-        self.assertRaises(Exception, df.__setitem__, df * 0, 2)
+        with assertRaisesRegexp(TypeError, 'Must pass DataFrame with boolean '
+                                'values only'):
+            df[df * 0] = 2
 
         # index with DataFrame
         mask = df > np.abs(df)
@@ -1176,14 +1189,11 @@ class CheckIndexing(object):
 
     def test_getitem_setitem_fancy_exceptions(self):
         ix = self.frame.ix
-        self.assertRaises(Exception, ix.__getitem__,
-                          (slice(None, None, None),
-                           slice(None, None, None),
-                           slice(None, None, None)))
-        self.assertRaises(Exception, ix.__setitem__,
-                          (slice(None, None, None),
-                           slice(None, None, None),
-                           slice(None, None, None)), 1)
+        with assertRaisesRegexp(IndexingError, 'Too many indexers'):
+            ix[:, :, :]
+        with assertRaisesRegexp(IndexingError, 'only tuples of length <= 2 '
+                                'supported'):
+            ix[:, :, :] = 1
 
     def test_getitem_setitem_boolean_misaligned(self):
         # boolean index misaligned labels
@@ -1230,8 +1240,10 @@ class CheckIndexing(object):
         self.assertEqual(len(result), 2)
 
         # this should raise an exception
-        self.assertRaises(Exception, df.ix.__getitem__, slice(1, 2))
-        self.assertRaises(Exception, df.ix.__setitem__, slice(1, 2), 0)
+        with tm.assertRaises(KeyError):
+            df.ix[1:2]
+        with tm.assertRaises(KeyError):
+            df.ix[1:2] = 0
 
         # #2727
         index = Index([1.0, 2.5, 3.5, 4.5, 5.0])
@@ -1470,11 +1482,14 @@ class CheckIndexing(object):
         assert_almost_equal(df['mask'], exp_mask)
         self.assert_(df['mask'].dtype == np.bool_)
 
-        self.assertRaises(ValueError, self.frame.lookup,
-                          ['xyz'], ['A'])
+        with tm.assertRaises(KeyError):
+            self.frame.lookup(['xyz'], ['A'])
 
-        self.assertRaises(ValueError, self.frame.lookup,
-                          [self.frame.index[0]], ['xyz'])
+        with tm.assertRaises(KeyError):
+            self.frame.lookup([self.frame.index[0]], ['xyz'])
+
+        with tm.assertRaisesRegexp(ValueError, 'same size'):
+            self.frame.lookup(['a', 'b', 'c'], ['a'])
 
     def test_set_value(self):
         for idx in self.frame.index:
@@ -1721,10 +1736,6 @@ class SafeForSparse(object):
         self.assert_(joined.index.equals(f2.index))
         self.assertEqual(len(joined.columns), 4)
 
-        # corner case
-        self.assertRaises(Exception, self.frame.join, self.frame,
-                          how='left')
-
         # inner
 
         f = self.frame.reindex(columns=['A', 'B'])[:10]
@@ -1733,10 +1744,6 @@ class SafeForSparse(object):
         joined = f.join(f2, how='inner')
         self.assert_(joined.index.equals(f.index.intersection(f2.index)))
         self.assertEqual(len(joined.columns), 4)
-
-        # corner case
-        self.assertRaises(Exception, self.frame.join, self.frame,
-                          how='inner')
 
         # outer
 
@@ -1747,11 +1754,12 @@ class SafeForSparse(object):
         self.assert_(tm.equalContents(self.frame.index, joined.index))
         self.assertEqual(len(joined.columns), 4)
 
-        # corner case
-        self.assertRaises(Exception, self.frame.join, self.frame,
-                          how='outer')
+        assertRaisesRegexp(ValueError, 'join method', f.join, f2, how='foo')
 
-        self.assertRaises(Exception, f.join, f2, how='foo')
+        # corner case - overlapping columns
+        for how in ('outer', 'left', 'inner'):
+            with assertRaisesRegexp(ValueError, 'columns overlap but no suffix'):
+                self.frame.join(self.frame, how=how)
 
     def test_join_index_more(self):
         af = self.frame.ix[:, ['A', 'B']]
@@ -1778,7 +1786,7 @@ class SafeForSparse(object):
         assert_frame_equal(joined, self.frame, check_names=False) # TODO should this check_names ?
 
         s.name = None
-        self.assertRaises(Exception, df.join, s)
+        assertRaisesRegexp(ValueError, 'must have a name', df.join, s)
 
     def test_join_overlap(self):
         df1 = self.frame.ix[:, ['A', 'B', 'C']]
@@ -1858,22 +1866,23 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
     def test_get_axis(self):
         f = self.frame
-        self.assert_(f._get_axis_name(0) == 'index')
-        self.assert_(f._get_axis_name(1) == 'columns')
-        self.assert_(f._get_axis_name('index') == 'index')
-        self.assert_(f._get_axis_name('columns') == 'columns')
-        self.assertRaises(Exception, f._get_axis_name, 'foo')
-        self.assertRaises(Exception, f._get_axis_name, None)
+        self.assertEquals(f._get_axis_number(0), 0)
+        self.assertEquals(f._get_axis_number(1), 1)
+        self.assertEquals(f._get_axis_number('index'), 0)
+        self.assertEquals(f._get_axis_number('columns'), 1)
 
-        self.assert_(f._get_axis_number(0) == 0)
-        self.assert_(f._get_axis_number(1) == 1)
-        self.assert_(f._get_axis_number('index') == 0)
-        self.assert_(f._get_axis_number('columns') == 1)
-        self.assertRaises(Exception, f._get_axis_number, 2)
-        self.assertRaises(Exception, f._get_axis_number, None)
+        self.assertEquals(f._get_axis_name(0), 'index')
+        self.assertEquals(f._get_axis_name(1), 'columns')
+        self.assertEquals(f._get_axis_name('index'), 'index')
+        self.assertEquals(f._get_axis_name('columns'), 'columns')
 
-        self.assert_(self.frame._get_axis(0) is self.frame.index)
-        self.assert_(self.frame._get_axis(1) is self.frame.columns)
+        self.assert_(f._get_axis(0) is f.index)
+        self.assert_(f._get_axis(1) is f.columns)
+
+        assertRaisesRegexp(ValueError, 'No axis named', f._get_axis_number, 2)
+        assertRaisesRegexp(ValueError, 'No axis.*foo', f._get_axis_name, 'foo')
+        assertRaisesRegexp(ValueError, 'No axis.*None', f._get_axis_name, None)
+        assertRaisesRegexp(ValueError, 'No axis named', f._get_axis_number, None)
 
     def test_set_index(self):
         idx = Index(np.arange(len(self.mixed_frame)))
@@ -1882,8 +1891,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         _ = self.mixed_frame['foo']
         self.mixed_frame.index = idx
         self.assert_(self.mixed_frame['foo'].index is idx)
-        self.assertRaises(Exception, setattr, self.mixed_frame, 'index',
-                          idx[::2])
+        with assertRaisesRegexp(ValueError, 'Length mismatch'):
+            self.mixed_frame.index = idx[::2]
 
     def test_set_index_cast(self):
 
@@ -1957,7 +1966,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(df3, expected_nodrop)
 
         # corner case
-        self.assertRaises(Exception, df.set_index, 'A', verify_integrity=True)
+        with assertRaisesRegexp(ValueError, 'Index has duplicate keys'):
+            df.set_index('A', verify_integrity=True)
 
         # append
         result = df.set_index(['A', 'B'], append=True)
@@ -1981,8 +1991,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                         'C': ['a', 'b', 'c', 'd', 'e'],
                         'D': np.random.randn(5),
                         'E': np.random.randn(5)})
-        self.assertRaises(Exception, df.set_index, 'A', verify_integrity=True,
-                          inplace=True)
+        with assertRaisesRegexp(ValueError, 'Index has duplicate keys'):
+            df.set_index('A', verify_integrity=True, inplace=True)
         self.assert_('A' in df)
 
     def test_set_index_bug(self):
@@ -2040,8 +2050,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_set_columns(self):
         cols = Index(np.arange(len(self.mixed_frame.columns)))
         self.mixed_frame.columns = cols
-        self.assertRaises(Exception, setattr, self.mixed_frame, 'columns',
-                          cols[::2])
+        with assertRaisesRegexp(ValueError, 'Length mismatch'):
+            self.mixed_frame.columns = cols[::2]
 
     def test_keys(self):
         getkeys = self.frame.keys
@@ -2220,12 +2230,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         # Corner cases
         self.assertEqual(len(DataFrame({})), 0)
-        self.assertRaises(Exception, lambda x: DataFrame([self.ts1, self.ts2]))
 
-        # mix dict and array, wrong size
-        self.assertRaises(Exception, DataFrame,
-                          {'A': {'a': 'a', 'b': 'b'},
-                           'B': ['a', 'b', 'c']})
+        # mix dict and array, wrong size - no spec for which error should raise
+        # first
+        with tm.assertRaises(ValueError):
+            DataFrame({'A': {'a': 'a', 'b': 'b'}, 'B': ['a', 'b', 'c']})
 
         # Length-one dict micro-optimization
         frame = DataFrame({'A': {'1': 1, '2': 2}})
@@ -2248,36 +2257,33 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(frame.index.equals(Index([])))
 
     def test_constructor_error_msgs(self):
-
+        msg = "Mixing dicts with non-Series may lead to ambiguous ordering."
         # mix dict and array, wrong size
-        def testit():
+        with assertRaisesRegexp(ValueError, msg):
             DataFrame({'A': {'a': 'a', 'b': 'b'},
                        'B': ['a', 'b', 'c']})
-        assertRaisesRegexp(ValueError, "Mixing dicts with non-Series may lead to ambiguous ordering.", testit)
 
         # wrong size ndarray, GH 3105
-        def testit():
-            DataFrame(np.arange(12).reshape((4, 3)), columns=['foo', 'bar', 'baz'],
+        msg = "Shape of passed values is \(3, 4\), indices imply \(3, 3\)"
+        with assertRaisesRegexp(ValueError, msg):
+            DataFrame(np.arange(12).reshape((4, 3)),
+                      columns=['foo', 'bar', 'baz'],
                       index=date_range('2000-01-01', periods=3))
-        assertRaisesRegexp(ValueError, "Shape of passed values is \(3, 4\), indices imply \(3, 3\)", testit)
+
 
         # higher dim raise exception
-        def testit():
+        with assertRaisesRegexp(ValueError, 'Must pass 2-d input'):
             DataFrame(np.zeros((3, 3, 3)), columns=['A', 'B', 'C'], index=[1])
-        assertRaisesRegexp(ValueError, "Must pass 2-d input", testit)
 
         # wrong size axis labels
-        def testit():
+        with assertRaisesRegexp(ValueError, "Shape of passed values is \(3, 2\), indices imply \(3, 1\)"):
             DataFrame(np.random.rand(2,3), columns=['A', 'B', 'C'], index=[1])
-        assertRaisesRegexp(ValueError, "Shape of passed values is \(3, 2\), indices imply \(3, 1\)", testit)
 
-        def testit():
+        with assertRaisesRegexp(ValueError, "Shape of passed values is \(3, 2\), indices imply \(2, 2\)"):
             DataFrame(np.random.rand(2,3), columns=['A', 'B'], index=[1, 2])
-        assertRaisesRegexp(ValueError, "Shape of passed values is \(3, 2\), indices imply \(2, 2\)", testit)
 
-        def testit():
+        with assertRaisesRegexp(ValueError, 'If using all scalar values, you must must pass an index'):
             DataFrame({'a': False, 'b': True})
-        assertRaisesRegexp(ValueError, 'If using all scalar values, you must must pass an index', testit)
 
     def test_insert_error_msmgs(self):
 
@@ -2285,10 +2291,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df = DataFrame(np.random.randint(0,2,(4,4)),
                        columns=['a', 'b', 'c', 'd'])
 
-        def testit():
+        msg = 'incompatible index of inserted column with frame index'
+        with assertRaisesRegexp(TypeError, msg):
             df['gr'] = df.groupby(['b', 'c']).count()
 
-        assertRaisesRegexp(TypeError, 'incompatible index of inserted column with frame index', testit)
 
     def test_constructor_subclass_dict(self):
         # Test for passing dict subclass to constructor
@@ -2362,114 +2368,80 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = DataFrame(dict((k, list(v)) for k, v in compat.iteritems(data)))
         assert_frame_equal(result, expected, check_dtype=False)
 
-    def test_constructor_ndarray(self):
-        mat = np.zeros((2, 3), dtype=float)
-
+    def _check_basic_constructor(self, empty):
+        "mat: 2d matrix with shpae (3, 2) to input. empty - makes sized objects"
+        mat = empty((2, 3), dtype=float)
         # 2-D input
         frame = DataFrame(mat, columns=['A', 'B', 'C'], index=[1, 2])
 
         self.assertEqual(len(frame.index), 2)
         self.assertEqual(len(frame.columns), 3)
 
+        # 1-D input
+        frame = DataFrame(empty((3,)), columns=['A'], index=[1, 2, 3])
+        self.assertEqual(len(frame.index), 3)
+        self.assertEqual(len(frame.columns), 1)
+
+
         # cast type
         frame = DataFrame(mat, columns=['A', 'B', 'C'],
                           index=[1, 2], dtype=np.int64)
         self.assert_(frame.values.dtype == np.int64)
 
-        # 1-D input
-        frame = DataFrame(np.zeros(3), columns=['A'], index=[1, 2, 3])
-        self.assertEqual(len(frame.index), 3)
-        self.assertEqual(len(frame.columns), 1)
+        # wrong size axis labels
+        msg = r'Shape of passed values is \(3, 2\), indices imply \(3, 1\)'
+        with assertRaisesRegexp(ValueError, msg):
+            DataFrame(mat, columns=['A', 'B', 'C'], index=[1])
+        msg = r'Shape of passed values is \(3, 2\), indices imply \(2, 2\)'
+        with assertRaisesRegexp(ValueError, msg):
+            DataFrame(mat, columns=['A', 'B'], index=[1, 2])
+
+        # higher dim raise exception
+        with assertRaisesRegexp(ValueError, 'Must pass 2-d input'):
+            DataFrame(empty((3, 3, 3)), columns=['A', 'B', 'C'],
+                      index=[1])
+
+        # automatic labeling
+        frame = DataFrame(mat)
+        self.assert_(np.array_equal(frame.index, lrange(2)))
+        self.assert_(np.array_equal(frame.columns, lrange(3)))
+
+        frame = DataFrame(mat, index=[1, 2])
+        self.assert_(np.array_equal(frame.columns, lrange(3)))
+
+        frame = DataFrame(mat, columns=['A', 'B', 'C'])
+        self.assert_(np.array_equal(frame.index, lrange(2)))
+
+        # 0-length axis
+        frame = DataFrame(empty((0, 3)))
+        self.assert_(len(frame.index) == 0)
+
+        frame = DataFrame(empty((3, 0)))
+        self.assert_(len(frame.columns) == 0)
+
+    def test_constructor_ndarray(self):
+        mat = np.zeros((2, 3), dtype=float)
+        self._check_basic_constructor(np.ones)
 
         frame = DataFrame(['foo', 'bar'], index=[0, 1], columns=['A'])
         self.assertEqual(len(frame), 2)
 
-        # higher dim raise exception
-        self.assertRaises(Exception, DataFrame, np.zeros((3, 3, 3)),
-                          columns=['A', 'B', 'C'], index=[1])
-
-        # wrong size axis labels
-        self.assertRaises(Exception, DataFrame, mat,
-                          columns=['A', 'B', 'C'], index=[1])
-
-        self.assertRaises(Exception, DataFrame, mat,
-                          columns=['A', 'B'], index=[1, 2])
-
-        # automatic labeling
-        frame = DataFrame(mat)
-        self.assert_(np.array_equal(frame.index, lrange(2)))
-        self.assert_(np.array_equal(frame.columns, lrange(3)))
-
-        frame = DataFrame(mat, index=[1, 2])
-        self.assert_(np.array_equal(frame.columns, lrange(3)))
-
-        frame = DataFrame(mat, columns=['A', 'B', 'C'])
-        self.assert_(np.array_equal(frame.index, lrange(2)))
-
-        # 0-length axis
-        frame = DataFrame(np.empty((0, 3)))
-        self.assert_(len(frame.index) == 0)
-
-        frame = DataFrame(np.empty((3, 0)))
-        self.assert_(len(frame.columns) == 0)
 
     def test_constructor_maskedarray(self):
-        mat = ma.masked_all((2, 3), dtype=float)
-
-        # 2-D input
-        frame = DataFrame(mat, columns=['A', 'B', 'C'], index=[1, 2])
-
-        self.assertEqual(len(frame.index), 2)
-        self.assertEqual(len(frame.columns), 3)
-        self.assertTrue(np.all(~np.asarray(frame == frame)))
-
-        # cast type
-        frame = DataFrame(mat, columns=['A', 'B', 'C'],
-                          index=[1, 2], dtype=np.int64)
-        self.assert_(frame.values.dtype == np.int64)
+        self._check_basic_constructor(ma.masked_all)
 
         # Check non-masked values
-        mat2 = ma.copy(mat)
-        mat2[0, 0] = 1.0
-        mat2[1, 2] = 2.0
-        frame = DataFrame(mat2, columns=['A', 'B', 'C'], index=[1, 2])
+        mat = ma.masked_all((2, 3), dtype=float)
+        mat[0, 0] = 1.0
+        mat[1, 2] = 2.0
+        frame = DataFrame(mat, columns=['A', 'B', 'C'], index=[1, 2])
         self.assertEqual(1.0, frame['A'][1])
         self.assertEqual(2.0, frame['C'][2])
 
-        # 1-D input
-        frame = DataFrame(ma.masked_all((3,)), columns=['A'], index=[1, 2, 3])
-        self.assertEqual(len(frame.index), 3)
-        self.assertEqual(len(frame.columns), 1)
+        # what is this even checking??
+        mat = ma.masked_all((2, 3), dtype=float)
+        frame = DataFrame(mat, columns=['A', 'B', 'C'], index=[1, 2])
         self.assertTrue(np.all(~np.asarray(frame == frame)))
-
-        # higher dim raise exception
-        self.assertRaises(Exception, DataFrame, ma.masked_all((3, 3, 3)),
-                          columns=['A', 'B', 'C'], index=[1])
-
-        # wrong size axis labels
-        self.assertRaises(Exception, DataFrame, mat,
-                          columns=['A', 'B', 'C'], index=[1])
-
-        self.assertRaises(Exception, DataFrame, mat,
-                          columns=['A', 'B'], index=[1, 2])
-
-        # automatic labeling
-        frame = DataFrame(mat)
-        self.assert_(np.array_equal(frame.index, lrange(2)))
-        self.assert_(np.array_equal(frame.columns, lrange(3)))
-
-        frame = DataFrame(mat, index=[1, 2])
-        self.assert_(np.array_equal(frame.columns, lrange(3)))
-
-        frame = DataFrame(mat, columns=['A', 'B', 'C'])
-        self.assert_(np.array_equal(frame.index, lrange(2)))
-
-        # 0-length axis
-        frame = DataFrame(ma.masked_all((0, 3)))
-        self.assert_(len(frame.index) == 0)
-
-        frame = DataFrame(ma.masked_all((3, 0)))
-        self.assert_(len(frame.columns) == 0)
 
     def test_constructor_maskedarray_nonfloat(self):
         # masked int promoted to float
@@ -2570,8 +2542,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         exp = DataFrame({'a': df['a'].values, 'b': [True] * 10})
 
         assert_frame_equal(df, exp)
-
-        self.assertRaises(ValueError, DataFrame, {'a': False, 'b': True})
+        with tm.assertRaisesRegexp(ValueError, 'must pass an index'):
+            DataFrame({'a': False, 'b': True})
 
     def test_constructor_DataFrame(self):
         df = DataFrame(self.frame)
@@ -2602,12 +2574,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertEqual(dm.values.shape, (10, 0))
 
         # corner, silly
-        self.assertRaises(Exception, DataFrame, (1, 2, 3))
+        # TODO: Fix this Exception to be better...
+        with assertRaisesRegexp(PandasError, 'constructor not properly called'):
+            DataFrame((1, 2, 3))
 
         # can't cast
         mat = np.array(['foo', 'bar'], dtype=object).reshape(2, 1)
-        self.assertRaises(ValueError, DataFrame, mat, index=[0, 1],
-                          columns=[0], dtype=float)
+        with assertRaisesRegexp(ValueError, 'cast'):
+            DataFrame(mat, index=[0, 1], columns=[0], dtype=float)
 
         dm = DataFrame(DataFrame(self.frame._series))
         tm.assert_frame_equal(dm, self.frame)
@@ -2718,7 +2692,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_constructor_ragged(self):
         data = {'A': randn(10),
                 'B': randn(8)}
-        self.assertRaises(Exception, DataFrame, data)
+        assertRaisesRegexp(ValueError, 'arrays must all be same length',
+                           DataFrame, data)
 
     def test_constructor_scalar(self):
         idx = Index(lrange(3))
@@ -2739,8 +2714,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(result.index.is_monotonic)
 
         # ordering ambiguous, raise exception
-        self.assertRaises(Exception, DataFrame,
-                          {'A': ['a', 'b'], 'B': {'a': 'a', 'b': 'b'}})
+        with assertRaisesRegexp(ValueError, 'ambiguous ordering'):
+            DataFrame({'A': ['a', 'b'], 'B': {'a': 'a', 'b': 'b'}})
 
         # this is OK though
         result = DataFrame({'A': ['a', 'b'],
@@ -2850,10 +2825,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                                       columns=self.mixed_frame.columns,
                                       orient='index')
         assert_frame_equal(recons, self.mixed_frame)
-        self.assert_(recons['A'].dtype == np.float64)
+        self.assertEqual(recons['A'].dtype, np.float64)
 
-        self.assertRaises(ValueError, DataFrame.from_items, row_items,
-                          orient='index')
+        with tm.assertRaisesRegexp(TypeError,
+                                   "Must pass columns with orient='index'"):
+            DataFrame.from_items(row_items, orient='index')
 
         # orient='index', but thar be tuples
         arr = lib.list_to_object_array(
@@ -2878,9 +2854,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                         'B': list(self.frame['B'])}, columns=['A', 'B'])
         assert_frame_equal(df, self.frame.ix[:, ['A', 'B']])
 
-        self.assertRaises(ValueError, DataFrame,
-                          {'A': self.frame['A'],
-                           'B': list(self.frame['B'])[:-2]})
+        with tm.assertRaisesRegexp(ValueError, 'does not match index length'):
+            DataFrame({'A': self.frame['A'], 'B': list(self.frame['B'])[:-2]})
 
     def test_constructor_miscast_na_int_dtype(self):
         df = DataFrame([[np.nan, 1], [1, 0]], dtype=np.int64)
@@ -2932,6 +2907,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df['string'] = 'bah'
         expected = DataFrame([[1,1,1,5,'bah'],[1,1,2,5,'bah'],[2,1,3,5,'bah']],columns=['foo','bar','foo','hello','string'])
         check(df,expected)
+        with assertRaisesRegexp(ValueError, 'Length of value'):
+            df.insert(0, 'AnotherColumn', range(len(df.index) - 1))
 
         # insert same dtype
         df['foo2'] = 3
@@ -2965,7 +2942,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         check(df,expected)
 
         # insert a dup
-        self.assertRaises(Exception, df.insert, 2, 'new_col', 4.)
+        assertRaisesRegexp(ValueError, 'cannot insert', df.insert, 2, 'new_col', 4.)
         df.insert(2,'new_col',4.,allow_duplicates=True)
         expected = DataFrame([[1,1,4.,5.,'bah',3],[1,2,4.,5.,'bah',3],[2,3,4.,5.,'bah',3]],columns=['foo','foo','new_col','new_col','string','foo2'])
         check(df,expected)
@@ -3071,8 +3048,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         self.assertRaises(com.PandasError, DataFrame, 'a', [1, 2])
         self.assertRaises(com.PandasError, DataFrame, 'a', columns=['a', 'c'])
-        self.assertRaises(
-            com.PandasError, DataFrame, 'a', [1, 2], ['a', 'c'], float)
+        with tm.assertRaisesRegexp(TypeError, 'incompatible data and dtype'):
+            DataFrame('a', [1, 2], ['a', 'c'], float)
 
 
     def test_constructor_with_datetimes(self):
@@ -3497,8 +3474,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         tm.assert_frame_equal(DataFrame.from_records(arr2), DataFrame(arr2))
 
         # wrong length
-        self.assertRaises(Exception, DataFrame.from_records, arr,
-                          index=index[:-1])
+        msg = r'Shape of passed values is \(3,\), indices imply \(3, 1\)'
+        with assertRaisesRegexp(ValueError, msg):
+            DataFrame.from_records(arr, index=index[:-1])
 
         indexed_frame = DataFrame.from_records(arr, index='f1')
 
@@ -3816,7 +3794,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         idx = self.frame._get_agg_axis(1)
         self.assert_(idx is self.frame.index)
 
-        self.assertRaises(Exception, self.frame._get_agg_axis, 2)
+        self.assertRaises(ValueError, self.frame._get_agg_axis, 2)
 
     def test_nonzero(self):
         self.assertTrue(self.empty.empty)
@@ -3991,19 +3969,20 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # new item
         df['x'] = df['a'].astype('float32')
         result = Series(dict(float64 = 5, float32 = 1))
-        self.assert_((df.get_dtype_counts() == result).all() == True)
+        self.assert_((df.get_dtype_counts() == result).all())
 
         # replacing current (in different block)
         df['a'] = df['a'].astype('float32')
         result = Series(dict(float64 = 4, float32 = 2))
-        self.assert_((df.get_dtype_counts() == result).all() == True)
+        self.assert_((df.get_dtype_counts() == result).all())
 
         df['y'] = df['a'].astype('int32')
         result = Series(dict(float64 = 4, float32 = 2, int32 = 1))
-        self.assert_((df.get_dtype_counts() == result).all() == True)
+        self.assert_((df.get_dtype_counts() == result).all())
 
-        self.assertRaises(Exception, df.insert, 1, 'a', df['b'])
-        self.assertRaises(Exception, df.insert, 1, 'c', df['b'])
+        with assertRaisesRegexp(ValueError, 'already exists'):
+            df.insert(1, 'a', df['b'])
+        self.assertRaises(ValueError, df.insert, 1, 'c', df['b'])
 
         df.columns.name = 'some_name'
         # preserve columns name field
@@ -4310,6 +4289,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                 assert_frame_equal(result, exp)
                 _check_mixed_int(result, dtype = dtype)
 
+            # ndim >= 3
+            ndim_5 = np.ones(self.frame.shape + (3, 4, 5))
+            with assertRaisesRegexp(ValueError, 'shape'):
+                f(self.frame, ndim_5)
+
+            with assertRaisesRegexp(ValueError, 'shape'):
+                getattr(self.frame, op)(ndim_5)
+
+
         # res_add = self.frame.add(self.frame)
         # res_sub = self.frame.sub(self.frame)
         # res_mul = self.frame.mul(self.frame)
@@ -4329,6 +4317,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         result = self.frame[:0].add(self.frame)
         assert_frame_equal(result, self.frame * np.nan)
+        with assertRaisesRegexp(NotImplementedError, 'fill_value'):
+            self.frame.add(self.frame.irow(0), fill_value=3)
+        with assertRaisesRegexp(NotImplementedError, 'fill_value'):
+            self.frame.add(self.frame.irow(0), axis='index', fill_value=3)
 
     def test_arith_mixed(self):
 
@@ -4377,34 +4369,32 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         other_data = np.random.randn(5, 3)
         df = DataFrame(data)
         other = DataFrame(other_data)
+        ndim_5 = np.ones(df.shape + (1, 3))
 
-        # No NAs
+        # Unaligned
+        def _check_unaligned_frame(meth, op, df, other):
+            part_o = other.ix[3:, 1:].copy()
+            rs = meth(part_o)
+            xp = op(df, part_o.reindex(index=df.index, columns=df.columns))
+            assert_frame_equal(rs, xp)
 
         # DataFrame
         self.assert_(df.eq(df).values.all())
         self.assert_(not df.ne(df).values.any())
-
-        assert_frame_equal((df == other), df.eq(other))
-        assert_frame_equal((df != other), df.ne(other))
-        assert_frame_equal((df > other), df.gt(other))
-        assert_frame_equal((df < other), df.lt(other))
-        assert_frame_equal((df >= other), df.ge(other))
-        assert_frame_equal((df <= other), df.le(other))
-
-        # Unaligned
-        def _check_unaligned_frame(meth, op, df, other, default=False):
-            part_o = other.ix[3:, 1:].copy()
-            rs = meth(df, part_o)
-            xp = op(df, part_o.reindex(index=df.index, columns=df.columns))
-            assert_frame_equal(rs, xp)
-
-        _check_unaligned_frame(DataFrame.eq, operator.eq, df, other)
-        _check_unaligned_frame(DataFrame.ne, operator.ne, df, other,
-                               default=True)
-        _check_unaligned_frame(DataFrame.gt, operator.gt, df, other)
-        _check_unaligned_frame(DataFrame.lt, operator.lt, df, other)
-        _check_unaligned_frame(DataFrame.ge, operator.ge, df, other)
-        _check_unaligned_frame(DataFrame.le, operator.le, df, other)
+        for op in ['eq', 'ne', 'gt', 'lt', 'ge', 'le']:
+            f = getattr(df, op)
+            o = getattr(operator, op)
+            # No NAs
+            assert_frame_equal(f(other), o(df, other))
+            _check_unaligned_frame(f, o, df, other)
+            # ndarray
+            assert_frame_equal(f(other.values), o(df, other.values))
+            # scalar
+            assert_frame_equal(f(0), o(df, 0))
+            # NAs
+            assert_frame_equal(f(np.nan), o(df, np.nan))
+            with assertRaisesRegexp(ValueError, 'shape'):
+                f(ndim_5)
 
         # Series
         def _test_seq(df, idx_ser, col_ser):
@@ -4443,14 +4433,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         col_ser = Series(np.random.randn(3))
         _test_seq(df, idx_ser, col_ser)
 
-        # ndarray
-
-        assert_frame_equal((df == other.values), df.eq(other.values))
-        assert_frame_equal((df != other.values), df.ne(other.values))
-        assert_frame_equal((df > other.values), df.gt(other.values))
-        assert_frame_equal((df < other.values), df.lt(other.values))
-        assert_frame_equal((df >= other.values), df.ge(other.values))
-        assert_frame_equal((df <= other.values), df.le(other.values))
 
         # list/tuple
         _test_seq(df, idx_ser.values, col_ser.values)
@@ -4470,20 +4452,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         rs = df.le(df)
         self.assert_(not rs.ix[0, 0])
 
-        # scalar
-        assert_frame_equal(df.eq(0), df == 0)
-        assert_frame_equal(df.ne(0), df != 0)
-        assert_frame_equal(df.gt(0), df > 0)
-        assert_frame_equal(df.lt(0), df < 0)
-        assert_frame_equal(df.ge(0), df >= 0)
-        assert_frame_equal(df.le(0), df <= 0)
 
-        assert_frame_equal(df.eq(np.nan), df == np.nan)
-        assert_frame_equal(df.ne(np.nan), df != np.nan)
-        assert_frame_equal(df.gt(np.nan), df > np.nan)
-        assert_frame_equal(df.lt(np.nan), df < np.nan)
-        assert_frame_equal(df.ge(np.nan), df >= np.nan)
-        assert_frame_equal(df.le(np.nan), df <= np.nan)
 
         # complex
         arr = np.array([np.nan, 1, 6, np.nan])
@@ -4512,19 +4481,20 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         row = df.xs('a')
         col = df['two']
+        # after arithmetic refactor, add truediv here
+        ops = ['add', 'sub', 'mul', 'mod']
+        for op in ops:
+            f = getattr(df, op)
+            op = getattr(operator, op)
+            assert_frame_equal(f(row), op(df, row))
+            assert_frame_equal(f(col, axis=0), op(df.T, col).T)
 
-        assert_frame_equal(df.add(row), df + row)
+        # special case for some reason
         assert_frame_equal(df.add(row, axis=None), df + row)
-        assert_frame_equal(df.sub(row), df - row)
-        assert_frame_equal(df.div(row), df / row)
-        assert_frame_equal(df.mul(row), df * row)
-        assert_frame_equal(df.mod(row), df % row)
 
-        assert_frame_equal(df.add(col, axis=0), (df.T + col).T)
-        assert_frame_equal(df.sub(col, axis=0), (df.T - col).T)
+        # cases which will be refactored after big arithmetic refactor
+        assert_frame_equal(df.div(row), df / row)
         assert_frame_equal(df.div(col, axis=0), (df.T / col).T)
-        assert_frame_equal(df.mul(col, axis=0), (df.T * col).T)
-        assert_frame_equal(df.mod(col, axis=0), (df.T % col).T)
 
     def test_arith_non_pandas_object(self):
         df = self.simple
@@ -4697,11 +4667,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df2 = tm.makeTimeDataFrame()
 
         row = self.simple.xs('a')
+        ndim_5 = np.ones(df1.shape + (1, 1, 1))
 
         def test_comp(func):
             result = func(df1, df2)
             self.assert_(np.array_equal(result.values,
                                         func(df1.values, df2.values)))
+            with assertRaisesRegexp(ValueError, 'Wrong number of dimensions'):
+                func(df1, ndim_5)
 
             result2 = func(self.simple, row)
             self.assert_(np.array_equal(result2.values,
@@ -4711,7 +4684,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             self.assert_(np.array_equal(result3.values,
                                         func(self.frame.values, 0)))
 
-            self.assertRaises(Exception, func, self.simple, self.simple[:2])
+
+            with assertRaisesRegexp(ValueError, 'Can only compare '
+                                    'identically-labeled DataFrame'):
+                func(self.simple, self.simple[:2])
 
         test_comp(operator.eq)
         test_comp(operator.ne)
@@ -5289,20 +5265,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             df.to_csv(path,tupleize_cols=False)
 
             # catch invalid headers
-            def testit():
+            with assertRaisesRegexp(CParserError, 'Passed header=\[0,1,2\] are too many rows for this multi_index of columns'):
                 read_csv(path,tupleize_cols=False,header=lrange(3),index_col=0)
-            assertRaisesRegexp(CParserError, 'Passed header=\[0,1,2\] are too many rows for this multi_index of columns', testit)
 
-            def testit():
+            with assertRaisesRegexp(CParserError, 'Passed header=\[0,1,2,3,4,5,6\], len of 7, but only 6 lines in file'):
                 read_csv(path,tupleize_cols=False,header=lrange(7),index_col=0)
-            assertRaisesRegexp(CParserError, 'Passed header=\[0,1,2,3,4,5,6\], len of 7, but only 6 lines in file', testit)
 
-            for i in [3,4,5,6,7]:
-                 self.assertRaises(Exception, read_csv, path, tupleize_cols=False, header=lrange(i), index_col=0)
-            self.assertRaises(Exception, read_csv, path, tupleize_cols=False, header=[0,2], index_col=0)
+            for i in [4,5,6]:
+                with tm.assertRaises(CParserError):
+                    read_csv(path, tupleize_cols=False, header=lrange(i), index_col=0)
 
             # write with cols
-            self.assertRaises(Exception, df.to_csv, path,tupleize_cols=False,cols=['foo','bar'])
+            with assertRaisesRegexp(TypeError, 'cannot specify cols with a MultiIndex'):
+                df.to_csv(path, tupleize_cols=False, cols=['foo', 'bar'])
 
         with ensure_clean(pname) as path:
             # empty
@@ -5650,7 +5625,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         # via astype, but errors
         converted = self.mixed_frame.copy()
-        self.assertRaises(Exception, converted['H'].astype, 'int32')
+        with assertRaisesRegexp(ValueError, 'invalid literal'):
+            converted['H'].astype('int32')
 
         # mixed in a single column
         df = DataFrame(dict(s = Series([1, 'na', 3 ,4])))
@@ -5669,9 +5645,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                        columns=['foo', 'bar', 'baz', 'qux'])
 
         series = df.ix[4]
-        self.assertRaises(ValueError, df.append, series, verify_integrity=True)
+        with  assertRaisesRegexp(ValueError, 'Indexes have overlapping values'):
+            df.append(series, verify_integrity=True)
         series.name = None
-        self.assertRaises(Exception, df.append, series, verify_integrity=True)
+        with assertRaisesRegexp(TypeError, 'Can only append a Series if '
+                                'ignore_index=True'):
+            df.append(series, verify_integrity=True)
 
         result = df.append(series[::-1], ignore_index=True)
         expected = df.append(DataFrame({0: series[::-1]}, index=df.columns).T,
@@ -6138,10 +6117,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = df.ix[:, [0, 1, 3]]
         assert_frame_equal(dropped, expected)
 
+        # bad input
+        self.assertRaises(ValueError, df.dropna, axis=3)
+
     def test_dropna_corner(self):
         # bad input
         self.assertRaises(ValueError, self.frame.dropna, how='foo')
-        self.assertRaises(ValueError, self.frame.dropna, how=None)
+        self.assertRaises(TypeError, self.frame.dropna, how=None)
 
     def test_dropna_multiple_axes(self):
         df = DataFrame([[1, np.nan, 2, 3],
@@ -6440,7 +6422,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(result, expected)
 
         # disable this for now
-        self.assertRaises(Exception, df.fillna, df.max(1), axis=1)
+        with assertRaisesRegexp(NotImplementedError, 'column by column'):
+            df.fillna(df.max(1), axis=1)
 
     def test_fillna_columns(self):
         df = DataFrame(np.random.randn(10, 10))
@@ -6456,10 +6439,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(result, expected)
 
     def test_fillna_invalid_method(self):
-        try:
+        with assertRaisesRegexp(ValueError, 'ffil'):
             self.frame.fillna(method='ffil')
-        except ValueError as inst:
-            self.assert_('ffil' in str(inst))
 
     def test_fillna_invalid_value(self):
         # list
@@ -7322,8 +7303,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertEqual(xs['A'], 1)
         self.assertEqual(xs['B'], '1')
 
-        self.assertRaises(Exception, self.tsframe.xs,
-                          self.tsframe.index[0] - datetools.bday)
+        with tm.assertRaises(KeyError):
+            self.tsframe.xs(self.tsframe.index[0] - datetools.bday)
 
         # xs get column
         series = self.frame.xs('A', axis=1)
@@ -7414,7 +7395,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         data = DataFrame({'a': ['bar', 'bar', 'foo', 'foo', 'foo'],
                           'b': ['one', 'two', 'one', 'one', 'two'],
                           'c': [1., 2., 3., 3., 4.]})
-        self.assertRaises(Exception, data.pivot, 'a', 'b', 'c')
+        with assertRaisesRegexp(ValueError, 'duplicate entries'):
+            data.pivot('a', 'b', 'c')
 
     def test_pivot_empty(self):
         df = DataFrame({}, columns=['a', 'b', 'c'])
@@ -7994,7 +7976,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(np.array_equal(renamed.index, ['BAR', 'FOO']))
 
         # have to pass something
-        self.assertRaises(Exception, self.frame.rename)
+        self.assertRaises(TypeError, self.frame.rename)
 
         # partial columns
         renamed = self.frame.rename(columns={'C': 'foo', 'D': 'bar'})
@@ -8157,7 +8139,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(shifted2, shifted3)
         assert_frame_equal(ps, shifted2.shift(-1, 'B'))
 
-        self.assertRaises(ValueError, ps.shift, freq='D')
+        assertRaisesRegexp(ValueError, 'does not match PeriodIndex freq',
+                           ps.shift, freq='D')
 
     def test_shift_bool(self):
         df = DataFrame({'high': [True, False],
@@ -8182,7 +8165,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         shifted3 = ps.tshift(freq=datetools.bday)
         assert_frame_equal(shifted, shifted3)
 
-        self.assertRaises(ValueError, ps.tshift, freq='M')
+        assertRaisesRegexp(ValueError, 'does not match', ps.tshift, freq='M')
 
         # DatetimeIndex
         shifted = self.tsframe.tshift(1)
@@ -8294,7 +8277,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = self.mixed_frame._get_numeric_data().apply(np.mean)
         assert_series_equal(result, expected)
 
-        # test with hierarchical index
 
     def test_apply_mixed_dtype_corner(self):
         df = DataFrame({'A': ['foo'],
@@ -8411,9 +8393,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         try:
             transformed = data.apply(transform, axis=1)
-        except Exception as e:
+        except AttributeError as e:
             self.assertEqual(len(e.args), 2)
             self.assertEqual(e.args[1], 'occurred at index 4')
+            self.assertEqual(e.args[0], "'float' object has no attribute 'startswith'")
 
     def test_swapaxes(self):
         df = DataFrame(np.random.randn(10, 5))
@@ -8530,7 +8513,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertEqual(len(filtered.columns), 2)
 
         # pass in None
-        self.assertRaises(Exception, self.frame.filter, items=None)
+        with assertRaisesRegexp(TypeError, 'Must pass'):
+            self.frame.filter(items=None)
 
         # objects
         filtered = self.mixed_frame.filter(like='foo')
@@ -8630,6 +8614,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(sorted_df, expected)
 
         self.assertRaises(ValueError, frame.sort_index, axis=2, inplace=True)
+        msg = 'When sorting by column, axis must be 0'
+        with assertRaisesRegexp(ValueError, msg):
+            frame.sort_index(by='A', axis=1)
 
     def test_sort_index_multicolumn(self):
         import random
@@ -8735,17 +8722,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(sorted_df, expected)
 
     def test_sort_index_duplicates(self):
-        df = DataFrame([[1, 2], [3, 4]], columns=['a', 'a'])
+        df = DataFrame([lrange(5,9), lrange(4)],
+                       columns=['a', 'a', 'b', 'b'])
 
-        try:
+        with assertRaisesRegexp(ValueError, 'duplicate'):
             df.sort_index(by='a')
-        except Exception as e:
-            self.assertTrue('duplicate' in str(e))
-
-        try:
+        with assertRaisesRegexp(ValueError, 'duplicate'):
             df.sort_index(by=['a'])
-        except Exception as e:
-            self.assertTrue('duplicate' in str(e))
+        with assertRaisesRegexp(ValueError, 'duplicate'):
+            # multi-column 'by' is separate codepath
+            df.sort_index(by=['a', 'b'])
 
     def test_sort_datetimes(self):
 
@@ -8771,7 +8757,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
     def test_frame_column_inplace_sort_exception(self):
         s = self.frame['A']
-        self.assertRaises(Exception, s.sort)
+        with assertRaisesRegexp(TypeError, "This Series is a view"):
+            s.sort()
 
         cp = s.copy()
         cp.sort() # it works!
@@ -8982,9 +8969,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         other = DataFrame([[2., nan],
                            [nan, 7]], index=[1, 3], columns=[1, 2])
-
-        np.testing.assert_raises(Exception, df.update, *(other,),
-                                 **{'raise_conflict': True})
+        with assertRaisesRegexp(ValueError, "Data overlaps"):
+            df.update(other, raise_conflict=True)
 
     def test_update_from_non_df(self):
         d = {'a': Series([1, 2, 3, 4]), 'b': Series([5, 6, 7, 8])}
@@ -9416,8 +9402,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # comp = frame.apply(alternative, axis=1).reindex(result.index)
         # assert_series_equal(result, comp)
 
-        self.assertRaises(Exception, f, axis=2)
-
+        # bad axis
+        assertRaisesRegexp(ValueError, 'No axis named 2', f, axis=2)
         # make sure works on mixed-type frame
         getattr(self.mixed_frame, name)(axis=0)
         getattr(self.mixed_frame, name)(axis=1)
@@ -9730,18 +9716,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_series_equal(desc.xs('count'),
                             Series([0, 0], dtype=float, name='count'))
         self.assert_(isnull(desc.ix[1:]).all().all())
-
-    def test_get_axis_etc(self):
-        f = self.frame
-
-        self.assertEquals(f._get_axis_number(0), 0)
-        self.assertEquals(f._get_axis_number(1), 1)
-        self.assertEquals(f._get_axis_name(0), 'index')
-        self.assertEquals(f._get_axis_name(1), 'columns')
-
-        self.assert_(f._get_axis(0) is f.index)
-        self.assert_(f._get_axis(1) is f.columns)
-        self.assertRaises(Exception, f._get_axis_number, 2)
 
     def test_axis_aliases(self):
 
@@ -10391,8 +10365,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_((dm.xs(2) == 5).all())
 
         # TODO (?): deal with mixed-type fiasco?
-        self.assertRaises(Exception, self.mixed_frame.xs,
-                          self.mixed_frame.index[2], copy=False)
+        with assertRaisesRegexp(TypeError, 'cannot get view of mixed-type'):
+            self.mixed_frame.xs(self.mixed_frame.index[2], copy=False)
 
         # unconsolidated
         dm['foo'] = 6.
@@ -10417,6 +10391,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         df1[df1 > 2.0 * df2] = -1
         assert_frame_equal(df1, expected)
+        with assertRaisesRegexp(ValueError, 'Item wrong length'):
+            df1[df1.index[:-1] > 2] = -1
 
     def test_boolean_indexing_mixed(self):
         df = DataFrame(
@@ -10443,7 +10419,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         # add object, should this raise?
         df['foo'] = 'test'
-        self.assertRaises(ValueError, df.__setitem__, df>0.3, 1)
+        with tm.assertRaisesRegexp(TypeError, 'boolean setting on mixed-type'):
+            df[df > 0.3] = 1
 
     def test_sum_bools(self):
         df = DataFrame(index=lrange(1), columns=lrange(10))
@@ -10574,7 +10551,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         exp = a.dot(a.ix[0])
         assert_series_equal(result, exp)
 
-        self.assertRaises(Exception, a.dot, row[:-1])
+        with assertRaisesRegexp(ValueError, 'Dot product shape mismatch'):
+            a.dot(row[:-1])
 
         a = np.random.rand(1, 5)
         b = np.random.rand(5, 1)
@@ -10588,7 +10566,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df = DataFrame(randn(3, 4), index=[1, 2, 3], columns=lrange(4))
         df2 = DataFrame(randn(5, 3), index=lrange(5), columns=[1, 2, 3])
 
-        self.assertRaises(ValueError, df.dot, df2)
+        assertRaisesRegexp(ValueError, 'aligned', df.dot, df2)
 
     def test_idxmin(self):
         frame = self.frame
@@ -10602,7 +10580,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                         Series.idxmin, axis=axis, skipna=skipna)
                     assert_series_equal(result, expected)
 
-        self.assertRaises(Exception, frame.idxmin, axis=2)
+        self.assertRaises(ValueError, frame.idxmin, axis=2)
 
     def test_idxmax(self):
         frame = self.frame
@@ -10616,7 +10594,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                         Series.idxmax, axis=axis, skipna=skipna)
                     assert_series_equal(result, expected)
 
-        self.assertRaises(Exception, frame.idxmax, axis=2)
+        self.assertRaises(ValueError, frame.idxmax, axis=2)
 
     def test_stale_cached_series_bug_473(self):
         Y = DataFrame(np.random.random((4, 4)), index=('a', 'b', 'c', 'd'),
@@ -10765,7 +10743,8 @@ starting,ending,measure
         # comp = frame.apply(alternative, axis=1).reindex(result.index)
         # assert_series_equal(result, comp)
 
-        self.assertRaises(Exception, f, axis=2)
+        # bad axis
+        self.assertRaises(ValueError, f, axis=2)
 
         # make sure works on mixed-type frame
         mixed = self.mixed_frame

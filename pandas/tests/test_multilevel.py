@@ -10,7 +10,8 @@ from pandas import Panel, DataFrame, Series, notnull, isnull
 
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
-                                 assert_frame_equal)
+                                 assert_frame_equal,
+                                 assertRaisesRegexp)
 import pandas.core.common as com
 import pandas.util.testing as tm
 from pandas.compat import (range, lrange, StringIO, lzip, u, cPickle,
@@ -270,7 +271,8 @@ class TestMultiLevel(unittest.TestCase):
         np.putmask(values[:-1], values[:-1] < 0, 2)
         assert_almost_equal(df.values, values)
 
-        self.assertRaises(Exception, df.__setitem__, df * 0, 2)
+        with assertRaisesRegexp(TypeError, 'boolean values only'):
+            df[df * 0] = 2
 
     def test_frame_getitem_setitem_slice(self):
         # getitem
@@ -427,6 +429,9 @@ class TestMultiLevel(unittest.TestCase):
         expected = df[1:2]
         expected.index = expected.index.droplevel(2)
         assert_frame_equal(result, expected)
+        # can't produce a view of a multiindex with a level without copying
+        with assertRaisesRegexp(ValueError, 'Cannot retrieve view'):
+            self.frame.xs('two', level='second', copy=False)
 
     def test_xs_level_multiple(self):
         from pandas import read_table
@@ -441,6 +446,8 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         result = df.xs(('a', 4), level=['one', 'four'])
         expected = df.xs('a').xs(4, level='four')
         assert_frame_equal(result, expected)
+        with assertRaisesRegexp(ValueError, 'Cannot retrieve view'):
+            df.xs(('a', 4), level=['one', 'four'], copy=False)
 
         # GH2107
         dates = lrange(20111201, 20111205)
@@ -620,14 +627,14 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
     def test_sortlevel(self):
         df = self.frame.copy()
         df.index = np.arange(len(df))
-        self.assertRaises(Exception, df.sortlevel, 0)
+        assertRaisesRegexp(TypeError, 'hierarchical index', df.sortlevel, 0)
 
         # axis=1
 
         # series
         a_sorted = self.frame['A'].sortlevel(0)
-        self.assertRaises(Exception,
-                          self.frame.reset_index()['A'].sortlevel)
+        with assertRaisesRegexp(TypeError, 'hierarchical index'):
+            self.frame.reset_index()['A'].sortlevel()
 
         # preserve names
         self.assertEquals(a_sorted.index.names, self.frame.index.names)
@@ -722,7 +729,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         # can't call with level on regular DataFrame
         df = tm.makeTimeDataFrame()
-        self.assertRaises(Exception, df.count, level=0)
+        assertRaisesRegexp(TypeError, 'hierarchical', df.count, level=0)
 
         self.frame['D'] = 'foo'
         result = self.frame.count(level=0, numeric_only=True)
@@ -1085,8 +1092,11 @@ Thur,Lunch,Yes,51.51,17"""
         expected = self.ymd.T.swaplevel(0, 1, axis=1).swaplevel(1, 2, axis=1)
         assert_frame_equal(result, expected)
 
-        self.assertRaises(Exception, self.ymd.index.reorder_levels,
-                          [1, 2, 3])
+        with assertRaisesRegexp(TypeError, 'hierarchical axis'):
+            self.ymd.reorder_levels([1, 2], axis=1)
+
+        with assertRaisesRegexp(IndexError, 'Too many levels'):
+            self.ymd.index.reorder_levels([1, 2, 3])
 
     def test_insert_index(self):
         df = self.ymd[:5].T
@@ -1202,8 +1212,8 @@ Thur,Lunch,Yes,51.51,17"""
         expect = self.series.count(level=0)
         assert_series_equal(result, expect)
 
-        self.assertRaises(Exception, series.count, 'x')
-        self.assertRaises(Exception, frame.count, level='x')
+        self.assertRaises(KeyError, series.count, 'x')
+        self.assertRaises(KeyError, frame.count, level='x')
 
     AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew',
                      'mad', 'std', 'var']
@@ -1420,6 +1430,7 @@ Thur,Lunch,Yes,51.51,17"""
         # self.ymd.ix[2000, 0] = 0
         # self.assert_((self.ymd.ix[2000]['A'] == 0).all())
 
+        # Pretty sure the second (and maybe even the first) is already wrong.
         self.assertRaises(Exception, self.ymd.ix.__getitem__, (2000, 6))
         self.assertRaises(Exception, self.ymd.ix.__getitem__, (2000, 6), 0)
 
@@ -1773,14 +1784,6 @@ Thur,Lunch,Yes,51.51,17"""
         self.assertEquals(s[("a", 7)], 7)
 
         _index._SIZE_CUTOFF = old_cutoff
-
-    def test_xs_mixed_no_copy(self):
-        index = MultiIndex.from_arrays([['a', 'a', 'b', 'b'], [1, 2, 1, 2]],
-                                       names=['first', 'second'])
-        data = DataFrame(np.random.rand(len(index)), index=index,
-                         columns=['A'])
-
-        self.assertRaises(Exception, data.xs, 2, level=1, copy=False)
 
     def test_multiindex_na_repr(self):
         # only an issue with long columns
