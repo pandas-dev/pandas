@@ -589,9 +589,6 @@ class Grouper(object):
         Generator yielding sequence of (name, subsetted object)
         for each group
         """
-        comp_ids, _, ngroups = self.group_info
-        splitter = get_splitter(data, comp_ids, ngroups, axis=axis,
-                                keep_internal=keep_internal)
         splitter = self._get_splitter(data, axis=axis,
                                       keep_internal=keep_internal)
         keys = self._get_group_keys()
