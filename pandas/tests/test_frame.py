@@ -2879,7 +2879,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                           columns=['b', 'a', 'a'])
 
 
-    def test_column_duplicates_operations(self):
+    def test_column_dups_operations(self):
 
         def check(result, expected=None):
             if expected is not None:
@@ -2973,22 +2973,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = DataFrame([[1,5,7.],[1,5,7.],[1,5,7.]],columns=['bar','hello','foo2'])
         check(df,expected)
 
-        # reindex
-        df = DataFrame([[1,5,7.],[1,5,7.],[1,5,7.]],columns=['bar','a','a'])
-        expected = DataFrame([[1],[1],[1]],columns=['bar'])
-        result = df.reindex(columns=['bar'])
-        check(result,expected)
-
-        result1 = DataFrame([[1],[1],[1]],columns=['bar']).reindex(columns=['bar','foo'])
-        result2 = df.reindex(columns=['bar','foo'])
-        check(result2,result1)
-
-        # drop
-        df = DataFrame([[1,5,7.],[1,5,7.],[1,5,7.]],columns=['bar','a','a'])
-        df = df.drop(['a'],axis=1)
-        expected = DataFrame([[1],[1],[1]],columns=['bar'])
-        check(df,expected)
-
         # values
         df = DataFrame([[1,2.5],[3,4.5]], index=[1,2], columns=['x','x'])
         result = df.values
@@ -3015,6 +2999,17 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = DataFrame([[0.0454, 22.02, 0.0422, 20130331, 600809, u('饡驦'), 30.01 ]],
                              columns=['RT','TClose','TExg','RPT_Date','STK_ID','STK_Name','QT_Close']).set_index(['STK_ID','RPT_Date'],drop=False)
         assert_frame_equal(result,expected)
+
+        # reindex is invalid!
+        df = DataFrame([[1,5,7.],[1,5,7.],[1,5,7.]],columns=['bar','a','a'])
+        self.assertRaises(ValueError, df.reindex, columns=['bar'])
+        self.assertRaises(ValueError, df.reindex, columns=['bar','foo'])
+
+        # drop
+        df = DataFrame([[1,5,7.],[1,5,7.],[1,5,7.]],columns=['bar','a','a'])
+        df = df.drop(['a'],axis=1)
+        expected = DataFrame([[1],[1],[1]],columns=['bar'])
+        check(df,expected)
 
     def test_insert_benchmark(self):
         # from the vb_suite/frame_methods/frame_insert_columns
@@ -7572,6 +7567,21 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = df.reindex(lrange(15), fill_value=0)
         expected = df.reindex(lrange(15)).fillna(0)
         assert_frame_equal(result, expected)
+
+    def test_reindex_dups(self):
+
+        # GH4746, reindex on duplicate index error messages
+        arr = np.random.randn(10)
+        df = DataFrame(arr,index=[1,2,3,4,5,1,2,3,4,5])
+
+        # set index is ok
+        result = df.copy()
+        result.index = list(range(len(df)))
+        expected = DataFrame(arr,index=list(range(len(df))))
+        assert_frame_equal(result,expected)
+
+        # reindex fails
+        self.assertRaises(ValueError, df.reindex, index=list(range(len(df))))
 
     def test_align(self):
 

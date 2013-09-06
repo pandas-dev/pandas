@@ -862,12 +862,13 @@ class NDFrame(PandasObject):
             indices = _maybe_convert_indices(
                 indices, len(self._get_axis(axis)))
 
-        if axis == 0:
+        baxis = self._get_block_manager_axis(axis)
+        if baxis == 0:
             labels = self._get_axis(axis)
             new_items = labels.take(indices)
-            new_data = self._data.reindex_axis(new_items, axis=0)
+            new_data = self._data.reindex_axis(new_items, indexer=indices, axis=0)
         else:
-            new_data = self._data.take(indices, axis=axis, verify=False)
+            new_data = self._data.take(indices, axis=baxis)
         return self._constructor(new_data)
 
     def select(self, crit, axis=0):
@@ -944,7 +945,7 @@ class NDFrame(PandasObject):
                 new_axis = axis.drop(labels, level=level)
             else:
                 new_axis = axis.drop(labels)
-            dropped = self.reindex(**{axis_name: new_axis})
+            dropped = self.reindex(**{ axis_name: new_axis })
             try:
                 dropped.axes[axis_].set_names(axis.names, inplace=True)
             except AttributeError:
@@ -1161,7 +1162,8 @@ class NDFrame(PandasObject):
         return self._reindex_with_indexers({axis: [new_index, indexer]}, method=method, fill_value=fill_value,
                                            limit=limit, copy=copy)._propogate_attributes(self)
 
-    def _reindex_with_indexers(self, reindexers, method=None, fill_value=np.nan, limit=None, copy=False):
+    def _reindex_with_indexers(self, reindexers, method=None, fill_value=np.nan, limit=None, copy=False, allow_dups=False):
+        """ allow_dups indicates an internal call here """
 
         # reindex doing multiple operations on different axes if indiciated
         new_data = self._data
@@ -1183,7 +1185,7 @@ class NDFrame(PandasObject):
                 # TODO: speed up on homogeneous DataFrame objects
                 indexer = com._ensure_int64(indexer)
                 new_data = new_data.reindex_indexer(index, indexer, axis=baxis,
-                                                    fill_value=fill_value)
+                                                    fill_value=fill_value, allow_dups=allow_dups)
 
             elif baxis == 0 and index is not None and index is not new_data.axes[baxis]:
                 new_data = new_data.reindex_items(index, copy=copy,

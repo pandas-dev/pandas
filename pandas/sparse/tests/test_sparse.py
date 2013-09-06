@@ -384,7 +384,9 @@ class TestSparseSeries(TestCase,
         idx = self.bseries.index
         res = self.bseries[::2]
         tm.assert_isinstance(res, SparseSeries)
-        assert_sp_series_equal(res, self.bseries.reindex(idx[::2]))
+
+        expected = self.bseries.reindex(idx[::2])
+        assert_sp_series_equal(res, expected)
 
         res = self.bseries[:5]
         tm.assert_isinstance(res, SparseSeries)
