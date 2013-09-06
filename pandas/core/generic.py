@@ -5,6 +5,7 @@ import weakref
 import numpy as np
 import pandas.lib as lib
 
+import pandas as pd
 from pandas.core.base import PandasObject
 from pandas.core.index import Index, MultiIndex, _ensure_index
 import pandas.core.indexing as indexing
@@ -18,6 +19,33 @@ from pandas.core.common import (isnull, notnull, is_list_like,
                                 _values_from_object,
                                 _infer_dtype_from_scalar, _maybe_promote,
                                 ABCSeries)
+
+
+
+def is_dictlike(x):
+    return isinstance(x, (dict, com.ABCSeries))
+
+
+def _single_replace(self, to_replace, method, inplace, limit):
+    orig_dtype = self.dtype
+    result = self if inplace else self.copy()
+    fill_f = com._get_fill_func(method)
+
+    mask = com.mask_missing(result.values, to_replace)
+    values = fill_f(result.values, limit=limit, mask=mask)
+
+    if values.dtype == orig_dtype and inplace:
+        return
+
+    result = pd.Series(values, index=self.index, name=self.name,
+                       dtype=self.dtype)
+
+    if inplace:
+        self._data = result._data
+        return
+
+    return result
+
 
 class NDFrame(PandasObject):
 
@@ -1581,7 +1609,7 @@ class NDFrame(PandasObject):
                            limit=limit, downcast=downcast)
 
     def replace(self, to_replace=None, value=None, inplace=False, limit=None,
-                regex=False, method=None, axis=None):
+                regex=False, method='pad', axis=None):
         """
         Replace values given in 'to_replace' with 'value'.
 
@@ -1643,14 +1671,19 @@ class NDFrame(PandasObject):
             string. Otherwise, `to_replace` must be ``None`` because this
             parameter will be interpreted as a regular expression or a list,
             dict, or array of regular expressions.
+        method : string, optional, {'pad', 'ffill', 'bfill'}
+            The method to use when for replacement, when ``to_replace`` is a
+            ``list``.
 
         See also
         --------
-        reindex, asfreq, fillna
+        NDFrame.reindex
+        NDFrame.asfreq
+        NDFrame.fillna
 
         Returns
         -------
-        filled : DataFrame
+        filled : NDFrame
 
         Raises
         ------
@@ -1681,11 +1714,6 @@ class NDFrame(PandasObject):
         if not com.is_bool(regex) and to_replace is not None:
             raise AssertionError("'to_replace' must be 'None' if 'regex' is "
                                  "not a bool")
-        if method is not None:
-            from warnings import warn
-            warn('the "method" argument is deprecated and will be removed in'
-                 'v0.13; this argument has no effect')
-
         if axis is not None:
             from warnings import warn
             warn('the "axis" argument is deprecated and will be removed in'
@@ -1693,14 +1721,16 @@ class NDFrame(PandasObject):
 
         self._consolidate_inplace()
 
-        def is_dictlike(x):
-            return isinstance(x, (dict, com.ABCSeries))
-
         if value is None:
+            if isinstance(to_replace, list):
+                return _single_replace(self, to_replace, method, inplace,
+                                       limit)
+
             if not is_dictlike(to_replace):
                 if not is_dictlike(regex):
                     raise TypeError('If "to_replace" and "value" are both None'
-                                    ' then regex must be a mapping')
+                                    ' and "to_replace" is not a list, then '
+                                    'regex must be a mapping')
                 to_replace = regex
                 regex = True
 
