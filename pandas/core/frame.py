@@ -4609,6 +4609,11 @@ class DataFrame(NDFrame):
 
 
         else:
+            if not com.is_list_like(values):
+                raise TypeError("only list-like or dict-like objects are"
+                                " allowed to be passed to DataFrame.isin(), "
+                                "you passed a "
+                                "{0!r}".format(type(values).__name__))
             return DataFrame(lib.ismember(self.values.ravel(),
                                           set(values)).reshape(self.shape),
                              self.index,
