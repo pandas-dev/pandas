@@ -198,6 +198,7 @@ class Block(PandasObject):
             raise AssertionError('axis must be at least 1, got %d' % axis)
         if fill_value is None:
             fill_value = self.fill_value
+
         new_values = com.take_nd(self.values, indexer, axis,
                                  fill_value=fill_value, mask_info=mask_info)
         return make_block(
@@ -1515,7 +1516,20 @@ class SparseBlock(Block):
         if indexer is None:
             indexer = np.arange(len(self.items))
 
-        new_values = com.take_1d(self.values.values, indexer)
+        # single block
+        if self.ndim == 1:
+
+            new_items = new_ref_items
+            new_values = com.take_1d(self.values.values, indexer)
+
+        else:
+
+            # if we don't overlap at all, then don't include this block
+            new_items = self.items & new_ref_items
+            if not len(new_items):
+                return None
+
+            new_values = self.values.values
 
         # fill if needed
         if method is not None or limit is not None:
@@ -1523,7 +1537,7 @@ class SparseBlock(Block):
                 fill_value = self.fill_value
             new_values = com.interpolate_2d(new_values, method=method, limit=limit, fill_value=fill_value)
 
-        return self.make_block(new_values, items=new_ref_items, ref_items=new_ref_items, copy=copy)
+        return self.make_block(new_values, items=new_items, ref_items=new_ref_items, copy=copy)
 
     def sparse_reindex(self, new_index):
         """ sparse reindex and return a new block
@@ -2718,10 +2732,14 @@ class BlockManager(PandasObject):
         raise AssertionError('method argument not supported for '
                              'axis == 0')
 
-    def reindex_indexer(self, new_axis, indexer, axis=1, fill_value=None):
+    def reindex_indexer(self, new_axis, indexer, axis=1, fill_value=None, allow_dups=False):
         """
         pandas-indexer with -1's only.
         """
+        # trying to reindex on an axis with duplicates
+        if not allow_dups and not self.axes[axis].is_unique:
+            raise ValueError("cannot reindex from a duplicate axis")
+
         if axis == 0:
             return self._reindex_indexer_items(new_axis, indexer, fill_value)
 
@@ -2789,15 +2807,34 @@ class BlockManager(PandasObject):
         if indexer is None:
             for blk in self.blocks:
                 if copy:
-                    new_blocks.append(blk.reindex_items_from(new_items))
+                    blk = blk.reindex_items_from(new_items)
                 else:
                     blk.ref_items = new_items
+                if blk is not None:
                     new_blocks.append(blk)
         else:
-            for block in self.blocks:
-                newb = block.reindex_items_from(new_items, copy=copy)
-                if len(newb.items) > 0:
-                    new_blocks.append(newb)
+
+            # unique
+            if self.axes[0].is_unique:
+                for block in self.blocks:
+
+                    newb = block.reindex_items_from(new_items, copy=copy)
+                    if newb is not None and len(newb.items) > 0:
+                        new_blocks.append(newb)
+
+            # non-unique
+            else:
+                rl = self._set_ref_locs()
+                for i, idx in enumerate(indexer):
+                    blk, lidx = rl[idx]
+                    item = new_items.take([i])
+                    blk = make_block(_block_shape(blk.iget(lidx)),
+                                     item,
+                                     new_items,
+                                     ndim=self.ndim,
+                                     fastpath=True,
+                                     placement = [i])
+                    new_blocks.append(blk)
 
             # add a na block if we are missing items
             mask = indexer == -1
