@@ -4,7 +4,7 @@
 
 from datetime import datetime, timedelta
 import operator
-import pickle
+import pickle as pkl
 import unittest
 import nose
 import os
@@ -29,24 +29,10 @@ class TestPickle(unittest.TestCase):
 
         # py3 compat when reading py2 pickle
         try:
-            with open(vf,'rb') as fh:
-                data = pickle.load(fh)
-        except ValueError as detail:
-
-            # we are trying to read a py3 pickle in py2.....
+            data = pandas.read_pickle(vf)
+        except (ValueError) as detail:
+            # trying to read a py3 pickle in py2
             return
-
-        # we have a deprecated klass
-        except TypeError as detail:
-
-            from pandas.compat.pickle_compat import load
-            data = load(vf)
-
-        except:
-            if not compat.PY3:
-                raise
-            with open(vf,'rb') as fh:
-                data = pickle.load(fh, encoding='latin1')
 
         for typ, dv in data.items():
             for dt, result in dv.items():
@@ -64,23 +50,26 @@ class TestPickle(unittest.TestCase):
                     comparator = getattr(tm,"assert_%s_equal" % typ)
                     comparator(result,expected)
 
-    def test_read_pickles_0_10_1(self):
+    def read_pickles(self, version):
         if not is_little_endian():
-            raise nose.SkipTest("known failure of test_read_pickles_0_10_1 on non-little endian")
+            raise nose.SkipTest("known failure on non-little endian")
 
-        pth = tm.get_data_path('legacy_pickle/0.10.1')
+        pth = tm.get_data_path('legacy_pickle/{0}'.format(str(version)))
         for f in os.listdir(pth):
             vf = os.path.join(pth,f)
             self.compare(vf)
+
+    def test_read_pickles_0_10_1(self):
+        self.read_pickles('0.10.1')
 
     def test_read_pickles_0_11_0(self):
-        if not is_little_endian():
-            raise nose.SkipTest("known failure of test_read_pickles_0_11_0 on non-little endian")
+        self.read_pickles('0.11.0')
 
-        pth = tm.get_data_path('legacy_pickle/0.11.0')
-        for f in os.listdir(pth):
-            vf = os.path.join(pth,f)
-            self.compare(vf)
+    def test_read_pickles_0_12_0(self):
+        self.read_pickles('0.12.0')
+
+    def test_read_pickles_0_13_0(self):
+        self.read_pickles('0.13.0')
 
 if __name__ == '__main__':
     import nose

@@ -533,6 +533,12 @@ class DatetimeIndex(Int64Index):
             self.offset = own_state[1]
             self.tz = own_state[2]
             np.ndarray.__setstate__(self, nd_state)
+
+            # provide numpy < 1.7 compat
+            if nd_state[2] == 'M8[us]':
+                new_state = np.ndarray.__reduce__(self.values.astype('M8[ns]'))
+                np.ndarray.__setstate__(self, new_state[2])
+
         else:  # pragma: no cover
             np.ndarray.__setstate__(self, state)
 

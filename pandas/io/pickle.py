@@ -1,4 +1,4 @@
-from pandas.compat import cPickle as pkl, PY3
+from pandas.compat import cPickle as pkl, pickle_compat as pc, PY3
 
 def to_pickle(obj, path):
     """
@@ -31,11 +31,23 @@ def read_pickle(path):
     -------
     unpickled : type of object stored in file
     """
+
+    def try_read(path, encoding=None):
+        # try with current pickle, if we have a Type Error then
+        # try with the compat pickle to handle subclass changes
+        # pass encoding only if its not None as py2 doesn't handle
+        # the param
+        try:
+            with open(path,'rb') as fh:
+                with open(path,'rb') as fh:
+                    return pc.load(fh, encoding=encoding, compat=False)
+        except:
+            with open(path,'rb') as fh:
+                return pc.load(fh, encoding=encoding, compat=True)
+
     try:
-        with open(path, 'rb') as fh:
-            return pkl.load(fh)
+        return try_read(path)
     except:
         if PY3:
-            with open(path, 'rb') as fh:
-                return pkl.load(fh, encoding='latin1')
+            return try_read(path, encoding='latin1')
         raise
