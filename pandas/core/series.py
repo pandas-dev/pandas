@@ -1096,10 +1096,9 @@ class Series(generic.NDFrame):
         self._set_values(indexer, value)
 
     def _set_values(self, key, value):
-        values = self.values
         if isinstance(key, Series):
             key = key.values
-        values[key] = _index.convert_scalar(values, value)
+        self._data = self._data.setitem(key,value)
 
     # help out SparseSeries
     _get_val_at = ndarray.__getitem__
