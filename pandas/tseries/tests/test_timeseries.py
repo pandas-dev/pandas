@@ -2562,8 +2562,31 @@ class TestSlicing(unittest.TestCase):
         result = s['2005-1-1']
         assert_series_equal(result, s.ix[:60])
 
-        assert_series_equal(s['2005-1-1 23:59:00'],s.ix[0])
+        self.assert_(s[Timestamp('2005-1-1 23:59:00')] == s.ix[0])
         self.assertRaises(Exception, s.__getitem__, '2004-12-31 00:00:00')
+
+    def test_partial_slicing_with_multiindex(self):
+
+        # GH 4758
+        # partial string indexing with a multi-index buggy
+        df = DataFrame({'ACCOUNT':["ACCT1", "ACCT1", "ACCT1", "ACCT2"],
+                        'TICKER':["ABC", "MNP", "XYZ", "XYZ"],
+                        'val':[1,2,3,4]},
+                       index=date_range("2013-06-19 09:30:00", periods=4, freq='5T'))
+        df_multi = df.set_index(['ACCOUNT', 'TICKER'], append=True)
+
+        expected = DataFrame([[1]],index=Index(['ABC'],name='TICKER'),columns=['val'])
+        result = df_multi.loc[('2013-06-19 09:30:00', 'ACCT1')]
+        assert_frame_equal(result, expected)
+
+        expected = df_multi.loc[(pd.Timestamp('2013-06-19 09:30:00', tz=None), 'ACCT1', 'ABC')]
+        result = df_multi.loc[('2013-06-19 09:30:00', 'ACCT1', 'ABC')]
+        assert_series_equal(result, expected)
+
+        # this is a KeyError as we don't do partial string selection on multi-levels
+        def f():
+            df_multi.loc[('2013-06-19', 'ACCT1', 'ABC')]
+        self.assertRaises(KeyError, f)
 
     def test_date_range_normalize(self):
         snap = datetime.today()
