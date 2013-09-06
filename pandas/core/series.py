@@ -2377,7 +2377,7 @@ class Series(generic.NDFrame):
 
         if (true_base is not None and
                 (true_base.ndim != 1 or true_base.shape != self.shape)):
-            raise Exception('This Series is a view of some other array, to '
+            raise TypeError('This Series is a view of some other array, to '
                             'sort in-place you must create a copy')
 
         self[:] = sortedSeries
@@ -2542,7 +2542,7 @@ class Series(generic.NDFrame):
         sorted : Series
         """
         if not isinstance(self.index, MultiIndex):
-            raise Exception('can only sort by level with a hierarchical index')
+            raise TypeError('can only sort by level with a hierarchical index')
 
         new_index, indexer = self.index.sortlevel(level, ascending=ascending)
         new_values = self.values.take(indexer)

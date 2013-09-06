@@ -1625,7 +1625,7 @@ class BlockManager(PandasObject):
         value = _ensure_index(value)
 
         if check_axis and len(value) != len(cur_axis):
-            raise Exception('Length mismatch (%d vs %d)'
+            raise ValueError('Length mismatch (%d vs %d)'
                             % (len(value), len(cur_axis)))
 
         self.axes[axis] = value
@@ -2297,7 +2297,7 @@ class BlockManager(PandasObject):
             return result
 
         if not copy:
-            raise Exception('cannot get view of mixed-type or '
+            raise TypeError('cannot get view of mixed-type or '
                             'non-consolidated DataFrame')
 
         items = self.items
@@ -2483,7 +2483,8 @@ class BlockManager(PandasObject):
     def insert(self, loc, item, value, allow_duplicates=False):
 
         if not allow_duplicates and item in self.items:
-            raise Exception('cannot insert %s, already exists' % item)
+            # Should this be a different kind of error??
+            raise ValueError('cannot insert %s, already exists' % item)
 
         try:
             new_items = self.items.insert(loc, item)
@@ -2826,7 +2827,8 @@ class BlockManager(PandasObject):
         to_rename = self.items.intersection(other.items)
         if len(to_rename) > 0:
             if not lsuffix and not rsuffix:
-                raise Exception('columns overlap: %s' % to_rename)
+                raise ValueError('columns overlap but no suffix specified: %s'
+                                 % to_rename)
 
             def lrenamer(x):
                 if x in to_rename:

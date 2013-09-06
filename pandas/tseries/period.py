@@ -121,6 +121,7 @@ class Period(PandasObject):
 
         base, mult = _gfc(freq)
         if mult != 1:
+            # TODO: Better error message - this is slightly confusing
             raise ValueError('Only mult == 1 supported')
 
         if self.ordinal is None:

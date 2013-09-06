@@ -600,7 +600,8 @@ class SparseDataFrame(DataFrame):
     def _join_compat(self, other, on=None, how='left', lsuffix='', rsuffix='',
                      sort=False):
         if isinstance(other, Series):
-            assert(other.name is not None)
+            if other.name is None:
+                raise ValueError('Other Series must have a name')
             other = SparseDataFrame({other.name: other},
                                     default_fill_value=self._default_fill_value)
         if on is not None:
@@ -627,19 +628,19 @@ class SparseDataFrame(DataFrame):
         return concat([this, other], axis=1, verify_integrity=True)
 
     def _maybe_rename_join(self, other, lsuffix, rsuffix):
-        intersection = self.columns.intersection(other.columns)
-
-        if len(intersection) > 0:
+        to_rename = self.columns.intersection(other.columns)
+        if len(to_rename) > 0:
             if not lsuffix and not rsuffix:
-                raise Exception('columns overlap: %s' % intersection)
+                raise ValueError('columns overlap but no suffix specified: %s'
+                                 % to_rename)
 
             def lrenamer(x):
-                if x in intersection:
+                if x in to_rename:
                     return '%s%s' % (x, lsuffix)
                 return x
 
             def rrenamer(x):
-                if x in intersection:
+                if x in to_rename:
                     return '%s%s' % (x, rsuffix)
                 return x
 
@@ -687,7 +688,7 @@ class SparseDataFrame(DataFrame):
         ----------
         func : function
             Function to apply to each column
-        axis : {0, 1}
+        axis : {0, 1, 'index', 'columns'}
         broadcast : bool, default False
             For aggregation functions, return object of same size with values
             propagated
@@ -698,6 +699,7 @@ class SparseDataFrame(DataFrame):
         """
         if not len(self.columns):
             return self
+        axis = self._get_axis_number(axis)
 
         if isinstance(func, np.ufunc):
             new_series = {}

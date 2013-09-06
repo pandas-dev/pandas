@@ -21,10 +21,6 @@ import pandas.algos as algos
 from pandas.core.index import Index, MultiIndex
 
 
-class ReshapeError(Exception):
-    pass
-
-
 class _Unstacker(object):
     """
     Helper class to unstack data / pivot with multi-level index
@@ -129,8 +125,8 @@ class _Unstacker(object):
         mask.put(selector, True)
 
         if mask.sum() < len(self.index):
-            raise ReshapeError('Index contains duplicate entries, '
-                               'cannot reshape')
+            raise ValueError('Index contains duplicate entries, '
+                             'cannot reshape')
 
         self.group_index = comp_index
         self.mask = mask

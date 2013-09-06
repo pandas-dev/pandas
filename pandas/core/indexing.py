@@ -84,7 +84,7 @@ class _NDFrameIndexer(object):
 
         if isinstance(key, tuple):
             if len(key) > self.ndim:
-                raise IndexingError('only tuples of length <= %d supported',
+                raise IndexingError('only tuples of length <= %d supported' %
                                     self.ndim)
             indexer = self._convert_tuple(key, is_setter=True)
         else:
