@@ -1047,6 +1047,7 @@ _backfill_2d_datetime = _interp_wrapper(algos.backfill_2d_inplace_int64,
                                         np.int64)
 
 
+
 def pad_1d(values, limit=None, mask=None):
 
     dtype = values.dtype.name
@@ -1187,6 +1188,14 @@ def _consensus_name_attr(objs):
         if obj.name != name:
             return None
     return name
+
+
+_fill_methods = {'pad': pad_1d, 'backfill': backfill_1d}
+
+def _get_fill_func(method):
+    method = _clean_fill_method(method)
+    return _fill_methods[method]
+
 
 #----------------------------------------------------------------------
 # Lots of little utilities

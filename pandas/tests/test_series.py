@@ -4608,6 +4608,63 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         result = ser.replace([0, 1, 2, 3, 4], [4, 3, 2, 1, 0])
         assert_series_equal(result, Series([4, 3, 2, 1, 0]))
 
+    def test_replace_with_single_list(self):
+        ser = Series([0, 1, 2, 3, 4])
+        result = ser.replace([1,2,3])
+        assert_series_equal(result, Series([0,0,0,0,4]))
+
+        s = ser.copy()
+        s.replace([1,2,3],inplace=True)
+        assert_series_equal(s, Series([0,0,0,0,4]))
+
+        # make sure things don't get corrupted when fillna call fails
+        s = ser.copy()
+        with tm.assertRaises(ValueError):
+            s.replace([1,2,3],inplace=True,method='crash_cymbal')
+        assert_series_equal(s, ser)
+
+    def test_replace_mixed_types(self):
+        s = Series(np.arange(5))
+
+        def check_replace(to_rep, val, expected):
+            sc = s.copy()
+            r = s.replace(to_rep, val)
+            sc.replace(to_rep, val, inplace=True)
+            assert_series_equal(expected, r)
+            assert_series_equal(expected, sc)
+
+        # should NOT upcast to float
+        e = Series([0,1,2,3,4])
+        tr, v = [3], [3.0]
+        check_replace(tr, v, e)
+
+        # MUST upcast to float
+        e = Series([0,1,2,3.5,4])
+        tr, v = [3], [3.5]
+        check_replace(tr, v, e)
+
+        # casts to object
+        e = Series([0,1,2,3.5,'a'])
+        tr, v = [3,4], [3.5,'a']
+        check_replace(tr, v, e)
+
+        # again casts to object
+        e = Series([0,1,2,3.5,Timestamp('20130101')])
+        tr, v = [3,4],[3.5,Timestamp('20130101')]
+        check_replace(tr, v, e)
+
+        # casts to float
+        e = Series([0,1,2,3.5,1])
+        tr, v = [3,4],[3.5,True]
+        check_replace(tr, v, e)
+
+        # test an object with dates + floats + integers + strings
+        dr = date_range('1/1/2001', '1/10/2001',
+                        freq='D').to_series().reset_index(drop=True)
+        r = dr.astype(object).replace([dr[0],dr[1],dr[2]], [1.0,2,'a'])
+        assert_series_equal(r, Series([1.0,2,'a'] +
+                                      dr[3:].tolist(),dtype=object))
+
     def test_asfreq(self):
         ts = Series([0., 1., 2.], index=[datetime(2009, 10, 30),
                                          datetime(2009, 11, 30),
