@@ -1468,23 +1468,22 @@ class PythonParser(ParserBase):
                 col = self.orig_names[col]
             clean_conv[col] = f
 
-        return self._convert_to_ndarrays(data, self.na_values, self.na_fvalues,
-                                         self.verbose, clean_conv)
+        return self._convert_to_ndarrays(data, self.na_values, self.na_fvalues, self.verbose,
+                                         clean_conv)
 
     def _infer_columns(self):
-        #import ipdb; ipdb.set_trace()
         names = self.names
 
         if self.header is not None:
             header = self.header
 
             # we have a mi columns, so read and extra line
-            if isinstance(header, (list, tuple, np.ndarray)):
+            if isinstance(header,(list,tuple,np.ndarray)):
                 have_mi_columns = True
-                header = list(header) + [header[-1] + 1]
+                header = list(header) + [header[-1]+1]
             else:
                 have_mi_columns = False
-                header = [header]
+                header = [ header ]
 
             columns = []
             for level, hr in enumerate(header):
@@ -1499,7 +1498,7 @@ class PythonParser(ParserBase):
 
                 this_columns = []
                 for i, c in enumerate(line):
-                    if not c:
+                    if c == '':
                         if have_mi_columns:
                             this_columns.append('Unnamed: %d_level_%d' % (i,level))
                         else:

@@ -3,13 +3,13 @@ from __future__ import print_function
 import os
 import re
 import warnings
+import unittest
 
 try:
     from importlib import import_module
 except ImportError:
     import_module = __import__
 
-from unittest import TestCase
 from distutils.version import LooseVersion
 
 import nose
@@ -84,7 +84,7 @@ def test_bs4_version_fails():
                          flavor='bs4')
 
 
-class TestReadHtmlBase(TestCase):
+class TestReadHtml(unittest.TestCase):
     def run_read_html(self, *args, **kwargs):
         kwargs['flavor'] = kwargs.get('flavor', self.flavor)
         return read_html(*args, **kwargs)
@@ -110,8 +110,6 @@ class TestReadHtmlBase(TestCase):
         out = df.to_html()
         res = self.run_read_html(out, attrs={'class': 'dataframe'},
                                  index_col=0)[0]
-        print(df.dtypes)
-        print(res.dtypes)
         tm.assert_frame_equal(res, df)
 
     @network
@@ -142,9 +140,11 @@ class TestReadHtmlBase(TestCase):
         assert_framelist_equal(df1, df2)
 
     def test_spam_no_types(self):
-        df1 = self.run_read_html(self.spam_data, '.*Water.*',
-                                 infer_types=False)
-        df2 = self.run_read_html(self.spam_data, 'Unit', infer_types=False)
+        with tm.assert_produces_warning():
+            df1 = self.run_read_html(self.spam_data, '.*Water.*',
+                                     infer_types=False)
+        with tm.assert_produces_warning():
+            df2 = self.run_read_html(self.spam_data, 'Unit', infer_types=False)
 
         assert_framelist_equal(df1, df2)
 
@@ -162,12 +162,12 @@ class TestReadHtmlBase(TestCase):
     def test_spam_no_match(self):
         dfs = self.run_read_html(self.spam_data)
         for df in dfs:
-            self.assert_(isinstance(df, DataFrame))
+            tm.assert_isinstance(df, DataFrame)
 
     def test_banklist_no_match(self):
         dfs = self.run_read_html(self.banklist_data, attrs={'id': 'table'})
         for df in dfs:
-            self.assert_(isinstance(df, DataFrame))
+            tm.assert_isinstance(df, DataFrame)
 
     def test_spam_header(self):
         df = self.run_read_html(self.spam_data, '.*Water.*', header=1)[0]
@@ -237,10 +237,12 @@ class TestReadHtmlBase(TestCase):
         assert_framelist_equal(df1, df2)
 
     def test_header_and_index_no_types(self):
-        df1 = self.run_read_html(self.spam_data, '.*Water.*', header=1,
-                                 index_col=0, infer_types=False)
-        df2 = self.run_read_html(self.spam_data, 'Unit', header=1,
-                                 index_col=0, infer_types=False)
+        with tm.assert_produces_warning():
+            df1 = self.run_read_html(self.spam_data, '.*Water.*', header=1,
+                                     index_col=0, infer_types=False)
+        with tm.assert_produces_warning():
+            df2 = self.run_read_html(self.spam_data, 'Unit', header=1,
+                                    index_col=0, infer_types=False)
         assert_framelist_equal(df1, df2)
 
     def test_header_and_index_with_types(self):
@@ -250,14 +252,17 @@ class TestReadHtmlBase(TestCase):
         assert_framelist_equal(df1, df2)
 
     def test_infer_types(self):
-        df1 = self.run_read_html(self.spam_data, '.*Water.*', index_col=0,
-                                 infer_types=False)
-        df2 = self.run_read_html(self.spam_data, 'Unit', index_col=0,
-                                 infer_types=False)
+        with tm.assert_produces_warning():
+            df1 = self.run_read_html(self.spam_data, '.*Water.*', index_col=0,
+                                     infer_types=False)
+        with tm.assert_produces_warning():
+            df2 = self.run_read_html(self.spam_data, 'Unit', index_col=0,
+                                    infer_types=False)
         assert_framelist_equal(df1, df2)
 
-        df2 = self.run_read_html(self.spam_data, 'Unit', index_col=0,
-                                 infer_types=True)
+        with tm.assert_produces_warning():
+            df2 = self.run_read_html(self.spam_data, 'Unit', index_col=0,
+                                    infer_types=True)
 
         self.assertRaises(AssertionError, assert_framelist_equal, df1, df2)
 
@@ -268,25 +273,25 @@ class TestReadHtmlBase(TestCase):
         with open(self.spam_data) as f:
             data2 = StringIO(f.read())
 
-        df1 = self.run_read_html(data1, '.*Water.*', infer_types=False)
-        df2 = self.run_read_html(data2, 'Unit', infer_types=False)
+        df1 = self.run_read_html(data1, '.*Water.*')
+        df2 = self.run_read_html(data2, 'Unit')
         assert_framelist_equal(df1, df2)
 
     def test_string(self):
         with open(self.spam_data) as f:
             data = f.read()
 
-        df1 = self.run_read_html(data, '.*Water.*', infer_types=False)
-        df2 = self.run_read_html(data, 'Unit', infer_types=False)
+        df1 = self.run_read_html(data, '.*Water.*')
+        df2 = self.run_read_html(data, 'Unit')
 
         assert_framelist_equal(df1, df2)
 
     def test_file_like(self):
         with open(self.spam_data) as f:
-            df1 = self.run_read_html(f, '.*Water.*', infer_types=False)
+            df1 = self.run_read_html(f, '.*Water.*')
 
         with open(self.spam_data) as f:
-            df2 = self.run_read_html(f, 'Unit', infer_types=False)
+            df2 = self.run_read_html(f, 'Unit')
 
         assert_framelist_equal(df1, df2)
 
@@ -305,9 +310,9 @@ class TestReadHtmlBase(TestCase):
         url = self.banklist_data
         dfs = self.run_read_html('file://' + url, 'First',
                                  attrs={'id': 'table'})
-        self.assert_(isinstance(dfs, list))
+        tm.assert_isinstance(dfs, list)
         for df in dfs:
-            self.assert_(isinstance(df, DataFrame))
+            tm.assert_isinstance(df, DataFrame)
 
     @slow
     def test_invalid_table_attrs(self):
@@ -323,30 +328,31 @@ class TestReadHtmlBase(TestCase):
     @slow
     def test_multiindex_header(self):
         df = self._bank_data(header=[0, 1])[0]
-        self.assert_(isinstance(df.columns, MultiIndex))
+        tm.assert_isinstance(df.columns, MultiIndex)
 
     @slow
     def test_multiindex_index(self):
         df = self._bank_data(index_col=[0, 1])[0]
-        self.assert_(isinstance(df.index, MultiIndex))
+        tm.assert_isinstance(df.index, MultiIndex)
 
     @slow
     def test_multiindex_header_index(self):
         df = self._bank_data(header=[0, 1], index_col=[0, 1])[0]
-        self.assert_(isinstance(df.columns, MultiIndex))
-        self.assert_(isinstance(df.index, MultiIndex))
+        tm.assert_isinstance(df.columns, MultiIndex)
+        tm.assert_isinstance(df.index, MultiIndex)
 
     @slow
     def test_multiindex_header_skiprows(self):
-        import ipdb; ipdb.set_trace()
+        # wtf does skiprows=1 fail here?!?
         df = self._bank_data(header=[0, 1], skiprows=1)[0]
-        self.assert_(isinstance(df.columns, MultiIndex))
+        tm.assert_isinstance(df.columns, MultiIndex)
 
     @slow
     def test_multiindex_header_index_skiprows(self):
+        # wtf does skiprows=1 fail here?!?
         df = self._bank_data(header=[0, 1], index_col=[0, 1], skiprows=1)[0]
-        self.assert_(isinstance(df.index, MultiIndex))
-        self.assert_(isinstance(df.columns, MultiIndex))
+        tm.assert_isinstance(df.index, MultiIndex)
+        tm.assert_isinstance(df.columns, MultiIndex)
 
     @slow
     def test_regex_idempotency(self):
@@ -354,9 +360,9 @@ class TestReadHtmlBase(TestCase):
         dfs = self.run_read_html('file://' + url,
                                  match=re.compile(re.compile('Florida')),
                                  attrs={'id': 'table'})
-        self.assert_(isinstance(dfs, list))
+        tm.assert_isinstance(dfs, list)
         for df in dfs:
-            self.assert_(isinstance(df, DataFrame))
+            tm.assert_isinstance(df, DataFrame)
 
     def test_negative_skiprows_spam(self):
         url = self.spam_data
@@ -382,6 +388,16 @@ class TestReadHtmlBase(TestCase):
                                  attrs={'class': 'wikitable'})
         zz = [df.iloc[0, 0] for df in dfs]
         self.assertEqual(sorted(zz), sorted(['Python', 'SciTE']))
+
+    @network
+    def test_thousands_macau_stats(self):
+        macau_data = os.path.join(DATA_PATH, 'macau.html')
+        dfs = self.run_read_html(macau_data, index_col=0,
+                                 attrs={'class': 'style1'})
+
+        # no columns should have all nans
+        res = any((df.count() == 0).any() for df in dfs)
+        self.assertEqual(res, False)
 
     @slow
     def test_banklist_header(self):
@@ -428,11 +444,78 @@ class TestReadHtmlBase(TestCase):
 
         self.assert_(gc in raw_text)
         df = self.run_read_html(self.banklist_data, 'Gold Canyon',
-                                attrs={'id': 'table'}, infer_types=False)[0]
+                                attrs={'id': 'table'})[0]
         self.assert_(gc in df.to_string())
 
+    def test_different_number_of_rows(self):
+        expected = """<table border="1" class="dataframe">
+                        <thead>
+                            <tr style="text-align: right;">
+                            <th></th>
+                            <th>C_l0_g0</th>
+                            <th>C_l0_g1</th>
+                            <th>C_l0_g2</th>
+                            <th>C_l0_g3</th>
+                            <th>C_l0_g4</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                            <th>R_l0_g0</th>
+                            <td> 0.763</td>
+                            <td> 0.233</td>
+                            <td> nan</td>
+                            <td> nan</td>
+                            <td> nan</td>
+                            </tr>
+                            <tr>
+                            <th>R_l0_g1</th>
+                            <td> 0.244</td>
+                            <td> 0.285</td>
+                            <td> 0.392</td>
+                            <td> 0.137</td>
+                            <td> 0.222</td>
+                            </tr>
+                        </tbody>
+                    </table>"""
+        out = """<table border="1" class="dataframe">
+                    <thead>
+                        <tr style="text-align: right;">
+                        <th></th>
+                        <th>C_l0_g0</th>
+                        <th>C_l0_g1</th>
+                        <th>C_l0_g2</th>
+                        <th>C_l0_g3</th>
+                        <th>C_l0_g4</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                        <th>R_l0_g0</th>
+                        <td> 0.763</td>
+                        <td> 0.233</td>
+                        </tr>
+                        <tr>
+                        <th>R_l0_g1</th>
+                        <td> 0.244</td>
+                        <td> 0.285</td>
+                        <td> 0.392</td>
+                        <td> 0.137</td>
+                        <td> 0.222</td>
+                        </tr>
+                    </tbody>
+                 </table>"""
+        expected = self.run_read_html(out, attrs={'class': 'dataframe'},
+                                      index_col=0)[0]
+        res = self.run_read_html(out, attrs={'class': 'dataframe'},
+                                 index_col=0)[0]
+        tm.assert_frame_equal(expected, res)
 
-class TestReadHtmlLxml(TestCase):
+
+class TestReadHtmlLxml(unittest.TestCase):
+    def setUp(self):
+        self.try_skip()
+
     def run_read_html(self, *args, **kwargs):
         self.flavor = ['lxml']
         self.try_skip()
@@ -457,11 +540,8 @@ class TestReadHtmlLxml(TestCase):
     def test_works_on_valid_markup(self):
         filename = os.path.join(DATA_PATH, 'valid_markup.html')
         dfs = self.run_read_html(filename, index_col=0, flavor=['lxml'])
-        self.assert_(isinstance(dfs, list))
-        self.assert_(isinstance(dfs[0], DataFrame))
-
-    def setUp(self):
-        self.try_skip()
+        tm.assert_isinstance(dfs, list)
+        tm.assert_isinstance(dfs[0], DataFrame)
 
     @slow
     def test_fallback_success(self):

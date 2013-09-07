@@ -8,8 +8,8 @@ import re
 import numbers
 import collections
 import warnings
+import itertools
 
-from itertools import repeat
 from distutils.version import LooseVersion
 
 import numpy as np
@@ -48,7 +48,7 @@ else:
 #############
 # READ HTML #
 #############
-_RE_WHITESPACE = re.compile(r'([\r\n]+|\s{2,})')
+_RE_WHITESPACE = re.compile(r'[\r\n]+|\s{2,}')
 
 
 def _remove_whitespace(s, regex=_RE_WHITESPACE):
@@ -100,8 +100,8 @@ def _get_skiprows(skiprows):
     elif skiprows is None:
         return 0
     else:
-        raise TypeError('{0} is not a valid type for skipping'
-                        ' rows'.format(type(skiprows)))
+        raise TypeError('{0!r} is not a valid type for skipping'
+                        ' rows'.format(type(skiprows).__name__))
 
 
 def _read(io):
@@ -127,7 +127,7 @@ def _read(io):
         raw_text = io
     else:
         raise TypeError("Cannot read object of type "
-                        "'{0.__class__.__name__!r}'".format(io))
+                        "{0!r}".format(type(io).__name__))
     return raw_text
 
 
@@ -587,7 +587,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
 
 
 def _nan_list(n):
-    return list(repeat(np.nan, n))
+    return list(itertools.repeat(np.nan, n))
 
 
 def _expand_elements(body):
@@ -595,22 +595,30 @@ def _expand_elements(body):
     lens_max = lens.max()
     not_max = lens[lens != lens_max]
 
-    for ind, length in not_max.iteritems():
+    for ind, length in compat.iteritems(not_max):
         body[ind] += _nan_list(lens_max - length)
 
 
 def _data_to_frame(data, header, index_col, skiprows, infer_types,
-                   parse_dates):
+                   parse_dates, tupleize_cols, thousands):
     head, body, _ = data  # _ is footer which is rarely used: ignore for now
+
+    if head:
+        body = [head] + body
+
+        if header is None:  # special case when a table has <th> elements
+            header = 0
+
+    # fill out elements of body that are "ragged"
     _expand_elements(body)
-    body = [head] + body
-    import ipdb; ipdb.set_trace()
+
     tp = TextParser(body, header=header, index_col=index_col,
                     skiprows=_get_skiprows(skiprows),
-                    parse_dates=parse_dates, tupleize_cols=False)
+                    parse_dates=parse_dates, tupleize_cols=tupleize_cols,
+                    thousands=thousands)
     df = tp.read()
 
-    if infer_types:  # remove in 0.14
+    if infer_types:  # TODO: remove in 0.14
         df = df.convert_objects(convert_dates='coerce')
     else:
         df = df.applymap(compat.text_type)
@@ -687,7 +695,7 @@ def _validate_parser_flavor(flavor):
 
 
 def _parse(flavor, io, match, header, index_col, skiprows, infer_types,
-           parse_dates, attrs):
+           parse_dates, tupleize_cols, thousands, attrs):
     # bonus: re.compile is idempotent under function iteration so you can pass
     # a compiled regex to it and it will return itself
     flavor = _validate_parser_flavor(flavor)
@@ -709,22 +717,23 @@ def _parse(flavor, io, match, header, index_col, skiprows, infer_types,
         raise retained
 
     return [_data_to_frame(table, header, index_col, skiprows, infer_types,
-                           parse_dates) for table in tables]
+                           parse_dates, tupleize_cols, thousands)
+            for table in tables]
 
 
-def read_html(io, match='.+', flavor=None, header=0, index_col=None,
-              skiprows=None, infer_types=None, attrs=None, parse_dates=False):
-    r"""Read an HTML table into a DataFrame.
+def read_html(io, match='.+', flavor=None, header=None, index_col=None,
+              skiprows=None, infer_types=None, attrs=None, parse_dates=False,
+              tupleize_cols=False, thousands=','):
+    r"""Read HTML tables into a ``list`` of DataFrames.
 
     Parameters
     ----------
     io : str or file-like
-        A string or file like object that can be either a url, a file-like
-        object, or a raw string containing HTML.  Note that lxml only accepts
-        the http, ftp and file url protocols. If you have a URI that starts
-        with ``'https'`` you might removing the ``'s'``.
+        A URL, a file-like object, or a raw string containing HTML. Note that
+        lxml only accepts the http, ftp and file url protocols. If you have a
+        URL that starts with ``'https'`` you might removing the ``'s'``.
 
-    match : str or regex, optional, default '.+'
+    match : str or compiled regular expression, optional
         The set of tables containing text matching this regex or string will be
         returned. Unless the HTML is extremely simple you will probably need to
         pass a non-empty string here. Defaults to '.+' (match any non-empty
@@ -732,42 +741,41 @@ def read_html(io, match='.+', flavor=None, header=0, index_col=None,
         This value is converted to a regular expression so that there is
         consistent behavior between Beautiful Soup and lxml.
 
-    flavor : str, container of strings, default ``None``
-        The parsing engine to use under the hood. 'bs4' and 'html5lib' are
-        synonymous with each other, they are both there for backwards
-        compatibility. The default of ``None`` tries to use ``lxml`` to parse
-        and if that fails it falls back on ``bs4`` + ``html5lib``.
+    flavor : str or None, container of strings
+        The parsing engine to use. 'bs4' and 'html5lib' are synonymous with
+        each other, they are both there for backwards compatibility. The
+        default of ``None`` tries to use ``lxml`` to parse and if that fails it
+        falls back on ``bs4`` + ``html5lib``.
 
-    header : int or array-like, optional, default ``0``
-        The row (or rows for a MultiIndex) to use to make the columns headers.
-        Note that this row will be removed from the data.
+    header : int or list-like or None, optional
+        The row (or list of rows for a :class:`~pandas.MultiIndex`) to use to
+        make the columns headers.
 
-    index_col : int or array-like or None, optional, default ``None``
-        The column to use to make the index. Note that this column will be
-        removed from the data.
+    index_col : int or list-like or None, optional
+        The column (or list of columns) to use to create the index.
 
-    skiprows : int or collections.Container or slice or None, optional, default ``None``
+    skiprows : int or list-like or slice or None, optional
         If an integer is given then skip this many rows after parsing the
         column header. If a sequence of integers is given skip those specific
         rows (0-based). Note that
 
         .. code-block:: python
 
-           skiprows == 0
+           pandas.read_html(..., skiprows=0)
 
         yields the same result as
 
         .. code-block:: python
 
-           skiprows is None
+           pandas.read_html(..., skiprows=None)
 
         If `skiprows` is a positive integer, say :math:`n`, then
         it is treated as "skip :math:`n` rows", *not* as "skip the
         :math:`n^\textrm{th}` row".
 
-    infer_types : bool or None, optional, default ``None``, deprecated since 0.13, removed in 0.14
+    infer_types : bool, optional, deprecated since 0.13, removed in 0.14
 
-    attrs : dict or None, optional, default ``None``
+    attrs : dict or None, optional
         This is a dictionary of attributes that you can pass to use to identify
         the table in the HTML. These are not checked for validity before being
         passed to lxml or Beautiful Soup. However, these attributes must be
@@ -793,33 +801,43 @@ def read_html(io, match='.+', flavor=None, header=0, index_col=None,
         <http://www.w3.org/TR/html-markup/table.html>`__. It contains the
         latest information on table attributes for the modern web.
 
+    parse_dates : bool, optional
+        See :func:`~pandas.read_csv` for details.
+
+    tupleize_cols : bool, optional
+        If ``False`` try to parse multiple header rows into a
+        :class:`~pandas.MultiIndex`. See :func:`~pandas.read_csv` for more
+        details. Defaults to ``False`` for backwards compatibility. This is in
+        contrast to other IO functions which default to ``True``.
+
+    thousands : str, optional
+        Separator to use to parse thousands. Defaults to ``','``. Note that
+        this is different from :func:`~pandas.read_csv` because
+        :func:`~pandas.read_csv` must be able to parse different separators,
+        and the default separator is ``','``.  :func:`~pandas.read_html` does
+        not need to do this, so it defaults to ``','``.
+
     Returns
     -------
     dfs : list of DataFrames
-        A list of DataFrames, each of which is the parsed data from each of the
-        tables on the page.
 
     Notes
     -----
-    Before using this function you should probably read the :ref:`gotchas about
-    the parser libraries that this function uses <html-gotchas>`.
+    Before using this function you should read the :ref:`gotchas about the
+    HTML parsing libraries <html-gotchas>`.
 
-    There's as little cleaning of the data as possible due to the heterogeneity
-    and general disorder of HTML on the web.
+    Expect to do some cleanup after you call this function. For example, you
+    might need to manually assign column names if the column names are
+    converted to NaN when you pass the `header=0` argument. We try to assume as
+    little as possible about the structure of the table and push the
+    idiosyncrasies of the HTML contained in the table to the user.
 
-    Expect some cleanup after you call this function. For example,
-    you might need to pass `infer_types=False` and perform manual conversion if
-    the column names are converted to NaN when you pass the `header=0`
-    argument. We try to assume as little as possible about the structure of the
-    table and push the idiosyncrasies of the HTML contained in the table to
-    you, the user.
+    This function searches for ``<table>`` elements and only for ``<tr>``
+    and ``<th>`` rows and ``<td>`` elements within each ``<tr>`` or ``<th>``
+    element in the table. ``<td>`` stands for "table data".
 
-    This function only searches for <table> elements and only for <tr> and <th>
-    rows and <td> elements within those rows. This could be extended by
-    subclassing one of the parser classes contained in :mod:`pandas.io.html`.
-
-    Similar to :func:`read_csv` the `header` argument is applied **after**
-    `skiprows` is applied.
+    Similar to :func:`~pandas.read_csv` the `header` argument is applied
+    **after** `skiprows` is applied.
 
     This function will *always* return a list of :class:`DataFrame` *or*
     it will fail, e.g., it will *not* return an empty list.
@@ -827,17 +845,21 @@ def read_html(io, match='.+', flavor=None, header=0, index_col=None,
     Examples
     --------
     See the :ref:`read_html documentation in the IO section of the docs
-    <io.read_html>` for many examples of reading HTML.
+    <io.read_html>` for some examples of reading in HTML tables.
+
+    See Also
+    --------
+    pandas.read_csv
     """
+    if infer_types is not None:
+        warnings.warn("infer_types will be removed in 0.14")
+    else:
+        infer_types = True  # TODO: remove in 0.14
+
     # Type check here. We don't want to parse only to fail because of an
     # invalid value of an integer skiprows.
-    if infer_types is not None:
-        warnings.warn("infer_types will be removed in 0.14", UserWarning)
-    else:
-        infer_types = True  # remove in 0.14
-
     if isinstance(skiprows, numbers.Integral) and skiprows < 0:
         raise AssertionError('cannot skip rows starting from the end of the '
                              'data (you passed a negative value)')
     return _parse(flavor, io, match, header, index_col, skiprows, infer_types,
-                  parse_dates, attrs)
+                  parse_dates, tupleize_cols, thousands, attrs)
