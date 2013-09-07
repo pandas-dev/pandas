@@ -667,7 +667,7 @@ class HDFStore(StringMixin):
             axis = list(set([t.non_index_axes[0][0] for t in tbls]))[0]
 
             # concat and return
-            return concat(objs, axis=axis, verify_integrity=True).consolidate()
+            return concat(objs, axis=axis, verify_integrity=False).consolidate()
 
         if iterator or chunksize is not None:
             return TableIterator(self, func, nrows=nrows, start=start, stop=stop, chunksize=chunksize, auto_close=auto_close)
