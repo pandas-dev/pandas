@@ -1396,6 +1396,54 @@ class TestConcatenate(unittest.TestCase):
             [df, df2], keys=['one', 'two'], names=['first', 'second'])
         self.assertEqual(result.index.names, ('first', 'second'))
 
+    def test_dups_index(self):
+        # GH 4771
+
+        # single dtypes
+        df = DataFrame(np.random.randint(0,10,size=40).reshape(10,4),columns=['A','A','C','C'])
+
+        result = concat([df,df],axis=1)
+        assert_frame_equal(result.iloc[:,:4],df)
+        assert_frame_equal(result.iloc[:,4:],df)
+
+        result = concat([df,df],axis=0)
+        assert_frame_equal(result.iloc[:10],df)
+        assert_frame_equal(result.iloc[10:],df)
+
+        # multi dtypes
+        df = concat([DataFrame(np.random.randn(10,4),columns=['A','A','B','B']),
+                     DataFrame(np.random.randint(0,10,size=20).reshape(10,2),columns=['A','C'])],
+                    axis=1)
+
+        result = concat([df,df],axis=1)
+        assert_frame_equal(result.iloc[:,:6],df)
+        assert_frame_equal(result.iloc[:,6:],df)
+
+        result = concat([df,df],axis=0)
+        assert_frame_equal(result.iloc[:10],df)
+        assert_frame_equal(result.iloc[10:],df)
+
+        # append
+        result = df.iloc[0:8,:].append(df.iloc[8:])
+        assert_frame_equal(result, df)
+
+        result = df.iloc[0:8,:].append(df.iloc[8:9]).append(df.iloc[9:10])
+        assert_frame_equal(result, df)
+
+        expected = concat([df,df],axis=0)
+        result = df.append(df)
+        assert_frame_equal(result, expected)
+
+    def test_join_dups(self):
+        df = concat([DataFrame(np.random.randn(10,4),columns=['A','A','B','B']),
+                     DataFrame(np.random.randint(0,10,size=20).reshape(10,2),columns=['A','C'])],
+                    axis=1)
+
+        expected = concat([df,df],axis=1)
+        result = df.join(df,rsuffix='_2')
+        result.columns = expected.columns
+        assert_frame_equal(result, expected)
+
     def test_handle_empty_objects(self):
         df = DataFrame(np.random.randn(10, 4), columns=list('abcd'))
 
