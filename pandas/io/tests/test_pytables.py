@@ -2304,8 +2304,14 @@ class TestHDFStore(unittest.TestCase):
 
         with ensure_clean(self.path) as store:
             store.append('df',df)
+
             result = store.select('df')
-            assert_frame_equal(result,df)
+            expected = df
+            assert_frame_equal(result,expected,by_blocks=True)
+
+            result = store.select('df',columns=df.columns)
+            expected = df
+            assert_frame_equal(result,expected,by_blocks=True)
 
             result = store.select('df',columns=['A'])
             expected = df.loc[:,['A']]
@@ -2321,15 +2327,20 @@ class TestHDFStore(unittest.TestCase):
             store.append('df',df)
 
             result = store.select('df')
-            assert_frame_equal(result,df)
+            expected = df
+            assert_frame_equal(result,expected,by_blocks=True)
+
+            result = store.select('df',columns=df.columns)
+            expected = df
+            assert_frame_equal(result,expected,by_blocks=True)
 
             expected = df.loc[:,['A']]
             result = store.select('df',columns=['A'])
-            assert_frame_equal(result,expected)
+            assert_frame_equal(result,expected,by_blocks=True)
 
             expected = df.loc[:,['B','A']]
             result = store.select('df',columns=['B','A'])
-            assert_frame_equal(result,expected)
+            assert_frame_equal(result,expected,by_blocks=True)
 
     def test_wide_table_dups(self):
         wp = tm.makePanel()

@@ -667,7 +667,7 @@ class HDFStore(StringMixin):
             axis = list(set([t.non_index_axes[0][0] for t in tbls]))[0]
 
             # concat and return
-            return concat(objs, axis=axis, verify_integrity=True)
+            return concat(objs, axis=axis, verify_integrity=True).consolidate()
 
         if iterator or chunksize is not None:
             return TableIterator(self, func, nrows=nrows, start=start, stop=stop, chunksize=chunksize, auto_close=auto_close)
@@ -3213,7 +3213,7 @@ class LegacyTable(Table):
         if len(objs) == 1:
             wp = objs[0]
         else:
-            wp = concat(objs, axis=0, verify_integrity=False)
+            wp = concat(objs, axis=0, verify_integrity=False).consolidate()
 
         # apply the selection filters & axis orderings
         wp = self.process_axes(wp, columns=columns)
@@ -3504,7 +3504,7 @@ class AppendableFrameTable(AppendableTable):
         if len(frames) == 1:
             df = frames[0]
         else:
-            df = concat(frames, axis=1, verify_integrity=False)
+            df = concat(frames, axis=1, verify_integrity=False).consolidate()
 
         # apply the selection filters & axis orderings
         df = self.process_axes(df, columns=columns)
@@ -3680,12 +3680,17 @@ class AppendableNDimTable(AppendablePanelTable):
 def _reindex_axis(obj, axis, labels, other=None):
     ax = obj._get_axis(axis)
     labels = _ensure_index(labels)
-    if other is None and labels.equals(ax):
+
+    # try not to reindex even if other is provided
+    # if it equals our current index
+    if other is not None:
+        other = _ensure_index(other)
+    if (other is None or labels.equals(other)) and labels.equals(ax):
         return obj
 
     labels = _ensure_index(labels.unique())
     if other is not None:
-        labels = labels & _ensure_index(other)
+        labels = labels & _ensure_index(other.unique())
     if not labels.equals(ax):
         slicer = [ slice(None, None) ] * obj.ndim
         slicer[axis] = labels
