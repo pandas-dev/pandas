@@ -2342,6 +2342,16 @@ class TestHDFStore(unittest.TestCase):
             result = store.select('df',columns=['B','A'])
             assert_frame_equal(result,expected,by_blocks=True)
 
+        # duplicates on both index and columns
+        with ensure_clean(self.path) as store:
+            store.append('df',df)
+            store.append('df',df)
+
+            expected = df.loc[:,['B','A']]
+            expected = concat([expected, expected])
+            result = store.select('df',columns=['B','A'])
+            assert_frame_equal(result,expected,by_blocks=True)
+
     def test_wide_table_dups(self):
         wp = tm.makePanel()
         with ensure_clean(self.path) as store:
