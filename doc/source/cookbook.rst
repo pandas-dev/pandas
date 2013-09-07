@@ -166,6 +166,7 @@ The :ref:`grouping <groupby>` docs.
 `Create a value counts column and reassign back to the DataFrame
 <http://stackoverflow.com/questions/17709270/i-want-to-create-a-column-of-value-counts-in-my-pandas-dataframe>`__
 
+
 Expanding Data
 ~~~~~~~~~~~~~~
 
@@ -242,6 +243,8 @@ The :ref:`Resample <timeseries.resampling>` docs.
 
 `Resample minute data
 <http://stackoverflow.com/questions/14861023/resampling-minute-data>`__
+
+`Resample with groupby <http://stackoverflow.com/q/18677271/564538>`__
 
 .. _cookbook.merge:
 
