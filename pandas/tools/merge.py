@@ -649,6 +649,7 @@ class _BlockJoinOperation(object):
         for data, indexer in zip(data_list, indexers):
             if not data.is_consolidated():
                 data = data.consolidate()
+            data._set_ref_locs()
             self.units.append(_JoinUnit(data.blocks, indexer))
 
         self.join_index = join_index
@@ -682,7 +683,6 @@ class _BlockJoinOperation(object):
         blockmaps = self._prepare_blocks()
         kinds = _get_merge_block_kinds(blockmaps)
 
-        result_is_unique = self.result_axes[0].is_unique
         result_blocks = []
 
         # maybe want to enable flexible copying <-- what did I mean?
@@ -692,23 +692,28 @@ class _BlockJoinOperation(object):
                 if klass in mapping:
                     klass_blocks.extend((unit, b) for b in mapping[klass])
             res_blk = self._get_merged_block(klass_blocks)
-
-            # if we have a unique result index, need to clear the _ref_locs
-            # a non-unique is set as we are creating
-            if result_is_unique:
-                res_blk.set_ref_locs(None)
-
             result_blocks.append(res_blk)
 
         return BlockManager(result_blocks, self.result_axes)
 
     def _get_merged_block(self, to_merge):
         if len(to_merge) > 1:
+
+            # placement set here
             return self._merge_blocks(to_merge)
         else:
             unit, block = to_merge[0]
-            return unit.reindex_block(block, self.axis,
-                                      self.result_items, copy=self.copy)
+            blk = unit.reindex_block(block, self.axis,
+                                     self.result_items, copy=self.copy)
+
+            # set placement / invalidate on a unique result
+            if self.result_items.is_unique and blk._ref_locs is not None:
+                if not self.copy:
+                    blk = blk.copy()
+                blk.set_ref_locs(None)
+
+            return blk
+
 
     def _merge_blocks(self, merge_chunks):
         """
@@ -736,7 +741,18 @@ class _BlockJoinOperation(object):
 
         # does not sort
         new_block_items = _concat_indexes([b.items for _, b in merge_chunks])
-        return make_block(out, new_block_items, self.result_items)
+
+        # need to set placement if we have a non-unique result
+        # calculate by the existing placement plus the offset in the result set
+        placement = None
+        if not self.result_items.is_unique:
+            nchunks = len(merge_chunks)
+            offsets = np.array([0] + [ len(self.result_items) / nchunks ] * (nchunks-1)).cumsum()
+            placement = []
+            for (unit, blk), offset in zip(merge_chunks,offsets):
+                placement.extend(blk.ref_locs+offset)
+
+        return make_block(out, new_block_items, self.result_items, placement=placement)
 
 
 class _JoinUnit(object):
@@ -992,6 +1008,7 @@ class _Concatenator(object):
         blockmaps = []
         for data in reindexed_data:
             data = data.consolidate()
+            data._set_ref_locs()
             blockmaps.append(data.get_block_map(typ='dict'))
         return blockmaps, reindexed_data
 
@@ -1063,7 +1080,10 @@ class _Concatenator(object):
                 #        or maybe would require performance test)
                 raise PandasError('dtypes are not consistent throughout '
                                   'DataFrames')
-            return make_block(concat_values, blocks[0].items, self.new_axes[0])
+            return make_block(concat_values,
+                              blocks[0].items,
+                              self.new_axes[0],
+                              placement=blocks[0]._ref_locs)
         else:
 
             offsets = np.r_[0, np.cumsum([len(x._data.axes[0]) for

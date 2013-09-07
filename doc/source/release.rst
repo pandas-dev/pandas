@@ -331,6 +331,8 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
   - Bug in multi-indexing with a partial string selection as one part of a MultIndex (:issue:`4758`)
   - Bug with reindexing on the index with a non-unique index will now raise ``ValueError`` (:issue:`4746`)
   - Bug in setting with ``loc/ix`` a single indexer with a multi-index axis and a numpy array, related to (:issue:`3777`)
+  - Bug in concatenation with duplicate columns across dtypes not merging with axis=0 (:issue:`4771`)
+  - Bug in ``iloc`` with a slice index failing (:issue:`4771`)
 
 pandas 0.12
 ===========

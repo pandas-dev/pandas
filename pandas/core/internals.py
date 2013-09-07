@@ -2174,7 +2174,7 @@ class BlockManager(PandasObject):
                                   placement=blk._ref_locs)
                 new_blocks = [newb]
             else:
-                return self.reindex_items(new_items)
+                return self.reindex_items(new_items, indexer=np.arange(len(self.items))[slobj])
         else:
             new_blocks = self._slice_blocks(slobj, axis)
 
