@@ -2910,9 +2910,7 @@ class Table(Fixed):
 
         # reindex by our non_index_axes & compute data_columns
         for a in self.non_index_axes:
-            labels = _ensure_index(a[1])
-            if not labels.equals(obj._get_axis(a[0])):
-                obj = obj.reindex_axis(labels, axis=a[0])
+            obj = _reindex_axis(obj, a[0], a[1])
 
         # figure out data_columns and get out blocks
         block_obj = self.get_object(obj).consolidate()
@@ -3000,11 +2998,7 @@ class Table(Fixed):
 
         # reorder by any non_index_axes & limit to the select columns
         for axis, labels in self.non_index_axes:
-            if columns is not None:
-                labels = Index(labels) & Index(columns)
-            labels = _ensure_index(labels)
-            if not labels.equals(obj._get_axis(axis)):
-                obj = obj.reindex_axis(labels, axis=axis)
+            obj = _reindex_axis(obj, axis, labels, columns)
 
         # apply the selection filters (but keep in the same order)
         if self.selection.filter:
@@ -3682,6 +3676,21 @@ class AppendableNDimTable(AppendablePanelTable):
     ndim = 4
     obj_type = Panel4D
 
+
+def _reindex_axis(obj, axis, labels, other=None):
+    ax = obj._get_axis(axis)
+    labels = _ensure_index(labels)
+    if other is None and labels.equals(ax):
+        return obj
+
+    labels = _ensure_index(labels.unique())
+    if other is not None:
+        labels = labels & _ensure_index(other)
+    if not labels.equals(ax):
+        slicer = [ slice(None, None) ] * obj.ndim
+        slicer[axis] = labels
+        obj = obj.loc[tuple(slicer)]
+    return obj
 
 def _get_info(info, name):
     """ get/create the info for this name """

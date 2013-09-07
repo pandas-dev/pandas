@@ -2298,7 +2298,6 @@ class TestHDFStore(unittest.TestCase):
 
     def test_select_with_dups(self):
 
-
         # single dtypes
         df = DataFrame(np.random.randn(10,4),columns=['A','A','B','B'])
         df.index = date_range('20130101 9:30',periods=10,freq='T')
@@ -2308,6 +2307,10 @@ class TestHDFStore(unittest.TestCase):
             result = store.select('df')
             assert_frame_equal(result,df)
 
+            result = store.select('df',columns=['A'])
+            expected = df.loc[:,['A']]
+            assert_frame_equal(result,expected)
+
         # dups accross dtypes
         df = concat([DataFrame(np.random.randn(10,4),columns=['A','A','B','B']),
                      DataFrame(np.random.randint(0,10,size=20).reshape(10,2),columns=['A','C'])],
@@ -2316,8 +2319,17 @@ class TestHDFStore(unittest.TestCase):
 
         with ensure_clean(self.path) as store:
             store.append('df',df)
+
             result = store.select('df')
             assert_frame_equal(result,df)
+
+            expected = df.loc[:,['A']]
+            result = store.select('df',columns=['A'])
+            assert_frame_equal(result,expected)
+
+            expected = df.loc[:,['B','A']]
+            result = store.select('df',columns=['B','A'])
+            assert_frame_equal(result,expected)
 
     def test_wide_table_dups(self):
         wp = tm.makePanel()
