@@ -3219,7 +3219,7 @@ class LegacyTable(Table):
         if len(objs) == 1:
             wp = objs[0]
         else:
-            wp = concat(objs, axis=0, verify_integrity=True)
+            wp = concat(objs, axis=0, verify_integrity=False)
 
         # apply the selection filters & axis orderings
         wp = self.process_axes(wp, columns=columns)
@@ -3510,7 +3510,7 @@ class AppendableFrameTable(AppendableTable):
         if len(frames) == 1:
             df = frames[0]
         else:
-            df = concat(frames, axis=1, verify_integrity=True)
+            df = concat(frames, axis=1, verify_integrity=False)
 
         # apply the selection filters & axis orderings
         df = self.process_axes(df, columns=columns)

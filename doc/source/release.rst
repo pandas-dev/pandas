@@ -239,6 +239,7 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
     - ``read_hdf`` was not respecting as passed ``mode`` (:issue:`4504`)
     - appending a 0-len table will work correctly (:issue:`4273`)
     - ``to_hdf`` was raising when passing both arguments ``append`` and ``table`` (:issue:`4584`)
+    - reading from a store with duplicate columns across dtypes would raise (:issue:`4767`)
   - Fixed bug in tslib.tz_convert(vals, tz1, tz2): it could raise IndexError exception while
     trying to access trans[pos + 1] (:issue:`4496`)
   - The ``by`` argument now works correctly with the ``layout`` argument
