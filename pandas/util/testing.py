@@ -258,27 +258,41 @@ def assert_frame_equal(left, right, check_dtype=True,
                        check_column_type=False,
                        check_frame_type=False,
                        check_less_precise=False,
-                       check_names=True):
+                       check_names=True,
+                       by_blocks=False):
     if check_frame_type:
         assert_isinstance(left, type(right))
     assert_isinstance(left, DataFrame)
     assert_isinstance(right, DataFrame)
 
     if check_less_precise:
-        assert_almost_equal(left.columns, right.columns)
+        if not by_blocks:
+            assert_almost_equal(left.columns, right.columns)
         assert_almost_equal(left.index, right.index)
     else:
-        assert_index_equal(left.columns, right.columns)
+        if not by_blocks:
+            assert_index_equal(left.columns, right.columns)
         assert_index_equal(left.index, right.index)
 
-    for i, col in enumerate(left.columns):
-        assert col in right
-        lcol = left.icol(i)
-        rcol = right.icol(i)
-        assert_series_equal(lcol, rcol,
-                            check_dtype=check_dtype,
-                            check_index_type=check_index_type,
-                            check_less_precise=check_less_precise)
+    # compare by blocks
+    if by_blocks:
+        rblocks = right.blocks
+        lblocks = left.blocks
+        for dtype in list(set(list(lblocks.keys()) + list(rblocks.keys()))):
+            assert dtype in lblocks
+            assert dtype in rblocks
+            assert_frame_equal(lblocks[dtype],rblocks[dtype],check_dtype=check_dtype)
+
+    # compare by columns
+    else:
+        for i, col in enumerate(left.columns):
+            assert col in right
+            lcol = left.icol(i)
+            rcol = right.icol(i)
+            assert_series_equal(lcol, rcol,
+                                check_dtype=check_dtype,
+                                check_index_type=check_index_type,
+                                check_less_precise=check_less_precise)
 
     if check_index_type:
         assert_isinstance(left.index, type(right.index))
