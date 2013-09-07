@@ -992,6 +992,7 @@ class _Concatenator(object):
         blockmaps = []
         for data in reindexed_data:
             data = data.consolidate()
+            data._set_ref_locs()
             blockmaps.append(data.get_block_map(typ='dict'))
         return blockmaps, reindexed_data
 
@@ -1063,7 +1064,10 @@ class _Concatenator(object):
                 #        or maybe would require performance test)
                 raise PandasError('dtypes are not consistent throughout '
                                   'DataFrames')
-            return make_block(concat_values, blocks[0].items, self.new_axes[0])
+            return make_block(concat_values,
+                              blocks[0].items,
+                              self.new_axes[0],
+                              placement=blocks[0]._ref_locs)
         else:
 
             offsets = np.r_[0, np.cumsum([len(x._data.axes[0]) for

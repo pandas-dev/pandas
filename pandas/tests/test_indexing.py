@@ -16,7 +16,7 @@ from pandas.core.api import (DataFrame, Index, Series, Panel, notnull, isnull,
                              MultiIndex, DatetimeIndex, Timestamp)
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal, assert_panel_equal)
-from pandas import compat
+from pandas import compat, concat
 
 import pandas.util.testing as tm
 import pandas.lib as lib
@@ -358,6 +358,29 @@ class TestIndexing(unittest.TestCase):
         # slices
         self.check_result('slice', 'iloc', slice(1,3), 'ix', { 0 : [2,4], 1: [3,6], 2: [4,8] }, typs = ['ints'])
         self.check_result('slice', 'iloc', slice(1,3), 'indexer', slice(1,3), typs = ['labels','mixed','ts','floats','empty'], fails = IndexError)
+
+    def test_iloc_getitem_slice_dups(self):
+
+        df1 = DataFrame(np.random.randn(10,4),columns=['A','A','B','B'])
+        df2 = DataFrame(np.random.randint(0,10,size=20).reshape(10,2),columns=['A','C'])
+
+        # axis=1
+        df = concat([df1,df2],axis=1)
+        assert_frame_equal(df.iloc[:,:4],df1)
+        assert_frame_equal(df.iloc[:,4:],df2)
+
+        df = concat([df2,df1],axis=1)
+        assert_frame_equal(df.iloc[:,:2],df2)
+        assert_frame_equal(df.iloc[:,2:],df1)
+
+        assert_frame_equal(df.iloc[:,0:3],concat([df2,df1.iloc[:,[0]]],axis=1))
+
+        # axis=0
+        df = concat([df,df],axis=0)
+        assert_frame_equal(df.iloc[0:10,:2],df2)
+        assert_frame_equal(df.iloc[0:10,2:],df1)
+        assert_frame_equal(df.iloc[10:,:2],df2)
+        assert_frame_equal(df.iloc[10:,2:],df1)
 
     def test_iloc_getitem_out_of_bounds(self):
 
