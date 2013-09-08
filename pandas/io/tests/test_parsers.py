@@ -1995,8 +1995,11 @@ c   1   2   3   4
             StringIO(data3), colspecs=colspecs, delimiter='~', header=None)
         tm.assert_frame_equal(df, expected)
 
-        self.assertRaises(ValueError, read_fwf, StringIO(data3),
-                          colspecs=colspecs, widths=[6, 10, 10, 7])
+        with tm.assertRaisesRegexp(ValueError, "must specify only one of"):
+            read_fwf(StringIO(data3), colspecs=colspecs, widths=[6, 10, 10, 7])
+
+        with tm.assertRaisesRegexp(ValueError, "Must specify either"):
+            read_fwf(StringIO(data3))
 
     def test_fwf_regression(self):
         # GH 3594
