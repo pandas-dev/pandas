@@ -1,6 +1,6 @@
 import itertools
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 import copy
 from collections import defaultdict
 
@@ -41,6 +41,7 @@ class Block(PandasObject):
     is_integer = False
     is_complex = False
     is_datetime = False
+    is_timedelta = False
     is_bool = False
     is_object = False
     is_sparse = False
@@ -326,6 +327,8 @@ class Block(PandasObject):
         # unless indicated
         if downcast is None and self.is_float:
             return blocks
+        elif downcast is None and (self.is_timedelta or self.is_datetime):
+            return blocks
 
         result_blocks = []
         for b in blocks:
@@ -484,6 +487,10 @@ class Block(PandasObject):
 
         # may need to change the dtype here
         return _possibly_downcast_to_dtype(result, dtype)
+
+    def _try_operate(self, values):
+        """ return a version to operate on as the input """
+        return values
 
     def _try_coerce_args(self, values, other):
         """ provide coercion to our input arguments """
@@ -703,8 +710,11 @@ class Block(PandasObject):
                 else:
                     return [self.copy()]
 
+        fill_value = self._try_fill(fill_value)
         values = self.values if inplace else self.values.copy()
+        values = self._try_operate(values)
         values = com.interpolate_2d(values, method, axis, limit, fill_value)
+        values = self._try_coerce_result(values)
 
         blocks = [ make_block(values, self.items, self.ref_items, ndim=self.ndim, klass=self.__class__, fastpath=True) ]
         return self._maybe_downcast(blocks, downcast)
@@ -1008,6 +1018,57 @@ class IntBlock(NumericBlock):
     def should_store(self, value):
         return com.is_integer_dtype(value) and value.dtype == self.dtype
 
+class TimeDeltaBlock(IntBlock):
+    is_timedelta = True
+    _can_hold_na = True
+    is_numeric = False
+
+    def _try_fill(self, value):
+        """ if we are a NaT, return the actual fill value """
+        if isinstance(value, type(tslib.NaT)) or isnull(value):
+            value = tslib.iNaT
+        elif isinstance(value, np.timedelta64):
+            pass
+        elif com.is_integer(value):
+            # coerce to seconds of timedelta
+            value = np.timedelta64(int(value*1e9))
+        elif isinstance(value, timedelta):
+            value = np.timedelta64(value)
+
+        return value
+
+    def _try_operate(self, values):
+        """ return a version to operate on """
+        return values.view('i8')
+
+    def _try_coerce_result(self, result):
+        """ reverse of try_coerce_args / try_operate """
+        if isinstance(result, np.ndarray):
+            if result.dtype.kind in ['i','f','O']:
+                result = result.astype('m8[ns]')
+        elif isinstance(result, np.integer):
+            result = np.timedelta64(result)
+        return result
+
+    def should_store(self, value):
+        return issubclass(value.dtype.type, np.timedelta64)
+
+    def to_native_types(self, slicer=None, na_rep=None, **kwargs):
+        """ convert to our native types format, slicing if desired """
+
+        values = self.values
+        if slicer is not None:
+            values = values[:, slicer]
+        mask = isnull(values)
+
+        rvalues = np.empty(values.shape, dtype=object)
+        if na_rep is None:
+            na_rep = 'NaT'
+        rvalues[mask] = na_rep
+        imask = (-mask).ravel()
+        rvalues.flat[imask] = np.array([lib.repr_timedelta64(val)
+                                        for val in values.ravel()[imask]], dtype=object)
+        return rvalues.tolist()
 
 class BoolBlock(NumericBlock):
     is_bool = True
@@ -1216,6 +1277,10 @@ class DatetimeBlock(Block):
         except:
             return element
 
+    def _try_operate(self, values):
+        """ return a version to operate on """
+        return values.view('i8')
+
     def _try_coerce_args(self, values, other):
         """ provide coercion to our input arguments
             we are going to compare vs i8, so coerce to integer
@@ -1236,17 +1301,20 @@ class DatetimeBlock(Block):
             if result.dtype == 'i8':
                 result = tslib.array_to_datetime(
                     result.astype(object).ravel()).reshape(result.shape)
+            elif result.dtype.kind in ['i','f','O']:
+                result = result.astype('M8[ns]')
         elif isinstance(result, (np.integer, np.datetime64)):
             result = lib.Timestamp(result)
         return result
 
     def _try_fill(self, value):
         """ if we are a NaT, return the actual fill value """
-        if isinstance(value, type(tslib.NaT)):
+        if isinstance(value, type(tslib.NaT)) or isnull(value):
             value = tslib.iNaT
         return value
 
     def fillna(self, value, inplace=False, downcast=None):
+        # straight putmask here
         values = self.values if inplace else self.values.copy()
         mask = com.isnull(self.values)
         value = self._try_fill(value)
@@ -1267,12 +1335,9 @@ class DatetimeBlock(Block):
             na_rep = 'NaT'
         rvalues[mask] = na_rep
         imask = (-mask).ravel()
-        if self.dtype == 'datetime64[ns]':
-            rvalues.flat[imask] = np.array(
-                [Timestamp(val)._repr_base for val in values.ravel()[imask]], dtype=object)
-        elif self.dtype == 'timedelta64[ns]':
-            rvalues.flat[imask] = np.array([lib.repr_timedelta64(val)
-                                           for val in values.ravel()[imask]], dtype=object)
+        rvalues.flat[imask] = np.array(
+            [Timestamp(val)._repr_base for val in values.ravel()[imask]], dtype=object)
+
         return rvalues.tolist()
 
     def should_store(self, value):
@@ -1551,6 +1616,8 @@ def make_block(values, items, ref_items, klass=None, ndim=None, dtype=None, fast
             klass = SparseBlock
         elif issubclass(vtype, np.floating):
             klass = FloatBlock
+        elif issubclass(vtype, np.integer) and issubclass(vtype, np.timedelta64):
+            klass = TimeDeltaBlock
         elif issubclass(vtype, np.integer) and not issubclass(vtype, np.datetime64):
             klass = IntBlock
         elif dtype == np.bool_:
@@ -3404,12 +3471,13 @@ def _interleaved_dtype(blocks):
     have_float = len(counts[FloatBlock]) > 0
     have_complex = len(counts[ComplexBlock]) > 0
     have_dt64 = len(counts[DatetimeBlock]) > 0
+    have_td64 = len(counts[TimeDeltaBlock]) > 0
     have_sparse = len(counts[SparseBlock]) > 0
     have_numeric = have_float or have_complex or have_int
 
     if (have_object or
         (have_bool and have_numeric) or
-            (have_numeric and have_dt64)):
+            (have_numeric and (have_dt64 or have_td64))):
         return np.dtype(object)
     elif have_bool:
         return np.dtype(bool)
@@ -3432,6 +3500,8 @@ def _interleaved_dtype(blocks):
 
     elif have_dt64 and not have_float and not have_complex:
         return np.dtype('M8[ns]')
+    elif have_td64 and not have_float and not have_complex:
+        return np.dtype('m8[ns]')
     elif have_complex:
         return np.dtype('c16')
     else:

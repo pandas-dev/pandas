@@ -23,7 +23,8 @@ import numpy.ma as ma
 
 from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
                                 _default_index, _maybe_upcast, _is_sequence,
-                                _infer_dtype_from_scalar, _values_from_object)
+                                _infer_dtype_from_scalar, _values_from_object,
+                                _coerce_to_dtypes, _DATELIKE_DTYPES)
 from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import (_NDFrameIndexer, _maybe_droplevels,
@@ -4235,11 +4236,24 @@ class DataFrame(NDFrame):
         axis = self._get_axis_number(axis)
         f = lambda x: op(x, axis=axis, skipna=skipna, **kwds)
         labels = self._get_agg_axis(axis)
+
+        # exclude timedelta/datetime unless we are uniform types
+        if axis == 1 and self._is_mixed_type and len(set(self.dtypes) & _DATELIKE_DTYPES):
+            numeric_only = True
+
         if numeric_only is None:
             try:
                 values = self.values
                 result = f(values)
             except Exception as e:
+
+                # try by-column first
+                if filter_type is None and axis == 0:
+                    try:
+                        return self.apply(f).iloc[0]
+                    except:
+                        pass
+
                 if filter_type is None or filter_type == 'numeric':
                     data = self._get_numeric_data()
                 elif filter_type == 'bool':
@@ -4273,9 +4287,11 @@ class DataFrame(NDFrame):
                     result = result.astype(np.float64)
                 elif filter_type == 'bool' and notnull(result).all():
                     result = result.astype(np.bool_)
-                # otherwise, accept it
             except (ValueError, TypeError):
-                pass
+
+                # try to coerce to the original dtypes item by item if we can
+                if axis == 0:
+                    result = com._coerce_to_dtypes(result, self.dtypes)
 
         return Series(result, index=labels)
 
