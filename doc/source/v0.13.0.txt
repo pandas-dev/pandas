@@ -195,6 +195,7 @@ Enhancements
   - NaN handing in get_dummies (:issue:`4446`) with `dummy_na`
 
     .. ipython:: python
+
        # previously, nan was erroneously counted as 2 here
        # now it is not counted at all
        get_dummies([1, 2, np.nan])
@@ -237,10 +238,17 @@ Enhancements
          from pandas import offsets
          td + offsets.Minute(5) + offsets.Milli(5)
 
-    - ``plot(kind='kde')`` now accepts the optional parameters ``bw_method`` and
-      ``ind``, passed to scipy.stats.gaussian_kde() (for scipy >= 0.11.0) to set
-      the bandwidth, and to gkde.evaluate() to specify the indicies at which it
-      is evaluated, respecttively. See scipy docs.
+    - Fillna is now supported for timedeltas
+
+      .. ipython:: python
+
+         td.fillna(0)
+         td.fillna(timedelta(days=1,seconds=5))
+
+  - ``plot(kind='kde')`` now accepts the optional parameters ``bw_method`` and
+    ``ind``, passed to scipy.stats.gaussian_kde() (for scipy >= 0.11.0) to set
+    the bandwidth, and to gkde.evaluate() to specify the indicies at which it
+    is evaluated, respecttively. See scipy docs.
 
 .. _whatsnew_0130.refactoring:
 

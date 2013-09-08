@@ -3232,25 +3232,43 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = diffs.max(axis=1)
         self.assert_((result == diffs['A']).all() == True)
 
-        # abs ###### THIS IS BROKEN NOW ###### (results are dtype=timedelta64[us]
-        # even though fixed in series
-        #result = np.abs(df['A']-df['B'])
-        #result = diffs.abs()
-        #expected = DataFrame(dict(A = df['A']-df['C'],
-        #                          B = df['B']-df['A']))
-        #assert_frame_equal(result,expected)
+        # abs
+        result = diffs.abs()
+        expected = DataFrame(dict(A = df['A']-df['C'],
+                                  B = df['B']-df['A']))
+        assert_frame_equal(result,expected)
 
         # mixed frame
         mixed = diffs.copy()
         mixed['C'] = 'foo'
         mixed['D'] = 1
         mixed['E'] = 1.
+        mixed['F'] = Timestamp('20130101')
 
-        # this is ok
+        # results in an object array
         result = mixed.min()
+        expected = Series([com._coerce_scalar_to_timedelta_type(timedelta(seconds=5*60+5)),
+                           com._coerce_scalar_to_timedelta_type(timedelta(days=-1)),
+                           'foo',
+                           1,
+                           1.0,
+                           Timestamp('20130101')],
+                          index=mixed.columns)
+        assert_series_equal(result,expected)
 
-        # this is not
+        # excludes numeric
         result = mixed.min(axis=1)
+        expected = Series([1, 1, 1.],index=[0, 1, 2])
+        assert_series_equal(result,expected)
+
+        # works when only those columns are selected
+        result = mixed[['A','B']].min(1)
+        expected = Series([ timedelta(days=-1) ] * 3)
+        assert_series_equal(result,expected)
+
+        result = mixed[['A','B']].min()
+        expected = Series([ timedelta(seconds=5*60+5), timedelta(days=-1) ],index=['A','B'])
+        assert_series_equal(result,expected)
 
         # GH 3106
         df = DataFrame({'time' : date_range('20130102',periods=5),

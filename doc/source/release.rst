@@ -67,6 +67,9 @@ pandas 0.13
   - A Series of dtype ``timedelta64[ns]`` can now be divided by another
     ``timedelta64[ns]`` object to yield a ``float64`` dtyped Series. This
     is frequency conversion.
+  - Timedelta64 support ``fillna/ffill/bfill`` with an integer interpreted as seconds,
+    or a ``timedelta`` (:issue:`3371`)
+  - Datetime64 support ``ffill/bfill``
   - Performance improvements with ``__getitem__`` on ``DataFrames`` with
     when the key is a column
   - Support for using a ``DatetimeIndex/PeriodsIndex`` directly in a datelike calculation
@@ -156,6 +159,8 @@ pandas 0.13
   - Remove undocumented/unused ``kind`` keyword argument from ``read_excel``, and ``ExcelFile``. (:issue:`4713`, :issue:`4712`)
   - The ``method`` argument of ``NDFrame.replace()`` is valid again, so that a
     a list can be passed to ``to_replace`` (:issue:`4743`).
+  - provide automatic dtype conversions on _reduce operations (:issue:`3371`)
+  - exclude non-numerics if mixed types with datelike in _reduce operations (:issue:`3371`)
 
 **Internal Refactoring**
 

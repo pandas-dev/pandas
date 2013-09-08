@@ -20,11 +20,8 @@ from pandas.core.common import (isnull, notnull, is_list_like,
                                 _infer_dtype_from_scalar, _maybe_promote,
                                 ABCSeries)
 
-
-
 def is_dictlike(x):
     return isinstance(x, (dict, com.ABCSeries))
-
 
 def _single_replace(self, to_replace, method, inplace, limit):
     orig_dtype = self.dtype
@@ -1906,7 +1903,21 @@ class NDFrame(PandasObject):
         abs: type of caller
         """
         obj = np.abs(self)
-        obj = com._possibly_cast_to_timedelta(obj, coerce=False)
+
+        # suprimo numpy 1.6 hacking
+        if com._np_version_under1p7:
+            if self.ndim == 1:
+                if obj.dtype == 'm8[us]':
+                    obj = obj.astype('m8[ns]')
+            elif self.ndim == 2:
+                def f(x):
+                    if x.dtype == 'm8[us]':
+                        x = x.astype('m8[ns]')
+                    return x
+
+                if 'm8[us]' in obj.dtypes.values:
+                    obj = obj.apply(f)
+
         return obj
 
     def groupby(self, by=None, axis=0, level=None, as_index=True, sort=True,

@@ -2405,6 +2405,78 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = Series([timedelta(1)], dtype='timedelta64[ns]')
         assert_series_equal(result, expected)
 
+    def test_timedelta_fillna(self):
+        if com._np_version_under1p7:
+            raise nose.SkipTest("timedelta broken in np 1.6.1")
+
+        #GH 3371
+        from datetime import timedelta
+
+        s = Series([Timestamp('20130101'),Timestamp('20130101'),Timestamp('20130102'),Timestamp('20130103 9:01:01')])
+        td = s.diff()
+
+        # reg fillna
+        result = td.fillna(0)
+        expected = Series([timedelta(0),timedelta(0),timedelta(1),timedelta(days=1,seconds=9*3600+60+1)])
+        assert_series_equal(result,expected)
+
+        # interprested as seconds
+        result = td.fillna(1)
+        expected = Series([timedelta(seconds=1),timedelta(0),timedelta(1),timedelta(days=1,seconds=9*3600+60+1)])
+        assert_series_equal(result,expected)
+
+        result = td.fillna(timedelta(days=1,seconds=1))
+        expected = Series([timedelta(days=1,seconds=1),timedelta(0),timedelta(1),timedelta(days=1,seconds=9*3600+60+1)])
+        assert_series_equal(result,expected)
+
+        result = td.fillna(np.timedelta64(int(1e9)))
+        expected = Series([timedelta(seconds=1),timedelta(0),timedelta(1),timedelta(days=1,seconds=9*3600+60+1)])
+        assert_series_equal(result,expected)
+
+        from pandas import tslib
+        result = td.fillna(tslib.NaT)
+        expected = Series([tslib.NaT,timedelta(0),timedelta(1),timedelta(days=1,seconds=9*3600+60+1)],dtype='m8[ns]')
+        assert_series_equal(result,expected)
+
+        # ffill
+        td[2] = np.nan
+        result = td.ffill()
+        expected = td.fillna(0)
+        expected[0] = np.nan
+        assert_series_equal(result,expected)
+
+        # bfill
+        td[2] = np.nan
+        result = td.bfill()
+        expected = td.fillna(0)
+        expected[2] = timedelta(days=1,seconds=9*3600+60+1)
+        assert_series_equal(result,expected)
+
+    def test_datetime64_fillna(self):
+
+        s = Series([Timestamp('20130101'),Timestamp('20130101'),Timestamp('20130102'),Timestamp('20130103 9:01:01')])
+        s[2] = np.nan
+
+        # reg fillna
+        result = s.fillna(Timestamp('20130104'))
+        expected = Series([Timestamp('20130101'),Timestamp('20130101'),Timestamp('20130104'),Timestamp('20130103 9:01:01')])
+        assert_series_equal(result,expected)
+
+        from pandas import tslib
+        result = s.fillna(tslib.NaT)
+        expected = s
+        assert_series_equal(result,expected)
+
+        # ffill
+        result = s.ffill()
+        expected = Series([Timestamp('20130101'),Timestamp('20130101'),Timestamp('20130101'),Timestamp('20130103 9:01:01')])
+        assert_series_equal(result,expected)
+
+        # bfill
+        result = s.bfill()
+        expected = Series([Timestamp('20130101'),Timestamp('20130101'),Timestamp('20130103 9:01:01'),Timestamp('20130103 9:01:01')])
+        assert_series_equal(result,expected)
+
     def test_sub_of_datetime_from_TimeSeries(self):
         from pandas.core import common as com
         from datetime import datetime
@@ -4205,16 +4277,14 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
     def test_reindex_pad(self):
 
-        s = Series(np.arange(10), np.arange(10))
+        s = Series(np.arange(10))
         s2 = s[::2]
 
         reindexed = s2.reindex(s.index, method='pad')
         reindexed2 = s2.reindex(s.index, method='ffill')
         assert_series_equal(reindexed, reindexed2)
 
-        # used platform int above, need to pass int explicitly here per #1219
-        expected = Series([0, 0, 2, 2, 4, 4, 6, 6, 8, 8], dtype=int,
-                          index=np.arange(10))
+        expected = Series([0, 0, 2, 2, 4, 4, 6, 6, 8, 8], index=np.arange(10))
         assert_series_equal(reindexed, expected)
 
         # GH4604
@@ -4624,7 +4694,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(s, ser)
 
     def test_replace_mixed_types(self):
-        s = Series(np.arange(5))
+        s = Series(np.arange(5),dtype='int64')
 
         def check_replace(to_rep, val, expected):
             sc = s.copy()
