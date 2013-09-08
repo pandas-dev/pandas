@@ -1,14 +1,35 @@
 .. _release:
 
-=============
+.. currentmodule:: pandas
+
+.. ipython:: python
+   :suppress:
+
+   import os
+   import csv
+   from StringIO import StringIO
+   import pandas as pd
+   ExcelWriter = pd.ExcelWriter
+
+   import numpy as np
+   np.random.seed(123456)
+   randn = np.random.randn
+   np.set_printoptions(precision=4, suppress=True)
+
+   import matplotlib.pyplot as plt
+   plt.close('all')
+
+   from pandas import *
+   import pandas.util.testing as tm
+
+*************
 Release Notes
-=============
+*************
 
 This is the list of changes to pandas between each release. For full details,
 see the commit logs at http://github.com/pydata/pandas
 
-What is it
-----------
+**What is it**
 
 pandas is a Python package providing fast, flexible, and expressive data
 structures designed to make working with “relational” or “labeled” data both
@@ -17,19 +38,20 @@ doing practical, real world data analysis in Python. Additionally, it has the
 broader goal of becoming the most powerful and flexible open source data
 analysis / manipulation tool available in any language.
 
-Where to get it
----------------
+**Where to get it**
 
 * Source code: http://github.com/pydata/pandas
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
-pandas 0.13
-===========
+pandas 0.13.0
+-------------
 
 **Release date:** not-yet-released
 
-**New features**
+New features
+~~~~~~~~~~~~
+
   - ``plot(kind='kde')`` now accepts the optional parameters ``bw_method`` and
     ``ind``, passed to scipy.stats.gaussian_kde() (for scipy >= 0.11.0) to set
     the bandwidth, and to gkde.evaluate() to specify the indicies at which it
@@ -38,7 +60,8 @@ pandas 0.13
   - Added ``isin`` method to DataFrame (:issue:`4211`)
   - Clipboard functionality now works with PySide (:issue:`4282`)
 
-**Improvements to existing features**
+Improvements to existing features
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
   - ``read_html`` now raises a ``URLError`` instead of catching and raising a
     ``ValueError`` (:issue:`4303`, :issue:`4305`)
@@ -80,7 +103,8 @@ pandas 0.13
   - Performance improvement of timesesies plotting with PeriodIndex and added
     test to vbench (:issue:`4705` and :issue:`4722`)
 
-**API Changes**
+API Changes
+~~~~~~~~~~~
 
   - ``pandas`` now is Python 2/3 compatible without the need for 2to3 thanks to
     @jtratner. As a result, pandas now uses iterators more extensively. This
@@ -162,7 +186,8 @@ pandas 0.13
   - provide automatic dtype conversions on _reduce operations (:issue:`3371`)
   - exclude non-numerics if mixed types with datelike in _reduce operations (:issue:`3371`)
 
-**Internal Refactoring**
+Internal Refactoring
+~~~~~~~~~~~~~~~~~~~~
 
 In 0.13.0 there is a major refactor primarily to subclass ``Series`` from ``NDFrame``,
 which is the base class currently for ``DataFrame`` and ``Panel``, to unify methods
@@ -235,9 +260,11 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
 - Refactor of Series arithmetic with time-like objects (datetime/timedelta/time
   etc.) into a separate, cleaned up wrapper class. (:issue:`4613`)
 
-**Experimental Features**
+Experimental Features
+~~~~~~~~~~~~~~~~~~~~~
 
-**Bug Fixes**
+Bug Fixes
+~~~~~~~~~
 
   - ``HDFStore``
 
@@ -342,12 +369,13 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
   - Bug in ``iloc`` with a slice index failing (:issue:`4771`)
   - Incorrect error message with no colspecs or width in ``read_fwf``. (:issue:`4774`)
 
-pandas 0.12
-===========
+pandas 0.12.0
+-------------
 
 **Release date:** 2013-07-24
 
-**New features**
+New features
+~~~~~~~~~~~~
 
   - ``pd.read_html()`` can now parse HTML strings, files or urls and returns a
     list of ``DataFrame`` s courtesy of @cpcloud. (:issue:`3477`,
@@ -376,7 +404,8 @@ pandas 0.12
   - DataFrame plotting methods can sample column colors from a Matplotlib
     colormap via the ``colormap`` keyword. (:issue:`3860`)
 
-**Improvements to existing features**
+Improvements to existing features
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
   - Fixed various issues with internal pprinting code, the repr() for various objects
     including TimeStamp and Index now produces valid python code strings and
@@ -430,7 +459,8 @@ pandas 0.12
   - ``read_html`` now raises when no tables are found and BeautifulSoup==4.2.0
     is detected (:issue:`4214`)
 
-**API Changes**
+API Changes
+~~~~~~~~~~~
 
   - ``HDFStore``
 
@@ -514,12 +544,14 @@ pandas 0.12
     ``__repr__``). Plus string safety throughout. Now employed in many places
     throughout the pandas library. (:issue:`4090`, :issue:`4092`)
 
-**Experimental Features**
+Experimental Features
+~~~~~~~~~~~~~~~~~~~~~
 
   - Added experimental ``CustomBusinessDay`` class to support ``DateOffsets``
     with custom holiday calendars and custom weekmasks. (:issue:`2301`)
 
-**Bug Fixes**
+Bug Fixes
+~~~~~~~~~
 
   - Fixed an esoteric excel reading bug, xlrd>= 0.9.0 now required for excel
     support. Should provide python3 support (for reading) which has been
@@ -668,11 +700,12 @@ pandas 0.12
     (:issue:`4281`)
 
 pandas 0.11.0
-=============
+-------------
 
 **Release date:** 2013-04-22
 
-**New features**
+New features
+~~~~~~~~~~~~
 
   - New documentation section, ``10 Minutes to Pandas``
   - New documentation section, ``Cookbook``
@@ -697,7 +730,8 @@ pandas 0.11.0
   - Added to_series() method to indices, to facilitate the creation of indexeres
     (:issue:`3275`)
 
-**Improvements to existing features**
+Improvements to existing features
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
   - Improved performance of df.to_csv() by up to 10x in some cases. (:issue:`3059`)
   - added ``blocks`` attribute to DataFrames, to return a dict of dtypes to
@@ -783,7 +817,8 @@ pandas 0.11.0
     HTML character escaping (enabled by default) and escapes ``&``, in addition
     to ``<`` and ``>``.  (:issue:`2919`)
 
-**API Changes**
+API Changes
+~~~~~~~~~~~
 
   - Do not automatically upcast numeric specified dtypes to ``int64`` or
     ``float64`` (:issue:`622` and :issue:`797`)
@@ -834,7 +869,8 @@ pandas 0.11.0
   - HTML repr output in IPython qtconsole is once again controlled by the option
     `display.notebook_repr_html`, and on by default.
 
-**Bug Fixes**
+Bug Fixes
+~~~~~~~~~
 
   - Fix seg fault on empty data frame when fillna with ``pad`` or ``backfill``
     (:issue:`2778`)
@@ -958,15 +994,17 @@ pandas 0.11.0
 
 
 pandas 0.10.1
-=============
+-------------
 
 **Release date:** 2013-01-22
 
-**New features**
+New features
+~~~~~~~~~~~~
 
   - Add data inferface to World Bank WDI pandas.io.wb (:issue:`2592`)
 
-**API Changes**
+API Changes
+~~~~~~~~~~~
 
   - Restored inplace=True behavior returning self (same object) with
     deprecation warning until 0.11 (:issue:`1893`)
@@ -977,7 +1015,8 @@ pandas 0.10.1
       ``complib`` to be consistent across library)
     - warn `PerformanceWarning` if you are attempting to store types that will be pickled by PyTables
 
-**Improvements to existing features**
+Improvements to existing features
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
   - ``HDFStore``
 
@@ -1017,7 +1056,8 @@ pandas 0.10.1
   - Implement ``kind`` option in ``ExcelFile`` to indicate whether it's an XLS
     or XLSX file (:issue:`2613`)
 
-**Bug fixes**
+Bug Fixes
+~~~~~~~~~
 
   - Fix read_csv/read_table multithreading issues (:issue:`2608`)
   - ``HDFStore``
@@ -1070,11 +1110,12 @@ pandas 0.10.1
 
 
 pandas 0.10.0
-=============
+-------------
 
 **Release date:** 2012-12-17
 
-**New features**
+New features
+~~~~~~~~~~~~
 
   - Brand new high-performance delimited file parsing engine written in C and
     Cython. 50% or better performance in many standard use cases with a
@@ -1127,13 +1168,15 @@ pandas 0.10.0
     default now (:issue:`2436`)
   - Scikits.timeseries-like moving window functions via ``rolling_window`` (:issue:`1270`)
 
-**Experimental Features**
+Experimental Features
+~~~~~~~~~~~~~~~~~~~~~
 
   - Add support for Panel4D, a named 4 Dimensional stucture
   - Add support for ndpanel factory functions, to create custom,
     domain-specific N-Dimensional containers
 
-**API Changes**
+API Changes
+~~~~~~~~~~~
 
   - The default binning/labeling behavior for ``resample`` has been changed to
     `closed='left', label='left'` for daily and lower frequencies. This had
@@ -1170,7 +1213,8 @@ pandas 0.10.0
   - File parsers will not handle NA sentinel values arising from passed
     converter functions
 
-**Improvements to existing features**
+Improvements to existing features
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
   - Add ``nrows`` option to DataFrame.from_records for iterators (:issue:`1794`)
   - Unstack/reshape algorithm rewrite to avoid high memory use in cases where
@@ -1218,7 +1262,8 @@ pandas 0.10.0
   - Escape more special characters in console output (:issue:`2492`)
   - df.select now invokes bool on the result of crit(x) (:issue:`2487`)
 
-**Bug fixes**
+Bug Fixes
+~~~~~~~~~
 
   - Fix major performance regression in DataFrame.iteritems (:issue:`2273`)
   - Fixes bug when negative period passed to Series/DataFrame.diff (:issue:`2266`)
@@ -1288,11 +1333,12 @@ pandas 0.10.0
 
 
 pandas 0.9.1
-============
+------------
 
 **Release date:** 2012-11-14
 
-**New features**
+New features
+~~~~~~~~~~~~
 
   - Can specify multiple sort orders in DataFrame/Series.sort/sort_index (:issue:`928`)
   - New `top` and `bottom` options for handling NAs in rank (:issue:`1508`, :issue:`2159`)
@@ -1300,7 +1346,8 @@ pandas 0.9.1
   - Add `at_time` and `between_time` functions to DataFrame (:issue:`2149`)
   - Add flexible `pow` and `rpow` methods to DataFrame (:issue:`2190`)
 
-**API Changes**
+API Changes
+~~~~~~~~~~~
 
   - Upsampling period index "spans" intervals. Example: annual periods
     upsampled to monthly will span all months in each year
@@ -1309,7 +1356,8 @@ pandas 0.9.1
   - File parsers no longer coerce to float or bool for columns that have custom
     converters specified (:issue:`2184`)
 
-**Improvements to existing features**
+Improvements to existing features
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
   - Time rule inference for week-of-month (e.g. WOM-2FRI) rules (:issue:`2140`)
   - Improve performance of datetime + business day offset with large number of
@@ -1324,7 +1372,8 @@ pandas 0.9.1
   - Turn off pandas-style tick locators and formatters (:issue:`2205`)
   - DataFrame[DataFrame] uses DataFrame.where to compute masked frame (:issue:`2230`)
 
-**Bug fixes**
+Bug Fixes
+~~~~~~~~~
 
   - Fix some duplicate-column DataFrame constructor issues (:issue:`2079`)
   - Fix bar plot color cycle issues (:issue:`2082`)
@@ -1381,11 +1430,12 @@ pandas 0.9.1
 
 
 pandas 0.9.0
-============
+------------
 
 **Release date:** 10/7/2012
 
-**New features**
+New features
+~~~~~~~~~~~~
 
   - Add ``str.encode`` and ``str.decode`` to Series (:issue:`1706`)
   - Add `to_latex` method to DataFrame (:issue:`1735`)
@@ -1396,7 +1446,8 @@ pandas 0.9.0
     FALSE, variants thereof) (:issue:`1691`, :issue:`1295`)
   - Add Panel.update method, analogous to DataFrame.update (:issue:`1999`, :issue:`1988`)
 
-**Improvements to existing features**
+Improvements to existing features
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
   - Proper handling of NA values in merge operations (:issue:`1990`)
   - Add ``flags`` option for ``re.compile`` in some Series.str methods (:issue:`1659`)
@@ -1420,7 +1471,8 @@ pandas 0.9.0
   - TimeSeries.between_time can now select times across midnight (:issue:`1871`)
   - Enable `skip_footer` parameter in `ExcelFile.parse` (:issue:`1843`)
 
-**API Changes**
+API Changes
+~~~~~~~~~~~
 
   - Change default header names in read_* functions to more Pythonic X0, X1,
     etc. instead of X.1, X.2. (:issue:`2000`)
@@ -1444,7 +1496,8 @@ pandas 0.9.0
     `keep_default_na` is set to false explicitly (:issue:`1657`)
   - Enable `skipfooter` parameter in text parsers as an alias for `skip_footer`
 
-**Bug fixes**
+Bug Fixes
+~~~~~~~~~
 
   - Perform arithmetic column-by-column in mixed-type DataFrame to avoid type
     upcasting issues. Caused downstream DataFrame.diff bug (:issue:`1896`)
@@ -1610,11 +1663,12 @@ pandas 0.9.0
 
 
 pandas 0.8.1
-============
+------------
 
 **Release date:** July 22, 2012
 
-**New features**
+New features
+~~~~~~~~~~~~
 
   - Add vectorized, NA-friendly string methods to Series (:issue:`1621`, :issue:`620`)
   - Can pass dict of per-column line styles to DataFrame.plot (:issue:`1559`)
@@ -1626,7 +1680,8 @@ pandas 0.8.1
     hierarchical indexes (:issue:`1538`)
   - Add ``dropna`` method to Panel (:issue:`171`)
 
-**Improvements to existing features**
+Improvements to existing features
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
   - Use moving min/max algorithms from Bottleneck in rolling_min/rolling_max
     for > 100x speedup. (:issue:`1504`, :issue:`50`)
@@ -1649,7 +1704,8 @@ pandas 0.8.1
   - Handling of tz-aware datetime.datetime objects in to_datetime; raise
     Exception unless utc=True given (:issue:`1581`)
 
-**Bug fixes**
+Bug Fixes
+~~~~~~~~~
 
   - Fix NA handling in DataFrame.to_panel (:issue:`1582`)
   - Handle TypeError issues inside PyObject_RichCompareBool calls in khash
@@ -1700,11 +1756,12 @@ pandas 0.8.1
 
 
 pandas 0.8.0
-============
+------------
 
 **Release date:** 6/29/2012
 
-**New features**
+New features
+~~~~~~~~~~~~
 
   - New unified DatetimeIndex class for nanosecond-level timestamp data
   - New Timestamp datetime.datetime subclass with easy time zone conversions,
@@ -1768,7 +1825,8 @@ pandas 0.8.0
   - Add ``secondary_y`` option to Series.plot
   - Add experimental ``lreshape`` function for reshaping wide to long
 
-**Improvements to existing features**
+Improvements to existing features
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
   - Switch to klib/khash-based hash tables in Index classes for better
     performance in many cases and lower memory footprint
@@ -1815,7 +1873,8 @@ pandas 0.8.0
   - Add ``raise_conflict`` argument to DataFrame.update (:issue:`1526`)
   - Support file-like objects in ExcelFile (:issue:`1529`)
 
-**API Changes**
+API Changes
+~~~~~~~~~~~
 
   - Rename `pandas._tseries` to `pandas.lib`
   - Rename Factor to Categorical and add improvements. Numerous Categorical bug
@@ -1836,7 +1895,8 @@ pandas 0.8.0
     as array of tuples) internally, speed up construction time and many methods
     which construct intermediate hierarchical indexes (:issue:`1467`)
 
-**Bug fixes**
+Bug Fixes
+~~~~~~~~~
 
   - Fix OverflowError from storing pre-1970 dates in HDFStore by switching to
     datetime64 (:issue:`179`)
@@ -1894,11 +1954,12 @@ pandas 0.8.0
 
 
 pandas 0.7.3
-============
+------------
 
 **Release date:** April 12, 2012
 
-**New features / modules**
+New features
+~~~~~~~~~~~~
 
   - Support for non-unique indexes: indexing and selection, many-to-one and
     many-to-many joins (:issue:`1306`)
@@ -1931,14 +1992,16 @@ pandas 0.7.3
   - Use exogenous / X variable index in result of OLS.y_predict. Add
     OLS.predict method (:issue:`1027`, :issue:`1008`)
 
-**API Changes**
+API Changes
+~~~~~~~~~~~
 
   - Calling apply on grouped Series, e.g. describe(), will no longer yield
     DataFrame by default. Will have to call unstack() to get prior behavior
   - NA handling in non-numeric comparisons has been tightened up (:issue:`933`, :issue:`953`)
   - No longer assign dummy names key_0, key_1, etc. to groupby index (:issue:`1291`)
 
-**Bug fixes**
+Bug Fixes
+~~~~~~~~~
 
   - Fix logic error when selecting part of a row in a DataFrame with a
     MultiIndex index (:issue:`1013`)
@@ -1965,24 +2028,27 @@ pandas 0.7.3
 
 
 pandas 0.7.2
-============
+------------
 
 **Release date:** March 16, 2012
 
-**New features / modules**
+New features
+~~~~~~~~~~~~
 
   - Add additional tie-breaking methods in DataFrame.rank (:issue:`874`)
   - Add ascending parameter to rank in Series, DataFrame (:issue:`875`)
   - Add sort_columns parameter to allow unsorted plots (:issue:`918`)
   - IPython tab completion on GroupBy objects
 
-**API Changes**
+API Changes
+~~~~~~~~~~~
 
   - Series.sum returns 0 instead of NA when called on an empty
     series. Analogously for a DataFrame whose rows or columns are length 0
     (:issue:`844`)
 
-**Improvements to existing features**
+Improvements to existing features
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
   - Don't use groups dict in Grouper.size (:issue:`860`)
   - Use khash for Series.value_counts, add raw function to algorithms.py (:issue:`861`)
@@ -1999,7 +2065,8 @@ pandas 0.7.2
   - Add ``axis`` option to DataFrame.fillna (:issue:`174`)
   - Fixes to Panel to make it easier to subclass (:issue:`888`)
 
-**Bug fixes**
+Bug Fixes
+~~~~~~~~~
 
   - Fix overflow-related bugs in groupby (:issue:`850`, :issue:`851`)
   - Fix unhelpful error message in parsers (:issue:`856`)
@@ -2023,11 +2090,12 @@ pandas 0.7.2
 
 
 pandas 0.7.1
-============
+------------
 
 **Release date:** February 29, 2012
 
-**New features / modules**
+New features
+~~~~~~~~~~~~
 
   - Add ``to_clipboard`` function to pandas namespace for writing objects to
     the system clipboard (:issue:`774`)
@@ -2042,12 +2110,14 @@ pandas 0.7.1
     (:issue:`773`)
   - Support for reading Excel 2007 XML documents using openpyxl
 
-**Improvements to existing features**
+Improvements to existing features
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
   - Improve performance and memory usage of fillna on DataFrame
   - Can concatenate a list of Series along axis=1 to obtain a DataFrame (:issue:`787`)
 
-**Bug fixes**
+Bug Fixes
+~~~~~~~~~
 
   - Fix memory leak when inserting large number of columns into a single
     DataFrame (:issue:`790`)
@@ -2074,11 +2144,12 @@ pandas 0.7.1
 
 
 pandas 0.7.0
-============
+------------
 
 **Release date:** 2/9/2012
 
-**New features / modules**
+New features
+~~~~~~~~~~~~
 
   - New ``merge`` function for efficiently performing full gamut of database /
     relational-algebra operations. Refactored existing join methods to use the
@@ -2145,7 +2216,8 @@ pandas 0.7.0
   - Add ``abs`` method to Pandas objects
   - Added ``algorithms`` module to start collecting central algos
 
-**API Changes**
+API Changes
+~~~~~~~~~~~
 
   - Label-indexing with integer indexes now raises KeyError if a label is not
     found instead of falling back on location-based indexing (:issue:`700`)
@@ -2175,7 +2247,8 @@ pandas 0.7.0
   - Rename ``col_or_columns`` argument in ``DataFrame.drop_duplicates`` (GH
     :issue:`734`)
 
-**Improvements to existing features**
+Improvements to existing features
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
   - Better error message in DataFrame constructor when passed column labels
     don't match data (:issue:`497`)
@@ -2242,7 +2315,8 @@ pandas 0.7.0
     containing "empty" ('') lower levels without passing the empty levels (PR
     :issue:`768`)
 
-**Bug fixes**
+Bug Fixes
+~~~~~~~~~
 
   - Raise exception in out-of-bounds indexing of Series instead of
     seg-faulting, regression from earlier releases (:issue:`495`)
@@ -2355,53 +2429,55 @@ pandas 0.7.0
   - Fix bug in DateRange.intersection causing incorrect results with some
     overlapping ranges (:issue:`771`)
 
-Thanks
-------
-- Craig Austin
-- Chris Billington
-- Marius Cobzarenco
-- Mario Gamboa-Cavazos
-- Hans-Martin Gaudecker
-- Arthur Gerigk
-- Yaroslav Halchenko
-- Jeff Hammerbacher
-- Matt Harrison
-- Andreas Hilboll
-- Luc Kesters
-- Adam Klein
-- Gregg Lind
-- Solomon Negusse
-- Wouter Overmeire
-- Christian Prinoth
-- Jeff Reback
-- Sam Reckoner
-- Craig Reeson
-- Jan Schulz
-- Skipper Seabold
-- Ted Square
-- Graham Taylor
-- Aman Thakral
-- Chris Uga
-- Dieter Vandenbussche
-- Texas P.
-- Pinxing Ye
-- ... and everyone I forgot
+**Thanks**
+
+  - Craig Austin
+  - Chris Billington
+  - Marius Cobzarenco
+  - Mario Gamboa-Cavazos
+  - Hans-Martin Gaudecker
+  - Arthur Gerigk
+  - Yaroslav Halchenko
+  - Jeff Hammerbacher
+  - Matt Harrison
+  - Andreas Hilboll
+  - Luc Kesters
+  - Adam Klein
+  - Gregg Lind
+  - Solomon Negusse
+  - Wouter Overmeire
+  - Christian Prinoth
+  - Jeff Reback
+  - Sam Reckoner
+  - Craig Reeson
+  - Jan Schulz
+  - Skipper Seabold
+  - Ted Square
+  - Graham Taylor
+  - Aman Thakral
+  - Chris Uga
+  - Dieter Vandenbussche
+  - Texas P.
+  - Pinxing Ye
+  - ... and everyone I forgot
 
 
 
 pandas 0.6.1
-============
+------------
 
 **Release date:** 12/13/2011
 
-**API Changes**
+API Changes
+~~~~~~~~~~~
 
   - Rename `names` argument in DataFrame.from_records to `columns`. Add
     deprecation warning
   - Boolean get/set operations on Series with boolean Series will reindex
     instead of requiring that the indexes be exactly equal (:issue:`429`)
 
-**New features / modules**
+New features
+~~~~~~~~~~~~
 
   - Can pass Series to DataFrame.append with ignore_index=True for appending a
     single row (:issue:`430`)
@@ -2427,7 +2503,8 @@ pandas 0.6.1
     :issue:`114`)
   - Add `Series.from_csv` function (:issue:`482`)
 
-**Improvements to existing features**
+Improvements to existing features
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
   - Improve memory usage of `DataFrame.describe` (do not copy data
     unnecessarily) (:issue:`425`)
@@ -2454,7 +2531,8 @@ pandas 0.6.1
     (:issue:`478`)
   - Improve performance of DataFrame.{index, columns} attribute lookup
 
-**Bug fixes**
+Bug Fixes
+~~~~~~~~~
 
   - Fix O(K^2) memory leak caused by inserting many columns without
     consolidating, had been present since 0.4.0 (:issue:`467`)
@@ -2487,38 +2565,40 @@ pandas 0.6.1
   - Preserve Index / MultiIndex names in GroupBy.apply concatenation step (GH
     :issue:`481`)
 
-Thanks
-------
-- Ralph Bean
-- Luca Beltrame
-- Marius Cobzarenco
-- Andreas Hilboll
-- Jev Kuznetsov
-- Adam Lichtenstein
-- Wouter Overmeire
-- Fernando Perez
-- Nathan Pinger
-- Christian Prinoth
-- Alex Reyfman
-- Joon Ro
-- Chang She
-- Ted Square
-- Chris Uga
-- Dieter Vandenbussche
+**Thanks**
+
+  - Ralph Bean
+  - Luca Beltrame
+  - Marius Cobzarenco
+  - Andreas Hilboll
+  - Jev Kuznetsov
+  - Adam Lichtenstein
+  - Wouter Overmeire
+  - Fernando Perez
+  - Nathan Pinger
+  - Christian Prinoth
+  - Alex Reyfman
+  - Joon Ro
+  - Chang She
+  - Ted Square
+  - Chris Uga
+  - Dieter Vandenbussche
 
 
 
 pandas 0.6.0
-============
+------------
 
 **Release date:** 11/25/2011
 
-**API Changes**
+API Changes
+~~~~~~~~~~~
 
   - Arithmetic methods like `sum` will attempt to sum dtype=object values by
     default instead of excluding them (:issue:`382`)
 
-**New features / modules**
+New features
+~~~~~~~~~~~~
 
   - Add `melt` function to `pandas.core.reshape`
   - Add `level` parameter to group by level in Series and DataFrame
@@ -2565,7 +2645,8 @@ pandas 0.6.0
   - Add `DataFrame.boxplot` function (:issue:`368`, others)
   - Can pass extra args, kwds to DataFrame.apply (:issue:`376`)
 
-**Improvements to existing features**
+Improvements to existing features
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
   - Raise more helpful exception if date parsing fails in DateRange (:issue:`298`)
   - Vastly improved performance of GroupBy on axes with a MultiIndex (:issue:`299`)
@@ -2601,7 +2682,8 @@ pandas 0.6.0
     function
   - Handle NumPy scalar integers at C level in Cython conversion routines
 
-**Bug fixes**
+Bug Fixes
+~~~~~~~~~
 
   - Fix bug in `DataFrame.to_csv` when writing a DataFrame with an index
     name (:issue:`290`)
@@ -2653,33 +2735,32 @@ pandas 0.6.0
   - Index name was not being pickled (:issue:`408`)
   - Level name should be passed to result index in GroupBy.apply (:issue:`416`)
 
-Thanks
-------
+**Thanks**
 
-- Craig Austin
-- Marius Cobzarenco
-- Joel Cross
-- Jeff Hammerbacher
-- Adam Klein
-- Thomas Kluyver
-- Jev Kuznetsov
-- Kieran O'Mahony
-- Wouter Overmeire
-- Nathan Pinger
-- Christian Prinoth
-- Skipper Seabold
-- Chang She
-- Ted Square
-- Aman Thakral
-- Chris Uga
-- Dieter Vandenbussche
-- carljv
-- rsamson
+  - Craig Austin
+  - Marius Cobzarenco
+  - Joel Cross
+  - Jeff Hammerbacher
+  - Adam Klein
+  - Thomas Kluyver
+  - Jev Kuznetsov
+  - Kieran O'Mahony
+  - Wouter Overmeire
+  - Nathan Pinger
+  - Christian Prinoth
+  - Skipper Seabold
+  - Chang She
+  - Ted Square
+  - Aman Thakral
+  - Chris Uga
+  - Dieter Vandenbussche
+  - carljv
+  - rsamson
 
 
 
 pandas 0.5.0
-============
+------------
 
 **Release date:** 10/24/2011
 
@@ -2696,7 +2777,8 @@ performance improvements that are worth taking a look at.
 Thanks to all for bug reports, contributed patches and generally providing
 feedback on the library.
 
-**API Changes**
+API Changes
+~~~~~~~~~~~
 
   - `read_table`, `read_csv`, and `ExcelFile.parse` default arguments for
     `index_col` is now None. To use one or more of the columns as the resulting
@@ -2761,7 +2843,8 @@ feedback on the library.
       `major_xs`)
     * `Panel.toWide`, use `Panel.to_wide` instead
 
-**New features / modules**
+New features
+~~~~~~~~~~~~
 
   - Added `DataFrame.align` method with standard join options
   - Added `parse_dates` option to `read_csv` and `read_table` methods to
@@ -2790,7 +2873,8 @@ feedback on the library.
   - Add convenience `set_index` function for creating a DataFrame index from
     its existing columns
 
-**Improvements to existing features**
+Improvements to existing features
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
   - Major performance improvements in file parsing functions `read_csv` and
     `read_table`
@@ -2816,7 +2900,8 @@ feedback on the library.
     DataFrame objects
   - Better handling of pyx file dependencies in Cython module build (:issue:`271`)
 
-**Bug fixes**
+Bug Fixes
+~~~~~~~~~
 
   - `read_csv` / `read_table` fixes
 
@@ -2863,22 +2948,18 @@ feedback on the library.
     MultiIndex (:issue:`285`)
   - Fix bug when slicing Series with negative indices before beginning
 
-Thanks
-------
+**Thanks**
 
-- Thomas Kluyver
-- Daniel Fortunov
-- Aman Thakral
-- Luca Beltrame
-- Wouter Overmeire
+  - Thomas Kluyver
+  - Daniel Fortunov
+  - Aman Thakral
+  - Luca Beltrame
+  - Wouter Overmeire
 
 
 
 pandas 0.4.3
-============
-
-Release notes
--------------
+------------
 
 **Release date:** 10/9/2011
 
@@ -2886,7 +2967,8 @@ This is largely a bugfix release from 0.4.2 but also includes a handful of new
 and enhanced features. Also, pandas can now be installed and used on Python 3
 (thanks Thomas Kluyver!).
 
-**New features / modules**
+New features
+~~~~~~~~~~~~
 
   - Python 3 support using 2to3 (:issue:`200`, Thomas Kluyver)
   - Add `name` attribute to `Series` and added relevant logic and tests. Name
@@ -2896,7 +2978,8 @@ and enhanced features. Also, pandas can now be installed and used on Python 3
     round-tripped to flat files, pickle, HDF5, etc.
   - Add `isnull` and `notnull` as instance methods on Series (:issue:`209`, :issue:`203`)
 
-**Improvements to existing features**
+Improvements to existing features
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
   - Skip xlrd-related unit tests if not installed
   - `Index.append` and `MultiIndex.append` can accept a list of Index objects to
@@ -2906,7 +2989,8 @@ and enhanced features. Also, pandas can now be installed and used on Python 3
     number of blocks (:issue:`205`)
   - Refactored `Series.__repr__` to be a bit more clean and consistent
 
-**API Changes**
+API Changes
+~~~~~~~~~~~
 
   - `Series.describe` and `DataFrame.describe` now bring the 25% and 75%
     quartiles instead of the 10% and 90% deciles. The other outputs have not
@@ -2914,7 +2998,8 @@ and enhanced features. Also, pandas can now be installed and used on Python 3
   - `Series.toString` will print deprecation warning, has been de-camelCased to
     `to_string`
 
-**Bug fixes**
+Bug Fixes
+~~~~~~~~~
 
   - Fix broken interaction between `Index` and `Int64Index` when calling
     intersection. Implement `Int64Index.intersection`
@@ -2932,8 +3017,7 @@ and enhanced features. Also, pandas can now be installed and used on Python 3
   - Fix bug writing Series to CSV in Python 3 (:issue:`209`)
   - Miscellaneous Python 3 bugfixes
 
-Thanks
-------
+**Thanks**
 
   - Thomas Kluyver
   - rsamson
@@ -2941,10 +3025,7 @@ Thanks
 
 
 pandas 0.4.2
-============
-
-Release notes
--------------
+------------
 
 **Release date:** 10/3/2011
 
@@ -2952,7 +3033,8 @@ This is a performance optimization release with several bug fixes. The new
 Int64Index and new merging / joining Cython code and related Python
 infrastructure are the main new additions
 
-**New features / modules**
+New features
+~~~~~~~~~~~~
 
   - Added fast `Int64Index` type with specialized join, union,
     intersection. Will result in significant performance enhancements for
@@ -2970,7 +3052,8 @@ infrastructure are the main new additions
   - Add method `get_level_values` to `MultiIndex`
   - Implemented shallow copy of `BlockManager` object in `DataFrame` internals
 
-**Improvements to existing features**
+Improvements to existing features
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
   - Improved performance of `isnull` and `notnull`, a regression from v0.3.0
     (:issue:`187`)
@@ -2994,11 +3077,13 @@ infrastructure are the main new additions
   - Added informative Exception when passing dict to DataFrame groupby
     aggregation with axis != 0
 
-**API Changes**
+API Changes
+~~~~~~~~~~~
 
 None
 
-**Bug fixes**
+Bug Fixes
+~~~~~~~~~
 
   - Fixed minor unhandled exception in Cython code implementing fast groupby
     aggregation operations
@@ -3012,26 +3097,23 @@ None
   - Raise SkipTest for pre-epoch HDFStore failure. Real fix will be sorted out
     via datetime64 dtype
 
-Thanks
-------
+**Thanks**
 
-- Uri Laserson
-- Scott Sinclair
+  - Uri Laserson
+  - Scott Sinclair
 
 
 
 pandas 0.4.1
-============
-
-Release notes
--------------
+------------
 
 **Release date:** 9/25/2011
 
 This is primarily a bug fix release but includes some new features and
 improvements
 
-**New features / modules**
+New features
+~~~~~~~~~~~~
 
   - Added new `DataFrame` methods `get_dtype_counts` and property `dtypes`
   - Setting of values using ``.ix`` indexing attribute in mixed-type DataFrame
@@ -3044,7 +3126,8 @@ improvements
   - Added `ignore_index` option to `DataFrame.append` for combining unindexed
     records stored in a DataFrame
 
-**Improvements to existing features**
+Improvements to existing features
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
   - Some speed enhancements with internal Index type-checking function
   - `DataFrame.rename` has a new `copy` parameter which can rename a DataFrame
@@ -3059,11 +3142,13 @@ improvements
   - Optimized `_ensure_index` function resulting in performance savings in
     type-checking Index objects
 
-**API Changes**
+API Changes
+~~~~~~~~~~~
 
 None
 
-**Bug fixes**
+Bug Fixes
+~~~~~~~~~
 
   - Fixed DataFrame constructor bug causing downstream problems (e.g. .copy()
     failing) when passing a Series as the values along with a column name and
@@ -3085,25 +3170,23 @@ None
   - Fix bug in `HDFStore` in which Panel data could be appended to a Table with
     different item order, thus resulting in an incorrect result read back
 
-Thanks
-------
-- Yaroslav Halchenko
-- Jeff Reback
-- Skipper Seabold
-- Dan Lovell
-- Nick Pentreath
+**Thanks**
+
+  - Yaroslav Halchenko
+  - Jeff Reback
+  - Skipper Seabold
+  - Dan Lovell
+  - Nick Pentreath
 
 
 
 pandas 0.4.0
-============
-
-Release notes
--------------
+------------
 
 **Release date:** 9/12/2011
 
-**New features / modules**
+New features
+~~~~~~~~~~~~
 
   - `pandas.core.sparse` module: "Sparse" (mostly-NA, or some other fill value)
     versions of `Series`, `DataFrame`, and `Panel`. For low-density data, this
@@ -3188,7 +3271,8 @@ Release notes
   - `pandas.io.data` module providing a consistent interface for reading time
     series data from several different sources
 
-**Improvements to existing features**
+Improvements to existing features
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
   * The 2-dimensional `DataFrame` and `DataMatrix` classes have been extensively
     redesigned internally into a single class `DataFrame`, preserving where
@@ -3232,7 +3316,8 @@ Release notes
   * `Panel` constructor can accept a dict of DataFrame-like objects. Do not
     need to use `from_dict` anymore (`from_dict` is there to stay, though).
 
-**API Changes**
+API Changes
+~~~~~~~~~~~
 
   * The `DataMatrix` variable now refers to `DataFrame`, will be removed within
     two releases
@@ -3314,7 +3399,8 @@ Release notes
   * Added optional `encoding` argument to `read_csv`, `read_table`, `to_csv`,
     `from_csv` to handle unicode in python 2.x
 
-**Bug fixes**
+Bug Fixes
+~~~~~~~~~
 
   * Column ordering in `pandas.io.parsers.parseCSV` will match CSV in the presence
     of mixed-type data
@@ -3339,8 +3425,8 @@ Release notes
     the `PanelOLS` classes
   * `HDFStore` can handle duplicates in table format, will take
 
-Thanks
-------
+**Thanks**
+
   - Joon Ro
   - Michael Pennington
   - Chris Uga
@@ -3361,14 +3447,12 @@ Thanks
   - Chris Jordan-Squire
 
 pandas 0.3.0
-============
-
-Release notes
--------------
+------------
 
 **Release date:** February 20, 2011
 
-**New features / modules**
+New features
+~~~~~~~~~~~~
 
   - `corrwith` function to compute column- or row-wise correlations between two
     DataFrame objects
@@ -3385,7 +3469,8 @@ Release notes
   - `pandas.rpy` (experimental) module created, provide some interfacing /
     conversion between rpy2 and pandas
 
-**Improvements**
+Improvements to existing features
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
   - Unit test coverage: 100% line coverage of core data structures
   - Speed enhancement to rolling_{median, max, min}
@@ -3395,7 +3480,8 @@ Release notes
 	matplotlib Axis arguments, plot DataFrame columns in multiple subplots,
 	etc.)
 
-**API Changes**
+API Changes
+~~~~~~~~~~~
 
   - Exponentially-weighted moment functions in `pandas.stats.moments` have a
     more consistent API and accept a min_periods argument like their regular
@@ -3408,7 +3494,8 @@ Release notes
   - Removed **cap** and **floor** functions from DataFrame, renamed to
     **clip_upper** and **clip_lower** for consistency with NumPy
 
-**Bug fixes**
+Bug Fixes
+~~~~~~~~~
 
   - Fixed bug in IndexableSkiplist Cython code that was breaking rolling_max
     function
