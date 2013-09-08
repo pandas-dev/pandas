@@ -79,3 +79,18 @@ data = data * 200
 cmd = "read_table(StringIO(data), sep=',', header=None, parse_dates=[1])"
 sdate = datetime(2012, 5, 7)
 read_table_multiple_date_baseline = Benchmark(cmd, setup, start_date=sdate)
+
+setup = common_setup + """
+from cStringIO import StringIO
+data = '''\
+KORD,19990127 19:00:00, 18:56:00, 0.8100, 2.8100, 7.2000, 0.0000, 280.0000
+KORD,19990127 20:00:00, 19:56:00, 0.0100, 2.2100, 7.2000, 0.0000, 260.0000
+KORD,19990127 21:00:00, 20:56:00, -0.5900, 2.2100, 5.7000, 0.0000, 280.0000
+KORD,19990127 21:00:00, 21:18:00, -0.9900, 2.0100, 3.6000, 0.0000, 270.0000
+KORD,19990127 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
+'''
+data = data * 50000
+"""
+cmd = "read_table(StringIO(data), sep=',', header=None, parse_dates=False)"
+sdate = datetime(2012, 5, 7)
+read_table_multiple_long = Benchmark(cmd, setup, start_date=sdate)
