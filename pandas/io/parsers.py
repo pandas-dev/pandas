@@ -414,7 +414,9 @@ read_table = Appender(_read_table_doc)(read_table)
 @Appender(_read_fwf_doc)
 def read_fwf(filepath_or_buffer, colspecs=None, widths=None, **kwds):
     # Check input arguments.
-    if bool(colspecs is None) == bool(widths is None):
+    if colspecs is None and widths is None:
+        raise ValueError("Must specify either colspecs or widths")
+    elif colspecs is not None and widths is not None:
         raise ValueError("You must specify only one of 'widths' and "
                          "'colspecs'")
 
