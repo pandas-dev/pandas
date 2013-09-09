@@ -13,6 +13,7 @@ from pandas.core.indexing import _maybe_convert_indices
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
 from pandas.core.internals import BlockManager
+import pandas.core.array as pa
 import pandas.core.common as com
 import pandas.core.datetools as datetools
 from pandas import compat, _np_version_under1p7
@@ -1963,58 +1964,109 @@ class NDFrame(PandasObject):
         else:
             return self._constructor(new_data)
 
-    def interpolate(self, to_replace, method='pad', axis=0, inplace=False,
-                    limit=None):
+    def interpolate(self, method='linear', axis=0, limit=None, inplace=False,
+                    downcast='infer', **kwargs):
         """Interpolate values according to different methods.
 
         Parameters
         ----------
-        to_replace : dict, Series
-        method : str
-        axis : int
-        inplace : bool
-        limit : int, default None
+        method : {'linear', 'time', 'values', 'index' 'nearest',
+                  'zero', 'slinear', 'quadratic', 'cubic',
+                  'barycentric', 'krogh', 'polynomial', 'spline'
+                  'piecewise_polynomial', 'pchip'}
+            'linear': ignore the index and treat the values as equally spaced. default
+            'time': interpolation works on daily and higher resolution
+                data to interpolate given length of interval
+            'index': use the actual numerical values of the index
+            'nearest', 'zero', 'slinear', 'quadratic', 'cubic', 'barycentric',
+            'polynomial' is passed to `scipy.interpolate.interp1d` with the order given
+                both 'polynomial' and 'spline' requre that you also specify and order (int)
+                e.g. df.interpolate(method='polynomial', order=4)
+            'krogh', 'piecewise_polynomial', 'spline', and 'pchip' are all wrappers
+            around the scipy interpolation methods of similar names. See the
+            scipy documentation for more on their behavior:
+            http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation
+            http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html
+        axis : {0, 1}, default 0
+            0: fill column-by-column
+            1: fill row-by-row
+        limit : int, default None. Maximum number of consecutive NaNs to fill.
+        inplace : bool, default False
+        downcast : optional, 'infer' or None, defaults to 'infer'
 
         Returns
         -------
-        frame : interpolated
+        Series or DataFrame of same shape interpolated at the NaNs
 
         See Also
         --------
         reindex, replace, fillna
+
+        Examples
+        --------
+
+        # Filling in NaNs:
+        >>> s = pd.Series([0, 1, np.nan, 3])
+        >>> s.interpolate()
+        0    0
+        1    1
+        2    2
+        3    3
+        dtype: float64
         """
-        from warnings import warn
-        warn('{klass}.interpolate will be removed in v0.14, please use '
-             'either {klass}.fillna or {klass}.replace '
-             'instead'.format(klass=self.__class__), FutureWarning)
-        if self._is_mixed_type and axis == 1:
-            return self.T.replace(to_replace, method=method, limit=limit).T
+        if self.ndim > 2:
+            raise NotImplementedError("Interpolate has not been implemented "
+                                      "on Panel and Panel 4D objects.")
 
-        method = com._clean_fill_method(method)
+        if axis == 0:
+            ax = self._info_axis_name
+        elif axis == 1:
+            self = self.T
+            ax = 1
+        ax = self._get_axis_number(ax)
 
-        if isinstance(to_replace, (dict, com.ABCSeries)):
-            if axis == 0:
-                return self.replace(to_replace, method=method, inplace=inplace,
-                                    limit=limit, axis=axis)
-            elif axis == 1:
-                obj = self.T
-                if inplace:
-                    obj.replace(to_replace, method=method, limit=limit,
-                                inplace=inplace, axis=0)
-                    return obj.T
-                return obj.replace(to_replace, method=method, limit=limit,
-                                   inplace=inplace, axis=0).T
-            else:
-                raise ValueError('Invalid value for axis')
+        if self.ndim == 2:
+            alt_ax = 1 - ax
         else:
-            new_data = self._data.interpolate(method=method, axis=axis,
-                                              limit=limit, inplace=inplace,
-                                              missing=to_replace, coerce=False)
+            alt_ax = ax
 
-            if inplace:
+        if isinstance(self.index, MultiIndex) and method != 'linear':
+            raise ValueError("Only `method=linear` interpolation is supported "
+                             "on MultiIndexes.")
+
+        if self._data.get_dtype_counts().get('object') == len(self.T):
+            raise TypeError("Cannot interpolate with all NaNs.")
+
+        # create/use the index
+        if method == 'linear':
+            index = np.arange(len(self._get_axis(alt_ax)))  # prior default
+        else:
+            index = self._get_axis(alt_ax)
+
+        if pd.isnull(index).any():
+            raise NotImplementedError("Interpolation with NaNs in the index "
+                                      "has not been implemented. Try filling "
+                                      "those NaNs before interpolating.")
+        new_data = self._data.interpolate(method=method,
+                                          axis=ax,
+                                          index=index,
+                                          values=self,
+                                          limit=limit,
+                                          inplace=inplace,
+                                          downcast=downcast,
+                                          **kwargs)
+
+        if inplace:
+            if axis == 1:
                 self._data = new_data
+                self = self.T
             else:
-                return self._constructor(new_data)
+                self._data = new_data
+        else:
+            res = self._constructor(new_data, index=self.index)
+        if axis == 1:
+            res = res.T
+        return res
 
     #----------------------------------------------------------------------
     # Action Methods
