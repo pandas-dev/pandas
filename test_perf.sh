@@ -1,6 +1,5 @@
 #!/bin/sh
 
 CURDIR=$(pwd)
-BASEDIR=$(readlink -f $(dirname $0  ))
-
+BASEDIR=$(cd "$(dirname "$0")"; pwd)
 python "$BASEDIR"/vb_suite/test_perf.py $@
