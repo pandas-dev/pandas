@@ -15,8 +15,14 @@ import pandas as pd
 from pandas import Index
 from pandas.sparse.tests import test_sparse
 from pandas import compat
+from pandas.compat import u
 from pandas.util.misc import is_little_endian
 import pandas
+
+def _read_pickle(vf, encoding=None, compat=False):
+    from pandas.compat import pickle_compat as pc
+    with open(vf,'rb') as fh:
+        pc.load(fh, encoding=encoding, compat=compat)
 
 class TestPickle(unittest.TestCase):
     _multiprocess_can_split_ = True
@@ -24,6 +30,19 @@ class TestPickle(unittest.TestCase):
     def setUp(self):
         from pandas.io.tests.generate_legacy_pickles import create_data
         self.data = create_data()
+        self.path = u('__%s__.pickle' % tm.rands(10))
+
+    def compare_element(self, typ, result, expected):
+        if isinstance(expected,Index):
+            self.assert_(expected.equals(result))
+            return
+
+        if typ.startswith('sp_'):
+            comparator = getattr(test_sparse,"assert_%s_equal" % typ)
+            comparator(result,expected,exact_indices=False)
+        else:
+            comparator = getattr(tm,"assert_%s_equal" % typ)
+            comparator(result,expected)
 
     def compare(self, vf):
 
@@ -36,19 +55,12 @@ class TestPickle(unittest.TestCase):
 
         for typ, dv in data.items():
             for dt, result in dv.items():
-
-                expected = self.data[typ][dt]
-
-                if isinstance(expected,Index):
-                    self.assert_(expected.equals(result))
+                try:
+                    expected = self.data[typ][dt]
+                except (KeyError):
                     continue
 
-                if typ.startswith('sp_'):
-                    comparator = getattr(test_sparse,"assert_%s_equal" % typ)
-                    comparator(result,expected,exact_indices=False)
-                else:
-                    comparator = getattr(tm,"assert_%s_equal" % typ)
-                    comparator(result,expected)
+                self.compare_element(typ, result, expected)
 
     def read_pickles(self, version):
         if not is_little_endian():
@@ -68,8 +80,18 @@ class TestPickle(unittest.TestCase):
     def test_read_pickles_0_12_0(self):
         self.read_pickles('0.12.0')
 
-    def test_read_pickles_0_13_0(self):
-        self.read_pickles('0.13.0')
+    def test_round_trip_current(self):
+
+        for typ, dv in self.data.items():
+
+            for dt, expected in dv.items():
+
+                with tm.ensure_clean(self.path) as path:
+
+                    pd.to_pickle(expected,path)
+
+                    result = pd.read_pickle(path)
+                    self.compare_element(typ, result, expected)
 
 if __name__ == '__main__':
     import nose
