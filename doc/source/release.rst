@@ -393,6 +393,9 @@ Bug Fixes
   - Fixed bug with reading compressed files with ``read_fwf`` in Python 3.
     (:issue:`3963`)
   - Fixed an issue with a duplicate index and assignment with a dtype change (:issue:`4686`)
+  - Fixed bug with reading compressed files in as ``bytes`` rather than ``str``
+    in Python 3. Simplifies bytes-producing file-handling in Python 3
+    (:issue:`3963`, :issue:`4785`).
 
 pandas 0.12.0
 -------------

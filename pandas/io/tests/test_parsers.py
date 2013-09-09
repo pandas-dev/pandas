@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # pylint: disable=E1101
 
 from datetime import datetime
@@ -2043,8 +2044,8 @@ c   1   2   3   4
         expected = read_fwf(StringIO(data), widths=widths, names=names)
         if compat.PY3:
             data = bytes(data, encoding='utf-8')
-        for comp_name, compresser in [('gzip', gzip.GzipFile),
-                                      ('bz2', bz2.BZ2File)]:
+        comps = [('gzip', gzip.GzipFile), ('bz2', bz2.BZ2File)]
+        for comp_name, compresser in comps:
             with tm.ensure_clean() as path:
                 tmp = compresser(path, mode='wb')
                 tmp.write(data)
@@ -2052,6 +2053,18 @@ c   1   2   3   4
                 result = read_fwf(path, widths=widths, names=names,
                                   compression=comp_name)
                 tm.assert_frame_equal(result, expected)
+
+    def test_BytesIO_input(self):
+        if not compat.PY3:
+            raise nose.SkipTest("Bytes-related test - only needs to work on Python 3")
+        result = pd.read_fwf(BytesIO("שלום\nשלום".encode('utf8')), widths=[2,2])
+        expected = pd.DataFrame([["של", "ום"]], columns=["של", "ום"])
+        tm.assert_frame_equal(result, expected)
+        data = BytesIO("שלום::1234\n562::123".encode('cp1255'))
+        result = pd.read_table(data, sep="::", engine='python',
+                               encoding='cp1255')
+        expected = pd.DataFrame([[562, 123]], columns=["שלום","1234"])
+        tm.assert_frame_equal(result, expected)
 
     def test_verbose_import(self):
         text = """a,b,c,d

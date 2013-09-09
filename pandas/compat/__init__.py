@@ -36,6 +36,7 @@ import sys
 import types
 
 PY3 = (sys.version_info[0] >= 3)
+PY3_2 = sys.version_info[:2] == (3, 2)
 
 try:
     import __builtin__ as builtins

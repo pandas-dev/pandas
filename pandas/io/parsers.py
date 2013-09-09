@@ -1175,13 +1175,36 @@ def count_empty_vals(vals):
     return sum([1 for v in vals if v == '' or v is None])
 
 
-def _wrap_compressed(f, compression):
+def _wrap_compressed(f, compression, encoding=None):
+    """wraps compressed fileobject in a decompressing fileobject
+    NOTE: For all files in Python 3.2 and for bzip'd files under all Python
+    versions, this means reading in the entire file and then re-wrapping it in
+    StringIO.
+    """
     compression = compression.lower()
+    encoding = encoding or get_option('display.encoding')
     if compression == 'gzip':
         import gzip
-        return gzip.GzipFile(fileobj=f)
+
+        f = gzip.GzipFile(fileobj=f)
+        if compat.PY3_2:
+            # 3.2's gzip doesn't support read1
+            f = StringIO(f.read().decode(encoding))
+        elif compat.PY3:
+            from io import TextIOWrapper
+
+            f = TextIOWrapper(f)
+        return f
     elif compression == 'bz2':
-        raise ValueError('Python cannot read bz2 data from file handle')
+        import bz2
+
+        # bz2 module can't take file objects, so have to run through decompress
+        # manually
+        data = bz2.decompress(f.read())
+        if compat.PY3:
+            data = data.decode(encoding)
+        f = StringIO(data)
+        return f
     else:
         raise ValueError('do not recognize compression method %s'
                          % compression)
@@ -1235,7 +1258,12 @@ class PythonParser(ParserBase):
             f = com._get_handle(f, 'r', encoding=self.encoding,
                                 compression=self.compression)
         elif self.compression:
-            f = _wrap_compressed(f, self.compression)
+            f = _wrap_compressed(f, self.compression, self.encoding)
+        # in Python 3, convert BytesIO or fileobjects passed with an encoding
+        elif compat.PY3 and isinstance(f, compat.BytesIO):
+            from io import TextIOWrapper
+
+            f = TextIOWrapper(f, encoding=self.encoding)
 
         if hasattr(f, 'readline'):
             self._make_reader(f)
@@ -1321,14 +1349,9 @@ class PythonParser(ParserBase):
             def _read():
                 line = next(f)
                 pat = re.compile(sep)
-                if (compat.PY3 and isinstance(line, bytes)):
-                    yield pat.split(line.decode('utf-8').strip())
-                    for line in f:
-                        yield pat.split(line.decode('utf-8').strip())
-                else:
+                yield pat.split(line.strip())
+                for line in f:
                     yield pat.split(line.strip())
-                    for line in f:
-                        yield pat.split(line.strip())
             reader = _read()
 
         self.data = reader
