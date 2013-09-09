@@ -1373,6 +1373,15 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         rs.where(cond, -s, inplace=True)
         assert_series_equal(rs, s.where(cond, -s))
 
+    def test_where_dups(self):
+        # GH 4550
+        # where crashes with dups in index
+        s1 = Series(range(3))
+        s2 = Series(range(3))
+        comb = pd.concat([s1,s2])
+        result = comb.where(comb < 2)
+        expected = Series([0,1,np.nan,0,1,np.nan],index=[0,1,2,0,1,2])
+
     def test_mask(self):
         s = Series(np.random.randn(5))
         cond = s > 0
