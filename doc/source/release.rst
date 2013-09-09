@@ -102,6 +102,8 @@ Improvements to existing features
     tests/test_frame, tests/test_multilevel (:issue:`4732`).
   - Performance improvement of timesesies plotting with PeriodIndex and added
     test to vbench (:issue:`4705` and :issue:`4722`)
+  - Add ``axis`` and ``level`` keywords to ``where``, so that the ``other`` argument
+    can now be an alignable pandas object.
 
 API Changes
 ~~~~~~~~~~~
