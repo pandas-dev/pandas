@@ -1616,7 +1616,6 @@ class NDFrameGroupBy(GroupBy):
         for val in slice_axis:
             if val in self.exclusions:
                 continue
-
             yield val, slicer(val)
 
     def _cython_agg_general(self, how, numeric_only=True):
@@ -2230,6 +2229,26 @@ class DataFrameGroupBy(NDFrameGroupBy):
 
         return result.convert_objects()
 
+    def _iterate_column_groupbys(self):
+        for i, colname in enumerate(self.obj.columns):
+            yield colname, SeriesGroupBy(self.obj.iloc[:, i], selection=colname,
+                                         grouper=self.grouper,
+                                         exclusions=self.exclusions)
+
+    def _apply_to_column_groupbys(self, func):
+        from pandas.tools.merge import concat
+        return concat((func(col_groupby)
+                            for _, col_groupby in self._iterate_column_groupbys()),
+                        keys=self.obj.columns,
+                        axis=1)
+
+    def ohlc(self):
+        """
+        Compute sum of values, excluding missing values
+
+        For multiple groupings, the result index will be a MultiIndex
+        """
+        return self._apply_to_column_groupbys(lambda x: x._cython_agg_general('ohlc'))
 
 from pandas.tools.plotting import boxplot_frame_groupby
 DataFrameGroupBy.boxplot = boxplot_frame_groupby
