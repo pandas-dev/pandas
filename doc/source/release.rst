@@ -369,6 +369,8 @@ Bug Fixes
   - Bug in ``iloc`` with a slice index failing (:issue:`4771`)
   - Incorrect error message with no colspecs or width in ``read_fwf``. (:issue:`4774`)
   - Fix bugs in indexing in a Series with a duplicate index (:issue:`4548`, :issue:`4550`)
+  - Fixed bug with reading compressed files with ``read_fwf`` in Python 3.
+    (:issue:`3963`)
 
 pandas 0.12.0
 -------------

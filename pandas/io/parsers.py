@@ -14,6 +14,7 @@ from pandas.core.index import Index, MultiIndex
 from pandas.core.frame import DataFrame
 import datetime
 import pandas.core.common as com
+from pandas.core.config import get_option
 from pandas import compat
 from pandas.io.date_converters import generic_parser
 from pandas.io.common import get_filepath_or_buffer
@@ -1921,11 +1922,14 @@ class FixedWidthReader(object):
     """
     A reader of fixed-width lines.
     """
-    def __init__(self, f, colspecs, filler, thousands=None):
+    def __init__(self, f, colspecs, filler, thousands=None, encoding=None):
         self.f = f
         self.colspecs = colspecs
         self.filler = filler  # Empty characters between fields.
         self.thousands = thousands
+        if encoding is None:
+            encoding = get_option('display.encoding')
+        self.encoding = encoding
 
         if not ( isinstance(colspecs, (tuple, list))):
             raise AssertionError()
@@ -1937,11 +1941,20 @@ class FixedWidthReader(object):
                        isinstance(colspec[1], int) ):
                 raise AssertionError()
 
-    def next(self):
-        line = next(self.f)
-        # Note: 'colspecs' is a sequence of half-open intervals.
-        return [line[fromm:to].strip(self.filler or ' ')
-                for (fromm, to) in self.colspecs]
+    if compat.PY3:
+        def next(self):
+            line = next(self.f)
+            if isinstance(line, bytes):
+                line = line.decode(self.encoding)
+            # Note: 'colspecs' is a sequence of half-open intervals.
+            return [line[fromm:to].strip(self.filler or ' ')
+                    for (fromm, to) in self.colspecs]
+    else:
+        def next(self):
+            line = next(self.f)
+            # Note: 'colspecs' is a sequence of half-open intervals.
+            return [line[fromm:to].strip(self.filler or ' ')
+                    for (fromm, to) in self.colspecs]
 
     # Iterator protocol in Python 3 uses __next__()
     __next__ = next
@@ -1959,7 +1972,8 @@ class FixedWidthFieldParser(PythonParser):
         PythonParser.__init__(self, f, **kwds)
 
     def _make_reader(self, f):
-        self.data = FixedWidthReader(f, self.colspecs, self.delimiter)
+        self.data = FixedWidthReader(f, self.colspecs, self.delimiter,
+                                     encoding=self.encoding)
 
 
 ##### deprecations in 0.12 #####
