@@ -1037,9 +1037,13 @@ class Series(generic.NDFrame):
 
         if _is_bool_indexer(key):
             key = _check_bool_indexer(self.index, key)
-            self.where(~key, value, inplace=True)
-        else:
-            self._set_with(key, value)
+            try:
+                self.where(~key, value, inplace=True)
+                return
+            except (InvalidIndexError):
+                pass
+
+        self._set_with(key, value)
 
     def _set_with_engine(self, key, value):
         values = self.values
