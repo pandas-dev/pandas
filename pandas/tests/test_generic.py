@@ -6,6 +6,7 @@ import unittest
 import nose
 
 import numpy as np
+from numpy import nan
 import pandas as pd
 
 from pandas import (Index, Series, DataFrame, Panel,
@@ -23,6 +24,20 @@ from pandas.util.testing import (assert_series_equal,
                                  assert_almost_equal,
                                  ensure_clean)
 import pandas.util.testing as tm
+
+
+def _skip_if_no_scipy():
+    try:
+        import scipy.interpolate
+    except ImportError:
+        raise nose.SkipTest('scipy.interpolate missing')
+
+
+def _skip_if_no_pchip():
+    try:
+        from scipy.interpolate import pchip_interpolate
+    except ImportError:
+        raise nose.SkipTest('scipy.interpolate.pchip missing')
 
 #------------------------------------------------------------------------------
 # Generic types test cases
@@ -173,6 +188,13 @@ class TestSeries(unittest.TestCase, Generic):
     _typ = Series
     _comparator = lambda self, x, y: assert_series_equal(x,y)
 
+    def setUp(self):
+        self.ts = tm.makeTimeSeries()  # Was at top level in test_series
+        self.ts.name = 'ts'
+
+        self.series = tm.makeStringSeries()
+        self.series.name = 'series'
+
     def test_rename_mi(self):
         s = Series([11,21,31],
                    index=MultiIndex.from_tuples([("A",x) for x in ["a","B","c"]]))
@@ -230,6 +252,152 @@ class TestSeries(unittest.TestCase, Generic):
                 self.assertRaises(ValueError, lambda : bool(s))
                 self.assertRaises(ValueError, lambda : s.bool())
 
+    def test_interpolate(self):
+        ts = Series(np.arange(len(self.ts), dtype=float), self.ts.index)
+
+        ts_copy = ts.copy()
+        ts_copy[5:10] = np.NaN
+
+        linear_interp = ts_copy.interpolate(method='linear')
+        self.assert_(np.array_equal(linear_interp, ts))
+
+        ord_ts = Series([d.toordinal() for d in self.ts.index],
+                        index=self.ts.index).astype(float)
+
+        ord_ts_copy = ord_ts.copy()
+        ord_ts_copy[5:10] = np.NaN
+
+        time_interp = ord_ts_copy.interpolate(method='time')
+        self.assert_(np.array_equal(time_interp, ord_ts))
+
+        # try time interpolation on a non-TimeSeries
+        self.assertRaises(ValueError, self.series.interpolate, method='time')
+
+    def test_interpolate_corners(self):
+        s = Series([np.nan, np.nan])
+        assert_series_equal(s.interpolate(), s)
+
+        s = Series([]).interpolate()
+        assert_series_equal(s.interpolate(), s)
+
+        _skip_if_no_scipy()
+        s = Series([np.nan, np.nan])
+        assert_series_equal(s.interpolate(method='polynomial', order=1), s)
+
+        s = Series([]).interpolate()
+        assert_series_equal(s.interpolate(method='polynomial', order=1), s)
+
+    def test_interpolate_index_values(self):
+        s = Series(np.nan, index=np.sort(np.random.rand(30)))
+        s[::3] = np.random.randn(10)
+
+        vals = s.index.values.astype(float)
+
+        result = s.interpolate(method='values')
+
+        expected = s.copy()
+        bad = isnull(expected.values)
+        good = -bad
+        expected = Series(
+            np.interp(vals[bad], vals[good], s.values[good]), index=s.index[bad])
+
+        assert_series_equal(result[bad], expected)
+
+    def test_interpolate_non_ts(self):
+        s = Series([1, 3, np.nan, np.nan, np.nan, 11])
+        with tm.assertRaises(ValueError):
+            s.interpolate(method='time')
+
+    # New interpolation tests
+    def test_nan_interpolate(self):
+        s = Series([0, 1, np.nan, 3])
+        result = s.interpolate()
+        expected = Series([0, 1, 2, 3])
+        assert_series_equal(result, expected)
+
+        _skip_if_no_scipy()
+        result = s.interpolate(method='polynomial', order=1)
+        assert_series_equal(result, expected)
+
+    def test_nan_irregular_index(self):
+        s = Series([1, 2, np.nan, 4], index=[1, 3, 5, 9])
+        result = s.interpolate()
+        expected = Series([1, 2, 3, 4], index=[1, 3, 5, 9])
+        assert_series_equal(result, expected)
+
+    def test_nan_str_index(self):
+        s = Series([0, 1, 2, np.nan], index=list('abcd'))
+        result = s.interpolate()
+        expected = Series([0, 1, 2, 2], index=list('abcd'))
+        assert_series_equal(result, expected)
+
+    def test_interp_quad(self):
+        _skip_if_no_scipy()
+        sq = Series([1, 4, np.nan, 16], index=[1, 2, 3, 4])
+        result = sq.interpolate(method='quadratic')
+        expected = Series([1., 4., 9., 16.], index=[1, 2, 3, 4])
+        assert_series_equal(result, expected)
+
+    def test_interp_scipy_basic(self):
+        _skip_if_no_scipy()
+        s = Series([1, 3, np.nan, 12, np.nan, 25])
+        # slinear
+        expected = Series([1., 3., 7.5, 12., 18.5, 25.])
+        result = s.interpolate(method='slinear')
+        assert_series_equal(result, expected)
+        # nearest
+        expected = Series([1, 3, 3, 12, 12, 25])
+        result = s.interpolate(method='nearest')
+        assert_series_equal(result, expected)
+        # zero
+        expected = Series([1, 3, 3, 12, 12, 25])
+        result = s.interpolate(method='zero')
+        assert_series_equal(result, expected)
+        # quadratic
+        expected = Series([1, 3., 6.769231, 12., 18.230769, 25.])
+        result = s.interpolate(method='quadratic')
+        assert_series_equal(result, expected)
+        # cubic
+        expected = Series([1., 3., 6.8, 12., 18.2, 25.])
+        result = s.interpolate(method='cubic')
+        assert_series_equal(result, expected)
+
+    def test_interp_limit(self):
+        s = Series([1, 3, np.nan, np.nan, np.nan, 11])
+        expected = Series([1., 3., 5., 7., np.nan, 11.])
+        result = s.interpolate(method='linear', limit=2)
+        assert_series_equal(result, expected)
+
+    def test_interp_all_good(self):
+        # scipy
+        _skip_if_no_scipy()
+        s = Series([1, 2, 3])
+        result = s.interpolate(method='polynomial', order=1)
+        assert_series_equal(result, s)
+
+        # non-scipy
+        result = s.interpolate()
+        assert_series_equal(result, s)
+
+    def test_interp_multiIndex(self):
+        idx = MultiIndex.from_tuples([(0, 'a'), (1, 'b'), (2, 'c')])
+        s = Series([1, 2, np.nan], index=idx)
+
+        expected = s.copy()
+        expected.loc[2] = 2
+        expected = expected.astype(np.int64)
+        result = s.interpolate()
+        assert_series_equal(result, expected)
+
+        _skip_if_no_scipy()
+        with tm.assertRaises(ValueError):
+            s.interpolate(method='polynomial', order=1)
+
+    def test_interp_nonmono_raise(self):
+        _skip_if_no_scipy()
+        s = pd.Series([1, 2, 3], index=[0, 2, 1])
+        with tm.assertRaises(ValueError):
+            s.interpolate(method='krogh')
 
 class TestDataFrame(unittest.TestCase, Generic):
     _typ = DataFrame
@@ -256,14 +424,178 @@ class TestDataFrame(unittest.TestCase, Generic):
     def test_get_numeric_data_preserve_dtype(self):
 
         # get the numeric data
-        o = DataFrame({'A' : [1,'2',3.] })
+        o = DataFrame({'A': [1, '2', 3.]})
         result = o._get_numeric_data()
-        expected = DataFrame(index=[0,1,2],dtype=object)
+        expected = DataFrame(index=[0, 1, 2], dtype=object)
         self._compare(result, expected)
+
+    def test_interp_basic(self):
+        df = DataFrame({'A': [1, 2, np.nan, 4], 'B': [1, 4, 9, np.nan],
+                        'C': [1, 2, 3, 5], 'D': list('abcd')})
+        expected = DataFrame({'A': [1, 2, 3, 4], 'B': [1, 4, 9, 9],
+                              'C': [1, 2, 3, 5], 'D': list('abcd')})
+        result = df.interpolate()
+        assert_frame_equal(result, expected)
+
+        result = df.set_index('C').interpolate()
+        expected = df.set_index('C')
+        expected.A.loc[3] = 3
+        expected.B.loc[5] = 9
+        expected[['A', 'B']] = expected[['A', 'B']].astype(np.int64)
+
+        assert_frame_equal(result, expected)
+
+    def test_interp_bad_method(self):
+        df = DataFrame({'A': [1, 2, np.nan, 4], 'B': [1, 4, 9, np.nan],
+                        'C': [1, 2, 3, 5], 'D': list('abcd')})
+        with tm.assertRaises(ValueError):
+            df.interpolate(method='not_a_method')
+
+    def test_interp_combo(self):
+        df = DataFrame({'A': [1., 2., np.nan, 4.], 'B': [1, 4, 9, np.nan],
+                        'C': [1, 2, 3, 5], 'D': list('abcd')})
+
+        result = df['A'].interpolate()
+        expected = Series([1, 2, 3, 4])
+        assert_series_equal(result, expected)
+
+    def test_interp_nan_idx(self):
+        df = DataFrame({'A': [1, 2, np.nan, 4], 'B': [np.nan, 2, 3, 4]})
+        df = df.set_index('A')
+        with tm.assertRaises(NotImplementedError):
+            df.interpolate(method='values')
+
+    def test_interp_various(self):
+        _skip_if_no_scipy()
+        df = DataFrame({'A': [1, 2, np.nan, 4, 5, np.nan, 7],
+                        'C': [1, 2, 3, 5, 8, 13, 21]})
+        df = df.set_index('C')
+        expected = df.copy()
+        result = df.interpolate(method='polynomial', order=1)
+
+        expected.A.loc[3] = 2.66666667
+        expected.A.loc[13] = 5.76923076
+        assert_frame_equal(result, expected)
+
+        result = df.interpolate(method='cubic')
+        expected.A.loc[3] = 2.81621174
+        expected.A.loc[13] = 5.64146581
+        assert_frame_equal(result, expected)
+
+        result = df.interpolate(method='nearest')
+        expected.A.loc[3] = 2
+        expected.A.loc[13] = 5
+        assert_frame_equal(result, expected, check_dtype=False)
+
+        result = df.interpolate(method='quadratic')
+        expected.A.loc[3] = 2.82533638
+        expected.A.loc[13] = 6.02817974
+        assert_frame_equal(result, expected)
+
+        result = df.interpolate(method='slinear')
+        expected.A.loc[3] = 2.66666667
+        expected.A.loc[13] = 5.76923077
+        assert_frame_equal(result, expected)
+
+        result = df.interpolate(method='zero')
+        expected.A.loc[3] = 2.
+        expected.A.loc[13] = 5
+        assert_frame_equal(result, expected, check_dtype=False)
+
+        result = df.interpolate(method='quadratic')
+        expected.A.loc[3] = 2.82533638
+        expected.A.loc[13] = 6.02817974
+        assert_frame_equal(result, expected)
+
+    def test_interp_alt_scipy(self):
+        _skip_if_no_scipy()
+        df = DataFrame({'A': [1, 2, np.nan, 4, 5, np.nan, 7],
+                        'C': [1, 2, 3, 5, 8, 13, 21]})
+        result = df.interpolate(method='barycentric')
+        expected = df.copy()
+        expected['A'].iloc[2] = 3
+        expected['A'].iloc[5] = 6
+        assert_frame_equal(result, expected)
+
+        result = df.interpolate(method='krogh')
+        expectedk = df.copy()
+        expectedk['A'].iloc[2] = 3
+        expectedk['A'].iloc[5] = 6
+        expectedk['A'] = expected['A'].astype(np.int64)
+        assert_frame_equal(result, expectedk)
+
+        _skip_if_no_pchip()
+        result = df.interpolate(method='pchip')
+        expected['A'].iloc[2] = 3
+        expected['A'].iloc[5] = 6.125
+        assert_frame_equal(result, expected)
+
+    def test_interp_rowwise(self):
+        df = DataFrame({0: [1, 2, np.nan, 4],
+                        1: [2, 3, 4, np.nan],
+                        2: [np.nan, 4, 5, 6],
+                        3: [4, np.nan, 6, 7],
+                        4: [1, 2, 3, 4]})
+        result = df.interpolate(axis=1)
+        expected = df.copy()
+        expected[1].loc[3] = 5
+        expected[2].loc[0] = 3
+        expected[3].loc[1] = 3
+        expected[4] = expected[4].astype(np.float64)
+        assert_frame_equal(result, expected)
+
+        # scipy route
+        _skip_if_no_scipy()
+        result = df.interpolate(axis=1, method='values')
+        assert_frame_equal(result, expected)
+
+        result = df.interpolate(axis=0)
+        expected = df.interpolate()
+        assert_frame_equal(result, expected)
+
+    def test_rowwise_alt(self):
+        df = DataFrame({0: [0, .5, 1., np.nan, 4, 8, np.nan, np.nan, 64],
+                        1: [1, 2, 3, 4, 3, 2, 1, 0, -1]})
+        df.interpolate(axis=0)
+
+    def test_interp_leading_nans(self):
+        df = DataFrame({"A": [np.nan, np.nan, .5, .25, 0],
+                        "B": [np.nan, -3, -3.5, np.nan, -4]})
+        result = df.interpolate()
+        expected = df.copy()
+        expected['B'].loc[3] = -3.75
+        assert_frame_equal(result, expected)
+
+        _skip_if_no_scipy()
+        result = df.interpolate(method='polynomial', order=1)
+        assert_frame_equal(result, expected)
+
+    def test_interp_raise_on_only_mixed(self):
+        df = DataFrame({'A': [1, 2, np.nan, 4], 'B': ['a', 'b', 'c', 'd'],
+                        'C': [np.nan, 2, 5, 7], 'D': [np.nan, np.nan, 9, 9],
+                        'E': [1, 2, 3, 4]})
+        with tm.assertRaises(TypeError):
+            df.interpolate(axis=1)
+
+    def test_no_order(self):
+        _skip_if_no_scipy()
+        s = Series([0, 1, np.nan, 3])
+        with tm.assertRaises(ValueError):
+            s.interpolate(method='polynomial')
+        with tm.assertRaises(ValueError):
+            s.interpolate(method='spline')
+
+    def test_spline(self):
+        _skip_if_no_scipy()
+        s = Series([1, 2, np.nan, 4, 5, np.nan, 7])
+        result = s.interpolate(method='spline', order=1)
+        expected = Series([1., 2, 3, 4, 5, 6, 7])  # dtype?
+        assert_series_equal(result, expected)
+
 
 class TestPanel(unittest.TestCase, Generic):
     _typ = Panel
-    _comparator = lambda self, x, y: assert_panel_equal(x,y)
+    _comparator = lambda self, x, y: assert_panel_equal(x, y)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
