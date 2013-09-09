@@ -7,7 +7,7 @@ import pandas.lib as lib
 
 import pandas as pd
 from pandas.core.base import PandasObject
-from pandas.core.index import Index, MultiIndex, _ensure_index
+from pandas.core.index import Index, MultiIndex, _ensure_index, InvalidIndexError
 import pandas.core.indexing as indexing
 from pandas.core.indexing import _maybe_convert_indices
 from pandas.tseries.index import DatetimeIndex
@@ -2307,6 +2307,10 @@ class NDFrame(PandasObject):
             if other.ndim <= self.ndim:
 
                 _, other = self.align(other, join='left', fill_value=np.nan)
+
+                # if we are NOT aligned, raise as we cannot where index
+                if not all([ other._get_axis(i).equals(ax) for i, ax in enumerate(self.axes) ]):
+                    raise InvalidIndexError
 
             # slice me out of the other
             else:
