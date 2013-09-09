@@ -2028,6 +2028,31 @@ c   1   2   3   4
             res = df.loc[:,c]
             self.assert_(len(res))
 
+    def test_fwf_compression(self):
+        try:
+            import gzip
+            import bz2
+        except ImportError:
+            raise nose.SkipTest("Need gzip and bz2 to run this test")
+
+        data = """1111111111
+        2222222222
+        3333333333""".strip()
+        widths = [5, 5]
+        names = ['one', 'two']
+        expected = read_fwf(StringIO(data), widths=widths, names=names)
+        if compat.PY3:
+            data = bytes(data, encoding='utf-8')
+        for comp_name, compresser in [('gzip', gzip.GzipFile),
+                                      ('bz2', bz2.BZ2File)]:
+            with tm.ensure_clean() as path:
+                tmp = compresser(path, mode='wb')
+                tmp.write(data)
+                tmp.close()
+                result = read_fwf(path, widths=widths, names=names,
+                                  compression=comp_name)
+                tm.assert_frame_equal(result, expected)
+
     def test_verbose_import(self):
         text = """a,b,c,d
 one,1,2,3
