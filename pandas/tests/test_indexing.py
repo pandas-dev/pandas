@@ -1292,6 +1292,24 @@ class TestIndexing(unittest.TestCase):
         result = df.get_dtype_counts().sort_index()
         expected = Series({ 'int64' : 4, 'float64' : 1, 'object' : 2 }).sort_index()
 
+    def test_astype_assignment_with_dups(self):
+
+        # GH 4686
+        # assignment with dups that has a dtype change
+        df = DataFrame(
+            np.arange(3).reshape((1,3)),
+            columns=pd.MultiIndex.from_tuples(
+                [('A', '1'), ('B', '1'), ('A', '2')]
+                ),
+            dtype=object
+            )
+        index = df.index.copy()
+
+        df['A'] = df['A'].astype(np.float64)
+        result = df.get_dtype_counts().sort_index()
+        expected = Series({ 'float64' : 2, 'object' : 1 }).sort_index()
+        self.assert_(df.index.equals(index))
+
     def test_dups_loc(self):
 
         # GH4726

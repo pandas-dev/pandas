@@ -376,6 +376,7 @@ Bug Fixes
   - Fix bugs in indexing in a Series with a duplicate index (:issue:`4548`, :issue:`4550`)
   - Fixed bug with reading compressed files with ``read_fwf`` in Python 3.
     (:issue:`3963`)
+  - Fixed an issue with a duplicate index and assignment with a dtype change (:issue:`4686`)
 
 pandas 0.12.0
 -------------
