@@ -2667,45 +2667,6 @@ class Series(generic.NDFrame):
         else:
             return self._constructor(mapped, index=self.index, name=self.name)
 
-    def align(self, other, join='outer', axis=None, level=None, copy=True,
-              fill_value=None, method=None, limit=None):
-        """
-        Align two Series object with the specified join method
-
-        Parameters
-        ----------
-        other : Series
-        join : {'outer', 'inner', 'left', 'right'}, default 'outer'
-        axis : None, alignment axis (is 0 for Series)
-        level : int or name
-            Broadcast across a level, matching Index values on the
-            passed MultiIndex level
-        copy : boolean, default True
-            Always return new objects. If copy=False and no reindexing is
-            required, the same object will be returned (for better performance)
-        fill_value : object, default None
-        method : str, default 'pad'
-        limit : int, default None
-           fill_value, method, inplace, limit are passed to fillna
-
-        Returns
-        -------
-        (left, right) : (Series, Series)
-            Aligned Series
-        """
-        join_index, lidx, ridx = self.index.join(other.index, how=join,
-                                                 level=level,
-                                                 return_indexers=True)
-
-        left = self._reindex_indexer(join_index, lidx, copy)
-        right = other._reindex_indexer(join_index, ridx, copy)
-        fill_na = (fill_value is not None) or (method is not None)
-        if fill_na:
-            return (left.fillna(fill_value, method=method, limit=limit),
-                    right.fillna(fill_value, method=method, limit=limit))
-        else:
-            return left, right
-
     def _reindex_indexer(self, new_index, indexer, copy):
         if indexer is None:
             if copy:
