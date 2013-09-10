@@ -686,26 +686,63 @@ int tokenize_delimited(parser_t *self, size_t line_limit)
                i, c, self->file_lines + 1, self->line_fields[self->lines],
                self->state));
 
-        switch(self->state) {
-
-        case START_RECORD:
-            // start of record
-
+        // prioritize the common cases before going to a switch statement
+         if (self->state ==  IN_FIELD) {
+            /* in unquoted field */
             if (c == '\n') {
-                // \n\r possible?
+                END_FIELD();
                 END_LINE();
-                break;
+                /* self->state = START_RECORD; */
             } else if (c == '\r') {
+                END_FIELD();
                 self->state = EAT_CRNL;
-                break;
             }
+            else if (c == self->escapechar) {
+                /* possible escaped character */
+                self->state = ESCAPED_CHAR;
+            }
+            else if (c == self->delimiter) {
+                // End of field. End of line not reached yet
+                END_FIELD();
+                self->state = START_FIELD;
+            }
+            else if (c == self->commentchar) {
+                END_FIELD();
+                self->state = EAT_COMMENT;
+            }
+            else {
+                /* normal character - save in field */
+                PUSH_CHAR(c);
+            }
+         } else if (self->state ==  IN_QUOTED_FIELD) {
+             // In many files this branch won't be taken, but in quoted-field heavy files
+             // this will be very hot and omission means a disproportionate panelty.
+             // Try to strike a balance.
 
-            /* normal character - handle as START_FIELD */
-            self->state = START_FIELD;
-            /* fallthru */
-
-        case START_FIELD:
+            /* in quoted field */
+            if (c == self->escapechar) {
+                /* Possible escape character */
+                self->state = ESCAPE_IN_QUOTED_FIELD;
+            }
+            else if (c == self->quotechar &&
+                     self->quoting != QUOTE_NONE) {
+                if (self->doublequote) {
+                    /* doublequote; " represented by "" */
+                    self->state = QUOTE_IN_QUOTED_FIELD;
+                }
+                else {
+                    /* end of quote part of field */
+                    self->state = IN_FIELD;
+                }
+            }
+            else {
+                /* normal character - save in field */
+                PUSH_CHAR(c);
+            }
+        } else if (self->state ==  START_FIELD) {
+        start_field_label:
             /* expecting field */
+
             if (c == '\n') {
                 END_FIELD();
                 END_LINE();
@@ -743,7 +780,21 @@ int tokenize_delimited(parser_t *self, size_t line_limit)
                 PUSH_CHAR(c);
                 self->state = IN_FIELD;
             }
-            break;
+        } else if (self->state ==  START_RECORD) {
+            // start of record
+
+            if (c == '\n') {
+                // \n\r possible?
+                END_LINE();
+            } else if (c == '\r') {
+                self->state = EAT_CRNL;
+            } else {
+                /* normal character - handle as START_FIELD */
+                self->state = START_FIELD;
+                /* fallthru */
+                goto start_field_label;
+            }
+        } else switch(self->state) {
 
         case ESCAPED_CHAR:
             /* if (c == '\0') */
@@ -751,58 +802,6 @@ int tokenize_delimited(parser_t *self, size_t line_limit)
 
             PUSH_CHAR(c);
             self->state = IN_FIELD;
-            break;
-
-        case IN_FIELD:
-            /* in unquoted field */
-            if (c == '\n') {
-                END_FIELD();
-                END_LINE();
-                /* self->state = START_RECORD; */
-            } else if (c == '\r') {
-                END_FIELD();
-                self->state = EAT_CRNL;
-            }
-            else if (c == self->escapechar) {
-                /* possible escaped character */
-                self->state = ESCAPED_CHAR;
-            }
-            else if (c == self->delimiter) {
-                // End of field. End of line not reached yet
-                END_FIELD();
-                self->state = START_FIELD;
-            }
-            else if (c == self->commentchar) {
-                END_FIELD();
-                self->state = EAT_COMMENT;
-            }
-            else {
-                /* normal character - save in field */
-                PUSH_CHAR(c);
-            }
-            break;
-
-        case IN_QUOTED_FIELD:
-            /* in quoted field */
-            if (c == self->escapechar) {
-                /* Possible escape character */
-                self->state = ESCAPE_IN_QUOTED_FIELD;
-            }
-            else if (c == self->quotechar &&
-                     self->quoting != QUOTE_NONE) {
-                if (self->doublequote) {
-                    /* doublequote; " represented by "" */
-                    self->state = QUOTE_IN_QUOTED_FIELD;
-                }
-                else {
-                    /* end of quote part of field */
-                    self->state = IN_FIELD;
-                }
-            }
-            else {
-                /* normal character - save in field */
-                PUSH_CHAR(c);
-            }
             break;
 
         case ESCAPE_IN_QUOTED_FIELD:
@@ -940,18 +939,54 @@ int tokenize_delim_customterm(parser_t *self, size_t line_limit)
                i, c, self->file_lines + 1, self->line_fields[self->lines],
                self->state));
 
-        switch(self->state) {
-        case START_RECORD:
-            // start of record
+        // prioritize the common cases before going to a switch statement
+        if (self->state ==  IN_FIELD) {
+            /* in unquoted field */
             if (c == self->lineterminator) {
-                // \n\r possible?
+                END_FIELD();
                 END_LINE();
-                break;
+                /* self->state = START_RECORD; */
             }
-            /* normal character - handle as START_FIELD */
-            self->state = START_FIELD;
-            /* fallthru */
-        case START_FIELD:
+            else if (c == self->escapechar) {
+                /* possible escaped character */
+                self->state = ESCAPED_CHAR;
+            }
+            else if (c == self->delimiter) {
+                // End of field. End of line not reached yet
+                END_FIELD();
+                self->state = START_FIELD;
+            }
+            else if (c == self->commentchar) {
+                END_FIELD();
+                self->state = EAT_COMMENT;
+            }
+            else {
+                /* normal character - save in field */
+                PUSH_CHAR(c);
+            }
+        } else if (self->state ==  IN_QUOTED_FIELD) {
+            /* in quoted field */
+            if (c == self->escapechar) {
+                /* Possible escape character */
+                self->state = ESCAPE_IN_QUOTED_FIELD;
+            }
+            else if (c == self->quotechar &&
+                     self->quoting != QUOTE_NONE) {
+                if (self->doublequote) {
+                    /* doublequote; " represented by "" */
+                    self->state = QUOTE_IN_QUOTED_FIELD;
+                }
+                else {
+                    /* end of quote part of field */
+                    self->state = IN_FIELD;
+                }
+            }
+            else {
+                /* normal character - save in field */
+                PUSH_CHAR(c);
+            }
+        } else if (self->state ==  START_FIELD) {
+        start_field_label:
             /* expecting field */
             if (c == self->lineterminator) {
                 END_FIELD();
@@ -987,7 +1022,18 @@ int tokenize_delim_customterm(parser_t *self, size_t line_limit)
                 PUSH_CHAR(c);
                 self->state = IN_FIELD;
             }
-            break;
+        } else if (self->state ==  START_RECORD) {
+            // start of record
+            if (c == self->lineterminator) {
+                // \n\r possible?
+                END_LINE();
+            } else {
+                /* normal character - handle as START_FIELD */
+                self->state = START_FIELD;
+                /* fallthru */
+                goto start_field_label;
+            }
+        } else switch(self->state) {
 
         case ESCAPED_CHAR:
             /* if (c == '\0') */
@@ -995,55 +1041,6 @@ int tokenize_delim_customterm(parser_t *self, size_t line_limit)
 
             PUSH_CHAR(c);
             self->state = IN_FIELD;
-            break;
-
-        case IN_FIELD:
-            /* in unquoted field */
-            if (c == self->lineterminator) {
-                END_FIELD();
-                END_LINE();
-                /* self->state = START_RECORD; */
-            }
-            else if (c == self->escapechar) {
-                /* possible escaped character */
-                self->state = ESCAPED_CHAR;
-            }
-            else if (c == self->delimiter) {
-                // End of field. End of line not reached yet
-                END_FIELD();
-                self->state = START_FIELD;
-            }
-            else if (c == self->commentchar) {
-                END_FIELD();
-                self->state = EAT_COMMENT;
-            }
-            else {
-                /* normal character - save in field */
-                PUSH_CHAR(c);
-            }
-            break;
-
-        case IN_QUOTED_FIELD:
-            /* in quoted field */
-            if (c == self->escapechar) {
-                /* Possible escape character */
-                self->state = ESCAPE_IN_QUOTED_FIELD;
-            }
-            else if (c == self->quotechar &&
-                     self->quoting != QUOTE_NONE) {
-                if (self->doublequote) {
-                    /* doublequote; " represented by "" */
-                    self->state = QUOTE_IN_QUOTED_FIELD;
-                }
-                else {
-                    /* end of quote part of field */
-                    self->state = IN_FIELD;
-                }
-            }
-            else {
-                /* normal character - save in field */
-                PUSH_CHAR(c);
-            }
             break;
 
         case ESCAPE_IN_QUOTED_FIELD:
@@ -1141,37 +1138,57 @@ int tokenize_whitespace(parser_t *self, size_t line_limit)
                i, c, self->file_lines + 1, self->line_fields[self->lines],
                self->state));
 
-        switch(self->state) {
-
-        case EAT_WHITESPACE:
-            if (!IS_WHITESPACE(c)) {
-                // END_FIELD();
-                self->state = START_FIELD;
-                // Fall through to subsequent state
-            } else {
-                // if whitespace char, keep slurping
-                break;
-            }
-
-        case START_RECORD:
-            // start of record
+        // prioritize the common cases before going to a switch statement
+        if (self->state ==  IN_FIELD) {
+            /* in unquoted field */
             if (c == '\n') {
-                // \n\r possible?
+                END_FIELD();
                 END_LINE();
-                break;
+                /* self->state = START_RECORD; */
             } else if (c == '\r') {
+                END_FIELD();
                 self->state = EAT_CRNL;
-                break;
-            } else if (IS_WHITESPACE(c)) {
+            }
+            else if (c == self->escapechar) {
+                /* possible escaped character */
+                self->state = ESCAPED_CHAR;
+            }
+            else if (IS_WHITESPACE(c)) {
+                // End of field. End of line not reached yet
                 END_FIELD();
                 self->state = EAT_WHITESPACE;
-                break;
-            } else {
-                /* normal character - handle as START_FIELD */
-                self->state = START_FIELD;
             }
-            /* fallthru */
-        case START_FIELD:
+            else if (c == self->commentchar) {
+                END_FIELD();
+                self->state = EAT_COMMENT;
+            }
+            else {
+                /* normal character - save in field */
+                PUSH_CHAR(c);
+            }
+        } else if (self->state ==  IN_QUOTED_FIELD) {
+            /* in quoted field */
+            if (c == self->escapechar) {
+                /* Possible escape character */
+                self->state = ESCAPE_IN_QUOTED_FIELD;
+            }
+            else if (c == self->quotechar &&
+                     self->quoting != QUOTE_NONE) {
+                if (self->doublequote) {
+                    /* doublequote; " represented by "" */
+                    self->state = QUOTE_IN_QUOTED_FIELD;
+                }
+                else {
+                    /* end of quote part of field */
+                    self->state = IN_FIELD;
+                }
+            }
+            else {
+                /* normal character - save in field */
+                PUSH_CHAR(c);
+            }
+        } else if (self->state ==  START_FIELD) {
+        start_field_label:
             /* expecting field */
             if (c == '\n') {
                 END_FIELD();
@@ -1209,7 +1226,36 @@ int tokenize_whitespace(parser_t *self, size_t line_limit)
                 PUSH_CHAR(c);
                 self->state = IN_FIELD;
             }
-            break;
+        } else if (self->state ==  START_RECORD) {
+        start_record_label:
+            // start of record
+            if (c == '\n') {
+                // \n\r possible?
+                END_LINE();
+            } else if (c == '\r') {
+                self->state = EAT_CRNL;
+            } else if (IS_WHITESPACE(c)) {
+                END_FIELD();
+                self->state = EAT_WHITESPACE;
+
+            } else {
+                /* normal character - handle as START_FIELD */
+                self->state = START_FIELD;
+                /* fallthru */
+                goto start_field_label;
+            }
+        } else switch(self->state) {
+
+        case EAT_WHITESPACE:
+            if (!IS_WHITESPACE(c)) {
+                // END_FIELD();
+                self->state = START_FIELD;
+                // Fall through to subsequent state
+                goto start_record_label;
+            } else {
+                // if whitespace char, keep slurping
+                break;
+            }
 
         case ESCAPED_CHAR:
             /* if (c == '\0') */
@@ -1217,58 +1263,6 @@ int tokenize_whitespace(parser_t *self, size_t line_limit)
 
             PUSH_CHAR(c);
             self->state = IN_FIELD;
-            break;
-
-        case IN_FIELD:
-            /* in unquoted field */
-            if (c == '\n') {
-                END_FIELD();
-                END_LINE();
-                /* self->state = START_RECORD; */
-            } else if (c == '\r') {
-                END_FIELD();
-                self->state = EAT_CRNL;
-            }
-            else if (c == self->escapechar) {
-                /* possible escaped character */
-                self->state = ESCAPED_CHAR;
-            }
-            else if (IS_WHITESPACE(c)) {
-                // End of field. End of line not reached yet
-                END_FIELD();
-                self->state = EAT_WHITESPACE;
-            }
-            else if (c == self->commentchar) {
-                END_FIELD();
-                self->state = EAT_COMMENT;
-            }
-            else {
-                /* normal character - save in field */
-                PUSH_CHAR(c);
-            }
-            break;
-
-        case IN_QUOTED_FIELD:
-            /* in quoted field */
-            if (c == self->escapechar) {
-                /* Possible escape character */
-                self->state = ESCAPE_IN_QUOTED_FIELD;
-            }
-            else if (c == self->quotechar &&
-                     self->quoting != QUOTE_NONE) {
-                if (self->doublequote) {
-                    /* doublequote; " represented by "" */
-                    self->state = QUOTE_IN_QUOTED_FIELD;
-                }
-                else {
-                    /* end of quote part of field */
-                    self->state = IN_FIELD;
-                }
-            }
-            else {
-                /* normal character - save in field */
-                PUSH_CHAR(c);
-            }
             break;
 
         case ESCAPE_IN_QUOTED_FIELD:
