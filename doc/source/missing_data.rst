@@ -205,6 +205,33 @@ To remind you, these are the available filling methods:
 With time series data, using pad/ffill is extremely common so that the "last
 known value" is available at every time point.
 
+Filling with a PandasObject
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 0.12
+
+You can also fill using a direct assignment with an alignable object. The
+use case of this is to fill a DataFrame with the mean of that column.
+
+.. ipython:: python
+
+        df = DataFrame(np.random.randn(10,3))
+        df.iloc[3:5,0] = np.nan
+        df.iloc[4:6,1] = np.nan
+        df.iloc[5:8,2] = np.nan
+        df
+
+        df.fillna(df.mean())
+
+.. versionadded:: 0.13
+
+Same result as above, but is aligning the 'fill' value which is
+a Series in this case.
+
+.. ipython:: python
+
+        df.where(pd.notnull(df),df.mean(),axis='columns')
+
 .. _missing_data.dropna:
 
 Dropping axis labels with missing data: dropna

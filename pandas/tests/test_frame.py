@@ -7931,6 +7931,35 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = DataFrame({'series': Series([0,1,2,3,4,5,6,7,np.nan,np.nan]) })
         assert_frame_equal(df, expected)
 
+    def test_where_align(self):
+
+        def create():
+            df = DataFrame(np.random.randn(10,3))
+            df.iloc[3:5,0] = np.nan
+            df.iloc[4:6,1] = np.nan
+            df.iloc[5:8,2] = np.nan
+            return df
+
+        # series
+        df = create()
+        expected = df.fillna(df.mean())
+        result = df.where(pd.notnull(df),df.mean(),axis='columns')
+        assert_frame_equal(result, expected)
+
+        df.where(pd.notnull(df),df.mean(),inplace=True,axis='columns')
+        assert_frame_equal(df, expected)
+
+        df = create().fillna(0)
+        expected = df.apply(lambda x, y: x.where(x>0,y), y=df[0])
+        result = df.where(df>0,df[0],axis='index')
+        assert_frame_equal(result, expected)
+
+        # frame
+        df = create()
+        expected = df.fillna(1)
+        result = df.where(pd.notnull(df),DataFrame(1,index=df.index,columns=df.columns))
+        assert_frame_equal(result, expected)
+
     def test_mask(self):
         df = DataFrame(np.random.randn(5, 3))
         cond = df > 0
