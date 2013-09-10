@@ -39,8 +39,7 @@ def read_pickle(path):
         # the param
         try:
             with open(path,'rb') as fh:
-                with open(path,'rb') as fh:
-                    return pc.load(fh, encoding=encoding, compat=False)
+                return pc.load(fh, encoding=encoding, compat=False)
         except:
             with open(path,'rb') as fh:
                 return pc.load(fh, encoding=encoding, compat=True)
