@@ -737,7 +737,7 @@ def _coerce_to_dtypes(result, dtypes):
             if isnull(r):
                 pass
             elif dtype == _NS_DTYPE:
-                r = Timestamp(r)
+                r = lib.Timestamp(r)
             elif dtype == _TD_DTYPE:
                 r = _coerce_scalar_to_timedelta_type(r)
             elif dtype == np.bool_:
