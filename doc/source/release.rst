@@ -260,6 +260,7 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
 - Refactor ``rename`` methods to core/generic.py; fixes ``Series.rename`` for (:issue:`4605`), and adds ``rename``
   with the same signature for ``Panel``
 - Series (for index) / Panel (for items) now as attribute access to its elements  (:issue:`1903`)
+- Refactor ``clip`` methods to core/generic.py (:issue:`4798`)
 - Refactor of ``_get_numeric_data/_get_bool_data`` to core/generic.py, allowing Series/Panel functionaility
 - Refactor of Series arithmetic with time-like objects (datetime/timedelta/time
   etc.) into a separate, cleaned up wrapper class. (:issue:`4613`)
