@@ -2725,7 +2725,7 @@ class Series(generic.NDFrame):
         else:
             return self._constructor(mapped, index=self.index, name=self.name)
 
-    def align(self, other, join='outer', level=None, copy=True,
+    def align(self, other, join='outer', axis=None, level=None, copy=True,
               fill_value=None, method=None, limit=None):
         """
         Align two Series object with the specified join method
@@ -2734,6 +2734,7 @@ class Series(generic.NDFrame):
         ----------
         other : Series
         join : {'outer', 'inner', 'left', 'right'}, default 'outer'
+        axis : None, alignment axis (is 0 for Series)
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level

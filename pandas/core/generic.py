@@ -2173,6 +2173,8 @@ class NDFrame(PandasObject):
         from pandas import DataFrame, Series
         method = com._clean_fill_method(method)
 
+        if axis is not None:
+            axis = self._get_axis_number(axis)
         if isinstance(other, DataFrame):
             return self._align_frame(other, join=join, axis=axis, level=level,
                                      copy=copy, fill_value=fill_value,
@@ -2262,7 +2264,8 @@ class NDFrame(PandasObject):
         else:
             return left_result, right_result
 
-    def where(self, cond, other=np.nan, inplace=False, try_cast=False, raise_on_error=True):
+    def where(self, cond, other=np.nan, inplace=False, axis=None, level=None,
+              try_cast=False, raise_on_error=True):
         """
         Return an object of same shape as self and whose corresponding
         entries are from self where cond is True and otherwise are from other.
@@ -2273,6 +2276,8 @@ class NDFrame(PandasObject):
         other : scalar or DataFrame
         inplace : boolean, default False
             Whether to perform the operation in place on the data
+        axis : alignment axis if needed, default None
+        level : alignment level if needed, default None
         try_cast : boolean, default False
             try to cast the result back to the input type (if possible),
         raise_on_error : boolean, default True
@@ -2306,15 +2311,17 @@ class NDFrame(PandasObject):
             # align with me
             if other.ndim <= self.ndim:
 
-                _, other = self.align(other, join='left', fill_value=np.nan)
+                _, other = self.align(other, join='left',
+                                      axis=axis, level=level,
+                                      fill_value=np.nan)
 
                 # if we are NOT aligned, raise as we cannot where index
-                if not all([ other._get_axis(i).equals(ax) for i, ax in enumerate(self.axes) ]):
+                if axis is None and not all([ other._get_axis(i).equals(ax) for i, ax in enumerate(self.axes) ]):
                     raise InvalidIndexError
 
             # slice me out of the other
             else:
-                raise NotImplemented
+                raise NotImplemented("cannot align with a bigger dimensional PandasObject")
 
         elif is_list_like(other):
 
@@ -2386,11 +2393,11 @@ class NDFrame(PandasObject):
         if inplace:
             # we may have different type blocks come out of putmask, so
             # reconstruct the block manager
-            self._data = self._data.putmask(cond, other, inplace=True)
+            self._data = self._data.putmask(cond, other, align=axis is None, inplace=True)
 
         else:
             new_data = self._data.where(
-                other, cond, raise_on_error=raise_on_error, try_cast=try_cast)
+                other, cond, align=axis is None, raise_on_error=raise_on_error, try_cast=try_cast)
 
             return self._constructor(new_data)
 

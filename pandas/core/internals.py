@@ -593,22 +593,40 @@ class Block(PandasObject):
 
         return [ self ]
 
-    def putmask(self, mask, new, inplace=False):
+    def putmask(self, mask, new, align=True, inplace=False):
         """ putmask the data to the block; it is possible that we may create a new dtype of block
-            return the resulting block(s) """
+            return the resulting block(s)
+
+        Parameters
+        ----------
+        mask  : the condition to respect
+        new : a ndarray/object
+        align : boolean, perform alignment on other/cond, default is True
+        inplace : perform inplace modification, default is False
+
+        Returns
+        -------
+        a new block(s), the result of the putmask
+        """
 
         new_values = self.values if inplace else self.values.copy()
 
         # may need to align the new
         if hasattr(new, 'reindex_axis'):
-            axis = getattr(new, '_info_axis_number', 0)
-            new = new.reindex_axis(self.items, axis=axis, copy=False).values.T
+            if align:
+                axis = getattr(new, '_info_axis_number', 0)
+                new = new.reindex_axis(self.items, axis=axis, copy=False).values.T
+            else:
+                new = new.values.T
 
         # may need to align the mask
         if hasattr(mask, 'reindex_axis'):
-            axis = getattr(mask, '_info_axis_number', 0)
-            mask = mask.reindex_axis(
-                self.items, axis=axis, copy=False).values.T
+            if align:
+                axis = getattr(mask, '_info_axis_number', 0)
+                mask = mask.reindex_axis(
+                    self.items, axis=axis, copy=False).values.T
+            else:
+                mask = mask.values.T
 
         # if we are passed a scalar None, convert it here
         if not is_list_like(new) and isnull(new):
@@ -616,6 +634,11 @@ class Block(PandasObject):
 
         if self._can_hold_element(new):
             new = self._try_cast(new)
+
+            # pseudo-broadcast
+            if isinstance(new,np.ndarray) and new.ndim == self.ndim-1:
+                new = np.repeat(new,self.shape[-1]).reshape(self.shape)
+
             np.putmask(new_values, mask, new)
 
         # maybe upcast me
@@ -842,7 +865,7 @@ class Block(PandasObject):
 
         return [make_block(result, self.items, self.ref_items, ndim=self.ndim, fastpath=True)]
 
-    def where(self, other, cond, raise_on_error=True, try_cast=False):
+    def where(self, other, cond, align=True, raise_on_error=True, try_cast=False):
         """
         evaluate the block; return result block(s) from the result
 
@@ -850,6 +873,7 @@ class Block(PandasObject):
         ----------
         other : a ndarray/object
         cond  : the condition to respect
+        align : boolean, perform alignment on other/cond
         raise_on_error : if True, raise when I can't perform the function, False by default (and just return
              the data that we had coming in)
 
@@ -862,21 +886,30 @@ class Block(PandasObject):
 
         # see if we can align other
         if hasattr(other, 'reindex_axis'):
-            axis = getattr(other, '_info_axis_number', 0)
-            other = other.reindex_axis(self.items, axis=axis, copy=True).values
+            if align:
+                axis = getattr(other, '_info_axis_number', 0)
+                other = other.reindex_axis(self.items, axis=axis, copy=True).values
+            else:
+                other = other.values
 
         # make sure that we can broadcast
         is_transposed = False
         if hasattr(other, 'ndim') and hasattr(values, 'ndim'):
             if values.ndim != other.ndim or values.shape == other.shape[::-1]:
-                values = values.T
-                is_transposed = True
+
+                # pseodo broadcast (its a 2d vs 1d say and where needs it in a specific direction)
+                if other.ndim >= 1 and values.ndim-1 == other.ndim and values.shape[0] != other.shape[0]:
+                    other = _block_shape(other).T
+                else:
+                    values = values.T
+                    is_transposed = True
 
         # see if we can align cond
         if not hasattr(cond, 'shape'):
             raise ValueError(
                 "where must have a condition that is ndarray like")
-        if hasattr(cond, 'reindex_axis'):
+
+        if align and hasattr(cond, 'reindex_axis'):
             axis = getattr(cond, '_info_axis_number', 0)
             cond = cond.reindex_axis(self.items, axis=axis, copy=True).values
         else:

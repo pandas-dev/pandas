@@ -625,6 +625,18 @@ This can be done intuitively like so:
    df2[df2 < 0] = 0
    df2
 
+By default, ``where`` returns a modified copy of the data. There is an
+optional parameter ``inplace`` so that the original data can be modified
+without creating a copy:
+
+.. ipython:: python
+
+   df_orig = df.copy()
+   df_orig.where(df > 0, -df, inplace=True);
+   df_orig
+
+**alignment**
+
 Furthermore, ``where`` aligns the input boolean condition (ndarray or DataFrame),
 such that partial selection with setting is possible. This is analagous to
 partial setting via ``.ix`` (but on the contents rather than the axis labels)
@@ -635,24 +647,30 @@ partial setting via ``.ix`` (but on the contents rather than the axis labels)
    df2[ df2[1:4] > 0 ] = 3
    df2
 
-By default, ``where`` returns a modified copy of the data. There is an
-optional parameter ``inplace`` so that the original data can be modified
-without creating a copy:
+.. versionadded:: 0.13
+
+Where can also accept ``axis`` and ``level`` parameters to align the input when
+performing the ``where``.
 
 .. ipython:: python
 
-   df_orig = df.copy()
+   df2 = df.copy()
+   df2.where(df2>0,df2['A'],axis='index')
 
-   df_orig.where(df > 0, -df, inplace=True);
+This is equivalent (but faster than) the following.
 
-   df_orig
+.. ipython:: python
+
+   df2 = df.copy()
+   df.apply(lambda x, y: x.where(x>0,y), y=df['A'])
+
+**mask**
 
 ``mask`` is the inverse boolean operation of ``where``.
 
 .. ipython:: python
 
    s.mask(s >= 0)
-
    df.mask(df >= 0)
 
 Take Methods
