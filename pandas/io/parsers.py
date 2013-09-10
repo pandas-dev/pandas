@@ -247,7 +247,7 @@ _parser_defaults = {
     'squeeze': False,
     'compression': None,
     'mangle_dupe_cols': True,
-    'tupleize_cols':True,
+    'tupleize_cols':False,
 }
 
 
@@ -336,7 +336,7 @@ def _make_parser_function(name, sep=','):
                  encoding=None,
                  squeeze=False,
                  mangle_dupe_cols=True,
-                 tupleize_cols=True,
+                 tupleize_cols=False,
                  ):
 
         # Alias sep -> delimiter.
@@ -656,7 +656,7 @@ class ParserBase(object):
         self.na_fvalues = kwds.get('na_fvalues')
         self.true_values = kwds.get('true_values')
         self.false_values = kwds.get('false_values')
-        self.tupleize_cols = kwds.get('tupleize_cols',True)
+        self.tupleize_cols = kwds.get('tupleize_cols',False)
 
         self._date_conv = _make_date_converter(date_parser=self.date_parser,
                                                dayfirst=self.dayfirst)

@@ -787,7 +787,7 @@ class CSVFormatter(object):
                  cols=None, header=True, index=True, index_label=None,
                  mode='w', nanRep=None, encoding=None, quoting=None,
                  line_terminator='\n', chunksize=None, engine=None,
-                 tupleize_cols=True, quotechar='"'):
+                 tupleize_cols=False, quotechar='"'):
 
         self.engine = engine  # remove for 0.13
         self.obj = obj
