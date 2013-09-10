@@ -108,6 +108,9 @@ class FrozenList(PandasObject, list):
 
     __imul__ = __mul__
 
+    def __reduce__(self):
+        return self.__class__, (list(self),)
+
     def __hash__(self):
         return hash(tuple(self))
 
