@@ -79,6 +79,7 @@ Improvements to existing features
   - Significant table writing performance improvements in ``HDFStore``
   - JSON date serialisation now performed in low-level C code.
   - Add ``drop_level`` argument to xs (:issue:`4180`)
+  - Can now resample a DataFrame with ohlc (:issue:`2320`)
   - ``Index.copy()`` and ``MultiIndex.copy()`` now accept keyword arguments to
     change attributes (i.e., ``names``, ``levels``, ``labels``)
     (:issue:`4039`)
