@@ -1797,11 +1797,13 @@ class BlockManager(PandasObject):
     def _rebuild_ref_locs(self):
         """ take _ref_locs and set the individual block ref_locs, skipping Nones
             no effect on a unique index """
-        if self._ref_locs is not None:
+        if getattr(self,'_ref_locs',None) is not None:
             item_count = 0
             for v in self._ref_locs:
                 if v is not None:
                     block, item_loc = v
+                    if block._ref_locs is None:
+                        block.reset_ref_locs()
                     block._ref_locs[item_loc] = item_count
                     item_count += 1
 
@@ -2595,11 +2597,11 @@ class BlockManager(PandasObject):
                     self.delete(item)
 
                     loc = _possibly_convert_to_indexer(loc)
-                    for i, (l, arr) in enumerate(zip(loc, value)):
+                    for i, (l, k, arr) in enumerate(zip(loc, subset, value)):
 
                         # insert the item
                         self.insert(
-                            l, item, arr[None, :], allow_duplicates=True)
+                            l, k, arr[None, :], allow_duplicates=True)
 
                         # reset the _ref_locs on indiviual blocks
                         # rebuild ref_locs
