@@ -353,8 +353,9 @@ and behaviors. Series formerly subclassed directly from ``ndarray``. (:issue:`40
 - Refactor ``Series.reindex`` to core/generic.py (:issue:`4604`, :issue:`4618`), allow ``method=`` in reindexing
   on a Series to work
 - ``Series.copy`` no longer accepts the ``order`` parameter and is now consistent with ``NDFrame`` copy
-- Refactor ``rename`` methods to core/generic.py; fixes ``Series.rename`` for (:issue`4605`), and adds ``rename``
+- Refactor ``rename`` methods to core/generic.py; fixes ``Series.rename`` for (:issue:`4605`), and adds ``rename``
   with the same signature for ``Panel``
+- Refactor ``clip`` methods to core/generic.py (:issue:`4798`)
 - Refactor of ``_get_numeric_data/_get_bool_data`` to core/generic.py, allowing Series/Panel functionaility
 - ``Series`` (for index) / ``Panel`` (for items) now allow attribute access to its elements  (:issue:`1903`)
 

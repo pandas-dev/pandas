@@ -708,6 +708,9 @@ Computations / Descriptive Stats
    :toctree: generated/
 
    Panel.abs
+   Panel.clip
+   Panel.clip_lower
+   Panel.clip_upper
    Panel.count
    Panel.cummax
    Panel.cummin

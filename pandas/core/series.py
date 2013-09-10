@@ -2102,64 +2102,6 @@ class Series(generic.NDFrame):
         """
         return self.corr(self.shift(1))
 
-    def clip(self, lower=None, upper=None, out=None):
-        """
-        Trim values at input threshold(s)
-
-        Parameters
-        ----------
-        lower : float, default None
-        upper : float, default None
-
-        Returns
-        -------
-        clipped : Series
-        """
-        if out is not None:  # pragma: no cover
-            raise Exception('out argument is not supported yet')
-
-        result = self
-        if lower is not None:
-            result = result.clip_lower(lower)
-        if upper is not None:
-            result = result.clip_upper(upper)
-
-        return result
-
-    def clip_upper(self, threshold):
-        """
-        Return copy of series with values above given value truncated
-
-        See also
-        --------
-        clip
-
-        Returns
-        -------
-        clipped : Series
-        """
-        if isnull(threshold):
-            raise ValueError("Cannot use an NA value as a clip threshold")
-
-        return self.where((self <= threshold) | isnull(self), threshold)
-
-    def clip_lower(self, threshold):
-        """
-        Return copy of series with values below given value truncated
-
-        See also
-        --------
-        clip
-
-        Returns
-        -------
-        clipped : Series
-        """
-        if isnull(threshold):
-            raise ValueError("Cannot use an NA value as a clip threshold")
-
-        return self.where((self >= threshold) | isnull(self), threshold)
-
     def dot(self, other):
         """
         Matrix multiplication with DataFrame or inner-product with Series objects

@@ -4396,47 +4396,6 @@ class DataFrame(NDFrame):
 
         data = self._get_numeric_data() if numeric_only else self
         return data.apply(f, axis=axis)
-
-    def clip(self, lower=None, upper=None):
-        """
-        Trim values at input threshold(s)
-
-        Parameters
-        ----------
-        lower : float, default None
-        upper : float, default None
-
-        Returns
-        -------
-        clipped : DataFrame
-        """
-
-        # GH 2747 (arguments were reversed)
-        if lower is not None and upper is not None:
-            lower, upper = min(lower, upper), max(lower, upper)
-
-        return self.apply(lambda x: x.clip(lower=lower, upper=upper))
-
-    def clip_upper(self, threshold):
-        """
-        Trim values above threshold
-
-        Returns
-        -------
-        clipped : DataFrame
-        """
-        return self.apply(lambda x: x.clip_upper(threshold))
-
-    def clip_lower(self, threshold):
-        """
-        Trim values below threshold
-
-        Returns
-        -------
-        clipped : DataFrame
-        """
-        return self.apply(lambda x: x.clip_lower(threshold))
-
     def rank(self, axis=0, numeric_only=None, method='average',
              na_option='keep', ascending=True):
         """
