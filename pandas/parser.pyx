@@ -310,7 +310,7 @@ cdef class TextReader:
                   skip_footer=0,
                   verbose=False,
                   mangle_dupe_cols=True,
-                  tupleize_cols=True):
+                  tupleize_cols=False):
 
         self.parser = parser_new()
         self.parser.chunksize = tokenize_chunksize

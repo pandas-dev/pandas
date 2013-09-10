@@ -188,6 +188,7 @@ API Changes
     a list can be passed to ``to_replace`` (:issue:`4743`).
   - provide automatic dtype conversions on _reduce operations (:issue:`3371`)
   - exclude non-numerics if mixed types with datelike in _reduce operations (:issue:`3371`)
+  - default for ``tupleize_cols`` is now ``False`` for both ``to_csv`` and ``read_csv``. Fair warning in 0.12 (:issue:`3604`)
 
 Internal Refactoring
 ~~~~~~~~~~~~~~~~~~~~

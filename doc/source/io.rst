@@ -153,7 +153,7 @@ They can take a number of arguments:
     time and lower memory usage.
   - ``mangle_dupe_cols``: boolean, default True, then duplicate columns will be specified
     as 'X.0'...'X.N', rather than 'X'...'X'
-  - ``tupleize_cols``: boolean, default True, if False, convert a list of tuples
+  - ``tupleize_cols``: boolean, default False, if False, convert a list of tuples
     to a multi-index of columns, otherwise, leave the column index as a list of tuples
 
 .. ipython:: python
@@ -860,19 +860,16 @@ Reading columns with a ``MultiIndex``
 
 By specifying list of row locations for the ``header`` argument, you
 can read in a ``MultiIndex`` for the columns. Specifying non-consecutive
-rows will skip the interveaning rows.
+rows will skip the interveaning rows. In order to have the pre-0.13 behavior
+of tupleizing columns, specify ``tupleize_cols=True``.
 
 .. ipython:: python
 
    from pandas.util.testing import makeCustomDataframe as mkdf
    df = mkdf(5,3,r_idx_nlevels=2,c_idx_nlevels=4)
-   df.to_csv('mi.csv',tupleize_cols=False)
+   df.to_csv('mi.csv')
    print open('mi.csv').read()
-   pd.read_csv('mi.csv',header=[0,1,2,3],index_col=[0,1],tupleize_cols=False)
-
-Note: The default behavior in 0.12 remains unchanged (``tupleize_cols=True``) from prior versions,
-but starting with 0.13, the default *to* write and read multi-index columns will be in the new
-format (``tupleize_cols=False``)
+   pd.read_csv('mi.csv',header=[0,1,2,3],index_col=[0,1])
 
 Note: If an ``index_col`` is not specified (e.g. you don't have an index, or wrote it
 with ``df.to_csv(..., index=False``), then any ``names`` on the columns index will be *lost*.
@@ -966,7 +963,7 @@ function takes a number of arguments. Only the first is required.
   - ``sep`` : Field delimiter for the output file (default ",")
   - ``encoding``: a string representing the encoding to use if the contents are
     non-ascii, for python versions prior to 3
-  - ``tupleize_cols``: boolean, default True, if False, write as a list of tuples,
+  - ``tupleize_cols``: boolean, default False, if False, write as a list of tuples,
     otherwise write in an expanded line format suitable for ``read_csv``
 
 Writing a formatted string

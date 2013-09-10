@@ -1191,7 +1191,7 @@ class DataFrame(NDFrame):
             is used. Different default from read_table
         parse_dates : boolean, default True
             Parse dates. Different default from read_table
-        tupleize_cols : boolean, default True
+        tupleize_cols : boolean, default False
             write multi_index columns as a list of tuples (if True)
             or new (expanded format) if False)
 
@@ -1208,7 +1208,7 @@ class DataFrame(NDFrame):
         from pandas.io.parsers import read_table
         return read_table(path, header=header, sep=sep,
                           parse_dates=parse_dates, index_col=index_col,
-                          encoding=encoding, tupleize_cols=False)
+                          encoding=encoding, tupleize_cols=tupleize_cols)
 
     def to_sparse(self, fill_value=None, kind='block'):
         """
@@ -1291,7 +1291,7 @@ class DataFrame(NDFrame):
                cols=None, header=True, index=True, index_label=None,
                mode='w', nanRep=None, encoding=None, quoting=None,
                line_terminator='\n', chunksize=None,
-               tupleize_cols=True, **kwds):
+               tupleize_cols=False, **kwds):
         r"""Write DataFrame to a comma-separated values (csv) file
 
         Parameters
@@ -1331,7 +1331,7 @@ class DataFrame(NDFrame):
             defaults to csv.QUOTE_MINIMAL
         chunksize : int or None
             rows to write at a time
-        tupleize_cols : boolean, default True
+        tupleize_cols : boolean, default False
             write multi_index columns as a list of tuples (if True)
             or new (expanded format) if False)
         """
