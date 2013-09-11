@@ -265,6 +265,7 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
 - Refactor of ``_get_numeric_data/_get_bool_data`` to core/generic.py, allowing Series/Panel functionaility
 - Refactor of Series arithmetic with time-like objects (datetime/timedelta/time
   etc.) into a separate, cleaned up wrapper class. (:issue:`4613`)
+- Complex compat for ``Series`` with ``ndarray``. (:issue:`4819`)
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
