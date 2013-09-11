@@ -565,7 +565,7 @@ class HDFStore(StringMixin):
 
     def select_as_coordinates(self, key, where=None, start=None, stop=None, **kwargs):
         """
-        return the selection as a Coordinates.
+        return the selection as an Index
 
         Parameters
         ----------
@@ -3071,7 +3071,7 @@ class Table(Fixed):
         # create the selection
         self.selection = Selection(
             self, where=where, start=start, stop=stop, **kwargs)
-        return Coordinates(self.selection.select_coords(), group=self.group, where=where)
+        return Index(self.selection.select_coords())
 
     def read_column(self, column, where=None, **kwargs):
         """ return a single column from the table, generally only indexables are interesting """
@@ -4106,28 +4106,6 @@ class TermValue(object):
         return self.converted
 
 
-class Coordinates(object):
-
-    """ holds a returned coordinates list, useful to select the same rows from different tables
-
-    coordinates : holds the array of coordinates
-    group       : the source group
-    where       : the source where
-    """
-
-    def __init__(self, values, group, where, **kwargs):
-        self.values = values
-        self.group = group
-        self.where = where
-
-    def __len__(self):
-        return len(self.values)
-
-    def __getitem__(self, key):
-        """ return a new coordinates object, sliced by the key """
-        return Coordinates(self.values[key], self.group, self.where)
-
-
 class Selection(object):
 
     """
@@ -4151,11 +4129,7 @@ class Selection(object):
         self.terms = None
         self.coordinates = None
 
-        # a coordinate
-        if isinstance(where, Coordinates):
-            self.coordinates = where.values
-
-        elif com.is_list_like(where):
+        if com.is_list_like(where):
 
             # see if we have a passed coordinate like
             try:

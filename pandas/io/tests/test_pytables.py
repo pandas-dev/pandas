@@ -2879,6 +2879,7 @@ class TestHDFStore(unittest.TestCase):
             result = store.select('df', where=c)
             expected = df.ix[3:4, :]
             tm.assert_frame_equal(result, expected)
+            self.assert_(isinstance(c, Index))
 
             # multiple tables
             _maybe_remove(store, 'df1')
