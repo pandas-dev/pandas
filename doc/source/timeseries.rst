@@ -408,6 +408,39 @@ regularity will result in a ``DatetimeIndex`` (but frequency is lost):
 
 .. _timeseries.offsets:
 
+Time/Date Components
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There are several time/date properties that one can access from ``Timestamp`` or a collection of timestamps like a ``DateTimeIndex``. 
+
+.. csv-table::
+    :header: "Property", "Description"
+    :widths: 15, 65
+
+    year, "The year of the datetime"
+    month,"The month of the datetime"
+    day,"The days of the datetime"
+    hour,"The hour of the datetime"
+    minute,"The minutes of the datetime"
+    second,"The seconds of the datetime"
+    microsecond,"The microseconds of the datetime"
+    nanosecond,"The nanoseconds of the datetime"
+    date,"Returns datetime.date"
+    time,"Returns datetime.time"
+    dayofyear,"The ordinal day of year"
+    weekofyear,"The week ordinal of the year"
+    week,"The week ordinal of the year"
+    dayofweek,"The day of the week with Monday=0, Sunday=6"
+    weekday,"The day of the week with Monday=0, Sunday=6"
+    quarter,"Quarter of the date: Jan=Mar = 1, Apr-Jun = 2, etc."
+    is_month_start,"Logical indicating if first day of month (defined by frequency)"
+    is_month_end,"Logical indicating if last day of month (defined by frequency)"
+    is_quarter_start,"Logical indicating if first day of quarter (defined by frequency)"
+    is_quarter_end,"Logical indicating if last day of quarter (defined by frequency)"
+    is_year_start,"Logical indicating if first day of year (defined by frequency)"
+    is_year_end,"Logical indicating if last day of year (defined by frequency)"
+
+
 DateOffset objects
 ------------------
 

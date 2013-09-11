@@ -303,3 +303,14 @@ timeseries_custom_bmonthend_incr = \
 
 timeseries_custom_bmonthend_incr_n = \
     Benchmark("date + 10 * cme",setup)
+
+#----------------------------------------------------------------------
+# month/quarter/year start/end accessors
+
+setup = common_setup + """
+N = 10000
+rng = date_range('1/1/1', periods=N, freq='B')
+"""
+
+timeseries_is_month_start = Benchmark('rng.is_month_start', setup,
+                                  start_date=datetime(2014, 4, 1))

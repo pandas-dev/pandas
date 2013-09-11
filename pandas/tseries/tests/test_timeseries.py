@@ -1473,7 +1473,7 @@ class TestTimeSeries(tm.TestCase):
         # extra fields from DatetimeIndex like quarter and week
         idx = tm.makeDateIndex(100)
 
-        fields = ['dayofweek', 'dayofyear', 'week', 'weekofyear', 'quarter']
+        fields = ['dayofweek', 'dayofyear', 'week', 'weekofyear', 'quarter', 'is_month_start', 'is_month_end', 'is_quarter_start', 'is_quarter_end', 'is_year_start', 'is_year_end']
         for f in fields:
             expected = getattr(idx, f)[-1]
             result = getattr(Timestamp(idx[-1]), f)
@@ -2192,7 +2192,7 @@ class TestDatetimeIndex(tm.TestCase):
 
 class TestDatetime64(tm.TestCase):
     """
-    Also test supoprt for datetime64[ns] in Series / DataFrame
+    Also test support for datetime64[ns] in Series / DataFrame
     """
 
     def setUp(self):
@@ -2202,37 +2202,115 @@ class TestDatetime64(tm.TestCase):
 
     def test_datetimeindex_accessors(self):
         dti = DatetimeIndex(
-            freq='Q-JAN', start=datetime(1997, 12, 31), periods=100)
+            freq='D', start=datetime(1998, 1, 1), periods=365)
 
         self.assertEquals(dti.year[0], 1998)
         self.assertEquals(dti.month[0], 1)
-        self.assertEquals(dti.day[0], 31)
+        self.assertEquals(dti.day[0], 1)
         self.assertEquals(dti.hour[0], 0)
         self.assertEquals(dti.minute[0], 0)
         self.assertEquals(dti.second[0], 0)
         self.assertEquals(dti.microsecond[0], 0)
-        self.assertEquals(dti.dayofweek[0], 5)
+        self.assertEquals(dti.dayofweek[0], 3)
 
-        self.assertEquals(dti.dayofyear[0], 31)
-        self.assertEquals(dti.dayofyear[1], 120)
+        self.assertEquals(dti.dayofyear[0], 1)
+        self.assertEquals(dti.dayofyear[120], 121)
 
-        self.assertEquals(dti.weekofyear[0], 5)
-        self.assertEquals(dti.weekofyear[1], 18)
+        self.assertEquals(dti.weekofyear[0], 1)
+        self.assertEquals(dti.weekofyear[120], 18)
 
         self.assertEquals(dti.quarter[0], 1)
-        self.assertEquals(dti.quarter[1], 2)
+        self.assertEquals(dti.quarter[120], 2)
 
-        self.assertEquals(len(dti.year), 100)
-        self.assertEquals(len(dti.month), 100)
-        self.assertEquals(len(dti.day), 100)
-        self.assertEquals(len(dti.hour), 100)
-        self.assertEquals(len(dti.minute), 100)
-        self.assertEquals(len(dti.second), 100)
-        self.assertEquals(len(dti.microsecond), 100)
-        self.assertEquals(len(dti.dayofweek), 100)
-        self.assertEquals(len(dti.dayofyear), 100)
-        self.assertEquals(len(dti.weekofyear), 100)
-        self.assertEquals(len(dti.quarter), 100)
+        self.assertEquals(dti.is_month_start[0], True)
+        self.assertEquals(dti.is_month_start[1], False)
+        self.assertEquals(dti.is_month_start[31], True)
+        self.assertEquals(dti.is_quarter_start[0], True)
+        self.assertEquals(dti.is_quarter_start[90], True)
+        self.assertEquals(dti.is_year_start[0], True)
+        self.assertEquals(dti.is_year_start[364], False)
+        self.assertEquals(dti.is_month_end[0], False)
+        self.assertEquals(dti.is_month_end[30], True)
+        self.assertEquals(dti.is_month_end[31], False)
+        self.assertEquals(dti.is_month_end[364], True)
+        self.assertEquals(dti.is_quarter_end[0], False)
+        self.assertEquals(dti.is_quarter_end[30], False)
+        self.assertEquals(dti.is_quarter_end[89], True)
+        self.assertEquals(dti.is_quarter_end[364], True)
+        self.assertEquals(dti.is_year_end[0], False)
+        self.assertEquals(dti.is_year_end[364], True)
+
+        self.assertEquals(len(dti.year), 365)
+        self.assertEquals(len(dti.month), 365)
+        self.assertEquals(len(dti.day), 365)
+        self.assertEquals(len(dti.hour), 365)
+        self.assertEquals(len(dti.minute), 365)
+        self.assertEquals(len(dti.second), 365)
+        self.assertEquals(len(dti.microsecond), 365)
+        self.assertEquals(len(dti.dayofweek), 365)
+        self.assertEquals(len(dti.dayofyear), 365)
+        self.assertEquals(len(dti.weekofyear), 365)
+        self.assertEquals(len(dti.quarter), 365)
+        self.assertEquals(len(dti.is_month_start), 365)
+        self.assertEquals(len(dti.is_month_end), 365)
+        self.assertEquals(len(dti.is_quarter_start), 365)
+        self.assertEquals(len(dti.is_quarter_end), 365)
+        self.assertEquals(len(dti.is_year_start), 365)
+        self.assertEquals(len(dti.is_year_end), 365)
+
+        dti = DatetimeIndex(
+            freq='BQ-FEB', start=datetime(1998, 1, 1), periods=4)
+
+        self.assertEquals(sum(dti.is_quarter_start), 0)
+        self.assertEquals(sum(dti.is_quarter_end), 4)
+        self.assertEquals(sum(dti.is_year_start), 0)
+        self.assertEquals(sum(dti.is_year_end), 1)
+
+        # Ensure is_start/end accessors throw ValueError for CustomBusinessDay, CBD requires np >= 1.7
+        if not _np_version_under1p7:
+            bday_egypt = offsets.CustomBusinessDay(weekmask='Sun Mon Tue Wed Thu')
+            dti = date_range(datetime(2013, 4, 30), periods=5, freq=bday_egypt)
+            self.assertRaises(ValueError, lambda: dti.is_month_start)
+
+        dti = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-03'])
+
+        self.assertEquals(dti.is_month_start[0], 1)
+
+        tests = [
+            (Timestamp('2013-06-01', offset='M').is_month_start, 1),
+            (Timestamp('2013-06-01', offset='BM').is_month_start, 0),
+            (Timestamp('2013-06-03', offset='M').is_month_start, 0),
+            (Timestamp('2013-06-03', offset='BM').is_month_start, 1),
+            (Timestamp('2013-02-28', offset='Q-FEB').is_month_end, 1),
+            (Timestamp('2013-02-28', offset='Q-FEB').is_quarter_end, 1),
+            (Timestamp('2013-02-28', offset='Q-FEB').is_year_end, 1),
+            (Timestamp('2013-03-01', offset='Q-FEB').is_month_start, 1),
+            (Timestamp('2013-03-01', offset='Q-FEB').is_quarter_start, 1),
+            (Timestamp('2013-03-01', offset='Q-FEB').is_year_start, 1),
+            (Timestamp('2013-03-31', offset='QS-FEB').is_month_end, 1),
+            (Timestamp('2013-03-31', offset='QS-FEB').is_quarter_end, 0),
+            (Timestamp('2013-03-31', offset='QS-FEB').is_year_end, 0),
+            (Timestamp('2013-02-01', offset='QS-FEB').is_month_start, 1),
+            (Timestamp('2013-02-01', offset='QS-FEB').is_quarter_start, 1),
+            (Timestamp('2013-02-01', offset='QS-FEB').is_year_start, 1),
+            (Timestamp('2013-06-30', offset='BQ').is_month_end, 0),
+            (Timestamp('2013-06-30', offset='BQ').is_quarter_end, 0),
+            (Timestamp('2013-06-30', offset='BQ').is_year_end, 0),
+            (Timestamp('2013-06-28', offset='BQ').is_month_end, 1),
+            (Timestamp('2013-06-28', offset='BQ').is_quarter_end, 1),
+            (Timestamp('2013-06-28', offset='BQ').is_year_end, 0),
+            (Timestamp('2013-06-30', offset='BQS-APR').is_month_end, 0),
+            (Timestamp('2013-06-30', offset='BQS-APR').is_quarter_end, 0),
+            (Timestamp('2013-06-30', offset='BQS-APR').is_year_end, 0),
+            (Timestamp('2013-06-28', offset='BQS-APR').is_month_end, 1),
+            (Timestamp('2013-06-28', offset='BQS-APR').is_quarter_end, 1),
+            (Timestamp('2013-03-29', offset='BQS-APR').is_year_end, 1),
+            (Timestamp('2013-11-01', offset='AS-NOV').is_year_start, 1),
+            (Timestamp('2013-10-31', offset='AS-NOV').is_year_end, 1)]
+
+        for ts, value in tests:
+            self.assertEquals(ts, value)
+
 
     def test_nanosecond_field(self):
         dti = DatetimeIndex(np.arange(10))
