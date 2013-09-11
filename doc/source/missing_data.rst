@@ -210,18 +210,20 @@ Filling with a PandasObject
 
 .. versionadded:: 0.12
 
-You can also fill using a direct assignment with an alignable object. The
+You can also fillna using a dict or Series that is alignable. The labels of the dict or index of the Series
+must match the columns of the frame you wish to fill. The
 use case of this is to fill a DataFrame with the mean of that column.
 
 .. ipython:: python
 
-        df = DataFrame(np.random.randn(10,3))
-        df.iloc[3:5,0] = np.nan
-        df.iloc[4:6,1] = np.nan
-        df.iloc[5:8,2] = np.nan
-        df
+        dff = DataFrame(np.random.randn(10,3),columns=list('ABC'))
+        dff.iloc[3:5,0] = np.nan
+        dff.iloc[4:6,1] = np.nan
+        dff.iloc[5:8,2] = np.nan
+        dff
 
-        df.fillna(df.mean())
+        dff.fillna(dff.mean())
+        dff.fillna(dff.mean()['B':'C'])
 
 .. versionadded:: 0.13
 
@@ -230,7 +232,7 @@ a Series in this case.
 
 .. ipython:: python
 
-        df.where(pd.notnull(df),df.mean(),axis='columns')
+        dff.where(notnull(dff),dff.mean(),axis='columns')
 
 .. _missing_data.dropna:
 
