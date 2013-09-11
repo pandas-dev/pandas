@@ -76,6 +76,8 @@ API changes
       duplicate rows from a table (:issue:`4367`)
     - removed the ``warn`` argument from ``open``. Instead a ``PossibleDataLossError`` exception will
       be raised if you try to use ``mode='w'`` with an OPEN file handle (:issue:`4367`)
+    - ``select_as_coordinates`` will now return an ``Int64Index`` of the resultant selection set
+      See :ref:`here<io.hdf5-selecting_coordinates>` for an example.
     - allow a passed locations array or mask as a ``where`` condition (:issue:`4467`).
       See :ref:`here<io.hdf5-where_mask>` for an example.
 

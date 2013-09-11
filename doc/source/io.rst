@@ -2118,6 +2118,22 @@ These do not currently accept the ``where`` selector (coming soon)
    store.select_column('df_dc', 'index')
    store.select_column('df_dc', 'string')
 
+.. _io.hdf5-selecting_coordinates:
+
+**Selecting coordinates**
+
+Sometimes you want to get the coordinates (a.k.a the index locations) of your query. This returns an
+``Int64Index`` of the resulting locations. These coordinates can also be passed to subsequent
+``where`` operations.
+
+.. ipython:: python
+
+   df_coord = DataFrame(np.random.randn(1000,2),index=date_range('20000101',periods=1000))
+   store.append('df_coord',df_coord)
+   c = store.select_as_coordinates('df_coord','index>20020101')
+   c.summary()
+   store.select('df_coord',where=c)
+
 .. _io.hdf5-where_mask:
 
 **Selecting using a where mask**
