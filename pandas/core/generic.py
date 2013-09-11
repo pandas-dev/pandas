@@ -556,7 +556,7 @@ class NDFrame(PandasObject):
         return not all(len(self._get_axis(a)) > 0 for a in self._AXIS_ORDERS)
 
     def __nonzero__(self):
-        raise ValueError("The truth value of an array is ambiguous. Use a.empty, a.any() or a.all().")
+        raise ValueError("The truth value of an array is ambiguous. Use a.empty, a.item(), a.any() or a.all().")
 
     __bool__ = __nonzero__
 
