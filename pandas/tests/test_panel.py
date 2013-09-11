@@ -355,18 +355,24 @@ class SafeForSparse(object):
 
     def test_abs(self):
         result = self.panel.abs()
+        result2 = abs(self.panel)
         expected = np.abs(self.panel)
         self.assert_panel_equal(result, expected)
+        self.assert_panel_equal(result2, expected)
 
         df = self.panel['ItemA']
         result = df.abs()
+        result2 = abs(df)
         expected = np.abs(df)
         assert_frame_equal(result, expected)
+        assert_frame_equal(result2, expected)
 
         s = df['A']
         result = s.abs()
+        result2 = abs(s)
         expected = np.abs(s)
         assert_series_equal(result, expected)
+        assert_series_equal(result2, expected)
 
 
 class CheckIndexing(object):
