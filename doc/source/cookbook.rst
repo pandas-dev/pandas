@@ -116,7 +116,7 @@ panelnd
 The :ref:`panelnd<dsintro.panelnd>` docs.
 
 `Construct a 5D panelnd
-http://stackoverflow.com/questions/18748598/why-my-panelnd-factory-throwing-a-keyerror`__
+<http://stackoverflow.com/questions/18748598/why-my-panelnd-factory-throwing-a-keyerror>`__
 
 .. _cookbook.missing_data:
 

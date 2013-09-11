@@ -35,6 +35,7 @@ from pandas.tseries.offsets import DateOffset
 from pandas import compat
 from pandas.util.terminal import get_terminal_size
 from pandas.compat import zip, lzip, u, OrderedDict
+from pandas.util import rwproperty
 
 import pandas.core.array as pa
 
@@ -792,6 +793,23 @@ class Series(generic.NDFrame):
 
     def __contains__(self, key):
         return key in self.index
+
+    # complex
+    @rwproperty.getproperty
+    def real(self):
+        return self.values.real
+
+    @rwproperty.setproperty
+    def real(self, v):
+        self.values.real = v
+
+    @rwproperty.getproperty
+    def imag(self):
+        return self.values.imag
+
+    @rwproperty.setproperty
+    def imag(self, v):
+        self.values.imag = v
 
     # coercion
     __float__ = _coerce_method(float)
