@@ -19,7 +19,6 @@ from datetime import timedelta
 from pandas.core.config import get_option
 from pandas.core import array as pa
 
-
 # XXX: HACK for NumPy 1.5.1 to suppress warnings
 try:
     np.seterr(all='ignore')
@@ -704,13 +703,29 @@ def diff(arr, n, axis=0):
 
     return out_arr
 
+timedelta_search = re.compile(
+    "^(?P<value>-?\d*\.?\d*)(?P<unit>D|s|ms|us|ns)?$")
 
-def _coerce_scalar_to_timedelta_type(r):
+def _coerce_scalar_to_timedelta_type(r, unit='ns'):
     # kludgy here until we have a timedelta scalar
     # handle the numpy < 1.7 case
 
+    if isinstance(r, compat.string_types):
+        m = timedelta_search.search(r)
+        if m:
+            r = float(m.groupdict()['value'])
+            u = m.groupdict().get('unit')
+            if u is not None:
+                unit = u
+        else:
+            raise ValueError("cannot convert timedelta scalar value!")
+
+        r = tslib.cast_from_unit(unit, r)
+        r = timedelta(microseconds=int(r)/1000)
+
     if is_integer(r):
-        r = timedelta(microseconds=r/1000)
+        r = tslib.cast_from_unit(unit, r)
+        r = timedelta(microseconds=int(r)/1000)
 
     if _np_version_under1p7:
         if not isinstance(r, timedelta):

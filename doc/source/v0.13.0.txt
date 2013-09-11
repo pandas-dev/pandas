@@ -80,7 +80,7 @@ API changes
       See :ref:`here<io.hdf5-selecting_coordinates>` for an example.
     - allow a passed locations array or mask as a ``where`` condition (:issue:`4467`).
       See :ref:`here<io.hdf5-where_mask>` for an example.
-
+    - support ``timedelta64[ns]`` as a serialization type (:issue:`3577`)
     - the ``format`` keyword now replaces the ``table`` keyword; allowed values are ``fixed(f)`` or ``table(t)``
       the same defaults as prior < 0.13.0 remain, e.g. ``put`` implies 'fixed` or 'f' (Fixed) format
       and ``append`` imples 'table' or 't' (Table) format

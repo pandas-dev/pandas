@@ -1276,7 +1276,7 @@ cdef inline _get_datetime64_nanos(object val):
     else:
         return ival
 
-cdef inline int64_t cast_from_unit(object unit, object ts) except -1:
+cpdef inline int64_t cast_from_unit(object unit, object ts) except -1:
     """ return a casting of the unit represented to nanoseconds
         round the fractional part of a float to our precision, p """
     if unit == 'D':

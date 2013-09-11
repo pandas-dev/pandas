@@ -156,6 +156,7 @@ API Changes
     - a column multi-index will be recreated properly (:issue:`4710`); raise on trying to use a multi-index
       with data_columns on the same axis
     - ``select_as_coordinates`` will now return an ``Int64Index`` of the resultant selection set
+    - support ``timedelta64[ns]`` as a serialization type (:issue:`3577`)
   - ``JSON``
 
     - added ``date_unit`` parameter to specify resolution of timestamps. Options
