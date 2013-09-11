@@ -560,6 +560,9 @@ class NDFrame(PandasObject):
 
     __bool__ = __nonzero__
 
+    def __abs__(self):
+        return self.abs()
+
     #----------------------------------------------------------------------
     # Array Interface
 
