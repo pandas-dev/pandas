@@ -110,12 +110,20 @@ Levels
 `Flatten Hierarchical columns
 <http://stackoverflow.com/questions/14507794/python-pandas-how-to-flatten-a-hierarchical-index-in-columns>`__
 
+panelnd
+~~~~~~~
+
+The :ref:`panelnd<dsintro.panelnd>` docs.
+
+`Construct a 5D panelnd
+http://stackoverflow.com/questions/18748598/why-my-panelnd-factory-throwing-a-keyerror`__
+
 .. _cookbook.missing_data:
 
 Missing Data
 ------------
 
-The :ref:`missing data <missing_data>` docs.
+The :ref:`missing data<missing_data>` docs.
 
 Fill forward a reversed timeseries
 

@@ -915,6 +915,8 @@ copy by default unless the data are heterogeneous):
 
    p4d.transpose(3, 2, 1, 0)
 
+.. _dsintro.panelnd:
+
 PanelND (Experimental)
 ----------------------
 
