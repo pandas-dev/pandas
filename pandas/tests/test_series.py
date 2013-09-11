@@ -2814,6 +2814,19 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = Series(1,index=range(10),dtype='float64')
         #assert_series_equal(result,expected)
 
+    def test_complexx(self):
+
+        # GH4819
+        # complex access for ndarray compat
+        a = np.arange(5)
+        b = Series(a + 4j*a)
+        tm.assert_almost_equal(a,b.real)
+        tm.assert_almost_equal(4*a,b.imag)
+
+        b.real = np.arange(5)+5
+        tm.assert_almost_equal(a+5,b.real)
+        tm.assert_almost_equal(4*a,b.imag)
+
     def test_underlying_data_conversion(self):
 
         # GH 4080
