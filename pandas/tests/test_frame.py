@@ -3234,9 +3234,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         # abs
         result = diffs.abs()
+        result2 = abs(diffs)
         expected = DataFrame(dict(A = df['A']-df['C'],
                                   B = df['B']-df['A']))
         assert_frame_equal(result,expected)
+        assert_frame_equal(result2, expected)
 
         # mixed frame
         mixed = diffs.copy()
