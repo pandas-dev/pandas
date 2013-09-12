@@ -845,9 +845,19 @@ class TestTimeSeries(unittest.TestCase):
         assert_series_equal(result, expected)
 
         # with NaT
+        expected = Series([Timestamp("19801222"),Timestamp("19801222")] + [Timestamp("19810105")]*5)
+        expected[2] = np.nan
         s[2] = np.nan
-        self.assertRaises(ValueError, to_datetime, s,format='%Y%m%d')
-        self.assertRaises(ValueError, to_datetime, s.apply(str),format='%Y%m%d')
+
+        result = to_datetime(s,format='%Y%m%d')
+        assert_series_equal(result, expected)
+
+        # string with NaT
+        s = s.apply(str)
+        s[2] = 'nat'
+        result = to_datetime(s,format='%Y%m%d')
+        assert_series_equal(result, expected)
+
 
     def test_to_datetime_format_microsecond(self):
         val = '01-Apr-2011 00:00:01.978'
