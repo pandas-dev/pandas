@@ -53,6 +53,9 @@ pandas 0.14.0
 New features
 ~~~~~~~~~~~~
 
+- ``Index`` returns a MultiIndex if passed a list of tuples
+  ``DataFrame(dict)`` and ``Series(dict)`` create ``MultiIndex``
+  columns and index where applicable (:issue:`4187`)
 - Hexagonal bin plots from ``DataFrame.plot`` with ``kind='hexbin'`` (:issue:`5478`)
 - Added the ``sym_diff`` method to ``Index`` (:issue:`5543`)
 - Added ``to_julian_date`` to ``TimeStamp`` and ``DatetimeIndex``.  The Julian
@@ -261,6 +264,8 @@ Bug Fixes
 ~~~~~~~~~
 
 - Bug in Series ValueError when index doesn't match data (:issue:`6532`)
+- Prevent segfault due to MultiIndex not being supported in HDFStore table
+  format (:issue:`1848`)
 - Bug in ``pd.DataFrame.sort_index`` where mergesort wasn't stable when ``ascending=False`` (:issue:`6399`)
 - Bug in ``pd.tseries.frequencies.to_offset`` when argument has leading zeroes (:issue:`6391`)
 - Bug in version string gen. for dev versions with shallow clones / install from tarball (:issue:`6127`)

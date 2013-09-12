@@ -1643,7 +1643,10 @@ can think of ``MultiIndex`` an array of tuples where each tuple is unique. A
 ``MultiIndex`` can be created from a list of arrays (using
 ``MultiIndex.from_arrays``), an array of tuples (using
 ``MultiIndex.from_tuples``), or a crossed set of iterables (using
-``MultiIndex.from_product``).
+``MultiIndex.from_product``).  The ``Index`` constructor will attempt to return
+a ``MultiIndex`` when it is passed a list of tuples.  The following examples
+demo different ways to initialize MultiIndexes.
+
 
 .. ipython:: python
 
@@ -1651,7 +1654,10 @@ can think of ``MultiIndex`` an array of tuples where each tuple is unique. A
              ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
    tuples = list(zip(*arrays))
    tuples
-   index = MultiIndex.from_tuples(tuples, names=['first', 'second'])
+
+   multi_index = MultiIndex.from_tuples(tuples, names=['first', 'second'])
+   multi_index
+
    s = Series(randn(8), index=index)
    s
 

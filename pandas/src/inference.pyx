@@ -58,6 +58,8 @@ def infer_dtype(object _values):
             _values = list(_values)
         values = list_to_object_array(_values)
 
+    values = getattr(values, 'values', values)
+
     val_kind = values.dtype.type
     if val_kind in _TYPE_MAP:
         return _TYPE_MAP[val_kind]
@@ -1028,6 +1030,8 @@ def fast_multiget(dict mapping, ndarray keys, default=np.nan):
     if n == 0:
         # kludge, for Series
         return np.empty(0, dtype='f8')
+
+    keys = getattr(keys, 'values', keys)
 
     for i in range(n):
         val = util.get_value_1d(keys, i)

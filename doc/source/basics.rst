@@ -761,6 +761,7 @@ This is equivalent to the following
 
 .. _basics.reindexing:
 
+
 Reindexing and altering labels
 ------------------------------
 
