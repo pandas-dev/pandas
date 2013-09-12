@@ -2731,9 +2731,9 @@ class Series(generic.NDFrame):
 
     def isin(self, values):
         """
-        Return a boolean :ref:`~pandas.Series` showing whether each element in
-        the ref:`~pandas.Series` is exactly contained in the passed sequence of
-        ``values``.
+        Return a boolean :class:`~pandas.Series` showing whether each element
+        in the :class:`~pandas.Series` is exactly contained in the passed
+        sequence of ``values``.
 
         Parameters
         ----------

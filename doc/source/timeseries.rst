@@ -678,7 +678,7 @@ strongly recommended that you switch to using the new offset aliases.
     "A\@DEC", "BA\-DEC"
     "min", "T"
     "ms", "L"
-    "us": "U"
+    "us", "U"
 
 As you can see, legacy quarterly and annual frequencies are business quarter
 and business year ends. Please also note the legacy time rule for milliseconds

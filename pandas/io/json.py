@@ -101,34 +101,37 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
               convert_axes=True, convert_dates=True, keep_default_dates=True,
               numpy=False, precise_float=False, date_unit=None):
     """
-    Convert JSON string to pandas object
+    Convert a JSON string to pandas object
 
     Parameters
     ----------
-    filepath_or_buffer : a VALID JSON string or file handle / StringIO. The
-        string could be a URL. Valid URL schemes include http, ftp, s3, and
+    filepath_or_buffer : a valid JSON string or file-like
+        The string could be a URL. Valid URL schemes include http, ftp, s3, and
         file. For file URLs, a host is expected. For instance, a local file
-        could be file ://localhost/path/to/table.json
-    orient :
-        Series :
-          default is 'index'
-          allowed values are: {'split','records','index'}
-          The Series index must be unique for orient 'index'.
+        could be ``file://localhost/path/to/table.json``
 
-        DataFrame :
-          default is 'columns'
-          allowed values are: {'split','records','index','columns','values'}
-          The DataFrame index must be unique for orients 'index' and 'columns'.
-          The DataFrame columns must be unique for orients 'index', 'columns',
-          and 'records'.
+    orient
 
-        The format of the JSON string
-          split : dict like
-            {index -> [index], columns -> [columns], data -> [values]}
-          records : list like [{column -> value}, ... , {column -> value}]
-          index : dict like {index -> {column -> value}}
-          columns : dict like {column -> {index -> value}}
-          values : just the values array
+        * `Series`
+
+          - default is ``'index'``
+          - allowed values are: ``{'split','records','index'}``
+          - The Series index must be unique for orient ``'index'``.
+
+        * `DataFrame`
+
+          - default is ``'columns'``
+          - allowed values are: {'split','records','index','columns','values'}
+          - The DataFrame index must be unique for orients 'index' and 'columns'.
+          - The DataFrame columns must be unique for orients 'index', 'columns', and 'records'.
+
+        * The format of the JSON string
+
+          - split : dict like ``{index -> [index], columns -> [columns], data -> [values]}``
+          - records : list like ``[{column -> value}, ... , {column -> value}]``
+          - index : dict like ``{index -> {column -> value}}``
+          - columns : dict like ``{column -> {index -> value}}``
+          - values : just the values array
 
     typ : type of object to recover (series or frame), default 'frame'
     dtype : boolean or dict, default True
