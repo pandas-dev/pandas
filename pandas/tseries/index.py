@@ -7,8 +7,7 @@ from datetime import timedelta
 import numpy as np
 
 from pandas.core.common import (isnull, _NS_DTYPE, _INT64_DTYPE,
-                                is_list_like,_possibly_cast_to_timedelta,
-                                _values_from_object, _maybe_box)
+                                is_list_like,_values_from_object, _maybe_box)
 from pandas.core.index import Index, Int64Index
 import pandas.compat as compat
 from pandas.compat import u

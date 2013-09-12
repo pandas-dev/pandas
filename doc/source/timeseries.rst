@@ -1211,6 +1211,26 @@ Time Deltas & Conversions
 
 .. versionadded:: 0.13
 
+**string/integer conversion**
+
+Using the top-level ``to_timedelta``, you can convert a scalar or array from the standard
+timedelta format (produced by ``to_csv``) into a timedelta type (``np.timedelta64`` in ``nanoseconds``).
+It can also construct Series.
+
+.. warning::
+
+   This requires ``numpy >= 1.7``
+
+.. ipython:: python
+
+   to_timedelta('1 days 06:05:01.00003')
+   to_timedelta('15.5us')
+   to_timedelta(['1 days 06:05:01.00003','15.5us','nan'])
+   to_timedelta(np.arange(5),unit='s')
+   to_timedelta(np.arange(5),unit='d')
+
+**frequency conversion**
+
 Timedeltas can be converted to other 'frequencies' by dividing by another timedelta.
 These operations yield ``float64`` dtyped Series.
 

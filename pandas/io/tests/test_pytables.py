@@ -22,7 +22,8 @@ from pandas.util.testing import (assert_panel4d_equal,
                                  assert_frame_equal,
                                  assert_series_equal)
 from pandas import concat, Timestamp
-from pandas import compat
+from pandas import compat, _np_version_under1p7
+from pandas.core import common as com
 
 from numpy.testing.decorators import slow
 
@@ -1732,7 +1733,7 @@ class TestHDFStore(unittest.TestCase):
             # this fails because we have a date in the object block......
             self.assertRaises(TypeError, store.append, 'df_unimplemented', df)
 
-    def test_table_append_with_timezones(self):
+    def test_append_with_timezones(self):
 
         from datetime import timedelta
 
@@ -1796,6 +1797,51 @@ class TestHDFStore(unittest.TestCase):
             _maybe_remove(store, 'df')
             store.append('df',df)
             result = store.select('df')
+            assert_frame_equal(result,df)
+
+    def test_append_with_timedelta(self):
+        if _np_version_under1p7:
+            raise nose.SkipTest("requires numpy >= 1.7")
+
+        # GH 3577
+        # append timedelta
+
+        from datetime import timedelta
+        df = DataFrame(dict(A = Timestamp('20130101'), B = [ Timestamp('20130101') + timedelta(days=i,seconds=10) for i in range(10) ]))
+        df['C'] = df['A']-df['B']
+        df.ix[3:5,'C'] = np.nan
+
+        with ensure_clean(self.path) as store:
+
+            # table
+            _maybe_remove(store, 'df')
+            store.append('df',df,data_columns=True)
+            result = store.select('df')
+            assert_frame_equal(result,df)
+
+            result = store.select('df',Term("C<100000"))
+            assert_frame_equal(result,df)
+
+            result = store.select('df',Term("C","<",-3*86400))
+            assert_frame_equal(result,df.iloc[3:])
+
+            result = store.select('df',Term("C","<",'-3D'))
+            assert_frame_equal(result,df.iloc[3:])
+
+            # a bit hacky here as we don't really deal with the NaT properly
+
+            result = store.select('df',Term("C","<",'-500000s'))
+            result = result.dropna(subset=['C'])
+            assert_frame_equal(result,df.iloc[6:])
+
+            result = store.select('df',Term("C","<",'-3.5D'))
+            result = result.iloc[1:]
+            assert_frame_equal(result,df.iloc[4:])
+
+            # fixed
+            _maybe_remove(store, 'df2')
+            store.put('df2',df)
+            result = store.select('df2')
             assert_frame_equal(result,df)
 
     def test_remove(self):

@@ -13,7 +13,7 @@ from pandas.core.indexing import _maybe_convert_indices
 from pandas.tseries.index import DatetimeIndex
 from pandas.core.internals import BlockManager
 import pandas.core.common as com
-from pandas import compat
+from pandas import compat, _np_version_under1p7
 from pandas.compat import map, zip, lrange
 from pandas.core.common import (isnull, notnull, is_list_like,
                                 _values_from_object,
@@ -1908,7 +1908,7 @@ class NDFrame(PandasObject):
         obj = np.abs(self)
 
         # suprimo numpy 1.6 hacking
-        if com._np_version_under1p7:
+        if _np_version_under1p7:
             if self.ndim == 1:
                 if obj.dtype == 'm8[us]':
                     obj = obj.astype('m8[ns]')

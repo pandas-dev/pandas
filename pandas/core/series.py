@@ -19,6 +19,7 @@ from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _asarray_tuplesafe, is_integer_dtype,
                                 _NS_DTYPE, _TD_DTYPE,
                                 _infer_dtype_from_scalar, is_list_like, _values_from_object,
+                                _possibly_cast_to_datetime, _possibly_castable, _possibly_convert_platform,
                                 ABCSparseArray)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                _ensure_index, _handle_legacy_indexes)
@@ -32,6 +33,7 @@ import pandas.core.expressions as expressions
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex, Period
 from pandas.tseries.offsets import DateOffset
+from pandas.tseries.timedeltas import _possibly_cast_to_timedelta
 from pandas import compat
 from pandas.util.terminal import get_terminal_size
 from pandas.compat import zip, lzip, u, OrderedDict
@@ -142,7 +144,7 @@ class _TimeOp(object):
                 values = values.to_series()
         elif inferred_type in ('timedelta', 'timedelta64'):
             # have a timedelta, convert to to ns here
-            values = com._possibly_cast_to_timedelta(values, coerce=coerce)
+            values = _possibly_cast_to_timedelta(values, coerce=coerce)
         elif inferred_type == 'integer':
             # py3 compat where dtype is 'm' but is an integer
             if values.dtype.kind == 'm':
@@ -160,7 +162,7 @@ class _TimeOp(object):
                 raise TypeError("cannot use a non-absolute DateOffset in "
                                 "datetime/timedelta operations [{0}]".format(
                                     ','.join([ com.pprint_thing(v) for v in values[mask] ])))
-            values = com._possibly_cast_to_timedelta(os, coerce=coerce)
+            values = _possibly_cast_to_timedelta(os, coerce=coerce)
         else:
             raise TypeError("incompatible type [{0}] for a datetime/timedelta operation".format(pa.array(values).dtype))
 
@@ -3215,11 +3217,11 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 
         # perf shortcut as this is the most common case
         if take_fast_path:
-            if com._possibly_castable(arr) and not copy and dtype is None:
+            if _possibly_castable(arr) and not copy and dtype is None:
                 return arr
 
         try:
-            arr = com._possibly_cast_to_datetime(arr, dtype)
+            arr = _possibly_cast_to_datetime(arr, dtype)
             subarr = pa.array(arr, dtype=dtype, copy=copy)
         except (ValueError, TypeError):
             if dtype is not None and raise_cast_failure:
@@ -3266,9 +3268,9 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                 subarr = lib.maybe_convert_objects(subarr)
 
         else:
-            subarr = com._possibly_convert_platform(data)
+            subarr = _possibly_convert_platform(data)
 
-        subarr = com._possibly_cast_to_datetime(subarr, dtype)
+        subarr = _possibly_cast_to_datetime(subarr, dtype)
 
     else:
         subarr = _try_cast(data, False)
@@ -3285,7 +3287,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                 dtype, value = _infer_dtype_from_scalar(value)
             else:
                 # need to possibly convert the value here
-                value = com._possibly_cast_to_datetime(value, dtype)
+                value = _possibly_cast_to_datetime(value, dtype)
 
             subarr = pa.empty(len(index), dtype=dtype)
             subarr.fill(value)

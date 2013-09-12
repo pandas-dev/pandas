@@ -17,7 +17,7 @@ import warnings
 import numpy as np
 import pandas
 from pandas import (Series, TimeSeries, DataFrame, Panel, Panel4D, Index,
-                    MultiIndex, Int64Index, Timestamp)
+                    MultiIndex, Int64Index, Timestamp, _np_version_under1p7)
 from pandas.sparse.api import SparseSeries, SparseDataFrame, SparsePanel
 from pandas.sparse.array import BlockIndex, IntIndex
 from pandas.tseries.api import PeriodIndex, DatetimeIndex
@@ -29,6 +29,7 @@ from pandas.core.common import _asarray_tuplesafe
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.reshape import block2d_to_blocknd, factor_indexer
 from pandas.core.index import _ensure_index
+from pandas.tseries.timedeltas import _coerce_scalar_to_timedelta_type
 import pandas.core.common as com
 from pandas.tools.merge import concat
 from pandas import compat
@@ -1527,6 +1528,8 @@ class DataCol(IndexCol):
                 self.kind = 'integer'
             elif dtype.startswith(u('date')):
                 self.kind = 'datetime'
+            elif dtype.startswith(u('timedelta')):
+                self.kind = 'timedelta'
             elif dtype.startswith(u('bool')):
                 self.kind = 'bool'
             else:
@@ -1547,6 +1550,11 @@ class DataCol(IndexCol):
 
         if inferred_type == 'datetime64':
             self.set_atom_datetime64(block)
+        elif dtype == 'timedelta64[ns]':
+            if _np_version_under1p7:
+                raise TypeError(
+                    "timdelta64 is not supported under under numpy < 1.7")
+            self.set_atom_timedelta64(block)
         elif inferred_type == 'date':
             raise TypeError(
                 "[date] is not implemented as a table column")
@@ -1667,6 +1675,16 @@ class DataCol(IndexCol):
             values = block.values.view('i8')
         self.set_data(values, 'datetime64')
 
+    def get_atom_timedelta64(self, block):
+        return _tables().Int64Col(shape=block.shape[0])
+
+    def set_atom_timedelta64(self, block, values=None):
+        self.kind = 'timedelta64'
+        self.typ = self.get_atom_timedelta64(block)
+        if values is None:
+            values = block.values.view('i8')
+        self.set_data(values, 'timedelta64')
+
     @property
     def shape(self):
         return getattr(self.data, 'shape', None)
@@ -1719,6 +1737,8 @@ class DataCol(IndexCol):
                 else:
                     self.data = np.asarray(self.data, dtype='M8[ns]')
 
+            elif dtype == u('timedelta64'):
+                self.data = np.asarray(self.data, dtype='m8[ns]')
             elif dtype == u('date'):
                 self.data = np.array(
                     [date.fromtimestamp(v) for v in self.data], dtype=object)
@@ -1765,6 +1785,9 @@ class DataIndexableCol(DataCol):
         return self.get_atom_coltype()()
 
     def get_atom_datetime64(self, block):
+        return _tables().Int64Col()
+
+    def get_atom_timedelta64(self, block):
         return _tables().Int64Col()
 
 
@@ -2007,6 +2030,11 @@ class GenericFixed(Fixed):
 
             if dtype == u('datetime64'):
                 ret = np.array(ret, dtype='M8[ns]')
+            elif dtype == u('timedelta64'):
+                if _np_version_under1p7:
+                    raise TypeError(
+                        "timedelta64 is not supported under under numpy < 1.7")
+                ret = np.array(ret, dtype='m8[ns]')
 
         if transposed:
             return ret.T
@@ -2214,6 +2242,9 @@ class GenericFixed(Fixed):
         elif value.dtype.type == np.datetime64:
             self._handle.createArray(self.group, key, value.view('i8'))
             getattr(self.group, key)._v_attrs.value_type = 'datetime64'
+        elif value.dtype.type == np.timedelta64:
+            self._handle.createArray(self.group, key, value.view('i8'))
+            getattr(self.group, key)._v_attrs.value_type = 'timedelta64'
         else:
             if empty_array:
                 self.write_array_empty(key, value)
@@ -4000,7 +4031,9 @@ class Term(StringMixin):
         """ set the numexpr expression for this term """
 
         if not self.is_valid:
-            raise ValueError("query term is not valid [%s]" % str(self))
+            raise ValueError("query term is not valid [{0}]\n"
+                             "  all queries terms must include a reference to\n"
+                             "  either an axis (e.g. index or column), or a data_columns\n".format(str(self)))
 
         # convert values if we are in the table
         if self.is_in_table:
@@ -4060,6 +4093,9 @@ class Term(StringMixin):
             if v.tz is not None:
                 v = v.tz_convert('UTC')
             return TermValue(v, v.value, kind)
+        elif kind == u('timedelta64') or kind == u('timedelta'):
+            v = _coerce_scalar_to_timedelta_type(v,unit='s').item()
+            return TermValue(int(v), v, kind)
         elif (isinstance(v, datetime) or hasattr(v, 'timetuple')
               or kind == u('date')):
             v = time.mktime(v.timetuple())

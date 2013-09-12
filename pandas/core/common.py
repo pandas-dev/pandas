@@ -11,7 +11,6 @@ import numpy as np
 import pandas.algos as algos
 import pandas.lib as lib
 import pandas.tslib as tslib
-from distutils.version import LooseVersion
 from pandas import compat
 from pandas.compat import StringIO, BytesIO, range, long, u, zip, map
 from datetime import timedelta
@@ -19,26 +18,12 @@ from datetime import timedelta
 from pandas.core.config import get_option
 from pandas.core import array as pa
 
-
-# XXX: HACK for NumPy 1.5.1 to suppress warnings
-try:
-    np.seterr(all='ignore')
-    # np.set_printoptions(suppress=True)
-except Exception:  # pragma: no cover
-    pass
-
-
 class PandasError(Exception):
     pass
 
 
 class AmbiguousIndexError(PandasError, KeyError):
     pass
-
-# versioning
-_np_version = np.version.short_version
-_np_version_under1p6 = LooseVersion(_np_version) < '1.6'
-_np_version_under1p7 = LooseVersion(_np_version) < '1.7'
 
 _POSSIBLY_CAST_DTYPES = set([np.dtype(t)
                             for t in ['M8[ns]', 'm8[ns]', 'O', 'int8', 'uint8', 'int16', 'uint16', 'int32', 'uint32', 'int64', 'uint64']])
@@ -704,33 +689,12 @@ def diff(arr, n, axis=0):
 
     return out_arr
 
-
-def _coerce_scalar_to_timedelta_type(r):
-    # kludgy here until we have a timedelta scalar
-    # handle the numpy < 1.7 case
-
-    if is_integer(r):
-        r = timedelta(microseconds=r/1000)
-
-    if _np_version_under1p7:
-        if not isinstance(r, timedelta):
-            raise AssertionError("Invalid type for timedelta scalar: %s" % type(r))
-        if compat.PY3:
-            # convert to microseconds in timedelta64
-            r = np.timedelta64(int(r.total_seconds()*1e9 + r.microseconds*1000))
-        else:
-            return r
-
-    if isinstance(r, timedelta):
-        r = np.timedelta64(r)
-    elif not isinstance(r, np.timedelta64):
-        raise AssertionError("Invalid type for timedelta scalar: %s" % type(r))
-    return r.astype('timedelta64[ns]')
-
 def _coerce_to_dtypes(result, dtypes):
     """ given a dtypes and a result set, coerce the result elements to the dtypes """
     if len(result) != len(dtypes):
         raise AssertionError("_coerce_to_dtypes requires equal len arrays")
+
+    from pandas.tseries.timedeltas import _coerce_scalar_to_timedelta_type
 
     def conv(r,dtype):
         try:
@@ -1324,68 +1288,6 @@ def _possibly_convert_platform(values):
 
     return values
 
-
-def _possibly_cast_to_timedelta(value, coerce=True):
-    """ try to cast to timedelta64, if already a timedeltalike, then make
-        sure that we are [ns] (as numpy 1.6.2 is very buggy in this regards,
-        don't force the conversion unless coerce is True
-
-        if coerce='compat' force a compatibilty coercerion (to timedeltas) if needeed
-        """
-
-    # coercion compatability
-    if coerce == 'compat' and _np_version_under1p7:
-
-        def convert(td, dtype):
-
-            # we have an array with a non-object dtype
-            if hasattr(td,'item'):
-                td = td.astype(np.int64).item()
-                if td == tslib.iNaT:
-                    return td
-                if dtype == 'm8[us]':
-                    td *= 1000
-                return td
-
-            if td == tslib.compat_NaT:
-                return tslib.iNaT
-
-            # convert td value to a nanosecond value
-            d = td.days
-            s = td.seconds
-            us = td.microseconds
-
-            if dtype == 'object' or dtype == 'm8[ns]':
-                td = 1000*us + (s + d * 24 * 3600) * 10 ** 9
-            else:
-                raise ValueError("invalid conversion of dtype in np < 1.7 [%s]" % dtype)
-
-            return td
-
-        # < 1.7 coercion
-        if not is_list_like(value):
-            value = np.array([ value ])
-
-        dtype = value.dtype
-        return np.array([ convert(v,dtype) for v in value ], dtype='m8[ns]')
-
-    # deal with numpy not being able to handle certain timedelta operations
-    if isinstance(value, (ABCSeries, np.ndarray)) and value.dtype.kind == 'm':
-        if value.dtype != 'timedelta64[ns]':
-            value = value.astype('timedelta64[ns]')
-        return value
-
-    # we don't have a timedelta, but we want to try to convert to one (but
-    # don't force it)
-    if coerce:
-        new_value = tslib.array_to_timedelta64(
-            _values_from_object(value).astype(object), coerce=False)
-        if new_value.dtype == 'i8':
-            value = np.array(new_value, dtype='timedelta64[ns]')
-
-    return value
-
-
 def _possibly_cast_to_datetime(value, dtype, coerce=False):
     """ try to cast the array/value to a datetimelike dtype, converting float nan to iNaT """
 
@@ -1423,6 +1325,7 @@ def _possibly_cast_to_datetime(value, dtype, coerce=False):
                             from pandas.tseries.tools import to_datetime
                             value = to_datetime(value, coerce=coerce).values
                         elif is_timedelta64:
+                            from pandas.tseries.timedeltas import _possibly_cast_to_timedelta
                             value = _possibly_cast_to_timedelta(value)
                     except:
                         pass
@@ -1448,6 +1351,7 @@ def _possibly_cast_to_datetime(value, dtype, coerce=False):
                     except:
                         pass
                 elif inferred_type in ['timedelta', 'timedelta64']:
+                    from pandas.tseries.timedeltas import _possibly_cast_to_timedelta
                     value = _possibly_cast_to_timedelta(value)
 
     return value
