@@ -214,6 +214,11 @@ These operations produce a pandas object the same type as the left-hand-side inp
 that if of dtype ``bool``. These ``boolean`` objects can be used in indexing operations,
 see :ref:`here<indexing.boolean>`
 
+Boolean Reductions
+~~~~~~~~~~~~~~~~~~
+
+.. _basics.reductions:
+
 Furthermore, you can apply the reduction functions: ``any()`` and ``all()`` to provide a
 way to summarize these results.
 
@@ -221,6 +226,12 @@ way to summarize these results.
 
    (df>0).all()
    (df>0).any()
+
+You can reduce to a final boolean value.
+
+.. ipython:: python
+
+   (df>0).any().any()
 
 Finally you can test if a pandas object is empty, via the ``empty`` property.
 

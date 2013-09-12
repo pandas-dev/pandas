@@ -50,6 +50,14 @@ or, you might want to compare if the pandas object is ``None``
            print("I was not None")
     >>> I was not None
 
+.. code-block:: python
+
+    >>> if pd.Series([False, True, False]).any():
+           print("I am any")
+    >>> I am any
+
+See :ref:`boolean reductions<basics.reductions>` for more examples.
+
 Bitwise boolean
 ~~~~~~~~~~~~~~~
 
