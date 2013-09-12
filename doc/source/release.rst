@@ -105,6 +105,7 @@ Improvements to existing features
     test to vbench (:issue:`4705` and :issue:`4722`)
   - Add ``axis`` and ``level`` keywords to ``where``, so that the ``other`` argument
     can now be an alignable pandas object.
+  - ``to_datetime`` with a format of 'YYYYMMDD' now parses much faster
 
 API Changes
 ~~~~~~~~~~~
