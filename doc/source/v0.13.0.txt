@@ -208,6 +208,21 @@ Enhancements
 
   - ``timedelta64[ns]`` operations
 
+    - Using the new top-level ``to_timedelta``, you can convert a scalar or array from the standard
+      timedelta format (produced by ``to_csv``) into a timedelta type (``np.timedelta64`` in ``nanoseconds``).
+
+      .. warning::
+
+         This requires ``numpy >= 1.7``
+
+      .. ipython:: python
+
+         to_timedelta('1 days 06:05:01.00003')
+         to_timedelta('15.5us')
+         to_timedelta(['1 days 06:05:01.00003','15.5us','nan'])
+         to_timedelta(np.arange(5),unit='s')
+         to_timedelta(np.arange(5),unit='d')
+
     - A Series of dtype ``timedelta64[ns]`` can now be divided by another
       ``timedelta64[ns]`` object to yield a ``float64`` dtyped Series. This
       is frequency conversion. See :ref:`here<timeseries.timedeltas_convert>` for the docs.

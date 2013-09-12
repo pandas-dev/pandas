@@ -2017,6 +2017,10 @@ Beginning in 0.13.0, you can store and query using the ``timedelta64[ns]`` type.
 specified in the format: ``<float>(<unit>)``, where float may be signed (and fractional), and unit can be
 ``D,s,ms,us,ns`` for the timedelta. Here's an example:
 
+.. warning::
+
+   This requires ``numpy >= 1.7``
+
 .. ipython:: python
 
    from datetime import timedelta

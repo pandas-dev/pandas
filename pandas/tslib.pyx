@@ -1303,7 +1303,9 @@ cpdef inline int64_t cast_from_unit(object ts, object unit) except -1:
     # to avoid precision issues from float -> int
     base = <int64_t> ts
     frac = ts-base
-    return <int64_t> (base*m) + <int64_t> (round(frac,p)*m)
+    if p:
+       frac = round(frac,p)
+    return <int64_t> (base*m) + <int64_t> (frac*m)
 
 def cast_to_nanoseconds(ndarray arr):
     cdef:

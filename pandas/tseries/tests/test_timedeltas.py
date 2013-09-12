@@ -11,7 +11,7 @@ from pandas import (Index, Series, DataFrame, isnull, notnull,
                     bdate_range, date_range, _np_version_under1p7)
 import pandas.core.common as com
 from pandas.compat import StringIO, lrange, range, zip, u, OrderedDict, long
-from pandas import compat
+from pandas import compat, to_timedelta, tslib
 from pandas.tseries.timedeltas import _coerce_scalar_to_timedelta_type as ct
 from pandas.util.testing import (assert_series_equal,
                                  assert_frame_equal,
@@ -33,10 +33,9 @@ class TestTimedeltas(unittest.TestCase):
     def test_numeric_conversions(self):
         _skip_if_numpy_not_friendly()
 
-        # ns not converted properly
         self.assert_(ct(0) == np.timedelta64(0,'ns'))
-        self.assert_(ct(10) == np.timedelta64(0,'ns'))
-        self.assert_(ct(10,unit='ns') == np.timedelta64(0,'ns').astype('m8[ns]'))
+        self.assert_(ct(10) == np.timedelta64(10,'ns'))
+        self.assert_(ct(10,unit='ns') == np.timedelta64(10,'ns').astype('m8[ns]'))
 
         self.assert_(ct(10,unit='us') == np.timedelta64(10,'us').astype('m8[ns]'))
         self.assert_(ct(10,unit='ms') == np.timedelta64(10,'ms').astype('m8[ns]'))
@@ -56,11 +55,10 @@ class TestTimedeltas(unittest.TestCase):
         def conv(v):
             return v.astype('m8[ns]')
 
-        # ns not converted properly
-        self.assert_(ct('10') == np.timedelta64(0,'ns'))
-        self.assert_(ct('10ns') == np.timedelta64(0,'ns'))
-        self.assert_(ct('100') == np.timedelta64(0,'ns'))
-        self.assert_(ct('100ns') == np.timedelta64(0,'ns'))
+        self.assert_(ct('10') == np.timedelta64(10,'ns'))
+        self.assert_(ct('10ns') == np.timedelta64(10,'ns'))
+        self.assert_(ct('100') == np.timedelta64(100,'ns'))
+        self.assert_(ct('100ns') == np.timedelta64(100,'ns'))
 
         self.assert_(ct('1000') == np.timedelta64(1000,'ns'))
         self.assert_(ct('1000ns') == np.timedelta64(1000,'ns'))
@@ -122,6 +120,48 @@ class TestTimedeltas(unittest.TestCase):
         # invalid
         self.assertRaises(ValueError, ct, '- 1days, 00')
 
+    def test_nat_converters(self):
+        _skip_if_numpy_not_friendly()
+
+        self.assert_(to_timedelta('nat') == tslib.iNaT)
+        self.assert_(to_timedelta('nan') == tslib.iNaT)
+
+    def test_to_timedelta(self):
+        _skip_if_numpy_not_friendly()
+
+        def conv(v):
+            return v.astype('m8[ns]')
+        d1 = np.timedelta64(1,'D')
+
+        self.assert_(to_timedelta('1 days 06:05:01.00003') == conv(d1+np.timedelta64(6*3600+5*60+1,'s')+np.timedelta64(30,'us')))
+        self.assert_(to_timedelta('15.5us') == conv(np.timedelta64(15500,'ns')))
+
+        # empty string
+        result = to_timedelta('')
+        self.assert_(result == tslib.iNaT)
+
+        result = to_timedelta(['', ''])
+        self.assert_(isnull(result).all())
+
+        # pass thru
+        result = to_timedelta(np.array([np.timedelta64(1,'s')]))
+        expected = np.array([np.timedelta64(1,'s')])
+        tm.assert_almost_equal(result,expected)
+
+        # ints
+        result = np.timedelta64(0,'ns')
+        expected = to_timedelta(0)
+        self.assert_(result == expected)
+
+        # Series
+        expected = Series([timedelta(days=1), timedelta(days=1, seconds=1)])
+        result = to_timedelta(Series(['1d','1days 00:00:01']))
+        tm.assert_series_equal(result, expected)
+
+        # with units
+        result = Series([ np.timedelta64(0,'ns'), np.timedelta64(10,'s').astype('m8[ns]') ],dtype='m8[ns]')
+        expected = to_timedelta([0,10],unit='s')
+        tm.assert_series_equal(result, expected)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
