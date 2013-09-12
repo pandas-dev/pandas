@@ -2009,6 +2009,26 @@ space. These are in terms of the total number of rows in a table.
                        Term('minor_axis', '=', ['A','B']) ],
                 start=0, stop=10)
 
+**Using timedelta64[ns]**
+
+.. versionadded:: 0.13
+
+Beginning in 0.13.0, you can store and query using the ``timedelta64[ns]`` type. Terms can be
+specified in the format: ``<float>(<unit>)``, where float may be signed (and fractional), and unit can be
+``D,s,ms,us,ns`` for the timedelta. Here's an example:
+
+.. warning::
+
+   This requires ``numpy >= 1.7``
+
+.. ipython:: python
+
+   from datetime import timedelta
+   dftd = DataFrame(dict(A = Timestamp('20130101'), B = [ Timestamp('20130101') + timedelta(days=i,seconds=10) for i in range(10) ]))
+   dftd['C'] = dftd['A']-dftd['B']
+   dftd
+   store.append('dftd',dftd,data_columns=True)
+   store.select('dftd',Term("C","<","-3.5D"))
 
 Indexing
 ~~~~~~~~
