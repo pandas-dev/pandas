@@ -18,6 +18,19 @@ except Exception:  # pragma: no cover
 from datetime import datetime
 import numpy as np
 
+# XXX: HACK for NumPy 1.5.1 to suppress warnings
+try:
+    np.seterr(all='ignore')
+    # np.set_printoptions(suppress=True)
+except Exception:  # pragma: no cover
+    pass
+
+# numpy versioning
+from distutils.version import LooseVersion
+_np_version = np.version.short_version
+_np_version_under1p6 = LooseVersion(_np_version) < '1.6'
+_np_version_under1p7 = LooseVersion(_np_version) < '1.7'
+
 from pandas.version import version as __version__
 from pandas.info import __doc__
 

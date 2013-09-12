@@ -14,7 +14,7 @@ import numpy.ma as ma
 import pandas as pd
 
 from pandas import (Index, Series, DataFrame, isnull, notnull,
-                    bdate_range, date_range)
+                    bdate_range, date_range, _np_version_under1p7)
 from pandas.core.index import MultiIndex
 from pandas.tseries.index import Timestamp, DatetimeIndex
 import pandas.core.config as cf
@@ -2188,7 +2188,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             [Timestamp('20130101 9:06:00.005'), Timestamp('20130101 9:07:00.005')])
         assert_series_equal(result, expected)
 
-        if not com._np_version_under1p7:
+        if not _np_version_under1p7:
 
             # operate with np.timedelta64 correctly
             result = s + np.timedelta64(1, 's')
@@ -2292,7 +2292,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
                 self.assertRaises(TypeError, sop, s2.values)
 
     def test_timedelta64_conversions(self):
-        if com._np_version_under1p7:
+        if _np_version_under1p7:
             raise nose.SkipTest("cannot use 2 argument form of timedelta64 conversions with numpy < 1.7")
 
         startdate = Series(date_range('2013-01-01', '2013-01-03'))
@@ -2317,7 +2317,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
                           'm': 60 * 1000000, 's': 1000000, 'us': 1}
 
         def timedelta64(*args):
-            if com._np_version_under1p7:
+            if _np_version_under1p7:
                 coeffs = np.array(args)
                 terms = np.array([npy16_mappings[interval]
                                   for interval in intervals])
@@ -2426,7 +2426,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(result, expected)
 
     def test_timedelta_fillna(self):
-        if com._np_version_under1p7:
+        if _np_version_under1p7:
             raise nose.SkipTest("timedelta broken in np 1.6.1")
 
         #GH 3371
@@ -2498,12 +2498,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(result,expected)
 
     def test_sub_of_datetime_from_TimeSeries(self):
-        from pandas.core import common as com
+        from pandas.tseries.timedeltas import _possibly_cast_to_timedelta
         from datetime import datetime
         a = Timestamp(datetime(1993, 0o1, 0o7, 13, 30, 00))
         b = datetime(1993, 6, 22, 13, 30)
         a = Series([a])
-        result = com._possibly_cast_to_timedelta(np.abs(a - b))
+        result = _possibly_cast_to_timedelta(np.abs(a - b))
         self.assert_(result.dtype == 'timedelta64[ns]')
 
     def test_datetime64_with_index(self):

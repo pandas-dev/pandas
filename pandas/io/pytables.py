@@ -17,7 +17,7 @@ import warnings
 import numpy as np
 import pandas
 from pandas import (Series, TimeSeries, DataFrame, Panel, Panel4D, Index,
-                    MultiIndex, Int64Index, Timestamp)
+                    MultiIndex, Int64Index, Timestamp, _np_version_under1p7)
 from pandas.sparse.api import SparseSeries, SparseDataFrame, SparsePanel
 from pandas.sparse.array import BlockIndex, IntIndex
 from pandas.tseries.api import PeriodIndex, DatetimeIndex
@@ -25,10 +25,11 @@ from pandas.core.base import StringMixin
 from pandas.core.common import adjoin, is_list_like, pprint_thing
 from pandas.core.algorithms import match, unique
 from pandas.core.categorical import Categorical
-from pandas.core.common import _asarray_tuplesafe, _np_version_under1p7
+from pandas.core.common import _asarray_tuplesafe
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.reshape import block2d_to_blocknd, factor_indexer
 from pandas.core.index import _ensure_index
+from pandas.tseries.timedeltas import _coerce_scalar_to_timedelta_type
 import pandas.core.common as com
 from pandas.tools.merge import concat
 from pandas import compat
@@ -4093,7 +4094,7 @@ class Term(StringMixin):
                 v = v.tz_convert('UTC')
             return TermValue(v, v.value, kind)
         elif kind == u('timedelta64') or kind == u('timedelta'):
-            v = com._coerce_scalar_to_timedelta_type(v,unit='s').item()
+            v = _coerce_scalar_to_timedelta_type(v,unit='s').item()
             return TermValue(int(v), v, kind)
         elif (isinstance(v, datetime) or hasattr(v, 'timetuple')
               or kind == u('date')):

@@ -22,7 +22,7 @@ from pandas.util.testing import (assert_panel4d_equal,
                                  assert_frame_equal,
                                  assert_series_equal)
 from pandas import concat, Timestamp
-from pandas import compat
+from pandas import compat, _np_version_under1p7
 from pandas.core import common as com
 
 from numpy.testing.decorators import slow
@@ -1800,7 +1800,7 @@ class TestHDFStore(unittest.TestCase):
             assert_frame_equal(result,df)
 
     def test_append_with_timedelta(self):
-        if com._np_version_under1p7:
+        if _np_version_under1p7:
             raise nose.SkipTest("requires numpy >= 1.7")
 
         # GH 3577

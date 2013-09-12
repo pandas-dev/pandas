@@ -3248,9 +3248,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         mixed['F'] = Timestamp('20130101')
 
         # results in an object array
+        from pandas.tseries.timedeltas import _coerce_scalar_to_timedelta_type
         result = mixed.min()
-        expected = Series([com._coerce_scalar_to_timedelta_type(timedelta(seconds=5*60+5)),
-                           com._coerce_scalar_to_timedelta_type(timedelta(days=-1)),
+        expected = Series([_coerce_scalar_to_timedelta_type(timedelta(seconds=5*60+5)),
+                           _coerce_scalar_to_timedelta_type(timedelta(days=-1)),
                            'foo',
                            1,
                            1.0,
