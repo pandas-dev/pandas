@@ -116,7 +116,7 @@ class SparseSeries(Series):
 
             if is_sparse_array:
                 if isinstance(data, SparseSeries) and index is None:
-                    index = data.index
+                    index = data.index.view()
                 elif index is not None:
                     assert(len(index) == len(data))
 
@@ -125,14 +125,14 @@ class SparseSeries(Series):
 
             elif isinstance(data, SparseSeries):
                 if index is None:
-                    index = data.index
+                    index = data.index.view()
 
                 # extract the SingleBlockManager
                 data = data._data
 
             elif isinstance(data, (Series, dict)):
                 if index is None:
-                    index = data.index
+                    index = data.index.view()
 
                 data = Series(data)
                 data, sparse_index = make_sparse(data, kind=kind,
@@ -150,7 +150,7 @@ class SparseSeries(Series):
                 if dtype is not None:
                     data = data.astype(dtype)
                 if index is None:
-                    index = data.index
+                    index = data.index.view()
                 else:
                     data = data.reindex(index, copy=False)
 
