@@ -101,7 +101,19 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
         arg = com._ensure_object(arg)
         try:
             if format is not None:
-                result = tslib.array_strptime(arg, format)
+                result = None
+
+                # shortcut formatting here
+                if format == '%Y%m%d':
+                    try:
+                        carg = arg.astype(np.int64).astype(object)
+                        result = lib.try_parse_year_month_day(carg/10000,carg/100 % 100, carg % 100)
+                    except:
+                        raise ValueError("cannot convert the input to '%Y%m%d' date format")
+
+                # fallback
+                if result is None:
+                    result = tslib.array_strptime(arg, format)
             else:
                 result = tslib.array_to_datetime(arg, raise_=errors == 'raise',
                                                  utc=utc, dayfirst=dayfirst,
