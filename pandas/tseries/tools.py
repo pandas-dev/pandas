@@ -106,8 +106,7 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
                 # shortcut formatting here
                 if format == '%Y%m%d':
                     try:
-                        carg = arg.astype(np.int64).astype(object)
-                        result = lib.try_parse_year_month_day(carg/10000,carg/100 % 100, carg % 100)
+                        result = _attempt_YYYYMMDD(arg)
                     except:
                         raise ValueError("cannot convert the input to '%Y%m%d' date format")
 
@@ -144,6 +143,43 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
 class DateParseError(ValueError):
     pass
 
+def _attempt_YYYYMMDD(arg):
+    """ try to parse the YYYYMMDD/%Y%m%d format, try to deal with NaT-like,
+        arg is a passed in as an object dtype, but could really be ints/strings with nan-like/or floats (e.g. with nan) """
+
+    def calc(carg):
+        # calculate the actual result
+        carg = carg.astype(object)
+        return lib.try_parse_year_month_day(carg/10000,carg/100 % 100, carg % 100)
+
+    def calc_with_mask(carg,mask):
+        result = np.empty(carg.shape, dtype='M8[ns]')
+        iresult = result.view('i8')
+        iresult[-mask] = tslib.iNaT
+        result[mask] = calc(carg[mask].astype(np.float64).astype(np.int64)).astype('M8[ns]')
+        return result
+
+    # try intlike / strings that are ints
+    try:
+        return calc(arg.astype(np.int64))
+    except:
+        pass
+
+    # a float with actual np.nan
+    try:
+        carg = arg.astype(np.float64)
+        return calc_with_mask(carg,com.notnull(carg))
+    except:
+        pass
+
+    # string with NaN-like
+    try:
+        mask = ~lib.ismember(arg, tslib._nat_strings)
+        return calc_with_mask(arg,mask)
+    except:
+        pass
+
+    return None
 
 # patterns for quarters like '4Q2005', '05Q1'
 qpat1full = re.compile(r'(\d)Q(\d\d\d\d)')
