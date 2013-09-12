@@ -48,7 +48,10 @@ class TestIndex(tm.TestCase):
             intIndex = tm.makeIntIndex(100),
             floatIndex = tm.makeFloatIndex(100),
             empty = Index([]),
-            tuples = Index(lzip(['foo', 'bar', 'baz'], [1, 2, 3])),
+            #tuples = Index(lzip(['foo', 'bar', 'baz'], [1, 2, 3])),
+            # TODO: revert to call to Index
+            tuples = MultiIndex.from_tuples(lzip(['foo', 'bar', 'baz'],
+                                                 [1, 2, 3]))
         )
         for name, ind in self.indices.items():
             setattr(self, name, ind)

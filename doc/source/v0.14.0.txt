@@ -346,6 +346,27 @@ Deprecations
 Enhancements
 ~~~~~~~~~~~~
 
+- ``Index`` will attempt to convert list of tuples to ``MultiIndex`` unless
+  it is given the kwarg, ``tupleize_cols=False``.  This has implications for
+  DataFrame (and Series) constructors:
+
+  .. ipython:: python
+
+     tuples = [('a', 'b'), ('c', 'd')]
+     mi = Index(tuples, names=['first', 'second'])
+     mi
+     non_mi = Index(tuples, name='first', tupleize_cols=False)
+     non_mi
+
+      d = {('a', 'a'): {('i', 'i'): 0, ('i', 'j'): 1, ('j', 'i'): 2},
+            ('b', 'a'): {('i', 'i'): 6, ('i', 'j'): 5, ('j', 'i'): 4},
+            ('b', 'c'): {('i', 'i'): 7, ('i', 'j'): 8, ('j', 'i'): 9}}
+      DataFrame(d)
+
+
+      d['z'] = {'y': 123., ('i', 'i'): 111, ('i', 'j'): 111, ('j', 'i'): 111}
+      DataFrame(d)
+
 - ``DataFrame.to_latex`` now takes a longtable keyword, which if True will return a table in a longtable environment. (:issue:`6617`)
 - ``pd.read_clipboard`` will, if 'sep' is unspecified, try to detect data copied from a spreadsheet
   and parse accordingly. (:issue:`6223`)

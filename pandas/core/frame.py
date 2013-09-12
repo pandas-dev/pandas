@@ -316,9 +316,9 @@ class DataFrame(NDFrame):
         else:
             keys = list(data.keys())
             if not isinstance(data, OrderedDict):
-                keys = _try_sort(list(data.keys()))
+                keys = _try_sort(keys)
             columns = data_names = Index(keys)
-            arrays = [data[k] for k in columns]
+            arrays = [data[k] for k in keys]
 
         return _arrays_to_mgr(arrays, data_names, index, columns,
                               dtype=dtype)
@@ -4512,7 +4512,7 @@ def extract_index(data):
     index = None
     if len(data) == 0:
         index = Index([])
-    elif len(data) > 0 and index is None:
+    elif len(data) > 0:
         raw_lengths = []
         indexes = []
 

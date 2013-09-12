@@ -22,9 +22,9 @@ from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _values_from_object,
                                 _possibly_cast_to_datetime, _possibly_castable,
                                 _possibly_convert_platform,
+                                _try_sort,
                                 ABCSparseArray, _maybe_match_name,
                                 _ensure_object, SettingWithCopyError)
-
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                _ensure_index, _handle_legacy_indexes)
 from pandas.core.indexing import (
@@ -180,7 +180,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     if isinstance(data, OrderedDict):
                         index = Index(data)
                     else:
-                        index = Index(sorted(data))
+                        index = Index(_try_sort(data))
                 try:
                     if isinstance(index, DatetimeIndex):
                         # coerce back to datetime objects for lookup

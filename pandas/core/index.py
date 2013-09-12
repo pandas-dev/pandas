@@ -71,6 +71,8 @@ class Index(IndexOpsMixin, FrozenNDArray):
         Make a copy of input ndarray
     name : object
         Name to be stored in the index
+    tupleize_cols : bool
+        When True, attempt to create a MultiIndex if possible
 
     Notes
     -----
@@ -99,7 +101,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
     _engine_type = _index.ObjectEngine
 
     def __new__(cls, data, dtype=None, copy=False, name=None, fastpath=False,
-                **kwargs):
+                tupleize_cols=True, **kwargs):
 
         # no class inference!
         if fastpath:
@@ -139,8 +141,19 @@ class Index(IndexOpsMixin, FrozenNDArray):
 
         elif np.isscalar(data):
             cls._scalar_data_error(data)
-
         else:
+            if tupleize_cols and isinstance(data, list) and data:
+                try:
+                    sorted(data)
+                    has_mixed_types = False
+                except (TypeError, UnicodeDecodeError):
+                    has_mixed_types = True  # python3 only
+                if isinstance(data[0], tuple) and not has_mixed_types:
+                    try:
+                        return MultiIndex.from_tuples(
+                            data, names=name or kwargs.get('names'))
+                    except (TypeError, KeyError):
+                        pass  # python2 - MultiIndex fails on mixed types
             # other iterable of some kind
             subarr = com._asarray_tuplesafe(data, dtype=object)
 
@@ -1755,11 +1768,11 @@ class Index(IndexOpsMixin, FrozenNDArray):
         -------
         new_index : Index
         """
-        index = np.asarray(self)
-        # because numpy is fussy with tuples
-        item_idx = Index([item], dtype=index.dtype)
-        new_index = np.concatenate((index[:loc], item_idx, index[loc:]))
-        return Index(new_index, name=self.name)
+        _self = np.asarray(self)
+        item_idx = Index([item], dtype=self.dtype).values
+        idx = np.concatenate(
+            (_self[:loc], item_idx, _self[loc:]))
+        return Index(idx, name=self.name)
 
     def drop(self, labels):
         """

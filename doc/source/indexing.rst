@@ -1593,17 +1593,35 @@ can think of ``MultiIndex`` an array of tuples where each tuple is unique. A
 ``MultiIndex`` can be created from a list of arrays (using
 ``MultiIndex.from_arrays``), an array of tuples (using
 ``MultiIndex.from_tuples``), or a crossed set of iterables (using
-``MultiIndex.from_product``).
+``MultiIndex.from_product``).  The ``Index`` constructor will attempt to return
+a ``MultiIndex`` when it is passed a list of tuples.  The following examples
+demo different ways to initialize MultiIndexes.
+
 
 .. ipython:: python
 
-   arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
+    arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
              ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
-   tuples = list(zip(*arrays))
-   tuples
-   index = MultiIndex.from_tuples(tuples, names=['first', 'second'])
-   s = Series(randn(8), index=index)
-   s
+    tuples = list(zip(*arrays))
+    tuples
+
+    index = Index(tuples, names=['first', 'second'])
+    type(index)
+
+    multi_index = MultiIndex.from_tuples(tuples, names=['first', 'second'])
+    type(multi_index)
+
+    index.identical(multi_index)
+
+
+    index2 = Index(tuples, names=['first', 'second'],
+                   tupleize_cols=False)
+    type(index2)
+    index2.identical(multi_index)
+
+
+    s = Series(randn(8), index=index)
+    s
 
 When you want every pairing of the elements in two iterables, it can be easier
 to use the ``MultiIndex.from_product`` function:

@@ -633,6 +633,26 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         expected.ix[1] = 1
         assert_series_equal(result, expected)
 
+    def test_constructor_dict_multiindex(self):
+        check = lambda result, expected: tm.assert_series_equal(
+            result, expected, check_dtype=True, check_index_type=True,
+            check_series_type=True)
+        d = {('a', 'a'): 0., ('b', 'a'): 1., ('b', 'c'): 2.}
+        _d = sorted(d.items())
+        ser = Series(d)
+        expected = Series([x[1] for x in _d],
+                          index=MultiIndex.from_tuples([x[0] for x in _d]))
+        check(ser, expected)
+
+        d['z'] = 111.
+        _d.insert(0, ('z', d['z']))
+        ser = Series(d)
+        expected = Series(
+            [x[1] for x in _d],
+            index=Index([x[0] for x in _d], tupleize_cols=False))
+        ser = ser.reindex(index=expected.index)
+        check(ser, expected)
+
     def test_constructor_subclass_dict(self):
         data = tm.TestSubDict((x, 10.0 * x) for x in range(10))
         series = Series(data)
