@@ -8,31 +8,29 @@ from datetime import timedelta
 import numpy as np
 import pandas.tslib as tslib
 from pandas import compat, _np_version_under1p7
-from pandas.core.common import ABCSeries, is_integer, _values_from_object
+from pandas.core.common import (ABCSeries, is_integer,
+                                _values_from_object, is_list_like)
 
-timedelta_search = re.compile(
-    "^(?P<value>-?\d*\.?\d*)(?P<unit>D|s|ms|us|ns)?$")
+repr_timedelta = tslib.repr_timedelta64
+repr_timedelta64 = tslib.repr_timedelta64
+
+_short_search = re.compile(
+    "^\s*(?P<neg>-?)\s*(?P<value>\d*\.?\d*)\s*(?P<unit>d|s|ms|us|ns)?\s*$",re.IGNORECASE)
+_full_search = re.compile(
+    "^\s*(?P<neg>-?)\s*(?P<days>\d+)?\s*(days|d)?,?\s*(?P<time>\d{2}:\d{2}:\d{2})?(?P<frac>\.\d+)?\s*$",re.IGNORECASE)
 
 def _coerce_scalar_to_timedelta_type(r, unit='ns'):
     # kludgy here until we have a timedelta scalar
     # handle the numpy < 1.7 case
 
     if isinstance(r, compat.string_types):
-        m = timedelta_search.search(r)
-        if m:
-            r = float(m.groupdict()['value'])
-            u = m.groupdict().get('unit')
-            if u is not None:
-                unit = u
-        else:
-            raise ValueError("cannot convert timedelta scalar value!")
-
-        r = tslib.cast_from_unit(unit, r)
-        r = timedelta(microseconds=int(r)/1000)
+        converter = _get_string_converter(r, unit=unit)
+        r = converter()
+        r = timedelta(microseconds=r/1000.0)
 
     if is_integer(r):
-        r = tslib.cast_from_unit(unit, r)
-        r = timedelta(microseconds=int(r)/1000)
+        r = tslib.cast_from_unit(r, unit)
+        r = timedelta(microseconds=r/1000.0)
 
     if _np_version_under1p7:
         if not isinstance(r, timedelta):
@@ -48,6 +46,54 @@ def _coerce_scalar_to_timedelta_type(r, unit='ns'):
     elif not isinstance(r, np.timedelta64):
         raise AssertionError("Invalid type for timedelta scalar: %s" % type(r))
     return r.astype('timedelta64[ns]')
+
+def _get_string_converter(r, unit='ns'):
+    """ return a string converter for r to process the timedelta format """
+
+    m = _short_search.search(r)
+    if m:
+        def convert(r=None, unit=unit, m=m):
+            if r is not None:
+                m = _short_search.search(r)
+
+            gd = m.groupdict()
+
+            r = float(gd['value'])
+            u = gd.get('unit')
+            if u is not None:
+                unit = u.lower()
+            if gd['neg']:
+                r *= -1
+            return tslib.cast_from_unit(r, unit)
+        return convert
+
+    m = _full_search.search(r)
+    if m:
+        def convert(r=None, unit=None, m=m):
+            if r is not None:
+                m = _full_search.search(r)
+
+            gd = m.groupdict()
+
+            # convert to seconds
+            value = float(gd['days'] or 0) * 86400
+
+            time = gd['time']
+            if time:
+                (hh,mm,ss) = time.split(':')
+                value += float(hh)*3600 + float(mm)*60 + float(ss)
+
+            frac = gd['frac']
+            if frac:
+                value += float(frac)
+
+            if gd['neg']:
+                value *= -1
+            return tslib.cast_from_unit(value, 's')
+        return convert
+
+    # no converter
+    raise ValueError("cannot create timedelta string converter")
 
 def _possibly_cast_to_timedelta(value, coerce=True):
     """ try to cast to timedelta64, if already a timedeltalike, then make

@@ -665,14 +665,14 @@ cdef convert_to_tsobject(object ts, object tz, object unit):
         if ts == NPY_NAT:
             obj.value = NPY_NAT
         else:
-            ts = ts * cast_from_unit(unit,None)
+            ts = ts * cast_from_unit(None,unit)
             obj.value = ts
             pandas_datetime_to_datetimestruct(ts, PANDAS_FR_ns, &obj.dts)
     elif util.is_float_object(ts):
         if ts != ts or ts == NPY_NAT:
             obj.value = NPY_NAT
         else:
-            ts = cast_from_unit(unit,ts)
+            ts = cast_from_unit(ts,unit)
             obj.value = ts
             pandas_datetime_to_datetimestruct(ts, PANDAS_FR_ns, &obj.dts)
     elif util.is_string_object(ts):
@@ -852,7 +852,7 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
         pandas_datetimestruct dts
         bint utc_convert = bool(utc)
         _TSObject _ts
-        int64_t m = cast_from_unit(unit,None)
+        int64_t m = cast_from_unit(None,unit)
 
     try:
         result = np.empty(n, dtype='M8[ns]')
@@ -892,7 +892,7 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                 if val != val or val == iNaT:
                     iresult[i] = iNaT
                 else:
-                    iresult[i] = cast_from_unit(unit,val)
+                    iresult[i] = cast_from_unit(val,unit)
             else:
                 try:
                     if len(val) == 0:
@@ -1276,10 +1276,10 @@ cdef inline _get_datetime64_nanos(object val):
     else:
         return ival
 
-cpdef inline int64_t cast_from_unit(object unit, object ts) except -1:
+cpdef inline int64_t cast_from_unit(object ts, object unit) except -1:
     """ return a casting of the unit represented to nanoseconds
         round the fractional part of a float to our precision, p """
-    if unit == 'D':
+    if unit == 'D' or unit == 'd':
         m = 1000000000L * 86400
         p = 6
     elif unit == 's':
