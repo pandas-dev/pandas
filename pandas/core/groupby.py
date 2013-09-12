@@ -1164,8 +1164,7 @@ class BaseGrouper(object):
         else:
             to_groupby = lzip(*(ping.grouper for ping in self.groupings))
             to_groupby = Index(to_groupby)
-
-            return self.axis.groupby(to_groupby)
+            return self.axis.groupby(to_groupby.values)
 
     @cache_readonly
     def group_info(self):
