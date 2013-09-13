@@ -113,6 +113,8 @@ Improvements to existing features
     ``io.excel.xls.writer``. (:issue:`4745`, :issue:`4750`)
   - ``Panel.to_excel()`` now accepts keyword arguments that will be passed to
     its ``DataFrame``'s ``to_excel()`` methods. (:issue:`4750`)
+  - allow DataFrame constructor to accept more list-like objects, e.g. list of
+    ``collections.Sequence`` and ``array.Array`` objects (:issue:`3783`,:issue:`42971`)
 
 API Changes
 ~~~~~~~~~~~

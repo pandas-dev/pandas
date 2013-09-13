@@ -2606,6 +2606,57 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(com.is_integer_dtype(df['num']))
         self.assert_(df['str'].dtype == np.object_)
 
+    def test_constructor_sequence_like(self):
+        # GH 3783
+        # collections.Squence like
+        import collections
+
+        class DummyContainer(collections.Sequence):
+            def __init__(self, lst):
+                self._lst = lst
+            def __getitem__(self, n):
+                return self._lst.__getitem__(n)
+            def __len__(self, n):
+                return self._lst.__len__()
+
+        l = [DummyContainer([1, 'a']), DummyContainer([2, 'b'])]
+        columns = ["num", "str"]
+        result = DataFrame(l, columns=columns)
+        expected = DataFrame([[1,'a'],[2,'b']],columns=columns)
+        assert_frame_equal(result, expected, check_dtype=False)
+
+        # GH 4297
+        # support Array
+        import array
+        result = DataFrame.from_items([('A', array.array('i', range(10)))])
+        expected = DataFrame({ 'A' : list(range(10)) })
+        assert_frame_equal(result, expected, check_dtype=False)
+
+        expected = DataFrame([ list(range(10)), list(range(10)) ])
+        result = DataFrame([ array.array('i', range(10)), array.array('i',range(10)) ])
+        assert_frame_equal(result, expected, check_dtype=False)
+
+    def test_constructor_iterator(self):
+
+        expected = DataFrame([ list(range(10)), list(range(10)) ])
+        result = DataFrame([ range(10), range(10) ])
+        assert_frame_equal(result, expected)
+
+    def test_constructor_generator(self):
+        #related #2305
+
+        gen1 = (i for i in range(10))
+        gen2 = (i for i in range(10))
+
+        expected = DataFrame([ list(range(10)), list(range(10)) ])
+        result = DataFrame([ gen1, gen2 ])
+        assert_frame_equal(result, expected)
+
+        gen = ([ i, 'a'] for i in range(10))
+        result = DataFrame(gen)
+        expected = DataFrame({ 0 : range(10), 1 : 'a' })
+        assert_frame_equal(result, expected)
+
     def test_constructor_list_of_dicts(self):
         data = [OrderedDict([['a', 1.5], ['b', 3], ['c', 4], ['d', 6]]),
                 OrderedDict([['a', 1.5], ['b', 3], ['d', 6]]),
