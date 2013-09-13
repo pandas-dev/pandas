@@ -266,6 +266,7 @@ Enhancements
     ``ind``, passed to scipy.stats.gaussian_kde() (for scipy >= 0.11.0) to set
     the bandwidth, and to gkde.evaluate() to specify the indicies at which it
     is evaluated, respecttively. See scipy docs.
+  - DataFrame constructor now accepts a numpy masked record array (:issue:`3478`)
 
 .. _whatsnew_0130.refactoring:
 
