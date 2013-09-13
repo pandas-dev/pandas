@@ -106,6 +106,13 @@ Improvements to existing features
   - Add ``axis`` and ``level`` keywords to ``where``, so that the ``other`` argument
     can now be an alignable pandas object.
   - ``to_datetime`` with a format of '%Y%m%d' now parses much faster
+  - It's now easier to hook new Excel writers into pandas (just subclass
+    ``ExcelWriter`` and register your engine). You can specify an ``engine`` in
+    ``to_excel`` or in ``ExcelWriter``.  You can also specify which writers you
+    want to use by default with config options ``io.excel.xlsx.writer`` and
+    ``io.excel.xls.writer``. (:issue:`4745`, :issue:`4750`)
+  - ``Panel.to_excel()`` now accepts keyword arguments that will be passed to
+    its ``DataFrame``'s ``to_excel()`` methods. (:issue:`4750`)
 
 API Changes
 ~~~~~~~~~~~
@@ -194,6 +201,7 @@ API Changes
   - default for ``tupleize_cols`` is now ``False`` for both ``to_csv`` and ``read_csv``. Fair warning in 0.12 (:issue:`3604`)
   - moved timedeltas support to pandas.tseries.timedeltas.py; add timedeltas string parsing,
     add top-level ``to_timedelta`` function
+  - ``NDFrame`` now is compatible with Python's toplevel ``abs()`` function (:issue:`4821`).
 
 Internal Refactoring
 ~~~~~~~~~~~~~~~~~~~~

@@ -279,3 +279,24 @@ def use_inf_as_null_cb(key):
 with cf.config_prefix('mode'):
     cf.register_option('use_inf_as_null', False, use_inf_as_null_doc,
                        cb=use_inf_as_null_cb)
+
+
+# Set up the io.excel specific configuration.
+writer_engine_doc = """
+: string
+    The default Excel writer engine for '{ext}' files. Available options: '{default}' (the default){others}.
+"""
+
+with cf.config_prefix('io.excel'):
+    # going forward, will be additional writers
+    for ext, options in [('xls', ['xlwt']),
+                         ('xlsm', ['openpyxl']),
+                         ('xlsx', ['openpyxl'])]:
+        default = options.pop(0)
+        if options:
+            options = " " + ", ".join(options)
+        else:
+            options = ""
+        doc = writer_engine_doc.format(ext=ext, default=default,
+                                       others=options)
+        cf.register_option(ext + '.writer', default, doc, validator=str)

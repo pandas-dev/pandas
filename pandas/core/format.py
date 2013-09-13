@@ -1146,15 +1146,8 @@ class ExcelFormatter(object):
             sequence should be given if the DataFrame uses MultiIndex.
     """
 
-    def __init__(self,
-                 df,
-                 na_rep='',
-                 float_format=None,
-                 cols=None,
-                 header=True,
-                 index=True,
-                 index_label=None
-                 ):
+    def __init__(self, df, na_rep='', float_format=None, cols=None,
+                 header=True, index=True, index_label=None):
         self.df = df
         self.rowcounter = 0
         self.na_rep = na_rep
