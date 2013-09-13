@@ -396,6 +396,8 @@ Bug Fixes
   - Fixed bug with reading compressed files in as ``bytes`` rather than ``str``
     in Python 3. Simplifies bytes-producing file-handling in Python 3
     (:issue:`3963`, :issue:`4785`).
+  - Fixed an issue related to ticklocs/ticklabels with log scale bar plots
+    across different versions of matplotlib (:issue:`4789`)
 
 pandas 0.12.0
 -------------
