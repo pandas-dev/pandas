@@ -353,6 +353,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         assert_series_equal(s2, s1.sort_index())
 
+    def test_constructor_iterator(self):
+
+        expected = Series(list(range(10)))
+        result = Series(range(10))
+        assert_series_equal(result, expected)
+
     def test_constructor_generator(self):
         gen = (i for i in range(10))
 

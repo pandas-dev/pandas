@@ -16,6 +16,7 @@ import operator
 import sys
 import collections
 import warnings
+import types
 
 from numpy import nan as NA
 import numpy as np
@@ -24,7 +25,7 @@ import numpy.ma as ma
 from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
                                 _default_index, _maybe_upcast, _is_sequence,
                                 _infer_dtype_from_scalar, _values_from_object,
-                                _coerce_to_dtypes, _DATELIKE_DTYPES)
+                                _coerce_to_dtypes, _DATELIKE_DTYPES, is_list_like)
 from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import (_NDFrameIndexer, _maybe_droplevels,
@@ -413,12 +414,14 @@ class DataFrame(NDFrame):
             else:
                 mgr = self._init_ndarray(data, index, columns, dtype=dtype,
                                          copy=copy)
-        elif isinstance(data, list):
+        elif isinstance(data, (list, types.GeneratorType)):
+            if isinstance(data, types.GeneratorType):
+                data = list(data)
             if len(data) > 0:
                 if index is None and isinstance(data[0], Series):
                     index = _get_names_from_index(data)
 
-                if isinstance(data[0], (list, tuple, collections.Mapping, Series)):
+                if is_list_like(data[0]) and getattr(data[0],'ndim',0) <= 1:
                     arrays, columns = _to_arrays(data, columns, dtype=dtype)
                     columns = _ensure_index(columns)
 
@@ -4545,7 +4548,7 @@ class DataFrame(NDFrame):
 
 
         else:
-            if not com.is_list_like(values):
+            if not is_list_like(values):
                 raise TypeError("only list-like or dict-like objects are"
                                 " allowed to be passed to DataFrame.isin(), "
                                 "you passed a "
@@ -4705,7 +4708,7 @@ def extract_index(data):
             elif isinstance(v, dict):
                 have_dicts = True
                 indexes.append(list(v.keys()))
-            elif isinstance(v, (list, tuple, np.ndarray)):
+            elif is_list_like(v) and getattr(v,'ndim',0) <= 1:
                 have_raw_arrays = True
                 raw_lengths.append(len(v))
 
