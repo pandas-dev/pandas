@@ -472,10 +472,10 @@ class TestMySQL(unittest.TestCase):
         try:
             sys.stdout = StringIO()
 
-            self.assertRaises(MySQLdb.ProgrammingError, sql.tquery,
+            self.assertRaises(DatabaseError, sql.tquery,
                               'insert into blah values (1)', con=self.db)
 
-            self.assertRaises(MySQLdb.ProgrammingError, sql.tquery,
+            self.assertRaises(DatabaseError, sql.tquery,
                               'insert into blah values (1)', con=self.db,
                               retry=True)
         finally:
@@ -486,7 +486,7 @@ class TestMySQL(unittest.TestCase):
         '''
         _skip_if_no_MySQLdb()
         df = DataFrame({'From':np.ones(5)})
-        sql.write_frame(df, con = self.db, name = 'testkeywords',
+        sql.write_frame(df, name='testkeywords', con=self.db,
                         if_exists='replace', flavor='mysql')
 
 if __name__ == '__main__':

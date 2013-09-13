@@ -20,13 +20,13 @@ from pandas.io import sql_legacy
 
 
 
-class SQLAlchemyRequired(Exception):
+class SQLAlchemyRequired(ImportError):
     pass
 
 class LegacyMySQLConnection(Exception):
     pass
 
-class DatabaseError(Exception):
+class DatabaseError(IOError):
     pass
 
 
@@ -78,7 +78,7 @@ def execute(sql, con=None, retry=True, cur=None, params=None, engine=None):
             ex = DatabaseError("Execution failed on sql: %s\n%s\nunable to rollback" % (sql, e))
             raise_with_traceback(ex)
 
-        ex = DatabaseError("Execution failed on sql: %s\nunable to rollback" % sql)
+        ex = DatabaseError("Execution failed on sql: %s" % sql)
         raise_with_traceback(ex)
 
 def _safe_fetch(cur=None):
@@ -397,7 +397,7 @@ def _cur_write_sqlite(frame, table, names, cur):
     insert_query = 'INSERT INTO %s (%s) VALUES (%s)' % (
         table, col_names, wildcards)
     # pandas types are badly handled if there is only 1 column ( Issue #3628 )
-    if not len(frame.columns) == 1:
+    if len(frame.columns) != 1:
         data = [tuple(x) for x in frame.values]
     else:
         data = [tuple(x) for x in frame.values.tolist()]
@@ -409,7 +409,11 @@ def _cur_write_mysql(frame, table, names, cur):
     wildcards = ','.join([r'%s'] * len(names))
     insert_query = "INSERT INTO %s (%s) VALUES (%s)" % (
         table, col_names, wildcards)
-    data = [tuple(x) for x in frame.values]
+    # pandas types are badly handled if there is only 1 column ( Issue #3628 )
+    if len(frame.columns) != 1:
+        data = [tuple(x) for x in frame.values]
+    else:
+        data = [tuple(x) for x in frame.values.tolist()]
     cur.executemany(insert_query, data)
 
 def _engine_write(frame, table_name, engine):
