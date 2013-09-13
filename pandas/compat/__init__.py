@@ -17,6 +17,8 @@ Key items to import for 2/3 compatible code:
     * binary_type: str in Python 2, bythes in Python 3
     * string_types: basestring in Python 2, str in Python 3
 * bind_method: binds functions to classes
+* add_metaclass(metaclass) - class decorator that recreates class with with the
+  given metaclass instead (and avoids intermediary class creation)
 
 Python 2.6 compatibility:
 * OrderedDict
@@ -34,7 +36,6 @@ import sys
 import types
 
 PY3 = (sys.version_info[0] >= 3)
-# import iterator versions of these functions
 
 try:
     import __builtin__ as builtins
@@ -96,6 +97,7 @@ else:
     def bytes_to_str(b, encoding='ascii'):
         return b
 
+    # import iterator versions of these functions
     range = xrange
     zip = itertools.izip
     filter = itertools.ifilter
@@ -195,6 +197,19 @@ try:
 except NameError:
     def callable(obj):
         return any("__call__" in klass.__dict__ for klass in type(obj).__mro__)
+
+
+def add_metaclass(metaclass):
+    """Class decorator for creating a class with a metaclass."""
+    def wrapper(cls):
+        orig_vars = cls.__dict__.copy()
+        orig_vars.pop('__dict__', None)
+        orig_vars.pop('__weakref__', None)
+        for slots_var in orig_vars.get('__slots__', ()):
+            orig_vars.pop(slots_var)
+        return metaclass(cls.__name__, cls.__bases__, orig_vars)
+    return wrapper
+
 
 # ----------------------------------------------------------------------------
 # Python 2.6 compatibility shims

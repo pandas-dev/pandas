@@ -73,7 +73,7 @@ def _get_single_key(pat, silent):
     if len(keys) == 0:
         if not silent:
             _warn_if_deprecated(pat)
-        raise KeyError('No such keys(s)')
+        raise KeyError('No such keys(s): %r' % pat)
     if len(keys) > 1:
         raise KeyError('Pattern matched multiple keys')
     key = keys[0]

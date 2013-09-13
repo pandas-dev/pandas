@@ -4,17 +4,46 @@ Module parse to/from Excel
 
 #----------------------------------------------------------------------
 # ExcelFile class
-
+import os
 import datetime
+import abc
 import numpy as np
 
 from pandas.io.parsers import TextParser
 from pandas.tseries.period import Period
 from pandas import json
-from pandas.compat import map, zip, reduce, range, lrange
+from pandas.compat import map, zip, reduce, range, lrange, u, add_metaclass
+from pandas.core import config
+from pandas.core.common import pprint_thing, PandasError
 import pandas.compat as compat
 from warnings import warn
 
+__all__ = ["read_excel", "ExcelWriter", "ExcelFile"]
+
+_writer_extensions = ["xlsx", "xls", "xlsm"]
+_writers = {}
+
+def register_writer(klass):
+    """Adds engine to the excel writer registry. You must use this method to
+    integrate with ``to_excel``. Also adds config options for any new
+    ``supported_extensions`` defined on the writer."""
+    if not compat.callable(klass):
+        raise ValueError("Can only register callables as engines")
+    engine_name = klass.engine
+    _writers[engine_name] = klass
+    for ext in klass.supported_extensions:
+        if ext.startswith('.'):
+            ext = ext[1:]
+        if ext not in _writer_extensions:
+            config.register_option("io.excel.%s.writer" % ext,
+                                   engine_name, validator=str)
+            _writer_extensions.append(ext)
+
+def get_writer(engine_name):
+    try:
+        return _writers[engine_name]
+    except KeyError:
+        raise ValueError("No Excel writer '%s'" % engine_name)
 
 def read_excel(path_or_buf, sheetname, **kwds):
     """Read an Excel table into a pandas DataFrame
@@ -240,85 +269,6 @@ def _trim_excel_header(row):
     return row
 
 
-class CellStyleConverter(object):
-    """
-    Utility Class which converts a style dict to xlrd or openpyxl style
-    """
-
-    @staticmethod
-    def to_xls(style_dict, num_format_str=None):
-        """
-        converts a style_dict to an xlwt style object
-        Parameters
-        ----------
-        style_dict: style dictionary to convert
-        """
-        import xlwt
-
-        def style_to_xlwt(item, firstlevel=True, field_sep=',', line_sep=';'):
-            """helper wich recursively generate an xlwt easy style string
-            for example:
-
-              hstyle = {"font": {"bold": True},
-              "border": {"top": "thin",
-                        "right": "thin",
-                        "bottom": "thin",
-                        "left": "thin"},
-              "align": {"horiz": "center"}}
-              will be converted to
-              font: bold on; \
-                      border: top thin, right thin, bottom thin, left thin; \
-                      align: horiz center;
-            """
-            if hasattr(item, 'items'):
-                if firstlevel:
-                    it = ["%s: %s" % (key, style_to_xlwt(value, False))
-                          for key, value in item.items()]
-                    out = "%s " % (line_sep).join(it)
-                    return out
-                else:
-                    it = ["%s %s" % (key, style_to_xlwt(value, False))
-                          for key, value in item.items()]
-                    out = "%s " % (field_sep).join(it)
-                    return out
-            else:
-                item = "%s" % item
-                item = item.replace("True", "on")
-                item = item.replace("False", "off")
-                return item
-
-        if style_dict:
-            xlwt_stylestr = style_to_xlwt(style_dict)
-            style = xlwt.easyxf(xlwt_stylestr, field_sep=',', line_sep=';')
-        else:
-            style = xlwt.XFStyle()
-        if num_format_str is not None:
-            style.num_format_str = num_format_str
-
-        return style
-
-    @staticmethod
-    def to_xlsx(style_dict):
-        """
-        converts a style_dict to an openpyxl style object
-        Parameters
-        ----------
-        style_dict: style dictionary to convert
-        """
-
-        from openpyxl.style import Style
-        xls_style = Style()
-        for key, value in style_dict.items():
-            for nk, nv in value.items():
-                if key == "borders":
-                    (xls_style.borders.__getattribute__(nk)
-                     .__setattr__('border_style', nv))
-                else:
-                    xls_style.__getattribute__(key).__setattr__(nk, nv)
-
-        return xls_style
-
-
 def _conv_value(val):
     # convert value for excel dump
     if isinstance(val, np.int64):
@@ -331,41 +281,78 @@ def _conv_value(val):
     return val
 
 
+class ExcelWriterMeta(abc.ABCMeta):
+    """
+    Metaclass that dynamically chooses the ExcelWriter to use.
+
+    If you directly instantiate a subclass, it skips the engine lookup.
+
+    Defining an ExcelWriter implementation (see abstract methods on ExcelWriter for more...).
+
+    - Mandatory (but not checked at run time):
+      - ``write_cells(self, cells, sheet_name=None, startrow=0, startcol=0)``
+        --> called to write additional DataFrames to disk
+      - ``supported_extensions`` (tuple of supported extensions), used to check
+        that engine supports the given extension.
+      - ``engine`` - string that gives the engine name. Necessary to
+        instantiate class directly and bypass ``ExcelWriterMeta`` engine lookup.
+      - ``save(self)`` --> called to save file to disk
+    - Optional:
+      - ``__init__(self, path, **kwargs)`` --> always called with path as first
+        argument.
+
+    You also need to register the class with ``register_writer()``.
+    """
+
+    def __call__(cls, path, **kwargs):
+        engine = kwargs.pop('engine', None)
+        # if it's not an ExcelWriter baseclass, dont' do anything (you've
+        # probably made an explicit choice here)
+        if not isinstance(getattr(cls, 'engine', None), compat.string_types):
+            if engine is None:
+                ext = os.path.splitext(path)[-1][1:]
+                try:
+                    engine = config.get_option('io.excel.%s.writer' % ext)
+                except KeyError:
+                    error = ValueError("No engine for filetype: '%s'" % ext)
+                    raise error
+            cls = get_writer(engine)
+        writer = cls.__new__(cls, path, **kwargs)
+        writer.__init__(path, **kwargs)
+        return writer
+
+
+@add_metaclass(ExcelWriterMeta)
 class ExcelWriter(object):
     """
-    Class for writing DataFrame objects into excel sheets, uses xlwt for xls,
-    openpyxl for xlsx.  See DataFrame.to_excel for typical usage.
+    Class for writing DataFrame objects into excel sheets, default is to use
+    xlwt for xls, openpyxl for xlsx.  See DataFrame.to_excel for typical usage.
 
     Parameters
     ----------
     path : string
-        Path to xls file
+        Path to xls or xlsx file.
+    engine : string (optional)
+        Engine to use for writing. If None, defaults to ``io.excel.<extension>.writer``.
+        NOTE: can only be passed as a keyword argument.
     """
-    def __init__(self, path):
-        self.use_xlsx = True
-        if path.endswith('.xls'):
-            self.use_xlsx = False
-            import xlwt
-            self.book = xlwt.Workbook()
-            self.fm_datetime = xlwt.easyxf(
-                num_format_str='YYYY-MM-DD HH:MM:SS')
-            self.fm_date = xlwt.easyxf(num_format_str='YYYY-MM-DD')
-        else:
-            from openpyxl.workbook import Workbook
-            self.book = Workbook()  # optimized_write=True)
-            # open pyxl 1.6.1 adds a dummy sheet remove it
-            if self.book.worksheets:
-                self.book.remove_sheet(self.book.worksheets[0])
-        self.path = path
-        self.sheets = {}
-        self.cur_sheet = None
+    # declare external properties you can count on
+    book = None
+    curr_sheet = None
+    path = None
 
-    def save(self):
-        """
-        Save workbook to disk
-        """
-        self.book.save(self.path)
 
+    @abc.abstractproperty
+    def supported_extensions(self):
+        "extensions that writer engine supports"
+        pass
+
+    @abc.abstractproperty
+    def engine(self):
+        "name of engine"
+        pass
+
+    @abc.abstractmethod
     def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0):
         """
         Write given formated cells into Excel an excel sheet
@@ -379,19 +366,76 @@ class ExcelWriter(object):
         startrow: upper left cell row to dump data frame
         startcol: upper left cell column to dump data frame
         """
+        pass
+
+    @abc.abstractmethod
+    def save(self):
+        """
+        Save workbook to disk.
+        """
+        pass
+
+    def __init__(self, path, engine=None, **engine_kwargs):
+        # note that subclasses will *never* get anything for engine
+        # included here so that it's visible as part of the public signature.
+
+        # validate that this engine can handle the extnesion
+        ext = os.path.splitext(path)[-1]
+        self.check_extension(ext)
+
+        self.path = path
+        self.sheets = {}
+        self.cur_sheet = None
+
+    def _get_sheet_name(self, sheet_name):
         if sheet_name is None:
             sheet_name = self.cur_sheet
         if sheet_name is None:  # pragma: no cover
             raise ValueError('Must pass explicit sheet_name or set '
                              'cur_sheet property')
-        if self.use_xlsx:
-            self._writecells_xlsx(cells, sheet_name, startrow, startcol)
+        return sheet_name
+
+    @classmethod
+    def check_extension(cls, ext):
+        """checks that path's extension against the Writer's supported
+        extensions.  If it isn't supported, raises UnsupportedFiletypeError."""
+        if ext.startswith('.'):
+            ext = ext[1:]
+        if not any(ext in extension for extension in cls.supported_extensions):
+            msg = (u("Invalid extension for engine '%s': '%s'") %
+                   (pprint_thing(cls.engine), pprint_thing(ext)))
+            raise ValueError(msg)
         else:
-            self._writecells_xls(cells, sheet_name, startrow, startcol)
+            return True
 
-    def _writecells_xlsx(self, cells, sheet_name, startrow, startcol):
 
+class _OpenpyxlWriter(ExcelWriter):
+    engine = 'openpyxl'
+    supported_extensions = ('.xlsx', '.xlsm')
+
+    def __init__(self, path, **engine_kwargs):
+        # Use the openpyxl module as the Excel writer.
+        from openpyxl.workbook import Workbook
+
+        super(_OpenpyxlWriter, self).__init__(path, **engine_kwargs)
+
+        # Create workbook object with default optimized_write=True.
+        self.book = Workbook()
+        # Openpyxl 1.6.1 adds a dummy sheet. We remove it.
+        if self.book.worksheets:
+            self.book.remove_sheet(self.book.worksheets[0])
+
+    def save(self):
+        """
+        Save workbook to disk.
+        """
+        return self.book.save(self.path)
+
+    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0):
+        # Write the frame cells using openpyxl.
         from openpyxl.cell import get_column_letter
+
+        sheet_name = self._get_sheet_name(sheet_name)
 
         if sheet_name in self.sheets:
             wks = self.sheets[sheet_name]
@@ -405,7 +449,7 @@ class ExcelWriter(object):
             xcell = wks.cell("%s%s" % (colletter, startrow + cell.row + 1))
             xcell.value = _conv_value(cell.val)
             if cell.style:
-                style = CellStyleConverter.to_xlsx(cell.style)
+                style = self._convert_to_style(cell.style)
                 for field in style.__fields__:
                     xcell.style.__setattr__(field,
                                             style.__getattribute__(field))
@@ -425,8 +469,55 @@ class ExcelWriter(object):
                                                startrow + cell.row + 1,
                                                cletterend,
                                                startrow + cell.mergestart + 1))
+    @classmethod
+    def _convert_to_style(cls, style_dict):
+        """
+        converts a style_dict to an openpyxl style object
+        Parameters
+        ----------
+        style_dict: style dictionary to convert
+        """
 
-    def _writecells_xls(self, cells, sheet_name, startrow, startcol):
+        from openpyxl.style import Style
+        xls_style = Style()
+        for key, value in style_dict.items():
+            for nk, nv in value.items():
+                if key == "borders":
+                    (xls_style.borders.__getattribute__(nk)
+                     .__setattr__('border_style', nv))
+                else:
+                    xls_style.__getattribute__(key).__setattr__(nk, nv)
+
+        return xls_style
+
+register_writer(_OpenpyxlWriter)
+
+
+class _XlwtWriter(ExcelWriter):
+    engine = 'xlwt'
+    supported_extensions = ('.xls',)
+
+    def __init__(self, path, **engine_kwargs):
+        # Use the xlwt module as the Excel writer.
+        import xlwt
+
+        super(_XlwtWriter, self).__init__(path, **engine_kwargs)
+
+        self.book = xlwt.Workbook()
+        self.fm_datetime = xlwt.easyxf(num_format_str='YYYY-MM-DD HH:MM:SS')
+        self.fm_date = xlwt.easyxf(num_format_str='YYYY-MM-DD')
+
+    def save(self):
+        """
+        Save workbook to disk.
+        """
+        return self.book.save(self.path)
+
+    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0):
+        # Write the frame cells using xlwt.
+
+        sheet_name = self._get_sheet_name(sheet_name)
+
         if sheet_name in self.sheets:
             wks = self.sheets[sheet_name]
         else:
@@ -451,7 +542,7 @@ class ExcelWriter(object):
             if stylekey in style_dict:
                 style = style_dict[stylekey]
             else:
-                style = CellStyleConverter.to_xls(cell.style, num_format_str)
+                style = self._convert_to_style(cell.style, num_format_str)
                 style_dict[stylekey] = style
 
             if cell.mergestart is not None and cell.mergeend is not None:
@@ -464,3 +555,59 @@ class ExcelWriter(object):
                 wks.write(startrow + cell.row,
                           startcol + cell.col,
                           val, style)
+
+    @classmethod
+    def _style_to_xlwt(cls, item, firstlevel=True, field_sep=',', line_sep=';'):
+        """helper which recursively generate an xlwt easy style string
+        for example:
+
+            hstyle = {"font": {"bold": True},
+            "border": {"top": "thin",
+                    "right": "thin",
+                    "bottom": "thin",
+                    "left": "thin"},
+            "align": {"horiz": "center"}}
+            will be converted to
+            font: bold on; \
+                    border: top thin, right thin, bottom thin, left thin; \
+                    align: horiz center;
+        """
+        if hasattr(item, 'items'):
+            if firstlevel:
+                it = ["%s: %s" % (key, cls._style_to_xlwt(value, False))
+                        for key, value in item.items()]
+                out = "%s " % (line_sep).join(it)
+                return out
+            else:
+                it = ["%s %s" % (key, cls._style_to_xlwt(value, False))
+                        for key, value in item.items()]
+                out = "%s " % (field_sep).join(it)
+                return out
+        else:
+            item = "%s" % item
+            item = item.replace("True", "on")
+            item = item.replace("False", "off")
+            return item
+
+    @classmethod
+    def _convert_to_style(cls, style_dict, num_format_str=None):
+        """
+        converts a style_dict to an xlwt style object
+        Parameters
+        ----------
+        style_dict: style dictionary to convert
+        """
+        import xlwt
+
+        if style_dict:
+            xlwt_stylestr = cls._style_to_xlwt(style_dict)
+            style = xlwt.easyxf(xlwt_stylestr, field_sep=',', line_sep=';')
+        else:
+            style = xlwt.XFStyle()
+        if num_format_str is not None:
+            style.num_format_str = num_format_str
+
+        return style
+
+register_writer(_XlwtWriter)
+
