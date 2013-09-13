@@ -2109,7 +2109,7 @@ specified in the format: ``<float>(<unit>)``, where float may be signed (and fra
    dftd['C'] = dftd['A']-dftd['B']
    dftd
    store.append('dftd',dftd,data_columns=True)
-   store.select('dftd',Term("C","<","-3.5D"))
+   store.select('dftd',"C<'-3.5D'")
 
 Indexing
 ~~~~~~~~

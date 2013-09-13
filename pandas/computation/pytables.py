@@ -14,7 +14,7 @@ from pandas.computation import expr, ops
 from pandas.computation.ops import is_term
 from pandas.computation.expr import BaseExprVisitor
 from pandas.computation.common import _ensure_decoded
-
+from pandas.tseries.timedeltas import _coerce_scalar_to_timedelta_type
 
 class Scope(expr.Scope):
     __slots__ = 'globals', 'locals', 'queryables'
@@ -78,6 +78,9 @@ class BinOp(ops.BinOp):
         self.encoding = encoding
         self.filter = None
         self.condition = None
+
+    def _disallow_scalar_only_bool_ops(self):
+        pass
 
     def prune(self, klass):
 
@@ -177,6 +180,9 @@ class BinOp(ops.BinOp):
         elif isinstance(v, datetime) or hasattr(v, 'timetuple') or kind == u('date'):
             v = time.mktime(v.timetuple())
             return TermValue(v, pd.Timestamp(v), kind)
+        elif kind == u('timedelta64') or kind == u('timedelta'):
+            v = _coerce_scalar_to_timedelta_type(v,unit='s').item()
+            return TermValue(int(v), v, kind)
         elif kind == u('integer'):
             v = int(float(v))
             return TermValue(v, v, kind)

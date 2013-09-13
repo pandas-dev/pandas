@@ -1864,16 +1864,16 @@ class TestHDFStore(unittest.TestCase):
             result = store.select('df',Term("C","<",-3*86400))
             assert_frame_equal(result,df.iloc[3:])
 
-            result = store.select('df',Term("C","<",'-3D'))
+            result = store.select('df',"C<'-3D'")
             assert_frame_equal(result,df.iloc[3:])
 
             # a bit hacky here as we don't really deal with the NaT properly
 
-            result = store.select('df',Term("C","<",'-500000s'))
+            result = store.select('df',"C<'-500000s'")
             result = result.dropna(subset=['C'])
             assert_frame_equal(result,df.iloc[6:])
 
-            result = store.select('df',Term("C","<",'-3.5D'))
+            result = store.select('df',"C<'-3.5D'")
             result = result.iloc[1:]
             assert_frame_equal(result,df.iloc[4:])
 
@@ -2039,14 +2039,6 @@ class TestHDFStore(unittest.TestCase):
             self.assertRaises(ValueError, store.select, 'wp', "minor=['A', 'B']")
             self.assertRaises(ValueError, store.select, 'wp', ["index=['20121114']"])
             self.assertRaises(ValueError, store.select, 'wp', ["index=['20121114', '20121114']"])
-
-            # deprecations
-            with tm.assert_produces_warning(expected_warning=DeprecationWarning):
-                Term('index','==')
-
-            with tm.assert_produces_warning(expected_warning=DeprecationWarning):
-                Term('index', '>', 5)
-
             self.assertRaises(TypeError, Term)
 
             # more invalid
@@ -2086,11 +2078,10 @@ class TestHDFStore(unittest.TestCase):
             assert_panel_equal(result, expected)
 
             # with deprecation
-            with tm.assert_produces_warning(expected_warning=DeprecationWarning):
-                result = store.select('wp', [Term(
-                    'major_axis','<',"20000108"), Term("minor_axis=['A', 'B']")])
-                expected = wp.truncate(after='20000108').reindex(minor=['A', 'B'])
-                tm.assert_panel_equal(result, expected)
+            result = store.select('wp', [Term(
+                'major_axis','<',"20000108"), Term("minor_axis=['A', 'B']")])
+            expected = wp.truncate(after='20000108').reindex(minor=['A', 'B'])
+            tm.assert_panel_equal(result, expected)
 
             # p4d
             result = store.select('p4d', [Term('major_axis<"20000108"'),
@@ -2147,11 +2138,10 @@ class TestHDFStore(unittest.TestCase):
                        minor_axis=['A', 'B', 'C', 'D'])
             store.append('wp',wp)
 
-            with tm.assert_produces_warning(expected_warning=DeprecationWarning):
-                result = store.select('wp', [Term('major_axis>20000102'),
-                                                Term('minor_axis', '=', ['A','B']) ])
-                expected = wp.loc[:,wp.major_axis>Timestamp('20000102'),['A','B']]
-                assert_panel_equal(result, expected)
+            result = store.select('wp', [Term('major_axis>20000102'),
+                                         Term('minor_axis', '=', ['A','B']) ])
+            expected = wp.loc[:,wp.major_axis>Timestamp('20000102'),['A','B']]
+            assert_panel_equal(result, expected)
 
             store.remove('wp', Term('major_axis>20000103'))
             result = store.select('wp')

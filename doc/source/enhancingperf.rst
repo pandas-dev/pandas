@@ -526,7 +526,13 @@ different engines.
 .. image:: _static/eval-perf.png
 
 
-Note that operations with smallish objects (around 15,000 rows) are faster
-using plain Python:
+.. note::
 
-.. image:: _static/eval-perf-intersect.png
+   Operations with smallish objects (around 15k-20k rows) are faster using
+   plain Python:
+
+       .. image:: _static/eval-perf-small.png
+
+
+This plot was created using a ``DataFrame`` with 3 columns each containing
+floating point values generated using ``numpy.random.randn()``.

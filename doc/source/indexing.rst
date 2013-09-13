@@ -1190,12 +1190,12 @@ The ``in`` and ``not in`` operators
    df['a in b']
 
    # How you'd do it in pure Python
-   df[df.b.isin(df.a)]
+   df[df.a.isin(df.b)]
 
    df['a not in b']
 
    # pure Python
-   df[~df.b.isin(df.a)]
+   df[~df.a.isin(df.b)]
 
 
 You can, of course, combine this with other expressions for very succinct
@@ -1287,6 +1287,25 @@ Of course, expressions can be arbitrarily complex too
    d = old_d
    del old_d
 
+
+Perfomance of ``DataFrame.query()``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``DataFrame.query()`` using ``numexpr`` is slightly faster than Python for
+large frames
+
+.. image:: _static/query-perf.png
+
+.. note::
+
+   You will only see the performance benefits of using the ``numexpr`` engine
+   with ``DataFrame.query()`` if your frame has more than approximately 50,000
+   rows
+
+      .. image:: _static/query-perf-small.png
+
+This plot was created using a ``DataFrame`` with 3 columns each containing
+floating point values generated using ``numpy.random.randn()``.
 
 .. _indexing.class:
 
