@@ -704,6 +704,16 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         result = s[lrange(5)]
         assert_series_equal(result, s)
 
+    def test_loc(self):
+        # Regression from GH4825
+        ser = Series([0.1, 0.2], index=[1, 2])
+        result = ser.loc[[2, 3, 2]]
+        expected = Series([0.2, np.nan, 0.2], index=[2, 3, 2])
+        assert_series_equal(result, expected)
+        result = ser.loc[[2, 2, 3]]
+        expected = Series([0.2, 0.2, np.nan], index=[2, 2, 3])
+        assert_series_equal(result, expected)
+
     def test_getitem_setitem_slice_bug(self):
         s = Series(lrange(10), lrange(10))
         result = s[-12:]
