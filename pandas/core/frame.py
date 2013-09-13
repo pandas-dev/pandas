@@ -16,6 +16,7 @@ import operator
 import sys
 import collections
 import warnings
+import types
 
 from numpy import nan as NA
 import numpy as np
@@ -413,7 +414,9 @@ class DataFrame(NDFrame):
             else:
                 mgr = self._init_ndarray(data, index, columns, dtype=dtype,
                                          copy=copy)
-        elif isinstance(data, list):
+        elif isinstance(data, (list, types.GeneratorType)):
+            if isinstance(data, types.GeneratorType):
+                data = list(data)
             if len(data) > 0:
                 if index is None and isinstance(data[0], Series):
                     index = _get_names_from_index(data)
