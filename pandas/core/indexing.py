@@ -701,6 +701,11 @@ class _NDFrameIndexer(object):
                     new_labels[cur_indexer]     = cur_labels
                     new_labels[missing_indexer] = missing_labels
 
+                    # reindex with the specified axis
+                    ndim = self.obj.ndim
+                    if axis+1 > ndim:
+                        raise AssertionError("invalid indexing error with non-unique index")
+
                     # a unique indexer
                     if keyarr_is_unique:
                         new_indexer = (Index(cur_indexer) + Index(missing_indexer)).values
@@ -708,12 +713,15 @@ class _NDFrameIndexer(object):
 
                     # we have a non_unique selector, need to use the original indexer here
                     else:
-                        new_indexer = indexer
 
-                    # reindex with the specified axis
-                    ndim = self.obj.ndim
-                    if axis+1 > ndim:
-                        raise AssertionError("invalid indexing error with non-unique index")
+                        # need to retake to have the same size as the indexer
+                        rindexer = indexer.values
+                        rindexer[~check] = 0
+                        result = self.obj.take(rindexer, axis=axis, convert=False)
+
+                        # reset the new indexer to account for the new size
+                        new_indexer = np.arange(len(result))
+                        new_indexer[~check] = -1
 
                     result = result._reindex_with_indexers({ axis : [ new_labels, new_indexer ] }, copy=True, allow_dups=True)
 

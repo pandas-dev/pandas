@@ -411,6 +411,7 @@ Bug Fixes
   - Fixed an issue related to ticklocs/ticklabels with log scale bar plots
     across different versions of matplotlib (:issue:`4789`)
   - Suppressed DeprecationWarning associated with internal calls issued by repr() (:issue:`4391`)
+  - Fixed an issue with a duplicate index and duplicate selector with ``.loc`` (:issue:`4825`)
 
 pandas 0.12.0
 -------------
