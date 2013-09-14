@@ -114,8 +114,10 @@ Improvements to existing features
   - ``Panel.to_excel()`` now accepts keyword arguments that will be passed to
     its ``DataFrame``'s ``to_excel()`` methods. (:issue:`4750`)
   - allow DataFrame constructor to accept more list-like objects, e.g. list of
-    ``collections.Sequence`` and ``array.Array`` objects (:issue:`3783`,:issue:`42971`)
-  - DataFrame constructor now accepts a numpy masked record array (:issue:`3478`)
+    ``collections.Sequence`` and ``array.Array`` objects (:issue:`3783`,:issue:`42971`),
+    thanks @lgautier
+  - DataFrame constructor now accepts a numpy masked record array (:issue:`3478`),
+    thanks @jnothman
 
 API Changes
 ~~~~~~~~~~~
@@ -168,6 +170,8 @@ API Changes
       with data_columns on the same axis
     - ``select_as_coordinates`` will now return an ``Int64Index`` of the resultant selection set
     - support ``timedelta64[ns]`` as a serialization type (:issue:`3577`)
+    - store `datetime.date` objects as ordinals rather then timetuples to avoid timezone issues (:issue:`2852`),
+      thanks @tavistmorph and @numpand
   - ``JSON``
 
     - added ``date_unit`` parameter to specify resolution of timestamps. Options

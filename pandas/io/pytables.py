@@ -1740,8 +1740,12 @@ class DataCol(IndexCol):
             elif dtype == u('timedelta64'):
                 self.data = np.asarray(self.data, dtype='m8[ns]')
             elif dtype == u('date'):
-                self.data = np.array(
-                    [date.fromtimestamp(v) for v in self.data], dtype=object)
+                try:
+                    self.data = np.array(
+                        [date.fromordinal(v) for v in data], dtype=object)
+                except (ValueError):
+                    self.data = np.array(
+                        [date.fromtimestamp(v) for v in self.data], dtype=object)
             elif dtype == u('datetime'):
                 self.data = np.array(
                     [datetime.fromtimestamp(v) for v in self.data],
@@ -3769,7 +3773,7 @@ def _convert_index(index, encoding=None):
         return IndexCol(converted, 'datetime', _tables().Time64Col(),
                         index_name=index_name)
     elif inferred_type == 'date':
-        converted = np.array([time.mktime(v.timetuple()) for v in values],
+        converted = np.array([v.toordinal() for v in values],
                              dtype=np.int32)
         return IndexCol(converted, 'date', _tables().Time32Col(),
                         index_name=index_name)
@@ -3809,7 +3813,12 @@ def _unconvert_index(data, kind, encoding=None):
         index = np.array([datetime.fromtimestamp(v) for v in data],
                          dtype=object)
     elif kind == u('date'):
-        index = np.array([date.fromtimestamp(v) for v in data], dtype=object)
+        try:
+            index = np.array(
+                [date.fromordinal(v) for v in data], dtype=object)
+        except (ValueError):
+            index = np.array(
+                [date.fromtimestamp(v) for v in self.data], dtype=object)
     elif kind in (u('integer'), u('float')):
         index = np.array(data)
     elif kind in (u('string')):
@@ -4096,10 +4105,12 @@ class Term(StringMixin):
         elif kind == u('timedelta64') or kind == u('timedelta'):
             v = _coerce_scalar_to_timedelta_type(v,unit='s').item()
             return TermValue(int(v), v, kind)
-        elif (isinstance(v, datetime) or hasattr(v, 'timetuple')
-              or kind == u('date')):
+        elif (isinstance(v, datetime) or hasattr(v, 'timetuple')):
             v = time.mktime(v.timetuple())
             return TermValue(v, Timestamp(v), kind)
+        elif kind == u('date'):
+            v = v.toordinal()
+            return TermValue(v, Timestamp.fromordinal(v), kind)
         elif kind == u('integer'):
             v = int(float(v))
             return TermValue(v, v, kind)
