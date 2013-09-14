@@ -85,7 +85,12 @@ def skip_incompatible_operand(f):
         if _series_and_2d_ndarray(lhs, rhs):
             self.assertRaises(Exception, pd.eval, 'lhs {0} rhs'.format(arith1),
                               local_dict={'lhs': lhs, 'rhs': rhs},
-                              engine=self.engine)
+                              engine=self.engine, parser=self.parser)
+        elif (np.isscalar(lhs) and np.isscalar(rhs) and arith1 in
+                _bool_ops_syms):
+            with tm.assertRaises(NotImplementedError):
+                pd.eval('lhs {0} rhs'.format(arith1), engine=self.engine,
+                        parser=self.parser)
         else:
             f(self, lhs, arith1, rhs, *args, **kwargs)
     return wrapper
@@ -215,6 +220,17 @@ class TestEvalNumexprPandas(unittest.TestCase):
             self.assertRaises(TypeError, pd.eval, ex,
                               local_dict={'lhs': lhs, 'rhs': rhs},
                               engine=self.engine, parser=self.parser)
+        elif _bool_and_frame(lhs, rhs):
+            self.assertRaises(TypeError, _eval_single_bin, lhs_new, '&',
+                              rhs_new, self.engine)
+            self.assertRaises(TypeError, pd.eval, ex,
+                              local_dict={'lhs': lhs, 'rhs': rhs},
+                              engine=self.engine, parser=self.parser)
+        elif (np.isscalar(lhs) and np.isnan(lhs) and
+                not np.isscalar(rhs) and (cmp1 in skip_these or cmp2 in
+                    skip_these)):
+            with tm.assertRaises(TypeError):
+                _eval_single_bin(lhs, binop, rhs, self.engine)
         else:
             lhs_new = _eval_single_bin(lhs, cmp1, rhs, self.engine)
             rhs_new = _eval_single_bin(lhs, cmp2, rhs, self.engine)
@@ -231,7 +247,16 @@ class TestEvalNumexprPandas(unittest.TestCase):
                 #except AssertionError:
                     #import ipdb; ipdb.set_trace()
                     #raise
-
+            elif (np.isscalar(lhs_new) and np.isnan(lhs_new) and
+                    not np.isscalar(rhs_new) and binop in skip_these):
+                with tm.assertRaises(TypeError):
+                    _eval_single_bin(lhs_new, binop, rhs_new, self.engine)
+            elif _bool_and_frame(lhs_new, rhs_new):
+                with tm.assertRaises(TypeError):
+                    _eval_single_bin(lhs_new, binop, rhs_new, self.engine)
+                with tm.assertRaises(TypeError):
+                    pd.eval('lhs_new & rhs_new'.format(binop),
+                            engine=self.engine, parser=self.parser)
             else:
                 expected = _eval_single_bin(lhs_new, binop, rhs_new, self.engine)
                 result = pd.eval(ex, engine=self.engine, parser=self.parser)
@@ -242,6 +267,21 @@ class TestEvalNumexprPandas(unittest.TestCase):
         skip_these = 'in', 'not in'
 
         def check_operands(left, right, cmp_op):
+            if (np.isscalar(left) and np.isnan(left) and not np.isscalar(right)
+                    and cmp_op in skip_these):
+                ex = 'left {0} right'.format(cmp_op)
+                with tm.assertRaises(ValueError):
+                    pd.eval(ex, engine=self.engine, parser=self.parser)
+                return
+            if (np.isscalar(left) and np.isscalar(right) and
+                    cmp_op in _bool_ops_syms):
+                ex1 = 'lhs {0} mid {1} rhs'.format(cmp1, cmp2)
+                ex2 = 'lhs {0} mid and mid {1} rhs'.format(cmp1, cmp2)
+                ex3 = '(lhs {0} mid) & (mid {1} rhs)'.format(cmp1, cmp2)
+                for ex in (ex1, ex2, ex3):
+                    with assertRaises(NotImplementedError):
+                        pd.eval(ex, engine=self.engine, parser=self.parser)
+                return
             if (np.isscalar(right) and not np.isscalar(left) and cmp_op in
                     skip_these):
                 self.assertRaises(Exception, _eval_single_bin, left, cmp_op,
@@ -294,8 +334,8 @@ class TestEvalNumexprPandas(unittest.TestCase):
         ex = 'lhs {0} rhs'.format(cmp1)
         if cmp1 in ('in', 'not in') and not com.is_list_like(rhs):
             self.assertRaises(TypeError, pd.eval, ex, engine=self.engine,
-                              parser=self.parser, local_dict={'lhs': lhs,
-                                                              'rhs': rhs})
+                            parser=self.parser, local_dict={'lhs': lhs,
+                                                            'rhs': rhs})
         else:
             expected = _eval_single_bin(lhs, cmp1, rhs, self.engine)
             result = pd.eval(ex, engine=self.engine, parser=self.parser)
@@ -414,11 +454,19 @@ class TestEvalNumexprPandas(unittest.TestCase):
             self.assertRaises(TypeError, pd.eval, ex, engine=self.engine,
                               parser=self.parser, local_dict={'lhs': lhs,
                                                               'rhs': rhs})
+        elif (np.isscalar(lhs) and np.isnan(lhs) and not np.isscalar(rhs)
+                and cmp1 in skip_these):
+            with tm.assertRaises(ValueError):
+                pd.eval(ex, engine=self.engine, parser=self.parser)
         else:
             # compound
             if np.isscalar(lhs) and np.isscalar(rhs):
                 lhs, rhs = map(lambda x: np.array([x]), (lhs, rhs))
-            expected = ~_eval_single_bin(lhs, cmp1, rhs, self.engine)
+            expected = _eval_single_bin(lhs, cmp1, rhs, self.engine)
+            if np.isscalar(expected):
+                expected = not expected
+            else:
+                expected = ~expected
             result = pd.eval(ex, engine=self.engine, parser=self.parser)
             assert_array_equal(expected, result)
 
@@ -646,6 +694,18 @@ class TestEvalNumexprPandas(unittest.TestCase):
         self.assertEqual(pd.eval('-False', parser=self.parser, engine=self.engine), -False)
         self.assertEqual(pd.eval('+True', parser=self.parser, engine=self.engine), +True)
         self.assertEqual(pd.eval('+False', parser=self.parser, engine=self.engine), +False)
+
+    def test_disallow_scalar_bool_ops(self):
+        exprs = '1 or 2', '1 and 2'
+        exprs += 'a and b', 'a or b'
+        exprs += '1 or 2 and (3 + 2) > 3',
+        exprs += '2 * x > 2 or 1 and 2',
+        exprs += '2 * df > 3 and 1 or a',
+
+        x, a, b, df = np.random.randn(3), 1, 2, DataFrame(randn(3, 2))
+        for ex in exprs:
+            with tm.assertRaises(NotImplementedError):
+                pd.eval(ex, engine=self.engine, parser=self.parser)
 
 
 class TestEvalNumexprPython(TestEvalNumexprPandas):
@@ -999,21 +1059,18 @@ class TestOperationsNumExprPandas(unittest.TestCase):
     def test_simple_bool_ops(self):
         for op, lhs, rhs in product(expr._bool_ops_syms, (True, False),
                                     (True, False)):
-            expec = _eval_single_bin(lhs, op, rhs, self.engine)
-            x = self.eval('lhs {0} rhs'.format(op), local_dict={'lhs': lhs,
-                                                                'rhs': rhs},
-                          engine=self.engine, parser=self.parser)
-            assert_equal(x, expec)
+            ex = '{0} {1} {2}'.format(lhs, op, rhs)
+            res = self.eval(ex)
+            exp = eval(ex)
+            self.assertEqual(res, exp)
 
     def test_bool_ops_with_constants(self):
-        asteval = ast.literal_eval
         for op, lhs, rhs in product(expr._bool_ops_syms, ('True', 'False'),
                                     ('True', 'False')):
-            expec = _eval_single_bin(asteval(lhs), op, asteval(rhs),
-                                     self.engine)
-            x = self.eval('{0} {1} {2}'.format(lhs, op, rhs),
-                          local_dict={'lhs': lhs, 'rhs': rhs})
-            assert_equal(x, expec)
+            ex = '{0} {1} {2}'.format(lhs, op, rhs)
+            res = self.eval(ex)
+            exp = eval(ex)
+            self.assertEqual(res, exp)
 
     def test_panel_fails(self):
         x = Panel(randn(3, 4, 5))
@@ -1142,9 +1199,68 @@ class TestOperationsNumExprPandas(unittest.TestCase):
     def test_date_boolean(self):
         df = DataFrame(randn(5, 3))
         df['dates1'] = date_range('1/1/2012', periods=5)
-        res = self.eval('df.dates1 < 20130101', local_dict={'df': df})
+        res = self.eval('df.dates1 < 20130101', local_dict={'df': df},
+                        engine=self.engine, parser=self.parser)
         expec = df.dates1 < '20130101'
         assert_series_equal(res, expec)
+
+    def test_simple_in_ops(self):
+        if self.parser != 'python':
+            res = pd.eval('1 in [1, 2]', engine=self.engine,
+                          parser=self.parser)
+            self.assertTrue(res)
+
+            res = pd.eval('2 in (1, 2)', engine=self.engine,
+                          parser=self.parser)
+            self.assertTrue(res)
+
+            res = pd.eval('3 in (1, 2)', engine=self.engine,
+                          parser=self.parser)
+            self.assertFalse(res)
+
+            res = pd.eval('3 not in (1, 2)', engine=self.engine,
+                          parser=self.parser)
+            self.assertTrue(res)
+
+            res = pd.eval('[3] not in (1, 2)', engine=self.engine,
+                          parser=self.parser)
+            self.assertTrue(res)
+
+            res = pd.eval('[3] in ([3], 2)', engine=self.engine,
+                          parser=self.parser)
+            self.assertTrue(res)
+
+            res = pd.eval('[[3]] in [[[3]], 2]', engine=self.engine,
+                          parser=self.parser)
+            self.assertTrue(res)
+
+            res = pd.eval('(3,) in [(3,), 2]', engine=self.engine,
+                          parser=self.parser)
+            self.assertTrue(res)
+
+            res = pd.eval('(3,) not in [(3,), 2]', engine=self.engine,
+                          parser=self.parser)
+            self.assertFalse(res)
+
+            res = pd.eval('[(3,)] in [[(3,)], 2]', engine=self.engine,
+                          parser=self.parser)
+            self.assertTrue(res)
+        else:
+            with tm.assertRaises(NotImplementedError):
+                pd.eval('1 in [1, 2]', engine=self.engine, parser=self.parser)
+            with tm.assertRaises(NotImplementedError):
+                pd.eval('2 in (1, 2)', engine=self.engine, parser=self.parser)
+            with tm.assertRaises(NotImplementedError):
+                pd.eval('3 in (1, 2)', engine=self.engine, parser=self.parser)
+            with tm.assertRaises(NotImplementedError):
+                pd.eval('3 not in (1, 2)', engine=self.engine,
+                        parser=self.parser)
+            with tm.assertRaises(NotImplementedError):
+                pd.eval('[(3,)] in (1, 2, [(3,)])', engine=self.engine,
+                        parser=self.parser)
+            with tm.assertRaises(NotImplementedError):
+                pd.eval('[3] not in (1, 2, [[3]])', engine=self.engine,
+                        parser=self.parser)
 
 
 class TestOperationsNumExprPython(TestOperationsNumExprPandas):
@@ -1178,47 +1294,39 @@ class TestOperationsNumExprPython(TestOperationsNumExprPandas):
 
     def test_fails_ampersand(self):
         df = DataFrame(np.random.randn(5, 3))
-        self.assertRaises(TypeError, pd.eval,
-                          '(df + 2)[df > 1] > 0 & (df > 0)',
-                          local_dict={'df': df}, parser=self.parser,
-                          engine=self.engine)
+        ex = '(df + 2)[df > 1] > 0 & (df > 0)'
+        with tm.assertRaises(NotImplementedError):
+            pd.eval(ex, parser=self.parser, engine=self.engine)
 
     def test_fails_pipe(self):
         df = DataFrame(np.random.randn(5, 3))
-        self.assertRaises(TypeError, pd.eval,
-                          '(df + 2)[df > 1] > 0 | (df > 0)',
-                          local_dict={'df': df}, parser=self.parser,
-                          engine=self.engine)
+        ex = '(df + 2)[df > 1] > 0 | (df > 0)'
+        with tm.assertRaises(NotImplementedError):
+            pd.eval(ex, parser=self.parser, engine=self.engine)
 
     def test_bool_ops_with_constants(self):
-        from ast import literal_eval as asteval
         for op, lhs, rhs in product(expr._bool_ops_syms, ('True', 'False'),
                                     ('True', 'False')):
-            if op not in ('and', 'or'):
-                expec = _eval_single_bin(asteval(lhs), op, asteval(rhs),
-                                        self.engine)
-                x = self.eval('{0} {1} {2}'.format(lhs, op, rhs),
-                            local_dict={'lhs': lhs, 'rhs': rhs})
-                assert_equal(x, expec)
+            ex = '{0} {1} {2}'.format(lhs, op, rhs)
+            if op in ('and', 'or'):
+                with tm.assertRaises(NotImplementedError):
+                    self.eval(ex)
             else:
-                self.assertRaises(NotImplementedError,
-                                  self.eval,
-                                  '{0} {1} {2}'.format(lhs, op, rhs),
-                                  local_dict={'lhs': lhs, 'rhs': rhs})
+                res = self.eval(ex)
+                exp = eval(ex)
+                self.assertEqual(res, exp)
 
     def test_simple_bool_ops(self):
-        for op, lhs, rhs in product(expr._bool_ops_syms, (True, False), (True,
-                                                                        False)):
-            if op not in ('and', 'or'):
-                expec = _eval_single_bin(lhs, op, rhs, self.engine)
-                x = self.eval('lhs {0} rhs'.format(op), local_dict={'lhs': lhs,
-                                                                    'rhs': rhs})
-                assert_equal(x, expec)
+        for op, lhs, rhs in product(expr._bool_ops_syms, (True, False),
+                                    (True, False)):
+            ex = 'lhs {0} rhs'.format(op)
+            if op in ('and', 'or'):
+                with tm.assertRaises(NotImplementedError):
+                    pd.eval(ex, engine=self.engine, parser=self.parser)
             else:
-                self.assertRaises(NotImplementedError,
-                                  self.eval,
-                                  'lhs {0} rhs'.format(op),
-                                  local_dict={'lhs': lhs, 'rhs': rhs})
+                res = pd.eval(ex, engine=self.engine, parser=self.parser)
+                exp = eval(ex)
+                self.assertEqual(res, exp)
 
 
 class TestOperationsPythonPython(TestOperationsNumExprPython):
@@ -1228,20 +1336,6 @@ class TestOperationsPythonPython(TestOperationsNumExprPython):
         cls.arith_ops = expr._arith_ops_syms + expr._cmp_ops_syms
         cls.arith_ops = filter(lambda x: x not in ('in', 'not in'),
                                cls.arith_ops)
-
-    def test_fails_ampersand(self):
-        df = DataFrame(np.random.randn(5, 3))
-        self.assertRaises(TypeError, pd.eval,
-                          '(df + 2)[df > 1] > 0 & (df > 0)',
-                          local_dict={'df': df}, parser=self.parser,
-                          engine=self.engine)
-
-    def test_fails_pipe(self):
-        df = DataFrame(np.random.randn(5, 3))
-        self.assertRaises(TypeError, pd.eval,
-                          '(df + 2)[df > 1] > 0 | (df > 0)',
-                          local_dict={'df': df}, parser=self.parser,
-                          engine=self.engine)
 
 
 class TestOperationsPythonPandas(TestOperationsNumExprPandas):

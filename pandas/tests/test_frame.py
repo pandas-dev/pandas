@@ -11782,11 +11782,11 @@ class TestDataFrameQueryStrings(object):
                         'd': np.random.randint(9, size=12)})
         if parser == 'pandas':
             res = df.query('a in b', parser=parser, engine=engine)
-            expec = df[df.b.isin(df.a)]
+            expec = df[df.a.isin(df.b)]
             assert_frame_equal(res, expec)
 
             res = df.query('a in b and c < d', parser=parser, engine=engine)
-            expec = df[df.b.isin(df.a) & (df.c < df.d)]
+            expec = df[df.a.isin(df.b) & (df.c < df.d)]
             assert_frame_equal(res, expec)
         else:
             with assertRaises(NotImplementedError):
@@ -11806,11 +11806,11 @@ class TestDataFrameQueryStrings(object):
                         'c': np.random.randint(5, size=12),
                         'd': np.random.randint(9, size=12)})
         res = df['a in b']
-        expec = df[df.b.isin(df.a)]
+        expec = df[df.a.isin(df.b)]
         assert_frame_equal(res, expec)
 
         res = df['a in b and c < d']
-        expec = df[df.b.isin(df.a) & (df.c < df.d)]
+        expec = df[df.a.isin(df.b) & (df.c < df.d)]
         assert_frame_equal(res, expec)
 
     def check_object_array_eq_ne(self, parser, engine):

@@ -193,6 +193,13 @@ class Term(StringMixin):
     def name(self, new_name):
         self._name = new_name
 
+    @property
+    def ndim(self):
+        try:
+            return self._value.ndim
+        except AttributeError:
+            return 0
+
 
 class Constant(Term):
     def __init__(self, value, env, side=None, encoding=None):
@@ -205,6 +212,7 @@ class Constant(Term):
     @property
     def name(self):
         return self.value
+
 
 
 _bool_op_map = {'not': '~', 'and': '&', 'or': '|'}
@@ -236,17 +244,24 @@ class Op(StringMixin):
             return np.bool_
         return np.result_type(*(term.type for term in com.flatten(self)))
 
+    @property
+    def isscalar(self):
+        return all(operand.isscalar for operand in self.operands)
+
 
 def _in(x, y):
     """Compute the vectorized membership of ``x in y`` if possible, otherwise
     use Python.
     """
     try:
-        return y.isin(x)
+        return x.isin(y)
     except AttributeError:
+        if com.is_list_like(x):
+            try:
+                return y.isin(x)
+            except AttributeError:
+                pass
         return x in y
-    except TypeError:
-        return y.isin([x])
 
 
 def _not_in(x, y):
@@ -254,11 +269,14 @@ def _not_in(x, y):
     otherwise use Python.
     """
     try:
-        return ~y.isin(x)
+        return ~x.isin(y)
     except AttributeError:
+        if com.is_list_like(x):
+            try:
+                return ~y.isin(x)
+            except AttributeError:
+                pass
         return x not in y
-    except TypeError:
-        return ~y.isin([x])
 
 
 _cmp_ops_syms = '>', '<', '>=', '<=', '==', '!=', 'in', 'not in'
@@ -322,14 +340,17 @@ class BinOp(Op):
         self.lhs = lhs
         self.rhs = rhs
 
+        self._disallow_scalar_only_bool_ops()
+
         self.convert_values()
 
         try:
             self.func = _binary_ops_dict[op]
         except KeyError:
-            keys = _binary_ops_dict.keys()
+            # has to be made a list for python3
+            keys = list(_binary_ops_dict.keys())
             raise ValueError('Invalid binary operator {0!r}, valid'
-                                      ' operators are {1}'.format(op, keys))
+                             ' operators are {1}'.format(op, keys))
 
     def __call__(self, env):
         """Recursively evaluate an expression in Python space.
@@ -424,6 +445,13 @@ class BinOp(Op):
             if v.tz is not None:
                 v = v.tz_convert('UTC')
             self.lhs.update(v)
+
+    def _disallow_scalar_only_bool_ops(self):
+        if ((self.lhs.isscalar or self.rhs.isscalar) and
+            self.op in _bool_ops_dict and
+            (not (issubclass(self.rhs.return_type, (bool, np.bool_)) and
+                  issubclass(self.lhs.return_type, (bool, np.bool_))))):
+            raise NotImplementedError("cannot evaluate scalar only bool ops")
 
 
 class Div(BinOp):

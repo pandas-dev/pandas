@@ -1014,8 +1014,7 @@ The :meth:`~pandas.DataFrame.query` Method
 .. versionadded:: 0.13
 
 :class:`~pandas.DataFrame` objects have a :meth:`~pandas.DataFrame.query`
-method that allows selection using a string consisting of columns of the
-calling :class:`~pandas.DataFrame`.
+method that allows selection using a boolean expression.
 
 You can get the value of the frame where column ``b`` has values
 between the values of columns ``a`` and ``c``.
@@ -1027,7 +1026,7 @@ between the values of columns ``a`` and ``c``.
 
 .. ipython:: python
 
-   n = 20
+   n = 10
    df = DataFrame(rand(n, 3), columns=list('abc'))
    df
    df[(df.a < df.b) & (df.b < df.c)]
@@ -1038,7 +1037,7 @@ with the name ``a``.
 
 .. ipython:: python
 
-   df = DataFrame(randint(n, size=(n, 2)), columns=list('bc'))
+   df = DataFrame(randint(n / 2, size=(n, 2)), columns=list('bc'))
    df.index.name = 'a'
    df
    df.query('a < b and b < c')
@@ -1075,13 +1074,14 @@ You can also use the levels of a ``DataFrame`` with a
 
    import pandas.util.testing as tm
 
-   colors = tm.choice(['red', 'green'], size=10)
-   foods = tm.choice(['eggs', 'ham'], size=10)
+   n = 10
+   colors = tm.choice(['red', 'green'], size=n)
+   foods = tm.choice(['eggs', 'ham'], size=n)
    colors
    foods
 
    index = MultiIndex.from_arrays([colors, foods], names=['color', 'food'])
-   df = DataFrame(randn(10, 2), index=index)
+   df = DataFrame(randn(n, 2), index=index)
    df
    df.query('color == "red"')
 
@@ -1091,8 +1091,7 @@ special names:
 
 .. ipython:: python
 
-   index.names = [None, None]
-   df = DataFrame(randn(10, 2), index=index)
+   df.index.names = [None, None]
    df
    df.query('ilevel_0 == "red"')
 
@@ -1111,9 +1110,9 @@ having to specify which frame you're interested in querying
 
 .. ipython:: python
 
-   df = DataFrame(randint(n, size=(n, 2)), columns=list('bc'))
+   df = DataFrame(randint(n / 2, size=(n, 2)), columns=list('bc'))
    df.index.name = 'a'
-   df2 = DataFrame(randint(n + 10, size=(n + 10, 3)), columns=list('abc'))
+   df2 = DataFrame(randint(n + 5, size=(n + 5, 3)), columns=list('abc'))
    df2
    expr = 'a < b & b < c'
    map(lambda frame: frame.query(expr), [df, df2])
@@ -1141,7 +1140,7 @@ Full numpy-like syntax
 
 .. ipython:: python
 
-   df = DataFrame(randint(n, size=(n, 3)), columns=list('abc'))
+   df = DataFrame(randint(n / 2, size=(n, 3)), columns=list('abc'))
    df
    df['(a < b) & (b < c)']
    df[(df.a < df.b) & (df.b < df.c)]
@@ -1164,10 +1163,6 @@ Pretty close to how you might write it on paper
 
    df['a < b < c']
 
-As you can see, these are all equivalent ways to express the same operation (in
-fact, they are all ultimately parsed into something very similar to the first
-example of the indexing syntax above).
-
 The ``in`` and ``not in`` operators
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1184,7 +1179,7 @@ The ``in`` and ``not in`` operators
 .. ipython:: python
 
    # get all rows where columns "a" and "b" have overlapping values
-   df = DataFrame({'a': list('aaaabbbbcccc'), 'b': list('aabbccddeeff'),
+   df = DataFrame({'a': list('aabbccddeeff'), 'b': list('aaaabbbbcccc'),
                    'c': randint(5, size=12), 'd': randint(9, size=12)})
    df
    df['a in b']

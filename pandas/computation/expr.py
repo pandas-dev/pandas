@@ -461,10 +461,10 @@ class BaseExprVisitor(ast.NodeVisitor):
                 name = self.env.add_tmp([right.value])
                 right = self.term_type(name, self.env)
 
-            # swap the operands so things like a == [1, 2] are translated to
-            # [1, 2] in a -> a.isin([1, 2])
-            if right_list or right_str:
-                left, right = right, left
+            if left_str:
+                self.env.remove_tmp(left.name)
+                name = self.env.add_tmp([left.value])
+                left = self.term_type(name, self.env)
 
         op = self.visit(op_instance)
         return op, op_instance, left, right
@@ -662,13 +662,14 @@ class BaseExprVisitor(ast.NodeVisitor):
         return reduce(visitor, operands)
 
 
-_python_not_supported = frozenset(['Assign', 'Tuple', 'Dict', 'Call',
-                                   'BoolOp', 'In', 'NotIn'])
+_python_not_supported = frozenset(['Assign', 'Dict', 'Call', 'BoolOp',
+                                   'In', 'NotIn'])
 _numexpr_supported_calls = frozenset(_reductions + _mathops)
 
 
 @disallow((_unsupported_nodes | _python_not_supported) -
-          (_boolop_nodes | frozenset(['BoolOp', 'Attribute', 'In', 'NotIn'])))
+          (_boolop_nodes | frozenset(['BoolOp', 'Attribute', 'In', 'NotIn',
+                                      'Tuple'])))
 class PandasExprVisitor(BaseExprVisitor):
     def __init__(self, env, engine, parser,
                  preparser=lambda x: _replace_locals(_replace_booleans(x))):

@@ -384,6 +384,14 @@ Now let's do the same thing but with comparisons:
 
    %timeit pd.eval('df1 + df2 + df3 + df4 + s')
 
+.. note::
+
+   Operations such as ``1 and 2`` should be performed in Python. An exception
+   will be raised if you try to performed any boolean or bitwise operations
+   with scalar operands that are not of type ``bool`` or ``np.bool_``. *This
+   includes bitwise operations on scalars.* You should perform these kinds of
+   operations in Python.
+
 The ``DataFrame.eval`` method
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -393,7 +401,7 @@ evaluate an expression in the "context" of a ``DataFrame``.
 
 .. ipython:: python
 
-   df = DataFrame(randn(10, 2), columns=['a', 'b'])
+   df = DataFrame(randn(5, 2), columns=['a', 'b'])
    df.eval('a + b')
 
 
@@ -410,7 +418,7 @@ You can refer to local variables the same way you would in vanilla Python
 
 .. ipython:: python
 
-   df = DataFrame(randn(10, 2), columns=['a', 'b'])
+   df = DataFrame(randn(5, 2), columns=['a', 'b'])
    newcol = randn(len(df))
    df.eval('b + newcol')
 
@@ -419,15 +427,21 @@ You can refer to local variables the same way you would in vanilla Python
    The one exception is when you have a local (or global) with the same name as
    a column in the ``DataFrame``
 
-    .. ipython:: python
-       :okexcept:
+    .. code-block:: python
 
-       df = DataFrame(randn(10, 2), columns=['a', 'b'])
+       df = DataFrame(randn(5, 2), columns=['a', 'b'])
        a = randn(len(df))
        df.eval('a + b')
+       NameResolutionError: resolvers and locals overlap on names ['a']
+
 
    To deal with these conflicts, a special syntax exists for referring
    variables with the same name as a column
+
+    .. ipython:: python
+       :suppress:
+
+       a = randn(len(df))
 
     .. ipython:: python
 
