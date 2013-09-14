@@ -115,6 +115,7 @@ Improvements to existing features
     its ``DataFrame``'s ``to_excel()`` methods. (:issue:`4750`)
   - allow DataFrame constructor to accept more list-like objects, e.g. list of
     ``collections.Sequence`` and ``array.Array`` objects (:issue:`3783`,:issue:`42971`)
+  - DataFrame constructor now accepts a numpy masked record array (:issue:`3478`)
 
 API Changes
 ~~~~~~~~~~~

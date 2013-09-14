@@ -394,14 +394,22 @@ class DataFrame(NDFrame):
         elif isinstance(data, dict):
             mgr = self._init_dict(data, index, columns, dtype=dtype)
         elif isinstance(data, ma.MaskedArray):
-            mask = ma.getmaskarray(data)
-            if mask.any():
-                data, fill_value = _maybe_upcast(data, copy=True)
-                data[mask] = fill_value
+
+            # masked recarray
+            if isinstance(data, ma.mrecords.MaskedRecords):
+                mgr = _masked_rec_array_to_mgr(data, index, columns, dtype, copy)
+
+            # a masked array
             else:
-                data = data.copy()
-            mgr = self._init_ndarray(data, index, columns, dtype=dtype,
-                                     copy=copy)
+                mask = ma.getmaskarray(data)
+                if mask.any():
+                    data, fill_value = _maybe_upcast(data, copy=True)
+                    data[mask] = fill_value
+                else:
+                    data = data.copy()
+                mgr = self._init_ndarray(data, index, columns, dtype=dtype,
+                                         copy=copy)
+
         elif isinstance(data, (np.ndarray, Series)):
             if data.dtype.names:
                 data_columns = list(data.dtype.names)
@@ -1009,13 +1017,7 @@ class DataFrame(NDFrame):
                         arr_columns.append(k)
                         arrays.append(v)
 
-                # reorder according to the columns
-                if len(columns) and len(arr_columns):
-                    indexer = _ensure_index(
-                        arr_columns).get_indexer(columns)
-                    arr_columns = _ensure_index(
-                        [arr_columns[i] for i in indexer])
-                    arrays = [arrays[i] for i in indexer]
+                arrays, arr_columns = _reorder_arrays(arrays, arr_columns, columns)
 
         elif isinstance(data, (np.ndarray, DataFrame)):
             arrays, columns = _to_arrays(data, columns)
@@ -4816,6 +4818,52 @@ def _to_arrays(data, columns, coerce_float=False, dtype=None):
                                coerce_float=coerce_float,
                                dtype=dtype)
 
+
+def _masked_rec_array_to_mgr(data, index, columns, dtype, copy):
+    """ extract from a masked rec array and create the manager """
+
+    # essentially process a record array then fill it
+    fill_value = data.fill_value
+    fdata = ma.getdata(data)
+    if index is None:
+        index = _get_names_from_index(fdata)
+        if index is None:
+            index = _default_index(len(data))
+    index = _ensure_index(index)
+
+    if columns is not None:
+        columns = _ensure_index(columns)
+    arrays, arr_columns = _to_arrays(fdata, columns)
+
+    # fill if needed
+    new_arrays = []
+    for fv, arr, col in zip(fill_value, arrays, arr_columns):
+        mask = ma.getmaskarray(data[col])
+        if mask.any():
+            arr, fv = _maybe_upcast(arr, fill_value=fv, copy=True)
+            arr[mask] = fv
+        new_arrays.append(arr)
+
+    # create the manager
+    arrays, arr_columns = _reorder_arrays(new_arrays, arr_columns, columns)
+    if columns is None:
+        columns = arr_columns
+
+    mgr = _arrays_to_mgr(arrays, arr_columns, index, columns)
+
+    if copy:
+        mgr = mgr.copy()
+    return mgr
+
+def _reorder_arrays(arrays, arr_columns, columns):
+    # reorder according to the columns
+    if columns is not None and len(columns) and arr_columns is not None and len(arr_columns):
+        indexer = _ensure_index(
+            arr_columns).get_indexer(columns)
+        arr_columns = _ensure_index(
+            [arr_columns[i] for i in indexer])
+        arrays = [arrays[i] for i in indexer]
+    return arrays, arr_columns
 
 def _list_to_arrays(data, columns, coerce_float=False, dtype=None):
     if len(data) > 0 and isinstance(data[0], tuple):
