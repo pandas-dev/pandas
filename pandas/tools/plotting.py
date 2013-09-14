@@ -4,6 +4,7 @@ import datetime
 import warnings
 import re
 from contextlib import contextmanager
+from distutils.version import LooseVersion
 
 import numpy as np
 
@@ -1452,7 +1453,13 @@ class BarPlot(MPLPlot):
 
     def _make_plot(self):
         import matplotlib as mpl
+
+        # mpl decided to make their version string unicode across all Python
+        # versions for mpl >= 1.3 so we have to call str here for python 2
+        mpl_le_1_2_1 = str(mpl.__version__) <= LooseVersion('1.2.1')
+
         colors = self._get_colors()
+        ncolors = len(colors)
         rects = []
         labels = []
 
@@ -1466,19 +1473,18 @@ class BarPlot(MPLPlot):
             ax = self._get_ax(i)
             label = com.pprint_thing(label)
             kwds = self.kwds.copy()
-            kwds['color'] = colors[i % len(colors)]
+            kwds['color'] = colors[i % ncolors]
 
-            start =0
+            start = 0
             if self.log:
                 start = 1
                 if any(y < 1):
                     # GH3254
-                    start = 0 if mpl.__version__ == "1.2.1" else None
+                    start = 0 if mpl_le_1_2_1 else None
 
             if self.subplots:
                 rect = bar_f(ax, self.ax_pos, y,  self.bar_width,
-                             start = start,
-                             **kwds)
+                             start=start, **kwds)
                 ax.set_title(label)
             elif self.stacked:
                 mask = y > 0
@@ -1489,8 +1495,7 @@ class BarPlot(MPLPlot):
                 neg_prior = neg_prior + np.where(mask, 0, y)
             else:
                 rect = bar_f(ax, self.ax_pos + i * 0.75 / K, y, 0.75 / K,
-                             start = start,
-                              label=label, **kwds)
+                             start=start, label=label, **kwds)
             rects.append(rect)
             if self.mark_right:
                 labels.append(self._get_marked_label(label, i))
