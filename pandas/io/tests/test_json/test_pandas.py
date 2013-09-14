@@ -252,8 +252,8 @@ class TestPandasContainer(unittest.TestCase):
         json = StringIO('{"badkey":["A","B"],'
                         '"index":["2","3"],'
                         '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}')
-        self.assertRaises(TypeError, read_json, json,
-                          orient="split")
+        with tm.assertRaisesRegexp(ValueError, r"unexpected key\(s\): badkey"):
+            read_json(json, orient="split")
 
     def test_frame_from_json_nones(self):
         df = DataFrame([[1, 2], [4, 5, 6]])
