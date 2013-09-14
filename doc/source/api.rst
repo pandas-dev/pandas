@@ -154,6 +154,13 @@ Top-level dealing with datetimes
 
    to_datetime
 
+.. currentmodule:: pandas    
+
+.. autosummary::
+   :toctree: generated/
+
+   datetime
+
 
 Standard moving window functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
