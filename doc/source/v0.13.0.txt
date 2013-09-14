@@ -103,6 +103,8 @@ API changes
     - add the keyword ``dropna=True`` to ``append`` to change whether ALL nan rows are not written
       to the store (default is ``True``, ALL nan rows are NOT written), also settable
       via the option ``io.hdf.dropna_table`` (:issue:`4625`)
+    - store `datetime.date` objects as ordinals rather then timetuples to avoid timezone issues (:issue:`2852`),
+      thanks @tavistmorph and @numpand
 
   - Changes to how ``Index`` and ``MultiIndex`` handle metadata (``levels``,
     ``labels``, and ``names``) (:issue:`4039`):

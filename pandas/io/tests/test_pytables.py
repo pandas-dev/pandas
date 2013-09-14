@@ -1799,6 +1799,47 @@ class TestHDFStore(unittest.TestCase):
             result = store.select('df')
             assert_frame_equal(result,df)
 
+    def test_store_timezone(self):
+        # GH2852
+        # issue storing datetime.date with a timezone as it resets when read back in a new timezone
+
+        import platform
+        if platform.system() == "Windows":
+            raise nose.SkipTest("timezone setting not supported on windows")
+
+        import datetime
+        import time
+        import os
+
+        orig_tz = os.environ.get('TZ')
+
+        def setTZ(tz):
+            if tz is None:
+                try:
+                    del os.environ['TZ']
+                except:
+                    pass
+            else:
+                os.environ['TZ']=tz
+                time.tzset()
+
+        try:
+
+            with ensure_clean(self.path) as store:
+
+                setTZ('EST5EDT')
+                today = datetime.date(2013,9,10)
+                df = DataFrame([1,2,3], index = [today, today, today])
+                store['obj1'] = df
+
+                setTZ('CST6CDT')
+                result = store['obj1']
+
+                assert_frame_equal(result, df)
+
+        finally:
+            setTZ(orig_tz)
+
     def test_append_with_timedelta(self):
         if _np_version_under1p7:
             raise nose.SkipTest("requires numpy >= 1.7")
