@@ -28,6 +28,9 @@ try:
 except AttributeError:
     pass
 
+# I'm sure there's a better way to do this
+cdef int64_t MAX_INT = np.iinfo(np.int64).max
+
 def infer_dtype(object _values):
     cdef:
         Py_ssize_t i, n
@@ -437,6 +440,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         ndarray[int64_t] ints
         ndarray[uint8_t] bools
         ndarray[int64_t] idatetimes
+        ndarray[uint64_t] uints
         bint seen_float = 0
         bint seen_complex = 0
         bint seen_datetime = 0
@@ -445,6 +449,8 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         bint seen_object = 0
         bint seen_null = 0
         bint seen_numeric = 0
+        bint seen_uint = 0
+        bint seen_negative = 0
         object val, onan
         float64_t fval, fnan
 
@@ -456,6 +462,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
     bools = np.empty(n, dtype=np.uint8)
     datetimes = np.empty(n, dtype='M8[ns]')
     idatetimes = datetimes.view(np.int64)
+    uints = np.empty(n, dtype='uint64')
 
     onan = np.nan
     fnan = np.nan
@@ -491,8 +498,15 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
                 try:
                     ints[i] = val
                 except OverflowError:
-                    seen_object = 1
-                    break
+                    if val < 0 or seen_negative:
+                        seen_object = 1
+                        break
+                    else:
+                        seen_uint = 1
+                if val < 0:
+                    seen_negative = 1
+                else:
+                    uints[i] = <uint64_t> val
         elif util.is_complex_object(val):
             complexes[i] = val
             seen_complex = 1
@@ -519,8 +533,12 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
     seen_numeric = seen_complex or seen_float or seen_int
 
     if not seen_object:
+        if seen_uint:
+            if not (seen_null or seen_bool or seen_complex or seen_float or
+                    seen_negative):
+                return uints
 
-        if not safe:
+        elif not safe:
             if seen_null:
                 if not seen_bool and not seen_datetime:
                     if seen_complex:

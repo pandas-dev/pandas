@@ -10347,6 +10347,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df = DataFrame({'A' : [2**63] })
         result = df['A']
         expected = Series(np.asarray([2**63], np.object_))
+        # this doesn't work because no block manager for uint
+        #expected = Series(np.asarray([2**63], np.uint64))
         assert_series_equal(result, expected)
 
         df = DataFrame({'A' : [datetime(2005, 1, 1), True] })
