@@ -424,6 +424,10 @@ Bug Fixes
     across different versions of matplotlib (:issue:`4789`)
   - Suppressed DeprecationWarning associated with internal calls issued by repr() (:issue:`4391`)
   - Fixed an issue with a duplicate index and duplicate selector with ``.loc`` (:issue:`4825`)
+  - Fixed an issue with ``DataFrame.sort_index`` where, when sorting by a
+    single column and passing a list for ``ascending``, the argument for
+    ``ascending`` was being interpreted as ``True`` (:issue:`4839`,
+    :issue:`4846`)
 
 pandas 0.12.0
 -------------
