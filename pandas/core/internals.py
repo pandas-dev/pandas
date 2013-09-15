@@ -24,7 +24,6 @@ from pandas.util.decorators import cache_readonly
 from pandas.tslib import Timestamp
 from pandas import compat
 from pandas.compat import range, lrange, lmap, callable, map, zip
-from pandas.util import rwproperty
 
 
 class Block(PandasObject):
@@ -1450,22 +1449,22 @@ class SparseBlock(Block):
     def itemsize(self):
         return self.dtype.itemsize
 
-    @rwproperty.getproperty
+    @property
     def fill_value(self):
         return self.values.fill_value
 
-    @rwproperty.setproperty
+    @fill_value.setter
     def fill_value(self, v):
         # we may need to upcast our fill to match our dtype
         if issubclass(self.dtype.type, np.floating):
             v = float(v)
         self.values.fill_value = v
 
-    @rwproperty.getproperty
+    @property
     def sp_values(self):
         return self.values.sp_values
 
-    @rwproperty.setproperty
+    @sp_values.setter
     def sp_values(self, v):
         # reset the sparse values
         self.values = SparseArray(

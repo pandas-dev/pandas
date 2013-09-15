@@ -37,7 +37,6 @@ from pandas.tseries.timedeltas import _possibly_cast_to_timedelta
 from pandas import compat
 from pandas.util.terminal import get_terminal_size
 from pandas.compat import zip, lzip, u, OrderedDict
-from pandas.util import rwproperty
 
 import pandas.core.array as pa
 
@@ -797,19 +796,19 @@ class Series(generic.NDFrame):
         return key in self.index
 
     # complex
-    @rwproperty.getproperty
+    @property
     def real(self):
         return self.values.real
 
-    @rwproperty.setproperty
+    @real.setter
     def real(self, v):
         self.values.real = v
 
-    @rwproperty.getproperty
+    @property
     def imag(self):
         return self.values.imag
 
-    @rwproperty.setproperty
+    @imag.setter
     def imag(self, v):
         self.values.imag = v
 
