@@ -520,7 +520,7 @@ class SparseSeries(Series):
         if deep:
             new_data = self._data.copy()
 
-        return self._constructor(new_data, index=self.index,
+        return self._constructor(new_data,
                                  sparse_index=self.sp_index,
                                  fill_value=self.fill_value, name=self.name)
 

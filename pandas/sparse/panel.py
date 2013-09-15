@@ -235,19 +235,25 @@ class SparsePanel(Panel):
         self._minor_axis = _ensure_index(com._unpickle_array(minor))
         self._frames = frames
 
-    def copy(self):
+    def copy(self, deep=True):
         """
-        Make a (shallow) copy of the sparse panel
+        Make a copy of the sparse panel
 
         Returns
         -------
         copy : SparsePanel
         """
-        return SparsePanel(self._frames.copy(), items=self.items,
-                           major_axis=self.major_axis,
-                           minor_axis=self.minor_axis,
-                           default_fill_value=self.default_fill_value,
-                           default_kind=self.default_kind)
+
+        d = self._construct_axes_dict()
+        if deep:
+            new_data = dict((k, v.copy(deep=True)) for k, v in compat.iteritems(self._frames))
+            d = dict((k, v.copy(deep=True)) for k, v in compat.iteritems(d))
+        else:
+            new_data = self._frames.copy()
+        d['default_fill_value']=self.default_fill_value
+        d['default_kind']=self.default_kind
+
+        return SparsePanel(new_data, **d)
 
     def to_frame(self, filter_observations=True):
         """
