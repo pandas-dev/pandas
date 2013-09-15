@@ -1,6 +1,7 @@
 python-dateutil==2.1
 pytz==2013b
 openpyxl==1.6.2
+xlsxwriter==0.4.3
 xlrd==0.9.2
 html5lib==1.0b2
 numpy==1.7.1
