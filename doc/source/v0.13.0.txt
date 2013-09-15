@@ -80,7 +80,8 @@ API changes
       See :ref:`here<io.hdf5-selecting_coordinates>` for an example.
     - allow a passed locations array or mask as a ``where`` condition (:issue:`4467`).
       See :ref:`here<io.hdf5-where_mask>` for an example.
-    - support ``timedelta64[ns]`` as a serialization type (:issue:`3577`)
+    - support ``timedelta64[ns]`` as a serialization type (:issue:`3577`). See :ref:`here<io.hdf5-timedelta>` for an example.
+
     - the ``format`` keyword now replaces the ``table`` keyword; allowed values are ``fixed(f)`` or ``table(t)``
       the same defaults as prior < 0.13.0 remain, e.g. ``put`` implies 'fixed` or 'f' (Fixed) format
       and ``append`` imples 'table' or 't' (Table) format
@@ -109,7 +110,7 @@ API changes
   - Changes to how ``Index`` and ``MultiIndex`` handle metadata (``levels``,
     ``labels``, and ``names``) (:issue:`4039`):
 
-    ..code-block ::
+    .. code-block:: python
 
         # previously, you would have set levels or labels directly
         index.levels = [[1, 2, 3, 4], [1, 2, 4, 4]]
@@ -126,11 +127,11 @@ API changes
 
   - Infer and downcast dtype if ``downcast='infer'`` is passed to ``fillna/ffill/bfill`` (:issue:`4604`)
   - ``__nonzero__`` for all NDFrame objects, will now raise a ``ValueError``, this reverts back to (:issue:`1073`, :issue:`4633`)
-    behavior.
+    behavior. See :ref:`gotchas<gotchas.truth>` for a more detailed discussion.
 
     This prevent behaviors like (which will now all raise ``ValueError``)
 
-    ..code-block ::
+    .. code-block:: python
 
         if df:
            ....
@@ -141,8 +142,8 @@ API changes
 Indexing API Changes
 ~~~~~~~~~~~~~~~~~~~~
 
-    Prior to 0.13, it was impossible to use an indexer (``.loc/.iloc/.ix``) to set a value that
-    was not contained in the index of a particular axis. (:issue:`2578`). See more at :ref:`here<indexing.basics.partial_setting>`
+    Prior to 0.13, it was impossible to use a label indexer (``.loc/.ix``) to set a value that
+    was not contained in the index of a particular axis. (:issue:`2578`). See more :ref:`here<indexing.basics.partial_setting>`
 
     In the ``Series`` case this is effectively an appending operation
 
@@ -208,14 +209,14 @@ Enhancements
        get_dummies([1, 2, np.nan], dummy_na=True)
 
 
-  - ``timedelta64[ns]`` operations
+  - ``timedelta64[ns]`` operations. See :ref:`here<timeseries.timedeltas_convert>` for the docs.
+
+    .. warning::
+
+       Most of these operations require ``numpy >= 1.7``
 
     - Using the new top-level ``to_timedelta``, you can convert a scalar or array from the standard
       timedelta format (produced by ``to_csv``) into a timedelta type (``np.timedelta64`` in ``nanoseconds``).
-
-      .. warning::
-
-         This requires ``numpy >= 1.7``
 
       .. ipython:: python
 
@@ -389,36 +390,8 @@ and behaviors. Series formerly subclassed directly from ``ndarray``. (:issue:`40
 Bug Fixes
 ~~~~~~~~~
 
-  - ``HDFStore`` raising an invalid ``TypeError`` rather than ``ValueError`` when appending
-    with a different block ordering (:issue:`4096`)
-
-  - The ``by`` argument now works correctly with the ``layout`` argument
-    (:issue:`4102`, :issue:`4014`) in ``*.hist`` plotting methods
-
-  - Fixed bug in ``PeriodIndex.map`` where using ``str`` would return the str
-    representation of the index (:issue:`4136`)
-
-  - Fixed (:issue:`3334`) in pivot_table. Margins did not compute if values is the index.
-
-  - Fixed test failure ``test_time_series_plot_color_with_empty_kwargs`` when
-    using custom matplotlib default colors (:issue:`4345`)
-
-  - Fix running of stata IO tests. Now uses temporary files to write
-    (:issue:`4353`)
-
-  - Fixed an issue where ``DataFrame.sum`` was slower than ``DataFrame.mean``
-    for integer valued frames (:issue:`4365`)
-
-  - ``read_html`` tests now work with Python 2.6 (:issue:`4351`)
-
-  - Fixed bug where ``network`` testing was throwing ``NameError`` because a
-    local variable was undefined (:issue:`4381`)
-
-  - Suppressed DeprecationWarning associated with internal calls issued by repr() (:issue:`4391`)
-
-  - Fixed bug where thousands operator was not handled correctly for floating point numbers
-    in csv_import (:issue:`4322`)
+See :ref:`V0.13.0 Bug Fixes<release:bug_fixes-0.13.0>` for an extensive list of bugs that have been fixed in 0.13.0.
 
 See the :ref:`full release notes
 <release>` or issue tracker
-on GitHub for a complete list.
+on GitHub for a complete list of all API changes, Enhancements and Bug Fixes.

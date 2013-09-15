@@ -294,6 +294,8 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
 
+.. _release:bug_fixes-0.13.0:
+
 Bug Fixes
 ~~~~~~~~~
 
@@ -408,6 +410,7 @@ Bug Fixes
     (:issue:`3963`, :issue:`4785`).
   - Fixed an issue related to ticklocs/ticklabels with log scale bar plots
     across different versions of matplotlib (:issue:`4789`)
+  - Suppressed DeprecationWarning associated with internal calls issued by repr() (:issue:`4391`)
 
 pandas 0.12.0
 -------------

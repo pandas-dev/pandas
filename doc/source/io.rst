@@ -2027,6 +2027,8 @@ space. These are in terms of the total number of rows in a table.
                        Term('minor_axis', '=', ['A','B']) ],
                 start=0, stop=10)
 
+.. _io.hdf5-timedelta:
+
 **Using timedelta64[ns]**
 
 .. versionadded:: 0.13

@@ -50,6 +50,9 @@ or, you might want to compare if the pandas object is ``None``
            print("I was not None")
     >>> I was not None
 
+
+or return if ``any`` value is ``True``.
+
 .. code-block:: python
 
     >>> if pd.Series([False, True, False]).any():
