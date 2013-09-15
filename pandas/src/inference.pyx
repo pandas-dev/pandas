@@ -534,8 +534,10 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
 
     if not seen_object:
         if seen_uint:
-            if not (seen_null or seen_bool or seen_complex or seen_float or
-                    seen_negative):
+            uint_incompatible = (seen_object or seen_null or seen_bool or
+                                 seen_complex or seen_float or seen_negative or
+                                 seen_datetime)
+            if not uint_incompatible:
                 return uints
 
         elif not safe:
