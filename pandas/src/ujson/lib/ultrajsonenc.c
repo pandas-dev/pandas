@@ -549,7 +549,7 @@ int Buffer_AppendDoubleUnchecked(JSOBJ obj, JSONObjectEncoder *enc, double value
   {
     precision_str[0] = '%';
     precision_str[1] = '.';
-#ifdef _WIN32
+#if defined(_WIN32) && defined(_MSC_VER)
     sprintf_s(precision_str+2, sizeof(precision_str)-2, "%ug", enc->doublePrecision);
     enc->offset += sprintf_s(str, enc->end - enc->offset, precision_str, neg ? -value : value);
 #else
