@@ -287,6 +287,7 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
 - Refactor of Series arithmetic with time-like objects (datetime/timedelta/time
   etc.) into a separate, cleaned up wrapper class. (:issue:`4613`)
 - Complex compat for ``Series`` with ``ndarray``. (:issue:`4819`)
+- Removed unnecessary ``rwproperty`` from codebase in favor of builtin property. (:issue:`4843`)
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~

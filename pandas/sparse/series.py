@@ -21,7 +21,6 @@ import pandas.core.datetools as datetools
 import pandas.index as _index
 
 from pandas import compat
-from pandas.util import rwproperty
 
 from pandas.sparse.array import (make_sparse, _sparse_array_op, SparseArray)
 from pandas._sparse import BlockIndex, IntIndex
@@ -213,11 +212,11 @@ class SparseSeries(Series):
     def block(self):
         return self._data._block
 
-    @rwproperty.getproperty
+    @property
     def fill_value(self):
         return self.block.fill_value
 
-    @rwproperty.setproperty
+    @fill_value.setter
     def fill_value(self, v):
         self.block.fill_value = v
 
