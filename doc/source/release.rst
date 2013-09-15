@@ -118,6 +118,8 @@ Improvements to existing features
     thanks @lgautier
   - DataFrame constructor now accepts a numpy masked record array (:issue:`3478`),
     thanks @jnothman
+  - ``__getitem__`` with ``tuple`` key (e.g., ``[:, 2]``) on ``Series``
+    without ``MultiIndex`` raises ``ValueError`` (:issue:`4759`, :issue:`4837`)
 
 API Changes
 ~~~~~~~~~~~
