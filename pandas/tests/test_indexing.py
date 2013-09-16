@@ -1436,6 +1436,49 @@ class TestIndexing(unittest.TestCase):
         p.loc[:,:,'C'] = Series([30,32],index=p_orig.items)
         assert_panel_equal(p,expected)
 
+    def test_series_partial_set(self):
+        # partial set with new index
+        # Regression from GH4825
+        ser = Series([0.1, 0.2], index=[1, 2])
+
+        # loc
+        expected = Series([np.nan, 0.2, np.nan], index=[3, 2, 3])
+        result = ser.loc[[3, 2, 3]]
+        assert_series_equal(result, expected)
+
+        expected = Series([np.nan, np.nan, np.nan], index=[3, 3, 3])
+        result = ser.loc[[3, 3, 3]]
+        assert_series_equal(result, expected)
+
+        expected = Series([0.2, 0.2, np.nan], index=[2, 2, 3])
+        result = ser.loc[[2, 2, 3]]
+        assert_series_equal(result, expected)
+
+        expected = Series([0.3, np.nan, np.nan], index=[3, 4, 4])
+        result = Series([0.1, 0.2, 0.3], index=[1,2,3]).loc[[3,4,4]]
+        assert_series_equal(result, expected)
+
+        expected = Series([np.nan, 0.3, 0.3], index=[5, 3, 3])
+        result = Series([0.1, 0.2, 0.3, 0.4], index=[1,2,3,4]).loc[[5,3,3]]
+        assert_series_equal(result, expected)
+
+        expected = Series([np.nan, 0.4, 0.4], index=[5, 4, 4])
+        result = Series([0.1, 0.2, 0.3, 0.4], index=[1,2,3,4]).loc[[5,4,4]]
+        assert_series_equal(result, expected)
+
+        expected = Series([0.4, np.nan, np.nan], index=[7, 2, 2])
+        result = Series([0.1, 0.2, 0.3, 0.4], index=[4,5,6,7]).loc[[7,2,2]]
+        assert_series_equal(result, expected)
+
+        expected = Series([0.4, np.nan, np.nan], index=[4, 5, 5])
+        result = Series([0.1, 0.2, 0.3, 0.4], index=[1,2,3,4]).loc[[4,5,5]]
+        assert_series_equal(result, expected)
+
+        # iloc
+        expected = Series([0.2,0.2,0.1,0.1], index=[2,2,1,1])
+        result = ser.iloc[[1,1,0,0]]
+        assert_series_equal(result, expected)
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
