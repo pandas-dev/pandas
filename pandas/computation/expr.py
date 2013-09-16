@@ -749,46 +749,6 @@ class Expr(StringMixin):
         self.env.locals.update(self.env.resolver_dict)
 
 
-# these we don't look for since column names can have these characters
-_needs_filter = frozenset(['and', 'or', 'not', 'not in', 'in'])
-
-# these OTOH can only be operators, so you cannot create column names that are
-# valid expressions
-_ops_to_filter = frozenset([' and ', ' or ', 'not ', ' in '])
-
-# if you don't filter out the above expressions you'll get a stack overflow,
-# because DataFrame.__getitem__ will continue to search for a column name then
-# an expression then a column name then an expression, and so on, until you
-# blow up the stack and kill a kitten.
-
-
-def maybe_expression(s, kind='pandas'):
-    """Loose checking if ``s`` is an expression.
-
-    Parameters
-    ----------
-    s : str or unicode
-        The expression to check
-    kind : str or unicode
-        The parser whose ops to check
-
-    Returns
-    -------
-    bool
-        ``True`` the expression contains some operators that would be valid
-        when parsed with the ``kind`` parser, otherwise ``False``.
-    """
-    if not isinstance(s, string_types):
-        return False
-
-    visitor = _parsers[kind]
-    ops = visitor.binary_ops + visitor.unary_ops
-    filtered = (frozenset(ops) | _ops_to_filter) - _needs_filter
-
-    # make sure we have an op at least
-    return any(op in s for op in filtered)
-
-
 def isexpr(s, check_names=True):
     """Strict checking for a valid expression."""
     try:

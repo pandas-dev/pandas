@@ -37,7 +37,7 @@ from pandas.core.internals import (BlockManager,
 from pandas.core.series import Series, _radd_compat
 import pandas.computation.expressions as expressions
 from pandas.computation.eval import eval as _eval
-from pandas.computation.expr import maybe_expression, _ensure_scope
+from pandas.computation.expr import _ensure_scope
 from pandas.compat.scipy import scoreatpercentile as _quantile
 from pandas.compat import(range, zip, lrange, lmap, lzip, StringIO, u,
                           OrderedDict, raise_with_traceback)
