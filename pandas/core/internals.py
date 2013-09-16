@@ -18,8 +18,7 @@ import pandas.core.common as com
 from pandas.sparse.array import _maybe_to_sparse, SparseArray
 import pandas.lib as lib
 import pandas.tslib as tslib
-import pandas.core.expressions as expressions
-from pandas.util.decorators import cache_readonly
+import pandas.computation.expressions as expressions
 
 from pandas.tslib import Timestamp
 from pandas import compat

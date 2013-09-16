@@ -294,7 +294,15 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
 
-.. _release:bug_fixes-0.13.0:
+- The new :func:`~pandas.eval` function implements expression evaluation using
+  ``numexpr`` behind the scenes. This results in large speedups for complicated
+  expressions involving large DataFrames/Series.
+- :class:`~pandas.DataFrame` has a new :meth:`~pandas.DataFrame.eval` that
+  evaluates an expression in the context of the ``DataFrame``.
+- A :meth:`~pandas.DataFrame.query` method has been added that allows
+  you to select elements of a ``DataFrame`` using a natural query syntax nearly
+  identical to Python syntax.
+
 
 Bug Fixes
 ~~~~~~~~~

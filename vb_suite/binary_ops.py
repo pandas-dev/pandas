@@ -21,7 +21,7 @@ frame_add = \
               start_date=datetime(2012, 1, 1))
 
 setup = common_setup + """
-import pandas.core.expressions as expr
+import pandas.computation.expressions as expr
 df  = DataFrame(np.random.randn(20000, 100))
 df2 = DataFrame(np.random.randn(20000, 100))
 expr.set_numexpr_threads(1)
@@ -32,7 +32,7 @@ frame_add_st = \
               start_date=datetime(2013, 2, 26))
 
 setup = common_setup + """
-import pandas.core.expressions as expr
+import pandas.computation.expressions as expr
 df  = DataFrame(np.random.randn(20000, 100))
 df2 = DataFrame(np.random.randn(20000, 100))
 expr.set_use_numexpr(False)
@@ -53,7 +53,7 @@ frame_mult = \
               start_date=datetime(2012, 1, 1))
 
 setup = common_setup + """
-import pandas.core.expressions as expr
+import pandas.computation.expressions as expr
 df  = DataFrame(np.random.randn(20000, 100))
 df2 = DataFrame(np.random.randn(20000, 100))
 expr.set_numexpr_threads(1)
@@ -63,7 +63,7 @@ frame_mult_st = \
               start_date=datetime(2013, 2, 26))
 
 setup = common_setup + """
-import pandas.core.expressions as expr
+import pandas.computation.expressions as expr
 df  = DataFrame(np.random.randn(20000, 100))
 df2 = DataFrame(np.random.randn(20000, 100))
 expr.set_use_numexpr(False)
@@ -84,7 +84,7 @@ frame_multi_and = \
               start_date=datetime(2012, 1, 1))
 
 setup = common_setup + """
-import pandas.core.expressions as expr
+import pandas.computation.expressions as expr
 df  = DataFrame(np.random.randn(20000, 100))
 df2 = DataFrame(np.random.randn(20000, 100))
 expr.set_numexpr_threads(1)
@@ -94,7 +94,7 @@ frame_multi_and_st = \
               start_date=datetime(2013, 2, 26))
 
 setup = common_setup + """
-import pandas.core.expressions as expr
+import pandas.computation.expressions as expr
 df  = DataFrame(np.random.randn(20000, 100))
 df2 = DataFrame(np.random.randn(20000, 100))
 expr.set_use_numexpr(False)

@@ -3,17 +3,25 @@ Misc tools for implementing data structures
 """
 
 import re
+import collections
+import numbers
 import codecs
 import csv
 import sys
 
+from datetime import timedelta
+
+from distutils.version import LooseVersion
+
 from numpy.lib.format import read_array, write_array
 import numpy as np
+
 import pandas.algos as algos
 import pandas.lib as lib
 import pandas.tslib as tslib
 from pandas import compat
-from pandas.compat import StringIO, BytesIO, range, long, u, zip, map
+from pandas.compat import (StringIO, BytesIO, range, long, u, zip, map,
+                           string_types)
 from datetime import timedelta
 
 from pandas.core.config import get_option
@@ -27,14 +35,18 @@ class AmbiguousIndexError(PandasError, KeyError):
     pass
 
 _POSSIBLY_CAST_DTYPES = set([np.dtype(t)
-                            for t in ['M8[ns]', 'm8[ns]', 'O', 'int8', 'uint8', 'int16', 'uint16', 'int32', 'uint32', 'int64', 'uint64']])
+                            for t in ['M8[ns]', 'm8[ns]', 'O', 'int8',
+                                      'uint8', 'int16', 'uint16', 'int32',
+                                      'uint32', 'int64', 'uint64']])
 
 _NS_DTYPE = np.dtype('M8[ns]')
 _TD_DTYPE = np.dtype('m8[ns]')
 _INT64_DTYPE = np.dtype(np.int64)
 _DATELIKE_DTYPES = set([np.dtype(t) for t in ['M8[ns]', 'm8[ns]']])
 
-# define abstract base classes to enable isinstance type checking on our objects
+
+# define abstract base classes to enable isinstance type checking on our
+# objects
 def create_pandas_abc_type(name, attr, comp):
     @classmethod
     def _check(cls, inst):
@@ -44,15 +56,22 @@ def create_pandas_abc_type(name, attr, comp):
     meta = type("ABCBase", (type,), dct)
     return meta(name, tuple(), dct)
 
+
 ABCSeries = create_pandas_abc_type("ABCSeries", "_typ", ("series",))
 ABCDataFrame = create_pandas_abc_type("ABCDataFrame", "_typ", ("dataframe",))
 ABCPanel = create_pandas_abc_type("ABCPanel", "_typ", ("panel",))
-ABCSparseSeries = create_pandas_abc_type("ABCSparseSeries", "_subtyp", ('sparse_series', 'sparse_time_series'))
-ABCSparseArray = create_pandas_abc_type("ABCSparseArray", "_subtyp", ('sparse_array', 'sparse_series'))
+ABCSparseSeries = create_pandas_abc_type("ABCSparseSeries", "_subtyp",
+                                         ('sparse_series',
+                                          'sparse_time_series'))
+ABCSparseArray = create_pandas_abc_type("ABCSparseArray", "_subtyp",
+                                        ('sparse_array', 'sparse_series'))
+
 
 class _ABCGeneric(type):
     def __instancecheck__(cls, inst):
         return hasattr(inst, "_data")
+
+
 ABCGeneric = _ABCGeneric("ABCGeneric", tuple(), {})
 
 def isnull(obj):
@@ -221,6 +240,35 @@ def notnull(obj):
     if np.isscalar(res):
         return not res
     return -res
+
+
+def _iterable_not_string(x):
+    return (isinstance(x, collections.Iterable) and
+            not isinstance(x, compat.string_types))
+
+
+def flatten(l):
+    """Flatten an arbitrarily nested sequence.
+
+    Parameters
+    ----------
+    l : sequence
+        The non string sequence to flatten
+
+    Notes
+    -----
+    This doesn't consider strings sequences.
+
+    Returns
+    -------
+    flattened : generator
+    """
+    for el in l:
+        if _iterable_not_string(el):
+            for s in flatten(el):
+                yield s
+        else:
+            yield el
 
 
 def mask_missing(arr, values_to_mask):
@@ -1657,7 +1705,7 @@ def is_bool(obj):
 
 
 def is_integer(obj):
-    return isinstance(obj, (int, long, np.integer))
+    return isinstance(obj, (numbers.Integral, np.integer))
 
 
 def is_float(obj):
@@ -1665,7 +1713,7 @@ def is_float(obj):
 
 
 def is_complex(obj):
-    return isinstance(obj, (complex, np.complexfloating))
+    return isinstance(obj, (numbers.Complex, np.complexfloating))
 
 
 def is_iterator(obj):
@@ -1674,7 +1722,7 @@ def is_iterator(obj):
 
 
 def is_number(obj):
-    return isinstance(obj, (np.number, int, long, float, complex))
+    return isinstance(obj, (numbers.Number, np.number))
 
 
 def is_integer_dtype(arr_or_dtype):

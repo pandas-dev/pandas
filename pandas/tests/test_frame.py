@@ -11,6 +11,8 @@ import unittest
 import nose
 import functools
 import itertools
+from itertools import product
+
 from pandas.compat import(
     map, zip, range, long, lrange, lmap, lzip,
     OrderedDict, cPickle as pickle, u, StringIO
@@ -18,7 +20,7 @@ from pandas.compat import(
 from pandas import compat
 
 from numpy import random, nan
-from numpy.random import randn
+from numpy.random import randn, rand
 import numpy as np
 import numpy.ma as ma
 from numpy.testing import assert_array_equal
@@ -30,7 +32,7 @@ import pandas.core.common as com
 import pandas.core.format as fmt
 import pandas.core.datetools as datetools
 from pandas.core.api import (DataFrame, Index, Series, notnull, isnull,
-                             MultiIndex, DatetimeIndex, Timestamp, Period)
+                             MultiIndex, DatetimeIndex, Timestamp)
 from pandas import date_range
 import pandas as pd
 from pandas.io.parsers import read_csv
@@ -40,10 +42,14 @@ from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
                                  assert_frame_equal,
                                  assertRaisesRegexp,
+                                 assertRaises,
                                  makeCustomDataframe as mkdf,
                                  ensure_clean)
 from pandas.core.indexing import IndexingError
 from pandas.core.common import PandasError
+from pandas.compat import OrderedDict
+from pandas.computation.expr import Expr
+import pandas.computation as comp
 
 import pandas.util.testing as tm
 import pandas.lib as lib
@@ -81,6 +87,7 @@ def _check_mixed_float(df, dtype = None):
     if dtypes.get('D'):
         assert(df.dtypes['D'] == dtypes['D'])
 
+
 def _check_mixed_int(df, dtype = None):
     dtypes = dict(A = 'int32', B = 'uint64', C = 'uint8', D = 'int64')
     if isinstance(dtype, compat.string_types):
@@ -95,8 +102,6 @@ def _check_mixed_int(df, dtype = None):
         assert(df.dtypes['C'] == dtypes['C'])
     if dtypes.get('D'):
         assert(df.dtypes['D'] == dtypes['D'])
-
-
 
 
 class CheckIndexing(object):
@@ -121,6 +126,14 @@ class CheckIndexing(object):
         self.assert_('random' not in self.frame)
         with assertRaisesRegexp(KeyError, 'no item named random'):
             self.frame['random']
+
+        df = self.frame.copy()
+        df['$10'] = randn(len(df))
+        ad = randn(len(df))
+        df['@awesome_domain'] = ad
+        self.assertRaises(KeyError, df.__getitem__, 'df["$10"]')
+        res = df['@awesome_domain']
+        assert_array_equal(ad, res.values)
 
     def test_getitem_dupe_cols(self):
         df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=['a', 'a', 'b'])
@@ -2119,7 +2132,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # this is ok
         df['foo2'] = np.ones((4,2)).tolist()
 
-
     def test_constructor_dtype_nocast_view(self):
         df = DataFrame([[1, 2]])
         should_be_view = DataFrame(df, dtype=df[0].dtype)
@@ -3172,7 +3184,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertRaises(com.PandasError, DataFrame, 'a', columns=['a', 'c'])
         with tm.assertRaisesRegexp(TypeError, 'incompatible data and dtype'):
             DataFrame('a', [1, 2], ['a', 'c'], float)
-
 
     def test_constructor_with_datetimes(self):
         intname = np.dtype(np.int_).name
@@ -5244,8 +5255,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                 _do_test(mkdf(nrows, ncols,c_idx_nlevels=2),path,cnlvl=2)
                 _do_test(mkdf(nrows, ncols,r_idx_nlevels=2,c_idx_nlevels=2),
                          path,rnlvl=2,cnlvl=2)
-
-
 
     def test_to_csv_from_csv_w_some_infs(self):
 
@@ -8107,6 +8116,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
     #----------------------------------------------------------------------
     # Transposing
+
     def test_transpose(self):
         frame = self.frame
         dft = frame.T
@@ -8234,7 +8244,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         the_diff = tf.diff(1)
         assert_series_equal(the_diff['A'],
                             tf['A'] - tf['A'].shift(1))
-
 
     def test_diff_mixed_dtype(self):
         df = DataFrame(np.random.randn(5, 3))
@@ -10144,7 +10153,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = Series({'float64' : 2, 'object' : 2})
         assert_series_equal(result, expected)
 
-
     def test_reset_index(self):
         stacked = self.frame.stack()[::2]
         stacked = DataFrame({'foo': stacked, 'bar': stacked})
@@ -11113,10 +11121,632 @@ starting,ending,measure
         with tm.assertRaises(TypeError):
             df.isin('aaa')
 
+
+def skip_if_no_ne(engine='numexpr'):
+    if engine == 'numexpr':
+        try:
+            import numexpr as ne
+        except ImportError:
+            raise nose.SkipTest("cannot query engine numexpr when numexpr not "
+                                "installed")
+
+
+def skip_if_no_pandas_parser(parser):
+    if parser != 'pandas':
+        raise nose.SkipTest("cannot evaluate with parser {0!r}".format(parser))
+
+
+class TestDataFrameQueryWithMultiIndex(object):
+    def check_query_with_named_multiindex(self, parser, engine):
+        skip_if_no_ne(engine)
+        a = tm.choice(['red', 'green'], size=10)
+        b = tm.choice(['eggs', 'ham'], size=10)
+        index = MultiIndex.from_arrays([a, b], names=['color', 'food'])
+        df = DataFrame(randn(10, 2), index=index)
+        ind = Series(df.index.get_level_values('color').values, index=index,
+                     name='color')
+
+        # equality
+        #import ipdb; ipdb.set_trace()
+        res1 = df.query('color == "red"', parser=parser, engine=engine)
+        res2 = df.query('"red" == color', parser=parser, engine=engine)
+        exp = df[ind == 'red']
+        assert_frame_equal(res1, exp)
+        assert_frame_equal(res2, exp)
+
+        # inequality
+        res1 = df.query('color != "red"', parser=parser, engine=engine)
+        res2 = df.query('"red" != color', parser=parser, engine=engine)
+        exp = df[ind != 'red']
+        assert_frame_equal(res1, exp)
+        assert_frame_equal(res2, exp)
+
+        # list equality (really just set membership)
+        res1 = df.query('color == ["red"]', parser=parser, engine=engine)
+        res2 = df.query('["red"] == color', parser=parser, engine=engine)
+        exp = df[ind.isin(['red'])]
+        assert_frame_equal(res1, exp)
+        assert_frame_equal(res2, exp)
+
+        res1 = df.query('color != ["red"]', parser=parser, engine=engine)
+        res2 = df.query('["red"] != color', parser=parser, engine=engine)
+        exp = df[~ind.isin(['red'])]
+        assert_frame_equal(res1, exp)
+        assert_frame_equal(res2, exp)
+
+        # in/not in ops
+        res1 = df.query('["red"] in color', parser=parser, engine=engine)
+        res2 = df.query('"red" in color', parser=parser, engine=engine)
+        exp = df[ind.isin(['red'])]
+        assert_frame_equal(res1, exp)
+        assert_frame_equal(res2, exp)
+
+        res1 = df.query('["red"] not in color', parser=parser, engine=engine)
+        res2 = df.query('"red" not in color', parser=parser, engine=engine)
+        exp = df[~ind.isin(['red'])]
+        assert_frame_equal(res1, exp)
+        assert_frame_equal(res2, exp)
+
+    def test_query_with_named_multiindex(self):
+        for parser, engine in product(['pandas'], ENGINES):
+            yield self.check_query_with_named_multiindex, parser, engine
+
+    def check_query_with_unnamed_multiindex(self, parser, engine):
+        skip_if_no_ne(engine)
+        a = tm.choice(['red', 'green'], size=10)
+        b = tm.choice(['eggs', 'ham'], size=10)
+        index = MultiIndex.from_arrays([a, b])
+        df = DataFrame(randn(10, 2), index=index)
+        ind = Series(df.index.get_level_values(0).values, index=index)
+
+        res1 = df.query('ilevel_0 == "red"', parser=parser, engine=engine)
+        res2 = df.query('"red" == ilevel_0', parser=parser, engine=engine)
+        exp = df[ind == 'red']
+        assert_frame_equal(res1, exp)
+        assert_frame_equal(res2, exp)
+
+        # inequality
+        res1 = df.query('ilevel_0 != "red"', parser=parser, engine=engine)
+        res2 = df.query('"red" != ilevel_0', parser=parser, engine=engine)
+        exp = df[ind != 'red']
+        assert_frame_equal(res1, exp)
+        assert_frame_equal(res2, exp)
+
+        # list equality (really just set membership)
+        res1 = df.query('ilevel_0 == ["red"]', parser=parser, engine=engine)
+        res2 = df.query('["red"] == ilevel_0', parser=parser, engine=engine)
+        exp = df[ind.isin(['red'])]
+        assert_frame_equal(res1, exp)
+        assert_frame_equal(res2, exp)
+
+        res1 = df.query('ilevel_0 != ["red"]', parser=parser, engine=engine)
+        res2 = df.query('["red"] != ilevel_0', parser=parser, engine=engine)
+        exp = df[~ind.isin(['red'])]
+        assert_frame_equal(res1, exp)
+        assert_frame_equal(res2, exp)
+
+        # in/not in ops
+        res1 = df.query('["red"] in ilevel_0', parser=parser, engine=engine)
+        res2 = df.query('"red" in ilevel_0', parser=parser, engine=engine)
+        exp = df[ind.isin(['red'])]
+        assert_frame_equal(res1, exp)
+        assert_frame_equal(res2, exp)
+
+        res1 = df.query('["red"] not in ilevel_0', parser=parser, engine=engine)
+        res2 = df.query('"red" not in ilevel_0', parser=parser, engine=engine)
+        exp = df[~ind.isin(['red'])]
+        assert_frame_equal(res1, exp)
+        assert_frame_equal(res2, exp)
+
+        #### LEVEL 1 ####
+        ind = Series(df.index.get_level_values(1).values, index=index)
+        res1 = df.query('ilevel_1 == "eggs"', parser=parser, engine=engine)
+        res2 = df.query('"eggs" == ilevel_1', parser=parser, engine=engine)
+        exp = df[ind == 'eggs']
+        assert_frame_equal(res1, exp)
+        assert_frame_equal(res2, exp)
+
+        # inequality
+        res1 = df.query('ilevel_1 != "eggs"', parser=parser, engine=engine)
+        res2 = df.query('"eggs" != ilevel_1', parser=parser, engine=engine)
+        exp = df[ind != 'eggs']
+        assert_frame_equal(res1, exp)
+        assert_frame_equal(res2, exp)
+
+        # list equality (really just set membership)
+        res1 = df.query('ilevel_1 == ["eggs"]', parser=parser, engine=engine)
+        res2 = df.query('["eggs"] == ilevel_1', parser=parser, engine=engine)
+        exp = df[ind.isin(['eggs'])]
+        assert_frame_equal(res1, exp)
+        assert_frame_equal(res2, exp)
+
+        res1 = df.query('ilevel_1 != ["eggs"]', parser=parser, engine=engine)
+        res2 = df.query('["eggs"] != ilevel_1', parser=parser, engine=engine)
+        exp = df[~ind.isin(['eggs'])]
+        assert_frame_equal(res1, exp)
+        assert_frame_equal(res2, exp)
+
+        # in/not in ops
+        res1 = df.query('["eggs"] in ilevel_1', parser=parser, engine=engine)
+        res2 = df.query('"eggs" in ilevel_1', parser=parser, engine=engine)
+        exp = df[ind.isin(['eggs'])]
+        assert_frame_equal(res1, exp)
+        assert_frame_equal(res2, exp)
+
+        res1 = df.query('["eggs"] not in ilevel_1', parser=parser, engine=engine)
+        res2 = df.query('"eggs" not in ilevel_1', parser=parser, engine=engine)
+        exp = df[~ind.isin(['eggs'])]
+        assert_frame_equal(res1, exp)
+        assert_frame_equal(res2, exp)
+
+    def test_query_with_unnamed_multiindex(self):
+        for parser, engine in product(['pandas'], ENGINES):
+            yield self.check_query_with_unnamed_multiindex, parser, engine
+
+    def check_query_with_partially_named_multiindex(self, parser, engine):
+        skip_if_no_ne(engine)
+        a = tm.choice(['red', 'green'], size=10)
+        b = np.arange(10)
+        index = MultiIndex.from_arrays([a, b])
+        index.names = [None, 'rating']
+        df = DataFrame(randn(10, 2), index=index)
+        res = df.query('rating == 1', parser=parser, engine=engine)
+        ind = Series(df.index.get_level_values('rating').values, index=index,
+                     name='rating')
+        exp = df[ind == 1]
+        assert_frame_equal(res, exp)
+
+        res = df.query('rating != 1', parser=parser, engine=engine)
+        ind = Series(df.index.get_level_values('rating').values, index=index,
+                     name='rating')
+        exp = df[ind != 1]
+        assert_frame_equal(res, exp)
+
+        res = df.query('ilevel_0 == "red"', parser=parser, engine=engine)
+        ind = Series(df.index.get_level_values(0).values, index=index)
+        exp = df[ind == "red"]
+        assert_frame_equal(res, exp)
+
+        res = df.query('ilevel_0 != "red"', parser=parser, engine=engine)
+        ind = Series(df.index.get_level_values(0).values, index=index)
+        exp = df[ind != "red"]
+        assert_frame_equal(res, exp)
+
+    def test_query_with_partially_named_multiindex(self):
+        for parser, engine in product(['pandas'], ENGINES):
+            yield self.check_query_with_partially_named_multiindex, parser, engine
+
+
+class TestDataFrameQueryNumExprPandas(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.engine = 'numexpr'
+        cls.parser = 'pandas'
+        skip_if_no_ne()
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.engine, cls.parser
+
+    def test_date_query_method(self):
+        engine, parser = self.engine, self.parser
+        df = DataFrame(randn(5, 3))
+        df['dates1'] = date_range('1/1/2012', periods=5)
+        df['dates2'] = date_range('1/1/2013', periods=5)
+        df['dates3'] = date_range('1/1/2014', periods=5)
+        res = df.query('dates1 < 20130101 < dates3', engine=engine,
+                       parser=parser)
+        expec = df[(df.dates1 < '20130101') & ('20130101' < df.dates3)]
+        assert_frame_equal(res, expec)
+
+    def test_query_scope(self):
+        engine, parser = self.engine, self.parser
+        from pandas.computation.common import NameResolutionError
+
+        df = DataFrame({"i": lrange(10), "+": lrange(3, 13),
+                        "r": lrange(4, 14)})
+        i, s = 5, 6
+        self.assertRaises(NameResolutionError, df.query, 'i < 5',
+                          engine=engine, parser=parser, local_dict={'i': i})
+        self.assertRaises(SyntaxError, df.query, 'i - +', engine=engine,
+                          parser=parser)
+        self.assertRaises(NameResolutionError, df.query, 'i == s',
+                          engine=engine, parser=parser, local_dict={'i': i,
+                                                                    's': s})
+
+    def test_query_scope_index(self):
+        engine, parser = self.engine, self.parser
+        from pandas.computation.common import NameResolutionError
+        df = DataFrame(np.random.randint(10, size=(10, 3)),
+                       index=Index(range(10), name='blob'),
+                       columns=['a', 'b', 'c'])
+        from numpy import sin
+        df.index.name = 'sin'
+        self.assertRaises(NameResolutionError, df.query, 'sin > 5',
+                          engine=engine, parser=parser, local_dict={'sin':
+                                                                    sin})
+
+    def test_query(self):
+        engine, parser = self.engine, self.parser
+        df = DataFrame(np.random.randn(10, 3), columns=['a', 'b', 'c'])
+
+        assert_frame_equal(df.query('a < b', engine=engine, parser=parser),
+                           df[df.a < df.b])
+        assert_frame_equal(df.query('a + b > b * c', engine=engine,
+                                    parser=parser),
+                           df[df.a + df.b > df.b * df.c])
+
+        local_dict = dict(df.iteritems())
+        local_dict.update({'df': df})
+        self.assertRaises(NameError, df.query, 'a < d & b < f',
+                          local_dict=local_dict, engine=engine, parser=parser)
+
+        # make sure that it's not just because we didn't pass the locals in
+        self.assertRaises(AssertionError, self.assertRaises, NameError,
+                          df.query, 'a < b', local_dict={'df': df},
+                          engine=engine, parser=parser)
+
+    def test_query_index_with_name(self):
+        engine, parser = self.engine, self.parser
+        df = DataFrame(np.random.randint(10, size=(10, 3)),
+                       index=Index(range(10), name='blob'),
+                       columns=['a', 'b', 'c'])
+        res = df.query('(blob < 5) & (a < b)', engine=engine, parser=parser)
+        expec = df[(df.index < 5) & (df.a < df.b)]
+        assert_frame_equal(res, expec)
+
+        res = df.query('blob < b', engine=engine, parser=parser)
+        expec = df[df.index < df.b]
+
+        assert_frame_equal(res, expec)
+
+    def test_query_index_without_name(self):
+        engine, parser = self.engine, self.parser
+        df = DataFrame(np.random.randint(10, size=(10, 3)),
+                       index=range(10), columns=['a', 'b', 'c'])
+
+        # "index" should refer to the index
+        res = df.query('index < b', engine=engine, parser=parser)
+        expec = df[df.index < df.b]
+        assert_frame_equal(res, expec)
+
+        # test against a scalar
+        res = df.query('index < 5', engine=engine, parser=parser)
+        expec = df[df.index < 5]
+        assert_frame_equal(res, expec)
+
+    def test_nested_scope(self):
+        engine = self.engine
+        parser = self.parser
+        # smoke test
+        x = 1
+        result = pd.eval('x + 1', engine=engine, parser=parser)
+        self.assertEqual(result, 2)
+
+        df  = DataFrame(np.random.randn(5, 3))
+        df2 = DataFrame(np.random.randn(5, 3))
+        expected = df[(df>0) & (df2>0)]
+
+        result = df.query('(df>0) & (df2>0)', engine=engine, parser=parser)
+        assert_frame_equal(result, expected)
+
+        result = pd.eval('df[(df > 0) and (df2 > 0)]', engine=engine,
+                         parser=parser)
+        assert_frame_equal(result, expected)
+
+        result = pd.eval('df[(df > 0) and (df2 > 0) and df[df > 0] > 0]',
+                         engine=engine, parser=parser)
+        expected = df[(df > 0) & (df2 > 0) & (df[df > 0] > 0)]
+        assert_frame_equal(result, expected)
+
+        result = pd.eval('df[(df>0) & (df2>0)]', engine=engine, parser=parser)
+        expected = df.query('(df>0) & (df2>0)', engine=engine, parser=parser)
+        assert_frame_equal(result, expected)
+
+    def test_local_syntax(self):
+        skip_if_no_pandas_parser(self.parser)
+
+        from pandas.computation.common import NameResolutionError
+
+        engine, parser = self.engine, self.parser
+        df = DataFrame(randn(100, 10), columns=list('abcdefghij'))
+        b = 1
+        expect = df[df.a < b]
+        result = df.query('a < @b', engine=engine, parser=parser)
+        assert_frame_equal(result, expect)
+
+        # scope issue with self.assertRaises so just catch it and let it pass
+        try:
+            df.query('a < @b', engine=engine, parser=parser)
+        except NameResolutionError:
+            pass
+
+        del b
+        expect = df[df.a < df.b]
+        result = df.query('a < b', engine=engine, parser=parser)
+        assert_frame_equal(result, expect)
+
+    def test_chained_cmp_and_in(self):
+        skip_if_no_pandas_parser(self.parser)
+        engine, parser = self.engine, self.parser
+        cols = list('abc')
+        df = DataFrame(randn(100, len(cols)), columns=cols)
+        res = df.query('a < b < c and a not in b not in c', engine=engine,
+                       parser=parser)
+        ind = (df.a < df.b) & (df.b < df.c) & ~df.b.isin(df.a) & ~df.c.isin(df.b)
+        expec = df[ind]
+        assert_frame_equal(res, expec)
+
+
+class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
+    @classmethod
+    def setUpClass(cls):
+        cls.engine = 'numexpr'
+        cls.parser = 'python'
+        skip_if_no_ne(cls.engine)
+        cls.frame = _frame.copy()
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.frame, cls.engine, cls.parser
+
+    def test_date_query_method(self):
+        engine, parser = self.engine, self.parser
+        df = DataFrame(randn(5, 3))
+        df['dates1'] = date_range('1/1/2012', periods=5)
+        df['dates2'] = date_range('1/1/2013', periods=5)
+        df['dates3'] = date_range('1/1/2014', periods=5)
+        res = df.query('(df.dates1 < 20130101) & (20130101 < df.dates3)',
+                       engine=engine, parser=parser)
+        expec = df[(df.dates1 < '20130101') & ('20130101' < df.dates3)]
+        assert_frame_equal(res, expec)
+
+    def test_nested_scope(self):
+        engine = self.engine
+        parser = self.parser
+        # smoke test
+        x = 1
+        result = pd.eval('x + 1', engine=engine, parser=parser)
+        self.assertEqual(result, 2)
+
+        df  = DataFrame(np.random.randn(5, 3))
+        df2 = DataFrame(np.random.randn(5, 3))
+        expected = df[(df>0) & (df2>0)]
+
+        result = df.query('(df>0) & (df2>0)', engine=engine, parser=parser)
+        assert_frame_equal(result, expected)
+
+        result = pd.eval('df[(df > 0) & (df2 > 0)]', engine=engine,
+                         parser=parser)
+        assert_frame_equal(result, expected)
+
+        result = pd.eval('df[(df > 0) & (df2 > 0) & (df[df > 0] > 0)]',
+                         engine=engine, parser=parser)
+        expected = df[(df > 0) & (df2 > 0) & (df[df > 0] > 0)]
+        assert_frame_equal(result, expected)
+
+        result = pd.eval('df[(df>0) & (df2>0)]', engine=engine, parser=parser)
+        expected = df.query('(df>0) & (df2>0)', engine=engine, parser=parser)
+        assert_frame_equal(result, expected)
+
+
+class TestDataFrameQueryPythonPandas(TestDataFrameQueryNumExprPandas):
+    @classmethod
+    def setUpClass(cls):
+        cls.engine = 'python'
+        cls.parser = 'pandas'
+        cls.frame = _frame.copy()
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.frame, cls.engine, cls.parser
+
+
+class TestDataFrameQueryPythonPython(TestDataFrameQueryNumExprPython):
+    @classmethod
+    def setUpClass(cls):
+        cls.engine = cls.parser = 'python'
+        cls.frame = _frame.copy()
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.frame, cls.engine, cls.parser
+
+
+PARSERS = 'python', 'pandas'
+ENGINES = 'python', 'numexpr'
+
+
+class TestDataFrameQueryStrings(object):
+    def check_str_query_method(self, parser, engine):
+        skip_if_no_ne(engine)
+        df = DataFrame(randn(10, 1), columns=['b'])
+        df['strings'] = Series(list('aabbccddee'))
+        expect = df[df.strings == 'a']
+
+        if parser != 'pandas':
+            col = 'strings'
+            lst = '"a"'
+
+            lhs = [col] * 2 + [lst] * 2
+            rhs = lhs[::-1]
+
+            eq, ne = '==', '!='
+            ops = 2 * ([eq] + [ne])
+
+            for lhs, op, rhs in zip(lhs, ops, rhs):
+                ex = '{lhs} {op} {rhs}'.format(lhs=lhs, op=op, rhs=rhs)
+                assertRaises(NotImplementedError, df.query, ex, engine=engine,
+                             parser=parser, local_dict={'strings': df.strings})
+        else:
+            res = df.query('"a" == strings', engine=engine, parser=parser)
+            assert_frame_equal(res, expect)
+
+            res = df.query('strings == "a"', engine=engine, parser=parser)
+            assert_frame_equal(res, expect)
+            assert_frame_equal(res, df[df.strings.isin(['a'])])
+
+            expect = df[df.strings != 'a']
+            res = df.query('strings != "a"', engine=engine, parser=parser)
+            assert_frame_equal(res, expect)
+
+            res = df.query('"a" != strings', engine=engine, parser=parser)
+            assert_frame_equal(res, expect)
+            assert_frame_equal(res, df[~df.strings.isin(['a'])])
+
+    def test_str_query_method(self):
+        for parser, engine in product(PARSERS, ENGINES):
+            yield self.check_str_query_method, parser, engine
+
+    def test_str_list_query_method(self):
+        for parser, engine in product(PARSERS, ENGINES):
+            yield self.check_str_list_query_method, parser, engine
+
+    def check_str_list_query_method(self, parser, engine):
+        skip_if_no_ne(engine)
+        df = DataFrame(randn(10, 1), columns=['b'])
+        df['strings'] = Series(list('aabbccddee'))
+        expect = df[df.strings.isin(['a', 'b'])]
+
+        if parser != 'pandas':
+            col = 'strings'
+            lst = '["a", "b"]'
+
+            lhs = [col] * 2 + [lst] * 2
+            rhs = lhs[::-1]
+
+            eq, ne = '==', '!='
+            ops = 2 * ([eq] + [ne])
+
+            for lhs, op, rhs in zip(lhs, ops, rhs):
+                ex = '{lhs} {op} {rhs}'.format(lhs=lhs, op=op, rhs=rhs)
+                assertRaises(NotImplementedError, df.query, ex, engine=engine,
+                             parser=parser, local_dict={'strings': df.strings})
+        else:
+            res = df.query('strings == ["a", "b"]', engine=engine,
+                           parser=parser)
+            assert_frame_equal(res, expect)
+
+            res = df.query('["a", "b"] == strings', engine=engine,
+                           parser=parser)
+            assert_frame_equal(res, expect)
+
+            expect = df[~df.strings.isin(['a', 'b'])]
+
+            res = df.query('strings != ["a", "b"]', engine=engine,
+                           parser=parser)
+            assert_frame_equal(res, expect)
+
+            res = df.query('["a", "b"] != strings', engine=engine,
+                           parser=parser)
+            assert_frame_equal(res, expect)
+
+    def check_query_with_string_columns(self, parser, engine):
+        skip_if_no_ne(engine)
+        df = DataFrame({'a': list('aaaabbbbcccc'),
+                        'b': list('aabbccddeeff'),
+                        'c': np.random.randint(5, size=12),
+                        'd': np.random.randint(9, size=12)})
+        if parser == 'pandas':
+            res = df.query('a in b', parser=parser, engine=engine)
+            expec = df[df.a.isin(df.b)]
+            assert_frame_equal(res, expec)
+
+            res = df.query('a in b and c < d', parser=parser, engine=engine)
+            expec = df[df.a.isin(df.b) & (df.c < df.d)]
+            assert_frame_equal(res, expec)
+        else:
+            with assertRaises(NotImplementedError):
+                df.query('a in b', parser=parser, engine=engine)
+
+            with assertRaises(NotImplementedError):
+                df.query('a in b and c < d', parser=parser, engine=engine)
+
+    def test_query_with_string_columns(self):
+        for parser, engine in product(PARSERS, ENGINES):
+            yield self.check_query_with_string_columns, parser, engine
+
+    def check_object_array_eq_ne(self, parser, engine):
+        skip_if_no_ne(engine)
+        df = DataFrame({'a': list('aaaabbbbcccc'),
+                        'b': list('aabbccddeeff'),
+                        'c': np.random.randint(5, size=12),
+                        'd': np.random.randint(9, size=12)})
+        res = df.query('a == b', parser=parser, engine=engine)
+        exp = df[df.a == df.b]
+        assert_frame_equal(res, exp)
+
+        res = df.query('a != b', parser=parser, engine=engine)
+        exp = df[df.a != df.b]
+        assert_frame_equal(res, exp)
+
+    def test_object_array_eq_ne(self):
+        for parser, engine in product(PARSERS, ENGINES):
+            yield self.check_object_array_eq_ne, parser, engine
+
+
+class TestDataFrameEvalNumExprPandas(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.engine = 'numexpr'
+        cls.parser = 'pandas'
+        skip_if_no_ne()
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.engine, cls.parser
+
+    def setUp(self):
+        self.frame = DataFrame(randn(10, 3), columns=list('abc'))
+
+    def tearDown(self):
+        del self.frame
+
+    def test_simple_expr(self):
+        res = self.frame.eval('a + b', engine=self.engine, parser=self.parser)
+        expect = self.frame.a + self.frame.b
+        assert_series_equal(res, expect)
+
+    def test_bool_arith_expr(self):
+        res = self.frame.eval('a[a < 1] + b', engine=self.engine,
+                              parser=self.parser)
+        expect = self.frame.a[self.frame.a < 1] + self.frame.b
+        assert_series_equal(res, expect)
+
+
+class TestDataFrameEvalNumExprPython(TestDataFrameEvalNumExprPandas):
+    @classmethod
+    def setUpClass(cls):
+        cls.engine = 'numexpr'
+        cls.parser = 'python'
+        skip_if_no_ne()
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.engine, cls.parser
+
+
+class TestDataFrameEvalPythonPandas(TestDataFrameEvalNumExprPandas):
+    @classmethod
+    def setUpClass(cls):
+        cls.engine = 'python'
+        cls.parser = 'pandas'
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.engine, cls.parser
+
+
+class TestDataFrameEvalPythonPython(TestDataFrameEvalNumExprPython):
+    @classmethod
+    def setUpClass(cls):
+        cls.engine = cls.parser = 'python'
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.engine, cls.parser
+
+
 if __name__ == '__main__':
-    # unittest.main()
-    import nose
-    # nose.runmodule(argv=[__file__,'-vvs','-x', '--ipdb-failure'],
-    #                exit=False)
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

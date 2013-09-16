@@ -106,7 +106,7 @@ indexing_dataframe_boolean = \
               start_date=datetime(2012, 1, 1))
 
 setup = common_setup + """
-import pandas.core.expressions as expr
+import pandas.computation.expressions as expr
 df  = DataFrame(np.random.randn(50000, 100))
 df2 = DataFrame(np.random.randn(50000, 100))
 expr.set_numexpr_threads(1)
@@ -118,7 +118,7 @@ indexing_dataframe_boolean_st = \
 
 
 setup = common_setup + """
-import pandas.core.expressions as expr
+import pandas.computation.expressions as expr
 df  = DataFrame(np.random.randn(50000, 100))
 df2 = DataFrame(np.random.randn(50000, 100))
 expr.set_use_numexpr(False)

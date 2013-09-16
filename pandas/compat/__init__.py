@@ -46,11 +46,13 @@ try:
     from StringIO import StringIO
     BytesIO = StringIO
     import cPickle
+    import httplib
 except ImportError:
     import builtins
     from io import StringIO, BytesIO
     cStringIO = StringIO
     import pickle as cPickle
+    import http.client as httplib
 
 
 if PY3:
