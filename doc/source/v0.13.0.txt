@@ -381,16 +381,22 @@ Experimental
 
       .. ipython:: python
 
+         # eval with NumExpr backend
          %timeit pd.eval('df1 + df2 + df3 + df4')
+
+      .. ipython:: python
+
+         # pure Python evaluation
+         %timeit df1 + df2 + df3 + df4
 
     For more details, see the :ref:`enhancing performance documentation on eval
     <enhancingperf.eval>`
 
-- :meth:`~pandas.DataFrame.eval`
+- ``DataFrame.eval``
 
-  - Similar to :func:`~pandas.eval`, :class:`~pandas.DataFrame` has a new
-    :meth:`~pandas.DataFrame.eval` that evaluates an expression in the context
-    of the ``DataFrame``. For example,
+  - Similar to ``pandas.eval``, :class:`~pandas.DataFrame` has a new
+    ``DataFrame.eval`` method that evaluates an expression in the context of
+    the ``DataFrame``. For example,
 
       .. ipython:: python
          :suppress:
@@ -450,9 +456,10 @@ Experimental
 Internal Refactoring
 ~~~~~~~~~~~~~~~~~~~~
 
-In 0.13.0 there is a major refactor primarily to subclass ``Series`` from ``NDFrame``,
-which is the base class currently for ``DataFrame`` and ``Panel``, to unify methods
-and behaviors. Series formerly subclassed directly from ``ndarray``. (:issue:`4080`, :issue:`3862`, :issue:`816`)
+In 0.13.0 there is a major refactor primarily to subclass ``Series`` from
+``NDFrame``, which is the base class currently for ``DataFrame`` and ``Panel``,
+to unify methods and behaviors. Series formerly subclassed directly from
+``ndarray``. (:issue:`4080`, :issue:`3862`, :issue:`816`)
 
 .. warning::
 
