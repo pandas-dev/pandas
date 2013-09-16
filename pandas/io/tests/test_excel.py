@@ -16,8 +16,10 @@ from pandas.io.excel import (
     register_writer
 )
 from pandas.util.testing import ensure_clean
+from pandas.core.config import set_option, get_option
 import pandas.util.testing as tm
 import pandas as pd
+
 
 def _skip_if_no_xlrd():
     try:
@@ -31,16 +33,23 @@ def _skip_if_no_xlrd():
 
 def _skip_if_no_xlwt():
     try:
-        import xlwt # NOQA
+        import xlwt  # NOQA
     except ImportError:
         raise nose.SkipTest('xlwt not installed, skipping')
 
 
 def _skip_if_no_openpyxl():
     try:
-        import openpyxl # NOQA
+        import openpyxl  # NOQA
     except ImportError:
         raise nose.SkipTest('openpyxl not installed, skipping')
+
+
+def _skip_if_no_xlsxwriter():
+    try:
+        import xlsxwriter  # NOQA
+    except ImportError:
+        raise nose.SkipTest('xlsxwriter not installed, skipping')
 
 
 def _skip_if_no_excelsuite():
@@ -268,15 +277,22 @@ class ExcelReaderTests(SharedItems, unittest.TestCase):
 
 
 class ExcelWriterBase(SharedItems):
-    # test cases to run with different extensions
-    # for each writer
-    # to add a writer test, define two things:
-    # 1. a check_skip function that skips your tests if your writer isn't
-    # installed
-    # 2. add a property ext, which is the file extension that your writer writes to
+    # Base class for test cases to run with different Excel writers.
+    # To add a writer test, define the following:
+    # 1. A check_skip function that skips your tests if your writer isn't
+    #    installed.
+    # 2. Add a property ext, which is the file extension that your writer
+    #    writes to.
+    # 3. Add a property engine_name, which is the name of the writer class.
     def setUp(self):
         self.check_skip()
         super(ExcelWriterBase, self).setUp()
+        self.option_name = 'io.excel.%s.writer' % self.ext
+        self.prev_engine = get_option(self.option_name)
+        set_option(self.option_name, self.engine_name)
+
+    def tearDown(self):
+        set_option(self.option_name, self.prev_engine)
 
     def test_excel_sheet_by_name_raise(self):
         _skip_if_no_xlrd()
@@ -790,6 +806,7 @@ class ExcelWriterBase(SharedItems):
 
 class OpenpyxlTests(ExcelWriterBase, unittest.TestCase):
     ext = 'xlsx'
+    engine_name = 'openpyxl'
     check_skip = staticmethod(_skip_if_no_openpyxl)
 
     def test_to_excel_styleconverter(self):
@@ -820,6 +837,7 @@ class OpenpyxlTests(ExcelWriterBase, unittest.TestCase):
 
 class XlwtTests(ExcelWriterBase, unittest.TestCase):
     ext = 'xls'
+    engine_name = 'xlwt'
     check_skip = staticmethod(_skip_if_no_xlwt)
 
     def test_to_excel_styleconverter(self):
@@ -840,6 +858,52 @@ class XlwtTests(ExcelWriterBase, unittest.TestCase):
         self.assertEquals(xlwt.Borders.THIN, xls_style.borders.bottom)
         self.assertEquals(xlwt.Borders.THIN, xls_style.borders.left)
         self.assertEquals(xlwt.Alignment.HORZ_CENTER, xls_style.alignment.horz)
+
+
+class XlsxWriterTests(ExcelWriterBase, unittest.TestCase):
+    ext = 'xlsx'
+    engine_name = 'xlsxwriter'
+    check_skip = staticmethod(_skip_if_no_xlsxwriter)
+
+    # Override test from the Superclass to use assertAlmostEqual on the
+    # floating point values read back in from the output XlsxWriter file.
+    def test_roundtrip_indexlabels(self):
+        _skip_if_no_xlrd()
+        ext = self.ext
+        path = '__tmp_to_excel_from_excel_indexlabels__.' + ext
+
+        with ensure_clean(path) as path:
+
+            self.frame['A'][:5] = nan
+
+            self.frame.to_excel(path, 'test1')
+            self.frame.to_excel(path, 'test1', cols=['A', 'B'])
+            self.frame.to_excel(path, 'test1', header=False)
+            self.frame.to_excel(path, 'test1', index=False)
+
+            # test index_label
+            frame = (DataFrame(np.random.randn(10, 2)) >= 0)
+            frame.to_excel(path, 'test1', index_label=['test'])
+            reader = ExcelFile(path)
+            recons = reader.parse('test1', index_col=0).astype(np.int64)
+            frame.index.names = ['test']
+            self.assertEqual(frame.index.names, recons.index.names)
+
+            frame = (DataFrame(np.random.randn(10, 2)) >= 0)
+            frame.to_excel(
+                path, 'test1', index_label=['test', 'dummy', 'dummy2'])
+            reader = ExcelFile(path)
+            recons = reader.parse('test1', index_col=0).astype(np.int64)
+            frame.index.names = ['test']
+            self.assertEqual(frame.index.names, recons.index.names)
+
+            frame = (DataFrame(np.random.randn(10, 2)) >= 0)
+            frame.to_excel(path, 'test1', index_label='test')
+            reader = ExcelFile(path)
+            recons = reader.parse('test1', index_col=0).astype(np.int64)
+            frame.index.names = ['test']
+            self.assertAlmostEqual(frame.index.names, recons.index.names)
+
 
 class ExcelWriterEngineTests(unittest.TestCase):
     def test_ExcelWriter_dispatch(self):

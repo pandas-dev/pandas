@@ -1654,7 +1654,7 @@ indices to be parsed.
 
 .. code-block:: python
 
-   read_excel('path_to_file.xls', Sheet1', parse_cols=[0, 2, 3], index_col=None, na_values=['NA'])
+   read_excel('path_to_file.xls', 'Sheet1', parse_cols=[0, 2, 3], index_col=None, na_values=['NA'])
 
 To write a DataFrame object to a sheet of an Excel file, you can use the
 ``to_excel`` instance method.  The arguments are largely the same as ``to_csv``
@@ -1664,7 +1664,7 @@ written.  For example:
 
 .. code-block:: python
 
-   df.to_excel('path_to_file.xlsx', sheet_name='sheet1')
+   df.to_excel('path_to_file.xlsx', sheet_name='Sheet1')
 
 Files with a ``.xls`` extension will be written using ``xlwt`` and those with
 a ``.xlsx`` extension will be written using ``openpyxl``.
@@ -1677,8 +1677,8 @@ one can use the ExcelWriter class, as in the following example:
 .. code-block:: python
 
    writer = ExcelWriter('path_to_file.xlsx')
-   df1.to_excel(writer, sheet_name='sheet1')
-   df2.to_excel(writer, sheet_name='sheet2')
+   df1.to_excel(writer, sheet_name='Sheet1')
+   df2.to_excel(writer, sheet_name='Sheet2')
    writer.save()
 
 .. _io.excel.writers:
@@ -1693,11 +1693,29 @@ Excel writer engines
 1. the ``engine`` keyword argument
 2. the filename extension (via the default specified in config options)
 
-``pandas`` only supports ``openpyxl`` for ``.xlsx`` and ``.xlsm`` files and
-``xlwt`` for ``.xls`` files.  If you have multiple engines installed, you can choose the
-engine to use by default via the options ``io.excel.xlsx.writer`` and
-``io.excel.xls.writer``.
+By default ``pandas`` only supports
+`openpyxl <http://packages.python.org/openpyxl/>`__ as a writer for ``.xlsx``
+and ``.xlsm`` files and `xlwt <http://www.python-excel.org/>`__ as a writer for
+``.xls`` files.  If you have multiple engines installed, you can change the
+default engine via the ``io.excel.xlsx.writer`` and ``io.excel.xls.writer``
+options.
 
+For example if the optional `XlsxWriter <http://xlsxwriter.readthedocs.org>`__
+module is installed you can use it as a xlsx writer engine as follows:
+
+.. code-block:: python
+
+   # By setting the 'engine' in the DataFrame and Panel 'to_excel()' methods.
+   df.to_excel('path_to_file.xlsx', sheet_name='Sheet1', engine='xlsxwriter')
+
+   # By setting the 'engine' in the ExcelWriter constructor.
+   writer = ExcelWriter('path_to_file.xlsx', engine='xlsxwriter')
+
+   # Or via pandas configuration.
+   from pandas import set_option
+   set_option('io.excel.xlsx.writer', 'xlsxwriter')
+
+   df.to_excel('path_to_file.xlsx', sheet_name='Sheet1')
 
 .. _io.hdf5:
 

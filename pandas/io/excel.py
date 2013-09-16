@@ -596,6 +596,7 @@ class _XlwtWriter(ExcelWriter):
         Parameters
         ----------
         style_dict: style dictionary to convert
+        num_format_str: optional number format string
         """
         import xlwt
 
@@ -611,3 +612,95 @@ class _XlwtWriter(ExcelWriter):
 
 register_writer(_XlwtWriter)
 
+
+class _XlsxWriter(ExcelWriter):
+    engine = 'xlsxwriter'
+    supported_extensions = ('.xlsx',)
+
+    def __init__(self, path, **engine_kwargs):
+        # Use the xlsxwriter module as the Excel writer.
+        import xlsxwriter
+
+        super(_XlsxWriter, self).__init__(path, **engine_kwargs)
+
+        self.book = xlsxwriter.Workbook(path, **engine_kwargs)
+
+    def save(self):
+        """
+        Save workbook to disk.
+        """
+        return self.book.close()
+
+    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0):
+        # Write the frame cells using xlsxwriter.
+
+        sheet_name = self._get_sheet_name(sheet_name)
+
+        if sheet_name in self.sheets:
+            wks = self.sheets[sheet_name]
+        else:
+            wks = self.book.add_worksheet(sheet_name)
+            self.sheets[sheet_name] = wks
+
+        style_dict = {}
+
+        for cell in cells:
+            val = _conv_value(cell.val)
+
+            num_format_str = None
+            if isinstance(cell.val, datetime.datetime):
+                num_format_str = "YYYY-MM-DD HH:MM:SS"
+            if isinstance(cell.val, datetime.date):
+                num_format_str = "YYYY-MM-DD"
+
+            stylekey = json.dumps(cell.style)
+            if num_format_str:
+                stylekey += num_format_str
+
+            if stylekey in style_dict:
+                style = style_dict[stylekey]
+            else:
+                style = self._convert_to_style(cell.style, num_format_str)
+                style_dict[stylekey] = style
+
+            if cell.mergestart is not None and cell.mergeend is not None:
+                wks.merge_range(startrow + cell.row,
+                                startrow + cell.mergestart,
+                                startcol + cell.col,
+                                startcol + cell.mergeend,
+                                val, style)
+            else:
+                wks.write(startrow + cell.row,
+                          startcol + cell.col,
+                          val, style)
+
+    def _convert_to_style(self, style_dict, num_format_str=None):
+        """
+        converts a style_dict to an xlsxwriter format object
+        Parameters
+        ----------
+        style_dict: style dictionary to convert
+        num_format_str: optional number format string
+        """
+        if style_dict is None:
+            return None
+
+        # Create a XlsxWriter format object.
+        xl_format = self.book.add_format()
+
+        # Map the cell font to XlsxWriter font properties.
+        if style_dict.get('font'):
+            font = style_dict['font']
+            if font.get('bold'):
+                xl_format.set_bold()
+
+        # Map the cell borders to XlsxWriter border properties.
+        if style_dict.get('borders'):
+            xl_format.set_border()
+
+        if num_format_str is not None:
+            xl_format.set_num_format(num_format_str)
+
+        return xl_format
+
+register_writer(_XlsxWriter)
