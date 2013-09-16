@@ -244,7 +244,7 @@ class NDFrame(PandasObject):
                 return self._AXIS_NUMBERS[axis]
             except:
                 pass
-        raise ValueError('No axis named %s' % axis)
+        raise ValueError('No axis named {0} for object type {1}'.format(axis,type(self)))
 
     def _get_axis_name(self, axis):
         axis = self._AXIS_ALIASES.get(axis, axis)
@@ -256,7 +256,7 @@ class NDFrame(PandasObject):
                 return self._AXIS_NAMES[axis]
             except:
                 pass
-        raise ValueError('No axis named %s' % axis)
+        raise ValueError('No axis named {0} for object type {1}'.format(axis,type(self)))
 
     def _get_axis(self, axis):
         name = self._get_axis_name(axis)
@@ -496,7 +496,7 @@ class NDFrame(PandasObject):
         -------
         renamed : type of caller
         """
-        axis = self._AXIS_NAMES[axis]
+        axis = self._get_axis_name(axis)
         d = { 'copy' : copy, 'inplace' : inplace }
         d[axis] = mapper
         return self.rename(**d)
@@ -1546,9 +1546,6 @@ class NDFrame(PandasObject):
         self._consolidate_inplace()
 
         axis = self._get_axis_number(axis)
-        if axis + 1 > self._AXIS_LEN:
-            raise ValueError(
-                "invalid axis passed for object type {0}".format(type(self)))
         method = com._clean_fill_method(method)
 
         if value is None:
