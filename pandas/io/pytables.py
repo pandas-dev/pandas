@@ -29,7 +29,7 @@ from pandas.tseries.timedeltas import _coerce_scalar_to_timedelta_type
 import pandas.core.common as com
 from pandas.tools.merge import concat
 from pandas import compat
-from pandas.compat import u, PY3, range, lrange
+from pandas.compat import u_safe as u, PY3, range, lrange
 from pandas.io.common import PerformanceWarning
 from pandas.core.config import get_option
 from pandas.computation.pytables import Expr, maybe_expression

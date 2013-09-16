@@ -180,6 +180,8 @@ if PY3:
 
     def u(s):
         return s
+    def u_safe(s):
+        return s
 else:
     string_types = basestring,
     integer_types = (int, long)
@@ -189,6 +191,12 @@ else:
 
     def u(s):
         return unicode(s, "unicode_escape")
+
+    def u_safe(s):
+        try:
+            return unicode(s, "unicode_escape")
+        except:
+            return s
 
 
 string_and_binary_types = string_types + (binary_type,)
