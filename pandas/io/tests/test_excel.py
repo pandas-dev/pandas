@@ -44,11 +44,13 @@ def _skip_if_no_openpyxl():
     except ImportError:
         raise nose.SkipTest('openpyxl not installed, skipping')
 
+
 def _skip_if_no_xlsxwriter():
     try:
         import xlsxwriter  # NOQA
     except ImportError:
         raise nose.SkipTest('xlsxwriter not installed, skipping')
+
 
 def _skip_if_no_excelsuite():
     _skip_if_no_xlrd()
@@ -275,12 +277,13 @@ class ExcelReaderTests(SharedItems, unittest.TestCase):
 
 
 class ExcelWriterBase(SharedItems):
-    # test cases to run with different extensions
-    # for each writer
-    # to add a writer test, define two things:
-    # 1. a check_skip function that skips your tests if your writer isn't
-    # installed
-    # 2. add a property ext, which is the file extension that your writer writes to
+    # Base class for test cases to run with different Excel writers.
+    # To add a writer test, define two things:
+    # 1. A check_skip function that skips your tests if your writer isn't
+    #    installed.
+    # 2. Add a property ext, which is the file extension that your writer
+    #    writes to.
+    # 3. Add a property engine_name, which is the name of the writer class.
     def setUp(self):
         self.check_skip()
         super(ExcelWriterBase, self).setUp()
