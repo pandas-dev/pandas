@@ -292,8 +292,8 @@ Read more in the `cython docs <http://docs.cython.org/>`__.
 
 .. _enhancingperf.eval:
 
-Expression Evaluation via :func:`~pandas.eval`
-----------------------------------------------
+Expression Evaluation via :func:`~pandas.eval` (Experimental)
+-------------------------------------------------------------
 
 .. versionadded:: 0.13
 
@@ -392,8 +392,8 @@ Now let's do the same thing but with comparisons:
    includes bitwise operations on scalars.* You should perform these kinds of
    operations in Python.
 
-The ``DataFrame.eval`` method
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The ``DataFrame.eval`` method (Experimental)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In addition to the top level :func:`~pandas.eval` function you can also
 evaluate an expression in the "context" of a ``DataFrame``.
@@ -447,13 +447,11 @@ You can refer to local variables the same way you would in vanilla Python
 
        df.eval('@a + b')
 
-   The same is true for :meth:`~pandas.DataFrame.query` and
-   :meth:`~pandas.DataFrame.__getitem__` passed an expression
+   The same is true for :meth:`~pandas.DataFrame.query`
 
     .. ipython:: python
 
        df.query('@a < b')
-       df['@a < b']
 
     .. ipython:: python
        :suppress:

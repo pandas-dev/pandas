@@ -1927,7 +1927,9 @@ class DataFrame(NDFrame):
         ----------
         expr : string
             The query string to evaluate. The result of the evaluation of this
-            expression is passed to
+            expression is first passed to :attr:`~pandas.DataFrame.loc` and if
+            that fails because of a multidimensional key (e.g., a DataFrame)
+            then the result will be passed to
             :meth:`~pandas.DataFrame.__getitem__`.
         kwargs : dict
             See the documentation for :func:`~pandas.eval` for complete details

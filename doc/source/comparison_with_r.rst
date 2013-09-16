@@ -49,7 +49,6 @@ index/slice as well as standard boolean indexing:
 
        df = DataFrame({'a': randn(10), 'b': randn(10)})
        df.query('a <= b')
-       df['a <= b']
        df[df.a <= df.b]
        df.loc[df.a <= df.b]
 

@@ -571,5 +571,3 @@ def maybe_expression(s):
 
     # make sure we have an op at least
     return any(op in s for op in ops)
-
-

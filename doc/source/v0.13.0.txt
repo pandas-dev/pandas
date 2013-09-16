@@ -362,10 +362,10 @@ Enhancements
   - DataFrame constructor now accepts a numpy masked record array (:issue:`3478`)
 
 
-.. _whatsnew_0130.enhancingperf:
+.. _whatsnew_0130.experimental:
 
-Performance Enhancments
-~~~~~~~~~~~~~~~~~~~~~~~
+Experimental
+~~~~~~~~~~~~
 
 - :func:`~pandas.eval`:
 
@@ -439,7 +439,7 @@ Performance Enhancments
 
          n = 20
          df = DataFrame(randint(n, size=(n, 3)), columns=['a', 'b', 'c'])
-         df['a < b < c']
+         df.query('a < b < c')
 
     selects all the rows of ``df`` where ``a < b < c`` evaluates to ``True``.
     For more details see the :ref:`indexing documentation on query
