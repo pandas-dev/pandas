@@ -28,15 +28,16 @@ from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
                                 _coerce_to_dtypes, _DATELIKE_DTYPES, is_list_like)
 from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, _ensure_index
-from pandas.core.indexing import (_NDFrameIndexer, _maybe_droplevels,
-                                  _convert_to_index_sliceable, _check_bool_indexer,
-                                  _maybe_convert_indices)
+from pandas.core.indexing import (_maybe_droplevels,
+                                  _convert_to_index_sliceable,
+                                  _check_bool_indexer, _maybe_convert_indices)
 from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_arrays,
                                    create_block_manager_from_blocks)
 from pandas.core.series import Series, _radd_compat
-import pandas.core.expressions as expressions
-from pandas.sparse.array import SparseArray
+import pandas.computation.expressions as expressions
+from pandas.computation.eval import eval as _eval
+from pandas.computation.expr import _ensure_scope
 from pandas.compat.scipy import scoreatpercentile as _quantile
 from pandas.compat import(range, zip, lrange, lmap, lzip, StringIO, u,
                           OrderedDict, raise_with_traceback)
@@ -51,14 +52,12 @@ import pandas.core.algorithms as algos
 import pandas.core.datetools as datetools
 import pandas.core.common as com
 import pandas.core.format as fmt
-import pandas.core.generic as generic
 import pandas.core.nanops as nanops
 
 import pandas.lib as lib
-import pandas.tslib as tslib
 import pandas.algos as _algos
 
-from pandas.core.config import get_option, set_option
+from pandas.core.config import get_option
 
 #----------------------------------------------------------------------
 # Docstring templates
@@ -1897,6 +1896,155 @@ class DataFrame(NDFrame):
         if key.values.dtype != np.bool_:
             raise ValueError('Must pass DataFrame with boolean values only')
         return self.where(key)
+
+    def _get_index_resolvers(self, axis):
+        # index or columns
+        axis_index = getattr(self, axis)
+        d = dict()
+
+        for i, name in enumerate(axis_index.names):
+            if name is not None:
+                key = level = name
+            else:
+                # prefix with 'i' or 'c' depending on the input axis
+                # e.g., you must do ilevel_0 for the 0th level of an unnamed
+                # multiiindex
+                level_string = '{prefix}level_{i}'.format(prefix=axis[0], i=i)
+                key = level_string
+                level = i
+
+            d[key] = Series(axis_index.get_level_values(level).values,
+                            index=axis_index, name=level)
+
+        # put the index/columns itself in the dict
+        d[axis] = axis_index
+        return d
+
+    def query(self, expr, **kwargs):
+        """Query the columns of a frame with a boolean expression.
+
+        Parameters
+        ----------
+        expr : string
+            The query string to evaluate. The result of the evaluation of this
+            expression is first passed to :attr:`~pandas.DataFrame.loc` and if
+            that fails because of a multidimensional key (e.g., a DataFrame)
+            then the result will be passed to
+            :meth:`~pandas.DataFrame.__getitem__`.
+        kwargs : dict
+            See the documentation for :func:`~pandas.eval` for complete details
+            on the keyword arguments accepted by
+            :meth:`~pandas.DataFrame.query`.
+
+        Returns
+        -------
+        q : DataFrame or Series
+
+        Notes
+        -----
+        This method uses the top-level :func:`~pandas.eval` function to
+        evaluate the passed query.
+
+        The :meth:`~pandas.DataFrame.query` method uses a slightly
+        modified Python syntax by default. For example, the ``&`` and ``|``
+        (bitwise) operators have the precedence of their boolean cousins,
+        :keyword:`and` and :keyword:`or`. This *is* syntactically valid Python,
+        however the semantics are different.
+
+        You can change the semantics of the expression by passing the keyword
+        argument ``parser='python'``. This enforces the same semantics as
+        evaluation in Python space. Likewise, you can pass ``engine='python'``
+        to evaluate an expression using Python itself as a backend. This is not
+        recommended as it is inefficient compared to using ``numexpr`` as the
+        engine.
+
+        The :attr:`~pandas.DataFrame.index` and
+        :attr:`~pandas.DataFrame.columns` attributes of the
+        :class:`~pandas.DataFrame` instance is placed in the namespace by
+        default, which allows you to treat both the index and columns of the
+        frame as a column in the frame.
+        The identifier ``index`` is used for this variable, and you can also
+        use the name of the index to identify it in a query.
+
+        For further details and examples see the ``query`` documentation in
+        :ref:`indexing <indexing.query>`.
+
+        See Also
+        --------
+        pandas.eval
+        DataFrame.eval
+
+        Examples
+        --------
+        >>> from numpy.random import randn
+        >>> from pandas import DataFrame
+        >>> df = DataFrame(randn(10, 2), columns=list('ab'))
+        >>> df.query('a > b')
+        >>> df[df.a > df.b]  # same result as the previous expression
+        """
+        # need to go up at least 4 stack frames
+        # 4 expr.Scope
+        # 3 expr._ensure_scope
+        # 2 self.eval
+        # 1 self.query
+        # 0 self.query caller (implicit)
+        level = kwargs.setdefault('level', 4)
+        if level < 4:
+            raise ValueError("Going up fewer than 4 stack frames will not"
+                             " capture the necessary variable scope for a "
+                             "query expression")
+
+        res = self.eval(expr, **kwargs)
+
+        try:
+            return self.loc[res]
+        except ValueError:
+            # when res is multi-dimensional loc raises, but this is sometimes a
+            # valid query
+            return self[res]
+
+    def eval(self, expr, **kwargs):
+        """Evaluate an expression in the context of the calling DataFrame
+        instance.
+
+        Parameters
+        ----------
+        expr : string
+            The expression string to evaluate.
+        kwargs : dict
+            See the documentation for :func:`~pandas.eval` for complete details
+            on the keyword arguments accepted by
+            :meth:`~pandas.DataFrame.query`.
+
+        Returns
+        -------
+        ret : ndarray, scalar, or pandas object
+
+        See Also
+        --------
+        pandas.DataFrame.query
+        pandas.eval
+
+        Notes
+        -----
+        For more details see the API documentation for :func:`~pandas.eval`.
+        For detailed examples see :ref:`enhancing performance with eval
+        <enhancingperf.eval>`.
+
+        Examples
+        --------
+        >>> from numpy.random import randn
+        >>> from pandas import DataFrame
+        >>> df = DataFrame(randn(10, 2), columns=list('ab'))
+        >>> df.eval('a + b')
+        """
+        resolvers = kwargs.pop('resolvers', None)
+        if resolvers is None:
+            index_resolvers = self._get_index_resolvers('index')
+            index_resolvers.update(self._get_index_resolvers('columns'))
+            resolvers = [self, index_resolvers]
+        kwargs['local_dict'] = _ensure_scope(resolvers=resolvers, **kwargs)
+        return _eval(expr, **kwargs)
 
     def _slice(self, slobj, axis=0, raise_on_error=False):
         axis = self._get_block_manager_axis(axis)
@@ -4598,6 +4746,7 @@ class DataFrame(NDFrame):
 
 DataFrame._setup_axes(
     ['index', 'columns'], info_axis=1, stat_axis=0, axes_are_reversed=True)
+
 
 _EMPTY_SERIES = Series([])
 

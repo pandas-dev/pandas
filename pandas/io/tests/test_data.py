@@ -277,7 +277,7 @@ class TestOptionsWarnings(unittest.TestCase):
         except ImportError:
             raise nose.SkipTest
 
-        with assert_produces_warning():
+        with assert_produces_warning(FutureWarning):
             cls.aapl = web.Options('aapl')
 
         today = datetime.today()

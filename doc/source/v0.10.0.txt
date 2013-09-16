@@ -262,7 +262,7 @@ Updated PyTables Support
      [ Term('major_axis>20000102'), Term('minor_axis', '=', ['A','B']) ])
 
    # removing data from tables
-   store.remove('wp', [ 'major_axis', '>', wp.major_axis[3] ])
+   store.remove('wp', Term('major_axis>20000103'))
    store.select('wp')
 
    # deleting a store

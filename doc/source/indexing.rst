@@ -26,48 +26,58 @@ The axis labeling information in pandas objects serves many purposes:
   - Enables automatic and explicit data alignment
   - Allows intuitive getting and setting of subsets of the data set
 
-In this section / chapter, we will focus on the final point: namely, how to
-slice, dice, and generally get and set subsets of pandas objects. The primary
-focus will be on Series and DataFrame as they have received more development
-attention in this area. Expect more work to be invested higher-dimensional data
-structures (including Panel) in the future, especially in label-based advanced
+In this section, we will focus on the final point: namely, how to slice, dice,
+and generally get and set subsets of pandas objects. The primary focus will be
+on Series and DataFrame as they have received more development attention in
+this area. Expect more work to be invested higher-dimensional data structures
+(including ``Panel``) in the future, especially in label-based advanced
 indexing.
 
 .. note::
 
-   The Python and NumPy indexing operators ``[]`` and attribute operator ``.`` provide quick and easy access to pandas data structures
-   across a wide range of use cases. This makes interactive work intuitive, as
-   there's little new to learn if you already know how to deal with Python
-   dictionaries and NumPy arrays. However, since the type of the data to be accessed
-   isn't known in advance, directly using
-   standard operators has some optimization limits. For production code, we recommended
-   that you take advantage of the optimized pandas data access methods exposed in this chapter.
+   The Python and NumPy indexing operators ``[]`` and attribute operator ``.``
+   provide quick and easy access to pandas data structures across a wide range
+   of use cases. This makes interactive work intuitive, as there's little new
+   to learn if you already know how to deal with Python dictionaries and NumPy
+   arrays. However, since the type of the data to be accessed isn't known in
+   advance, directly using standard operators has some optimization limits. For
+   production code, we recommended that you take advantage of the optimized
+   pandas data access methods exposed in this chapter.
 
 .. warning::
 
-   Whether a copy or a reference is returned for a setting operation, may depend on the context.
-   This is sometimes called ``chained assignment`` and should be avoided.
-   See :ref:`Returning a View versus Copy <indexing.view_versus_copy>`
+   Whether a copy or a reference is returned for a setting operation, may
+   depend on the context.  This is sometimes called ``chained assignment`` and
+   should be avoided.  See :ref:`Returning a View versus Copy
+   <indexing.view_versus_copy>`
 
 See the :ref:`cookbook<cookbook.selection>` for some advanced strategies
 
-Choice
-------
+Different Choices for Indexing (``loc``, ``iloc``, and ``ix``)
+--------------------------------------------------------------
 
-Starting in 0.11.0, object selection has had a number of user-requested additions in
-order to support more explicit location based indexing. Pandas now supports
-three types of multi-axis indexing.
+.. versionadded:: 0.11.0
 
-- ``.loc`` is strictly label based, will raise ``KeyError`` when the items are not found, allowed inputs are:
+Object selection has had a number of user-requested additions in order to
+support more explicit location based indexing. Pandas now supports three types
+of multi-axis indexing.
 
-  - A single label, e.g. ``5`` or ``'a'``, (note that ``5`` is interpreted as a *label* of the index. This use is **not** an integer position along the index)
+- ``.loc`` is strictly label based, will raise ``KeyError`` when the items are
+  not found, allowed inputs are:
+
+  - A single label, e.g. ``5`` or ``'a'``, (note that ``5`` is interpreted as a
+    *label* of the index. This use is **not** an integer position along the
+    index)
   - A list or array of labels ``['a', 'b', 'c']``
-  - A slice object with labels ``'a':'f'``, (note that contrary to usual python slices, **both** the start and the stop are included!)
+  - A slice object with labels ``'a':'f'``, (note that contrary to usual python
+    slices, **both** the start and the stop are included!)
   - A boolean array
 
   See more at :ref:`Selection by Label <indexing.label>`
 
-- ``.iloc`` is strictly integer position based (from ``0`` to ``length-1`` of the axis), will raise ``IndexError`` when the requested indicies are out of bounds. Allowed inputs are:
+- ``.iloc`` is strictly integer position based (from ``0`` to ``length-1`` of
+  the axis), will raise ``IndexError`` when the requested indicies are out of
+  bounds. Allowed inputs are:
 
   - An integer e.g. ``5``
   - A list or array of integers ``[4, 3, 0]``
@@ -75,20 +85,24 @@ three types of multi-axis indexing.
 
   See more at :ref:`Selection by Position <indexing.integer>`
 
-- ``.ix`` supports mixed integer and label based access. It is primarily label based, but will fallback to integer positional access. ``.ix`` is the most general
-  and will support any of the inputs to ``.loc`` and ``.iloc``, as well as support for floating point label schemes. ``.ix`` is especially useful when dealing with mixed positional and label
-  based hierarchial indexes.
-
-  As using integer slices with ``.ix`` have different behavior depending on whether the slice is interpreted as position based or label based, it's
+- ``.ix`` supports mixed integer and label based access. It is primarily label
+  based, but will fallback to integer positional access. ``.ix`` is the most
+  general and will support any of the inputs to ``.loc`` and ``.iloc``, as well
+  as support for floating point label schemes. ``.ix`` is especially useful
+  when dealing with mixed positional and label based hierarchial indexes.
+  As using integer slices with ``.ix`` have different behavior depending on
+  whether the slice is interpreted as position based or label based, it's
   usually better to be explicit and use ``.iloc`` or ``.loc``.
 
-  See more at :ref:`Advanced Indexing <indexing.advanced>`, :ref:`Advanced Hierarchical <indexing.advanced_hierarchical>` and :ref:`Fallback Indexing <indexing.fallback>`
+  See more at :ref:`Advanced Indexing <indexing.advanced>`, :ref:`Advanced
+  Hierarchical <indexing.advanced_hierarchical>` and :ref:`Fallback Indexing
+  <indexing.fallback>`
 
 Getting values from an object with multi-axes selection uses the following
 notation (using ``.loc`` as an example, but applies to ``.iloc`` and ``.ix`` as
 well). Any of the axes accessors may be the null slice ``:``. Axes left out of
 the specification are assumed to be ``:``. (e.g. ``p.loc['a']`` is equiv to
-``p.loc['a',:,:]``)
+``p.loc['a', :, :]``)
 
 .. csv-table::
     :header: "Object Type", "Indexers"
@@ -100,7 +114,7 @@ the specification are assumed to be ``:``. (e.g. ``p.loc['a']`` is equiv to
     Panel; ``p.loc[item_indexer,major_indexer,minor_indexer]``
 
 Deprecations
-~~~~~~~~~~~~
+------------
 
 Beginning with version 0.11.0, it's recommended that you transition away from
 the following methods as they *may* be deprecated in future versions.
@@ -168,7 +182,7 @@ You may find this useful for applying a transform (in-place) to a subset of the
 columns.
 
 Attribute Access
-~~~~~~~~~~~~~~~~
+----------------
 
 .. _indexing.columns.multiple:
 
@@ -213,7 +227,7 @@ If you are using the IPython environment, you may also use tab-completion to
 see these accessable attributes.
 
 Slicing ranges
-~~~~~~~~~~~~~~
+--------------
 
 The most robust and consistent way of slicing ranges along arbitrary axes is
 described in the :ref:`Selection by Position <indexing.integer>` section
@@ -247,7 +261,7 @@ largely as a convenience since it is such a common operation.
 .. _indexing.label:
 
 Selection By Label
-~~~~~~~~~~~~~~~~~~
+------------------
 
 .. warning::
 
@@ -318,7 +332,7 @@ For getting a value explicity (equiv to deprecated ``df.get_value('a','A')``)
 .. _indexing.integer:
 
 Selection By Position
-~~~~~~~~~~~~~~~~~~~~~
+---------------------
 
 .. warning::
 
@@ -415,7 +429,7 @@ Pandas will detect this and raise ``IndexError``, rather than return an empty st
 .. _indexing.basics.partial_setting:
 
 Setting With Enlargement
-~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------
 
 .. versionadded:: 0.13
 
@@ -450,7 +464,7 @@ This is like an ``append`` operation on the ``DataFrame``.
 .. _indexing.basics.get_value:
 
 Fast scalar value getting and setting
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------------
 
 Since indexing with ``[]`` must handle a lot of cases (single-label access,
 slicing, boolean indexing, etc.), it has a bit of overhead in order to figure
@@ -481,7 +495,7 @@ You can also set using these same indexers.
    df
 
 Boolean indexing
-~~~~~~~~~~~~~~~~
+----------------
 
 .. _indexing.boolean:
 
@@ -572,8 +586,8 @@ You can also describe columns using integer location:
    df.isin(values, iloc=True)
 
 
-Where and Masking
-~~~~~~~~~~~~~~~~~
+The :meth:`~pandas.DataFrame.where` Method and Masking
+------------------------------------------------------
 
 Selecting values from a Series with a boolean vector generally returns a
 subset of the data. To guarantee that selection output has the same shape as
@@ -673,8 +687,304 @@ This is equivalent (but faster than) the following.
    s.mask(s >= 0)
    df.mask(df >= 0)
 
+.. _indexing.query:
+
+The :meth:`~pandas.DataFrame.query` Method (Experimental)
+---------------------------------------------------------
+
+.. versionadded:: 0.13
+
+:class:`~pandas.DataFrame` objects have a :meth:`~pandas.DataFrame.query`
+method that allows selection using an expression.
+
+You can get the value of the frame where column ``b`` has values
+between the values of columns ``a`` and ``c``. For example:
+
+.. ipython:: python
+   :suppress:
+
+   from numpy.random import randint, rand
+   np.random.seed(1234)
+
+.. ipython:: python
+
+   n = 10
+   df = DataFrame(rand(n, 3), columns=list('abc'))
+   df
+
+   # pure python
+   df[(df.a < df.b) & (df.b < df.c)]
+
+   # query
+   df.query('(a < b) & (b < c)')
+
+Do the same thing but fallback on a named index if there is no column
+with the name ``a``.
+
+.. ipython:: python
+
+   df = DataFrame(randint(n / 2, size=(n, 2)), columns=list('bc'))
+   df.index.name = 'a'
+   df
+   df.query('a < b and b < c')
+
+If instead you don't want to or cannot name your index, you can use the name
+``index`` in your query expression:
+
+.. ipython:: python
+   :suppress:
+
+   old_index = index
+   del index
+
+.. ipython:: python
+
+   df = DataFrame(randint(n, size=(n, 2)), columns=list('bc'))
+   df
+   df.query('index < b < c')
+
+.. ipython:: python
+   :suppress:
+
+   index = old_index
+   del old_index
+
+
+:class:`~pandas.MultiIndex` :meth:`~pandas.DataFrame.query` Syntax
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can also use the levels of a ``DataFrame`` with a
+:class:`~pandas.MultiIndex` as if they were columns in the frame:
+
+.. ipython:: python
+
+   import pandas.util.testing as tm
+
+   n = 10
+   colors = tm.choice(['red', 'green'], size=n)
+   foods = tm.choice(['eggs', 'ham'], size=n)
+   colors
+   foods
+
+   index = MultiIndex.from_arrays([colors, foods], names=['color', 'food'])
+   df = DataFrame(randn(n, 2), index=index)
+   df
+   df.query('color == "red"')
+
+If the levels of the ``MultiIndex`` are unnamed, you can refer to them using
+special names:
+
+
+.. ipython:: python
+
+   df.index.names = [None, None]
+   df
+   df.query('ilevel_0 == "red"')
+
+
+The convention is ``ilevel_0``, which means "index level 0" for the 0th level
+of the ``index``.
+
+
+:meth:`~pandas.DataFrame.query` Use Cases
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A use case for :meth:`~pandas.DataFrame.query` is when you have a collection of
+:class:`~pandas.DataFrame` objects that have a subset of column names (or index
+levels/names) in common. You can pass the same query to both frames *without*
+having to specify which frame you're interested in querying
+
+.. ipython:: python
+
+   df = DataFrame(rand(n, 3), columns=list('abc'))
+   df
+   df2 = DataFrame(rand(n + 2, 3), columns=df.columns)
+   df2
+   expr = '0.0 <= a <= c <= 0.5'
+   map(lambda frame: frame.query(expr), [df, df2])
+
+:meth:`~pandas.DataFrame.query` Python versus pandas Syntax Comparison
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Full numpy-like syntax
+
+.. ipython:: python
+
+   df = DataFrame(randint(n, size=(n, 3)), columns=list('abc'))
+   df
+   df.query('(a < b) & (b < c)')
+   df[(df.a < df.b) & (df.b < df.c)]
+
+Slightly nicer by removing the parentheses (by binding making comparison
+operators bind tighter than ``&``/``|``)
+
+.. ipython:: python
+
+   df.query('a < b & b < c')
+
+Use English instead of symbols
+
+.. ipython:: python
+
+   df.query('a < b and b < c')
+
+Pretty close to how you might write it on paper
+
+.. ipython:: python
+
+   df.query('a < b < c')
+
+The ``in`` and ``not in`` operators
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:meth:`~pandas.DataFrame.query` also supports special use of Python's ``in`` and
+``not in`` comparison operators, providing a succint syntax for calling the
+``isin`` method of a ``Series`` or ``DataFrame``.
+
+.. ipython:: python
+   :suppress:
+
+   try:
+       old_d = d
+       del d
+   except NameError:
+       pass
+
+.. ipython:: python
+
+   # get all rows where columns "a" and "b" have overlapping values
+   df = DataFrame({'a': list('aabbccddeeff'), 'b': list('aaaabbbbcccc'),
+                   'c': randint(5, size=12), 'd': randint(9, size=12)})
+   df
+   df.query('a in b')
+
+   # How you'd do it in pure Python
+   df[df.a.isin(df.b)]
+
+   df.query('a not in b')
+
+   # pure Python
+   df[~df.a.isin(df.b)]
+
+
+You can combine this with other expressions for very succinct queries:
+
+
+.. ipython:: python
+
+   # rows where cols a and b have overlapping values and col c's values are less than col d's
+   df.query('a in b and c < d')
+
+   # pure Python
+   df[df.b.isin(df.a) & (df.c < df.d)]
+
+
+.. note::
+
+   Note that ``in`` and ``not in`` are evaluated in Python, since ``numexpr``
+   has no equivalent of this operation. However, **only the** ``in``/``not in``
+   **expression itself** is evaluated in vanilla Python. For example, in the
+   expression
+
+       .. code-block:: python
+
+          df.query('a in b + c + d')
+
+   ``(b + c + d)`` is evaluated by ``numexpr`` and *then* the ``in``
+   operation is evaluated in plain Python. In general, any operations that can
+   be evaluated using ``numexpr`` will be.
+
+Special use of the ``==`` operator with ``list`` objects
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Comparing a ``list`` of values to a column using ``==``/``!=`` works similarly
+to ``in``/``not in``
+
+.. ipython:: python
+
+   df.query('b == ["a", "b", "c"]')
+
+   # pure Python
+   df[df.b.isin(["a", "b", "c"])]
+
+   df.query('c == [1, 2]')
+
+   df.query('c != [1, 2]')
+
+   # using in/not in
+   df.query('[1, 2] in c')
+
+   df.query('[1, 2] not in c')
+
+   # pure Python
+   df[df.c.isin([1, 2])]
+
+
+Boolean Operators
+~~~~~~~~~~~~~~~~~
+
+You can negate boolean expressions with the word ``not`` or the ``~`` operator.
+
+.. ipython:: python
+
+   df = DataFrame(rand(n, 3), columns=list('abc'))
+   df['bools'] = rand(len(df)) > 0.5
+   df.query('~bools')
+   df.query('not bools')
+   df.query('not bools') == df[~df.bools]
+
+Of course, expressions can be arbitrarily complex too
+
+.. ipython:: python
+
+   # short query syntax
+   shorter = df.query('a < b < c and (not bools) or bools > 2')
+
+   # equivalent in pure Python
+   longer = df[(df.a < df.b) & (df.b < df.c) & (~df.bools) | (df.bools > 2)]
+
+   shorter
+   longer
+
+   shorter == longer
+
+.. ipython:: python
+   :suppress:
+
+   try:
+       d = old_d
+       del old_d
+   except NameError:
+       pass
+
+
+Performance of :meth:`~pandas.DataFrame.query`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``DataFrame.query()`` using ``numexpr`` is slightly faster than Python for
+large frames
+
+.. image:: _static/query-perf.png
+
+.. note::
+
+   You will only see the performance benefits of using the ``numexpr`` engine
+   with ``DataFrame.query()`` if your frame has more than approximately 50,000
+   rows
+
+      .. image:: _static/query-perf-small.png
+
+This plot was created using a ``DataFrame`` with 3 columns each containing
+floating point values generated using ``numpy.random.randn()``.
+
+.. ipython:: python
+   :suppress:
+
+   df = DataFrame(randn(8, 4), index=dates, columns=['A', 'B', 'C', 'D'])
+   df2 = df.copy()
+
 Take Methods
-~~~~~~~~~~~~
+------------
 
 .. _indexing.take:
 
@@ -740,7 +1050,7 @@ faster than fancy indexing.
    timeit ser.take(indexer)
 
 Duplicate Data
-~~~~~~~~~~~~~~
+--------------
 
 .. _indexing.duplicate:
 
@@ -766,8 +1076,8 @@ should be taken instead.
 
 .. _indexing.dictionarylike:
 
-Dictionary-like ``get`` method
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Dictionary-like :meth:`~pandas.DataFrame.get` method
+----------------------------------------------------
 
 Each of Series, DataFrame, and Panel have a ``get`` method which can return a
 default value.
@@ -865,8 +1175,8 @@ labels or even boolean vectors:
 Slicing with labels is closely related to the ``truncate`` method which does
 precisely ``.ix[start:stop]`` but returns a copy (for legacy reasons).
 
-The ``select`` method
-~~~~~~~~~~~~~~~~~~~~~
+The :meth:`~pandas.DataFrame.select` Method
+-------------------------------------------
 
 Another way to extract slices from an object is with the ``select`` method of
 Series, DataFrame, and Panel. This method should be used only when there is no
@@ -877,8 +1187,8 @@ more direct way.  ``select`` takes a function which operates on labels along
 
    df.select(lambda x: x == 'A', axis=1)
 
-The ``lookup`` method
-~~~~~~~~~~~~~~~~~~~~~
+The :meth:`~pandas.DataFrame.lookup` Method
+-------------------------------------------
 
 Sometimes you want to extract a set of values given a sequence of row labels
 and column labels, and the ``lookup`` method allows for this and returns a
@@ -890,7 +1200,7 @@ numpy array.  For instance,
   dflookup.lookup(list(range(0,10,2)), ['B','C','A','B','D'])
 
 Setting values in mixed-type DataFrame
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------------------
 
 .. _indexing.mixed_type_setting:
 
@@ -909,7 +1219,7 @@ scalar values, though setting arbitrary vectors is not yet supported:
 .. _indexing.view_versus_copy:
 
 Returning a view versus a copy
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------------
 
 The rules about when a view on the data is returned are entirely dependent on
 NumPy. Whenever an array of labels or a boolean vector are involved in the
@@ -970,7 +1280,7 @@ When assigning values to subsets of your data, thus, make sure to either use the
 pandas access methods or explicitly handle the assignment creating a copy.
 
 Fallback indexing
-~~~~~~~~~~~~~~~~~~~~
+-----------------
 
 .. _indexing.fallback:
 
@@ -1005,6 +1315,71 @@ convert to an integer index:
     # now you can also do "float selection"
     df_new[(df_new['index'] >= 1.0) & (df_new['index'] < 2)]
 
+
+.. _indexing.class:
+
+Index objects
+-------------
+
+The pandas :class:`~pandas.Index` class and its subclasses can be viewed as
+implementing an *ordered multiset*. Duplicates are allowed. However, if you try
+to convert an :class:`~pandas.Index` object with duplicate entries into a
+``set``, an exception will be raised.
+
+:class:`~pandas.Index` also provides the infrastructure necessary for
+lookups, data alignment, and reindexing. The easiest way to create an
+:class:`~pandas.Index` directly is to pass a ``list`` or other sequence to
+:class:`~pandas.Index`:
+
+.. ipython:: python
+
+   index = Index(['e', 'd', 'a', 'b'])
+   index
+   'd' in index
+
+You can also pass a ``name`` to be stored in the index:
+
+
+.. ipython:: python
+
+   index = Index(['e', 'd', 'a', 'b'], name='something')
+   index.name
+
+Starting with pandas 0.5, the name, if set, will be shown in the console
+display:
+
+.. ipython:: python
+
+   index = Index(list(range(5)), name='rows')
+   columns = Index(['A', 'B', 'C'], name='cols')
+   df = DataFrame(np.random.randn(5, 3), index=index, columns=columns)
+   df
+   df['A']
+
+
+Set operations on Index objects
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _indexing.set_ops:
+
+The three main operations are ``union (|)``, ``intersection (&)``, and ``diff
+(-)``. These can be directly called as instance methods or used via overloaded
+operators:
+
+.. ipython:: python
+
+   a = Index(['c', 'b', 'a'])
+   b = Index(['c', 'e', 'd'])
+   a.union(b)
+   a | b
+   a & b
+   a - b
+
+The ``isin`` method of Index objects
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+One additional operation is the ``isin`` method that works analogously to the
+``Series.isin`` method found :ref:`here <indexing.boolean>`.
 
 .. _indexing.hierarchical:
 
@@ -1206,7 +1581,7 @@ mailing list.
 .. _indexing.xs:
 
 Cross-section with hierarchical index
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The ``xs`` method of ``DataFrame`` additionally takes a level argument to make
 selecting data at a particular level of a MultiIndex easier.
@@ -1238,8 +1613,8 @@ instance:
    print df2_aligned
 
 
-The need for sortedness
-~~~~~~~~~~~~~~~~~~~~~~~
+The need for sortedness with :class:`~pandas.MultiIndex`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Caveat emptor**: the present implementation of ``MultiIndex`` requires that
 the labels be sorted for some of the slicing / indexing routines to work
@@ -1311,8 +1686,8 @@ However:
         ...
    KeyError: Key length (3) was greater than MultiIndex lexsort depth (2)
 
-Swapping levels with ``swaplevel``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Swapping levels with :meth:`~pandas.MultiIndex.swaplevel`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The ``swaplevel`` function can switch the order of two levels:
 
@@ -1323,8 +1698,8 @@ The ``swaplevel`` function can switch the order of two levels:
 
 .. _indexing.reorderlevels:
 
-Reordering levels with ``reorder_levels``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Reordering levels with :meth:`~pandas.MultiIndex.reorder_levels`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The ``reorder_levels`` function generalizes the ``swaplevel`` function,
 allowing you to permute the hierarchical index levels in one step:
@@ -1354,68 +1729,9 @@ not check (or care) whether the levels themselves are sorted. Fortunately, the
 constructors ``from_tuples`` and ``from_arrays`` ensure that this is true, but
 if you compute the levels and labels yourself, please be careful.
 
-.. _indexing.class:
-
-Index objects
--------------
-
-The pandas Index class and its subclasses can be viewed as implementing an
-*ordered set* in addition to providing the support infrastructure necessary for
-lookups, data alignment, and reindexing. The easiest way to create one directly
-is to pass a list or other sequence to ``Index``:
-
-.. ipython:: python
-
-   index = Index(['e', 'd', 'a', 'b'])
-   index
-   'd' in index
-
-You can also pass a ``name`` to be stored in the index:
-
-
-.. ipython:: python
-
-   index = Index(['e', 'd', 'a', 'b'], name='something')
-   index.name
-
-Starting with pandas 0.5, the name, if set, will be shown in the console
-display:
-
-.. ipython:: python
-
-   index = Index(list(range(5)), name='rows')
-   columns = Index(['A', 'B', 'C'], name='cols')
-   df = DataFrame(np.random.randn(5, 3), index=index, columns=columns)
-   df
-   df['A']
-
-
-Set operations on Index objects
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. _indexing.set_ops:
-
-The three main operations are ``union (|)``, ``intersection (&)``, and ``diff
-(-)``. These can be directly called as instance methods or used via overloaded
-operators:
-
-.. ipython:: python
-
-   a = Index(['c', 'b', 'a'])
-   b = Index(['c', 'e', 'd'])
-   a.union(b)
-   a | b
-   a & b
-   a - b
-
-``isin`` method of Index objects
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-One additional operation is the ``isin`` method that works analogously to the
-``Series.isin`` method found :ref:`here <indexing.boolean>`.
 
 Setting index metadata (``name(s)``, ``levels``, ``labels``)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------------------------------------------
 
 .. _indexing.set_metadata:
 
@@ -1444,7 +1760,7 @@ add an index after you've already done so. There are a couple of different
 ways.
 
 Add an index using DataFrame columns
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------------------
 
 .. _indexing.set_index:
 
@@ -1487,7 +1803,7 @@ the index in-place (without creating a new object):
    data
 
 Remove / reset the index,  ``reset_index``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------------------------
 
 As a convenience, there is a new function on DataFrame called ``reset_index``
 which transfers the index values into the DataFrame's columns and sets a simple
@@ -1518,7 +1834,7 @@ discards the index, instead of putting index values in the DataFrame's columns.
    deprecated.
 
 Adding an ad hoc index
-~~~~~~~~~~~~~~~~~~~~~~
+----------------------
 
 If you create an index yourself, you can just assign it to the ``index`` field:
 
@@ -1531,9 +1847,9 @@ Indexing internal details
 
 .. note::
 
-    The following is largely relevant for those actually working on the pandas
-    codebase. And the source code is still the best place to look at the
-    specifics of how things are implemented.
+   The following is largely relevant for those actually working on the pandas
+   codebase. The source code is still the best place to look at the specifics
+   of how things are implemented.
 
 In pandas there are a few objects implemented which can serve as valid
 containers for the axis labels:
@@ -1545,6 +1861,8 @@ containers for the axis labels:
   - ``Int64Index``: a version of ``Index`` highly optimized for 64-bit integer
     data, such as time stamps
   - ``MultiIndex``: the standard hierarchical index object
+  - ``PeriodIndex``: An Index object with Period elements
+  - ``DatetimeIndex``: An Index object with Timestamp elements
   - ``date_range``: fixed frequency date range generated from a time rule or
     DateOffset. An ndarray of Python datetime objects
 

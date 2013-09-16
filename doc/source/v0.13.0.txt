@@ -187,6 +187,96 @@ Indexing API Changes
        p
        p.loc[:,:,'C']
 
+HDFStore API Changes
+~~~~~~~~~~~~~~~~~~~~
+
+  - Query Format Changes. A much more string-like query format is now supported.
+
+    .. ipython:: python
+
+       path = 'test_query.h5'
+       dfq = DataFrame(randn(10,4),columns=list('ABCD'),index=date_range('20130101',periods=10))
+       dfq.to_hdf(path,'dfq',format='table',data_columns=True)
+
+    Use boolean expressions, with in-line function evaluation.
+
+    .. ipython:: python
+
+       read_hdf(path,'dfq',where="index>Timestamp('20130104') & columns=['A', 'B']")
+
+    Use an inline column reference
+
+    .. ipython:: python
+
+       read_hdf(path,'dfq',where="A>0 or C>0")
+
+    See :ref:`the docs<io.hdf5-query>`.
+
+  - Significant table writing performance improvements
+  - handle a passed ``Series`` in table format (:issue:`4330`)
+  - added an ``is_open`` property to indicate if the underlying file handle is_open;
+    a closed store will now report 'CLOSED' when viewing the store (rather than raising an error)
+    (:issue:`4409`)
+  - a close of a ``HDFStore`` now will close that instance of the ``HDFStore``
+    but will only close the actual file if the ref count (by ``PyTables``) w.r.t. all of the open handles
+    are 0. Essentially you have a local instance of ``HDFStore`` referenced by a variable. Once you
+    close it, it will report closed. Other references (to the same file) will continue to operate
+    until they themselves are closed. Performing an action on a closed file will raise
+    ``ClosedFileError``
+
+    .. ipython:: python
+
+       path = 'test.h5'
+       df = DataFrame(randn(10,2))
+       store1 = HDFStore(path)
+       store2 = HDFStore(path)
+       store1.append('df',df)
+       store2.append('df2',df)
+
+       store1
+       store2
+       store1.close()
+       store2
+       store2.close()
+       store2
+
+    .. ipython:: python
+       :suppress:
+
+       import os
+       os.remove(path)
+
+  - removed the ``_quiet`` attribute, replace by a ``DuplicateWarning`` if retrieving
+    duplicate rows from a table (:issue:`4367`)
+  - removed the ``warn`` argument from ``open``. Instead a ``PossibleDataLossError`` exception will
+    be raised if you try to use ``mode='w'`` with an OPEN file handle (:issue:`4367`)
+  - allow a passed locations array or mask as a ``where`` condition (:issue:`4467`).
+    See :ref:`here<io.hdf5-where_mask>` for an example.
+
+  - the ``format`` keyword now replaces the ``table`` keyword; allowed values are ``fixed(f)`` or ``table(t)``
+    the same defaults as prior < 0.13.0 remain, e.g. ``put`` implies 'fixed` or 'f' (Fixed) format
+    and ``append`` imples 'table' or 't' (Table) format
+
+    .. ipython:: python
+
+       path = 'test.h5'
+       df = DataFrame(randn(10,2))
+       df.to_hdf(path,'df_table',format='table')
+       df.to_hdf(path,'df_table2',append=True)
+       df.to_hdf(path,'df_fixed')
+       with get_store(path) as store:
+          print store
+
+    .. ipython:: python
+       :suppress:
+
+       import os
+       os.remove('test.h5')
+       os.remove('test_query.h5')
+  - add the keyword ``dropna=True`` to ``append`` to change whether ALL nan rows are not written
+    to the store (default is ``True``, ALL nan rows are NOT written), also settable
+    via the option ``io.hdf.dropna_table`` (:issue:`4625`)
+
 Enhancements
 ~~~~~~~~~~~~
 
@@ -270,6 +360,90 @@ Enhancements
     the bandwidth, and to gkde.evaluate() to specify the indicies at which it
     is evaluated, respecttively. See scipy docs.
   - DataFrame constructor now accepts a numpy masked record array (:issue:`3478`)
+
+
+.. _whatsnew_0130.experimental:
+
+Experimental
+~~~~~~~~~~~~
+
+- :func:`~pandas.eval`:
+
+  - The new :func:`~pandas.eval` function implements expression evaluation using
+    ``numexpr`` behind the scenes. This results in large speedups for
+    complicated expressions involving large DataFrames/Series. For example,
+
+      .. ipython:: python
+
+         nrows, ncols = 20000, 100
+         df1, df2, df3, df4 = [DataFrame(randn(nrows, ncols))
+                               for _ in xrange(4)]
+
+      .. ipython:: python
+
+         %timeit pd.eval('df1 + df2 + df3 + df4')
+
+    For more details, see the :ref:`enhancing performance documentation on eval
+    <enhancingperf.eval>`
+
+- :meth:`~pandas.DataFrame.eval`
+
+  - Similar to :func:`~pandas.eval`, :class:`~pandas.DataFrame` has a new
+    :meth:`~pandas.DataFrame.eval` that evaluates an expression in the context
+    of the ``DataFrame``. For example,
+
+      .. ipython:: python
+         :suppress:
+
+         try:
+            del a
+         except NameError:
+            pass
+
+         try:
+            del b
+         except NameError:
+            pass
+
+      .. ipython:: python
+
+         df = DataFrame(randn(10, 2), columns=['a', 'b'])
+         df.eval('a + b')
+
+
+- :meth:`~pandas.DataFrame.query`
+
+  - In 0.13 a :meth:`~pandas.DataFrame.query` method has been added that allows
+    you to select elements of a ``DataFrame`` using a natural query syntax
+    nearly identical to Python syntax. For example,
+
+      .. ipython:: python
+         :suppress:
+
+         try:
+            del a
+         except NameError:
+            pass
+
+         try:
+            del b
+         except NameError:
+            pass
+
+         try:
+            del c
+         except NameError:
+            pass
+
+      .. ipython:: python
+
+         n = 20
+         df = DataFrame(randint(n, size=(n, 3)), columns=['a', 'b', 'c'])
+         df.query('a < b < c')
+
+    selects all the rows of ``df`` where ``a < b < c`` evaluates to ``True``.
+    For more details see the :ref:`indexing documentation on query
+    <indexing.query>`.
 
 .. _whatsnew_0130.refactoring:
 

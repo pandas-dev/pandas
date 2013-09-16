@@ -4,15 +4,13 @@ import unittest
 
 import nose
 from nose.tools import assert_equal
-import unittest
 import numpy as np
 from pandas.tslib import iNaT
 
 from pandas import Series, DataFrame, date_range, DatetimeIndex, Timestamp
-import pandas.compat as compat
+from pandas import compat
 from pandas.compat import range, long, lrange, lmap, u
 from pandas.core.common import notnull, isnull
-import pandas.compat as compat
 import pandas.core.common as com
 import pandas.util.testing as tm
 import pandas.core.config as cf
@@ -41,6 +39,7 @@ def test_is_sequence():
             return 1
 
     assert(not is_seq(A()))
+
 
 def test_notnull():
     assert notnull(1.)
@@ -121,10 +120,12 @@ def test_isnull_datetime():
     assert(mask[0])
     assert(not mask[1:].any())
 
+
 def test_datetimeindex_from_empty_datetime64_array():
     for unit in [ 'ms', 'us', 'ns' ]:
         idx = DatetimeIndex(np.array([], dtype='datetime64[%s]' % unit))
         assert(len(idx) == 0)
+
 
 def test_nan_to_nat_conversions():
 
@@ -143,6 +144,7 @@ def test_nan_to_nat_conversions():
     from distutils.version import LooseVersion
     if LooseVersion(np.__version__) >= '1.7.0':
         assert(s[8].value == np.datetime64('NaT').astype(np.int64))
+
 
 def test_any_none():
     assert(com._any_none(1, 2, 3, None))
@@ -307,6 +309,7 @@ def test_ensure_int32():
     values = np.arange(10, dtype=np.int64)
     result = com._ensure_int32(values)
     assert(result.dtype == np.int32)
+
 
 def test_ensure_platform_int():
 
