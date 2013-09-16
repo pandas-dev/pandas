@@ -303,6 +303,8 @@ Experimental Features
   you to select elements of a ``DataFrame`` using a natural query syntax nearly
   identical to Python syntax.
 
+.. _release.bug_fixes-0.13.0:
+
 
 Bug Fixes
 ~~~~~~~~~
