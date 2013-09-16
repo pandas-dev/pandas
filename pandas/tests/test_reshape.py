@@ -14,6 +14,7 @@ from numpy import nan
 import numpy as np
 
 from pandas.util.testing import assert_frame_equal
+from numpy.testing import assert_array_equal
 
 from pandas.core.reshape import melt, convert_dummies, lreshape, get_dummies
 import pandas.util.testing as tm
@@ -195,11 +196,8 @@ class TestGetDummies(unittest.TestCase):
         assert_frame_equal(res_na, exp_na)
 
         res_just_na = get_dummies([nan], dummy_na=True)
-        exp_just_na = DataFrame({nan: {0: 1.0}})
-        # hack (NaN handling in assert_index_equal)
-        exp_just_na.columns = res_just_na.columns
-        assert_frame_equal(res_just_na, exp_just_na)
-
+        exp_just_na = DataFrame(Series(1.0,index=[0]),columns=[nan])
+        assert_array_equal(res_just_na.values, exp_just_na.values)
 
 class TestConvertDummies(unittest.TestCase):
     def test_convert_dummies(self):

@@ -1110,10 +1110,10 @@ class TestDataFrameFormatting(unittest.TestCase):
         result = df.to_string()
         expected = ('     0\n'
                     '1.5  0\n'
-                    '2    1\n'
-                    '3    2\n'
-                    '4    3\n'
-                    '5    4')
+                    '2.0  1\n'
+                    '3.0  2\n'
+                    '4.0  3\n'
+                    '5.0  4')
         self.assertEqual(result, expected)
 
     def test_to_string_ascii_error(self):

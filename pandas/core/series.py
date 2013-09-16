@@ -901,7 +901,8 @@ class Series(generic.NDFrame):
             raise
         except:
             if isinstance(i, slice):
-                return self[i]
+                indexer = self.index._convert_slice_indexer(i,typ='iloc')
+                return self._get_values(indexer)
             else:
                 label = self.index[i]
                 if isinstance(label, Index):
@@ -914,10 +915,10 @@ class Series(generic.NDFrame):
     def _is_mixed_type(self):
         return False
 
-    def _slice(self, slobj, axis=0, raise_on_error=False):
+    def _slice(self, slobj, axis=0, raise_on_error=False, typ=None):
         if raise_on_error:
             _check_slice_bounds(slobj, self.values)
-
+        slobj = self.index._convert_slice_indexer(slobj,typ=typ or 'getitem')
         return self._constructor(self.values[slobj], index=self.index[slobj],
                                  name=self.name)
 
@@ -935,7 +936,13 @@ class Series(generic.NDFrame):
             elif _is_bool_indexer(key):
                 pass
             else:
+
+                # we can try to coerce the indexer (or this will raise)
+                new_key = self.index._convert_scalar_indexer(key)
+                if type(new_key) != type(key):
+                    return self.__getitem__(new_key)
                 raise
+
         except Exception:
             raise
 
@@ -950,14 +957,7 @@ class Series(generic.NDFrame):
     def _get_with(self, key):
         # other: fancy integer or otherwise
         if isinstance(key, slice):
-
-            idx_type = self.index.inferred_type
-            if idx_type == 'floating':
-                indexer = self.ix._convert_to_indexer(key, axis=0)
-            elif idx_type == 'integer' or _is_index_slice(key):
-                indexer = key
-            else:
-                indexer = self.ix._convert_to_indexer(key, axis=0)
+            indexer = self.index._convert_slice_indexer(key,typ='getitem')
             return self._get_values(indexer)
         else:
             if isinstance(key, tuple):
@@ -980,7 +980,7 @@ class Series(generic.NDFrame):
                 key_type = lib.infer_dtype(key)
 
             if key_type == 'integer':
-                if self.index.inferred_type == 'integer':
+                if self.index.is_integer() or self.index.is_floating():
                     return self.reindex(key)
                 else:
                     return self._get_values(key)
@@ -1080,10 +1080,7 @@ class Series(generic.NDFrame):
     def _set_with(self, key, value):
         # other: fancy integer or otherwise
         if isinstance(key, slice):
-            if self.index.inferred_type == 'integer' or _is_index_slice(key):
-                indexer = key
-            else:
-                indexer = self.ix._convert_to_indexer(key, axis=0)
+            indexer = self.index._convert_slice_indexer(key,typ='getitem')
             return self._set_values(indexer, value)
         else:
             if isinstance(key, tuple):
@@ -2348,7 +2345,7 @@ class Series(generic.NDFrame):
             raise TypeError('This Series is a view of some other array, to '
                             'sort in-place you must create a copy')
 
-        self[:] = sortedSeries
+        self._data = sortedSeries._data.copy()
         self.index = sortedSeries.index
 
     def sort_index(self, ascending=True):

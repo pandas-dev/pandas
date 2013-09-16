@@ -15,8 +15,7 @@ New Features
   with choice of join method (ENH56_)
 - :ref:`Added <indexing.get_level_values>` method ``get_level_values`` to
   ``MultiIndex`` (:issue:`188`)
-- :ref:`Set <indexing.mixed_type_setting>` values in mixed-type
-  ``DataFrame`` objects via ``.ix`` indexing attribute (:issue:`135`)
+- Set values in mixed-type ``DataFrame`` objects via ``.ix`` indexing attribute (:issue:`135`)
 - Added new ``DataFrame`` :ref:`methods <basics.dtypes>`
   ``get_dtype_counts`` and property ``dtypes`` (ENHdc_)
 - Added :ref:`ignore_index <merging.ignore_index>` option to

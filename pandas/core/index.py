@@ -14,7 +14,7 @@ from pandas.core.base import FrozenList, FrozenNDArray
 from pandas.util.decorators import cache_readonly, deprecate
 from pandas.core.common import isnull
 import pandas.core.common as com
-from pandas.core.common import _values_from_object
+from pandas.core.common import _values_from_object, is_float, is_integer
 from pandas.core.config import get_option
 
 
@@ -49,9 +49,7 @@ def _shouldbe_timestamp(obj):
             or tslib.is_datetime64_array(obj)
             or tslib.is_timestamp_array(obj))
 
-
 _Identity = object
-
 
 class Index(FrozenNDArray):
 
@@ -160,8 +158,8 @@ class Index(FrozenNDArray):
                 subarr = subarr.copy()
 
         elif np.isscalar(data):
-            raise TypeError('Index(...) must be called with a collection '
-                            'of some kind, %s was passed' % repr(data))
+            cls._scalar_data_error(data)
+
         else:
             # other iterable of some kind
             subarr = com._asarray_tuplesafe(data, dtype=object)
@@ -170,6 +168,8 @@ class Index(FrozenNDArray):
             inferred = lib.infer_dtype(subarr)
             if inferred == 'integer':
                 return Int64Index(subarr.astype('i8'), copy=copy, name=name)
+            elif inferred in ['floating','mixed-integer-float']:
+                return Float64Index(subarr, copy=copy, name=name)
             elif inferred != 'string':
                 if (inferred.startswith('datetime') or
                         tslib.is_timestamp_array(subarr)):
@@ -182,6 +182,30 @@ class Index(FrozenNDArray):
         # could also have a _set_name, but I don't think it's really necessary
         subarr._set_names([name])
         return subarr
+
+    # construction helpers
+    @classmethod
+    def _scalar_data_error(cls, data):
+        raise TypeError('{0}(...) must be called with a collection '
+                        'of some kind, {1} was passed'.format(cls.__name__,repr(data)))
+
+    @classmethod
+    def _string_data_error(cls, data):
+        raise TypeError('String dtype not supported, you may need '
+                        'to explicitly cast to a numeric type')
+
+    @classmethod
+    def _coerce_to_ndarray(cls, data):
+
+        if not isinstance(data, np.ndarray):
+            if np.isscalar(data):
+                cls._scalar_data_error(data)
+
+            # other iterable of some kind
+            if not isinstance(data, (list, tuple)):
+                data = list(data)
+            data = np.asarray(data)
+        return data
 
     def __array_finalize__(self, obj):
         self._reset_identity()
@@ -374,12 +398,137 @@ class Index(FrozenNDArray):
     def is_unique(self):
         return self._engine.is_unique
 
+    def is_integer(self):
+        return self.inferred_type in ['integer']
+
+    def is_floating(self):
+        return self.inferred_type in ['floating','mixed-integer-float']
+
     def is_numeric(self):
         return self.inferred_type in ['integer', 'floating']
+
+    def is_mixed(self):
+        return 'mixed' in self.inferred_type
 
     def holds_integer(self):
         return self.inferred_type in ['integer', 'mixed-integer']
 
+    def _convert_scalar_indexer(self, key, typ=None):
+        """ convert a scalar indexer, right now we are converting floats -> ints
+            if the index supports it """
+
+        def to_int():
+            ikey = int(key)
+            if ikey != key:
+                self._convert_indexer_error(key, 'label')
+            return ikey
+
+        if typ == 'iloc':
+            if not (is_integer(key) or is_float(key)):
+                self._convert_indexer_error(key, 'label')
+            return to_int()
+
+        if is_float(key):
+            return to_int()
+
+        return key
+
+    def _validate_slicer(self, key, f):
+        """ validate and raise if needed on a slice indexers according to the
+        passed in function """
+
+        if not f(key.start):
+            self._convert_indexer_error(key.start, 'slice start value')
+        if not f(key.stop):
+            self._convert_indexer_error(key.stop, 'slice stop value')
+        if not f(key.step):
+            self._convert_indexer_error(key.step, 'slice step value')
+
+    def _convert_slice_indexer_iloc(self, key):
+        """ convert a slice indexer for iloc only """
+        self._validate_slicer(key, lambda v: v is None or is_integer(v))
+        return key
+
+    def _convert_slice_indexer_getitem(self, key, is_index_slice=False):
+        """ called from the getitem slicers, determine how to treat the key
+            whether positional or not """
+        if self.is_integer() or is_index_slice:
+            return key
+        return  self._convert_slice_indexer(key)
+
+    def _convert_slice_indexer(self, key, typ=None):
+        """ convert a slice indexer. disallow floats in the start/stop/step """
+
+        # validate slicers
+        def validate(v):
+            if v is None or is_integer(v):
+                return True
+
+            # dissallow floats
+            elif is_float(v):
+                return False
+
+            return True
+
+        self._validate_slicer(key, validate)
+
+        # figure out if this is a positional indexer
+        start, stop, step = key.start, key.stop, key.step
+
+        def is_int(v):
+            return v is None or is_integer(v)
+
+        is_null_slice = start is None and stop is None
+        is_index_slice = is_int(start) and is_int(stop)
+        is_positional = is_index_slice and not self.is_integer()
+
+        if typ == 'iloc':
+            return self._convert_slice_indexer_iloc(key)
+        elif typ == 'getitem':
+            return self._convert_slice_indexer_getitem(key, is_index_slice=is_index_slice)
+
+        # convert the slice to an indexer here
+
+        # if we are mixed and have integers
+        try:
+            if is_positional and self.is_mixed():
+                if start is not None:
+                    i = self.get_loc(start)
+                if stop is not None:
+                    j = self.get_loc(stop)
+                is_positional = False
+        except KeyError:
+            if self.inferred_type == 'mixed-integer-float':
+                raise
+
+        if is_null_slice:
+            indexer = key
+        elif is_positional:
+            indexer = key
+        else:
+            try:
+                indexer = self.slice_indexer(start, stop, step)
+            except Exception:
+                if is_index_slice:
+                    if self.is_integer():
+                        raise
+                    else:
+                        indexer = key
+                else:
+                    raise
+
+        return indexer
+
+    def _convert_list_indexer(self, key, typ=None):
+        """ convert a list indexer. these should be locations """
+        return key
+
+    def _convert_indexer_error(self, key, msg=None):
+        if msg is None:
+            msg = 'label'
+        raise TypeError("the {0} [{1}] is not a proper indexer for this index type ({2})".format(msg,
+                                                                                                 key,
+                                                                                                 self.__class__.__name__))
     def get_duplicates(self):
         from collections import defaultdict
         counter = defaultdict(lambda: 0)
@@ -858,6 +1007,11 @@ class Index(FrozenNDArray):
         """
         s = _values_from_object(series)
         k = _values_from_object(key)
+
+        # prevent integer truncation bug in indexing
+        if is_float(k) and not self.is_floating():
+            raise KeyError
+
         try:
             return self._engine.get_value(s, k)
         except KeyError as e1:
@@ -1323,6 +1477,11 @@ class Index(FrozenNDArray):
 
         # return a slice
         if np.isscalar(start_slice) and np.isscalar(end_slice):
+
+            # degenerate cases
+            if start is None and end is None:
+                return slice(None, None, step)
+
             return slice(start_slice, end_slice, step)
 
         # loc indexers
@@ -1488,22 +1647,13 @@ class Int64Index(Index):
 
         if not isinstance(data, np.ndarray):
             if np.isscalar(data):
-                raise ValueError('Index(...) must be called with a collection '
-                                 'of some kind, %s was passed' % repr(data))
+                cls._scalar_data_error(data)
 
-            if not isinstance(data, np.ndarray):
-                if np.isscalar(data):
-                    raise ValueError('Index(...) must be called with a collection '
-                                     'of some kind, %s was passed' % repr(data))
-
-                # other iterable of some kind
-                if not isinstance(data, (list, tuple)):
-                    data = list(data)
-                data = np.asarray(data)
+            data = cls._coerce_to_ndarray(data)
 
             if issubclass(data.dtype.type, compat.string_types):
-                raise TypeError('String dtype not supported, you may need '
-                                'to explicitly cast to int')
+                cls._string_data_error(data)
+
             elif issubclass(data.dtype.type, np.integer):
                 # don't force the upcast as we may be dealing
                 # with a platform int
@@ -1524,8 +1674,8 @@ class Int64Index(Index):
             data = np.asarray(data)
 
         if issubclass(data.dtype.type, compat.string_types):
-            raise TypeError('String dtype not supported, you may need '
-                            'to explicitly cast to int')
+            cls._string_data_error(data)
+
         elif issubclass(data.dtype.type, np.integer):
             # don't force the upcast as we may be dealing
             # with a platform int
@@ -1580,6 +1730,123 @@ class Int64Index(Index):
         name = self.name if self.name == other.name else None
         return Int64Index(joined, name=name)
 
+
+class Float64Index(Index):
+    """
+    Immutable ndarray implementing an ordered, sliceable set. The basic object
+    storing axis labels for all pandas objects. Float64Index is a special case of `Index`
+    with purely floating point labels.
+
+    Parameters
+    ----------
+    data : array-like (1-dimensional)
+    dtype : NumPy dtype (default: object)
+    copy : bool
+        Make a copy of input ndarray
+    name : object
+        Name to be stored in the index
+
+    Note
+    ----
+    An Index instance can **only** contain hashable objects
+    """
+
+    # when this is not longer object dtype this can be changed
+    #_engine_type = _index.Float64Engine
+
+    def __new__(cls, data, dtype=None, copy=False, name=None, fastpath=False):
+
+        if fastpath:
+            subarr = data.view(cls)
+            subarr.name = name
+            return subarr
+
+        if not isinstance(data, np.ndarray):
+            if np.isscalar(data):
+                cls._scalar_data_error(data)
+
+            data = cls._coerce_to_ndarray(data)
+
+        if issubclass(data.dtype.type, compat.string_types):
+            cls._string_data_error(data)
+
+        if dtype is None:
+            dtype = np.float64
+
+        try:
+            subarr = np.array(data, dtype=dtype, copy=copy)
+        except:
+            raise TypeError('Unsafe NumPy casting, you must '
+                            'explicitly cast')
+
+        # coerce to object for storage
+        if not subarr.dtype == np.object_:
+            subarr = subarr.astype(object)
+
+        subarr = subarr.view(cls)
+        subarr.name = name
+        return subarr
+
+    @property
+    def inferred_type(self):
+        return 'floating'
+
+    def astype(self, dtype):
+        if np.dtype(dtype) != np.object_:
+            raise TypeError(
+                "Setting %s dtype to anything other than object is not supported" % self.__class__)
+        return Index(self.values,name=self.name,dtype=object)
+
+    def _convert_scalar_indexer(self, key, typ=None):
+
+        if typ == 'iloc':
+            return super(Float64Index, self)._convert_scalar_indexer(key, typ=typ)
+        return key
+
+    def _convert_slice_indexer(self, key, typ=None):
+        """ convert a slice indexer, by definition these are labels
+            unless we are iloc """
+        if typ == 'iloc':
+            return self._convert_slice_indexer_iloc(key)
+        elif typ == 'getitem':
+            pass
+
+        # allow floats here
+        self._validate_slicer(key, lambda v: v is None or is_integer(v) or is_float(v))
+
+        # translate to locations
+        return self.slice_indexer(key.start,key.stop,key.step)
+
+    def get_value(self, series, key):
+        """ we always want to get an index value, never a value """
+        if not np.isscalar(key):
+            raise InvalidIndexError
+
+        from pandas.core.indexing import _maybe_droplevels
+        from pandas.core.series import Series
+
+        k = _values_from_object(key)
+        loc = self.get_loc(k)
+        new_values = series.values[loc]
+        if np.isscalar(new_values):
+            return new_values
+
+        new_index = self[loc]
+        new_index = _maybe_droplevels(new_index, k)
+        return Series(new_values, index=new_index, name=series.name)
+
+    def equals(self, other):
+        """
+        Determines if two Index objects contain the same elements.
+        """
+        if self is other:
+            return True
+
+        try:
+            return np.array_equal(self, other)
+        except TypeError:
+            # e.g. fails in numpy 1.6 with DatetimeIndex #1681
+            return False
 
 class MultiIndex(Index):
 
@@ -1800,6 +2067,14 @@ class MultiIndex(Index):
 
     def __len__(self):
         return len(self.labels[0])
+
+    def _convert_slice_indexer(self, key, typ=None):
+        """ convert a slice indexer. disallow floats in the start/stop/step """
+
+        if typ == 'iloc':
+            return self._convert_slice_indexer_iloc(key)
+
+        return super(MultiIndex,self)._convert_slice_indexer(key, typ=typ)
 
     def _get_names(self):
         return FrozenList(level.name for level in self.levels)
