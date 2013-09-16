@@ -2675,6 +2675,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(com.is_integer_dtype(df['num']))
         self.assert_(df['str'].dtype == np.object_)
 
+        # GH 4851
+        # list of 0-dim ndarrays
+        expected = DataFrame({ 0: range(10) })
+        data = [np.array(x) for x in range(10)]
+        result = DataFrame(data)
+        assert_frame_equal(result, expected)
+
     def test_constructor_sequence_like(self):
         # GH 3783
         # collections.Squence like

@@ -114,7 +114,7 @@ Improvements to existing features
   - ``Panel.to_excel()`` now accepts keyword arguments that will be passed to
     its ``DataFrame``'s ``to_excel()`` methods. (:issue:`4750`)
   - allow DataFrame constructor to accept more list-like objects, e.g. list of
-    ``collections.Sequence`` and ``array.Array`` objects (:issue:`3783`,:issue:`42971`),
+    ``collections.Sequence`` and ``array.Array`` objects (:issue:`3783`,:issue:`4297`, :issue:`4851`),
     thanks @lgautier
   - DataFrame constructor now accepts a numpy masked record array (:issue:`3478`),
     thanks @jnothman

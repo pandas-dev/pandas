@@ -429,7 +429,7 @@ class DataFrame(NDFrame):
                 if index is None and isinstance(data[0], Series):
                     index = _get_names_from_index(data)
 
-                if is_list_like(data[0]) and getattr(data[0],'ndim',0) <= 1:
+                if is_list_like(data[0]) and getattr(data[0],'ndim',1) == 1:
                     arrays, columns = _to_arrays(data, columns, dtype=dtype)
                     columns = _ensure_index(columns)
 
@@ -4710,7 +4710,7 @@ def extract_index(data):
             elif isinstance(v, dict):
                 have_dicts = True
                 indexes.append(list(v.keys()))
-            elif is_list_like(v) and getattr(v,'ndim',0) <= 1:
+            elif is_list_like(v) and getattr(v,'ndim',1) == 1:
                 have_raw_arrays = True
                 raw_lengths.append(len(v))
 
