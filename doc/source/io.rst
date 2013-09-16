@@ -2404,10 +2404,18 @@ conversion may not be necessary in future versions of pandas)
 String Columns
 ~~~~~~~~~~~~~~
 
-The underlying implementation of ``HDFStore`` uses a fixed column width (itemsize) for string columns. A string column itemsize is calculated as the maximum of the
-length of data (for that column) that is passed to the ``HDFStore``, **in the first append**. Subsequent appends, may introduce a string for a column **larger** than the column can hold, an Exception will be raised (otherwise you could have a silent truncation of these columns, leading to loss of information). In the future we may relax this and allow a user-specified truncation to occur.
+**min_itemsize**
 
-Pass ``min_itemsize`` on the first table creation to a-priori specifiy the minimum length of a particular string column. ``min_itemsize`` can be an integer, or a dict mapping a column name to an integer. You can pass ``values`` as a key to allow all *indexables* or *data_columns* to have this min_itemsize.
+The underlying implementation of ``HDFStore`` uses a fixed column width (itemsize) for string columns.
+A string column itemsize is calculated as the maximum of the
+length of data (for that column) that is passed to the ``HDFStore``, **in the first append**. Subsequent appends,
+may introduce a string for a column **larger** than the column can hold, an Exception will be raised (otherwise you
+could have a silent truncation of these columns, leading to loss of information). In the future we may relax this and
+allow a user-specified truncation to occur.
+
+Pass ``min_itemsize`` on the first table creation to a-priori specifiy the minimum length of a particular string column.
+``min_itemsize`` can be an integer, or a dict mapping a column name to an integer. You can pass ``values`` as a key to
+allow all *indexables* or *data_columns* to have this min_itemsize.
 
 Starting in 0.11, passing a ``min_itemsize`` dict will cause all passed columns to be created as *data_columns* automatically.
 
@@ -2428,6 +2436,23 @@ Starting in 0.11, passing a ``min_itemsize`` dict will cause all passed columns 
    # B is size is calculated
    store.append('dfs2', dfs, min_itemsize = { 'A' : 30 })
    store.get_storer('dfs2').table
+
+**nan_rep**
+
+String columns will serialize a ``np.nan`` (a missing value) with the ``nan_rep`` string representation. This defaults to the string value ``nan``.
+You could inadvertently turn an actual ``nan`` value into a missing value.
+
+.. ipython:: python
+
+   dfss = DataFrame(dict(A = ['foo','bar','nan']))
+   dfss
+
+   store.append('dfss', dfss)
+   store.select('dfss')
+
+   # here you need to specify a different nan rep
+   store.append('dfss2', dfss, nan_rep='_nan_')
+   store.select('dfss2')
 
 External Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~
