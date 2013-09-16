@@ -1831,13 +1831,7 @@ class DataFrame(NDFrame):
         elif is_mi_columns:
             return self._getitem_multilevel(key)
         else:
-            try:
-                return self._getitem_column(key)
-            except KeyError:
-                if maybe_expression(key):
-                    env = _ensure_scope(level=2)
-                    return self.query(key, local_dict=env)
-                raise
+            return self._getitem_column(key)
 
     def _getitem_column(self, key):
         """ return the actual column """
