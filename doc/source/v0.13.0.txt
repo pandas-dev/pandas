@@ -444,7 +444,7 @@ Experimental
       .. ipython:: python
 
          n = 20
-         df = DataFrame(randint(n, size=(n, 3)), columns=['a', 'b', 'c'])
+         df = DataFrame(np.random.randint(n, size=(n, 3)), columns=['a', 'b', 'c'])
          df.query('a < b < c')
 
     selects all the rows of ``df`` where ``a < b < c`` evaluates to ``True``.
@@ -571,7 +571,7 @@ to unify methods and behaviors. Series formerly subclassed directly from
 Bug Fixes
 ~~~~~~~~~
 
-See :ref:`V0.13.0 Bug Fixes<release:bug_fixes-0.13.0>` for an extensive list of bugs that have been fixed in 0.13.0.
+See :ref:`V0.13.0 Bug Fixes<release.bug_fixes-0.13.0>` for an extensive list of bugs that have been fixed in 0.13.0.
 
 See the :ref:`full release notes
 <release>` or issue tracker
