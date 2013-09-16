@@ -3,6 +3,7 @@ import numpy as np
 from pandas.compat import zip
 from pandas.core.common import isnull, _values_from_object
 from pandas.core.series import Series
+from pandas.core.frame import DataFrame
 import pandas.compat as compat
 import re
 import pandas.lib as lib
@@ -328,6 +329,59 @@ def str_match(arr, pat, flags=0):
 
     return _na_map(f, arr)
 
+def str_extract(arr, pat, flags=0):
+    """
+    Find groups in each string (from beginning) using passed regular expression
+
+    Parameters
+    ----------
+    pat : string
+        Pattern or regular expression
+    flags : int, default 0 (no flags)
+        re module flags, e.g. re.IGNORECASE
+
+    Returns
+    -------
+    extracted groups : Series (one group) or DataFrame (multiple groups)
+
+
+    Note
+    ----
+    Compare to the string method match, which returns re.match objects.
+    """
+    regex = re.compile(pat, flags=flags)
+
+    # just to be safe, check this
+    if regex.groups == 0:
+        raise ValueError("This pattern contains no groups to capture.")
+    elif regex.groups == 1:
+        def f(x):
+            if not isinstance(x, compat.string_types):
+                return None
+            m = regex.match(x)
+            if m:
+                return m.groups()[0] # may be None
+            else:
+                return None
+    else:
+        empty_row = Series(regex.groups*[None])
+        def f(x):
+            if not isinstance(x, compat.string_types):
+                return empty_row
+            m = regex.match(x)
+            if m:
+                return Series(list(m.groups())) # may contain None
+            else:
+                return empty_row
+    result = arr.apply(f)
+    result.replace({None: np.nan}, inplace=True)
+    if regex.groups > 1:
+        result = DataFrame(result) # Don't rely on the wrapper; name columns.
+        names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))
+        result.columns = [names.get(1 + i, i) for i in range(regex.groups)]
+    else:
+        result.name = regex.groupindex.get(0)
+    return result
 
 def str_join(arr, sep):
     """
@@ -675,8 +729,12 @@ class StringMethods(object):
             g = self.get(i)
 
     def _wrap_result(self, result):
-        return Series(result, index=self.series.index,
-                      name=self.series.name)
+        assert result.ndim < 3
+        if result.ndim == 1:
+            return Series(result, index=self.series.index,
+                          name=self.series.name)
+        else:
+            return DataFrame(result, index=self.series.index)
 
     @copy(str_cat)
     def cat(self, others=None, sep=None, na_rep=None):
@@ -764,6 +822,7 @@ class StringMethods(object):
     endswith = _pat_wrapper(str_endswith, na=True)
     findall = _pat_wrapper(str_findall, flags=True)
     match = _pat_wrapper(str_match, flags=True)
+    extract = _pat_wrapper(str_extract, flags=True)
 
     len = _noarg_wrapper(str_len)
     lower = _noarg_wrapper(str_lower)

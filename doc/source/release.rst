@@ -59,6 +59,7 @@ New features
 
   - Added ``isin`` method to DataFrame (:issue:`4211`)
   - Clipboard functionality now works with PySide (:issue:`4282`)
+  - New ``extract`` string method returns regex matches more conveniently (:issue:`4685`)
 
 Improvements to existing features
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
