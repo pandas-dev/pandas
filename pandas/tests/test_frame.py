@@ -2743,7 +2743,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         gen = ([ i, 'a'] for i in range(10))
         result = DataFrame(gen)
         expected = DataFrame({ 0 : range(10), 1 : 'a' })
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected, check_dtype=False)
 
     def test_constructor_list_of_dicts(self):
         data = [OrderedDict([['a', 1.5], ['b', 3], ['c', 4], ['d', 6]]),
