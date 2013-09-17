@@ -5,15 +5,14 @@ import numpy as np
 
 import pandas.json as _json
 from pandas.tslib import iNaT
-from pandas.compat import long
+from pandas.compat import long, u
 from pandas import compat, isnull
 from pandas import Series, DataFrame, to_datetime
 from pandas.io.common import get_filepath_or_buffer
+import pandas.core.common as com
 
 loads = _json.loads
 dumps = _json.dumps
-
-
 ### interface to/from ###
 
 
@@ -230,6 +229,14 @@ class Parser(object):
         self.keep_default_dates = keep_default_dates
         self.obj = None
 
+    def check_keys_split(self, decoded):
+        "checks that dict has only the appropriate keys for orient='split'"
+        bad_keys = set(decoded.keys()).difference(set(self._split_keys))
+        if bad_keys:
+            bad_keys = ", ".join(bad_keys)
+            raise ValueError(u("JSON data had unexpected key(s): %s") %
+                             com.pprint_thing(bad_keys))
+
     def parse(self):
 
         # try numpy
@@ -375,6 +382,8 @@ class Parser(object):
 
 class SeriesParser(Parser):
     _default_orient = 'index'
+    _split_keys = ('name', 'index', 'data')
+
 
     def _parse_no_numpy(self):
 
@@ -385,6 +394,7 @@ class SeriesParser(Parser):
                            for k, v in compat.iteritems(loads(
                                json,
                                precise_float=self.precise_float)))
+            self.check_keys_split(decoded)
             self.obj = Series(dtype=None, **decoded)
         else:
             self.obj = Series(
@@ -398,6 +408,7 @@ class SeriesParser(Parser):
             decoded = loads(json, dtype=None, numpy=True,
                             precise_float=self.precise_float)
             decoded = dict((str(k), v) for k, v in compat.iteritems(decoded))
+            self.check_keys_split(decoded)
             self.obj = Series(**decoded)
         elif orient == "columns" or orient == "index":
             self.obj = Series(*loads(json, dtype=None, numpy=True,
@@ -418,6 +429,7 @@ class SeriesParser(Parser):
 
 class FrameParser(Parser):
     _default_orient = 'columns'
+    _split_keys = ('columns', 'index', 'data')
 
     def _parse_numpy(self):
 
@@ -434,6 +446,7 @@ class FrameParser(Parser):
             decoded = loads(json, dtype=None, numpy=True,
                             precise_float=self.precise_float)
             decoded = dict((str(k), v) for k, v in compat.iteritems(decoded))
+            self.check_keys_split(decoded)
             self.obj = DataFrame(**decoded)
         elif orient == "values":
             self.obj = DataFrame(loads(json, dtype=None, numpy=True,
@@ -456,6 +469,7 @@ class FrameParser(Parser):
                            for k, v in compat.iteritems(loads(
                                json,
                                precise_float=self.precise_float)))
+            self.check_keys_split(decoded)
             self.obj = DataFrame(dtype=None, **decoded)
         elif orient == "index":
             self.obj = DataFrame(
