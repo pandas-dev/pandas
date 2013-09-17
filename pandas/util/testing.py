@@ -460,12 +460,12 @@ def makeTimeDataFrame(nper=None):
     return DataFrame(data)
 
 
-def getPeriodData():
-    return dict((c, makePeriodSeries()) for c in getCols(K))
+def getPeriodData(nper=None):
+    return dict((c, makePeriodSeries(nper)) for c in getCols(K))
 
 
-def makePeriodFrame():
-    data = getPeriodData()
+def makePeriodFrame(nper=None):
+    data = getPeriodData(nper)
     return DataFrame(data)
 
 
@@ -474,6 +474,10 @@ def makePanel(nper=None):
     data = dict((c, makeTimeDataFrame(nper)) for c in cols)
     return Panel.fromDict(data)
 
+def makePeriodPanel(nper=None):
+    cols = ['Item' + c for c in string.ascii_uppercase[:K - 1]]
+    data = dict((c, makePeriodFrame(nper)) for c in cols)
+    return Panel.fromDict(data)
 
 def makePanel4D(nper=None):
     return Panel4D(dict(l1=makePanel(nper), l2=makePanel(nper),
