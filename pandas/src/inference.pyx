@@ -28,9 +28,6 @@ try:
 except AttributeError:
     pass
 
-# I'm sure there's a better way to do this
-cdef int64_t MAX_INT = np.iinfo(np.int64).max
-
 def infer_dtype(object _values):
     cdef:
         Py_ssize_t i, n
@@ -428,6 +425,31 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
     else:
         return ints
 
+def maybe_convert_uint64(ndarray[object] objects):
+    '''
+    Try to convert objects into an array of uint64
+    '''
+    cdef:
+        Py_ssize_t i, n
+        ndarray[uint64_t] uints
+        bint cant_convert = 0
+        object val
+    n = len(objects)
+    uints = np.empty(n, dtype='uint64')
+    for i from 0 <= i < n:
+        val = objects[i]
+        if not util.is_integer_object(val) or val < 0:
+            cant_convert = 1
+            break
+        else:
+            uints[i] = val
+
+    if cant_convert:
+        return objects
+    else:
+        return uints
+
+
 def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
                           bint safe=0, bint convert_datetime=0):
     '''
@@ -440,7 +462,6 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         ndarray[int64_t] ints
         ndarray[uint8_t] bools
         ndarray[int64_t] idatetimes
-        ndarray[uint64_t] uints
         bint seen_float = 0
         bint seen_complex = 0
         bint seen_datetime = 0
@@ -449,8 +470,6 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         bint seen_object = 0
         bint seen_null = 0
         bint seen_numeric = 0
-        bint seen_uint = 0
-        bint seen_negative = 0
         object val, onan
         float64_t fval, fnan
 
@@ -462,85 +481,70 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
     bools = np.empty(n, dtype=np.uint8)
     datetimes = np.empty(n, dtype='M8[ns]')
     idatetimes = datetimes.view(np.int64)
-    uints = np.empty(n, dtype='uint64')
 
     onan = np.nan
     fnan = np.nan
 
-    for i from 0 <= i < n:
-        val = objects[i]
+    try:
+        for i from 0 <= i < n:
+            val = objects[i]
 
-        if val is None:
-            seen_null = 1
-            floats[i] = complexes[i] = fnan
-        elif util.is_bool_object(val):
-            seen_bool = 1
-            bools[i] = val
-        elif util.is_float_object(val):
-            floats[i] = complexes[i] = val
-            seen_float = 1
-        elif util.is_datetime64_object(val):
-            if convert_datetime:
-                idatetimes[i] = convert_to_tsobject(val, None, None).value
-                seen_datetime = 1
-            else:
-                seen_object = 1
-                # objects[i] = val.astype('O')
-                break
-        elif util.is_timedelta64_object(val):
-            seen_object = 1
-            break
-        elif util.is_integer_object(val):
-            seen_int = 1
-            floats[i] = <float64_t> val
-            complexes[i] = <double complex> val
-            if not seen_null:
-                try:
-                    ints[i] = val
-                except OverflowError:
-                    if val < 0 or seen_negative:
-                        seen_object = 1
-                        break
-                    else:
-                        seen_uint = 1
-                if val < 0:
-                    seen_negative = 1
-                else:
-                    uints[i] = <uint64_t> val
-        elif util.is_complex_object(val):
-            complexes[i] = val
-            seen_complex = 1
-        elif PyDateTime_Check(val) or util.is_datetime64_object(val):
-            if convert_datetime:
-                seen_datetime = 1
-                idatetimes[i] = convert_to_tsobject(val, None, None).value
-            else:
-                seen_object = 1
-                break
-        elif try_float and not util.is_string_object(val):
-            # this will convert Decimal objects
-            try:
-                floats[i] = float(val)
-                complexes[i] = complex(val)
+            if val is None:
+                seen_null = 1
+                floats[i] = complexes[i] = fnan
+            elif util.is_bool_object(val):
+                seen_bool = 1
+                bools[i] = val
+            elif util.is_float_object(val):
+                floats[i] = complexes[i] = val
                 seen_float = 1
-            except Exception:
+            elif util.is_datetime64_object(val):
+                if convert_datetime:
+                    idatetimes[i] = convert_to_tsobject(val, None, None).value
+                    seen_datetime = 1
+                else:
+                    seen_object = 1
+                    # objects[i] = val.astype('O')
+                    break
+            elif util.is_timedelta64_object(val):
                 seen_object = 1
                 break
-        else:
-            seen_object = 1
-            break
+            elif util.is_integer_object(val):
+                seen_int = 1
+                floats[i] = <float64_t> val
+                complexes[i] = <double complex> val
+                if not seen_null:
+                    ints[i] = val
+            elif util.is_complex_object(val):
+                complexes[i] = val
+                seen_complex = 1
+            elif PyDateTime_Check(val) or util.is_datetime64_object(val):
+                if convert_datetime:
+                    seen_datetime = 1
+                    idatetimes[i] = convert_to_tsobject(val, None, None).value
+                else:
+                    seen_object = 1
+                    break
+            elif try_float and not util.is_string_object(val):
+                # this will convert Decimal objects
+                try:
+                    floats[i] = float(val)
+                    complexes[i] = complex(val)
+                    seen_float = 1
+                except Exception:
+                    seen_object = 1
+                    break
+            else:
+                seen_object = 1
+                break
+    except OverflowError:
+        return maybe_convert_uint64(objects)
 
     seen_numeric = seen_complex or seen_float or seen_int
 
     if not seen_object:
-        if seen_uint:
-            uint_incompatible = (seen_object or seen_null or seen_bool or
-                                 seen_complex or seen_float or seen_negative or
-                                 seen_datetime)
-            if not uint_incompatible:
-                return uints
 
-        elif not safe:
+        if not safe:
             if seen_null:
                 if not seen_bool and not seen_datetime:
                     if seen_complex:
