@@ -605,7 +605,7 @@ class SparseSeries(Series):
         """
         Analogous to Series.shift
         """
-        from pandas.core.series import _resolve_offset
+        from pandas.core.datetools import _resolve_offset
 
         offset = _resolve_offset(freq, kwds)
 
