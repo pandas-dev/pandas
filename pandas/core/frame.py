@@ -2856,7 +2856,7 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> result = df.sort_index(by=['A', 'B'], ascending=[1, 0])
+        >>> result = df.sort_index(by=['A', 'B'], ascending=[True, False])
 
         Returns
         -------
@@ -2875,6 +2875,9 @@ class DataFrame(NDFrame):
                 raise ValueError('When sorting by column, axis must be 0 (rows)')
             if not isinstance(by, (tuple, list)):
                 by = [by]
+            if com._is_sequence(ascending) and len(by) != len(ascending):
+                raise ValueError('Length of ascending (%d) != length of by'
+                                 ' (%d)' % (len(ascending), len(by)))
 
             if len(by) > 1:
                 keys = []
@@ -2900,6 +2903,8 @@ class DataFrame(NDFrame):
                     raise ValueError('Cannot sort by duplicate column %s'
                                      % str(by))
                 indexer = k.argsort(kind=kind)
+                if isinstance(ascending, (tuple, list)):
+                    ascending = ascending[0]
                 if not ascending:
                     indexer = indexer[::-1]
         elif isinstance(labels, MultiIndex):
