@@ -112,5 +112,5 @@ if __name__ == '__main__':
 
     plot_perf(ev[ev.size <= 50000], engines, 'DataFrame.eval()',
               filename=join('eval-perf-small.png'))
-    plot_perf(qu[qu.size <= 100000], engines, 'DataFrame.query()',
+    plot_perf(qu[qu.size <= 500000], engines, 'DataFrame.query()',
               filename=join('query-perf-small.png'))
