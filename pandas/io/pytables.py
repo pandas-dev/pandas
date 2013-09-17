@@ -731,7 +731,7 @@ class HDFStore(StringMixin):
                        allow more flexible operations like searching / selecting subsets
                        of the data
         append   : boolean, default False
-            For Table format, append the input data to the existing
+            This will force Table format, append the input data to the existing.
         encoding : default None, provide an encoding for strings
         """
         if format is None:
@@ -803,7 +803,7 @@ class HDFStore(StringMixin):
                        Write as a PyTables Table structure which may perform worse but
                        allow more flexible operations like searching / selecting subsets
                        of the data
-        append   : boolean, default True, append the input data to the existing
+        append       : boolean, default True, append the input data to the existing
         data_columns : list of columns to create as data columns, or True to use all columns
         min_itemsize : dict of columns that specify minimum string sizes
         nan_rep      : string to use as string nan represenation
