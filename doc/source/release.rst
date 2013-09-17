@@ -120,6 +120,8 @@ Improvements to existing features
     thanks @jnothman
   - ``__getitem__`` with ``tuple`` key (e.g., ``[:, 2]``) on ``Series``
     without ``MultiIndex`` raises ``ValueError`` (:issue:`4759`, :issue:`4837`)
+  - ``read_json`` now raises a (more informative) ``ValueError`` when the dict
+    contains a bad key and ``orient='split'`` (:issue:`4730`, :issue:`4838`)
 
 API Changes
 ~~~~~~~~~~~
