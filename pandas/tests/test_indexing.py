@@ -1362,7 +1362,7 @@ class TestIndexing(unittest.TestCase):
 
         ### frame ###
 
-        df_orig = DataFrame(np.arange(6).reshape(3,2),columns=['A','B'])
+        df_orig = DataFrame(np.arange(6).reshape(3,2),columns=['A','B'],dtype='int64')
 
         # iloc/iat raise
         df = df_orig.copy()
