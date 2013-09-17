@@ -55,6 +55,7 @@ import pandas.util.testing as tm
 import pandas.lib as lib
 
 from numpy.testing.decorators import slow
+from nose.tools import assert_equal
 
 def _skip_if_no_scipy():
     try:
@@ -79,13 +80,13 @@ def _check_mixed_float(df, dtype = None):
     elif isinstance(dtype, dict):
         dtypes.update(dtype)
     if dtypes.get('A'):
-        assert(df.dtypes['A'] == dtypes['A'])
+        assert_equal(df.dtypes['A'], dtypes['A'])
     if dtypes.get('B'):
-        assert(df.dtypes['B'] == dtypes['B'])
+        assert_equal(df.dtypes['B'], dtypes['B'])
     if dtypes.get('C'):
-        assert(df.dtypes['C'] == dtypes['C'])
+        assert_equal(df.dtypes['C'], dtypes['C'])
     if dtypes.get('D'):
-        assert(df.dtypes['D'] == dtypes['D'])
+        assert_equal(df.dtypes['D'], dtypes['D'])
 
 
 def _check_mixed_int(df, dtype = None):
@@ -95,13 +96,13 @@ def _check_mixed_int(df, dtype = None):
     elif isinstance(dtype, dict):
         dtypes.update(dtype)
     if dtypes.get('A'):
-        assert(df.dtypes['A'] == dtypes['A'])
+        assert_equal(df.dtypes['A'], dtypes['A'])
     if dtypes.get('B'):
-        assert(df.dtypes['B'] == dtypes['B'])
+        assert_equal(df.dtypes['B'], dtypes['B'])
     if dtypes.get('C'):
-        assert(df.dtypes['C'] == dtypes['C'])
+        assert_equal(df.dtypes['C'], dtypes['C'])
     if dtypes.get('D'):
-        assert(df.dtypes['D'] == dtypes['D'])
+        assert_equal(df.dtypes['D'], dtypes['D'])
 
 
 class CheckIndexing(object):
@@ -2225,9 +2226,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                           dtype=np.uint64)
 
         result = DataFrame({'a': values})
-        self.assert_(result['a'].dtype == object)
+        self.assert_(result['a'].dtype == np.dtype('uint64'))
 
-        # #2355
+        # Now #2355 with #4845 fix.
         data_scores = [(6311132704823138710, 273), (2685045978526272070, 23),
                        (8921811264899370420, 45), (long(17019687244989530680), 270),
                        (long(9930107427299601010), 273)]
@@ -2235,7 +2236,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         data = np.zeros((len(data_scores),), dtype=dtype)
         data[:] = data_scores
         df_crawls = DataFrame(data)
-        self.assert_(df_crawls['uid'].dtype == object)
+        self.assert_(df_crawls['uid'].dtype == np.dtype('uint64'))
 
     def test_is_mixed_type(self):
         self.assert_(not self.frame._is_mixed_type)
@@ -4437,7 +4438,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                 # overflow in the uint
                 dtype = None
                 if op in ['sub']:
-                    dtype = dict(B = 'object', C = None)
+                    dtype = dict(B = 'uint64', C = None)
                 elif op in ['add','mul']:
                     dtype = dict(C = None)
                 assert_frame_equal(result, exp)
@@ -10346,7 +10347,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         df = DataFrame({'A' : [2**63] })
         result = df['A']
-        expected = Series(np.asarray([2**63], np.object_))
+        expected = Series(np.asarray([2**63], np.uint64))
         assert_series_equal(result, expected)
 
         df = DataFrame({'A' : [datetime(2005, 1, 1), True] })
