@@ -2695,6 +2695,46 @@ class TestHDFStore(unittest.TestCase):
             expected = df.reindex(index=list(df.index)[0:10],columns=['A'])
             tm.assert_frame_equal(expected, result)
 
+        with ensure_clean(self.path) as store:
+
+            # floats w/o NaN
+            df = DataFrame(dict(cols = range(11), values = range(11)),dtype='float64')
+            df['cols'] = (df['cols']+10).apply(str)
+
+            store.append('df1',df,data_columns=True)
+            result = store.select(
+                'df1', where='values>2.0')
+            expected = df[df['values']>2.0]
+            tm.assert_frame_equal(expected, result)
+
+            # floats with NaN
+            df.iloc[0] = np.nan
+            expected = df[df['values']>2.0]
+
+            store.append('df2',df,data_columns=True,index=False)
+            result = store.select(
+                'df2', where='values>2.0')
+            tm.assert_frame_equal(expected, result)
+
+            # https://github.com/PyTables/PyTables/issues/282
+            # bug in selection when 0th row has a np.nan and an index
+            #store.append('df3',df,data_columns=True)
+            #result = store.select(
+            #    'df3', where='values>2.0')
+            #tm.assert_frame_equal(expected, result)
+
+            # not in first position float with NaN ok too
+            df = DataFrame(dict(cols = range(11), values = range(11)),dtype='float64')
+            df['cols'] = (df['cols']+10).apply(str)
+
+            df.iloc[1] = np.nan
+            expected = df[df['values']>2.0]
+
+            store.append('df4',df,data_columns=True)
+            result = store.select(
+                'df4', where='values>2.0')
+            tm.assert_frame_equal(expected, result)
+
     def test_select_with_many_inputs(self):
 
         with ensure_clean(self.path) as store:
