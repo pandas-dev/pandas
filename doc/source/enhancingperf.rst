@@ -386,11 +386,18 @@ Now let's do the same thing but with comparisons:
 
 .. note::
 
-   Operations such as ``1 and 2`` should be performed in Python. An exception
-   will be raised if you try to performed any boolean or bitwise operations
-   with scalar operands that are not of type ``bool`` or ``np.bool_``. *This
-   includes bitwise operations on scalars.* You should perform these kinds of
-   operations in Python.
+   Operations such as
+
+      .. code-block:: python
+
+         1 and 2  # would parse to 1 & 2, but should evaluate to 2
+         3 or 4  # would parse to 3 | 4, but should evaluate to 3
+         ~1  # this is okay, but slower when using eval
+
+   should be performed in Python. An exception will be raised if you try to
+   perform any boolean/bitwise operations with scalar operands that are not
+   of type ``bool`` or ``np.bool_``. Again, you should perform these kinds of
+   operations in plain Python.
 
 The ``DataFrame.eval`` method (Experimental)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
