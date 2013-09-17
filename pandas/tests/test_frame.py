@@ -8796,23 +8796,36 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = frame.ix[frame.index[indexer]]
         assert_frame_equal(sorted_df, expected)
 
+        sorted_df = frame.sort(columns='A', ascending=False)
+        assert_frame_equal(sorted_df, expected)
+
+        # GH4839
+        sorted_df = frame.sort(columns=['A'], ascending=[False])
+        assert_frame_equal(sorted_df, expected)
+
         # check for now
         sorted_df = frame.sort(columns='A')
+        assert_frame_equal(sorted_df, expected[::-1])
         expected = frame.sort_index(by='A')
         assert_frame_equal(sorted_df, expected)
 
-        sorted_df = frame.sort(columns='A', ascending=False)
-        expected = frame.sort_index(by='A', ascending=False)
-        assert_frame_equal(sorted_df, expected)
 
         sorted_df = frame.sort(columns=['A', 'B'], ascending=False)
         expected = frame.sort_index(by=['A', 'B'], ascending=False)
         assert_frame_equal(sorted_df, expected)
 
+        sorted_df = frame.sort(columns=['A', 'B'])
+        assert_frame_equal(sorted_df, expected[::-1])
+
         self.assertRaises(ValueError, frame.sort_index, axis=2, inplace=True)
+
         msg = 'When sorting by column, axis must be 0'
         with assertRaisesRegexp(ValueError, msg):
             frame.sort_index(by='A', axis=1)
+
+        msg = r'Length of ascending \(5\) != length of by \(2\)'
+        with assertRaisesRegexp(ValueError, msg):
+            frame.sort_index(by=['A', 'B'], axis=0, ascending=[True] * 5)
 
     def test_sort_index_multicolumn(self):
         import random
