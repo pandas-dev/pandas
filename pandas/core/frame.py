@@ -3497,55 +3497,6 @@ class DataFrame(NDFrame):
         new_data = self._data.diff(periods)
         return self._constructor(new_data)
 
-    def shift(self, periods=1, freq=None, **kwds):
-        """
-        Shift the index of the DataFrame by desired number of periods with an
-        optional time freq
-
-        Parameters
-        ----------
-        periods : int
-            Number of periods to move, can be positive or negative
-        freq : DateOffset, timedelta, or time rule string, optional
-            Increment to use from datetools module or time rule (e.g. 'EOM')
-
-        Notes
-        -----
-        If freq is specified then the index values are shifted but the data
-        if not realigned
-
-        Returns
-        -------
-        shifted : DataFrame
-        """
-        from pandas.core.series import _resolve_offset
-
-        if periods == 0:
-            return self
-
-        offset = _resolve_offset(freq, kwds)
-
-        if isinstance(offset, compat.string_types):
-            offset = datetools.to_offset(offset)
-
-        if offset is None:
-            indexer = com._shift_indexer(len(self), periods)
-            new_data = self._data.shift(indexer, periods)
-        elif isinstance(self.index, PeriodIndex):
-            orig_offset = datetools.to_offset(self.index.freq)
-            if offset == orig_offset:
-                new_data = self._data.copy()
-                new_data.axes[1] = self.index.shift(periods)
-            else:
-                msg = ('Given freq %s does not match PeriodIndex freq %s' %
-                       (offset.rule_code, orig_offset.rule_code))
-                raise ValueError(msg)
-        else:
-            new_data = self._data.copy()
-            new_data.axes[1] = self.index.shift(periods, offset)
-
-        return self._constructor(new_data)
-
     #----------------------------------------------------------------------
     # Function application
 

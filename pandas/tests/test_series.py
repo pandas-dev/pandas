@@ -3550,13 +3550,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertRaises(ValueError, ps.shift, freq='D')
 
         # legacy support
-        smod._SHOW_WARNINGS = False
         shifted4 = ps.shift(1, timeRule='B')
         assert_series_equal(shifted2, shifted4)
 
         shifted5 = ps.shift(1, offset=datetools.bday)
         assert_series_equal(shifted5, shifted4)
-        smod._SHOW_WARNINGS = True
 
     def test_tshift(self):
         # PeriodIndex
