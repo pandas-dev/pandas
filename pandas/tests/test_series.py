@@ -355,8 +355,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
     def test_constructor_iterator(self):
 
-        expected = Series(list(range(10)))
-        result = Series(range(10))
+        expected = Series(list(range(10)),dtype='int64')
+        result = Series(range(10),dtype='int64')
         assert_series_equal(result, expected)
 
     def test_constructor_generator(self):
