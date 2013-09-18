@@ -1017,7 +1017,7 @@ class Panel(NDFrame):
 
         return self._wrap_result(result, axis)
 
-    def shift(self, lags, axis='major'):
+    def shift(self, lags, freq=None, axis='major'):
         """
         Shift major or minor axis by specified number of leads/lags. Drops
         periods right now compared with DataFrame.shift
@@ -1035,6 +1035,9 @@ class Panel(NDFrame):
         items = self.items
         major_axis = self.major_axis
         minor_axis = self.minor_axis
+
+        if freq:
+            return self.tshift(lags, freq, axis=axis)
 
         if lags > 0:
             vslicer = slice(None, -lags)
@@ -1057,6 +1060,9 @@ class Panel(NDFrame):
 
         return self._constructor(values, items=items, major_axis=major_axis,
                                  minor_axis=minor_axis)
+
+    def tshift(self, periods=1, freq=None, axis='major', **kwds):
+        return super(Panel, self).tshift(periods, freq, axis, **kwds)
 
     def truncate(self, before=None, after=None, axis='major'):
         """Function truncates a sorted Panel before and/or after some

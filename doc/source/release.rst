@@ -428,6 +428,7 @@ Bug Fixes
     single column and passing a list for ``ascending``, the argument for
     ``ascending`` was being interpreted as ``True`` (:issue:`4839`,
     :issue:`4846`)
+  - Fixed ``Panel.tshift`` not working. Added `freq` support to ``Panel.shift`` (:issue:`4853`)
 
 pandas 0.12.0
 -------------

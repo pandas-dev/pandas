@@ -59,8 +59,6 @@ _np_version = np.version.short_version
 _np_version_under1p6 = LooseVersion(_np_version) < '1.6'
 _np_version_under1p7 = LooseVersion(_np_version) < '1.7'
 
-_SHOW_WARNINGS = True
-
 class _TimeOp(object):
     """
     Wrapper around Series datetime/time/timedelta arithmetic operations.
@@ -2917,62 +2915,6 @@ class Series(generic.NDFrame):
     #----------------------------------------------------------------------
     # Time series-oriented methods
 
-    def shift(self, periods=1, freq=None, copy=True, **kwds):
-        """
-        Shift the index of the Series by desired number of periods with an
-        optional time offset
-
-        Parameters
-        ----------
-        periods : int
-            Number of periods to move, can be positive or negative
-        freq : DateOffset, timedelta, or offset alias string, optional
-            Increment to use from datetools module or time rule (e.g. 'EOM')
-
-        Returns
-        -------
-        shifted : Series
-        """
-        if periods == 0:
-            return self.copy()
-
-        offset = _resolve_offset(freq, kwds)
-
-        if isinstance(offset, compat.string_types):
-            offset = datetools.to_offset(offset)
-
-        def _get_values():
-            values = self.values
-            if copy:
-                values = values.copy()
-            return values
-
-        if offset is None:
-            dtype, fill_value = _maybe_promote(self.dtype)
-            new_values = pa.empty(len(self), dtype=dtype)
-
-            if periods > 0:
-                new_values[periods:] = self.values[:-periods]
-                new_values[:periods] = fill_value
-            elif periods < 0:
-                new_values[:periods] = self.values[-periods:]
-                new_values[periods:] = fill_value
-
-            return self._constructor(new_values, index=self.index, name=self.name)
-        elif isinstance(self.index, PeriodIndex):
-            orig_offset = datetools.to_offset(self.index.freq)
-            if orig_offset == offset:
-                return self._constructor(
-                    _get_values(), self.index.shift(periods),
-                    name=self.name)
-            msg = ('Given freq %s does not match PeriodIndex freq %s' %
-                   (offset.rule_code, orig_offset.rule_code))
-            raise ValueError(msg)
-        else:
-            return self._constructor(_get_values(),
-                                     index=self.index.shift(periods, offset),
-                                     name=self.name)
-
     def asof(self, where):
         """
         Return last good (non-NaN) value in TimeSeries if value is NaN for
@@ -3316,26 +3258,6 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         subarr = pa.array(data, dtype=object, copy=copy)
 
     return subarr
-
-def _resolve_offset(freq, kwds):
-    if 'timeRule' in kwds or 'offset' in kwds:
-        offset = kwds.get('offset', None)
-        offset = kwds.get('timeRule', offset)
-        if isinstance(offset, compat.string_types):
-            offset = datetools.getOffset(offset)
-        warn = True
-    else:
-        offset = freq
-        warn = False
-
-    if warn and _SHOW_WARNINGS:  # pragma: no cover
-        import warnings
-        warnings.warn("'timeRule' and 'offset' parameters are deprecated,"
-                      " please use 'freq' instead",
-                      FutureWarning)
-
-    return offset
-
 
 # backwards compatiblity
 TimeSeries = Series
