@@ -1642,7 +1642,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
 
         # negative numbers, #2164
         result = self.panel.shift(-1)
-        expected = Panel(dict((i, f.shift(-1)[:-1])
+        expected = Panel(dict((i, f.shift(-1))
                               for i, f in compat.iteritems(self.panel)))
         assert_panel_equal(result, expected)
 

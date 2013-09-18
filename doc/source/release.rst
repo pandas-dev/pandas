@@ -156,10 +156,25 @@ API Changes
 - ``DataFrame.sort`` now places NaNs at the beginning or end of the sort according to the ``na_position`` parameter. (:issue:`3917`)
 
 - all offset operations now return ``Timestamp`` types (rather than datetime), Business/Week frequencies were incorrect (:issue:`4069`)
-- ``Series.iteritems()`` is now lazy (returns an iterator rather than a list). This was the documented behavior prior to 0.14. (:issue:`6760`)
+
 
 Deprecations
 ~~~~~~~~~~~~
+
+- The :func:`pivot_table`/:meth:`DataFrame.pivot_table` and :func:`crosstab` functions
+  now take arguments ``index`` and ``columns`` instead of ``rows`` and ``cols``.  A
+  ``FutureWarning`` is raised  to alert that the old ``rows`` and ``cols`` arguments
+  will not be supported in a future release (:issue:`5505`)
+
+- The :meth:`DataFrame.drop_duplicates` and :meth:`DataFrame.duplicated` methods
+  now take argument ``subset`` instead of ``cols`` to better align with
+  :meth:`DataFrame.dropna`.  A ``FutureWarning`` is raised  to alert that the old
+  ``cols`` arguments will not be supported in a future release (:issue:`6680`)
+
+- The :meth:`DataFrame.to_csv` and :meth:`DataFrame.to_excel` functions
+  now takes argument ``columns`` instead of ``cols``.  A
+  ``FutureWarning`` is raised  to alert that the old ``cols`` arguments
+  will not be supported in a future release (:issue:`6645`)
 
 Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
