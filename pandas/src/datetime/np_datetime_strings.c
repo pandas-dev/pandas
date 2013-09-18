@@ -1148,7 +1148,7 @@ make_iso_8601_datetime(pandas_datetimestruct *dts, char *outstr, int outlen,
 #ifdef _WIN32
     tmplen = _snprintf(substr, sublen, "%04" NPY_INT64_FMT, dts->year);
 #else
-    tmplen = snprintf(substr, sublen, "%04" NPY_INT64_FMT, (long int)dts->year);
+    tmplen = snprintf(substr, sublen, "%04" NPY_INT64_FMT, (long long)dts->year);
 #endif
     /* If it ran out of space or there isn't space for the NULL terminator */
     if (tmplen < 0 || tmplen > sublen) {
