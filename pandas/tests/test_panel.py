@@ -1323,6 +1323,44 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
                               for i, f in compat.iteritems(self.panel)))
         assert_panel_equal(result, expected)
 
+    def test_tshift(self):
+        # PeriodIndex
+        ps = tm.makePeriodPanel()
+        shifted = ps.tshift(1)
+        unshifted = shifted.tshift(-1)
+
+        assert_panel_equal(unshifted, ps)
+
+        shifted2 = ps.tshift(freq='B')
+        assert_panel_equal(shifted, shifted2)
+
+        shifted3 = ps.tshift(freq=bday)
+        assert_panel_equal(shifted, shifted3)
+
+        assertRaisesRegexp(ValueError, 'does not match', ps.tshift, freq='M')
+
+        # DatetimeIndex
+        panel = _panel
+        shifted = panel.tshift(1)
+        unshifted = shifted.tshift(-1)
+
+        assert_panel_equal(panel, unshifted)
+
+        shifted2 = panel.tshift(freq=panel.major_axis.freq)
+        assert_panel_equal(shifted, shifted2)
+
+        inferred_ts = Panel(panel.values,
+                                items=panel.items, 
+                                major_axis=Index(np.asarray(panel.major_axis)),
+                                minor_axis=panel.minor_axis)
+        shifted = inferred_ts.tshift(1)
+        unshifted = shifted.tshift(-1)
+        assert_panel_equal(shifted, panel.tshift(1))
+        assert_panel_equal(unshifted, inferred_ts)
+
+        no_freq = panel.ix[:, [0, 5, 7], :]
+        self.assertRaises(ValueError, no_freq.tshift)
+
     def test_multiindex_get(self):
         ind = MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1), ('b', 2)],
                                      names=['first', 'second'])
