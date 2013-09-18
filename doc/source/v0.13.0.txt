@@ -171,6 +171,7 @@ HDFStore API Changes
 
   - Significant table writing performance improvements
   - handle a passed ``Series`` in table format (:issue:`4330`)
+  - can now serialize a ``timedelta64[ns]`` dtype in a table (:issue:`3577`), See :ref:`here for an example<io.hdf5-timedelta>`.
   - added an ``is_open`` property to indicate if the underlying file handle is_open;
     a closed store will now report 'CLOSED' when viewing the store (rather than raising an error)
     (:issue:`4409`)
