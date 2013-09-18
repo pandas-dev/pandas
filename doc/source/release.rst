@@ -152,6 +152,8 @@ API Changes
 
 - all offset operations now return ``Timestamp`` types (rather than datetime), Business/Week frequencies were incorrect (:issue:`4069`)
 
+- ``Panel.shift`` now uses ``NDFrame.shift``. It no longer drops the ``nan`` data and retains its original shape.  (:issue:`4867`)
+
 
 Deprecations
 ~~~~~~~~~~~~
