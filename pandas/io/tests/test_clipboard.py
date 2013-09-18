@@ -43,7 +43,7 @@ class TestClipboard(unittest.TestCase):
         data = self.data[data_type]
         data.to_clipboard()
         result = read_clipboard()
-        tm.assert_frame_equal(data, result)
+        tm.assert_frame_equal(data, result, check_dtype=False)
 
     def test_round_trip_frame(self):
         for dt in self.data_types:

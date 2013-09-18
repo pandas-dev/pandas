@@ -492,7 +492,7 @@ class TestDataFramePlots(unittest.TestCase):
 
     def test_unsorted_index(self):
         df = DataFrame({'y': np.arange(100)},
-                       index=np.arange(99, -1, -1))
+                       index=np.arange(99, -1, -1), dtype=np.int64)
         ax = df.plot()
         l = ax.get_lines()[0]
         rs = l.get_xydata()
