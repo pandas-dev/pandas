@@ -8,7 +8,7 @@ import numpy as np
 
 from pandas.core.common import (isnull, _NS_DTYPE, _INT64_DTYPE,
                                 is_list_like,_values_from_object, _maybe_box)
-from pandas.core.index import Index, Int64Index
+from pandas.core.index import Index, Int64Index, _Identity
 import pandas.compat as compat
 from pandas.compat import u
 from pandas.tseries.frequencies import (
@@ -1029,6 +1029,7 @@ class DatetimeIndex(Int64Index):
         self.offset = getattr(obj, 'offset', None)
         self.tz = getattr(obj, 'tz', None)
         self.name = getattr(obj, 'name', None)
+        self._reset_identity()
 
     def intersection(self, other):
         """
@@ -1446,7 +1447,7 @@ class DatetimeIndex(Int64Index):
         """
         Determines if two Index objects contain the same elements.
         """
-        if self is other:
+        if self.is_(other):
             return True
 
         if (not hasattr(other, 'inferred_type') or

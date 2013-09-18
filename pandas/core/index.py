@@ -50,6 +50,9 @@ def _shouldbe_timestamp(obj):
             or tslib.is_timestamp_array(obj))
 
 
+_Identity = object
+
+
 class Index(FrozenNDArray):
     """
     Immutable ndarray implementing an ordered, sliceable set. The basic object
@@ -86,6 +89,35 @@ class Index(FrozenNDArray):
     _comparables = ['name']
 
     _engine_type = _index.ObjectEngine
+
+    def is_(self, other):
+        """
+        More flexible, faster check like ``is`` but that works through views
+
+        Note: this is *not* the same as ``Index.identical()``, which checks
+        that metadata is also the same.
+
+        Parameters
+        ----------
+        other : object
+            other object to compare against.
+
+        Returns
+        -------
+        True if both have same underlying data, False otherwise : bool
+        """
+        # use something other than None to be clearer
+        return self._id is getattr(other, '_id', Ellipsis)
+
+    def _reset_identity(self):
+        "Initializes or resets ``_id`` attribute with new object"
+        self._id = _Identity()
+
+    def view(self, *args, **kwargs):
+        result = super(Index, self).view(*args, **kwargs)
+        if isinstance(result, Index):
+            result._id = self._id
+        return result
 
     def __new__(cls, data, dtype=None, copy=False, name=None, fastpath=False,
                 **kwargs):
@@ -151,6 +183,7 @@ class Index(FrozenNDArray):
         return subarr
 
     def __array_finalize__(self, obj):
+        self._reset_identity()
         if not isinstance(obj, type(self)):
             # Only relevant if array being created from an Index instance
             return
@@ -279,6 +312,7 @@ class Index(FrozenNDArray):
             raise TypeError("Must pass list-like as `names`.")
         if inplace:
             idx = self
+            idx._reset_identity()
         else:
             idx = self._shallow_copy()
         idx._set_names(names)
@@ -554,7 +588,7 @@ class Index(FrozenNDArray):
         """
         Determines if two Index objects contain the same elements.
         """
-        if self is other:
+        if self.is_(other):
             return True
 
         if not isinstance(other, Index):
@@ -1536,7 +1570,7 @@ class Int64Index(Index):
         """
         Determines if two Index objects contain the same elements.
         """
-        if self is other:
+        if self.is_(other):
             return True
 
         # if not isinstance(other, Int64Index):
@@ -1645,6 +1679,7 @@ class MultiIndex(Index):
             idx = self
         else:
             idx = self._shallow_copy()
+        idx._reset_identity()
         idx._set_levels(levels)
         return idx
 
@@ -1683,6 +1718,7 @@ class MultiIndex(Index):
             idx = self
         else:
             idx = self._shallow_copy()
+        idx._reset_identity()
         idx._set_labels(labels)
         return idx
 
@@ -1736,6 +1772,8 @@ class MultiIndex(Index):
         Update custom MultiIndex attributes when a new array is created by
         numpy, e.g. when calling ndarray.view()
         """
+        # overriden if a view
+        self._reset_identity()
         if not isinstance(obj, type(self)):
             # Only relevant if this array is being created from an Index
             # instance.
@@ -2754,7 +2792,7 @@ class MultiIndex(Index):
         --------
         equal_levels
         """
-        if self is other:
+        if self.is_(other):
             return True
 
         if not isinstance(other, MultiIndex):

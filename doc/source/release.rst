@@ -198,6 +198,10 @@ API Changes
       data - allowing metadata changes.
     - ``MultiIndex.astype()`` now only allows ``np.object_``-like dtypes and
       now returns a ``MultiIndex`` rather than an ``Index``. (:issue:`4039`)
+   - Added ``is_`` method to ``Index`` that allows fast equality comparison of
+     views (similar to ``np.may_share_memory`` but no false positives, and
+     changes on ``levels`` and ``labels`` setting on ``MultiIndex``).
+     (:issue:`4859`, :issue:`4909`)
 
   - Infer and downcast dtype if ``downcast='infer'`` is passed to ``fillna/ffill/bfill`` (:issue:`4604`)
   - ``__nonzero__`` for all NDFrame objects, will now raise a ``ValueError``, this reverts back to (:issue:`1073`, :issue:`4633`)

@@ -1054,9 +1054,6 @@ class TestFreqConversion(TestCase):
 
 
 class TestPeriodIndex(TestCase):
-    def __init__(self, *args, **kwds):
-        TestCase.__init__(self, *args, **kwds)
-
     def setUp(self):
         pass
 
@@ -1167,6 +1164,25 @@ class TestPeriodIndex(TestCase):
         vals = vals.view(np.dtype('M8[us]'))
 
         self.assertRaises(ValueError, PeriodIndex, vals, freq='D')
+
+    def test_is_(self):
+        create_index = lambda: PeriodIndex(freq='A', start='1/1/2001',
+                                           end='12/1/2009')
+        index = create_index()
+        self.assertTrue(index.is_(index))
+        self.assertFalse(index.is_(create_index()))
+        self.assertTrue(index.is_(index.view()))
+        self.assertTrue(index.is_(index.view().view().view().view().view()))
+        self.assertTrue(index.view().is_(index))
+        ind2 = index.view()
+        index.name = "Apple"
+        self.assertTrue(ind2.is_(index))
+        self.assertFalse(index.is_(index[:]))
+        self.assertFalse(index.is_(index.asfreq('M')))
+        self.assertFalse(index.is_(index.asfreq('A')))
+        self.assertFalse(index.is_(index - 2))
+        self.assertFalse(index.is_(index - 0))
+
 
     def test_comp_period(self):
         idx = period_range('2007-01', periods=20, freq='M')
