@@ -19,7 +19,7 @@ import numpy as np
 from pandas import DataFrame, Series, Index, isnull, MultiIndex
 import pandas.io.parsers as parsers
 from pandas.io.parsers import (read_csv, read_table, read_fwf,
-                               TextParser)
+                               TextParser, TextFileReader)
 from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
                                  assert_series_equal, network)
 import pandas.lib as lib
@@ -128,6 +128,16 @@ class TestCParser(unittest.TestCase):
 
         reader = TextReader(StringIO(data), delimiter=':',
                             thousands=',', header=None)
+        result = reader.read()
+
+        expected = [123456, 12500]
+        tm.assert_almost_equal(result[0], expected)
+        
+    def test_integer_thousands_alt(self):
+        data = '123.456\n12.500'
+
+        reader = TextFileReader(StringIO(data), delimiter=':',
+                            thousands='.', header=None)
         result = reader.read()
 
         expected = [123456, 12500]

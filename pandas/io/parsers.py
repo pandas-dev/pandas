@@ -1538,7 +1538,7 @@ class PythonParser(ParserBase):
                         nonnum.search(x.strip())):
                     rl.append(x)
                 else:
-                    rl.append(x.replace(',', ''))
+                    rl.append(x.replace(self.thousands, ''))
             ret.append(rl)
         return ret
 
