@@ -1840,8 +1840,12 @@ class DataFrame(NDFrame):
         if self.columns.is_unique:
             return self._get_item_cache(key)
 
-        # duplicate columns
-        return self._constructor(self._data.get(key))
+        # duplicate columns & possible reduce dimensionaility
+        result = self._constructor(self._data.get(key))
+        if result.columns.is_unique:
+            result = result[key]
+
+        return result
 
     def _getitem_slice(self, key):
         return self._slice(key, axis=0)

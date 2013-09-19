@@ -401,7 +401,7 @@ class Block(PandasObject):
             if values is None:
                 values = com._astype_nansafe(self.values, dtype, copy=True)
             newb = make_block(
-                values, self.items, self.ref_items, ndim=self.ndim,
+                values, self.items, self.ref_items, ndim=self.ndim, placement=self._ref_locs,
                 fastpath=True, dtype=dtype, klass=klass)
         except:
             if raise_on_error is True:
@@ -716,7 +716,7 @@ class Block(PandasObject):
         if inplace:
             return [self]
 
-        return [make_block(new_values, self.items, self.ref_items, fastpath=True)]
+        return [make_block(new_values, self.items, self.ref_items, placement=self._ref_locs, fastpath=True)]
 
     def interpolate(self, method='pad', axis=0, inplace=False,
                     limit=None, fill_value=None, coerce=False,
@@ -2853,12 +2853,13 @@ class BlockManager(PandasObject):
         # TODO: less efficient than I'd like
 
         item_order = com.take_1d(self.items.values, indexer)
+        new_axes = [new_items] + self.axes[1:]
+        new_blocks = []
+        is_unique = new_items.is_unique
 
         # keep track of what items aren't found anywhere
+        l = np.arange(len(item_order))
         mask = np.zeros(len(item_order), dtype=bool)
-        new_axes = [new_items] + self.axes[1:]
-
-        new_blocks = []
         for blk in self.blocks:
             blk_indexer = blk.items.get_indexer(item_order)
             selector = blk_indexer != -1
@@ -2872,12 +2873,19 @@ class BlockManager(PandasObject):
             new_block_items = new_items.take(selector.nonzero()[0])
             new_values = com.take_nd(blk.values, blk_indexer[selector], axis=0,
                                      allow_fill=False)
-            new_blocks.append(make_block(new_values, new_block_items,
-                                         new_items, fastpath=True))
+            placement = l[selector] if not is_unique else None
+            new_blocks.append(make_block(new_values,
+                                         new_block_items,
+                                         new_items,
+                                         placement=placement,
+                                         fastpath=True))
 
         if not mask.all():
             na_items = new_items[-mask]
-            na_block = self._make_na_block(na_items, new_items,
+            placement = l[-mask] if not is_unique else None
+            na_block = self._make_na_block(na_items,
+                                           new_items,
+                                           placement=placement,
                                            fill_value=fill_value)
             new_blocks.append(na_block)
             new_blocks = _consolidate(new_blocks, new_items)
@@ -2943,7 +2951,7 @@ class BlockManager(PandasObject):
 
         return self.__class__(new_blocks, new_axes)
 
-    def _make_na_block(self, items, ref_items, fill_value=None):
+    def _make_na_block(self, items, ref_items, placement=None, fill_value=None):
         # TODO: infer dtypes other than float64 from fill_value
 
         if fill_value is None:
@@ -2954,8 +2962,7 @@ class BlockManager(PandasObject):
         dtype, fill_value = com._infer_dtype_from_scalar(fill_value)
         block_values = np.empty(block_shape, dtype=dtype)
         block_values.fill(fill_value)
-        na_block = make_block(block_values, items, ref_items)
-        return na_block
+        return make_block(block_values, items, ref_items, placement=placement)
 
     def take(self, indexer, new_index=None, axis=1, verify=True):
         if axis < 1:
