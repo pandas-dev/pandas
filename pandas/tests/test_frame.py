@@ -3150,6 +3150,36 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = DataFrame([[1],[1],[1]],columns=['bar'])
         check(df,expected)
 
+    def test_column_dups_indexing(self):
+
+        def check(result, expected=None):
+            if expected is not None:
+                assert_frame_equal(result,expected)
+            result.dtypes
+            str(result)
+
+        # boolean indexing
+        # GH 4879
+        dups = ['A', 'A', 'C', 'D']
+        df = DataFrame(np.arange(12).reshape(3,4), columns=['A', 'B', 'C', 'D'],dtype='float64')
+        expected = df[df.C > 6]
+        expected.columns = dups
+        df = DataFrame(np.arange(12).reshape(3,4), columns=dups,dtype='float64')
+        result = df[df.C > 6]
+        check(result,expected)
+
+        # where
+        df = DataFrame(np.arange(12).reshape(3,4), columns=['A', 'B', 'C', 'D'],dtype='float64')
+        expected = df[df > 6]
+        expected.columns = dups
+        df = DataFrame(np.arange(12).reshape(3,4), columns=dups,dtype='float64')
+        result = df[df > 6]
+        check(result,expected)
+
+        # boolean with the duplicate raises
+        df = DataFrame(np.arange(12).reshape(3,4), columns=dups,dtype='float64')
+        self.assertRaises(ValueError, lambda : df[df.A > 6])
+
     def test_insert_benchmark(self):
         # from the vb_suite/frame_methods/frame_insert_columns
         N = 10
