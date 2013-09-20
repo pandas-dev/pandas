@@ -724,12 +724,17 @@ class DataFrame(NDFrame):
 
             values = [first_row]
 
-            i = 1
-            for row in data:
-                values.append(row)
-                i += 1
-                if i >= nrows:
-                    break
+            #if unknown length iterable (generator)
+            if nrows == None:
+                #consume whole generator
+                values += list(data)
+            else:
+                i = 1
+                for row in data:
+                    values.append(row)
+                    i += 1
+                    if i >= nrows:
+                        break
 
             if dtype is not None:
                 data = np.array(values, dtype=dtype)

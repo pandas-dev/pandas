@@ -169,6 +169,7 @@ Improvements to existing features
     high-dimensional arrays).
   - :func:`~pandas.read_html` now supports the ``parse_dates``,
     ``tupleize_cols`` and ``thousands`` parameters (:issue:`4770`).
+  - ``DataFrame.from_records()`` accept generators (:issue:`4910`)
 
 API Changes
 ~~~~~~~~~~~
