@@ -546,12 +546,14 @@ def _ensure_numeric(x):
     if isinstance(x, np.ndarray):
         if x.dtype == np.object_:
             x = x.astype(np.float64)
-    elif not (com.is_float(x) or com.is_integer(x)):
+    elif not (com.is_float(x) or com.is_integer(x) or com.is_complex(x)):
         try:
             x = float(x)
         except Exception:
-            raise TypeError('Could not convert %s to numeric' % str(x))
-
+            try:
+                x = complex(x)
+            except Exception:
+                raise TypeError('Could not convert %s to numeric' % str(x))
     return x
 
 # NA-friendly array comparisons

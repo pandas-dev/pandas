@@ -14,6 +14,7 @@ from pandas.core.common import notnull, isnull
 import pandas.core.common as com
 import pandas.util.testing as tm
 import pandas.core.config as cf
+from pandas.core import nanops
 
 _multiprocess_can_split_ = True
 
@@ -309,6 +310,54 @@ def test_ensure_int32():
     values = np.arange(10, dtype=np.int64)
     result = com._ensure_int32(values)
     assert(result.dtype == np.int32)
+
+
+class TestEnsureNumeric(unittest.TestCase):
+    def test_numeric_values(self):
+        # Test integer
+        self.assertEqual(nanops._ensure_numeric(1), 1, 'Failed for int')
+        # Test float
+        self.assertEqual(nanops._ensure_numeric(1.1), 1.1, 'Failed for float')
+        # Test complex
+        self.assertEqual(nanops._ensure_numeric(1 + 2j), 1 + 2j,
+                         'Failed for complex')
+
+    def test_ndarray(self):
+        # Test numeric ndarray
+        values = np.array([1, 2, 3])
+        self.assertTrue(np.allclose(nanops._ensure_numeric(values), values),
+                        'Failed for numeric ndarray')
+
+        # Test object ndarray
+        o_values = values.astype(object)
+        self.assertTrue(np.allclose(nanops._ensure_numeric(o_values), values),
+                        'Failed for object ndarray')
+
+        # Test convertible string ndarray
+        s_values = np.array(['1', '2', '3'], dtype=object)
+        self.assertTrue(np.allclose(nanops._ensure_numeric(s_values), values),
+                        'Failed for convertible string ndarray')
+
+        # Test non-convertible string ndarray
+        s_values = np.array(['foo', 'bar', 'baz'], dtype=object)
+        self.assertRaises(ValueError,
+                          lambda: nanops._ensure_numeric(s_values))
+
+    def test_convertable_values(self):
+        self.assertTrue(np.allclose(nanops._ensure_numeric('1'), 1.0),
+                        'Failed for convertible integer string')
+        self.assertTrue(np.allclose(nanops._ensure_numeric('1.1'), 1.1),
+                        'Failed for convertible float string')
+        self.assertTrue(np.allclose(nanops._ensure_numeric('1+1j'), 1 + 1j),
+                        'Failed for convertible complex string')
+
+    def test_non_convertable_values(self):
+        self.assertRaises(TypeError,
+                          lambda: nanops._ensure_numeric('foo'))
+        self.assertRaises(TypeError,
+                          lambda: nanops._ensure_numeric({}))
+        self.assertRaises(TypeError,
+                          lambda: nanops._ensure_numeric([]))
 
 
 def test_ensure_platform_int():
