@@ -369,7 +369,6 @@ class TestFred(unittest.TestCase):
         FRED.
         """
 
-        raise nose.SkipTest('Skip as this is unstable #4427 ')
         start = datetime(2010, 1, 1)
         end = datetime(2013, 1, 27)
 
@@ -381,19 +380,17 @@ class TestFred(unittest.TestCase):
 
     @network
     def test_fred_nan(self):
-        raise nose.SkipTest("Unstable test case - needs to be fixed.")
         start = datetime(2010, 1, 1)
         end = datetime(2013, 1, 27)
         df = web.DataReader("DFII5", "fred", start, end)
-        assert pd.isnull(df.ix['2010-01-01'])
+        assert pd.isnull(df.ix['2010-01-01'][0])
 
     @network
     def test_fred_parts(self):
-        raise nose.SkipTest("Unstable test case - needs to be fixed.")
         start = datetime(2010, 1, 1)
         end = datetime(2013, 1, 27)
         df = web.get_data_fred("CPIAUCSL", start, end)
-        self.assertEqual(df.ix['2010-05-01'], 217.23)
+        self.assertEqual(df.ix['2010-05-01'][0], 217.23)
 
         t = df.CPIAUCSL.values
         assert np.issubdtype(t.dtype, np.floating)
