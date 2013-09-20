@@ -860,7 +860,7 @@ def network(t, raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
                 except SkipTest:
                     raise
                 except Exception as e:
-                    if runs < num_runs:
+                    if runs < num_runs - 1:
                         print("Failed: %r" % e)
                     else:
                         raise
