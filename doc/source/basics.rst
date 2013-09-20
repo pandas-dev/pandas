@@ -975,6 +975,42 @@ Methods like ``replace`` and ``findall`` take regular expressions, too:
    s3
    s3.str.replace('^.a|dog', 'XX-XX ', case=False)
 
+The method ``match`` returns the groups in a regular expression in one tuple.
+ Starting in pandas version 0.13, the method ``extract`` is available to 
+accomplish this more conveniently.
+
+Extracting a regular expression with one group returns a Series of strings.
+
+.. ipython:: python
+
+   Series(['a1', 'b2', 'c3']).str.extract('[ab](\d)')
+
+Elements that do not match return ``NaN``. Extracting a regular expression 
+with more than one group returns a DataFrame with one column per group.
+
+.. ipython:: python
+
+   Series(['a1', 'b2', 'c3']).str.extract('([ab])(\d)')
+
+Elements that do not match return a row of ``NaN``s. 
+Thus, a Series of messy strings can be "converted" into a 
+like-indexed Series or DataFrame of cleaned-up or more useful strings, 
+without necessitating ``get()`` to access tuples or ``re.match`` objects.
+
+Named groups like
+
+.. ipython:: python
+
+   Series(['a1', 'b2', 'c3']).str.match('(?P<letter>[ab])(?P<digit>\d)')
+
+and optional groups like
+
+.. ipython:: python
+
+   Series(['a1', 'b2', '3']).str.match('(?P<letter>[ab])?(?P<digit>\d)')
+
+can also be used.
+
 Methods like ``contains``, ``startswith``, and ``endswith`` takes an extra
 ``na`` arguement so missing values can be considered True or False:
 
@@ -1003,6 +1039,7 @@ Methods like ``contains``, ``startswith``, and ``endswith`` takes an extra
     ``endswidth``,Equivalent to ``str.endswith(pat)`` for each element
     ``findall``,Compute list of all occurrences of pattern/regex for each string
     ``match``,"Call ``re.match`` on each element, returning matched groups as list"
+    ``extract``,"Call ``re.match`` on each element, as ``match`` does, but return matched groups as strings for convenience."
     ``len``,Compute string lengths
     ``strip``,Equivalent to ``str.strip``
     ``rstrip``,Equivalent to ``str.rstrip``

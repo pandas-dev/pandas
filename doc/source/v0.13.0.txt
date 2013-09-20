@@ -297,6 +297,38 @@ Enhancements
     the bandwidth, and to gkde.evaluate() to specify the indicies at which it
     is evaluated, respecttively. See scipy docs.
   - DataFrame constructor now accepts a numpy masked record array (:issue:`3478`)
+  - The new vectorized string method ``extract`` return regular expression
+    matches more conveniently.
+
+    .. ipython:: python
+
+       Series(['a1', 'b2', 'c3']).str.extract('[ab](\d)')
+
+    Elements that do not match return ``NaN``. Extracting a regular expression
+    with more than one group returns a DataFrame with one column per group.
+
+
+    .. ipython:: python
+
+       Series(['a1', 'b2', 'c3']).str.extract('([ab])(\d)')
+
+    Elements that do not match return a row of ``NaN``s. 
+    Thus, a Series of messy strings can be "converted" into a 
+    like-indexed Series or DataFrame of cleaned-up or more useful strings, 
+    without necessitating ``get()`` to access tuples or ``re.match`` objects.
+
+    Named groups like
+
+    .. ipython:: python
+
+       Series(['a1', 'b2', 'c3']).str.match('(?P<letter>[ab])(?P<digit>\d)')
+
+    and optional groups like
+
+    .. ipython:: python
+        Series(['a1', 'b2', '3']).str.match('(?P<letter>[ab])?(?P<digit>\d)')
+
+    can also be used.
 
 
 .. _whatsnew_0130.experimental:

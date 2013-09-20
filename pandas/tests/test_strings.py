@@ -415,6 +415,94 @@ class TestStringMethods(unittest.TestCase):
         exp = Series([(u('BAD__'), u('BAD')), NA, []])
         tm.assert_series_equal(result, exp)
 
+    def test_extract(self):
+        # Contains tests like those in test_match and some others.
+
+        values = Series(['fooBAD__barBAD', NA, 'foo'])
+        er = [NA, NA] # empty row
+
+        result = values.str.extract('.*(BAD[_]+).*(BAD)')
+        exp = DataFrame([['BAD__', 'BAD'], er, er])
+        tm.assert_frame_equal(result, exp)
+
+        # mixed
+        mixed = Series(['aBAD_BAD', NA, 'BAD_b_BAD', True, datetime.today(),
+                        'foo', None, 1, 2.])
+
+        rs = Series(mixed).str.extract('.*(BAD[_]+).*(BAD)')
+        exp = DataFrame([['BAD_', 'BAD'], er, ['BAD_', 'BAD'], er, er,
+                         er, er, er, er])
+        tm.assert_frame_equal(rs, exp)
+
+        # unicode
+        values = Series([u('fooBAD__barBAD'), NA, u('foo')])
+
+        result = values.str.extract('.*(BAD[_]+).*(BAD)')
+        exp = DataFrame([[u('BAD__'), u('BAD')], er, er])
+        tm.assert_frame_equal(result, exp)
+
+        # no groups
+        s = Series(['A1', 'B2', 'C3']) 
+        f = lambda: s.str.extract('[ABC][123]')
+        self.assertRaises(ValueError, f)
+
+        # only non-capturing groups
+        f = lambda: s.str.extract('(?:[AB]).*')
+        self.assertRaises(ValueError, f)
+
+        # one group, no matches
+        result = s.str.extract('(_)')
+        exp = Series([NA, NA, NA])
+        tm.assert_series_equal(result, exp)
+ 
+        # two groups, no matches
+        result = s.str.extract('(_)(_)')
+        exp = DataFrame([[NA, NA], [NA, NA], [NA, NA]])
+        tm.assert_frame_equal(result, exp)
+
+        # one group, some matches
+        result = s.str.extract('([AB])[123]')
+        exp = Series(['A', 'B', NA])
+        tm.assert_series_equal(result, exp)
+
+        # two groups, some matches
+        result = s.str.extract('([AB])([123])')
+        exp = DataFrame([['A', '1'], ['B', '2'], [NA, NA]])
+        tm.assert_frame_equal(result, exp)
+
+        # named group/groups
+        result = s.str.extract('(?P<letter>[AB])(?P<number>[123])')
+        exp = DataFrame([['A', '1'], ['B', '2'], [NA, NA]], columns=['letter', 'number'])
+        tm.assert_frame_equal(result, exp)
+        result = s.str.extract('(?P<letter>[AB])')
+        exp = Series(['A', 'B', NA], name='letter')
+        tm.assert_series_equal(result, exp)
+
+        # mix named and unnamed groups
+        result = s.str.extract('([AB])(?P<number>[123])')
+        exp = DataFrame([['A', '1'], ['B', '2'], [NA, NA]], columns=[0, 'number'])
+        tm.assert_frame_equal(result, exp)
+
+        # one normal group, one non-capturing group
+        result = s.str.extract('([AB])(?:[123])')
+        exp = Series(['A', 'B', NA])
+        tm.assert_series_equal(result, exp)
+
+        # two normal groups, one non-capturing group
+        result = Series(['A11', 'B22', 'C33']).str.extract('([AB])([123])(?:[123])')
+        exp = DataFrame([['A', '1'], ['B', '2'], [NA, NA]])
+        tm.assert_frame_equal(result, exp)
+
+        # one optional group followed by one normal group
+        result = Series(['A1', 'B2', '3']).str.extract('(?P<letter>[AB])?(?P<number>[123])')
+        exp = DataFrame([['A', '1'], ['B', '2'], [NA, '3']], columns=['letter', 'number'])
+        tm.assert_frame_equal(result, exp)
+
+        # one normal group followed by one optional group
+        result = Series(['A1', 'B2', 'C']).str.extract('(?P<letter>[ABC])(?P<number>[123])?')
+        exp = DataFrame([['A', '1'], ['B', '2'], ['C', NA]], columns=['letter', 'number'])
+        tm.assert_frame_equal(result, exp)
+
     def test_join(self):
         values = Series(['a_b_c', 'c_d_e', np.nan, 'f_g_h'])
         result = values.str.split('_').str.join('_')
