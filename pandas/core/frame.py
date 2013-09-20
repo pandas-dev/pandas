@@ -3447,28 +3447,38 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        level : int, string, or list of these, default last level
+        level : int, string, or list of these, default -1 (last level)
             Level(s) of index to unstack, can pass level name
+
+        See also
+        --------
+        DataFrame.pivot : Pivot a table based on column values.
+        DataFrame.stack : Pivot a level of the column labels (inverse operation 
+            from `unstack`).
 
         Examples
         --------
+        >>> index = pd.MultiIndex.from_tuples([('one', 'a'), ('one', 'b'),
+        ...                                    ('two', 'a'), ('two', 'b')])
+        >>> s = pd.Series(np.arange(1.0, 5.0), index=index)
         >>> s
-        one  a   1.
-        one  b   2.
-        two  a   3.
-        two  b   4.
+        one  a   1
+             b   2
+        two  a   3
+             b   4
+        dtype: float64
 
         >>> s.unstack(level=-1)
              a   b
-        one  1.  2.
-        two  3.  4.
+        one  1  2
+        two  3  4
+
+        >>> s.unstack(level=0)
+           one  two
+        a  1   3
+        b  2   4
 
         >>> df = s.unstack(level=0)
-        >>> df
-           one  two
-        a  1.   2.
-        b  3.   4.
-
         >>> df.unstack()
         one  a  1.
              b  3.
