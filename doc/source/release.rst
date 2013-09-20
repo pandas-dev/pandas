@@ -433,6 +433,7 @@ Bug Fixes
   - Fix an issue in TextFileReader w/ Python engine (i.e. PythonParser)
     with thousands != "," (:issue:`4596`)
   - Bug in getitem with a duplicate index when using where (:issue:`4879`)
+  - Fixed ``_ensure_numeric`` does not check for complex numbers (:issue:`4902`)
 
 
 pandas 0.12.0

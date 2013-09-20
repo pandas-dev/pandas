@@ -38,3 +38,6 @@ pandas/io/*.json
 .vagrant
 *.whl
 **/wheelhouse/*
+
+.project
+.pydevproject
