@@ -317,7 +317,6 @@ class Timestamp(_Timestamp):
 
 
 _nat_strings = set(['NaT','nat','NAT','nan','NaN','NAN'])
-_not_datelike_strings = set(['a','A','m','M','p','P','t','T'])
 class NaTType(_NaT):
     """(N)ot-(A)-(T)ime, the time equivalent of NaN"""
 
@@ -841,6 +840,43 @@ def datetime_to_datetime64(ndarray[object] values):
 
     return result, inferred_tz
 
+_not_datelike_strings = set(['a','A','m','M','p','P','t','T'])
+
+def verify_datetime_bounds(dt):
+    """Verify datetime.datetime is within the datetime64[ns] bounds."""
+    if dt.year <= 1677 or dt.year >= 2262:
+        raise ValueError(
+            'Given datetime not within valid datetime64[ns] bounds'
+        )
+    return dt
+
+def _does_string_look_like_datetime(date_string):
+    if date_string.startswith('0'):
+        # Strings starting with 0 are more consistent with a
+        # date-like string than a number
+        return True
+
+    try:
+        if float(date_string) < 1000:
+            return False
+    except ValueError:
+        pass
+
+    if date_string in _not_datelike_strings:
+        return False
+
+    return True
+
+def parse_datetime_string(date_string, verify_bounds=True, **kwargs):
+    if not _does_string_look_like_datetime(date_string):
+        raise ValueError('Given date string not likely a datetime.')
+
+    dt = parse_date(date_string, **kwargs)
+
+    if verify_bounds:
+        verify_datetime_bounds(dt)
+
+    return dt
 
 def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                       format=None, utc=None, coerce=False, unit=None):
@@ -908,24 +944,15 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                                                                    &dts)
                     _check_dts_bounds(iresult[i], &dts)
                 except ValueError:
-
-                    # for some reason, dateutil parses some single letter len-1 strings into today's date
-                    if len(val) == 1 and val in _not_datelike_strings:
-                        if coerce:
-                            iresult[i] = iNaT
-                            continue
-                        elif raise_:
-                            raise
                     try:
-                        result[i] = parse_date(val, dayfirst=dayfirst)
+                        result[i] = parse_datetime_string(
+                            val, dayfirst=dayfirst
+                        )
                     except Exception:
                         if coerce:
                            iresult[i] = iNaT
                            continue
                         raise TypeError
-                    pandas_datetime_to_datetimestruct(iresult[i], PANDAS_FR_ns,
-                                                      &dts)
-                    _check_dts_bounds(iresult[i], &dts)
                 except:
                     if coerce:
                         iresult[i] = iNaT
@@ -946,7 +973,7 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                     oresult[i] = 'NaT'
                     continue
                 try:
-                    oresult[i] = parse_date(val, dayfirst=dayfirst)
+                    oresult[i] = parse_datetime_string(val, dayfirst=dayfirst)
                 except Exception:
                     if raise_:
                         raise
