@@ -550,8 +550,10 @@ def _ensure_numeric(x):
         try:
             x = float(x)
         except Exception:
-            raise TypeError('Could not convert %s to numeric' % str(x))
-
+            try:
+                x = complex(x)
+            except Exception:
+                raise TypeError('Could not convert %s to numeric' % str(x))
     return x
 
 # NA-friendly array comparisons
