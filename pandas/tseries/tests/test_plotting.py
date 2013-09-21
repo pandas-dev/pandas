@@ -26,16 +26,8 @@ def _skip_if_no_scipy():
         raise nose.SkipTest
 
 
+@tm.mplskip
 class TestTSPlot(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        try:
-            import matplotlib as mpl
-            mpl.use('Agg', warn=False)
-        except ImportError:
-            raise nose.SkipTest
-
     def setUp(self):
         freq = ['S', 'T', 'H', 'D', 'W', 'M', 'Q', 'Y']
         idx = [period_range('12/31/1999', freq=x, periods=100) for x in freq]
@@ -52,9 +44,7 @@ class TestTSPlot(unittest.TestCase):
                             for x in idx]
 
     def tearDown(self):
-        import matplotlib.pyplot as plt
-        for fignum in plt.get_fignums():
-            plt.close(fignum)
+        tm.close()
 
     @slow
     def test_ts_plot_with_tz(self):

@@ -29,17 +29,11 @@ def _skip_if_no_scipy():
         raise nose.SkipTest
 
 
+@tm.mplskip
 class TestSeriesPlots(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        try:
-            import matplotlib as mpl
-            mpl.use('Agg', warn=False)
-            cls.mpl_le_1_2_1 = str(mpl.__version__) <= LooseVersion('1.2.1')
-        except ImportError:
-            raise nose.SkipTest("matplotlib not installed")
-
     def setUp(self):
+        import matplotlib as mpl
+        self.mpl_le_1_2_1 = str(mpl.__version__) <= LooseVersion('1.2.1')
         self.ts = tm.makeTimeSeries()
         self.ts.name = 'ts'
 
@@ -50,8 +44,7 @@ class TestSeriesPlots(unittest.TestCase):
         self.iseries.name = 'iseries'
 
     def tearDown(self):
-        import matplotlib.pyplot as plt
-        plt.close('all')
+        tm.close()
 
     @slow
     def test_plot(self):
@@ -352,24 +345,14 @@ class TestSeriesPlots(unittest.TestCase):
         _check_plot_works(s.plot)
 
 
+@tm.mplskip
 class TestDataFramePlots(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        # import sys
-        # if 'IPython' in sys.modules:
-        #    raise nose.SkipTest
-
-        try:
-            import matplotlib as mpl
-            mpl.use('Agg', warn=False)
-            cls.mpl_le_1_2_1 = str(mpl.__version__) <= LooseVersion('1.2.1')
-        except ImportError:
-            raise nose.SkipTest("matplotlib not installed")
+    def setUp(self):
+        import matplotlib as mpl
+        self.mpl_le_1_2_1 = str(mpl.__version__) <= LooseVersion('1.2.1')
 
     def tearDown(self):
-        import matplotlib.pyplot as plt
-        plt.close('all')
+        tm.close()
 
     @slow
     def test_plot(self):
@@ -949,19 +932,10 @@ class TestDataFramePlots(unittest.TestCase):
             df.plot(kind='aasdf')
 
 
+@tm.mplskip
 class TestDataFrameGroupByPlots(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        try:
-            import matplotlib as mpl
-            mpl.use('Agg', warn=False)
-        except ImportError:
-            raise nose.SkipTest
-
     def tearDown(self):
-        import matplotlib.pyplot as plt
-        for fignum in plt.get_fignums():
-            plt.close(fignum)
+        tm.close()
 
     @slow
     def test_boxplot(self):
@@ -999,13 +973,16 @@ class TestDataFrameGroupByPlots(unittest.TestCase):
         import matplotlib as mpl
 
         def_colors = mpl.rcParams['axes.color_cycle']
+        index = date_range('1/1/2000', periods=12)
+        s = Series(np.arange(1, 13), index=index)
 
-        for i in range(3):
-            ax = Series(np.arange(12) + 1, index=date_range('1/1/2000',
-                                                            periods=12)).plot()
+        ncolors = 3
+
+        for i in range(ncolors):
+            ax = s.plot()
 
         line_colors = [l.get_color() for l in ax.get_lines()]
-        self.assertEqual(line_colors, def_colors[:3])
+        self.assertEqual(line_colors, def_colors[:ncolors])
 
     @slow
     def test_grouped_hist(self):
@@ -1155,27 +1132,30 @@ def _check_plot_works(f, *args, **kwargs):
     import matplotlib.pyplot as plt
 
     try:
-        fig = kwargs['figure']
-    except KeyError:
-        fig = plt.gcf()
-    plt.clf()
-    ax = kwargs.get('ax', fig.add_subplot(211))
-    ret = f(*args, **kwargs)
+        try:
+            fig = kwargs['figure']
+        except KeyError:
+            fig = plt.gcf()
 
-    assert ret is not None
-    assert_is_valid_plot_return_object(ret)
+        plt.clf()
 
-    try:
-        kwargs['ax'] = fig.add_subplot(212)
+        ax = kwargs.get('ax', fig.add_subplot(211))
         ret = f(*args, **kwargs)
-    except Exception:
-        pass
-    else:
+
         assert_is_valid_plot_return_object(ret)
 
-    with ensure_clean() as path:
-        plt.savefig(path)
-    plt.close(fig)
+        try:
+            kwargs['ax'] = fig.add_subplot(212)
+            ret = f(*args, **kwargs)
+        except Exception:
+            pass
+        else:
+            assert_is_valid_plot_return_object(ret)
+
+        with ensure_clean() as path:
+            plt.savefig(path)
+    finally:
+        tm.close(fig)
 
 
 def curpath():
