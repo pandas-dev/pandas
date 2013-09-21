@@ -17,7 +17,7 @@ import pandas.algos as algos
 import pandas.lib as lib
 import pandas.tslib as tslib
 from pandas import compat
-from pandas.compat import StringIO, BytesIO, range, long, u, zip, map
+from pandas.compat import StringIO, BytesIO, range, long, u, zip, map, reprlib
 
 from pandas.core.config import get_option
 from pandas.core import array as pa
@@ -2452,6 +2452,35 @@ def in_ipython_frontend():
 #    working with straight ascii.
 
 
+def as_escaped_unicode(thing, escape_chars=None):
+    # Unicode is fine, else we try to decode using utf-8 and 'replace'
+    # if that's not it either, we have no way of knowing and the user
+    # should deal with it.
+
+    try:
+        result = compat.text_type(thing)  # we should try this first
+    except UnicodeDecodeError:
+        # either utf-8 or we replace errors
+        result = str(thing).decode('utf-8', "replace")
+
+    translate = {'\t': r'\t',
+                 '\n': r'\n',
+                 '\r': r'\r',}
+
+    if isinstance(escape_chars, dict):
+        if default_escapes:
+            translate.update(escape_chars)
+        else:
+            translate = escape_chars
+        escape_chars = list(escape_chars.keys())
+    else:
+        escape_chars = escape_chars or tuple()
+    for c in escape_chars:
+        result = result.replace(c, translate[c])
+
+    return compat.text_type(result)
+
+
 def _pprint_seq(seq, _nest_lvl=0, **kwds):
     """
     internal. pprinter for iterables. you should probably use pprint_thing()
@@ -2488,26 +2517,11 @@ def _pprint_seq(seq, _nest_lvl=0, **kwds):
     return fmt % body
 
 
-def _pprint_dict(seq, _nest_lvl=0, **kwds):
-    """
-    internal. pprinter for iterables. you should probably use pprint_thing()
-    rather then calling this directly.
-    """
-    fmt = u("{%s}")
-    pairs = []
-
-    pfmt = u("%s: %s")
-
-    nitems = get_option("max_seq_items") or len(seq)
-
-    for k, v in list(seq.items())[:nitems]:
-        pairs.append(pfmt % (pprint_thing(k, _nest_lvl + 1, **kwds),
-                             pprint_thing(v, _nest_lvl + 1, **kwds)))
-
-    if nitems < len(seq):
-        return fmt % (", ".join(pairs) + ", ...")
-    else:
-        return fmt % ", ".join(pairs)
+def _pprint_dict(seq, escape_chars=None, quote_strings=False):
+    reprobj = reprlib.Repr()
+    reprobj.maxdict = get_option('display.max_seq_items') or len(seq)
+    level = get_option("display.pprint_nest_depth")
+    return reprobj.repr1(seq, level)
 
 
 def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
@@ -2536,39 +2550,11 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
     result - unicode object on py2, str on py3. Always Unicode.
 
     """
-    def as_escaped_unicode(thing, escape_chars=escape_chars):
-        # Unicode is fine, else we try to decode using utf-8 and 'replace'
-        # if that's not it either, we have no way of knowing and the user
-        # should deal with it.
-
-        try:
-            result = compat.text_type(thing)  # we should try this first
-        except UnicodeDecodeError:
-            # either utf-8 or we replace errors
-            result = str(thing).decode('utf-8', "replace")
-
-        translate = {'\t': r'\t',
-                     '\n': r'\n',
-                     '\r': r'\r',
-                     }
-        if isinstance(escape_chars, dict):
-            if default_escapes:
-                translate.update(escape_chars)
-            else:
-                translate = escape_chars
-            escape_chars = list(escape_chars.keys())
-        else:
-            escape_chars = escape_chars or tuple()
-        for c in escape_chars:
-            result = result.replace(c, translate[c])
-
-        return compat.text_type(result)
 
     if (compat.PY3 and hasattr(thing, '__next__')) or hasattr(thing, 'next'):
         return compat.text_type(thing)
-    elif (isinstance(thing, dict) and
-          _nest_lvl < get_option("display.pprint_nest_depth")):
-        result = _pprint_dict(thing, _nest_lvl, quote_strings=True)
+    elif isinstance(thing, dict):
+        result = _pprint_dict(thing, quote_strings=quote_strings)
     elif _is_sequence(thing) and _nest_lvl < \
             get_option("display.pprint_nest_depth"):
         result = _pprint_seq(thing, _nest_lvl, escape_chars=escape_chars,

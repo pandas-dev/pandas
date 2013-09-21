@@ -8,9 +8,8 @@ from pandas.tslib import iNaT
 
 from pandas import Series, DataFrame, date_range, DatetimeIndex, Timestamp
 from pandas import compat
-from pandas.compat import range, long, lrange, lmap, u
+from pandas.compat import range, long, lrange, lmap, u, PY3
 from pandas.core.common import notnull, isnull
-from pandas.util.py3compat import PY3
 import pandas.core.common as com
 import pandas.util.testing as tm
 import pandas.core.config as cf

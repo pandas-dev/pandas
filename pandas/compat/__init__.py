@@ -35,7 +35,7 @@ from itertools import product
 import sys
 import types
 
-PY3 = (sys.version_info[0] >= 3)
+PY3 = sys.version_info[0] >= 3
 PY3_2 = sys.version_info[:2] == (3, 2)
 
 try:
@@ -47,12 +47,14 @@ try:
     BytesIO = StringIO
     import cPickle
     import httplib
+    import repr as reprlib
 except ImportError:
     import builtins
     from io import StringIO, BytesIO
     cStringIO = StringIO
     import pickle as cPickle
     import http.client as httplib
+    import reprlib
 
 
 if PY3:
