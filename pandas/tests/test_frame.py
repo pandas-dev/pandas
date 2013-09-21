@@ -3396,6 +3396,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             for k2, v2 in compat.iteritems(v):
                 self.assertEqual(v2, recons_data[k][k2])
 
+        recons_data = DataFrame({'A': [1.0, 2.0],
+                                 'B': ['1', '2']}).to_dict("r")
+
+        expected_records = [{'A': 1.0, 'B': '1'},
+                            {'A': 2.0, 'B': '2'}]
+
+        for expected_row, actual_row in zip(expected_records, recons_data):
+            for key in expected_row.keys():
+                self.assertEqual(expected_row[key], actual_row[key])
+
     def test_to_records_dt64(self):
         df = DataFrame([["one", "two", "three"],
                         ["four", "five", "six"]],
