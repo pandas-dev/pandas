@@ -1964,20 +1964,11 @@ class FixedWidthReader(object):
                        isinstance(colspec[1], int) ):
                 raise AssertionError()
 
-    if compat.PY3:
-        def next(self):
-            line = next(self.f)
-            if isinstance(line, bytes):
-                line = line.decode(self.encoding)
-            # Note: 'colspecs' is a sequence of half-open intervals.
-            return [line[fromm:to].strip(self.filler or ' ')
-                    for (fromm, to) in self.colspecs]
-    else:
-        def next(self):
-            line = next(self.f)
-            # Note: 'colspecs' is a sequence of half-open intervals.
-            return [line[fromm:to].strip(self.filler or ' ')
-                    for (fromm, to) in self.colspecs]
+    def next(self):
+        line = next(self.f)
+        # Note: 'colspecs' is a sequence of half-open intervals.
+        return [line[fromm:to].strip(self.filler or ' ')
+                for (fromm, to) in self.colspecs]
 
     # Iterator protocol in Python 3 uses __next__()
     __next__ = next
