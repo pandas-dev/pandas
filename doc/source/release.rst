@@ -47,6 +47,8 @@ pandas 0.13
   - Added a more informative error message when plot arguments contain
     overlapping color and style arguments (:issue:`4402`)
   - Significant table writing performance improvements in ``HDFStore``
+  - ``to_dict`` now takes ``records`` as a possible outtype.  Returns an array
+    of column-keyed dictionaries. (:pullrequest:`4936`)
 
 **API Changes**
 
