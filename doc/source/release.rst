@@ -434,6 +434,7 @@ Bug Fixes
     with thousands != "," (:issue:`4596`)
   - Bug in getitem with a duplicate index when using where (:issue:`4879`)
   - Fix Type inference code coerces float column into datetime (:issue:`4601`)
+  - Fixed ``_ensure_numeric`` does not check for complex numbers (:issue:`4902`)
 
 
 pandas 0.12.0
