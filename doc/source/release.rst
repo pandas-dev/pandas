@@ -123,6 +123,7 @@ Improvements to existing features
     without ``MultiIndex`` raises ``ValueError`` (:issue:`4759`, :issue:`4837`)
   - ``read_json`` now raises a (more informative) ``ValueError`` when the dict
     contains a bad key and ``orient='split'`` (:issue:`4730`, :issue:`4838`)
+  - Accept Stata 13 format for reading (:issue:`4291`)
 
 API Changes
 ~~~~~~~~~~~

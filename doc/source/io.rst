@@ -2754,7 +2754,7 @@ Writing to STATA format
 .. _io.stata_writer:
 
 The method :func:`~pandas.core.frame.DataFrame.to_stata` will write a DataFrame
-into a .dta file. The format version of this file is always the latest one, 115.
+into a .dta file. The format version of this file is always 115 (Stata 12).
 
 .. ipython:: python
 
@@ -2786,7 +2786,7 @@ read and used to create a ``Categorical`` variable from them. Value labels can
 also be retrieved by the function ``variable_labels``, which requires data to be
 called before (see ``pandas.io.stata.StataReader``).
 
-The StataReader supports .dta Formats 104, 105, 108, 113-115.
+The StataReader supports .dta Formats 104, 105, 108, 113-115 and 117.
 Alternatively, the function :func:`~pandas.io.stata.read_stata` can be used
 
 .. ipython:: python

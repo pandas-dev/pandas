@@ -33,6 +33,10 @@ class StataTests(unittest.TestCase):
         self.dta9 = os.path.join(self.dirpath, 'lbw.dta')
         self.csv9 = os.path.join(self.dirpath, 'lbw.csv')
         self.dta_encoding = os.path.join(self.dirpath, 'stata1_encoding.dta')
+        self.dta1_13 = os.path.join(self.dirpath, 'stata1_v13.dta')
+        self.dta2_13 = os.path.join(self.dirpath, 'stata2_v13.dta')
+        self.dta3_13 = os.path.join(self.dirpath, 'stata3_v13.dta')
+        self.dta4_13 = os.path.join(self.dirpath, 'stata4_v13.dta')
 
     def read_dta(self, file):
         return read_stata(file, convert_dates=True)
@@ -43,6 +47,8 @@ class StataTests(unittest.TestCase):
     def test_read_dta1(self):
         reader = StataReader(self.dta1)
         parsed = reader.data()
+        reader_13 = StataReader(self.dta1_13)
+        parsed_13 = reader_13.data()
         # Pandas uses np.nan as missing value.
         # Thus, all columns will be of type float, regardless of their name.
         expected = DataFrame([(np.nan, np.nan, np.nan, np.nan, np.nan)],
@@ -52,7 +58,9 @@ class StataTests(unittest.TestCase):
         # this is an oddity as really the nan should be float64, but
         # the casting doesn't fail so need to match stata here
         expected['float_miss'] = expected['float_miss'].astype(np.float32)
+
         tm.assert_frame_equal(parsed, expected)
+        tm.assert_frame_equal(parsed_13, expected)
 
     def test_read_dta2(self):
         expected = DataFrame.from_records(
@@ -95,25 +103,29 @@ class StataTests(unittest.TestCase):
 
         with warnings.catch_warnings(record=True) as w:
             parsed = self.read_dta(self.dta2)
+            parsed_13 = self.read_dta(self.dta2_13)
             np.testing.assert_equal(
                 len(w), 1)  # should get a warning for that format.
 
         tm.assert_frame_equal(parsed, expected)
+        tm.assert_frame_equal(parsed_13, expected)
 
     def test_read_dta3(self):
-
         parsed = self.read_dta(self.dta3)
+        parsed_13 = self.read_dta(self.dta3_13)
 
         # match stata here
         expected = self.read_csv(self.csv3)
         expected = expected.astype(np.float32)
         expected['year'] = expected['year'].astype(np.int32)
-        expected['quarter']= expected['quarter'].astype(np.int16)
+        expected['quarter'] = expected['quarter'].astype(np.int16)
 
-        tm.assert_frame_equal(parsed,expected)
+        tm.assert_frame_equal(parsed, expected)
+        tm.assert_frame_equal(parsed_13, expected)
 
     def test_read_dta4(self):
         parsed = self.read_dta(self.dta4)
+        parsed_13 = self.read_dta(self.dta4_13)
         expected = DataFrame.from_records(
             [
                 ["one", "ten", "one", "one", "one"],
@@ -131,6 +143,7 @@ class StataTests(unittest.TestCase):
                      'labeled_with_missings', 'float_labelled'])
 
         tm.assert_frame_equal(parsed, expected)
+        tm.assert_frame_equal(parsed_13, expected)
 
     def test_read_write_dta5(self):
         if not is_little_endian():
@@ -178,7 +191,7 @@ class StataTests(unittest.TestCase):
     def test_read_dta9(self):
         expected = read_csv(self.csv9, parse_dates=True, sep='\t')
         parsed = self.read_dta(self.dta9)
-        assert_frame_equal(parsed, expected)
+        tm.assert_frame_equal(parsed, expected)
 
     def test_read_write_dta10(self):
         if not is_little_endian():
@@ -213,11 +226,11 @@ class StataTests(unittest.TestCase):
         if compat.PY3:
             expected = raw.kreis1849[0]
             self.assert_(result == expected)
-            self.assert_(isinstance(result,compat.string_types))
+            self.assert_(isinstance(result, compat.string_types))
         else:
             expected = raw.kreis1849.str.decode("latin-1")[0]
             self.assert_(result == expected)
-            self.assert_(isinstance(result,unicode))
+            self.assert_(isinstance(result, unicode))
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
