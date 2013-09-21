@@ -18,6 +18,8 @@ from distutils.version import LooseVersion
 from numpy.random import randn, rand
 import numpy as np
 
+import nose
+
 from pandas.core.common import isnull, _is_sequence
 import pandas.core.index as index
 import pandas.core.series as series
@@ -69,6 +71,31 @@ def choice(x, size=10):
         return np.random.choice(x, size=size)
     except AttributeError:
         return np.random.randint(len(x), size=size).choose(x)
+
+
+def close(fignum=None):
+    from matplotlib.pyplot import get_fignums, close as _close
+
+    if fignum is None:
+        for fignum in get_fignums():
+            _close(fignum)
+    else:
+        _close(fignum)
+
+
+def mplskip(cls):
+    """Skip a TestCase instance if matplotlib isn't installed"""
+    @classmethod
+    def setUpClass(cls):
+        try:
+            import matplotlib as mpl
+            mpl.use("Agg", warn=False)
+        except ImportError:
+            raise nose.SkipTest("matplotlib not installed")
+
+    cls.setUpClass = setUpClass
+    return cls
+
 
 #------------------------------------------------------------------------------
 # Console debugging tools
