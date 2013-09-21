@@ -112,13 +112,15 @@ def _align_core(terms):
     axes = biggest.axes
     naxes = len(axes)
 
-    for term in (terms[i] for i in term_index):
-        for axis, items in enumerate(term.value.axes):
-            if isinstance(term.value, pd.Series) and naxes > 1:
-                ax, itm = naxes - 1, term.value.index
+    for value in (terms[i].value for i in term_index):
+        for axis, items in enumerate(value.axes):
+            if isinstance(value, pd.Series) and naxes > 1:
+                ax, itm = naxes - 1, value.index
             else:
                 ax, itm = axis, items
-            axes[ax] = axes[ax].join(itm, how='outer')
+            # TODO: use is_ method when jtratner's PR is merged
+            if axes[ax] is not itm:
+                axes[ax] = axes[ax].join(itm, how='outer')
 
     for i, ndim in compat.iteritems(ndims):
         for axis, items in zip(range(ndim), axes):
@@ -136,7 +138,7 @@ def _align_core(terms):
                     warnings.warn("Alignment difference on axis {0} is larger"
                                   " than an order of magnitude on term {1!r}, "
                                   "by more than {2:.4g}; performance may suffer"
-                                  "".format(axis, term.name, ordm),
+                                  "".format(axis, terms[i].name, ordm),
                                   category=pd.io.common.PerformanceWarning)
 
                 if transpose:

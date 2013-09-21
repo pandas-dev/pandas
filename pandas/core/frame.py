@@ -1898,6 +1898,7 @@ class DataFrame(NDFrame):
         # index or columns
         axis_index = getattr(self, axis)
         d = dict()
+        prefix = axis[0]
 
         for i, name in enumerate(axis_index.names):
             if name is not None:
@@ -1906,15 +1907,19 @@ class DataFrame(NDFrame):
                 # prefix with 'i' or 'c' depending on the input axis
                 # e.g., you must do ilevel_0 for the 0th level of an unnamed
                 # multiiindex
-                level_string = '{prefix}level_{i}'.format(prefix=axis[0], i=i)
-                key = level_string
+                key = '{prefix}level_{i}'.format(prefix=prefix, i=i)
                 level = i
 
             d[key] = Series(axis_index.get_level_values(level).values,
-                            index=axis_index, name=level)
+                            index=axis_index, name=name)
 
         # put the index/columns itself in the dict
-        d[axis] = axis_index
+        if isinstance(axis_index, MultiIndex):
+            dindex = axis_index
+        else:
+            dindex = axis_index.to_series()
+
+        d[axis] = dindex
         return d
 
     def query(self, expr, **kwargs):

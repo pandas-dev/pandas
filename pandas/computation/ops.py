@@ -162,23 +162,20 @@ class Term(StringMixin):
 
     @property
     def kind(self):
+        t = self.type
         try:
-            return self.type.__name__
+            res = t.__name__
         except AttributeError:
-            return self.type.type.__name__
+            res = t.type.__name__
+        return res.lower()
 
     @property
     def value(self):
-        kind = self.kind.lower()
-        if kind == 'datetime64':
-            try:
-                return self._value.asi8
-            except AttributeError:
-                return self._value.view('i8')
+        kind = self.kind
+        if kind == 'timestamp':
+            return self._value.asm8
         elif kind == 'datetime':
-            return pd.Timestamp(self._value)
-        elif kind == 'timestamp':
-            return self._value.asm8.view('i8')
+            return np.datetime64(self._value)
         return self._value
 
     @value.setter
@@ -247,6 +244,16 @@ class Op(StringMixin):
     @property
     def isscalar(self):
         return all(operand.isscalar for operand in self.operands)
+
+    @property
+    def kind(self):
+        t = self.return_type
+
+        try:
+            res = t.__name__
+        except AttributeError:
+            res = t.type.__name__
+        return res.lower()
 
 
 def _in(x, y):
