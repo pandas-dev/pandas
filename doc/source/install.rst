@@ -153,6 +153,10 @@ Optional Dependencies
          to get the necessary dependencies for installation of `lxml`_. This
          will prevent further headaches down the line.
 
+  * `google-api-python-client `<https://developers.google.com/
+      api-client-library/python/start/installation>`__
+      * Needed for :mod:`pandas.io.ga`
+
 
 .. _html5lib: https://github.com/html5lib/html5lib-python
 .. _BeautifulSoup4: http://www.crummy.com/software/BeautifulSoup

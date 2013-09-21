@@ -13,8 +13,8 @@ try:
     from pandas.io.ga import GAnalytics, read_ga
     from pandas.io.auth import AuthenticationConfigError, reset_token_store
     from pandas.io import auth
-except ImportError:
-    raise nose.SkipTest
+except (Exception) as detail:
+    raise nose.SkipTest(detail)
 
 class TestGoogle(unittest.TestCase):
 
