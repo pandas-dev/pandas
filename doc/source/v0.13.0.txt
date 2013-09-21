@@ -312,9 +312,9 @@ Enhancements
 
        Series(['a1', 'b2', 'c3']).str.extract('([ab])(\d)')
 
-    Elements that do not match return a row of ``NaN``s. 
-    Thus, a Series of messy strings can be "converted" into a 
-    like-indexed Series or DataFrame of cleaned-up or more useful strings, 
+    Elements that do not match return a row of ``NaN``s.
+    Thus, a Series of messy strings can be "converted" into a
+    like-indexed Series or DataFrame of cleaned-up or more useful strings,
     without necessitating ``get()`` to access tuples or ``re.match`` objects.
 
     Named groups like
@@ -329,6 +329,7 @@ Enhancements
         Series(['a1', 'b2', '3']).str.match('(?P<letter>[ab])?(?P<digit>\d)')
 
     can also be used.
+  - ``read_stata` now accepts Stata 13 format (:issue:`4291`)
 
 
 .. _whatsnew_0130.experimental:
