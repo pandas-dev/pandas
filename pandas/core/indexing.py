@@ -190,12 +190,14 @@ class _NDFrameIndexer(object):
 
                     new_values = np.concatenate([self.obj.values, [value]])
                     self.obj._data = self.obj._constructor(new_values, index=new_index, name=self.obj.name)
+                    self.obj._maybe_update_cacher(clear=True)
                     return self.obj
 
                 elif self.ndim == 2:
                     index = self.obj._get_axis(0)
                     labels = _safe_append_to_index(index, indexer)
                     self.obj._data = self.obj.reindex_axis(labels,0)._data
+                    self.obj._maybe_update_cacher(clear=True)
                     return getattr(self.obj,self.name).__setitem__(indexer,value)
 
                 # set using setitem (Panel and > dims)
@@ -255,6 +257,7 @@ class _NDFrameIndexer(object):
                 # set the item, possibly having a dtype change
                 s = s.copy()
                 s._data = s._data.setitem(pi,v)
+                s._maybe_update_cacher(clear=True)
                 self.obj[item] = s
 
             def can_do_equal_len():
@@ -327,6 +330,7 @@ class _NDFrameIndexer(object):
                 value = self._align_panel(indexer, value)
 
             self.obj._data = self.obj._data.setitem(indexer,value)
+            self.obj._maybe_update_cacher(clear=True)
 
     def _align_series(self, indexer, ser):
         # indexer to assign Series can be tuple or scalar
