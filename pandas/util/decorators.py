@@ -3,7 +3,6 @@ from pandas.lib import cache_readonly
 import sys
 import warnings
 
-
 def deprecate(name, alternative, alt_name=None):
     alt_name = alt_name or alternative.__name__
 
@@ -105,6 +104,24 @@ class Appender(object):
         func.__doc__ = ''.join(docitems)
         return func
 
+
+class Generic(object):
+    """
+    A function decorator that will hold specific functions for the named classes
+    of the target function.
+    """
+    functions = {}
+
+    def __init__(self, subs=None):
+        if subs is None:
+            subs = dict()
+        self.subs = subs
+        self.func = None
+
+    def __call__(self, func):
+        self.func = func
+        self.functions[func.__name__] = self
+        return func
 
 def indent(text, indents=1):
     if not text or not isinstance(text, str):

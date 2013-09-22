@@ -4716,7 +4716,7 @@ class DataFrame(NDFrame):
 
 DataFrame._setup_axes(
     ['index', 'columns'], info_axis=1, stat_axis=0, axes_are_reversed=True)
-
+DataFrame._setup_generic_methods()
 
 _EMPTY_SERIES = Series([])
 
