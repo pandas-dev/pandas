@@ -825,14 +825,20 @@ class NDFrame(PandasObject):
         maybe it has changed """
         self._data.set(item, value)
 
-    def _maybe_update_cacher(self):
-        """ see if we need to update our parent cacher """
+    def _maybe_update_cacher(self, clear=False):
+        """ see if we need to update our parent cacher
+            if clear, then clear our cache """
         cacher = getattr(self,'_cacher',None)
         if cacher is not None:
             cacher[1]()._maybe_cache_changed(cacher[0],self)
+        if clear:
+            self._clear_item_cache()
 
-    def _clear_item_cache(self):
-        self._item_cache.clear()
+    def _clear_item_cache(self, i=None):
+        if i is not None:
+            self._item_cache.pop(i,None)
+        else:
+            self._item_cache.clear()
 
     def _set_item(self, key, value):
         self._data.set(key, value)
