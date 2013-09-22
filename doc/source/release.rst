@@ -435,6 +435,8 @@ Bug Fixes
   - Bug in getitem with a duplicate index when using where (:issue:`4879`)
   - Fix Type inference code coerces float column into datetime (:issue:`4601`)
   - Fixed ``_ensure_numeric`` does not check for complex numbers (:issue:`4902`)
+  - Fixed a bug in ``Series.hist`` where two figures were being created when
+    the ``by`` argument was passed (:issue:`4112`, :issue:`4113`).
 
 
 pandas 0.12.0
