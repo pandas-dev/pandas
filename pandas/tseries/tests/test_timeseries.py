@@ -274,6 +274,12 @@ def assert_range_equal(left, right):
 class TestTimeSeries(unittest.TestCase):
     _multiprocess_can_split_ = True
 
+    def test_is_(self):
+        dti = DatetimeIndex(start='1/1/2005', end='12/1/2005', freq='M')
+        self.assertTrue(dti.is_(dti))
+        self.assertTrue(dti.is_(dti.view()))
+        self.assertFalse(dti.is_(dti.copy()))
+
     def test_dti_slicing(self):
         dti = DatetimeIndex(start='1/1/2005', end='12/1/2005', freq='M')
         dti2 = dti[[1, 3, 5]]
@@ -655,7 +661,7 @@ class TestTimeSeries(unittest.TestCase):
         idx = Index([datetime(2012, 1, 1)], dtype=object)
 
         if np.__version__ >= '1.7':
-            raise nose.SkipTest
+            raise nose.SkipTest("Test requires numpy < 1.7")
 
         casted = idx.astype(np.dtype('M8[D]'))
         expected = DatetimeIndex(idx.values)

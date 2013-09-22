@@ -812,7 +812,7 @@ class PeriodIndex(Int64Index):
         """
         Determines if two Index objects contain the same elements.
         """
-        if self is other:
+        if self.is_(other):
             return True
 
         return np.array_equal(self.asi8, other.asi8)
@@ -1076,6 +1076,7 @@ class PeriodIndex(Int64Index):
 
         self.freq = getattr(obj, 'freq', None)
         self.name = getattr(obj, 'name', None)
+        self._reset_identity()
 
     def __repr__(self):
         output = com.pprint_thing(self.__class__) + '\n'
