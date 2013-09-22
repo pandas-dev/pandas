@@ -1590,6 +1590,41 @@ selecting data at a particular level of a MultiIndex easier.
 
     df.xs('one', level='second')
 
+You can also select on the columns with :meth:`~pandas.MultiIndex.xs`, by
+providing the axis argument
+
+.. ipython:: python
+
+   df = df.T
+   df.xs('one', level='second', axis=1)
+
+:meth:`~pandas.MultiIndex.xs` also allows selection with multiple keys
+
+.. ipython:: python
+
+   df.xs(('one', 'bar'), level=('second', 'first'), axis=1)
+
+
+.. versionadded:: 0.13.0
+
+You can pass ``drop_level=False`` to :meth:`~pandas.MultiIndex.xs` to retain
+the level that was selected
+
+.. ipython::
+
+   df.xs('one', level='second', axis=1, drop_level=False)
+
+versus the result with ``drop_level=True`` (the default value)
+
+.. ipython::
+
+   df.xs('one', level='second', axis=1, drop_level=True)
+
+.. ipython::
+   :suppress:
+
+   df = df.T
+
 .. _indexing.advanced_reindex:
 
 Advanced reindexing and alignment with hierarchical index
