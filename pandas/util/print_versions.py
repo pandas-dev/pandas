@@ -114,6 +114,12 @@ def show_versions():
         print("xlwt: Not installed")
 
     try:
+        import xlsxwriter
+        print("xlsxwriter: %s" % xlsxwriter.__version__)
+    except:
+        print("xlsxwriter: Not installed")
+
+    try:
         import sqlalchemy
         print("sqlalchemy: %s" % sqlalchemy.__version__)
     except:
