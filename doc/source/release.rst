@@ -55,8 +55,7 @@ New features
   - ``plot(kind='kde')`` now accepts the optional parameters ``bw_method`` and
     ``ind``, passed to scipy.stats.gaussian_kde() (for scipy >= 0.11.0) to set
     the bandwidth, and to gkde.evaluate() to specify the indicies at which it
-    is evaluated, respecttively. See scipy docs.
-
+    is evaluated, respecttively. See scipy docs. (:issue:`4298`)
   - Added ``isin`` method to DataFrame (:issue:`4211`)
   - Clipboard functionality now works with PySide (:issue:`4282`)
   - New ``extract`` string method returns regex matches more conveniently (:issue:`4685`)

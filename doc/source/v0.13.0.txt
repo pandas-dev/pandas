@@ -295,7 +295,7 @@ Enhancements
   - ``plot(kind='kde')`` now accepts the optional parameters ``bw_method`` and
     ``ind``, passed to scipy.stats.gaussian_kde() (for scipy >= 0.11.0) to set
     the bandwidth, and to gkde.evaluate() to specify the indicies at which it
-    is evaluated, respecttively. See scipy docs.
+    is evaluated, respecttively. See scipy docs. (:issue:`4298`)
   - DataFrame constructor now accepts a numpy masked record array (:issue:`3478`)
   - The new vectorized string method ``extract`` return regular expression
     matches more conveniently.
