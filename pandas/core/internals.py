@@ -1164,8 +1164,8 @@ class ObjectBlock(Block):
                 values = self.iget(i)
 
                 values = com._possibly_convert_objects(
-                    values, convert_dates=convert_dates, convert_numeric=convert_numeric)
-                values = _block_shape(values)
+                    values.ravel(), convert_dates=convert_dates, convert_numeric=convert_numeric).reshape(values.shape)
+                values = _block_shape(values, ndim=self.ndim)
                 items = self.items.take([i])
                 placement = None if is_unique else [i]
                 newb = make_block(
@@ -1175,7 +1175,7 @@ class ObjectBlock(Block):
         else:
 
             values = com._possibly_convert_objects(
-                self.values, convert_dates=convert_dates, convert_numeric=convert_numeric)
+                self.values.ravel(), convert_dates=convert_dates, convert_numeric=convert_numeric).reshape(self.values.shape)
             blocks.append(
                 make_block(values, self.items, self.ref_items, ndim=self.ndim))
 
@@ -3610,7 +3610,7 @@ def _merge_blocks(blocks, items, dtype=None, _can_consolidate=True):
 
 def _block_shape(values, ndim=1, shape=None):
     """ guarantee the shape of the values to be at least 1 d """
-    if values.ndim == ndim:
+    if values.ndim <= ndim:
         if shape is None:
             shape = values.shape
         values = values.reshape(tuple((1,) + shape))

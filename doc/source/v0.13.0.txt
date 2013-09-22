@@ -331,7 +331,6 @@ Enhancements
     can also be used.
   - ``read_stata` now accepts Stata 13 format (:issue:`4291`)
 
-
 .. _whatsnew_0130.experimental:
 
 Experimental

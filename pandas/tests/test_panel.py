@@ -1010,6 +1010,14 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         assert(conformed.index.equals(self.panel.major_axis))
         assert(conformed.columns.equals(self.panel.minor_axis))
 
+    def test_convert_objects(self):
+
+        # GH 4937
+        p = Panel(dict(A = dict(a = ['1','1.0'])))
+        expected = Panel(dict(A = dict(a = [1,1.0])))
+        result = p.convert_objects(convert_numeric='force')
+        assert_panel_equal(result, expected)
+
     def test_reindex(self):
         ref = self.panel['ItemB']
 
@@ -1287,9 +1295,6 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
     def test_filter(self):
         pass
 
-    def test_apply(self):
-        pass
-
     def test_compound(self):
         compounded = self.panel.compound()
 
@@ -1350,7 +1355,7 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         assert_panel_equal(shifted, shifted2)
 
         inferred_ts = Panel(panel.values,
-                                items=panel.items, 
+                                items=panel.items,
                                 major_axis=Index(np.asarray(panel.major_axis)),
                                 minor_axis=panel.minor_axis)
         shifted = inferred_ts.tshift(1)

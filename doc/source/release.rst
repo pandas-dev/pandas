@@ -437,7 +437,7 @@ Bug Fixes
   - Fixed ``_ensure_numeric`` does not check for complex numbers (:issue:`4902`)
   - Fixed a bug in ``Series.hist`` where two figures were being created when
     the ``by`` argument was passed (:issue:`4112`, :issue:`4113`).
-
+  - Fixed a bug in ``convert_objects`` for > 2 ndims (:issue:`4937`)
 
 pandas 0.12.0
 -------------
