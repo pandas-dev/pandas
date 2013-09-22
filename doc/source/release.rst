@@ -126,6 +126,8 @@ Improvements to existing features
   - ``read_json`` now raises a (more informative) ``ValueError`` when the dict
     contains a bad key and ``orient='split'`` (:issue:`4730`, :issue:`4838`)
   - ``read_stata`` now accepts Stata 13 format (:issue:`4291`)
+  - ``ExcelWriter`` and ``ExcelFile`` can be used as contextmanagers.
+    (:issue:`3441`, :issue:`4933`)
 
 API Changes
 ~~~~~~~~~~~

@@ -275,6 +275,18 @@ class ExcelReaderTests(SharedItems, unittest.TestCase):
         tm.assert_frame_equal(df4, df.ix[:-1])
         tm.assert_frame_equal(df4, df5)
 
+    def test_reader_closes_file(self):
+        _skip_if_no_xlrd()
+        _skip_if_no_openpyxl()
+
+        pth = os.path.join(self.dirpath, 'test.xlsx')
+        f = open(pth, 'rb')
+        with ExcelFile(f) as xlsx:
+            # parses okay
+            df = xlsx.parse('Sheet1', index_col=0)
+
+        self.assertTrue(f.closed)
+
 
 class ExcelWriterBase(SharedItems):
     # Base class for test cases to run with different Excel writers.
@@ -309,6 +321,21 @@ class ExcelWriterBase(SharedItems):
             tm.assert_frame_equal(gt, df)
 
             self.assertRaises(xlrd.XLRDError, xl.parse, '0')
+
+    def test_excelwriter_contextmanager(self):
+        ext = self.ext
+        pth = os.path.join(self.dirpath, 'testit.{0}'.format(ext))
+
+        with ensure_clean(pth) as pth:
+            with ExcelWriter(pth) as writer:
+                self.frame.to_excel(writer, 'Data1')
+                self.frame2.to_excel(writer, 'Data2')
+
+            with ExcelFile(pth) as reader:
+                found_df = reader.parse('Data1')
+                found_df2 = reader.parse('Data2')
+                tm.assert_frame_equal(found_df, self.frame)
+                tm.assert_frame_equal(found_df2, self.frame2)
 
     def test_roundtrip(self):
         _skip_if_no_xlrd()
