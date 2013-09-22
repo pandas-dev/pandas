@@ -1,8 +1,28 @@
 import re
 import unittest
 import numpy as np
+import pandas.compat as compat
+from pandas.compat import u
 from pandas.core.base import FrozenList, FrozenNDArray
 from pandas.util.testing import assertRaisesRegexp, assert_isinstance
+
+
+class CheckStringMixin(object):
+    def test_string_methods_dont_fail(self):
+        repr(self.container)
+        str(self.container)
+        bytes(self.container)
+        if not compat.PY3:
+            unicode(self.container)
+
+    def test_tricky_container(self):
+        if not hasattr(self, 'unicode_container'):
+            raise nose.SkipTest('Need unicode_container to test with this')
+        repr(self.unicode_container)
+        str(self.unicode_container)
+        bytes(self.unicode_container)
+        if not compat.PY3:
+            unicode(self.unicode_container)
 
 
 class CheckImmutable(object):
@@ -43,8 +63,9 @@ class CheckImmutable(object):
         self.assertEqual(result, expected)
 
 
-class TestFrozenList(CheckImmutable, unittest.TestCase):
+class TestFrozenList(CheckImmutable, CheckStringMixin, unittest.TestCase):
     mutable_methods = ('extend', 'pop', 'remove', 'insert')
+    unicode_container = FrozenList([u("\u05d0"), u("\u05d1"), "c"])
 
     def setUp(self):
         self.lst = [1, 2, 3, 4, 5]
@@ -68,8 +89,9 @@ class TestFrozenList(CheckImmutable, unittest.TestCase):
         self.check_result(r, self.lst)
 
 
-class TestFrozenNDArray(CheckImmutable, unittest.TestCase):
+class TestFrozenNDArray(CheckImmutable, CheckStringMixin, unittest.TestCase):
     mutable_methods = ('put', 'itemset', 'fill')
+    unicode_container = FrozenNDArray([u("\u05d0"), u("\u05d1"), "c"])
 
     def setUp(self):
         self.lst = [3, 5, 7, -2]
