@@ -13,7 +13,7 @@ from distutils.version import LooseVersion
 import numpy as np
 
 from pandas import DataFrame, MultiIndex, isnull
-from pandas.io.common import _is_url, urlopen, parse_url
+from pandas.io.common import _is_url, urlopen, parse_url, URLError
 from pandas.compat import range, lrange, lmap, u, map
 from pandas import compat
 
@@ -101,7 +101,7 @@ def _get_skiprows_iter(skiprows):
                         ' rows'.format(type(skiprows)))
 
 
-def _read(io):
+def _read(io, opener=None):
     """Try to read from a url, file or string.
 
     Parameters
@@ -113,7 +113,7 @@ def _read(io):
     raw_text : str
     """
     if _is_url(io):
-        with urlopen(io) as url:
+        with urlopen(io, opener=opener) as url:
             raw_text = url.read()
     elif hasattr(io, 'read'):
         raw_text = io.read()
@@ -169,8 +169,9 @@ class _HtmlFrameParser(object):
     See each method's respective documentation for details on their
     functionality.
     """
-    def __init__(self, io, match, attrs):
+    def __init__(self, io, opener, match, attrs):
         self.io = io
+        self.opener = opener
         self.match = match
         self.attrs = attrs
 
@@ -421,7 +422,7 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
         return tables
 
     def _setup_build_doc(self):
-        raw_text = _read(self.io)
+        raw_text = _read(self.io, opener=self.opener)
         if not raw_text:
             raise AssertionError('No text parsed from document: '
                                  '{0}'.format(self.io))
@@ -558,6 +559,12 @@ class _LxmlFrameParser(_HtmlFrameParser):
                 else:
                     # something else happened: maybe a faulty connection
                     raise
+        except URLError:
+            r = parse(_read(self.io, opener=self.opener), parser=parser)
+            try:
+                r = r.getroot()
+            except AttributeError:
+                pass
         else:
             if not hasattr(r, 'text_content'):
                 raise XMLSyntaxError("no text parsed from document", 0, 0, 0)
@@ -750,7 +757,8 @@ def _validate_parser_flavor(flavor):
     return flavor
 
 
-def _parse(flavor, io, match, header, index_col, skiprows, infer_types, attrs):
+def _parse(flavor, io, opener, match, header, index_col, skiprows, infer_types,
+           attrs):
     # bonus: re.compile is idempotent under function iteration so you can pass
     # a compiled regex to it and it will return itself
     flavor = _validate_parser_flavor(flavor)
@@ -760,7 +768,7 @@ def _parse(flavor, io, match, header, index_col, skiprows, infer_types, attrs):
     retained = None
     for flav in flavor:
         parser = _parser_dispatch(flav)
-        p = parser(io, compiled_match, attrs)
+        p = parser(io, opener, compiled_match, attrs)
 
         try:
             tables = p.parse_tables()
@@ -776,7 +784,7 @@ def _parse(flavor, io, match, header, index_col, skiprows, infer_types, attrs):
 
 
 def read_html(io, match='.+', flavor=None, header=None, index_col=None,
-              skiprows=None, infer_types=True, attrs=None):
+              skiprows=None, infer_types=True, attrs=None, opener=None):
     r"""Read an HTML table into a DataFrame.
 
     Parameters
@@ -858,6 +866,9 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
         <http://www.w3.org/TR/html-markup/table.html>`__. It contains the
         latest information on table attributes for the modern web.
 
+    opener : %s.OpenerDirector
+        An OpenerDirector object that allows you customize your request header.
+
     Returns
     -------
     dfs : list of DataFrames
@@ -899,5 +910,8 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
     if isinstance(skiprows, numbers.Integral) and skiprows < 0:
         raise AssertionError('cannot skip rows starting from the end of the '
                              'data (you passed a negative value)')
-    return _parse(flavor, io, match, header, index_col, skiprows, infer_types,
-                  attrs)
+    return _parse(flavor, io, opener, match, header, index_col, skiprows,
+                  infer_types, attrs)
+
+
+read_html.__doc__ %= 'urllib.request' if compat.PY3 else 'urllib2'

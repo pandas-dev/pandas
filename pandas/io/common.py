@@ -1,6 +1,7 @@
 """Common IO api utilities"""
 
 import sys
+import socket
 import zipfile
 from contextlib import contextmanager, closing
 
@@ -9,15 +10,22 @@ from pandas import compat
 
 
 if compat.PY3:
-    from urllib.request import urlopen
-    _urlopen = urlopen
+    from urllib.request import urlopen as _urlopen, build_opener
     from urllib.parse import urlparse as parse_url
     import urllib.parse as compat_parse
     from urllib.parse import uses_relative, uses_netloc, uses_params, urlencode
     from urllib.error import URLError
     from http.client import HTTPException
+
+    @contextmanager
+    def urlopen(url, data=None, timeout=socket._GLOBAL_DEFAULT_TIMEOUT,
+                opener=None):
+        _opener = opener or build_opener()
+        with _opener.open(url, data, timeout) as f:
+            yield f
+
 else:
-    from urllib2 import urlopen as _urlopen
+    from urllib2 import urlopen as _urlopen, build_opener
     from urllib import urlencode
     from urlparse import urlparse as parse_url
     from urlparse import uses_relative, uses_netloc, uses_params
@@ -26,10 +34,11 @@ else:
     from contextlib import contextmanager, closing
     from functools import wraps
 
-    # @wraps(_urlopen)
     @contextmanager
-    def urlopen(*args, **kwargs):
-        with closing(_urlopen(*args, **kwargs)) as f:
+    def urlopen(url, data=None, timeout=socket._GLOBAL_DEFAULT_TIMEOUT,
+                opener=None):
+        _opener = opener or build_opener()
+        with closing(_opener.open(url, data, timeout)) as f:
             yield f
 
 
