@@ -192,6 +192,28 @@ class TestIndex(unittest.TestCase):
         i2 = i2.rename('foo')
         self.assert_(i1.identical(i2))
 
+    def test_is_(self):
+        ind = Index(range(10))
+        self.assertTrue(ind.is_(ind))
+        self.assertTrue(ind.is_(ind.view().view().view().view()))
+        self.assertFalse(ind.is_(Index(range(10))))
+        self.assertFalse(ind.is_(ind.copy()))
+        self.assertFalse(ind.is_(ind.copy(deep=False)))
+        self.assertFalse(ind.is_(ind[:]))
+        self.assertFalse(ind.is_(ind.view(np.ndarray).view(Index)))
+        self.assertFalse(ind.is_(np.array(range(10))))
+        self.assertTrue(ind.is_(ind.view().base)) # quasi-implementation dependent
+        ind2 = ind.view()
+        ind2.name = 'bob'
+        self.assertTrue(ind.is_(ind2))
+        self.assertTrue(ind2.is_(ind))
+        # doesn't matter if Indices are *actually* views of underlying data,
+        self.assertFalse(ind.is_(Index(ind.values)))
+        arr = np.array(range(1, 11))
+        ind1 = Index(arr, copy=False)
+        ind2 = Index(arr, copy=False)
+        self.assertFalse(ind1.is_(ind2))
+
     def test_asof(self):
         d = self.dateIndex[0]
         self.assert_(self.dateIndex.asof(d) is d)
@@ -1718,6 +1740,29 @@ class TestMultiIndex(unittest.TestCase):
 
         mi2 = mi2.set_names(['new1','new2'])
         self.assert_(mi.identical(mi2))
+
+    def test_is_(self):
+        mi = MultiIndex.from_tuples(lzip(range(10), range(10)))
+        self.assertTrue(mi.is_(mi))
+        self.assertTrue(mi.is_(mi.view()))
+        self.assertTrue(mi.is_(mi.view().view().view().view()))
+        mi2 = mi.view()
+        # names are metadata, they don't change id
+        mi2.names = ["A", "B"]
+        self.assertTrue(mi2.is_(mi))
+        self.assertTrue(mi.is_(mi2))
+        self.assertTrue(mi.is_(mi.set_names(["C", "D"])))
+        # levels are inherent properties, they change identity
+        mi3 = mi2.set_levels([lrange(10), lrange(10)])
+        self.assertFalse(mi3.is_(mi2))
+        # shouldn't change
+        self.assertTrue(mi2.is_(mi))
+        mi4 = mi3.view()
+        mi4.set_levels([[1 for _ in range(10)], lrange(10)], inplace=True)
+        self.assertFalse(mi4.is_(mi3))
+        mi5 = mi.view()
+        mi5.set_levels(mi5.levels, inplace=True)
+        self.assertFalse(mi5.is_(mi))
 
     def test_union(self):
         piece1 = self.index[:5][::-1]
