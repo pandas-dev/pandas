@@ -62,9 +62,10 @@ class TestSeriesPlots(unittest.TestCase):
         _check_plot_works(self.series[:10].plot, kind='barh')
         _check_plot_works(Series(randn(10)).plot, kind='bar', color='black')
 
+    @slow
+    def test_plot_figsize_and_title(self):
         # figsize and title
         import matplotlib.pyplot as plt
-        plt.close('all')
         ax = self.series.plot(title='Test', figsize=(16, 8))
 
         self.assertEqual(ax.title.get_text(), 'Test')
@@ -79,7 +80,6 @@ class TestSeriesPlots(unittest.TestCase):
         default_colors = plt.rcParams.get('axes.color_cycle')
         custom_colors = 'rgcby'
 
-        plt.close('all')
         df = DataFrame(randn(5, 5))
         ax = df.plot(kind='bar')
 
@@ -91,7 +91,7 @@ class TestSeriesPlots(unittest.TestCase):
             rs = rect.get_facecolor()
             self.assertEqual(xp, rs)
 
-        plt.close('all')
+        tm.close()
 
         ax = df.plot(kind='bar', color=custom_colors)
 
@@ -103,8 +103,7 @@ class TestSeriesPlots(unittest.TestCase):
             rs = rect.get_facecolor()
             self.assertEqual(xp, rs)
 
-        plt.close('all')
-
+        tm.close()
         from matplotlib import cm
 
         # Test str -> colormap functionality
@@ -118,7 +117,7 @@ class TestSeriesPlots(unittest.TestCase):
             rs = rect.get_facecolor()
             self.assertEqual(xp, rs)
 
-        plt.close('all')
+        tm.close()
 
         # Test colormap functionality
         ax = df.plot(kind='bar', colormap=cm.jet)
@@ -131,8 +130,7 @@ class TestSeriesPlots(unittest.TestCase):
             rs = rect.get_facecolor()
             self.assertEqual(xp, rs)
 
-        plt.close('all')
-
+        tm.close()
         df.ix[:, [0]].plot(kind='bar', color='DodgerBlue')
 
     @slow
@@ -192,7 +190,7 @@ class TestSeriesPlots(unittest.TestCase):
         _check_plot_works(self.ts.hist, ax=ax)
         _check_plot_works(self.ts.hist, ax=ax, figure=fig)
         _check_plot_works(self.ts.hist, figure=fig)
-        plt.close('all')
+        tm.close()
 
         fig, (ax1, ax2) = plt.subplots(1, 2)
         _check_plot_works(self.ts.hist, figure=fig, ax=ax1)
@@ -204,9 +202,8 @@ class TestSeriesPlots(unittest.TestCase):
     @slow
     def test_hist_layout(self):
         n = 10
-        df = DataFrame({'gender': np.array(['Male',
-                                            'Female'])[random.randint(2,
-                                                                      size=n)],
+        gender = tm.choice(['Male', 'Female'], size=n)
+        df = DataFrame({'gender': gender,
                         'height': random.normal(66, 4, size=n), 'weight':
                         random.normal(161, 32, size=n)})
         with tm.assertRaises(ValueError):
@@ -219,23 +216,22 @@ class TestSeriesPlots(unittest.TestCase):
     def test_hist_layout_with_by(self):
         import matplotlib.pyplot as plt
         n = 10
-        df = DataFrame({'gender': np.array(['Male',
-                                            'Female'])[random.randint(2,
-                                                                      size=n)],
+        gender = tm.choice(['Male', 'Female'], size=n)
+        df = DataFrame({'gender': gender,
                         'height': random.normal(66, 4, size=n), 'weight':
                         random.normal(161, 32, size=n),
                         'category': random.randint(4, size=n)})
         _check_plot_works(df.height.hist, by=df.gender, layout=(2, 1))
-        plt.close('all')
+        tm.close()
 
         _check_plot_works(df.height.hist, by=df.gender, layout=(1, 2))
-        plt.close('all')
+        tm.close()
 
         _check_plot_works(df.weight.hist, by=df.category, layout=(1, 4))
-        plt.close('all')
+        tm.close()
 
         _check_plot_works(df.weight.hist, by=df.category, layout=(4, 1))
-        plt.close('all')
+        tm.close()
 
     @slow
     def test_hist_no_overlap(self):
@@ -255,6 +251,15 @@ class TestSeriesPlots(unittest.TestCase):
         x = Series(randn(2))
         with tm.assertRaises(ValueError):
             x.plot(style='k--', color='k')
+
+    @slow
+    def test_hist_by_no_extra_plots(self):
+        import matplotlib.pyplot as plt
+        n = 10
+        df = DataFrame({'gender': tm.choice(['Male', 'Female'], size=n),
+                        'height': random.normal(66, 4, size=n)})
+        axes = df.height.hist(by=df.gender)
+        self.assertEqual(len(plt.get_fignums()), 1)
 
     def test_plot_fails_when_ax_differs_from_figure(self):
         from pylab import figure, close
@@ -436,7 +441,6 @@ class TestDataFramePlots(unittest.TestCase):
         self._check_data(df.plot(y=1), df[1].plot())
 
         # figsize and title
-        plt.close('all')
         ax = df.plot(x=1, y=2, title='Test', figsize=(16, 8))
 
         self.assertEqual(ax.title.get_text(), 'Test')
@@ -456,26 +460,26 @@ class TestDataFramePlots(unittest.TestCase):
         lines = ax.get_lines()
         self.assert_(not isinstance(lines[0].get_xdata(), PeriodIndex))
 
-        plt.close('all')
+        tm.close()
         pd.plot_params['xaxis.compat'] = True
         ax = df.plot()
         lines = ax.get_lines()
         self.assert_(not isinstance(lines[0].get_xdata(), PeriodIndex))
 
-        plt.close('all')
+        tm.close()
         pd.plot_params['x_compat'] = False
         ax = df.plot()
         lines = ax.get_lines()
         tm.assert_isinstance(lines[0].get_xdata(), PeriodIndex)
 
-        plt.close('all')
+        tm.close()
         # useful if you're plotting a bunch together
         with pd.plot_params.use('x_compat', True):
             ax = df.plot()
             lines = ax.get_lines()
             self.assert_(not isinstance(lines[0].get_xdata(), PeriodIndex))
 
-        plt.close('all')
+        tm.close()
         ax = df.plot()
         lines = ax.get_lines()
         tm.assert_isinstance(lines[0].get_xdata(), PeriodIndex)
@@ -499,6 +503,7 @@ class TestDataFramePlots(unittest.TestCase):
             assert_array_equal(xpdata, rsdata)
 
         [check_line(xpl, rsl) for xpl, rsl in zip(xp_lines, rs_lines)]
+        tm.close()
 
     @slow
     def test_subplots(self):
@@ -537,19 +542,14 @@ class TestDataFramePlots(unittest.TestCase):
                        columns=['one', 'two', 'three', 'four'])
 
         _check_plot_works(df.plot, kind='bar')
-        close('all')
         _check_plot_works(df.plot, kind='bar', legend=False)
-        close('all')
         _check_plot_works(df.plot, kind='bar', subplots=True)
-        close('all')
         _check_plot_works(df.plot, kind='bar', stacked=True)
-        close('all')
 
         df = DataFrame(randn(10, 15),
                        index=list(string.ascii_letters[:10]),
                        columns=lrange(15))
         _check_plot_works(df.plot, kind='bar')
-        close('all')
 
         df = DataFrame({'a': [0, 1], 'b': [1, 0]})
         _check_plot_works(df.plot, kind='bar')
@@ -678,18 +678,18 @@ class TestDataFramePlots(unittest.TestCase):
                 self.assertAlmostEqual(xtick.get_fontsize(), xf)
                 self.assertAlmostEqual(xtick.get_rotation(), xrot)
 
-        plt.close('all')
+        tm.close()
         # make sure kwargs to hist are handled
         ax = ser.hist(normed=True, cumulative=True, bins=4)
         # height of last bin (index 5) must be 1.0
         self.assertAlmostEqual(ax.get_children()[5].get_height(), 1.0)
 
-        plt.close('all')
+        tm.close()
         ax = ser.hist(log=True)
         # scale of y must be 'log'
         self.assertEqual(ax.get_yscale(), 'log')
 
-        plt.close('all')
+        tm.close()
 
         # propagate attr exception from matplotlib.Axes.hist
         with tm.assertRaises(AttributeError):
@@ -698,7 +698,6 @@ class TestDataFramePlots(unittest.TestCase):
     @slow
     def test_hist_layout(self):
         import matplotlib.pyplot as plt
-        plt.close('all')
         df = DataFrame(randn(100, 4))
 
         layout_to_expected_size = (
@@ -847,7 +846,7 @@ class TestDataFramePlots(unittest.TestCase):
         tmp = sys.stderr
         sys.stderr = StringIO()
         try:
-            plt.close('all')
+            tm.close()
             ax2 = df.plot(colors=custom_colors)
             lines2 = ax2.get_lines()
             for l1, l2 in zip(lines, lines2):
@@ -855,7 +854,7 @@ class TestDataFramePlots(unittest.TestCase):
         finally:
             sys.stderr = tmp
 
-        plt.close('all')
+        tm.close()
 
         ax = df.plot(colormap='jet')
 
@@ -867,7 +866,7 @@ class TestDataFramePlots(unittest.TestCase):
             rs = l.get_color()
             self.assertEqual(xp, rs)
 
-        plt.close('all')
+        tm.close()
 
         ax = df.plot(colormap=cm.jet)
 
@@ -881,14 +880,13 @@ class TestDataFramePlots(unittest.TestCase):
 
         # make color a list if plotting one column frame
         # handles cases like df.plot(color='DodgerBlue')
-        plt.close('all')
+        tm.close()
         df.ix[:, [0]].plot(color='DodgerBlue')
 
     def test_default_color_cycle(self):
         import matplotlib.pyplot as plt
         plt.rcParams['axes.color_cycle'] = list('rgbk')
 
-        plt.close('all')
         df = DataFrame(randn(5, 3))
         ax = df.plot()
 
@@ -992,7 +990,7 @@ class TestDataFrameGroupByPlots(unittest.TestCase):
         axes = plotting.grouped_hist(df.A, by=df.C)
         self.assertEqual(len(axes.ravel()), 4)
 
-        plt.close('all')
+        tm.close()
         axes = df.hist(by=df.C)
         self.assertEqual(axes.ndim, 2)
         self.assertEqual(len(axes.ravel()), 4)
@@ -1000,7 +998,7 @@ class TestDataFrameGroupByPlots(unittest.TestCase):
         for ax in axes.ravel():
             self.assert_(len(ax.patches) > 0)
 
-        plt.close('all')
+        tm.close()
         # make sure kwargs to hist are handled
         axes = plotting.grouped_hist(df.A, by=df.C, normed=True,
                                      cumulative=True, bins=4)
@@ -1010,14 +1008,13 @@ class TestDataFrameGroupByPlots(unittest.TestCase):
             height = ax.get_children()[5].get_height()
             self.assertAlmostEqual(height, 1.0)
 
-        plt.close('all')
+        tm.close()
         axes = plotting.grouped_hist(df.A, by=df.C, log=True)
         # scale of y must be 'log'
         for ax in axes.ravel():
             self.assertEqual(ax.get_yscale(), 'log')
 
-        plt.close('all')
-
+        tm.close()
         # propagate attr exception from matplotlib.Axes.hist
         with tm.assertRaises(AttributeError):
             plotting.grouped_hist(df.A, by=df.C, foo='bar')
@@ -1026,9 +1023,8 @@ class TestDataFrameGroupByPlots(unittest.TestCase):
     def test_grouped_hist_layout(self):
         import matplotlib.pyplot as plt
         n = 100
-        df = DataFrame({'gender': np.array(['Male',
-                                            'Female'])[random.randint(2,
-                                                                      size=n)],
+        gender = tm.choice(['Male', 'Female'], size=n)
+        df = DataFrame({'gender': gender,
                         'height': random.normal(66, 4, size=n),
                         'weight': random.normal(161, 32, size=n),
                         'category': random.randint(4, size=n)})
@@ -1042,10 +1038,10 @@ class TestDataFrameGroupByPlots(unittest.TestCase):
                           layout=(2, 1))
         self.assertEqual(df.hist(column='height', by=df.gender,
                                  layout=(2, 1)).shape, (2,))
-        plt.close('all')
+        tm.close()
         self.assertEqual(df.hist(column='height', by=df.category,
                                  layout=(4, 1)).shape, (4,))
-        plt.close('all')
+        tm.close()
         self.assertEqual(df.hist(column='height', by=df.category,
                                  layout=(4, 2)).shape, (4, 2))
 

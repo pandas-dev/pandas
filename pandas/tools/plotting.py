@@ -2042,15 +2042,16 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
     """
     import matplotlib.pyplot as plt
 
-    fig = kwds.get('figure', _gcf()
-                   if plt.get_fignums() else plt.figure(figsize=figsize))
-    if figsize is not None and tuple(figsize) != tuple(fig.get_size_inches()):
-        fig.set_size_inches(*figsize, forward=True)
-
     if by is None:
-        if kwds.get('layout', None):
+        if kwds.get('layout', None) is not None:
             raise ValueError("The 'layout' keyword is not supported when "
                              "'by' is None")
+        # hack until the plotting interface is a bit more unified
+        fig = kwds.pop('figure', plt.gcf() if plt.get_fignums() else
+                       plt.figure(figsize=figsize))
+        if (figsize is not None and tuple(figsize) !=
+            tuple(fig.get_size_inches())):
+            fig.set_size_inches(*figsize, forward=True)
         if ax is None:
             ax = fig.gca()
         elif ax.get_figure() != fig:
