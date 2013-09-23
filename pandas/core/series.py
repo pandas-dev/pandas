@@ -365,17 +365,6 @@ class Series(generic.NDFrame):
     __long__ = _coerce_method(int)
     __int__ = _coerce_method(int)
 
-    def __nonzero__(self):
-        if len(self) == 1 and self.dtype == np.bool_:
-            warnings.warn("bool on a single-element boolean dtyped Series is deprecated,\n"
-                          " please use a.empty, a.item(), a.any(), or a.all() instead\n",
-                          UserWarning)
-            return bool(self.iloc[0])
-        raise ValueError("The truth value of a {0} is ambiguous.\n"
-                         "Use a.empty, a.item(), a.any() or a.all().\n"
-                         "Currently, a boolean Series of length 1 is the exception\n".format(self.__class__.__name__))
-    __bool__ = __nonzero__
-
     # we are preserving name here
     def __getstate__(self):
         return dict(_data=self._data, name=self.name)

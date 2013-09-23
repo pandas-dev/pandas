@@ -205,25 +205,30 @@ class TestSeries(unittest.TestCase, Generic):
 
     def test_nonzero_single_element(self):
 
-        # single item to follow numpy
+        # allow single item via bool method
         s = Series([True])
-        self.assert_(bool(s) == True)
+        self.assert_(s.bool() is True)
 
         s = Series([False])
-        self.assert_(bool(s) == False)
+        self.assert_(s.bool() is False)
 
         # single item nan to raise
-        for s in [ Series([np.nan]), Series([pd.NaT]) ]:
+        for s in [ Series([np.nan]), Series([pd.NaT]), Series([True]), Series([False]) ]:
             self.assertRaises(ValueError, lambda : bool(s))
+
+        for s in [ Series([np.nan]), Series([pd.NaT])]:
+            self.assertRaises(ValueError, lambda : s.bool())
 
         # multiple bool are still an error
         for s in [Series([True,True]), Series([False, False])]:
             self.assertRaises(ValueError, lambda : bool(s))
+            self.assertRaises(ValueError, lambda : s.bool())
 
         # single non-bool are an error
         for s in [Series([1]), Series([0]),
                   Series(['a']), Series([0.0])]:
                 self.assertRaises(ValueError, lambda : bool(s))
+                self.assertRaises(ValueError, lambda : s.bool())
 
 
 class TestDataFrame(unittest.TestCase, Generic):
@@ -234,6 +239,19 @@ class TestDataFrame(unittest.TestCase, Generic):
         df = DataFrame([11,21,31],
                        index=MultiIndex.from_tuples([("A",x) for x in ["a","B","c"]]))
         result = df.rename(str.lower)
+
+    def test_nonzero_single_element(self):
+
+        # allow single item via bool method
+        df = DataFrame([[True]])
+        self.assert_(df.bool() is True)
+
+        df = DataFrame([[False]])
+        self.assert_(df.bool() is False)
+
+        df = DataFrame([[False, False]])
+        self.assertRaises(ValueError, lambda : df.bool())
+        self.assertRaises(ValueError, lambda : bool(df))
 
     def test_get_numeric_data_preserve_dtype(self):
 

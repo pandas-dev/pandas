@@ -597,9 +597,23 @@ class NDFrame(PandasObject):
 
     def __nonzero__(self):
         raise ValueError("The truth value of a {0} is ambiguous. "
-                         "Use a.empty, a.item(), a.any() or a.all().".format(self.__class__.__name__))
+                         "Use a.empty, a.bool(), a.item(), a.any() or a.all().".format(self.__class__.__name__))
 
     __bool__ = __nonzero__
+
+    def bool(self):
+        """ Return the bool of a single element PandasObject
+            This must be a boolean scalar value, either True or False
+
+            Raise a ValueError if the PandasObject does not have exactly
+            1 element, or that element is not boolean """
+        v = self.squeeze()
+        if isinstance(v, (bool,np.bool_)):
+            return bool(v)
+        elif np.isscalar(v):
+            raise ValueError("bool cannot act on a non-boolean single element {0}".format(self.__class__.__name__))
+
+        self.__nonzero__()
 
     def __abs__(self):
         return self.abs()
