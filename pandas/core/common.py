@@ -92,8 +92,11 @@ def isnull(obj):
 
 
 def _isnull_new(obj):
-    if lib.isscalar(obj):
+    is_tuple = isinstance(obj, tuple)
+    if not is_tuple and lib.isscalar(obj):
         return lib.checknull(obj)
+    elif is_tuple:
+        return _isnull_ndarraylike(np.asarray(obj))
 
     if isinstance(obj, (ABCSeries, np.ndarray)):
         return _isnull_ndarraylike(obj)
@@ -117,8 +120,11 @@ def _isnull_old(obj):
     -------
     boolean ndarray or boolean
     '''
-    if lib.isscalar(obj):
+    is_tuple = isinstance(obj, tuple)
+    if not is_tuple and lib.isscalar(obj):
         return lib.checknull_old(obj)
+    elif is_tuple:
+        return _isnull_ndarraylike_old(np.asarray(obj))
 
     if isinstance(obj, (ABCSeries, np.ndarray)):
         return _isnull_ndarraylike_old(obj)
