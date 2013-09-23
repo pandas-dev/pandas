@@ -1672,14 +1672,13 @@ The Panel class also has a ``to_excel`` instance method,
 which writes each DataFrame in the Panel to a separate sheet.
 
 In order to write separate DataFrames to separate sheets in a single Excel file,
-one can use the ExcelWriter class, as in the following example:
+one can pass an :class:`~pandas.io.excel.ExcelWriter`.
 
 .. code-block:: python
 
-   writer = ExcelWriter('path_to_file.xlsx')
-   df1.to_excel(writer, sheet_name='Sheet1')
-   df2.to_excel(writer, sheet_name='Sheet2')
-   writer.save()
+   with ExcelWriter('path_to_file.xlsx') as writer:
+       df1.to_excel(writer, sheet_name='Sheet1')
+       df2.to_excel(writer, sheet_name='Sheet2')
 
 .. _io.excel.writers:
 
@@ -1693,14 +1692,13 @@ Excel writer engines
 1. the ``engine`` keyword argument
 2. the filename extension (via the default specified in config options)
 
-By default ``pandas`` only supports
-`openpyxl <http://packages.python.org/openpyxl/>`__ as a writer for ``.xlsx``
-and ``.xlsm`` files and `xlwt <http://www.python-excel.org/>`__ as a writer for
-``.xls`` files.  If you have multiple engines installed, you can change the
-default engine via the ``io.excel.xlsx.writer`` and ``io.excel.xls.writer``
-options.
+By default, ``pandas`` uses  `openpyxl <http://packages.python.org/openpyxl/>`__
+for ``.xlsx`` and ``.xlsm`` files and `xlwt <http://www.python-excel.org/>`__
+for ``.xls`` files.  If you have multiple engines installed, you can set the
+default engine through :ref:`setting the config options <basics.working_with_options>`
+``io.excel.xlsx.writer`` and ``io.excel.xls.writer``.
 
-For example if the optional `XlsxWriter <http://xlsxwriter.readthedocs.org>`__
+For example if the `XlsxWriter <http://xlsxwriter.readthedocs.org>`__
 module is installed you can use it as a xlsx writer engine as follows:
 
 .. code-block:: python
@@ -1712,8 +1710,8 @@ module is installed you can use it as a xlsx writer engine as follows:
    writer = ExcelWriter('path_to_file.xlsx', engine='xlsxwriter')
 
    # Or via pandas configuration.
-   from pandas import set_option
-   set_option('io.excel.xlsx.writer', 'xlsxwriter')
+   from pandas import options
+   options.io.excel.xlsx.writer = 'xlsxwriter'
 
    df.to_excel('path_to_file.xlsx', sheet_name='Sheet1')
 

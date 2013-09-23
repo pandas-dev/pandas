@@ -3453,7 +3453,7 @@ class DataFrame(NDFrame):
         See also
         --------
         DataFrame.pivot : Pivot a table based on column values.
-        DataFrame.stack : Pivot a level of the column labels (inverse operation 
+        DataFrame.stack : Pivot a level of the column labels (inverse operation
             from `unstack`).
 
         Examples
