@@ -369,6 +369,11 @@ The :ref:`Excel <io.excel>` docs
 `Reading from a filelike handle
 <http://stackoverflow.com/questions/15588713/sheets-of-excel-workbook-from-a-url-into-a-pandas-dataframe>`__
 
+.. _cookbook.html:
+
+`Reading HTML tables from a server that cannot handle the default request
+header <http://stackoverflow.com/a/18939272/564538>`__
+
 .. _cookbook.hdf:
 
 HDFStore
