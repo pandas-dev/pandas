@@ -89,6 +89,27 @@ def test_isnull():
     tm.assert_frame_equal(result, expected)
 
 
+def test_isnull_tuples():
+    result = isnull((1, 2))
+    exp = np.array([False, False])
+    assert(np.array_equal(result, exp))
+
+    result = isnull([(False,)])
+    exp = np.array([[False]])
+    assert(np.array_equal(result, exp))
+
+    result = isnull([(1,), (2,)])
+    exp = np.array([[False], [False]])
+    assert(np.array_equal(result, exp))
+
+    # list of strings / unicode
+    result = isnull(('foo', 'bar'))
+    assert(not result.any())
+
+    result = isnull((u('foo'), u('bar')))
+    assert(not result.any())
+
+
 def test_isnull_lists():
     result = isnull([[False]])
     exp = np.array([[False]])
