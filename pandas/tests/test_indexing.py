@@ -1480,6 +1480,21 @@ class TestIndexing(unittest.TestCase):
         result = ser.iloc[[1,1,0,0]]
         assert_series_equal(result, expected)
 
+    def test_cache_updating(self):
+        # GH 4939, make sure to update the cache on setitem
+
+        df = tm.makeDataFrame()
+        df['A'] # cache series
+        df.ix["Hello Friend"] = df.ix[0]
+        self.assert_("Hello Friend" in df['A'].index)
+        self.assert_("Hello Friend" in df['B'].index)
+
+        panel = tm.makePanel()
+        panel.ix[0] # get first item into cache
+        panel.ix[:, :, 'A+1'] = panel.ix[:, :, 'A'] + 1
+        self.assert_("A+1" in panel.ix[0].columns)
+        self.assert_("A+1" in panel.ix[1].columns)
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
