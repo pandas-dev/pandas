@@ -1078,6 +1078,12 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
 
     def test_set_value(self):
 
+        # this is invalid because it is not a valid type for this index
+        self.assertRaises(ValueError, self.frame.set_value, 'foobar', 'B', 1.5)
+
+        res = self.frame
+        res.index = res.index.astype(object)
+
         res = self.frame.set_value('foobar', 'B', 1.5)
         self.assert_(res is not self.frame)
         self.assert_(res.index[-1] == 'foobar')

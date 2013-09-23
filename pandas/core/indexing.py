@@ -750,6 +750,13 @@ class _NDFrameIndexer(object):
         is_int_index = _is_integer_index(labels)
 
         if com.is_integer(obj) and not is_int_index:
+
+            # if we are setting and its not a valid location
+            # its an insert which fails by definition
+            if is_setter:
+                if obj >= len(self.obj) and not isinstance(labels, MultiIndex):
+                    raise ValueError("cannot set by positional indexing with enlargement")
+
             return obj
 
         try:
@@ -1340,7 +1347,12 @@ def _safe_append_to_index(index, key):
     try:
         return index.insert(len(index), key)
     except:
-        return Index(np.concatenate([index.asobject.values,np.array([key])]))
+
+        # raise here as this is basically an unsafe operation and we want
+        # it to be obvious that you are doing something wrong
+
+        raise ValueError("unsafe appending to index of "
+                         "type {0} with a key {1}".format(index.__class__.__name__,key))
 
 def _maybe_convert_indices(indices, n):
     """ if we have negative indicies, translate to postive here

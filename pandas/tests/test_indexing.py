@@ -1480,6 +1480,30 @@ class TestIndexing(unittest.TestCase):
         result = ser.iloc[[1,1,0,0]]
         assert_series_equal(result, expected)
 
+    def test_partial_set_invalid(self):
+
+        # GH 4940
+        # allow only setting of 'valid' values
+
+        df = tm.makeTimeDataFrame()
+
+        def f():
+            df.loc[100.0, :] = df.ix[0]
+        self.assertRaises(ValueError, f)
+        def f():
+            df.loc[100,:] = df.ix[0]
+        self.assertRaises(ValueError, f)
+        def f():
+            df.loc['a',:] = df.ix[0]
+        self.assertRaises(ValueError, f)
+
+        def f():
+            df.ix[100.0, :] = df.ix[0]
+        self.assertRaises(ValueError, f)
+        def f():
+            df.ix[100,:] = df.ix[0]
+        self.assertRaises(ValueError, f)
+
     def test_cache_updating(self):
         # GH 4939, make sure to update the cache on setitem
 
