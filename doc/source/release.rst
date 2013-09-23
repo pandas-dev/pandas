@@ -462,6 +462,8 @@ Bug Fixes
   - Fixed ``copy()`` to shallow copy axes/indices as well and thereby keep
     separate metadata. (:issue:`4202`, :issue:`4830`)
   - Fixed skiprows option in Python parser for read_csv (:issue:`4382`)
+  - Fixed bug preventing ``cut`` from working with ``np.inf`` levels without
+    explicitly passing labels (:issue:`3415`)
 
 pandas 0.12.0
 -------------

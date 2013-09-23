@@ -114,6 +114,22 @@ class TestCut(unittest.TestCase):
         ex_result = np.where(com.isnull(arr), np.nan, result)
         tm.assert_almost_equal(result, ex_result)
 
+    def test_inf_handling(self):
+        data = np.arange(6)
+        data_ser = Series(data)
+
+        result = cut(data, [-np.inf, 2, 4, np.inf])
+        result_ser = cut(data_ser, [-np.inf, 2, 4, np.inf])
+        
+        ex_levels = ['(-inf, 2]', '(2, 4]', '(4, inf]']
+        
+        np.testing.assert_array_equal(result.levels, ex_levels)
+        np.testing.assert_array_equal(result_ser.levels, ex_levels)
+        self.assertEquals(result[5], '(4, inf]')
+        self.assertEquals(result[0], '(-inf, 2]')
+        self.assertEquals(result_ser[5], '(4, inf]')
+        self.assertEquals(result_ser[0], '(-inf, 2]')
+
     def test_qcut(self):
         arr = np.random.randn(1000)
 

@@ -245,7 +245,7 @@ def _format_label(x, precision=3):
                 else:  # pragma: no cover
                     return sgn + '.'.join(('%d' % whole, val))
         else:
-            return sgn + '%d' % whole
+            return sgn + '%0.f' % whole
     else:
         return str(x)
 

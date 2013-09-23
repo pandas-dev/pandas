@@ -505,6 +505,12 @@ normally distributed data into equal-size quartiles like so:
    factor
    value_counts(factor)
 
+We can also pass infinite values to define the bins:
+.. ipython:: python
+
+   arr = np.random.randn(20)
+   factor = cut(arr, [-np.inf, 0, np.inf])
+   factor
 
 .. _basics.apply:
 
