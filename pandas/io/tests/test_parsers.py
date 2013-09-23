@@ -1952,9 +1952,6 @@ c   1   2   3   4
         df = self.read_table(StringIO(data), sep='|', thousands=',')
         tm.assert_frame_equal(df, expected)
 
-    def test_separator_date_conflict(self):
-        raise nose.SkipTest("Not supported in Python parser.")
-
     def test_comment_fwf(self):
         data = """
   1   2.   4  #hello world
