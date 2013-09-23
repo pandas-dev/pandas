@@ -228,15 +228,6 @@ class Index(FrozenNDArray):
             new_index = new_index.astype(dtype)
         return new_index
 
-    def __unicode__(self):
-        """
-        Return a string representation for a particular Index
-
-        Invoked by unicode(df) in py2 only. Yields a Unicode String in both py2/py3.
-        """
-        prepr = com.pprint_thing(self, escape_chars=('\t', '\r', '\n'),quote_strings=True)
-        return '%s(%s, dtype=%s)' % (type(self).__name__, prepr, self.dtype)
-
     def to_series(self):
         """
         return a series with both index and values equal to the index keys

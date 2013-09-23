@@ -446,6 +446,7 @@ Bug Fixes
     the ``by`` argument was passed (:issue:`4112`, :issue:`4113`).
   - Fixed a bug in ``convert_objects`` for > 2 ndims (:issue:`4937`)
   - Fixed a bug in DataFrame/Panel cache insertion and subsequent indexing (:issue:`4939`)
+  - Fixed string methods for ``FrozenNDArray`` and ``FrozenList`` (:issue:`4929`)
 
 pandas 0.12.0
 -------------
