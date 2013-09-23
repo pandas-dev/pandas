@@ -426,6 +426,16 @@ class TestReadHtmlBase(TestCase):
                                 attrs={'id': 'table'}, infer_types=False)[0]
         self.assert_(gc in df.to_string())
 
+    @slow
+    def test_custom_opener(self):
+        from pandas.io.common import build_opener
+        opener = build_opener()
+        opener.addheaders = [('User-agent', 'Mozilla/5.0')]
+        url = 'http://www.transfermarkt.co.uk/en/premier-league/gegentorminuten/wettbewerb_GB1.html'
+        res = read_html(url, opener=opener)
+        self.assert_(isinstance(res, list))
+        self.assert_(isinstance(res[0], DataFrame))
+
 
 class TestReadHtmlLxml(TestCase):
     def run_read_html(self, *args, **kwargs):
