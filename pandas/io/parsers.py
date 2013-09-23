@@ -1020,6 +1020,14 @@ class CParserWrapper(ParserBase):
                 else:
                     _set(val)
 
+        elif isinstance(self.parse_dates, dict):
+            for val in self.parse_dates.values():
+                if isinstance(val, list):
+                    for k in val:
+                        _set(k)
+                else:
+                    _set(val)
+
     def set_error_bad_lines(self, status):
         self._reader.set_error_bad_lines(int(status))
 

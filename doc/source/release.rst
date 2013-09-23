@@ -449,6 +449,7 @@ Bug Fixes
   - Fixed a bug in ``convert_objects`` for > 2 ndims (:issue:`4937`)
   - Fixed a bug in DataFrame/Panel cache insertion and subsequent indexing (:issue:`4939`)
   - Fixed string methods for ``FrozenNDArray`` and ``FrozenList`` (:issue:`4929`)
+  - Fixed conflict between thousands separator and date parser in csv_parser (:issue:`4678`)
 
 pandas 0.12.0
 -------------
