@@ -1569,6 +1569,18 @@ class NDFrame(PandasObject):
 
                 return result
 
+            # > 3d
+            if self.ndim > 3:
+                raise NotImplementedError('cannot fillna with a method for > 3dims')
+
+            # 3d
+            elif self.ndim == 3:
+
+                # fill in 2d chunks
+                result = dict([ (col,s.fillna(method=method, value=value)) for col, s in compat.iteritems(self) ])
+                return self._constructor.from_dict(result)
+
+            # 2d or less
             method = com._clean_fill_method(method)
             new_data = self._data.interpolate(method=method,
                                               axis=axis,

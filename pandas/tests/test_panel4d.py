@@ -849,23 +849,11 @@ class TestPanel4d(unittest.TestCase, CheckIndexing, SafeForSparse,
         # assert_panel_equal(sorted_panel, self.panel)
 
     def test_fillna(self):
+        self.assert_(not np.isfinite(self.panel4d.values).all())
         filled = self.panel4d.fillna(0)
         self.assert_(np.isfinite(filled.values).all())
 
-        filled = self.panel4d.fillna(method='backfill')
-        assert_panel_equal(filled['l1'],
-                           self.panel4d['l1'].fillna(method='backfill'))
-
-        panel4d = self.panel4d.copy()
-        panel4d['str'] = 'foo'
-
-        filled = panel4d.fillna(method='backfill')
-        assert_panel_equal(filled['l1'],
-                           panel4d['l1'].fillna(method='backfill'))
-
-        empty = self.panel4d.reindex(labels=[])
-        filled = empty.fillna(0)
-        assert_panel4d_equal(filled, empty)
+        self.assertRaises(NotImplementedError, self.panel4d.fillna, method='pad')
 
     def test_swapaxes(self):
         result = self.panel4d.swapaxes('labels', 'items')

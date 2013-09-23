@@ -254,7 +254,8 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
 
   - ``swapaxes`` on a ``Panel`` with the same axes specified now return a copy
   - support attribute access for setting
-  - filter supports same api as original ``DataFrame`` filter
+  - ``filter`` supports same api as original ``DataFrame`` filter
+  - ``fillna`` refactored to ``core/generic.py``, while > 3ndim is ``NotImplemented``
 
 - Series now inherits from ``NDFrame`` rather than directly from ``ndarray``.
   There are several minor changes that affect the API.
