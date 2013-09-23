@@ -215,6 +215,7 @@ API Changes
   - moved timedeltas support to pandas.tseries.timedeltas.py; add timedeltas string parsing,
     add top-level ``to_timedelta`` function
   - ``NDFrame`` now is compatible with Python's toplevel ``abs()`` function (:issue:`4821`).
+  - `pd.isnull` now treats tuple argumnent the same way as list (:issue:`4872`).
 
 Internal Refactoring
 ~~~~~~~~~~~~~~~~~~~~
