@@ -449,6 +449,8 @@ Bug Fixes
   - Fixed a bug in ``convert_objects`` for > 2 ndims (:issue:`4937`)
   - Fixed a bug in DataFrame/Panel cache insertion and subsequent indexing (:issue:`4939`)
   - Fixed string methods for ``FrozenNDArray`` and ``FrozenList`` (:issue:`4929`)
+  - Fixed a bug with setting invalid or out-of-range values in indexing
+    enlargement scenarios (:issue:`4940`)
 
 pandas 0.12.0
 -------------
