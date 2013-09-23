@@ -14,7 +14,7 @@ from pandas.tseries.period import Period
 from pandas import json
 from pandas.compat import map, zip, reduce, range, lrange, u, add_metaclass
 from pandas.core import config
-from pandas.core.common import pprint_thing, PandasError
+from pandas.core.common import pprint_thing
 import pandas.compat as compat
 from warnings import warn
 
@@ -260,6 +260,17 @@ class ExcelFile(object):
     def sheet_names(self):
         return self.book.sheet_names()
 
+    def close(self):
+        """close path_or_buf if necessary"""
+        if hasattr(self.path_or_buf, 'close'):
+            self.path_or_buf.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+
 
 def _trim_excel_header(row):
     # trim header row so auto-index inference works
@@ -407,6 +418,17 @@ class ExcelWriter(object):
             raise ValueError(msg)
         else:
             return True
+
+    # Allow use as a contextmanager
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+
+    def close(self):
+        """synonym for save, to make it more file-like"""
+        return self.save()
 
 
 class _OpenpyxlWriter(ExcelWriter):
