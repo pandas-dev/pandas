@@ -724,9 +724,9 @@ class DataFrame(NDFrame):
 
             >>> df = DataFrame([[1, 1.0]], columns=['x', 'y'])
             >>> row = next(df.iterrows())[1]
-            >>> print row['x'].dtype
+            >>> print(row['x'].dtype)
             float64
-            >>> print df['x'].dtype
+            >>> print(df['x'].dtype)
             int64
 
         Returns

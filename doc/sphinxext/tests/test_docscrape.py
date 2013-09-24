@@ -85,13 +85,13 @@ doc_txt = '''\
   >>> mean = (1,2)
   >>> cov = [[1,0],[1,0]]
   >>> x = multivariate_normal(mean,cov,(3,3))
-  >>> print x.shape
+  >>> print(x.shape)
   (3, 3, 2)
 
   The following is probably true, given that 0.6 is roughly twice the
   standard deviation:
 
-  >>> print list( (x[0,0,:] - mean) < 0.6 )
+  >>> print(list( (x[0,0,:] - mean) < 0.6 ))
   [True, True]
 
   .. index:: random
@@ -153,7 +153,7 @@ def test_examples():
 
 def test_index():
     assert_equal(doc['index']['default'], 'random')
-    print doc['index']
+    print(doc['index'])
     assert_equal(len(doc['index']), 2)
     assert_equal(len(doc['index']['refguide']), 2)
 
@@ -247,13 +247,13 @@ Examples
 >>> mean = (1,2)
 >>> cov = [[1,0],[1,0]]
 >>> x = multivariate_normal(mean,cov,(3,3))
->>> print x.shape
+>>> print(x.shape)
 (3, 3, 2)
 
 The following is probably true, given that 0.6 is roughly twice the
 standard deviation:
 
->>> print list( (x[0,0,:] - mean) < 0.6 )
+>>> print(list( (x[0,0,:] - mean) < 0.6 ))
 [True, True]
 
 .. index:: random
@@ -351,13 +351,13 @@ definite.
 >>> mean = (1,2)
 >>> cov = [[1,0],[1,0]]
 >>> x = multivariate_normal(mean,cov,(3,3))
->>> print x.shape
+>>> print(x.shape)
 (3, 3, 2)
 
 The following is probably true, given that 0.6 is roughly twice the
 standard deviation:
 
->>> print list( (x[0,0,:] - mean) < 0.6 )
+>>> print(list( (x[0,0,:] - mean) < 0.6 ))
 [True, True]
 """)
 

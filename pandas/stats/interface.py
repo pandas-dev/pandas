@@ -64,7 +64,7 @@ def ols(**kwargs):
 
     # Run rolling simple OLS with window of size 10.
     result = ols(y=y, x=x, window_type='rolling', window=10)
-    print result.beta
+    print(result.beta)
 
     result = ols(y=y, x=x, nw_lags=1)
 

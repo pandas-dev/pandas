@@ -31,7 +31,7 @@ Y = makeSeries()
 
 model = ols(y=Y, x=X)
 
-print (model)
+print(model)
 
 #-------------------------------------------------------------------------------
 # Panel regression
@@ -48,4 +48,4 @@ panelModel = ols(y=Y, x=data, window=50)
 
 model = ols(y=Y, x=data)
 
-print (panelModel)
+print(panelModel)

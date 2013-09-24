@@ -62,8 +62,8 @@ def rountrip_archive(N, K=50, iterations=10):
     pickle_time = timeit(pickle_f, iterations) / iterations
     print('pandas (pickle) %7.4f seconds' % pickle_time)
 
-    # print 'Numpy (npz)   %7.4f seconds' % numpy_time
-    # print 'larry (HDF5)  %7.4f seconds' % larry_time
+    # print('Numpy (npz)   %7.4f seconds' % numpy_time)
+    # print('larry (HDF5)  %7.4f seconds' % larry_time)
 
     # Delete old files
     try:

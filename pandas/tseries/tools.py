@@ -21,7 +21,7 @@ try:
         raise Exception('dateutil 2.0 incompatible with Python 2.x, you must '
                         'install version 1.5 or 2.1+!')
 except ImportError:  # pragma: no cover
-    print ('Please install python-dateutil via easy_install or some method!')
+    print('Please install python-dateutil via easy_install or some method!')
     raise  # otherwise a 2nd import won't show the message
 
 

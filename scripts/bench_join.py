@@ -133,7 +133,7 @@ def do_left_join_frame(a, b):
 
 # a = np.array([1, 2, 3, 4, 5], dtype=np.int64)
 # b = np.array([0, 3, 5, 7, 9], dtype=np.int64)
-# print lib.inner_join_indexer(a, b)
+# print(lib.inner_join_indexer(a, b))
 
 out = np.empty((10, 120000))
 

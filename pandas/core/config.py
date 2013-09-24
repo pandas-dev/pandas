@@ -154,7 +154,7 @@ def _describe_option(pat='', _print_desc=True):
         s += _build_option_description(k)
 
     if _print_desc:
-        print (s)
+        print(s)
     else:
         return s
 
@@ -631,7 +631,7 @@ def pp_options_list(keys, width=80, _print=False):
         ls += pp(k, ks)
     s = '\n'.join(ls)
     if _print:
-        print (s)
+        print(s)
     else:
         return s
 

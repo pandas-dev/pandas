@@ -26,7 +26,7 @@ import sys
 
 def sh(cmd):
     cmd = cmd.format(**shvars)
-    print '$', cmd
+    print('$', cmd)
     check_call(cmd, shell=True)
 
 #-----------------------------------------------------------------------------
@@ -46,7 +46,7 @@ try:
 except:
     import traceback as tb
     tb.print_exc()
-    print __doc__
+    print(__doc__)
     sys.exit(1)
 
 onto = argv[1] if narg >= 2 else 'master'
@@ -65,7 +65,7 @@ sh('git fetch {remote}')
 sh('git checkout -b {branch_spec} {onto}')
 sh('git merge {remote}/{branch}')
 
-print """
+print("""
 *************************************************************
  Run test suite.  If tests pass, run the following to merge:
 
@@ -74,7 +74,7 @@ git merge {branch_spec}
 git push {upstream} {onto}
 
 *************************************************************
-""".format(**shvars)
+""".format(**shvars))
 
 ans = raw_input("Revert to master and delete temporary branch? [Y/n]: ")
 if ans.strip().lower() in ('', 'y', 'yes'):

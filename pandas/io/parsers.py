@@ -516,7 +516,7 @@ class TextFileReader(object):
         sep = options['delimiter']
         if (sep is None and not options['delim_whitespace']):
             if engine == 'c':
-                print ('Using Python parser to sniff delimiter')
+                print('Using Python parser to sniff delimiter')
                 engine = 'python'
         elif sep is not None and len(sep) > 1:
             # wait until regex engine integrated

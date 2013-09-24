@@ -216,7 +216,7 @@ def profile_comparative(benchmarks):
 
         # ARGH. reparse the repo, without discarding any commits,
         # then overwrite the previous parse results
-        # prprint ("Slaughtering kittens..." )
+        # prprint("Slaughtering kittens...")
         (repo.shas, repo.messages,
          repo.timestamps, repo.authors) = _parse_commit_log(None,REPO_PATH,
                                                                 args.base_commit)

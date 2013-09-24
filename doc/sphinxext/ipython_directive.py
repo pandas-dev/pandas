@@ -158,8 +158,8 @@ def block_parser(part, rgxin, rgxout, fmtin, fmtout):
 
                 nextline = lines[i]
                 matchout = rgxout.match(nextline)
-                # print "nextline=%s, continuation=%s, starts=%s"%(nextline,
-                # continuation, nextline.startswith(continuation))
+                # print("nextline=%s, continuation=%s, starts=%s"%(nextline,
+                # continuation, nextline.startswith(continuation)))
                 if matchout or nextline.startswith('#'):
                     break
                 elif nextline.startswith(continuation):
@@ -245,7 +245,7 @@ class EmbeddedSphinxShell(object):
 
     def process_input_line(self, line, store_history=True):
         """process the input, capturing stdout"""
-        # print "input='%s'"%self.input
+        # print("input='%s'"%self.input)
         stdout = sys.stdout
         splitter = self.IP.input_splitter
         try:
@@ -293,7 +293,7 @@ class EmbeddedSphinxShell(object):
         decorator, input, rest = data
         image_file = None
         image_directive = None
-        # print 'INPUT:', data  # dbg
+        # print('INPUT:', data)  # dbg
         is_verbatim = decorator == '@verbatim' or self.is_verbatim
         is_doctest = decorator == '@doctest' or self.is_doctest
         is_suppress = decorator == '@suppress' or self.is_suppress
@@ -361,7 +361,7 @@ class EmbeddedSphinxShell(object):
         self.cout.truncate(0)
         return (ret, input_lines, output, is_doctest, image_file,
                 image_directive)
-        # print 'OUTPUT', output  # dbg
+        # print('OUTPUT', output)  # dbg
 
     def process_output(self, data, output_prompt,
                        input_lines, output, is_doctest, image_file):
@@ -390,9 +390,9 @@ class EmbeddedSphinxShell(object):
                          'found_output="%s" and submitted output="%s"' %
                          (input_lines, found, submitted))
                     raise RuntimeError(e)
-                # print 'doctest PASSED for input_lines="%s" with
-                # found_output="%s" and submitted output="%s"'%(input_lines,
-                # found, submitted)
+                # print('''doctest PASSED for input_lines="%s" with
+                # found_output="%s" and submitted output="%s"''' % (input_lines,
+                # found, submitted))
 
     def process_comment(self, data):
         """Process data fPblock for COMMENT token."""
@@ -406,7 +406,7 @@ class EmbeddedSphinxShell(object):
         self.ensure_pyplot()
         command = ('plt.gcf().savefig("%s", bbox_inches="tight", '
                    'dpi=100)' % image_file)
-        # print 'SAVEFIG', command  # dbg
+        # print('SAVEFIG', command)  # dbg
         self.process_input_line('bookmark ipy_thisdir', store_history=False)
         self.process_input_line('cd -b ipy_savedir', store_history=False)
         self.process_input_line(command, store_history=False)
@@ -737,12 +737,12 @@ class IpythonDirective(Directive):
             lines.extend(figure.split('\n'))
             lines.append('')
 
-        # print lines
+        # print(lines)
         if len(lines) > 2:
             if debug:
-                print '\n'.join(lines)
+                print('\n'.join(lines))
             else:  # NOTE: this raises some errors, what's it for?
-                # print 'INSERTING %d lines'%len(lines)
+                # print('INSERTING %d lines' % len(lines))
                 self.state_machine.insert_input(
                     lines, self.state_machine.input_lines.source(0))
 
@@ -813,7 +813,7 @@ x.startswith  x.strip
 In [130]: url = 'http://ichart.finance.yahoo.com/table.csv?s=CROX\
    .....: &d=9&e=22&f=2009&g=d&a=1&br=8&c=2006&ignore=.csv'
 
-In [131]: print url.split('&')
+In [131]: print(url.split('&'))
 ['http://ichart.finance.yahoo.com/table.csv?s=CROX', 'd=9', 'e=22', 'f=2009', 'g=d', 'a=1', 'b=8', 'c=2006', 'ignore=.csv']
 
 In [60]: import urllib
@@ -843,12 +843,12 @@ array([[ 0.64524308,  0.59943846],
 """,
 
         r"""
-In [106]: print x
+In [106]: print(x)
 jdh
 
 In [109]: for i in range(10):
    n
-.....:     print i
+.....:     print(i)
    .....:
    .....:
 0
@@ -920,4 +920,4 @@ if __name__ == '__main__':
     if not os.path.isdir('_static'):
         os.mkdir('_static')
     test()
-    print 'All OK? Check figures in _static/'
+    print('All OK? Check figures in _static/')
