@@ -453,6 +453,8 @@ Bug Fixes
   - Fixed a bug with setting invalid or out-of-range values in indexing
     enlargement scenarios (:issue:`4940`)
   - Tests for fillna on empty Series (:issue:`4346`), thanks @immerrr
+  - Fixed a bug where ``ValueError`` wasn't correctly raised when column names
+    weren't strings (:issue:`4956`)
 
 pandas 0.12.0
 -------------

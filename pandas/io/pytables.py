@@ -3033,7 +3033,9 @@ class Table(Fixed):
                     new_blocks.append(b)
                 except:
                     raise ValueError(
-                        "cannot match existing table structure for [%s] on appending data" % ','.join(items))
+                        "cannot match existing table structure for [%s] on "
+                        "appending data" % ','.join(com.pprint_thing(item) for
+                                                    item in items))
             blocks = new_blocks
 
         # add my values
