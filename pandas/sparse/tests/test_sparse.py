@@ -787,7 +787,7 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         cp = self.frame.copy()
         tm.assert_isinstance(cp, SparseDataFrame)
         assert_sp_frame_equal(cp, self.frame)
-        self.assert_(cp.index is self.frame.index)
+        self.assert_(cp.index.is_(self.frame.index))
 
     def test_constructor(self):
         for col, series in compat.iteritems(self.frame):

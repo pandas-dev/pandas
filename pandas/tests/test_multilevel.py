@@ -1195,11 +1195,11 @@ Thur,Lunch,Yes,51.51,17"""
 
         result = frame.count(level='b')
         expect = self.frame.count(level=1)
-        assert_frame_equal(result, expect)
+        assert_frame_equal(result, expect, check_names=False)
 
         result = frame.count(level='a')
         expect = self.frame.count(level=0)
-        assert_frame_equal(result, expect)
+        assert_frame_equal(result, expect, check_names=False)
 
         series = self.series.copy()
         series.index.names = ['a', 'b']

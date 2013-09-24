@@ -16,7 +16,6 @@ from pandas.core.common import isnull
 import pandas.core.common as com
 from pandas.core.common import _values_from_object
 from pandas.core.config import get_option
-import warnings
 
 
 __all__ = ['Index']
@@ -27,6 +26,7 @@ def _indexOp(opname):
     Wrapper function for index comparison operations, to avoid
     code duplication.
     """
+
     def wrapper(self, other):
         func = getattr(self.view(np.ndarray), opname)
         result = func(other)
@@ -54,6 +54,7 @@ _Identity = object
 
 
 class Index(FrozenNDArray):
+
     """
     Immutable ndarray implementing an ordered, sliceable set. The basic object
     storing axis labels for all pandas objects
@@ -160,7 +161,7 @@ class Index(FrozenNDArray):
 
         elif np.isscalar(data):
             raise TypeError('Index(...) must be called with a collection '
-                             'of some kind, %s was passed' % repr(data))
+                            'of some kind, %s was passed' % repr(data))
         else:
             # other iterable of some kind
             subarr = com._asarray_tuplesafe(data, dtype=object)
@@ -171,7 +172,7 @@ class Index(FrozenNDArray):
                 return Int64Index(subarr.astype('i8'), copy=copy, name=name)
             elif inferred != 'string':
                 if (inferred.startswith('datetime') or
-                    tslib.is_timestamp_array(subarr)):
+                        tslib.is_timestamp_array(subarr)):
                     from pandas.tseries.index import DatetimeIndex
                     return DatetimeIndex(data, copy=copy, name=name, **kwargs)
                 elif inferred == 'period':
@@ -234,7 +235,7 @@ class Index(FrozenNDArray):
         useful with map for returning an indexer based on an index
         """
         import pandas as pd
-        return pd.Series(self.values,index=self,name=self.name)
+        return pd.Series(self.values, index=self, name=self.name)
 
     def astype(self, dtype):
         return Index(self.values.astype(dtype), name=self.name,
@@ -279,7 +280,7 @@ class Index(FrozenNDArray):
     def _set_names(self, values):
         if len(values) != 1:
             raise ValueError('Length of new names must be 1, got %d'
-                                 % len(values))
+                             % len(values))
         self.name = values[0]
 
     names = property(fset=_set_names, fget=_get_names)
@@ -335,11 +336,11 @@ class Index(FrozenNDArray):
     def summary(self, name=None):
         if len(self) > 0:
             head = self[0]
-            if hasattr(head,'format') and\
+            if hasattr(head, 'format') and\
                not isinstance(head, compat.string_types):
                 head = head.format()
             tail = self[-1]
-            if hasattr(tail,'format') and\
+            if hasattr(tail, 'format') and\
                not isinstance(tail, compat.string_types):
                 tail = tail.format()
             index_summary = ', %s to %s' % (com.pprint_thing(head),
@@ -571,7 +572,7 @@ class Index(FrozenNDArray):
     def _format_native_types(self, na_rep='', **kwargs):
         """ actually format my specific types """
         mask = isnull(self)
-        values = np.array(self,dtype=object,copy=True)
+        values = np.array(self, dtype=object, copy=True)
         values[mask] = na_rep
         return values.tolist()
 
@@ -595,7 +596,7 @@ class Index(FrozenNDArray):
         Similar to equals, but check that other comparable attributes are also equal
         """
         return self.equals(other) and all(
-            ( getattr(self,c,None) == getattr(other,c,None) for c in self._comparables ))
+            (getattr(self, c, None) == getattr(other, c, None) for c in self._comparables))
 
     def asof(self, label):
         """
@@ -886,7 +887,8 @@ class Index(FrozenNDArray):
         Fast lookup of value from 1-dimensional ndarray. Only use this if you
         know what you're doing
         """
-        self._engine.set_value(_values_from_object(arr), _values_from_object(key), value)
+        self._engine.set_value(
+            _values_from_object(arr), _values_from_object(key), value)
 
     def get_level_values(self, level):
         """
@@ -1357,7 +1359,7 @@ class Index(FrozenNDArray):
 
                     # get_loc will return a boolean array for non_uniques
                     # if we are not monotonic
-                    if isinstance(start_slice,np.ndarray):
+                    if isinstance(start_slice, np.ndarray):
                         raise KeyError("cannot peform a slice operation "
                                        "on a non-unique non-monotonic index")
 
@@ -1379,7 +1381,7 @@ class Index(FrozenNDArray):
                 if not is_unique:
 
                     # get_loc will return a boolean array for non_uniques
-                    if isinstance(end_slice,np.ndarray):
+                    if isinstance(end_slice, np.ndarray):
                         raise KeyError("cannot perform a slice operation "
                                        "on a non-unique non-monotonic index")
 
@@ -1447,6 +1449,7 @@ class Index(FrozenNDArray):
 
 
 class Int64Index(Index):
+
     """
     Immutable ndarray implementing an ordered, sliceable set. The basic object
     storing axis labels for all pandas objects. Int64Index is a special case of `Index`
@@ -1579,6 +1582,7 @@ class Int64Index(Index):
 
 
 class MultiIndex(Index):
+
     """
     Implements multi-level, a.k.a. hierarchical, index object for pandas
     objects
@@ -1625,7 +1629,6 @@ class MultiIndex(Index):
         if names is not None:
             subarr._set_names(names)
 
-
         if sortorder is not None:
             subarr.sortorder = int(sortorder)
         else:
@@ -1635,7 +1638,6 @@ class MultiIndex(Index):
 
     def _get_levels(self):
         return self._levels
-
 
     def _set_levels(self, levels, copy=False):
         # This is NOT part of the levels property because it should be
@@ -1686,7 +1688,7 @@ class MultiIndex(Index):
     def _set_labels(self, labels, copy=False):
         if len(labels) != self.nlevels:
             raise ValueError("Length of levels and labels must be the same.")
-        self._labels = FrozenList(_ensure_frozen(labs,copy=copy)._shallow_copy()
+        self._labels = FrozenList(_ensure_frozen(labs, copy=copy)._shallow_copy()
                                   for labs in labels)
 
     def set_labels(self, labels, inplace=False):
@@ -1811,13 +1813,13 @@ class MultiIndex(Index):
         values = list(values)
         if len(values) != self.nlevels:
             raise ValueError('Length of names (%d) must be same as level '
-                              '(%d)' % (len(values),self.nlevels))
+                             '(%d)' % (len(values), self.nlevels))
         # set the name
         for name, level in zip(values, self.levels):
             level.rename(name, inplace=True)
 
-
-    names = property(fset=_set_names, fget=_get_names, doc="Names of levels in MultiIndex")
+    names = property(
+        fset=_set_names, fget=_get_names, doc="Names of levels in MultiIndex")
 
     def _format_native_types(self, **kwargs):
         return self.tolist()
@@ -1845,7 +1847,7 @@ class MultiIndex(Index):
             count = self.names.count(level)
             if count > 1:
                 raise ValueError('The name %s occurs multiple times, use a '
-                                'level number' % level)
+                                 'level number' % level)
             level = self.names.index(level)
         except ValueError:
             if not isinstance(level, int):
@@ -1980,9 +1982,9 @@ class MultiIndex(Index):
                 formatted = lev.take(lab).format(formatter=formatter)
 
                 # we have some NA
-                mask = lab==-1
+                mask = lab == -1
                 if mask.any():
-                    formatted = np.array(formatted,dtype=object)
+                    formatted = np.array(formatted, dtype=object)
                     formatted[mask] = na_rep
                     formatted = formatted.tolist()
 
@@ -2000,7 +2002,6 @@ class MultiIndex(Index):
                 level.append(com.pprint_thing(name, escape_chars=('\t', '\r', '\n'))
                              if name is not None else '')
 
-
             level.extend(np.array(lev, dtype=object))
             result_levels.append(level)
 
@@ -2010,8 +2011,9 @@ class MultiIndex(Index):
         if sparsify:
             sentinal = ''
             # GH3547
-            # use value of sparsify as sentinal,  unless it's an obvious "Truthey" value
-            if sparsify not in [True,1]:
+            # use value of sparsify as sentinal,  unless it's an obvious
+            # "Truthey" value
+            if sparsify not in [True, 1]:
                 sentinal = sparsify
             # little bit of a kludge job for #1217
             result_levels = _sparsify(result_levels,
@@ -2138,7 +2140,8 @@ class MultiIndex(Index):
     def __reduce__(self):
         """Necessary for making this object picklable"""
         object_state = list(np.ndarray.__reduce__(self))
-        subclass_state = (list(self.levels), list(self.labels), self.sortorder, list(self.names))
+        subclass_state = (list(self.levels), list(
+            self.labels), self.sortorder, list(self.names))
         object_state[2] = (object_state[2], subclass_state)
         return tuple(object_state)
 
@@ -2490,7 +2493,8 @@ class MultiIndex(Index):
                                              "with a method or limit")
                         return self[target], target
 
-                    raise Exception("cannot handle a non-takeable non-unique multi-index!")
+                    raise Exception(
+                        "cannot handle a non-takeable non-unique multi-index!")
 
         if not isinstance(target, MultiIndex):
             if indexer is None:
@@ -2685,12 +2689,13 @@ class MultiIndex(Index):
 
                         # here we have a completely specified key, but are using some partial string matching here
                         # GH4758
-                        can_index_exactly = any([ l.is_all_dates and not isinstance(k,compat.string_types) for k, l in zip(key, self.levels) ])
-                        if any([ l.is_all_dates for k, l in zip(key, self.levels) ]) and not can_index_exactly:
+                        can_index_exactly = any(
+                            [l.is_all_dates and not isinstance(k, compat.string_types) for k, l in zip(key, self.levels)])
+                        if any([l.is_all_dates for k, l in zip(key, self.levels)]) and not can_index_exactly:
                             indexer = slice(*self.slice_locs(key, key))
 
                             # we have a multiple selection here
-                            if not indexer.stop-indexer.start == 1:
+                            if not indexer.stop - indexer.start == 1:
                                 return partial_selection(key)
 
                             key = tuple(self[indexer].tolist()[0])
@@ -2913,7 +2918,8 @@ class MultiIndex(Index):
 
     def astype(self, dtype):
         if np.dtype(dtype) != np.object_:
-            raise TypeError("Setting %s dtype to anything other than object is not supported" % self.__class__)
+            raise TypeError(
+                "Setting %s dtype to anything other than object is not supported" % self.__class__)
         return self._shallow_copy()
 
     def insert(self, loc, item):
@@ -2935,7 +2941,8 @@ class MultiIndex(Index):
         if not isinstance(item, tuple):
             item = (item,) + ('',) * (self.nlevels - 1)
         elif len(item) != self.nlevels:
-            raise ValueError('Item must have length equal to number of levels.')
+            raise ValueError(
+                'Item must have length equal to number of levels.')
 
         new_levels = []
         new_labels = []
@@ -2990,7 +2997,7 @@ class MultiIndex(Index):
 
 # For utility purposes
 
-def _sparsify(label_list, start=0,sentinal=''):
+def _sparsify(label_list, start=0, sentinal=''):
     pivoted = lzip(*label_list)
     k = len(label_list)
 
@@ -3031,7 +3038,7 @@ def _ensure_index(index_like, copy=False):
     if isinstance(index_like, list):
         if type(index_like) != list:
             index_like = list(index_like)
-        # #2200 ?
+        # 2200 ?
         converted, all_arrays = lib.clean_index_list(index_like)
 
         if len(converted) > 0 and all_arrays:
@@ -3169,7 +3176,8 @@ def _get_consensus_names(indexes):
 
     # find the non-none names, need to tupleify to make
     # the set hashable, then reverse on return
-    consensus_names = set([ tuple(i.names) for i in indexes if all(n is not None for n in i.names) ])
+    consensus_names = set([tuple(i.names)
+                          for i in indexes if all(n is not None for n in i.names)])
     if len(consensus_names) == 1:
         return list(list(consensus_names)[0])
     return [None] * indexes[0].nlevels
