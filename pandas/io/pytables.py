@@ -503,7 +503,7 @@ class HDFStore(StringMixin):
             self._handle = h5_open(self._path, self._mode)
         except IOError as e:  # pragma: no cover
             if 'can not be written' in str(e):
-                print ('Opening %s in read-only mode' % self._path)
+                print('Opening %s in read-only mode' % self._path)
                 self._handle = h5_open(self._path, 'r')
             else:
                 raise

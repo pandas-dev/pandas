@@ -58,7 +58,7 @@ class PanelOLS(OLS):
 
     def log(self, msg):
         if self._verbose:  # pragma: no cover
-            print (msg)
+            print(msg)
 
     def _prepare_data(self):
         """Cleans and stacks input data into DataFrame objects

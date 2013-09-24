@@ -205,9 +205,9 @@ def denorm(queries,iterable_of_things,default=None):
         fields = []
         results = []
         for q in queries:
-            #print q
+            #print(q)
             r = Ql(q,thing)
-            #print "-- result: ", r
+            #print("-- result: ", r)
             if not r:
                 r = [default]
             if isinstance(r[0], type({})):
@@ -217,15 +217,15 @@ def denorm(queries,iterable_of_things,default=None):
 
             results.append(r)
 
-        #print results
-        #print fields
+        #print(results)
+        #print(fields)
         flist =  list(flatten(*map(iter,fields)))
 
         prod = itertools.product(*results)
         for p in prod:
             U = dict()
             for (ii,thing) in enumerate(p):
-                #print ii,thing
+                #print(ii,thing)
                 if isinstance(thing, type({})):
                     U.update(thing)
                 else:
@@ -285,7 +285,7 @@ def _Q(filter_, thing):
     T = type(thing)
     if isinstance({}, T):
         for k,v in compat.iteritems(thing):
-            #print k,v
+            #print(k,v)
             if filter_ == k:
                 if isinstance(v, type([])):
                     yield iter(v)
@@ -297,7 +297,7 @@ def _Q(filter_, thing):
 
     elif isinstance([], T):
         for k in thing:
-            #print k
+            #print(k)
             yield Q(filter_,k)
 
     else:
@@ -321,9 +321,9 @@ def Q(filter_,thing):
         return flatten(*[_Q(x,thing) for x in filter_])
     elif isinstance(filter_, type({})):
         d = dict.fromkeys(list(filter_.keys()))
-        #print d
+        #print(d)
         for k in d:
-            #print flatten(Q(k,thing))
+            #print(flatten(Q(k,thing)))
             d[k] = Q(k,thing)
 
         return d
@@ -380,32 +380,32 @@ def printout(queries,things,default=None, f=sys.stdout, **kwargs):
     fields = set(itertools.chain(*(x.keys() for x in results)))
 
     W = csv.DictWriter(f=f,fieldnames=fields,**kwargs)
-    #print "---prod---"
-    #print list(prod)
+    #print("---prod---")
+    #print(list(prod))
     W.writeheader()
     for r in results:
         W.writerow(r)
 
 
 def test_run():
-    print("\n>>> print list(Q('url',ex1))")
+    print("\n>>> print(list(Q('url',ex1)))")
     print(list(Q('url',ex1)))
     assert  list(Q('url',ex1)) == ['url1','url2','url3']
     assert Ql('url',ex1) == ['url1','url2','url3']
 
-    print("\n>>>  print list(Q(['name','id'],ex1))")
+    print("\n>>>  print(list(Q(['name','id'],ex1)))")
     print(list(Q(['name','id'],ex1)))
     assert Ql(['name','id'],ex1) == ['Gregg','hello','gbye']
 
 
-    print("\n>>> print Ql('more url',ex1)")
+    print("\n>>> print(Ql('more url',ex1))")
     print(Ql('more url',ex1))
 
 
     print("\n>>> list(Q('extensions',ex1))")
     print(list(Q('extensions',ex1)))
 
-    print("\n>>> print Ql('extensions',ex1)")
+    print("\n>>> print(Ql('extensions',ex1))")
     print(Ql('extensions',ex1))
 
     print("\n>>> printout(['name','extensions'],[ex1,], extrasaction='ignore')")

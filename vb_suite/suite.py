@@ -92,15 +92,15 @@ def generate_rst_files(benchmarks):
     fig_base_path = os.path.join(vb_path, 'figures')
 
     if not os.path.exists(vb_path):
-        print 'creating %s' % vb_path
+        print('creating %s' % vb_path)
         os.makedirs(vb_path)
 
     if not os.path.exists(fig_base_path):
-        print 'creating %s' % fig_base_path
+        print('creating %s' % fig_base_path)
         os.makedirs(fig_base_path)
 
     for bmk in benchmarks:
-        print 'Generating rst file for %s' % bmk.name
+        print('Generating rst file for %s' % bmk.name)
         rst_path = os.path.join(RST_BASE, 'vbench/%s.txt' % bmk.name)
 
         fig_full_path = os.path.join(fig_base_path, '%s.png' % bmk.name)

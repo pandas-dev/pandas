@@ -31,7 +31,7 @@ def setup(app):
 def initialize(app):
     fn = app.config.phantom_import_file
     if (fn and os.path.isfile(fn)):
-        print "[numpydoc] Phantom importing modules from", fn, "..."
+        print("[numpydoc] Phantom importing modules from", fn, "...")
         import_phantom_module(fn)
 
 #------------------------------------------------------------------------------
