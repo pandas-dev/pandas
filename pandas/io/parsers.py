@@ -1283,7 +1283,6 @@ class PythonParser(ParserBase):
 
         # needs to be cleaned/refactored
         # multiple date column thing turning into a real spaghetti factory
-
         if not self._has_complex_date_col:
             (index_names,
              self.orig_names, _) = self._get_index_name(self.columns)
@@ -1561,8 +1560,6 @@ class PythonParser(ParserBase):
         except StopIteration:
             next_line = None
 
-        index_name = None
-
         # implicitly index_col=0 b/c 1 fewer column names
         implicit_first_cols = 0
         if line is not None:
@@ -1647,11 +1644,20 @@ class PythonParser(ParserBase):
                 if self.pos > len(source):
                     raise StopIteration
                 if rows is None:
-                    lines.extend(source[self.pos:])
-                    self.pos = len(source)
+                    new_rows = source[self.pos:]
+                    new_pos = len(source)
                 else:
-                    lines.extend(source[self.pos:self.pos + rows])
-                    self.pos += rows
+                    new_rows = source[self.pos:self.pos + rows]
+                    new_pos = self.pos + rows
+
+                # Check for stop rows. n.b.: self.skiprows is a set.
+                if self.skiprows:
+                    new_rows = [row for i, row in enumerate(new_rows)
+                                if i + self.pos not in self.skiprows]
+
+                lines.extend(new_rows)
+                self.pos = new_pos
+
             else:
                 new_rows = []
                 try:
@@ -1673,6 +1679,9 @@ class PythonParser(ParserBase):
                                     raise Exception(msg)
                                 raise
                 except StopIteration:
+                    if self.skiprows:
+                        new_rows = [row for i, row in enumerate(new_rows)
+                                    if self.pos + i not in self.skiprows]
                     lines.extend(new_rows)
                     if len(lines) == 0:
                         raise

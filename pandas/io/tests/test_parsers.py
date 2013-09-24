@@ -735,6 +735,14 @@ ignore,this,row
         tm.assert_frame_equal(data, expected)
         tm.assert_frame_equal(data, data2)
 
+    def test_deep_skiprows(self):
+        # GH #4382
+        text = "a,b,c\n" + "\n".join([",".join([str(i), str(i+1), str(i+2)]) for i in range(10)])
+        condensed_text = "a,b,c\n" + "\n".join([",".join([str(i), str(i+1), str(i+2)]) for i in [0, 1, 2, 3, 4, 6, 8, 9]])
+        data = self.read_csv(StringIO(text), skiprows=[6, 8])
+        condensed_data = self.read_csv(StringIO(condensed_text))
+        tm.assert_frame_equal(data, condensed_data)
+
     def test_detect_string_na(self):
         data = """A,B
 foo,bar
