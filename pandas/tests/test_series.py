@@ -64,14 +64,17 @@ class CheckNameIntegration(object):
         result = self.ts.copy()
         self.assertEquals(result.name, self.ts.name)
 
-    # def test_copy_index_name_checking(self):
-    # don't want to be able to modify the index stored elsewhere after
-    # making a copy
+    def test_copy_index_name_checking(self):
+        # don't want to be able to modify the index stored elsewhere after
+        # making a copy
 
-    #     self.ts.index.name = None
-    #     cp = self.ts.copy()
-    #     cp.index.name = 'foo'
-    #     self.assert_(self.ts.index.name is None)
+        self.ts.index.name = None
+        self.assert_(self.ts.index.name is None)
+        self.assert_(self.ts is self.ts)
+        cp = self.ts.copy()
+        cp.index.name = 'foo'
+        print(self.ts.index.name)
+        self.assert_(self.ts.index.name is None)
 
     def test_append_preserve_name(self):
         result = self.ts[:5].append(self.ts[5:])
@@ -4270,7 +4273,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
     def test_reindex(self):
         identity = self.series.reindex(self.series.index)
-        self.assertEqual(id(self.series.index), id(identity.index))
+        self.assert_(np.may_share_memory(self.series.index, identity.index))
+        self.assert_(identity.index.is_(self.series.index))
 
         subIndex = self.series.index[10:20]
         subSeries = self.series.reindex(subIndex)

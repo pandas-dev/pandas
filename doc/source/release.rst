@@ -455,6 +455,8 @@ Bug Fixes
   - Tests for fillna on empty Series (:issue:`4346`), thanks @immerrr
   - Fixed a bug where ``ValueError`` wasn't correctly raised when column names
     weren't strings (:issue:`4956`)
+  - Fixed ``copy()`` to shallow copy axes/indices as well and thereby keep
+    separate metadata. (:issue:`4202`, :issue:`4830`)
 
 pandas 0.12.0
 -------------

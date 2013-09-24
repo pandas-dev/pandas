@@ -762,11 +762,6 @@ class TestPanel4d(unittest.TestCase, CheckIndexing, SafeForSparse,
                                       major=self.panel4d.major_axis,
                                       minor=self.panel4d.minor_axis)
 
-        assert(result.labels is self.panel4d.labels)
-        assert(result.items is self.panel4d.items)
-        assert(result.major_axis is self.panel4d.major_axis)
-        assert(result.minor_axis is self.panel4d.minor_axis)
-
         # don't necessarily copy
         result = self.panel4d.reindex()
         assert_panel4d_equal(result,self.panel4d)

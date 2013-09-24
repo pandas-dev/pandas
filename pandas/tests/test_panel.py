@@ -61,6 +61,13 @@ class SafeForLongAndSparse(object):
     def test_repr(self):
         foo = repr(self.panel)
 
+    def test_copy_names(self):
+        for attr in ('major_axis', 'minor_axis'):
+            getattr(self.panel, attr).name = None
+            cp = self.panel.copy()
+            getattr(cp, attr).name = 'foo'
+            self.assert_(getattr(self.panel, attr).name is None)
+
     def test_iter(self):
         tm.equalContents(list(self.panel), self.panel.items)
 

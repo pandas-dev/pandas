@@ -202,7 +202,8 @@ class TestIndex(unittest.TestCase):
         self.assertFalse(ind.is_(ind[:]))
         self.assertFalse(ind.is_(ind.view(np.ndarray).view(Index)))
         self.assertFalse(ind.is_(np.array(range(10))))
-        self.assertTrue(ind.is_(ind.view().base)) # quasi-implementation dependent
+        # quasi-implementation dependent
+        self.assertTrue(ind.is_(ind.view().base))
         ind2 = ind.view()
         ind2.name = 'bob'
         self.assertTrue(ind.is_(ind2))
@@ -441,7 +442,7 @@ class TestIndex(unittest.TestCase):
     def test_summary(self):
         self._check_method_works(Index.summary)
         # GH3869
-        ind = Index(['{other}%s',"~:{range}:0"], name='A')
+        ind = Index(['{other}%s', "~:{range}:0"], name='A')
         result = ind.summary()
         # shouldn't be formatted accidentally.
         self.assert_('~:{range}:0' in result)
@@ -1182,8 +1183,8 @@ class TestMultiIndex(unittest.TestCase):
         assert_copy(actual.labels, expected.labels)
         self.check_level_names(actual, expected.names)
 
-        assertRaisesRegexp(TypeError, "^Setting.*dtype.*object", self.index.astype, np.dtype(int))
-
+        with assertRaisesRegexp(TypeError, "^Setting.*dtype.*object"):
+            self.index.astype(np.dtype(int))
 
     def test_constructor_single_level(self):
         single_level = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],
@@ -1229,7 +1230,6 @@ class TestMultiIndex(unittest.TestCase):
         i_copy = self.index.copy()
 
         self.assert_multiindex_copied(i_copy, self.index)
-
 
     def test_shallow_copy(self):
         i_copy = self.index._shallow_copy()
@@ -1497,10 +1497,11 @@ class TestMultiIndex(unittest.TestCase):
         df = tm.makeCustomDataframe(5, 5)
         stacked = df.stack()
         idx = stacked.index
-        assertRaisesRegexp(TypeError, '^Level type mismatch', idx.slice_locs, timedelta(seconds=30))
+        with assertRaisesRegexp(TypeError, '^Level type mismatch'):
+            idx.slice_locs(timedelta(seconds=30))
         # TODO: Try creating a UnicodeDecodeError in exception message
-        assertRaisesRegexp(TypeError, '^Level type mismatch', idx.slice_locs,
-                           df.index[1], (16, "a"))
+        with assertRaisesRegexp(TypeError, '^Level type mismatch'):
+            idx.slice_locs(df.index[1], (16, "a"))
 
     def test_slice_locs_not_sorted(self):
         index = MultiIndex(levels=[Index(lrange(4)),
@@ -1672,7 +1673,7 @@ class TestMultiIndex(unittest.TestCase):
         warnings.filterwarnings('ignore',
                                 category=FutureWarning,
                                 module=".*format")
-        # #1538
+        # GH1538
         pd.set_option('display.multi_sparse', False)
 
         result = self.index.format()
@@ -1734,11 +1735,11 @@ class TestMultiIndex(unittest.TestCase):
         mi2 = self.index.copy()
         self.assert_(mi.identical(mi2))
 
-        mi = mi.set_names(['new1','new2'])
+        mi = mi.set_names(['new1', 'new2'])
         self.assert_(mi.equals(mi2))
         self.assert_(not mi.identical(mi2))
 
-        mi2 = mi2.set_names(['new1','new2'])
+        mi2 = mi2.set_names(['new1', 'new2'])
         self.assert_(mi.identical(mi2))
 
     def test_is_(self):
@@ -1877,7 +1878,7 @@ class TestMultiIndex(unittest.TestCase):
         expected.names = first.names
         self.assertEqual(first.names, result.names)
         assertRaisesRegexp(TypeError, "other must be a MultiIndex or a list"
-                           " of tuples", first.diff, [1,2,3,4,5])
+                           " of tuples", first.diff, [1, 2, 3, 4, 5])
 
     def test_from_tuples(self):
         assertRaisesRegexp(TypeError, 'Cannot infer number of levels from'
