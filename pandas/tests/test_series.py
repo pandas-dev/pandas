@@ -4599,6 +4599,19 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = x.fillna(value=0)
         assert_series_equal(y, expected)
 
+    def test_fillna_empty(self):
+        # GH 4346
+
+        empty = Series()
+
+        result = empty.reindex([1, 2, 3])
+        expected = Series([np.nan, np.nan, np.nan], index=[1, 2, 3])
+        assert_series_equal(result, expected)
+
+        result = empty.reindex([1, 2, 3], fill_value=0.0)
+        expected = Series([0.0, 0.0, 0.0], index=[1, 2, 3])
+        assert_series_equal(result, expected)
+
     def test_fillna_invalid_method(self):
         try:
             self.ts.fillna(method='ffil')

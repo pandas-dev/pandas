@@ -452,6 +452,7 @@ Bug Fixes
   - Fixed string methods for ``FrozenNDArray`` and ``FrozenList`` (:issue:`4929`)
   - Fixed a bug with setting invalid or out-of-range values in indexing
     enlargement scenarios (:issue:`4940`)
+  - Tests for fillna on empty Series (:issue:`4346`), thanks @immerrr
 
 pandas 0.12.0
 -------------
