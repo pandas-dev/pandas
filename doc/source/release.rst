@@ -128,6 +128,8 @@ Improvements to existing features
   - ``read_stata`` now accepts Stata 13 format (:issue:`4291`)
   - ``ExcelWriter`` and ``ExcelFile`` can be used as contextmanagers.
     (:issue:`3441`, :issue:`4933`)
+  - ``DataFrame.hist`` now allows a string to be passed to ``by``. This string
+    indicates a column in the calling frame (:issue:`4103`, :issue:`4105`)
 
 API Changes
 ~~~~~~~~~~~

@@ -1108,6 +1108,26 @@ class TestDataFrameGroupByPlots(unittest.TestCase):
         with tm.assertRaises(ValueError):
             df.plot(colormap='invalid_colormap')
 
+    @slow
+    def test_hist_by_with_string(self):
+        n = 10
+        df = DataFrame({'gender': tm.choice(['Male', 'Female'], size=n),
+                        'height': random.normal(66, 4, size=n), 'weight':
+                        random.normal(161, 32, size=n)})
+        _check_plot_works(df.hist, column='weight', by='gender')
+        _check_plot_works(df.hist, column='height', by='gender')
+        _check_plot_works(df.hist, column=['height', 'weight'], by='gender')
+
+    @slow
+    def test_hist_column_no_by(self):
+        n = 10
+        df = DataFrame({'gender': tm.choice(['Male', 'Female'], size=n),
+                        'height': random.normal(66, 4, size=n), 'weight':
+                        random.normal(161, 32, size=n)})
+        self.assertEqual(df.hist(column='height').shape, (1, 1))
+        tm.close()
+        self.assertEqual(df.hist(column=['height', 'weight']).shape, (1, 2))
+
 
 def assert_is_valid_plot_return_object(objs):
     import matplotlib.pyplot as plt

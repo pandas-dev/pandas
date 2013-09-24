@@ -223,6 +223,8 @@ Enhancements
   - Clipboard functionality now works with PySide (:issue:`4282`)
   - Added a more informative error message when plot arguments contain
     overlapping color and style arguments (:issue:`4402`)
+  - ``DataFrame.hist`` now allows a string to be passed to ``by``. This string
+    indicates a column in the calling frame (:issue:`4103`, :issue:`4105`)
 
   - NaN handing in get_dummies (:issue:`4446`) with `dummy_na`
 
