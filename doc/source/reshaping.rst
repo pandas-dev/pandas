@@ -287,7 +287,7 @@ calling ``to_string`` if you wish:
 .. ipython:: python
 
    table = pivot_table(df, rows=['A', 'B'], cols=['C'])
-   print table.to_string(na_rep='')
+   print(table.to_string(na_rep=''))
 
 Note that ``pivot_table`` is also available as an instance method on DataFrame.
 

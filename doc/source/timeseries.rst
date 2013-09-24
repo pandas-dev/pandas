@@ -514,10 +514,10 @@ calendars which account for local holidays and local weekend conventions.
     holidays = ['2012-05-01', datetime(2013, 5, 1), np.datetime64('2014-05-01')]
     bday_egypt = CustomBusinessDay(holidays=holidays, weekmask=weekmask_egypt)
     dt = datetime(2013, 4, 30)
-    print dt + 2 * bday_egypt
+    print(dt + 2 * bday_egypt)
     dts = date_range(dt, periods=5, freq=bday_egypt).to_series()
-    print dts
-    print Series(dts.weekday, dts).map(Series('Mon Tue Wed Thu Fri Sat Sun'.split()))
+    print(dts)
+    print(Series(dts.weekday, dts).map(Series('Mon Tue Wed Thu Fri Sat Sun'.split())))
 
 .. note::
 

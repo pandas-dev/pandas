@@ -74,8 +74,8 @@ DataFrames into the equivalent R object (that is, **data.frame**):
                   index=["one", "two", "three"])
    r_dataframe = com.convert_to_r_dataframe(df)
 
-   print type(r_dataframe)
-   print r_dataframe
+   print(type(r_dataframe))
+   print(r_dataframe)
 
 
 The DataFrame's index is stored as the ``rownames`` attribute of the
@@ -90,8 +90,8 @@ R matrices bear no information on the data type):
 
    r_matrix = com.convert_to_r_matrix(df)
 
-   print type(r_matrix)
-   print r_matrix
+   print(type(r_matrix))
+   print(r_matrix)
 
 
 Calling R functions with pandas objects

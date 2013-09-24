@@ -161,7 +161,7 @@ HDFStore API Changes
        df.to_hdf(path,'df_table2',append=True)
        df.to_hdf(path,'df_fixed')
        with get_store(path) as store:
-          print store
+          print(store)
 
     .. ipython:: python
        :suppress:

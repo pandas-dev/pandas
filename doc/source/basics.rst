@@ -860,7 +860,7 @@ Thus, for example:
 .. ipython::
 
    In [0]: for col in df:
-      ...:     print col
+      ...:     print(col)
       ...:
 
 iteritems
@@ -878,8 +878,8 @@ For example:
 .. ipython::
 
    In [0]: for item, frame in wp.iteritems():
-      ...:     print item
-      ...:     print frame
+      ...:     print(item)
+      ...:     print(frame)
       ...:
 
 
@@ -895,7 +895,7 @@ containing the data in each row:
 .. ipython::
 
    In [0]: for row_index, row in df2.iterrows():
-      ...:     print '%s\n%s' % (row_index, row)
+      ...:     print('%s\n%s' % (row_index, row))
       ...:
 
 For instance, a contrived way to transpose the dataframe would be:
@@ -903,11 +903,11 @@ For instance, a contrived way to transpose the dataframe would be:
 .. ipython:: python
 
    df2 = DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
-   print df2
-   print df2.T
+   print(df2)
+   print(df2.T)
 
    df2_t = DataFrame(dict((idx,values) for idx, values in df2.iterrows()))
-   print df2_t
+   print(df2_t)
 
 .. note::
 
@@ -918,8 +918,8 @@ For instance, a contrived way to transpose the dataframe would be:
 
       df_iter = DataFrame([[1, 1.0]], columns=['x', 'y'])
       row = next(df_iter.iterrows())[1]
-      print row['x'].dtype
-      print df_iter['x'].dtype
+      print(row['x'].dtype)
+      print(df_iter['x'].dtype)
 
 itertuples
 ~~~~~~~~~~
@@ -932,7 +932,8 @@ For instance,
 
 .. ipython:: python
 
-   for r in df2.itertuples(): print r
+   for r in df2.itertuples():
+       print(r)
 
 .. _basics.string_methods:
 
