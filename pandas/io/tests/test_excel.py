@@ -240,6 +240,24 @@ class ExcelReaderTests(SharedItems, unittest.TestCase):
         tm.assert_frame_equal(df4, df.ix[:-1])
         tm.assert_frame_equal(df4, df5)
 
+    def test_excel_read_merged_cells(self):
+        _skip_if_no_xlrd()
+
+        pth = os.path.join(self.dirpath, 'merged.xls')
+        xls = ExcelFile(pth, formatting_info=True)        
+        book = xls.book
+        sheet = book.sheet_by_index(0)
+        merged_cells = sheet.merged_cells
+        
+        self.assertEquals(len(merged_cells), 1)
+        rlo, rhi, clo, chi = merged_cells[0]
+        
+        self.assertEquals(rlo, 1)
+        self.assertEquals(rhi, 1+1)
+        
+        self.assertEquals(clo, 0)
+        self.assertEquals(chi, 1+1)
+
     def test_excel_read_buffer(self):
         _skip_if_no_xlrd()
         _skip_if_no_openpyxl()
