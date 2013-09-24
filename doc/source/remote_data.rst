@@ -86,8 +86,8 @@ FRED
 Fama/French
 -----------
 
-Tthe dataset names are listed at `Fama/French Data Library
-<http://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html>`__)
+Dataset names are listed at `Fama/French Data Library
+<http://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html>`__.
 
 .. ipython:: python
 
