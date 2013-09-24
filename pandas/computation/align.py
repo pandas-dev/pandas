@@ -111,15 +111,19 @@ def _align_core(terms):
     typ = biggest._constructor
     axes = biggest.axes
     naxes = len(axes)
+    gt_than_one_axis = naxes > 1
 
     for value in (terms[i].value for i in term_index):
+        is_series = isinstance(value, pd.Series)
+        is_series_and_gt_one_axis = is_series and gt_than_one_axis
+
         for axis, items in enumerate(value.axes):
-            if isinstance(value, pd.Series) and naxes > 1:
+            if is_series_and_gt_one_axis:
                 ax, itm = naxes - 1, value.index
             else:
                 ax, itm = axis, items
-            # TODO: use is_ method when jtratner's PR is merged
-            if axes[ax] is not itm:
+
+            if not axes[ax].is_(itm):
                 axes[ax] = axes[ax].join(itm, how='outer')
 
     for i, ndim in compat.iteritems(ndims):

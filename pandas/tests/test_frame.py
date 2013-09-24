@@ -11498,6 +11498,19 @@ class TestDataFrameQueryNumExprPandas(unittest.TestCase):
         expec = df[(df.index.to_series() < '20130101') & ('20130101' < df.dates3)]
         assert_frame_equal(res, expec)
 
+    def test_date_query_with_non_date(self):
+        engine, parser = self.engine, self.parser
+
+        n = 10
+        df = DataFrame({'dates': date_range('1/1/2012', periods=n),
+             'nondate': np.arange(n)})
+
+        ops = '==', '!=', '<', '>', '<=', '>='
+
+        for op in ops:
+            with tm.assertRaises(TypeError):
+                df.query('dates %s nondate' % op, parser=parser, engine=engine)
+
     def test_query_scope(self):
         engine, parser = self.engine, self.parser
         from pandas.computation.common import NameResolutionError
