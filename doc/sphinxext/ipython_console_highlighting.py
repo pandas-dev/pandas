@@ -39,7 +39,7 @@ class IPythonConsoleLexer(Lexer):
       In [2]: a
       Out[2]: 'foo'
 
-      In [3]: print a
+      In [3]: print(a)
       foo
 
       In [4]: 1 / 0

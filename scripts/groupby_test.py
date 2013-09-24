@@ -21,15 +21,15 @@ key2 = np.array(['b', 'b', 'b', 'b', 'a', 'a', 'a', 'a' ] * k,
                 dtype=object)
 shape, labels, idicts = gp.labelize(key1, key2)
 
-print tseries.group_labels(key1)
+print(tseries.group_labels(key1))
 
-# print shape
-# print labels
-# print idicts
+# print(shape)
+# print(labels)
+# print(idicts)
 
 result = tseries.group_aggregate(values, labels, shape)
 
-print tseries.groupby_indices(key2)
+print(tseries.groupby_indices(key2))
 
 df = DataFrame({'key1' : key1,
                 'key2' : key2,
@@ -43,7 +43,7 @@ k2 = df['key2']
 
 # r2 = gp.multi_groupby(df, np.sum, k1, k2)
 
-# print result
+# print(result)
 
 gen = gp.generate_groups(df['v1'], labels, shape, axis=1,
                          factory=DataFrame)
@@ -51,8 +51,8 @@ gen = gp.generate_groups(df['v1'], labels, shape, axis=1,
 res = defaultdict(dict)
 for a, gen1 in gen:
     for b, group in gen1:
-        print a, b
-        print group
+        print(a, b)
+        print(group)
         # res[b][a] = group['values'].sum()
         res[b][a] = group.sum()
 
@@ -82,10 +82,10 @@ grouped = df.groupby(['key1', 'key2'])
 # exp = DataFrame(expd).T.stack()
 # result = grouped.sum()['C']
 
-# print 'wanted'
-# print exp
-# print 'got'
-# print result
+# print('wanted')
+# print(exp)
+# print('got')
+# print(result)
 
 # tm.N = 10000
 

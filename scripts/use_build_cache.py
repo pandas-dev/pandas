@@ -39,7 +39,7 @@ except:
 
     args = Foo() # for 2.6, no argparse
 
-#print args.accumulate(args.integers)
+#print(args.accumulate(args.integers))
 
 shim="""
 import os

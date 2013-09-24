@@ -86,7 +86,7 @@ class TimeGrouper(CustomGrouper):
             offset = to_offset(self.freq)
             if offset.n > 1:
                 if self.kind == 'period':  # pragma: no cover
-                    print ('Warning: multiple of frequency -> timestamps')
+                    print('Warning: multiple of frequency -> timestamps')
                 # Cannot have multiple of periods, convert to timestamp
                 self.kind = 'timestamp'
 

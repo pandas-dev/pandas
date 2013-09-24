@@ -9625,7 +9625,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         if not ('max' in name or 'min' in name or 'count' in name):
             df = DataFrame({'b': date_range('1/1/2001', periods=2)})
             _f = getattr(df, name)
-            print (df)
+            print(df)
             self.assertFalse(len(_f()))
 
             df['a'] = lrange(len(df))

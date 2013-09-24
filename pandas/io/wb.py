@@ -68,7 +68,7 @@ def download(country=['MX', 'CA', 'US'], indicator=['GDPPCKD', 'GDPPCKN'],
     # Warn
     if len(bad_indicators) > 0:
         print('Failed to obtain indicator(s): %s' % '; '.join(bad_indicators))
-        print ('The data may still be available for download at http://data.worldbank.org')
+        print('The data may still be available for download at http://data.worldbank.org')
     if len(bad_countries) > 0:
         print('Invalid ISO-2 codes: %s' % ' '.join(bad_countries))
     # Merge WDI series
