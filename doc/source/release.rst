@@ -225,6 +225,7 @@ API Changes
   - moved timedeltas support to pandas.tseries.timedeltas.py; add timedeltas string parsing,
     add top-level ``to_timedelta`` function
   - ``NDFrame`` now is compatible with Python's toplevel ``abs()`` function (:issue:`4821`).
+  - raise a ``TypeError`` on invalid comparison ops on Series/DataFrame (e.g. integer/datetime) (:issue:`4968`)
 
 Internal Refactoring
 ~~~~~~~~~~~~~~~~~~~~

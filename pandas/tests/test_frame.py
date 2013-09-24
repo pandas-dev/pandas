@@ -4296,6 +4296,31 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             result = op(df.fillna(7), df)
             assert_frame_equal(result, expected)
 
+    def test_comparison_invalid(self):
+
+        def check(df,df2):
+
+            for (x, y) in [(df,df2),(df2,df)]:
+                self.assertRaises(TypeError, lambda : x == y)
+                self.assertRaises(TypeError, lambda : x != y)
+                self.assertRaises(TypeError, lambda : x >= y)
+                self.assertRaises(TypeError, lambda : x > y)
+                self.assertRaises(TypeError, lambda : x < y)
+                self.assertRaises(TypeError, lambda : x <= y)
+
+        # GH4968
+        # invalid date/int comparisons
+        df = DataFrame(np.random.randint(10, size=(10, 1)), columns=['a'])
+        df['dates'] = date_range('20010101', periods=len(df))
+
+        df2 = df.copy()
+        df2['dates'] = df['a']
+        check(df,df2)
+
+        df = DataFrame(np.random.randint(10, size=(10, 2)), columns=['a', 'b'])
+        df2 = DataFrame({'a': date_range('20010101', periods=len(df)), 'b': date_range('20100101', periods=len(df))})
+        check(df,df2)
+
     def test_modulo(self):
 
         # GH3590, modulo as ints
