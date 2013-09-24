@@ -5,7 +5,7 @@ retrieval and to reduce dependency on DB-specific API.
 from __future__ import print_function
 from datetime import datetime, date
 
-from pandas.compat import range, lzip, map, zip, raise_with_traceback
+from pandas.compat import range, lzip, map, zip, raise_with_traceback, add_metaclass
 import pandas.compat as compat
 import numpy as np
 import traceback
@@ -189,6 +189,308 @@ def sequence2dict(seq):
     for k, v in zip(range(1, 1 + len(seq)), seq):
         d[str(k)] = v
     return d
+
+class PandasSQLFactory(type):
+    def __call__(cls, engine=None, con=None, cur=None):
+        if cls is PandasSQL:
+            if engine:
+                return PandasSQLWithEngine(engine=engine)
+            elif con:
+                if cur is None:
+                    cur = con.cursor()
+                return PandasSQLWithCur(cur=cur)
+            elif cur:
+                return PandasSQLWithCur(cur=cur)
+            else:
+                raise ValueError("PandasSQL must be created with an engine,"
+                                 " connection or cursor.")
+
+        if cls is PandasSQLWithEngine:
+            return type.__call__(cls, engine)
+        elif cls is PandasSQLWithCon:
+            return type.__call__(cls, con)
+        elif cls is PandasSQLWithCur:
+            return type.__call__(cls, cur)
+        else:
+            raise NotImplementedError
+
+@add_metaclass(PandasSQLFactory)
+class PandasSQL(PandasObject):
+
+    def read_sql(self, sql, index_col=None, coerce_float=True, params=None, flavor='sqlite'):
+        # Note coerce_float ignored in engine
+        if params is None:
+            params = []
+        data, columns = self._get_data_and_columns(
+            sql=sql, params=params, flavor=flavor)
+        return self._frame_from_data_and_columns(data, columns,
+                                                 index_col=index_col,
+                                                 coerce_float=coerce_float)
+
+    def write_frame(self, frame, name, con=None, flavor='sqlite', if_exists='fail', engine=None, **kwargs):
+        """
+        Write records stored in a DataFrame to a SQL database.
+
+        Parameters
+        ----------
+        frame: DataFrame
+        name: name of SQL table
+        con: an open SQL database connection object
+        flavor: {'sqlite', 'mysql', 'oracle'}, default 'sqlite'
+        if_exists: {'fail', 'replace', 'append'}, default 'fail'
+            fail: If table exists, do nothing.
+            replace: If table exists, drop it, recreate it, and insert data.
+            append: If table exists, insert data. Create if does not exist.
+        """
+        kwargs = self._pop_dep_append_kwarg(kwargs)
+
+        exists = self._has_table(name, flavor=flavor)
+        if exists:
+            if if_exists == 'fail':
+                raise ValueError("Table '%s' already exists." % name)
+            elif if_exists == 'replace':
+                self._drop_table(name)
+                # do I have to create too?
+        else:
+            self._create_table(
+                frame, name, flavor)  # flavor is ignored with engine
+
+        self._write(frame, name, flavor)
+
+    def _get_data_and_columns(self, *args, **kwargs):
+        raise ValueError("PandasSQL must be created with an engine,"
+                         " connection or cursor.")
+
+    def _has_table(self, name, flavor='sqlite'):
+        # Note: engine overrides this, to use engine.has_table
+        flavor_map = {
+            'sqlite': ("SELECT name FROM sqlite_master "
+                       "WHERE type='table' AND name='%s';") % name,
+            'mysql': "SHOW TABLES LIKE '%s'" % name}
+        query = flavor_map.get(flavor, None)
+        if query is None:
+            raise NotImplementedError
+        return len(self.tquery(query)) > 0
+
+    def _drop_table(self, name):
+        # Previously this worried about connection tp cursor then closing...
+        drop_sql = "DROP TABLE %s" % name
+        self.execute(drop_sql)
+
+    @staticmethod
+    def _create_schema(frame, name, flavor, keys=None):
+        "Return a CREATE TABLE statement to suit the contents of a DataFrame."
+        lookup_type = lambda dtype: PandasSQL._get_sqltype(dtype.type, flavor)
+        # Replace spaces in DataFrame column names with _.
+        safe_columns = [s.replace(
+            ' ', '_').strip() for s in frame.dtypes.index]
+        column_types = lzip(safe_columns, map(lookup_type, frame.dtypes))
+        if flavor == 'sqlite':
+            columns = ',\n  '.join('[%s] %s' % x for x in column_types)
+        elif flavor == 'mysql':
+             columns = ',\n  '.join('`%s` %s' % x for x in column_types)
+        elif flavor == 'postgres':
+            columns = ',\n  '.join('%s %s' % x for x in column_types)
+        else:
+            raise ValueError("Don't have a template for that database flavor.")
+
+        keystr = ''
+        if keys is not None:
+            if isinstance(keys, compat.string_types):
+                keys = (keys,)
+            keystr = ', PRIMARY KEY (%s)' % ','.join(keys)
+        template = """CREATE TABLE %(name)s (
+                      %(columns)s
+                      %(keystr)s
+                      );"""
+        create_statement = template % {'name': name, 'columns': columns,
+                                       'keystr': keystr}
+        return create_statement
+
+    @staticmethod
+    def _frame_from_data_and_columns(data, columns, index_col=None, coerce_float=True):
+        df = DataFrame.from_records(data, columns=columns)
+        if index_col is not None:
+            df.set_index(index_col, inplace=True)
+        return df
+
+    @staticmethod
+    def _pop_dep_append_kwarg(kwargs):
+        if 'append' in kwargs:
+            from warnings import warn
+            warn("append is deprecated, use if_exists='append'", FutureWarning)
+            if kwargs.pop('append'):
+                kwargs['if_exists'] = 'append'
+            else:
+                kwargs['if_exists'] = 'fail'
+            return kwargs
+
+    @staticmethod
+    def _safe_fetch(cur):
+        '''ensures result of fetchall is a list'''
+        try:
+            result = cur.fetchall()
+            if not isinstance(result, list):
+                result = list(result)
+            return result
+        except Exception as e:  # pragma: no cover
+            excName = e.__class__.__name__
+            if excName == 'OperationalError':
+                return []
+
+    @staticmethod
+    def _get_sqltype(pytype, flavor):
+        sqltype = {'mysql': 'VARCHAR (63)',
+                   'sqlite': 'TEXT',
+                   'postgres': 'text'}
+
+        if issubclass(pytype, np.floating):
+            sqltype['mysql'] = 'FLOAT'
+            sqltype['sqlite'] = 'REAL'
+            sqltype['postgres'] = 'real'
+
+        if issubclass(pytype, np.integer):
+            # TODO: Refine integer size.
+            sqltype['mysql'] = 'BIGINT'
+            sqltype['sqlite'] = 'INTEGER'
+            sqltype['postgres'] = 'integer'
+
+        if issubclass(pytype, np.datetime64) or pytype is datetime:
+            # Caution: np.datetime64 is also a subclass of np.number.
+            sqltype['mysql'] = 'DATETIME'
+            sqltype['sqlite'] = 'TIMESTAMP'
+            sqltype['postgres'] = 'timestamp'
+
+        if pytype is datetime.date:
+            sqltype['mysql'] = 'DATE'
+            sqltype['sqlite'] = 'TIMESTAMP'
+            sqltype['postgres'] = 'date'
+
+        if issubclass(pytype, np.bool_):
+            sqltype['sqlite'] = 'INTEGER'
+            sqltype['postgres'] = 'boolean'
+
+        return sqltype[flavor]
+
+class PandasSQLWithEngine(PandasSQL):
+    def __init__(self, engine):
+        self.engine = engine
+
+    def execute(self, sql, retry=True, params=None):
+        try:
+            return self.engine.execute(sql, params=params)
+        except Exception as e:
+            ex = DatabaseError("Execution failed with: %s" % e)
+            raise_with_traceback(ex)
+
+    def tquery(self, sql, retry=False, params=None):
+        if params is None:
+            params = []
+        result = self.execute(sql, params=params)
+        return result.fetchall()
+
+    def uquery(self, sql, retry=False, params=None):
+        if params is None:
+            params = []
+        result = self.execute(sql, params=params)
+        return result.rowcount
+
+    def _get_data_and_columns(self, sql, params, **kwargs):
+        result = self.execute(sql, params=params)
+        data = result.fetchall()
+        columns = result.keys()
+        return data, columns
+
+    def write_frame(self, frame, name, if_exists='fail', **kwargs):
+        self._pop_dep_append_kwarg(kwargs)
+
+        exists = self.engine.has_table(name)
+        if exists:
+            if if_exists == 'fail':
+                raise ValueError("Table '%s' already exists." % name)
+            elif if_exists == 'replace':
+                self._drop_table(name)
+
+        self._create_table(frame, name)
+        self._write(frame, name)
+
+    def _write(self, frame, table_name, **kwargs):
+        table = self._get_table(table_name)
+        ins = table.insert()
+        # TODO: do this in one pass
+        # engine.execute(ins, *(t[1:] for t in frame.itertuples())) # t[1:] doesn't include index
+        # engine.execute(ins, *[tuple(x) for x in frame.values])
+
+        # TODO this should be done globally first (or work out how to pass np
+        # dtypes to sql)
+        def maybe_asscalar(i):
+            try:
+                return np.asscalar(i)
+            except AttributeError:
+                return i
+
+        for t in frame.iterrows():
+            self.engine.execute(ins, **dict((k, maybe_asscalar(
+                v)) for k, v in t[1].iteritems()))
+            # TODO more efficient, I'm *sure* this was just working with tuples
+
+    def _has_table(self, name):
+        return self.engine.has_table(name)
+
+    def _get_table(self, table_name, meta=None):
+        if self.engine.has_table(table_name):
+            if not meta:
+                from sqlalchemy.schema import MetaData
+                meta = MetaData(self.engine)
+                meta.reflect(self.engine)
+                return meta.tables[table_name]
+        else:
+            return None
+
+    def _drop_table(self, table_name):
+        if self.engine.has_table(table_name):
+            table = self._get_table(table_name)
+            table.drop
+
+    def _create_table(self, frame, table_name, keys=None, meta=None):
+        from sqlalchemy import Table, Column
+        if keys is None:
+            keys = []
+        if not meta:  # Do we need meta param?
+            from sqlalchemy.schema import MetaData
+            meta = MetaData(self.engine)
+            meta.reflect(self.engine)
+
+        safe_columns = [s.replace(
+            ' ', '_').strip() for s in frame.dtypes.index]  # may not be safe enough...
+        column_types = map(self._lookup_type, frame.dtypes)
+
+        columns = [(col_name, col_sqltype, col_name in keys)
+                   for col_name, col_sqltype in zip(safe_columns, column_types)]
+        columns = map(lambda (name, typ, pk): Column(
+            name, typ, primary_key=pk), columns)
+
+        table = Table(table_name, meta, *columns)
+        table.create()
+
+    def _lookup_type(self, dtype):
+        from sqlalchemy import INT, FLOAT, TEXT, BOOLEAN
+
+        pytype = dtype.type
+
+        if issubclass(pytype, np.floating):
+            return FLOAT
+        if issubclass(pytype, np.integer):
+            # TODO: Refine integer size.
+            return INT
+        if issubclass(pytype, np.datetime64) or pytype is datetime:
+            # Caution: np.datetime64 is also a subclass of np.number.
+            return DATETIME
+        if pytype is datetime.date:
+            return DATE
+        if issubclass(pytype, np.bool_):
+            return BOOLEAN
+        return TEXT
 
 # # legacy names
 # get_schema = PandasSQL._create_schema
