@@ -167,7 +167,7 @@ Consider a typical CSV file containing, in this case, some time series data:
 
 .. ipython:: python
 
-   print open('foo.csv').read()
+   print(open('foo.csv').read())
 
 The default for `read_csv` is to create a DataFrame with simple numbered rows:
 
@@ -209,7 +209,7 @@ Suppose you had data with unenclosed quotes:
 
 .. ipython:: python
 
-   print data
+   print(data)
 
 By default, ``read_csv`` uses the Excel dialect and treats the double quote as
 the quote character, which causes it to fail when it finds a newline before it
@@ -236,7 +236,7 @@ after a delimiter:
 .. ipython:: python
 
    data = 'a, b, c\n1, 2, 3\n4, 5, 6'
-   print data
+   print(data)
    pd.read_csv(StringIO(data), skipinitialspace=True)
 
 The parsers make every attempt to "do the right thing" and not be very
@@ -255,7 +255,7 @@ individual columns:
 .. ipython:: python
 
     data = 'a,b,c\n1,2,3\n4,5,6\n7,8,9'
-    print data
+    print(data)
 
     df = pd.read_csv(StringIO(data), dtype=object)
     df
@@ -275,7 +275,7 @@ used as the column names:
 
     from StringIO import StringIO
     data = 'a,b,c\n1,2,3\n4,5,6\n7,8,9'
-    print data
+    print(data)
     pd.read_csv(StringIO(data))
 
 By specifying the ``names`` argument in conjunction with ``header`` you can
@@ -284,7 +284,7 @@ any):
 
 .. ipython:: python
 
-    print data
+    print(data)
     pd.read_csv(StringIO(data), names=['foo', 'bar', 'baz'], header=0)
     pd.read_csv(StringIO(data), names=['foo', 'bar', 'baz'], header=None)
 
@@ -356,7 +356,7 @@ index column inference and discard the last column, pass ``index_col=False``:
 .. ipython:: python
 
     data = 'a,b,c\n4,apple,bat,\n8,orange,cow,'
-    print data
+    print(data)
     pd.read_csv(StringIO(data))
     pd.read_csv(StringIO(data), index_col=False)
 
@@ -411,7 +411,7 @@ column names:
 
 .. ipython:: python
 
-    print open('tmp.csv').read()
+    print(open('tmp.csv').read())
     df = pd.read_csv('tmp.csv', header=None, parse_dates=[[1, 2], [1, 3]])
     df
 
@@ -499,7 +499,7 @@ DD/MM/YYYY instead. For convenience, a ``dayfirst`` keyword is provided:
 
 .. ipython:: python
 
-   print open('tmp.csv').read()
+   print(open('tmp.csv').read())
 
    pd.read_csv('tmp.csv', parse_dates=[0])
    pd.read_csv('tmp.csv', dayfirst=True, parse_dates=[0])
@@ -527,7 +527,7 @@ By default, numbers with a thousands separator will be parsed as strings
 
 .. ipython:: python
 
-    print open('tmp.csv').read()
+    print(open('tmp.csv').read())
     df = pd.read_csv('tmp.csv', sep='|')
     df
 
@@ -537,7 +537,7 @@ The ``thousands`` keyword allows integers to be parsed correctly
 
 .. ipython:: python
 
-    print open('tmp.csv').read()
+    print(open('tmp.csv').read())
     df = pd.read_csv('tmp.csv', sep='|', thousands=',')
     df
 
@@ -614,7 +614,7 @@ Sometimes comments or meta data may be included in a file:
 
 .. ipython:: python
 
-   print open('tmp.csv').read()
+   print(open('tmp.csv').read())
 
 By default, the parse includes the comments in the output:
 
@@ -654,7 +654,7 @@ as a ``Series``:
 
 .. ipython:: python
 
-   print open('tmp.csv').read()
+   print(open('tmp.csv').read())
 
    output =  pd.read_csv('tmp.csv', squeeze=True)
    output
@@ -679,7 +679,7 @@ options:
 .. ipython:: python
 
     data= 'a,b,c\n1,Yes,2\n3,No,4'
-    print data
+    print(data)
     pd.read_csv(StringIO(data))
     pd.read_csv(StringIO(data), true_values=['Yes'], false_values=['No'])
 
@@ -730,7 +730,7 @@ should pass the ``escapechar`` option:
 .. ipython:: python
 
    data = 'a,b\n"hello, \\"Bob\\", nice to see you",5'
-   print data
+   print(data)
    pd.read_csv(StringIO(data), escapechar='\\')
 
 .. _io.fwf:
@@ -763,7 +763,7 @@ Consider a typical fixed-width data file:
 
 .. ipython:: python
 
-   print open('bar.csv').read()
+   print(open('bar.csv').read())
 
 In order to parse this file into a DataFrame, we simply need to supply the
 column specifications to the `read_fwf` function along with the file name:
@@ -809,7 +809,7 @@ column:
 
 .. ipython:: python
 
-   print open('foo.csv').read()
+   print(open('foo.csv').read())
 
 In this special case, ``read_csv`` assumes that the first column is to be used
 as the index of the DataFrame:
@@ -841,7 +841,7 @@ Suppose you have data indexed by two columns:
 
 .. ipython:: python
 
-   print open('data/mindex_ex.csv').read()
+   print(open('data/mindex_ex.csv').read())
 
 The ``index_col`` argument to ``read_csv`` and ``read_table`` can take a list of
 column numbers to turn multiple columns into a ``MultiIndex`` for the index of the
@@ -868,7 +868,7 @@ of tupleizing columns, specify ``tupleize_cols=True``.
    from pandas.util.testing import makeCustomDataframe as mkdf
    df = mkdf(5,3,r_idx_nlevels=2,c_idx_nlevels=4)
    df.to_csv('mi.csv')
-   print open('mi.csv').read()
+   print(open('mi.csv').read())
    pd.read_csv('mi.csv',header=[0,1,2,3],index_col=[0,1])
 
 Note: If an ``index_col`` is not specified (e.g. you don't have an index, or wrote it
@@ -898,7 +898,7 @@ class of the csv module.
 
 .. ipython:: python
 
-    print open('tmp2.sv').read()
+    print(open('tmp2.sv').read())
     pd.read_csv('tmp2.sv')
 
 .. _io.chunking:
@@ -912,7 +912,7 @@ rather than reading the entire file into memory, such as the following:
 
 .. ipython:: python
 
-   print open('tmp.sv').read()
+   print(open('tmp.sv').read())
    table = pd.read_table('tmp.sv', sep='|')
    table
 
@@ -926,7 +926,7 @@ value will be an iterable object of type ``TextFileReader``:
    reader
 
    for chunk in reader:
-       print chunk
+       print(chunk)
 
 
 Specifying ``iterator=True`` will also return the ``TextFileReader`` object:
@@ -1333,7 +1333,7 @@ Specify an HTML attribute
 
    dfs1 = read_html(url, attrs={'id': 'table'})
    dfs2 = read_html(url, attrs={'class': 'sortable'})
-   print np.array_equal(dfs1[0], dfs2[0])  # Should be True
+   print(np.array_equal(dfs1[0], dfs2[0]))  # Should be True
 
 Use some combination of the above
 
@@ -1400,7 +1400,7 @@ in the method ``to_string`` described above.
 
    df = DataFrame(randn(2, 2))
    df
-   print df.to_html()  # raw html
+   print(df.to_html())  # raw html
 
 .. ipython:: python
    :suppress:
@@ -1416,7 +1416,7 @@ The ``columns`` argument will limit the columns shown
 
 .. ipython:: python
 
-   print df.to_html(columns=[0])
+   print(df.to_html(columns=[0]))
 
 .. ipython:: python
    :suppress:
@@ -1433,7 +1433,7 @@ point values
 
 .. ipython:: python
 
-   print df.to_html(float_format='{0:.10f}'.format)
+   print(df.to_html(float_format='{0:.10f}'.format))
 
 .. ipython:: python
    :suppress:
@@ -1450,7 +1450,7 @@ off
 
 .. ipython:: python
 
-   print df.to_html(bold_rows=False)
+   print(df.to_html(bold_rows=False))
 
 .. ipython:: python
    :suppress:
@@ -1466,7 +1466,7 @@ table CSS classes. Note that these classes are *appended* to the existing
 
 .. ipython:: python
 
-   print df.to_html(classes=['awesome_table_class', 'even_more_awesome_class'])
+   print(df.to_html(classes=['awesome_table_class', 'even_more_awesome_class']))
 
 Finally, the ``escape`` argument allows you to control whether the
 "<", ">" and "&" characters escaped in the resulting HTML (by default it is
@@ -1487,7 +1487,7 @@ Escaped:
 
 .. ipython:: python
 
-   print df.to_html()
+   print(df.to_html())
 
 .. raw:: html
    :file: _static/escape.html
@@ -1496,7 +1496,7 @@ Not escaped:
 
 .. ipython:: python
 
-   print df.to_html(escape=False)
+   print(df.to_html(escape=False))
 
 .. raw:: html
    :file: _static/noescape.html
@@ -1746,7 +1746,7 @@ for some advanced strategies
 .. ipython:: python
 
    store = HDFStore('store.h5')
-   print store
+   print(store)
 
 Objects can be written to the file just like adding key-value pairs to a
 dict:
@@ -2209,7 +2209,7 @@ The default is 50,000 rows returned in a chunk.
 .. ipython:: python
 
    for df in store.select('df', chunksize=3):
-      print df
+      print(df)
 
 .. note::
 
@@ -2221,7 +2221,7 @@ The default is 50,000 rows returned in a chunk.
    .. code-block:: python
 
       for df in read_hdf('store.h5','df', chunsize=3):
-          print df
+          print(df)
 
 Note, that the chunksize keyword applies to the **returned** rows. So if you
 are doing a query, then that set will be subdivided and returned in the

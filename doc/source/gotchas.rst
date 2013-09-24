@@ -372,7 +372,7 @@ of the new set of columns rather than the original ones:
 
 .. ipython:: python
 
-   print open('tmp.csv').read()
+   print(open('tmp.csv').read())
 
    date_spec = {'nominal': [1, 2], 'actual': [1, 3]}
    df = read_csv('tmp.csv', header=None,

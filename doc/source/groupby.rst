@@ -282,8 +282,8 @@ natural and functions similarly to ``itertools.groupby``:
    In [4]: grouped = df.groupby('A')
 
    In [5]: for name, group in grouped:
-      ...:        print name
-      ...:        print group
+      ...:        print(name)
+      ...:        print(group)
       ...:
 
 In the case of grouping by multiple keys, the group name will be a tuple:
@@ -291,8 +291,8 @@ In the case of grouping by multiple keys, the group name will be a tuple:
 .. ipython::
 
    In [5]: for name, group in df.groupby(['A', 'B']):
-      ...:        print name
-      ...:        print group
+      ...:        print(name)
+      ...:        print(group)
       ...:
 
 It's standard Python-fu but remember you can unpack the tuple in the for loop

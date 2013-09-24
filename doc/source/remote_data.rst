@@ -126,7 +126,7 @@ Bank's servers:
 
     In [3]: dat = wb.download(indicator='NY.GDP.PCAP.KD', country=['US', 'CA', 'MX'], start=2005, end=2008)
 
-    In [4]: print dat
+    In [4]: print(dat)
                           NY.GDP.PCAP.KD
     country       year
     Canada        2008  36005.5004978584
@@ -175,7 +175,7 @@ Notice that this second search was much faster than the first one because
     In [13]: ind = ['NY.GDP.PCAP.KD', 'IT.MOB.COV.ZS']
     In [14]: dat = wb.download(indicator=ind, country='all', start=2011, end=2011).dropna()
     In [15]: dat.columns = ['gdp', 'cellphone']
-    In [16]: print dat.tail()
+    In [16]: print(dat.tail())
                             gdp  cellphone
     country   year
     Swaziland 2011  2413.952853       94.9
@@ -193,7 +193,7 @@ populations in rich countries tend to use cellphones at a higher rate:
     In [17]: import numpy as np
     In [18]: import statsmodels.formula.api as smf
     In [19]: mod = smf.ols("cellphone ~ np.log(gdp)", dat).fit()
-    In [20]: print mod.summary()
+    In [20]: print(mod.summary())
                                 OLS Regression Results
     ==============================================================================
     Dep. Variable:              cellphone   R-squared:                       0.297
