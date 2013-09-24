@@ -324,7 +324,13 @@ def _comp_method(op, name, masker=False):
             else:
                 result = lib.scalar_compare(x, y, op)
         else:
-            result = op(x, y)
+
+            try:
+                result = getattr(x,name)(y)
+                if result is NotImplemented:
+                    raise TypeError("invalid type comparison")
+            except (AttributeError):
+                result = op(x, y)
 
         return result
 

@@ -2663,6 +2663,21 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             expected = f(s.astype(float), shifted.astype(float))
             assert_series_equal(result, expected)
 
+    def test_comparison_invalid(self):
+
+        # GH4968
+        # invalid date/int comparisons
+        s = Series(range(5))
+        s2 = Series(date_range('20010101', periods=5))
+
+        for (x, y) in [(s,s2),(s2,s)]:
+            self.assertRaises(TypeError, lambda : x == y)
+            self.assertRaises(TypeError, lambda : x != y)
+            self.assertRaises(TypeError, lambda : x >= y)
+            self.assertRaises(TypeError, lambda : x > y)
+            self.assertRaises(TypeError, lambda : x < y)
+            self.assertRaises(TypeError, lambda : x <= y)
+
     def test_more_na_comparisons(self):
         left = Series(['a', np.nan, 'c'])
         right = Series(['a', np.nan, 'd'])
