@@ -201,8 +201,8 @@ plot_params = _Options()
 
 
 def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
-                   diagonal='hist', marker='.', density_kwds={}, hist_kwds={},
-                   **kwds):
+                   diagonal='hist', marker='.', density_kwds=None,
+                   hist_kwds=None, **kwds):
     """
     Draw a matrix of scatter plots.
 
@@ -242,6 +242,9 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
     mask = com.notnull(df)
 
     marker = _get_marker_compat(marker)
+
+    hist_kwds = hist_kwds or {}
+    density_kwds = density_kwds or {}
 
     for i, a in zip(lrange(n), df.columns):
         for j, b in zip(lrange(n), df.columns):
