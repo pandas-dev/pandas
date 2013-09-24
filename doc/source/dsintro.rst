@@ -586,7 +586,7 @@ R package):
 .. ipython:: python
 
    baseball = read_csv('data/baseball.csv')
-   print baseball
+   print(baseball)
 
 .. ipython:: python
    :suppress:
@@ -599,7 +599,7 @@ DataFrame in tabular form, though it won't always fit the console width:
 
 .. ipython:: python
 
-   print baseball.iloc[-20:, :12].to_string()
+   print(baseball.iloc[-20:, :12].to_string())
 
 New since 0.10.0, wide DataFrames will now be printed across multiple rows by
 default:

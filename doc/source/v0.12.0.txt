@@ -188,10 +188,10 @@ I/O Enhancements
     .. ipython :: python
 
         df = DataFrame({'a': range(3), 'b': list('abc')})
-        print df
+        print(df)
         html = df.to_html()
         alist = pd.read_html(html, infer_types=True, index_col=0)
-        print df == alist[0]
+        print(df == alist[0])
 
     Note that ``alist`` here is a Python ``list`` so ``pd.read_html()`` and
     ``DataFrame.to_html()`` are not inverses.
@@ -237,7 +237,7 @@ I/O Enhancements
          from pandas.util.testing import makeCustomDataframe as mkdf
          df = mkdf(5,3,r_idx_nlevels=2,c_idx_nlevels=4)
          df.to_csv('mi.csv',tupleize_cols=False)
-         print open('mi.csv').read()
+         print(open('mi.csv').read())
          pd.read_csv('mi.csv',header=[0,1,2,3],index_col=[0,1],tupleize_cols=False)
 
       .. ipython:: python
@@ -256,7 +256,7 @@ I/O Enhancements
          path = 'store_iterator.h5'
          DataFrame(randn(10,2)).to_hdf(path,'df',table=True)
          for df in read_hdf(path,'df', chunksize=3):
-            print df
+            print(df)
 
     .. ipython:: python
          :suppress:
@@ -376,9 +376,9 @@ Experimental Features
       holidays = ['2012-05-01', datetime(2013, 5, 1), np.datetime64('2014-05-01')]
       bday_egypt = CustomBusinessDay(holidays=holidays, weekmask=weekmask_egypt)
       dt = datetime(2013, 4, 30)
-      print dt + 2 * bday_egypt
+      print(dt + 2 * bday_egypt)
       dts = date_range(dt, periods=5, freq=bday_egypt).to_series()
-      print Series(dts.weekday, dts).map(Series('Mon Tue Wed Thu Fri Sat Sun'.split()))
+      print(Series(dts.weekday, dts).map(Series('Mon Tue Wed Thu Fri Sat Sun'.split())))
 
 Bug Fixes
 ~~~~~~~~~
@@ -404,7 +404,7 @@ Bug Fixes
         ds = Series(strs)
 
         for s in ds.str:
-            print s
+            print(s)
 
         s
         s.dropna().values.item() == 'w'

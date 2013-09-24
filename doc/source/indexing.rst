@@ -1149,7 +1149,7 @@ and stop are **inclusive** in the label-based case:
 .. ipython:: python
 
    date1, date2 = dates[[2, 4]]
-   print date1, date2
+   print(date1, date2)
    df.ix[date1:date2]
    df['A'].ix[date1:date2]
 
@@ -1211,10 +1211,10 @@ scalar values, though setting arbitrary vectors is not yet supported:
 
    df2 = df[:4]
    df2['foo'] = 'bar'
-   print df2
+   print(df2)
    df2.ix[2] = np.nan
-   print df2
-   print df2.dtypes
+   print(df2)
+   print(df2.dtypes)
 
 .. _indexing.view_versus_copy:
 
@@ -1639,13 +1639,13 @@ instance:
    midx = MultiIndex(levels=[['zero', 'one'], ['x','y']],
                      labels=[[1,1,0,0],[1,0,1,0]])
    df = DataFrame(randn(4,2), index=midx)
-   print df
+   print(df)
    df2 = df.mean(level=0)
-   print df2
-   print df2.reindex(df.index, level=0)
+   print(df2)
+   print(df2.reindex(df.index, level=0))
    df_aligned, df2_aligned = df.align(df2, level=0)
-   print df_aligned
-   print df2_aligned
+   print(df_aligned)
+   print(df2_aligned)
 
 
 The need for sortedness with :class:`~pandas.MultiIndex`
