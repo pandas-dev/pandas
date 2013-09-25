@@ -128,6 +128,8 @@ Improvements to existing features
   - ``read_stata`` now accepts Stata 13 format (:issue:`4291`)
   - ``ExcelWriter`` and ``ExcelFile`` can be used as contextmanagers.
     (:issue:`3441`, :issue:`4933`)
+  - ``pandas`` is now tested with two different versions of ``statsmodels``
+    (0.4.3 and 0.5.0) (:issue:`4981`).
 
 API Changes
 ~~~~~~~~~~~

@@ -6,6 +6,7 @@ Unit test suite for OLS and PanelOLS classes
 
 from __future__ import division
 
+from distutils.version import LooseVersion
 from datetime import datetime
 from pandas import compat
 import unittest
@@ -98,11 +99,10 @@ class TestOLS(BaseTest):
 
     def testWLS(self):
         # WLS centered SS changed (fixed) in 0.5.0
-        v = sm.version.version.split('.')
-        if int(v[0]) >= 0 and int(v[1]) <= 5:
-            if int(v[2]) < 1:
-                raise nose.SkipTest
-        print( "Make sure you're using statsmodels 0.5.0.dev-cec4f26 or later.")
+        sm_version = sm.version.version
+        if sm_version < LooseVersion('0.5.0'):
+            raise nose.SkipTest("WLS centered SS not fixed in statsmodels"
+                                " version {0}".format(sm_version))
 
         X = DataFrame(np.random.randn(30, 4), columns=['A', 'B', 'C', 'D'])
         Y = Series(np.random.randn(30))
