@@ -379,8 +379,6 @@ def add_ops(op_classes):
     return f
 
 
-_date_kinds = frozenset(['datetime64', 'timestamp', 'datetime'])
-
 @disallow(_unsupported_nodes)
 @add_ops(_op_classes)
 class BaseExprVisitor(ast.NodeVisitor):
@@ -496,7 +494,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         res = op(lhs, rhs)
 
         if (res.op in _cmp_ops_syms and
-            lhs.kind in _date_kinds or rhs.kind in _date_kinds and
+            lhs.is_datetime or rhs.is_datetime and
             self.engine != 'pytables'):
             # all date ops must be done in python bc numexpr doesn't work well
             # with NaT

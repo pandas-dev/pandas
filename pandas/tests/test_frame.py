@@ -11432,22 +11432,27 @@ class TestDataFrameQueryWithMultiIndex(object):
         resolvers = df._get_index_resolvers('index')
         resolvers.update(df._get_index_resolvers('columns'))
 
+        def to_series(mi, level):
+            level_values = mi.get_level_values(level)
+            s = level_values.to_series()
+            s.index = mi
+            return s
+
+        col_series = df.columns.to_series()
         expected = {'index': df.index,
-                    'columns': Series(df.columns, index=df.columns,
-                                      name=df.columns.name),
-                    'spam': Series(df.index.get_level_values('spam'),
-                                   name='spam', index=df.index),
-                    'eggs': Series(df.index.get_level_values('eggs'),
-                                   name='eggs', index=df.index),
-                    'C0': Series(df.columns, index=df.columns,
-                                 name=df.columns.name)}
+                    'columns': col_series,
+                    'spam': to_series(df.index, 'spam'),
+                    'eggs': to_series(df.index, 'eggs'),
+                    'C0': col_series}
         for k, v in resolvers.items():
             if isinstance(v, Index):
                 assert v.is_(expected[k])
             elif isinstance(v, Series):
+                print(k)
                 tm.assert_series_equal(v, expected[k])
             else:
                 raise AssertionError("object must be a Series or Index")
+
 
 class TestDataFrameQueryNumExprPandas(unittest.TestCase):
     @classmethod

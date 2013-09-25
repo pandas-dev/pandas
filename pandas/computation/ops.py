@@ -5,6 +5,7 @@ import re
 import operator as op
 from functools import partial
 from itertools import product, islice, chain
+from datetime import datetime
 
 import numpy as np
 
@@ -161,21 +162,16 @@ class Term(StringMixin):
                                           self.type))
 
     @property
-    def kind(self):
-        t = self.type
+    def is_datetime(self):
         try:
-            res = t.__name__
+            t = self.type.type
         except AttributeError:
-            res = t.type.__name__
-        return res.lower()
+            t = self.type
+
+        return issubclass(t, (datetime, np.datetime64))
 
     @property
     def value(self):
-        kind = self.kind
-        if kind == 'timestamp':
-            return self._value.asm8
-        elif kind == 'datetime':
-            return np.datetime64(self._value)
         return self._value
 
     @value.setter
@@ -246,14 +242,13 @@ class Op(StringMixin):
         return all(operand.isscalar for operand in self.operands)
 
     @property
-    def kind(self):
-        t = self.return_type
-
+    def is_datetime(self):
         try:
-            res = t.__name__
+            t = self.return_type.type
         except AttributeError:
-            res = t.type.__name__
-        return res.lower()
+            t = self.return_type
+
+        return issubclass(t, (datetime, np.datetime64))
 
 
 def _in(x, y):
@@ -431,24 +426,20 @@ class BinOp(Op):
 
         lhs, rhs = self.lhs, self.rhs
 
-        if (is_term(lhs) and lhs.kind.startswith('datetime') and is_term(rhs)
-                and rhs.isscalar):
+        if is_term(lhs) and lhs.is_datetime and is_term(rhs) and rhs.isscalar:
             v = rhs.value
             if isinstance(v, (int, float)):
                 v = stringify(v)
-            v = _ensure_decoded(v)
-            v = pd.Timestamp(v)
+            v = pd.Timestamp(_ensure_decoded(v))
             if v.tz is not None:
                 v = v.tz_convert('UTC')
             self.rhs.update(v)
 
-        if (is_term(rhs) and rhs.kind.startswith('datetime') and
-                is_term(lhs) and lhs.isscalar):
+        if is_term(rhs) and rhs.is_datetime and is_term(lhs) and lhs.isscalar:
             v = lhs.value
             if isinstance(v, (int, float)):
                 v = stringify(v)
-            v = _ensure_decoded(v)
-            v = pd.Timestamp(v)
+            v = pd.Timestamp(_ensure_decoded(v))
             if v.tz is not None:
                 v = v.tz_convert('UTC')
             self.lhs.update(v)

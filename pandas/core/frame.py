@@ -1910,8 +1910,10 @@ class DataFrame(NDFrame):
                 key = '{prefix}level_{i}'.format(prefix=prefix, i=i)
                 level = i
 
-            d[key] = Series(axis_index.get_level_values(level).values,
-                            index=axis_index, name=level)
+            level_values = axis_index.get_level_values(level)
+            s = level_values.to_series()
+            s.index = axis_index
+            d[key] = s
 
         # put the index/columns itself in the dict
         if isinstance(axis_index, MultiIndex):
