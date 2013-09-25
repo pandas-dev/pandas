@@ -655,6 +655,7 @@ class _BlockJoinOperation(object):
         self.join_index = join_index
         self.axis = axis
         self.copy = copy
+        self.offsets = None
 
         # do NOT sort
         self.result_items = _concat_indexes([d.items for d in data_list])
@@ -683,14 +684,29 @@ class _BlockJoinOperation(object):
         blockmaps = self._prepare_blocks()
         kinds = _get_merge_block_kinds(blockmaps)
 
-        result_blocks = []
-
         # maybe want to enable flexible copying <-- what did I mean?
+        kind_blocks = []
         for klass in kinds:
             klass_blocks = []
             for unit, mapping in blockmaps:
                 if klass in mapping:
                     klass_blocks.extend((unit, b) for b in mapping[klass])
+
+            # blocks that we are going to merge
+            kind_blocks.append(klass_blocks)
+
+        # create the merge offsets, essentially where the resultant blocks go in the result
+        if not self.result_items.is_unique:
+
+            # length of the merges for each of the klass blocks
+            self.offsets = np.zeros(len(blockmaps))
+            for kb in kind_blocks:
+                kl = list(b.get_merge_length() for unit, b in kb)
+                self.offsets += np.array(kl)
+
+        # merge the blocks to create the result blocks
+        result_blocks = []
+        for klass_blocks in kind_blocks:
             res_blk = self._get_merged_block(klass_blocks)
             result_blocks.append(res_blk)
 
@@ -726,7 +742,8 @@ class _BlockJoinOperation(object):
 
         n = len(fidx) if fidx is not None else out_shape[self.axis]
 
-        out_shape[0] = sum(blk.get_merge_length() for unit, blk in merge_chunks)
+        merge_lengths = list(blk.get_merge_length() for unit, blk in merge_chunks)
+        out_shape[0] = sum(merge_lengths)
         out_shape[self.axis] = n
 
         # Should use Fortran order??
@@ -746,9 +763,8 @@ class _BlockJoinOperation(object):
         # calculate by the existing placement plus the offset in the result set
         placement = None
         if not self.result_items.is_unique:
-            nchunks = len(merge_chunks)
-            offsets = np.array([0] + [ len(self.result_items) / nchunks ] * (nchunks-1)).cumsum()
             placement = []
+            offsets = np.append(np.array([0]),self.offsets.cumsum()[:-1])
             for (unit, blk), offset in zip(merge_chunks,offsets):
                 placement.extend(blk.ref_locs+offset)
 
