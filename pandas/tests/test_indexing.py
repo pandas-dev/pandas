@@ -13,7 +13,7 @@ from numpy.testing import assert_array_equal
 import pandas as pd
 import pandas.core.common as com
 from pandas.core.api import (DataFrame, Index, Series, Panel, notnull, isnull,
-                             MultiIndex, DatetimeIndex, Timestamp)
+                             MultiIndex, DatetimeIndex, Float64Index, Timestamp)
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal, assert_panel_equal)
 from pandas import compat, concat
@@ -1518,6 +1518,309 @@ class TestIndexing(unittest.TestCase):
         panel.ix[:, :, 'A+1'] = panel.ix[:, :, 'A'] + 1
         self.assert_("A+1" in panel.ix[0].columns)
         self.assert_("A+1" in panel.ix[1].columns)
+
+    def test_floating_index_doc_example(self):
+
+        index = Index([1.5, 2, 3, 4.5, 5])
+        s = Series(range(5),index=index)
+        self.assert_(s[3] == 2)
+        self.assert_(s.ix[3] == 2)
+        self.assert_(s.loc[3] == 2)
+        self.assert_(s.iloc[3] == 3)
+
+    def test_floating_index(self):
+
+        # related 236
+        # scalar/slicing of a float index
+        s = Series(np.arange(5), index=np.arange(5) * 2.5)
+
+        # label based slicing
+        result1 = s[1.0:3.0]
+        result2 = s.ix[1.0:3.0]
+        result3 = s.loc[1.0:3.0]
+        assert_series_equal(result1, result2)
+        assert_series_equal(result1, result3)
+
+        # exact indexing when found
+        result1 = s[5.0]
+        result2 = s.loc[5.0]
+        result3 = s.ix[5.0]
+        self.assert_(result1 == result2)
+        self.assert_(result1 == result3)
+
+        result1 = s[5]
+        result2 = s.loc[5]
+        result3 = s.ix[5]
+        self.assert_(result1 == result2)
+        self.assert_(result1 == result3)
+
+        self.assert_(s[5.0] == s[5])
+
+        # value not found (and no fallbacking at all)
+
+        # scalar integers
+        self.assertRaises(KeyError, lambda : s.loc[4])
+        self.assertRaises(KeyError, lambda : s.ix[4])
+        self.assertRaises(KeyError, lambda : s[4])
+
+        # fancy floats/integers create the correct entry (as nan)
+        # fancy tests
+        expected = Series([2, 0], index=Float64Index([5.0, 0.0]))
+        for fancy_idx in [[5.0, 0.0], [5, 0], np.array([5.0, 0.0]), np.array([5, 0])]:
+            assert_series_equal(s[fancy_idx], expected)
+            assert_series_equal(s.loc[fancy_idx], expected)
+            assert_series_equal(s.ix[fancy_idx], expected)
+
+        # all should return the same as we are slicing 'the same'
+        result1 = s.loc[2:5]
+        result2 = s.loc[2.0:5.0]
+        result3 = s.loc[2.0:5]
+        result4 = s.loc[2.1:5]
+        assert_series_equal(result1, result2)
+        assert_series_equal(result1, result3)
+        assert_series_equal(result1, result4)
+
+        # previously this did fallback indexing
+        result1 = s[2:5]
+        result2 = s[2.0:5.0]
+        result3 = s[2.0:5]
+        result4 = s[2.1:5]
+        assert_series_equal(result1, result2)
+        assert_series_equal(result1, result3)
+        assert_series_equal(result1, result4)
+
+        result1 = s.ix[2:5]
+        result2 = s.ix[2.0:5.0]
+        result3 = s.ix[2.0:5]
+        result4 = s.ix[2.1:5]
+        assert_series_equal(result1, result2)
+        assert_series_equal(result1, result3)
+        assert_series_equal(result1, result4)
+
+        # combined test
+        result1 = s.loc[2:5]
+        result2 = s.ix[2:5]
+        result3 = s[2:5]
+
+        assert_series_equal(result1, result2)
+        assert_series_equal(result1, result3)
+
+        # list selection
+        result1 = s[[0.0,5,10]]
+        result2 = s.loc[[0.0,5,10]]
+        result3 = s.ix[[0.0,5,10]]
+        result4 = s.iloc[[0,2,4]]
+        assert_series_equal(result1, result2)
+        assert_series_equal(result1, result3)
+        assert_series_equal(result1, result4)
+
+        result1 = s[[1.6,5,10]]
+        result2 = s.loc[[1.6,5,10]]
+        result3 = s.ix[[1.6,5,10]]
+        assert_series_equal(result1, result2)
+        assert_series_equal(result1, result3)
+        assert_series_equal(result1, Series([np.nan,2,4],index=[1.6,5,10]))
+
+        result1 = s[[0,1,2]]
+        result2 = s.ix[[0,1,2]]
+        result3 = s.loc[[0,1,2]]
+        assert_series_equal(result1, result2)
+        assert_series_equal(result1, result3)
+        assert_series_equal(result1, Series([0.0,np.nan,np.nan],index=[0,1,2]))
+
+        result1 = s.loc[[2.5, 5]]
+        result2 = s.ix[[2.5, 5]]
+        assert_series_equal(result1, result2)
+        assert_series_equal(result1, Series([1,2],index=[2.5,5.0]))
+
+        result1 = s[[2.5]]
+        result2 = s.ix[[2.5]]
+        result3 = s.loc[[2.5]]
+        assert_series_equal(result1, result2)
+        assert_series_equal(result1, result3)
+        assert_series_equal(result1, Series([1],index=[2.5]))
+
+    def test_scalar_indexer(self):
+        # float indexing checked above
+
+        def check_invalid(index, loc=None, iloc=None, ix=None, getitem=None):
+
+            # related 236/4850
+            # trying to access with a float index
+            s = Series(np.arange(len(index)),index=index)
+
+            if iloc is None:
+                iloc = TypeError
+            self.assertRaises(iloc, lambda : s.iloc[3.5])
+            if loc is None:
+                loc = TypeError
+            self.assertRaises(loc, lambda : s.loc[3.5])
+            if ix is None:
+                ix = TypeError
+            self.assertRaises(ix, lambda : s.ix[3.5])
+            if getitem is None:
+                getitem = TypeError
+            self.assertRaises(getitem, lambda : s[3.5])
+
+        for index in [ tm.makeStringIndex, tm.makeUnicodeIndex, tm.makeIntIndex,
+                       tm.makeDateIndex, tm.makePeriodIndex ]:
+            check_invalid(index())
+        check_invalid(Index(np.arange(5) * 2.5),loc=KeyError, ix=KeyError, getitem=KeyError)
+
+        def check_getitem(index):
+
+            s = Series(np.arange(len(index)),index=index)
+
+            # positional selection
+            result1 = s[5]
+            result2 = s[5.0]
+            result3 = s.iloc[5]
+            result4 = s.iloc[5.0]
+
+            # by value
+            self.assertRaises(KeyError, lambda : s.loc[5])
+            self.assertRaises(KeyError, lambda : s.loc[5.0])
+
+            # this is fallback, so it works
+            result5 = s.ix[5]
+            result6 = s.ix[5.0]
+            self.assert_(result1 == result2)
+            self.assert_(result1 == result3)
+            self.assert_(result1 == result4)
+            self.assert_(result1 == result5)
+            self.assert_(result1 == result6)
+
+        # all index types except float/int
+        for index in [ tm.makeStringIndex, tm.makeUnicodeIndex,
+                       tm.makeDateIndex, tm.makePeriodIndex ]:
+            check_getitem(index())
+
+        # exact indexing when found on IntIndex
+        s = Series(np.arange(10),dtype='int64')
+
+        result1 = s[5.0]
+        result2 = s.loc[5.0]
+        result3 = s.ix[5.0]
+        result4 = s[5]
+        result5 = s.loc[5]
+        result6 = s.ix[5]
+        self.assert_(result1 == result2)
+        self.assert_(result1 == result3)
+        self.assert_(result1 == result4)
+        self.assert_(result1 == result5)
+        self.assert_(result1 == result6)
+
+    def test_slice_indexer(self):
+
+        def check_slicing_positional(index):
+
+            s = Series(np.arange(len(index))+10,index=index)
+
+            # these are all positional
+            result1 = s[2:5]
+            result2 = s.ix[2:5]
+            result3 = s.iloc[2:5]
+            assert_series_equal(result1, result2)
+            assert_series_equal(result1, result3)
+
+            # not in the index
+            self.assertRaises(KeyError, lambda : s.loc[2:5])
+
+            # make all float slicing fail
+            self.assertRaises(TypeError, lambda : s[2.0:5])
+            self.assertRaises(TypeError, lambda : s[2.0:5.0])
+            self.assertRaises(TypeError, lambda : s[2:5.0])
+
+            self.assertRaises(TypeError, lambda : s.ix[2.0:5])
+            self.assertRaises(TypeError, lambda : s.ix[2.0:5.0])
+            self.assertRaises(TypeError, lambda : s.ix[2:5.0])
+
+            self.assertRaises(KeyError, lambda : s.loc[2.0:5])
+            self.assertRaises(KeyError, lambda : s.loc[2.0:5.0])
+            self.assertRaises(KeyError, lambda : s.loc[2:5.0])
+
+            # these work for now
+            #self.assertRaises(TypeError, lambda : s.iloc[2.0:5])
+            #self.assertRaises(TypeError, lambda : s.iloc[2.0:5.0])
+            #self.assertRaises(TypeError, lambda : s.iloc[2:5.0])
+
+        # all index types except int, float
+        for index in [ tm.makeStringIndex, tm.makeUnicodeIndex,
+                       tm.makeDateIndex, tm.makePeriodIndex ]:
+            check_slicing_positional(index())
+
+        # int
+        index = tm.makeIntIndex()
+        s = Series(np.arange(len(index))+10,index)
+
+        # this is positional
+        result1 = s[2:5]
+        result4 = s.iloc[2:5]
+        assert_series_equal(result1, result4)
+
+        # these are all value based
+        result2 = s.ix[2:5]
+        result3 = s.loc[2:5]
+        result4 = s.loc[2.0:5]
+        result5 = s.loc[2.0:5.0]
+        result6 = s.loc[2:5.0]
+        assert_series_equal(result2, result3)
+        assert_series_equal(result2, result4)
+        assert_series_equal(result2, result5)
+        assert_series_equal(result2, result6)
+
+        # make all float slicing fail
+        self.assertRaises(TypeError, lambda : s[2.0:5])
+        self.assertRaises(TypeError, lambda : s[2.0:5.0])
+        self.assertRaises(TypeError, lambda : s[2:5.0])
+
+        self.assertRaises(TypeError, lambda : s.ix[2.0:5])
+        self.assertRaises(TypeError, lambda : s.ix[2.0:5.0])
+        self.assertRaises(TypeError, lambda : s.ix[2:5.0])
+
+        # these work for now
+        #self.assertRaises(TypeError, lambda : s.iloc[2.0:5])
+        #self.assertRaises(TypeError, lambda : s.iloc[2.0:5.0])
+        #self.assertRaises(TypeError, lambda : s.iloc[2:5.0])
+
+        # float
+        index = tm.makeFloatIndex()
+        s = Series(np.arange(len(index))+10,index=index)
+
+        # these are all value based
+        result1 = s[2:5]
+        result2 = s.ix[2:5]
+        result3 = s.loc[2:5]
+        assert_series_equal(result1, result2)
+        assert_series_equal(result1, result3)
+
+        # these are all valid
+        result1a = s[2.0:5]
+        result2a = s[2.0:5.0]
+        result3a = s[2:5.0]
+        assert_series_equal(result1a, result2a)
+        assert_series_equal(result1a, result3a)
+
+        result1b = s.ix[2.0:5]
+        result2b = s.ix[2.0:5.0]
+        result3b = s.ix[2:5.0]
+        assert_series_equal(result1b, result2b)
+        assert_series_equal(result1b, result3b)
+
+        result1c = s.loc[2.0:5]
+        result2c = s.loc[2.0:5.0]
+        result3c = s.loc[2:5.0]
+        assert_series_equal(result1c, result2c)
+        assert_series_equal(result1c, result3c)
+
+        assert_series_equal(result1a, result1b)
+        assert_series_equal(result1a, result1c)
+
+        # these work for now
+        #self.assertRaises(TypeError, lambda : s.iloc[2.0:5])
+        #self.assertRaises(TypeError, lambda : s.iloc[2.0:5.0])
+        #self.assertRaises(TypeError, lambda : s.iloc[2:5.0])
+
 
 if __name__ == '__main__':
     import nose

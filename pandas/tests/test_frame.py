@@ -1254,48 +1254,62 @@ class CheckIndexing(object):
         assert_frame_equal(result, expected)
         self.assertEqual(len(result), 2)
 
-        # this should raise an exception
-        with tm.assertRaises(KeyError):
-            df.ix[1:2]
-        with tm.assertRaises(KeyError):
-            df.ix[1:2] = 0
+        # loc_float changes this to work properly
+        result = df.ix[1:2]
+        expected = df.iloc[0:2]
+        assert_frame_equal(result, expected)
+
+        df.ix[1:2] = 0
+        result = df[1:2]
+        self.assert_((result==0).all().all())
 
         # #2727
         index = Index([1.0, 2.5, 3.5, 4.5, 5.0])
         df = DataFrame(np.random.randn(5, 5), index=index)
 
-        # positional slicing!
-        result = df.ix[1.0:5]
+        # positional slicing only via iloc!
+        result = df.iloc[1.0:5]
         expected = df.reindex([2.5, 3.5, 4.5, 5.0])
         assert_frame_equal(result, expected)
         self.assertEqual(len(result), 4)
 
-        # positional again
-        result = df.ix[4:5]
+        result = df.iloc[4:5]
         expected = df.reindex([5.0])
         assert_frame_equal(result, expected)
         self.assertEqual(len(result), 1)
 
-        # label-based
+        cp = df.copy()
+        cp.iloc[1.0:5] = 0
+        self.assert_((cp.iloc[1.0:5] == 0).values.all())
+        self.assert_((cp.iloc[0:1] == df.iloc[0:1]).values.all())
+
+        cp = df.copy()
+        cp.iloc[4:5] = 0
+        self.assert_((cp.iloc[4:5] == 0).values.all())
+        self.assert_((cp.iloc[0:4] == df.iloc[0:4]).values.all())
+
+        # float slicing
+        result = df.ix[1.0:5]
+        expected = df
+        assert_frame_equal(result, expected)
+        self.assertEqual(len(result), 5)
+
+        result = df.ix[1.1:5]
+        expected = df.reindex([2.5, 3.5, 4.5, 5.0])
+        assert_frame_equal(result, expected)
+        self.assertEqual(len(result), 4)
+
+        result = df.ix[4.51:5]
+        expected = df.reindex([5.0])
+        assert_frame_equal(result, expected)
+        self.assertEqual(len(result), 1)
+
         result = df.ix[1.0:5.0]
         expected = df.reindex([1.0, 2.5, 3.5, 4.5, 5.0])
         assert_frame_equal(result, expected)
         self.assertEqual(len(result), 5)
 
         cp = df.copy()
-        # positional slicing!
-        cp.ix[1.0:5] = 0
-        self.assert_((cp.ix[1.0:5] == 0).values.all())
-        self.assert_((cp.ix[0:1] == df.ix[0:1]).values.all())
-
-        cp = df.copy()
-        # positional again
-        cp.ix[4:5] = 0
-        self.assert_((cp.ix[4:5] == 0).values.all())
-        self.assert_((cp.ix[0:4] == df.ix[0:4]).values.all())
-
-        cp = df.copy()
-        # label-based
         cp.ix[1.0:5.0] = 0
         self.assert_((cp.ix[1.0:5.0] == 0).values.all())
 
@@ -10064,15 +10078,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                        index=[100.0, 101.0, np.nan, 102.0, 103.0])
 
         result = df.reindex(index=[101.0, 102.0, 103.0])
-        expected = df.ix[[1, 3, 4]]
+        expected = df.iloc[[1, 3, 4]]
         assert_frame_equal(result, expected)
 
         result = df.reindex(index=[103.0])
-        expected = df.ix[[4]]
+        expected = df.iloc[[4]]
         assert_frame_equal(result, expected)
 
         result = df.reindex(index=[101.0])
-        expected = df.ix[[1]]
+        expected = df.iloc[[1]]
         assert_frame_equal(result, expected)
 
     def test_reindex_multi(self):

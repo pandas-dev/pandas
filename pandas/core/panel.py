@@ -579,7 +579,7 @@ class Panel(NDFrame):
         d = self._construct_axes_dict_for_slice(self._AXIS_ORDERS[1:])
         return self._constructor_sliced(values, **d)
 
-    def _slice(self, slobj, axis=0, raise_on_error=False):
+    def _slice(self, slobj, axis=0, raise_on_error=False, typ=None):
         new_data = self._data.get_slice(slobj,
                                         axis=axis,
                                         raise_on_error=raise_on_error)

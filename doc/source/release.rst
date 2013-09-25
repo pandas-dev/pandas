@@ -229,6 +229,10 @@ API Changes
     add top-level ``to_timedelta`` function
   - ``NDFrame`` now is compatible with Python's toplevel ``abs()`` function (:issue:`4821`).
   - raise a ``TypeError`` on invalid comparison ops on Series/DataFrame (e.g. integer/datetime) (:issue:`4968`)
+  - Added a new index type, ``Float64Index``. This will be automatically created when passing floating values in index creation.
+    This enables a pure label-based slicing paradigm that makes ``[],ix,loc`` for scalar indexing and slicing work exactly the same.
+    Indexing on other index types are preserved (and positional fallback for ``[],ix``), with the exception, that floating point slicing
+    on indexes on non ``Float64Index`` will raise a ``TypeError``, e.g. ``Series(range(5))[3.5:4.5]`` (:issue:`263`)
 
 Internal Refactoring
 ~~~~~~~~~~~~~~~~~~~~
