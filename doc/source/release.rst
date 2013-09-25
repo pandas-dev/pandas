@@ -380,6 +380,7 @@ Bug Fixes
     (:issue:`4170`, :issue:`4440`)
   - Fixed Panel slicing issued in ``xs`` that was returning an incorrect dimmed object
     (:issue:`4016`)
+  - Fix resampling bug where custom reduce function not used if only one group (:issue:`3849`, :issue:`4494`)
   - Fixed Panel assignment with a transposed frame (:issue:`3830`)
   - Raise on set indexing with a Panel and a Panel as a value which needs alignment (:issue:`3777`)
   - frozenset objects now raise in the ``Series`` constructor (:issue:`4482`,

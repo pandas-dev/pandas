@@ -438,6 +438,26 @@ class TestResample(unittest.TestCase):
             expected = ts.resample(freq, closed='left', label='left')
             assert_series_equal(result, expected)
 
+    def test_resample_single_group(self):
+        mysum = lambda x: x.sum()
+
+        rng = date_range('2000-1-1', '2000-2-10', freq='D')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+        assert_series_equal(ts.resample('M', how='sum'),
+                            ts.resample('M', how=mysum))
+
+        rng = date_range('2000-1-1', '2000-1-10', freq='D')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+        assert_series_equal(ts.resample('M', how='sum'),
+                            ts.resample('M', how=mysum))
+
+        # GH 3849
+        s = Series([30.1, 31.6], index=[Timestamp('20070915 15:30:00'),
+                                        Timestamp('20070915 15:40:00')])
+        expected = Series([0.75], index=[Timestamp('20070915')])
+        result = s.resample('D', how=lambda x: np.std(x))
+        assert_series_equal(result, expected)
+
     def test_resample_base(self):
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 02:00', freq='s')
         ts = Series(np.random.randn(len(rng)), index=rng)
