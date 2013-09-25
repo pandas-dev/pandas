@@ -9,12 +9,15 @@ from cpython cimport (
     PyTypeObject,
     PyFloat_Check,
     PyObject_RichCompareBool,
-    PyString_Check
+    PyObject_RichCompare,
+    PyString_Check,
+    Py_GT, Py_GE, Py_EQ, Py_NE, Py_LT, Py_LE
 )
 
 # Cython < 0.17 doesn't have this in cpython
 cdef extern from "Python.h":
     cdef PyTypeObject *Py_TYPE(object)
+    int PySlice_Check(object)
 
 
 from libc.stdlib cimport free
@@ -29,9 +32,6 @@ cimport cython
 from datetime import timedelta, datetime
 from datetime import time as datetime_time
 from pandas.compat import parse_date
-
-cdef extern from "Python.h":
-    int PySlice_Check(object)
 
 # initialize numpy
 import_array()
@@ -437,8 +437,34 @@ def apply_offset(ndarray[object] values, object offset):
 
     result = np.empty(n, dtype='M8[ns]')
     new_values = result.view('i8')
-    pass
 
+
+cdef inline bint _cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1:
+    if op == Py_EQ:
+        return lhs == rhs
+    elif op == Py_NE:
+        return lhs != rhs
+    elif op == Py_LT:
+        return lhs < rhs
+    elif op == Py_LE:
+        return lhs <= rhs
+    elif op == Py_GT:
+        return lhs > rhs
+    elif op == Py_GE:
+        return lhs >= rhs
+
+
+cdef int _reverse_ops[6]
+
+_reverse_ops[Py_LT] = Py_GT
+_reverse_ops[Py_LE] = Py_GE
+_reverse_ops[Py_EQ] = Py_EQ
+_reverse_ops[Py_NE] = Py_NE
+_reverse_ops[Py_GT] = Py_LT
+_reverse_ops[Py_GE] = Py_LE
+
+
+cdef char* _NDIM_STRING = "ndim"
 
 # This is PITA. Because we inherit from datetime, which has very specific
 # construction requirements, we need to do object instantiation in python
@@ -456,12 +482,15 @@ cdef class _Timestamp(datetime):
             return datetime.__hash__(self)
 
     def __richcmp__(_Timestamp self, object other, int op):
-        cdef _Timestamp ots
-        cdef int ndim = getattr(other, 'ndim', -1)
+        cdef:
+            _Timestamp ots
+            int ndim = getattr(other, _NDIM_STRING, -1)
 
         if isinstance(other, _Timestamp):
+            if isinstance(other, NaTType):
+                return PyObject_RichCompare(other, self, _reverse_ops[op])
             ots = other
-        elif type(other) is datetime:
+        elif isinstance(other, datetime):
             if self.nanosecond == 0:
                 val = self.to_datetime()
                 return PyObject_RichCompareBool(val, other, op)
@@ -476,74 +505,40 @@ cdef class _Timestamp(datetime):
                     if isinstance(other, np.datetime64):
                         other = Timestamp(other)
                     else:
-                        raise TypeError("Cannot compare Timestamp with type"
-                                        " %r" % type(other).__name__)
-                if op == 2: # ==
-                    return other == self
-                elif op == 3: # !=
-                    return other != self
-                elif op == 0: # <
-                    return other > self
-                elif op == 1: # <=
-                    return other >= self
-                elif op == 4: # >
-                    return other < self
-                elif op == 5: # >=
-                    return other <= self
+                        raise TypeError('Cannot compare type %r with type %r' %
+                                        (type(self).__name__,
+                                         type(other).__name__))
+                return PyObject_RichCompare(other, self, _reverse_ops[op])
             else:
-                if op == 2:
+                if op == Py_EQ:
                     return False
-                elif op == 3:
+                elif op == Py_NE:
                     return True
-                else:
-                    raise TypeError('Cannot compare Timestamp with '
-                                    '{0!r}'.format(other.__class__.__name__))
+                raise TypeError('Cannot compare type %r with type %r' %
+                                (type(self).__name__, type(other).__name__))
 
         self._assert_tzawareness_compat(other)
-
-        if op == 2: # ==
-            return self.value == ots.value
-        elif op == 3: # !=
-            return self.value != ots.value
-        elif op == 0: # <
-            return self.value < ots.value
-        elif op == 1: # <=
-            return self.value <= ots.value
-        elif op == 4: # >
-            return self.value > ots.value
-        elif op == 5: # >=
-            return self.value >= ots.value
+        return _cmp_scalar(self.value, ots.value, op)
 
     cdef _compare_outside_nanorange(self, object other, int op):
-        dtval = self.to_datetime()
+        cdef datetime dtval = self.to_datetime()
 
         self._assert_tzawareness_compat(other)
 
         if self.nanosecond == 0:
-            if op == 2: # ==
-                return dtval == other
-            elif op == 3: # !=
-                return dtval != other
-            elif op == 0: # <
-                return dtval < other
-            elif op == 1: # <=
-                return dtval <= other
-            elif op == 4: # >
-                return dtval > other
-            elif op == 5: # >=
-                return dtval >= other
+            return PyObject_RichCompare(dtval, other, op)
         else:
-            if op == 2: # ==
+            if op == Py_EQ:
                 return False
-            elif op == 3: # !=
+            elif op == Py_NE:
                 return True
-            elif op == 0: # <
+            elif op == Py_LT:
                 return dtval < other
-            elif op == 1: # <=
+            elif op == Py_LE:
                 return dtval < other
-            elif op == 4: # >
+            elif op == Py_GT:
                 return dtval >= other
-            elif op == 5: # >=
+            elif op == Py_GE:
                 return dtval >= other
 
     cdef _assert_tzawareness_compat(self, object other):
@@ -601,6 +596,16 @@ cdef inline bint is_timestamp(object o):
     return Py_TYPE(o) == ts_type # isinstance(o, Timestamp)
 
 
+cdef bint _nat_scalar_rules[6]
+
+_nat_scalar_rules[Py_EQ] = False
+_nat_scalar_rules[Py_NE] = True
+_nat_scalar_rules[Py_LT] = False
+_nat_scalar_rules[Py_LE] = False
+_nat_scalar_rules[Py_GT] = False
+_nat_scalar_rules[Py_GE] = False
+
+
 cdef class _NaT(_Timestamp):
 
     def __hash__(_NaT self):
@@ -608,42 +613,17 @@ cdef class _NaT(_Timestamp):
         return hash(self.value)
 
     def __richcmp__(_NaT self, object other, int op):
-        # if not isinstance(other, (_NaT, _Timestamp)):
-        #     raise TypeError('Cannot compare %s with NaT' % type(other))
         cdef int ndim = getattr(other, 'ndim', -1)
 
-        if ndim != -1:
-            if ndim == 0:
-                if isinstance(other, np.datetime64):
-                    other = Timestamp(other)
-                else:
-                    raise TypeError("Cannot compare NaT with type "
-                                    "%r" % type(other).__name__)
-            if op == 2: # ==
-                return other == self
-            elif op == 3: # !=
-                return other != self
-            elif op == 0: # <
-                return other > self
-            elif op == 1: # <=
-                return other >= self
-            elif op == 4: # >
-                return other < self
-            elif op == 5: # >=
-                return other <= self
-        else:
-            if op == 2: # ==
-                return False
-            elif op == 3: # !=
-                return True
-            elif op == 0: # <
-                return False
-            elif op == 1: # <=
-                return False
-            elif op == 4: # >
-                return False
-            elif op == 5: # >=
-                return False
+        if ndim == -1:
+            return _nat_scalar_rules[op]
+
+        if ndim == 0:
+            if isinstance(other, np.datetime64):
+                other = Timestamp(other)
+            else:
+                raise TypeError("asdf")
+        return PyObject_RichCompare(other, self, _reverse_ops[op])
 
 
 def _delta_to_nanoseconds(delta):
