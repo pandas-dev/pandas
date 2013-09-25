@@ -41,6 +41,7 @@ http://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
+#include <locale.h>
 
 #include <float.h>
 
@@ -877,6 +878,7 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name, size_t cbName)
 
 char *JSON_EncodeObject(JSOBJ obj, JSONObjectEncoder *enc, char *_buffer, size_t _cbBuffer)
 {
+  char *locale;
   enc->malloc = enc->malloc ? enc->malloc : malloc;
   enc->free =  enc->free ? enc->free : free;
   enc->realloc = enc->realloc ? enc->realloc : realloc;
@@ -915,7 +917,16 @@ char *JSON_EncodeObject(JSOBJ obj, JSONObjectEncoder *enc, char *_buffer, size_t
   enc->end = enc->start + _cbBuffer;
   enc->offset = enc->start;
 
+  locale = strdup(setlocale(LC_NUMERIC, NULL));
+  if (!locale)
+  {
+    SetError(NULL, enc, "Could not reserve memory block");
+    return NULL;
+  }
+  setlocale(LC_NUMERIC, "C");
   encode (obj, enc, NULL, 0);
+  setlocale(LC_NUMERIC, locale);
+  free(locale);
 
   Buffer_Reserve(enc, 1);
   if (enc->errorMsg)
