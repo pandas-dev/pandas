@@ -462,6 +462,7 @@ Bug Fixes
   - Fixed ``copy()`` to shallow copy axes/indices as well and thereby keep
     separate metadata. (:issue:`4202`, :issue:`4830`)
   - Fixed skiprows option in Python parser for read_csv (:issue:`4382`)
+  - Fixed wrong check for overlapping in ``DatetimeIndex.union`` (:issue:`4564`)
 
 pandas 0.12.0
 -------------

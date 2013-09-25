@@ -986,11 +986,11 @@ class DatetimeIndex(Int64Index):
         else:
             left, right = other, self
 
-        left_end = left[-1]
         right_start = right[0]
+        left_end = left[-1]
 
         # Only need to "adjoin", not overlap
-        return (left_end + offset) >= right_start
+        return (right_start == left_end + offset) or right_start in left
 
     def _fast_union(self, other):
         if len(other) == 0:
