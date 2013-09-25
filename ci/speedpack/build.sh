@@ -26,6 +26,42 @@ apt-get build-dep python-lxml -y
 export PYTHONIOENCODING='utf-8'
 export VIRTUALENV_DISTRIBUTE=0
 
+
+function create_fake_pandas() {
+    local site_pkg_dir="$1"
+    rm -rf $site_pkg_dir/pandas
+    mkdir $site_pkg_dir/pandas
+    touch $site_pkg_dir/pandas/__init__.py
+    echo "version = '0.10.0-phony'" > $site_pkg_dir/pandas/version.py
+}
+
+
+function get_site_pkgs_dir() {
+    python$1 -c 'import distutils; print(distutils.sysconfig.get_python_lib())'
+}
+
+
+function create_wheel() {
+    local pip_args="$1"
+    local wheelhouse="$2"
+    local n="$3"
+    local pyver="$4"
+
+    local site_pkgs_dir="$(get_site_pkgs_dir $pyver)"
+
+
+    if [[ "$n" == *statsmodels* ]]; then
+        create_fake_pandas $site_pkgs_dir && \
+        pip wheel $pip_args --wheel-dir=$wheelhouse $n && \
+        pip install $pip_args --no-index $n && \
+        rm -Rf $site_pkgs_dir
+    else
+        pip wheel $pip_args --wheel-dir=$wheelhouse $n
+        pip install $pip_args --no-index $n
+    fi
+}
+
+
 function generate_wheels() {
     # get the requirements file
     local reqfile="$1"
@@ -62,8 +98,7 @@ function generate_wheels() {
 
     # install and build the wheels
     cat $reqfile | while read N; do
-        pip wheel $PIP_ARGS --wheel-dir=$WHEELHOUSE $N
-        pip install $PIP_ARGS --no-index $N
+        create_wheel "$PIP_ARGS" "$WHEELHOUSE" "$N" "$PY_VER"
     done
 }
 
