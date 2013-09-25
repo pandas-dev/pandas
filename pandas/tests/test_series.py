@@ -2059,6 +2059,42 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         check_comparators(self.ts, 5)
         check_comparators(self.ts, self.ts + 1)
 
+    def test_timestamp_compare(self):
+        # make sure we can compare Timestamps on the right AND left hand side
+        # GH4982
+        df = DataFrame({'dates': date_range('20010101', periods=10)})
+        s = df.dates.copy()
+
+        s[0] = pd.Timestamp('nat')
+        s[3] = pd.Timestamp('nat')
+
+        ops = {'lt': 'gt', 'le': 'ge', 'eq': 'eq', 'ne': 'ne'}
+
+        for left, right in ops.items():
+            left_f = getattr(operator, left)
+            right_f = getattr(operator, right)
+
+            # no nats
+            expected = left_f(df.dates, Timestamp('20010109'))
+            result = right_f(Timestamp('20010109'), df.dates)
+            tm.assert_series_equal(result, expected)
+
+            # nats
+            expected = left_f(df.dates, Timestamp('nat'))
+            result = right_f(Timestamp('nat'), df.dates)
+            tm.assert_series_equal(result, expected)
+
+            # compare to timestamp with series containing nats
+            expected = left_f(s, Timestamp('20010109'))
+            result = right_f(Timestamp('20010109'), s)
+            tm.assert_series_equal(result, expected)
+
+            # compare to nat with series containing nats
+            expected = left_f(s, Timestamp('nat'))
+            result = right_f(Timestamp('nat'), s)
+            tm.assert_series_equal(result, expected)
+
+
     def test_operators_empty_int_corner(self):
         s1 = Series([], [], dtype=np.int32)
         s2 = Series({'x': 0.})
@@ -4988,6 +5024,39 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_numpy_unique(self):
         # it works!
         result = np.unique(self.ts)
+
+
+def test_timestamp_compare_scalars():
+    # case where ndim == 0
+    lhs = np.datetime64(datetime(2013, 12, 6))
+    rhs = Timestamp('now')
+    nat = Timestamp('nat')
+
+    ops = {'gt': 'lt', 'lt': 'gt', 'ge': 'le', 'le': 'ge', 'eq': 'eq',
+           'ne': 'ne'}
+
+    for left, right in ops.items():
+        left_f = getattr(operator, left)
+        right_f = getattr(operator, right)
+
+        if pd._np_version_under1p7:
+            # you have to convert to timestamp for this to work with numpy
+            # scalars
+            expected = left_f(Timestamp(lhs), rhs)
+
+            # otherwise a TypeError is thrown
+            if left not in ('eq', 'ne'):
+                with tm.assertRaises(TypeError):
+                    left_f(lhs, rhs)
+        else:
+            expected = left_f(lhs, rhs)
+
+        result = right_f(rhs, lhs)
+        tm.assert_equal(result, expected)
+
+        expected = left_f(rhs, nat)
+        result = right_f(nat, rhs)
+        tm.assert_equal(result, expected)
 
 
 class TestSeriesNonUnique(unittest.TestCase):

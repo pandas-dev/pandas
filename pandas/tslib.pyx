@@ -457,6 +457,7 @@ cdef class _Timestamp(datetime):
 
     def __richcmp__(_Timestamp self, object other, int op):
         cdef _Timestamp ots
+        cdef int ndim = getattr(other, 'ndim', -1)
 
         if isinstance(other, _Timestamp):
             ots = other
@@ -470,13 +471,33 @@ cdef class _Timestamp(datetime):
             except ValueError:
                 return self._compare_outside_nanorange(other, op)
         else:
-            if op == 2:
-                return False
-            elif op == 3:
-                return True
+            if ndim != -1:
+                if ndim == 0:
+                    if isinstance(other, np.datetime64):
+                        other = Timestamp(other)
+                    else:
+                        raise TypeError("Cannot compare Timestamp with type"
+                                        " %r" % type(other).__name__)
+                if op == 2: # ==
+                    return other == self
+                elif op == 3: # !=
+                    return other != self
+                elif op == 0: # <
+                    return other > self
+                elif op == 1: # <=
+                    return other >= self
+                elif op == 4: # >
+                    return other < self
+                elif op == 5: # >=
+                    return other <= self
             else:
-                raise TypeError('Cannot compare Timestamp with '
-                                '{0!r}'.format(other.__class__.__name__))
+                if op == 2:
+                    return False
+                elif op == 3:
+                    return True
+                else:
+                    raise TypeError('Cannot compare Timestamp with '
+                                    '{0!r}'.format(other.__class__.__name__))
 
         self._assert_tzawareness_compat(other)
 
@@ -589,21 +610,40 @@ cdef class _NaT(_Timestamp):
     def __richcmp__(_NaT self, object other, int op):
         # if not isinstance(other, (_NaT, _Timestamp)):
         #     raise TypeError('Cannot compare %s with NaT' % type(other))
+        cdef int ndim = getattr(other, 'ndim', -1)
 
-        if op == 2: # ==
-            return False
-        elif op == 3: # !=
-            return True
-        elif op == 0: # <
-            return False
-        elif op == 1: # <=
-            return False
-        elif op == 4: # >
-            return False
-        elif op == 5: # >=
-            return False
-
-
+        if ndim != -1:
+            if ndim == 0:
+                if isinstance(other, np.datetime64):
+                    other = Timestamp(other)
+                else:
+                    raise TypeError("Cannot compare NaT with type "
+                                    "%r" % type(other).__name__)
+            if op == 2: # ==
+                return other == self
+            elif op == 3: # !=
+                return other != self
+            elif op == 0: # <
+                return other > self
+            elif op == 1: # <=
+                return other >= self
+            elif op == 4: # >
+                return other < self
+            elif op == 5: # >=
+                return other <= self
+        else:
+            if op == 2: # ==
+                return False
+            elif op == 3: # !=
+                return True
+            elif op == 0: # <
+                return False
+            elif op == 1: # <=
+                return False
+            elif op == 4: # >
+                return False
+            elif op == 5: # >=
+                return False
 
 
 def _delta_to_nanoseconds(delta):

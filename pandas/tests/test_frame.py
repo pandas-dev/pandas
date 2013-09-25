@@ -4335,6 +4335,31 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df2 = DataFrame({'a': date_range('20010101', periods=len(df)), 'b': date_range('20100101', periods=len(df))})
         check(df,df2)
 
+    def test_timestamp_compare(self):
+        # make sure we can compare Timestamps on the right AND left hand side
+        # GH4982
+        df = DataFrame({'dates1': date_range('20010101', periods=10),
+                        'dates2': date_range('20010102', periods=10),
+                        'intcol': np.random.randint(1000000000, size=10),
+                        'floatcol': np.random.randn(10),
+                        'stringcol': list(tm.rands(10))})
+        df.loc[np.random.rand(len(df)) > 0.5, 'dates2'] = pd.NaT
+        ops = {'gt': 'lt', 'lt': 'gt', 'ge': 'le', 'le': 'ge', 'eq': 'eq',
+               'ne': 'ne'}
+        for left, right in ops.items():
+            left_f = getattr(operator, left)
+            right_f = getattr(operator, right)
+
+            # no nats
+            expected = left_f(df, Timestamp('20010109'))
+            result = right_f(Timestamp('20010109'), df)
+            tm.assert_frame_equal(result, expected)
+
+            # nats
+            expected = left_f(df, Timestamp('nat'))
+            result = right_f(Timestamp('nat'), df)
+            tm.assert_frame_equal(result, expected)
+
     def test_modulo(self):
 
         # GH3590, modulo as ints
