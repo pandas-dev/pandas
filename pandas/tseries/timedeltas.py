@@ -58,7 +58,7 @@ def to_timedelta(arg, box=True, unit='ns'):
     elif is_list_like(arg):
         return _convert_listlike(arg, box=box)
 
-    return _convert_listlike([ arg ], box=False)[0]
+    return _convert_listlike([ arg ], box=box)
 
 _short_search = re.compile(
     "^\s*(?P<neg>-?)\s*(?P<value>\d*\.?\d*)\s*(?P<unit>d|s|ms|us|ns)?\s*$",re.IGNORECASE)

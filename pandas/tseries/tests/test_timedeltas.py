@@ -7,7 +7,7 @@ import unittest
 import numpy as np
 import pandas as pd
 
-from pandas import (Index, Series, DataFrame, isnull, notnull,
+from pandas import (Index, Series, DataFrame, Timestamp, isnull, notnull,
                     bdate_range, date_range, _np_version_under1p7)
 import pandas.core.common as com
 from pandas.compat import StringIO, lrange, range, zip, u, OrderedDict, long
@@ -123,8 +123,8 @@ class TestTimedeltas(unittest.TestCase):
     def test_nat_converters(self):
         _skip_if_numpy_not_friendly()
 
-        self.assert_(to_timedelta('nat') == tslib.iNaT)
-        self.assert_(to_timedelta('nan') == tslib.iNaT)
+        self.assert_(to_timedelta('nat',box=False) == tslib.iNaT)
+        self.assert_(to_timedelta('nan',box=False) == tslib.iNaT)
 
     def test_to_timedelta(self):
         _skip_if_numpy_not_friendly()
@@ -133,11 +133,11 @@ class TestTimedeltas(unittest.TestCase):
             return v.astype('m8[ns]')
         d1 = np.timedelta64(1,'D')
 
-        self.assert_(to_timedelta('1 days 06:05:01.00003') == conv(d1+np.timedelta64(6*3600+5*60+1,'s')+np.timedelta64(30,'us')))
-        self.assert_(to_timedelta('15.5us') == conv(np.timedelta64(15500,'ns')))
+        self.assert_(to_timedelta('1 days 06:05:01.00003',box=False) == conv(d1+np.timedelta64(6*3600+5*60+1,'s')+np.timedelta64(30,'us')))
+        self.assert_(to_timedelta('15.5us',box=False) == conv(np.timedelta64(15500,'ns')))
 
         # empty string
-        result = to_timedelta('')
+        result = to_timedelta('',box=False)
         self.assert_(result == tslib.iNaT)
 
         result = to_timedelta(['', ''])
@@ -150,7 +150,7 @@ class TestTimedeltas(unittest.TestCase):
 
         # ints
         result = np.timedelta64(0,'ns')
-        expected = to_timedelta(0)
+        expected = to_timedelta(0,box=False)
         self.assert_(result == expected)
 
         # Series
@@ -161,6 +161,35 @@ class TestTimedeltas(unittest.TestCase):
         # with units
         result = Series([ np.timedelta64(0,'ns'), np.timedelta64(10,'s').astype('m8[ns]') ],dtype='m8[ns]')
         expected = to_timedelta([0,10],unit='s')
+        tm.assert_series_equal(result, expected)
+
+        # single element conversion
+        v = timedelta(seconds=1)
+        result = to_timedelta(v,box=False)
+        expected = to_timedelta([v])
+
+        v = np.timedelta64(timedelta(seconds=1))
+        result = to_timedelta(v,box=False)
+        expected = to_timedelta([v])
+
+    def test_timedelta_ops(self):
+        _skip_if_numpy_not_friendly()
+
+        # GH4984
+        # make sure ops return timedeltas
+        s = Series([Timestamp('20130101') + timedelta(seconds=i*i) for i in range(10) ])
+        td = s.diff()
+
+        result = td.mean()
+        expected = to_timedelta(timedelta(seconds=9))
+        tm.assert_series_equal(result, expected)
+
+        result = td.quantile(.1)
+        expected = to_timedelta('00:00:02.6')
+        tm.assert_series_equal(result, expected)
+
+        result = td.median()
+        expected = to_timedelta('00:00:08')
         tm.assert_series_equal(result, expected)
 
 if __name__ == '__main__':
