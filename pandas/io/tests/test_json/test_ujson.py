@@ -83,6 +83,19 @@ class UltraJSONTests(TestCase):
         decoded = ujson.decode(encoded)
         self.assertEqual(sut, decoded)
 
+    def test_encodeNonCLocale(self):
+        import locale
+        savedlocale = locale.getlocale(locale.LC_NUMERIC)
+        try:
+            locale.setlocale(locale.LC_NUMERIC, 'it_IT.UTF-8')
+        except:
+            try:
+                locale.setlocale(locale.LC_NUMERIC, 'Italian_Italy')
+            except:
+                raise nose.SkipTest('Could not set locale for testing')
+        self.assertEqual(ujson.loads(ujson.dumps(4.78e60)), 4.78e60)
+        self.assertEqual(ujson.loads('4.78', precise_float=True), 4.78)
+        locale.setlocale(locale.LC_NUMERIC, savedlocale)
 
     def test_encodeDecodeLongDecimal(self):
         sut = {u('a'): -528656961.4399388}

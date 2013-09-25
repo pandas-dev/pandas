@@ -358,6 +358,8 @@ Bug Fixes
     dtypes, surfaced in (:issue:`4377`)
   - Fixed bug with duplicate columns and type conversion in ``read_json`` when
     ``orient='split'`` (:issue:`4377`)
+  - Fixed JSON bug where locales with decimal separators other than '.' threw
+    exceptions when encoding / decoding certain values. (:issue:`4918`)
   - Fix ``.iat`` indexing with a ``PeriodIndex`` (:issue:`4390`)
   - Fixed an issue where ``PeriodIndex`` joining with self was returning a new
     instance rather than the same instance (:issue:`4379`); also adds a test

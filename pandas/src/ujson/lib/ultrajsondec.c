@@ -43,6 +43,7 @@ http://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 #include <wchar.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <locale.h>
 
 #ifndef TRUE
 #define TRUE 1
@@ -824,7 +825,7 @@ FASTCALL_ATTR JSOBJ FASTCALL_MSVC decode_object( struct DecoderState *ds)
 
       default:
         ds->dec->releaseObject(ds->prv, newObj, ds->dec);
-        return SetError(ds, -1, "Unexpected character in found when decoding object value");
+        return SetError(ds, -1, "Unexpected character found when decoding object value");
     }
   }
 }
@@ -874,6 +875,7 @@ JSOBJ JSON_DecodeObject(JSONObjectDecoder *dec, const char *buffer, size_t cbBuf
 {
   /*
   FIXME: Base the size of escBuffer of that of cbBuffer so that the unicode escaping doesn't run into the wall each time */
+  char *locale;
   struct DecoderState ds;
   wchar_t escBuffer[(JSON_MAX_STACK_BUFFER_SIZE / sizeof(wchar_t))];
   JSOBJ ret;
@@ -892,7 +894,15 @@ JSOBJ JSON_DecodeObject(JSONObjectDecoder *dec, const char *buffer, size_t cbBuf
 
   ds.dec = dec;
 
+  locale = strdup(setlocale(LC_NUMERIC, NULL));
+  if (!locale)
+  {
+    return SetError(&ds, -1, "Could not reserve memory block");
+  }
+  setlocale(LC_NUMERIC, "C");
   ret = decode_any (&ds);
+  setlocale(LC_NUMERIC, locale);
+  free(locale);
 
   if (ds.escHeap)
   {
