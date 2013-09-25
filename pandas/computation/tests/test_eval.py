@@ -129,8 +129,8 @@ class TestEvalNumexprPandas(unittest.TestCase):
                              Series([1, 2, np.nan, np.nan, 5]), nan_df1)
         self.pandas_rhses = (DataFrame(randn(10, 5)), Series(randn(5)),
                              Series([1, 2, np.nan, np.nan, 5]), nan_df2)
-        self.scalar_lhses = randn(), np.float64(randn()), np.nan
-        self.scalar_rhses = randn(), np.float64(randn()), np.nan
+        self.scalar_lhses = randn(),
+        self.scalar_rhses = randn(),
 
         self.lhses = self.pandas_lhses + self.scalar_lhses
         self.rhses = self.pandas_rhses + self.scalar_rhses
@@ -180,7 +180,6 @@ class TestEvalNumexprPandas(unittest.TestCase):
         for lhs, rhs in product(self.lhses, self.rhses):
             self.check_floor_division(lhs, '//', rhs)
 
-    @slow
     def test_pow(self):
         for lhs, rhs in product(self.lhses, self.rhses):
             self.check_pow(lhs, '**', rhs)
@@ -198,13 +197,13 @@ class TestEvalNumexprPandas(unittest.TestCase):
     @slow
     def test_chained_cmp_op(self):
         mids = self.lhses
-        cmp_ops = tuple(set(self.cmp_ops) - set(['==', '!=', '<=', '>=']))
+        cmp_ops = '<', '>'# tuple(set(self.cmp_ops) - set(['==', '!=', '<=', '>=']))
         for lhs, cmp1, mid, cmp2, rhs in product(self.lhses, cmp_ops,
                                                  mids, cmp_ops, self.rhses):
             self.check_chained_cmp_op(lhs, cmp1, mid, cmp2, rhs)
 
     def check_complex_cmp_op(self, lhs, cmp1, rhs, binop, cmp2):
-        skip_these = 'in', 'not in'
+        skip_these = _scalar_skip
         ex = '(lhs {cmp1} rhs) {binop} (lhs {cmp2} rhs)'.format(cmp1=cmp1,
                                                                 binop=binop,
                                                                 cmp2=cmp2)
@@ -264,7 +263,7 @@ class TestEvalNumexprPandas(unittest.TestCase):
 
     @skip_incompatible_operand
     def check_chained_cmp_op(self, lhs, cmp1, mid, cmp2, rhs):
-        skip_these = 'in', 'not in'
+        skip_these = _scalar_skip
 
         def check_operands(left, right, cmp_op):
             if (np.isscalar(left) and np.isnan(left) and not np.isscalar(right)
@@ -318,11 +317,7 @@ class TestEvalNumexprPandas(unittest.TestCase):
                 ex1 = 'lhs {0} mid {1} rhs'.format(cmp1, cmp2)
                 ex2 = 'lhs {0} mid and mid {1} rhs'.format(cmp1, cmp2)
                 ex3 = '(lhs {0} mid) & (mid {1} rhs)'.format(cmp1, cmp2)
-                try:
-                    expected = _eval_single_bin(lhs_new, '&', rhs_new, self.engine)
-                except TypeError:
-                    import ipdb; ipdb.set_trace()
-                    raise
+                expected = _eval_single_bin(lhs_new, '&', rhs_new, self.engine)
 
                 for ex in (ex1, ex2, ex3):
                     result = pd.eval(ex, engine=self.engine,
@@ -729,9 +724,8 @@ class TestEvalNumexprPython(TestEvalNumexprPandas):
 
     def check_chained_cmp_op(self, lhs, cmp1, mid, cmp2, rhs):
         ex1 = 'lhs {0} mid {1} rhs'.format(cmp1, cmp2)
-        self.assertRaises(NotImplementedError, pd.eval, ex1,
-                          local_dict={'lhs': lhs, 'mid': mid, 'rhs': rhs},
-                          engine=self.engine, parser=self.parser)
+        with tm.assertRaises(NotImplementedError):
+            pd.eval(ex1, engine=self.engine, parser=self.parser)
 
 
 class TestEvalPythonPython(TestEvalNumexprPython):
@@ -783,7 +777,8 @@ ENGINES_PARSERS = list(product(_engines, expr._parsers))
 
 class TestAlignment(object):
 
-    index_types = 'i', 'f', 's', 'u', 'dt', # 'p'
+    index_types = 'i', 'u', 'dt'
+    lhs_index_types = index_types + ('f', 's')  # 'p'
 
     def check_align_nested_unary_op(self, engine, parser):
         skip_if_no_ne(engine)
@@ -798,23 +793,23 @@ class TestAlignment(object):
 
     def check_basic_frame_alignment(self, engine, parser):
         skip_if_no_ne(engine)
-        args = product(self.index_types, repeat=2)
-        for r_idx_type, c_idx_type in args:
-            df = mkdf(10, 10, data_gen_f=f, r_idx_type=r_idx_type,
+        args = product(self.lhs_index_types, self.index_types,
+                       self.index_types)
+        for lr_idx_type, rr_idx_type, c_idx_type in args:
+            df = mkdf(10, 10, data_gen_f=f, r_idx_type=lr_idx_type,
                     c_idx_type=c_idx_type)
-            df2 = mkdf(20, 10, data_gen_f=f, r_idx_type=r_idx_type,
+            df2 = mkdf(20, 10, data_gen_f=f, r_idx_type=rr_idx_type,
                     c_idx_type=c_idx_type)
             res = pd.eval('df + df2', engine=engine, parser=parser)
             assert_frame_equal(res, df + df2)
 
-    @slow
     def test_basic_frame_alignment(self):
         for engine, parser in ENGINES_PARSERS:
             yield self.check_basic_frame_alignment, engine, parser
 
     def check_frame_comparison(self, engine, parser):
         skip_if_no_ne(engine)
-        args = product(self.index_types, repeat=2)
+        args = product(self.lhs_index_types, repeat=2)
         for r_idx_type, c_idx_type in args:
             df = mkdf(10, 10, data_gen_f=f, r_idx_type=r_idx_type,
                     c_idx_type=c_idx_type)
@@ -826,18 +821,19 @@ class TestAlignment(object):
             res = pd.eval('df < df3', engine=engine, parser=parser)
             assert_frame_equal(res, df < df3)
 
-    @slow
     def test_frame_comparison(self):
         for engine, parser in ENGINES_PARSERS:
             yield self.check_frame_comparison, engine, parser
 
     def check_medium_complex_frame_alignment(self, engine, parser):
         skip_if_no_ne(engine)
-        args = product(self.index_types, repeat=4)
+        args = product(self.lhs_index_types, self.index_types,
+                       self.index_types, self.index_types)
+
         for r1, c1, r2, c2 in args:
-            df = mkdf(5, 2, data_gen_f=f, r_idx_type=r1, c_idx_type=c1)
-            df2 = mkdf(10, 2, data_gen_f=f, r_idx_type=r2, c_idx_type=c2)
-            df3 = mkdf(15, 2, data_gen_f=f, r_idx_type=r2, c_idx_type=c2)
+            df = mkdf(3, 2, data_gen_f=f, r_idx_type=r1, c_idx_type=c1)
+            df2 = mkdf(4, 2, data_gen_f=f, r_idx_type=r2, c_idx_type=c2)
+            df3 = mkdf(5, 2, data_gen_f=f, r_idx_type=r2, c_idx_type=c2)
             res = pd.eval('df + df2 + df3', engine=engine, parser=parser)
             assert_frame_equal(res, df + df2 + df3)
 
@@ -864,12 +860,11 @@ class TestAlignment(object):
                 expected = df + s
             assert_frame_equal(res, expected)
 
-        args = product(self.index_types, self.index_types, ('index',
-                                                            'columns'))
+        args = product(self.lhs_index_types, self.index_types,
+                       ('index', 'columns'))
         for r_idx_type, c_idx_type, index_name in args:
             testit(r_idx_type, c_idx_type, index_name)
 
-    @slow
     def test_basic_frame_series_alignment(self):
         for engine, parser in ENGINES_PARSERS:
             yield self.check_basic_frame_series_alignment, engine, parser
@@ -877,7 +872,7 @@ class TestAlignment(object):
     def check_basic_series_frame_alignment(self, engine, parser):
         skip_if_no_ne(engine)
         def testit(r_idx_type, c_idx_type, index_name):
-            df = mkdf(10, 10, data_gen_f=f, r_idx_type=r_idx_type,
+            df = mkdf(10, 7, data_gen_f=f, r_idx_type=r_idx_type,
                     c_idx_type=c_idx_type)
             index = getattr(df, index_name)
             s = Series(np.random.randn(5), index[:5])
@@ -892,19 +887,18 @@ class TestAlignment(object):
                 expected = s + df
             assert_frame_equal(res, expected)
 
-        args = product(self.index_types, self.index_types, ('index',
-                                                            'columns'))
+        args = product(self.lhs_index_types, self.index_types,
+                       ('index', 'columns'))
         for r_idx_type, c_idx_type, index_name in args:
             testit(r_idx_type, c_idx_type, index_name)
 
-    @slow
     def test_basic_series_frame_alignment(self):
         for engine, parser in ENGINES_PARSERS:
             yield self.check_basic_series_frame_alignment, engine, parser
 
     def check_series_frame_commutativity(self, engine, parser):
         skip_if_no_ne(engine)
-        args = product(self.index_types, self.index_types, ('+', '*'),
+        args = product(self.lhs_index_types, self.index_types, ('+', '*'),
                        ('index', 'columns'))
         for r_idx_type, c_idx_type, op, index_name in args:
             df = mkdf(10, 10, data_gen_f=f, r_idx_type=r_idx_type,
@@ -921,20 +915,28 @@ class TestAlignment(object):
                 if engine == 'numexpr':
                     assert_frame_equal(a, b)
 
-    @slow
     def test_series_frame_commutativity(self):
         for engine, parser in ENGINES_PARSERS:
             yield self.check_series_frame_commutativity, engine, parser
 
     def check_complex_series_frame_alignment(self, engine, parser):
         skip_if_no_ne(engine)
-        index_types = [self.index_types] * 4
-        args = product(('index', 'columns'), ('df', 'df2'), *index_types)
-        for index_name, obj, r1, r2, c1, c2 in args:
-            df = mkdf(10, 5, data_gen_f=f, r_idx_type=r1, c_idx_type=c1)
-            df2 = mkdf(20, 5, data_gen_f=f, r_idx_type=r2, c_idx_type=c2)
-            index = getattr(locals()[obj], index_name)
-            s = Series(np.random.randn(5), index[:5])
+
+        import random
+        args = product(self.lhs_index_types, self.index_types,
+                       self.index_types, self.index_types)
+        n = 3
+        m1 = 5
+        m2 = 2 * m1
+
+        for r1, r2, c1, c2 in args:
+            index_name = random.choice(['index', 'columns'])
+            obj_name = random.choice(['df', 'df2'])
+
+            df = mkdf(m1, n, data_gen_f=f, r_idx_type=r1, c_idx_type=c1)
+            df2 = mkdf(m2, n, data_gen_f=f, r_idx_type=r2, c_idx_type=c2)
+            index = getattr(locals().get(obj_name), index_name)
+            s = Series(np.random.randn(n), index[:n])
 
             if r2 == 'dt' or c2 == 'dt':
                 if engine == 'numexpr':
@@ -1003,7 +1005,6 @@ class TestAlignment(object):
                             "by more than {2:.4g}; performance may suffer"
                             "".format(1, 's', np.log10(s.size - df.shape[1])))
                 assert_equal(msg, expected)
-
 
     def test_performance_warning_for_poor_alignment(self):
         for engine, parser in ENGINES_PARSERS:
