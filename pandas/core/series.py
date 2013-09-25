@@ -1981,7 +1981,12 @@ class Series(generic.NDFrame):
         valid_values = self.dropna().values
         if len(valid_values) == 0:
             return pa.NA
-        return _quantile(valid_values, q * 100)
+        result = _quantile(valid_values, q * 100)
+        if result.dtype == _TD_DTYPE:
+            from pandas.tseries.timedeltas import to_timedelta
+            return to_timedelta(result)
+
+        return result
 
     def ptp(self, axis=None, out=None):
         return _values_from_object(self).ptp(axis, out)

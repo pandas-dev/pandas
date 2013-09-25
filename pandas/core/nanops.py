@@ -5,7 +5,7 @@ import functools
 
 import numpy as np
 
-from pandas.core.common import isnull, notnull, _values_from_object
+from pandas.core.common import isnull, notnull, _values_from_object, is_float
 import pandas.core.common as com
 import pandas.lib as lib
 import pandas.algos as algos
@@ -188,6 +188,10 @@ def _wrap_results(result,dtype):
             # as series will do the right thing in py3 (and deal with numpy 1.6.2
             # bug in that it results dtype of timedelta64[us]
             from pandas import Series
+
+            # coerce float to results
+            if is_float(result):
+                result = int(result)
             result = Series([result],dtype='timedelta64[ns]')
         else:
             result = result.view(dtype)
@@ -224,11 +228,15 @@ def nanmean(values, axis=None, skipna=True):
             the_mean[ct_mask] = np.nan
     else:
         the_mean = the_sum / count if count > 0 else np.nan
-    return the_mean
+
+    return  _wrap_results(the_mean,dtype)
 
 @disallow('M8')
 @bottleneck_switch()
 def nanmedian(values, axis=None, skipna=True):
+
+    values, mask, dtype = _get_values(values, skipna)
+
     def get_median(x):
         mask = notnull(x)
         if not skipna and not mask.all():
@@ -257,7 +265,7 @@ def nanmedian(values, axis=None, skipna=True):
         return ret
 
     # otherwise return a scalar value
-    return get_median(values) if notempty else np.nan
+    return _wrap_results(get_median(values),dtype) if notempty else np.nan
 
 
 @disallow('M8')
