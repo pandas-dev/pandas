@@ -1911,7 +1911,7 @@ class DataFrame(NDFrame):
                 level = i
 
             d[key] = Series(axis_index.get_level_values(level).values,
-                            index=axis_index, name=name)
+                            index=axis_index, name=level)
 
         # put the index/columns itself in the dict
         if isinstance(axis_index, MultiIndex):

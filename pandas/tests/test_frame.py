@@ -11423,6 +11423,31 @@ class TestDataFrameQueryWithMultiIndex(object):
         for parser, engine in product(['pandas'], ENGINES):
             yield self.check_query_with_partially_named_multiindex, parser, engine
 
+    def test_query_multiindex_get_index_resolvers(self):
+        for parser, engine in product(['pandas'], ENGINES):
+            yield self.check_query_multiindex_get_index_resolvers, parser, engine
+
+    def check_query_multiindex_get_index_resolvers(self, parser, engine):
+        df = mkdf(10, 3, r_idx_nlevels=2, r_idx_names=['spam', 'eggs'])
+        resolvers = df._get_index_resolvers('index')
+        resolvers.update(df._get_index_resolvers('columns'))
+
+        expected = {'index': df.index,
+                    'columns': Series(df.columns, index=df.columns,
+                                      name=df.columns.name),
+                    'spam': Series(df.index.get_level_values('spam'),
+                                   name='spam', index=df.index),
+                    'eggs': Series(df.index.get_level_values('eggs'),
+                                   name='eggs', index=df.index),
+                    'C0': Series(df.columns, index=df.columns,
+                                 name=df.columns.name)}
+        for k, v in resolvers.items():
+            if isinstance(v, Index):
+                assert v.is_(expected[k])
+            elif isinstance(v, Series):
+                tm.assert_series_equal(v, expected[k])
+            else:
+                raise AssertionError("object must be a Series or Index")
 
 class TestDataFrameQueryNumExprPandas(unittest.TestCase):
     @classmethod
