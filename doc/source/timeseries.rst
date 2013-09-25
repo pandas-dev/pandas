@@ -1204,6 +1204,25 @@ pass a timedelta to get a particular value.
    y.fillna(10)
    y.fillna(timedelta(days=-1,seconds=5))
 
+.. _timeseries.timedeltas_reductions:
+
+Time Deltas & Reductions
+------------------------
+
+.. warning::
+
+   A numeric reduction operation for ``timedelta64[ns]`` will return a single-element ``Series`` of
+   dtype ``timedelta64[ns]``.
+
+You can do numeric reduction operations on timedeltas.
+
+.. ipython:: python
+
+   y2 = y.fillna(timedelta(days=-1,seconds=5))
+   y2
+   y2.mean()
+   y2.quantile(.1)
+
 .. _timeseries.timedeltas_convert:
 
 Time Deltas & Conversions

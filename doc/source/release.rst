@@ -93,6 +93,7 @@ Improvements to existing features
     is frequency conversion.
   - Timedelta64 support ``fillna/ffill/bfill`` with an integer interpreted as seconds,
     or a ``timedelta`` (:issue:`3371`)
+  - Box numeric ops on ``timedelta`` Series (:issue:`4984`)
   - Datetime64 support ``ffill/bfill``
   - Performance improvements with ``__getitem__`` on ``DataFrames`` with
     when the key is a column
