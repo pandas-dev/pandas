@@ -909,12 +909,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         result = s[::-1]  # it works!
 
     def test_slice_float_get_set(self):
-        result = self.ts[4.0:10.0]
-        expected = self.ts[4:10]
-        assert_series_equal(result, expected)
 
-        self.ts[4.0:10.0] = 0
-        self.assert_((self.ts[4:10] == 0).all())
+        self.assertRaises(TypeError, lambda : self.ts[4.0:10.0])
+        def f():
+            self.ts[4.0:10.0] = 0
+        self.assertRaises(TypeError, f)
 
         self.assertRaises(TypeError, self.ts.__getitem__, slice(4.5, 10.0))
         self.assertRaises(TypeError, self.ts.__setitem__, slice(4.5, 10.0), 0)
@@ -932,6 +931,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_(len(s.ix[12.5:]) == 7)
 
     def test_slice_float64(self):
+
         values = np.arange(10., 50., 2)
         index = Index(values)
 
@@ -940,19 +940,19 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         s = Series(np.random.randn(20), index=index)
 
         result = s[start:end]
-        expected = s.ix[5:16]
+        expected = s.iloc[5:16]
         assert_series_equal(result, expected)
 
-        result = s.ix[start:end]
+        result = s.loc[start:end]
         assert_series_equal(result, expected)
 
         df = DataFrame(np.random.randn(20, 3), index=index)
 
         result = df[start:end]
-        expected = df.ix[5:16]
+        expected = df.iloc[5:16]
         tm.assert_frame_equal(result, expected)
 
-        result = df.ix[start:end]
+        result = df.loc[start:end]
         tm.assert_frame_equal(result, expected)
 
     def test_setitem(self):
@@ -3253,6 +3253,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         result = td.value_counts()
         #self.assert_(result.index.dtype == 'timedelta64[ns]')
         self.assert_(result.index.dtype == 'int64')
+
+        # basics.rst doc example
+        series = Series(np.random.randn(500))
+        series[20:500] = np.nan
+        series[10:20]  = 5000
+        result = series.nunique()
+        self.assert_(result == 11)
 
     def test_unique(self):
 

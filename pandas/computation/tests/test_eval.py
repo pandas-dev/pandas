@@ -778,7 +778,7 @@ ENGINES_PARSERS = list(product(_engines, expr._parsers))
 class TestAlignment(object):
 
     index_types = 'i', 'u', 'dt'
-    lhs_index_types = index_types + ('f', 's')  # 'p'
+    lhs_index_types = index_types + ('s',)  # 'p'
 
     def check_align_nested_unary_op(self, engine, parser):
         skip_if_no_ne(engine)

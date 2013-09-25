@@ -374,7 +374,7 @@ class SparseDataFrame(DataFrame):
         return dense.to_sparse(kind=self._default_kind,
                                fill_value=self._default_fill_value)
 
-    def _slice(self, slobj, axis=0, raise_on_error=False):
+    def _slice(self, slobj, axis=0, raise_on_error=False, typ=None):
         if axis == 0:
             if raise_on_error:
                 _check_slice_bounds(slobj, self.index)

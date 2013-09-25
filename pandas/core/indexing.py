@@ -6,7 +6,7 @@ from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.compat import range, zip
 import pandas.compat as compat
 import pandas.core.common as com
-from pandas.core.common import (_is_bool_indexer,
+from pandas.core.common import (_is_bool_indexer, is_integer_dtype,
                                 ABCSeries, ABCDataFrame, ABCPanel)
 import pandas.lib as lib
 
@@ -16,7 +16,7 @@ import numpy as np
 def get_indexers_list():
 
     return [
-        ('ix'  ,_NDFrameIndexer),
+        ('ix'  ,_IXIndexer     ),
         ('iloc',_iLocIndexer   ),
         ('loc' ,_LocIndexer    ),
         ('at'  ,_AtIndexer     ),
@@ -32,6 +32,7 @@ class IndexingError(Exception):
 
 
 class _NDFrameIndexer(object):
+    _valid_types = None
     _exception   = KeyError
 
     def __init__(self, obj, name):
@@ -68,8 +69,8 @@ class _NDFrameIndexer(object):
     def _get_loc(self, key, axis=0):
         return self.obj._ixs(key, axis=axis)
 
-    def _slice(self, obj, axis=0, raise_on_error=False):
-        return self.obj._slice(obj, axis=axis, raise_on_error=raise_on_error)
+    def _slice(self, obj, axis=0, raise_on_error=False, typ=None):
+        return self.obj._slice(obj, axis=axis, raise_on_error=raise_on_error, typ=typ)
 
     def __setitem__(self, key, value):
         # kludgetastic
@@ -92,8 +93,16 @@ class _NDFrameIndexer(object):
 
         self._setitem_with_indexer(indexer, value)
 
+    def _has_valid_type(self, k, axis):
+        raise NotImplementedError()
+
     def _has_valid_tuple(self, key):
-        pass
+        """ check the key for valid keys across my indexer """
+        for i, k in enumerate(key):
+            if i >= self.obj.ndim:
+                raise IndexingError('Too many indexers')
+            if not self._has_valid_type(k,i):
+                raise ValueError("Location based indexing can only have [%s] types" % self._valid_types)
 
     def _convert_tuple(self, key, is_setter=False):
         keyidx = []
@@ -101,6 +110,17 @@ class _NDFrameIndexer(object):
             idx = self._convert_to_indexer(k, axis=i, is_setter=is_setter)
             keyidx.append(idx)
         return tuple(keyidx)
+
+    def _convert_scalar_indexer(self, key, axis):
+        # if we are accessing via lowered dim, use the last dim
+        ax = self.obj._get_axis(min(axis,self.ndim-1))
+        # a scalar
+        return ax._convert_scalar_indexer(key, typ=self.name)
+
+    def _convert_slice_indexer(self, key, axis):
+        # if we are accessing via lowered dim, use the last dim
+        ax = self.obj._get_axis(min(axis,self.ndim-1))
+        return ax._convert_slice_indexer(key, typ=self.name)
 
     def _has_valid_setitem_indexer(self, indexer):
         return True
@@ -228,7 +248,9 @@ class _NDFrameIndexer(object):
 
             # if we have a partial multiindex, then need to adjust the plane indexer here
             if len(labels) == 1 and isinstance(self.obj[labels[0]].index,MultiIndex):
-                index = self.obj[labels[0]].index
+                item = labels[0]
+                obj = self.obj[item]
+                index = obj.index
                 idx = indexer[:info_axis][0]
                 try:
                     if idx in index:
@@ -238,8 +260,19 @@ class _NDFrameIndexer(object):
                 plane_indexer = tuple([idx]) + indexer[info_axis + 1:]
                 lplane_indexer = _length_of_indexer(plane_indexer[0],index)
 
+                # require that we are setting the right number of values that we are indexing
                 if is_list_like(value) and lplane_indexer != len(value):
-                    raise ValueError("cannot set using a multi-index selection indexer with a different length than the value")
+
+                    if len(obj[idx]) != len(value):
+                        raise ValueError("cannot set using a multi-index selection indexer with a different length than the value")
+
+                    # we can directly set the series here
+                    # as we select a slice indexer on the mi
+                    idx = index._convert_slice_indexer(idx)
+                    obj = obj.copy()
+                    obj._data = obj._data.setitem(tuple([idx]),value)
+                    self.obj[item] = obj
+                    return
 
             # non-mi
             else:
@@ -546,7 +579,7 @@ class _NDFrameIndexer(object):
                 # asarray can be unsafe, NumPy strings are weird
                 keyarr = _asarray_tuplesafe(key)
 
-            if _is_integer_dtype(keyarr) and not _is_integer_index(labels):
+            if is_integer_dtype(keyarr) and not labels.is_integer():
                 keyarr = com._ensure_platform_int(keyarr)
                 return labels.take(keyarr)
 
@@ -610,6 +643,8 @@ class _NDFrameIndexer(object):
         raise IndexingError('not applicable')
 
     def _getitem_axis(self, key, axis=0):
+
+        self._has_valid_type(key, axis)
         labels = self.obj._get_axis(axis)
         if isinstance(key, slice):
             return self._get_slice_axis(key, axis=axis)
@@ -626,10 +661,11 @@ class _NDFrameIndexer(object):
                     try:
                         return self._get_label(key, axis=axis)
                     except (KeyError, TypeError):
-                        if _is_integer_index(self.obj.index.levels[0]):
+                        if self.obj.index.levels[0].is_integer():
                             raise
 
-                if not _is_integer_index(labels):
+                # this is the fallback! (for a non-float, non-integer index)
+                if not labels.is_floating() and not labels.is_integer():
                     return self._get_loc(key, axis=axis)
 
             return self._get_label(key, axis=axis)
@@ -658,7 +694,7 @@ class _NDFrameIndexer(object):
                 # asarray can be unsafe, NumPy strings are weird
                 keyarr = _asarray_tuplesafe(key)
 
-            if _is_integer_dtype(keyarr):
+            if is_integer_dtype(keyarr) and not labels.is_floating():
                 if labels.inferred_type != 'integer':
                     keyarr = np.where(keyarr < 0,
                                       len(labels) + keyarr, keyarr)
@@ -747,7 +783,7 @@ class _NDFrameIndexer(object):
         - No, prefer label-based indexing
         """
         labels = self.obj._get_axis(axis)
-        is_int_index = _is_integer_index(labels)
+        is_int_index = labels.is_integer()
 
         if com.is_integer(obj) and not is_int_index:
 
@@ -765,52 +801,7 @@ class _NDFrameIndexer(object):
             pass
 
         if isinstance(obj, slice):
-            ltype = labels.inferred_type
-
-            # in case of providing all floats, use label-based indexing
-            float_slice = (labels.inferred_type == 'floating'
-                           and _is_float_slice(obj))
-
-            # floats that are within tolerance of int used as positions
-            int_slice = _is_index_slice(obj)
-
-            null_slice = obj.start is None and obj.stop is None
-
-            # could have integers in the first level of the MultiIndex,
-            # in which case we wouldn't want to do position-based slicing
-            position_slice = (int_slice
-                              and not ltype == 'integer'
-                              and not isinstance(labels, MultiIndex)
-                              and not float_slice)
-
-            start, stop = obj.start, obj.stop
-
-            # last ditch effort: if we are mixed and have integers
-            try:
-                if position_slice and 'mixed' in ltype:
-                    if start is not None:
-                        i = labels.get_loc(start)
-                    if stop is not None:
-                        j = labels.get_loc(stop)
-                    position_slice = False
-            except KeyError:
-                if ltype == 'mixed-integer-float':
-                    raise
-
-            if null_slice or position_slice:
-                indexer = obj
-            else:
-                try:
-                    indexer = labels.slice_indexer(start, stop, obj.step)
-                except Exception:
-                    if _is_index_slice(obj):
-                        if ltype == 'integer':
-                            raise
-                        indexer = obj
-                    else:
-                        raise
-
-            return indexer
+            return self._convert_slice_indexer(obj, axis)
 
         elif _is_list_like(obj):
             if com._is_bool_indexer(obj):
@@ -824,7 +815,7 @@ class _NDFrameIndexer(object):
                     objarr = _asarray_tuplesafe(obj)
 
                 # If have integer labels, defer to label-based indexing
-                if _is_integer_dtype(objarr) and not is_int_index:
+                if is_integer_dtype(objarr) and not is_int_index:
                     if labels.inferred_type != 'integer':
                         objarr = np.where(objarr < 0,
                                           len(labels) + objarr, objarr)
@@ -879,73 +870,36 @@ class _NDFrameIndexer(object):
 
         if not _need_slice(slice_obj):
             return obj
-
-        labels = obj._get_axis(axis)
-
-        ltype = labels.inferred_type
-
-        # in case of providing all floats, use label-based indexing
-        float_slice = (labels.inferred_type == 'floating'
-                       and _is_float_slice(slice_obj))
-
-        # floats that are within tolerance of int used as positions
-        int_slice = _is_index_slice(slice_obj)
-
-        null_slice = slice_obj.start is None and slice_obj.stop is None
-
-        # could have integers in the first level of the MultiIndex,
-        # in which case we wouldn't want to do position-based slicing
-        position_slice = (int_slice
-                          and not ltype == 'integer'
-                          and not isinstance(labels, MultiIndex)
-                          and not float_slice)
-
-        start, stop = slice_obj.start, slice_obj.stop
-
-        # last ditch effort: if we are mixed and have integers
-        try:
-            if position_slice and 'mixed' in ltype:
-                if start is not None:
-                    i = labels.get_loc(start)
-                if stop is not None:
-                    j = labels.get_loc(stop)
-                position_slice = False
-        except KeyError:
-            if ltype == 'mixed-integer-float':
-                raise
-
-        if null_slice or position_slice:
-            indexer = slice_obj
-        else:
-            try:
-                indexer = labels.slice_indexer(start, stop, slice_obj.step)
-            except Exception:
-                if _is_index_slice(slice_obj):
-                    if ltype == 'integer':
-                        raise
-                    indexer = slice_obj
-                else:
-                    raise
+        indexer = self._convert_slice_indexer(slice_obj, axis)
 
         if isinstance(indexer, slice):
-            return self._slice(indexer, axis=axis)
+            return self._slice(indexer, axis=axis, typ='iloc')
         else:
             return self.obj.take(indexer, axis=axis)
 
+class _IXIndexer(_NDFrameIndexer):
+    """ A primarily location based indexer, with integer fallback """
+
+    def _has_valid_type(self, key, axis):
+        ax = self.obj._get_axis(axis)
+
+        if isinstance(key, slice):
+            return True
+
+        elif com._is_bool_indexer(key):
+            return True
+
+        elif _is_list_like(key):
+            return True
+
+        else:
+
+            self._convert_scalar_indexer(key, axis)
+
+        return True
+
 class _LocationIndexer(_NDFrameIndexer):
-    _valid_types = None
     _exception   = Exception
-
-    def _has_valid_type(self, k, axis):
-        raise NotImplementedError()
-
-    def _has_valid_tuple(self, key):
-        """ check the key for valid keys across my indexer """
-        for i, k in enumerate(key):
-            if i >= self.obj.ndim:
-                raise ValueError('Too many indexers')
-            if not self._has_valid_type(k,i):
-                raise ValueError("Location based indexing can only have [%s] types" % self._valid_types)
 
     def __getitem__(self, key):
         if type(key) is tuple:
@@ -974,7 +928,7 @@ class _LocationIndexer(_NDFrameIndexer):
         indexer = labels.slice_indexer(slice_obj.start, slice_obj.stop, slice_obj.step)
 
         if isinstance(indexer, slice):
-            return self._slice(indexer, axis=axis)
+            return self._slice(indexer, axis=axis, typ='iloc')
         else:
             return self.obj.take(indexer, axis=axis)
 
@@ -993,17 +947,27 @@ class _LocIndexer(_LocationIndexer):
 
         if isinstance(key, slice):
 
-            if key.start is not None:
-                if key.start not in ax:
-                    raise KeyError("start bound [%s] is not the [%s]" % (key.start,self.obj._get_axis_name(axis)))
-            if key.stop is not None:
-                if key.stop not in ax:
-                    raise KeyError("stop bound [%s] is not in the [%s]" % (key.stop,self.obj._get_axis_name(axis)))
+            if ax.is_floating():
+
+                # allowing keys to be slicers with no fallback
+                pass
+
+            else:
+                if key.start is not None:
+                    if key.start not in ax:
+                        raise KeyError("start bound [%s] is not the [%s]" % (key.start,self.obj._get_axis_name(axis)))
+                if key.stop is not None:
+                    if key.stop not in ax:
+                        raise KeyError("stop bound [%s] is not in the [%s]" % (key.stop,self.obj._get_axis_name(axis)))
 
         elif com._is_bool_indexer(key):
                 return True
 
         elif _is_list_like(key):
+
+            # mi is just a passthru
+            if isinstance(key, tuple) and isinstance(ax, MultiIndex):
+                return True
 
             # require all elements in the index
             idx = _ensure_index(key)
@@ -1014,18 +978,15 @@ class _LocIndexer(_LocationIndexer):
 
         else:
 
-            # if its empty we want a KeyError here
-            if not len(ax):
-                raise KeyError("The [%s] axis is empty" % self.obj._get_axis_name(axis))
-
-            try:
-                if not key in ax:
-                    raise KeyError("the label [%s] is not in the [%s]" % (key,self.obj._get_axis_name(axis)))
-            except (TypeError):
-
-                # if we have a weird type of key/ax
+            def error():
                 raise KeyError("the label [%s] is not in the [%s]" % (key,self.obj._get_axis_name(axis)))
 
+            key = self._convert_scalar_indexer(key, axis)
+            try:
+                if not key in ax:
+                    error()
+            except:
+                error()
 
         return True
 
@@ -1045,6 +1006,7 @@ class _LocIndexer(_LocationIndexer):
 
             return self._getitem_iterable(key, axis=axis)
         else:
+            self._has_valid_type(key,axis)
             return self._get_label(key, axis=axis)
 
 class _iLocIndexer(_LocationIndexer):
@@ -1092,11 +1054,12 @@ class _iLocIndexer(_LocationIndexer):
             return obj
 
         if isinstance(slice_obj, slice):
-            return self._slice(slice_obj, axis=axis, raise_on_error=True)
+            return self._slice(slice_obj, axis=axis, raise_on_error=True, typ='iloc')
         else:
             return self.obj.take(slice_obj, axis=axis)
 
     def _getitem_axis(self, key, axis=0):
+
         if isinstance(key, slice):
             self._has_valid_type(key,axis)
             return self._get_slice_axis(key, axis=axis)
@@ -1108,8 +1071,13 @@ class _iLocIndexer(_LocationIndexer):
         # a single integer or a list of integers
         else:
 
-            if not (com.is_integer(key) or _is_list_like(key)):
-                raise ValueError("Cannot index by location index with a non-integer key")
+            if _is_list_like(key):
+                pass
+            else:
+                key = self._convert_scalar_indexer(key, axis)
+
+                if not com.is_integer(key):
+                    raise TypeError("Cannot index by location index with a non-integer key")
 
             return self._get_loc(key,axis=axis)
 
@@ -1200,14 +1168,7 @@ def _convert_to_index_sliceable(obj, key):
     """ if we are index sliceable, then return my slicer, otherwise return None """
     idx = obj.index
     if isinstance(key, slice):
-        idx_type = idx.inferred_type
-        if idx_type == 'floating':
-            indexer = obj.ix._convert_to_indexer(key, axis=0)
-        elif idx_type == 'integer' or _is_index_slice(key):
-            indexer = key
-        else:
-            indexer = obj.ix._convert_to_indexer(key, axis=0)
-        return indexer
+        return idx._convert_slice_indexer(key, typ='getitem')
 
     elif isinstance(key, compat.string_types):
 
@@ -1237,31 +1198,7 @@ def _is_index_slice(obj):
     return not both_none and (_crit(obj.start) and _crit(obj.stop))
 
 
-def _is_int_slice(obj):
-    def _is_valid_index(x):
-        return com.is_integer(x)
-
-    def _crit(v):
-        return v is None or _is_valid_index(v)
-
-    both_none = obj.start is None and obj.stop is None
-
-    return not both_none and (_crit(obj.start) and _crit(obj.stop))
-
-
-def _is_float_slice(obj):
-    def _is_valid_index(x):
-        return com.is_float(x)
-
-    def _crit(v):
-        return v is None or _is_valid_index(v)
-
-    both_none = obj.start is None and obj.stop is None
-
-    return not both_none and (_crit(obj.start) and _crit(obj.stop))
-
-
-class _SeriesIndexer(_NDFrameIndexer):
+class _SeriesIndexer(_IXIndexer):
     """
     Class to support fancy indexing, potentially using labels
 
@@ -1286,7 +1223,7 @@ class _SeriesIndexer(_NDFrameIndexer):
     def _get_loc(self, key, axis=0):
         return self.obj.values[key]
 
-    def _slice(self, indexer, axis=0):
+    def _slice(self, indexer, axis=0, typ=None):
         return self.obj._get_values(indexer)
 
     def _setitem_with_indexer(self, indexer, value):
@@ -1389,15 +1326,6 @@ def _is_null_slice(obj):
             obj.stop is None and obj.step is None)
 
 
-def _is_integer_dtype(arr):
-    return (issubclass(arr.dtype.type, np.integer) and
-            not arr.dtype.type == np.datetime64)
-
-
-def _is_integer_index(index):
-    return index.inferred_type == 'integer'
-
-
 def _is_label_like(key):
     # select a label or row
     return not isinstance(key, slice) and not _is_list_like(key)
@@ -1438,6 +1366,9 @@ def _maybe_droplevels(index, key):
                 # we have dropped too much, so back out
                 return original_index
     else:
-        index = index.droplevel(0)
+        try:
+            index = index.droplevel(0)
+        except:
+            pass
 
     return index

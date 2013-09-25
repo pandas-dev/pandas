@@ -12,7 +12,7 @@ import os
 import numpy as np
 from numpy.testing import assert_array_equal
 
-from pandas.core.index import Index, Int64Index, MultiIndex, InvalidIndexError
+from pandas.core.index import Index, Float64Index, Int64Index, MultiIndex, InvalidIndexError
 from pandas.core.frame import DataFrame
 from pandas.core.series import Series
 from pandas.util.testing import (assert_almost_equal, assertRaisesRegexp,
@@ -654,6 +654,88 @@ class TestIndex(unittest.TestCase):
                 self.assert_(res is joined)
 
 
+class TestFloat64Index(unittest.TestCase):
+    _multiprocess_can_split_ = True
+
+    def setUp(self):
+        self.mixed = Float64Index([1.5, 2, 3, 4, 5])
+        self.float = Float64Index(np.arange(5) * 2.5)
+
+    def check_is_index(self, i):
+        self.assert_(isinstance(i, Index) and not isinstance(i, Float64Index))
+
+    def check_coerce(self, a, b, is_float_index=True):
+        self.assert_(a.equals(b))
+        if is_float_index:
+            self.assert_(isinstance(b, Float64Index))
+        else:
+            self.check_is_index(b)
+
+    def test_constructor(self):
+
+        # explicit construction
+        index = Float64Index([1,2,3,4,5])
+        self.assert_(isinstance(index, Float64Index))
+        self.assert_((index.values == np.array([1,2,3,4,5],dtype='float64')).all())
+        index = Float64Index(np.array([1,2,3,4,5]))
+        self.assert_(isinstance(index, Float64Index))
+        index = Float64Index([1.,2,3,4,5])
+        self.assert_(isinstance(index, Float64Index))
+        index = Float64Index(np.array([1.,2,3,4,5]))
+        self.assert_(isinstance(index, Float64Index))
+        self.assert_(index.dtype == object)
+
+        index = Float64Index(np.array([1.,2,3,4,5]),dtype=np.float32)
+        self.assert_(isinstance(index, Float64Index))
+        self.assert_(index.dtype == object)
+
+        index = Float64Index(np.array([1,2,3,4,5]),dtype=np.float32)
+        self.assert_(isinstance(index, Float64Index))
+        self.assert_(index.dtype == object)
+
+        # nan handling
+        result = Float64Index([np.nan, np.nan])
+        self.assert_(pd.isnull(result.values).all())
+        result = Float64Index(np.array([np.nan]))
+        self.assert_(pd.isnull(result.values).all())
+        result = Index(np.array([np.nan]))
+        self.assert_(pd.isnull(result.values).all())
+
+    def test_constructor_invalid(self):
+
+        # invalid
+        self.assertRaises(TypeError, Float64Index, 0.)
+        self.assertRaises(TypeError, Float64Index, ['a','b',0.])
+        self.assertRaises(TypeError, Float64Index, [Timestamp('20130101')])
+
+    def test_constructor_coerce(self):
+
+        self.check_coerce(self.mixed,Index([1.5, 2, 3, 4, 5]))
+        self.check_coerce(self.float,Index(np.arange(5) * 2.5))
+        self.check_coerce(self.float,Index(np.array(np.arange(5) * 2.5, dtype=object)))
+
+    def test_constructor_explicit(self):
+
+        # these don't auto convert
+        self.check_coerce(self.float,Index((np.arange(5) * 2.5), dtype=object),
+                          is_float_index=False)
+        self.check_coerce(self.mixed,Index([1.5, 2, 3, 4, 5],dtype=object),
+                          is_float_index=False)
+
+    def test_astype(self):
+
+        result = self.float.astype(object)
+        self.assert_(result.equals(self.float))
+        self.assert_(self.float.equals(result))
+        self.check_is_index(result)
+
+        i = self.mixed.copy()
+        i.name = 'foo'
+        result = i.astype(object)
+        self.assert_(result.equals(i))
+        self.assert_(i.equals(result))
+        self.check_is_index(result)
+
 class TestInt64Index(unittest.TestCase):
     _multiprocess_can_split_ = True
 
@@ -676,7 +758,7 @@ class TestInt64Index(unittest.TestCase):
         self.assert_(np.array_equal(index, expected))
 
         # scalar raise Exception
-        self.assertRaises(ValueError, Int64Index, 5)
+        self.assertRaises(TypeError, Int64Index, 5)
 
         # copy
         arr = self.index.values
