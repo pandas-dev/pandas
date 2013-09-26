@@ -1532,7 +1532,7 @@ class TestIndexing(unittest.TestCase):
 
         # related 236
         # scalar/slicing of a float index
-        s = Series(np.arange(5), index=np.arange(5) * 2.5)
+        s = Series(np.arange(5), index=np.arange(5) * 2.5, dtype=np.int64)
 
         # label based slicing
         result1 = s[1.0:3.0]
