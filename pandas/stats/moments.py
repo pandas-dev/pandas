@@ -31,13 +31,22 @@ __all__ = ['rolling_count', 'rolling_max', 'rolling_min',
 #------------------------------------------------------------------------------
 # Docs
 
+# The order of arguments for the _doc_template is:
+# (header, args, kwargs, returns, notes)
+
 _doc_template = """
 %s
 
 Parameters
 ----------
+%s%s
+Returns
+-------
 %s
-window : int
+%s
+"""
+
+_roll_kw = """window : int
     Size of the moving window. This is the number of observations used for
     calculating the statistic.
 min_periods : int, default None
@@ -49,11 +58,9 @@ freq : string or DateOffset object, optional (default None)
     for `freq`.
 center : boolean, default False
     Set the labels at the center of the window.
-    
-Returns
--------
-%s
+"""
 
+_roll_notes = r"""
 Notes
 -----
 By default, the result is set to the right edge of the window. This can be
@@ -65,12 +72,7 @@ of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
 """
 
 
-_ewm_doc = r"""%s
-
-Parameters
-----------
-%s
-com : float. optional
+_ewm_kw = r"""com : float. optional
     Center of mass: :math:`\alpha = 1 / (1 + com)`,
 span : float, optional
     Specify decay in terms of span, :math:`\alpha = 2 / (span + 1)`
@@ -85,8 +87,9 @@ freq : None or string alias / date offset object, default=None
 adjust : boolean, default True
     Divide by decaying adjustment factor in beginning periods to account for
     imbalance in relative weightings (viewing EWMA as a moving average)
+"""
 
-%s
+_ewm_notes = """
 Notes
 -----
 Either center of mass or span must be specified
@@ -99,60 +102,51 @@ where c is the center of mass. Given a span, the associated center of mass is
 :math:`c = (s - 1) / 2`
 
 So a "20-day EWMA" would have center 9.5.
-
-Returns
--------
-%s
 """
 
-
-_expanding_doc = """
-%s
-
-Parameters
-----------
-%s
-min_periods : int, default None
+_expanding_kw = """min_periods : int, default None
     Minimum number of observations in window required to have a value
     (otherwise result is NA).
 freq : string or DateOffset object, optional (default None)
     Frequency to conform the data to before computing the statistic. Specified
     as a frequency string or DateOffset object. `time_rule` is a legacy alias
     for `freq`.
-
-Returns
--------
-%s
-
-Notes
------
-The `freq` keyword is used to conform time series data to a specified
-frequency by resampling the data. This is done with the default parameters
-of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
 """
 
 
-_type_of_input = "y : type of input argument"
+_type_of_input_retval = "y : type of input argument"
 
 _flex_retval = """y : type depends on inputs
-    DataFrame / DataFrame -> DataFrame (matches on columns)
+    DataFrame / DataFrame -> DataFrame (matches on columns) or Panel (pairwise)
     DataFrame / Series -> Computes result for each column
     Series / Series -> Series"""
 
 _pairwise_retval = "y : Panel whose items are df1.index values"
 
-_unary_arg = "arg : Series, DataFrame"
+_unary_arg = "arg : Series, DataFrame\n"
 
 _binary_arg_flex = """arg1 : Series, DataFrame, or ndarray
-arg2 : Series, DataFrame, or ndarray"""
+arg2 : Series, DataFrame, or ndarray, optional
+    if not supplied then will default to arg1 and produce pairwise output
+"""
 
 _binary_arg = """arg1 : Series, DataFrame, or ndarray
-arg2 : Series, DataFrame, or ndarray"""
+arg2 : Series, DataFrame, or ndarray
+"""
 
 _pairwise_arg = """df1 : DataFrame
-df2 : DataFrame"""
+df2 : DataFrame
+"""
 
-_bias_doc = r"""bias : boolean, default False
+_pairwise_kw = """pairwise : bool, default False
+    If False then only matching columns between arg1 and arg2 will be used and
+    the output will be a DataFrame.
+    If True then all pairwise combinations will be calculated and the output
+    will be a Panel in the case of DataFrame inputs. In the case of missing
+    elements, only complete pairwise observations will be used.
+"""
+
+_bias_kw = r"""bias : boolean, default False
     Use a standard estimation bias correction
 """
 
@@ -199,7 +193,8 @@ def rolling_count(arg, window, freq=None, center=False, time_rule=None):
     return return_hook(result)
 
 
-@Substitution("Unbiased moving covariance.", _binary_arg_flex, _flex_retval)
+@Substitution("Unbiased moving covariance.", _binary_arg_flex,
+              _roll_kw+_pairwise_kw, _flex_retval, _roll_notes)
 @Appender(_doc_template)
 def rolling_cov(arg1, arg2=None, window=None, min_periods=None, freq=None,
                 center=False, time_rule=None, pairwise=None):
@@ -223,7 +218,8 @@ def rolling_cov(arg1, arg2=None, window=None, min_periods=None, freq=None,
     return rs
 
 
-@Substitution("Moving sample correlation.", _binary_arg_flex, _flex_retval)
+@Substitution("Moving sample correlation.", _binary_arg_flex,
+              _roll_kw+_pairwise_kw, _flex_retval, _roll_notes)
 @Appender(_doc_template)
 def rolling_corr(arg1, arg2=None, window=None, min_periods=None, freq=None,
                  center=False, time_rule=None, pairwise=None):
@@ -296,7 +292,7 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
 
 
 @Substitution("Pairwise moving sample correlation", _pairwise_arg,
-              _pairwise_retval)
+              _roll_kw, _pairwise_retval, _roll_notes)
 @Appender(_doc_template)
 def rolling_corr_pairwise(df1, df2=None, window=None, min_periods=None,
                           freq=None, center=False, time_rule=None):
@@ -415,9 +411,9 @@ def _get_center_of_mass(com, span, halflife):
     return float(com)
 
 
-@Substitution("Exponentially-weighted moving average", _unary_arg, "",
-              _type_of_input)
-@Appender(_ewm_doc)
+@Substitution("Exponentially-weighted moving average", _unary_arg, _ewm_kw,
+              _type_of_input_retval, _ewm_notes)
+@Appender(_doc_template)
 def ewma(arg, com=None, span=None, halflife=None, min_periods=0, freq=None, time_rule=None,
          adjust=True):
     com = _get_center_of_mass(com, span, halflife)
@@ -439,9 +435,9 @@ def _first_valid_index(arr):
     return notnull(arr).argmax() if len(arr) else 0
 
 
-@Substitution("Exponentially-weighted moving variance", _unary_arg, _bias_doc,
-              _type_of_input)
-@Appender(_ewm_doc)
+@Substitution("Exponentially-weighted moving variance", _unary_arg,
+              _ewm_kw+_bias_kw, _type_of_input_retval, _ewm_notes)
+@Appender(_doc_template)
 def ewmvar(arg, com=None, span=None, halflife=None, min_periods=0, bias=False,
            freq=None, time_rule=None):
     com = _get_center_of_mass(com, span, halflife)
@@ -456,9 +452,9 @@ def ewmvar(arg, com=None, span=None, halflife=None, min_periods=0, bias=False,
     return result
 
 
-@Substitution("Exponentially-weighted moving std", _unary_arg, _bias_doc,
-              _type_of_input)
-@Appender(_ewm_doc)
+@Substitution("Exponentially-weighted moving std", _unary_arg,
+              _ewm_kw+_bias_kw, _type_of_input_retval, _ewm_notes)
+@Appender(_doc_template)
 def ewmstd(arg, com=None, span=None, halflife=None, min_periods=0, bias=False,
            time_rule=None):
     result = ewmvar(arg, com=com, span=span, halflife=halflife, time_rule=time_rule,
@@ -468,9 +464,9 @@ def ewmstd(arg, com=None, span=None, halflife=None, min_periods=0, bias=False,
 ewmvol = ewmstd
 
 
-@Substitution("Exponentially-weighted moving covariance", _binary_arg, "",
-              _type_of_input)
-@Appender(_ewm_doc)
+@Substitution("Exponentially-weighted moving covariance", _binary_arg_flex,
+              _ewm_kw+_pairwise_kw, _type_of_input_retval, _ewm_notes)
+@Appender(_doc_template)
 def ewmcov(arg1, arg2=None, com=None, span=None, halflife=None, min_periods=0, bias=False,
            freq=None, time_rule=None, pairwise=None):
     if arg2 is None:
@@ -495,9 +491,9 @@ def ewmcov(arg1, arg2=None, com=None, span=None, halflife=None, min_periods=0, b
     return result
 
 
-@Substitution("Exponentially-weighted moving correlation", _binary_arg, "",
-              _type_of_input)
-@Appender(_ewm_doc)
+@Substitution("Exponentially-weighted moving correlation", _binary_arg_flex,
+              _ewm_kw+_pairwise_kw, _type_of_input_retval, _ewm_notes)
+@Appender(_doc_template)
 def ewmcorr(arg1, arg2=None, com=None, span=None, halflife=None, min_periods=0,
             freq=None, time_rule=None, pairwise=None):
     if arg2 is None:
@@ -581,7 +577,7 @@ def _use_window(minp, window):
 
 
 def _rolling_func(func, desc, check_minp=_use_window):
-    @Substitution(desc, _unary_arg, _type_of_input)
+    @Substitution(desc, _unary_arg, _roll_kw, _type_of_input_retval, _roll_notes)
     @Appender(_doc_template)
     @wraps(func)
     def f(arg, window, min_periods=None, freq=None, center=False,
@@ -814,8 +810,8 @@ def _pop_args(win_type, arg_names, kwargs):
 
 
 def _expanding_func(func, desc, check_minp=_use_window):
-    @Substitution(desc, _unary_arg, _type_of_input)
-    @Appender(_expanding_doc)
+    @Substitution(desc, _unary_arg, _expanding_kw, _type_of_input_retval, "")
+    @Appender(_doc_template)
     @wraps(func)
     def f(arg, min_periods=1, freq=None, center=False, time_rule=None,
           **kwargs):
@@ -911,8 +907,9 @@ def expanding_quantile(arg, quantile, min_periods=1, freq=None,
                             freq=freq, center=center, time_rule=time_rule)
 
 
-@Substitution("Unbiased expanding covariance.", _binary_arg_flex, _flex_retval)
-@Appender(_expanding_doc)
+@Substitution("Unbiased expanding covariance.", _binary_arg_flex,
+              _expanding_kw+_pairwise_kw, _flex_retval, "")
+@Appender(_doc_template)
 def expanding_cov(arg1, arg2=None, min_periods=1, freq=None, center=False,
                   time_rule=None, pairwise=None):
     if arg2 is None:
@@ -928,8 +925,9 @@ def expanding_cov(arg1, arg2=None, min_periods=1, freq=None, center=False,
                        center=center, time_rule=time_rule, pairwise=pairwise)
 
 
-@Substitution("Expanding sample correlation.", _binary_arg_flex, _flex_retval)
-@Appender(_expanding_doc)
+@Substitution("Expanding sample correlation.", _binary_arg_flex,
+              _expanding_kw+_pairwise_kw, _flex_retval, "")
+@Appender(_doc_template)
 def expanding_corr(arg1, arg2=None, min_periods=1, freq=None, center=False,
                    time_rule=None, pairwise=None):
     if arg2 is None:
@@ -947,8 +945,8 @@ def expanding_corr(arg1, arg2=None, min_periods=1, freq=None, center=False,
 
 
 @Substitution("Pairwise expanding sample correlation", _pairwise_arg,
-              _pairwise_retval)
-@Appender(_expanding_doc)
+              _expanding_kw, _pairwise_retval, "")
+@Appender(_doc_template)
 def expanding_corr_pairwise(df1, df2=None, min_periods=1, freq=None,
                             center=False, time_rule=None):
     return expanding_corr(df1, df2, min_periods=min_periods,

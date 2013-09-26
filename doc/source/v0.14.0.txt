@@ -183,6 +183,19 @@ These are out-of-bounds selections
 
    Because of the default `align` value changes, coordinates of bar plots are now located on integer values (0.0, 1.0, 2.0 ...). This is intended to make bar plot be located on the same coodinates as line plot. However, bar plot may differs unexpectedly when you manually adjust the bar location or drawing area, such as using `set_xlim`, `set_ylim`, etc. In this cases, please modify your script to meet with new coordinates. 
 
+- ``pairwise`` keyword was added to the statistical moment functions
+  ``rolling_cov``, ``rolling_corr``, ``ewmcov``, ``ewmcorr``,
+  ``expanding_cov``, ``expanding_corr`` to allow the calculation of moving
+  window covariance and correlation matrices (:issue:`4950`). See
+  :ref:`Computing rolling pairwise covariances and correlations
+  <stats.moments.corr_pairwise>` in the docs.
+
+  .. ipython:: python
+  
+    df = DataFrame(np.random.randn(10,4),columns=list('ABCD'))
+    covs = rolling_cov(df[['A','B','C']], df[['B','C','D']], 5, pairwise=True)
+    covs[df.index[-1]]
+
 
 MultiIndexing Using Slicers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
