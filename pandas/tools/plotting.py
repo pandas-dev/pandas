@@ -1577,7 +1577,7 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
                secondary_y=False, **kwds):
 
     """
-    Make line or bar plot of DataFrame's series with the index on the x-axis
+    Make line, bar, or scater plots of DataFrame series with the index on the x-axis
     using matplotlib / pylab.
 
     Parameters
@@ -1608,10 +1608,11 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
     ax : matplotlib axis object, default None
     style : list or dict
         matplotlib line style per column
-    kind : {'line', 'bar', 'barh', 'kde', 'density'}
+    kind : {'line', 'bar', 'barh', 'kde', 'density', 'scatter'}
         bar : vertical bar plot
         barh : horizontal bar plot
         kde/density : Kernel Density Estimation plot
+        scatter: scatter plot
     logx : boolean, default False
         For line plots, use log scaling on x axis
     logy : boolean, default False
@@ -1647,8 +1648,8 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
         klass = BarPlot
     elif kind == 'kde':
         klass = KdePlot
-    elif kind== 'scatter':
-        klass = 'ScatterPlot' 
+    elif kind == 'scatter':
+        klass = ScatterPlot 
     else:
         raise ValueError('Invalid chart type given %s' % kind)
 
@@ -1664,21 +1665,35 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
         label = kwds.pop('label', label)
         ser = frame[y]
         ser.index.name = label
-        return plot_series(ser, label=label, kind=kind,
-                           use_index=use_index,
-                           rot=rot, xticks=xticks, yticks=yticks,
-                           xlim=xlim, ylim=ylim, ax=ax, style=style,
-                           grid=grid, logx=logx, logy=logy,
-                           secondary_y=secondary_y, title=title,
-                           figsize=figsize, fontsize=fontsize, **kwds)
-
-    plot_obj = klass(frame, kind=kind, subplots=subplots, rot=rot,
-                     legend=legend, ax=ax, style=style, fontsize=fontsize,
-                     use_index=use_index, sharex=sharex, sharey=sharey,
-                     xticks=xticks, yticks=yticks, xlim=xlim, ylim=ylim,
-                     title=title, grid=grid, figsize=figsize, logx=logx,
-                     logy=logy, sort_columns=sort_columns,
-                     secondary_y=secondary_y, **kwds)
+        if kind != 'scatter':
+            return plot_series(ser, label=label, kind=kind,
+                               use_index=use_index,
+                               rot=rot, xticks=xticks, yticks=yticks,
+                               xlim=xlim, ylim=ylim, ax=ax, style=style,
+                               grid=grid, logx=logx, logy=logy,
+                               secondary_y=secondary_y, title=title,
+                               figsize=figsize, fontsize=fontsize, **kwds)
+    if kind == 'scatter':
+        plot_obj = klass(frame,  x=frame.index, y=ser, 
+                         kind=kind, subplots=subplots, rot=rot,
+                         legend=legend, ax=ax, style=style, fontsize=fontsize,
+                         use_index=use_index, sharex=sharex, sharey=sharey,
+                         xticks=xticks, yticks=yticks, xlim=xlim, ylim=ylim,
+                         title=title, grid=grid, figsize=figsize, logx=logx,
+                         logy=logy, sort_columns=sort_columns,
+                         secondary_y=secondary_y, **kwds)
+                         
+    else:
+        plot_obj = klass(frame, kind=kind, subplots=subplots, rot=rot,
+                         legend=legend, ax=ax, style=style, fontsize=fontsize,
+                         use_index=use_index, sharex=sharex, sharey=sharey,
+                         xticks=xticks, yticks=yticks, xlim=xlim, ylim=ylim,
+                         title=title, grid=grid, figsize=figsize, logx=logx,
+                         logy=logy, sort_columns=sort_columns,
+                         secondary_y=secondary_y, **kwds)
+                         
+                         
+        
     plot_obj.generate()
     plot_obj.draw()
     if subplots:
