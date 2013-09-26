@@ -1193,12 +1193,8 @@ class KdePlot(MPLPlot):
 class ScatterPlot(MPLPlot):
     def __init__(self, data, **kwargs):
         MPLPlot.__init__(self, data, **kwargs)
-        #kwargs = self.kwargs
-        #print kwargs
-        ## check ot see that x and y are passed as keywords
-        if not ('x' and'y') in kwargs:
-            msg ='Scatterplot requires and X and Y column'
-            raise Exception(msg)
+        if 'x' not in kwargs and 'y' not in kwargs:
+            raise ValueError( 'Scatterplot requires and X and Y column')
         
     def _make_plot(self):
         plotf = self._get_plot_function()
