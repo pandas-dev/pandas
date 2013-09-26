@@ -474,6 +474,7 @@ Bug Fixes
     explicitly passing labels (:issue:`3415`)
   - Fixed wrong check for overlapping in ``DatetimeIndex.union`` (:issue:`4564`)
   - Fixed conflict between thousands separator and date parser in csv_parser (:issue:`4678`)
+  - Fix appending when dtypes are not the same (error showing mixing float/np.datetime64) (:issue:`4993`)
 
 pandas 0.12.0
 -------------

@@ -742,6 +742,30 @@ class TestMerge(unittest.TestCase):
         assert_frame_equal(result, expected)
 
 
+    def test_append_dtype_coerce(self):
+
+        # GH 4993
+        # appending with datetime will incorrectly convert datetime64
+        import datetime as dt
+        from pandas import NaT
+
+        df1 = DataFrame(index=[1,2], data=[dt.datetime(2013,1,1,0,0),
+                                           dt.datetime(2013,1,2,0,0)],
+                        columns=['start_time'])
+        df2 = DataFrame(index=[4,5], data=[[dt.datetime(2013,1,3,0,0),
+                                            dt.datetime(2013,1,3,6,10)],
+                                           [dt.datetime(2013,1,4,0,0),
+                                            dt.datetime(2013,1,4,7,10)]],
+                        columns=['start_time','end_time'])
+
+        expected = concat([
+            Series([NaT,NaT,dt.datetime(2013,1,3,6,10),dt.datetime(2013,1,4,7,10)],name='end_time'),
+            Series([dt.datetime(2013,1,1,0,0),dt.datetime(2013,1,2,0,0),dt.datetime(2013,1,3,0,0),dt.datetime(2013,1,4,0,0)],name='start_time'),
+            ],axis=1)
+        result = df1.append(df2,ignore_index=True)
+        assert_frame_equal(result, expected)
+
+
     def test_overlapping_columns_error_message(self):
         # #2649
         df = DataFrame({'key': [1, 2, 3],
