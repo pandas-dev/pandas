@@ -233,6 +233,18 @@ index2,b,d,f
         df = self.read_table(StringIO(data_with_odd_sep), sep='|', thousands='.', decimal=',')
         tm.assert_frame_equal(df, expected)
 
+    def test_separator_date_conflict(self):
+        # Regression test for issue #4678: make sure thousands separator and
+        # date parsing do not conflict.
+        data = '06-02-2013;13:00;1-000.215'
+        expected = DataFrame(
+            [[datetime(2013, 6, 2, 13, 0, 0), 1000.215]],
+            columns=['Date', 2]
+        )
+
+        df = self.read_csv(StringIO(data), sep=';', thousands='-', parse_dates={'Date': [0, 1]}, header=None)
+        tm.assert_frame_equal(df, expected)
+
     def test_squeeze(self):
         data = """\
 a,1

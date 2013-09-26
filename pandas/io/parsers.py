@@ -1020,6 +1020,14 @@ class CParserWrapper(ParserBase):
                 else:
                     _set(val)
 
+        elif isinstance(self.parse_dates, dict):
+            for val in self.parse_dates.values():
+                if isinstance(val, list):
+                    for k in val:
+                        _set(k)
+                else:
+                    _set(val)
+
     def set_error_bad_lines(self, status):
         self._reader.set_error_bad_lines(int(status))
 
@@ -1269,6 +1277,7 @@ class PythonParser(ParserBase):
             self._make_reader(f)
         else:
             self.data = f
+
         self.columns = self._infer_columns()
 
         # we are processing a multi index column
@@ -1290,6 +1299,38 @@ class PythonParser(ParserBase):
             if self.index_names is None:
                 self.index_names = index_names
         self._first_chunk = True
+
+        if self.parse_dates:
+            self._no_thousands_columns = self._set_no_thousands_columns()
+        else:
+            self._no_thousands_columns = None
+
+    def _set_no_thousands_columns(self):
+        # Create a set of column ids that are not to be stripped of thousands operators.
+        noconvert_columns = set()
+
+        def _set(x):
+            if com.is_integer(x):
+                noconvert_columns.add(x)
+            else:
+                noconvert_columns.add(self.columns.index(x))
+
+        if isinstance(self.parse_dates, list):
+            for val in self.parse_dates:
+                if isinstance(val, list):
+                    for k in val:
+                        _set(k)
+                else:
+                    _set(val)
+
+        elif isinstance(self.parse_dates, dict):
+            for val in self.parse_dates.values():
+                if isinstance(val, list):
+                    for k in val:
+                        _set(k)
+                else:
+                    _set(val)
+        return noconvert_columns
 
     def _make_reader(self, f):
         sep = self.delimiter
@@ -1499,7 +1540,6 @@ class PythonParser(ParserBase):
             line = next(self.data)
 
         line = self._check_comments([line])[0]
-        line = self._check_thousands([line])[0]
 
         self.pos += 1
         self.buf.append(line)
@@ -1531,9 +1571,10 @@ class PythonParser(ParserBase):
         ret = []
         for l in lines:
             rl = []
-            for x in l:
+            for i, x in enumerate(l):
                 if (not isinstance(x, compat.string_types) or
                     self.thousands not in x or
+                    (self._no_thousands_columns and i in self._no_thousands_columns) or
                         nonnum.search(x.strip())):
                     rl.append(x)
                 else:
@@ -1605,7 +1646,6 @@ class PythonParser(ParserBase):
             raise AssertionError()
 
         if col_len != zip_len and self.index_col is not False:
-            row_num = -1
             i = 0
             for (i, l) in enumerate(content):
                 if len(l) != col_len:
