@@ -15,7 +15,8 @@ from pandas.tseries.index import DatetimeIndex
 from pandas.tools.merge import merge, concat, ordered_merge, MergeError
 from pandas.util.testing import (assert_frame_equal, assert_series_equal,
                                  assert_almost_equal, rands,
-                                 makeCustomDataframe as mkdf)
+                                 makeCustomDataframe as mkdf,
+                                 assertRaisesRegexp)
 from pandas import isnull, DataFrame, Index, MultiIndex, Panel, Series, date_range
 import pandas.algos as algos
 import pandas.util.testing as tm
@@ -1435,6 +1436,8 @@ class TestConcatenate(unittest.TestCase):
         assert_frame_equal(result, expected)
 
     def test_join_dups(self):
+
+        # joining dups
         df = concat([DataFrame(np.random.randn(10,4),columns=['A','A','B','B']),
                      DataFrame(np.random.randint(0,10,size=20).reshape(10,2),columns=['A','C'])],
                     axis=1)
@@ -1443,6 +1446,18 @@ class TestConcatenate(unittest.TestCase):
         result = df.join(df,rsuffix='_2')
         result.columns = expected.columns
         assert_frame_equal(result, expected)
+
+        # GH 4975, invalid join on dups
+        w = DataFrame(np.random.randn(4,2), columns=["x", "y"])
+        x = DataFrame(np.random.randn(4,2), columns=["x", "y"])
+        y = DataFrame(np.random.randn(4,2), columns=["x", "y"])
+        z = DataFrame(np.random.randn(4,2), columns=["x", "y"])
+
+        dta = x.merge(y, left_index=True, right_index=True).merge(z, left_index=True, right_index=True, how="outer")
+        dta = dta.merge(w, left_index=True, right_index=True)
+        expected = concat([x,y,z,w],axis=1)
+        expected.columns=['x_x','y_x','x_y','y_y','x_x','y_x','x_y','y_y']
+        assert_frame_equal(dta,expected)
 
     def test_handle_empty_objects(self):
         df = DataFrame(np.random.randn(10, 4), columns=list('abcd'))

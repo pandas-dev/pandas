@@ -432,7 +432,7 @@ Bug Fixes
   - Bug in multi-indexing with a partial string selection as one part of a MultIndex (:issue:`4758`)
   - Bug with reindexing on the index with a non-unique index will now raise ``ValueError`` (:issue:`4746`)
   - Bug in setting with ``loc/ix`` a single indexer with a multi-index axis and a numpy array, related to (:issue:`3777`)
-  - Bug in concatenation with duplicate columns across dtypes not merging with axis=0 (:issue:`4771`)
+  - Bug in concatenation with duplicate columns across dtypes not merging with axis=0 (:issue:`4771`, :issue:`4975`)
   - Bug in ``iloc`` with a slice index failing (:issue:`4771`)
   - Incorrect error message with no colspecs or width in ``read_fwf``. (:issue:`4774`)
   - Fix bugs in indexing in a Series with a duplicate index (:issue:`4548`, :issue:`4550`)
