@@ -8,6 +8,7 @@ import sys
 import re
 import unittest
 import nose
+import warnings
 
 from numpy import nan
 import numpy as np
@@ -2301,7 +2302,6 @@ a,b,c
         self.assertTrue((result.dtypes == [object, np.int, np.float]).all())
         self.assertTrue((result2.dtypes == [object, np.float]).all())
 
-
     def test_usecols_implicit_index_col(self):
         # #2654
         data = 'a,b,c\n4,apple,bat,5.7\n8,orange,cow,10'
@@ -2528,16 +2528,35 @@ No,No,No"""
 
     def test_raise_on_no_columns(self):
         # single newline
-        data = """
-"""
+        data = "\n"
         self.assertRaises(ValueError, self.read_csv, StringIO(data))
 
         # test with more than a single newline
-        data = """
-
-
-"""
+        data = "\n\n\n"
         self.assertRaises(ValueError, self.read_csv, StringIO(data))
+
+    def test_chunks_have_consistent_numerical_type(self):
+        # Issue #3866 If chunks are different types and *can*
+        # be coerced using numerical types, then do so.
+        integers = [str(i) for i in range(499999)]
+        data = "a\n" + "\n".join(integers + ["1.0", "2.0"] + integers)
+
+        with warnings.catch_warnings(record=True) as w:
+            df = self.read_csv(StringIO(data), low_memory=True)
+            if len(w) > 0:
+                self.fail("Unexpected warning raised.")
+        self.assertTrue(type(df.a[0]) is np.float64)  # Assert that types were coerced.
+        self.assertEqual(df.a.dtype, np.float)
+
+    def test_warn_if_chunks_have_mismatched_type(self):
+        # Issue #3866 If chunks are different types and can't
+        # be coerced using numerical types, then issue warning.
+        integers = [str(i) for i in range(499999)]
+        data = "a\n" + "\n".join(integers + ['a', 'b'] + integers)
+
+        df = self.read_csv(StringIO(data), low_memory=True)
+        tm.assert_produces_warning()
+        self.assertEqual(df.a.dtype, np.object)
 
 
 class TestParseSQL(unittest.TestCase):
