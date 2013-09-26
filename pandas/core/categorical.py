@@ -2,6 +2,9 @@
 
 import numpy as np
 
+from pandas import compat
+from pandas.compat import u
+
 from pandas.core.algorithms import factorize
 from pandas.core.base import PandasObject
 from pandas.core.index import Index
@@ -147,7 +150,7 @@ class Categorical(PandasObject):
         #TODO: tidy_repr for footer since there may be a ton of levels?
         result = '%s\n%s' % (result, self._repr_footer())
 
-        return result
+        return compat.text_type(result)
 
     def _repr_footer(self):
         levheader = 'Levels (%d): ' % len(self.levels)
@@ -158,17 +161,16 @@ class Categorical(PandasObject):
         levstring = '\n'.join([lines[0]] +
                               [indent + x.lstrip() for x in lines[1:]])
 
-        namestr = u"Name: %s, " % com.pprint_thing(
-                        self.name) if self.name is not None else ""
-        return u'%s\n%sLength: %d' % (levheader + levstring, namestr,
-                                      len(self))
+        namestr = "Name: %s, " % self.name if self.name is not None else ""
+        return u('%s\n%sLength: %d' % (levheader + levstring, namestr,
+                                       len(self)))
 
     def _get_repr(self, name=False, length=True, na_rep='NaN', footer=True):
         formatter = fmt.CategoricalFormatter(self, name=name,
                                         length=length, na_rep=na_rep,
                                         footer=footer)
         result = formatter.to_string()
-        return result
+        return compat.text_type(result)
 
     def __unicode__(self):
         width, height = get_terminal_size()
@@ -180,10 +182,10 @@ class Categorical(PandasObject):
             result = self._get_repr(length=len(self) > 50,
                                     name=True)
         else:
-            result = u'Categorical([], %s' % self._get_repr(name=True,
-                                                            length=False,
-                                                            footer=True,
-                                                            )
+            result = 'Categorical([], %s' % self._get_repr(name=True,
+                                                           length=False,
+                                                           footer=True,
+                                                           )
 
         return result
 
