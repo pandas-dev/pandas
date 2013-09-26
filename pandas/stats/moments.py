@@ -352,8 +352,6 @@ def _get_center_of_mass(com, span, halflife):
         # convert halflife to center of mass
         decay = 1 - np.exp(np.log(0.5) / halflife)
         com = 1 / decay - 1
-        print 'com', com
-        print 'halflife', halflife
     elif com is None:
         raise Exception("Must pass one of com, span, or halflife")
 
