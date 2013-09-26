@@ -14,7 +14,7 @@ from pandas.core.common import (PandasError,
 from pandas.core.categorical import Categorical
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
                                _get_combined_index)
-from pandas.core.indexing import _maybe_droplevels, _is_list_like
+from pandas.core.indexing import _maybe_droplevels, _is_list_like, _axis_slicer
 from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_arrays,
                                    create_block_manager_from_blocks)
@@ -319,8 +319,7 @@ class Panel(NDFrame):
         if isinstance(loc, (slice, np.ndarray)):
             new_index = info[loc]
             result_index = _maybe_droplevels(new_index, key)
-            slices = [loc] + [slice(None) for x in range(
-                self._AXIS_LEN - 1)]
+            slices = _axis_slicer(loc, axis=0, ndim=self._AXIS_LEN)
             new_values = self.values[slices]
 
             d = self._construct_axes_dict(self._AXIS_ORDERS[1:])

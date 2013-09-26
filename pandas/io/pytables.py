@@ -23,6 +23,7 @@ from pandas.core.algorithms import match, unique
 from pandas.core.categorical import Categorical
 from pandas.core.common import _asarray_tuplesafe
 from pandas.core.internals import BlockManager, make_block
+from pandas.core.indexing import _axis_slicer
 from pandas.core.reshape import block2d_to_blocknd, factor_indexer
 from pandas.core.index import _ensure_index
 from pandas.tseries.timedeltas import _coerce_scalar_to_timedelta_type
@@ -3790,9 +3791,8 @@ def _reindex_axis(obj, axis, labels, other=None):
     if other is not None:
         labels = labels & _ensure_index(other.unique())
     if not labels.equals(ax):
-        slicer = [ slice(None, None) ] * obj.ndim
-        slicer[axis] = labels
-        obj = obj.loc[tuple(slicer)]
+        slicer = _axis_slicer(labels, axis=axis, ndim=obj.ndim)
+        obj = obj.loc[slicer]
     return obj
 
 def _get_info(info, name):

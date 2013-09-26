@@ -861,9 +861,7 @@ class _NDFrameIndexer(object):
                 raise
 
     def _tuplify(self, loc):
-        tup = [slice(None, None) for _ in range(self.ndim)]
-        tup[0] = loc
-        return tuple(tup)
+        return _axis_slicer(loc, axis=0, ndim=self.ndim)
 
     def _get_slice_axis(self, slice_obj, axis=0):
         obj = self.obj

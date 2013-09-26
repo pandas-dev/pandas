@@ -13,6 +13,7 @@ from pandas.core.api import DataFrame, Series, Panel, notnull
 import pandas.algos as algos
 import pandas.core.common as com
 from pandas.core.common import _values_from_object
+from pandas.core.indexing import _axis_slicer
 
 from pandas.util.decorators import Substitution, Appender
 
@@ -299,17 +300,14 @@ def _center_window(rs, window, axis):
     if isinstance(rs, (Series, DataFrame, Panel)):
         rs = rs.shift(-offset, axis=axis)
     else:
-        rs_indexer = [slice(None)] * rs.ndim
-        rs_indexer[axis] = slice(None, -offset)
+        rs_indexer = _axis_slicer(slice(None, -offset), axis=axis, ndim=rs.ndim)
 
-        lead_indexer = [slice(None)] * rs.ndim
-        lead_indexer[axis] = slice(offset, None)
+        lead_indexer = _axis_slicer(slice(offset, None), axis=axis, ndim=rs.ndim)
 
-        na_indexer = [slice(None)] * rs.ndim
-        na_indexer[axis] = slice(-offset, None)
+        na_indexer = _axis_slicer(slice(-offset, None), axis=axis, ndim=rs.ndim)
 
-        rs[tuple(rs_indexer)] = np.copy(rs[tuple(lead_indexer)])
-        rs[tuple(na_indexer)] = np.nan
+        rs[rs_indexer] = np.copy(rs[tuple(lead_indexer)])
+        rs[na_indexer] = np.nan
     return rs
 
 
