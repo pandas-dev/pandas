@@ -5,10 +5,12 @@ from libc.stdio cimport fopen, fclose
 from libc.stdlib cimport malloc, free
 from libc.string cimport strncpy, strlen, strcmp, strcasecmp
 cimport libc.stdio as stdio
+import warnings
 
 from cpython cimport (PyObject, PyBytes_FromString,
                       PyBytes_AsString, PyBytes_Check,
                       PyUnicode_Check, PyUnicode_AsUTF8String)
+from io.common import DtypeWarning
 
 
 cdef extern from "Python.h":
@@ -1735,11 +1737,28 @@ def _concatenate_chunks(list chunks):
     cdef:
         list names = list(chunks[0].keys())
         object name
+        list warning_columns
+        object warning_names
+        object common_type
 
     result = {}
+    warning_columns = list()
     for name in names:
         arrs = [chunk.pop(name) for chunk in chunks]
+        # Check each arr for consistent types.
+        dtypes = set([a.dtype for a in arrs])
+        if len(dtypes) > 1:
+            common_type = np.find_common_type(dtypes, [])
+            if common_type == np.object:
+                warning_columns.append(str(name))
         result[name] = np.concatenate(arrs)
+
+    if warning_columns:
+        warning_names = ','.join(warning_columns)
+        warning_message = " ".join(["Columns (%s) have mixed types." % warning_names,
+            "Specify dtype option on import or set low_memory=False."
+          ])
+        warnings.warn(warning_message, DtypeWarning)
     return result
 
 #----------------------------------------------------------------------

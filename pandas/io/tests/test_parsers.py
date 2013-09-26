@@ -11,6 +11,7 @@ import nose
 
 from numpy import nan
 import numpy as np
+from pandas.io.common import DtypeWarning
 
 from pandas import DataFrame, Series, Index, MultiIndex, DatetimeIndex
 from pandas.compat import(
@@ -1865,6 +1866,24 @@ A,B,C
 
         self.assertTrue(np.array_equal(result['Numbers'], expected['Numbers']))
 
+    def test_chunks_have_consistent_numerical_type(self):
+        integers = [str(i) for i in range(499999)]
+        data = "a\n" + "\n".join(integers + ["1.0", "2.0"] + integers)
+
+        with tm.assert_produces_warning(False):
+            df = self.read_csv(StringIO(data))
+        self.assertTrue(type(df.a[0]) is np.float64)  # Assert that types were coerced.
+        self.assertEqual(df.a.dtype, np.float)
+
+    def test_warn_if_chunks_have_mismatched_type(self):
+        # See test in TestCParserLowMemory.
+        integers = [str(i) for i in range(499999)]
+        data = "a\n" + "\n".join(integers + ['a', 'b'] + integers)
+
+        with tm.assert_produces_warning(False):
+            df = self.read_csv(StringIO(data))
+        self.assertEqual(df.a.dtype, np.object)
+
 
 class TestPythonParser(ParserTests, unittest.TestCase):
 
@@ -2301,7 +2320,6 @@ a,b,c
         self.assertTrue((result.dtypes == [object, np.int, np.float]).all())
         self.assertTrue((result2.dtypes == [object, np.float]).all())
 
-
     def test_usecols_implicit_index_col(self):
         # #2654
         data = 'a,b,c\n4,apple,bat,5.7\n8,orange,cow,10'
@@ -2528,16 +2546,22 @@ No,No,No"""
 
     def test_raise_on_no_columns(self):
         # single newline
-        data = """
-"""
+        data = "\n"
         self.assertRaises(ValueError, self.read_csv, StringIO(data))
 
         # test with more than a single newline
-        data = """
-
-
-"""
+        data = "\n\n\n"
         self.assertRaises(ValueError, self.read_csv, StringIO(data))
+
+    def test_warn_if_chunks_have_mismatched_type(self):
+        # Issue #3866 If chunks are different types and can't
+        # be coerced using numerical types, then issue warning.
+        integers = [str(i) for i in range(499999)]
+        data = "a\n" + "\n".join(integers + ['a', 'b'] + integers)
+
+        with tm.assert_produces_warning(DtypeWarning):
+            df = self.read_csv(StringIO(data))
+        self.assertEqual(df.a.dtype, np.object)
 
 
 class TestParseSQL(unittest.TestCase):
