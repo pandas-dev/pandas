@@ -1372,3 +1372,91 @@ def _maybe_droplevels(index, key):
             pass
 
     return index
+
+_missing = object()
+def _axis_slicer(indexer, stop=_missing, axis=None, ndim=None):
+    """
+    Return a slicer (tuple of slices) that selects data along 
+    the proper axis. Useful for programatically selecting data
+    via .iloc/.ix for NDFrame.
+
+    Parameters
+    ----------
+    indexer : None, int, ndarray, slice
+        Can either be valid indexer for `.iloc`, or valid `start` param for `slice`
+    stop : None, int (optional)
+        If passed in, `slice(indexer, stop)` will be used as indexer
+    axis : int
+    ndim : int (optional)
+        If pass in, slicer will always have `ndim` elements.
+
+    Notes
+    -----
+    Without ndim, the slicer will only large enough to target the required axis. 
+    Since fancy indexing normally assumes that missing indices are select all, 
+    this is not required unless your function assumes otherwise
+
+    Returns
+    -------
+    slices : slicer (tuple of slices)
+        Indices that will select data along proper axis
+
+    Examples
+    --------
+    >>> _axis_slicer(10, axis=1)
+    (slice(None, None, None), 10)
+
+    >>> _axis_slicer(5, 10, axis=1)
+    (slice(None, None, None), slice(5, 10, None))
+
+    >>> df = pd.DataFrame(np.arange(30).reshape(3,10))
+    >>> df.iloc[_axis_slicer(3, 5, axis=1)]
+         3 	 4
+    0	 3	 4
+    1	 13	 14
+    2	 23	 24
+
+    >>> df.iloc[_axis_slicer(None, 2, axis=0)]
+         0	 1	 2	 3	 4 	 5	 6	 7	 8	 9
+    0	 0	 1	 2	 3	 4	 5	 6	 7	 8	 9
+    1	 10	 11	 12	 13	 14	 15	 16	 17	 18	 19
+
+    >>> df.iloc[_axis_slicer(np.array([1,3,5]), axis=1)]
+         1   3   5
+    0    1   3   5
+    1    11  13  15
+    2    21  23  25
+    """
+    if not isinstance(axis, int):
+        raise TypeError("axis paramter must be an int and not {axis}".format(axis=axis))
+
+    if indexer is None and stop is _missing:
+        raise Exception("indexer can only be None when stop is missing")
+
+    if np.ndim(indexer) > 1:
+        raise Exception("indexer.ndim cannot be >= 2")
+
+    size = axis + 1
+    if ndim:
+        if axis >= ndim:
+            raise Exception("axis cannot be greater than ndim."
+                            " axis: {axis}, ndim: {ndim}".format(axis=axis,ndim=ndim))
+        size = ndim
+
+    slices = [slice(None) for x in range(size)]
+
+    axis_slicer = None
+    # indexers
+    if stop is _missing:
+        axis_slicer = indexer
+    else:
+        # for now, pass thru, quasi supports non-int slices
+        axis_slicer = slice(indexer, stop)
+
+    # catch all, above statements used to be more restrictive.
+    if axis_slicer is None:
+        raise Exception("indexer:{indexer}, stop:{stop} did not create a valid "
+                        "slicer".format(indexer=indexer, stop=stop))
+    slices[axis] = axis_slicer
+
+    return tuple(slices)
