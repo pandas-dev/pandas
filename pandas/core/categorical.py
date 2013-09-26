@@ -230,16 +230,3 @@ class Categorical(PandasObject):
                                     counts=counts,
                                     freqs=freqs,
                                     levels=self.levels)).set_index('levels')
-
-
-class Factor(Categorical):
-    def __init__(self, labels, levels=None, name=None):
-        from warnings import warn
-        warn("Factor is deprecated. Use Categorical instead", FutureWarning)
-        super(Factor, self).__init__(labels, levels, name)
-
-    @classmethod
-    def from_array(cls, data):
-        from warnings import warn
-        warn("Factor is deprecated. Use Categorical instead", FutureWarning)
-        return super(Factor, cls).from_array(data)
