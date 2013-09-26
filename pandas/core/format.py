@@ -65,14 +65,14 @@ class CategoricalFormatter(object):
     def __init__(self, categorical, buf=None, length=True,
                  na_rep='NaN', name=False, footer=True):
         self.categorical = categorical
-        self.buf = buf if buf is not None else StringIO(u"")
+        self.buf = buf if buf is not None else StringIO(u(""))
         self.name = name
         self.na_rep = na_rep
         self.length = length
         self.footer = footer
 
     def _get_footer(self):
-        footer = u''
+        footer = ''
 
         if self.name:
             name = com.pprint_thing(self.categorical.name,
@@ -82,7 +82,7 @@ class CategoricalFormatter(object):
 
         if self.length:
             if footer:
-                footer += u', '
+                footer += ', '
             footer += "Length: %d" % len(self.categorical)
 
         levheader = 'Levels (%d): ' % len(self.categorical.levels)
@@ -94,10 +94,10 @@ class CategoricalFormatter(object):
         levstring = '\n'.join([lines[0]] +
                               [indent + x.lstrip() for x in lines[1:]])
         if footer:
-            footer += u', '
+            footer += ', '
         footer += levheader + levstring
 
-        return footer
+        return compat.text_type(footer)
 
     def _get_formatted_values(self):
         return format_array(np.asarray(self.categorical), None,
@@ -111,18 +111,18 @@ class CategoricalFormatter(object):
             if self.footer:
                 return self._get_footer()
             else:
-                return u''
+                return u('')
 
         fmt_values = self._get_formatted_values()
         pad_space = 10
 
-        result = [u'%s' % i for i in fmt_values]
+        result = ['%s' % i for i in fmt_values]
         if self.footer:
             footer = self._get_footer()
             if footer:
                 result.append(footer)
 
-        return u'\n'.join(result)
+        return compat.text_type(u('\n').join(result))
 
 
 class SeriesFormatter(object):
