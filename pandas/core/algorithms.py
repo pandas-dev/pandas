@@ -109,9 +109,13 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
 
     Parameters
     ----------
-    values : sequence
-    sort :
+    values : ndarray (1-d)
+        Sequence
+    sort : boolean, default False
+        Sort by values
     order :
+    na_sentinel: int, default -1
+        Value to mark "not found"
 
     Returns
     -------
