@@ -17,13 +17,16 @@ from pandas.core.index import (Index, MultiIndex, _get_combined_index,
 from pandas.core.internals import (IntBlock, BoolBlock, BlockManager,
                                    make_block, _consolidate)
 from pandas.util.decorators import cache_readonly, Appender, Substitution
-from pandas.core.common import PandasError, ABCSeries
+from pandas.core.common import (PandasError, ABCSeries,
+                                is_timedelta64_dtype, is_datetime64_dtype,
+                                is_integer_dtype)
+
 import pandas.core.common as com
 
 import pandas.lib as lib
 import pandas.algos as algos
 import pandas.hashtable as _hash
-
+import pandas.tslib as tslib
 
 @Substitution('\nleft : DataFrame')
 @Appender(_merge_doc, indents=0)
@@ -1128,6 +1131,8 @@ class _Concatenator(object):
             return block
 
     def _concat_single_item(self, objs, item):
+        # this is called if we don't have consistent dtypes in a row-wise append
+
         all_values = []
         dtypes = set()
 
@@ -1141,22 +1146,57 @@ class _Concatenator(object):
             else:
                 all_values.append(None)
 
-        # this stinks
-        have_object = False
+        # figure out the resulting dtype of the combination
+        alls = set()
+        seen = []
         for dtype in dtypes:
+            d = dict([ (t,False) for t in ['object','datetime','timedelta','other'] ])
             if issubclass(dtype.type, (np.object_, np.bool_)):
-                have_object = True
-        if have_object:
-            empty_dtype = np.object_
-        else:
-            empty_dtype = np.float64
+                d['object'] = True
+                alls.add('object')
+            elif is_datetime64_dtype(dtype):
+                d['datetime'] = True
+                alls.add('datetime')
+            elif is_timedelta64_dtype(dtype):
+                d['timedelta'] = True
+                alls.add('timedelta')
+            else:
+                d['other'] = True
+                alls.add('other')
+            seen.append(d)
+
+        if 'datetime' in alls or 'timedelta' in alls:
+
+            if 'object' in alls or 'other' in alls:
+                for v, s in zip(all_values,seen):
+                    if s.get('datetime') or s.get('timedelta'):
+                        pass
+
+                    # if we have all null, then leave a date/time like type
+                    # if we have only that type left
+                    elif isnull(v).all():
+
+                        alls.remove('other')
+                        alls.remove('object')
+
+        # create the result
+        if 'object' in alls:
+            empty_dtype, fill_value = np.object_, np.nan
+        elif 'other' in alls:
+            empty_dtype, fill_value = np.float64, np.nan
+        elif 'datetime' in alls:
+            empty_dtype, fill_value = 'M8[ns]', tslib.iNaT
+        elif 'timedelta' in alls:
+            empty_dtype, fill_value = 'm8[ns]', tslib.iNaT
+        else: # pragma
+            raise AssertionError("invalid dtype determination in concat_single_item")
 
         to_concat = []
         for obj, item_values in zip(objs, all_values):
             if item_values is None:
                 shape = obj.shape[1:]
                 missing_arr = np.empty(shape, dtype=empty_dtype)
-                missing_arr.fill(np.nan)
+                missing_arr.fill(fill_value)
                 to_concat.append(missing_arr)
             else:
                 to_concat.append(item_values)
