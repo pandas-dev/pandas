@@ -472,6 +472,7 @@ Bug Fixes
   - Fixed skiprows option in Python parser for read_csv (:issue:`4382`)
   - Fixed bug preventing ``cut`` from working with ``np.inf`` levels without
     explicitly passing labels (:issue:`3415`)
+  - Fixed wrong check for overlapping in ``DatetimeIndex.union`` (:issue:`4564`)
 
 pandas 0.12.0
 -------------
