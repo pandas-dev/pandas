@@ -1190,7 +1190,33 @@ class KdePlot(MPLPlot):
             for ax in self.axes:
                 ax.legend(loc='best')
 
-
+class ScatterPlot(MPLPlot):
+    def __init__(self, data, **kwargs):
+        MPLPlot.__init__(self, data, **kwargs)
+        #kwargs = self.kwargs
+        #print kwargs
+        ## check ot see that x and y are passed as keywords
+        if not ('x' and'y') in kwargs:
+            msg ='Scatterplot requires and X and Y column'
+            raise Exception(msg)
+        
+    def _make_plot(self):
+        plotf = self._get_plot_function()
+        colors = self._get_colors()
+        
+        for i, (label, y) in enumerate(self._iter_data()):
+            ax = self._get_ax(i)
+            #kwds = self.kwds.copy()
+            x, y = self.kwds['x'], self.kwds['y']
+            #print x, y
+            ax = ax.scatter(x, y)
+            style = self._get_style(i, label)
+            
+    def _post_plot_logic(self):
+        if self.subplots and self.legend:
+            for ax in self.axes:
+                ax.legend(loc='best')
+                
 class LinePlot(MPLPlot):
 
     def __init__(self, data, **kwargs):
@@ -1621,6 +1647,8 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
         klass = BarPlot
     elif kind == 'kde':
         klass = KdePlot
+    elif kind== 'scatter':
+        klass = 'ScatterPlot' 
     else:
         raise ValueError('Invalid chart type given %s' % kind)
 
