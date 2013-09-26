@@ -453,15 +453,16 @@ average as
     y_t = (1 - \alpha) y_{t-1} + \alpha x_t
 
 One must have :math:`0 < \alpha \leq 1`, but rather than pass :math:`\alpha`
-directly, it's easier to think about either the **span** or **center of mass
-(com)** of an EW moment:
+directly, it's easier to think about either the **span**, **center of mass
+(com)** or **halflife** of an EW moment:
 
 .. math::
 
    \alpha =
     \begin{cases}
 	\frac{2}{s + 1}, s = \text{span}\\
-	\frac{1}{1 + c}, c = \text{center of mass}
+	\frac{1}{1 + c}, c = \text{center of mass}\\
+	1 - \exp^{\frac{\log 0.5}{h}}, h = \text{half life}
     \end{cases}
 
 .. note::
@@ -474,11 +475,12 @@ directly, it's easier to think about either the **span** or **center of mass
 
   where :math:`\alpha' = 1 - \alpha`.
 
-You can pass one or the other to these functions but not both. **Span**
+You can pass one of the three to these functions but not more. **Span**
 corresponds to what is commonly called a "20-day EW moving average" for
 example. **Center of mass** has a more physical interpretation. For example,
-**span** = 20 corresponds to **com** = 9.5. Here is the list of functions
-available:
+**span** = 20 corresponds to **com** = 9.5. **Halflife** is the period of
+time for the exponential weight to reduce to one half. Here is the list of 
+functions available:
 
 .. csv-table::
     :header: "Function", "Description"

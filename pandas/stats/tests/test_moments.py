@@ -535,6 +535,16 @@ class TestMoments(unittest.TestCase):
         self.assertRaises(Exception, mom.ewma, self.arr, com=9.5, span=20)
         self.assertRaises(Exception, mom.ewma, self.arr)
 
+    def test_ewma_halflife_arg(self):
+        A = mom.ewma(self.arr, com=13.932726172912965)
+        B = mom.ewma(self.arr, halflife=10.0)
+        assert_almost_equal(A, B)
+
+        self.assertRaises(Exception, mom.ewma, self.arr, span=20, halflife=50)
+        self.assertRaises(Exception, mom.ewma, self.arr, com=9.5, halflife=50)
+        self.assertRaises(Exception, mom.ewma, self.arr, com=9.5, span=20, halflife=50)
+        self.assertRaises(Exception, mom.ewma, self.arr)
+
     def test_ew_empty_arrays(self):
         arr = np.array([], dtype=np.float64)
 
