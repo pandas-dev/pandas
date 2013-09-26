@@ -371,7 +371,6 @@ class DataFrame(NDFrame):
     read_csv / read_table / read_clipboard
     """
     _auto_consolidate = True
-    _verbose_info = True
 
     @property
     def _constructor(self):
@@ -553,12 +552,6 @@ class DataFrame(NDFrame):
             columns = _ensure_index(columns)
 
         return create_block_manager_from_blocks([values.T], [columns, index])
-
-    @property
-    def _verbose_info(self):
-        warnings.warn('The _verbose_info property will be removed in version '
-                      '0.13. please use "max_info_rows"', FutureWarning)
-        return get_option('display.max_info_rows') is None
 
     @property
     def axes(self):
