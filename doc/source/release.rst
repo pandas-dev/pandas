@@ -131,6 +131,8 @@ Improvements to existing features
     (:issue:`3441`, :issue:`4933`)
   - ``pandas`` is now tested with two different versions of ``statsmodels``
     (0.4.3 and 0.5.0) (:issue:`4981`).
+  - Better string representations of ``MultiIndex`` (including ability to roundtrip
+    via ``repr``). (:issue:`3347`, :issue:`4935`)
 
 API Changes
 ~~~~~~~~~~~
