@@ -45,6 +45,16 @@ aggregated : DataFrame
 """
 
 
+_apply_whitelist = frozenset(['last', 'first',
+                              'mean', 'sum', 'min', 'max',
+                              'head', 'tail',
+                              'cumsum', 'cumprod', 'cummin', 'cummax',
+                              'resample',
+                              'describe',
+                              'rank', 'quantile', 'count',
+                              'fillna', 'dtype'])
+
+
 class GroupByError(Exception):
     pass
 
@@ -241,13 +251,21 @@ class GroupBy(PandasObject):
         if hasattr(self.obj, attr) and attr != '_cache':
             return self._make_wrapper(attr)
 
-        raise AttributeError("'%s' object has no attribute '%s'" %
+        raise AttributeError("%r object has no attribute %r" %
                              (type(self).__name__, attr))
 
     def __getitem__(self, key):
         raise NotImplementedError
 
     def _make_wrapper(self, name):
+        if name not in _apply_whitelist:
+            is_callable = callable(getattr(self.obj, name, None))
+            kind = ' callable ' if is_callable else ' '
+            msg = ("Cannot access{0}attribute {1!r} of {2!r} objects, try "
+                   "using the 'apply' method".format(kind, name,
+                                                     type(self).__name__))
+            raise AttributeError(msg)
+
         f = getattr(self.obj, name)
         if not isinstance(f, types.MethodType):
             return self.apply(lambda self: getattr(self, name))

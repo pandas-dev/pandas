@@ -9,7 +9,8 @@ from pandas import bdate_range
 from pandas.core.index import Index, MultiIndex
 from pandas.core.common import rands
 from pandas.core.api import Categorical, DataFrame
-from pandas.core.groupby import GroupByError, SpecificationError, DataError
+from pandas.core.groupby import (GroupByError, SpecificationError, DataError,
+                                 _apply_whitelist)
 from pandas.core.series import Series
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
                                  assert_series_equal, assert_almost_equal,
@@ -2696,8 +2697,40 @@ class TestGroupBy(unittest.TestCase):
         new_way = grouped.filter(lambda x: x['ints'].mean() > N/20)
         assert_frame_equal(new_way.sort_index(), old_way.sort_index())
 
+    def test_groupby_whitelist(self):
+        from string import ascii_lowercase
+        letters = np.array(list(ascii_lowercase))
+        N = 10
+        random_letters = letters.take(np.random.randint(0, 26, N))
+        df = DataFrame({'floats': N / 10 * Series(np.random.random(N)),
+                        'letters': Series(random_letters)})
+        s = df.floats
+
+        blacklist = ['eval', 'query', 'abs', 'shift', 'tshift', 'where',
+                     'mask', 'align', 'groupby', 'clip', 'astype',
+                     'at', 'combine', 'consolidate', 'convert_objects',
+                     'corr', 'corr_with', 'cov']
+        to_methods = [method for method in dir(df) if method.startswith('to_')]
+
+        blacklist.extend(to_methods)
+
+        # e.g., to_csv
+        defined_but_not_allowed = ("(?:^Cannot.+{0!r}.+{1!r}.+try using the "
+                                   "'apply' method$)")
+
+        # e.g., query, eval
+        not_defined = "(?:^{1!r} object has no attribute {0!r}$)"
+        fmt = defined_but_not_allowed + '|' + not_defined
+        for bl in blacklist:
+            for obj in (df, s):
+                gb = obj.groupby(df.letters)
+                msg = fmt.format(bl, type(gb).__name__)
+                with tm.assertRaisesRegexp(AttributeError, msg):
+                    getattr(gb, bl)
+
+
 def assert_fp_equal(a, b):
-    assert((np.abs(a - b) < 1e-12).all())
+    assert (np.abs(a - b) < 1e-12).all()
 
 
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
