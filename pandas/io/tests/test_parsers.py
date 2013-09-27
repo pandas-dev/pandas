@@ -1865,6 +1865,32 @@ A,B,C
 
         self.assertTrue(np.array_equal(result['Numbers'], expected['Numbers']))
 
+    def test_usecols_index_col_conflict(self):
+        # Issue 4201  Test that index_col as integer reflects usecols
+        data = """SecId,Time,Price,P2,P3
+10000,2013-5-11,100,10,1
+500,2013-5-12,101,11,1
+"""
+        expected = DataFrame({'Price': [100, 101]}, index=[datetime(2013, 5, 11), datetime(2013, 5, 12)])
+        expected.index.name = 'Time'
+
+        df = pd.read_csv(StringIO(data), usecols=['Time', 'Price'], parse_dates=True, index_col=0)
+        tm.assert_frame_equal(expected, df)
+
+        df = pd.read_csv(StringIO(data), usecols=['Time', 'Price'], parse_dates=True, index_col='Time')
+        tm.assert_frame_equal(expected, df)
+
+        df = pd.read_csv(StringIO(data), usecols=[1, 2], parse_dates=True, index_col='Time')
+        tm.assert_frame_equal(expected, df)
+
+        df = pd.read_csv(StringIO(data), usecols=[1, 2], parse_dates=True, index_col=0)
+        tm.assert_frame_equal(expected, df)
+
+        expected = DataFrame({'P3': [1, 1], 'Price': (100, 101), 'P2': (10, 11)})
+        expected = expected.set_index(['Price', 'P2'])
+        df = pd.read_csv(StringIO(data), usecols=['Price', 'P2', 'P3'], parse_dates=True, index_col=['Price', 'P2'])
+        tm.assert_frame_equal(expected, df)
+
 
 class TestPythonParser(ParserTests, unittest.TestCase):
 

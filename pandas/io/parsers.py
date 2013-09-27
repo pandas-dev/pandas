@@ -2,7 +2,7 @@
 Module contains tools for processing files into DataFrames or other objects
 """
 from __future__ import print_function
-from pandas.compat import range, lrange, StringIO, lzip, zip
+from pandas.compat import range, lrange, StringIO, lzip, zip, string_types
 from pandas import compat
 import re
 import csv
@@ -15,7 +15,6 @@ from pandas.core.frame import DataFrame
 import datetime
 import pandas.core.common as com
 from pandas.core.config import get_option
-from pandas import compat
 from pandas.io.date_converters import generic_parser
 from pandas.io.common import get_filepath_or_buffer
 
@@ -24,7 +23,7 @@ from pandas.util.decorators import Appender
 import pandas.lib as lib
 import pandas.tslib as tslib
 import pandas.parser as _parser
-from pandas.tseries.period import Period
+
 
 _parser_params = """Also supports optionally iterating or breaking of the file
 into chunks.
@@ -982,7 +981,19 @@ class CParserWrapper(ParserBase):
             else:
                 self.names = lrange(self._reader.table_width)
 
-        # XXX
+        # If the names were inferred (not passed by user) and usedcols is defined,
+        # then ensure names refers to the used columns, not the document's columns.
+        if self.usecols and passed_names:
+            col_indices = []
+            for u in self.usecols:
+                if isinstance(u, string_types):
+                    col_indices.append(self.names.index(u))
+                else:
+                    col_indices.append(u)
+            self.names = [n for i, n in enumerate(self.names) if i in col_indices]
+            if len(self.names) < len(self.usecols):
+                raise ValueError("Usecols do not match names.")
+
         self._set_noconvert_columns()
 
         self.orig_names = self.names
