@@ -117,19 +117,31 @@ class DateOffset(object):
         className = getattr(self, '_outputName', type(self).__name__)
         exclude = set(['n', 'inc'])
         attrs = []
-        for attr in self.__dict__:
+        for attr in sorted(self.__dict__):
             if ((attr == 'kwds' and len(self.kwds) == 0)
                     or attr.startswith('_')):
                 continue
-            if attr not in exclude:
-                attrs.append('='.join((attr, repr(getattr(self, attr)))))
+            elif attr == 'kwds':
+                kwds_new = {}
+                for key in self.kwds:
+                    if not hasattr(self, key):
+                        kwds_new[key] = self.kwds[key]
+                if len(kwds_new) > 0:
+                    attrs.append('='.join((attr, repr(kwds_new))))
+            else:            
+                if attr not in exclude:
+                    attrs.append('='.join((attr, repr(getattr(self, attr)))))
 
         if abs(self.n) != 1:
             plural = 's'
         else:
             plural = ''
+        
+        n_str = ""
+        if self.n != 1:
+            n_str = "%s * " % self.n
 
-        out = '<%s ' % self.n + className + plural
+        out = '<%s' % n_str + className + plural
         if attrs:
             out += ': ' + ', '.join(attrs)
         out += '>'
@@ -247,7 +259,7 @@ class BusinessDay(CacheableOffset, DateOffset):
     def rule_code(self):
         return 'B'
 
-    def __repr__(self):
+    def __repr__(self): #TODO: Figure out if this should be merged into DateOffset
         if hasattr(self, 'name') and len(self.name):
             return self.name
 
@@ -261,8 +273,12 @@ class BusinessDay(CacheableOffset, DateOffset):
             plural = 's'
         else:
             plural = ''
+            
+        n_str = ""
+        if self.n != 1:
+            n_str = "%s * " % self.n
 
-        out = '<%s ' % self.n + className + plural
+        out = '<%s' % n_str + className + plural
         if attrs:
             out += ': ' + ', '.join(attrs)
         out += '>'
@@ -741,7 +757,6 @@ class BQuarterEnd(CacheableOffset, DateOffset):
         self.n = n
         self.startingMonth = kwds.get('startingMonth', 3)
 
-        self.offset = BMonthEnd(3)
         self.kwds = kwds
 
     def isAnchored(self):
@@ -803,7 +818,6 @@ class BQuarterBegin(CacheableOffset, DateOffset):
         self.n = n
         self.startingMonth = kwds.get('startingMonth', 3)
 
-        self.offset = BMonthBegin(3)
         self.kwds = kwds
 
     def isAnchored(self):
@@ -855,7 +869,6 @@ class QuarterEnd(CacheableOffset, DateOffset):
         self.n = n
         self.startingMonth = kwds.get('startingMonth', 3)
 
-        self.offset = MonthEnd(3)
         self.kwds = kwds
 
     def isAnchored(self):
@@ -894,7 +907,6 @@ class QuarterBegin(CacheableOffset, DateOffset):
         self.n = n
         self.startingMonth = kwds.get('startingMonth', 3)
 
-        self.offset = MonthBegin(3)
         self.kwds = kwds
 
     def isAnchored(self):
