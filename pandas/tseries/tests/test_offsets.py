@@ -150,10 +150,10 @@ class TestBusinessDay(unittest.TestCase):
         self.assertEqual(offset, offset2)
 
     def test_repr(self):
-        assert repr(self.offset) == '<1 BusinessDay>'
-        assert repr(self.offset2) == '<2 BusinessDays>'
+        self.assertEqual(repr(self.offset), '<BusinessDay>')
+        assert repr(self.offset2) == '<2 * BusinessDays>'
 
-        expected = '<1 BusinessDay: offset=datetime.timedelta(1)>'
+        expected = '<BusinessDay: offset=datetime.timedelta(1)>'
         assert repr(self.offset + timedelta(1)) == expected
 
     def test_with_offset(self):
@@ -324,10 +324,10 @@ class TestCustomBusinessDay(unittest.TestCase):
         self.assertEqual(offset, offset2)
 
     def test_repr(self):
-        assert repr(self.offset) == '<1 CustomBusinessDay>'
-        assert repr(self.offset2) == '<2 CustomBusinessDays>'
+        assert repr(self.offset) == '<CustomBusinessDay>'
+        assert repr(self.offset2) == '<2 * CustomBusinessDays>'
 
-        expected = '<1 BusinessDay: offset=datetime.timedelta(1)>'
+        expected = '<BusinessDay: offset=datetime.timedelta(1)>'
         assert repr(self.offset + timedelta(1)) == expected
 
     def test_with_offset(self):
@@ -526,6 +526,11 @@ def assertOnOffset(offset, date, expected):
 
 
 class TestWeek(unittest.TestCase):
+    def test_repr(self):
+        self.assertEqual(repr(Week(weekday=0)), "<Week: weekday=0>")
+        self.assertEqual(repr(Week(n=-1, weekday=0)), "<-1 * Week: weekday=0>")
+        self.assertEqual(repr(Week(n=-2, weekday=0)), "<-2 * Weeks: weekday=0>")
+        
     def test_corner(self):
         self.assertRaises(ValueError, Week, weekday=7)
         assertRaisesRegexp(ValueError, "Day must be", Week, weekday=-1)
@@ -597,6 +602,9 @@ class TestWeekOfMonth(unittest.TestCase):
         assertRaisesRegexp(ValueError, "^Week", WeekOfMonth, n=1, week=-1, weekday=0)
         assertRaisesRegexp(ValueError, "^Day", WeekOfMonth, n=1, week=0, weekday=-1)
         assertRaisesRegexp(ValueError, "^Day", WeekOfMonth, n=1, week=0, weekday=7)
+
+    def test_repr(self):
+        self.assertEqual(repr(WeekOfMonth(weekday=1,week=2)), "<WeekOfMonth: week=2, weekday=1>")
 
     def test_offset(self):
         date1 = datetime(2011, 1, 4)  # 1st Tuesday of Month
@@ -895,6 +903,11 @@ class TestMonthEnd(unittest.TestCase):
 
 
 class TestBQuarterBegin(unittest.TestCase):
+    
+    def test_repr(self):
+        self.assertEqual(repr(BQuarterBegin()),"<BusinessQuarterBegin: startingMonth=3>")
+        self.assertEqual(repr(BQuarterBegin(startingMonth=3)), "<BusinessQuarterBegin: startingMonth=3>")
+        self.assertEqual(repr(BQuarterBegin(startingMonth=1)), "<BusinessQuarterBegin: startingMonth=1>")
 
     def test_isAnchored(self):
         self.assert_(BQuarterBegin(startingMonth=1).isAnchored())
@@ -981,6 +994,11 @@ class TestBQuarterBegin(unittest.TestCase):
 
 class TestBQuarterEnd(unittest.TestCase):
 
+    def test_repr(self):
+        self.assertEqual(repr(BQuarterEnd()),"<BusinessQuarterEnd: startingMonth=3>")
+        self.assertEqual(repr(BQuarterEnd(startingMonth=3)), "<BusinessQuarterEnd: startingMonth=3>")
+        self.assertEqual(repr(BQuarterEnd(startingMonth=1)), "<BusinessQuarterEnd: startingMonth=1>")
+        
     def test_isAnchored(self):
         self.assert_(BQuarterEnd(startingMonth=1).isAnchored())
         self.assert_(BQuarterEnd().isAnchored())
@@ -1083,6 +1101,11 @@ class TestBQuarterEnd(unittest.TestCase):
 
 
 class TestQuarterBegin(unittest.TestCase):
+    def test_repr(self):
+        self.assertEqual(repr(QuarterBegin()), "<QuarterBegin: startingMonth=3>")
+        self.assertEqual(repr(QuarterBegin(startingMonth=3)), "<QuarterBegin: startingMonth=3>")
+        self.assertEqual(repr(QuarterBegin(startingMonth=1)),"<QuarterBegin: startingMonth=1>")
+            
     def test_isAnchored(self):
         self.assert_(QuarterBegin(startingMonth=1).isAnchored())
         self.assert_(QuarterBegin().isAnchored())
@@ -1152,7 +1175,11 @@ class TestQuarterBegin(unittest.TestCase):
 
 
 class TestQuarterEnd(unittest.TestCase):
-
+    def test_repr(self):
+        self.assertEqual(repr(QuarterEnd()), "<QuarterEnd: startingMonth=3>")
+        self.assertEqual(repr(QuarterEnd(startingMonth=3)), "<QuarterEnd: startingMonth=3>")
+        self.assertEqual(repr(QuarterEnd(startingMonth=1)), "<QuarterEnd: startingMonth=1>")
+    
     def test_isAnchored(self):
         self.assert_(QuarterEnd(startingMonth=1).isAnchored())
         self.assert_(QuarterEnd().isAnchored())
