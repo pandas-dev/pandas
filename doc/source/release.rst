@@ -480,6 +480,7 @@ Bug Fixes
   - Fixed wrong check for overlapping in ``DatetimeIndex.union`` (:issue:`4564`)
   - Fixed conflict between thousands separator and date parser in csv_parser (:issue:`4678`)
   - Fix appending when dtypes are not the same (error showing mixing float/np.datetime64) (:issue:`4993`)
+  - Fixed wrong index name during read_csv if using usecols. Applies to c parser only. (:issue:`4201`)
 
 pandas 0.12.0
 -------------
