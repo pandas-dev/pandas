@@ -243,6 +243,8 @@ API Changes
   - Remove deprecated ``Factor`` (:issue:`3650`)
   - Remove deprecated ``set_printoptions/reset_printoptions`` (:issue:``3046``)
   - Remove deprecated ``_verbose_info`` (:issue:`3215`)
+  - Begin removing methods that don't make sense on ``GroupBy`` objects
+    (:issue:`4887`).
 
 Internal Refactoring
 ~~~~~~~~~~~~~~~~~~~~
