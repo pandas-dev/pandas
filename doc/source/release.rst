@@ -237,6 +237,8 @@ API Changes
     on indexes on non ``Float64Index`` will raise a ``TypeError``, e.g. ``Series(range(5))[3.5:4.5]`` (:issue:`263`)
   - Make Categorical repr nicer (:issue:`4368`)
   - Remove deprecated ``Factor`` (:issue:`3650`)
+  - Remove deprecated ``set_printoptions/reset_printoptions`` (:issue:``3046``)
+  - Remove deprecated ``_verbose_info`` (:issue:`3215`)
 
 Internal Refactoring
 ~~~~~~~~~~~~~~~~~~~~
