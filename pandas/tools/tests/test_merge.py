@@ -1804,6 +1804,15 @@ class TestConcatenate(unittest.TestCase):
         # generator ok though
         concat(DataFrame(np.random.rand(5,5)) for _ in range(3))
 
+    def test_concat_mixed_types_fails(self):
+        df = DataFrame(randn(10, 1))
+
+        with tm.assertRaisesRegexp(TypeError, "Cannot concatenate.+"):
+            concat([df[0], df], axis=1)
+
+        with tm.assertRaisesRegexp(TypeError, "Cannot concatenate.+"):
+            concat([df, df[0]], axis=1)
+
 class TestOrderedMerge(unittest.TestCase):
 
     def setUp(self):

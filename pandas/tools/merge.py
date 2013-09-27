@@ -1245,7 +1245,11 @@ class _Concatenator(object):
         if self._is_series:
             all_indexes = [x.index for x in self.objs]
         else:
-            all_indexes = [x._data.axes[i] for x in self.objs]
+            try:
+                all_indexes = [x._data.axes[i] for x in self.objs]
+            except IndexError:
+                types = [type(x).__name__ for x in self.objs]
+                raise TypeError("Cannot concatenate list of %s" % types)
 
         return _get_combined_index(all_indexes, intersect=self.intersect)
 
@@ -1256,6 +1260,10 @@ class _Concatenator(object):
             elif self.keys is None:
                 names = []
                 for x in self.objs:
+                    if not isinstance(x, Series):
+                        raise TypeError("Cannot concatenate type 'Series' "
+                                        "with object of type "
+                                        "%r" % type(x).__name__)
                     if x.name is not None:
                         names.append(x.name)
                     else:
