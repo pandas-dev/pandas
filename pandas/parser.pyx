@@ -1739,6 +1739,15 @@ def _concatenate_chunks(list chunks):
     result = {}
     for name in names:
         arrs = [chunk.pop(name) for chunk in chunks]
+        # Check each arr for consistent types.
+        dtypes = set([a.dtype for a in arrs])
+        if len(dtypes) > 1:
+            common_type = np.find_common_type(dtypes, [])
+            if common_type == np.object:
+                warning_message = " ".join(["Column %s has mixed types." % name,
+                    "Specify dtype option on import or set low_memory=False."
+                  ])
+                print >> sys.stderr, warning_message
         result[name] = np.concatenate(arrs)
     return result
 
