@@ -245,6 +245,7 @@ API Changes
   - Remove deprecated ``_verbose_info`` (:issue:`3215`)
   - Begin removing methods that don't make sense on ``GroupBy`` objects
     (:issue:`4887`).
+  - Remove deprecated ``read_clipboard/to_clipboard/ExcelFile/ExcelWriter`` from ``pandas.io.parsers`` (:issue:`3717`)
 
 Internal Refactoring
 ~~~~~~~~~~~~~~~~~~~~

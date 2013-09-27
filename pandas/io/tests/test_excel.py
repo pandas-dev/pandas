@@ -254,20 +254,20 @@ class ExcelReaderTests(SharedItems, unittest.TestCase):
         f = open(pth, 'rb')
         xl = ExcelFile(f)
         xl.parse('Sheet1', index_col=0, parse_dates=True)
-        
+
     def test_read_xlrd_Book(self):
         _skip_if_no_xlrd()
         _skip_if_no_xlwt()
-        
+
         import xlrd
-        
+
         pth = '__tmp_excel_read_worksheet__.xls'
         df = self.frame
-        
+
         with ensure_clean(pth) as pth:
             df.to_excel(pth, "SheetA")
             book = xlrd.open_workbook(pth)
-            
+
             with ExcelFile(book, engine="xlrd") as xl:
                 result = xl.parse("SheetA")
                 tm.assert_frame_equal(df, result)
@@ -1003,26 +1003,6 @@ class ExcelWriterEngineTests(unittest.TestCase):
         check_called(lambda: df.to_excel('something.xlsx'))
         check_called(lambda: df.to_excel('something.xls', engine='dummy'))
         set_option('io.excel.xlsx.writer', val)
-
-
-class ExcelLegacyTests(SharedItems, unittest.TestCase):
-    def test_deprecated_from_parsers(self):
-
-        # since 0.12 changed the import path
-        import warnings
-
-        with warnings.catch_warnings():
-            warnings.filterwarnings(action='ignore', category=FutureWarning)
-
-            _skip_if_no_xlrd()
-            from pandas.io.parsers import ExcelFile as xf
-            xf(self.xls1)
-
-            _skip_if_no_xlwt()
-            with ensure_clean('test.xls') as path:
-                from pandas.io.parsers import ExcelWriter as xw
-                xw(path)
-
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
