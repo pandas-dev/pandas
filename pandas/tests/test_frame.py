@@ -11429,8 +11429,7 @@ class TestDataFrameQueryWithMultiIndex(object):
 
     def check_query_multiindex_get_index_resolvers(self, parser, engine):
         df = mkdf(10, 3, r_idx_nlevels=2, r_idx_names=['spam', 'eggs'])
-        resolvers = df._get_index_resolvers('index')
-        resolvers.update(df._get_index_resolvers('columns'))
+        resolvers = df._get_resolvers()
 
         def to_series(mi, level):
             level_values = mi.get_level_values(level)
@@ -11452,6 +11451,28 @@ class TestDataFrameQueryWithMultiIndex(object):
                 tm.assert_series_equal(v, expected[k])
             else:
                 raise AssertionError("object must be a Series or Index")
+
+    def test_raise_on_panel_with_multiindex(self):
+        for parser, engine in product(PARSERS, ENGINES):
+            yield self.check_raise_on_panel_with_multiindex, parser, engine
+
+    def check_raise_on_panel_with_multiindex(self, parser, engine):
+        skip_if_no_ne()
+        p = tm.makePanel(7)
+        p.items = tm.makeCustomIndex(len(p.items), nlevels=2)
+        with tm.assertRaises(NotImplementedError):
+            pd.eval('p + 1', parser=parser, engine=engine)
+
+    def test_raise_on_panel4d_with_multiindex(self):
+        for parser, engine in product(PARSERS, ENGINES):
+            yield self.check_raise_on_panel4d_with_multiindex, parser, engine
+
+    def check_raise_on_panel4d_with_multiindex(self, parser, engine):
+        skip_if_no_ne()
+        p4d = tm.makePanel4D(7)
+        p4d.items = tm.makeCustomIndex(len(p4d.items), nlevels=2)
+        with tm.assertRaises(NotImplementedError):
+            pd.eval('p4d + 1', parser=parser, engine=engine)
 
 
 class TestDataFrameQueryNumExprPandas(unittest.TestCase):

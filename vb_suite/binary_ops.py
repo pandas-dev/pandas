@@ -106,7 +106,7 @@ frame_multi_and_no_ne = \
 setup = common_setup + """
 N = 1000000
 halfway = N // 2 - 1
-s  = Series(date_range('20010101', periods=N, freq='D'))
+s = Series(date_range('20010101', periods=N, freq='D'))
 ts = s[halfway]
 """
 
