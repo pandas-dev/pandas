@@ -1,6 +1,6 @@
 # pylint: disable=E1101,E1103,W0232
 from functools import partial
-from pandas.compat import range, zip, lrange, lzip
+from pandas.compat import range, zip, lrange, lzip, u
 from pandas import compat
 import numpy as np
 
@@ -16,6 +16,10 @@ from pandas.core.common import isnull
 import pandas.core.common as com
 from pandas.core.common import _values_from_object, is_float, is_integer
 from pandas.core.config import get_option
+
+# simplify
+default_pprint = lambda x: com.pprint_thing(x, escape_chars=('\t', '\r', '\n'),
+                                            quote_strings=True)
 
 
 __all__ = ['Index']
@@ -2052,18 +2056,40 @@ class MultiIndex(Index):
     def dtype(self):
         return np.dtype('O')
 
+    def __repr__(self):
+        encoding = get_option('display.encoding')
+        attrs = [('levels', default_pprint(self.levels)),
+                 ('labels', default_pprint(self.labels))]
+        if not all(name is None for name in self.names):
+            attrs.append(('names', default_pprint(self.names)))
+        if self.sortorder is not None:
+            attrs.append(('sortorder', default_pprint(self.sortorder)))
+
+        space = ' ' * (len(self.__class__.__name__) + 1)
+        prepr = (u("\n%s") % space).join([u("%s=%s") % (k, v)
+                                          for k, v in attrs])
+        res = u("%s(%s)") % (self.__class__.__name__, prepr)
+
+        if not compat.PY3:
+            # needs to be str in Python 2
+            res = res.encode(encoding)
+        return res
+
+
     def __unicode__(self):
         """
         Return a string representation for a particular Index
 
         Invoked by unicode(df) in py2 only. Yields a Unicode String in both py2/py3.
         """
-        output = 'MultiIndex\n%s'
-
-        summary = com.pprint_thing(self, escape_chars=('\t', '\r', '\n'),
-                                   quote_strings=True)
-
-        return output % summary
+        rows = self.format(names=True)
+        max_rows = get_option('display.max_rows')
+        if len(rows) > max_rows:
+            spaces = (len(rows[0]) - 3) // 2
+            centered = ' ' * spaces
+            half = max_rows // 2
+            rows = rows[:half] + [centered + '...' + centered] + rows[-half:]
+        return "\n".join(rows)
 
     def __len__(self):
         return len(self.labels[0])
