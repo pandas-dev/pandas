@@ -136,6 +136,8 @@ Improvements to existing features
   - Both ExcelFile and read_excel to accept an xlrd.Book for the io
     (formerly path_or_buf) argument; this requires engine to be set.
     (:issue:`4961`).
+  - ``concat`` now gives a more informative error message when passed objects
+    that cannot be concatenated (:issue:`4608`).
 
 API Changes
 ~~~~~~~~~~~
