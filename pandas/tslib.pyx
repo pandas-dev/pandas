@@ -475,11 +475,10 @@ cdef class _Timestamp(datetime):
         int64_t value, nanosecond
         object offset       # frequency reference
 
-    def __hash__(self):
+    def __hash__(_Timestamp self):
         if self.nanosecond:
             return hash(self.value)
-        else:
-            return datetime.__hash__(self)
+        return datetime.__hash__(self)
 
     def __richcmp__(_Timestamp self, object other, int op):
         cdef:
@@ -520,13 +519,14 @@ cdef class _Timestamp(datetime):
         self._assert_tzawareness_compat(other)
         return _cmp_scalar(self.value, ots.value, op)
 
-    cdef _compare_outside_nanorange(self, object other, int op):
+    cdef bint _compare_outside_nanorange(_Timestamp self, datetime other,
+                                         int op) except -1:
         cdef datetime dtval = self.to_datetime()
 
         self._assert_tzawareness_compat(other)
 
         if self.nanosecond == 0:
-            return PyObject_RichCompare(dtval, other, op)
+            return PyObject_RichCompareBool(dtval, other, op)
         else:
             if op == Py_EQ:
                 return False
@@ -541,15 +541,15 @@ cdef class _Timestamp(datetime):
             elif op == Py_GE:
                 return dtval >= other
 
-    cdef _assert_tzawareness_compat(self, object other):
+    cdef void _assert_tzawareness_compat(_Timestamp self, object other):
         if self.tzinfo is None:
             if other.tzinfo is not None:
-                raise Exception('Cannot compare tz-naive and '
-                                'tz-aware timestamps')
+                raise ValueError('Cannot compare tz-naive and tz-aware '
+                                 'timestamps')
         elif other.tzinfo is None:
-            raise Exception('Cannot compare tz-naive and tz-aware timestamps')
+            raise ValueError('Cannot compare tz-naive and tz-aware timestamps')
 
-    cpdef to_datetime(self):
+    cpdef datetime to_datetime(_Timestamp self):
         cdef:
             pandas_datetimestruct dts
             _TSObject ts
