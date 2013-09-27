@@ -3,6 +3,7 @@ from datetime import datetime, time, timedelta
 import sys
 import os
 import unittest
+import operator
 
 import nose
 
@@ -2010,6 +2011,7 @@ class TestDatetimeIndex(unittest.TestCase):
             joined = index.join(index, how=kind)
             self.assert_(index is joined)
 
+
 class TestDatetime64(unittest.TestCase):
     """
     Also test supoprt for datetime64[ns] in Series / DataFrame
@@ -2507,6 +2509,74 @@ class TestTimestamp(unittest.TestCase):
         stamp = Timestamp(datetime(2011, 1, 1))
         self.assertEquals(d[stamp], 5)
 
+    def test_timestamp_compare_scalars(self):
+        # case where ndim == 0
+        lhs = np.datetime64(datetime(2013, 12, 6))
+        rhs = Timestamp('now')
+        nat = Timestamp('nat')
+
+        ops = {'gt': 'lt', 'lt': 'gt', 'ge': 'le', 'le': 'ge', 'eq': 'eq',
+            'ne': 'ne'}
+
+        for left, right in ops.items():
+            left_f = getattr(operator, left)
+            right_f = getattr(operator, right)
+
+            if pd._np_version_under1p7:
+                # you have to convert to timestamp for this to work with numpy
+                # scalars
+                expected = left_f(Timestamp(lhs), rhs)
+
+                # otherwise a TypeError is thrown
+                if left not in ('eq', 'ne'):
+                    with tm.assertRaises(TypeError):
+                        left_f(lhs, rhs)
+            else:
+                expected = left_f(lhs, rhs)
+
+            result = right_f(rhs, lhs)
+            self.assertEqual(result, expected)
+
+            expected = left_f(rhs, nat)
+            result = right_f(nat, rhs)
+            self.assertEqual(result, expected)
+
+    def test_timestamp_compare_series(self):
+        # make sure we can compare Timestamps on the right AND left hand side
+        # GH4982
+        s = Series(date_range('20010101', periods=10), name='dates')
+        s_nat = s.copy(deep=True)
+
+        s[0] = pd.Timestamp('nat')
+        s[3] = pd.Timestamp('nat')
+
+        ops = {'lt': 'gt', 'le': 'ge', 'eq': 'eq', 'ne': 'ne'}
+
+        for left, right in ops.items():
+            left_f = getattr(operator, left)
+            right_f = getattr(operator, right)
+
+            # no nats
+            expected = left_f(s, Timestamp('20010109'))
+            result = right_f(Timestamp('20010109'), s)
+            tm.assert_series_equal(result, expected)
+
+            # nats
+            expected = left_f(s, Timestamp('nat'))
+            result = right_f(Timestamp('nat'), s)
+            tm.assert_series_equal(result, expected)
+
+            # compare to timestamp with series containing nats
+            expected = left_f(s_nat, Timestamp('20010109'))
+            result = right_f(Timestamp('20010109'), s_nat)
+            tm.assert_series_equal(result, expected)
+
+            # compare to nat with series containing nats
+            expected = left_f(s_nat, Timestamp('nat'))
+            result = right_f(Timestamp('nat'), s_nat)
+            tm.assert_series_equal(result, expected)
+
+
 class TestSlicing(unittest.TestCase):
 
     def test_slice_year(self):
@@ -2774,6 +2844,7 @@ class TestSlicing(unittest.TestCase):
         df = df.applymap(lambda x: x + BDay())
 
         self.assertTrue(df.x1.dtype == 'M8[ns]')
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

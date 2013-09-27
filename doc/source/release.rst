@@ -487,6 +487,8 @@ Bug Fixes
   - Fix repr for DateOffset. No longer show duplicate entries in kwds.
     Removed unused offset fields. (:issue:`4638`)
   - Fixed wrong index name during read_csv if using usecols. Applies to c parser only. (:issue:`4201`)
+  - ``Timestamp`` objects can now appear in the left hand side of a comparison
+    operation with a ``Series`` or ``DataFrame`` object (:issue:`4982`).
 
 pandas 0.12.0
 -------------

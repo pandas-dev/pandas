@@ -22,6 +22,16 @@ rng2 = rng[:-1]
 index_datetime_intersection = Benchmark("rng.intersection(rng2)", setup)
 index_datetime_union = Benchmark("rng.union(rng2)", setup)
 
+setup = common_setup + """
+rng = date_range('1/1/2000', periods=10000, freq='T')
+rng2 = rng[:-1]
+"""
+
+datetime_index_intersection = Benchmark("rng.intersection(rng2)", setup,
+                                        start_date=datetime(2013, 9, 27))
+datetime_index_union = Benchmark("rng.union(rng2)", setup,
+                                 start_date=datetime(2013, 9, 27))
+
 # integers
 setup = common_setup + """
 N = 1000000
