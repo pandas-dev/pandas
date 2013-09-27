@@ -111,7 +111,7 @@ Optional Dependencies
     <http://www.pygtk.org/>`__, `xsel
     <http://www.vergenet.net/~conrad/software/xsel/>`__, or `xclip
     <http://sourceforge.net/projects/xclip/>`__: necessary to use
-    :func:`~pandas.io.parsers.read_clipboard`. Most package managers on Linux
+    :func:`~pandas.io.clipboard.read_clipboard`. Most package managers on Linux
     distributions will have xclip and/or xsel immediately available for
     installation.
   * One of the following combinations of libraries is needed to use the

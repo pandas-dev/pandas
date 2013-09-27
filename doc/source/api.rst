@@ -31,6 +31,15 @@ Flat File
    read_table
    read_csv
    read_fwf
+
+Clipboard
+~~~~~~~~~
+
+.. currentmodule:: pandas.io.clipboard
+
+.. autosummary::
+   :toctree: generated/
+
    read_clipboard
 
 Excel

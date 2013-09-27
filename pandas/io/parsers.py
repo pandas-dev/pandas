@@ -2048,27 +2048,3 @@ class FixedWidthFieldParser(PythonParser):
     def _make_reader(self, f):
         self.data = FixedWidthReader(f, self.colspecs, self.delimiter,
                                      encoding=self.encoding)
-
-
-##### deprecations in 0.12 #####
-##### remove in 0.12         #####
-
-from pandas.io import clipboard
-def read_clipboard(**kwargs):
-    warn("read_clipboard is now a top-level accessible via pandas.read_clipboard", FutureWarning)
-    clipboard.read_clipboard(**kwargs)
-
-def to_clipboard(obj):
-    warn("to_clipboard is now an object level method accessible via obj.to_clipboard()", FutureWarning)
-    clipboard.to_clipboard(obj)
-
-from pandas.io import excel
-class ExcelWriter(excel.ExcelWriter):
-    def __init__(self, path):
-        warn("ExcelWriter can now be imported from: pandas.io.excel", FutureWarning)
-        super(ExcelWriter, self).__init__(path)
-
-class ExcelFile(excel.ExcelFile):
-    def __init__(self, path_or_buf, **kwds):
-        warn("ExcelFile can now be imported from: pandas.io.excel", FutureWarning)
-        super(ExcelFile, self).__init__(path_or_buf, **kwds)
