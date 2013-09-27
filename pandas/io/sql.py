@@ -5,7 +5,7 @@ retrieval and to reduce dependency on DB-specific API.
 from __future__ import print_function
 import datetime
 
-from pandas.compat import range, lzip, map, zip, raise_with_traceback
+from pandas.compat import range, lzip, map, zip, raise_with_traceback, u
 import pandas.compat as compat
 import numpy as np
 
@@ -29,6 +29,70 @@ class LegacyMySQLConnection(Exception):
 
 class DatabaseError(IOError):
     pass
+
+
+#------------------------------------------------------------------------------
+# Helper execution functions
+
+def execute(sql, con=None, retry=True, cur=None, params=None, engine=None):
+    """
+    Execute the given SQL query using the provided connection object.
+
+    Parameters
+    ----------
+    sql: string
+        Query to be executed
+    con: database connection instance
+        Database connection.  Must implement PEP249 (Database API v2.0).
+    retry: bool
+        Not currently implemented
+    cur: database cursor, optional
+        Must implement PEP249 (Datbase API v2.0).  If cursor is not provided,
+        one will be obtained from the database connection.
+    params: list or tuple, optional
+        List of parameters to pass to execute method.
+
+    Returns
+    -------
+    Cursor object
+    """
+    pandas_sql = PandasSQL(engine=engine, cur=cur, con=con)
+    return pandas_sql.execute(sql=sql, retry=retry, params=params)
+
+
+def tquery(sql, con=None, retry=True, cur=None, engine=None, params=None):
+    """
+    Returns list of tuples corresponding to each row in given sql
+    query.
+
+    If only one column selected, then plain list is returned.
+
+    Parameters
+    ----------
+    sql: string
+        SQL query to be executed
+    con: SQLConnection or DB API 2.0-compliant connection
+    retry : bool
+    cur: DB API 2.0 cursor
+
+    Provide a specific connection or a specific cursor if you are executing a
+    lot of sequential statements and want to commit outside.
+    """
+    pandas_sql = PandasSQL(engine=engine, cur=cur, con=con)
+    return pandas_sql.tquery(sql=sql, retry=retry, params=params)
+
+
+def uquery(sql, con=None, cur=None, retry=True, params=None, engine=None):
+    """
+    Does the same thing as tquery, but instead of returning results, it
+    returns the number of rows affected.  Good for update queries.
+    """
+    pandas_sql = PandasSQL(engine=engine, cur=cur, con=con)
+    return pandas_sql.uquery(sql, retry=retry, params=params)
+
+
+#------------------------------------------------------------------------------
+# Read and write to DataFrames
 
 
 def read_sql(sql, con=None, index_col=None, flavor=None, driver=None,
@@ -200,6 +264,21 @@ def sequence2dict(seq):
 # get_schema = PandasSQL._create_schema
 frame_query = read_sql
 read_frame = read_sql
+
+def _get_backend(self, engine=None, con=None, cursor=None, flavor=None):
+    if engine:
+        return SQLAlchemyEngineBackend(engine)
+    if not flavor:
+        raise ValueError("Must specify a flavor with a non-SQLAlchemy"
+                         " database.")
+    if con:
+        cursor = con.cursor()
+    if not cursor:
+        raise ValueError("Must pass either a connection or a cursor")
+    if flavor not in flavor_mapping:
+        raise ValueError("Unknown flavor %s" % flavor)
+    return flavor_mapping[flavor](cursor)
+
 
 class BackendBase(StringMixin):
     def __init__(self, cursor, *args, **kwargs):
@@ -412,7 +491,7 @@ class BackendBase(StringMixin):
             replace: If table exists, drop it, recreate it, and insert data.
             append: If table exists, insert data. Create if does not exist.
         """
-        kwargs = self._pop_dep_append_kwarg(kwargs)
+        self._pop_dep_append_kwarg(kwargs)
 
         exists = self._has_table(name)
         if exists:
@@ -462,7 +541,7 @@ class BackendBase(StringMixin):
             append: If table exists, insert data. Create if does not exist.
         """
         kwargs['if_exists'] = if_exists
-        kwargs = self._pop_dep_append_kwarg(kwargs)
+        self._pop_dep_append_kwarg(kwargs)
         if_exists = kwargs['if_exists']
         exists = self._has_table(name)
 
@@ -595,7 +674,7 @@ class SQLAlchemyEngineBackend(BackendBase):
         cls.sqltype = sqltype
         cls._initialized_sqltype = True
 
-class SqliteBackend(BackendBase):
+class SQLiteBackend(BackendBase):
     table_query_format = ("SELECT name FROM sqlite_master "
                         "WHERE type='table' AND name='%s';")
     sqltype = {'default': 'VARCHAR (63)',
@@ -649,10 +728,12 @@ class MySQLBackend(BackendBase):
             data = [tuple(x) for x in frame.values]
         else:
             data = [tuple(x) for x in frame.values.tolist()]
-        cur.executemany(insert_query, data)
+        self.cur.executemany(insert_query, data)
 
 class PostgresBackend(BackendBase):
-    sqltype = {'postgres': 'text',
+    table_query_format = ("select * from information_schema.tables where "
+                          "table_name=%s")
+    sqltype = {'default': 'text',
                'date': 'date',
                'bool': 'boolean',
                'datetime': 'timestamp',
@@ -661,14 +742,26 @@ class PostgresBackend(BackendBase):
                }
     flavor = 'postgres'
     schema_format = '%s %s'
-    # TODO: Add
-    # * _write_helper
+    def _write_helper(frame, table, names):
+        # TODO: almost the same between MySQL and SQLite - consider combining
+        col_names = ','.join(names)
+        # not sure whether this is the correct format here...
+        wildcards = ','.join(['%s'] * len(names))
+        insert_query = "INSERT INTO %s (%s) VALUES (%s)" % (
+            table, col_names, wildcards)
+        # pandas types are badly handled if there is only 1 column ( Issue
+        # #3628 )
+        if len(frame.columns) != 1:
+            data = [tuple(x) for x in frame.values]
+        else:
+            data = [tuple(x) for x in frame.values.tolist()]
+        self.cur.executemany(insert_query, data)
     # * table_query_format
 
 flavor_mapping = {
     'sqlite': SQLiteBackend,
     'postgres': PostgresBackend,
     'mysql': MySQLBackend,
-    'sqla': SQLAlchemyBackend,
-    'oracle': SQLAlchemyBackend,
+    'sqla': SQLAlchemyEngineBackend,
+    'oracle': SQLAlchemyEngineBackend,
 }
