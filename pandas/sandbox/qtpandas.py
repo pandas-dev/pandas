@@ -3,10 +3,15 @@ Easy integration of DataFrame into pyqt framework
 
 @author: Jev Kuznetsov
 '''
-from PyQt4.QtCore import (
-    QAbstractTableModel, Qt, QVariant, QModelIndex, SIGNAL)
-from PyQt4.QtGui import (
-    QApplication, QDialog, QVBoxLayout, QTableView, QWidget)
+try:
+    from PyQt4.QtCore import QAbstractTableModel, Qt, QVariant, QModelIndex
+    from PyQt4.QtGui import (
+        QApplication, QDialog, QVBoxLayout, QTableView, QWidget)
+except ImportError:
+    from PySide.QtCore import QAbstractTableModel, Qt, QModelIndex
+    from PySide.QtGui import (
+        QApplication, QDialog, QVBoxLayout, QTableView, QWidget)
+    QVariant = lambda value=None: value
 
 from pandas import DataFrame, Index
 
@@ -57,9 +62,17 @@ class DataFrameModel(QAbstractTableModel):
             return flags
 
     def setData(self, index, value, role):
-        self.df.set_value(self.df.index[index.row()],
-                          self.df.columns[index.column()],
-                          value.toPyObject())
+        row = self.df.index[index.row()]
+        col = self.df.columns[index.column()]
+        if hasattr(value, 'toPyObject'):
+            # PyQt4 gets a QVariant
+            value = value.toPyObject()
+        else:
+            # PySide gets an unicode
+            dtype = self.df[col].dtype
+            if dtype != object:
+                value = None if value == '' else dtype.type(value)
+        self.df.set_value(row, col, value)
         return True
 
     def rowCount(self, index=QModelIndex()):
