@@ -102,3 +102,15 @@ expr.set_use_numexpr(False)
 frame_multi_and_no_ne = \
     Benchmark("df[(df>0) & (df2>0)]", setup, name='frame_multi_and_no_ne',cleanup="expr.set_use_numexpr(True)",
               start_date=datetime(2013, 2, 26))
+
+setup = common_setup + """
+N = 1000000
+halfway = N // 2 - 1
+s  = Series(date_range('20010101', periods=N, freq='D'))
+ts = s[halfway]
+"""
+
+timestamp_series_compare = Benchmark("ts >= s", setup,
+                                     start_date=datetime(2013, 9, 27))
+series_timestamp_compare = Benchmark("s <= ts", setup,
+                                     start_date=datetime(2012, 2, 21))

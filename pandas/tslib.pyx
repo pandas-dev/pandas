@@ -350,6 +350,11 @@ NaT = NaTType()
 
 iNaT = util.get_nat()
 
+
+cdef inline bint _cmp_nat_dt(_NaT lhs, _Timestamp rhs, int op) except -1:
+    return _nat_scalar_rules[op]
+
+
 cdef _tz_format(object obj, object zone):
     try:
         return obj.strftime(' %%Z, tz=%s' % zone)
@@ -464,7 +469,7 @@ _reverse_ops[Py_GT] = Py_LT
 _reverse_ops[Py_GE] = Py_LE
 
 
-cdef char* _NDIM_STRING = "ndim"
+cdef str _NDIM_STRING = "ndim"
 
 # This is PITA. Because we inherit from datetime, which has very specific
 # construction requirements, we need to do object instantiation in python
@@ -483,11 +488,11 @@ cdef class _Timestamp(datetime):
     def __richcmp__(_Timestamp self, object other, int op):
         cdef:
             _Timestamp ots
-            int ndim = getattr(other, _NDIM_STRING, -1)
+            int ndim
 
         if isinstance(other, _Timestamp):
-            if isinstance(other, NaTType):
-                return PyObject_RichCompare(other, self, _reverse_ops[op])
+            if isinstance(other, _NaT):
+                return _cmp_nat_dt(other, self, _reverse_ops[op])
             ots = other
         elif isinstance(other, datetime):
             if self.nanosecond == 0:
@@ -499,6 +504,8 @@ cdef class _Timestamp(datetime):
             except ValueError:
                 return self._compare_outside_nanorange(other, op)
         else:
+            ndim = getattr(other, _NDIM_STRING, -1)
+
             if ndim != -1:
                 if ndim == 0:
                     if isinstance(other, np.datetime64):
@@ -541,7 +548,8 @@ cdef class _Timestamp(datetime):
             elif op == Py_GE:
                 return dtval >= other
 
-    cdef void _assert_tzawareness_compat(_Timestamp self, object other):
+    cdef int _assert_tzawareness_compat(_Timestamp self,
+                                        object other) except -1:
         if self.tzinfo is None:
             if other.tzinfo is not None:
                 raise ValueError('Cannot compare tz-naive and tz-aware '
@@ -622,7 +630,8 @@ cdef class _NaT(_Timestamp):
             if isinstance(other, np.datetime64):
                 other = Timestamp(other)
             else:
-                raise TypeError("asdf")
+                raise TypeError('Cannot compare type %r with type %r' %
+                                (type(self).__name__, type(other).__name__))
         return PyObject_RichCompare(other, self, _reverse_ops[op])
 
 
