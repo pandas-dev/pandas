@@ -11423,6 +11423,57 @@ class TestDataFrameQueryWithMultiIndex(object):
         for parser, engine in product(['pandas'], ENGINES):
             yield self.check_query_with_partially_named_multiindex, parser, engine
 
+    def test_query_multiindex_get_index_resolvers(self):
+        for parser, engine in product(['pandas'], ENGINES):
+            yield self.check_query_multiindex_get_index_resolvers, parser, engine
+
+    def check_query_multiindex_get_index_resolvers(self, parser, engine):
+        df = mkdf(10, 3, r_idx_nlevels=2, r_idx_names=['spam', 'eggs'])
+        resolvers = df._get_resolvers()
+
+        def to_series(mi, level):
+            level_values = mi.get_level_values(level)
+            s = level_values.to_series()
+            s.index = mi
+            return s
+
+        col_series = df.columns.to_series()
+        expected = {'index': df.index,
+                    'columns': col_series,
+                    'spam': to_series(df.index, 'spam'),
+                    'eggs': to_series(df.index, 'eggs'),
+                    'C0': col_series}
+        for k, v in resolvers.items():
+            if isinstance(v, Index):
+                assert v.is_(expected[k])
+            elif isinstance(v, Series):
+                print(k)
+                tm.assert_series_equal(v, expected[k])
+            else:
+                raise AssertionError("object must be a Series or Index")
+
+    def test_raise_on_panel_with_multiindex(self):
+        for parser, engine in product(PARSERS, ENGINES):
+            yield self.check_raise_on_panel_with_multiindex, parser, engine
+
+    def check_raise_on_panel_with_multiindex(self, parser, engine):
+        skip_if_no_ne()
+        p = tm.makePanel(7)
+        p.items = tm.makeCustomIndex(len(p.items), nlevels=2)
+        with tm.assertRaises(NotImplementedError):
+            pd.eval('p + 1', parser=parser, engine=engine)
+
+    def test_raise_on_panel4d_with_multiindex(self):
+        for parser, engine in product(PARSERS, ENGINES):
+            yield self.check_raise_on_panel4d_with_multiindex, parser, engine
+
+    def check_raise_on_panel4d_with_multiindex(self, parser, engine):
+        skip_if_no_ne()
+        p4d = tm.makePanel4D(7)
+        p4d.items = tm.makeCustomIndex(len(p4d.items), nlevels=2)
+        with tm.assertRaises(NotImplementedError):
+            pd.eval('p4d + 1', parser=parser, engine=engine)
+
 
 class TestDataFrameQueryNumExprPandas(unittest.TestCase):
     @classmethod
@@ -11445,6 +11496,71 @@ class TestDataFrameQueryNumExprPandas(unittest.TestCase):
                        parser=parser)
         expec = df[(df.dates1 < '20130101') & ('20130101' < df.dates3)]
         assert_frame_equal(res, expec)
+
+    def test_date_query_with_NaT(self):
+        engine, parser = self.engine, self.parser
+        n = 10
+        df = DataFrame(randn(n, 3))
+        df['dates1'] = date_range('1/1/2012', periods=n)
+        df['dates2'] = date_range('1/1/2013', periods=n)
+        df['dates3'] = date_range('1/1/2014', periods=n)
+        df.loc[np.random.rand(n) > 0.5, 'dates1'] = pd.NaT
+        df.loc[np.random.rand(n) > 0.5, 'dates3'] = pd.NaT
+        res = df.query('dates1 < 20130101 < dates3', engine=engine,
+                       parser=parser)
+        expec = df[(df.dates1 < '20130101') & ('20130101' < df.dates3)]
+        assert_frame_equal(res, expec)
+
+    def test_date_index_query(self):
+        engine, parser = self.engine, self.parser
+        n = 10
+        df = DataFrame(randn(n, 3))
+        df['dates1'] = date_range('1/1/2012', periods=n)
+        df['dates3'] = date_range('1/1/2014', periods=n)
+        df.set_index('dates1', inplace=True, drop=True)
+        res = df.query('index < 20130101 < dates3', engine=engine,
+                       parser=parser)
+        expec = df[(df.index < '20130101') & ('20130101' < df.dates3)]
+        assert_frame_equal(res, expec)
+
+    def test_date_index_query_with_NaT(self):
+        engine, parser = self.engine, self.parser
+        n = 10
+        df = DataFrame(randn(n, 3))
+        df['dates1'] = date_range('1/1/2012', periods=n)
+        df['dates3'] = date_range('1/1/2014', periods=n)
+        df.iloc[0, 0] = pd.NaT
+        df.set_index('dates1', inplace=True, drop=True)
+        res = df.query('index < 20130101 < dates3', engine=engine,
+                       parser=parser)
+        expec = df[(df.index < '20130101') & ('20130101' < df.dates3)]
+        assert_frame_equal(res, expec)
+
+    def test_date_index_query_with_NaT_duplicates(self):
+        engine, parser = self.engine, self.parser
+        n = 10
+        d = {}
+        d['dates1'] = date_range('1/1/2012', periods=n)
+        d['dates3'] = date_range('1/1/2014', periods=n)
+        df = DataFrame(d)
+        df.loc[np.random.rand(n) > 0.5, 'dates1'] = pd.NaT
+        df.set_index('dates1', inplace=True, drop=True)
+        res = df.query('index < 20130101 < dates3', engine=engine, parser=parser)
+        expec = df[(df.index.to_series() < '20130101') & ('20130101' < df.dates3)]
+        assert_frame_equal(res, expec)
+
+    def test_date_query_with_non_date(self):
+        engine, parser = self.engine, self.parser
+
+        n = 10
+        df = DataFrame({'dates': date_range('1/1/2012', periods=n),
+             'nondate': np.arange(n)})
+
+        ops = '==', '!=', '<', '>', '<=', '>='
+
+        for op in ops:
+            with tm.assertRaises(TypeError):
+                df.query('dates %s nondate' % op, parser=parser, engine=engine)
 
     def test_query_scope(self):
         engine, parser = self.engine, self.parser
@@ -11607,6 +11723,57 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
                        engine=engine, parser=parser)
         expec = df[(df.dates1 < '20130101') & ('20130101' < df.dates3)]
         assert_frame_equal(res, expec)
+
+    def test_date_query_with_NaT(self):
+        engine, parser = self.engine, self.parser
+        n = 10
+        df = DataFrame(randn(n, 3))
+        df['dates1'] = date_range('1/1/2012', periods=n)
+        df['dates2'] = date_range('1/1/2013', periods=n)
+        df['dates3'] = date_range('1/1/2014', periods=n)
+        df.loc[np.random.rand(n) > 0.5, 'dates1'] = pd.NaT
+        df.loc[np.random.rand(n) > 0.5, 'dates3'] = pd.NaT
+        res = df.query('(dates1 < 20130101) & (20130101 < dates3)',
+                       engine=engine, parser=parser)
+        expec = df[(df.dates1 < '20130101') & ('20130101' < df.dates3)]
+        assert_frame_equal(res, expec)
+
+    def test_date_index_query(self):
+        engine, parser = self.engine, self.parser
+        n = 10
+        df = DataFrame(randn(n, 3))
+        df['dates1'] = date_range('1/1/2012', periods=n)
+        df['dates3'] = date_range('1/1/2014', periods=n)
+        df.set_index('dates1', inplace=True, drop=True)
+        res = df.query('(index < 20130101) & (20130101 < dates3)',
+                       engine=engine, parser=parser)
+        expec = df[(df.index < '20130101') & ('20130101' < df.dates3)]
+        assert_frame_equal(res, expec)
+
+    def test_date_index_query_with_NaT(self):
+        engine, parser = self.engine, self.parser
+        n = 10
+        df = DataFrame(randn(n, 3))
+        df['dates1'] = date_range('1/1/2012', periods=n)
+        df['dates3'] = date_range('1/1/2014', periods=n)
+        df.iloc[0, 0] = pd.NaT
+        df.set_index('dates1', inplace=True, drop=True)
+        res = df.query('(index < 20130101) & (20130101 < dates3)',
+                       engine=engine, parser=parser)
+        expec = df[(df.index < '20130101') & ('20130101' < df.dates3)]
+        assert_frame_equal(res, expec)
+
+    def test_date_index_query_with_NaT_duplicates(self):
+        engine, parser = self.engine, self.parser
+        n = 10
+        df = DataFrame(randn(n, 3))
+        df['dates1'] = date_range('1/1/2012', periods=n)
+        df['dates3'] = date_range('1/1/2014', periods=n)
+        df.loc[np.random.rand(n) > 0.5, 'dates1'] = pd.NaT
+        df.set_index('dates1', inplace=True, drop=True)
+        with tm.assertRaises(NotImplementedError):
+            res = df.query('index < 20130101 < dates3', engine=engine,
+                           parser=parser)
 
     def test_nested_scope(self):
         engine = self.engine
