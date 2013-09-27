@@ -486,6 +486,7 @@ Bug Fixes
   - Fix appending when dtypes are not the same (error showing mixing float/np.datetime64) (:issue:`4993`)
   - Fix repr for DateOffset. No longer show duplicate entries in kwds.
     Removed unused offset fields. (:issue:`4638`)
+  - Fixed wrong index name during read_csv if using usecols. Applies to c parser only. (:issue:`4201`)
 
 pandas 0.12.0
 -------------
