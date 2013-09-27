@@ -735,7 +735,7 @@ class HTMLFormatter(TableFormatter):
 
         fmt_values = {}
         for i in range(len(self.columns)):
-            fmt_values[i] = self.fmt._format_col(i)
+            fmt_values[i] = [item.strip() for item in self.fmt._format_col(i)]
 
         # write values
         if self.fmt.index:
