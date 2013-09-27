@@ -4526,7 +4526,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # GH4947
         # bool comparisons should return bool
         result = d['a'] | d['b']
-        expected = Series([True, True])
+        expected = Series([False, True])
         assert_series_equal(result, expected)
 
         # GH4604, automatic casting here
