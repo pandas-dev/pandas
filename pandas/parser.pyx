@@ -309,7 +309,7 @@ cdef class TextReader:
                   skiprows=None,
                   skip_footer=0,
                   verbose=False,
-                  mangle_dupe_cols=True,
+                  mangle_dupe_cols=False,
                   tupleize_cols=False):
 
         self.parser = parser_new()

@@ -246,6 +246,7 @@ API Changes
   - Begin removing methods that don't make sense on ``GroupBy`` objects
     (:issue:`4887`).
   - Remove deprecated ``read_clipboard/to_clipboard/ExcelFile/ExcelWriter`` from ``pandas.io.parsers`` (:issue:`3717`)
+  - default for ``mangele_dup_cols`` is now ``False`` for ``read_csv``. Fair warning in 0.12 (:issue:`3612`)
 
 Internal Refactoring
 ~~~~~~~~~~~~~~~~~~~~
