@@ -983,7 +983,7 @@ Methods like ``replace`` and ``findall`` take regular expressions, too:
    s3.str.replace('^.a|dog', 'XX-XX ', case=False)
 
 The method ``match`` returns the groups in a regular expression in one tuple.
- Starting in pandas version 0.13, the method ``extract`` is available to 
+ Starting in pandas version 0.13, the method ``extract`` is available to
 accomplish this more conveniently.
 
 Extracting a regular expression with one group returns a Series of strings.
@@ -992,16 +992,16 @@ Extracting a regular expression with one group returns a Series of strings.
 
    Series(['a1', 'b2', 'c3']).str.extract('[ab](\d)')
 
-Elements that do not match return ``NaN``. Extracting a regular expression 
+Elements that do not match return ``NaN``. Extracting a regular expression
 with more than one group returns a DataFrame with one column per group.
 
 .. ipython:: python
 
    Series(['a1', 'b2', 'c3']).str.extract('([ab])(\d)')
 
-Elements that do not match return a row of ``NaN``s. 
-Thus, a Series of messy strings can be "converted" into a 
-like-indexed Series or DataFrame of cleaned-up or more useful strings, 
+Elements that do not match return a row of ``NaN``s.
+Thus, a Series of messy strings can be "converted" into a
+like-indexed Series or DataFrame of cleaned-up or more useful strings,
 without necessitating ``get()`` to access tuples or ``re.match`` objects.
 
 Named groups like
@@ -1410,11 +1410,6 @@ Console Output Formatting
 -------------------------
 
 .. _basics.console_output:
-
-**Note:** ``set_printoptions``/ ``reset_printoptions``  are now deprecated (but functioning),
-and both, as well as ``set_eng_float_format``, use the options API behind the scenes.
-The corresponding options now live under "print.XYZ", and you can set them directly with
-``get/set_option``.
 
 Use the ``set_eng_float_format`` function in the ``pandas.core.common`` module
 to alter the floating-point formatting of pandas objects to produce a particular

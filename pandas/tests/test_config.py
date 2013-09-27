@@ -437,5 +437,3 @@ class TestConfig(unittest.TestCase):
         options.c = 1
         self.assertEqual(len(holder), 1)
 
-# fmt.reset_printoptions and fmt.set_printoptions were altered
-# to use core.config, test_format exercises those paths.
