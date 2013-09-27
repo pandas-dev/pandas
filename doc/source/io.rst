@@ -1732,11 +1732,6 @@ for some advanced strategies
    backwards compatible) with all ``PyTables`` >= 2.3. For ``python >= 3.2``,
    ``pandas >= 0.12.0`` is required for compatibility.
 
-.. warning::
-
-   ``numexpr <= 2.1`` is currently recommended as the current version (2.2.1) has a backward incompatible
-   change with ``PyTables < 3.0.0``
-
 .. ipython:: python
    :suppress:
    :okexcept:

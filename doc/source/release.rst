@@ -136,7 +136,7 @@ Improvements to existing features
   - Both ExcelFile and read_excel to accept an xlrd.Book for the io
     (formerly path_or_buf) argument; this requires engine to be set.
     (:issue:`4961`).
-    
+
 API Changes
 ~~~~~~~~~~~
 
@@ -192,6 +192,7 @@ API Changes
     - support ``timedelta64[ns]`` as a serialization type (:issue:`3577`)
     - store `datetime.date` objects as ordinals rather then timetuples to avoid timezone issues (:issue:`2852`),
       thanks @tavistmorph and @numpand
+    - ``numexpr`` 2.2.2 fixes incompatiblity in PyTables 2.4 (:issue:`4908`)
   - ``JSON``
 
     - added ``date_unit`` parameter to specify resolution of timestamps. Options
@@ -483,7 +484,7 @@ Bug Fixes
   - Fixed wrong check for overlapping in ``DatetimeIndex.union`` (:issue:`4564`)
   - Fixed conflict between thousands separator and date parser in csv_parser (:issue:`4678`)
   - Fix appending when dtypes are not the same (error showing mixing float/np.datetime64) (:issue:`4993`)
-  - Fix repr for DateOffset. No longer show duplicate entries in kwds. 
+  - Fix repr for DateOffset. No longer show duplicate entries in kwds.
     Removed unused offset fields. (:issue:`4638`)
 
 pandas 0.12.0

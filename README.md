@@ -96,8 +96,6 @@ pip install pandas
 - [numexpr](http://code.google.com/p/numexpr/)
    - Needed to accelerate some expression evaluation operations
    - Required by PyTables
-   - numexpr version <= 2.1 is recommended as the current version (2.2.1) has a backward
-     incompatible change with PyTables < 3.0
 - [bottleneck](http://berkeleyanalytics.com/bottleneck)
    - Needed to accelerate certain numerical operations
 

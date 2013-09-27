@@ -77,11 +77,6 @@ Recommended Dependencies
   * `numexpr <http://code.google.com/p/numexpr/>`__: for accelerating certain numerical operations.
     ``numexpr`` uses multiple cores as well as smart chunking and caching to achieve large speedups.
 
-    .. warning::
-
-       ``numexpr <= 2.1`` is currently recommended as the current version (2.2.1) has a backward incompatible
-       change with ``PyTables < 3.0.0``
-
   * `bottleneck <http://berkeleyanalytics.com/bottleneck>`__: for accelerating certain types of ``nan``
     evaluations. ``bottleneck`` uses specialized cython routines to achieve large speedups.
 
