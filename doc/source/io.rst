@@ -151,7 +151,7 @@ They can take a number of arguments:
   - ``error_bad_lines``: if False then any lines causing an error will be skipped :ref:`bad lines <io.bad_lines>`
   - ``usecols``: a subset of columns to return, results in much faster parsing
     time and lower memory usage.
-  - ``mangle_dupe_cols``: boolean, default True, then duplicate columns will be specified
+  - ``mangle_dupe_cols``: boolean, default False, then duplicate columns will be specified
     as 'X.0'...'X.N', rather than 'X'...'X'
   - ``tupleize_cols``: boolean, default False, if False, convert a list of tuples
     to a multi-index of columns, otherwise, leave the column index as a list of tuples

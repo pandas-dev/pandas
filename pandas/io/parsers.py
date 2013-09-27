@@ -128,7 +128,7 @@ na_filter: boolean, default True
 usecols : array-like
     Return a subset of the columns.
     Results in much faster parsing time and lower memory usage.
-mangle_dupe_cols: boolean, default True
+mangle_dupe_cols: boolean, default False
     Duplicate columns will be specified as 'X.0'...'X.N', rather than 'X'...'X'
 tupleize_cols: boolean, default False
     Leave a list of tuples on columns as is (default is to convert to
@@ -245,7 +245,7 @@ _parser_defaults = {
     'encoding': None,
     'squeeze': False,
     'compression': None,
-    'mangle_dupe_cols': True,
+    'mangle_dupe_cols': False,
     'tupleize_cols':False,
 }
 
@@ -334,7 +334,7 @@ def _make_parser_function(name, sep=','):
                  verbose=False,
                  encoding=None,
                  squeeze=False,
-                 mangle_dupe_cols=True,
+                 mangle_dupe_cols=False,
                  tupleize_cols=False,
                  ):
 
@@ -1260,7 +1260,7 @@ class PythonParser(ParserBase):
         self.skipinitialspace = kwds['skipinitialspace']
         self.lineterminator = kwds['lineterminator']
         self.quoting = kwds['quoting']
-        self.mangle_dupe_cols = kwds.get('mangle_dupe_cols',True)
+        self.mangle_dupe_cols = kwds.get('mangle_dupe_cols',False)
 
         self.has_index_names = False
         if 'has_index_names' in kwds:

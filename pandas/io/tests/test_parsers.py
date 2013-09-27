@@ -804,10 +804,6 @@ d,,f
     6,7,8,9,10
     11,12,13,14,15
     """
-            # check default beahviour
-            df = self.read_table(StringIO(data), sep=',',engine=engine)
-            self.assertEqual(list(df.columns), ['A', 'A.1', 'B', 'B.1', 'B.2'])
-
             df = self.read_table(StringIO(data), sep=',',engine=engine,mangle_dupe_cols=False)
             self.assertEqual(list(df.columns), ['A', 'A', 'B', 'B', 'B'])
 
