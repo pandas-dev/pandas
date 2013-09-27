@@ -493,8 +493,15 @@ class BaseExprVisitor(ast.NodeVisitor):
                                  maybe_eval_in_python=('==', '!=')):
         res = op(lhs, rhs)
 
-        # "in"/"not in" ops are always evaluated in python
+        if (res.op in _cmp_ops_syms and
+            lhs.is_datetime or rhs.is_datetime and
+            self.engine != 'pytables'):
+            # all date ops must be done in python bc numexpr doesn't work well
+            # with NaT
+            return self._possibly_eval(res, self.binary_ops)
+
         if res.op in eval_in_python:
+            # "in"/"not in" ops are always evaluated in python
             return self._possibly_eval(res, eval_in_python)
         elif (lhs.return_type == object or rhs.return_type == object and
               self.engine != 'pytables'):

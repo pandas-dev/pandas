@@ -1003,7 +1003,7 @@ class TestAlignment(object):
                 expected = ("Alignment difference on axis {0} is larger"
                             " than an order of magnitude on term {1!r}, "
                             "by more than {2:.4g}; performance may suffer"
-                            "".format(1, 's', np.log10(s.size - df.shape[1])))
+                            "".format(1, 'df', np.log10(s.size - df.shape[1])))
                 assert_equal(msg, expected)
 
     def test_performance_warning_for_poor_alignment(self):

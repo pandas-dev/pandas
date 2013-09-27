@@ -335,6 +335,9 @@ Experimental Features
 - A :meth:`~pandas.DataFrame.query` method has been added that allows
   you to select elements of a ``DataFrame`` using a natural query syntax nearly
   identical to Python syntax.
+- ``pd.eval`` and friends now evaluate operations involving ``datetime64``
+  objects in Python space because ``numexpr`` cannot handle ``NaT`` values
+  (:issue:`4897`).
 
 .. _release.bug_fixes-0.13.0:
 
