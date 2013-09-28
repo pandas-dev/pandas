@@ -77,8 +77,6 @@ class TestCommon(unittest.TestCase):
         for column in frame[["A", "B", "C", "D"]]:
             coldata = r_dataframe.rx2(column)
             original_data = frame[column]
-            print(com.convert_robj(coldata))
-            print(original_data)
             assert np.array_equal(com.convert_robj(coldata), original_data)
 
         for column in frame[["D", "E"]]:
