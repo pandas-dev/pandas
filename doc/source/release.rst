@@ -214,6 +214,7 @@ API Changes
       data - allowing metadata changes.
     - ``MultiIndex.astype()`` now only allows ``np.object_``-like dtypes and
       now returns a ``MultiIndex`` rather than an ``Index``. (:issue:`4039`)
+    - Aliased ``__iadd__`` to ``__add__``. (:issue:`4996`)
    - Added ``is_`` method to ``Index`` that allows fast equality comparison of
      views (similar to ``np.may_share_memory`` but no false positives, and
      changes on ``levels`` and ``labels`` setting on ``MultiIndex``).
