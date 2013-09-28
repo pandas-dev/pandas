@@ -68,9 +68,17 @@ API changes
         df1 and df2
         s1 and s2
 
+
+Prior Version Deprecations/Changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+These were announced changes in 0.12 or prior that are taking effect as of 0.13.0
+
   - Remove deprecated ``Factor`` (:issue:`3650`)
   - Remove deprecated ``set_printoptions/reset_printoptions`` (:issue:``3046``)
   - Remove deprecated ``_verbose_info`` (:issue:`3215`)
+  - Remove deprecated ``read_clipboard/to_clipboard/ExcelFile/ExcelWriter`` from ``pandas.io.parsers`` (:issue:`3717`)
+  - default for ``tupleize_cols`` is now ``False`` for both ``to_csv`` and ``read_csv``. Fair warning in 0.12 (:issue:`3604`)
 
 Indexing API Changes
 ~~~~~~~~~~~~~~~~~~~~
