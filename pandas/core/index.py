@@ -600,7 +600,7 @@ class Index(FrozenNDArray):
             return False
 
     def __hash__(self):
-        return hash(self.view(np.ndarray))
+        raise TypeError("unhashable type: %r" % type(self).__name__)
 
     def __getitem__(self, key):
         """Override numpy.ndarray's __getitem__ method to work as desired"""
@@ -1851,6 +1851,7 @@ class Float64Index(Index):
         except TypeError:
             # e.g. fails in numpy 1.6 with DatetimeIndex #1681
             return False
+
 
 class MultiIndex(Index):
 

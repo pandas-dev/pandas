@@ -12,7 +12,8 @@ import os
 import numpy as np
 from numpy.testing import assert_array_equal
 
-from pandas.core.index import Index, Float64Index, Int64Index, MultiIndex, InvalidIndexError
+from pandas.core.index import (Index, Float64Index, Int64Index, MultiIndex,
+                               InvalidIndexError)
 from pandas.core.frame import DataFrame
 from pandas.core.series import Series
 from pandas.util.testing import (assert_almost_equal, assertRaisesRegexp,
@@ -75,7 +76,10 @@ class TestIndex(unittest.TestCase):
         self.assertEqual(ind.names, [name])
 
     def test_hash_error(self):
-        self.assertRaises(TypeError, hash, self.strIndex)
+        with tm.assertRaisesRegexp(TypeError,
+                                   "unhashable type: %r" %
+                                   type(self.strIndex).__name__):
+            hash(self.strIndex)
 
     def test_new_axis(self):
         new_index = self.dateIndex[None, :]
@@ -661,6 +665,12 @@ class TestFloat64Index(unittest.TestCase):
         self.mixed = Float64Index([1.5, 2, 3, 4, 5])
         self.float = Float64Index(np.arange(5) * 2.5)
 
+    def test_hash_error(self):
+        with tm.assertRaisesRegexp(TypeError,
+                                   "unhashable type: %r" %
+                                   type(self.float).__name__):
+            hash(self.float)
+
     def check_is_index(self, i):
         self.assert_(isinstance(i, Index) and not isinstance(i, Float64Index))
 
@@ -736,6 +746,7 @@ class TestFloat64Index(unittest.TestCase):
         self.assert_(i.equals(result))
         self.check_is_index(result)
 
+
 class TestInt64Index(unittest.TestCase):
     _multiprocess_can_split_ = True
 
@@ -778,6 +789,12 @@ class TestInt64Index(unittest.TestCase):
         # preventing casting
         arr = np.array([1, '2', 3, '4'], dtype=object)
         self.assertRaises(TypeError, Int64Index, arr)
+
+    def test_hash_error(self):
+        with tm.assertRaisesRegexp(TypeError,
+                                   "unhashable type: %r" %
+                                   type(self.index).__name__):
+            hash(self.index)
 
     def test_copy(self):
         i = Int64Index([], name='Foo')
@@ -1154,6 +1171,12 @@ class TestMultiIndex(unittest.TestCase):
         self.index = MultiIndex(levels=[major_axis, minor_axis],
                                 labels=[major_labels, minor_labels],
                                 names=self.index_names)
+
+    def test_hash_error(self):
+        with tm.assertRaisesRegexp(TypeError,
+                                   "unhashable type: %r" %
+                                   type(self.index).__name__):
+            hash(self.index)
 
     def test_set_names_and_rename(self):
         # so long as these are synonyms, we don't need to test set_names
@@ -2230,6 +2253,7 @@ def test_get_combined_index():
     from pandas.core.index import _get_combined_index
     result = _get_combined_index([])
     assert(result.equals(Index([])))
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
