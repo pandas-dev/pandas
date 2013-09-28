@@ -16,9 +16,6 @@ from rpy2.robjects import r
 import rpy2.robjects as robj
 r['options'](warn=-1)
 
-import logging
-logger = logging.getLogger(__name__)
-
 __all__ = ['convert_robj', 'load_data', 'convert_to_r_dataframe',
            'convert_to_r_matrix']
 
@@ -30,7 +27,6 @@ except Exception:
         importr('reshape')
         melt = r['melt']
     except Exception:
-        logger.warn('Unable to load R reshape2 or reshape library')
         melt = None
 
 def load_data(name, package=None, convert=True):
