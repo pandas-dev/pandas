@@ -121,9 +121,59 @@ class TestCommon(unittest.TestCase):
         except Exception:
             raise
 
-    def test_eurodist(self):
-        df = com.load_data('eurodist')
-        print(df)
+    def test_dist(self):
+        for name in ('eurodist',):
+            df = com.load_data(name)
+            dist = r[name]
+            labels = r['labels'](dist)
+            assert np.array_equal(df.index, labels)
+            assert np.array_equal(df.columns, labels)
+
+
+    def test_timeseries(self):
+        """
+        Test that the series has an informative index.
+        Unfortunately the code currently does not build a DateTimeIndex
+        """
+        for name in (
+            'austres', 'co2', 'fdeaths', 'freeny.y', 'JohnsonJohnson',
+            'ldeaths', 'mdeaths', 'nottem', 'presidents', 'sunspot.month', 'sunspots',
+            'UKDriverDeaths', 'UKgas', 'USAccDeaths',
+            'airmiles', 'discoveries', 'EuStockMarkets', 
+            'LakeHuron', 'lh', 'lynx', 'nhtemp', 'Nile', 
+            'Seatbelts', 'sunspot.year', 'treering', 'uspop'):
+            series = com.load_data(name)
+            ts = r[name]
+            assert np.array_equal(series.index, r['time'](ts))
+
+    def test_numeric(self):
+        for name in ('euro', 'islands', 'precip'):
+            series = com.load_data(name)
+            numeric = r[name]
+            names = numeric.names
+            assert np.array_equal(series.index, names)            
+
+    def test_table(self):
+        # This test requires the r package 'reshape2' or 'reshape' to be installed
+        for name in ('HairEyeColor', 'Titanic', 'occupationalStatus'):
+            df = com.load_data(name)
+            table = r['melt'](r[name])
+            names = list(table.names)
+            assert np.array_equal(df.columns, names)
+
+    def test_array(self):
+        df = com.load_data('iris3')
+        assert not np.array_equal(df.index, range(len(df.index)))
+        
+    def test_factor(self):
+        for name in ('state.division', 'state.region'):
+            vector = r[name]
+            factors = list(r['factor'](vector))
+            level = list(r['levels'](vector))
+            factors = [level[index-1] for index in factors]
+            result = com.load_data(name)
+            assert np.equal(result, factors)
+        
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    # '--with-coverage', '--cover-package=pandas.core'],
