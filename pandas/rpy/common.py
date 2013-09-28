@@ -15,9 +15,22 @@ from rpy2.robjects.packages import importr
 from rpy2.robjects import r
 import rpy2.robjects as robj
 
+import logging
+logger = logging.getLogger(__name__)
+
 __all__ = ['convert_robj', 'load_data', 'convert_to_r_dataframe',
            'convert_to_r_matrix']
 
+try:
+    importr('reshape2')
+    melt = r['melt']
+except Exception:
+    try:
+        importr('reshape')
+        melt = r['melt']
+    except Exception:
+        logger.warn('Unable to load R reshape2 or reshape library')
+        melt = None
 
 def load_data(name, package=None, convert=True):
     if package:
@@ -46,38 +59,54 @@ def _is_null(obj):
 
 def _convert_list(obj):
     """
-    Convert named Vector to dict
+    Convert named Vector to dict, factors to DataFrames
     """
-    values = [convert_robj(x) for x in obj]
-    return dict(zip(obj.names, values))
+    try:
+        values = [convert_robj(x) for x in obj]
+        keys = r['names'](obj)
+        return dict(zip(keys, values))
+    except TypeError:
+        # For state.division and state.region
+        if melt:
+            return convert_robj(melt(obj))
+        else:
+            raise TypeError(
+                'Unable to convert R object. '
+                'Please install the R reshape or reshape2 package')
 
 
 def _convert_array(obj):
     """
     Convert Array to ndarray
     """
-    # this royally sucks. "Matrices" (arrays) with dimension > 3 in R aren't
-    # really matrices-- things come out Fortran order in the first two
-    # dimensions. Maybe I'm wrong?
-
-    dim = list(obj.dim)
-    values = np.array(list(obj))
-
-    if len(dim) == 3:
-        arr = values.reshape(dim[-1:] + dim[:-1]).swapaxes(1, 2)
-
-    if obj.names is not None:
-        name_list = [list(x) for x in obj.names]
-        if len(dim) == 2:
-            return pd.DataFrame(arr, index=name_list[0], columns=name_list[1])
-        elif len(dim) == 3:
-            return pd.Panel(arr, items=name_list[2],
-                            major_axis=name_list[0],
-                            minor_axis=name_list[1])
-        else:
-            print('Cannot handle dim=%d' % len(dim))
+    if melt:
+        # For iris3, HairEyeColor, UCBAdmissions, Titanic
+        return convert_robj(melt(obj))
     else:
-        return arr
+        # this royally sucks. "Matrices" (arrays) with dimension > 3 in R aren't
+        # really matrices-- things come out Fortran order in the first two
+        # dimensions. Maybe I'm wrong?
+
+        dim = list(obj.dim)
+        values = np.array(list(obj))
+
+        if len(dim) == 3:
+            arr = values.reshape(dim[-1:] + dim[:-1]).swapaxes(1, 2)
+
+        if obj.names is not None:
+            name_list = [list(x) for x in obj.names]
+            if len(dim) == 2:
+                # arr is not defined. There would be an error if we ever got here
+                return pd.DataFrame(arr, index=name_list[0], columns=name_list[1])
+            elif len(dim) == 3:
+                return pd.Panel(arr, items=name_list[2],
+                                major_axis=name_list[0],
+                                minor_axis=name_list[1])
+            else:
+                print('Cannot handle dim=%d' % len(dim))
+        else:
+            # arr might not be defined unless len(dim) == 3
+            return arr
 
 
 def _convert_vector(obj):
@@ -85,9 +114,20 @@ def _convert_vector(obj):
         return _convert_int_vector(obj)
     elif isinstance(obj, robj.StrVector):
         return _convert_str_vector(obj)
-
-    return list(obj)
-
+    try:
+        attributes = set(r['attributes'](obj).names)
+        if 'names' in attributes:
+            index = r['names'](obj)
+        elif 'tsp' in attributes:
+            index = r['time'](obj)
+        elif 'labels' in attributes:
+            index = r['labels'](obj)
+        else:
+            # For 'eurodist'  
+            return convert_robj(r['as.matrix'](obj))
+        return pd.Series(list(obj), index=index)
+    except (TypeError, AttributeError):
+        return list(obj)
 NA_INTEGER = -2147483648
 
 
@@ -141,8 +181,7 @@ def _convert_Matrix(mat):
     rows = mat.rownames
 
     columns = None if _is_null(columns) else list(columns)
-    index = None if _is_null(rows) else list(rows)
-
+    index = r['time'](mat) if _is_null(rows) else list(rows)
     return pd.DataFrame(np.array(mat), index=_check_int(index),
                         columns=columns)
 
@@ -197,7 +236,7 @@ def convert_robj(obj, use_pandas=True):
         if isinstance(obj, rpy_type):
             return converter(obj)
 
-    raise Exception('Do not know what to do with %s object' % type(obj))
+    raise TypeError('Do not know what to do with %s object' % type(obj))
 
 
 def convert_to_r_posixct(obj):
@@ -330,115 +369,8 @@ def convert_to_r_matrix(df, strings_as_factors=False):
     return r_matrix
 
 
-def test_convert_list():
-    obj = r('list(a=1, b=2, c=3)')
-
-    converted = convert_robj(obj)
-    expected = {'a': [1], 'b': [2], 'c': [3]}
-
-    _test.assert_dict_equal(converted, expected)
 
 
-def test_convert_nested_list():
-    obj = r('list(a=list(foo=1, bar=2))')
-
-    converted = convert_robj(obj)
-    expected = {'a': {'foo': [1], 'bar': [2]}}
-
-    _test.assert_dict_equal(converted, expected)
-
-
-def test_convert_frame():
-    # built-in dataset
-    df = r['faithful']
-
-    converted = convert_robj(df)
-
-    assert np.array_equal(converted.columns, ['eruptions', 'waiting'])
-    assert np.array_equal(converted.index, np.arange(1, 273))
-
-
-def _test_matrix():
-    r('mat <- matrix(rnorm(9), ncol=3)')
-    r('colnames(mat) <- c("one", "two", "three")')
-    r('rownames(mat) <- c("a", "b", "c")')
-
-    return r['mat']
-
-
-def test_convert_matrix():
-    mat = _test_matrix()
-
-    converted = convert_robj(mat)
-
-    assert np.array_equal(converted.index, ['a', 'b', 'c'])
-    assert np.array_equal(converted.columns, ['one', 'two', 'three'])
-
-
-def test_convert_r_dataframe():
-
-    is_na = robj.baseenv.get("is.na")
-
-    seriesd = _test.getSeriesData()
-    frame = pd.DataFrame(seriesd, columns=['D', 'C', 'B', 'A'])
-
-    # Null data
-    frame["E"] = [np.nan for item in frame["A"]]
-    # Some mixed type data
-    frame["F"] = ["text" if item % 2 == 0 else np.nan for item in range(30)]
-
-    r_dataframe = convert_to_r_dataframe(frame)
-
-    assert np.array_equal(convert_robj(r_dataframe.rownames), frame.index)
-    assert np.array_equal(convert_robj(r_dataframe.colnames), frame.columns)
-    assert all(is_na(item) for item in r_dataframe.rx2("E"))
-
-    for column in frame[["A", "B", "C", "D"]]:
-        coldata = r_dataframe.rx2(column)
-        original_data = frame[column]
-        assert np.array_equal(convert_robj(coldata), original_data)
-
-    for column in frame[["D", "E"]]:
-        for original, converted in zip(frame[column],
-                                       r_dataframe.rx2(column)):
-
-            if pd.isnull(original):
-                assert is_na(converted)
-            else:
-                assert original == converted
-
-
-def test_convert_r_matrix():
-
-    is_na = robj.baseenv.get("is.na")
-
-    seriesd = _test.getSeriesData()
-    frame = pd.DataFrame(seriesd, columns=['D', 'C', 'B', 'A'])
-    # Null data
-    frame["E"] = [np.nan for item in frame["A"]]
-
-    r_dataframe = convert_to_r_matrix(frame)
-
-    assert np.array_equal(convert_robj(r_dataframe.rownames), frame.index)
-    assert np.array_equal(convert_robj(r_dataframe.colnames), frame.columns)
-    assert all(is_na(item) for item in r_dataframe.rx(True, "E"))
-
-    for column in frame[["A", "B", "C", "D"]]:
-        coldata = r_dataframe.rx(True, column)
-        original_data = frame[column]
-        assert np.array_equal(convert_robj(coldata),
-                              original_data)
-
-    # Pandas bug 1282
-    frame["F"] = ["text" if item % 2 == 0 else np.nan for item in range(30)]
-
-    # FIXME: Ugly, this whole module needs to be ported to nose/unittest
-    try:
-        wrong_matrix = convert_to_r_matrix(frame)
-    except TypeError:
-        pass
-    except Exception:
-        raise
 
 
 if __name__ == '__main__':
