@@ -498,6 +498,8 @@ Bug Fixes
   - ``Timestamp`` objects can now appear in the left hand side of a comparison
     operation with a ``Series`` or ``DataFrame`` object (:issue:`4982`).
   - Fix a bug when indexing with ``np.nan`` via ``iloc/loc`` (:issue:`5016`)
+  - Fix a bug where reshaping a ``Series`` to its own shape raised ``TypeError`` (:issue:`4554`)
+    and other reshaping issues.
 
 pandas 0.12.0
 -------------
