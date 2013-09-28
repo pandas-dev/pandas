@@ -1,5 +1,5 @@
 from pandas.compat import StringIO, BytesIO
-from datetime import date, datetime
+from datetime import datetime, time, timedelta, date
 import csv
 import os
 import sys
@@ -119,6 +119,34 @@ year, month, day, hour, minute, second, a, b
                         date_parser=dateconverter)
         self.assert_('ym' in df)
         self.assert_(df.ym.ix[0] == date(2001, 1, 1))
+
+    def test_offset_datetime(self):
+        #test with a datetime.datetime object
+        dt_in = datetime(2013, 1, 1, 1, 10, 10, 100000)
+        dt_target = datetime(2013, 1, 2, 6, 20, 40, 100600)
+        dt_res = conv.offset_datetime(dt_in, days=1, hours=5, minutes=10,
+                                      seconds=30, microseconds=600)
+
+        assert(dt_res == dt_target)
+        #test with a datetime.time object
+        ti_in = time(1, 10, 20, 100000)
+        ti_target = time(6, 20, 50, 100600)
+        ti_res = conv.offset_datetime(ti_in, hours=5, minutes=10,
+                                      seconds=30, microseconds=600)
+        assert(ti_res == ti_target)
+
+    def test_dt2ti(self):
+        #a datetime.datetime object
+        dt_in = datetime(2013, 1, 1, 1, 10, 10, 100000)
+        ti_target = time(1, 10, 10, 100000)
+        dt2ti_dt_res = conv.dt2ti(dt_in)
+        assert(ti_target == dt2ti_dt_res)
+
+        #a datetime.time object
+        ti_in = time(1, 10, 20, 100000)
+        ti_target_dt2ti = time(1, 10, 20, 100000)
+        dt2ti_ti_res = conv.dt2ti(ti_in)
+        assert(ti_target_dt2ti == dt2ti_ti_res)
 
 
 if __name__ == '__main__':
