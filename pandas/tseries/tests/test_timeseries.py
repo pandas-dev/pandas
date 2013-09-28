@@ -1718,6 +1718,13 @@ def _simple_ts(start, end, freq='D'):
 class TestDatetimeIndex(unittest.TestCase):
     _multiprocess_can_split_ = True
 
+    def test_hash_error(self):
+        index = date_range('20010101', periods=10)
+        with tm.assertRaisesRegexp(TypeError,
+                                   "unhashable type: %r" %
+                                   type(index).__name__):
+            hash(index)
+
     def test_stringified_slice_with_tz(self):
         #GH2658
         import datetime
