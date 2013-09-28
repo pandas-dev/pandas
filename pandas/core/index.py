@@ -424,7 +424,7 @@ class Index(FrozenNDArray):
         def to_int():
             ikey = int(key)
             if ikey != key:
-                self._convert_indexer_error(key, 'label')
+                return self._convert_indexer_error(key, 'label')
             return ikey
 
         if typ == 'iloc':
