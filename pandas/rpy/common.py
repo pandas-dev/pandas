@@ -126,8 +126,8 @@ def _convert_vector(obj):
         return pd.Series(list(obj), index=r['time'](obj)) 
     elif 'labels' in attributes:
         return pd.Series(list(obj), index=r['labels'](obj)) 
-    elif r['class'](obj) == 'dist':
-        # For 'eurodist'. WARNING: This results in a DataFrame, not a Series or list.
+    elif 'dist' in set(r['class'](obj)):
+        # For 'eurodist'. WARNING: This results in a DataFrame, not a Series or listq.
         matrix = r['as.matrix'](obj)
         return convert_robj(matrix)
     else:

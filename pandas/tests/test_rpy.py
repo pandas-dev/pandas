@@ -28,7 +28,6 @@ class TestCommon(unittest.TestCase):
 
         tm.assert_dict_equal(converted, expected)
 
-
     def test_convert_frame(self):
         # built-in dataset
         df = r['faithful']
@@ -38,14 +37,12 @@ class TestCommon(unittest.TestCase):
         assert np.array_equal(converted.columns, ['eruptions', 'waiting'])
         assert np.array_equal(converted.index, np.arange(1, 273))
 
-
     def _test_matrix(self):
         r('mat <- matrix(rnorm(9), ncol=3)')
         r('colnames(mat) <- c("one", "two", "three")')
         r('rownames(mat) <- c("a", "b", "c")')
 
         return r['mat']
-
 
     def test_convert_matrix(self):
         mat = self._test_matrix()
@@ -54,7 +51,6 @@ class TestCommon(unittest.TestCase):
 
         assert np.array_equal(converted.index, ['a', 'b', 'c'])
         assert np.array_equal(converted.columns, ['one', 'two', 'three'])
-
 
     def test_convert_r_dataframe(self):
 
@@ -66,12 +62,15 @@ class TestCommon(unittest.TestCase):
         # Null data
         frame["E"] = [np.nan for item in frame["A"]]
         # Some mixed type data
-        frame["F"] = ["text" if item % 2 == 0 else np.nan for item in range(30)]
+        frame["F"] = ["text" if item %
+                      2 == 0 else np.nan for item in range(30)]
 
         r_dataframe = com.convert_to_r_dataframe(frame)
 
-        assert np.array_equal(com.convert_robj(r_dataframe.rownames), frame.index)
-        assert np.array_equal(com.convert_robj(r_dataframe.colnames), frame.columns)
+        assert np.array_equal(
+            com.convert_robj(r_dataframe.rownames), frame.index)
+        assert np.array_equal(
+            com.convert_robj(r_dataframe.colnames), frame.columns)
         assert all(is_na(item) for item in r_dataframe.rx2("E"))
 
         for column in frame[["A", "B", "C", "D"]]:
@@ -88,7 +87,6 @@ class TestCommon(unittest.TestCase):
                 else:
                     assert original == converted
 
-
     def test_convert_r_matrix(self):
 
         is_na = robj.baseenv.get("is.na")
@@ -100,8 +98,10 @@ class TestCommon(unittest.TestCase):
 
         r_dataframe = com.convert_to_r_matrix(frame)
 
-        assert np.array_equal(com.convert_robj(r_dataframe.rownames), frame.index)
-        assert np.array_equal(com.convert_robj(r_dataframe.colnames), frame.columns)
+        assert np.array_equal(
+            com.convert_robj(r_dataframe.rownames), frame.index)
+        assert np.array_equal(
+            com.convert_robj(r_dataframe.colnames), frame.columns)
         assert all(is_na(item) for item in r_dataframe.rx(True, "E"))
 
         for column in frame[["A", "B", "C", "D"]]:
@@ -111,7 +111,8 @@ class TestCommon(unittest.TestCase):
                                   original_data)
 
         # Pandas bug 1282
-        frame["F"] = ["text" if item % 2 == 0 else np.nan for item in range(30)]
+        frame["F"] = ["text" if item %
+                      2 == 0 else np.nan for item in range(30)]
 
         try:
             wrong_matrix = com.convert_to_r_matrix(frame)
@@ -119,7 +120,10 @@ class TestCommon(unittest.TestCase):
             pass
         except Exception:
             raise
-    
+
+    def test_eurodist(self):
+        df = com.load_data('eurodist')
+        print(df)
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    # '--with-coverage', '--cover-package=pandas.core'],
