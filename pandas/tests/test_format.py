@@ -1159,7 +1159,7 @@ c  10  11  12  13  14\
         df_s = df.to_string(justify='left')
         expected = ('   x       \n'
                     '0  3234.000\n'
-                    '1     0.253')
+                    '1  0.253   ')
         assert(df_s == expected)
 
     def test_to_string_format_na(self):
@@ -1933,6 +1933,69 @@ class TestFloatArrayFormatter(unittest.TestCase):
     def test_misc(self):
         obj = fmt.FloatArrayFormatter(np.array([], dtype=np.float64))
         result = obj.get_result()
+
+
+class TestDataFrameJustification(unittest.TestCase):
+    def setUp(self):
+        self.df_int = pd.DataFrame(np.arange(3).reshape(1, 3),
+                                   columns=['foo', 'bar', 'baz'],
+                                   dtype=int)
+        self.df_float = pd.DataFrame(np.linspace(0.3, 1.2, 3).reshape(1, 3),
+                                     columns=['a', 'b', 'c'],
+                                     dtype=float)
+        self.df_string = pd.DataFrame([
+            ['test', 'something long', 'something even longer'],
+            ['foo', 'bar', 'baz'],
+            ['small', 'text', 'samples']
+        ], columns=['a', 'b', 'c'])
+
+    def test_left_justification(self):
+        expected = '   foo  bar  baz\n0  0    1    2  '
+        self.assertEqual(expected, self.df_int.to_string(justify='left'),
+                         'Left int justification failed')
+        expected = '   a    b     c  \n0  0.3  0.75  1.2'
+        self.assertEqual(expected, self.df_float.to_string(justify='left'),
+                         'Left float justification failed')
+        expected = '''
+  a      b               c                     
+0  test   something long  something even longer
+1  foo    bar             baz                  
+2  small  text            samples              
+'''.strip('\r\n')
+        self.assertEqual(expected, self.df_string.to_string(justify='left'),
+                         'Left string justification failed')
+
+    def test_right_justification(self):
+        expected = '   foo  bar  baz\n0    0    1    2'
+        self.assertEqual(expected, self.df_int.to_string(justify='right'),
+                         'Right int justification failed')
+        expected = '     a     b    c\n0  0.3  0.75  1.2'
+        self.assertEqual(expected, self.df_float.to_string(justify='right'),
+                         'Right float justification failed')
+        expected = '''
+       a               b                      c
+0   test  something long  something even longer
+1    foo             bar                    baz
+2  small            text                samples
+'''.strip('\r\n')
+        self.assertEqual(expected, self.df_string.to_string(justify='right'),
+                         'Right string justification failed')
+
+    def test_center_justification(self):
+        expected = '   foo  bar  baz\n0   0    1    2 '
+        self.assertEqual(expected, self.df_int.to_string(justify='center'),
+                         'Center int justification failed')
+        expected = '    a     b    c \n0  0.3  0.75  1.2'
+        self.assertEqual(expected, self.df_float.to_string(justify='center'),
+                         'Center float justification failed')
+        expected = '''
+    a           b                  c           
+0  test   something long  something even longer
+1   foo         bar                baz         
+2  small       text              samples       
+'''.strip('\r\n')
+        self.assertEqual(expected, self.df_string.to_string(justify='center'),
+                         'Center string justification failed')
 
 if __name__ == '__main__':
     import nose

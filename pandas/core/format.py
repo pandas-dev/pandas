@@ -62,6 +62,7 @@ docstring_to_string = """
     -------
     formatted : string (or unicode, depending on data and options)"""
 
+
 class CategoricalFormatter(object):
     def __init__(self, categorical, buf=None, length=True,
                  na_rep='NaN', name=False, footer=True):
@@ -140,7 +141,7 @@ class SeriesFormatter(object):
         if float_format is None:
             float_format = get_option("display.float_format")
         self.float_format = float_format
-        self.dtype  = dtype
+        self.dtype = dtype
 
     def _get_footer(self):
         footer = u('')
@@ -163,7 +164,7 @@ class SeriesFormatter(object):
             footer += 'Length: %d' % len(self.series)
 
         if self.dtype:
-            if getattr(self.series.dtype,'name',None):
+            if getattr(self.series.dtype, 'name', None):
                 if footer:
                     footer += ', '
                 footer += 'dtype: %s' % com.pprint_thing(self.series.dtype.name)
@@ -212,6 +213,7 @@ class SeriesFormatter(object):
             result.append(footer)
 
         return compat.text_type(u('\n').join(result))
+
 
 def _strlen_func():
     if compat.PY3:  # pragma: no cover
@@ -304,32 +306,31 @@ class DataFrameFormatter(TableFormatter):
 
         for i, c in enumerate(self.columns):
             if self.header:
-                fmt_values = self._format_col(i)
                 cheader = str_columns[i]
-
                 max_colwidth = max(self.col_space or 0,
                                    *(_strlen(x) for x in cheader))
-
-                fmt_values = _make_fixed_width(fmt_values, self.justify,
-                                               minimum=max_colwidth)
+                fmt_values = self._format_col(i, justify=self.justify,
+                                              minimum=max_colwidth)
 
                 max_len = max(np.max([_strlen(x) for x in fmt_values]),
                               max_colwidth)
                 if self.justify == 'left':
                     cheader = [x.ljust(max_len) for x in cheader]
-                else:
+                elif self.justify == 'right':
                     cheader = [x.rjust(max_len) for x in cheader]
+                elif self.justify == 'center':
+                    cheader = [x.center(max_len) for x in cheader]
+                else:
+                    cheader = [x.strip() for x in cheader]
 
                 stringified.append(cheader + fmt_values)
             else:
-                stringified = [_make_fixed_width(self._format_col(i),
-                                                 self.justify)
+                stringified = [self._format_col(i, justify=self.justify)
                                for i, c in enumerate(self.columns)]
 
         strcols = stringified
         if self.index:
             strcols.insert(0, str_index)
-
         return strcols
 
     def to_string(self, force_unicode=None):
@@ -450,12 +451,14 @@ class DataFrameFormatter(TableFormatter):
             raise TypeError('buf is not a file name and it has no write '
                             'method')
 
-    def _format_col(self, i):
+    def _format_col(self, i, justify='right', minimum=None):
         formatter = self._get_formatter(i)
         return format_array(self.frame.icol(i).get_values(), formatter,
                             float_format=self.float_format,
                             na_rep=self.na_rep,
-                            space=self.col_space)
+                            space=self.col_space,
+                            justify=justify,
+                            minimum=minimum)
 
     def to_html(self, classes=None):
         """
@@ -735,7 +738,7 @@ class HTMLFormatter(TableFormatter):
 
         fmt_values = {}
         for i in range(len(self.columns)):
-            fmt_values[i] = [item.strip() for item in self.fmt._format_col(i)]
+            fmt_values[i] = self.fmt._format_col(i, justify=None)
 
         # write values
         if self.fmt.index:
@@ -1485,7 +1488,7 @@ class ExcelFormatter(object):
 
 
 def format_array(values, formatter, float_format=None, na_rep='NaN',
-                 digits=None, space=None, justify='right'):
+                 digits=None, space=None, justify='right', minimum=None):
     if com.is_float_dtype(values.dtype):
         fmt_klass = FloatArrayFormatter
     elif com.is_integer_dtype(values.dtype):
@@ -1509,7 +1512,7 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
     fmt_obj = fmt_klass(values, digits, na_rep=na_rep,
                         float_format=float_format,
                         formatter=formatter, space=space,
-                        justify=justify)
+                        justify=justify, minimum=minimum)
 
     return fmt_obj.get_result()
 
@@ -1517,7 +1520,7 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
 class GenericArrayFormatter(object):
 
     def __init__(self, values, digits=7, formatter=None, na_rep='NaN',
-                 space=12, float_format=None, justify='right'):
+                 space=12, float_format=None, justify='right', minimum=None):
         self.values = values
         self.digits = digits
         self.na_rep = na_rep
@@ -1525,10 +1528,11 @@ class GenericArrayFormatter(object):
         self.formatter = formatter
         self.float_format = float_format
         self.justify = justify
+        self.minimum = minimum
 
     def get_result(self):
         fmt_values = self._format_strings()
-        return _make_fixed_width(fmt_values, self.justify)
+        return _make_fixed_width(fmt_values, self.justify, self.minimum)
 
     def _format_strings(self):
         if self.float_format is None:
@@ -1584,19 +1588,19 @@ class FloatArrayFormatter(GenericArrayFormatter):
     def _format_with(self, fmt_str):
         def _val(x, threshold):
             if notnull(x):
-                if threshold is None or  abs(x) >  get_option("display.chop_threshold"):
+                if threshold is None or  abs(x) > get_option("display.chop_threshold"):
                     return  fmt_str % x
                 else:
-                    if fmt_str.endswith("e"): # engineering format
-                        return  "0"
+                    if fmt_str.endswith("e"):  # engineering format
+                        return "0"
                     else:
-                        return  fmt_str % 0
+                        return fmt_str % 0
             else:
 
                 return self.na_rep
 
         threshold = get_option("display.chop_threshold")
-        fmt_values = [ _val(x, threshold) for x in self.values]
+        fmt_values = [_val(x, threshold) for x in self.values]
         return _trim_zeros(fmt_values, self.na_rep)
 
     def get_result(self):
@@ -1627,7 +1631,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
                 fmt_str = '%% .%de' % (self.digits - 1)
                 fmt_values = self._format_with(fmt_str)
 
-        return _make_fixed_width(fmt_values, self.justify)
+        return _make_fixed_width(fmt_values, self.justify, self.minimum)
 
 
 class IntArrayFormatter(GenericArrayFormatter):
@@ -1640,7 +1644,7 @@ class IntArrayFormatter(GenericArrayFormatter):
 
         fmt_values = [formatter(x) for x in self.values]
 
-        return _make_fixed_width(fmt_values, self.justify)
+        return _make_fixed_width(fmt_values, self.justify, self.minimum)
 
 
 class Datetime64Formatter(GenericArrayFormatter):
@@ -1652,7 +1656,8 @@ class Datetime64Formatter(GenericArrayFormatter):
             formatter = _format_datetime64
 
         fmt_values = [formatter(x) for x in self.values]
-        return _make_fixed_width(fmt_values, self.justify)
+        return _make_fixed_width(fmt_values, self.justify, self.minimum)
+
 
 def _format_datetime64(x, tz=None):
     if isnull(x):
@@ -1672,13 +1677,15 @@ class Timedelta64Formatter(Datetime64Formatter):
             formatter = _format_timedelta64
 
         fmt_values = [formatter(x) for x in self.values]
-        return _make_fixed_width(fmt_values, self.justify)
+        return _make_fixed_width(fmt_values, self.justify, self.minimum)
+
 
 def _format_timedelta64(x):
     if isnull(x):
         return 'NaT'
 
     return lib.repr_timedelta64(x)
+
 
 def _make_fixed_width(strings, justify='right', minimum=None):
     if len(strings) == 0:
@@ -1697,8 +1704,12 @@ def _make_fixed_width(strings, justify='right', minimum=None):
 
     if justify == 'left':
         justfunc = lambda self, x: self.ljust(x)
-    else:
+    elif justify == 'right':
         justfunc = lambda self, x: self.rjust(x)
+    elif justify == 'center':
+        justfunc = lambda self, x: self.center(x)
+    else:
+        justfunc = lambda self, _: self.strip()
 
     def just(x):
         eff_len = max_len
