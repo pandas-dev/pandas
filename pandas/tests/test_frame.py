@@ -642,6 +642,8 @@ class CheckIndexing(object):
     def test_setitem_None(self):
         # GH #766
         self.frame[None] = self.frame['A']
+        assert_series_equal(self.frame.iloc[:,-1], self.frame['A'])
+        assert_series_equal(self.frame.loc[:,None], self.frame['A'])
         assert_series_equal(self.frame[None], self.frame['A'])
         repr(self.frame)
 
@@ -4474,6 +4476,41 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         d = DataFrame({'a': [np.nan, False]})
         self.assert_(d['a'].dtype == np.object_)
         self.assert_(d['a'][1] is False)
+
+    def test_constructor_with_nas(self):
+        # GH 5016
+        # na's in indicies
+
+        def check(df):
+            for i in range(len(df.columns)):
+                df.iloc[:,i]
+
+            # allow single nans to succeed
+            indexer = np.arange(len(df.columns))[isnull(df.columns)]
+
+            if len(indexer) == 1:
+                assert_series_equal(df.iloc[:,indexer[0]],df.loc[:,np.nan])
+
+
+            # multiple nans should fail
+            else:
+
+                def f():
+                    df.loc[:,np.nan]
+                self.assertRaises(ValueError, f)
+
+
+        df = DataFrame([[1,2,3],[4,5,6]], index=[1,np.nan])
+        check(df)
+
+        df = DataFrame([[1,2,3],[4,5,6]], columns=[1.1,2.2,np.nan])
+        check(df)
+
+        df = DataFrame([[0,1,2,3],[4,5,6,7]], columns=[np.nan,1.1,2.2,np.nan])
+        check(df)
+
+        df = DataFrame([[0.0,1,2,3.0],[4,5,6,7]], columns=[np.nan,1.1,2.2,np.nan])
+        check(df)
 
     def test_logical_with_nas(self):
         d = DataFrame({'a': [np.nan, False], 'b': [True, True]})
