@@ -14,6 +14,7 @@ import pandas.util.testing as _test
 from rpy2.robjects.packages import importr
 from rpy2.robjects import r
 import rpy2.robjects as robj
+r['options'](warn=-1)
 
 import logging
 logger = logging.getLogger(__name__)
