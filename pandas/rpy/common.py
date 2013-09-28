@@ -114,27 +114,25 @@ def _convert_vector(obj):
         return _convert_int_vector(obj)
     elif isinstance(obj, robj.StrVector):
         return _convert_str_vector(obj)
+    # Check if the vector has extra information attached to it that can be used
+    # as an index
     try:
         attributes = set(r['attributes'](obj).names)
-        if 'names' in attributes:
-            index = r['names'](obj)
-            return pd.Series(list(obj), index=index)            
-        elif 'tsp' in attributes:
-            index = r['time'](obj)
-            return pd.Series(list(obj), index=index)            
-        elif 'labels' in attributes:
-            index = r['labels'](obj)
-            return pd.Series(list(obj), index=index)            
-        elif r['class'](obj) == 'dist':
-            # For 'eurodist'
-            # Note when obj is a dist, this returns a DataFrame, even though obj
-            # was a vector
-            matrix = r['as.matrix'](obj)
-            return convert_robj(matrix)
-        else:
-            return list(obj)
-    except (TypeError, AttributeError, UnboundLocalError):
+    except AttributeError:
         return list(obj)
+    if 'names' in attributes:
+        return pd.Series(list(obj), index=r['names'](obj)) 
+    elif 'tsp' in attributes:
+        return pd.Series(list(obj), index=r['time'](obj)) 
+    elif 'labels' in attributes:
+        return pd.Series(list(obj), index=r['labels'](obj)) 
+    elif r['class'](obj) == 'dist':
+        # For 'eurodist'. WARNING: This results in a DataFrame, not a Series or list.
+        matrix = r['as.matrix'](obj)
+        return convert_robj(matrix)
+    else:
+        return list(obj)
+
 NA_INTEGER = -2147483648
 
 
