@@ -1057,6 +1057,13 @@ class TestPeriodIndex(TestCase):
     def setUp(self):
         pass
 
+    def test_hash_error(self):
+        index = period_range('20010101', periods=10)
+        with tm.assertRaisesRegexp(TypeError,
+                                   "unhashable type: %r" %
+                                   type(index).__name__):
+            hash(index)
+
     def test_make_time_series(self):
         index = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
         series = Series(1, index=index)
