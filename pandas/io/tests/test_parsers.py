@@ -1706,7 +1706,7 @@ A,B,C
             self.assertEquals(len(result), 50)
 
     def test_converters_corner_with_nas(self):
-      # skip aberration observed on Win64 Python 3.2.2
+        # skip aberration observed on Win64 Python 3.2.2
         if hash(np.int64(-1)) != -2:
             raise nose.SkipTest("skipping because of windows hash on Python"
                                 " 3.2.2")
@@ -2078,19 +2078,19 @@ c   1   2   3   4
             read_fwf(StringIO(data3), colspecs=colspecs, widths=[6, 10, 10, 7])
 
         with tm.assertRaisesRegexp(ValueError, "Must specify either"):
-            read_fwf(StringIO(data3))
+            read_fwf(StringIO(data3), colspecs=None, widths=None)
 
     def test_fwf_colspecs_is_list_or_tuple(self):
         with tm.assertRaisesRegexp(TypeError,
                                    'column specifications must be a list or '
                                    'tuple.+'):
-            fwr = pd.io.parsers.FixedWidthReader(StringIO(self.data1),
-                                                 {'a': 1}, ',')
+            pd.io.parsers.FixedWidthReader(StringIO(self.data1),
+                                           {'a': 1}, ',', '#')
 
     def test_fwf_colspecs_is_list_or_tuple_of_two_element_tuples(self):
         with tm.assertRaisesRegexp(TypeError,
                                    'Each column specification must be.+'):
-            read_fwf(StringIO(self.data1), {'a': 1})
+            read_fwf(StringIO(self.data1), [('a', 1)])
 
     def test_fwf_regression(self):
         # GH 3594
@@ -2222,6 +2222,107 @@ eight,1,2,3"""
 
                 expected = Series(['DDD', 'EEE', 'FFF', 'GGG'])
                 tm.assert_series_equal(result, expected)
+
+
+class TestFwfColspaceSniffing(unittest.TestCase):
+    def test_full_file(self):
+        # File with all values
+        test = '''index                             A    B    C
+2000-01-03T00:00:00  0.980268513777    3  foo
+2000-01-04T00:00:00  1.04791624281    -4  bar
+2000-01-05T00:00:00  0.498580885705   73  baz
+2000-01-06T00:00:00  1.12020151869     1  foo
+2000-01-07T00:00:00  0.487094399463    0  bar
+2000-01-10T00:00:00  0.836648671666    2  baz
+2000-01-11T00:00:00  0.157160753327   34  foo'''
+        colspecs = ((0, 19), (21, 35), (38, 40), (42, 45))
+        expected = read_fwf(StringIO(test), colspecs=colspecs)
+        tm.assert_frame_equal(expected, read_fwf(StringIO(test)))
+
+    def test_full_file_with_missing(self):
+        # File with missing values
+        test = '''index                             A    B    C
+2000-01-03T00:00:00  0.980268513777    3  foo
+2000-01-04T00:00:00  1.04791624281    -4  bar
+                     0.498580885705   73  baz
+2000-01-06T00:00:00  1.12020151869     1  foo
+2000-01-07T00:00:00                    0  bar
+2000-01-10T00:00:00  0.836648671666    2  baz
+                                      34'''
+        colspecs = ((0, 19), (21, 35), (38, 40), (42, 45))
+        expected = read_fwf(StringIO(test), colspecs=colspecs)
+        tm.assert_frame_equal(expected, read_fwf(StringIO(test)))
+
+    def test_full_file_with_spaces(self):
+        # File with spaces in columns
+        test = '''
+Account                 Name  Balance     CreditLimit   AccountCreated
+101     Keanu Reeves          9315.45     10000.00           1/17/1998
+312     Gerard Butler         90.00       1000.00             8/6/2003
+868     Jennifer Love Hewitt  0           17000.00           5/25/1985
+761     Jada Pinkett-Smith    49654.87    100000.00          12/5/2006
+317     Bill Murray           789.65      5000.00             2/5/2007
+'''.strip('\r\n')
+        colspecs = ((0, 7), (8, 28), (30, 38), (42, 53), (56, 70))
+        expected = read_fwf(StringIO(test), colspecs=colspecs)
+        tm.assert_frame_equal(expected, read_fwf(StringIO(test)))
+
+    def test_full_file_with_spaces_and_missing(self):
+        # File with spaces and missing values in columsn
+        test = '''
+Account               Name    Balance     CreditLimit   AccountCreated
+101                           10000.00                       1/17/1998
+312     Gerard Butler         90.00       1000.00             8/6/2003
+868                                                          5/25/1985
+761     Jada Pinkett-Smith    49654.87    100000.00          12/5/2006
+317     Bill Murray           789.65
+'''.strip('\r\n')
+        colspecs = ((0, 7), (8, 28), (30, 38), (42, 53), (56, 70))
+        expected = read_fwf(StringIO(test), colspecs=colspecs)
+        tm.assert_frame_equal(expected, read_fwf(StringIO(test)))
+
+    def test_messed_up_data(self):
+        # Completely messed up file
+        test = '''
+   Account          Name             Balance     Credit Limit   Account Created
+       101                           10000.00                       1/17/1998
+       312     Gerard Butler         90.00       1000.00
+
+       761     Jada Pinkett-Smith    49654.87    100000.00          12/5/2006
+  317          Bill Murray           789.65
+'''.strip('\r\n')
+        colspecs = ((2, 10), (15, 33), (37, 45), (49, 61), (64, 79))
+        expected = read_fwf(StringIO(test), colspecs=colspecs)
+        tm.assert_frame_equal(expected, read_fwf(StringIO(test)))
+
+    def test_multiple_delimiters(self):
+        test = r'''
+col1~~~~~col2  col3++++++++++++++++++col4
+~~22.....11.0+++foo~~~~~~~~~~Keanu Reeves
+  33+++122.33\\\bar.........Gerard Butler
+++44~~~~12.01   baz~~Jennifer Love Hewitt
+~~55       11+++foo++++Jada Pinkett-Smith
+..66++++++.03~~~bar           Bill Murray
+'''.strip('\r\n')
+        colspecs = ((0, 4), (7, 13), (15, 19), (21, 41))
+        expected = read_fwf(StringIO(test), colspecs=colspecs,
+                            delimiter=' +~.\\')
+        tm.assert_frame_equal(expected, read_fwf(StringIO(test),
+                                                 delimiter=' +~.\\'))
+
+    def test_variable_width_unicode(self):
+        if not compat.PY3:
+            raise nose.SkipTest('Bytes-related test - only needs to work on Python 3')
+        test = '''
+שלום שלום
+ום   שלל
+של   ום
+'''.strip('\r\n')
+        expected = pd.read_fwf(BytesIO(test.encode('utf8')),
+                               colspecs=[(0, 4), (5, 9)], header=None)
+        tm.assert_frame_equal(expected, read_fwf(BytesIO(test.encode('utf8')),
+                                                 header=None))
+
 
 class TestCParserHighMemory(ParserTests, unittest.TestCase):
 
