@@ -643,6 +643,8 @@ cdef class Float64HashTable(HashTable):
 
         return uniques.to_array()
 
+na_sentinel = object
+
 cdef class PyObjectHashTable(HashTable):
     # cdef kh_pymap_t *table
 
@@ -660,6 +662,8 @@ cdef class PyObjectHashTable(HashTable):
     def __contains__(self, object key):
         cdef khiter_t k
         hash(key)
+        if key != key or key is None:
+             key = na_sentinel
         k = kh_get_pymap(self.table, <PyObject*>key)
         return k != self.table.n_buckets
 
@@ -669,6 +673,8 @@ cdef class PyObjectHashTable(HashTable):
 
     cpdef get_item(self, object val):
         cdef khiter_t k
+        if val != val or val is None:
+            val = na_sentinel
         k = kh_get_pymap(self.table, <PyObject*>val)
         if k != self.table.n_buckets:
             return self.table.vals[k]
@@ -677,6 +683,8 @@ cdef class PyObjectHashTable(HashTable):
 
     def get_iter_test(self, object key, Py_ssize_t iterations):
         cdef Py_ssize_t i, val
+        if key != key or key is None:
+             key = na_sentinel
         for i in range(iterations):
             k = kh_get_pymap(self.table, <PyObject*>key)
             if k != self.table.n_buckets:
@@ -689,6 +697,8 @@ cdef class PyObjectHashTable(HashTable):
             char* buf
 
         hash(key)
+        if key != key or key is None:
+             key = na_sentinel
         k = kh_put_pymap(self.table, <PyObject*>key, &ret)
         # self.table.keys[k] = key
         if kh_exist_pymap(self.table, k):
@@ -706,6 +716,9 @@ cdef class PyObjectHashTable(HashTable):
         for i in range(n):
             val = values[i]
             hash(val)
+            if val != val or val is None:
+                val = na_sentinel
+
             k = kh_put_pymap(self.table, <PyObject*>val, &ret)
             self.table.vals[k] = i
 
@@ -720,6 +733,9 @@ cdef class PyObjectHashTable(HashTable):
         for i in range(n):
             val = values[i]
             hash(val)
+            if val != val or val is None:
+                val = na_sentinel
+
             k = kh_get_pymap(self.table, <PyObject*>val)
             if k != self.table.n_buckets:
                 locs[i] = self.table.vals[k]

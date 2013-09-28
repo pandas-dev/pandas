@@ -1053,10 +1053,10 @@ class Series(generic.NDFrame):
         except TypeError as e:
             if isinstance(key, tuple) and not isinstance(self.index, MultiIndex):
                 raise ValueError("Can only tuple-index with a MultiIndex")
+
             # python 3 type errors should be raised
             if 'unorderable' in str(e):  # pragma: no cover
                 raise IndexError(key)
-            # Could not hash item
 
         if _is_bool_indexer(key):
             key = _check_bool_indexer(self.index, key)

@@ -1,12 +1,12 @@
 # pylint: disable=W0223
 
 from datetime import datetime
-from pandas.core.common import _asarray_tuplesafe, is_list_like
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.compat import range, zip
 import pandas.compat as compat
 import pandas.core.common as com
 from pandas.core.common import (_is_bool_indexer, is_integer_dtype,
+                                _asarray_tuplesafe, is_list_like, isnull,
                                 ABCSeries, ABCDataFrame, ABCPanel)
 import pandas.lib as lib
 
@@ -979,12 +979,20 @@ class _LocIndexer(_LocationIndexer):
         else:
 
             def error():
+                if isnull(key):
+                    raise ValueError("cannot use label indexing with a null key")
                 raise KeyError("the label [%s] is not in the [%s]" % (key,self.obj._get_axis_name(axis)))
 
-            key = self._convert_scalar_indexer(key, axis)
             try:
+                key = self._convert_scalar_indexer(key, axis)
                 if not key in ax:
                     error()
+            except (TypeError) as e:
+
+                # python 3 type errors should be raised
+                if 'unorderable' in str(e):  # pragma: no cover
+                    error()
+                raise
             except:
                 error()
 

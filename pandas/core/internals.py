@@ -97,8 +97,13 @@ class Block(PandasObject):
                 indexer = self.ref_items.get_indexer(self.items)
                 indexer = com._ensure_platform_int(indexer)
                 if (indexer == -1).any():
-                    raise AssertionError('Some block items were not in block '
-                                         'ref_items')
+
+                    # this means that we have nan's in our block
+                    try:
+                        indexer[indexer == -1] = np.arange(len(self.items))[isnull(self.items)]
+                    except:
+                        raise AssertionError('Some block items were not in block '
+                                             'ref_items')
 
             self._ref_locs = indexer
         return self._ref_locs
@@ -2500,9 +2505,18 @@ class BlockManager(PandasObject):
 
     def get(self, item):
         if self.items.is_unique:
+
+            if isnull(item):
+                indexer = np.arange(len(self.items))[isnull(self.items)]
+                return self.get_for_nan_indexer(indexer)
+
             _, block = self._find_block(item)
             return block.get(item)
         else:
+
+            if isnull(item):
+                raise ValueError("cannot label index with a null key")
+
             indexer = self.items.get_loc(item)
             ref_locs = np.array(self._set_ref_locs())
 
@@ -2528,12 +2542,29 @@ class BlockManager(PandasObject):
 
     def iget(self, i):
         item = self.items[i]
-        if self.items.is_unique:
-            return self.get(item)
 
-        # compute the duplicative indexer if needed
+        # unique
+        if self.items.is_unique:
+            if notnull(item):
+                return self.get(item)
+            return self.get_for_nan_indexer(i)
+
         ref_locs = self._set_ref_locs()
         b, loc = ref_locs[i]
+        return b.iget(loc)
+
+    def get_for_nan_indexer(self, indexer):
+
+        # allow a single nan location indexer
+        if not np.isscalar(indexer):
+            if len(indexer) == 1:
+                indexer = indexer.item()
+            else:
+                raise ValueError("cannot label index with a null key")
+
+        # take a nan indexer and return the values
+        ref_locs = self._set_ref_locs(do_refs='force')
+        b, loc = ref_locs[indexer]
         return b.iget(loc)
 
     def get_scalar(self, tup):
