@@ -118,15 +118,22 @@ def _convert_vector(obj):
         attributes = set(r['attributes'](obj).names)
         if 'names' in attributes:
             index = r['names'](obj)
+            return pd.Series(list(obj), index=index)            
         elif 'tsp' in attributes:
             index = r['time'](obj)
+            return pd.Series(list(obj), index=index)            
         elif 'labels' in attributes:
             index = r['labels'](obj)
+            return pd.Series(list(obj), index=index)            
+        elif r['class'](obj) == 'dist':
+            # For 'eurodist'
+            # Note when obj is a dist, this returns a DataFrame, even though obj
+            # was a vector
+            matrix = r['as.matrix'](obj)
+            return convert_robj(matrix)
         else:
-            # For 'eurodist'  
-            return convert_robj(r['as.matrix'](obj))
-        return pd.Series(list(obj), index=index)
-    except (TypeError, AttributeError):
+            return list(obj)
+    except (TypeError, AttributeError, UnboundLocalError):
         return list(obj)
 NA_INTEGER = -2147483648
 
