@@ -88,17 +88,18 @@ class DataFrameWidget(QWidget):
         super(DataFrameWidget, self).__init__(parent)
 
         self.dataModel = DataFrameModel()
-        self.dataModel.setDataFrame(dataFrame)
-
         self.dataTable = QTableView()
         self.dataTable.setModel(self.dataModel)
-        self.dataModel.signalUpdate()
 
         layout = QVBoxLayout()
         layout.addWidget(self.dataTable)
         self.setLayout(layout)
+        # Set DataFrame
+        self.setDataFrame(dataFrame)
 
-    def resizeColumnsToContents(self):
+    def setDataFrame(self, dataFrame):
+        self.dataModel.setDataFrame(dataFrame)
+        self.dataModel.signalUpdate()
         self.dataTable.resizeColumnsToContents()
 
 #-----------------stand alone test code
