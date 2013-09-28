@@ -1414,7 +1414,7 @@ class TestMultiIndex(unittest.TestCase):
 
     def test_legacy_pickle(self):
         if compat.PY3:
-            raise nose.SkipTest
+            raise nose.SkipTest("doesn't work on Python 3")
 
         def curpath():
             pth, _ = os.path.split(os.path.abspath(__file__))

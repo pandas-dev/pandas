@@ -5,6 +5,8 @@ import os
 import unittest
 import operator
 
+from distutils.version import LooseVersion
+
 import nose
 
 import numpy as np
@@ -49,7 +51,7 @@ def _skip_if_no_pytz():
     try:
         import pytz
     except ImportError:
-        raise nose.SkipTest
+        raise nose.SkipTest("pytz not installed")
 
 
 class TestTimeSeriesDuplicates(unittest.TestCase):
@@ -661,8 +663,8 @@ class TestTimeSeries(unittest.TestCase):
     def test_index_astype_datetime64(self):
         idx = Index([datetime(2012, 1, 1)], dtype=object)
 
-        if np.__version__ >= '1.7':
-            raise nose.SkipTest("Test requires numpy < 1.7")
+        if np.__version__ >= LooseVersion('1.7'):
+            raise nose.SkipTest("test only valid in numpy < 1.7")
 
         casted = idx.astype(np.dtype('M8[D]'))
         expected = DatetimeIndex(idx.values)

@@ -386,8 +386,8 @@ def _get_names(arrs, names, prefix='row'):
             else:
                 names.append('%s_%d' % (prefix, i))
     else:
-        if not ((len(names) == len(arrs))):
-            raise AssertionError()
+        if len(names) != len(arrs):
+            raise AssertionError('arrays and names must have the same length')
         if not isinstance(names, list):
             names = list(names)
 

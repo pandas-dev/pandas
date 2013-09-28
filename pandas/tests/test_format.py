@@ -202,7 +202,8 @@ class TestDataFrameFormatting(unittest.TestCase):
     def test_repr_max_columns_max_rows(self):
         term_width, term_height = get_terminal_size()
         if term_width < 10 or term_height < 10:
-            raise nose.SkipTest
+            raise nose.SkipTest("terminal size too small, "
+                                "{0} x {1}".format(term_width, term_height))
 
         def mkframe(n):
             index = ['%05d' % i for i in range(n)]
@@ -766,7 +767,7 @@ class TestDataFrameFormatting(unittest.TestCase):
         from pandas.core.common import pprint_thing as pp_t
 
         if PY3:
-            raise nose.SkipTest()
+            raise nose.SkipTest("doesn't work on Python 3")
 
         self.assertEquals(pp_t('a') , u('a'))
         self.assertEquals(pp_t(u('a')) , u('a'))

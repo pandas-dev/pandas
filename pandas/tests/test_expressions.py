@@ -18,8 +18,13 @@ from pandas import compat
 
 
 if not expr._USE_NUMEXPR:
-    raise nose.SkipTest("numexpr not available")
-
+    try:
+        import numexpr
+    except ImportError:
+        msg = "don't have"
+    else:
+        msg = "not using"
+    raise nose.SkipTest("{0} numexpr".format(msg))
 
 _frame  = DataFrame(randn(10000, 4), columns=list('ABCD'), dtype='float64')
 _frame2 = DataFrame(randn(100, 4),   columns = list('ABCD'), dtype='float64')

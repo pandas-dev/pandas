@@ -16,6 +16,13 @@ from pandas.util.testing import (assert_series_equal, assert_produces_warning,
 from numpy.testing import assert_array_equal
 
 
+def _skip_if_no_lxml():
+    try:
+        import lxml
+    except ImportError:
+        raise nose.SkipTest("no lxml")
+
+
 def assert_n_failed_equals_n_null_columns(wngs, obj, cls=SymbolWarning):
     all_nan_cols = pd.Series(dict((k, pd.isnull(v).all()) for k, v in
                                   compat.iteritems(obj)))
@@ -88,10 +95,7 @@ class TestGoogle(unittest.TestCase):
 class TestYahoo(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        try:
-            import lxml
-        except ImportError:
-            raise nose.SkipTest
+        _skip_if_no_lxml()
 
     @network
     def test_yahoo(self):
@@ -210,10 +214,7 @@ class TestYahoo(unittest.TestCase):
 class TestYahooOptions(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        try:
-            import lxml
-        except ImportError:
-            raise nose.SkipTest
+        _skip_if_no_lxml()
 
         # aapl has monthlies
         cls.aapl = web.Options('aapl', 'yahoo')
@@ -272,10 +273,7 @@ class TestYahooOptions(unittest.TestCase):
 class TestOptionsWarnings(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        try:
-            import lxml
-        except ImportError:
-            raise nose.SkipTest
+        _skip_if_no_lxml()
 
         with assert_produces_warning(FutureWarning):
             cls.aapl = web.Options('aapl')

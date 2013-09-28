@@ -2295,7 +2295,7 @@ class TestHDFStore(unittest.TestCase):
     def test_timeseries_preepoch(self):
 
         if sys.version_info[0] == 2 and sys.version_info[1] < 7:
-            raise nose.SkipTest
+            raise nose.SkipTest("won't work on Python < 2.7")
 
         dr = bdate_range('1/1/1940', '1/1/1960')
         ts = Series(np.random.randn(len(dr)), index=dr)
@@ -3599,7 +3599,7 @@ class TestHDFStore(unittest.TestCase):
             safe_remove(self.path)
 
     def test_legacy_table_write(self):
-        raise nose.SkipTest
+        raise nose.SkipTest("skipping for now")
 
         store = HDFStore(tm.get_data_path('legacy_hdf/legacy_table_%s.h5' % pandas.__version__), 'a')
 

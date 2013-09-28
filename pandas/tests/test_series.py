@@ -5,6 +5,7 @@ import operator
 import unittest
 import string
 from itertools import product, starmap
+from distutils.version import LooseVersion
 
 import nose
 
@@ -37,14 +38,14 @@ def _skip_if_no_scipy():
     try:
         import scipy.stats
     except ImportError:
-        raise nose.SkipTest
+        raise nose.SkipTest("scipy not installed")
 
 
 def _skip_if_no_pytz():
     try:
         import pytz
     except ImportError:
-        raise nose.SkipTest
+        raise nose.SkipTest("pytz not installed")
 
 #------------------------------------------------------------------------------
 # Series test cases
@@ -1772,7 +1773,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_(np.array_equal(result, expected))
 
     def test_npdiff(self):
-        raise nose.SkipTest
+        raise nose.SkipTest("skipping due to Series no longer being an "
+                            "ndarray")
 
         # no longer works as the return type of np.diff is now nd.array
         s = Series(np.arange(5))
@@ -3098,8 +3100,9 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertAlmostEqual(result, expected)
 
         # these methods got rewritten in 0.8
-        if int(scipy.__version__.split('.')[1]) < 9:
-            raise nose.SkipTest
+        if scipy.__version__ < LooseVersion('0.9'):
+            raise nose.SkipTest("skipping corr rank because of scipy version "
+                                "{0}".format(scipy.__version__))
 
         # results from R
         A = Series([-0.89926396, 0.94209606, -1.03289164, -0.95445587,

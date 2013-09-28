@@ -431,7 +431,7 @@ class TestMySQL(unittest.TestCase):
         try:
             import MySQLdb
         except ImportError:
-            raise nose.SkipTest
+            raise nose.SkipTest("no MySQLdb")
         frame = tm.makeTimeDataFrame()
         drop_sql = "DROP TABLE IF EXISTS test_table"
         cur = self.db.cursor()
@@ -456,7 +456,7 @@ class TestMySQL(unittest.TestCase):
         try:
             import MySQLdb
         except ImportError:
-            raise nose.SkipTest
+            raise nose.SkipTest("no MySQLdb")
         frame = tm.makeTimeDataFrame()
         drop_sql = "DROP TABLE IF EXISTS test_table"
         cur = self.db.cursor()

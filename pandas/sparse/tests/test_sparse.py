@@ -488,7 +488,7 @@ class TestSparseSeries(TestCase,
     def test_binary_operators(self):
 
         # skipping for now #####
-        raise nose.SkipTest
+        raise nose.SkipTest("skipping sparse binary operators test")
 
         def _check_inplace_op(iop, op):
             tmp = self.bseries.copy()
@@ -539,7 +539,7 @@ class TestSparseSeries(TestCase,
 
         reindexed = self.bseries.reindex(self.bseries.index, copy=False)
         reindexed.sp_values[:] = 1.
-        self.assert_((self.bseries.sp_values == 1.).all())
+        np.testing.assert_array_equal(self.bseries.sp_values, 1.)
 
     def test_sparse_reindex(self):
         length = 10
@@ -582,6 +582,13 @@ class TestSparseSeries(TestCase,
         _check_all(values1, index1, [0, 1])
         _check_all(values1, index1, [0, 1, 7, 8, 9])
         _check_all(values1, index1, [])
+
+        first_series = SparseSeries(values1, sparse_index=IntIndex(length,
+                                                                   index1),
+                                    fill_value=nan)
+        with tm.assertRaisesRegexp(TypeError,
+                                   'new index must be a SparseIndex'):
+            reindexed = first_series.sparse_reindex(0)
 
     def test_repr(self):
         bsrepr = repr(self.bseries)
@@ -1308,6 +1315,10 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         right = self.frame.ix[:, ['B', 'D']]
         self.assertRaises(Exception, left.join, right)
 
+        with tm.assertRaisesRegexp(ValueError, 'Other Series must have a name'):
+            self.frame.join(Series(np.random.randn(len(self.frame)),
+                                   index=self.frame.index))
+
     def test_reindex(self):
 
         def _check_frame(frame):
@@ -1576,8 +1587,11 @@ class TestSparsePanel(TestCase,
         assert_sp_frame_equal(result['ItemA'], op(panel['ItemA'], 1))
 
     def test_constructor(self):
-        self.assertRaises(Exception, SparsePanel, self.data_dict,
+        self.assertRaises(ValueError, SparsePanel, self.data_dict,
                           items=['Item0', 'ItemA', 'ItemB'])
+        with tm.assertRaisesRegexp(TypeError,
+                                   "input must be a dict, a 'list' was passed"):
+            SparsePanel(['a', 'b', 'c'])
 
     def test_from_dict(self):
         fd = SparsePanel.from_dict(self.data_dict)

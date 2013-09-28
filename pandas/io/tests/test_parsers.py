@@ -8,6 +8,7 @@ import sys
 import re
 import unittest
 import nose
+import platform
 
 from numpy import nan
 import numpy as np
@@ -63,6 +64,10 @@ bar2,12,13,14,15
         self.csv1 = os.path.join(self.dirpath, 'test1.csv')
         self.csv2 = os.path.join(self.dirpath, 'test2.csv')
         self.xls1 = os.path.join(self.dirpath, 'test.xls')
+
+    def test_converters_type_must_be_dict(self):
+        with tm.assertRaisesRegexp(TypeError, 'Type converters.+'):
+            self.read_csv(StringIO(self.data1), converters=0)
 
     def test_multi_character_decimal_marker(self):
         data = """A|B|C
@@ -754,6 +759,8 @@ ignore,this,row
         data = self.read_csv(StringIO(text), skiprows=[6, 8])
         condensed_data = self.read_csv(StringIO(condensed_text))
         tm.assert_frame_equal(data, condensed_data)
+
+
 
     def test_detect_string_na(self):
         data = """A,B
@@ -1492,28 +1499,17 @@ a,b,c,d
         df = self.read_csv(StringIO(data), na_values={}, index_col=['a', 'c'])
         tm.assert_frame_equal(df, xp)
 
-    @slow
     @tm.network
     def test_url(self):
-        try:
-            # HTTP(S)
-            url = ('https://raw.github.com/pydata/pandas/master/'
-                   'pandas/io/tests/data/salary.table')
-            url_table = self.read_table(url)
-            dirpath = tm.get_data_path()
-            localtable = os.path.join(dirpath, 'salary.table')
-            local_table = self.read_table(localtable)
-            tm.assert_frame_equal(url_table, local_table)
-            # TODO: ftp testing
-
-        except URLError:
-            try:
-                with tm.closing(urlopen('http://www.google.com')) as resp:
-                    pass
-            except URLError:
-                raise nose.SkipTest
-            else:
-                raise
+        # HTTP(S)
+        url = ('https://raw.github.com/pydata/pandas/master/'
+                'pandas/io/tests/data/salary.table')
+        url_table = self.read_table(url)
+        dirpath = tm.get_data_path()
+        localtable = os.path.join(dirpath, 'salary.table')
+        local_table = self.read_table(localtable)
+        tm.assert_frame_equal(url_table, local_table)
+        # TODO: ftp testing
 
     @slow
     def test_file(self):
@@ -1529,7 +1525,8 @@ a,b,c,d
             url_table = self.read_table('file://localhost/' + localtable)
         except URLError:
             # fails on some systems
-            raise nose.SkipTest
+            raise nose.SkipTest("failing on %s" %
+                                ' '.join(platform.uname()).strip())
 
         tm.assert_frame_equal(url_table, local_table)
 
@@ -1710,7 +1707,8 @@ A,B,C
     def test_converters_corner_with_nas(self):
       # skip aberration observed on Win64 Python 3.2.2
         if hash(np.int64(-1)) != -2:
-            raise nose.SkipTest
+            raise nose.SkipTest("skipping because of windows hash on Python"
+                                " 3.2.2")
 
         csv = """id,score,days
 1,2,12
@@ -1893,6 +1891,21 @@ A,B,C
 
 
 class TestPythonParser(ParserTests, unittest.TestCase):
+    def test_negative_skipfooter_raises(self):
+        text = """#foo,a,b,c
+#foo,a,b,c
+#foo,a,b,c
+#foo,a,b,c
+#foo,a,b,c
+#foo,a,b,c
+1/1/2000,1.,2.,3.
+1/2/2000,4,5,6
+1/3/2000,7,8,9
+"""
+
+        with tm.assertRaisesRegexp(ValueError,
+                                   'skip footer cannot be negative'):
+            df = self.read_csv(StringIO(text), skipfooter=-1)
 
     def read_csv(self, *args, **kwds):
         kwds = kwds.copy()
@@ -2048,6 +2061,18 @@ c   1   2   3   4
         with tm.assertRaisesRegexp(ValueError, "Must specify either"):
             read_fwf(StringIO(data3))
 
+    def test_fwf_colspecs_is_list_or_tuple(self):
+        with tm.assertRaisesRegexp(TypeError,
+                                   'column specifications must be a list or '
+                                   'tuple.+'):
+            fwr = pd.io.parsers.FixedWidthReader(StringIO(self.data1),
+                                                 {'a': 1}, ',')
+
+    def test_fwf_colspecs_is_list_or_tuple_of_two_element_tuples(self):
+        with tm.assertRaisesRegexp(TypeError,
+                                   'Each column specification must be.+'):
+            read_fwf(StringIO(self.data1), {'a': 1})
+
     def test_fwf_regression(self):
         # GH 3594
         #### turns out 'T060' is parsable as a datetime slice!
@@ -2155,7 +2180,7 @@ eight,1,2,3"""
 
     def test_iteration_open_handle(self):
         if PY3:
-            raise nose.SkipTest
+            raise nose.SkipTest("won't work in Python 3 {0}".format(sys.version_info))
 
         with tm.ensure_clean() as path:
             with open(path, 'wb') as f:
@@ -2371,7 +2396,7 @@ a,b,c
             import gzip
             import bz2
         except ImportError:
-            raise nose.SkipTest
+            raise nose.SkipTest('need gzip and bz2 to run')
 
         data = open(self.csv1, 'rb').read()
         expected = self.read_csv(self.csv1)
@@ -2406,7 +2431,7 @@ a,b,c
             import gzip
             import bz2
         except ImportError:
-            raise nose.SkipTest
+            raise nose.SkipTest('need gzip and bz2 to run')
 
         data = open(self.csv1, 'rb').read()
         data = data.replace(b',', b'::')

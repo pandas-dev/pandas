@@ -1419,7 +1419,7 @@ Thur,Lunch,Yes,51.51,17"""
     # AMBIGUOUS CASES!
 
     def test_partial_ix_missing(self):
-        raise nose.SkipTest
+        raise nose.SkipTest("skipping for now")
 
         result = self.ymd.ix[2000, 0]
         expected = self.ymd.ix[2000]['A']
