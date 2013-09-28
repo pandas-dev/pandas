@@ -1351,7 +1351,7 @@ class DataFrame(NDFrame):
 
     def to_excel(self, excel_writer, sheet_name='Sheet1', na_rep='',
                  float_format=None, cols=None, header=True, index=True,
-                 index_label=None, startrow=0, startcol=0, engine=None):
+                 index_label=None, startrow=0, startcol=0, engine=None, encoding=None):
         """
         Write DataFrame to a excel sheet
 
@@ -1359,7 +1359,7 @@ class DataFrame(NDFrame):
         ----------
         excel_writer : string or ExcelWriter object
             File path or existing ExcelWriter
-        sheet_name : string, default 'Sheet1'
+        sheet_name : string, default 'Sheet1' 
             Name of sheet which will contain DataFrame
         na_rep : string, default ''
             Missing data representation
@@ -1382,6 +1382,8 @@ class DataFrame(NDFrame):
             write engine to use - you can also set this via the options
             ``io.excel.xlsx.writer``, ``io.excel.xls.writer``, and
             ``io.excel.xlsm.writer``.
+        encoding: string, default None
+	    encoding of the resulting excel file.
 
 
         Notes
@@ -1396,8 +1398,11 @@ class DataFrame(NDFrame):
         """
         from pandas.io.excel import ExcelWriter
         need_save = False
+        if encoding == None:
+	  encoding = 'ascii'
+	  
         if isinstance(excel_writer, compat.string_types):
-            excel_writer = ExcelWriter(excel_writer, engine=engine)
+            excel_writer = ExcelWriter(excel_writer, engine=engine, encoding=encoding)
             need_save = True
 
         formatter = fmt.ExcelFormatter(self,
