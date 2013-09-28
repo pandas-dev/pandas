@@ -30,7 +30,8 @@ def _infer_tzinfo(start, end):
         tz = a.tzinfo
         if b and b.tzinfo:
             if not (tslib.get_timezone(tz) == tslib.get_timezone(b.tzinfo)):
-                raise AssertionError()
+                raise AssertionError('Inputs must both have the same timezone,'
+                                     ' {0} != {1}'.format(tz, b.tzinfo))
         return tz
     tz = None
     if start is not None:

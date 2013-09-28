@@ -48,7 +48,7 @@ def _skip_if_no_pytz():
     try:
         import pytz
     except ImportError:
-        raise nose.SkipTest
+        raise nose.SkipTest("pytz not installed")
 
 # infortunately, too much has changed to handle these legacy pickles
 # class TestLegacySupport(unittest.TestCase):
@@ -59,7 +59,7 @@ class LegacySupport(object):
     @classmethod
     def setUpClass(cls):
         if compat.PY3:
-            raise nose.SkipTest
+            raise nose.SkipTest("not compatible with Python >= 3")
 
         pth, _ = os.path.split(os.path.abspath(__file__))
         filepath = os.path.join(pth, 'data', 'frame.pickle')

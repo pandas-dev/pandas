@@ -231,6 +231,33 @@ class TestMerge(unittest.TestCase):
         source_copy['A'] = 0
         self.assertRaises(Exception, target.join, source_copy, on='A')
 
+    def test_join_on_fails_with_different_right_index(self):
+        with tm.assertRaises(ValueError):
+            df = DataFrame({'a': tm.choice(['m', 'f'], size=3),
+                            'b': np.random.randn(3)})
+            df2 = DataFrame({'a': tm.choice(['m', 'f'], size=10),
+                             'b': np.random.randn(10)},
+                            index=tm.makeCustomIndex(10, 2))
+            merge(df, df2, left_on='a', right_index=True)
+
+    def test_join_on_fails_with_different_left_index(self):
+        with tm.assertRaises(ValueError):
+            df = DataFrame({'a': tm.choice(['m', 'f'], size=3),
+                            'b': np.random.randn(3)},
+                           index=tm.makeCustomIndex(10, 2))
+            df2 = DataFrame({'a': tm.choice(['m', 'f'], size=10),
+                             'b': np.random.randn(10)})
+            merge(df, df2, right_on='b', left_index=True)
+
+    def test_join_on_fails_with_different_column_counts(self):
+        with tm.assertRaises(ValueError):
+            df = DataFrame({'a': tm.choice(['m', 'f'], size=3),
+                            'b': np.random.randn(3)})
+            df2 = DataFrame({'a': tm.choice(['m', 'f'], size=10),
+                             'b': np.random.randn(10)},
+                            index=tm.makeCustomIndex(10, 2))
+            merge(df, df2, right_on='a', left_on=['a', 'b'])
+
     def test_join_on_pass_vector(self):
         expected = self.target.join(self.source, on='C')
         del expected['C']

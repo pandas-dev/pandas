@@ -49,7 +49,7 @@ class TestMath(unittest.TestCase):
 
     def test_solve_rect(self):
         if not _have_statsmodels:
-            raise nose.SkipTest
+            raise nose.SkipTest("no statsmodels")
 
         b = Series(np.random.randn(N), self.frame.index)
         result = pmath.solve(self.frame, b)

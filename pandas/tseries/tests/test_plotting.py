@@ -23,7 +23,7 @@ def _skip_if_no_scipy():
     try:
         import scipy
     except ImportError:
-        raise nose.SkipTest
+        raise nose.SkipTest("scipy not installed")
 
 
 @tm.mplskip

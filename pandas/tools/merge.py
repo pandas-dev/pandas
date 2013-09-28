@@ -407,17 +407,19 @@ class _MergeOperation(object):
         elif self.left_on is not None:
             n = len(self.left_on)
             if self.right_index:
-                if not ((len(self.left_on) == self.right.index.nlevels)):
-                    raise AssertionError()
+                if len(self.left_on) != self.right.index.nlevels:
+                    raise ValueError('len(left_on) must equal the number '
+                                         'of levels in the index of "right"')
                 self.right_on = [None] * n
         elif self.right_on is not None:
             n = len(self.right_on)
             if self.left_index:
-                if not ((len(self.right_on) == self.left.index.nlevels)):
-                    raise AssertionError()
+                if len(self.right_on) != self.left.index.nlevels:
+                    raise ValueError('len(right_on) must equal the number '
+                                         'of levels in the index of "left"')
                 self.left_on = [None] * n
-        if not ((len(self.right_on) == len(self.left_on))):
-            raise AssertionError()
+        if len(self.right_on) != len(self.left_on):
+            raise ValueError("len(right_on) must equal len(left_on)")
 
 
 def _get_join_indexers(left_keys, right_keys, sort=False, how='inner'):
@@ -430,8 +432,8 @@ def _get_join_indexers(left_keys, right_keys, sort=False, how='inner'):
     -------
 
     """
-    if not ((len(left_keys) == len(right_keys))):
-        raise AssertionError()
+    if len(left_keys) != len(right_keys):
+        raise AssertionError('left_key and right_keys must be the same length')
 
     left_labels = []
     right_labels = []
@@ -545,8 +547,11 @@ def _left_join_on_index(left_ax, right_ax, join_keys, sort=False):
 
     if len(join_keys) > 1:
         if not ((isinstance(right_ax, MultiIndex) and
-               len(join_keys) == right_ax.nlevels) ):
-            raise AssertionError()
+                 len(join_keys) == right_ax.nlevels)):
+            raise AssertionError("If more than one join key is given then "
+                                 "'right_ax' must be a MultiIndex and the "
+                                 "number of join keys must be the number of "
+                                 "levels in right_ax")
 
         left_tmp, right_indexer = \
             _get_multiindex_indexer(join_keys, right_ax,
@@ -645,8 +650,9 @@ class _BlockJoinOperation(object):
         if axis <= 0:  # pragma: no cover
             raise MergeError('Only axis >= 1 supported for this operation')
 
-        if not ((len(data_list) == len(indexers))):
-            raise AssertionError()
+        if len(data_list) != len(indexers):
+            raise AssertionError("data_list and indexers must have the same "
+                                 "length")
 
         self.units = []
         for data, indexer in zip(data_list, indexers):
@@ -977,8 +983,9 @@ class _Concatenator(object):
             axis = 1 if axis == 0 else 0
 
         self._is_series = isinstance(sample, ABCSeries)
-        if not ((0 <= axis <= sample.ndim)):
-            raise AssertionError()
+        if not 0 <= axis <= sample.ndim:
+            raise AssertionError("axis must be between 0 and {0}, "
+                                 "input was {1}".format(sample.ndim, axis))
 
         # note: this is the BlockManager axis (since DataFrame is transposed)
         self.axis = axis
@@ -1202,8 +1209,9 @@ class _Concatenator(object):
                 to_concat.append(item_values)
 
         # this method only gets called with axis >= 1
-        if not ((self.axis >= 1)):
-            raise AssertionError()
+        if self.axis < 1:
+            raise AssertionError("axis must be >= 1, input was"
+                                 " {0}".format(self.axis))
         return com._concat_compat(to_concat, axis=self.axis - 1)
 
     def _get_result_dim(self):
@@ -1222,8 +1230,9 @@ class _Concatenator(object):
                     continue
                 new_axes[i] = self._get_comb_axis(i)
         else:
-            if not ((len(self.join_axes) == ndim - 1)):
-                raise AssertionError()
+            if len(self.join_axes) != ndim - 1:
+                raise AssertionError("length of join_axes must not be "
+                                     "equal to {0}".format(ndim - 1))
 
             # ufff...
             indices = lrange(ndim)

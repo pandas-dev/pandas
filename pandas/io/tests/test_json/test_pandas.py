@@ -567,17 +567,11 @@ class TestPandasContainer(unittest.TestCase):
         assert_frame_equal(result.reindex(index=df.index,columns=df.columns),df)
 
     @network
-    @slow
     def test_url(self):
-        try:
+        url = 'https://api.github.com/repos/pydata/pandas/issues?per_page=5'
+        result = read_json(url,convert_dates=True)
+        for c in ['created_at','closed_at','updated_at']:
+            self.assert_(result[c].dtype == 'datetime64[ns]')
 
-            url = 'https://api.github.com/repos/pydata/pandas/issues?per_page=5'
-            result = read_json(url,convert_dates=True)
-            for c in ['created_at','closed_at','updated_at']:
-                self.assert_(result[c].dtype == 'datetime64[ns]')
-
-            url = 'http://search.twitter.com/search.json?q=pandas%20python'
-            result = read_json(url)
-
-        except URLError:
-            raise nose.SkipTest
+        url = 'http://search.twitter.com/search.json?q=pandas%20python'
+        result = read_json(url)

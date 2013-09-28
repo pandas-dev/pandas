@@ -33,7 +33,7 @@ def _skip_if_no_scipy():
     try:
         import scipy.stats
     except ImportError:
-        raise nose.SkipTest
+        raise nose.SkipTest("no scipy.stats")
 
 
 class PanelTests(object):
@@ -102,7 +102,7 @@ class SafeForLongAndSparse(object):
         try:
             from scipy.stats import skew
         except ImportError:
-            raise nose.SkipTest
+            raise nose.SkipTest("no scipy.stats.skew")
 
         def this_skew(x):
             if len(x) < 3:
@@ -426,8 +426,8 @@ class CheckIndexing(object):
     def test_setitem(self):
         # LongPanel with one item
         lp = self.panel.filter(['ItemA', 'ItemB']).to_frame()
-        self.assertRaises(Exception, self.panel.__setitem__,
-                          'ItemE', lp)
+        with tm.assertRaises(ValueError):
+            self.panel['ItemE'] = lp
 
         # DataFrame
         df = self.panel['ItemA'][2:].filter(items=['A', 'B'])
@@ -455,6 +455,13 @@ class CheckIndexing(object):
 
         self.assertRaises(TypeError, self.panel.__setitem__, 'foo',
                           self.panel.ix[['ItemP']])
+
+        # bad shape
+        p = Panel(np.random.randn(4, 3, 2))
+        with tm.assertRaisesRegexp(ValueError,
+                                   "shape of value must be \(3, 2\), "
+                                   "shape of given object was \(4, 2\)"):
+            p[0] = np.random.randn(4, 2)
 
     def test_setitem_ndarray(self):
         from pandas import date_range, datetools
@@ -758,6 +765,9 @@ class CheckIndexing(object):
                     result = self.panel.get_value(item, mjr, mnr)
                     expected = self.panel[item][mnr][mjr]
                     assert_almost_equal(result, expected)
+        with tm.assertRaisesRegexp(TypeError,
+                                   "There must be an argument for each axis"):
+            self.panel.get_value('a')
 
     def test_set_value(self):
         for item in self.panel.items:
@@ -774,6 +784,10 @@ class CheckIndexing(object):
 
         res3 = self.panel.set_value('ItemE', 'foobar', 'baz', 5)
         self.assert_(com.is_float_dtype(res3['ItemE'].values))
+        with tm.assertRaisesRegexp(TypeError,
+                                   "There must be an argument for each axis"
+                                   " plus the value provided"):
+            self.panel.set_value('a')
 
 _panel = tm.makePanel()
 tm.add_nans(_panel)
@@ -877,6 +891,11 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         for dtype in ['float64','float32','int64','int32','object']:
             panel = Panel(np.random.randn(2,10,5),items=lrange(2),major_axis=lrange(10),minor_axis=lrange(5),dtype=dtype)
             _check_dtype(panel,dtype)
+
+    def test_constructor_fails_with_not_3d_input(self):
+        with tm.assertRaisesRegexp(ValueError,
+                                   "The number of dimensions required is 3"):
+            Panel(np.random.randn(10, 2))
 
     def test_consolidate(self):
         self.assert_(self.panel._data.is_consolidated())
@@ -1457,14 +1476,14 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         assert_frame_equal(p.minor_xs(2), df.xs(2, level=1).sort_index())
 
     def test_to_excel(self):
+        import os
         try:
-            import os
             import xlwt
             import xlrd
             import openpyxl
             from pandas.io.excel import ExcelFile
         except ImportError:
-            raise nose.SkipTest
+            raise nose.SkipTest("need xlwt xlrd openpyxl")
 
         for ext in ['xls', 'xlsx']:
             path = '__tmp__.' + ext
@@ -1473,7 +1492,7 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
                 try:
                     reader = ExcelFile(path)
                 except ImportError:
-                    raise nose.SkipTest
+                    raise nose.SkipTest("need xlwt xlrd openpyxl")
 
                 for item, df in compat.iteritems(self.panel):
                     recdf = reader.parse(str(item), index_col=0)
@@ -1492,8 +1511,8 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
             self.panel.to_excel(path, engine='xlsxwriter')
             try:
                 reader = ExcelFile(path)
-            except ImportError:
-                raise nose.SkipTest
+            except ImportError as e:
+                raise nose.SkipTest("cannot write excel file: %s" % e)
 
             for item, df in compat.iteritems(self.panel):
                 recdf = reader.parse(str(item), index_col=0)

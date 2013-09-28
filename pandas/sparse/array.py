@@ -11,12 +11,11 @@ import operator
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 
-from pandas import compat
+from pandas import compat, lib
 from pandas.compat import range
 
 from pandas._sparse import BlockIndex, IntIndex
 import pandas._sparse as splib
-import pandas.lib as lib
 import pandas.index as _index
 
 
@@ -28,8 +27,8 @@ def _sparse_op_wrap(op, name):
 
     def wrapper(self, other):
         if isinstance(other, np.ndarray):
-            if not ((len(self) == len(other))):
-                raise AssertionError()
+            if len(self) != len(other):
+                raise AssertionError("Operands must be of the same size")
             if not isinstance(other, SparseArray):
                 other = SparseArray(other, fill_value=self.fill_value)
             return _sparse_array_op(self, other, op, name)
@@ -148,8 +147,10 @@ to sparse
                                                    fill_value=fill_value)
             else:
                 values = data
-                if not ((len(values) == sparse_index.npoints)):
-                    raise AssertionError()
+                if len(values) != sparse_index.npoints:
+                    raise AssertionError("Non array-like type {0} must have"
+                                         " the same length as the"
+                                         " index".format(type(values)))
 
         # Create array, do *not* copy data by default
         if copy:
@@ -329,8 +330,8 @@ to sparse
         -------
         taken : ndarray
         """
-        if not ((axis == 0)):
-            raise AssertionError()
+        if axis:
+            raise ValueError("axis must be 0, input was {0}".format(axis))
         indices = np.atleast_1d(np.asarray(indices, dtype=int))
 
         # allow -1 to indicate missing values
@@ -339,14 +340,14 @@ to sparse
             raise IndexError('out of bounds access')
 
         if self.sp_index.npoints > 0:
-            locs = np.array(
-                [self.sp_index.lookup(loc) if loc > -1 else -1 for loc in indices])
+            locs = np.array([self.sp_index.lookup(loc) if loc > -1 else -1
+                             for loc in indices])
             result = self.sp_values.take(locs)
             mask = locs == -1
             if mask.any():
                 try:
                     result[mask] = self.fill_value
-                except (ValueError):
+                except ValueError:
                     # wrong dtype
                     result = result.astype('float64')
                     result[mask] = self.fill_value

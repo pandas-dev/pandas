@@ -6,9 +6,9 @@ Unit test suite for OLS and PanelOLS classes
 
 from __future__ import division
 
-from distutils.version import LooseVersion
 from datetime import datetime
 from pandas import compat
+from distutils.version import LooseVersion
 import unittest
 import nose
 import numpy as np
@@ -77,7 +77,7 @@ class TestOLS(BaseTest):
             pass
 
         if not _have_statsmodels:
-            raise nose.SkipTest
+            raise nose.SkipTest("no statsmodels")
 
     def testOLSWithDatasets_ccard(self):
         self.checkDataSet(sm.datasets.ccard.load(), skip_moving=True)
@@ -262,7 +262,7 @@ class TestOLSMisc(unittest.TestCase):
     @classmethod
     def setupClass(cls):
         if not _have_statsmodels:
-            raise nose.SkipTest
+            raise nose.SkipTest("no statsmodels")
 
     def test_f_test(self):
         x = tm.makeTimeDataFrame()

@@ -528,9 +528,14 @@ class Panel(NDFrame):
         -------
         value : scalar value
         """
+        nargs = len(args)
+        nreq = self._AXIS_LEN
+
         # require an arg for each axis
-        if not ((len(args) == self._AXIS_LEN)):
-            raise AssertionError()
+        if nargs != nreq:
+            raise TypeError('There must be an argument for each axis, you gave'
+                            ' {0} args, but {1} are required'.format(nargs,
+                                                                     nreq))
 
         # hm, two layers to the onion
         frame = self._get_item_cache(args[0])
@@ -554,8 +559,13 @@ class Panel(NDFrame):
             otherwise a new object
         """
         # require an arg for each axis and the value
-        if not ((len(args) == self._AXIS_LEN + 1)):
-            raise AssertionError()
+        nargs = len(args)
+        nreq = self._AXIS_LEN + 1
+
+        if nargs != nreq:
+            raise TypeError('There must be an argument for each axis plus the '
+                            'value provided, you gave {0} args, but {1} are '
+                            'required'.format(nargs, nreq))
 
         try:
             frame = self._get_item_cache(args[0])
@@ -592,8 +602,10 @@ class Panel(NDFrame):
                 **self._construct_axes_dict_for_slice(self._AXIS_ORDERS[1:]))
             mat = value.values
         elif isinstance(value, np.ndarray):
-            if not ((value.shape == shape[1:])):
-                raise AssertionError()
+            if value.shape != shape[1:]:
+                raise ValueError('shape of value must be {0}, shape of given '
+                                 'object was {1}'.format(shape[1:],
+                                                         value.shape))
             mat = np.asarray(value)
         elif np.isscalar(value):
             dtype, value = _infer_dtype_from_scalar(value)
@@ -1144,8 +1156,9 @@ class Panel(NDFrame):
     @staticmethod
     def _extract_axes_for_slice(self, axes):
         """ return the slice dictionary for these axes """
-        return dict([(self._AXIS_SLICEMAP[i], a) for i, a
-                     in zip(self._AXIS_ORDERS[self._AXIS_LEN - len(axes):], axes)])
+        return dict([(self._AXIS_SLICEMAP[i], a)
+                     for i, a in zip(self._AXIS_ORDERS[self._AXIS_LEN -
+                                                       len(axes):], axes)])
 
     @staticmethod
     def _prep_ndarray(self, values, copy=True):
@@ -1157,8 +1170,11 @@ class Panel(NDFrame):
         else:
             if copy:
                 values = values.copy()
-        if not ((values.ndim == self._AXIS_LEN)):
-            raise AssertionError()
+        if values.ndim != self._AXIS_LEN:
+            raise ValueError("The number of dimensions required is {0}, "
+                             "but the number of dimensions of the "
+                             "ndarray given was {1}".format(self._AXIS_LEN,
+                                                            values.ndim))
         return values
 
     @staticmethod

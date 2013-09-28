@@ -195,7 +195,7 @@ class TestBlock(unittest.TestCase):
 
         # with dup column support this method was taken out
         # GH3679
-        raise nose.SkipTest
+        raise nose.SkipTest("skipping for now")
 
         bs = list(self.fblock.split_block_at('a'))
         self.assertEqual(len(bs), 1)

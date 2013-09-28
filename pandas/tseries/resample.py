@@ -120,8 +120,9 @@ class TimeGrouper(CustomGrouper):
         return binner, grouper
 
     def _get_time_bins(self, axis):
-        if not (isinstance(axis, DatetimeIndex)):
-            raise AssertionError()
+        if not isinstance(axis, DatetimeIndex):
+            raise TypeError('axis must be a DatetimeIndex, but got '
+                            'an instance of %r' % type(axis).__name__)
 
         if len(axis) == 0:
             binner = labels = DatetimeIndex(data=[], freq=self.freq)
@@ -180,10 +181,11 @@ class TimeGrouper(CustomGrouper):
         return binner, bin_edges
 
     def _get_time_period_bins(self, axis):
-        if not(isinstance(axis, DatetimeIndex)):
-            raise AssertionError()
+        if not isinstance(axis, DatetimeIndex):
+            raise TypeError('axis must be a DatetimeIndex, but got '
+                            'an instance of %r' % type(axis).__name__)
 
-        if len(axis) == 0:
+        if not len(axis):
             binner = labels = PeriodIndex(data=[], freq=self.freq)
             return binner, [], labels
 
@@ -211,8 +213,8 @@ class TimeGrouper(CustomGrouper):
                 result = grouped.aggregate(self._agg_method)
             else:
                 # upsampling shortcut
-                if not (self.axis == 0):
-                    raise AssertionError()
+                if self.axis:
+                    raise AssertionError('axis must be 0')
 
                 if self.closed == 'right':
                     res_index = binner[1:]
@@ -278,7 +280,6 @@ class TimeGrouper(CustomGrouper):
 
 def _take_new_index(obj, indexer, new_index, axis=0):
     from pandas.core.api import Series, DataFrame
-    from pandas.core.internals import BlockManager
 
     if isinstance(obj, Series):
         new_values = com.take_1d(obj.values, indexer)
@@ -286,7 +287,7 @@ def _take_new_index(obj, indexer, new_index, axis=0):
     elif isinstance(obj, DataFrame):
         if axis == 1:
             raise NotImplementedError
-        return DataFrame(obj._data.take(indexer,new_index=new_index,axis=1))
+        return DataFrame(obj._data.take(indexer, new_index=new_index, axis=1))
     else:
         raise NotImplementedError
 

@@ -14,7 +14,7 @@ try:
     from pandas.io.auth import AuthenticationConfigError, reset_token_store
     from pandas.io import auth
 except ImportError:
-    raise nose.SkipTest
+    raise nose.SkipTest("need httplib2 and auth libs")
 
 class TestGoogle(unittest.TestCase):
 
@@ -68,7 +68,7 @@ class TestGoogle(unittest.TestCase):
             assert_frame_equal(df, df2)
 
         except AuthenticationConfigError:
-            raise nose.SkipTest
+            raise nose.SkipTest("authentication error")
 
     @slow
     @with_connectivity_check("http://www.google.com")
@@ -96,7 +96,7 @@ class TestGoogle(unittest.TestCase):
             assert (df2.index > df1.index).all()
 
         except AuthenticationConfigError:
-            raise nose.SkipTest
+            raise nose.SkipTest("authentication error")
 
     @slow
     @with_connectivity_check("http://www.google.com")
@@ -150,7 +150,8 @@ class TestGoogle(unittest.TestCase):
             assert 'pageviewsPerVisit' in df
 
         except AuthenticationConfigError:
-            raise nose.SkipTest
+            raise nose.SkipTest("authentication error")
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

@@ -1216,8 +1216,9 @@ class MovingOLS(OLS):
         return result.astype(int)
 
     def _beta_matrix(self, lag=0):
-        if not ((lag >= 0)):
-            raise AssertionError()
+        if lag < 0:
+            raise AssertionError("'lag' must be greater than or equal to 0, "
+                                 "input was {0}".format(lag))
 
         betas = self._beta_raw
 
@@ -1280,8 +1281,8 @@ def _filter_data(lhs, rhs, weights=None):
         Cleaned lhs and rhs
     """
     if not isinstance(lhs, Series):
-        if not ((len(lhs) == len(rhs))):
-            raise AssertionError()
+        if len(lhs) != len(rhs):
+            raise AssertionError("length of lhs must equal length of rhs")
         lhs = Series(lhs, index=rhs.index)
 
     rhs = _combine_rhs(rhs)

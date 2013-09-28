@@ -29,7 +29,7 @@ import pandas.util.testing as tm
 def _skip_if_python_ver(skip_major, skip_minor=None):
     major, minor = sys.version_info[:2]
     if major == skip_major and (skip_minor is None or minor == skip_minor):
-        raise nose.SkipTest
+        raise nose.SkipTest("skipping Python version %d.%d" % (major, minor))
 
 json_unicode = (json.dumps if sys.version_info[0] >= 3
                 else partial(json.dumps, encoding="utf-8"))
@@ -363,7 +363,8 @@ class UltraJSONTests(TestCase):
     def test_npy_nat(self):
         from distutils.version import LooseVersion
         if LooseVersion(np.__version__) < '1.7.0':
-            raise nose.SkipTest
+            raise nose.SkipTest("numpy version < 1.7.0, is "
+                                "{0}".format(np.__version__))
 
         input = np.datetime64('NaT')
         assert ujson.encode(input) == 'null', "Expected null"
