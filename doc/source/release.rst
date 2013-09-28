@@ -267,6 +267,9 @@ API Changes
     ``SparsePanel``, etc.), now support the entire set of arithmetic operators
     and arithmetic flex methods (add, sub, mul, etc.). ``SparsePanel`` does not
     support ``pow`` or ``mod`` with non-scalars. (:issue:`3765`)
+  - Provide numpy compatibility with 1.7 for a calling convention like ``np.prod(pandas_object)`` as numpy
+    call with additional keyword args (:issue:`4435`)
+
 
 Internal Refactoring
 ~~~~~~~~~~~~~~~~~~~~

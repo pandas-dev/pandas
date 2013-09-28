@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 
 from pandas import (Index, Series, DataFrame, Panel,
-                    isnull, notnull,date_range)
+                    isnull, notnull,date_range, _np_version_under1p7)
 from pandas.core.index import Index, MultiIndex
 from pandas.tseries.index import Timestamp, DatetimeIndex
 
@@ -118,6 +118,7 @@ class Generic(object):
         self._compare(result, o)
 
         # _get_numeric_data is includes _get_bool_data, so can't test for non-inclusion
+
     def test_nonzero(self):
 
         # GH 4633
@@ -153,6 +154,24 @@ class Generic(object):
         self.assertRaises(ValueError, lambda : obj1 and obj2)
         self.assertRaises(ValueError, lambda : obj1 or obj2)
         self.assertRaises(ValueError, lambda : not obj1)
+
+    def test_numpy_1_7_compat_numeric_methods(self):
+        if _np_version_under1p7:
+            raise nose.SkipTest("numpy < 1.7")
+
+        # GH 4435
+        # numpy in 1.7 tries to pass addtional arguments to pandas functions
+
+        o = self._construct(shape=4)
+        for op in ['min','max','max','var','std','prod','sum',
+                   'median','skew','kurt','compound','cummax','cummin','all','any']:
+            f = getattr(np,op,None)
+            if f is not None:
+                f(o)
+
+        # numpy broken methods, since these are not passed by keywords, they
+        # won't work
+        #'cumsum','cumprod',
 
 class TestSeries(unittest.TestCase, Generic):
     _typ = Series

@@ -1949,33 +1949,6 @@ class NDFrame(PandasObject):
     #----------------------------------------------------------------------
     # Action Methods
 
-    def abs(self):
-        """
-        Return an object with absolute value taken. Only applicable to objects
-        that are all numeric
-
-        Returns
-        -------
-        abs: type of caller
-        """
-        obj = np.abs(self)
-
-        # suprimo numpy 1.6 hacking
-        if _np_version_under1p7:
-            if self.ndim == 1:
-                if obj.dtype == 'm8[us]':
-                    obj = obj.astype('m8[ns]')
-            elif self.ndim == 2:
-                def f(x):
-                    if x.dtype == 'm8[us]':
-                        x = x.astype('m8[ns]')
-                    return x
-
-                if 'm8[us]' in obj.dtypes.values:
-                    obj = obj.apply(f)
-
-        return obj
-
     def clip(self, lower=None, upper=None, out=None):
         """
         Trim values at input threshold(s)
@@ -2550,178 +2523,6 @@ class NDFrame(PandasObject):
         """
         return self.where(~cond, np.nan)
 
-    def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None,
-                   **kwds):
-        """
-        Percent change over given number of periods
-
-        Parameters
-        ----------
-        periods : int, default 1
-            Periods to shift for forming percent change
-        fill_method : str, default 'pad'
-            How to handle NAs before computing percent changes
-        limit : int, default None
-            The number of consecutive NAs to fill before stopping
-        freq : DateOffset, timedelta, or offset alias string, optional
-            Increment to use from time series API (e.g. 'M' or BDay())
-
-        Returns
-        -------
-        chg : Series or DataFrame
-        """
-        if fill_method is None:
-            data = self
-        else:
-            data = self.fillna(method=fill_method, limit=limit)
-        rs = data / data.shift(periods=periods, freq=freq, **kwds) - 1
-        if freq is None:
-            mask = com.isnull(_values_from_object(self))
-            np.putmask(rs.values, mask, np.nan)
-        return rs
-
-    def cumsum(self, axis=None, skipna=True):
-        """
-        Return DataFrame of cumulative sums over requested axis.
-
-        Parameters
-        ----------
-        axis : {0, 1}
-            0 for row-wise, 1 for column-wise
-        skipna : boolean, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA
-
-        Returns
-        -------
-        y : DataFrame
-        """
-        if axis is None:
-            axis = self._stat_axis_number
-        else:
-            axis = self._get_axis_number(axis)
-
-        y = _values_from_object(self).copy()
-        if not issubclass(y.dtype.type, np.integer):
-            mask = np.isnan(_values_from_object(self))
-
-            if skipna:
-                np.putmask(y, mask, 0.)
-
-            result = y.cumsum(axis)
-
-            if skipna:
-                np.putmask(result, mask, np.nan)
-        else:
-            result = y.cumsum(axis)
-        return self._wrap_array(result, self.axes, copy=False)
-
-    def cumprod(self, axis=None, skipna=True):
-        """
-        Return cumulative product over requested axis as DataFrame
-
-        Parameters
-        ----------
-        axis : {0, 1}
-            0 for row-wise, 1 for column-wise
-        skipna : boolean, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA
-
-        Returns
-        -------
-        y : DataFrame
-        """
-        if axis is None:
-            axis = self._stat_axis_number
-        else:
-            axis = self._get_axis_number(axis)
-
-        y = _values_from_object(self).copy()
-        if not issubclass(y.dtype.type, np.integer):
-            mask = np.isnan(_values_from_object(self))
-
-            if skipna:
-                np.putmask(y, mask, 1.)
-            result = y.cumprod(axis)
-
-            if skipna:
-                np.putmask(result, mask, np.nan)
-        else:
-            result = y.cumprod(axis)
-        return self._wrap_array(result, self.axes, copy=False)
-
-    def cummax(self, axis=None, skipna=True):
-        """
-        Return DataFrame of cumulative max over requested axis.
-
-        Parameters
-        ----------
-        axis : {0, 1}
-            0 for row-wise, 1 for column-wise
-        skipna : boolean, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA
-
-        Returns
-        -------
-        y : DataFrame
-        """
-        if axis is None:
-            axis = self._stat_axis_number
-        else:
-            axis = self._get_axis_number(axis)
-
-        y = _values_from_object(self).copy()
-        if not issubclass(y.dtype.type, np.integer):
-            mask = np.isnan(_values_from_object(self))
-
-            if skipna:
-                np.putmask(y, mask, -np.inf)
-
-            result = np.maximum.accumulate(y, axis)
-
-            if skipna:
-                np.putmask(result, mask, np.nan)
-        else:
-            result = np.maximum.accumulate(y, axis)
-        return self._wrap_array(result, self.axes, copy=False)
-
-    def cummin(self, axis=None, skipna=True):
-        """
-        Return DataFrame of cumulative min over requested axis.
-
-        Parameters
-        ----------
-        axis : {0, 1}
-            0 for row-wise, 1 for column-wise
-        skipna : boolean, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA
-
-        Returns
-        -------
-        y : DataFrame
-        """
-        if axis is None:
-            axis = self._stat_axis_number
-        else:
-            axis = self._get_axis_number(axis)
-
-        y = _values_from_object(self).copy()
-        if not issubclass(y.dtype.type, np.integer):
-            mask = np.isnan(_values_from_object(self))
-
-            if skipna:
-                np.putmask(y, mask, np.inf)
-
-            result = np.minimum.accumulate(y, axis)
-
-            if skipna:
-                np.putmask(result, mask, np.nan)
-        else:
-            result = np.minimum.accumulate(y, axis)
-        return self._wrap_array(result, self.axes, copy=False)
 
     def shift(self, periods=1, freq=None, axis=0, **kwds):
         """
@@ -2927,6 +2728,209 @@ class NDFrame(PandasObject):
             self._clear_item_cache()
 
         return new_obj
+
+    #----------------------------------------------------------------------
+    # Numeric Methods
+
+    def abs(self):
+        """
+        Return an object with absolute value taken. Only applicable to objects
+        that are all numeric
+
+        Returns
+        -------
+        abs: type of caller
+        """
+        obj = np.abs(self)
+
+        # suprimo numpy 1.6 hacking
+        if _np_version_under1p7:
+            if self.ndim == 1:
+                if obj.dtype == 'm8[us]':
+                    obj = obj.astype('m8[ns]')
+            elif self.ndim == 2:
+                def f(x):
+                    if x.dtype == 'm8[us]':
+                        x = x.astype('m8[ns]')
+                    return x
+
+                if 'm8[us]' in obj.dtypes.values:
+                    obj = obj.apply(f)
+
+        return obj
+
+    def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None,
+                   **kwds):
+        """
+        Percent change over given number of periods
+
+        Parameters
+        ----------
+        periods : int, default 1
+            Periods to shift for forming percent change
+        fill_method : str, default 'pad'
+            How to handle NAs before computing percent changes
+        limit : int, default None
+            The number of consecutive NAs to fill before stopping
+        freq : DateOffset, timedelta, or offset alias string, optional
+            Increment to use from time series API (e.g. 'M' or BDay())
+
+        Returns
+        -------
+        chg : Series or DataFrame
+        """
+        if fill_method is None:
+            data = self
+        else:
+            data = self.fillna(method=fill_method, limit=limit)
+        rs = data / data.shift(periods=periods, freq=freq, **kwds) - 1
+        if freq is None:
+            mask = com.isnull(_values_from_object(self))
+            np.putmask(rs.values, mask, np.nan)
+        return rs
+
+    def cumsum(self, axis=None, skipna=True, **kwargs):
+        """
+        Return DataFrame of cumulative sums over requested axis.
+
+        Parameters
+        ----------
+        axis : {0, 1}
+            0 for row-wise, 1 for column-wise
+        skipna : boolean, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA
+
+        Returns
+        -------
+        y : DataFrame
+        """
+        if axis is None:
+            axis = self._stat_axis_number
+        else:
+            axis = self._get_axis_number(axis)
+
+        y = _values_from_object(self).copy()
+        if not issubclass(y.dtype.type, np.integer):
+            mask = np.isnan(_values_from_object(self))
+
+            if skipna:
+                np.putmask(y, mask, 0.)
+
+            result = y.cumsum(axis)
+
+            if skipna:
+                np.putmask(result, mask, np.nan)
+        else:
+            result = y.cumsum(axis)
+        return self._wrap_array(result, self.axes, copy=False)
+
+    def cumprod(self, axis=None, skipna=True, **kwargs):
+        """
+        Return cumulative product over requested axis as DataFrame
+
+        Parameters
+        ----------
+        axis : {0, 1}
+            0 for row-wise, 1 for column-wise
+        skipna : boolean, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA
+
+        Returns
+        -------
+        y : DataFrame
+        """
+        if axis is None:
+            axis = self._stat_axis_number
+        else:
+            axis = self._get_axis_number(axis)
+
+        y = _values_from_object(self).copy()
+        if not issubclass(y.dtype.type, np.integer):
+            mask = np.isnan(_values_from_object(self))
+
+            if skipna:
+                np.putmask(y, mask, 1.)
+            result = y.cumprod(axis)
+
+            if skipna:
+                np.putmask(result, mask, np.nan)
+        else:
+            result = y.cumprod(axis)
+        return self._wrap_array(result, self.axes, copy=False)
+
+    def cummax(self, axis=None, skipna=True, **kwargs):
+        """
+        Return DataFrame of cumulative max over requested axis.
+
+        Parameters
+        ----------
+        axis : {0, 1}
+            0 for row-wise, 1 for column-wise
+        skipna : boolean, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA
+
+        Returns
+        -------
+        y : DataFrame
+        """
+        if axis is None:
+            axis = self._stat_axis_number
+        else:
+            axis = self._get_axis_number(axis)
+
+        y = _values_from_object(self).copy()
+        if not issubclass(y.dtype.type, np.integer):
+            mask = np.isnan(_values_from_object(self))
+
+            if skipna:
+                np.putmask(y, mask, -np.inf)
+
+            result = np.maximum.accumulate(y, axis)
+
+            if skipna:
+                np.putmask(result, mask, np.nan)
+        else:
+            result = np.maximum.accumulate(y, axis)
+        return self._wrap_array(result, self.axes, copy=False)
+
+    def cummin(self, axis=None, skipna=True, **kwargs):
+        """
+        Return DataFrame of cumulative min over requested axis.
+
+        Parameters
+        ----------
+        axis : {0, 1}
+            0 for row-wise, 1 for column-wise
+        skipna : boolean, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA
+
+        Returns
+        -------
+        y : DataFrame
+        """
+        if axis is None:
+            axis = self._stat_axis_number
+        else:
+            axis = self._get_axis_number(axis)
+
+        y = _values_from_object(self).copy()
+        if not issubclass(y.dtype.type, np.integer):
+            mask = np.isnan(_values_from_object(self))
+
+            if skipna:
+                np.putmask(y, mask, np.inf)
+
+            result = np.minimum.accumulate(y, axis)
+
+            if skipna:
+                np.putmask(result, mask, np.nan)
+        else:
+            result = np.minimum.accumulate(y, axis)
+        return self._wrap_array(result, self.axes, copy=False)
 
 # install the indexerse
 for _name, _indexer in indexing.get_indexers_list():

@@ -104,7 +104,7 @@ def _make_stat_func(nanop, name, shortname, na_action=_doc_exclude_na,
     @Substitution(name=name, shortname=shortname,
                   na_action=na_action, extras=extras)
     @Appender(_stat_doc)
-    def f(self, axis=0, dtype=None, out=None, skipna=True, level=None):
+    def f(self, axis=0, dtype=None, out=None, skipna=True, level=None, **kwargs):
         if level is not None:
             return self._agg_by_level(shortname, level=level, skipna=skipna)
         return nanop(_values_from_object(self), skipna=skipna)
@@ -1202,7 +1202,7 @@ class Series(generic.NDFrame):
     @Substitution(name='mean absolute deviation', shortname='mad',
                   na_action=_doc_exclude_na, extras='')
     @Appender(_stat_doc)
-    def mad(self, skipna=True, level=None):
+    def mad(self, skipna=True, level=None, **kwargs):
         if level is not None:
             return self._agg_by_level('mad', level=level, skipna=skipna)
 
@@ -1212,7 +1212,7 @@ class Series(generic.NDFrame):
     @Substitution(name='minimum', shortname='min',
                   na_action=_doc_exclude_na, extras='')
     @Appender(_stat_doc)
-    def min(self, axis=None, out=None, skipna=True, level=None):
+    def min(self, axis=None, out=None, skipna=True, level=None, **kwargs):
         """
         Notes
         -----
@@ -1232,7 +1232,7 @@ class Series(generic.NDFrame):
     @Substitution(name='maximum', shortname='max',
                   na_action=_doc_exclude_na, extras='')
     @Appender(_stat_doc)
-    def max(self, axis=None, out=None, skipna=True, level=None):
+    def max(self, axis=None, out=None, skipna=True, level=None, **kwargs):
         """
         Notes
         -----
@@ -1256,7 +1256,7 @@ class Series(generic.NDFrame):
         Normalized by N-1 (unbiased estimator).
         """)
     def std(self, axis=None, dtype=None, out=None, ddof=1, skipna=True,
-            level=None):
+            level=None, **kwargs):
         if level is not None:
             return self._agg_by_level('std', level=level, skipna=skipna,
                                       ddof=ddof)
@@ -1269,7 +1269,7 @@ class Series(generic.NDFrame):
         Normalized by N-1 (unbiased estimator).
         """)
     def var(self, axis=None, dtype=None, out=None, ddof=1, skipna=True,
-            level=None):
+            level=None, **kwargs):
         if level is not None:
             return self._agg_by_level('var', level=level, skipna=skipna,
                                       ddof=ddof)
@@ -1278,7 +1278,7 @@ class Series(generic.NDFrame):
     @Substitution(name='unbiased skewness', shortname='skew',
                   na_action=_doc_exclude_na, extras='')
     @Appender(_stat_doc)
-    def skew(self, skipna=True, level=None):
+    def skew(self, skipna=True, level=None, **kwargs):
         if level is not None:
             return self._agg_by_level('skew', level=level, skipna=skipna)
 
@@ -1287,7 +1287,7 @@ class Series(generic.NDFrame):
     @Substitution(name='unbiased kurtosis', shortname='kurt',
                   na_action=_doc_exclude_na, extras='')
     @Appender(_stat_doc)
-    def kurt(self, skipna=True, level=None):
+    def kurt(self, skipna=True, level=None, **kwargs):
         if level is not None:
             return self._agg_by_level('kurt', level=level, skipna=skipna)
 

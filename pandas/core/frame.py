@@ -3869,7 +3869,7 @@ class DataFrame(NDFrame):
         else:
             return result
 
-    def any(self, axis=0, bool_only=None, skipna=True, level=None):
+    def any(self, axis=None, bool_only=None, skipna=True, level=None, **kwargs):
         """
         Return whether any element is True over requested axis.
         %(na_action)s
@@ -3891,13 +3891,15 @@ class DataFrame(NDFrame):
         -------
         any : Series (or DataFrame if level specified)
         """
+        if axis is None:
+            axis = self._stat_axis_number
         if level is not None:
             return self._agg_by_level('any', axis=axis, level=level,
                                       skipna=skipna)
         return self._reduce(nanops.nanany, axis=axis, skipna=skipna,
                             numeric_only=bool_only, filter_type='bool')
 
-    def all(self, axis=0, bool_only=None, skipna=True, level=None):
+    def all(self, axis=None, bool_only=None, skipna=True, level=None, **kwargs):
         """
         Return whether all elements are True over requested axis.
         %(na_action)s
@@ -3919,6 +3921,8 @@ class DataFrame(NDFrame):
         -------
         any : Series (or DataFrame if level specified)
         """
+        if axis is None:
+            axis = self._stat_axis_number
         if level is not None:
             return self._agg_by_level('all', axis=axis, level=level,
                                       skipna=skipna)
@@ -3928,7 +3932,9 @@ class DataFrame(NDFrame):
     @Substitution(name='sum', shortname='sum', na_action=_doc_exclude_na,
                   extras=_numeric_only_doc)
     @Appender(_stat_doc)
-    def sum(self, axis=0, numeric_only=None, skipna=True, level=None):
+    def sum(self, axis=None, numeric_only=None, skipna=True, level=None, **kwargs):
+        if axis is None:
+            axis = self._stat_axis_number
         if level is not None:
             return self._agg_by_level('sum', axis=axis, level=level,
                                       skipna=skipna)
@@ -3938,7 +3944,9 @@ class DataFrame(NDFrame):
     @Substitution(name='mean', shortname='mean', na_action=_doc_exclude_na,
                   extras='')
     @Appender(_stat_doc)
-    def mean(self, axis=0, skipna=True, level=None):
+    def mean(self, axis=None, skipna=True, level=None, **kwargs):
+        if axis is None:
+            axis = self._stat_axis_number
         if level is not None:
             return self._agg_by_level('mean', axis=axis, level=level,
                                       skipna=skipna)
@@ -3948,7 +3956,7 @@ class DataFrame(NDFrame):
     @Substitution(name='minimum', shortname='min', na_action=_doc_exclude_na,
                   extras='')
     @Appender(_stat_doc)
-    def min(self, axis=0, skipna=True, level=None):
+    def min(self, axis=None, skipna=True, level=None, **kwargs):
         """
         Notes
         -----
@@ -3961,6 +3969,8 @@ class DataFrame(NDFrame):
         DataFrame.idxmin
         Series.idxmin
         """
+        if axis is None:
+            axis = self._stat_axis_number
         if level is not None:
             return self._agg_by_level('min', axis=axis, level=level,
                                       skipna=skipna)
@@ -3970,7 +3980,7 @@ class DataFrame(NDFrame):
     @Substitution(name='maximum', shortname='max', na_action=_doc_exclude_na,
                   extras='')
     @Appender(_stat_doc)
-    def max(self, axis=0, skipna=True, level=None):
+    def max(self, axis=None, skipna=True, level=None, **kwargs):
         """
         Notes
         -----
@@ -3983,6 +3993,8 @@ class DataFrame(NDFrame):
         DataFrame.idxmax
         Series.idxmax
         """
+        if axis is None:
+            axis = self._stat_axis_number
         if level is not None:
             return self._agg_by_level('max', axis=axis, level=level,
                                       skipna=skipna)
@@ -3992,7 +4004,9 @@ class DataFrame(NDFrame):
     @Substitution(name='product', shortname='product',
                   na_action='NA/null values are treated as 1', extras='')
     @Appender(_stat_doc)
-    def prod(self, axis=0, skipna=True, level=None):
+    def prod(self, axis=None, skipna=True, level=None, **kwargs):
+        if axis is None:
+            axis = self._stat_axis_number
         if level is not None:
             return self._agg_by_level('prod', axis=axis, level=level,
                                       skipna=skipna)
@@ -4004,7 +4018,9 @@ class DataFrame(NDFrame):
     @Substitution(name='median', shortname='median', na_action=_doc_exclude_na,
                   extras='')
     @Appender(_stat_doc)
-    def median(self, axis=0, skipna=True, level=None):
+    def median(self, axis=None, skipna=True, level=None, **kwargs):
+        if axis is None:
+            axis = self._stat_axis_number
         if level is not None:
             return self._agg_by_level('median', axis=axis, level=level,
                                       skipna=skipna)
@@ -4014,7 +4030,9 @@ class DataFrame(NDFrame):
     @Substitution(name='mean absolute deviation', shortname='mad',
                   na_action=_doc_exclude_na, extras='')
     @Appender(_stat_doc)
-    def mad(self, axis=0, skipna=True, level=None):
+    def mad(self, axis=None, skipna=True, level=None, **kwargs):
+        if axis is None:
+            axis = self._stat_axis_number
         if level is not None:
             return self._agg_by_level('mad', axis=axis, level=level,
                                       skipna=skipna)
@@ -4034,7 +4052,9 @@ class DataFrame(NDFrame):
               """
         Normalized by N-1 (unbiased estimator).
         """)
-    def var(self, axis=0, skipna=True, level=None, ddof=1):
+    def var(self, axis=None, skipna=True, level=None, ddof=1, **kwargs):
+        if axis is None:
+            axis = self._stat_axis_number
         if level is not None:
             return self._agg_by_level('var', axis=axis, level=level,
                                       skipna=skipna, ddof=ddof)
@@ -4047,7 +4067,9 @@ class DataFrame(NDFrame):
               """
         Normalized by N-1 (unbiased estimator).
         """)
-    def std(self, axis=0, skipna=True, level=None, ddof=1):
+    def std(self, axis=None, skipna=True, level=None, ddof=1, **kwargs):
+        if axis is None:
+            axis = self._stat_axis_number
         if level is not None:
             return self._agg_by_level('std', axis=axis, level=level,
                                       skipna=skipna, ddof=ddof)
@@ -4056,7 +4078,9 @@ class DataFrame(NDFrame):
     @Substitution(name='unbiased skewness', shortname='skew',
                   na_action=_doc_exclude_na, extras='')
     @Appender(_stat_doc)
-    def skew(self, axis=0, skipna=True, level=None):
+    def skew(self, axis=None, skipna=True, level=None, **kwargs):
+        if axis is None:
+            axis = self._stat_axis_number
         if level is not None:
             return self._agg_by_level('skew', axis=axis, level=level,
                                       skipna=skipna)
@@ -4066,7 +4090,9 @@ class DataFrame(NDFrame):
     @Substitution(name='unbiased kurtosis', shortname='kurt',
                   na_action=_doc_exclude_na, extras='')
     @Appender(_stat_doc)
-    def kurt(self, axis=0, skipna=True, level=None):
+    def kurt(self, axis=None, skipna=True, level=None, **kwargs):
+        if axis is None:
+            axis = self._stat_axis_number
         if level is not None:
             return self._agg_by_level('kurt', axis=axis, level=level,
                                       skipna=skipna)

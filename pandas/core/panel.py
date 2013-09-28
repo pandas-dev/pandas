@@ -1233,61 +1233,81 @@ If all values are NA, result will be NA"""
 
         @Substitution(desc='sum', outname='sum')
         @Appender(_agg_doc)
-        def sum(self, axis='major', skipna=True):
+        def sum(self, axis=None, skipna=True, **kwargs):
+            if axis is None:
+                axis = self._stat_axis_number
             return self._reduce(nanops.nansum, axis=axis, skipna=skipna)
         cls.sum = sum
 
         @Substitution(desc='mean', outname='mean')
         @Appender(_agg_doc)
-        def mean(self, axis='major', skipna=True):
+        def mean(self, axis=None, skipna=True, **kwargs):
+            if axis is None:
+                axis = self._stat_axis_number
             return self._reduce(nanops.nanmean, axis=axis, skipna=skipna)
         cls.mean = mean
 
         @Substitution(desc='unbiased variance', outname='variance')
         @Appender(_agg_doc)
-        def var(self, axis='major', skipna=True):
+        def var(self, axis=None, skipna=True, **kwargs):
+            if axis is None:
+                axis = self._stat_axis_number
             return self._reduce(nanops.nanvar, axis=axis, skipna=skipna)
         cls.var = var
 
         @Substitution(desc='unbiased standard deviation', outname='stdev')
         @Appender(_agg_doc)
-        def std(self, axis='major', skipna=True):
+        def std(self, axis=None, skipna=True, **kwargs):
+            if axis is None:
+                axis = self._stat_axis_number
             return self.var(axis=axis, skipna=skipna).apply(np.sqrt)
         cls.std = std
 
         @Substitution(desc='unbiased skewness', outname='skew')
         @Appender(_agg_doc)
-        def skew(self, axis='major', skipna=True):
+        def skew(self, axis=None, skipna=True, **wwargs):
+            if axis is None:
+                axis = self._stat_axis_number
             return self._reduce(nanops.nanskew, axis=axis, skipna=skipna)
         cls.skew = skew
 
         @Substitution(desc='product', outname='prod')
         @Appender(_agg_doc)
-        def prod(self, axis='major', skipna=True):
+        def prod(self, axis=None, skipna=True, **kwargs):
+            if axis is None:
+                axis = self._stat_axis_number
             return self._reduce(nanops.nanprod, axis=axis, skipna=skipna)
         cls.prod = prod
 
         @Substitution(desc='compounded percentage', outname='compounded')
         @Appender(_agg_doc)
-        def compound(self, axis='major', skipna=True):
+        def compound(self, axis=None, skipna=True, **kwargs):
+            if axis is None:
+                axis = self._stat_axis_number
             return (1 + self).prod(axis=axis, skipna=skipna) - 1
         cls.compound = compound
 
         @Substitution(desc='median', outname='median')
         @Appender(_agg_doc)
-        def median(self, axis='major', skipna=True):
+        def median(self, axis=None, skipna=True, **kwargs):
+            if axis is None:
+                axis = self._stat_axis_number
             return self._reduce(nanops.nanmedian, axis=axis, skipna=skipna)
         cls.median = median
 
         @Substitution(desc='maximum', outname='maximum')
         @Appender(_agg_doc)
-        def max(self, axis='major', skipna=True):
+        def max(self, axis=None, skipna=True, **kwargs):
+            if axis is None:
+                axis = self._stat_axis_number
             return self._reduce(nanops.nanmax, axis=axis, skipna=skipna)
         cls.max = max
 
         @Substitution(desc='minimum', outname='minimum')
         @Appender(_agg_doc)
-        def min(self, axis='major', skipna=True):
+        def min(self, axis=None, skipna=True, **kwargs):
+            if axis is None:
+                axis = self._stat_axis_number
             return self._reduce(nanops.nanmin, axis=axis, skipna=skipna)
         cls.min = min
 
