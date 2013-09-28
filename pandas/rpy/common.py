@@ -59,7 +59,7 @@ def _is_null(obj):
 
 def _convert_list(obj):
     """
-    Convert named Vector to dict, factors to DataFrames
+    Convert named Vector to dict, factors to list
     """
     try:
         values = [convert_robj(x) for x in obj]
@@ -67,12 +67,10 @@ def _convert_list(obj):
         return dict(zip(keys, values))
     except TypeError:
         # For state.division and state.region
-        if melt:
-            return convert_robj(melt(obj))
-        else:
-            raise TypeError(
-                'Unable to convert R object. '
-                'Please install the R reshape or reshape2 package')
+        factors = list(r['factor'](obj))
+        level = list(r['levels'](obj))
+        result = [level[index-1] for index in factors]
+        return result
 
 
 def _convert_array(obj):
@@ -125,8 +123,8 @@ def _convert_vector(obj):
     elif 'tsp' in attributes:
         return pd.Series(list(obj), index=r['time'](obj)) 
     elif 'labels' in attributes:
-        return pd.Series(list(obj), index=r['labels'](obj)) 
-    elif 'dist' in set(r['class'](obj)):
+        return pd.Series(list(obj), index=r['labels'](obj))
+    if _rclass(obj) == 'dist':
         # For 'eurodist'. WARNING: This results in a DataFrame, not a Series or listq.
         matrix = r['as.matrix'](obj)
         return convert_robj(matrix)
