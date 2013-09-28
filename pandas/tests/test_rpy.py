@@ -155,7 +155,7 @@ class TestCommon(unittest.TestCase):
 
     def test_table(self):
         # This test requires the r package 'reshape2' or 'reshape' to be installed
-        for name in ('HairEyeColor', 'Titanic', 'occupationalStatus'):
+        for name in ('HairEyeColor', 'Titanic'):
             df = com.load_data(name)
             table = r['melt'](r[name])
             names = list(table.names)
