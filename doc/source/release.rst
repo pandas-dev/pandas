@@ -269,6 +269,9 @@ API Changes
     ``SparsePanel``, etc.), now support the entire set of arithmetic operators
     and arithmetic flex methods (add, sub, mul, etc.). ``SparsePanel`` does not
     support ``pow`` or ``mod`` with non-scalars. (:issue:`3765`)
+  - Provide numpy compatibility with 1.7 for a calling convention like ``np.prod(pandas_object)`` as numpy
+    call with additional keyword args (:issue:`4435`)
+
 
 Internal Refactoring
 ~~~~~~~~~~~~~~~~~~~~
@@ -347,6 +350,10 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
   etc.) into a separate, cleaned up wrapper class. (:issue:`4613`)
 - Complex compat for ``Series`` with ``ndarray``. (:issue:`4819`)
 - Removed unnecessary ``rwproperty`` from codebase in favor of builtin property. (:issue:`4843`)
+- Refactor object level numeric methods (mean/sum/min/max...) from object level modules to
+  ``core/generic.py``(:issue:`4435`).
+- Refactor cum objects to core/generic.py (:issue:`4435`), note that these have a more numpy-like
+  function signature.
 
 .. _release.bug_fixes-0.13.0:
 

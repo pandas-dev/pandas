@@ -831,10 +831,11 @@ class Panel(NDFrame):
         result = np.apply_along_axis(func, i, self.values)
         return self._wrap_result(result, axis=axis)
 
-    def _reduce(self, op, axis=0, skipna=True):
+    def _reduce(self, op, axis=0, skipna=True, numeric_only=None,
+                filter_type=None, **kwds):
         axis_name = self._get_axis_name(axis)
         axis_number = self._get_axis_number(axis_name)
-        f = lambda x: op(x, axis=axis_number, skipna=skipna)
+        f = lambda x: op(x, axis=axis_number, skipna=skipna, **kwds)
 
         result = f(self.values)
 
@@ -1207,89 +1208,11 @@ Returns
                 return self._combine(other, na_op, axis=axis)
             f.__name__ = name
             return f
+
         # add `div`, `mul`, `pow`, etc..
         ops.add_flex_arithmetic_methods(cls, _panel_arith_method,
                                         use_numexpr=use_numexpr,
                                         flex_comp_method=ops._comp_method_PANEL)
-        _agg_doc = """
-Return %(desc)s over requested axis
-
-Parameters
-----------
-axis : {""" + ', '.join(cls._AXIS_ORDERS) + "} or {" \
-            + ', '.join([str(i) for i in range(cls._AXIS_LEN)]) + """}
-skipna : boolean, default True
-    Exclude NA/null values. If an entire row/column is NA, the result
-    will be NA
-
-Returns
--------
-%(outname)s : """ + cls._constructor_sliced.__name__ + "\n"
-
-        _na_info = """
-
-NA/null values are %s.
-If all values are NA, result will be NA"""
-
-        @Substitution(desc='sum', outname='sum')
-        @Appender(_agg_doc)
-        def sum(self, axis='major', skipna=True):
-            return self._reduce(nanops.nansum, axis=axis, skipna=skipna)
-        cls.sum = sum
-
-        @Substitution(desc='mean', outname='mean')
-        @Appender(_agg_doc)
-        def mean(self, axis='major', skipna=True):
-            return self._reduce(nanops.nanmean, axis=axis, skipna=skipna)
-        cls.mean = mean
-
-        @Substitution(desc='unbiased variance', outname='variance')
-        @Appender(_agg_doc)
-        def var(self, axis='major', skipna=True):
-            return self._reduce(nanops.nanvar, axis=axis, skipna=skipna)
-        cls.var = var
-
-        @Substitution(desc='unbiased standard deviation', outname='stdev')
-        @Appender(_agg_doc)
-        def std(self, axis='major', skipna=True):
-            return self.var(axis=axis, skipna=skipna).apply(np.sqrt)
-        cls.std = std
-
-        @Substitution(desc='unbiased skewness', outname='skew')
-        @Appender(_agg_doc)
-        def skew(self, axis='major', skipna=True):
-            return self._reduce(nanops.nanskew, axis=axis, skipna=skipna)
-        cls.skew = skew
-
-        @Substitution(desc='product', outname='prod')
-        @Appender(_agg_doc)
-        def prod(self, axis='major', skipna=True):
-            return self._reduce(nanops.nanprod, axis=axis, skipna=skipna)
-        cls.prod = prod
-
-        @Substitution(desc='compounded percentage', outname='compounded')
-        @Appender(_agg_doc)
-        def compound(self, axis='major', skipna=True):
-            return (1 + self).prod(axis=axis, skipna=skipna) - 1
-        cls.compound = compound
-
-        @Substitution(desc='median', outname='median')
-        @Appender(_agg_doc)
-        def median(self, axis='major', skipna=True):
-            return self._reduce(nanops.nanmedian, axis=axis, skipna=skipna)
-        cls.median = median
-
-        @Substitution(desc='maximum', outname='maximum')
-        @Appender(_agg_doc)
-        def max(self, axis='major', skipna=True):
-            return self._reduce(nanops.nanmax, axis=axis, skipna=skipna)
-        cls.max = max
-
-        @Substitution(desc='minimum', outname='minimum')
-        @Appender(_agg_doc)
-        def min(self, axis='major', skipna=True):
-            return self._reduce(nanops.nanmin, axis=axis, skipna=skipna)
-        cls.min = min
 
 Panel._setup_axes(axes=['items', 'major_axis', 'minor_axis'],
                   info_axis=0,
@@ -1301,6 +1224,7 @@ Panel._setup_axes(axes=['items', 'major_axis', 'minor_axis'],
 
 ops.add_special_arithmetic_methods(Panel, **ops.panel_special_funcs)
 Panel._add_aggregate_operations()
+Panel._add_numeric_operations()
 
 WidePanel = Panel
 LongPanel = DataFrame
