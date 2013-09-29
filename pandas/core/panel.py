@@ -1028,7 +1028,7 @@ class Panel(NDFrame):
     def tshift(self, periods=1, freq=None, axis='major', **kwds):
         return super(Panel, self).tshift(periods, freq, axis, **kwds)
 
-    def truncate(self, before=None, after=None, axis='major'):
+    def truncate(self, before=None, after=None, axis='major', copy=False):
         """Function truncates a sorted Panel before and/or after some
         particular values on the requested axis
 
@@ -1386,6 +1386,7 @@ Panel._setup_axes(axes=['items', 'major_axis', 'minor_axis'],
                   slicers={'major_axis': 'index',
                            'minor_axis': 'columns'})
 Panel._add_aggregate_operations()
+Panel._setup_generic_methods()
 
 WidePanel = Panel
 LongPanel = DataFrame

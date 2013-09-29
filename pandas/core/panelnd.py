@@ -108,5 +108,6 @@ def create_nd_panel_factory(klass_name, orders, slices, slicer, aliases=None, st
 
     # add the aggregate operations
     klass._add_aggregate_operations()
+    klass._setup_generic_methods(allow_matching=True)
 
     return klass

@@ -3136,6 +3136,7 @@ class Series(generic.NDFrame):
         return self._constructor(new_values, index=new_index, name=self.name)
 
 Series._setup_axes(['index'], info_axis=0)
+Series._setup_generic_methods()
 _INDEX_TYPES = ndarray, Index, list, tuple
 
 # reinstall the SeriesIndexer
