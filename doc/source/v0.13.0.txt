@@ -68,6 +68,11 @@ API changes
         df1 and df2
         s1 and s2
 
+  - All non-Index NDFrames (``Series``, ``DataFrame``, ``Panel``, ``Panel4D``,
+    ``SparsePanel``, etc.), now support the entire set of arithmetic operators
+    and arithmetic flex methods (add, sub, mul, etc.). ``SparsePanel`` does not
+    support ``pow`` or ``mod`` with non-scalars. (:issue:`3765`)
+
 
 Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

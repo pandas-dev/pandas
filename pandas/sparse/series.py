@@ -10,13 +10,14 @@ import numpy as np
 
 import operator
 
-from pandas.core.common import isnull, _values_from_object
+from pandas.core.common import isnull, _values_from_object, _maybe_match_name
 from pandas.core.index import Index, _ensure_index
-from pandas.core.series import Series, _maybe_match_name
+from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 from pandas.core.internals import SingleBlockManager
 from pandas.core import generic
 import pandas.core.common as com
+import pandas.core.ops as ops
 import pandas.core.datetools as datetools
 import pandas.index as _index
 
@@ -32,10 +33,14 @@ from pandas.util.decorators import Appender
 # Wrapper function for Series arithmetic methods
 
 
-def _sparse_op_wrap(op, name):
+def _arith_method(op, name, str_rep=None, default_axis=None, fill_zeros=None,
+                                 **eval_kwargs):
     """
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
+
+    str_rep, default_axis, fill_zeros and eval_kwargs are not used, but are present
+    for compatibility.
     """
 
     def wrapper(self, other):
@@ -61,6 +66,10 @@ def _sparse_op_wrap(op, name):
             raise TypeError('operation with %s not supported' % type(other))
 
     wrapper.__name__ = name
+    if name.startswith("__"):
+        # strip special method names, e.g. `__add__` needs to be `add` when passed
+        # to _sparse_series_op
+        name = name[2:-2]
     return wrapper
 
 
@@ -271,36 +280,6 @@ class SparseSeries(Series):
         series_rep = Series.__unicode__(self)
         rep = '%s\n%s' % (series_rep, repr(self.sp_index))
         return rep
-
-    # Arithmetic operators
-
-    __add__ = _sparse_op_wrap(operator.add, 'add')
-    __sub__ = _sparse_op_wrap(operator.sub, 'sub')
-    __mul__ = _sparse_op_wrap(operator.mul, 'mul')
-    __truediv__ = _sparse_op_wrap(operator.truediv, 'truediv')
-    __floordiv__ = _sparse_op_wrap(operator.floordiv, 'floordiv')
-    __pow__ = _sparse_op_wrap(operator.pow, 'pow')
-
-    # Inplace operators
-    __iadd__ = __add__
-    __isub__ = __sub__
-    __imul__ = __mul__
-    __itruediv__ = __truediv__
-    __ifloordiv__ = __floordiv__
-    __ipow__ = __pow__
-
-    # reverse operators
-    __radd__ = _sparse_op_wrap(operator.add, '__radd__')
-    __rsub__ = _sparse_op_wrap(lambda x, y: y - x, '__rsub__')
-    __rmul__ = _sparse_op_wrap(operator.mul, '__rmul__')
-    __rtruediv__ = _sparse_op_wrap(lambda x, y: y / x, '__rtruediv__')
-    __rfloordiv__ = _sparse_op_wrap(lambda x, y: y // x, 'floordiv')
-    __rpow__ = _sparse_op_wrap(lambda x, y: y ** x, '__rpow__')
-
-    # Python 2 division operators
-    if not compat.PY3:
-        __div__ = _sparse_op_wrap(operator.div, 'div')
-        __rdiv__ = _sparse_op_wrap(lambda x, y: y / x, '__rdiv__')
 
     def __array_wrap__(self, result):
         """
@@ -658,6 +637,17 @@ class SparseSeries(Series):
 
         dense_combined = self.to_dense().combine_first(other)
         return dense_combined.to_sparse(fill_value=self.fill_value)
+
+# overwrite series methods with unaccelerated versions
+ops.add_special_arithmetic_methods(SparseSeries, use_numexpr=False,
+                                   **ops.series_special_funcs)
+ops.add_flex_arithmetic_methods(SparseSeries, use_numexpr=False,
+                                **ops.series_flex_funcs)
+# overwrite basic arithmetic to use SparseSeries version
+# force methods to overwrite previous definitions.
+ops.add_special_arithmetic_methods(SparseSeries, _arith_method,
+                                   radd_func=operator.add, comp_method=None,
+                                   bool_method=None, use_numexpr=False, force=True)
 
 # backwards compatiblity
 SparseTimeSeries = SparseSeries

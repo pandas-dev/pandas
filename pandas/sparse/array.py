@@ -7,7 +7,6 @@ SparseArray data structure
 from numpy import nan, ndarray
 import numpy as np
 
-import operator
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 
@@ -17,21 +16,26 @@ from pandas.compat import range
 from pandas._sparse import BlockIndex, IntIndex
 import pandas._sparse as splib
 import pandas.index as _index
+import pandas.core.ops as ops
 
 
-def _sparse_op_wrap(op, name):
+def _arith_method(op, name, str_rep=None, default_axis=None,
+                              fill_zeros=None, **eval_kwargs):
     """
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
     """
-
     def wrapper(self, other):
         if isinstance(other, np.ndarray):
             if len(self) != len(other):
-                raise AssertionError("Operands must be of the same size")
-            if not isinstance(other, SparseArray):
+                raise AssertionError("length mismatch: %d vs. %d" %
+                                     (len(self), len(other)))
+            if not isinstance(other, com.ABCSparseArray):
                 other = SparseArray(other, fill_value=self.fill_value)
-            return _sparse_array_op(self, other, op, name)
+            if name[0] == 'r':
+                return _sparse_array_op(other, self, op, name[1:])
+            else:
+                return _sparse_array_op(self, other, op, name)
         elif np.isscalar(other):
             new_fill_value = op(np.float64(self.fill_value),
                                 np.float64(other))
@@ -41,7 +45,8 @@ def _sparse_op_wrap(op, name):
                                fill_value=new_fill_value)
         else:  # pragma: no cover
             raise TypeError('operation with %s not supported' % type(other))
-
+    if name.startswith("__"):
+        name = name[2:-2]
     wrapper.__name__ = name
     return wrapper
 
@@ -218,23 +223,6 @@ to sparse
                                      com.pprint_thing(self.fill_value),
                                      com.pprint_thing(self.sp_index))
 
-    # Arithmetic operators
-
-    __add__ = _sparse_op_wrap(operator.add, 'add')
-    __sub__ = _sparse_op_wrap(operator.sub, 'sub')
-    __mul__ = _sparse_op_wrap(operator.mul, 'mul')
-    __truediv__ = _sparse_op_wrap(operator.truediv, 'truediv')
-    __floordiv__ = _sparse_op_wrap(operator.floordiv, 'floordiv')
-    __pow__ = _sparse_op_wrap(operator.pow, 'pow')
-
-    # reverse operators
-    __radd__ = _sparse_op_wrap(operator.add, 'add')
-    __rsub__ = _sparse_op_wrap(lambda x, y: y - x, 'rsub')
-    __rmul__ = _sparse_op_wrap(operator.mul, 'mul')
-    __rtruediv__ = _sparse_op_wrap(lambda x, y: y / x, 'rtruediv')
-    __rfloordiv__ = _sparse_op_wrap(lambda x, y: y // x, 'rfloordiv')
-    __rpow__ = _sparse_op_wrap(lambda x, y: y ** x, 'rpow')
-
     def disable(self, other):
         raise NotImplementedError('inplace binary ops not supported')
     # Inplace operators
@@ -247,8 +235,6 @@ to sparse
 
     # Python 2 division operators
     if not compat.PY3:
-        __div__ = _sparse_op_wrap(operator.div, 'div')
-        __rdiv__ = _sparse_op_wrap(lambda x, y: y / x, '__rdiv__')
         __idiv__ = disable
 
     @property
@@ -539,3 +525,7 @@ def make_sparse(arr, kind='block', fill_value=nan):
 
     sparsified_values = arr[mask]
     return sparsified_values, index
+
+ops.add_special_arithmetic_methods(SparseArray,
+                                   arith_method=_arith_method,
+                                   use_numexpr=False)
