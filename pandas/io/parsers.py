@@ -719,6 +719,9 @@ class ParserBase(object):
             ic = [ ic ]
         sic = set(ic)
 
+        # TODO: Decide if this is necessary...
+        orig_header = list(header)
+
         # clean the index_names
         index_names = header.pop(-1)
         index_names, names, index_col = _clean_index_names(index_names,
