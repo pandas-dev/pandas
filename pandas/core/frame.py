@@ -3342,6 +3342,7 @@ class DataFrame(NDFrame):
         else: # pragma : no cover
             raise AssertionError('Axis must be 0 or 1, got %s' % str(axis))
 
+        i = None
         keys = []
         results = {}
         if ignore_failures:
@@ -3362,14 +3363,12 @@ class DataFrame(NDFrame):
                     results[i] = func(v)
                     keys.append(v.name)
             except Exception as e:
-                try:
-                    if hasattr(e, 'args'):
+                if hasattr(e, 'args'):
+                    # make sure i is defined
+                    if i is not None:
                         k = res_index[i]
                         e.args = e.args + ('occurred at index %s' %
-                                           com.pprint_thing(k),)
-                except (NameError, UnboundLocalError):  # pragma: no cover
-                    # no k defined yet
-                    pass
+                                        com.pprint_thing(k),)
                 raise
 
         if len(results) > 0 and _is_sequence(results[0]):
