@@ -2187,23 +2187,22 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_timedeltas_with_DateOffset(self):
 
         # GH 4532
-        # commented out cases are problematic b/c of issues with Offsets
         # operate with pd.offsets
         s = Series([Timestamp('20130101 9:01'), Timestamp('20130101 9:02')])
 
         result = s + pd.offsets.Second(5)
-        # result2 = pd.offsets.Second(5) + s
+        result2 = pd.offsets.Second(5) + s
         expected = Series(
             [Timestamp('20130101 9:01:05'), Timestamp('20130101 9:02:05')])
         assert_series_equal(result, expected)
-        # assert_series_equal(result2, expected)
+        assert_series_equal(result2, expected)
 
         result = s + pd.offsets.Milli(5)
-        # result2 = pd.offsets.Milli(5) + s
+        result2 = pd.offsets.Milli(5) + s
         expected = Series(
             [Timestamp('20130101 9:01:00.005'), Timestamp('20130101 9:02:00.005')])
         assert_series_equal(result, expected)
-        # assert_series_equal(result2, expected)
+        assert_series_equal(result2, expected)
 
         result = s + pd.offsets.Minute(5) + pd.offsets.Milli(5)
         expected = Series(
@@ -2232,8 +2231,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
                     'Milli', 'Nano' ]:
             op = getattr(pd.offsets,do)
             s + op(5)
-            # can't do this because DateOffset doesn't do the right thing
-            # op(5) + s
+            op(5) + s
 
         # invalid DateOffsets
         for do in [ 'Week', 'BDay', 'BQuarterEnd', 'BMonthEnd', 'BYearEnd',

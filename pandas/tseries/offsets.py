@@ -19,6 +19,10 @@ __all__ = ['Day', 'BusinessDay', 'BDay', 'CustomBusinessDay', 'CDay',
 #----------------------------------------------------------------------
 # DateOffset
 
+class ApplyTypeError(TypeError):
+    # sentinel class for catching the apply error to return NotImplemented
+    pass
+
 
 class CacheableOffset(object):
 
@@ -128,7 +132,7 @@ class DateOffset(object):
                         kwds_new[key] = self.kwds[key]
                 if len(kwds_new) > 0:
                     attrs.append('='.join((attr, repr(kwds_new))))
-            else:            
+            else:
                 if attr not in exclude:
                     attrs.append('='.join((attr, repr(getattr(self, attr)))))
 
@@ -136,7 +140,7 @@ class DateOffset(object):
             plural = 's'
         else:
             plural = ''
-        
+
         n_str = ""
         if self.n != 1:
             n_str = "%s * " % self.n
@@ -170,19 +174,21 @@ class DateOffset(object):
         return self.apply(other)
 
     def __add__(self, other):
-        return self.apply(other)
+        try:
+            return self.apply(other)
+        except ApplyTypeError:
+            return NotImplemented
 
     def __radd__(self, other):
         return self.__add__(other)
 
     def __sub__(self, other):
         if isinstance(other, datetime):
-            raise TypeError('Cannot subtract datetime from offset!')
+            raise TypeError('Cannot subtract datetime from offset.')
         elif type(other) == type(self):
             return self.__class__(self.n - other.n, **self.kwds)
         else:  # pragma: no cover
-            raise TypeError('Cannot subtract %s from %s'
-                            % (type(other), type(self)))
+            return NotImplemented
 
     def __rsub__(self, other):
         return self.__class__(-self.n, **self.kwds) + other
@@ -273,7 +279,7 @@ class BusinessDay(CacheableOffset, DateOffset):
             plural = 's'
         else:
             plural = ''
-            
+
         n_str = ""
         if self.n != 1:
             n_str = "%s * " % self.n
@@ -370,8 +376,8 @@ class BusinessDay(CacheableOffset, DateOffset):
             return BDay(self.n, offset=self.offset + other,
                         normalize=self.normalize)
         else:
-            raise TypeError('Only know how to combine business day with '
-                            'datetime or timedelta!')
+            raise ApplyTypeError('Only know how to combine business day with '
+                                 'datetime or timedelta.')
 
     @classmethod
     def onOffset(cls, dt):
@@ -463,8 +469,8 @@ class CustomBusinessDay(BusinessDay):
             return BDay(self.n, offset=self.offset + other,
                         normalize=self.normalize)
         else:
-            raise TypeError('Only know how to combine trading day with '
-                            'datetime, datetime64 or timedelta!')
+            raise ApplyTypeError('Only know how to combine trading day with '
+                                 'datetime, datetime64 or timedelta.')
         dt64 = self._to_dt64(other)
 
         day64 = dt64.astype('datetime64[D]')
@@ -1177,7 +1183,10 @@ class Tick(DateOffset):
                 return type(self)(self.n + other.n)
             else:
                 return _delta_to_tick(self.delta + other.delta)
-        return self.apply(other)
+        try:
+            return self.apply(other)
+        except ApplyTypeError:
+            return NotImplemented
 
     def __eq__(self, other):
         if isinstance(other, compat.string_types):
@@ -1220,8 +1229,8 @@ class Tick(DateOffset):
             return other + self.delta
         elif isinstance(other, type(self)):
             return type(self)(self.n + other.n)
-        else:  # pragma: no cover
-            raise TypeError('Unhandled type: %s' % type(other))
+        else:
+            raise ApplyTypeError('Unhandled type: %s' % type(other).__name__)
 
     _rule_base = 'undefined'
 
