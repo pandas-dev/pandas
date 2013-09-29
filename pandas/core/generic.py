@@ -2816,6 +2816,22 @@ skipna : boolean, default True
 level : int, default None
         If the axis is a MultiIndex (hierarchical), count along a
         particular level, collapsing into a """ + name + """
+numeric_only : boolean, default None
+    Include only float, int, boolean data. If None, will attempt to use
+    everything, then use only numeric data
+
+Returns
+-------
+%(outname)s : """ + name + "\n"
+
+        _cnum_doc = """
+
+Parameters
+----------
+axis : """ + axis_descr + """
+skipna : boolean, default True
+    Exclude NA/null values. If an entire row/column is NA, the result
+    will be NA
 
 Returns
 -------
@@ -3001,148 +3017,37 @@ Returns
             return self._reduce(nanops.nanmin, axis=axis, skipna=skipna)
         cls.min = min
 
-    def cumsum(self, axis=None, skipna=True, **kwargs):
-        """
-        Return DataFrame of cumulative sums over requested axis.
+        def _make_cum_function(name, accum_func, mask_a, mask_b):
 
-        Parameters
-        ----------
-        axis : {0, 1}
-            0 for row-wise, 1 for column-wise
-        skipna : boolean, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA
+            @Substitution(outname=name)
+            @Appender("Return cumulative {0} over requested axis.".format(name) + _cnum_doc)
+            def func(self, axis=None, dtype=None, out=None, skipna=True, **kwargs):
+                if axis is None:
+                    axis = self._stat_axis_number
+                else:
+                    axis = self._get_axis_number(axis)
 
-        Returns
-        -------
-        y : DataFrame
-        """
-        if axis is None:
-            axis = self._stat_axis_number
-        else:
-            axis = self._get_axis_number(axis)
+                y = _values_from_object(self).copy()
+                if not issubclass(y.dtype.type, (np.integer,np.bool_)):
+                    mask = isnull(self)
+                    if skipna:
+                        np.putmask(y, mask, mask_a)
+                    result = accum_func(y, axis)
+                    if skipna:
+                        np.putmask(result, mask, mask_b)
+                else:
+                    result = accum_func(y, axis)
 
-        y = _values_from_object(self).copy()
-        if not issubclass(y.dtype.type, np.integer):
-            mask = np.isnan(_values_from_object(self))
+                d = self._construct_axes_dict()
+                d['copy'] = False
+                return self._constructor(result, **d)._propogate_attributes(self)
+            return func
 
-            if skipna:
-                np.putmask(y, mask, 0.)
 
-            result = y.cumsum(axis)
-
-            if skipna:
-                np.putmask(result, mask, np.nan)
-        else:
-            result = y.cumsum(axis)
-        return self._wrap_array(result, self.axes, copy=False)
-
-    def cumprod(self, axis=None, skipna=True, **kwargs):
-        """
-        Return cumulative product over requested axis as DataFrame
-
-        Parameters
-        ----------
-        axis : {0, 1}
-            0 for row-wise, 1 for column-wise
-        skipna : boolean, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA
-
-        Returns
-        -------
-        y : DataFrame
-        """
-        if axis is None:
-            axis = self._stat_axis_number
-        else:
-            axis = self._get_axis_number(axis)
-
-        y = _values_from_object(self).copy()
-        if not issubclass(y.dtype.type, np.integer):
-            mask = np.isnan(_values_from_object(self))
-
-            if skipna:
-                np.putmask(y, mask, 1.)
-            result = y.cumprod(axis)
-
-            if skipna:
-                np.putmask(result, mask, np.nan)
-        else:
-            result = y.cumprod(axis)
-        return self._wrap_array(result, self.axes, copy=False)
-
-    def cummax(self, axis=None, skipna=True, **kwargs):
-        """
-        Return DataFrame of cumulative max over requested axis.
-
-        Parameters
-        ----------
-        axis : {0, 1}
-            0 for row-wise, 1 for column-wise
-        skipna : boolean, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA
-
-        Returns
-        -------
-        y : DataFrame
-        """
-        if axis is None:
-            axis = self._stat_axis_number
-        else:
-            axis = self._get_axis_number(axis)
-
-        y = _values_from_object(self).copy()
-        if not issubclass(y.dtype.type, np.integer):
-            mask = np.isnan(_values_from_object(self))
-
-            if skipna:
-                np.putmask(y, mask, -np.inf)
-
-            result = np.maximum.accumulate(y, axis)
-
-            if skipna:
-                np.putmask(result, mask, np.nan)
-        else:
-            result = np.maximum.accumulate(y, axis)
-        return self._wrap_array(result, self.axes, copy=False)
-
-    def cummin(self, axis=None, skipna=True, **kwargs):
-        """
-        Return DataFrame of cumulative min over requested axis.
-
-        Parameters
-        ----------
-        axis : {0, 1}
-            0 for row-wise, 1 for column-wise
-        skipna : boolean, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA
-
-        Returns
-        -------
-        y : DataFrame
-        """
-        if axis is None:
-            axis = self._stat_axis_number
-        else:
-            axis = self._get_axis_number(axis)
-
-        y = _values_from_object(self).copy()
-        if not issubclass(y.dtype.type, np.integer):
-            mask = np.isnan(_values_from_object(self))
-
-            if skipna:
-                np.putmask(y, mask, np.inf)
-
-            result = np.minimum.accumulate(y, axis)
-
-            if skipna:
-                np.putmask(result, mask, np.nan)
-        else:
-            result = np.minimum.accumulate(y, axis)
-        return self._wrap_array(result, self.axes, copy=False)
+        cls.cummin  = _make_cum_function('min', lambda y, axis: np.minimum.accumulate(y, axis), np.inf, np.nan)
+        cls.cumsum  = _make_cum_function('sum',  lambda y, axis: y.cumsum(axis), 0., np.nan)
+        cls.cumprod = _make_cum_function('prod', lambda y, axis: y.cumprod(axis), 1., np.nan)
+        cls.cummax  = _make_cum_function('max',  lambda y, axis: np.maximum.accumulate(y, axis), -np.inf, np.nan)
 
 # install the indexerse
 for _name, _indexer in indexing.get_indexers_list():
