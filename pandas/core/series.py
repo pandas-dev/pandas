@@ -697,18 +697,21 @@ class Series(generic.NDFrame):
         new_values = self.values.repeat(reps)
         return self._constructor(new_values, index=new_index, name=self.name)
 
-    def reshape(self, newshape, order='C'):
+    def reshape(self, *args, **kwargs):
         """
         See numpy.ndarray.reshape
         """
-        if order not in ['C', 'F']:
-            raise TypeError(
-                "must specify a tuple / singular length to reshape")
-
-        if isinstance(newshape, tuple) and len(newshape) > 1:
-            return self.values.reshape(newshape, order=order)
+        if len(args) == 1 and hasattr(args[0], '__iter__'):
+            shape = args[0]
         else:
-            return ndarray.reshape(self, newshape, order)
+            shape = args
+
+        if tuple(shape) == self.shape:
+            # XXX ignoring the "order" keyword.
+            return self
+
+        return self.values.reshape(shape, **kwargs)
+
 
     def get(self, label, default=None):
         """

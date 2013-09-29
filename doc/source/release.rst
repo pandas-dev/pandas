@@ -513,6 +513,8 @@ Bug Fixes
   - Fix a bug when indexing with ``np.nan`` via ``iloc/loc`` (:issue:`5016`)
   - Fixed a bug where low memory c parser could create different types in different
     chunks of the same file. Now coerces to numerical type or raises warning. (:issue:`3866`)
+  - Fix a bug where reshaping a ``Series`` to its own shape raised ``TypeError`` (:issue:`4554`)
+    and other reshaping issues.
 
 pandas 0.12.0
 -------------

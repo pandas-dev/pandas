@@ -1045,12 +1045,16 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
                           [5, slice(None, None)], 2)
 
     def test_reshape_non_2d(self):
+        # GH 4554
         x = Series(np.random.random(201), name='x')
-        self.assertRaises(TypeError, x.reshape, (len(x),))
+        self.assertTrue(x.reshape(x.shape,) is x)
 
         # GH 2719
         a = Series([1, 2, 3, 4])
-        self.assertRaises(TypeError, a.reshape, 2, 2)
+        result = a.reshape(2, 2)
+        expected = a.values.reshape(2, 2)
+        np.testing.assert_array_equal(result, expected)
+        self.assertTrue(type(result) is type(expected))
 
     def test_reshape_2d_return_array(self):
         x = Series(np.random.random(201), name='x')
