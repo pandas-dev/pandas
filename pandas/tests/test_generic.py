@@ -163,15 +163,11 @@ class Generic(object):
         # numpy in 1.7 tries to pass addtional arguments to pandas functions
 
         o = self._construct(shape=4)
-        for op in ['min','max','max','var','std','prod','sum',
+        for op in ['min','max','max','var','std','prod','sum','cumsum','cumprod',
                    'median','skew','kurt','compound','cummax','cummin','all','any']:
             f = getattr(np,op,None)
             if f is not None:
                 f(o)
-
-        # numpy broken methods, since these are not passed by keywords, they
-        # won't work
-        #'cumsum','cumprod',
 
 class TestSeries(unittest.TestCase, Generic):
     _typ = Series

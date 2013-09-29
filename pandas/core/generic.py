@@ -2807,6 +2807,8 @@ class NDFrame(PandasObject):
         name = cls._constructor_sliced.__name__ if cls._AXIS_LEN > 1 else 'scalar'
         _num_doc = """
 
+%(desc)s
+
 Parameters
 ----------
 axis : """ + axis_descr + """
@@ -2822,7 +2824,7 @@ numeric_only : boolean, default None
 
 Returns
 -------
-%(outname)s : """ + name + "\n"
+%(outname)s : """ + name + " or " + cls.__name__ + " (if level specified)\n"
 
         _cnum_doc = """
 
@@ -2837,25 +2839,46 @@ Returns
 -------
 %(outname)s : """ + name + "\n"
 
-        @Substitution(outname='sum')
-        @Appender(_num_doc)
-        def sum(self, axis=None, skipna=True, level=None, numeric_only=None,
-                **kwargs):
-            """ Return sum over requested axis """
+        def _make_stat_function(name, desc, f):
 
-            if axis is None:
-                axis = self._stat_axis_number
-            if level is not None:
-                return self._agg_by_level('sum', axis=axis, level=level,
-                                          skipna=skipna)
-            return self._reduce(nanops.nansum, axis=axis,
-                                skipna=skipna, numeric_only=numeric_only)
-        cls.sum = sum
+            @Substitution(outname=name, desc=desc)
+            @Appender(_num_doc)
+            def stat_func(self, axis=None, skipna=None, level=None, numeric_only=None,
+                    **kwargs):
+                if skipna is None:
+                    skipna = True
+                if axis is None:
+                    axis = self._stat_axis_number
+                if level is not None:
+                    return self._agg_by_level(name, axis=axis, level=level,
+                                              skipna=skipna)
+                return self._reduce(f, axis=axis,
+                                    skipna=skipna, numeric_only=numeric_only)
+            stat_func.__name__ = name
+            return stat_func
 
-        @Substitution(outname='mad')
+        cls.sum = _make_stat_function('sum',"Return the sum of the values for the requested axis", nanops.nansum)
+        cls.mean = _make_stat_function('mean',"Return the mean of the values for the requested axis", nanops.nanmean)
+        cls.skew = _make_stat_function('skew',"Return unbiased skew over requested axis\nNormalized by N-1", nanops.nanskew)
+        cls.kurt = _make_stat_function('kurt',"Return unbiased kurtosis over requested axis\nNormalized by N-1", nanops.nankurt)
+        cls.kurtosis = cls.kurt
+        cls.prod = _make_stat_function('prod',"Return the product of the values for the requested axis", nanops.nanprod)
+        cls.product = cls.prod
+        cls.median = _make_stat_function('median',"Return the median of the values for the requested axis", nanops.nanmedian)
+        cls.max = _make_stat_function('max',"""
+This method returns the maximum of the values in the object. If you
+want the *index* of the maximum, use ``idxmax``. This is the
+equivalent of the ``numpy.ndarray`` method ``argmax``.""", nanops.nanmax)
+        cls.min = _make_stat_function('min',"""
+This method returns the minimum of the values in the object. If you
+want the *index* of the minimum, use ``idxmin``. This is the
+equivalent of the ``numpy.ndarray`` method ``argmin``.""", nanops.nanmin)
+
+        @Substitution(outname='mad', desc="Return the mean absolute deviation of the values for the requested axis")
         @Appender(_num_doc)
-        def mad(self,  axis=None, skipna=True, level=None, **kwargs):
-            """ Return the mean absolute deviation of the values for the requested axis """
+        def mad(self,  axis=None, skipna=None, level=None, **kwargs):
+            if skipna is None:
+                skipna = True
             if axis is None:
                 axis = self._stat_axis_number
             if level is not None:
@@ -2870,27 +2893,11 @@ Returns
             return np.abs(demeaned).mean(axis=axis, skipna=skipna)
         cls.mad = mad
 
-        @Substitution(outname='mean')
+        @Substitution(outname='variance',desc="Return unbiased variance over requested axis\nNormalized by N-1")
         @Appender(_num_doc)
-        def mean(self, axis=None, skipna=True, level=None, numeric_only=None, **kwargs):
-            """ Return mean over requested axis """
-
-            if axis is None:
-                axis = self._stat_axis_number
-            if level is not None:
-                return self._agg_by_level('mean', axis=axis, level=level,
-                                          skipna=skipna)
-            return self._reduce(nanops.nanmean, axis=axis,
-                                skipna=skipna, numeric_only=numeric_only)
-        cls.mean = mean
-
-        @Substitution(outname='variance')
-        @Appender(_num_doc)
-        def var(self, axis=None, skipna=True, level=None, ddof=1, **kwargs):
-            """
-            Return unbiased variance over requested axis
-            Normalized by N-1 (unbiased estimator).
-            """
+        def var(self, axis=None, skipna=None, level=None, ddof=1, **kwargs):
+            if skipna is None:
+                skipna = True
             if axis is None:
                 axis = self._stat_axis_number
             if level is not None:
@@ -2900,13 +2907,11 @@ Returns
             return self._reduce(nanops.nanvar, axis=axis, skipna=skipna, ddof=ddof)
         cls.var = var
 
-        @Substitution(outname='stdev')
+        @Substitution(outname='stdev',desc="Return unbiased standard deviation over requested axis\nNormalized by N-1")
         @Appender(_num_doc)
-        def std(self, axis=None, skipna=True, level=None, ddof=1, **kwargs):
-            """
-            Return unbiased standard deviation over requested axis
-            Normalized by N-1 (unbiased estimator).
-            """
+        def std(self, axis=None, skipna=None, level=None, ddof=1, **kwargs):
+            if skipna is None:
+                skipna = True
             if axis is None:
                 axis = self._stat_axis_number
             if level is not None:
@@ -2918,104 +2923,13 @@ Returns
             return np.sqrt(result)
         cls.std = std
 
-        @Substitution(outname='skew')
+        @Substitution(outname='compounded',desc="Return the compound percentage of the values for the requested axis")
         @Appender(_num_doc)
-        def skew(self, axis=None, skipna=True, level=None, **wwargs):
-            """
-            Return unbiased standard skewness over requested axis
-            Normalized by N-1 (unbiased estimator).
-            """
-            if axis is None:
-                axis = self._stat_axis_number
-            if level is not None:
-                return self._agg_by_level('skew', axis=axis, level=level,
-                                          skipna=skipna)
-            return self._reduce(nanops.nanskew, axis=axis, skipna=skipna)
-        cls.skew = skew
-
-        @Substitution(outname='kurt')
-        @Appender(_num_doc)
-        def kurt(self, axis=None, skipna=True, level=None, **kwargs):
-            """
-            Return unbiased standard kurtosis over requested axis
-            Normalized by N-1 (unbiased estimator).
-            """
-            if axis is None:
-                axis = self._stat_axis_number
-            if level is not None:
-                return self._agg_by_level('kurt', axis=axis, level=level,
-                                          skipna=skipna)
-            return self._reduce(nanops.nankurt, axis=axis, skipna=skipna,
-                                numeric_only=None)
-        cls.kurt = kurt
-
-        @Substitution(outname='prod')
-        @Appender(_num_doc)
-        def prod(self, axis=None, skipna=True, level=None, **kwargs):
-            """
-            Return product of the values over requested axis
-            """
-            if axis is None:
-                axis = self._stat_axis_number
-            if level is not None:
-                return self._agg_by_level('prod', axis=axis, level=level,
-                                          skipna=skipna)
-            return self._reduce(nanops.nanprod, axis=axis, skipna=skipna)
-        cls.prod = prod
-        cls.product = prod
-
-        @Substitution(outname='compounded')
-        @Appender(_num_doc)
-        def compound(self, axis=None, skipna=True, level=None, **kwargs):
-            """ return the compound percentage of the values for the requested axis """
+        def compound(self, axis=None, skipna=None, level=None, **kwargs):
+            if skipna is None:
+                skipna = True
             return (1 + self).prod(axis=axis, skipna=skipna, level=level) - 1
         cls.compound = compound
-
-        @Substitution(outname='median')
-        @Appender(_num_doc)
-        def median(self, axis=None, skipna=True, level=None, **kwargs):
-            """
-            Return median of the values over requested axis
-            """
-            if axis is None:
-                axis = self._stat_axis_number
-            if level is not None:
-                return self._agg_by_level('median', axis=axis, level=level,
-                                          skipna=skipna)
-            return self._reduce(nanops.nanmedian, axis=axis, skipna=skipna)
-        cls.median = median
-
-        @Substitution(outname='maximum')
-        @Appender(_num_doc)
-        def max(self, axis=None, skipna=True, level=None, **kwargs):
-            """
-            This method returns the maximum of the values in the objec. If you
-            want the *index* of the maximum, use ``idxmax``. This is the
-            equivalent of the ``numpy.ndarray`` method ``argmax``.
-            """
-            if axis is None:
-                axis = self._stat_axis_number
-            if level is not None:
-                return self._agg_by_level('max', axis=axis, level=level,
-                                          skipna=skipna)
-            return self._reduce(nanops.nanmax, axis=axis, skipna=skipna)
-        cls.max = max
-
-        @Substitution(outname='minimum')
-        @Appender(_num_doc)
-        def min(self, axis=None, skipna=True, level=None, **kwargs):
-            """
-            This method returns the minimum of the values in the object. If you
-            want the *index* of the minimum, use ``idxmin``. This is the
-            equivalent of the ``numpy.ndarray`` method ``argmin``.
-            """
-            if axis is None:
-                axis = self._stat_axis_number
-            if level is not None:
-                return self._agg_by_level('min', axis=axis, level=level,
-                                          skipna=skipna)
-            return self._reduce(nanops.nanmin, axis=axis, skipna=skipna)
-        cls.min = min
 
         def _make_cum_function(name, accum_func, mask_a, mask_b):
 
@@ -3041,6 +2955,8 @@ Returns
                 d = self._construct_axes_dict()
                 d['copy'] = False
                 return self._constructor(result, **d)._propogate_attributes(self)
+
+            func.__name__ = name
             return func
 
 
