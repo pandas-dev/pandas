@@ -135,6 +135,12 @@ class Series(generic.NDFrame):
 
             if isinstance(data, MultiIndex):
                 raise NotImplementedError
+            elif isinstance(data, Index):
+                # need to copy to avoid aliasing issues
+                if name is None:
+                    name = data.name
+                data = data.values
+                copy = True
             elif isinstance(data, pa.Array):
                 pass
             elif isinstance(data, Series):
