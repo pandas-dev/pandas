@@ -20,7 +20,7 @@ its release 2.3, while the current interface is
 designed for the 2.2.x series. We recommend to use 2.2.x over other series 
 unless you are prepared to fix parts of the code, yet the rpy2-2.3.0
 introduces improvements such as a better R-Python bridge memory management
-layer so I might be a good idea to bite the bullet and submit patches for
+layer so it might be a good idea to bite the bullet and submit patches for
 the few minor differences that need to be fixed.
 
 

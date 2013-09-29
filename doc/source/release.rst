@@ -153,6 +153,9 @@ Improvements to existing features
     (:issue:`4961`).
   - ``concat`` now gives a more informative error message when passed objects
     that cannot be concatenated (:issue:`4608`).
+  - Improve support for converting R datasets to pandas objects (more
+    informative index for timeseries and numeric, support for factors, dist, and
+    high-dimensional arrays.
 
 API Changes
 ~~~~~~~~~~~
