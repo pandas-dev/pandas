@@ -511,6 +511,8 @@ Bug Fixes
   - ``Timestamp`` objects can now appear in the left hand side of a comparison
     operation with a ``Series`` or ``DataFrame`` object (:issue:`4982`).
   - Fix a bug when indexing with ``np.nan`` via ``iloc/loc`` (:issue:`5016`)
+  - Fixed a bug where low memory c parser could create different types in different
+    chunks of the same file. Now coerces to numerical type or raises warning. (:issue:`3866`)
 
 pandas 0.12.0
 -------------
