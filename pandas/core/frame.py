@@ -63,28 +63,6 @@ from pandas.core.config import get_option
 # Docstring templates
 
 
-_stat_doc = """
-Return %(name)s over requested axis.
-%(na_action)s
-
-Parameters
-----------
-axis : {0, 1}
-    0 for row-wise, 1 for column-wise
-skipna : boolean, default True
-    Exclude NA/null values. If an entire row/column is NA, the result
-    will be NA
-level : int, default None
-    If the axis is a MultiIndex (hierarchical), count along a
-    particular level, collapsing into a DataFrame
-%(extras)s
-Returns
--------
-%(shortname)s : Series (or DataFrame if level specified)
-"""
-
-_doc_exclude_na = "NA/null values are excluded"
-
 _numeric_only_doc = """numeric_only : boolean, default None
     Include only float, int, boolean data. If None, will attempt to use
     everything, then use only numeric data
@@ -3869,7 +3847,7 @@ class DataFrame(NDFrame):
         else:
             return result
 
-    def any(self, axis=0, bool_only=None, skipna=True, level=None):
+    def any(self, axis=None, bool_only=None, skipna=True, level=None, **kwargs):
         """
         Return whether any element is True over requested axis.
         %(na_action)s
@@ -3891,13 +3869,15 @@ class DataFrame(NDFrame):
         -------
         any : Series (or DataFrame if level specified)
         """
+        if axis is None:
+            axis = self._stat_axis_number
         if level is not None:
             return self._agg_by_level('any', axis=axis, level=level,
                                       skipna=skipna)
         return self._reduce(nanops.nanany, axis=axis, skipna=skipna,
                             numeric_only=bool_only, filter_type='bool')
 
-    def all(self, axis=0, bool_only=None, skipna=True, level=None):
+    def all(self, axis=None, bool_only=None, skipna=True, level=None, **kwargs):
         """
         Return whether all elements are True over requested axis.
         %(na_action)s
@@ -3919,168 +3899,13 @@ class DataFrame(NDFrame):
         -------
         any : Series (or DataFrame if level specified)
         """
+        if axis is None:
+            axis = self._stat_axis_number
         if level is not None:
             return self._agg_by_level('all', axis=axis, level=level,
                                       skipna=skipna)
         return self._reduce(nanops.nanall, axis=axis, skipna=skipna,
                             numeric_only=bool_only, filter_type='bool')
-
-    @Substitution(name='sum', shortname='sum', na_action=_doc_exclude_na,
-                  extras=_numeric_only_doc)
-    @Appender(_stat_doc)
-    def sum(self, axis=0, numeric_only=None, skipna=True, level=None):
-        if level is not None:
-            return self._agg_by_level('sum', axis=axis, level=level,
-                                      skipna=skipna)
-        return self._reduce(nanops.nansum, axis=axis, skipna=skipna,
-                            numeric_only=numeric_only)
-
-    @Substitution(name='mean', shortname='mean', na_action=_doc_exclude_na,
-                  extras='')
-    @Appender(_stat_doc)
-    def mean(self, axis=0, skipna=True, level=None):
-        if level is not None:
-            return self._agg_by_level('mean', axis=axis, level=level,
-                                      skipna=skipna)
-        return self._reduce(nanops.nanmean, axis=axis, skipna=skipna,
-                            numeric_only=None)
-
-    @Substitution(name='minimum', shortname='min', na_action=_doc_exclude_na,
-                  extras='')
-    @Appender(_stat_doc)
-    def min(self, axis=0, skipna=True, level=None):
-        """
-        Notes
-        -----
-        This method returns the minimum of the values in the DataFrame. If you
-        want the *index* of the minimum, use ``DataFrame.idxmin``. This is the
-        equivalent of the ``numpy.ndarray`` method ``argmin``.
-
-        See Also
-        --------
-        DataFrame.idxmin
-        Series.idxmin
-        """
-        if level is not None:
-            return self._agg_by_level('min', axis=axis, level=level,
-                                      skipna=skipna)
-        return self._reduce(nanops.nanmin, axis=axis, skipna=skipna,
-                            numeric_only=None)
-
-    @Substitution(name='maximum', shortname='max', na_action=_doc_exclude_na,
-                  extras='')
-    @Appender(_stat_doc)
-    def max(self, axis=0, skipna=True, level=None):
-        """
-        Notes
-        -----
-        This method returns the maximum of the values in the DataFrame. If you
-        want the *index* of the maximum, use ``DataFrame.idxmax``. This is the
-        equivalent of the ``numpy.ndarray`` method ``argmax``.
-
-        See Also
-        --------
-        DataFrame.idxmax
-        Series.idxmax
-        """
-        if level is not None:
-            return self._agg_by_level('max', axis=axis, level=level,
-                                      skipna=skipna)
-        return self._reduce(nanops.nanmax, axis=axis, skipna=skipna,
-                            numeric_only=None)
-
-    @Substitution(name='product', shortname='product',
-                  na_action='NA/null values are treated as 1', extras='')
-    @Appender(_stat_doc)
-    def prod(self, axis=0, skipna=True, level=None):
-        if level is not None:
-            return self._agg_by_level('prod', axis=axis, level=level,
-                                      skipna=skipna)
-        return self._reduce(nanops.nanprod, axis=axis, skipna=skipna,
-                            numeric_only=None)
-
-    product = prod
-
-    @Substitution(name='median', shortname='median', na_action=_doc_exclude_na,
-                  extras='')
-    @Appender(_stat_doc)
-    def median(self, axis=0, skipna=True, level=None):
-        if level is not None:
-            return self._agg_by_level('median', axis=axis, level=level,
-                                      skipna=skipna)
-        return self._reduce(nanops.nanmedian, axis=axis, skipna=skipna,
-                            numeric_only=None)
-
-    @Substitution(name='mean absolute deviation', shortname='mad',
-                  na_action=_doc_exclude_na, extras='')
-    @Appender(_stat_doc)
-    def mad(self, axis=0, skipna=True, level=None):
-        if level is not None:
-            return self._agg_by_level('mad', axis=axis, level=level,
-                                      skipna=skipna)
-
-        frame = self._get_numeric_data()
-
-        axis = self._get_axis_number(axis)
-        if axis == 0:
-            demeaned = frame - frame.mean(axis=0)
-        else:
-            demeaned = frame.sub(frame.mean(axis=1), axis=0)
-        return np.abs(demeaned).mean(axis=axis, skipna=skipna)
-
-    @Substitution(name='variance', shortname='var',
-                  na_action=_doc_exclude_na, extras='')
-    @Appender(_stat_doc +
-              """
-        Normalized by N-1 (unbiased estimator).
-        """)
-    def var(self, axis=0, skipna=True, level=None, ddof=1):
-        if level is not None:
-            return self._agg_by_level('var', axis=axis, level=level,
-                                      skipna=skipna, ddof=ddof)
-        return self._reduce(nanops.nanvar, axis=axis, skipna=skipna,
-                            numeric_only=None, ddof=ddof)
-
-    @Substitution(name='standard deviation', shortname='std',
-                  na_action=_doc_exclude_na, extras='')
-    @Appender(_stat_doc +
-              """
-        Normalized by N-1 (unbiased estimator).
-        """)
-    def std(self, axis=0, skipna=True, level=None, ddof=1):
-        if level is not None:
-            return self._agg_by_level('std', axis=axis, level=level,
-                                      skipna=skipna, ddof=ddof)
-        return np.sqrt(self.var(axis=axis, skipna=skipna, ddof=ddof))
-
-    @Substitution(name='unbiased skewness', shortname='skew',
-                  na_action=_doc_exclude_na, extras='')
-    @Appender(_stat_doc)
-    def skew(self, axis=0, skipna=True, level=None):
-        if level is not None:
-            return self._agg_by_level('skew', axis=axis, level=level,
-                                      skipna=skipna)
-        return self._reduce(nanops.nanskew, axis=axis, skipna=skipna,
-                            numeric_only=None)
-
-    @Substitution(name='unbiased kurtosis', shortname='kurt',
-                  na_action=_doc_exclude_na, extras='')
-    @Appender(_stat_doc)
-    def kurt(self, axis=0, skipna=True, level=None):
-        if level is not None:
-            return self._agg_by_level('kurt', axis=axis, level=level,
-                                      skipna=skipna)
-        return self._reduce(nanops.nankurt, axis=axis, skipna=skipna,
-                            numeric_only=None)
-
-    def _agg_by_level(self, name, axis=0, level=0, skipna=True, **kwds):
-        grouped = self.groupby(level=level, axis=axis)
-        if hasattr(grouped, name) and skipna:
-            return getattr(grouped, name)(**kwds)
-        axis = self._get_axis_number(axis)
-        method = getattr(type(self), name)
-        applyf = lambda x: method(x, axis=axis, skipna=skipna, **kwds)
-        return grouped.aggregate(applyf)
 
     def _reduce(self, op, axis=0, skipna=True, numeric_only=None,
                 filter_type=None, **kwds):
@@ -4440,7 +4265,7 @@ class DataFrame(NDFrame):
 
 DataFrame._setup_axes(
     ['index', 'columns'], info_axis=1, stat_axis=0, axes_are_reversed=True)
-
+DataFrame._add_numeric_operations()
 
 _EMPTY_SERIES = Series([])
 

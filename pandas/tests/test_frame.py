@@ -17,7 +17,7 @@ from pandas.compat import(
     map, zip, range, long, lrange, lmap, lzip,
     OrderedDict, cPickle as pickle, u, StringIO
 )
-from pandas import compat
+from pandas import compat, _np_version_under1p7
 
 from numpy import random, nan
 from numpy.random import randn, rand
