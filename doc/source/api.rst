@@ -275,12 +275,30 @@ Binary operator functions
    :toctree: generated/
 
    Series.add
-   Series.div
-   Series.mul
    Series.sub
+   Series.mul
+   Series.div
+   Series.truediv
+   Series.floordiv
+   Series.mod
+   Series.pow
+   Series.radd
+   Series.rsub
+   Series.rmul
+   Series.rdiv
+   Series.rtruediv
+   Series.rfloordiv
+   Series.rmod
+   Series.rpow
    Series.combine
    Series.combine_first
    Series.round
+   Series.lt
+   Series.gt
+   Series.le
+   Series.ge
+   Series.ne
+   Series.eq
 
 Function application, GroupBy
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -480,13 +498,27 @@ Binary operator functions
    :toctree: generated/
 
    DataFrame.add
-   DataFrame.div
-   DataFrame.mul
    DataFrame.sub
+   DataFrame.mul
+   DataFrame.div
+   DataFrame.truediv
+   DataFrame.floordiv
+   DataFrame.mod
+   DataFrame.pow
    DataFrame.radd
-   DataFrame.rdiv
-   DataFrame.rmul
    DataFrame.rsub
+   DataFrame.rmul
+   DataFrame.rdiv
+   DataFrame.rtruediv
+   DataFrame.rfloordiv
+   DataFrame.rmod
+   DataFrame.rpow
+   DataFrame.lt
+   DataFrame.gt
+   DataFrame.le
+   DataFrame.ge
+   DataFrame.ne
+   DataFrame.eq
    DataFrame.combine
    DataFrame.combineAdd
    DataFrame.combine_first
@@ -710,9 +742,27 @@ Binary operator functions
    :toctree: generated/
 
    Panel.add
-   Panel.div
-   Panel.mul
    Panel.sub
+   Panel.mul
+   Panel.div
+   Panel.truediv
+   Panel.floordiv
+   Panel.mod
+   Panel.pow
+   Panel.radd
+   Panel.rsub
+   Panel.rmul
+   Panel.rdiv
+   Panel.rtruediv
+   Panel.rfloordiv
+   Panel.rmod
+   Panel.rpow
+   Panel.lt
+   Panel.gt
+   Panel.le
+   Panel.ge
+   Panel.ne
+   Panel.eq
 
 Function application, GroupBy
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

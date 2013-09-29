@@ -16,6 +16,7 @@ from pandas.sparse.frame import SparseDataFrame
 from pandas.util.decorators import deprecate
 
 import pandas.core.common as com
+import pandas.core.ops as ops
 
 
 class SparsePanelAxis(object):
@@ -462,6 +463,19 @@ class SparsePanel(Panel):
                                default_fill_value=self.default_fill_value,
                                default_kind=self.default_kind)
 
+    # TODO: allow SparsePanel to work with flex arithmetic.
+    # pow and mod only work for scalars for now
+    def pow(self, val, *args, **kwargs):
+        """wrapper around `__pow__` (only works for scalar values)"""
+        return self.__pow__(val)
+
+    def mod(self, val, *args, **kwargs):
+        """wrapper around `__mod__` (only works for scalar values"""
+        return self.__mod__(val)
+
+# Sparse objects opt out of numexpr
+SparsePanel._add_aggregate_operations(use_numexpr=False)
+ops.add_special_arithmetic_methods(SparsePanel, use_numexpr=False, **ops.panel_special_funcs)
 SparseWidePanel = SparsePanel
 
 

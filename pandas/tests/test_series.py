@@ -269,7 +269,6 @@ class SafeForSparse(object):
 
 _ts = tm.makeTimeSeries()
 
-
 class TestSeries(unittest.TestCase, CheckNameIntegration):
 
     _multiprocess_can_split_ = True
@@ -1946,21 +1945,27 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_(bool_series.any())
 
     def test_op_method(self):
-        def _check_op(series, other, op, alt):
-            result = op(series, other)
-            expected = alt(series, other)
-            tm.assert_almost_equal(result, expected)
-
-        def check(series, other):
-            simple_ops = ['add', 'sub', 'mul']
+        def check(series, other, check_reverse=False):
+            simple_ops = ['add', 'sub', 'mul', 'floordiv', 'truediv', 'pow']
+            if not compat.PY3:
+                simple_ops.append('div')
 
             for opname in simple_ops:
-                _check_op(series, other, getattr(Series, opname),
-                          getattr(operator, opname))
+                op = getattr(Series, opname)
+                alt = getattr(operator, opname)
+                result = op(series, other)
+                expected = alt(series, other)
+                tm.assert_almost_equal(result, expected)
+                if check_reverse:
+                    rop = getattr(Series, "r" + opname)
+                    result = rop(series, other)
+                    expected = alt(other, series)
+                    tm.assert_almost_equal(result, expected)
 
         check(self.ts, self.ts * 2)
         check(self.ts, self.ts[::2])
-        check(self.ts, 5)
+        check(self.ts, 5, check_reverse=True)
+        check(tm.makeFloatSeries(), tm.makeFloatSeries(), check_reverse=True)
 
     def test_neg(self):
         assert_series_equal(-self.series, -1 * self.series)
@@ -2182,17 +2187,23 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_timedeltas_with_DateOffset(self):
 
         # GH 4532
+        # commented out cases are problematic b/c of issues with Offsets
         # operate with pd.offsets
         s = Series([Timestamp('20130101 9:01'), Timestamp('20130101 9:02')])
 
         result = s + pd.offsets.Second(5)
+        # result2 = pd.offsets.Second(5) + s
         expected = Series(
             [Timestamp('20130101 9:01:05'), Timestamp('20130101 9:02:05')])
+        assert_series_equal(result, expected)
+        # assert_series_equal(result2, expected)
 
         result = s + pd.offsets.Milli(5)
+        # result2 = pd.offsets.Milli(5) + s
         expected = Series(
             [Timestamp('20130101 9:01:00.005'), Timestamp('20130101 9:02:00.005')])
         assert_series_equal(result, expected)
+        # assert_series_equal(result2, expected)
 
         result = s + pd.offsets.Minute(5) + pd.offsets.Milli(5)
         expected = Series(
@@ -2203,20 +2214,26 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
             # operate with np.timedelta64 correctly
             result = s + np.timedelta64(1, 's')
+            result2 = np.timedelta64(1, 's') + s
             expected = Series(
                 [Timestamp('20130101 9:01:01'), Timestamp('20130101 9:02:01')])
             assert_series_equal(result, expected)
+            assert_series_equal(result2, expected)
 
             result = s + np.timedelta64(5, 'ms')
+            result2 = np.timedelta64(5, 'ms') + s
             expected = Series(
                 [Timestamp('20130101 9:01:00.005'), Timestamp('20130101 9:02:00.005')])
             assert_series_equal(result, expected)
+            assert_series_equal(result2, expected)
 
         # valid DateOffsets
         for do in [ 'Hour', 'Minute', 'Second', 'Day', 'Micro',
                     'Milli', 'Nano' ]:
             op = getattr(pd.offsets,do)
             s + op(5)
+            # can't do this because DateOffset doesn't do the right thing
+            # op(5) + s
 
         # invalid DateOffsets
         for do in [ 'Week', 'BDay', 'BQuarterEnd', 'BMonthEnd', 'BYearEnd',
@@ -2225,6 +2242,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
                     'MonthBegin', 'QuarterBegin' ]:
             op = getattr(pd.offsets,do)
             self.assertRaises(TypeError, s.__add__, op(5))
+            self.assertRaises(TypeError, s.__radd__, op(5))
 
     def test_timedelta64_operations_with_timedeltas(self):
 
@@ -2236,6 +2254,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             [timedelta(seconds=1)] * 3)
         self.assert_(result.dtype == 'm8[ns]')
         assert_series_equal(result, expected)
+
+        result2 = td2 - td1
+        expected = (Series([timedelta(seconds=1)] * 3) -
+                    Series([timedelta(seconds=0)] * 3))
+        assert_series_equal(result2, expected)
 
         # roundtrip
         assert_series_equal(result + td2,td1)
@@ -2318,6 +2341,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
                 result = s1 / np.timedelta64(m,unit)
                 assert_series_equal(result, expected)
 
+                # reverse op
+                expected = s1.apply(lambda x: np.timedelta64(m,unit) / x)
+                result = np.timedelta64(m,unit) / s1
+
     def test_timedelta64_equal_timedelta_supported_ops(self):
         ser = Series([Timestamp('20130301'), Timestamp('20130228 23:00:00'),
                       Timestamp('20130228 22:00:00'),
@@ -2351,44 +2378,58 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
     def test_operators_datetimelike(self):
 
-        # timedelta64 ###
-        td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
-        td2 = timedelta(minutes=5, seconds=4)
-        for op in ['__mul__', '__floordiv__', '__pow__']:
-            op = getattr(td1, op, None)
-            if op is not None:
-                self.assertRaises(TypeError, op, td2)
+        def run_ops(ops, get_ser, test_ser):
+            for op in ops:
+                try:
+                    op = getattr(get_ser, op, None)
+                    if op is not None:
+                        self.assertRaises(TypeError, op, test_ser)
+                except:
+                    print("Failed on op %r" % op)
+                    raise
+        ### timedelta64 ###
+        td1 = Series([timedelta(minutes=5,seconds=3)]*3)
+        td2 = timedelta(minutes=5,seconds=4)
+        ops = ['__mul__','__floordiv__','__pow__',
+               '__rmul__','__rfloordiv__','__rpow__']
+        run_ops(ops, td1, td2)
         td1 + td2
+        td2 + td1
         td1 - td2
+        td2 - td1
         td1 / td2
+        td2 / td1
 
-        # datetime64 ###
-        dt1 = Series(
-            [Timestamp('20111230'), Timestamp('20120101'), Timestamp('20120103')])
-        dt2 = Series(
-            [Timestamp('20111231'), Timestamp('20120102'), Timestamp('20120104')])
-        for op in ['__add__', '__mul__', '__floordiv__', '__truediv__', '__div__', '__pow__']:
-            sop = getattr(dt1, op, None)
-            if sop is not None:
-                self.assertRaises(TypeError, sop, dt2)
+        ### datetime64 ###
+        dt1 = Series([Timestamp('20111230'), Timestamp('20120101'),
+                      Timestamp('20120103')])
+        dt2 = Series([Timestamp('20111231'), Timestamp('20120102'),
+                      Timestamp('20120104')])
+        ops = ['__add__', '__mul__', '__floordiv__', '__truediv__', '__div__',
+               '__pow__', '__radd__', '__rmul__', '__rfloordiv__',
+               '__rtruediv__', '__rdiv__', '__rpow__']
+        run_ops(ops, dt1, dt2)
         dt1 - dt2
+        dt2 - dt1
 
-        # datetime64 with timetimedelta ###
-        for op in ['__mul__', '__floordiv__', '__truediv__', '__div__', '__pow__']:
-            sop = getattr(dt1, op, None)
-            if sop is not None:
-                self.assertRaises(TypeError, sop, td1)
+        ### datetime64 with timetimedelta ###
+        ops = ['__mul__', '__floordiv__', '__truediv__', '__div__', '__pow__',
+               '__rmul__', '__rfloordiv__', '__rtruediv__', '__rdiv__',
+               '__rpow__']
+        run_ops(ops, dt1, td1)
         dt1 + td1
-        dt1 - td1
-
-        # timetimedelta with datetime64 ###
-        for op in ['__sub__', '__mul__', '__floordiv__', '__truediv__', '__div__', '__pow__']:
-            sop = getattr(td1, op, None)
-            if sop is not None:
-                self.assertRaises(TypeError, sop, dt1)
-
-        # timedelta + datetime ok
         td1 + dt1
+        dt1 - td1
+        # TODO: Decide if this ought to work.
+        # td1 - dt1
+
+        ### timetimedelta with datetime64 ###
+        ops = ['__sub__', '__mul__', '__floordiv__', '__truediv__', '__div__',
+               '__pow__', '__rsub__', '__rmul__', '__rfloordiv__',
+               '__rtruediv__', '__rdiv__', '__rpow__']
+        run_ops(ops, td1, dt1)
+        td1 + dt1
+        dt1 + td1
 
     def test_timedelta64_functions(self):
 
@@ -2517,6 +2558,9 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         result = _possibly_cast_to_timedelta(np.abs(a - b))
         self.assert_(result.dtype == 'timedelta64[ns]')
 
+        result = _possibly_cast_to_timedelta(np.abs(b - a))
+        self.assert_(result.dtype == 'timedelta64[ns]')
+
     def test_datetime64_with_index(self):
 
         # arithmetic integer ops with an index
@@ -2537,8 +2581,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         df = DataFrame(np.random.randn(5,2),index=date_range('20130101',periods=5))
         df['date'] = Timestamp('20130102')
-        df['expected'] = df['date']-df.index.to_series()
-        df['result'] = df['date']-df.index
+        df['expected'] = df['date'] - df.index.to_series()
+        df['result'] = df['date'] - df.index
         assert_series_equal(df['result'],df['expected'])
 
     def test_timedelta64_nan(self):
@@ -2586,7 +2630,9 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
                    index=[date(2012, 1, 1), date(2012, 1, 2)])
 
         result = s + s.shift(1)
+        result2 = s.shift(1) + s
         self.assert_(isnull(result[0]))
+        self.assert_(isnull(result2[0]))
 
         s = Series(['foo', 'bar', 'baz', np.nan])
         result = 'prefix_' + s
@@ -2616,7 +2662,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         s = Series(bdate_range('1/1/2000', periods=10), dtype=object)
         s[::2] = np.nan
 
-        # test that comparions work
+        # test that comparisons work
         ops = ['lt', 'le', 'gt', 'ge', 'eq', 'ne']
         for op in ops:
             val = s[5]
@@ -2753,7 +2799,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(tester(s, list(s)), s)
 
         d = DataFrame({'A': s})
-        self.assertRaises(TypeError, tester, s, d)
+        # TODO: Fix this exception - needs to be fixed! (see GH5035)
+        # (previously this was a TypeError because series returned
+        # NotImplemented
+        self.assertRaises(ValueError, tester, s, d)
 
     def test_idxmin(self):
         # test idxmin
@@ -2942,19 +2991,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertRaises(TypeError, operator.add, datetime.now(), self.ts)
 
     def test_operators_frame(self):
-        import sys
-        buf = StringIO()
-        tmp = sys.stderr
-        sys.stderr = buf
         # rpow does not work with DataFrame
-        try:
-            df = DataFrame({'A': self.ts})
+        df = DataFrame({'A': self.ts})
 
-            tm.assert_almost_equal(self.ts + self.ts, (self.ts + df)['A'])
-            tm.assert_almost_equal(self.ts ** self.ts, (self.ts ** df)['A'])
-            tm.assert_almost_equal(self.ts < self.ts, (self.ts < df)['A'])
-        finally:
-            sys.stderr = tmp
+        tm.assert_almost_equal(self.ts + self.ts, (self.ts + df)['A'])
+        tm.assert_almost_equal(self.ts ** self.ts, (self.ts ** df)['A'])
+        tm.assert_almost_equal(self.ts < self.ts, (self.ts < df)['A'])
+        tm.assert_almost_equal(self.ts / self.ts, (self.ts / df)['A'])
 
     def test_operators_combine(self):
         def _check_fill(meth, op, a, b, fill_value=0):
@@ -2987,8 +3030,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         a = Series([nan, 1., 2., 3., nan], index=np.arange(5))
         b = Series([nan, 1, nan, 3, nan, 4.], index=np.arange(6))
 
-        ops = [Series.add, Series.sub, Series.mul, Series.div]
-        equivs = [operator.add, operator.sub, operator.mul]
+        ops = [Series.add, Series.sub, Series.mul, Series.pow,
+               Series.truediv, Series.div]
+        equivs = [operator.add, operator.sub, operator.mul, operator.pow,
+                  operator.truediv]
         if compat.PY3:
             equivs.append(operator.truediv)
         else:
@@ -3253,9 +3298,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # timedelta64[ns]
         from datetime import timedelta
         td = df.dt - df.dt + timedelta(1)
+        td2 = timedelta(1) + (df.dt - df.dt)
         result = td.value_counts()
+        result2 = td2.value_counts()
         #self.assert_(result.index.dtype == 'timedelta64[ns]')
         self.assert_(result.index.dtype == 'int64')
+        self.assert_(result2.index.dtype == 'int64')
 
         # basics.rst doc example
         series = Series(np.random.randn(500))
