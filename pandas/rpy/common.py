@@ -14,20 +14,13 @@ import pandas.util.testing as _test
 from rpy2.robjects.packages import importr
 from rpy2.robjects import r
 import rpy2.robjects as robj
-r['options'](warn=-1)
+
+import itertools as IT
+
 
 __all__ = ['convert_robj', 'load_data', 'convert_to_r_dataframe',
            'convert_to_r_matrix']
 
-try:
-    importr('reshape2')
-    melt = r['melt']
-except Exception:
-    try:
-        importr('reshape')
-        melt = r['melt']
-    except Exception:
-        melt = None
 
 def load_data(name, package=None, convert=True):
     if package:
@@ -74,34 +67,26 @@ def _convert_array(obj):
     """
     Convert Array to ndarray
     """
-    if melt:
-        # For iris3, HairEyeColor, UCBAdmissions, Titanic
-        return convert_robj(melt(obj))
-    else:
-        # this royally sucks. "Matrices" (arrays) with dimension > 3 in R aren't
-        # really matrices-- things come out Fortran order in the first two
-        # dimensions. Maybe I'm wrong?
-
-        dim = list(obj.dim)
-        values = np.array(list(obj))
-
-        if len(dim) == 3:
-            arr = values.reshape(dim[-1:] + dim[:-1]).swapaxes(1, 2)
-
-        if obj.names is not None:
-            name_list = [list(x) for x in obj.names]
-            if len(dim) == 2:
-                # arr is not defined. There would be an error if we ever got here
-                return pd.DataFrame(arr, index=name_list[0], columns=name_list[1])
-            elif len(dim) == 3:
-                return pd.Panel(arr, items=name_list[2],
-                                major_axis=name_list[0],
-                                minor_axis=name_list[1])
-            else:
-                print('Cannot handle dim=%d' % len(dim))
-        else:
-            # arr might not be defined unless len(dim) == 3
-            return arr
+    def _list(item):
+        try:
+            return list(item)
+        except TypeError:
+            return []
+        
+    # For iris3, HairEyeColor, UCBAdmissions, Titanic
+    dim = list(obj.dim)
+    values = np.array(list(obj))
+    names = r['dimnames'](obj)
+    try:
+        columns = list(r['names'](names))[::-1]
+    except TypeError:
+        columns = ['X{:d}'.format(i) for i in range(len(names))][::-1]
+    columns.append('value')
+    name_list = [(_list(x) or range(d)) for x, d in zip(names, dim)][::-1]
+    arr = np.array(list(IT.product(*name_list)))
+    arr = np.column_stack([arr,values])
+    df = pd.DataFrame(arr, columns=columns)
+    return df
 
 
 def _convert_vector(obj):
@@ -367,11 +352,6 @@ def convert_to_r_matrix(df, strings_as_factors=False):
     r_matrix = as_matrix(r_dataframe)
 
     return r_matrix
-
-
-
-
-
 
 if __name__ == '__main__':
     pass
