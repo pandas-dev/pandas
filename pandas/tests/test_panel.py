@@ -1,8 +1,6 @@
 # pylint: disable=W0612,E1101
 
 from datetime import datetime
-from pandas.compat import range, lrange, StringIO, cPickle, OrderedDict
-from pandas import compat
 import operator
 import unittest
 import nose
@@ -16,6 +14,7 @@ from pandas.core.panel import Panel
 from pandas.core.series import remove_na
 import pandas.core.common as com
 from pandas import compat
+from pandas.compat import range, lrange, StringIO, cPickle, OrderedDict
 
 from pandas.util.testing import (assert_panel_equal,
                                  assert_frame_equal,
@@ -50,7 +49,7 @@ class PanelTests(object):
 
     def not_hashable(self):
         c_empty = Panel()
-        c = Panel(pd.Panel([[[1]]]))
+        c = Panel(Panel([[[1]]]))
         self.assertRaises(TypeError, hash, c_empty)
         self.assertRaises(TypeError, hash, c)
 
@@ -313,14 +312,32 @@ class SafeForSparse(object):
 
             assert_frame_equal(result.minor_xs(idx),
                                op(self.panel.minor_xs(idx), xs))
-
-        check_op(operator.add, 'add')
-        check_op(operator.sub, 'subtract')
-        check_op(operator.mul, 'multiply')
-        if compat.PY3:
-            check_op(operator.truediv, 'divide')
+        from pandas import SparsePanel
+        ops = ['add', 'sub', 'mul', 'truediv', 'floordiv']
+        if not compat.PY3:
+            ops.append('div')
+        # pow, mod not supported for SparsePanel as flex ops (for now)
+        if not isinstance(self.panel, SparsePanel):
+            ops.extend(['pow', 'mod'])
         else:
-            check_op(operator.div, 'divide')
+            idx = self.panel.minor_axis[1]
+            with assertRaisesRegexp(ValueError, "Simple arithmetic.*scalar"):
+                self.panel.pow(self.panel.minor_xs(idx), axis='minor')
+            with assertRaisesRegexp(ValueError, "Simple arithmetic.*scalar"):
+                self.panel.mod(self.panel.minor_xs(idx), axis='minor')
+
+        for op in ops:
+            try:
+                check_op(getattr(operator, op), op)
+            except:
+                print("Failing operation: %r" % op)
+                raise
+        if compat.PY3:
+            try:
+                check_op(operator.truediv, 'div')
+            except:
+                print("Failing operation: %r" % name)
+                raise
 
     def test_combinePanel(self):
         result = self.panel.add(self.panel)
@@ -1736,6 +1753,31 @@ class TestLongPanel(unittest.TestCase):
         wp = self.panel.to_panel()
         result = (self.panel + 1).to_panel()
         assert_frame_equal(wp['ItemA'] + 1, result['ItemA'])
+
+    def test_arith_flex_panel(self):
+        ops = ['add', 'sub', 'mul', 'div', 'truediv', 'pow', 'floordiv', 'mod']
+        if not compat.PY3:
+            aliases = {}
+        else:
+            aliases = {'div': 'truediv'}
+        self.panel = self.panel.to_panel()
+        n = np.random.randint(-50, 50)
+        for op in ops:
+            try:
+                alias = aliases.get(op, op)
+                f = getattr(operator, alias)
+                result = getattr(self.panel, op)(n)
+                exp = f(self.panel, n)
+                assert_panel_equal(result, exp, check_panel_type=True)
+
+                # rops
+                r_f = lambda x, y: f(y, x)
+                result = getattr(self.panel, 'r' + op)(n)
+                exp = r_f(self.panel, n)
+                assert_panel_equal(result, exp)
+            except:
+                print("Failing operation %r" % op)
+                raise
 
     def test_sort(self):
         def is_sorted(arr):

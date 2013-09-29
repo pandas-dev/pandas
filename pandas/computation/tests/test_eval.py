@@ -2,9 +2,7 @@
 
 import unittest
 import functools
-import numbers
 from itertools import product
-import ast
 
 import nose
 from nose.tools import assert_raises, assert_true, assert_false, assert_equal
@@ -250,12 +248,6 @@ class TestEvalNumexprPandas(unittest.TestCase):
                     not np.isscalar(rhs_new) and binop in skip_these):
                 with tm.assertRaises(TypeError):
                     _eval_single_bin(lhs_new, binop, rhs_new, self.engine)
-            elif _bool_and_frame(lhs_new, rhs_new):
-                with tm.assertRaises(TypeError):
-                    _eval_single_bin(lhs_new, binop, rhs_new, self.engine)
-                with tm.assertRaises(TypeError):
-                    pd.eval('lhs_new & rhs_new'.format(binop),
-                            engine=self.engine, parser=self.parser)
             else:
                 expected = _eval_single_bin(lhs_new, binop, rhs_new, self.engine)
                 result = pd.eval(ex, engine=self.engine, parser=self.parser)
@@ -301,28 +293,15 @@ class TestEvalNumexprPandas(unittest.TestCase):
         rhs_new = check_operands(mid, rhs, cmp2)
 
         if lhs_new is not None and rhs_new is not None:
-            # these are not compatible operands
-            if isinstance(lhs_new, Series) and isinstance(rhs_new, DataFrame):
-                self.assertRaises(TypeError, _eval_single_bin, lhs_new, '&',
-                                  rhs_new, self.engine)
-            elif (_bool_and_frame(lhs_new, rhs_new)):
-                self.assertRaises(TypeError, _eval_single_bin, lhs_new, '&',
-                                  rhs_new, self.engine)
-            elif _series_and_2d_ndarray(lhs_new, rhs_new):
-                # TODO: once #4319 is fixed add this test back in
-                #self.assertRaises(Exception, _eval_single_bin, lhs_new, '&',
-                                  #rhs_new, self.engine)
-                pass
-            else:
-                ex1 = 'lhs {0} mid {1} rhs'.format(cmp1, cmp2)
-                ex2 = 'lhs {0} mid and mid {1} rhs'.format(cmp1, cmp2)
-                ex3 = '(lhs {0} mid) & (mid {1} rhs)'.format(cmp1, cmp2)
-                expected = _eval_single_bin(lhs_new, '&', rhs_new, self.engine)
+            ex1 = 'lhs {0} mid {1} rhs'.format(cmp1, cmp2)
+            ex2 = 'lhs {0} mid and mid {1} rhs'.format(cmp1, cmp2)
+            ex3 = '(lhs {0} mid) & (mid {1} rhs)'.format(cmp1, cmp2)
+            expected = _eval_single_bin(lhs_new, '&', rhs_new, self.engine)
 
-                for ex in (ex1, ex2, ex3):
-                    result = pd.eval(ex, engine=self.engine,
-                                     parser=self.parser)
-                    assert_array_equal(result, expected)
+            for ex in (ex1, ex2, ex3):
+                result = pd.eval(ex, engine=self.engine,
+                                    parser=self.parser)
+                assert_array_equal(result, expected)
 
     @skip_incompatible_operand
     def check_simple_cmp_op(self, lhs, cmp1, rhs):

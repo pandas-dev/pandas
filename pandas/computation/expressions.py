@@ -15,6 +15,8 @@ try:
 except ImportError:  # pragma: no cover
     _NUMEXPR_INSTALLED = False
 
+_TEST_MODE = None
+_TEST_RESULT = None
 _USE_NUMEXPR = _NUMEXPR_INSTALLED
 _evaluate = None
 _where = None
@@ -55,8 +57,9 @@ def set_numexpr_threads(n=None):
 
 def _evaluate_standard(op, op_str, a, b, raise_on_error=True, **eval_kwargs):
     """ standard evaluation """
+    if _TEST_MODE:
+        _store_test_result(False)
     return op(a, b)
-
 
 def _can_use_numexpr(op, op_str, a, b, dtype_check):
     """ return a boolean if we WILL be using numexpr """
@@ -88,11 +91,8 @@ def _evaluate_numexpr(op, op_str, a, b, raise_on_error=False, **eval_kwargs):
 
     if _can_use_numexpr(op, op_str, a, b, 'evaluate'):
         try:
-            a_value, b_value = a, b
-            if hasattr(a_value, 'values'):
-                a_value = a_value.values
-            if hasattr(b_value, 'values'):
-                b_value = b_value.values
+            a_value = getattr(a, "values", a)
+            b_value = getattr(b, "values", b)
             result = ne.evaluate('a_value %s b_value' % op_str,
                                  local_dict={'a_value': a_value,
                                              'b_value': b_value},
@@ -103,6 +103,9 @@ def _evaluate_numexpr(op, op_str, a, b, raise_on_error=False, **eval_kwargs):
         except (Exception) as detail:
             if raise_on_error:
                 raise
+
+    if _TEST_MODE:
+        _store_test_result(result is not None)
 
     if result is None:
         result = _evaluate_standard(op, op_str, a, b, raise_on_error)
@@ -119,13 +122,9 @@ def _where_numexpr(cond, a, b, raise_on_error=False):
     if _can_use_numexpr(None, 'where', a, b, 'where'):
 
         try:
-            cond_value, a_value, b_value = cond, a, b
-            if hasattr(cond_value, 'values'):
-                cond_value = cond_value.values
-            if hasattr(a_value, 'values'):
-                a_value = a_value.values
-            if hasattr(b_value, 'values'):
-                b_value = b_value.values
+            cond_value = getattr(cond, 'values', cond)
+            a_value = getattr(a, 'values', a)
+            b_value = getattr(b, 'values', b)
             result = ne.evaluate('where(cond_value, a_value, b_value)',
                                  local_dict={'cond_value': cond_value,
                                              'a_value': a_value,
@@ -189,3 +188,28 @@ def where(cond, a, b, raise_on_error=False, use_numexpr=True):
     if use_numexpr:
         return _where(cond, a, b, raise_on_error=raise_on_error)
     return _where_standard(cond, a, b, raise_on_error=raise_on_error)
+
+
+def set_test_mode(v = True):
+    """
+    Keeps track of whether numexpr  was used.  Stores an additional ``True`` for
+    every successful use of evaluate with numexpr since the last
+    ``get_test_result``
+    """
+    global _TEST_MODE, _TEST_RESULT
+    _TEST_MODE = v
+    _TEST_RESULT = []
+
+
+def _store_test_result(used_numexpr):
+    global _TEST_RESULT
+    if used_numexpr:
+        _TEST_RESULT.append(used_numexpr)
+
+
+def get_test_result():
+    """get test result and reset test_results"""
+    global _TEST_RESULT
+    res = _TEST_RESULT
+    _TEST_RESULT = []
+    return res

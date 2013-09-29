@@ -263,6 +263,10 @@ API Changes
   - Begin removing methods that don't make sense on ``GroupBy`` objects
     (:issue:`4887`).
   - Remove deprecated ``read_clipboard/to_clipboard/ExcelFile/ExcelWriter`` from ``pandas.io.parsers`` (:issue:`3717`)
+  - All non-Index NDFrames (``Series``, ``DataFrame``, ``Panel``, ``Panel4D``,
+    ``SparsePanel``, etc.), now support the entire set of arithmetic operators
+    and arithmetic flex methods (add, sub, mul, etc.). ``SparsePanel`` does not
+    support ``pow`` or ``mod`` with non-scalars. (:issue:`3765`)
 
 Internal Refactoring
 ~~~~~~~~~~~~~~~~~~~~

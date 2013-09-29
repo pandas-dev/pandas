@@ -8,6 +8,7 @@ import numbers
 import codecs
 import csv
 import sys
+import types
 
 from datetime import timedelta
 
@@ -26,6 +27,7 @@ from datetime import timedelta
 
 from pandas.core.config import get_option
 from pandas.core import array as pa
+
 
 class PandasError(Exception):
     pass
@@ -73,6 +75,31 @@ class _ABCGeneric(type):
 
 
 ABCGeneric = _ABCGeneric("ABCGeneric", tuple(), {})
+
+
+def bind_method(cls, name, func):
+    """Bind a method to class, python 2 and python 3 compatible.
+
+    Parameters
+    ----------
+
+    cls : type
+        class to receive bound method
+    name : basestring
+        name of method on class instance
+    func : function
+        function to be bound as method
+
+
+    Returns
+    -------
+    None
+    """
+    # only python 2 has bound/unbound method issue
+    if not compat.PY3:
+        setattr(cls, name, types.MethodType(func, None, cls))
+    else:
+        setattr(cls, name, func)
 
 def isnull(obj):
     """Detect missing values (NaN in numeric arrays, None/NaN in object arrays)
@@ -360,10 +387,10 @@ def _take_2d_multi_generic(arr, indexer, out, fill_value, mask_info):
         if col_needs:
             out[:, col_mask] = fill_value
     for i in range(len(row_idx)):
-        u = row_idx[i]
+        u_ = row_idx[i]
         for j in range(len(col_idx)):
             v = col_idx[j]
-            out[i, j] = arr[u, v]
+            out[i, j] = arr[u_, v]
 
 
 def _take_nd_generic(arr, indexer, out, axis, fill_value, mask_info):
@@ -2348,3 +2375,10 @@ def save(obj, path):  # TODO remove in 0.13
     warnings.warn("save is deprecated, use obj.to_pickle", FutureWarning)
     from pandas.io.pickle import to_pickle
     return to_pickle(obj, path)
+
+
+def _maybe_match_name(a, b):
+    name = None
+    if a.name == b.name:
+        name = a.name
+    return name

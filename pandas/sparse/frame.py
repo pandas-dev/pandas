@@ -25,6 +25,7 @@ from pandas.core.internals import BlockManager, create_block_manager_from_arrays
 from pandas.core.generic import NDFrame
 from pandas.sparse.series import SparseSeries, SparseArray
 from pandas.util.decorators import Appender
+import pandas.core.ops as ops
 
 
 class SparseDataFrame(DataFrame):
@@ -815,3 +816,9 @@ def homogenize(series_dict):
         output = series_dict
 
     return output
+
+# use unaccelerated ops for sparse objects
+ops.add_flex_arithmetic_methods(SparseDataFrame, use_numexpr=False,
+                                **ops.frame_flex_funcs)
+ops.add_special_arithmetic_methods(SparseDataFrame, use_numexpr=False,
+                                   **ops.frame_special_funcs)

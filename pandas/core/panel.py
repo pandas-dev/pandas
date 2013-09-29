@@ -5,7 +5,6 @@ Contains data structures designed for manipulating panel (3-dimensional) data
 
 from pandas.compat import map, zip, range, lrange, lmap, u, OrderedDict, OrderedDefaultdict
 from pandas import compat
-import operator
 import sys
 import numpy as np
 from pandas.core.common import (PandasError,
@@ -18,14 +17,14 @@ from pandas.core.indexing import _maybe_droplevels, _is_list_like
 from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_arrays,
                                    create_block_manager_from_blocks)
-from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas import compat
 from pandas.util.decorators import deprecate, Appender, Substitution
 import pandas.core.common as com
+import pandas.core.ops as ops
 import pandas.core.nanops as nanops
-import pandas.lib as lib
+import pandas.computation.expressions as expressions
 
 
 def _ensure_like_indices(time, panels):
@@ -91,57 +90,6 @@ def panel_index(time, panels, names=['time', 'panel']):
     return MultiIndex(levels, labels, sortorder=None, names=names)
 
 
-def _arith_method(func, name):
-    # work only for scalars
-
-    def f(self, other):
-        if not np.isscalar(other):
-            raise ValueError('Simple arithmetic with %s can only be '
-                             'done with scalar values' % self._constructor.__name__)
-
-        return self._combine(other, func)
-    f.__name__ = name
-    return f
-
-
-def _comp_method(func, name):
-
-    def na_op(x, y):
-        try:
-            result = func(x, y)
-        except TypeError:
-            xrav = x.ravel()
-            result = np.empty(x.size, dtype=x.dtype)
-            if isinstance(y, np.ndarray):
-                yrav = y.ravel()
-                mask = notnull(xrav) & notnull(yrav)
-                result[mask] = func(np.array(list(xrav[mask])),
-                                    np.array(list(yrav[mask])))
-            else:
-                mask = notnull(xrav)
-                result[mask] = func(np.array(list(xrav[mask])), y)
-
-            if func == operator.ne:  # pragma: no cover
-                np.putmask(result, -mask, True)
-            else:
-                np.putmask(result, -mask, False)
-            result = result.reshape(x.shape)
-
-        return result
-
-    @Appender('Wrapper for comparison method %s' % name)
-    def f(self, other):
-        if isinstance(other, self._constructor):
-            return self._compare_constructor(other, func)
-        elif isinstance(other, (self._constructor_sliced, DataFrame, Series)):
-            raise Exception("input needs alignment for this object [%s]" %
-                            self._constructor)
-        else:
-            return self._combine_const(other, na_op)
-
-    f.__name__ = name
-
-    return f
 
 
 class Panel(NDFrame):
@@ -289,25 +237,6 @@ class Panel(NDFrame):
         d[cls._info_axis_name] = Index(ks)
         return cls(**d)
 
-    # Comparison methods
-    __add__ = _arith_method(operator.add, '__add__')
-    __sub__ = _arith_method(operator.sub, '__sub__')
-    __truediv__ = _arith_method(operator.truediv, '__truediv__')
-    __floordiv__ = _arith_method(operator.floordiv, '__floordiv__')
-    __mul__ = _arith_method(operator.mul, '__mul__')
-    __pow__ = _arith_method(operator.pow, '__pow__')
-
-    __radd__ = _arith_method(operator.add, '__radd__')
-    __rmul__ = _arith_method(operator.mul, '__rmul__')
-    __rsub__ = _arith_method(lambda x, y: y - x, '__rsub__')
-    __rtruediv__ = _arith_method(lambda x, y: y / x, '__rtruediv__')
-    __rfloordiv__ = _arith_method(lambda x, y: y // x, '__rfloordiv__')
-    __rpow__ = _arith_method(lambda x, y: y ** x, '__rpow__')
-
-    if not compat.PY3:
-        __div__ = _arith_method(operator.div, '__div__')
-        __rdiv__ = _arith_method(lambda x, y: y / x, '__rdiv__')
-
     def __getitem__(self, key):
         if isinstance(self._info_axis, MultiIndex):
             return self._getitem_multilevel(key)
@@ -364,26 +293,6 @@ class Panel(NDFrame):
 
         d = self._construct_axes_dict(copy=False)
         return self._constructor(data=new_data, **d)
-
-    # boolean operators
-    __and__ = _arith_method(operator.and_, '__and__')
-    __or__ = _arith_method(operator.or_, '__or__')
-    __xor__ = _arith_method(operator.xor, '__xor__')
-
-    # Comparison methods
-    __eq__ = _comp_method(operator.eq, '__eq__')
-    __ne__ = _comp_method(operator.ne, '__ne__')
-    __lt__ = _comp_method(operator.lt, '__lt__')
-    __gt__ = _comp_method(operator.gt, '__gt__')
-    __le__ = _comp_method(operator.le, '__le__')
-    __ge__ = _comp_method(operator.ge, '__ge__')
-
-    eq = _comp_method(operator.eq, 'eq')
-    ne = _comp_method(operator.ne, 'ne')
-    gt = _comp_method(operator.gt, 'gt')
-    lt = _comp_method(operator.lt, 'lt')
-    ge = _comp_method(operator.ge, 'ge')
-    le = _comp_method(operator.le, 'le')
 
     #----------------------------------------------------------------------
     # Magic methods
@@ -1262,7 +1171,7 @@ class Panel(NDFrame):
         return _ensure_index(index)
 
     @classmethod
-    def _add_aggregate_operations(cls):
+    def _add_aggregate_operations(cls, use_numexpr=True):
         """ add the operations to the cls; evaluate the doc strings again """
 
         # doc strings substitors
@@ -1279,25 +1188,29 @@ Returns
 -------
 """ + cls.__name__ + "\n"
 
-        def _panel_arith_method(op, name):
+        def _panel_arith_method(op, name, str_rep = None, default_axis=None,
+                                fill_zeros=None, **eval_kwargs):
+            def na_op(x, y):
+                try:
+                    result = expressions.evaluate(op, str_rep, x, y, raise_on_error=True, **eval_kwargs)
+                except TypeError:
+                    result = op(x, y)
+
+                # handles discrepancy between numpy and numexpr on division/mod by 0
+                # though, given that these are generally (always?) non-scalars, I'm
+                # not sure whether it's worth it at the moment
+                result = com._fill_zeros(result,y,fill_zeros)
+                return result
             @Substitution(op)
             @Appender(_agg_doc)
             def f(self, other, axis=0):
-                return self._combine(other, op, axis=axis)
+                return self._combine(other, na_op, axis=axis)
             f.__name__ = name
             return f
-
-        cls.add = _panel_arith_method(operator.add, 'add')
-        cls.subtract = cls.sub = _panel_arith_method(operator.sub, 'subtract')
-        cls.multiply = cls.mul = _panel_arith_method(operator.mul, 'multiply')
-
-        try:
-            cls.divide = cls.div = _panel_arith_method(operator.div, 'divide')
-        except AttributeError:  # pragma: no cover
-            # Python 3
-            cls.divide = cls.div = _panel_arith_method(
-                operator.truediv, 'divide')
-
+        # add `div`, `mul`, `pow`, etc..
+        ops.add_flex_arithmetic_methods(cls, _panel_arith_method,
+                                        use_numexpr=use_numexpr,
+                                        flex_comp_method=ops._comp_method_PANEL)
         _agg_doc = """
 Return %(desc)s over requested axis
 
@@ -1385,6 +1298,8 @@ Panel._setup_axes(axes=['items', 'major_axis', 'minor_axis'],
                            'minor': 'minor_axis'},
                   slicers={'major_axis': 'index',
                            'minor_axis': 'columns'})
+
+ops.add_special_arithmetic_methods(Panel, **ops.panel_special_funcs)
 Panel._add_aggregate_operations()
 
 WidePanel = Panel
