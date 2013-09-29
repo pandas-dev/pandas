@@ -65,7 +65,7 @@ def _convert_list(obj):
 
 def _convert_array(obj):
     """
-    Convert Array to ndarray
+    Convert Array to DataFrame
     """
     def _list(item):
         try:

@@ -7,9 +7,14 @@ import numpy as np
 import unittest
 import nose
 import pandas.util.testing as tm
-import pandas.rpy.common as com
-from rpy2.robjects import r
-import rpy2.robjects as robj
+
+try:
+    import pandas.rpy.common as com
+    from rpy2.robjects import r
+    import rpy2.robjects as robj
+except ImportError:
+    raise nose.SkipTest
+
 
 class TestCommon(unittest.TestCase):
     def test_convert_list(self):
