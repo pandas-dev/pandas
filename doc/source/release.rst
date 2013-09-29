@@ -60,6 +60,21 @@ New features
   - Clipboard functionality now works with PySide (:issue:`4282`)
   - New ``extract`` string method returns regex matches more conveniently (:issue:`4685`)
 
+Experimental Features
+~~~~~~~~~~~~~~~~~~~~~
+
+- The new :func:`~pandas.eval` function implements expression evaluation using
+  ``numexpr`` behind the scenes. This results in large speedups for complicated
+  expressions involving large DataFrames/Series.
+- :class:`~pandas.DataFrame` has a new :meth:`~pandas.DataFrame.eval` that
+  evaluates an expression in the context of the ``DataFrame``.
+- A :meth:`~pandas.DataFrame.query` method has been added that allows
+  you to select elements of a ``DataFrame`` using a natural query syntax nearly
+  identical to Python syntax.
+- ``pd.eval`` and friends now evaluate operations involving ``datetime64``
+  objects in Python space because ``numexpr`` cannot handle ``NaT`` values
+  (:issue:`4897`).
+
 Improvements to existing features
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -326,21 +341,6 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
   etc.) into a separate, cleaned up wrapper class. (:issue:`4613`)
 - Complex compat for ``Series`` with ``ndarray``. (:issue:`4819`)
 - Removed unnecessary ``rwproperty`` from codebase in favor of builtin property. (:issue:`4843`)
-
-Experimental Features
-~~~~~~~~~~~~~~~~~~~~~
-
-- The new :func:`~pandas.eval` function implements expression evaluation using
-  ``numexpr`` behind the scenes. This results in large speedups for complicated
-  expressions involving large DataFrames/Series.
-- :class:`~pandas.DataFrame` has a new :meth:`~pandas.DataFrame.eval` that
-  evaluates an expression in the context of the ``DataFrame``.
-- A :meth:`~pandas.DataFrame.query` method has been added that allows
-  you to select elements of a ``DataFrame`` using a natural query syntax nearly
-  identical to Python syntax.
-- ``pd.eval`` and friends now evaluate operations involving ``datetime64``
-  objects in Python space because ``numexpr`` cannot handle ``NaT`` values
-  (:issue:`4897`).
 
 .. _release.bug_fixes-0.13.0:
 
