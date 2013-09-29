@@ -501,6 +501,8 @@ class Index(FrozenNDArray):
         # if we are mixed and have integers
         try:
             if is_positional and self.is_mixed():
+                # TODO: Figure out what these *ought* to be assigning to.
+                #       (currently unused)
                 if start is not None:
                     i = self.get_loc(start)
                 if stop is not None:

@@ -1,14 +1,12 @@
 # pylint: disable=W0223
 
-from datetime import datetime
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.compat import range, zip
 import pandas.compat as compat
 import pandas.core.common as com
-from pandas.core.common import (_is_bool_indexer, is_integer_dtype,
+from pandas.core.common import (is_integer_dtype,
                                 _asarray_tuplesafe, is_list_like, isnull,
                                 ABCSeries, ABCDataFrame, ABCPanel)
-import pandas.lib as lib
 
 import numpy as np
 
@@ -151,9 +149,6 @@ class _NDFrameIndexer(object):
     def _setitem_with_indexer(self, indexer, value):
 
         self._has_valid_setitem_indexer(indexer)
-
-        # also has the side effect of consolidating in-place
-        from pandas import Panel, DataFrame, Series
 
         # maybe partial set
         take_split_path = self.obj._is_mixed_type
@@ -540,8 +535,6 @@ class _NDFrameIndexer(object):
         raise ValueError('Incompatible indexer with DataFrame')
 
     def _align_panel(self, indexer, df):
-        is_frame = self.obj.ndim == 2
-        is_panel = self.obj.ndim >= 3
         raise NotImplementedError("cannot set using an indexer with a Panel yet!")
 
     def _getitem_tuple(self, tup):
@@ -637,6 +630,7 @@ class _NDFrameIndexer(object):
                 if not ax0.is_lexsorted_for_tuple(tup):
                     raise e1
                 try:
+                    # TODO: Figure out why this is not used here.
                     loc = ax0.get_loc(tup[0])
                 except KeyError:
                     raise e1
@@ -933,6 +927,7 @@ class _IXIndexer(_NDFrameIndexer):
     """ A primarily location based indexer, with integer fallback """
 
     def _has_valid_type(self, key, axis):
+        # TODO: Figure out why this is unused
         ax = self.obj._get_axis(axis)
 
         if isinstance(key, slice):
@@ -945,7 +940,7 @@ class _IXIndexer(_NDFrameIndexer):
             return True
 
         else:
-
+            # TODO: Figure out why this is unused, should it be returned?
             self._convert_scalar_indexer(key, axis)
 
         return True

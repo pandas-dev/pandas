@@ -78,14 +78,16 @@ def _hashtable_algo(f, dtype):
         return f(htable.PyObjectHashTable, com._ensure_object)
 
 
+# TODO: Test this function!
 def _count_generic(values, table_type, type_caster):
     from pandas.core.series import Series
 
     values = type_caster(values)
     table = table_type(min(len(values), 1000000))
     uniques, labels = table.factorize(values)
-
-    return Series(counts, index=uniques)
+    # What should this be??
+    # return Series(counts, index=uniques)
+    return Series(labels, index=uniques)
 
 
 def _match_generic(values, index, table_type, type_caster):

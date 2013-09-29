@@ -1,7 +1,6 @@
 import itertools
 import re
 from datetime import datetime, timedelta
-import copy
 from collections import defaultdict
 
 import numpy as np
@@ -589,9 +588,9 @@ class Block(PandasObject):
             values = self._try_coerce_result(values)
             values = self._try_cast_result(values, dtype)
             return [make_block(transf(values), self.items, self.ref_items, ndim=self.ndim, fastpath=True)]
-        except (ValueError, TypeError) as detail:
+        except (ValueError, TypeError):
             raise
-        except (Exception) as detail:
+        except Exception:
             pass
 
         return [ self ]
@@ -3681,6 +3680,7 @@ def _interleaved_dtype(blocks):
     have_complex = len(counts[ComplexBlock]) > 0
     have_dt64 = len(counts[DatetimeBlock]) > 0
     have_td64 = len(counts[TimeDeltaBlock]) > 0
+    # TODO: Use this.
     have_sparse = len(counts[SparseBlock]) > 0
     have_numeric = have_float or have_complex or have_int
 

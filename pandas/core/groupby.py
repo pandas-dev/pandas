@@ -1,3 +1,4 @@
+import sys
 import types
 from functools import wraps
 import numpy as np
@@ -2123,8 +2124,6 @@ class NDFrameGroupBy(GroupBy):
         >>> grouped = df.groupby(lambda x: mapping[x])
         >>> grouped.filter(lambda x: x['A'].sum() + x['B'].sum() > 0)
         """
-        from pandas.tools.merge import concat
-
         indexers = []
 
         obj = self._obj_with_exclusions

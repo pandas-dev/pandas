@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 from pandas import compat
 import pandas.core.common as com
+import pandas.computation.ops as ops
 
 
 def _align_core_single_unary_op(term):
@@ -170,10 +171,10 @@ def _align_core(terms):
 
     return typ, _zip_axes_from_type(typ, axes)
 
-
+# TODO: Add tests that cover this function!
 def _filter_terms(flat):
     # numeric literals
-    literals = frozenset(filter(lambda x: isinstance(x, Constant), flat))
+    literals = frozenset(filter(lambda x: isinstance(x, ops.Constant), flat))
 
     # these are strings which are variable names
     names = frozenset(flat) - literals

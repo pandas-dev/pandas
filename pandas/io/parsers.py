@@ -183,7 +183,6 @@ fields if it is not spaces (e.g., '~').
 
 def _read(filepath_or_buffer, kwds):
     "Generic reader of line files."
-    encoding = kwds.get('encoding', None)
     skipfooter = kwds.pop('skipfooter', None)
     if skipfooter is not None:
         kwds['skip_footer'] = skipfooter
@@ -2033,8 +2032,6 @@ def _stringify_na_values(na_values):
 def _get_na_values(col, na_values, na_fvalues):
     if isinstance(na_values, dict):
         if col in na_values:
-            values = na_values[col]
-            fvalues = na_fvalues[col]
             return na_values[col], na_fvalues[col]
         else:
             return _NA_VALUES, set()
