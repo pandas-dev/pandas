@@ -543,11 +543,11 @@ class _XlwtWriter(ExcelWriter):
         import xlwt
 
         super(_XlwtWriter, self).__init__(path, **engine_kwargs)
-	
-	if 'encoding' in engine_kwargs:
-	  self.book = xlwt.Workbook(encoding = engine_kwargs['encoding'])
-	else:
-	  self.book = xlwt.Workbook()
+
+        if 'encoding' in engine_kwargs:
+            self.book = xlwt.Workbook(encoding = engine_kwargs['encoding'])
+        else:
+            self.book = xlwt.Workbook()
         
         self.fm_datetime = xlwt.easyxf(num_format_str='YYYY-MM-DD HH:MM:SS')
         self.fm_date = xlwt.easyxf(num_format_str='YYYY-MM-DD')

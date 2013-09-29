@@ -683,7 +683,7 @@ class ExcelWriterBase(SharedItems):
 
         with ensure_clean(filename) as filename:
             df.to_excel(filename, sheet_name = 'TestSheet', encoding='utf8')
-	    result = read_excel(filename, 'TestSheet', encoding = 'utf8')
+            result = read_excel(filename, 'TestSheet', encoding = 'utf8')
             tm.assert_frame_equal(result,df)
 
 

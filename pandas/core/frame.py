@@ -1383,7 +1383,7 @@ class DataFrame(NDFrame):
             ``io.excel.xlsx.writer``, ``io.excel.xls.writer``, and
             ``io.excel.xlsm.writer``.
         encoding: string, default None
-	    encoding of the resulting excel file.
+            encoding of the resulting excel file.
 
 
         Notes
@@ -1399,8 +1399,8 @@ class DataFrame(NDFrame):
         from pandas.io.excel import ExcelWriter
         need_save = False
         if encoding == None:
-	  encoding = 'ascii'
-	  
+            encoding = 'ascii'
+
         if isinstance(excel_writer, compat.string_types):
             excel_writer = ExcelWriter(excel_writer, engine=engine, encoding=encoding)
             need_save = True
