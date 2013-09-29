@@ -23,7 +23,7 @@ import pandas.computation.expressions as expressions
 from pandas.tslib import Timestamp
 from pandas import compat
 from pandas.compat import range, lrange, lmap, callable, map, zip
-
+from pandas.tseries.timedeltas import _coerce_scalar_to_timedelta_type
 
 class Block(PandasObject):
 
@@ -1082,6 +1082,20 @@ class TimeDeltaBlock(IntBlock):
             value = np.timedelta64(value)
 
         return value
+
+    def _try_coerce_args(self, values, other):
+        """ provide coercion to our input arguments
+            we are going to compare vs i8, so coerce to integer
+            values is always ndarra like, other may not be """
+        values = values.view('i8')
+        if isnull(other) or (np.isscalar(other) and other == tslib.iNaT):
+            other = tslib.iNaT
+        elif isinstance(other, np.timedelta64):
+            other = _coerce_scalar_to_timedelta_type(other,unit='s').item()
+        else:
+            other = other.view('i8')
+
+        return values, other
 
     def _try_operate(self, values):
         """ return a version to operate on """
