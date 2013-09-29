@@ -77,40 +77,6 @@ def _unbox(func):
     f.__name__ = func.__name__
     return f
 
-_stat_doc = """
-Return %(name)s of values
-%(na_action)s
-
-Parameters
-----------
-skipna : boolean, default True
-    Exclude NA/null values
-level : int, default None
-    If the axis is a MultiIndex (hierarchical), count along a
-    particular level, collapsing into a smaller Series
-%(extras)s
-Returns
--------
-%(shortname)s : float (or Series if level specified)
-"""
-_doc_exclude_na = "NA/null values are excluded"
-_doc_ndarray_interface = ("Extra parameters are to preserve ndarray"
-                          "interface.\n")
-
-
-def _make_stat_func(nanop, name, shortname, na_action=_doc_exclude_na,
-                    extras=_doc_ndarray_interface):
-
-    @Substitution(name=name, shortname=shortname,
-                  na_action=na_action, extras=extras)
-    @Appender(_stat_doc)
-    def f(self, axis=0, dtype=None, out=None, skipna=True, level=None, **kwargs):
-        if level is not None:
-            return self._agg_by_level(shortname, level=level, skipna=skipna)
-        return nanop(_values_from_object(self), skipna=skipna)
-    f.__name__ = shortname
-    return f
-
 #----------------------------------------------------------------------
 # Series class
 
@@ -1194,113 +1160,6 @@ class Series(generic.NDFrame):
         duplicated = lib.duplicated(keys, take_last=take_last)
         return self._constructor(duplicated, index=self.index, name=self.name)
 
-    sum = _make_stat_func(nanops.nansum, 'sum', 'sum')
-    mean = _make_stat_func(nanops.nanmean, 'mean', 'mean')
-    median = _make_stat_func(nanops.nanmedian, 'median', 'median', extras='')
-    prod = _make_stat_func(nanops.nanprod, 'product', 'prod', extras='')
-
-    @Substitution(name='mean absolute deviation', shortname='mad',
-                  na_action=_doc_exclude_na, extras='')
-    @Appender(_stat_doc)
-    def mad(self, skipna=True, level=None, **kwargs):
-        if level is not None:
-            return self._agg_by_level('mad', level=level, skipna=skipna)
-
-        demeaned = self - self.mean(skipna=skipna)
-        return np.abs(demeaned).mean(skipna=skipna)
-
-    @Substitution(name='minimum', shortname='min',
-                  na_action=_doc_exclude_na, extras='')
-    @Appender(_stat_doc)
-    def min(self, axis=None, out=None, skipna=True, level=None, **kwargs):
-        """
-        Notes
-        -----
-        This method returns the minimum of the values in the Series. If you
-        want the *index* of the minimum, use ``Series.idxmin``. This is the
-        equivalent of the ``numpy.ndarray`` method ``argmin``.
-
-        See Also
-        --------
-        Series.idxmin
-        DataFrame.idxmin
-        """
-        if level is not None:
-            return self._agg_by_level('min', level=level, skipna=skipna)
-        return nanops.nanmin(_values_from_object(self), skipna=skipna)
-
-    @Substitution(name='maximum', shortname='max',
-                  na_action=_doc_exclude_na, extras='')
-    @Appender(_stat_doc)
-    def max(self, axis=None, out=None, skipna=True, level=None, **kwargs):
-        """
-        Notes
-        -----
-        This method returns the maximum of the values in the Series. If you
-        want the *index* of the maximum, use ``Series.idxmax``. This is the
-        equivalent of the ``numpy.ndarray`` method ``argmax``.
-
-        See Also
-        --------
-        Series.idxmax
-        DataFrame.idxmax
-        """
-        if level is not None:
-            return self._agg_by_level('max', level=level, skipna=skipna)
-        return nanops.nanmax(_values_from_object(self), skipna=skipna)
-
-    @Substitution(name='standard deviation', shortname='stdev',
-                  na_action=_doc_exclude_na, extras='')
-    @Appender(_stat_doc +
-              """
-        Normalized by N-1 (unbiased estimator).
-        """)
-    def std(self, axis=None, dtype=None, out=None, ddof=1, skipna=True,
-            level=None, **kwargs):
-        if level is not None:
-            return self._agg_by_level('std', level=level, skipna=skipna,
-                                      ddof=ddof)
-        return np.sqrt(nanops.nanvar(_values_from_object(self), skipna=skipna, ddof=ddof))
-
-    @Substitution(name='variance', shortname='var',
-                  na_action=_doc_exclude_na, extras='')
-    @Appender(_stat_doc +
-              """
-        Normalized by N-1 (unbiased estimator).
-        """)
-    def var(self, axis=None, dtype=None, out=None, ddof=1, skipna=True,
-            level=None, **kwargs):
-        if level is not None:
-            return self._agg_by_level('var', level=level, skipna=skipna,
-                                      ddof=ddof)
-        return nanops.nanvar(_values_from_object(self), skipna=skipna, ddof=ddof)
-
-    @Substitution(name='unbiased skewness', shortname='skew',
-                  na_action=_doc_exclude_na, extras='')
-    @Appender(_stat_doc)
-    def skew(self, skipna=True, level=None, **kwargs):
-        if level is not None:
-            return self._agg_by_level('skew', level=level, skipna=skipna)
-
-        return nanops.nanskew(_values_from_object(self), skipna=skipna)
-
-    @Substitution(name='unbiased kurtosis', shortname='kurt',
-                  na_action=_doc_exclude_na, extras='')
-    @Appender(_stat_doc)
-    def kurt(self, skipna=True, level=None, **kwargs):
-        if level is not None:
-            return self._agg_by_level('kurt', level=level, skipna=skipna)
-
-        return nanops.nankurt(_values_from_object(self), skipna=skipna)
-
-    def _agg_by_level(self, name, level=0, skipna=True, **kwds):
-        grouped = self.groupby(level=level)
-        if hasattr(grouped, name) and skipna:
-            return getattr(grouped, name)(**kwds)
-        method = getattr(type(self), name)
-        applyf = lambda x: method(x, skipna=skipna, **kwds)
-        return grouped.aggregate(applyf)
-
     def idxmin(self, axis=None, out=None, skipna=True):
         """
         Index of first occurrence of minimum of values.
@@ -2208,6 +2067,11 @@ class Series(generic.NDFrame):
         else:
             return self._constructor(mapped, index=self.index, name=self.name)
 
+    def _reduce(self, op, axis=0, skipna=True, numeric_only=None,
+                filter_type=None, **kwds):
+        """ perform a reduction operation """
+        return op(_values_from_object(self), skipna=skipna, **kwds)
+
     def _reindex_indexer(self, new_index, indexer, copy):
         if indexer is None:
             if copy:
@@ -2647,7 +2511,8 @@ class Series(generic.NDFrame):
         new_index = self.index.to_period(freq=freq)
         return self._constructor(new_values, index=new_index, name=self.name)
 
-Series._setup_axes(['index'], info_axis=0)
+Series._setup_axes(['index'], info_axis=0, stat_axis=0)
+Series._add_numeric_operations()
 _INDEX_TYPES = ndarray, Index, list, tuple
 
 # reinstall the SeriesIndexer

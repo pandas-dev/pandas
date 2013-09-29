@@ -348,6 +348,8 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
   etc.) into a separate, cleaned up wrapper class. (:issue:`4613`)
 - Complex compat for ``Series`` with ``ndarray``. (:issue:`4819`)
 - Removed unnecessary ``rwproperty`` from codebase in favor of builtin property. (:issue:`4843`)
+- Refactor object level numeric methods (mean/sum/min/max...) from object level modules to
+  ``core/generic.py``(:issue:`4435`)
 
 .. _release.bug_fixes-0.13.0:
 
