@@ -8,7 +8,6 @@ import re
 import numbers
 import collections
 import warnings
-import itertools
 
 from distutils.version import LooseVersion
 
@@ -16,9 +15,10 @@ import numpy as np
 
 from pandas.io.common import _is_url, urlopen, parse_url
 from pandas.io.parsers import TextParser
-from pandas.compat import lrange, lmap, u
+from pandas.compat import (lrange, lmap, u, string_types, iteritems, text_type,
+                           raise_with_traceback, OrderedDict)
 from pandas.core import common as com
-from pandas import compat, Series
+from pandas import Series
 
 
 try:
@@ -83,11 +83,6 @@ def _get_skiprows(skiprows):
     TypeError
         * If `skiprows` is not a slice, integer, or Container
 
-    Raises
-    ------
-    TypeError
-        * If `skiprows` is not a slice, integer, or Container
-
     Returns
     -------
     it : iterable
@@ -99,9 +94,8 @@ def _get_skiprows(skiprows):
         return skiprows
     elif skiprows is None:
         return 0
-    else:
-        raise TypeError('{0!r} is not a valid type for skipping'
-                        ' rows'.format(type(skiprows).__name__))
+    raise TypeError('%r is not a valid type for skipping rows' %
+                    type(skiprows).__name__)
 
 
 def _read(io):
@@ -123,11 +117,10 @@ def _read(io):
     elif os.path.isfile(io):
         with open(io) as f:
             raw_text = f.read()
-    elif isinstance(io, compat.string_types):
+    elif isinstance(io, string_types):
         raw_text = io
     else:
-        raise TypeError("Cannot read object of type "
-                        "{0!r}".format(type(io).__name__))
+        raise TypeError("Cannot read object of type %r" % type(io).__name__)
     return raw_text
 
 
@@ -197,12 +190,6 @@ class _HtmlFrameParser(object):
             A callable that takes a row node as input and returns a list of the
             column node in that row. This must be defined by subclasses.
 
-        Raises
-        ------
-        AssertionError
-            * If `text_getter` is not callable
-            * If `column_finder` is not callable
-
         Returns
         -------
         data : list of list of strings
@@ -257,7 +244,7 @@ class _HtmlFrameParser(object):
 
         Raises
         ------
-        AssertionError
+        ValueError
             * If `match` does not match any text in the document.
 
         Returns
@@ -409,25 +396,28 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
     def _parse_tables(self, doc, match, attrs):
         element_name = self._strainer.name
         tables = doc.find_all(element_name, attrs=attrs)
-        if not tables:
-            # known sporadically working release
-            raise AssertionError('No tables found')
-
-        mts = [table.find(text=match) for table in tables]
-        matched_tables = [mt for mt in mts if mt is not None]
-        tables = list(set(mt.find_parent(element_name)
-                          for mt in matched_tables))
 
         if not tables:
-            raise AssertionError("No tables found matching "
-                                 "'{0}'".format(match.pattern))
-        return tables
+            raise ValueError('No tables found')
+
+        result = []
+        unique_tables = set()
+
+        for table in tables:
+            if (table not in unique_tables and
+                    table.find(text=match) is not None):
+                result.append(table)
+            unique_tables.add(table)
+
+        if not result:
+            raise ValueError("No tables found matching pattern %r" %
+                             match.pattern)
+        return result
 
     def _setup_build_doc(self):
         raw_text = _read(self.io)
         if not raw_text:
-            raise AssertionError('No text parsed from document: '
-                                 '{0}'.format(self.io))
+            raise ValueError('No text parsed from document: %s' % self.io)
         return raw_text
 
     def _build_doc(self):
@@ -435,7 +425,7 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
         return BeautifulSoup(self._setup_build_doc(), features='html5lib')
 
 
-def _build_node_xpath_expr(attrs):
+def _build_xpath_expr(attrs):
     """Build an xpath expression to simulate bs4's ability to pass in kwargs to
     search for attributes when using the lxml parser.
 
@@ -453,8 +443,8 @@ def _build_node_xpath_expr(attrs):
     if 'class_' in attrs:
         attrs['class'] = attrs.pop('class_')
 
-    s = (u("@{k}='{v}'").format(k=k, v=v) for k, v in compat.iteritems(attrs))
-    return u('[{0}]').format(' and '.join(s))
+    s = [u("@%s=%r") % (k, v) for k, v in iteritems(attrs)]
+    return u('[%s]') % ' and '.join(s)
 
 
 _re_namespace = {'re': 'http://exslt.org/regular-expressions'}
@@ -494,23 +484,20 @@ class _LxmlFrameParser(_HtmlFrameParser):
     def _parse_tables(self, doc, match, kwargs):
         pattern = match.pattern
 
-        # check all descendants for the given pattern
-        check_all_expr = u('//*')
-        if pattern:
-            check_all_expr += u("[re:test(text(), '{0}')]").format(pattern)
-
-        # go up the tree until we find a table
-        check_table_expr = '/ancestor::table'
-        xpath_expr = check_all_expr + check_table_expr
+        # 1. check all descendants for the given pattern and only search tables
+        # 2. go up the tree until we find a table or if we are a table use that
+        query = '//table/*[re:test(text(), %r)]/ancestor-or-self::table'
+        xpath_expr = u(query) % pattern
 
         # if any table attributes were given build an xpath expression to
         # search for them
         if kwargs:
-            xpath_expr += _build_node_xpath_expr(kwargs)
+            xpath_expr += _build_xpath_expr(kwargs)
+
         tables = doc.xpath(xpath_expr, namespaces=_re_namespace)
+
         if not tables:
-            raise AssertionError("No tables found matching regex "
-                                 "'{0}'".format(pattern))
+            raise ValueError("No tables found matching regex %r" % pattern)
         return tables
 
     def _build_doc(self):
@@ -531,6 +518,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
         """
         from lxml.html import parse, fromstring, HTMLParser
         from lxml.etree import XMLSyntaxError
+
         parser = HTMLParser(recover=False)
 
         try:
@@ -555,8 +543,8 @@ class _LxmlFrameParser(_HtmlFrameParser):
                 scheme = parse_url(self.io).scheme
                 if scheme not in _valid_schemes:
                     # lxml can't parse it
-                    msg = ('{0} is not a valid url scheme, valid schemes are '
-                           '{1}').format(scheme, _valid_schemes)
+                    msg = ('%r is not a valid url scheme, valid schemes are '
+                           '%s') % (scheme, _valid_schemes)
                     raise ValueError(msg)
                 else:
                     # something else happened: maybe a faulty connection
@@ -586,17 +574,13 @@ class _LxmlFrameParser(_HtmlFrameParser):
                 table.xpath(expr)]
 
 
-def _nan_list(n):
-    return list(itertools.repeat(np.nan, n))
-
-
 def _expand_elements(body):
     lens = Series(lmap(len, body))
     lens_max = lens.max()
     not_max = lens[lens != lens_max]
 
-    for ind, length in compat.iteritems(not_max):
-        body[ind] += _nan_list(lens_max - length)
+    for ind, length in iteritems(not_max):
+        body[ind] += [np.nan] * (lens_max - length)
 
 
 def _data_to_frame(data, header, index_col, skiprows, infer_types,
@@ -618,10 +602,10 @@ def _data_to_frame(data, header, index_col, skiprows, infer_types,
                     thousands=thousands)
     df = tp.read()
 
-    if infer_types:  # TODO: remove in 0.14
+    if infer_types:  # TODO: rm this code so infer_types has no effect in 0.14
         df = df.convert_objects(convert_dates='coerce')
     else:
-        df = df.applymap(compat.text_type)
+        df = df.applymap(text_type)
     return df
 
 
@@ -645,15 +629,15 @@ def _parser_dispatch(flavor):
 
     Raises
     ------
-    AssertionError
+    ValueError
         * If `flavor` is not a valid backend.
     ImportError
         * If you do not have the requested `flavor`
     """
     valid_parsers = list(_valid_parsers.keys())
     if flavor not in valid_parsers:
-        raise AssertionError('"{0!r}" is not a valid flavor, valid flavors are'
-                             ' {1}'.format(flavor, valid_parsers))
+        raise ValueError('%r is not a valid flavor, valid flavors are %s' %
+                         (flavor, valid_parsers))
 
     if flavor in ('bs4', 'html5lib'):
         if not _HAS_HTML5LIB:
@@ -661,47 +645,54 @@ def _parser_dispatch(flavor):
         if not _HAS_BS4:
             raise ImportError("bs4 not found please install it")
         if bs4.__version__ == LooseVersion('4.2.0'):
-            raise AssertionError("You're using a version"
-                                 " of BeautifulSoup4 (4.2.0) that has been"
-                                 " known to cause problems on certain"
-                                 " operating systems such as Debian. "
-                                 "Please install a version of"
-                                 " BeautifulSoup4 != 4.2.0, both earlier"
-                                 " and later releases will work.")
+            raise ValueError("You're using a version"
+                             " of BeautifulSoup4 (4.2.0) that has been"
+                             " known to cause problems on certain"
+                             " operating systems such as Debian. "
+                             "Please install a version of"
+                             " BeautifulSoup4 != 4.2.0, both earlier"
+                             " and later releases will work.")
     else:
         if not _HAS_LXML:
             raise ImportError("lxml not found please install it")
     return _valid_parsers[flavor]
 
 
-def _validate_parser_flavor(flavor):
+def _print_as_set(s):
+    return '{%s}' % ', '.join([com.pprint_thing(el) for el in s])
+
+
+def _validate_flavor(flavor):
     if flavor is None:
-        flavor = ['lxml', 'bs4']
-    elif isinstance(flavor, compat.string_types):
-        flavor = [flavor]
+        flavor = 'lxml', 'bs4'
+    elif isinstance(flavor, string_types):
+        flavor = flavor,
     elif isinstance(flavor, collections.Iterable):
-        if not all(isinstance(flav, compat.string_types) for flav in flavor):
-            raise TypeError('{0} is not an iterable of strings'.format(flavor))
+        if not all(isinstance(flav, string_types) for flav in flavor):
+            raise TypeError('Object of type %r is not an iterable of strings' %
+                            type(flavor).__name__)
     else:
-        raise TypeError('{0} is not a valid "flavor"'.format(flavor))
+        fmt = '{0!r}' if isinstance(flavor, string_types) else '{0}'
+        fmt += ' is not a valid flavor'
+        raise ValueError(fmt.format(flavor))
 
-    flavor = list(flavor)
-    valid_flavors = list(_valid_parsers.keys())
+    flavor = tuple(flavor)
+    valid_flavors = set(_valid_parsers)
+    flavor_set = set(flavor)
 
-    if not set(flavor) & set(valid_flavors):
-        raise ValueError('{0} is not a valid set of flavors, valid flavors are'
-                         ' {1}'.format(flavor, valid_flavors))
+    if not flavor_set & valid_flavors:
+        raise ValueError('%s is not a valid set of flavors, valid flavors are '
+                         '%s' % (_print_as_set(flavor_set),
+                                 _print_as_set(valid_flavors)))
     return flavor
 
 
 def _parse(flavor, io, match, header, index_col, skiprows, infer_types,
            parse_dates, tupleize_cols, thousands, attrs):
-    # bonus: re.compile is idempotent under function iteration so you can pass
-    # a compiled regex to it and it will return itself
-    flavor = _validate_parser_flavor(flavor)
-    compiled_match = re.compile(match)
+    flavor = _validate_flavor(flavor)
+    compiled_match = re.compile(match)  # you can pass a compiled regex here
 
-    # ugly hack because python 3 DELETES the exception variable!
+    # hack around python 3 deleting the exception variable
     retained = None
     for flav in flavor:
         parser = _parser_dispatch(flav)
@@ -714,7 +705,7 @@ def _parse(flavor, io, match, header, index_col, skiprows, infer_types,
         else:
             break
     else:
-        raise retained
+        raise_with_traceback(retained)
 
     return [_data_to_frame(table, header, index_col, skiprows, infer_types,
                            parse_dates, tupleize_cols, thousands)
@@ -724,14 +715,14 @@ def _parse(flavor, io, match, header, index_col, skiprows, infer_types,
 def read_html(io, match='.+', flavor=None, header=None, index_col=None,
               skiprows=None, infer_types=None, attrs=None, parse_dates=False,
               tupleize_cols=False, thousands=','):
-    r"""Read HTML tables into a ``list`` of DataFrames.
+    r"""Read HTML tables into a ``list`` of ``DataFrame`` objects.
 
     Parameters
     ----------
     io : str or file-like
         A URL, a file-like object, or a raw string containing HTML. Note that
         lxml only accepts the http, ftp and file url protocols. If you have a
-        URL that starts with ``'https'`` you might removing the ``'s'``.
+        URL that starts with ``'https'`` you might try removing the ``'s'``.
 
     match : str or compiled regular expression, optional
         The set of tables containing text matching this regex or string will be
@@ -755,25 +746,14 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
         The column (or list of columns) to use to create the index.
 
     skiprows : int or list-like or slice or None, optional
-        If an integer is given then skip this many rows after parsing the
-        column header. If a sequence of integers is given skip those specific
-        rows (0-based). Note that
+        0-based. Number of rows to skip after parsing the column integer. If a
+        sequence of integers or a slice is given, will skip the rows indexed by
+        that sequence.  Note that a single element sequence means 'skip the nth
+        row' whereas an integer means 'skip n rows'.
 
-        .. code-block:: python
-
-           pandas.read_html(..., skiprows=0)
-
-        yields the same result as
-
-        .. code-block:: python
-
-           pandas.read_html(..., skiprows=None)
-
-        If `skiprows` is a positive integer, say :math:`n`, then
-        it is treated as "skip :math:`n` rows", *not* as "skip the
-        :math:`n^\textrm{th}` row".
-
-    infer_types : bool, optional, deprecated since 0.13, removed in 0.14
+    infer_types : bool, optional
+        This option is deprecated in 0.13, an will have no effect in 0.14. It
+        defaults to ``True``.
 
     attrs : dict or None, optional
         This is a dictionary of attributes that you can pass to use to identify
@@ -811,11 +791,7 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
         contrast to other IO functions which default to ``True``.
 
     thousands : str, optional
-        Separator to use to parse thousands. Defaults to ``','``. Note that
-        this is different from :func:`~pandas.read_csv` because
-        :func:`~pandas.read_csv` must be able to parse different separators,
-        and the default separator is ``','``.  :func:`~pandas.read_html` does
-        not need to do this, so it defaults to ``','``.
+        Separator to use to parse thousands. Defaults to ``','``.
 
     Returns
     -------
@@ -852,14 +828,14 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
     pandas.read_csv
     """
     if infer_types is not None:
-        warnings.warn("infer_types will be removed in 0.14")
+        warnings.warn("infer_types will have no effect in 0.14", FutureWarning)
     else:
         infer_types = True  # TODO: remove in 0.14
 
     # Type check here. We don't want to parse only to fail because of an
     # invalid value of an integer skiprows.
     if isinstance(skiprows, numbers.Integral) and skiprows < 0:
-        raise AssertionError('cannot skip rows starting from the end of the '
-                             'data (you passed a negative value)')
+        raise ValueError('cannot skip rows starting from the end of the '
+                         'data (you passed a negative value)')
     return _parse(flavor, io, match, header, index_col, skiprows, infer_types,
                   parse_dates, tupleize_cols, thousands, attrs)
