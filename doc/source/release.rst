@@ -156,6 +156,8 @@ Improvements to existing features
     that cannot be concatenated (:issue:`4608`).
   - Add ``halflife`` option to exponentially weighted moving functions (PR
     :issue:`4998`)
+  - ``to_dict`` now takes ``records`` as a possible outtype.  Returns an array
+    of column-keyed dictionaries. (:pullrequest:`4936`)
 
 API Changes
 ~~~~~~~~~~~
