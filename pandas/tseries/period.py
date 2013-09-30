@@ -125,7 +125,7 @@ class Period(PandasObject):
 
         if self.ordinal is None:
             self.ordinal = tslib.period_ordinal(dt.year, dt.month, dt.day,
-                                                dt.hour, dt.minute, dt.second,
+                                                dt.hour, dt.minute, dt.second, dt.microsecond, 0,
                                                 base)
 
         self.freq = _freq_mod._get_freq_str(base)
@@ -447,6 +447,11 @@ def _get_date_and_freq(value, freq):
             freq = 'T'
         elif reso == 'second':
             freq = 'S'
+        elif reso == 'microsecond':
+            if dt.microsecond % 1000 == 0:
+                freq = 'L'
+            else:
+                freq = 'U'
         else:
             raise ValueError("Invalid frequency or could not infer: %s" % reso)
 
@@ -1238,7 +1243,7 @@ def _range_from_fields(year=None, month=None, quarter=None, day=None,
         year, quarter = _make_field_arrays(year, quarter)
         for y, q in zip(year, quarter):
             y, m = _quarter_to_myear(y, q, freq)
-            val = tslib.period_ordinal(y, m, 1, 1, 1, 1, base)
+            val = tslib.period_ordinal(y, m, 1, 1, 1, 1, 0, 0, base)
             ordinals.append(val)
     else:
         base, mult = _gfc(freq)
@@ -1247,7 +1252,7 @@ def _range_from_fields(year=None, month=None, quarter=None, day=None,
 
         arrays = _make_field_arrays(year, month, day, hour, minute, second)
         for y, mth, d, h, mn, s in zip(*arrays):
-            ordinals.append(tslib.period_ordinal(y, mth, d, h, mn, s, base))
+            ordinals.append(tslib.period_ordinal(y, mth, d, h, mn, s, 0, 0, base))
 
     return np.array(ordinals, dtype=np.int64), freq
 
@@ -1276,7 +1281,7 @@ def _ordinal_from_fields(year, month, quarter, day, hour, minute,
     if quarter is not None:
         year, month = _quarter_to_myear(year, quarter, freq)
 
-    return tslib.period_ordinal(year, month, day, hour, minute, second, base)
+    return tslib.period_ordinal(year, month, day, hour, minute, second, 0, 0, base)
 
 
 def _quarter_to_myear(year, quarter, freq):

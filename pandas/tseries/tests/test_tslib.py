@@ -1,9 +1,19 @@
 import unittest
+import nose
 
 import numpy as np
 
 from pandas import tslib
 from datetime import datetime
+
+from pandas.core.api import Timestamp
+
+from pandas.tslib import period_asfreq
+
+from pandas.tseries.frequencies import get_freq
+
+from pandas import _np_version_under1p7
+
 
 class TestDatetimeParsingWrappers(unittest.TestCase):
     def test_verify_datetime_bounds(self):
@@ -45,6 +55,7 @@ class TestDatetimeParsingWrappers(unittest.TestCase):
             self.assertTrue(
                 tslib._does_string_look_like_datetime(good_date_string)
             )
+
 
 class TestArrayToDatetime(unittest.TestCase):
     def test_parsing_valid_dates(self):
@@ -117,6 +128,67 @@ class TestArrayToDatetime(unittest.TestCase):
                 )
             )
         )
+
+
+class TestTimestamp(unittest.TestCase):
+    def setUp(self):
+        if _np_version_under1p7:
+            raise nose.SkipTest('numpy >= 1.7 required')
+        self.timestamp = Timestamp(datetime.utcnow())
+
+    def assert_ns_timedelta(self, modified_timestamp, expected_value):
+        value = self.timestamp.value
+        modified_value = modified_timestamp.value
+
+        self.assertEquals(modified_value - value, expected_value)
+
+    def test_timedelta_ns_arithmetic(self):
+        self.assert_ns_timedelta(self.timestamp + np.timedelta64(-123, 'ns'), -123)
+
+    def test_timedelta_ns_based_arithmetic(self):
+        self.assert_ns_timedelta(self.timestamp + np.timedelta64(1234567898, 'ns'), 1234567898)
+
+    def test_timedelta_us_arithmetic(self):
+        self.assert_ns_timedelta(self.timestamp + np.timedelta64(-123, 'us'), -123000)
+
+    def test_timedelta_ns_arithmetic(self):
+        time = self.timestamp + np.timedelta64(-123, 'ms')
+        self.assert_ns_timedelta(time, -123000000)
+
+    def test_nanosecond_string_parsing(self):
+        self.timestamp = Timestamp('2013-05-01 07:15:45.123456789')
+        self.assertEqual(self.timestamp.value, 1367392545123456000)
+
+
+class TestTslib(unittest.TestCase):
+
+    def test_intraday_conversion_factors(self):
+        self.assertEqual(period_asfreq(1, get_freq('D'), get_freq('H'), False), 24)
+        self.assertEqual(period_asfreq(1, get_freq('D'), get_freq('T'), False), 1440)
+        self.assertEqual(period_asfreq(1, get_freq('D'), get_freq('S'), False), 86400)
+        self.assertEqual(period_asfreq(1, get_freq('D'), get_freq('L'), False), 86400000)
+        self.assertEqual(period_asfreq(1, get_freq('D'), get_freq('U'), False), 86400000000)
+        self.assertEqual(period_asfreq(1, get_freq('D'), get_freq('N'), False), 86400000000000)
+
+        self.assertEqual(period_asfreq(1, get_freq('H'), get_freq('T'), False), 60)
+        self.assertEqual(period_asfreq(1, get_freq('H'), get_freq('S'), False), 3600)
+        self.assertEqual(period_asfreq(1, get_freq('H'), get_freq('L'), False), 3600000)
+        self.assertEqual(period_asfreq(1, get_freq('H'), get_freq('U'), False), 3600000000)
+        self.assertEqual(period_asfreq(1, get_freq('H'), get_freq('N'), False), 3600000000000)
+
+        self.assertEqual(period_asfreq(1, get_freq('T'), get_freq('S'), False), 60)
+        self.assertEqual(period_asfreq(1, get_freq('T'), get_freq('L'), False), 60000)
+        self.assertEqual(period_asfreq(1, get_freq('T'), get_freq('U'), False), 60000000)
+        self.assertEqual(period_asfreq(1, get_freq('T'), get_freq('N'), False), 60000000000)
+
+        self.assertEqual(period_asfreq(1, get_freq('S'), get_freq('L'), False), 1000)
+        self.assertEqual(period_asfreq(1, get_freq('S'), get_freq('U'), False), 1000000)
+        self.assertEqual(period_asfreq(1, get_freq('S'), get_freq('N'), False), 1000000000)
+
+        self.assertEqual(period_asfreq(1, get_freq('L'), get_freq('U'), False), 1000)
+        self.assertEqual(period_asfreq(1, get_freq('L'), get_freq('N'), False), 1000000)
+
+        self.assertEqual(period_asfreq(1, get_freq('U'), get_freq('N'), False), 1000)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

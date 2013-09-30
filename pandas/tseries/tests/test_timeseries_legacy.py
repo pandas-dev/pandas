@@ -255,6 +255,7 @@ class LegacySupport(object):
         rule = datetools.to_offset('10us')
         self.assert_(rule == datetools.Micro(10))
 
+
 class TestLegacyCompat(unittest.TestCase):
 
     def setUp(self):

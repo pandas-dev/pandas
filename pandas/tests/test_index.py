@@ -29,6 +29,8 @@ import pandas.tseries.offsets as offsets
 import pandas as pd
 from pandas.lib import Timestamp
 
+from pandas import _np_version_under1p7
+
 
 class TestIndex(unittest.TestCase):
     _multiprocess_can_split_ = True
@@ -229,6 +231,25 @@ class TestIndex(unittest.TestCase):
 
         d = self.dateIndex[0].to_datetime()
         tm.assert_isinstance(self.dateIndex.asof(d), Timestamp)
+
+    def test_nanosecond_index_access(self):
+        if _np_version_under1p7:
+            import nose
+
+            raise nose.SkipTest('numpy >= 1.7 required')
+
+        from pandas import Series, Timestamp, DatetimeIndex
+
+        s = Series([Timestamp('20130101')]).values.view('i8')[0]
+        r = DatetimeIndex([s + 50 + i for i in range(100)])
+        x = Series(np.random.randn(100), index=r)
+
+        first_value = x.asof(x.index[0])
+
+        # this does not yet work, as parsing strings is done via dateutil
+        #self.assertEqual(first_value, x['2013-01-01 00:00:00.000000050+0000'])
+
+        self.assertEqual(first_value, x[Timestamp(np.datetime64('2013-01-01 00:00:00.000000050+0000', 'ns'))])
 
     def test_argsort(self):
         result = self.strIndex.argsort()
