@@ -27,6 +27,8 @@ from pandas.util.testing import assertRaisesRegexp
 import pandas.util.testing as tm
 from pandas.tseries.offsets import BusinessMonthEnd, CacheableOffset
 
+from pandas import _np_version_under1p7
+
 _multiprocess_can_split_ = True
 
 
@@ -1620,13 +1622,14 @@ class TestYearEndDiffMonth(unittest.TestCase):
 
 def assertEq(offset, base, expected):
     actual = offset + base
+    actual_swapped = base + offset
     try:
         assert actual == expected
+        assert actual_swapped == expected
     except AssertionError:
         raise AssertionError("\nExpected: %s\nActual: %s\nFor Offset: %s)"
                              "\nAt Date: %s" %
                             (expected, actual, offset, base))
-
 
 def test_Hour():
     assertEq(Hour(), datetime(2010, 1, 1), datetime(2010, 1, 1, 1))
@@ -1666,6 +1669,58 @@ def test_Second():
     assert (Second(3) - Second(2)) == Second()
 
     assert not Second().isAnchored()
+
+
+def test_Millisecond():
+    assertEq(Milli(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 0, 1000))
+    assertEq(Milli(-1), datetime(2010, 1, 1, 0, 0, 0, 1000), datetime(2010, 1, 1))
+    assertEq(Milli(2), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 0, 2000))
+    assertEq(2 * Milli(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 0, 2000))
+    assertEq(-1 * Milli(), datetime(2010, 1, 1, 0, 0, 0, 1000), datetime(2010, 1, 1))
+
+    assert (Milli(3) + Milli(2)) == Milli(5)
+    assert (Milli(3) - Milli(2)) == Milli()
+
+
+def test_MillisecondTimestampArithmetic():
+    assertEq(Milli(), Timestamp('2010-01-01'), Timestamp('2010-01-01 00:00:00.001'))
+    assertEq(Milli(-1), Timestamp('2010-01-01 00:00:00.001'), Timestamp('2010-01-01'))
+
+
+def test_Microsecond():
+    assertEq(Micro(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 0, 1))
+    assertEq(Micro(-1), datetime(2010, 1, 1, 0, 0, 0, 1), datetime(2010, 1, 1))
+    assertEq(2 * Micro(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 0, 2))
+    assertEq(-1 * Micro(), datetime(2010, 1, 1, 0, 0, 0, 1), datetime(2010, 1, 1))
+
+    assert (Micro(3) + Micro(2)) == Micro(5)
+    assert (Micro(3) - Micro(2)) == Micro()
+
+
+def test_NanosecondGeneric():
+    timestamp = Timestamp(datetime(2010, 1, 1))
+    assert timestamp.nanosecond == 0
+
+    result = timestamp + Nano(10)
+    assert result.nanosecond == 10
+
+    reverse_result = Nano(10) + timestamp
+    assert reverse_result.nanosecond == 10
+
+
+def test_Nanosecond():
+    if _np_version_under1p7:
+        import nose
+        raise nose.SkipTest('numpy >= 1.7 required')
+
+    timestamp = Timestamp(datetime(2010, 1, 1))
+    assertEq(Nano(), timestamp, timestamp + np.timedelta64(1, 'ns'))
+    assertEq(Nano(-1), timestamp + np.timedelta64(1, 'ns'), timestamp)
+    assertEq(2 * Nano(), timestamp, timestamp + np.timedelta64(2, 'ns'))
+    assertEq(-1 * Nano(), timestamp + np.timedelta64(1, 'ns'), timestamp)
+
+    assert (Nano(3) + Nano(2)) == Nano(5)
+    assert (Nano(3) - Nano(2)) == Nano()
 
 
 def test_tick_offset():

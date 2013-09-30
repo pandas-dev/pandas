@@ -85,6 +85,9 @@
 #define FR_HR   7000  /* Hourly */
 #define FR_MIN  8000  /* Minutely */
 #define FR_SEC  9000  /* Secondly */
+#define FR_MS 10000  /* Millisecondly */
+#define FR_US 11000  /* Microsecondly */
+#define FR_NS 12000  /* Nanosecondly */
 
 #define FR_UND  -10000 /* Undefined */
 
@@ -102,6 +105,9 @@ typedef struct asfreq_info {
 
     int from_q_year_end; // month the year ends on in the "from" frequency
     int to_q_year_end;   // month the year ends on in the "to" frequency
+
+    int sourceFreq;
+    int targetFreq; 
 } asfreq_info;
 
 
@@ -130,7 +136,7 @@ typedef npy_int64 (*freq_conv_func)(npy_int64, char, asfreq_info*);
 npy_int64 asfreq(npy_int64 period_ordinal, int freq1, int freq2, char relation);
 
 npy_int64 get_period_ordinal(int year, int month, int day,
-                      int hour, int minute, int second,
+                      int hour, int minute, int second, int microseconds, int picoseconds,
                       int freq);
 
 npy_int64 get_python_ordinal(npy_int64 period_ordinal, int freq);
