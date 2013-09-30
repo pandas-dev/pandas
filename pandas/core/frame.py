@@ -26,7 +26,7 @@ from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
                                 _default_index, _maybe_upcast, _is_sequence,
                                 _infer_dtype_from_scalar, _values_from_object,
                                 _coerce_to_dtypes, _DATELIKE_DTYPES, is_list_like)
-from pandas.core.generic import NDFrame
+from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import (_maybe_droplevels,
                                   _convert_to_index_sliceable,
@@ -62,6 +62,9 @@ from pandas.core.config import get_option
 #----------------------------------------------------------------------
 # Docstring templates
 
+_shared_doc_kwargs = dict(axes='index, columns',
+                           klass='DataFrame',
+                           axes_single_arg="{0,1,'index','columns'}")
 
 _numeric_only_doc = """numeric_only : boolean, default None
     Include only float, int, boolean data. If None, will attempt to use
@@ -1380,6 +1383,7 @@ class DataFrame(NDFrame):
         return self.apply(lambda x: x.ftype, reduce=False)
 
     def transpose(self):
+        """Transpose index and columns"""
         return super(DataFrame, self).transpose(1, 0)
 
     T = property(transpose)
@@ -2156,6 +2160,24 @@ class DataFrame(NDFrame):
         else:
             return self._reindex_with_indexers({0: [new_index,   row_indexer],
                                                 1: [new_columns, col_indexer]}, copy=copy, fill_value=fill_value)
+
+    @Appender(_shared_docs['reindex'] % _shared_doc_kwargs)
+    def reindex(self, index=None, columns=None, **kwargs):
+        return super(DataFrame, self).reindex(index=index, columns=columns,
+                                              **kwargs)
+
+    @Appender(_shared_docs['reindex_axis'] % _shared_doc_kwargs)
+    def reindex_axis(self, labels, axis=0, method=None, level=None, copy=True,
+                     limit=None, fill_value=np.nan):
+        return super(DataFrame, self).reindex_axis(labels=labels, axis=axis,
+                                                   method=method, level=level,
+                                                   copy=copy, limit=limit,
+                                                   fill_value=fill_value)
+
+    @Appender(_shared_docs['rename'] % _shared_doc_kwargs)
+    def rename(self, index=None, columns=None, **kwargs):
+        return super(DataFrame, self).rename(index=index, columns=columns,
+                                             **kwargs)
 
     def reindex_like(self, other, method=None, copy=True, limit=None,
                      fill_value=NA):

@@ -18,13 +18,22 @@ from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_arrays,
                                    create_block_manager_from_blocks)
 from pandas.core.frame import DataFrame
-from pandas.core.generic import NDFrame
+from pandas.core.generic import NDFrame, _shared_docs
 from pandas import compat
 from pandas.util.decorators import deprecate, Appender, Substitution
 import pandas.core.common as com
 import pandas.core.ops as ops
 import pandas.core.nanops as nanops
 import pandas.computation.expressions as expressions
+
+
+_shared_doc_kwargs = dict(
+    axes='items, major_axis, minor_axis',
+    klass="Panel",
+    axes_single_arg="{0,1,2,'items','major_axis','minor_axis'}")
+_shared_doc_kwargs['args_transpose'] = ("three positional arguments: each one"
+                                        "of\n        %s" %
+                                        _shared_doc_kwargs['axes_single_arg'])
 
 
 def _ensure_like_indices(time, panels):
@@ -870,6 +879,31 @@ class Panel(NDFrame):
             result = result.T
 
         return self._construct_return_type(result, axes)
+
+    @Appender(_shared_docs['reindex'] % _shared_doc_kwargs)
+    def reindex(self, items=None, major_axis=None, minor_axis=None, **kwargs):
+        major_axis = major_axis if major_axis is not None else kwargs.pop('major', None)
+        minor_axis = minor_axis if minor_axis is not None else kwargs.pop('minor', None)
+        return super(Panel, self).reindex(items=items, major_axis=major_axis,
+                                          minor_axis=minor_axis, **kwargs)
+
+    @Appender(_shared_docs['rename'] % _shared_doc_kwargs)
+    def rename(self, items=None, major_axis=None, minor_axis=None, **kwargs):
+        major_axis = major_axis if major_axis is not None else kwargs.pop('major', None)
+        minor_axis = minor_axis if minor_axis is not None else kwargs.pop('minor', None)
+        return super(Panel, self).rename(items=items, major_axis=major_axis,
+                                         minor_axis=minor_axis, **kwargs)
+
+    @Appender(_shared_docs['reindex_axis'] % _shared_doc_kwargs)
+    def reindex_axis(self, labels, axis=0, method=None, level=None, copy=True,
+                     limit=None, fill_value=np.nan):
+        return super(Panel, self).reindex_axis(labels=labels, axis=axis,
+                                               method=method, level=level,
+                                               copy=copy, limit=limit,
+                                               fill_value=fill_value)
+    @Appender(_shared_docs['transpose'] % _shared_doc_kwargs)
+    def transpose(self, *args, **kwargs):
+        return super(Panel, self).transpose(*args, **kwargs)
 
     def count(self, axis='major'):
         """

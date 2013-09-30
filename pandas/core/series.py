@@ -53,6 +53,11 @@ from pandas.core.config import get_option
 
 __all__ = ['Series']
 
+_shared_doc_kwargs = dict(
+    axes='index',
+    klass='Series',
+    axes_single_arg="{0,'index'}"
+)
 
 def _coerce_method(converter):
     """ install the scalar coercion methods """
@@ -1976,6 +1981,14 @@ class Series(generic.NDFrame):
     def _needs_reindex_multi(self, axes, method, level):
         """ check if we do need a multi reindex; this is for compat with higher dims """
         return False
+
+    @Appender(generic._shared_docs['reindex'] % _shared_doc_kwargs)
+    def rename(self, index=None, **kwargs):
+        return super(Series, self).rename(index=index, **kwargs)
+
+    @Appender(generic._shared_docs['reindex'] % _shared_doc_kwargs)
+    def reindex(self, index=None, **kwargs):
+        return super(Series, self).reindex(index=index, **kwargs)
 
     def reindex_axis(self, labels, axis=0, **kwargs):
         """ for compatibility with higher dims """
