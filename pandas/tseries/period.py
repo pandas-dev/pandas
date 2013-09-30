@@ -51,7 +51,7 @@ class Period(PandasObject):
     value : Period or compat.string_types, default None
         The time period represented (e.g., '4Q2005')
     freq : str, default None
-        e.g., 'B' for businessday, ('T', 5) or '5T' for 5 minutes
+        e.g., 'B' for businessday
     year : int, default None
     month : int, default 1
     quarter : int, default None
