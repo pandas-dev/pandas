@@ -347,7 +347,7 @@ class ExcelWriterMeta(abc.ABCMeta):
                 except KeyError:
                     error = ValueError("No engine for filetype: '%s'" % ext)
                     raise error
-            if engine!='xlwt':
+            if engine != 'xlwt':
                 if 'encoding' in kwargs:
                     kwargs.pop('encoding')
             cls = get_writer(engine)
