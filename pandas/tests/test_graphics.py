@@ -420,37 +420,6 @@ class TestDataFramePlots(unittest.TestCase):
         self.assertEqual(ax.xaxis.get_label().get_text(), 'LABEL')
 
     @slow
-    def test_plot_xy(self):
-        import matplotlib.pyplot as plt
-        # columns.inferred_type == 'string'
-        df = tm.makeTimeDataFrame()
-        self._check_data(df.plot(x=0, y=1),
-                         df.set_index('A')['B'].plot())
-        self._check_data(df.plot(x=0), df.set_index('A').plot())
-        self._check_data(df.plot(y=0), df.B.plot())
-        self._check_data(df.plot(x='A', y='B'),
-                         df.set_index('A').B.plot())
-        self._check_data(df.plot(x='A'), df.set_index('A').plot())
-        self._check_data(df.plot(y='B'), df.B.plot())
-
-        # columns.inferred_type == 'integer'
-        df.columns = lrange(1, len(df.columns) + 1)
-        self._check_data(df.plot(x=1, y=2),
-                         df.set_index(1)[2].plot())
-        self._check_data(df.plot(x=1), df.set_index(1).plot())
-        self._check_data(df.plot(y=1), df[1].plot())
-
-        # figsize and title
-        ax = df.plot(x=1, y=2, title='Test', figsize=(16, 8))
-
-        self.assertEqual(ax.title.get_text(), 'Test')
-        assert_array_equal(np.round(ax.figure.get_size_inches()),
-                           np.array((16., 8.)))
-
-        # columns.inferred_type == 'mixed'
-        # TODO add MultiIndex test
-
-    @slow
     def test_xcompat(self):
         import pandas as pd
         import matplotlib.pyplot as plt
@@ -533,6 +502,27 @@ class TestDataFramePlots(unittest.TestCase):
              for label in ax.get_xticklabels()]
             [self.assert_(label.get_visible())
              for label in ax.get_yticklabels()]
+
+    @slow
+    def test_plot_scatter(self):
+        from matplotlib.pylab import close
+        df = DataFrame(randn(6, 4),
+                       index=list(string.ascii_letters[:6]),
+                       columns=['x', 'y', 'z', 'four'])
+
+        _check_plot_works(df.plot, x='x', y='y', kind='scatter')
+        _check_plot_works(df.plot, x='x', y='y', kind='scatter', legend=False)
+        _check_plot_works(df.plot, x='x', y='y', kind='scatter', subplots=True)
+        _check_plot_works(df.plot, x='x', y='y', kind='scatter', stacked=True)
+
+        df = DataFrame(randn(10, 15),
+                       index=list(string.ascii_letters[:10]),
+                       columns=lrange(15))
+        _check_plot_works(df.plot, x=1, y=2, kind='scatter')
+
+        df = DataFrame({'a': [0, 1], 'b': [1, 0]})
+        _check_plot_works(df.plot, x='a',y='b',kind='scatter')
+
 
     @slow
     def test_plot_bar(self):
