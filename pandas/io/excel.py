@@ -338,6 +338,7 @@ class ExcelWriterMeta(abc.ABCMeta):
         engine = kwargs.pop('engine', None)
         # if it's not an ExcelWriter baseclass, dont' do anything (you've
         # probably made an explicit choice here)
+        
         if not isinstance(getattr(cls, 'engine', None), compat.string_types):
             if engine is None:
                 ext = os.path.splitext(path)[-1][1:]
@@ -346,6 +347,9 @@ class ExcelWriterMeta(abc.ABCMeta):
                 except KeyError:
                     error = ValueError("No engine for filetype: '%s'" % ext)
                     raise error
+            if engine!='xlwt':
+                if 'encoding' in kwargs:
+                    kwargs.pop('encoding')
             cls = get_writer(engine)
         writer = cls.__new__(cls, path, **kwargs)
         writer.__init__(path, **kwargs)
