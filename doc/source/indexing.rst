@@ -519,21 +519,14 @@ of the DataFrame):
 
    df[df['A'] > 0]
 
-Consider the ``isin`` method of Series, which returns a boolean vector that is
-true wherever the Series elements exist in the passed list. This allows you to
-select rows where one or more columns have values you want:
+List comprehensions and ``map`` method of Series can also be used to produce
+more complex criteria:
 
 .. ipython:: python
 
    df2 = DataFrame({'a' : ['one', 'one', 'two', 'three', 'two', 'one', 'six'],
                     'b' : ['x', 'y', 'y', 'x', 'y', 'x', 'x'],
                     'c' : randn(7)})
-   df2[df2['a'].isin(['one', 'two'])]
-
-List comprehensions and ``map`` method of Series can also be used to produce
-more complex criteria:
-
-.. ipython:: python
 
    # only want 'two' or 'three'
    criterion = df2['a'].map(lambda x: x.startswith('t'))
@@ -552,6 +545,26 @@ and :ref:`Advanced Indexing <indexing.advanced>` you may select along more than 
 .. ipython:: python
 
    df2.loc[criterion & (df2['b'] == 'x'),'b':'c']
+
+.. _indexing.basics.indexing_isin:
+
+Indexing with isin
+~~~~~~~~~~~~~~~~~~
+
+Consider the ``isin`` method of Series, which returns a boolean vector that is
+true wherever the Series elements exist in the passed list. This allows you to
+select rows where one or more columns have values you want:
+
+.. ipython:: python
+
+   s = Series(np.arange(5),index=np.arange(5)[::-1],dtype='int64')
+
+   s
+
+   s.isin([2, 4])
+
+   s[s.isin([2, 4])]
+
 
 DataFrame also has an ``isin`` method.  When calling ``isin``, pass a set of
 values as either an array or dict.  If values is an array, ``isin`` returns
@@ -585,6 +598,17 @@ You can also describe columns using integer location:
 
    df.isin(values, iloc=True)
 
+Combine DataFrame's ``isin`` with the ``any()`` and ``all()`` methods to
+quickly select subsets of your data that meet a given criteria.
+To select a row where each column meets its own criterion:
+
+.. ipython:: python
+
+  values = {'ids': ['a', 'b'], 'ids2': ['a', 'c'], 'vals': [1, 3]}
+
+  row_mask = df.isin(values).all(1)
+
+  df[row_mask]
 
 The :meth:`~pandas.DataFrame.where` Method and Masking
 ------------------------------------------------------
