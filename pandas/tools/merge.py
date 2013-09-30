@@ -19,7 +19,7 @@ from pandas.core.internals import (IntBlock, BoolBlock, BlockManager,
 from pandas.util.decorators import cache_readonly, Appender, Substitution
 from pandas.core.common import (PandasError, ABCSeries,
                                 is_timedelta64_dtype, is_datetime64_dtype,
-                                is_integer_dtype)
+                                is_integer_dtype, isnull)
 
 import pandas.core.common as com
 
