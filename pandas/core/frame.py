@@ -956,6 +956,11 @@ class DataFrame(NDFrame):
         -------
         y : SparseDataFrame
         """
+	if filter(lambda b: b, [dt == object for dt in self.dtypes]):
+            try:
+	        self = self.astype(double)
+	    except ValueError:
+		pass
         from pandas.core.sparse import SparseDataFrame
         return SparseDataFrame(self._series, index=self.index,
                                default_kind=kind,
