@@ -956,7 +956,7 @@ class DataFrame(NDFrame):
         -------
         y : SparseDataFrame
         """
-	if any(dt == object for dt in self.dtypes):
+        if any(dt == object for dt in self.dtypes):
             try:
                 self = self.astype(float)
             except ValueError:
