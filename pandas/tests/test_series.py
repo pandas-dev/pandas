@@ -878,7 +878,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         tmp = s.copy()
 
         s.ix[1] = 'zoo'
-        tmp.values[1] = 'zoo'
+        tmp.iloc[2] = 'zoo'
 
         assert_series_equal(s, tmp)
 

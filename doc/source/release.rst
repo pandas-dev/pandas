@@ -520,6 +520,7 @@ Bug Fixes
     chunks of the same file. Now coerces to numerical type or raises warning. (:issue:`3866`)
   - Fix a bug where reshaping a ``Series`` to its own shape raised ``TypeError`` (:issue:`4554`)
     and other reshaping issues.
+  - Bug in setting with ``ix/loc`` and a mixed int/string index (:issue:`4544`)
 
 pandas 0.12.0
 -------------

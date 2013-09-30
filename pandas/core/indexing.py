@@ -783,9 +783,25 @@ class _NDFrameIndexer(object):
         - No, prefer label-based indexing
         """
         labels = self.obj._get_axis(axis)
-        is_int_index = labels.is_integer()
 
-        if com.is_integer(obj) and not is_int_index:
+        # if we are a scalar indexer and not type correct raise
+        obj = self._convert_scalar_indexer(obj, axis)
+
+        # see if we are positional in nature
+        is_int_index = labels.is_integer()
+        is_int_positional = com.is_integer(obj) and not is_int_index
+
+        # if we are a label return me
+        try:
+            return labels.get_loc(obj)
+        except (KeyError, TypeError):
+            pass
+        except (ValueError):
+            if not is_int_positional:
+                raise
+
+        # a positional
+        if is_int_positional:
 
             # if we are setting and its not a valid location
             # its an insert which fails by definition
@@ -794,11 +810,6 @@ class _NDFrameIndexer(object):
                     raise ValueError("cannot set by positional indexing with enlargement")
 
             return obj
-
-        try:
-            return labels.get_loc(obj)
-        except (KeyError, TypeError):
-            pass
 
         if isinstance(obj, slice):
             return self._convert_slice_indexer(obj, axis)
