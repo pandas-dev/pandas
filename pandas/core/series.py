@@ -7,6 +7,7 @@ Data structure for 1-dimensional cross-sectional and time series data
 
 import operator
 import types
+import warnings
 
 from numpy import nan, ndarray
 import numpy as np
@@ -913,7 +914,6 @@ class Series(generic.NDFrame):
         """
 
         if nanRep is not None:  # pragma: no cover
-            import warnings
             warnings.warn("nanRep is deprecated, use na_rep", FutureWarning)
             na_rep = nanRep
 

@@ -55,10 +55,14 @@ API changes
         index.set_names(["bob", "cranberry"], inplace=True)
 
   - Infer and downcast dtype if ``downcast='infer'`` is passed to ``fillna/ffill/bfill`` (:issue:`4604`)
+  - Remove deprecated ``Factor`` (:issue:`3650`)
+  - Remove deprecated ``set_printoptions/reset_printoptions`` (:issue:``3046``)
+  - Remove deprecated ``_verbose_info`` (:issue:`3215`)
   - ``__nonzero__`` for all NDFrame objects, will now raise a ``ValueError``, this reverts back to (:issue:`1073`, :issue:`4633`)
-    behavior. See :ref:`gotchas<gotchas.truth>` for a more detailed discussion.
+    behavior. Added the ``.bool()`` method to ``NDFrame`` objects to facilitate evaluating of single-element boolean Series
+    See :ref:`gotchas<gotchas.truth>` for a more detailed discussion.
 
-    This prevent behaviors like (which will now all raise ``ValueError``)
+    This prevents behaviors like (which will now all raise ``ValueError``)
 
     .. code-block:: python
 
@@ -67,6 +71,16 @@ API changes
 
         df1 and df2
         s1 and s2
+
+
+    To evaluate single-element pandas objects in a boolean context, use the method ``.bool()``:
+
+    .. ipython:: python
+
+       Series([True]).bool()
+       Series([False]).bool()
+       DataFrame([[True]]).bool()
+       DataFrame([[False]]).bool()
 
   - All non-Index NDFrames (``Series``, ``DataFrame``, ``Panel``, ``Panel4D``,
     ``SparsePanel``, etc.), now support the entire set of arithmetic operators
