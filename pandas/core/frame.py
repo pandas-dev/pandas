@@ -957,7 +957,7 @@ class DataFrame(NDFrame):
         y : SparseDataFrame
         """
         if any(dt == object for dt in self.dtypes):
-            self.convert_objects(convert_numeric='force')
+            self = self.convert_objects(convert_numeric=True)
         from pandas.core.sparse import SparseDataFrame
         return SparseDataFrame(self._series, index=self.index,
                                default_kind=kind,
