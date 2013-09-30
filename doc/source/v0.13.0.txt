@@ -307,7 +307,7 @@ Enhancements
   - Added a more informative error message when plot arguments contain
     overlapping color and style arguments (:issue:`4402`)
   - ``to_dict`` now takes ``records`` as a possible outtype.  Returns an array
-    of column-keyed dictionaries. (:pullrequest:`4936`)
+    of column-keyed dictionaries. (:issue:`4936`)
 
   - NaN handing in get_dummies (:issue:`4446`) with `dummy_na`
 
@@ -425,7 +425,7 @@ Enhancements
   - ``read_stata` now accepts Stata 13 format (:issue:`4291`)
   - ``read_fwf`` now infers the column specifications from the first 100 rows of
     the file if the data has correctly separated and properly aligned columns
-    using the delimiter provided to the function (:issue:`4488`). 
+    using the delimiter provided to the function (:issue:`4488`).
 
 .. _whatsnew_0130.experimental:
 

@@ -666,7 +666,7 @@ class DataFrame(NDFrame):
         elif outtype.lower().startswith('s'):
             return dict((k, v) for k, v in compat.iteritems(self))
         elif outtype.lower().startswith('r'):
-            return [dict((k, v) for k, v in zip(self.columns, row)) \
+            return [dict((k, v) for k, v in zip(self.columns, row))
                     for row in self.values]
         else:  # pragma: no cover
             raise ValueError("outtype %s not understood" % outtype)
