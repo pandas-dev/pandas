@@ -742,10 +742,13 @@ function works with data files that have known and fixed column widths.
 The function parameters to ``read_fwf`` are largely the same as `read_csv` with
 two extra parameters:
 
-  - ``colspecs``: a list of pairs (tuples), giving the extents of the
-    fixed-width fields of each line as half-open intervals [from, to[
-  - ``widths``: a list of field widths, which can be used instead of
-    ``colspecs`` if the intervals are contiguous
+  - ``colspecs``: A list of pairs (tuples) giving the extents of the
+    fixed-width fields of each line as half-open intervals (i.e.,  [from, to[ ).
+    String value 'infer' can be used to instruct the parser to try detecting
+    the column specifications from the first 100 rows of the data. Default
+    behaviour, if not specified, is to infer.
+  - ``widths``: A list of field widths which can be used instead of 'colspecs'
+    if the intervals are contiguous.
 
 .. ipython:: python
    :suppress:
@@ -788,6 +791,18 @@ column widths for contiguous columns:
 
 The parser will take care of extra white spaces around the columns
 so it's ok to have extra separation between the columns in the file.
+
+.. versionadded:: 0.13.0
+
+By default, ``read_fwf`` will try to infer the file's ``colspecs`` by using the
+first 100 rows of the file. It can do it only in cases when the columns are
+aligned and correctly separated by the provided ``delimiter`` (default delimiter
+is whitespace).
+
+.. ipython:: python
+
+   df = pd.read_fwf('bar.csv', header=None, index_col=0)
+   df
 
 .. ipython:: python
    :suppress:
