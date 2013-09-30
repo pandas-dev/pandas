@@ -4674,25 +4674,6 @@ def _put_str(s, space):
     return ('%s' % s)[:space].ljust(space)
 
 
-def install_ipython_completers():  # pragma: no cover
-    """Register the DataFrame type with IPython's tab completion machinery, so
-    that it knows about accessing column names as attributes."""
-    from IPython.utils.generics import complete_object
-
-    @complete_object.when_type(DataFrame)
-    def complete_dataframe(obj, prev_completions):
-        return prev_completions + [c for c in obj.columns
-                                   if isinstance(c, compat.string_types) and compat.isidentifier(c)]
-
-
-# Importing IPython brings in about 200 modules, so we want to avoid it unless
-# we're in IPython (when those modules are loaded anyway).
-if "IPython" in sys.modules:  # pragma: no cover
-    try:
-        install_ipython_completers()
-    except Exception:
-        pass
-
 #----------------------------------------------------------------------
 # Add plotting methods to DataFrame
 
