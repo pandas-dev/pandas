@@ -1928,6 +1928,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.simple = DataFrame(arr, columns=['one', 'two', 'three'],
                                 index=['a', 'b', 'c'])
 
+    def test_to_sparse(self):
+	data = np.array([82.87, 82.1, 84.25, 84.53, 85.9, 85.9, 86.95, 88.13, 89.49, 89.76,
+		90.76, 88.99, 89.42, 89.0, 89.49, 88.95, 89.09, 88.65, 88.52, 88.98], dtype=object)
+	frame = DataFrame(data)
+        sparse = frame.to_sparse()
+	expected = [True]
+	actual = filter(lambda x: x, [t == float for t in sparse.dtypes])
+        self.assertEquals(expected, actual)
+
     def test_get_axis(self):
         f = self.frame
         self.assertEquals(f._get_axis_number(0), 0)

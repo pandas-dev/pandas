@@ -958,7 +958,7 @@ class DataFrame(NDFrame):
         """
 	if filter(lambda b: b, [dt == object for dt in self.dtypes]):
             try:
-	        self = self.astype(double)
+	        self = self.astype(float)
 	    except ValueError:
 		pass
         from pandas.core.sparse import SparseDataFrame
