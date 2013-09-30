@@ -317,10 +317,11 @@ API Changes
   - Arithemtic func factories are now passed real names (suitable for using with super) (:issue:`5240`)
   - Provide numpy compatibility with 1.7 for a calling convention like ``np.prod(pandas_object)`` as numpy
     call with additional keyword args (:issue:`4435`)
-  - Provide __dir__ method (and local context) for tab completion / remove ipython completers code
-    (:issue:`4501`)
+  - Provide ``__dir__`` method (and local context) for tab completion / remove
+    ipython completers code (:issue:`4501`)
   - Support non-unique axes in a Panel via indexing operations (:issue:`4960`)
   - ``.truncate`` will raise a ``ValueError`` if invalid before and afters dates are given (:issue:`5242`)
+  - Improve some exceptions in core/generic. (:issue:`5051`)
 
 Internal Refactoring
 ~~~~~~~~~~~~~~~~~~~~
