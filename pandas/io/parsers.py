@@ -160,11 +160,15 @@ Read general delimited file into DataFrame
 """ % (_parser_params % _table_sep)
 
 _fwf_widths = """\
-colspecs : a list of pairs (tuples), giving the extents
-    of the fixed-width fields of each line as half-open internals
-    (i.e.,  [from, to[  ).
-widths : a list of field widths, which can be used instead of
-    'colspecs' if the intervals are contiguous.
+colspecs : list of pairs (int, int) or 'infer'. optional
+    A list of pairs (tuples) giving the extents of the fixed-width
+    fields of each line as half-open intervals (i.e.,  [from, to[ ).
+    String value 'infer' can be used to instruct the parser to try
+    detecting the column specifications from the first 100 rows of
+    the data (default='infer').
+widths : list of ints. optional
+    A list of field widths which can be used instead of 'colspecs' if
+    the intervals are contiguous.
 """
 
 _read_fwf_doc = """
@@ -184,7 +188,8 @@ def _read(filepath_or_buffer, kwds):
     if skipfooter is not None:
         kwds['skip_footer'] = skipfooter
 
-    filepath_or_buffer, _ = get_filepath_or_buffer(filepath_or_buffer)
+    filepath_or_buffer, _ = get_filepath_or_buffer(filepath_or_buffer,
+                                                   encoding)
 
     if kwds.get('date_parser', None) is not None:
         if isinstance(kwds['parse_dates'], bool):
@@ -267,8 +272,8 @@ _c_parser_defaults = {
 }
 
 _fwf_defaults = {
-    'colspecs': None,
-    'widths': None
+    'colspecs': 'infer',
+    'widths': None,
 }
 
 _c_unsupported = set(['skip_footer'])
@@ -412,15 +417,15 @@ read_table = Appender(_read_table_doc)(read_table)
 
 
 @Appender(_read_fwf_doc)
-def read_fwf(filepath_or_buffer, colspecs=None, widths=None, **kwds):
+def read_fwf(filepath_or_buffer, colspecs='infer', widths=None, **kwds):
     # Check input arguments.
     if colspecs is None and widths is None:
         raise ValueError("Must specify either colspecs or widths")
-    elif colspecs is not None and widths is not None:
+    elif colspecs not in (None, 'infer') and widths is not None:
         raise ValueError("You must specify only one of 'widths' and "
                          "'colspecs'")
 
-    # Compute 'colspec' from 'widths', if specified.
+    # Compute 'colspecs' from 'widths', if specified.
     if widths is not None:
         colspecs, col = [], 0
         for w in widths:
@@ -519,7 +524,8 @@ class TextFileReader(object):
                 engine = 'python'
         elif sep is not None and len(sep) > 1:
             # wait until regex engine integrated
-            engine = 'python'
+            if engine not in ('python', 'python-fwf'):
+                engine = 'python'
 
         # C engine not supported yet
         if engine == 'c':
@@ -2012,31 +2018,65 @@ class FixedWidthReader(object):
     """
     A reader of fixed-width lines.
     """
-    def __init__(self, f, colspecs, filler, thousands=None, encoding=None):
+    def __init__(self, f, colspecs, delimiter, comment):
         self.f = f
-        self.colspecs = colspecs
-        self.filler = filler  # Empty characters between fields.
-        self.thousands = thousands
-        if encoding is None:
-            encoding = get_option('display.encoding')
-        self.encoding = encoding
+        self.buffer = None
+        self.delimiter = '\r\n' + delimiter if delimiter else '\n\r\t '
+        self.comment = comment
+        if colspecs == 'infer':
+            self.colspecs = self.detect_colspecs()
+        else:
+            self.colspecs = colspecs
 
-        if not isinstance(colspecs, (tuple, list)):
+        if not isinstance(self.colspecs, (tuple, list)):
             raise TypeError("column specifications must be a list or tuple, "
                             "input was a %r" % type(colspecs).__name__)
 
-        for colspec in colspecs:
+        for colspec in self.colspecs:
             if not (isinstance(colspec, (tuple, list)) and
-                    len(colspec) == 2 and
-                    isinstance(colspec[0], int) and
-                    isinstance(colspec[1], int)):
+                       len(colspec) == 2 and
+                       isinstance(colspec[0], (int, np.integer)) and
+                       isinstance(colspec[1], (int, np.integer))):
                 raise TypeError('Each column specification must be '
                                 '2 element tuple or list of integers')
 
+    def get_rows(self, n):
+        rows = []
+        for i, row in enumerate(self.f, 1):
+            rows.append(row)
+            if i >= n:
+                break
+        self.buffer = iter(rows)
+        return rows
+
+    def detect_colspecs(self, n=100):
+        # Regex escape the delimiters
+        delimiters = ''.join([r'\%s' % x for x in self.delimiter])
+        pattern = re.compile('([^%s]+)' % delimiters)
+        rows = self.get_rows(n)
+        max_len = max(map(len, rows))
+        mask = np.zeros(max_len + 1, dtype=int)
+        if self.comment is not None:
+            rows = [row.partition(self.comment)[0] for row in rows]
+        for row in rows:
+            for m in pattern.finditer(row):
+                mask[m.start():m.end()] = 1
+        shifted = np.roll(mask, 1)
+        shifted[0] = 0
+        edges = np.where((mask ^ shifted) == 1)[0]
+        return list(zip(edges[::2], edges[1::2]))
+
     def next(self):
-        line = next(self.f)
+        if self.buffer is not None:
+            try:
+                line = next(self.buffer)
+            except StopIteration:
+                self.buffer = None
+                line = next(self.f)
+        else:
+            line = next(self.f)
         # Note: 'colspecs' is a sequence of half-open intervals.
-        return [line[fromm:to].strip(self.filler or ' ')
+        return [line[fromm:to].strip(self.delimiter)
                 for (fromm, to) in self.colspecs]
 
     # Iterator protocol in Python 3 uses __next__()
@@ -2050,10 +2090,10 @@ class FixedWidthFieldParser(PythonParser):
     """
     def __init__(self, f, **kwds):
         # Support iterators, convert to a list.
-        self.colspecs = list(kwds.pop('colspecs'))
+        self.colspecs = kwds.pop('colspecs')
 
         PythonParser.__init__(self, f, **kwds)
 
     def _make_reader(self, f):
         self.data = FixedWidthReader(f, self.colspecs, self.delimiter,
-                                     encoding=self.encoding)
+                                     self.comment)

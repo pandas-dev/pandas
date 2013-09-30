@@ -41,3 +41,4 @@ pandas/io/*.json
 
 .project
 .pydevproject
+.settings

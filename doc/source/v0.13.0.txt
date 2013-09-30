@@ -421,6 +421,9 @@ Enhancements
 
     can also be used.
   - ``read_stata` now accepts Stata 13 format (:issue:`4291`)
+  - ``read_fwf`` now infers the column specifications from the first 100 rows of
+    the file if the data has correctly separated and properly aligned columns
+    using the delimiter provided to the function (:issue:`4488`). 
 
 .. _whatsnew_0130.experimental:
 
