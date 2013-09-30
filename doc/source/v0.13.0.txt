@@ -516,6 +516,22 @@ Experimental
     For more details see the :ref:`indexing documentation on query
     <indexing.query>`.
 
+  - DataFrame now has an ``isin`` method that can be used to easily check whether the DataFrame's values are contained in an iterable.  Use a dictionary if you'd like to check specific iterables for specific columns or rows.
+
+    .. ipython:: python
+
+      df = pd.DataFrame({'A': [1, 2, 3], 'B': ['d', 'e', 'f']})
+      df.isin({'A': [1, 2], 'B': ['e', 'f']})
+
+  The ``isin`` method plays nicely with boolean indexing. To get the rows where each condition is met:
+
+    .. ipython:: python
+
+      mask = df.isin({'A': [1, 2], 'B': ['e', 'f']})
+      df[mask.all(1)]
+
+  See the :ref:`documentation<indexing.basics.indexing_isin>` for more.
+
 .. _whatsnew_0130.refactoring:
 
 Internal Refactoring
