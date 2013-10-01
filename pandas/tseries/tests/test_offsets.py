@@ -13,8 +13,7 @@ from pandas.core.datetools import (
     DateOffset, Week, YearBegin, YearEnd, Hour, Minute, Second, Day, Micro,
     Milli, Nano,
     WeekOfMonth, format, ole2datetime, QuarterEnd, to_datetime, normalize_date,
-    get_offset, get_offset_name, inferTimeRule, hasOffsetName,
-    get_standard_freq)
+    get_offset, get_offset_name, hasOffsetName, get_standard_freq)
 
 from pandas.tseries.frequencies import _offset_map
 from pandas.tseries.index import _to_m8, DatetimeIndex, _daterange_cache
@@ -532,7 +531,7 @@ class TestWeek(unittest.TestCase):
         self.assertEqual(repr(Week(weekday=0)), "<Week: weekday=0>")
         self.assertEqual(repr(Week(n=-1, weekday=0)), "<-1 * Week: weekday=0>")
         self.assertEqual(repr(Week(n=-2, weekday=0)), "<-2 * Weeks: weekday=0>")
-        
+
     def test_corner(self):
         self.assertRaises(ValueError, Week, weekday=7)
         assertRaisesRegexp(ValueError, "Day must be", Week, weekday=-1)
@@ -905,7 +904,7 @@ class TestMonthEnd(unittest.TestCase):
 
 
 class TestBQuarterBegin(unittest.TestCase):
-    
+
     def test_repr(self):
         self.assertEqual(repr(BQuarterBegin()),"<BusinessQuarterBegin: startingMonth=3>")
         self.assertEqual(repr(BQuarterBegin(startingMonth=3)), "<BusinessQuarterBegin: startingMonth=3>")
@@ -1000,7 +999,7 @@ class TestBQuarterEnd(unittest.TestCase):
         self.assertEqual(repr(BQuarterEnd()),"<BusinessQuarterEnd: startingMonth=3>")
         self.assertEqual(repr(BQuarterEnd(startingMonth=3)), "<BusinessQuarterEnd: startingMonth=3>")
         self.assertEqual(repr(BQuarterEnd(startingMonth=1)), "<BusinessQuarterEnd: startingMonth=1>")
-        
+
     def test_isAnchored(self):
         self.assert_(BQuarterEnd(startingMonth=1).isAnchored())
         self.assert_(BQuarterEnd().isAnchored())
@@ -1107,7 +1106,7 @@ class TestQuarterBegin(unittest.TestCase):
         self.assertEqual(repr(QuarterBegin()), "<QuarterBegin: startingMonth=3>")
         self.assertEqual(repr(QuarterBegin(startingMonth=3)), "<QuarterBegin: startingMonth=3>")
         self.assertEqual(repr(QuarterBegin(startingMonth=1)),"<QuarterBegin: startingMonth=1>")
-            
+
     def test_isAnchored(self):
         self.assert_(QuarterBegin(startingMonth=1).isAnchored())
         self.assert_(QuarterBegin().isAnchored())
@@ -1181,7 +1180,7 @@ class TestQuarterEnd(unittest.TestCase):
         self.assertEqual(repr(QuarterEnd()), "<QuarterEnd: startingMonth=3>")
         self.assertEqual(repr(QuarterEnd(startingMonth=3)), "<QuarterEnd: startingMonth=3>")
         self.assertEqual(repr(QuarterEnd(startingMonth=1)), "<QuarterEnd: startingMonth=1>")
-    
+
     def test_isAnchored(self):
         self.assert_(QuarterEnd(startingMonth=1).isAnchored())
         self.assert_(QuarterEnd().isAnchored())
@@ -1631,6 +1630,7 @@ def assertEq(offset, base, expected):
                              "\nAt Date: %s" %
                             (expected, actual, offset, base))
 
+
 def test_Hour():
     assertEq(Hour(), datetime(2010, 1, 1), datetime(2010, 1, 1, 1))
     assertEq(Hour(-1), datetime(2010, 1, 1, 1), datetime(2010, 1, 1))
@@ -1710,7 +1710,6 @@ def test_NanosecondGeneric():
 
 def test_Nanosecond():
     if _np_version_under1p7:
-        import nose
         raise nose.SkipTest('numpy >= 1.7 required')
 
     timestamp = Timestamp(datetime(2010, 1, 1))
@@ -1815,8 +1814,6 @@ class TestOffsetAliases(unittest.TestCase):
         pass
 
     def test_alias_equality(self):
-        from pandas.tseries.frequencies import _offset_map
-
         for k, v in compat.iteritems(_offset_map):
             if v is None:
                 continue
@@ -1872,7 +1869,8 @@ def test_freq_offsets():
 
     off = BDay(1, offset=timedelta(0, -1800))
     assert(off.freqstr == 'B-30Min')
-    
+
+
 def get_all_subclasses(cls):
     ret = set()
     this_subclasses = cls.__subclasses__()
@@ -1881,40 +1879,41 @@ def get_all_subclasses(cls):
         ret | get_all_subclasses(this_subclass)
     return ret
 
-class TestCaching(unittest.TestCase):    
+
+class TestCaching(unittest.TestCase):
     def test_should_cache_month_end(self):
         self.assertTrue(MonthEnd()._should_cache())
-        
+
     def test_should_cache_bmonth_end(self):
         self.assertTrue(BusinessMonthEnd()._should_cache())
-        
+
     def test_should_cache_week_month(self):
         self.assertTrue(WeekOfMonth(weekday=1, week=2)._should_cache())
-        
+
     def test_all_cacheableoffsets(self):
         for subclass in get_all_subclasses(CacheableOffset):
             if subclass in [WeekOfMonth]:
                 continue
             self.run_X_index_creation(subclass)
-            
+
     def setUp(self):
         _daterange_cache.clear()
-        
+
     def run_X_index_creation(self, cls):
         inst1 = cls()
         if not inst1.isAnchored():
             self.assertFalse(inst1._should_cache(), cls)
             return
-        
+
         self.assertTrue(inst1._should_cache(), cls)
-            
+
         DatetimeIndex(start=datetime(2013,1,31), end=datetime(2013,3,31), freq=inst1, normalize=True)
         self.assertTrue(cls() in _daterange_cache, cls)
-                
+
     def test_month_end_index_creation(self):
         DatetimeIndex(start=datetime(2013,1,31), end=datetime(2013,3,31), freq=MonthEnd(), normalize=True)
         self.assertTrue(MonthEnd() in _daterange_cache)
-        
+
     def test_bmonth_end_index_creation(self):
         DatetimeIndex(start=datetime(2013,1,31), end=datetime(2013,3,29), freq=BusinessMonthEnd(), normalize=True)
         self.assertTrue(BusinessMonthEnd() in _daterange_cache)
@@ -1924,9 +1923,8 @@ class TestCaching(unittest.TestCase):
         DatetimeIndex(start=datetime(2013,1,31), end=datetime(2013,3,29), freq=inst1, normalize=True)
         inst2 = WeekOfMonth(weekday=1, week=2)
         self.assertTrue(inst2 in _daterange_cache)
-        
-         
+
+
 if __name__ == '__main__':
-    import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
