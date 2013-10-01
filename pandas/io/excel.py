@@ -338,7 +338,6 @@ class ExcelWriterMeta(abc.ABCMeta):
         engine = kwargs.pop('engine', None)
         # if it's not an ExcelWriter baseclass, dont' do anything (you've
         # probably made an explicit choice here)
-        
         if not isinstance(getattr(cls, 'engine', None), compat.string_types):
             if engine is None:
                 ext = os.path.splitext(path)[-1][1:]
