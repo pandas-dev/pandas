@@ -336,7 +336,7 @@ class NaTType(_NaT):
 
     def __hash__(self):
         return iNaT
-    
+
     def weekday(self):
         return -1
 
@@ -573,22 +573,22 @@ cdef class _Timestamp(datetime):
                         dts.us, ts.tzinfo)
 
     def __add__(self, other):
+        cdef Py_ssize_t other_int
+
         if is_timedelta64_object(other):
-            return Timestamp(self.value + other.astype('timedelta64[ns]').item(), tz=self.tzinfo)
-        
+            other_int = other.astype('timedelta64[ns]').astype(int)
+            return Timestamp(self.value + other_int, tz=self.tzinfo)
+
         if is_integer_object(other):
             if self.offset is None:
-                return Timestamp(self.value + other, tz=self.tzinfo)
-                msg = ("Cannot add integral value to Timestamp "
-                       "without offset.")
-                raise ValueError(msg)
-            else:
-                return Timestamp((self.offset.__mul__(other)).apply(self))
-            
+                raise ValueError("Cannot add integral value to Timestamp "
+                                 "without offset.")
+            return Timestamp((self.offset * other).apply(self))
+
         if isinstance(other, timedelta) or hasattr(other, 'delta'):
             nanos = _delta_to_nanoseconds(other)
             return Timestamp(self.value + nanos, tz=self.tzinfo)
-            
+
         result = datetime.__add__(self, other)
         if isinstance(result, datetime):
             result = Timestamp(result)
@@ -597,9 +597,9 @@ cdef class _Timestamp(datetime):
 
     def __sub__(self, other):
         if is_integer_object(other):
-            return self.__add__(-other)
-        else:
-            return datetime.__sub__(self, other)
+            neg_other = -other
+            return self + neg_other
+        return super(_Timestamp, self).__sub__(other)
 
     cpdef _get_field(self, field):
         out = get_date_field(np.array([self.value], dtype=np.int64), field)
@@ -2329,7 +2329,7 @@ cpdef int64_t period_asfreq(int64_t period_ordinal, int freq1, int freq2,
     """
     cdef:
         int64_t retval
-   
+
     if end:
         retval = asfreq(period_ordinal, freq1, freq2, END)
     else:
