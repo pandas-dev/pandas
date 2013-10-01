@@ -672,6 +672,9 @@ def scalar_binop(ndarray[object] values, object val, object op):
         object x
 
     result = np.empty(n, dtype=object)
+    if util._checknull(val):
+        result.fill(val)
+        return result
 
     for i in range(n):
         x = values[i]

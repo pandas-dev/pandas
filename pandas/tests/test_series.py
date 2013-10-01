@@ -2757,6 +2757,93 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         b = Series([2, 3, 4])
         self.assertRaises(ValueError, a.__eq__, b)
 
+    def test_comparison_label_based(self):
+
+        # GH 4947
+        # comparisons should be label based
+
+        a = Series([True, False, True], list('bca'))
+        b = Series([False, True, False], list('abc'))
+
+        expected = Series([True, False, False], list('bca'))
+        result = a & b
+        assert_series_equal(result,expected)
+
+        expected = Series([True, False, True], list('bca'))
+        result = a | b
+        assert_series_equal(result,expected)
+
+        expected = Series([False, False, True], list('bca'))
+        result = a ^ b
+        assert_series_equal(result,expected)
+
+        # rhs is bigger
+        a = Series([True, False, True], list('bca'))
+        b = Series([False, True, False, True], list('abcd'))
+
+        expected = Series([True, False, False], list('bca'))
+        result = a & b
+        assert_series_equal(result,expected)
+
+        expected = Series([True, False, True], list('bca'))
+        result = a | b
+        assert_series_equal(result,expected)
+
+        # filling
+
+        # vs empty
+        result = a & Series([])
+        expected = Series([False, False, False], list('bca'))
+        assert_series_equal(result,expected)
+
+        result = a | Series([])
+        expected = Series([True, False, True], list('bca'))
+        assert_series_equal(result,expected)
+
+        # vs non-matching
+        result = a & Series([1],['z'])
+        expected = Series([False, False, False], list('bca'))
+        assert_series_equal(result,expected)
+
+        result = a | Series([1],['z'])
+        expected = Series([True, False, True], list('bca'))
+        assert_series_equal(result,expected)
+
+        # identity
+        # we would like s[s|e] == s to hold for any e, whether empty or not
+        for e in [Series([]),Series([1],['z']),Series(['z']),Series(np.nan,b.index),Series(np.nan,a.index)]:
+            result = a[a | e]
+            assert_series_equal(result,a[a])
+
+        # vs scalars
+        index = list('bca')
+        t = Series([True,False,True])
+
+        for v in [True,1,2]:
+            result = Series([True,False,True],index=index) | v
+            expected = Series([True,True,True],index=index)
+            assert_series_equal(result,expected)
+
+        for v in [np.nan,'foo']:
+            self.assertRaises(TypeError, lambda : t | v)
+
+        for v in [False,0]:
+            result = Series([True,False,True],index=index) | v
+            expected = Series([True,False,True],index=index)
+            assert_series_equal(result,expected)
+
+        for v in [True,1]:
+            result = Series([True,False,True],index=index) & v
+            expected = Series([True,False,True],index=index)
+            assert_series_equal(result,expected)
+
+        for v in [False,0]:
+            result = Series([True,False,True],index=index) & v
+            expected = Series([False,False,False],index=index)
+            assert_series_equal(result,expected)
+        for v in [np.nan]:
+            self.assertRaises(TypeError, lambda : t & v)
+
     def test_between(self):
         s = Series(bdate_range('1/1/2000', periods=20).asobject)
         s[::2] = np.nan
@@ -2793,12 +2880,14 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         def tester(a, b):
             return a & b
 
-        self.assertRaises(ValueError, tester, s, datetime(2005, 1, 1))
+        self.assertRaises(TypeError, tester, s, datetime(2005, 1, 1))
 
         s = Series([2, 3, 4, 5, 6, 7, 8, 9, datetime(2005, 1, 1)])
         s[::2] = np.nan
 
-        assert_series_equal(tester(s, list(s)), s)
+        expected = Series(True,index=s.index)
+        expected[::2] = False
+        assert_series_equal(tester(s, list(s)), expected)
 
         d = DataFrame({'A': s})
         # TODO: Fix this exception - needs to be fixed! (see GH5035)

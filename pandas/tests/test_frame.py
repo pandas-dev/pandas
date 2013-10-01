@@ -4523,8 +4523,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_logical_with_nas(self):
         d = DataFrame({'a': [np.nan, False], 'b': [True, True]})
 
+        # GH4947
+        # bool comparisons should return bool
         result = d['a'] | d['b']
-        expected = Series([np.nan, True])
+        expected = Series([False, True])
         assert_series_equal(result, expected)
 
         # GH4604, automatic casting here
@@ -4533,10 +4535,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_series_equal(result, expected)
 
         result = d['a'].fillna(False,downcast=False) | d['b']
-        expected = Series([True, True],dtype=object)
-        assert_series_equal(result, expected)
-
-        result = (d['a'].fillna(False,downcast=False) | d['b']).convert_objects()
         expected = Series([True, True])
         assert_series_equal(result, expected)
 

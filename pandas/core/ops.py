@@ -564,21 +564,31 @@ def _bool_method_SERIES(op, name, str_rep=None):
                     y = com._ensure_object(y)
                     result = lib.vec_binop(x, y, op)
             else:
-                result = lib.scalar_binop(x, y, op)
+                try:
+
+                    # let null fall thru
+                    if not isnull(y):
+                        y = bool(y)
+                    result = lib.scalar_binop(x, y, op)
+                except:
+                    raise TypeError("cannot compare a dtyped [{0}] array with "
+                                    "a scalar of type [{1}]".format(x.dtype,type(y).__name__))
 
         return result
 
     def wrapper(self, other):
         if isinstance(other, pd.Series):
             name = _maybe_match_name(self, other)
+
+            other = other.reindex_like(self).fillna(False).astype(bool)
             return self._constructor(na_op(self.values, other.values),
-                                     index=self.index, name=name)
+                                     index=self.index, name=name).fillna(False).astype(bool)
         elif isinstance(other, pd.DataFrame):
             return NotImplemented
         else:
             # scalars
             return self._constructor(na_op(self.values, other),
-                                     index=self.index, name=self.name)
+                                     index=self.index, name=self.name).fillna(False).astype(bool)
     return wrapper
 
 
