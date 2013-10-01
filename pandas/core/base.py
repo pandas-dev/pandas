@@ -48,6 +48,16 @@ class StringMixin(object):
         """
         return str(self)
 
+    def _local_dir(self):
+        """ provide addtional __dir__ for this object """
+        return []
+
+    def __dir__(self):
+        """
+        Provide method name lookup and completion
+        Only provide 'public' methods
+        """
+        return list(sorted(list(set(dir(type(self)) + self._local_dir()))))
 
 class PandasObject(StringMixin):
     """baseclass for various pandas objects"""
