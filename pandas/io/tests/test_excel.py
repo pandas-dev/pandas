@@ -677,9 +677,9 @@ class ExcelWriterBase(SharedItems):
         _skip_if_no_xlrd()
         ext = self.ext
         filename = '__tmp_to_excel_float_format__.' + ext
-        df = DataFrame([[u'\u0192', u'\u0193', u'\u0194'],
-                        [u'\u0195', u'\u0196', u'\u0197']],
-                        index=[u'A\u0192', 'B'], columns=[u'X\u0193', 'Y', 'Z'])
+        df = DataFrame([[u('\u0192'), u('\u0193'), u('\u0194')],
+                        [u('\u0195'), u('\u0196'), u('\u0197')]],
+                        index=[u('A\u0192'), 'B'], columns=[u('X\u0193'), 'Y', 'Z'])
 
         with ensure_clean(filename) as filename:
             df.to_excel(filename, sheet_name = 'TestSheet', encoding='utf8')
