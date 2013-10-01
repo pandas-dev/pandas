@@ -992,7 +992,7 @@ Methods like ``replace`` and ``findall`` take regular expressions, too:
    s3.str.replace('^.a|dog', 'XX-XX ', case=False)
 
 The method ``match`` returns the groups in a regular expression in one tuple.
- Starting in pandas version 0.13, the method ``extract`` is available to
+Starting in pandas version 0.13.0, the method ``extract`` is available to
 accomplish this more conveniently.
 
 Extracting a regular expression with one group returns a Series of strings.

@@ -75,8 +75,8 @@ Experimental Features
   - ``pd.eval`` and friends now evaluate operations involving ``datetime64``
     objects in Python space because ``numexpr`` cannot handle ``NaT`` values
     (:issue:`4897`).
-  - Add msgpack support via ``pd.read_msgpack()`` and ``pd.to_msgpack()/df.to_msgpack()`` for serialization
-     of arbitrary pandas (and python objects) in a lightweight portable binary format (:issue:`686`)
+  - Add msgpack support via ``pd.read_msgpack()`` and ``pd.to_msgpack()`` / ``df.to_msgpack()`` for serialization
+    of arbitrary pandas (and python objects) in a lightweight portable binary format (:issue:`686`)
 
 Improvements to existing features
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -136,8 +136,8 @@ Improvements to existing features
     faster than the default openpyxl xlsx writer and is equivalent in speed
     to the xlwt xls writer module. (:issue:`4542`)
   - allow DataFrame constructor to accept more list-like objects, e.g. list of
-    ``collections.Sequence`` and ``array.Array`` objects (:issue:`3783`,:issue:`4297`, :issue:`4851`),
-    thanks @lgautier
+    ``collections.Sequence`` and ``array.Array`` objects (:issue:`3783`,
+    :issue:`4297`, :issue:`4851`), thanks @lgautier
   - DataFrame constructor now accepts a numpy masked record array (:issue:`3478`),
     thanks @jnothman
   - ``__getitem__`` with ``tuple`` key (e.g., ``[:, 2]``) on ``Series``
@@ -165,7 +165,7 @@ API Changes
 ~~~~~~~~~~~
 
   - ``DataFrame.reindex()`` and forward/backward filling now raises ValueError
-    if either index is not monotonic (:issue: `4483`, :issue: `4484`).
+    if either index is not monotonic (:issue: `4483` , :issue: `4484`).
   - ``pandas`` now is Python 2/3 compatible without the need for 2to3 thanks to
     @jtratner. As a result, pandas now uses iterators more extensively. This
     also led to the introduction of substantive parts of the Benjamin
@@ -236,11 +236,10 @@ API Changes
       data - allowing metadata changes.
     - ``MultiIndex.astype()`` now only allows ``np.object_``-like dtypes and
       now returns a ``MultiIndex`` rather than an ``Index``. (:issue:`4039`)
-   - Added ``is_`` method to ``Index`` that allows fast equality comparison of
-     views (similar to ``np.may_share_memory`` but no false positives, and
-     changes on ``levels`` and ``labels`` setting on ``MultiIndex``).
-     (:issue:`4859`, :issue:`4909`)
-
+    - Added ``is_`` method to ``Index`` that allows fast equality comparison of
+      views (similar to ``np.may_share_memory`` but no false positives, and
+      changes on ``levels`` and ``labels`` setting on ``MultiIndex``).
+      (:issue:`4859` , :issue:`4909`)
   - Infer and downcast dtype if ``downcast='infer'`` is passed to ``fillna/ffill/bfill`` (:issue:`4604`)
   - ``__nonzero__`` for all NDFrame objects, will now raise a ``ValueError``, this reverts back to (:issue:`1073`, :issue:`4633`)
     behavior. Add ``.bool()`` method to ``NDFrame`` objects to facilitate evaluating of single-element boolean Series
@@ -288,7 +287,7 @@ which is the base class currently for ``DataFrame`` and ``Panel``, to unify meth
 and behaviors. Series formerly subclassed directly from ``ndarray``. (:issue:`4080`, :issue:`3862`, :issue:`816`)
 See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
 
-- Refactor of series.py/frame.py/panel.py to move common code to generic.py
+ - Refactor of series.py/frame.py/panel.py to move common code to generic.py
 
   - added ``_setup_axes`` to created generic NDFrame structures
   - moved methods
@@ -304,15 +303,15 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
     - ``reindex,reindex_axis,take``
     - ``truncate`` (moved to become part of ``NDFrame``)
 
-- These are API changes which make ``Panel`` more consistent with ``DataFrame``
+ - These are API changes which make ``Panel`` more consistent with ``DataFrame``
 
   - ``swapaxes`` on a ``Panel`` with the same axes specified now return a copy
   - support attribute access for setting
   - ``filter`` supports same api as original ``DataFrame`` filter
   - ``fillna`` refactored to ``core/generic.py``, while > 3ndim is ``NotImplemented``
 
-- Series now inherits from ``NDFrame`` rather than directly from ``ndarray``.
-  There are several minor changes that affect the API.
+ - Series now inherits from ``NDFrame`` rather than directly from ``ndarray``.
+   There are several minor changes that affect the API.
 
   - numpy functions that do not support the array interface will now
     return ``ndarrays`` rather than series, e.g. ``np.diff``, ``np.ones_like``, ``np.where``
@@ -321,7 +320,7 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
   - ``TimeSeries`` is now an alias for ``Series``. the property ``is_time_series``
     can be used to distinguish (if desired)
 
-- Refactor of Sparse objects to use BlockManager
+ - Refactor of Sparse objects to use BlockManager
 
   - Created a new block type in internals, ``SparseBlock``, which can hold multi-dtypes
     and is non-consolidatable. ``SparseSeries`` and ``SparseDataFrame`` now inherit
@@ -335,32 +334,32 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
   - enable setitem on ``SparseSeries`` for boolean/integer/slices
   - ``SparsePanels`` implementation is unchanged (e.g. not using BlockManager, needs work)
 
-- added ``ftypes`` method to Series/DataFame, similar to ``dtypes``, but indicates
-  if the underlying is sparse/dense (as well as the dtype)
-- All ``NDFrame`` objects now have a ``_prop_attributes``, which can be used to indcated various
-  values to propogate to a new object from an existing (e.g. name in ``Series`` will follow
-  more automatically now)
-- Internal type checking is now done via a suite of generated classes, allowing ``isinstance(value, klass)``
-  without having to directly import the klass, courtesy of @jtratner
-- Bug in Series update where the parent frame is not updating its cache based on
-  changes (:issue:`4080`) or types (:issue:`3217`), fillna (:issue:`3386`)
-- Indexing with dtype conversions fixed (:issue:`4463`, :issue:`4204`)
-- Refactor ``Series.reindex`` to core/generic.py (:issue:`4604`, :issue:`4618`), allow ``method=`` in reindexing
-  on a Series to work
-- ``Series.copy`` no longer accepts the ``order`` parameter and is now consistent with ``NDFrame`` copy
-- Refactor ``rename`` methods to core/generic.py; fixes ``Series.rename`` for (:issue:`4605`), and adds ``rename``
-  with the same signature for ``Panel``
-- Series (for index) / Panel (for items) now as attribute access to its elements  (:issue:`1903`)
-- Refactor ``clip`` methods to core/generic.py (:issue:`4798`)
-- Refactor of ``_get_numeric_data/_get_bool_data`` to core/generic.py, allowing Series/Panel functionaility
-- Refactor of Series arithmetic with time-like objects (datetime/timedelta/time
-  etc.) into a separate, cleaned up wrapper class. (:issue:`4613`)
-- Complex compat for ``Series`` with ``ndarray``. (:issue:`4819`)
-- Removed unnecessary ``rwproperty`` from codebase in favor of builtin property. (:issue:`4843`)
-- Refactor object level numeric methods (mean/sum/min/max...) from object level modules to
-  ``core/generic.py``(:issue:`4435`).
-- Refactor cum objects to core/generic.py (:issue:`4435`), note that these have a more numpy-like
-  function signature.
+ - added ``ftypes`` method to Series/DataFame, similar to ``dtypes``, but indicates
+   if the underlying is sparse/dense (as well as the dtype)
+ - All ``NDFrame`` objects now have a ``_prop_attributes``, which can be used to indcated various
+   values to propogate to a new object from an existing (e.g. name in ``Series`` will follow
+   more automatically now)
+ - Internal type checking is now done via a suite of generated classes, allowing ``isinstance(value, klass)``
+   without having to directly import the klass, courtesy of @jtratner
+ - Bug in Series update where the parent frame is not updating its cache based on
+   changes (:issue:`4080`) or types (:issue:`3217`), fillna (:issue:`3386`)
+ - Indexing with dtype conversions fixed (:issue:`4463`, :issue:`4204`)
+ - Refactor ``Series.reindex`` to core/generic.py (:issue:`4604`, :issue:`4618`), allow ``method=`` in reindexing
+   on a Series to work
+ - ``Series.copy`` no longer accepts the ``order`` parameter and is now consistent with ``NDFrame`` copy
+ - Refactor ``rename`` methods to core/generic.py; fixes ``Series.rename`` for (:issue:`4605`), and adds ``rename``
+   with the same signature for ``Panel``
+ - Series (for index) / Panel (for items) now as attribute access to its elements  (:issue:`1903`)
+ - Refactor ``clip`` methods to core/generic.py (:issue:`4798`)
+ - Refactor of ``_get_numeric_data/_get_bool_data`` to core/generic.py, allowing Series/Panel functionaility
+ - Refactor of Series arithmetic with time-like objects (datetime/timedelta/time
+   etc.) into a separate, cleaned up wrapper class. (:issue:`4613`)
+ - Complex compat for ``Series`` with ``ndarray``. (:issue:`4819`)
+ - Removed unnecessary ``rwproperty`` from codebase in favor of builtin property. (:issue:`4843`)
+ - Refactor object level numeric methods (mean/sum/min/max...) from object level modules to
+   ``core/generic.py`` (:issue:`4435`).
+ - Refactor cum objects to core/generic.py (:issue:`4435`), note that these have a more numpy-like
+   function signature.
 
 .. _release.bug_fixes-0.13.0:
 

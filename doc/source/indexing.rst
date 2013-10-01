@@ -574,7 +574,7 @@ wherever the element is in the sequence of values.
 .. ipython:: python
 
    df = DataFrame({'vals': [1, 2, 3, 4], 'ids': ['a', 'b', 'f', 'n'],
-                'ids2': ['a', 'n', 'c', 'n']})
+                   'ids2': ['a', 'n', 'c', 'n']})
 
    values = ['a', 'b', 1, 3]
 

@@ -1,7 +1,7 @@
 .. _whatsnew_0130:
 
-v0.13.0 (August ??, 2013)
--------------------------
+v0.13.0 (October ??, 2013)
+--------------------------
 
 This is a major release from 0.12.0 and includes several new features and
 enhancements along with a large number of bug fixes.
@@ -419,8 +419,8 @@ Enhancements
 
        Series(['a1', 'b2', 'c3']).str.extract('([ab])(\d)')
 
-    Elements that do not match return a row of ``NaN``s.
-    Thus, a Series of messy strings can be "converted" into a
+    Elements that do not match return a row of ``NaN``.
+    Thus, a Series of messy strings can be *converted* into a
     like-indexed Series or DataFrame of cleaned-up or more useful strings,
     without necessitating ``get()`` to access tuples or ``re.match`` objects.
 
@@ -428,15 +428,17 @@ Enhancements
 
     .. ipython:: python
 
-       Series(['a1', 'b2', 'c3']).str.match('(?P<letter>[ab])(?P<digit>\d)')
+       Series(['a1', 'b2', 'c3']).str.match(
+               '(?P<letter>[ab])(?P<digit>\d)')
 
-    and optional groups like
+    and optional groups can also be used.
 
     .. ipython:: python
-        Series(['a1', 'b2', '3']).str.match('(?P<letter>[ab])?(?P<digit>\d)')
 
-    can also be used.
-  - ``read_stata` now accepts Stata 13 format (:issue:`4291`)
+        Series(['a1', 'b2', '3']).str.match(
+                '(?P<letter>[ab])?(?P<digit>\d)')
+
+  - ``read_stata`` now accepts Stata 13 format (:issue:`4291`)
   - ``read_fwf`` now infers the column specifications from the first 100 rows of
     the file if the data has correctly separated and properly aligned columns
     using the delimiter provided to the function (:issue:`4488`).
@@ -451,27 +453,33 @@ Enhancements
     up to nanoseconds. Periods in the nanosecond range are now available.
 
       .. ipython:: python
+
         date_range('2013-01-01', periods=5, freq='5N')
 
     or with frequency as offset
 
       .. ipython:: python
+
         date_range('2013-01-01', periods=5, freq=pd.offsets.Nano(5))
 
     Timestamps can be modified in the nanosecond range
 
       .. ipython:: python
+
         t = Timestamp('20130101 09:01:02')
         t + pd.datetools.Nano(123)
 
-  - The ``isin`` method plays nicely with boolean indexing. To get the rows where each condition is met:
+  - The ``isin`` method plays nicely with boolean indexing. To get the rows where any of the conditions are met:
 
       .. ipython:: python
 
-         mask = df.isin({'A': [1, 2], 'B': ['e', 'f']})
-         df[mask.all(1)]
+         dfi = DataFrame({'A': [1, 2, 3, 4], 'B': ['a', 'b', 'f', 'n']})
+         dfi
+         mask = dfi.isin({'A': [1, 2], 'B': ['e', 'f']})
+         mask
+         dfi[mask.any(1)]
 
-      See the :ref:`documentation<indexing.basics.indexing_isin>` for more.
+      :ref:`See the docs<indexing.basics.indexing_isin>` for more.
 
 .. _whatsnew_0130.experimental:
 
