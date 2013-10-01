@@ -26,9 +26,10 @@ def read_clipboard(**kwargs):  # pragma: no cover
     return read_table(StringIO(text), **kwargs)
 
 
-def to_clipboard(obj):  # pragma: no cover
+def to_clipboard(obj, sep=None, **kwargs):  # pragma: no cover
     """
     Attempt to write text representation of object to the system clipboard
+    The clipboard can be then pasted into Excel for example.
 
     Notes
     -----
@@ -38,4 +39,12 @@ def to_clipboard(obj):  # pragma: no cover
       - OS X:
     """
     from pandas.util.clipboard import clipboard_set
-    clipboard_set(str(obj))
+    try:
+        if sep is None:
+            sep = '\t'
+        buf = StringIO()
+        obj.to_csv(buf,sep=sep, **kwargs)
+        clipboard_set(buf.getvalue())
+    except:
+        clipboard_set(str(obj))
+

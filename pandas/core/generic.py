@@ -868,9 +868,15 @@ class NDFrame(PandasObject):
         warnings.warn("load is deprecated, use pd.read_pickle", FutureWarning)
         return read_pickle(path)
 
-    def to_clipboard(self):
+    def to_clipboard(self, sep=None, **kwargs):
         """
         Attempt to write text representation of object to the system clipboard
+        This can be pasted into Excel, for example.
+
+        Parameters
+        ----------
+        sep : optional, defaults to comma
+        other keywords are passed to to_csv
 
         Notes
         -----
@@ -880,7 +886,7 @@ class NDFrame(PandasObject):
           - OS X: none
         """
         from pandas.io import clipboard
-        clipboard.to_clipboard(self)
+        clipboard.to_clipboard(self, sep, **kwargs)
 
     #----------------------------------------------------------------------
     # Fancy Indexing
