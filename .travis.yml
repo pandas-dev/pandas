@@ -6,7 +6,7 @@ python:
 matrix:
   include:
     - python: 2.6
-      env: NOSE_ARGS="not slow" CLIPBOARD=xclip
+      env: NOSE_ARGS="not slow" CLIPBOARD=xclip LOCALE_OVERRIDE="it_IT.UTF-8"
     - python: 2.7
       env: NOSE_ARGS="slow and not network" LOCALE_OVERRIDE="zh_CN.GB18030" FULL_DEPS=true JOB_TAG=_LOCALE
     - python: 2.7

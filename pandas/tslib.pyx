@@ -35,6 +35,11 @@ from datetime import timedelta, datetime
 from datetime import time as datetime_time
 from pandas.compat import parse_date
 
+from sys import version_info
+
+# GH3363
+cdef bint PY2 = version_info[0] == 2
+
 # initialize numpy
 import_array()
 #import_ufunc()
@@ -1757,20 +1762,20 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, bint infer_dst=False):
         # timestamp falls to the right side of the DST transition
         if v + deltas[pos] == vals[i]:
             result_b[i] = v
-            
-           
+
+
     if infer_dst:
         dst_hours = np.empty(n, dtype=np.int64)
         dst_hours.fill(NPY_NAT)
-        
+
         # Get the ambiguous hours (given the above, these are the hours
-        # where result_a != result_b and neither of them are NAT) 
+        # where result_a != result_b and neither of them are NAT)
         both_nat = np.logical_and(result_a != NPY_NAT, result_b != NPY_NAT)
         both_eq  = result_a == result_b
         trans_idx = np.squeeze(np.nonzero(np.logical_and(both_nat, ~both_eq)))
         if trans_idx.size == 1:
             stamp = Timestamp(vals[trans_idx])
-            raise pytz.AmbiguousTimeError("Cannot infer dst time from %s as" 
+            raise pytz.AmbiguousTimeError("Cannot infer dst time from %s as"
                                           "there are no repeated times" % stamp)
         # Split the array into contiguous chunks (where the difference between
         # indices is 1).  These are effectively dst transitions in different years
@@ -1779,21 +1784,21 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, bint infer_dst=False):
         if trans_idx.size > 0:
             one_diff = np.where(np.diff(trans_idx)!=1)[0]+1
             trans_grp = np.array_split(trans_idx, one_diff)
-            
+
             # Iterate through each day, if there are no hours where the delta is negative
             # (indicates a repeat of hour) the switch cannot be inferred
             for grp in trans_grp:
-                
+
                 delta = np.diff(result_a[grp])
                 if grp.size == 1 or np.all(delta>0):
                     stamp = Timestamp(vals[grp[0]])
                     raise pytz.AmbiguousTimeError(stamp)
-                
+
                 # Find the index for the switch and pull from a for dst and b for standard
                 switch_idx = (delta<=0).nonzero()[0]
                 if switch_idx.size > 1:
                     raise pytz.AmbiguousTimeError("There are %i dst switches "
-                                                  "when there should only be 1." 
+                                                  "when there should only be 1."
                                                   % switch_idx.size)
                 switch_idx = switch_idx[0]+1 # Pull the only index and adjust
                 a_idx = grp[:switch_idx]
@@ -1812,7 +1817,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, bint infer_dst=False):
                 else:
                     stamp = Timestamp(vals[i])
                     raise pytz.AmbiguousTimeError("Cannot infer dst time from %r, "\
-                                                  "try using the 'infer_dst' argument" 
+                                                  "try using the 'infer_dst' argument"
                                                   % stamp)
         elif left != NPY_NAT:
             result[i] = left
@@ -2549,8 +2554,9 @@ cdef list extra_fmts = [(b"%q", b"^`AB`^"),
 
 cdef list str_extra_fmts = ["^`AB`^", "^`CD`^", "^`EF`^", "^`GH`^", "^`IJ`^", "^`KL`^"]
 
-cdef _period_strftime(int64_t value, int freq, object fmt):
+cdef object _period_strftime(int64_t value, int freq, object fmt):
     import sys
+
     cdef:
         Py_ssize_t i
         date_info dinfo
@@ -2596,12 +2602,11 @@ cdef _period_strftime(int64_t value, int freq, object fmt):
             result = result.replace(str_extra_fmts[i], repl)
 
     # Py3?
-    if not PyString_Check(result):
-        result = str(result)
+    #if not PyString_Check(result):
+        #result = str(result)
 
-    # GH3363
-    if sys.version_info[0] == 2:
-       result = result.decode('utf-8','strict')
+    if PY2:
+       result = result.decode('utf-8', 'ignore')
 
     return result
 

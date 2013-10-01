@@ -317,7 +317,8 @@ class TestTSPlot(unittest.TestCase):
             result = ax.get_xlim()
             self.assertEqual(int(result[0]), expected[0].ordinal)
             self.assertEqual(int(result[1]), expected[1].ordinal)
-            plt.close(ax.get_figure())
+            fig = ax.get_figure()
+            plt.close(fig)
 
         ser = tm.makeTimeSeries()
         ax = ser.plot()

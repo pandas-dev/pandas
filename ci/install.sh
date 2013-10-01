@@ -13,6 +13,18 @@
 #    (no compiling needed), then directly goto script and collect 200$.
 #
 
+function edit_init() {
+    if [ -n "$LOCALE_OVERRIDE" ]; then
+        pandas_dir=pandas
+        echo "Adding locale to the first line of $pandas_dir/__init__.py"
+        rm -f $pandas_dir/__init__.pyc
+        sedc="1iimport locale; locale.setlocale(locale.LC_ALL, '$LOCALE_OVERRIDE')"
+        sed -i "$sedc" $pandas_dir/__init__.py
+        echo "First line of $pandas_dir/__init__.py"
+        head $pandas_dir/__init__.py
+    fi
+}
+
 echo "inside $0"
 
 # Install Dependencies
@@ -66,6 +78,9 @@ if [ x"$FULL_DEPS" == x"true" ]; then
     # for pytables gets the lib as well
     time sudo apt-get $APT_ARGS install libhdf5-serial-dev
 fi
+
+
+edit_init
 
 # build pandas
 time python setup.py build_ext install
