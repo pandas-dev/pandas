@@ -1752,8 +1752,8 @@ both on the writing (serialization), and reading (deserialization).
 .. warning::
 
    This is a very new feature of pandas. We intend to provide certain
-   optimizations in the io of the ``msgpack`` data. We do not intend this
-   format to change (however it is experimental)
+   optimizations in the io of the ``msgpack`` data. Since this is marked
+   as an EXPERIMENTAL LIBRARY, the storage format may not be stable until a future release.
 
 .. ipython:: python
 

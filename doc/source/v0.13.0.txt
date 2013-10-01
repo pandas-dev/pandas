@@ -567,7 +567,7 @@ Experimental
 
   .. warning::
 
-     Since this is EXPERIMENTAL LIBRARY, the storage format may not be stable until a future release.
+     Since this is an EXPERIMENTAL LIBRARY, the storage format may not be stable until a future release.
 
   .. ipython:: python
 

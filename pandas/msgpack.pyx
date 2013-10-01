@@ -17,7 +17,7 @@ import cython
 import numpy as np
 from numpy cimport *
 
-class UnpackException(Exception):
+class UnpackException(IOError):
     pass
 
 
@@ -41,7 +41,7 @@ class ExtraData(ValueError):
     def __str__(self):
         return "unpack(b) recieved extra data."
 
-class PackException(Exception):
+class PackException(IOError):
     pass
 
 class PackValueError(PackException, ValueError):
@@ -354,9 +354,9 @@ cdef class Packer(object):
 
     cdef inline pack_pair(self, object k, object v, int nest_limit):
         ret = self._pack(k, nest_limit-1)
-        if ret != 0: raise Exception("cannot pack : %s" % k)
+        if ret != 0: raise PackException("cannot pack : %s" % k)
         ret = self._pack(v, nest_limit-1)
-        if ret != 0: raise Exception("cannot pack : %s" % v)
+        if ret != 0: raise PackException("cannot pack : %s" % v)
         return ret
 
 def pack(object o, object stream, default=None, encoding='utf-8', unicode_errors='strict'):
@@ -569,7 +569,7 @@ cdef class Unpacker(object):
         cdef char* buf
         cdef Py_ssize_t buf_len
         if self.file_like is not None:
-            raise AssertionError(
+            raise TypeError(
                     "unpacker.feed() is not be able to use with `file_like`.")
         PyObject_AsReadBuffer(next_bytes, <const_void_ptr*>&buf, &buf_len)
         self.append_buffer(buf, buf_len)
