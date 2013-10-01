@@ -407,6 +407,14 @@ class TestIndex(unittest.TestCase):
         self.assert_('a' not in index2)
         self.assert_('afoo' in index2)
 
+    def test_iadd_string(self):
+        index = pd.Index(['a', 'b', 'c'])
+        # doesn't fail test unless there is a check before `+=`
+        self.assert_('a' in index)
+
+        index += '_x'
+        self.assert_('a_x' in index)
+
     def test_diff(self):
         first = self.strIndex[5:20]
         second = self.strIndex[:10]
