@@ -1070,6 +1070,26 @@ class TestIndexing(unittest.TestCase):
         df['b'].ix[[1,3]] = [100,-100]
         assert_frame_equal(df,expected)
 
+    def test_ix_get_set_consistency(self):
+
+        # GH 4544
+        # ix/loc get/set not consistent when
+        # a mixed int/string index
+        df = DataFrame(np.arange(16).reshape((4, 4)),
+                       columns=['a', 'b', 8, 'c'],
+                       index=['e', 7, 'f', 'g'])
+
+        self.assert_(df.ix['e', 8] == 2)
+        self.assert_(df.loc['e', 8] == 2)
+
+        df.ix['e', 8] = 42
+        self.assert_(df.ix['e', 8] == 42)
+        self.assert_(df.loc['e', 8] == 42)
+
+        df.loc['e', 8] = 45
+        self.assert_(df.ix['e', 8] == 45)
+        self.assert_(df.loc['e', 8] == 45)
+
     def test_iloc_mask(self):
 
         # GH 3631, iloc with a mask (of a series) should raise
