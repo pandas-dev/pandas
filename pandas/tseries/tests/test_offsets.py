@@ -1698,6 +1698,8 @@ def test_Microsecond():
 
 
 def test_NanosecondGeneric():
+    if _np_version_under1p7:
+        raise nose.SkipTest('numpy >= 1.7 required')
     timestamp = Timestamp(datetime(2010, 1, 1))
     assert timestamp.nanosecond == 0
 
