@@ -2158,6 +2158,68 @@ class TestHDFStore(tm.TestCase):
             # self.assertRaises(ValueError, store.remove,
             #                  'wp2', [('column', ['A', 'D'])])
 
+    def test_remove_startstop(self):
+
+        with ensure_clean(self.path) as store:
+            
+            wp = tm.makePanel()
+
+            # start
+            store.put('wp1', wp, format='t')
+            n = store.remove('wp1', start=32)
+            assert(n == 120-32)
+            result = store.select('wp1')
+            expected = wp.reindex(major_axis=wp.major_axis[:32//4])
+            assert_panel_equal(result, expected)
+
+            store.put('wp2', wp, format='t')
+            n = store.remove('wp2', start=-32)
+            assert(n == 32)
+            result = store.select('wp2')
+            expected = wp.reindex(major_axis=wp.major_axis[:-32//4])
+            assert_panel_equal(result, expected)
+
+            # stop
+            store.put('wp3', wp, format='t')
+            n = store.remove('wp3', stop=32)
+            assert(n == 32)
+            result = store.select('wp3')
+            expected = wp.reindex(major_axis=wp.major_axis[32//4:])
+            assert_panel_equal(result, expected)
+
+            store.put('wp4', wp, format='t')
+            n = store.remove('wp4', stop=-32)
+            assert(n == 120-32)
+            result = store.select('wp4')
+            expected = wp.reindex(major_axis=wp.major_axis[-32//4:])
+            assert_panel_equal(result, expected)
+
+            # start n stop
+            store.put('wp5', wp, format='t')
+            n = store.remove('wp5', start=16, stop=-16)
+            assert(n == 120-32)
+            result = store.select('wp5')
+            expected = wp.reindex(major_axis=wp.major_axis[:16//4]+wp.major_axis[-16//4:])
+            assert_panel_equal(result, expected)
+
+            store.put('wp6', wp, format='t')
+            n = store.remove('wp6', start=16, stop=16)
+            assert(n == 0)
+            result = store.select('wp6')
+            expected = wp.reindex(major_axis=wp.major_axis)
+            assert_panel_equal(result, expected)
+            
+            # with where
+            date = wp.major_axis.take(np.arange(0,30,3))
+            crit = Term('major_axis=date')
+            store.put('wp7', wp, format='t')
+            n = store.remove('wp7', where=[crit], stop=80)
+            assert(n == 28)
+            result = store.select('wp7')
+            expected = wp.reindex(major_axis=wp.major_axis-wp.major_axis[np.arange(0,20,3)])
+            assert_panel_equal(result, expected)
+            
+
     def test_remove_crit(self):
 
         with ensure_clean_store(self.path) as store:
