@@ -16,7 +16,7 @@ from pandas.core.internals import BlockManager
 import pandas.core.common as com
 import pandas.core.datetools as datetools
 from pandas import compat, _np_version_under1p7
-from pandas.compat import map, zip, lrange
+from pandas.compat import map, zip, lrange, string_types, isidentifier
 from pandas.core.common import (isnull, notnull, is_list_like,
                                 _values_from_object,
                                 _infer_dtype_from_scalar, _maybe_promote,
@@ -108,6 +108,11 @@ class NDFrame(PandasObject):
         # (since, by definition, `PandasContainers` are iterable)
         prepr = '[%s]' % ','.join(map(com.pprint_thing, self))
         return '%s(%s)' % (self.__class__.__name__, prepr)
+
+    def _local_dir(self):
+        """ add the string-like attributes from the info_axis """
+        return [c for c in self._info_axis
+                if isinstance(c, string_types) and isidentifier(c) ]
 
     @property
     def _constructor_sliced(self):
@@ -252,7 +257,7 @@ class NDFrame(PandasObject):
 
     def _get_axis_name(self, axis):
         axis = self._AXIS_ALIASES.get(axis, axis)
-        if isinstance(axis, compat.string_types):
+        if isinstance(axis, string_types):
             if axis in self._AXIS_NUMBERS:
                 return axis
         else:
@@ -1326,7 +1331,7 @@ class NDFrame(PandasObject):
         if items is not None:
             return self.reindex(**{axis_name: [r for r in items if r in axis_values]})
         elif like:
-            matchf = lambda x: (like in x if isinstance(x, compat.string_types)
+            matchf = lambda x: (like in x if isinstance(x, string_types)
                                 else like in str(x))
             return self.select(matchf, axis=axis_name)
         elif regex:
@@ -2616,7 +2621,7 @@ class NDFrame(PandasObject):
 
         offset = _resolve_offset(freq, kwds)
 
-        if isinstance(offset, compat.string_types):
+        if isinstance(offset, string_types):
             offset = datetools.to_offset(offset)
 
         block_axis = self._get_block_manager_axis(axis)
