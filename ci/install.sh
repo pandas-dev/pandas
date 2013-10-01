@@ -39,7 +39,8 @@ if [ -n "$LOCALE_OVERRIDE" ]; then
 fi
 
 
-time pip install git+git://github.com/cpcloud/nose-show-skipped.git
+# show-skipped is working at this particular commit
+time pip install git+git://github.com/cpcloud/nose-show-skipped.git@fa4ff84e53c09247753a155b428c1bf2c69cb6c3
 time pip install $PIP_ARGS -r ci/requirements-${TRAVIS_PYTHON_VERSION}${JOB_TAG}.txt
 time sudo apt-get install libatlas-base-dev gfortran
 
