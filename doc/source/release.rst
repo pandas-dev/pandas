@@ -374,6 +374,8 @@ Bug Fixes
     - appending a 0-len table will work correctly (:issue:`4273`)
     - ``to_hdf`` was raising when passing both arguments ``append`` and ``table`` (:issue:`4584`)
     - reading from a store with duplicate columns across dtypes would raise (:issue:`4767`)
+    - Fixed a bug where ``ValueError`` wasn't correctly raised when column names
+      weren't strings (:issue:`4956`)
   - Fixed bug in tslib.tz_convert(vals, tz1, tz2): it could raise IndexError exception while
     trying to access trans[pos + 1] (:issue:`4496`)
   - The ``by`` argument now works correctly with the ``layout`` argument
@@ -500,8 +502,6 @@ Bug Fixes
   - Fixed a bug with setting invalid or out-of-range values in indexing
     enlargement scenarios (:issue:`4940`)
   - Tests for fillna on empty Series (:issue:`4346`), thanks @immerrr
-  - Fixed a bug where ``ValueError`` wasn't correctly raised when column names
-    weren't strings (:issue:`4956`)
   - Fixed ``copy()`` to shallow copy axes/indices as well and thereby keep
     separate metadata. (:issue:`4202`, :issue:`4830`)
   - Fixed skiprows option in Python parser for read_csv (:issue:`4382`)
@@ -521,6 +521,7 @@ Bug Fixes
   - Fix a bug where reshaping a ``Series`` to its own shape raised ``TypeError`` (:issue:`4554`)
     and other reshaping issues.
   - Bug in setting with ``ix/loc`` and a mixed int/string index (:issue:`4544`)
+  - Make sure series-series boolean comparions are label based (:issue:`4947`)
 
 pandas 0.12.0
 -------------

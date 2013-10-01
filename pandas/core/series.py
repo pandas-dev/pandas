@@ -21,7 +21,8 @@ from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _values_from_object,
                                 _possibly_cast_to_datetime, _possibly_castable,
                                 _possibly_convert_platform,
-                                ABCSparseArray, _maybe_match_name)
+                                ABCSparseArray, _maybe_match_name, _ensure_object)
+
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                _ensure_index, _handle_legacy_indexes)
 from pandas.core.indexing import (
@@ -1170,7 +1171,7 @@ class Series(generic.NDFrame):
         -------
         duplicated : Series
         """
-        keys = com._ensure_object(self.values)
+        keys = _ensure_object(self.values)
         duplicated = lib.duplicated(keys, take_last=take_last)
         return self._constructor(duplicated, index=self.index, name=self.name)
 
