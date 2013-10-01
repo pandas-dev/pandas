@@ -2662,18 +2662,18 @@ class TestHDFStore(unittest.TestCase):
             df = DataFrame(np.random.randn(5,2), columns =['A','B'])
             df['object'] = 'foo'
             df.ix[4:5,'object'] = 'bar'
-            df['bool'] = df['A'] > 0
+            df['boolv'] = df['A'] > 0
             _maybe_remove(store, 'df')
             store.append('df', df, data_columns = True)
 
-            expected = df[df.bool == True].reindex(columns=['A','bool'])
+            expected = df[df.boolv == True].reindex(columns=['A','boolv'])
             for v in [True,'true',1]:
-                result = store.select('df', Term('bool == %s' % str(v)), columns = ['A','bool'])
+                result = store.select('df', Term('boolv == %s' % str(v)), columns = ['A','boolv'])
                 tm.assert_frame_equal(expected, result)
 
-            expected = df[df.bool == False ].reindex(columns=['A','bool'])
+            expected = df[df.boolv == False ].reindex(columns=['A','boolv'])
             for v in [False,'false',0]:
-                result = store.select('df', Term('bool == %s' % str(v)), columns = ['A','bool'])
+                result = store.select('df', Term('boolv == %s' % str(v)), columns = ['A','boolv'])
                 tm.assert_frame_equal(expected, result)
 
             # integer index
