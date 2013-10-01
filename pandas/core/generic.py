@@ -24,6 +24,15 @@ from pandas.core.common import (isnull, notnull, is_list_like,
 import pandas.core.nanops as nanops
 from pandas.util.decorators import Appender, Substitution
 
+# goal is to be able to define the docs close to function, while still being
+# able to share
+_shared_docs = dict()
+_shared_doc_kwargs = dict(axes='keywords for axes',
+                          klass='NDFrame',
+                          axes_single_arg='int or labels for object',
+                          args_transpose='axes to permute (int or label for'
+                                         ' object)')
+
 def is_dictlike(x):
     return isinstance(x, (dict, com.ABCSeries))
 
@@ -353,13 +362,12 @@ class NDFrame(PandasObject):
         self._data.set_axis(axis, labels)
         self._clear_item_cache()
 
-    def transpose(self, *args, **kwargs):
-        """
-        Permute the dimensions of the Object
+    _shared_docs['transpose'] = """
+        Permute the dimensions of the %(klass)s
 
         Parameters
         ----------
-        axes : int or name (or alias)
+        args : %(args_transpose)s
         copy : boolean, default False
             Make a copy of the underlying data. Mixed-dtype data will
             always result in a copy
@@ -373,6 +381,8 @@ class NDFrame(PandasObject):
         -------
         y : same as input
         """
+    @Appender(_shared_docs['transpose'] % _shared_doc_kwargs)
+    def transpose(self, *args, **kwargs):
 
         # construct the args
         axes, kwargs = self._construct_axes_from_arguments(
@@ -456,31 +466,31 @@ class NDFrame(PandasObject):
     #----------------------------------------------------------------------
     # Rename
 
-    def rename(self, *args, **kwargs):
-        """
-        Alter axes input function or
-        functions. Function / dict values must be unique (1-to-1). Labels not
-        contained in a dict / Series will be left as-is.
+    # TODO: define separate funcs for DataFrame, Series and Panel so you can
+    # get completion on keyword arguments.
+    _shared_docs['rename'] = """
+        Alter axes input function or functions. Function / dict values must be
+        unique (1-to-1). Labels not contained in a dict / Series will be left
+        as-is.
 
         Parameters
         ----------
-        axis keywords for this object
-          (e.g. index for Series,
-                index,columns for DataFrame,
-                items,major_axis,minor_axis for Panel)
-          : dict-like or function, optional
+        %(axes)s : dict-like or function, optional
             Transformation to apply to that axis values
 
         copy : boolean, default True
             Also copy underlying data
         inplace : boolean, default False
-            Whether to return a new PandasObject. If True then value of copy is
+            Whether to return a new %(klass)s. If True then value of copy is
             ignored.
 
         Returns
         -------
-        renamed : PandasObject (new object)
+        renamed : %(klass)s (new object)
         """
+    @Appender(_shared_docs['rename'] % dict(axes='axes keywords for this'
+                                            ' object', klass='NDFrame'))
+    def rename(self, *args, **kwargs):
 
         axes, kwargs = self._construct_axes_from_arguments(args, kwargs)
         copy = kwargs.get('copy', True)
@@ -523,6 +533,8 @@ class NDFrame(PandasObject):
         else:
             return result._propogate_attributes(self)
 
+    rename.__doc__ = _shared_docs['rename']
+
     def rename_axis(self, mapper, axis=0, copy=True, inplace=False):
         """
         Alter index and / or columns using input function or functions.
@@ -532,7 +544,7 @@ class NDFrame(PandasObject):
         Parameters
         ----------
         mapper : dict-like or function, optional
-        axis : int, default 0
+        axis : int or string, default 0
         copy : boolean, default True
             Also copy underlying data
         inplace : boolean, default False
@@ -573,16 +585,19 @@ class NDFrame(PandasObject):
         """
         return iter(self._info_axis)
 
+    # can we get a better explanation of this?
     def keys(self):
         """ return the info axis names """
         return self._info_axis
 
+    # what does info axis actually mean?
     def iteritems(self):
         for h in self._info_axis:
             yield h, self[h]
 
     # originally used to get around 2to3's changes to iteritems.
-    # Now unnecessary.
+    # Now unnecessary. Sidenote: don't want to deprecate this for a while,
+    # otherwise libraries that use 2to3 will have issues.
     def iterkv(self, *args, **kwargs):
         warnings.warn("iterkv is deprecated and will be removed in a future "
                       "release, use ``iteritems`` instead.", DeprecationWarning)
@@ -802,13 +817,13 @@ class NDFrame(PandasObject):
         from pandas.io.pickle import to_pickle
         return to_pickle(self, path)
 
-    def save(self, path):  # TODO remove in 0.13
+    def save(self, path):  # TODO remove in 0.14
         import warnings
         from pandas.io.pickle import to_pickle
         warnings.warn("save is deprecated, use to_pickle", FutureWarning)
         return to_pickle(self, path)
 
-    def load(self, path):  # TODO remove in 0.13
+    def load(self, path):  # TODO remove in 0.14
         import warnings
         from pandas.io.pickle import read_pickle
         warnings.warn("load is deprecated, use pd.read_pickle", FutureWarning)
@@ -822,8 +837,8 @@ class NDFrame(PandasObject):
         -----
         Requirements for your platform
           - Linux: xclip, or xsel (with gtk or PyQt4 modules)
-          - Windows:
-          - OS X:
+          - Windows: none
+          - OS X: none
         """
         from pandas.io import clipboard
         clipboard.to_clipboard(self)
@@ -965,6 +980,7 @@ class NDFrame(PandasObject):
             new_data = self._data.take(indices, axis=baxis)
         return self._constructor(new_data)
 
+    # TODO: Check if this was clearer in 0.12
     def select(self, crit, axis=0):
         """
         Return data corresponding to axis labels matching criteria
@@ -1115,16 +1131,15 @@ class NDFrame(PandasObject):
 
         new_axis = labels.take(sort_index)
         return self.reindex(**{axis_name: new_axis})
-
-    def reindex(self, *args, **kwargs):
-        """Conform DataFrame to new index with optional filling logic, placing
+    _shared_docs['reindex'] = """
+        Conform %(klass)s to new index with optional filling logic, placing
         NA/NaN in locations having no value in the previous index. A new object
         is produced unless the new index is equivalent to the current one and
         copy=False
 
         Parameters
         ----------
-        axes : array-like, optional (can be specified in order, or as keywords)
+        %(axes)s : array-like, optional (can be specified in order, or as keywords)
             New labels / index to conform to. Preferably an Index object to
             avoid duplicating data
         method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
@@ -1150,8 +1165,12 @@ class NDFrame(PandasObject):
 
         Returns
         -------
-        reindexed : same type as calling instance
+        reindexed : %(klass)s
         """
+    # TODO: Decide if we care about having different examples for different
+    #       kinds
+    @Appender(_shared_docs['reindex'] % dict(axes="axes", klass="NDFrame"))
+    def reindex(self, *args, **kwargs):
 
         # construct the args
         axes, kwargs = self._construct_axes_from_arguments(args, kwargs)
@@ -1209,8 +1228,7 @@ class NDFrame(PandasObject):
     def _reindex_multi(self, axes, copy, fill_value):
         return NotImplemented
 
-    def reindex_axis(self, labels, axis=0, method=None, level=None, copy=True,
-                     limit=None, fill_value=np.nan):
+    _shared_docs['reindex_axis'] = (
         """Conform input object to new index with optional filling logic, placing
         NA/NaN in locations having no value in the previous index. A new object
         is produced unless the new index is equivalent to the current one and
@@ -1221,9 +1239,9 @@ class NDFrame(PandasObject):
         index : array-like, optional
             New labels / index to conform to. Preferably an Index object to
             avoid duplicating data
-        axis : allowed axis for the input
+        axis : %(axes_single_arg)s
         method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
-            Method to use for filling holes in reindexed DataFrame
+            Method to use for filling holes in reindexed object.
             pad / ffill: propagate last valid observation forward to next valid
             backfill / bfill: use NEXT valid observation to fill gap
         copy : boolean, default True
@@ -1240,12 +1258,15 @@ class NDFrame(PandasObject):
 
         See also
         --------
-        DataFrame.reindex, DataFrame.reindex_like
+        reindex, reindex_like
 
         Returns
         -------
-        reindexed : same type as calling instance
-        """
+        reindexed : %(klass)s
+        """)
+    @Appender(_shared_docs['reindex_axis'] % _shared_doc_kwargs)
+    def reindex_axis(self, labels, axis=0, method=None, level=None, copy=True,
+                     limit=None, fill_value=np.nan):
         self._consolidate_inplace()
 
         axis_name = self._get_axis_name(axis)
@@ -1452,7 +1473,7 @@ class NDFrame(PandasObject):
         Returns
         -------
         values : ndarray
-            If the DataFrame is heterogeneous and contains booleans or objects,
+            If the caller is heterogeneous and contains booleans or objects,
             the result will be of dtype=object
         """
         self._consolidate_inplace()
@@ -1588,10 +1609,9 @@ class NDFrame(PandasObject):
             0: fill column-by-column
             1: fill row-by-row
         inplace : boolean, default False
-            If True, fill the DataFrame in place. Note: this will modify any
-            other views on this DataFrame, like if you took a no-copy slice of
-            an existing DataFrame, for example a column in a DataFrame. Returns
-            a reference to the filled object, which is self if inplace=True
+            If True, fill in place. Note: this will modify any
+            other views on this object, (e.g. a no-copy slice for a column in a
+            DataFrame).  Still returns the object.
         limit : int, default None
             Maximum size gap to forward or backward fill
         downcast : dict, default is None, a dict of item->dtype of what to
@@ -1604,7 +1624,7 @@ class NDFrame(PandasObject):
 
         Returns
         -------
-        filled : DataFrame
+        filled : same type as caller
         """
         if isinstance(value, (list, tuple)):
             raise TypeError('"value" parameter must be a scalar or dict, but '
@@ -1734,10 +1754,9 @@ class NDFrame(PandasObject):
             dict will not be filled). Regular expressions, strings and lists or
             dicts of such objects are also allowed.
         inplace : boolean, default False
-            If True, fill the DataFrame in place. Note: this will modify any
-            other views on this DataFrame, like if you took a no-copy slice of
-            an existing DataFrame, for example a column in a DataFrame. Returns
-            a reference to the filled object, which is self if inplace=True
+            If True, in place. Note: this will modify any
+            other views on this object (e.g. a column form a DataFrame).
+            Returns the caller if this is True.
         limit : int, default None
             Maximum size gap to forward or backward fill
         regex : bool or same types as `to_replace`, default False
@@ -1936,9 +1955,9 @@ class NDFrame(PandasObject):
         reindex, replace, fillna
         """
         from warnings import warn
-        warn('DataFrame.interpolate will be removed in v0.13, please use '
-             'either DataFrame.fillna or DataFrame.replace instead',
-             FutureWarning)
+        warn('{klass}.interpolate will be removed in v0.14, please use '
+             'either {klass}.fillna or {klass}.replace '
+             'instead'.format(klass=self.__class__), FutureWarning)
         if self._is_mixed_type and axis == 1:
             return self.T.replace(to_replace, method=method, limit=limit).T
 
@@ -2401,8 +2420,8 @@ class NDFrame(PandasObject):
 
         Parameters
         ----------
-        cond : boolean DataFrame or array
-        other : scalar or DataFrame
+        cond : boolean NDFrame or array
+        other : scalar or NDFrame
         inplace : boolean, default False
             Whether to perform the operation in place on the data
         axis : alignment axis if needed, default None
@@ -2415,7 +2434,7 @@ class NDFrame(PandasObject):
 
         Returns
         -------
-        wh : DataFrame
+        wh : same type as caller
         """
         if isinstance(cond, NDFrame):
             cond = cond.reindex(**self._construct_axes_dict())
@@ -2450,7 +2469,7 @@ class NDFrame(PandasObject):
 
             # slice me out of the other
             else:
-                raise NotImplemented("cannot align with a bigger dimensional PandasObject")
+                raise NotImplemented("cannot align with a higher dimensional NDFrame")
 
         elif is_list_like(other):
 
@@ -2532,12 +2551,12 @@ class NDFrame(PandasObject):
 
     def mask(self, cond):
         """
-        Returns copy of self whose values are replaced with nan if the
+        Returns copy whose values are replaced with nan if the
         inverted condition is True
 
         Parameters
         ----------
-        cond: boolean object or array
+        cond : boolean NDFrame or array
 
         Returns
         -------
@@ -2548,8 +2567,7 @@ class NDFrame(PandasObject):
 
     def shift(self, periods=1, freq=None, axis=0, **kwds):
         """
-        Shift the index of the DataFrame by desired number of periods with an
-        optional time freq
+        Shift index by desired number of periods with an optional time freq
 
         Parameters
         ----------
@@ -2565,7 +2583,7 @@ class NDFrame(PandasObject):
 
         Returns
         -------
-        shifted : DataFrame
+        shifted : same type as caller
         """
         if periods == 0:
             return self
@@ -2641,15 +2659,15 @@ class NDFrame(PandasObject):
         return self._constructor(new_data)
 
     def truncate(self, before=None, after=None, copy=True):
-        """Function truncate a sorted DataFrame / Series before and/or after
-        some particular dates.
+        """Truncates a sorted NDFrame before and/or after some particular
+        dates.
 
         Parameters
         ----------
         before : date
-        Truncate before date
+            Truncate before date
         after : date
-        Truncate after date
+            Truncate after date
 
         Returns
         -------
@@ -2798,8 +2816,9 @@ class NDFrame(PandasObject):
 
         Returns
         -------
-        chg : Series or DataFrame
+        chg : same type as caller
         """
+        # TODO: Not sure if above is correct - need someone to confirm.
         if fill_method is None:
             data = self
         else:
