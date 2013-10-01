@@ -505,10 +505,12 @@ Enhancements
 - :meth:`~pandas.io.json.json_normalize` is a new method to allow you to create a flat table
   from semi-structured JSON data. See :ref:`the docs<io.json_normalize>` (:issue:`1067`)
 
-
 - Added PySide support for the qtpandas DataFrameModel and DataFrameWidget.
 
+- Python csv parser now supports usecols (:issue:`4335`)
+
 - DataFrame has a new ``interpolate`` method, similar to Series (:issue:`4434`, :issue:`1892`)
+
 
   .. ipython:: python
 
@@ -654,7 +656,7 @@ Experimental
   against extremely large datasets. :ref:`See the docs <io.bigquery>`
 
   .. code-block:: python
-  
+
      from pandas.io import gbq
 
      # A query to select the average monthly temperatures in the
@@ -665,8 +667,8 @@ Experimental
      query = """SELECT station_number as STATION,
      month as MONTH, AVG(mean_temp) as MEAN_TEMP
      FROM publicdata:samples.gsod
-     WHERE YEAR = 2000 
-     GROUP BY STATION, MONTH 
+     WHERE YEAR = 2000
+     GROUP BY STATION, MONTH
      ORDER BY STATION, MONTH ASC"""
 
      # Fetch the result set for this query
@@ -675,7 +677,7 @@ Experimental
      # To find this, see your dashboard:
      # https://code.google.com/apis/console/b/0/?noredirect
      projectid = xxxxxxxxx;
-     
+
      df = gbq.read_gbq(query, project_id = projectid)
 
      # Use pandas to process and reshape the dataset
@@ -686,9 +688,9 @@ Experimental
 
   The resulting dataframe is::
 
-     > df3 
+     > df3
                  Min Tem  Mean Temp    Max Temp
-      MONTH                                  
+      MONTH
       1     -53.336667  39.827892   89.770968
       2     -49.837500  43.685219   93.437932
       3     -77.926087  48.708355   96.099998

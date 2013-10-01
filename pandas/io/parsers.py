@@ -52,11 +52,12 @@ compression : {'gzip', 'bz2', None}, default None
 dialect : string or csv.Dialect instance, default None
     If None defaults to Excel dialect. Ignored if sep longer than 1 char
     See csv.Dialect documentation for more details
-header : int, default 0 if names parameter not specified,
-    Row to use for the column labels of the parsed DataFrame. Specify None if
-    there is no header row. Can be a list of integers that specify row
-    locations for a multi-index on the columns E.g. [0,1,3]. Interveaning
-    rows that are not specified (E.g. 2 in this example are skipped)
+header : int row number(s) to use as the column names, and the start of the
+    data.  Defaults to 0 if no ``names`` passed, otherwise ``None``. Explicitly
+    pass ``header=0`` to be able to replace existing names. The header can be
+    a list of integers that specify row locations for a multi-index on the columns
+    E.g. [0,1,3]. Intervening rows that are not specified will be skipped.
+    (E.g. 2 in this example are skipped)
 skiprows : list-like or integer
     Row numbers to skip (0-indexed) or number of rows to skip (int)
     at the start of the file
@@ -917,22 +918,6 @@ class ParserBase(object):
 
         return names, data
 
-    def _exclude_implicit_index(self, alldata):
-
-        if self._implicit_index:
-            excl_indices = self.index_col
-
-            data = {}
-            offset = 0
-            for i, col in enumerate(self.orig_names):
-                while i + offset in excl_indices:
-                    offset += 1
-                data[col] = alldata[i + offset]
-        else:
-            data = dict((k, v) for k, v in zip(self.orig_names, alldata))
-
-        return data
-
 
 class CParserWrapper(ParserBase):
     """
@@ -1173,22 +1158,6 @@ def TextParser(*args, **kwds):
     return TextFileReader(*args, **kwds)
 
 
-# delimiter=None, dialect=None, names=None, header=0,
-# index_col=None,
-# na_values=None,
-# na_filter=True,
-# thousands=None,
-# quotechar='"',
-# escapechar=None,
-# doublequote=True,
-# skipinitialspace=False,
-# quoting=csv.QUOTE_MINIMAL,
-# comment=None, parse_dates=False, keep_date_col=False,
-# date_parser=None, dayfirst=False,
-# chunksize=None, skiprows=None, skip_footer=0, converters=None,
-# verbose=False, encoding=None, squeeze=False):
-
-
 def count_empty_vals(vals):
     return sum([1 for v in vals if v == '' or v is None])
 
@@ -1242,10 +1211,6 @@ class PythonParser(ParserBase):
         self.buf = []
         self.pos = 0
 
-        if kwds['usecols'] is not None:
-            raise Exception("usecols not supported with engine='python'"
-                            " or multicharacter separators (yet).")
-
         self.encoding = kwds['encoding']
         self.compression = kwds['compression']
         self.skiprows = kwds['skiprows']
@@ -1259,7 +1224,10 @@ class PythonParser(ParserBase):
         self.skipinitialspace = kwds['skipinitialspace']
         self.lineterminator = kwds['lineterminator']
         self.quoting = kwds['quoting']
-        self.mangle_dupe_cols = kwds.get('mangle_dupe_cols',True)
+        self.mangle_dupe_cols = kwds.get('mangle_dupe_cols', True)
+        self.usecols = kwds['usecols']
+
+        self.names_passed = kwds['names'] or None
 
         self.has_index_names = False
         if 'has_index_names' in kwds:
@@ -1283,17 +1251,25 @@ class PythonParser(ParserBase):
 
             f = TextIOWrapper(f, encoding=self.encoding)
 
+        # Set self.data to something that can read lines.
         if hasattr(f, 'readline'):
             self._make_reader(f)
         else:
             self.data = f
 
-        self.columns = self._infer_columns()
+        # Get columns in two steps: infer from data, then
+        # infer column indices from self.usecols if is is specified.
+        self._col_indices = None
+        self.columns, self.num_original_columns = self._infer_columns()
 
-        # we are processing a multi index column
+        # Now self.columns has the set of columns that we will process.
+        # The original set is stored in self.original_columns.
         if len(self.columns) > 1:
+            # we are processing a multi index column
             self.columns, self.index_names, self.col_names, _ = self._extract_multi_indexer_columns(
                 self.columns, self.index_names, self.col_names)
+            # Update list of original names to include all indices.
+            self.num_original_columns = len(self.columns)
         else:
             self.columns = self.columns[0]
 
@@ -1304,7 +1280,7 @@ class PythonParser(ParserBase):
         # multiple date column thing turning into a real spaghetti factory
         if not self._has_complex_date_col:
             (index_names,
-             self.orig_names, _) = self._get_index_name(self.columns)
+             self.orig_names, columns_) = self._get_index_name(self.columns)
             self._name_processed = True
             if self.index_names is None:
                 self.index_names = index_names
@@ -1442,6 +1418,22 @@ class PythonParser(ParserBase):
 
         return index, columns, data
 
+    def _exclude_implicit_index(self, alldata):
+
+        if self._implicit_index:
+            excl_indices = self.index_col
+
+            data = {}
+            offset = 0
+            for i, col in enumerate(self.orig_names):
+                while i + offset in excl_indices:
+                    offset += 1
+                data[col] = alldata[i + offset]
+        else:
+            data = dict((k, v) for k, v in zip(self.orig_names, alldata))
+
+        return data
+
     # legacy
     def get_chunk(self, size=None):
         if size is None:
@@ -1462,7 +1454,7 @@ class PythonParser(ParserBase):
 
     def _infer_columns(self):
         names = self.names
-
+        num_original_columns = 0
         if self.header is not None:
             header = self.header
 
@@ -1476,10 +1468,7 @@ class PythonParser(ParserBase):
 
             columns = []
             for level, hr in enumerate(header):
-                if len(self.buf) > 0:
-                    line = self.buf[0]
-                else:
-                    line = self._next_line()
+                line = self._buffered_line()
 
                 while self.pos <= hr:
                     line = self._next_line()
@@ -1488,50 +1477,102 @@ class PythonParser(ParserBase):
                 for i, c in enumerate(line):
                     if c == '':
                         if have_mi_columns:
-                            this_columns.append('Unnamed: %d_level_%d' % (i,level))
+                            this_columns.append('Unnamed: %d_level_%d' % (i, level))
                         else:
                             this_columns.append('Unnamed: %d' % i)
                     else:
                         this_columns.append(c)
 
-                if not have_mi_columns:
-                    if self.mangle_dupe_cols:
-                        counts = {}
-                        for i, col in enumerate(this_columns):
-                            cur_count = counts.get(col, 0)
-                            if cur_count > 0:
-                                this_columns[i] = '%s.%d' % (col, cur_count)
-                            counts[col] = cur_count + 1
+                if not have_mi_columns and self.mangle_dupe_cols:
+                    counts = {}
+                    for i, col in enumerate(this_columns):
+                        cur_count = counts.get(col, 0)
+                        if cur_count > 0:
+                            this_columns[i] = '%s.%d' % (col, cur_count)
+                        counts[col] = cur_count + 1
 
                 columns.append(this_columns)
+                if len(columns) == 1:
+                    num_original_columns = len(this_columns)
 
             self._clear_buffer()
 
             if names is not None:
-                if len(names) != len(columns[0]):
+                if (self.usecols is not None and len(names) != len(self.usecols)) \
+                    or (self.usecols is None and len(names) != len(columns[0])):
+
                     raise ValueError('Number of passed names did not match '
-                                     'number of header fields in the file')
+                                    'number of header fields in the file')
                 if len(columns) > 1:
                     raise TypeError('Cannot pass names with multi-index '
                                     'columns')
-                columns = [ names ]
 
-        else:
-            if len(self.buf) > 0:
-                line = self.buf[0]
+                if self.usecols is not None:
+                    # Set _use_cols. We don't store columns because they are overwritten.
+                    self._handle_usecols(columns, names)
+                else:
+                    self._col_indices = None
+                    num_original_columns = len(names)
+                columns = [names]
             else:
-                line = self._next_line()
-
+                columns = self._handle_usecols(columns, columns[0])
+        else:
+            # header is None
+            line = self._buffered_line()
             ncols = len(line)
+            num_original_columns = ncols
             if not names:
                 if self.prefix:
                     columns = [ ['X%d' % i for i in range(ncols)] ]
                 else:
                     columns = [ lrange(ncols) ]
+                columns = self._handle_usecols(columns, columns[0])
             else:
-                columns = [ names ]
+                if self.usecols is None or len(names) == num_original_columns:
+                    columns = self._handle_usecols([names], names)
+                    num_original_columns = len(names)
+                else:
+                    if self.usecols and len(names) != len(self.usecols):
+                        raise ValueError('Number of passed names did not match '
+                                    'number of header fields in the file')
+                    # Ignore output but set used columns.
+                    self._handle_usecols([names], names)
+                    columns = [names]
+                    num_original_columns = ncols
 
+        return columns, num_original_columns
+
+    def _handle_usecols(self, columns, usecols_key):
+        """
+        Sets self._col_indices
+
+        usecols_key is used if there are string usecols.
+        """
+        if self.usecols is not None:
+            if any([isinstance(u, string_types) for u in self.usecols]):
+                if len(columns) > 1:
+                    raise ValueError("If using multiple headers, usecols must be integers.")
+                col_indices = []
+                for u in self.usecols:
+                    if isinstance(u, string_types):
+                        col_indices.append(usecols_key.index(u))
+                    else:
+                        col_indices.append(u)
+            else:
+                col_indices = self.usecols
+
+            columns = [[n for i, n in enumerate(column) if i in col_indices] for column in columns]
+            self._col_indices = col_indices
         return columns
+
+    def _buffered_line(self):
+        """
+        Return a line from buffer, filling buffer if required.
+        """
+        if len(self.buf) > 0:
+            return self.buf[0]
+        else:
+            return self._next_line()
 
     def _next_line(self):
         if isinstance(self.data, list):
@@ -1598,6 +1639,17 @@ class PythonParser(ParserBase):
     _implicit_index = False
 
     def _get_index_name(self, columns):
+        """
+        Try several cases to get lines:
+
+        0) There are headers on row 0 and row 1 and their
+        total summed lengths equals the length of the next line.
+        Treat row 0 as columns and row 1 as indices
+        1) Look for implicit index: there are more columns
+        on row 1 than row 0. If this is true, assume that row
+        1 lists index columns and row 0 lists normal columns.
+        2) Get index from the columns if it was listed.
+        """
         orig_names = list(columns)
         columns = list(columns)
 
@@ -1615,29 +1667,34 @@ class PythonParser(ParserBase):
         implicit_first_cols = 0
         if line is not None:
             # leave it 0, #2442
+            # Case 1
             if self.index_col is not False:
-                implicit_first_cols = len(line) - len(columns)
+                implicit_first_cols = len(line) - self.num_original_columns
 
+            # Case 0
             if next_line is not None:
-                if len(next_line) == len(line) + len(columns):
+                if len(next_line) == len(line) + self.num_original_columns:
                     # column and index names on diff rows
-                    implicit_first_cols = 0
-
                     self.index_col = lrange(len(line))
                     self.buf = self.buf[1:]
 
                     for c in reversed(line):
                         columns.insert(0, c)
 
+                    # Update list of original names to include all indices.
+                    self.num_original_columns = len(next_line)
                     return line, columns, orig_names
 
         if implicit_first_cols > 0:
+            # Case 1
             self._implicit_index = True
             if self.index_col is None:
                 self.index_col = lrange(implicit_first_cols)
+
             index_name = None
 
         else:
+            # Case 2
             (index_name, columns,
              self.index_col) = _clean_index_names(columns, self.index_col)
 
@@ -1646,7 +1703,7 @@ class PythonParser(ParserBase):
     def _rows_to_cols(self, content):
         zipped_content = list(lib.to_object_array(content).T)
 
-        col_len = len(self.orig_names)
+        col_len = self.num_original_columns
         zip_len = len(zipped_content)
 
         if self._implicit_index:
@@ -1655,6 +1712,7 @@ class PythonParser(ParserBase):
         if self.skip_footer < 0:
             raise ValueError('skip footer cannot be negative')
 
+        # Loop through rows to verify lengths are correct.
         if col_len != zip_len and self.index_col is not False:
             i = 0
             for (i, l) in enumerate(content):
@@ -1671,6 +1729,11 @@ class PythonParser(ParserBase):
                    (col_len, row_num + 1, zip_len))
             raise ValueError(msg)
 
+        if self.usecols:
+            if self._implicit_index:
+                zipped_content = [a for i, a in enumerate(zipped_content) if i < len(self.index_col) or i - len(self.index_col) in self._col_indices]
+            else:
+                zipped_content = [a for i, a in enumerate(zipped_content) if i in self._col_indices]
         return zipped_content
 
     def _get_lines(self, rows=None):

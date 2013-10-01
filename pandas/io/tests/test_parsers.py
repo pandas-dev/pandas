@@ -18,7 +18,7 @@ from pandas import DataFrame, Series, Index, MultiIndex, DatetimeIndex
 from pandas.compat import(
     StringIO, BytesIO, PY3, range, long, lrange, lmap, u
 )
-from pandas.io.common import urlopen, URLError
+from pandas.io.common import URLError
 import pandas.io.parsers as parsers
 from pandas.io.parsers import (read_csv, read_table, read_fwf,
                                TextFileReader, TextParser)
@@ -761,8 +761,6 @@ ignore,this,row
         condensed_data = self.read_csv(StringIO(condensed_text))
         tm.assert_frame_equal(data, condensed_data)
 
-
-
     def test_detect_string_na(self):
         data = """A,B
 foo,bar
@@ -1217,14 +1215,11 @@ R_l0_g3,R_l1_g3,R3C0,R3C1,R3C2
 R_l0_g4,R_l1_g4,R4C0,R4C1,R4C2
 """
 
-        # basic test with both engines
-        for engine in ['c','python']:
-            df = read_csv(StringIO(data), header=[0,2,3,4],index_col=[0,1], tupleize_cols=False,
-                          engine=engine)
-            tm.assert_frame_equal(df, expected)
+        df = read_csv(StringIO(data), header=[0, 2, 3, 4], index_col=[0, 1], tupleize_cols=False)
+        tm.assert_frame_equal(df, expected)
 
         # skipping lines in the header
-        df = read_csv(StringIO(data), header=[0,2,3,4],index_col=[0,1], tupleize_cols=False)
+        df = read_csv(StringIO(data), header=[0, 2, 3, 4], index_col=[0, 1], tupleize_cols=False)
         tm.assert_frame_equal(df, expected)
 
         #### invalid options ####
@@ -1825,9 +1820,6 @@ A,B,C
         result = self.read_csv(StringIO(data), header=None, sep=' ')
         self.assertTrue(result[0].dtype == np.float64)
 
-        result = self.read_csv(StringIO(data), header=None, sep='\s+')
-        self.assertTrue(result[0].dtype == np.float64)
-
     def test_int64_min_issues(self):
         # #2599
         data = 'A,B\n0,0\n0,'
@@ -1907,6 +1899,61 @@ A,B,C
         with tm.assert_produces_warning(False):
             df = self.read_csv(StringIO(data))
         self.assertEqual(df.a.dtype, np.object)
+
+    def test_usecols(self):
+        data = """\
+a,b,c
+1,2,3
+4,5,6
+7,8,9
+10,11,12"""
+
+        result = self.read_csv(StringIO(data), usecols=(1, 2))
+        result2 = self.read_csv(StringIO(data), usecols=('b', 'c'))
+        exp = self.read_csv(StringIO(data))
+
+        self.assertEquals(len(result.columns), 2)
+        self.assertTrue((result['b'] == exp['b']).all())
+        self.assertTrue((result['c'] == exp['c']).all())
+
+        tm.assert_frame_equal(result, result2)
+
+        result = self.read_csv(StringIO(data), usecols=[1, 2], header=0,
+                               names=['foo', 'bar'])
+        expected = self.read_csv(StringIO(data), usecols=[1, 2])
+        expected.columns = ['foo', 'bar']
+        tm.assert_frame_equal(result, expected)
+
+        data = """\
+1,2,3
+4,5,6
+7,8,9
+10,11,12"""
+        result = self.read_csv(StringIO(data), names=['b', 'c'],
+                               header=None, usecols=[1, 2])
+
+        expected = self.read_csv(StringIO(data), names=['a', 'b', 'c'],
+                                 header=None)
+        expected = expected[['b', 'c']]
+        tm.assert_frame_equal(result, expected)
+
+        result2 = self.read_csv(StringIO(data), names=['a', 'b', 'c'],
+                                header=None, usecols=['b', 'c'])
+        tm.assert_frame_equal(result2, result)
+
+        # length conflict, passed names and usecols disagree
+        self.assertRaises(ValueError, self.read_csv, StringIO(data),
+                          names=['a', 'b'], usecols=[1], header=None)
+
+    def test_integer_overflow_bug(self):
+        # #2601
+        data = "65248E10 11\n55555E55 22\n"
+
+        result = self.read_csv(StringIO(data), header=None, sep=' ')
+        self.assertTrue(result[0].dtype == np.float64)
+
+        result = self.read_csv(StringIO(data), header=None, sep='\s+')
+        self.assertTrue(result[0].dtype == np.float64)
 
 
 class TestPythonParser(ParserTests, unittest.TestCase):
@@ -2360,6 +2407,9 @@ class TestCParserHighMemory(ParserTests, unittest.TestCase):
         result = pd.read_csv(s, parse_dates=["Date"], na_filter=False)
         self.assertTrue(result['Date'].isnull()[1])
 
+    def test_usecols(self):
+        raise nose.SkipTest("Usecols is not supported in C High Memory engine.")
+
 
 class TestCParserLowMemory(ParserTests, unittest.TestCase):
 
@@ -2406,51 +2456,6 @@ one,two
         self.assert_(result['one'].dtype == 'u1')
         self.assert_(result['two'].dtype == 'S1')
 
-    def test_usecols(self):
-        data = """\
-a,b,c
-1,2,3
-4,5,6
-7,8,9
-10,11,12"""
-
-        result = self.read_csv(StringIO(data), usecols=(1, 2))
-        result2 = self.read_csv(StringIO(data), usecols=('b', 'c'))
-        exp = self.read_csv(StringIO(data))
-
-        self.assertEquals(len(result.columns), 2)
-        self.assertTrue((result['b'] == exp['b']).all())
-        self.assertTrue((result['c'] == exp['c']).all())
-
-        tm.assert_frame_equal(result, result2)
-
-        result = self.read_csv(StringIO(data), usecols=[1, 2], header=0,
-                               names=['foo', 'bar'])
-        expected = self.read_csv(StringIO(data), usecols=[1, 2])
-        expected.columns = ['foo', 'bar']
-        tm.assert_frame_equal(result, expected)
-
-        data = """\
-1,2,3
-4,5,6
-7,8,9
-10,11,12"""
-        result = self.read_csv(StringIO(data), names=['a', 'b', 'c'],
-                               header=None, usecols=[1, 2])
-
-        expected = self.read_csv(StringIO(data), names=['a', 'b', 'c'],
-                                 header=None)
-        expected = expected[['b', 'c']]
-        tm.assert_frame_equal(result, expected)
-
-        result2 = self.read_csv(StringIO(data), names=['a', 'b', 'c'],
-                                header=None, usecols=['b', 'c'])
-        tm.assert_frame_equal(result2, result)
-
-        # length conflict, passed names and usecols disagree
-        self.assertRaises(ValueError, self.read_csv, StringIO(data),
-                          names=['a', 'b'], usecols=[1], header=None)
-
     def test_usecols_dtypes(self):
         data = """\
 1,2,3
@@ -2496,12 +2501,11 @@ a,b,c
         # #2733
         data = 'a  b  c\n4  apple  bat  5.7\n8  orange  cow  10'
 
-        self.assertRaises(Exception, self.read_csv, StringIO(data),
-                          sep='\s+', usecols=('a', 'b'))
+        df = self.read_csv(StringIO(data), sep='\s+', usecols=('a', 'b'))
 
-        # expected = DataFrame({'a': ['apple', 'orange'],
-        #                       'b': ['bat', 'cow']}, index=[4, 8])
-        # tm.assert_frame_equal(result, expected)
+        expected = DataFrame({'a': ['apple', 'orange'],
+                              'b': ['bat', 'cow']}, index=[4, 8])
+        tm.assert_frame_equal(df, expected)
 
     def test_pure_python_failover(self):
         data = "a,b,c\n1,2,3#ignore this!\n4,5,6#ignorethistoo"
