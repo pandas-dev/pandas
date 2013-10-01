@@ -464,6 +464,23 @@ sparse_ext = Extension('pandas._sparse',
 
 extensions.extend([sparse_ext])
 
+#----------------------------------------------------------------------
+# msgpack stuff here
+
+if sys.byteorder == 'big':
+    macros = [('__BIG_ENDIAN__', '1')]
+else:
+    macros = [('__LITTLE_ENDIAN__', '1')]
+
+msgpack_ext = Extension('pandas.msgpack',
+                        sources = [srcpath('msgpack',
+                                           suffix=suffix, subdir='')],
+                        language='c++',
+                        include_dirs=common_include,
+                        define_macros=macros)
+
+extensions.append(msgpack_ext)
+
 # if not ISRELEASED:
 #     extensions.extend([sandbox_ext])
 
@@ -517,6 +534,7 @@ setup(name=DISTNAME,
                 'pandas.stats',
                 'pandas.util',
                 'pandas.tests',
+                'pandas.tests.test_msgpack',
                 'pandas.tools',
                 'pandas.tools.tests',
                 'pandas.tseries',

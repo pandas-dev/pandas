@@ -464,6 +464,15 @@ Enhancements
         t = Timestamp('20130101 09:01:02')
         t + pd.datetools.Nano(123)
 
+  - The ``isin`` method plays nicely with boolean indexing. To get the rows where each condition is met:
+
+      .. ipython:: python
+
+         mask = df.isin({'A': [1, 2], 'B': ['e', 'f']})
+         df[mask.all(1)]
+
+      See the :ref:`documentation<indexing.basics.indexing_isin>` for more.
+
 .. _whatsnew_0130.experimental:
 
 Experimental
@@ -553,21 +562,35 @@ Experimental
     For more details see the :ref:`indexing documentation on query
     <indexing.query>`.
 
-  - DataFrame now has an ``isin`` method that can be used to easily check whether the DataFrame's values are contained in an iterable.  Use a dictionary if you'd like to check specific iterables for specific columns or rows.
+- ``pd.read_msgpack()`` and ``pd.to_msgpack()`` are now a supported method of serialization
+  of arbitrary pandas (and python objects) in a lightweight portable binary format. :ref:`See the docs<io.msgpack>`
 
-    .. ipython:: python
+  .. warning::
 
-      df = pd.DataFrame({'A': [1, 2, 3], 'B': ['d', 'e', 'f']})
-      df.isin({'A': [1, 2], 'B': ['e', 'f']})
+     Since this is an EXPERIMENTAL LIBRARY, the storage format may not be stable until a future release.
 
-  The ``isin`` method plays nicely with boolean indexing. To get the rows where each condition is met:
+  .. ipython:: python
 
-    .. ipython:: python
+     df = DataFrame(np.random.rand(5,2),columns=list('AB'))
+     df.to_msgpack('foo.msg')
+     pd.read_msgpack('foo.msg')
 
-      mask = df.isin({'A': [1, 2], 'B': ['e', 'f']})
-      df[mask.all(1)]
+     s = Series(np.random.rand(5),index=date_range('20130101',periods=5))
+     pd.to_msgpack('foo.msg', df, s)
+     pd.read_msgpack('foo.msg')
 
-  See the :ref:`documentation<indexing.basics.indexing_isin>` for more.
+  You can pass ``iterator=True`` to iterator over the unpacked results
+
+  .. ipython:: python
+
+     for o in pd.read_msgpack('foo.msg',iterator=True):
+        print o
+
+  .. ipython:: python
+     :suppress:
+     :okexcept:
+
+     os.remove('foo.msg')
 
 .. _whatsnew_0130.refactoring:
 
