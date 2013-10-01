@@ -38,6 +38,8 @@ if [ -n "$LOCALE_OVERRIDE" ]; then
     sudo locale-gen "$LOCALE_OVERRIDE"
 fi
 
+
+time pip install git+git://github.com/cpcloud/nose-show-skipped.git
 time pip install $PIP_ARGS -r ci/requirements-${TRAVIS_PYTHON_VERSION}${JOB_TAG}.txt
 time sudo apt-get install libatlas-base-dev gfortran
 
