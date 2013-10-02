@@ -2263,10 +2263,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df_crawls = DataFrame(data)
         self.assert_(df_crawls['uid'].dtype == object)
 
-    def test_is_mixed_type(self):
-        self.assert_(not self.frame._is_mixed_type)
-        self.assert_(self.mixed_frame._is_mixed_type)
-
     def test_constructor_ordereddict(self):
         import random
         nitems = 100
@@ -2318,6 +2314,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # with dict of empty list and Series
         frame = DataFrame({'A': [], 'B': []}, columns=['A', 'B'])
         self.assert_(frame.index.equals(Index([])))
+
+    def test_constructor_multi_index(self):
+        # GH 4078
+        # construction error with mi and all-nan frame
+        tuples = [(2, 3), (3, 3), (3, 3)]
+        mi = MultiIndex.from_tuples(tuples)
+        df = DataFrame(index=mi,columns=mi)
+        self.assert_(pd.isnull(df).values.ravel().all())
+
+        tuples = [(3, 3), (2, 3), (3, 3)]
+        mi = MultiIndex.from_tuples(tuples)
+        df = DataFrame(index=mi,columns=mi)
+        self.assert_(pd.isnull(df).values.ravel().all())
 
     def test_constructor_error_msgs(self):
         msg = "Mixing dicts with non-Series may lead to ambiguous ordering."
@@ -9488,6 +9497,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         self.assert_(np.array_equal(df._get_numeric_data().columns,
                                     ['a', 'b', 'e']))
+
+    def test_is_mixed_type(self):
+        self.assert_(not self.frame._is_mixed_type)
+        self.assert_(self.mixed_frame._is_mixed_type)
 
     def test_get_numeric_data(self):
         intname = np.dtype(np.int_).name
