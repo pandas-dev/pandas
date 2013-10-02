@@ -8,7 +8,7 @@ enhancements along with a large number of bug fixes.
 
 .. warning::
 
-   In 0.13.0 ``Series`` has internaly been refactored to no longer sub-class ``ndarray``
+   In 0.13.0 ``Series`` has internally been refactored to no longer sub-class ``ndarray``
    but instead subclass ``NDFrame``, similarly to the rest of the pandas containers. This should be
    a transparent change with only very limited API implications. See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
 
@@ -480,6 +480,10 @@ Enhancements
          dfi[mask.any(1)]
 
       :ref:`See the docs<indexing.basics.indexing_isin>` for more.
+
+  - ``tz_localize`` can infer a fall daylight savings transition based on the structure
+    of the unlocalized data (:issue:`4230`), see :ref:`here<timeseries.timezone>`
+  - DatetimeIndex is now in the API documentation, see :ref:`here<api.datetimeindex>`
 
 .. _whatsnew_0130.experimental:
 
