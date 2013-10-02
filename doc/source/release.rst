@@ -160,6 +160,9 @@ Improvements to existing features
     :issue:`4998`)
   - ``to_dict`` now takes ``records`` as a possible outtype.  Returns an array
     of column-keyed dictionaries. (:issue:`4936`)
+  - ``tz_localize`` can infer a fall daylight savings transition based on the 
+    structure of unlocalized data (:issue:`4230`)
+  - DatetimeIndex is now in the API documentation
 
 API Changes
 ~~~~~~~~~~~

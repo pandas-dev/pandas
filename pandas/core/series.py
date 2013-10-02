@@ -2331,7 +2331,7 @@ class Series(generic.NDFrame):
 
         return self._constructor(new_values, index=new_index, name=self.name)
 
-    def tz_localize(self, tz, copy=True):
+    def tz_localize(self, tz, copy=True, infer_dst=False):
         """
         Localize tz-naive TimeSeries to target time zone
         Entries will retain their "naive" value but will be annotated as
@@ -2345,6 +2345,8 @@ class Series(generic.NDFrame):
         tz : string or pytz.timezone object
         copy : boolean, default True
             Also make a copy of the underlying data
+        infer_dst : boolean, default False
+            Attempt to infer fall dst-transition hours based on order
 
         Returns
         -------
@@ -2358,7 +2360,7 @@ class Series(generic.NDFrame):
 
             new_index = DatetimeIndex([], tz=tz)
         else:
-            new_index = self.index.tz_localize(tz)
+            new_index = self.index.tz_localize(tz, infer_dst=infer_dst)
 
         new_values = self.values
         if copy:

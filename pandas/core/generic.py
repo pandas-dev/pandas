@@ -2752,7 +2752,7 @@ class NDFrame(PandasObject):
 
         return new_obj
 
-    def tz_localize(self, tz, axis=0, copy=True):
+    def tz_localize(self, tz, axis=0, copy=True, infer_dst=False):
         """
         Localize tz-naive TimeSeries to target time zone
 
@@ -2761,6 +2761,8 @@ class NDFrame(PandasObject):
         tz : string or pytz.timezone object
         copy : boolean, default True
             Also make a copy of the underlying data
+        infer_dst : boolean, default False
+            Attempt to infer fall dst-transition times based on order
 
         Returns
         -------
@@ -2778,7 +2780,7 @@ class NDFrame(PandasObject):
             new_data = new_data.copy()
 
         new_obj = self._constructor(new_data)
-        new_ax = ax.tz_localize(tz)
+        new_ax = ax.tz_localize(tz, infer_dst=infer_dst)
 
         if axis == 0:
             new_obj._set_axis(1, new_ax)

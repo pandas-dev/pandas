@@ -360,6 +360,32 @@ class TestTimeZoneSupport(unittest.TestCase):
         dr = date_range(datetime(2011, 3, 13), periods=48,
                         freq=datetools.Minute(30), tz=pytz.utc)
 
+    def test_infer_dst(self):
+        # November 6, 2011, fall back, repeat 2 AM hour
+        # With no repeated hours, we cannot infer the transition
+        tz = pytz.timezone('US/Eastern')
+        dr = date_range(datetime(2011, 11, 6, 0), periods=5,
+                        freq=datetools.Hour())
+        self.assertRaises(pytz.AmbiguousTimeError, dr.tz_localize, 
+                          tz, infer_dst=True)
+        
+        # With repeated hours, we can infer the transition
+        dr = date_range(datetime(2011, 11, 6, 0), periods=5, 
+                        freq=datetools.Hour(), tz=tz)
+        di = DatetimeIndex(['11/06/2011 00:00', '11/06/2011 01:00', 
+                            '11/06/2011 01:00', '11/06/2011 02:00', 
+                            '11/06/2011 03:00'])
+        localized = di.tz_localize(tz, infer_dst=True)
+        self.assert_(np.array_equal(dr, localized))
+        
+        # When there is no dst transition, nothing special happens
+        dr = date_range(datetime(2011, 6, 1, 0), periods=10,
+                        freq=datetools.Hour())
+        localized = dr.tz_localize(tz)
+        localized_infer = dr.tz_localize(tz, infer_dst=True)
+        self.assert_(np.array_equal(localized, localized_infer))
+
+
     # test utility methods
     def test_infer_tz(self):
         eastern = pytz.timezone('US/Eastern')

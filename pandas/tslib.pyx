@@ -1630,7 +1630,7 @@ cpdef ndarray _unbox_utcoffsets(object transinfo):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def tz_localize_to_utc(ndarray[int64_t] vals, object tz):
+def tz_localize_to_utc(ndarray[int64_t] vals, object tz, bint infer_dst=False):
     """
     Localize tzinfo-naive DateRange to given time zone (using pytz). If
     there are ambiguities in the values, raise AmbiguousTimeError.
@@ -1644,7 +1644,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz):
         Py_ssize_t i, idx, pos, ntrans, n = len(vals)
         int64_t *tdata
         int64_t v, left, right
-        ndarray[int64_t] result, result_a, result_b
+        ndarray[int64_t] result, result_a, result_b, dst_hours
         pandas_datetimestruct dts
 
     # Vectorized version of DstTzInfo.localize
@@ -1701,6 +1701,48 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz):
         # timestamp falls to the right side of the DST transition
         if v + deltas[pos] == vals[i]:
             result_b[i] = v
+            
+           
+    if infer_dst:
+        dst_hours = np.empty(n, dtype=np.int64)
+        dst_hours.fill(NPY_NAT)
+        
+        # Get the ambiguous hours (given the above, these are the hours
+        # where result_a != result_b and neither of them are NAT) 
+        both_nat = np.logical_and(result_a != NPY_NAT, result_b != NPY_NAT)
+        both_eq  = result_a == result_b
+        trans_idx = np.squeeze(np.nonzero(np.logical_and(both_nat, ~both_eq)))
+        if trans_idx.size == 1:
+            stamp = Timestamp(vals[trans_idx])
+            raise pytz.AmbiguousTimeError("Cannot infer dst time from %s as" 
+                                          "there are no repeated times" % stamp)
+        # Split the array into contiguous chunks (where the difference between
+        # indices is 1).  These are effectively dst transitions in different years
+        # which is useful for checking that there is not an ambiguous transition
+        # in an individual year.
+        if trans_idx.size > 0:
+            one_diff = np.where(np.diff(trans_idx)!=1)[0]+1
+            trans_grp = np.array_split(trans_idx, one_diff)
+            
+            # Iterate through each day, if there are no hours where the delta is negative
+            # (indicates a repeat of hour) the switch cannot be inferred
+            for grp in trans_grp:
+                
+                delta = np.diff(result_a[grp])
+                if grp.size == 1 or np.all(delta>0):
+                    stamp = Timestamp(vals[grp[0]])
+                    raise pytz.AmbiguousTimeError(stamp)
+                
+                # Find the index for the switch and pull from a for dst and b for standard
+                switch_idx = (delta<=0).nonzero()[0]
+                if switch_idx.size > 1:
+                    raise pytz.AmbiguousTimeError("There are %i dst switches "
+                                                  "when there should only be 1." 
+                                                  % switch_idx.size)
+                switch_idx = switch_idx[0]+1 # Pull the only index and adjust
+                a_idx = grp[:switch_idx]
+                b_idx = grp[switch_idx:]
+                dst_hours[grp] = np.hstack((result_a[a_idx], result_b[b_idx]))
 
     for i in range(n):
         left = result_a[i]
@@ -1709,8 +1751,13 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz):
             if left == right:
                 result[i] = left
             else:
-                stamp = Timestamp(vals[i])
-                raise pytz.AmbiguousTimeError(stamp)
+                if infer_dst and dst_hours[i] != NPY_NAT:
+                    result[i] = dst_hours[i]
+                else:
+                    stamp = Timestamp(vals[i])
+                    raise pytz.AmbiguousTimeError("Cannot infer dst time from %r, "\
+                                                  "try using the 'infer_dst' argument" 
+                                                  % stamp)
         elif left != NPY_NAT:
             result[i] = left
         elif right != NPY_NAT:
