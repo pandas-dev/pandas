@@ -2751,6 +2751,24 @@ class TestSlicing(unittest.TestCase):
             df_multi.loc[('2013-06-19', 'ACCT1', 'ABC')]
         self.assertRaises(KeyError, f)
 
+        # GH 4294
+        # partial slice on a series mi
+        s = pd.DataFrame(randn(1000, 1000), index=pd.date_range('2000-1-1', periods=1000)).stack()
+
+        s2 = s[:-1].copy()
+        expected = s2['2000-1-4']
+        result = s2[pd.Timestamp('2000-1-4')]
+        assert_series_equal(result, expected)
+
+        result = s[pd.Timestamp('2000-1-4')]
+        expected = s['2000-1-4']
+        assert_series_equal(result, expected)
+
+        df2 = pd.DataFrame(s)
+        expected = df2.ix['2000-1-4']
+        result = df2.ix[pd.Timestamp('2000-1-4')]
+        assert_frame_equal(result, expected)
+
     def test_date_range_normalize(self):
         snap = datetime.today()
         n = 50
