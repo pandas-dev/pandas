@@ -604,6 +604,8 @@ Experimental
 
      os.remove('foo.msg')
 
+- Added PySide support for the qtpandas DataFrameModel and DataFrameWidget.
+
 .. _whatsnew_0130.refactoring:
 
 Internal Refactoring
