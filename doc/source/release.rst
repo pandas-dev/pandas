@@ -524,6 +524,7 @@ Bug Fixes
   - Bug in setting with ``ix/loc`` and a mixed int/string index (:issue:`4544`)
   - Make sure series-series boolean comparions are label based (:issue:`4947`)
   - Bug in multi-level indexing with a Timestamp partial indexer (:issue:`4294`)
+  - Tests/fix for multi-index construction of an all-nan frame (:isue:`4078`)
 
 pandas 0.12.0
 -------------
