@@ -523,6 +523,7 @@ Bug Fixes
     and other reshaping issues.
   - Bug in setting with ``ix/loc`` and a mixed int/string index (:issue:`4544`)
   - Make sure series-series boolean comparions are label based (:issue:`4947`)
+  - Bug in multi-level indexing with a Timestamp partial indexer (:issue:`4294`)
 
 pandas 0.12.0
 -------------
