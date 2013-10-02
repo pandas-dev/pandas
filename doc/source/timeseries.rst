@@ -1108,6 +1108,20 @@ TimeSeries, aligning the data on the UTC timestamps:
 
 .. _timeseries.timedeltas:
 
+In some cases, localize cannot determine the DST and non-DST hours when there are
+duplicates.  This often happens when reading files that simply duplicate the hours.
+The infer_dst argument in tz_localize will attempt
+to determine the right offset.
+
+.. ipython:: python
+
+   rng_hourly = DatetimeIndex(['11/06/2011 00:00', '11/06/2011 01:00', 
+                               '11/06/2011 01:00', '11/06/2011 02:00', 
+                               '11/06/2011 03:00'])
+   rng_hourly.tz_localize('US/Eastern')
+   rng_hourly_eastern = rng_hourly.tz_localize('US/Eastern', infer_dst=True)
+   rng_hourly_eastern.values
+
 Time Deltas
 -----------
 

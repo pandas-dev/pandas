@@ -147,6 +147,7 @@ class DatetimeIndex(Int64Index):
 
         dayfirst = kwds.pop('dayfirst', None)
         yearfirst = kwds.pop('yearfirst', None)
+        infer_dst = kwds.pop('infer_dst', False)
         warn = False
         if 'offset' in kwds and kwds['offset']:
             freq = kwds['offset']
@@ -183,7 +184,8 @@ class DatetimeIndex(Int64Index):
 
         if data is None:
             return cls._generate(start, end, periods, name, offset,
-                                 tz=tz, normalize=normalize)
+                                 tz=tz, normalize=normalize, 
+                                 infer_dst=infer_dst)
 
         if not isinstance(data, np.ndarray):
             if np.isscalar(data):
@@ -209,7 +211,7 @@ class DatetimeIndex(Int64Index):
                         data.name = name
 
                     if tz is not None:
-                        return data.tz_localize(tz)
+                        return data.tz_localize(tz, infer_dst=infer_dst)
 
                     return data
 
@@ -261,7 +263,8 @@ class DatetimeIndex(Int64Index):
                         getattr(data, 'tz', None) is None):
                     # Convert tz-naive to UTC
                     ints = subarr.view('i8')
-                    subarr = tslib.tz_localize_to_utc(ints, tz)
+                    subarr = tslib.tz_localize_to_utc(ints, tz,
+                                                      infer_dst=infer_dst)
 
                 subarr = subarr.view(_NS_DTYPE)
 
@@ -286,7 +289,7 @@ class DatetimeIndex(Int64Index):
 
     @classmethod
     def _generate(cls, start, end, periods, name, offset,
-                  tz=None, normalize=False):
+                  tz=None, normalize=False, infer_dst=False):
         if com._count_not_none(start, end, periods) != 2:
             raise ValueError('Must specify two of start, end, or periods')
 
@@ -375,7 +378,8 @@ class DatetimeIndex(Int64Index):
                 index = _generate_regular_range(start, end, periods, offset)
 
             if tz is not None and getattr(index, 'tz', None) is None:
-                index = tslib.tz_localize_to_utc(com._ensure_int64(index), tz)
+                index = tslib.tz_localize_to_utc(com._ensure_int64(index), tz,
+                                                 infer_dst=infer_dst)
                 index = index.view(_NS_DTYPE)
 
         index = index.view(cls)
@@ -1537,9 +1541,17 @@ class DatetimeIndex(Int64Index):
         # No conversion since timestamps are all UTC to begin with
         return self._simple_new(self.values, self.name, self.offset, tz)
 
-    def tz_localize(self, tz):
+    def tz_localize(self, tz, infer_dst=False):
         """
         Localize tz-naive DatetimeIndex to given time zone (using pytz)
+       
+        Parameters
+        ----------
+        tz : string or pytz.timezone
+            Time zone for time. Corresponding timestamps would be converted to
+            time zone of the TimeSeries
+        infer_dst : boolean, default False
+            Attempt to infer fall dst-transition hours based on order
 
         Returns
         -------
@@ -1550,7 +1562,7 @@ class DatetimeIndex(Int64Index):
         tz = tools._maybe_get_tz(tz)
 
         # Convert to UTC
-        new_dates = tslib.tz_localize_to_utc(self.asi8, tz)
+        new_dates = tslib.tz_localize_to_utc(self.asi8, tz, infer_dst=infer_dst)
         new_dates = new_dates.view(_NS_DTYPE)
 
         return self._simple_new(new_dates, self.name, self.offset, tz)
