@@ -164,6 +164,9 @@ Improvements to existing features
   - ``tz_localize`` can infer a fall daylight savings transition based on the
     structure of unlocalized data (:issue:`4230`)
   - DatetimeIndex is now in the API documentation
+  - Improve support for converting R datasets to pandas objects (more
+    informative index for timeseries and numeric, support for factors, dist, and
+    high-dimensional arrays).
 
 API Changes
 ~~~~~~~~~~~
