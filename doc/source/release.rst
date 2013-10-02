@@ -160,6 +160,10 @@ Improvements to existing features
     :issue:`4998`)
   - ``to_dict`` now takes ``records`` as a possible outtype.  Returns an array
     of column-keyed dictionaries. (:issue:`4936`)
+  - Improve support for converting R datasets to pandas objects (more
+    informative index for timeseries and numeric, support for factors, dist, and
+    high-dimensional arrays).
+
 
 API Changes
 ~~~~~~~~~~~
