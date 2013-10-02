@@ -21,12 +21,12 @@ import pandas.util.testing as tm
 import pandas as pd
 
 
-def _skip_if_no_xlrd():
+def _skip_if_no_xlrd(version=(0, 9)):
     try:
         import xlrd
         ver = tuple(map(int, xlrd.__VERSION__.split(".")[:2]))
-        if ver < (0, 9):
-            raise nose.SkipTest('xlrd < 0.9, skipping')
+        if ver < version:
+            raise nose.SkipTest('xlrd < %s, skipping' % str(version))
     except ImportError:
         raise nose.SkipTest('xlrd not installed, skipping')
 
@@ -350,7 +350,10 @@ class ExcelWriterBase(SharedItems):
             with ExcelWriter(pth) as writer:
                 self.frame.to_excel(writer, 'Data1')
                 self.frame2.to_excel(writer, 'Data2')
-
+            # If above test passes with outdated xlrd, next test
+            # does require fresh xlrd
+            # http://nipy.bic.berkeley.edu/builders/pandas-py2.x-wheezy-sparc/builds/148/steps/shell_4/logs/stdio
+            _skip_if_no_xlrd((0, 9))
             with ExcelFile(pth) as reader:
                 found_df = reader.parse('Data1')
                 found_df2 = reader.parse('Data2')
