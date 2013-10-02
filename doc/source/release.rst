@@ -161,7 +161,7 @@ Improvements to existing features
     :issue:`4998`)
   - ``to_dict`` now takes ``records`` as a possible outtype.  Returns an array
     of column-keyed dictionaries. (:issue:`4936`)
-  - ``tz_localize`` can infer a fall daylight savings transition based on the 
+  - ``tz_localize`` can infer a fall daylight savings transition based on the
     structure of unlocalized data (:issue:`4230`)
   - DatetimeIndex is now in the API documentation
 
@@ -244,6 +244,12 @@ API Changes
       views (similar to ``np.may_share_memory`` but no false positives, and
       changes on ``levels`` and ``labels`` setting on ``MultiIndex``).
       (:issue:`4859` , :issue:`4909`)
+    - Aliased ``__iadd__`` to ``__add__``. (:issue:`4996`)
+    - Added ``is_`` method to ``Index`` that allows fast equality comparison of
+      views (similar to ``np.may_share_memory`` but no false positives, and
+      changes on ``levels`` and ``labels`` setting on ``MultiIndex``).
+      (:issue:`4859`, :issue:`4909`)
+
   - Infer and downcast dtype if ``downcast='infer'`` is passed to ``fillna/ffill/bfill`` (:issue:`4604`)
   - ``__nonzero__`` for all NDFrame objects, will now raise a ``ValueError``, this reverts back to (:issue:`1073`, :issue:`4633`)
     behavior. Add ``.bool()`` method to ``NDFrame`` objects to facilitate evaluating of single-element boolean Series

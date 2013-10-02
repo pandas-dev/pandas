@@ -833,6 +833,7 @@ class Index(FrozenNDArray):
         else:
             return Index(self.view(np.ndarray) + other)
 
+    __iadd__ = __add__
     __eq__ = _indexOp('__eq__')
     __ne__ = _indexOp('__ne__')
     __lt__ = _indexOp('__lt__')
