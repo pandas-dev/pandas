@@ -3530,9 +3530,16 @@ def _stack_arrays(tuples, ref_items, dtype):
     if ref_items.is_unique:
         items = ref_items[ref_items.isin(names)]
     else:
-        items = _ensure_index([n for n in names if n in ref_items])
-        if len(items) != len(stacked):
-            raise Exception("invalid names passed _stack_arrays")
+        # a mi
+        if isinstance(ref_items, MultiIndex):
+            names = MultiIndex.from_tuples(names)
+            items = ref_items[ref_items.isin(names)]
+
+        # plain old dups
+        else:
+            items = _ensure_index([n for n in names if n in ref_items])
+            if len(items) != len(stacked):
+                raise ValueError("invalid names passed _stack_arrays")
 
     return items, stacked, placement
 
