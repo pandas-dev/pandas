@@ -93,35 +93,6 @@ class Index(FrozenNDArray):
 
     _engine_type = _index.ObjectEngine
 
-    def is_(self, other):
-        """
-        More flexible, faster check like ``is`` but that works through views
-
-        Note: this is *not* the same as ``Index.identical()``, which checks
-        that metadata is also the same.
-
-        Parameters
-        ----------
-        other : object
-            other object to compare against.
-
-        Returns
-        -------
-        True if both have same underlying data, False otherwise : bool
-        """
-        # use something other than None to be clearer
-        return self._id is getattr(other, '_id', Ellipsis)
-
-    def _reset_identity(self):
-        "Initializes or resets ``_id`` attribute with new object"
-        self._id = _Identity()
-
-    def view(self, *args, **kwargs):
-        result = super(Index, self).view(*args, **kwargs)
-        if isinstance(result, Index):
-            result._id = self._id
-        return result
-
     def __new__(cls, data, dtype=None, copy=False, name=None, fastpath=False,
                 **kwargs):
 
@@ -186,6 +157,35 @@ class Index(FrozenNDArray):
         # could also have a _set_name, but I don't think it's really necessary
         subarr._set_names([name])
         return subarr
+
+    def is_(self, other):
+        """
+        More flexible, faster check like ``is`` but that works through views
+
+        Note: this is *not* the same as ``Index.identical()``, which checks
+        that metadata is also the same.
+
+        Parameters
+        ----------
+        other : object
+            other object to compare against.
+
+        Returns
+        -------
+        True if both have same underlying data, False otherwise : bool
+        """
+        # use something other than None to be clearer
+        return self._id is getattr(other, '_id', Ellipsis)
+
+    def _reset_identity(self):
+        "Initializes or resets ``_id`` attribute with new object"
+        self._id = _Identity()
+
+    def view(self, *args, **kwargs):
+        result = super(Index, self).view(*args, **kwargs)
+        if isinstance(result, Index):
+            result._id = self._id
+        return result
 
     # construction helpers
     @classmethod
