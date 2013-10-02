@@ -480,6 +480,12 @@ Enhancements
          dfi[mask.any(1)]
 
       :ref:`See the docs<indexing.basics.indexing_isin>` for more.
+  - All R datasets listed here http://stat.ethz.ch/R-manual/R-devel/library/datasets/html/00Index.html can now be loaded into Pandas objects
+
+    .. code-block:: python
+
+       import pandas.rpy.common as com
+       com.load_data('Titanic')
 
 .. _whatsnew_0130.experimental:
 
