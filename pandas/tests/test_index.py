@@ -1,7 +1,7 @@
 # pylint: disable=E1101,E1103,W0232
 
 from datetime import datetime, timedelta
-from pandas.compat import range, lrange, lzip, u, zip
+from pandas.compat import range, lrange, lzip, u, zip, lmap
 import operator
 import pickle
 import re
@@ -678,6 +678,19 @@ class TestIndex(unittest.TestCase):
                 joined = res.join(res, how=kind)
                 self.assert_(res is joined)
 
+    def test_sizing_properties(self):
+        for ind in self.indices.items():
+            self.assertEqual(ind.ndim, 1)
+
+        for ind in self.indices.values():
+            self.assertEqual(ind.shape, (len(ind),))
+
+        for ind in self.indices.values():
+            self.assertEqual(ind.size, len(ind))
+
+        self.assertEqual(len(Index(range(10)), 10))
+        self.assertEqual(len(Index(list('abcd')), 4))
+
 
 class TestFloat64Index(unittest.TestCase):
     _multiprocess_can_split_ = True
@@ -767,6 +780,14 @@ class TestFloat64Index(unittest.TestCase):
         self.assert_(i.equals(result))
         self.check_is_index(result)
 
+    def test_sizing_properties(self):
+        self.assertEqual(self.index.ndim, 1)
+
+        self.assertEqual(self.index.shape, (len(self.index),))
+
+        self.assertEqual(self.index.size, len(self.index))
+
+        self.assertEqual(len(Float64Index(lmap(float(range(10)))), 10))
 
 class TestInt64Index(unittest.TestCase):
     _multiprocess_can_split_ = True
@@ -2269,6 +2290,24 @@ class TestMultiIndex(unittest.TestCase):
         x = MultiIndex.from_tuples([('a', 'b'), (1, 2), ('c', 'd')],
                                    names=['x', 'y'])
         self.assertEqual(x[1:].names, x.names)
+
+    def test_sizing_properties(self):
+        # size is like a 2d array
+
+        # non-lex-sorted
+        mi = MultiIndex.from_tuples(zip([0, 0, 1, 2, -1, -2, 3, 5, 9, 10], list('cccdifghij'), range(10)))
+        self.assertEqual(mi.ndim, 2)
+        self.assertEqual(mi.shape, (10, 3))
+        self.assertEqual(mi.size, 30)
+        self.assertEqual(len(mi), 10)
+
+        # lex sorted
+        mi = MultiIndex.from_tuples(zip(range(5), range(5)))
+        self.assertEqual(mi.ndim, 2)
+        self.assertEqual(mi.shape, (5, 2))
+        self.assertEqual(mi.size, 10)
+        self.assertEqual(len(mi), 5)
+
 
 
 def test_get_combined_index():
