@@ -1,4 +1,5 @@
 # pylint: disable=E1101,E1103,W0232
+import datetime
 from functools import partial
 from pandas.compat import range, zip, lrange, lzip, u
 from pandas import compat
@@ -2224,16 +2225,20 @@ class MultiIndex(Index):
         # Label-based
         s = _values_from_object(series)
         k = _values_from_object(key)
+
+        def _try_mi(k):
+            # TODO: what if a level contains tuples??
+            loc = self.get_loc(k)
+            new_values = series.values[loc]
+            new_index = self[loc]
+            new_index = _maybe_droplevels(new_index, k)
+            return Series(new_values, index=new_index, name=series.name)
+
         try:
             return self._engine.get_value(s, k)
         except KeyError as e1:
             try:
-                # TODO: what if a level contains tuples??
-                loc = self.get_loc(key)
-                new_values = series.values[loc]
-                new_index = self[loc]
-                new_index = _maybe_droplevels(new_index, key)
-                return Series(new_values, index=new_index, name=series.name)
+                return _try_mi(key)
             except KeyError:
                 pass
 
@@ -2250,6 +2255,16 @@ class MultiIndex(Index):
             except Exception:  # pragma: no cover
                 raise e1
         except TypeError:
+
+            # a Timestamp will raise a TypeError in a multi-index
+            # rather than a KeyError, try it here
+            if isinstance(key, (datetime.datetime,np.datetime64)) or (
+                compat.PY3 and isinstance(key, compat.string_types)):
+                try:
+                    return _try_mi(Timestamp(key))
+                except:
+                    pass
+
             raise InvalidIndexError(key)
 
     def get_level_values(self, level):
@@ -2779,6 +2794,7 @@ class MultiIndex(Index):
         if level is not None:
             if method is not None:
                 raise TypeError('Fill method not supported if level passed')
+            target = _ensure_index(target)
             target, indexer, _ = self._join_level(target, level, how='right',
                                                   return_indexers=True)
         else:

@@ -408,7 +408,7 @@ cdef class Float64Engine(IndexEngine):
                                          limit=limit)
 
 
-cdef Py_ssize_t _bin_search(ndarray values, object val):
+cdef Py_ssize_t _bin_search(ndarray values, object val) except -1:
     cdef:
         Py_ssize_t mid, lo = 0, hi = len(values) - 1
         object pval
