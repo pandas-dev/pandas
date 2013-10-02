@@ -2430,6 +2430,20 @@ class MultiIndex(Index):
     def levshape(self):
         return tuple(len(x) for x in self.levels)
 
+    @property
+    def ndim(self):
+        return 2
+
+    @property
+    def shape(self):
+        if len(self.levels):
+            return (len(self.levels[0]), len(self.levels))
+
+    @property
+    def size(self):
+        i, j = self.shape
+        return i * j
+
     def __contains__(self, key):
         hash(key)
         # work around some kind of odd cython bug
