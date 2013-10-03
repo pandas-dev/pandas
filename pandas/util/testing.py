@@ -357,12 +357,14 @@ def assert_panelnd_equal(left, right,
         right_ind = getattr(right, axis)
         assert_index_equal(left_ind, right_ind)
 
-    for col, series in compat.iteritems(left):
-        assert col in right, "non-matching column '%s'" % col
-        assert_func(series, right[col], check_less_precise=check_less_precise)
+    for i, item in enumerate(left._get_axis(0)):
+        assert item in right, "non-matching item (right) '%s'" % item
+        litem = left.iloc[i]
+        ritem = right.iloc[i]
+        assert_func(litem, ritem, check_less_precise=check_less_precise)
 
-    for col in right:
-        assert col in left
+    for i, item in enumerate(right._get_axis(0)):
+        assert item in left, "non-matching item (left) '%s'" % item
 
 # TODO: strangely check_names fails in py3 ?
 _panel_frame_equal = partial(assert_frame_equal, check_names=False)

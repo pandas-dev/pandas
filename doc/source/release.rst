@@ -290,6 +290,7 @@ API Changes
     call with additional keyword args (:issue:`4435`)
   - Provide __dir__ method (and local context) for tab completion / remove ipython completers code
     (:issue:`4501`)
+  - Support non-unique axes in a Panel via indexing operations (:issue:`4960`)
 
 
 Internal Refactoring
