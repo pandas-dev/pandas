@@ -623,8 +623,9 @@ class _NDFrameIndexer(object):
 
                 # might have been a MultiIndex
                 elif section.ndim == self.ndim:
+
                     new_key = tup[:i] + (_NS,) + tup[i + 1:]
-                    # new_key = tup[:i] + tup[i+1:]
+
                 else:
                     new_key = tup[:i] + tup[i + 1:]
 

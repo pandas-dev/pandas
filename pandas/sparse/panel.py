@@ -172,6 +172,21 @@ class SparsePanel(Panel):
     # DataFrame's columns / "items"
     minor_axis = SparsePanelAxis('_minor_axis', 'columns')
 
+    def _ixs(self, i, axis=0):
+        """
+        for compat as we don't support Block Manager here
+        i : int, slice, or sequence of integers
+        axis : int
+        """
+
+        key = self._get_axis(axis)[i]
+
+        # xs cannot handle a non-scalar key, so just reindex here
+        if com.is_list_like(key):
+            return self.reindex(**{self._get_axis_name(axis): key})
+
+        return self.xs(key, axis=axis)
+
     def _get_item_cache(self, key):
         return self._frames[key]
 

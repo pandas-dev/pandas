@@ -504,6 +504,15 @@ class Panel(NDFrame):
             return result.set_value(*args)
 
     def _box_item_values(self, key, values):
+        if self.ndim == values.ndim:
+            result = self._constructor(values)
+
+            # a dup selection will yield a full ndim
+            if result._get_axis(0).is_unique:
+                result = result[key]
+
+            return result
+
         d = self._construct_axes_dict_for_slice(self._AXIS_ORDERS[1:])
         return self._constructor_sliced(values, **d)
 
@@ -745,15 +754,27 @@ class Panel(NDFrame):
     _xs = xs
 
     def _ixs(self, i, axis=0):
-        # for compatibility with .ix indexing
-        # Won't work with hierarchical indexing yet
+        """
+        i : int, slice, or sequence of integers
+        axis : int
+        """
+
         key = self._get_axis(axis)[i]
 
         # xs cannot handle a non-scalar key, so just reindex here
         if _is_list_like(key):
-            return self.reindex(**{self._get_axis_name(axis): key})
+            indexer = { self._get_axis_name(axis): key }
+            return self.reindex(**indexer)
 
-        return self.xs(key, axis=axis)
+        # a reduction
+        if axis == 0:
+            values = self._data.iget(i)
+            return self._box_item_values(key,values)
+
+        # xs by position
+        self._consolidate_inplace()
+        new_data = self._data.xs(i, axis=axis, copy=True, takeable=True)
+        return self._construct_return_type(new_data)
 
     def groupby(self, function, axis='major'):
         """

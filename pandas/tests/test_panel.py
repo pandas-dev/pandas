@@ -1335,6 +1335,65 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         idf = df.set_index(['a', 'b'])
         assertRaisesRegexp(ValueError, 'non-uniquely indexed', idf.to_panel)
 
+    def test_panel_dups(self):
+
+        # GH 4960
+        # duplicates in an index
+
+        # items
+        data = np.random.randn(5, 100, 5)
+        no_dup_panel = Panel(data, items=list("ABCDE"))
+        panel = Panel(data, items=list("AACDE"))
+
+        expected = no_dup_panel['A']
+        result = panel.iloc[0]
+        assert_frame_equal(result, expected)
+
+        expected = no_dup_panel['E']
+        result = panel.loc['E']
+        assert_frame_equal(result, expected)
+
+        expected = no_dup_panel.loc[['A','B']]
+        expected.items = ['A','A']
+        result = panel.loc['A']
+        assert_panel_equal(result, expected)
+
+        # major
+        data = np.random.randn(5, 5, 5)
+        no_dup_panel = Panel(data, major_axis=list("ABCDE"))
+        panel = Panel(data, major_axis=list("AACDE"))
+
+        expected = no_dup_panel.loc[:,'A']
+        result = panel.iloc[:,0]
+        assert_frame_equal(result, expected)
+
+        expected = no_dup_panel.loc[:,'E']
+        result = panel.loc[:,'E']
+        assert_frame_equal(result, expected)
+
+        expected = no_dup_panel.loc[:,['A','B']]
+        expected.major_axis = ['A','A']
+        result = panel.loc[:,'A']
+        assert_panel_equal(result, expected)
+
+        # minor
+        data = np.random.randn(5, 100, 5)
+        no_dup_panel = Panel(data, minor_axis=list("ABCDE"))
+        panel = Panel(data, minor_axis=list("AACDE"))
+
+        expected = no_dup_panel.loc[:,:,'A']
+        result = panel.iloc[:,:,0]
+        assert_frame_equal(result, expected)
+
+        expected = no_dup_panel.loc[:,:,'E']
+        result = panel.loc[:,:,'E']
+        assert_frame_equal(result, expected)
+
+        expected = no_dup_panel.loc[:,:,['A','B']]
+        expected.minor_axis = ['A','A']
+        result = panel.loc[:,:,'A']
+        assert_panel_equal(result, expected)
+
     def test_filter(self):
         pass
 
