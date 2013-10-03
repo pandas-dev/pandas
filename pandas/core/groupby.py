@@ -1,4 +1,5 @@
 import types
+from functools import wraps
 import numpy as np
 
 from pandas.compat import(
@@ -45,6 +46,10 @@ aggregated : DataFrame
 """
 
 
+# special case to prevent duplicate plots when catching exceptions when
+# forwarding methods from NDFrames
+_plotting_methods = frozenset(['plot', 'boxplot', 'hist'])
+
 _apply_whitelist = frozenset(['last', 'first',
                               'mean', 'sum', 'min', 'max',
                               'head', 'tail',
@@ -52,7 +57,8 @@ _apply_whitelist = frozenset(['last', 'first',
                               'resample',
                               'describe',
                               'rank', 'quantile', 'count',
-                              'fillna', 'dtype'])
+                              'fillna', 'dtype']) | _plotting_methods
+
 
 
 class GroupByError(Exception):
@@ -180,7 +186,6 @@ class GroupBy(PandasObject):
     len(grouped) : int
         Number of groups
     """
-
     def __init__(self, obj, keys=None, axis=0, level=None,
                  grouper=None, exclusions=None, selection=None, as_index=True,
                  sort=True, group_keys=True, squeeze=False):
@@ -244,6 +249,9 @@ class GroupBy(PandasObject):
             return [self._selection]
         return self._selection
 
+    def _local_dir(self):
+        return sorted(set(self.obj._local_dir() + list(_apply_whitelist)))
+
     def __getattr__(self, attr):
         if attr in self.obj:
             return self[attr]
@@ -281,9 +289,16 @@ class GroupBy(PandasObject):
 
             def curried_with_axis(x):
                 return f(x, *args, **kwargs_with_axis)
+            curried_with_axis.__name__ = name
 
             def curried(x):
                 return f(x, *args, **kwargs)
+            curried.__name__ = name
+
+            # special case otherwise extra plots are created when catching the
+            # exception below
+            if name in _plotting_methods:
+                return self.apply(curried)
 
             try:
                 return self.apply(curried_with_axis)
@@ -348,7 +363,11 @@ class GroupBy(PandasObject):
         applied : type depending on grouped object and function
         """
         func = _intercept_function(func)
-        f = lambda g: func(g, *args, **kwargs)
+
+        @wraps(func)
+        def f(g):
+            return func(g, *args, **kwargs)
+
         return self._python_apply_general(f)
 
     def _python_apply_general(self, f):
@@ -598,7 +617,7 @@ class Grouper(object):
     def nkeys(self):
         return len(self.groupings)
 
-    def get_iterator(self, data, axis=0, keep_internal=True):
+    def get_iterator(self, data, axis=0):
         """
         Groupby iterator
 
@@ -607,16 +626,14 @@ class Grouper(object):
         Generator yielding sequence of (name, subsetted object)
         for each group
         """
-        splitter = self._get_splitter(data, axis=axis,
-                                      keep_internal=keep_internal)
+        splitter = self._get_splitter(data, axis=axis)
         keys = self._get_group_keys()
         for key, (i, group) in zip(keys, splitter):
             yield key, group
 
-    def _get_splitter(self, data, axis=0, keep_internal=True):
+    def _get_splitter(self, data, axis=0):
         comp_ids, _, ngroups = self.group_info
-        return get_splitter(data, comp_ids, ngroups, axis=axis,
-                            keep_internal=keep_internal)
+        return get_splitter(data, comp_ids, ngroups, axis=axis)
 
     def _get_group_keys(self):
         if len(self.groupings) == 1:
@@ -627,19 +644,19 @@ class Grouper(object):
             mapper = _KeyMapper(comp_ids, ngroups, self.labels, self.levels)
             return [mapper.get_key(i) for i in range(ngroups)]
 
-    def apply(self, f, data, axis=0, keep_internal=False):
+    def apply(self, f, data, axis=0):
         mutated = False
-        splitter = self._get_splitter(data, axis=axis,
-                                      keep_internal=keep_internal)
+        splitter = self._get_splitter(data, axis=axis)
         group_keys = self._get_group_keys()
 
         # oh boy
-        if hasattr(splitter, 'fast_apply') and axis == 0:
+        if (f.__name__ not in _plotting_methods and
+            hasattr(splitter, 'fast_apply') and axis == 0):
             try:
                 values, mutated = splitter.fast_apply(f, group_keys)
                 return group_keys, values, mutated
-            except (Exception) as detail:
-                # we detect a mutatation of some kind
+            except Exception:
+                # we detect a mutation of some kind
                 # so take slow path
                 pass
 
@@ -1043,7 +1060,7 @@ class BinGrouper(Grouper):
                 inds = lrange(start, n)
                 yield self.binlabels[-1], data.take(inds, axis=axis)
 
-    def apply(self, f, data, axis=0, keep_internal=False):
+    def apply(self, f, data, axis=0):
         result_keys = []
         result_values = []
         mutated = False
@@ -1616,6 +1633,7 @@ class SeriesGroupBy(GroupBy):
             return filtered
         else:
             return filtered.reindex(self.obj.index) # Fill with NaNs.
+
 
 class NDFrameGroupBy(GroupBy):
 
@@ -2268,6 +2286,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
         """
         return self._apply_to_column_groupbys(lambda x: x._cython_agg_general('ohlc'))
 
+
 from pandas.tools.plotting import boxplot_frame_groupby
 DataFrameGroupBy.boxplot = boxplot_frame_groupby
 
@@ -2364,7 +2383,7 @@ class NDArrayGroupBy(GroupBy):
 
 class DataSplitter(object):
 
-    def __init__(self, data, labels, ngroups, axis=0, keep_internal=False):
+    def __init__(self, data, labels, ngroups, axis=0):
         self.data = data
         self.labels = com._ensure_int64(labels)
         self.ngroups = ngroups
@@ -2419,10 +2438,8 @@ class SeriesSplitter(DataSplitter):
 
 
 class FrameSplitter(DataSplitter):
-
-    def __init__(self, data, labels, ngroups, axis=0, keep_internal=False):
-        DataSplitter.__init__(self, data, labels, ngroups, axis=axis,
-                              keep_internal=keep_internal)
+    def __init__(self, data, labels, ngroups, axis=0):
+        super(FrameSplitter, self).__init__(data, labels, ngroups, axis=axis)
 
     def fast_apply(self, f, names):
         # must return keys::list, values::list, mutated::bool
@@ -2445,10 +2462,8 @@ class FrameSplitter(DataSplitter):
 
 
 class NDFrameSplitter(DataSplitter):
-
-    def __init__(self, data, labels, ngroups, axis=0, keep_internal=False):
-        DataSplitter.__init__(self, data, labels, ngroups, axis=axis,
-                              keep_internal=keep_internal)
+    def __init__(self, data, labels, ngroups, axis=0):
+        super(NDFrameSplitter, self).__init__(data, labels, ngroups, axis=axis)
 
         self.factory = data._constructor
 

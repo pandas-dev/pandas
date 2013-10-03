@@ -2728,6 +2728,78 @@ class TestGroupBy(unittest.TestCase):
                 with tm.assertRaisesRegexp(AttributeError, msg):
                     getattr(gb, bl)
 
+    def test_series_groupby_plotting_nominally_works(self):
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError:
+            raise nose.SkipTest("matplotlib not installed")
+        n = 10
+        weight = Series(np.random.normal(166, 20, size=n))
+        height = Series(np.random.normal(60, 10, size=n))
+        gender = tm.choice(['male', 'female'], size=n)
+
+        weight.groupby(gender).plot()
+        tm.close()
+        height.groupby(gender).hist()
+        tm.close()
+
+    def test_frame_groupby_plot_boxplot(self):
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError:
+            raise nose.SkipTest("matplotlib not installed")
+        tm.close()
+
+        n = 10
+        weight = Series(np.random.normal(166, 20, size=n))
+        height = Series(np.random.normal(60, 10, size=n))
+        gender = tm.choice(['male', 'female'], size=n)
+        df = DataFrame({'height': height, 'weight': weight, 'gender': gender})
+        gb = df.groupby('gender')
+
+        res = gb.plot()
+        self.assertEqual(len(plt.get_fignums()), 2)
+        self.assertEqual(len(res), 2)
+        tm.close()
+
+        res = gb.boxplot()
+        self.assertEqual(len(plt.get_fignums()), 1)
+        self.assertEqual(len(res), 2)
+        tm.close()
+
+        with tm.assertRaises(TypeError, '.*str.+float'):
+            gb.hist()
+
+    def test_frame_groupby_hist(self):
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError:
+            raise nose.SkipTest("matplotlib not installed")
+        tm.close()
+
+        n = 10
+        weight = Series(np.random.normal(166, 20, size=n))
+        height = Series(np.random.normal(60, 10, size=n))
+        gender_int = tm.choice([0, 1], size=n)
+        df_int = DataFrame({'height': height, 'weight': weight,
+                            'gender': gender_int})
+        gb = df_int.groupby('gender')
+        axes = gb.hist()
+        self.assertEqual(len(axes), 2)
+        self.assertEqual(len(plt.get_fignums()), 2)
+        tm.close()
+
+    def test_tab_completion(self):
+        grp = self.mframe.groupby(level='second')
+        results = set([v for v in grp.__dir__() if not v.startswith('_')])
+        expected = set(['A','B','C',
+            'agg','aggregate','apply','boxplot','filter','first','get_group',
+            'groups','hist','indices','last','max','mean','median',
+            'min','name','ngroups','nth','ohlc','plot', 'prod',
+            'size','std','sum','transform','var', 'count', 'head', 'describe',
+            'cummax', 'dtype', 'quantile', 'rank',
+            'cumprod', 'tail', 'resample', 'cummin', 'fillna', 'cumsum'])
+        self.assertEqual(results, expected)
 
 def assert_fp_equal(a, b):
     assert (np.abs(a - b) < 1e-12).all()
