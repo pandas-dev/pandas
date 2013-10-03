@@ -9,7 +9,7 @@ import pandas as pd
 from pandas.core.base import PandasObject
 from pandas.core.index import Index, MultiIndex, _ensure_index, InvalidIndexError
 import pandas.core.indexing as indexing
-from pandas.core.indexing import _maybe_convert_indices
+from pandas.core.indexing import _maybe_convert_indices, _axis_slicer
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
 from pandas.core.internals import BlockManager
@@ -1090,10 +1090,9 @@ class NDFrame(PandasObject):
             else:
                 indexer = -axis.isin(labels)
 
-            slicer = [slice(None)] * self.ndim
-            slicer[self._get_axis_number(axis_name)] = indexer
+            slicer = _axis_slicer(indexer, axis=self._get_axis_number(axis_name), ndim=self.ndim)
 
-            return self.ix[tuple(slicer)]
+            return self.ix[slicer]
 
     def add_prefix(self, prefix):
         """

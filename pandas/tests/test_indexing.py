@@ -1841,6 +1841,96 @@ class TestIndexing(unittest.TestCase):
         #self.assertRaises(TypeError, lambda : s.iloc[2.0:5.0])
         #self.assertRaises(TypeError, lambda : s.iloc[2:5.0])
 
+    def test_axis_slicer(self):
+        from pandas.core.indexing import _axis_slicer
+
+        # axis check
+        self.assertRaises(TypeError, lambda : _axis_slicer(0, axis='items'))
+        # ndim check
+        self.assertRaises(Exception, lambda : _axis_slicer(np.arange(100).reshape(10,10), axis=1))
+
+        self.assertRaises(Exception, lambda : _axis_slicer(None, axis=1))
+
+        # certain core parts expect a slice(None, None) for every axis
+        slicer = _axis_slicer(0, axis=0, ndim=3)
+        assert len(slicer) == 3
+
+        slicer = _axis_slicer(0, axis=2)
+        assert len(slicer) == 3
+
+        slicer = _axis_slicer(0, axis=1)
+        assert len(slicer) == 2
+
+        slicer = _axis_slicer(0, axis=1, ndim=2)
+        assert len(slicer) == 2
+
+        # axis >= ndim 
+        self.assertRaises(Exception, lambda : _axis_slicer(0, axis=1, ndim=1))
+
+        # indexers
+        indexer = np.array([0, 4, 10])
+        slicer = _axis_slicer(indexer, axis=0, ndim=3)
+        assert_array_equal(indexer, slicer[0])
+
+        indexer = np.array([0, 4, 10])
+        slicer = _axis_slicer(indexer, axis=1)
+        assert_array_equal(indexer, slicer[1])
+
+        # slice
+        indexer = slice(10, 20)
+        slicer = _axis_slicer(indexer, axis=1)
+        assert_array_equal(indexer, slicer[1])
+
+        # single 
+        slicer = _axis_slicer(3, axis=1)
+        assert slicer[1] == 3
+
+        # start/stop
+        # [:10]
+        slicer = _axis_slicer(None, 10, axis=1)
+        assert slicer[1] == slice(None, 10)
+
+        # [5:10]
+        slicer = _axis_slicer(5, 10, axis=1)
+        assert slicer[1] == slice(5, 10)
+
+        # [5:-10]
+        slicer = _axis_slicer(5, -10, axis=1)
+        assert slicer[1] == slice(5, -10)
+
+        df = pd.DataFrame(np.arange(100).reshape(10,10))
+
+        indexer = np.array([0, 4, 3])
+        correct = df.iloc[:, indexer]
+        test = df.iloc[_axis_slicer(indexer, axis=1)]
+        assert_frame_equal(test, correct)
+
+        indexer = 0
+        correct = df.iloc[:, indexer]
+        test = df.iloc[_axis_slicer(indexer, axis=1)]
+        assert_series_equal(test, df.iloc[:, indexer])
+
+        #[:-3]
+        indexer = slice(-3, None)
+        correct = df.iloc[:, indexer]
+        test = df.iloc[_axis_slicer(indexer, axis=1)]
+        assert_frame_equal(test, correct)
+
+        #[:3]
+        indexer = slice(3)
+        correct = df.iloc[:, indexer]
+        test = df.iloc[_axis_slicer(indexer, axis=1)]
+        assert_frame_equal(test, correct)
+
+        #[-9,-5]
+        correct = df.iloc[:, slice(-9, -5)]
+        test = df.iloc[_axis_slicer(-9, -5, axis=1)]
+        assert_frame_equal(test, correct)
+
+        #[:5]
+        correct = df.iloc[slice(None, 5)]
+        test = df.iloc[_axis_slicer(None, 5, axis=0)]
+        assert_frame_equal(test, correct)
 
 if __name__ == '__main__':
     import nose

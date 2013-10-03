@@ -13,7 +13,7 @@ from pandas.core.common import (_possibly_downcast_to_dtype, isnull, notnull,
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
                                _handle_legacy_indexes)
 from pandas.core.indexing import (_check_slice_bounds, _maybe_convert_indices,
-                                  _length_of_indexer)
+                                  _length_of_indexer, _axis_slicer)
 import pandas.core.common as com
 from pandas.sparse.array import _maybe_to_sparse, SparseArray
 import pandas.lib as lib
@@ -980,8 +980,8 @@ class Block(PandasObject):
         for m in [mask, ~mask]:
             if m.any():
                 items = self.items[m]
-                slices = [slice(None)] * cond.ndim
-                slices[axis] = self.items.get_indexer(items)
+                slices = _axis_slicer(self.items.get_indexer(items), axis=axis, ndim=cond.ndim)
+
                 r = self._try_cast_result(result[slices])
                 result_blocks.append(make_block(r.T, items, self.ref_items))
 
@@ -2314,9 +2314,7 @@ class BlockManager(PandasObject):
     def _slice_blocks(self, slobj, axis):
         new_blocks = []
 
-        slicer = [slice(None, None) for _ in range(self.ndim)]
-        slicer[axis] = slobj
-        slicer = tuple(slicer)
+        slicer = _axis_slicer(slobj, axis=axis, ndim=self.ndim)
 
         for block in self.blocks:
             newb = make_block(block._slice(slicer),
@@ -2419,9 +2417,7 @@ class BlockManager(PandasObject):
                                  % axis)
 
         loc = self.axes[axis].get_loc(key)
-        slicer = [slice(None, None) for _ in range(self.ndim)]
-        slicer[axis] = loc
-        slicer = tuple(slicer)
+        slicer = _axis_slicer(loc, axis=axis, ndim=self.ndim)
 
         new_axes = list(self.axes)
 
