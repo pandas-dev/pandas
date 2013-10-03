@@ -538,13 +538,16 @@ class _XlwtWriter(ExcelWriter):
     engine = 'xlwt'
     supported_extensions = ('.xls',)
 
-    def __init__(self, path, **engine_kwargs):
+    def __init__(self, path, encoding=None,**engine_kwargs):
         # Use the xlwt module as the Excel writer.
         import xlwt
 
         super(_XlwtWriter, self).__init__(path, **engine_kwargs)
 
-        self.book = xlwt.Workbook()
+        if encoding is None:
+            encoding = 'ascii'
+        self.book = xlwt.Workbook(encoding=encoding)
+        
         self.fm_datetime = xlwt.easyxf(num_format_str='YYYY-MM-DD HH:MM:SS')
         self.fm_date = xlwt.easyxf(num_format_str='YYYY-MM-DD')
 
