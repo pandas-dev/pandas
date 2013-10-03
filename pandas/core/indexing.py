@@ -927,8 +927,8 @@ class _IXIndexer(_NDFrameIndexer):
     """ A primarily location based indexer, with integer fallback """
 
     def _has_valid_type(self, key, axis):
-        # TODO: Figure out why this is unused
-        ax = self.obj._get_axis(axis)
+        # check for valid axis (raises if invalid)
+        self.obj._get_axis(axis)
 
         if isinstance(key, slice):
             return True
@@ -940,7 +940,7 @@ class _IXIndexer(_NDFrameIndexer):
             return True
 
         else:
-            # TODO: Figure out why this is unused, should it be returned?
+            # check for valid key/axis combo (raises if invalid)
             self._convert_scalar_indexer(key, axis)
 
         return True
