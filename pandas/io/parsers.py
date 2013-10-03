@@ -183,6 +183,7 @@ fields if it is not spaces (e.g., '~').
 
 def _read(filepath_or_buffer, kwds):
     "Generic reader of line files."
+    encoding = kwds.get('encoding', None)
     skipfooter = kwds.pop('skipfooter', None)
     if skipfooter is not None:
         kwds['skip_footer'] = skipfooter
