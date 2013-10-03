@@ -343,6 +343,7 @@ class ExcelWriterBase(SharedItems):
             self.assertRaises(xlrd.XLRDError, xl.parse, '0')
 
     def test_excelwriter_contextmanager(self):
+        _skip_if_no_xlrd()
         ext = self.ext
         pth = os.path.join(self.dirpath, 'testit.{0}'.format(ext))
 
