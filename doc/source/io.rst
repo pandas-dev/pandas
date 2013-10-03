@@ -1230,6 +1230,37 @@ nanoseconds
    import os
    os.remove('test.json')
 
+.. _io.json_normalize:
+
+Normalization
+~~~~~~~~~~~~~
+
+.. versionadded:: 0.13.0
+
+Pandas provides a utility function to take a dict or list of dicts and *normalize* this semi-structured data
+into a flat table.
+
+.. ipython:: python
+
+   from pandas.io.json import json_normalize
+   data = [{'state': 'Florida',
+             'shortname': 'FL',
+             'info': {
+                  'governor': 'Rick Scott'
+             },
+             'counties': [{'name': 'Dade', 'population': 12345},
+                         {'name': 'Broward', 'population': 40000},
+                         {'name': 'Palm Beach', 'population': 60000}]},
+            {'state': 'Ohio',
+             'shortname': 'OH',
+             'info': {
+                  'governor': 'John Kasich'
+             },
+             'counties': [{'name': 'Summit', 'population': 1234},
+                          {'name': 'Cuyahoga', 'population': 1337}]}]
+
+   json_normalize(data, 'counties', ['state', 'shortname', ['info', 'governor']])
+
 HTML
 ----
 
@@ -1244,7 +1275,7 @@ Reading HTML Content
 
 .. _io.read_html:
 
-.. versionadded:: 0.12
+.. versionadded:: 0.12.0
 
 The top-level :func:`~pandas.io.html.read_html` function can accept an HTML
 string/file/url and will parse HTML tables into list of pandas DataFrames.
@@ -1620,7 +1651,7 @@ advanced strategies
 
 .. note::
 
-   The prior method of accessing Excel is now deprecated as of 0.12,
+   The prior method of accessing Excel is now deprecated as of 0.12.0,
    this will work but will be removed in a future version.
 
       .. code-block:: python
@@ -2291,7 +2322,7 @@ The default is 50,000 rows returned in a chunk.
 
 .. note::
 
-   .. versionadded:: 0.12
+   .. versionadded:: 0.12.0
 
    You can also use the iterator with ``read_hdf`` which will open, then
    automatically close the store when finished iterating.
@@ -2580,7 +2611,7 @@ Pass ``min_itemsize`` on the first table creation to a-priori specifiy the minim
 ``min_itemsize`` can be an integer, or a dict mapping a column name to an integer. You can pass ``values`` as a key to
 allow all *indexables* or *data_columns* to have this min_itemsize.
 
-Starting in 0.11, passing a ``min_itemsize`` dict will cause all passed columns to be created as *data_columns* automatically.
+Starting in 0.11.0, passing a ``min_itemsize`` dict will cause all passed columns to be created as *data_columns* automatically.
 
 .. note::
 
@@ -2860,7 +2891,7 @@ Reading from STATA format
 
 .. _io.stata_reader:
 
-.. versionadded:: 0.12
+.. versionadded:: 0.12.0
 
 The top-level function ``read_stata`` will read a dta format file
 and return a DataFrame:

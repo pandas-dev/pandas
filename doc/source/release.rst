@@ -169,6 +169,8 @@ Improvements to existing features
     high-dimensional arrays).
   - :func:`~pandas.read_html` now supports the ``parse_dates``,
     ``tupleize_cols`` and ``thousands`` parameters (:issue:`4770`).
+  - :meth:`~pandas.io.json.json_normalize` is a new method to allow you to create a flat table
+    from semi-structured JSON data. :ref:`See the docs<io.json_normalize>` (:issue:`1067`)
 
 API Changes
 ~~~~~~~~~~~
