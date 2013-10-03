@@ -606,15 +606,9 @@ class TextFileReader(object):
         raise NotImplementedError
 
     def read(self, nrows=None):
-        suppressed_warnings = False
         if nrows is not None:
             if self.options.get('skip_footer'):
                 raise ValueError('skip_footer not supported for iteration')
-
-            # # XXX hack
-            # if isinstance(self._engine, CParserWrapper):
-            #     suppressed_warnings = True
-            #     self._engine.set_error_bad_lines(False)
 
         ret = self._engine.read(nrows)
 
@@ -710,7 +704,6 @@ class ParserBase(object):
             else:
                 return (j in self.parse_dates) or (name in self.parse_dates)
 
-
     def _extract_multi_indexer_columns(self, header, index_names, col_names, passed_names=False):
         """ extract and return the names, index_names, col_names
             header is a list-of-lists returned from the parsers """
@@ -728,12 +721,10 @@ class ParserBase(object):
             ic = [ ic ]
         sic = set(ic)
 
-        orig_header = list(header)
-
         # clean the index_names
         index_names = header.pop(-1)
-        (index_names, names,
-         index_col) = _clean_index_names(index_names, self.index_col)
+        index_names, names, index_col = _clean_index_names(index_names,
+                                                           self.index_col)
 
         # extract the columns
         field_count = len(header[0])
@@ -766,7 +757,7 @@ class ParserBase(object):
         return columns
 
     def _make_index(self, data, alldata, columns, indexnamerow=False):
-        if not _is_index_col(self.index_col) or len(self.index_col) == 0:
+        if not _is_index_col(self.index_col) or not self.index_col:
             index = None
 
         elif not self._has_complex_date_col:
@@ -1430,7 +1421,7 @@ class PythonParser(ParserBase):
         self._first_chunk = False
 
         columns = list(self.orig_names)
-        if len(content) == 0:  # pragma: no cover
+        if not len(content):  # pragma: no cover
             # DataFrame with the right metadata, even though it's length 0
             return _get_empty_meta(self.orig_names,
                                    self.index_col,
@@ -1468,8 +1459,8 @@ class PythonParser(ParserBase):
                 col = self.orig_names[col]
             clean_conv[col] = f
 
-        return self._convert_to_ndarrays(data, self.na_values, self.na_fvalues, self.verbose,
-                                         clean_conv)
+        return self._convert_to_ndarrays(data, self.na_values, self.na_fvalues,
+                                         self.verbose, clean_conv)
 
     def _infer_columns(self):
         names = self.names
@@ -1478,16 +1469,15 @@ class PythonParser(ParserBase):
             header = self.header
 
             # we have a mi columns, so read and extra line
-            if isinstance(header,(list,tuple,np.ndarray)):
+            if isinstance(header, (list, tuple, np.ndarray)):
                 have_mi_columns = True
-                header = list(header) + [header[-1]+1]
+                header = list(header) + [header[-1] + 1]
             else:
                 have_mi_columns = False
-                header = [ header ]
+                header = [header]
 
             columns = []
             for level, hr in enumerate(header):
-
                 if len(self.buf) > 0:
                     line = self.buf[0]
                 else:
@@ -1521,10 +1511,11 @@ class PythonParser(ParserBase):
 
             if names is not None:
                 if len(names) != len(columns[0]):
-                    raise Exception('Number of passed names did not match '
-                                    'number of header fields in the file')
+                    raise ValueError('Number of passed names did not match '
+                                     'number of header fields in the file')
                 if len(columns) > 1:
-                    raise Exception('Cannot pass names with multi-index columns')
+                    raise TypeError('Cannot pass names with multi-index '
+                                    'columns')
                 columns = [ names ]
 
         else:
