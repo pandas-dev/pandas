@@ -153,6 +153,7 @@ Top-level dealing with datetimes
    :toctree: generated/
 
    to_datetime
+   to_timedelta
 
 Top-level evaluation
 ~~~~~~~~~~~~~~~~~~~~
@@ -253,9 +254,16 @@ Indexing, iteration
    :toctree: generated/
 
    Series.get
+   Series.at
+   Series.iat
    Series.ix
+   Series.loc
+   Series.iloc
    Series.__iter__
    Series.iteritems
+
+For more information on ``.at``, ``.iat``, ``.ix``, ``.loc``, and
+``.iloc``,  see the :ref:`indexing documentation <indexing>`.
 
 Binary operator functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -407,8 +415,49 @@ Time series-related
    Series.tz_convert
    Series.tz_localize
 
+String handling
+~~~~~~~~~~~~~~~~~~~
+``Series.str`` can be used to access the values of the series as
+strings and apply several methods to it. Due to implementation
+details the methods show up here as methods of the
+``StringMethods`` class.
+
+.. currentmodule:: pandas.core.strings
+
+.. autosummary::
+   :toctree: generated/
+
+   StringMethods.cat
+   StringMethods.center
+   StringMethods.contains
+   StringMethods.count
+   StringMethods.decode
+   StringMethods.encode
+   StringMethods.endswith
+   StringMethods.extract
+   StringMethods.findall
+   StringMethods.get
+   StringMethods.join
+   StringMethods.len
+   StringMethods.lower
+   StringMethods.lstrip
+   StringMethods.match
+   StringMethods.pad
+   StringMethods.repeat
+   StringMethods.replace
+   StringMethods.rstrip
+   StringMethods.slice
+   StringMethods.slice_replace
+   StringMethods.split
+   StringMethods.startswith
+   StringMethods.strip
+   StringMethods.title
+   StringMethods.upper
+
 Plotting
 ~~~~~~~~
+.. currentmodule:: pandas
+
 .. autosummary::
    :toctree: generated/
 
@@ -476,7 +525,11 @@ Indexing, iteration
    :toctree: generated/
 
    DataFrame.head
+   DataFrame.at
+   DataFrame.iat
    DataFrame.ix
+   DataFrame.loc
+   DataFrame.iloc
    DataFrame.insert
    DataFrame.__iter__
    DataFrame.iteritems
@@ -488,6 +541,10 @@ Indexing, iteration
    DataFrame.xs
    DataFrame.isin
    DataFrame.query
+
+For more information on ``.at``, ``.iat``, ``.ix``, ``.loc``, and
+``.iloc``,  see the :ref:`indexing documentation <indexing>`.
+
 
 Binary operator functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -733,13 +790,20 @@ Indexing, iteration, slicing
 .. autosummary::
    :toctree: generated/
 
+   Panel.at
+   Panel.iat
    Panel.ix
+   Panel.loc
+   Panel.iloc
    Panel.__iter__
    Panel.iteritems
    Panel.pop
    Panel.xs
    Panel.major_xs
    Panel.minor_xs
+
+For more information on ``.at``, ``.iat``, ``.ix``, ``.loc``, and
+``.iloc``,  see the :ref:`indexing documentation <indexing>`.
 
 Binary operator functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -878,8 +942,9 @@ Serialization / IO / Conversion
 Index
 -----
 
-**Many of these methods or variants thereof are available on the objects that contain an index (Series/Dataframe)
-and those should most likely be used before calling these methods directly.**
+**Many of these methods or variants thereof are available on the objects
+that contain an index (Series/Dataframe) and those should most likely be
+used before calling these methods directly.**
 
 .. autosummary::
    :toctree: generated/
@@ -1026,7 +1091,7 @@ Conversion
 
 ..
     HACK - see github issue #4539. To ensure old links remain valid, include
-    here the autosummaries with previous currentmodules as a comment and add 
+    here the autosummaries with previous currentmodules as a comment and add
     them to a hidden toctree (to avoid warnings):
 
 .. toctree::
