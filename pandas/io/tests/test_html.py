@@ -18,7 +18,8 @@ import numpy as np
 from numpy.random import rand
 from numpy.testing.decorators import slow
 
-from pandas import DataFrame, MultiIndex, read_csv, Timestamp, Index
+from pandas import (DataFrame, MultiIndex, read_csv, Timestamp, Index,
+                    date_range, Series)
 from pandas.compat import map, zip, StringIO, string_types
 from pandas.io.common import URLError, urlopen
 from pandas.io.html import read_html
@@ -564,6 +565,21 @@ class TestReadHtml(unittest.TestCase):
         expected = self.read_html(expected, index_col=0)[0]
         res = self.read_html(out, index_col=0)[0]
         tm.assert_frame_equal(expected, res)
+
+    def test_parse_dates_list(self):
+        df = DataFrame({'date': date_range('1/1/2001', periods=10)})
+        expected = df.to_html()
+        res = read_html(expected, parse_dates=[0], index_col=0)
+        tm.assert_frame_equal(df, res[0])
+
+    def test_parse_dates_combine(self):
+        raw_dates = Series(date_range('1/1/2001', periods=10))
+        df = DataFrame({'date': raw_dates.map(lambda x: str(x.date())),
+                        'time': raw_dates.map(lambda x: str(x.time()))})
+        res = read_html(df.to_html(), parse_dates={'datetime': [1, 2]},
+                        index_col=1)
+        newdf = DataFrame({'datetime': raw_dates})
+        tm.assert_frame_equal(newdf, res[0])
 
 
 class TestReadHtmlLxml(unittest.TestCase):

@@ -16,7 +16,7 @@ import numpy as np
 from pandas.io.common import _is_url, urlopen, parse_url
 from pandas.io.parsers import TextParser
 from pandas.compat import (lrange, lmap, u, string_types, iteritems, text_type,
-                           raise_with_traceback, OrderedDict)
+                           raise_with_traceback)
 from pandas.core import common as com
 from pandas import Series
 
@@ -485,8 +485,8 @@ class _LxmlFrameParser(_HtmlFrameParser):
         pattern = match.pattern
 
         # 1. check all descendants for the given pattern and only search tables
-        # 2. go up the tree until we find a table or if we are a table use that
-        query = '//table/*[re:test(text(), %r)]/ancestor-or-self::table'
+        # 2. go up the tree until we find a table
+        query = '//table//*[re:test(text(), %r)]/ancestor::table'
         xpath_expr = u(query) % pattern
 
         # if any table attributes were given build an xpath expression to
@@ -786,9 +786,8 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
 
     tupleize_cols : bool, optional
         If ``False`` try to parse multiple header rows into a
-        :class:`~pandas.MultiIndex`. See :func:`~pandas.read_csv` for more
-        details. Defaults to ``False`` for backwards compatibility. This is in
-        contrast to other IO functions which default to ``True``.
+        :class:`~pandas.MultiIndex`, otherwise return raw tuples. Defaults to
+        ``False``.
 
     thousands : str, optional
         Separator to use to parse thousands. Defaults to ``','``.

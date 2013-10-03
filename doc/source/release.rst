@@ -167,6 +167,8 @@ Improvements to existing features
   - Improve support for converting R datasets to pandas objects (more
     informative index for timeseries and numeric, support for factors, dist, and
     high-dimensional arrays).
+  - :func:`~pandas.read_html` now supports the ``parse_dates``,
+    ``tupleize_cols`` and ``thousands`` parameters (:issue:`4770`).
 
 API Changes
 ~~~~~~~~~~~
@@ -373,6 +375,8 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
    ``core/generic.py`` (:issue:`4435`).
  - Refactor cum objects to core/generic.py (:issue:`4435`), note that these have a more numpy-like
    function signature.
+ - :func:`~pandas.read_html` now uses ``TextParser`` to parse HTML data from
+   bs4/lxml (:issue:`4770`).
 
 .. _release.bug_fixes-0.13.0:
 
@@ -538,6 +542,15 @@ Bug Fixes
   - Make sure series-series boolean comparions are label based (:issue:`4947`)
   - Bug in multi-level indexing with a Timestamp partial indexer (:issue:`4294`)
   - Tests/fix for multi-index construction of an all-nan frame (:isue:`4078`)
+  - Fixed a bug where :func:`~pandas.read_html` wasn't correctly inferring
+    values of tables with commas (:issue:`5029`)
+  - Fixed a bug where :func:`~pandas.read_html` wasn't providing a stable
+    ordering of returned tables (:issue:`4770`, :issue:`5029`).
+  - Fixed a bug where :func:`~pandas.read_html` was incorrectly parsing when
+    passed ``index_col=0`` (:issue:`5066`).
+  - Fixed a bug where :func:`~pandas.read_html` was incorrectly infering the
+    type of headers (:issue:`5048`).
+
 
 pandas 0.12.0
 -------------
