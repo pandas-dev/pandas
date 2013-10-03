@@ -490,6 +490,8 @@ Enhancements
   - ``tz_localize`` can infer a fall daylight savings transition based on the structure
     of the unlocalized data (:issue:`4230`), see :ref:`here<timeseries.timezone>`
   - DatetimeIndex is now in the API documentation, see :ref:`here<api.datetimeindex>`
+  - :meth:`~pandas.io.json.json_normalize` is a new method to allow you to create a flat table
+    from semi-structured JSON data. :ref:`See the docs<io.json_normalize>` (:issue:`1067`)
 
 .. _whatsnew_0130.experimental:
 
