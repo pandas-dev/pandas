@@ -428,14 +428,14 @@ Enhancements
 
     .. ipython:: python
 
-       Series(['a1', 'b2', 'c3']).str.match(
+       Series(['a1', 'b2', 'c3']).str.extract(
                '(?P<letter>[ab])(?P<digit>\d)')
 
     and optional groups can also be used.
 
     .. ipython:: python
 
-        Series(['a1', 'b2', '3']).str.match(
+        Series(['a1', 'b2', '3']).str.extract(
                 '(?P<letter>[ab])?(?P<digit>\d)')
 
   - ``read_stata`` now accepts Stata 13 format (:issue:`4291`)
