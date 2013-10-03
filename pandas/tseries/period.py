@@ -712,11 +712,10 @@ class PeriodIndex(Int64Index):
     def astype(self, dtype):
         dtype = np.dtype(dtype)
         if dtype == np.object_:
-            return Index(np.array([x for x in self], dtype), dtype)
+            return Index(np.array(list(self), dtype), dtype)
         elif dtype == _INT64_DTYPE:
             return Index(self.values.copy(), dtype)
-        else:  # pragma: no cover
-            raise ValueError('Cannot cast PeriodIndex to dtype %s' % dtype)
+        raise ValueError('Cannot cast PeriodIndex to dtype %s' % dtype)
 
     def __iter__(self):
         for val in self.values:

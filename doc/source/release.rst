@@ -553,6 +553,8 @@ Bug Fixes
     passed ``index_col=0`` (:issue:`5066`).
   - Fixed a bug where :func:`~pandas.read_html` was incorrectly infering the
     type of headers (:issue:`5048`).
+  - Fixed a bug where ``DatetimeIndex`` joins with ``PeriodIndex`` caused a
+    stack overflow (:issue:`3899`).
 
 
 pandas 0.12.0

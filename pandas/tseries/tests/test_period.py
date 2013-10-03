@@ -1921,7 +1921,7 @@ class TestPeriodIndex(TestCase):
         res = s.index.join(df.columns, how='outer')
         expected = Index([s.index[0], s.index[1],
                           df.columns[0], df.columns[1]], object)
-        np.testing.assert_array_equal(res, expected)
+        tm.assert_index_equal(res, expected)
 
     def test_align_series(self):
         rng = period_range('1/1/2000', '1/1/2010', freq='A')

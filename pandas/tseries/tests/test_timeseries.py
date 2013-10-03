@@ -2064,6 +2064,19 @@ class TestDatetimeIndex(unittest.TestCase):
         new_index = pd.DatetimeIndex(start=index[0], end=index[-1], freq=index.freq)
         self.assert_index_parameters(new_index)
 
+    def test_join_with_period_index(self):
+        df = tm.makeCustomDataframe(10, 10, data_gen_f=lambda *args:
+                                    np.random.randint(2), c_idx_type='p',
+                                    r_idx_type='dt')
+        s = df.iloc[:5, 0]
+        joins = 'left', 'right', 'inner', 'outer'
+
+        with tm.assertRaisesRegexp(ValueError,
+                                   'can only call with other PeriodIndex-ed '
+                                   'objects'):
+            for join in joins:
+                df.columns.join(s.index, how=join)
+
 
 class TestDatetime64(unittest.TestCase):
     """
