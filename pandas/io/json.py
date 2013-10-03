@@ -1,6 +1,7 @@
 # pylint: disable-msg=E1101,W0613,W0603
 
 import os
+import copy
 from collections import defaultdict
 import numpy as np
 
@@ -570,8 +571,11 @@ def nested_to_record(ds,prefix="",level=0):
         ds = [ds]
         singleton = True
 
+    new_ds = []
     for d in ds:
-        for k,v in d.items(): # modifying keys inside loop, not lazy
+
+        new_d = copy.deepcopy(d)
+        for k,v in d.items():
             # each key gets renamed with prefix
             if level == 0:
                 newkey = str(k)
@@ -582,16 +586,17 @@ def nested_to_record(ds,prefix="",level=0):
             # only at level>1 do we rename the rest of the keys
             if not isinstance(v,dict):
                 if level!=0: # so we skip copying for top level, common case
-                    v = d.pop(k)
-                    d[newkey]= v
+                    v = new_d.pop(k)
+                    new_d[newkey]= v
                 continue
             else:
-                v = d.pop(k)
-                d.update(nested_to_record(v,newkey,level+1))
+                v = new_d.pop(k)
+                new_d.update(nested_to_record(v,newkey,level+1))
+        new_ds.append(new_d)
 
     if singleton:
-        return ds[0]
-    return ds
+        return new_ds[0]
+    return new_ds
 
 
 def json_normalize(data, record_path=None, meta=None,
@@ -658,7 +663,7 @@ def json_normalize(data, record_path=None, meta=None,
         data = [data]
 
     if record_path is None:
-        if any([isinstance(x,dict) for x in data[0].itervalues()]):
+        if any([isinstance(x,dict) for x in compat.itervalues(data[0])]):
             # naive normalization, this is idempotent for flat records
             # and potentially will inflate the data considerably for
             # deeply nested structures:
@@ -719,7 +724,7 @@ def json_normalize(data, record_path=None, meta=None,
         result.rename(columns=lambda x: record_prefix + x, inplace=True)
 
     # Data types, a problem
-    for k, v in meta_vals.iteritems():
+    for k, v in compat.iteritems(meta_vals):
         if meta_prefix is not None:
             k = meta_prefix + k
 
