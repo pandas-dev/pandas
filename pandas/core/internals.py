@@ -2413,12 +2413,17 @@ class BlockManager(PandasObject):
 
         return result
 
-    def xs(self, key, axis=1, copy=True):
+    def xs(self, key, axis=1, copy=True, takeable=False):
         if axis < 1:
             raise AssertionError('Can only take xs across axis >= 1, got %d'
                                  % axis)
 
-        loc = self.axes[axis].get_loc(key)
+        # take by position
+        if takeable:
+            loc = key
+        else:
+            loc = self.axes[axis].get_loc(key)
+
         slicer = [slice(None, None) for _ in range(self.ndim)]
         slicer[axis] = loc
         slicer = tuple(slicer)
