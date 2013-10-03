@@ -346,9 +346,6 @@ class ExcelWriterMeta(abc.ABCMeta):
                 except KeyError:
                     error = ValueError("No engine for filetype: '%s'" % ext)
                     raise error
-            if engine != 'xlwt':
-                if 'encoding' in kwargs:
-                    kwargs.pop('encoding')
             cls = get_writer(engine)
         writer = cls.__new__(cls, path, **kwargs)
         writer.__init__(path, **kwargs)
@@ -541,16 +538,15 @@ class _XlwtWriter(ExcelWriter):
     engine = 'xlwt'
     supported_extensions = ('.xls',)
 
-    def __init__(self, path, **engine_kwargs):
+    def __init__(self, path, encoding=None,**engine_kwargs):
         # Use the xlwt module as the Excel writer.
         import xlwt
 
         super(_XlwtWriter, self).__init__(path, **engine_kwargs)
 
-        if 'encoding' in engine_kwargs:
-            self.book = xlwt.Workbook(encoding = engine_kwargs['encoding'])
-        else:
-            self.book = xlwt.Workbook()
+        if encoding is None:
+            encoding = 'ascii'
+        self.book = xlwt.Workbook(encoding=encoding)
         
         self.fm_datetime = xlwt.easyxf(num_format_str='YYYY-MM-DD HH:MM:SS')
         self.fm_date = xlwt.easyxf(num_format_str='YYYY-MM-DD')

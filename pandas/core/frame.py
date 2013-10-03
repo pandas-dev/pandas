@@ -1383,7 +1383,8 @@ class DataFrame(NDFrame):
             ``io.excel.xlsx.writer``, ``io.excel.xls.writer``, and
             ``io.excel.xlsm.writer``.
         encoding: string, default None
-            encoding of the resulting excel file.
+            encoding of the resulting excel file. Only necessary for xlwt,
+            other writers support unicode natively.
 
 
         Notes
@@ -1400,9 +1401,9 @@ class DataFrame(NDFrame):
         need_save = False
         if encoding == None:
             encoding = 'ascii'
-
+            
         if isinstance(excel_writer, compat.string_types):
-            excel_writer = ExcelWriter(excel_writer, engine=engine, encoding=encoding)
+            excel_writer = ExcelWriter(excel_writer, engine=engine)
             need_save = True
 
         formatter = fmt.ExcelFormatter(self,
