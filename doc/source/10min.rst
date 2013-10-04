@@ -74,6 +74,43 @@ Having specific :ref:`dtypes <basics.dtypes>`
 
    df2.dtypes
 
+If you're using IPython, tab completion for column names (as well as public
+attributes) is automatically enabled. Here's a subset of the attributes that
+will be completed:
+
+.. ipython::
+
+   @verbatim
+   In [1]: df2.<TAB>
+
+   df2.A                  df2.boxplot
+   df2.abs                df2.C
+   df2.add                df2.clip
+   df2.add_prefix         df2.clip_lower
+   df2.add_suffix         df2.clip_upper
+   df2.align              df2.columns
+   df2.all                df2.combine
+   df2.any                df2.combineAdd
+   df2.append             df2.combine_first
+   df2.apply              df2.combineMult
+   df2.applymap           df2.compound
+   df2.as_blocks          df2.consolidate
+   df2.asfreq             df2.convert_objects
+   df2.as_matrix          df2.copy
+   df2.astype             df2.corr
+   df2.at                 df2.corrwith
+   df2.at_time            df2.count
+   df2.axes               df2.cov
+   df2.B                  df2.cummax
+   df2.between_time       df2.cummin
+   df2.bfill              df2.cumprod
+   df2.blocks             df2.cumsum
+   df2.bool               df2.D
+
+As you can see, the columns ``A``, ``B``, ``C``, and ``D`` are automatically
+tab completed. ``E`` is there as well; the rest of the attributes have been
+truncated for brevity.
+
 Viewing Data
 ------------
 
