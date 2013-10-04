@@ -714,7 +714,7 @@ class PeriodIndex(Int64Index):
         if dtype == np.object_:
             return Index(np.array(list(self), dtype), dtype)
         elif dtype == _INT64_DTYPE:
-            return Index(self.values.copy(), dtype)
+            return Index(self.values, dtype)
         raise ValueError('Cannot cast PeriodIndex to dtype %s' % dtype)
 
     def __iter__(self):
