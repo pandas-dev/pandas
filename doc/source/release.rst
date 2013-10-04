@@ -546,7 +546,7 @@ Bug Fixes
   - Bug in setting with ``ix/loc`` and a mixed int/string index (:issue:`4544`)
   - Make sure series-series boolean comparions are label based (:issue:`4947`)
   - Bug in multi-level indexing with a Timestamp partial indexer (:issue:`4294`)
-  - Tests/fix for multi-index construction of an all-nan frame (:isue:`4078`)
+  - Tests/fix for multi-index construction of an all-nan frame (:issue:`4078`)
   - Fixed a bug where :func:`~pandas.read_html` wasn't correctly inferring
     values of tables with commas (:issue:`5029`)
   - Fixed a bug where :func:`~pandas.read_html` wasn't providing a stable
@@ -560,6 +560,8 @@ Bug Fixes
   - Fixed a bug where ``groupby`` objects didn't allow plots (:issue:`5102`).
   - Fixed a bug where ``groupby`` objects weren't tab-completing column names
     (:issue:`5102`).
+  - Fixed a bug where ``groupby.plot()`` and friends were duplicating figures
+    multiple times (:issue:`5102`).
 
 
 pandas 0.12.0

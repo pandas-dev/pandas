@@ -203,18 +203,29 @@ however pass ``sort=False`` for potential speedups:
    df = DataFrame({'height': height, 'weight': weight,
                            'gender': gender}, index=time)
 
+.. ipython:: python
+
+   df
+   gb = df.groupby('gender')
+
+
 .. ipython::
 
-   In [7]: df
-
-   In [8]: gb = df.groupby('gender')
-
    @verbatim
-   In [9]: gb.<TAB>
+   In [1]: gb.<TAB>
    gb.agg        gb.boxplot    gb.cummin     gb.describe   gb.filter     gb.get_group  gb.height     gb.last       gb.median     gb.ngroups    gb.plot       gb.rank       gb.std        gb.transform
    gb.aggregate  gb.count      gb.cumprod    gb.dtype      gb.first      gb.groups     gb.hist       gb.max        gb.min        gb.nth        gb.prod       gb.resample   gb.sum        gb.var
    gb.apply      gb.cummax     gb.cumsum     gb.fillna     gb.gender     gb.head       gb.indices    gb.mean       gb.name       gb.ohlc       gb.quantile   gb.size       gb.tail       gb.weight
 
+
+.. ipython:: python
+   :suppress:
+
+   df = DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
+                          'foo', 'bar', 'foo', 'foo'],
+                   'B' : ['one', 'one', 'two', 'three',
+                          'two', 'two', 'one', 'three'],
+                   'C' : randn(8), 'D' : randn(8)})
 
 .. _groupby.multiindex:
 
