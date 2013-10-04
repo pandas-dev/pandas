@@ -1114,6 +1114,7 @@ The infer_dst argument in tz_localize will attempt
 to determine the right offset.
 
 .. ipython:: python
+   :okexcept:
 
    rng_hourly = DatetimeIndex(['11/06/2011 00:00', '11/06/2011 01:00', 
                                '11/06/2011 01:00', '11/06/2011 02:00', 
@@ -1132,7 +1133,7 @@ They can be both positive and negative. :ref:`DateOffsets<timeseries.offsets>` t
 .. ipython:: python
 
    from datetime import datetime, timedelta
-   s  = Series(date_range('2012-1-1', periods=3, freq='D'))
+   s = Series(date_range('2012-1-1', periods=3, freq='D'))
    td = Series([ timedelta(days=i) for i in range(3) ])
    df = DataFrame(dict(A = s, B = td))
    df
