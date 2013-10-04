@@ -555,7 +555,7 @@ Bug Fixes
     type of headers (:issue:`5048`).
   - Fixed a bug where ``DatetimeIndex`` joins with ``PeriodIndex`` caused a
     stack overflow (:issue:`3899`).
-
+  - Fix bound checking for Timestamp() with datetime64 input (:issue:`4065`)
 
 pandas 0.12.0
 -------------

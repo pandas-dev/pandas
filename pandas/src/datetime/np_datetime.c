@@ -274,6 +274,69 @@ set_datetimestruct_days(npy_int64 days, pandas_datetimestruct *dts)
 }
 
 /*
+ * Compares two pandas_datetimestruct objects chronologically
+ */
+int
+cmp_pandas_datetimestruct(pandas_datetimestruct *a, pandas_datetimestruct *b)
+{
+    if (a->year > b->year) {
+        return 1;
+    } else if (a->year < b->year) {
+        return -1;
+    }
+
+    if (a->month > b->month) {
+        return 1;
+    } else if (a->month < b->month) {
+        return -1;
+    }
+
+    if (a->day > b->day) {
+        return 1;
+    } else if (a->day < b->day) {
+        return -1;
+    }
+
+    if (a->hour > b->hour) {
+        return 1;
+    } else if (a->hour < b->hour) {
+        return -1;
+    }
+
+    if (a->min > b->min) {
+        return 1;
+    } else if (a->min < b->min) {
+        return -1;
+    }
+
+    if (a->sec > b->sec) {
+        return 1;
+    } else if (a->sec < b->sec) {
+        return -1;
+    }
+
+    if (a->us > b->us) {
+        return 1;
+    } else if (a->us < b->us) {
+        return -1;
+    }
+
+    if (a->ps > b->ps) {
+        return 1;
+    } else if (a->ps < b->ps) {
+        return -1;
+    }
+
+    if (a->as > b->as) {
+        return 1;
+    } else if (a->as < b->as) {
+        return -1;
+    }
+
+    return 0;
+}
+
+/*
  *
  * Tests for and converts a Python datetime.datetime or datetime.date
  * object into a NumPy pandas_datetimestruct.

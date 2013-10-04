@@ -348,6 +348,13 @@ def _pickle_array(arr):
 
 def _unpickle_array(bytes):
     arr = read_array(BytesIO(bytes))
+
+    # All datetimes should be stored as M8[ns].  When unpickling with
+    # numpy1.6, it will read these as M8[us].  So this ensures all
+    # datetime64 types are read as MS[ns]
+    if is_datetime64_dtype(arr):
+        arr = arr.view(_NS_DTYPE)
+
     return arr
 
 
@@ -1780,6 +1787,14 @@ def is_datetime64_dtype(arr_or_dtype):
         tipo = arr_or_dtype.dtype.type
     return issubclass(tipo, np.datetime64)
 
+def is_datetime64_ns_dtype(arr_or_dtype):
+    if isinstance(arr_or_dtype, np.dtype):
+        tipo = arr_or_dtype
+    elif isinstance(arr_or_dtype, type):
+        tipo = np.dtype(arr_or_dtype)
+    else:
+        tipo = arr_or_dtype.dtype
+    return tipo == _NS_DTYPE
 
 def is_timedelta64_dtype(arr_or_dtype):
     if isinstance(arr_or_dtype, np.dtype):

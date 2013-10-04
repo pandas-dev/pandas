@@ -89,13 +89,12 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
         if isinstance(arg, (list,tuple)):
             arg = np.array(arg, dtype='O')
 
-        if com.is_datetime64_dtype(arg):
+        if com.is_datetime64_ns_dtype(arg):
             if box and not isinstance(arg, DatetimeIndex):
                 try:
                     return DatetimeIndex(arg, tz='utc' if utc else None)
-                except ValueError as e:
-                    values, tz = tslib.datetime_to_datetime64(arg)
-                    return DatetimeIndex._simple_new(values, None, tz=tz)
+                except ValueError:
+                    pass
 
             return arg
 

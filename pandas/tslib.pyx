@@ -404,6 +404,11 @@ cpdef object get_value_box(ndarray arr, object loc):
 # wraparound behavior when using the true int64 lower boundary
 cdef int64_t _NS_LOWER_BOUND = -9223285636854775000LL
 cdef int64_t _NS_UPPER_BOUND = 9223372036854775807LL
+
+cdef pandas_datetimestruct _NS_MIN_DTS, _NS_MAX_DTS
+pandas_datetime_to_datetimestruct(_NS_LOWER_BOUND, PANDAS_FR_ns, &_NS_MIN_DTS)
+pandas_datetime_to_datetimestruct(_NS_UPPER_BOUND, PANDAS_FR_ns, &_NS_MAX_DTS)
+
 Timestamp.min = Timestamp(_NS_LOWER_BOUND)
 Timestamp.max = Timestamp(_NS_UPPER_BOUND)
 
@@ -759,7 +764,7 @@ cdef convert_to_tsobject(object ts, object tz, object unit):
 
         if is_timestamp(ts):
             obj.value += ts.nanosecond
-        _check_dts_bounds(obj.value, &obj.dts)
+        _check_dts_bounds(&obj.dts)
         return obj
     elif PyDate_Check(ts):
         # Keep the converter same as PyDateTime's
@@ -770,7 +775,7 @@ cdef convert_to_tsobject(object ts, object tz, object unit):
                          type(ts))
 
     if obj.value != NPY_NAT:
-        _check_dts_bounds(obj.value, &obj.dts)
+        _check_dts_bounds(&obj.dts)
 
     if tz is not None:
         _localize_tso(obj, tz)
@@ -825,16 +830,26 @@ cdef inline object _get_zone(object tz):
             return tz
 
 
-cdef inline _check_dts_bounds(int64_t value, pandas_datetimestruct *dts):
-    cdef pandas_datetimestruct dts2
-    if dts.year <= 1677 or dts.year >= 2262:
-        pandas_datetime_to_datetimestruct(value, PANDAS_FR_ns, &dts2)
-        if dts2.year != dts.year:
-            fmt = '%d-%.2d-%.2d %.2d:%.2d:%.2d' % (dts.year, dts.month,
-                                                   dts.day, dts.hour,
-                                                   dts.min, dts.sec)
+class OutOfBoundsDatetime(ValueError):
+    pass
 
-            raise ValueError('Out of bounds nanosecond timestamp: %s' % fmt)
+cdef inline _check_dts_bounds(pandas_datetimestruct *dts):
+    cdef:
+        bint error = False
+
+    if dts.year <= 1677 and cmp_pandas_datetimestruct(dts, &_NS_MIN_DTS) == -1:
+        error = True
+    elif (
+            dts.year >= 2262 and
+            cmp_pandas_datetimestruct(dts, &_NS_MAX_DTS) == 1):
+        error = True
+
+    if error:
+        fmt = '%d-%.2d-%.2d %.2d:%.2d:%.2d' % (dts.year, dts.month,
+                                               dts.day, dts.hour,
+                                               dts.min, dts.sec)
+
+        raise OutOfBoundsDatetime('Out of bounds nanosecond timestamp: %s' % fmt)
 
 # elif isinstance(ts, _Timestamp):
 #     tmp = ts
@@ -869,26 +884,18 @@ def datetime_to_datetime64(ndarray[object] values):
 
                 _ts = convert_to_tsobject(val, None, None)
                 iresult[i] = _ts.value
-                _check_dts_bounds(iresult[i], &_ts.dts)
+                _check_dts_bounds(&_ts.dts)
             else:
                 if inferred_tz is not None:
                     raise ValueError('Cannot mix tz-aware with tz-naive values')
                 iresult[i] = _pydatetime_to_dts(val, &dts)
-                _check_dts_bounds(iresult[i], &dts)
+                _check_dts_bounds(&dts)
         else:
             raise TypeError('Unrecognized value type: %s' % type(val))
 
     return result, inferred_tz
 
 _not_datelike_strings = set(['a','A','m','M','p','P','t','T'])
-
-def verify_datetime_bounds(dt):
-    """Verify datetime.datetime is within the datetime64[ns] bounds."""
-    if dt.year <= 1677 or dt.year >= 2262:
-        raise ValueError(
-            'Given datetime not within valid datetime64[ns] bounds'
-        )
-    return dt
 
 def _does_string_look_like_datetime(date_string):
     if date_string.startswith('0'):
@@ -907,15 +914,11 @@ def _does_string_look_like_datetime(date_string):
 
     return True
 
-def parse_datetime_string(date_string, verify_bounds=True, **kwargs):
+def parse_datetime_string(date_string, **kwargs):
     if not _does_string_look_like_datetime(date_string):
         raise ValueError('Given date string not likely a datetime.')
 
     dt = parse_date(date_string, **kwargs)
-
-    if verify_bounds:
-        verify_datetime_bounds(dt)
-
     return dt
 
 def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
@@ -942,7 +945,13 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                     if utc_convert:
                         _ts = convert_to_tsobject(val, None, unit)
                         iresult[i] = _ts.value
-                        _check_dts_bounds(iresult[i], &_ts.dts)
+                        try:
+                            _check_dts_bounds(&_ts.dts)
+                        except ValueError:
+                            if coerce:
+                                iresult[i] = iNaT
+                                continue
+                            raise
                     else:
                         raise ValueError('Tz-aware datetime.datetime cannot '
                                          'be converted to datetime64 unless '
@@ -951,12 +960,30 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                     iresult[i] = _pydatetime_to_dts(val, &dts)
                     if is_timestamp(val):
                         iresult[i] += (<_Timestamp>val).nanosecond
-                    _check_dts_bounds(iresult[i], &dts)
+                    try:
+                        _check_dts_bounds(&dts)
+                    except ValueError:
+                        if coerce:
+                            iresult[i] = iNaT
+                            continue
+                        raise
             elif PyDate_Check(val):
                 iresult[i] = _date_to_datetime64(val, &dts)
-                _check_dts_bounds(iresult[i], &dts)
+                try:
+                    _check_dts_bounds(&dts)
+                except ValueError:
+                    if coerce:
+                        iresult[i] = iNaT
+                        continue
+                    raise
             elif util.is_datetime64_object(val):
-                iresult[i] = _get_datetime64_nanos(val)
+                try:
+                    iresult[i] = _get_datetime64_nanos(val)
+                except ValueError:
+                    if coerce:
+                        iresult[i] = iNaT
+                        continue
+                    raise
 
             # if we are coercing, dont' allow integers
             elif util.is_integer_object(val) and not coerce:
@@ -982,17 +1009,26 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                     _string_to_dts(val, &dts)
                     iresult[i] = pandas_datetimestruct_to_datetime(PANDAS_FR_ns,
                                                                    &dts)
-                    _check_dts_bounds(iresult[i], &dts)
+                    _check_dts_bounds(&dts)
                 except ValueError:
                     try:
-                        result[i] = parse_datetime_string(
-                            val, dayfirst=dayfirst
+                        iresult[i] = _pydatetime_to_dts(
+                            parse_datetime_string(val, dayfirst=dayfirst),
+                            &dts
                         )
                     except Exception:
                         if coerce:
                            iresult[i] = iNaT
                            continue
                         raise TypeError
+
+                    try:
+                        _check_dts_bounds(&dts)
+                    except ValueError:
+                        if coerce:
+                            iresult[i] = iNaT
+                            continue
+                        raise
                 except:
                     if coerce:
                         iresult[i] = iNaT
@@ -1000,6 +1036,18 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                     raise
 
         return result
+    except OutOfBoundsDatetime:
+        if raise_:
+            raise
+
+        oresult = np.empty(n, dtype=object)
+        for i in range(n):
+            val = values[i]
+            if util.is_datetime64_object(val):
+                oresult[i] = val.item()
+            else:
+                oresult[i] = val
+        return oresult
     except TypeError:
         oresult = np.empty(n, dtype=object)
 
@@ -1014,6 +1062,8 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                     continue
                 try:
                     oresult[i] = parse_datetime_string(val, dayfirst=dayfirst)
+                    _pydatetime_to_dts(oresult[i], &dts)
+                    _check_dts_bounds(&dts)
                 except Exception:
                     if raise_:
                         raise
@@ -1320,7 +1370,7 @@ def array_strptime(ndarray[object] values, object fmt):
         dts.us = fraction
 
         iresult[i] = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
-        _check_dts_bounds(iresult[i], &dts)
+        _check_dts_bounds(&dts)
 
     return result
 
@@ -1339,6 +1389,7 @@ cdef inline _get_datetime64_nanos(object val):
 
     if unit != PANDAS_FR_ns:
         pandas_datetime_to_datetimestruct(ival, unit, &dts)
+        _check_dts_bounds(&dts)
         return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
     else:
         return ival
@@ -1398,6 +1449,7 @@ def cast_to_nanoseconds(ndarray arr):
     for i in range(n):
         pandas_datetime_to_datetimestruct(ivalues[i], unit, &dts)
         iresult[i] = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
+        _check_dts_bounds(&dts)
 
     return result
 

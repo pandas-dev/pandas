@@ -4,7 +4,7 @@ import nose
 import numpy as np
 
 from pandas import tslib
-from datetime import datetime
+import datetime
 
 from pandas.core.api import Timestamp
 
@@ -15,19 +15,53 @@ from pandas.tseries.frequencies import get_freq
 from pandas import _np_version_under1p7
 
 
+class TestTimestamp(unittest.TestCase):
+    def test_bounds_with_different_units(self):
+        out_of_bounds_dates = (
+            '1677-09-21',
+            '2262-04-12',
+        )
+
+        time_units = ('D', 'h', 'm', 's', 'ms', 'us')
+
+        for date_string in out_of_bounds_dates:
+            for unit in time_units:
+                self.assertRaises(
+                    ValueError,
+                    tslib.Timestamp,
+                    np.datetime64(date_string, dtype='M8[%s]' % unit)
+                )
+
+        in_bounds_dates = (
+            '1677-09-23',
+            '2262-04-11',
+        )
+
+        for date_string in in_bounds_dates:
+            for unit in time_units:
+                tslib.Timestamp(
+                    np.datetime64(date_string, dtype='M8[%s]' % unit)
+                )
+
+    def test_barely_oob_dts(self):
+        one_us = np.timedelta64(1)
+
+        # By definition we can't go out of bounds in [ns], so we
+        # convert the datetime64s to [us] so we can go out of bounds
+        min_ts_us = np.datetime64(tslib.Timestamp.min).astype('M8[us]')
+        max_ts_us = np.datetime64(tslib.Timestamp.max).astype('M8[us]')
+
+        # No error for the min/max datetimes
+        tslib.Timestamp(min_ts_us)
+        tslib.Timestamp(max_ts_us)
+
+        # One us less than the minimum is an error
+        self.assertRaises(ValueError, tslib.Timestamp, min_ts_us - one_us)
+
+        # One us more than the maximum is an error
+        self.assertRaises(ValueError, tslib.Timestamp, max_ts_us + one_us)
+
 class TestDatetimeParsingWrappers(unittest.TestCase):
-    def test_verify_datetime_bounds(self):
-        for year in (1, 1000, 1677, 2262, 5000):
-            dt = datetime(year, 1, 1)
-            self.assertRaises(
-                ValueError,
-                tslib.verify_datetime_bounds,
-                dt
-            )
-
-        for year in (1678, 2000, 2261):
-            tslib.verify_datetime_bounds(datetime(year, 1, 1))
-
     def test_does_not_convert_mixed_integer(self):
         bad_date_strings = (
             '-50000',
@@ -97,15 +131,45 @@ class TestArrayToDatetime(unittest.TestCase):
         arr = np.array(['1', '2', '3', '4', '5'], dtype=object)
         self.assert_(np.array_equal(tslib.array_to_datetime(arr), arr))
 
-    def test_dates_outside_of_datetime64_ns_bounds(self):
-        # These datetimes are outside of the bounds of the
-        # datetime64[ns] bounds, so they cannot be converted to
-        # datetimes
-        arr = np.array(['1/1/1676', '1/2/1676'], dtype=object)
-        self.assert_(np.array_equal(tslib.array_to_datetime(arr), arr))
+    def test_coercing_dates_outside_of_datetime64_ns_bounds(self):
+        invalid_dates = [
+            datetime.date(1000, 1, 1),
+            datetime.datetime(1000, 1, 1),
+            '1000-01-01',
+            'Jan 1, 1000',
+            np.datetime64('1000-01-01'),
+        ]
 
-        arr = np.array(['1/1/2263', '1/2/2263'], dtype=object)
-        self.assert_(np.array_equal(tslib.array_to_datetime(arr), arr))
+        for invalid_date in invalid_dates:
+            self.assertRaises(
+                ValueError,
+                tslib.array_to_datetime,
+                np.array([invalid_date], dtype='object'),
+                coerce=False,
+                raise_=True,
+            )
+            self.assert_(
+                np.array_equal(
+                    tslib.array_to_datetime(
+                        np.array([invalid_date], dtype='object'), coerce=True
+                    ),
+                    np.array([tslib.iNaT], dtype='M8[ns]')
+                )
+            )
+
+        arr = np.array(['1/1/1000', '1/1/2000'], dtype=object)
+        self.assert_(
+            np.array_equal(
+                tslib.array_to_datetime(arr, coerce=True),
+                np.array(
+                    [
+                        tslib.iNaT,
+                        '2000-01-01T00:00:00.000000000-0000'
+                    ],
+                    dtype='M8[ns]'
+                )
+            )
+        )
 
     def test_coerce_of_invalid_datetimes(self):
         arr = np.array(['01-01-2013', 'not_a_date', '1'], dtype=object)
@@ -130,11 +194,11 @@ class TestArrayToDatetime(unittest.TestCase):
         )
 
 
-class TestTimestamp(unittest.TestCase):
+class TestTimestampNsOperations(unittest.TestCase):
     def setUp(self):
         if _np_version_under1p7:
             raise nose.SkipTest('numpy >= 1.7 required')
-        self.timestamp = Timestamp(datetime.utcnow())
+        self.timestamp = Timestamp(datetime.datetime.utcnow())
 
     def assert_ns_timedelta(self, modified_timestamp, expected_value):
         value = self.timestamp.value
