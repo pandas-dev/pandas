@@ -1177,7 +1177,7 @@ class ObjectBlock(Block):
         # attempt to create new type blocks
         is_unique = self.items.is_unique
         blocks = []
-        if by_item:
+        if by_item and not self._is_single_block:
 
             for i, c in enumerate(self.items):
                 values = self.iget(i)
@@ -1199,6 +1199,17 @@ class ObjectBlock(Block):
                 make_block(values, self.items, self.ref_items, ndim=self.ndim))
 
         return blocks
+
+    def _maybe_downcast(self, blocks, downcast=None):
+
+        if downcast is not None:
+            return blocks
+
+        # split and convert the blocks
+        result_blocks = []
+        for blk in blocks:
+            result_blocks.extend(blk.convert(convert_dates=True,convert_numeric=False))
+        return result_blocks
 
     def _can_hold_element(self, element):
         return True
@@ -2050,6 +2061,8 @@ class BlockManager(PandasObject):
                 result_blocks.extend(applied)
             else:
                 result_blocks.append(applied)
+        if len(result_blocks) == 0:
+            return self.make_empty(axes or self.axes)
         bm = self.__class__(
             result_blocks, axes or self.axes, do_integrity_check=do_integrity_check)
         bm._consolidate_inplace()
