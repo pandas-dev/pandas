@@ -380,6 +380,8 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
    function signature.
  - :func:`~pandas.read_html` now uses ``TextParser`` to parse HTML data from
    bs4/lxml (:issue:`4770`).
+ - Removed the ``keep_internal`` keyword parameter in
+   ``pandas/core/groupby.py`` because it wasn't being used (:issue:`5102`).
 
 .. _release.bug_fixes-0.13.0:
 
@@ -555,6 +557,9 @@ Bug Fixes
     type of headers (:issue:`5048`).
   - Fixed a bug where ``DatetimeIndex`` joins with ``PeriodIndex`` caused a
     stack overflow (:issue:`3899`).
+  - Fixed a bug where ``groupby`` objects didn't allow plots (:issue:`5102`).
+  - Fixed a bug where ``groupby`` objects weren't tab-completing column names
+    (:issue:`5102`).
 
 
 pandas 0.12.0

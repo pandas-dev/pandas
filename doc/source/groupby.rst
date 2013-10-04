@@ -188,6 +188,34 @@ however pass ``sort=False`` for potential speedups:
    df2.groupby(['X'], sort=True).sum()
    df2.groupby(['X'], sort=False).sum()
 
+.. _groupby.tabcompletion:
+
+``GroupBy`` will tab complete column names (and other attributes)
+
+.. ipython:: python
+   :suppress:
+
+   n = 10
+   weight = np.random.normal(166, 20, size=n)
+   height = np.random.normal(60, 10, size=n)
+   time = date_range('1/1/2000', periods=n)
+   gender = tm.choice(['male', 'female'], size=n)
+   df = DataFrame({'height': height, 'weight': weight,
+                           'gender': gender}, index=time)
+
+.. ipython::
+
+   In [7]: df
+
+   In [8]: gb = df.groupby('gender')
+
+   @verbatim
+   In [9]: gb.<TAB>
+   gb.agg        gb.boxplot    gb.cummin     gb.describe   gb.filter     gb.get_group  gb.height     gb.last       gb.median     gb.ngroups    gb.plot       gb.rank       gb.std        gb.transform
+   gb.aggregate  gb.count      gb.cumprod    gb.dtype      gb.first      gb.groups     gb.hist       gb.max        gb.min        gb.nth        gb.prod       gb.resample   gb.sum        gb.var
+   gb.apply      gb.cummax     gb.cumsum     gb.fillna     gb.gender     gb.head       gb.indices    gb.mean       gb.name       gb.ohlc       gb.quantile   gb.size       gb.tail       gb.weight
+
+
 .. _groupby.multiindex:
 
 GroupBy with MultiIndex

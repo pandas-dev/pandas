@@ -289,11 +289,13 @@ class GroupBy(PandasObject):
 
             def curried_with_axis(x):
                 return f(x, *args, **kwargs_with_axis)
-            curried_with_axis.__name__ = name
 
             def curried(x):
                 return f(x, *args, **kwargs)
-            curried.__name__ = name
+
+            # preserve the name so we can detect it when calling plot methods,
+            # to avoid duplicates
+            curried.__name__ = curried_with_axis.__name__ = name
 
             # special case otherwise extra plots are created when catching the
             # exception below
@@ -1957,14 +1959,14 @@ class NDFrameGroupBy(GroupBy):
                         index = key_index
                     else:
                         stacked_values = np.vstack([np.asarray(x)
-                                                for x in values]).T
+                                                    for x in values]).T
 
                         index = values[0].index
                         columns = key_index
 
-                except ValueError:
-                    #GH1738,, values is list of arrays of unequal lengths
-                    # fall through to the outer else caluse
+                except (ValueError, AttributeError):
+                    # GH1738: values is list of arrays of unequal lengths fall
+                    # through to the outer else caluse
                     return Series(values, index=key_index)
 
                 return DataFrame(stacked_values, index=index,
