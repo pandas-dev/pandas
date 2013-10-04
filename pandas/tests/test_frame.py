@@ -4311,15 +4311,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         ops = [operator.add, operator.sub, operator.mul, operator.truediv]
 
+        # since filling converts dtypes from object, changed expected to be object
         for op in ops:
             filled = df.fillna(np.nan)
             result = op(df, 3)
-            expected = op(filled, 3)
+            expected = op(filled, 3).astype(object)
             expected[com.isnull(expected)] = None
             assert_frame_equal(result, expected)
 
             result = op(df, df)
-            expected = op(filled, filled)
+            expected = op(filled, filled).astype(object)
             expected[com.isnull(expected)] = None
             assert_frame_equal(result, expected)
 
@@ -4327,7 +4328,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             assert_frame_equal(result, expected)
 
             result = op(df.fillna(7), df)
-            assert_frame_equal(result, expected)
+            assert_frame_equal(result, expected, check_dtype=False)
 
     def test_comparison_invalid(self):
 
@@ -6694,6 +6695,25 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         df.fillna({ 2: 'foo' }, inplace=True)
         assert_frame_equal(df, expected)
+
+    def test_fillna_dtype_conversion(self):
+        # make sure that fillna on an empty frame works
+        df = DataFrame(index=["A","B","C"], columns = [1,2,3,4,5])
+        result = df.get_dtype_counts().order()
+        expected = Series({ 'object' : 5 })
+        assert_series_equal(result, expected)
+
+        result = df.fillna(1)
+        expected = DataFrame(1, index=["A","B","C"], columns = [1,2,3,4,5])
+        result = result.get_dtype_counts().order()
+        expected = Series({ 'int64' : 5 })
+        assert_series_equal(result, expected)
+
+        # empty block
+        df = DataFrame(index=lrange(3),columns=['A','B'],dtype='float64')
+        result = df.fillna('nan')
+        expected = DataFrame('nan',index=lrange(3),columns=['A','B'])
+        assert_frame_equal(result, expected)
 
     def test_ffill(self):
         self.tsframe['A'][:5] = nan
@@ -10812,7 +10832,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected.loc[35,4] = 1
         assert_frame_equal(df2,expected)
 
-        # add object, should this raise?
         df['foo'] = 'test'
         with tm.assertRaisesRegexp(TypeError, 'boolean setting on mixed-type'):
             df[df > 0.3] = 1

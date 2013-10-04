@@ -411,11 +411,13 @@ def _arith_method_SERIES(op, name, str_rep=None, fill_zeros=None, default_axis=N
             result = expressions.evaluate(op, str_rep, x, y,
                                           raise_on_error=True, **eval_kwargs)
         except TypeError:
-            result = pa.empty(len(x), dtype=x.dtype)
             if isinstance(y, (pa.Array, pd.Series)):
+                dtype = np.find_common_type([x.dtype,y.dtype],[])
+                result = np.empty(x.size, dtype=dtype)
                 mask = notnull(x) & notnull(y)
                 result[mask] = op(x[mask], y[mask])
             else:
+                result = pa.empty(len(x), dtype=x.dtype)
                 mask = notnull(x)
                 result[mask] = op(x[mask], y)
 
@@ -690,12 +692,14 @@ def _arith_method_FRAME(op, name, str_rep=None, default_axis='columns', fill_zer
                 op, str_rep, x, y, raise_on_error=True, **eval_kwargs)
         except TypeError:
             xrav = x.ravel()
-            result = np.empty(x.size, dtype=x.dtype)
             if isinstance(y, (np.ndarray, pd.Series)):
+                dtype = np.find_common_type([x.dtype,y.dtype],[])
+                result = np.empty(x.size, dtype=dtype)
                 yrav = y.ravel()
                 mask = notnull(xrav) & notnull(yrav)
                 result[mask] = op(xrav[mask], yrav[mask])
             else:
+                result = np.empty(x.size, dtype=x.dtype)
                 mask = notnull(xrav)
                 result[mask] = op(xrav[mask], y)
 
@@ -855,6 +859,8 @@ def _arith_method_PANEL(op, name, str_rep=None, fill_zeros=None,
             result = expressions.evaluate(op, str_rep, x, y,
                                           raise_on_error=True, **eval_kwargs)
         except TypeError:
+
+            # TODO: might need to find_common_type here?
             result = pa.empty(len(x), dtype=x.dtype)
             mask = notnull(x)
             result[mask] = op(x[mask], y)

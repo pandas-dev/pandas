@@ -1664,8 +1664,9 @@ class DataCol(IndexCol):
 
     def set_atom_string(
             self, block, existing_col, min_itemsize, nan_rep, encoding):
-        # fill nan items with myself
-        block = block.fillna(nan_rep)[0]
+        # fill nan items with myself, don't disturb the blocks by
+        # trying to downcast
+        block = block.fillna(nan_rep, downcast=False)[0]
         data = block.values
 
         # see if we have a valid string type
