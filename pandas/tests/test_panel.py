@@ -732,8 +732,9 @@ class CheckIndexing(object):
         expected = DataFrame({'a': [np.nan, True]})
         assert_frame_equal(result, expected)
 
+        # this is autodowncasted here
         result = d['ItemA'].fillna(False) | d['ItemB']
-        expected = DataFrame({'a': [True, True]}, dtype=object)
+        expected = DataFrame({'a': [True, True]})
         assert_frame_equal(result, expected)
 
     def test_neg(self):
