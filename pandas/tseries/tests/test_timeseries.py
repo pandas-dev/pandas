@@ -31,16 +31,12 @@ import pandas.tslib as tslib
 
 import pandas.index as _index
 
-from pandas.compat import(
-    range, long, StringIO, lrange, lmap, map, zip, cPickle as pickle, product
-)
-from pandas import read_pickle
+from pandas.compat import range, long, StringIO, lrange, lmap, zip, product
 import pandas.core.datetools as dt
 from numpy.random import rand
 from numpy.testing import assert_array_equal
 from pandas.util.testing import assert_frame_equal
 import pandas.compat as compat
-from pandas.core.datetools import BDay
 import pandas.core.common as com
 from pandas import concat
 from pandas import _np_version_under1p7
@@ -2063,6 +2059,18 @@ class TestDatetimeIndex(unittest.TestCase):
 
         new_index = pd.DatetimeIndex(start=index[0], end=index[-1], freq=index.freq)
         self.assert_index_parameters(new_index)
+
+    def test_join_with_period_index(self):
+        df = tm.makeCustomDataframe(10, 10, data_gen_f=lambda *args:
+                                    np.random.randint(2), c_idx_type='p',
+                                    r_idx_type='dt')
+        s = df.iloc[:5, 0]
+        joins = 'left', 'right', 'inner', 'outer'
+
+        for join in joins:
+            with tm.assertRaisesRegexp(ValueError, 'can only call with other '
+                                       'PeriodIndex-ed objects'):
+                df.columns.join(s.index, how=join)
 
 
 class TestDatetime64(unittest.TestCase):
