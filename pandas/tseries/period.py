@@ -12,8 +12,8 @@ from pandas.tseries.tools import parse_time_string
 import pandas.tseries.frequencies as _freq_mod
 
 import pandas.core.common as com
-from pandas.core.common import (isnull, _NS_DTYPE, _INT64_DTYPE,
-                                _maybe_box, _values_from_object)
+from pandas.core.common import (isnull, _INT64_DTYPE, _maybe_box,
+                                _values_from_object)
 from pandas import compat
 from pandas.lib import Timestamp
 import pandas.lib as lib
@@ -712,13 +712,10 @@ class PeriodIndex(Int64Index):
     def astype(self, dtype):
         dtype = np.dtype(dtype)
         if dtype == np.object_:
-            result = np.empty(len(self), dtype=dtype)
-            result[:] = [x for x in self]
-            return result
+            return Index(np.array(list(self), dtype), dtype)
         elif dtype == _INT64_DTYPE:
-            return self.values.copy()
-        else:  # pragma: no cover
-            raise ValueError('Cannot cast PeriodIndex to dtype %s' % dtype)
+            return Index(self.values, dtype)
+        raise ValueError('Cannot cast PeriodIndex to dtype %s' % dtype)
 
     def __iter__(self):
         for val in self.values:

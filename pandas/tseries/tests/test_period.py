@@ -22,8 +22,8 @@ import pandas.tseries.period as pmod
 import pandas.core.datetools as datetools
 import pandas as pd
 import numpy as np
-from pandas.compat import range, lrange, lmap, map, zip
-randn = np.random.randn
+from numpy.random import randn
+from pandas.compat import range, lrange, lmap, zip
 
 from pandas import Series, TimeSeries, DataFrame
 from pandas.util.testing import(assert_series_equal, assert_almost_equal,
@@ -1207,7 +1207,6 @@ class TestPeriodIndex(TestCase):
         self.assertFalse(index.is_(index - 2))
         self.assertFalse(index.is_(index - 0))
 
-
     def test_comp_period(self):
         idx = period_range('2007-01', periods=20, freq='M')
 
@@ -1913,6 +1912,17 @@ class TestPeriodIndex(TestCase):
             res = index.join(index, how=kind)
             self.assert_(index is res)
 
+    def test_join_does_not_recur(self):
+        df = tm.makeCustomDataframe(3, 2, data_gen_f=lambda *args:
+                                    np.random.randint(2), c_idx_type='p',
+                                    r_idx_type='dt')
+        s = df.iloc[:2, 0]
+
+        res = s.index.join(df.columns, how='outer')
+        expected = Index([s.index[0], s.index[1],
+                          df.columns[0], df.columns[1]], object)
+        tm.assert_index_equal(res, expected)
+
     def test_align_series(self):
         rng = period_range('1/1/2000', '1/1/2010', freq='A')
         ts = Series(np.random.randn(len(rng)), index=rng)
@@ -2185,15 +2195,15 @@ class TestPeriodRepresentation(unittest.TestCase):
 
     def test_secondly(self):
         self._check_freq('S', '1970-01-01')
-        
+
     def test_millisecondly(self):
         self._check_freq('L', '1970-01-01')
 
     def test_microsecondly(self):
         self._check_freq('U', '1970-01-01')
-        
+
     def test_nanosecondly(self):
-        self._check_freq('N', '1970-01-01')        
+        self._check_freq('N', '1970-01-01')
 
     def _check_freq(self, freq, base_date):
         rng = PeriodIndex(start=base_date, periods=10, freq=freq)
