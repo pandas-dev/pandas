@@ -2,6 +2,8 @@ from __future__ import print_function
 import nose
 import unittest
 
+from numpy.testing.decorators import slow
+
 from datetime import datetime
 from numpy import nan
 
@@ -9,8 +11,7 @@ from pandas import bdate_range
 from pandas.core.index import Index, MultiIndex
 from pandas.core.common import rands
 from pandas.core.api import Categorical, DataFrame
-from pandas.core.groupby import (GroupByError, SpecificationError, DataError,
-                                 _apply_whitelist)
+from pandas.core.groupby import SpecificationError, DataError
 from pandas.core.series import Series
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
                                  assert_series_equal, assert_almost_equal,
@@ -18,14 +19,12 @@ from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
 from pandas.compat import(
     range, long, lrange, StringIO, lmap, lzip, map, zip, builtins, OrderedDict
 )
-from pandas import compat,  _np_version_under1p7
+from pandas import compat
 from pandas.core.panel import Panel
 from pandas.tools.merge import concat
 from collections import defaultdict
 import pandas.core.common as com
-import pandas.core.datetools as dt
 import numpy as np
-from numpy.testing import assert_equal
 
 import pandas.core.nanops as nanops
 
@@ -2728,6 +2727,85 @@ class TestGroupBy(unittest.TestCase):
                 with tm.assertRaisesRegexp(AttributeError, msg):
                     getattr(gb, bl)
 
+    def test_series_groupby_plotting_nominally_works(self):
+        try:
+            import matplotlib as mpl
+            mpl.use('Agg')
+        except ImportError:
+            raise nose.SkipTest("matplotlib not installed")
+        n = 10
+        weight = Series(np.random.normal(166, 20, size=n))
+        height = Series(np.random.normal(60, 10, size=n))
+        gender = tm.choice(['male', 'female'], size=n)
+
+        weight.groupby(gender).plot()
+        tm.close()
+        height.groupby(gender).hist()
+        tm.close()
+
+    @slow
+    def test_frame_groupby_plot_boxplot(self):
+        try:
+            import matplotlib.pyplot as plt
+            import matplotlib as mpl
+            mpl.use('Agg')
+        except ImportError:
+            raise nose.SkipTest("matplotlib not installed")
+        tm.close()
+
+        n = 10
+        weight = Series(np.random.normal(166, 20, size=n))
+        height = Series(np.random.normal(60, 10, size=n))
+        gender = tm.choice(['male', 'female'], size=n)
+        df = DataFrame({'height': height, 'weight': weight, 'gender': gender})
+        gb = df.groupby('gender')
+
+        res = gb.plot()
+        self.assertEqual(len(plt.get_fignums()), 2)
+        self.assertEqual(len(res), 2)
+        tm.close()
+
+        res = gb.boxplot()
+        self.assertEqual(len(plt.get_fignums()), 1)
+        self.assertEqual(len(res), 2)
+        tm.close()
+
+        with tm.assertRaisesRegexp(TypeError, '.*str.+float'):
+            gb.hist()
+
+    @slow
+    def test_frame_groupby_hist(self):
+        try:
+            import matplotlib.pyplot as plt
+            import matplotlib as mpl
+            mpl.use('Agg')
+        except ImportError:
+            raise nose.SkipTest("matplotlib not installed")
+        tm.close()
+
+        n = 10
+        weight = Series(np.random.normal(166, 20, size=n))
+        height = Series(np.random.normal(60, 10, size=n))
+        gender_int = tm.choice([0, 1], size=n)
+        df_int = DataFrame({'height': height, 'weight': weight,
+                            'gender': gender_int})
+        gb = df_int.groupby('gender')
+        axes = gb.hist()
+        self.assertEqual(len(axes), 2)
+        self.assertEqual(len(plt.get_fignums()), 2)
+        tm.close()
+
+    def test_tab_completion(self):
+        grp = self.mframe.groupby(level='second')
+        results = set([v for v in dir(grp) if not v.startswith('_')])
+        expected = set(['A','B','C',
+            'agg','aggregate','apply','boxplot','filter','first','get_group',
+            'groups','hist','indices','last','max','mean','median',
+            'min','name','ngroups','nth','ohlc','plot', 'prod',
+            'size','std','sum','transform','var', 'count', 'head', 'describe',
+            'cummax', 'dtype', 'quantile', 'rank', 'cumprod', 'tail',
+            'resample', 'cummin', 'fillna', 'cumsum'])
+        self.assertEqual(results, expected)
 
 def assert_fp_equal(a, b):
     assert (np.abs(a - b) < 1e-12).all()
@@ -2764,7 +2842,5 @@ def test_decons():
 
 
 if __name__ == '__main__':
-    import nose
-    nose.runmodule(
-        argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure', '-s'],
-        exit=False)
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure',
+                         '-s'], exit=False)
