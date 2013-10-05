@@ -237,7 +237,7 @@ cdef class TextReader:
     cdef:
         parser_t *parser
         object file_handle, na_fvalues
-        bint factorize, na_filter, verbose, has_usecols, has_mi_columns
+        bint na_filter, verbose, has_usecols, has_mi_columns
         int parser_start
         list clocks
         char *c_encoding
@@ -276,7 +276,6 @@ cdef class TextReader:
 
                   converters=None,
 
-                  factorize=True,
                   as_recarray=False,
 
                   skipinitialspace=False,
@@ -337,8 +336,6 @@ cdef class TextReader:
             if len(delimiter) > 1:
                 raise ValueError('only length-1 separators excluded right now')
             self.parser.delimiter = ord(delimiter)
-
-        self.factorize = factorize
 
         #----------------------------------------
         # parser options
