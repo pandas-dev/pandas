@@ -201,6 +201,8 @@ class Index(FrozenNDArray):
 
     @classmethod
     def _coerce_to_ndarray(cls, data):
+        """coerces data to ndarray, raises on scalar data. Converts other
+        iterables to list first and then to array. Does not touch ndarrays."""
 
         if not isinstance(data, np.ndarray):
             if np.isscalar(data):
@@ -1624,7 +1626,7 @@ class Int64Index(Index):
     Parameters
     ----------
     data : array-like (1-dimensional)
-    dtype : NumPy dtype (default: object)
+    dtype : NumPy dtype (default: int64)
     copy : bool
         Make a copy of input ndarray
     name : object
@@ -1651,33 +1653,8 @@ class Int64Index(Index):
             subarr.name = name
             return subarr
 
-        if not isinstance(data, np.ndarray):
-            if np.isscalar(data):
-                cls._scalar_data_error(data)
-
-            data = cls._coerce_to_ndarray(data)
-
-            if issubclass(data.dtype.type, compat.string_types):
-                cls._string_data_error(data)
-
-            elif issubclass(data.dtype.type, np.integer):
-                # don't force the upcast as we may be dealing
-                # with a platform int
-                if dtype is None or not issubclass(np.dtype(dtype).type, np.integer):
-                    dtype = np.int64
-
-                subarr = np.array(data, dtype=dtype, copy=copy)
-            else:
-                subarr = np.array(data, dtype=np.int64, copy=copy)
-                if len(data) > 0:
-                    if (subarr != data).any():
-                        raise TypeError('Unsafe NumPy casting, you must '
-                                        'explicitly cast')
-
-            # other iterable of some kind
-            if not isinstance(data, (list, tuple)):
-                data = list(data)
-            data = np.asarray(data)
+        # isscalar, generators handled in coerce_to_ndarray
+        data = cls._coerce_to_ndarray(data)
 
         if issubclass(data.dtype.type, compat.string_types):
             cls._string_data_error(data)
@@ -1767,11 +1744,7 @@ class Float64Index(Index):
             subarr.name = name
             return subarr
 
-        if not isinstance(data, np.ndarray):
-            if np.isscalar(data):
-                cls._scalar_data_error(data)
-
-            data = cls._coerce_to_ndarray(data)
+        data = cls._coerce_to_ndarray(data)
 
         if issubclass(data.dtype.type, compat.string_types):
             cls._string_data_error(data)
