@@ -1230,17 +1230,17 @@ R_l0_g4,R_l1_g4,R4C0,R4C1,R4C2
         #### invalid options ####
 
         # no as_recarray
-        self.assertRaises(Exception, read_csv, StringIO(data), header=[0,1,2,3],
+        self.assertRaises(ValueError, read_csv, StringIO(data), header=[0,1,2,3],
                           index_col=[0,1], as_recarray=True, tupleize_cols=False)
 
         # names
-        self.assertRaises(Exception, read_csv, StringIO(data), header=[0,1,2,3],
+        self.assertRaises(ValueError, read_csv, StringIO(data), header=[0,1,2,3],
                           index_col=[0,1], names=['foo','bar'], tupleize_cols=False)
         # usecols
-        self.assertRaises(Exception, read_csv, StringIO(data), header=[0,1,2,3],
+        self.assertRaises(ValueError, read_csv, StringIO(data), header=[0,1,2,3],
                           index_col=[0,1], usecols=['foo','bar'], tupleize_cols=False)
         # non-numeric index_col
-        self.assertRaises(Exception, read_csv, StringIO(data), header=[0,1,2,3],
+        self.assertRaises(ValueError, read_csv, StringIO(data), header=[0,1,2,3],
                           index_col=['foo','bar'], tupleize_cols=False)
 
     def test_pass_names_with_index(self):
@@ -2715,6 +2715,24 @@ No,No,No"""
             df = self.read_csv(StringIO(data))
         self.assertEqual(df.a.dtype, np.object)
 
+    def test_invalid_c_parser_opts_with_not_c_parser(self):
+        from pandas.io.parsers import _c_parser_defaults as c_defaults
+
+        data = """1,2,3,,
+1,2,3,4,
+1,2,3,4,5
+1,2,,,
+1,2,3,4,"""
+
+        engines = 'python', 'python-fwf'
+        for default in c_defaults:
+            for engine in engines:
+                kwargs = {default: object()}
+                with tm.assertRaisesRegexp(ValueError,
+                                           'The %r option is not supported '
+                                           'with the %r engine' % (default,
+                                                                   engine)):
+                    read_csv(StringIO(data), engine=engine, **kwargs)
 
 class TestParseSQL(unittest.TestCase):
 
@@ -2783,7 +2801,7 @@ class TestParseSQL(unittest.TestCase):
 
 
 def assert_same_values_and_dtype(res, exp):
-    assert(res.dtype == exp.dtype)
+    tm.assert_equal(res.dtype, exp.dtype)
     tm.assert_almost_equal(res, exp)
 
 
