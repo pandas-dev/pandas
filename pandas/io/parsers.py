@@ -341,7 +341,7 @@ def _make_parser_function(name, sep=','):
                  squeeze=False,
                  mangle_dupe_cols=True,
                  tupleize_cols=False,
-                 ):
+                 factorize=True):
 
         # Alias sep -> delimiter.
         if delimiter is None:
@@ -401,7 +401,7 @@ def _make_parser_function(name, sep=','):
                     buffer_lines=buffer_lines,
                     mangle_dupe_cols=mangle_dupe_cols,
                     tupleize_cols=tupleize_cols,
-            )
+                    factorize=factorize)
 
         return _read(filepath_or_buffer, kwds)
 
@@ -490,27 +490,24 @@ class TextFileReader(object):
         kwds = self.orig_options
 
         options = {}
-        for argname, default in compat.iteritems(_parser_defaults):
-            if argname in kwds:
-                value = kwds[argname]
-            else:
-                value = default
 
-            options[argname] = value
+        for argname, default in compat.iteritems(_parser_defaults):
+            options[argname] = kwds.get(argname, default)
 
         for argname, default in compat.iteritems(_c_parser_defaults):
             if argname in kwds:
                 value = kwds[argname]
+
                 if engine != 'c' and value != default:
-                    raise ValueError('%s is not supported with %s parser' %
-                                     (argname, engine))
+                    raise ValueError('The %r option is not supported with the'
+                                     ' %r engine' % (argname, engine))
+            else:
+                value = default
             options[argname] = value
 
         if engine == 'python-fwf':
             for argname, default in compat.iteritems(_fwf_defaults):
-                if argname in kwds:
-                    value = kwds[argname]
-                options[argname] = value
+                options[argname] = kwds.get(argname, default)
 
         return options
 
@@ -518,7 +515,9 @@ class TextFileReader(object):
         result = options.copy()
 
         sep = options['delimiter']
-        if (sep is None and not options['delim_whitespace']):
+        delim_whitespace = options['delim_whitespace']
+
+        if sep is None and not delim_whitespace:
             if engine == 'c':
                 print('Using Python parser to sniff delimiter')
                 engine = 'python'
@@ -667,21 +666,24 @@ class ParserBase(object):
         self.header = kwds.get('header')
         if isinstance(self.header,(list,tuple,np.ndarray)):
             if kwds.get('as_recarray'):
-                raise Exception("cannot specify as_recarray when "
-                                "specifying a multi-index header")
+                raise ValueError("cannot specify as_recarray when "
+                                 "specifying a multi-index header")
             if kwds.get('usecols'):
-                raise Exception("cannot specify usecols when "
-                                "specifying a multi-index header")
+                raise ValueError("cannot specify usecols when "
+                                 "specifying a multi-index header")
             if kwds.get('names'):
-                raise Exception("cannot specify names when "
-                                "specifying a multi-index header")
+                raise ValueError("cannot specify names when "
+                                 "specifying a multi-index header")
 
             # validate index_col that only contains integers
             if self.index_col is not None:
-                if not (isinstance(self.index_col,(list,tuple,np.ndarray)) and all(
-                        [ com.is_integer(i) for i in self.index_col ]) or com.is_integer(self.index_col)):
-                    raise Exception("index_col must only contain row numbers "
-                                    "when specifying a multi-index header")
+                is_sequence = isinstance(self.index_col, (list, tuple,
+                                                          np.ndarray))
+                if not (is_sequence and
+                        all(com.is_integer(i) for i in self.index_col) or
+                        com.is_integer(self.index_col)):
+                    raise ValueError("index_col must only contain row numbers "
+                                     "when specifying a multi-index header")
 
         self._name_processed = False
 

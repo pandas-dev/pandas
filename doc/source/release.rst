@@ -564,6 +564,8 @@ Bug Fixes
   - Fixed a bug where ``groupby.plot()`` and friends were duplicating figures
     multiple times (:issue:`5102`).
   - Provide automatic conversion of ``object`` dtypes on fillna, related (:issue:`5103`)
+  - Fixed a bug where default options were being overwritten in the option
+    parser cleaning (:issue:`5121`).
 
 
 pandas 0.12.0
