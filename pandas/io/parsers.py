@@ -2,11 +2,10 @@
 Module contains tools for processing files into DataFrames or other objects
 """
 from __future__ import print_function
-from pandas.compat import range, lrange, StringIO, lzip, zip, string_types
+from pandas.compat import range, lrange, StringIO, lzip, zip, string_types, map
 from pandas import compat
 import re
 import csv
-from warnings import warn
 
 import numpy as np
 
@@ -266,7 +265,6 @@ _c_parser_defaults = {
     'buffer_lines': None,
     'error_bad_lines': True,
     'warn_bad_lines': True,
-    'factorize': True,
     'dtype': None,
     'decimal': b'.'
 }
@@ -340,8 +338,7 @@ def _make_parser_function(name, sep=','):
                  encoding=None,
                  squeeze=False,
                  mangle_dupe_cols=True,
-                 tupleize_cols=False,
-                 factorize=True):
+                 tupleize_cols=False):
 
         # Alias sep -> delimiter.
         if delimiter is None:
@@ -400,8 +397,7 @@ def _make_parser_function(name, sep=','):
                     low_memory=low_memory,
                     buffer_lines=buffer_lines,
                     mangle_dupe_cols=mangle_dupe_cols,
-                    tupleize_cols=tupleize_cols,
-                    factorize=factorize)
+                    tupleize_cols=tupleize_cols)
 
         return _read(filepath_or_buffer, kwds)
 
@@ -680,7 +676,7 @@ class ParserBase(object):
                 is_sequence = isinstance(self.index_col, (list, tuple,
                                                           np.ndarray))
                 if not (is_sequence and
-                        all(com.is_integer(i) for i in self.index_col) or
+                        all(map(com.is_integer, self.index_col)) or
                         com.is_integer(self.index_col)):
                     raise ValueError("index_col must only contain row numbers "
                                      "when specifying a multi-index header")
