@@ -167,7 +167,7 @@ def assert_isinstance(obj, class_type_or_tuple):
     """asserts that obj is an instance of class_type_or_tuple"""
     assert isinstance(obj, class_type_or_tuple), (
         "Expected object to be of type %r, found %r instead" % (
-            type(obj), class_type_or_tuple))
+            class_type_or_tuple, type(obj)))
 
 def assert_equal(a, b, msg=""):
     """asserts that a equals b, like nose's assert_equal, but allows custom message to start.
