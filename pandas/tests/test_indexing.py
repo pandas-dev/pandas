@@ -333,7 +333,14 @@ class TestIndexing(unittest.TestCase):
 
         # list of ints
         self.check_result('list int', 'iloc', [0,1,2], 'ix', { 0 : [0,2,4], 1 : [0,3,6], 2: [0,4,8] }, typs = ['ints'])
+        self.check_result('list int', 'iloc', [2], 'ix', { 0 : [4], 1 : [6], 2: [8] }, typs = ['ints'])
         self.check_result('list int', 'iloc', [0,1,2], 'indexer', [0,1,2], typs = ['labels','mixed','ts','floats','empty'], fails = IndexError)
+
+        # array of ints
+        # (GH5006), make sure that a single indexer is returning the correct type
+        self.check_result('array int', 'iloc', np.array([0,1,2]), 'ix', { 0 : [0,2,4], 1 : [0,3,6], 2: [0,4,8] }, typs = ['ints'])
+        self.check_result('array int', 'iloc', np.array([2]), 'ix', { 0 : [4], 1 : [6], 2: [8] }, typs = ['ints'])
+        self.check_result('array int', 'iloc', np.array([0,1,2]), 'indexer', [0,1,2], typs = ['labels','mixed','ts','floats','empty'], fails = IndexError)
 
     def test_iloc_getitem_dups(self):
 

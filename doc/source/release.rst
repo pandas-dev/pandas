@@ -297,7 +297,6 @@ API Changes
     (:issue:`4501`)
   - Support non-unique axes in a Panel via indexing operations (:issue:`4960`)
 
-
 Internal Refactoring
 ~~~~~~~~~~~~~~~~~~~~
 
@@ -566,7 +565,7 @@ Bug Fixes
   - Provide automatic conversion of ``object`` dtypes on fillna, related (:issue:`5103`)
   - Fixed a bug where default options were being overwritten in the option
     parser cleaning (:issue:`5121`).
-
+  - Treat a list/ndarray identically for ``iloc`` indexing with list-like (:issue:`5006`)
 
 pandas 0.12.0
 -------------
