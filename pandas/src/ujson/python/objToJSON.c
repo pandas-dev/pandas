@@ -120,6 +120,8 @@ typedef struct __PyObjectEncoder
     // output format style for pandas data types
     int outputFormat;
     int originalOutputFormat;
+
+    PyObject *defaultHandler;
 } PyObjectEncoder;
 
 #define GET_TC(__ptrtc) ((TypeContext *)((__ptrtc)->prv))
@@ -256,6 +258,7 @@ static void *PandasDateTimeStructToJSON(pandas_datetimestruct *dts, JSONTypeCont
     {
       PRINTMARK();
       PyErr_SetString(PyExc_ValueError, "Could not convert datetime value to string");
+      ((JSONObjectEncoder*) tc->encoder)->errorMsg = "";
       PyObject_Free(GET_TC(tc)->cStr);
       return NULL;
     }
@@ -1160,7 +1163,7 @@ char** NpyArr_encodeLabels(PyArrayObject* labels, JSONObjectEncoder* enc, npy_in
 
 void Object_beginTypeContext (JSOBJ _obj, JSONTypeContext *tc)
 {
-  PyObject *obj, *exc, *toDictFunc;
+  PyObject *obj, *exc, *toDictFunc, *defaultObj;
   TypeContext *pc;
   PyObjectEncoder *enc;
   double val;
@@ -1630,6 +1633,23 @@ ISITERABLE:
 
   PyErr_Clear();
 
+  if (enc->defaultHandler)
+  {
+    PRINTMARK();
+    defaultObj = PyObject_CallFunctionObjArgs(enc->defaultHandler, obj, NULL);
+    if (defaultObj == NULL || PyErr_Occurred())
+    {
+      if (!PyErr_Occurred())
+      {
+        PyErr_SetString(PyExc_TypeError, "Failed to execute default handler");
+      }
+      goto INVALID;
+    }
+    encode (defaultObj, enc, NULL, 0);
+    Py_DECREF(defaultObj);
+    goto INVALID;
+  }
+
   PRINTMARK();
   tc->type = JT_OBJECT;
   pc->iterBegin = Dir_iterBegin;
@@ -1716,7 +1736,7 @@ char *Object_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen)
 
 PyObject* objToJSON(PyObject* self, PyObject *args, PyObject *kwargs)
 {
-  static char *kwlist[] = { "obj", "ensure_ascii", "double_precision", "encode_html_chars", "orient", "date_unit", "iso_dates", NULL};
+  static char *kwlist[] = { "obj", "ensure_ascii", "double_precision", "encode_html_chars", "orient", "date_unit", "iso_dates", "default_handler", NULL};
 
   char buffer[65536];
   char *ret;
@@ -1728,6 +1748,7 @@ PyObject* objToJSON(PyObject* self, PyObject *args, PyObject *kwargs)
   char *sOrient = NULL;
   char *sdateFormat = NULL;
   PyObject *oisoDates = 0;
+  PyObject *odefHandler = 0;
 
   PyObjectEncoder pyEncoder =
   {
@@ -1759,10 +1780,11 @@ PyObject* objToJSON(PyObject* self, PyObject *args, PyObject *kwargs)
   pyEncoder.datetimeIso = 0;
   pyEncoder.datetimeUnit = PANDAS_FR_ms;
   pyEncoder.outputFormat = COLUMNS;
+  pyEncoder.defaultHandler = 0;
 
   PRINTMARK();
 
-  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|OiOssO", kwlist, &oinput, &oensureAscii, &idoublePrecision, &oencodeHTMLChars, &sOrient, &sdateFormat, &oisoDates))
+  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|OiOssOO", kwlist, &oinput, &oensureAscii, &idoublePrecision, &oencodeHTMLChars, &sOrient, &sdateFormat, &oisoDates, &odefHandler))
   {
     return NULL;
   }
@@ -1850,6 +1872,16 @@ PyObject* objToJSON(PyObject* self, PyObject *args, PyObject *kwargs)
     pyEncoder.datetimeIso = 1;
   }
 
+
+  if (odefHandler != NULL && odefHandler != Py_None)
+  {
+    if (!PyCallable_Check(odefHandler)) 
+    {
+      PyErr_SetString (PyExc_TypeError, "Default handler is not callable");
+      return NULL;
+    }
+    pyEncoder.defaultHandler = odefHandler;
+  }
 
   pyEncoder.originalOutputFormat = pyEncoder.outputFormat;
   PRINTMARK();
