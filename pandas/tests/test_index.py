@@ -1887,6 +1887,9 @@ class TestMultiIndex(unittest.TestCase):
         self.assertTrue(mi2.is_(mi))
         self.assertTrue(mi.is_(mi2))
         self.assertTrue(mi.is_(mi.set_names(["C", "D"])))
+        mi2 = mi.view()
+        mi2.set_names(["E", "F"], inplace=True)
+        self.assertTrue(mi.is_(mi2))
         # levels are inherent properties, they change identity
         mi3 = mi2.set_levels([lrange(10), lrange(10)])
         self.assertFalse(mi3.is_(mi2))
