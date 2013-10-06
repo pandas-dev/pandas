@@ -1092,7 +1092,9 @@ class _iLocIndexer(_LocationIndexer):
         else:
 
             if _is_list_like(key):
-                pass
+
+                # force an actual list
+                key = list(key)
             else:
                 key = self._convert_scalar_indexer(key, axis)
 
