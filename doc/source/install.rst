@@ -101,8 +101,8 @@ Optional Dependencies
   * `openpyxl <http://packages.python.org/openpyxl/>`__, `xlrd/xlwt <http://www.python-excel.org/>`__
      * openpyxl version 1.6.1 or higher
      * Needed for Excel I/O
-  * `XlsxWriter <https://pypi.python.org/pypi/XlsxWriter>`__
-     * Alternative Excel writer.
+  * `XlsxWriter <http://pypi.python.org/pypi/XlsxWriter>`__, `PyExcelerate <http://pypi.python.org/pypi/PyExcelerate>`__
+     * Alternative Excel writers.
   * `boto <https://pypi.python.org/pypi/boto>`__: necessary for Amazon S3
     access.
   * One of `PyQt4

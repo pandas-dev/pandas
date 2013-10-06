@@ -745,3 +745,51 @@ class _XlsxWriter(ExcelWriter):
         return xl_format
 
 register_writer(_XlsxWriter)
+
+
+class _PyExcelerate(ExcelWriter):
+    engine = 'pyexcelerate'
+    supported_extensions = ('.xlsx',)
+
+    def __init__(self, path, **engine_kwargs):
+        # Use the pyexcelerate module as the Excel writer.
+        import pyexcelerate
+
+        super(_PyExcelerate, self).__init__(path, **engine_kwargs)
+
+        self.book = pyexcelerate.Workbook(path, **engine_kwargs)
+
+    def save(self):
+        """
+        Save workbook to disk.
+        """
+        return self.book.save(self.path)
+
+    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0):
+        # Write the frame cells using pyexcelerate.
+
+        sheet_name = self._get_sheet_name(sheet_name)
+
+        if sheet_name in self.sheets:
+            wks = self.sheets[sheet_name]
+        else:
+            wks = self.book.new_sheet(sheet_name)
+            self.sheets[sheet_name] = wks
+
+        for cell in cells:
+            val = _conv_value(cell.val)
+
+            if cell.mergestart is not None and cell.mergeend is not None:
+#                 wks.merge_range(startrow + cell.row,
+#                                 startrow + cell.mergestart,
+#                                 startcol + cell.col,
+#                                 startcol + cell.mergeend,
+#                                 val, style)
+                pass
+            else:
+                # wks[startrow + cell.row][startcol + cell.col] = val
+                wks[1 + startrow + cell.row][1 + startcol + cell.col] = val
+
+
+register_writer(_PyExcelerate)
+

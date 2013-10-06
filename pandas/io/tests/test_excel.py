@@ -52,6 +52,13 @@ def _skip_if_no_xlsxwriter():
         raise nose.SkipTest('xlsxwriter not installed, skipping')
 
 
+def _skip_if_no_pyexcelerate():
+    try:
+        import pyexcelerate  # NOQA
+    except ImportError:
+        raise nose.SkipTest('pyexcelerate not installed, skipping')
+
+
 def _skip_if_no_excelsuite():
     _skip_if_no_xlrd()
     _skip_if_no_xlwt()
@@ -951,6 +958,67 @@ class XlsxWriterTests(ExcelWriterBase, unittest.TestCase):
             recons = reader.parse('test1', index_col=0).astype(np.int64)
             frame.index.names = ['test']
             self.assertAlmostEqual(frame.index.names, recons.index.names)
+
+
+class PyExcelerateTests(ExcelWriterBase, unittest.TestCase):
+    ext = 'xlsx'
+    engine_name = 'pyexcelerate'
+    check_skip = staticmethod(_skip_if_no_pyexcelerate)
+
+    # Override test from the Superclass to use assertAlmostEqual on the
+    # floating point values read back in from the output PyExcelerate file.
+    def test_roundtrip_indexlabels(self):
+        _skip_if_no_xlrd()
+        ext = self.ext
+        path = '__tmp_to_excel_from_excel_indexlabels__.' + ext
+
+        with ensure_clean(path) as path:
+
+            self.frame['A'][:5] = nan
+
+            self.frame.to_excel(path, 'test1')
+            self.frame.to_excel(path, 'test1', cols=['A', 'B'])
+            self.frame.to_excel(path, 'test1', header=False)
+            self.frame.to_excel(path, 'test1', index=False)
+
+            # test index_label
+            frame = (DataFrame(np.random.randn(10, 2)) >= 0)
+            frame.to_excel(path, 'test1', index_label=['test'])
+            reader = ExcelFile(path)
+            recons = reader.parse('test1', index_col=0).astype(np.int64)
+            frame.index.names = ['test']
+            self.assertEqual(frame.index.names, recons.index.names)
+
+            frame = (DataFrame(np.random.randn(10, 2)) >= 0)
+            frame.to_excel(
+                path, 'test1', index_label=['test', 'dummy', 'dummy2'])
+            reader = ExcelFile(path)
+            recons = reader.parse('test1', index_col=0).astype(np.int64)
+            frame.index.names = ['test']
+            self.assertEqual(frame.index.names, recons.index.names)
+
+            frame = (DataFrame(np.random.randn(10, 2)) >= 0)
+            frame.to_excel(path, 'test1', index_label='test')
+            reader = ExcelFile(path)
+            recons = reader.parse('test1', index_col=0).astype(np.int64)
+            frame.index.names = ['test']
+            self.assertAlmostEqual(frame.index.names, recons.index.names)
+
+    # TODO: Skip these tests until the pyexcelerator date issue is fixed.
+    def test_excel_roundtrip_datetime(self):
+        raise nose.SkipTest('pyexcelerator dates not supported')
+
+    def test_sheets(self):
+        raise nose.SkipTest('pyexcelerator dates not supported')
+
+    def test_to_excel_multiindex_dates(self):
+        raise nose.SkipTest('pyexcelerator dates not supported')
+
+    def test_to_excel_periodindex(self):
+        raise nose.SkipTest('pyexcelerator dates not supported')
+
+    def test_tsframe(self):
+        raise nose.SkipTest('pyexcelerator dates not supported')
 
 
 class ExcelWriterEngineTests(unittest.TestCase):
