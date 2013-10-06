@@ -335,7 +335,6 @@ class Index(FrozenNDArray):
             raise TypeError("Must pass list-like as `names`.")
         if inplace:
             idx = self
-            idx._reset_identity()
         else:
             idx = self._shallow_copy()
         idx._set_names(names)
