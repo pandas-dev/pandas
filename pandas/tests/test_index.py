@@ -2314,6 +2314,13 @@ class TestMultiIndex(unittest.TestCase):
                                    names=['x', 'y'])
         self.assertEqual(x[1:].names, x.names)
 
+    def test_isnull_behavior(self):
+        # should not segfault GH5123
+        # NOTE: if MI representation changes, may make sense to allow
+        # isnull(MI)
+        with tm.assertRaises(NotImplementedError):
+            pd.isnull(self.index)
+
 
 def test_get_combined_index():
     from pandas.core.index import _get_combined_index

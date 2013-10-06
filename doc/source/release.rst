@@ -584,6 +584,8 @@ Bug Fixes
   - Made sure different locales are tested on travis-ci (:issue:`4918`). Also
     adds a couple of utilities for getting locales and setting locales with a
     context manager.
+  - Fixed segfault on ``isnull(MultiIndex)`` (now raises an error instead)
+    (:issue:`5123`, :issue:`5125`)
 
 pandas 0.12.0
 -------------
