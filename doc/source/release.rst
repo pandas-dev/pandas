@@ -209,7 +209,9 @@ Improvements to existing features
     by color as expected.
   - ``read_excel()`` now tries to convert integral floats (like ``1.0``) to int
     by default. (:issue:`5394`)
-
+  - ``read_html`` can accept a subclass of ``Flavor`` rather than a string for
+    the parsing flavor. This allows user written HTML parsers.
+ 
 API Changes
 ~~~~~~~~~~~
 

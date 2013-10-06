@@ -124,6 +124,14 @@ def _read(io):
     return raw_text
 
 
+class Flavor(object):
+    """
+    Mixin class used to specify a user written HTML parsing flavor
+    Used by making the user written parser a subclass of Flavor
+    """
+    pass
+
+
 class _HtmlFrameParser(object):
     """Base class for parsers that parse HTML into DataFrames.
 
@@ -165,13 +173,14 @@ class _HtmlFrameParser(object):
     See each method's respective documentation for details on their
     functionality.
     """
-    def __init__(self, io, match, attrs):
-        self.io = io
+    def __init__(self, match, attrs):
         self.match = match
         self.attrs = attrs
 
-    def parse_tables(self):
-        tables = self._parse_tables(self._build_doc(), self.match, self.attrs)
+    def parse_tables(self, io):
+        tables = self._parse_tables(self._build_doc(io),
+                                    self.match,
+                                    self.attrs)
         return (self._build_table(table) for table in tables)
 
     def _parse_raw_data(self, rows):
@@ -314,7 +323,7 @@ class _HtmlFrameParser(object):
         """
         raise NotImplementedError
 
-    def _build_doc(self):
+    def _build_doc(self, io):
         """Return a tree-like object that can be used to iterate over the DOM.
 
         Returns
@@ -414,15 +423,15 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
                              match.pattern)
         return result
 
-    def _setup_build_doc(self):
-        raw_text = _read(self.io)
+    def _setup_build_doc(self, io):
+        raw_text = _read(io)
         if not raw_text:
-            raise ValueError('No text parsed from document: %s' % self.io)
+            raise ValueError('No text parsed from document: %s' % io)
         return raw_text
 
-    def _build_doc(self):
+    def _build_doc(self, io):
         from bs4 import BeautifulSoup
-        return BeautifulSoup(self._setup_build_doc(), features='html5lib')
+        return BeautifulSoup(self._setup_build_doc(io), features='html5lib')
 
 
 def _build_xpath_expr(attrs):
@@ -500,7 +509,11 @@ class _LxmlFrameParser(_HtmlFrameParser):
             raise ValueError("No tables found matching regex %r" % pattern)
         return tables
 
-    def _build_doc(self):
+    def _get_parser(self):
+        from lxml.html import HTMLParser
+        return HTMLParser(recover=False)
+
+    def _build_doc(self, io):
         """
         Raises
         ------
@@ -516,14 +529,14 @@ class _LxmlFrameParser(_HtmlFrameParser):
         --------
         pandas.io.html._HtmlFrameParser._build_doc
         """
-        from lxml.html import parse, fromstring, HTMLParser
+        from lxml.html import parse, fromstring
         from lxml.etree import XMLSyntaxError
 
-        parser = HTMLParser(recover=False)
+        parser = self._get_parser()
 
         try:
             # try to parse the input in the simplest way
-            r = parse(self.io, parser=parser)
+            r = parse(io, parser=parser)
 
             try:
                 r = r.getroot()
@@ -531,8 +544,8 @@ class _LxmlFrameParser(_HtmlFrameParser):
                 pass
         except (UnicodeDecodeError, IOError):
             # if the input is a blob of html goop
-            if not _is_url(self.io):
-                r = fromstring(self.io, parser=parser)
+            if not _is_url(io):
+                r = fromstring(io, parser=parser)
 
                 try:
                     r = r.getroot()
@@ -540,7 +553,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
                     pass
             else:
                 # not a url
-                scheme = parse_url(self.io).scheme
+                scheme = parse_url(io).scheme
                 if scheme not in _valid_schemes:
                     # lxml can't parse it
                     msg = ('%r is not a valid url scheme, valid schemes are '
@@ -611,7 +624,8 @@ def _data_to_frame(data, header, index_col, skiprows, infer_types,
 
 _valid_parsers = {'lxml': _LxmlFrameParser, None: _LxmlFrameParser,
                   'html5lib': _BeautifulSoupHtml5LibFrameParser,
-                  'bs4': _BeautifulSoupHtml5LibFrameParser}
+                  'bs4': _BeautifulSoupHtml5LibFrameParser,
+                  }
 
 
 def _parser_dispatch(flavor):
@@ -634,6 +648,9 @@ def _parser_dispatch(flavor):
     ImportError
         * If you do not have the requested `flavor`
     """
+    if type(flavor) is type and Flavor in flavor.__bases__:
+        return flavor
+
     valid_parsers = list(_valid_parsers.keys())
     if flavor not in valid_parsers:
         raise ValueError('%r is not a valid flavor, valid flavors are %s' %
@@ -665,10 +682,14 @@ def _print_as_set(s):
 def _validate_flavor(flavor):
     if flavor is None:
         flavor = 'lxml', 'bs4'
-    elif isinstance(flavor, string_types):
+    elif (isinstance(flavor, string_types))\
+        or (type(flavor) is type and Flavor in flavor.__bases__):
         flavor = flavor,
     elif isinstance(flavor, collections.Iterable):
-        if not all(isinstance(flav, string_types) for flav in flavor):
+        if not all(
+            isinstance(flav, string_types) or
+                (type(flav) is type and Flavor in flav.__bases__)
+            for flav in flavor):
             raise TypeError('Object of type %r is not an iterable of strings' %
                             type(flavor).__name__)
     else:
@@ -679,8 +700,10 @@ def _validate_flavor(flavor):
     flavor = tuple(flavor)
     valid_flavors = set(_valid_parsers)
     flavor_set = set(flavor)
+    flavor_set_flavors = [f for f in flavor_set
+                            if type(f) is type and Flavor in f.__bases__]
 
-    if not flavor_set & valid_flavors:
+    if not flavor_set & valid_flavors and not flavor_set_flavors:
         raise ValueError('%s is not a valid set of flavors, valid flavors are '
                          '%s' % (_print_as_set(flavor_set),
                                  _print_as_set(valid_flavors)))
@@ -696,10 +719,10 @@ def _parse(flavor, io, match, header, index_col, skiprows, infer_types,
     retained = None
     for flav in flavor:
         parser = _parser_dispatch(flav)
-        p = parser(io, compiled_match, attrs)
+        p = parser(compiled_match, attrs)
 
         try:
-            tables = p.parse_tables()
+            tables = p.parse_tables(io)
         except Exception as caught:
             retained = caught
         else:
