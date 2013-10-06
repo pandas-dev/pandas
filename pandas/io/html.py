@@ -469,6 +469,8 @@ class _LxmlFrameParser(_HtmlFrameParser):
     :class:`_HtmlFrameParser`.
     """
     def __init__(self, *args, **kwargs):
+        self.strict = kwargs.pop('strict', True)
+
         super(_LxmlFrameParser, self).__init__(*args, **kwargs)
 
     def _text_getter(self, obj):
@@ -519,7 +521,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
         from lxml.html import parse, fromstring, HTMLParser
         from lxml.etree import XMLSyntaxError
 
-        parser = HTMLParser(recover=False)
+        parser = HTMLParser(recover=not self.strict)
 
         try:
             # try to parse the input in the simplest way
@@ -572,8 +574,49 @@ class _LxmlFrameParser(_HtmlFrameParser):
         expr = './/tfoot//th'
         return [_remove_whitespace(x.text_content()) for x in
                 table.xpath(expr)]
+        
 
+class _LiberalLxmlFrameParser(_LxmlFrameParser):
+    """HTML to DataFrame parser that uses lxml under the hood.
+    
+    Tries hard to parse through broken XML.
 
+    Warning
+    -------
+    This parser can only handle HTTP, FTP, and FILE urls.
+
+    See Also
+    --------
+    _LxmlFrameParser
+    _HtmlFrameParser
+    _BeautifulSoupLxmlFrameParser
+
+    Notes
+    -----
+    It lets libxml2 try its best to return a valid HTML tree 
+    with all content it can manage to parse. 
+    It will not raise an exception on parser errors. 
+    You should use libxml2 version 2.6.21 or newer 
+    to take advantage of this feature.
+    
+    The support for parsing broken HTML depends entirely on libxml2's 
+    recovery algorithm. 
+    It is not the fault of lxml if you find documents that 
+    are so heavily broken that the parser cannot handle them. 
+    There is also no guarantee that the resulting tree will 
+    contain all data from the original document. 
+    The parser may have to drop seriously broken parts when 
+    struggling to keep parsing. 
+    Especially misplaced meta tags can suffer from this, 
+    which may lead to encoding problems.
+    
+    Documentation strings for this class are in the base class
+    :class:`_HtmlFrameParser`.
+    """
+    
+    def __init__(self, *args, **kwargs):
+        super(_LiberalLxmlFrameParser, self).__init__(*args, strict=False, **kwargs)
+    
 def _expand_elements(body):
     lens = Series(lmap(len, body))
     lens_max = lens.max()
@@ -611,7 +654,8 @@ def _data_to_frame(data, header, index_col, skiprows, infer_types,
 
 _valid_parsers = {'lxml': _LxmlFrameParser, None: _LxmlFrameParser,
                   'html5lib': _BeautifulSoupHtml5LibFrameParser,
-                  'bs4': _BeautifulSoupHtml5LibFrameParser}
+                  'bs4': _BeautifulSoupHtml5LibFrameParser,
+                  'lxml-liberal': _LiberalLxmlFrameParser,}
 
 
 def _parser_dispatch(flavor):
