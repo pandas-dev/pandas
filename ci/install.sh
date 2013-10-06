@@ -57,6 +57,11 @@ time pip install $PIP_ARGS -r ci/requirements-${TRAVIS_PYTHON_VERSION}${JOB_TAG}
 time sudo apt-get install libatlas-base-dev gfortran
 
 
+# need to enable for locale testing
+time echo 'it_CH.UTF-8 UTF-8' | sudo tee -a /var/lib/locales/supported.d/it
+time sudo locale-gen
+
+
 # install gui for clipboard testing
 if [ -n "$GUI" ]; then
     echo "Using GUI clipboard: $GUI"

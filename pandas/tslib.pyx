@@ -2601,10 +2601,6 @@ cdef object _period_strftime(int64_t value, int freq, object fmt):
 
             result = result.replace(str_extra_fmts[i], repl)
 
-    # Py3?
-    #if not PyString_Check(result):
-        #result = str(result)
-
     if PY2:
        result = result.decode('utf-8', 'ignore')
 

@@ -13,6 +13,7 @@ from pandas.io import data as web
 from pandas.io.data import DataReader, SymbolWarning
 from pandas.util.testing import (assert_series_equal, assert_produces_warning,
                                  network, assert_frame_equal)
+import pandas.util.testing as tm
 from numpy.testing import assert_array_equal
 
 
@@ -44,9 +45,9 @@ class TestGoogle(unittest.TestCase):
         start = datetime(2010, 1, 1)
         end = datetime(2013, 1, 27)
 
-        self.assertEquals(
-            web.DataReader("F", 'google', start, end)['Close'][-1],
-            13.68)
+        with tm.set_locale('en_US.UTF-8'):
+            panel = web.DataReader("F", 'google', start, end)
+            self.assertEquals(panel.Close[-1], 13.68)
 
         self.assertRaises(Exception, web.DataReader, "NON EXISTENT TICKER",
                           'google', start, end)
@@ -58,13 +59,15 @@ class TestGoogle(unittest.TestCase):
 
     @network
     def test_get_goog_volume(self):
-        df = web.get_data_google('GOOG')
+        with tm.set_locale('en_US.UTF-8'):
+            df = web.get_data_google('GOOG').sort_index()
         self.assertEqual(df.Volume.ix['OCT-08-2010'], 2863473)
 
     @network
     def test_get_multi1(self):
         sl = ['AAPL', 'AMZN', 'GOOG']
-        pan = web.get_data_google(sl, '2012')
+        with tm.set_locale('en_US.UTF-8'):
+            pan = web.get_data_google(sl, '2012')
 
         def testit():
             ts = pan.Close.GOOG.index[pan.Close.AAPL > pan.Close.GOOG]
@@ -79,8 +82,9 @@ class TestGoogle(unittest.TestCase):
     @network
     def test_get_multi2(self):
         with warnings.catch_warnings(record=True) as w:
-            pan = web.get_data_google(['GE', 'MSFT', 'INTC'], 'JAN-01-12',
-                                      'JAN-31-12')
+            with tm.set_locale('en_US.UTF-8'):
+                pan = web.get_data_google(['GE', 'MSFT', 'INTC'], 'JAN-01-12',
+                                        'JAN-31-12')
             result = pan.Close.ix['01-18-12']
             assert_n_failed_equals_n_null_columns(w, result)
 
