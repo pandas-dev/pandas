@@ -393,9 +393,8 @@ class Index(FrozenNDArray):
     def get_values(self):
         return self.values
 
-    def _na_value(self):
-        # The expected NA value to use with this index.
-        return np.nan
+    _na_value = np.nan
+    """The expected NA value to use with this index."""
 
     @property
     def is_monotonic(self):
@@ -2261,7 +2260,7 @@ class MultiIndex(Index):
         unique_vals = self.levels[num]  # .values
         labels = self.labels[num]
         values = Index(com.take_1d(unique_vals.values, labels,
-                                   fill_value=unique_vals._na_value()))
+                                   fill_value=unique_vals._na_value))
         values.name = self.names[num]
         return values
 

@@ -495,9 +495,8 @@ class DatetimeIndex(Int64Index):
         # how to represent ourselves to matplotlib
         return tslib.ints_to_pydatetime(self.asi8, self.tz)
 
-    def _na_value(self):
-        # The expected NA value to use with this index.
-        return tslib.NaT
+    _na_value = tslib.NaT
+    """The expected NA value to use with this index."""
 
     def __unicode__(self):
         from pandas.core.format import _format_datetime64
