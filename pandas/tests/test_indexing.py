@@ -15,7 +15,8 @@ import pandas.core.common as com
 from pandas.core.api import (DataFrame, Index, Series, Panel, notnull, isnull,
                              MultiIndex, DatetimeIndex, Float64Index, Timestamp)
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
-                                 assert_frame_equal, assert_panel_equal)
+                                 assert_frame_equal, assert_panel_equal,
+                                 assert_isinstance)
 from pandas import compat, concat
 
 import pandas.util.testing as tm
@@ -1840,6 +1841,16 @@ class TestIndexing(unittest.TestCase):
         #self.assertRaises(TypeError, lambda : s.iloc[2.0:5])
         #self.assertRaises(TypeError, lambda : s.iloc[2.0:5.0])
         #self.assertRaises(TypeError, lambda : s.iloc[2:5.0])
+
+    def test_array_indexing(self):
+        """test that array indexing returns a sequence by calling len()"""
+        column = Series(np.arange(10))
+        indices = np.arange(5, 10)
+        assert_isinstance(column.iloc[indices], Series)
+        indices = np.array([5], dtype = int)
+        assert_isinstance(column.iloc[indices], Series)
+        indices = np.array([], dtype = int)
+        assert_isinstance(column.iloc[indices], Series)
 
 
 if __name__ == '__main__':
