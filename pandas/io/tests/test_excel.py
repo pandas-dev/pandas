@@ -221,7 +221,6 @@ class ExcelReaderTests(SharedItems, unittest.TestCase):
                                   (self.xlsx1, self.csv1)]:
             self.check_excel_table_sheet_by_index(filename, csvfile)
 
-
     def test_excel_table(self):
         _skip_if_no_xlrd()
 
@@ -405,7 +404,6 @@ class ExcelWriterBase(SharedItems):
             recons = reader.parse('test1', index_col=0)
             tm.assert_frame_equal(self.mixed_frame, recons)
 
-
     def test_tsframe(self):
         _skip_if_no_xlrd()
         ext = self.ext
@@ -419,45 +417,70 @@ class ExcelWriterBase(SharedItems):
             recons = reader.parse('test1')
             tm.assert_frame_equal(df, recons)
 
-    def test_int64(self):
+    def test_int_types(self):
         _skip_if_no_xlrd()
         ext = self.ext
-        path = '__tmp_to_excel_from_excel_int64__.' + ext
+        path = '__tmp_to_excel_from_excel_int_types__.' + ext
 
-        with ensure_clean(path) as path:
-            self.frame['A'][:5] = nan
+        for np_type in (np.int8, np.int16, np.int32, np.int64):
 
-            self.frame.to_excel(path, 'test1')
-            self.frame.to_excel(path, 'test1', cols=['A', 'B'])
-            self.frame.to_excel(path, 'test1', header=False)
-            self.frame.to_excel(path, 'test1', index=False)
+            with ensure_clean(path) as path:
+                self.frame['A'][:5] = nan
 
-            # Test np.int64, values read come back as float
-            frame = DataFrame(np.random.randint(-10, 10, size=(10, 2)), dtype=np.int64)
-            frame.to_excel(path, 'test1')
-            reader = ExcelFile(path)
-            recons = reader.parse('test1').astype(np.int64)
-            tm.assert_frame_equal(frame, recons, check_dtype=False)
+                self.frame.to_excel(path, 'test1')
+                self.frame.to_excel(path, 'test1', cols=['A', 'B'])
+                self.frame.to_excel(path, 'test1', header=False)
+                self.frame.to_excel(path, 'test1', index=False)
 
-    def test_bool(self):
+                # Test np.int values read come back as float.
+                frame = DataFrame(np.random.randint(-10, 10, size=(10, 2)),
+                                  dtype=np_type)
+                frame.to_excel(path, 'test1')
+                reader = ExcelFile(path)
+                recons = reader.parse('test1').astype(np_type)
+                tm.assert_frame_equal(frame, recons, check_dtype=False)
+
+    def test_float_types(self):
         _skip_if_no_xlrd()
         ext = self.ext
-        path = '__tmp_to_excel_from_excel_bool__.' + ext
+        path = '__tmp_to_excel_from_excel_float_types__.' + ext
 
-        with ensure_clean(path) as path:
-            self.frame['A'][:5] = nan
+        for np_type in (np.float16, np.float32, np.float64):
+            with ensure_clean(path) as path:
+                self.frame['A'][:5] = nan
 
-            self.frame.to_excel(path, 'test1')
-            self.frame.to_excel(path, 'test1', cols=['A', 'B'])
-            self.frame.to_excel(path, 'test1', header=False)
-            self.frame.to_excel(path, 'test1', index=False)
+                self.frame.to_excel(path, 'test1')
+                self.frame.to_excel(path, 'test1', cols=['A', 'B'])
+                self.frame.to_excel(path, 'test1', header=False)
+                self.frame.to_excel(path, 'test1', index=False)
 
-            # Test reading/writing np.bool8, roundtrip only works for xlsx
-            frame = (DataFrame(np.random.randn(10, 2)) >= 0)
-            frame.to_excel(path, 'test1')
-            reader = ExcelFile(path)
-            recons = reader.parse('test1').astype(np.bool8)
-            tm.assert_frame_equal(frame, recons)
+                # Test np.float values read come back as float.
+                frame = DataFrame(np.random.random_sample(10), dtype=np_type)
+                frame.to_excel(path, 'test1')
+                reader = ExcelFile(path)
+                recons = reader.parse('test1').astype(np_type)
+                tm.assert_frame_equal(frame, recons, check_dtype=False)
+
+    def test_bool_types(self):
+        _skip_if_no_xlrd()
+        ext = self.ext
+        path = '__tmp_to_excel_from_excel_bool_types__.' + ext
+
+        for np_type in (np.bool8, np.bool_):
+            with ensure_clean(path) as path:
+                self.frame['A'][:5] = nan
+
+                self.frame.to_excel(path, 'test1')
+                self.frame.to_excel(path, 'test1', cols=['A', 'B'])
+                self.frame.to_excel(path, 'test1', header=False)
+                self.frame.to_excel(path, 'test1', index=False)
+
+                # Test np.bool values read come back as float.
+                frame = (DataFrame([1, 0, True, False], dtype=np_type))
+                frame.to_excel(path, 'test1')
+                reader = ExcelFile(path)
+                recons = reader.parse('test1').astype(np_type)
+                tm.assert_frame_equal(frame, recons)
 
     def test_sheets(self):
         _skip_if_no_xlrd()
