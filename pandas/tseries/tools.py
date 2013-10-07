@@ -319,8 +319,10 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
 
     return _convert_listlike(np.array([ arg ]), box, format)[0]
 
+
 class DateParseError(ValueError):
     pass
+
 
 def _attempt_YYYYMMDD(arg):
     """ try to parse the YYYYMMDD/%Y%m%d format, try to deal with NaT-like,
@@ -369,6 +371,34 @@ ypat = re.compile(r'(\d\d\d\d)$')
 has_time = re.compile('(.+)([\s]|T)+(.+)')
 
 
+def _try_parse_qtr_time_string(arg):
+    arg = arg.upper()
+
+    add_century = False
+    if len(arg) == 4:
+        add_century = True
+        qpats = [(qpat1, 1), (qpat2, 0)]
+    else:
+        qpats = [(qpat1full, 1), (qpat2full, 0)]
+
+    for pat, yfirst in qpats:
+        qparse = pat.match(arg)
+        if qparse is not None:
+            if yfirst:
+                yi, qi = 1, 2
+            else:
+                yi, qi = 2, 1
+            q = int(qparse.group(yi))
+            y_str = qparse.group(qi)
+            y = int(y_str)
+            if add_century:
+                y += 2000
+
+            return y, q
+
+    return None
+
+
 def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     """
     Try hard to parse datetime string, leveraging dateutil plus some extra
@@ -389,14 +419,18 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     datetime, datetime/dateutil.parser._result, str
     """
     from pandas.core.config import get_option
+    from pandas.tseries.frequencies import (_get_rule_month, _month_numbers)
     from pandas.tseries.offsets import DateOffset
-    from pandas.tseries.frequencies import (_get_rule_month, _month_numbers,
-                                            _get_freq_str)
 
     if not isinstance(arg, compat.string_types):
         return arg
 
     arg = arg.upper()
+
+    if isinstance(freq, DateOffset):
+        parsed_dt = freq.parse_time_string(arg)
+        if parsed_dt is not None:
+            return parsed_dt, parsed_dt, freq.name
 
     default = datetime(1, 1, 1).replace(hour=0, minute=0,
                                         second=0, microsecond=0)
@@ -408,37 +442,26 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
             ret = default.replace(year=int(m.group(1)))
             return ret, ret, 'year'
 
-        add_century = False
-        if len(arg) == 4:
-            add_century = True
-            qpats = [(qpat1, 1), (qpat2, 0)]
-        else:
-            qpats = [(qpat1full, 1), (qpat2full, 0)]
+        qtr_parsed = _try_parse_qtr_time_string(arg)
+        if qtr_parsed is not None:
+            y, q = qtr_parsed
 
-        for pat, yfirst in qpats:
-            qparse = pat.match(arg)
-            if qparse is not None:
-                if yfirst:
-                    yi, qi = 1, 2
-                else:
-                    yi, qi = 2, 1
-                q = int(qparse.group(yi))
-                y_str = qparse.group(qi)
-                y = int(y_str)
-                if add_century:
-                    y += 2000
+            if freq is not None:
+                # hack attack, #1228
+                month_name = _get_rule_month(freq)
+                try:
+                    mnum = _month_numbers[month_name] + 1
+                except KeyError:
+                    raise DateParseError(
+                            "Do not understand freq: %s" % freq)
+                month = (mnum + (q - 1) * 3) % 12 + 1
+                if month > mnum:
+                    y -= 1
+            else:
+                month = (q - 1) * 3 + 1
 
-                if freq is not None:
-                    # hack attack, #1228
-                    mnum = _month_numbers[_get_rule_month(freq)] + 1
-                    month = (mnum + (q - 1) * 3) % 12 + 1
-                    if month > mnum:
-                        y -= 1
-                else:
-                    month = (q - 1) * 3 + 1
-
-                ret = default.replace(year=y, month=month)
-                return ret, ret, 'quarter'
+            ret = default.replace(year=y, month=month)
+            return ret, ret, 'quarter'
 
         is_mo_str = freq is not None and freq == 'M'
         is_mo_off = getattr(freq, 'rule_code', None) == 'M'

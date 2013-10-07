@@ -6,7 +6,8 @@ import numpy as np
 from pandas.core.base import PandasObject
 
 from pandas.tseries.frequencies import (get_freq_code as _gfc,
-                                        _month_numbers, FreqGroup)
+                                        _month_numbers, FreqGroup,
+                                        _assert_mult_1)
 from pandas.tseries.index import DatetimeIndex, Int64Index, Index
 from pandas.tseries.tools import parse_time_string
 import pandas.tseries.frequencies as _freq_mod
@@ -20,6 +21,8 @@ import pandas.lib as lib
 import pandas.tslib as tslib
 import pandas.algos as _algos
 from pandas.compat import map, zip, u
+from pandas.tseries.offsets import DateOffset, _NonCythonPeriod
+from pandas.util.decorators import cache_readonly
 
 
 #---------------
@@ -27,7 +30,7 @@ from pandas.compat import map, zip, u
 
 def _period_field_accessor(name, alias):
     def f(self):
-        base, mult = _gfc(self.freq)
+        base, _ = _gfc(self.freq)
         return tslib.get_period_field(alias, self.ordinal, base)
     f.__name__ = name
     return property(f)
@@ -35,11 +38,21 @@ def _period_field_accessor(name, alias):
 
 def _field_accessor(name, alias):
     def f(self):
-        base, mult = _gfc(self.freq)
+        base, _ = _gfc(self.freq)
         return tslib.get_period_field_arr(alias, self.values, base)
     f.__name__ = name
     return property(f)
 
+def _check_freq_mult(freq):
+    if isinstance(freq, DateOffset):
+        mult = freq.n
+    else:
+        _, mult = _gfc(freq, as_periodstr=True)
+
+    _assert_mult_1(mult)
+
+def _change_period_freq(ordinal_from, freq_int_from, freq_to):
+    return Period(Timestamp(tslib.period_ordinal_to_dt64(ordinal_from, freq=freq_int_from)), freq=freq_to)
 
 class Period(PandasObject):
     """
@@ -60,8 +73,8 @@ class Period(PandasObject):
     minute : int, default 0
     second : int, default 0
     """
-    __slots__ = ['freq', 'ordinal']
-    _comparables = ['name','freqstr']
+    __slots__ = ['freq_obj', 'ordinal']
+    _comparables = ['name', 'freqstr']
 
     def __init__(self, value=None, freq=None, ordinal=None,
                  year=None, month=1, quarter=None, day=1,
@@ -69,8 +82,6 @@ class Period(PandasObject):
         # freq points to a tuple (base, mult);  base is one of the defined
         # periods such as A, Q, etc. Every five minutes would be, e.g.,
         # ('T', 5) but may be passed in as a string like '5T'
-
-        self.freq = None
 
         # ordinal is the period offset from the gregorian proleptic epoch
         self.ordinal = None
@@ -94,9 +105,11 @@ class Period(PandasObject):
 
         elif isinstance(value, Period):
             other = value
-            if freq is None or _gfc(freq) == _gfc(other.freq):
+            if freq is None \
+                or freq == other.freq_obj \
+                or _gfc(freq, as_periodstr=True) == _gfc(other.freq_obj, as_periodstr=True):
                 self.ordinal = other.ordinal
-                freq = other.freq
+                freq = other.freq_obj
             else:
                 converted = other.asfreq(freq)
                 self.ordinal = converted.ordinal
@@ -119,17 +132,22 @@ class Period(PandasObject):
             msg = "Value must be Period, string, integer, or datetime"
             raise ValueError(msg)
 
-        base, mult = _gfc(freq)
-        if mult != 1:
-            # TODO: Better error message - this is slightly confusing
-            raise ValueError('Only mult == 1 supported')
+        self.freq_obj = freq
+        _check_freq_mult(freq)
 
         if self.ordinal is None:
-            self.ordinal = tslib.period_ordinal(dt.year, dt.month, dt.day,
-                                                dt.hour, dt.minute, dt.second, dt.microsecond, 0,
-                                                base)
+            if isinstance(freq, _NonCythonPeriod):
+                self.ordinal = freq.get_period_ordinal(dt)
+            else:
+                base, _ = _gfc(freq, as_periodstr=True)
 
-        self.freq = _freq_mod._get_freq_str(base)
+                self.ordinal = tslib.period_ordinal(dt.year, dt.month, dt.day,
+                                                    dt.hour, dt.minute, dt.second, dt.microsecond, 0,
+                                                    base)
+
+    @cache_readonly
+    def freq(self):
+        return _freq_mod.get_standard_period_freq(self.freq_obj)
 
     def __eq__(self, other):
         if isinstance(other, Period):
@@ -197,16 +215,23 @@ class Period(PandasObject):
         resampled : Period
         """
         how = _validate_end_alias(how)
-        base1, mult1 = _gfc(self.freq)
-        base2, mult2 = _gfc(freq)
-
-        if mult2 != 1:
-            raise ValueError('Only mult == 1 supported')
-
+        _check_freq_mult(freq)
         end = how == 'E'
-        new_ordinal = tslib.period_asfreq(self.ordinal, base1, base2, end)
 
-        return Period(ordinal=new_ordinal, freq=base2)
+        if isinstance(self.freq_obj, _NonCythonPeriod):
+            value = self.freq_obj.period_asfreq_value(self.ordinal, end)
+            return Period(value=value, freq=freq)
+        elif isinstance(freq, _NonCythonPeriod):
+            freq_int, _ = _gfc(self.freq)
+            return _change_period_freq(ordinal_from=self.ordinal, freq_int_from=freq_int, freq_to=freq)
+        else:
+
+            base1, _ = _gfc(self.freq)
+            base2, _ = _gfc(freq)
+    
+            new_ordinal = tslib.period_asfreq(self.ordinal, base1, base2, end)
+
+            return Period(ordinal=new_ordinal, freq=base2)
 
     @property
     def start_time(self):
@@ -264,12 +289,18 @@ class Period(PandasObject):
     @classmethod
     def now(cls, freq=None):
         return Period(datetime.now(), freq=freq)
+    
+    def __get_formatted(self, fmt=None):
+        if isinstance(self.freq_obj, _NonCythonPeriod):
+            return self.freq_obj.period_format(self.ordinal, fmt=fmt)
+        
+        base, mult = _gfc(self.freq)
+        return tslib.period_format(self.ordinal, base, fmt=fmt)
 
     def __repr__(self):
-        base, mult = _gfc(self.freq)
-        formatted = tslib.period_format(self.ordinal, base)
-        freqstr = _freq_mod._reverse_period_code_map[base]
-
+        freqstr = _freq_mod.get_standard_period_freq(self.freq_obj)
+        formatted = self.__get_formatted()
+        
         if not compat.PY3:
             encoding = com.get_option("display.encoding")
             formatted = formatted.encode(encoding)
@@ -283,9 +314,9 @@ class Period(PandasObject):
         Invoked by unicode(df) in py2 only. Yields a Unicode String in both
         py2/py3.
         """
-        base, mult = _gfc(self.freq)
-        formatted = tslib.period_format(self.ordinal, base)
-        value = ("%s" % formatted)
+        
+        formatted = self.__get_formatted()
+        value = str(formatted)
         return value
 
     def strftime(self, fmt):
@@ -425,8 +456,7 @@ class Period(PandasObject):
             >>> a.strftime('%b. %d, %Y was a %A')
             'Jan. 01, 2001 was a Monday'
         """
-        base, mult = _gfc(self.freq)
-        return tslib.period_format(self.ordinal, base, fmt)
+        return self.__get_formatted(fmt)
 
 
 def _get_date_and_freq(value, freq):
@@ -467,14 +497,22 @@ def _get_ordinals(data, freq):
         return lib.map_infer(data, f)
 
 
+def dt64arr_to_periodarr_impl(data, freq, tz):
+    base, _ = _gfc(freq, as_periodstr=True)
+    return tslib.dt64arr_to_periodarr(data.view('i8'), base, tz)
+
+
 def dt64arr_to_periodarr(data, freq, tz):
     if data.dtype != np.dtype('M8[ns]'):
         raise ValueError('Wrong dtype: %s' % data.dtype)
 
-    base, mult = _gfc(freq)
-    return tslib.dt64arr_to_periodarr(data.view('i8'), base, tz)
+    if isinstance(freq, _NonCythonPeriod):
+        return freq.dt64arr_to_periodarr(data, tz)
+
+    return dt64arr_to_periodarr_impl(data, freq, tz)
 
 # --- Period index sketch
+
 
 def _period_index_cmp(opname):
     """
@@ -523,7 +561,7 @@ class PeriodIndex(Int64Index):
     dtype : NumPy dtype (default: i8)
     copy  : bool
         Make a copy of input ndarray
-    freq : string or period object, optional
+    freq : string or DateOffset object, optional
         One of pandas period strings or corresponding objects
     start : starting value, period-like, optional
         If data is None, used as the start point in generating regular
@@ -565,7 +603,7 @@ class PeriodIndex(Int64Index):
                 quarter=None, day=None, hour=None, minute=None, second=None,
                 tz=None):
 
-        freq = _freq_mod.get_standard_freq(freq)
+        freq_obj = freq
 
         if periods is not None:
             if com.is_float(periods):
@@ -580,16 +618,22 @@ class PeriodIndex(Int64Index):
             else:
                 fields = [year, month, quarter, day, hour, minute, second]
                 data, freq = cls._generate_range(start, end, periods,
-                                                 freq, fields)
+                                                 freq_obj, fields)
         else:
-            ordinal, freq = cls._from_arraylike(data, freq, tz)
+            ordinal, freq = cls._from_arraylike(data, freq_obj, tz)
             data = np.array(ordinal, dtype=np.int64, copy=False)
 
         subarr = data.view(cls)
         subarr.name = name
-        subarr.freq = freq
+
+        # If freq_obj was initially none, fall back to freq
+        subarr.freq_obj = freq_obj if freq_obj is not None else freq
 
         return subarr
+
+    @cache_readonly
+    def freq(self):
+        return _freq_mod.get_standard_period_freq(self.freq_obj)
 
     @classmethod
     def _generate_range(cls, start, end, periods, freq, fields):
@@ -681,7 +725,8 @@ class PeriodIndex(Int64Index):
         return key.ordinal in self._engine
 
     def _box_values(self, values):
-        f = lambda x: Period(ordinal=x, freq=self.freq)
+        freq = self.freq
+        f = lambda x: Period(ordinal=x, freq=freq)
         return lib.map_infer(values, f)
 
     def asof_locs(self, where, mask):
@@ -721,7 +766,7 @@ class PeriodIndex(Int64Index):
 
     def __iter__(self):
         for val in self.values:
-            yield Period(ordinal=val, freq=self.freq)
+            yield Period(ordinal=val, freq=self.freq_obj)
 
     @property
     def is_all_dates(self):
@@ -754,21 +799,31 @@ class PeriodIndex(Int64Index):
 
     def asfreq(self, freq=None, how='E'):
         how = _validate_end_alias(how)
+        _check_freq_mult(freq)
 
-        freq = _freq_mod.get_standard_freq(freq)
-
-        base1, mult1 = _gfc(self.freq)
-        base2, mult2 = _gfc(freq)
-
-        if mult2 != 1:
-            raise ValueError('Only mult == 1 supported')
+        freq_obj = freq
 
         end = how == 'E'
-        new_data = tslib.period_asfreq_arr(self.values, base1, base2, end)
+
+        if isinstance(self.freq_obj, _NonCythonPeriod):
+            new_data = self.freq_obj.period_asfreq_arr(
+                                            self.values, freq_obj, end)
+            freq = _freq_mod.get_standard_freq(freq)
+        elif isinstance(freq_obj, _NonCythonPeriod):
+            freq = freq_obj.periodstr
+            freq_int_from, _ = _gfc(self.freq)
+            new_data = freq_obj.period_fromfreq_arr(
+                                            self.values, freq_int_from, end)
+        else:
+            freq = _freq_mod.get_standard_freq(freq)
+            base1, _ = _gfc(self.freq)
+            base2, _ = _gfc(freq)
+
+            new_data = tslib.period_asfreq_arr(self.values, base1, base2, end)
 
         result = new_data.view(PeriodIndex)
         result.name = self.name
-        result.freq = freq
+        result.freq_obj = freq_obj
         return result
 
     def to_datetime(self, dayfirst=False):
@@ -892,7 +947,7 @@ class PeriodIndex(Int64Index):
             return _maybe_box(self, super(PeriodIndex, self).get_value(s, key), series, key)
         except (KeyError, IndexError):
             try:
-                asdt, parsed, reso = parse_time_string(key, self.freq)
+                asdt, parsed, reso = parse_time_string(key, self.freq_obj)
                 grp = _freq_mod._infer_period_group(reso)
                 freqn = _freq_mod._period_group(self.freq)
 
@@ -918,7 +973,7 @@ class PeriodIndex(Int64Index):
             except KeyError:
                 pass
 
-            key = Period(key, self.freq).ordinal
+            key = Period(key, self.freq_obj).ordinal
             return _maybe_box(self, self._engine.get_value(s, key), series, key)
 
     def get_loc(self, key):
@@ -1033,7 +1088,7 @@ class PeriodIndex(Int64Index):
     def _apply_meta(self, rawarr):
         if not isinstance(rawarr, PeriodIndex):
             rawarr = rawarr.view(PeriodIndex)
-        rawarr.freq = self.freq
+        rawarr.freq_obj = self.freq_obj
         return rawarr
 
     def __getitem__(self, key):
@@ -1041,7 +1096,7 @@ class PeriodIndex(Int64Index):
         arr_idx = self.view(np.ndarray)
         if np.isscalar(key):
             val = arr_idx[key]
-            return Period(ordinal=val, freq=self.freq)
+            return Period(ordinal=val, freq=self.freq_obj)
         else:
             if com._is_bool_indexer(key):
                 key = np.asarray(key)
@@ -1052,9 +1107,9 @@ class PeriodIndex(Int64Index):
                 # values = np.asarray(list(values), dtype=object)
                 # return values.reshape(result.shape)
 
-                return PeriodIndex(result, name=self.name, freq=self.freq)
+                return PeriodIndex(result, name=self.name, freq=self.freq_obj)
 
-            return PeriodIndex(result, name=self.name, freq=self.freq)
+            return PeriodIndex(result, name=self.name, freq=self.freq_obj)
 
     def _format_with_header(self, header, **kwargs):
         return header + self._format_native_types(**kwargs)
@@ -1073,7 +1128,7 @@ class PeriodIndex(Int64Index):
         if not self.ndim:  # pragma: no cover
             return self.item()
 
-        self.freq = getattr(obj, 'freq', None)
+        self.freq_obj = getattr(obj, 'freq_obj', None)
         self.name = getattr(obj, 'name', None)
         self._reset_identity()
 
@@ -1116,7 +1171,7 @@ class PeriodIndex(Int64Index):
         indices = com._ensure_platform_int(indices)
         taken = self.values.take(indices, axis=axis)
         taken = taken.view(PeriodIndex)
-        taken.freq = self.freq
+        taken.freq_obj = self.freq_obj
         taken.name = self.name
         return taken
 
@@ -1173,7 +1228,7 @@ class PeriodIndex(Int64Index):
             np.ndarray.__setstate__(self, nd_state)
             self.name = own_state[0]
             try:  # backcompat
-                self.freq = own_state[1]
+                self.freq_obj = own_state[1]
             except:
                 pass
         else:  # pragma: no cover

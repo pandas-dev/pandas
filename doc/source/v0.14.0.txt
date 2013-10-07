@@ -554,6 +554,9 @@ Enhancements
                 values='Quantity', aggfunc=np.sum)
 
 - str.wrap implemented (:issue:`6999`)
+- Constructor for ``Period`` now takes full set of possible ``Offset`` objects for ``freq``
+  parameter. (:issue:`4878`)
+- Extends the number of ``Period``s supported by allowing for Python defined ``Period``s (:issue:`5148`)
 
 .. _whatsnew_0140.performance:
 

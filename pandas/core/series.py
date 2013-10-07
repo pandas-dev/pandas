@@ -2361,7 +2361,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             new_values = new_values.copy()
 
         if freq is None:
-            freq = self.index.freqstr or self.index.inferred_freq
+            freq = self.index.freq or self.index.inferred_freq_offset
         new_index = self.index.to_period(freq=freq)
         return self._constructor(new_values,
                                  index=new_index).__finalize__(self)

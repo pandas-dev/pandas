@@ -792,8 +792,8 @@ class DatetimeIndex(Int64Index):
             msg = "You must pass a freq argument as current index has none."
             raise ValueError(msg)
 
-        if freq is None:
-            freq = get_period_alias(self.freqstr)
+        if freq is None: # No reason no convert to str; keep w/e freq is
+            freq = self.freq #get_period_alias(self.freqstr)
 
         return PeriodIndex(self.values, freq=freq, tz=self.tz)
 
@@ -1425,6 +1425,13 @@ class DatetimeIndex(Int64Index):
         try:
             return infer_freq(self)
         except ValueError:
+            return None
+
+    @cache_readonly
+    def inferred_freq_offset(self):
+        if self.inferred_freq is not None:
+            return get_offset(self.inferred_freq)
+        else:
             return None
 
     @property

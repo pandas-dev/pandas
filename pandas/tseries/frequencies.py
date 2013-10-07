@@ -71,7 +71,7 @@ def get_freq(freq):
     return freq
 
 
-def get_freq_code(freqstr):
+def get_freq_code(freqstr, as_periodstr=False):
     """
 
     Parameters
@@ -81,7 +81,13 @@ def get_freq_code(freqstr):
     -------
     """
     if isinstance(freqstr, DateOffset):
-        freqstr = (get_offset_name(freqstr), freqstr.n)
+        freqstr_raw = get_offset_name(freqstr)
+
+        #if we can, convert to canonical period str
+        if as_periodstr:
+            freqstr_raw = get_period_alias(freqstr_raw)
+
+        freqstr = (freqstr_raw, freqstr.n)
 
     if isinstance(freqstr, tuple):
         if (com.is_integer(freqstr[0]) and
@@ -113,7 +119,7 @@ def _get_freq_str(base, mult=1):
     code = _reverse_period_code_map.get(base)
     if mult == 1:
         return code
-    return str(mult) + code
+    return "%s%s" % (mult, code)
 
 
 #----------------------------------------------------------------------
@@ -202,6 +208,9 @@ _rule_aliases = {
     'Q@FEB': 'BQ-FEB',
     'Q@MAR': 'BQ-MAR',
     'Q': 'Q-DEC',
+    'QS': 'QS-JAN',
+    'BQ': 'BQ-DEC',
+    'BQS': 'BQS-JAN',
 
     'A': 'A-DEC',  # YearEnd(month=12),
     'AS': 'AS-JAN',  # YearBegin(month=1),
@@ -387,18 +396,43 @@ def get_legacy_offset_name(offset):
     name = offset.name
     return _legacy_reverse_map.get(name, name)
 
-def get_standard_freq(freq):
+def get_standard_freq(freq, as_periodstr=False):
     """
-    Return the standardized frequency string
+    Return the standardized frequency string.
+    as_periodstr=True returns the string representing the period rather than
+    the frequency. An example when these may differ is MonthBegin.
+    MonthBegin and MonthEnd are two different frequencies but they define the
+    same period.
+
+    >>> get_standard_freq(pandas.tseries.offsets.MonthBegin(), as_periodstr=False)
+    'L'
+    >>> get_standard_freq(pandas.tseries.offsets.MonthEnd(), as_periodstr=False)
+    'M'
+    >>> get_standard_freq(pandas.tseries.offsets.MonthBegin(), as_periodstr=True)
+    'M'
+    >>> get_standard_freq(pandas.tseries.offsets.MonthEnd(), as_periodstr=True)
+    'M'
     """
     if freq is None:
         return None
 
-    if isinstance(freq, DateOffset):
-        return get_offset_name(freq)
+    code, stride = get_freq_code(freq, as_periodstr=as_periodstr)
 
-    code, stride = get_freq_code(freq)
     return _get_freq_str(code, stride)
+
+def _get_standard_period_freq_impl(freq):
+    return get_standard_freq(freq, as_periodstr=True)
+
+def get_standard_period_freq(freq):
+    if isinstance(freq, DateOffset):
+        return freq.periodstr
+
+    return _get_standard_period_freq_impl(freq)
+
+def _assert_mult_1(mult):
+    if mult != 1:
+        # TODO: Better error message - this is slightly confusing
+        raise ValueError('Only mult == 1 supported')
 
 #----------------------------------------------------------------------
 # Period codes
@@ -887,9 +921,11 @@ def is_subperiod(source, target):
     -------
     is_subperiod : boolean
     """
+    source_raw = source
     if isinstance(source, offsets.DateOffset):
         source = source.rule_code
 
+    target_raw = target
     if isinstance(target, offsets.DateOffset):
         target = target.rule_code
 
@@ -918,6 +954,10 @@ def is_subperiod(source, target):
         return source in ['T', 'S']
     elif target == 'S':
         return source in ['S']
+    elif isinstance(source_raw, offsets._NonCythonPeriod):
+        return source_raw.is_subperiod(target_raw)
+    elif isinstance(target_raw, offsets._NonCythonPeriod):
+        return target_raw.is_superperiod(source_raw)
 
 
 def is_superperiod(source, target):
@@ -936,9 +976,11 @@ def is_superperiod(source, target):
     -------
     is_superperiod : boolean
     """
+    source_raw = source
     if isinstance(source, offsets.DateOffset):
         source = source.rule_code
 
+    target_raw = target
     if isinstance(target, offsets.DateOffset):
         target = target.rule_code
 
@@ -971,6 +1013,10 @@ def is_superperiod(source, target):
         return target in ['T', 'S']
     elif source == 'S':
         return target in ['S']
+    elif isinstance(source_raw, offsets._NonCythonPeriod):
+        return source_raw.is_superperiod(target_raw)
+    elif isinstance(target_raw, offsets._NonCythonPeriod):
+        return target_raw.is_subperiod(source_raw)
 
 
 def _get_rule_month(source, default='DEC'):
