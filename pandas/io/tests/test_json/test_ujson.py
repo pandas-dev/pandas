@@ -848,6 +848,51 @@ class UltraJSONTests(TestCase):
         dec = ujson.decode(output)
         self.assertEquals(dec, d)
 
+    def test_defaultHandler(self):
+
+        class _TestObject(object):
+
+            def __init__(self, val):
+                self.val = val
+
+            @property
+            def recursive_attr(self):
+                return _TestObject("recursive_attr")
+
+            def __str__(self):
+                return str(self.val)
+
+        self.assertRaises(OverflowError, ujson.encode, _TestObject("foo"))
+        self.assertEquals('"foo"', ujson.encode(_TestObject("foo"),
+                                                default_handler=str))
+
+        def my_handler(obj):
+            return "foobar"
+        self.assertEquals('"foobar"', ujson.encode(_TestObject("foo"),
+                                                   default_handler=my_handler))
+
+        def my_handler_raises(obj):
+            raise TypeError("I raise for anything")
+        with tm.assertRaisesRegexp(TypeError, "I raise for anything"):
+            ujson.encode(_TestObject("foo"), default_handler=my_handler_raises)
+
+        def my_int_handler(obj):
+            return 42
+        self.assertEquals(
+            42, ujson.decode(ujson.encode(_TestObject("foo"),
+                                          default_handler=my_int_handler)))
+
+        def my_obj_handler(obj):
+            return datetime.datetime(2013, 2, 3)
+        self.assertEquals(
+            ujson.decode(ujson.encode(datetime.datetime(2013, 2, 3))),
+            ujson.decode(ujson.encode(_TestObject("foo"),
+                                      default_handler=my_obj_handler)))
+
+        l = [_TestObject("foo"), _TestObject("bar")]
+        self.assertEquals(json.loads(json.dumps(l, default=str)),
+                          ujson.decode(ujson.encode(l, default_handler=str)))
+
 
 class NumpyJSONTests(TestCase):
 

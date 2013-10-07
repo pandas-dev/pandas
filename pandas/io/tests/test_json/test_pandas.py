@@ -575,3 +575,16 @@ class TestPandasContainer(unittest.TestCase):
 
         url = 'http://search.twitter.com/search.json?q=pandas%20python'
         result = read_json(url)
+
+    def test_default_handler(self):
+        from datetime import timedelta
+        frame = DataFrame([timedelta(23), timedelta(seconds=5)])
+        self.assertRaises(OverflowError, frame.to_json)
+        expected = DataFrame([str(timedelta(23)), str(timedelta(seconds=5))])
+        assert_frame_equal(
+            expected, pd.read_json(frame.to_json(default_handler=str)))
+
+        def my_handler_raises(obj):
+            raise TypeError
+        self.assertRaises(
+            TypeError, frame.to_json, default_handler=my_handler_raises)
