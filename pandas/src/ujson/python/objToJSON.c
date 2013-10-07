@@ -309,6 +309,30 @@ static void *NpyDatetime64ToJSON(JSOBJ _obj, JSONTypeContext *tc, void *outValue
   return PandasDateTimeStructToJSON(&dts, tc, outValue, _outLen);
 }
 
+static void *PyTimeToJSON(JSOBJ _obj, JSONTypeContext *tc, void *outValue, size_t *outLen)
+{
+  PyObject *obj = (PyObject *) _obj;
+  PyObject *str;
+  PyObject *tmp;
+
+  str = PyObject_CallMethod(obj, "isoformat", NULL);
+  if (str == NULL) {
+    PRINTMARK();
+    PyErr_SetString(PyExc_ValueError, "Failed to convert time");
+    return NULL;
+  }
+  if (PyUnicode_Check(str)) 
+  {
+    tmp = str;
+    str = PyUnicode_AsUTF8String(str);
+    Py_DECREF(tmp);
+  }
+  outValue = (void *) PyString_AS_STRING (str);
+  *outLen = strlen ((char *) outValue);
+  Py_DECREF(str);
+  return outValue;
+}
+
 //=============================================================================
 // Numpy array iteration functions
 //=============================================================================
@@ -1358,6 +1382,13 @@ void Object_beginTypeContext (JSOBJ _obj, JSONTypeContext *tc)
       PRINTMARK();
       tc->type = JT_LONG;
     }
+    return;
+  }
+  else
+  if (PyTime_Check(obj))
+  {
+    PRINTMARK();
+    pc->PyTypeToJSON = PyTimeToJSON; tc->type = JT_UTF8;
     return;
   }
   else

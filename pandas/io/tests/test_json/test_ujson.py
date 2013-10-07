@@ -22,6 +22,7 @@ import numpy as np
 from numpy.testing import (assert_array_equal,
                            assert_array_almost_equal_nulp,
                            assert_approx_equal)
+import pytz
 from pandas import DataFrame, Series, Index, NaT, DatetimeIndex
 import pandas.util.testing as tm
 
@@ -355,6 +356,17 @@ class UltraJSONTests(TestCase):
         expected = calendar.timegm(tup)
         self.assertEquals(int(expected), json.loads(output))
         self.assertEquals(int(expected), ujson.decode(output))
+
+    def test_encodeTimeConversion(self):
+        tests = [
+            datetime.time(),
+            datetime.time(1, 2, 3),
+            datetime.time(10, 12, 15, 343243),
+            datetime.time(10, 12, 15, 343243, pytz.utc)]
+        for test in tests:
+            output = ujson.encode(test)
+            expected = '"%s"' % test.isoformat()
+            self.assertEquals(expected, output)
 
     def test_nat(self):
         input = NaT
