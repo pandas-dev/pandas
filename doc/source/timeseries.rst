@@ -142,8 +142,10 @@ you can pass the ``dayfirst`` flag:
    can't be parsed with the day being first it will be parsed as if
    ``dayfirst`` were False.
 
+Invalid Data
+~~~~~~~~~~~~
 
-Pass ``coerce=True`` to convert bad data to ``NaT`` (not a time):
+Pass ``coerce=True`` to convert invalid data to ``NaT`` (not a time):
 
 .. ipython:: python
 
@@ -151,10 +153,31 @@ Pass ``coerce=True`` to convert bad data to ``NaT`` (not a time):
 
    to_datetime(['2009-07-31', 'asd'], coerce=True)
 
+
+Take care, ``to_datetime`` may not act as you expect on mixed data:
+
+.. ipython:: python
+
+   to_datetime([1, '1'])
+
+Epoch Timestamps
+~~~~~~~~~~~~~~~~
+
 It's also possible to convert integer or float epoch times. The default unit
 for these is nanoseconds (since these are how Timestamps are stored). However,
 often epochs are stored in another ``unit`` which can be specified:
 
+Typical epoch stored units
+
+.. ipython:: python
+
+   to_datetime([1349720105, 1349806505, 1349892905,
+                1349979305, 1350065705], unit='s')
+
+   to_datetime([1349720105100, 1349720105200, 1349720105300,
+                1349720105400, 1349720105500 ], unit='ms')
+
+These *work*, but the results may be unexpected.
 
 .. ipython:: python
 
@@ -165,12 +188,6 @@ often epochs are stored in another ``unit`` which can be specified:
 .. note::
 
    Epoch times will be rounded to the nearest nanosecond.
-
-Take care, ``to_datetime`` may not act as you expect on mixed data:
-
-.. ipython:: python
-
-   to_datetime([1, '1'])
 
 .. _timeseries.daterange:
 
@@ -1116,8 +1133,8 @@ to determine the right offset.
 .. ipython:: python
    :okexcept:
 
-   rng_hourly = DatetimeIndex(['11/06/2011 00:00', '11/06/2011 01:00', 
-                               '11/06/2011 01:00', '11/06/2011 02:00', 
+   rng_hourly = DatetimeIndex(['11/06/2011 00:00', '11/06/2011 01:00',
+                               '11/06/2011 01:00', '11/06/2011 02:00',
                                '11/06/2011 03:00'])
    rng_hourly.tz_localize('US/Eastern')
    rng_hourly_eastern = rng_hourly.tz_localize('US/Eastern', infer_dst=True)
