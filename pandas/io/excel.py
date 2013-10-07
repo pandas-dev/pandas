@@ -790,8 +790,9 @@ class _PyExcelerate(ExcelWriter):
 #                                 val, style)
                 pass
             else:
-                # wks[startrow + cell.row][startcol + cell.col] = val
-                wks[1 + startrow + cell.row][1 + startcol + cell.col] = val
+                wks.set_cell_value(1 + startrow + cell.row,
+                                   1 + startcol + cell.col,
+                                   val)
 
 
 register_writer(_PyExcelerate)
