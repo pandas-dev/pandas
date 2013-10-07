@@ -569,6 +569,7 @@ Bug Fixes
   - Fixed a bug where default options were being overwritten in the option
     parser cleaning (:issue:`5121`).
   - Treat a list/ndarray identically for ``iloc`` indexing with list-like (:issue:`5006`)
+  - Fix ``MultiIndex.get_level_values()`` with missing values (:issue:`5074`)
 
 pandas 0.12.0
 -------------

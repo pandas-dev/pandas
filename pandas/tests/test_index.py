@@ -1445,6 +1445,39 @@ class TestMultiIndex(unittest.TestCase):
         expected = self.index.get_level_values(0)
         self.assert_(np.array_equal(result, expected))
 
+    def test_get_level_values_na(self):
+        arrays = [['a', 'b', 'b'], [1, np.nan, 2]]
+        index = pd.MultiIndex.from_arrays(arrays)
+        values = index.get_level_values(1)
+        expected = [1, np.nan, 2]
+        assert_array_equal(values.values.astype(float), expected)
+
+        arrays = [['a', 'b', 'b'], [np.nan, np.nan, 2]]
+        index = pd.MultiIndex.from_arrays(arrays)
+        values = index.get_level_values(1)
+        expected = [np.nan, np.nan, 2]
+        assert_array_equal(values.values.astype(float), expected)
+
+        arrays = [[np.nan, np.nan, np.nan], ['a', np.nan, 1]]
+        index = pd.MultiIndex.from_arrays(arrays)
+        values = index.get_level_values(0)
+        expected = [np.nan, np.nan, np.nan]
+        assert_array_equal(values.values.astype(float), expected)
+        values = index.get_level_values(1)
+        expected = ['a', np.nan, 1]
+        assert_array_equal(values.values, expected)
+
+        arrays = [['a', 'b', 'b'], pd.DatetimeIndex([0, 1, pd.NaT])]
+        index = pd.MultiIndex.from_arrays(arrays)
+        values = index.get_level_values(1)
+        expected = pd.DatetimeIndex([0, 1, pd.NaT])
+        assert_array_equal(values.values, expected.values)
+
+        arrays = [[], []]
+        index = pd.MultiIndex.from_arrays(arrays)
+        values = index.get_level_values(0)
+        self.assertEqual(values.shape, (0,))
+
     def test_reorder_levels(self):
         # this blows up
         assertRaisesRegexp(IndexError, '^Too many levels',
