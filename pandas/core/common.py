@@ -7,12 +7,7 @@ import collections
 import numbers
 import codecs
 import csv
-import sys
 import types
-
-from datetime import timedelta
-
-from distutils.version import LooseVersion
 
 from numpy.lib.format import read_array, write_array
 import numpy as np
@@ -21,9 +16,7 @@ import pandas.algos as algos
 import pandas.lib as lib
 import pandas.tslib as tslib
 from pandas import compat
-from pandas.compat import (StringIO, BytesIO, range, long, u, zip, map,
-                           string_types)
-from datetime import timedelta
+from pandas.compat import StringIO, BytesIO, range, long, u, zip, map
 
 from pandas.core.config import get_option
 from pandas.core import array as pa
@@ -35,6 +28,7 @@ class PandasError(Exception):
 
 class AmbiguousIndexError(PandasError, KeyError):
     pass
+
 
 _POSSIBLY_CAST_DTYPES = set([np.dtype(t)
                             for t in ['M8[ns]', 'm8[ns]', 'O', 'int8',
@@ -100,6 +94,7 @@ def bind_method(cls, name, func):
         setattr(cls, name, types.MethodType(func, None, cls))
     else:
         setattr(cls, name, func)
+
 
 def isnull(obj):
     """Detect missing values (NaN in numeric arrays, None/NaN in object arrays)
@@ -772,6 +767,7 @@ def diff(arr, n, axis=0):
 
     return out_arr
 
+
 def _coerce_to_dtypes(result, dtypes):
     """ given a dtypes and a result set, coerce the result elements to the dtypes """
     if len(result) != len(dtypes):
@@ -799,6 +795,7 @@ def _coerce_to_dtypes(result, dtypes):
         return r
 
     return np.array([ conv(r,dtype) for r, dtype in zip(result,dtypes) ])
+
 
 def _infer_dtype_from_scalar(val):
     """ interpret the dtype from a scalar, upcast floats and ints
@@ -986,6 +983,7 @@ def _maybe_upcast_putmask(result, mask, other, dtype=None, change=None):
 
     return result, False
 
+
 def _maybe_upcast(values, fill_value=np.nan, dtype=None, copy=False):
     """ provide explicty type promotion and coercion
 
@@ -1166,6 +1164,7 @@ def pad_1d(values, limit=None, mask=None):
     _method(values, mask, limit=limit)
     return values
 
+
 def backfill_1d(values, limit=None, mask=None):
 
     dtype = values.dtype.name
@@ -1189,6 +1188,7 @@ def backfill_1d(values, limit=None, mask=None):
 
     _method(values, mask, limit=limit)
     return values
+
 
 def pad_2d(values, limit=None, mask=None):
 
@@ -1218,6 +1218,7 @@ def pad_2d(values, limit=None, mask=None):
         pass
     return values
 
+
 def backfill_2d(values, limit=None, mask=None):
 
     dtype = values.dtype.name
@@ -1245,6 +1246,7 @@ def backfill_2d(values, limit=None, mask=None):
         # for test coverage
         pass
     return values
+
 
 def interpolate_2d(values, method='pad', axis=0, limit=None, fill_value=None):
     """ perform an actual interpolation of values, values will be make 2-d if needed
@@ -1370,6 +1372,7 @@ def _possibly_convert_platform(values):
         values = lib.maybe_convert_objects(values)
 
     return values
+
 
 def _possibly_cast_to_datetime(value, dtype, coerce=False):
     """ try to cast the array/value to a datetimelike dtype, converting float nan to iNaT """
@@ -1787,6 +1790,7 @@ def is_datetime64_dtype(arr_or_dtype):
         tipo = arr_or_dtype.dtype.type
     return issubclass(tipo, np.datetime64)
 
+
 def is_datetime64_ns_dtype(arr_or_dtype):
     if isinstance(arr_or_dtype, np.dtype):
         tipo = arr_or_dtype
@@ -1795,6 +1799,7 @@ def is_datetime64_ns_dtype(arr_or_dtype):
     else:
         tipo = arr_or_dtype.dtype
     return tipo == _NS_DTYPE
+
 
 def is_timedelta64_dtype(arr_or_dtype):
     if isinstance(arr_or_dtype, np.dtype):
@@ -1850,6 +1855,7 @@ def _is_sequence(x):
         return not isinstance(x, compat.string_and_binary_types)
     except (TypeError, AttributeError):
         return False
+
 
 _ensure_float64 = algos.ensure_float64
 _ensure_float32 = algos.ensure_float32
@@ -1986,6 +1992,7 @@ def _get_handle(path, mode, encoding=None, compression=None):
             f = open(path, mode)
 
     return f
+
 
 if compat.PY3:  # pragma: no cover
     def UnicodeReader(f, dialect=csv.excel, encoding="utf-8", **kwds):

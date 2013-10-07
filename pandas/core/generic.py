@@ -18,9 +18,7 @@ import pandas.core.datetools as datetools
 from pandas import compat, _np_version_under1p7
 from pandas.compat import map, zip, lrange, string_types, isidentifier
 from pandas.core.common import (isnull, notnull, is_list_like,
-                                _values_from_object,
-                                _infer_dtype_from_scalar, _maybe_promote,
-                                ABCSeries)
+                                _values_from_object, _maybe_promote, ABCSeries)
 import pandas.core.nanops as nanops
 from pandas.util.decorators import Appender, Substitution
 
@@ -35,6 +33,7 @@ _shared_doc_kwargs = dict(axes='keywords for axes',
 
 def is_dictlike(x):
     return isinstance(x, (dict, com.ABCSeries))
+
 
 def _single_replace(self, to_replace, method, inplace, limit):
     orig_dtype = self.dtype
@@ -1844,7 +1843,7 @@ class NDFrame(PandasObject):
         self._consolidate_inplace()
 
         if value is None:
-            if isinstance(to_replace, list):
+            if isinstance(to_replace, (tuple, list)):
                 return _single_replace(self, to_replace, method, inplace,
                                        limit)
 
@@ -1856,7 +1855,7 @@ class NDFrame(PandasObject):
                 to_replace = regex
                 regex = True
 
-            items = to_replace.items()
+            items = list(compat.iteritems(to_replace))
             keys, values = zip(*items)
 
             are_mappings = [is_dictlike(v) for v in values]
@@ -1899,7 +1898,7 @@ class NDFrame(PandasObject):
                                                         regex=regex)
 
                 # {'A': NA} -> 0
-                elif not isinstance(value, (list, np.ndarray)):
+                elif not com.is_list_like(value):
                     new_data = self._data
                     for k, src in compat.iteritems(to_replace):
                         if k in self:
@@ -1911,9 +1910,8 @@ class NDFrame(PandasObject):
                     raise TypeError('Fill value must be scalar, dict, or '
                                     'Series')
 
-            elif isinstance(to_replace, (list, np.ndarray)):
-                # [NA, ''] -> [0, 'missing']
-                if isinstance(value, (list, np.ndarray)):
+            elif com.is_list_like(to_replace): # [NA, ''] -> [0, 'missing']
+                if com.is_list_like(value):
                     if len(to_replace) != len(value):
                         raise ValueError('Replacement lists must match '
                                          'in length. Expecting %d got %d ' %
@@ -1928,11 +1926,13 @@ class NDFrame(PandasObject):
                                                   inplace=inplace, regex=regex)
             elif to_replace is None:
                 if not (com.is_re_compilable(regex) or
-                        isinstance(regex, (list, np.ndarray)) or is_dictlike(regex)):
+                        com.is_list_like(regex) or
+                        is_dictlike(regex)):
                     raise TypeError("'regex' must be a string or a compiled "
                                     "regular expression or a list or dict of "
                                     "strings or regular expressions, you "
-                                    "passed a {0}".format(type(regex)))
+                                    "passed a"
+                                    " {0!r}".format(type(regex).__name__))
                 return self.replace(regex, value, inplace=inplace, limit=limit,
                                     regex=True)
             else:
@@ -1948,12 +1948,13 @@ class NDFrame(PandasObject):
                                                         inplace=inplace,
                                                         regex=regex)
 
-                elif not isinstance(value, (list, np.ndarray)):  # NA -> 0
+                elif not com.is_list_like(value):  # NA -> 0
                     new_data = self._data.replace(to_replace, value,
                                                   inplace=inplace, regex=regex)
                 else:
-                    raise TypeError('Invalid "to_replace" type: '
-                                    '{0}'.format(type(to_replace)))  # pragma: no cover
+                    msg = ('Invalid "to_replace" type: '
+                           '{0!r}').format(type(to_replace).__name__)
+                    raise TypeError(msg)  # pragma: no cover
 
         new_data = new_data.convert(copy=not inplace, convert_numeric=False)
 

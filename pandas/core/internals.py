@@ -992,6 +992,7 @@ class NumericBlock(Block):
     is_numeric = True
     _can_hold_na = True
 
+
 class FloatBlock(NumericBlock):
     is_float = True
     _downcast_dtype = 'int64'
@@ -1064,6 +1065,7 @@ class IntBlock(NumericBlock):
     def should_store(self, value):
         return com.is_integer_dtype(value) and value.dtype == self.dtype
 
+
 class TimeDeltaBlock(IntBlock):
     is_timedelta = True
     _can_hold_na = True
@@ -1129,6 +1131,7 @@ class TimeDeltaBlock(IntBlock):
         rvalues.flat[imask] = np.array([lib.repr_timedelta64(val)
                                         for val in values.ravel()[imask]], dtype=object)
         return rvalues.tolist()
+
 
 class BoolBlock(NumericBlock):
     is_bool = True
@@ -1676,6 +1679,7 @@ class SparseBlock(Block):
 
     def _try_cast_result(self, result, dtype=None):
         return result
+
 
 def make_block(values, items, ref_items, klass=None, ndim=None, dtype=None, fastpath=False, placement=None):
 
