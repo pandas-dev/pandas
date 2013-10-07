@@ -97,6 +97,7 @@ Improvements to existing features
     overlapping color and style arguments (:issue:`4402`)
   - Significant table writing performance improvements in ``HDFStore``
   - JSON date serialisation now performed in low-level C code.
+  - JSON support for encoding datetime.time
   - Add ``drop_level`` argument to xs (:issue:`4180`)
   - Can now resample a DataFrame with ohlc (:issue:`2320`)
   - ``Index.copy()`` and ``MultiIndex.copy()`` now accept keyword arguments to
