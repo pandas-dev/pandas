@@ -36,6 +36,15 @@ def assert_n_failed_equals_n_null_columns(wngs, obj, cls=SymbolWarning):
 
 
 class TestGoogle(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.locales = tm.get_locales(prefix='en_US')
+        if not cls.locales:
+            raise nose.SkipTest("US English locale not available for testing")
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.locales
 
     @network
     def test_google(self):
@@ -45,8 +54,9 @@ class TestGoogle(unittest.TestCase):
         start = datetime(2010, 1, 1)
         end = datetime(2013, 1, 27)
 
-        with tm.set_locale('en_US.UTF-8'):
-            panel = web.DataReader("F", 'google', start, end)
+        for locale in self.locales:
+            with tm.set_locale(locale):
+                panel = web.DataReader("F", 'google', start, end)
             self.assertEquals(panel.Close[-1], 13.68)
 
         self.assertRaises(Exception, web.DataReader, "NON EXISTENT TICKER",
@@ -59,41 +69,40 @@ class TestGoogle(unittest.TestCase):
 
     @network
     def test_get_goog_volume(self):
-        with tm.set_locale('en_US.UTF-8'):
-            df = web.get_data_google('GOOG').sort_index()
-        self.assertEqual(df.Volume.ix['OCT-08-2010'], 2863473)
+        for locale in self.locales:
+            with tm.set_locale(locale):
+                df = web.get_data_google('GOOG').sort_index()
+            self.assertEqual(df.Volume.ix['OCT-08-2010'], 2863473)
 
     @network
     def test_get_multi1(self):
-        sl = ['AAPL', 'AMZN', 'GOOG']
-        with tm.set_locale('en_US.UTF-8'):
-            pan = web.get_data_google(sl, '2012')
-
-        def testit():
+        for locale in self.locales:
+            sl = ['AAPL', 'AMZN', 'GOOG']
+            with tm.set_locale(locale):
+                pan = web.get_data_google(sl, '2012')
             ts = pan.Close.GOOG.index[pan.Close.AAPL > pan.Close.GOOG]
-            self.assertEquals(ts[0].dayofyear, 96)
-
-        if (hasattr(pan, 'Close') and hasattr(pan.Close, 'GOOG') and
-            hasattr(pan.Close, 'AAPL')):
-            testit()
-        else:
-            self.assertRaises(AttributeError, testit)
+            if (hasattr(pan, 'Close') and hasattr(pan.Close, 'GOOG') and
+                hasattr(pan.Close, 'AAPL')):
+                self.assertEquals(ts[0].dayofyear, 96)
+            else:
+                self.assertRaises(AttributeError, lambda: pan.Close)
 
     @network
     def test_get_multi2(self):
         with warnings.catch_warnings(record=True) as w:
-            with tm.set_locale('en_US.UTF-8'):
-                pan = web.get_data_google(['GE', 'MSFT', 'INTC'], 'JAN-01-12',
-                                        'JAN-31-12')
-            result = pan.Close.ix['01-18-12']
-            assert_n_failed_equals_n_null_columns(w, result)
+            for locale in self.locales:
+                with tm.set_locale(locale):
+                    pan = web.get_data_google(['GE', 'MSFT', 'INTC'],
+                                              'JAN-01-12', 'JAN-31-12')
+                result = pan.Close.ix['01-18-12']
+                assert_n_failed_equals_n_null_columns(w, result)
 
-            # sanity checking
+                # sanity checking
 
-            assert np.issubdtype(result.dtype, np.floating)
-            result = pan.Open.ix['Jan-15-12':'Jan-20-12']
-            self.assertEqual((4, 3), result.shape)
-            assert_n_failed_equals_n_null_columns(w, result)
+                assert np.issubdtype(result.dtype, np.floating)
+                result = pan.Open.ix['Jan-15-12':'Jan-20-12']
+                self.assertEqual((4, 3), result.shape)
+                assert_n_failed_equals_n_null_columns(w, result)
 
 
 class TestYahoo(unittest.TestCase):

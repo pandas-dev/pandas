@@ -32,6 +32,7 @@ def _skip_if_python_ver(skip_major, skip_minor=None):
     if major == skip_major and (skip_minor is None or minor == skip_minor):
         raise nose.SkipTest("skipping Python version %d.%d" % (major, minor))
 
+
 json_unicode = (json.dumps if sys.version_info[0] >= 3
                 else partial(json.dumps, encoding="utf-8"))
 
@@ -194,7 +195,6 @@ class UltraJSONTests(TestCase):
         # will throw typeError
         self.assertRaises(TypeError, ujson.encode, input, double_precision = None)
 
-
     def test_encodeStringConversion(self):
         input = "A string \\ / \b \f \n \r \t"
         output = ujson.encode(input)
@@ -219,7 +219,6 @@ class UltraJSONTests(TestCase):
         dec = ujson.decode(enc)
         self.assertEquals(input, dec)
         self.assertEquals(enc, json_unicode(input))
-
 
     def test_encodeUnicodeConversion2(self):
         input = "\xe6\x97\xa5\xd1\x88"
@@ -259,7 +258,6 @@ class UltraJSONTests(TestCase):
         self.assertEquals(enc, json_unicode(input))
         self.assertEquals(dec, json.loads(enc))
 
-
     def test_encodeArrayInArray(self):
         input = [[[[]]]]
         output = ujson.encode(input)
@@ -285,7 +283,6 @@ class UltraJSONTests(TestCase):
         self.assertEquals(output, json.dumps(input))
         self.assertEquals(input, ujson.decode(output))
         pass
-
 
     def test_encodeLongNegConversion(self):
         input = -9223372036854775808
@@ -448,7 +445,6 @@ class UltraJSONTests(TestCase):
         input = -np.inf
         assert ujson.encode(input) == 'null', "Expected null"
 
-
     def test_decodeJibberish(self):
         input = "fdsa sda v9sa fdsa"
         try:
@@ -566,7 +562,6 @@ class UltraJSONTests(TestCase):
             return
         assert False, "Wrong exception"
 
-
     def test_decodeBrokenDictKeyTypeLeakTest(self):
         input = '{{1337:""}}'
         for x in range(1000):
@@ -666,7 +661,6 @@ class UltraJSONTests(TestCase):
     def test_decodeNullCharacter(self):
         input = "\"31337 \\u0000 31337\""
         self.assertEquals(ujson.decode(input), json.loads(input))
-
 
     def test_encodeListLongConversion(self):
         input = [9223372036854775807, 9223372036854775807, 9223372036854775807,
@@ -1147,6 +1141,7 @@ class NumpyJSONTests(TestCase):
             self.assertTrue((np.array(['1','2','3']) == output[1]).all())
             self.assertTrue((np.array(['a', 'b']) == output[2]).all())
 
+
 class PandasJSONTests(TestCase):
 
     def testDataFrame(self):
@@ -1177,7 +1172,6 @@ class PandasJSONTests(TestCase):
         self.assertTrue((df.transpose() == outp).values.all())
         assert_array_equal(df.transpose().columns, outp.columns)
         assert_array_equal(df.transpose().index, outp.index)
-
 
     def testDataFrameNumpy(self):
         df = DataFrame([[1,2,3], [4,5,6]], index=['a', 'b'], columns=['x', 'y', 'z'])
@@ -1486,7 +1480,6 @@ class PandasJSONTests(TestCase):
         else:
             assert False, "expected ValueError"
 
-
     def test_decodeFloatingPointAdditionalTests(self):
         places = 15
 
@@ -1529,39 +1522,10 @@ class PandasJSONTests(TestCase):
             self.assertTrue(v in s)
 
 
-"""
-def test_decodeNumericIntFrcOverflow(self):
-input = "X.Y"
-raise NotImplementedError("Implement this test!")
-
-
-def test_decodeStringUnicodeEscape(self):
-input = "\u3131"
-raise NotImplementedError("Implement this test!")
-
-def test_decodeStringUnicodeBrokenEscape(self):
-input = "\u3131"
-raise NotImplementedError("Implement this test!")
-
-def test_decodeStringUnicodeInvalidEscape(self):
-input = "\u3131"
-raise NotImplementedError("Implement this test!")
-
-def test_decodeStringUTF8(self):
-input = "someutfcharacters"
-raise NotImplementedError("Implement this test!")
-
-
-
-"""
-
 def _clean_dict(d):
     return dict((str(k), v) for k, v in compat.iteritems(d))
 
+
 if __name__ == '__main__':
-    # unittest.main()
-    import nose
-    # nose.runmodule(argv=[__file__,'-vvs','-x', '--ipdb-failure'],
-    #                exit=False)
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
