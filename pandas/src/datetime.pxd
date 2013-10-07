@@ -85,6 +85,9 @@ cdef extern from "datetime/np_datetime.h":
         npy_int64 year
         npy_int32 month, day, hour, min, sec, us, ps, as
 
+    int cmp_pandas_datetimestruct(pandas_datetimestruct *a,
+                                  pandas_datetimestruct *b)
+
     int convert_pydatetime_to_datetimestruct(PyObject *obj,
                                              pandas_datetimestruct *out,
                                              PANDAS_DATETIMEUNIT *out_bestunit,

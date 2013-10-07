@@ -1,5 +1,5 @@
 # pylint: disable-msg=E1101,W0612
-from datetime import datetime, time, timedelta
+from datetime import datetime, time, timedelta, date
 import sys
 import os
 import unittest
@@ -951,6 +951,81 @@ class TestTimeSeries(unittest.TestCase):
         result = DatetimeIndex(ints)
 
         self.assert_(rng.equals(result))
+
+    def test_to_datetime_dt64s(self):
+        in_bound_dts = [
+            np.datetime64('2000-01-01'),
+            np.datetime64('2000-01-02'),
+        ]
+
+        for dt in in_bound_dts:
+            self.assertEqual(
+                pd.to_datetime(dt),
+                Timestamp(dt)
+            )
+
+        oob_dts = [
+            np.datetime64('1000-01-01'),
+            np.datetime64('5000-01-02'),
+        ]
+
+        for dt in oob_dts:
+            self.assertRaises(ValueError, pd.to_datetime, dt, errors='raise')
+            self.assertRaises(ValueError, tslib.Timestamp, dt)
+            self.assert_(pd.to_datetime(dt, coerce=True) is NaT)
+
+    def test_to_datetime_array_of_dt64s(self):
+        dts = [
+            np.datetime64('2000-01-01'),
+            np.datetime64('2000-01-02'),
+        ]
+
+        # Assuming all datetimes are in bounds, to_datetime() returns
+        # an array that is equal to Timestamp() parsing
+        self.assert_(
+            np.array_equal(
+                pd.to_datetime(dts, box=False),
+                np.array([Timestamp(x).asm8 for x in dts])
+            )
+        )
+
+        # A list of datetimes where the last one is out of bounds
+        dts_with_oob = dts + [np.datetime64('9999-01-01')]
+
+        self.assertRaises(
+            ValueError,
+            pd.to_datetime,
+            dts_with_oob,
+            coerce=False,
+            errors='raise'
+        )
+
+        self.assert_(
+            np.array_equal(
+                pd.to_datetime(dts_with_oob, box=False, coerce=True),
+                np.array(
+                    [
+                        Timestamp(dts_with_oob[0]).asm8,
+                        Timestamp(dts_with_oob[1]).asm8,
+                        iNaT,
+                    ],
+                    dtype='M8'
+                )
+            )
+        )
+
+        # With coerce=False and errors='ignore', out of bounds datetime64s
+        # are converted to their .item(), which depending on the version of
+        # numpy is either a python datetime.datetime or datetime.date
+        self.assert_(
+            np.array_equal(
+                pd.to_datetime(dts_with_oob, box=False, coerce=False),
+                np.array(
+                    [dt.item() for dt in dts_with_oob],
+                    dtype='O'
+                )
+            )
+        )
 
     def test_index_to_datetime(self):
         idx = Index(['1/1/2000', '1/2/2000', '1/3/2000'])

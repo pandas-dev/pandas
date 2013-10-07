@@ -204,7 +204,7 @@ class DatetimeIndex(Int64Index):
                 data = _str_to_dt_array(data, offset, dayfirst=dayfirst,
                                         yearfirst=yearfirst)
             else:
-                data = tools.to_datetime(data)
+                data = tools.to_datetime(data, errors='raise')
                 data.offset = offset
                 if isinstance(data, DatetimeIndex):
                     if name is not None:
@@ -243,14 +243,14 @@ class DatetimeIndex(Int64Index):
                 subarr = data.view(_NS_DTYPE)
         else:
             try:
-                subarr = tools.to_datetime(data)
+                subarr = tools.to_datetime(data, box=False)
             except ValueError:
                 # tz aware
-                subarr = tools.to_datetime(data, utc=True)
+                subarr = tools.to_datetime(data, box=False, utc=True)
 
             if not np.issubdtype(subarr.dtype, np.datetime64):
-                raise TypeError('Unable to convert %s to datetime dtype'
-                                % str(data))
+                raise ValueError('Unable to convert %s to datetime dtype'
+                                 % str(data))
 
         if isinstance(subarr, DatetimeIndex):
             if tz is None:
@@ -937,7 +937,7 @@ class DatetimeIndex(Int64Index):
                                         'mixed-integer-float', 'mixed')):
             try:
                 other = DatetimeIndex(other)
-            except TypeError:
+            except (TypeError, ValueError):
                 pass
 
         this, other = self._maybe_utc_convert(other)
@@ -1054,7 +1054,7 @@ class DatetimeIndex(Int64Index):
         if not isinstance(other, DatetimeIndex):
             try:
                 other = DatetimeIndex(other)
-            except TypeError:
+            except (TypeError, ValueError):
                 pass
             result = Index.intersection(self, other)
             if isinstance(result, DatetimeIndex):

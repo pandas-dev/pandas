@@ -570,6 +570,7 @@ Bug Fixes
     parser cleaning (:issue:`5121`).
   - Treat a list/ndarray identically for ``iloc`` indexing with list-like (:issue:`5006`)
   - Fix ``MultiIndex.get_level_values()`` with missing values (:issue:`5074`)
+  - Fix bound checking for Timestamp() with datetime64 input (:issue:`4065`)
 
 pandas 0.12.0
 -------------
