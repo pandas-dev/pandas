@@ -3744,31 +3744,31 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             for i in range(length):
                 letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
                 yield (i, letters[i % len(letters)], i/length)
-        
+
         columns_names = ['Integer', 'String', 'Float']
         columns = [[i[j] for i in tuple_generator(10)] for j in range(len(columns_names))]
         data = {'Integer': columns[0], 'String': columns[1], 'Float': columns[2]}
         expected = DataFrame(data, columns=columns_names)
-	
+
         generator = tuple_generator(10)
         result = DataFrame.from_records(generator, columns=columns_names)
         assert_frame_equal(result, expected)
-    
+
     def test_from_records_lists_generator(self):
         def list_generator(length):
             for i in range(length):
                 letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
                 yield [i, letters[i % len(letters)], i/length]
-        
+
         columns_names = ['Integer', 'String', 'Float']
         columns = [[i[j] for i in list_generator(10)] for j in range(len(columns_names))]
         data = {'Integer': columns[0], 'String': columns[1], 'Float': columns[2]}
         expected = DataFrame(data, columns=columns_names)
-        
+
         generator = list_generator(10)
         result = DataFrame.from_records(generator, columns=columns_names)
         assert_frame_equal(result, expected)
-    
+
     def test_from_records_columns_not_modified(self):
         tuples = [(1, 2, 3),
                   (1, 2, 3),
@@ -6744,6 +6744,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = df.fillna('nan')
         expected = DataFrame('nan',index=lrange(3),columns=['A','B'])
         assert_frame_equal(result, expected)
+
+        # equiv of replace
+        df = DataFrame(dict(A = [1,np.nan], B = [1.,2.]))
+        for v in ['',1,np.nan,1.0]:
+            expected = df.replace(np.nan,v)
+            result = df.fillna(v)
+            assert_frame_equal(result, expected)
 
     def test_ffill(self):
         self.tsframe['A'][:5] = nan
