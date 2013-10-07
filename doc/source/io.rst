@@ -1054,8 +1054,9 @@ with optional parameters:
 - ``double_precision`` : The number of decimal places to use when encoding floating point values, default 10.
 - ``force_ascii`` : force encoded string to be ASCII, default True.
 - ``date_unit`` : The time unit to encode to, governs timestamp and ISO8601 precision. One of 's', 'ms', 'us' or 'ns' for seconds, milliseconds, microseconds and nanoseconds respectively. Default 'ms'.
+- ``default_handler`` : The handler to call if an object cannot otherwise be converted to a suitable format for JSON. Takes a single argument, which is the object to convert, and returns a serialisable object.
 
-Note NaN's, NaT's and None will be converted to null and datetime objects will be converted based on the date_format and date_unit parameters.
+Note ``NaN``'s, ``NaT``'s and ``None`` will be converted to ``null`` and ``datetime`` objects will be converted based on the ``date_format`` and ``date_unit`` parameters.
 
 .. ipython:: python
 
@@ -1097,6 +1098,48 @@ Writing to a file, with a date index and a date column
    dfj2.index = date_range('20130101', periods=5)
    dfj2.to_json('test.json')
    open('test.json').read()
+
+If the JSON serialiser cannot handle the container contents directly it will fallback in the following manner:
+
+- if a ``toDict`` method is defined by the unrecognised object then that 
+  will be called and its returned ``dict`` will be JSON serialised.
+- if a ``default_handler`` has been passed to ``to_json`` that will
+  be called to convert the object.
+- otherwise an attempt is made to convert the object to a ``dict`` by
+  parsing its contents. However if the object is complex this will often fail
+  with an ``OverflowError``.
+
+Your best bet when encountering ``OverflowError`` during serialisation
+is to specify a ``default_handler``. For example ``timedelta`` can cause 
+problems:
+
+.. ipython:: python
+   :suppress:
+
+   from datetime import timedelta
+   dftd = DataFrame([timedelta(23), timedelta(seconds=5), 42])
+
+.. code-block:: ipython
+
+   In [141]: from datetime import timedelta
+
+   In [142]: dftd = DataFrame([timedelta(23), timedelta(seconds=5), 42])
+
+   In [143]: dftd.to_json()
+
+   ---------------------------------------------------------------------------
+   OverflowError                             Traceback (most recent call last)
+   OverflowError: Maximum recursion level reached
+
+which can be dealt with by specifying a simple ``default_handler``:
+
+.. ipython:: python
+
+   dftd.to_json(default_handler=str)
+
+   def my_handler(obj):
+      return obj.total_seconds()
+   dftd.to_json(default_handler=my_handler)
 
 Reading JSON
 ~~~~~~~~~~~~

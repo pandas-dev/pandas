@@ -234,6 +234,8 @@ API Changes
 
     - added ``date_unit`` parameter to specify resolution of timestamps. Options
       are seconds, milliseconds, microseconds and nanoseconds. (:issue:`4362`, :issue:`4498`).
+    - added ``default_handler`` parameter to allow a callable to be passed which will be
+      responsible for handling otherwise unserialisable objects.
 
   - ``Index`` and ``MultiIndex`` changes (:issue:`4039`):
 

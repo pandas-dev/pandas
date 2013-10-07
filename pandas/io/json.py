@@ -17,19 +17,21 @@ loads = _json.loads
 dumps = _json.dumps
 ### interface to/from ###
 
+
 def to_json(path_or_buf, obj, orient=None, date_format='epoch',
-            double_precision=10, force_ascii=True, date_unit='ms'):
+            double_precision=10, force_ascii=True, date_unit='ms',
+            default_handler=None):
 
     if isinstance(obj, Series):
         s = SeriesWriter(
             obj, orient=orient, date_format=date_format,
             double_precision=double_precision, ensure_ascii=force_ascii,
-            date_unit=date_unit).write()
+            date_unit=date_unit, default_handler=default_handler).write()
     elif isinstance(obj, DataFrame):
         s = FrameWriter(
             obj, orient=orient, date_format=date_format,
             double_precision=double_precision, ensure_ascii=force_ascii,
-            date_unit=date_unit).write()
+            date_unit=date_unit, default_handler=default_handler).write()
     else:
         raise NotImplementedError
 
@@ -45,7 +47,7 @@ def to_json(path_or_buf, obj, orient=None, date_format='epoch',
 class Writer(object):
 
     def __init__(self, obj, orient, date_format, double_precision,
-                 ensure_ascii, date_unit):
+                 ensure_ascii, date_unit, default_handler=None):
         self.obj = obj
 
         if orient is None:
@@ -56,6 +58,7 @@ class Writer(object):
         self.double_precision = double_precision
         self.ensure_ascii = ensure_ascii
         self.date_unit = date_unit
+        self.default_handler = default_handler
 
         self.is_copy = False
         self._format_axes()
@@ -70,7 +73,9 @@ class Writer(object):
             double_precision=self.double_precision,
             ensure_ascii=self.ensure_ascii,
             date_unit=self.date_unit,
-            iso_dates=self.date_format == 'iso')
+            iso_dates=self.date_format == 'iso',
+            default_handler=self.default_handler)
+
 
 class SeriesWriter(Writer):
     _default_orient = 'index'
@@ -121,13 +126,17 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
 
           - default is ``'columns'``
           - allowed values are: {'split','records','index','columns','values'}
-          - The DataFrame index must be unique for orients 'index' and 'columns'.
-          - The DataFrame columns must be unique for orients 'index', 'columns', and 'records'.
+          - The DataFrame index must be unique for orients 'index' and
+            'columns'.
+          - The DataFrame columns must be unique for orients 'index',
+            'columns', and 'records'.
 
         * The format of the JSON string
 
-          - split : dict like ``{index -> [index], columns -> [columns], data -> [values]}``
-          - records : list like ``[{column -> value}, ... , {column -> value}]``
+          - split : dict like
+            ``{index -> [index], columns -> [columns], data -> [values]}``
+          - records : list like
+            ``[{column -> value}, ... , {column -> value}]``
           - index : dict like ``{index -> {column -> value}}``
           - columns : dict like ``{column -> {index -> value}}``
           - values : just the values array
@@ -384,7 +393,6 @@ class SeriesParser(Parser):
     _default_orient = 'index'
     _split_keys = ('name', 'index', 'data')
 
-
     def _parse_no_numpy(self):
 
         json = self.json
@@ -542,7 +550,7 @@ class FrameParser(Parser):
 #----------------------------------------------------------------------
 # JSON normalization routines
 
-def nested_to_record(ds,prefix="",level=0):
+def nested_to_record(ds, prefix="", level=0):
     """a simplified json_normalize
 
     converts a nested dict into a flat dict ("record"), unlike json_normalize,
@@ -557,7 +565,8 @@ def nested_to_record(ds,prefix="",level=0):
     d - dict or list of dicts, matching `ds`
 
     Example:
-    IN[52]: nested_to_record(dict(flat1=1,dict1=dict(c=1,d=2),nested=dict(e=dict(c=1,d=2),d=2)))
+    IN[52]: nested_to_record(dict(flat1=1,dict1=dict(c=1,d=2),
+                                  nested=dict(e=dict(c=1,d=2),d=2)))
     Out[52]:
     {'dict1.c': 1,
      'dict1.d': 2,
@@ -567,7 +576,7 @@ def nested_to_record(ds,prefix="",level=0):
      'nested.e.d': 2}
     """
     singleton = False
-    if isinstance(ds,dict):
+    if isinstance(ds, dict):
         ds = [ds]
         singleton = True
 
@@ -575,23 +584,23 @@ def nested_to_record(ds,prefix="",level=0):
     for d in ds:
 
         new_d = copy.deepcopy(d)
-        for k,v in d.items():
+        for k, v in d.items():
             # each key gets renamed with prefix
             if level == 0:
                 newkey = str(k)
             else:
-                newkey = prefix+'.'+ str(k)
+                newkey = prefix + '.' + str(k)
 
             # only dicts gets recurse-flattend
             # only at level>1 do we rename the rest of the keys
-            if not isinstance(v,dict):
-                if level!=0: # so we skip copying for top level, common case
+            if not isinstance(v, dict):
+                if level != 0:  # so we skip copying for top level, common case
                     v = new_d.pop(k)
-                    new_d[newkey]= v
+                    new_d[newkey] = v
                 continue
             else:
                 v = new_d.pop(k)
-                new_d.update(nested_to_record(v,newkey,level+1))
+                new_d.update(nested_to_record(v, newkey, level+1))
         new_ds.append(new_d)
 
     if singleton:
@@ -663,13 +672,14 @@ def json_normalize(data, record_path=None, meta=None,
         data = [data]
 
     if record_path is None:
-        if any([isinstance(x,dict) for x in compat.itervalues(data[0])]):
+        if any([isinstance(x, dict) for x in compat.itervalues(data[0])]):
             # naive normalization, this is idempotent for flat records
             # and potentially will inflate the data considerably for
             # deeply nested structures:
             #  {VeryLong: { b: 1,c:2}} -> {VeryLong.b:1 ,VeryLong.c:@}
             #
-            # TODO: handle record value which are lists, at least error reasonabley
+            # TODO: handle record value which are lists, at least error
+            #       reasonably
             data = nested_to_record(data)
         return DataFrame(data)
     elif not isinstance(record_path, list):
