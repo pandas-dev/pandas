@@ -1101,7 +1101,7 @@ Writing to a file, with a date index and a date column
 
 If the JSON serialiser cannot handle the container contents directly it will fallback in the following manner:
 
-- if a ``toDict`` method is defined by the unrecognised object then that 
+- if a ``toDict`` method is defined by the unrecognised object then that
   will be called and its returned ``dict`` will be JSON serialised.
 - if a ``default_handler`` has been passed to ``to_json`` that will
   be called to convert the object.
@@ -1110,7 +1110,7 @@ If the JSON serialiser cannot handle the container contents directly it will fal
   with an ``OverflowError``.
 
 Your best bet when encountering ``OverflowError`` during serialisation
-is to specify a ``default_handler``. For example ``timedelta`` can cause 
+is to specify a ``default_handler``. For example ``timedelta`` can cause
 problems:
 
 .. ipython:: python
@@ -1597,90 +1597,6 @@ Not escaped:
    Some browsers may not show a difference in the rendering of the previous two
    HTML tables.
 
-
-Clipboard
----------
-
-.. _io.clipboard:
-
-A handy way to grab data is to use the ``read_clipboard`` method, which takes
-the contents of the clipboard buffer and passes them to the ``read_table``
-method. For instance, you can copy the following
-text to the clipboard (CTRL-C on many operating systems):
-
-.. code-block:: python
-
-     A B C
-   x 1 4 p
-   y 2 5 q
-   z 3 6 r
-
-And then import the data directly to a DataFrame by calling:
-
-.. code-block:: python
-
-   clipdf = pd.read_clipboard()
-
-.. ipython:: python
-
-   clipdf
-
-The ``to_clipboard`` method can be used to write the contents of a DataFrame to
-the clipboard. Following which you can paste the clipboard contents into other
-applications (CTRL-V on many operating systems). Here we illustrate writing a
-DataFrame into clipboard and reading it back.
-
-.. ipython:: python
-
-    df=pd.DataFrame(randn(5,3))
-    df
-    df.to_clipboard()
-    pd.read_clipboard()
-
-We can see that we got the same content back, which we had earlier written to the clipboard.
-
-.. note::
-
-   You may need to install xclip or xsel (with gtk or PyQt4 modules) on Linux to use these methods.
-
-
-.. _io.serialize:
-
-Pickling and serialization
---------------------------
-
-All pandas objects are equipped with ``to_pickle`` methods which use Python's
-``cPickle`` module to save data structures to disk using the pickle format.
-
-.. ipython:: python
-
-   df
-   df.to_pickle('foo.pkl')
-
-The ``read_pickle`` function in the ``pandas`` namespace can be used to load
-any pickled pandas object (or any other pickled object) from file:
-
-
-.. ipython:: python
-
-   read_pickle('foo.pkl')
-
-.. ipython:: python
-   :suppress:
-
-   import os
-   os.remove('foo.pkl')
-
-.. warning::
-
-   Loading pickled data received from untrusted sources can be unsafe.
-
-   See: http://docs.python.org/2.7/library/pickle.html
-
-.. note::
-
-    These methods were previously ``save`` and ``load``, now deprecated.
-
 .. _io.excel:
 
 Excel files
@@ -1806,15 +1722,92 @@ module is installed you can use it as a xlsx writer engine as follows:
 
    df.to_excel('path_to_file.xlsx', sheet_name='Sheet1')
 
-.. _io.hdf5:
+.. _io.clipboard:
 
-Serialization
--------------
+Clipboard
+---------
 
-msgpack (experimental)
-~~~~~~~~~~~~~~~~~~~~~~
+A handy way to grab data is to use the ``read_clipboard`` method, which takes
+the contents of the clipboard buffer and passes them to the ``read_table``
+method. For instance, you can copy the following
+text to the clipboard (CTRL-C on many operating systems):
+
+.. code-block:: python
+
+     A B C
+   x 1 4 p
+   y 2 5 q
+   z 3 6 r
+
+And then import the data directly to a DataFrame by calling:
+
+.. code-block:: python
+
+   clipdf = pd.read_clipboard()
+
+.. ipython:: python
+
+   clipdf
+
+The ``to_clipboard`` method can be used to write the contents of a DataFrame to
+the clipboard. Following which you can paste the clipboard contents into other
+applications (CTRL-V on many operating systems). Here we illustrate writing a
+DataFrame into clipboard and reading it back.
+
+.. ipython:: python
+
+    df=pd.DataFrame(randn(5,3))
+    df
+    df.to_clipboard()
+    pd.read_clipboard()
+
+We can see that we got the same content back, which we had earlier written to the clipboard.
+
+.. note::
+
+   You may need to install xclip or xsel (with gtk or PyQt4 modules) on Linux to use these methods.
+
+.. _io.pickle:
+
+Pickling
+--------
+
+All pandas objects are equipped with ``to_pickle`` methods which use Python's
+``cPickle`` module to save data structures to disk using the pickle format.
+
+.. ipython:: python
+
+   df
+   df.to_pickle('foo.pkl')
+
+The ``read_pickle`` function in the ``pandas`` namespace can be used to load
+any pickled pandas object (or any other pickled object) from file:
+
+
+.. ipython:: python
+
+   read_pickle('foo.pkl')
+
+.. ipython:: python
+   :suppress:
+
+   import os
+   os.remove('foo.pkl')
+
+.. warning::
+
+   Loading pickled data received from untrusted sources can be unsafe.
+
+   See: http://docs.python.org/2.7/library/pickle.html
+
+.. note::
+
+    These methods were previously ``save`` and ``load``, prior to 0.12.0, and are now deprecated.
 
 .. _io.msgpack:
+
+msgpack (experimental)
+----------------------
 
 .. versionadded:: 0.13.0
 
@@ -1873,6 +1866,8 @@ pandas objects.
 
    os.remove('foo.msg')
    os.remove('foo2.msg')
+
+.. _io.hdf5:
 
 HDF5 (PyTables)
 ---------------
