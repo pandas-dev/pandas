@@ -1596,8 +1596,6 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
                 assert_frame_equal(df, recdf)
 
     def test_to_excel_pyexcelerate(self):
-        # TODO: Skip this test until the pyexcelerator date issue is fixed.
-        raise nose.SkipTest('pyexcelerator dates not supported')
         try:
             import xlrd
             import pyexcelerate

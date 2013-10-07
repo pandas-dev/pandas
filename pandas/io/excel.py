@@ -779,6 +779,9 @@ class _PyExcelerate(ExcelWriter):
         for cell in cells:
             val = _conv_value(cell.val)
 
+            if isinstance(cell.val, datetime.date):
+                val = datetime.datetime.fromordinal(val.toordinal())
+
             if cell.mergestart is not None and cell.mergeend is not None:
 #                 wks.merge_range(startrow + cell.row,
 #                                 startrow + cell.mergestart,

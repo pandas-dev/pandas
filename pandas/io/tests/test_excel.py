@@ -1004,22 +1004,6 @@ class PyExcelerateTests(ExcelWriterBase, unittest.TestCase):
             frame.index.names = ['test']
             self.assertAlmostEqual(frame.index.names, recons.index.names)
 
-    # TODO: Skip these tests until the pyexcelerator date issue is fixed.
-    def test_excel_roundtrip_datetime(self):
-        raise nose.SkipTest('pyexcelerator dates not supported')
-
-    def test_sheets(self):
-        raise nose.SkipTest('pyexcelerator dates not supported')
-
-    def test_to_excel_multiindex_dates(self):
-        raise nose.SkipTest('pyexcelerator dates not supported')
-
-    def test_to_excel_periodindex(self):
-        raise nose.SkipTest('pyexcelerator dates not supported')
-
-    def test_tsframe(self):
-        raise nose.SkipTest('pyexcelerator dates not supported')
-
 
 class ExcelWriterEngineTests(unittest.TestCase):
     def test_ExcelWriter_dispatch(self):
@@ -1034,11 +1018,11 @@ class ExcelWriterEngineTests(unittest.TestCase):
         writer = ExcelWriter('apple.xls')
         tm.assert_isinstance(writer, _XlwtWriter)
 
-
     def test_register_writer(self):
         # some awkward mocking to test out dispatch and such actually works
         called_save = []
         called_write_cells = []
+
         class DummyClass(ExcelWriter):
             called_save = False
             called_write_cells = False
@@ -1066,7 +1050,6 @@ class ExcelWriterEngineTests(unittest.TestCase):
         func = lambda: df.to_excel('something.test')
         check_called(func)
         check_called(lambda: panel.to_excel('something.test'))
-        from pandas import set_option, get_option
         val = get_option('io.excel.xlsx.writer')
         set_option('io.excel.xlsx.writer', 'dummy')
         check_called(lambda: df.to_excel('something.xlsx'))

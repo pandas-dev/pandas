@@ -41,7 +41,8 @@ before_install:
 install:
   - echo "Waldo2"
   - ci/install.sh
-  - pip install git+git://github.com/jmcnamara/PyExcelerate@pandas
+  # Temp testing measure while waiting for PyPi release.
+  - pip install git+git://github.com:kz26/PyExcelerate.git
 
 before_script:
   - mysql -e 'create database pandas_nosetest;'
