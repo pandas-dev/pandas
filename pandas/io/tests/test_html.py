@@ -86,12 +86,13 @@ def test_bs4_version_fails():
 
 
 class TestReadHtml(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        _skip_if_none_of(('bs4', 'html5lib'))
+
     def read_html(self, *args, **kwargs):
         kwargs['flavor'] = kwargs.get('flavor', self.flavor)
         return read_html(*args, **kwargs)
-
-    def try_skip(self):
-        _skip_if_none_of(('bs4', 'html5lib'))
 
     def setup_data(self):
         self.spam_data = os.path.join(DATA_PATH, 'spam.html')
@@ -101,7 +102,6 @@ class TestReadHtml(unittest.TestCase):
         self.flavor = 'bs4'
 
     def setUp(self):
-        self.try_skip()
         self.setup_data()
         self.setup_flavor()
 
@@ -569,31 +569,28 @@ class TestReadHtml(unittest.TestCase):
     def test_parse_dates_list(self):
         df = DataFrame({'date': date_range('1/1/2001', periods=10)})
         expected = df.to_html()
-        res = read_html(expected, parse_dates=[0], index_col=0)
+        res = self.read_html(expected, parse_dates=[0], index_col=0)
         tm.assert_frame_equal(df, res[0])
 
     def test_parse_dates_combine(self):
         raw_dates = Series(date_range('1/1/2001', periods=10))
         df = DataFrame({'date': raw_dates.map(lambda x: str(x.date())),
                         'time': raw_dates.map(lambda x: str(x.time()))})
-        res = read_html(df.to_html(), parse_dates={'datetime': [1, 2]},
-                        index_col=1)
+        res = self.read_html(df.to_html(), parse_dates={'datetime': [1, 2]},
+                             index_col=1)
         newdf = DataFrame({'datetime': raw_dates})
         tm.assert_frame_equal(newdf, res[0])
 
 
 class TestReadHtmlLxml(unittest.TestCase):
-    def setUp(self):
-        self.try_skip()
+    @classmethod
+    def setUpClass(cls):
+        _skip_if_no('lxml')
 
     def read_html(self, *args, **kwargs):
         self.flavor = ['lxml']
-        self.try_skip()
         kwargs['flavor'] = kwargs.get('flavor', self.flavor)
         return read_html(*args, **kwargs)
-
-    def try_skip(self):
-        _skip_if_no('lxml')
 
     def test_data_fail(self):
         from lxml.etree import XMLSyntaxError
@@ -616,8 +613,22 @@ class TestReadHtmlLxml(unittest.TestCase):
     def test_fallback_success(self):
         _skip_if_none_of(('bs4', 'html5lib'))
         banklist_data = os.path.join(DATA_PATH, 'banklist.html')
-        self.read_html(banklist_data, '.*Water.*', flavor=['lxml',
-                                                               'html5lib'])
+        self.read_html(banklist_data, '.*Water.*', flavor=['lxml', 'html5lib'])
+
+    def test_parse_dates_list(self):
+        df = DataFrame({'date': date_range('1/1/2001', periods=10)})
+        expected = df.to_html()
+        res = self.read_html(expected, parse_dates=[0], index_col=0)
+        tm.assert_frame_equal(df, res[0])
+
+    def test_parse_dates_combine(self):
+        raw_dates = Series(date_range('1/1/2001', periods=10))
+        df = DataFrame({'date': raw_dates.map(lambda x: str(x.date())),
+                        'time': raw_dates.map(lambda x: str(x.time()))})
+        res = self.read_html(df.to_html(), parse_dates={'datetime': [1, 2]},
+                             index_col=1)
+        newdf = DataFrame({'datetime': raw_dates})
+        tm.assert_frame_equal(newdf, res[0])
 
 
 def test_invalid_flavor():
