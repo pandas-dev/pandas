@@ -572,7 +572,7 @@ Bug Fixes
   - Fix ``MultiIndex.get_level_values()`` with missing values (:issue:`5074`)
   - Fix bound checking for Timestamp() with datetime64 input (:issue:`4065`)
   - Fix a bug where ``TestReadHtml`` wasn't calling the correct ``read_html()``
-    function (:issue:`5143`).
+    function (:issue:`5150`).
 
 pandas 0.12.0
 -------------
