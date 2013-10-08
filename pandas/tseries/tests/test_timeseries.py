@@ -931,6 +931,16 @@ class TestTimeSeries(unittest.TestCase):
         ### expected = to_datetime('2012')
         ### self.assert_(result == expected)
 
+    def test_to_datetime_unprocessable_input(self):
+        # GH 4928
+        self.assert_(
+            np.array_equal(
+                to_datetime([1, '1']),
+                np.array([1, '1'], dtype='O')
+            )
+        )
+        self.assertRaises(TypeError, to_datetime, [1, '1'], errors='raise')
+
     def test_to_datetime_other_datetime64_units(self):
         # 5/25/2012
         scalar = np.int64(1337904000000000).view('M8[us]')
