@@ -202,6 +202,11 @@ def _isnull_ndarraylike(obj):
     else:
         result = np.isnan(values)
 
+    # box
+    if isinstance(obj, ABCSeries):
+        from pandas import Series
+        result = Series(result, index=obj.index, name=obj.name, copy=False)
+
     return result
 
 
@@ -225,6 +230,11 @@ def _isnull_ndarraylike_old(obj):
         result = values.view('i8') == tslib.iNaT
     else:
         result = -np.isfinite(values)
+
+    # box
+    if isinstance(obj, ABCSeries):
+        from pandas import Series
+        result = Series(result, index=obj.index, name=obj.name, copy=False)
 
     return result
 
