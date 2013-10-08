@@ -258,6 +258,8 @@ Conversion / Constructors
    Series.__init__
    Series.astype
    Series.copy
+   Series.isnull
+   Series.notnull
 
 Indexing, iteration
 ~~~~~~~~~~~~~~~~~~~
@@ -472,6 +474,8 @@ Conversion / Constructors
    DataFrame.astype
    DataFrame.convert_objects
    DataFrame.copy
+   DataFrame.isnull
+   DataFrame.notnull
 
 Indexing, iteration
 ~~~~~~~~~~~~~~~~~~~
@@ -714,6 +718,8 @@ Conversion / Constructors
    Panel.__init__
    Panel.astype
    Panel.copy
+   Panel.isnull
+   Panel.notnull
 
 Getting and setting
 ~~~~~~~~~~~~~~~~~~~
@@ -976,7 +982,7 @@ Time/Date Components
   * **week**: Same as weekofyear
   * **dayofweek**: (0=Monday, 6=Sunday)
   * **weekday**: (0=Monday, 6=Sunday)
-  * **dayofyear** 
+  * **dayofyear**
   * **quarter**
 
   * **date**: Returns date component of Timestamps
@@ -990,7 +996,7 @@ Selecting
 
    DatetimeIndex.indexer_at_time
    DatetimeIndex.indexer_between_time
-   
+
 
 Time-specific operations
 ~~~~~~~~~~~~~~~~~~~~~~~~

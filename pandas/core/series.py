@@ -2174,9 +2174,6 @@ class Series(generic.NDFrame):
 
     valid = lambda self: self.dropna()
 
-    isnull = isnull
-    notnull = notnull
-
     def first_valid_index(self):
         """
         Return label for first non-NA/null value

@@ -323,6 +323,7 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
     - ``filter`` (also added axis argument to selectively filter on a different axis)
     - ``reindex,reindex_axis,take``
     - ``truncate`` (moved to become part of ``NDFrame``)
+    - ``isnull/notnull`` now available on ``NDFrame`` objects
 
  - These are API changes which make ``Panel`` more consistent with ``DataFrame``
 
