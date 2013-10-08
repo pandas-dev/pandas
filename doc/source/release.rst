@@ -573,6 +573,8 @@ Bug Fixes
   - Fix bound checking for Timestamp() with datetime64 input (:issue:`4065`)
   - Fix a bug where ``TestReadHtml`` wasn't calling the correct ``read_html()``
     function (:issue:`5150`).
+  - Fix a bug with ``NDFrame.replace()`` which made replacement appear as
+    though it was (incorrectly) using regular expressions (:issue:`5143`).
 
 pandas 0.12.0
 -------------

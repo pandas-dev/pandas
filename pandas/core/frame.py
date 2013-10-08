@@ -12,7 +12,6 @@ labeling information
 # pylint: disable=E1101,E1103
 # pylint: disable=W0212,W0231,W0703,W0622
 
-import operator
 import sys
 import collections
 import warnings
@@ -25,7 +24,7 @@ import numpy.ma as ma
 from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
                                 _default_index, _maybe_upcast, _is_sequence,
                                 _infer_dtype_from_scalar, _values_from_object,
-                                _coerce_to_dtypes, _DATELIKE_DTYPES, is_list_like)
+                                _DATELIKE_DTYPES, is_list_like)
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import (_maybe_droplevels,
@@ -48,7 +47,6 @@ from pandas.tseries.period import PeriodIndex
 from pandas.tseries.index import DatetimeIndex
 
 import pandas.core.algorithms as algos
-import pandas.core.datetools as datetools
 import pandas.core.common as com
 import pandas.core.format as fmt
 import pandas.core.nanops as nanops
@@ -4292,6 +4290,7 @@ class DataFrame(NDFrame):
         """
         return self.mul(other, fill_value=1.)
 
+
 DataFrame._setup_axes(
     ['index', 'columns'], info_axis=1, stat_axis=0, axes_are_reversed=True)
 DataFrame._add_numeric_operations()
@@ -4552,6 +4551,7 @@ def _masked_rec_array_to_mgr(data, index, columns, dtype, copy):
         mgr = mgr.copy()
     return mgr
 
+
 def _reorder_arrays(arrays, arr_columns, columns):
     # reorder according to the columns
     if columns is not None and len(columns) and arr_columns is not None and len(arr_columns):
@@ -4561,6 +4561,7 @@ def _reorder_arrays(arrays, arr_columns, columns):
             [arr_columns[i] for i in indexer])
         arrays = [arrays[i] for i in indexer]
     return arrays, arr_columns
+
 
 def _list_to_arrays(data, columns, coerce_float=False, dtype=None):
     if len(data) > 0 and isinstance(data[0], tuple):

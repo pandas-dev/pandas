@@ -17,10 +17,10 @@ from pandas.compat import(
     map, zip, range, long, lrange, lmap, lzip,
     OrderedDict, cPickle as pickle, u, StringIO
 )
-from pandas import compat, _np_version_under1p7
+from pandas import compat
 
 from numpy import random, nan
-from numpy.random import randn, rand
+from numpy.random import randn
 import numpy as np
 import numpy.ma as ma
 from numpy.testing import assert_array_equal
@@ -47,9 +47,6 @@ from pandas.util.testing import (assert_almost_equal,
                                  ensure_clean)
 from pandas.core.indexing import IndexingError
 from pandas.core.common import PandasError
-from pandas.compat import OrderedDict
-from pandas.computation.expr import Expr
-import pandas.computation as comp
 
 import pandas.util.testing as tm
 import pandas.lib as lib
@@ -2367,7 +2364,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         with assertRaisesRegexp(TypeError, msg):
             df['gr'] = df.groupby(['b', 'c']).count()
 
-
     def test_constructor_subclass_dict(self):
         # Test for passing dict subclass to constructor
         data = {'col1': tm.TestSubDict((x, 10.0 * x) for x in range(10)),
@@ -2497,7 +2493,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         frame = DataFrame(['foo', 'bar'], index=[0, 1], columns=['A'])
         self.assertEqual(len(frame), 2)
-
 
     def test_constructor_maskedarray(self):
         self._check_basic_constructor(ma.masked_all)
@@ -3051,7 +3046,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertRaises(ValueError, DataFrame.from_items,
                           [('a', [8]), ('a', [5]), ('b', [6])],
                           columns=['b', 'a', 'a'])
-
 
     def test_column_dups_operations(self):
 
@@ -6845,7 +6839,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.tsframe['A'][-5:] = nan
 
         tsframe = self.tsframe.copy()
-        res = tsframe.replace(nan, 0, inplace=True)
+        tsframe.replace(nan, 0, inplace=True)
         assert_frame_equal(tsframe, self.tsframe.fillna(0))
 
         self.assertRaises(TypeError, self.tsframe.replace, nan, inplace=True)
@@ -7617,6 +7611,46 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
     def test_replace_limit(self):
         pass
+
+    def test_replace_dict_no_regex(self):
+        answer = Series({0: 'Strongly Agree', 1: 'Agree', 2: 'Neutral', 3:
+                         'Disagree', 4: 'Strongly Disagree'})
+        weights = {'Agree': 4, 'Disagree': 2, 'Neutral': 3, 'Strongly Agree':
+                   5, 'Strongly Disagree': 1}
+        expected = Series({0: 5, 1: 4, 2: 3, 3: 2, 4: 1})
+        result = answer.replace(weights)
+        tm.assert_series_equal(result, expected)
+
+    def test_replace_series_no_regex(self):
+        answer = Series({0: 'Strongly Agree', 1: 'Agree', 2: 'Neutral', 3:
+                         'Disagree', 4: 'Strongly Disagree'})
+        weights = Series({'Agree': 4, 'Disagree': 2, 'Neutral': 3,
+                          'Strongly Agree': 5, 'Strongly Disagree': 1})
+        expected = Series({0: 5, 1: 4, 2: 3, 3: 2, 4: 1})
+        result = answer.replace(weights)
+        tm.assert_series_equal(result, expected)
+
+    def test_replace_dict_tuple_list_ordering_remains_the_same(self):
+        df = DataFrame(dict(A=[nan, 1]))
+        res1 = df.replace(to_replace={nan: 0, 1: -1e8})
+        res2 = df.replace(to_replace=(1, nan), value=[-1e8, 0])
+        res3 = df.replace(to_replace=[1, nan], value=[-1e8, 0])
+
+        expected = DataFrame({'A': [0, -1e8]})
+        tm.assert_frame_equal(res1, res2)
+        tm.assert_frame_equal(res2, res3)
+        tm.assert_frame_equal(res3, expected)
+
+    def test_replace_doesnt_replace_with_no_regex(self):
+        from pandas.compat import StringIO
+        raw = """fol T_opp T_Dir T_Enh
+        0    1     0     0    vo
+        1    2    vr     0     0
+        2    2     0     0     0
+        3    3     0    bt     0"""
+        df = read_csv(StringIO(raw), sep=r'\s+')
+        res = df.replace({'\D': 1})
+        tm.assert_frame_equal(df, res)
 
     def test_combine_multiple_frames_dtypes(self):
         from pandas import concat
@@ -8712,7 +8746,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                                                   ignore_failures=True)
         expected = self.mixed_frame._get_numeric_data().apply(np.mean)
         assert_series_equal(result, expected)
-
 
     def test_apply_mixed_dtype_corner(self):
         df = DataFrame({'A': ['foo'],
