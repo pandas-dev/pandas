@@ -571,6 +571,13 @@ with NaNs.
 
    dff.groupby('B').filter(lambda x: len(x) > 2, dropna=False)
 
+For dataframes with multiple columns, filters should explicitly specify a column as the filter criterion.
+
+.. ipython:: python
+   
+   dff['C'] = np.arange(8)
+   dff.groupby('B').filter(lambda x: len(x['C']) > 2)
+
 .. _groupby.dispatch:
 
 Dispatching to instance methods
@@ -650,7 +657,7 @@ The dimension of the returned result can also change:
 .. ipython:: python
 
     def f(x):
-	   return Series([ x, x**2 ], index = ['x', 'x^s'])
+      return Series([ x, x**2 ], index = ['x', 'x^s'])
     s = Series(np.random.rand(5))
     s
     s.apply(f)
