@@ -64,11 +64,9 @@ def test_notnull():
         assert result.sum() == 2
 
     with cf.option_context("mode.use_inf_as_null", False):
-        float_series = Series(np.random.randn(5))
-        obj_series = Series(np.random.randn(5), dtype=object)
-        assert(isinstance(notnull(float_series), Series))
-        assert(isinstance(notnull(obj_series), Series))
-
+        for s in [tm.makeFloatSeries(),tm.makeStringSeries(),
+                  tm.makeObjectSeries(),tm.makeTimeSeries(),tm.makePeriodSeries()]:
+            assert(isinstance(isnull(s), np.ndarray))
 
 def test_isnull():
     assert not isnull(1.)
@@ -77,10 +75,9 @@ def test_isnull():
     assert not isnull(np.inf)
     assert not isnull(-np.inf)
 
-    float_series = Series(np.random.randn(5))
-    obj_series = Series(np.random.randn(5), dtype=object)
-    assert(isinstance(isnull(float_series), Series))
-    assert(isinstance(isnull(obj_series), Series))
+    for s in [tm.makeFloatSeries(),tm.makeStringSeries(),
+              tm.makeObjectSeries(),tm.makeTimeSeries(),tm.makePeriodSeries()]:
+        assert(isinstance(isnull(s), np.ndarray))
 
     # call on DataFrame
     df = DataFrame(np.random.randn(10, 5))

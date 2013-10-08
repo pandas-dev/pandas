@@ -3667,17 +3667,17 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
     def test_isnull(self):
         ser = Series([0, 5.4, 3, nan, -0.001])
-        assert_series_equal(
-            ser.isnull(), Series([False, False, False, True, False]))
+        np.array_equal(
+            ser.isnull(), Series([False, False, False, True, False]).values)
         ser = Series(["hi", "", nan])
-        assert_series_equal(ser.isnull(), Series([False, False, True]))
+        np.array_equal(ser.isnull(), Series([False, False, True]).values)
 
     def test_notnull(self):
         ser = Series([0, 5.4, 3, nan, -0.001])
-        assert_series_equal(
-            ser.notnull(), Series([True, True, True, False, True]))
+        np.array_equal(
+            ser.notnull(), Series([True, True, True, False, True]).values)
         ser = Series(["hi", "", nan])
-        assert_series_equal(ser.notnull(), Series([True, True, False]))
+        np.array_equal(ser.notnull(), Series([True, True, False]).values)
 
     def test_shift(self):
         shifted = self.ts.shift(1)

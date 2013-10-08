@@ -2019,6 +2019,18 @@ class NDFrame(PandasObject):
     #----------------------------------------------------------------------
     # Action Methods
 
+    def isnull(self):
+        """
+        Return a boolean same-sized object indicating if the values are null
+        """
+        return self.__class__(isnull(self),**self._construct_axes_dict())._propogate_attributes(self)
+
+    def notnull(self):
+        """
+        Return a boolean same-sized object indicating if the values are not null
+        """
+        return self.__class__(notnull(self),**self._construct_axes_dict())._propogate_attributes(self)
+
     def clip(self, lower=None, upper=None, out=None):
         """
         Trim values at input threshold(s)
