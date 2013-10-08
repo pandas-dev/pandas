@@ -182,7 +182,7 @@ def _use_inf_as_null(key):
 
 def _isnull_ndarraylike(obj):
 
-    values = obj
+    values = getattr(obj,'values',obj)
     dtype = values.dtype
 
     if dtype.kind in ('O', 'S', 'U'):
@@ -198,22 +198,15 @@ def _isnull_ndarraylike(obj):
 
     elif dtype in _DATELIKE_DTYPES:
         # this is the NaT pattern
-        v = getattr(values, 'asi8', None)
-        if v is None:
-            v = values.view('i8')
-        result = v == tslib.iNaT
+        result = values.view('i8') == tslib.iNaT
     else:
-        result = np.isnan(obj)
-
-    if isinstance(obj, ABCSeries):
-        from pandas import Series
-        result = Series(result, index=obj.index, copy=False)
+        result = np.isnan(values)
 
     return result
 
 
 def _isnull_ndarraylike_old(obj):
-    values = obj
+    values = getattr(obj,'values',obj)
     dtype = values.dtype
 
     if dtype.kind in ('O', 'S', 'U'):
@@ -229,16 +222,9 @@ def _isnull_ndarraylike_old(obj):
 
     elif dtype in _DATELIKE_DTYPES:
         # this is the NaT pattern
-        v = getattr(values, 'asi8', None)
-        if v is None:
-            v = values.view('i8')
-        result = v == tslib.iNaT
+        result = values.view('i8') == tslib.iNaT
     else:
-        result = -np.isfinite(obj)
-
-    if isinstance(obj, ABCSeries):
-        from pandas import Series
-        result = Series(result, index=obj.index, copy=False)
+        result = -np.isfinite(values)
 
     return result
 

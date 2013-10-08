@@ -539,7 +539,7 @@ def _comp_method_SERIES(op, name, str_rep=None, masker=False):
 
             # mask out the invalids
             if mask.any():
-                res[mask.values] = masker
+                res[mask] = masker
 
             return res
     return wrapper

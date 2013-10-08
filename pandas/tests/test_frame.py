@@ -1546,7 +1546,7 @@ class CheckIndexing(object):
         res = self.frame.copy()
         res3 = res.set_value('foobar', 'baz', 5)
         self.assert_(com.is_float_dtype(res3['baz']))
-        self.assert_(isnull(res3['baz'].drop(['foobar'])).values.all())
+        self.assert_(isnull(res3['baz'].drop(['foobar'])).all())
         self.assertRaises(ValueError, res3.set_value, 'foobar', 'baz', 'sam')
 
     def test_set_value_with_index_dtype_change(self):
