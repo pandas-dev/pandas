@@ -575,6 +575,7 @@ Bug Fixes
     function (:issue:`5150`).
   - Fix a bug with ``NDFrame.replace()`` which made replacement appear as
     though it was (incorrectly) using regular expressions (:issue:`5143`).
+  - Fix better error message for to_datetime (:issue:`4928`)
 
 pandas 0.12.0
 -------------

@@ -1055,7 +1055,7 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
             val = values[i]
             if util._checknull(val):
                 oresult[i] = val
-            else:
+            elif util.is_string_object(val):
                 if len(val) == 0:
                     # TODO: ??
                     oresult[i] = 'NaT'
@@ -1069,6 +1069,10 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                         raise
                     return values
                     # oresult[i] = val
+            else:
+                if raise_:
+                    raise
+                return values
 
         return oresult
 
