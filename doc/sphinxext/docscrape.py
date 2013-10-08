@@ -8,7 +8,7 @@ import re
 import pydoc
 from StringIO import StringIO
 from warnings import warn
-
+import collections
 
 class Reader(object):
 
@@ -473,6 +473,8 @@ class FunctionDoc(NumpyDocString):
 
 class ClassDoc(NumpyDocString):
 
+    extra_public_methods = ['__call__']
+
     def __init__(self, cls, doc=None, modulename='', func_doc=FunctionDoc,
                  config={}):
         if not inspect.isclass(cls) and cls is not None:
@@ -502,12 +504,16 @@ class ClassDoc(NumpyDocString):
     def methods(self):
         if self._cls is None:
             return []
-        return [name for name, func in inspect.getmembers(self._cls)
-                if not name.startswith('_') and callable(func)]
+        return [name for name,func in inspect.getmembers(self._cls)
+                if ((not name.startswith('_')
+                     or name in self.extra_public_methods)
+                    and isinstance(func, collections.Callable))]
 
     @property
     def properties(self):
         if self._cls is None:
             return []
-        return [name for name, func in inspect.getmembers(self._cls)
-                if not name.startswith('_') and func is None]
+        return [name for name,func in inspect.getmembers(self._cls)
+                if not name.startswith('_') and
+                (func is None or isinstance(func, property) or
+                 inspect.isgetsetdescriptor(func))]
