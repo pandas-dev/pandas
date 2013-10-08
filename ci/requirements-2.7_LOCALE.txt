@@ -16,3 +16,4 @@ lxml==3.2.1
 scipy==0.10.0
 beautifulsoup4==4.2.1
 statsmodels==0.5.0
+bigquery==2.0.15

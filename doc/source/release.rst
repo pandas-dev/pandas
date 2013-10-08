@@ -78,6 +78,7 @@ Experimental Features
   - Add msgpack support via ``pd.read_msgpack()`` and ``pd.to_msgpack()`` / ``df.to_msgpack()`` for serialization
     of arbitrary pandas (and python objects) in a lightweight portable binary format (:issue:`686`)
   - Added PySide support for the qtpandas DataFrameModel and DataFrameWidget.
+  - Added :mod:`pandas.io.gbq` for reading from (and writing to) Google BigQuery into a DataFrame. (:issue:`4140`) 
 
 Improvements to existing features
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
