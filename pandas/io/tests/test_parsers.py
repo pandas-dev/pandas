@@ -2147,7 +2147,7 @@ c   1   2   3   4
     def test_BytesIO_input(self):
         if not compat.PY3:
             raise nose.SkipTest("Bytes-related test - only needs to work on Python 3")
-        result = pd.read_fwf(BytesIO("שלום\nשלום".encode('utf8')), widths=[2,2])
+        result = pd.read_fwf(BytesIO("שלום\nשלום".encode('utf8')), widths=[2,2], encoding='utf8')
         expected = pd.DataFrame([["של", "ום"]], columns=["של", "ום"])
         tm.assert_frame_equal(result, expected)
         data = BytesIO("שלום::1234\n562::123".encode('cp1255'))
@@ -2319,9 +2319,9 @@ col1~~~~~col2  col3++++++++++++++++++col4
 של   ום
 '''.strip('\r\n')
         expected = pd.read_fwf(BytesIO(test.encode('utf8')),
-                               colspecs=[(0, 4), (5, 9)], header=None)
+                               colspecs=[(0, 4), (5, 9)], header=None, encoding='utf8')
         tm.assert_frame_equal(expected, read_fwf(BytesIO(test.encode('utf8')),
-                                                 header=None))
+                                                 header=None, encoding='utf8'))
 
 
 class TestCParserHighMemory(ParserTests, unittest.TestCase):
