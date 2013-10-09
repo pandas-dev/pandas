@@ -115,6 +115,9 @@ class DatetimeIndex(Int64Index):
     end   : end time, datetime-like, optional
         If periods is none, generated index will extend to first conforming
         time on or just past end argument
+    closed : string or None, default None
+        Make the interval closed with respect to the given frequency to
+        the 'left', 'right', or both sides (None)
     """
     _join_precedence = 10
 
@@ -143,7 +146,8 @@ class DatetimeIndex(Int64Index):
     def __new__(cls, data=None,
                 freq=None, start=None, end=None, periods=None,
                 copy=False, name=None, tz=None,
-                verify_integrity=True, normalize=False, **kwds):
+                verify_integrity=True, normalize=False,
+                closed=None, **kwds):
 
         dayfirst = kwds.pop('dayfirst', None)
         yearfirst = kwds.pop('yearfirst', None)
@@ -184,7 +188,7 @@ class DatetimeIndex(Int64Index):
 
         if data is None:
             return cls._generate(start, end, periods, name, offset,
-                                 tz=tz, normalize=normalize, 
+                                 tz=tz, normalize=normalize, closed=closed,
                                  infer_dst=infer_dst)
 
         if not isinstance(data, np.ndarray):
@@ -289,7 +293,7 @@ class DatetimeIndex(Int64Index):
 
     @classmethod
     def _generate(cls, start, end, periods, name, offset,
-                  tz=None, normalize=False, infer_dst=False):
+                  tz=None, normalize=False, infer_dst=False, closed=None):
         if com._count_not_none(start, end, periods) != 2:
             raise ValueError('Must specify two of start, end, or periods')
 
@@ -300,6 +304,19 @@ class DatetimeIndex(Int64Index):
 
         if end is not None:
             end = Timestamp(end)
+
+        left_closed = False
+        right_closed = False
+
+        if closed is None:
+            left_closed = True
+            right_closed = True
+        elif closed == "left":
+            left_closed = True
+        elif closed == "right":
+            right_closed = True
+        else:
+            raise ValueError("Closed has to be either 'left', 'right' or None")
 
         try:
             inferred_tz = tools._infer_tzinfo(start, end)
@@ -325,12 +342,18 @@ class DatetimeIndex(Int64Index):
             else:
                 _normalized = _normalized and start.time() == _midnight
 
+            if not left_closed:
+                start += offset
+
         if end is not None:
             if normalize:
                 end = normalize_date(end)
                 _normalized = True
             else:
                 _normalized = _normalized and end.time() == _midnight
+
+            if not right_closed:
+                end -= offset
 
         if hasattr(offset, 'delta') and offset != offsets.Day():
             if inferred_tz is None and tz is not None:
@@ -1715,7 +1738,7 @@ def _generate_regular_range(start, end, periods, offset):
 
 
 def date_range(start=None, end=None, periods=None, freq='D', tz=None,
-               normalize=False, name=None):
+               normalize=False, name=None, closed=None):
     """
     Return a fixed frequency datetime index, with day (calendar) as the default
     frequency
@@ -1737,6 +1760,9 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
         Normalize start/end dates to midnight before generating date range
     name : str, default None
         Name of the resulting index
+    closed : string or None, default None
+        Make the interval closed with respect to the given frequency to
+        the 'left', 'right', or both sides (None)
 
     Notes
     -----
@@ -1747,11 +1773,12 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
     rng : DatetimeIndex
     """
     return DatetimeIndex(start=start, end=end, periods=periods,
-                         freq=freq, tz=tz, normalize=normalize, name=name)
+                         freq=freq, tz=tz, normalize=normalize, name=name,
+                         closed=closed)
 
 
 def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
-                normalize=True, name=None):
+                normalize=True, name=None, closed=None):
     """
     Return a fixed frequency datetime index, with business day as the default
     frequency
@@ -1773,6 +1800,9 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
         Normalize start/end dates to midnight before generating date range
     name : str, default None
         Name for the resulting index
+    closed : string or None, default None
+        Make the interval closed with respect to the given frequency to
+        the 'left', 'right', or both sides (None)
 
     Notes
     -----
@@ -1784,11 +1814,12 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
     """
 
     return DatetimeIndex(start=start, end=end, periods=periods,
-                         freq=freq, tz=tz, normalize=normalize, name=name)
+                         freq=freq, tz=tz, normalize=normalize, name=name,
+                         closed=closed)
 
 
 def cdate_range(start=None, end=None, periods=None, freq='C', tz=None,
-                normalize=True, name=None, **kwargs):
+                normalize=True, name=None, closed=None, **kwargs):
     """
     **EXPERIMENTAL** Return a fixed frequency datetime index, with
     CustomBusinessDay as the default frequency
@@ -1820,6 +1851,9 @@ def cdate_range(start=None, end=None, periods=None, freq='C', tz=None,
     holidays : list
         list/array of dates to exclude from the set of valid business days,
         passed to ``numpy.busdaycalendar``
+    closed : string or None, default None
+        Make the interval closed with respect to the given frequency to
+        the 'left', 'right', or both sides (None)
 
     Notes
     -----
@@ -1835,7 +1869,8 @@ def cdate_range(start=None, end=None, periods=None, freq='C', tz=None,
         weekmask = kwargs.pop('weekmask', 'Mon Tue Wed Thu Fri')
         freq = CDay(holidays=holidays, weekmask=weekmask)
     return DatetimeIndex(start=start, end=end, periods=periods, freq=freq,
-                         tz=tz, normalize=normalize, name=name, **kwargs)
+                         tz=tz, normalize=normalize, name=name,
+                         closed=closed, **kwargs)
 
 
 def _to_m8(key, tz=None):

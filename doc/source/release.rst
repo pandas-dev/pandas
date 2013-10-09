@@ -174,6 +174,8 @@ Improvements to existing features
   - :meth:`~pandas.io.json.json_normalize` is a new method to allow you to create a flat table
     from semi-structured JSON data. :ref:`See the docs<io.json_normalize>` (:issue:`1067`)
   - ``DataFrame.from_records()`` will now accept generators (:issue:`4910`)
+  - DatetimeIndex (and date_range) can now be constructed in a left- or
+    right-open fashion using the ``closed`` parameter (:issue:`4579`)
 
 API Changes
 ~~~~~~~~~~~
