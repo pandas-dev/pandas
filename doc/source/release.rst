@@ -174,6 +174,8 @@ Improvements to existing features
   - :meth:`~pandas.io.json.json_normalize` is a new method to allow you to create a flat table
     from semi-structured JSON data. :ref:`See the docs<io.json_normalize>` (:issue:`1067`)
   - ``DataFrame.from_records()`` will now accept generators (:issue:`4910`)
+  - ``DataFrame.interpolate()`` and ``Series.interpolate()`` have been expanded to include
+    interpolation methods from scipy. (:issue:`4915`)
 
 API Changes
 ~~~~~~~~~~~

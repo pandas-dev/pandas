@@ -1244,6 +1244,153 @@ def backfill_2d(values, limit=None, mask=None):
     return values
 
 
+def _clean_interp_method(method, order=None, **kwargs):
+    valid = ['linear', 'time', 'values', 'nearest', 'zero', 'slinear',
+             'quadratic', 'cubic', 'barycentric', 'polynomial',
+             'krogh', 'piecewise_polynomial',
+             'pchip', 'spline']
+    if method in ('spline', 'polynomial') and order is None:
+        raise ValueError("You must specify the order of the spline or "
+                         "polynomial.")
+    if method not in valid:
+        raise ValueError("method must be one of {0}."
+                         "Got '{1}' instead.".format(valid, method))
+    return method
+
+
+def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
+                   fill_value=None, bounds_error=False, **kwargs):
+    """
+    Logic for the 1-d interpolation.  The result should be 1-d, inputs
+    xvalues and yvalues will each be 1-d arrays of the same length.
+
+    Bounds_error is currently hardcoded to False since non-scipy ones don't
+    take it as an argumnet.
+    """
+    # Treat the original, non-scipy methods first.
+
+    invalid = isnull(yvalues)
+    valid = ~invalid
+
+    valid_y = yvalues[valid]
+    valid_x = xvalues[valid]
+    new_x = xvalues[invalid]
+
+    if method == 'time':
+        if not getattr(xvalues, 'is_all_dates', None):
+        # if not issubclass(xvalues.dtype.type, np.datetime64):
+            raise ValueError('time-weighted interpolation only works '
+                             'on Series or DataFrames with a '
+                             'DatetimeIndex')
+        method = 'values'
+
+    def _interp_limit(invalid, limit):
+        """mask off values that won't be filled since they exceed the limit"""
+        all_nans = np.where(invalid)[0]
+        violate = [invalid[x:x + limit + 1] for x in all_nans]
+        violate = np.array([x.all() & (x.size > limit) for x in violate])
+        return all_nans[violate] + limit
+
+    xvalues = getattr(xvalues, 'values', xvalues)
+    yvalues = getattr(yvalues, 'values', yvalues)
+
+    if limit:
+        violate_limit = _interp_limit(invalid, limit)
+    if valid.any():
+        firstIndex = valid.argmax()
+        valid = valid[firstIndex:]
+        invalid = invalid[firstIndex:]
+        result = yvalues.copy()
+        if valid.all():
+            return yvalues
+    else:
+        # have to call np.array(xvalues) since xvalues could be an Index
+        # which cant be mutated
+        result = np.empty_like(np.array(xvalues), dtype=np.float64)
+        result.fill(np.nan)
+        return result
+
+    if method in ['linear', 'time', 'values']:
+        if method in ('values', 'index'):
+            inds = np.asarray(xvalues)
+            # hack for DatetimeIndex, #1646
+            if issubclass(inds.dtype.type, np.datetime64):
+                inds = inds.view(pa.int64)
+
+            if inds.dtype == np.object_:
+                inds = lib.maybe_convert_objects(inds)
+        else:
+            inds = xvalues
+
+        inds = inds[firstIndex:]
+
+        result[firstIndex:][invalid] = np.interp(inds[invalid], inds[valid],
+                                                 yvalues[firstIndex:][valid])
+
+        if limit:
+            result[violate_limit] = np.nan
+        return result
+
+    sp_methods = ['nearest', 'zero', 'slinear', 'quadratic', 'cubic',
+                  'barycentric', 'krogh', 'spline', 'polynomial',
+                  'piecewise_polynomial', 'pchip']
+    if method in sp_methods:
+        new_x = new_x[firstIndex:]
+        xvalues = xvalues[firstIndex:]
+
+        result[firstIndex:][invalid] = _interpolate_scipy_wrapper(valid_x,
+            valid_y, new_x, method=method, fill_value=fill_value,
+            bounds_error=bounds_error, **kwargs)
+        if limit:
+            result[violate_limit] = np.nan
+        return result
+
+
+def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
+                               bounds_error=False, order=None, **kwargs):
+    """
+    passed off to scipy.interpolate.interp1d. method is scipy's kind.
+    Returns an array interpolated at new_x.  Add any new methods to
+    the list in _clean_interp_method
+    """
+    try:
+        from scipy import interpolate
+    except ImportError:
+        raise ImportError('{0} interpolation requires Scipy'.format(method))
+
+    new_x = np.asarray(new_x)
+
+    # ignores some kwargs that could be passed along.
+    alt_methods = {
+        'barycentric': interpolate.barycentric_interpolate,
+        'krogh': interpolate.krogh_interpolate,
+        'piecewise_polynomial': interpolate.piecewise_polynomial_interpolate,
+        }
+
+    try:
+        alt_methods['pchip'] = interpolate.pchip_interpolate
+    except AttributeError:
+        if method == 'pchip':
+            raise ImportError("Your version of scipy does not support "
+                              "PCHIP interpolation.")
+
+    interp1d_methods = ['nearest', 'zero', 'slinear', 'quadratic', 'cubic',
+                        'polynomial']
+    if method in interp1d_methods:
+        if method == 'polynomial':
+            method = order
+        terp = interpolate.interp1d(x, y, kind=method, fill_value=fill_value,
+                                    bounds_error=bounds_error)
+        new_y = terp(new_x)
+    elif method == 'spline':
+        terp = interpolate.UnivariateSpline(x, y, k=order)
+        new_y = terp(new_x)
+    else:
+        method = alt_methods[method]
+        new_y = method(x, y, new_x)
+    return new_y
+
+
 def interpolate_2d(values, method='pad', axis=0, limit=None, fill_value=None):
     """ perform an actual interpolation of values, values will be make 2-d if needed
         fills inplace, returns the result """

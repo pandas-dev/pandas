@@ -9,7 +9,7 @@ from pandas.core.base import PandasObject
 
 from pandas.core.common import (_possibly_downcast_to_dtype, isnull, notnull,
                                 _NS_DTYPE, _TD_DTYPE, ABCSeries, ABCSparseSeries,
-                                is_list_like, _infer_dtype_from_scalar)
+                                is_list_like, _infer_dtype_from_scalar, _values_from_object)
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
                                _handle_legacy_indexes)
 from pandas.core.indexing import (_check_slice_bounds, _maybe_convert_indices,
@@ -723,9 +723,46 @@ class Block(PandasObject):
 
         return [make_block(new_values, self.items, self.ref_items, placement=self._ref_locs, fastpath=True)]
 
-    def interpolate(self, method='pad', axis=0, inplace=False,
-                    limit=None, fill_value=None, coerce=False,
-                    downcast=None):
+    def interpolate(self, method='pad', axis=0, index=None,
+                    values=None, inplace=False, limit=None,
+                    fill_value=None, coerce=False, downcast=None, **kwargs):
+
+        # a fill na type method
+        try:
+            m = com._clean_fill_method(method)
+        except:
+            m = None
+
+        if m is not None:
+            return self._interpolate_with_fill(method=m,
+                                               axis=axis,
+                                               inplace=inplace,
+                                               limit=limit,
+                                               fill_value=fill_value,
+                                               coerce=coerce,
+                                               downcast=downcast)
+        # try an interp method
+        try:
+            m = com._clean_interp_method(method, **kwargs)
+        except:
+            m = None
+
+        if m is not None:
+            return self._interpolate(method=m,
+                                     index=index,
+                                     values=values,
+                                     axis=axis,
+                                     limit=limit,
+                                     fill_value=fill_value,
+                                     inplace=inplace,
+                                     downcast=downcast,
+                                     **kwargs)
+
+        raise ValueError("invalid method '{0}' to interpolate.".format(method))
+
+    def _interpolate_with_fill(self, method='pad', axis=0, inplace=False,
+                               limit=None, fill_value=None, coerce=False, downcast=None):
+        """ fillna but using the interpolate machinery """
 
         # if we are coercing, then don't force the conversion
         # if the block can't hold the type
@@ -743,6 +780,44 @@ class Block(PandasObject):
         values = self._try_coerce_result(values)
 
         blocks = [ make_block(values, self.items, self.ref_items, ndim=self.ndim, klass=self.__class__, fastpath=True) ]
+        return self._maybe_downcast(blocks, downcast)
+
+    def _interpolate(self, method=None, index=None, values=None,
+                     fill_value=None, axis=0, limit=None,
+                     inplace=False, downcast=None, **kwargs):
+        """ interpolate using scipy wrappers """
+
+        data = self.values if inplace else self.values.copy()
+
+        # only deal with floats
+        if not self.is_float:
+            if not self.is_integer:
+                return self
+            data = data.astype(np.float64)
+
+        if fill_value is None:
+            fill_value = np.nan
+
+        if method in ('krogh', 'piecewise_polynomial', 'pchip'):
+            if not index.is_monotonic:
+                raise ValueError("{0} interpolation requires that the "
+                                 "index be monotonic.".format(method))
+        # process 1-d slices in the axis direction
+
+        def func(x):
+
+            # process a 1-d slice, returning it
+            # should the axis argument be handled below in apply_along_axis?
+            # i.e. not an arg to com.interpolate_1d
+            return com.interpolate_1d(index, x, method=method, limit=limit,
+                                      fill_value=fill_value, bounds_error=False,
+                                      **kwargs)
+
+        # interp each column independently
+        interp_values = np.apply_along_axis(func, axis, data)
+
+        blocks = [make_block(interp_values, self.items, self.ref_items,
+                  ndim=self.ndim, klass=self.__class__, fastpath=True)]
         return self._maybe_downcast(blocks, downcast)
 
     def take(self, indexer, ref_items, axis=1):
