@@ -8,6 +8,7 @@ import re
 import numbers
 import collections
 import warnings
+from functools import partial
 
 from distutils.version import LooseVersion
 
@@ -165,13 +166,12 @@ class _HtmlFrameParser(object):
     See each method's respective documentation for details on their
     functionality.
     """
-    def __init__(self, io, match, attrs):
-        self.io = io
+    def __init__(self, match, attrs):
         self.match = match
         self.attrs = attrs
 
-    def parse_tables(self):
-        tables = self._parse_tables(self._build_doc(), self.match, self.attrs)
+    def parse_tables(self, io):
+        tables = self._parse_tables(self._build_doc(io), self.match, self.attrs)
         return (self._build_table(table) for table in tables)
 
     def _parse_raw_data(self, rows):
@@ -314,7 +314,7 @@ class _HtmlFrameParser(object):
         """
         raise NotImplementedError
 
-    def _build_doc(self):
+    def _build_doc(self, io):
         """Return a tree-like object that can be used to iterate over the DOM.
 
         Returns
@@ -414,15 +414,15 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
                              match.pattern)
         return result
 
-    def _setup_build_doc(self):
-        raw_text = _read(self.io)
+    def _setup_build_doc(self, io):
+        raw_text = _read(io)
         if not raw_text:
-            raise ValueError('No text parsed from document: %s' % self.io)
+            raise ValueError('No text parsed from document: %s' % io)
         return raw_text
 
-    def _build_doc(self):
+    def _build_doc(self, io):
         from bs4 import BeautifulSoup
-        return BeautifulSoup(self._setup_build_doc(), features='html5lib')
+        return BeautifulSoup(self._setup_build_doc(io), features='html5lib')
 
 
 def _build_xpath_expr(attrs):
@@ -469,6 +469,8 @@ class _LxmlFrameParser(_HtmlFrameParser):
     :class:`_HtmlFrameParser`.
     """
     def __init__(self, *args, **kwargs):
+        self.strict = kwargs.pop('strict', True)
+
         super(_LxmlFrameParser, self).__init__(*args, **kwargs)
 
     def _text_getter(self, obj):
@@ -500,7 +502,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
             raise ValueError("No tables found matching regex %r" % pattern)
         return tables
 
-    def _build_doc(self):
+    def _build_doc(self, io):
         """
         Raises
         ------
@@ -519,11 +521,11 @@ class _LxmlFrameParser(_HtmlFrameParser):
         from lxml.html import parse, fromstring, HTMLParser
         from lxml.etree import XMLSyntaxError
 
-        parser = HTMLParser(recover=False)
+        parser = HTMLParser(recover=not self.strict)
 
         try:
             # try to parse the input in the simplest way
-            r = parse(self.io, parser=parser)
+            r = parse(io, parser=parser)
 
             try:
                 r = r.getroot()
@@ -531,8 +533,8 @@ class _LxmlFrameParser(_HtmlFrameParser):
                 pass
         except (UnicodeDecodeError, IOError):
             # if the input is a blob of html goop
-            if not _is_url(self.io):
-                r = fromstring(self.io, parser=parser)
+            if not _is_url(io):
+                r = fromstring(io, parser=parser)
 
                 try:
                     r = r.getroot()
@@ -540,7 +542,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
                     pass
             else:
                 # not a url
-                scheme = parse_url(self.io).scheme
+                scheme = parse_url(io).scheme
                 if scheme not in _valid_schemes:
                     # lxml can't parse it
                     msg = ('%r is not a valid url scheme, valid schemes are '
@@ -572,7 +574,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
         expr = './/tfoot//th'
         return [_remove_whitespace(x.text_content()) for x in
                 table.xpath(expr)]
-
+        
 
 def _expand_elements(body):
     lens = Series(lmap(len, body))
@@ -611,7 +613,8 @@ def _data_to_frame(data, header, index_col, skiprows, infer_types,
 
 _valid_parsers = {'lxml': _LxmlFrameParser, None: _LxmlFrameParser,
                   'html5lib': _BeautifulSoupHtml5LibFrameParser,
-                  'bs4': _BeautifulSoupHtml5LibFrameParser}
+                  'bs4': _BeautifulSoupHtml5LibFrameParser,
+                  'lxml-liberal': partial(_LxmlFrameParser, strict=False),}
 
 
 def _parser_dispatch(flavor):
@@ -696,10 +699,10 @@ def _parse(flavor, io, match, header, index_col, skiprows, infer_types,
     retained = None
     for flav in flavor:
         parser = _parser_dispatch(flav)
-        p = parser(io, compiled_match, attrs)
+        p = parser(compiled_match, attrs)
 
         try:
-            tables = p.parse_tables()
+            tables = p.parse_tables(io)
         except Exception as caught:
             retained = caught
         else:
@@ -737,6 +740,9 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
         each other, they are both there for backwards compatibility. The
         default of ``None`` tries to use ``lxml`` to parse and if that fails it
         falls back on ``bs4`` + ``html5lib``.
+        ``lxml-liberal`` - uses lxml parser but allows errors 
+        to pass silently and then returns what it can from the parsed tables 
+        that lxml is able to find.
 
     header : int or list-like or None, optional
         The row (or list of rows for a :class:`~pandas.MultiIndex`) to use to
@@ -816,6 +822,24 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
 
     This function will *always* return a list of :class:`DataFrame` *or*
     it will fail, e.g., it will *not* return an empty list.
+    
+    lxml-liberal tries hard to parse through broken XML.
+    It lets libxml2 try its best to return a valid HTML tree 
+    with all content it can manage to parse. 
+    It will not raise an exception on parser errors. 
+    You should use libxml2 version 2.6.21 or newer 
+    to take advantage of this feature.
+    
+    The support for parsing broken HTML depends entirely on libxml2's 
+    recovery algorithm. 
+    It is not the fault of lxml if you find documents that 
+    are so heavily broken that the parser cannot handle them. 
+    There is also no guarantee that the resulting tree will 
+    contain all data from the original document. 
+    The parser may have to drop seriously broken parts when 
+    struggling to keep parsing. 
+    Especially misplaced meta tags can suffer from this, 
+    which may lead to encoding problems.
 
     Examples
     --------

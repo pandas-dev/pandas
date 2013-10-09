@@ -603,6 +603,33 @@ class TestReadHtmlLxml(unittest.TestCase):
         with tm.assertRaises(XMLSyntaxError):
             self.read_html(banklist_data, flavor=['lxml'])
 
+    def test_lxml_liberal(self):
+        banklist_data = os.path.join(DATA_PATH, 'banklist.html')
+        
+        dfs = self.read_html(banklist_data, flavor=['lxml-liberal'])
+        for df in dfs:
+            tm.assert_isinstance(df, DataFrame)
+            self.assertFalse(df.empty)
+    
+    @slow        
+    def test_lxml_liberal2(self):
+        _skip_if_no('bs4')
+        banklist_data = os.path.join(DATA_PATH, 'banklist.html')
+        
+        dfs_lxml = self.read_html(banklist_data, flavor=['lxml-liberal'])
+        dfs_bs4 = self.read_html(banklist_data, flavor=['bs4'])
+        
+        if len(dfs_lxml) != len(dfs_bs4):
+            return 
+        
+        for df_lxml,df_bs4 in zip(dfs_lxml, dfs_bs4):
+            try:
+                tm.assert_frame_equal(df_lxml,df_bs4)
+            except AssertionError:
+                return
+            
+        self.fail()
+            
     def test_works_on_valid_markup(self):
         filename = os.path.join(DATA_PATH, 'valid_markup.html')
         dfs = self.read_html(filename, index_col=0, flavor=['lxml'])
