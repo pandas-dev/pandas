@@ -6,13 +6,13 @@ python:
 matrix:
   include:
     - python: 2.6
-      env: NOSE_ARGS="not slow" CLIPBOARD=xclip
+      env: NOSE_ARGS="not slow" CLIPBOARD=xclip LOCALE_OVERRIDE="it_IT.UTF-8"
     - python: 2.7
       env: NOSE_ARGS="slow and not network" LOCALE_OVERRIDE="zh_CN.GB18030" FULL_DEPS=true JOB_TAG=_LOCALE
     - python: 2.7
-      env: NOSE_ARGS="not slow" FULL_DEPS=true GUI=gtk2
+      env: NOSE_ARGS="not slow" FULL_DEPS=true CLIPBOARD_GUI=gtk2
     - python: 3.2
-      env: NOSE_ARGS="not slow" FULL_DEPS=true GUI=qt4
+      env: NOSE_ARGS="not slow" FULL_DEPS=true CLIPBOARD_GUI=qt4
     - python: 3.3
       env: NOSE_ARGS="not slow" FULL_DEPS=true CLIPBOARD=xsel
   exclude:
@@ -25,28 +25,25 @@ virtualenv:
   system_site_packages: true
 
 before_install:
-  - echo "Waldo1"
+  - echo "before_install"
   - echo $VIRTUAL_ENV
   - df -h
   - date
-  # - export PIP_ARGS=-q # comment this this to debug travis install issues
-  # - export APT_ARGS=-qq # comment this to debug travis install issues
-  # - set -x # enable this to see bash commands
-  - export ZIP_FLAGS=-q # comment this to debug travis install issues
   - ci/before_install.sh
   - python -V
+  # Xvfb stuff for clipboard functionality; see the travis-ci documentation
   - export DISPLAY=:99.0
   - sh -e /etc/init.d/xvfb start
 
 install:
-  - echo "Waldo2"
+  - echo "install"
   - ci/install.sh
 
 before_script:
   - mysql -e 'create database pandas_nosetest;'
 
 script:
-  - echo "Waldo3"
+  - echo "script"
   - ci/script.sh
 
 after_script:

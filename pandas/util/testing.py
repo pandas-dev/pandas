@@ -9,6 +9,8 @@ import tempfile
 import warnings
 import inspect
 import os
+import subprocess
+import locale
 
 from datetime import datetime
 from functools import wraps, partial
@@ -20,6 +22,7 @@ import numpy as np
 
 import nose
 
+import pandas as pd
 from pandas.core.common import isnull, _is_sequence
 import pandas.core.index as index
 import pandas.core.series as series
@@ -28,7 +31,7 @@ import pandas.core.panel as panel
 import pandas.core.panel4d as panel4d
 import pandas.compat as compat
 from pandas.compat import(
-    map, zip, range, unichr, lrange, lmap, lzip, u, callable, Counter,
+    filter, map, zip, range, unichr, lrange, lmap, lzip, u, callable, Counter,
     raise_with_traceback, httplib
 )
 
@@ -95,6 +98,172 @@ def mplskip(cls):
 
     cls.setUpClass = setUpClass
     return cls
+
+
+#------------------------------------------------------------------------------
+# locale utilities
+
+def check_output(*popenargs, **kwargs):  # shamelessly taken from Python 2.7 source
+    r"""Run command with arguments and return its output as a byte string.
+
+    If the exit code was non-zero it raises a CalledProcessError.  The
+    CalledProcessError object will have the return code in the returncode
+    attribute and output in the output attribute.
+
+    The arguments are the same as for the Popen constructor.  Example:
+
+    >>> check_output(["ls", "-l", "/dev/null"])
+    'crw-rw-rw- 1 root root 1, 3 Oct 18  2007 /dev/null\n'
+
+    The stdout argument is not allowed as it is used internally.
+    To capture standard error in the result, use stderr=STDOUT.
+
+    >>> check_output(["/bin/sh", "-c",
+    ...               "ls -l non_existent_file ; exit 0"],
+    ...              stderr=STDOUT)
+    'ls: non_existent_file: No such file or directory\n'
+    """
+    if 'stdout' in kwargs:
+        raise ValueError('stdout argument not allowed, it will be overridden.')
+    process = subprocess.Popen(stdout=subprocess.PIPE, *popenargs, **kwargs)
+    output, unused_err = process.communicate()
+    retcode = process.poll()
+    if retcode:
+        cmd = kwargs.get("args")
+        if cmd is None:
+            cmd = popenargs[0]
+        raise subprocess.CalledProcessError(retcode, cmd, output=output)
+    return output
+
+
+def _default_locale_getter():
+    try:
+        raw_locales = check_output(['locale -a'], shell=True)
+    except subprocess.CalledProcessError as e:
+        raise type(e)("%s, the 'locale -a' command cannot be foundon your "
+                      "system" % e)
+    return raw_locales
+
+
+def get_locales(prefix=None, normalize=True,
+                locale_getter=_default_locale_getter):
+    """Get all the locales that are available on the system.
+
+    Parameters
+    ----------
+    prefix : str
+        If not ``None`` then return only those locales with the prefix
+        provided. For example to get all English language locales (those that
+        start with ``"en"``), pass ``prefix="en"``.
+    normalize : bool
+        Call ``locale.normalize`` on the resulting list of available locales.
+        If ``True``, only locales that can be set without throwing an
+        ``Exception`` are returned.
+    locale_getter : callable
+        The function to use to retrieve the current locales. This should return
+        a string with each locale separated by a newline character.
+
+    Returns
+    -------
+    locales : list of strings
+        A list of locale strings that can be set with ``locale.setlocale()``.
+        For example::
+
+            locale.setlocale(locale.LC_ALL, locale_string)
+    """
+    raw_locales = locale_getter()
+
+    try:
+        raw_locales = str(raw_locales, encoding=pd.options.display.encoding)
+    except TypeError:
+        pass
+
+    if prefix is None:
+        return _valid_locales(raw_locales.splitlines(), normalize)
+
+    found = re.compile('%s.*' % prefix).findall(raw_locales)
+    return _valid_locales(found, normalize)
+
+
+@contextmanager
+def set_locale(new_locale, lc_var=locale.LC_ALL):
+    """Context manager for temporarily setting a locale.
+
+    Parameters
+    ----------
+    new_locale : str or tuple
+        A string of the form <language_country>.<encoding>. For example to set
+        the current locale to US English with a UTF8 encoding, you would pass
+        "en_US.UTF-8".
+
+    Notes
+    -----
+    This is useful when you want to run a particular block of code under a
+    particular locale, without globally setting the locale. This probably isn't
+    thread-safe.
+    """
+    current_locale = locale.getlocale()
+
+    try:
+        locale.setlocale(lc_var, new_locale)
+
+        try:
+            normalized_locale = locale.getlocale()
+        except ValueError:
+            yield new_locale
+        else:
+            if all(lc is not None for lc in normalized_locale):
+                yield '.'.join(normalized_locale)
+            else:
+                yield new_locale
+    finally:
+        locale.setlocale(lc_var, current_locale)
+
+
+def _can_set_locale(lc):
+    """Check to see if we can set a locale without throwing an exception.
+
+    Parameters
+    ----------
+    lc : str
+        The locale to attempt to set.
+
+    Returns
+    -------
+    isvalid : bool
+        Whether the passed locale can be set
+    """
+    try:
+        with set_locale(lc):
+            pass
+    except locale.Error:  # horrible name for a Exception subclass
+        return False
+    else:
+        return True
+
+
+def _valid_locales(locales, normalize):
+    """Return a list of normalized locales that do not throw an ``Exception``
+    when set.
+
+    Parameters
+    ----------
+    locales : str
+        A string where each locale is separated by a newline.
+    normalize : bool
+        Whether to call ``locale.normalize`` on each locale.
+
+    Returns
+    -------
+    valid_locales : list
+        A list of valid locales.
+    """
+    if normalize:
+        normalizer = lambda x: locale.normalize(x.strip())
+    else:
+        normalizer = lambda x: x.strip()
+
+    return list(filter(_can_set_locale, map(normalizer, locales)))
 
 
 #------------------------------------------------------------------------------
@@ -169,6 +338,7 @@ def assert_isinstance(obj, class_type_or_tuple):
         "Expected object to be of type %r, found %r instead" % (
             type(obj), class_type_or_tuple))
 
+
 def assert_equal(a, b, msg=""):
     """asserts that a equals b, like nose's assert_equal, but allows custom message to start.
     Passes a and b to format string as well. So you can use '{0}' and '{1}' to display a and b.
@@ -198,9 +368,9 @@ def assert_attr_equal(attr, left, right):
     right_attr = getattr(right, attr)
     assert_equal(left_attr,right_attr,"attr is not equal [{0}]" .format(attr))
 
+
 def isiterable(obj):
     return hasattr(obj, '__iter__')
-
 
 
 def assert_almost_equal(a, b, check_less_precise=False):
@@ -378,6 +548,7 @@ def assert_contains_all(iterable, dic):
     for k in iterable:
         assert k in dic, "Did not contain item: '%r'" % k
 
+
 def assert_copy(iter1, iter2, **eql_kwargs):
     """
     iter1, iter2: iterables that produce elements comparable with assert_almost_equal
@@ -412,6 +583,7 @@ def makeFloatIndex(k=10):
     values = sorted(np.random.random_sample(k)) - np.random.random_sample(1)
     return Index(values * (10 ** np.random.randint(0, 9)))
 
+
 def makeDateIndex(k=10):
     dt = datetime(2000, 1, 1)
     dr = bdate_range(dt, periods=k)
@@ -445,6 +617,7 @@ def makeObjectSeries():
 def getSeriesData():
     index = makeStringIndex(N)
     return dict((c, Series(randn(N), index=index)) for c in getCols(K))
+
 
 def makeTimeSeries(nper=None):
     if nper is None:
@@ -503,10 +676,12 @@ def makePanel(nper=None):
     data = dict((c, makeTimeDataFrame(nper)) for c in cols)
     return Panel.fromDict(data)
 
+
 def makePeriodPanel(nper=None):
     cols = ['Item' + c for c in string.ascii_uppercase[:K - 1]]
     data = dict((c, makePeriodFrame(nper)) for c in cols)
     return Panel.fromDict(data)
+
 
 def makePanel4D(nper=None):
     return Panel4D(dict(l1=makePanel(nper), l2=makePanel(nper),
