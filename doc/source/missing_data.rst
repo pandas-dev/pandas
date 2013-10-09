@@ -375,11 +375,11 @@ Compare several methods:
   np.random.seed(2)
 
   ser = Series(np.arange(1, 10.1, .25)**2 + np.random.randn(37))
-  bad = np.array([4, 13, 14, 15, 16, 17, 18, 20, 29, 34, 35, 36])
+  bad = np.array([4, 13, 14, 15, 16, 17, 18, 20, 29])
   ser[bad] = np.nan
   methods = ['linear', 'quadratic', 'cubic']
 
-  df = DataFrame({m: s.interpolate(method=m) for m in methods})
+  df = DataFrame({m: ser.interpolate(method=m) for m in methods})
   @savefig compare_interpolations.png
   df.plot()
 
