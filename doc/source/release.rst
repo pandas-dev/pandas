@@ -578,6 +578,9 @@ Bug Fixes
   - Fix a bug with ``NDFrame.replace()`` which made replacement appear as
     though it was (incorrectly) using regular expressions (:issue:`5143`).
   - Fix better error message for to_datetime (:issue:`4928`)
+  - Made sure different locales are tested on travis-ci (:issue:`4918`). Also
+    adds a couple of utilities for getting locales and setting locales with a
+    context manager.
 
 pandas 0.12.0
 -------------
