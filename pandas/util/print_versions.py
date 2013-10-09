@@ -144,6 +144,18 @@ def show_versions():
     except:
         print("html5lib: Not installed")
 
+    try:
+        import bq
+        print("bigquery: %s" % bq._VersionNumber())
+    except:
+        print("bigquery: Not installed")
+
+    try:
+        import apiclient
+        print("apiclient: %s" % apiclient.__version__)
+    except:
+        print("apiclient: Not installed")
+
 
 
 if __name__ == "__main__":
