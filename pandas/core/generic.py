@@ -1982,29 +1982,35 @@ class NDFrame(PandasObject):
 
         Parameters
         ----------
-        method : {'linear', 'time', 'values', 'index' 'nearest',
-                  'zero', 'slinear', 'quadratic', 'cubic',
-                  'barycentric', 'krogh', 'polynomial', 'spline'
-                  'piecewise_polynomial', 'pchip'}
-            'linear': ignore the index and treat the values as equally spaced. default
-            'time': interpolation works on daily and higher resolution
+        method : {'linear', 'time', 'values', 'index' 'nearest', 'zero',
+                  'slinear', 'quadratic', 'cubic', 'barycentric', 'krogh',
+                  'polynomial', 'spline' 'piecewise_polynomial', 'pchip'}
+
+            * 'linear': ignore the index and treat the values as equally
+               spaced. default
+            * 'time': interpolation works on daily and higher resolution
                 data to interpolate given length of interval
-            'index': use the actual numerical values of the index
-            'nearest', 'zero', 'slinear', 'quadratic', 'cubic', 'barycentric',
-            'polynomial' is passed to `scipy.interpolate.interp1d` with the order given
-                both 'polynomial' and 'spline' requre that you also specify and order (int)
-                e.g. df.interpolate(method='polynomial', order=4)
-            'krogh', 'piecewise_polynomial', 'spline', and 'pchip' are all wrappers
-            around the scipy interpolation methods of similar names. See the
-            scipy documentation for more on their behavior:
-            http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation
-            http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html
+            * 'index': use the actual numerical values of the index
+            * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
+              'barycentric', 'polynomial' is passed to
+              `scipy.interpolate.interp1d` with the order given both
+              'polynomial' and 'spline' requre that you also specify and order
+              (int) e.g. df.interpolate(method='polynomial', order=4)
+            * 'krogh', 'piecewise_polynomial', 'spline', and 'pchip' are all
+               wrappers around the scipy interpolation methods of similar
+               names. See the scipy documentation for more on their behavior:
+               http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation
+               http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html
+
         axis : {0, 1}, default 0
-            0: fill column-by-column
-            1: fill row-by-row
-        limit : int, default None. Maximum number of consecutive NaNs to fill.
+            * 0: fill column-by-column
+            * 1: fill row-by-row
+        limit : int, default None.
+            Maximum number of consecutive NaNs to fill.
         inplace : bool, default False
+            Update the NDFrame in place if possible.
         downcast : optional, 'infer' or None, defaults to 'infer'
+            Downcast dtypes if possible.
 
         Returns
         -------

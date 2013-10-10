@@ -397,8 +397,11 @@ at the new values.
 .. _documentation: http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation
 .. _guide: http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html
 
-Like other pandas fill methods, ``interpolate`` accepts a ``limit`` keyword argument.
-Use this to limit the number of consecutive interpolations, keeping ``NaN`` s for interpolations that are too far from the last valid observation:
+
+Like other pandas fill methods, ``interpolate`` accepts a ``limit`` keyword
+argument.  Use this to limit the number of consecutive interpolations, keeping
+``NaN`` values for interpolations that are too far from the last valid
+observation:
 
 .. ipython:: python
 

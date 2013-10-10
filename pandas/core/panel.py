@@ -391,8 +391,8 @@ class Panel(NDFrame):
             ``io.excel.xlsx.writer``, ``io.excel.xls.writer``, and
             ``io.excel.xlsm.writer``.
 
-        Keyword Arguments
-        -----------------
+        Other Parameters
+        ----------------
         float_format : string, default None
             Format string for floating point numbers
         cols : sequence, optional
@@ -409,6 +409,8 @@ class Panel(NDFrame):
         startow : upper left cell row to dump data frame
         startcol : upper left cell column to dump data frame
 
+        Notes
+        -----
         Keyword arguments (and na_rep) are passed to the ``to_excel`` method
         for each DataFrame written.
         """
