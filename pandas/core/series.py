@@ -827,12 +827,7 @@ class Series(generic.NDFrame):
             raise TypeError('Cannot reset_index inplace on a Series '
                             'to create a DataFrame')
         else:
-            from pandas.core.frame import DataFrame
-            if name is None:
-                df = DataFrame(self)
-            else:
-                df = DataFrame({name: self})
-
+            df = self.to_frame(name)
             return df.reset_index(level=level, drop=drop)
 
     def __unicode__(self):
@@ -1027,6 +1022,27 @@ class Series(generic.NDFrame):
         value_dict : dict
         """
         return dict(compat.iteritems(self))
+
+    def to_frame(self, name=None):
+        """
+        Convert Series to DataFrame
+
+        Parameters
+        ----------
+        name : object, default None
+            The passed name should substitute for the series name (if it has one).
+
+        Returns
+        -------
+        data_frame : DataFrame
+        """
+        from pandas.core.frame import DataFrame
+        if name is None:
+            df = DataFrame(self)
+        else:
+            df = DataFrame({name: self})
+
+        return df
 
     def to_sparse(self, kind='block', fill_value=None):
         """
