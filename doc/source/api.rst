@@ -438,6 +438,7 @@ Serialization / IO / Conversion
    Series.to_pickle
    Series.to_csv
    Series.to_dict
+   Series.to_frame
    Series.to_sparse
    Series.to_string
    Series.to_clipboard

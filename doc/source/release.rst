@@ -176,6 +176,7 @@ Improvements to existing features
   - ``DataFrame.from_records()`` will now accept generators (:issue:`4910`)
   - ``DataFrame.interpolate()`` and ``Series.interpolate()`` have been expanded to include
     interpolation methods from scipy. (:issue:`4434`, :issue:`1892`)
+  - ``Series`` now supports a ``to_frame`` method to convert it to a single-column DataFrame (:issue:`5164`)
 
 API Changes
 ~~~~~~~~~~~
