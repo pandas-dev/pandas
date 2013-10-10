@@ -376,10 +376,10 @@ class Block(PandasObject):
                 dtype = dtypes.get(item, self._downcast_dtype)
 
             if dtype is None:
-                nv = _block_shape(values[i])
+                nv = _block_shape(values[i],ndim=self.ndim)
             else:
                 nv = _possibly_downcast_to_dtype(values[i], dtype)
-                nv = _block_shape(nv)
+                nv = _block_shape(nv,ndim=self.ndim)
 
             blocks.append(make_block(nv, Index([item]), self.ref_items, ndim=self.ndim, fastpath=True))
 
