@@ -106,10 +106,15 @@ pip install pandas
 - [matplotlib](http://matplotlib.sourceforge.net/): for plotting
 - [statsmodels](http://statsmodels.sourceforge.net/)
    - Needed for parts of `pandas.stats`
-- [openpyxl](http://packages.python.org/openpyxl/), [xlrd/xlwt](http://www.python-excel.org/)
-   - openpyxl version 1.6.1 or higher, for writing .xlsx files
-   - xlrd >= 0.9.0
-   - Needed for Excel I/O
+- For Excel I/O:
+  - [xlrd/xlwt](http://www.python-excel.org/)
+     - Excel reading (xlrd) and writing (xlwt)
+  - [openpyxl](http://packages.python.org/openpyxl/)
+     - openpyxl version 1.6.1 or higher, for writing .xlsx files
+     - xlrd >= 0.9.0
+  - [XlsxWriter](https://pypi.python.org/pypi/XlsxWriter)
+     - Alternative Excel writer.
+- [Google bq Command Line Tool](https://developers.google.com/bigquery/bq-command-line-tool/): Needed for :mod:`pandas.io.gbq`
 - [boto](https://pypi.python.org/pypi/boto): necessary for Amazon S3 access.
 - One of the following combinations of libraries is needed to use the
   top-level [`pandas.read_html`][read-html-docs] function:
