@@ -492,6 +492,8 @@ Enhancements
   - DatetimeIndex is now in the API documentation, see :ref:`here<api.datetimeindex>`
   - :meth:`~pandas.io.json.json_normalize` is a new method to allow you to create a flat table
     from semi-structured JSON data. :ref:`See the docs<io.json_normalize>` (:issue:`1067`)
+  - ``Series`` now supports ``to_frame`` method to convert it to a single-column DataFrame
+    (:issue:`5164`)
 
 .. _whatsnew_0130.experimental:
 

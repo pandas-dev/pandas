@@ -30,6 +30,7 @@ from pandas.compat import StringIO, lrange, range, zip, u, OrderedDict, long
 from pandas import compat
 from pandas.util.testing import (assert_series_equal,
                                  assert_almost_equal,
+                                 assert_frame_equal,
                                  ensure_clean)
 import pandas.util.testing as tm
 
@@ -3605,6 +3606,21 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         s = Series(self.ts.index)
         rs = s.tolist()
         self.assertEqual(self.ts.index[0], rs[0])
+
+    def test_to_frame(self):
+        self.ts.name = None
+        rs = self.ts.to_frame()
+        xp = pd.DataFrame(self.ts.values, index=self.ts.index)
+        assert_frame_equal(rs, xp)
+
+        self.ts.name = 'testname'
+        rs = self.ts.to_frame()
+        xp = pd.DataFrame(dict(testname=self.ts.values), index=self.ts.index)
+        assert_frame_equal(rs, xp)
+
+        rs = self.ts.to_frame(name='testdifferent')
+        xp = pd.DataFrame(dict(testdifferent=self.ts.values), index=self.ts.index)
+        assert_frame_equal(rs, xp)
 
     def test_to_dict(self):
         self.assert_(np.array_equal(Series(self.ts.to_dict()), self.ts))
