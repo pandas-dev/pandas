@@ -490,7 +490,7 @@ Enhancements
      mask
      dfi[mask.any(1)]
 
-    :ref:`See the docs<indexing.basics.indexing_isin>` for more.
+  :ref:`See the docs<indexing.basics.indexing_isin>` for more.
 
 - ``Series`` now supports a ``to_frame`` method to convert it to a single-column DataFrame (:issue:`5164`)
 
