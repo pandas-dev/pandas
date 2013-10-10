@@ -1966,7 +1966,8 @@ class NDFrame(PandasObject):
 
     def interpolate(self, method='linear', axis=0, limit=None, inplace=False,
                     downcast='infer', **kwargs):
-        """Interpolate values according to different methods.
+        """
+        Interpolate values according to different methods.
 
         Parameters
         ----------
@@ -2013,7 +2014,9 @@ class NDFrame(PandasObject):
         2    2
         3    3
         dtype: float64
+
         """
+
         if self.ndim > 2:
             raise NotImplementedError("Interpolate has not been implemented "
                                       "on Panel and Panel 4D objects.")

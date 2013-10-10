@@ -181,7 +181,7 @@ API Changes
 ~~~~~~~~~~~
 
   - ``DataFrame.reindex()`` and forward/backward filling now raises ValueError
-    if either index is not monotonic (:issue: `4483` , :issue: `4484`).
+    if either index is not monotonic (:issue:`4483`, :issue:`4484`).
   - ``pandas`` now is Python 2/3 compatible without the need for 2to3 thanks to
     @jtratner. As a result, pandas now uses iterators more extensively. This
     also led to the introduction of substantive parts of the Benjamin
@@ -440,7 +440,7 @@ Bug Fixes
     instance rather than the same instance (:issue:`4379`); also adds a test
     for this for the other index types
   - Fixed a bug with all the dtypes being converted to object when using the CSV cparser
-    with the usecols parameter (:issue: `3192`)
+    with the usecols parameter (:issue:`3192`)
   - Fix an issue in merging blocks where the resulting DataFrame had partially
     set _ref_locs (:issue:`4403`)
   - Fixed an issue where hist subplots were being overwritten when they were

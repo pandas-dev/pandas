@@ -196,10 +196,10 @@ replace NaN with some other value using ``fillna`` if you wish).
    df + df2
    df.add(df2, fill_value=0)
 
+.. _basics.compare:
+
 Flexible Comparisons
 ~~~~~~~~~~~~~~~~~~~~
-
-.. _basics.compare:
 
 Starting in v0.8, pandas introduced binary comparison methods eq, ne, lt, gt,
 le, and ge to Series and DataFrame whose behavior is analogous to the binary
@@ -214,10 +214,10 @@ These operations produce a pandas object the same type as the left-hand-side inp
 that if of dtype ``bool``. These ``boolean`` objects can be used in indexing operations,
 see :ref:`here<indexing.boolean>`
 
+.. _basics.reductions:
+
 Boolean Reductions
 ~~~~~~~~~~~~~~~~~~
-
-.. _basics.reductions:
 
 Furthermore, you can apply the reductions: ``empty``, ``any()``, ``all()``, and ``bool()`` to provide a
 way to summarize these results.
@@ -264,12 +264,12 @@ You can test if a pandas object is empty, via the ``empty`` property.
 
 To evaluate single-element pandas objects in a boolean context, use the method ``.bool()``:
 
-   .. ipython:: python
+.. ipython:: python
 
-      Series([True]).bool()
-      Series([False]).bool()
-      DataFrame([[True]]).bool()
-      DataFrame([[False]]).bool()
+   Series([True]).bool()
+   Series([False]).bool()
+   DataFrame([[True]]).bool()
+   DataFrame([[False]]).bool()
 
 See :ref:`gotchas<gotchas.truth>` for a more detailed discussion.
 

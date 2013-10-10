@@ -15,10 +15,10 @@
 Caveats and Gotchas
 *******************
 
+.. _gotchas.truth:
+
 Using If/Truth Statements with Pandas
 -------------------------------------
-
-.. _gotchas.truth:
 
 Pandas follows the numpy convention of raising an error when you try to convert something to a ``bool``.
 This happens in a ``if`` or when using the boolean operations, ``and``, ``or``, or ``not``.  It is not clear
@@ -61,12 +61,12 @@ or return if ``any`` value is ``True``.
 
 To evaluate single-element pandas objects in a boolean context, use the method ``.bool()``:
 
-   .. ipython:: python
+.. ipython:: python
 
-       Series([True]).bool()
-       Series([False]).bool()
-       DataFrame([[True]]).bool()
-       DataFrame([[False]]).bool()
+   Series([True]).bool()
+   Series([False]).bool()
+   DataFrame([[True]]).bool()
+   DataFrame([[False]]).bool()
 
 See :ref:`boolean reductions<basics.reductions>` for more examples.
 

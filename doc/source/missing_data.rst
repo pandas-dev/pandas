@@ -273,8 +273,8 @@ Interpolation
 
 .. versionadded:: 0.13.0
 
-  DataFrame now has the interpolation method.
-  :meth:`~pandas.Series.interpolate` also gained some additional methods.
+  :meth:`~pandas.DataFrame.interpolate`, and :meth:`~pandas.Series.interpolate` have
+  revamped interpolation methods and functionaility.
 
 Both Series and Dataframe objects have an ``interpolate`` method that, by default,
 performs linear interpolation at missing datapoints.
@@ -291,14 +291,11 @@ performs linear interpolation at missing datapoints.
 
 .. ipython:: python
 
+   ts
    ts.count()
-
-   ts.head()
-
    ts.interpolate().count()
 
-   ts.interpolate().head()
-
+   plt.figure()
    @savefig series_interpolate.png
    ts.interpolate().plot()
 
@@ -307,15 +304,13 @@ Index aware interpolation is available via the ``method`` keyword:
 .. ipython:: python
    :suppress:
 
-   ts = ts[[0, 1, 30, 60, 99]]
+   ts2 = ts[[0, 1, 30, 60, 99]]
 
 .. ipython:: python
 
-   ts
-
-   ts.interpolate()
-
-   ts.interpolate(method='time')
+   ts2
+   ts2.interpolate()
+   ts2.interpolate(method='time')
 
 For a floating-point index, use ``method='values'``:
 
@@ -328,9 +323,7 @@ For a floating-point index, use ``method='values'``:
 .. ipython:: python
 
    ser
-
    ser.interpolate()
-
    ser.interpolate(method='values')
 
 You can also interpolate with a DataFrame:
@@ -339,6 +332,7 @@ You can also interpolate with a DataFrame:
 
    df = DataFrame({'A': [1, 2.1, np.nan, 4.7, 5.6, 6.8],
                    'B': [.25, np.nan, np.nan, 4, 12.2, 14.4]})
+   df
    df.interpolate()
 
 The ``method`` argument gives access to fancier interpolation methods.
@@ -351,37 +345,38 @@ distribution function, then ``method='pchip'`` should work well.
 
 .. warning::
 
-    These methods require ``scipy``.
+   These methods require ``scipy``.
 
 .. ipython:: python
 
-  df.interpolate(method='barycentric')
+   df.interpolate(method='barycentric')
 
-  df.interpolate(method='pchip')
+   df.interpolate(method='pchip')
 
 When interpolating via a polynomial or spline approximation, you must also specify
 the degree or order of the approximation:
 
 .. ipython:: python
 
-  df.interpolate(method='spline', order=2)
+   df.interpolate(method='spline', order=2)
 
-  df.interpolate(method='polynomial', order=2)
+   df.interpolate(method='polynomial', order=2)
 
 Compare several methods:
 
 .. ipython:: python
 
-  np.random.seed(2)
+   np.random.seed(2)
 
-  ser = Series(np.arange(1, 10.1, .25)**2 + np.random.randn(37))
-  bad = np.array([4, 13, 14, 15, 16, 17, 18, 20, 29])
-  ser[bad] = np.nan
-  methods = ['linear', 'quadratic', 'cubic']
+   ser = Series(np.arange(1, 10.1, .25)**2 + np.random.randn(37))
+   bad = np.array([4, 13, 14, 15, 16, 17, 18, 20, 29])
+   ser[bad] = np.nan
+   methods = ['linear', 'quadratic', 'cubic']
 
-  df = DataFrame({m: ser.interpolate(method=m) for m in methods})
-  @savefig compare_interpolations.png
-  df.plot()
+   df = DataFrame({m: ser.interpolate(method=m) for m in methods})
+   plt.figure()
+   @savefig compare_interpolations.png
+   df.plot()
 
 Another use case is interpolation at *new* values.
 Suppose you have 100 observations from some distribution. And let's suppose
@@ -391,27 +386,24 @@ at the new values.
 
 .. ipython:: python
 
-  ser = Series(np.sort(np.random.uniform(size=100)))
+   ser = Series(np.sort(np.random.uniform(size=100)))
 
-  # interpolate at new_index
-  new_index = ser.index + Index([49.25, 49.5, 49.75, 50.25, 50.5, 50.75])
-
-  interp_s = ser.reindex(new_index).interpolate(method='pchip')
-
-  interp_s[49:51]
+   # interpolate at new_index
+   new_index = ser.index + Index([49.25, 49.5, 49.75, 50.25, 50.5, 50.75])
+   interp_s = ser.reindex(new_index).interpolate(method='pchip')
+   interp_s[49:51]
 
 .. _scipy: http://www.scipy.org
 .. _documentation: http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation
 .. _guide: http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html
 
-
 Like other pandas fill methods, ``interpolate`` accepts a ``limit`` keyword argument.
-Use this to limit the number of consecutive interpolations, keeping ``NaN``s for interpolations that are too far from the last valid observation:
+Use this to limit the number of consecutive interpolations, keeping ``NaN`` s for interpolations that are too far from the last valid observation:
 
 .. ipython:: python
 
-  ser = Series([1, 3, np.nan, np.nan, np.nan, 11])
-  ser.interpolate(limit=2)
+   ser = Series([1, 3, np.nan, np.nan, np.nan, 11])
+   ser.interpolate(limit=2)
 
 .. _missing_data.replace:
 

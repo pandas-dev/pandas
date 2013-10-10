@@ -2915,19 +2915,21 @@ There are a few other available functions:
    For now, writing your DataFrame into a database works only with
    **SQLite**. Moreover, the **index** will currently be **dropped**.
 
+.. _io.bigquery:
+
 Google BigQuery (Experimental)
 ------------------------------
+
+.. versionadded:: 0.13.0
 
 The :mod:`pandas.io.gbq` module provides a wrapper for Google's BigQuery
 analytics web service to simplify retrieving results from BigQuery tables
 using SQL-like queries. Result sets are parsed into a pandas
 DataFrame with a shape derived from the source table. Additionally,
 DataFrames can be uploaded into BigQuery datasets as tables
-if the source datatypes are compatible with BigQuery ones. The general
-structure of this module and its provided functions are based loosely on those in
- :mod:`pandas.io.sql`.
+if the source datatypes are compatible with BigQuery ones.
 
-For specifics on the service itself, see: <https://developers.google.com/bigquery/>
+For specifics on the service itself, see `here <https://developers.google.com/bigquery/>`__
 
 As an example, suppose you want to load all data from an existing table
 : `test_dataset.test_table`
@@ -2951,7 +2953,9 @@ Additionally, you can define which column to use as an index as well as a prefer
 
 .. code-block:: python
 
-   data_frame = gbq.read_gbq('SELECT * FROM test_dataset.test_table', index_col='index_column_name', col_order='[col1, col2, col3,...]')
+   data_frame = gbq.read_gbq('SELECT * FROM test_dataset.test_table',
+                             index_col='index_column_name',
+                             col_order='[col1, col2, col3,...]')
 
 Finally, if you would like to create a BigQuery table, `my_dataset.my_table`, from the rows of DataFrame, `df`:
 
@@ -2961,7 +2965,8 @@ Finally, if you would like to create a BigQuery table, `my_dataset.my_table`, fr
          'integer_col_name' : [1],
          'boolean_col_name' : [True]})
    schema = ['STRING', 'INTEGER', 'BOOLEAN']
-   data_frame = gbq.to_gbq(df, 'my_dataset.my_table', if_exists='fail', schema = schema)
+   data_frame = gbq.to_gbq(df, 'my_dataset.my_table',
+                           if_exists='fail', schema = schema)
 
 To add more rows to this, simply:
 
@@ -2972,22 +2977,22 @@ To add more rows to this, simply:
          'boolean_col_name' : [False]})
    data_frame = gbq.to_gbq(df2, 'my_dataset.my_table', if_exists='append')
 
-
-
 .. note::
 
-   * There is a hard cap on BigQuery result sets, at 128MB compressed. Also, the BigQuery SQL query language has some oddities,
-   see: <https://developers.google.com/bigquery/query-reference>
+   There is a hard cap on BigQuery result sets, at 128MB compressed. Also, the BigQuery SQL query language has some oddities,
+   see `here <https://developers.google.com/bigquery/query-reference>`__
+
+.. _io.stata:
 
 STATA Format
 ------------
 
-.. _io.stata:
+.. versionadded:: 0.12.0
+
+.. _io.stata_writer:
 
 Writing to STATA format
 ~~~~~~~~~~~~~~~~~~~~~~~
-
-.. _io.stata_writer:
 
 The method :func:`~pandas.core.frame.DataFrame.to_stata` will write a DataFrame
 into a .dta file. The format version of this file is always 115 (Stata 12).
@@ -2997,12 +3002,10 @@ into a .dta file. The format version of this file is always 115 (Stata 12).
    df = DataFrame(randn(10, 2), columns=list('AB'))
    df.to_stata('stata.dta')
 
-Reading from STATA format
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
 .. _io.stata_reader:
 
-.. versionadded:: 0.12.0
+Reading from STATA format
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The top-level function ``read_stata`` will read a dta format file
 and return a DataFrame:
