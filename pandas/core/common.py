@@ -1053,7 +1053,7 @@ def _possibly_downcast_to_dtype(result, dtype):
             # do a test on the first element, if it fails then we are done
             r = result.ravel()
             arr = np.array([ r[0] ])
-            if (arr != arr.astype(dtype)).item():
+            if not np.allclose(arr,arr.astype(dtype)):
                 return result
 
             # a comparable, e.g. a Decimal may slip in here
@@ -1062,8 +1062,14 @@ def _possibly_downcast_to_dtype(result, dtype):
 
             if issubclass(result.dtype.type, (np.object_,np.number)) and notnull(result).all():
                 new_result = result.astype(dtype)
-                if (new_result == result).all():
-                    return new_result
+                try:
+                    if np.allclose(new_result,result):
+                        return new_result
+                except:
+
+                    # comparison of an object dtype with a number type could hit here
+                    if (new_result == result).all():
+                        return new_result
     except:
         pass
 

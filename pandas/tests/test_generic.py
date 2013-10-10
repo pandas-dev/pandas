@@ -59,7 +59,7 @@ class Generic(object):
         """ return the axes for my object typ """
         return self._typ._AXIS_ORDERS
 
-    def _construct(self, shape, value=None, **kwargs):
+    def _construct(self, shape, value=None, dtype=None, **kwargs):
         """ construct an object for the given shape
             if value is specified use that if its a scalar
             if value is an array, repeat it as needed """
@@ -74,7 +74,7 @@ class Generic(object):
                     # remove the info axis
                     kwargs.pop(self._typ._info_axis_name,None)
                 else:
-                    arr = np.empty(shape)
+                    arr = np.empty(shape,dtype=dtype)
                     arr.fill(value)
             else:
                 fshape = np.prod(shape)
@@ -183,6 +183,32 @@ class Generic(object):
             f = getattr(np,op,None)
             if f is not None:
                 f(o)
+
+    def test_downcast(self):
+        # test close downcasting
+
+        o = self._construct(shape=4, value=9, dtype=np.int64)
+        result = o.copy()
+        result._data = o._data.downcast(dtypes='infer')
+        self._compare(result, o)
+
+        o = self._construct(shape=4, value=9.)
+        expected = o.astype(np.int64)
+        result = o.copy()
+        result._data = o._data.downcast(dtypes='infer')
+        self._compare(result, expected)
+
+        o = self._construct(shape=4, value=9.5)
+        result = o.copy()
+        result._data = o._data.downcast(dtypes='infer')
+        self._compare(result, o)
+
+        # are close
+        o = self._construct(shape=4, value=9.000000000005)
+        result = o.copy()
+        result._data = o._data.downcast(dtypes='infer')
+        expected = o.astype(np.int64)
+        self._compare(result, expected)
 
 class TestSeries(unittest.TestCase, Generic):
     _typ = Series
@@ -335,7 +361,7 @@ class TestSeries(unittest.TestCase, Generic):
         _skip_if_no_scipy()
         sq = Series([1, 4, np.nan, 16], index=[1, 2, 3, 4])
         result = sq.interpolate(method='quadratic')
-        expected = Series([1., 4., 9., 16.], index=[1, 2, 3, 4])
+        expected = Series([1, 4, 9, 16], index=[1, 2, 3, 4])
         assert_series_equal(result, expected)
 
     def test_interp_scipy_basic(self):
@@ -589,7 +615,7 @@ class TestDataFrame(unittest.TestCase, Generic):
         _skip_if_no_scipy()
         s = Series([1, 2, np.nan, 4, 5, np.nan, 7])
         result = s.interpolate(method='spline', order=1)
-        expected = Series([1., 2, 3, 4, 5, 6, 7])  # dtype?
+        expected = Series([1, 2, 3, 4, 5, 6, 7])
         assert_series_equal(result, expected)
 
 
