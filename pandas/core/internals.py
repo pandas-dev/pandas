@@ -224,6 +224,7 @@ class Block(PandasObject):
         if indexer is None:
             new_ref_items, indexer = self.items.reindex(new_ref_items, limit=limit)
 
+        needs_fill = method is not None and limit is None
         if fill_value is None:
             fill_value = self.fill_value
 
@@ -245,14 +246,13 @@ class Block(PandasObject):
                 new_items = self.items.take(masked_idx)
 
         # fill if needed
-        fill_method = method is not None or limit is not None
-        if fill_method:
+        if needs_fill:
             new_values = com.interpolate_2d(new_values, method=method, limit=limit, fill_value=fill_value)
 
         block = make_block(new_values, new_items, new_ref_items, ndim=self.ndim, fastpath=True)
 
         # down cast if needed
-        if not self.is_float and (fill_method or notnull(fill_value)):
+        if not self.is_float and (needs_fill or notnull(fill_value)):
             block = block.downcast()
 
         return block
