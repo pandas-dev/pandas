@@ -20,8 +20,6 @@ from distutils.version import LooseVersion
 from numpy.random import randn, rand
 import numpy as np
 
-import nose
-
 import pandas as pd
 from pandas.core.common import isnull, _is_sequence
 import pandas.core.index as index
@@ -88,12 +86,14 @@ def close(fignum=None):
 
 def mplskip(cls):
     """Skip a TestCase instance if matplotlib isn't installed"""
+
     @classmethod
     def setUpClass(cls):
         try:
             import matplotlib as mpl
             mpl.use("Agg", warn=False)
         except ImportError:
+            import nose
             raise nose.SkipTest("matplotlib not installed")
 
     cls.setUpClass = setUpClass

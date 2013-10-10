@@ -43,8 +43,6 @@ from pandas.tseries.api import *
 from pandas.io.api import *
 from pandas.computation.api import *
 
-from pandas.util.testing import debug
-
 from pandas.tools.describe import value_range
 from pandas.tools.merge import merge, concat, ordered_merge
 from pandas.tools.pivot import pivot_table, crosstab
