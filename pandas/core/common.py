@@ -12,6 +12,7 @@ import types
 from numpy.lib.format import read_array, write_array
 import numpy as np
 
+import pandas as pd
 import pandas.algos as algos
 import pandas.lib as lib
 import pandas.tslib as tslib
@@ -116,8 +117,10 @@ def isnull(obj):
 def _isnull_new(obj):
     if lib.isscalar(obj):
         return lib.checknull(obj)
-
-    if isinstance(obj, (ABCSeries, np.ndarray)):
+    # hack (for now) because MI registers as ndarray
+    elif isinstance(obj, pd.MultiIndex):
+        raise NotImplementedError("isnull is not defined for MultiIndex")
+    elif isinstance(obj, (ABCSeries, np.ndarray)):
         return _isnull_ndarraylike(obj)
     elif isinstance(obj, ABCGeneric):
         return obj.apply(isnull)
@@ -141,8 +144,10 @@ def _isnull_old(obj):
     '''
     if lib.isscalar(obj):
         return lib.checknull_old(obj)
-
-    if isinstance(obj, (ABCSeries, np.ndarray)):
+    # hack (for now) because MI registers as ndarray
+    elif isinstance(obj, pd.MultiIndex):
+        raise NotImplementedError("isnull is not defined for MultiIndex")
+    elif isinstance(obj, (ABCSeries, np.ndarray)):
         return _isnull_ndarraylike_old(obj)
     elif isinstance(obj, ABCGeneric):
         return obj.apply(_isnull_old)
