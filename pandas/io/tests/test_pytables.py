@@ -1809,6 +1809,16 @@ class TestHDFStore(unittest.TestCase):
         import time
         import os
 
+        # original method
+        with ensure_clean(self.path) as store:
+
+            today = datetime.date(2013,9,10)
+            df = DataFrame([1,2,3], index = [today, today, today])
+            store['obj1'] = df
+            result = store['obj1']
+            assert_frame_equal(result, df)
+
+        # with tz setting
         orig_tz = os.environ.get('TZ')
 
         def setTZ(tz):
