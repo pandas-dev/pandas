@@ -2932,55 +2932,56 @@ if the source datatypes are compatible with BigQuery ones.
 For specifics on the service itself, see `here <https://developers.google.com/bigquery/>`__
 
 As an example, suppose you want to load all data from an existing table
-: `test_dataset.test_table`
-into BigQuery and pull it into a DataFrame.
+``test_dataset.test_table`` into BigQuery and pull it into a ``DataFrame``.
 
-.. code-block:: python
+::
 
    from pandas.io import gbq
    data_frame = gbq.read_gbq('SELECT * FROM test_dataset.test_table')
 
-The user will then be authenticated by the `bq` command line client -
+The user will then be authenticated by the ``bq`` command line client -
 this usually involves the default browser opening to a login page,
 though the process can be done entirely from command line if necessary.
-Datasets and additional parameters can be either configured with `bq`,
-passed in as options to `read_gbq`, or set using Google's gflags (this
-is not officially supported by this module, though care was taken
-to ensure that they should be followed regardless of how you call the
+Datasets and additional parameters can be either configured with ``bq``,
+passed in as options to :func:`~pandas.read_gbq`, or set using Google's
+``gflags`` (this is not officially supported by this module, though care was
+taken to ensure that they should be followed regardless of how you call the
 method).
 
 Additionally, you can define which column to use as an index as well as a preferred column order as follows:
 
-.. code-block:: python
+::
 
    data_frame = gbq.read_gbq('SELECT * FROM test_dataset.test_table',
                              index_col='index_column_name',
                              col_order='[col1, col2, col3,...]')
 
-Finally, if you would like to create a BigQuery table, `my_dataset.my_table`, from the rows of DataFrame, `df`:
+Finally, if you would like to create a BigQuery table, `my_dataset.my_table`,
+from the rows of DataFrame, `df`:
 
-.. code-block:: python
+::
 
-   df = pandas.DataFrame({'string_col_name' : ['hello'],
-         'integer_col_name' : [1],
-         'boolean_col_name' : [True]})
+   df = pandas.DataFrame({'string_col_name': ['hello'],
+                          'integer_col_name': [1],
+                          'boolean_col_name': [True]})
    schema = ['STRING', 'INTEGER', 'BOOLEAN']
-   data_frame = gbq.to_gbq(df, 'my_dataset.my_table',
-                           if_exists='fail', schema = schema)
+   data_frame = gbq.to_gbq(df, 'my_dataset.my_table', if_exists='fail',
+                           schema=schema)
 
 To add more rows to this, simply:
 
-.. code-block:: python
+::
 
-   df2 = pandas.DataFrame({'string_col_name' : ['hello2'],
-         'integer_col_name' : [2],
-         'boolean_col_name' : [False]})
+   df2 = pandas.DataFrame({'string_col_name': ['hello2'],
+                           'integer_col_name': [2],
+                           'boolean_col_name': [False]})
    data_frame = gbq.to_gbq(df2, 'my_dataset.my_table', if_exists='append')
 
 .. note::
 
-   There is a hard cap on BigQuery result sets, at 128MB compressed. Also, the BigQuery SQL query language has some oddities,
-   see `here <https://developers.google.com/bigquery/query-reference>`__
+   There is a hard cap on BigQuery result sets, at 128MB compressed. Also, the
+   BigQuery SQL query language has some oddities, see `here
+   <https://developers.google.com/bigquery/query-reference>`__
 
 .. _io.stata:
 
