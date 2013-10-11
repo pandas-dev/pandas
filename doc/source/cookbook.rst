@@ -92,6 +92,9 @@ Slicing
 `Slicing a multi-index with xs #2
 <http://stackoverflow.com/questions/14964493/multiindex-based-indexing-in-pandas>`__
 
+`Setting portions of a multi-index with xs
+<http://stackoverflow.com/questions/19319432/pandas-selecting-a-lower-level-in-a-dataframe-to-do-a-ffill>`__
+
 Sorting
 ~~~~~~~
 
