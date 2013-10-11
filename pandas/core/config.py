@@ -65,6 +65,11 @@ _global_config = {}  # holds the current values for registered options
 _reserved_keys = ['all']  # keys which have a special meaning
 
 
+class OptionError(AttributeError, KeyError):
+    """Exception for pandas.options, backwards compatible with KeyError
+    checks"""
+
+
 ##########################################
 # User API
 
@@ -73,9 +78,9 @@ def _get_single_key(pat, silent):
     if len(keys) == 0:
         if not silent:
             _warn_if_deprecated(pat)
-        raise KeyError('No such keys(s): %r' % pat)
+        raise OptionError('No such keys(s): %r' % pat)
     if len(keys) > 1:
-        raise KeyError('Pattern matched multiple keys')
+        raise OptionError('Pattern matched multiple keys')
     key = keys[0]
 
     if not silent:
@@ -147,7 +152,7 @@ def _describe_option(pat='', _print_desc=True):
 
     keys = _select_options(pat)
     if len(keys) == 0:
-        raise KeyError('No such keys(s)')
+        raise OptionError('No such keys(s)')
 
     s = u('')
     for k in keys:  # filter by pat
@@ -164,7 +169,7 @@ def _reset_option(pat):
     keys = _select_options(pat)
 
     if len(keys) == 0:
-        raise KeyError('No such keys(s)')
+        raise OptionError('No such keys(s)')
 
     if len(keys) > 1 and len(pat) < 4 and pat != 'all':
         raise ValueError('You must specify at least 4 characters when '
@@ -195,7 +200,7 @@ class DictWrapper(object):
         if key in self.d and not isinstance(self.d[key], dict):
             _set_option(prefix, val)
         else:
-            raise KeyError("You can only set the value of existing options")
+            raise OptionError("You can only set the value of existing options")
 
     def __getattr__(self, key):
         prefix = object.__getattribute__(self, "prefix")
@@ -210,6 +215,7 @@ class DictWrapper(object):
 
     def __dir__(self):
         return list(self.d.keys())
+
 
 # For user convenience,  we'd like to have the available options described
 # in the docstring. For dev convenience we'd like to generate the docstrings
@@ -255,7 +261,7 @@ result - the value of the option
 
 Raises
 ------
-KeyError if no such option exists
+OptionError if no such option exists
 
 {opts_desc}
 """
@@ -281,7 +287,7 @@ None
 
 Raises
 ------
-KeyError if no such option exists
+OptionError if no such option exists
 
 {opts_desc}
 """
@@ -398,9 +404,9 @@ def register_option(key, defval, doc='', validator=None, cb=None):
     key = key.lower()
 
     if key in _registered_options:
-        raise KeyError("Option '%s' has already been registered" % key)
+        raise OptionError("Option '%s' has already been registered" % key)
     if key in _reserved_keys:
-        raise KeyError("Option '%s' is a reserved key" % key)
+        raise OptionError("Option '%s' is a reserved key" % key)
 
     # the default value should be legal
     if validator:
@@ -418,14 +424,14 @@ def register_option(key, defval, doc='', validator=None, cb=None):
     cursor = _global_config
     for i, p in enumerate(path[:-1]):
         if not isinstance(cursor, dict):
-            raise KeyError("Path prefix to option '%s' is already an option"
+            raise OptionError("Path prefix to option '%s' is already an option"
                            % '.'.join(path[:i]))
         if p not in cursor:
             cursor[p] = {}
         cursor = cursor[p]
 
     if not isinstance(cursor, dict):
-        raise KeyError("Path prefix to option '%s' is already an option"
+        raise OptionError("Path prefix to option '%s' is already an option"
                        % '.'.join(path[:-1]))
 
     cursor[path[-1]] = defval  # initialize
@@ -470,14 +476,14 @@ def deprecate_option(key, msg=None, rkey=None, removal_ver=None):
 
     Raises
     ------
-    KeyError - if key has already been deprecated.
+    OptionError - if key has already been deprecated.
 
     """
 
     key = key.lower()
 
     if key in _deprecated_options:
-        raise KeyError("Option '%s' has already been defined as deprecated."
+        raise OptionError("Option '%s' has already been defined as deprecated."
                        % key)
 
     _deprecated_options[key] = DeprecatedOption(key, msg, rkey, removal_ver)
