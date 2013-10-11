@@ -3209,6 +3209,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df = DataFrame(np.arange(12).reshape(3,4), columns=dups,dtype='float64')
         self.assertRaises(ValueError, lambda : df[df.A > 6])
 
+        # dup aligining operations should work
+        # GH 5185
+        df1 = DataFrame([1, 2, 3, 4, 5], index=[1, 2, 1, 2, 3])
+        df2 = DataFrame([1, 2, 3], index=[1, 2, 3])
+        expected = DataFrame([0,2,0,2,2],index=[1,1,2,2,3])
+        result = df1.sub(df2)
+        assert_frame_equal(result,expected)
+
     def test_insert_benchmark(self):
         # from the vb_suite/frame_methods/frame_insert_columns
         N = 10
