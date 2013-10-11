@@ -1801,7 +1801,7 @@ class DataCol(IndexCol):
             elif dtype == u('date'):
                 try:
                     self.data = np.array(
-                        [date.fromordinal(v) for v in data], dtype=object)
+                        [date.fromordinal(v) for v in self.data], dtype=object)
                 except (ValueError):
                     self.data = np.array(
                         [date.fromtimestamp(v) for v in self.data], dtype=object)
@@ -3882,7 +3882,7 @@ def _unconvert_index(data, kind, encoding=None):
                 [date.fromordinal(v) for v in data], dtype=object)
         except (ValueError):
             index = np.array(
-                [date.fromtimestamp(v) for v in self.data], dtype=object)
+                [date.fromtimestamp(v) for v in data], dtype=object)
     elif kind in (u('integer'), u('float')):
         index = np.array(data)
     elif kind in (u('string')):
