@@ -107,8 +107,8 @@ class Index(FrozenNDArray):
             cls._scalar_data_error(data)
 
         elif not isinstance(data, np.ndarray):
-            # other iterable of some kind (but default None to object)
-            data = com._asarray_tuplesafe(data, dtype=dtype or object)
+            # other iterable of some kind
+            data = com._asarray_tuplesafe(data, dtype=dtype)
 
         from pandas.tseries.period import PeriodIndex
         if issubclass(data.dtype.type, np.datetime64):
