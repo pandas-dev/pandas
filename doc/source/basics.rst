@@ -1361,7 +1361,7 @@ and so passing in a substring will work - as long as it is unambiguous :
    get_option("display.max_rows")
 
 
-The following will **not work** because it matches multiple option names, e.g. ``display.max_colwidth``, ``display.max_rows``, ``display.max_columns``:
+The following will **not work** because it matches multiple option names, e.g.``display.max_colwidth``, ``display.max_rows``, ``display.max_columns``:
 
 .. ipython:: python
    :okexcept:
@@ -1372,17 +1372,11 @@ The following will **not work** because it matches multiple option names, e.g. `
        print(e)
 
 
-**Note:** Using this form of shorthand may cause your code to break if new options with similar names are added in future versions.
+**Note:** Using this form of convenient shorthand may make your code break if new options with similar names are added in future versions.
 
 
 You can get a list of available options and their descriptions with ``describe_option``. When called
 with no argument ``describe_option`` will print out the descriptions for all available options.
-
-.. ipython:: python
-   :suppress:
-
-   reset_option("all")
-
 
 .. ipython:: python
 
@@ -1413,11 +1407,11 @@ All options also have a default value, and you can use the ``reset_option`` to d
    get_option("display.max_rows")
 
 
-It's also possible to reset multiple options at once (using a regex):
+It's also possible to reset multiple options at once:
 
 .. ipython:: python
 
-   reset_option("^display")
+   reset_option("^display\.")
 
 
 
