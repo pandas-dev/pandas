@@ -2340,6 +2340,7 @@ cdef extern from "period.h":
 
     ctypedef int64_t (*freq_conv_func)(int64_t, char, asfreq_info*)
 
+    void initialize_daytime_conversion_factor_matrix()
     int64_t asfreq(int64_t dtordinal, int freq1, int freq2, char relation) except INT32_MIN
     freq_conv_func get_asfreq_func(int fromFreq, int toFreq)
     void get_asfreq_info(int fromFreq, int toFreq, asfreq_info *af_info)
@@ -2367,6 +2368,8 @@ cdef extern from "period.h":
     int psecond(int64_t ordinal, int freq) except INT32_MIN
     char *c_strftime(date_info *dinfo, char *fmt)
     int get_yq(int64_t ordinal, int freq, int *quarter, int *year)
+
+initialize_daytime_conversion_factor_matrix()
 
 # Period logic
 #----------------------------------------------------------------------

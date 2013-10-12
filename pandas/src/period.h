@@ -8,6 +8,7 @@
 #define C_PERIOD_H
 
 #include <Python.h>
+#include "helper.h"
 #include "numpy/ndarraytypes.h"
 #include "headers/stdint.h"
 #include "limits.h"
@@ -106,8 +107,7 @@ typedef struct asfreq_info {
     int from_q_year_end; // month the year ends on in the "from" frequency
     int to_q_year_end;   // month the year ends on in the "to" frequency
 
-    int sourceFreq;
-    int targetFreq; 
+    npy_int64 intraday_conversion_factor;
 } asfreq_info;
 
 
@@ -162,4 +162,5 @@ double getAbsTime(int freq, npy_int64 dailyDate, npy_int64 originalDate);
 char *c_strftime(struct date_info *dinfo, char *fmt);
 int get_yq(npy_int64 ordinal, int freq, int *quarter, int *year);
 
+void initialize_daytime_conversion_factor_matrix();
 #endif
