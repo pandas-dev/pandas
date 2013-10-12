@@ -219,8 +219,8 @@ see :ref:`here<indexing.boolean>`
 Boolean Reductions
 ~~~~~~~~~~~~~~~~~~
 
-Furthermore, you can apply the reductions: ``empty``, ``any()``, ``all()``, and ``bool()`` to provide a
-way to summarize these results.
+You can apply the reductions: ``empty``, ``any()``, ``all()``, and ``bool()`` to provide a
+way to summarize a boolean result.
 
 .. ipython:: python
 
@@ -239,6 +239,15 @@ You can test if a pandas object is empty, via the ``empty`` property.
 
    df.empty
    DataFrame(columns=list('ABC')).empty
+
+To evaluate single-element pandas objects in a boolean context, use the method ``.bool()``:
+
+.. ipython:: python
+
+   Series([True]).bool()
+   Series([False]).bool()
+   DataFrame([[True]]).bool()
+   DataFrame([[False]]).bool()
 
 .. warning::
 
@@ -260,16 +269,6 @@ You can test if a pandas object is empty, via the ``empty`` property.
    .. code-block:: python
 
        ValueError: The truth value of an array is ambiguous. Use a.empty, a.any() or a.all().
-
-
-To evaluate single-element pandas objects in a boolean context, use the method ``.bool()``:
-
-.. ipython:: python
-
-   Series([True]).bool()
-   Series([False]).bool()
-   DataFrame([[True]]).bool()
-   DataFrame([[False]]).bool()
 
 See :ref:`gotchas<gotchas.truth>` for a more detailed discussion.
 

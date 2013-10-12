@@ -68,8 +68,6 @@ To evaluate single-element pandas objects in a boolean context, use the method `
    DataFrame([[True]]).bool()
    DataFrame([[False]]).bool()
 
-See :ref:`boolean reductions<basics.reductions>` for more examples.
-
 Bitwise boolean
 ~~~~~~~~~~~~~~~
 
@@ -86,6 +84,8 @@ which is almost always what you want anyways.
    3    False
    4     True
    dtype: bool
+
+See :ref:`boolean comparisons<basics.compare>` for more examples.
 
 ``NaN``, Integer ``NA`` values and ``NA`` type promotions
 ---------------------------------------------------------
