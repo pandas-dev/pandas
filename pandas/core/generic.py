@@ -2455,10 +2455,12 @@ class NDFrame(PandasObject):
 
         left = self._reindex_with_indexers({0: [join_index,   ilidx],
                                             1: [join_columns, clidx]},
-                                           copy=copy, fill_value=fill_value)
+                                           copy=copy, fill_value=fill_value,
+                                           allow_dups=True)
         right = other._reindex_with_indexers({0: [join_index,   iridx],
                                               1: [join_columns, cridx]},
-                                             copy=copy, fill_value=fill_value)
+                                             copy=copy, fill_value=fill_value,
+                                             allow_dups=True)
 
         if method is not None:
             left = left.fillna(axis=fill_axis, method=method, limit=limit)
