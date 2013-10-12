@@ -88,3 +88,13 @@ stmt = ("read_csv(StringIO(data), header=None, names=['foo'], "
         "         parse_dates=['foo'])")
 read_parse_dates_iso8601 = Benchmark(stmt, setup,
                                      start_date=datetime(2012, 3, 1))
+
+setup = common_setup + """
+rng = date_range('1/1/2000', periods=1000)
+data = DataFrame(rng, index=rng)
+"""
+
+stmt = ("data.to_csv('__test__.csv', date_format='%Y%m%d')")
+
+frame_to_csv_date_formatting = Benchmark(stmt, setup,
+                                     start_date=datetime(2013, 9, 1))

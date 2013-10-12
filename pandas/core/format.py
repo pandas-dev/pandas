@@ -18,7 +18,7 @@ import numpy as np
 import itertools
 import csv
 
-from pandas.tseries.period import PeriodIndex
+from pandas.tseries.period import PeriodIndex, DatetimeIndex
 
 docstring_to_string = """
      Parameters
@@ -850,7 +850,7 @@ class CSVFormatter(object):
                  cols=None, header=True, index=True, index_label=None,
                  mode='w', nanRep=None, encoding=None, quoting=None,
                  line_terminator='\n', chunksize=None, engine=None,
-                 tupleize_cols=False, quotechar='"'):
+                 tupleize_cols=False, quotechar='"', date_format=None):
 
         self.engine = engine  # remove for 0.13
         self.obj = obj
@@ -877,6 +877,8 @@ class CSVFormatter(object):
 
         self.line_terminator = line_terminator
 
+        self.date_format = date_format
+
         #GH3457
         if not self.obj.columns.is_unique and engine == 'python':
             msg= "columns.is_unique == False not supported with engine='python'"
@@ -893,7 +895,8 @@ class CSVFormatter(object):
 
         if cols is not None:
             if isinstance(cols,Index):
-                cols = cols.to_native_types(na_rep=na_rep,float_format=float_format)
+                cols = cols.to_native_types(na_rep=na_rep,float_format=float_format,
+                                            date_format=date_format)
             else:
                 cols=list(cols)
             self.obj = self.obj.loc[:,cols]
@@ -902,7 +905,8 @@ class CSVFormatter(object):
         # and make sure sure cols is just a list of labels
         cols = self.obj.columns
         if isinstance(cols,Index):
-            cols = cols.to_native_types(na_rep=na_rep,float_format=float_format)
+            cols = cols.to_native_types(na_rep=na_rep,float_format=float_format,
+                                        date_format=date_format)
         else:
             cols=list(cols)
 
@@ -923,6 +927,9 @@ class CSVFormatter(object):
         if isinstance(obj.index, PeriodIndex):
             self.data_index = obj.index.to_timestamp()
 
+        if isinstance(self.data_index, DatetimeIndex) and date_format is not None:
+            self.data_index = Index([x.strftime(date_format) if notnull(x) else '' for x in self.data_index])
+
         self.nlevels = getattr(self.data_index, 'nlevels', 1)
         if not index:
             self.nlevels = 0
@@ -931,14 +938,9 @@ class CSVFormatter(object):
     # invoked by df.to_csv(engine=python)
     def _helper_csv(self, writer, na_rep=None, cols=None,
                     header=True, index=True,
-                    index_label=None, float_format=None):
+                    index_label=None, float_format=None, date_format=None):
         if cols is None:
             cols = self.columns
-
-        series = {}
-        for k, v in compat.iteritems(self.obj._series):
-            series[k] = v.values
-
 
         has_aliases = isinstance(header, (tuple, list, np.ndarray))
         if has_aliases or header:
@@ -981,9 +983,33 @@ class CSVFormatter(object):
                 encoded_cols = list(cols)
                 writer.writerow(encoded_cols)
 
+        if date_format is None:
+            date_formatter = lambda x: lib.Timestamp(x)._repr_base
+        else:
+            def strftime_with_nulls(x):
+                x = lib.Timestamp(x)
+                if notnull(x):
+                    return x.strftime(date_format)
+
+            date_formatter = lambda x: strftime_with_nulls(x)
+
         data_index = self.obj.index
+
         if isinstance(self.obj.index, PeriodIndex):
             data_index = self.obj.index.to_timestamp()
+
+        if isinstance(data_index, DatetimeIndex) and date_format is not None:
+            data_index = Index([date_formatter(x) for x in data_index])
+
+        values = self.obj.copy()
+        values.index = data_index
+        values.columns = values.columns.to_native_types(na_rep=na_rep,float_format=float_format,
+                                            date_format=date_format)
+        values = values[cols]
+
+        series = {}
+        for k, v in compat.iteritems(values._series):
+            series[k] = v.values
 
         nlevels = getattr(data_index, 'nlevels', 1)
         for j, idx in enumerate(data_index):
@@ -1000,8 +1026,8 @@ class CSVFormatter(object):
 
                 if float_format is not None and com.is_float(val):
                     val = float_format % val
-                elif isinstance(val, np.datetime64):
-                    val = lib.Timestamp(val)._repr_base
+                elif isinstance(val, (np.datetime64, lib.Timestamp)):
+                    val = date_formatter(val)
 
                 row_fields.append(val)
 
@@ -1031,7 +1057,7 @@ class CSVFormatter(object):
                 self._helper_csv(self.writer, na_rep=self.na_rep,
                                  float_format=self.float_format, cols=self.cols,
                                  header=self.header, index=self.index,
-                                 index_label=self.index_label)
+                                 index_label=self.index_label, date_format=self.date_format)
 
             else:
                 self._save()
@@ -1150,13 +1176,16 @@ class CSVFormatter(object):
         slicer = slice(start_i,end_i)
         for i in range(len(self.blocks)):
             b = self.blocks[i]
-            d = b.to_native_types(slicer=slicer, na_rep=self.na_rep, float_format=self.float_format)
+            d = b.to_native_types(slicer=slicer, na_rep=self.na_rep,
+                                  float_format=self.float_format, date_format=self.date_format)
+
             for i, item in enumerate(b.items):
 
                 # self.data is a preallocated list
                 self.data[self.column_map[b][i]] = d[i]
 
-        ix = data_index.to_native_types(slicer=slicer, na_rep=self.na_rep, float_format=self.float_format)
+        ix = data_index.to_native_types(slicer=slicer, na_rep=self.na_rep,
+                                        float_format=self.float_format, date_format=self.date_format)
 
         lib.write_csv_rows(self.data, ix, self.nlevels, self.cols, self.writer)
 
