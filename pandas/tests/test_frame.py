@@ -3179,6 +3179,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = DataFrame([[1],[1],[1]],columns=['bar'])
         check(df,expected)
 
+        # describe
+        df = DataFrame([[1,1,1],[2,2,2],[3,3,3]],columns=['bar','a','a'],dtype='float64')
+        result = df.describe()
+        s = df.iloc[:,0].describe()
+        expected = pd.concat([ s, s, s],keys=df.columns,axis=1)
+        check(result,expected)
+
+
     def test_column_dups_indexing(self):
 
         def check(result, expected=None):
@@ -3215,6 +3223,18 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df2 = DataFrame([1, 2, 3], index=[1, 2, 3])
         expected = DataFrame([0,2,0,2,2],index=[1,1,2,2,3])
         result = df1.sub(df2)
+        assert_frame_equal(result,expected)
+
+        # equality
+        df1 = DataFrame([[1,2],[2,np.nan],[3,4],[4,4]],columns=['A','B'])
+        df2 = DataFrame([[0,1],[2,4],[2,np.nan],[4,5]],columns=['A','A'])
+
+        # not-comparing like-labelled
+        self.assertRaises(ValueError, lambda : df1 == df2)
+
+        df1r = df1.reindex_like(df2)
+        result = df1r == df2
+        expected = DataFrame([[False,True],[True,False],[False,False],[True,False]],columns=['A','A'])
         assert_frame_equal(result,expected)
 
     def test_insert_benchmark(self):

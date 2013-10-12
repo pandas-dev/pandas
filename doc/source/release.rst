@@ -591,6 +591,8 @@ Bug Fixes
     (:issue:`5123`, :issue:`5125`)
   - Allow duplicate indices when performing operations that align (:issue:`5185`)
   - Compound dtypes in a constructor raise ``NotImplementedError`` (:issue:`5191`)
+  - Bug in comparing duplicate frames (:issue:`4421`) related
+  - Bug in describe on duplicate frames
 
 pandas 0.12.0
 -------------
