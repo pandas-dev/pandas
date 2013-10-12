@@ -48,6 +48,56 @@ class TestIndex(unittest.TestCase):
         for name, ind in self.indices.items():
             setattr(self, name, ind)
 
+    def test_explicit_dtype_in_constructor(self):
+        # first, smoke tests to make sure result is the same
+        # (with NON-ndarray)
+        pairs = [(np.dtype(unicode), self.unicodeIndex),
+                 (np.dtype(str), self.strIndex),
+                 ('datetime64[ns]', self.dateIndex),
+                 (np.dtype(int), self.intIndex),
+                 (np.dtype(float), self.floatIndex),
+                 (np.dtype(object), self.empty),
+                 (np.dtype(object), self.tuples)]
+        for dtype, original_index in pairs:
+            new_index = Index(list(original_index), dtype=str(dtype))
+            # key is that type is the same
+            tm.assert_isinstance(new_index, type(original_index))
+            tm.assert_index_equal(new_index, original_index)
+
+        # float coerces to Float64Index (even if it could be Int64)
+        ind = Index([1, 3, 5], dtype=float)
+        expected = Float64Index([1., 3., 5.])
+        tm.assert_isinstance(ind, Float64Index)
+        tm.assert_index_equal(ind, expected)
+
+        # These don't need to stay the same if new Index types are added
+        # object-like without explicit dtype
+        ind = Index(['s', 5, 3, None])
+        assert ind.dtype == np.object_
+        assert type(ind) is Index, "Expected Index type, found %s" % type(ind)
+        tm.assert_almost_equal(ind.values, ['s', 5, 3, None])
+
+        # int with nan goes to Float64Index
+        vals = [1, 3, 5, np.nan, 3, -3, -4]
+        ind1 = Index(vals, dtype=float)
+        # as should list-like without dtype
+        ind2 = Index(vals)
+
+        for ind in (ind1, ind2):
+            tm.assert_almost_equal(ind.values, vals)
+            tm.assert_isinstance(ind1, Float64Index)
+
+        # doesn't rescue with explicit (but wrong) dtype
+        with tm.assertRaises(ValueError):
+            Index(vals, dtype=int)
+
+        # bad dtypes with list-likes
+        with tm.assertRaisesRegexp(TypeError, "data type .banana"):
+            Index(['apple', 1, 2], dtype='banana')
+
+        with tm.assertRaisesRegexp(TypeError, "data type .ribbit"):
+            Index(range(3), dtype='ribbit')
+
     def test_wrong_number_names(self):
         def testit(ind):
             ind.names = ["apple", "banana", "carrot"]

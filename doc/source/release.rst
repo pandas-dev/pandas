@@ -593,6 +593,9 @@ Bug Fixes
   - Compound dtypes in a constructor raise ``NotImplementedError`` (:issue:`5191`)
   - Bug in comparing duplicate frames (:issue:`4421`) related
   - Bug in describe on duplicate frames
+  - Fixed issue where passing dtype explicitly to ``Index()`` would always
+    result in object Index. Now delegates to appropriate subclass.
+    (:issue:`5196`, :issue:`5201`)
 
 pandas 0.12.0
 -------------
