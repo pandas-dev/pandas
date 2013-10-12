@@ -1456,7 +1456,7 @@ c  10  11  12  13  14\
             <table border="1" class="dataframe sortable draggable">
               <tbody>
                 <tr>
-                  <td>Index([], dtype=object)</td>
+                  <td>Index([], dtype='object')</td>
                   <td>Empty DataFrame</td>
                 </tr>
               </tbody>

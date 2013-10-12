@@ -2044,7 +2044,7 @@ class MultiIndex(Index):
             attrs.append(('sortorder', default_pprint(self.sortorder)))
 
         space = ' ' * (len(self.__class__.__name__) + 1)
-        prepr = (u("\n%s") % space).join([u("%s=%s") % (k, v)
+        prepr = (u(",\n%s") % space).join([u("%s=%s") % (k, v)
                                           for k, v in attrs])
         res = u("%s(%s)") % (self.__class__.__name__, prepr)
 
