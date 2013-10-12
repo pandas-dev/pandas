@@ -2145,7 +2145,8 @@ class Series(generic.NDFrame):
 
     def to_csv(self, path, index=True, sep=",", na_rep='',
                float_format=None, header=False,
-               index_label=None, mode='w', nanRep=None, encoding=None):
+               index_label=None, mode='w', nanRep=None, encoding=None,
+               date_format=None):
         """
         Write Series to a comma-separated values (csv) file
 
@@ -2170,13 +2171,15 @@ class Series(generic.NDFrame):
         encoding : string, optional
             a string representing the encoding to use if the contents are
             non-ascii, for python versions prior to 3
+        date_format: string, default None
+            Format string for datetime objects.
         """
         from pandas.core.frame import DataFrame
         df = DataFrame(self)
         df.to_csv(path, index=index, sep=sep, na_rep=na_rep,
                   float_format=float_format, header=header,
                   index_label=index_label, mode=mode, nanRep=nanRep,
-                  encoding=encoding)
+                  encoding=encoding, date_format=date_format)
 
     def dropna(self):
         """

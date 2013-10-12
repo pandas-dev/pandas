@@ -7,7 +7,8 @@ from datetime import timedelta
 import numpy as np
 
 from pandas.core.common import (isnull, _NS_DTYPE, _INT64_DTYPE,
-                                is_list_like,_values_from_object, _maybe_box)
+                                is_list_like,_values_from_object, _maybe_box,
+                                notnull)
 from pandas.core.index import Index, Int64Index, _Identity
 import pandas.compat as compat
 from pandas.compat import u
@@ -599,23 +600,29 @@ class DatetimeIndex(Int64Index):
     def _format_with_header(self, header, **kwargs):
         return header + self._format_native_types(**kwargs)
 
-    def _format_native_types(self, na_rep=u('NaT'), **kwargs):
+    def _format_native_types(self, na_rep=u('NaT'), date_format=None, **kwargs):
         data = list(self)
 
         # tz formatter or time formatter
         zero_time = time(0, 0)
-        for d in data:
-            if d.time() != zero_time or d.tzinfo is not None:
-                return [u('%s') % x for x in data]
+        if date_format is None:
+            for d in data:
+                if d.time() != zero_time or d.tzinfo is not None:
+                    return [u('%s') % x for x in data]
 
         values = np.array(data, dtype=object)
         mask = isnull(self.values)
         values[mask] = na_rep
 
         imask = -mask
-        values[imask] = np.array([u('%d-%.2d-%.2d') % (dt.year, dt.month,
-                                                       dt.day)
-                                  for dt in values[imask]])
+
+        if date_format is None:
+            date_formatter = lambda x: u('%d-%.2d-%.2d' % (x.year, x.month, x.day))
+        else:
+            date_formatter = lambda x: u(x.strftime(date_format))
+
+        values[imask] = np.array([date_formatter(dt) for dt in values[imask]])
+
         return values.tolist()
 
     def isin(self, values):
