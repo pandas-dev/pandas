@@ -36,21 +36,23 @@ class TestIndex(unittest.TestCase):
     _multiprocess_can_split_ = True
 
     def setUp(self):
-        self.unicodeIndex = tm.makeUnicodeIndex(100)
-        self.strIndex = tm.makeStringIndex(100)
-        self.dateIndex = tm.makeDateIndex(100)
-        self.intIndex = tm.makeIntIndex(100)
-        self.floatIndex = tm.makeFloatIndex(100)
-        self.empty = Index([])
-        self.tuples = Index(lzip(['foo', 'bar', 'baz'], [1, 2, 3]))
+        self.indices = dict(
+            unicodeIndex = tm.makeUnicodeIndex(100),
+            strIndex = tm.makeStringIndex(100),
+            dateIndex = tm.makeDateIndex(100),
+            intIndex = tm.makeIntIndex(100),
+            floatIndex = tm.makeFloatIndex(100),
+            empty = Index([]),
+            tuples = Index(lzip(['foo', 'bar', 'baz'], [1, 2, 3])),
+        )
+        for name, ind in self.indices.items():
+            setattr(self, name, ind)
 
     def test_wrong_number_names(self):
         def testit(ind):
             ind.names = ["apple", "banana", "carrot"]
 
-        indices = (self.dateIndex, self.unicodeIndex, self.strIndex,
-                   self.intIndex, self.floatIndex, self.empty, self.tuples)
-        for ind in indices:
+        for ind in self.indices.values():
             assertRaisesRegexp(ValueError, "^Length", testit, ind)
 
     def test_set_name_methods(self):
@@ -700,6 +702,10 @@ class TestFloat64Index(unittest.TestCase):
                                    type(self.float).__name__):
             hash(self.float)
 
+    def test_repr_roundtrip(self):
+        for ind in (self.mixed, self.float):
+            tm.assert_index_equal(eval(repr(ind)), ind)
+
     def check_is_index(self, i):
         self.assert_(isinstance(i, Index) and not isinstance(i, Float64Index))
 
@@ -1166,6 +1172,9 @@ class TestInt64Index(unittest.TestCase):
             r = repr(pd.Index(np.arange(1000)))
             self.assertTrue(len(r) < 100)
             self.assertTrue("..." in r)
+
+    def test_repr_roundtrip(self):
+        tm.assert_index_equal(eval(repr(self.index)), self.index)
 
     def test_unicode_string_with_unicode(self):
         idx = Index(lrange(1000))
@@ -2290,6 +2299,9 @@ class TestMultiIndex(unittest.TestCase):
             d = {"a": [u("\u05d0"), 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]}
             index = pd.DataFrame(d).set_index(["a", "b"]).index
             self.assertFalse("\\u" in repr(index))  # we don't want unicode-escaped
+
+    def test_repr_roundtrip(self):
+        tm.assert_index_equal(eval(repr(self.index)), self.index)
 
     def test_unicode_string_with_unicode(self):
         d = {"a": [u("\u05d0"), 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]}
