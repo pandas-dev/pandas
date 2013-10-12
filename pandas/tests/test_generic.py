@@ -86,7 +86,7 @@ class Generic(object):
                 arr = np.repeat(arr,new_shape).reshape(shape)
         else:
             arr = np.random.randn(*shape)
-        return self._typ(arr,**kwargs)
+        return self._typ(arr,dtype=dtype,**kwargs)
 
     def _compare(self, result, expected):
         self._comparator(result,expected)
@@ -209,6 +209,20 @@ class Generic(object):
         result._data = o._data.downcast(dtypes='infer')
         expected = o.astype(np.int64)
         self._compare(result, expected)
+
+    def test_constructor_compound_dtypes(self):
+        # GH 5191
+        # compound dtypes should raise not-implementederror
+
+        def f(dtype):
+            return self._construct(shape=3, dtype=dtype)
+
+        self.assertRaises(NotImplementedError, f, [("A","datetime64[h]"), ("B","str"), ("C","int32")])
+
+        # these work (though results may be unexpected)
+        f('int64')
+        f('float64')
+        f('M8[ns]')
 
 class TestSeries(unittest.TestCase, Generic):
     _typ = Series
