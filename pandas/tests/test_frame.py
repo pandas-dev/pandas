@@ -10709,6 +10709,21 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         self.assert_(not (series['A'] == 5).all())
 
+    def test_constructor_compound_dtypes(self):
+        # GH 5191
+        # compound dtypes should raise not-implementederror
+
+        def f(dtype):
+            return DataFrame(data = list(itertools.repeat((datetime(2001, 1, 1), "aa", 20), 9)),
+                             columns=["A", "B", "C"], dtype=dtype)
+
+        self.assertRaises(NotImplementedError, f, [("A","datetime64[h]"), ("B","str"), ("C","int32")])
+
+        # these work (though results may be unexpected)
+        f('int64')
+        f('float64')
+        f('M8[ns]')
+
     def test_assign_columns(self):
         self.frame['hi'] = 'there'
 

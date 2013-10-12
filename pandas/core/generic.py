@@ -89,6 +89,18 @@ class NDFrame(PandasObject):
         object.__setattr__(self, '_data', data)
         object.__setattr__(self, '_item_cache', {})
 
+    def _validate_dtype(self, dtype):
+        """ validate the passed dtype """
+
+        if dtype is not None:
+            dtype = np.dtype(dtype)
+
+            # a compound dtype
+            if dtype.kind == 'V':
+                raise NotImplementedError("compound dtypes are not implemented"
+                                          "in the {0} constructor".format(self.__class__.__name__))
+        return dtype
+
     def _init_mgr(self, mgr, axes=None, dtype=None, copy=False):
         """ passed a manager and a axes dict """
         for a, axe in axes.items():

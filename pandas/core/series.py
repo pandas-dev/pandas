@@ -139,6 +139,8 @@ class Series(generic.NDFrame):
 
             if data is None:
                 data = {}
+            if dtype is not None:
+                dtype = self._validate_dtype(dtype)
 
             if isinstance(data, MultiIndex):
                 raise NotImplementedError

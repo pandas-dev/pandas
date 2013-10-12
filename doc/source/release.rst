@@ -590,6 +590,7 @@ Bug Fixes
   - Fixed segfault on ``isnull(MultiIndex)`` (now raises an error instead)
     (:issue:`5123`, :issue:`5125`)
   - Allow duplicate indices when performing operations that align (:issue:`5185`)
+  - Compound dtypes in a constructor raise ``NotImplementedError`` (:issue:`5191`)
 
 pandas 0.12.0
 -------------

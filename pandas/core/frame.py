@@ -189,6 +189,8 @@ class DataFrame(NDFrame):
                  copy=False):
         if data is None:
             data = {}
+        if dtype is not None:
+            dtype = self._validate_dtype(dtype)
 
         if isinstance(data, DataFrame):
             data = data._data
@@ -276,9 +278,6 @@ class DataFrame(NDFrame):
         Segregate Series based on type and coerce into matrices.
         Needs to handle a lot of exceptional cases.
         """
-        if dtype is not None:
-            dtype = np.dtype(dtype)
-
         if columns is not None:
             columns = _ensure_index(columns)
 
@@ -4658,9 +4657,6 @@ def _get_names_from_index(data):
 
 def _homogenize(data, index, dtype=None):
     from pandas.core.series import _sanitize_array
-
-    if dtype is not None:
-        dtype = np.dtype(dtype)
 
     oindex = None
     homogenized = []

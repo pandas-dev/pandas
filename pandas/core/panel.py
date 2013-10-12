@@ -140,6 +140,8 @@ class Panel(NDFrame):
         """
         if data is None:
             data = {}
+        if dtype is not None:
+            dtype = self._validate_dtype(dtype)
 
         passed_axes = [kwargs.get(a) for a in self._AXIS_ORDERS]
         axes = None
