@@ -112,7 +112,7 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
 
                 # fallback
                 if result is None:
-                    result = tslib.array_strptime(arg, format)
+                    result = tslib.array_strptime(arg, format, coerce=coerce)
             else:
                 result = tslib.array_to_datetime(arg, raise_=errors == 'raise',
                                                  utc=utc, dayfirst=dayfirst,
