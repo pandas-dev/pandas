@@ -476,7 +476,7 @@ Enhancements
      t = Timestamp('20130101 09:01:02')
      t + pd.datetools.Nano(123)
 
-- A new method, ``isin`` for DataFrames, plays nicely with boolean indexing. See :ref:`the docs<indexing.basics.indexing_isin>` for more.
+- A new method, ``isin`` for DataFrames, which plays nicely with boolean indexing. The argument to ``isin``, what we're comparing the DataFrame to, can be a DataFrame, Series, dict, or array of values. See :ref:`the docs<indexing.basics.indexing_isin>` for more.
 
   To get the rows where any of the conditions are met:
 
@@ -484,7 +484,8 @@ Enhancements
 
      dfi = DataFrame({'A': [1, 2, 3, 4], 'B': ['a', 'b', 'f', 'n']})
      dfi
-     mask = dfi.isin({'A': [1, 2], 'B': ['e', 'f']})
+     other = DataFrame({'A': [1, 3, 3, 7], 'B': ['e', 'f', 'f', 'e']})
+     mask = dfi.isin(other)
      mask
      dfi[mask.any(1)]
 
