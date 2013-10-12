@@ -593,6 +593,7 @@ Bug Fixes
   - Compound dtypes in a constructor raise ``NotImplementedError`` (:issue:`5191`)
   - Bug in comparing duplicate frames (:issue:`4421`) related
   - Bug in describe on duplicate frames
+  - Bug in ``to_datetime`` with a format and ``coerce=True`` not raising (:issue:`5195`)
 
 pandas 0.12.0
 -------------
