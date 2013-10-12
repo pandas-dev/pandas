@@ -103,42 +103,54 @@ class Index(FrozenNDArray):
             subarr.name = name
             return subarr
 
-        from pandas.tseries.period import PeriodIndex
-        if isinstance(data, np.ndarray):
-            if issubclass(data.dtype.type, np.datetime64):
-                from pandas.tseries.index import DatetimeIndex
-                result = DatetimeIndex(data, copy=copy, name=name, **kwargs)
-                if dtype is not None and _o_dtype == dtype:
-                    return Index(result.to_pydatetime(), dtype=_o_dtype)
-                else:
-                    return result
-            elif issubclass(data.dtype.type, np.timedelta64):
-                return Int64Index(data, copy=copy, name=name)
-
-            if dtype is not None:
-                try:
-                    data = np.array(data, dtype=dtype, copy=copy)
-                except TypeError:
-                    pass
-            elif isinstance(data, PeriodIndex):
-                return PeriodIndex(data, copy=copy, name=name, **kwargs)
-
-            if issubclass(data.dtype.type, np.integer):
-                return Int64Index(data, copy=copy, dtype=dtype, name=name)
-
-            subarr = com._asarray_tuplesafe(data, dtype=object)
-
-            # _asarray_tuplesafe does not always copy underlying data,
-            # so need to make sure that this happens
-            if copy:
-                subarr = subarr.copy()
-
-        elif np.isscalar(data):
+        if np.isscalar(data):
             cls._scalar_data_error(data)
 
-        else:
+        elif not isinstance(data, np.ndarray):
             # other iterable of some kind
-            subarr = com._asarray_tuplesafe(data, dtype=object)
+            data = com._asarray_tuplesafe(data, dtype=dtype)
+
+        from pandas.tseries.period import PeriodIndex
+        if issubclass(data.dtype.type, np.datetime64):
+            from pandas.tseries.index import DatetimeIndex
+            result = DatetimeIndex(data, copy=copy, name=name, **kwargs)
+            if dtype is not None and _o_dtype == dtype:
+                return Index(result.to_pydatetime(), dtype=_o_dtype)
+            else:
+                return result
+        elif issubclass(data.dtype.type, np.timedelta64):
+            return Int64Index(data, copy=copy, name=name)
+
+        if dtype is not None:
+            try:
+                data = np.array(data, dtype=dtype, copy=copy)
+            except TypeError:
+                pass
+            except ValueError as e:
+                # bad dtype
+                if 'data type' in str(e):
+                    raise
+                # otherwise, something like int('level_1') going on
+                else:
+                    pass
+
+        elif isinstance(data, PeriodIndex):
+            return PeriodIndex(data, copy=copy, name=name, **kwargs)
+
+        if issubclass(data.dtype.type, np.integer):
+            return Int64Index(data, copy=copy, dtype=dtype, name=name)
+        if issubclass(data.dtype.type, np.float_):
+            # this will still skip reconstruction in Float64Index's __new__
+            # (because it'll match dtype in array)
+            return Float64Index(data, dtype=dtype, copy=copy, name=name)
+
+        # couldn't assign to anything else.
+        subarr = com._asarray_tuplesafe(data, dtype=object)
+
+        # _asarray_tuplesafe does not always copy underlying data,
+        # so need to make sure that this happens
+        if copy:
+            subarr = subarr.copy()
 
         if dtype is None:
             inferred = lib.infer_dtype(subarr)
