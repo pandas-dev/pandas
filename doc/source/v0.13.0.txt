@@ -107,7 +107,7 @@ Indexing API Changes
 ~~~~~~~~~~~~~~~~~~~~
 
 Prior to 0.13, it was impossible to use a label indexer (``.loc/.ix``) to set a value that
-was not contained in the index of a particular axis. (:issue:`2578`). See more :ref:`here<indexing.basics.partial_setting>`
+was not contained in the index of a particular axis. (:issue:`2578`). See more :ref:`the docs<indexing.basics.partial_setting>`
 
 In the ``Series`` case this is effectively an appending operation
 
@@ -272,7 +272,7 @@ HDFStore API Changes
 
 - Significant table writing performance improvements
 - handle a passed ``Series`` in table format (:issue:`4330`)
-- can now serialize a ``timedelta64[ns]`` dtype in a table (:issue:`3577`), See :ref:`here for an example<io.hdf5-timedelta>`.
+- can now serialize a ``timedelta64[ns]`` dtype in a table (:issue:`3577`), See :ref:`the docs<io.hdf5-timedelta>`.
 - added an ``is_open`` property to indicate if the underlying file handle is_open;
   a closed store will now report 'CLOSED' when viewing the store (rather than raising an error)
   (:issue:`4409`)
@@ -310,7 +310,7 @@ HDFStore API Changes
 - removed the ``warn`` argument from ``open``. Instead a ``PossibleDataLossError`` exception will
   be raised if you try to use ``mode='w'`` with an OPEN file handle (:issue:`4367`)
 - allow a passed locations array or mask as a ``where`` condition (:issue:`4467`).
-  See :ref:`here<io.hdf5-where_mask>` for an example.
+  See :ref:`the docs<io.hdf5-where_mask>` for an example.
 - add the keyword ``dropna=True`` to ``append`` to change whether ALL nan rows are not written
   to the store (default is ``True``, ALL nan rows are NOT written), also settable
   via the option ``io.hdf.dropna_table`` (:issue:`4625`)
@@ -339,7 +339,7 @@ Enhancements
      get_dummies([1, 2, np.nan], dummy_na=True)
 
 
-- ``timedelta64[ns]`` operations. See :ref:`here<timeseries.timedeltas_convert>` for the docs.
+- ``timedelta64[ns]`` operations. See :ref:`the docs<timeseries.timedeltas_convert>` for the docs.
 
   .. warning::
 
@@ -358,7 +358,7 @@ Enhancements
 
   A Series of dtype ``timedelta64[ns]`` can now be divided by another
   ``timedelta64[ns]`` object to yield a ``float64`` dtyped Series. This
-  is frequency conversion. See :ref:`here<timeseries.timedeltas_convert>` for the docs.
+  is frequency conversion. See :ref:`the docs<timeseries.timedeltas_convert>` for the docs.
 
   .. ipython:: python
 
@@ -476,7 +476,9 @@ Enhancements
      t = Timestamp('20130101 09:01:02')
      t + pd.datetools.Nano(123)
 
-- A new method, ``isin`` for DataFrames, plays nicely with boolean indexing. To get the rows where any of the conditions are met:
+- A new method, ``isin`` for DataFrames, plays nicely with boolean indexing. See :ref:`the docs<indexing.basics.indexing_isin>` for more.
+
+  To get the rows where any of the conditions are met:
 
   .. ipython:: python
 
@@ -485,8 +487,6 @@ Enhancements
      mask = dfi.isin({'A': [1, 2], 'B': ['e', 'f']})
      mask
      dfi[mask.any(1)]
-
-  :ref:`See the docs<indexing.basics.indexing_isin>` for more.
 
 - ``Series`` now supports a ``to_frame`` method to convert it to a single-column DataFrame (:issue:`5164`)
 
@@ -498,12 +498,12 @@ Enhancements
      com.load_data('Titanic')
 
 - ``tz_localize`` can infer a fall daylight savings transition based on the structure
-  of the unlocalized data (:issue:`4230`), see :ref:`here<timeseries.timezone>`
+  of the unlocalized data (:issue:`4230`), see :ref:`the docs<timeseries.timezone>`
 
-- DatetimeIndex is now in the API documentation, see :ref:`here<api.datetimeindex>`
+- DatetimeIndex is now in the API documentation, see :ref:`the docs<api.datetimeindex>`
 
 - :meth:`~pandas.io.json.json_normalize` is a new method to allow you to create a flat table
-  from semi-structured JSON data. :ref:`See the docs<io.json_normalize>` (:issue:`1067`)
+  from semi-structured JSON data. See :ref:`the docs<io.json_normalize>` (:issue:`1067`)
 
 
 - Added PySide support for the qtpandas DataFrameModel and DataFrameWidget.
@@ -517,11 +517,10 @@ Enhancements
       df.interpolate()
 
   Additionally, the ``method`` argument to ``interpolate`` has been expanded
-  to include 'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
-  'barycentric', 'krogh', 'piecewise_polynomial', 'pchip' or "polynomial" or 'spline'
-  and an integer representing the degree or order of the approximation.  The new methods
-  require scipy_. Consult the Scipy reference guide_ and documentation_ for more information
-  about when the various methods are appropriate.  See :ref:`the docs<missing_data.interpolate>`.
+  to include ``'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
+  'barycentric', 'krogh', 'piecewise_polynomial', 'pchip', `polynomial`, 'spline'``
+  The new methods require scipy_. Consult the Scipy reference guide_ and documentation_ for more information
+  about when the various methods are appropriate. See :ref:`the docs<missing_data.interpolate>`.
 
   Interpolate now also accepts a ``limit`` keyword argument.
   This works similar to ``fillna``'s limit:
@@ -560,8 +559,7 @@ Experimental
      # pure Python evaluation
      %timeit df1 + df2 + df3 + df4
 
-  For more details, see the :ref:`enhancing performance documentation on eval
-  <enhancingperf.eval>`
+  For more details, see the :ref:`the docs<enhancingperf.eval>`
 
 - Similar to ``pandas.eval``, :class:`~pandas.DataFrame` has a new
   ``DataFrame.eval`` method that evaluates an expression in the context of
@@ -614,11 +612,10 @@ Experimental
      df.query('a < b < c')
 
   selects all the rows of ``df`` where ``a < b < c`` evaluates to ``True``.
-  For more details see the :ref:`indexing documentation on query
-  <indexing.query>`.
+  For more details see the :ref:`the docs<indexing.query>`.
 
 - ``pd.read_msgpack()`` and ``pd.to_msgpack()`` are now a supported method of serialization
-  of arbitrary pandas (and python objects) in a lightweight portable binary format. :ref:`See the docs<io.msgpack>`
+  of arbitrary pandas (and python objects) in a lightweight portable binary format. See :ref:`the docs<io.msgpack>`
 
   .. warning::
 
