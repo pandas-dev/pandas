@@ -2848,28 +2848,34 @@ class DataFrame(NDFrame):
         new_data = self._data.eval(func, other, raise_on_error=raise_on_error)
         return self._constructor(new_data)
 
+
+    def _compare_frame_evaluate(self, other, func, str_rep):
+
+        # unique
+        if self.columns.is_unique:
+            def _compare(a, b):
+                return dict([(col, func(a[col], b[col])) for col in a.columns])
+            new_data = expressions.evaluate(_compare, str_rep, self, other)
+            return self._constructor(data=new_data, index=self.index,
+                                     columns=self.columns, copy=False)
+        # non-unique
+        else:
+            def _compare(a, b):
+                return [func(a.iloc[:,i], b.iloc[:,i]) for i, col in enumerate(a.columns)]
+            new_data = expressions.evaluate(_compare, str_rep, self, other)
+            return self._constructor(data=new_data, index=self.columns,
+                                     columns=self.index, copy=False).T
+
     def _compare_frame(self, other, func, str_rep):
         if not self._indexed_same(other):
             raise ValueError('Can only compare identically-labeled '
                             'DataFrame objects')
-
-        def _compare(a, b):
-            return dict([(col, func(a[col], b[col])) for col in a.columns])
-        new_data = expressions.evaluate(_compare, str_rep, self, other)
-
-        return self._constructor(data=new_data, index=self.index,
-                                 columns=self.columns, copy=False)
+        return self._compare_frame_evaluate(other, func, str_rep)
 
     def _flex_compare_frame(self, other, func, str_rep, level):
         if not self._indexed_same(other):
             self, other = self.align(other, 'outer', level=level)
-
-        def _compare(a, b):
-            return dict([(col, func(a[col], b[col])) for col in a.columns])
-        new_data = expressions.evaluate(_compare, str_rep, self, other)
-
-        return self._constructor(data=new_data, index=self.index,
-                                 columns=self.columns, copy=False)
+        return self._compare_frame_evaluate(other, func, str_rep)
 
     def combine(self, other, func, fill_value=None, overwrite=True):
         """
@@ -3792,8 +3798,8 @@ class DataFrame(NDFrame):
 
         destat = []
 
-        for column in numdata.columns:
-            series = self[column]
+        for i in range(len(numdata.columns)):
+            series = numdata.iloc[:,i]
             destat.append([series.count(), series.mean(), series.std(),
                            series.min(), series.quantile(lb), series.median(),
                            series.quantile(ub), series.max()])
