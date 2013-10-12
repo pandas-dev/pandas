@@ -1174,7 +1174,7 @@ def repr_timedelta64(object value):
 
    return "%s%02d:%02d:%s" % (sign_pretty, hours, minutes, seconds_pretty)
 
-def array_strptime(ndarray[object] values, object fmt):
+def array_strptime(ndarray[object] values, object fmt, coerce=False):
     cdef:
         Py_ssize_t i, n = len(values)
         pandas_datetimestruct dts
@@ -1237,9 +1237,15 @@ def array_strptime(ndarray[object] values, object fmt):
     for i in range(n):
         found = format_regex.match(values[i])
         if not found:
+            if coerce:
+                iresult[i] = iNaT
+                continue
             raise ValueError("time data %r does not match format %r" %
                              (values[i], fmt))
         if len(values[i]) != found.end():
+            if coerce:
+                iresult[i] = iNaT
+                continue
             raise ValueError("unconverted data remains: %s" %
                               values[i][found.end():])
         year = 1900

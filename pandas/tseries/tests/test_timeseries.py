@@ -879,6 +879,29 @@ class TestTimeSeries(unittest.TestCase):
         result = to_datetime(s)
         self.assertEquals(result[0], s[0])
 
+    def test_to_datetime_with_apply(self):
+
+        # this is only locale tested with US/None locales
+        import locale
+        (lang,encoding) = locale.getlocale()
+        if lang is not None:
+            raise nose.SkipTest("format codes cannot work with a locale of {0}".format(lang))
+
+        # GH 5195
+        # with a format and coerce a single item to_datetime fails
+        td = Series(['May 04', 'Jun 02', 'Dec 11'], index=[1,2,3])
+        expected = pd.to_datetime(td, format='%b %y')
+        result = td.apply(pd.to_datetime, format='%b %y')
+        assert_series_equal(result, expected)
+
+        td = pd.Series(['May 04', 'Jun 02', ''], index=[1,2,3])
+        self.assertRaises(ValueError, lambda : pd.to_datetime(td,format='%b %y'))
+        self.assertRaises(ValueError, lambda : td.apply(pd.to_datetime, format='%b %y'))
+        expected = pd.to_datetime(td, format='%b %y', coerce=True)
+
+        result = td.apply(lambda x: pd.to_datetime(x, format='%b %y', coerce=True))
+        assert_series_equal(result, expected)
+
     def test_nat_vector_field_access(self):
         idx = DatetimeIndex(['1/1/2000', None, None, '1/4/2000'])
 
