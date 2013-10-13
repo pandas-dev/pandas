@@ -1037,6 +1037,17 @@ class TestIndexing(unittest.TestCase):
         df2.ix[mask, cols]= dft.ix[mask, cols].values
         assert_frame_equal(df2,expected)
 
+        # broadcasting on the rhs is required
+        df = DataFrame(dict(A = [1,2,0,0,0],B=[0,0,0,10,11],C=[0,0,0,10,11],D=[3,4,5,6,7]))
+
+        expected = df.copy()
+        mask = expected['A'] == 0
+        for col in ['A','B']:
+            expected.loc[mask,col] = df['D']
+
+        df.loc[df['A']==0,['A','B']] = df['D']
+        assert_frame_equal(df,expected)
+
     def test_ix_assign_column_mixed(self):
         # GH #1142
         df = DataFrame(tm.getSeriesData())
