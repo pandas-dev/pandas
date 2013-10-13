@@ -2641,8 +2641,36 @@ class TestGroupBy(unittest.TestCase):
         s = pd.Series([-1,0,1,2])
         grouper = s.apply(lambda x: x % 2)
         grouped = s.groupby(grouper)
-        self.assertRaises(ValueError,
+        self.assertRaises(TypeError,
                           lambda: grouped.filter(raise_if_sum_is_zero))
+
+    def test_filter_bad_shapes(self):
+        df = DataFrame({'A': np.arange(8), 'B': list('aabbbbcc'), 'C': np.arange(8)})
+        s = df['B']
+        g_df = df.groupby('B')
+        g_s = s.groupby(s)
+
+        f = lambda x: x
+        self.assertRaises(TypeError, lambda: g_df.filter(f))
+        self.assertRaises(TypeError, lambda: g_s.filter(f))
+
+        f = lambda x: x == 1
+        self.assertRaises(TypeError, lambda: g_df.filter(f))
+        self.assertRaises(TypeError, lambda: g_s.filter(f))
+
+        f = lambda x: np.outer(x, x)
+        self.assertRaises(TypeError, lambda: g_df.filter(f))
+        self.assertRaises(TypeError, lambda: g_s.filter(f))
+
+    def test_filter_nan_is_false(self):
+        df = DataFrame({'A': np.arange(8), 'B': list('aabbbbcc'), 'C': np.arange(8)})
+        s = df['B']
+        g_df = df.groupby(df['B'])
+        g_s = s.groupby(s)
+
+        f = lambda x: np.nan
+        assert_frame_equal(g_df.filter(f), df.loc[[]])
+        assert_series_equal(g_s.filter(f), s[[]])
 
     def test_filter_against_workaround(self):
         np.random.seed(0)
@@ -2695,6 +2723,29 @@ class TestGroupBy(unittest.TestCase):
             transform(lambda x: x.mean() > N/20).astype('bool')]
         new_way = grouped.filter(lambda x: x['ints'].mean() > N/20)
         assert_frame_equal(new_way.sort_index(), old_way.sort_index())
+
+    def test_filter_using_len(self):
+        # BUG GH4447
+        df = DataFrame({'A': np.arange(8), 'B': list('aabbbbcc'), 'C': np.arange(8)})
+        grouped = df.groupby('B')
+        actual = grouped.filter(lambda x: len(x) > 2)
+        expected = DataFrame({'A': np.arange(2, 6), 'B': list('bbbb'), 'C': np.arange(2, 6)}, index=np.arange(2, 6))
+        assert_frame_equal(actual, expected)
+
+        actual = grouped.filter(lambda x: len(x) > 4)
+        expected = df.ix[[]]
+        assert_frame_equal(actual, expected)
+
+        # Series have always worked properly, but we'll test anyway.
+        s = df['B']
+        grouped = s.groupby(s)
+        actual = grouped.filter(lambda x: len(x) > 2)
+        expected = Series(4*['b'], index=np.arange(2, 6))
+        assert_series_equal(actual, expected)
+
+        actual = grouped.filter(lambda x: len(x) > 4)
+        expected = s[[]]
+        assert_series_equal(actual, expected)
 
     def test_groupby_whitelist(self):
         from string import ascii_lowercase
