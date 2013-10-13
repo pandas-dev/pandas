@@ -370,9 +370,11 @@ class _NDFrameIndexer(object):
         if isinstance(indexer, tuple):
 
             aligners = [ not _is_null_slice(idx) for idx in indexer ]
-            single_aligner = sum(aligners) == 1
+            sum_aligners = sum(aligners)
+            single_aligner = sum_aligners == 1
             is_frame = self.obj.ndim == 2
             is_panel = self.obj.ndim >= 3
+            obj = self.obj
 
             # are we a single alignable value on a non-primary
             # dim (e.g. panel: 1,2, or frame: 0) ?
@@ -387,7 +389,15 @@ class _NDFrameIndexer(object):
             elif is_panel:
                 single_aligner = single_aligner and (aligners[1] or aligners[2])
 
-            obj = self.obj
+            # we have a frame, with multiple indexers on both axes; and a series,
+            # so need to broadcast (see GH5206)
+            if sum_aligners == self.ndim and all([ com._is_sequence(_) for _ in indexer ]):
+
+                ser = ser.reindex(obj.axes[0][indexer[0].ravel()],copy=True).values
+                l = len(indexer[1].ravel())
+                ser = np.tile(ser,l).reshape(l,-1).T
+                return ser
+
             for i, idx in enumerate(indexer):
                 ax = obj.axes[i]
 
@@ -398,6 +408,8 @@ class _NDFrameIndexer(object):
                     new_ix = ax[idx]
                     if not is_list_like(new_ix):
                         new_ix = Index([new_ix])
+                    else:
+                        new_ix = Index(new_ix.ravel())
                     if ser.index.equals(new_ix):
                         return ser.values.copy()
                     return ser.reindex(new_ix).values

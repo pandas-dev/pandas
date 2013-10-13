@@ -594,6 +594,8 @@ Bug Fixes
   - Bug in comparing duplicate frames (:issue:`4421`) related
   - Bug in describe on duplicate frames
   - Bug in ``to_datetime`` with a format and ``coerce=True`` not raising (:issue:`5195`)
+  - Bug in ``loc`` setting with multiple indexers and a rhs of a Series that needs
+    broadcasting (:issue:`5206`)
 
 pandas 0.12.0
 -------------
