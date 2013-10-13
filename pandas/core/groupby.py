@@ -17,7 +17,7 @@ from pandas.core.panel import Panel
 from pandas.util.decorators import cache_readonly, Appender
 import pandas.core.algorithms as algos
 import pandas.core.common as com
-from pandas.core.common import _possibly_downcast_to_dtype, notnull
+from pandas.core.common import _possibly_downcast_to_dtype, isnull, notnull
 
 import pandas.lib as lib
 import pandas.algos as _algos
@@ -1605,8 +1605,19 @@ class SeriesGroupBy(GroupBy):
         else:
             wrapper = lambda x: func(x, *args, **kwargs)
 
-        indexers = [self.obj.index.get_indexer(group.index) \
-                    if wrapper(group) else [] for _ , group in self]
+        # Interpret np.nan as False.
+        def true_and_notnull(x, *args, **kwargs):
+            b = wrapper(x, *args, **kwargs)
+            return b and notnull(b)
+
+        try:
+            indexers = [self.obj.index.get_indexer(group.index) \
+                        if true_and_notnull(group) else [] \
+                        for _ , group in self]
+        except ValueError:
+            raise TypeError("the filter must return a boolean result")
+        except TypeError:
+            raise TypeError("the filter must return a boolean result")
 
         if len(indexers) == 0:
             filtered = self.obj.take([]) # because np.concatenate would fail
@@ -2124,7 +2135,8 @@ class NDFrameGroupBy(GroupBy):
                     add_indexer()
             else:
                 if getattr(res,'ndim',None) == 1:
-                    if res.ravel()[0]:
+                    val = res.ravel()[0]
+                    if val and notnull(val):
                         add_indexer()
                 else:
 
