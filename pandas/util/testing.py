@@ -332,11 +332,11 @@ def equalContents(arr1, arr2):
     return frozenset(arr1) == frozenset(arr2)
 
 
-def assert_isinstance(obj, class_type_or_tuple):
+def assert_isinstance(obj, class_type_or_tuple, msg=''):
     """asserts that obj is an instance of class_type_or_tuple"""
     assert isinstance(obj, class_type_or_tuple), (
-        "Expected object to be of type %r, found %r instead" % (
-            type(obj), class_type_or_tuple))
+        "%sExpected object to be of type %r, found %r instead" % (
+            msg, class_type_or_tuple, type(obj)))
 
 
 def assert_equal(a, b, msg=""):
@@ -355,6 +355,8 @@ def assert_equal(a, b, msg=""):
 
 
 def assert_index_equal(left, right):
+    assert_isinstance(left, Index, '[index] ')
+    assert_isinstance(right, Index, '[index] ')
     if not left.equals(right):
         raise AssertionError("[index] left [{0} {1}], right [{2} {3}]".format(left.dtype,
                                                                               left,
@@ -373,6 +375,8 @@ def isiterable(obj):
     return hasattr(obj, '__iter__')
 
 
+# NOTE: don't pass an NDFrame or index to this function - may not handle it
+# well.
 def assert_almost_equal(a, b, check_less_precise=False):
     if isinstance(a, dict) or isinstance(b, dict):
         return assert_dict_equal(a, b)
@@ -385,9 +389,6 @@ def assert_almost_equal(a, b, check_less_precise=False):
         np.testing.assert_(isiterable(b))
         na, nb = len(a), len(b)
         assert na == nb, "%s != %s" % (na, nb)
-        # TODO: Figure out why I thought this needed instance cheacks...
-        # if (isinstance(a, np.ndarray) and isinstance(b, np.ndarray) and
-        #     np.array_equal(a, b)):
         if np.array_equal(a, b):
             return True
         else:

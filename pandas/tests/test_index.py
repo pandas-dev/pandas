@@ -823,7 +823,12 @@ class TestInt64Index(unittest.TestCase):
 
         # preventing casting
         arr = np.array([1, '2', 3, '4'], dtype=object)
-        self.assertRaises(TypeError, Int64Index, arr)
+        with tm.assertRaisesRegexp(TypeError, 'casting'):
+            Int64Index(arr)
+
+        arr_with_floats = [0, 2, 3, 4, 5, 1.25, 3, -1]
+        with tm.assertRaisesRegexp(TypeError, 'casting'):
+            Int64Index(arr_with_floats)
 
     def test_hash_error(self):
         with tm.assertRaisesRegexp(TypeError,
@@ -1240,6 +1245,62 @@ class TestMultiIndex(unittest.TestCase):
         minor_labels = [(x + 1) % 1 for x in minor_labels]
         new_labels = [major_labels, minor_labels]
 
+        def assert_matching(actual, expected):
+            # avoid specifying internal representation
+            # as much as possible
+            self.assertEqual(len(actual), len(expected))
+            for act, exp in zip(actual, expected):
+                act = np.asarray(act)
+                exp = np.asarray(exp)
+                assert_almost_equal(act, exp)
+
+        # level changing [w/o mutation]
+        ind2 = self.index.set_levels(new_levels)
+        assert_matching(ind2.levels, new_levels)
+        assert_matching(self.index.levels, levels)
+
+        # level changing [w/ mutation]
+        ind2 = self.index.copy()
+        inplace_return = ind2.set_levels(new_levels, inplace=True)
+        self.assert_(inplace_return is None)
+        assert_matching(ind2.levels, new_levels)
+
+        # label changing [w/o mutation]
+        ind2 = self.index.set_labels(new_labels)
+        assert_matching(ind2.labels, new_labels)
+        assert_matching(self.index.labels, labels)
+
+        # label changing [w/ mutation]
+        ind2 = self.index.copy()
+        inplace_return = ind2.set_labels(new_labels, inplace=True)
+        self.assert_(inplace_return is None)
+        assert_matching(ind2.labels, new_labels)
+
+    def test_set_levels_labels_names_bad_input(self):
+        levels, labels = self.index.levels, self.index.labels
+        names = self.index.names
+
+        with tm.assertRaisesRegexp(ValueError, 'Length of levels'):
+            self.index.set_levels([levels[0]])
+
+        with tm.assertRaisesRegexp(ValueError, 'Length of labels'):
+            self.index.set_labels([labels[0]])
+
+        with tm.assertRaisesRegexp(ValueError, 'Length of names'):
+            self.index.set_names([names[0]])
+
+        # shouldn't scalar data error, instead should demand list-like
+        with tm.assertRaisesRegexp(TypeError, 'list of lists-like'):
+            self.index.set_levels(levels[0])
+
+        # shouldn't scalar data error, instead should demand list-like
+        with tm.assertRaisesRegexp(TypeError, 'list of lists-like'):
+            self.index.set_labels(labels[0])
+
+        # shouldn't scalar data error, instead should demand list-like
+        with tm.assertRaisesRegexp(TypeError, 'list-like'):
+            self.index.set_names(names[0])
+
     def test_metadata_immutable(self):
         levels, labels = self.index.levels, self.index.labels
         # shouldn't be able to set at either the top level or base level
@@ -1342,8 +1403,13 @@ class TestMultiIndex(unittest.TestCase):
         self.assert_(single_level.name is None)
 
     def test_constructor_no_levels(self):
-        assertRaisesRegexp(TypeError, "non-zero number of levels/labels",
+        assertRaisesRegexp(ValueError, "non-zero number of levels/labels",
                            MultiIndex, levels=[], labels=[])
+        both_re = re.compile('Must pass both levels and labels')
+        with tm.assertRaisesRegexp(TypeError, both_re):
+            MultiIndex(levels=[])
+        with tm.assertRaisesRegexp(TypeError, both_re):
+            MultiIndex(labels=[])
 
     def test_constructor_mismatched_label_levels(self):
         levels = [np.array([1]), np.array([2]), np.array([3])]
