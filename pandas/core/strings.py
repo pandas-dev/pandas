@@ -345,8 +345,8 @@ def str_extract(arr, pat, flags=0):
     extracted groups : Series (one group) or DataFrame (multiple groups)
 
 
-    Note
-    ----
+    Notes
+    -----
     Compare to the string method match, which returns re.match objects.
     """
     regex = re.compile(pat, flags=flags)

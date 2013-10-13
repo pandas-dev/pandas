@@ -357,8 +357,8 @@ def pivot_simple(index, columns, values):
     values : ndarray
         Values to use for populating new frame's values
 
-    Note
-    ----
+    Notes
+    -----
     Obviously, all 3 of the input arguments must have the same length
 
     Returns

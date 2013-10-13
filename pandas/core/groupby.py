@@ -1990,8 +1990,8 @@ class NDFrameGroupBy(GroupBy):
         f : function
             Function to apply to each subframe
 
-        Note
-        ----
+        Notes
+        -----
         Each subframe is endowed the attribute 'name' in case you need to know
         which group you are working on.
 
@@ -2102,8 +2102,8 @@ class NDFrameGroupBy(GroupBy):
         dropna : Drop groups that do not pass the filter. True by default;
             if False, groups that evaluate False are filled with NaNs.
 
-        Note
-        ----
+        Notes
+        -----
         Each subframe is endowed the attribute 'name' in case you need to know
         which group you are working on.
 
