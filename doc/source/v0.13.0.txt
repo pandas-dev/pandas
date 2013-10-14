@@ -8,7 +8,7 @@ enhancements along with a large number of bug fixes.
 
 Highlights include support for a new index type ``Float64Index``, support for new methods of interpolation, updated ``timedelta`` operations, and a new string manipulation method ``extract``.
 Several experimental features are added, including new ``eval/query`` methods for expression evaluation, support for ``msgpack`` serialization,
-and an io interface to google's ``BigQuery``.
+and an io interface to Google's ``BigQuery``.
 
 .. warning::
 
@@ -647,6 +647,69 @@ Experimental
      :okexcept:
 
      os.remove('foo.msg')
+
+- ``pandas.io.gbq`` provides a simple way to extract from, and load data into,
+  Google's BigQuery Data Sets by way of pandas DataFrames. BigQuery is a high
+  performance SQL-like database service, useful for performing ad-hoc queries
+  against extremely large datasets. :ref:`See the docs<io.gbq>`
+
+  .. code-block:: python
+  
+     from pandas.io import gbq
+
+     # A query to select the average monthly temperatures in the
+     # in the year 2000 across the USA. The dataset,
+     # publicata:samples.gsod, is available on all BigQuery accounts,
+     # and is based on NOAA gsod data.
+
+     query = """SELECT station_number as STATION,
+     month as MONTH, AVG(mean_temp) as MEAN_TEMP
+     FROM publicdata:samples.gsod
+     WHERE YEAR = 2000 
+     GROUP BY STATION, MONTH 
+     ORDER BY STATION, MONTH ASC"""
+
+     # Fetch the result set for this query
+
+     # Your Google BigQuery Project ID
+     # To find this, see your dashboard:
+     # https://code.google.com/apis/console/b/0/?noredirect
+     projectid = xxxxxxxxx;
+     
+     df = gbq.read_gbq(query, project_id = projectid)
+
+     # Use pandas to process and reshape the dataset
+
+     df2 = df.pivot(index='STATION', columns='MONTH', values='MEAN_TEMP')
+     df3 = pandas.concat([df2.min(), df2.mean(), df2.max()],
+                         axis=1,keys=["Min Tem", "Mean Temp", "Max Temp"])
+
+  The resulting dataframe is:
+
+  ```
+             Min Tem  Mean Temp    Max Temp
+  MONTH                                  
+  1     -53.336667  39.827892   89.770968
+  2     -49.837500  43.685219   93.437932
+  3     -77.926087  48.708355   96.099998
+  4     -82.892858  55.070087   97.317240
+  5     -92.378261  61.428117  102.042856
+  6     -77.703334  65.858888  102.900000
+  7     -87.821428  68.169663  106.510714
+  8     -89.431999  68.614215  105.500000
+  9     -86.611112  63.436935  107.142856
+  10    -78.209677  56.880838   92.103333
+  11    -50.125000  48.861228   94.996428
+  12    -50.332258  42.286879   94.396774
+  ```
+  .. warning::
+
+     To use this module, you will need a BigQuery account. See
+     <https://cloud.google.com/products/big-query> for details.
+
+     As of 10/10/13, there is a bug in Google's API preventing result sets
+     from being larger than 100,000 rows. A patch is scheduled for the week of
+     10/14/13.
 
 .. _whatsnew_0130.refactoring:
 
