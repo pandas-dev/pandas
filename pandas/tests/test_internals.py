@@ -488,9 +488,6 @@ class TestBlockManager(unittest.TestCase):
         _check(new_mgr,BoolBlock,['bool'])
         _check(new_mgr,DatetimeBlock,['dt'])
 
-    def test_xs(self):
-        pass
-
     def test_interleave(self):
         pass
 

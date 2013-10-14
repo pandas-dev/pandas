@@ -317,7 +317,8 @@ class SparsePanel(Panel):
         minor_labels = inds // N
 
         index = MultiIndex(levels=[self.major_axis, self.minor_axis],
-                           labels=[major_labels, minor_labels])
+                           labels=[major_labels, minor_labels],
+                           verify_integrity=False)
 
         df = DataFrame(values, index=index, columns=self.items)
         return df.sortlevel(level=0)

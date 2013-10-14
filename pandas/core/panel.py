@@ -96,7 +96,8 @@ def panel_index(time, panels, names=['time', 'panel']):
 
     labels = [time_factor.labels, panel_factor.labels]
     levels = [time_factor.levels, panel_factor.levels]
-    return MultiIndex(levels, labels, sortorder=None, names=names)
+    return MultiIndex(levels, labels, sortorder=None, names=names,
+                      verify_integrity=False)
 
 
 
@@ -838,7 +839,7 @@ class Panel(NDFrame):
 
         index = MultiIndex(levels=[self.major_axis, self.minor_axis],
                            labels=[major_labels, minor_labels],
-                           names=[maj_name, min_name])
+                           names=[maj_name, min_name], verify_integrity=False)
 
         return DataFrame(data, index=index, columns=self.items)
 
