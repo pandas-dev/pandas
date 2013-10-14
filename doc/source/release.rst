@@ -597,6 +597,9 @@ Bug Fixes
   - Bug in ``to_datetime`` with a format and ``coerce=True`` not raising (:issue:`5195`)
   - Bug in ``loc`` setting with multiple indexers and a rhs of a Series that needs
     broadcasting (:issue:`5206`)
+  - Fixed bug where inplace setting of levels or labels on ``MultiIndex`` would
+    not clear cached ``values`` property and therefore return wrong ``values``.
+    (:issue:`5215`)
 
 pandas 0.12.0
 -------------
