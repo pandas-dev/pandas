@@ -252,7 +252,7 @@ cf.deprecate_option('display.line_width',
 
 cf.deprecate_option('display.height',
                     msg=pc_height_deprecation_warning,
-                    rkey='display.height')
+                    rkey='display.max_rows')
 
 tc_sim_interactive_doc = """
 : boolean
