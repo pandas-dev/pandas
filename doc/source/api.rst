@@ -206,6 +206,13 @@ Exponentially-weighted moving window functions
 Series
 ------
 
+Constructor
+~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Series
+
 Attributes and underlying data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 **Axes**
@@ -219,13 +226,11 @@ Attributes and underlying data
    Series.isnull
    Series.notnull
 
-Conversion / Constructors
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
+Conversion
+~~~~~~~~~~
 .. autosummary::
    :toctree: generated/
 
-   Series.__init__
    Series.astype
    Series.copy
    Series.isnull
@@ -418,6 +423,13 @@ Serialization / IO / Conversion
 DataFrame
 ---------
 
+Constructor
+~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   DataFrame
+
 Attributes and underlying data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 **Axes**
@@ -436,12 +448,11 @@ Attributes and underlying data
    DataFrame.ndim
    DataFrame.shape
 
-Conversion / Constructors
-~~~~~~~~~~~~~~~~~~~~~~~~~
+Conversion
+~~~~~~~~~~
 .. autosummary::
    :toctree: generated/
 
-   DataFrame.__init__
    DataFrame.astype
    DataFrame.convert_objects
    DataFrame.copy
@@ -665,6 +676,13 @@ Serialization / IO / Conversion
 Panel
 ------
 
+Constructor
+~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Panel
+
 Attributes and underlying data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 **Axes**
@@ -681,12 +699,11 @@ Attributes and underlying data
    Panel.ndim
    Panel.shape
 
-Conversion / Constructors
-~~~~~~~~~~~~~~~~~~~~~~~~~
+Conversion
+~~~~~~~~~~
 .. autosummary::
    :toctree: generated/
 
-   Panel.__init__
    Panel.astype
    Panel.copy
    Panel.isnull
@@ -853,6 +870,11 @@ Index
 **Many of these methods or variants thereof are available on the objects that contain an index (Series/Dataframe)
 and those should most likely be used before calling these methods directly.**
 
+.. autosummary::
+   :toctree: generated/
+
+   Index
+
 Modifying and Computations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
@@ -933,6 +955,11 @@ Properties
 
 DatetimeIndex
 -------------
+
+.. autosummary::
+   :toctree: generated/
+
+   DatetimeIndex
 
 Time/Date Components
 ~~~~~~~~~~~~~~~~~~~~
