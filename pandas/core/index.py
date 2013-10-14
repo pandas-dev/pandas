@@ -71,8 +71,8 @@ class Index(FrozenNDArray):
     name : object
         Name to be stored in the index
 
-    Note
-    ----
+    Notes
+    -----
     An Index instance can **only** contain hashable objects
     """
     # To hand over control to subclasses
@@ -1634,8 +1634,8 @@ class Int64Index(Index):
     name : object
         Name to be stored in the index
 
-    Note
-    ----
+    Notes
+    -----
     An Index instance can **only** contain hashable objects
     """
 
@@ -1731,8 +1731,8 @@ class Float64Index(Index):
     name : object
         Name to be stored in the index
 
-    Note
-    ----
+    Notes
+    -----
     An Index instance can **only** contain hashable objects
     """
 
