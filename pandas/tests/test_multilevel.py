@@ -347,8 +347,8 @@ class TestMultiLevel(unittest.TestCase):
         # it broadcasts
         df['B', '1'] = [1, 2, 3]
         df['A'] = df['B', '1']
-        assert_almost_equal(df['A', '1'], df['B', '1'])
-        assert_almost_equal(df['A', '2'], df['B', '1'])
+        assert_series_equal(df['A', '1'], df['B', '1'])
+        assert_series_equal(df['A', '2'], df['B', '1'])
 
     def test_getitem_tuple_plus_slice(self):
         # GH #671

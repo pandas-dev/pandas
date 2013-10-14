@@ -52,7 +52,7 @@ API changes
       # but setting names is not deprecated.
       index = index.set_names(["bob", "cranberry"])
 
-      # and all methods take an inplace kwarg
+      # and all methods take an inplace kwarg - but returns None
       index.set_names(["bob", "cranberry"], inplace=True)
 
 - Infer and downcast dtype if ``downcast='infer'`` is passed to ``fillna/ffill/bfill`` (:issue:`4604`)
