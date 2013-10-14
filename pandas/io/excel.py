@@ -16,6 +16,7 @@ from pandas.compat import map, zip, reduce, range, lrange, u, add_metaclass
 from pandas.core import config
 from pandas.core.common import pprint_thing
 import pandas.compat as compat
+import pandas.core.common as com
 from warnings import warn
 
 __all__ = ["read_excel", "ExcelWriter", "ExcelFile"]
@@ -290,7 +291,6 @@ class ExcelFile(object):
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
 
-
 def _trim_excel_header(row):
     # trim header row so auto-index inference works
     # xlrd uses '' , openpyxl None
@@ -298,12 +298,13 @@ def _trim_excel_header(row):
         row = row[1:]
     return row
 
-
 def _conv_value(val):
-    # convert value for excel dump
-    if isinstance(val, np.int64):
+    # Convert numpy types to Python types for the Excel writers.
+    if com.is_integer(val):
         val = int(val)
-    elif isinstance(val, np.bool8):
+    elif com.is_float(val):
+        val = float(val)
+    elif com.is_bool(val):
         val = bool(val)
     elif isinstance(val, Period):
         val = "%s" % val
@@ -686,8 +687,6 @@ class _XlsxWriter(ExcelWriter):
         style_dict = {}
 
         for cell in cells:
-            val = _conv_value(cell.val)
-
             num_format_str = None
             if isinstance(cell.val, datetime.datetime):
                 num_format_str = "YYYY-MM-DD HH:MM:SS"
@@ -709,11 +708,11 @@ class _XlsxWriter(ExcelWriter):
                                 startrow + cell.mergestart,
                                 startcol + cell.col,
                                 startcol + cell.mergeend,
-                                val, style)
+                                cell.val, style)
             else:
                 wks.write(startrow + cell.row,
                           startcol + cell.col,
-                          val, style)
+                          cell.val, style)
 
     def _convert_to_style(self, style_dict, num_format_str=None):
         """
