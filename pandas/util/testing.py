@@ -382,14 +382,15 @@ def assert_almost_equal(a, b, check_less_precise=False):
         return assert_dict_equal(a, b)
 
     if isinstance(a, compat.string_types):
-        assert a == b, "%s != %s" % (a, b)
+        assert a == b, "%r != %r" % (a, b)
         return True
 
     if isiterable(a):
         np.testing.assert_(isiterable(b))
         na, nb = len(a), len(b)
         assert na == nb, "%s != %s" % (na, nb)
-        if np.array_equal(a, b):
+        if isinstance(a, np.ndarray) and isinstance(b, np.ndarray) and\
+           np.array_equal(a, b):
             return True
         else:
             for i in range(na):

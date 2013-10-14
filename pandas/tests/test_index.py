@@ -1319,6 +1319,41 @@ class TestMultiIndex(unittest.TestCase):
         with assertRaisesRegexp(TypeError, mutable_regex):
             names[0] = names[0]
 
+    def test_inplace_mutation_resets_values(self):
+        levels = [['a', 'b', 'c'], [4]]
+        levels2 = [[1, 2, 3], ['a']]
+        labels = [[0, 1, 0, 2, 2, 0], [0, 0, 0, 0, 0, 0]]
+        mi1 = MultiIndex(levels=levels, labels=labels)
+        mi2 = MultiIndex(levels=levels2, labels=labels)
+        vals = mi1.values.copy()
+        vals2 = mi2.values.copy()
+        self.assert_(mi1._tuples is not None)
+
+        # make sure level setting works
+        new_vals = mi1.set_levels(levels2).values
+        assert_almost_equal(vals2, new_vals)
+        # non-inplace doesn't kill _tuples [implementation detail]
+        assert_almost_equal(mi1._tuples, vals)
+        # and values is still same too
+        assert_almost_equal(mi1.values, vals)
+
+        # inplace should kill _tuples
+        mi1.set_levels(levels2, inplace=True)
+        assert_almost_equal(mi1.values, vals2)
+
+        # make sure label setting works too
+        labels2 = [[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]]
+        exp_values = np.array([(1, 'a')] * 6, dtype=object)
+        new_values = mi2.set_labels(labels2).values
+        # not inplace shouldn't change
+        assert_almost_equal(mi2._tuples, vals2)
+        # should have correct values
+        assert_almost_equal(exp_values, new_values)
+
+        # and again setting inplace should kill _tuples, etc
+        mi2.set_labels(labels2, inplace=True)
+        assert_almost_equal(mi2.values, new_values)
+
     def test_copy_in_constructor(self):
         levels = np.array(["a", "b", "c"])
         labels = np.array([1, 1, 2, 0, 0, 1, 1])
