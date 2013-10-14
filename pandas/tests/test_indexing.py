@@ -1557,6 +1557,24 @@ class TestIndexing(unittest.TestCase):
         self.assert_("A+1" in panel.ix[0].columns)
         self.assert_("A+1" in panel.ix[1].columns)
 
+        # 5216
+        # make sure that we don't try to set a dead cache
+        a = np.random.rand(10, 3)
+        df = DataFrame(a, columns=['x', 'y', 'z'])
+        tuples = [(i, j) for i in range(5) for j in range(2)]
+        index = MultiIndex.from_tuples(tuples)
+        df.index = index
+
+        # setting via chained assignment
+        df.loc[0]['z'].iloc[0] = 1.
+        result = df.loc[(0,0),'z']
+        self.assert_(result == 1)
+
+        # correct setting
+        df.loc[(0,0),'z'] = 2
+        result = df.loc[(0,0),'z']
+        self.assert_(result == 2)
+
     def test_floating_index_doc_example(self):
 
         index = Index([1.5, 2, 3, 4.5, 5])
