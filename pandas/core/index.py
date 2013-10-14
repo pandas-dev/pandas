@@ -1903,8 +1903,9 @@ class MultiIndex(Index):
                             for lev in levels)
         names = self.names
         self._levels = levels
-        if len(names):
+        if any(names):
             self._set_names(names)
+        self._tuples = None
 
     def set_levels(self, levels, inplace=False):
         """
@@ -1947,6 +1948,7 @@ class MultiIndex(Index):
             raise ValueError("Length of labels must match length of levels")
         self._labels = FrozenList(_ensure_frozen(labs, copy=copy)._shallow_copy()
                                   for labs in labels)
+        self._tuples = None
 
     def set_labels(self, labels, inplace=False):
         """
