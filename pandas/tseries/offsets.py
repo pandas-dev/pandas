@@ -1354,8 +1354,8 @@ def generate_range(start=None, end=None, periods=None,
     time_rule : (legacy) name of DateOffset object to be used, optional
         Corresponds with names expected by tseries.frequencies.get_offset
 
-    Note
-    ----
+    Notes
+    -----
     * This method is faster for generating weekdays than dateutil.rrule
     * At least two of (start, end, periods) must be specified.
     * If both start and end are specified, the returned dates will
