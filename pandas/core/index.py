@@ -1672,8 +1672,8 @@ class Int64Index(Index):
             subarr = np.array(data, dtype=np.int64, copy=copy)
             if len(data) > 0:
                 if (subarr != data).any():
-                    raise TypeError('Unsafe NumPy casting, you must '
-                                    'explicitly cast')
+                    raise TypeError('Unsafe NumPy casting to integer, you must'
+                                    ' explicitly cast')
 
         subarr = subarr.view(cls)
         subarr.name = name
@@ -1857,11 +1857,12 @@ class MultiIndex(Index):
 
     def __new__(cls, levels=None, labels=None, sortorder=None, names=None,
                 copy=False):
+        if levels is None or labels is None:
+            raise TypeError("Must pass both levels and labels")
         if len(levels) != len(labels):
-            raise ValueError(
-                'Length of levels and labels must be the same')
+            raise ValueError('Length of levels and labels must be the same.')
         if len(levels) == 0:
-            raise TypeError('Must pass non-zero number of levels/labels')
+            raise ValueError('Must pass non-zero number of levels/labels')
         if len(levels) == 1:
             if names:
                 name = names[0]
@@ -1872,10 +1873,12 @@ class MultiIndex(Index):
 
         # v3, 0.8.0
         subarr = np.empty(0, dtype=object).view(cls)
-        subarr._set_levels(levels, copy=copy)
-        subarr._set_labels(labels, copy=copy)
+        # we've already validated levels and labels, so shortcut here
+        subarr._set_levels(levels, copy=copy, validate=False)
+        subarr._set_labels(labels, copy=copy, validate=False)
 
         if names is not None:
+            # handles name validation
             subarr._set_names(names)
 
         if sortorder is not None:
@@ -1888,12 +1891,14 @@ class MultiIndex(Index):
     def _get_levels(self):
         return self._levels
 
-    def _set_levels(self, levels, copy=False):
+    def _set_levels(self, levels, copy=False, validate=True):
         # This is NOT part of the levels property because it should be
         # externally not allowed to set levels. User beware if you change
         # _levels directly
-        if len(levels) == 0:
-            raise ValueError("Must set non-zero number of levels.")
+        if validate and len(levels) == 0:
+            raise ValueError('Must set non-zero number of levels.')
+        if validate and len(levels) != len(self._labels):
+            raise ValueError('Length of levels must match length of labels.')
         levels = FrozenList(_ensure_index(lev, copy=copy)._shallow_copy()
                             for lev in levels)
         names = self.names
@@ -1917,13 +1922,16 @@ class MultiIndex(Index):
         -------
         new index (of same type and class...etc)
         """
+        if not com.is_list_like(levels) or not com.is_list_like(levels[0]):
+            raise TypeError("Levels must be list of lists-like")
         if inplace:
             idx = self
         else:
             idx = self._shallow_copy()
         idx._reset_identity()
         idx._set_levels(levels)
-        return idx
+        if not inplace:
+            return idx
 
     # remove me in 0.14 and change to read only property
     __set_levels = deprecate("setting `levels` directly",
@@ -1934,9 +1942,9 @@ class MultiIndex(Index):
     def _get_labels(self):
         return self._labels
 
-    def _set_labels(self, labels, copy=False):
-        if len(labels) != self.nlevels:
-            raise ValueError("Length of levels and labels must be the same.")
+    def _set_labels(self, labels, copy=False, validate=True):
+        if validate and len(labels) != self.nlevels:
+            raise ValueError("Length of labels must match length of levels")
         self._labels = FrozenList(_ensure_frozen(labs, copy=copy)._shallow_copy()
                                   for labs in labels)
 
@@ -1956,13 +1964,16 @@ class MultiIndex(Index):
         -------
         new index (of same type and class...etc)
         """
+        if not com.is_list_like(labels) or not com.is_list_like(labels[0]):
+            raise TypeError("Labels must be list of lists-like")
         if inplace:
             idx = self
         else:
             idx = self._shallow_copy()
         idx._reset_identity()
         idx._set_labels(labels)
-        return idx
+        if not inplace:
+            return idx
 
     # remove me in 0.14 and change to readonly property
     __set_labels = deprecate("setting labels directly",
@@ -2021,7 +2032,8 @@ class MultiIndex(Index):
             # instance.
             return
 
-        self._set_levels(getattr(obj, 'levels', []))
+        # skip the validation on first, rest will catch the errors
+        self._set_levels(getattr(obj, 'levels', []), validate=False)
         self._set_labels(getattr(obj, 'labels', []))
         self._set_names(getattr(obj, 'names', []))
         self.sortorder = getattr(obj, 'sortorder', None)
@@ -2083,16 +2095,15 @@ class MultiIndex(Index):
     def _get_names(self):
         return FrozenList(level.name for level in self.levels)
 
-    def _set_names(self, values):
+    def _set_names(self, values, validate=True):
         """
         sets names on levels. WARNING: mutates!
 
         Note that you generally want to set this *after* changing levels, so that it only
         acts on copies"""
         values = list(values)
-        if len(values) != self.nlevels:
-            raise ValueError('Length of names (%d) must be same as level '
-                             '(%d)' % (len(values), self.nlevels))
+        if validate and len(values) != self.nlevels:
+            raise ValueError('Length of names must match length of levels')
         # set the name
         for name, level in zip(values, self.levels):
             level.rename(name, inplace=True)
@@ -2446,7 +2457,7 @@ class MultiIndex(Index):
         np.ndarray.__setstate__(self, nd_state)
         levels, labels, sortorder, names = own_state
 
-        self._set_levels([Index(x) for x in levels])
+        self._set_levels([Index(x) for x in levels], validate=False)
         self._set_labels(labels)
         self._set_names(names)
         self.sortorder = sortorder
@@ -2473,7 +2484,7 @@ class MultiIndex(Index):
             new_labels = [lab[key] for lab in self.labels]
 
             # an optimization
-            result._set_levels(self.levels)
+            result._set_levels(self.levels, validate=False)
             result._set_labels(new_labels)
             result.sortorder = sortorder
             result._set_names(self.names)
@@ -3351,17 +3362,12 @@ def _ensure_index(index_like, copy=False):
     return Index(index_like)
 
 
-def _ensure_frozen(nd_array_like, copy=False):
-    if not isinstance(nd_array_like, FrozenNDArray):
-        arr = np.asarray(nd_array_like, dtype=np.int_)
-        # have to do this separately so that non-index input gets copied
-        if copy:
-            arr = arr.copy()
-        nd_array_like = arr.view(FrozenNDArray)
-    else:
-        if copy:
-            nd_array_like = nd_array_like.copy()
-    return nd_array_like
+def _ensure_frozen(array_like, copy=False):
+    array_like = np.asanyarray(array_like, dtype=np.int_)
+    array_like = array_like.view(FrozenNDArray)
+    if copy:
+        array_like = array_like.copy()
+    return array_like
 
 
 def _validate_join_method(method):

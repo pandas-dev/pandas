@@ -109,7 +109,8 @@ Improvements to existing features
     (:issue:`4039`)
   - Add ``rename`` and ``set_names`` methods to ``Index`` as well as
     ``set_names``, ``set_levels``, ``set_labels`` to ``MultiIndex``.
-    (:issue:`4039`)
+    (:issue:`4039`) with improved validation for all (:issue:`4039`,
+    :issue:`4794`)
   - A Series of dtype ``timedelta64[ns]`` can now be divided/multiplied
     by an integer series (:issue`4521`)
   - A Series of dtype ``timedelta64[ns]`` can now be divided by another
