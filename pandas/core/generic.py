@@ -943,7 +943,13 @@ class NDFrame(PandasObject):
             if clear, then clear our cache """
         cacher = getattr(self,'_cacher',None)
         if cacher is not None:
-            cacher[1]()._maybe_cache_changed(cacher[0],self)
+            try:
+                cacher[1]()._maybe_cache_changed(cacher[0],self)
+            except:
+
+                # our referant is dead
+                del self._cacher
+
         if clear:
             self._clear_item_cache()
 

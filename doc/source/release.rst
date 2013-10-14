@@ -372,7 +372,7 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
  - Internal type checking is now done via a suite of generated classes, allowing ``isinstance(value, klass)``
    without having to directly import the klass, courtesy of @jtratner
  - Bug in Series update where the parent frame is not updating its cache based on
-   changes (:issue:`4080`) or types (:issue:`3217`), fillna (:issue:`3386`)
+   changes (:issue:`4080`, :issue:`5216`) or types (:issue:`3217`), fillna (:issue:`3386`)
  - Indexing with dtype conversions fixed (:issue:`4463`, :issue:`4204`)
  - Refactor ``Series.reindex`` to core/generic.py (:issue:`4604`, :issue:`4618`), allow ``method=`` in reindexing
    on a Series to work
