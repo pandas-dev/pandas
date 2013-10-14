@@ -515,7 +515,7 @@ def _comp_method_SERIES(op, name, str_rep=None, masker=False):
             if len(self) != len(other):
                 raise ValueError('Lengths must match to compare')
             return self._constructor(na_op(self.values, np.asarray(other)),
-                                     index=self.index, name=self.name)
+                                     index=self.index).__finalize__(self)
         else:
 
             mask = isnull(self)
@@ -590,7 +590,7 @@ def _bool_method_SERIES(op, name, str_rep=None):
         else:
             # scalars
             return self._constructor(na_op(self.values, other),
-                                     index=self.index, name=self.name).fillna(False).astype(bool)
+                                     index=self.index).fillna(False).astype(bool).__finalize__(self)
     return wrapper
 
 
@@ -643,8 +643,8 @@ def _flex_method_SERIES(op, name, str_rep=None, default_axis=None,
             return self._binop(self._constructor(other, self.index), op,
                                level=level, fill_value=fill_value)
         else:
-            return self._constructor(op(self.values, other), self.index,
-                                     name=self.name)
+            return self._constructor(op(self.values, other),
+                                     self.index).__finalize__(self)
 
     f.__name__ = name
     return f

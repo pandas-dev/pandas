@@ -289,7 +289,7 @@ class SparseSeries(Series):
                                  index=self.index,
                                  sparse_index=self.sp_index,
                                  fill_value=self.fill_value,
-                                 copy=False)
+                                 copy=False).__finalize__(self)
 
     def __array_finalize__(self, obj):
         """
@@ -368,7 +368,7 @@ class SparseSeries(Series):
         key = _values_from_object(key)
         dataSlice = self.values[key]
         new_index = Index(self.index.view(ndarray)[key])
-        return self._constructor(dataSlice, index=new_index, name=self.name)
+        return self._constructor(dataSlice, index=new_index).__finalize__(self)
 
     def _set_with_engine(self, key, value):
         return self.set_value(key, value)
@@ -383,9 +383,9 @@ class SparseSeries(Series):
         abs: type of caller
         """
         res_sp_values = np.abs(self.sp_values)
-        return SparseSeries(res_sp_values, index=self.index,
-                            sparse_index=self.sp_index,
-                            fill_value=self.fill_value)
+        return self._constructor(res_sp_values, index=self.index,
+                                 sparse_index=self.sp_index,
+                                 fill_value=self.fill_value)
 
     def get(self, label, default=None):
         """
@@ -501,7 +501,7 @@ class SparseSeries(Series):
 
         return self._constructor(new_data,
                                  sparse_index=self.sp_index,
-                                 fill_value=self.fill_value, name=self.name)
+                                 fill_value=self.fill_value).__finalize__(self)
 
     def reindex(self, index=None, method=None, copy=True, limit=None):
         """
@@ -520,7 +520,8 @@ class SparseSeries(Series):
                 return self.copy()
             else:
                 return self
-        return self._constructor(self._data.reindex(new_index, method=method, limit=limit, copy=copy), index=new_index, name=self.name)
+        return self._constructor(self._data.reindex(new_index, method=method, limit=limit, copy=copy),
+                                 index=new_index).__finalize__(self)
 
     def sparse_reindex(self, new_index):
         """
@@ -541,7 +542,7 @@ class SparseSeries(Series):
         new_data = SingleBlockManager(block, block.ref_items)
         return self._constructor(new_data, index=self.index,
                                  sparse_index=new_index,
-                                 fill_value=self.fill_value)
+                                 fill_value=self.fill_value).__finalize__(self)
 
     def take(self, indices, axis=0, convert=True):
         """
@@ -553,7 +554,7 @@ class SparseSeries(Series):
         """
         new_values = SparseArray.take(self.values, indices)
         new_index = self.index.take(indices)
-        return self._constructor(new_values, index=new_index)
+        return self._constructor(new_values, index=new_index).__finalize__(self)
 
     def cumsum(self, axis=0, dtype=None, out=None):
         """
@@ -565,8 +566,8 @@ class SparseSeries(Series):
         """
         new_array = SparseArray.cumsum(self.values)
         if isinstance(new_array, SparseArray):
-            return self._constructor(new_array, index=self.index, sparse_index=new_array.sp_index, name=self.name)
-        return Series(new_array, index=self.index, name=self.name)
+            return self._constructor(new_array, index=self.index, sparse_index=new_array.sp_index).__finalize__(self)
+        return Series(new_array, index=self.index).__finalize__(self)
 
     def dropna(self):
         """
@@ -602,7 +603,7 @@ class SparseSeries(Series):
             return self._constructor(self.sp_values,
                                      sparse_index=self.sp_index,
                                      index=self.index.shift(periods, offset),
-                                     fill_value=self.fill_value)
+                                     fill_value=self.fill_value).__finalize__(self)
 
         int_index = self.sp_index.to_int_index()
         new_indices = int_index.indices + periods
@@ -617,7 +618,7 @@ class SparseSeries(Series):
         return self._constructor(self.sp_values[start:end].copy(),
                                  index=self.index,
                                  sparse_index=new_sp_index,
-                                 fill_value=self.fill_value)
+                                 fill_value=self.fill_value).__finalize__(self)
 
     def combine_first(self, other):
         """
