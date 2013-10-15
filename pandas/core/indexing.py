@@ -173,9 +173,19 @@ class _NDFrameIndexer(object):
                     if self.ndim > 1 and i == self.obj._info_axis_number:
 
                         # add the new item, and set the value
-                        new_indexer = _convert_from_missing_indexer_tuple(indexer)
+                        # must have all defined axes if we have a scalar
+                        # or a list-like on the non-info axes if we have a list-like
+                        len_non_info_axes = [ len(_ax) for _i, _ax in enumerate(self.obj.axes) if _i != i ]
+                        if any([ not l for l in len_non_info_axes ]):
+                            if not is_list_like(value):
+                                raise ValueError("cannot set a frame with no defined index and a scalar")
+                            self.obj[key] = value
+                            return self.obj
+
                         self.obj[key] = np.nan
-                        self.obj.loc[new_indexer] = value
+
+                        new_indexer = _convert_from_missing_indexer_tuple(indexer, self.obj.axes)
+                        self._setitem_with_indexer(new_indexer, value)
                         return self.obj
 
                     # reindex the axis
@@ -208,12 +218,21 @@ class _NDFrameIndexer(object):
                     else:
                         new_index = _safe_append_to_index(index, indexer)
 
-                    new_values = np.concatenate([self.obj.values, [value]])
+                    # this preserves dtype of the value
+                    new_values = Series([value]).values
+                    if len(self.obj.values):
+                        new_values = np.concatenate([self.obj.values, new_values])
+
                     self.obj._data = self.obj._constructor(new_values, index=new_index, name=self.obj.name)
                     self.obj._maybe_update_cacher(clear=True)
                     return self.obj
 
                 elif self.ndim == 2:
+
+                    # no columns and scalar
+                    if not len(self.obj.columns):
+                        raise ValueError("cannot set a frame with no defined columns")
+
                     index = self.obj._get_axis(0)
                     labels = _safe_append_to_index(index, indexer)
                     self.obj._data = self.obj.reindex_axis(labels,0)._data
@@ -410,8 +429,9 @@ class _NDFrameIndexer(object):
                         new_ix = Index([new_ix])
                     else:
                         new_ix = Index(new_ix.ravel())
-                    if ser.index.equals(new_ix):
+                    if ser.index.equals(new_ix) or not len(new_ix):
                         return ser.values.copy()
+
                     return ser.reindex(new_ix).values
 
                 # 2 dims
@@ -419,7 +439,7 @@ class _NDFrameIndexer(object):
 
                     # reindex along index
                     ax = self.obj.axes[1]
-                    if ser.index.equals(ax):
+                    if ser.index.equals(ax) or not len(ax):
                         return ser.values.copy()
                     return ser.reindex(ax).values
 
@@ -819,6 +839,12 @@ class _NDFrameIndexer(object):
             # if we are setting and its not a valid location
             # its an insert which fails by definition
             if is_setter:
+
+                # always valid
+                if self.name == 'loc':
+                    return { 'key' : obj }
+
+                # a positional
                 if obj >= len(self.obj) and not isinstance(labels, MultiIndex):
                     raise ValueError("cannot set by positional indexing with enlargement")
 
@@ -1307,11 +1333,11 @@ def _convert_missing_indexer(indexer):
 
     return indexer, False
 
-def _convert_from_missing_indexer_tuple(indexer):
+def _convert_from_missing_indexer_tuple(indexer, axes):
     """ create a filtered indexer that doesn't have any missing indexers """
-    def get_indexer(_idx):
-        return _idx['key'] if isinstance(_idx,dict) else _idx
-    return tuple([ get_indexer(_idx) for _i, _idx in enumerate(indexer) ])
+    def get_indexer(_i, _idx):
+        return axes[_i].get_loc(_idx['key']) if isinstance(_idx,dict) else _idx
+    return tuple([ get_indexer(_i, _idx) for _i, _idx in enumerate(indexer) ])
 
 def _safe_append_to_index(index, key):
     """ a safe append to an index, if incorrect type, then catch and recreate """
