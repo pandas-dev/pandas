@@ -394,6 +394,10 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
    bs4/lxml (:issue:`4770`).
  - Removed the ``keep_internal`` keyword parameter in
    ``pandas/core/groupby.py`` because it wasn't being used (:issue:`5102`).
+ - Base ``DateOffsets`` are no longer all instantiated on importing pandas,
+   instead they are generated and cached on the fly. The internal
+   representation and handling of DateOffsets has also been clarified.
+   (:issue:`5189`, related :issue:`5004`)
 
 .. _release.bug_fixes-0.13.0:
 
