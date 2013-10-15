@@ -8,6 +8,7 @@ from pandas.tseries.tools import to_datetime
 # import after tools, dateutil check
 from dateutil.relativedelta import relativedelta
 import pandas.tslib as tslib
+from pandas.tslib import Timestamp
 from pandas import _np_version_under1p7
 
 __all__ = ['Day', 'BusinessDay', 'BDay', 'CustomBusinessDay', 'CDay',
@@ -92,9 +93,9 @@ class DateOffset(object):
             else:
                 for i in range(-self.n):
                     other = other - self._offset
-            return other
+            return Timestamp(other)
         else:
-            return other + timedelta(self.n)
+            return Timestamp(other + timedelta(self.n))
 
     def isAnchored(self):
         return (self.n == 1)
@@ -392,7 +393,7 @@ class BusinessDay(CacheableOffset, SingleConstructorOffset):
             if self.offset:
                 result = result + self.offset
 
-            return result
+            return Timestamp(result)
 
         elif isinstance(other, (timedelta, Tick)):
             return BDay(self.n, offset=self.offset + other,
@@ -542,7 +543,7 @@ class MonthEnd(CacheableOffset, MonthOffset):
             if n <= 0:
                 n = n + 1
         other = other + relativedelta(months=n, day=31)
-        return other
+        return Timestamp(other)
 
     @classmethod
     def onOffset(cls, dt):
@@ -562,7 +563,7 @@ class MonthBegin(CacheableOffset, MonthOffset):
             n += 1
 
         other = other + relativedelta(months=n, day=1)
-        return other
+        return Timestamp(other)
 
     @classmethod
     def onOffset(cls, dt):
@@ -678,7 +679,7 @@ class Week(CacheableOffset, DateOffset):
                 other = other + timedelta((self.weekday - otherDay) % 7)
             for i in range(-k):
                 other = other - self._inc
-        return other
+        return Timestamp(other)
 
     def onOffset(self, dt):
         return dt.weekday() == self.weekday
@@ -964,7 +965,7 @@ class QuarterEnd(CacheableOffset, QuarterOffset):
 
         other = other + relativedelta(months=monthsToGo + 3 * n, day=31)
 
-        return other
+        return Timestamp(other)
 
     def onOffset(self, dt):
         modMonth = (dt.month - self.startingMonth) % 3
@@ -996,7 +997,7 @@ class QuarterBegin(CacheableOffset, QuarterOffset):
             n = n + 1
 
         other = other + relativedelta(months=3 * n - monthsSince, day=1)
-        return other
+        return Timestamp(other)
 
 
 class YearOffset(DateOffset):
@@ -1138,7 +1139,7 @@ class YearEnd(CacheableOffset, YearOffset):
             # n == 0, roll forward
             result = _rollf(result)
 
-        return result
+        return Timestamp(result)
 
     def onOffset(self, dt):
         wkday, days_in_month = tslib.monthrange(dt.year, self.month)
@@ -1185,7 +1186,7 @@ class YearBegin(CacheableOffset, YearOffset):
             # n == 0, roll forward
             result = _rollf(result)
 
-        return result
+        return Timestamp(result)
 
     def onOffset(self, dt):
         return dt.month == self.month and dt.day == 1

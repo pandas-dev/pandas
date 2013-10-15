@@ -181,6 +181,8 @@ Improvements to existing features
   - ``DataFrame.interpolate()`` and ``Series.interpolate()`` have been expanded to include
     interpolation methods from scipy. (:issue:`4434`, :issue:`1892`)
   - ``Series`` now supports a ``to_frame`` method to convert it to a single-column DataFrame (:issue:`5164`)
+  - DatetimeIndex (and date_range) can now be constructed in a left- or
+    right-open fashion using the ``closed`` parameter (:issue:`4579`)
 
 API Changes
 ~~~~~~~~~~~
