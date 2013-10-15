@@ -206,7 +206,7 @@ API Changes
     (:issue:`4384`, :issue:`4375`, :issue:`4372`)
   - ``Series.get`` with negative indexers now returns the same as ``[]`` (:issue:`4390`)
   - allow ``ix/loc`` for Series/DataFrame/Panel to set on any axis even when the single-key is not currently contained in
-    the index for that axis (:issue:`2578`)
+    the index for that axis (:issue:`2578`, :issue:`5226`)
   - ``at`` now will enlarge the object inplace (and return the same) (:issue:`2578`)
 
   - ``HDFStore``

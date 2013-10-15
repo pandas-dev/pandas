@@ -1865,6 +1865,15 @@ class DataFrame(NDFrame):
 
         self.where(-key, value, inplace=True)
 
+    def _ensure_valid_index(self, value):
+        """
+        ensure that if we don't have an index, that we can create one from the passed value
+        """
+        if not len(self.index):
+            if not isinstance(value, Series):
+                raise ValueError("cannot set a frame with no defined index and a non-series")
+            self._data.set_axis(1, value.index.copy(), check_axis=False)
+
     def _set_item(self, key, value):
         """
         Add series to DataFrame in specified column.
@@ -1875,6 +1884,7 @@ class DataFrame(NDFrame):
         Series/TimeSeries will be conformed to the DataFrame's index to
         ensure homogeneity.
         """
+        self._ensure_valid_index(value)
         value = self._sanitize_column(key, value)
         NDFrame._set_item(self, key, value)
 
@@ -1890,6 +1900,7 @@ class DataFrame(NDFrame):
         column : object
         value : int, Series, or array-like
         """
+        self._ensure_valid_index(value)
         value = self._sanitize_column(column, value)
         self._data.insert(
             loc, column, value, allow_duplicates=allow_duplicates)
@@ -1900,7 +1911,7 @@ class DataFrame(NDFrame):
         if _is_sequence(value):
             is_frame = isinstance(value, DataFrame)
             if isinstance(value, Series) or is_frame:
-                if value.index.equals(self.index):
+                if value.index.equals(self.index) or not len(self.index):
                     # copy the values
                     value = value.values.copy()
                 else:
