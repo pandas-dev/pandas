@@ -611,6 +611,8 @@ Bug Fixes
     the original ordering (:issue:`4621`).
   - Fixed ``Period`` with a business date freq to always roll-forward if on a
     non-business date. (:issue:`5203`)
+  - Fixed bug in Excel writers where frames with duplicate column names weren't
+    written correctly. (:issue: `5235`)
 
 pandas 0.12.0
 -------------

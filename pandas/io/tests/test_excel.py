@@ -874,6 +874,24 @@ class ExcelWriterBase(SharedItems):
         self.assertEqual(res.shape, (1, 2))
         self.assertTrue(res.ix[0, 0] is not np.nan)
 
+    def test_duplicated_columns(self):
+        # Test for issue #5235.
+        _skip_if_no_xlrd()
+        ext = self.ext
+        path = '__tmp_to_excel_duplicated_columns__.' + ext
+
+        with ensure_clean(path) as path:
+            write_frame = DataFrame([[1, 2, 3], [1, 2, 3], [1, 2, 3]])
+            colnames = ['A', 'B', 'B']
+
+            write_frame.columns = colnames
+            write_frame.to_excel(path, 'test1')
+
+            read_frame = read_excel(path, 'test1').astype(np.int64)
+            read_frame.columns = colnames
+
+            tm.assert_frame_equal(write_frame, read_frame)
+
 
 class OpenpyxlTests(ExcelWriterBase, unittest.TestCase):
     ext = 'xlsx'
