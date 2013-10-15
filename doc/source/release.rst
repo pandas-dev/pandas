@@ -400,6 +400,8 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
    instead they are generated and cached on the fly. The internal
    representation and handling of DateOffsets has also been clarified.
    (:issue:`5189`, related :issue:`5004`)
+ - ``MultiIndex`` constructor now validates that passed levels and labels are
+   compatible. (:issue:`5213`, :issue:`5214`)
 
 .. _release.bug_fixes-0.13.0:
 

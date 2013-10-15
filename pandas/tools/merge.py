@@ -1366,7 +1366,8 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
             # also copies
             names = names + _get_consensus_names(indexes)
 
-        return MultiIndex(levels=levels, labels=label_list, names=names)
+        return MultiIndex(levels=levels, labels=label_list, names=names,
+                          verify_integrity=False)
 
     new_index = indexes[0]
     n = len(new_index)
@@ -1402,7 +1403,8 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
     if len(new_names) < len(new_levels):
         new_names.extend(new_index.names)
 
-    return MultiIndex(levels=new_levels, labels=new_labels, names=new_names)
+    return MultiIndex(levels=new_levels, labels=new_labels, names=new_names,
+                      verify_integrity=False)
 
 
 def _should_fill(lname, rname):

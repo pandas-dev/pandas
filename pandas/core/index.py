@@ -1394,7 +1394,7 @@ class Index(FrozenNDArray):
             new_levels[level] = new_level
 
             join_index = MultiIndex(levels=new_levels, labels=new_labels,
-                                    names=left.names)
+                                    names=left.names, verify_integrity=False)
             left_indexer = np.arange(len(left))[new_lev_labels != -1]
         else:
             join_index = left
@@ -1856,7 +1856,7 @@ class MultiIndex(Index):
     rename = Index.set_names
 
     def __new__(cls, levels=None, labels=None, sortorder=None, names=None,
-                copy=False):
+                copy=False, verify_integrity=True):
         if levels is None or labels is None:
             raise TypeError("Must pass both levels and labels")
         if len(levels) != len(labels):
@@ -1886,12 +1886,36 @@ class MultiIndex(Index):
         else:
             subarr.sortorder = sortorder
 
+        if verify_integrity:
+            subarr._verify_integrity()
+
         return subarr
+
+    def _verify_integrity(self):
+        """Raises ValueError if length of levels and labels don't match or any
+        label would exceed level bounds"""
+        # NOTE: Currently does not check, among other things, that cached
+        # nlevels matches nor that sortorder matches actually sortorder.
+        labels, levels = self.labels, self.levels
+        if len(levels) != len(labels):
+            raise ValueError("Length of levels and labels must match. NOTE:"
+                             " this index is in an inconsistent state.")
+        label_length = len(self.labels[0])
+        for i, (level, label) in enumerate(zip(levels, labels)):
+            if len(label) != label_length:
+                raise ValueError("Unequal label lengths: %s" % (
+                                 [len(lab) for lab in labels]))
+            if len(label) and label.max() >= len(level):
+                raise ValueError("On level %d, label max (%d) >= length of"
+                                 " level  (%d). NOTE: this index is in an"
+                                 " inconsistent state" % (i, label.max(),
+                                                          len(level)))
 
     def _get_levels(self):
         return self._levels
 
-    def _set_levels(self, levels, copy=False, validate=True):
+    def _set_levels(self, levels, copy=False, validate=True,
+                    verify_integrity=False):
         # This is NOT part of the levels property because it should be
         # externally not allowed to set levels. User beware if you change
         # _levels directly
@@ -1907,7 +1931,10 @@ class MultiIndex(Index):
             self._set_names(names)
         self._tuples = None
 
-    def set_levels(self, levels, inplace=False):
+        if verify_integrity:
+            self._verify_integrity()
+
+    def set_levels(self, levels, inplace=False, verify_integrity=True):
         """
         Set new levels on MultiIndex. Defaults to returning
         new index.
@@ -1918,6 +1945,8 @@ class MultiIndex(Index):
             new levels to apply
         inplace : bool
             if True, mutates in place
+        verify_integrity : bool (default True)
+            if True, checks that levels and labels are compatible
 
         Returns
         -------
@@ -1930,27 +1959,33 @@ class MultiIndex(Index):
         else:
             idx = self._shallow_copy()
         idx._reset_identity()
-        idx._set_levels(levels)
+        idx._set_levels(levels, validate=True,
+                        verify_integrity=verify_integrity)
         if not inplace:
             return idx
 
     # remove me in 0.14 and change to read only property
     __set_levels = deprecate("setting `levels` directly",
-                             partial(set_levels, inplace=True),
+                             partial(set_levels, inplace=True,
+                                     verify_integrity=True),
                              alt_name="set_levels")
     levels = property(fget=_get_levels, fset=__set_levels)
 
     def _get_labels(self):
         return self._labels
 
-    def _set_labels(self, labels, copy=False, validate=True):
+    def _set_labels(self, labels, copy=False, validate=True,
+                    verify_integrity=False):
         if validate and len(labels) != self.nlevels:
             raise ValueError("Length of labels must match length of levels")
         self._labels = FrozenList(_ensure_frozen(labs, copy=copy)._shallow_copy()
                                   for labs in labels)
         self._tuples = None
 
-    def set_labels(self, labels, inplace=False):
+        if verify_integrity:
+            self._verify_integrity()
+
+    def set_labels(self, labels, inplace=False, verify_integrity=True):
         """
         Set new labels on MultiIndex. Defaults to returning
         new index.
@@ -1961,6 +1996,8 @@ class MultiIndex(Index):
             new labels to apply
         inplace : bool
             if True, mutates in place
+        verify_integrity : bool (default True)
+            if True, checks that levels and labels are compatible
 
         Returns
         -------
@@ -1973,13 +2010,14 @@ class MultiIndex(Index):
         else:
             idx = self._shallow_copy()
         idx._reset_identity()
-        idx._set_labels(labels)
+        idx._set_labels(labels, verify_integrity=verify_integrity)
         if not inplace:
             return idx
 
     # remove me in 0.14 and change to readonly property
     __set_labels = deprecate("setting labels directly",
-                             partial(set_labels, inplace=True),
+                             partial(set_labels, inplace=True,
+                                     verify_integrity=True),
                              alt_name="set_labels")
     labels = property(fget=_get_labels, fset=__set_labels)
 
@@ -2392,7 +2430,8 @@ class MultiIndex(Index):
             names = [c.name for c in cats]
 
         return MultiIndex(levels=levels, labels=labels,
-                          sortorder=sortorder, names=names)
+                          sortorder=sortorder, names=names,
+                          verify_integrity=False)
 
     @classmethod
     def from_tuples(cls, tuples, sortorder=None, names=None):
@@ -2463,6 +2502,7 @@ class MultiIndex(Index):
         self._set_labels(labels)
         self._set_names(names)
         self.sortorder = sortorder
+        self._verify_integrity()
 
     def __getitem__(self, key):
         if np.isscalar(key):
@@ -2502,7 +2542,7 @@ class MultiIndex(Index):
         indexer = com._ensure_platform_int(indexer)
         new_labels = [lab.take(indexer) for lab in self.labels]
         return MultiIndex(levels=self.levels, labels=new_labels,
-                          names=self.names)
+                          names=self.names, verify_integrity=False)
 
     def append(self, other):
         """
@@ -2618,7 +2658,7 @@ class MultiIndex(Index):
             return result
         else:
             return MultiIndex(levels=new_levels, labels=new_labels,
-                              names=new_names)
+                              names=new_names, verify_integrity=False)
 
     def swaplevel(self, i, j):
         """
@@ -2645,7 +2685,7 @@ class MultiIndex(Index):
         new_names[i], new_names[j] = new_names[j], new_names[i]
 
         return MultiIndex(levels=new_levels, labels=new_labels,
-                          names=new_names)
+                          names=new_names, verify_integrity=False)
 
     def reorder_levels(self, order):
         """
@@ -2664,7 +2704,7 @@ class MultiIndex(Index):
         new_names = [self.names[i] for i in order]
 
         return MultiIndex(levels=new_levels, labels=new_labels,
-                          names=new_names)
+                          names=new_names, verify_integrity=False)
 
     def __getslice__(self, i, j):
         return self.__getitem__(slice(i, j))
@@ -2705,7 +2745,8 @@ class MultiIndex(Index):
         new_labels = [lab.take(indexer) for lab in self.labels]
 
         new_index = MultiIndex(labels=new_labels, levels=self.levels,
-                               names=self.names, sortorder=level)
+                               names=self.names, sortorder=level,
+                               verify_integrity=False)
 
         return new_index, indexer
 
@@ -3086,7 +3127,8 @@ class MultiIndex(Index):
         new_labels = [lab[left:right] for lab in self.labels]
         new_labels[0] = new_labels[0] - i
 
-        return MultiIndex(levels=new_levels, labels=new_labels)
+        return MultiIndex(levels=new_levels, labels=new_labels,
+                          verify_integrity=False)
 
     def equals(self, other):
         """
@@ -3180,7 +3222,7 @@ class MultiIndex(Index):
         if len(uniq_tuples) == 0:
             return MultiIndex(levels=[[]] * self.nlevels,
                               labels=[[]] * self.nlevels,
-                              names=result_names)
+                              names=result_names, verify_integrity=False)
         else:
             return MultiIndex.from_arrays(lzip(*uniq_tuples), sortorder=0,
                                           names=result_names)
@@ -3210,14 +3252,14 @@ class MultiIndex(Index):
         if self.equals(other):
             return MultiIndex(levels=[[]] * self.nlevels,
                               labels=[[]] * self.nlevels,
-                              names=result_names)
+                              names=result_names, verify_integrity=False)
 
         difference = sorted(set(self.values) - set(other.values))
 
         if len(difference) == 0:
             return MultiIndex(levels=[[]] * self.nlevels,
                               labels=[[]] * self.nlevels,
-                              names=result_names)
+                              names=result_names, verify_integrity=False)
         else:
             return MultiIndex.from_tuples(difference, sortorder=0,
                                           names=result_names)
@@ -3269,7 +3311,7 @@ class MultiIndex(Index):
             new_labels.append(np.insert(labels, loc, lev_loc))
 
         return MultiIndex(levels=new_levels, labels=new_labels,
-                          names=self.names)
+                          names=self.names, verify_integrity=False)
 
     def delete(self, loc):
         """
@@ -3281,7 +3323,7 @@ class MultiIndex(Index):
         """
         new_labels = [np.delete(lab, loc) for lab in self.labels]
         return MultiIndex(levels=self.levels, labels=new_labels,
-                          names=self.names)
+                          names=self.names, verify_integrity=False)
 
     get_major_bounds = slice_locs
 
