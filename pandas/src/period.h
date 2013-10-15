@@ -38,6 +38,9 @@
 #define ORD_OFFSET 719163LL // days until 1970-01-01
 #define BDAY_OFFSET 513689LL // days until 1970-01-01
 #define WEEK_OFFSET 102737LL
+#define BASE_WEEK_TO_DAY_OFFSET 1 // difference between day 0 and end of week in days
+#define DAYS_PER_WEEK 7
+#define BUSINESS_DAYS_PER_WEEK 5
 #define HIGHFREQ_ORIG 0 // ORD_OFFSET * 86400LL // days until 1970-01-01
 
 #define FR_ANN  1000  /* Annual */

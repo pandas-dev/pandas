@@ -8,7 +8,7 @@ import datetime
 
 from pandas.core.api import Timestamp
 
-from pandas.tslib import period_asfreq
+from pandas.tslib import period_asfreq, period_ordinal
 
 from pandas.tseries.frequencies import get_freq
 
@@ -253,6 +253,36 @@ class TestTslib(unittest.TestCase):
         self.assertEqual(period_asfreq(1, get_freq('L'), get_freq('N'), False), 1000000)
 
         self.assertEqual(period_asfreq(1, get_freq('U'), get_freq('N'), False), 1000)
+
+    def test_period_ordinal_start_values(self):
+        # information for 1.1.1970
+        self.assertEqual(0, period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0, get_freq('Y')))
+        self.assertEqual(0, period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0, get_freq('M')))
+        self.assertEqual(1, period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0, get_freq('W')))
+        self.assertEqual(0, period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0, get_freq('D')))
+        self.assertEqual(0, period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0, get_freq('B')))
+
+    def test_period_ordinal_week(self):
+        self.assertEqual(1, period_ordinal(1970, 1, 4, 0, 0, 0, 0, 0, get_freq('W')))
+        self.assertEqual(2, period_ordinal(1970, 1, 5, 0, 0, 0, 0, 0, get_freq('W')))
+
+        self.assertEqual(2284, period_ordinal(2013, 10, 6, 0, 0, 0, 0, 0, get_freq('W')))
+        self.assertEqual(2285, period_ordinal(2013, 10, 7, 0, 0, 0, 0, 0, get_freq('W')))
+
+    def test_period_ordinal_business_day(self):
+        # Thursday
+        self.assertEqual(11415, period_ordinal(2013, 10, 3, 0, 0, 0, 0, 0, get_freq('B')))
+        # Friday
+        self.assertEqual(11416, period_ordinal(2013, 10, 4, 0, 0, 0, 0, 0, get_freq('B')))
+        # Saturday
+        self.assertEqual(11417, period_ordinal(2013, 10, 5, 0, 0, 0, 0, 0, get_freq('B')))
+        # Sunday
+        self.assertEqual(11417, period_ordinal(2013, 10, 6, 0, 0, 0, 0, 0, get_freq('B')))
+        # Monday
+        self.assertEqual(11417, period_ordinal(2013, 10, 7, 0, 0, 0, 0, 0, get_freq('B')))
+        # Tuesday
+        self.assertEqual(11418, period_ordinal(2013, 10, 8, 0, 0, 0, 0, 0, get_freq('B')))
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
