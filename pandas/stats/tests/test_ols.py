@@ -378,6 +378,9 @@ class TestOLSMisc(unittest.TestCase):
         model = ols(y=y, x=x)
         expected = ols(y=y, x={'x': x})
         assert_series_equal(model.beta, expected.beta)
+        
+        # Test predict using a series
+        assert_series_equal(model.y_predict, model.predict(x=x))
 
     def test_various_attributes(self):
         # just make sure everything "works". test correctness elsewhere
