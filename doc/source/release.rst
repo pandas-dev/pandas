@@ -417,6 +417,7 @@ Bug Fixes
     - reading from a store with duplicate columns across dtypes would raise (:issue:`4767`)
     - Fixed a bug where ``ValueError`` wasn't correctly raised when column names
       weren't strings (:issue:`4956`)
+    - A zero length series written in Fixed format not deserializing properly. (:issue:`4708`)
   - Fixed bug in tslib.tz_convert(vals, tz1, tz2): it could raise IndexError exception while
     trying to access trans[pos + 1] (:issue:`4496`)
   - The ``by`` argument now works correctly with the ``layout`` argument
