@@ -445,12 +445,12 @@ class OLS(StringMixin):
             orig_x = x
         else:
             orig_x = x
+            if isinstance(x, Series):
+                x = DataFrame({'x': x})            
             if fill_value is None and fill_method is None:
                 x = x.dropna(how='any')
             else:
                 x = x.fillna(value=fill_value, method=fill_method, axis=axis)
-            if isinstance(x, Series):
-                x = DataFrame({'x': x})
             if self._intercept:
                 x['intercept'] = 1.
 
