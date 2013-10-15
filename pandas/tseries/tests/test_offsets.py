@@ -13,7 +13,7 @@ from pandas.core.datetools import (
     DateOffset, Week, YearBegin, YearEnd, Hour, Minute, Second, Day, Micro,
     Milli, Nano,
     WeekOfMonth, format, ole2datetime, QuarterEnd, to_datetime, normalize_date,
-    get_offset, get_offset_name, hasOffsetName, get_standard_freq)
+    get_offset, get_offset_name, get_standard_freq)
 
 from pandas.tseries.frequencies import _offset_map
 from pandas.tseries.index import _to_m8, DatetimeIndex, _daterange_cache
@@ -99,6 +99,7 @@ class TestDateOffset(unittest.TestCase):
 
     def setUp(self):
         self.d = Timestamp(datetime(2008, 1, 2))
+        _offset_map.clear()
 
     def test_repr(self):
         repr(DateOffset())
@@ -1747,11 +1748,6 @@ def test_compare_ticks():
             assert(kls(3) != kls(4))
 
 
-def test_hasOffsetName():
-    assert hasOffsetName(BDay())
-    assert not hasOffsetName(BDay(2))
-
-
 def test_get_offset_name():
     assertRaisesRegexp(ValueError, 'Bad rule.*BusinessDays', get_offset_name, BDay(2))
 
@@ -1766,17 +1762,17 @@ def test_get_offset_name():
 
 def test_get_offset():
     assertRaisesRegexp(ValueError, "rule.*GIBBERISH", get_offset, 'gibberish')
+    assertRaisesRegexp(ValueError, "rule.*QS-JAN-B", get_offset, 'QS-JAN-B')
+    pairs = [('B', BDay()), ('b', BDay()), ('bm', BMonthEnd()),
+             ('Bm', BMonthEnd()), ('W-MON', Week(weekday=0)),
+             ('W-TUE', Week(weekday=1)), ('W-WED', Week(weekday=2)),
+             ('W-THU', Week(weekday=3)), ('W-FRI', Week(weekday=4)),
+             ('w@Sat', Week(weekday=5))]
 
-    assert get_offset('B') == BDay()
-    assert get_offset('b') == BDay()
-    assert get_offset('bm') == BMonthEnd()
-    assert get_offset('Bm') == BMonthEnd()
-    assert get_offset('W-MON') == Week(weekday=0)
-    assert get_offset('W-TUE') == Week(weekday=1)
-    assert get_offset('W-WED') == Week(weekday=2)
-    assert get_offset('W-THU') == Week(weekday=3)
-    assert get_offset('W-FRI') == Week(weekday=4)
-    assert get_offset('w@Sat') == Week(weekday=5)
+    for name, expected in pairs:
+        offset = get_offset(name)
+        assert offset == expected, ("Expected %r to yield %r (actual: %r)" %
+                                    (name, expected, offset))
 
 
 def test_parse_time_string():
@@ -1813,7 +1809,7 @@ def test_quarterly_dont_normalize():
 class TestOffsetAliases(unittest.TestCase):
 
     def setUp(self):
-        pass
+        _offset_map.clear()
 
     def test_alias_equality(self):
         for k, v in compat.iteritems(_offset_map):
@@ -1824,15 +1820,17 @@ class TestOffsetAliases(unittest.TestCase):
     def test_rule_code(self):
         lst = ['M', 'MS', 'BM', 'BMS', 'D', 'B', 'H', 'T', 'S', 'L', 'U']
         for k in lst:
-            assert k == _offset_map[k].rule_code
-            assert k == (_offset_map[k] * 3).rule_code
+            self.assertEqual(k, get_offset(k).rule_code)
+            # should be cached - this is kind of an internals test...
+            assert k in _offset_map
+            self.assertEqual(k, (get_offset(k) * 3).rule_code)
 
         suffix_lst = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
         base = 'W'
         for v in suffix_lst:
             alias = '-'.join([base, v])
-            assert alias == _offset_map[alias].rule_code
-            assert alias == (_offset_map[alias] * 5).rule_code
+            self.assertEqual(alias, get_offset(alias).rule_code)
+            self.assertEqual(alias, (get_offset(alias) * 5).rule_code)
 
         suffix_lst = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG',
                       'SEP', 'OCT', 'NOV', 'DEC']
@@ -1840,8 +1838,8 @@ class TestOffsetAliases(unittest.TestCase):
         for base in base_lst:
             for v in suffix_lst:
                 alias = '-'.join([base, v])
-                assert alias == _offset_map[alias].rule_code
-                assert alias == (_offset_map[alias] * 5).rule_code
+                self.assertEqual(alias, get_offset(alias).rule_code)
+                self.assertEqual(alias, (get_offset(alias) * 5).rule_code)
 
 
 def test_apply_ticks():
@@ -1900,6 +1898,7 @@ class TestCaching(unittest.TestCase):
 
     def setUp(self):
         _daterange_cache.clear()
+        _offset_map.clear()
 
     def run_X_index_creation(self, cls):
         inst1 = cls()
@@ -1925,6 +1924,26 @@ class TestCaching(unittest.TestCase):
         DatetimeIndex(start=datetime(2013,1,31), end=datetime(2013,3,29), freq=inst1, normalize=True)
         inst2 = WeekOfMonth(weekday=1, week=2)
         self.assertTrue(inst2 in _daterange_cache)
+
+
+class TestReprNames(unittest.TestCase):
+    def test_str_for_named_is_name(self):
+        # look at all the amazing combinations!
+        month_prefixes = ['A', 'AS', 'BA', 'BAS', 'Q', 'BQ', 'BQS', 'QS']
+        names = [prefix + '-' + month for prefix in month_prefixes
+                    for month in ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
+                                  'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']]
+        days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
+        names += ['W-' + day for day in days]
+        names += ['WOM-' + week + day for week in ('1', '2', '3', '4')
+                                       for day in days]
+        #singletons
+        names += ['S', 'T', 'U', 'BM', 'BMS', 'BQ', 'QS'] # No 'Q'
+        _offset_map.clear()
+        for name in names:
+            offset = get_offset(name)
+            self.assertEqual(repr(offset), name)
+            self.assertEqual(str(offset), name)
 
 
 if __name__ == '__main__':
