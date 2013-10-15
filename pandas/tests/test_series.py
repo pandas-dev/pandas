@@ -83,6 +83,7 @@ class CheckNameIntegration(object):
         self.assertEquals(result.name, self.ts.name)
 
     def test_binop_maybe_preserve_name(self):
+
         # names match, preserve
         result = self.ts * self.ts
         self.assertEquals(result.name, self.ts.name)
