@@ -115,6 +115,10 @@ class TestPeriodProperties(TestCase):
 
         # Biz day construction, roll forward if non-weekday
         i1 = Period('3/10/12', freq='B')
+        i2 = Period('3/10/12', freq='D')
+        self.assertEquals(i1, i2.asfreq('B'))
+        i2 = Period('3/11/12', freq='D')
+        self.assertEquals(i1, i2.asfreq('B'))
         i2 = Period('3/12/12', freq='D')
         self.assertEquals(i1, i2.asfreq('B'))
 
@@ -292,7 +296,7 @@ class TestPeriodProperties(TestCase):
             p = Period('2012', freq=f)
             self.assertEquals(p.start_time, xp)
         self.assertEquals(Period('2012', freq='B').start_time,
-                          datetime(2011, 12, 30))
+                          datetime(2012, 1, 2))
         self.assertEquals(Period('2012', freq='W').start_time,
                           datetime(2011, 12, 26))
 
@@ -321,7 +325,7 @@ class TestPeriodProperties(TestCase):
         p = Period('2012', freq='H')
         self.assertEquals(p.end_time, xp)
 
-        xp = _ex(2012, 1, 2)
+        xp = _ex(2012, 1, 3)
         self.assertEquals(Period('2012', freq='B').end_time, xp)
 
         xp = _ex(2012, 1, 2)

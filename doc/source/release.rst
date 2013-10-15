@@ -609,6 +609,8 @@ Bug Fixes
     (:issue:`5215`)
   - Fixed bug where filtering a grouped DataFrame or Series did not maintain
     the original ordering (:issue:`4621`).
+  - Fixed ``Period`` with a business date freq to always roll-forward if on a
+    non-business date. (:issue:`5203`)
 
 pandas 0.12.0
 -------------
