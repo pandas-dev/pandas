@@ -116,7 +116,7 @@ class Series(generic.NDFrame):
         If None, dtype will be inferred
     copy : boolean, default False, copy input data
     """
-    _prop_attributes = ['name']
+    _metadata = ['name']
 
     def __init__(self, data=None, index=None, dtype=None, name=None,
                  copy=False, fastpath=False):
@@ -334,8 +334,7 @@ class Series(generic.NDFrame):
         return len(self._data)
 
     def view(self, dtype=None):
-        return self._constructor(self.values.view(dtype), index=self.index,
-                                 name=self.name)
+        return self._constructor(self.values.view(dtype), index=self.index).__finalize__(self)
 
     def __array__(self, result=None):
         """ the array interface, return my values """
@@ -345,8 +344,7 @@ class Series(generic.NDFrame):
         """
         Gets called prior to a ufunc (and after)
         """
-        return self._constructor(result, index=self.index, name=self.name,
-                                 copy=False)
+        return self._constructor(result, index=self.index, copy=False).__finalize__(self)
 
     def __contains__(self, key):
         return key in self.index
@@ -473,8 +471,7 @@ class Series(generic.NDFrame):
         if raise_on_error:
             _check_slice_bounds(slobj, self.values)
         slobj = self.index._convert_slice_indexer(slobj,typ=typ or 'getitem')
-        return self._constructor(self.values[slobj], index=self.index[slobj],
-                                 name=self.name)
+        return self._constructor(self.values[slobj], index=self.index[slobj]).__finalize__(self)
 
     def __getitem__(self, key):
         try:
@@ -565,12 +562,11 @@ class Series(generic.NDFrame):
 
         # If key is contained, would have returned by now
         indexer, new_index = self.index.get_loc_level(key)
-        return self._constructor(self.values[indexer], index=new_index, name=self.name)
+        return self._constructor(self.values[indexer], index=new_index).__finalize__(self)
 
     def _get_values(self, indexer):
         try:
-            return self._constructor(self._data.get_slice(indexer),
-                                     name=self.name, fastpath=True)
+            return self._constructor(self._data.get_slice(indexer), fastpath=True).__finalize__(self)
         except Exception:
             return self.values[indexer]
 
@@ -704,7 +700,7 @@ class Series(generic.NDFrame):
         """
         new_index = self.index.repeat(reps)
         new_values = self.values.repeat(reps)
-        return self._constructor(new_values, index=new_index, name=self.name)
+        return self._constructor(new_values, index=new_index).__finalize__(self)
 
     def reshape(self, *args, **kwargs):
         """
@@ -823,8 +819,7 @@ class Series(generic.NDFrame):
                 # set name if it was passed, otherwise, keep the previous name
                 self.name = name or self.name
             else:
-                return self._constructor(self.values.copy(), index=new_index,
-                                         name=self.name)
+                return self._constructor(self.values.copy(), index=new_index).__finalize__(self)
         elif inplace:
             raise TypeError('Cannot reset_index inplace on a Series '
                             'to create a DataFrame')
@@ -977,11 +972,11 @@ class Series(generic.NDFrame):
     # inversion
     def __neg__(self):
         arr = operator.neg(self.values)
-        return self._constructor(arr, self.index, name=self.name)
+        return self._constructor(arr, self.index).__finalize__(self)
 
     def __invert__(self):
         arr = operator.inv(self.values)
-        return self._constructor(arr, self.index, name=self.name)
+        return self._constructor(arr, self.index).__finalize__(self)
 
     #----------------------------------------------------------------------
     # unbox reductions
@@ -1060,8 +1055,8 @@ class Series(generic.NDFrame):
         sp : SparseSeries
         """
         from pandas.core.sparse import SparseSeries
-        return SparseSeries(self, kind=kind, fill_value=fill_value,
-                            name=self.name)
+        return SparseSeries(self, kind=kind,
+                            fill_value=fill_value).__finalize__(self)
 
     def head(self, n=5):
         """Returns first n rows of Series
@@ -1101,14 +1096,14 @@ class Series(generic.NDFrame):
             level_index = self.index.levels[level]
 
             if len(self) == 0:
-                return self._constructor(0, index=level_index)
+                return self._constructor(0, index=level_index).__finalize__(self)
 
             # call cython function
             max_bin = len(level_index)
             labels = com._ensure_int64(self.index.labels[level])
             counts = lib.count_level_1d(mask.view(pa.uint8),
                                         labels, max_bin)
-            return self._constructor(counts, index=level_index)
+            return self._constructor(counts, index=level_index).__finalize__(self)
 
         return notnull(_values_from_object(self)).sum()
 
@@ -1191,7 +1186,7 @@ class Series(generic.NDFrame):
         """
         keys = _ensure_object(self.values)
         duplicated = lib.duplicated(keys, take_last=take_last)
-        return self._constructor(duplicated, index=self.index, name=self.name)
+        return self._constructor(duplicated, index=self.index).__finalize__(self)
 
     def idxmin(self, axis=None, out=None, skipna=True):
         """
@@ -1256,8 +1251,7 @@ class Series(generic.NDFrame):
         """
         result = _values_from_object(self).round(decimals, out=out)
         if out is None:
-            result = self._constructor(
-                result, index=self.index, name=self.name)
+            result = self._constructor(result, index=self.index).__finalize__(self)
 
         return result
 
@@ -1351,7 +1345,7 @@ class Series(generic.NDFrame):
                          lb), self.median(), self.quantile(ub),
                      self.max()]
 
-        return self._constructor(data, index=names)
+        return self._constructor(data, index=names).__finalize__(self)
 
     def corr(self, other, method='pearson',
              min_periods=None):
@@ -1415,7 +1409,7 @@ class Series(generic.NDFrame):
         diffed : Series
         """
         result = com.diff(_values_from_object(self), periods)
-        return self._constructor(result, self.index, name=self.name)
+        return self._constructor(result, index=self.index).__finalize__(self)
 
     def autocorr(self):
         """
@@ -1460,7 +1454,7 @@ class Series(generic.NDFrame):
 
         if isinstance(other, DataFrame):
             return self._constructor(np.dot(lvals, rvals),
-                                     index=other.columns)
+                                     index=other.columns).__finalize__(self)
         elif isinstance(other, Series):
             return np.dot(lvals, rvals)
         elif isinstance(rvals, np.ndarray):
@@ -1539,7 +1533,7 @@ class Series(generic.NDFrame):
 
         result = func(this_vals, other_vals)
         name = _maybe_match_name(self, other)
-        return self._constructor(result, index=new_index, name=name)
+        return self._constructor(result, index=new_index).__finalize__(self)
 
     def combine(self, other, func, fill_value=nan):
         """
@@ -1589,7 +1583,7 @@ class Series(generic.NDFrame):
         other = other.reindex(new_index, copy=False)
         name = _maybe_match_name(self, other)
         rs_vals = com._where_compat(isnull(this), other.values, this.values)
-        return self._constructor(rs_vals, index=new_index, name=name)
+        return self._constructor(rs_vals, index=new_index).__finalize__(self)
 
     def update(self, other):
         """
@@ -1673,7 +1667,7 @@ class Series(generic.NDFrame):
                                               ascending=ascending)
 
         new_values = self.values.take(indexer)
-        return self._constructor(new_values, new_labels, name=self.name)
+        return self._constructor(new_values, index=new_labels).__finalize__(self)
 
     def argsort(self, axis=0, kind='quicksort', order=None):
         """
@@ -1701,11 +1695,11 @@ class Series(generic.NDFrame):
                 -1, index=self.index, name=self.name, dtype='int64')
             notmask = -mask
             result[notmask] = np.argsort(values[notmask], kind=kind)
-            return self._constructor(result, index=self.index, name=self.name)
+            return self._constructor(result, index=self.index).__finalize__(self)
         else:
             return self._constructor(
                 np.argsort(values, kind=kind), index=self.index,
-                name=self.name, dtype='int64')
+                dtype='int64').__finalize__(self)
 
     def rank(self, method='average', na_option='keep', ascending=True):
         """
@@ -1731,7 +1725,7 @@ class Series(generic.NDFrame):
         from pandas.core.algorithms import rank
         ranks = rank(self.values, method=method, na_option=na_option,
                      ascending=ascending)
-        return self._constructor(ranks, index=self.index, name=self.name)
+        return self._constructor(ranks, index=self.index).__finalize__(self)
 
     def order(self, na_last=True, ascending=True, kind='mergesort'):
         """
@@ -1783,8 +1777,8 @@ class Series(generic.NDFrame):
             sortedIdx[n:] = idx[good][argsorted]
             sortedIdx[:n] = idx[bad]
 
-        return self._constructor(arr[sortedIdx], index=self.index[sortedIdx],
-                                 name=self.name)
+        return self._constructor(arr[sortedIdx],
+                                 index=self.index[sortedIdx]).__finalize__(self)
 
     def sortlevel(self, level=0, ascending=True):
         """
@@ -1806,7 +1800,7 @@ class Series(generic.NDFrame):
 
         new_index, indexer = self.index.sortlevel(level, ascending=ascending)
         new_values = self.values.take(indexer)
-        return self._constructor(new_values, index=new_index, name=self.name)
+        return self._constructor(new_values, index=new_index).__finalize__(self)
 
     def swaplevel(self, i, j, copy=True):
         """
@@ -1822,7 +1816,8 @@ class Series(generic.NDFrame):
         swapped : Series
         """
         new_index = self.index.swaplevel(i, j)
-        return self._constructor(self.values, index=new_index, copy=copy, name=self.name)
+        return self._constructor(self.values, index=new_index,
+                                 copy=copy).__finalize__(self)
 
     def reorder_levels(self, order):
         """
@@ -1934,10 +1929,10 @@ class Series(generic.NDFrame):
 
             indexer = arg.index.get_indexer(values)
             new_values = com.take_1d(arg.values, indexer)
-            return self._constructor(new_values, index=self.index, name=self.name)
+            return self._constructor(new_values, index=self.index).__finalize__(self)
         else:
             mapped = map_f(values, arg)
-            return self._constructor(mapped, index=self.index, name=self.name)
+            return self._constructor(mapped, index=self.index).__finalize__(self)
 
     def apply(self, func, convert_dtype=True, args=(), **kwds):
         """
@@ -1980,7 +1975,7 @@ class Series(generic.NDFrame):
             from pandas.core.frame import DataFrame
             return DataFrame(mapped.tolist(), index=self.index)
         else:
-            return self._constructor(mapped, index=self.index, name=self.name)
+            return self._constructor(mapped, index=self.index).__finalize__(self)
 
     def _reduce(self, op, axis=0, skipna=True, numeric_only=None,
                 filter_type=None, **kwds):
@@ -1995,7 +1990,7 @@ class Series(generic.NDFrame):
 
         # be subclass-friendly
         new_values = com.take_1d(self.get_values(), indexer)
-        return self._constructor(new_values, new_index, name=self.name)
+        return self._constructor(new_values, index=new_index)
 
     def _needs_reindex_multi(self, axes, method, level):
         """ check if we do need a multi reindex; this is for compat with higher dims """
@@ -2037,7 +2032,7 @@ class Series(generic.NDFrame):
         indices = com._ensure_platform_int(indices)
         new_index = self.index.take(indices)
         new_values = self.values.take(indices)
-        return self._constructor(new_values, index=new_index, name=self.name)
+        return self._constructor(new_values, index=new_index).__finalize__(self)
 
     def isin(self, values):
         """
@@ -2084,7 +2079,7 @@ class Series(generic.NDFrame):
                             "{0!r}".format(type(values).__name__))
         value_set = set(values)
         result = lib.ismember(_values_from_object(self), value_set)
-        return self._constructor(result, self.index, name=self.name)
+        return self._constructor(result, index=self.index).__finalize__(self)
 
     def between(self, left, right, inclusive=True):
         """
@@ -2270,11 +2265,11 @@ class Series(generic.NDFrame):
 
         locs = self.index.asof_locs(where, notnull(values))
         new_values = com.take_1d(values, locs)
-        return self._constructor(new_values, index=where, name=self.name)
+        return self._constructor(new_values, index=where).__finalize__(self)
 
     @property
     def weekday(self):
-        return self._constructor([d.weekday() for d in self.index], index=self.index)
+        return self._constructor([d.weekday() for d in self.index], index=self.index).__finalize__(self)
 
     def tz_convert(self, tz, copy=True):
         """
@@ -2296,7 +2291,7 @@ class Series(generic.NDFrame):
         if copy:
             new_values = new_values.copy()
 
-        return self._constructor(new_values, index=new_index, name=self.name)
+        return self._constructor(new_values, index=new_index).__finalize__(self)
 
     def tz_localize(self, tz, copy=True, infer_dst=False):
         """
@@ -2333,7 +2328,7 @@ class Series(generic.NDFrame):
         if copy:
             new_values = new_values.copy()
 
-        return self._constructor(new_values, index=new_index, name=self.name)
+        return self._constructor(new_values, index=new_index).__finalize__(self)
 
     @cache_readonly
     def str(self):
@@ -2361,7 +2356,7 @@ class Series(generic.NDFrame):
             new_values = new_values.copy()
 
         new_index = self.index.to_timestamp(freq=freq, how=how)
-        return self._constructor(new_values, index=new_index, name=self.name)
+        return self._constructor(new_values, index=new_index).__finalize__(self)
 
     def to_period(self, freq=None, copy=True):
         """
@@ -2383,7 +2378,7 @@ class Series(generic.NDFrame):
         if freq is None:
             freq = self.index.freqstr or self.index.inferred_freq
         new_index = self.index.to_period(freq=freq)
-        return self._constructor(new_values, index=new_index, name=self.name)
+        return self._constructor(new_values, index=new_index).__finalize__(self)
 
 Series._setup_axes(['index'], info_axis=0, stat_axis=0)
 Series._add_numeric_operations()

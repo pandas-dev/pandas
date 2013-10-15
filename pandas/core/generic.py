@@ -47,8 +47,7 @@ def _single_replace(self, to_replace, method, inplace, limit):
     if values.dtype == orig_dtype and inplace:
         return
 
-    result = pd.Series(values, index=self.index, name=self.name,
-                       dtype=self.dtype)
+    result = pd.Series(values, index=self.index, dtype=self.dtype).__finalize__(self)
 
     if inplace:
         self._data = result._data
@@ -72,7 +71,7 @@ class NDFrame(PandasObject):
     _internal_names = [
         '_data', 'name', '_cacher', '_subtyp', '_index', '_default_kind', '_default_fill_value']
     _internal_names_set = set(_internal_names)
-    _prop_attributes = []
+    _metadata = []
 
     def __init__(self, data, axes=None, copy=False, dtype=None, fastpath=False):
 
@@ -413,7 +412,7 @@ class NDFrame(PandasObject):
         new_values = self.values.transpose(axes_numbers)
         if kwargs.get('copy') or (len(args) and args[-1]):
             new_values = new_values.copy()
-        return self._constructor(new_values, **new_axes)
+        return self._constructor(new_values, **new_axes).__finalize__(self)
 
     def swapaxes(self, axis1, axis2, copy=True):
         """
@@ -439,7 +438,7 @@ class NDFrame(PandasObject):
         if copy:
             new_values = new_values.copy()
 
-        return self._constructor(new_values, *new_axes)
+        return self._constructor(new_values, *new_axes).__finalize__(self)
 
     def pop(self, item):
         """
@@ -543,7 +542,7 @@ class NDFrame(PandasObject):
             self._clear_item_cache()
 
         else:
-            return result._propogate_attributes(self)
+            return result.__finalize__(self)
 
     rename.__doc__ = _shared_docs['rename']
 
@@ -655,14 +654,14 @@ class NDFrame(PandasObject):
 
     def _wrap_array(self, arr, axes, copy=False):
         d = self._construct_axes_dict_from(self, axes, copy=copy)
-        return self._constructor(arr, **d)
+        return self._constructor(arr, **d).__finalize__(self)
 
     def __array__(self, dtype=None):
         return _values_from_object(self)
 
     def __array_wrap__(self, result):
         d = self._construct_axes_dict(self._AXIS_ORDERS, copy=False)
-        return self._constructor(result, **d)
+        return self._constructor(result, **d).__finalize__(self)
 
     def to_dense(self):
         # compat
@@ -1024,7 +1023,7 @@ class NDFrame(PandasObject):
             new_data = self._data.reindex_axis(new_items, indexer=indices, axis=0)
         else:
             new_data = self._data.take(indices, axis=baxis)
-        return self._constructor(new_data)
+        return self._constructor(new_data).__finalize__(self)
 
     # TODO: Check if this was clearer in 0.12
     def select(self, crit, axis=0):
@@ -1135,7 +1134,7 @@ class NDFrame(PandasObject):
         with_prefix : type of caller
         """
         new_data = self._data.add_prefix(prefix)
-        return self._constructor(new_data)
+        return self._constructor(new_data).__finalize__(self)
 
     def add_suffix(self, suffix):
         """
@@ -1150,7 +1149,7 @@ class NDFrame(PandasObject):
         with_suffix : type of caller
         """
         new_data = self._data.add_suffix(suffix)
-        return self._constructor(new_data)
+        return self._constructor(new_data).__finalize__(self)
 
     def sort_index(self, axis=0, ascending=True):
         """
@@ -1244,7 +1243,8 @@ class NDFrame(PandasObject):
             return self
 
         # perform the reindex on the axes
-        return self._reindex_axes(axes, level, limit, method, fill_value, copy, takeable=takeable)._propogate_attributes(self)
+        return self._reindex_axes(axes, level, limit,
+                                  method, fill_value, copy, takeable=takeable).__finalize__(self)
 
     def _reindex_axes(self, axes, level, limit, method, fill_value, copy, takeable=False):
         """ perform the reinxed for all the axes """
@@ -1332,7 +1332,7 @@ class NDFrame(PandasObject):
         new_index, indexer = axis_values.reindex(labels, method, level,
                                                  limit=limit, copy_if_needed=True)
         return self._reindex_with_indexers({axis: [new_index, indexer]}, method=method, fill_value=fill_value,
-                                           limit=limit, copy=copy)._propogate_attributes(self)
+                                           limit=limit, copy=copy).__finalize__(self)
 
     def _reindex_with_indexers(self, reindexers, method=None, fill_value=np.nan, limit=None, copy=False, allow_dups=False):
         """ allow_dups indicates an internal call here """
@@ -1370,7 +1370,7 @@ class NDFrame(PandasObject):
         if copy and new_data is self._data:
             new_data = new_data.copy()
 
-        return self._constructor(new_data)
+        return self._constructor(new_data).__finalize__(self)
 
     def _reindex_axis(self, new_index, fill_method, axis, copy):
         new_data = self._data.reindex_axis(new_index, axis=axis,
@@ -1379,7 +1379,7 @@ class NDFrame(PandasObject):
         if new_data is self._data and not copy:
             return self
         else:
-            return self._constructor(new_data)
+            return self._constructor(new_data).__finalize__(self)
 
     def filter(self, items=None, like=None, regex=None, axis=None):
         """
@@ -1421,9 +1421,18 @@ class NDFrame(PandasObject):
     #----------------------------------------------------------------------
     # Attribute access
 
-    def _propogate_attributes(self, other):
-        """ propogate attributes from other to self"""
-        for name in self._prop_attributes:
+    def __finalize__(self, other, method=None, **kwargs):
+        """
+        propagate metadata from other to self
+
+        Parameters
+        ----------
+        other : the object from which to get the attributes that we are going to propagate
+        method : optional, a passed method name ; possibily to take different types
+                 of propagation actions based on this
+
+        """
+        for name in self._metadata:
             object.__setattr__(self, name, getattr(other, name, None))
         return self
 
@@ -1484,7 +1493,7 @@ class NDFrame(PandasObject):
             cons_data = self._protect_consolidate(f)
             if cons_data is self._data:
                 cons_data = cons_data.copy()
-            return self._constructor(cons_data)
+            return self._constructor(cons_data).__finalize__(self)
 
     @property
     def _is_mixed_type(self):
@@ -1504,10 +1513,10 @@ class NDFrame(PandasObject):
         return result
 
     def _get_numeric_data(self):
-        return self._constructor(self._data.get_numeric_data())
+        return self._constructor(self._data.get_numeric_data()).__finalize__(self)
 
     def _get_bool_data(self):
-        return self._constructor(self._data.get_bool_data())
+        return self._constructor(self._data.get_bool_data()).__finalize__(self)
 
     #----------------------------------------------------------------------
     # Internal Interface Methods
@@ -1584,7 +1593,7 @@ class NDFrame(PandasObject):
         for b in self._data.blocks:
             b = b.reindex_items_from(columns or b.items)
             bd[str(b.dtype)] = self._constructor(
-                BlockManager([b], [b.items, self.index]))
+                BlockManager([b], [b.items, self.index])).__finalize__(self)
         return bd
 
     @property
@@ -1608,7 +1617,7 @@ class NDFrame(PandasObject):
 
         mgr = self._data.astype(
             dtype, copy=copy, raise_on_error=raise_on_error)
-        return self._constructor(mgr)._propogate_attributes(self)
+        return self._constructor(mgr).__finalize__(self)
 
     def copy(self, deep=True):
         """
@@ -1626,7 +1635,7 @@ class NDFrame(PandasObject):
         data = self._data
         if deep:
             data = data.copy()
-        return self._constructor(data)._propogate_attributes(self)
+        return self._constructor(data).__finalize__(self)
 
     def convert_objects(self, convert_dates=True, convert_numeric=False, copy=True):
         """
@@ -1642,7 +1651,9 @@ class NDFrame(PandasObject):
         -------
         converted : asm as input object
         """
-        return self._constructor(self._data.convert(convert_dates=convert_dates, convert_numeric=convert_numeric, copy=copy))
+        return self._constructor(self._data.convert(convert_dates=convert_dates,
+                                                    convert_numeric=convert_numeric,
+                                                    copy=copy)).__finalize__(self)
 
     #----------------------------------------------------------------------
     # Filling NA's
@@ -1713,7 +1724,7 @@ class NDFrame(PandasObject):
 
                 # fill in 2d chunks
                 result = dict([ (col,s.fillna(method=method, value=value)) for col, s in compat.iteritems(self) ])
-                return self._constructor.from_dict(result)
+                return self._constructor.from_dict(result).__finalize__(self)
 
             # 2d or less
             method = com._clean_fill_method(method)
@@ -1750,7 +1761,7 @@ class NDFrame(PandasObject):
         if inplace:
             self._data = new_data
         else:
-            return self._constructor(new_data)
+            return self._constructor(new_data).__finalize__(self)
 
     def ffill(self, axis=0, inplace=False, limit=None, downcast=None):
         return self.fillna(method='ffill', axis=axis, inplace=inplace,
@@ -1991,7 +2002,7 @@ class NDFrame(PandasObject):
         if inplace:
             self._data = new_data
         else:
-            return self._constructor(new_data)
+            return self._constructor(new_data).__finalize__(self)
 
     def interpolate(self, method='linear', axis=0, limit=None, inplace=False,
                     downcast='infer', **kwargs):
@@ -2101,7 +2112,7 @@ class NDFrame(PandasObject):
             else:
                 self._data = new_data
         else:
-            res = self._constructor(new_data, index=self.index)
+            res = self._constructor(new_data).__finalize__(self)
         if axis == 1:
             res = res.T
         return res
@@ -2113,13 +2124,13 @@ class NDFrame(PandasObject):
         """
         Return a boolean same-sized object indicating if the values are null
         """
-        return self.__class__(isnull(self),**self._construct_axes_dict())._propogate_attributes(self)
+        return self.__class__(isnull(self),**self._construct_axes_dict()).__finalize__(self)
 
     def notnull(self):
         """
         Return a boolean same-sized object indicating if the values are not null
         """
-        return self.__class__(notnull(self),**self._construct_axes_dict())._propogate_attributes(self)
+        return self.__class__(notnull(self),**self._construct_axes_dict()).__finalize__(self)
 
     def clip(self, lower=None, upper=None, out=None):
         """
@@ -2484,7 +2495,7 @@ class NDFrame(PandasObject):
             left = left.fillna(axis=fill_axis, method=method, limit=limit)
             right = right.fillna(axis=fill_axis, method=method, limit=limit)
 
-        return left, right
+        return left.__finalize__(self), right.__finalize__(other)
 
     def _align_series(self, other, join='outer', axis=None, level=None,
                       copy=True, fill_value=None, method=None, limit=None,
@@ -2543,7 +2554,7 @@ class NDFrame(PandasObject):
                     right_result.fillna(fill_value, method=method,
                                         limit=limit))
         else:
-            return left_result, right_result
+            return left_result.__finalize__(self), right_result.__finalize__(other)
 
     def where(self, cond, other=np.nan, inplace=False, axis=None, level=None,
               try_cast=False, raise_on_error=True):
@@ -2680,7 +2691,7 @@ class NDFrame(PandasObject):
             new_data = self._data.where(
                 other, cond, align=axis is None, raise_on_error=raise_on_error, try_cast=try_cast)
 
-            return self._constructor(new_data)
+            return self._constructor(new_data).__finalize__(self)
 
     def mask(self, cond):
         """
@@ -2728,7 +2739,7 @@ class NDFrame(PandasObject):
         else:
             return self.tshift(periods, freq, **kwds)
 
-        return self._constructor(new_data)
+        return self._constructor(new_data).__finalize__(self)
 
     def tshift(self, periods=1, freq=None, axis=0, **kwds):
         """
@@ -2789,7 +2800,7 @@ class NDFrame(PandasObject):
             new_data = self._data.copy()
             new_data.axes[block_axis] = index.shift(periods, offset)
 
-        return self._constructor(new_data)
+        return self._constructor(new_data).__finalize__(self)
 
     def truncate(self, before=None, after=None, copy=True):
         """Truncates a sorted NDFrame before and/or after some particular
@@ -2864,7 +2875,7 @@ class NDFrame(PandasObject):
             new_obj._set_axis(0, new_ax)
             self._clear_item_cache()
 
-        return new_obj
+        return new_obj.__finalize__(self)
 
     def tz_localize(self, tz, axis=0, copy=True, infer_dst=False):
         """
@@ -2902,7 +2913,7 @@ class NDFrame(PandasObject):
             new_obj._set_axis(0, new_ax)
             self._clear_item_cache()
 
-        return new_obj
+        return new_obj.__finalize__(self)
 
     #----------------------------------------------------------------------
     # Numeric Methods
@@ -3128,7 +3139,7 @@ equivalent of the ``numpy.ndarray`` method ``argmin``.""", nanops.nanmin)
 
                 d = self._construct_axes_dict()
                 d['copy'] = False
-                return self._constructor(result, **d)._propogate_attributes(self)
+                return self._constructor(result, **d).__finalize__(self)
 
             func.__name__ = name
             return func

@@ -224,6 +224,99 @@ class Generic(object):
         f('float64')
         f('M8[ns]')
 
+    def check_metadata(self, x, y=None):
+        for m in x._metadata:
+            v = getattr(x,m,None)
+            if y is None:
+                self.assert_(v is None)
+            else:
+                self.assert_(v == getattr(y,m,None))
+
+    def test_metadata_propagation(self):
+        # check that the metadata matches up on the resulting ops
+
+        o = self._construct(shape=3)
+        o.name = 'foo'
+        o2 = self._construct(shape=3)
+        o2.name = 'bar'
+
+        # TODO
+        # Once panel can do non-trivial combine operations
+        # (currently there is an a raise in the Panel arith_ops to prevent
+        # this, though it actually does work)
+        # can remove all of these try: except: blocks on the actual operations
+
+
+        # ----------
+        # preserving
+        # ----------
+
+        # simple ops with scalars
+        for op in [ '__add__','__sub__','__truediv__','__mul__' ]:
+            result = getattr(o,op)(1)
+            self.check_metadata(o,result)
+
+        # ops with like
+        for op in [ '__add__','__sub__','__truediv__','__mul__' ]:
+            try:
+                result = getattr(o,op)(o)
+                self.check_metadata(o,result)
+            except (ValueError, AttributeError):
+                pass
+
+        # simple boolean
+        for op in [ '__eq__','__le__', '__ge__' ]:
+            v1 = getattr(o,op)(o)
+            self.check_metadata(o,v1)
+
+            try:
+                self.check_metadata(o, v1 & v1)
+            except (ValueError):
+                pass
+
+            try:
+                self.check_metadata(o, v1 | v1)
+            except (ValueError):
+                pass
+
+        # combine_first
+        try:
+            result = o.combine_first(o2)
+            self.check_metadata(o,result)
+        except (AttributeError):
+            pass
+
+
+        # ---------------------------
+        # non-preserving (by default)
+        # ---------------------------
+
+        # add non-like
+        try:
+            result = o + o2
+            self.check_metadata(result)
+        except (ValueError, AttributeError):
+            pass
+
+        # simple boolean
+        for op in [ '__eq__','__le__', '__ge__' ]:
+
+            # this is a name matching op
+            v1 = getattr(o,op)(o)
+
+            v2 = getattr(o,op)(o2)
+            self.check_metadata(v2)
+
+            try:
+                self.check_metadata(v1 & v2)
+            except (ValueError):
+                pass
+
+            try:
+                self.check_metadata(v1 | v2)
+            except (ValueError):
+                pass
+
 class TestSeries(unittest.TestCase, Generic):
     _typ = Series
     _comparator = lambda self, x, y: assert_series_equal(x,y)
@@ -291,6 +384,17 @@ class TestSeries(unittest.TestCase, Generic):
                   Series(['a']), Series([0.0])]:
                 self.assertRaises(ValueError, lambda : bool(s))
                 self.assertRaises(ValueError, lambda : s.bool())
+
+    def test_metadata_propagation_indiv(self):
+        # check that the metadata matches up on the resulting ops
+
+        o = Series(range(3),range(3))
+        o.name = 'foo'
+        o2 = Series(range(3),range(3))
+        o2.name = 'bar'
+
+        result = o.T
+        self.check_metadata(o,result)
 
     def test_interpolate(self):
         ts = Series(np.arange(len(self.ts), dtype=float), self.ts.index)

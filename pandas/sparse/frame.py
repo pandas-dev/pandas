@@ -124,7 +124,7 @@ class SparseDataFrame(DataFrame):
 
     @property
     def _constructor(self):
-        def wrapper(data, index=None, columns=None, default_fill_value=None, kind=None, fill_value=None, copy=False):
+        def wrapper(data=None, index=None, columns=None, default_fill_value=None, kind=None, fill_value=None, copy=False):
             result = SparseDataFrame(data, index=index, columns=columns,
                                      default_fill_value=fill_value,
                                      default_kind=kind,
@@ -205,7 +205,7 @@ class SparseDataFrame(DataFrame):
     def __array_wrap__(self, result):
         return SparseDataFrame(result, index=self.index, columns=self.columns,
                                default_kind=self._default_kind,
-                               default_fill_value=self._default_fill_value)
+                               default_fill_value=self._default_fill_value).__finalize__(self)
 
     def __getstate__(self):
         # pickling
@@ -420,7 +420,7 @@ class SparseDataFrame(DataFrame):
             raise NotImplementedError
 
         if self.empty and other.empty:
-            return SparseDataFrame(index=new_index)
+            return SparseDataFrame(index=new_index).__finalize__(self)
 
         new_data = {}
         new_fill_value = None
@@ -452,7 +452,7 @@ class SparseDataFrame(DataFrame):
                                  index=new_index,
                                  columns=new_columns,
                                  default_fill_value=new_fill_value,
-                                 fill_value=new_fill_value)
+                                 fill_value=new_fill_value).__finalize__(self)
 
     def _combine_match_index(self, other, func, fill_value=None):
         new_data = {}
@@ -482,7 +482,7 @@ class SparseDataFrame(DataFrame):
                                  index=new_index,
                                  columns=self.columns,
                                  default_fill_value=fill_value,
-                                 fill_value=self.default_fill_value)
+                                 fill_value=self.default_fill_value).__finalize__(self)
 
     def _combine_match_columns(self, other, func, fill_value):
         # patched version of DataFrame._combine_match_columns to account for
@@ -508,7 +508,7 @@ class SparseDataFrame(DataFrame):
                                  index=self.index,
                                  columns=union,
                                  default_fill_value=self.default_fill_value,
-                                 fill_value=self.default_fill_value)
+                                 fill_value=self.default_fill_value).__finalize__(self)
 
     def _combine_const(self, other, func):
         new_data = {}
@@ -519,7 +519,7 @@ class SparseDataFrame(DataFrame):
                                  index=self.index,
                                  columns=self.columns,
                                  default_fill_value=self.default_fill_value,
-                                 fill_value=self.default_fill_value)
+                                 fill_value=self.default_fill_value).__finalize__(self)
 
     def _reindex_index(self, index, method, copy, level, fill_value=np.nan,
                        limit=None, takeable=False):
@@ -598,7 +598,7 @@ class SparseDataFrame(DataFrame):
             else:
                 new_arrays[col] = self[col]
 
-        return self._constructor(new_arrays, index=index, columns=columns)
+        return SparseDataFrame(new_arrays, index=index, columns=columns).__finalize__(self)
 
     def _join_compat(self, other, on=None, how='left', lsuffix='', rsuffix='',
                      sort=False):
@@ -656,7 +656,7 @@ class SparseDataFrame(DataFrame):
         return SparseDataFrame(self.values.T, index=self.columns,
                                columns=self.index,
                                default_fill_value=self._default_fill_value,
-                               default_kind=self._default_kind)
+                               default_kind=self._default_kind).__finalize__(self)
     T = property(transpose)
 
     @Appender(DataFrame.count.__doc__)
@@ -705,10 +705,10 @@ class SparseDataFrame(DataFrame):
                 applied = func(v)
                 applied.fill_value = func(applied.fill_value)
                 new_series[k] = applied
-            return SparseDataFrame(new_series, index=self.index,
-                                   columns=self.columns,
-                                   default_fill_value=self._default_fill_value,
-                                   default_kind=self._default_kind)
+            return self._constructor(new_series, index=self.index,
+                                     columns=self.columns,
+                                     default_fill_value=self._default_fill_value,
+                                     kind=self._default_kind).__finalize__(self)
         else:
             if not broadcast:
                 return self._apply_standard(func, axis, reduce=reduce)
