@@ -89,7 +89,18 @@ SQL
    read_frame
    write_frame
 
+Google BigQuery
+~~~~~~~~~~~~~~~
+.. currentmodule:: pandas.io.gbq
+
+.. autosummary::
+   :toctree: generated/
+
+   read_gbq
+   to_gbq
+
 .. currentmodule:: pandas
+
 
 STATA
 ~~~~~
