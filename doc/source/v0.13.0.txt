@@ -651,7 +651,7 @@ Experimental
 - ``pandas.io.gbq`` provides a simple way to extract from, and load data into,
   Google's BigQuery Data Sets by way of pandas DataFrames. BigQuery is a high
   performance SQL-like database service, useful for performing ad-hoc queries
-  against extremely large datasets. :ref:`See the docs<io.gbq>`
+  against extremely large datasets. :ref:`See the docs <io.bigquery>`
 
   .. code-block:: python
   
@@ -684,24 +684,24 @@ Experimental
      df3 = pandas.concat([df2.min(), df2.mean(), df2.max()],
                          axis=1,keys=["Min Tem", "Mean Temp", "Max Temp"])
 
-  The resulting dataframe is:
+  The resulting dataframe is::
 
-  ```
-             Min Tem  Mean Temp    Max Temp
-  MONTH                                  
-  1     -53.336667  39.827892   89.770968
-  2     -49.837500  43.685219   93.437932
-  3     -77.926087  48.708355   96.099998
-  4     -82.892858  55.070087   97.317240
-  5     -92.378261  61.428117  102.042856
-  6     -77.703334  65.858888  102.900000
-  7     -87.821428  68.169663  106.510714
-  8     -89.431999  68.614215  105.500000
-  9     -86.611112  63.436935  107.142856
-  10    -78.209677  56.880838   92.103333
-  11    -50.125000  48.861228   94.996428
-  12    -50.332258  42.286879   94.396774
-  ```
+     > df3 
+                 Min Tem  Mean Temp    Max Temp
+      MONTH                                  
+      1     -53.336667  39.827892   89.770968
+      2     -49.837500  43.685219   93.437932
+      3     -77.926087  48.708355   96.099998
+      4     -82.892858  55.070087   97.317240
+      5     -92.378261  61.428117  102.042856
+      6     -77.703334  65.858888  102.900000
+      7     -87.821428  68.169663  106.510714
+      8     -89.431999  68.614215  105.500000
+      9     -86.611112  63.436935  107.142856
+      10    -78.209677  56.880838   92.103333
+      11    -50.125000  48.861228   94.996428
+      12    -50.332258  42.286879   94.396774
+
   .. warning::
 
      To use this module, you will need a BigQuery account. See
