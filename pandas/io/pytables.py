@@ -2213,6 +2213,11 @@ class GenericFixed(Fixed):
 
     def read_index_node(self, node):
         data = node[:]
+        # If the index was an empty array write_array_empty() will
+        # have written a sentinel. Here we relace it with the original.
+        if 'shape' in node._v_attrs \
+        and self._is_empty_array(getattr(node._v_attrs, 'shape')):
+            data = np.empty(getattr(node._v_attrs, 'shape'), dtype=getattr(node._v_attrs, 'value_type'))
         kind = _ensure_decoded(node._v_attrs.kind)
         name = None
 
@@ -2251,12 +2256,16 @@ class GenericFixed(Fixed):
         getattr(self.group, key)._v_attrs.value_type = str(value.dtype)
         getattr(self.group, key)._v_attrs.shape = value.shape
 
+    def _is_empty_array(self, shape):
+        """Returns true if any axis is zero length."""
+        return any(x == 0 for x in shape)
+
     def write_array(self, key, value, items=None):
         if key in self.group:
             self._handle.removeNode(self.group, key)
 
         # Transform needed to interface with pytables row/col notation
-        empty_array = any(x == 0 for x in value.shape)
+        empty_array = self._is_empty_array(value.shape)
         transposed = False
 
         if not empty_array:
@@ -2305,17 +2314,18 @@ class GenericFixed(Fixed):
             vlarr = self._handle.createVLArray(self.group, key,
                                                _tables().ObjectAtom())
             vlarr.append(value)
-        elif value.dtype.type == np.datetime64:
-            self._handle.createArray(self.group, key, value.view('i8'))
-            getattr(self.group, key)._v_attrs.value_type = 'datetime64'
-        elif value.dtype.type == np.timedelta64:
-            self._handle.createArray(self.group, key, value.view('i8'))
-            getattr(self.group, key)._v_attrs.value_type = 'timedelta64'
         else:
             if empty_array:
                 self.write_array_empty(key, value)
             else:
-                self._handle.createArray(self.group, key, value)
+                if value.dtype.type == np.datetime64:
+                    self._handle.createArray(self.group, key, value.view('i8'))
+                    getattr(self.group, key)._v_attrs.value_type = 'datetime64'
+                elif value.dtype.type == np.timedelta64:
+                    self._handle.createArray(self.group, key, value.view('i8'))
+                    getattr(self.group, key)._v_attrs.value_type = 'timedelta64'
+                else:
+                    self._handle.createArray(self.group, key, value)
 
         getattr(self.group, key)._v_attrs.transposed = transposed
 
@@ -2362,11 +2372,7 @@ class SeriesFixed(GenericFixed):
     def read(self, **kwargs):
         self.validate_read(kwargs)
         index = self.read_index('index')
-        if len(index) > 0:
-            values = self.read_array('values')
-        else:
-            values = []
-
+        values = self.read_array('values')
         return Series(values, index=index, name=self.name)
 
     def write(self, obj, **kwargs):

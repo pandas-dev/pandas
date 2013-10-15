@@ -2358,6 +2358,11 @@ class TestHDFStore(unittest.TestCase):
         self._check_roundtrip(df1, tm.assert_frame_equal)
         self._check_roundtrip(df2, tm.assert_frame_equal)
 
+    def test_empty_series(self):
+        for dtype in [np.int64, np.float64, np.object, 'm8[ns]', 'M8[ns]']:
+            s = Series(dtype=dtype)
+            self._check_roundtrip(s, tm.assert_series_equal)
+
     def test_can_serialize_dates(self):
 
         rng = [x.date() for x in bdate_range('1/1/2000', '1/30/2000')]
