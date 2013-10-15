@@ -209,6 +209,7 @@ API Changes
 
   - ``HDFStore``
 
+    - A zero length series written to HDF cannot be read back. (:issue:`4708`)
     - ``append_to_multiple`` automatically synchronizes writing rows to multiple
       tables and adds a ``dropna`` kwarg (:issue:`4698`)
     - handle a passed ``Series`` in table format (:issue:`4330`)
