@@ -1641,7 +1641,7 @@ class SeriesGroupBy(GroupBy):
         if len(indexers) == 0:
             filtered = self.obj.take([]) # because np.concatenate would fail
         else:
-            filtered = self.obj.take(np.concatenate(indexers))
+            filtered = self.obj.take(np.sort(np.concatenate(indexers)))
         if dropna:
             return filtered
         else:
@@ -2166,7 +2166,7 @@ class NDFrameGroupBy(GroupBy):
         if len(indexers) == 0:
             filtered = self.obj.take([]) # because np.concatenate would fail
         else:
-            filtered = self.obj.take(np.concatenate(indexers))
+            filtered = self.obj.take(np.sort(np.concatenate(indexers)))
         if dropna:
             return filtered
         else:

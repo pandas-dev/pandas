@@ -600,6 +600,8 @@ Bug Fixes
   - Fixed bug where inplace setting of levels or labels on ``MultiIndex`` would
     not clear cached ``values`` property and therefore return wrong ``values``.
     (:issue:`5215`)
+  - Fixed bug where filtering a grouped DataFrame or Series did not maintain
+    the original ordering (:issue:`4621`).
 
 pandas 0.12.0
 -------------
