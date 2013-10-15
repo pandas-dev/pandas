@@ -1542,6 +1542,56 @@ class TestIndexing(unittest.TestCase):
             df.ix[100,:] = df.ix[0]
         self.assertRaises(ValueError, f)
 
+    def test_partial_set_empty(self):
+
+        # GH5226
+
+        # partially set with an empty object
+        # series
+        s = Series()
+        s.loc[1] = 1
+        assert_series_equal(s,Series([1],index=[1]))
+        s.loc[3] = 3
+        assert_series_equal(s,Series([1,3],index=[1,3]))
+
+        s = Series()
+        s.loc[1] = 1.
+        assert_series_equal(s,Series([1.],index=[1]))
+        s.loc[3] = 3.
+        assert_series_equal(s,Series([1.,3.],index=[1,3]))
+
+        s = Series()
+        s.loc['foo'] = 1
+        assert_series_equal(s,Series([1],index=['foo']))
+        s.loc['bar'] = 3
+        assert_series_equal(s,Series([1,3],index=['foo','bar']))
+        s.loc[3] = 4
+        assert_series_equal(s,Series([1,3,4],index=['foo','bar',3]))
+
+        # partially set with an empty object
+        # frame
+        df = DataFrame()
+
+        def f():
+            df.loc[1] = 1
+        self.assertRaises(ValueError, f)
+        def f():
+            df.loc[1] = Series([1],index=['foo'])
+        self.assertRaises(ValueError, f)
+        def f():
+            df.loc[:,1] = 1
+        self.assertRaises(ValueError, f)
+
+        df2 = DataFrame()
+        df2[1] = Series([1],index=['foo'])
+        df.loc[:,1] = Series([1],index=['foo'])
+        assert_frame_equal(df,DataFrame([[1]],index=['foo'],columns=[1]))
+        assert_frame_equal(df,df2)
+
+        df = DataFrame(columns=['A','B'])
+        df.loc[3] = [6,7]
+        assert_frame_equal(df,DataFrame([[6,7]],index=[3],columns=['A','B']))
+
     def test_cache_updating(self):
         # GH 4939, make sure to update the cache on setitem
 
