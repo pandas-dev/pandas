@@ -39,11 +39,18 @@ class TestClipboard(unittest.TestCase):
     def tearDownClass(cls):
         del cls.data_types, cls.data
 
-    def check_round_trip_frame(self, data_type):
+    def check_round_trip_frame(self, data_type, sep=None):
         data = self.data[data_type]
-        data.to_clipboard()
-        result = read_clipboard()
+        data.to_clipboard(sep=sep)
+        if sep is not None:
+            result = read_clipboard(sep=sep,index_col=0)
+        else:
+            result = read_clipboard()
         tm.assert_frame_equal(data, result, check_dtype=False)
+
+    def test_round_trip_frame_sep(self):
+        for dt in self.data_types:
+            self.check_round_trip_frame(dt,sep=',')
 
     def test_round_trip_frame(self):
         for dt in self.data_types:
