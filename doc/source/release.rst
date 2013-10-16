@@ -259,6 +259,8 @@ API Changes
       ('mostly immutable')
     - ``levels``, ``labels`` and ``names`` are validated upon setting and are
       either copied or shallow-copied.
+    - inplace setting of ``levels`` or ``labels`` now correctly invalidates the
+      cached properties. (:issue:`5238`).
     - ``__deepcopy__`` now returns a shallow copy (currently: a view) of the
       data - allowing metadata changes.
     - ``MultiIndex.astype()`` now only allows ``np.object_``-like dtypes and
