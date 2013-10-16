@@ -316,36 +316,36 @@ def _parse_data(client, job, index_col=None, col_order=None):
     return final_df
 
 def to_gbq(dataframe, destination_table, schema=None, col_order=None, if_exists='fail', **kwargs):
-    """
-    Write a DataFrame to a Google BigQuery table. If the table exists,
-    the DataFrame will be appended. If not, a new table will be created,
-    in which case the schema will have to be specified. By default,
+    """Write a DataFrame to a Google BigQuery table. 
+    
+    If the table exists, the DataFrame will be appended. If not, a new table 
+    will be created, in which case the schema will have to be specified. By default,
     rows will be written in the order they appear in the DataFrame, though
     the user may specify an alternative order.
 
     Parameters
-    ---------------
-    dataframe: DataFrame
+    ----------
+    dataframe : DataFrame
         DataFrame to be written
-    destination_table: string
+    destination_table : string
          name of table to be written, in the form 'dataset.tablename'
     schema : sequence (optional)
          list of column types in order for data to be inserted, e.g. ['INTEGER', 'TIMESTAMP', 'BOOLEAN']
-    col_order: sequence (optional)
+    col_order : sequence (optional)
          order which columns are to be inserted, e.g. ['primary_key', 'birthday', 'username']
-    if_exists: {'fail', 'replace', 'append'} (optional)
-            fail: If table exists, do nothing.
-            replace: If table exists, drop it, recreate it, and insert data.
-            append: If table exists, insert data. Create if does not exist.
+    if_exists : {'fail', 'replace', 'append'} (optional)
+        - fail: If table exists, do nothing.
+        - replace: If table exists, drop it, recreate it, and insert data.
+        - append: If table exists, insert data. Create if does not exist.
     kwargs are passed to the Client constructor
 
-    Raises:
+    Raises
     ------
-    SchemaMissing:
+    SchemaMissing :
         Raised if the 'if_exists' parameter is set to 'replace', but no schema is specified
-    TableExists:
+    TableExists :
         Raised if the specified 'destination_table' exists but the 'if_exists' parameter is set to 'fail' (the default)
-    InvalidSchema:
+    InvalidSchema :
         Raised if the 'schema' parameter does not match the provided DataFrame
     """
 
@@ -416,35 +416,37 @@ def to_gbq(dataframe, destination_table, schema=None, col_order=None, if_exists=
         job = client.Load(table_reference, csv_file.name, schema=schema, **opts)
 
 def read_gbq(query, project_id = None, destination_table = None, index_col=None, col_order=None, **kwargs):
-    """
+    """Load data from Google BigQuery.
+    
     The main method a user calls to load data from Google BigQuery into a pandas DataFrame. 
     This is a simple wrapper for Google's bq.py and bigquery_client.py, which we use
     to get the source data. Because of this, this script respects the user's bq settings 
     file, '~/.bigqueryrc', if it exists. Such a file can be generated using 'bq init'. Further,
-    additional parameters for the query can be specified as either **kwds in the command,
+    additional parameters for the query can be specified as either ``**kwds`` in the command,
     or using FLAGS provided in the 'gflags' module. Particular options can be found in
     bigquery_client.py.
 
     Parameters
     ----------
-    query: str
+    query : str
         SQL-Like Query to return data values
-    project_id: str (optional)
+    project_id : str (optional)
         Google BigQuery Account project ID. Optional, since it may be
         located in ~/.bigqueryrc
-    index_col: str (optional)
+    index_col : str (optional)
         Name of result column to use for index in results DataFrame
-    col_order: list(str) (optional)
+    col_order : list(str) (optional)
         List of BigQuery column names in the desired order for results
         DataFrame
-    destination_table: string (optional)
+    destination_table : string (optional)
         If provided, send the results to the given table.
-    **kwargs: to be passed to bq.Client.Create(). Particularly: 'trace', 'sync',
-        'api', 'api_version'
+    **kwargs : 
+        To be passed to bq.Client.Create(). Particularly: 'trace', 
+        'sync', 'api', 'api_version'
 
     Returns
     -------
-    df: pandas DataFrame
+    df: DataFrame
         DataFrame representing results of query
 
     """
