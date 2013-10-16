@@ -2828,7 +2828,7 @@ class NDFrame(PandasObject):
         if before is not None and after is not None:
             if before > after:
                 raise AssertionError('Truncate: %s must be after %s' %
-                                     (before, after))
+                                     (after, before))
 
         result = self.ix[before:after]
 
