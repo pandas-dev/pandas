@@ -3899,7 +3899,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         truncated = ts.truncate(before=self.ts.index[-1] + offset)
         assert(len(truncated) == 0)
 
-        self.assertRaises(Exception, ts.truncate,
+        self.assertRaises(ValueError, ts.truncate,
                           before=self.ts.index[-1] + offset,
                           after=self.ts.index[0] - offset)
 
