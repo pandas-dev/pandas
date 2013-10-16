@@ -1929,7 +1929,9 @@ class MultiIndex(Index):
         self._levels = levels
         if any(names):
             self._set_names(names)
+
         self._tuples = None
+        self._reset_cache()
 
         if verify_integrity:
             self._verify_integrity()
@@ -1981,6 +1983,7 @@ class MultiIndex(Index):
         self._labels = FrozenList(_ensure_frozen(labs, copy=copy)._shallow_copy()
                                   for labs in labels)
         self._tuples = None
+        self._reset_cache()
 
         if verify_integrity:
             self._verify_integrity()
