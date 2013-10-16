@@ -26,10 +26,21 @@ def read_clipboard(**kwargs):  # pragma: no cover
     return read_table(StringIO(text), **kwargs)
 
 
-def to_clipboard(obj, sep=None, **kwargs):  # pragma: no cover
+def to_clipboard(obj, excel=None, sep=None, **kwargs):  # pragma: no cover
     """
     Attempt to write text representation of object to the system clipboard
     The clipboard can be then pasted into Excel for example.
+
+    Parameters
+    ----------
+    obj : the object to write to the clipboard
+    excel : boolean, defaults to True
+            if True, use the provided separator, writing in a csv
+            format for allowing easy pasting into excel.
+            if False, write a string representation of the object
+            to the clipboard
+    sep : optional, defaults to tab
+    other keywords are passed to to_csv
 
     Notes
     -----
@@ -39,12 +50,19 @@ def to_clipboard(obj, sep=None, **kwargs):  # pragma: no cover
       - OS X:
     """
     from pandas.util.clipboard import clipboard_set
-    try:
-        if sep is None:
-            sep = '\t'
-        buf = StringIO()
-        obj.to_csv(buf,sep=sep, **kwargs)
-        clipboard_set(buf.getvalue())
-    except:
-        clipboard_set(str(obj))
+    if excel is None:
+        excel = True
+
+    if excel:
+        try:
+            if sep is None:
+                sep = '\t'
+            buf = StringIO()
+            obj.to_csv(buf,sep=sep, **kwargs)
+            clipboard_set(buf.getvalue())
+            return
+        except:
+            pass
+
+    clipboard_set(str(obj))
 
