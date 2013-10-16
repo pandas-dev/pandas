@@ -767,7 +767,8 @@ def stack_sparse_frame(frame):
     major_labels = np.concatenate(inds_to_concat)
     stacked_values = np.concatenate(vals_to_concat)
     index = MultiIndex(levels=[frame.index, frame.columns],
-                       labels=[major_labels, minor_labels])
+                       labels=[major_labels, minor_labels],
+                       verify_integrity=False)
 
     lp = DataFrame(stacked_values.reshape((nobs, 1)), index=index,
                    columns=['foo'])

@@ -218,7 +218,7 @@ class _Unstacker(object):
             new_labels.append(np.tile(np.arange(stride), width))
 
         return MultiIndex(levels=new_levels, labels=new_labels,
-                          names=new_names)
+                          names=new_names, verify_integrity=False)
 
     def get_new_index(self):
         result_labels = []
@@ -234,7 +234,8 @@ class _Unstacker(object):
         else:
             new_index = MultiIndex(levels=self.new_index_levels,
                                    labels=result_labels,
-                                   names=self.new_index_names)
+                                   names=self.new_index_names,
+                                   verify_integrity=False)
 
         return new_index
 
@@ -286,7 +287,8 @@ def _unstack_multiple(data, clocs):
 
     dummy_index = MultiIndex(levels=rlevels + [obs_ids],
                              labels=rlabels + [comp_ids],
-                             names=rnames + ['__placeholder__'])
+                             names=rnames + ['__placeholder__'],
+                             verify_integrity=False)
 
     if isinstance(data, Series):
         dummy = Series(data.values, index=dummy_index)
@@ -320,7 +322,7 @@ def _unstack_multiple(data, clocs):
             new_labels.append(rec.take(unstcols.labels[-1]))
 
     new_columns = MultiIndex(levels=new_levels, labels=new_labels,
-                             names=new_names)
+                             names=new_names, verify_integrity=False)
 
     if isinstance(unstacked, Series):
         unstacked.index = new_columns
@@ -505,13 +507,14 @@ def stack(frame, level=-1, dropna=True):
         new_names = list(frame.index.names)
         new_names.append(frame.columns.name)
         new_index = MultiIndex(levels=new_levels, labels=new_labels,
-                               names=new_names)
+                               names=new_names, verify_integrity=False)
     else:
         ilabels = np.arange(N).repeat(K)
         clabels = np.tile(np.arange(K), N).ravel()
         new_index = MultiIndex(levels=[frame.index, frame.columns],
                                labels=[ilabels, clabels],
-                               names=[frame.index.name, frame.columns.name])
+                               names=[frame.index.name, frame.columns.name],
+                               verify_integrity=False)
 
     new_values = frame.values.ravel()
     if dropna:
@@ -590,7 +593,7 @@ def _stack_multi_columns(frame, level=-1, dropna=True):
     new_names.append(frame.columns.names[level])
 
     new_index = MultiIndex(levels=new_levels, labels=new_labels,
-                           names=new_names)
+                           names=new_names, verify_integrity=False)
 
     result = DataFrame(new_data, index=new_index, columns=new_columns)
 

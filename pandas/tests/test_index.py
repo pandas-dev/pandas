@@ -7,6 +7,7 @@ import pickle
 import re
 import unittest
 import nose
+import warnings
 import os
 
 import numpy as np
@@ -1213,7 +1214,7 @@ class TestMultiIndex(unittest.TestCase):
         self.index_names = ['first', 'second']
         self.index = MultiIndex(levels=[major_axis, minor_axis],
                                 labels=[major_labels, minor_labels],
-                                names=self.index_names)
+                                names=self.index_names, verify_integrity=False)
 
     def test_hash_error(self):
         with tm.assertRaisesRegexp(TypeError,
@@ -1447,11 +1448,38 @@ class TestMultiIndex(unittest.TestCase):
             MultiIndex(labels=[])
 
     def test_constructor_mismatched_label_levels(self):
-        levels = [np.array([1]), np.array([2]), np.array([3])]
-        labels = ["a"]
+        labels = [np.array([1]), np.array([2]), np.array([3])]
+        levels = ["a"]
         assertRaisesRegexp(ValueError, "Length of levels and labels must be"
                            " the same", MultiIndex, levels=levels,
                            labels=labels)
+        length_error = re.compile('>= length of level')
+        label_error = re.compile(r'Unequal label lengths: \[4, 2\]')
+
+        # important to check that it's looking at the right thing.
+        with tm.assertRaisesRegexp(ValueError, length_error):
+            MultiIndex(levels=[['a'], ['b']], labels=[[0, 1, 2, 3], [0, 3, 4, 1]])
+
+        with tm.assertRaisesRegexp(ValueError, label_error):
+            MultiIndex(levels=[['a'], ['b']], labels=[[0, 0, 0, 0], [0, 0]])
+
+        # external API
+        with tm.assertRaisesRegexp(ValueError, length_error):
+            self.index.copy().set_levels([['a'], ['b']])
+
+        with tm.assertRaisesRegexp(ValueError, label_error):
+            self.index.copy().set_labels([[0, 0, 0, 0], [0, 0]])
+
+        # deprecated properties
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+
+            with tm.assertRaisesRegexp(ValueError, length_error):
+                self.index.copy().levels = [['a'], ['b']]
+
+            with tm.assertRaisesRegexp(ValueError, label_error):
+                self.index.copy().labels = [[0, 0, 0, 0], [0, 0]]
+
 
     def assert_multiindex_copied(self, copy, original):
         # levels shoudl be (at least, shallow copied)

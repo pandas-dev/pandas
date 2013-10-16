@@ -2209,7 +2209,8 @@ class GenericFixed(Fixed):
             lab = self.read_array(label_key)
             labels.append(lab)
 
-        return MultiIndex(levels=levels, labels=labels, names=names)
+        return MultiIndex(levels=levels, labels=labels, names=names,
+                          verify_integrity=True)
 
     def read_index_node(self, node):
         data = node[:]
