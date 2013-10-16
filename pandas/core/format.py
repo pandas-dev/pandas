@@ -1371,8 +1371,8 @@ class ExcelFormatter(object):
             for idx, idxval in enumerate(index_values):
                 yield ExcelCell(self.rowcounter + idx, 0, idxval, header_style)
 
-        for colidx, colname in enumerate(self.columns):
-            series = self.df[colname]
+        for colidx in range(len(self.columns)):
+            series = self.df.iloc[:, colidx]
             for i, val in enumerate(series):
                 yield ExcelCell(self.rowcounter + i, colidx + coloffset, val)
 
@@ -1408,8 +1408,8 @@ class ExcelFormatter(object):
                                     indexcolval, header_style)
                 gcolidx += 1
 
-        for colidx, colname in enumerate(self.columns):
-            series = self.df[colname]
+        for colidx in range(len(self.columns)):
+            series = self.df.iloc[:, colidx]
             for i, val in enumerate(series):
                 yield ExcelCell(self.rowcounter + i, gcolidx + colidx, val)
 
