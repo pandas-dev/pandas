@@ -314,6 +314,7 @@ API Changes
   - Provide __dir__ method (and local context) for tab completion / remove ipython completers code
     (:issue:`4501`)
   - Support non-unique axes in a Panel via indexing operations (:issue:`4960`)
+  - ``.truncate`` will raise a ``ValueError`` if invalid before and afters dates are given (:issue:`5242`)
 
 Internal Refactoring
 ~~~~~~~~~~~~~~~~~~~~

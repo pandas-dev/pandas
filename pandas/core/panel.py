@@ -998,30 +998,6 @@ class Panel(NDFrame):
     def tshift(self, periods=1, freq=None, axis='major', **kwds):
         return super(Panel, self).tshift(periods, freq, axis, **kwds)
 
-    def truncate(self, before=None, after=None, axis='major'):
-        """Function truncates a sorted Panel before and/or after some
-        particular values on the requested axis
-
-        Parameters
-        ----------
-        before : date
-            Left boundary
-        after : date
-            Right boundary
-        axis : {'major', 'minor', 'items'}
-
-        Returns
-        -------
-        Panel
-        """
-        axis = self._get_axis_name(axis)
-        index = self._get_axis(axis)
-
-        beg_slice, end_slice = index.slice_locs(before, after)
-        new_index = index[beg_slice:end_slice]
-
-        return self.reindex(**{axis: new_index})
-
     def join(self, other, how='left', lsuffix='', rsuffix=''):
         """
         Join items with other Panel either on major and minor axes column
