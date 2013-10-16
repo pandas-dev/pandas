@@ -48,16 +48,6 @@ class StringMixin(object):
         """
         return str(self)
 
-    def _local_dir(self):
-        """ provide addtional __dir__ for this object """
-        return []
-
-    def __dir__(self):
-        """
-        Provide method name lookup and completion
-        Only provide 'public' methods
-        """
-        return list(sorted(list(set(dir(type(self)) + self._local_dir()))))
 
 class PandasObject(StringMixin):
     """baseclass for various pandas objects"""
@@ -76,6 +66,29 @@ class PandasObject(StringMixin):
         """
         # Should be overwritten by base classes
         return object.__repr__(self)
+
+    def _local_dir(self):
+        """ provide addtional __dir__ for this object """
+        return []
+
+    def __dir__(self):
+        """
+        Provide method name lookup and completion
+        Only provide 'public' methods
+        """
+        return list(sorted(list(set(dir(type(self)) + self._local_dir()))))
+
+    def _reset_cache(self, key=None):
+        """
+        Reset cached properties. If ``key`` is passed, only clears that key.
+        """
+        if getattr(self, '_cache', None) is None:
+            return
+        if key is None:
+            self._cache.clear()
+        else:
+            self._cache.pop(key, None)
+
 
 class FrozenList(PandasObject, list):
     """
