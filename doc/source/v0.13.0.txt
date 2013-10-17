@@ -505,10 +505,12 @@ Enhancements
 - :meth:`~pandas.io.json.json_normalize` is a new method to allow you to create a flat table
   from semi-structured JSON data. See :ref:`the docs<io.json_normalize>` (:issue:`1067`)
 
-
 - Added PySide support for the qtpandas DataFrameModel and DataFrameWidget.
 
+- Python csv parser now supports usecols (:issue:`4335`)
+
 - DataFrame has a new ``interpolate`` method, similar to Series (:issue:`4434`, :issue:`1892`)
+
 
   .. ipython:: python
 
