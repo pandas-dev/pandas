@@ -187,6 +187,15 @@ class SparsePanel(Panel):
 
         return self.xs(key, axis=axis)
 
+    def _slice(self, slobj, axis=0, raise_on_error=False, typ=None):
+        """
+        for compat as we don't support Block Manager here
+        """
+        axis = self._get_axis_name(axis)
+        index = self._get_axis(axis)
+
+        return self.reindex(**{axis: index[slobj]})
+
     def _get_item_cache(self, key):
         return self._frames[key]
 

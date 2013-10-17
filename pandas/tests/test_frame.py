@@ -7731,6 +7731,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         truncated = ts.truncate(after=end_missing)
         assert_frame_equal(truncated, expected)
 
+        self.assertRaises(ValueError, ts.truncate,
+                          before=ts.index[-1] - 1,
+                          after=ts.index[0] +1)
+
     def test_truncate_copy(self):
         index = self.tsframe.index
         truncated = self.tsframe.truncate(index[5], index[10])
