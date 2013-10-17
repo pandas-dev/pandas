@@ -621,6 +621,7 @@ Bug Fixes
     non-business date. (:issue:`5203`)
   - Fixed bug in Excel writers where frames with duplicate column names weren't
     written correctly. (:issue:`5235`)
+  - Fixed issue with ``drop`` and a non-unique index on Series (:issue:`5248`)
 
 pandas 0.12.0
 -------------

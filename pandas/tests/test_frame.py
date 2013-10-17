@@ -3175,9 +3175,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         # drop
         df = DataFrame([[1,5,7.],[1,5,7.],[1,5,7.]],columns=['bar','a','a'])
-        df = df.drop(['a'],axis=1)
+        result = df.drop(['a'],axis=1)
         expected = DataFrame([[1],[1],[1]],columns=['bar'])
-        check(df,expected)
+        check(result,expected)
+        result = df.drop('a',axis=1)
+        check(result,expected)
 
         # describe
         df = DataFrame([[1,1,1],[2,2,2],[3,3,3]],columns=['bar','a','a'],dtype='float64')
