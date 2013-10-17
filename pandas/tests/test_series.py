@@ -3550,6 +3550,9 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         s = Series([])
         self.assert_(len(s.dropna()) == 0)
 
+        # invalid axis
+        self.assertRaises(ValueError, s.dropna, axis=1)
+
     def test_drop_duplicates(self):
         s = Series([1, 2, 3, 3])
 

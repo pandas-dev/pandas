@@ -2178,7 +2178,7 @@ class Series(generic.NDFrame):
                   index_label=index_label, mode=mode, nanRep=nanRep,
                   encoding=encoding, date_format=date_format)
 
-    def dropna(self):
+    def dropna(self, axis=0, **kwargs):
         """
         Return Series without null values
 
@@ -2186,6 +2186,7 @@ class Series(generic.NDFrame):
         -------
         valid : Series
         """
+        axis = self._get_axis_number(axis or 0)
         return remove_na(self)
 
     valid = lambda self: self.dropna()
