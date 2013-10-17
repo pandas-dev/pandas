@@ -1092,7 +1092,7 @@ class NDFrame(PandasObject):
 
         Parameters
         ----------
-        labels : list-like
+        labels : list-like; passing a string or tuple will be treated as a single index label
         axis : int
         level : int or name, default None
             For MultiIndex
