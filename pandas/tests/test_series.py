@@ -1415,6 +1415,31 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         rs = s.where(cond, np.nan)
         assert_series_equal(rs, s.mask(~cond))
 
+    def test_drop(self):
+
+        # unique
+        s = Series([1,2],index=['one','two'])
+        expected = Series([1],index=['one'])
+        result = s.drop(['two'])
+        assert_series_equal(result,expected)
+        result = s.drop('two')
+        assert_series_equal(result,expected)
+
+        # non-unique
+        # GH 5248
+        s = Series([1,1,2],index=['one','two','one'])
+        expected = Series([1,2],index=['one','one'])
+        result = s.drop(['two'])
+        assert_series_equal(result,expected)
+        result = s.drop('two')
+        assert_series_equal(result,expected)
+
+        expected = Series([1],index=['two'])
+        result = s.drop(['one'])
+        assert_series_equal(result,expected)
+        result = s.drop('one')
+        assert_series_equal(result,expected)
+
     def test_ix_setitem(self):
         inds = self.series.index[[3, 4, 7]]
 
