@@ -672,9 +672,9 @@ class DataFrame(NDFrame):
             raise ValueError("outtype %s not understood" % outtype)
 
     def to_gbq(self, destination_table, schema=None, col_order=None, if_exists='fail', **kwargs):
-        """Write a DataFrame to a Google BigQuery table. 
-        
-        If the table exists, the DataFrame will be appended. If not, a new table 
+        """Write a DataFrame to a Google BigQuery table.
+
+        If the table exists, the DataFrame will be appended. If not, a new table
         will be created, in which case the schema will have to be specified. By default,
         rows will be written in the order they appear in the DataFrame, though
         the user may specify an alternative order.
@@ -2232,33 +2232,6 @@ class DataFrame(NDFrame):
     def rename(self, index=None, columns=None, **kwargs):
         return super(DataFrame, self).rename(index=index, columns=columns,
                                              **kwargs)
-
-    def reindex_like(self, other, method=None, copy=True, limit=None,
-                     fill_value=NA):
-        """
-        Reindex DataFrame to match indices of another DataFrame, optionally
-        with filling logic
-
-        Parameters
-        ----------
-        other : DataFrame
-        method : string or None
-        copy : boolean, default True
-        limit : int, default None
-            Maximum size gap to forward or backward fill
-
-        Notes
-        -----
-        Like calling s.reindex(index=other.index, columns=other.columns,
-                               method=...)
-
-        Returns
-        -------
-        reindexed : DataFrame
-        """
-        return self.reindex(index=other.index, columns=other.columns,
-                            method=method, copy=copy, limit=limit,
-                            fill_value=fill_value)
 
     def set_index(self, keys, drop=True, append=False, inplace=False,
                   verify_integrity=False):
