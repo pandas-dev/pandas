@@ -122,6 +122,12 @@ def html():
         io_doc = io_doc.replace(_good,_bad)
         with io.open("source/io.rst", 'w', encoding='ascii') as f:
             f.write(io_doc)
+        # these files are often left over due to "[Error 32] file in use"
+        try:
+            os.remove('tmp.sv')
+            os.remove('store.h5')
+        except:
+            pass
 
 def latex():
     check_build()
