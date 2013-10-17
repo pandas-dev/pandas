@@ -11431,20 +11431,6 @@ starting,ending,measure
         result = df.isin(d)
         assert_frame_equal(result, expected)
 
-        # iloc
-        df = DataFrame({'A': ['a', 'b', 'c'], 'B': ['a', 'e', 'f']})
-        d = {0: ['a']}
-        expected = DataFrame(False, df.index, df.columns)
-
-        # without using iloc
-        result = df.isin(d)
-        assert_frame_equal(result, expected)
-
-        # using iloc
-        result = df.isin(d, iloc=True)
-        expected.iloc[0, 0] = True
-        assert_frame_equal(result, expected)
-
     def test_isin_with_string_scalar(self):
         #GH4763
         df = DataFrame({'vals': [1, 2, 3, 4], 'ids': ['a', 'b', 'f', 'n'],
@@ -11455,6 +11441,84 @@ starting,ending,measure
 
         with tm.assertRaises(TypeError):
             df.isin('aaa')
+
+    def test_isin_df(self):
+        df1 = DataFrame({'A': [1, 2, 3, 4], 'B': [2, np.nan, 4, 4]})
+        df2 = DataFrame({'A': [0, 2, 12, 4], 'B': [2, np.nan, 4, 5]})
+        expected = DataFrame(False, df1.index, df1.columns)
+        result = df1.isin(df2)
+        expected['A'].loc[[1, 3]] = True
+        expected['B'].loc[[0, 2]] = True
+        assert_frame_equal(result, expected)
+
+        # partial overlapping columns
+        df2.columns = ['A', 'C']
+        result = df1.isin(df2)
+        expected['B'] = False
+        assert_frame_equal(result, expected)
+
+    def test_isin_df_dupe_values(self):
+        df1 = DataFrame({'A': [1, 2, 3, 4], 'B': [2, np.nan, 4, 4]})
+        # just cols duped
+        df2 = DataFrame([[0, 2], [12, 4], [2, np.nan], [4, 5]],
+                        columns=['B', 'B'])
+        with tm.assertRaises(ValueError):
+            df1.isin(df2)
+
+        # just index duped
+        df2 = DataFrame([[0, 2], [12, 4], [2, np.nan], [4, 5]],
+                        columns=['A', 'B'], index=[0, 0, 1, 1])
+        with tm.assertRaises(ValueError):
+            df1.isin(df2)
+
+        # cols and index:
+        df2.columns = ['B', 'B']
+        with tm.assertRaises(ValueError):
+            df1.isin(df2)
+
+    def test_isin_dupe_self(self):
+        other = DataFrame({'A': [1, 0, 1, 0], 'B': [1, 1, 0, 0]})
+        df = DataFrame([[1, 1], [1, 0], [0, 0]], columns=['A','A'])
+        result = df.isin(other)
+        expected = DataFrame(False, index=df.index, columns=df.columns)
+        expected.loc[0] = True
+        expected.iloc[1, 1] = True
+        assert_frame_equal(result, expected)
+
+
+    def test_isin_against_series(self):
+        df = pd.DataFrame({'A': [1, 2, 3, 4], 'B': [2, np.nan, 4, 4]},
+                          index=['a', 'b', 'c', 'd'])
+        s = pd.Series([1, 3, 11, 4], index=['a', 'b', 'c', 'd'])
+        expected = DataFrame(False, index=df.index, columns=df.columns)
+        expected['A'].loc['a'] = True
+        expected.loc['d'] = True
+        result = df.isin(s)
+        assert_frame_equal(result, expected)
+
+    def test_isin_multiIndex(self):
+        idx = MultiIndex.from_tuples([(0, 'a', 'foo'), (0, 'a', 'bar'),
+                                      (0, 'b', 'bar'), (0, 'b', 'baz'),
+                                      (2, 'a', 'foo'), (2, 'a', 'bar'),
+                                      (2, 'c', 'bar'), (2, 'c', 'baz'),
+                                      (1, 'b', 'foo'), (1, 'b', 'bar'),
+                                      (1, 'c', 'bar'), (1, 'c', 'baz')])
+        df1 = DataFrame({'A': np.ones(12),
+                         'B': np.zeros(12)}, index=idx)
+        df2 = DataFrame({'A': [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1],
+                         'B': [1, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1]})
+        # against regular index
+        expected = DataFrame(False, index=df1.index, columns=df1.columns)
+        result = df1.isin(df2)
+        assert_frame_equal(result, expected)
+
+        df2.index = idx
+        expected = df2.values.astype(np.bool)
+        expected[:, 1] = ~expected[:, 1]
+        expected = DataFrame(expected, columns=['A', 'B'], index=idx)
+
+        result = df1.isin(df2)
+        assert_frame_equal(result, expected)
 
     def test_to_csv_date_format(self):
         from pandas import to_datetime
