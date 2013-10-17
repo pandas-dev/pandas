@@ -1440,6 +1440,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         result = s.drop('one')
         assert_series_equal(result,expected)
 
+        # single string/tuple-like
+        s = Series(range(3),index=list('abc'))
+        self.assertRaises(ValueError, s.drop, 'bc')
+        self.assertRaises(ValueError, s.drop, ('a',))
+
     def test_ix_setitem(self):
         inds = self.series.index[[3, 4, 7]]
 
