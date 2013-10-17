@@ -1103,6 +1103,8 @@ class NDFrame(PandasObject):
         """
         axis_name = self._get_axis_name(axis)
         axis, axis_ = self._get_axis(axis), axis
+        if not is_list_like(labels):
+            labels = [ labels ]
 
         if axis.is_unique:
             if level is not None:

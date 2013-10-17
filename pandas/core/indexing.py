@@ -581,8 +581,10 @@ class _NDFrameIndexer(object):
             return False
 
         # just too complicated
-        for ax in self.obj._data.axes:
+        for indexer, ax in zip(tup,self.obj._data.axes):
             if isinstance(ax, MultiIndex):
+                return False
+            elif com._is_bool_indexer(indexer):
                 return False
 
         return True
