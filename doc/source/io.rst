@@ -85,11 +85,11 @@ They can take a number of arguments:
     ways to specify the file format
   - ``dtype``: A data type name or a dict of column name to data type. If not
     specified, data types will be inferred.
-  - ``header``: row number to use as the column names, and the start of the
+  - ``header``: row number(s) to use as the column names, and the start of the
     data.  Defaults to 0 if no ``names`` passed, otherwise ``None``. Explicitly
     pass ``header=0`` to be able to replace existing names. The header can be
     a list of integers that specify row locations for a multi-index on the columns
-    E.g. [0,1,3]. Interveaning rows that are not specified will be skipped.
+    E.g. [0,1,3]. Intervening rows that are not specified will be skipped.
     (E.g. 2 in this example are skipped)
   - ``skiprows``: A collection of numbers for rows in the file to skip. Can
     also be an integer to skip the first ``n`` rows
@@ -2938,7 +2938,7 @@ into BigQuery and pull it into a DataFrame.
 .. code-block:: python
 
    from pandas.io import gbq
-   
+
    # Insert your BigQuery Project ID Here
    # Can be found in the web console, or
    # using the command line tool `bq ls`
@@ -2998,7 +2998,7 @@ To add more rows to this, simply:
 
    To use this module, you will need a BigQuery account. See
    <https://cloud.google.com/products/big-query> for details.
- 
+
    As of 10/10/13, there is a bug in Google's API preventing result sets
    from being larger than 100,000 rows. A patch is scheduled for the week of
    10/14/13.
