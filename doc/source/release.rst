@@ -409,6 +409,8 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
    (:issue:`5189`, related :issue:`5004`)
  - ``MultiIndex`` constructor now validates that passed levels and labels are
    compatible. (:issue:`5213`, :issue:`5214`)
+ - Unity ``dropna`` for Series/DataFrame signature (:issue:`5250`),
+   tests from :issue:`5234`, courtesy of @rockg
 
 .. _release.bug_fixes-0.13.0:
 

@@ -2459,8 +2459,6 @@ class DataFrame(NDFrame):
             return result
 
         axis = self._get_axis_number(axis)
-        if axis not in (0, 1):  # pragma: no cover
-            raise AssertionError('axis must be 0 or 1')
         agg_axis = 1 - axis
 
         agg_obj = self

@@ -615,7 +615,7 @@ class Panel(NDFrame):
         return Panel(new_values, items=new_items, major_axis=new_major,
                      minor_axis=new_minor)
 
-    def dropna(self, axis=0, how='any'):
+    def dropna(self, axis=0, how='any', **kwargs):
         """
         Drop 2D from panel, holding passed axis constant
 
