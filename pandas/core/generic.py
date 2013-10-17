@@ -1092,7 +1092,7 @@ class NDFrame(PandasObject):
 
         Parameters
         ----------
-        labels : array-like
+        labels : list-like
         axis : int
         level : int or name, default None
             For MultiIndex
@@ -1103,8 +1103,6 @@ class NDFrame(PandasObject):
         """
         axis_name = self._get_axis_name(axis)
         axis, axis_ = self._get_axis(axis), axis
-        if not is_list_like(labels):
-            labels = [ labels ]
 
         if axis.is_unique:
             if level is not None:
@@ -1121,6 +1119,7 @@ class NDFrame(PandasObject):
             return dropped
 
         else:
+            labels = com._index_labels_to_array(labels)
             if level is not None:
                 if not isinstance(axis, MultiIndex):
                     raise AssertionError('axis must be a MultiIndex')
