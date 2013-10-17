@@ -449,7 +449,7 @@ class TestDataFramePlots(unittest.TestCase):
 
         # columns.inferred_type == 'mixed'
         # TODO add MultiIndex test
-
+        
     @slow
     def test_xcompat(self):
         import pandas as pd
@@ -533,6 +533,21 @@ class TestDataFramePlots(unittest.TestCase):
              for label in ax.get_xticklabels()]
             [self.assert_(label.get_visible())
              for label in ax.get_yticklabels()]
+
+    @slow
+    def test_plot_scatter(self):
+        from matplotlib.pylab import close
+        df = DataFrame(randn(6, 4),
+                       index=list(string.ascii_letters[:6]),
+                       columns=['x', 'y', 'z', 'four'])
+                       
+        _check_plot_works(df.plot, x='x', y='y', kind='scatter')
+        _check_plot_works(df.plot, x=1, y=2, kind='scatter')
+        
+        with tm.assertRaises(ValueError):
+            df.plot(x='x', kind='scatter')
+        with tm.assertRaises(ValueError):
+            df.plot(y='y', kind='scatter')
 
     @slow
     def test_plot_bar(self):

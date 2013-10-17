@@ -210,6 +210,7 @@ API Changes
   - Default export for ``to_clipboard`` is now csv with a sep of `\t` for
     compat (:issue:`3368`)
   - ``at`` now will enlarge the object inplace (and return the same) (:issue:`2578`)
+  - ``DataFrame.plot`` will scatter plot x versus y by passing ``kind='scatter'`` (:issue:`2215`)
 
   - ``HDFStore``
 
