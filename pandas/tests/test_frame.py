@@ -6464,10 +6464,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df.index.name, df.columns.name = 'first', 'second'
         df_dropped_b = df.drop('b')
         df_dropped_e = df.drop('e', axis=1)
-        self.assertEqual(df_dropped_b.index.name, 'first')
-        self.assertEqual(df_dropped_e.index.name, 'first')
-        self.assertEqual(df_dropped_b.columns.name, 'second')
-        self.assertEqual(df_dropped_e.columns.name, 'second')
+        df_inplace_b, df_inplace_e = df.copy(), df.copy()
+        df_inplace_b.drop('b', inplace=True)
+        df_inplace_e.drop('e', axis=1, inplace=True)
+        for obj in (df_dropped_b, df_dropped_e, df_inplace_b, df_inplace_e):
+            self.assertEqual(obj.index.name, 'first')
+            self.assertEqual(obj.columns.name, 'second')
+        self.assertEqual(list(df.columns), ['d', 'e', 'f'])
 
     def test_dropEmptyRows(self):
         N = len(self.frame.index)
@@ -6475,12 +6478,21 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         mat[:5] = nan
 
         frame = DataFrame({'foo': mat}, index=self.frame.index)
+        original = Series(mat, index=self.frame.index)
+        expected = original.dropna()
+        inplace_frame1, inplace_frame2 = frame.copy(), frame.copy()
 
         smaller_frame = frame.dropna(how='all')
-        self.assert_(np.array_equal(smaller_frame['foo'], mat[5:]))
+        # check that original was preserved
+        assert_series_equal(frame['foo'], original)
+        inplace_frame1.dropna(how='all', inplace=True)
+        assert_series_equal(smaller_frame['foo'], expected)
+        assert_series_equal(inplace_frame1['foo'], expected)
 
         smaller_frame = frame.dropna(how='all', subset=['foo'])
-        self.assert_(np.array_equal(smaller_frame['foo'], mat[5:]))
+        inplace_frame2.dropna(how='all', subset=['foo'], inplace=True)
+        assert_series_equal(smaller_frame['foo'], expected)
+        assert_series_equal(inplace_frame2['foo'], expected)
 
     def test_dropIncompleteRows(self):
         N = len(self.frame.index)
@@ -6489,12 +6501,21 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         frame = DataFrame({'foo': mat}, index=self.frame.index)
         frame['bar'] = 5
+        original = Series(mat, index=self.frame.index)
+        inp_frame1, inp_frame2 = frame.copy(), frame.copy()
 
         smaller_frame = frame.dropna()
+        assert_series_equal(frame['foo'], original)
+        inp_frame1.dropna(inplace=True)
         self.assert_(np.array_equal(smaller_frame['foo'], mat[5:]))
+        self.assert_(np.array_equal(inp_frame1['foo'], mat[5:]))
 
         samesize_frame = frame.dropna(subset=['bar'])
+        assert_series_equal(frame['foo'], original)
+        self.assert_((frame['bar'] == 5).all())
+        inp_frame2.dropna(subset=['bar'], inplace=True)
         self.assert_(samesize_frame.index.equals(self.frame.index))
+        self.assert_(inp_frame2.index.equals(self.frame.index))
 
     def test_dropna(self):
         df = DataFrame(np.random.randn(6, 4))
@@ -6502,20 +6523,32 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         dropped = df.dropna(axis=1)
         expected = df.ix[:, [0, 1, 3]]
+        inp = df.copy()
+        inp.dropna(axis=1, inplace=True)
         assert_frame_equal(dropped, expected)
+        assert_frame_equal(inp, expected)
 
         dropped = df.dropna(axis=0)
         expected = df.ix[lrange(2, 6)]
+        inp = df.copy()
+        inp.dropna(axis=0, inplace=True)
         assert_frame_equal(dropped, expected)
+        assert_frame_equal(inp, expected)
 
         # threshold
         dropped = df.dropna(axis=1, thresh=5)
         expected = df.ix[:, [0, 1, 3]]
+        inp = df.copy()
+        inp.dropna(axis=1, thresh=5, inplace=True)
         assert_frame_equal(dropped, expected)
+        assert_frame_equal(inp, expected)
 
         dropped = df.dropna(axis=0, thresh=4)
         expected = df.ix[lrange(2, 6)]
+        inp = df.copy()
+        inp.dropna(axis=0, thresh=4, inplace=True)
         assert_frame_equal(dropped, expected)
+        assert_frame_equal(inp, expected)
 
         dropped = df.dropna(axis=1, thresh=4)
         assert_frame_equal(dropped, df)
@@ -6525,7 +6558,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         # subset
         dropped = df.dropna(axis=0, subset=[0, 1, 3])
+        inp = df.copy()
+        inp.dropna(axis=0, subset=[0, 1, 3], inplace=True)
         assert_frame_equal(dropped, df)
+        assert_frame_equal(inp, df)
 
         # all
         dropped = df.dropna(axis=1, how='all')
@@ -6539,6 +6575,22 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # bad input
         self.assertRaises(ValueError, df.dropna, axis=3)
 
+
+    def test_drop_and_dropna_caching(self):
+        # tst that cacher updates
+        original = Series([1, 2, np.nan])
+        expected = Series([1, 2], dtype=original.dtype)
+        df = pd.DataFrame({'A': original.values.copy()})
+        df2 = df.copy()
+        df['A'].dropna()
+        assert_series_equal(df['A'], original)
+        df['A'].dropna(inplace=True)
+        assert_series_equal(df['A'], expected)
+        df2['A'].drop([1])
+        assert_series_equal(df2['A'], original)
+        df2['A'].drop([1], inplace=True)
+        assert_series_equal(df2['A'], original.drop([1]))
+
     def test_dropna_corner(self):
         # bad input
         self.assertRaises(ValueError, self.frame.dropna, how='foo')
@@ -6549,13 +6601,18 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                         [4, np.nan, 5, 6],
                         [np.nan, np.nan, np.nan, np.nan],
                         [7, np.nan, 8, 9]])
-
+        cp = df.copy()
         result = df.dropna(how='all', axis=[0, 1])
         result2 = df.dropna(how='all', axis=(0, 1))
         expected = df.dropna(how='all').dropna(how='all', axis=1)
 
         assert_frame_equal(result, expected)
         assert_frame_equal(result2, expected)
+        assert_frame_equal(df, cp)
+
+        inp = df.copy()
+        inp.dropna(how='all', axis=(0, 1), inplace=True)
+        assert_frame_equal(inp, expected)
 
     def test_drop_duplicates(self):
         df = DataFrame({'AAA': ['foo', 'bar', 'foo', 'bar',

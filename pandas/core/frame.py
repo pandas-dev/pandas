@@ -2421,7 +2421,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Reindex-based selection methods
 
-    def dropna(self, axis=0, how='any', thresh=None, subset=None):
+    def dropna(self, axis=0, how='any', thresh=None, subset=None, inplace=False):
         """
         Return object with labels on given axis omitted where alternately any
         or all of the data are missing
@@ -2438,6 +2438,8 @@ class DataFrame(NDFrame):
         subset : array-like
             Labels along other axis to consider, e.g. if you are dropping rows
             these would be a list of columns to include
+        inplace : bool, defalt False
+            If True, do operation inplace and return None.
 
         Returns
         -------
@@ -2448,31 +2450,36 @@ class DataFrame(NDFrame):
             for ax in axis:
                 result = result.dropna(how=how, thresh=thresh,
                                        subset=subset, axis=ax)
+        else:
+            axis = self._get_axis_number(axis)
+            agg_axis = 1 - axis
+
+            agg_obj = self
+            if subset is not None:
+                agg_axis_name = self._get_axis_name(agg_axis)
+                agg_obj = self.reindex(**{agg_axis_name: subset})
+
+            count = agg_obj.count(axis=agg_axis)
+
+            if thresh is not None:
+                mask = count >= thresh
+            elif how == 'any':
+                mask = count == len(agg_obj._get_axis(agg_axis))
+            elif how == 'all':
+                mask = count > 0
+            else:
+                if how is not None:
+                    raise ValueError('invalid how option: %s' % how)
+                else:
+                    raise TypeError('must specify how or thresh')
+
+            result = self.take(mask.nonzero()[0], axis=axis, convert=False)
+
+        if inplace:
+            self._update_inplace(result)
+        else:
             return result
 
-        axis = self._get_axis_number(axis)
-        agg_axis = 1 - axis
-
-        agg_obj = self
-        if subset is not None:
-            agg_axis_name = self._get_axis_name(agg_axis)
-            agg_obj = self.reindex(**{agg_axis_name: subset})
-
-        count = agg_obj.count(axis=agg_axis)
-
-        if thresh is not None:
-            mask = count >= thresh
-        elif how == 'any':
-            mask = count == len(agg_obj._get_axis(agg_axis))
-        elif how == 'all':
-            mask = count > 0
-        else:
-            if how is not None:
-                raise ValueError('invalid how option: %s' % how)
-            else:
-                raise TypeError('must specify how or thresh')
-
-        return self.take(mask.nonzero()[0], axis=axis, convert=False)
 
     def drop_duplicates(self, cols=None, take_last=False, inplace=False):
         """

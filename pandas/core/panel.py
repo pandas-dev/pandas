@@ -615,7 +615,7 @@ class Panel(NDFrame):
         return Panel(new_values, items=new_items, major_axis=new_major,
                      minor_axis=new_minor)
 
-    def dropna(self, axis=0, how='any', **kwargs):
+    def dropna(self, axis=0, how='any', inplace=False, **kwargs):
         """
         Drop 2D from panel, holding passed axis constant
 
@@ -627,6 +627,8 @@ class Panel(NDFrame):
         how : {'all', 'any'}, default 'any'
             'any': one or more values are NA in the DataFrame along the
             axis. For 'all' they all must be.
+        inplace : bool, default False
+            If True, do operation inplace and return None.
 
         Returns
         -------
@@ -648,7 +650,11 @@ class Panel(NDFrame):
             cond = mask == per_slice
 
         new_ax = self._get_axis(axis)[cond]
-        return self.reindex_axis(new_ax, axis=axis)
+        result = self.reindex_axis(new_ax, axis=axis)
+        if inplace:
+            self._update_inplace(result)
+        else:
+            return result
 
     def _combine(self, other, func, axis=0):
         if isinstance(other, Panel):

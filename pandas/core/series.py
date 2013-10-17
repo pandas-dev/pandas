@@ -1155,7 +1155,7 @@ class Series(generic.NDFrame):
         """
         return len(self.value_counts())
 
-    def drop_duplicates(self, take_last=False):
+    def drop_duplicates(self, take_last=False, inplace=False):
         """
         Return Series with duplicate values removed
 
@@ -1163,13 +1163,20 @@ class Series(generic.NDFrame):
         ----------
         take_last : boolean, default False
             Take the last observed index in a group. Default first
+        inplace : boolean, default False
+            If True, performs operation inplace and returns None.
 
         Returns
         -------
         deduplicated : Series
         """
         duplicated = self.duplicated(take_last=take_last)
-        return self[-duplicated]
+        result = self[-duplicated]
+        if inplace:
+            return self._update_inplace(result)
+        else:
+            return result
+
 
     def duplicated(self, take_last=False):
         """
@@ -2190,18 +2197,25 @@ class Series(generic.NDFrame):
                   index_label=index_label, mode=mode, nanRep=nanRep,
                   encoding=encoding, date_format=date_format)
 
-    def dropna(self, axis=0, **kwargs):
+    def dropna(self, axis=0, inplace=False, **kwargs):
         """
         Return Series without null values
 
         Returns
         -------
         valid : Series
+        inplace : bool (default False)
+            Do operation in place.
         """
         axis = self._get_axis_number(axis or 0)
-        return remove_na(self)
+        result = remove_na(self)
+        if inplace:
+            self._update_inplace(result)
+        else:
+            return result
 
-    valid = lambda self: self.dropna()
+    valid = lambda self, inplace=False, **kwargs: self.dropna(inplace=inplace,
+                                                              **kwargs)
 
     def first_valid_index(self):
         """
