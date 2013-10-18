@@ -103,7 +103,7 @@ a set of specialized cython routines that are especially fast when dealing with 
 Here is a sample (using 100 column x 100,000 row ``DataFrames``):
 
 .. csv-table::
-    :header: "Operation", "0.11.0 (ms)", "Prior Vern (ms)", "Ratio to Prior"
+    :header: "Operation", "0.11.0 (ms)", "Prior Versions (ms)", "Ratio to Prior"
     :widths: 30, 30, 30, 30
     :delim: ;
 
