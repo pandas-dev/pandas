@@ -1,12 +1,14 @@
 # pylint: disable=W0223
 
+from datetime import datetime
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.compat import range, zip
 import pandas.compat as compat
 import pandas.core.common as com
-from pandas.core.common import (is_integer_dtype,
+from pandas.core.common import (_is_bool_indexer, is_integer_dtype,
                                 _asarray_tuplesafe, is_list_like, isnull,
                                 ABCSeries, ABCDataFrame, ABCPanel)
+import pandas.lib as lib
 
 import numpy as np
 
@@ -149,6 +151,9 @@ class _NDFrameIndexer(object):
     def _setitem_with_indexer(self, indexer, value):
 
         self._has_valid_setitem_indexer(indexer)
+
+        # also has the side effect of consolidating in-place
+        from pandas import Panel, DataFrame, Series
 
         # maybe partial set
         take_split_path = self.obj._is_mixed_type
@@ -574,10 +579,8 @@ class _NDFrameIndexer(object):
             return False
 
         # just too complicated
-        for indexer, ax in zip(tup,self.obj._data.axes):
+        for ax in self.obj._data.axes:
             if isinstance(ax, MultiIndex):
-                return False
-            elif com._is_bool_indexer(indexer):
                 return False
 
         return True
@@ -630,7 +633,7 @@ class _NDFrameIndexer(object):
                 if not ax0.is_lexsorted_for_tuple(tup):
                     raise e1
                 try:
-                    # TODO: Figure out why this is not used here.
+                    # Check for valid axis
                     loc = ax0.get_loc(tup[0])
                 except KeyError:
                     raise e1
@@ -928,7 +931,7 @@ class _IXIndexer(_NDFrameIndexer):
 
     def _has_valid_type(self, key, axis):
         # check for valid axis (raises if invalid)
-        self.obj._get_axis(axis)
+        ax = self.obj._get_axis(axis)
 
         if isinstance(key, slice):
             return True
