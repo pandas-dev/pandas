@@ -1798,7 +1798,6 @@ class DataCol(IndexCol):
 
             elif dtype == u('timedelta64'):
                 self.data = np.asarray(self.data, dtype='m8[ns]')
-            # TODO: Add test cases for this branch!!
             elif dtype == u('date'):
                 try:
                     self.data = np.array(
@@ -3889,7 +3888,6 @@ def _unconvert_index(data, kind, encoding=None):
             index = np.array(
                 [date.fromordinal(v) for v in data], dtype=object)
         except (ValueError):
-            # TODO: Add a test that reaches this part of the code!
             index = np.array(
                 [date.fromtimestamp(v) for v in data], dtype=object)
     elif kind in (u('integer'), u('float')):
