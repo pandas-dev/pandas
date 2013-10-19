@@ -801,7 +801,6 @@ cdef class TextReader:
             raise StopIteration
         self._end_clock('Tokenization')
 
-
         self._start_clock()
         columns = self._convert_column_data(rows=rows,
                                             footer=footer,
@@ -840,11 +839,12 @@ cdef class TextReader:
 
     def _convert_column_data(self, rows=None, upcast_na=False, footer=0):
         cdef:
-            Py_ssize_t i, nused, ncols
+            Py_ssize_t i, nused
             kh_str_t *na_hashset = NULL
             int start, end
             object name, na_flist
             bint na_filter = 0
+            Py_ssize_t num_cols
 
         start = self.parser_start
 
@@ -856,6 +856,22 @@ cdef class TextReader:
         # # skip footer
         # if footer > 0:
         #     end -= footer
+
+        #print >> sys.stderr, self.table_width
+        #print >> sys.stderr, self.leading_cols
+        #print >> sys.stderr, self.parser.lines
+        #print >> sys.stderr, start
+        #print >> sys.stderr, end
+        #print >> sys.stderr, self.header
+        #print >> sys.stderr, "index"
+        num_cols = -1
+        for i in range(self.parser.lines):
+            num_cols = (num_cols < self.parser.line_fields[i]) * self.parser.line_fields[i] +\
+                (num_cols >= self.parser.line_fields[i]) * num_cols
+
+        if self.table_width - self.leading_cols > num_cols:
+            raise CParserError("Too many columns specified: expected %s and found %s" %
+                (self.table_width - self.leading_cols, num_cols))
 
         results = {}
         nused = 0
@@ -1446,7 +1462,6 @@ cdef _try_int64(parser_t *parser, int col, int line_start, int line_end,
     if na_filter:
         for i in range(lines):
             word = COLITER_NEXT(it)
-
             k = kh_get_str(na_hashset, word)
             # in the hash table
             if k != na_hashset.n_buckets:
@@ -1828,16 +1843,6 @@ cdef _apply_converter(object f, parser_t *parser, int col,
 
     return lib.maybe_convert_objects(result)
 
-    # if issubclass(values.dtype.type, (np.number, np.bool_)):
-    #     return values
-
-    # # XXX
-    # na_values = set([''])
-    # try:
-    #     return lib.maybe_convert_numeric(values, na_values, False)
-    # except Exception:
-    #     na_count = lib.sanitize_objects(values, na_values, False)
-    #     return result
 
 def _to_structured_array(dict columns, object names):
     cdef:

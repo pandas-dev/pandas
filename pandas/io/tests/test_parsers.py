@@ -1955,6 +1955,15 @@ a,b,c
         result = self.read_csv(StringIO(data), header=None, sep='\s+')
         self.assertTrue(result[0].dtype == np.float64)
 
+    def test_catch_too_many_names(self):
+        # Issue 5156
+        data = """\
+1,2,3
+4,,6
+7,8,9
+10,11,12\n"""
+        tm.assertRaises(Exception, read_csv, StringIO(data), header=0, names=['a', 'b', 'c', 'd'])
+
 
 class TestPythonParser(ParserTests, unittest.TestCase):
     def test_negative_skipfooter_raises(self):
