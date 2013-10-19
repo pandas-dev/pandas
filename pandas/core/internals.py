@@ -1881,8 +1881,8 @@ class BlockManager(PandasObject):
         value = _ensure_index(value)
 
         if check_axis and len(value) != len(cur_axis):
-            raise ValueError('Length mismatch (%d vs %d)'
-                            % (len(value), len(cur_axis)))
+            raise ValueError('Length mismatch: Expected %d elements, got %d elements'
+                            % (len(cur_axis), len(value)))
 
         self.axes[axis] = value
         self._shape = None
@@ -3361,8 +3361,8 @@ class SingleBlockManager(BlockManager):
         value = _ensure_index(value)
 
         if len(value) != len(cur_axis):
-            raise Exception('Length mismatch (%d vs %d)'
-                            % (len(value), len(cur_axis)))
+            raise ValueError('Length mismatch: Expected %d elements, got %d elements'
+                            % (len(cur_axis), len(value)))
         self.axes[axis] = value
         self._shape = None
         self._block.set_ref_items(self.items, maybe_rename=True)
