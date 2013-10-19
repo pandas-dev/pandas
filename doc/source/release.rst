@@ -183,6 +183,7 @@ Improvements to existing features
   - ``Series`` now supports a ``to_frame`` method to convert it to a single-column DataFrame (:issue:`5164`)
   - DatetimeIndex (and date_range) can now be constructed in a left- or
     right-open fashion using the ``closed`` parameter (:issue:`4579`)
+  - Python csv parser now supports usecols (:issue:`4335`)
 
 API Changes
 ~~~~~~~~~~~
@@ -625,6 +626,8 @@ Bug Fixes
   - Fixed bug in Excel writers where frames with duplicate column names weren't
     written correctly. (:issue:`5235`)
   - Fixed issue with ``drop`` and a non-unique index on Series (:issue:`5248`)
+  - Fixed seg fault in C parser caused by passing more names than columns in
+    the file. (:issue:`5156`)
 
 pandas 0.12.0
 -------------

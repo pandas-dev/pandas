@@ -161,7 +161,7 @@ typedef struct parser_t {
 
     int *line_start;      // position in words for start of line
     int *line_fields;     // Number of fields in each line
-    int lines;            // Number of (good) lines observedb
+    int lines;            // Number of (good) lines observed
     int file_lines;       // Number of file lines observed (including bad or skipped)
     int lines_cap;        // Vector capacity
 
