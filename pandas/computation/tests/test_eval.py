@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import warnings
+import operator
 from itertools import product
 from distutils.version import LooseVersion
 
@@ -28,7 +30,7 @@ import pandas.util.testing as tm
 from pandas.util.testing import (assert_frame_equal, randbool,
                                  assertRaisesRegexp,
                                  assert_produces_warning, assert_series_equal)
-from pandas.compat import PY3, u
+from pandas.compat import PY3, u, reduce
 
 _series_frame_incompatible = _bool_ops_syms
 _scalar_skip = 'in', 'not in'
@@ -699,6 +701,16 @@ ENGINES_PARSERS = list(product(_engines, expr._parsers))
 #-------------------------------------
 # basic and complex alignment
 
+def _is_datetime(x):
+    return issubclass(x.dtype.type, np.datetime64)
+
+
+def should_warn(*args):
+    not_mono = not any(map(operator.attrgetter('is_monotonic'), args))
+    only_one_dt = reduce(operator.xor, map(_is_datetime, args))
+    return not_mono and only_one_dt
+
+
 class TestAlignment(object):
 
     index_types = 'i', 'u', 'dt'
@@ -719,13 +731,20 @@ class TestAlignment(object):
         tm.skip_if_no_ne(engine)
         args = product(self.lhs_index_types, self.index_types,
                        self.index_types)
-        for lr_idx_type, rr_idx_type, c_idx_type in args:
-            df = mkdf(10, 10, data_gen_f=f, r_idx_type=lr_idx_type,
-                      c_idx_type=c_idx_type)
-            df2 = mkdf(20, 10, data_gen_f=f, r_idx_type=rr_idx_type,
-                       c_idx_type=c_idx_type)
-            res = pd.eval('df + df2', engine=engine, parser=parser)
-            assert_frame_equal(res, df + df2)
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter('always', RuntimeWarning)
+            for lr_idx_type, rr_idx_type, c_idx_type in args:
+                df = mkdf(10, 10, data_gen_f=f, r_idx_type=lr_idx_type,
+                          c_idx_type=c_idx_type)
+                df2 = mkdf(20, 10, data_gen_f=f, r_idx_type=rr_idx_type,
+                           c_idx_type=c_idx_type)
+                # only warns if not monotonic and not sortable
+                if should_warn(df.index, df2.index):
+                    with tm.assert_produces_warning(RuntimeWarning):
+                        res = pd.eval('df + df2', engine=engine, parser=parser)
+                else:
+                    res = pd.eval('df + df2', engine=engine, parser=parser)
+                assert_frame_equal(res, df + df2)
 
     def test_basic_frame_alignment(self):
         for engine, parser in ENGINES_PARSERS:
@@ -754,12 +773,20 @@ class TestAlignment(object):
         args = product(self.lhs_index_types, self.index_types,
                        self.index_types, self.index_types)
 
-        for r1, c1, r2, c2 in args:
-            df = mkdf(3, 2, data_gen_f=f, r_idx_type=r1, c_idx_type=c1)
-            df2 = mkdf(4, 2, data_gen_f=f, r_idx_type=r2, c_idx_type=c2)
-            df3 = mkdf(5, 2, data_gen_f=f, r_idx_type=r2, c_idx_type=c2)
-            res = pd.eval('df + df2 + df3', engine=engine, parser=parser)
-            assert_frame_equal(res, df + df2 + df3)
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter('always', RuntimeWarning)
+
+            for r1, c1, r2, c2 in args:
+                df = mkdf(3, 2, data_gen_f=f, r_idx_type=r1, c_idx_type=c1)
+                df2 = mkdf(4, 2, data_gen_f=f, r_idx_type=r2, c_idx_type=c2)
+                df3 = mkdf(5, 2, data_gen_f=f, r_idx_type=r2, c_idx_type=c2)
+                if should_warn(df.index, df2.index, df3.index):
+                    with tm.assert_produces_warning(RuntimeWarning):
+                        res = pd.eval('df + df2 + df3', engine=engine,
+                                      parser=parser)
+                else:
+                    res = pd.eval('df + df2 + df3', engine=engine, parser=parser)
+                assert_frame_equal(res, df + df2 + df3)
 
     @slow
     def test_medium_complex_frame_alignment(self):
@@ -775,20 +802,24 @@ class TestAlignment(object):
             index = getattr(df, index_name)
             s = Series(np.random.randn(5), index[:5])
 
-            res = pd.eval('df + s', engine=engine, parser=parser)
+            if should_warn(df.index, s.index):
+                with tm.assert_produces_warning(RuntimeWarning):
+                    res = pd.eval('df + s', engine=engine, parser=parser)
+            else:
+                res = pd.eval('df + s', engine=engine, parser=parser)
+
             if r_idx_type == 'dt' or c_idx_type == 'dt':
-                if engine == 'numexpr':
-                    expected = df.add(s)
-                else:
-                    expected = df + s
+                expected = df.add(s) if engine == 'numexpr' else df + s
             else:
                 expected = df + s
             assert_frame_equal(res, expected)
 
         args = product(self.lhs_index_types, self.index_types,
                        ('index', 'columns'))
-        for r_idx_type, c_idx_type, index_name in args:
-            testit(r_idx_type, c_idx_type, index_name)
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter('always', RuntimeWarning)
+            for r_idx_type, c_idx_type, index_name in args:
+                    testit(r_idx_type, c_idx_type, index_name)
 
     def test_basic_frame_series_alignment(self):
         for engine, parser in ENGINES_PARSERS:
@@ -802,13 +833,14 @@ class TestAlignment(object):
                       c_idx_type=c_idx_type)
             index = getattr(df, index_name)
             s = Series(np.random.randn(5), index[:5])
+            if should_warn(s.index, df.index):
+                with tm.assert_produces_warning(RuntimeWarning):
+                    res = pd.eval('s + df', engine=engine, parser=parser)
+            else:
+                res = pd.eval('s + df', engine=engine, parser=parser)
 
-            res = pd.eval('s + df', engine=engine, parser=parser)
             if r_idx_type == 'dt' or c_idx_type == 'dt':
-                if engine == 'numexpr':
-                    expected = df.add(s)
-                else:
-                    expected = s + df
+                expected = df.add(s) if engine == 'numexpr' else s + df
             else:
                 expected = s + df
             assert_frame_equal(res, expected)
@@ -820,8 +852,10 @@ class TestAlignment(object):
 
         # dt with dt
         args = product(['dt'], ['dt'], ('index', 'columns'))
-        for r_idx_type, c_idx_type, index_name in args:
-            testit(r_idx_type, c_idx_type, index_name)
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter('always', RuntimeWarning)
+            for r_idx_type, c_idx_type, index_name in args:
+                testit(r_idx_type, c_idx_type, index_name)
 
     def test_basic_series_frame_alignment(self):
         for engine, parser in ENGINES_PARSERS:
@@ -831,20 +865,29 @@ class TestAlignment(object):
         tm.skip_if_no_ne(engine)
         args = product(self.lhs_index_types, self.index_types, ('+', '*'),
                        ('index', 'columns'))
-        for r_idx_type, c_idx_type, op, index_name in args:
-            df = mkdf(10, 10, data_gen_f=f, r_idx_type=r_idx_type,
-                      c_idx_type=c_idx_type)
-            index = getattr(df, index_name)
-            s = Series(np.random.randn(5), index[:5])
 
-            lhs = 's {0} df'.format(op)
-            rhs = 'df {0} s'.format(op)
-            a = pd.eval(lhs, engine=engine, parser=parser)
-            b = pd.eval(rhs, engine=engine, parser=parser)
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter('always', RuntimeWarning)
+            for r_idx_type, c_idx_type, op, index_name in args:
+                df = mkdf(10, 10, data_gen_f=f, r_idx_type=r_idx_type,
+                          c_idx_type=c_idx_type)
+                index = getattr(df, index_name)
+                s = Series(np.random.randn(5), index[:5])
 
-            if r_idx_type != 'dt' and c_idx_type != 'dt':
-                if engine == 'numexpr':
-                    assert_frame_equal(a, b)
+                lhs = 's {0} df'.format(op)
+                rhs = 'df {0} s'.format(op)
+                if should_warn(df.index, s.index):
+                    with tm.assert_produces_warning(RuntimeWarning):
+                        a = pd.eval(lhs, engine=engine, parser=parser)
+                    with tm.assert_produces_warning(RuntimeWarning):
+                        b = pd.eval(rhs, engine=engine, parser=parser)
+                else:
+                    a = pd.eval(lhs, engine=engine, parser=parser)
+                    b = pd.eval(rhs, engine=engine, parser=parser)
+
+                if r_idx_type != 'dt' and c_idx_type != 'dt':
+                    if engine == 'numexpr':
+                        assert_frame_equal(a, b)
 
     def test_series_frame_commutativity(self):
         for engine, parser in ENGINES_PARSERS:
@@ -860,34 +903,41 @@ class TestAlignment(object):
         m1 = 5
         m2 = 2 * m1
 
-        for r1, r2, c1, c2 in args:
-            index_name = random.choice(['index', 'columns'])
-            obj_name = random.choice(['df', 'df2'])
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter('always', RuntimeWarning)
+            for r1, r2, c1, c2 in args:
+                index_name = random.choice(['index', 'columns'])
+                obj_name = random.choice(['df', 'df2'])
 
-            df = mkdf(m1, n, data_gen_f=f, r_idx_type=r1, c_idx_type=c1)
-            df2 = mkdf(m2, n, data_gen_f=f, r_idx_type=r2, c_idx_type=c2)
-            index = getattr(locals().get(obj_name), index_name)
-            s = Series(np.random.randn(n), index[:n])
+                df = mkdf(m1, n, data_gen_f=f, r_idx_type=r1, c_idx_type=c1)
+                df2 = mkdf(m2, n, data_gen_f=f, r_idx_type=r2, c_idx_type=c2)
+                index = getattr(locals().get(obj_name), index_name)
+                s = Series(np.random.randn(n), index[:n])
 
-            if r2 == 'dt' or c2 == 'dt':
-                if engine == 'numexpr':
-                    expected2 = df2.add(s)
+                if r2 == 'dt' or c2 == 'dt':
+                    if engine == 'numexpr':
+                        expected2 = df2.add(s)
+                    else:
+                        expected2 = df2 + s
                 else:
                     expected2 = df2 + s
-            else:
-                expected2 = df2 + s
 
-            if r1 == 'dt' or c1 == 'dt':
-                if engine == 'numexpr':
-                    expected = expected2.add(df)
+                if r1 == 'dt' or c1 == 'dt':
+                    if engine == 'numexpr':
+                        expected = expected2.add(df)
+                    else:
+                        expected = expected2 + df
                 else:
                     expected = expected2 + df
-            else:
-                expected = expected2 + df
 
-            res = pd.eval('df2 + s + df', engine=engine, parser=parser)
-            tm.assert_equal(res.shape, expected.shape)
-            assert_frame_equal(res, expected)
+                if should_warn(df2.index, s.index, df.index):
+                    with tm.assert_produces_warning(RuntimeWarning):
+                        res = pd.eval('df2 + s + df', engine=engine,
+                                      parser=parser)
+                else:
+                    res = pd.eval('df2 + s + df', engine=engine, parser=parser)
+                tm.assert_equal(res.shape, expected.shape)
+                assert_frame_equal(res, expected)
 
     @slow
     def test_complex_series_frame_alignment(self):

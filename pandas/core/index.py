@@ -1,5 +1,6 @@
 # pylint: disable=E1101,E1103,W0232
 import datetime
+import warnings
 from functools import partial
 import warnings
 from pandas.compat import range, zip, lrange, lzip, u, reduce
@@ -997,29 +998,36 @@ class Index(IndexOpsMixin, FrozenNDArray):
                 result.extend([x for x in other.values if x not in value_set])
         else:
             indexer = self.get_indexer(other)
-            indexer = (indexer == -1).nonzero()[0]
+            indexer, = (indexer == -1).nonzero()
 
             if len(indexer) > 0:
                 other_diff = com.take_nd(other.values, indexer,
                                          allow_fill=False)
                 result = com._concat_compat((self.values, other_diff))
+
                 try:
+                    self.values[0] < other_diff[0]
+                except TypeError as e:
+                    warnings.warn("%s, sort order is undefined for "
+                                  "incomparable objects" % e, RuntimeWarning)
+                else:
                     result.sort()
-                except Exception:
-                    pass
+
             else:
-                # contained in
+                result = self.values
+
                 try:
-                    result = np.sort(self.values)
-                except TypeError:  # pragma: no cover
-                    result = self.values
+                    result = np.sort(result)
+                except TypeError as e:
+                    warnings.warn("%s, sort order is undefined for "
+                                  "incomparable objects" % e, RuntimeWarning)
 
         # for subclasses
         return self._wrap_union_result(other, result)
 
     def _wrap_union_result(self, other, result):
         name = self.name if self.name == other.name else None
-        return type(self)(data=result, name=name)
+        return self.__class__(data=result, name=name)
 
     def intersection(self, other):
         """
