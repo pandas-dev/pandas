@@ -1879,6 +1879,8 @@ if you compute the levels and labels yourself, please be careful.
 Setting index metadata (``name(s)``, ``levels``, ``labels``)
 ------------------------------------------------------------
 
+.. versionadded:: 0.13.0
+
 .. _indexing.set_metadata:
 
 Indexes are "mostly immutable", but it is possible to set and change their
