@@ -132,7 +132,11 @@ Data manipulations
 .. autosummary::
    :toctree: generated/
 
+   melt
    pivot_table
+   crosstab
+   cut
+   qcut
    merge
    concat
    get_dummies
@@ -154,6 +158,9 @@ Top-level dealing with datetimes
 
    to_datetime
    to_timedelta
+   date_range
+   bdate_range
+   period_range
 
 Top-level evaluation
 ~~~~~~~~~~~~~~~~~~~~
@@ -175,12 +182,16 @@ Standard moving window functions
    rolling_median
    rolling_var
    rolling_std
+   rolling_min
+   rolling_max
    rolling_corr
+   rolling_corr_pairwise
    rolling_cov
    rolling_skew
    rolling_kurt
    rolling_apply
    rolling_quantile
+   rolling_window
 
 Standard expanding window functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -194,7 +205,10 @@ Standard expanding window functions
    expanding_median
    expanding_var
    expanding_std
+   expanding_min
+   expanding_max
    expanding_corr
+   expanding_corr_pairwise
    expanding_cov
    expanding_skew
    expanding_kurt
@@ -474,6 +488,8 @@ Serialization / IO / Conversion
    Series.to_csv
    Series.to_dict
    Series.to_frame
+   Series.to_hdf
+   Series.to_json
    Series.to_sparse
    Series.to_string
    Series.to_clipboard
@@ -733,6 +749,7 @@ Serialization / IO / Conversion
    DataFrame.to_excel
    DataFrame.to_json
    DataFrame.to_html
+   DataFrame.to_latex
    DataFrame.to_stata
    DataFrame.to_records
    DataFrame.to_sparse
@@ -933,6 +950,8 @@ Serialization / IO / Conversion
    Panel.from_dict
    Panel.to_pickle
    Panel.to_excel
+   Panel.to_hdf
+   Panel.to_json
    Panel.to_sparse
    Panel.to_frame
    Panel.to_clipboard
@@ -1039,24 +1058,26 @@ DatetimeIndex
 
 Time/Date Components
 ~~~~~~~~~~~~~~~~~~~~
-  * **year**
-  * **month**
-  * **day**
-  * **hour**
-  * **minute**
-  * **second**
-  * **microsecond**
-  * **nanosecond**
 
-  * **weekofyear**
-  * **week**: Same as weekofyear
-  * **dayofweek**: (0=Monday, 6=Sunday)
-  * **weekday**: (0=Monday, 6=Sunday)
-  * **dayofyear**
-  * **quarter**
+.. autosummary::
+   :toctree: generated/
 
-  * **date**: Returns date component of Timestamps
-  * **time**: Returns time component of Timestamps
+   DatetimeIndex.year
+   DatetimeIndex.month
+   DatetimeIndex.day
+   DatetimeIndex.hour
+   DatetimeIndex.minute
+   DatetimeIndex.second
+   DatetimeIndex.microsecond
+   DatetimeIndex.nanosecond
+   DatetimeIndex.date
+   DatetimeIndex.time
+   DatetimeIndex.dayofyear
+   DatetimeIndex.weekofyear
+   DatetimeIndex.week
+   DatetimeIndex.dayofweek
+   DatetimeIndex.weekday
+   DatetimeIndex.quarter
 
 
 Selecting
