@@ -57,17 +57,3 @@ cdef class AxisProperty(object):
 
     def __set__(self, obj, value):
         obj._set_axis(self.axis, value)
-
-cdef class ValuesProperty(object):
-
-    def __get__(self, obj, type):
-        cdef:
-            ndarray arr = obj
-            object base
-
-        base = np.get_array_base(arr)
-        if base is None or not np.PyArray_CheckExact(base):
-            arr = arr.view(np.ndarray)
-        else:
-            arr = base
-        return arr
