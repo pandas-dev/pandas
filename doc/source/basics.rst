@@ -103,8 +103,8 @@ a set of specialized cython routines that are especially fast when dealing with 
 Here is a sample (using 100 column x 100,000 row ``DataFrames``):
 
 .. csv-table::
-    :header: "Operation", "0.11.0 (ms)", "Prior Vern (ms)", "Ratio to Prior"
-    :widths: 30, 30, 30, 30
+    :header: "Operation", "0.11.0 (ms)", "Prior Version (ms)", "Ratio to Prior"
+    :widths: 25, 25, 25, 25
     :delim: ;
 
     ``df1 > df2``; 13.32; 125.35;  0.1063
@@ -1040,12 +1040,6 @@ Methods like ``contains``, ``startswith``, and ``endswith`` takes an extra
 
     ``cat``,Concatenate strings
     ``split``,Split strings on delimiter
-    ``get``,Index into each element (retrieve i-th element)
-    ``join``,Join strings in each element of the Series with passed separator
-    ``contains``,Return boolean array if each string contains pattern/regex
-    ``replace``,Replace occurrences of pattern/regex with some other string
-    ``repeat``,Duplicate values (``s.str.repeat(3)`` equivalent to ``x * 3``)
-    ``pad``,"Add whitespace to left, right, or both sides of strings"
     ``center``,Equivalent to ``pad(side='both')``
     ``slice``,Slice each string in the Series
     ``slice_replace``,Replace slice in each string with passed value
