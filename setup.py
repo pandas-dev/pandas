@@ -304,7 +304,8 @@ class CheckSDist(sdist):
                  'pandas/index.pyx',
                  'pandas/algos.pyx',
                  'pandas/parser.pyx',
-                 'pandas/src/sparse.pyx']
+                 'pandas/src/sparse.pyx',
+                 'pandas/src/testing.pyx']
 
     def initialize_options(self):
         sdist.initialize_options(self)
@@ -463,6 +464,13 @@ sparse_ext = Extension('pandas._sparse',
                        libraries=libraries)
 
 extensions.extend([sparse_ext])
+
+testing_ext = Extension('pandas._testing',
+                       sources=[srcpath('testing', suffix=suffix)],
+                       include_dirs=[],
+                       libraries=libraries)
+
+extensions.extend([testing_ext])
 
 #----------------------------------------------------------------------
 # msgpack stuff here
