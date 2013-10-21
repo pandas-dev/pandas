@@ -99,11 +99,35 @@ def clean():
 
 
 def html():
+    # Sphinx fails on embedded unicode on Windows, so replace the offending 
+    # strings before the build and restore them afterwards
+    import os, io
+    _bad = r"   data = 'word,length\nTr\xe4umen,7\nGr\xfc\xdfe,5'"
+    _good = """   # Due to problems with sphinx and embedded unicode under windows, 
+   # the umlauts were replaced during doc generation!
+   data = 'word,length\\nTraumen,7\\nGruse,5'"""
+    if os.name == 'nt':
+        with io.open("source/io.rst", 'r', encoding='ascii') as f:
+            io_doc = f.read()
+        io_doc = io_doc.replace(_bad, _good)
+        with io.open("source/io.rst", 'w', encoding='ascii') as f:
+            f.write(io_doc)
     check_build()
     if os.system('sphinx-build -P -b html -d build/doctrees '
                  'source build/html'):
         raise SystemExit("Building HTML failed.")
-
+    if os.name == 'nt':
+        with io.open("source/io.rst", 'r', encoding='ascii') as f:
+            io_doc = f.read()
+        io_doc = io_doc.replace(_good,_bad)
+        with io.open("source/io.rst", 'w', encoding='ascii') as f:
+            f.write(io_doc)
+        # these files are often left over due to "[Error 32] file in use"
+        try:
+            os.remove('tmp.sv')
+            os.remove('store.h5')
+        except:
+            pass
 
 def latex():
     check_build()
