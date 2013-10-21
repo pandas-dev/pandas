@@ -414,6 +414,7 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
    compatible. (:issue:`5213`, :issue:`5214`)
  - Unity ``dropna`` for Series/DataFrame signature (:issue:`5250`),
    tests from :issue:`5234`, courtesy of @rockg
+ - Rewrite assert_almost_equal() in cython for performance (:issue:`4398`)
 
 .. _release.bug_fixes-0.13.0:
 

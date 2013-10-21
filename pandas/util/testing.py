@@ -37,6 +37,8 @@ from pandas import bdate_range
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
 
+from pandas import _testing
+
 from pandas.io.common import urlopen
 
 Index = index.Index
@@ -50,6 +52,11 @@ N = 30
 K = 4
 _RAISE_NETWORK_ERROR_DEFAULT = False
 
+# NOTE: don't pass an NDFrame or index to this function - may not handle it
+# well.
+assert_almost_equal = _testing.assert_almost_equal
+
+assert_dict_equal = _testing.assert_dict_equal
 
 def randbool(size=(), p=0.5):
     return rand(*size) <= p
@@ -374,74 +381,8 @@ def assert_attr_equal(attr, left, right):
 def isiterable(obj):
     return hasattr(obj, '__iter__')
 
-
-# NOTE: don't pass an NDFrame or index to this function - may not handle it
-# well.
-def assert_almost_equal(a, b, check_less_precise=False):
-    if isinstance(a, dict) or isinstance(b, dict):
-        return assert_dict_equal(a, b)
-
-    if isinstance(a, compat.string_types):
-        assert a == b, "%r != %r" % (a, b)
-        return True
-
-    if isiterable(a):
-        np.testing.assert_(isiterable(b))
-        na, nb = len(a), len(b)
-        assert na == nb, "%s != %s" % (na, nb)
-        if isinstance(a, np.ndarray) and isinstance(b, np.ndarray) and\
-           np.array_equal(a, b):
-            return True
-        else:
-            for i in range(na):
-                assert_almost_equal(a[i], b[i], check_less_precise)
-        return True
-
-    err_msg = lambda a, b: 'expected %.5f but got %.5f' % (b, a)
-
-    if isnull(a):
-        np.testing.assert_(isnull(b))
-        return
-
-    if isinstance(a, (bool, float, int, np.float32)):
-        decimal = 5
-
-        # deal with differing dtypes
-        if check_less_precise:
-            dtype_a = np.dtype(type(a))
-            dtype_b = np.dtype(type(b))
-            if dtype_a.kind == 'f' and dtype_b == 'f':
-                if dtype_a.itemsize <= 4 and dtype_b.itemsize <= 4:
-                    decimal = 3
-
-        if np.isinf(a):
-            assert np.isinf(b), err_msg(a, b)
-
-        # case for zero
-        elif abs(a) < 1e-5:
-            np.testing.assert_almost_equal(
-                a, b, decimal=decimal, err_msg=err_msg(a, b), verbose=False)
-        else:
-            np.testing.assert_almost_equal(
-                1, a / b, decimal=decimal, err_msg=err_msg(a, b), verbose=False)
-    else:
-        assert a == b, "%s != %s" % (a, b)
-
-
 def is_sorted(seq):
     return assert_almost_equal(seq, np.sort(np.array(seq)))
-
-
-def assert_dict_equal(a, b, compare_keys=True):
-    a_keys = frozenset(a.keys())
-    b_keys = frozenset(b.keys())
-
-    if compare_keys:
-        assert(a_keys == b_keys)
-
-    for k in a_keys:
-        assert_almost_equal(a[k], b[k])
-
 
 def assert_series_equal(left, right, check_dtype=True,
                         check_index_type=False,
