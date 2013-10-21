@@ -361,3 +361,44 @@ Alternatively we can specify custom bin-edges:
 .. ipython:: python
 
    cut(ages, bins=[0, 18, 35, 70])
+
+
+.. _reshaping.dummies:
+
+Computing indicator / dummy variables
+-------------------------------------
+
+To convert a categorical variable into a "dummy" or "indicator" DataFrame, for example
+a column in a DataFrame (a Series) which has ``k`` distinct values, can derive a DataFrame
+containing ``k`` columns of 1s and 0s:
+
+.. ipython:: python
+
+   df = DataFrame({'key': list('bbacab'), 'data1': range(6)})
+
+
+   get_dummies(df['key'])
+
+Sometimes it's useful to prefix the column names, for example when merging the result
+with the original DataFrame:
+
+.. ipython:: python
+
+   dummies = get_dummies(df['key'], prefix='key')
+   dummies
+
+
+   df[['data']].join(dummies)
+
+This function is often used along with discretization functions like ``cut``:
+
+.. ipython:: python
+
+   values = randn(10)
+   values
+
+
+   bins = [0, 0.2, 0.4, 0.6, 0.8, 1]
+
+
+   get_dummies(cut(values, bins))
