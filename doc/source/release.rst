@@ -102,6 +102,8 @@ Improvements to existing features
   - Significant table writing performance improvements in ``HDFStore``
   - JSON date serialisation now performed in low-level C code.
   - JSON support for encoding datetime.time
+  - Expanded JSON docs, more info about orient options and the use of the numpy
+    param when decoding.
   - Add ``drop_level`` argument to xs (:issue:`4180`)
   - Can now resample a DataFrame with ohlc (:issue:`2320`)
   - ``Index.copy()`` and ``MultiIndex.copy()`` now accept keyword arguments to
