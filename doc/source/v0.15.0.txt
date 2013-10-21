@@ -596,11 +596,12 @@ Bug Fixes
 
 - Bug in area plot draws legend with incorrect ``alpha`` when ``stacked=True`` (:issue:`8027`)
 
-- ``Period`` and ``PeriodIndex`` addition/subtraction with ``np.timedelta64`` results in incorrect internal representations (:issue:`7740`)
 
 - ``Holiday`` bug in Holiday with no offset or observance (:issue:`7987`)
 
 - Bug in ``DataFrame.to_latex`` formatting when columns or index is a ``MultiIndex`` (:issue:`7982`).
+
+- Bug in ``DateOffset`` around Daylight Savings Time produces unexpected results (:issue:`5175`).
 
 
 
