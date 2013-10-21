@@ -1,12 +1,6 @@
 """ self-contained to write legacy pickle files """
 from __future__ import print_function
 
-# make sure we are < 0.13 compat (in py3)
-try:
-    from pandas.compat import zip, cPickle as pickle
-except:
-    import pickle
-
 def _create_sp_series():
 
     import numpy as np
@@ -114,21 +108,35 @@ def write_legacy_pickles():
     import sys
     sys.path.insert(0,'.')
 
-    import os
+    import os, os.path
     import numpy as np
     import pandas
     import pandas.util.testing as tm
     import platform as pl
 
-    print("This script generates a pickle file for the current arch, system, and python version")
+    # make sure we are < 0.13 compat (in py3)
+    try:
+        from pandas.compat import zip, cPickle as pickle
+    except:
+        import pickle
 
-    version = pandas.__version__
+    sys_version = version = pandas.__version__
+    if len(sys.argv) < 2:
+        exit("{0} <version> <output_dir>".format(sys.argv[0]))
+
+    version = str(sys.argv[1])
+    output_dir = str(sys.argv[2])
+
+    print("This script generates a pickle file for the current arch, system, and python version")
+    print("  system version: {0}".format(sys_version))
+    print("  output version: {0}".format(version))
+    print("  output dir    : {0}".format(output_dir))
 
     # construct a reasonable platform name
     f = '_'.join([ str(version), str(pl.machine()), str(pl.system().lower()), str(pl.python_version()) ])
     pth = '{0}.pickle'.format(f)
 
-    fh = open(pth,'wb')
+    fh = open(os.path.join(output_dir,pth),'wb')
     pickle.dump(create_data(),fh,pickle.HIGHEST_PROTOCOL)
     fh.close()
 

@@ -80,6 +80,9 @@ class TestPickle(unittest.TestCase):
     def test_read_pickles_0_12_0(self):
         self.read_pickles('0.12.0')
 
+    def test_read_pickles_0_13_0(self):
+        self.read_pickles('0.13.0')
+
     def test_round_trip_current(self):
 
         for typ, dv in self.data.items():
