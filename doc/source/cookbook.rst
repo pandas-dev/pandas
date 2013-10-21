@@ -83,6 +83,12 @@ The :ref:`multindexing <indexing.hierarchical>` docs.
 `Creating a multi-index from a labeled frame
 <http://stackoverflow.com/questions/14916358/reshaping-dataframes-in-pandas-based-on-column-labels>`__
 
+Arithmetic
+~~~~~~~~~~
+
+`Performing arithmetic with a multi-index that needs broadcastin
+<http://stackoverflow.com/questions/19501510/divide-entire-pandas-multiindex-dataframe-by-dataframe-variable/19502176#19502176>`__
+
 Slicing
 ~~~~~~~
 
