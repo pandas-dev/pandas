@@ -40,20 +40,21 @@ class FakeClient:
 # Fake Google BigQuery API Client
 class FakeApiClient:
     def __init__(self):
-        self._tabledata = FakeTableData()
+        self._fakejobs = FakeJobs()
         
 
-    def tabledata(self):
-        return self._tabledata
+    def jobs(self):
+        return self._fakejobs
 
-class FakeTableData:
+class FakeJobs:
     def __init__(self): 
-        self._list = FakeList()
+        self._fakequeryresults = FakeResults()
 
-    def list(self,maxResults = None, pageToken = None, **table_dict):
-        return self._list   
+    def getQueryResults(self, job_id=None, project_id=None,
+                        max_results=None, timeout_ms=None, **kwargs):
+        return self._fakequeryresults   
 
-class FakeList:
+class FakeResults:
     def execute(self):
         return {'rows': [  {'f': [{'v': 'othello'}, {'v': '1603'}, {'v': 'brave'}, {'v': '3'}]},
                             {'f': [{'v': 'othello'}, {'v': '1603'}, {'v': 'attended'}, {'v': '1'}]},
@@ -68,7 +69,8 @@ class FakeList:
                         ],
                 'kind': 'bigquery#tableDataList',
                 'etag': '"4PTsVxg68bQkQs1RJ1Ndewqkgg4/hoRHzb4qfhJAIa2mEewC-jhs9Bg"',
-                'totalRows': '10'}
+                'totalRows': '10',
+                'jobComplete' : True}
 
 ####################################################################################
 
@@ -225,16 +227,16 @@ class test_gbq(unittest.TestCase):
         correct_frame_small = DataFrame(correct_frame_small)[col_order]
         tm.assert_index_equal(result_frame.columns, correct_frame_small.columns)
 
-    # @with_connectivity_check
-    # def test_download_dataset_larger_than_100k_rows(self):
-    #     # Test for known BigQuery bug in datasets larger than 100k rows
-    #     # http://stackoverflow.com/questions/19145587/bq-py-not-paging-results
-    #     if not os.path.exists(self.bq_token):
-    #         raise nose.SkipTest('Skipped because authentication information is not available.')
+    @with_connectivity_check
+    def test_download_dataset_larger_than_100k_rows(self):
+        # Test for known BigQuery bug in datasets larger than 100k rows
+        # http://stackoverflow.com/questions/19145587/bq-py-not-paging-results
+        if not os.path.exists(self.bq_token):
+            raise nose.SkipTest('Skipped because authentication information is not available.')
 
-    #     client = gbq._authenticate()
-    #     a = gbq.read_gbq("SELECT id, FROM [publicdata:samples.wikipedia] LIMIT 100005")
-    #     self.assertTrue(len(a) == 100005)
+        client = gbq._authenticate()
+        a = gbq.read_gbq("SELECT id, FROM [publicdata:samples.wikipedia] LIMIT 100005")
+        self.assertTrue(len(a) == 100005)
 
     @with_connectivity_check
     def test_download_all_data_types(self):

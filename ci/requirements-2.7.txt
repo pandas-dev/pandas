@@ -18,4 +18,4 @@ MySQL-python==1.2.4
 scipy==0.10.0
 beautifulsoup4==4.2.1
 statsmodels==0.5.0
-bigquery==2.0.15
+bigquery==2.0.17
