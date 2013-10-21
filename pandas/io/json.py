@@ -153,8 +153,9 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     keep_default_dates : boolean, default True.
         If parsing dates, then parse the default datelike columns
     numpy : boolean, default False
-        Direct decoding to numpy arrays. Note that the JSON ordering MUST be
-        the same for each term if numpy=True.
+        Direct decoding to numpy arrays. Supports numeric data only, but
+        non-numeric column and index labels are supported. Note also that the
+        JSON ordering MUST be the same for each term if numpy=True.
     precise_float : boolean, default False.
         Set to enable usage of higher precision (strtod) function when
         decoding string to double values. Default (False) is to use fast but

@@ -1018,7 +1018,7 @@ which, if set to ``True``, will additionally output the length of the Series.
 JSON
 ----
 
-Read and write ``JSON`` format files.
+Read and write ``JSON`` format files and strings.
 
 .. _io.json:
 
@@ -1066,12 +1066,77 @@ Note ``NaN``'s, ``NaT``'s and ``None`` will be converted to ``null`` and ``datet
    json = dfj.to_json()
    json
 
+Orient Options
+++++++++++++++
+
+There are a number of different options for the format of the resulting JSON 
+file / string. Consider the following DataFrame and Series:
+
+.. ipython:: python
+
+  dfjo = DataFrame(dict(A=range(1, 4), B=range(4, 7), C=range(7, 10)),
+                   columns=list('ABC'), index=list('xyz'))
+  dfjo
+  sjo = Series(dict(x=15, y=16, z=17), name='D')
+  sjo
+
+**Column oriented** (the default for ``DataFrame``) serialises the data as 
+nested JSON objects with column labels acting as the primary index:
+
+.. ipython:: python
+
+  dfjo.to_json(orient="columns")
+  # Not available for Series
+
+**Index oriented** (the default for ``Series``) similar to column oriented
+but the index labels are now primary:
+
+.. ipython:: python
+
+  dfjo.to_json(orient="index")
+  sjo.to_json(orient="index")
+
+**Record oriented** serialises the data to a JSON array of column -> value records,
+index labels are not included. This is useful for passing DataFrame data to plotting
+libraries, for example the JavaScript library d3.js:
+
+.. ipython:: python
+
+  dfjo.to_json(orient="records")
+  sjo.to_json(orient="records")
+
+**Value oriented** is a bare-bones option which serialises to nested JSON arrays of
+values only, column and index labels are not included:
+
+.. ipython:: python
+
+  dfjo.to_json(orient="values")
+  # Not available for Series
+
+**Split oriented** serialises to a JSON object containing separate entries for 
+values, index and columns. Name is also included for ``Series``:
+
+.. ipython:: python
+
+  dfjo.to_json(orient="split")
+  sjo.to_json(orient="split")
+
+.. note::
+
+  Any orient option that encodes to a JSON object will not preserve the ordering of 
+  index and column labels during round-trip serialisation. If you wish to preserve
+  label ordering use the `split` option as it uses ordered containers.
+
+Date Handling
++++++++++++++
+
 Writing in iso date format
 
 .. ipython:: python
 
    dfd = DataFrame(randn(5, 2), columns=list('AB'))
    dfd['date'] = Timestamp('20130101')
+   dfd = dfd.sort_index(1, ascending=False)
    json = dfd.to_json(date_format='iso')
    json
 
@@ -1082,7 +1147,7 @@ Writing in iso date format, with microseconds
    json = dfd.to_json(date_format='iso', date_unit='us')
    json
 
-Actually I prefer epoch timestamps, in seconds
+Epoch timestamps, in seconds
 
 .. ipython:: python
 
@@ -1100,6 +1165,9 @@ Writing to a file, with a date index and a date column
    dfj2.index = date_range('20130101', periods=5)
    dfj2.to_json('test.json')
    open('test.json').read()
+
+Fallback Behavior
++++++++++++++++++
 
 If the JSON serialiser cannot handle the container contents directly it will fallback in the following manner:
 
@@ -1182,7 +1250,7 @@ is ``None``. To explicity force ``Series`` parsing, pass ``typ=series``
 - ``convert_dates`` : a list of columns to parse for dates; If True, then try to parse datelike columns, default is True
 - ``keep_default_dates`` : boolean, default True. If parsing dates, then parse the default datelike columns
 - ``numpy`` : direct decoding to numpy arrays. default is False;
-  Note that the JSON ordering **MUST** be the same for each term if ``numpy=True``
+  Supports numeric data only, although labels may be non-numeric. Also note that the JSON ordering **MUST** be the same for each term if ``numpy=True``
 - ``precise_float`` : boolean, default ``False``. Set to enable usage of higher precision (strtod) function when decoding string to double values. Default (``False``) is to use fast but less precise builtin functionality
 - ``date_unit`` : string, the timestamp unit to detect if converting dates. Default
   None. By default the timestamp precision will be detected, if this is not desired
@@ -1190,6 +1258,13 @@ is ``None``. To explicity force ``Series`` parsing, pass ``typ=series``
   seconds, milliseconds, microseconds or nanoseconds respectively.
 
 The parser will raise one of ``ValueError/TypeError/AssertionError`` if the JSON is not parsable.
+
+If a non-default ``orient`` was used when encoding to JSON be sure to pass the same
+option here so that decoding produces sensible results, see `Orient Options`_ for an
+overview.
+
+Data Conversion
++++++++++++++++
 
 The default of ``convert_axes=True``, ``dtype=True``, and ``convert_dates=True`` will try to parse the axes, and all of the data
 into appropriate types, including dates. If you need to override specific dtypes, pass a dict to ``dtype``. ``convert_axes`` should only
@@ -1209,31 +1284,31 @@ be set to ``False`` if you need to preserve string-like numbers (e.g. '1', '2') 
 
    Thus there are times where you may want to specify specific dtypes via the ``dtype`` keyword argument.
 
-Reading from a JSON string
+Reading from a JSON string:
 
 .. ipython:: python
 
    pd.read_json(json)
 
-Reading from a file
+Reading from a file:
 
 .. ipython:: python
 
    pd.read_json('test.json')
 
-Don't convert any data (but still convert axes and dates)
+Don't convert any data (but still convert axes and dates):
 
 .. ipython:: python
 
    pd.read_json('test.json', dtype=object).dtypes
 
-Specify how I want to convert data
+Specify dtypes for conversion:
 
 .. ipython:: python
 
    pd.read_json('test.json', dtype={'A' : 'float32', 'bools' : 'int8'}).dtypes
 
-I like my string indicies
+Preserve string indicies:
 
 .. ipython:: python
 
@@ -1250,8 +1325,7 @@ I like my string indicies
    sij.index
    sij.columns
 
-My dates have been written in nanoseconds, so they need to be read back in
-nanoseconds
+Dates written in nanoseconds need to be read back in nanoseconds:
 
 .. ipython:: python
 
@@ -1268,6 +1342,65 @@ nanoseconds
    # Or specify that all timestamps are in nanoseconds
    dfju = pd.read_json(json, date_unit='ns')
    dfju
+
+The Numpy Parameter
++++++++++++++++++++
+
+.. note::
+  This supports numeric data only. Index and columns labels may be non-numeric, e.g. strings, dates etc.
+
+If ``numpy=True`` is passed to ``read_json`` an attempt will be made to sniff
+an appropriate dtype during deserialisation and to subsequently decode directly
+to numpy arrays, bypassing the need for intermediate Python objects. 
+
+This can provide speedups if you are deserialising a large amount of numeric
+data:
+
+.. ipython:: python
+
+   randfloats = np.random.uniform(-100, 1000, 10000)
+   randfloats.shape = (1000, 10)
+   dffloats = DataFrame(randfloats, columns=list('ABCDEFGHIJ'))
+
+   jsonfloats = dffloats.to_json()
+
+.. ipython:: python
+
+   timeit read_json(jsonfloats)
+
+.. ipython:: python
+
+   timeit read_json(jsonfloats, numpy=True)
+
+The speedup is less noticable for smaller datasets:
+
+.. ipython:: python
+   
+   jsonfloats = dffloats.head(100).to_json()
+
+.. ipython:: python
+
+   timeit read_json(jsonfloats)
+
+.. ipython:: python
+
+   timeit read_json(jsonfloats, numpy=True)
+
+.. warning::
+
+   Direct numpy decoding makes a number of assumptions and may fail or produce
+   unexpected output if these assumptions are not satisfied:
+
+    - data is numeric.
+
+    - data is uniform. The dtype is sniffed from the first value decoded.
+      A ``ValueError`` may be raised, or incorrect output may be produced
+      if this condition is not satisfied.
+
+    - labels are ordered. Labels are only read from the first container, it is assumed
+      that each subsequent row / column has been encoded in the same order. This should be satisfied if the
+      data was encoded using ``to_json`` but may not be the case if the JSON 
+      is from another source.
 
 .. ipython:: python
    :suppress:
