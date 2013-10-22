@@ -148,17 +148,22 @@ class TestFrequencyInference(unittest.TestCase):
         self.assert_(infer_freq(index) is None)
 
     def test_weekly(self):
-        days = ['MON', 'TUE', 'WED', 'THU', 'FRI']
+        days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 
         for day in days:
             self._check_generated_range('1/1/2000', 'W-%s' % day)
 
     def test_week_of_month(self):
-        days = ['MON', 'TUE', 'WED', 'THU', 'FRI']
+        days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 
         for day in days:
             for i in range(1, 5):
                 self._check_generated_range('1/1/2000', 'WOM-%d%s' % (i, day))
+    
+    def test_week_of_month_fake(self):
+        #All of these dates are on same day of week and are 4 or 5 weeks apart
+        index = DatetimeIndex(["2013-08-27","2013-10-01","2013-10-29","2013-11-26"])
+        assert infer_freq(index) != 'WOM-4TUE'
 
     def test_monthly(self):
         self._check_generated_range('1/1/2000', 'M')
@@ -195,7 +200,7 @@ class TestFrequencyInference(unittest.TestCase):
         gen = date_range(start, periods=7, freq=freq)
         index = _dti(gen.values)
         if not freq.startswith('Q-'):
-            self.assert_(infer_freq(index) == gen.freqstr)
+            self.assertEqual(infer_freq(index), gen.freqstr)
         else:
             inf_freq = infer_freq(index)
             self.assert_((inf_freq == 'Q-DEC' and

@@ -62,7 +62,8 @@ New features
   - Auto-detect field widths in read_fwf when unspecified (:issue:`4488`)
   - ``to_csv()`` now outputs datetime objects according to a specified format string
     via the ``date_format`` keyword (:issue:`4313`)
-
+  - Added ``LastWeekOfMonth`` DateOffset (:issue:`4637`)
+  - Added ``FY5253``, and ``FY5253Quarter`` DateOffsets (:issue:`4511`)
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~

@@ -199,7 +199,7 @@ class TestPeriodProperties(TestCase):
 
         self.assertRaises(ValueError, Period, ordinal=200701)
 
-        self.assertRaises(KeyError, Period, '2007-1-1', freq='X')
+        self.assertRaises(ValueError, Period, '2007-1-1', freq='X')
 
     def test_freq_str(self):
         i1 = Period('1982', freq='Min')
@@ -1136,8 +1136,8 @@ class TestPeriodIndex(TestCase):
         self.assert_(idx.equals(exp))
 
     def test_constructor_U(self):
-        # X was used as undefined period
-        self.assertRaises(KeyError, period_range, '2007-1-1', periods=500,
+        # U was used as undefined period
+        self.assertRaises(ValueError, period_range, '2007-1-1', periods=500,
                           freq='X')
 
     def test_constructor_arrays_negative_year(self):

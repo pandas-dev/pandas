@@ -283,6 +283,10 @@ class TestTslib(unittest.TestCase):
         # Tuesday
         self.assertEqual(11418, period_ordinal(2013, 10, 8, 0, 0, 0, 0, 0, get_freq('B')))
 
+class TestTomeStampOps(unittest.TestCase):
+    def test_timestamp_and_datetime(self):
+        self.assertEqual((Timestamp(datetime.datetime(2013, 10,13)) - datetime.datetime(2013, 10,12)).days, 1)
+        self.assertEqual((datetime.datetime(2013, 10, 12) - Timestamp(datetime.datetime(2013, 10,13))).days, -1)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

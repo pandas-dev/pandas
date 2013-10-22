@@ -2664,7 +2664,7 @@ class TestTimestamp(unittest.TestCase):
         expected = offsets.Minute(5)
         self.assertEquals(result, expected)
 
-        self.assertRaises(KeyError, fmod.get_freq_code, (5, 'baz'))
+        self.assertRaises(ValueError, fmod.get_freq_code, (5, 'baz'))
 
         self.assertRaises(ValueError, fmod.to_offset, '100foo')
 
@@ -3031,6 +3031,15 @@ class TestSlicing(unittest.TestCase):
         df = df.applymap(lambda x: x + BDay())
 
         self.assertTrue(df.x1.dtype == 'M8[ns]')
+        
+    def test_date_range_fy5252(self):
+        dr = date_range(start="2013-01-01", 
+                           periods=2, 
+                           freq=offsets.FY5253(startingMonth=1,
+                                               weekday=3,
+                                               variation="nearest"))
+        self.assertEqual(dr[0], Timestamp('2013-01-31'))
+        self.assertEqual(dr[1], Timestamp('2014-01-30'))
 
 
 if __name__ == '__main__':
