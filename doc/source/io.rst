@@ -890,6 +890,22 @@ of tupleizing columns, specify ``tupleize_cols=True``.
    print(open('mi.csv').read())
    pd.read_csv('mi.csv',header=[0,1,2,3],index_col=[0,1])
 
+Starting in 0.13.0, ``read_csv`` will be able to interpret a more common format
+of multi-columns indices.
+
+.. ipython:: python
+   :suppress:
+
+   data = ",a,a,a,b,c,c\n,q,r,s,t,u,v\none,1,2,3,4,5,6\ntwo,7,8,9,10,11,12"
+   fh = open('mi2.csv','w')
+   fh.write(data)
+   fh.close()
+
+.. ipython:: python
+
+   print(open('mi2.csv').read())
+   pd.read_csv('mi2.csv',header=[0,1],index_col=0)
+
 Note: If an ``index_col`` is not specified (e.g. you don't have an index, or wrote it
 with ``df.to_csv(..., index=False``), then any ``names`` on the columns index will be *lost*.
 
@@ -898,6 +914,7 @@ with ``df.to_csv(..., index=False``), then any ``names`` on the columns index wi
 
    import os
    os.remove('mi.csv')
+   os.remove('mi2.csv')
 
 .. _io.sniff:
 
@@ -1069,7 +1086,7 @@ Note ``NaN``'s, ``NaT``'s and ``None`` will be converted to ``null`` and ``datet
 Orient Options
 ++++++++++++++
 
-There are a number of different options for the format of the resulting JSON 
+There are a number of different options for the format of the resulting JSON
 file / string. Consider the following DataFrame and Series:
 
 .. ipython:: python
@@ -1080,7 +1097,7 @@ file / string. Consider the following DataFrame and Series:
   sjo = Series(dict(x=15, y=16, z=17), name='D')
   sjo
 
-**Column oriented** (the default for ``DataFrame``) serialises the data as 
+**Column oriented** (the default for ``DataFrame``) serialises the data as
 nested JSON objects with column labels acting as the primary index:
 
 .. ipython:: python
@@ -1113,7 +1130,7 @@ values only, column and index labels are not included:
   dfjo.to_json(orient="values")
   # Not available for Series
 
-**Split oriented** serialises to a JSON object containing separate entries for 
+**Split oriented** serialises to a JSON object containing separate entries for
 values, index and columns. Name is also included for ``Series``:
 
 .. ipython:: python
@@ -1123,7 +1140,7 @@ values, index and columns. Name is also included for ``Series``:
 
 .. note::
 
-  Any orient option that encodes to a JSON object will not preserve the ordering of 
+  Any orient option that encodes to a JSON object will not preserve the ordering of
   index and column labels during round-trip serialisation. If you wish to preserve
   label ordering use the `split` option as it uses ordered containers.
 
@@ -1351,7 +1368,7 @@ The Numpy Parameter
 
 If ``numpy=True`` is passed to ``read_json`` an attempt will be made to sniff
 an appropriate dtype during deserialisation and to subsequently decode directly
-to numpy arrays, bypassing the need for intermediate Python objects. 
+to numpy arrays, bypassing the need for intermediate Python objects.
 
 This can provide speedups if you are deserialising a large amount of numeric
 data:
@@ -1375,7 +1392,7 @@ data:
 The speedup is less noticable for smaller datasets:
 
 .. ipython:: python
-   
+
    jsonfloats = dffloats.head(100).to_json()
 
 .. ipython:: python
@@ -1399,7 +1416,7 @@ The speedup is less noticable for smaller datasets:
 
     - labels are ordered. Labels are only read from the first container, it is assumed
       that each subsequent row / column has been encoded in the same order. This should be satisfied if the
-      data was encoded using ``to_json`` but may not be the case if the JSON 
+      data was encoded using ``to_json`` but may not be the case if the JSON
       is from another source.
 
 .. ipython:: python

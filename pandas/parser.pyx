@@ -250,6 +250,7 @@ cdef class TextReader:
         object memory_map
         object as_recarray
         object header, orig_header, names, header_start, header_end
+        object index_col
         object low_memory
         object skiprows
         object compact_ints, use_unsigned
@@ -266,6 +267,7 @@ cdef class TextReader:
                   header=0,
                   header_start=0,
                   header_end=0,
+                  index_col=None,
                   names=None,
 
                   memory_map=False,
@@ -439,6 +441,8 @@ cdef class TextReader:
         # XXX
         self.noconvert = set()
 
+        self.index_col = index_col
+
         #----------------------------------------
         # header stuff
 
@@ -574,7 +578,7 @@ cdef class TextReader:
         # header is now a list of lists, so field_count should use header[0]
 
         cdef:
-            size_t i, start, data_line, field_count, passed_count, hr
+            size_t i, start, data_line, field_count, passed_count, hr, unnamed_count
             char *word
             object name
             int status
@@ -606,6 +610,7 @@ cdef class TextReader:
 
                 # TODO: Py3 vs. Py2
                 counts = {}
+                unnamed_count = 0
                 for i in range(field_count):
                     word = self.parser.words[start + i]
 
@@ -623,6 +628,7 @@ cdef class TextReader:
                             name = 'Unnamed: %d_level_%d' % (i,level)
                         else:
                             name = 'Unnamed: %d' % i
+                        unnamed_count += 1
 
                     count = counts.get(name, 0)
                     if count > 0 and self.mangle_dupe_cols and not self.has_mi_columns:
@@ -630,6 +636,19 @@ cdef class TextReader:
                     else:
                         this_header.append(name)
                     counts[name] = count + 1
+
+                if self.has_mi_columns:
+
+                    # if we have grabbed an extra line, but its not in our format
+                    # so save in the buffer, and create an blank extra line for the rest of the
+                    # parsing code
+                    if hr == self.header[-1]:
+                        lc = len(this_header)
+                        ic = len(self.index_col) if self.index_col is not None else 0
+                        if lc != unnamed_count and lc-ic > unnamed_count:
+                           hr -= 1
+                           self.parser_start -= 1
+                           this_header = [ None ] * lc
 
                 data_line = hr + 1
                 header.append(this_header)

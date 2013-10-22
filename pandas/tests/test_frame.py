@@ -5348,15 +5348,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         def _do_test(df,path,r_dtype=None,c_dtype=None,rnlvl=None,cnlvl=None,
                      dupe_col=False):
 
+               kwargs = dict(parse_dates=False)
                if cnlvl:
-                   header = lrange(cnlvl)
+                   if rnlvl is not None:
+                       kwargs['index_col'] = lrange(rnlvl)
+                   kwargs['header'] = lrange(cnlvl)
                    with ensure_clean(path) as path:
                         df.to_csv(path,encoding='utf8',chunksize=chunksize,tupleize_cols=False)
-                        recons = DataFrame.from_csv(path,header=lrange(cnlvl),tupleize_cols=False,parse_dates=False)
+                        recons = DataFrame.from_csv(path,tupleize_cols=False,**kwargs)
                else:
+                   kwargs['header'] = 0
                    with ensure_clean(path) as path:
                        df.to_csv(path,encoding='utf8',chunksize=chunksize)
-                       recons = DataFrame.from_csv(path,header=0,parse_dates=False)
+                       recons = DataFrame.from_csv(path,**kwargs)
 
                def _to_uni(x):
                    if not isinstance(x, compat.text_type):
@@ -5366,7 +5370,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                    # read_Csv disambiguates the columns by
                    # labeling them dupe.1,dupe.2, etc'. monkey patch columns
                    recons.columns = df.columns
-               if rnlvl:
+               if rnlvl and not cnlvl:
                    delta_lvl = [recons.icol(i).values for i in range(rnlvl-1)]
                    ix=MultiIndex.from_arrays([list(recons.index)]+delta_lvl)
                    recons.index = ix
@@ -5417,7 +5421,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                         recons.columns = np.array(recons.columns,dtype=c_dtype )
                         df.columns = np.array(df.columns,dtype=c_dtype )
 
-               assert_frame_equal(df, recons,check_names=False,check_less_precise=True)
+               assert_frame_equal(df,recons,check_names=False,check_less_precise=True)
 
         N = 100
         chunksize=1000
@@ -5476,7 +5480,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             base = int((chunksize// ncols or 1) or 1)
             for nrows in [10,N-2,N-1,N,N+1,N+2,2*N-2,2*N-1,2*N,2*N+1,2*N+2,
                       base-1,base,base+1]:
-                print( nrows,ncols)
+                #print( nrows,ncols)
                 _do_test(mkdf(nrows, ncols),path)
 
         for nrows in [10,N-2,N-1,N,N+1,N+2]:
@@ -5498,7 +5502,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             base = int(chunksize//ncols)
             for nrows in [10,N-2,N-1,N,N+1,N+2,2*N-2,2*N-1,2*N,2*N+1,2*N+2,
                       base-1,base,base+1]:
-                print(nrows, ncols)
+                #print(nrows, ncols)
                 _do_test(mkdf(nrows, ncols,r_idx_nlevels=2),path,rnlvl=2)
                 _do_test(mkdf(nrows, ncols,c_idx_nlevels=2),path,cnlvl=2)
                 _do_test(mkdf(nrows, ncols,r_idx_nlevels=2,c_idx_nlevels=2),
@@ -5615,11 +5619,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             # dup column names?
             df = mkdf(5,3,r_idx_nlevels=3,c_idx_nlevels=4)
             df.to_csv(path,tupleize_cols=False)
-            result = read_csv(path,header=[0,1,2,3],index_col=[0,1],tupleize_cols=False)
-            result.columns = ['R2','A','B','C']
-            new_result = result.reset_index().set_index(['R0','R1','R2'])
-            new_result.columns = df.columns
-            assert_frame_equal(df,new_result)
+            result = read_csv(path,header=[0,1,2,3],index_col=[0,1,2],tupleize_cols=False)
+            assert_frame_equal(df,result)
 
             # writing with no index
             df = _make_frame()
@@ -9881,7 +9882,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         if not ('max' in name or 'min' in name or 'count' in name):
             df = DataFrame({'b': date_range('1/1/2001', periods=2)})
             _f = getattr(df, name)
-            print(df)
+            #print(df)
             self.assertFalse(len(_f()))
 
             df['a'] = lrange(len(df))
@@ -11786,7 +11787,7 @@ class TestDataFrameQueryWithMultiIndex(object):
             if isinstance(v, Index):
                 assert v.is_(expected[k])
             elif isinstance(v, Series):
-                print(k)
+                #print(k)
                 tm.assert_series_equal(v, expected[k])
             else:
                 raise AssertionError("object must be a Series or Index")

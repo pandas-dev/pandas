@@ -634,6 +634,8 @@ Bug Fixes
   - Fixed seg fault in C parser caused by passing more names than columns in
     the file. (:issue:`5156`)
   - Fix ``Series.isin`` with date/time-like dtypes (:issue:`5021`)
+  - C and Python Parser can now handle the more common multi-index column format
+    which doesn't have a row for index names (:issue:`4702`)
 
 pandas 0.12.0
 -------------
