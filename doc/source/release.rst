@@ -186,6 +186,7 @@ Improvements to existing features
   - DatetimeIndex (and date_range) can now be constructed in a left- or
     right-open fashion using the ``closed`` parameter (:issue:`4579`)
   - Python csv parser now supports usecols (:issue:`4335`)
+  - Added support for Google Analytics v3 API segment IDs that also supports v2 IDs. (:issue:`5271`)
 
 API Changes
 ~~~~~~~~~~~
