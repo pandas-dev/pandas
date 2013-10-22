@@ -590,14 +590,6 @@ a list of items you want to check for.
 
    df.isin(values)
 
-You can also describe columns using integer location:
-
-.. ipython:: python
-
-   values = {0: ['a', 'b']}
-
-   df.isin(values, iloc=True)
-
 Combine DataFrame's ``isin`` with the ``any()`` and ``all()`` methods to
 quickly select subsets of your data that meet a given criteria.
 To select a row where each column meets its own criterion:
