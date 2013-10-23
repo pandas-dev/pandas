@@ -300,12 +300,18 @@ def nanmin(values, axis=None, skipna=True):
             apply_ax = axis if axis is not None else 0
             result = np.apply_along_axis(builtins.min, apply_ax, values)
         else:
-            result = builtins.min(values)
+            try:
+                result = builtins.min(values)
+            except:
+                result = np.nan
     else:
         if ((axis is not None and values.shape[axis] == 0)
                 or values.size == 0):
-            result = com.ensure_float(values.sum(axis))
-            result.fill(np.nan)
+            try:
+                result = com.ensure_float(values.sum(axis))
+                result.fill(np.nan)
+            except:
+                result = np.nan
         else:
             result = values.min(axis)
 
@@ -324,12 +330,18 @@ def nanmax(values, axis=None, skipna=True):
             apply_ax = axis if axis is not None else 0
             result = np.apply_along_axis(builtins.max, apply_ax, values)
         else:
-            result = builtins.max(values)
+            try:
+                result = builtins.max(values)
+            except:
+                result = np.nan
     else:
         if ((axis is not None and values.shape[axis] == 0)
                 or values.size == 0):
-            result = com.ensure_float(values.sum(axis))
-            result.fill(np.nan)
+            try:
+                result = com.ensure_float(values.sum(axis))
+                result.fill(np.nan)
+            except:
+                result = np.nan
         else:
             result = values.max(axis)
 

@@ -1592,6 +1592,26 @@ class TestIndexing(unittest.TestCase):
         df.loc[3] = [6,7]
         assert_frame_equal(df,DataFrame([[6,7]],index=[3],columns=['A','B']))
 
+        # no label overlap
+        df = DataFrame(columns=['A','B'])
+        df.loc[0] = Series(1,index=range(4))
+        assert_frame_equal(df,DataFrame(columns=['A','B'],index=[0]))
+
+        # no index to start
+        expected = DataFrame({ 0 : Series(1,index=range(4)) },columns=['A','B',0])
+
+        df = DataFrame(columns=['A','B'])
+        df[0] = Series(1,index=range(4))
+        df.dtypes
+        str(df)
+        assert_frame_equal(df,expected)
+
+        df = DataFrame(columns=['A','B'])
+        df.loc[:,0] = Series(1,index=range(4))
+        df.dtypes
+        str(df)
+        assert_frame_equal(df,expected)
+
     def test_cache_updating(self):
         # GH 4939, make sure to update the cache on setitem
 

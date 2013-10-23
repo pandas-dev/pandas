@@ -1573,7 +1573,13 @@ class DataFrame(NDFrame):
                 if isinstance(label, Index):
                     return self.take(i, axis=1, convert=True)
 
+                # if the values returned are not the same length
+                # as the index (iow a not found value), iget returns
+                # a 0-len ndarray. This is effectively catching
+                # a numpy error (as numpy should really raise)
                 values = self._data.iget(i)
+                if not len(values):
+                    values = np.array([np.nan]*len(self.index),dtype=object)
                 return self._constructor_sliced.from_array(
                     values, index=self.index,
                     name=label, fastpath=True)
