@@ -2077,8 +2077,20 @@ class Series(generic.NDFrame):
             raise TypeError("only list-like objects are allowed to be passed"
                             " to Series.isin(), you passed a "
                             "{0!r}".format(type(values).__name__))
+
+        # may need i8 conversion for proper membership testing
+        comps = _values_from_object(self)
+        if com.is_datetime64_dtype(self):
+            from pandas.tseries.tools import to_datetime
+            values = Series(to_datetime(values)).values.view('i8')
+            comps = comps.view('i8')
+        elif com.is_timedelta64_dtype(self):
+            from pandas.tseries.timedeltas import to_timedelta
+            values = Series(to_timedelta(values)).values.view('i8')
+            comps = comps.view('i8')
+
         value_set = set(values)
-        result = lib.ismember(_values_from_object(self), value_set)
+        result = lib.ismember(comps, value_set)
         return self._constructor(result, index=self.index).__finalize__(self)
 
     def between(self, left, right, inclusive=True):

@@ -4840,7 +4840,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(result, expected)
 
     def test_isin_with_string_scalar(self):
-        #GH4763
+        # GH4763
         s = Series(['A', 'B', 'C', 'a', 'B', 'B', 'A', 'C'])
         with tm.assertRaises(TypeError):
             s.isin('a')
@@ -4848,6 +4848,38 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         with tm.assertRaises(TypeError):
             s = Series(['aaa', 'b', 'c'])
             s.isin('aaa')
+
+    def test_isin_with_i8(self):
+        # GH 5021
+
+        expected = Series([True,True,False,False,False])
+        expected2 = Series([False,True,False,False,False])
+
+        # datetime64[ns]
+        s = Series(date_range('jan-01-2013','jan-05-2013'))
+
+        result = s.isin(s[0:2])
+        assert_series_equal(result, expected)
+
+        result = s.isin(s[0:2].values)
+        assert_series_equal(result, expected)
+
+        # fails on dtype conversion in the first place
+        if not _np_version_under1p7:
+            result = s.isin(s[0:2].values.astype('datetime64[D]'))
+            assert_series_equal(result, expected)
+
+        result = s.isin([s[1]])
+        assert_series_equal(result, expected2)
+
+        result = s.isin([np.datetime64(s[1])])
+        assert_series_equal(result, expected2)
+
+        # timedelta64[ns]
+        if not _np_version_under1p7:
+            s = Series(pd.to_timedelta(lrange(5),unit='d'))
+            result = s.isin(s[0:2])
+            assert_series_equal(result, expected)
 
 #------------------------------------------------------------------------------
 # TimeSeries-specific
