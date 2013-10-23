@@ -1285,8 +1285,8 @@ It can also construct Series.
 
 **frequency conversion**
 
-Timedeltas can be converted to other 'frequencies' by dividing by another timedelta.
-These operations yield ``float64`` dtyped Series.
+Timedeltas can be converted to other 'frequencies' by dividing by another timedelta,
+or by astyping to a specific timedelta type. These operations yield ``float64`` dtyped Series.
 
 .. ipython:: python
 
@@ -1297,9 +1297,11 @@ These operations yield ``float64`` dtyped Series.
 
    # to days
    td / np.timedelta64(1,'D')
+   td.astype('timedelta64[D]')
 
    # to seconds
    td / np.timedelta64(1,'s')
+   td.astype('timedelta64[s]')
 
 Dividing or multiplying a ``timedelta64[ns]`` Series by an integer or integer Series
 yields another ``timedelta64[ns]`` dtypes Series.

@@ -2043,7 +2043,16 @@ def _astype_nansafe(arr, dtype, copy=True):
 
         # in py3, timedelta64[ns] are int64
         elif (compat.PY3 and dtype not in [_INT64_DTYPE,_TD_DTYPE]) or (not compat.PY3 and dtype != _TD_DTYPE):
+
+            # allow frequency conversions
+            if dtype.kind == 'm':
+                mask = isnull(arr)
+                result = arr.astype(dtype).astype(np.float64)
+                result[mask] = np.nan
+                return result
+
             raise TypeError("cannot astype a timedelta from [%s] to [%s]" % (arr.dtype,dtype))
+
         return arr.astype(_TD_DTYPE)
     elif (np.issubdtype(arr.dtype, np.floating) and
           np.issubdtype(dtype, np.integer)):
