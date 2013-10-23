@@ -3364,6 +3364,7 @@ class SingleBlockManager(BlockManager):
             raise ValueError('Length mismatch: Expected axis has %d elements, new values have %d elements'
                             % (len(cur_axis), len(value)))
 
+        self.axes[axis] = value
         self._shape = None
         self._block.set_ref_items(self.items, maybe_rename=True)
 
