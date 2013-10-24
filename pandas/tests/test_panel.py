@@ -1250,12 +1250,19 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
 
         ## test bad aliases
         # test ambiguous aliases
-        self.assertRaises(AssertionError, self.panel.transpose, 'minor',
-                          maj='major', majo='items')
+        with tm.assertRaisesRegexp(TypeError, 'not enough arguments'):
+            self.panel.transpose('minor', maj='major', majo='items')
 
         # test invalid kwargs
-        self.assertRaises(AssertionError, self.panel.transpose, 'minor',
-                          maj='major', minor='items')
+        # TODO: Decide whether to remove this test - it's no longer testing
+        #       the correct thing on current master (and hasn't been for a
+        #       while)
+        with tm.assertRaisesRegexp(TypeError, 'not enough arguments'):
+            self.panel.transpose('minor', maj='major', minor='items')
+
+        # does this test make sense?
+        # with tm.assertRaisesRegexp(ValueError, 'duplicate axes'):
+        #     self.panel.transpose('minor', 'major', major='minor', minor='items')
 
         result = self.panel.transpose(2, 1, 0)
         assert_panel_equal(result, expected)

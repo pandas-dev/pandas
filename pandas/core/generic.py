@@ -233,8 +233,8 @@ class NDFrame(PandasObject):
             if alias is not None:
                 if a in kwargs:
                     if alias in kwargs:
-                        raise Exception(
-                            "arguments are multually exclusive for [%s,%s]" % (a, alias))
+                        raise TypeError("arguments are multually exclusive "
+                                         "for [%s,%s]" % (a, alias))
                     continue
                 if alias in kwargs:
                     kwargs[a] = kwargs.pop(alias)
@@ -244,10 +244,9 @@ class NDFrame(PandasObject):
             if a not in kwargs:
                 try:
                     kwargs[a] = args.pop(0)
-                except (IndexError):
+                except IndexError:
                     if require_all:
-                        raise AssertionError(
-                            "not enough arguments specified!")
+                        raise TypeError("not enough arguments specified!")
 
         axes = dict([(a, kwargs.get(a)) for a in self._AXIS_ORDERS])
         return axes, kwargs
@@ -273,7 +272,8 @@ class NDFrame(PandasObject):
                 return self._AXIS_NUMBERS[axis]
             except:
                 pass
-        raise ValueError('No axis named {0} for object type {1}'.format(axis,type(self)))
+        raise ValueError('No axis named {0} for object type {1}'.format(
+                          axis, type(self).__name__))
 
     def _get_axis_name(self, axis):
         axis = self._AXIS_ALIASES.get(axis, axis)
@@ -285,7 +285,8 @@ class NDFrame(PandasObject):
                 return self._AXIS_NAMES[axis]
             except:
                 pass
-        raise ValueError('No axis named {0} for object type {1}'.format(axis,type(self)))
+        raise ValueError('No axis named {0} for object type {1}'.format(
+                          axis, type(self).__name__))
 
     def _get_axis(self, axis):
         name = self._get_axis_name(axis)
