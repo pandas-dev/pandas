@@ -357,7 +357,7 @@ Enhancements
      to_timedelta(np.arange(5),unit='d')
 
   A Series of dtype ``timedelta64[ns]`` can now be divided by another
-  ``timedelta64[ns]`` object to yield a ``float64`` dtyped Series. This
+  ``timedelta64[ns]`` object, or astyped to yield a ``float64`` dtyped Series. This
   is frequency conversion. See :ref:`the docs<timeseries.timedeltas_convert>` for the docs.
 
   .. ipython:: python
@@ -370,9 +370,11 @@ Enhancements
 
      # to days
      td / np.timedelta64(1,'D')
+     td.astype('timedelta64[D]')
 
      # to seconds
      td / np.timedelta64(1,'s')
+     td.astype('timedelta64[s]')
 
   Dividing or multiplying a ``timedelta64[ns]`` Series by an integer or integer Series
 

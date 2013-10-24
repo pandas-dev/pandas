@@ -2128,9 +2128,9 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
                     for i in range(3)] + [np.nan ], dtype='m8[ns]' )
         self.assert_(td.dtype == 'timedelta64[ns]')
 
-        # invalid astypes
-        for t in ['s', 'D', 'us', 'ms']:
-            self.assertRaises(TypeError, td.astype, 'm8[%s]' % t)
+        # these are frequency conversion astypes
+        #for t in ['s', 'D', 'us', 'ms']:
+        #    self.assertRaises(TypeError, td.astype, 'm8[%s]' % t)
 
         # valid astype
         td.astype('int64')
@@ -2371,9 +2371,17 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         for m in [1, 3, 10]:
             for unit in ['D','h','m','s','ms','us','ns']:
+
+                # op
                 expected = s1.apply(lambda x: x / np.timedelta64(m,unit))
                 result = s1 / np.timedelta64(m,unit)
                 assert_series_equal(result, expected)
+
+                if m == 1 and unit != 'ns':
+
+                    # astype
+                    result = s1.astype("timedelta64[{0}]".format(unit))
+                    assert_series_equal(result, expected)
 
                 # reverse op
                 expected = s1.apply(lambda x: np.timedelta64(m,unit) / x)

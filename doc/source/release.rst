@@ -118,7 +118,7 @@ Improvements to existing features
     by an integer series (:issue`4521`)
   - A Series of dtype ``timedelta64[ns]`` can now be divided by another
     ``timedelta64[ns]`` object to yield a ``float64`` dtyped Series. This
-    is frequency conversion.
+    is frequency conversion; astyping is also supported.
   - Timedelta64 support ``fillna/ffill/bfill`` with an integer interpreted as seconds,
     or a ``timedelta`` (:issue:`3371`)
   - Box numeric ops on ``timedelta`` Series (:issue:`4984`)
