@@ -233,7 +233,7 @@ class NDFrame(PandasObject):
             if alias is not None:
                 if a in kwargs:
                     if alias in kwargs:
-                        raise Exception(
+                        raise TypeError(
                             "arguments are multually exclusive for [%s,%s]" % (a, alias))
                     continue
                 if alias in kwargs:
@@ -246,8 +246,8 @@ class NDFrame(PandasObject):
                     kwargs[a] = args.pop(0)
                 except (IndexError):
                     if require_all:
-                        raise AssertionError(
-                            "not enough arguments specified!")
+                        raise TypeError(
+                            "not enough/duplicate arguments specified!")
 
         axes = dict([(a, kwargs.get(a)) for a in self._AXIS_ORDERS])
         return axes, kwargs
