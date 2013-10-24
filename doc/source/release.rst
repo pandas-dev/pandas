@@ -633,6 +633,7 @@ Bug Fixes
   - Fixed issue with ``drop`` and a non-unique index on Series (:issue:`5248`)
   - Fixed seg fault in C parser caused by passing more names than columns in
     the file. (:issue:`5156`)
+  - Fix ``Series.isin`` with date/time-like dtypes (:issue:`5021`)
 
 pandas 0.12.0
 -------------
