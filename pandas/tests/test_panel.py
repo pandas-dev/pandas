@@ -1248,14 +1248,12 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         expected = self.panel.swapaxes('items', 'minor')
         assert_panel_equal(result, expected)
 
-        ## test bad aliases
-        # test ambiguous aliases
-        self.assertRaises(AssertionError, self.panel.transpose, 'minor',
-                          maj='major', majo='items')
+        # duplicate axes
+        with tm.assertRaisesRegexp(TypeError, 'not enough/duplicate arguments'):
+            self.panel.transpose('minor', maj='major', minor='items')
 
-        # test invalid kwargs
-        self.assertRaises(AssertionError, self.panel.transpose, 'minor',
-                          maj='major', minor='items')
+        with tm.assertRaisesRegexp(ValueError, 'repeated axis in transpose'):
+            self.panel.transpose('minor', 'major', major='minor', minor='items')
 
         result = self.panel.transpose(2, 1, 0)
         assert_panel_equal(result, expected)
