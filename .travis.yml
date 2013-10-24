@@ -48,3 +48,4 @@ script:
 
 after_script:
   - ci/print_versions.py
+  - ci/print_skipped.py /tmp/nosetests.xml
