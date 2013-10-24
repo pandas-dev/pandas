@@ -207,7 +207,7 @@ def write_frame(frame, name, con, flavor='sqlite', if_exists='fail', **kwargs):
     #create or drop-recreate if necessary
     create = None
     if exists and if_exists == 'replace':
-        create = "DROP TABLE %s" % name
+        create = "DROP TABLE %s; %s" % (name, get_schema(frame, name, flavor))
     elif not exists:
         create = get_schema(frame, name, flavor)
 
@@ -220,7 +220,8 @@ def write_frame(frame, name, con, flavor='sqlite', if_exists='fail', **kwargs):
     # Replace spaces in DataFrame column names with _.
     safe_names = [s.replace(' ', '_').strip() for s in frame.columns]
     flavor_picker = {'sqlite': _write_sqlite,
-                     'mysql': _write_mysql}
+                     'mysql': _write_mysql,
+                     'postgresql': _write_postgresql}
 
     func = flavor_picker.get(flavor, None)
     if func is None:
@@ -253,12 +254,26 @@ def _write_mysql(frame, table, names, cur):
     data = [tuple(x) for x in frame.values]
     cur.executemany(insert_query, data)
 
+def _write_postgresql(frame, table, names, cur):
+    bracketed_names = ['"' + column.lower() +'"' for column in names]
+    col_names = ','.join(bracketed_names)
+    wildcards = ','.join(["%s"] * len(names))
+    insert_query = "INSERT INTO %s (%s) VALUES (%s)" % (table, col_names, wildcards)
+    data = [tuple(x) for x in frame.values]
+    cur.executemany(insert_query, data)
 
 def table_exists(name, con, flavor):
+    if flavor=='postgresql':
+        if '.' in name:
+            (schema, name) = name.split('.')
+        else:
+            schema = 'public'
     flavor_map = {
         'sqlite': ("SELECT name FROM sqlite_master "
                    "WHERE type='table' AND name='%s';") % name,
-        'mysql': "SHOW TABLES LIKE '%s'" % name}
+        'mysql': "SHOW TABLES LIKE '%s'" % name,
+        'postgresql': "select tablename FROM pg_tables WHERE schemaname = '%s' and tablename='%s'" % (schema, name)
+    }
     query = flavor_map.get(flavor, None)
     if query is None:
         raise NotImplementedError
@@ -267,28 +282,34 @@ def table_exists(name, con, flavor):
 
 def get_sqltype(pytype, flavor):
     sqltype = {'mysql': 'VARCHAR (63)',
-               'sqlite': 'TEXT'}
+               'sqlite': 'TEXT',
+               'postgresql': 'TEXT'}
 
     if issubclass(pytype, np.floating):
         sqltype['mysql'] = 'FLOAT'
         sqltype['sqlite'] = 'REAL'
+        sqltype['postgresql'] = 'NUMERIC'
 
     if issubclass(pytype, np.integer):
         #TODO: Refine integer size.
         sqltype['mysql'] = 'BIGINT'
         sqltype['sqlite'] = 'INTEGER'
+        sqltype['postgresql'] = 'BIGINT'
 
     if issubclass(pytype, np.datetime64) or pytype is datetime:
         # Caution: np.datetime64 is also a subclass of np.number.
         sqltype['mysql'] = 'DATETIME'
         sqltype['sqlite'] = 'TIMESTAMP'
+        sqltype['postgresql'] = 'TIMESTAMP'
 
     if pytype is datetime.date:
         sqltype['mysql'] = 'DATE'
         sqltype['sqlite'] = 'TIMESTAMP'
+        sqltype['postgresql'] = 'TIMESTAMP'
 
     if issubclass(pytype, np.bool_):
         sqltype['sqlite'] = 'INTEGER'
+        sqltype['postgresql'] = 'BOOLEAN'
 
     return sqltype[flavor]
 
@@ -297,10 +318,13 @@ def get_schema(frame, name, flavor, keys=None):
     "Return a CREATE TABLE statement to suit the contents of a DataFrame."
     lookup_type = lambda dtype: get_sqltype(dtype.type, flavor)
     # Replace spaces in DataFrame column names with _.
-    safe_columns = [s.replace(' ', '_').strip() for s in frame.dtypes.index]
+    # Also force lowercase, postgresql can be case sensitive
+    safe_columns = [s.replace(' ', '_').strip().lower() for s in frame.dtypes.index]
     column_types = lzip(safe_columns, map(lookup_type, frame.dtypes))
     if flavor == 'sqlite':
         columns = ',\n  '.join('[%s] %s' % x for x in column_types)
+    elif flavor == 'postgresql':
+        columns = ',\n  '.join('"%s" %s' % x for x in column_types)
     else:
         columns = ',\n  '.join('`%s` %s' % x for x in column_types)
 
