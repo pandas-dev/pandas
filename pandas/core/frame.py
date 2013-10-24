@@ -4358,8 +4358,8 @@ class DataFrame(NDFrame):
         return self.mul(other, fill_value=1.)
 
 
-DataFrame._setup_axes(
-    ['index', 'columns'], info_axis=1, stat_axis=0, axes_are_reversed=True)
+DataFrame._setup_axes(['index', 'columns'], info_axis=1, stat_axis=0,
+                      axes_are_reversed=True, aliases={'rows': 0})
 DataFrame._add_numeric_operations()
 
 _EMPTY_SERIES = Series([])

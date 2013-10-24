@@ -1930,11 +1930,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertEquals(f._get_axis_number(0), 0)
         self.assertEquals(f._get_axis_number(1), 1)
         self.assertEquals(f._get_axis_number('index'), 0)
+        self.assertEquals(f._get_axis_number('rows'), 0)
         self.assertEquals(f._get_axis_number('columns'), 1)
 
         self.assertEquals(f._get_axis_name(0), 'index')
         self.assertEquals(f._get_axis_name(1), 'columns')
         self.assertEquals(f._get_axis_name('index'), 'index')
+        self.assertEquals(f._get_axis_name('rows'), 'index')
         self.assertEquals(f._get_axis_name('columns'), 'columns')
 
         self.assert_(f._get_axis(0) is f.index)
@@ -8399,6 +8401,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df = create().fillna(0)
         expected = df.apply(lambda x, y: x.where(x>0,y), y=df[0])
         result = df.where(df>0,df[0],axis='index')
+        assert_frame_equal(result, expected)
+        result = df.where(df>0,df[0],axis='rows')
         assert_frame_equal(result, expected)
 
         # frame
