@@ -569,7 +569,6 @@ class TextFileReader(object):
         skiprows = set() if skiprows is None else set(skiprows)
 
         # put stuff back
-        result['index_col'] = index_col
         result['names'] = names
         result['converters'] = converters
         result['na_values'] = na_values
@@ -641,7 +640,7 @@ class ParserBase(object):
         self.orig_names = None
         self.prefix = kwds.pop('prefix', None)
 
-        self.index_col = kwds.pop('index_col', None)
+        self.index_col = kwds.get('index_col', None)
         self.index_names = None
         self.col_names = None
 
@@ -1455,6 +1454,7 @@ class PythonParser(ParserBase):
     def _infer_columns(self):
         names = self.names
         num_original_columns = 0
+        clear_buffer = True
         if self.header is not None:
             header = self.header
 
@@ -1473,6 +1473,7 @@ class PythonParser(ParserBase):
                 while self.pos <= hr:
                     line = self._next_line()
 
+                unnamed_count = 0
                 this_columns = []
                 for i, c in enumerate(line):
                     if c == '':
@@ -1480,6 +1481,7 @@ class PythonParser(ParserBase):
                             this_columns.append('Unnamed: %d_level_%d' % (i, level))
                         else:
                             this_columns.append('Unnamed: %d' % i)
+                        unnamed_count += 1
                     else:
                         this_columns.append(c)
 
@@ -1490,12 +1492,25 @@ class PythonParser(ParserBase):
                         if cur_count > 0:
                             this_columns[i] = '%s.%d' % (col, cur_count)
                         counts[col] = cur_count + 1
+                elif have_mi_columns:
+
+                    # if we have grabbed an extra line, but its not in our format
+                    # so save in the buffer, and create an blank extra line for the rest of the
+                    # parsing code
+                    if hr == header[-1]:
+                        lc = len(this_columns)
+                        ic = len(self.index_col) if self.index_col is not None else 0
+                        if lc != unnamed_count and lc-ic > unnamed_count:
+                            clear_buffer = False
+                            this_columns = [ None ] * lc
+                            self.buf = [ self.buf[-1] ]
 
                 columns.append(this_columns)
                 if len(columns) == 1:
                     num_original_columns = len(this_columns)
 
-            self._clear_buffer()
+            if clear_buffer:
+                self._clear_buffer()
 
             if names is not None:
                 if (self.usecols is not None and len(names) != len(self.usecols)) \

@@ -1215,28 +1215,112 @@ R_l0_g3,R_l1_g3,R3C0,R3C1,R3C2
 R_l0_g4,R_l1_g4,R4C0,R4C1,R4C2
 """
 
-        df = read_csv(StringIO(data), header=[0, 2, 3, 4], index_col=[0, 1], tupleize_cols=False)
+        df = self.read_csv(StringIO(data), header=[0, 2, 3, 4], index_col=[0, 1], tupleize_cols=False)
         tm.assert_frame_equal(df, expected)
 
         # skipping lines in the header
-        df = read_csv(StringIO(data), header=[0, 2, 3, 4], index_col=[0, 1], tupleize_cols=False)
+        df = self.read_csv(StringIO(data), header=[0, 2, 3, 4], index_col=[0, 1], tupleize_cols=False)
         tm.assert_frame_equal(df, expected)
 
         #### invalid options ####
 
         # no as_recarray
-        self.assertRaises(ValueError, read_csv, StringIO(data), header=[0,1,2,3],
+        self.assertRaises(ValueError, self.read_csv, StringIO(data), header=[0,1,2,3],
                           index_col=[0,1], as_recarray=True, tupleize_cols=False)
 
         # names
-        self.assertRaises(ValueError, read_csv, StringIO(data), header=[0,1,2,3],
+        self.assertRaises(ValueError, self.read_csv, StringIO(data), header=[0,1,2,3],
                           index_col=[0,1], names=['foo','bar'], tupleize_cols=False)
         # usecols
-        self.assertRaises(ValueError, read_csv, StringIO(data), header=[0,1,2,3],
+        self.assertRaises(ValueError, self.read_csv, StringIO(data), header=[0,1,2,3],
                           index_col=[0,1], usecols=['foo','bar'], tupleize_cols=False)
         # non-numeric index_col
-        self.assertRaises(ValueError, read_csv, StringIO(data), header=[0,1,2,3],
+        self.assertRaises(ValueError, self.read_csv, StringIO(data), header=[0,1,2,3],
                           index_col=['foo','bar'], tupleize_cols=False)
+
+    def test_header_multiindex_common_format(self):
+
+        df = DataFrame([[1,2,3,4,5,6],[7,8,9,10,11,12]],
+                       index=['one','two'],
+                       columns=MultiIndex.from_tuples([('a','q'),('a','r'),('a','s'),
+                                                       ('b','t'),('c','u'),('c','v')]))
+
+        # to_csv
+        data = """,a,a,a,b,c,c
+,q,r,s,t,u,v
+,,,,,,
+one,1,2,3,4,5,6
+two,7,8,9,10,11,12"""
+
+        result = self.read_csv(StringIO(data),header=[0,1],index_col=0)
+        tm.assert_frame_equal(df,result)
+
+        # common
+        data = """,a,a,a,b,c,c
+,q,r,s,t,u,v
+one,1,2,3,4,5,6
+two,7,8,9,10,11,12"""
+
+        result = self.read_csv(StringIO(data),header=[0,1],index_col=0)
+        tm.assert_frame_equal(df,result)
+
+        # common, no index_col
+        data = """a,a,a,b,c,c
+q,r,s,t,u,v
+1,2,3,4,5,6
+7,8,9,10,11,12"""
+
+        result = self.read_csv(StringIO(data),header=[0,1],index_col=None)
+        tm.assert_frame_equal(df.reset_index(drop=True),result)
+
+        # malformed case 1
+        expected = DataFrame(np.array([[ 2,  3,  4,  5,  6],
+                                       [ 8,  9, 10, 11, 12]]),
+                             index=Index([1, 7]),
+                             columns=MultiIndex(levels=[[u('a'), u('b'), u('c')], [u('r'), u('s'), u('t'), u('u'), u('v')]],
+                                                labels=[[0, 0, 1, 2, 2], [0, 1, 2, 3, 4]],
+                                                names=[u('a'), u('q')]))
+
+        data = """a,a,a,b,c,c
+q,r,s,t,u,v
+1,2,3,4,5,6
+7,8,9,10,11,12"""
+
+        result = self.read_csv(StringIO(data),header=[0,1],index_col=0)
+        tm.assert_frame_equal(expected,result)
+
+        # malformed case 2
+        expected = DataFrame(np.array([[ 2,  3,  4,  5,  6],
+                                       [ 8,  9, 10, 11, 12]]),
+                             index=Index([1, 7]),
+                             columns=MultiIndex(levels=[[u('a'), u('b'), u('c')], [u('r'), u('s'), u('t'), u('u'), u('v')]],
+                                                labels=[[0, 0, 1, 2, 2], [0, 1, 2, 3, 4]],
+                                                names=[None, u('q')]))
+
+        data = """,a,a,b,c,c
+q,r,s,t,u,v
+1,2,3,4,5,6
+7,8,9,10,11,12"""
+
+        result = self.read_csv(StringIO(data),header=[0,1],index_col=0)
+        tm.assert_frame_equal(expected,result)
+
+        # mi on columns and index (malformed)
+        expected = DataFrame(np.array([[ 3,  4,  5,  6],
+                                       [ 9, 10, 11, 12]]),
+                             index=MultiIndex(levels=[[1, 7], [2, 8]],
+                                              labels=[[0, 1], [0, 1]]),
+                             columns=MultiIndex(levels=[[u('a'), u('b'), u('c')], [u('s'), u('t'), u('u'), u('v')]],
+                                                labels=[[0, 1, 2, 2], [0, 1, 2, 3]],
+                                                names=[None, u('q')]))
+
+        data = """,a,a,b,c,c
+q,r,s,t,u,v
+1,2,3,4,5,6
+7,8,9,10,11,12"""
+
+        result = self.read_csv(StringIO(data),header=[0,1],index_col=[0, 1])
+        tm.assert_frame_equal(expected,result)
 
     def test_pass_names_with_index(self):
         lines = self.data1.split('\n')
