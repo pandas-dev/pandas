@@ -263,6 +263,7 @@ def _write_postgres(frame, table, names, cur):
     cur.executemany(insert_query, data)
 
 def table_exists(name, con, flavor):
+    schema = None
     if flavor=='postgres':
         if '.' in name:
             (schema, name) = name.split('.')
