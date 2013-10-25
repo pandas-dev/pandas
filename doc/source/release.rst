@@ -637,6 +637,7 @@ Bug Fixes
   - C and Python Parser can now handle the more common multi-index column format
     which doesn't have a row for index names (:issue:`4702`)
   - Bug when trying to use an out-of-bounds date as an object dtype (:issue:`5312`)
+  - Bug when trying to display an embedded PandasObject (:issue:`5324`)
 
 pandas 0.12.0
 -------------
