@@ -1914,7 +1914,11 @@ class DataFrame(NDFrame):
     def _sanitize_column(self, key, value):
         # Need to make sure new columns (which go into the BlockManager as new
         # blocks) are always copied
-        if _is_sequence(value):
+
+        # dont' need further processing on an equal index
+        if isinstance(value, Index) and (not len(self.index) or value.equals(self.index)):
+                value = value.values.copy()
+        elif isinstance(value, Series) or _is_sequence(value):
             is_frame = isinstance(value, DataFrame)
             if isinstance(value, Series) or is_frame:
                 if value.index.equals(self.index) or not len(self.index):
