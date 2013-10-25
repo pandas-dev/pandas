@@ -3566,6 +3566,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # invalid axis
         self.assertRaises(ValueError, s.dropna, axis=1)
 
+    def test_axis_alias(self):
+        s = Series([1, 2, np.nan])
+        assert_series_equal(s.dropna(axis='rows'), s.dropna(axis='index'))
+        self.assertEqual(s.dropna().sum('rows'), 3)
+        self.assertEqual(s._get_axis_number('rows'), 0)
+        self.assertEqual(s._get_axis_name('rows'), 'index')
+
     def test_drop_duplicates(self):
         s = Series([1, 2, 3, 3])
 

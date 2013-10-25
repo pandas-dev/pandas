@@ -2393,7 +2393,8 @@ class Series(generic.NDFrame):
         new_index = self.index.to_period(freq=freq)
         return self._constructor(new_values, index=new_index).__finalize__(self)
 
-Series._setup_axes(['index'], info_axis=0, stat_axis=0)
+Series._setup_axes(['index'], info_axis=0, stat_axis=0,
+                   aliases={'rows': 0})
 Series._add_numeric_operations()
 _INDEX_TYPES = ndarray, Index, list, tuple
 
