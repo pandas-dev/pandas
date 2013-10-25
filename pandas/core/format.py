@@ -3,6 +3,7 @@ from __future__ import print_function
 
 import sys
 
+from pandas.core.base import PandasObject
 from pandas.core.common import adjoin, isnull, notnull
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas import compat
@@ -1486,6 +1487,8 @@ class GenericArrayFormatter(object):
                 if x is None:
                     return 'None'
                 return self.na_rep
+            elif isinstance(x, PandasObject):
+                return '%s' % x
             else:
                 # object dtype
                 return '%s' % formatter(x)

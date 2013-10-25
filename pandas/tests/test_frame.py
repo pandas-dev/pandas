@@ -2356,6 +2356,21 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         with assertRaisesRegexp(ValueError, 'If using all scalar values, you must must pass an index'):
             DataFrame({'a': False, 'b': True})
 
+    def test_constructor_with_embedded_frames(self):
+
+        # embedded data frames
+        df1 = DataFrame({'a':[1, 2, 3], 'b':[3, 4, 5]})
+        df2 = DataFrame([df1, df1+10])
+
+        df2.dtypes
+        str(df2)
+
+        result = df2.loc[0,0]
+        assert_frame_equal(result,df1)
+
+        result = df2.loc[1,0]
+        assert_frame_equal(result,df1+10)
+
     def test_insert_error_msmgs(self):
 
         # GH 4107, more descriptive error message
