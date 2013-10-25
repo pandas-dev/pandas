@@ -491,7 +491,7 @@ You can also set using these same indexers.
 
 .. ipython:: python
 
-   df.at[6, 0] = 7
+   df.at[dates[-1]+1, 0] = 7
    df
 
 Boolean indexing

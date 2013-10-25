@@ -388,7 +388,7 @@ with the original DataFrame:
    dummies
 
 
-   df[['data']].join(dummies)
+   df[['data1']].join(dummies)
 
 This function is often used along with discretization functions like ``cut``:
 
