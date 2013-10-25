@@ -1789,14 +1789,15 @@ def make_block(values, items, ref_items, klass=None, ndim=None, dtype=None, fast
             if np.prod(values.shape):
                 flat = values.ravel()
                 inferred_type = lib.infer_dtype(flat)
-                if inferred_type == 'datetime':
+                if inferred_type in ['datetime','datetime64']:
 
                     # we have an object array that has been inferred as datetime, so
                     # convert it
                     try:
                         values = tslib.array_to_datetime(
                             flat).reshape(values.shape)
-                        klass = DatetimeBlock
+                        if issubclass(values.dtype.type, np.datetime64):
+                            klass = DatetimeBlock
                     except:  # it already object, so leave it
                         pass
 

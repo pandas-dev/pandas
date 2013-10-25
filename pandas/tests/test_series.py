@@ -539,6 +539,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertRaises(
             TypeError, lambda x: Series(dates, dtype='datetime64'))
 
+        # invalid dates can be help as object
+        result = Series([datetime(2,1,1)])
+        self.assert_(result[0] == datetime(2,1,1,0,0))
+
+        result = Series([datetime(3000,1,1)])
+        self.assert_(result[0] == datetime(3000,1,1,0,0))
+
     def test_constructor_dict(self):
         d = {'a': 0., 'b': 1., 'c': 2.}
         result = Series(d, index=['b', 'c', 'd', 'a'])
