@@ -237,7 +237,7 @@ def _alchemy_connect_sqlite(path):
         return create_engine('sqlite:///%s' % path).connect()
 
 
-# I don't think this is used...
+# used in _write_oracle
 def sequence2dict(seq):
     """Helper function for cx_Oracle.
 
@@ -329,10 +329,17 @@ class PandasSQL(PandasObject):
 
     def _has_table(self, name, flavor='sqlite'):
         # Note: engine overrides this, to use engine.has_table
+        if flavor=='postgres':
+            if '.' in name:
+                (schema, name) = name.split('.')
+            else:
+                schema = 'public'
         flavor_map = {
             'sqlite': ("SELECT name FROM sqlite_master "
                        "WHERE type='table' AND name='%s';") % name,
-            'mysql': "SHOW TABLES LIKE '%s'" % name}
+            'mysql': "SHOW TABLES LIKE '%s'" % name,
+            'postgres': "SELECT tablename FROM pg_tables WHERE schemaname= '%s' and tablename='%s'" % (schema, name),
+            'oracle': "select table_name from user_tables where table_name='%s'" % name.upper()}
         query = flavor_map.get(flavor, None)
         if query is None:
             raise NotImplementedError
@@ -356,7 +363,10 @@ class PandasSQL(PandasObject):
         elif flavor == 'mysql':
              columns = ',\n  '.join('`%s` %s' % x for x in column_types)
         elif flavor == 'postgres':
-            columns = ',\n  '.join('%s %s' % x for x in column_types)
+            columns = ',\n  '.join('"%s" %s' % x for x in column_types)
+        elif flavor== 'oracle':
+            columns = ',\n  '.join('"%s" %s' % x for x in column_types)
+
         else:
             raise ValueError("Don't have a template for that database flavor.")
 
@@ -408,33 +418,40 @@ class PandasSQL(PandasObject):
     def _get_sqltype(pytype, flavor):
         sqltype = {'mysql': 'VARCHAR (63)',
                    'sqlite': 'TEXT',
-                   'postgres': 'text'}
+                   'postgres': 'TEXT',
+                   'oracle': 'VARCHAR2'}
 
         if issubclass(pytype, np.floating):
             sqltype['mysql'] = 'FLOAT'
             sqltype['sqlite'] = 'REAL'
-            sqltype['postgres'] = 'real'
+            sqltype['postgres'] = 'NUMERIC'
+            sqltype['oracle'] = 'NUMBER'
 
         if issubclass(pytype, np.integer):
             # TODO: Refine integer size.
             sqltype['mysql'] = 'BIGINT'
             sqltype['sqlite'] = 'INTEGER'
-            sqltype['postgres'] = 'integer'
+            sqltype['postgres'] = 'BIGINT'
+            sqltype['oracle'] = 'NUMBER'
 
         if issubclass(pytype, np.datetime64) or pytype is datetime:
             # Caution: np.datetime64 is also a subclass of np.number.
             sqltype['mysql'] = 'DATETIME'
             sqltype['sqlite'] = 'TIMESTAMP'
-            sqltype['postgres'] = 'timestamp'
+            sqltype['postgres'] = 'TIMESTAMP'
+            sqltype['oracle'] = 'DATE'
 
         if pytype is datetime.date:
             sqltype['mysql'] = 'DATE'
             sqltype['sqlite'] = 'TIMESTAMP'
-            sqltype['postgres'] = 'date'
+            sqltype['postgres'] = 'DATE'
+            sqltype['oracle'] = 'DATE'
 
         if issubclass(pytype, np.bool_):
+            sqltype['mysql'] = 'BOOL'
             sqltype['sqlite'] = 'INTEGER'
-            sqltype['postgres'] = 'boolean'
+            sqltype['postgres'] = 'BOOLEAN'
+            sqltype['oracle'] = 'INTEGER'
 
         return sqltype[flavor]
 
@@ -552,7 +569,8 @@ class PandasSQLWithCur(PandasSQL):
         # Replace spaces in DataFrame column names with _.
         safe_names = [s.replace(' ', '_').strip() for s in frame.columns]
         flavor_picker = {'sqlite': self._cur_write_sqlite,
-                         'mysql': self._cur_write_mysql}
+                         'mysql': self._cur_write_mysql,
+                         'postgres': self._cur_write_postgres}
 
         func = flavor_picker.get(flavor, None)
         if func is None:
@@ -590,6 +608,23 @@ class PandasSQLWithCur(PandasSQL):
             data = [tuple(x) for x in frame.values.tolist()]
         cur.executemany(insert_query, data)
 
+    @staticmethod
+    def _write_postgres(frame, table, names, cur):
+        bracketed_names = ['"' + column.lower() +'"' for column in names]
+        col_names = ','.join(bracketed_names)
+        wildcards = ','.join(["%s"] * len(names))
+        insert_query = "INSERT INTO %s (%s) VALUES (%s)" % (table, col_names, wildcards)
+        data = [tuple(x) for x in frame.values]
+        cur.executemany(insert_query, data)
+
+    @staticmethod
+    def _write_oracle(frame, table, names, cur):
+        bracketed_names = ['"' + column.lower() +'"' for column in names]
+        col_names = ','.join(bracketed_names)
+        wildcards = ','.join(["%s"] * len(names))
+        insert_query = "INSERT INTO %s (%s) VALUES (%s)" % (table, col_names, wildcards)
+        data = [sequence2dict(x) for x in frame.values]
+        cur.executemany(insert_query, data)   
 
 class PandasSQLWithCon(PandasSQL):
     def __init__(self, con):
