@@ -457,11 +457,12 @@ class DataFrameFormatter(TableFormatter):
                             na_rep=self.na_rep,
                             space=self.col_space)
 
-    def to_html(self, classes=None):
+    def to_html(self, classes=None, highlight_nan=False):
         """
         Render a DataFrame to a html table.
         """
-        html_renderer = HTMLFormatter(self, classes=classes)
+        html_renderer = HTMLFormatter(self, classes=classes,
+            highlight_nan=highlight_nan)
         if hasattr(self.buf, 'write'):
             html_renderer.write_result(self.buf)
         elif isinstance(self.buf, compat.string_types):
@@ -559,9 +560,10 @@ class HTMLFormatter(TableFormatter):
 
     indent_delta = 2
 
-    def __init__(self, formatter, classes=None):
+    def __init__(self, formatter, classes=None, highlight_nan=False):
         self.fmt = formatter
         self.classes = classes
+        self.highlight_nan = highlight_nan
 
         self.frame = self.fmt.frame
         self.columns = formatter.columns
@@ -582,6 +584,9 @@ class HTMLFormatter(TableFormatter):
         return self._write_cell(s, kind='th', indent=indent, tags=tags)
 
     def write_td(self, s, indent=0, tags=None):
+        tags = (tags or "")
+        tags += ' style="background-color:yellow"' if \
+            self.highlight_nan and s == self.fmt.na_rep else ""
         return self._write_cell(s, kind='td', indent=indent, tags=tags)
 
     def _write_cell(self, s, kind='td', indent=0, tags=None):

@@ -181,6 +181,15 @@ pc_mpl_style_doc = """
     Setting this to None/False restores the values to their initial value.
 """
 
+
+pc_highlight_nan_doc = """
+: bool
+
+    When True, NaN elements in the HTML represenation of Series or
+    DataFrames are displayed with a yellow background.
+
+"""
+
 style_backup = dict()
 def mpl_style_cb(key):
     import sys
@@ -245,6 +254,8 @@ with cf.config_prefix('display'):
                        validator=is_instance_factory([type(None), int]))
     # redirected to width, make defval identical
     cf.register_option('line_width', get_default_val('display.width'), pc_line_width_doc)
+    cf.register_option('highlight_nan', False, pc_highlight_nan_doc,
+                       validator=is_bool)
 
 cf.deprecate_option('display.line_width',
                     msg=pc_line_width_deprecation_warning,
