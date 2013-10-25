@@ -229,12 +229,12 @@ datetimeindex_unique = Benchmark('index.unique()', setup,
 # tz_localize with infer argument.  This is an attempt to emulate the results
 # of read_csv with duplicated data.  Not passing infer_dst will fail
 setup = common_setup + """
-dst_rng = date_range('10/29/2000 1:00:00', 
+dst_rng = date_range('10/29/2000 1:00:00',
                      '10/29/2000 1:59:59', freq='S')
 index = date_range('10/29/2000', '10/29/2000 00:59:59', freq='S')
 index = index.append(dst_rng)
 index = index.append(dst_rng)
-index = index.append(date_range('10/29/2000 2:00:00', 
+index = index.append(date_range('10/29/2000 2:00:00',
                                 '10/29/2000 3:00:00', freq='S'))
 """
 

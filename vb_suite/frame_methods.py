@@ -121,6 +121,21 @@ frame_getitem_single_column2 = Benchmark('j()', setup,
                                          start_date=datetime(2010, 6, 1))
 
 #----------------------------------------------------------------------
+# assignment
+
+setup = common_setup + """
+idx = date_range('1/1/2000', periods=100000, freq='D')
+df = DataFrame(randn(100000, 1),columns=['A'],index=idx)
+def f(x):
+    x = x.copy()
+    x['date'] = x.index
+"""
+
+frame_assign_timeseries_index = Benchmark('f(df)', setup,
+                                          start_date=datetime(2013, 10, 1))
+
+
+#----------------------------------------------------------------------
 # to_string
 
 setup = common_setup + """
