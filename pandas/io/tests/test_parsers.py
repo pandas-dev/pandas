@@ -1274,8 +1274,8 @@ q,r,s,t,u,v
         tm.assert_frame_equal(df.reset_index(drop=True),result)
 
         # malformed case 1
-        expected = DataFrame(np.array([[ 2,  3,  4,  5,  6],
-                                       [ 8,  9, 10, 11, 12]]),
+        expected = DataFrame(np.array([[2,  3,  4,  5,  6],
+                                       [8,  9, 10, 11, 12]], dtype='int64'),
                              index=Index([1, 7]),
                              columns=MultiIndex(levels=[[u('a'), u('b'), u('c')], [u('r'), u('s'), u('t'), u('u'), u('v')]],
                                                 labels=[[0, 0, 1, 2, 2], [0, 1, 2, 3, 4]],
@@ -1290,8 +1290,8 @@ q,r,s,t,u,v
         tm.assert_frame_equal(expected,result)
 
         # malformed case 2
-        expected = DataFrame(np.array([[ 2,  3,  4,  5,  6],
-                                       [ 8,  9, 10, 11, 12]]),
+        expected = DataFrame(np.array([[2,  3,  4,  5,  6],
+                                       [8,  9, 10, 11, 12]], dtype='int64'),
                              index=Index([1, 7]),
                              columns=MultiIndex(levels=[[u('a'), u('b'), u('c')], [u('r'), u('s'), u('t'), u('u'), u('v')]],
                                                 labels=[[0, 0, 1, 2, 2], [0, 1, 2, 3, 4]],
@@ -1307,7 +1307,7 @@ q,r,s,t,u,v
 
         # mi on columns and index (malformed)
         expected = DataFrame(np.array([[ 3,  4,  5,  6],
-                                       [ 9, 10, 11, 12]]),
+                                       [ 9, 10, 11, 12]], dtype='int64'),
                              index=MultiIndex(levels=[[1, 7], [2, 8]],
                                               labels=[[0, 1], [0, 1]]),
                              columns=MultiIndex(levels=[[u('a'), u('b'), u('c')], [u('s'), u('t'), u('u'), u('v')]],
