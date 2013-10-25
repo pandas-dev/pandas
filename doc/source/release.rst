@@ -636,6 +636,7 @@ Bug Fixes
   - Fix ``Series.isin`` with date/time-like dtypes (:issue:`5021`)
   - C and Python Parser can now handle the more common multi-index column format
     which doesn't have a row for index names (:issue:`4702`)
+  - Bug when trying to use an out-of-bounds date as an object dtype (:issue:`5312`)
 
 pandas 0.12.0
 -------------
