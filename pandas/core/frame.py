@@ -485,9 +485,10 @@ class DataFrame(NDFrame):
                     ignore_width=ipnbh)
 
             if fits_horizontal and fits_vertical:
+                hn = get_option("display.highlight_nan")
                 return ('<div style="max-height:1000px;'
                         'max-width:1500px;overflow:auto;">\n' +
-                        self.to_html() + '\n</div>')
+                        self.to_html(highlight_nan=hn) + '\n</div>')
             else:
                 buf = StringIO(u(""))
                 max_info_rows = get_option('display.max_info_rows')
@@ -1289,7 +1290,7 @@ class DataFrame(NDFrame):
                 header=True, index=True, na_rep='NaN', formatters=None,
                 float_format=None, sparsify=None, index_names=True,
                 justify=None, force_unicode=None, bold_rows=True,
-                classes=None, escape=True):
+                classes=None, escape=True, highlight_nan=False):
         """
         to_html-specific options
 
@@ -1299,6 +1300,8 @@ class DataFrame(NDFrame):
             CSS class(es) to apply to the resulting html table
         escape : boolean, default True
             Convert the characters <, >, and & to HTML-safe sequences.
+        highlight_nan:  boolean, default False
+            Display NaN cells with yellow background
 
         Render a DataFrame as an HTML table.
         """
@@ -1322,7 +1325,7 @@ class DataFrame(NDFrame):
                                            header=header, index=index,
                                            bold_rows=bold_rows,
                                            escape=escape)
-        formatter.to_html(classes=classes)
+        formatter.to_html(classes=classes, highlight_nan=highlight_nan)
 
         if buf is None:
             return formatter.buf.getvalue()

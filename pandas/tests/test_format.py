@@ -1246,6 +1246,13 @@ c  10  11  12  13  14\
         ashtml = x.to_html(bold_rows=False)
         assert('<strong>' not in ashtml[ashtml.find('</thead>')])
 
+
+    def test_to_html_with_highlight_nan(self):
+        x = DataFrame({'c1': [1, 2], 'c2': [3, nan]})
+        ashtml = x.to_html(highlight_nan=True)
+        assert('style="background-color:yellow"' in ashtml)
+
+
     def test_to_html_columns_arg(self):
         result = self.frame.to_html(columns=['A'])
         self.assert_('<th>B</th>' not in result)
