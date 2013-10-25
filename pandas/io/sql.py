@@ -237,7 +237,7 @@ def _alchemy_connect_sqlite(path):
         return create_engine('sqlite:///%s' % path).connect()
 
 
-# used in _write_oracle
+# used in _cur_write_oracle
 def sequence2dict(seq):
     """Helper function for cx_Oracle.
 
@@ -571,7 +571,8 @@ class PandasSQLWithCur(PandasSQL):
         safe_names = [s.replace(' ', '_').strip() for s in frame.columns]
         flavor_picker = {'sqlite': self._cur_write_sqlite,
                          'mysql': self._cur_write_mysql,
-                         'postgres': self._cur_write_postgres}
+                         'postgres': self._cur_write_postgres,
+                         'oracle': self._cur_write_oracle}
 
         func = flavor_picker.get(flavor, None)
         if func is None:
@@ -619,7 +620,7 @@ class PandasSQLWithCur(PandasSQL):
         cur.executemany(insert_query, data)
 
     @staticmethod
-    def _write_oracle(frame, table, names, cur):
+    def _cur_write_oracle(frame, table, names, cur):
         bracketed_names = ['"' + column.lower() +'"' for column in names]
         col_names = ','.join(bracketed_names)
         wildcards = ','.join(["%s"] * len(names))
