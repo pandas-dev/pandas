@@ -1914,9 +1914,6 @@ class Fixed(StringMixin):
             return "%-12.12s (shape->%s)" % (self.pandas_type, s)
         return self.pandas_type
 
-    def __str__(self):
-        return self.__repr__()
-
     def set_object_info(self):
         """ set my pandas type & version """
         self.attrs.pandas_type = str(self.pandas_kind)

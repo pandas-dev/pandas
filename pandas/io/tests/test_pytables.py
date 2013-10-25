@@ -313,6 +313,16 @@ class TestHDFStore(unittest.TestCase):
             repr(store)
             str(store)
 
+        # storers
+        with ensure_clean(self.path) as store:
+
+            df = tm.makeDataFrame()
+            store.append('df',df)
+
+            s = store.get_storer('df')
+            repr(s)
+            str(s)
+
     def test_contains(self):
 
         with ensure_clean(self.path) as store:
