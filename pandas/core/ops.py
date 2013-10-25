@@ -663,7 +663,9 @@ def _flex_method_SERIES(op, name, str_rep=None, default_axis=None,
     """ % name
 
     @Appender(doc)
-    def f(self, other, level=None, fill_value=None):
+    def flex_wrapper(self, other, level=None, fill_value=None, axis=0):
+        # validate axis
+        self._get_axis_number(axis)
         if isinstance(other, pd.Series):
             return self._binop(other, op, level=level, fill_value=fill_value)
         elif isinstance(other, (pa.Array, pd.Series, list, tuple)):
@@ -675,8 +677,8 @@ def _flex_method_SERIES(op, name, str_rep=None, default_axis=None,
             return self._constructor(op(self.values, other),
                                      self.index).__finalize__(self)
 
-    f.__name__ = name
-    return f
+    flex_wrapper.__name__ = name
+    return flex_wrapper
 
 series_flex_funcs = dict(flex_arith_method=_flex_method_SERIES,
                          radd_func=_radd_compat,
