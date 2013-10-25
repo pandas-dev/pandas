@@ -329,6 +329,7 @@ class PandasSQL(PandasObject):
 
     def _has_table(self, name, flavor='sqlite'):
         # Note: engine overrides this, to use engine.has_table
+        schema = None
         if flavor=='postgres':
             if '.' in name:
                 (schema, name) = name.split('.')
@@ -609,7 +610,7 @@ class PandasSQLWithCur(PandasSQL):
         cur.executemany(insert_query, data)
 
     @staticmethod
-    def _write_postgres(frame, table, names, cur):
+    def _cur_write_postgres(frame, table, names, cur):
         bracketed_names = ['"' + column.lower() +'"' for column in names]
         col_names = ','.join(bracketed_names)
         wildcards = ','.join(["%s"] * len(names))
