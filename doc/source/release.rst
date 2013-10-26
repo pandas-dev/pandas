@@ -362,6 +362,7 @@ Bug Fixes
 - Bug in adding np.timedelta64 to DatetimeIndex with tz outputs incorrect result (:issue:`6818`)
 - Bug in ``DataFrame.replace()`` where changing a dtype through replacement
   would only replace the first occurrence of a value (:issue:`6689`)
+- Better error message when passing a frequency of 'MS' in ``Period`` construction (GH5332)
 
 pandas 0.13.1
 -------------
