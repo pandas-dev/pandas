@@ -495,7 +495,7 @@ class TestPeriodProperties(TestCase):
         self.assertEqual(initial.asfreq(freq="M", how="S"), Period('2013-01', 'M'))
         self.assertRaises(ValueError, initial.asfreq, freq="MS", how="S")
         self.assertRaises(ValueError, pd.Period, '2013-01', 'MS')
-        self.assertIsNone(_period_code_map.get("MS"))
+        self.assertTrue(_period_code_map.get("MS") is None)
 
 def noWrap(item):
     return item
