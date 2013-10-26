@@ -633,6 +633,7 @@ Bug Fixes
   - Fixed issue with ``drop`` and a non-unique index on Series (:issue:`5248`)
   - Fixed seg fault in C parser caused by passing more names than columns in
     the file. (:issue:`5156`)
+  - More informative exception when trying to use ``MS`` as period frequency (:issue:`5332`)
 
 pandas 0.12.0
 -------------
