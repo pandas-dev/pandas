@@ -497,7 +497,7 @@ def _period_alias_dictionary():
     H_aliases = ["H", "HR", "HOUR", "HRLY", "HOURLY"]
     T_aliases = ["T", "MIN", "MINUTE", "MINUTELY"]
     S_aliases = ["S", "SEC", "SECOND", "SECONDLY"]
-    L_aliases = ["L", "MS", "MILLISECOND", "MILLISECONDLY"]
+    L_aliases = ["L", "ms", "MILLISECOND", "MILLISECONDLY"]
     U_aliases = ["U", "US", "MICROSECOND", "MICROSECONDLY"]
     N_aliases = ["N", "NS", "NANOSECOND", "NANOSECONDLY"]
 
@@ -615,10 +615,13 @@ _period_alias_dict = _period_alias_dictionary()
 def _period_str_to_code(freqstr):
     # hack
     freqstr = _rule_aliases.get(freqstr, freqstr)
-    freqstr = _rule_aliases.get(freqstr.lower(), freqstr)
+    
+    if freqstr not in _dont_uppercase:
+        freqstr = _rule_aliases.get(freqstr.lower(), freqstr)
 
     try:
-        freqstr = freqstr.upper()
+        if freqstr not in _dont_uppercase:
+            freqstr = freqstr.upper()
         return _period_code_map[freqstr]
     except KeyError:
         try:

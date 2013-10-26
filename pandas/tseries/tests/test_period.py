@@ -13,7 +13,7 @@ import unittest
 from numpy.ma.testutils import assert_equal
 
 from pandas import Timestamp
-from pandas.tseries.frequencies import MONTHS, DAYS
+from pandas.tseries.frequencies import MONTHS, DAYS, _period_code_map
 from pandas.tseries.period import Period, PeriodIndex, period_range
 from pandas.tseries.index import DatetimeIndex, date_range, Index
 from pandas.tseries.tools import to_datetime
@@ -488,7 +488,14 @@ class TestPeriodProperties(TestCase):
 
         p = Period('2007-01-01 07:10:15.123400')
         self.assert_(p.freq == 'U')
-
+        
+    def test_asfreq_MS(self):
+        initial = Period("2013")
+        
+        self.assertEqual(initial.asfreq(freq="M", how="S"), Period('2013-01', 'M'))
+        self.assertRaises(ValueError, initial.asfreq, freq="MS", how="S")
+        self.assertRaises(ValueError, pd.Period, '2013-01', 'MS')
+        self.assertIsNone(_period_code_map.get("MS"))
 
 def noWrap(item):
     return item
