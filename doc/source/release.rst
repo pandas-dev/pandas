@@ -638,6 +638,8 @@ Bug Fixes
     which doesn't have a row for index names (:issue:`4702`)
   - Bug when trying to use an out-of-bounds date as an object dtype (:issue:`5312`)
   - Bug when trying to display an embedded PandasObject (:issue:`5324`)
+  - Allows operating of Timestamps to return a datetime if the result is out-of-bounds
+    related (:issue:`5312`)
 
 pandas 0.12.0
 -------------
