@@ -1915,71 +1915,51 @@ class DataFrame(NDFrame):
         # Need to make sure new columns (which go into the BlockManager as new
         # blocks) are always copied
 
-        # dont' need further processing on an equal index
-        if isinstance(value, Index) and (not len(self.index) or value.equals(self.index)):
-                value = value.values.copy()
-        elif isinstance(value, Series) or _is_sequence(value):
+        if isinstance(value, (Series, DataFrame)):
             is_frame = isinstance(value, DataFrame)
-            if isinstance(value, Series) or is_frame:
-                if value.index.equals(self.index) or not len(self.index):
-                    # copy the values
-                    value = value.values.copy()
-                else:
-
-                    # GH 4107
-                    try:
-                        value = value.reindex(self.index).values
-                    except:
-                        raise TypeError('incompatible index of inserted column '
-                                        'with frame index')
-
-                if is_frame:
-                    value = value.T
+            if value.index.equals(self.index) or not len(self.index):
+                # copy the values
+                value = value.values.copy()
             else:
-                if len(value) != len(self.index):
-                    raise ValueError('Length of values does not match '
-                                     'length of index')
 
-                if not isinstance(value, np.ndarray):
-                    if isinstance(value, list) and len(value) > 0:
-                        value = com._possibly_convert_platform(value)
-                    else:
-                        value = com._asarray_tuplesafe(value)
-                elif isinstance(value, PeriodIndex):
-                    value = value.asobject
-                elif value.ndim == 2:
-                    value = value.copy().T
+                # GH 4107
+                try:
+                    value = value.reindex(self.index).values
+                except:
+                    raise TypeError('incompatible index of inserted column '
+                                    'with frame index')
+
+            if is_frame:
+                value = value.T
+        elif isinstance(value, Index) or _is_sequence(value):
+            if len(value) != len(self.index):
+                raise ValueError('Length of values does not match '
+                                    'length of index')
+
+            if not isinstance(value, (np.ndarray, Index)):
+                if isinstance(value, list) and len(value) > 0:
+                    value = com._possibly_convert_platform(value)
                 else:
-                    value = value.copy()
+                    value = com._asarray_tuplesafe(value)
+            elif isinstance(value, PeriodIndex):
+                value = value.asobject
+            elif value.ndim == 2:
+                value = value.copy().T
+            else:
+                value = value.copy()
+        else:
+            # upcast the scalar
+            dtype, value = _infer_dtype_from_scalar(value)
+            value = np.repeat(value, len(self.index)).astype(dtype)
+            value = com._possibly_cast_to_datetime(value, dtype)
 
-            # Broadcasting funtimes
-            if key in self.columns and value.ndim == 1:
+        # broadcast across multiple columns if necessary
+        if key in self.columns and value.ndim == 1:
+            if not self.columns.is_unique or isinstance(self.columns, MultiIndex):
                 existing_piece = self[key]
                 if isinstance(existing_piece, DataFrame):
                     value = np.tile(value, (len(existing_piece.columns), 1))
-        else:
-            if key in self.columns:
-                existing_piece = self[key]
 
-                # upcast the scalar
-                dtype, value = _infer_dtype_from_scalar(value)
-
-                # transpose hack
-                if isinstance(existing_piece, DataFrame):
-                    shape = (len(existing_piece.columns), len(self.index))
-                    value = np.repeat(value, np.prod(shape)).reshape(shape)
-                else:
-                    value = np.repeat(value, len(self.index))
-
-                value = value.astype(dtype)
-
-            else:
-                # upcast the scalar
-                dtype, value = _infer_dtype_from_scalar(value)
-                value = np.array(
-                    np.repeat(value, len(self.index)), dtype=dtype)
-
-            value = com._possibly_cast_to_datetime(value, dtype)
         return np.atleast_2d(np.asarray(value))
 
     @property

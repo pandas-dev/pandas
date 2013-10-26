@@ -3205,6 +3205,17 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = pd.concat([ s, s, s],keys=df.columns,axis=1)
         check(result,expected)
 
+        # check column dups with index equal and not equal to df's index
+        df = DataFrame(np.random.randn(5, 3), index=['a', 'b', 'c', 'd', 'e'],
+                       columns=['A', 'B', 'A'])
+        for index in [df.index, pd.Index(list('edcba'))]:
+            this_df = df.copy()
+            expected_ser = pd.Series(index.values, index=this_df.index)
+            expected_df = DataFrame.from_items([('A', expected_ser),
+                                                ('B', this_df['B']),
+                                                ('A', expected_ser)])
+            this_df['A'] = index
+            check(this_df, expected_df)
 
     def test_column_dups_indexing(self):
 
