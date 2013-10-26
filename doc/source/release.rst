@@ -640,6 +640,8 @@ Bug Fixes
   - Bug when trying to display an embedded PandasObject (:issue:`5324`)
   - Allows operating of Timestamps to return a datetime if the result is out-of-bounds
     related (:issue:`5312`)
+  - Fix return value/type signature of ``initObjToJSON()`` to be compatible
+    with numpy's ``import_array()`` (:issue:`5334`, :issue:`5326`)
 
 pandas 0.12.0
 -------------
