@@ -209,6 +209,11 @@ Improvements to existing features
     by color as expected.
   - ``read_excel()`` now tries to convert integral floats (like ``1.0``) to int
     by default. (:issue:`5394`)
+  - Excel writers now have a default option ``merge_cells`` in ``to_excel()``
+    to merge cells in MultiIndex and Hierarchical Rows. Note: using this
+    option it is no longer possible to round trip Excel files with merged
+    MultiIndex and Hierarchical Rows. Set the ``merge_cells`` to ``False`` to
+    restore the previous behaviour.  (:issue:`5254`)
 
 API Changes
 ~~~~~~~~~~~
