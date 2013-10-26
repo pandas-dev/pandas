@@ -133,6 +133,14 @@ mangle_dupe_cols: boolean, default True
 tupleize_cols: boolean, default False
     Leave a list of tuples on columns as is (default is to convert to
     a Multi Index on the columns)
+error_bad_lines: boolean, default True
+    Lines with too many fields (e.g. a csv line with too many commas) will by
+    default cause an exception to be raised, and no DataFrame will be returned.
+    If False, then these "bad lines" will dropped from the DataFrame that is
+    returned. (Only valid with C parser).
+warn_bad_lines: boolean, default True
+    If error_bad_lines is False, and warn_bad_lines is True, a warning for each
+    "bad line" will be output. (Only valid with C parser).
 
 Returns
 -------
