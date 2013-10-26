@@ -24,6 +24,7 @@ from pandas.computation.expr import PythonExprVisitor, PandasExprVisitor
 from pandas.computation.ops import (_binary_ops_dict, _unary_ops_dict,
                                     _special_case_arith_ops_syms,
                                     _arith_ops_syms, _bool_ops_syms)
+from pandas.computation.common import NameResolutionError
 import pandas.computation.expr as expr
 import pandas.util.testing as tm
 from pandas.util.testing import (assert_frame_equal, randbool,
@@ -1153,6 +1154,45 @@ class TestOperationsNumExprPandas(unittest.TestCase):
         expr1 = 'df = df2'
         self.assertRaises(NotImplementedError, self.eval, expr1,
                           local_dict={'df': df, 'df2': df2})
+
+    def test_assignment_column(self):
+        df = DataFrame(np.random.randn(5, 2), columns=list('ab'))
+        orig_df = df.copy()
+
+        # multiple assignees
+        self.assertRaises(SyntaxError, df.eval, 'd c = a + b')
+
+        # invalid assignees
+        self.assertRaises(SyntaxError, df.eval, 'd,c = a + b')
+        self.assertRaises(SyntaxError, df.eval, 'Timestamp("20131001") = a + b')
+
+        # single assignment - existing variable
+        expected = orig_df.copy()
+        expected['a'] = expected['a'] + expected['b']
+        df = orig_df.copy()
+        df.eval('a = a + b')
+        assert_frame_equal(df,expected)
+
+        # single assignment - new variable
+        expected = orig_df.copy()
+        expected['c'] = expected['a'] + expected['b']
+        df = orig_df.copy()
+        df.eval('c = a + b')
+        assert_frame_equal(df,expected)
+
+        # with a local name overlap
+        a = 1
+        df = orig_df.copy()
+        df.eval('a = 1 + b')
+        expected = orig_df.copy()
+        expected['a'] = 1 + expected['b']
+        assert_frame_equal(df,expected)
+
+        df = orig_df.copy()
+        def f():
+            a = 1
+            df.eval('a=a+b')
+        self.assertRaises(NameResolutionError, f)
 
     def test_basic_period_index_boolean_expression(self):
         df = mkdf(2, 2, data_gen_f=f, c_idx_type='p', r_idx_type='i')

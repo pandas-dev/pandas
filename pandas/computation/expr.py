@@ -21,6 +21,7 @@ from pandas.computation.ops import (_cmp_ops_syms, _bool_ops_syms,
                                     _arith_ops_syms, _unary_ops_syms, is_term)
 from pandas.computation.ops import _reductions, _mathops, _LOCAL_TAG
 from pandas.computation.ops import Op, BinOp, UnaryOp, Term, Constant, Div
+from pandas.computation.ops import UndefinedVariableError
 
 
 def _ensure_scope(level=2, global_dict=None, local_dict=None, resolvers=None,
@@ -417,6 +418,8 @@ class BaseExprVisitor(ast.NodeVisitor):
         self.engine = engine
         self.parser = parser
         self.preparser = preparser
+        self.assignee = None
+        self.assigner = None
 
     def visit(self, node, **kwargs):
         if isinstance(node, string_types):
@@ -575,9 +578,39 @@ class BaseExprVisitor(ast.NodeVisitor):
         return slice(lower, upper, step)
 
     def visit_Assign(self, node, **kwargs):
-        cmpr = ast.Compare(ops=[ast.Eq()], left=node.targets[0],
-                           comparators=[node.value])
-        return self.visit(cmpr)
+        """
+        support a single assignment node, like
+
+        c = a + b
+
+        set the assignee at the top level, must be a Name node which
+        might or might not exist in the resolvers
+
+        """
+
+        if len(node.targets) != 1:
+            raise SyntaxError('can only assign a single expression')
+        if not isinstance(node.targets[0], ast.Name):
+            raise SyntaxError('left hand side of an assignment must be a single name')
+
+        # we have no one to assign to
+        if not len(self.env.resolvers):
+            raise NotImplementedError
+
+        try:
+            assigner = self.visit(node.targets[0], **kwargs)
+        except (UndefinedVariableError):
+            assigner = node.targets[0].id
+
+        self.assigner = getattr(assigner,'name',assigner)
+        if self.assigner is None:
+            raise SyntaxError('left hand side of an assignment must be a single resolvable name')
+        try:
+            self.assignee = self.env.resolvers[0]
+        except:
+            raise ValueError('cannot create an assignee for this expression')
+
+        return self.visit(node.value, **kwargs)
 
     def visit_Attribute(self, node, **kwargs):
         attr = node.attr
@@ -669,7 +702,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         return reduce(visitor, operands)
 
 
-_python_not_supported = frozenset(['Assign', 'Dict', 'Call', 'BoolOp',
+_python_not_supported = frozenset(['Dict', 'Call', 'BoolOp',
                                    'In', 'NotIn'])
 _numexpr_supported_calls = frozenset(_reductions + _mathops)
 
@@ -711,6 +744,14 @@ class Expr(StringMixin):
         self._visitor = _parsers[parser](self.env, self.engine, self.parser)
         self.terms = self.parse()
         self.truediv = truediv
+
+    @property
+    def assigner(self):
+        return getattr(self._visitor,'assigner',None)
+
+    @property
+    def assignee(self):
+        return getattr(self._visitor,'assignee',None)
 
     def __call__(self):
         self.env.locals['truediv'] = self.truediv

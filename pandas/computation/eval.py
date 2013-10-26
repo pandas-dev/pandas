@@ -203,4 +203,10 @@ def eval(expr, parser='pandas', engine='numexpr', truediv=True,
     eng = _engines[engine]
     eng_inst = eng(parsed_expr)
     ret = eng_inst.evaluate()
+
+    # assign if needed
+    if parsed_expr.assignee is not None and parsed_expr.assigner is not None:
+        parsed_expr.assignee[parsed_expr.assigner] = ret
+        return None
+
     return ret
