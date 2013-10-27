@@ -3,13 +3,10 @@ Contains data structures designed for manipulating panel (3-dimensional) data
 """
 # pylint: disable=E1103,W0231,W0212,W0621
 
-from pandas.compat import map, zip, range, lrange, lmap, u, OrderedDict, OrderedDefaultdict
-from pandas import compat
 import sys
 import numpy as np
-from pandas.core.common import (PandasError,
-                                _try_sort, _default_index, _infer_dtype_from_scalar,
-                                notnull)
+from pandas.core.common import (PandasError, _try_sort, _default_index,
+                                _infer_dtype_from_scalar)
 from pandas.core.categorical import Categorical
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
                                _get_combined_index)
@@ -20,10 +17,10 @@ from pandas.core.internals import (BlockManager,
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas import compat
+from pandas.compat import zip, range, lrange, u, OrderedDict, OrderedDefaultdict
 from pandas.util.decorators import deprecate, Appender, Substitution
 import pandas.core.common as com
 import pandas.core.ops as ops
-import pandas.core.nanops as nanops
 import pandas.computation.expressions as expressions
 
 

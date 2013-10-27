@@ -57,15 +57,6 @@ def unique(values):
     return _hashtable_algo(f, values.dtype)
 
 
-# def count(values, uniques=None):
-#     f = lambda htype, caster: _count_generic(values, htype, caster)
-
-#     if uniques is not None:
-#         raise NotImplementedError
-#     else:
-#         return _hashtable_algo(f, values.dtype)
-
-
 def _hashtable_algo(f, dtype):
     """
     f(HashTable, type_caster) -> result
@@ -76,16 +67,6 @@ def _hashtable_algo(f, dtype):
         return f(htable.Int64HashTable, com._ensure_int64)
     else:
         return f(htable.PyObjectHashTable, com._ensure_object)
-
-
-def _count_generic(values, table_type, type_caster):
-    from pandas.core.series import Series
-
-    values = type_caster(values)
-    table = table_type(min(len(values), 1000000))
-    uniques, labels = table.factorize(values)
-
-    return Series(counts, index=uniques)
 
 
 def _match_generic(values, index, table_type, type_caster):

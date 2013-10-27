@@ -75,7 +75,6 @@ def tsplot(series, plotf, **kwargs):
         args.append(style)
 
     lines = plotf(ax, *args, **kwargs)
-    label = kwargs.get('label', None)
 
     # set date formatter, locators and rescale limits
     format_dateaxis(ax, ax.freq)

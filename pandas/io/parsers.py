@@ -719,6 +719,9 @@ class ParserBase(object):
             ic = [ ic ]
         sic = set(ic)
 
+        # TODO: Decide if this is necessary...
+        orig_header = list(header)
+
         # clean the index_names
         index_names = header.pop(-1)
         index_names, names, index_col = _clean_index_names(index_names,
@@ -2048,8 +2051,6 @@ def _stringify_na_values(na_values):
 def _get_na_values(col, na_values, na_fvalues):
     if isinstance(na_values, dict):
         if col in na_values:
-            values = na_values[col]
-            fvalues = na_fvalues[col]
             return na_values[col], na_fvalues[col]
         else:
             return _NA_VALUES, set()

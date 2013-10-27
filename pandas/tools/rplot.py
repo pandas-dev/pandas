@@ -553,7 +553,6 @@ class GeomDensity2D(Layer):
                 ax = fig.gca()
         x = self.data[self.aes['x']]
         y = self.data[self.aes['y']]
-        rvs = np.array([x, y])
         x_min = x.min()
         x_max = x.max()
         y_min = y.min()

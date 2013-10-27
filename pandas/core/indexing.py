@@ -540,8 +540,6 @@ class _NDFrameIndexer(object):
         raise ValueError('Incompatible indexer with DataFrame')
 
     def _align_panel(self, indexer, df):
-        is_frame = self.obj.ndim == 2
-        is_panel = self.obj.ndim >= 3
         raise NotImplementedError("cannot set using an indexer with a Panel yet!")
 
     def _getitem_tuple(self, tup):
@@ -581,10 +579,8 @@ class _NDFrameIndexer(object):
             return False
 
         # just too complicated
-        for indexer, ax in zip(tup,self.obj._data.axes):
+        for ax in self.obj._data.axes:
             if isinstance(ax, MultiIndex):
-                return False
-            elif com._is_bool_indexer(indexer):
                 return False
 
         return True
@@ -637,6 +633,7 @@ class _NDFrameIndexer(object):
                 if not ax0.is_lexsorted_for_tuple(tup):
                     raise e1
                 try:
+                    # Check for valid axis
                     loc = ax0.get_loc(tup[0])
                 except KeyError:
                     raise e1
@@ -933,6 +930,7 @@ class _IXIndexer(_NDFrameIndexer):
     """ A primarily location based indexer, with integer fallback """
 
     def _has_valid_type(self, key, axis):
+        # check for valid axis (raises if invalid)
         ax = self.obj._get_axis(axis)
 
         if isinstance(key, slice):
@@ -945,7 +943,7 @@ class _IXIndexer(_NDFrameIndexer):
             return True
 
         else:
-
+            # check for valid key/axis combo (raises if invalid)
             self._convert_scalar_indexer(key, axis)
 
         return True

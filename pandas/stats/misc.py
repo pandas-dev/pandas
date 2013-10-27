@@ -5,6 +5,7 @@ import numpy as np
 from pandas.core.api import Series, DataFrame, isnull, notnull
 from pandas.core.series import remove_na
 from pandas.compat import zip
+import pandas.core.common as com
 
 
 def zscore(series):
@@ -157,6 +158,7 @@ def bucketcat(series, cats):
     cats = np.asarray(cats)
 
     unique_labels = np.unique(cats)
+    # TODO: Add test case that reaches this code.
     unique_labels = unique_labels[com.notnull(unique_labels)]
 
     # group by
@@ -217,6 +219,7 @@ def _bucketpanel_by(series, xby, yby, xbins, ybins):
 
     labels = _uniquify(xlabels, ylabels, xbins, ybins)
 
+    # TODO: Add a test that reaches this part of the code.
     mask = com.isnull(labels)
     labels[mask] = -1
 
@@ -232,6 +235,7 @@ def _bucketpanel_by(series, xby, yby, xbins, ybins):
         xlab = xlabels[pos]
         ylab = ylabels[pos]
 
+        # TODO: Add a test that reaches this part of the code.
         return '%sx%s' % (int(xlab) if com.notnull(xlab) else 'NULL',
                           int(ylab) if com.notnull(ylab) else 'NULL')
 
@@ -251,6 +255,7 @@ def _bucketpanel_cat(series, xcat, ycat):
     sorted_ylabels = ylabels.take(sorter)
 
     unique_labels = np.unique(labels)
+    # TODO: Add a test that reaches this part of the code.
     unique_labels = unique_labels[com.notnull(unique_labels)]
 
     locs = sorted_labels.searchsorted(unique_labels)

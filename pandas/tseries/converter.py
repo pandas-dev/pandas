@@ -296,12 +296,14 @@ class MilliSecondLocator(dates.DateLocator):
         try:
             start = dmin - delta
         except ValueError:
+            # TODO: Never used.
             start = _from_ordinal(1.0)
 
         try:
             stop = dmax + delta
         except ValueError:
             # The magic number!
+            # TODO: Never used.
             stop = _from_ordinal(3652059.9999999)
 
         nmax, nmin = dates.date2num((dmax, dmin))
@@ -357,12 +359,14 @@ class MilliSecondLocator(dates.DateLocator):
         try:
             start = dmin - delta
         except ValueError:
+            # TODO: Never used.
             start = _from_ordinal(1.0)
 
         try:
             stop = dmax + delta
         except ValueError:
             # The magic number!
+            # TODO: Never used.
             stop = _from_ordinal(3652059.9999999)
 
         dmin, dmax = self.datalim_to_dt()

@@ -501,10 +501,11 @@ class Index(FrozenNDArray):
         # if we are mixed and have integers
         try:
             if is_positional and self.is_mixed():
+                # check that start and stop are valid
                 if start is not None:
-                    i = self.get_loc(start)
+                    self.get_loc(start)
                 if stop is not None:
-                    j = self.get_loc(stop)
+                    self.get_loc(stop)
                 is_positional = False
         except KeyError:
             if self.inferred_type == 'mixed-integer-float':

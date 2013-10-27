@@ -2,12 +2,7 @@
 
 """Top level ``eval`` module.
 """
-
-import numbers
-import numpy as np
-
 from pandas.core import common as com
-from pandas.compat import string_types
 from pandas.computation.expr import Expr, _parsers, _ensure_scope
 from pandas.computation.engines import _engines
 
