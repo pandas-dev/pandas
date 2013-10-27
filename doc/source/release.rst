@@ -72,7 +72,8 @@ Experimental Features
     ``numexpr`` behind the scenes. This results in large speedups for complicated
     expressions involving large DataFrames/Series.
   - :class:`~pandas.DataFrame` has a new :meth:`~pandas.DataFrame.eval` that
-    evaluates an expression in the context of the ``DataFrame``.
+    evaluates an expression in the context of the ``DataFrame``; allows
+    inline expression assignment
   - A :meth:`~pandas.DataFrame.query` method has been added that allows
     you to select elements of a ``DataFrame`` using a natural query syntax nearly
     identical to Python syntax.

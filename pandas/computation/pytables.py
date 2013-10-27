@@ -389,6 +389,11 @@ class ExprVisitor(BaseExprVisitor):
     def visit_Index(self, node, **kwargs):
         return self.visit(node.value).value
 
+    def visit_Assign(self, node, **kwargs):
+        cmpr = ast.Compare(ops=[ast.Eq()], left=node.targets[0],
+                           comparators=[node.value])
+        return self.visit(cmpr)
+
     def visit_Subscript(self, node, **kwargs):
         value = self.visit(node.value)
         slobj = self.visit(node.slice)

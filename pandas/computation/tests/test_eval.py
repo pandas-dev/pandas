@@ -24,6 +24,7 @@ from pandas.computation.expr import PythonExprVisitor, PandasExprVisitor
 from pandas.computation.ops import (_binary_ops_dict, _unary_ops_dict,
                                     _special_case_arith_ops_syms,
                                     _arith_ops_syms, _bool_ops_syms)
+from pandas.computation.common import NameResolutionError
 import pandas.computation.expr as expr
 import pandas.util.testing as tm
 from pandas.util.testing import (assert_frame_equal, randbool,
@@ -1151,8 +1152,64 @@ class TestOperationsNumExprPandas(unittest.TestCase):
         df = DataFrame(np.random.randn(5, 3), columns=list('abc'))
         df2 = DataFrame(np.random.randn(5, 3))
         expr1 = 'df = df2'
-        self.assertRaises(NotImplementedError, self.eval, expr1,
+        self.assertRaises(ValueError, self.eval, expr1,
                           local_dict={'df': df, 'df2': df2})
+
+    def test_assignment_column(self):
+        skip_if_no_ne('numexpr')
+        df = DataFrame(np.random.randn(5, 2), columns=list('ab'))
+        orig_df = df.copy()
+
+        # multiple assignees
+        self.assertRaises(SyntaxError, df.eval, 'd c = a + b')
+
+        # invalid assignees
+        self.assertRaises(SyntaxError, df.eval, 'd,c = a + b')
+        self.assertRaises(SyntaxError, df.eval, 'Timestamp("20131001") = a + b')
+
+        # single assignment - existing variable
+        expected = orig_df.copy()
+        expected['a'] = expected['a'] + expected['b']
+        df = orig_df.copy()
+        df.eval('a = a + b')
+        assert_frame_equal(df,expected)
+
+        # single assignment - new variable
+        expected = orig_df.copy()
+        expected['c'] = expected['a'] + expected['b']
+        df = orig_df.copy()
+        df.eval('c = a + b')
+        assert_frame_equal(df,expected)
+
+        # with a local name overlap
+        def f():
+            df = orig_df.copy()
+            a = 1
+            df.eval('a = 1 + b')
+            return df
+
+        df = f()
+        expected = orig_df.copy()
+        expected['a'] = 1 + expected['b']
+        assert_frame_equal(df,expected)
+
+        df = orig_df.copy()
+        def f():
+            a = 1
+            df.eval('a=a+b')
+        self.assertRaises(NameResolutionError, f)
+
+        # multiple assignment
+        df = orig_df.copy()
+        df.eval('c = a + b')
+        self.assertRaises(SyntaxError, df.eval, 'c = a = b')
+
+        # explicit targets
+        df = orig_df.copy()
+        self.eval('c = df.a + df.b', local_dict={'df' : df}, target=df)
+        expected = orig_df.copy()
+        expected['c'] = expected['a'] + expected['b']
+        assert_frame_equal(df,expected)
 
     def test_basic_period_index_boolean_expression(self):
         df = mkdf(2, 2, data_gen_f=f, c_idx_type='p', r_idx_type='i')

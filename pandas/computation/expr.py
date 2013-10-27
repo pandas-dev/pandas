@@ -21,13 +21,14 @@ from pandas.computation.ops import (_cmp_ops_syms, _bool_ops_syms,
                                     _arith_ops_syms, _unary_ops_syms, is_term)
 from pandas.computation.ops import _reductions, _mathops, _LOCAL_TAG
 from pandas.computation.ops import Op, BinOp, UnaryOp, Term, Constant, Div
+from pandas.computation.ops import UndefinedVariableError
 
 
 def _ensure_scope(level=2, global_dict=None, local_dict=None, resolvers=None,
-                  **kwargs):
+                  target=None, **kwargs):
     """Ensure that we are grabbing the correct scope."""
     return Scope(gbls=global_dict, lcls=local_dict, level=level,
-                 resolvers=resolvers)
+                 resolvers=resolvers, target=target)
 
 
 def _check_disjoint_resolver_names(resolver_keys, local_keys, global_keys):
@@ -88,13 +89,14 @@ class Scope(StringMixin):
     resolver_keys : frozenset
     """
     __slots__ = ('globals', 'locals', 'resolvers', '_global_resolvers',
-                 'resolver_keys', '_resolver', 'level', 'ntemps')
+                 'resolver_keys', '_resolver', 'level', 'ntemps', 'target')
 
-    def __init__(self, gbls=None, lcls=None, level=1, resolvers=None):
+    def __init__(self, gbls=None, lcls=None, level=1, resolvers=None, target=None):
         self.level = level
         self.resolvers = tuple(resolvers or [])
         self.globals = dict()
         self.locals = dict()
+        self.target = target
         self.ntemps = 1  # number of temporary variables in this scope
 
         if isinstance(lcls, Scope):
@@ -102,6 +104,8 @@ class Scope(StringMixin):
             self.locals.update(ld.locals.copy())
             self.globals.update(ld.globals.copy())
             self.resolvers += ld.resolvers
+            if ld.target is not None:
+                self.target = ld.target
             self.update(ld.level)
 
         frame = sys._getframe(level)
@@ -130,9 +134,10 @@ class Scope(StringMixin):
 
     def __unicode__(self):
         return com.pprint_thing("locals: {0}\nglobals: {0}\nresolvers: "
-                                "{0}".format(list(self.locals.keys()),
-                                             list(self.globals.keys()),
-                                             list(self.resolver_keys)))
+                                "{0}\ntarget: {0}".format(list(self.locals.keys()),
+                                                          list(self.globals.keys()),
+                                                          list(self.resolver_keys),
+                                                          self.target))
 
     def __getitem__(self, key):
         return self.resolve(key, globally=False)
@@ -417,6 +422,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         self.engine = engine
         self.parser = parser
         self.preparser = preparser
+        self.assigner = None
 
     def visit(self, node, **kwargs):
         if isinstance(node, string_types):
@@ -575,9 +581,33 @@ class BaseExprVisitor(ast.NodeVisitor):
         return slice(lower, upper, step)
 
     def visit_Assign(self, node, **kwargs):
-        cmpr = ast.Compare(ops=[ast.Eq()], left=node.targets[0],
-                           comparators=[node.value])
-        return self.visit(cmpr)
+        """
+        support a single assignment node, like
+
+        c = a + b
+
+        set the assigner at the top level, must be a Name node which
+        might or might not exist in the resolvers
+
+        """
+
+        if len(node.targets) != 1:
+            raise SyntaxError('can only assign a single expression')
+        if not isinstance(node.targets[0], ast.Name):
+            raise SyntaxError('left hand side of an assignment must be a single name')
+        if self.env.target is None:
+            raise ValueError('cannot assign without a target object')
+
+        try:
+            assigner = self.visit(node.targets[0], **kwargs)
+        except (UndefinedVariableError):
+            assigner = node.targets[0].id
+
+        self.assigner = getattr(assigner,'name',assigner)
+        if self.assigner is None:
+            raise SyntaxError('left hand side of an assignment must be a single resolvable name')
+
+        return self.visit(node.value, **kwargs)
 
     def visit_Attribute(self, node, **kwargs):
         attr = node.attr
@@ -669,7 +699,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         return reduce(visitor, operands)
 
 
-_python_not_supported = frozenset(['Assign', 'Dict', 'Call', 'BoolOp',
+_python_not_supported = frozenset(['Dict', 'Call', 'BoolOp',
                                    'In', 'NotIn'])
 _numexpr_supported_calls = frozenset(_reductions + _mathops)
 
@@ -711,6 +741,10 @@ class Expr(StringMixin):
         self._visitor = _parsers[parser](self.env, self.engine, self.parser)
         self.terms = self.parse()
         self.truediv = truediv
+
+    @property
+    def assigner(self):
+        return getattr(self._visitor,'assigner',None)
 
     def __call__(self):
         self.env.locals['truediv'] = self.truediv
