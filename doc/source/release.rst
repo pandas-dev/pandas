@@ -642,6 +642,7 @@ Bug Fixes
     related (:issue:`5312`)
   - Fix return value/type signature of ``initObjToJSON()`` to be compatible
     with numpy's ``import_array()`` (:issue:`5334`, :issue:`5326`)
+  - Bug when renaming then set_index on a DataFrame (:issue:`5344`)
 
 pandas 0.12.0
 -------------

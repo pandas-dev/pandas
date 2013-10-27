@@ -1992,6 +1992,9 @@ class BlockManager(PandasObject):
             self._ref_locs = rl
             return rl
 
+        elif do_refs:
+            self._reset_ref_locs()
+
         # return our cached _ref_locs (or will compute again
         # when we recreate the block manager if needed
         return getattr(self, '_ref_locs', None)
