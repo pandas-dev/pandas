@@ -337,7 +337,7 @@ def get_base_alias(freqstr):
     """
     return _base_and_stride(freqstr)[0]
 
-_dont_uppercase = ['MS', 'ms']
+_dont_uppercase = set(('MS', 'ms'))
 
 
 def get_offset(name):
