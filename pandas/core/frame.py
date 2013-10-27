@@ -1797,12 +1797,14 @@ class DataFrame(NDFrame):
         >>> from pandas import DataFrame
         >>> df = DataFrame(randn(10, 2), columns=list('ab'))
         >>> df.eval('a + b')
+        >>> df.eval('c=a + b')
         """
         resolvers = kwargs.pop('resolvers', None)
         if resolvers is None:
             index_resolvers = self._get_resolvers()
             resolvers = [self, index_resolvers]
         kwargs['local_dict'] = _ensure_scope(resolvers=resolvers, **kwargs)
+        kwargs['target'] = self
         return _eval(expr, **kwargs)
 
     def _slice(self, slobj, axis=0, raise_on_error=False, typ=None):
