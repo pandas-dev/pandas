@@ -2516,6 +2516,18 @@ class TestSeriesDatetime64(unittest.TestCase):
 
 class TestTimestamp(unittest.TestCase):
 
+    def test_class_ops(self):
+        _skip_if_no_pytz()
+        import pytz
+
+        def compare(x,y):
+            self.assert_(int(Timestamp(x).value/1e9) == int(Timestamp(y).value/1e9))
+
+        compare(Timestamp.now(),datetime.now())
+        compare(Timestamp.now('UTC'),datetime.now(pytz.timezone('UTC')))
+        compare(Timestamp.utcnow(),datetime.utcnow())
+        compare(Timestamp.today(),datetime.today())
+
     def test_basics_nanos(self):
         val = np.int64(946684800000000000).view('M8[ns]')
         stamp = Timestamp(val.view('i8') + 500)
@@ -3031,10 +3043,10 @@ class TestSlicing(unittest.TestCase):
         df = df.applymap(lambda x: x + BDay())
 
         self.assertTrue(df.x1.dtype == 'M8[ns]')
-        
+
     def test_date_range_fy5252(self):
-        dr = date_range(start="2013-01-01", 
-                           periods=2, 
+        dr = date_range(start="2013-01-01",
+                           periods=2,
                            freq=offsets.FY5253(startingMonth=1,
                                                weekday=3,
                                                variation="nearest"))

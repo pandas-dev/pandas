@@ -321,6 +321,7 @@ API Changes
     (:issue:`4501`)
   - Support non-unique axes in a Panel via indexing operations (:issue:`4960`)
   - ``.truncate`` will raise a ``ValueError`` if invalid before and afters dates are given (:issue:`5242`)
+  - ``Timestamp`` now supports ``now/today/utcnow`` class methods (:issue:`5339`)
 
 Internal Refactoring
 ~~~~~~~~~~~~~~~~~~~~
