@@ -1163,7 +1163,7 @@ def _check_plot_works(f, *args, **kwargs):
         else:
             assert_is_valid_plot_return_object(ret)
 
-        with ensure_clean() as path:
+        with ensure_clean(return_filelike=True) as path:
             plt.savefig(path)
     finally:
         tm.close(fig)

@@ -306,18 +306,39 @@ def set_trace():
 
 
 @contextmanager
-def ensure_clean(filename=None):
-    # if we are not passed a filename, generate a temporary
-    if filename is None:
-        filename = tempfile.mkstemp()[1]
+def ensure_clean(filename=None, return_filelike=False):
+    """Gets a temporary path and agrees to remove on close.
 
-    try:
-        yield filename
-    finally:
+    Parameters
+    ----------
+    filename : str (optional)
+        if None, creates a temporary file which is then removed when out of
+        scope.
+    return_filelike: bool (default False)
+        if True, returns a file-like which is *always* cleaned. Necessary for
+        savefig and other functions which want to append extensions. Ignores
+        filename if True.
+    """
+
+    if return_filelike:
+        f = tempfile.TemporaryFile()
         try:
-            os.remove(filename)
-        except:
-            pass
+            yield f
+        finally:
+            f.close()
+
+    else:
+        # if we are not passed a filename, generate a temporary
+        if filename is None:
+            filename = tempfile.mkstemp()[1]
+
+        try:
+            yield filename
+        finally:
+            try:
+                os.remove(filename)
+            except Exception as e:
+                print(e)
 
 
 def get_data_path(f=''):
