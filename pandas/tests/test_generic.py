@@ -478,9 +478,9 @@ class TestSeries(unittest.TestCase, Generic):
     def test_interp_quad(self):
         _skip_if_no_scipy()
         sq = Series([1, 4, np.nan, 16], index=[1, 2, 3, 4])
-        result = sq.interpolate(method='quadratic', downcast=False)
-        expected = Series([1., 4, 9, 16], index=[1, 2, 3, 4])
-        assert_series_equal(result, expected, check_less_precise=True)
+        result = sq.interpolate(method='quadratic')
+        expected = Series([1, 4, 9, 16], index=[1, 2, 3, 4])
+        assert_series_equal(result, expected)
 
     def test_interp_scipy_basic(self):
         _skip_if_no_scipy()
@@ -659,7 +659,7 @@ class TestDataFrame(unittest.TestCase, Generic):
         expected = df.copy()
         expected['A'].iloc[2] = 3
         expected['A'].iloc[5] = 6
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected.astype(np.int64))
 
         result = df.interpolate(method='krogh')
         expectedk = df.copy()
