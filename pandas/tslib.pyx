@@ -1247,7 +1247,8 @@ def array_strptime(ndarray[object] values, object fmt, coerce=False):
         'j': 14,
         'U': 15,
         'W': 16,
-        'Z': 17
+        'Z': 17,
+        'p': 18   # just an additional key, works only with I
     }
     cdef int parse_code
 

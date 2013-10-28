@@ -816,62 +816,6 @@ class TestTimeSeries(unittest.TestCase):
         #### to_datetime('01-13-2012', dayfirst=True)
         #### self.assertRaises(ValueError, to_datetime('01-13-2012', dayfirst=True))
 
-    def test_to_datetime_format(self):
-        values = ['1/1/2000', '1/2/2000', '1/3/2000']
-
-        results1 = [ Timestamp('20000101'), Timestamp('20000201'),
-                     Timestamp('20000301') ]
-        results2 = [ Timestamp('20000101'), Timestamp('20000102'),
-                     Timestamp('20000103') ]
-        for vals, expecteds in [ (values, (Index(results1), Index(results2))),
-                                 (Series(values),(Series(results1), Series(results2))),
-                                 (values[0], (results1[0], results2[0])),
-                                 (values[1], (results1[1], results2[1])),
-                                 (values[2], (results1[2], results2[2])) ]:
-
-            for i, fmt in enumerate(['%d/%m/%Y', '%m/%d/%Y']):
-                result = to_datetime(vals, format=fmt)
-                expected = expecteds[i]
-
-                if isinstance(expected, Series):
-                    assert_series_equal(result, Series(expected))
-                elif isinstance(expected, Timestamp):
-                    self.assert_(result == expected)
-                else:
-                    self.assert_(result.equals(expected))
-
-    def test_to_datetime_format_YYYYMMDD(self):
-        s = Series([19801222,19801222] + [19810105]*5)
-        expected = Series([ Timestamp(x) for x in s.apply(str) ])
-
-        result = to_datetime(s,format='%Y%m%d')
-        assert_series_equal(result, expected)
-
-        result = to_datetime(s.apply(str),format='%Y%m%d')
-        assert_series_equal(result, expected)
-
-        # with NaT
-        expected = Series([Timestamp("19801222"),Timestamp("19801222")] + [Timestamp("19810105")]*5)
-        expected[2] = np.nan
-        s[2] = np.nan
-
-        result = to_datetime(s,format='%Y%m%d')
-        assert_series_equal(result, expected)
-
-        # string with NaT
-        s = s.apply(str)
-        s[2] = 'nat'
-        result = to_datetime(s,format='%Y%m%d')
-        assert_series_equal(result, expected)
-
-
-    def test_to_datetime_format_microsecond(self):
-        val = '01-Apr-2011 00:00:01.978'
-        format = '%d-%b-%Y %H:%M:%S.%f'
-        result = to_datetime(val, format=format)
-        exp = dt.datetime.strptime(val, format)
-        self.assert_(result == exp)
-
     def test_to_datetime_on_datetime64_series(self):
         # #2699
         s = Series(date_range('1/1/2000', periods=10))
@@ -3053,6 +2997,82 @@ class TestSlicing(unittest.TestCase):
         self.assertEqual(dr[0], Timestamp('2013-01-31'))
         self.assertEqual(dr[1], Timestamp('2014-01-30'))
 
+class TimeConversionFormats(unittest.TestCase):
+    def test_to_datetime_format(self):
+        values = ['1/1/2000', '1/2/2000', '1/3/2000']
+
+        results1 = [ Timestamp('20000101'), Timestamp('20000201'),
+                     Timestamp('20000301') ]
+        results2 = [ Timestamp('20000101'), Timestamp('20000102'),
+                     Timestamp('20000103') ]
+        for vals, expecteds in [ (values, (Index(results1), Index(results2))),
+                                 (Series(values),(Series(results1), Series(results2))),
+                                 (values[0], (results1[0], results2[0])),
+                                 (values[1], (results1[1], results2[1])),
+                                 (values[2], (results1[2], results2[2])) ]:
+
+            for i, fmt in enumerate(['%d/%m/%Y', '%m/%d/%Y']):
+                result = to_datetime(vals, format=fmt)
+                expected = expecteds[i]
+
+                if isinstance(expected, Series):
+                    assert_series_equal(result, Series(expected))
+                elif isinstance(expected, Timestamp):
+                    self.assert_(result == expected)
+                else:
+                    self.assert_(result.equals(expected))
+
+    def test_to_datetime_format_YYYYMMDD(self):
+        s = Series([19801222,19801222] + [19810105]*5)
+        expected = Series([ Timestamp(x) for x in s.apply(str) ])
+
+        result = to_datetime(s,format='%Y%m%d')
+        assert_series_equal(result, expected)
+
+        result = to_datetime(s.apply(str),format='%Y%m%d')
+        assert_series_equal(result, expected)
+
+        # with NaT
+        expected = Series([Timestamp("19801222"),Timestamp("19801222")] + [Timestamp("19810105")]*5)
+        expected[2] = np.nan
+        s[2] = np.nan
+
+        result = to_datetime(s,format='%Y%m%d')
+        assert_series_equal(result, expected)
+
+        # string with NaT
+        s = s.apply(str)
+        s[2] = 'nat'
+        result = to_datetime(s,format='%Y%m%d')
+        assert_series_equal(result, expected)
+
+
+    def test_to_datetime_format_microsecond(self):
+        val = '01-Apr-2011 00:00:01.978'
+        format = '%d-%b-%Y %H:%M:%S.%f'
+        result = to_datetime(val, format=format)
+        exp = dt.datetime.strptime(val, format)
+        self.assert_(result == exp)
+
+    def test_to_datetime_format_time(self):
+        data = [
+                ['01/10/2010 15:20', '%m/%d/%Y %H:%M', Timestamp('2010-01-10 15:20')],
+	            ['01/10/2010 05:43', '%m/%d/%Y %I:%M', Timestamp('2010-01-10 05:43')],
+	            ['01/10/2010 13:56:01', '%m/%d/%Y %H:%M:%S', Timestamp('2010-01-10 13:56:01')],
+	            ['01/10/2010 08:14 PM', '%m/%d/%Y %I:%M %p', Timestamp('2010-01-10 20:14')],
+	            ['01/10/2010 07:40 AM', '%m/%d/%Y %I:%M %p', Timestamp('2010-01-10 07:40')],
+	            ['01/10/2010 09:12:56 AM', '%m/%d/%Y %I:%M:%S %p', Timestamp('2010-01-10 09:12:56')]
+            ]
+        for s, format, dt in data:
+            self.assertEqual(to_datetime(s, format=format), dt)
+
+    def test_to_datetime_format_weeks(self):
+        data = [
+                ['2009324', '%Y%W%w', Timestamp('2009-08-13')],
+                ['2013020', '%Y%U%w', Timestamp('2013-01-13')]
+            ]
+        for s, format, dt in data:
+            self.assertEqual(to_datetime(s, format=format), dt)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
