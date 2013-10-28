@@ -1600,6 +1600,9 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         result = p.dropna(axis=1)
         exp = p.ix[:, ['a', 'c', 'e'], :]
         assert_panel_equal(result, exp)
+        inp = p.copy()
+        inp.dropna(axis=1, inplace=True)
+        assert_panel_equal(inp, exp)
 
         result = p.dropna(axis=1, how='all')
         assert_panel_equal(result, p)

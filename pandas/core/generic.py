@@ -1101,7 +1101,7 @@ class NDFrame(PandasObject):
         d = other._construct_axes_dict(method=method)
         return self.reindex(**d)
 
-    def drop(self, labels, axis=0, level=None):
+    def drop(self, labels, axis=0, level=None, inplace=False, **kwargs):
         """
         Return new object with labels in requested axis removed
 
@@ -1111,6 +1111,8 @@ class NDFrame(PandasObject):
         axis : int or axis name
         level : int or name, default None
             For MultiIndex
+        inplace : bool, default False
+            If True, do operation inplace and return None.
 
         Returns
         -------
@@ -1132,7 +1134,7 @@ class NDFrame(PandasObject):
                 dropped.axes[axis_].set_names(axis.names, inplace=True)
             except AttributeError:
                 pass
-            return dropped
+            result = dropped
 
         else:
             labels = com._index_labels_to_array(labels)
@@ -1147,7 +1149,20 @@ class NDFrame(PandasObject):
             slicer = [slice(None)] * self.ndim
             slicer[self._get_axis_number(axis_name)] = indexer
 
-            return self.ix[tuple(slicer)]
+            result = self.ix[tuple(slicer)]
+
+        if inplace:
+            self._update_inplace(result)
+        else:
+            return result
+
+    def _update_inplace(self, result):
+        "replace self internals with result."
+        # NOTE: This does *not* call __finalize__ and that's an explicit
+        # decision that we may revisit in the future.
+        self._reset_cache()
+        self._data = result._data
+        self._maybe_update_cacher()
 
     def add_prefix(self, prefix):
         """

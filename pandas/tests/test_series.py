@@ -3582,6 +3582,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_dropna_empty(self):
         s = Series([])
         self.assert_(len(s.dropna()) == 0)
+        s.dropna(inplace=True)
+        self.assert_(len(s) == 0)
 
         # invalid axis
         self.assertRaises(ValueError, s.dropna, axis=1)
@@ -3607,10 +3609,16 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         result = s.drop_duplicates()
         expected = s[[True, True, True, False]]
         assert_series_equal(result, expected)
+        sc = s.copy()
+        sc.drop_duplicates(inplace=True)
+        assert_series_equal(sc, expected)
 
         result = s.drop_duplicates(take_last=True)
         expected = s[[True, True, False, True]]
         assert_series_equal(result, expected)
+        sc = s.copy()
+        sc.drop_duplicates(take_last=True, inplace=True)
+        assert_series_equal(sc, expected)
 
     def test_sort(self):
         ts = self.ts.copy()
@@ -5196,6 +5204,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.ts[:5] = np.nan
         result = self.ts.dropna()
         self.assertEquals(result.name, self.ts.name)
+        name = self.ts.name
+        ts = self.ts.copy()
+        ts.dropna(inplace=True)
+        self.assertEquals(ts.name, name)
 
     def test_numpy_unique(self):
         # it works!

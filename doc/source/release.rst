@@ -200,6 +200,11 @@ Improvements to existing features
     argument. (:issue:`5354`)
   - Added short docstrings to a few methods that were missing them + fixed the
     docstrings for Panel flex methods. (:issue:`5336`)
+  - ``NDFrame.drop()``, ``NDFrame.dropna()``, and ``.drop_duplicates()`` all
+    accept ``inplace`` as a kewyord argument; however, this only means that the
+    wrapper is updated inplace, a copy is still made internally.
+    (:issue:`1960`, :issue:`5247`, and related :issue:`2325` [still not
+    closed])
 
 API Changes
 ~~~~~~~~~~~
@@ -474,6 +479,9 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
  - Unity ``dropna`` for Series/DataFrame signature (:issue:`5250`),
    tests from :issue:`5234`, courtesy of @rockg
  - Rewrite assert_almost_equal() in cython for performance (:issue:`4398`)
+ - Added an internal ``_update_inplace`` method to facilitate updating
+   ``NDFrame`` wrappers on inplace ops (only is for convenience of caller,
+   doesn't actually prevent copies). (:issue:`5247`)
 
 .. _release.bug_fixes-0.13.0:
 
