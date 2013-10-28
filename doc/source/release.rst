@@ -66,7 +66,7 @@ API Changes
     timedeltas (:issue:`5458`,:issue:`5689`)
   - Add ``-NaN`` and ``-nan`` to the default set of NA values
     (:issue:`5952`).  See :ref:`NA Values <io.na_values>`.
-  - ``NDFrame`` now has an ``equals`` method. (:issue:`5283`) 
+  - ``NDFrame`` now has an ``equals`` method. (:issue:`5283`)
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
@@ -95,6 +95,8 @@ Improvements to existing features
   - pd.to_csv and pd.to_datetime learned a new ``infer_datetime_format`` keyword which greatly
     improves parsing perf in many cases. Thanks to @lexual for suggesting and @danbirken
     for rapidly implementing. (:issue:`5490`,:issue:`6021`)
+  - add ability to recognize '%p' format code (am/pm) to date parsers when the specific format
+    is supplied (:issue:`5361`)
 
 .. _release.bug_fixes-0.13.1:
 
