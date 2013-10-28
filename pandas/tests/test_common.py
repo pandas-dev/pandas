@@ -118,6 +118,22 @@ def test_isnull_datetime():
     assert(mask[0])
     assert(not mask[1:].any())
 
+def test_downcast_conv():
+    # test downcasting
+
+    arr = np.array([8.5, 8.6, 8.7, 8.8, 8.9999999999995])
+    result = com._possibly_downcast_to_dtype(arr, 'infer')
+    assert (np.array_equal(result, arr))
+
+    arr = np.array([8., 8., 8., 8., 8.9999999999995])
+    result = com._possibly_downcast_to_dtype(arr, 'infer')
+    expected = np.array([8, 8, 8, 8, 9])
+    assert (np.array_equal(result, expected))
+
+    arr = np.array([8., 8., 8., 8., 9.0000000000005])
+    result = com._possibly_downcast_to_dtype(arr, 'infer')
+    expected = np.array([8, 8, 8, 8, 9])
+    assert (np.array_equal(result, expected))
 
 def test_datetimeindex_from_empty_datetime64_array():
     for unit in [ 'ms', 'us', 'ns' ]:

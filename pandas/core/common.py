@@ -1022,6 +1022,7 @@ def _possibly_downcast_to_dtype(result, dtype):
     if np.isscalar(result) or not len(result):
         return result
 
+    trans = lambda x: x
     if isinstance(dtype, compat.string_types):
         if dtype == 'infer':
             inferred_type = lib.infer_dtype(_ensure_object(result.ravel()))
@@ -1037,6 +1038,7 @@ def _possibly_downcast_to_dtype(result, dtype):
             # try to upcast here
             elif inferred_type == 'floating':
                 dtype = 'int64'
+                trans = lambda x: x.round()
 
             else:
                 dtype = 'object'
@@ -1058,7 +1060,7 @@ def _possibly_downcast_to_dtype(result, dtype):
             # do a test on the first element, if it fails then we are done
             r = result.ravel()
             arr = np.array([ r[0] ])
-            if not np.allclose(arr,arr.astype(dtype)):
+            if not np.allclose(arr,trans(arr).astype(dtype)):
                 return result
 
             # a comparable, e.g. a Decimal may slip in here
@@ -1066,7 +1068,7 @@ def _possibly_downcast_to_dtype(result, dtype):
                 return result
 
             if issubclass(result.dtype.type, (np.object_,np.number)) and notnull(result).all():
-                new_result = result.astype(dtype)
+                new_result = trans(result).astype(dtype)
                 try:
                     if np.allclose(new_result,result):
                         return new_result

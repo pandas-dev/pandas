@@ -659,7 +659,7 @@ class TestDataFrame(unittest.TestCase, Generic):
         expected = df.copy()
         expected['A'].iloc[2] = 3
         expected['A'].iloc[5] = 6
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected.astype(np.int64))
 
         result = df.interpolate(method='krogh')
         expectedk = df.copy()
