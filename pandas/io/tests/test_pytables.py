@@ -466,6 +466,12 @@ class TestHDFStore(unittest.TestCase):
             store['a'] = tm.makeTimeSeries()
             store.flush()
 
+    def test_flush_fsync(self):
+
+        with ensure_clean(self.path) as store:
+            store['a'] = tm.makeTimeSeries()
+            store.flush(fsync=True)
+
     def test_get(self):
 
         with ensure_clean(self.path) as store:

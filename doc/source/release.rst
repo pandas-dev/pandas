@@ -275,6 +275,8 @@ API Changes
     - store `datetime.date` objects as ordinals rather then timetuples to avoid
       timezone issues (:issue:`2852`), thanks @tavistmorph and @numpand
     - ``numexpr`` 2.2.2 fixes incompatiblity in PyTables 2.4 (:issue:`4908`)
+    - ``flush`` now accepts an ``fsync`` parameter, which defaults to ``False``
+      (:issue:`5364`)
   - ``JSON``
 
     - added ``date_unit`` parameter to specify resolution of timestamps.

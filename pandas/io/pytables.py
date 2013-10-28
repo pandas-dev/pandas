@@ -10,6 +10,7 @@ import re
 import copy
 import itertools
 import warnings
+import os
 
 import numpy as np
 from pandas import (Series, TimeSeries, DataFrame, Panel, Panel4D, Index,
@@ -525,12 +526,30 @@ class HDFStore(StringMixin):
             return False
         return bool(self._handle.isopen)
 
-    def flush(self):
+    def flush(self, fsync=False):
         """
-        Force all buffered modifications to be written to disk
+        Force all buffered modifications to be written to disk.
+
+        By default this method requests PyTables to flush, and PyTables in turn
+        requests the HDF5 library to flush any changes to the operating system.
+        There is no guarantee the operating system will actually commit writes
+        to disk.
+
+        To request the operating system to write the file to disk, pass
+        ``fsync=True``. The method will then block until the operating system
+        reports completion, although be aware there might be other caching
+        layers (eg disk controllers, disks themselves etc) which further delay
+        durability.
+
+        Parameters
+        ----------
+        fsync : boolean, invoke fsync for the file handle, default False
+
         """
         if self._handle is not None:
             self._handle.flush()
+            if fsync:
+                os.fsync(self._handle.fileno())
 
     def get(self, key):
         """
@@ -4072,5 +4091,4 @@ def timeit(key, df, fn=None, remove=True, **kwargs):
     store.close()
 
     if remove:
-        import os
         os.remove(fn)
