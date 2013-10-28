@@ -943,7 +943,7 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
         except Exception:
             pass
 
-        with ensure_clean() as path:
+        with ensure_clean(return_filelike=True) as path:
             plt.savefig(path)
     finally:
         plt.close(fig)
