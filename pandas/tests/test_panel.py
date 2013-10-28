@@ -1624,6 +1624,43 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         exp = p.ix[['a', 'c', 'd']]
         assert_panel_equal(result, exp)
 
+    def test_drop(self):
+        df = DataFrame({"A": [1, 2], "B": [3, 4]})
+        panel = Panel({"One": df, "Two": df})
+
+        def check_drop(drop_val, axis_number, aliases, expected):
+            try:
+                actual = panel.drop(drop_val, axis=axis_number)
+                assert_panel_equal(actual, expected)
+                for alias in aliases:
+                    actual = panel.drop(drop_val, axis=alias)
+                    assert_panel_equal(actual, expected)
+            except AssertionError:
+                print("Failed with axis_number %d and aliases: %s" %
+                      (axis_number, aliases))
+                raise
+        # Items
+        expected = Panel({"One": df})
+        check_drop('Two', 0, ['items'], expected)
+
+        # Major
+        exp_df = DataFrame({"A": [2], "B": [4]}, index=[1])
+        expected = Panel({"One": exp_df, "Two": exp_df})
+        check_drop(0, 1, ['major_axis', 'major'], expected)
+
+        exp_df = DataFrame({"A": [1], "B": [3]}, index=[0])
+        expected = Panel({"One": exp_df, "Two": exp_df})
+        check_drop([1], 1, ['major_axis', 'major'], expected)
+
+        # Minor
+        exp_df = df[['B']]
+        expected = Panel({"One": exp_df, "Two": exp_df})
+        check_drop(["A"], 2, ['minor_axis', 'minor'], expected)
+
+        exp_df = df[['A']]
+        expected = Panel({"One": exp_df, "Two": exp_df})
+        check_drop("B", 2, ['minor_axis', 'minor'], expected)
+
     def test_update(self):
         pan = Panel([[[1.5, np.nan, 3.],
                     [1.5, np.nan, 3.],

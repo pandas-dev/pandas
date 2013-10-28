@@ -189,6 +189,8 @@ Improvements to existing features
     right-open fashion using the ``closed`` parameter (:issue:`4579`)
   - Python csv parser now supports usecols (:issue:`4335`)
   - Added support for Google Analytics v3 API segment IDs that also supports v2 IDs. (:issue:`5271`)
+  - ``NDFrame.drop()`` now accepts names as well as integers for the axis
+    argument. (:issue:`5354`)
 
 API Changes
 ~~~~~~~~~~~

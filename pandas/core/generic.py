@@ -1093,7 +1093,7 @@ class NDFrame(PandasObject):
         Parameters
         ----------
         labels : single label or list-like
-        axis : int
+        axis : int or axis name
         level : int or name, default None
             For MultiIndex
 
@@ -1101,6 +1101,7 @@ class NDFrame(PandasObject):
         -------
         dropped : type of caller
         """
+        axis = self._get_axis_number(axis)
         axis_name = self._get_axis_name(axis)
         axis, axis_ = self._get_axis(axis), axis
 

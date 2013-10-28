@@ -6734,6 +6734,25 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         del df[('a', '', '')]
         assert(isinstance(df.columns, MultiIndex))
 
+    def test_drop(self):
+        simple = DataFrame({"A": [1, 2, 3, 4], "B": [0, 1, 2, 3]})
+        assert_frame_equal(simple.drop("A", axis=1), simple[['B']])
+        assert_frame_equal(simple.drop(["A", "B"], axis='columns'),
+                           simple[[]])
+        assert_frame_equal(simple.drop([0, 1, 3], axis=0), simple.ix[[2], :])
+        assert_frame_equal(simple.drop([0, 3], axis='index'), simple.ix[[1, 2], :])
+
+        #non-unique - wheee!
+        nu_df = DataFrame(lzip(range(3), range(-3, 1), list('abc')),
+                          columns=['a', 'a', 'b'])
+        assert_frame_equal(nu_df.drop('a', axis=1), nu_df[['b']])
+        assert_frame_equal(nu_df.drop('b', axis='columns'), nu_df['a'])
+
+        nu_df = nu_df.set_index(pd.Index(['X', 'Y', 'X']))
+        nu_df.columns = list('abc')
+        assert_frame_equal(nu_df.drop('X', axis='rows'), nu_df.ix[["Y"], :])
+        assert_frame_equal(nu_df.drop(['X', 'Y'], axis=0), nu_df.ix[[], :])
+
     def test_fillna(self):
         self.tsframe['A'][:5] = nan
         self.tsframe['A'][-5:] = nan

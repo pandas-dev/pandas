@@ -1429,14 +1429,14 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = Series([1],index=['one'])
         result = s.drop(['two'])
         assert_series_equal(result,expected)
-        result = s.drop('two')
+        result = s.drop('two', axis='rows')
         assert_series_equal(result,expected)
 
         # non-unique
         # GH 5248
         s = Series([1,1,2],index=['one','two','one'])
         expected = Series([1,2],index=['one','one'])
-        result = s.drop(['two'])
+        result = s.drop(['two'], axis=0)
         assert_series_equal(result,expected)
         result = s.drop('two')
         assert_series_equal(result,expected)
@@ -1451,6 +1451,9 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         s = Series(range(3),index=list('abc'))
         self.assertRaises(ValueError, s.drop, 'bc')
         self.assertRaises(ValueError, s.drop, ('a',))
+
+        # bad axis
+        self.assertRaises(ValueError, s.drop, 'one', axis='columns')
 
     def test_ix_setitem(self):
         inds = self.series.index[[3, 4, 7]]
