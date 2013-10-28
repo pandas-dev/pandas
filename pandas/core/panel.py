@@ -1238,7 +1238,7 @@ Returns
                 # not sure whether it's worth it at the moment
                 result = com._fill_zeros(result,y,fill_zeros)
                 return result
-            @Substitution(op)
+            @Substitution(name)
             @Appender(_agg_doc)
             def f(self, other, axis=0):
                 return self._combine(other, na_op, axis=axis)

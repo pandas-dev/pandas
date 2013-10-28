@@ -345,16 +345,19 @@ class NDFrame(PandasObject):
 
     @property
     def shape(self):
+        "tuple of axis dimensions"
         return tuple(len(self._get_axis(a)) for a in self._AXIS_ORDERS)
 
     @property
     def axes(self):
-        """ we do it this way because if we have reversed axes, then
-        the block manager shows then reversed """
+        "index(es) of the NDFrame"
+        # we do it this way because if we have reversed axes, then
+        # the block manager shows then reversed
         return [self._get_axis(a) for a in self._AXIS_ORDERS]
 
     @property
     def ndim(self):
+        "Number of axes / array dimensions"
         return self._data.ndim
 
     def _expand_axes(self, key):
@@ -598,11 +601,18 @@ class NDFrame(PandasObject):
 
     # can we get a better explanation of this?
     def keys(self):
-        """ return the info axis names """
+        """Get the 'info axis' (see Indexing for more)
+
+        This is index for Series, columns for DataFrame and major_axis for
+        Panel."""
         return self._info_axis
 
-    # what does info axis actually mean?
     def iteritems(self):
+        """Iterate over (label, values) on info axis
+
+        This is index for Series, columns for DataFrame, major_axis for Panel,
+        and so on.
+        """
         for h in self._info_axis:
             yield h, self[h]
 
@@ -610,6 +620,7 @@ class NDFrame(PandasObject):
     # Now unnecessary. Sidenote: don't want to deprecate this for a while,
     # otherwise libraries that use 2to3 will have issues.
     def iterkv(self, *args, **kwargs):
+        "iteritems alias used to get around 2to3. Deprecated"
         warnings.warn("iterkv is deprecated and will be removed in a future "
                       "release, use ``iteritems`` instead.", DeprecationWarning)
         return self.iteritems(*args, **kwargs)
@@ -624,6 +635,7 @@ class NDFrame(PandasObject):
 
     @property
     def empty(self):
+        "True if NDFrame is entirely empty [no items]"
         return not all(len(self._get_axis(a)) > 0 for a in self._AXIS_ORDERS)
 
     def __nonzero__(self):
@@ -664,6 +676,7 @@ class NDFrame(PandasObject):
         return self._constructor(result, **d).__finalize__(self)
 
     def to_dense(self):
+        "Return dense representation of NDFrame (as opposed to sparse)"
         # compat
         return self
 
@@ -857,12 +870,14 @@ class NDFrame(PandasObject):
         return to_pickle(self, path)
 
     def save(self, path):  # TODO remove in 0.14
+        "Deprecated. Use to_pickle instead"
         import warnings
         from pandas.io.pickle import to_pickle
         warnings.warn("save is deprecated, use to_pickle", FutureWarning)
         return to_pickle(self, path)
 
     def load(self, path):  # TODO remove in 0.14
+        "Deprecated. Use read_pickle instead."
         import warnings
         from pandas.io.pickle import read_pickle
         warnings.warn("load is deprecated, use pd.read_pickle", FutureWarning)
@@ -1562,6 +1577,7 @@ class NDFrame(PandasObject):
 
     @property
     def values(self):
+        "Numpy representation of NDFrame"
         return self.as_matrix()
 
     @property
@@ -1611,6 +1627,7 @@ class NDFrame(PandasObject):
 
     @property
     def blocks(self):
+        "Internal property, property synonym for as_blocks()"
         return self.as_blocks()
 
     def astype(self, dtype, copy=True, raise_on_error=True):
@@ -1777,10 +1794,12 @@ class NDFrame(PandasObject):
             return self._constructor(new_data).__finalize__(self)
 
     def ffill(self, axis=0, inplace=False, limit=None, downcast=None):
+        "Synonym for NDFrame.fillna(method='ffill')"
         return self.fillna(method='ffill', axis=axis, inplace=inplace,
                            limit=limit, downcast=downcast)
 
     def bfill(self, axis=0, inplace=False, limit=None, downcast=None):
+        "Synonym for NDFrame.fillna(method='bfill')"
         return self.fillna(method='bfill', axis=axis, inplace=inplace,
                            limit=limit, downcast=downcast)
 
