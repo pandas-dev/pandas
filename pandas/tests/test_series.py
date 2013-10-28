@@ -3241,21 +3241,31 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         a = Series([nan, 1., 2., 3., nan], index=np.arange(5))
         b = Series([nan, 1, nan, 3, nan, 4.], index=np.arange(6))
 
-        ops = [Series.add, Series.sub, Series.mul, Series.pow,
-               Series.truediv, Series.div]
-        equivs = [operator.add, operator.sub, operator.mul, operator.pow,
-                  operator.truediv]
-        if compat.PY3:
-            equivs.append(operator.truediv)
-        else:
-            equivs.append(operator.div)
-        fillvals = [0, 0, 1, 1]
+        pairings = []
+        for op in ['add', 'sub', 'mul', 'pow', 'truediv', 'floordiv']:
+            fv = 0
+            lop = getattr(Series, op)
+            lequiv = getattr(operator, op)
+            rop = getattr(Series, 'r' + op)
+            # bind op at definition time...
+            requiv = lambda x, y, op=op: getattr(operator, op)(y, x)
+            pairings.append((lop, lequiv, fv))
+            pairings.append((rop, requiv, fv))
 
-        for op, equiv_op, fv in zip(ops, equivs, fillvals):
+        if compat.PY3:
+            pairings.append((Series.div, operator.truediv, 1))
+            pairings.append((Series.rdiv, lambda x, y: operator.truediv(y, x), 1))
+        else:
+            pairings.append((Series.div, operator.div, 1))
+            pairings.append((Series.rdiv, lambda x, y: operator.div(y, x), 1))
+
+        for op, equiv_op, fv in pairings:
             result = op(a, b)
             exp = equiv_op(a, b)
             assert_series_equal(result, exp)
             _check_fill(op, equiv_op, a, b, fill_value=fv)
+            # should accept axis=0 or axis='rows'
+            op(a, b, axis=0)
 
     def test_combine_first(self):
         values = tm.makeIntIndex(20).values.astype(float)
