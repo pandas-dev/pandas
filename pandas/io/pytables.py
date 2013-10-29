@@ -530,21 +530,17 @@ class HDFStore(StringMixin):
         """
         Force all buffered modifications to be written to disk.
 
-        By default this method requests PyTables to flush, and PyTables in turn
-        requests the HDF5 library to flush any changes to the operating system.
-        There is no guarantee the operating system will actually commit writes
-        to disk.
-
-        To request the operating system to write the file to disk, pass
-        ``fsync=True``. The method will then block until the operating system
-        reports completion, although be aware there might be other caching
-        layers (eg disk controllers, disks themselves etc) which further delay
-        durability.
-
         Parameters
         ----------
-        fsync : boolean, invoke fsync for the file handle, default False
+        fsync : bool (default False)
+          call ``os.fsync()`` on the file handle to force writing to disk.
 
+        Notes
+        -----
+        Without ``fsync=True``, flushing may not guarantee that the OS writes
+        to disk. With fsync, the operation will block until the OS claims the
+        file has been written; however, other caching layers may still
+        interfere.
         """
         if self._handle is not None:
             self._handle.flush()

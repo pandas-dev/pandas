@@ -2745,12 +2745,9 @@ Notes & Caveats
      need to serialize these operations in a single thread in a single
      process. You will corrupt your data otherwise. See the issue
      (:`2397`) for more information.
-   - If serializing all write operations via a single thread in a single
-     process is not an option, another alternative is to use an external
-     distributed lock manager to ensure there is only a single writer at a
-     time and all readers close the file during writes and re-open it after any
-     writes. In this case you should use ``store.flush(fsync=True)`` prior to
-     releasing any write locks. See the issue (:`5364`) for more information.
+   - If you use locks to manage write access between multiple processes, you
+     may want to use :py:func:`~os.fsync` before releasing write locks. For
+     convenience you can use ``store.flush(fsync=True)`` to do this for you.
    - ``PyTables`` only supports fixed-width string columns in
      ``tables``. The sizes of a string based indexing column
      (e.g. *columns* or *minor_axis*) are determined as the maximum size
