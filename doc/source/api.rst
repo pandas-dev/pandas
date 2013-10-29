@@ -348,6 +348,7 @@ Computations / Descriptive Stats
    Series.mean
    Series.median
    Series.min
+   Series.mode
    Series.nunique
    Series.pct_change
    Series.prod
@@ -632,6 +633,7 @@ Computations / Descriptive Stats
    DataFrame.mean
    DataFrame.median
    DataFrame.min
+   DataFrame.mode
    DataFrame.pct_change
    DataFrame.prod
    DataFrame.quantile

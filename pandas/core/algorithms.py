@@ -221,6 +221,34 @@ def value_counts(values, sort=True, ascending=False, normalize=False, bins=None)
     return result
 
 
+def mode(values):
+    from pandas.core.series import Series
+
+    if isinstance(values, Series):
+        constructor = values._constructor
+        values = values.values
+    else:
+        values = np.asanyarray(values)
+        constructor = Series
+
+    dtype = values.dtype
+    if com.is_integer_dtype(values.dtype):
+        values = com._ensure_int64(values)
+        result = constructor(htable.mode_int64(values), dtype=dtype)
+
+    elif issubclass(values.dtype.type, (np.datetime64,np.timedelta64)):
+        dtype = values.dtype
+        values = values.view(np.int64)
+        result = constructor(htable.mode_int64(values), dtype=dtype)
+
+    else:
+        mask = com.isnull(values)
+        values = com._ensure_object(values)
+        result = constructor(htable.mode_object(values, mask), dtype=dtype)
+
+    return result
+
+
 def rank(values, axis=0, method='average', na_option='keep',
          ascending=True):
     """

@@ -1127,6 +1127,20 @@ class Series(generic.NDFrame):
         return value_counts(self.values, sort=sort, ascending=ascending,
                             normalize=normalize, bins=bins)
 
+    def mode(self):
+        """Returns the mode(s) of the dataset.
+
+        Empty if nothing occurs at least 2 times.  Always returns Series even
+        if only one value.
+
+        Returns
+        -------
+        modes : Series
+        """
+        # TODO: Add option for bins like value_counts()
+        from pandas.core.algorithms import mode
+        return mode(self)
+
     def unique(self):
         """
         Return array of unique values in the Series. Significantly faster than

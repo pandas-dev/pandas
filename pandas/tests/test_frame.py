@@ -10050,6 +10050,49 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             self.assert_(np.isnan(r0).all())
             self.assert_(np.isnan(r1).all())
 
+    def test_mode(self):
+        df = pd.DataFrame({"A": [12, 12, 11, 12, 19, 11],
+                           "B": [10, 10, 10, 5, 3, 4],
+                           "C": [8, 8, 8, 9, 9, 9],
+                           "D": range(6)})
+        assert_frame_equal(df[["A"]].mode(),
+                           pd.DataFrame({"A": [12]}))
+        assert_frame_equal(df[["D"]].mode(),
+                           pd.DataFrame(pd.Series([], dtype="int64"),
+                                        columns=["D"]))
+        assert_frame_equal(df[["A", "B"]].mode(),
+                           pd.DataFrame({"A": [12], "B": [10]}))
+        assert_frame_equal(df.mode(),
+                           pd.DataFrame({"A": [12, np.nan],
+                                         "B": [10, np.nan],
+                                         "C": [8, 9],
+                                         "D": [np.nan, np.nan]}))
+
+        # should preserve order
+        df["C"] = list(reversed(df["C"]))
+        assert_frame_equal(df[["A", "B", "C"]].mode(),
+                           pd.DataFrame({"A": [12, np.nan],
+                                         "B": [10, np.nan],
+                                         "C": [9, 8]}))
+        # should work with heterogeneous types
+        df = pd.DataFrame({"A": range(6),
+                           "B": pd.date_range('2011', periods=6),
+                           "C": list('abcdef')})
+        exp = pd.DataFrame({"A": pd.Series([], dtype=df["A"].dtype),
+                            "B": pd.Series([], dtype=df["B"].dtype),
+                            "C": pd.Series([], dtype=df["C"].dtype)})
+        assert_frame_equal(df.mode(), exp)
+
+        # and also when not empty
+        df.loc[1, "A"] = 0
+        df.loc[4, "B"] = df.loc[3, "B"]
+        df.loc[5, "C"] = 'e'
+        exp = pd.DataFrame({"A": pd.Series([0], dtype=df["A"].dtype),
+                            "B": pd.Series([df.loc[3, "B"]], dtype=df["B"].dtype),
+                            "C": pd.Series(['e'], dtype=df["C"].dtype)})
+
+        assert_frame_equal(df.mode(), exp)
+
     def test_sum_corner(self):
         axis0 = self.empty.sum(0)
         axis1 = self.empty.sum(1)

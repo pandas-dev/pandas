@@ -65,6 +65,8 @@ New features
     string via the ``date_format`` keyword (:issue:`4313`)
   - Added ``LastWeekOfMonth`` DateOffset (:issue:`4637`)
   - Added ``FY5253``, and ``FY5253Quarter`` DateOffsets (:issue:`4511`)
+  - Added ``mode()`` method to ``Series`` and ``DataFrame`` to get the
+    statistical mode(s) of a column/series. (:issue:`5367`)
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
