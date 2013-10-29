@@ -756,6 +756,7 @@ Bug Fixes
   - Test suite no longer leaves around temporary files when testing graphics. (:issue:`5347`)
     (thanks for catching this @yarikoptic!)
   - Fixed html tests on win32. (:issue:`4580`)
+  - Make sure that ``head/tail`` are ``iloc`` based, (:issue:`5370`)
 
 
 pandas 0.12.0

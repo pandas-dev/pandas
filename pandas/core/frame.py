@@ -3085,16 +3085,6 @@ class DataFrame(NDFrame):
         """
         return self.index[self.count(1) > 0][-1]
 
-    def head(self, n=5):
-        """Returns first n rows of DataFrame
-        """
-        return self[:n]
-
-    def tail(self, n=5):
-        """Returns last n rows of DataFrame
-        """
-        return self[-n:]
-
     #----------------------------------------------------------------------
     # Data reshaping
 

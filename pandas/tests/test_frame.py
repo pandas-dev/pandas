@@ -4261,6 +4261,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(self.frame.head(), self.frame[:5])
         assert_frame_equal(self.frame.tail(), self.frame[-5:])
 
+        # with a float index
+        df = self.frame.copy()
+        df.index = np.arange(len(self.frame)) + 0.1
+        assert_frame_equal(df.head(), df.iloc[:5])
+        assert_frame_equal(df.tail(), df.iloc[-5:])
+
     def test_insert(self):
         df = DataFrame(np.random.randn(5, 3), index=np.arange(5),
                        columns=['c', 'b', 'a'])
