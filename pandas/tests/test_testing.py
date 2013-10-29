@@ -48,6 +48,12 @@ class TestAssertAlmostEqual(unittest.TestCase):
         self._assert_not_almost_equal_both(1, [1,])
         self._assert_not_almost_equal_both(1, object())
 
+    def test_assert_almost_equal_edge_case_ndarrays(self):
+        self._assert_almost_equal_both(np.array([], dtype='M8[ns]'),
+                                       np.array([], dtype='float64'))
+        self._assert_almost_equal_both(np.array([], dtype=str),
+                                       np.array([], dtype='int64'))
+
     def test_assert_almost_equal_dicts(self):
         self._assert_almost_equal_both({'a': 1, 'b': 2}, {'a': 1, 'b': 2})
 

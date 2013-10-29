@@ -411,9 +411,9 @@ def assert_series_equal(left, right, check_dtype=True,
                         check_less_precise=False):
     if check_series_type:
         assert_isinstance(left, type(right))
-    assert_almost_equal(left.values, right.values, check_less_precise)
     if check_dtype:
         assert_attr_equal('dtype', left, right)
+    assert_almost_equal(left.values, right.values, check_less_precise)
     if check_less_precise:
         assert_almost_equal(
             left.index.values, right.index.values, check_less_precise)

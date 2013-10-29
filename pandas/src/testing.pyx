@@ -82,10 +82,12 @@ cpdef assert_almost_equal(a, b, bint check_less_precise=False):
         assert na == nb, (
             "Length of two iterators not the same: %r != %r" % (na, nb)
         )
-        if (isinstance(a, np.ndarray) and
-                isinstance(b, np.ndarray) and
-                np.array_equal(a, b)):
-            return True
+        if isinstance(a, np.ndarray) and isinstance(b, np.ndarray):
+            try:
+                if np.array_equal(a, b):
+                    return True
+            except:
+                pass
         else:
             for i in xrange(na):
                 assert_almost_equal(a[i], b[i], check_less_precise)
