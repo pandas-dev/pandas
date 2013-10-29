@@ -10,6 +10,7 @@ import re
 import copy
 import itertools
 import warnings
+import os
 
 import numpy as np
 from pandas import (Series, TimeSeries, DataFrame, Panel, Panel4D, Index,
@@ -525,12 +526,26 @@ class HDFStore(StringMixin):
             return False
         return bool(self._handle.isopen)
 
-    def flush(self):
+    def flush(self, fsync=False):
         """
-        Force all buffered modifications to be written to disk
+        Force all buffered modifications to be written to disk.
+
+        Parameters
+        ----------
+        fsync : bool (default False)
+          call ``os.fsync()`` on the file handle to force writing to disk.
+
+        Notes
+        -----
+        Without ``fsync=True``, flushing may not guarantee that the OS writes
+        to disk. With fsync, the operation will block until the OS claims the
+        file has been written; however, other caching layers may still
+        interfere.
         """
         if self._handle is not None:
             self._handle.flush()
+            if fsync:
+                os.fsync(self._handle.fileno())
 
     def get(self, key):
         """
@@ -4072,5 +4087,4 @@ def timeit(key, df, fn=None, remove=True, **kwargs):
     store.close()
 
     if remove:
-        import os
         os.remove(fn)
