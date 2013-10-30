@@ -271,7 +271,6 @@ use_inf_as_null_doc = """
 # We don't want to start importing everything at the global context level
 # or we'll hit circular deps.
 
-
 def use_inf_as_null_cb(key):
     from pandas.core.common import _use_inf_as_null
     _use_inf_as_null(key)
@@ -279,6 +278,17 @@ def use_inf_as_null_cb(key):
 with cf.config_prefix('mode'):
     cf.register_option('use_inf_as_null', False, use_inf_as_null_doc,
                        cb=use_inf_as_null_cb)
+
+
+# user warnings
+chained_assignment = """
+: string
+    Raise an exception, warn, or no action if trying to use chained assignment, The default is warn
+"""
+
+with cf.config_prefix('mode'):
+    cf.register_option('chained_assignment', 'warn', chained_assignment,
+                       validator=is_one_of_factory([None, 'warn', 'raise']))
 
 
 # Set up the io.excel specific configuration.

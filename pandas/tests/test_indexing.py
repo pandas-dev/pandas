@@ -987,6 +987,7 @@ class TestIndexing(unittest.TestCase):
         NUM_COLS = 10
         col_names = ['A'+num for num in map(str,np.arange(NUM_COLS).tolist())]
         index_cols = col_names[:5]
+
         df = DataFrame(np.random.randint(5, size=(NUM_ROWS,NUM_COLS)), dtype=np.int64, columns=col_names)
         df = df.set_index(index_cols).sort_index()
         grp = df.groupby(level=index_cols[:4])
@@ -1679,6 +1680,61 @@ class TestIndexing(unittest.TestCase):
 
             self.assert_(df.ix[0,'c'] == 0.0)
             self.assert_(df.ix[7,'c'] == 1.0)
+
+    def test_detect_chained_assignment(self):
+
+        pd.set_option('chained_assignment','raise')
+
+        # work with the chain
+        expected = DataFrame([[-5,1],[-6,3]],columns=list('AB'))
+        df = DataFrame(np.arange(4).reshape(2,2),columns=list('AB'))
+        self.assert_(not df._is_copy)
+
+        df['A'][0] = -5
+        df['A'][1] = -6
+        assert_frame_equal(df, expected)
+
+        expected = DataFrame([[-5,2],[np.nan,3.]],columns=list('AB'))
+        df = DataFrame({ 'A' : np.arange(2), 'B' : np.array(np.arange(2,4),dtype=np.float64)})
+        self.assert_(not df._is_copy)
+        df['A'][0] = -5
+        df['A'][1] = np.nan
+        assert_frame_equal(df, expected)
+        self.assert_(not df['A']._is_copy)
+
+        # using a copy (the chain), fails
+        df = DataFrame({ 'A' : np.arange(2), 'B' : np.array(np.arange(2,4),dtype=np.float64)})
+        def f():
+            df.loc[0]['A'] = -5
+        self.assertRaises(com.SettingWithCopyError, f)
+
+        # doc example
+        df = DataFrame({'a' : ['one', 'one', 'two',
+                               'three', 'two', 'one', 'six'],
+                        'c' : np.arange(7) })
+        self.assert_(not df._is_copy)
+        expected = DataFrame({'a' : ['one', 'one', 'two',
+                                     'three', 'two', 'one', 'six'],
+                              'c' : [42,42,2,3,4,42,6]})
+
+        def f():
+            df[df.a.str.startswith('o')]['c'] = 42
+        self.assertRaises(com.SettingWithCopyError, f)
+        df['c'][df.a.str.startswith('o')] = 42
+        assert_frame_equal(df,expected)
+
+        expected = DataFrame({'A':[111,'bbb','ccc'],'B':[1,2,3]})
+        df = DataFrame({'A':['aaa','bbb','ccc'],'B':[1,2,3]})
+        df['A'][0] = 111
+        def f():
+            df.loc[0]['A'] = 111
+        self.assertRaises(com.SettingWithCopyError, f)
+        assert_frame_equal(df,expected)
+
+        # warnings
+        pd.set_option('chained_assignment','warn')
+        df = DataFrame({'A':['aaa','bbb','ccc'],'B':[1,2,3]})
+        df.loc[0]['A'] = 111
 
     def test_floating_index_doc_example(self):
 

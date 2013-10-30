@@ -19,9 +19,11 @@ import pandas.core.datetools as datetools
 from pandas import compat, _np_version_under1p7
 from pandas.compat import map, zip, lrange, string_types, isidentifier
 from pandas.core.common import (isnull, notnull, is_list_like,
-                                _values_from_object, _maybe_promote, ABCSeries)
+                                _values_from_object, _maybe_promote, ABCSeries,
+                                SettingWithCopyError, SettingWithCopyWarning)
 import pandas.core.nanops as nanops
 from pandas.util.decorators import Appender, Substitution
+from pandas.core import config
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
@@ -69,7 +71,7 @@ class NDFrame(PandasObject):
     copy : boolean, default False
     """
     _internal_names = [
-        '_data', 'name', '_cacher', '_subtyp', '_index', '_default_kind', '_default_fill_value']
+        '_data', 'name', '_cacher', '_is_copy', '_subtyp', '_index', '_default_kind', '_default_fill_value']
     _internal_names_set = set(_internal_names)
     _metadata = []
 
@@ -85,6 +87,7 @@ class NDFrame(PandasObject):
                 for i, ax in enumerate(axes):
                     data = data.reindex_axis(ax, axis=i)
 
+        object.__setattr__(self, '_is_copy', False)
         object.__setattr__(self, '_data', data)
         object.__setattr__(self, '_item_cache', {})
 
@@ -988,6 +991,22 @@ class NDFrame(PandasObject):
         self._data.set(key, value)
         self._clear_item_cache()
 
+    def _setitem_copy(self, copy):
+        """ set the _is_copy of the iiem """
+        self._is_copy = copy
+        return self
+
+    def _check_setitem_copy(self):
+        """ validate if we are doing a settitem on a chained copy """
+        if self._is_copy:
+            value = config._get_option_fast('mode.chained_assignment')
+
+            t = "A value is trying to be set on a copy of a slice from a DataFrame.\nTry using .loc[row_index,col_indexer] = value instead"
+            if value == 'raise':
+                raise SettingWithCopyError(t)
+            elif value == 'warn':
+                warnings.warn(t,SettingWithCopyWarning)
+
     def __delitem__(self, key):
         """
         Delete item
@@ -1049,7 +1068,7 @@ class NDFrame(PandasObject):
             new_data = self._data.reindex_axis(new_items, indexer=indices, axis=0)
         else:
             new_data = self._data.take(indices, axis=baxis)
-        return self._constructor(new_data).__finalize__(self)
+        return self._constructor(new_data)._setitem_copy(True).__finalize__(self)
 
     # TODO: Check if this was clearer in 0.12
     def select(self, crit, axis=0):
