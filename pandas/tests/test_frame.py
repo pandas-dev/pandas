@@ -11253,6 +11253,34 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         expected = Series(0, index=[])
         assert_series_equal(result, expected)
 
+    def test_value_counts(self):
+        df = DataFrame({"A": [0, 5, 8, 10, 13], "B": [4, 16, 2, 30, 10]})
+        expected = DataFrame({"A": pd.Series([1, 1, 1, 1, 1],
+                                             index=[0, 5, 8, 10, 13]),
+                              "B": pd.Series([1, 1, 1, 1, 1],
+                                             index=[4, 16, 2, 30, 10])})
+        expected = expected.reindex([10, 30, 16, 13, 8, 5, 4, 2, 0])
+        assert_frame_equal(df.value_counts(), expected)
+        # levels = Index(['(-0.03, 3]', '(3, 6]', '(6, 9]', '(9, 12]',
+        #             '(12, 15]', '(15, 18]', '(18, 21]', '(21, 24]',
+        #             '(24, 27]', '(27, 30]'], dtype=object)
+        bins = [-0.03, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30]
+        actual = df.value_counts(bins=10)
+        expected = DataFrame({"A": pd.cut(df["A"],
+                                          bins=bins).describe()['counts'], "B":
+                              pd.cut(df["B"], bins=bins).describe()['counts']})
+        expected = expected.sort(expected.sum(1))
+        assert_frame_equal(actual, expected)
+        df = DataFrame({"A": ['a', 'a', 'a', 'c', 'd', 'e'],
+                        "B": ['e', 'c', 'd', 'x', 'y', 'a']})
+        actual = df.value_counts()
+        expected = DataFrame({"A": Series([3, 1, 1, 1], index=['a', 'e', 'd',
+                                                               'c']),
+                              "B": Series([1, 1, 1, 1, 1, 1],
+                                          index=['e', 'c', 'd', 'x', 'y',
+                                                 'a'])})
+        assert_frame_equal(actual, expected)
+
     def test_sum(self):
         self._check_stat_op('sum', np.sum, has_numeric_only=True)
 
