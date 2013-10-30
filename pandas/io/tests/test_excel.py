@@ -1,6 +1,7 @@
 # pylint: disable=E1101
 
 from pandas.compat import u, range, map
+from datetime import datetime
 import os
 import unittest
 
@@ -306,6 +307,54 @@ class ExcelReaderTests(SharedItems, unittest.TestCase):
 
         self.assertTrue(f.closed)
 
+    def test_reader_special_dtypes(self):
+        _skip_if_no_xlrd()
+
+        expected = DataFrame.from_items([
+            ("IntCol", [1, 2, -3, 4, 0]),
+            ("FloatCol", [1.25, 2.25, 1.83, 1.92, 0.0000000005]),
+            ("BoolCol", [True, False, True, True, False]),
+            ("StrCol", [1, 2, 3, 4, 5]),
+            ("Str2Col", ["a", "b", "c", "d", "e"]),
+            ("DateCol", [datetime(2013, 10, 30), datetime(2013, 10, 31),
+                         datetime(1905, 1, 1), datetime(2013, 12, 14),
+                         datetime(2015, 3, 14)])
+        ])
+
+        xlsx_path = os.path.join(self.dirpath, 'test_types.xlsx')
+        xls_path = os.path.join(self.dirpath, 'test_types.xls')
+
+        # should read in correctly and infer types
+        for path in (xls_path, xlsx_path):
+            actual = read_excel(path, 'Sheet1')
+            tm.assert_frame_equal(actual, expected)
+
+        # if not coercing number, then int comes in as float
+        float_expected = expected.copy()
+        float_expected["IntCol"] = float_expected["IntCol"].astype(float)
+        for path in (xls_path, xlsx_path):
+            actual = read_excel(path, 'Sheet1', convert_float=False)
+            tm.assert_frame_equal(actual, float_expected)
+
+        # check setting Index (assuming xls and xlsx are the same here)
+        for icol, name in enumerate(expected.columns):
+            actual = read_excel(xlsx_path, 'Sheet1', index_col=icol)
+            actual2 = read_excel(xlsx_path, 'Sheet1', index_col=name)
+            exp = expected.set_index(name)
+            tm.assert_frame_equal(actual, exp)
+            tm.assert_frame_equal(actual2, exp)
+
+        # convert_float and converters should be different but both accepted
+        expected["StrCol"] = expected["StrCol"].apply(str)
+        actual = read_excel(xlsx_path, 'Sheet1', converters={"StrCol": str})
+        tm.assert_frame_equal(actual, expected)
+
+        no_convert_float = float_expected.copy()
+        no_convert_float["StrCol"] = no_convert_float["StrCol"].apply(str)
+        actual = read_excel(xlsx_path, 'Sheet1', converters={"StrCol": str},
+                           convert_float=False)
+        tm.assert_frame_equal(actual, no_convert_float)
+
 
 class ExcelWriterBase(SharedItems):
     # Base class for test cases to run with different Excel writers.
@@ -390,7 +439,7 @@ class ExcelWriterBase(SharedItems):
             tm.assert_frame_equal(self.frame, recons)
 
             self.frame.to_excel(path, 'test1', na_rep='88')
-            recons = read_excel(path, 'test1', index_col=0, na_values=[88,88.0])
+            recons = read_excel(path, 'test1', index_col=0, na_values=[88, 88.0])
             tm.assert_frame_equal(self.frame, recons)
 
     def test_mixed(self):
@@ -417,6 +466,16 @@ class ExcelWriterBase(SharedItems):
             recons = reader.parse('test1')
             tm.assert_frame_equal(df, recons)
 
+    def test_basics_with_nan(self):
+        _skip_if_no_xlrd()
+        ext = self.ext
+        path = '__tmp_to_excel_from_excel_int_types__.' + ext
+        self.frame['A'][:5] = nan
+        self.frame.to_excel(path, 'test1')
+        self.frame.to_excel(path, 'test1', cols=['A', 'B'])
+        self.frame.to_excel(path, 'test1', header=False)
+        self.frame.to_excel(path, 'test1', index=False)
+
     def test_int_types(self):
         _skip_if_no_xlrd()
         ext = self.ext
@@ -425,20 +484,22 @@ class ExcelWriterBase(SharedItems):
         for np_type in (np.int8, np.int16, np.int32, np.int64):
 
             with ensure_clean(path) as path:
-                self.frame['A'][:5] = nan
-
-                self.frame.to_excel(path, 'test1')
-                self.frame.to_excel(path, 'test1', cols=['A', 'B'])
-                self.frame.to_excel(path, 'test1', header=False)
-                self.frame.to_excel(path, 'test1', index=False)
-
-                # Test np.int values read come back as float.
+                # Test np.int values read come back as int (rather than float
+                # which is Excel's format).
                 frame = DataFrame(np.random.randint(-10, 10, size=(10, 2)),
                                   dtype=np_type)
                 frame.to_excel(path, 'test1')
                 reader = ExcelFile(path)
-                recons = reader.parse('test1').astype(np_type)
-                tm.assert_frame_equal(frame, recons, check_dtype=False)
+                recons = reader.parse('test1')
+                int_frame = frame.astype(int)
+                tm.assert_frame_equal(int_frame, recons)
+                recons2 = read_excel(path, 'test1')
+                tm.assert_frame_equal(int_frame, recons2)
+
+                # test with convert_float=False comes back as float
+                float_frame = frame.astype(float)
+                recons = read_excel(path, 'test1', convert_float=False)
+                tm.assert_frame_equal(recons, float_frame)
 
     def test_float_types(self):
         _skip_if_no_xlrd()
@@ -447,13 +508,6 @@ class ExcelWriterBase(SharedItems):
 
         for np_type in (np.float16, np.float32, np.float64):
             with ensure_clean(path) as path:
-                self.frame['A'][:5] = nan
-
-                self.frame.to_excel(path, 'test1')
-                self.frame.to_excel(path, 'test1', cols=['A', 'B'])
-                self.frame.to_excel(path, 'test1', header=False)
-                self.frame.to_excel(path, 'test1', index=False)
-
                 # Test np.float values read come back as float.
                 frame = DataFrame(np.random.random_sample(10), dtype=np_type)
                 frame.to_excel(path, 'test1')
@@ -468,13 +522,6 @@ class ExcelWriterBase(SharedItems):
 
         for np_type in (np.bool8, np.bool_):
             with ensure_clean(path) as path:
-                self.frame['A'][:5] = nan
-
-                self.frame.to_excel(path, 'test1')
-                self.frame.to_excel(path, 'test1', cols=['A', 'B'])
-                self.frame.to_excel(path, 'test1', header=False)
-                self.frame.to_excel(path, 'test1', index=False)
-
                 # Test np.bool values read come back as float.
                 frame = (DataFrame([1, 0, True, False], dtype=np_type))
                 frame.to_excel(path, 'test1')
@@ -1007,11 +1054,11 @@ class ExcelWriterEngineTests(unittest.TestCase):
         writer = ExcelWriter('apple.xls')
         tm.assert_isinstance(writer, _XlwtWriter)
 
-
     def test_register_writer(self):
         # some awkward mocking to test out dispatch and such actually works
         called_save = []
         called_write_cells = []
+
         class DummyClass(ExcelWriter):
             called_save = False
             called_write_cells = False
