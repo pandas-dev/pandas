@@ -16,8 +16,8 @@ __all__ = ['Day', 'BusinessDay', 'BDay', 'CustomBusinessDay', 'CDay',
            'MonthBegin', 'BMonthBegin', 'MonthEnd', 'BMonthEnd',
            'YearBegin', 'BYearBegin', 'YearEnd', 'BYearEnd',
            'QuarterBegin', 'BQuarterBegin', 'QuarterEnd', 'BQuarterEnd',
-           'LastWeekOfMonth', 'FY5253Quarter', 'FY5253',
-           'Week', 'WeekOfMonth',
+           'FY5253Quarter', 'FY5253', 
+           'Week', 'WeekOfMonth', 'LastWeekOfMonth',
            'Hour', 'Minute', 'Second', 'Milli', 'Micro', 'Nano']
 
 # convert to/from datetime/timestamp to allow invalid Timestamp ranges to pass thru
@@ -1848,32 +1848,7 @@ def generate_range(start=None, end=None, periods=None,
             raise ValueError('Offset %s did not increment date' % offset)
         cur = next_date
 
-prefix_mapping = dict((offset._prefix, offset) for offset in [
-    YearBegin,           # 'AS'
-    YearEnd,             # 'A'
-    BYearBegin,          # 'BAS'
-    BYearEnd,            # 'BA'
-    BusinessDay,         # 'B'
-    BusinessMonthBegin,  # 'BMS'
-    BusinessMonthEnd,    # 'BM'
-    BQuarterEnd,         # 'BQ'
-    BQuarterBegin,       # 'BQS'
-    CustomBusinessDay,   # 'C'
-    MonthEnd,            # 'M'
-    MonthBegin,          # 'MS'
-    Week,                # 'W'
-    Second,              # 'S'
-    Minute,              # 'T'
-    Micro,               # 'U'
-    QuarterEnd,          # 'Q'
-    QuarterBegin,        # 'QS'
-    Milli,               # 'L'
-    Hour,                # 'H'
-    Day,                 # 'D'
-    WeekOfMonth,         # 'WOM'
-    FY5253,
-    FY5253Quarter,
-])
+prefix_mapping = dict([(locals()[offset]._prefix, offset) for offset in __all__])
 
 if not _np_version_under1p7:
     # Only 1.7+ supports nanosecond resolution
