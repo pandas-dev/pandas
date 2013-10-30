@@ -2574,19 +2574,6 @@ a datetimeindex which are 5.
    where = c[DatetimeIndex(c).month==5].index
    store.select('df_mask',where=where)
 
-**Replicating or**
-
-``not`` and ``or`` conditions are unsupported at this time; however,
-``or`` operations are easy to replicate, by repeatedly applying the
-criteria to the table, and then ``concat`` the results.
-
-.. ipython:: python
-
-   crit1 = [ Term('B>0'), Term('C>0'), Term('string=foo') ]
-   crit2 = [ Term('B<0'), Term('C>0'), Term('string=foo') ]
-
-   concat([store.select('df_dc',c) for c in [crit1, crit2]])
-
 **Storer Object**
 
 If you want to inspect the stored object, retrieve via
