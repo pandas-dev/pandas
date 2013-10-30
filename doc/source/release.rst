@@ -275,6 +275,7 @@ API Changes
     - store `datetime.date` objects as ordinals rather then timetuples to avoid
       timezone issues (:issue:`2852`), thanks @tavistmorph and @numpand
     - ``numexpr`` 2.2.2 fixes incompatiblity in PyTables 2.4 (:issue:`4908`)
+
   - ``JSON``
 
     - added ``date_unit`` parameter to specify resolution of timestamps.
@@ -503,6 +504,7 @@ Bug Fixes
       names weren't strings (:issue:`4956`)
     - A zero length series written in Fixed format not deserializing properly.
       (:issue:`4708`)
+
   - Fixed bug in tslib.tz_convert(vals, tz1, tz2): it could raise IndexError
     exception while trying to access trans[pos + 1] (:issue:`4496`)
   - The ``by`` argument now works correctly with the ``layout`` argument
@@ -755,6 +757,7 @@ Bug Fixes
   - Bug when renaming then set_index on a DataFrame (:issue:`5344`)
   - Test suite no longer leaves around temporary files when testing graphics. (:issue:`5347`)
     (thanks for catching this @yarikoptic!)
+  - Add missing entries to ``tseries.offsets.prefix_mapping`` (:issue: `5382`)
 
 pandas 0.12.0
 -------------
