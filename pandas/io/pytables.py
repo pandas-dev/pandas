@@ -1919,6 +1919,10 @@ class Fixed(StringMixin):
     def pandas_type(self):
         return _ensure_decoded(getattr(self.group._v_attrs, 'pandas_type', None))
 
+    @property
+    def format_type(self):
+        return 'fixed'
+
     def __unicode__(self):
         """ return a pretty representation of myself """
         self.infer_axes()
@@ -2146,7 +2150,8 @@ class GenericFixed(Fixed):
             self.write_sparse_intindex(key, index)
         else:
             setattr(self.attrs, '%s_variety' % key, 'regular')
-            converted = _convert_index(index, self.encoding).set_name('index')
+            converted = _convert_index(index, self.encoding,
+                                       self.format_type).set_name('index')
             self.write_array(key, converted.values)
             node = getattr(self.group, key)
             node._v_attrs.kind = converted.kind
@@ -2192,7 +2197,8 @@ class GenericFixed(Fixed):
                                                  index.names)):
             # write the level
             level_key = '%s_level%d' % (key, i)
-            conv_level = _convert_index(lev, self.encoding).set_name(level_key)
+            conv_level = _convert_index(lev, self.encoding,
+                                        self.format_type).set_name(level_key)
             self.write_array(level_key, conv_level.values)
             node = getattr(self.group, level_key)
             node._v_attrs.kind = conv_level.kind
@@ -2609,6 +2615,10 @@ class Table(Fixed):
     def table_type_short(self):
         return self.table_type.split('_')[0]
 
+    @property
+    def format_type(self):
+        return 'table'
+
     def __unicode__(self):
         """ return a pretty representatgion of myself """
         self.infer_axes()
@@ -2991,7 +3001,7 @@ class Table(Fixed):
             if i in axes:
                 name = obj._AXIS_NAMES[i]
                 index_axes_map[i] = _convert_index(
-                    a, self.encoding).set_name(name).set_axis(i)
+                    a, self.encoding, self.format_type).set_name(name).set_axis(i)
             else:
 
                 # we might be able to change the axes on the appending data if
@@ -3823,7 +3833,7 @@ def _get_info(info, name):
         idx = info[name] = dict()
     return idx
 
-def _convert_index(index, encoding=None):
+def _convert_index(index, encoding=None, format_type=None):
     index_name = getattr(index, 'name', None)
 
     if isinstance(index, DatetimeIndex):
@@ -3870,9 +3880,13 @@ def _convert_index(index, encoding=None):
             converted, 'string', _tables().StringCol(itemsize), itemsize=itemsize,
                         index_name=index_name)
     elif inferred_type == 'unicode':
-        atom = _tables().ObjectAtom()
-        return IndexCol(np.asarray(values, dtype='O'), 'object', atom,
-                        index_name=index_name)
+        if format_type == 'fixed':
+            atom = _tables().ObjectAtom()
+            return IndexCol(np.asarray(values, dtype='O'), 'object', atom,
+                            index_name=index_name)
+        raise TypeError(
+            "[unicode] is not supported as a in index type for [{0}] formats".format(format_type))
+
     elif inferred_type == 'integer':
         # take a guess for now, hope the values fit
         atom = _tables().Int64Col()

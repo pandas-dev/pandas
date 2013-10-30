@@ -336,7 +336,8 @@ def ensure_clean(filename=None, return_filelike=False):
             yield filename
         finally:
             try:
-                os.remove(filename)
+                if os.path.exists(filename):
+                    os.remove(filename)
             except Exception as e:
                 print(e)
 
