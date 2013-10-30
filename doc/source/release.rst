@@ -277,6 +277,7 @@ API Changes
     - ``numexpr`` 2.2.2 fixes incompatiblity in PyTables 2.4 (:issue:`4908`)
     - ``flush`` now accepts an ``fsync`` parameter, which defaults to ``False``
       (:issue:`5364`)
+    - ``unicode`` indices not supported on ``table`` formats (:issue:`5386`)
   - ``JSON``
 
     - added ``date_unit`` parameter to specify resolution of timestamps.

@@ -755,6 +755,38 @@ class TestHDFStore(unittest.TestCase):
             store.append('mi', s)
             tm.assert_series_equal(store['mi'], s)
 
+    def test_store_index_types(self):
+        # GH5386
+        # test storing various index types
+
+        with ensure_clean(self.path) as store:
+
+            def check(format,index):
+                df = DataFrame(np.random.randn(10,2),columns=list('AB'))
+                df.index = index(len(df))
+
+                _maybe_remove(store, 'df')
+                store.put('df',df,format=format)
+                assert_frame_equal(df,store['df'])
+
+            for index in [ tm.makeFloatIndex, tm.makeStringIndex, tm.makeIntIndex,
+                           tm.makeDateIndex, tm.makePeriodIndex ]:
+
+                check('table',index)
+                check('fixed',index)
+
+            # unicode
+            index = tm.makeUnicodeIndex
+            if compat.PY3:
+                check('table',index)
+                check('fixed',index)
+            else:
+
+                # only support for fixed types (and they have a perf warning)
+                self.assertRaises(TypeError, check, 'table', index)
+                with tm.assert_produces_warning(expected_warning=PerformanceWarning):
+                    check('fixed',index)
+
     def test_encoding(self):
 
         if sys.byteorder != 'little':
