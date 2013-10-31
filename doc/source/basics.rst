@@ -960,6 +960,9 @@ importantly, these methods exclude missing/NA values automatically. These are
 accessed via the Series's ``str`` attribute and generally have names matching
 the equivalent (scalar) build-in string methods:
 
+Splitting and Replacing Strings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 .. ipython:: python
 
    s = Series(['A', 'B', 'C', 'Aaba', 'Baca', np.nan, 'CABA', 'dog', 'cat'])
@@ -990,11 +993,12 @@ Methods like ``replace`` and ``findall`` take regular expressions, too:
    s3
    s3.str.replace('^.a|dog', 'XX-XX ', case=False)
 
-The method ``match`` returns the groups in a regular expression in one tuple.
-Starting in pandas version 0.13.0, the method ``extract`` is available to
-accomplish this more conveniently.
+Extracting Substrings
+~~~~~~~~~~~~~~~~~~~~~
 
-Extracting a regular expression with one group returns a Series of strings.
+The method ``extract`` (introduced in version 0.13) accepts regular expressions
+with match groups. Extracting a regular expression with one group returns 
+a Series of strings.
 
 .. ipython:: python
 
@@ -1016,18 +1020,34 @@ Named groups like
 
 .. ipython:: python
 
-   Series(['a1', 'b2', 'c3']).str.match('(?P<letter>[ab])(?P<digit>\d)')
+   Series(['a1', 'b2', 'c3']).str.extract('(?P<letter>[ab])(?P<digit>\d)')
 
 and optional groups like
 
 .. ipython:: python
 
-   Series(['a1', 'b2', '3']).str.match('(?P<letter>[ab])?(?P<digit>\d)')
+   Series(['a1', 'b2', '3']).str.extract('(?P<letter>[ab])?(?P<digit>\d)')
 
 can also be used.
 
-Methods like ``contains``, ``startswith``, and ``endswith`` takes an extra
-``na`` arguement so missing values can be considered True or False:
+Testing for Strings that Match or Contain a Pattern 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In previous versions, *extracting* match groups was accomplished by ``match``,
+which returned a not-so-convenient Series of tuples. Starting in version 0.14,
+the default behavior of match will change. It will return a boolean
+indexer, analagous to the method ``contains``.
+
+The distinction between
+``match`` and ``contains`` is strictness: ``match`` relies on
+strict ``re.match`` while ``contains`` relies on ``re.search``.
+
+In version 0.13, ``match`` performs its old, deprecated behavior by default, 
+but the new behavior is availabe through the keyword argument 
+``as_indexer=True``.
+
+Methods like ``match``, ``contains``, ``startswith``, and ``endswith`` take
+ an extra ``na`` arguement so missing values can be considered True or False:
 
 .. ipython:: python
 

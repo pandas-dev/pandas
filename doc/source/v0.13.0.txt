@@ -102,6 +102,14 @@ Deprecated in 0.13.0
 - deprecated ``iterkv``, which will be removed in a future release (this was
   an alias of iteritems used to bypass ``2to3``'s changes).
   (:issue:`4384`, :issue:`4375`, :issue:`4372`)
+- deprecated the string method ``match``, whose role is now performed more
+  idiomatically by ``extract``. In a future release, the default behavior
+  of ``match`` will change to become analogous to ``contains``, which returns
+  a boolean indexer. (Their
+  distinction is strictness: ``match`` relies on ``re.match`` while
+  ``contains`` relies on ``re.serach``.) In this release, the deprecated
+  behavior is the default, but the new behavior is available through the
+  keyword argument ``as_indexer=True``.
 
 Indexing API Changes
 ~~~~~~~~~~~~~~~~~~~~
