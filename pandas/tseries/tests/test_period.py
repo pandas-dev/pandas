@@ -1672,7 +1672,19 @@ class TestPeriodIndex(TestCase):
     def test_ts_repr(self):
         index = PeriodIndex(freq='A', start='1/1/2001', end='12/31/2010')
         ts = Series(np.random.randn(len(index)), index=index)
-        repr(ts)
+        repr(ts) # ??
+
+        val = period_range('2013Q1', periods=1, freq="Q")
+        expected = "<class 'pandas.tseries.period.PeriodIndex'>\nfreq: Q-DEC\n[2013Q1]\nlength: 1"
+        assert_equal(repr(val), expected)
+
+        val = period_range('2013Q1', periods=2, freq="Q")
+        expected = "<class 'pandas.tseries.period.PeriodIndex'>\nfreq: Q-DEC\n[2013Q1, 2013Q2]\nlength: 2"
+        assert_equal(repr(val), expected)
+
+        val = period_range('2013Q1', periods=3, freq="Q")
+        expected = "<class 'pandas.tseries.period.PeriodIndex'>\nfreq: Q-DEC\n[2013Q1, ..., 2013Q3]\nlength: 3"
+        assert_equal(repr(val), expected)
 
     def test_period_index_unicode(self):
         pi = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')

@@ -760,7 +760,8 @@ Bug Fixes
     (thanks for catching this @yarikoptic!)
   - Fixed html tests on win32. (:issue:`4580`)
   - Make sure that ``head/tail`` are ``iloc`` based, (:issue:`5370`)
-
+  - Fixed bug for ``PeriodIndex`` string representation if there are 1 or 2
+    elements. (:issue:`5372`)
 
 pandas 0.12.0
 -------------
