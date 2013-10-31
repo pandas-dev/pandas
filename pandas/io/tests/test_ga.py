@@ -115,9 +115,15 @@ class TestGoogle(tm.TestCase):
         assert query['segment'] == 'gaid::' + str(advanced_segment_id), "A string value with just letters and numbers should be formatted as an advanced segment."
 
     def test_v3_advanced_segment_weird_format(self):
-        advanced_segment_id = 'aZwqR234-s1'
+        advanced_segment_id = '_aZwqR234-s1'
         query = ga.format_query('google_profile_id', ['visits'], '2013-09-01', segment=advanced_segment_id)
         assert query['segment'] == 'gaid::' + str(advanced_segment_id), "A string value with just letters, numbers, and hyphens should be formatted as an advanced segment."
+
+    def test_v3_advanced_segment_with_underscore_format(self):
+        advanced_segment_id = 'aZwqR234_s1'
+        query = ga.format_query('google_profile_id', ['visits'], '2013-09-01', segment=advanced_segment_id)
+        assert query['segment'] == 'gaid::' + str(advanced_segment_id), "A string value with just letters, numbers, and underscores should be formatted as an advanced segment."
+
 
     @slow
     @with_connectivity_check("http://www.google.com")
