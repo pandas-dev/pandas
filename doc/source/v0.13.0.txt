@@ -553,6 +553,7 @@ Enhancements
   output datetime objects should be formatted. Datetimes encountered in the
   index, columns, and values will all have this formatting applied. (:issue:`4313`)
 - ``DataFrame.plot`` will scatter plot x versus y by passing ``kind='scatter'`` (:issue:`2215`)
+- Added support for Google Analytics v3 API segment IDs that also supports v2 IDs. (:issue:`5271`)
 
 .. _whatsnew_0130.experimental:
 
@@ -726,7 +727,6 @@ Experimental
      As of 10/10/13, there is a bug in Google's API preventing result sets
      from being larger than 100,000 rows. A patch is scheduled for the week of
      10/14/13.
-
 .. _whatsnew_0130.refactoring:
 
 Internal Refactoring

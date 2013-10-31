@@ -360,7 +360,7 @@ def format_query(ids, metrics, start_date, end_date=None, dimensions=None,
     [_maybe_add_arg(qry, n, d) for n, d in zip(names, lst)]
 
     if isinstance(segment, compat.string_types):
-        if re.match("^[a-zA-Z0-9]+\-*[a-zA-Z0-9]*$", segment):
+        if re.match("^[a-zA-Z0-9\-\_]+$", segment):
             _maybe_add_arg(qry, 'segment', segment, 'gaid:')
         else:
             _maybe_add_arg(qry, 'segment', segment, 'dynamic::ga')
