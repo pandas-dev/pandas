@@ -9,6 +9,8 @@ from pandas.compat import range, lzip, map, zip
 import pandas.compat as compat
 import numpy as np
 import traceback
+import cStringIO
+import csv
 
 from pandas.core.datetools import format as date_format
 from pandas.core.api import DataFrame
@@ -255,12 +257,18 @@ def _write_mysql(frame, table, names, cur):
     cur.executemany(insert_query, data)
 
 def _write_postgres(frame, table, names, cur):
-    bracketed_names = ['"' + column.lower() +'"' for column in names]
-    col_names = ','.join(bracketed_names)
-    wildcards = ','.join(["%s"] * len(names))
-    insert_query = "INSERT INTO %s (%s) VALUES (%s)" % (table, col_names, wildcards)
-    data = [tuple(x) for x in frame.values]
-    cur.executemany(insert_query, data)
+    output = cStringIO.StringIO()
+    writer = csv.writer(output, delimiter='\t', quoting=csv.QUOTE_MINIMAL)
+    
+    for col in frame.dtypes.index:
+        dt = frame.dtypes[col]
+        if str(dt.type)=="<type 'numpy.object_'>":
+            frame[col] = frame[col].apply(lambda x: x.__str__().replace('\n', ''))
+
+    [writer.writerow(tuple(x)) for x in frame.values]
+    
+    output.seek(0)
+    cur.copy_from(output, table, columns=names)    
 
 def table_exists(name, con, flavor):
     schema = None
