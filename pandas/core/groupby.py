@@ -566,6 +566,22 @@ class GroupBy(PandasObject):
 
         return result
 
+    def _apply_filter(self, indices, dropna):
+        if len(indices) == 0:
+            indices = []
+        else:
+            indices = np.sort(np.concatenate(indices))
+        if dropna:
+            filtered = self.obj.take(indices)
+        else:
+            mask = np.empty(len(self.obj.index), dtype=bool)
+            mask.fill(False)
+            mask[indices.astype(int)] = True
+            # mask fails to broadcast when passed to where; broadcast manually.
+            mask = np.tile(mask, list(self.obj.shape[1:]) + [1]).T
+            filtered = self.obj.where(mask) # Fill with NaNs.
+        return filtered
+
 
 @Appender(GroupBy.__doc__)
 def groupby(obj, by, **kwds):
@@ -1585,14 +1601,13 @@ class SeriesGroupBy(GroupBy):
             group = com.ensure_float(group)
             object.__setattr__(group, 'name', name)
             res = wrapper(group)
-            indexer = self.obj.index.get_indexer(group.index)
             if hasattr(res,'values'):
                 res = res.values
 
             # need to do a safe put here, as the dtype may be different
             # this needs to be an ndarray
             result = Series(result)
-            result.loc[indexer] = res
+            result.iloc[self.indices[name]] = res
             result = result.values
 
         # downcast if we can (and need)
@@ -1630,22 +1645,15 @@ class SeriesGroupBy(GroupBy):
             return b and notnull(b)
 
         try:
-            indexers = [self.obj.index.get_indexer(group.index) \
-                        if true_and_notnull(group) else [] \
-                        for _ , group in self]
+            indices = [self.indices[name] if true_and_notnull(group) else [] 
+                        for name, group in self]
         except ValueError:
             raise TypeError("the filter must return a boolean result")
         except TypeError:
             raise TypeError("the filter must return a boolean result")
 
-        if len(indexers) == 0:
-            filtered = self.obj.take([]) # because np.concatenate would fail
-        else:
-            filtered = self.obj.take(np.sort(np.concatenate(indexers)))
-        if dropna:
-            return filtered
-        else:
-            return filtered.reindex(self.obj.index) # Fill with NaNs.
+        filtered = self._apply_filter(indices, dropna)
+        return filtered
 
 
 class NDFrameGroupBy(GroupBy):
@@ -2125,7 +2133,7 @@ class NDFrameGroupBy(GroupBy):
         """
         from pandas.tools.merge import concat
 
-        indexers = []
+        indices = []
 
         obj = self._obj_with_exclusions
         gen = self.grouper.get_iterator(obj, axis=self.axis)
@@ -2146,31 +2154,25 @@ class NDFrameGroupBy(GroupBy):
             else:
                 res = path(group)
 
-            def add_indexer():
-                indexers.append(self.obj.index.get_indexer(group.index))
+            def add_indices():
+                indices.append(self.indices[name])
 
             # interpret the result of the filter
             if isinstance(res,(bool,np.bool_)):
                 if res:
-                    add_indexer()
+                    add_indices()
             else:
                 if getattr(res,'ndim',None) == 1:
                     val = res.ravel()[0]
                     if val and notnull(val):
-                        add_indexer()
+                        add_indices()
                 else:
 
                     # in theory you could do .all() on the boolean result ?
                     raise TypeError("the filter must return a boolean result")
 
-        if len(indexers) == 0:
-            filtered = self.obj.take([]) # because np.concatenate would fail
-        else:
-            filtered = self.obj.take(np.sort(np.concatenate(indexers)))
-        if dropna:
-            return filtered
-        else:
-            return filtered.reindex(self.obj.index) # Fill with NaNs.
+        filtered = self._apply_filter(indices, dropna)
+        return filtered
 
 
 class DataFrameGroupBy(NDFrameGroupBy):
