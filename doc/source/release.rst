@@ -345,7 +345,7 @@ API Changes
     indexing and slicing work exactly the same.  Indexing on other index types
     are preserved (and positional fallback for ``[],ix``), with the exception,
     that floating point slicing on indexes on non ``Float64Index`` will raise a
-    ``TypeError``, e.g. ``Series(range(5))[3.5:4.5]`` (:issue:`263`)
+    ``TypeError``, e.g. ``Series(range(5))[3.5:4.5]`` (:issue:`263`,:issue:`5375`)
   - Make Categorical repr nicer (:issue:`4368`)
   - Remove deprecated ``Factor`` (:issue:`3650`)
   - Remove deprecated ``set_printoptions/reset_printoptions`` (:issue:``3046``)
