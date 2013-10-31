@@ -202,6 +202,20 @@ class TestGroupBy(unittest.TestCase):
         f = s.groupby(level=0).first()
         self.assert_(f.dtype == 'int64')
 
+    def test_grouper_index_types(self):
+        # related GH5375
+        # groupby misbehaving when using a Floatlike index
+        df = DataFrame(np.arange(10).reshape(5,2),columns=list('AB'))
+        for index in [ tm.makeFloatIndex, tm.makeStringIndex,
+                       tm.makeUnicodeIndex, tm.makeIntIndex,
+                       tm.makeDateIndex, tm.makePeriodIndex ]:
+
+            df.index = index(len(df))
+            df.groupby(list('abcde')).apply(lambda x: x)
+
+            df.index = list(reversed(df.index.tolist()))
+            df.groupby(list('abcde')).apply(lambda x: x)
+
     def test_grouper_iter(self):
         self.assertEqual(sorted(self.df.groupby('A').grouper), ['bar', 'foo'])
 

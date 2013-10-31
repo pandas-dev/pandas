@@ -2435,7 +2435,7 @@ class DataSplitter(object):
         return self.data.take(self.sort_idx, axis=self.axis, convert=False)
 
     def _chop(self, sdata, slice_obj):
-        return sdata[slice_obj]
+        return sdata.iloc[slice_obj]
 
     def apply(self, f):
         raise NotImplementedError
@@ -2470,7 +2470,7 @@ class FrameSplitter(DataSplitter):
 
     def _chop(self, sdata, slice_obj):
         if self.axis == 0:
-            return sdata[slice_obj]
+            return sdata.iloc[slice_obj]
         else:
             return sdata._slice(slice_obj, axis=1)  # ix[:, slice_obj]
 
