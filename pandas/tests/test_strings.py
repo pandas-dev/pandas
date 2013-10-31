@@ -397,10 +397,8 @@ class TestStringMethods(unittest.TestCase):
         # Old match behavior, deprecated (but still default) in 0.13
         values = Series(['fooBAD__barBAD', NA, 'foo'])
 
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+        with tm.assert_produces_warning():
             result = values.str.match('.*(BAD[_]+).*(BAD)')
-            assert issubclass(w[-1].category, UserWarning)
         exp = Series([('BAD__', 'BAD'), NA, []])
         tm.assert_series_equal(result, exp)
 
@@ -408,10 +406,8 @@ class TestStringMethods(unittest.TestCase):
         mixed = Series(['aBAD_BAD', NA, 'BAD_b_BAD', True, datetime.today(),
                         'foo', None, 1, 2.])
 
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+        with tm.assert_produces_warning():
             rs = Series(mixed).str.match('.*(BAD[_]+).*(BAD)')
-            assert issubclass(w[-1].category, UserWarning)
         xp = [('BAD_', 'BAD'), NA, ('BAD_', 'BAD'), NA, NA, [], NA, NA, NA]
         tm.assert_isinstance(rs, Series)
         tm.assert_almost_equal(rs, xp)
@@ -419,20 +415,16 @@ class TestStringMethods(unittest.TestCase):
         # unicode
         values = Series([u('fooBAD__barBAD'), NA, u('foo')])
 
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+        with tm.assert_produces_warning():
             result = values.str.match('.*(BAD[_]+).*(BAD)')
-            assert issubclass(w[-1].category, UserWarning)
         exp = Series([(u('BAD__'), u('BAD')), NA, []])
         tm.assert_series_equal(result, exp)
 
     def test_match(self):
         # New match behavior introduced in 0.13
         values = Series(['fooBAD__barBAD', NA, 'foo'])
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+        with tm.assert_produces_warning():
             result = values.str.match('.*(BAD[_]+).*(BAD)', as_indexer=True)
-            assert issubclass(w[-1].category, UserWarning)
         exp = Series([True, NA, False])
         tm.assert_series_equal(result, exp)
 
@@ -447,10 +439,8 @@ class TestStringMethods(unittest.TestCase):
         mixed = Series(['aBAD_BAD', NA, 'BAD_b_BAD', True, datetime.today(),
                         'foo', None, 1, 2.])
 
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+        with tm.assert_produces_warning():
             rs = Series(mixed).str.match('.*(BAD[_]+).*(BAD)', as_indexer=True)
-            assert issubclass(w[-1].category, UserWarning)
         xp = [True, NA, True, NA, NA, False, NA, NA, NA]
         tm.assert_isinstance(rs, Series)
         tm.assert_almost_equal(rs, xp)
@@ -458,10 +448,8 @@ class TestStringMethods(unittest.TestCase):
         # unicode
         values = Series([u('fooBAD__barBAD'), NA, u('foo')])
 
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+        with tm.assert_produces_warning():
             result = values.str.match('.*(BAD[_]+).*(BAD)', as_indexer=True)
-            assert issubclass(w[-1].category, UserWarning)
         exp = Series([True, NA, False])
         tm.assert_series_equal(result, exp)
 

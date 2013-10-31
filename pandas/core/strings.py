@@ -170,8 +170,8 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan):
     regex = re.compile(pat, flags=flags)
 
     if regex.groups > 0:
-        warnings.warn("""This pattern has match groups. To actually get the 
-groups, use str.extract.""", UserWarning)
+        warnings.warn("This pattern has match groups. To actually get the"
+                      " groups, use str.extract.", UserWarning)
 
     f = lambda x: bool(regex.search(x))
     return _na_map(f, arr, na)
@@ -329,7 +329,7 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=False):
     -------
     matches : boolean array (if as_indexer=True)
     matches : array of tuples (if as_indexer=False, default but deprecated)
-    
+
     Note
     ----
     To extract matched groups, which is the deprecated behavior of match, use
@@ -344,12 +344,12 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=False):
     if (not as_indexer) and regex.groups > 0:
         # Do this first, to make sure it happens even if the re.compile
         # raises below.
-        warnings.warn("""In future versions of pandas, match will change 
-to always return a bool indexer.""", UserWarning)
+        warnings.warn("In future versions of pandas, match will change to"
+                      " always return a bool indexer.""", UserWarning)
 
     if as_indexer and regex.groups > 0:
-        warnings.warn("""This pattern has match groups. To actually get the 
-groups, use str.extract.""", UserWarning)
+        warnings.warn("This pattern has match groups. To actually get the"
+                      " groups, use str.extract.""", UserWarning)
 
     # If not as_indexer and regex.groups == 0, this returns empty lists
     # and is basically useless, so we will not warn.
