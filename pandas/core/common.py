@@ -1038,7 +1038,8 @@ def _possibly_downcast_to_dtype(result, dtype):
             # try to upcast here
             elif inferred_type == 'floating':
                 dtype = 'int64'
-                trans = lambda x: x.round()
+                if issubclass(result.dtype.type, np.number):
+                    trans = lambda x: x.round()
 
             else:
                 dtype = 'object'

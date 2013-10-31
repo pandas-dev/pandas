@@ -135,6 +135,20 @@ def test_downcast_conv():
     expected = np.array([8, 8, 8, 8, 9])
     assert (np.array_equal(result, expected))
 
+    # conversions
+
+    expected = np.array([1,2])
+    for dtype in [np.float64,object,np.int64]:
+        arr = np.array([1.0,2.0],dtype=dtype)
+        result = com._possibly_downcast_to_dtype(arr,'infer')
+        tm.assert_almost_equal(result, expected)
+
+    expected = np.array([1.0,2.0,np.nan])
+    for dtype in [np.float64,object]:
+        arr = np.array([1.0,2.0,np.nan],dtype=dtype)
+        result = com._possibly_downcast_to_dtype(arr,'infer')
+        tm.assert_almost_equal(result, expected)
+
 def test_datetimeindex_from_empty_datetime64_array():
     for unit in [ 'ms', 'us', 'ns' ]:
         idx = DatetimeIndex(np.array([], dtype='datetime64[%s]' % unit))
