@@ -305,6 +305,10 @@ def dateutil_parse(timestr, default,
 
     res = DEFAULTPARSER._parse(fobj, **kwargs)
 
+    # dateutil 2.2 compat
+    if isinstance(res, tuple):
+        res, _ = res
+
     if res is None:
         raise ValueError("unknown string format")
 
