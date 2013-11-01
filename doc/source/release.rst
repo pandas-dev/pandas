@@ -766,6 +766,9 @@ Bug Fixes
   - Make sure that ``head/tail`` are ``iloc`` based, (:issue:`5370`)
   - Fixed bug for ``PeriodIndex`` string representation if there are 1 or 2
     elements. (:issue:`5372`)
+  - The GroupBy methods ``transform`` and ``filter`` can be used on Series
+    and DataFrames that have repeated (non-unique) indices. (:issue:`4620`)
+
 
 pandas 0.12.0
 -------------
