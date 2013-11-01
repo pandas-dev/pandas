@@ -36,13 +36,13 @@ filepath_or_buffer : string or file handle / StringIO. The string could be
 %s
 lineterminator : string (length 1), default None
     Character to break file into lines. Only valid with C parser
-quotechar : string
-    The character to used to denote the start and end of a quoted item. Quoted
+quotechar : string (length 1)
+    The character used to denote the start and end of a quoted item. Quoted
     items can include the delimiter and it will be ignored.
-quoting : int
-    Controls whether quotes should be recognized. Values are taken from
-    `csv.QUOTE_*` values. Acceptable values are 0, 1, 2, and 3 for
-    QUOTE_MINIMAL, QUOTE_ALL, QUOTE_NONE, and QUOTE_NONNUMERIC, respectively.
+quoting : int or csv.QUOTE_* instance, default None
+    Control field quoting behavior per ``csv.QUOTE_*`` constants. Use one of
+    QUOTE_MINIMAL (0), QUOTE_ALL (1), QUOTE_NONNUMERIC (2) or QUOTE_NONE (3).
+    Default (None) results in QUOTE_MINIMAL behavior.
 skipinitialspace : boolean, default False
     Skip spaces after delimiter
 escapechar : string
