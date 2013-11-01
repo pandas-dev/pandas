@@ -977,6 +977,7 @@ class BQuarterEnd(CacheableOffset, QuarterOffset):
         modMonth = (dt.month - self.startingMonth) % 3
         return BMonthEnd().onOffset(dt) and modMonth == 0
 
+
 class FY5253(CacheableOffset, DateOffset):
     """
     Describes 52-53 week fiscal year. This is also known as a 4-4-5 calendar.
@@ -1035,8 +1036,9 @@ class FY5253(CacheableOffset, DateOffset):
             raise ValueError('%s is not a valid variation' % self.variation)
 
         if self.variation == "nearest":
-            self._rd_forward = relativedelta(weekday=weekday(self.weekday))
-            self._rd_backward = relativedelta(weekday=weekday(self.weekday)(-1))
+            weekday_offset = weekday(self.weekday)
+            self._rd_forward = relativedelta(weekday=weekday_offset)
+            self._rd_backward = relativedelta(weekday=weekday_offset(-1))
         else:
             self._offset_lwom = LastWeekOfMonth(n=1, weekday=self.weekday)
 
@@ -1047,31 +1049,64 @@ class FY5253(CacheableOffset, DateOffset):
 
     def onOffset(self, dt):
         year_end = self.get_year_end(dt)
-        return year_end == dt
+
+        if self.variation == "nearest":
+            # We have to check the year end of "this" cal year AND the previous
+            return year_end == dt or \
+                self.get_year_end(dt - relativedelta(months=1)) == dt
+        else:
+            return year_end == dt
 
     def apply(self, other):
         n = self.n
-        if n > 0:
-            year_end = self.get_year_end(other)
-            if other < year_end:
-                other = year_end
-                n -= 1
-            elif other > year_end:
-                other = self.get_year_end(as_datetime(other) + relativedelta(years=1))
-                n -= 1
+        prev_year = self.get_year_end(
+                        datetime(other.year - 1, self.startingMonth, 1))
+        cur_year = self.get_year_end(
+                        datetime(other.year, self.startingMonth, 1))
+        next_year = self.get_year_end(
+                        datetime(other.year + 1, self.startingMonth, 1))
 
-            return self.get_year_end(as_datetime(other) + relativedelta(years=n))
+        if n > 0:
+            if other == prev_year:
+                year = other.year - 1
+            elif other == cur_year:
+                year = other.year
+            elif other == next_year:
+                year = other.year + 1
+            elif other < prev_year:
+                year = other.year - 1
+                n -= 1
+            elif other < cur_year:
+                year = other.year
+                n -= 1
+            elif other < next_year:
+                year = other.year + 1
+                n -= 1
+            else:
+                assert False
+
+            return self.get_year_end(datetime(year + n, self.startingMonth, 1))
         else:
             n = -n
-            year_end = self.get_year_end(other)
-            if other > year_end:
-                other = year_end
+            if other == prev_year:
+                year = other.year - 1
+            elif other == cur_year:
+                year = other.year
+            elif other == next_year:
+                year = other.year + 1
+            elif other > next_year:
+                year = other.year + 1
                 n -= 1
-            elif other < year_end:
-                other = self.get_year_end(as_datetime(other) + relativedelta(years=-1))
+            elif other > cur_year:
+                year = other.year
                 n -= 1
+            elif other > prev_year:
+                year = other.year - 1
+                n -= 1
+            else:
+                assert False
 
-            return self.get_year_end(as_datetime(other) + relativedelta(years=-n))
+            return self.get_year_end(datetime(year - n, self.startingMonth, 1))
 
     def get_year_end(self, dt):
         if self.variation == "nearest":
@@ -1127,20 +1162,22 @@ class FY5253(CacheableOffset, DateOffset):
         elif varion_code == "L":
             variation = "last"
         else:
-            raise ValueError("Unable to parse varion_code: %s" % (varion_code,))
+            raise ValueError(
+                "Unable to parse varion_code: %s" % (varion_code,))
 
         startingMonth = _month_to_int[startingMonth_code]
         weekday = _weekday_to_int[weekday_code]
 
         return {
-                "weekday":weekday,
-                "startingMonth":startingMonth,
-                "variation":variation,
+                "weekday": weekday,
+                "startingMonth": startingMonth,
+                "variation": variation,
                 }
 
     @classmethod
     def _from_name(cls, *args):
         return cls(**cls._parse_suffix(*args))
+
 
 class FY5253Quarter(CacheableOffset, DateOffset):
     """
@@ -1251,7 +1288,7 @@ class FY5253Quarter(CacheableOffset, DateOffset):
         year_has_extra_week = self.year_has_extra_week(dt)
 
         if year_has_extra_week:
-            ret[self.qtr_with_extra_week-1] = 14
+            ret[self.qtr_with_extra_week - 1] = 14
 
         return ret
 
@@ -1263,7 +1300,7 @@ class FY5253Quarter(CacheableOffset, DateOffset):
             next_year_end = dt + self._offset
             prev_year_end = dt - self._offset
 
-        week_in_year = (next_year_end - prev_year_end).days/7
+        week_in_year = (next_year_end - prev_year_end).days / 7
 
         return week_in_year == 53
 
@@ -1285,11 +1322,14 @@ class FY5253Quarter(CacheableOffset, DateOffset):
     @property
     def rule_code(self):
         suffix = self._offset.get_rule_code_suffix()
-        return "%s-%s" %(self._prefix, "%s-%d" % (suffix, self.qtr_with_extra_week))
+        return "%s-%s" % (self._prefix,
+                          "%s-%d" % (suffix, self.qtr_with_extra_week))
 
     @classmethod
     def _from_name(cls, *args):
-        return cls(**dict(FY5253._parse_suffix(*args[:-1]), qtr_with_extra_week=int(args[-1])))
+        return cls(**dict(FY5253._parse_suffix(*args[:-1]),
+                          qtr_with_extra_week=int(args[-1])))
+
 
 _int_to_month = {
     1: 'JAN',
