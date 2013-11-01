@@ -1,7 +1,7 @@
 python-dateutil==2.1
 pytz==2013b
 xlwt==0.7.5
-numpy==1.7.1
+numpy==1.8.0
 cython==0.19.1
 bottleneck==0.6.0
 numexpr==2.1
