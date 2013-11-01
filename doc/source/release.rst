@@ -207,6 +207,8 @@ Improvements to existing features
     closed])
   - Fixed bug in `tools.plotting.andrews_curvres` so that lines are drawn grouped
     by color as expected.
+  - ``read_excel()`` now tries to convert integral floats (like ``1.0``) to int
+    by default. (:issue:`5394`)
 
 API Changes
 ~~~~~~~~~~~

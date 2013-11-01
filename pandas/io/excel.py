@@ -83,6 +83,10 @@ def read_excel(io, sheetname, **kwds):
     engine: string, default None
         If io is not a buffer or path, this must be set to identify io.
         Acceptable values are None or xlrd
+    convert_float : boolean, default True
+        convert integral floats to int (i.e., 1.0 --> 1). If False, all numeric
+        data will be read in as floats: Excel stores all numbers as floats
+        internally.
 
     Returns
     -------
@@ -142,7 +146,7 @@ class ExcelFile(object):
     def parse(self, sheetname, header=0, skiprows=None, skip_footer=0,
               index_col=None, parse_cols=None, parse_dates=False,
               date_parser=None, na_values=None, thousands=None, chunksize=None,
-              **kwds):
+              convert_float=True, **kwds):
         """Read an Excel table into DataFrame
 
         Parameters
@@ -172,6 +176,10 @@ class ExcelFile(object):
             NaN values are overridden, otherwise they're appended to
         verbose : boolean, default False
             Indicate number of NA values placed in non-numeric columns
+        convert_float : boolean, default True
+            convert integral floats to int (i.e., 1.0 --> 1). If False, all
+            numeric data will be read in as floats: Excel stores all numbers as
+            floats internally.
 
         Returns
         -------
@@ -191,7 +199,9 @@ class ExcelFile(object):
                                  parse_dates=parse_dates,
                                  date_parser=date_parser, na_values=na_values,
                                  thousands=thousands, chunksize=chunksize,
-                                 skip_footer=skip_footer, **kwds)
+                                 skip_footer=skip_footer,
+                                 convert_float=convert_float,
+                                 **kwds)
 
     def _should_parse(self, i, parse_cols):
 
@@ -229,9 +239,11 @@ class ExcelFile(object):
     def _parse_excel(self, sheetname, header=0, skiprows=None, skip_footer=0,
                      index_col=None, has_index_names=None, parse_cols=None,
                      parse_dates=False, date_parser=None, na_values=None,
-                     thousands=None, chunksize=None, **kwds):
+                     thousands=None, chunksize=None, convert_float=True,
+                     **kwds):
         from xlrd import (xldate_as_tuple, XL_CELL_DATE,
-                          XL_CELL_ERROR, XL_CELL_BOOLEAN)
+                          XL_CELL_ERROR, XL_CELL_BOOLEAN,
+                          XL_CELL_NUMBER)
 
         datemode = self.book.datemode
         if isinstance(sheetname, compat.string_types):
@@ -260,6 +272,13 @@ class ExcelFile(object):
                         value = np.nan
                     elif typ == XL_CELL_BOOLEAN:
                         value = bool(value)
+                    elif convert_float and typ == XL_CELL_NUMBER:
+                        # GH5394 - Excel 'numbers' are always floats
+                        # it's a minimal perf hit and less suprising
+                        val = int(value)
+                        if val == value:
+                            value = val
+
                     row.append(value)
 
             data.append(row)
