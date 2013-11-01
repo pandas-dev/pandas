@@ -273,7 +273,8 @@ class ExcelFile(object):
                     elif typ == XL_CELL_BOOLEAN:
                         value = bool(value)
                     elif convert_float and typ == XL_CELL_NUMBER:
-                        # Excel 'numbers' are always floats
+                        # GH5394 - Excel 'numbers' are always floats
+                        # it's a minimal perf hit and less suprising
                         val = int(value)
                         if val == value:
                             value = val

@@ -315,7 +315,8 @@ class ExcelReaderTests(SharedItems, unittest.TestCase):
             ("FloatCol", [1.25, 2.25, 1.83, 1.92, 0.0000000005]),
             ("BoolCol", [True, False, True, True, False]),
             ("StrCol", [1, 2, 3, 4, 5]),
-            ("Str2Col", ["a", "b", "c", "d", "e"]),
+            # GH5394 - this is why convert_float isn't vectorized
+            ("Str2Col", ["a", 3, "c", "d", "e"]),
             ("DateCol", [datetime(2013, 10, 30), datetime(2013, 10, 31),
                          datetime(1905, 1, 1), datetime(2013, 12, 14),
                          datetime(2015, 3, 14)])
@@ -332,6 +333,7 @@ class ExcelReaderTests(SharedItems, unittest.TestCase):
         # if not coercing number, then int comes in as float
         float_expected = expected.copy()
         float_expected["IntCol"] = float_expected["IntCol"].astype(float)
+        float_expected.loc[1, "Str2Col"] = 3.0
         for path in (xls_path, xlsx_path):
             actual = read_excel(path, 'Sheet1', convert_float=False)
             tm.assert_frame_equal(actual, float_expected)
