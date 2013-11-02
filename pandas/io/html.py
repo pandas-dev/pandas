@@ -165,13 +165,15 @@ class _HtmlFrameParser(object):
     See each method's respective documentation for details on their
     functionality.
     """
-    def __init__(self, io, match, attrs):
+    def __init__(self, io, match, attrs, xpath):
         self.io = io
         self.match = match
         self.attrs = attrs
+        self.xpath = xpath
 
     def parse_tables(self):
-        tables = self._parse_tables(self._build_doc(), self.match, self.attrs)
+        tables = self._parse_tables(self._build_doc(), self.match, self.attrs,
+                                    self.xpath)
         return (self._build_table(table) for table in tables)
 
     def _parse_raw_data(self, rows):
@@ -227,7 +229,7 @@ class _HtmlFrameParser(object):
         """
         raise NotImplementedError
 
-    def _parse_tables(self, doc, match, attrs):
+    def _parse_tables(self, doc, match, attrs, xpath):
         """Return all tables from the parsed DOM.
 
         Parameters
@@ -241,6 +243,9 @@ class _HtmlFrameParser(object):
         attrs : dict
             A dictionary of table attributes that can be used to disambiguate
             mutliple tables on a page.
+
+        xpath : str or None
+            An XPath style string used to filter for tables to be returned.
 
         Raises
         ------
@@ -393,7 +398,7 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
     def _parse_tfoot(self, table):
         return table.find_all('tfoot')
 
-    def _parse_tables(self, doc, match, attrs):
+    def _parse_tables(self, doc, match, attrs, xpath):
         element_name = self._strainer.name
         tables = doc.find_all(element_name, attrs=attrs)
 
@@ -481,24 +486,33 @@ class _LxmlFrameParser(_HtmlFrameParser):
         expr = './/tr[normalize-space()]'
         return table.xpath(expr)
 
-    def _parse_tables(self, doc, match, kwargs):
-        pattern = match.pattern
+    def _parse_tables(self, doc, match, kwargs, xpath):
+        if xpath:
+            xpath_expr = xpath
+            tables = doc.xpath(xpath_expr)
 
-        # 1. check all descendants for the given pattern and only search tables
-        # 2. go up the tree until we find a table
-        query = '//table//*[re:test(text(), %r)]/ancestor::table'
-        xpath_expr = u(query) % pattern
+            if not tables:
+                raise ValueError("No tables found using XPath expression %s" % xpath)
+            return tables
 
-        # if any table attributes were given build an xpath expression to
-        # search for them
-        if kwargs:
-            xpath_expr += _build_xpath_expr(kwargs)
+        else:
+            pattern = match.pattern
 
-        tables = doc.xpath(xpath_expr, namespaces=_re_namespace)
+            # 1. check all descendants for the given pattern and only search tables
+            # 2. go up the tree until we find a table
+            query = '//table//*[re:test(text(), %r)]/ancestor::table'
+            xpath_expr = u(query) % pattern
 
-        if not tables:
-            raise ValueError("No tables found matching regex %r" % pattern)
-        return tables
+            # if any table attributes were given build an xpath expression to
+            # search for them
+            if kwargs:
+                xpath_expr += _build_xpath_expr(kwargs)
+
+            tables = doc.xpath(xpath_expr, namespaces=_re_namespace)
+
+            if not tables:
+                raise ValueError("No tables found matching regex %r" % pattern)
+            return tables
 
     def _build_doc(self):
         """
@@ -688,7 +702,7 @@ def _validate_flavor(flavor):
 
 
 def _parse(flavor, io, match, header, index_col, skiprows, infer_types,
-           parse_dates, tupleize_cols, thousands, attrs):
+           parse_dates, tupleize_cols, thousands, attrs, xpath):
     flavor = _validate_flavor(flavor)
     compiled_match = re.compile(match)  # you can pass a compiled regex here
 
@@ -696,7 +710,10 @@ def _parse(flavor, io, match, header, index_col, skiprows, infer_types,
     retained = None
     for flav in flavor:
         parser = _parser_dispatch(flav)
-        p = parser(io, compiled_match, attrs)
+        if xpath and flav in ('bs4', 'html5lib'):
+            raise NotImplementedError
+
+        p = parser(io, compiled_match, attrs, xpath)
 
         try:
             tables = p.parse_tables()
@@ -714,7 +731,7 @@ def _parse(flavor, io, match, header, index_col, skiprows, infer_types,
 
 def read_html(io, match='.+', flavor=None, header=None, index_col=None,
               skiprows=None, infer_types=None, attrs=None, parse_dates=False,
-              tupleize_cols=False, thousands=','):
+              tupleize_cols=False, thousands=',', xpath=None):
     r"""Read HTML tables into a ``list`` of ``DataFrame`` objects.
 
     Parameters
@@ -795,6 +812,12 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
     thousands : str, optional
         Separator to use to parse thousands. Defaults to ``','``.
 
+    xpath : str or None, optional
+        If not ``None`` try to identify the set of tables to be read by an
+        XPath string; takes precedence over ``match``. Defaults to ``None``.
+        Note: This functionality is not (yet) available with the Beautiful Soup
+        parser (``flavor=bs4``).
+
     Returns
     -------
     dfs : list of DataFrames
@@ -840,4 +863,4 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
         raise ValueError('cannot skip rows starting from the end of the '
                          'data (you passed a negative value)')
     return _parse(flavor, io, match, header, index_col, skiprows, infer_types,
-                  parse_dates, tupleize_cols, thousands, attrs)
+                  parse_dates, tupleize_cols, thousands, attrs, xpath)

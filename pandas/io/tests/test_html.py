@@ -581,11 +581,27 @@ class TestReadHtml(unittest.TestCase):
         newdf = DataFrame({'datetime': raw_dates})
         tm.assert_frame_equal(newdf, res[0])
 
+    def test_xpath_bs4_not_implemented(self):
+        with open(self.spam_data) as f:
+            with self.assertRaises(NotImplementedError):
+                self.read_html(f, flavor='bs4',
+                               xpath="//div[@class='garbage']/table")
+
 
 class TestReadHtmlLxml(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         _skip_if_no('lxml')
+
+    def setup_data(self):
+        self.valid_data = os.path.join(DATA_PATH, 'valid_markup.html')
+
+    def setup_flavor(self):
+        self.flavor = 'lxml'
+
+    def setUp(self):
+        self.setup_data()
+        self.setup_flavor()
 
     def read_html(self, *args, **kwargs):
         self.flavor = ['lxml']
@@ -629,6 +645,29 @@ class TestReadHtmlLxml(unittest.TestCase):
                              index_col=1)
         newdf = DataFrame({'datetime': raw_dates})
         tm.assert_frame_equal(newdf, res[0])
+
+    def test_xpath_file_like(self):
+        with open(self.valid_data) as f:
+            dfs = self.read_html(f,
+                                 xpath="//table[@class='dataframe']")
+
+        tm.assert_isinstance(dfs, list)
+        for df in dfs:
+            tm.assert_isinstance(df, DataFrame)
+
+    @slow
+    def test_xpath_file_url(self):
+        url = self.valid_data
+        dfs = self.read_html(file_path_to_url(url),
+                             xpath="//*[@class='dataframe']")
+        tm.assert_isinstance(dfs, list)
+        for df in dfs:
+            tm.assert_isinstance(df, DataFrame)
+
+    def test_xpath_table_not_found(self):
+        with open(self.valid_data) as f:
+            with self.assertRaises(ValueError):
+                self.read_html(f, xpath="//div[@class='garbage']/table")
 
 
 def test_invalid_flavor():
