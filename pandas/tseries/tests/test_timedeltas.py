@@ -180,17 +180,20 @@ class TestTimedeltas(unittest.TestCase):
         s = Series([Timestamp('20130101') + timedelta(seconds=i*i) for i in range(10) ])
         td = s.diff()
 
-        result = td.mean()
+        result = td.mean()[0]
+        # TODO This should have returned a scalar to begin with. Hack for now.
         expected = to_timedelta(timedelta(seconds=9))
-        tm.assert_series_equal(result, expected)
+        tm.assert_almost_equal(result, expected)
 
         result = td.quantile(.1)
+        # This properly returned a scalar.
         expected = to_timedelta('00:00:02.6')
-        tm.assert_series_equal(result, expected)
+        tm.assert_almost_equal(result, expected)
 
-        result = td.median()
+        result = td.median()[0]
+        # TODO This should have returned a scalar to begin with. Hack for now.
         expected = to_timedelta('00:00:08')
-        tm.assert_series_equal(result, expected)
+        tm.assert_almost_equal(result, expected)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

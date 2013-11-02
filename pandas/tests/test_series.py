@@ -2314,6 +2314,25 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # roundtrip
         assert_series_equal(result + td2,td1)
 
+        # Now again, using pd.to_timedelta, which should build
+        # a Series or a scalar, depending on input.
+        if not _np_version_under1p7:
+            td1 = Series(pd.to_timedelta(['00:05:03'] * 3))
+            td2 = pd.to_timedelta('00:05:04')
+            result = td1 - td2
+            expected = Series([timedelta(seconds=0)] * 3) -Series(
+                [timedelta(seconds=1)] * 3)
+            self.assert_(result.dtype == 'm8[ns]')
+            assert_series_equal(result, expected)
+
+            result2 = td2 - td1
+            expected = (Series([timedelta(seconds=1)] * 3) -
+                        Series([timedelta(seconds=0)] * 3))
+            assert_series_equal(result2, expected)
+
+            # roundtrip
+            assert_series_equal(result + td2,td1)
+
     def test_timedelta64_operations_with_integers(self):
 
         # GH 4521
