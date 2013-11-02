@@ -646,6 +646,21 @@ class TestReadHtmlLxml(unittest.TestCase):
         newdf = DataFrame({'datetime': raw_dates})
         tm.assert_frame_equal(newdf, res[0])
 
+    def test_attrs_file_like(self):
+        with open(self.valid_data) as f:
+            dfs = self.read_html(f,
+                                 attrs={'class': 'dataframe'})
+
+        tm.assert_isinstance(dfs, list)
+        for df in dfs:
+            tm.assert_isinstance(df, DataFrame)
+
+    def test_match_no_match(self):
+        with open(self.valid_data) as f:
+            with self.assertRaises(ValueError):
+                dfs = self.read_html(f,
+                                     match='supercalifragilistic')
+
     def test_xpath_file_like(self):
         with open(self.valid_data) as f:
             dfs = self.read_html(f,
