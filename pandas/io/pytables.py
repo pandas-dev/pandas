@@ -225,11 +225,6 @@ def _tables():
     return _table_mod
 
 
-def h5_open(path, mode):
-    tables = _tables()
-    return tables.openFile(path, mode)
-
-
 @contextmanager
 def get_store(path, **kwargs):
     """
@@ -475,6 +470,8 @@ class HDFStore(StringMixin):
         mode : {'a', 'w', 'r', 'r+'}, default 'a'
             See HDFStore docstring or tables.openFile for info about modes
         """
+        tables = _tables()
+
         if self._mode != mode:
 
             # if we are chaning a write mode to read, ok
@@ -501,13 +498,20 @@ class HDFStore(StringMixin):
                                               fletcher32=self._fletcher32)
 
         try:
-            self._handle = h5_open(self._path, self._mode)
-        except IOError as e:  # pragma: no cover
+            self._handle = tables.openFile(self._path, self._mode)
+        except (IOError) as e:  # pragma: no cover
             if 'can not be written' in str(e):
                 print('Opening %s in read-only mode' % self._path)
-                self._handle = h5_open(self._path, 'r')
+                self._handle = tables.openFile(self._path, 'r')
             else:
                 raise
+        except (Exception) as e:
+
+            # trying to read from a non-existant file causes an error which
+            # is not part of IOError, make it one
+            if self._mode == 'r' and 'Unable to open/create file' in str(e):
+                raise IOError(str(e))
+            raise
 
     def close(self):
         """

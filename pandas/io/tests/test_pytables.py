@@ -3,6 +3,7 @@ import unittest
 import sys
 import os
 import warnings
+import tempfile
 from contextlib import contextmanager
 
 import datetime
@@ -57,6 +58,11 @@ def safe_close(store):
 @contextmanager
 def ensure_clean(path, mode='a', complevel=None, complib=None,
               fletcher32=False):
+
+    # put in the temporary path if we don't have one already
+    if not len(os.path.dirname(path)):
+        path = tempfile.mkstemp(suffix=path)[1]
+
     store = HDFStore(path, mode=mode, complevel=complevel,
                      complib=complib, fletcher32=False)
     try:
@@ -192,17 +198,22 @@ class TestHDFStore(unittest.TestCase):
 
         with ensure_clean(self.path) as store:
 
+            path = store._path
             df = tm.makeDataFrame()
+
+            _maybe_remove(store,'df')
             store.append('df',df.iloc[:10],append=True,format='table')
             store.append('df',df.iloc[10:],append=True,format='table')
             assert_frame_equal(read_hdf(path,'df'),df)
 
             # append to False
+            _maybe_remove(store,'df')
             store.append('df',df.iloc[:10],append=False,format='table')
             store.append('df',df.iloc[10:],append=True,format='table')
             assert_frame_equal(read_hdf(path,'df'),df)
 
             # formats
+            _maybe_remove(store,'df')
             store.append('df',df.iloc[:10],append=False,format='table')
             store.append('df',df.iloc[10:],append=True,format='table')
             assert_frame_equal(read_hdf(path,'df'),df)
@@ -373,7 +384,7 @@ class TestHDFStore(unittest.TestCase):
             with tm.ensure_clean(self.path) as path:
 
                 # constructor
-                if mode in ['r','r+']:
+                if mode in ['r']:
                     self.assertRaises(IOError, HDFStore, path, mode=mode)
 
                 else:
@@ -384,7 +395,7 @@ class TestHDFStore(unittest.TestCase):
             with tm.ensure_clean(self.path) as path:
 
                 # context
-                if mode in ['r','r+']:
+                if mode in ['r']:
                     def f():
                         with get_store(path,mode=mode) as store:
                             pass
@@ -396,7 +407,7 @@ class TestHDFStore(unittest.TestCase):
             with tm.ensure_clean(self.path) as path:
 
                 # conv write
-                if mode in ['r','r+']:
+                if mode in ['r']:
                     self.assertRaises(IOError, df.to_hdf, path, 'df', mode=mode)
                     df.to_hdf(path,'df',mode='w')
                 else:
