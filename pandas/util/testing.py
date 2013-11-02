@@ -313,34 +313,42 @@ def ensure_clean(filename=None, return_filelike=False):
     ----------
     filename : str (optional)
         if None, creates a temporary file which is then removed when out of
-        scope.
-    return_filelike: bool (default False)
+        scope. if passed, creates temporary file with filename as ending.
+    return_filelike : bool (default False)
         if True, returns a file-like which is *always* cleaned. Necessary for
-        savefig and other functions which want to append extensions. Ignores
-        filename if True.
+        savefig and other functions which want to append extensions.
     """
+    filename = filename or ''
 
     if return_filelike:
-        f = tempfile.TemporaryFile()
+        f = tempfile.TemporaryFile(suffix=filename)
         try:
             yield f
         finally:
             f.close()
 
     else:
-        # if we are not passed a filename, generate a temporary
-        if filename is None:
-            filename = tempfile.mkstemp()[1]
+
+        # don't generate tempfile if using a path with directory specified
+        if len(os.path.dirname(filename)):
+            raise ValueError("Can't pass a qualified name to ensure_clean()")
 
         try:
+            filename = create_temp_file(filename)
             yield filename
         finally:
             try:
                 if os.path.exists(filename):
                     os.remove(filename)
             except Exception as e:
-                print(e)
+                print("Exception on removing file: %s" % e)
 
+
+def create_temp_file(filename):
+    """
+    create a temporary file. the caller is responsible for deleting the file
+    """
+    return tempfile.mktemp(suffix=filename)
 
 def get_data_path(f=''):
     """Return the path of a data file, these are relative to the current test

@@ -3,6 +3,7 @@ import unittest
 import sys
 import os
 import warnings
+import tempfile
 from contextlib import contextmanager
 
 import datetime
@@ -57,9 +58,15 @@ def safe_close(store):
 @contextmanager
 def ensure_clean(path, mode='a', complevel=None, complib=None,
               fletcher32=False):
-    store = HDFStore(path, mode=mode, complevel=complevel,
-                     complib=complib, fletcher32=False)
+
     try:
+
+        # put in the temporary path if we don't have one already
+        if not len(os.path.dirname(path)):
+            path = tm.create_temp_file(path)
+
+        store = HDFStore(path, mode=mode, complevel=complevel,
+                         complib=complib, fletcher32=False)
         yield store
     finally:
         safe_close(store)
@@ -94,7 +101,7 @@ class TestHDFStore(unittest.TestCase):
     def setUp(self):
         warnings.filterwarnings(action='ignore', category=FutureWarning)
 
-        self.path = '__%s__.h5' % tm.rands(10)
+        self.path = '.__%s__.h5' % tm.rands(10)
 
     def tearDown(self):
         pass
@@ -192,17 +199,22 @@ class TestHDFStore(unittest.TestCase):
 
         with ensure_clean(self.path) as store:
 
+            path = store._path
             df = tm.makeDataFrame()
+
+            _maybe_remove(store,'df')
             store.append('df',df.iloc[:10],append=True,format='table')
             store.append('df',df.iloc[10:],append=True,format='table')
             assert_frame_equal(read_hdf(path,'df'),df)
 
             # append to False
+            _maybe_remove(store,'df')
             store.append('df',df.iloc[:10],append=False,format='table')
             store.append('df',df.iloc[10:],append=True,format='table')
             assert_frame_equal(read_hdf(path,'df'),df)
 
             # formats
+            _maybe_remove(store,'df')
             store.append('df',df.iloc[:10],append=False,format='table')
             store.append('df',df.iloc[10:],append=True,format='table')
             assert_frame_equal(read_hdf(path,'df'),df)
