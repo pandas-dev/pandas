@@ -844,8 +844,11 @@ class Series(generic.NDFrame):
                                     length=len(self) > 50,
                                     name=True,
                                     dtype=True)
+        elif self.name is None:
+            result = u('Series([], dtype: %s)') % (self.dtype)
         else:
-            result = u('Series([], dtype: %s)') % self.dtype
+            result = u('Series([], name: %s, dtype: %s)') % (self.name,
+                                                             self.dtype)
         return result
 
     def _tidy_repr(self, max_vals=20):

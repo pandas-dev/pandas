@@ -768,7 +768,7 @@ Bug Fixes
     elements. (:issue:`5372`)
   - The GroupBy methods ``transform`` and ``filter`` can be used on Series
     and DataFrames that have repeated (non-unique) indices. (:issue:`4620`)
-
+  - Fix empty series not printing name in repr (:issue:`4651`)
 
 pandas 0.12.0
 -------------
