@@ -1450,6 +1450,86 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         # Previously, this was mutating the underlying index and changing its name
         assert_frame_equal(wp['bool'], panel['bool'], check_names=False)
 
+    def test_to_frame_multi_major(self):
+        idx = MultiIndex.from_tuples([(1, 'one'), (1, 'two'), (2, 'one'),
+                                      (2, 'two')])
+        df = DataFrame([[1, 'a', 1], [2, 'b', 1], [3, 'c', 1], [4, 'd', 1]],
+                       columns=['A', 'B', 'C'], index=idx)
+        wp = Panel({'i1': df, 'i2': df})
+        expected_idx = MultiIndex.from_tuples([(1, 'one', 'A'), (1, 'one', 'B'),
+                                               (1, 'one', 'C'), (1, 'two', 'A'),
+                                               (1, 'two', 'B'), (1, 'two', 'C'),
+                                               (2, 'one', 'A'), (2, 'one', 'B'),
+                                               (2, 'one', 'C'), (2, 'two', 'A'),
+                                               (2, 'two', 'B'), (2, 'two', 'C')],
+                                              names=[None, None, 'minor'])
+        expected = DataFrame({'i1': [1, 'a', 1, 2, 'b', 1, 3, 'c', 1, 4, 'd', 1],
+                              'i2': [1, 'a', 1, 2, 'b', 1, 3, 'c', 1, 4, 'd', 1]},
+                             index=expected_idx)
+        result = wp.to_frame()
+        assert_frame_equal(result, expected)
+
+        wp.iloc[0, 0].iloc[0] = np.nan  # BUG on setting. GH #5773
+        result = wp.to_frame()
+        assert_frame_equal(result, expected[1:])
+
+        idx = MultiIndex.from_tuples([(1, 'two'), (1, 'one'), (2, 'one'),
+                                      (np.nan, 'two')])
+        df = DataFrame([[1, 'a', 1], [2, 'b', 1], [3, 'c', 1], [4, 'd', 1]],
+                       columns=['A', 'B', 'C'], index=idx)
+        wp = Panel({'i1': df, 'i2': df})
+        ex_idx = MultiIndex.from_tuples([(1, 'two', 'A'), (1, 'two', 'B'), (1, 'two', 'C'),
+                                         (1, 'one', 'A'), (1, 'one', 'B'), (1, 'one', 'C'),
+                                         (2, 'one', 'A'), (2, 'one', 'B'), (2, 'one', 'C'),
+                                         (np.nan, 'two', 'A'), (np.nan, 'two', 'B'),
+                                         (np.nan, 'two', 'C')],
+                                         names=[None, None, 'minor'])
+        expected.index = ex_idx
+        result = wp.to_frame()
+        assert_frame_equal(result, expected)
+
+    def test_to_frame_multi_major_minor(self):
+        cols = MultiIndex(levels=[['C_A', 'C_B'], ['C_1', 'C_2']],
+                          labels=[[0, 0, 1, 1], [0, 1, 0, 1]])
+        idx = MultiIndex.from_tuples([(1, 'one'), (1, 'two'), (2, 'one'),
+                                      (2, 'two'), (3, 'three'), (4, 'four')])
+        df = DataFrame([[1, 2, 11, 12], [3, 4, 13, 14], ['a', 'b', 'w', 'x'],
+                        ['c', 'd', 'y', 'z'], [-1, -2, -3, -4], [-5, -6, -7, -8]
+                        ], columns=cols, index=idx)
+        wp = Panel({'i1': df, 'i2': df})
+
+        exp_idx = MultiIndex.from_tuples([(1, 'one', 'C_A', 'C_1'), (1, 'one', 'C_A', 'C_2'),
+                                          (1, 'one', 'C_B', 'C_1'), (1, 'one', 'C_B', 'C_2'),
+                                          (1, 'two', 'C_A', 'C_1'), (1, 'two', 'C_A', 'C_2'),
+                                          (1, 'two', 'C_B', 'C_1'), (1, 'two', 'C_B', 'C_2'),
+                                          (2, 'one', 'C_A', 'C_1'), (2, 'one', 'C_A', 'C_2'),
+                                          (2, 'one', 'C_B', 'C_1'), (2, 'one', 'C_B', 'C_2'),
+                                          (2, 'two', 'C_A', 'C_1'), (2, 'two', 'C_A', 'C_2'),
+                                          (2, 'two', 'C_B', 'C_1'), (2, 'two', 'C_B', 'C_2'),
+                                          (3, 'three', 'C_A', 'C_1'), (3, 'three', 'C_A', 'C_2'),
+                                          (3, 'three', 'C_B', 'C_1'), (3, 'three', 'C_B', 'C_2'),
+                                          (4, 'four', 'C_A', 'C_1'), (4, 'four', 'C_A', 'C_2'),
+                                          (4, 'four', 'C_B', 'C_1'), (4, 'four', 'C_B', 'C_2')],
+                                         names=[None, None, None, None])
+        exp_val = [[1, 1], [2, 2], [11, 11], [12, 12], [3, 3], [4, 4], [13, 13],
+                   [14, 14], ['a', 'a'], ['b', 'b'], ['w', 'w'], ['x', 'x'],
+                   ['c', 'c'], ['d', 'd'], ['y', 'y'], ['z', 'z'], [-1, -1],
+                   [-2, -2], [-3, -3], [-4, -4], [-5, -5], [-6, -6], [-7, -7],
+                   [-8, -8]]
+        result = wp.to_frame()
+        expected = DataFrame(exp_val, columns=['i1', 'i2'], index=exp_idx)
+        assert_frame_equal(result, expected)
+
+    def test_to_frame_multi_drop_level(self):
+        idx = MultiIndex.from_tuples([(1, 'one'), (2, 'one'), (2, 'two')])
+        df = DataFrame({'A': [np.nan, 1, 2]}, index=idx)
+        wp = Panel({'i1': df, 'i2': df})
+        result = wp.to_frame()
+        exp_idx = MultiIndex.from_tuples([(2, 'one', 'A'), (2, 'two', 'A')],
+                                         names=[None, None, 'minor'])
+        expected = DataFrame({'i1': [1., 2], 'i2': [1., 2]}, index=exp_idx)
+        assert_frame_equal(result, expected)
+
     def test_to_panel_na_handling(self):
         df = DataFrame(np.random.randint(0, 10, size=20).reshape((10, 2)),
                        index=[[0, 0, 0, 0, 0, 0, 1, 1, 1, 1],
