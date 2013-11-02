@@ -1580,6 +1580,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertFalse("\r" in repr(ser))
         self.assertFalse("a\n" in repr(ser))
 
+        # with empty series (#4651)
+        s = Series([], dtype=np.int64, name='foo')
+        self.assertEqual(repr(s), 'Series([], name: foo, dtype: int64)')
+
+        s = Series([], dtype=np.int64, name=None)
+        self.assertEqual(repr(s), 'Series([], dtype: int64)')
+
     def test_tidy_repr(self):
         a = Series([u("\u05d0")] * 1000)
         a.name = 'title1'
