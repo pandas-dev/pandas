@@ -314,7 +314,7 @@ def ensure_clean(filename=None, return_filelike=False):
     filename : str (optional)
         if None, creates a temporary file which is then removed when out of
         scope.
-    return_filelike: bool (default False)
+    return_filelike : bool (default False)
         if True, returns a file-like which is *always* cleaned. Necessary for
         savefig and other functions which want to append extensions. Ignores
         filename if True.
@@ -329,8 +329,9 @@ def ensure_clean(filename=None, return_filelike=False):
 
     else:
         # if we are not passed a filename, generate a temporary
-        if filename is None:
-            filename = tempfile.mkstemp()[1]
+        # make sure that we are using a temp dir as well
+        suffix = filename if filename is not None and not len(os.path.dirname(filename)) else ''
+        filename = tempfile.mkstemp(suffix=suffix)[1]
 
         try:
             yield filename
