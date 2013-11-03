@@ -31,7 +31,6 @@ else:
 
 try:
     import lxml
-    from lxml.etree import XPathEvalError
 except ImportError:
     _HAS_LXML = False
 else:
@@ -709,6 +708,10 @@ def _parse(flavor, io, match, header, index_col, skiprows, infer_types,
            parse_dates, tupleize_cols, thousands, attrs, xpath):
     flavor = _validate_flavor(flavor)
     compiled_match = re.compile(match)  # you can pass a compiled regex here
+
+    if xpath and not _HAS_LXML:
+        raise ValueError("XPath table selection needs the lxml module, "
+                         "please install it.")
 
     # hack around python 3 deleting the exception variable
     retained = None

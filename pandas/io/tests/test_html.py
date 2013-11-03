@@ -18,6 +18,11 @@ import numpy as np
 from numpy.random import rand
 from numpy.testing.decorators import slow
 
+try:
+    from lxml.etree import XPathEvalError
+except ImportError:
+    pass
+
 from pandas import (DataFrame, MultiIndex, read_csv, Timestamp, Index,
                     date_range, Series)
 from pandas.compat import map, zip, StringIO, string_types
@@ -679,10 +684,35 @@ class TestReadHtmlLxml(unittest.TestCase):
         for df in dfs:
             tm.assert_isinstance(df, DataFrame)
 
-    def test_xpath_table_not_found(self):
+    def test_xpath_direct_ref(self):
+        with open(self.valid_data) as f:
+            dfs = self.read_html(f,
+                                 xpath="//html/body/table[@class='dataframe']"
+                                       "[last()]")
+        assert dfs[0].shape == (2, 3)
+
+    def test_xpath_match_multiple(self):
+        with open(self.valid_data) as f:
+            dfs = self.read_html(f,
+                                 xpath="//*[@class='dataframe']")
+
+        assert len(dfs) == 2
+
+    def test_xpath_match_none(self):
         with open(self.valid_data) as f:
             with self.assertRaises(ValueError):
                 self.read_html(f, xpath="//div[@class='garbage']/table")
+
+    def test_xpath_not_all_tables(self):
+        with open(self.valid_data) as f:
+            with self.assertRaises(ValueError):
+                self.read_html(f,
+                               xpath="//tr")
+
+    def test_invalid_xpath(self):
+        with open(self.valid_data) as f:
+            with self.assertRaises(XPathEvalError):
+                self.read_html(f, xpath="//div[@@class=garbage]/table")
 
 
 def test_invalid_flavor():
