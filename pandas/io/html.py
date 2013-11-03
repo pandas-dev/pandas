@@ -31,6 +31,7 @@ else:
 
 try:
     import lxml
+    from lxml.etree import XPathEvalError
 except ImportError:
     _HAS_LXML = False
 else:
@@ -490,6 +491,9 @@ class _LxmlFrameParser(_HtmlFrameParser):
         if xpath:
             xpath_expr = xpath
             tables = doc.xpath(xpath_expr)
+
+            if not all(table.tag == 'table' for table in tables):
+                raise ValueError("XPath expression %s matched non-table elements" % xpath)
 
             if not tables:
                 raise ValueError("No tables found using XPath expression %s" % xpath)
