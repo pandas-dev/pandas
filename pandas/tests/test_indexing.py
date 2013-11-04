@@ -1645,6 +1645,41 @@ class TestIndexing(unittest.TestCase):
         result = df.loc[(0,0),'z']
         self.assert_(result == 2)
 
+    def test_slice_consolidate_invalidate_item_cache(self):
+        # #3970
+        df = DataFrame({ "aa":lrange(5), "bb":[2.2]*5})
+
+        # Creates a second float block
+        df["cc"] = 0.0
+
+        # caches a reference to the 'bb' series
+        df["bb"]
+
+        # repr machinery triggers consolidation
+        repr(df)
+
+        # Assignment to wrong series
+        df['bb'].iloc[0] = 0.17
+        df._clear_item_cache()
+        self.assertAlmostEqual(df['bb'][0], 0.17)
+
+    def test_setitem_cache_updating(self):
+        # GH 5424
+        cont = ['one', 'two','three', 'four', 'five', 'six', 'seven']
+
+        for do_ref in [False,False]:
+            df = DataFrame({'a' : cont, "b":cont[3:]+cont[:3] ,'c' : np.arange(7)})
+
+            # ref the cache
+            if do_ref:
+                df.ix[0,"c"]
+
+            # set it
+            df.ix[7,'c'] = 1
+
+            self.assert_(df.ix[0,'c'] == 0.0)
+            self.assert_(df.ix[7,'c'] == 1.0)
+
     def test_floating_index_doc_example(self):
 
         index = Index([1.5, 2, 3, 4.5, 5])
