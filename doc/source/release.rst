@@ -769,6 +769,7 @@ Bug Fixes
   - The GroupBy methods ``transform`` and ``filter`` can be used on Series
     and DataFrames that have repeated (non-unique) indices. (:issue:`4620`)
   - Fix empty series not printing name in repr (:issue:`4651`)
+  - Make tests create temp files in temp directory by default. (:issue:`5419`)
 
 pandas 0.12.0
 -------------

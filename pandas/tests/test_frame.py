@@ -5459,12 +5459,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # N=35000
         s1=make_dtnat_arr(chunksize+5)
         s2=make_dtnat_arr(chunksize+5,0)
+        path = '1.csv'
 
-        # s3=make_dtnat_arr(chunksize+5,0)
-        with ensure_clean('1.csv') as path:
+        # s3=make_dtnjat_arr(chunksize+5,0)
+        with ensure_clean('.csv') as pth:
             df=DataFrame(dict(a=s1,b=s2))
-            df.to_csv(path,chunksize=chunksize)
-            recons = DataFrame.from_csv(path).convert_objects('coerce')
+            df.to_csv(pth,chunksize=chunksize)
+            recons = DataFrame.from_csv(pth).convert_objects('coerce')
             assert_frame_equal(df, recons,check_names=False,check_less_precise=True)
 
         for ncols in [4]:
@@ -5473,7 +5474,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                   base-1,base,base+1]:
                 _do_test(mkdf(nrows, ncols,r_idx_type='dt',
                               c_idx_type='s'),path, 'dt','s')
-                pass
 
 
         for ncols in [4]:

@@ -261,10 +261,9 @@ class ExcelReaderTests(SharedItems, unittest.TestCase):
 
         import xlrd
 
-        pth = '__tmp_excel_read_worksheet__.xls'
         df = self.frame
 
-        with ensure_clean(pth) as pth:
+        with ensure_clean('.xls') as pth:
             df.to_excel(pth, "SheetA")
             book = xlrd.open_workbook(pth)
 
@@ -303,7 +302,7 @@ class ExcelReaderTests(SharedItems, unittest.TestCase):
         f = open(pth, 'rb')
         with ExcelFile(f) as xlsx:
             # parses okay
-            df = xlsx.parse('Sheet1', index_col=0)
+            xlsx.parse('Sheet1', index_col=0)
 
         self.assertTrue(f.closed)
 
@@ -364,12 +363,12 @@ class ExcelWriterBase(SharedItems):
     # 1. A check_skip function that skips your tests if your writer isn't
     #    installed.
     # 2. Add a property ext, which is the file extension that your writer
-    #    writes to.
+    #    writes to. (needs to start with '.' so it's a valid path)
     # 3. Add a property engine_name, which is the name of the writer class.
     def setUp(self):
         self.check_skip()
         super(ExcelWriterBase, self).setUp()
-        self.option_name = 'io.excel.%s.writer' % self.ext
+        self.option_name = 'io.excel.%s.writer' % self.ext.strip('.')
         self.prev_engine = get_option(self.option_name)
         set_option(self.option_name, self.engine_name)
 
@@ -380,10 +379,7 @@ class ExcelWriterBase(SharedItems):
         _skip_if_no_xlrd()
         import xlrd
 
-        ext = self.ext
-        pth = os.path.join(self.dirpath, 'testit.{0}'.format(ext))
-
-        with ensure_clean(pth) as pth:
+        with ensure_clean(self.ext) as pth:
             gt = DataFrame(np.random.randn(10, 2))
             gt.to_excel(pth)
             xl = ExcelFile(pth)
@@ -394,10 +390,8 @@ class ExcelWriterBase(SharedItems):
 
     def test_excelwriter_contextmanager(self):
         _skip_if_no_xlrd()
-        ext = self.ext
-        pth = os.path.join(self.dirpath, 'testit.{0}'.format(ext))
 
-        with ensure_clean(pth) as pth:
+        with ensure_clean(self.ext) as pth:
             with ExcelWriter(pth) as writer:
                 self.frame.to_excel(writer, 'Data1')
                 self.frame2.to_excel(writer, 'Data2')
@@ -410,10 +404,8 @@ class ExcelWriterBase(SharedItems):
 
     def test_roundtrip(self):
         _skip_if_no_xlrd()
-        ext = self.ext
-        path = '__tmp_to_excel_from_excel__.' + ext
 
-        with ensure_clean(path) as path:
+        with ensure_clean(self.ext) as path:
             self.frame['A'][:5] = nan
 
             self.frame.to_excel(path, 'test1')
@@ -446,10 +438,8 @@ class ExcelWriterBase(SharedItems):
 
     def test_mixed(self):
         _skip_if_no_xlrd()
-        ext = self.ext
-        path = '__tmp_to_excel_from_excel_mixed__.' + ext
 
-        with ensure_clean(path) as path:
+        with ensure_clean(self.ext) as path:
             self.mixed_frame.to_excel(path, 'test1')
             reader = ExcelFile(path)
             recons = reader.parse('test1', index_col=0)
@@ -457,12 +447,10 @@ class ExcelWriterBase(SharedItems):
 
     def test_tsframe(self):
         _skip_if_no_xlrd()
-        ext = self.ext
-        path = '__tmp_to_excel_from_excel_tsframe__.' + ext
 
         df = tm.makeTimeDataFrame()[:5]
 
-        with ensure_clean(path) as path:
+        with ensure_clean(self.ext) as path:
             df.to_excel(path, 'test1')
             reader = ExcelFile(path)
             recons = reader.parse('test1')
@@ -470,22 +458,19 @@ class ExcelWriterBase(SharedItems):
 
     def test_basics_with_nan(self):
         _skip_if_no_xlrd()
-        ext = self.ext
-        path = '__tmp_to_excel_from_excel_int_types__.' + ext
-        self.frame['A'][:5] = nan
-        self.frame.to_excel(path, 'test1')
-        self.frame.to_excel(path, 'test1', cols=['A', 'B'])
-        self.frame.to_excel(path, 'test1', header=False)
-        self.frame.to_excel(path, 'test1', index=False)
+        with ensure_clean(self.ext) as path:
+            self.frame['A'][:5] = nan
+            self.frame.to_excel(path, 'test1')
+            self.frame.to_excel(path, 'test1', cols=['A', 'B'])
+            self.frame.to_excel(path, 'test1', header=False)
+            self.frame.to_excel(path, 'test1', index=False)
 
     def test_int_types(self):
         _skip_if_no_xlrd()
-        ext = self.ext
-        path = '__tmp_to_excel_from_excel_int_types__.' + ext
 
         for np_type in (np.int8, np.int16, np.int32, np.int64):
 
-            with ensure_clean(path) as path:
+            with ensure_clean(self.ext) as path:
                 # Test np.int values read come back as int (rather than float
                 # which is Excel's format).
                 frame = DataFrame(np.random.randint(-10, 10, size=(10, 2)),
@@ -505,11 +490,9 @@ class ExcelWriterBase(SharedItems):
 
     def test_float_types(self):
         _skip_if_no_xlrd()
-        ext = self.ext
-        path = '__tmp_to_excel_from_excel_float_types__.' + ext
 
         for np_type in (np.float16, np.float32, np.float64):
-            with ensure_clean(path) as path:
+            with ensure_clean(self.ext) as path:
                 # Test np.float values read come back as float.
                 frame = DataFrame(np.random.random_sample(10), dtype=np_type)
                 frame.to_excel(path, 'test1')
@@ -519,11 +502,9 @@ class ExcelWriterBase(SharedItems):
 
     def test_bool_types(self):
         _skip_if_no_xlrd()
-        ext = self.ext
-        path = '__tmp_to_excel_from_excel_bool_types__.' + ext
 
         for np_type in (np.bool8, np.bool_):
-            with ensure_clean(path) as path:
+            with ensure_clean(self.ext) as path:
                 # Test np.bool values read come back as float.
                 frame = (DataFrame([1, 0, True, False], dtype=np_type))
                 frame.to_excel(path, 'test1')
@@ -533,10 +514,8 @@ class ExcelWriterBase(SharedItems):
 
     def test_sheets(self):
         _skip_if_no_xlrd()
-        ext = self.ext
-        path = '__tmp_to_excel_from_excel_sheets__.' + ext
 
-        with ensure_clean(path) as path:
+        with ensure_clean(self.ext) as path:
             self.frame['A'][:5] = nan
 
             self.frame.to_excel(path, 'test1')
@@ -560,10 +539,8 @@ class ExcelWriterBase(SharedItems):
 
     def test_colaliases(self):
         _skip_if_no_xlrd()
-        ext = self.ext
-        path = '__tmp_to_excel_from_excel_aliases__.' + ext
 
-        with ensure_clean(path) as path:
+        with ensure_clean(self.ext) as path:
             self.frame['A'][:5] = nan
 
             self.frame.to_excel(path, 'test1')
@@ -582,10 +559,8 @@ class ExcelWriterBase(SharedItems):
 
     def test_roundtrip_indexlabels(self):
         _skip_if_no_xlrd()
-        ext = self.ext
-        path = '__tmp_to_excel_from_excel_indexlabels__.' + ext
 
-        with ensure_clean(path) as path:
+        with ensure_clean(self.ext) as path:
 
             self.frame['A'][:5] = nan
 
@@ -617,10 +592,7 @@ class ExcelWriterBase(SharedItems):
             frame.index.names = ['test']
             self.assertEqual(frame.index.names, recons.index.names)
 
-        # test index_labels in same row as column names
-        path = '%s.%s' % (tm.rands(10), ext)
-
-        with ensure_clean(path) as path:
+        with ensure_clean(self.ext) as path:
 
             self.frame.to_excel(path, 'test1',
                                 cols=['A', 'B', 'C', 'D'], index=False)
@@ -636,12 +608,10 @@ class ExcelWriterBase(SharedItems):
     def test_excel_roundtrip_indexname(self):
         _skip_if_no_xlrd()
 
-        path = '%s.%s' % (tm.rands(10), self.ext)
-
         df = DataFrame(np.random.randn(10, 4))
         df.index.name = 'foo'
 
-        with ensure_clean(path) as path:
+        with ensure_clean(self.ext) as path:
             df.to_excel(path)
 
             xf = ExcelFile(path)
@@ -656,7 +626,7 @@ class ExcelWriterBase(SharedItems):
         # datetime.date, not sure what to test here exactly
         path = '__tmp_excel_roundtrip_datetime__.' + self.ext
         tsf = self.tsframe.copy()
-        with ensure_clean(path) as path:
+        with ensure_clean(self.ext) as path:
 
             tsf.index = [x.date() for x in self.tsframe.index]
             tsf.to_excel(path, 'test1')
@@ -670,7 +640,7 @@ class ExcelWriterBase(SharedItems):
         frame = self.tsframe
         xp = frame.resample('M', kind='period')
 
-        with ensure_clean(path) as path:
+        with ensure_clean(self.ext) as path:
             xp.to_excel(path, 'sht1')
 
             reader = ExcelFile(path)
@@ -679,8 +649,6 @@ class ExcelWriterBase(SharedItems):
 
     def test_to_excel_multiindex(self):
         _skip_if_no_xlrd()
-        ext = self.ext
-        path = '__tmp_to_excel_multiindex__' + ext + '__.' + ext
 
         frame = self.frame
         old_index = frame.index
@@ -689,7 +657,7 @@ class ExcelWriterBase(SharedItems):
                                            names=['first', 'second'])
         frame.index = new_index
 
-        with ensure_clean(path) as path:
+        with ensure_clean(self.ext) as path:
             frame.to_excel(path, 'test1', header=False)
             frame.to_excel(path, 'test1', cols=['A', 'B'])
 
@@ -703,8 +671,6 @@ class ExcelWriterBase(SharedItems):
 
     def test_to_excel_multiindex_dates(self):
         _skip_if_no_xlrd()
-        ext = self.ext
-        path = '__tmp_to_excel_multiindex_dates__' + ext + '__.' + ext
 
         # try multiindex with dates
         tsframe = self.tsframe
@@ -712,7 +678,7 @@ class ExcelWriterBase(SharedItems):
         new_index = [old_index, np.arange(len(old_index))]
         tsframe.index = MultiIndex.from_arrays(new_index)
 
-        with ensure_clean(path) as path:
+        with ensure_clean(self.ext) as path:
             tsframe.to_excel(path, 'test1', index_label=['time', 'foo'])
             reader = ExcelFile(path)
             recons = reader.parse('test1', index_col=[0, 1])
@@ -736,7 +702,7 @@ class ExcelWriterBase(SharedItems):
                         [12.32112, 123123.2, 321321.2]],
                         index=['A', 'B'], columns=['X', 'Y', 'Z'])
 
-        with ensure_clean(filename) as filename:
+        with ensure_clean(self.ext) as filename:
             df.to_excel(filename, 'test1', float_format='%.2f')
 
             reader = ExcelFile(filename)
@@ -748,21 +714,18 @@ class ExcelWriterBase(SharedItems):
 
     def test_to_excel_unicode_filename(self):
         _skip_if_no_xlrd()
-        ext = self.ext
-        filename = u('\u0192u.') + ext
+        with ensure_clean(u('\u0192u.') + self.ext) as filename:
+            try:
+                f = open(filename, 'wb')
+            except UnicodeEncodeError:
+                raise nose.SkipTest('no unicode file names on this system')
+            else:
+                f.close()
 
-        try:
-            f = open(filename, 'wb')
-        except UnicodeEncodeError:
-            raise nose.SkipTest('no unicode file names on this system')
-        else:
-            f.close()
+            df = DataFrame([[0.123456, 0.234567, 0.567567],
+                            [12.32112, 123123.2, 321321.2]],
+                            index=['A', 'B'], columns=['X', 'Y', 'Z'])
 
-        df = DataFrame([[0.123456, 0.234567, 0.567567],
-                        [12.32112, 123123.2, 321321.2]],
-                        index=['A', 'B'], columns=['X', 'Y', 'Z'])
-
-        with ensure_clean(filename) as filename:
             df.to_excel(filename, 'test1', float_format='%.2f')
 
             reader = ExcelFile(filename)
@@ -879,10 +842,9 @@ class ExcelWriterBase(SharedItems):
         # override of #2370 until sorted out in 0.11
 
         def roundtrip(df, header=True, parser_hdr=0):
-            path = '__tmp__test_xl_010_%s__.%s' % (np.random.randint(1, 10000), self.ext)
-            df.to_excel(path, header=header)
 
-            with ensure_clean(path) as path:
+            with ensure_clean(self.ext) as path:
+                df.to_excel(path, header=header)
                 xf = pd.ExcelFile(path)
                 res = xf.parse(xf.sheet_names[0], header=parser_hdr)
                 return res
@@ -926,10 +888,8 @@ class ExcelWriterBase(SharedItems):
     def test_duplicated_columns(self):
         # Test for issue #5235.
         _skip_if_no_xlrd()
-        ext = self.ext
-        path = '__tmp_to_excel_duplicated_columns__.' + ext
 
-        with ensure_clean(path) as path:
+        with ensure_clean(self.ext) as path:
             write_frame = DataFrame([[1, 2, 3], [1, 2, 3], [1, 2, 3]])
             colnames = ['A', 'B', 'B']
 
@@ -943,7 +903,7 @@ class ExcelWriterBase(SharedItems):
 
 
 class OpenpyxlTests(ExcelWriterBase, unittest.TestCase):
-    ext = 'xlsx'
+    ext = '.xlsx'
     engine_name = 'openpyxl'
     check_skip = staticmethod(_skip_if_no_openpyxl)
 
@@ -974,7 +934,7 @@ class OpenpyxlTests(ExcelWriterBase, unittest.TestCase):
 
 
 class XlwtTests(ExcelWriterBase, unittest.TestCase):
-    ext = 'xls'
+    ext = '.xls'
     engine_name = 'xlwt'
     check_skip = staticmethod(_skip_if_no_xlwt)
 
@@ -999,7 +959,7 @@ class XlwtTests(ExcelWriterBase, unittest.TestCase):
 
 
 class XlsxWriterTests(ExcelWriterBase, unittest.TestCase):
-    ext = 'xlsx'
+    ext = '.xlsx'
     engine_name = 'xlsxwriter'
     check_skip = staticmethod(_skip_if_no_xlsxwriter)
 
@@ -1007,10 +967,8 @@ class XlsxWriterTests(ExcelWriterBase, unittest.TestCase):
     # floating point values read back in from the output XlsxWriter file.
     def test_roundtrip_indexlabels(self):
         _skip_if_no_xlrd()
-        ext = self.ext
-        path = '__tmp_to_excel_from_excel_indexlabels__.' + ext
 
-        with ensure_clean(path) as path:
+        with ensure_clean(self.ext) as path:
 
             self.frame['A'][:5] = nan
 
