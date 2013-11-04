@@ -6,9 +6,9 @@ import warnings
 import nose
 import numpy as np
 import sys
-
+from pandas import Series
 from pandas.util.testing import (
-    assert_almost_equal, assertRaisesRegexp, raise_with_traceback
+    assert_almost_equal, assertRaisesRegexp, raise_with_traceback, assert_series_equal
 )
 
 # let's get meta.
@@ -127,3 +127,29 @@ class TestUtilTesting(unittest.TestCase):
                 e = LookupError("error_text")
                 _, _, traceback = sys.exc_info()
                 raise_with_traceback(e, traceback)
+
+class TestAssertSeriesEqual(unittest.TestCase):
+    _multiprocess_can_split_ = True
+
+    def _assert_equal(self, x, y, **kwargs):
+        assert_series_equal(x,y,**kwargs)
+        assert_series_equal(y,x,**kwargs)
+
+    def _assert_not_equal(self, a, b, **kwargs):
+        self.assertRaises(AssertionError, assert_series_equal, a, b, **kwargs)
+        self.assertRaises(AssertionError, assert_series_equal, b, a, **kwargs)
+
+    def test_equal(self):
+        self._assert_equal(Series(range(3)),Series(range(3)))
+        self._assert_equal(Series(list('abc')),Series(list('abc')))
+
+    def test_not_equal(self):
+        self._assert_not_equal(Series(range(3)),Series(range(3))+1)
+        self._assert_not_equal(Series(list('abc')),Series(list('xyz')))
+        self._assert_not_equal(Series(range(3)),Series(range(4)))
+        self._assert_not_equal(Series(range(3)),Series(range(3),dtype='float64'))
+        self._assert_not_equal(Series(range(3)),Series(range(3),index=[1,2,4]))
+
+        # ATM meta data is not checked in assert_series_equal
+        # self._assert_not_equal(Series(range(3)),Series(range(3),name='foo'),check_names=True)
+
