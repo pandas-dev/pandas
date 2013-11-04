@@ -3539,24 +3539,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertTrue(df['off1'].dtype == 'timedelta64[ns]')
         self.assertTrue(df['off2'].dtype == 'timedelta64[ns]')
 
-    def test__slice_consolidate_invalidate_item_cache(self):
-        # #3970
-        df = DataFrame({ "aa":lrange(5), "bb":[2.2]*5})
-
-        # Creates a second float block
-        df["cc"] = 0.0
-
-        # caches a reference to the 'bb' series
-        df["bb"]
-
-        # repr machinery triggers consolidation
-        repr(df)
-
-        # Assignment to wrong series
-        df['bb'].iloc[0] = 0.17
-        df._clear_item_cache()
-        self.assertAlmostEqual(df['bb'][0], 0.17)
-
     def test_new_empty_index(self):
         df1 = DataFrame(randn(0, 3))
         df2 = DataFrame(randn(0, 3))

@@ -189,9 +189,13 @@ class _NDFrameIndexer(object):
                         return self.obj
 
                     # reindex the axis
+                    # make sure to clear the cache because we are
+                    # just replacing the block manager here
+                    # so the object is the same
                     index = self.obj._get_axis(i)
                     labels = _safe_append_to_index(index, key)
                     self.obj._data = self.obj.reindex_axis(labels,i)._data
+                    self.obj._maybe_update_cacher(clear=True)
 
                     if isinstance(labels,MultiIndex):
                         self.obj.sortlevel(inplace=True)
@@ -223,7 +227,8 @@ class _NDFrameIndexer(object):
                     if len(self.obj.values):
                         new_values = np.concatenate([self.obj.values, new_values])
 
-                    self.obj._data = self.obj._constructor(new_values, index=new_index, name=self.obj.name)
+                    self.obj._data = self.obj._constructor(new_values,
+                                                           index=new_index, name=self.obj.name)._data
                     self.obj._maybe_update_cacher(clear=True)
                     return self.obj
 
