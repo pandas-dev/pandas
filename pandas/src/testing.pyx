@@ -88,9 +88,10 @@ cpdef assert_almost_equal(a, b, bint check_less_precise=False):
                     return True
             except:
                 pass
-        else:
-            for i in xrange(na):
-                assert_almost_equal(a[i], b[i], check_less_precise)
+
+        for i in xrange(na):
+            assert_almost_equal(a[i], b[i], check_less_precise)
+
         return True
     elif isiterable(b):
         assert False, (
