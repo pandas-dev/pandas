@@ -1393,8 +1393,12 @@ class ExcelFormatter(object):
             for idx, idxval in enumerate(index_values):
                 yield ExcelCell(self.rowcounter + idx, 0, idxval, header_style)
 
+        # Get a frame that will account for any duplicates in the column names.
+        col_mapped_frame = self.df.loc[:, self.columns]
+
+        # Write the body of the frame data series by series.
         for colidx in range(len(self.columns)):
-            series = self.df.iloc[:, colidx]
+            series = col_mapped_frame.iloc[:, colidx]
             for i, val in enumerate(series):
                 yield ExcelCell(self.rowcounter + i, colidx + coloffset, val)
 
@@ -1461,8 +1465,12 @@ class ExcelFormatter(object):
                                         header_style)
                     gcolidx += 1
 
+        # Get a frame that will account for any duplicates in the column names.
+        col_mapped_frame = self.df.loc[:, self.columns]
+
+        # Write the body of the frame data series by series.
         for colidx in range(len(self.columns)):
-            series = self.df.iloc[:, colidx]
+            series = col_mapped_frame.iloc[:, colidx]
             for i, val in enumerate(series):
                 yield ExcelCell(self.rowcounter + i, gcolidx + colidx, val)
 

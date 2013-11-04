@@ -922,10 +922,24 @@ class ExcelWriterBase(SharedItems):
             write_frame.columns = colnames
             write_frame.to_excel(path, 'test1')
 
-            read_frame = read_excel(path, 'test1').astype(np.int64)
+            read_frame = read_excel(path, 'test1')
             read_frame.columns = colnames
 
             tm.assert_frame_equal(write_frame, read_frame)
+
+    def test_swapped_columns(self):
+        # Test for issue #5427.
+        _skip_if_no_xlrd()
+
+        with ensure_clean(self.ext) as path:
+            write_frame = DataFrame({'A': [1, 1, 1],
+                                     'B': [2, 2, 2]})
+            write_frame.to_excel(path, 'test1', cols=['B', 'A'])
+
+            read_frame = read_excel(path, 'test1', header=0)
+
+            tm.assert_series_equal(write_frame['A'], read_frame['A'])
+            tm.assert_series_equal(write_frame['B'], read_frame['B'])
 
 
 class OpenpyxlTests(ExcelWriterBase, unittest.TestCase):
