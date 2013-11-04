@@ -1836,6 +1836,37 @@ class TestTimeSeries(unittest.TestCase):
         # it works!
         pd.concat([df1, df2_obj])
 
+    def test_period_resample(self):
+        # GH3609
+        s = Series(range(100),index=date_range('20130101', freq='s', periods=100), dtype='float')
+        s[10:30] = np.nan
+        expected = Series([34.5, 79.5], index=[Period('2013-01-01 00:00', 'T'), Period('2013-01-01 00:01', 'T')])
+        result = s.to_period().resample('T', kind='period')
+        assert_series_equal(result, expected)
+        result2 = s.resample('T', kind='period')
+        assert_series_equal(result2, expected)
+
+    def test_period_resample_with_local_timezone(self):
+        # GH5430
+        _skip_if_no_pytz()
+        import pytz
+
+        local_timezone = pytz.timezone('America/Los_Angeles')
+
+        start = datetime(year=2013, month=11, day=1, hour=0, minute=0, tzinfo=pytz.utc)
+        # 1 day later
+        end = datetime(year=2013, month=11, day=2, hour=0, minute=0, tzinfo=pytz.utc)
+
+        index = pd.date_range(start, end, freq='H')
+
+        series = pd.Series(1, index=index)
+        series = series.tz_convert(local_timezone)
+        result = series.resample('D', kind='period')
+        # Create the expected series
+        expected_index = (pd.period_range(start=start, end=end, freq='D') - 1)  # Index is moved back a day with the timezone conversion from UTC to Pacific
+        expected = pd.Series(1, index=expected_index)
+        assert_series_equal(result, expected)
+
 
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
