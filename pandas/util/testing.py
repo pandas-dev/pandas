@@ -334,7 +334,7 @@ def ensure_clean(filename=None, return_filelike=False):
             raise ValueError("Can't pass a qualified name to ensure_clean()")
 
         try:
-            filename = create_temp_file(filename)
+            filename = tempfile.mkstemp(suffix=filename)[1]
             yield filename
         finally:
             try:
@@ -342,13 +342,6 @@ def ensure_clean(filename=None, return_filelike=False):
                     os.remove(filename)
             except Exception as e:
                 print("Exception on removing file: %s" % e)
-
-
-def create_temp_file(filename):
-    """
-    create a temporary file. the caller is responsible for deleting the file
-    """
-    return tempfile.mktemp(suffix=filename)
 
 def get_data_path(f=''):
     """Return the path of a data file, these are relative to the current test
