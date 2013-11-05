@@ -255,7 +255,7 @@ class _TimeOp(object):
         self.name = name
 
         lvalues = self._convert_to_array(left, name=name)
-        rvalues = self._convert_to_array(right, name=name)
+        rvalues = self._convert_to_array(right, name=name, other=lvalues)
 
         self.is_timedelta_lhs = com.is_timedelta64_dtype(left)
         self.is_datetime_lhs = com.is_datetime64_dtype(left)
@@ -317,7 +317,7 @@ class _TimeOp(object):
                             'of a series/ndarray of type datetime64[ns] '
                             'or a timedelta')
 
-    def _convert_to_array(self, values, name=None):
+    def _convert_to_array(self, values, name=None, other=None):
         """converts values to ndarray"""
         from pandas.tseries.timedeltas import _possibly_cast_to_timedelta
 
@@ -325,9 +325,16 @@ class _TimeOp(object):
         if not is_list_like(values):
             values = np.array([values])
         inferred_type = lib.infer_dtype(values)
+
         if inferred_type in ('datetime64', 'datetime', 'date', 'time'):
+            # if we have a other of timedelta, but use pd.NaT here we
+            # we are in the wrong path
+            if other is not None and other.dtype == 'timedelta64[ns]' and all(isnull(v) for v in values):
+                values = np.empty(values.shape,dtype=other.dtype)
+                values[:] = tslib.iNaT
+
             # a datetlike
-            if not (isinstance(values, (pa.Array, pd.Series)) and
+            elif not (isinstance(values, (pa.Array, pd.Series)) and
                     com.is_datetime64_dtype(values)):
                 values = tslib.array_to_datetime(values)
             elif isinstance(values, pd.DatetimeIndex):
@@ -354,6 +361,15 @@ class _TimeOp(object):
                                     ', '.join([com.pprint_thing(v)
                                                for v in values[mask]])))
             values = _possibly_cast_to_timedelta(os, coerce=coerce)
+        elif inferred_type == 'floating':
+
+            # all nan, so ok, use the other dtype (e.g. timedelta or datetime)
+            if isnull(values).all():
+                values = np.empty(values.shape,dtype=other.dtype)
+                values[:] = tslib.iNaT
+            else:
+                raise TypeError("incompatible type [{0}] for a datetime/timedelta"
+                                " operation".format(pa.array(values).dtype))
         else:
             raise TypeError("incompatible type [{0}] for a datetime/timedelta"
                             " operation".format(pa.array(values).dtype))
@@ -452,6 +468,8 @@ def _arith_method_SERIES(op, name, str_rep=None, fill_zeros=None,
 
     def wrapper(left, right, name=name):
 
+        if isinstance(right, pd.DataFrame):
+            return NotImplemented
         time_converted = _TimeOp.maybe_convert_for_time_op(left, right, name)
 
         if time_converted is None:
@@ -488,8 +506,6 @@ def _arith_method_SERIES(op, name, str_rep=None, fill_zeros=None,
 
             return left._constructor(wrap_results(arr), index=index,
                                      name=name, dtype=dtype)
-        elif isinstance(right, pd.DataFrame):
-            return NotImplemented
         else:
             # scalars
             if hasattr(lvalues, 'values'):
