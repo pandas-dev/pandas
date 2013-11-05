@@ -81,6 +81,8 @@ API changes
   ``SparsePanel``, etc.), now support the entire set of arithmetic operators
   and arithmetic flex methods (add, sub, mul, etc.). ``SparsePanel`` does not
   support ``pow`` or ``mod`` with non-scalars. (:issue:`3765`)
+- ``Series`` and ``DataFrame`` now have a ``mode()`` method to calculate the
+  statistical mode(s) by axis/Series. (:issue:`5367`)
 
 
 Prior Version Deprecations/Changes

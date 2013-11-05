@@ -19,10 +19,8 @@ from pandas import (Index, Series, DataFrame, isnull, notnull,
 from pandas.core.index import MultiIndex
 from pandas.tseries.index import Timestamp, DatetimeIndex
 import pandas.core.config as cf
-import pandas.core.series as smod
 import pandas.lib as lib
 
-import pandas.core.common as com
 import pandas.core.datetools as datetools
 import pandas.core.nanops as nanops
 
@@ -1720,6 +1718,35 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # test with integers, test failure
         int_ts = Series(np.ones(10, dtype=int), index=lrange(10))
         self.assertAlmostEqual(np.median(int_ts), int_ts.median())
+
+    def test_mode(self):
+        s = Series([12, 12, 11, 10, 19, 11])
+        exp = Series([11, 12])
+        assert_series_equal(s.mode(), exp)
+
+        assert_series_equal(Series([1, 2, 3]).mode(), Series([], dtype=int))
+
+        lst = [5] * 20 + [1] * 10 + [6] * 25
+        np.random.shuffle(lst)
+        s = Series(lst)
+        assert_series_equal(s.mode(), Series([6]))
+
+        s = Series([5] * 10)
+        assert_series_equal(s.mode(), Series([5]))
+
+        s = Series(lst)
+        s[0] = np.nan
+        assert_series_equal(s.mode(), Series([6], dtype=float))
+
+        s = Series(list('adfasbasfwewefwefweeeeasdfasnbam'))
+        assert_series_equal(s.mode(), Series(['e']))
+
+        s = Series(['2011-01-03', '2013-01-02', '1900-05-03'], dtype='M8[ns]')
+        assert_series_equal(s.mode(), Series([], dtype="M8[ns]"))
+        s = Series(['2011-01-03', '2013-01-02', '1900-05-03', '2011-01-03',
+                    '2013-01-02'], dtype='M8[ns]')
+        assert_series_equal(s.mode(), Series(['2011-01-03', '2013-01-02'],
+                                             dtype='M8[ns]'))
 
     def test_prod(self):
         self._check_stat_op('prod', np.prod)

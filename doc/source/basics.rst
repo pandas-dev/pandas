@@ -378,6 +378,7 @@ optional ``level`` parameter which applies only if the object has a
     ``median``, Arithmetic median of values
     ``min``, Minimum
     ``max``, Maximum
+    ``mode``, Mode
     ``abs``, Absolute Value
     ``prod``, Product of values
     ``std``, Unbiased standard deviation
@@ -473,8 +474,8 @@ value, ``idxmin`` and ``idxmax`` return the first matching index:
 
 .. _basics.discretization:
 
-Value counts (histogramming)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Value counts (histogramming) / Mode
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The ``value_counts`` Series method and top-level function computes a histogram
 of a 1D array of values. It can also be used as a function on regular arrays:
@@ -486,6 +487,17 @@ of a 1D array of values. It can also be used as a function on regular arrays:
    s = Series(data)
    s.value_counts()
    value_counts(data)
+
+Similarly, you can get the most frequently occuring value(s) (the mode) of the values in a Series or DataFrame:
+
+.. ipython:: python
+
+    data = [1, 1, 3, 3, 3, 5, 5, 7, 7, 7]
+    s = Series(data)
+    s.mode()
+    df = pd.DataFrame({"A": np.random.randint(0, 7, size=50),
+                       "B": np.random.randint(-10, 15, size=50)})
+    df.mode()
 
 
 Discretization and quantiling
@@ -514,6 +526,7 @@ normally distributed data into equal-size quartiles like so:
    value_counts(factor)
 
 We can also pass infinite values to define the bins:
+
 .. ipython:: python
 
    arr = np.random.randn(20)
