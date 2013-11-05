@@ -61,6 +61,7 @@ def _evaluate_standard(op, op_str, a, b, raise_on_error=True, **eval_kwargs):
         _store_test_result(False)
     return op(a, b)
 
+
 def _can_use_numexpr(op, op_str, a, b, dtype_check):
     """ return a boolean if we WILL be using numexpr """
     if op_str is not None:
@@ -86,7 +87,8 @@ def _can_use_numexpr(op, op_str, a, b, dtype_check):
     return False
 
 
-def _evaluate_numexpr(op, op_str, a, b, raise_on_error=False, **eval_kwargs):
+def _evaluate_numexpr(op, op_str, a, b, raise_on_error=False, truediv=True,
+                      **eval_kwargs):
     result = None
 
     if _can_use_numexpr(op, op_str, a, b, 'evaluate'):
@@ -96,7 +98,8 @@ def _evaluate_numexpr(op, op_str, a, b, raise_on_error=False, **eval_kwargs):
             result = ne.evaluate('a_value %s b_value' % op_str,
                                  local_dict={'a_value': a_value,
                                              'b_value': b_value},
-                                 casting='safe', **eval_kwargs)
+                                 casting='safe', truediv=truediv,
+                                 **eval_kwargs)
         except (ValueError) as detail:
             if 'unknown type object' in str(detail):
                 pass
@@ -112,9 +115,11 @@ def _evaluate_numexpr(op, op_str, a, b, raise_on_error=False, **eval_kwargs):
 
     return result
 
+
 def _where_standard(cond, a, b, raise_on_error=True):
     return np.where(_values_from_object(cond), _values_from_object(a),
                     _values_from_object(b))
+
 
 def _where_numexpr(cond, a, b, raise_on_error=False):
     result = None
@@ -190,10 +195,10 @@ def where(cond, a, b, raise_on_error=False, use_numexpr=True):
     return _where_standard(cond, a, b, raise_on_error=raise_on_error)
 
 
-def set_test_mode(v = True):
+def set_test_mode(v=True):
     """
-    Keeps track of whether numexpr  was used.  Stores an additional ``True`` for
-    every successful use of evaluate with numexpr since the last
+    Keeps track of whether numexpr  was used.  Stores an additional ``True``
+    for every successful use of evaluate with numexpr since the last
     ``get_test_result``
     """
     global _TEST_MODE, _TEST_RESULT

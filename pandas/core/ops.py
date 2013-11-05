@@ -3,6 +3,8 @@ Arithmetic operations for PandasObjects
 
 This is not a public API.
 """
+# necessary to enforce truediv in Python 2.X
+from __future__ import division
 import operator
 import numpy as np
 import pandas as pd
@@ -80,24 +82,10 @@ def _create_methods(arith_method, radd_func, comp_method, bool_method,
         rmod=arith_method(lambda x, y: y % x, names('rmod'),
                           default_axis=default_axis),
     )
-    if not compat.PY3:
-        new_methods["div"] = arith_method(operator.div, names('div'), op('/'),
-                                          truediv=False, fill_zeros=np.inf,
-                                          default_axis=default_axis)
-        new_methods["rdiv"] = arith_method(lambda x, y: operator.div(y, x),
-                                           names('rdiv'), truediv=False,
-                                           fill_zeros=np.inf,
-                                           default_axis=default_axis)
-    else:
-        new_methods["div"] = arith_method(operator.truediv, names('div'),
-                                          op('/'), truediv=True,
-                                          fill_zeros=np.inf,
-                                          default_axis=default_axis)
-        new_methods["rdiv"] = arith_method(lambda x, y: operator.truediv(y, x),
-                                           names('rdiv'), truediv=False,
-                                           fill_zeros=np.inf,
-                                           default_axis=default_axis)
-        # Comp methods never had a default axis set
+    new_methods['div'] = new_methods['truediv']
+    new_methods['rdiv'] = new_methods['rtruediv']
+
+    # Comp methods never had a default axis set
     if comp_method:
         new_methods.update(dict(
             eq=comp_method(operator.eq, names('eq'), op('==')),

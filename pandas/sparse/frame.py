@@ -2,7 +2,7 @@
 Data structures for sparse float data. Life is made simpler by dealing only
 with float64 data
 """
-
+from __future__ import division
 # pylint: disable=E1101,E1103,W0231,E0202
 
 from numpy import nan
