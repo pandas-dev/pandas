@@ -22,7 +22,7 @@ from pandas import (DataFrame, MultiIndex, read_csv, Timestamp, Index,
                     date_range, Series)
 from pandas.compat import map, zip, StringIO, string_types
 from pandas.io.common import URLError, urlopen, file_path_to_url
-from pandas.io.html import read_html
+from pandas.io.html import read_html, Flavor
 
 import pandas.util.testing as tm
 from pandas.util.testing import makeCustomDataframe as mkdf, network
@@ -602,7 +602,34 @@ class TestReadHtmlLxml(unittest.TestCase):
 
         with tm.assertRaises(XMLSyntaxError):
             self.read_html(banklist_data, flavor=['lxml'])
-
+            
+    def test_custom_html_parser1(self):
+        import re
+        t_match = re.compile(".")
+        t_attrs = object()
+        that = self
+        class _CustomHtmlFrameParser(Flavor):
+            def __init__(self, match, attrs):
+                that.assertTrue(t_match is match)
+                that.assertTrue(t_attrs is attrs)
+                
+            def parse_tables(self, io):
+                return [[[],[["a", "b"],[1,2]],[]]]
+            
+        banklist_data = os.path.join(DATA_PATH, 'banklist.html')
+        
+        dfs = self.read_html(banklist_data, flavor=[_CustomHtmlFrameParser], match=t_match, attrs=t_attrs)
+        for df in dfs:
+            tm.assert_isinstance(df, DataFrame)
+            self.assertFalse(df.empty)
+            self.assertEqual(df[0][0], "a")
+            
+        dfs = self.read_html(banklist_data, flavor=_CustomHtmlFrameParser, match=t_match, attrs=t_attrs)
+        for df in dfs:
+            tm.assert_isinstance(df, DataFrame)
+            self.assertFalse(df.empty)
+            self.assertEqual(df[1][1], 2)
+            
     def test_works_on_valid_markup(self):
         filename = os.path.join(DATA_PATH, 'valid_markup.html')
         dfs = self.read_html(filename, index_col=0, flavor=['lxml'])
