@@ -10052,28 +10052,38 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
     def test_mode(self):
         df = pd.DataFrame({"A": [12, 12, 11, 12, 19, 11],
-                           "B": [10, 10, 10, 5, 3, 4],
+                           "B": [10, 10, 10, np.nan, 3, 4],
                            "C": [8, 8, 8, 9, 9, 9],
-                           "D": range(6)})
+                           "D": range(6),
+                           "E": [8, 8, 1, 1, 3, 3]})
         assert_frame_equal(df[["A"]].mode(),
                            pd.DataFrame({"A": [12]}))
         assert_frame_equal(df[["D"]].mode(),
                            pd.DataFrame(pd.Series([], dtype="int64"),
                                         columns=["D"]))
+        assert_frame_equal(df[["E"]].mode(),
+                           pd.DataFrame(pd.Series([1, 3, 8], dtype="int64"),
+                                        columns=["E"]))
         assert_frame_equal(df[["A", "B"]].mode(),
-                           pd.DataFrame({"A": [12], "B": [10]}))
+                           pd.DataFrame({"A": [12], "B": [10.]}))
         assert_frame_equal(df.mode(),
-                           pd.DataFrame({"A": [12, np.nan],
-                                         "B": [10, np.nan],
-                                         "C": [8, 9],
-                                         "D": [np.nan, np.nan]}))
+                           pd.DataFrame({"A": [12, np.nan, np.nan],
+                                         "B": [10, np.nan, np.nan],
+                                         "C": [8, 9, np.nan],
+                                         "D": [np.nan, np.nan, np.nan],
+                                         "E": [1, 3, 8]}))
 
-        # should preserve order
+        # outputs in sorted order
         df["C"] = list(reversed(df["C"]))
-        assert_frame_equal(df[["A", "B", "C"]].mode(),
+        print(df["C"])
+        print(df["C"].mode())
+        a, b = (df[["A", "B", "C"]].mode(),
                            pd.DataFrame({"A": [12, np.nan],
                                          "B": [10, np.nan],
-                                         "C": [9, 8]}))
+                                         "C": [8, 9]}))
+        print(a)
+        print(b)
+        assert_frame_equal(a, b)
         # should work with heterogeneous types
         df = pd.DataFrame({"A": range(6),
                            "B": pd.date_range('2011', periods=6),

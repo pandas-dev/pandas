@@ -4096,6 +4096,10 @@ class DataFrame(NDFrame):
             1/'columns' : get mode of each row
         numeric_only : bool, default False
             if True, only apply to numeric columns
+
+        Returns
+        -------
+        modes : DataFrame (sorted)
         """
         data = self if not numeric_only else self._get_numeric_data()
         f = lambda s: s.mode()
