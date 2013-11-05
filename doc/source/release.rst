@@ -376,6 +376,25 @@ API Changes
     dates are given (:issue:`5242`)
   - ``Timestamp`` now supports ``now/today/utcnow`` class methods
     (:issue:`5339`)
+  - **All** division with ``NDFrame`` - likes is now truedivision, regardless
+    of the future import. You can use ``//`` and ``floordiv`` to do integer
+    division.
+
+  .. code-block:: python
+    In [3]: arr = np.array([1, 2, 3, 4])
+
+    In [4]: arr2 = np.array([5, 3, 2, 1])
+
+    In [5]: arr / arr2
+    Out[5]: array([0, 0, 1, 4])
+
+    In [6]: pd.Series(arr) / pd.Series(arr2) # no future import required
+    Out[6]:
+    0    0.200000
+    1    0.666667
+    2    1.500000
+    3    4.000000
+    dtype: float64
 
 Internal Refactoring
 ~~~~~~~~~~~~~~~~~~~~

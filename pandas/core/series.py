@@ -1,6 +1,7 @@
 """
 Data structure for 1-dimensional cross-sectional and time series data
 """
+from __future__ import division
 
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201

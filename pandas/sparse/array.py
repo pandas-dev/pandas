@@ -1,7 +1,7 @@
 """
 SparseArray data structure
 """
-
+from __future__ import division
 # pylint: disable=E1101,E1103,W0231
 
 from numpy import nan, ndarray

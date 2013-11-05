@@ -2032,7 +2032,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
             for opname in simple_ops:
                 op = getattr(Series, opname)
-                alt = getattr(operator, opname)
+
+                if op == 'div':
+                    alt = operator.truediv
+                else:
+                    alt = getattr(operator, opname)
+
                 result = op(series, other)
                 expected = alt(series, other)
                 tm.assert_almost_equal(result, expected)
@@ -2079,11 +2084,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
     def test_div(self):
 
-        # integer div, but deal with the 0's
+        # no longer do integer div for any ops, but deal with the 0's
         p = DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
         result = p['first'] / p['second']
         expected = Series(
-            p['first'].values / p['second'].values, dtype='float64')
+            p['first'].values.astype(float) / p['second'].values, dtype='float64')
         expected.iloc[0:3] = np.inf
         assert_series_equal(result, expected)
 
@@ -2098,10 +2103,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         p = DataFrame({'first': [3, 4, 5, 8], 'second': [1, 1, 1, 1]})
         result = p['first'] / p['second']
-        if compat.PY3:
-            assert_series_equal(result, p['first'].astype('float64'))
-        else:
-            assert_series_equal(result, p['first'])
+        assert_series_equal(result, p['first'].astype('float64'))
         self.assertFalse(np.array_equal(result, p['second'] / p['first']))
 
     def test_operators(self):
