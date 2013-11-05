@@ -978,6 +978,326 @@ class BQuarterEnd(CacheableOffset, QuarterOffset):
         return BMonthEnd().onOffset(dt) and modMonth == 0
 
 
+_int_to_month = {
+    1: 'JAN',
+    2: 'FEB',
+    3: 'MAR',
+    4: 'APR',
+    5: 'MAY',
+    6: 'JUN',
+    7: 'JUL',
+    8: 'AUG',
+    9: 'SEP',
+    10: 'OCT',
+    11: 'NOV',
+    12: 'DEC'
+}
+
+_month_to_int = dict((v, k) for k, v in _int_to_month.items())
+
+
+# TODO: This is basically the same as BQuarterEnd
+class BQuarterBegin(CacheableOffset, QuarterOffset):
+    _outputName = "BusinessQuarterBegin"
+    # I suspect this is wrong for *all* of them.
+    _default_startingMonth = 3
+    _from_name_startingMonth = 1
+    _prefix = 'BQS'
+
+    def apply(self, other):
+        n = self.n
+        other = as_datetime(other)
+
+        wkday, _ = tslib.monthrange(other.year, other.month)
+
+        first = _get_firstbday(wkday)
+
+        monthsSince = (other.month - self.startingMonth) % 3
+
+        if n <= 0 and monthsSince != 0:  # make sure to roll forward so negate
+            monthsSince = monthsSince - 3
+
+        # roll forward if on same month later than first bday
+        if n <= 0 and (monthsSince == 0 and other.day > first):
+            n = n + 1
+        # pretend to roll back if on same month but before firstbday
+        elif n > 0 and (monthsSince == 0 and other.day < first):
+            n = n - 1
+
+        # get the first bday for result
+        other = other + relativedelta(months=3 * n - monthsSince)
+        wkday, _ = tslib.monthrange(other.year, other.month)
+        first = _get_firstbday(wkday)
+        result = datetime(other.year, other.month, first,
+                          other.hour, other.minute, other.second,
+                          other.microsecond)
+        return as_timestamp(result)
+
+
+class QuarterEnd(CacheableOffset, QuarterOffset):
+    """DateOffset increments between business Quarter dates
+    startingMonth = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
+    startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
+    startingMonth = 3 corresponds to dates like 3/31/2007, 6/30/2007, ...
+    """
+    _outputName = 'QuarterEnd'
+    _default_startingMonth = 3
+    _prefix = 'Q'
+
+    def __init__(self, n=1, **kwds):
+        self.n = n
+        self.startingMonth = kwds.get('startingMonth', 3)
+
+        self.kwds = kwds
+
+    def isAnchored(self):
+        return (self.n == 1 and self.startingMonth is not None)
+
+    def apply(self, other):
+        n = self.n
+        other = as_datetime(other)
+
+        wkday, days_in_month = tslib.monthrange(other.year, other.month)
+
+        monthsToGo = 3 - ((other.month - self.startingMonth) % 3)
+        if monthsToGo == 3:
+            monthsToGo = 0
+
+        if n > 0 and not (other.day >= days_in_month and monthsToGo == 0):
+            n = n - 1
+
+        other = other + relativedelta(months=monthsToGo + 3 * n, day=31)
+
+        return as_timestamp(other)
+
+    def onOffset(self, dt):
+        modMonth = (dt.month - self.startingMonth) % 3
+        return MonthEnd().onOffset(dt) and modMonth == 0
+
+
+class QuarterBegin(CacheableOffset, QuarterOffset):
+    _outputName = 'QuarterBegin'
+    _default_startingMonth = 3
+    _from_name_startingMonth = 1
+    _prefix = 'QS'
+
+    def isAnchored(self):
+        return (self.n == 1 and self.startingMonth is not None)
+
+    def apply(self, other):
+        n = self.n
+        other = as_datetime(other)
+
+        wkday, days_in_month = tslib.monthrange(other.year, other.month)
+
+        monthsSince = (other.month - self.startingMonth) % 3
+
+        if n <= 0 and monthsSince != 0:
+            # make sure you roll forward, so negate
+            monthsSince = monthsSince - 3
+
+        if n < 0 and (monthsSince == 0 and other.day > 1):
+            # after start, so come back an extra period as if rolled forward
+            n = n + 1
+
+        other = other + relativedelta(months=3 * n - monthsSince, day=1)
+        return as_timestamp(other)
+
+
+class YearOffset(DateOffset):
+    """DateOffset that just needs a month"""
+
+    def __init__(self, n=1, **kwds):
+        self.month = kwds.get('month', self._default_month)
+
+        if self.month < 1 or self.month > 12:
+            raise ValueError('Month must go from 1 to 12')
+
+        DateOffset.__init__(self, n=n, **kwds)
+
+    @classmethod
+    def _from_name(cls, suffix=None):
+        kwargs = {}
+        if suffix:
+            kwargs['month'] = _month_to_int[suffix]
+        return cls(**kwargs)
+
+    @property
+    def rule_code(self):
+        return '%s-%s' % (self._prefix, _int_to_month[self.month])
+
+
+class BYearEnd(CacheableOffset, YearOffset):
+    """DateOffset increments between business EOM dates"""
+    _outputName = 'BusinessYearEnd'
+    _default_month = 12
+    _prefix = 'BA'
+
+    def apply(self, other):
+        n = self.n
+        other = as_datetime(other)
+
+        wkday, days_in_month = tslib.monthrange(other.year, self.month)
+        lastBDay = (days_in_month -
+                    max(((wkday + days_in_month - 1) % 7) - 4, 0))
+
+        years = n
+        if n > 0:
+            if (other.month < self.month or
+                    (other.month == self.month and other.day < lastBDay)):
+                years -= 1
+        elif n <= 0:
+            if (other.month > self.month or
+                    (other.month == self.month and other.day > lastBDay)):
+                years += 1
+
+        other = other + relativedelta(years=years)
+
+        _, days_in_month = tslib.monthrange(other.year, self.month)
+        result = datetime(other.year, self.month, days_in_month,
+                          other.hour, other.minute, other.second,
+                          other.microsecond)
+
+        if result.weekday() > 4:
+            result = result - BDay()
+
+        return result
+
+
+class BYearBegin(CacheableOffset, YearOffset):
+    """DateOffset increments between business year begin dates"""
+    _outputName = 'BusinessYearBegin'
+    _default_month = 1
+    _prefix = 'BAS'
+
+    def apply(self, other):
+        n = self.n
+        other = as_datetime(other)
+
+        wkday, days_in_month = tslib.monthrange(other.year, self.month)
+
+        first = _get_firstbday(wkday)
+
+        years = n
+
+        if n > 0:  # roll back first for positive n
+            if (other.month < self.month or
+                    (other.month == self.month and other.day < first)):
+                years -= 1
+        elif n <= 0:  # roll forward
+            if (other.month > self.month or
+                    (other.month == self.month and other.day > first)):
+                years += 1
+
+        # set first bday for result
+        other = other + relativedelta(years=years)
+        wkday, days_in_month = tslib.monthrange(other.year, self.month)
+        first = _get_firstbday(wkday)
+        return as_timestamp(datetime(other.year, self.month, first))
+
+
+class YearEnd(CacheableOffset, YearOffset):
+    """DateOffset increments between calendar year ends"""
+    _default_month = 12
+    _prefix = 'A'
+
+    def apply(self, other):
+        def _increment(date):
+            if date.month == self.month:
+                _, days_in_month = tslib.monthrange(date.year, self.month)
+                if date.day != days_in_month:
+                    year = date.year
+                else:
+                    year = date.year + 1
+            elif date.month < self.month:
+                year = date.year
+            else:
+                year = date.year + 1
+            _, days_in_month = tslib.monthrange(year, self.month)
+            return datetime(year, self.month, days_in_month,
+                            date.hour, date.minute, date.second,
+                            date.microsecond)
+
+        def _decrement(date):
+            year = date.year if date.month > self.month else date.year - 1
+            _, days_in_month = tslib.monthrange(year, self.month)
+            return datetime(year, self.month, days_in_month,
+                            date.hour, date.minute, date.second,
+                            date.microsecond)
+
+        def _rollf(date):
+            if date.month != self.month or\
+               date.day < tslib.monthrange(date.year, date.month)[1]:
+                date = _increment(date)
+            return date
+
+        n = self.n
+        result = other
+        if n > 0:
+            while n > 0:
+                result = _increment(result)
+                n -= 1
+        elif n < 0:
+            while n < 0:
+                result = _decrement(result)
+                n += 1
+        else:
+            # n == 0, roll forward
+            result = _rollf(result)
+
+        return as_timestamp(result)
+
+    def onOffset(self, dt):
+        wkday, days_in_month = tslib.monthrange(dt.year, self.month)
+        return self.month == dt.month and dt.day == days_in_month
+
+
+class YearBegin(CacheableOffset, YearOffset):
+    """DateOffset increments between calendar year begin dates"""
+    _default_month = 1
+    _prefix = 'AS'
+
+    def apply(self, other):
+        def _increment(date):
+            year = date.year
+            if date.month >= self.month:
+                year += 1
+            return datetime(year, self.month, 1, date.hour, date.minute,
+                            date.second, date.microsecond)
+
+        def _decrement(date):
+            year = date.year
+            if date.month < self.month or (date.month == self.month and
+                                           date.day == 1):
+                year -= 1
+            return datetime(year, self.month, 1, date.hour, date.minute,
+                            date.second, date.microsecond)
+
+        def _rollf(date):
+            if (date.month != self.month) or date.day > 1:
+                date = _increment(date)
+            return date
+
+        n = self.n
+        result = other
+        if n > 0:
+            while n > 0:
+                result = _increment(result)
+                n -= 1
+        elif n < 0:
+            while n < 0:
+                result = _decrement(result)
+                n += 1
+        else:
+            # n == 0, roll forward
+            result = _rollf(result)
+
+        return as_timestamp(result)
+
+    def onOffset(self, dt):
+        return dt.month == self.month and dt.day == 1
+
+
 class FY5253(CacheableOffset, DateOffset):
     """
     Describes 52-53 week fiscal year. This is also known as a 4-4-5 calendar.
@@ -1329,326 +1649,6 @@ class FY5253Quarter(CacheableOffset, DateOffset):
     def _from_name(cls, *args):
         return cls(**dict(FY5253._parse_suffix(*args[:-1]),
                           qtr_with_extra_week=int(args[-1])))
-
-
-_int_to_month = {
-    1: 'JAN',
-    2: 'FEB',
-    3: 'MAR',
-    4: 'APR',
-    5: 'MAY',
-    6: 'JUN',
-    7: 'JUL',
-    8: 'AUG',
-    9: 'SEP',
-    10: 'OCT',
-    11: 'NOV',
-    12: 'DEC'
-}
-
-_month_to_int = dict((v, k) for k, v in _int_to_month.items())
-
-
-# TODO: This is basically the same as BQuarterEnd
-class BQuarterBegin(CacheableOffset, QuarterOffset):
-    _outputName = "BusinessQuarterBegin"
-    # I suspect this is wrong for *all* of them.
-    _default_startingMonth = 3
-    _from_name_startingMonth = 1
-    _prefix = 'BQS'
-
-    def apply(self, other):
-        n = self.n
-        other = as_datetime(other)
-
-        wkday, _ = tslib.monthrange(other.year, other.month)
-
-        first = _get_firstbday(wkday)
-
-        monthsSince = (other.month - self.startingMonth) % 3
-
-        if n <= 0 and monthsSince != 0:  # make sure to roll forward so negate
-            monthsSince = monthsSince - 3
-
-        # roll forward if on same month later than first bday
-        if n <= 0 and (monthsSince == 0 and other.day > first):
-            n = n + 1
-        # pretend to roll back if on same month but before firstbday
-        elif n > 0 and (monthsSince == 0 and other.day < first):
-            n = n - 1
-
-        # get the first bday for result
-        other = other + relativedelta(months=3 * n - monthsSince)
-        wkday, _ = tslib.monthrange(other.year, other.month)
-        first = _get_firstbday(wkday)
-        result = datetime(other.year, other.month, first,
-                          other.hour, other.minute, other.second,
-                          other.microsecond)
-        return as_timestamp(result)
-
-
-class QuarterEnd(CacheableOffset, QuarterOffset):
-    """DateOffset increments between business Quarter dates
-    startingMonth = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
-    startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
-    startingMonth = 3 corresponds to dates like 3/31/2007, 6/30/2007, ...
-    """
-    _outputName = 'QuarterEnd'
-    _default_startingMonth = 3
-    _prefix = 'Q'
-
-    def __init__(self, n=1, **kwds):
-        self.n = n
-        self.startingMonth = kwds.get('startingMonth', 3)
-
-        self.kwds = kwds
-
-    def isAnchored(self):
-        return (self.n == 1 and self.startingMonth is not None)
-
-    def apply(self, other):
-        n = self.n
-        other = as_datetime(other)
-
-        wkday, days_in_month = tslib.monthrange(other.year, other.month)
-
-        monthsToGo = 3 - ((other.month - self.startingMonth) % 3)
-        if monthsToGo == 3:
-            monthsToGo = 0
-
-        if n > 0 and not (other.day >= days_in_month and monthsToGo == 0):
-            n = n - 1
-
-        other = other + relativedelta(months=monthsToGo + 3 * n, day=31)
-
-        return as_timestamp(other)
-
-    def onOffset(self, dt):
-        modMonth = (dt.month - self.startingMonth) % 3
-        return MonthEnd().onOffset(dt) and modMonth == 0
-
-
-class QuarterBegin(CacheableOffset, QuarterOffset):
-    _outputName = 'QuarterBegin'
-    _default_startingMonth = 3
-    _from_name_startingMonth = 1
-    _prefix = 'QS'
-
-    def isAnchored(self):
-        return (self.n == 1 and self.startingMonth is not None)
-
-    def apply(self, other):
-        n = self.n
-        other = as_datetime(other)
-
-        wkday, days_in_month = tslib.monthrange(other.year, other.month)
-
-        monthsSince = (other.month - self.startingMonth) % 3
-
-        if n <= 0 and monthsSince != 0:
-            # make sure you roll forward, so negate
-            monthsSince = monthsSince - 3
-
-        if n < 0 and (monthsSince == 0 and other.day > 1):
-            # after start, so come back an extra period as if rolled forward
-            n = n + 1
-
-        other = other + relativedelta(months=3 * n - monthsSince, day=1)
-        return as_timestamp(other)
-
-
-class YearOffset(DateOffset):
-    """DateOffset that just needs a month"""
-
-    def __init__(self, n=1, **kwds):
-        self.month = kwds.get('month', self._default_month)
-
-        if self.month < 1 or self.month > 12:
-            raise ValueError('Month must go from 1 to 12')
-
-        DateOffset.__init__(self, n=n, **kwds)
-
-    @classmethod
-    def _from_name(cls, suffix=None):
-        kwargs = {}
-        if suffix:
-            kwargs['month'] = _month_to_int[suffix]
-        return cls(**kwargs)
-
-    @property
-    def rule_code(self):
-        return '%s-%s' % (self._prefix, _int_to_month[self.month])
-
-
-class BYearEnd(CacheableOffset, YearOffset):
-    """DateOffset increments between business EOM dates"""
-    _outputName = 'BusinessYearEnd'
-    _default_month = 12
-    _prefix = 'BA'
-
-    def apply(self, other):
-        n = self.n
-        other = as_datetime(other)
-
-        wkday, days_in_month = tslib.monthrange(other.year, self.month)
-        lastBDay = (days_in_month -
-                    max(((wkday + days_in_month - 1) % 7) - 4, 0))
-
-        years = n
-        if n > 0:
-            if (other.month < self.month or
-                    (other.month == self.month and other.day < lastBDay)):
-                years -= 1
-        elif n <= 0:
-            if (other.month > self.month or
-                    (other.month == self.month and other.day > lastBDay)):
-                years += 1
-
-        other = other + relativedelta(years=years)
-
-        _, days_in_month = tslib.monthrange(other.year, self.month)
-        result = datetime(other.year, self.month, days_in_month,
-                          other.hour, other.minute, other.second,
-                          other.microsecond)
-
-        if result.weekday() > 4:
-            result = result - BDay()
-
-        return result
-
-
-class BYearBegin(CacheableOffset, YearOffset):
-    """DateOffset increments between business year begin dates"""
-    _outputName = 'BusinessYearBegin'
-    _default_month = 1
-    _prefix = 'BAS'
-
-    def apply(self, other):
-        n = self.n
-        other = as_datetime(other)
-
-        wkday, days_in_month = tslib.monthrange(other.year, self.month)
-
-        first = _get_firstbday(wkday)
-
-        years = n
-
-        if n > 0:  # roll back first for positive n
-            if (other.month < self.month or
-                    (other.month == self.month and other.day < first)):
-                years -= 1
-        elif n <= 0:  # roll forward
-            if (other.month > self.month or
-                    (other.month == self.month and other.day > first)):
-                years += 1
-
-        # set first bday for result
-        other = other + relativedelta(years=years)
-        wkday, days_in_month = tslib.monthrange(other.year, self.month)
-        first = _get_firstbday(wkday)
-        return as_timestamp(datetime(other.year, self.month, first))
-
-
-class YearEnd(CacheableOffset, YearOffset):
-    """DateOffset increments between calendar year ends"""
-    _default_month = 12
-    _prefix = 'A'
-
-    def apply(self, other):
-        def _increment(date):
-            if date.month == self.month:
-                _, days_in_month = tslib.monthrange(date.year, self.month)
-                if date.day != days_in_month:
-                    year = date.year
-                else:
-                    year = date.year + 1
-            elif date.month < self.month:
-                year = date.year
-            else:
-                year = date.year + 1
-            _, days_in_month = tslib.monthrange(year, self.month)
-            return datetime(year, self.month, days_in_month,
-                            date.hour, date.minute, date.second,
-                            date.microsecond)
-
-        def _decrement(date):
-            year = date.year if date.month > self.month else date.year - 1
-            _, days_in_month = tslib.monthrange(year, self.month)
-            return datetime(year, self.month, days_in_month,
-                            date.hour, date.minute, date.second,
-                            date.microsecond)
-
-        def _rollf(date):
-            if date.month != self.month or\
-               date.day < tslib.monthrange(date.year, date.month)[1]:
-                date = _increment(date)
-            return date
-
-        n = self.n
-        result = other
-        if n > 0:
-            while n > 0:
-                result = _increment(result)
-                n -= 1
-        elif n < 0:
-            while n < 0:
-                result = _decrement(result)
-                n += 1
-        else:
-            # n == 0, roll forward
-            result = _rollf(result)
-
-        return as_timestamp(result)
-
-    def onOffset(self, dt):
-        wkday, days_in_month = tslib.monthrange(dt.year, self.month)
-        return self.month == dt.month and dt.day == days_in_month
-
-
-class YearBegin(CacheableOffset, YearOffset):
-    """DateOffset increments between calendar year begin dates"""
-    _default_month = 1
-    _prefix = 'AS'
-
-    def apply(self, other):
-        def _increment(date):
-            year = date.year
-            if date.month >= self.month:
-                year += 1
-            return datetime(year, self.month, 1, date.hour, date.minute,
-                            date.second, date.microsecond)
-
-        def _decrement(date):
-            year = date.year
-            if date.month < self.month or (date.month == self.month and
-                                           date.day == 1):
-                year -= 1
-            return datetime(year, self.month, 1, date.hour, date.minute,
-                            date.second, date.microsecond)
-
-        def _rollf(date):
-            if (date.month != self.month) or date.day > 1:
-                date = _increment(date)
-            return date
-
-        n = self.n
-        result = other
-        if n > 0:
-            while n > 0:
-                result = _increment(result)
-                n -= 1
-        elif n < 0:
-            while n < 0:
-                result = _decrement(result)
-                n += 1
-        else:
-            # n == 0, roll forward
-            result = _rollf(result)
-
-        return as_timestamp(result)
-
-    def onOffset(self, dt):
-        return dt.month == self.month and dt.day == 1
 
 
 #----------------------------------------------------------------------
