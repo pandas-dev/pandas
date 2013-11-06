@@ -386,6 +386,7 @@ API Changes
     division.
 
   .. code-block:: python
+
     In [3]: arr = np.array([1, 2, 3, 4])
 
     In [4]: arr2 = np.array([5, 3, 2, 1])
