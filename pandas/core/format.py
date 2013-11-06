@@ -1213,7 +1213,7 @@ header_style = {"font": {"bold": True},
                             "right": "thin",
                             "bottom": "thin",
                             "left": "thin"},
-                "alignment": {"horizontal": "center"}}
+                "alignment": {"horizontal": "center", "vertical": "top"}}
 
 
 class ExcelFormatter(object):
@@ -1237,10 +1237,12 @@ class ExcelFormatter(object):
             Column label for index column(s) if desired. If None is given, and
             `header` and `index` are True, then the index names are used. A
             sequence should be given if the DataFrame uses MultiIndex.
+    merge_cells : boolean, default False
+            Format MultiIndex and Hierarchical Rows as merged cells.
     """
 
     def __init__(self, df, na_rep='', float_format=None, cols=None,
-                 header=True, index=True, index_label=None):
+                 header=True, index=True, index_label=None, merge_cells=False):
         self.df = df
         self.rowcounter = 0
         self.na_rep = na_rep
@@ -1251,6 +1253,7 @@ class ExcelFormatter(object):
         self.index = index
         self.index_label = index_label
         self.header = header
+        self.merge_cells = merge_cells
 
     def _format_value(self, val):
         if lib.checknull(val):
@@ -1264,29 +1267,44 @@ class ExcelFormatter(object):
         if not(has_aliases or self.header):
             return
 
-        levels = self.columns.format(sparsify=True, adjoin=False,
-                                     names=False)
-        # level_lenghts = _get_level_lengths(levels)
-        coloffset = 1
-        if isinstance(self.df.index, MultiIndex):
-            coloffset = len(self.df.index[0])
-
-        # for lnum, (records, values) in enumerate(zip(level_lenghts,
-        #                                              levels)):
-        #     name = self.columns.names[lnum]
-        #     yield ExcelCell(lnum, coloffset, name, header_style)
-        #     for i in records:
-        #         if records[i] > 1:
-        #             yield ExcelCell(lnum,coloffset + i + 1, values[i],
-        #                     header_style, lnum, coloffset + i + records[i])
-        #         else:
-        # yield ExcelCell(lnum, coloffset + i + 1, values[i], header_style)
-
-        #     self.rowcounter = lnum
+        columns = self.columns
+        level_strs = columns.format(sparsify=True, adjoin=False, names=False)
+        level_lengths = _get_level_lengths(level_strs)
+        coloffset = 0
         lnum = 0
-        for i, values in enumerate(zip(*levels)):
-            v = ".".join(map(com.pprint_thing, values))
-            yield ExcelCell(lnum, coloffset + i, v, header_style)
+
+        if isinstance(self.df.index, MultiIndex):
+            coloffset = len(self.df.index[0]) - 1
+
+        if self.merge_cells:
+            # Format multi-index as a merged cells.
+            for lnum in range(len(level_lengths)):
+                name = columns.names[lnum]
+                yield ExcelCell(lnum, coloffset, name, header_style)
+
+            for lnum, (spans, levels, labels) in enumerate(zip(level_lengths,
+                                                               columns.levels,
+                                                               columns.labels)
+                                                           ):
+                values = levels.take(labels)
+                for i in spans:
+                    if spans[i] > 1:
+                        yield ExcelCell(lnum,
+                                        coloffset + i + 1,
+                                        values[i],
+                                        header_style,
+                                        lnum,
+                                        coloffset + i + spans[i])
+                    else:
+                        yield ExcelCell(lnum,
+                                        coloffset + i + 1,
+                                        values[i],
+                                        header_style)
+        else:
+            # Format in legacy format with dots to indicate levels.
+            for i, values in enumerate(zip(*level_strs)):
+                v = ".".join(map(com.pprint_thing, values))
+                yield ExcelCell(lnum, coloffset + i + 1, v, header_style)
 
         self.rowcounter = lnum
 
@@ -1354,14 +1372,17 @@ class ExcelFormatter(object):
                 index_label = self.df.index.names[0]
 
             if index_label and self.header is not False:
-                # add to same level as column names
-                # if isinstance(self.df.columns, MultiIndex):
-                #     yield ExcelCell(self.rowcounter, 0,
-                #                 index_label, header_style)
-                #     self.rowcounter += 1
-                # else:
-                yield ExcelCell(self.rowcounter - 1, 0,
-                                index_label, header_style)
+                if self.merge_cells:
+                    yield ExcelCell(self.rowcounter,
+                                    0,
+                                    index_label,
+                                    header_style)
+                    self.rowcounter += 1
+                else:
+                    yield ExcelCell(self.rowcounter - 1,
+                                    0,
+                                    index_label,
+                                    header_style)
 
             # write index_values
             index_values = self.df.index
@@ -1383,7 +1404,7 @@ class ExcelFormatter(object):
             self.rowcounter += 1
 
         gcolidx = 0
-        # output index and index_label?
+
         if self.index:
             index_labels = self.df.index.names
             # check for aliases
@@ -1394,20 +1415,51 @@ class ExcelFormatter(object):
             # if index labels are not empty go ahead and dump
             if (any(x is not None for x in index_labels)
                     and self.header is not False):
-                # if isinstance(self.df.columns, MultiIndex):
-                #     self.rowcounter += 1
-                # else:
-                self.rowcounter -= 1
+
+                if not self.merge_cells:
+                    self.rowcounter -= 1
+
                 for cidx, name in enumerate(index_labels):
-                    yield ExcelCell(self.rowcounter, cidx,
-                                    name, header_style)
+                    yield ExcelCell(self.rowcounter,
+                                    cidx,
+                                    name,
+                                    header_style)
                 self.rowcounter += 1
 
-            for indexcolvals in zip(*self.df.index):
-                for idx, indexcolval in enumerate(indexcolvals):
-                    yield ExcelCell(self.rowcounter + idx, gcolidx,
-                                    indexcolval, header_style)
-                gcolidx += 1
+            if self.merge_cells:
+                # Format hierarchical rows as merged cells.
+                level_strs = self.df.index.format(sparsify=True, adjoin=False,
+                                                  names=False)
+                level_lengths = _get_level_lengths(level_strs)
+
+                for spans, levels, labels in zip(level_lengths,
+                                                 self.df.index.levels,
+                                                 self.df.index.labels):
+                    values = levels.take(labels)
+                    for i in spans:
+                        if spans[i] > 1:
+                            yield ExcelCell(self.rowcounter + i,
+                                            gcolidx,
+                                            values[i],
+                                            header_style,
+                                            self.rowcounter + i + spans[i] - 1,
+                                            gcolidx)
+                        else:
+                            yield ExcelCell(self.rowcounter + i,
+                                            gcolidx,
+                                            values[i],
+                                            header_style)
+                    gcolidx += 1
+
+            else:
+                # Format hierarchical rows with non-merged values.
+                for indexcolvals in zip(*self.df.index):
+                    for idx, indexcolval in enumerate(indexcolvals):
+                        yield ExcelCell(self.rowcounter + idx,
+                                        gcolidx,
+                                        indexcolval,
+                                        header_style)
+                    gcolidx += 1
 
         for colidx in range(len(self.columns)):
             series = self.df.iloc[:, colidx]
@@ -1415,8 +1467,8 @@ class ExcelFormatter(object):
                 yield ExcelCell(self.rowcounter + i, gcolidx + colidx, val)
 
     def get_formatted_cells(self):
-        for cell in itertools.chain(self._format_header(), self._format_body()
-                                    ):
+        for cell in itertools.chain(self._format_header(),
+                                    self._format_body()):
             cell.val = self._format_value(cell.val)
             yield cell
 

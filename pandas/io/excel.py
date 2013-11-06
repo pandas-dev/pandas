@@ -146,7 +146,7 @@ class ExcelFile(object):
     def parse(self, sheetname, header=0, skiprows=None, skip_footer=0,
               index_col=None, parse_cols=None, parse_dates=False,
               date_parser=None, na_values=None, thousands=None, chunksize=None,
-              convert_float=True, **kwds):
+              convert_float=True, has_index_names=False, **kwds):
         """Read an Excel table into DataFrame
 
         Parameters
@@ -169,25 +169,29 @@ class ExcelFile(object):
               parsed
             * If string then indicates comma separated list of column names and
               column ranges (e.g. "A:E" or "A,C,E:F")
+        parse_dates : boolean, default False
+            Parse date Excel values,
+        date_parser : function default None
+            Date parsing function
         na_values : list-like, default None
             List of additional strings to recognize as NA/NaN
-        keep_default_na : bool, default True
-            If na_values are specified and keep_default_na is False the default
-            NaN values are overridden, otherwise they're appended to
-        verbose : boolean, default False
-            Indicate number of NA values placed in non-numeric columns
+        thousands : str, default None
+            Thousands separator
+        chunksize : int, default None
+            Size of file chunk to read for lazy evaluation.
         convert_float : boolean, default True
             convert integral floats to int (i.e., 1.0 --> 1). If False, all
             numeric data will be read in as floats: Excel stores all numbers as
             floats internally.
+        has_index_names : boolean, default False
+            True if the cols defined in index_col have an index name and are
+            not in the header
 
         Returns
         -------
         parsed : DataFrame
             DataFrame parsed from the Excel file
         """
-        has_index_names = False  # removed as new argument of API function
-
         skipfooter = kwds.pop('skipfooter', None)
         if skipfooter is not None:
             skip_footer = skipfooter
@@ -506,6 +510,7 @@ class _OpenpyxlWriter(ExcelWriter):
             colletter = get_column_letter(startcol + cell.col + 1)
             xcell = wks.cell("%s%s" % (colletter, startrow + cell.row + 1))
             xcell.value = _conv_value(cell.val)
+            style = None
             if cell.style:
                 style = self._convert_to_style(cell.style)
                 for field in style.__fields__:
@@ -517,8 +522,6 @@ class _OpenpyxlWriter(ExcelWriter):
             elif isinstance(cell.val, datetime.date):
                 xcell.style.number_format.format_code = "YYYY-MM-DD"
 
-            # merging requires openpyxl latest (works on 1.6.1)
-            # todo add version check
             if cell.mergestart is not None and cell.mergeend is not None:
                 cletterstart = get_column_letter(startcol + cell.col + 1)
                 cletterend = get_column_letter(startcol + cell.mergeend + 1)
@@ -527,6 +530,25 @@ class _OpenpyxlWriter(ExcelWriter):
                                                startrow + cell.row + 1,
                                                cletterend,
                                                startrow + cell.mergestart + 1))
+
+                # Excel requires that the format of the first cell in a merged
+                # range is repeated in the rest of the merged range.
+                if style:
+                    first_row = startrow + cell.row + 1
+                    last_row = startrow + cell.mergestart + 1
+                    first_col = startcol + cell.col + 1
+                    last_col = startcol + cell.mergeend + 1
+
+                    for row in range(first_row, last_row + 1):
+                        for col in range(first_col, last_col + 1):
+                            if row == first_row and col == first_col:
+                                # Ignore first cell. It is already handled.
+                                continue
+                            colletter = get_column_letter(col)
+                            xcell = wks.cell("%s%s" % (colletter, row))
+                            for field in style.__fields__:
+                                xcell.style.__setattr__(field, \
+                                    style.__getattribute__(field))
 
     @classmethod
     def _convert_to_style(cls, style_dict):
@@ -723,8 +745,8 @@ class _XlsxWriter(ExcelWriter):
 
             if cell.mergestart is not None and cell.mergeend is not None:
                 wks.merge_range(startrow + cell.row,
-                                startrow + cell.mergestart,
                                 startcol + cell.col,
+                                startrow + cell.mergestart,
                                 startcol + cell.mergeend,
                                 cell.val, style)
             else:
@@ -751,6 +773,16 @@ class _XlsxWriter(ExcelWriter):
             font = style_dict['font']
             if font.get('bold'):
                 xl_format.set_bold()
+
+        # Map the alignment to XlsxWriter alignment properties.
+        alignment = style_dict.get('alignment')
+        if alignment:
+            if (alignment.get('horizontal')
+                and alignment['horizontal'] == 'center'):
+                xl_format.set_align('center')
+            if (alignment.get('vertical')
+                and alignment['vertical'] == 'top'):
+                xl_format.set_align('top')
 
         # Map the cell borders to XlsxWriter border properties.
         if style_dict.get('borders'):

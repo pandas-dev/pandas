@@ -1130,7 +1130,8 @@ class DataFrame(NDFrame):
 
     def to_excel(self, excel_writer, sheet_name='Sheet1', na_rep='',
                  float_format=None, cols=None, header=True, index=True,
-                 index_label=None, startrow=0, startcol=0, engine=None):
+                 index_label=None, startrow=0, startcol=0, engine=None,
+                 merge_cells=True):
         """
         Write DataFrame to a excel sheet
 
@@ -1161,13 +1162,15 @@ class DataFrame(NDFrame):
             write engine to use - you can also set this via the options
             ``io.excel.xlsx.writer``, ``io.excel.xls.writer``, and
             ``io.excel.xlsm.writer``.
-
+        merge_cells : boolean, default True
+            Write MultiIndex and Hierarchical Rows as merged cells.
 
         Notes
         -----
         If passing an existing ExcelWriter object, then the sheet will be added
         to the existing workbook.  This can be used to save different
         DataFrames to one workbook
+
         >>> writer = ExcelWriter('output.xlsx')
         >>> df1.to_excel(writer,'Sheet1')
         >>> df2.to_excel(writer,'Sheet2')
@@ -1185,7 +1188,8 @@ class DataFrame(NDFrame):
                                        header=header,
                                        float_format=float_format,
                                        index=index,
-                                       index_label=index_label)
+                                       index_label=index_label,
+                                       merge_cells=merge_cells)
         formatted_cells = formatter.get_formatted_cells()
         excel_writer.write_cells(formatted_cells, sheet_name,
                                  startrow=startrow, startcol=startcol)

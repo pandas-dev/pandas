@@ -102,7 +102,8 @@ class ExcelReaderTests(SharedItems, unittest.TestCase):
             df2 = df2.reindex(columns=['A', 'B', 'C'])
             df3 = xls.parse('Sheet2', skiprows=[1], index_col=0,
                             parse_dates=True, parse_cols=3)
-            tm.assert_frame_equal(df, df2, check_names=False)  # TODO add index to xls file)
+            # TODO add index to xls file)
+            tm.assert_frame_equal(df, df2, check_names=False)
             tm.assert_frame_equal(df3, df2, check_names=False)
 
     def test_parse_cols_list(self):
@@ -121,7 +122,8 @@ class ExcelReaderTests(SharedItems, unittest.TestCase):
             df3 = xls.parse('Sheet2', skiprows=[1], index_col=0,
                             parse_dates=True,
                             parse_cols=[0, 2, 3])
-            tm.assert_frame_equal(df, df2, check_names=False)  # TODO add index to xls file
+            # TODO add index to xls file)
+            tm.assert_frame_equal(df, df2, check_names=False)
             tm.assert_frame_equal(df3, df2, check_names=False)
 
     def test_parse_cols_str(self):
@@ -141,7 +143,8 @@ class ExcelReaderTests(SharedItems, unittest.TestCase):
             df2 = df2.reindex(columns=['A', 'B', 'C'])
             df3 = xls.parse('Sheet2', skiprows=[1], index_col=0,
                             parse_dates=True, parse_cols='A:D')
-            tm.assert_frame_equal(df, df2, check_names=False)  # TODO add index to xls, read xls ignores index name ?
+            # TODO add index to xls, read xls ignores index name ?
+            tm.assert_frame_equal(df, df2, check_names=False)
             tm.assert_frame_equal(df3, df2, check_names=False)
             del df, df2, df3
 
@@ -152,7 +155,8 @@ class ExcelReaderTests(SharedItems, unittest.TestCase):
             df3 = xls.parse('Sheet2', skiprows=[1], index_col=0,
                             parse_dates=True,
                             parse_cols='A,C,D')
-            tm.assert_frame_equal(df, df2, check_names=False)  # TODO add index to xls file
+            # TODO add index to xls file
+            tm.assert_frame_equal(df, df2, check_names=False)
             tm.assert_frame_equal(df3, df2, check_names=False)
             del df, df2, df3
 
@@ -284,7 +288,8 @@ class ExcelReaderTests(SharedItems, unittest.TestCase):
         df2 = self.read_csv(self.csv1, index_col=0, parse_dates=True)
         df3 = xlsx.parse('Sheet2', skiprows=[1], index_col=0, parse_dates=True)
 
-        tm.assert_frame_equal(df, df2, check_names=False)  # TODO add index to xlsx file
+        # TODO add index to xlsx file
+        tm.assert_frame_equal(df, df2, check_names=False)
         tm.assert_frame_equal(df3, df2, check_names=False)
 
         df4 = xlsx.parse('Sheet1', index_col=0, parse_dates=True,
@@ -365,6 +370,10 @@ class ExcelWriterBase(SharedItems):
     # 2. Add a property ext, which is the file extension that your writer
     #    writes to. (needs to start with '.' so it's a valid path)
     # 3. Add a property engine_name, which is the name of the writer class.
+
+    # Test with MultiIndex and Hierarchical Rows as merged cells.
+    merge_cells = True
+
     def setUp(self):
         self.check_skip()
         super(ExcelWriterBase, self).setUp()
@@ -433,7 +442,8 @@ class ExcelWriterBase(SharedItems):
             tm.assert_frame_equal(self.frame, recons)
 
             self.frame.to_excel(path, 'test1', na_rep='88')
-            recons = read_excel(path, 'test1', index_col=0, na_values=[88, 88.0])
+            recons = read_excel(path, 'test1', index_col=0,
+                                na_values=[88, 88.0])
             tm.assert_frame_equal(self.frame, recons)
 
     def test_mixed(self):
@@ -571,39 +581,56 @@ class ExcelWriterBase(SharedItems):
 
             # test index_label
             frame = (DataFrame(np.random.randn(10, 2)) >= 0)
-            frame.to_excel(path, 'test1', index_label=['test'])
+            frame.to_excel(path, 'test1',
+                           index_label=['test'],
+                           merge_cells=self.merge_cells)
             reader = ExcelFile(path)
-            recons = reader.parse('test1', index_col=0).astype(np.int64)
+            recons = reader.parse('test1',
+                                  index_col=0,
+                                  has_index_names=self.merge_cells
+                                  ).astype(np.int64)
             frame.index.names = ['test']
             self.assertEqual(frame.index.names, recons.index.names)
 
             frame = (DataFrame(np.random.randn(10, 2)) >= 0)
-            frame.to_excel(
-                path, 'test1', index_label=['test', 'dummy', 'dummy2'])
+            frame.to_excel(path,
+                           'test1',
+                           index_label=['test', 'dummy', 'dummy2'],
+                           merge_cells=self.merge_cells)
             reader = ExcelFile(path)
-            recons = reader.parse('test1', index_col=0).astype(np.int64)
+            recons = reader.parse('test1',
+                                  index_col=0,
+                                  has_index_names=self.merge_cells
+                                  ).astype(np.int64)
             frame.index.names = ['test']
             self.assertEqual(frame.index.names, recons.index.names)
 
             frame = (DataFrame(np.random.randn(10, 2)) >= 0)
-            frame.to_excel(path, 'test1', index_label='test')
+            frame.to_excel(path,
+                           'test1',
+                           index_label='test',
+                           merge_cells=self.merge_cells)
             reader = ExcelFile(path)
-            recons = reader.parse('test1', index_col=0).astype(np.int64)
+            recons = reader.parse('test1',
+                                  index_col=0,
+                                  has_index_names=self.merge_cells
+                                  ).astype(np.int64)
             frame.index.names = ['test']
-            self.assertEqual(frame.index.names, recons.index.names)
+            self.assertAlmostEqual(frame.index.names, recons.index.names)
 
         with ensure_clean(self.ext) as path:
 
-            self.frame.to_excel(path, 'test1',
-                                cols=['A', 'B', 'C', 'D'], index=False)
-            # take 'A' and 'B' as indexes (they are in same row as cols 'C',
-            # 'D')
+            self.frame.to_excel(path,
+                                'test1',
+                                cols=['A', 'B', 'C', 'D'],
+                                index=False, merge_cells=self.merge_cells)
+            # take 'A' and 'B' as indexes (same row as cols 'C', 'D')
             df = self.frame.copy()
             df = df.set_index(['A', 'B'])
 
             reader = ExcelFile(path)
             recons = reader.parse('test1', index_col=[0, 1])
-            tm.assert_frame_equal(df, recons)
+            tm.assert_frame_equal(df, recons, check_less_precise=True)
 
     def test_excel_roundtrip_indexname(self):
         _skip_if_no_xlrd()
@@ -612,10 +639,12 @@ class ExcelWriterBase(SharedItems):
         df.index.name = 'foo'
 
         with ensure_clean(self.ext) as path:
-            df.to_excel(path)
+            df.to_excel(path, merge_cells=self.merge_cells)
 
             xf = ExcelFile(path)
-            result = xf.parse(xf.sheet_names[0], index_col=0)
+            result = xf.parse(xf.sheet_names[0],
+                              index_col=0,
+                              has_index_names=self.merge_cells)
 
             tm.assert_frame_equal(result, df)
             self.assertEqual(result.index.name, 'foo')
@@ -624,19 +653,18 @@ class ExcelWriterBase(SharedItems):
         _skip_if_no_xlrd()
 
         # datetime.date, not sure what to test here exactly
-        path = '__tmp_excel_roundtrip_datetime__.' + self.ext
         tsf = self.tsframe.copy()
         with ensure_clean(self.ext) as path:
 
             tsf.index = [x.date() for x in self.tsframe.index]
-            tsf.to_excel(path, 'test1')
+            tsf.to_excel(path, 'test1', merge_cells=self.merge_cells)
             reader = ExcelFile(path)
             recons = reader.parse('test1')
             tm.assert_frame_equal(self.tsframe, recons)
 
     def test_to_excel_periodindex(self):
         _skip_if_no_xlrd()
-        path = '__tmp_to_excel_periodindex__.' + self.ext
+
         frame = self.tsframe
         xp = frame.resample('M', kind='period')
 
@@ -651,8 +679,7 @@ class ExcelWriterBase(SharedItems):
         _skip_if_no_xlrd()
 
         frame = self.frame
-        old_index = frame.index
-        arrays = np.arange(len(old_index) * 2).reshape(2, -1)
+        arrays = np.arange(len(frame.index) * 2).reshape(2, -1)
         new_index = MultiIndex.from_arrays(arrays,
                                            names=['first', 'second'])
         frame.index = new_index
@@ -662,42 +689,36 @@ class ExcelWriterBase(SharedItems):
             frame.to_excel(path, 'test1', cols=['A', 'B'])
 
             # round trip
-            frame.to_excel(path, 'test1')
+            frame.to_excel(path, 'test1', merge_cells=self.merge_cells)
             reader = ExcelFile(path)
-            df = reader.parse('test1', index_col=[0, 1], parse_dates=False)
+            df = reader.parse('test1', index_col=[0, 1],
+                              parse_dates=False,
+                              has_index_names=self.merge_cells)
             tm.assert_frame_equal(frame, df)
             self.assertEqual(frame.index.names, df.index.names)
-            self.frame.index = old_index  # needed if setUP becomes a classmethod
 
     def test_to_excel_multiindex_dates(self):
         _skip_if_no_xlrd()
 
         # try multiindex with dates
-        tsframe = self.tsframe
-        old_index = tsframe.index
-        new_index = [old_index, np.arange(len(old_index))]
+        tsframe = self.tsframe.copy()
+        new_index = [tsframe.index, np.arange(len(tsframe.index))]
         tsframe.index = MultiIndex.from_arrays(new_index)
 
         with ensure_clean(self.ext) as path:
-            tsframe.to_excel(path, 'test1', index_label=['time', 'foo'])
+            tsframe.index.names = ['time', 'foo']
+            tsframe.to_excel(path, 'test1', merge_cells=self.merge_cells)
             reader = ExcelFile(path)
-            recons = reader.parse('test1', index_col=[0, 1])
+            recons = reader.parse('test1',
+                                  index_col=[0, 1],
+                                  has_index_names=self.merge_cells)
 
-            tm.assert_frame_equal(tsframe, recons, check_names=False)
-            self.assertEquals(recons.index.names, ('time', 'foo'))
-
-            # infer index
-            tsframe.to_excel(path, 'test1')
-            reader = ExcelFile(path)
-            recons = reader.parse('test1')
             tm.assert_frame_equal(tsframe, recons)
-
-            self.tsframe.index = old_index  # needed if setUP becomes classmethod
+            self.assertEquals(recons.index.names, ('time', 'foo'))
 
     def test_to_excel_float_format(self):
         _skip_if_no_xlrd()
-        ext = self.ext
-        filename = '__tmp_to_excel_float_format__.' + ext
+
         df = DataFrame([[0.123456, 0.234567, 0.567567],
                         [12.32112, 123123.2, 321321.2]],
                         index=['A', 'B'], columns=['X', 'Y', 'Z'])
@@ -835,8 +856,13 @@ class ExcelWriterBase(SharedItems):
     #     for maddr in mergedcells_addrs:
     #         self.assertTrue(ws.cell(maddr).merged)
     #     os.remove(filename)
+
     def test_excel_010_hemstring(self):
         _skip_if_no_xlrd()
+
+        if self.merge_cells:
+            raise nose.SkipTest('Skip tests for merged MI format.')
+
         from pandas.util.testing import makeCustomDataframe as mkdf
         # ensure limited functionality in 0.10
         # override of #2370 until sorted out in 0.11
@@ -844,7 +870,7 @@ class ExcelWriterBase(SharedItems):
         def roundtrip(df, header=True, parser_hdr=0):
 
             with ensure_clean(self.ext) as path:
-                df.to_excel(path, header=header)
+                df.to_excel(path, header=header, merge_cells=self.merge_cells)
                 xf = pd.ExcelFile(path)
                 res = xf.parse(xf.sheet_names[0], header=parser_hdr)
                 return res
@@ -917,7 +943,7 @@ class OpenpyxlTests(ExcelWriterBase, unittest.TestCase):
                               "right": "thin",
                               "bottom": "thin",
                               "left": "thin"},
-                  "alignment": {"horizontal": "center"}}
+                  "alignment": {"horizontal": "center", "vertical": "top"}}
 
         xlsx_style = _OpenpyxlWriter._convert_to_style(hstyle)
         self.assertTrue(xlsx_style.font.bold)
@@ -931,6 +957,8 @@ class OpenpyxlTests(ExcelWriterBase, unittest.TestCase):
                           xlsx_style.borders.left.border_style)
         self.assertEquals(openpyxl.style.Alignment.HORIZONTAL_CENTER,
                           xlsx_style.alignment.horizontal)
+        self.assertEquals(openpyxl.style.Alignment.VERTICAL_TOP,
+                          xlsx_style.alignment.vertical)
 
 
 class XlwtTests(ExcelWriterBase, unittest.TestCase):
@@ -948,7 +976,8 @@ class XlwtTests(ExcelWriterBase, unittest.TestCase):
                               "right": "thin",
                               "bottom": "thin",
                               "left": "thin"},
-                  "alignment": {"horizontal": "center"}}
+                  "alignment": {"horizontal": "center", "vertical": "top"}}
+
         xls_style = _XlwtWriter._convert_to_style(hstyle)
         self.assertTrue(xls_style.font.bold)
         self.assertEquals(xlwt.Borders.THIN, xls_style.borders.top)
@@ -956,6 +985,7 @@ class XlwtTests(ExcelWriterBase, unittest.TestCase):
         self.assertEquals(xlwt.Borders.THIN, xls_style.borders.bottom)
         self.assertEquals(xlwt.Borders.THIN, xls_style.borders.left)
         self.assertEquals(xlwt.Alignment.HORZ_CENTER, xls_style.alignment.horz)
+        self.assertEquals(xlwt.Alignment.VERT_TOP, xls_style.alignment.vert)
 
 
 class XlsxWriterTests(ExcelWriterBase, unittest.TestCase):
@@ -963,48 +993,38 @@ class XlsxWriterTests(ExcelWriterBase, unittest.TestCase):
     engine_name = 'xlsxwriter'
     check_skip = staticmethod(_skip_if_no_xlsxwriter)
 
-    # Override test from the Superclass to use assertAlmostEqual on the
-    # floating point values read back in from the output XlsxWriter file.
-    def test_roundtrip_indexlabels(self):
-        _skip_if_no_xlrd()
 
-        with ensure_clean(self.ext) as path:
+class OpenpyxlTests_NoMerge(ExcelWriterBase, unittest.TestCase):
+    ext = '.xlsx'
+    engine_name = 'openpyxl'
+    check_skip = staticmethod(_skip_if_no_openpyxl)
 
-            self.frame['A'][:5] = nan
+    # Test < 0.13 non-merge behaviour for MultiIndex and Hierarchical Rows.
+    merge_cells = False
 
-            self.frame.to_excel(path, 'test1')
-            self.frame.to_excel(path, 'test1', cols=['A', 'B'])
-            self.frame.to_excel(path, 'test1', header=False)
-            self.frame.to_excel(path, 'test1', index=False)
 
-            # test index_label
-            frame = (DataFrame(np.random.randn(10, 2)) >= 0)
-            frame.to_excel(path, 'test1', index_label=['test'])
-            reader = ExcelFile(path)
-            recons = reader.parse('test1', index_col=0).astype(np.int64)
-            frame.index.names = ['test']
-            self.assertEqual(frame.index.names, recons.index.names)
+class XlwtTests_NoMerge(ExcelWriterBase, unittest.TestCase):
+    ext = '.xls'
+    engine_name = 'xlwt'
+    check_skip = staticmethod(_skip_if_no_xlwt)
 
-            frame = (DataFrame(np.random.randn(10, 2)) >= 0)
-            frame.to_excel(
-                path, 'test1', index_label=['test', 'dummy', 'dummy2'])
-            reader = ExcelFile(path)
-            recons = reader.parse('test1', index_col=0).astype(np.int64)
-            frame.index.names = ['test']
-            self.assertEqual(frame.index.names, recons.index.names)
+    # Test < 0.13 non-merge behaviour for MultiIndex and Hierarchical Rows.
+    merge_cells = False
 
-            frame = (DataFrame(np.random.randn(10, 2)) >= 0)
-            frame.to_excel(path, 'test1', index_label='test')
-            reader = ExcelFile(path)
-            recons = reader.parse('test1', index_col=0).astype(np.int64)
-            frame.index.names = ['test']
-            self.assertAlmostEqual(frame.index.names, recons.index.names)
+
+class XlsxWriterTests_NoMerge(ExcelWriterBase, unittest.TestCase):
+    ext = '.xlsx'
+    engine_name = 'xlsxwriter'
+    check_skip = staticmethod(_skip_if_no_xlsxwriter)
+
+    # Test < 0.13 non-merge behaviour for MultiIndex and Hierarchical Rows.
+    merge_cells = False
 
 
 class ExcelWriterEngineTests(unittest.TestCase):
     def test_ExcelWriter_dispatch(self):
         with tm.assertRaisesRegexp(ValueError, 'No engine'):
-            writer = ExcelWriter('nothing')
+            ExcelWriter('nothing')
 
         _skip_if_no_openpyxl()
         writer = ExcelWriter('apple.xlsx')
@@ -1046,7 +1066,6 @@ class ExcelWriterEngineTests(unittest.TestCase):
         func = lambda: df.to_excel('something.test')
         check_called(func)
         check_called(lambda: panel.to_excel('something.test'))
-        from pandas import set_option, get_option
         val = get_option('io.excel.xlsx.writer')
         set_option('io.excel.xlsx.writer', 'dummy')
         check_called(lambda: df.to_excel('something.xlsx'))
