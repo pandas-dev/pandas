@@ -802,6 +802,7 @@ Bug Fixes
   - Fix empty series not printing name in repr (:issue:`4651`)
   - Make tests create temp files in temp directory by default. (:issue:`5419`)
   - ``pd.to_timedelta`` of a scalar returns a scalar (:issue:`5410`)
+  - ``pd.to_timedelta`` accepts ``NaN`` and ``NaT``, returning ``NaT`` instead of raising (:issue:`5437`)
 
 pandas 0.12.0
 -------------
