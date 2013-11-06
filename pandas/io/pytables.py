@@ -3972,8 +3972,11 @@ def _unconvert_string_array(data, nan_rep=None, encoding=None):
     # where the passed encoding is actually None)
     encoding = _ensure_encoding(encoding)
     if encoding is not None and len(data):
-        f = np.vectorize(lambda x: x.decode(encoding), otypes=[np.object])
-        data = f(data)
+        try:
+            data = data.astype(str).astype(object)
+        except:
+            f = np.vectorize(lambda x: x.decode(encoding), otypes=[np.object])
+            data = f(data)
 
     if nan_rep is None:
         nan_rep = 'nan'
