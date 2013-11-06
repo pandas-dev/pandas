@@ -335,7 +335,7 @@ The :ref:`CSV <io.read_csv_table>` docs
 <http://stackoverflow.com/questions/11622652/large-persistent-dataframe-in-pandas/12193309#12193309>`__
 
 `Reading only certain rows of a csv chunk-by-chunk
-<http://stackoverflow.com/questions/19674212/pandas-data-frame-select-rows-and-clear-memory>``__
+<http://stackoverflow.com/questions/19674212/pandas-data-frame-select-rows-and-clear-memory>`__
 
 `Reading the first few lines of a frame
 <http://stackoverflow.com/questions/15008970/way-to-read-first-few-lines-for-pandas-dataframe>`__
