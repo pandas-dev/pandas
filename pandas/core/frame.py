@@ -1295,7 +1295,9 @@ class DataFrame(NDFrame):
                 justify=None, force_unicode=None, bold_rows=True,
                 classes=None, escape=True):
         """
-        to_html-specific options
+        Render a DataFrame as an HTML table.
+
+        `to_html`-specific options:
 
         bold_rows : boolean, default True
             Make the row labels bold in the output
@@ -1303,8 +1305,6 @@ class DataFrame(NDFrame):
             CSS class(es) to apply to the resulting html table
         escape : boolean, default True
             Convert the characters <, >, and & to HTML-safe sequences.
-
-        Render a DataFrame as an HTML table.
         """
 
         if force_unicode is not None:  # pragma: no cover
@@ -1337,12 +1337,13 @@ class DataFrame(NDFrame):
                  float_format=None, sparsify=None, index_names=True,
                  bold_rows=True, force_unicode=None):
         """
-        to_latex-specific options
-        bold_rows : boolean, default True
-            Make the row labels bold in the output
-
         Render a DataFrame to a tabular environment table.
         You can splice this into a LaTeX document.
+
+        `to_latex`-specific options:
+
+        bold_rows : boolean, default True
+            Make the row labels bold in the output
         """
 
         if force_unicode is not None:  # pragma: no cover
