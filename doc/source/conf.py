@@ -246,3 +246,12 @@ extlinks = {'issue': ('https://github.com/pydata/pandas/issues/%s',
                       'GH'),
             'wiki': ('https://github.com/pydata/pandas/wiki/%s',
                      'wiki ')}
+
+# remove the docstring of the flags attribute (inherited from numpy ndarray)
+# because these give doc build errors (see GH issue 5331) 
+def remove_flags_docstring(app, what, name, obj, options, lines):
+    if what == "attribute" and name.endswith(".flags"):
+        del lines[:]
+
+def setup(app):
+    app.connect("autodoc-process-docstring", remove_flags_docstring)
