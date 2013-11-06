@@ -1552,12 +1552,9 @@ class DataFrame(NDFrame):
                     i = _maybe_convert_indices(i, len(self._get_axis(axis)))
                     return self.reindex(i, takeable=True)
                 else:
-                    try:
-                        new_values = self._data.fast_2d_xs(i, copy=copy)
-                    except:
-                        new_values = self._data.fast_2d_xs(i, copy=True)
+                    new_values, copy = self._data.fast_2d_xs(i, copy=copy)
                     return Series(new_values, index=self.columns,
-                                  name=self.index[i])
+                                  name=self.index[i])._setitem_copy(copy)
 
         # icol
         else:
@@ -1897,9 +1894,17 @@ class DataFrame(NDFrame):
         Series/TimeSeries will be conformed to the DataFrame's index to
         ensure homogeneity.
         """
+
+        is_existing = key in self.columns
         self._ensure_valid_index(value)
         value = self._sanitize_column(key, value)
         NDFrame._set_item(self, key, value)
+
+        # check if we are modifying a copy
+        # try to set first as we want an invalid
+        # value exeption to occur first
+        if is_existing:
+            self._check_setitem_copy()
 
     def insert(self, loc, column, value, allow_duplicates=False):
         """
@@ -2098,13 +2103,16 @@ class DataFrame(NDFrame):
                 new_index = self.index[loc]
 
         if np.isscalar(loc):
-            new_values = self._data.fast_2d_xs(loc, copy=copy)
-            return Series(new_values, index=self.columns,
-                          name=self.index[loc])
+
+            new_values, copy = self._data.fast_2d_xs(loc, copy=copy)
+            result = Series(new_values, index=self.columns,
+                            name=self.index[loc])._setitem_copy(copy)
+
         else:
             result = self[loc]
             result.index = new_index
-            return result
+
+        return result
 
     _xs = xs
 

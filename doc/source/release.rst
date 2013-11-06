@@ -402,6 +402,9 @@ API Changes
     3    4.000000
     dtype: float64
 
+  - raise/warn ``SettingWithCopyError/Warning`` exception/warning when setting of a
+    copy thru chained assignment is detected, settable via option ``mode.chained_assignment``
+
 Internal Refactoring
 ~~~~~~~~~~~~~~~~~~~~
 

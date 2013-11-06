@@ -105,6 +105,34 @@ API changes
 - ``Series`` and ``DataFrame`` now have a ``mode()`` method to calculate the
   statistical mode(s) by axis/Series. (:issue:`5367`)
 
+- Chained assignment will now by default warn if the user is assigning to a copy. This can be changed
+  with he option ``mode.chained_assignment``, allowed options are ``raise/warn/None``. See :ref:`the docs<indexing.view_versus_copy>`.
+
+  .. ipython:: python
+
+     dfc = DataFrame({'A':['aaa','bbb','ccc'],'B':[1,2,3]})
+     pd.set_option('chained_assignment','warn')
+
+  The following warning / exception will show if this is attempted.
+
+  .. ipython:: python
+
+     dfc.loc[0]['A'] = 1111
+
+  ::
+
+     Traceback (most recent call last)
+        ...
+     SettingWithCopyWarning:
+        A value is trying to be set on a copy of a slice from a DataFrame.
+        Try using .loc[row_index,col_indexer] = value instead
+
+  Here is the correct method of assignment.
+
+  .. ipython:: python
+
+     dfc.loc[0,'A'] = 11
+     dfc
 
 Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

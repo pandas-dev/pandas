@@ -26,6 +26,11 @@ from pandas.core import array as pa
 class PandasError(Exception):
     pass
 
+class SettingWithCopyError(ValueError):
+    pass
+
+class SettingWithCopyWarning(Warning):
+    pass
 
 class AmbiguousIndexError(PandasError, KeyError):
     pass

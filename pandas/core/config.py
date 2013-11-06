@@ -512,6 +512,13 @@ def _get_root(key):
         cursor = cursor[p]
     return cursor, path[-1]
 
+def _get_option_fast(key):
+    """ internal quick access routine, no error checking """
+    path = key.split('.')
+    cursor = _global_config
+    for p in path:
+        cursor = cursor[p]
+    return cursor
 
 def _is_deprecated(key):
     """ Returns True if the given option has been deprecated """

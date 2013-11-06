@@ -22,7 +22,8 @@ from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _values_from_object,
                                 _possibly_cast_to_datetime, _possibly_castable,
                                 _possibly_convert_platform,
-                                ABCSparseArray, _maybe_match_name, _ensure_object)
+                                ABCSparseArray, _maybe_match_name, _ensure_object,
+                                SettingWithCopyError)
 
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                _ensure_index, _handle_legacy_indexes)
@@ -575,6 +576,8 @@ class Series(generic.NDFrame):
         try:
             self._set_with_engine(key, value)
             return
+        except (SettingWithCopyError):
+            raise
         except (KeyError, ValueError):
             values = self.values
             if (com.is_integer(key)
@@ -623,6 +626,7 @@ class Series(generic.NDFrame):
         values = self.values
         try:
             self.index._engine.set_value(values, key, value)
+            self._check_setitem_copy()
             return
         except KeyError:
             values[self.index.get_loc(key)] = value
