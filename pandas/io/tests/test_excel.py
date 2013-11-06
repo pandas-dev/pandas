@@ -14,7 +14,7 @@ from pandas import DataFrame, Index, MultiIndex
 from pandas.io.parsers import read_csv
 from pandas.io.excel import (
     ExcelFile, ExcelWriter, read_excel, _XlwtWriter, _OpenpyxlWriter,
-    register_writer
+    register_writer, _XlsxWriter
 )
 from pandas.util.testing import ensure_clean
 from pandas.core.config import set_option, get_option
@@ -1026,9 +1026,14 @@ class ExcelWriterEngineTests(unittest.TestCase):
         with tm.assertRaisesRegexp(ValueError, 'No engine'):
             ExcelWriter('nothing')
 
-        _skip_if_no_openpyxl()
+        try:
+            import xlsxwriter
+            writer_klass = _XlsxWriter
+        except ImportError:
+            _skip_if_no_openpyxl()
+            writer_klass = _OpenpyxlWriter
         writer = ExcelWriter('apple.xlsx')
-        tm.assert_isinstance(writer, _OpenpyxlWriter)
+        tm.assert_isinstance(writer, writer_klass)
 
         _skip_if_no_xlwt()
         writer = ExcelWriter('apple.xls')

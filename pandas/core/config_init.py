@@ -290,8 +290,7 @@ writer_engine_doc = """
 with cf.config_prefix('io.excel'):
     # going forward, will be additional writers
     for ext, options in [('xls', ['xlwt']),
-                         ('xlsm', ['openpyxl']),
-                         ('xlsx', ['openpyxl'])]:
+                         ('xlsm', ['openpyxl'])]:
         default = options.pop(0)
         if options:
             options = " " + ", ".join(options)
@@ -300,3 +299,17 @@ with cf.config_prefix('io.excel'):
         doc = writer_engine_doc.format(ext=ext, default=default,
                                        others=options)
         cf.register_option(ext + '.writer', default, doc, validator=str)
+    def _register_xlsx(engine, other):
+        cf.register_option('xlsx.writer', engine,
+                           writer_engine_doc.format(ext='xlsx',
+                                                    default=engine,
+                                                    others=", '%s'" % other),
+                          validator=str)
+
+    try:
+        # better memory footprint
+        import xlsxwriter
+        _register_xlsx('xlsxwriter', 'openpyxl')
+    except ImportError:
+        # fallback
+        _register_xlsx('openpyxl', 'xlsxwriter')

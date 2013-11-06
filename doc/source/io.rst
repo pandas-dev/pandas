@@ -1825,8 +1825,10 @@ written.  For example:
 
    df.to_excel('path_to_file.xlsx', sheet_name='Sheet1')
 
-Files with a ``.xls`` extension will be written using ``xlwt`` and those with
-a ``.xlsx`` extension will be written using ``openpyxl``.
+Files with a ``.xls`` extension will be written using ``xlwt`` and those with a
+``.xlsx`` extension will be written using ``xlsxwriter`` (if available) or
+``openpyxl``.
+
 The Panel class also has a ``to_excel`` instance method,
 which writes each DataFrame in the Panel to a separate sheet.
 
@@ -1858,14 +1860,19 @@ Excel writer engines
 1. the ``engine`` keyword argument
 2. the filename extension (via the default specified in config options)
 
-By default, ``pandas`` uses  `openpyxl <http://packages.python.org/openpyxl/>`__
-for ``.xlsx`` and ``.xlsm`` files and `xlwt <http://www.python-excel.org/>`__
-for ``.xls`` files.  If you have multiple engines installed, you can set the
-default engine through :ref:`setting the config options <basics.working_with_options>`
-``io.excel.xlsx.writer`` and ``io.excel.xls.writer``.
+By default, ``pandas`` uses the `XlsxWriter`_  for ``.xlsx`` and `openpyxl`_
+for ``.xlsm`` files and `xlwt`_ for ``.xls`` files.  If you have multiple
+engines installed, you can set the default engine through :ref:`setting the
+config options <basics.working_with_options>` ``io.excel.xlsx.writer`` and
+``io.excel.xls.writer``. pandas will fall back on `openpyxl`_ for ``.xlsx``
+files if `Xlsxwriter`_ is not available.
 
-For example if the `XlsxWriter <http://xlsxwriter.readthedocs.org>`__
-module is installed you can use it as a xlsx writer engine as follows:
+.. _XlsxWriter: http://xlsxwriter.readthedocs.org
+.. _openpyxl: http://packages.python.org/openpyxl/
+.. _xlwt: http://www.python-excel.org
+
+To specify which writer you want to use, you can pass an engine keyword
+argument to ``to_excel`` and to ``ExcelWriter``.
 
 .. code-block:: python
 
