@@ -2208,13 +2208,13 @@ class NDFrame(PandasObject):
         """
         Return a boolean same-sized object indicating if the values are null
         """
-        return self.__class__(isnull(self),**self._construct_axes_dict()).__finalize__(self)
+        return isnull(self).__finalize__(self)
 
     def notnull(self):
         """
         Return a boolean same-sized object indicating if the values are not null
         """
-        return self.__class__(notnull(self),**self._construct_axes_dict()).__finalize__(self)
+        return notnull(self).__finalize__(self)
 
     def clip(self, lower=None, upper=None, out=None):
         """

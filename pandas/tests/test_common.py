@@ -75,17 +75,28 @@ def test_isnull():
     assert not isnull(np.inf)
     assert not isnull(-np.inf)
 
+    # series
     for s in [tm.makeFloatSeries(),tm.makeStringSeries(),
               tm.makeObjectSeries(),tm.makeTimeSeries(),tm.makePeriodSeries()]:
             assert(isinstance(isnull(s), Series))
 
-    # call on DataFrame
-    df = DataFrame(np.random.randn(10, 5))
-    df['foo'] = 'bar'
-    result = isnull(df)
-    expected = result.apply(isnull)
-    tm.assert_frame_equal(result, expected)
+    # frame
+    for df in [tm.makeTimeDataFrame(),tm.makePeriodFrame(),tm.makeMixedDataFrame()]:
+        result = isnull(df)
+        expected = df.apply(isnull)
+        tm.assert_frame_equal(result, expected)
 
+    # panel
+    for p in [ tm.makePanel(), tm.makePeriodPanel(), tm.add_nans(tm.makePanel()) ]:
+        result = isnull(p)
+        expected = p.apply(isnull)
+        tm.assert_panel_equal(result, expected)
+
+    # panel 4d
+    for p in [ tm.makePanel4D(), tm.add_nans_panel4d(tm.makePanel4D()) ]:
+        result = isnull(p)
+        expected = p.apply(isnull)
+        tm.assert_panel4d_equal(result, expected)
 
 def test_isnull_lists():
     result = isnull([[False]])

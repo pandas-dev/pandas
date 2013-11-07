@@ -128,7 +128,7 @@ def _isnull_new(obj):
     elif isinstance(obj, (ABCSeries, np.ndarray)):
         return _isnull_ndarraylike(obj)
     elif isinstance(obj, ABCGeneric):
-        return obj.apply(isnull)
+        return obj._constructor(obj._data.apply(lambda x: isnull(x.values)))
     elif isinstance(obj, list) or hasattr(obj, '__array__'):
         return _isnull_ndarraylike(np.asarray(obj))
     else:
@@ -155,7 +155,7 @@ def _isnull_old(obj):
     elif isinstance(obj, (ABCSeries, np.ndarray)):
         return _isnull_ndarraylike_old(obj)
     elif isinstance(obj, ABCGeneric):
-        return obj.apply(_isnull_old)
+        return obj._constructor(obj._data.apply(lambda x: _isnull_old(x.values)))
     elif isinstance(obj, list) or hasattr(obj, '__array__'):
         return _isnull_ndarraylike_old(np.asarray(obj))
     else:
