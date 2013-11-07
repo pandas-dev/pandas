@@ -2153,6 +2153,13 @@ class BlockManager(PandasObject):
                     continue
             if callable(f):
                 applied = f(blk, *args, **kwargs)
+
+                # if we are no a block, try to coerce
+                if not isinstance(applied, Block):
+                    applied = make_block(applied,
+                                         blk.items,
+                                         blk.ref_items)
+
             else:
                 applied = getattr(blk, f)(*args, **kwargs)
 

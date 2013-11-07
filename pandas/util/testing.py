@@ -531,6 +531,9 @@ def assert_copy(iter1, iter2, **eql_kwargs):
 def getCols(k):
     return string.ascii_uppercase[:k]
 
+def getArangeMat():
+    return np.arange(N * K).reshape((N, K))
+
 
 # make index
 def makeStringIndex(k=10):
@@ -601,22 +604,18 @@ def getTimeSeriesData(nper=None):
     return dict((c, makeTimeSeries(nper)) for c in getCols(K))
 
 
+def getPeriodData(nper=None):
+    return dict((c, makePeriodSeries(nper)) for c in getCols(K))
+
+# make frame
 def makeTimeDataFrame(nper=None):
     data = getTimeSeriesData(nper)
     return DataFrame(data)
 
 
-def getPeriodData(nper=None):
-    return dict((c, makePeriodSeries(nper)) for c in getCols(K))
-
-# make frame
 def makeDataFrame():
     data = getSeriesData()
     return DataFrame(data)
-
-
-def getArangeMat():
-    return np.arange(N * K).reshape((N, K))
 
 
 def getMixedTypeDict():
@@ -631,6 +630,8 @@ def getMixedTypeDict():
 
     return index, data
 
+def makeMixedDataFrame():
+    return DataFrame(getMixedTypeDict()[1])
 
 def makePeriodFrame(nper=None):
     data = getPeriodData(nper)
@@ -827,13 +828,13 @@ def add_nans(panel):
         dm = panel[item]
         for j, col in enumerate(dm.columns):
             dm[col][:i + j] = np.NaN
-
+    return panel
 
 def add_nans_panel4d(panel4d):
     for l, label in enumerate(panel4d.labels):
         panel = panel4d[label]
         add_nans(panel)
-
+    return panel4d
 
 class TestSubDict(dict):
 

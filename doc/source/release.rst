@@ -803,6 +803,7 @@ Bug Fixes
   - Make tests create temp files in temp directory by default. (:issue:`5419`)
   - ``pd.to_timedelta`` of a scalar returns a scalar (:issue:`5410`)
   - ``pd.to_timedelta`` accepts ``NaN`` and ``NaT``, returning ``NaT`` instead of raising (:issue:`5437`)
+  - performance improvements in ``isnull`` on larger size pandas objects
 
 pandas 0.12.0
 -------------
