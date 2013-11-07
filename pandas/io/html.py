@@ -492,10 +492,10 @@ class _LxmlFrameParser(_HtmlFrameParser):
             tables = doc.xpath(xpath_expr)
 
             if not all(table.tag == 'table' for table in tables):
-                raise ValueError("XPath expression %s matched non-table elements" % xpath)
+                raise ValueError("XPath expression %r matched non-table elements" % xpath)
 
             if not tables:
-                raise ValueError("No tables found using XPath expression %s" % xpath)
+                raise ValueError("No tables found using XPath expression %r" % xpath)
             return tables
 
         else:
