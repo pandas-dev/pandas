@@ -52,6 +52,8 @@ pandas 0.13.0
 New features
 ~~~~~~~~~~~~
 
+  - ``read_html()`` now accepts an ``xpath`` string argument representing an
+    xpath expression used for selecting tables to be read (:issue:`5416`)
   - ``plot(kind='kde')`` now accepts the optional parameters ``bw_method`` and
     ``ind``, passed to scipy.stats.gaussian_kde() (for scipy >= 0.11.0) to set
     the bandwidth, and to gkde.evaluate() to specify the indicies at which it
