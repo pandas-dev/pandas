@@ -1112,6 +1112,42 @@ Conversion
    DatetimeIndex.to_pydatetime
 
 
+GroupBy
+-------
+.. currentmodule:: pandas.core.groupby
+
+GroupBy objects are returned by groupby calls: :func:`pandas.DataFrame.groupby`, :func:`pandas.Series.groupby`, etc.
+
+Indexing, iteration
+~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+   
+   GroupBy.__iter__
+   GroupBy.groups
+   GroupBy.indices
+   GroupBy.get_group
+
+Function application
+~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   GroupBy.apply
+   GroupBy.aggregate
+   GroupBy.transform
+
+Computations / Descriptive Stats
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+   
+   GroupBy.mean
+   GroupBy.median
+   GroupBy.std
+   GroupBy.var
+   GroupBy.ohlc
+
 ..
     HACK - see github issue #4539. To ensure old links remain valid, include
     here the autosummaries with previous currentmodules as a comment and add
