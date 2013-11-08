@@ -20,6 +20,7 @@ from pandas.core.series import Series
 from pandas.util.testing import (assert_almost_equal, assertRaisesRegexp,
                                  assert_copy)
 from pandas import compat
+from pandas.compat import long
 
 import pandas.util.testing as tm
 import pandas.core.config as cf
@@ -1344,7 +1345,7 @@ class TestMultiIndex(unittest.TestCase):
 
         # make sure label setting works too
         labels2 = [[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]]
-        exp_values = np.array([(1, 'a')] * 6, dtype=object)
+        exp_values = np.array([(long(1), 'a')] * 6, dtype=object)
         new_values = mi2.set_labels(labels2).values
         # not inplace shouldn't change
         assert_almost_equal(mi2._tuples, vals2)

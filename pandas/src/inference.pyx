@@ -16,15 +16,14 @@ _TYPE_MAP = {
     np.string_: 'string',
     np.unicode_: 'unicode',
     np.bool_: 'boolean',
-    np.datetime64 : 'datetime64'
+    np.datetime64 : 'datetime64',
+    np.timedelta64 : 'timedelta64'
 }
 
 try:
     _TYPE_MAP[np.float128] = 'floating'
     _TYPE_MAP[np.complex256] = 'complex'
     _TYPE_MAP[np.float16] = 'floating'
-    _TYPE_MAP[np.datetime64] = 'datetime64'
-    _TYPE_MAP[np.timedelta64] = 'timedelta64'
 except AttributeError:
     pass
 
