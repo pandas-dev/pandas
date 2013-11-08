@@ -1724,7 +1724,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         exp = Series([11, 12])
         assert_series_equal(s.mode(), exp)
 
-        assert_series_equal(Series([1, 2, 3]).mode(), Series([], dtype=int))
+        assert_series_equal(Series([1, 2, 3]).mode(), Series([], dtype='int64'))
 
         lst = [5] * 20 + [1] * 10 + [6] * 25
         np.random.shuffle(lst)
@@ -1736,7 +1736,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         s = Series(lst)
         s[0] = np.nan
-        assert_series_equal(s.mode(), Series([6], dtype=float))
+        assert_series_equal(s.mode(), Series([6.]))
 
         s = Series(list('adfasbasfwewefwefweeeeasdfasnbam'))
         assert_series_equal(s.mode(), Series(['e']))
