@@ -358,6 +358,10 @@ class NaTType(_NaT):
     def __hash__(self):
         return iNaT
 
+    def __bool__(self):
+        return False
+    __nonzero__ = __bool__
+
     def weekday(self):
         return -1
 
