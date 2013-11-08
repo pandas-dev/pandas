@@ -177,8 +177,14 @@ def get_locales(prefix=None, normalize=True,
         For example::
 
             locale.setlocale(locale.LC_ALL, locale_string)
+
+    On error will return None (no locale available, e.g. Windows)
+
     """
-    raw_locales = locale_getter()
+    try:
+        raw_locales = locale_getter()
+    except:
+        return None
 
     try:
         raw_locales = str(raw_locales, encoding=pd.options.display.encoding)

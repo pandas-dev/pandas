@@ -1687,7 +1687,7 @@ class TestIndexing(unittest.TestCase):
 
         # work with the chain
         expected = DataFrame([[-5,1],[-6,3]],columns=list('AB'))
-        df = DataFrame(np.arange(4).reshape(2,2),columns=list('AB'))
+        df = DataFrame(np.arange(4).reshape(2,2),columns=list('AB'),dtype='int64')
         self.assert_(not df._is_copy)
 
         df['A'][0] = -5
@@ -1695,7 +1695,7 @@ class TestIndexing(unittest.TestCase):
         assert_frame_equal(df, expected)
 
         expected = DataFrame([[-5,2],[np.nan,3.]],columns=list('AB'))
-        df = DataFrame({ 'A' : np.arange(2), 'B' : np.array(np.arange(2,4),dtype=np.float64)})
+        df = DataFrame({ 'A' : Series(range(2),dtype='int64'), 'B' : np.array(np.arange(2,4),dtype=np.float64)})
         self.assert_(not df._is_copy)
         df['A'][0] = -5
         df['A'][1] = np.nan
@@ -1703,7 +1703,7 @@ class TestIndexing(unittest.TestCase):
         self.assert_(not df['A']._is_copy)
 
         # using a copy (the chain), fails
-        df = DataFrame({ 'A' : np.arange(2), 'B' : np.array(np.arange(2,4),dtype=np.float64)})
+        df = DataFrame({ 'A' : Series(range(2),dtype='int64'), 'B' : np.array(np.arange(2,4),dtype=np.float64)})
         def f():
             df.loc[0]['A'] = -5
         self.assertRaises(com.SettingWithCopyError, f)
@@ -1711,7 +1711,7 @@ class TestIndexing(unittest.TestCase):
         # doc example
         df = DataFrame({'a' : ['one', 'one', 'two',
                                'three', 'two', 'one', 'six'],
-                        'c' : np.arange(7) })
+                        'c' : Series(range(7),dtype='int64') })
         self.assert_(not df._is_copy)
         expected = DataFrame({'a' : ['one', 'one', 'two',
                                      'three', 'two', 'one', 'six'],

@@ -537,7 +537,7 @@ class Panel(NDFrame):
             if value.shape != shape[1:]:
                 raise ValueError('shape of value must be {0}, shape of given '
                                  'object was {1}'.format(shape[1:],
-                                                         value.shape))
+                                                         tuple(map(int, value.shape))))
             mat = np.asarray(value)
         elif np.isscalar(value):
             dtype, value = _infer_dtype_from_scalar(value)
