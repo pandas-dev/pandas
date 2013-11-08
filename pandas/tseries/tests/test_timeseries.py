@@ -1420,6 +1420,11 @@ class TestTimeSeries(unittest.TestCase):
         result = rng.normalize()
         expected = date_range('1/1/2000', periods=10, freq='D')
         self.assert_(result.equals(expected))
+        
+        rng_ns = pd.DatetimeIndex(np.array([1380585623454345752, 1380585612343234312]).astype("datetime64[ns]"))
+        rng_ns_normalized = rng_ns.normalize()
+        expected = pd.DatetimeIndex(np.array([1380585600000000000, 1380585600000000000]).astype("datetime64[ns]"))
+        self.assert_(rng_ns_normalized.equals(expected))
 
         self.assert_(result.is_normalized)
         self.assert_(not rng.is_normalized)

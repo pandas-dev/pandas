@@ -2180,6 +2180,7 @@ cdef inline int64_t _normalized_stamp(pandas_datetimestruct *dts):
     dts.min = 0
     dts.sec = 0
     dts.us = 0
+    dts.ps = 0
     return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, dts)
 
 
