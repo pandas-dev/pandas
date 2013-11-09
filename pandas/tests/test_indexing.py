@@ -1736,6 +1736,16 @@ class TestIndexing(unittest.TestCase):
         df = DataFrame({'A':['aaa','bbb','ccc'],'B':[1,2,3]})
         df.loc[0]['A'] = 111
 
+        # make sure that _is_copy is picked up reconstruction
+        # GH5475
+        df = DataFrame({"A": [1,2]})
+        self.assert_(df._is_copy is False)
+        with tm.ensure_clean('__tmp__pickle') as path:
+            df.to_pickle(path)
+            df2 = pd.read_pickle(path)
+            df2["B"] = df2["A"]
+            df2["B"] = df2["A"]
+
     def test_floating_index_doc_example(self):
 
         index = Index([1.5, 2, 3, 4.5, 5])
