@@ -53,6 +53,8 @@ pandas 0.14.0
 New features
 ~~~~~~~~~~~~
 
+- Hexagonal bin plots from ``DataFrame.plot`` with ``kind='hexbin'`` (:issue:`5478`)
+
 API Changes
 ~~~~~~~~~~~
 
