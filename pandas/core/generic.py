@@ -74,6 +74,7 @@ class NDFrame(PandasObject):
         '_data', 'name', '_cacher', '_is_copy', '_subtyp', '_index', '_default_kind', '_default_fill_value']
     _internal_names_set = set(_internal_names)
     _metadata = []
+    _is_copy = None
 
     def __init__(self, data, axes=None, copy=False, dtype=None, fastpath=False):
 
