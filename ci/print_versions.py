@@ -13,4 +13,4 @@ def show_versions():
 
 
 if __name__ == '__main__':
-    return show_versions()
+    show_versions()
