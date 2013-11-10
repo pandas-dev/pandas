@@ -2810,11 +2810,28 @@ class DataFrame(NDFrame):
             return func(left, right)
 
         if this._is_mixed_type or other._is_mixed_type:
-            # XXX no good for duplicate columns
-            # but cannot outer join in align if dups anyways?
-            result = {}
-            for col in this:
-                result[col] = _arith_op(this[col].values, other[col].values)
+
+            # unique
+            if this.columns.is_unique:
+
+                def f(col):
+                    r = _arith_op(this[col].values, other[col].values)
+                    return self._constructor_sliced(r,index=new_index,dtype=r.dtype)
+
+                result = dict([ (col, f(col)) for col in this ])
+
+            # non-unique
+            else:
+
+                def f(i):
+                    r = _arith_op(this.iloc[:,i].values, other.iloc[:,i].values)
+                    return self._constructor_sliced(r,index=new_index,dtype=r.dtype)
+
+                result = dict([ (i,f(i)) for i, col in enumerate(this.columns) ])
+                result = self._constructor(result, index=new_index, copy=False)
+                result.columns = new_columns
+                return result
+
         else:
             result = _arith_op(this.values, other.values)
 
@@ -2890,10 +2907,12 @@ class DataFrame(NDFrame):
         # non-unique
         else:
             def _compare(a, b):
-                return [func(a.iloc[:,i], b.iloc[:,i]) for i, col in enumerate(a.columns)]
+                return dict([(i,func(a.iloc[:,i], b.iloc[:,i])) for i, col in enumerate(a.columns)])
             new_data = expressions.evaluate(_compare, str_rep, self, other)
-            return self._constructor(data=new_data, index=self.columns,
-                                     columns=self.index, copy=False).T
+            result = self._constructor(data=new_data, index=self.index,
+                                       copy=False)
+            result.columns = self.columns
+            return result
 
     def _compare_frame(self, other, func, str_rep):
         if not self._indexed_same(other):
