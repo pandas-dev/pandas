@@ -3217,6 +3217,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             this_df['A'] = index
             check(this_df, expected_df)
 
+        # operations
+        for op in ['__add__','__mul__','__sub__','__truediv__']:
+            df = DataFrame(dict(A = np.arange(10), B = np.random.rand(10)))
+            expected = getattr(df,op)(df)
+            expected.columns = ['A','A']
+            df.columns = ['A','A']
+            result = getattr(df,op)(df)
+            check(result,expected)
+
     def test_column_dups_indexing(self):
 
         def check(result, expected=None):
