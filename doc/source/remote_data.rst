@@ -80,7 +80,9 @@ FRED
     gdp=web.DataReader("GDP", "fred", start, end)
     gdp.ix['2013-01-01']
 
-
+    # Multiple series:
+    inflation = web.DataReader(["CPIAUCSL", "CPILFESL"], "fred", start, end)
+    inflation.head()
 .. _remote_data.ff:
 
 Fama/French
