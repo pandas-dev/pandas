@@ -35,6 +35,9 @@ These are some neat pandas ``idioms``
 `How to do if-then-else?
 <http://stackoverflow.com/questions/17128302/python-pandas-idiom-for-if-then-else>`__
 
+`How to do if-then-else #2
+<http://stackoverflow.com/questions/19913659/pandas-conditional-creation-of-a-series-dataframe-column>`__
+
 `How to split a frame with a boolean criterion?
 <http://stackoverflow.com/questions/14957116/how-to-split-a-dataframe-according-to-a-boolean-criterion>`__
 
