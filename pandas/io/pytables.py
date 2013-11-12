@@ -376,7 +376,7 @@ class HDFStore(StringMixin):
         self._complib = complib
         self._fletcher32 = fletcher32
         self._filters = None
-        self.open(mode=mode)
+        self.open(mode=mode, **kwargs)
 
     @property
     def root(self):
@@ -465,7 +465,7 @@ class HDFStore(StringMixin):
 
     iteritems = items
 
-    def open(self, mode='a'):
+    def open(self, mode='a', **kwargs):
         """
         Open the file in the specified mode
 
@@ -502,11 +502,11 @@ class HDFStore(StringMixin):
                                               fletcher32=self._fletcher32)
 
         try:
-            self._handle = tables.openFile(self._path, self._mode)
+            self._handle = tables.openFile(self._path, self._mode, **kwargs)
         except (IOError) as e:  # pragma: no cover
             if 'can not be written' in str(e):
                 print('Opening %s in read-only mode' % self._path)
-                self._handle = tables.openFile(self._path, 'r')
+                self._handle = tables.openFile(self._path, 'r', **kwargs)
             else:
                 raise
         except (Exception) as e:
