@@ -373,6 +373,7 @@ HDFStore API Changes
 - add the keyword ``dropna=True`` to ``append`` to change whether ALL nan rows are not written
   to the store (default is ``True``, ALL nan rows are NOT written), also settable
   via the option ``io.hdf.dropna_table`` (:issue:`4625`)
+- pass thru store creation arguments; can be used to support in-memory stores
 
 Enhancements
 ~~~~~~~~~~~~

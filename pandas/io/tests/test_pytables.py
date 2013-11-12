@@ -489,6 +489,28 @@ class TestHDFStore(unittest.TestCase):
             store.close()
             self.assert_(not store.is_open)
 
+    def test_open_args(self):
+
+        with ensure_clean_path(self.path) as path:
+
+            df = tm.makeDataFrame()
+
+            # create an in memory store
+            store = HDFStore(path,mode='a',driver='H5FD_CORE',driver_core_backing_store=0)
+            store['df'] = df
+            store.append('df2',df)
+
+            tm.assert_frame_equal(store['df'],df)
+            tm.assert_frame_equal(store['df2'],df)
+
+            store.close()
+
+            # only supported on pytable >= 3.0.0
+            if LooseVersion(tables.__version__) >= '3.0.0':
+
+                # the file should not have actually been written
+                self.assert_(os.path.exists(path) is False)
+
     def test_flush(self):
 
         with ensure_clean_store(self.path) as store:
