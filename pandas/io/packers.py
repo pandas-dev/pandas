@@ -40,6 +40,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
+import os
 from datetime import datetime, date, timedelta
 from dateutil.parser import parse
 
@@ -54,6 +55,7 @@ from pandas.sparse.api import SparseSeries, SparseDataFrame, SparsePanel
 from pandas.sparse.array import BlockIndex, IntIndex
 from pandas.core.generic import NDFrame
 from pandas.core.common import needs_i8_conversion
+from pandas.io.common import get_filepath_or_buffer
 from pandas.core.internals import BlockManager, make_block
 import pandas.core.internals as internals
 
@@ -71,7 +73,7 @@ except:
 compressor = None
 
 
-def to_msgpack(path, *args, **kwargs):
+def to_msgpack(path_or_buf, *args, **kwargs):
     """
     msgpack (serialize) object to input file path
 
@@ -80,7 +82,8 @@ def to_msgpack(path, *args, **kwargs):
 
     Parameters
     ----------
-    path : string File path
+    path_or_buf : string File path, buffer-like, or None
+                  if None, return generated string
     args : an object or objects to serialize
     append : boolean whether to append to an existing msgpack
              (default is False)
@@ -90,17 +93,24 @@ def to_msgpack(path, *args, **kwargs):
     compressor = kwargs.pop('compress', None)
     append = kwargs.pop('append', None)
     if append:
-        f = open(path, 'a+b')
+        mode = 'a+b'
     else:
-        f = open(path, 'wb')
-    try:
+        mode = 'wb'
+
+    def writer(fh):
         for a in args:
-            f.write(pack(a, **kwargs))
-    finally:
-        f.close()
+            fh.write(pack(a, **kwargs))
+        return fh
 
+    if isinstance(path_or_buf, compat.string_types):
+        with open(path_or_buf, mode) as fh:
+            writer(fh)
+    elif path_or_buf is None:
+        return writer(compat.BytesIO())
+    else:
+        writer(path_or_buf)
 
-def read_msgpack(path, iterator=False, **kwargs):
+def read_msgpack(path_or_buf, iterator=False, **kwargs):
     """
     Load msgpack pandas object from the specified
     file path
@@ -110,8 +120,7 @@ def read_msgpack(path, iterator=False, **kwargs):
 
     Parameters
     ----------
-    path : string
-        File path
+    path_or_buf : string File path, BytesIO like or string
     iterator : boolean, if True, return an iterator to the unpacker
                (default is False)
 
@@ -120,14 +129,39 @@ def read_msgpack(path, iterator=False, **kwargs):
     obj : type of object stored in file
 
     """
+    path_or_buf, _ = get_filepath_or_buffer(path_or_buf)
     if iterator:
-        return Iterator(path)
+        return Iterator(path_or_buf)
 
-    with open(path, 'rb') as fh:
+    def read(fh):
         l = list(unpack(fh))
         if len(l) == 1:
             return l[0]
         return l
+
+    # see if we have an actual file
+    if isinstance(path_or_buf, compat.string_types):
+
+        try:
+            path_exists = os.path.exists(path_or_buf)
+        except (TypeError):
+            path_exists = False
+
+        if path_exists:
+            with open(path_or_buf, 'rb') as fh:
+                return read(fh)
+
+    # treat as a string-like
+    if not hasattr(path_or_buf,'read'):
+
+        try:
+            fh = compat.BytesIO(path_or_buf)
+            return read(fh)
+        finally:
+            fh.close()
+
+    # a buffer like
+    return read(path_or_buf)
 
 dtype_dict = {21: np.dtype('M8[ns]'),
               u('datetime64[ns]'): np.dtype('M8[ns]'),
@@ -530,10 +564,36 @@ class Iterator(object):
 
     def __iter__(self):
 
+        needs_closing = True
         try:
-            fh = open(self.path, 'rb')
+
+            # see if we have an actual file
+            if isinstance(self.path, compat.string_types):
+
+                try:
+                    path_exists = os.path.exists(self.path)
+                except (TypeError):
+                    path_exists = False
+
+                if path_exists:
+                    fh = open(self.path, 'rb')
+                else:
+                    fh = compat.BytesIO(self.path)
+
+            else:
+
+                if not hasattr(self.path,'read'):
+                    fh = compat.BytesIO(self.path)
+
+                else:
+
+                    # a file-like
+                    needs_closing = False
+                    fh = self.path
+
             unpacker = unpack(fh)
             for o in unpacker:
                 yield o
         finally:
-            fh.close()
+            if needs_closing:
+                fh.close()

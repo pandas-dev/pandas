@@ -55,6 +55,38 @@ class Test(unittest.TestCase):
             to_msgpack(p, x, **kwargs)
             return read_msgpack(p, **kwargs)
 
+class TestAPI(Test):
+
+    def test_string_io(self):
+
+        df = DataFrame(np.random.randn(10,2))
+        s = df.to_msgpack(None)
+        result = read_msgpack(s.getvalue())
+        tm.assert_frame_equal(result,df)
+
+        s = to_msgpack(None,df)
+        result = read_msgpack(s.getvalue())
+        tm.assert_frame_equal(result, df)
+
+        with ensure_clean(self.path) as p:
+
+            s = df.to_msgpack(None)
+            fh = open(p,'wb')
+            fh.write(s.getvalue())
+            fh.close()
+            result = read_msgpack(p)
+            tm.assert_frame_equal(result, df)
+
+    def test_iterator_with_string_io(self):
+
+        dfs = [ DataFrame(np.random.randn(10,2)) for i in range(5) ]
+        s = to_msgpack(None,*dfs)
+        for i, result in enumerate(read_msgpack(s.getvalue(),iterator=True)):
+            tm.assert_frame_equal(result,dfs[i])
+
+        s = to_msgpack(None,*dfs)
+        for i, result in enumerate(read_msgpack(s,iterator=True)):
+            tm.assert_frame_equal(result,dfs[i])
 
 class TestNumpy(Test):
 
