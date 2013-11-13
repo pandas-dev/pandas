@@ -100,13 +100,14 @@ def to_msgpack(path_or_buf, *args, **kwargs):
     def writer(fh):
         for a in args:
             fh.write(pack(a, **kwargs))
-        return fh
 
     if isinstance(path_or_buf, compat.string_types):
         with open(path_or_buf, mode) as fh:
             writer(fh)
     elif path_or_buf is None:
-        return writer(compat.BytesIO())
+        buf = compat.BytesIO()
+        writer(buf)
+        return buf.getvalue()
     else:
         writer(path_or_buf)
 
@@ -263,17 +264,23 @@ def encode(obj):
             return {'typ': 'period_index',
                     'klass': obj.__class__.__name__,
                     'name': getattr(obj, 'name', None),
-                    'freq': obj.freqstr,
+                    'freq': getattr(obj,'freqstr',None),
                     'dtype': obj.dtype.num,
                     'data': convert(obj.asi8)}
         elif isinstance(obj, DatetimeIndex):
+            tz = getattr(obj,'tz',None)
+
+            # store tz info and data as UTC
+            if tz is not None:
+                tz = tz.zone
+                obj = obj.tz_convert('UTC')
             return {'typ': 'datetime_index',
                     'klass': obj.__class__.__name__,
                     'name': getattr(obj, 'name', None),
                     'dtype': obj.dtype.num,
                     'data': convert(obj.asi8),
-                    'freq': obj.freqstr,
-                    'tz': obj.tz}
+                    'freq': getattr(obj,'freqstr',None),
+                    'tz': tz }
         elif isinstance(obj, MultiIndex):
             return {'typ': 'multi_index',
                     'klass': obj.__class__.__name__,
@@ -440,7 +447,13 @@ def decode(obj):
         return globals()[obj['klass']](data, name=obj['name'], freq=obj['freq'])
     elif typ == 'datetime_index':
         data = unconvert(obj['data'], np.int64, obj.get('compress'))
-        return globals()[obj['klass']](data, freq=obj['freq'], tz=obj['tz'], name=obj['name'])
+        result = globals()[obj['klass']](data, freq=obj['freq'], name=obj['name'])
+        tz = obj['tz']
+
+        # reverse tz conversion
+        if tz is not None:
+            result = result.tz_localize('UTC').tz_convert(tz)
+        return result
     elif typ == 'series':
         dtype = dtype_for(obj['dtype'])
         index = obj['index']
