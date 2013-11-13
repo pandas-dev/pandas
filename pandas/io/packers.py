@@ -40,12 +40,13 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
+import os
 from datetime import datetime, date, timedelta
 from dateutil.parser import parse
 
 import numpy as np
 from pandas import compat
-from pandas.compat import u
+from pandas.compat import u, PY3
 from pandas import (
     Timestamp, Period, Series, DataFrame, Panel, Panel4D,
     Index, MultiIndex, Int64Index, PeriodIndex, DatetimeIndex, Float64Index, NaT
@@ -54,6 +55,7 @@ from pandas.sparse.api import SparseSeries, SparseDataFrame, SparsePanel
 from pandas.sparse.array import BlockIndex, IntIndex
 from pandas.core.generic import NDFrame
 from pandas.core.common import needs_i8_conversion
+from pandas.io.common import get_filepath_or_buffer
 from pandas.core.internals import BlockManager, make_block
 import pandas.core.internals as internals
 
@@ -71,7 +73,7 @@ except:
 compressor = None
 
 
-def to_msgpack(path, *args, **kwargs):
+def to_msgpack(path_or_buf, *args, **kwargs):
     """
     msgpack (serialize) object to input file path
 
@@ -80,7 +82,8 @@ def to_msgpack(path, *args, **kwargs):
 
     Parameters
     ----------
-    path : string File path
+    path_or_buf : string File path, buffer-like, or None
+                  if None, return generated string
     args : an object or objects to serialize
     append : boolean whether to append to an existing msgpack
              (default is False)
@@ -90,17 +93,24 @@ def to_msgpack(path, *args, **kwargs):
     compressor = kwargs.pop('compress', None)
     append = kwargs.pop('append', None)
     if append:
-        f = open(path, 'a+b')
+        mode = 'a+b'
     else:
-        f = open(path, 'wb')
-    try:
+        mode = 'wb'
+
+    def writer(fh):
         for a in args:
-            f.write(pack(a, **kwargs))
-    finally:
-        f.close()
+            fh.write(pack(a, **kwargs))
+        return fh
 
+    if isinstance(path_or_buf, compat.string_types):
+        with open(path_or_buf, mode) as fh:
+            writer(fh)
+    elif path_or_buf is None:
+        return writer(compat.BytesIO())
+    else:
+        writer(path_or_buf)
 
-def read_msgpack(path, iterator=False, **kwargs):
+def read_msgpack(path_or_buf, iterator=False, **kwargs):
     """
     Load msgpack pandas object from the specified
     file path
@@ -110,8 +120,7 @@ def read_msgpack(path, iterator=False, **kwargs):
 
     Parameters
     ----------
-    path : string
-        File path
+    path_or_buf : string File path, BytesIO like or string
     iterator : boolean, if True, return an iterator to the unpacker
                (default is False)
 
@@ -120,14 +129,39 @@ def read_msgpack(path, iterator=False, **kwargs):
     obj : type of object stored in file
 
     """
+    path_or_buf, _ = get_filepath_or_buffer(path_or_buf)
     if iterator:
-        return Iterator(path)
+        return Iterator(path_or_buf)
 
-    with open(path, 'rb') as fh:
+    def read(fh):
         l = list(unpack(fh))
         if len(l) == 1:
             return l[0]
         return l
+
+    # see if we have an actual file
+    if isinstance(path_or_buf, compat.string_types):
+
+        try:
+            path_exists = os.path.exists(path_or_buf)
+        except (TypeError):
+            path_exists = False
+
+        if path_exists:
+            with open(path_or_buf, 'rb') as fh:
+                return read(fh)
+
+    # treat as a string-like
+    if not hasattr(path_or_buf,'read'):
+
+        try:
+            fh = compat.BytesIO(path_or_buf)
+            return read(fh)
+        finally:
+            fh.close()
+
+    # a buffer like
+    return read(path_or_buf)
 
 dtype_dict = {21: np.dtype('M8[ns]'),
               u('datetime64[ns]'): np.dtype('M8[ns]'),
@@ -168,6 +202,10 @@ def convert(values):
         values = values.view('i8')
     v = values.ravel()
 
+    # convert object
+    if dtype == np.object_:
+        return v.tolist()
+
     if compressor == 'zlib':
 
         # return string arrays like they are
@@ -189,12 +227,7 @@ def convert(values):
         return blosc.compress(v, typesize=dtype.itemsize)
 
     # ndarray (on original dtype)
-    if dtype == 'float64' or dtype == 'int64':
-        return v
-
-    # as a list
-    return v.tolist()
-
+    return v.tostring()
 
 def unconvert(values, dtype, compress=None):
 
@@ -216,9 +249,8 @@ def unconvert(values, dtype, compress=None):
 
         return np.frombuffer(values, dtype=dtype)
 
-    # as a list
-    return np.array(values, dtype=dtype)
-
+    # from a string
+    return np.fromstring(values.encode('latin1'),dtype=dtype)
 
 def encode(obj):
     """
@@ -253,19 +285,20 @@ def encode(obj):
                     'klass': obj.__class__.__name__,
                     'name': getattr(obj, 'name', None),
                     'dtype': obj.dtype.num,
-                    'data': obj.tolist()}
+                    'data': convert(obj.values)}
     elif isinstance(obj, Series):
         if isinstance(obj, SparseSeries):
-            d = {'typ': 'sparse_series',
-                 'klass': obj.__class__.__name__,
-                 'dtype': obj.dtype.num,
-                 'index': obj.index,
-                 'sp_index': obj.sp_index,
-                 'sp_values': convert(obj.sp_values),
-                 'compress': compressor}
-            for f in ['name', 'fill_value', 'kind']:
-                d[f] = getattr(obj, f, None)
-            return d
+            raise NotImplementedError("msgpack sparse series is not implemented")
+            #d = {'typ': 'sparse_series',
+            #     'klass': obj.__class__.__name__,
+            #     'dtype': obj.dtype.num,
+            #     'index': obj.index,
+            #     'sp_index': obj.sp_index,
+            #     'sp_values': convert(obj.sp_values),
+            #     'compress': compressor}
+            #for f in ['name', 'fill_value', 'kind']:
+            #    d[f] = getattr(obj, f, None)
+            #return d
         else:
             return {'typ': 'series',
                     'klass': obj.__class__.__name__,
@@ -276,23 +309,25 @@ def encode(obj):
                     'compress': compressor}
     elif issubclass(tobj, NDFrame):
         if isinstance(obj, SparseDataFrame):
-            d = {'typ': 'sparse_dataframe',
-                 'klass': obj.__class__.__name__,
-                 'columns': obj.columns}
-            for f in ['default_fill_value', 'default_kind']:
-                d[f] = getattr(obj, f, None)
-            d['data'] = dict([(name, ss)
-                             for name, ss in compat.iteritems(obj)])
-            return d
+            raise NotImplementedError("msgpack sparse frame is not implemented")
+            #d = {'typ': 'sparse_dataframe',
+            #     'klass': obj.__class__.__name__,
+            #     'columns': obj.columns}
+            #for f in ['default_fill_value', 'default_kind']:
+            #    d[f] = getattr(obj, f, None)
+            #d['data'] = dict([(name, ss)
+            #                 for name, ss in compat.iteritems(obj)])
+            #return d
         elif isinstance(obj, SparsePanel):
-            d = {'typ': 'sparse_panel',
-                 'klass': obj.__class__.__name__,
-                 'items': obj.items}
-            for f in ['default_fill_value', 'default_kind']:
-                d[f] = getattr(obj, f, None)
-            d['data'] = dict([(name, df)
-                             for name, df in compat.iteritems(obj)])
-            return d
+            raise NotImplementedError("msgpack sparse frame is not implemented")
+            #d = {'typ': 'sparse_panel',
+            #     'klass': obj.__class__.__name__,
+            #     'items': obj.items}
+            #for f in ['default_fill_value', 'default_kind']:
+            #    d[f] = getattr(obj, f, None)
+            #d['data'] = dict([(name, df)
+            #                 for name, df in compat.iteritems(obj)])
+            #return d
         else:
 
             data = obj._data
@@ -354,7 +389,7 @@ def encode(obj):
                 'klass': obj.__class__.__name__,
                 'indices': obj.indices,
                 'length': obj.length}
-    elif isinstance(obj, np.ndarray) and obj.dtype not in ['float64', 'int64']:
+    elif isinstance(obj, np.ndarray):
         return {'typ': 'ndarray',
                 'shape': obj.shape,
                 'ndim': obj.ndim,
@@ -394,14 +429,18 @@ def decode(obj):
         return Period(ordinal=obj['ordinal'], freq=obj['freq'])
     elif typ == 'index':
         dtype = dtype_for(obj['dtype'])
-        data = obj['data']
+        data = unconvert(obj['data'], np.typeDict[obj['dtype']], obj.get('compress'))
         return globals()[obj['klass']](data, dtype=dtype, name=obj['name'])
     elif typ == 'multi_index':
-        return globals()[obj['klass']].from_tuples(obj['data'], names=obj['names'])
+        data = unconvert(obj['data'], np.typeDict[obj['dtype']], obj.get('compress'))
+        data = [ tuple(x) for x in data ]
+        return globals()[obj['klass']].from_tuples(data, names=obj['names'])
     elif typ == 'period_index':
-        return globals()[obj['klass']](obj['data'], name=obj['name'], freq=obj['freq'])
+        data = unconvert(obj['data'], np.int64, obj.get('compress'))
+        return globals()[obj['klass']](data, name=obj['name'], freq=obj['freq'])
     elif typ == 'datetime_index':
-        return globals()[obj['klass']](obj['data'], freq=obj['freq'], tz=obj['tz'], name=obj['name'])
+        data = unconvert(obj['data'], np.int64, obj.get('compress'))
+        return globals()[obj['klass']](data, freq=obj['freq'], tz=obj['tz'], name=obj['name'])
     elif typ == 'series':
         dtype = dtype_for(obj['dtype'])
         index = obj['index']
@@ -425,17 +464,17 @@ def decode(obj):
         return timedelta(*obj['data'])
     elif typ == 'timedelta64':
         return np.timedelta64(int(obj['data']))
-    elif typ == 'sparse_series':
-        dtype = dtype_for(obj['dtype'])
-        return globals(
-        )[obj['klass']](unconvert(obj['sp_values'], dtype, obj['compress']), sparse_index=obj['sp_index'],
-                        index=obj['index'], fill_value=obj['fill_value'], kind=obj['kind'], name=obj['name'])
-    elif typ == 'sparse_dataframe':
-        return globals()[obj['klass']](obj['data'],
-                                       columns=obj['columns'], default_fill_value=obj['default_fill_value'], default_kind=obj['default_kind'])
-    elif typ == 'sparse_panel':
-        return globals()[obj['klass']](obj['data'],
-                                       items=obj['items'], default_fill_value=obj['default_fill_value'], default_kind=obj['default_kind'])
+    #elif typ == 'sparse_series':
+    #    dtype = dtype_for(obj['dtype'])
+    #    return globals(
+    #    )[obj['klass']](unconvert(obj['sp_values'], dtype, obj['compress']), sparse_index=obj['sp_index'],
+    #                    index=obj['index'], fill_value=obj['fill_value'], kind=obj['kind'], name=obj['name'])
+    #elif typ == 'sparse_dataframe':
+    #    return globals()[obj['klass']](obj['data'],
+    #                                   columns=obj['columns'], default_fill_value=obj['default_fill_value'], default_kind=obj['default_kind'])
+    #elif typ == 'sparse_panel':
+    #    return globals()[obj['klass']](obj['data'],
+    #                                   items=obj['items'], default_fill_value=obj['default_fill_value'], default_kind=obj['default_kind'])
     elif typ == 'block_index':
         return globals()[obj['klass']](obj['length'], obj['blocs'], obj['blengths'])
     elif typ == 'int_index':
@@ -460,7 +499,7 @@ def decode(obj):
 
 
 def pack(o, default=encode,
-         encoding='utf-8', unicode_errors='strict', use_single_float=False):
+         encoding='latin1', unicode_errors='strict', use_single_float=False):
     """
     Pack an object and return the packed bytes.
     """
@@ -471,7 +510,7 @@ def pack(o, default=encode,
 
 
 def unpack(packed, object_hook=decode,
-           list_hook=None, use_list=False, encoding='utf-8',
+           list_hook=None, use_list=False, encoding='latin1',
            unicode_errors='strict', object_pairs_hook=None):
     """
     Unpack a packed object, return an iterator
@@ -488,7 +527,7 @@ def unpack(packed, object_hook=decode,
 class Packer(_Packer):
 
     def __init__(self, default=encode,
-                 encoding='utf-8',
+                 encoding='latin1',
                  unicode_errors='strict',
                  use_single_float=False):
         super(Packer, self).__init__(default=default,
@@ -501,7 +540,7 @@ class Unpacker(_Unpacker):
 
     def __init__(self, file_like=None, read_size=0, use_list=False,
                  object_hook=decode,
-                 object_pairs_hook=None, list_hook=None, encoding='utf-8',
+                 object_pairs_hook=None, list_hook=None, encoding='latin1',
                  unicode_errors='strict', max_buffer_size=0):
         super(Unpacker, self).__init__(file_like=file_like,
                                        read_size=read_size,
@@ -525,10 +564,36 @@ class Iterator(object):
 
     def __iter__(self):
 
+        needs_closing = True
         try:
-            fh = open(self.path, 'rb')
+
+            # see if we have an actual file
+            if isinstance(self.path, compat.string_types):
+
+                try:
+                    path_exists = os.path.exists(self.path)
+                except (TypeError):
+                    path_exists = False
+
+                if path_exists:
+                    fh = open(self.path, 'rb')
+                else:
+                    fh = compat.BytesIO(self.path)
+
+            else:
+
+                if not hasattr(self.path,'read'):
+                    fh = compat.BytesIO(self.path)
+
+                else:
+
+                    # a file-like
+                    needs_closing = False
+                    fh = self.path
+
             unpacker = unpack(fh)
             for o in unpacker:
                 yield o
         finally:
-            fh.close()
+            if needs_closing:
+                fh.close()

@@ -851,8 +851,8 @@ class NDFrame(PandasObject):
 
         Parameters
         ----------
-        path : string File path
-        args : an object or objects to serialize
+        path : string File path, buffer-like, or None
+           if None, return generated string
         append : boolean whether to append to an existing msgpack
                 (default is False)
         compress : type of compressor (zlib or blosc), default to None (no compression)

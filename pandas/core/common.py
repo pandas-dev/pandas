@@ -1871,8 +1871,12 @@ def _asarray_tuplesafe(values, dtype=None):
         else:
             # Making a 1D array that safely contains tuples is a bit tricky
             # in numpy, leading to the following
-            result = np.empty(len(values), dtype=object)
-            result[:] = values
+            try:
+                result = np.empty(len(values), dtype=object)
+                result[:] = values
+            except (ValueError):
+                # we have a list-of-list
+                result[:] = [ tuple(x) for x in values ]
 
     return result
 
