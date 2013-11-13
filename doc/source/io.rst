@@ -2033,6 +2033,21 @@ pandas objects.
    os.remove('foo.msg')
    os.remove('foo2.msg')
 
+Read/Write API
+~~~~~~~~~~~~~~
+
+Msgpacks can also be read from and written to strings.
+
+.. ipython:: python
+
+   df.to_msgpack()
+
+Furthermore you can concatenate the strings to produce a list of the original objects.
+
+.. ipython:: python
+
+  pd.read_msgpack(df.to_msgpack() + s.to_msgpack())
+
 .. _io.hdf5:
 
 HDF5 (PyTables)

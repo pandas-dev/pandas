@@ -492,12 +492,11 @@ Similarly, you can get the most frequently occuring value(s) (the mode) of the v
 
 .. ipython:: python
 
-    data = [1, 1, 3, 3, 3, 5, 5, 7, 7, 7]
-    s = Series(data)
-    s.mode()
-    df = pd.DataFrame({"A": np.random.randint(0, 7, size=50),
-                       "B": np.random.randint(-10, 15, size=50)})
-    df.mode()
+    s5 = Series([1, 1, 3, 3, 3, 5, 5, 7, 7, 7])
+    s5.mode()
+    df5 = DataFrame({"A": np.random.randint(0, 7, size=50),
+                     "B": np.random.randint(-10, 15, size=50)})
+    df5.mode()
 
 
 Discretization and quantiling
@@ -614,10 +613,16 @@ another array or value), the methods ``applymap`` on DataFrame and analogously
 returning a single value. For example:
 
 .. ipython:: python
+   :suppress:
 
+   df4 = df_orig.copy()
+
+.. ipython:: python
+
+   df4
    f = lambda x: len(str(x))
-   df['one'].map(f)
-   df.applymap(f)
+   df4['one'].map(f)
+   df4.applymap(f)
 
 ``Series.map`` has an additional feature which is that it can be used to easily
 "link" or "map" values defined by a secondary series. This is closely related
@@ -712,13 +717,13 @@ make this simpler:
    :suppress:
 
    df2 = df.reindex(['a', 'b', 'c'], columns=['one', 'two'])
-   df2 = df2 - df2.mean()
+   df3 = df2 - df2.mean()
 
 
 .. ipython:: python
 
-   df
    df2
+   df3
    df.reindex_like(df2)
 
 Reindexing with ``reindex_axis``
@@ -1010,7 +1015,7 @@ Extracting Substrings
 ~~~~~~~~~~~~~~~~~~~~~
 
 The method ``extract`` (introduced in version 0.13) accepts regular expressions
-with match groups. Extracting a regular expression with one group returns 
+with match groups. Extracting a regular expression with one group returns
 a Series of strings.
 
 .. ipython:: python
@@ -1043,7 +1048,7 @@ and optional groups like
 
 can also be used.
 
-Testing for Strings that Match or Contain a Pattern 
+Testing for Strings that Match or Contain a Pattern
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In previous versions, *extracting* match groups was accomplished by ``match``,
@@ -1055,8 +1060,8 @@ The distinction between
 ``match`` and ``contains`` is strictness: ``match`` relies on
 strict ``re.match`` while ``contains`` relies on ``re.search``.
 
-In version 0.13, ``match`` performs its old, deprecated behavior by default, 
-but the new behavior is availabe through the keyword argument 
+In version 0.13, ``match`` performs its old, deprecated behavior by default,
+but the new behavior is availabe through the keyword argument
 ``as_indexer=True``.
 
 Methods like ``match``, ``contains``, ``startswith``, and ``endswith`` take
@@ -1118,13 +1123,13 @@ determine the sort order:
 
 .. ipython:: python
 
-   df.sort_index(by='two')
+   df1 = DataFrame({'one':[2,1,1,1],'two':[1,3,2,4],'three':[5,4,3,2]})
+   df1.sort_index(by='two')
 
 The ``by`` argument can take a list of column names, e.g.:
 
 .. ipython:: python
 
-   df1 = DataFrame({'one':[2,1,1,1],'two':[1,3,2,4],'three':[5,4,3,2]})
    df1[['one', 'two', 'three']].sort_index(by=['one','two'])
 
 Series has the method ``order`` (analogous to `R's order function
