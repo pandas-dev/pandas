@@ -113,17 +113,19 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None):
 
     return result
 
-from dateutil.tz import tzlocal
+#from dateutil.tz import tzlocal
+import dateutil.tz
 
 def _is_tzlocal(tz):
-    return isinstance(tz, tzlocal)
+    return isinstance(tz, dateutil.tz.tzlocal)
 
 def _is_fixed_offset(tz):
-    try:
-        tz._transition_info
-        return False
-    except AttributeError:
-        return True
+    if _treat_tz_as_dateutil(tz):
+        return len(tz._trans_idx) == 0 and len(tz._trans_list) == 0
+    elif _treat_tz_as_pytz(tz):
+        return len(tz._transition_info) == 0 and len(tz._utc_transition_times) == 0
+    return True
+        
 
 # Python front end to C extension type _Timestamp
 # This serves as the box for datetime64
@@ -805,6 +807,7 @@ cdef convert_to_tsobject(object ts, object tz, object unit):
     return obj
 
 cdef inline void _localize_tso(_TSObject obj, object tz):
+
     if _is_utc(tz):
         obj.tzinfo = tz
     elif _is_tzlocal(tz):
@@ -821,23 +824,34 @@ cdef inline void _localize_tso(_TSObject obj, object tz):
         deltas = _get_deltas(tz)
         pos = trans.searchsorted(obj.value, side='right') - 1
 
-        # statictzinfo
-        if not hasattr(tz, '_transition_info'):
-            pandas_datetime_to_datetimestruct(obj.value + deltas[0],
-                                              PANDAS_FR_ns, &obj.dts)
+
+        # static/pytz/dateutil specific code
+        if _is_fixed_offset(tz):
+            # statictzinfo
+            if len(deltas) > 0:
+                pandas_datetime_to_datetimestruct(obj.value + deltas[0],
+                                                  PANDAS_FR_ns, &obj.dts)
+            else:
+                pandas_datetime_to_datetimestruct(obj.value, PANDAS_FR_ns, &obj.dts)        
             obj.tzinfo = tz
-        else:
+        elif _treat_tz_as_pytz(tz):
             inf = tz._transition_info[pos]
             pandas_datetime_to_datetimestruct(obj.value + deltas[pos],
                                               PANDAS_FR_ns, &obj.dts)
             obj.tzinfo = tz._tzinfos[inf]
+        elif _treat_tz_as_dateutil(tz):
+            pandas_datetime_to_datetimestruct(obj.value + deltas[pos],
+                                              PANDAS_FR_ns, &obj.dts)
+            obj.tzinfo = tz
+        else:
+            obj.tzinfo = tz
 
 
 def get_timezone(tz):
     return _get_zone(tz)
 
 cdef inline bint _is_utc(object tz):
-    return tz is UTC or isinstance(tz, _du_utc)
+    return tz is UTC or isinstance(tz, dateutil.tz.tzutc)
 
 cdef inline object _get_zone(object tz):
     if _is_utc(tz):
@@ -1510,8 +1524,8 @@ def i8_to_pydt(int64_t i8, object tzinfo = None):
 #----------------------------------------------------------------------
 # time zone conversion helpers
 
+#    from dateutil.tz import tzutc as _du_utc
 try:
-    from dateutil.tz import tzutc as _du_utc
     import pytz
     UTC = pytz.utc
     have_pytz = True
@@ -1642,22 +1656,48 @@ def tz_convert_single(int64_t val, object tz1, object tz2):
     offset = deltas[pos]
     return utc_date + offset
 
-
+# Timezone data caches, key is the pytz name, example: 'Europe/London'.
 trans_cache = {}
 utc_offset_cache = {}
+
+# Creat mapping of datutil names to cached keys (pytz names)
+# Example: {'/usr/share/zoneinfo/US/Eastern' : 'US/Eastern'}
+def __create_dateutil_to_pytz_names():
+    d = {}
+    for tz_name in pytz.all_timezones:
+        du = dateutil.tz.gettz(tz_name)
+        if du is not None:
+            d[du._filename] = tz_name
+    return d
+
+dateutil_to_pytz_names = __create_dateutil_to_pytz_names()
+
+cpdef bint _treat_tz_as_pytz(object tz):
+    return hasattr(tz, '_utc_transition_times') and hasattr(tz, '_transition_info')
+
+cpdef bint _treat_tz_as_dateutil(object tz):
+    return hasattr(tz, '_trans_list') and hasattr(tz, '_trans_idx')
+
+def _tz_cache_key(tz):
+    """Return the key (example 'Europe/London') in the cache for the timezone info object or None if unknown."""
+    if isinstance(tz, pytz.tzinfo.BaseTzInfo):
+        return str(tz)
+    elif isinstance(tz, dateutil.tz.tzfile):
+        try:
+            return dateutil_to_pytz_names[tz._filename]
+        except KeyError:
+            pass
 
 def _get_transitions(tz):
     """
     Get UTC times of DST transitions
     """
-    try:
-        # tzoffset not hashable in Python 3
-        hash(tz)
-    except TypeError:
+    cache_key = _tz_cache_key(tz)
+    if cache_key is None:
         return np.array([NPY_NAT + 1], dtype=np.int64)
 
-    if tz not in trans_cache:
-        if hasattr(tz, '_utc_transition_times'):
+    if cache_key not in trans_cache:
+        if _treat_tz_as_pytz(tz):
             arr = np.array(tz._utc_transition_times, dtype='M8[ns]')
             arr = arr.view('i8')
             try:
@@ -1665,31 +1705,36 @@ def _get_transitions(tz):
                     arr[0] = NPY_NAT + 1
             except Exception:
                 pass
+        elif _treat_tz_as_dateutil(tz):
+            arr = np.array(tz._trans_list, dtype='M8[s]').astype('M8[ns]')
+            arr = arr.view('i8')
         else:
             arr = np.array([NPY_NAT + 1], dtype=np.int64)
-        trans_cache[tz] = arr
-    return trans_cache[tz]
+        trans_cache[cache_key] = arr
+    return trans_cache[cache_key]
 
 def _get_deltas(tz):
     """
     Get UTC offsets in microseconds corresponding to DST transitions
     """
-    try:
-        # tzoffset not hashable in Python 3
-        hash(tz)
-    except TypeError:
+    cache_key = _tz_cache_key(tz)
+    if cache_key is None:
         num = int(total_seconds(_get_utcoffset(tz, None))) * 1000000000
         return np.array([num], dtype=np.int64)
 
-    if tz not in utc_offset_cache:
-        if hasattr(tz, '_utc_transition_times'):
-            utc_offset_cache[tz] = _unbox_utcoffsets(tz._transition_info)
+    if cache_key not in utc_offset_cache:
+        if _treat_tz_as_pytz(tz):
+            utc_offset_cache[cache_key] = _unbox_utcoffsets(tz._transition_info)
+        elif _treat_tz_as_dateutil(tz):
+            arr = np.array([v.offset for v in tz._trans_idx], dtype='i8')
+            arr *= 1000000000
+            utc_offset_cache[cache_key] = arr
         else:
             # static tzinfo
             num = int(total_seconds(_get_utcoffset(tz, None))) * 1000000000
-            utc_offset_cache[tz] = np.array([num], dtype=np.int64)
+            utc_offset_cache[cache_key] = np.array([num], dtype=np.int64)
 
-    return utc_offset_cache[tz]
+    return utc_offset_cache[cache_key]
 
 cdef double total_seconds(object td): # Python 2.6 compat
     return ((td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) //

@@ -1051,7 +1051,8 @@ Time Zone Handling
 ------------------
 
 Using ``pytz``, pandas provides rich support for working with timestamps in
-different time zones. By default, pandas objects are time zone unaware:
+different time zones (pandas can also use timezones from the ``dateutil`` library).
+By default, pandas objects are time zone unaware:
 
 .. ipython:: python
 
