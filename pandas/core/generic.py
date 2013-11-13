@@ -842,7 +842,7 @@ class NDFrame(PandasObject):
         from pandas.io import pytables
         return pytables.to_hdf(path_or_buf, key, self, **kwargs)
 
-    def to_msgpack(self, path_or_buf, **kwargs):
+    def to_msgpack(self, path_or_buf=None, **kwargs):
         """
         msgpack (serialize) object to input file path
 

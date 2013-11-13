@@ -61,18 +61,26 @@ class TestAPI(Test):
 
         df = DataFrame(np.random.randn(10,2))
         s = df.to_msgpack(None)
-        result = read_msgpack(s.getvalue())
+        result = read_msgpack(s)
+        tm.assert_frame_equal(result,df)
+
+        s = df.to_msgpack()
+        result = read_msgpack(s)
+        tm.assert_frame_equal(result,df)
+
+        s = df.to_msgpack()
+        result = read_msgpack(compat.BytesIO(s))
         tm.assert_frame_equal(result,df)
 
         s = to_msgpack(None,df)
-        result = read_msgpack(s.getvalue())
+        result = read_msgpack(s)
         tm.assert_frame_equal(result, df)
 
         with ensure_clean(self.path) as p:
 
-            s = df.to_msgpack(None)
+            s = df.to_msgpack()
             fh = open(p,'wb')
-            fh.write(s.getvalue())
+            fh.write(s)
             fh.close()
             result = read_msgpack(p)
             tm.assert_frame_equal(result, df)
@@ -80,10 +88,6 @@ class TestAPI(Test):
     def test_iterator_with_string_io(self):
 
         dfs = [ DataFrame(np.random.randn(10,2)) for i in range(5) ]
-        s = to_msgpack(None,*dfs)
-        for i, result in enumerate(read_msgpack(s.getvalue(),iterator=True)):
-            tm.assert_frame_equal(result,dfs[i])
-
         s = to_msgpack(None,*dfs)
         for i, result in enumerate(read_msgpack(s,iterator=True)):
             tm.assert_frame_equal(result,dfs[i])
@@ -98,7 +102,7 @@ class TestNumpy(Test):
     def test_numpy_scalar_complex(self):
         x = np.complex64(np.random.rand() + 1j * np.random.rand())
         x_rec = self.encode_decode(x)
-        tm.assert_almost_equal(x,x_rec)
+        self.assert_(np.allclose(x, x_rec))
 
     def test_scalar_float(self):
         x = np.random.rand()
@@ -108,10 +112,9 @@ class TestNumpy(Test):
     def test_scalar_complex(self):
         x = np.random.rand() + 1j * np.random.rand()
         x_rec = self.encode_decode(x)
-        tm.assert_almost_equal(x,x_rec)
+        self.assert_(np.allclose(x, x_rec))
 
     def test_list_numpy_float(self):
-        raise nose.SkipTest('buggy test')
         x = [np.float32(np.random.rand()) for i in range(5)]
         x_rec = self.encode_decode(x)
         tm.assert_almost_equal(x,x_rec)
@@ -120,13 +123,11 @@ class TestNumpy(Test):
         if not hasattr(np, 'complex128'):
             raise nose.SkipTest('numpy cant handle complex128')
 
-        # buggy test
-        raise nose.SkipTest('buggy test')
         x = [np.float32(np.random.rand()) for i in range(5)] + \
             [np.complex128(np.random.rand() + 1j * np.random.rand())
              for i in range(5)]
         x_rec = self.encode_decode(x)
-        tm.assert_almost_equal(x,x_rec)
+        self.assert_(np.allclose(x, x_rec))
 
     def test_list_float(self):
         x = [np.random.rand() for i in range(5)]
@@ -137,7 +138,7 @@ class TestNumpy(Test):
         x = [np.random.rand() for i in range(5)] + \
             [(np.random.rand() + 1j * np.random.rand()) for i in range(5)]
         x_rec = self.encode_decode(x)
-        tm.assert_almost_equal(x,x_rec)
+        self.assert_(np.allclose(x, x_rec))
 
     def test_dict_float(self):
         x = {'foo': 1.0, 'bar': 2.0}
@@ -147,7 +148,8 @@ class TestNumpy(Test):
     def test_dict_complex(self):
         x = {'foo': 1.0 + 1.0j, 'bar': 2.0 + 2.0j}
         x_rec = self.encode_decode(x)
-        tm.assert_almost_equal(x,x_rec)
+        self.assert_(all(map(lambda x, y: x == y, x.values(), x_rec.values())) and
+                     all(map(lambda x, y: type(x) == type(y), x.values(), x_rec.values())))
 
     def test_dict_numpy_float(self):
         x = {'foo': np.float32(1.0), 'bar': np.float32(2.0)}
@@ -158,7 +160,9 @@ class TestNumpy(Test):
         x = {'foo': np.complex128(
             1.0 + 1.0j), 'bar': np.complex128(2.0 + 2.0j)}
         x_rec = self.encode_decode(x)
-        tm.assert_almost_equal(x,x_rec)
+        self.assert_(all(map(lambda x, y: x == y, x.values(), x_rec.values())) and
+                     all(map(lambda x, y: type(x) == type(y), x.values(), x_rec.values())))
+
 
     def test_numpy_array_float(self):
 
@@ -173,7 +177,8 @@ class TestNumpy(Test):
     def test_numpy_array_complex(self):
         x = (np.random.rand(5) + 1j * np.random.rand(5)).astype(np.complex128)
         x_rec = self.encode_decode(x)
-        tm.assert_almost_equal(x,x_rec)
+        self.assert_(all(map(lambda x, y: x == y, x, x_rec)) and
+                     x.dtype == x_rec.dtype)
 
     def test_list_mixed(self):
         x = [1.0, np.float32(3.5), np.complex128(4.25), u('foo')]
@@ -234,6 +239,16 @@ class TestIndex(Test):
         for s, i in self.d.items():
             i_rec = self.encode_decode(i)
             self.assert_(i.equals(i_rec))
+
+        # datetime with no freq (GH5506)
+        i = Index([Timestamp('20130101'),Timestamp('20130103')])
+        i_rec = self.encode_decode(i)
+        self.assert_(i.equals(i_rec))
+
+        # datetime with timezone
+        i = Index([Timestamp('20130101 9:00:00'),Timestamp('20130103 11:00:00')]).tz_localize('US/Eastern')
+        i_rec = self.encode_decode(i)
+        self.assert_(i.equals(i_rec))
 
     def test_multi_index(self):
 
