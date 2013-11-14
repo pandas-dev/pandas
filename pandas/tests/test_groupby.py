@@ -2560,6 +2560,57 @@ class TestGroupBy(unittest.TestCase):
         grouped = series.groupby(grouper)
         assert next(iter(grouped), None) is None
 
+    def test_cumcount(self):
+        df = DataFrame([['a'], ['a'], ['a'], ['b'], ['a']], columns=['A'])
+        g = df.groupby('A')
+        sg = g.A
+
+        expected = Series([0, 1, 2, 0, 3])
+
+        assert_series_equal(expected, g.cumcount())
+        assert_series_equal(expected, sg.cumcount())
+
+    def test_cumcount_empty(self):
+        ge = DataFrame().groupby()
+        se = Series().groupby()
+
+        e = Series(dtype='int')  # edge case, as this is usually considered float
+
+        assert_series_equal(e, ge.cumcount())
+        assert_series_equal(e, se.cumcount())
+
+    def test_cumcount_dupe_index(self):
+        df = DataFrame([['a'], ['a'], ['a'], ['b'], ['a']], columns=['A'], index=[0] * 5)
+        g = df.groupby('A')
+        sg = g.A
+
+        expected = Series([0, 1, 2, 0, 3], index=[0] * 5)
+
+        assert_series_equal(expected, g.cumcount())
+        assert_series_equal(expected, sg.cumcount())
+
+    def test_cumcount_mi(self):
+        mi = MultiIndex.from_tuples([[0, 1], [1, 2], [2, 2], [2, 2], [1, 0]])
+        df = DataFrame([['a'], ['a'], ['a'], ['b'], ['a']], columns=['A'], index=mi)
+        g = df.groupby('A')
+        sg = g.A
+
+        expected = Series([0, 1, 2, 0, 3], index=mi)
+
+        assert_series_equal(expected, g.cumcount())
+        assert_series_equal(expected, sg.cumcount())        
+
+    def test_cumcount_groupby_not_col(self):
+        df = DataFrame([['a'], ['a'], ['a'], ['b'], ['a']], columns=['A'], index=[0] * 5)
+        g = df.groupby([0, 0, 0, 1, 0])
+        sg = g.A
+
+        expected = Series([0, 1, 2, 0, 3], index=[0] * 5)
+
+        assert_series_equal(expected, g.cumcount())
+        assert_series_equal(expected, sg.cumcount())
+
+
     def test_filter_series(self):
         import pandas as pd
         s = pd.Series([1, 3, 20, 5, 22, 24, 7])
@@ -3180,7 +3231,7 @@ class TestGroupBy(unittest.TestCase):
             'min','name','ngroups','nth','ohlc','plot', 'prod',
             'size','std','sum','transform','var', 'count', 'head', 'describe',
             'cummax', 'dtype', 'quantile', 'rank', 'cumprod', 'tail',
-            'resample', 'cummin', 'fillna', 'cumsum'])
+            'resample', 'cummin', 'fillna', 'cumsum', 'cumcount'])
         self.assertEqual(results, expected)
 
 def assert_fp_equal(a, b):
