@@ -57,8 +57,14 @@ _apply_whitelist = frozenset(['last', 'first',
                               'resample',
                               'describe',
                               'rank', 'quantile', 'count',
-                              'fillna', 'dtype']) | _plotting_methods
-
+                              'fillna', 'dtype'
+                              'value_counts',
+                              'mad',
+                              'any', 'all',
+                              'irow', 'take',
+                              'shift', 'tshift',
+                              'ffill', 'bfill',
+                              'pct_change', 'skew']) | _plotting_methods
 
 
 class GroupByError(Exception):
