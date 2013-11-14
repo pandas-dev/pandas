@@ -365,6 +365,10 @@ class _NDFrameIndexer(object):
                 # per label values
                 else:
 
+                    if len(labels) != len(value):
+                        raise ValueError('Must have equal len keys and value when'
+                                         ' setting with an iterable')
+
                     for item, v in zip(labels, value):
                         setter(item, v)
             else:
