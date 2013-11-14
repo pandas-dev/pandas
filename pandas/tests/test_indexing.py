@@ -650,6 +650,35 @@ class TestIndexing(unittest.TestCase):
         # trying to use a label
         self.assertRaises(ValueError, df.iloc.__getitem__, tuple(['j','D']))
 
+    def test_setitem_ndarray_1d(self):
+        # GH5508
+
+        # len of indexer vs length of the 1d ndarray
+        df = DataFrame(index=Index(lrange(1,11)))
+        df['foo'] = np.zeros(10, dtype=np.float64)
+        df['bar'] = np.zeros(10, dtype=np.complex)
+
+        # invalid
+        def f():
+            df.ix[2:5, 'bar'] = np.array([2.33j, 1.23+0.1j, 2.2])
+        self.assertRaises(ValueError, f)
+
+        # valid
+        df.ix[2:5, 'bar'] = np.array([2.33j, 1.23+0.1j, 2.2, 1.0])
+
+        result = df.ix[2:5, 'bar']
+        expected = Series([2.33j, 1.23+0.1j, 2.2, 1.0],index=[2,3,4,5])
+        assert_series_equal(result,expected)
+
+        # dtype getting changed?
+        df = DataFrame(index=Index(lrange(1,11)))
+        df['foo'] = np.zeros(10, dtype=np.float64)
+        df['bar'] = np.zeros(10, dtype=np.complex)
+
+        def f():
+            df[2:5] = np.arange(1,4)*1j
+        self.assertRaises(ValueError, f)
+
     def test_iloc_setitem_series(self):
         """ originally from test_series.py """
         df = DataFrame(np.random.randn(10, 4), index=list('abcdefghij'), columns=list('ABCD'))

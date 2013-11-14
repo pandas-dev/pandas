@@ -805,6 +805,8 @@ Bug Fixes
   - ``pd.to_timedelta`` of a scalar returns a scalar (:issue:`5410`)
   - ``pd.to_timedelta`` accepts ``NaN`` and ``NaT``, returning ``NaT`` instead of raising (:issue:`5437`)
   - performance improvements in ``isnull`` on larger size pandas objects
+  - Fixed various setitem with 1d ndarray that does not have a matching
+    length to the indexer (:issue:`5508`)
 
 pandas 0.12.0
 -------------
