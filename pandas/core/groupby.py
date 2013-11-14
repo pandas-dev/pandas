@@ -468,6 +468,7 @@ class GroupBy(PandasObject):
         Compute sum of values, excluding missing values
 
         For multiple groupings, the result index will be a MultiIndex
+
         """
         return self._cython_agg_general('ohlc')
 
@@ -480,9 +481,49 @@ class GroupBy(PandasObject):
                 return np.nan
         return self.agg(picker)
 
+    def cumcount(self):
+        '''
+        Number each item in each group from 0 to the length of that group.
+
+        Essentially this is equivalent to
+        
+        >>> self.apply(lambda x: Series(np.arange(len(x)), x.index)).
+
+        Example
+        -------
+
+        >>> df = pd.DataFrame([['a'], ['a'], ['a'], ['b'], ['b'], ['a']], columns=['A'])
+        >>> df
+           A
+        0  a
+        1  a
+        2  a
+        3  b
+        4  b
+        5  a
+        >>> df.groupby('A').cumcount()
+        0    0
+        1    1
+        2    2
+        3    0
+        4    1
+        5    3
+        dtype: int64
+
+        '''
+        index = self.obj.index
+        cumcounts = np.zeros(len(index), dtype='int64')
+        for v in self.indices.values():
+            cumcounts[v] = np.arange(len(v), dtype='int64')
+        return Series(cumcounts, index)
+
+
     def _try_cast(self, result, obj):
-        """ try to cast the result to our obj original type,
-        we may have roundtripped thru object in the mean-time """
+        """
+        try to cast the result to our obj original type,
+        we may have roundtripped thru object in the mean-time
+
+        """
         if obj.ndim > 1:
             dtype = obj.values.dtype
         else:
