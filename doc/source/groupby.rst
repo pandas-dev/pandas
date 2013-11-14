@@ -705,3 +705,16 @@ can be used as group keys. If so, the order of the levels will be preserved:
    factor = qcut(data, [0, .25, .5, .75, 1.])
 
    data.groupby(factor).mean()
+
+Enumerate group items
+~~~~~~~~~~~~~~~~~~~~~
+
+To see the order in which each row appears within its group, use the
+``cumcount`` method:
+
+.. ipython:: python
+
+   df = pd.DataFrame(list('aaabba'), columns=['A'])
+   df
+
+   df.groupby('A').cumcount()
