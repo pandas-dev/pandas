@@ -201,12 +201,12 @@ if not ISRELEASED:
     try:
         import subprocess
         try:
-            pipe = subprocess.Popen(["git", "describe", "HEAD"],
+            pipe = subprocess.Popen(["git", "describe", "--always"],
                                     stdout=subprocess.PIPE).stdout
         except OSError:
             # msysgit compatibility
             pipe = subprocess.Popen(
-                ["git.cmd", "describe", "HEAD"],
+                ["git.cmd", "describe", "--always"],
                 stdout=subprocess.PIPE).stdout
         rev = pipe.read().strip()
         # makes distutils blow up on Python 2.7
