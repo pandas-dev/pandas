@@ -1203,23 +1203,52 @@ class TestGroupBy(unittest.TestCase):
         g_not_as = df.groupby('user_id', as_index=False)
 
         res_as = g_as.head(2).index
-        exp_as = MultiIndex.from_tuples([(1, 0), (1, 2), (2, 1), (3, 4)])
+        exp_as = MultiIndex.from_tuples([(1, 0), (2, 1), (1, 2), (3, 4)])
         assert_index_equal(res_as, exp_as)
 
         res_not_as = g_not_as.head(2).index
-        exp_not_as = Index([0, 2, 1, 4])
+        exp_not_as = Index([0, 1, 2, 4])
         assert_index_equal(res_not_as, exp_not_as)
 
-        res_as = g_as.apply(lambda x: x.head(2)).index
-        assert_index_equal(res_not_as, exp_not_as)
+        res_as_apply = g_as.apply(lambda x: x.head(2)).index
+        res_not_as_apply = g_not_as.apply(lambda x: x.head(2)).index
 
-        res_not_as = g_not_as.apply(lambda x: x.head(2)).index
-        assert_index_equal(res_not_as, exp_not_as)
+        # apply doesn't maintain the original ordering
+        exp_not_as_apply = Index([0, 2, 1, 4])        
+        exp_as_apply = MultiIndex.from_tuples([(1, 0), (1, 2), (2, 1), (3, 4)])
+
+        assert_index_equal(res_as_apply, exp_as_apply)
+        assert_index_equal(res_not_as_apply, exp_not_as_apply)
 
         ind = Index(list('abcde'))
         df = DataFrame([[1, 2], [2, 3], [1, 4], [1, 5], [2, 6]], index=ind)
         res = df.groupby(0, as_index=False).apply(lambda x: x).index
         assert_index_equal(res, ind)
+
+    def test_groupby_head_tail(self):
+        df = DataFrame([[1, 2], [1, 4], [5, 6]], columns=['A', 'B'])
+        g_as = df.groupby('A', as_index=True)
+        g_not_as = df.groupby('A', as_index=False)
+
+        # as_index= False much easier
+        exp_head_not_as = df.loc[[0, 2]]
+        res_head_not_as = g_not_as.head(1)
+        assert_frame_equal(exp_head_not_as, res_head_not_as)
+        exp_tail_not_as = df.loc[[1, 2]]
+        res_tail_not_as = g_not_as.tail(1)
+        assert_frame_equal(exp_tail_not_as, res_tail_not_as)
+
+        # as_index=True, yuck
+        res_head_as = g_as.head(1)
+        res_tail_as = g_as.tail(1)
+
+        # prepend the A column as an index, in a roundabout way
+        df.index = df.set_index('A', append=True, drop=False).index.swaplevel(0, 1)
+        exp_head_as = df.loc[[0, 2]]
+        exp_tail_as = df.loc[[1, 2]]
+
+        assert_frame_equal(exp_head_as, res_head_as)
+        assert_frame_equal(exp_tail_as, res_tail_as)
 
     def test_groupby_multiple_key(self):
         df = tm.makeTimeDataFrame()

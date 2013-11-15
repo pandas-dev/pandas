@@ -52,7 +52,6 @@ _plotting_methods = frozenset(['plot', 'boxplot', 'hist'])
 
 _apply_whitelist = frozenset(['last', 'first',
                               'mean', 'sum', 'min', 'max',
-                              'head', 'tail',
                               'cumsum', 'cumprod', 'cummin', 'cummax',
                               'resample',
                               'describe',
@@ -482,8 +481,9 @@ class GroupBy(PandasObject):
                 return np.nan
         return self.agg(picker)
 
-    def cumcount(self):
-        """Number each item in each group from 0 to the length of that group.
+    def cumcount(self, **kwargs):
+        '''
+        Number each item in each group from 0 to the length of that group.
 
         Essentially this is equivalent to
 
@@ -511,12 +511,100 @@ class GroupBy(PandasObject):
         5    3
         dtype: int64
 
-        """
+        '''
+        ascending = kwargs.pop('ascending', True)
+
         index = self.obj.index
-        cumcounts = np.zeros(len(index), dtype='int64')
-        for v in self.indices.values():
-            cumcounts[v] = np.arange(len(v), dtype='int64')
+        rng = np.arange(self.grouper._max_groupsize, dtype='int64')
+        cumcounts = self._cumcount_array(rng, ascending=ascending)
         return Series(cumcounts, index)
+
+    def head(self, n=5):
+        '''
+        Returns first n rows of each group.
+
+        Essentially equivalent to .apply(lambda x: x.head(n))
+
+        Example
+        -------
+
+        >>> df = DataFrame([[1, 2], [1, 4], [5, 6]],
+                            columns=['A', 'B'])
+        >>> df.groupby('A', as_index=False).head(1) 
+           A  B
+        0  1  2
+        2  5  6
+        >>> df.groupby('A').head(1)
+             A  B
+        A        
+        1 0  1  2
+        5 2  5  6
+
+        '''
+        rng = np.arange(self.grouper._max_groupsize, dtype='int64')
+        in_head = self._cumcount_array(rng) < n
+        head = self.obj[in_head]
+        if self.as_index:
+            head.index = self._index_with_as_index(in_head)
+        return head
+
+    def tail(self, n=5):
+        '''
+        Returns first n rows of each group
+
+        Essentially equivalent to .apply(lambda x: x.tail(n))
+
+        Example
+        -------
+
+        >>> df = DataFrame([[1, 2], [1, 4], [5, 6]],
+                            columns=['A', 'B'])
+        >>> df.groupby('A', as_index=False).tail(1) 
+           A  B
+        0  1  2
+        2  5  6
+        >>> df.groupby('A').head(1)
+             A  B
+        A        
+        1 0  1  2
+        5 2  5  6
+        '''
+        rng = np.arange(0, -self.grouper._max_groupsize, -1, dtype='int64')
+        in_tail = self._cumcount_array(rng, ascending=False) > -n
+        tail = self.obj[in_tail]
+        if self.as_index:
+            tail.index = self._index_with_as_index(in_tail)
+        return tail
+
+    def _cumcount_array(self, arr, **kwargs):
+        ascending = kwargs.pop('ascending', True)
+
+        len_index = len(self.obj.index)
+        cumcounts = np.zeros(len_index, dtype='int64')
+        if ascending:
+            for v in self.indices.values():
+                cumcounts[v] = arr[:len(v)]
+        else:
+            for v in self.indices.values():
+                cumcounts[v] = arr[len(v)-1::-1]
+        return cumcounts
+
+    def _index_with_as_index(self, b):
+        '''
+        Take boolean mask of index to be returned from apply, if as_index=True
+
+        '''
+        # TODO perf, it feels like this should already be somewhere...
+        from itertools import chain
+        original = self.obj.index
+        gp = self.grouper
+        levels = chain((gp.levels[i][gp.labels[i][b]]
+                            for i in range(len(gp.groupings))),
+                        (original.get_level_values(i)[b]
+                            for i in range(original.nlevels)))
+        new = MultiIndex.from_arrays(list(levels))
+        new.names = gp.names + original.names
+        return new
 
     def _try_cast(self, result, obj):
         """
@@ -758,13 +846,27 @@ class Grouper(object):
     def size(self):
         """
         Compute group sizes
+
         """
         # TODO: better impl
         labels, _, ngroups = self.group_info
-        bin_counts = Series(labels).value_counts()
+        bin_counts = algos.value_counts(labels, sort=False)
         bin_counts = bin_counts.reindex(np.arange(ngroups))
         bin_counts.index = self.result_index
         return bin_counts
+
+    @cache_readonly
+    def _max_groupsize(self):
+        '''
+        Compute size of largest group
+
+        '''
+        # For many items in each group this is much faster than
+        # self.size().max(), in worst case marginally slower
+        if self.indices:
+            return max(len(v) for v in self.indices.itervalues())
+        else:
+            return 0
 
     @cache_readonly
     def groups(self):
