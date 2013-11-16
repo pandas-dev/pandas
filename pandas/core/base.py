@@ -5,10 +5,15 @@ from pandas import compat
 import numpy as np
 from pandas.core import common as com
 
+
 class StringMixin(object):
-    """implements string methods so long as object defines a `__unicode__` method.
-    Handles Python2/3 compatibility transparently."""
-    # side note - this could be made into a metaclass if more than one object nees
+    """implements string methods so long as object defines a `__unicode__`
+    method.
+
+    Handles Python2/3 compatibility transparently.
+    """
+    # side note - this could be made into a metaclass if more than one
+    #             object needs
 
     #----------------------------------------------------------------------
     # Formatting
@@ -96,7 +101,8 @@ class FrozenList(PandasObject, list):
     because it's technically non-hashable, will be used
     for lookups, appropriately, etc.
     """
-    # Sidenote: This has to be of type list, otherwise it messes up PyTables typechecks
+    # Sidenote: This has to be of type list, otherwise it messes up PyTables
+    #           typechecks
 
     def __add__(self, other):
         if isinstance(other, tuple):
@@ -146,7 +152,7 @@ class FrozenList(PandasObject, list):
     def __unicode__(self):
         from pandas.core.common import pprint_thing
         return pprint_thing(self, quote_strings=True,
-                     escape_chars=('\t', '\r', '\n'))
+                            escape_chars=('\t', '\r', '\n'))
 
     def __repr__(self):
         return "%s(%s)" % (self.__class__.__name__,
@@ -185,7 +191,9 @@ class FrozenNDArray(PandasObject, np.ndarray):
         """
         Return a string representation for this object.
 
-        Invoked by unicode(df) in py2 only. Yields a Unicode String in both py2/py3.
+        Invoked by unicode(df) in py2 only. Yields a Unicode String in both
+        py2/py3.
         """
-        prepr = com.pprint_thing(self, escape_chars=('\t', '\r', '\n'),quote_strings=True)
+        prepr = com.pprint_thing(self, escape_chars=('\t', '\r', '\n'),
+                                 quote_strings=True)
         return "%s(%s, dtype='%s')" % (type(self).__name__, prepr, self.dtype)

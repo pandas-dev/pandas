@@ -153,7 +153,8 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
     return labels, uniques
 
 
-def value_counts(values, sort=True, ascending=False, normalize=False, bins=None):
+def value_counts(values, sort=True, ascending=False, normalize=False,
+                 bins=None):
     """
     Compute a histogram of the counts of non-null values
 
@@ -191,7 +192,7 @@ def value_counts(values, sort=True, ascending=False, normalize=False, bins=None)
         values = com._ensure_int64(values)
         keys, counts = htable.value_count_int64(values)
 
-    elif issubclass(values.dtype.type, (np.datetime64,np.timedelta64)):
+    elif issubclass(values.dtype.type, (np.datetime64, np.timedelta64)):
         dtype = values.dtype
         values = values.view(np.int64)
         keys, counts = htable.value_count_int64(values)
@@ -223,7 +224,7 @@ def value_counts(values, sort=True, ascending=False, normalize=False, bins=None)
 
 
 def mode(values):
-    "Returns the mode or mode(s) of the passed Series or ndarray (sorted)"
+    """Returns the mode or mode(s) of the passed Series or ndarray (sorted)"""
     # must sort because hash order isn't necessarily defined.
     from pandas.core.series import Series
 
@@ -239,7 +240,7 @@ def mode(values):
         values = com._ensure_int64(values)
         result = constructor(sorted(htable.mode_int64(values)), dtype=dtype)
 
-    elif issubclass(values.dtype.type, (np.datetime64,np.timedelta64)):
+    elif issubclass(values.dtype.type, (np.datetime64, np.timedelta64)):
         dtype = values.dtype
         values = values.view(np.int64)
         result = constructor(sorted(htable.mode_int64(values)), dtype=dtype)
@@ -324,7 +325,7 @@ def quantile(x, q, interpolation_method='fraction'):
             return np.nan
 
         idx = at * (len(values) - 1)
-        if (idx % 1 == 0):
+        if idx % 1 == 0:
             score = values[idx]
         else:
             if interpolation_method == 'fraction':

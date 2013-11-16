@@ -71,12 +71,14 @@ class _Unstacker(object):
 
         levels = index.levels
         labels = index.labels
-        def _make_index(lev,lab):
-            i = lev.__class__(_make_index_array_level(lev.values,lab))
+
+        def _make_index(lev, lab):
+            i = lev.__class__(_make_index_array_level(lev.values, lab))
             i.name = lev.name
             return i
 
-        self.new_index_levels = list([ _make_index(lev,lab) for lev,lab in zip(levels,labels) ])
+        self.new_index_levels = [_make_index(lev, lab)
+                                 for lev, lab in zip(levels, labels)]
         self.new_index_names = list(index.names)
 
         self.removed_name = self.new_index_names.pop(self.level)
@@ -154,7 +156,8 @@ class _Unstacker(object):
             mask = isnull(index)
             if mask.any():
                 l = np.arange(len(index))
-                values, orig_values = np.empty((len(index),values.shape[1])), values
+                values, orig_values = (np.empty((len(index), values.shape[1])),
+                                       values)
                 values.fill(np.nan)
                 values_indexer = com._ensure_int64(l[~mask])
                 for i, j in enumerate(values_indexer):
@@ -224,7 +227,7 @@ class _Unstacker(object):
         result_labels = []
         for cur in self.sorted_labels[:-1]:
             labels = cur.take(self.compressor)
-            labels = _make_index_array_level(labels,cur)
+            labels = _make_index_array_level(labels, cur)
             result_labels.append(labels)
 
         # construct the new index
@@ -240,25 +243,26 @@ class _Unstacker(object):
         return new_index
 
 
-def _make_index_array_level(lev,lab):
+def _make_index_array_level(lev, lab):
     """ create the combined index array, preserving nans, return an array """
     mask = lab == -1
     if not mask.any():
         return lev
 
     l = np.arange(len(lab))
-    mask_labels  = np.empty(len(mask[mask]),dtype=object)
+    mask_labels = np.empty(len(mask[mask]), dtype=object)
     mask_labels.fill(np.nan)
     mask_indexer = com._ensure_int64(l[mask])
 
     labels = lev
     labels_indexer = com._ensure_int64(l[~mask])
 
-    new_labels = np.empty(tuple([len(lab)]),dtype=object)
+    new_labels = np.empty(tuple([len(lab)]), dtype=object)
     new_labels[labels_indexer] = labels
-    new_labels[mask_indexer]   = mask_labels
+    new_labels[mask_indexer] = mask_labels
 
     return new_labels
+
 
 def _unstack_multiple(data, clocs):
     if len(clocs) == 0:
@@ -341,7 +345,8 @@ def pivot(self, index=None, columns=None, values=None):
         return indexed.unstack(columns)
     else:
         indexed = Series(self[values].values,
-                         index=MultiIndex.from_arrays([self[index], self[columns]]))
+                         index=MultiIndex.from_arrays([self[index],
+                                                       self[columns]]))
         return indexed.unstack(columns)
 
 
@@ -540,9 +545,10 @@ def _stack_multi_columns(frame, level=-1, dropna=True):
 
     # tuple list excluding level for grouping columns
     if len(frame.columns.levels) > 2:
-        tuples = list(zip(*[lev.values.take(lab)
-                       for lev, lab in zip(this.columns.levels[:-1],
-                                           this.columns.labels[:-1])]))
+        tuples = list(zip(*[
+            lev.values.take(lab) for lev, lab in
+            zip(this.columns.levels[:-1], this.columns.labels[:-1])
+        ]))
         unique_groups = [key for key, _ in itertools.groupby(tuples)]
         new_names = this.columns.names[:-1]
         new_columns = MultiIndex.from_tuples(unique_groups, names=new_names)
@@ -678,7 +684,8 @@ def melt(frame, id_vars=None, value_vars=None,
         frame = frame.copy()
 
     if col_level is not None:  # allow list or other?
-        frame.columns = frame.columns.get_level_values(col_level) #  frame is a copy
+        # frame is a copy
+        frame.columns = frame.columns.get_level_values(col_level)
 
     if var_name is None:
         if isinstance(frame.columns, MultiIndex):
@@ -848,7 +855,8 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False):
     2  0  0    1
 
     """
-    cat = Categorical.from_array(Series(data))  # Series avoids inconsistent NaN handling
+    # Series avoids inconsistent NaN handling
+    cat = Categorical.from_array(Series(data))
     levels = cat.levels
 
     # if all NaN
@@ -957,6 +965,9 @@ def block2d_to_blocknd(values, items, shape, labels, ref_items=None):
 
 
 def factor_indexer(shape, labels):
-    """ given a tuple of shape and a list of Categorical labels, return the expanded label indexer """
+    """ given a tuple of shape and a list of Categorical labels, return the
+    expanded label indexer
+    """
     mult = np.array(shape)[::-1].cumprod()[::-1]
-    return com._ensure_platform_int(np.sum(np.array(labels).T * np.append(mult, [1]), axis=1).T)
+    return com._ensure_platform_int(
+        np.sum(np.array(labels).T * np.append(mult, [1]), axis=1).T)

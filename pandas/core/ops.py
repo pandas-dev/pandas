@@ -317,13 +317,14 @@ class _TimeOp(object):
         if inferred_type in ('datetime64', 'datetime', 'date', 'time'):
             # if we have a other of timedelta, but use pd.NaT here we
             # we are in the wrong path
-            if other is not None and other.dtype == 'timedelta64[ns]' and all(isnull(v) for v in values):
-                values = np.empty(values.shape,dtype=other.dtype)
+            if (other is not None and other.dtype == 'timedelta64[ns]' and
+                    all(isnull(v) for v in values)):
+                values = np.empty(values.shape, dtype=other.dtype)
                 values[:] = tslib.iNaT
 
             # a datetlike
             elif not (isinstance(values, (pa.Array, pd.Series)) and
-                    com.is_datetime64_dtype(values)):
+                      com.is_datetime64_dtype(values)):
                 values = tslib.array_to_datetime(values)
             elif isinstance(values, pd.DatetimeIndex):
                 values = values.to_series()
@@ -353,11 +354,12 @@ class _TimeOp(object):
 
             # all nan, so ok, use the other dtype (e.g. timedelta or datetime)
             if isnull(values).all():
-                values = np.empty(values.shape,dtype=other.dtype)
+                values = np.empty(values.shape, dtype=other.dtype)
                 values[:] = tslib.iNaT
             else:
-                raise TypeError("incompatible type [{0}] for a datetime/timedelta"
-                                " operation".format(pa.array(values).dtype))
+                raise TypeError(
+                    'incompatible type [{0}] for a datetime/timedelta '
+                    'operation'.format(pa.array(values).dtype))
         else:
             raise TypeError("incompatible type [{0}] for a datetime/timedelta"
                             " operation".format(pa.array(values).dtype))
