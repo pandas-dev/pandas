@@ -2826,6 +2826,11 @@ class MultiIndex(Index):
         -------
         (new_index, indexer, mask) : (MultiIndex, ndarray, ndarray)
         """
+
+        # a direct takeable
+        if takeable:
+            return self.take(target), target
+
         if level is not None:
             if method is not None:
                 raise TypeError('Fill method not supported if level passed')

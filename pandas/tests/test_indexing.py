@@ -389,6 +389,37 @@ class TestIndexing(unittest.TestCase):
         assert_frame_equal(df.iloc[10:,:2],df2)
         assert_frame_equal(df.iloc[10:,2:],df1)
 
+    def test_iloc_getitem_multiindex(self):
+
+        df = DataFrame(np.random.randn(3, 3),
+                       columns=[[2,2,4],[6,8,10]],
+                       index=[[4,4,8],[8,10,12]])
+
+        rs = df.iloc[2]
+        xp = df.irow(2)
+        assert_series_equal(rs, xp)
+
+        rs = df.iloc[:,2]
+        xp = df.icol(2)
+        assert_series_equal(rs, xp)
+
+        rs = df.iloc[2,2]
+        xp = df.values[2,2]
+        self.assert_(rs == xp)
+
+        # for multiple items
+        # GH 5528
+        rs = df.iloc[[0,1]]
+        xp = df.xs(4,drop_level=False)
+        assert_frame_equal(rs,xp)
+
+        tup = zip(*[['a','a','b','b'],['x','y','x','y']])
+        index = MultiIndex.from_tuples(tup)
+        df = DataFrame(np.random.randn(4, 4), index=index)
+        rs = df.iloc[[2, 3]]
+        xp = df.xs('b',drop_level=False)
+        assert_frame_equal(rs,xp)
+
     def test_iloc_getitem_out_of_bounds(self):
 
         # out-of-bounds slice
@@ -408,23 +439,6 @@ class TestIndexing(unittest.TestCase):
         expected = df.iloc[:,2:3]
         result = df.iloc[:,2:3]
         assert_frame_equal(result, expected)
-
-    def test_iloc_multiindex(self):
-        df = DataFrame(np.random.randn(3, 3),
-                       columns=[[2,2,4],[6,8,10]],
-                       index=[[4,4,8],[8,10,12]])
-
-        rs = df.iloc[2]
-        xp = df.irow(2)
-        assert_series_equal(rs, xp)
-
-        rs = df.iloc[:,2]
-        xp = df.icol(2)
-        assert_series_equal(rs, xp)
-
-        rs = df.iloc[2,2]
-        xp = df.values[2,2]
-        self.assert_(rs == xp)
 
     def test_loc_getitem_int(self):
 
@@ -704,7 +718,7 @@ class TestIndexing(unittest.TestCase):
         result = s.iloc[:4]
         assert_series_equal(result, expected)
 
-    def test_iloc_multiindex(self):
+    def test_iloc_getitem_multiindex(self):
         mi_labels = DataFrame(np.random.randn(4, 3), columns=[['i', 'i', 'j'],
                                                               ['A', 'A', 'B']],
                               index=[['i', 'i', 'j', 'k'], ['X', 'X', 'Y','Y']])
