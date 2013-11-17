@@ -101,8 +101,8 @@ def _filter_special_cases(f):
 
 @_filter_special_cases
 def _align_core(terms):
-    term_index = [i for i, term in enumerate(terms) if hasattr(term.value,
-                                                               'axes')]
+    term_index = [i for i, term in enumerate(terms)
+                  if hasattr(term.value, 'axes')]
     term_dims = [terms[i].value.ndim for i in term_index]
     ndims = pd.Series(dict(zip(term_index, term_dims)))
 
@@ -139,10 +139,10 @@ def _align_core(terms):
 
                 ordm = np.log10(abs(reindexer_size - term_axis_size))
                 if ordm >= 1 and reindexer_size >= 10000:
-                    warnings.warn("Alignment difference on axis {0} is larger"
-                                  " than an order of magnitude on term {1!r}, "
-                                  "by more than {2:.4g}; performance may suffer"
-                                  "".format(axis, terms[i].name, ordm),
+                    warnings.warn('Alignment difference on axis {0} is larger '
+                                  'than an order of magnitude on term {1!r}, '
+                                  'by more than {2:.4g}; performance may '
+                                  'suffer'.format(axis, terms[i].name, ordm),
                                   category=pd.io.common.PerformanceWarning)
 
                 if transpose:
@@ -237,7 +237,7 @@ def _reconstruct_object(typ, obj, axes, dtype):
         res_t = dtype
 
     if (not isinstance(typ, partial) and
-        issubclass(typ, pd.core.generic.PandasObject)):
+            issubclass(typ, pd.core.generic.PandasObject)):
         return typ(obj, dtype=res_t, **axes)
 
     # special case for pathological things like ~True/~False

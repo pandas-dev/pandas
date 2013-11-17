@@ -2,7 +2,7 @@
 Expressions
 -----------
 
-Offer fast expression evaluation thru numexpr
+Offer fast expression evaluation through numexpr
 
 """
 
@@ -22,9 +22,10 @@ _evaluate = None
 _where = None
 
 # the set of dtypes that we will allow pass to numexpr
-_ALLOWED_DTYPES = dict(
-    evaluate=set(['int64', 'int32', 'float64', 'float32', 'bool']),
-    where=set(['int64', 'float64', 'bool']))
+_ALLOWED_DTYPES = {
+    'evaluate': set(['int64', 'int32', 'float64', 'float32', 'bool']),
+    'where': set(['int64', 'float64', 'bool'])
+}
 
 # the minimum prod shape that we will use numexpr
 _MIN_ELEMENTS = 10000
@@ -100,10 +101,10 @@ def _evaluate_numexpr(op, op_str, a, b, raise_on_error=False, truediv=True,
                                              'b_value': b_value},
                                  casting='safe', truediv=truediv,
                                  **eval_kwargs)
-        except (ValueError) as detail:
+        except ValueError as detail:
             if 'unknown type object' in str(detail):
                 pass
-        except (Exception) as detail:
+        except Exception as detail:
             if raise_on_error:
                 raise
 
@@ -135,10 +136,10 @@ def _where_numexpr(cond, a, b, raise_on_error=False):
                                              'a_value': a_value,
                                              'b_value': b_value},
                                  casting='safe')
-        except (ValueError) as detail:
+        except ValueError as detail:
             if 'unknown type object' in str(detail):
                 pass
-        except (Exception) as detail:
+        except Exception as detail:
             if raise_on_error:
                 raise TypeError(str(detail))
 

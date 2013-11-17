@@ -56,6 +56,7 @@ def _shouldbe_timestamp(obj):
 
 _Identity = object
 
+
 class Index(FrozenNDArray):
 
     """
@@ -144,7 +145,7 @@ class Index(FrozenNDArray):
             inferred = lib.infer_dtype(subarr)
             if inferred == 'integer':
                 return Int64Index(subarr.astype('i8'), copy=copy, name=name)
-            elif inferred in ['floating','mixed-integer-float']:
+            elif inferred in ['floating', 'mixed-integer-float']:
                 return Float64Index(subarr, copy=copy, name=name)
             elif inferred != 'string':
                 if (inferred.startswith('datetime') or
@@ -179,7 +180,7 @@ class Index(FrozenNDArray):
         return self._id is getattr(other, '_id', Ellipsis)
 
     def _reset_identity(self):
-        "Initializes or resets ``_id`` attribute with new object"
+        """Initializes or resets ``_id`` attribute with new object"""
         self._id = _Identity()
 
     def view(self, *args, **kwargs):
@@ -191,8 +192,10 @@ class Index(FrozenNDArray):
     # construction helpers
     @classmethod
     def _scalar_data_error(cls, data):
-        raise TypeError('{0}(...) must be called with a collection '
-                        'of some kind, {1} was passed'.format(cls.__name__,repr(data)))
+        raise TypeError(
+            '{0}(...) must be called with a collection of some kind, {1} was '
+            'passed'.format(cls.__name__, repr(data))
+        )
 
     @classmethod
     def _string_data_error(cls, data):
@@ -411,7 +414,7 @@ class Index(FrozenNDArray):
         return self.inferred_type in ['integer']
 
     def is_floating(self):
-        return self.inferred_type in ['floating','mixed-integer-float']
+        return self.inferred_type in ['floating', 'mixed-integer-float']
 
     def is_numeric(self):
         return self.inferred_type in ['integer', 'floating']
@@ -423,8 +426,9 @@ class Index(FrozenNDArray):
         return self.inferred_type in ['integer', 'mixed-integer']
 
     def _convert_scalar_indexer(self, key, typ=None):
-        """ convert a scalar indexer, right now we are converting floats -> ints
-            if the index supports it """
+        """ convert a scalar indexer, right now we are converting
+        floats -> ints if the index supports it
+        """
 
         def to_int():
             ikey = int(key)
@@ -463,7 +467,7 @@ class Index(FrozenNDArray):
             whether positional or not """
         if self.is_integer() or is_index_slice:
             return key
-        return  self._convert_slice_indexer(key)
+        return self._convert_slice_indexer(key)
 
     def _convert_slice_indexer(self, key, typ=None):
         """ convert a slice indexer. disallow floats in the start/stop/step """
@@ -494,7 +498,8 @@ class Index(FrozenNDArray):
         if typ == 'iloc':
             return self._convert_slice_indexer_iloc(key)
         elif typ == 'getitem':
-            return self._convert_slice_indexer_getitem(key, is_index_slice=is_index_slice)
+            return self._convert_slice_indexer_getitem(
+                key, is_index_slice=is_index_slice)
 
         # convert the slice to an indexer here
 
@@ -535,9 +540,9 @@ class Index(FrozenNDArray):
     def _convert_indexer_error(self, key, msg=None):
         if msg is None:
             msg = 'label'
-        raise TypeError("the {0} [{1}] is not a proper indexer for this index type ({2})".format(msg,
-                                                                                                 key,
-                                                                                                 self.__class__.__name__))
+        raise TypeError("the {0} [{1}] is not a proper indexer for this index "
+                        "type ({2})".format(msg, key, self.__class__.__name__))
+
     def get_duplicates(self):
         from collections import defaultdict
         counter = defaultdict(lambda: 0)
@@ -750,11 +755,12 @@ class Index(FrozenNDArray):
         return np.array_equal(self, other)
 
     def identical(self, other):
+        """Similar to equals, but check that other comparable attributes are
+        also equal
         """
-        Similar to equals, but check that other comparable attributes are also equal
-        """
-        return self.equals(other) and all(
-            (getattr(self, c, None) == getattr(other, c, None) for c in self._comparables))
+        return (self.equals(other) and
+                all((getattr(self, c, None) == getattr(other, c, None)
+                     for c in self._comparables)))
 
     def asof(self, label):
         """
@@ -1213,7 +1219,8 @@ class Index(FrozenNDArray):
                 indexer = None
 
                 # to avoid aliasing an existing index
-                if copy_if_needed and target.name != self.name and self.name is not None:
+                if (copy_if_needed and target.name != self.name and
+                        self.name is not None):
                     if target.name is None:
                         target = self.copy()
 
@@ -1621,9 +1628,10 @@ class Int64Index(Index):
 
     """
     Immutable ndarray implementing an ordered, sliceable set. The basic object
-    storing axis labels for all pandas objects. Int64Index is a special case of `Index`
-    with purely integer labels. This is the default index type used by the DataFrame
-    and Series ctors when no explicit index is provided by the user.
+    storing axis labels for all pandas objects. Int64Index is a special case
+    of `Index` with purely integer labels. This is the default index type used
+    by the DataFrame and Series ctors when no explicit index is provided by the
+    user.
 
     Parameters
     ----------
@@ -1664,7 +1672,8 @@ class Int64Index(Index):
         elif issubclass(data.dtype.type, np.integer):
             # don't force the upcast as we may be dealing
             # with a platform int
-            if dtype is None or not issubclass(np.dtype(dtype).type, np.integer):
+            if dtype is None or not issubclass(np.dtype(dtype).type,
+                                               np.integer):
                 dtype = np.int64
 
             subarr = np.array(data, dtype=dtype, copy=copy)
@@ -1719,8 +1728,8 @@ class Int64Index(Index):
 class Float64Index(Index):
     """
     Immutable ndarray implementing an ordered, sliceable set. The basic object
-    storing axis labels for all pandas objects. Float64Index is a special case of `Index`
-    with purely floating point labels.
+    storing axis labels for all pandas objects. Float64Index is a special case
+    of `Index` with purely floating point labels.
 
     Parameters
     ----------
@@ -1774,14 +1783,15 @@ class Float64Index(Index):
 
     def astype(self, dtype):
         if np.dtype(dtype) != np.object_:
-            raise TypeError(
-                "Setting %s dtype to anything other than object is not supported" % self.__class__)
-        return Index(self.values,name=self.name,dtype=object)
+            raise TypeError('Setting %s dtype to anything other than object '
+                            'is not supported' % self.__class__)
+        return Index(self.values, name=self.name, dtype=object)
 
     def _convert_scalar_indexer(self, key, typ=None):
 
         if typ == 'iloc':
-            return super(Float64Index, self)._convert_scalar_indexer(key, typ=typ)
+            return super(Float64Index, self)._convert_scalar_indexer(key,
+                                                                     typ=typ)
         return key
 
     def _convert_slice_indexer(self, key, typ=None):
@@ -1793,10 +1803,11 @@ class Float64Index(Index):
             pass
 
         # allow floats here
-        self._validate_slicer(key, lambda v: v is None or is_integer(v) or is_float(v))
+        self._validate_slicer(
+            key, lambda v: v is None or is_integer(v) or is_float(v))
 
         # translate to locations
-        return self.slice_indexer(key.start,key.stop,key.step)
+        return self.slice_indexer(key.start, key.stop, key.step)
 
     def get_value(self, series, key):
         """ we always want to get an index value, never a value """
@@ -1980,8 +1991,8 @@ class MultiIndex(Index):
                     verify_integrity=False):
         if validate and len(labels) != self.nlevels:
             raise ValueError("Length of labels must match length of levels")
-        self._labels = FrozenList(_ensure_frozen(labs, copy=copy)._shallow_copy()
-                                  for labs in labels)
+        self._labels = FrozenList(
+            _ensure_frozen(labs, copy=copy)._shallow_copy() for labs in labels)
         self._tuples = None
         self._reset_cache()
 
@@ -2108,12 +2119,12 @@ class MultiIndex(Index):
             res = res.encode(encoding)
         return res
 
-
     def __unicode__(self):
         """
         Return a string representation for a particular Index
 
-        Invoked by unicode(df) in py2 only. Yields a Unicode String in both py2/py3.
+        Invoked by unicode(df) in py2 only. Yields a Unicode String in both
+        py2/py3.
         """
         rows = self.format(names=True)
         max_rows = get_option('display.max_rows')
@@ -2133,7 +2144,7 @@ class MultiIndex(Index):
         if typ == 'iloc':
             return self._convert_slice_indexer_iloc(key)
 
-        return super(MultiIndex,self)._convert_slice_indexer(key, typ=typ)
+        return super(MultiIndex, self)._convert_slice_indexer(key, typ=typ)
 
     def _get_names(self):
         return FrozenList(level.name for level in self.levels)
@@ -2142,8 +2153,8 @@ class MultiIndex(Index):
         """
         sets names on levels. WARNING: mutates!
 
-        Note that you generally want to set this *after* changing levels, so that it only
-        acts on copies"""
+        Note that you generally want to set this *after* changing levels, so
+        that it only acts on copies"""
         values = list(values)
         if validate and len(values) != self.nlevels:
             raise ValueError('Length of names must match length of levels')
@@ -2189,8 +2200,8 @@ class MultiIndex(Index):
                 level += self.nlevels
             # Note: levels are zero-based
             elif level >= self.nlevels:
-                raise IndexError('Too many levels: Index has only %d levels, not %d'
-                                 % (self.nlevels, level + 1))
+                raise IndexError('Too many levels: Index has only %d levels, '
+                                 'not %d' % (self.nlevels, level + 1))
         return level
 
     _tuples = None
@@ -2288,8 +2299,8 @@ class MultiIndex(Index):
 
             # a Timestamp will raise a TypeError in a multi-index
             # rather than a KeyError, try it here
-            if isinstance(key, (datetime.datetime,np.datetime64)) or (
-                compat.PY3 and isinstance(key, compat.string_types)):
+            if isinstance(key, (datetime.datetime, np.datetime64)) or (
+                    compat.PY3 and isinstance(key, compat.string_types)):
                 try:
                     return _try_mi(Timestamp(key))
                 except:
@@ -2338,7 +2349,8 @@ class MultiIndex(Index):
 
             else:
                 # weird all NA case
-                formatted = [com.pprint_thing(na_rep if isnull(x) else x, escape_chars=('\t', '\r', '\n'))
+                formatted = [com.pprint_thing(na_rep if isnull(x) else x,
+                                              escape_chars=('\t', '\r', '\n'))
                              for x in com.take_1d(lev.values, lab)]
             stringified_levels.append(formatted)
 
@@ -2347,7 +2359,8 @@ class MultiIndex(Index):
             level = []
 
             if names:
-                level.append(com.pprint_thing(name, escape_chars=('\t', '\r', '\n'))
+                level.append(com.pprint_thing(name,
+                                              escape_chars=('\t', '\r', '\n'))
                              if name is not None else '')
 
             level.extend(np.array(lev, dtype=object))
@@ -2847,7 +2860,7 @@ class MultiIndex(Index):
                 else:
                     if takeable:
                         if method is not None or limit is not None:
-                            raise ValueError("cannot do a takeable reindex with "
+                            raise ValueError("cannot do a takeable reindex "
                                              "with a method or limit")
                         return self[target], target
 
@@ -3039,17 +3052,24 @@ class MultiIndex(Index):
                         raise KeyError(key)
                     ilevels = [i for i in range(len(key))
                                if key[i] != slice(None, None)]
-                    return indexer, _maybe_drop_levels(indexer, ilevels, drop_level)
+                    return indexer, _maybe_drop_levels(indexer, ilevels,
+                                                       drop_level)
 
                 if len(key) == self.nlevels:
 
                     if self.is_unique:
 
-                        # here we have a completely specified key, but are using some partial string matching here
+                        # here we have a completely specified key, but are
+                        # using some partial string matching here
                         # GH4758
-                        can_index_exactly = any(
-                            [l.is_all_dates and not isinstance(k, compat.string_types) for k, l in zip(key, self.levels)])
-                        if any([l.is_all_dates for k, l in zip(key, self.levels)]) and not can_index_exactly:
+                        can_index_exactly = any([
+                            (l.is_all_dates and
+                             not isinstance(k, compat.string_types))
+                            for k, l in zip(key, self.levels)
+                        ])
+                        if any([
+                            l.is_all_dates for k, l in zip(key, self.levels)
+                        ]) and not can_index_exactly:
                             indexer = slice(*self.slice_locs(key, key))
 
                             # we have a multiple selection here
@@ -3058,7 +3078,8 @@ class MultiIndex(Index):
 
                             key = tuple(self[indexer].tolist()[0])
 
-                        return self._engine.get_loc(_values_from_object(key)), None
+                        return (self._engine.get_loc(_values_from_object(key)),
+                                None)
                     else:
                         return partial_selection(key)
                 else:
@@ -3089,7 +3110,8 @@ class MultiIndex(Index):
                     indexer = slice(None, None)
                 ilevels = [i for i in range(len(key))
                            if key[i] != slice(None, None)]
-                return indexer, _maybe_drop_levels(indexer, ilevels, drop_level)
+                return indexer, _maybe_drop_levels(indexer, ilevels,
+                                                   drop_level)
         else:
             indexer = self._get_level_indexer(key, level=level)
             new_index = _maybe_drop_levels(indexer, [level], drop_level)
@@ -3277,8 +3299,8 @@ class MultiIndex(Index):
 
     def astype(self, dtype):
         if np.dtype(dtype) != np.object_:
-            raise TypeError(
-                "Setting %s dtype to anything other than object is not supported" % self.__class__)
+            raise TypeError('Setting %s dtype to anything other than object '
+                            'is not supported' % self.__class__)
         return self._shallow_copy()
 
     def insert(self, loc, item):
@@ -3530,8 +3552,9 @@ def _get_consensus_names(indexes):
 
     # find the non-none names, need to tupleify to make
     # the set hashable, then reverse on return
-    consensus_names = set([tuple(i.names)
-                          for i in indexes if all(n is not None for n in i.names)])
+    consensus_names = set([
+        tuple(i.names) for i in indexes if all(n is not None for n in i.names)
+    ])
     if len(consensus_names) == 1:
         return list(list(consensus_names)[0])
     return [None] * indexes[0].nlevels

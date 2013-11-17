@@ -37,6 +37,7 @@ NA = np.nan
 
 #### a series-like ndarray ####
 
+
 class SNDArray(Array):
 
     def __new__(cls, data, index=None, name=None):
@@ -49,4 +50,3 @@ class SNDArray(Array):
     @property
     def values(self):
         return self.view(Array)
-

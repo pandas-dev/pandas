@@ -207,7 +207,6 @@ class Constant(Term):
         return self.value
 
 
-
 _bool_op_map = {'not': '~', 'and': '&', 'or': '|'}
 
 

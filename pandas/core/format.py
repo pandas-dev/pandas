@@ -62,6 +62,7 @@ docstring_to_string = """
     -------
     formatted : string (or unicode, depending on data and options)"""
 
+
 class CategoricalFormatter(object):
     def __init__(self, categorical, buf=None, length=True,
                  na_rep='NaN', name=False, footer=True):
@@ -78,8 +79,8 @@ class CategoricalFormatter(object):
         if self.name:
             name = com.pprint_thing(self.categorical.name,
                                     escape_chars=('\t', '\r', '\n'))
-            footer += ('Name: %s' %
-                        name) if self.categorical.name is not None else ""
+            footer += ('Name: %s' % name if self.categorical.name is not None
+                       else '')
 
         if self.length:
             if footer:
@@ -88,7 +89,7 @@ class CategoricalFormatter(object):
 
         levheader = 'Levels (%d): ' % len(self.categorical.levels)
 
-        #TODO: should max_line_width respect a setting?
+        # TODO: should max_line_width respect a setting?
         levstring = np.array_repr(self.categorical.levels, max_line_width=60)
         indent = ' ' * (levstring.find('[') + len(levheader) + 1)
         lines = levstring.split('\n')
@@ -140,7 +141,7 @@ class SeriesFormatter(object):
         if float_format is None:
             float_format = get_option("display.float_format")
         self.float_format = float_format
-        self.dtype  = dtype
+        self.dtype = dtype
 
     def _get_footer(self):
         footer = u('')
@@ -163,10 +164,11 @@ class SeriesFormatter(object):
             footer += 'Length: %d' % len(self.series)
 
         if self.dtype:
-            if getattr(self.series.dtype,'name',None):
+            name = getattr(self.series.dtype, 'name', None)
+            if name:
                 if footer:
                     footer += ', '
-                footer += 'dtype: %s' % com.pprint_thing(self.series.dtype.name)
+                footer += 'dtype: %s' % com.pprint_thing(name)
 
         return compat.text_type(footer)
 
@@ -212,6 +214,7 @@ class SeriesFormatter(object):
             result.append(footer)
 
         return compat.text_type(u('\n').join(result))
+
 
 def _strlen_func():
     if compat.PY3:  # pragma: no cover
@@ -420,9 +423,10 @@ class DataFrameFormatter(TableFormatter):
                 column_format = 'l%s' % ''.join(map(get_col_type, dtypes))
             else:
                 column_format = '%s' % ''.join(map(get_col_type, dtypes))
-        elif not isinstance(column_format, compat.string_types):  # pragma: no cover
-            raise AssertionError(('column_format must be str or unicode, not %s'
-                                  % type(column_format)))
+        elif not isinstance(column_format,
+                            compat.string_types):  # pragma: no cover
+            raise AssertionError('column_format must be str or unicode, not %s'
+                                 % type(column_format))
 
         def write(buf, frame, column_format, strcols):
             buf.write('\\begin{tabular}{%s}\n' % column_format)
@@ -482,10 +486,9 @@ class DataFrameFormatter(TableFormatter):
             fmt_columns = lzip(*fmt_columns)
             dtypes = self.frame.dtypes.values
             need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
-            str_columns = list(zip(*[[' ' + y
-                                if y not in self.formatters and need_leadsp[x]
-                                else y for y in x]
-                                for x in fmt_columns]))
+            str_columns = list(zip(*[
+                [' ' + y if y not in self.formatters and need_leadsp[x]
+                 else y for y in x] for x in fmt_columns]))
             if self.sparsify:
                 str_columns = _sparsify(str_columns)
 
@@ -690,11 +693,12 @@ class HTMLFormatter(TableFormatter):
             sentinal = com.sentinal_factory()
             levels = self.columns.format(sparsify=sentinal, adjoin=False,
                                          names=False)
-            level_lengths = _get_level_lengths(levels,sentinal)
+            level_lengths = _get_level_lengths(levels, sentinal)
 
             row_levels = self.frame.index.nlevels
 
-            for lnum, (records, values) in enumerate(zip(level_lengths, levels)):
+            for lnum, (records, values) in enumerate(zip(level_lengths,
+                                                         levels)):
                 name = self.columns.names[lnum]
                 row = [''] * (row_levels - 1) + ['' if name is None
                                                  else str(name)]
@@ -784,8 +788,9 @@ class HTMLFormatter(TableFormatter):
 
             # GH3547
             sentinal = com.sentinal_factory()
-            levels = frame.index.format(sparsify=sentinal, adjoin=False,  names=False)
-            level_lengths = _get_level_lengths(levels,sentinal)
+            levels = frame.index.format(sparsify=sentinal, adjoin=False,
+                                        names=False)
+            level_lengths = _get_level_lengths(levels, sentinal)
 
             for i in range(len(frame)):
                 row = []
@@ -810,15 +815,16 @@ class HTMLFormatter(TableFormatter):
         else:
             for i in range(len(frame)):
                 idx_values = list(zip(*frame.index.format(sparsify=False,
-                                                     adjoin=False,
-                                                     names=False)))
+                                                          adjoin=False,
+                                                          names=False)))
                 row = []
                 row.extend(idx_values[i])
                 row.extend(fmt_values[j][i] for j in range(ncols))
                 self.write_tr(row, indent, self.indent_delta, tags=None,
                               nindex_levels=frame.index.nlevels)
 
-def _get_level_lengths(levels,sentinal=''):
+
+def _get_level_lengths(levels, sentinal=''):
     from itertools import groupby
 
     def _make_grouper():
@@ -882,8 +888,8 @@ class CSVFormatter(object):
 
         #GH3457
         if not self.obj.columns.is_unique and engine == 'python':
-            msg= "columns.is_unique == False not supported with engine='python'"
-            raise NotImplementedError(msg)
+            raise NotImplementedError("columns.is_unique == False not "
+                                      "supported with engine='python'")
 
         self.tupleize_cols = tupleize_cols
         self.has_mi_columns = isinstance(obj.columns, MultiIndex
@@ -892,24 +898,27 @@ class CSVFormatter(object):
         # validate mi options
         if self.has_mi_columns:
             if cols is not None:
-                raise TypeError("cannot specify cols with a MultiIndex on the columns")
+                raise TypeError("cannot specify cols with a MultiIndex on the "
+                                "columns")
 
         if cols is not None:
-            if isinstance(cols,Index):
-                cols = cols.to_native_types(na_rep=na_rep,float_format=float_format,
+            if isinstance(cols, Index):
+                cols = cols.to_native_types(na_rep=na_rep,
+                                            float_format=float_format,
                                             date_format=date_format)
             else:
-                cols=list(cols)
-            self.obj = self.obj.loc[:,cols]
+                cols = list(cols)
+            self.obj = self.obj.loc[:, cols]
 
         # update columns to include possible multiplicity of dupes
         # and make sure sure cols is just a list of labels
         cols = self.obj.columns
-        if isinstance(cols,Index):
-            cols = cols.to_native_types(na_rep=na_rep,float_format=float_format,
+        if isinstance(cols, Index):
+            cols = cols.to_native_types(na_rep=na_rep,
+                                        float_format=float_format,
                                         date_format=date_format)
         else:
-            cols=list(cols)
+            cols = list(cols)
 
         # save it
         self.cols = cols
@@ -917,19 +926,22 @@ class CSVFormatter(object):
         # preallocate data 2d list
         self.blocks = self.obj._data.blocks
         ncols = sum(len(b.items) for b in self.blocks)
-        self.data =[None] * ncols
+        self.data = [None] * ncols
         self.column_map = self.obj._data.get_items_map(use_cached=False)
 
         if chunksize is None:
-            chunksize = (100000/ (len(self.cols) or 1)) or 1
+            chunksize = (100000 / (len(self.cols) or 1)) or 1
         self.chunksize = chunksize
 
         self.data_index = obj.index
         if isinstance(obj.index, PeriodIndex):
             self.data_index = obj.index.to_timestamp()
 
-        if isinstance(self.data_index, DatetimeIndex) and date_format is not None:
-            self.data_index = Index([x.strftime(date_format) if notnull(x) else '' for x in self.data_index])
+        if (isinstance(self.data_index, DatetimeIndex) and
+                date_format is not None):
+            self.data_index = Index([x.strftime(date_format)
+                                     if notnull(x) else ''
+                                     for x in self.data_index])
 
         self.nlevels = getattr(self.data_index, 'nlevels', 1)
         if not index:
@@ -961,7 +973,8 @@ class CSVFormatter(object):
                                 index_label = ['']
                             else:
                                 index_label = [index_label]
-                    elif not isinstance(index_label, (list, tuple, np.ndarray)):
+                    elif not isinstance(index_label,
+                                        (list, tuple, np.ndarray)):
                         # given a string for a DF with Index
                         index_label = [index_label]
 
@@ -1004,8 +1017,9 @@ class CSVFormatter(object):
 
         values = self.obj.copy()
         values.index = data_index
-        values.columns = values.columns.to_native_types(na_rep=na_rep,float_format=float_format,
-                                            date_format=date_format)
+        values.columns = values.columns.to_native_types(
+            na_rep=na_rep, float_format=float_format,
+            date_format=date_format)
         values = values[cols]
 
         series = {}
@@ -1018,7 +1032,7 @@ class CSVFormatter(object):
             if index:
                 if nlevels == 1:
                     row_fields = [idx]
-                else: # handle MultiIndex
+                else:  # handle MultiIndex
                     row_fields = list(idx)
             for i, col in enumerate(cols):
                 val = series[col][j]
@@ -1040,7 +1054,8 @@ class CSVFormatter(object):
             f = self.path_or_buf
             close = False
         else:
-            f = com._get_handle(self.path_or_buf, self.mode, encoding=self.encoding)
+            f = com._get_handle(self.path_or_buf, self.mode,
+                                encoding=self.encoding)
             close = True
 
         try:
@@ -1056,13 +1071,14 @@ class CSVFormatter(object):
             if self.engine == 'python':
             # to be removed in 0.13
                 self._helper_csv(self.writer, na_rep=self.na_rep,
-                                 float_format=self.float_format, cols=self.cols,
-                                 header=self.header, index=self.index,
-                                 index_label=self.index_label, date_format=self.date_format)
+                                 float_format=self.float_format,
+                                 cols=self.cols, header=self.header,
+                                 index=self.index,
+                                 index_label=self.index_label,
+                                 date_format=self.date_format)
 
             else:
                 self._save()
-
 
         finally:
             if close:
@@ -1127,7 +1143,8 @@ class CSVFormatter(object):
         if has_mi_columns:
             columns = obj.columns
 
-            # write out the names for each level, then ALL of the values for each level
+            # write out the names for each level, then ALL of the values for
+            # each level
             for i in range(columns.nlevels):
 
                 # we need at least 1 index column to write our col names
@@ -1135,10 +1152,10 @@ class CSVFormatter(object):
                 if self.index:
 
                     # name is the first column
-                    col_line.append( columns.names[i] )
+                    col_line.append(columns.names[i])
 
-                    if isinstance(index_label,list) and len(index_label)>1:
-                        col_line.extend([ '' ] * (len(index_label)-1))
+                    if isinstance(index_label, list) and len(index_label) > 1:
+                        col_line.extend([''] * (len(index_label)-1))
 
                 col_line.extend(columns.get_level_values(i))
 
@@ -1146,7 +1163,7 @@ class CSVFormatter(object):
 
             # add blanks for the columns, so that we
             # have consistent seps
-            encoded_labels.extend([ '' ] * len(columns))
+            encoded_labels.extend([''] * len(columns))
 
         # write out the index label line
         writer.writerow(encoded_labels)
@@ -1171,14 +1188,15 @@ class CSVFormatter(object):
 
     def _save_chunk(self, start_i, end_i):
 
-        data_index  = self.data_index
+        data_index = self.data_index
 
         # create the data for a chunk
-        slicer = slice(start_i,end_i)
+        slicer = slice(start_i, end_i)
         for i in range(len(self.blocks)):
             b = self.blocks[i]
             d = b.to_native_types(slicer=slicer, na_rep=self.na_rep,
-                                  float_format=self.float_format, date_format=self.date_format)
+                                  float_format=self.float_format,
+                                  date_format=self.date_format)
 
             for i, item in enumerate(b.items):
 
@@ -1186,13 +1204,15 @@ class CSVFormatter(object):
                 self.data[self.column_map[b][i]] = d[i]
 
         ix = data_index.to_native_types(slicer=slicer, na_rep=self.na_rep,
-                                        float_format=self.float_format, date_format=self.date_format)
+                                        float_format=self.float_format,
+                                        date_format=self.date_format)
 
         lib.write_csv_rows(self.data, ix, self.nlevels, self.cols, self.writer)
 
 # from collections import namedtuple
 # ExcelCell = namedtuple("ExcelCell",
 #                        'row, col, val, style, mergestart, mergeend')
+
 
 class ExcelCell(object):
     __fields__ = ('row', 'col', 'val', 'style', 'mergestart', 'mergeend')
@@ -1539,8 +1559,8 @@ class GenericArrayFormatter(object):
         else:
             float_format = self.float_format
 
-        formatter = (lambda x: com.pprint_thing(x, escape_chars=('\t', '\r', '\n'))) \
-            if self.formatter is None else self.formatter
+        formatter = self.formatter if self.formatter is not None else \
+            (lambda x: com.pprint_thing(x, escape_chars=('\t', '\r', '\n')))
 
         def _format(x):
             if self.na_rep is not None and lib.checknull(x):
@@ -1584,19 +1604,20 @@ class FloatArrayFormatter(GenericArrayFormatter):
     def _format_with(self, fmt_str):
         def _val(x, threshold):
             if notnull(x):
-                if threshold is None or  abs(x) >  get_option("display.chop_threshold"):
-                    return  fmt_str % x
+                if (threshold is None or
+                        abs(x) > get_option("display.chop_threshold")):
+                    return fmt_str % x
                 else:
-                    if fmt_str.endswith("e"): # engineering format
-                        return  "0"
+                    if fmt_str.endswith("e"):  # engineering format
+                        return "0"
                     else:
-                        return  fmt_str % 0
+                        return fmt_str % 0
             else:
 
                 return self.na_rep
 
         threshold = get_option("display.chop_threshold")
-        fmt_values = [ _val(x, threshold) for x in self.values]
+        fmt_values = [_val(x, threshold) for x in self.values]
         return _trim_zeros(fmt_values, self.na_rep)
 
     def get_result(self):
@@ -1654,6 +1675,7 @@ class Datetime64Formatter(GenericArrayFormatter):
         fmt_values = [formatter(x) for x in self.values]
         return _make_fixed_width(fmt_values, self.justify)
 
+
 def _format_datetime64(x, tz=None):
     if isnull(x):
         return 'NaT'
@@ -1674,11 +1696,13 @@ class Timedelta64Formatter(Datetime64Formatter):
         fmt_values = [formatter(x) for x in self.values]
         return _make_fixed_width(fmt_values, self.justify)
 
+
 def _format_timedelta64(x):
     if isnull(x):
         return 'NaT'
 
     return lib.repr_timedelta64(x)
+
 
 def _make_fixed_width(strings, justify='right', minimum=None):
     if len(strings) == 0:
@@ -1762,6 +1786,8 @@ def _has_names(index):
 # Global formatting options
 
 _initial_defencoding = None
+
+
 def detect_console_encoding():
     """
     Try to find the most capable encoding supported by the console.
@@ -1776,13 +1802,15 @@ def detect_console_encoding():
     except AttributeError:
         pass
 
-    if not encoding or 'ascii' in encoding.lower():  # try again for something better
+    # try again for something better
+    if not encoding or 'ascii' in encoding.lower():
         try:
             encoding = locale.getpreferredencoding()
         except Exception:
             pass
 
-    if not encoding or 'ascii' in encoding.lower():  # when all else fails. this will usually be "ascii"
+    # when all else fails. this will usually be "ascii"
+    if not encoding or 'ascii' in encoding.lower():
             encoding = sys.getdefaultencoding()
 
     # GH3360, save the reported defencoding at import time
@@ -1804,8 +1832,8 @@ def get_console_size():
 
     # Consider
     # interactive shell terminal, can detect term size
-    # interactive non-shell terminal (ipnb/ipqtconsole), cannot detect term size
-    # non-interactive script, should disregard term size
+    # interactive non-shell terminal (ipnb/ipqtconsole), cannot detect term
+    # size non-interactive script, should disregard term size
 
     # in addition
     # width,height have default values, but setting to 'None' signals
@@ -1823,7 +1851,7 @@ def get_console_size():
             # pure terminal
             terminal_width, terminal_height = get_terminal_size()
     else:
-        terminal_width, terminal_height = None,None
+        terminal_width, terminal_height = None, None
 
     # Note if the User sets width/Height to None (auto-detection)
     # and we're in a script (non-inter), this will return (None,None)
