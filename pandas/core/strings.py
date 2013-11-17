@@ -9,6 +9,7 @@ import re
 import pandas.lib as lib
 import warnings
 
+
 def _get_array_list(arr, others):
     if isinstance(others[0], (list, np.ndarray)):
         arrays = [arr] + list(others)
@@ -114,6 +115,7 @@ def _map(f, arr, na_mask=False, na_value=np.nan):
         return result
     else:
         return lib.map_infer(arr, f)
+
 
 def str_title(arr):
     """
@@ -399,28 +401,30 @@ def str_extract(arr, pat, flags=0):
                 return None
             m = regex.search(x)
             if m:
-                return m.groups()[0] # may be None
+                return m.groups()[0]  # may be None
             else:
                 return None
     else:
         empty_row = Series(regex.groups*[None])
+
         def f(x):
             if not isinstance(x, compat.string_types):
                 return empty_row
             m = regex.search(x)
             if m:
-                return Series(list(m.groups())) # may contain None
+                return Series(list(m.groups()))  # may contain None
             else:
                 return empty_row
     result = arr.apply(f)
     result.replace({None: np.nan}, inplace=True)
     if regex.groups > 1:
-        result = DataFrame(result) # Don't rely on the wrapper; name columns.
+        result = DataFrame(result)  # Don't rely on the wrapper; name columns.
         names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))
         result.columns = [names.get(1 + i, i) for i in range(regex.groups)]
     else:
         result.name = regex.groupindex.get(0)
     return result
+
 
 def str_join(arr, sep):
     """

@@ -9,6 +9,7 @@ from pandas.compat import u, string_types
 from pandas.core.series import Series, TimeSeries
 from pandas.sparse.series import SparseSeries, SparseTimeSeries
 
+
 def load_reduce(self):
     stack = self.stack
     args = stack.pop()
@@ -18,7 +19,8 @@ def load_reduce(self):
         if n == u('DeprecatedSeries') or n == u('DeprecatedTimeSeries'):
             stack[-1] = object.__new__(Series)
             return
-        elif n == u('DeprecatedSparseSeries') or n == u('DeprecatedSparseTimeSeries'):
+        elif (n == u('DeprecatedSparseSeries') or
+              n == u('DeprecatedSparseTimeSeries')):
             stack[-1] = object.__new__(SparseSeries)
             return
 
@@ -28,7 +30,9 @@ def load_reduce(self):
 
         # try to reencode the arguments
         if self.encoding is not None:
-            args = tuple([ arg.encode(self.encoding) if isinstance(arg, string_types) else arg for arg in args ])
+            args = tuple([arg.encode(self.encoding)
+                          if isinstance(arg, string_types)
+                          else arg for arg in args])
             try:
                 stack[-1] = func(*args)
                 return
@@ -51,9 +55,9 @@ else:
 
 Unpickler.dispatch[pkl.REDUCE[0]] = load_reduce
 
+
 def load(fh, encoding=None, compat=False, is_verbose=False):
-    """
-    load a pickle, with a provided encoding
+    """load a pickle, with a provided encoding
 
     if compat is True:
        fake the old class hierarchy
@@ -90,14 +94,18 @@ def load(fh, encoding=None, compat=False, is_verbose=False):
             pandas.sparse.series.SparseSeries = SparseSeries
             pandas.sparse.series.SparseTimeSeries = SparseTimeSeries
 
+
 class DeprecatedSeries(np.ndarray, Series):
     pass
+
 
 class DeprecatedTimeSeries(DeprecatedSeries):
     pass
 
+
 class DeprecatedSparseSeries(DeprecatedSeries):
     pass
+
 
 class DeprecatedSparseTimeSeries(DeprecatedSparseSeries):
     pass

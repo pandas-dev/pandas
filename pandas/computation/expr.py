@@ -91,7 +91,8 @@ class Scope(StringMixin):
     __slots__ = ('globals', 'locals', 'resolvers', '_global_resolvers',
                  'resolver_keys', '_resolver', 'level', 'ntemps', 'target')
 
-    def __init__(self, gbls=None, lcls=None, level=1, resolvers=None, target=None):
+    def __init__(self, gbls=None, lcls=None, level=1, resolvers=None,
+                 target=None):
         self.level = level
         self.resolvers = tuple(resolvers or [])
         self.globals = dict()
@@ -133,11 +134,12 @@ class Scope(StringMixin):
             self.resolver_dict.update(dict(o))
 
     def __unicode__(self):
-        return com.pprint_thing("locals: {0}\nglobals: {0}\nresolvers: "
-                                "{0}\ntarget: {0}".format(list(self.locals.keys()),
-                                                          list(self.globals.keys()),
-                                                          list(self.resolver_keys),
-                                                          self.target))
+        return com.pprint_thing(
+            'locals: {0}\nglobals: {0}\nresolvers: '
+            '{0}\ntarget: {0}'.format(list(self.locals.keys()),
+                                      list(self.globals.keys()),
+                                      list(self.resolver_keys),
+                                      self.target))
 
     def __getitem__(self, key):
         return self.resolve(key, globally=False)
@@ -499,9 +501,8 @@ class BaseExprVisitor(ast.NodeVisitor):
                                  maybe_eval_in_python=('==', '!=')):
         res = op(lhs, rhs)
 
-        if (res.op in _cmp_ops_syms and
-            lhs.is_datetime or rhs.is_datetime and
-            self.engine != 'pytables'):
+        if (res.op in _cmp_ops_syms and lhs.is_datetime or rhs.is_datetime and
+                self.engine != 'pytables'):
             # all date ops must be done in python bc numexpr doesn't work well
             # with NaT
             return self._possibly_eval(res, self.binary_ops)
@@ -594,18 +595,20 @@ class BaseExprVisitor(ast.NodeVisitor):
         if len(node.targets) != 1:
             raise SyntaxError('can only assign a single expression')
         if not isinstance(node.targets[0], ast.Name):
-            raise SyntaxError('left hand side of an assignment must be a single name')
+            raise SyntaxError('left hand side of an assignment must be a '
+                              'single name')
         if self.env.target is None:
             raise ValueError('cannot assign without a target object')
 
         try:
             assigner = self.visit(node.targets[0], **kwargs)
-        except (UndefinedVariableError):
+        except UndefinedVariableError:
             assigner = node.targets[0].id
 
-        self.assigner = getattr(assigner,'name',assigner)
+        self.assigner = getattr(assigner, 'name', assigner)
         if self.assigner is None:
-            raise SyntaxError('left hand side of an assignment must be a single resolvable name')
+            raise SyntaxError('left hand side of an assignment must be a '
+                              'single resolvable name')
 
         return self.visit(node.value, **kwargs)
 
@@ -622,7 +625,7 @@ class BaseExprVisitor(ast.NodeVisitor):
                 name = self.env.add_tmp(v)
                 return self.term_type(name, self.env)
             except AttributeError:
-                # something like datetime.datetime where scope is overriden
+                # something like datetime.datetime where scope is overridden
                 if isinstance(value, ast.Name) and value.id == attr:
                     return resolved
 
@@ -699,8 +702,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         return reduce(visitor, operands)
 
 
-_python_not_supported = frozenset(['Dict', 'Call', 'BoolOp',
-                                   'In', 'NotIn'])
+_python_not_supported = frozenset(['Dict', 'Call', 'BoolOp', 'In', 'NotIn'])
 _numexpr_supported_calls = frozenset(_reductions + _mathops)
 
 
@@ -744,7 +746,7 @@ class Expr(StringMixin):
 
     @property
     def assigner(self):
-        return getattr(self._visitor,'assigner',None)
+        return getattr(self._visitor, 'assigner', None)
 
     def __call__(self):
         self.env.locals['truediv'] = self.truediv

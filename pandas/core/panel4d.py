@@ -5,15 +5,14 @@ from pandas.core.panel import Panel
 
 Panel4D = create_nd_panel_factory(
     klass_name='Panel4D',
-    orders     =['labels', 'items', 'major_axis', 'minor_axis'],
-    slices     ={'labels': 'labels', 'items': 'items',
-                 'major_axis': 'major_axis',
-                 'minor_axis': 'minor_axis'},
+    orders=['labels', 'items', 'major_axis', 'minor_axis'],
+    slices={'labels': 'labels', 'items': 'items', 'major_axis': 'major_axis',
+            'minor_axis': 'minor_axis'},
     slicer=Panel,
-    aliases    ={'major': 'major_axis', 'minor': 'minor_axis'},
+    aliases={'major': 'major_axis', 'minor': 'minor_axis'},
     stat_axis=2,
-    ns=dict(__doc__=  """
-    Represents a 4 dimensonal structured
+    ns=dict(__doc__="""
+    Represents a 4 dimensional structured
 
     Parameters
     ----------
@@ -28,10 +27,9 @@ Panel4D = create_nd_panel_factory(
     Data type to force, otherwise infer
     copy : boolean, default False
     Copy data from inputs. Only affects DataFrame / 2d ndarray input
-    """
+    """)
+)
 
-        )
-    )
 
 def panel4d_init(self, data=None, labels=None, items=None, major_axis=None,
                  minor_axis=None, copy=False, dtype=None):

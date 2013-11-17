@@ -120,7 +120,8 @@ def iteritems(obj, **kwargs):
     """replacement for six's iteritems for Python2/3 compat
        uses 'iteritems' if available and otherwise uses 'items'.
 
-       Passes kwargs to method."""
+       Passes kwargs to method.
+    """
     func = getattr(obj, "iteritems", None)
     if not func:
         func = obj.items
@@ -180,6 +181,7 @@ if PY3:
 
     def u(s):
         return s
+
     def u_safe(s):
         return s
 else:
@@ -243,8 +245,7 @@ except ImportError:
 
 
 class _OrderedDict(dict):
-
-    'Dictionary that remembers insertion order'
+    """Dictionary that remembers insertion order"""
     # An inherited dict maps keys to values.
     # The inherited dict provides __getitem__, __len__, __contains__, and get.
     # The remaining methods are order-aware.
@@ -258,11 +259,10 @@ class _OrderedDict(dict):
     # KEY].
 
     def __init__(self, *args, **kwds):
-        '''Initialize an ordered dictionary.  Signature is the same as for
+        """Initialize an ordered dictionary. Signature is the same as for
         regular dictionaries, but keyword arguments are not recommended
         because their insertion order is arbitrary.
-
-        '''
+        """
         if len(args) > 1:
             raise TypeError('expected at most 1 arguments, got %d' % len(args))
         try:
@@ -274,7 +274,7 @@ class _OrderedDict(dict):
         self.__update(*args, **kwds)
 
     def __setitem__(self, key, value, dict_setitem=dict.__setitem__):
-        'od.__setitem__(i, y) <==> od[i]=y'
+        """od.__setitem__(i, y) <==> od[i]=y"""
         # Setting a new item creates a new link which goes at the end of the
         # linked list, and the inherited dictionary is updated with the new
         # key/value pair.
@@ -285,7 +285,7 @@ class _OrderedDict(dict):
         dict_setitem(self, key, value)
 
     def __delitem__(self, key, dict_delitem=dict.__delitem__):
-        'od.__delitem__(y) <==> del od[y]'
+        """od.__delitem__(y) <==> del od[y]"""
         # Deleting an existing item uses self.__map to find the link which is
         # then removed by updating the links in the predecessor and successor
         # nodes.
@@ -295,7 +295,7 @@ class _OrderedDict(dict):
         link_next[0] = link_prev
 
     def __iter__(self):
-        'od.__iter__() <==> iter(od)'
+        """od.__iter__() <==> iter(od)"""
         root = self.__root
         curr = root[1]
         while curr is not root:
@@ -303,7 +303,7 @@ class _OrderedDict(dict):
             curr = curr[1]
 
     def __reversed__(self):
-        'od.__reversed__() <==> reversed(od)'
+        """od.__reversed__() <==> reversed(od)"""
         root = self.__root
         curr = root[0]
         while curr is not root:
@@ -311,7 +311,7 @@ class _OrderedDict(dict):
             curr = curr[0]
 
     def clear(self):
-        'od.clear() -> None.  Remove all items from od.'
+        """od.clear() -> None.  Remove all items from od."""
         try:
             for node in itervalues(self.__map):
                 del node[:]
@@ -323,10 +323,11 @@ class _OrderedDict(dict):
         dict.clear(self)
 
     def popitem(self, last=True):
-        '''od.popitem() -> (k, v), return and remove a (key, value) pair.
+        """od.popitem() -> (k, v), return and remove a (key, value) pair.
+
         Pairs are returned in LIFO order if last is true or FIFO order if
         false.
-        '''
+        """
         if not self:
             raise KeyError('dictionary is empty')
         root = self.__root
@@ -348,39 +349,39 @@ class _OrderedDict(dict):
     # -- the following methods do not depend on the internal structure --
 
     def keys(self):
-        'od.keys() -> list of keys in od'
+        """od.keys() -> list of keys in od"""
         return list(self)
 
     def values(self):
-        'od.values() -> list of values in od'
+        """od.values() -> list of values in od"""
         return [self[key] for key in self]
 
     def items(self):
-        'od.items() -> list of (key, value) pairs in od'
+        """od.items() -> list of (key, value) pairs in od"""
         return [(key, self[key]) for key in self]
 
     def iterkeys(self):
-        'od.iterkeys() -> an iterator over the keys in od'
+        """od.iterkeys() -> an iterator over the keys in od"""
         return iter(self)
 
     def itervalues(self):
-        'od.itervalues -> an iterator over the values in od'
+        """od.itervalues -> an iterator over the values in od"""
         for k in self:
             yield self[k]
 
     def iteritems(self):
-        'od.iteritems -> an iterator over the (key, value) items in od'
+        """od.iteritems -> an iterator over the (key, value) items in od"""
         for k in self:
             yield (k, self[k])
 
     def update(*args, **kwds):
-        '''od.update(E, **F) -> None.  Update od from dict/iterable E and F.
+        """od.update(E, **F) -> None.  Update od from dict/iterable E and F.
 
         If E is a dict instance, does:        for k in E: od[k] = E[k]
         If E has a .keys() method, does:      for k in E.keys(): od[k] = E[k]
         Or if E is an iterable of items, does:for k, v in E: od[k] = v
         In either case, this is followed by:  for k, v in F.items(): od[k] = v
-        '''
+        """
         if len(args) > 2:
             raise TypeError('update() takes at most 2 positional '
                             'arguments (%d given)' % (len(args),))
@@ -408,10 +409,10 @@ class _OrderedDict(dict):
     __marker = object()
 
     def pop(self, key, default=__marker):
-        '''od.pop(k[,d]) -> v, remove specified key and return the\
+        """od.pop(k[,d]) -> v, remove specified key and return the
         corresponding value.  If key is not found, d is returned if given,
         otherwise KeyError is raised.
-        '''
+        """
         if key in self:
             result = self[key]
             del self[key]
@@ -421,14 +422,15 @@ class _OrderedDict(dict):
         return default
 
     def setdefault(self, key, default=None):
-        'od.setdefault(k[,d]) -> od.get(k,d), also set od[k]=d if k not in od'
+        """od.setdefault(k[,d]) -> od.get(k,d), also set od[k]=d if k not in od
+        """
         if key in self:
             return self[key]
         self[key] = default
         return default
 
     def __repr__(self, _repr_running={}):
-        'od.__repr__() <==> repr(od)'
+        """od.__repr__() <==> repr(od)"""
         call_key = id(self), _get_ident()
         if call_key in _repr_running:
             return '...'
@@ -441,7 +443,7 @@ class _OrderedDict(dict):
             del _repr_running[call_key]
 
     def __reduce__(self):
-        'Return state information for pickling'
+        """Return state information for pickling"""
         items = [[k, self[k]] for k in self]
         inst_dict = vars(self).copy()
         for k in vars(OrderedDict()):
@@ -451,24 +453,24 @@ class _OrderedDict(dict):
         return self.__class__, (items,)
 
     def copy(self):
-        'od.copy() -> a shallow copy of od'
+        """od.copy() -> a shallow copy of od"""
         return self.__class__(self)
 
     @classmethod
     def fromkeys(cls, iterable, value=None):
-        '''OD.fromkeys(S[, v]) -> New ordered dictionary with keys from S and
+        """OD.fromkeys(S[, v]) -> New ordered dictionary with keys from S and
         values equal to v (which defaults to None).
-        '''
+        """
         d = cls()
         for key in iterable:
             d[key] = value
         return d
 
     def __eq__(self, other):
-        '''od.__eq__(y) <==> od==y.  Comparison to another OD is
+        """od.__eq__(y) <==> od==y.  Comparison to another OD is
         order-sensitive while comparison to a regular mapping is
         order-insensitive.
-        '''
+        """
         if isinstance(other, OrderedDict):
             return (len(self) == len(other) and
                     list(self.items()) == list(other.items()))
@@ -480,15 +482,16 @@ class _OrderedDict(dict):
     # -- the following methods are only used in Python 2.7 --
 
     def viewkeys(self):
-        "od.viewkeys() -> a set-like object providing a view on od's keys"
+        """od.viewkeys() -> a set-like object providing a view on od's keys"""
         return KeysView(self)
 
     def viewvalues(self):
-        "od.viewvalues() -> an object providing a view on od's values"
+        """od.viewvalues() -> an object providing a view on od's values"""
         return ValuesView(self)
 
     def viewitems(self):
-        "od.viewitems() -> a set-like object providing a view on od's items"
+        """od.viewitems() -> a set-like object providing a view on od's items
+        """
         return ItemsView(self)
 
 
@@ -502,18 +505,17 @@ except ImportError:
 
 
 class _Counter(dict):
-
-    '''Dict subclass for counting hashable objects.  Sometimes called a bag
+    """Dict subclass for counting hashable objects.  Sometimes called a bag
     or multiset.  Elements are stored as dictionary keys and their counts
     are stored as dictionary values.
 
     >>> Counter('zyzygy')
     Counter({'y': 3, 'z': 2, 'g': 1})
 
-    '''
+    """
 
     def __init__(self, iterable=None, **kwds):
-        '''Create a new, empty Counter object.  And if given, count elements
+        """Create a new, empty Counter object.  And if given, count elements
         from an input iterable.  Or, initialize the count from another mapping
         of elements to their counts.
 
@@ -522,26 +524,26 @@ class _Counter(dict):
         >>> c = Counter({'a': 4, 'b': 2})    # a new counter from a mapping
         >>> c = Counter(a=4, b=2)            # a new counter from keyword args
 
-        '''
+        """
         self.update(iterable, **kwds)
 
     def __missing__(self, key):
         return 0
 
     def most_common(self, n=None):
-        '''List the n most common elements and their counts from the most
+        """List the n most common elements and their counts from the most
         common to the least.  If n is None, then list all element counts.
 
         >>> Counter('abracadabra').most_common(3)
         [('a', 5), ('r', 2), ('b', 2)]
 
-        '''
+        """
         if n is None:
             return sorted(iteritems(self), key=itemgetter(1), reverse=True)
         return nlargest(n, iteritems(self), key=itemgetter(1))
 
     def elements(self):
-        '''Iterator over elements repeating each as many times as its count.
+        """Iterator over elements repeating each as many times as its count.
 
         >>> c = Counter('ABCABC')
         >>> sorted(c.elements())
@@ -550,7 +552,7 @@ class _Counter(dict):
         If an element's count has been set to zero or is a negative number,
         elements() will ignore it.
 
-        '''
+        """
         for elem, count in iteritems(self):
             for _ in range(count):
                 yield elem
@@ -563,7 +565,7 @@ class _Counter(dict):
             'Counter.fromkeys() is undefined.  Use Counter(iterable) instead.')
 
     def update(self, iterable=None, **kwds):
-        '''Like dict.update() but add counts instead of replacing them.
+        """Like dict.update() but add counts instead of replacing them.
 
         Source can be an iterable, a dictionary, or another Counter instance.
 
@@ -574,7 +576,7 @@ class _Counter(dict):
         >>> c['h']                      # four 'h' in which, witch, and watch
         4
 
-        '''
+        """
         if iterable is not None:
             if hasattr(iterable, 'iteritems'):
                 if self:
@@ -592,12 +594,14 @@ class _Counter(dict):
             self.update(kwds)
 
     def copy(self):
-        'Like dict.copy() but returns a Counter instance instead of a dict.'
+        """Like dict.copy() but returns a Counter instance instead of a dict.
+        """
         return Counter(self)
 
     def __delitem__(self, elem):
-        '''Like dict.__delitem__() but does not raise KeyError for missing
-        values.'''
+        """Like dict.__delitem__() but does not raise KeyError for missing
+        values.
+        """
         if elem in self:
             dict.__delitem__(self, elem)
 
@@ -617,13 +621,12 @@ class _Counter(dict):
     #       c += Counter()
 
     def __add__(self, other):
-        '''Add counts from two counters.
+        """Add counts from two counters.
 
         >>> Counter('abbb') + Counter('bcc')
         Counter({'b': 4, 'c': 2, 'a': 1})
 
-
-        '''
+        """
         if not isinstance(other, Counter):
             return NotImplemented
         result = Counter()
@@ -634,12 +637,12 @@ class _Counter(dict):
         return result
 
     def __sub__(self, other):
-        ''' Subtract count, but keep only results with positive counts.
+        """Subtract count, but keep only results with positive counts.
 
         >>> Counter('abbbc') - Counter('bccd')
         Counter({'b': 2, 'a': 1})
 
-        '''
+        """
         if not isinstance(other, Counter):
             return NotImplemented
         result = Counter()
@@ -650,12 +653,12 @@ class _Counter(dict):
         return result
 
     def __or__(self, other):
-        '''Union is the maximum of value in either of the input counters.
+        """Union is the maximum of value in either of the input counters.
 
         >>> Counter('abbb') | Counter('bcc')
         Counter({'b': 3, 'c': 2, 'a': 1})
 
-        '''
+        """
         if not isinstance(other, Counter):
             return NotImplemented
         _max = max
@@ -667,12 +670,12 @@ class _Counter(dict):
         return result
 
     def __and__(self, other):
-        ''' Intersection is the minimum of corresponding counts.
+        """Intersection is the minimum of corresponding counts.
 
         >>> Counter('abbb') & Counter('bcc')
         Counter({'b': 1})
 
-        '''
+        """
         if not isinstance(other, Counter):
             return NotImplemented
         _min = min
@@ -705,10 +708,9 @@ def raise_with_traceback(exc, traceback=Ellipsis):
     raise exc, None, traceback
 """)
 
-raise_with_traceback.__doc__ = (
-"""Raise exception with existing traceback.
+raise_with_traceback.__doc__ = """Raise exception with existing traceback.
 If traceback is not passed, uses sys.exc_info() to get traceback."""
-)
+
 
 # http://stackoverflow.com/questions/4126348
 # Thanks to @martineau at SO
@@ -722,6 +724,7 @@ if LooseVersion(dateutil.__version__) < '2.0':
         return _date_parser.parse(timestr, *args, **kwargs)
 else:
     parse_date = _date_parser.parse
+
 
 class OrderedDefaultdict(OrderedDict):
 

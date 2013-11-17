@@ -1,8 +1,3 @@
-import pandas.core.config as cf
-from pandas.core.config import (is_int, is_bool, is_text, is_float,
-                                is_instance_factory,is_one_of_factory,get_default_val)
-from pandas.core.format import detect_console_encoding
-
 """
 This module is imported from the pandas package __init__.py file
 in order to ensure that the core.config options registered here will
@@ -14,6 +9,12 @@ If you need to make sure options are available even before a certain
 module is imported, register them here rather then in the module.
 
 """
+
+import pandas.core.config as cf
+from pandas.core.config import (is_int, is_bool, is_text, is_float,
+                                is_instance_factory, is_one_of_factory,
+                                get_default_val)
+from pandas.core.format import detect_console_encoding
 
 
 ###########################################
@@ -113,8 +114,8 @@ colheader_justify_doc = """
 
 pc_expand_repr_doc = """
 : boolean
-    Whether to print out the full DataFrame repr for wide DataFrames
-    across multiple lines, `max_columns` is still respected, but the output will
+    Whether to print out the full DataFrame repr for wide DataFrames across
+    multiple lines, `max_columns` is still respected, but the output will
     wrap-around across multiple "pages" if it's width exceeds `display.width`.
 """
 
@@ -124,7 +125,8 @@ pc_line_width_doc = """
 """
 
 pc_line_width_deprecation_warning = """\
-line_width has been deprecated, use display.width instead (currently both are identical)
+line_width has been deprecated, use display.width instead (currently both are
+identical)
 """
 
 pc_height_deprecation_warning = """\
@@ -134,8 +136,8 @@ height has been deprecated.
 pc_width_doc = """
 : int
     Width of the display in characters. In case python/IPython is running in
-    a terminal this can be set to None and pandas will correctly auto-detect the
-    width.
+    a terminal this can be set to None and pandas will correctly auto-detect
+    the width.
     Note that the IPython notebook, IPython qtconsole, or IDLE do not run in a
     terminal and hence it is not possible to correctly detect the width.
 """
@@ -155,8 +157,8 @@ pc_max_seq_items = """
 : int or None
 
     when pretty-printing a long sequence, no more then `max_seq_items`
-    will be printed. If items are ommitted, they will be denoted by the addition
-    of "..." to the resulting string.
+    will be printed. If items are omitted, they will be denoted by the
+    addition of "..." to the resulting string.
 
     If set to None, the number of items to be printed is unlimited.
 """
@@ -182,6 +184,8 @@ pc_mpl_style_doc = """
 """
 
 style_backup = dict()
+
+
 def mpl_style_cb(key):
     import sys
     from pandas.tools.plotting import mpl_stylesheet
@@ -190,15 +194,14 @@ def mpl_style_cb(key):
     val = cf.get_option(key)
 
     if 'matplotlib' not in sys.modules.keys():
-        if not(val): # starting up, we get reset to None
+        if not(val):  # starting up, we get reset to None
             return val
         raise Exception("matplotlib has not been imported. aborting")
 
     import matplotlib.pyplot as plt
 
-
     if val == 'default':
-        style_backup = dict([(k,plt.rcParams[k]) for k in mpl_stylesheet])
+        style_backup = dict([(k, plt.rcParams[k]) for k in mpl_stylesheet])
         plt.rcParams.update(mpl_stylesheet)
     elif not val:
         if style_backup:
@@ -241,10 +244,11 @@ with cf.config_prefix('display'):
                        cb=mpl_style_cb)
     cf.register_option('height', 60, pc_height_doc,
                        validator=is_instance_factory([type(None), int]))
-    cf.register_option('width',80, pc_width_doc,
+    cf.register_option('width', 80, pc_width_doc,
                        validator=is_instance_factory([type(None), int]))
     # redirected to width, make defval identical
-    cf.register_option('line_width', get_default_val('display.width'), pc_line_width_doc)
+    cf.register_option('line_width', get_default_val('display.width'),
+                       pc_line_width_doc)
 
 cf.deprecate_option('display.line_width',
                     msg=pc_line_width_deprecation_warning,
@@ -271,6 +275,7 @@ use_inf_as_null_doc = """
 # We don't want to start importing everything at the global context level
 # or we'll hit circular deps.
 
+
 def use_inf_as_null_cb(key):
     from pandas.core.common import _use_inf_as_null
     _use_inf_as_null(key)
@@ -283,7 +288,8 @@ with cf.config_prefix('mode'):
 # user warnings
 chained_assignment = """
 : string
-    Raise an exception, warn, or no action if trying to use chained assignment, The default is warn
+    Raise an exception, warn, or no action if trying to use chained assignment,
+    The default is warn
 """
 
 with cf.config_prefix('mode'):
@@ -294,7 +300,8 @@ with cf.config_prefix('mode'):
 # Set up the io.excel specific configuration.
 writer_engine_doc = """
 : string
-    The default Excel writer engine for '{ext}' files. Available options: '{default}' (the default){others}.
+    The default Excel writer engine for '{ext}' files. Available options:
+    '{default}' (the default){others}.
 """
 
 with cf.config_prefix('io.excel'):
@@ -309,12 +316,13 @@ with cf.config_prefix('io.excel'):
         doc = writer_engine_doc.format(ext=ext, default=default,
                                        others=options)
         cf.register_option(ext + '.writer', default, doc, validator=str)
+
     def _register_xlsx(engine, other):
         cf.register_option('xlsx.writer', engine,
                            writer_engine_doc.format(ext='xlsx',
                                                     default=engine,
                                                     others=", '%s'" % other),
-                          validator=str)
+                           validator=str)
 
     try:
         # better memory footprint

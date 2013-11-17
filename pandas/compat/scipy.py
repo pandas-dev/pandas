@@ -7,8 +7,7 @@ import numpy as np
 
 
 def scoreatpercentile(a, per, limit=(), interpolation_method='fraction'):
-    """
-    Calculate the score at the given `per` percentile of the sequence `a`.
+    """Calculate the score at the given `per` percentile of the sequence `a`.
 
     For example, the score at `per=50` is the median. If the desired quantile
     lies between two data points, we interpolate between them, according to
@@ -65,7 +64,7 @@ def scoreatpercentile(a, per, limit=(), interpolation_method='fraction'):
         values = values[(limit[0] <= values) & (values <= limit[1])]
 
     idx = per / 100. * (values.shape[0] - 1)
-    if (idx % 1 == 0):
+    if idx % 1 == 0:
         score = values[idx]
     else:
         if interpolation_method == 'fraction':
@@ -153,8 +152,7 @@ def fastsort(a):
 
 
 def percentileofscore(a, score, kind='rank'):
-    '''
-    The percentile rank of a score relative to a list of scores.
+    """The percentile rank of a score relative to a list of scores.
 
     A `percentileofscore` of, for example, 80% means that 80% of the
     scores in `a` are below the given score. In the case of gaps or
@@ -217,7 +215,7 @@ def percentileofscore(a, score, kind='rank'):
     >>> percentileofscore([1, 2, 3, 3, 4], 3, kind='mean')
     60.0
 
-    '''
+    """
     a = np.array(a)
     n = len(a)
 

@@ -31,6 +31,7 @@ def _cat_compare_op(op):
 
     return f
 
+
 class Categorical(PandasObject):
     """
     Represents a categorical variable in classic R / S-plus fashion
@@ -167,8 +168,8 @@ class Categorical(PandasObject):
 
     def _get_repr(self, name=False, length=True, na_rep='NaN', footer=True):
         formatter = fmt.CategoricalFormatter(self, name=name,
-                                        length=length, na_rep=na_rep,
-                                        footer=footer)
+                                             length=length, na_rep=na_rep,
+                                             footer=footer)
         result = formatter.to_string()
         return compat.text_type(result)
 
@@ -226,7 +227,8 @@ class Categorical(PandasObject):
         grouped = DataFrame(self.labels).groupby(0)
         counts = grouped.count().values.squeeze()
         freqs = counts/float(counts.sum())
-        return DataFrame.from_dict(dict(
-                                    counts=counts,
-                                    freqs=freqs,
-                                    levels=self.levels)).set_index('levels')
+        return DataFrame.from_dict({
+            'counts': counts,
+            'freqs': freqs,
+            'levels': self.levels
+        }).set_index('levels')
