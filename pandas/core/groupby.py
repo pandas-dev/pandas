@@ -50,13 +50,30 @@ aggregated : DataFrame
 # forwarding methods from NDFrames
 _plotting_methods = frozenset(['plot', 'boxplot', 'hist'])
 
-_apply_whitelist = frozenset(['last', 'first',
-                              'mean', 'sum', 'min', 'max',
-                              'cumsum', 'cumprod', 'cummin', 'cummax',
-                              'resample',
-                              'describe',
-                              'rank', 'quantile', 'count',
-                              'fillna', 'dtype']) | _plotting_methods
+_common_apply_whitelist = frozenset([
+    'last', 'first',
+    'head', 'tail', 'median',
+    'mean', 'sum', 'min', 'max',
+    'cumsum', 'cumprod', 'cummin', 'cummax', 'cumcount',
+    'resample',
+    'describe',
+    'rank', 'quantile', 'count',
+    'fillna',
+    'mad',
+    'any', 'all',
+    'irow', 'take',
+    'shift', 'tshift',
+    'ffill', 'bfill',
+    'pct_change', 'skew',
+    'corr', 'cov',
+]) | _plotting_methods
+
+_series_apply_whitelist = \
+    (_common_apply_whitelist - set(['boxplot'])) | \
+    frozenset(['dtype', 'value_counts'])
+
+_dataframe_apply_whitelist = \
+    _common_apply_whitelist | frozenset(['dtypes', 'corrwith'])
 
 
 class GroupByError(Exception):
@@ -185,6 +202,7 @@ class GroupBy(PandasObject):
     len(grouped) : int
         Number of groups
     """
+    _apply_whitelist = _common_apply_whitelist
 
     def __init__(self, obj, keys=None, axis=0, level=None,
                  grouper=None, exclusions=None, selection=None, as_index=True,
@@ -252,7 +270,7 @@ class GroupBy(PandasObject):
         return self._selection
 
     def _local_dir(self):
-        return sorted(set(self.obj._local_dir() + list(_apply_whitelist)))
+        return sorted(set(self.obj._local_dir() + list(self._apply_whitelist)))
 
     def __getattr__(self, attr):
         if attr in self.obj:
@@ -268,7 +286,7 @@ class GroupBy(PandasObject):
         raise NotImplementedError
 
     def _make_wrapper(self, name):
-        if name not in _apply_whitelist:
+        if name not in self._apply_whitelist:
             is_callable = callable(getattr(self.obj, name, None))
             kind = ' callable ' if is_callable else ' '
             msg = ("Cannot access{0}attribute {1!r} of {2!r} objects, try "
@@ -1605,6 +1623,7 @@ def _convert_grouper(axis, grouper):
 
 
 class SeriesGroupBy(GroupBy):
+    _apply_whitelist = _series_apply_whitelist
 
     def aggregate(self, func_or_funcs, *args, **kwargs):
         """
@@ -2401,6 +2420,7 @@ class NDFrameGroupBy(GroupBy):
 
 
 class DataFrameGroupBy(NDFrameGroupBy):
+    _apply_whitelist = _dataframe_apply_whitelist
 
     _block_agg_axis = 1
 

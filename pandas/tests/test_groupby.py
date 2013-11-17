@@ -3221,10 +3221,67 @@ class TestGroupBy(tm.TestCase):
                         'letters': Series(random_letters)})
         s = df.floats
 
-        blacklist = ['eval', 'query', 'abs', 'shift', 'tshift', 'where',
-                     'mask', 'align', 'groupby', 'clip', 'astype',
-                     'at', 'combine', 'consolidate', 'convert_objects',
-                     'corr', 'corr_with', 'cov']
+        df_whitelist = frozenset([
+            'last', 'first',
+            'mean', 'sum', 'min', 'max',
+            'head', 'tail',
+            'cumsum', 'cumprod', 'cummin', 'cummax', 'cumcount',
+            'resample',
+            'describe',
+            'rank', 'quantile', 'count',
+            'fillna',
+            'mad',
+            'any', 'all',
+            'irow', 'take',
+            'shift', 'tshift',
+            'ffill', 'bfill',
+            'pct_change', 'skew',
+            'plot', 'boxplot', 'hist',
+            'median', 'dtypes',
+            'corrwith', 'corr', 'cov',
+        ])
+        s_whitelist = frozenset([
+            'last', 'first',
+            'mean', 'sum', 'min', 'max',
+            'head', 'tail',
+            'cumsum', 'cumprod', 'cummin', 'cummax', 'cumcount',
+            'resample',
+            'describe',
+            'rank', 'quantile', 'count',
+            'fillna',
+            'mad',
+            'any', 'all',
+            'irow', 'take',
+            'shift', 'tshift',
+            'ffill', 'bfill',
+            'pct_change', 'skew',
+            'plot', 'hist',
+            'median', 'dtype',
+            'corr', 'cov',
+            'value_counts',
+        ])
+
+        for obj, whitelist in zip((df, s),
+                                  (df_whitelist, s_whitelist)):
+            gb = obj.groupby(df.letters)
+            self.assertEqual(whitelist, gb._apply_whitelist)
+            for m in whitelist:
+                getattr(gb, m)
+
+    def test_groupby_blacklist(self):
+        from string import ascii_lowercase
+        letters = np.array(list(ascii_lowercase))
+        N = 10
+        random_letters = letters.take(np.random.randint(0, 26, N))
+        df = DataFrame({'floats': N / 10 * Series(np.random.random(N)),
+                        'letters': Series(random_letters)})
+        s = df.floats
+
+        blacklist = [
+            'eval', 'query', 'abs', 'where',
+            'mask', 'align', 'groupby', 'clip', 'astype',
+            'at', 'combine', 'consolidate', 'convert_objects',
+        ]
         to_methods = [method for method in dir(df) if method.startswith('to_')]
 
         blacklist.extend(to_methods)
@@ -3319,8 +3376,12 @@ class TestGroupBy(tm.TestCase):
             'groups','hist','indices','last','max','mean','median',
             'min','name','ngroups','nth','ohlc','plot', 'prod',
             'size','std','sum','transform','var', 'count', 'head', 'describe',
-            'cummax', 'dtype', 'quantile', 'rank', 'cumprod', 'tail',
-            'resample', 'cummin', 'fillna', 'cumsum', 'cumcount'])
+            'cummax', 'quantile', 'rank', 'cumprod', 'tail',
+            'resample', 'cummin', 'fillna', 'cumsum', 'cumcount',
+            'all', 'shift', 'skew', 'bfill', 'irow', 'ffill',
+            'take', 'tshift', 'pct_change', 'any', 'mad', 'corr', 'corrwith',
+            'cov', 'dtypes',
+        ])
         self.assertEqual(results, expected)
 
 def assert_fp_equal(a, b):
