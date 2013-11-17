@@ -27,7 +27,9 @@ _TAG_RE = re.compile('^{0}'.format(_LOCAL_TAG))
 
 
 class UndefinedVariableError(NameError):
+
     """NameError subclass for local variables."""
+
     def __init__(self, *args):
         msg = 'name {0!r} is not defined'
         subbed = _TAG_RE.sub('', args[0])
@@ -51,6 +53,7 @@ def _possibly_update_key(d, value, old_key, new_key=None):
 
 
 class Term(StringMixin):
+
     def __new__(cls, name, env, side=None, encoding=None):
         klass = Constant if not isinstance(name, string_types) else cls
         supr_new = super(Term, klass).__new__
@@ -195,6 +198,7 @@ class Term(StringMixin):
 
 
 class Constant(Term):
+
     def __init__(self, value, env, side=None, encoding=None):
         super(Constant, self).__init__(value, env, side=side,
                                        encoding=encoding)
@@ -211,8 +215,10 @@ _bool_op_map = {'not': '~', 'and': '&', 'or': '|'}
 
 
 class Op(StringMixin):
+
     """Hold an operator of unknown arity
     """
+
     def __init__(self, op, operands, *args, **kwargs):
         self.op = _bool_op_map.get(op, op)
         self.operands = operands
@@ -328,6 +334,7 @@ def is_term(obj):
 
 
 class BinOp(Op):
+
     """Hold a binary operator and its operands
 
     Parameters
@@ -336,6 +343,7 @@ class BinOp(Op):
     left : Term or Op
     right : Term or Op
     """
+
     def __init__(self, op, lhs, rhs, **kwargs):
         super(BinOp, self).__init__(op, (lhs, rhs))
         self.lhs = lhs
@@ -452,6 +460,7 @@ class BinOp(Op):
 
 
 class Div(BinOp):
+
     """Div operator to special case casting.
 
     Parameters
@@ -462,6 +471,7 @@ class Div(BinOp):
         Whether or not to use true division. With Python 3 this happens
         regardless of the value of ``truediv``.
     """
+
     def __init__(self, lhs, rhs, truediv=True, *args, **kwargs):
         super(Div, self).__init__('/', lhs, rhs, *args, **kwargs)
 
@@ -475,6 +485,7 @@ _unary_ops_dict = dict(zip(_unary_ops_syms, _unary_ops_funcs))
 
 
 class UnaryOp(Op):
+
     """Hold a unary operator and its operands
 
     Parameters
@@ -489,6 +500,7 @@ class UnaryOp(Op):
     ValueError
         * If no function associated with the passed operator token is found.
     """
+
     def __init__(self, op, operand):
         super(UnaryOp, self).__init__(op, (operand,))
         self.operand = operand

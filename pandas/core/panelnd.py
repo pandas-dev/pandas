@@ -44,7 +44,7 @@ def create_nd_panel_factory(klass_name, orders, slices, slicer, aliases=None,
 
     klass._constructor_sliced = slicer
 
-    #### define the methods ####
+    # define the methods ####
     def __init__(self, *args, **kwargs):
         if not (kwargs.get('data') or len(args)):
             raise Exception(

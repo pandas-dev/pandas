@@ -22,6 +22,7 @@ from pandas.core.index import Index, MultiIndex
 
 
 class _Unstacker(object):
+
     """
     Helper class to unstack data / pivot with multi-level index
 
@@ -57,6 +58,7 @@ class _Unstacker(object):
     -------
     unstacked : DataFrame
     """
+
     def __init__(self, values, index, level=-1, value_columns=None):
         if values.ndim == 1:
             values = values[:, np.newaxis]

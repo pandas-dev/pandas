@@ -120,6 +120,7 @@ def _last_compat(x, axis=0):
 
 
 class GroupBy(PandasObject):
+
     """
     Class for grouping and aggregating relational data. See aggregate,
     transform, and apply functions on this object.
@@ -185,6 +186,7 @@ class GroupBy(PandasObject):
     len(grouped) : int
         Number of groups
     """
+
     def __init__(self, obj, keys=None, axis=0, level=None,
                  grouper=None, exclusions=None, selection=None, as_index=True,
                  sort=True, group_keys=True, squeeze=False):
@@ -653,9 +655,11 @@ def _is_indexed_like(obj, axes):
 
 
 class Grouper(object):
+
     """
 
     """
+
     def __init__(self, axis, groupings, sort=True, group_keys=True):
         self.axis = axis
         self.groupings = groupings
@@ -1209,6 +1213,7 @@ class BinGrouper(Grouper):
 
 
 class Grouping(object):
+
     """
     Holds the grouping information for a single key
 
@@ -1229,6 +1234,7 @@ class Grouping(object):
       * group_index : unique groups
       * groups : dict of {group -> label_list}
     """
+
     def __init__(self, index, grouper=None, name=None, level=None,
                  sort=True):
 
@@ -1594,7 +1600,7 @@ class SeriesGroupBy(GroupBy):
             return index
 
         if isinstance(values[0], dict):
-            # # GH #823
+            # GH #823
             index = _get_index()
             return DataFrame(values, index=index).stack()
 
@@ -2522,6 +2528,7 @@ class SeriesSplitter(DataSplitter):
 
 
 class FrameSplitter(DataSplitter):
+
     def __init__(self, data, labels, ngroups, axis=0):
         super(FrameSplitter, self).__init__(data, labels, ngroups, axis=axis)
 
@@ -2546,6 +2553,7 @@ class FrameSplitter(DataSplitter):
 
 
 class NDFrameSplitter(DataSplitter):
+
     def __init__(self, data, labels, ngroups, axis=0):
         super(NDFrameSplitter, self).__init__(data, labels, ngroups, axis=axis)
 
@@ -2679,9 +2687,11 @@ def _lexsort_indexer(keys, orders=None):
 
 
 class _KeyMapper(object):
+
     """
     Ease my suffering. Map compressed group id -> key tuple
     """
+
     def __init__(self, comp_ids, ngroups, labels, levels):
         self.levels = levels
         self.labels = labels

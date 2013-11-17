@@ -17,7 +17,7 @@ from pandas.core.config import (is_int, is_bool, is_text, is_float,
 from pandas.core.format import detect_console_encoding
 
 
-###########################################
+#
 # options from the "display" namespace
 
 pc_precision_doc = """

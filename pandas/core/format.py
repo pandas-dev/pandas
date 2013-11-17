@@ -64,6 +64,7 @@ docstring_to_string = """
 
 
 class CategoricalFormatter(object):
+
     def __init__(self, categorical, buf=None, length=True,
                  na_rep='NaN', name=False, footer=True):
         self.categorical = categorical
@@ -246,6 +247,7 @@ class TableFormatter(object):
 
 
 class DataFrameFormatter(TableFormatter):
+
     """
     Render a DataFrame
 
@@ -886,7 +888,7 @@ class CSVFormatter(object):
 
         self.date_format = date_format
 
-        #GH3457
+        # GH3457
         if not self.obj.columns.is_unique and engine == 'python':
             raise NotImplementedError("columns.is_unique == False not "
                                       "supported with engine='python'")
@@ -1155,7 +1157,7 @@ class CSVFormatter(object):
                     col_line.append(columns.names[i])
 
                     if isinstance(index_label, list) and len(index_label) > 1:
-                        col_line.extend([''] * (len(index_label)-1))
+                        col_line.extend([''] * (len(index_label) - 1))
 
                 col_line.extend(columns.get_level_values(i))
 
@@ -1176,7 +1178,7 @@ class CSVFormatter(object):
 
         # write in chunksize bites
         chunksize = self.chunksize
-        chunks = int(nrows / chunksize)+1
+        chunks = int(nrows / chunksize) + 1
 
         for i in range(chunks):
             start_i = i * chunksize
@@ -1237,6 +1239,7 @@ header_style = {"font": {"bold": True},
 
 
 class ExcelFormatter(object):
+
     """
     Class for formatting a DataFrame to a list of ExcelCells,
 
@@ -1591,6 +1594,7 @@ class GenericArrayFormatter(object):
 
 
 class FloatArrayFormatter(GenericArrayFormatter):
+
     """
 
     """
@@ -1860,6 +1864,7 @@ def get_console_size():
 
 
 class EngFormatter(object):
+
     """
     Formats float values according to engineering format.
 

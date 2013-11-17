@@ -245,6 +245,7 @@ except ImportError:
 
 
 class _OrderedDict(dict):
+
     """Dictionary that remembers insertion order"""
     # An inherited dict maps keys to values.
     # The inherited dict provides __getitem__, __len__, __contains__, and get.
@@ -505,6 +506,7 @@ except ImportError:
 
 
 class _Counter(dict):
+
     """Dict subclass for counting hashable objects.  Sometimes called a bag
     or multiset.  Elements are stored as dictionary keys and their counts
     are stored as dictionary values.

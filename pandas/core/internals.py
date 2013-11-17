@@ -533,7 +533,7 @@ class Block(PandasObject):
         values[mask] = na_rep
         return values.tolist()
 
-    #### block actions ####
+    # block actions ####
     def copy(self, deep=True, ref_items=None):
         values = self.values
         if deep:
@@ -667,7 +667,7 @@ class Block(PandasObject):
             new = self._try_cast(new)
 
             # pseudo-broadcast
-            if isinstance(new, np.ndarray) and new.ndim == self.ndim-1:
+            if isinstance(new, np.ndarray) and new.ndim == self.ndim - 1:
                 new = np.repeat(new, self.shape[-1]).reshape(self.shape)
 
             np.putmask(new_values, mask, new)
@@ -1026,7 +1026,7 @@ class Block(PandasObject):
 
                 # pseodo broadcast (its a 2d vs 1d say and where needs it in a
                 # specific direction)
-                if (other.ndim >= 1 and values.ndim-1 == other.ndim and
+                if (other.ndim >= 1 and values.ndim - 1 == other.ndim and
                         values.shape[0] != other.shape[0]):
                     other = _block_shape(other).T
                 else:
@@ -1201,7 +1201,7 @@ class TimeDeltaBlock(IntBlock):
             pass
         elif com.is_integer(value):
             # coerce to seconds of timedelta
-            value = np.timedelta64(int(value*1e9))
+            value = np.timedelta64(int(value * 1e9))
         elif isinstance(value, timedelta):
             value = np.timedelta64(value)
 
@@ -3035,8 +3035,8 @@ class BlockManager(PandasObject):
 
             # need to shift elements to the right
             if self._ref_locs[loc] is not None:
-                for i in reversed(lrange(loc+1, len(self._ref_locs))):
-                    self._ref_locs[i] = self._ref_locs[i-1]
+                for i in reversed(lrange(loc + 1, len(self._ref_locs))):
+                    self._ref_locs[i] = self._ref_locs[i - 1]
 
             self._ref_locs[loc] = (new_block, 0)
 

@@ -30,6 +30,7 @@ class Scope(expr.Scope):
 
 
 class Term(ops.Term):
+
     def __new__(cls, name, env, side=None, encoding=None):
         klass = Constant if not isinstance(name, string_types) else cls
         supr_new = StringMixin.__new__
@@ -57,6 +58,7 @@ class Term(ops.Term):
 
 
 class Constant(Term):
+
     def __init__(self, value, env, side=None, encoding=None):
         super(Constant, self).__init__(value, env, side=side,
                                        encoding=encoding)
@@ -292,9 +294,9 @@ class ConditionBinOp(BinOp):
 
     def invert(self):
         """ invert the condition """
-        #if self.condition is not None:
+        # if self.condition is not None:
         #    self.condition = "~(%s)" % self.condition
-        #return self
+        # return self
         raise NotImplementedError("cannot use an invert condition when "
                                   "passing to numexpr")
 

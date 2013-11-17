@@ -7,6 +7,7 @@ from pandas.core import common as com
 
 
 class StringMixin(object):
+
     """implements string methods so long as object defines a `__unicode__`
     method.
 
@@ -55,6 +56,7 @@ class StringMixin(object):
 
 
 class PandasObject(StringMixin):
+
     """baseclass for various pandas objects"""
 
     @property
@@ -96,6 +98,7 @@ class PandasObject(StringMixin):
 
 
 class FrozenList(PandasObject, list):
+
     """
     Container that doesn't allow setting item *but*
     because it's technically non-hashable, will be used

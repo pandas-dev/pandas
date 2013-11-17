@@ -1726,6 +1726,7 @@ class Int64Index(Index):
 
 
 class Float64Index(Index):
+
     """
     Immutable ndarray implementing an ordered, sliceable set. The basic object
     storing axis labels for all pandas objects. Float64Index is a special case

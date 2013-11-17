@@ -73,6 +73,7 @@ ABCSparseArray = create_pandas_abc_type("ABCSparseArray", "_subtyp",
 
 
 class _ABCGeneric(type):
+
     def __instancecheck__(cls, inst):
         return hasattr(inst, "_data")
 
@@ -962,7 +963,8 @@ def _maybe_upcast_putmask(result, mask, other, dtype=None, change=None):
 
                 # if we are trying to do something unsafe
                 # like put a bigger dtype in a smaller one, use the smaller one
-                if change.dtype.itemsize < r.dtype.itemsize: # pragma: no cover
+                # pragma: no cover
+                if change.dtype.itemsize < r.dtype.itemsize:
                     raise AssertionError(
                         "cannot change dtype of input to smaller size")
                 change.dtype = r.dtype
@@ -2469,8 +2471,8 @@ def _pprint_dict(seq, _nest_lvl=0, **kwds):
     nitems = get_option("max_seq_items") or len(seq)
 
     for k, v in list(seq.items())[:nitems]:
-        pairs.append(pfmt % (pprint_thing(k, _nest_lvl+1, **kwds),
-                             pprint_thing(v, _nest_lvl+1, **kwds)))
+        pairs.append(pfmt % (pprint_thing(k, _nest_lvl + 1, **kwds),
+                             pprint_thing(v, _nest_lvl + 1, **kwds)))
 
     if nitems < len(seq):
         return fmt % (", ".join(pairs) + ", ...")

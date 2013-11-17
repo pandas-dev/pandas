@@ -66,11 +66,12 @@ _reserved_keys = ['all']  # keys which have a special meaning
 
 
 class OptionError(AttributeError, KeyError):
+
     """Exception for pandas.options, backwards compatible with KeyError
     checks"""
 
 
-##########################################
+#
 # User API
 
 def _get_single_key(pat, silent):
@@ -187,8 +188,10 @@ def get_default_val(pat):
 
 
 class DictWrapper(object):
+
     """ provide attribute-style access to a nested dict
     """
+
     def __init__(self, d, prefix=""):
         object.__setattr__(self, "d", d)
         object.__setattr__(self, "prefix", prefix)
@@ -354,11 +357,12 @@ reset_option = CallableDynamicDoc(_reset_option, _reset_option_tmpl)
 describe_option = CallableDynamicDoc(_describe_option, _describe_option_tmpl)
 options = DictWrapper(_global_config)
 
-######################################################
+#
 # Functions for use by pandas developers, in addition to User - api
 
 
 class option_context(object):
+
     def __init__(self, *args):
         if not (len(args) % 2 == 0 and len(args) >= 2):
             raise AssertionError(
@@ -499,7 +503,7 @@ def deprecate_option(key, msg=None, rkey=None, removal_ver=None):
     _deprecated_options[key] = DeprecatedOption(key, msg, rkey, removal_ver)
 
 
-################################
+#
 # functions internal to the module
 
 def _select_options(pat):
@@ -662,7 +666,7 @@ def pp_options_list(keys, width=80, _print=False):
         return s
 
 
-##############
+#
 # helpers
 
 from contextlib import contextmanager

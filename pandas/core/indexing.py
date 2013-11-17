@@ -22,7 +22,7 @@ def get_indexers_list():
         ('loc',  _LocIndexer),
         ('at',   _AtIndexer),
         ('iat',  _iAtIndexer),
-        ]
+    ]
 
 # "null slice"
 _NS = slice(None, None)
@@ -116,13 +116,13 @@ class _NDFrameIndexer(object):
 
     def _convert_scalar_indexer(self, key, axis):
         # if we are accessing via lowered dim, use the last dim
-        ax = self.obj._get_axis(min(axis, self.ndim-1))
+        ax = self.obj._get_axis(min(axis, self.ndim - 1))
         # a scalar
         return ax._convert_scalar_indexer(key, typ=self.name)
 
     def _convert_slice_indexer(self, key, axis):
         # if we are accessing via lowered dim, use the last dim
-        ax = self.obj._get_axis(min(axis, self.ndim-1))
+        ax = self.obj._get_axis(min(axis, self.ndim - 1))
         return ax._convert_slice_indexer(key, typ=self.name)
 
     def _has_valid_setitem_indexer(self, indexer):
@@ -494,7 +494,7 @@ class _NDFrameIndexer(object):
                     # broadcast along other dims
                     ser = ser.values.copy()
                     for (axis, l) in broadcast:
-                        shape = [-1] * (len(broadcast)+1)
+                        shape = [-1] * (len(broadcast) + 1)
                         shape[axis] = l
                         ser = np.tile(ser, l).reshape(shape)
 
@@ -820,7 +820,7 @@ class _NDFrameIndexer(object):
 
                     # reindex with the specified axis
                     ndim = self.obj.ndim
-                    if axis+1 > ndim:
+                    if axis + 1 > ndim:
                         raise AssertionError("invalid indexing error with "
                                              "non-unique index")
 
@@ -980,6 +980,7 @@ class _NDFrameIndexer(object):
 
 
 class _IXIndexer(_NDFrameIndexer):
+
     """ A primarily location based indexer, with integer fallback """
 
     def _has_valid_type(self, key, axis):
@@ -1039,6 +1040,7 @@ class _LocationIndexer(_NDFrameIndexer):
 
 
 class _LocIndexer(_LocationIndexer):
+
     """ purely label based location based indexing """
     _valid_types = ("labels (MUST BE IN THE INDEX), slices of labels (BOTH "
                     "endpoints included! Can be slices of integers if the "
@@ -1136,6 +1138,7 @@ class _LocIndexer(_LocationIndexer):
 
 
 class _iLocIndexer(_LocationIndexer):
+
     """ purely integer based location based indexing """
     _valid_types = ("integer, integer slice (START point is INCLUDED, END "
                     "point is EXCLUDED), listlike of integers, boolean array")
@@ -1228,6 +1231,7 @@ class _iLocIndexer(_LocationIndexer):
 
 
 class _ScalarAccessIndexer(_NDFrameIndexer):
+
     """ access scalars quickly """
 
     def _convert_key(self, key):
@@ -1257,11 +1261,13 @@ class _ScalarAccessIndexer(_NDFrameIndexer):
 
 
 class _AtIndexer(_ScalarAccessIndexer):
+
     """ label based scalar accessor """
     pass
 
 
 class _iAtIndexer(_ScalarAccessIndexer):
+
     """ integer based scalar accessor """
 
     def _has_valid_setitem_indexer(self, indexer):
@@ -1301,7 +1307,7 @@ def _length_of_indexer(indexer, target=None):
             step = 1
         elif step < 0:
             step = abs(step)
-        return (stop-start) / step
+        return (stop - start) / step
     elif isinstance(indexer, (ABCSeries, np.ndarray, list)):
         return len(indexer)
     elif not is_list_like(indexer):
@@ -1346,6 +1352,7 @@ def _is_index_slice(obj):
 
 
 class _SeriesIndexer(_IXIndexer):
+
     """
     Class to support fancy indexing, potentially using labels
 
@@ -1504,11 +1511,11 @@ def _check_slice_bounds(slobj, values):
     l = len(values)
     start = slobj.start
     if start is not None:
-        if start < -l or start > l-1:
+        if start < -l or start > l - 1:
             raise IndexError("out-of-bounds on slice (start)")
     stop = slobj.stop
     if stop is not None:
-        if stop < -l-1 or stop > l:
+        if stop < -l - 1 or stop > l:
             raise IndexError("out-of-bounds on slice (end)")
 
 

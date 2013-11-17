@@ -405,7 +405,7 @@ def str_extract(arr, pat, flags=0):
             else:
                 return None
     else:
-        empty_row = Series(regex.groups*[None])
+        empty_row = Series(regex.groups * [None])
 
         def f(x):
             if not isinstance(x, compat.string_types):
@@ -743,6 +743,7 @@ def copy(source):
 
 
 class StringMethods(object):
+
     """
     Vectorized string functions for Series. NAs stay NA unless handled
     otherwise by a particular method. Patterned after Python's string methods,
@@ -753,6 +754,7 @@ class StringMethods(object):
     >>> s.str.split('_')
     >>> s.str.replace('_', '')
     """
+
     def __init__(self, series):
         self.series = series
 

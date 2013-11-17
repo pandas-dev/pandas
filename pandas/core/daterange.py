@@ -9,6 +9,7 @@ import pandas.core.datetools as datetools
 # DateRange class
 
 class DateRange(Index):
+
     """Deprecated
     """
 

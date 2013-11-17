@@ -230,6 +230,7 @@ def add_flex_arithmetic_methods(cls, flex_arith_method, radd_func=None,
 
 
 class _TimeOp(object):
+
     """
     Wrapper around Series datetime/time/timedelta arithmetic operations.
     Generally, you should use classmethod ``maybe_convert_for_time_op`` as an

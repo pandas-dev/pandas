@@ -766,9 +766,9 @@ class DataFrame(NDFrame):
 
             values = [first_row]
 
-            #if unknown length iterable (generator)
+            # if unknown length iterable (generator)
             if nrows is None:
-                #consume whole generator
+                # consume whole generator
                 values += list(data)
             else:
                 i = 1
@@ -1592,7 +1592,7 @@ class DataFrame(NDFrame):
                 # a numpy error (as numpy should really raise)
                 values = self._data.iget(i)
                 if not len(values):
-                    values = np.array([np.nan]*len(self.index), dtype=object)
+                    values = np.array([np.nan] * len(self.index), dtype=object)
                 return self._constructor_sliced.from_array(
                     values, index=self.index,
                     name=label, fastpath=True)

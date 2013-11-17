@@ -70,6 +70,7 @@ def _raw_hex_id(obj, pad_size=2):
 
 
 class Scope(StringMixin):
+
     """Object to hold scope, with a few bells to deal with some custom syntax
     added by pandas.
 
@@ -324,6 +325,7 @@ def _node_not_implemented(node_name, cls):
     """Return a function that raises a NotImplementedError with a passed node
     name.
     """
+
     def f(self, *args, **kwargs):
         raise NotImplementedError("{0!r} nodes are not "
                                   "implemented".format(node_name))
@@ -356,6 +358,7 @@ def _op_maker(op_class, op_symbol):
     -------
     f : callable
     """
+
     def f(self, node, *args, **kwargs):
         """Return a partial function with an Op subclass with an operator
         already passed.
@@ -389,6 +392,7 @@ def add_ops(op_classes):
 @disallow(_unsupported_nodes)
 @add_ops(_op_classes)
 class BaseExprVisitor(ast.NodeVisitor):
+
     """Custom ast walker. Parsers of other engines should subclass this class
     if necessary.
 
@@ -710,6 +714,7 @@ _numexpr_supported_calls = frozenset(_reductions + _mathops)
           (_boolop_nodes | frozenset(['BoolOp', 'Attribute', 'In', 'NotIn',
                                       'Tuple'])))
 class PandasExprVisitor(BaseExprVisitor):
+
     def __init__(self, env, engine, parser,
                  preparser=lambda x: _replace_locals(_replace_booleans(x))):
         super(PandasExprVisitor, self).__init__(env, engine, parser, preparser)
@@ -717,12 +722,14 @@ class PandasExprVisitor(BaseExprVisitor):
 
 @disallow(_unsupported_nodes | _python_not_supported | frozenset(['Not']))
 class PythonExprVisitor(BaseExprVisitor):
+
     def __init__(self, env, engine, parser, preparser=lambda x: x):
         super(PythonExprVisitor, self).__init__(env, engine, parser,
                                                 preparser=preparser)
 
 
 class Expr(StringMixin):
+
     """Object encapsulating an expression.
 
     Parameters
@@ -734,6 +741,7 @@ class Expr(StringMixin):
     truediv : bool, optional, default True
     level : int, optional, default 2
     """
+
     def __init__(self, expr, engine='numexpr', parser='pandas', env=None,
                  truediv=True, level=2):
         self.expr = expr
