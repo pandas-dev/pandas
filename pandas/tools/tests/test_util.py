@@ -65,7 +65,7 @@ class TestLocaleUtils(unittest.TestCase):
         enc = codecs.lookup(enc).name
         new_locale = lang, enc
 
-        if not tm._can_set_locale('.'.join(new_locale)):
+        if not tm._can_set_locale(new_locale):
             with tm.assertRaises(locale.Error):
                 with tm.set_locale(new_locale):
                     pass
