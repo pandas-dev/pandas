@@ -6,7 +6,6 @@ from __future__ import division
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
 
-import operator
 import types
 import warnings
 
@@ -15,21 +14,16 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas.core.common import (isnull, notnull, _is_bool_indexer,
-                                _default_index, _maybe_promote, _maybe_upcast,
-                                _asarray_tuplesafe, is_integer_dtype,
-                                _NS_DTYPE, _TD_DTYPE,
-                                _infer_dtype_from_scalar, is_list_like,
-                                _values_from_object,
+                                _default_index, _maybe_upcast,
+                                _asarray_tuplesafe, _infer_dtype_from_scalar,
+                                is_list_like, _values_from_object,
                                 _possibly_cast_to_datetime, _possibly_castable,
-                                _possibly_convert_platform,
-                                _try_sort,
+                                _possibly_convert_platform, _try_sort,
                                 ABCSparseArray, _maybe_match_name,
                                 _ensure_object, SettingWithCopyError)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                _ensure_index)
-from pandas.core.indexing import (
-    _check_bool_indexer,
-    _is_index_slice, _maybe_convert_indices)
+from pandas.core.indexing import _check_bool_indexer, _maybe_convert_indices
 from pandas.core import generic, base
 from pandas.core.internals import SingleBlockManager
 from pandas.core.categorical import Categorical
@@ -37,7 +31,7 @@ from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex, Period
 from pandas import compat
 from pandas.util.terminal import get_terminal_size
-from pandas.compat import zip, lzip, u, OrderedDict
+from pandas.compat import zip, u, OrderedDict
 
 import pandas.core.array as pa
 import pandas.core.ops as ops
@@ -46,7 +40,7 @@ import pandas.core.common as com
 import pandas.core.datetools as datetools
 import pandas.core.format as fmt
 import pandas.core.nanops as nanops
-from pandas.util.decorators import Appender, Substitution, cache_readonly
+from pandas.util.decorators import Appender, cache_readonly
 
 import pandas.lib as lib
 import pandas.tslib as tslib
@@ -1705,7 +1699,17 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         good = ~bad
         idx = pa.arange(len(self))
 
-        argsorted = _try_kind_sort(arr[good])
+        def _try_kind_sort(arr, kind='mergesort'):
+            # easier to ask forgiveness than permission
+            try:
+                # if kind==mergesort, it can fail for object dtype
+                return arr.argsort(kind=kind)
+            except TypeError:
+                # stable sort not available for object dtype
+                # uses the argsort default quicksort
+                return arr.argsort(kind='quicksort')
+
+        argsorted = _try_kind_sort(arr[good], kind=kind)
 
         if not ascending:
             argsorted = argsorted[::-1]
@@ -1727,6 +1731,51 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             self._update_inplace(result)
         else:
             return result.__finalize__(self)
+
+    def nlargest(self, n=5, take_last=False):
+        '''
+        Returns the largest n rows:
+
+        May be faster than .order(ascending=False).head(n).
+
+        '''
+        # TODO remove need for dropna ?
+        dropped = self.dropna()
+
+        from pandas.tools.util import nlargest
+
+        if dropped.dtype == object:
+            try:
+                dropped = dropped.astype(float)
+            except (NotImplementedError, TypeError):
+                return dropped.order(ascending=False).head(n)
+
+        inds = nlargest(dropped.values, n, take_last)
+        if len(inds) == 0:
+            # TODO remove this special case
+            return dropped[[]]
+        return dropped.iloc[inds]
+
+    def nsmallest(self, n=5, take_last=False):
+        '''
+        Returns the smallest n rows.
+
+        May be faster than .order().head(n).
+
+        '''
+        # TODO remove need for dropna ?
+        dropped = self.dropna()
+
+        from pandas.tools.util import nsmallest
+        try:
+            inds = nsmallest(dropped.values, n, take_last)
+        except NotImplementedError:
+            return dropped.order().head(n)
+
+        if len(inds) == 0:
+            # TODO remove this special case
+            return dropped[[]]
+        return dropped.iloc[inds]
 
     def sortlevel(self, level=0, ascending=True, sort_remaining=True):
         """
