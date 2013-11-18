@@ -2574,7 +2574,7 @@ class TestGroupBy(unittest.TestCase):
         ge = DataFrame().groupby()
         se = Series().groupby()
 
-        e = Series(dtype='int')  # edge case, as this is usually considered float
+        e = Series(dtype='int64')  # edge case, as this is usually considered float
 
         assert_series_equal(e, ge.cumcount())
         assert_series_equal(e, se.cumcount())
