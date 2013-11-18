@@ -1230,25 +1230,36 @@ class TestGroupBy(unittest.TestCase):
         g_as = df.groupby('A', as_index=True)
         g_not_as = df.groupby('A', as_index=False)
 
-        # as_index= False much easier
-        exp_head_not_as = df.loc[[0, 2]]
-        res_head_not_as = g_not_as.head(1)
-        assert_frame_equal(exp_head_not_as, res_head_not_as)
-        exp_tail_not_as = df.loc[[1, 2]]
-        res_tail_not_as = g_not_as.tail(1)
-        assert_frame_equal(exp_tail_not_as, res_tail_not_as)
+        # as_index= False, much easier
+        assert_frame_equal(df.loc[[0, 2]], g_not_as.head(1))
+        assert_frame_equal(df.loc[[1, 2]], g_not_as.tail(1))
+
+        empty_not_as = DataFrame(columns=df.columns)
+        assert_frame_equal(empty_not_as, g_not_as.head(0))
+        assert_frame_equal(empty_not_as, g_not_as.tail(0))
+        assert_frame_equal(empty_not_as, g_not_as.head(-1))
+        assert_frame_equal(empty_not_as, g_not_as.tail(-1))
+
+        assert_frame_equal(df, g_not_as.head(7)) # contains all
+        assert_frame_equal(df, g_not_as.tail(7))
 
         # as_index=True, yuck
-        res_head_as = g_as.head(1)
-        res_tail_as = g_as.tail(1)
-
         # prepend the A column as an index, in a roundabout way
-        df.index = df.set_index('A', append=True, drop=False).index.swaplevel(0, 1)
-        exp_head_as = df.loc[[0, 2]]
-        exp_tail_as = df.loc[[1, 2]]
+        df_as = df.copy()
+        df_as.index = df.set_index('A', append=True,
+                                        drop=False).index.swaplevel(0, 1)
 
-        assert_frame_equal(exp_head_as, res_head_as)
-        assert_frame_equal(exp_tail_as, res_tail_as)
+        assert_frame_equal(df_as.loc[[0, 2]], g_as.head(1))
+        assert_frame_equal(df_as.loc[[1, 2]], g_as.tail(1))
+
+        empty_as = DataFrame(index=df_as.index[:0], columns=df.columns)
+        assert_frame_equal(empty_as, g_as.head(0))
+        assert_frame_equal(empty_as, g_as.tail(0))
+        assert_frame_equal(empty_as, g_as.head(-1))
+        assert_frame_equal(empty_as, g_as.tail(-1))
+
+        assert_frame_equal(df_as, g_as.head(7)) # contains all
+        assert_frame_equal(df_as, g_as.tail(7))
 
     def test_groupby_multiple_key(self):
         df = tm.makeTimeDataFrame()

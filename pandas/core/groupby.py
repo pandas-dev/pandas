@@ -482,12 +482,17 @@ class GroupBy(PandasObject):
         return self.agg(picker)
 
     def cumcount(self, **kwargs):
-        '''
-        Number each item in each group from 0 to the length of that group.
+        """
+        Number each item in each group from 0 to the length of that group - 1.
 
         Essentially this is equivalent to
 
         >>> self.apply(lambda x: Series(np.arange(len(x)), x.index))
+
+        Parameters
+        ----------
+        ascending : bool, default True
+            If False, number in reverse, from length of group - 1 to 0.
 
         Example
         -------
@@ -510,8 +515,16 @@ class GroupBy(PandasObject):
         4    1
         5    3
         dtype: int64
+        >>> df.groupby('A').cumcount(ascending=False)
+        0    3
+        1    2
+        2    1
+        3    1
+        4    0
+        5    0
+        dtype: int64
 
-        '''
+        """
         ascending = kwargs.pop('ascending', True)
 
         index = self.obj.index
@@ -520,10 +533,10 @@ class GroupBy(PandasObject):
         return Series(cumcounts, index)
 
     def head(self, n=5):
-        '''
+        """
         Returns first n rows of each group.
 
-        Essentially equivalent to .apply(lambda x: x.head(n))
+        Essentially equivalent to ``.apply(lambda x: x.head(n))``
 
         Example
         -------
@@ -540,7 +553,7 @@ class GroupBy(PandasObject):
         1 0  1  2
         5 2  5  6
 
-        '''
+        """
         rng = np.arange(self.grouper._max_groupsize, dtype='int64')
         in_head = self._cumcount_array(rng) < n
         head = self.obj[in_head]
@@ -549,10 +562,10 @@ class GroupBy(PandasObject):
         return head
 
     def tail(self, n=5):
-        '''
-        Returns first n rows of each group
+        """
+        Returns last n rows of each group
 
-        Essentially equivalent to .apply(lambda x: x.tail(n))
+        Essentially equivalent to ``.apply(lambda x: x.tail(n))``
 
         Example
         -------
@@ -568,7 +581,8 @@ class GroupBy(PandasObject):
         A        
         1 0  1  2
         5 2  5  6
-        '''
+        
+        """
         rng = np.arange(0, -self.grouper._max_groupsize, -1, dtype='int64')
         in_tail = self._cumcount_array(rng, ascending=False) > -n
         tail = self.obj[in_tail]
@@ -590,10 +604,10 @@ class GroupBy(PandasObject):
         return cumcounts
 
     def _index_with_as_index(self, b):
-        '''
+        """
         Take boolean mask of index to be returned from apply, if as_index=True
 
-        '''
+        """
         # TODO perf, it feels like this should already be somewhere...
         from itertools import chain
         original = self.obj.index
