@@ -49,10 +49,10 @@ API changes
       index = index.set_levels([[1, 2, 3, 4], [1, 2, 4, 4]])
 
       # similarly, for names, you can rename the object
-      # but setting names is not deprecated.
+      # but setting names is not deprecated
       index = index.set_names(["bob", "cranberry"])
 
-      # and all methods take an inplace kwarg - but returns None
+      # and all methods take an inplace kwarg - but return None
       index.set_names(["bob", "cranberry"], inplace=True)
 
 - **All** division with ``NDFrame`` - likes is now truedivision, regardless
@@ -80,7 +80,7 @@ API changes
 - ``__nonzero__`` for all NDFrame objects, will now raise a ``ValueError``, this reverts back to (:issue:`1073`, :issue:`4633`)
   behavior. See :ref:`gotchas<gotchas.truth>` for a more detailed discussion.
 
-  This prevents doing boolean comparision on *entire* pandas objects, which is inherently ambiguous. These all will raise a ``ValueError``.
+  This prevents doing boolean comparison on *entire* pandas objects, which is inherently ambiguous. These all will raise a ``ValueError``.
 
   .. code-block:: python
 
@@ -106,7 +106,7 @@ API changes
   statistical mode(s) by axis/Series. (:issue:`5367`)
 
 - Chained assignment will now by default warn if the user is assigning to a copy. This can be changed
-  with he option ``mode.chained_assignment``, allowed options are ``raise/warn/None``. See :ref:`the docs<indexing.view_versus_copy>`.
+  with the option ``mode.chained_assignment``, allowed options are ``raise/warn/None``. See :ref:`the docs<indexing.view_versus_copy>`.
 
   .. ipython:: python
 
@@ -158,7 +158,7 @@ Deprecated in 0.13.0
   of ``match`` will change to become analogous to ``contains``, which returns
   a boolean indexer. (Their
   distinction is strictness: ``match`` relies on ``re.match`` while
-  ``contains`` relies on ``re.serach``.) In this release, the deprecated
+  ``contains`` relies on ``re.search``.) In this release, the deprecated
   behavior is the default, but the new behavior is available through the
   keyword argument ``as_indexer=True``.
 
@@ -310,8 +310,8 @@ HDFStore API Changes
      os.remove(path)
 
 - the ``format`` keyword now replaces the ``table`` keyword; allowed values are ``fixed(f)`` or ``table(t)``
-  the same defaults as prior < 0.13.0 remain, e.g. ``put`` implies ``fixed`` format
-  and ``append`` imples ``table`` format. This default format can be set as an option by setting ``io.hdf.default_format``.
+  the same defaults as prior < 0.13.0 remain, e.g. ``put`` implies ``fixed`` format and ``append`` implies 
+  ``table`` format. This default format can be set as an option by setting ``io.hdf.default_format``.
 
   .. ipython:: python
 
@@ -445,7 +445,7 @@ Enhancements
      td * -1
      td * Series([1,2,3,4])
 
-  Absolute ``DateOffset`` objects can act equivalenty to ``timedeltas``
+  Absolute ``DateOffset`` objects can act equivalently to ``timedeltas``
 
   .. ipython:: python
 
@@ -469,8 +469,8 @@ Enhancements
 
 - ``plot(kind='kde')`` now accepts the optional parameters ``bw_method`` and
   ``ind``, passed to scipy.stats.gaussian_kde() (for scipy >= 0.11.0) to set
-  the bandwidth, and to gkde.evaluate() to specify the indicies at which it
-  is evaluated, respecttively. See scipy docs. (:issue:`4298`)
+  the bandwidth, and to gkde.evaluate() to specify the indices at which it
+  is evaluated, respectively. See scipy docs. (:issue:`4298`)
 
 - DataFrame constructor now accepts a numpy masked record array (:issue:`3478`)
 
@@ -754,7 +754,7 @@ Experimental
      df3 = pandas.concat([df2.min(), df2.mean(), df2.max()],
                          axis=1,keys=["Min Tem", "Mean Temp", "Max Temp"])
 
-  The resulting dataframe is::
+  The resulting DataFrame is::
 
      > df3
                  Min Tem  Mean Temp    Max Temp
@@ -844,7 +844,7 @@ to unify methods and behaviors. Series formerly subclassed directly from
 
   - ``swapaxes`` on a ``Panel`` with the same axes specified now return a copy
   - support attribute access for setting
-  - filter supports same api as original ``DataFrame`` filter
+  - filter supports the same API as the original ``DataFrame`` filter
 
 - Reindex called with no arguments will now return a copy of the input object
 
@@ -872,11 +872,11 @@ to unify methods and behaviors. Series formerly subclassed directly from
   - enable setitem on ``SparseSeries`` for boolean/integer/slices
   - ``SparsePanels`` implementation is unchanged (e.g. not using BlockManager, needs work)
 
-- added ``ftypes`` method to Series/DataFame, similar to ``dtypes``, but indicates
+- added ``ftypes`` method to Series/DataFrame, similar to ``dtypes``, but indicates
   if the underlying is sparse/dense (as well as the dtype)
-- All ``NDFrame`` objects now have a ``_prop_attributes``, which can be used to indcated various
-  values to propogate to a new object from an existing (e.g. name in ``Series`` will follow
-  more automatically now)
+- All ``NDFrame`` objects can now use ``__finalize__()`` to specify various
+  values to propagate to new objects from an existing one (e.g. ``name`` in ``Series`` will 
+  follow more automatically now)
 - Internal type checking is now done via a suite of generated classes, allowing ``isinstance(value, klass)``
   without having to directly import the klass, courtesy of @jtratner
 - Bug in Series update where the parent frame is not updating its cache based on
@@ -888,7 +888,7 @@ to unify methods and behaviors. Series formerly subclassed directly from
 - Refactor ``rename`` methods to core/generic.py; fixes ``Series.rename`` for (:issue:`4605`), and adds ``rename``
   with the same signature for ``Panel``
 - Refactor ``clip`` methods to core/generic.py (:issue:`4798`)
-- Refactor of ``_get_numeric_data/_get_bool_data`` to core/generic.py, allowing Series/Panel functionaility
+- Refactor of ``_get_numeric_data/_get_bool_data`` to core/generic.py, allowing Series/Panel functionality
 - ``Series`` (for index) / ``Panel`` (for items) now allow attribute access to its elements  (:issue:`1903`)
 
   .. ipython:: python
