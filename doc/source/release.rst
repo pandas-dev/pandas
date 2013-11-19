@@ -57,6 +57,8 @@ New features
     the bandwidth, and to gkde.evaluate() to specify the indicies at which it
     is evaluated, respecttively. See scipy docs. (:issue:`4298`)
   - Added ``isin`` method to DataFrame (:issue:`4211`)
+  - ``df.to_clipboard()`` learned a new ``excel`` keyword that let's you
+    paste df data directly into excel (enabled by default). (:issue:`5070`).
   - Clipboard functionality now works with PySide (:issue:`4282`)
   - New ``extract`` string method returns regex matches more conveniently
     (:issue:`4685`)
