@@ -809,6 +809,7 @@ Bug Fixes
   - Fixed various setitem with 1d ndarray that does not have a matching
     length to the indexer (:issue:`5508`)
   - Bug in getitem with a multi-index and ``iloc`` (:issue:`5528`)
+  - Bug in delitem on a Series (:issue:`5542`)
 
 pandas 0.12.0
 -------------

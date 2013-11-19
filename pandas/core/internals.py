@@ -1969,7 +1969,7 @@ class BlockManager(PandasObject):
             self._ndim = len(self.axes)
         return self._ndim
 
-    def set_axis(self, axis, value, maybe_rename=True, check_axis=True):
+    def _set_axis(self, axis, value, check_axis=True):
         cur_axis = self.axes[axis]
         value = _ensure_index(value)
 
@@ -1980,6 +1980,10 @@ class BlockManager(PandasObject):
 
         self.axes[axis] = value
         self._shape = None
+        return cur_axis, value
+
+    def set_axis(self, axis, value, maybe_rename=True, check_axis=True):
+        cur_axis, value = self._set_axis(axis, value, check_axis)
 
         if axis == 0:
 
@@ -3473,24 +3477,22 @@ class SingleBlockManager(BlockManager):
         return self.reindex(new_axis, indexer=indexer, method=method,
                             fill_value=fill_value, limit=limit, copy=copy)
 
+    def _delete_from_block(self, i, item):
+        super(SingleBlockManager, self)._delete_from_block(i, item)
+
+        # reset our state
+        self._block = self.blocks[0] if len(self.blocks) else make_block(np.array([],dtype=self._block.dtype),[],[])
+        self._values = self._block.values
+
     def get_slice(self, slobj, raise_on_error=False):
         if raise_on_error:
             _check_slice_bounds(slobj, self.index)
         return self.__class__(self._block._slice(slobj),
                               self.index._getitem_slice(slobj), fastpath=True)
 
-    def set_axis(self, axis, value):
-        cur_axis = self.axes[axis]
-        value = _ensure_index(value)
-
-        if len(value) != len(cur_axis):
-            raise ValueError('Length mismatch: Expected axis has %d elements, '
-                             'new values have %d elements' % (len(cur_axis),
-                                                              len(value)))
-
-        self.axes[axis] = value
-        self._shape = None
-        self._block.set_ref_items(self.items, maybe_rename=True)
+    def set_axis(self, axis, value, maybe_rename=True, check_axis=True):
+        cur_axis, value = self._set_axis(axis, value, check_axis)
+        self._block.set_ref_items(self.items, maybe_rename=maybe_rename)
 
     def set_ref_items(self, ref_items, maybe_rename=True):
         """ we can optimize and our ref_locs are always equal to ref_items """

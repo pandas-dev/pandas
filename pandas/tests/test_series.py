@@ -113,6 +113,35 @@ class CheckNameIntegration(object):
         xp = Series([datetime(2010, 1, 1), '2011'])
         assert_series_equal(rs, xp)
 
+    def test_delitem(self):
+
+        # GH 5542
+        # should delete the item inplace
+        s = Series(lrange(5))
+        del s[0]
+
+        expected = Series(lrange(1,5),index=lrange(1,5))
+        assert_series_equal(s, expected)
+
+        del s[1]
+        expected = Series(lrange(2,5),index=lrange(2,5))
+        assert_series_equal(s, expected)
+
+        # empty
+        s = Series()
+        def f():
+            del s[0]
+        self.assertRaises(KeyError, f)
+
+        # only 1 left, del, add, del
+        s = Series(1)
+        del s[0]
+        assert_series_equal(s, Series(dtype='int64'))
+        s[0] = 1
+        assert_series_equal(s, Series(1))
+        del s[0]
+        assert_series_equal(s, Series(dtype='int64'))
+
     def test_getitem_preserve_name(self):
         result = self.ts[self.ts > 0]
         self.assertEquals(result.name, self.ts.name)
