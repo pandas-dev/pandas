@@ -872,7 +872,7 @@ to unify methods and behaviors. Series formerly subclassed directly from
 
 - added ``ftypes`` method to Series/DataFrame, similar to ``dtypes``, but indicates
   if the underlying is sparse/dense (as well as the dtype)
-- All ``NDFrame`` objects now have a ``_prop_attributes``, which can be used to specify various
+- All ``NDFrame`` objects can now use ``__finalize__()`` to specify various
   values to propagate to new objects from an existing one (e.g. ``name`` in ``Series`` will 
   follow more automatically now)
 - Internal type checking is now done via a suite of generated classes, allowing ``isinstance(value, klass)``
