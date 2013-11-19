@@ -378,6 +378,8 @@ HDFStore API Changes
 Enhancements
 ~~~~~~~~~~~~
 
+- ``df.to_clipboard()`` learned a new ``excel`` keyword that let's you
+  paste df data directly into excel (enabled by default). (:issue:`5070`).
 - ``read_html`` now raises a ``URLError`` instead of catching and raising a
   ``ValueError`` (:issue:`4303`, :issue:`4305`)
 - Added a test for ``read_clipboard()`` and ``to_clipboard()`` (:issue:`4282`)
