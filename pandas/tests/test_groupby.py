@@ -1214,7 +1214,7 @@ class TestGroupBy(unittest.TestCase):
         res_not_as_apply = g_not_as.apply(lambda x: x.head(2)).index
 
         # apply doesn't maintain the original ordering
-        exp_not_as_apply = Index([0, 2, 1, 4])        
+        exp_not_as_apply = Index([0, 2, 1, 4])
         exp_as_apply = MultiIndex.from_tuples([(1, 0), (1, 2), (2, 1), (3, 4)])
 
         assert_index_equal(res_as_apply, exp_as_apply)
@@ -1844,6 +1844,28 @@ class TestGroupBy(unittest.TestCase):
         result = self.tsframe.groupby(lambda x: x.year).apply(lambda x: x * 2)
         expected = self.tsframe * 2
         assert_frame_equal(result, expected)
+
+    def test_apply_without_copy(self):
+        # GH 5545
+        # returning a non-copy in an applied function fails
+
+        data = DataFrame({'id_field' : [100, 100, 200, 300], 'category' : ['a','b','c','c'], 'value' : [1,2,3,4]})
+
+        def filt1(x):
+            if x.shape[0] == 1:
+                return x.copy()
+            else:
+                return x[x.category == 'c']
+
+        def filt2(x):
+            if x.shape[0] == 1:
+                return x
+            else:
+                return x[x.category == 'c']
+
+        expected = data.groupby('id_field').apply(filt1)
+        result = data.groupby('id_field').apply(filt2)
+        assert_frame_equal(result,expected)
 
     def test_apply_use_categorical_name(self):
         from pandas import qcut
@@ -2638,7 +2660,7 @@ class TestGroupBy(unittest.TestCase):
         expected = Series([0, 1, 2, 0, 3], index=mi)
 
         assert_series_equal(expected, g.cumcount())
-        assert_series_equal(expected, sg.cumcount())        
+        assert_series_equal(expected, sg.cumcount())
 
     def test_cumcount_groupby_not_col(self):
         df = DataFrame([['a'], ['a'], ['a'], ['b'], ['a']], columns=['A'], index=[0] * 5)
@@ -2895,7 +2917,7 @@ class TestGroupBy(unittest.TestCase):
     def test_filter_and_transform_with_non_unique_int_index(self):
         # GH4620
         index = [1, 1, 1, 2, 1, 1, 0, 1]
-        df = DataFrame({'pid' : [1,1,1,2,2,3,3,3], 
+        df = DataFrame({'pid' : [1,1,1,2,2,3,3,3],
                        'tag' : [23,45,62,24,45,34,25,62]}, index=index)
         grouped_df = df.groupby('tag')
         ser = df['pid']
@@ -2923,7 +2945,7 @@ class TestGroupBy(unittest.TestCase):
         # ^ made manually because this can get confusing!
         assert_series_equal(actual, expected)
 
-        # Transform Series 
+        # Transform Series
         actual = grouped_ser.transform(len)
         expected = Series([1, 2, 2, 1, 2, 1, 1, 2], index)
         assert_series_equal(actual, expected)

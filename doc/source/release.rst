@@ -812,6 +812,7 @@ Bug Fixes
     length to the indexer (:issue:`5508`)
   - Bug in getitem with a multi-index and ``iloc`` (:issue:`5528`)
   - Bug in delitem on a Series (:issue:`5542`)
+  - Bug fix in apply when using custom function and objects are not mutated (:issue:`5545`)
 
 pandas 0.12.0
 -------------

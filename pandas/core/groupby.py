@@ -543,13 +543,13 @@ class GroupBy(PandasObject):
 
         >>> df = DataFrame([[1, 2], [1, 4], [5, 6]],
                             columns=['A', 'B'])
-        >>> df.groupby('A', as_index=False).head(1) 
+        >>> df.groupby('A', as_index=False).head(1)
            A  B
         0  1  2
         2  5  6
         >>> df.groupby('A').head(1)
              A  B
-        A        
+        A
         1 0  1  2
         5 2  5  6
 
@@ -572,16 +572,16 @@ class GroupBy(PandasObject):
 
         >>> df = DataFrame([[1, 2], [1, 4], [5, 6]],
                             columns=['A', 'B'])
-        >>> df.groupby('A', as_index=False).tail(1) 
+        >>> df.groupby('A', as_index=False).tail(1)
            A  B
         0  1  2
         2  5  6
         >>> df.groupby('A').head(1)
              A  B
-        A        
+        A
         1 0  1  2
         5 2  5  6
-        
+
         """
         rng = np.arange(0, -self.grouper._max_groupsize, -1, dtype='int64')
         in_tail = self._cumcount_array(rng, ascending=False) > -n
@@ -2148,6 +2148,12 @@ class NDFrameGroupBy(GroupBy):
                             return self._concat_objects(
                                 keys, values, not_indexed_same=not_indexed_same
                             )
+
+                        # still a series
+                        # path added as of GH 5545
+                        elif all_indexed_same:
+                            from pandas.tools.merge import concat
+                            return concat(values)
 
                     if not all_indexed_same:
                         return self._concat_objects(
