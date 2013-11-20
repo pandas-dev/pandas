@@ -541,7 +541,7 @@ def apply_frame_axis0(object frame, object f, object names,
             # I'm paying the price for index-sharing, ugh
             try:
                 if piece.index is slider.dummy.index:
-                    piece.index = piece.index.copy()
+                    piece = piece.copy()
                 else:
                     mutated = True
             except AttributeError:
