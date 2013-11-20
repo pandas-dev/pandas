@@ -170,11 +170,11 @@ class DataFrame(NDFrame):
 
     See also
     --------
-    DataFrame.from_records: constructor from tuples, also record arrays
-    DataFrame.from_dict: from dicts of Series, arrays, or dicts
-    DataFrame.from_csv: from CSV files
-    DataFrame.from_items: from sequence of (key, value) pairs
-    read_csv / read_table / read_clipboard
+    DataFrame.from_records : constructor from tuples, also record arrays
+    DataFrame.from_dict : from dicts of Series, arrays, or dicts
+    DataFrame.from_csv : from CSV files
+    DataFrame.from_items : from sequence of (key, value) pairs
+    pandas.read_csv, pandas.read_table, pandas.read_clipboard
     """
     _auto_consolidate = True
 
@@ -728,7 +728,7 @@ class DataFrame(NDFrame):
         index : string, list of fields, array-like
             Field of array to use as the index, alternately a specific set of
             input labels to use
-        exclude: sequence, default None
+        exclude : sequence, default None
             Columns or fields to exclude
         columns : sequence, default None
             Column names to use. If the passed data do not have named
@@ -1167,8 +1167,10 @@ class DataFrame(NDFrame):
             Column label for index column(s) if desired. If None is given, and
             `header` and `index` are True, then the index names are used. A
             sequence should be given if the DataFrame uses MultiIndex.
-        startow : upper left cell row to dump data frame
-        startcol : upper left cell column to dump data frame
+        startow :
+            upper left cell row to dump data frame
+        startcol :
+            upper left cell column to dump data frame
         engine : string, default None
             write engine to use - you can also set this via the options
             ``io.excel.xlsx.writer``, ``io.excel.xls.writer``, and
@@ -1180,7 +1182,7 @@ class DataFrame(NDFrame):
         -----
         If passing an existing ExcelWriter object, then the sheet will be added
         to the existing workbook.  This can be used to save different
-        DataFrames to one workbook
+        DataFrames to one workbook:
 
         >>> writer = ExcelWriter('output.xlsx')
         >>> df1.to_excel(writer,'Sheet1')
@@ -1249,13 +1251,14 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        name: name of SQL table
-        conn: an open SQL database connection object
+        name : str
+            Name of SQL table
+        conn : an open SQL database connection object
         flavor: {'sqlite', 'mysql', 'oracle'}, default 'sqlite'
         if_exists: {'fail', 'replace', 'append'}, default 'fail'
-            fail: If table exists, do nothing.
-            replace: If table exists, drop it, recreate it, and insert data.
-            append: If table exists, insert data. Create if does not exist.
+            - fail: If table exists, do nothing.
+            - replace: If table exists, drop it, recreate it, and insert data.
+            - append: If table exists, insert data. Create if does not exist.
         """
         from pandas.io.sql import write_frame
         write_frame(
@@ -1316,6 +1319,7 @@ class DataFrame(NDFrame):
             CSS class(es) to apply to the resulting html table
         escape : boolean, default True
             Convert the characters <, >, and & to HTML-safe sequences.
+
         """
 
         if force_unicode is not None:  # pragma: no cover
@@ -1355,6 +1359,7 @@ class DataFrame(NDFrame):
 
         bold_rows : boolean, default True
             Make the row labels bold in the output
+
         """
 
         if force_unicode is not None:  # pragma: no cover
@@ -1923,8 +1928,9 @@ class DataFrame(NDFrame):
     def insert(self, loc, column, value, allow_duplicates=False):
         """
         Insert column into DataFrame at specified location.
-        if allow_duplicates is False, Raises Exception if column is already
-        contained in the DataFrame
+
+        If `allow_duplicates` is False, raises Exception if column
+        is already contained in the DataFrame.
 
         Parameters
         ----------
@@ -2010,7 +2016,7 @@ class DataFrame(NDFrame):
             which levels are used. Levels can be referred by label or position.
         copy : boolean, default True
             Whether to make a copy of the data
-        drop_level, default True
+        drop_level : boolean, default True
             If False, returns object with same levels as self.
 
         Examples
@@ -2133,9 +2139,9 @@ class DataFrame(NDFrame):
     _xs = xs
 
     def lookup(self, row_labels, col_labels):
-        """Label-based "fancy indexing" function for DataFrame. Given
-        equal-length arrays of row and column labels, return an array of the
-        values corresponding to each (row, col)  pair.
+        """Label-based "fancy indexing" function for DataFrame.
+        Given equal-length arrays of row and column labels, return an
+        array of the values corresponding to each (row, col) pair.
 
         Parameters
         ----------
@@ -2146,13 +2152,11 @@ class DataFrame(NDFrame):
 
         Notes
         -----
-        Akin to
+        Akin to::
 
-            .. code-block:: python
-
-                result = []
-                for row, col in zip(row_labels, col_labels):
-                    result.append(df.get_value(row, col))
+            result = []
+            for row, col in zip(row_labels, col_labels):
+                result.append(df.get_value(row, col))
 
         Examples
         --------
@@ -2467,14 +2471,14 @@ class DataFrame(NDFrame):
         axis : {0, 1}, or tuple/list thereof
             Pass tuple or list to drop on multiple axes
         how : {'any', 'all'}
-            any : if any NA values are present, drop that label
-            all : if all values are NA, drop that label
+            * any : if any NA values are present, drop that label
+            * all : if all values are NA, drop that label
         thresh : int, default None
             int value : require that many non-NA values
         subset : array-like
             Labels along other axis to consider, e.g. if you are dropping rows
             these would be a list of columns to include
-        inplace : bool, defalt False
+        inplace : boolean, defalt False
             If True, do operation inplace and return None.
 
         Returns
@@ -2725,7 +2729,7 @@ class DataFrame(NDFrame):
         ----------
         level : int
         axis : {0, 1}
-        ascending : bool, default True
+        ascending : boolean, default True
         inplace : boolean, default False
             Sort the DataFrame without creating a new instance
 
@@ -2790,9 +2794,11 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        order: list of int representing new level order.
-               (reference level by number not by key)
-        axis: where to reorder levels
+        order : list of int
+            List representing new level order. Reference level by number
+            not by key.
+        axis : int
+            Where to reorder levels.
 
         Returns
         -------
@@ -3057,8 +3063,10 @@ class DataFrame(NDFrame):
 
         Examples
         --------
+        a's values prioritized, use values from b to fill holes:
+        
         >>> a.combine_first(b)
-            a's values prioritized, use values from b to fill holes
+            
 
         Returns
         -------
@@ -3094,7 +3102,7 @@ class DataFrame(NDFrame):
         filter_func : callable(1d-array) -> 1d-array<boolean>, default None
             Can choose to replace values other than NA. Return True for values
             that should be updated
-        raise_conflict : bool
+        raise_conflict : boolean
             If True, will raise an error if the DataFrame and other both
             contain data in the same place.
         """
@@ -3322,22 +3330,24 @@ class DataFrame(NDFrame):
     def apply(self, func, axis=0, broadcast=False, raw=False, reduce=True,
               args=(), **kwds):
         """
-        Applies function along input axis of DataFrame. Objects passed to
-        functions are Series objects having index either the DataFrame's index
-        (axis=0) or the columns (axis=1). Return type depends on whether passed
-        function aggregates
+        Applies function along input axis of DataFrame.
+
+        Objects passed to functions are Series objects having index
+        either the DataFrame's index (axis=0) or the columns (axis=1).
+        Return type depends on whether passed function aggregates
 
         Parameters
         ----------
         func : function
-            Function to apply to each column
+            Function to apply to each column/row
         axis : {0, 1}
-            0 : apply function to each column
-            1 : apply function to each row
-        broadcast : bool, default False
+            * 0 : apply function to each column
+            * 1 : apply function to each row
+        broadcast : boolean, default False
             For aggregation functions, return object of same size with values
             propagated
-        reduce : bool, default True, try to apply reduction procedures
+        reduce : boolean, default True
+            Try to apply reduction procedures
         raw : boolean, default False
             If False, convert each row or column into a Series. If raw=True the
             passed function will receive ndarray objects instead. If you are
@@ -3529,6 +3539,11 @@ class DataFrame(NDFrame):
         Returns
         -------
         applied : DataFrame
+
+        See also
+        --------
+        DataFrame.apply : For operations on rows/columns
+
         """
 
         # if we have a dtype == 'M8[ns]', provide boxed values
@@ -3611,6 +3626,7 @@ class DataFrame(NDFrame):
         how : {'left', 'right', 'outer', 'inner'}
             How to handle indexes of the two objects. Default: 'left'
             for joining on index, None otherwise
+            
             * left: use calling frame's index
             * right: use input frame's index
             * outer: form union of indexes
@@ -3698,9 +3714,9 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         method : {'pearson', 'kendall', 'spearman'}
-            pearson : standard correlation coefficient
-            kendall : Kendall Tau correlation coefficient
-            spearman : Spearman rank correlation
+            * pearson : standard correlation coefficient
+            * kendall : Kendall Tau correlation coefficient
+            * spearman : Spearman rank correlation
         min_periods : int, optional
             Minimum number of observations required per pair of columns
             to have a valid result. Currently only available for pearson
@@ -3756,7 +3772,9 @@ class DataFrame(NDFrame):
         -------
         y : DataFrame
 
-        y contains the covariance matrix of the DataFrame's time series.
+        Notes
+        -----
+        `y` contains the covariance matrix of the DataFrame's time series.
         The covariance is normalized by N-1 (unbiased estimator).
         """
         numeric_df = self._get_numeric_data()
@@ -4156,9 +4174,9 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         axis : {0, 1, 'index', 'columns'} (default 0)
-            0/'index' : get mode of each column
-            1/'columns' : get mode of each row
-        numeric_only : bool, default False
+            * 0/'index' : get mode of each column
+            * 1/'columns' : get mode of each row
+        numeric_only : boolean, default False
             if True, only apply to numeric columns
 
         Returns
@@ -4213,14 +4231,14 @@ class DataFrame(NDFrame):
         numeric_only : boolean, default None
             Include only float, int, boolean data
         method : {'average', 'min', 'max', 'first'}
-            average: average rank of group
-            min: lowest rank in group
-            max: highest rank in group
-            first: ranks assigned in order they appear in the array
+            * average: average rank of group
+            * min: lowest rank in group
+            * max: highest rank in group
+            * first: ranks assigned in order they appear in the array
         na_option : {'keep', 'top', 'bottom'}
-            keep: leave NA values where they are
-            top: smallest rank if ascending
-            bottom: smallest rank if descending
+            * keep: leave NA values where they are
+            * top: smallest rank if ascending
+            * bottom: smallest rank if descending
         ascending : boolean, default True
             False for ranks by high (1) to low (N)
 
@@ -4861,11 +4879,11 @@ def boxplot(self, column=None, by=None, ax=None, fontsize=None,
         Can be any valid input to groupby
     by : string or sequence
         Column in the DataFrame to group by
-        ax : matplotlib axis object, default None
+    ax : matplotlib axis object, default None
     fontsize : int or string
-        rot : int, default None
+    rot : int, default None
         Rotation for ticks
-        grid : boolean, default None (matlab style default)
+    grid : boolean, default None (matlab style default)
         Axis grid lines
 
     Returns
