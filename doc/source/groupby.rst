@@ -709,6 +709,8 @@ can be used as group keys. If so, the order of the levels will be preserved:
 Enumerate group items
 ~~~~~~~~~~~~~~~~~~~~~
 
+.. versionadded:: 0.13.0
+
 To see the order in which each row appears within its group, use the
 ``cumcount`` method:
 
