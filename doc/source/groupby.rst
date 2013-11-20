@@ -718,3 +718,5 @@ To see the order in which each row appears within its group, use the
    df
 
    df.groupby('A').cumcount()
+
+   df.groupby('A').cumcount(ascending=False)  # kwarg only
