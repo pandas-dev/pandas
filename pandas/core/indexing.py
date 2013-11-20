@@ -826,8 +826,10 @@ class _NDFrameIndexer(object):
 
                     # a unique indexer
                     if keyarr_is_unique:
-                        new_indexer = (Index(cur_indexer) +
-                                       Index(missing_indexer)).values
+
+                        # see GH5553, make sure we use the right indexer
+                        new_indexer = np.arange(len(indexer))
+                        new_indexer[cur_indexer] = np.arange(len(result._get_axis(axis)))
                         new_indexer[missing_indexer] = -1
 
                     # we have a non_unique selector, need to use the original

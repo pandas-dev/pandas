@@ -869,9 +869,9 @@ class TestIndexing(unittest.TestCase):
         assert_frame_equal(df,result)
 
         # GH 3561, dups not in selected order
-        df = DataFrame({'test': [5,7,9,11]}, index=['A', 'A', 'B', 'C'])
+        df = DataFrame({'test': [5,7,9,11], 'test1': [4.,5,6,7], 'other': list('abcd') }, index=['A', 'A', 'B', 'C'])
         rows = ['C', 'B']
-        expected = DataFrame({'test' : [11,9]},index=rows)
+        expected = DataFrame({'test' : [11,9], 'test1': [ 7., 6], 'other': ['d','c']},index=rows)
         result = df.ix[rows]
         assert_frame_equal(result, expected)
 
@@ -879,7 +879,15 @@ class TestIndexing(unittest.TestCase):
         assert_frame_equal(result, expected)
 
         rows = ['C','B','E']
-        expected = DataFrame({'test' : [11,9,np.nan]},index=rows)
+        expected = DataFrame({'test' : [11,9,np.nan], 'test1': [7.,6,np.nan], 'other': ['d','c',np.nan]},index=rows)
+        result = df.ix[rows]
+        assert_frame_equal(result, expected)
+
+        # see GH5553, make sure we use the right indexer
+        rows = ['F','G','H','C','B','E']
+        expected = DataFrame({'test' : [np.nan,np.nan,np.nan,11,9,np.nan],
+                              'test1': [np.nan,np.nan,np.nan,7.,6,np.nan],
+                              'other': [np.nan,np.nan,np.nan,'d','c',np.nan]},index=rows)
         result = df.ix[rows]
         assert_frame_equal(result, expected)
 
