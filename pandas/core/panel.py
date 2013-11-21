@@ -714,7 +714,7 @@ class Panel(NDFrame):
         ----------
         key : object
             Major axis label
-        copy : boolean, default False
+        copy : boolean, default True
             Copy data
 
         Returns
@@ -732,7 +732,7 @@ class Panel(NDFrame):
         ----------
         key : object
             Minor axis label
-        copy : boolean, default False
+        copy : boolean, default True
             Copy data
 
         Returns
@@ -751,6 +751,8 @@ class Panel(NDFrame):
         key : object
             Label
         axis : {'items', 'major', 'minor}, default 1/'major'
+        copy : boolean, default True
+            Copy data
 
         Returns
         -------
