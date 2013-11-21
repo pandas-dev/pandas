@@ -1018,7 +1018,7 @@ class NDFrame(PandasObject):
     def _check_setitem_copy(self):
         """ validate if we are doing a settitem on a chained copy """
         if self._is_copy:
-            value = config._get_option_fast('mode.chained_assignment')
+            value = config.get_option('mode.chained_assignment')
 
             t = ("A value is trying to be set on a copy of a slice from a "
                  "DataFrame.\nTry using .loc[row_index,col_indexer] = value "
