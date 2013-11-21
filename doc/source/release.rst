@@ -155,6 +155,8 @@ Improvements to existing features
   - Added XlsxWriter as an optional ``ExcelWriter``  engine. This is about 5x
     faster than the default openpyxl xlsx writer and is equivalent in speed
     to the xlwt xls writer module. (:issue:`4542`)
+  - Added PyExcelerate as an optional ``ExcelWriter``  engine. This is about
+    14x faster than the default openpyxl xlsx writer.
   - allow DataFrame constructor to accept more list-like objects, e.g. list of
     ``collections.Sequence`` and ``array.Array`` objects (:issue:`3783`,
     :issue:`4297`, :issue:`4851`), thanks @lgautier

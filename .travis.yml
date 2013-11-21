@@ -38,6 +38,8 @@ before_install:
 install:
   - echo "install"
   - ci/install.sh
+  # Temp testing measure while waiting for PyPi release.
+  - pip install git+git://github.com/kz26/PyExcelerate.git
 
 before_script:
   - mysql -e 'create database pandas_nosetest;'

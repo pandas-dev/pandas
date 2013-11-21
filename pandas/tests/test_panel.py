@@ -1593,6 +1593,26 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
                 recdf = reader.parse(str(item), index_col=0)
                 assert_frame_equal(df, recdf)
 
+    def test_to_excel_pyexcelerate(self):
+        try:
+            import xlrd
+            import pyexcelerate
+            from pandas.io.excel import ExcelFile
+        except ImportError:
+            raise nose.SkipTest("Requires xlrd and pyexcelerate. Skipping.")
+
+        path = '__tmp__.xlsx'
+        with ensure_clean(path) as path:
+            self.panel.to_excel(path, engine='pyexcelerate')
+            try:
+                reader = ExcelFile(path)
+            except ImportError as e:
+                raise nose.SkipTest("cannot write excel file: %s" % e)
+
+            for item, df in compat.iteritems(self.panel):
+                recdf = reader.parse(str(item), index_col=0)
+                assert_frame_equal(df, recdf)
+
     def test_dropna(self):
         p = Panel(np.random.randn(4, 5, 6), major_axis=list('abcde'))
         p.ix[:, ['b', 'd'], 0] = np.nan
