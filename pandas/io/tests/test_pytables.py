@@ -81,14 +81,19 @@ def ensure_clean_store(path, mode='a', complevel=None, complib=None,
 def ensure_clean_path(path):
     """
     return essentially a named temporary file that is not opened
-    and deleted on existing
+    and deleted on existing; if path is a list, then create and
+    return list of filenames
     """
-
     try:
-        filename = create_tempfile(path)
-        yield filename
+        if isinstance(path, list):
+            filenames = [ create_tempfile(p) for p in path ]
+            yield filenames
+        else:
+            filenames = [ create_tempfile(path) ]
+            yield filenames[0]
     finally:
-        safe_remove(filename)
+        for f in filenames:
+            safe_remove(f)
 
 # set these parameters so we don't have file sharing
 tables.parameters.MAX_NUMEXPR_THREADS = 1
@@ -3123,6 +3128,70 @@ class TestHDFStore(unittest.TestCase):
             result = store.select('df', "index>df.index[3] & columns in ['A','B']")
             expected = df.loc[df.index>df.index[3]].reindex(columns=['A','B'])
             tm.assert_frame_equal(result, expected)
+
+    def test_frame_select_complex2(self):
+
+        with ensure_clean_path(['parms.hdf','hist.hdf']) as paths:
+
+            pp, hh = paths
+
+            # use non-trivial selection criteria
+            parms = DataFrame({ 'A' : [1,1,2,2,3] })
+            parms.to_hdf(pp,'df',mode='w',format='table',data_columns=['A'])
+
+            selection = read_hdf(pp,'df',where='A=[2,3]')
+            hist = DataFrame(np.random.randn(25,1),columns=['data'],
+                             index=MultiIndex.from_tuples([ (i,j) for i in range(5) for j in range(5) ],
+                                                          names=['l1','l2']))
+
+            hist.to_hdf(hh,'df',mode='w',format='table')
+
+            expected = read_hdf(hh,'df',where=Term('l1','=',[2,3,4]))
+
+            # list like
+            result = read_hdf(hh,'df',where=Term('l1','=',selection.index.tolist()))
+            assert_frame_equal(result, expected)
+            l = selection.index.tolist()
+
+            # sccope with list like
+            store = HDFStore(hh)
+            result = store.select('df',where='l1=l')
+            assert_frame_equal(result, expected)
+            store.close()
+
+            result = read_hdf(hh,'df',where='l1=l')
+            assert_frame_equal(result, expected)
+
+            # index
+            index = selection.index
+            result = read_hdf(hh,'df',where='l1=index')
+            assert_frame_equal(result, expected)
+
+            result = read_hdf(hh,'df',where='l1=selection.index')
+            assert_frame_equal(result, expected)
+
+            result = read_hdf(hh,'df',where='l1=selection.index.tolist()')
+            assert_frame_equal(result, expected)
+
+            result = read_hdf(hh,'df',where='l1=list(selection.index)')
+            assert_frame_equal(result, expected)
+
+            # sccope with index
+            store = HDFStore(hh)
+
+            result = store.select('df',where='l1=index')
+            assert_frame_equal(result, expected)
+
+            result = store.select('df',where='l1=selection.index')
+            assert_frame_equal(result, expected)
+
+            result = store.select('df',where='l1=selection.index.tolist()')
+            assert_frame_equal(result, expected)
+
+            result = store.select('df',where='l1=list(selection.index)')
+            assert_frame_equal(result, expected)
+
+            store.close()
 
     def test_invalid_filtering(self):
 

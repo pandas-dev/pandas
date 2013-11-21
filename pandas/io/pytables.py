@@ -294,6 +294,10 @@ def read_hdf(path_or_buf, key, **kwargs):
 
         """
 
+    # grab the scope
+    if 'where' in kwargs:
+        kwargs['where'] = _ensure_term(kwargs['where'])
+
     f = lambda store, auto_close: store.select(
         key, auto_close=auto_close, **kwargs)
 
