@@ -25,18 +25,23 @@ dict_list = [dict(zip(columns, row)) for row in frame.values]
 frame_ctor_nested_dict = Benchmark("DataFrame(data)", setup)
 
 # From JSON-like stuff
-
 frame_ctor_list_of_dict = Benchmark("DataFrame(dict_list)", setup,
                                     start_date=datetime(2011, 12, 20))
 
 series_ctor_from_dict = Benchmark("Series(some_dict)", setup)
 
 # nested dict, integer indexes, regression described in #621
-
 setup = common_setup + """
 data = dict((i,dict((j,float(j)) for j in xrange(100))) for i in xrange(2000))
 """
 frame_ctor_nested_dict_int64 = Benchmark("DataFrame(data)", setup)
+
+# from a mi-series
+setup = common_setup + """
+mi = MultiIndex.from_tuples([(x,y) for x in range(100) for y in range(100)])
+s = Series(randn(10000), index=mi)
+"""
+frame_from_series = Benchmark("DataFrame(s)", setup)
 
 #----------------------------------------------------------------------
 # get_numeric_data

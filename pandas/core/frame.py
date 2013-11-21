@@ -4575,7 +4575,7 @@ def extract_index(data):
 
 
 def _prep_ndarray(values, copy=True):
-    if not isinstance(values, np.ndarray):
+    if not isinstance(values, (np.ndarray,Series)):
         if len(values) == 0:
             return np.empty((0, 0), dtype=object)
 
