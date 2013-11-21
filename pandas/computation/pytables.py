@@ -401,8 +401,15 @@ class ExprVisitor(BaseExprVisitor):
         return self.visit(cmpr)
 
     def visit_Subscript(self, node, **kwargs):
+        # only allow simple suscripts
+
         value = self.visit(node.value)
         slobj = self.visit(node.slice)
+        try:
+            value = value.value
+        except:
+            pass
+
         try:
             return self.const_type(value[slobj], self.env)
         except TypeError:
@@ -416,9 +423,16 @@ class ExprVisitor(BaseExprVisitor):
         ctx = node.ctx.__class__
         if ctx == ast.Load:
             # resolve the value
-            resolved = self.visit(value).value
+            resolved = self.visit(value)
+
+            # try to get the value to see if we are another expression
             try:
-                return getattr(resolved, attr)
+                resolved = resolved.value
+            except (AttributeError):
+                pass
+
+            try:
+                return self.term_type(getattr(resolved, attr), self.env)
             except AttributeError:
 
                 # something like datetime.datetime where scope is overriden

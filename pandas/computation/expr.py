@@ -125,6 +125,10 @@ class Scope(StringMixin):
         self.globals['True'] = True
         self.globals['False'] = False
 
+        # function defs
+        self.globals['list'] = list
+        self.globals['tuple'] = tuple
+
         res_keys = (list(o.keys()) for o in self.resolvers)
         self.resolver_keys = frozenset(reduce(operator.add, res_keys, []))
         self._global_resolvers = self.resolvers + (self.locals, self.globals)
@@ -505,21 +509,21 @@ class BaseExprVisitor(ast.NodeVisitor):
                                  maybe_eval_in_python=('==', '!=')):
         res = op(lhs, rhs)
 
-        if (res.op in _cmp_ops_syms and lhs.is_datetime or rhs.is_datetime and
-                self.engine != 'pytables'):
-            # all date ops must be done in python bc numexpr doesn't work well
-            # with NaT
-            return self._possibly_eval(res, self.binary_ops)
+        if self.engine != 'pytables':
+            if (res.op in _cmp_ops_syms and getattr(lhs,'is_datetime',False) or getattr(rhs,'is_datetime',False)):
+                # all date ops must be done in python bc numexpr doesn't work well
+                # with NaT
+                return self._possibly_eval(res, self.binary_ops)
 
         if res.op in eval_in_python:
             # "in"/"not in" ops are always evaluated in python
             return self._possibly_eval(res, eval_in_python)
-        elif (lhs.return_type == object or rhs.return_type == object and
-              self.engine != 'pytables'):
-            # evaluate "==" and "!=" in python if either of our operands has an
-            # object return type
-            return self._possibly_eval(res, eval_in_python +
-                                       maybe_eval_in_python)
+        elif self.engine != 'pytables':
+            if (getattr(lhs,'return_type',None) == object or getattr(rhs,'return_type',None) == object):
+                # evaluate "==" and "!=" in python if either of our operands has an
+                # object return type
+                return self._possibly_eval(res, eval_in_python +
+                                           maybe_eval_in_python)
         return res
 
     def visit_BinOp(self, node, **kwargs):
@@ -635,7 +639,7 @@ class BaseExprVisitor(ast.NodeVisitor):
 
         raise ValueError("Invalid Attribute context {0}".format(ctx.__name__))
 
-    def visit_Call(self, node, **kwargs):
+    def visit_Call(self, node, side=None, **kwargs):
 
         # this can happen with: datetime.datetime
         if isinstance(node.func, ast.Attribute):
