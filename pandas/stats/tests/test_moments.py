@@ -614,7 +614,7 @@ class TestMoments(unittest.TestCase):
     def test_flex_binary_moment(self):
         # GH3155
         # don't blow the stack
-        self.assertRaises(ValueError, mom._flex_binary_moment,5,6,None)
+        self.assertRaises(TypeError, mom._flex_binary_moment,5,6,None)
 
     def test_corr_sanity(self):
         #GH 3155
