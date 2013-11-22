@@ -116,7 +116,7 @@ class TestCut(unittest.TestCase):
 
     def test_inf_handling(self):
         data = np.arange(6)
-        data_ser = Series(data)
+        data_ser = Series(data,dtype='int64')
 
         result = cut(data, [-np.inf, 2, 4, np.inf])
         result_ser = cut(data_ser, [-np.inf, 2, 4, np.inf])

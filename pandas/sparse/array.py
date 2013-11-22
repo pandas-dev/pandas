@@ -65,7 +65,7 @@ def _sparse_array_op(left, right, op, name):
 
     try:
         fill_value = op(left.fill_value, right.fill_value)
-    except ZeroDivisionError:
+    except:
         fill_value = nan
 
     return SparseArray(result, sparse_index=result_index,

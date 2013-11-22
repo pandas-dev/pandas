@@ -222,7 +222,9 @@ def _format_levels(bins, prec, right=True,
 
 def _format_label(x, precision=3):
     fmt_str = '%%.%dg' % precision
-    if com.is_float(x):
+    if np.isinf(x):
+        return str(x)
+    elif com.is_float(x):
         frac, whole = np.modf(x)
         sgn = '-' if x < 0 else ''
         whole = abs(whole)
