@@ -1,8 +1,11 @@
+import unittest
+
 import numpy as np
 import pandas.util.testing as tm
 from pandas.core.index import Index
 from pandas.core.range import RangeIndex
 
+lrange = lambda *args: list(range(*args))
 
 def assert_almost_equal(a, b):
     try:
@@ -44,209 +47,203 @@ class self(object):
                 "Expected exception of type %s to be raised!" % exc)
 
 
-def test_basic():
-    assert not RangeIndex(1, 0).ascending
-    assert RangeIndex(0, 100).ascending
-    r = RangeIndex(10, 5)
-    assert r.start == 5
-    assert r.stop == 10
-    assert r.left == 10
-    assert r.right == 5
-    assert r.step == -1
-    r2 = RangeIndex(5, 10)
-    assert r2.start == 5
-    assert r2.stop == 10
-    assert r2.left == 5
-    assert r2.right == 10
-    assert r2.step == 1
+class TestRangeIndex(unittest.TestCase):
 
-    for i in range(5, 10):
-        assert i in r, i
-        assert i in r2, i
+    def test_basic(self):
+        self.assert_(not RangeIndex(1, 0).ascending)
+        self.assert_(RangeIndex(0, 100).ascending)
+        # make sure conditions work correctly
+        # descending
+        r = RangeIndex(10, 5)
+        self.assertEqual(r.start, 5)
+        self.assertEqual(r.stop, 10)
+        self.assertEqual(r.left, 10)
+        self.assertEqual(r.right, 5)
+        self.assertEqual(r.step, -1)
 
-    r3 = RangeIndex(-10, -9)
-    assert r3.start == -10
-    assert r3.stop == -9
-    assert r3.left == -10
-    assert r3.right == -9
-    assert r3.ascending
-    assert r3.step == 1
-    r4 = RangeIndex(-8, -15)
-    assert r4.start == -15
-    assert r4.stop == -8
-    assert r4.left == -8
-    assert r4.right == -15
-    assert not r4.ascending
-    assert r4.step == -1
-    assert np.array_equal(RangeIndex(5, 5), Index([], dtype='int64'))
+        # ascending
+        r2 = RangeIndex(5, 10)
+        self.assertEqual(r2.start, 5)
+        self.assertEqual(r2.stop, 10)
+        self.assertEqual(r2.left, 5)
+        self.assertEqual(r2.right, 10)
+        self.assertEqual(r2.step, 1)
 
+        # negative values
+        r3 = RangeIndex(-10, -9)
+        self.assertEqual(r3.start, -10)
+        self.assertEqual(r3.stop, -9)
+        self.assert_(r3.ascending)
+        self.assertEqual(r3.step, 1)
 
-def test_as_array():
-    # __array__
-    assert np.array_equal(RangeIndex(1, 0), np.array([1]))
-    assert np.array_equal(RangeIndex(0, 100), np.arange(0, 100))
-    assert np.array_equal(RangeIndex(1, 0).values, np.array([1]))
-    assert np.array_equal(RangeIndex(0, 100).values, np.arange(0, 100))
+        r4 = RangeIndex(-8, -15)
+        self.assertEqual(r4.start, -15)
+        self.assertEqual(r4.stop, -8)
+        self.assert_(not r4.ascending)
+        self.assertEqual(r4.step, -1)
 
+    def test_contains(self):
 
-def test_combinations():
-    r1 = RangeIndex(1, 10)
-    r2 = RangeIndex(5, 10)
-    assert r1._overlaps(r2)
-    assert r2._overlaps(r1)
+        r = RangeIndex(10, 5)
+        r2 = RangeIndex(5, 10)
+        for i in range(5, 10):
+            self.assert_(i in r)
+            self.assert_(i in r2)
 
-    # union and intersection - underlying methods
-    assert r1.intersection(r2).equals(RangeIndex(5, 10))
-    assert r2.intersection(r1).equals(r1.intersection(r2))
-    assert (r1 & r2).equals(RangeIndex(5, 10))
-    assert (r2 & r1).equals((r1 & r2))
-    assert r1.union(r2).equals(r2.union(r1))
-    assert r1.union(r2).equals(r1)
-    # union and intersection - with infix operators
-    assert (r1 + r2).equals((r2 + r1))
-    assert (r1 + r2).equals(r1)
-    assert (r1 | r2).equals((r2 | r1))
-    assert (r1 | r2).equals(r1)
+    def test_empty(self):
+        assert np.array_equal(RangeIndex(5, 5), Index([], dtype='int64'))
 
-    # difference - underlying method
-    assert r1.difference(r2).equals(RangeIndex(1, 5))
-    assert r2.difference(r1).equals(Index([], dtype='int64'))
-    assert r1.difference(r1).equals(Index([], dtype='int64'))
-    assert r2.difference(r2).equals(Index([], dtype='int64'))
-    # difference - with infix operator
-    assert (r1 - r2).equals(RangeIndex(1, 5))
-    assert (r2 - r1).equals(Index([], dtype='int64'))
-    assert (r1 - r1).equals(Index([], dtype='int64'))
-    assert (r2 - r2).equals(Index([], dtype='int64'))
+    def test_asarray(self):
+        # __array__
+        self.assert_(np.array_equal(np.asarray(RangeIndex(1, 0)),
+                                    np.array([1])))
+        self.assert_(np.array_equal(np.asarray(RangeIndex(0, 100)),
+                                    np.arange(0, 100)))
+        self.assert_(np.array_equal(RangeIndex(1, 0).values, np.array([1])))
+        self.assert_(np.array_equal(RangeIndex(0, 100).values,
+                                    np.arange(0, 100)))
 
-#
-# basic container ops
-#
+    def test_set_ops(self):
+        r1 = RangeIndex(1, 10)
+        r2 = RangeIndex(5, 10)
+        self.assert_(r1._overlaps(r2))
+        self.assert_(r2._overlaps(r1))
+        # union and intersection - underlying methods)
+        self.assert_(r1.intersection(r2).equals(RangeIndex(5, 10)))
+        self.assert_(r2.intersection(r1).equals(r1.intersection(r2)))
+        self.assert_((r1 & r2).equals(RangeIndex(5, 10)))
+        self.assert_((r2 & r1).equals((r1 & r2)))
+        self.assert_(r1.union(r2).equals(r2.union(r1)))
+        self.assert_(r1.union(r2).equals(r1))
+        # union and intersection - with infix operators)
+        self.assert_((r1 + r2).equals((r2 + r1)))
+        self.assert_((r1 + r2).equals(r1))
+        self.assert_((r1 | r2).equals((r2 | r1)))
+        self.assert_((r1 | r2).equals(r1))
 
-lrange = lambda *args: list(range(*args))
+        # difference - underlying method)
+        self.assert_(r1.difference(r2).equals(RangeIndex(1, 5)))
+        self.assert_(r2.difference(r1).equals(Index([], dtype='int64')))
+        self.assert_(r1.difference(r1).equals(Index([], dtype='int64')))
+        self.assert_(r2.difference(r2).equals(Index([], dtype='int64')))
+        # difference - with infix operator)
+        self.assert_((r1 - r2).equals(RangeIndex(1, 5)))
+        self.assert_((r2 - r1).equals(Index([], dtype='int64')))
+        self.assert_((r1 - r1).equals(Index([], dtype='int64')))
+        self.assert_((r2 - r2).equals(Index([], dtype='int64')))
 
+    def test_getitem_and_iter(self):
+        # basic container ops
+        pairs = [(RangeIndex(-10, -5), lrange(-10, -5)),
+                 (RangeIndex(8, 5), lrange(8, 5, -1)),
+                 (RangeIndex(0, 10), lrange(0, 10)),
+                 (RangeIndex(-5, 5), lrange(-5, 5)),
+                 (RangeIndex(3, -15), lrange(3, -15, -1))]
 
-def test_getitem_and_iter():
-    r1 = RangeIndex(-10, -5)
-    r2 = RangeIndex(8, 5)
-    r3 = RangeIndex(0, 10)
-    r4 = RangeIndex(-5, 5)
-    r5 = RangeIndex(3, -15)
-    pairs = [(r1, lrange(-10, -5)),
-             (r2, lrange(8, 5, -1)),
-             (r3, lrange(0, 10)),
-             (r4, lrange(-5, 5)),
-             (r5, lrange(3, -15, -1))]
+        for ind, rng in pairs:
+            try:
+                self.assertEqual(len(ind), len(rng))
+                for i in range(len(rng)):
+                    self.assertEqual(ind[i], rng[i])
+                    self.assertEqual(ind[-i], rng[-i])
+            except:
+                print(i, ind, ind[i])
+                print(i, rng, rng[i])
+                raise
+            # basic __iter__ test
+            assert_almost_equal(list(ind), rng)
+            assert np.array_equal(ind.values, np.array(list(rng)))
 
-    for ind, rng in pairs:
-        try:
-            assert len(ind) == len(rng)
-            for i in range(len(rng)):
-                self.assertEqual(ind[i], rng[i])
-                self.assertEqual(ind[-i], rng[-i])
-        except:
-            print(i, ind, ind[i])
-            print(i, rng, rng[i])
-            raise
-        # basic __iter__ test
-        assert_almost_equal(list(ind), rng)
-        assert np.array_equal(ind.values, np.array(list(rng)))
+        cases = 10
+        for ind in zip(*pairs)[0]:
+            length = len(ind)
+            # edges
+            self.assertRaises(IndexError, lambda: ind[length])
+            self.assertRaises(IndexError, lambda: ind[-length - 1])
+            for _ in range(cases):
+                i = np.random.randint(1, 100)
+                self.assertRaises(IndexError, lambda: ind[length + i])
+                self.assertRaises(IndexError, lambda: ind[-length - 1 - i])
 
-    cases = 10
-    for ind in zip(*pairs)[0]:
-        length = len(ind)
-        # edges
-        self.assertRaises(IndexError, lambda: ind[length])
-        self.assertRaises(IndexError, lambda: ind[-length - 1])
-        for _ in range(cases):
-            i = np.random.randint(1, 100)
-            self.assertRaises(IndexError, lambda: ind[length + i])
-            self.assertRaises(IndexError, lambda: ind[-length - 1 - i])
+    def test_slicing(self):
+        pairs = [(RangeIndex(-10, -5), lrange(-10, -5)),  # can remove later
+                 (RangeIndex(8, 5), np.arange(8, 5, -1)),
+                 (RangeIndex(0, 10), lrange(0, 10)),  # can remove later
+                 (RangeIndex(-3, 3), np.arange(-3, 3)),
+                 (RangeIndex(3, -2), np.arange(3, -2, -1))]
+        # TODO: This is incredibly slow - pick something smaller to work with
+        for ind, rng in pairs:
+            assert_almost_equal(ind[:], rng[:])
+            for i, j in [(i, j) for i in range(len(rng))
+                         for j in range(len(rng)) if i >= j]:
+                assert_almost_equal(ind[i:], rng[i:])
+                assert_almost_equal(ind[:i], rng[:i])
+                assert_almost_equal(ind[-i:], rng[-i:])
+                assert_almost_equal(ind[:-i], rng[:-i])
 
+                assert_almost_equal(ind[i:j], rng[i:j])
+                assert_almost_equal(ind[i:-j], rng[i:-j])
+                assert_almost_equal(ind[-i:-j], rng[-i:-j])
+                assert_almost_equal(ind[-i:j], rng[-i:j])
 
-def test_slicing():
-    r1 = RangeIndex(-10, -5)
-    r2 = RangeIndex(8, 5)
-    r3 = RangeIndex(0, 10)
-    r4 = RangeIndex(-3, 3)
-    r5 = RangeIndex(3, -2)
-    pairs = [(r1, lrange(-10, -5)),  # can remove later
-             (r2, np.arange(8, 5, -1)),
-             (r3, lrange(0, 10)),  # can remove later
-             (r4, np.arange(-3, 3)),
-             (r5, np.arange(3, -2, -1))]
-    # TODO: This is incredibly slow - pick something smaller to work with
-    for ind, rng in pairs:
-        assert_almost_equal(ind[:], rng[:])
-        for i, j in [(i, j) for i in range(len(rng)) for j in range(len(rng))
-                     if i >= j]:
-            assert_almost_equal(ind[i:], rng[i:])
-            assert_almost_equal(ind[:i], rng[:i])
-            assert_almost_equal(ind[-i:], rng[-i:])
-            assert_almost_equal(ind[:-i], rng[:-i])
+                assert_almost_equal(ind[j:i], rng[j:i])
+                assert_almost_equal(ind[j:-i], rng[j:-i])
+                assert_almost_equal(ind[-j:-i], rng[-j:-i])
+                assert_almost_equal(ind[-j:i], rng[-j:i])
+        # in range
+        # - forward
+        # - reversed
+        # totally out of range
+        # - forward/reversed below
+        # - forward/reversed above
+        # partial in range
+        # - forward/reversed with low
+        # - forward/reversed with high
+        # [:] yields (shallow copy of) self
+        # Empty slice yields Index([], dtype='int64')
+        pass
 
-            assert_almost_equal(ind[i:j], rng[i:j])
-            assert_almost_equal(ind[i:-j], rng[i:-j])
-            assert_almost_equal(ind[-i:-j], rng[-i:-j])
-            assert_almost_equal(ind[-i:j], rng[-i:j])
+    def test_slicing_with_step_of_1(self):
+        # [::-1] yields self but reversed
+        r1 = RangeIndex(-5, 5)
+        r2 = RangeIndex(20, 10)
+        self.assert_(r1[::-1].equals(RangeIndex(5, -5)))
+        self.assert_(r2[::-1].equals(RangeIndex(10, 20)))
+        self.assert_(r1[::1].equals(r1))
+        self.assert_(r2[::1].equals(r2))
 
-            assert_almost_equal(ind[j:i], rng[j:i])
-            assert_almost_equal(ind[j:-i], rng[j:-i])
-            assert_almost_equal(ind[-j:-i], rng[-j:-i])
-            assert_almost_equal(ind[-j:i], rng[-j:i])
-    # in range
-    # - forward
-    # - reversed
-    # totally out of range
-    # - forward/reversed below
-    # - forward/reversed above
-    # partial in range
-    # - forward/reversed with low
-    # - forward/reversed with high
-    # [:] yields (shallow copy of) self
-    # Empty slice yields Index([], dtype='int64')
-    pass
+    def test_slicing_with_other_steps(self):
+        pass
 
-
-def test_slicing_with_step():
-    # [::-1] yields self but reversed
-    pass
-
-
-def test_immutable():
-    # setitem
-    # setslice
-    pass
-
+    def test_immutable(self):
+        # setitem
+        # setslice
+        pass
 
 #
 # PandasObject properties
 #
 
+    def test_copy_and_view(self):
+        # shallow / deep copy should be same
+        pass
 
-def test_copy_and_view():
-    # shallow / deep copy should be same
-    pass
+    def test_is__continuity():
+        # is should work on views/copies
+        # is should not work with two separately constructed indices
+        # is should be False when reversed or sliced
+        pass
 
+    def test_equals():
+        # should work on views/copies
+        # should be equal when separately constructed
+        # should not be equal when reversed/reduced/etc
+        pass
 
-def test_is__continuity():
-    # is should work on views/copies
-    # is should not work with two separately constructed indices
-    # is should be False when reversed or sliced
-    pass
-
-
-def test_equals():
-    # should work on views/copies
-    # should be equal when separately constructed
-    # should not be equal when reversed/reduced/etc
-    pass
-
-
-def test_error_on_bool():
-    self.assertRaises(ValueError, bool, RangeIndex(1, 5))
-    self.assertRaises(ValueError, bool, RangeIndex(-10, -9))
-    self.assertRaises(ValueError, bool, RangeIndex(1, 2))
+    def test_error_on_bool(self):
+        self.assertRaises(ValueError, bool, RangeIndex(1, 5))
+        self.assertRaises(ValueError, bool, RangeIndex(-10, -9))
+        self.assertRaises(ValueError, bool, RangeIndex(1, 2))
 
 
 #

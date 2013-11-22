@@ -1,5 +1,8 @@
 import pandas as pd
 import numpy as np
+import pandas.lib as lib
+import pandas.algos as _algos
+from pandas.core.index import Int64Index
 
 
 class RangeIndex(object):
@@ -11,6 +14,7 @@ class RangeIndex(object):
         start and end of range (i.e., ``s[left:right]``). If left > right,
         assumes reversed (i.e., ``s[left:right:-1]``)
     """
+    _groupby = _algos.groupby_int64
     # My thinking on this structure:
     # - from a 'set theoretic' standpoint, order doesn't matter, so ascending
     #   vs. descending is generally an implementation detail
@@ -38,6 +42,7 @@ class RangeIndex(object):
             return pd.Index([], dtype='int64')
         else:
             return object.__new__(cls)
+
     def __init__(self, left, right):
         # shouldn't happen
         if left == right:
@@ -61,7 +66,11 @@ class RangeIndex(object):
 
     @property
     def values(self):
-        return np.arange(self.left, self.right, (1 if self.ascending else -1), dtype='int64')
+        if self.ascending:
+            vals = np.arange(self.start, self.stop, 1, dtype='int64')
+        else:
+            vals = np.arange(self.stop, self.start, -1, dtype='int64')
+        return vals
 
     def union(self, other):
         """Union this with another RangeIndex. Always returns ascending RangeIndex."""
@@ -154,11 +163,13 @@ class RangeIndex(object):
     def __contains__(self, val):
         # can only hold integers
         try:
+            v = val
             val = int(val)
         except (TypeError, ValueError):
             return False
 
-        if val != val:
+        # pd.isnull(val)?
+        if v != val or val != val:
             return False
 
         return self.start <= val < self.end
@@ -171,7 +182,7 @@ class RangeIndex(object):
 
     def __repr__(self):
         # TODO: Either change to Int64Repr OR to RangeIndex(left, right)
-        return "RangeIndex(%r)" % (dict(left=self.left, right=self.right, start=self.start, end=self.end, ascending=self.ascending))
+        return "RangeIndex(%r)" % (dict(start=self.start, end=self.end, ascending=self.ascending))
 
     def get_indexer(self, arr, method=None):
         arr = np.asarray(arr, dtype='int64')
@@ -191,6 +202,8 @@ class RangeIndex(object):
         if isinstance(val, slice):
             if slice.step not in (1, -1):
                 return self.values[val]
+            if slice.start is None or slice.start > self.start:
+                start = slice.start
             if slice.start >= 0 and slice.end >= 0:
                 start = slice.start if slice.start is None or slice.start > self.start else self.start
                 end = slice.end if slice.end is None or slice.end < self.end else self.end
