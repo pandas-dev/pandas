@@ -488,7 +488,7 @@ class ExcelWriterBase(SharedItems):
                 frame.to_excel(path, 'test1')
                 reader = ExcelFile(path)
                 recons = reader.parse('test1')
-                int_frame = frame.astype(int)
+                int_frame = frame.astype(np.int64)
                 tm.assert_frame_equal(int_frame, recons)
                 recons2 = read_excel(path, 'test1')
                 tm.assert_frame_equal(int_frame, recons2)
@@ -616,7 +616,7 @@ class ExcelWriterBase(SharedItems):
                                   has_index_names=self.merge_cells
                                   ).astype(np.int64)
             frame.index.names = ['test']
-            self.assertAlmostEqual(frame.index.names, recons.index.names)
+            tm.assert_frame_equal(frame,recons.astype(bool))
 
         with ensure_clean(self.ext) as path:
 

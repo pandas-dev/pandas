@@ -3,6 +3,8 @@ import unittest
 
 import datetime
 import numpy as np
+import sys
+from distutils.version import LooseVersion
 
 from pandas import compat
 from pandas.compat import u
@@ -196,6 +198,11 @@ class TestBasic(Test):
             self.assert_(i == i_rec)
 
     def test_datetimes(self):
+
+        # fails under 2.6/win32 (np.datetime64 seems broken)
+
+        if LooseVersion(sys.version) < '2.7':
+            raise nose.SkipTest('2.6 with np.datetime64 is broken')
 
         for i in [datetime.datetime(
             2013, 1, 1), datetime.datetime(2013, 1, 1, 5, 1),
