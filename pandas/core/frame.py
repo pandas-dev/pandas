@@ -2794,9 +2794,9 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        order : list of int
+        order : list of int or list of str
             List representing new level order. Reference level by number
-            not by key.
+            (position) or by key (label).
         axis : int
             Where to reorder levels.
 
