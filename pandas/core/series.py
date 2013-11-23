@@ -95,6 +95,7 @@ class Series(generic.NDFrame):
 
     """
     One-dimensional ndarray with axis labels (including time series).
+
     Labels need not be unique but must be any hashable type. The object
     supports both integer- and label-based indexing and provides a host of
     methods for performing operations involving the index. Statistical
@@ -117,7 +118,8 @@ class Series(generic.NDFrame):
         dict.
     dtype : numpy.dtype or None
         If None, dtype will be inferred
-    copy : boolean, default False, copy input data
+    copy : boolean, default False
+        Copy input data
     """
     _metadata = ['name']
 
@@ -807,7 +809,8 @@ class Series(generic.NDFrame):
 
     def reset_index(self, level=None, drop=False, name=None, inplace=False):
         """
-        Analogous to the DataFrame.reset_index function, see docstring there.
+        Analogous to the :meth:`pandas.DataFrame.reset_index` function, see
+        docstring there.
 
         Parameters
         ----------
@@ -1133,7 +1136,7 @@ class Series(generic.NDFrame):
 
         Parameters
         ----------
-        normalize: boolean, default False
+        normalize : boolean, default False
             If True then the Series returned will contain the relative
             frequencies of the unique values.
         sort : boolean, default True
@@ -1161,7 +1164,7 @@ class Series(generic.NDFrame):
         Parameters
         ----------
         sort : bool, default True
-            if True, will lexicographically sort values, if False skips
+            If True, will lexicographically sort values, if False skips
             sorting. Result ordering when ``sort=False`` is not defined.
 
         Returns
@@ -1398,9 +1401,9 @@ class Series(generic.NDFrame):
         ----------
         other : Series
         method : {'pearson', 'kendall', 'spearman'}
-            pearson : standard correlation coefficient
-            kendall : Kendall Tau correlation coefficient
-            spearman : Spearman rank correlation
+            * pearson : standard correlation coefficient
+            * kendall : Kendall Tau correlation coefficient
+            * spearman : Spearman rank correlation
         min_periods : int, optional
             Minimum number of observations needed to have a valid result
 
@@ -1663,7 +1666,7 @@ class Series(generic.NDFrame):
 
         See Also
         --------
-        pandas.Series.order
+        Series.order
         """
 
         # GH 5856/5863
@@ -1750,10 +1753,10 @@ class Series(generic.NDFrame):
         Parameters
         ----------
         method : {'average', 'min', 'max', 'first'}
-            average: average rank of group
-            min: lowest rank in group
-            max: highest rank in group
-            first: ranks assigned in order they appear in the array
+            * average: average rank of group
+            * min: lowest rank in group
+            * max: highest rank in group
+            * first: ranks assigned in order they appear in the array
         na_option : {'keep'}
             keep: leave NA values where they are
         ascending : boolean, default True
@@ -2260,7 +2263,7 @@ class Series(generic.NDFrame):
         Returns
         -------
         valid : Series
-        inplace : bool (default False)
+        inplace : boolean, default False
             Do operation in place.
         """
         axis = self._get_axis_number(axis or 0)
