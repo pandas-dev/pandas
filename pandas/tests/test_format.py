@@ -41,7 +41,7 @@ def has_horizontally_truncated_repr(df):
 
 def has_vertically_truncated_repr(df):
     r = repr(df)
-    return '..' in r.splitlines()[-1]
+    return '..' in r.splitlines()[-3]
 
 def has_truncated_repr(df):
     return has_horizontally_truncated_repr(df) or has_vertically_truncated_repr(df)
@@ -128,16 +128,16 @@ class TestDataFrameFormatting(unittest.TestCase):
     def test_repr_chop_threshold(self):
         df = DataFrame([[0.1, 0.5],[0.5, -0.1]])
         pd.reset_option("display.chop_threshold") # default None
-        self.assertEqual(repr(df), '     0    1\n0  0.1  0.5\n1  0.5 -0.1')
+        self.assertEqual(repr(df), '     0    1\n0  0.1  0.5\n1  0.5 -0.1\n\n[2 rows x 2 columns]')
 
         with option_context("display.chop_threshold", 0.2 ):
-            self.assertEqual(repr(df), '     0    1\n0  0.0  0.5\n1  0.5  0.0')
+            self.assertEqual(repr(df), '     0    1\n0  0.0  0.5\n1  0.5  0.0\n\n[2 rows x 2 columns]')
 
         with option_context("display.chop_threshold", 0.6 ):
-            self.assertEqual(repr(df), '   0  1\n0  0  0\n1  0  0')
+            self.assertEqual(repr(df), '   0  1\n0  0  0\n1  0  0\n\n[2 rows x 2 columns]')
 
         with option_context("display.chop_threshold", None ):
-            self.assertEqual(repr(df),  '     0    1\n0  0.1  0.5\n1  0.5 -0.1')
+            self.assertEqual(repr(df),  '     0    1\n0  0.1  0.5\n1  0.5 -0.1\n\n[2 rows x 2 columns]')
 
     def test_repr_obeys_max_seq_limit(self):
         import pandas.core.common as com
@@ -775,6 +775,8 @@ class TestDataFrameFormatting(unittest.TestCase):
             df = DataFrame([col(max_cols-1, 25) for _ in range(10)])
             set_option('display.expand_frame_repr', False)
             rep_str = repr(df)
+            print(rep_str)
+            assert "10 rows x %d columns" % (max_cols-1) in rep_str
             set_option('display.expand_frame_repr', True)
             wide_repr = repr(df)
             self.assert_(rep_str != wide_repr)
@@ -790,7 +792,7 @@ class TestDataFrameFormatting(unittest.TestCase):
             df = DataFrame(randn(5, 3), columns=['a' * 90, 'b' * 90, 'c' * 90])
             rep_str = repr(df)
 
-            self.assert_(len(rep_str.splitlines()) == 20)
+            self.assertEqual(len(rep_str.splitlines()), 22)
 
     def test_wide_repr_named(self):
         with option_context('mode.sim_interactive', True):
@@ -1450,6 +1452,8 @@ c  10  11  12  13  14\
         long_repr = df._repr_html_()
         assert '...' in long_repr
         assert str(40 + h) not in long_repr
+        assert u('%d rows ') % h in long_repr
+        assert u('2 columns') in long_repr
 
     def test_repr_html_long_multiindex(self):
         max_rows = get_option('display.max_rows')
@@ -1565,7 +1569,7 @@ c  10  11  12  13  14\
         vals = [2.08430917305e+10, 3.52205017305e+10, 2.30674817305e+10,
                 2.03954217305e+10, 5.59897817305e+10]
         skip = True
-        for line in repr(DataFrame({'A': vals})).split('\n'):
+        for line in repr(DataFrame({'A': vals})).split('\n')[:-2]:
             if line.startswith('dtype:'):
                 continue
             if _three_digit_exp():

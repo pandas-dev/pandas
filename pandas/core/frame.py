@@ -454,7 +454,7 @@ class DataFrame(NDFrame):
         else:
             width = None
         self.to_string(buf=buf, max_rows=max_rows, max_cols=max_cols,
-                       line_width=width)
+                       line_width=width, show_dimensions=True)
 
         return buf.getvalue()
 
@@ -485,7 +485,8 @@ class DataFrame(NDFrame):
 
             return ('<div style="max-height:1000px;'
                     'max-width:1500px;overflow:auto;">\n' +
-                    self.to_html(max_rows=max_rows, max_cols=max_cols) \
+                    self.to_html(max_rows=max_rows, max_cols=max_cols,
+                                 show_dimensions=True) \
                     + '\n</div>')
         else:
             return None
@@ -1254,7 +1255,8 @@ class DataFrame(NDFrame):
                   header=True, index=True, na_rep='NaN', formatters=None,
                   float_format=None, sparsify=None, nanRep=None,
                   index_names=True, justify=None, force_unicode=None,
-                  line_width=None, max_rows=None, max_cols=None):
+                  line_width=None, max_rows=None, max_cols=None,
+                  show_dimensions=False):
         """
         Render a DataFrame to a console-friendly tabular output.
         """
@@ -1281,7 +1283,8 @@ class DataFrame(NDFrame):
                                            index_names=index_names,
                                            header=header, index=index,
                                            line_width=line_width,
-                                           max_rows=max_rows, max_cols=max_cols)
+                                           max_rows=max_rows, max_cols=max_cols,
+                                           show_dimensions=show_dimensions)
         formatter.to_string()
 
         if buf is None:
@@ -1293,7 +1296,8 @@ class DataFrame(NDFrame):
                 header=True, index=True, na_rep='NaN', formatters=None,
                 float_format=None, sparsify=None, index_names=True,
                 justify=None, force_unicode=None, bold_rows=True,
-                classes=None, escape=True, max_rows=None, max_cols=None):
+                classes=None, escape=True, max_rows=None, max_cols=None,
+                show_dimensions=False):
         """
         Render a DataFrame as an HTML table.
 
@@ -1332,7 +1336,8 @@ class DataFrame(NDFrame):
                                            header=header, index=index,
                                            bold_rows=bold_rows,
                                            escape=escape,
-                                           max_rows=max_rows, max_cols=max_cols)
+                                           max_rows=max_rows, max_cols=max_cols,
+                                           show_dimensions=show_dimensions)
         formatter.to_html(classes=classes)
 
         if buf is None:

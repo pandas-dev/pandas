@@ -1,3 +1,4 @@
+#coding: utf-8
 from __future__ import print_function
 # pylint: disable=W0141
 
@@ -264,7 +265,7 @@ class DataFrameFormatter(TableFormatter):
                  header=True, index=True, na_rep='NaN', formatters=None,
                  justify=None, float_format=None, sparsify=None,
                  index_names=True, line_width=None, max_rows=None, max_cols=None,
-                 **kwds):
+                 show_dimensions=False, **kwds):
         self.frame = frame
         self.buf = buf if buf is not None else StringIO()
         self.show_index_names = index_names
@@ -283,6 +284,7 @@ class DataFrameFormatter(TableFormatter):
         self.line_width = line_width
         self.max_rows = max_rows
         self.max_cols = max_cols
+        self.show_dimensions = show_dimensions
 
         if justify is None:
             self.justify = get_option("display.colheader_justify")
@@ -311,6 +313,7 @@ class DataFrameFormatter(TableFormatter):
         cols_to_show = self.columns[:self.max_cols]
         truncate_h = self.max_cols and (len(self.columns) > self.max_cols)
         truncate_v = self.max_rows and (len(self.frame) > self.max_rows)
+        self.truncated_v = truncate_v
         if truncate_h:
             cols_to_show = self.columns[:self.max_cols]
         else:
@@ -376,6 +379,10 @@ class DataFrameFormatter(TableFormatter):
                 text = self._join_multiline(*strcols)
 
         self.buf.writelines(text)
+
+        if self.show_dimensions:
+            self.buf.write("\n\n[%d rows x %d columns]" \
+                            % (len(frame), len(frame.columns)) )
 
     def _join_multiline(self, *strcols):
         lwidth = self.line_width
@@ -671,6 +678,8 @@ class HTMLFormatter(TableFormatter):
                                       'not %s') % type(self.classes))
             _classes.extend(self.classes)
 
+
+
         self.write('<table border="1" class="%s">' % ' '.join(_classes),
                    indent)
 
@@ -687,6 +696,10 @@ class HTMLFormatter(TableFormatter):
             indent = self._write_body(indent)
 
         self.write('</table>', indent)
+        if self.fmt.show_dimensions:
+            by = chr(215) if compat.PY3 else unichr(215) # ×
+            self.write(u('<p>%d rows %s %d columns</p>') %
+                         (len(frame), by, len(frame.columns)) )
         _put_lines(buf, self.elements)
 
     def _write_header(self, indent):
