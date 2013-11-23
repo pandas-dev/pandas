@@ -7,6 +7,7 @@ import nose
 
 from pandas import DataFrame
 from pandas import read_clipboard
+from pandas import get_option
 from pandas.util import testing as tm
 from pandas.util.testing import makeCustomDataframe as mkdf
 
@@ -33,6 +34,11 @@ class TestClipboard(unittest.TestCase):
         cls.data['mixed'] = DataFrame({'a': np.arange(1.0, 6.0) + 0.01,
                                        'b': np.arange(1, 6),
                                        'c': list('abcde')})
+        # Test GH-5346
+        max_rows = get_option('display.max_rows')
+        cls.data['longdf'] = mkdf(max_rows+1, 3, data_gen_f=lambda *args: randint(2),
+                                  c_idx_type='s', r_idx_type='i',
+                                  c_idx_names=[None], r_idx_names=[None])  
         cls.data_types = list(cls.data.keys())
 
     @classmethod
