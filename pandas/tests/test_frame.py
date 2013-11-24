@@ -9185,6 +9185,46 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         assert_frame_equal(result, expected, check_names=False)  # TODO should reindex check_names?
 
+    def test_reorder_levels(self):
+        index = MultiIndex(levels=[['bar'], ['one', 'two', 'three'], [0, 1]],
+                           labels=[[0, 0, 0, 0, 0, 0],
+                                   [0, 1, 2, 0, 1, 2],
+                                   [0, 1, 0, 1, 0, 1]],
+                           names=['L0', 'L1', 'L2'])
+        df = DataFrame({'A': np.arange(6), 'B': np.arange(6)}, index=index)
+
+        # no change, position
+        result = df.reorder_levels([0, 1, 2])
+        assert_frame_equal(df, result)
+
+        # no change, labels
+        result = df.reorder_levels(['L0', 'L1', 'L2'])
+        assert_frame_equal(df, result)
+
+        # rotate, position
+        result = df.reorder_levels([1, 2, 0])
+        e_idx = MultiIndex(levels=[['one', 'two', 'three'], [0, 1], ['bar']],
+                           labels=[[0, 1, 2, 0, 1, 2],
+                                   [0, 1, 0, 1, 0, 1],
+                                   [0, 0, 0, 0, 0, 0]],
+                           names=['L1', 'L2', 'L0'])
+        expected = DataFrame({'A': np.arange(6), 'B': np.arange(6)},
+                             index=e_idx)
+        assert_frame_equal(result, expected)
+
+        result = df.reorder_levels([0, 0, 0])
+        e_idx = MultiIndex(levels=[['bar'], ['bar'], ['bar']],
+                           labels=[[0, 0, 0, 0, 0, 0],
+                                   [0, 0, 0, 0, 0, 0],
+                                   [0, 0, 0, 0, 0, 0]],
+                           names=['L0', 'L0', 'L0'])
+        expected = DataFrame({'A': np.arange(6), 'B': np.arange(6)},
+                             index=e_idx)
+        assert_frame_equal(result, expected)
+
+        result = df.reorder_levels(['L0', 'L0', 'L0'])
+        assert_frame_equal(result, expected)
+
     def test_sort_index(self):
         frame = DataFrame(np.random.randn(4, 4), index=[1, 2, 3, 4],
                           columns=['A', 'B', 'C', 'D'])

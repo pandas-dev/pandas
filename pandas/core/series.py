@@ -1869,7 +1869,7 @@ class Series(generic.NDFrame):
         Parameters
         ----------
         order: list of int representing new level order.
-               (reference level by number not by key)
+               (reference level by number or key)
         axis: where to reorder levels
 
         Returns
