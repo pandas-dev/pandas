@@ -1015,8 +1015,11 @@ class NDFrame(PandasObject):
         self._is_copy = copy
         return self
 
-    def _check_setitem_copy(self):
-        """ validate if we are doing a settitem on a chained copy """
+    def _check_setitem_copy(self, stacklevel=4):
+        """ validate if we are doing a settitem on a chained copy.
+
+        If you call this function, be sure to set the stacklevel such that the
+        user will see the error *at the level of setting*"""
         if self._is_copy:
             value = config.get_option('mode.chained_assignment')
 
@@ -1026,7 +1029,7 @@ class NDFrame(PandasObject):
             if value == 'raise':
                 raise SettingWithCopyError(t)
             elif value == 'warn':
-                warnings.warn(t, SettingWithCopyWarning)
+                warnings.warn(t, SettingWithCopyWarning, stacklevel=stacklevel)
 
     def __delitem__(self, key):
         """
