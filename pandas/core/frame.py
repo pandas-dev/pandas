@@ -200,9 +200,9 @@ class DataFrame(NDFrame):
         elif isinstance(data, dict):
             mgr = self._init_dict(data, index, columns, dtype=dtype)
         elif isinstance(data, ma.MaskedArray):
-
+            import numpy.ma.mrecords as mrecords
             # masked recarray
-            if isinstance(data, ma.mrecords.MaskedRecords):
+            if isinstance(data, mrecords.MaskedRecords):
                 mgr = _masked_rec_array_to_mgr(data, index, columns, dtype,
                                                copy)
 
