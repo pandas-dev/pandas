@@ -1872,7 +1872,7 @@ class SafeForSparse(object):
         self.assert_(np.array_equal(with_suffix.columns, expected))
 
 
-class TestDataFrame(unittest.TestCase, CheckIndexing,
+class TestDataFrame(tm.TestCase, CheckIndexing,
                     SafeForSparse):
     klass = DataFrame
 
@@ -12026,15 +12026,18 @@ class TestDataFrameQueryWithMultiIndex(object):
             pd.eval('p4d + 1', parser=parser, engine=engine)
 
 
-class TestDataFrameQueryNumExprPandas(unittest.TestCase):
+class TestDataFrameQueryNumExprPandas(tm.TestCase):
+
     @classmethod
     def setUpClass(cls):
+        super(TestDataFrameQueryNumExprPandas, cls).setUpClass()
         cls.engine = 'numexpr'
         cls.parser = 'pandas'
         skip_if_no_ne()
 
     @classmethod
     def tearDownClass(cls):
+        super(TestDataFrameQueryNumExprPandas, cls).tearDownClass()
         del cls.engine, cls.parser
 
     def test_date_query_method(self):

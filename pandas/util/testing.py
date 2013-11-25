@@ -11,6 +11,7 @@ import inspect
 import os
 import subprocess
 import locale
+import unittest
 
 from datetime import datetime
 from functools import wraps, partial
@@ -51,6 +52,17 @@ Panel4D = panel4d.Panel4D
 N = 30
 K = 4
 _RAISE_NETWORK_ERROR_DEFAULT = False
+
+class TestCase(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        pd.set_option('chained_assignment','raise')
+        print("setting up: {0}".format(cls))
+
+    @classmethod
+    def tearDownClass(cls):
+        pass
 
 # NOTE: don't pass an NDFrame or index to this function - may not handle it
 # well.
