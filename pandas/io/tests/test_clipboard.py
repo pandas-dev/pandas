@@ -1,5 +1,3 @@
-import unittest
-
 import numpy as np
 from numpy.random import randint
 
@@ -18,9 +16,10 @@ except OSError:
     raise nose.SkipTest("no clipboard found")
 
 
-class TestClipboard(unittest.TestCase):
+class TestClipboard(tm.TestCase):
     @classmethod
     def setUpClass(cls):
+        super(TestClipboard, cls).setupClass()
         cls.data = {}
         cls.data['string'] = mkdf(5, 3, c_idx_type='s', r_idx_type='i',
                                   c_idx_names=[None], r_idx_names=[None])
@@ -43,6 +42,7 @@ class TestClipboard(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        super(TestClipboard, cls).tearDownClass()
         del cls.data_types, cls.data
 
     def check_round_trip_frame(self, data_type, excel=None, sep=None):

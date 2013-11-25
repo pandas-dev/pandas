@@ -58,10 +58,11 @@ class TestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         pd.set_option('chained_assignment','raise')
-        print("setting up: {0}".format(cls))
+        #print("setting up: {0}".format(cls))
 
     @classmethod
     def tearDownClass(cls):
+        #print("tearing down up: {0}".format(cls))
         pass
 
 # NOTE: don't pass an NDFrame or index to this function - may not handle it

@@ -7,7 +7,6 @@ from datetime import datetime, timedelta, time
 import operator
 import re
 import csv
-import unittest
 import nose
 import functools
 import itertools
@@ -12256,16 +12255,14 @@ class TestDataFrameQueryNumExprPandas(tm.TestCase):
 
 
 class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
+
     @classmethod
     def setUpClass(cls):
+        super(TestDataFrameQueryNumExprPython, cls).setUpClass()
         cls.engine = 'numexpr'
         cls.parser = 'python'
         skip_if_no_ne(cls.engine)
         cls.frame = _frame.copy()
-
-    @classmethod
-    def tearDownClass(cls):
-        del cls.frame, cls.engine, cls.parser
 
     def test_date_query_method(self):
         engine, parser = self.engine, self.parser
@@ -12359,27 +12356,21 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
 
 
 class TestDataFrameQueryPythonPandas(TestDataFrameQueryNumExprPandas):
+
     @classmethod
     def setUpClass(cls):
+        super(TestDataFrameQueryPythonPandas, cls).setUpClass()
         cls.engine = 'python'
         cls.parser = 'pandas'
         cls.frame = _frame.copy()
 
-    @classmethod
-    def tearDownClass(cls):
-        del cls.frame, cls.engine, cls.parser
-
-
 class TestDataFrameQueryPythonPython(TestDataFrameQueryNumExprPython):
+
     @classmethod
     def setUpClass(cls):
+        super(TestDataFrameQueryPythonPython, cls).setUpClass()
         cls.engine = cls.parser = 'python'
         cls.frame = _frame.copy()
-
-    @classmethod
-    def tearDownClass(cls):
-        del cls.frame, cls.engine, cls.parser
-
 
 PARSERS = 'python', 'pandas'
 ENGINES = 'python', 'numexpr'
@@ -12513,16 +12504,14 @@ class TestDataFrameQueryStrings(object):
             yield self.check_object_array_eq_ne, parser, engine
 
 
-class TestDataFrameEvalNumExprPandas(unittest.TestCase):
+class TestDataFrameEvalNumExprPandas(tm.TestCase):
+
     @classmethod
     def setUpClass(cls):
+        super(TestDataFrameEvalNumExprPandas, cls).setUpClass()
         cls.engine = 'numexpr'
         cls.parser = 'pandas'
         skip_if_no_ne()
-
-    @classmethod
-    def tearDownClass(cls):
-        del cls.engine, cls.parser
 
     def setUp(self):
         self.frame = DataFrame(randn(10, 3), columns=list('abc'))
@@ -12543,37 +12532,28 @@ class TestDataFrameEvalNumExprPandas(unittest.TestCase):
 
 
 class TestDataFrameEvalNumExprPython(TestDataFrameEvalNumExprPandas):
+
     @classmethod
     def setUpClass(cls):
+        super(TestDataFrameEvalNumExprPython, cls).setUpClass()
         cls.engine = 'numexpr'
         cls.parser = 'python'
         skip_if_no_ne()
 
-    @classmethod
-    def tearDownClass(cls):
-        del cls.engine, cls.parser
-
-
 class TestDataFrameEvalPythonPandas(TestDataFrameEvalNumExprPandas):
+
     @classmethod
     def setUpClass(cls):
+        super(TestDataFrameEvalPythonPandas, cls).setUpClass()
         cls.engine = 'python'
         cls.parser = 'pandas'
 
-    @classmethod
-    def tearDownClass(cls):
-        del cls.engine, cls.parser
-
-
 class TestDataFrameEvalPythonPython(TestDataFrameEvalNumExprPython):
+
     @classmethod
     def setUpClass(cls):
+        super(TestDataFrameEvalPythonPython, cls).tearDownClass()
         cls.engine = cls.parser = 'python'
-
-    @classmethod
-    def tearDownClass(cls):
-        del cls.engine, cls.parser
-
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

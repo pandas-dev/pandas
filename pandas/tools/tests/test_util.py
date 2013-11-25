@@ -1,8 +1,6 @@
 import os
 import locale
 import codecs
-import unittest
-
 import nose
 
 import numpy as np
@@ -16,7 +14,7 @@ CURRENT_LOCALE = locale.getlocale()
 LOCALE_OVERRIDE = os.environ.get('LOCALE_OVERRIDE', None)
 
 
-class TestCartesianProduct(unittest.TestCase):
+class TestCartesianProduct(tm.TestCase):
 
     def test_simple(self):
         x, y = list('ABC'), [1, 22]
@@ -26,9 +24,11 @@ class TestCartesianProduct(unittest.TestCase):
         assert_equal(result, expected)
 
 
-class TestLocaleUtils(unittest.TestCase):
+class TestLocaleUtils(tm.TestCase):
+
     @classmethod
     def setUpClass(cls):
+        super(TestLocaleUtils, cls).setupClass()
         cls.locales = tm.get_locales()
 
         if not cls.locales:
@@ -39,6 +39,7 @@ class TestLocaleUtils(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        super(TestLocaleUtils, cls).tearDownClass()
         del cls.locales
 
     def test_get_locales(self):

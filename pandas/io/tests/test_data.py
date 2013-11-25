@@ -1,6 +1,5 @@
 from __future__ import print_function
 from pandas import compat
-import unittest
 import warnings
 import nose
 from nose.tools import assert_equal
@@ -35,15 +34,17 @@ def assert_n_failed_equals_n_null_columns(wngs, obj, cls=SymbolWarning):
     assert msgs.str.contains('|'.join(failed_symbols)).all()
 
 
-class TestGoogle(unittest.TestCase):
+class TestGoogle(tm.TestCase):
     @classmethod
     def setUpClass(cls):
+        super(TestGoogle, cls).setupClass()
         cls.locales = tm.get_locales(prefix='en_US')
         if not cls.locales:
             raise nose.SkipTest("US English locale not available for testing")
 
     @classmethod
     def tearDownClass(cls):
+        super(TestGoogle, cls).tearDownClass()
         del cls.locales
 
     @network
@@ -105,9 +106,10 @@ class TestGoogle(unittest.TestCase):
                 assert_n_failed_equals_n_null_columns(w, result)
 
 
-class TestYahoo(unittest.TestCase):
+class TestYahoo(tm.TestCase):
     @classmethod
     def setUpClass(cls):
+        super(TestYahoo, cls).setupClass()
         _skip_if_no_lxml()
 
     @network
@@ -224,9 +226,10 @@ class TestYahoo(unittest.TestCase):
         assert np.issubdtype(pan.values.dtype, np.floating)
 
 
-class TestYahooOptions(unittest.TestCase):
+class TestYahooOptions(tm.TestCase):
     @classmethod
     def setUpClass(cls):
+        super(TestYahooOptions, cls).setupClass()
         _skip_if_no_lxml()
 
         # aapl has monthlies
@@ -241,6 +244,7 @@ class TestYahooOptions(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        super(TestYahooOptions, cls).tearDownClass()
         del cls.aapl, cls.expiry
 
     @network
@@ -283,9 +287,10 @@ class TestYahooOptions(unittest.TestCase):
             assert len(puts)>1
 
 
-class TestOptionsWarnings(unittest.TestCase):
+class TestOptionsWarnings(tm.TestCase):
     @classmethod
     def setUpClass(cls):
+        super(TestOptionsWarnings, cls).setupClass()
         _skip_if_no_lxml()
 
         with assert_produces_warning(FutureWarning):
@@ -300,6 +305,7 @@ class TestOptionsWarnings(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        super(TestOptionsWarnings, cls).tearDownClass()
         del cls.aapl, cls.year, cls.month
 
     @network
@@ -342,7 +348,7 @@ class TestOptionsWarnings(unittest.TestCase):
                 warnings.warn("IndexError thrown no tables found")
 
 
-class TestDataReader(unittest.TestCase):
+class TestDataReader(tm.TestCase):
     def test_is_s3_url(self):
         from pandas.io.common import _is_s3_url
         self.assert_(_is_s3_url("s3://pandas/somethingelse.com"))
@@ -372,7 +378,7 @@ class TestDataReader(unittest.TestCase):
             assert isinstance(ff, dict)
 
 
-class TestFred(unittest.TestCase):
+class TestFred(tm.TestCase):
     @network
     def test_fred(self):
         """

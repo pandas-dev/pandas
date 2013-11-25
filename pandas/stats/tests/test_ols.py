@@ -9,7 +9,6 @@ from __future__ import division
 from datetime import datetime
 from pandas import compat
 from distutils.version import LooseVersion
-import unittest
 import nose
 import numpy as np
 from numpy.testing.decorators import slow
@@ -70,6 +69,7 @@ class TestOLS(BaseTest):
 
     @classmethod
     def setUpClass(cls):
+        super(BaseTest, cls).setupClass()
         try:
             import matplotlib as mpl
             mpl.use('Agg', warn=False)
@@ -252,7 +252,7 @@ class TestOLS(BaseTest):
         summary = repr(model)
 
 
-class TestOLSMisc(unittest.TestCase):
+class TestOLSMisc(tm.TestCase):
 
     _multiprocess_can_split_ = True
 
@@ -261,6 +261,7 @@ class TestOLSMisc(unittest.TestCase):
     '''
     @classmethod
     def setupClass(cls):
+        super(BaseTest, cls).setupClass()
         if not _have_statsmodels:
             raise nose.SkipTest("no statsmodels")
 
@@ -804,7 +805,7 @@ def _period_slice(panelModel, i):
     return slice(L, R)
 
 
-class TestOLSFilter(unittest.TestCase):
+class TestOLSFilter(tm.TestCase):
 
     _multiprocess_can_split_ = True
 
