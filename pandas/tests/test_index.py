@@ -1381,8 +1381,10 @@ class TestMultiIndex(unittest.TestCase):
             columns=['one', 'two', 'three', 'four'],
             index=idx)
         df = df.sortlevel()
+        self.assert_(df._is_copy is False)
         self.assertEqual(df.index.names, ('Name', 'Number'))
         df = df.set_value(('grethe', '4'), 'one', 99.34)
+        self.assert_(df._is_copy is False)
         self.assertEqual(df.index.names, ('Name', 'Number'))
 
     def test_names(self):

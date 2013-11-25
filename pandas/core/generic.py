@@ -1064,7 +1064,7 @@ class NDFrame(PandasObject):
         except KeyError:
             pass
 
-    def take(self, indices, axis=0, convert=True):
+    def take(self, indices, axis=0, convert=True, is_copy=True):
         """
         Analogous to ndarray.take
 
@@ -1073,6 +1073,7 @@ class NDFrame(PandasObject):
         indices : list / array of ints
         axis : int, default 0
         convert : translate neg to pos indices (default)
+        is_copy : mark the returned frame as a copy
 
         Returns
         -------
@@ -1090,12 +1091,17 @@ class NDFrame(PandasObject):
             labels = self._get_axis(axis)
             new_items = labels.take(indices)
             new_data = self._data.reindex_axis(new_items, indexer=indices,
-                                               axis=0)
+                                               axis=baxis)
         else:
-            new_data = self._data.take(indices, axis=baxis, verify=convert)
-        return self._constructor(new_data)\
-                   ._setitem_copy(True)\
-                   .__finalize__(self)
+            new_data = self._data.take(indices, axis=baxis)
+
+        result = self._constructor(new_data).__finalize__(self)
+
+        # maybe set copy if we didn't actually change the index
+        if is_copy and not result._get_axis(axis).equals(self._get_axis(axis)):
+            result = result._setitem_copy(is_copy)
+
+        return result
 
     # TODO: Check if this was clearer in 0.12
     def select(self, crit, axis=0):
