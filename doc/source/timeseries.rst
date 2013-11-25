@@ -1115,7 +1115,7 @@ Localization of Timestamps functions just like DatetimeIndex and TimeSeries:
    rng[5].tz_localize('Asia/Shanghai')
 
 
-Operations between TimeSeries in difficult time zones will yield UTC
+Operations between TimeSeries in different time zones will yield UTC
 TimeSeries, aligning the data on the UTC timestamps:
 
 .. ipython:: python
