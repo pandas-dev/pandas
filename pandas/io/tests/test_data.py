@@ -37,7 +37,7 @@ def assert_n_failed_equals_n_null_columns(wngs, obj, cls=SymbolWarning):
 class TestGoogle(tm.TestCase):
     @classmethod
     def setUpClass(cls):
-        super(TestGoogle, cls).setupClass()
+        super(TestGoogle, cls).setUpClass()
         cls.locales = tm.get_locales(prefix='en_US')
         if not cls.locales:
             raise nose.SkipTest("US English locale not available for testing")
@@ -109,7 +109,7 @@ class TestGoogle(tm.TestCase):
 class TestYahoo(tm.TestCase):
     @classmethod
     def setUpClass(cls):
-        super(TestYahoo, cls).setupClass()
+        super(TestYahoo, cls).setUpClass()
         _skip_if_no_lxml()
 
     @network
@@ -229,7 +229,7 @@ class TestYahoo(tm.TestCase):
 class TestYahooOptions(tm.TestCase):
     @classmethod
     def setUpClass(cls):
-        super(TestYahooOptions, cls).setupClass()
+        super(TestYahooOptions, cls).setUpClass()
         _skip_if_no_lxml()
 
         # aapl has monthlies
@@ -290,7 +290,7 @@ class TestYahooOptions(tm.TestCase):
 class TestOptionsWarnings(tm.TestCase):
     @classmethod
     def setUpClass(cls):
-        super(TestOptionsWarnings, cls).setupClass()
+        super(TestOptionsWarnings, cls).setUpClass()
         _skip_if_no_lxml()
 
         with assert_produces_warning(FutureWarning):

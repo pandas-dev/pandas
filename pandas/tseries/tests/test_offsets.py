@@ -2,7 +2,6 @@ from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from pandas.compat import range
 from pandas import compat
-import unittest
 import nose
 from nose.tools import assert_raises
 
@@ -95,7 +94,7 @@ def test_to_m8():
 ### DateOffset Tests
 #####
 
-class TestBase(unittest.TestCase):
+class TestBase(tm.TestCase):
     _offset = None
 
     def test_apply_out_of_range(self):
@@ -1304,25 +1303,25 @@ class TestFY5253NearestEndMonth(TestBase):
         self.assertEqual(makeFY5253NearestEndMonth(startingMonth=8, weekday=WeekDay.SUN).get_year_end(datetime(2013,1,1)), datetime(2013,9,1))
         self.assertEqual(makeFY5253NearestEndMonth(startingMonth=8, weekday=WeekDay.FRI).get_year_end(datetime(2013,1,1)), datetime(2013,8,30))
 
-        offset_n = FY5253(weekday=WeekDay.TUE, startingMonth=12, 
+        offset_n = FY5253(weekday=WeekDay.TUE, startingMonth=12,
                       variation="nearest")
         self.assertEqual(offset_n.get_year_end(datetime(2012,1,1)), datetime(2013,1,1))
         self.assertEqual(offset_n.get_year_end(datetime(2012,1,10)), datetime(2013,1,1))
-        
-        self.assertEqual(offset_n.get_year_end(datetime(2013,1,1)), datetime(2013,12,31))        
-        self.assertEqual(offset_n.get_year_end(datetime(2013,1,2)), datetime(2013,12,31))        
-        self.assertEqual(offset_n.get_year_end(datetime(2013,1,3)), datetime(2013,12,31))        
+
+        self.assertEqual(offset_n.get_year_end(datetime(2013,1,1)), datetime(2013,12,31))
+        self.assertEqual(offset_n.get_year_end(datetime(2013,1,2)), datetime(2013,12,31))
+        self.assertEqual(offset_n.get_year_end(datetime(2013,1,3)), datetime(2013,12,31))
         self.assertEqual(offset_n.get_year_end(datetime(2013,1,10)), datetime(2013,12,31))
-        
+
         JNJ = FY5253(n=1, startingMonth=12, weekday=6, variation="nearest")
         self.assertEqual(JNJ.get_year_end(datetime(2006, 1, 1)), datetime(2006, 12, 31))
-        
+
     def test_onOffset(self):
         offset_lom_aug_sat = makeFY5253NearestEndMonth(1, startingMonth=8, weekday=WeekDay.SAT)
         offset_lom_aug_thu = makeFY5253NearestEndMonth(1, startingMonth=8, weekday=WeekDay.THU)
-        offset_n = FY5253(weekday=WeekDay.TUE, startingMonth=12, 
+        offset_n = FY5253(weekday=WeekDay.TUE, startingMonth=12,
                       variation="nearest")
-                
+
         tests = [
 #             From Wikipedia (see: http://en.wikipedia.org/wiki/4%E2%80%934%E2%80%935_calendar#Saturday_nearest_the_end_of_month)
 #             2006-09-02   2006 September 2
@@ -1369,7 +1368,7 @@ class TestFY5253NearestEndMonth(TestBase):
             #From Micron, see: http://google.brand.edgar-online.com/?sym=MU&formtypeID=7
             (offset_lom_aug_thu, datetime(2012, 8, 30), True),
             (offset_lom_aug_thu, datetime(2011, 9, 1), True),
-            
+
             (offset_n, datetime(2012, 12, 31), False),
             (offset_n, datetime(2013, 1, 1), True),
             (offset_n, datetime(2013, 1, 2), False),
@@ -1379,16 +1378,16 @@ class TestFY5253NearestEndMonth(TestBase):
             assertOnOffset(offset, date, expected)
 
     def test_apply(self):
-        date_seq_nem_8_sat = [datetime(2006, 9, 2), datetime(2007, 9, 1), 
-                              datetime(2008, 8, 30), datetime(2009, 8, 29), 
+        date_seq_nem_8_sat = [datetime(2006, 9, 2), datetime(2007, 9, 1),
+                              datetime(2008, 8, 30), datetime(2009, 8, 29),
                               datetime(2010, 8, 28), datetime(2011, 9, 3)]
-        
-        JNJ = [datetime(2005, 1, 2), datetime(2006, 1, 1), 
-               datetime(2006, 12, 31), datetime(2007, 12, 30), 
-               datetime(2008, 12, 28), datetime(2010, 1, 3), 
-               datetime(2011, 1, 2), datetime(2012, 1, 1), 
+
+        JNJ = [datetime(2005, 1, 2), datetime(2006, 1, 1),
+               datetime(2006, 12, 31), datetime(2007, 12, 30),
+               datetime(2008, 12, 28), datetime(2010, 1, 3),
+               datetime(2011, 1, 2), datetime(2012, 1, 1),
                datetime(2012, 12, 30)]
-        
+
         DEC_SAT = FY5253(n=-1, startingMonth=12, weekday=5, variation="nearest")
 
         tests = [
@@ -1547,7 +1546,7 @@ class TestFY5253LastOfMonthQuarter(TestBase):
     def test_get_weeks(self):
         sat_dec_1 = makeFY5253LastOfMonthQuarter(1, startingMonth=12, weekday=WeekDay.SAT, qtr_with_extra_week=1)
         sat_dec_4 = makeFY5253LastOfMonthQuarter(1, startingMonth=12, weekday=WeekDay.SAT, qtr_with_extra_week=4)
-        
+
         self.assertEqual(sat_dec_1.get_weeks(datetime(2011, 4, 2)), [14, 13, 13, 13])
         self.assertEqual(sat_dec_4.get_weeks(datetime(2011, 4, 2)), [13, 13, 13, 14])
         self.assertEqual(sat_dec_1.get_weeks(datetime(2010, 12, 25)), [13, 13, 13, 13])
@@ -1558,9 +1557,9 @@ class TestFY5253NearestEndMonthQuarter(TestBase):
 
         offset_nem_sat_aug_4 = makeFY5253NearestEndMonthQuarter(1, startingMonth=8, weekday=WeekDay.SAT, qtr_with_extra_week=4)
         offset_nem_thu_aug_4 = makeFY5253NearestEndMonthQuarter(1, startingMonth=8, weekday=WeekDay.THU, qtr_with_extra_week=4)
-        offset_n = FY5253(weekday=WeekDay.TUE, startingMonth=12, 
+        offset_n = FY5253(weekday=WeekDay.TUE, startingMonth=12,
                       variation="nearest", qtr_with_extra_week=4)
-                
+
         tests = [
             #From Wikipedia
             (offset_nem_sat_aug_4, datetime(2006, 9, 2), True),
@@ -1622,12 +1621,12 @@ class TestFY5253NearestEndMonthQuarter(TestBase):
 
         assertEq(offset, datetime(2012, 5, 31), datetime(2012, 8, 30))
         assertEq(offset, datetime(2012, 5, 30), datetime(2012, 5, 31))
-        
-        offset2 = FY5253Quarter(weekday=5, startingMonth=12, 
+
+        offset2 = FY5253Quarter(weekday=5, startingMonth=12,
                      variation="last", qtr_with_extra_week=4)
-        
+
         assertEq(offset2, datetime(2013,1,15), datetime(2013, 3, 30))
-        
+
 class TestQuarterBegin(TestBase):
 
     def test_repr(self):
@@ -2281,7 +2280,7 @@ def test_compare_ticks():
             assert(kls(3) != kls(4))
 
 
-class TestOffsetNames(unittest.TestCase):
+class TestOffsetNames(tm.TestCase):
     def test_get_offset_name(self):
         assertRaisesRegexp(ValueError, 'Bad rule.*BusinessDays', get_offset_name, BDay(2))
 
@@ -2350,7 +2349,7 @@ def test_quarterly_dont_normalize():
         assert(result.time() == date.time())
 
 
-class TestOffsetAliases(unittest.TestCase):
+class TestOffsetAliases(tm.TestCase):
 
     def setUp(self):
         _offset_map.clear()
@@ -2423,7 +2422,7 @@ def get_all_subclasses(cls):
         ret | get_all_subclasses(this_subclass)
     return ret
 
-class TestCaching(unittest.TestCase):
+class TestCaching(tm.TestCase):
     no_simple_ctr = [WeekOfMonth, FY5253,
                      FY5253Quarter,
                      LastWeekOfMonth]
@@ -2474,7 +2473,7 @@ class TestCaching(unittest.TestCase):
         self.assertTrue(inst2 in _daterange_cache)
 
 
-class TestReprNames(unittest.TestCase):
+class TestReprNames(tm.TestCase):
     def test_str_for_named_is_name(self):
         # look at all the amazing combinations!
         month_prefixes = ['A', 'AS', 'BA', 'BAS', 'Q', 'BQ', 'BQS', 'QS']

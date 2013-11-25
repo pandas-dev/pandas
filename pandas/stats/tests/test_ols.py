@@ -69,7 +69,7 @@ class TestOLS(BaseTest):
 
     @classmethod
     def setUpClass(cls):
-        super(BaseTest, cls).setupClass()
+        super(TestOLS, cls).setUpClass()
         try:
             import matplotlib as mpl
             mpl.use('Agg', warn=False)
@@ -260,8 +260,8 @@ class TestOLSMisc(tm.TestCase):
     For test coverage with faux data
     '''
     @classmethod
-    def setupClass(cls):
-        super(BaseTest, cls).setupClass()
+    def setUpClass(cls):
+        super(TestOLSMisc, cls).setUpClass()
         if not _have_statsmodels:
             raise nose.SkipTest("no statsmodels")
 

@@ -1,5 +1,4 @@
 import nose
-import unittest
 
 import datetime
 import numpy as np
@@ -44,7 +43,7 @@ def check_arbitrary(a, b):
         assert(a == b)
 
 
-class Test(unittest.TestCase):
+class TestPackers(tm.TestCase):
 
     def setUp(self):
         self.path = '__%s__.msg' % tm.rands(10)
@@ -57,7 +56,7 @@ class Test(unittest.TestCase):
             to_msgpack(p, x, **kwargs)
             return read_msgpack(p, **kwargs)
 
-class TestAPI(Test):
+class TestAPI(TestPackers):
 
     def test_string_io(self):
 
@@ -94,7 +93,7 @@ class TestAPI(Test):
         for i, result in enumerate(read_msgpack(s,iterator=True)):
             tm.assert_frame_equal(result,dfs[i])
 
-class TestNumpy(Test):
+class TestNumpy(TestPackers):
 
     def test_numpy_scalar_float(self):
         x = np.float32(np.random.rand())
@@ -187,7 +186,7 @@ class TestNumpy(Test):
         x_rec = self.encode_decode(x)
         tm.assert_almost_equal(x,x_rec)
 
-class TestBasic(Test):
+class TestBasic(TestPackers):
 
     def test_timestamp(self):
 
@@ -219,7 +218,7 @@ class TestBasic(Test):
             self.assert_(i == i_rec)
 
 
-class TestIndex(Test):
+class TestIndex(TestPackers):
 
     def setUp(self):
         super(TestIndex, self).setUp()
@@ -273,7 +272,7 @@ class TestIndex(Test):
         #self.assert_(i.equals(i_rec))
 
 
-class TestSeries(Test):
+class TestSeries(TestPackers):
 
     def setUp(self):
         super(TestSeries, self).setUp()
@@ -312,7 +311,7 @@ class TestSeries(Test):
                 assert_series_equal(i, i_rec)
 
 
-class TestNDFrame(Test):
+class TestNDFrame(TestPackers):
 
     def setUp(self):
         super(TestNDFrame, self).setUp()
@@ -374,7 +373,7 @@ class TestNDFrame(Test):
                 check_arbitrary(packed, l[i])
 
 
-class TestSparse(Test):
+class TestSparse(TestPackers):
 
     def _check_roundtrip(self, obj, comparator, **kwargs):
 

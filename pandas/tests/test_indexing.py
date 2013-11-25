@@ -1,5 +1,4 @@
 # pylint: disable-msg=W0612,E1101
-import unittest
 import nose
 import itertools
 import warnings
@@ -84,7 +83,7 @@ def _axify(obj, key, axis):
     return k
 
 
-class TestIndexing(unittest.TestCase):
+class TestIndexing(tm.TestCase):
 
     _multiprocess_can_split_ = True
 

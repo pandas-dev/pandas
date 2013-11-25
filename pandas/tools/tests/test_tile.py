@@ -1,6 +1,5 @@
 import os
 import nose
-import unittest
 
 import numpy as np
 from pandas.compat import zip
@@ -17,7 +16,7 @@ import pandas.tools.tile as tmod
 from numpy.testing import assert_equal, assert_almost_equal
 
 
-class TestCut(unittest.TestCase):
+class TestCut(tm.TestCase):
 
     def test_simple(self):
         data = np.ones(5)
@@ -120,9 +119,9 @@ class TestCut(unittest.TestCase):
 
         result = cut(data, [-np.inf, 2, 4, np.inf])
         result_ser = cut(data_ser, [-np.inf, 2, 4, np.inf])
-        
+
         ex_levels = ['(-inf, 2]', '(2, 4]', '(4, inf]']
-        
+
         np.testing.assert_array_equal(result.levels, ex_levels)
         np.testing.assert_array_equal(result_ser.levels, ex_levels)
         self.assertEquals(result[5], '(4, inf]')

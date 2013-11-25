@@ -2,7 +2,6 @@
 
 from datetime import datetime
 import os
-import unittest
 import warnings
 import nose
 
@@ -15,7 +14,7 @@ import pandas.util.testing as tm
 from pandas.util.misc import is_little_endian
 from pandas import compat
 
-class StataTests(unittest.TestCase):
+class TestStata(tm.TestCase):
 
     def setUp(self):
         # Unit test datasets for dta7 - dta9 (old stata formats 104, 105 and 107) can be downloaded from:

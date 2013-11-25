@@ -2,7 +2,6 @@ from datetime import datetime, time, timedelta
 from pandas.compat import range
 import sys
 import os
-import unittest
 
 import nose
 
@@ -18,7 +17,7 @@ import pandas.tseries.offsets as offsets
 import pandas.lib as lib
 
 from pandas import _np_version_under1p7
-
+import pandas.util.testing as tm
 
 def test_to_offset_multiple():
     freqstr = '2h30min'
@@ -87,7 +86,7 @@ def test_anchored_shortcuts():
 _dti = DatetimeIndex
 
 
-class TestFrequencyInference(unittest.TestCase):
+class TestFrequencyInference(tm.TestCase):
 
     def test_raise_if_too_few(self):
         index = _dti(['12/31/1998', '1/3/1999'])
@@ -159,7 +158,7 @@ class TestFrequencyInference(unittest.TestCase):
         for day in days:
             for i in range(1, 5):
                 self._check_generated_range('1/1/2000', 'WOM-%d%s' % (i, day))
-    
+
     def test_week_of_month_fake(self):
         #All of these dates are on same day of week and are 4 or 5 weeks apart
         index = DatetimeIndex(["2013-08-27","2013-10-01","2013-10-29","2013-11-26"])

@@ -4,7 +4,6 @@ from datetime import datetime, timedelta, date
 import os
 import operator
 import re
-import unittest
 import warnings
 
 import nose
@@ -26,7 +25,7 @@ import pandas.util.testing as tm
 import pandas.core.strings as strings
 
 
-class TestStringMethods(unittest.TestCase):
+class TestStringMethods(tm.TestCase):
 
     _multiprocess_can_split_ = True
 
@@ -480,7 +479,7 @@ class TestStringMethods(unittest.TestCase):
         tm.assert_frame_equal(result, exp)
 
         # no groups
-        s = Series(['A1', 'B2', 'C3']) 
+        s = Series(['A1', 'B2', 'C3'])
         f = lambda: s.str.extract('[ABC][123]')
         self.assertRaises(ValueError, f)
 
@@ -492,7 +491,7 @@ class TestStringMethods(unittest.TestCase):
         result = s.str.extract('(_)')
         exp = Series([NA, NA, NA])
         tm.assert_series_equal(result, exp)
- 
+
         # two groups, no matches
         result = s.str.extract('(_)(_)')
         exp = DataFrame([[NA, NA], [NA, NA], [NA, NA]])

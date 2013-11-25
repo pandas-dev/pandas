@@ -1,5 +1,4 @@
 import os
-import unittest
 from datetime import datetime
 
 import nose
@@ -7,6 +6,7 @@ import pandas as pd
 from pandas import DataFrame
 from pandas.util.testing import network, assert_frame_equal, with_connectivity_check
 from numpy.testing.decorators import slow
+import pandas.util.testing as tm
 
 try:
     import httplib2
@@ -17,7 +17,7 @@ try:
 except ImportError:
     raise nose.SkipTest("need httplib2 and auth libs")
 
-class TestGoogle(unittest.TestCase):
+class TestGoogle(tm.TestCase):
 
     _multiprocess_can_split_ = True
 
@@ -103,17 +103,17 @@ class TestGoogle(unittest.TestCase):
         advanced_segment_id = 1234567
         query = ga.format_query('google_profile_id', ['visits'], '2013-09-01', segment=advanced_segment_id)
         assert query['segment'] == 'gaid::' + str(advanced_segment_id), "An integer value should be formatted as an advanced segment."
-    
+
     def test_v2_dynamic_segment_format(self):
         dynamic_segment_id = 'medium==referral'
         query = ga.format_query('google_profile_id', ['visits'], '2013-09-01', segment=dynamic_segment_id)
         assert query['segment'] == 'dynamic::ga:' + str(dynamic_segment_id), "A string value with more than just letters and numbers should be formatted as a dynamic segment."
-    
+
     def test_v3_advanced_segment_common_format(self):
         advanced_segment_id = 'aZwqR234'
         query = ga.format_query('google_profile_id', ['visits'], '2013-09-01', segment=advanced_segment_id)
         assert query['segment'] == 'gaid::' + str(advanced_segment_id), "A string value with just letters and numbers should be formatted as an advanced segment."
-    
+
     def test_v3_advanced_segment_weird_format(self):
         advanced_segment_id = 'aZwqR234-s1'
         query = ga.format_query('google_profile_id', ['visits'], '2013-09-01', segment=advanced_segment_id)

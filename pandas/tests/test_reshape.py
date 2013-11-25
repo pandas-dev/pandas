@@ -3,7 +3,6 @@ from copy import deepcopy
 from datetime import datetime, timedelta
 import operator
 import os
-import unittest
 
 import nose
 
@@ -23,7 +22,7 @@ from pandas.compat import StringIO, cPickle, range
 _multiprocess_can_split_ = True
 
 
-class TestMelt(unittest.TestCase):
+class TestMelt(tm.TestCase):
 
     def setUp(self):
         self.df = tm.makeTimeDataFrame()[:10]
@@ -148,7 +147,7 @@ class TestMelt(unittest.TestCase):
         self.assertEqual(res.columns.tolist(), ['CAP', 'low', 'value'])
 
 
-class TestGetDummies(unittest.TestCase):
+class TestGetDummies(tm.TestCase):
     def test_basic(self):
         s_list = list('abc')
         s_series = Series(s_list)
@@ -199,7 +198,7 @@ class TestGetDummies(unittest.TestCase):
         exp_just_na = DataFrame(Series(1.0,index=[0]),columns=[nan])
         assert_array_equal(res_just_na.values, exp_just_na.values)
 
-class TestConvertDummies(unittest.TestCase):
+class TestConvertDummies(tm.TestCase):
     def test_convert_dummies(self):
         df = DataFrame({'A': ['foo', 'bar', 'foo', 'bar',
                               'foo', 'bar', 'foo', 'foo'],
@@ -225,7 +224,7 @@ class TestConvertDummies(unittest.TestCase):
         tm.assert_frame_equal(result2, expected2)
 
 
-class TestLreshape(unittest.TestCase):
+class TestLreshape(tm.TestCase):
 
     def test_pairs(self):
         data = {'birthdt': ['08jan2009', '20dec2008', '30dec2008',

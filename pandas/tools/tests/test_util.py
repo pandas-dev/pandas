@@ -28,7 +28,7 @@ class TestLocaleUtils(tm.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        super(TestLocaleUtils, cls).setupClass()
+        super(TestLocaleUtils, cls).setUpClass()
         cls.locales = tm.get_locales()
 
         if not cls.locales:

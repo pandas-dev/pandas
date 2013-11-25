@@ -2,7 +2,6 @@ from datetime import datetime
 from pandas.compat import range, lrange
 import os
 import operator
-import unittest
 import nose
 
 import numpy as np
@@ -543,7 +542,7 @@ class CheckIndexing(object):
         self.assert_(com.is_float_dtype(res3['l4'].values))
 
 
-class TestPanel4d(unittest.TestCase, CheckIndexing, SafeForSparse,
+class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
                   SafeForLongAndSparse):
 
     _multiprocess_can_split_ = True

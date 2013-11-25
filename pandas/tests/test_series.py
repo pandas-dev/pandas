@@ -2,7 +2,6 @@
 
 from datetime import datetime, timedelta
 import operator
-import unittest
 import string
 from itertools import product, starmap
 from distutils.version import LooseVersion
@@ -246,7 +245,7 @@ class CheckNameIntegration(object):
         self.assertEquals(result.name, self.ts.name)
 
 
-class TestNanops(unittest.TestCase):
+class TestNanops(tm.TestCase):
 
     _multiprocess_can_split_ = True
 
@@ -298,7 +297,7 @@ class SafeForSparse(object):
 
 _ts = tm.makeTimeSeries()
 
-class TestSeries(unittest.TestCase, CheckNameIntegration):
+class TestSeries(tm.TestCase, CheckNameIntegration):
 
     _multiprocess_can_split_ = True
 
@@ -5336,7 +5335,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         result = np.unique(self.ts)
 
 
-class TestSeriesNonUnique(unittest.TestCase):
+class TestSeriesNonUnique(tm.TestCase):
 
     _multiprocess_can_split_ = True
 

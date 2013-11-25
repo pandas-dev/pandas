@@ -6,7 +6,6 @@ import csv
 import os
 import sys
 import re
-import unittest
 import nose
 import platform
 
@@ -2049,7 +2048,7 @@ a,b,c
         tm.assertRaises(Exception, read_csv, StringIO(data), header=0, names=['a', 'b', 'c', 'd'])
 
 
-class TestPythonParser(ParserTests, unittest.TestCase):
+class TestPythonParser(ParserTests, tm.TestCase):
     def test_negative_skipfooter_raises(self):
         text = """#foo,a,b,c
 #foo,a,b,c
@@ -2364,7 +2363,7 @@ eight,1,2,3"""
                 tm.assert_series_equal(result, expected)
 
 
-class TestFwfColspaceSniffing(unittest.TestCase):
+class TestFwfColspaceSniffing(tm.TestCase):
     def test_full_file(self):
         # File with all values
         test = '''index                             A    B    C
@@ -2464,7 +2463,7 @@ col1~~~~~col2  col3++++++++++++++++++col4
                                                  header=None, encoding='utf8'))
 
 
-class TestCParserHighMemory(ParserTests, unittest.TestCase):
+class TestCParserHighMemory(ParserTests, tm.TestCase):
 
     def read_csv(self, *args, **kwds):
         kwds = kwds.copy()
@@ -2504,7 +2503,7 @@ class TestCParserHighMemory(ParserTests, unittest.TestCase):
         raise nose.SkipTest("Usecols is not supported in C High Memory engine.")
 
 
-class TestCParserLowMemory(ParserTests, unittest.TestCase):
+class TestCParserLowMemory(ParserTests, tm.TestCase):
 
     def read_csv(self, *args, **kwds):
         kwds = kwds.copy()
@@ -2831,7 +2830,7 @@ No,No,No"""
                                                                    engine)):
                     read_csv(StringIO(data), engine=engine, **kwargs)
 
-class TestParseSQL(unittest.TestCase):
+class TestParseSQL(tm.TestCase):
 
     def test_convert_sql_column_floats(self):
         arr = np.array([1.5, None, 3, 4.2], dtype=object)

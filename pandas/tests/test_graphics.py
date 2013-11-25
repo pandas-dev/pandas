@@ -1,7 +1,6 @@
 import nose
 import os
 import string
-import unittest
 from distutils.version import LooseVersion
 
 from datetime import datetime, date, timedelta
@@ -30,7 +29,7 @@ def _skip_if_no_scipy():
 
 
 @tm.mplskip
-class TestSeriesPlots(unittest.TestCase):
+class TestSeriesPlots(tm.TestCase):
     def setUp(self):
         import matplotlib as mpl
         self.mpl_le_1_2_1 = str(mpl.__version__) <= LooseVersion('1.2.1')
@@ -351,7 +350,7 @@ class TestSeriesPlots(unittest.TestCase):
 
 
 @tm.mplskip
-class TestDataFramePlots(unittest.TestCase):
+class TestDataFramePlots(tm.TestCase):
     def setUp(self):
         import matplotlib as mpl
         self.mpl_le_1_2_1 = str(mpl.__version__) <= LooseVersion('1.2.1')
@@ -449,7 +448,7 @@ class TestDataFramePlots(unittest.TestCase):
 
         # columns.inferred_type == 'mixed'
         # TODO add MultiIndex test
-        
+
     @slow
     def test_xcompat(self):
         import pandas as pd
@@ -540,10 +539,10 @@ class TestDataFramePlots(unittest.TestCase):
         df = DataFrame(randn(6, 4),
                        index=list(string.ascii_letters[:6]),
                        columns=['x', 'y', 'z', 'four'])
-                       
+
         _check_plot_works(df.plot, x='x', y='y', kind='scatter')
         _check_plot_works(df.plot, x=1, y=2, kind='scatter')
-        
+
         with tm.assertRaises(ValueError):
             df.plot(x='x', kind='scatter')
         with tm.assertRaises(ValueError):
@@ -946,7 +945,7 @@ class TestDataFramePlots(unittest.TestCase):
 
 
 @tm.mplskip
-class TestDataFrameGroupByPlots(unittest.TestCase):
+class TestDataFrameGroupByPlots(tm.TestCase):
     def tearDown(self):
         tm.close()
 

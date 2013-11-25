@@ -1,5 +1,4 @@
 import datetime
-import unittest
 
 import numpy as np
 from numpy.testing import assert_equal
@@ -12,7 +11,7 @@ from pandas.compat import range, u, product
 import pandas.util.testing as tm
 
 
-class TestPivotTable(unittest.TestCase):
+class TestPivotTable(tm.TestCase):
 
     _multiprocess_can_split_ = True
 
@@ -320,7 +319,7 @@ class TestPivotTable(unittest.TestCase):
         self.assertEqual(result.All.tolist(), [3.0, 1.0, 4.0, 3.0, 11.0])
 
 
-class TestCrosstab(unittest.TestCase):
+class TestCrosstab(tm.TestCase):
 
     def setUp(self):
         df = DataFrame({'A': ['foo', 'foo', 'foo', 'foo',

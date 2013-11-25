@@ -138,28 +138,30 @@ class TestGbq(tm.TestCase):
           'NULL_BOOLEAN']]
 
     @classmethod
-    def setUpClass(self):
+    def setUpClass(cls):
         # Integration tests require a valid bigquery token
         # be present in the user's home directory. This
         # can be generated with 'bq init' in the command line
-        super(TestGbq, cls).setupClass()
-        self.dirpath = tm.get_data_path()
+        super(TestGbq, cls).setUpClass()
+        cls.dirpath = tm.get_data_path()
         home = os.path.expanduser("~")
-        self.bq_token = os.path.join(home, '.bigquery.v2.token')
-        self.fake_job_path = os.path.join(self.dirpath, 'gbq_fake_job.txt')
+        cls.bq_token = os.path.join(home, '.bigquery.v2.token')
+        cls.fake_job_path = os.path.join(cls.dirpath, 'gbq_fake_job.txt')
 
         # If we're using a valid token, make a test dataset
         # Note, dataset functionality is beyond the scope
         # of the module under test, so we rely on the command
         # line utility for this.
-        if os.path.exists(self.bq_token):
+        if os.path.exists(cls.bq_token):
             subprocess.call(['bq','mk', '-d', 'pandas_testing_dataset'])
 
     @classmethod
-    def tearDownClass(self):
+    def tearDownClass(cls):
+        super(TestGbq, cls).tearDownClass()
+
         # If we're using a valid token, remove the test dataset
         # created.
-        if os.path.exists(self.bq_token):
+        if os.path.exists(cls.bq_token):
             subprocess.call(['bq', 'rm', '-r', '-f', '-d', 'pandas_testing_dataset'])
 
     @with_connectivity_check

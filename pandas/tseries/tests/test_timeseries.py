@@ -2,7 +2,6 @@
 from datetime import datetime, time, timedelta, date
 import sys
 import os
-import unittest
 import operator
 
 from distutils.version import LooseVersion
@@ -51,7 +50,7 @@ def _skip_if_no_pytz():
         raise nose.SkipTest("pytz not installed")
 
 
-class TestTimeSeriesDuplicates(unittest.TestCase):
+class TestTimeSeriesDuplicates(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def setUp(self):
@@ -271,7 +270,7 @@ def assert_range_equal(left, right):
     assert(left.tz == right.tz)
 
 
-class TestTimeSeries(unittest.TestCase):
+class TestTimeSeries(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def test_is_(self):
@@ -1420,7 +1419,7 @@ class TestTimeSeries(unittest.TestCase):
         result = rng.normalize()
         expected = date_range('1/1/2000', periods=10, freq='D')
         self.assert_(result.equals(expected))
-        
+
         rng_ns = pd.DatetimeIndex(np.array([1380585623454345752, 1380585612343234312]).astype("datetime64[ns]"))
         rng_ns_normalized = rng_ns.normalize()
         expected = pd.DatetimeIndex(np.array([1380585600000000000, 1380585600000000000]).astype("datetime64[ns]"))
@@ -1878,7 +1877,7 @@ def _simple_ts(start, end, freq='D'):
     return Series(np.random.randn(len(rng)), index=rng)
 
 
-class TestDatetimeIndex(unittest.TestCase):
+class TestDatetimeIndex(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def test_hash_error(self):
@@ -2217,7 +2216,7 @@ class TestDatetimeIndex(unittest.TestCase):
                 df.columns.join(s.index, how=join)
 
 
-class TestDatetime64(unittest.TestCase):
+class TestDatetime64(tm.TestCase):
     """
     Also test supoprt for datetime64[ns] in Series / DataFrame
     """
@@ -2431,7 +2430,7 @@ class TestDatetime64(unittest.TestCase):
         s.ix[datetime(1900, 1, 1):datetime(2100, 1, 1)]
 
 
-class TestSeriesDatetime64(unittest.TestCase):
+class TestSeriesDatetime64(tm.TestCase):
 
     def setUp(self):
         self.series = Series(date_range('1/1/2000', periods=10))
@@ -2550,7 +2549,7 @@ class TestSeriesDatetime64(unittest.TestCase):
         self.assertEquals(result.name, df.index[2])
 
 
-class TestTimestamp(unittest.TestCase):
+class TestTimestamp(tm.TestCase):
 
     def test_class_ops(self):
         _skip_if_no_pytz()
@@ -2794,7 +2793,7 @@ class TestTimestamp(unittest.TestCase):
             tm.assert_series_equal(result, expected)
 
 
-class TestSlicing(unittest.TestCase):
+class TestSlicing(tm.TestCase):
 
     def test_slice_year(self):
         dti = DatetimeIndex(freq='B', start=datetime(2005, 1, 1), periods=500)

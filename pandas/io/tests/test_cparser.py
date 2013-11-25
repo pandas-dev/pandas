@@ -9,7 +9,6 @@ import csv
 import os
 import sys
 import re
-import unittest
 
 import nose
 
@@ -32,7 +31,7 @@ from pandas.parser import TextReader
 import pandas.parser as parser
 
 
-class TestCParser(unittest.TestCase):
+class TestCParser(tm.TestCase):
 
     def setUp(self):
         self.dirpath = tm.get_data_path()
@@ -132,7 +131,7 @@ class TestCParser(unittest.TestCase):
 
         expected = [123456, 12500]
         tm.assert_almost_equal(result[0], expected)
-        
+
     def test_integer_thousands_alt(self):
         data = '123.456\n12.500'
 

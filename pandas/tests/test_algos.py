@@ -1,5 +1,4 @@
 from pandas.compat import range
-import unittest
 
 import numpy as np
 
@@ -10,7 +9,7 @@ import pandas.core.algorithms as algos
 import pandas.util.testing as tm
 
 
-class TestMatch(unittest.TestCase):
+class TestMatch(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def test_ints(self):
@@ -30,7 +29,7 @@ class TestMatch(unittest.TestCase):
         self.assert_(np.array_equal(result, expected))
 
 
-class TestUnique(unittest.TestCase):
+class TestUnique(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def test_ints(self):
@@ -63,7 +62,7 @@ class TestUnique(unittest.TestCase):
 
         tm.assert_almost_equal(result, expected)
 
-class TestValueCounts(unittest.TestCase):
+class TestValueCounts(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def test_value_counts(self):
@@ -86,7 +85,7 @@ class TestValueCounts(unittest.TestCase):
 
         result = algos.value_counts(s, bins=2, sort=False)
         self.assertEqual(result.tolist(), [2, 2])
-        self.assertEqual(result.index[0], 0.997)        
+        self.assertEqual(result.index[0], 0.997)
         self.assertEqual(result.index[1], 2.5)
 
     def test_value_counts_dtypes(self):

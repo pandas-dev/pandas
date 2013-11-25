@@ -1,4 +1,3 @@
-import unittest
 import nose
 
 import numpy as np
@@ -7,15 +6,12 @@ from pandas import tslib
 import datetime
 
 from pandas.core.api import Timestamp
-
 from pandas.tslib import period_asfreq, period_ordinal
-
 from pandas.tseries.frequencies import get_freq
-
 from pandas import _np_version_under1p7
+import pandas.util.testing as tm
 
-
-class TestTimestamp(unittest.TestCase):
+class TestTimestamp(tm.TestCase):
     def test_bounds_with_different_units(self):
         out_of_bounds_dates = (
             '1677-09-21',
@@ -61,7 +57,7 @@ class TestTimestamp(unittest.TestCase):
         # One us more than the maximum is an error
         self.assertRaises(ValueError, tslib.Timestamp, max_ts_us + one_us)
 
-class TestDatetimeParsingWrappers(unittest.TestCase):
+class TestDatetimeParsingWrappers(tm.TestCase):
     def test_does_not_convert_mixed_integer(self):
         bad_date_strings = (
             '-50000',
@@ -91,7 +87,7 @@ class TestDatetimeParsingWrappers(unittest.TestCase):
             )
 
 
-class TestArrayToDatetime(unittest.TestCase):
+class TestArrayToDatetime(tm.TestCase):
     def test_parsing_valid_dates(self):
         arr = np.array(['01-01-2013', '01-02-2013'], dtype=object)
         self.assert_(
@@ -194,7 +190,7 @@ class TestArrayToDatetime(unittest.TestCase):
         )
 
 
-class TestTimestampNsOperations(unittest.TestCase):
+class TestTimestampNsOperations(tm.TestCase):
     def setUp(self):
         if _np_version_under1p7:
             raise nose.SkipTest('numpy >= 1.7 required')
@@ -224,7 +220,7 @@ class TestTimestampNsOperations(unittest.TestCase):
         self.assertEqual(self.timestamp.value, 1367392545123456000)
 
 
-class TestTslib(unittest.TestCase):
+class TestTslib(tm.TestCase):
 
     def test_intraday_conversion_factors(self):
         self.assertEqual(period_asfreq(1, get_freq('D'), get_freq('H'), False), 24)
@@ -283,7 +279,7 @@ class TestTslib(unittest.TestCase):
         # Tuesday
         self.assertEqual(11418, period_ordinal(2013, 10, 8, 0, 0, 0, 0, 0, get_freq('B')))
 
-class TestTomeStampOps(unittest.TestCase):
+class TestTomeStampOps(tm.TestCase):
     def test_timestamp_and_datetime(self):
         self.assertEqual((Timestamp(datetime.datetime(2013, 10,13)) - datetime.datetime(2013, 10,12)).days, 1)
         self.assertEqual((datetime.datetime(2013, 10, 12) - Timestamp(datetime.datetime(2013, 10,13))).days, -1)

@@ -1,4 +1,3 @@
-import unittest
 import nose
 import sys
 import functools
@@ -24,7 +23,7 @@ def _skip_if_no_scipy():
     except ImportError:
         raise nose.SkipTest("no scipy.stats")
 
-class TestMoments(unittest.TestCase):
+class TestMoments(tm.TestCase):
 
     _multiprocess_can_split_ = True
 

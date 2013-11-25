@@ -5,7 +5,6 @@ from pandas.compat import range, lrange, lzip, u, zip
 import operator
 import pickle
 import re
-import unittest
 import nose
 import warnings
 import os
@@ -34,7 +33,7 @@ from pandas.lib import Timestamp
 from pandas import _np_version_under1p7
 
 
-class TestIndex(unittest.TestCase):
+class TestIndex(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def setUp(self):
@@ -691,7 +690,7 @@ class TestIndex(unittest.TestCase):
                 self.assert_(res is joined)
 
 
-class TestFloat64Index(unittest.TestCase):
+class TestFloat64Index(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def setUp(self):
@@ -784,7 +783,7 @@ class TestFloat64Index(unittest.TestCase):
         self.check_is_index(result)
 
 
-class TestInt64Index(unittest.TestCase):
+class TestInt64Index(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def setUp(self):
@@ -1203,7 +1202,7 @@ class TestInt64Index(unittest.TestCase):
         self.assertEqual(idx.name, idx[1:].name)
 
 
-class TestMultiIndex(unittest.TestCase):
+class TestMultiIndex(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def setUp(self):

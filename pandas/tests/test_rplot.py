@@ -1,5 +1,4 @@
 from pandas.compat import range
-import unittest
 import pandas.tools.rplot as rplot
 import pandas.util.testing as tm
 from pandas import read_csv
@@ -33,7 +32,7 @@ def between(a, b, x):
 
 
 @tm.mplskip
-class TestUtilityFunctions(unittest.TestCase):
+class TestUtilityFunctions(tm.TestCase):
     """
     Tests for RPlot utility functions.
     """
@@ -102,7 +101,7 @@ class TestUtilityFunctions(unittest.TestCase):
 
 
 @tm.mplskip
-class TestTrellis(unittest.TestCase):
+class TestTrellis(tm.TestCase):
     def setUp(self):
         path = os.path.join(curpath(), 'data/tips.csv')
         self.data = read_csv(path, sep=',')
@@ -150,7 +149,7 @@ class TestTrellis(unittest.TestCase):
 
 
 @tm.mplskip
-class TestScaleGradient(unittest.TestCase):
+class TestScaleGradient(tm.TestCase):
     def setUp(self):
         path = os.path.join(curpath(), 'data/iris.csv')
         self.data = read_csv(path, sep=',')
@@ -170,7 +169,7 @@ class TestScaleGradient(unittest.TestCase):
 
 
 @tm.mplskip
-class TestScaleGradient2(unittest.TestCase):
+class TestScaleGradient2(tm.TestCase):
     def setUp(self):
         path = os.path.join(curpath(), 'data/iris.csv')
         self.data = read_csv(path, sep=',')
@@ -198,7 +197,7 @@ class TestScaleGradient2(unittest.TestCase):
 
 
 @tm.mplskip
-class TestScaleRandomColour(unittest.TestCase):
+class TestScaleRandomColour(tm.TestCase):
     def setUp(self):
         path = os.path.join(curpath(), 'data/iris.csv')
         self.data = read_csv(path, sep=',')
@@ -218,7 +217,7 @@ class TestScaleRandomColour(unittest.TestCase):
 
 
 @tm.mplskip
-class TestScaleConstant(unittest.TestCase):
+class TestScaleConstant(tm.TestCase):
     def test_scale_constant(self):
         scale = rplot.ScaleConstant(1.0)
         self.assertEqual(scale(None, None), 1.0)
@@ -226,7 +225,7 @@ class TestScaleConstant(unittest.TestCase):
         self.assertEqual(scale(None, None), "test")
 
 
-class TestScaleSize(unittest.TestCase):
+class TestScaleSize(tm.TestCase):
     def setUp(self):
         path = os.path.join(curpath(), 'data/iris.csv')
         self.data = read_csv(path, sep=',')
@@ -247,7 +246,7 @@ class TestScaleSize(unittest.TestCase):
 
 
 @tm.mplskip
-class TestRPlot(unittest.TestCase):
+class TestRPlot(tm.TestCase):
     def test_rplot1(self):
         import matplotlib.pyplot as plt
         path = os.path.join(curpath(), 'data/tips.csv')
@@ -295,4 +294,5 @@ class TestRPlot(unittest.TestCase):
 
 
 if __name__ == '__main__':
+    import unittest
     unittest.main()

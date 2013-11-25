@@ -19,7 +19,7 @@ except OSError:
 class TestClipboard(tm.TestCase):
     @classmethod
     def setUpClass(cls):
-        super(TestClipboard, cls).setupClass()
+        super(TestClipboard, cls).setUpClass()
         cls.data = {}
         cls.data['string'] = mkdf(5, 3, c_idx_type='s', r_idx_type='i',
                                   c_idx_names=[None], r_idx_names=[None])

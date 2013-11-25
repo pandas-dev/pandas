@@ -2,13 +2,14 @@
 
 from datetime import datetime
 import string
-import unittest
 import nose
 
 import numpy as np
 
 from pandas import DataFrame, bdate_range
 from pandas.util.testing import assert_almost_equal  # imported in other tests
+import pandas.util.testing as tm
+
 N = 100
 K = 4
 
@@ -52,7 +53,7 @@ def check_for_statsmodels():
             raise nose.SkipTest('no statsmodels')
 
 
-class BaseTest(unittest.TestCase):
+class BaseTest(tm.TestCase):
     def setUp(self):
         check_for_scipy()
         check_for_statsmodels()
