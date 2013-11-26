@@ -814,6 +814,7 @@ Bug Fixes
   - Bug in delitem on a Series (:issue:`5542`)
   - Bug fix in apply when using custom function and objects are not mutated (:issue:`5545`)
   - Bug in selecting from a non-unique index with ``loc`` (:issue:`5553`)
+  - Bug in groupby returning non-consistent types when user function returns a ``None``, (:issue:`5592`)
 
 pandas 0.12.0
 -------------

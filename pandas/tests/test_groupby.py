@@ -7,7 +7,7 @@ from numpy.testing.decorators import slow
 from datetime import datetime
 from numpy import nan
 
-from pandas import bdate_range, Timestamp
+from pandas import date_range,bdate_range, Timestamp
 from pandas.core.index import Index, MultiIndex, Int64Index
 from pandas.core.common import rands
 from pandas.core.api import Categorical, DataFrame
@@ -259,7 +259,7 @@ class TestGroupBy(unittest.TestCase):
 
     def test_groupby_grouper_f_sanity_checked(self):
         import pandas as pd
-        dates = pd.date_range('01-Jan-2013', periods=12, freq='MS')
+        dates = date_range('01-Jan-2013', periods=12, freq='MS')
         ts = pd.TimeSeries(np.random.randn(12), index=dates)
 
         # GH3035
@@ -319,6 +319,34 @@ class TestGroupBy(unittest.TestCase):
         df = DataFrame([[1,1],[1,1]],columns=['X','Y'])
         result = df.groupby('X',squeeze=False).count()
         tm.assert_isinstance(result,DataFrame)
+
+        # GH5592
+        # inconcistent return type
+        df = DataFrame(dict(A = [ 'Tiger', 'Tiger', 'Tiger', 'Lamb', 'Lamb', 'Pony', 'Pony' ],
+                            B = np.arange(7)))
+        def f(grp):
+            return grp.iloc[0]
+        expected = df.groupby('A').first()
+        result = df.groupby('A').apply(f)[['B']]
+        assert_frame_equal(result,expected)
+
+        def f(grp):
+            if grp.name == 'Tiger':
+                return None
+            return grp.iloc[0]
+        result = df.groupby('A').apply(f)[['B']]
+        e = expected.copy()
+        e.loc['Tiger'] = np.nan
+        assert_frame_equal(result,e)
+
+        def f(grp):
+            if grp.name == 'Pony':
+                return None
+            return grp.iloc[0]
+        result = df.groupby('A').apply(f)[['B']]
+        e = expected.copy()
+        e.loc['Pony'] = np.nan
+        assert_frame_equal(result,e)
 
     def test_agg_regression1(self):
         grouped = self.tsframe.groupby([lambda x: x.year, lambda x: x.month])
