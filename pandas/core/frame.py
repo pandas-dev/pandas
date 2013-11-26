@@ -3061,9 +3061,9 @@ class DataFrame(NDFrame):
         Examples
         --------
         a's values prioritized, use values from b to fill holes:
-        
+
         >>> a.combine_first(b)
-            
+
 
         Returns
         -------
@@ -3623,7 +3623,7 @@ class DataFrame(NDFrame):
         how : {'left', 'right', 'outer', 'inner'}
             How to handle indexes of the two objects. Default: 'left'
             for joining on index, None otherwise
-            
+
             * left: use calling frame's index
             * right: use input frame's index
             * outer: form union of indexes

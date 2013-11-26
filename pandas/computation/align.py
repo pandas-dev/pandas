@@ -151,7 +151,8 @@ def _align_core(terms):
                     f = partial(ti.reindex_axis, reindexer, axis=axis,
                                 copy=False)
 
-                if pd.lib.is_bool_array(ti.values):
+                # need  to fill if we have a bool dtype/array
+                if isinstance(ti, (np.ndarray, pd.Series)) and ti.dtype == object and pd.lib.is_bool_array(ti.values):
                     r = f(fill_value=True)
                 else:
                     r = f()
