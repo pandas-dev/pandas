@@ -375,6 +375,22 @@ HDFStore API Changes
   via the option ``io.hdf.dropna_table`` (:issue:`4625`)
 - pass thru store creation arguments; can be used to support in-memory stores
 
+DataFrame repr Changes
+~~~~~~~~~~~~~~~~~~~~~~
+
+The HTML and plain text representations of :class:`DataFrame` now show
+a truncated view of the table once it exceeds a certain size, rather
+than switching to the short info view (:issue:`4886`, :issue:`5550`).
+This makes the representation more consistent as small DataFrames get
+larger.
+
+.. image:: _static/df_repr_truncated.png
+   :alt: Truncated HTML representation of a DataFrame
+
+To get the info view, call :meth:`DataFrame.info`. If you prefer the
+info view as the repr for large DataFrames, you can set this by running
+``set_option('display.large_repr', 'info')``.
+
 Enhancements
 ~~~~~~~~~~~~
 

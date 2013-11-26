@@ -573,8 +573,9 @@ indexing semantics are quite different in places from a matrix.
 Console display
 ~~~~~~~~~~~~~~~
 
-For very large DataFrame objects, only a summary will be printed to the console
-(here I am reading a CSV version of the **baseball** dataset from the **plyr**
+Very large DataFrames will be truncated to display them in the console.
+You can also get a summary using :meth:`~pandas.DataFrame.info`.
+(Here I am reading a CSV version of the **baseball** dataset from the **plyr**
 R package):
 
 .. ipython:: python
@@ -587,6 +588,7 @@ R package):
 
    baseball = read_csv('data/baseball.csv')
    print(baseball)
+   baseball.info()
 
 .. ipython:: python
    :suppress:
@@ -622,19 +624,8 @@ option:
 
    reset_option('line_width')
 
-You can also disable this feature via the ``expand_frame_repr`` option:
-
-.. ipython:: python
-
-   set_option('expand_frame_repr', False)
-
-   DataFrame(randn(3, 12))
-
-.. ipython:: python
-   :suppress:
-
-   reset_option('expand_frame_repr')
-
+You can also disable this feature via the ``expand_frame_repr`` option.
+This will print the table in one block.
 
 DataFrame column attribute access and IPython completion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
