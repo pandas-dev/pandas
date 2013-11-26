@@ -145,6 +145,20 @@ df = DataFrame(randn(100, 10))
 frame_to_string_floats = Benchmark('df.to_string()', setup,
                                    start_date=datetime(2010, 6, 1))
 
+#----------------------------------------------------------------------
+# to_html
+
+setup = common_setup + """
+nrows=500
+df = DataFrame(randn(nrows, 10))
+df[0]=period_range("2000","2010",nrows)
+df[1]=range(nrows)
+
+"""
+
+frame_to_html_mixed = Benchmark('df.to_html()', setup,
+                                   start_date=datetime(2010, 6, 1))
+
 # insert many columns
 
 setup = common_setup + """
