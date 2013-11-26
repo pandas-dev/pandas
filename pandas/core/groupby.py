@@ -2122,11 +2122,23 @@ class NDFrameGroupBy(GroupBy):
                 else:
                     key_index = Index(keys, name=key_names[0])
 
-            if isinstance(values[0], (np.ndarray, Series)):
-                if isinstance(values[0], Series):
+
+            # make Nones an empty object
+            if com._count_not_none(*values) != len(values):
+                v = None
+                for v in values:
+                    if v is not None:
+                        break
+                if v is None:
+                    return DataFrame()
+                values = [ x if x is not None else v._constructor(**v._construct_axes_dict()) for x in values ]
+
+            v = values[0]
+
+            if isinstance(v, (np.ndarray, Series)):
+                if isinstance(v, Series):
                     applied_index = self.obj._get_axis(self.axis)
-                    all_indexed_same = _all_indexes_same([x.index
-                                                          for x in values])
+                    all_indexed_same = _all_indexes_same([x.index for x in values ])
                     singular_series = (len(values) == 1 and
                                        applied_index.nlevels == 1)
 
@@ -2165,13 +2177,13 @@ class NDFrameGroupBy(GroupBy):
 
                         stacked_values = np.vstack([np.asarray(x)
                                                     for x in values])
-                        columns = values[0].index
+                        columns = v.index
                         index = key_index
                     else:
                         stacked_values = np.vstack([np.asarray(x)
                                                     for x in values]).T
 
-                        index = values[0].index
+                        index = v.index
                         columns = key_index
 
                 except (ValueError, AttributeError):
