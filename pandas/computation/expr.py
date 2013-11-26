@@ -183,6 +183,8 @@ class Scope(StringMixin):
             while sl >= 0:
                 frame = frame.f_back
                 sl -= 1
+                if frame is None:
+                    break
                 frames.append(frame)
             for f in frames[::-1]:
                 self.locals.update(f.f_locals)

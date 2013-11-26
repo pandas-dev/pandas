@@ -3247,10 +3247,9 @@ class BlockManager(PandasObject):
 
         if verify:
             indexer = _maybe_convert_indices(indexer, n)
-
-        if ((indexer == -1) | (indexer >= n)).any():
-            raise Exception('Indices must be nonzero and less than '
-                            'the axis length')
+            if ((indexer == -1) | (indexer >= n)).any():
+                raise Exception('Indices must be nonzero and less than '
+                                'the axis length')
 
         new_axes = list(self.axes)
         if new_index is None:

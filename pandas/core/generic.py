@@ -1092,7 +1092,7 @@ class NDFrame(PandasObject):
             new_data = self._data.reindex_axis(new_items, indexer=indices,
                                                axis=0)
         else:
-            new_data = self._data.take(indices, axis=baxis)
+            new_data = self._data.take(indices, axis=baxis, verify=convert)
         return self._constructor(new_data)\
                    ._setitem_copy(True)\
                    .__finalize__(self)
