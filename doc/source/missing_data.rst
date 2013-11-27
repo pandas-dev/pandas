@@ -1,6 +1,12 @@
 .. currentmodule:: pandas
 .. _missing_data:
 
+.. ipython:: python
+   :suppress:
+
+   from pandas import *
+   options.display.max_rows=15
+
 *************************
 Working with missing data
 *************************

@@ -11,6 +11,7 @@
    randn = np.random.randn
    randint = np.random.randint
    np.set_printoptions(precision=4, suppress=True)
+   options.display.max_rows=15
    from dateutil.relativedelta import relativedelta
    from pandas.tseries.api import *
    from pandas.tseries.offsets import *

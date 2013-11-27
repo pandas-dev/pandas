@@ -8,6 +8,7 @@
    np.random.seed(123456)
    from numpy import nan
    from pandas import *
+   options.display.max_rows=15
    randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
 

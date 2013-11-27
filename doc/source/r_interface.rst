@@ -2,6 +2,13 @@
 
 .. _rpy:
 
+.. ipython:: python
+   :suppress:
+
+   from pandas import *
+   options.display.max_rows=15
+
+
 ******************
 rpy2 / R interface
 ******************

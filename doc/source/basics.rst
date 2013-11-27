@@ -9,6 +9,7 @@
    randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
    from pandas.compat import lrange
+   options.display.max_rows=15
 
 ==============================
  Essential Basic Functionality

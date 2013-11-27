@@ -1,6 +1,12 @@
 .. currentmodule:: pandas
 .. _compare_with_r:
 
+.. ipython:: python
+   :suppress:
+
+   from pandas import *
+   options.display.max_rows=15
+
 Comparison with R / R libraries
 *******************************
 

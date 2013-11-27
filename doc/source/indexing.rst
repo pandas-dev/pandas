@@ -9,6 +9,7 @@
    import random
    np.random.seed(123456)
    from pandas import *
+   options.display.max_rows=15
    import pandas as pd
    randn = np.random.randn
    randint = np.random.randint

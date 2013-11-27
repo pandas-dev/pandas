@@ -20,6 +20,7 @@
    plt.close('all')
 
    from pandas import *
+   options.display.max_rows=15
    import pandas.util.testing as tm
 
 *************

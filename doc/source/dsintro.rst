@@ -1,14 +1,6 @@
 .. currentmodule:: pandas
 .. _dsintro:
 
-************************
-Intro to Data Structures
-************************
-
-We'll start with a quick, non-comprehensive overview of the fundamental data
-structures in pandas to get you started. The fundamental behavior about data
-types, indexing, and axis labeling / alignment apply across all of the
-objects. To get started, import numpy and load pandas into your namespace:
 
 .. ipython:: python
    :suppress:
@@ -18,6 +10,17 @@ objects. To get started, import numpy and load pandas into your namespace:
    randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
    set_option('display.precision', 4, 'display.max_columns', 8)
+   options.display.max_rows=15
+
+
+************************
+Intro to Data Structures
+************************
+
+We'll start with a quick, non-comprehensive overview of the fundamental data
+structures in pandas to get you started. The fundamental behavior about data
+types, indexing, and axis labeling / alignment apply across all of the
+objects. To get started, import numpy and load pandas into your namespace:
 
 .. ipython:: python
 

@@ -13,6 +13,7 @@
    import pandas as pd
    np.set_printoptions(precision=4, suppress=True)
    options.display.mpl_style='default'
+   options.display.max_rows=15
 
    #### portions of this were borrowed from the
    #### Pandas cheatsheet

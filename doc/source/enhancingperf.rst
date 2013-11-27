@@ -9,6 +9,7 @@
    import csv
    from pandas import DataFrame
    import pandas as pd
+   pd.options.display.max_rows=15
 
    import numpy as np
    np.random.seed(123456)
