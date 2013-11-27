@@ -20,6 +20,7 @@
    plt.close('all')
 
    from pandas import *
+   options.display.max_rows=15
    import pandas.util.testing as tm
    clipdf = DataFrame({'A':[1,2,3],'B':[4,5,6],'C':['p','q','r']},
                       index=['x','y','z'])

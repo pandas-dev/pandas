@@ -12,6 +12,7 @@ Frequently Asked Questions (FAQ)
    import numpy as np
    np.random.seed(123456)
    from pandas import *
+   options.display.max_rows=15
    randn = np.random.randn
    randint = np.random.randint
    np.set_printoptions(precision=4, suppress=True)
