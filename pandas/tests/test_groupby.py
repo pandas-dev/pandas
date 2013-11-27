@@ -323,7 +323,7 @@ class TestGroupBy(unittest.TestCase):
         # GH5592
         # inconcistent return type
         df = DataFrame(dict(A = [ 'Tiger', 'Tiger', 'Tiger', 'Lamb', 'Lamb', 'Pony', 'Pony' ],
-                            B = np.arange(7)))
+                            B = Series(np.arange(7),dtype='int64')))
         def f(grp):
             return grp.iloc[0]
         expected = df.groupby('A').first()
