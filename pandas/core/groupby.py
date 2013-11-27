@@ -226,6 +226,7 @@ class GroupBy(PandasObject):
 
     @property
     def groups(self):
+        """ dict {group name -> group labels} """
         return self.grouper.groups
 
     @property
@@ -234,6 +235,7 @@ class GroupBy(PandasObject):
 
     @property
     def indices(self):
+        """ dict {group name -> group indices} """
         return self.grouper.indices
 
     @property
@@ -310,6 +312,22 @@ class GroupBy(PandasObject):
         return wrapper
 
     def get_group(self, name, obj=None):
+        """
+        Constructs NDFrame from group with provided name
+
+        Parameters
+        ----------
+        name : object
+            the name of the group to get as a DataFrame
+        obj : NDFrame, default None
+            the NDFrame to take the DataFrame out of.  If
+            it is None, the object groupby was called on will
+            be used
+
+        Returns
+        -------
+        group : type of obj
+        """
         if obj is None:
             obj = self.obj
 
@@ -838,6 +856,7 @@ class Grouper(object):
 
     @cache_readonly
     def indices(self):
+        """ dict {group name -> group indices} """
         if len(self.groupings) == 1:
             return self.groupings[0].indices
         else:
@@ -884,6 +903,7 @@ class Grouper(object):
 
     @cache_readonly
     def groups(self):
+        """ dict {group name -> group labels} """
         if len(self.groupings) == 1:
             return self.groupings[0].groups
         else:
