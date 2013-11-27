@@ -55,6 +55,10 @@ performance improvements along with a large number of bug fixes.
 
 Highlights include:
 
+Experimental Features
+~~~~~~~~~~~~~~~~~~~~~
+- ``pandas.io.data.Options`` has a get_all_data method and now consistently returns a multi-indexed ''DataFrame'' (:issue:`5602`)
+
 See the :ref:`v0.14.1 Whatsnew <whatsnew_0141>` overview or the issue tracker on GitHub for an extensive list
 of all API changes, enhancements and bugs that have been fixed in 0.14.1.
 
