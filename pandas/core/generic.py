@@ -41,6 +41,10 @@ def is_dictlike(x):
 
 
 def _single_replace(self, to_replace, method, inplace, limit):
+    if self.ndim != 1:
+        raise TypeError('cannot replace {0} with method {1} on a {2}'.format(to_replace,
+                                                                             method,type(self).__name__))
+
     orig_dtype = self.dtype
     result = self if inplace else self.copy()
     fill_f = com._get_fill_func(method)
@@ -2033,6 +2037,11 @@ class NDFrame(PandasObject):
         self._consolidate_inplace()
 
         if value is None:
+            # passing a single value that is scalar like
+            # when value is None (GH5319), for compat
+            if not is_dictlike(to_replace) and not is_dictlike(regex):
+                to_replace = [ to_replace ]
+
             if isinstance(to_replace, (tuple, list)):
                 return _single_replace(self, to_replace, method, inplace,
                                        limit)
