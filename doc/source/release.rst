@@ -126,7 +126,7 @@ Improvements to existing features
     (:issue:`4039`) with improved validation for all (:issue:`4039`,
     :issue:`4794`)
   - A Series of dtype ``timedelta64[ns]`` can now be divided/multiplied
-    by an integer series (:issue`4521`)
+    by an integer series (:issue:`4521`)
   - A Series of dtype ``timedelta64[ns]`` can now be divided by another
     ``timedelta64[ns]`` object to yield a ``float64`` dtyped Series. This
     is frequency conversion; astyping is also supported.
@@ -410,6 +410,8 @@ API Changes
 
   - raise/warn ``SettingWithCopyError/Warning`` exception/warning when setting of a
     copy thru chained assignment is detected, settable via option ``mode.chained_assignment``
+  - test the list of ``NA`` values in the csv parser. add ``N/A``, ``#NA`` as independent default
+    na values (:issue:`5521`)
 
 Internal Refactoring
 ~~~~~~~~~~~~~~~~~~~~

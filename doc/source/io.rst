@@ -564,7 +564,7 @@ the corresponding equivalent values will also imply a missing value (in this cas
 ``[5.0,5]`` are recognized as ``NaN``.
 
 To completely override the default values that are recognized as missing, specify ``keep_default_na=False``.
-The default ``NaN`` recognized values are ``['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', 'NA',
+The default ``NaN`` recognized values are ``['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A','N/A', 'NA',
 '#NA', 'NULL', 'NaN', 'nan']``.
 
 .. code-block:: python

@@ -683,6 +683,31 @@ Klosterdruckerei\tKlosterdruckerei <Kempten> (1609-1805)\tHochfurstliche Buchhan
             tm.assert_frame_equal(result6,good_compare)
             tm.assert_frame_equal(result7,good_compare)
 
+    def test_default_na_values(self):
+        _NA_VALUES = set(['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN',
+                          '#N/A','N/A', 'NA', '#NA', 'NULL', 'NaN',
+                          'nan', ''])
+
+        nv = len(_NA_VALUES)
+        def f(i, v):
+            if i == 0:
+                buf = ''
+            elif i > 0:
+                buf = ''.join([','] * i)
+
+            buf = "{0}{1}".format(buf,v)
+
+            if i < nv-1:
+                buf = "{0}{1}".format(buf,''.join([','] * (nv-i-1)))
+
+            return buf
+
+        data = StringIO('\n'.join([ f(i, v) for i, v in enumerate(_NA_VALUES) ]))
+
+        expected = DataFrame(np.nan,columns=range(nv),index=range(nv))
+        df = self.read_csv(data, header=None)
+        tm.assert_frame_equal(df, expected)
+
     def test_custom_na_values(self):
         data = """A,B,C
 ignore,this,row
