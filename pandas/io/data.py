@@ -17,7 +17,7 @@ from pandas.compat import(
 )
 import pandas.compat as compat
 from pandas import Panel, DataFrame, Series, read_csv, concat
-from pandas.core.common import PandasError
+from pandas.core.common import is_list_like, PandasError
 from pandas.io.parsers import TextParser
 from pandas.io.common import urlopen, ZipFile, urlencode
 from pandas.util.testing import _network_error_classes
@@ -41,8 +41,9 @@ def DataReader(name, data_source=None, start=None, end=None,
 
     Parameters
     ----------
-    name : str
-        the name of the dataset
+    name : str or list of strs
+        the name of the dataset. Some data sources (yahoo, google, fred) will
+        accept a list of names.
     data_source: str
         the data source ("yahoo", "google", "fred", or "ff")
     start : {datetime, None}
@@ -436,24 +437,37 @@ def get_data_fred(name, start=dt.datetime(2010, 1, 1),
     Date format is datetime
 
     Returns a DataFrame.
+
+    If multiple names are passed for "series" then the index of the
+    DataFrame is the outer join of the indicies of each series.
     """
     start, end = _sanitize_dates(start, end)
 
     fred_URL = "http://research.stlouisfed.org/fred2/series/"
 
-    url = fred_URL + '%s' % name + '/downloaddata/%s' % name + '.csv'
-    with urlopen(url) as resp:
-        data = read_csv(resp, index_col=0, parse_dates=True,
-                        header=None, skiprows=1, names=["DATE", name],
-                        na_values='.')
-    try:
-        return data.truncate(start, end)
-    except KeyError:
-        if data.ix[3].name[7:12] == 'Error':
-            raise IOError("Failed to get the data. Check that {0!r} is "
-                          "a valid FRED series.".format(name))
-        raise
+    if not is_list_like(name):
+        names = [name]
+    else:
+        names = name
 
+    urls = [fred_URL + '%s' % n + '/downloaddata/%s' % n + '.csv' for
+            n in names]
+
+    def fetch_data(url, name):
+        with urlopen(url) as resp:
+            data = read_csv(resp, index_col=0, parse_dates=True,
+                            header=None, skiprows=1, names=["DATE", name],
+                            na_values='.')
+        try:
+            return data.truncate(start, end)
+        except KeyError:
+            if data.ix[3].name[7:12] == 'Error':
+                raise IOError("Failed to get the data. Check that {0!r} is "
+                              "a valid FRED series.".format(name))
+            raise
+    df = concat([fetch_data(url, n) for url, n in zip(urls, names)],
+                axis=1, join='outer')
+    return df
 
 def get_data_famafrench(name):
     # path of zip files

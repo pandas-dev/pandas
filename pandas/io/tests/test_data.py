@@ -16,6 +16,10 @@ from pandas.util.testing import (assert_series_equal, assert_produces_warning,
 import pandas.util.testing as tm
 from numpy.testing import assert_array_equal
 
+if compat.PY3:
+    from urllib.error import HTTPError
+else:
+    from urllib2 import HTTPError
 
 def _skip_if_no_lxml():
     try:
@@ -422,6 +426,24 @@ class TestFred(unittest.TestCase):
         name = "NOT A REAL SERIES"
         self.assertRaises(Exception, web.get_data_fred, name)
 
+    @network
+    def test_fred_multi(self):
+        names = ['CPIAUCSL', 'CPALTT01USQ661S', 'CPILFESL']
+        start = datetime(2010, 1, 1)
+        end = datetime(2013, 1, 27)
+
+        received = web.DataReader(names, "fred", start, end).head(1)
+        expected = DataFrame([[217.478, 0.99701529, 220.544]], columns=names,
+                             index=[pd.tslib.Timestamp('2010-01-01 00:00:00')])
+        expected.index.rename('DATE', inplace=True)
+        assert_frame_equal(received, expected, check_less_precise=True)
+
+    @network
+    def test_fred_multi_bad_series(self):
+
+        names = ['NOTAREALSERIES', 'CPIAUCSL', "ALSO FAKE"]
+        with tm.assertRaises(HTTPError):
+            DataReader(names, data_source="fred")
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
