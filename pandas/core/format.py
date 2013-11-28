@@ -284,6 +284,7 @@ class DataFrameFormatter(TableFormatter):
         self.line_width = line_width
         self.max_rows = max_rows
         self.max_cols = max_cols
+        self.max_rows_displayed = min(max_rows or len(self.frame),len(self.frame))
         self.show_dimensions = show_dimensions
 
         if justify is None:
@@ -483,7 +484,7 @@ class DataFrameFormatter(TableFormatter):
 
     def _format_col(self, i):
         formatter = self._get_formatter(i)
-        return format_array(self.frame.icol(i)[:self.max_rows].get_values(),
+        return format_array((self.frame.iloc[:self.max_rows_displayed,i]).get_values(),
                             formatter, float_format=self.float_format,
                             na_rep=self.na_rep,
                             space=self.col_space)
