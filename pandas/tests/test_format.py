@@ -6,7 +6,6 @@ import pandas.compat as compat
 import itertools
 import os
 import sys
-import unittest
 from textwrap import dedent
 import warnings
 
@@ -57,7 +56,7 @@ def has_expanded_repr(df):
     return False
 
 
-class TestDataFrameFormatting(unittest.TestCase):
+class TestDataFrameFormatting(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def setUp(self):
@@ -1638,7 +1637,7 @@ c  10  11  12  13  14\
 """
         self.assertEqual(withoutindex_result, withoutindex_expected)
 
-class TestSeriesFormatting(unittest.TestCase):
+class TestSeriesFormatting(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def setUp(self):
@@ -1825,7 +1824,7 @@ class TestSeriesFormatting(unittest.TestCase):
         self.assertTrue('2012-01-01' in result)
 
 
-class TestEngFormatter(unittest.TestCase):
+class TestEngFormatter(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def test_eng_float_formatter(self):
@@ -2030,7 +2029,7 @@ def _three_digit_exp():
     return '%.4g' % 1.7e8 == '1.7e+008'
 
 
-class TestFloatArrayFormatter(unittest.TestCase):
+class TestFloatArrayFormatter(tm.TestCase):
 
     def test_misc(self):
         obj = fmt.FloatArrayFormatter(np.array([], dtype=np.float64))

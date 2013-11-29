@@ -1,12 +1,12 @@
 from datetime import datetime, time, timedelta, date
 import sys
 import os
-import unittest
 
 import nose
 
 import numpy as np
 from pandas.compat import u
+import pandas.util.testing as tm
 
 try:
     import pandas.tseries.converter as converter
@@ -18,7 +18,7 @@ def test_timtetonum_accepts_unicode():
     assert(converter.time2num("00:01") == converter.time2num(u("00:01")))
 
 
-class TestDateTimeConverter(unittest.TestCase):
+class TestDateTimeConverter(tm.TestCase):
 
     def setUp(self):
         self.dtc = converter.DatetimeConverter()

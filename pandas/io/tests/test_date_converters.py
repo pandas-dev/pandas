@@ -4,7 +4,6 @@ import csv
 import os
 import sys
 import re
-import unittest
 
 import nose
 
@@ -22,9 +21,9 @@ import pandas.lib as lib
 from pandas import compat
 from pandas.lib import Timestamp
 import pandas.io.date_converters as conv
+import pandas.util.testing as tm
 
-
-class TestConverters(unittest.TestCase):
+class TestConverters(tm.TestCase):
 
     def setUp(self):
         self.years = np.array([2007, 2008])

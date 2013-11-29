@@ -1,5 +1,4 @@
 # pylint: disable-msg=W0612,E1101
-import unittest
 import nose
 import itertools
 import warnings
@@ -84,7 +83,7 @@ def _axify(obj, key, axis):
     return k
 
 
-class TestIndexing(unittest.TestCase):
+class TestIndexing(tm.TestCase):
 
     _multiprocess_can_split_ = True
 
@@ -1049,6 +1048,8 @@ class TestIndexing(unittest.TestCase):
             return Series(np.arange(df2.shape[0]),name=df2.index.values[0]).reindex(f_index)
         new_df = pd.concat([ f(name,df2) for name, df2 in grp ],axis=1).T
 
+        # we are actually operating on a copy here
+        # but in this case, that's ok
         for name, df2 in grp:
             new_vals = np.arange(df2.shape[0])
             df.ix[name, 'new_col'] = new_vals
@@ -1769,7 +1770,8 @@ class TestIndexing(unittest.TestCase):
                               'c' : [42,42,2,3,4,42,6]})
 
         def f():
-            df[df.a.str.startswith('o')]['c'] = 42
+            indexer = df.a.str.startswith('o')
+            df[indexer]['c'] = 42
         self.assertRaises(com.SettingWithCopyError, f)
         df['c'][df.a.str.startswith('o')] = 42
         assert_frame_equal(df,expected)
@@ -1785,7 +1787,8 @@ class TestIndexing(unittest.TestCase):
         # warnings
         pd.set_option('chained_assignment','warn')
         df = DataFrame({'A':['aaa','bbb','ccc'],'B':[1,2,3]})
-        df.loc[0]['A'] = 111
+        with tm.assert_produces_warning(expected_warning=com.SettingWithCopyWarning):
+            df.loc[0]['A'] = 111
 
         # make sure that _is_copy is picked up reconstruction
         # GH5475
@@ -1796,6 +1799,55 @@ class TestIndexing(unittest.TestCase):
             df2 = pd.read_pickle(path)
             df2["B"] = df2["A"]
             df2["B"] = df2["A"]
+
+        # a suprious raise as we are setting the entire column here
+        # GH5597
+        pd.set_option('chained_assignment','raise')
+        from string import ascii_letters as letters
+
+        def random_text(nobs=100):
+            df = []
+            for i in range(nobs):
+                idx= np.random.randint(len(letters), size=2)
+                idx.sort()
+                df.append([letters[idx[0]:idx[1]]])
+
+            return DataFrame(df, columns=['letters'])
+
+        df = random_text(100000)
+
+        # always a copy
+        x = df.iloc[[0,1,2]]
+        self.assert_(x._is_copy is True)
+        x = df.iloc[[0,1,2,4]]
+        self.assert_(x._is_copy is True)
+
+        # explicity copy
+        indexer = df.letters.apply(lambda x : len(x) > 10)
+        df = df.ix[indexer].copy()
+        self.assert_(df._is_copy is False)
+        df['letters'] = df['letters'].apply(str.lower)
+
+        # implicity take
+        df = random_text(100000)
+        indexer = df.letters.apply(lambda x : len(x) > 10)
+        df = df.ix[indexer]
+        self.assert_(df._is_copy is True)
+        df.loc[:,'letters'] = df['letters'].apply(str.lower)
+
+        # this will raise
+        #df['letters'] = df['letters'].apply(str.lower)
+
+        df = random_text(100000)
+        indexer = df.letters.apply(lambda x : len(x) > 10)
+        df.ix[indexer,'letters'] = df.ix[indexer,'letters'].apply(str.lower)
+
+        # an identical take, so no copy
+        df = DataFrame({'a' : [1]}).dropna()
+        self.assert_(df._is_copy is False)
+        df['a'] += 1
+
+        pd.set_option('chained_assignment','warn')
 
     def test_float64index_slicing_bug(self):
         # GH 5557, related to slicing a float index

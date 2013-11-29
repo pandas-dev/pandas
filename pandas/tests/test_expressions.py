@@ -1,7 +1,6 @@
 from __future__ import print_function
 # pylint: disable-msg=W0612,E1101
 
-import unittest
 import nose
 
 from numpy.random import randn
@@ -48,7 +47,7 @@ _mixed_panel = Panel(dict(ItemA=_mixed, ItemB=(_mixed + 3)))
 _mixed2_panel = Panel(dict(ItemA=_mixed2, ItemB=(_mixed2 + 3)))
 
 
-class TestExpressions(unittest.TestCase):
+class TestExpressions(tm.TestCase):
 
     _multiprocess_can_split_ = False
 
@@ -341,7 +340,6 @@ class TestExpressions(unittest.TestCase):
         testit()
 
 if __name__ == '__main__':
-    # unittest.main()
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

@@ -1,7 +1,6 @@
 from datetime import datetime
 from pandas.compat import range
 import pickle
-import unittest
 import nose
 
 import numpy as np
@@ -39,7 +38,7 @@ def eq_gen_range(kwargs, expected):
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
 
-class TestGenRangeGeneration(unittest.TestCase):
+class TestGenRangeGeneration(tm.TestCase):
     def test_generate(self):
         rng1 = list(generate_range(START, END, offset=datetools.bday))
         rng2 = list(generate_range(START, END, time_rule='B'))
@@ -68,7 +67,7 @@ class TestGenRangeGeneration(unittest.TestCase):
                      [])
 
 
-class TestDateRange(unittest.TestCase):
+class TestDateRange(tm.TestCase):
 
     def setUp(self):
         self.rng = bdate_range(START, END)
@@ -410,7 +409,7 @@ class TestDateRange(unittest.TestCase):
             self.assert_(expected_right.equals(right))
 
 
-class TestCustomDateRange(unittest.TestCase):
+class TestCustomDateRange(tm.TestCase):
 
     def setUp(self):
         _skip_if_no_cday()

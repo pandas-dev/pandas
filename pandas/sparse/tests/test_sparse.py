@@ -1,6 +1,5 @@
 # pylint: disable-msg=E1101,W0612
 
-from unittest import TestCase
 import operator
 from datetime import datetime
 
@@ -119,7 +118,7 @@ def assert_sp_panel_equal(left, right, exact_indices=True):
         assert(item in left)
 
 
-class TestSparseSeries(TestCase,
+class TestSparseSeries(tm.TestCase,
                        test_series.CheckNameIntegration):
     _multiprocess_can_split_ = True
 
@@ -742,11 +741,11 @@ class TestSparseSeries(TestCase,
         assert_sp_series_equal(result, expected)
 
 
-class TestSparseTimeSeries(TestCase):
+class TestSparseTimeSeries(tm.TestCase):
     pass
 
 
-class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
+class TestSparseDataFrame(tm.TestCase, test_frame.SafeForSparse):
     klass = SparseDataFrame
     _multiprocess_can_split_ = True
 
@@ -1562,7 +1561,7 @@ def panel_data3():
     }, index=index)
 
 
-class TestSparsePanel(TestCase,
+class TestSparsePanel(tm.TestCase,
                       test_panel.SafeForLongAndSparse,
                       test_panel.SafeForSparse):
     _multiprocess_can_split_ = True

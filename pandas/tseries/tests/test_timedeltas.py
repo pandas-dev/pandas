@@ -2,7 +2,6 @@
 
 from datetime import datetime, timedelta
 import nose
-import unittest
 
 import numpy as np
 import pandas as pd
@@ -24,7 +23,7 @@ def _skip_if_numpy_not_friendly():
     if _np_version_under1p7:
         raise nose.SkipTest("numpy < 1.7")
 
-class TestTimedeltas(unittest.TestCase):
+class TestTimedeltas(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def setUp(self):

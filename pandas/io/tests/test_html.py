@@ -3,7 +3,6 @@ from __future__ import print_function
 import os
 import re
 import warnings
-import unittest
 
 try:
     from importlib import import_module
@@ -85,9 +84,10 @@ def test_bs4_version_fails():
                          flavor='bs4')
 
 
-class TestReadHtml(unittest.TestCase):
+class TestReadHtml(tm.TestCase):
     @classmethod
     def setUpClass(cls):
+        super(TestReadHtml, cls).setUpClass()
         _skip_if_none_of(('bs4', 'html5lib'))
 
     def read_html(self, *args, **kwargs):
@@ -582,9 +582,10 @@ class TestReadHtml(unittest.TestCase):
         tm.assert_frame_equal(newdf, res[0])
 
 
-class TestReadHtmlLxml(unittest.TestCase):
+class TestReadHtmlLxml(tm.TestCase):
     @classmethod
     def setUpClass(cls):
+        super(TestReadHtmlLxml, cls).setUpClass()
         _skip_if_no('lxml')
 
     def read_html(self, *args, **kwargs):

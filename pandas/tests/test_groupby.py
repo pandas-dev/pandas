@@ -1,6 +1,5 @@
 from __future__ import print_function
 import nose
-import unittest
 
 from numpy.testing.decorators import slow
 
@@ -49,7 +48,7 @@ def commonSetUp(self):
                                 index=self.dateRange)
 
 
-class TestGroupBy(unittest.TestCase):
+class TestGroupBy(tm.TestCase):
 
     _multiprocess_can_split_ = True
 

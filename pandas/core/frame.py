@@ -1563,7 +1563,7 @@ class DataFrame(NDFrame):
 
                     # a location index by definition
                     i = _maybe_convert_indices(i, len(self._get_axis(axis)))
-                    return self.reindex(i, takeable=True)
+                    return self.reindex(i, takeable=True)._setitem_copy(True)
                 else:
                     new_values, copy = self._data.fast_2d_xs(i, copy=copy)
                     return Series(new_values, index=self.columns,
@@ -2714,7 +2714,7 @@ class DataFrame(NDFrame):
 
             self._clear_item_cache()
         else:
-            return self.take(indexer, axis=axis, convert=False)
+            return self.take(indexer, axis=axis, convert=False, is_copy=False)
 
     def sortlevel(self, level=0, axis=0, ascending=True, inplace=False):
         """
@@ -2760,7 +2760,7 @@ class DataFrame(NDFrame):
 
             self._clear_item_cache()
         else:
-            return self.take(indexer, axis=axis, convert=False)
+            return self.take(indexer, axis=axis, convert=False, is_copy=False)
 
     def swaplevel(self, i, j, axis=0):
         """

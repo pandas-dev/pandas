@@ -16,7 +16,6 @@ from pandas.tseries.frequencies import MONTHS, DAYS
 import pandas.tseries.offsets as offsets
 import pandas as pd
 
-import unittest
 import nose
 
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
@@ -33,7 +32,7 @@ def _skip_if_no_pytz():
         raise nose.SkipTest("pytz not installed")
 
 
-class TestResample(unittest.TestCase):
+class TestResample(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def setUp(self):
@@ -662,7 +661,7 @@ def _simple_pts(start, end, freq='D'):
     return TimeSeries(np.random.randn(len(rng)), index=rng)
 
 
-class TestResamplePeriodIndex(unittest.TestCase):
+class TestResamplePeriodIndex(tm.TestCase):
 
     _multiprocess_can_split_ = True
 
@@ -1055,7 +1054,7 @@ class TestResamplePeriodIndex(unittest.TestCase):
         self.assertEquals(result.index[0], dates[0])
 
 
-class TestTimeGrouper(unittest.TestCase):
+class TestTimeGrouper(tm.TestCase):
 
     def setUp(self):
         self.ts = Series(np.random.randn(1000),

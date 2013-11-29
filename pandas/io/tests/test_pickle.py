@@ -5,7 +5,6 @@
 from datetime import datetime, timedelta
 import operator
 import pickle as pkl
-import unittest
 import nose
 import os
 
@@ -24,7 +23,7 @@ def _read_pickle(vf, encoding=None, compat=False):
     with open(vf,'rb') as fh:
         pc.load(fh, encoding=encoding, compat=compat)
 
-class TestPickle(unittest.TestCase):
+class TestPickle(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def setUp(self):

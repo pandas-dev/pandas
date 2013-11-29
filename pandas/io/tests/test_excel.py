@@ -3,7 +3,6 @@
 from pandas.compat import u, range, map
 from datetime import datetime
 import os
-import unittest
 
 import nose
 
@@ -86,7 +85,7 @@ class SharedItems(object):
         return read_csv(*args, **kwds)
 
 
-class ExcelReaderTests(SharedItems, unittest.TestCase):
+class ExcelReaderTests(SharedItems, tm.TestCase):
     def test_parse_cols_int(self):
         _skip_if_no_openpyxl()
         _skip_if_no_xlrd()
@@ -942,7 +941,7 @@ class ExcelWriterBase(SharedItems):
             tm.assert_series_equal(write_frame['B'], read_frame['B'])
 
 
-class OpenpyxlTests(ExcelWriterBase, unittest.TestCase):
+class OpenpyxlTests(ExcelWriterBase, tm.TestCase):
     ext = '.xlsx'
     engine_name = 'openpyxl'
     check_skip = staticmethod(_skip_if_no_openpyxl)
@@ -975,7 +974,7 @@ class OpenpyxlTests(ExcelWriterBase, unittest.TestCase):
                           xlsx_style.alignment.vertical)
 
 
-class XlwtTests(ExcelWriterBase, unittest.TestCase):
+class XlwtTests(ExcelWriterBase, tm.TestCase):
     ext = '.xls'
     engine_name = 'xlwt'
     check_skip = staticmethod(_skip_if_no_xlwt)
@@ -1002,13 +1001,13 @@ class XlwtTests(ExcelWriterBase, unittest.TestCase):
         self.assertEquals(xlwt.Alignment.VERT_TOP, xls_style.alignment.vert)
 
 
-class XlsxWriterTests(ExcelWriterBase, unittest.TestCase):
+class XlsxWriterTests(ExcelWriterBase, tm.TestCase):
     ext = '.xlsx'
     engine_name = 'xlsxwriter'
     check_skip = staticmethod(_skip_if_no_xlsxwriter)
 
 
-class OpenpyxlTests_NoMerge(ExcelWriterBase, unittest.TestCase):
+class OpenpyxlTests_NoMerge(ExcelWriterBase, tm.TestCase):
     ext = '.xlsx'
     engine_name = 'openpyxl'
     check_skip = staticmethod(_skip_if_no_openpyxl)
@@ -1017,7 +1016,7 @@ class OpenpyxlTests_NoMerge(ExcelWriterBase, unittest.TestCase):
     merge_cells = False
 
 
-class XlwtTests_NoMerge(ExcelWriterBase, unittest.TestCase):
+class XlwtTests_NoMerge(ExcelWriterBase, tm.TestCase):
     ext = '.xls'
     engine_name = 'xlwt'
     check_skip = staticmethod(_skip_if_no_xlwt)
@@ -1026,7 +1025,7 @@ class XlwtTests_NoMerge(ExcelWriterBase, unittest.TestCase):
     merge_cells = False
 
 
-class XlsxWriterTests_NoMerge(ExcelWriterBase, unittest.TestCase):
+class XlsxWriterTests_NoMerge(ExcelWriterBase, tm.TestCase):
     ext = '.xlsx'
     engine_name = 'xlsxwriter'
     check_skip = staticmethod(_skip_if_no_xlsxwriter)
@@ -1035,7 +1034,7 @@ class XlsxWriterTests_NoMerge(ExcelWriterBase, unittest.TestCase):
     merge_cells = False
 
 
-class ExcelWriterEngineTests(unittest.TestCase):
+class ExcelWriterEngineTests(tm.TestCase):
     def test_ExcelWriter_dispatch(self):
         with tm.assertRaisesRegexp(ValueError, 'No engine'):
             ExcelWriter('nothing')

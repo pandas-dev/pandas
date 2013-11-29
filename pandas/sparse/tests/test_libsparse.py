@@ -1,5 +1,3 @@
-from unittest import TestCase
-
 from pandas import Series
 
 import nose
@@ -235,7 +233,7 @@ def test_intersect():
     check_cases(_check_case)
 
 
-class TestBlockIndex(TestCase):
+class TestBlockIndex(tm.TestCase):
 
     def test_equals(self):
         index = BlockIndex(10, [0, 4], [2, 5])
@@ -274,7 +272,7 @@ class TestBlockIndex(TestCase):
         self.assert_(index.to_block_index() is index)
 
 
-class TestIntIndex(TestCase):
+class TestIntIndex(tm.TestCase):
 
     def test_equals(self):
         index = IntIndex(10, [0, 1, 2, 3, 4])
@@ -299,7 +297,7 @@ class TestIntIndex(TestCase):
         self.assert_(index.to_int_index() is index)
 
 
-class TestSparseOperators(TestCase):
+class TestSparseOperators(tm.TestCase):
 
     def _nan_op_tests(self, sparse_op, python_op):
         def _check_case(xloc, xlen, yloc, ylen, eloc, elen):

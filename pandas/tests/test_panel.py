@@ -2,7 +2,6 @@
 
 from datetime import datetime
 import operator
-import unittest
 import nose
 
 import numpy as np
@@ -811,7 +810,7 @@ _panel = tm.makePanel()
 tm.add_nans(_panel)
 
 
-class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
+class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
                 SafeForLongAndSparse,
                 SafeForSparse):
     _multiprocess_can_split_ = True
@@ -1782,7 +1781,7 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
                                  **{'raise_conflict': True})
 
 
-class TestLongPanel(unittest.TestCase):
+class TestLongPanel(tm.TestCase):
     """
     LongPanel no longer exists, but...
     """

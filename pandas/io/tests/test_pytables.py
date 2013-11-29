@@ -1,5 +1,4 @@
 import nose
-import unittest
 import sys
 import os
 import warnings
@@ -118,7 +117,7 @@ def compat_assert_produces_warning(w,f):
             f()
 
 
-class TestHDFStore(unittest.TestCase):
+class TestHDFStore(tm.TestCase):
 
     def setUp(self):
         warnings.filterwarnings(action='ignore', category=FutureWarning)

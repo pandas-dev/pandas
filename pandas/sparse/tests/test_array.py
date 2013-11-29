@@ -5,7 +5,6 @@ import numpy as np
 
 import operator
 import pickle
-import unittest
 
 from pandas.core.series import Series
 from pandas.core.common import notnull
@@ -23,7 +22,7 @@ def assert_sp_array_equal(left, right):
         assert(left.fill_value == right.fill_value)
 
 
-class TestSparseArray(unittest.TestCase):
+class TestSparseArray(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def setUp(self):

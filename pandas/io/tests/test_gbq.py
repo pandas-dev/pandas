@@ -3,7 +3,6 @@ import nose
 import os
 import shutil
 import subprocess
-import unittest
 
 import numpy as np
 
@@ -41,18 +40,18 @@ class FakeClient:
 class FakeApiClient:
     def __init__(self):
         self._fakejobs = FakeJobs()
-        
+
 
     def jobs(self):
         return self._fakejobs
 
 class FakeJobs:
-    def __init__(self): 
+    def __init__(self):
         self._fakequeryresults = FakeResults()
 
     def getQueryResults(self, job_id=None, project_id=None,
                         max_results=None, timeout_ms=None, **kwargs):
-        return self._fakequeryresults   
+        return self._fakequeryresults
 
 class FakeResults:
     def execute(self):
@@ -74,7 +73,7 @@ class FakeResults:
 
 ####################################################################################
 
-class test_gbq(unittest.TestCase):
+class TestGbq(tm.TestCase):
     def setUp(self):
         with open(self.fake_job_path, 'r') as fin:
             self.fake_job = ast.literal_eval(fin.read())
@@ -102,7 +101,7 @@ class test_gbq(unittest.TestCase):
              ('othello', 1603, 'brawl', 2),
              ('othello', 1603, "'", 17),
              ('othello', 1603, 'troubled', 1)
-            ], 
+            ],
             dtype=[('corpus', 'S16'),
                    ('corpus_date', '<i8'),
                    ('word', 'S16'),
@@ -137,29 +136,32 @@ class test_gbq(unittest.TestCase):
           'TRUE_BOOLEAN',
           'FALSE_BOOLEAN',
           'NULL_BOOLEAN']]
-    
+
     @classmethod
-    def setUpClass(self):
+    def setUpClass(cls):
         # Integration tests require a valid bigquery token
         # be present in the user's home directory. This
         # can be generated with 'bq init' in the command line
-        self.dirpath = tm.get_data_path()
+        super(TestGbq, cls).setUpClass()
+        cls.dirpath = tm.get_data_path()
         home = os.path.expanduser("~")
-        self.bq_token = os.path.join(home, '.bigquery.v2.token')
-        self.fake_job_path = os.path.join(self.dirpath, 'gbq_fake_job.txt')
-        
+        cls.bq_token = os.path.join(home, '.bigquery.v2.token')
+        cls.fake_job_path = os.path.join(cls.dirpath, 'gbq_fake_job.txt')
+
         # If we're using a valid token, make a test dataset
         # Note, dataset functionality is beyond the scope
         # of the module under test, so we rely on the command
         # line utility for this.
-        if os.path.exists(self.bq_token):
+        if os.path.exists(cls.bq_token):
             subprocess.call(['bq','mk', '-d', 'pandas_testing_dataset'])
 
     @classmethod
-    def tearDownClass(self):
+    def tearDownClass(cls):
+        super(TestGbq, cls).tearDownClass()
+
         # If we're using a valid token, remove the test dataset
         # created.
-        if os.path.exists(self.bq_token):
+        if os.path.exists(cls.bq_token):
             subprocess.call(['bq', 'rm', '-r', '-f', '-d', 'pandas_testing_dataset'])
 
     @with_connectivity_check
@@ -167,7 +169,7 @@ class test_gbq(unittest.TestCase):
         # If the user has a token file, they should recieve a client from gbq._authenticate
         if not os.path.exists(self.bq_token):
             raise nose.SkipTest('Skipped because authentication information is not available.')
-        
+
         self.assertTrue(gbq._authenticate is not None, 'Authentication To GBQ Failed')
 
     @with_connectivity_check
@@ -205,14 +207,14 @@ class test_gbq(unittest.TestCase):
                         'An element in the result DataFrame didn\'t match the sample set')
 
     def test_index_column(self):
-        # A user should be able to specify an index column for return     
+        # A user should be able to specify an index column for return
         result_frame = gbq._parse_data(FakeClient(), self.fake_job, index_col='word')
         correct_frame = DataFrame(self.correct_data_small)
         correct_frame.set_index('word', inplace=True)
         self.assertTrue(result_frame.index.name == correct_frame.index.name)
 
     def test_column_order(self):
-        # A User should be able to specify the order in which columns are returned in the dataframe    
+        # A User should be able to specify the order in which columns are returned in the dataframe
         col_order = ['corpus_date', 'word_count', 'corpus', 'word']
         result_frame = gbq._parse_data(FakeClient(), self.fake_job, col_order=col_order)
         tm.assert_index_equal(result_frame.columns, DataFrame(self.correct_data_small)[col_order].columns)
@@ -279,8 +281,8 @@ class test_gbq(unittest.TestCase):
     @with_connectivity_check
     def test_table_exists(self):
         # Given a table name in the format {dataset}.{tablename}, if a table exists,
-        # the GetTableReference should accurately indicate this. 
-        # This could possibly change in future implementations of bq, 
+        # the GetTableReference should accurately indicate this.
+        # This could possibly change in future implementations of bq,
         # but it is the simplest way to provide users with appropriate
         # error messages regarding schemas.
         if not os.path.exists(self.bq_token):
@@ -309,7 +311,7 @@ class test_gbq(unittest.TestCase):
         df = DataFrame(self.correct_data_small)
         with self.assertRaises(gbq.SchemaMissing):
             gbq.to_gbq(df, 'pandas_testing_dataset.test_database', schema=None, col_order=None, if_exists='fail')
- 
+
     @with_connectivity_check
     def test_upload_replace_schema_error(self):
         # Attempting to replace an existing table without specifying a schema should fail
@@ -319,7 +321,7 @@ class test_gbq(unittest.TestCase):
         df = DataFrame(self.correct_data_small)
         with self.assertRaises(gbq.SchemaMissing):
             gbq.to_gbq(df, 'pandas_testing_dataset.test_database', schema=None, col_order=None, if_exists='replace')
-    
+
     @with_connectivity_check
     def test_upload_public_data_error(self):
         # Attempting to upload to a public, read-only, dataset should fail
@@ -432,7 +434,7 @@ class test_gbq(unittest.TestCase):
                                        'contributor_ip','contributor_id','contributor_username','timestamp',
                                        'is_minor','is_bot','reversion_id','comment','num_characters'])
         gbq.to_gbq(df1, 'pandas_testing_dataset.test_data5', schema=schema, col_order=None, if_exists='fail')
-        
+
         array2 = [['TESTING_GBQ', 999999999, 'hi', 0, True, 9999999999, '00.000.00.000', 1, 'hola',
                  99999999, False, False, 1, 'Jedi', 11210]]
 
@@ -441,7 +443,7 @@ class test_gbq(unittest.TestCase):
                                        'contributor_ip','contributor_id','contributor_username','timestamp',
                                        'is_minor','is_bot','reversion_id','comment','num_characters'])
         gbq.to_gbq(df2, 'pandas_testing_dataset.test_data5', schema=schema, col_order=None, if_exists='replace')
-        
+
         # Read the table and confirm the new data is all that is there
         a = gbq.read_gbq("SELECT * FROM pandas_testing_dataset.test_data5")
         self.assertTrue((a == df2).all().all())

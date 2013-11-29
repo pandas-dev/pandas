@@ -2,7 +2,6 @@
 
 from datetime import datetime
 from pandas.compat import range, lrange, u
-import unittest
 import nose
 import re
 
@@ -17,7 +16,7 @@ import pandas.core.common as com
 import pandas.util.testing as tm
 
 
-class TestCategorical(unittest.TestCase):
+class TestCategorical(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def setUp(self):

@@ -1,6 +1,5 @@
 from datetime import datetime
 import re
-import unittest
 
 import nose
 from nose.tools import assert_equal
@@ -350,7 +349,7 @@ def test_ensure_int32():
     assert(result.dtype == np.int32)
 
 
-class TestEnsureNumeric(unittest.TestCase):
+class TestEnsureNumeric(tm.TestCase):
     def test_numeric_values(self):
         # Test integer
         self.assertEqual(nanops._ensure_numeric(1), 1, 'Failed for int')
@@ -457,7 +456,7 @@ def test_is_recompilable():
         assert not com.is_re_compilable(f)
 
 
-class TestTake(unittest.TestCase):
+class TestTake(tm.TestCase):
     # standard incompatible fill error
     fill_error = re.compile("Incompatible type for fill_value")
 

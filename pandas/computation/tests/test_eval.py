@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import unittest
 import functools
 from itertools import product
 
@@ -104,10 +103,11 @@ def _is_py3_complex_incompat(result, expected):
 _good_arith_ops = com.difference(_arith_ops_syms, _special_case_arith_ops_syms)
 
 
-class TestEvalNumexprPandas(unittest.TestCase):
+class TestEvalNumexprPandas(tm.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        super(TestEvalNumexprPandas, cls).setUpClass()
         skip_if_no_ne()
         import numexpr as ne
         cls.ne = ne
@@ -116,6 +116,7 @@ class TestEvalNumexprPandas(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        super(TestEvalNumexprPandas, cls).tearDownClass()
         del cls.engine, cls.parser
         if hasattr(cls, 'ne'):
             del cls.ne
@@ -707,6 +708,7 @@ class TestEvalNumexprPython(TestEvalNumexprPandas):
 
     @classmethod
     def setUpClass(cls):
+        super(TestEvalNumexprPython, cls).setUpClass()
         skip_if_no_ne()
         import numexpr as ne
         cls.ne = ne
@@ -733,6 +735,7 @@ class TestEvalPythonPython(TestEvalNumexprPython):
 
     @classmethod
     def setUpClass(cls):
+        super(TestEvalPythonPython, cls).setUpClass()
         cls.engine = 'python'
         cls.parser = 'python'
 
@@ -761,6 +764,7 @@ class TestEvalPythonPandas(TestEvalPythonPython):
 
     @classmethod
     def setUpClass(cls):
+        super(TestEvalPythonPandas, cls).setUpClass()
         cls.engine = 'python'
         cls.parser = 'pandas'
 
@@ -1024,10 +1028,11 @@ class TestAlignment(object):
 #------------------------------------
 # slightly more complex ops
 
-class TestOperationsNumExprPandas(unittest.TestCase):
+class TestOperationsNumExprPandas(tm.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        super(TestOperationsNumExprPandas, cls).setUpClass()
         skip_if_no_ne()
         cls.engine = 'numexpr'
         cls.parser = 'pandas'
@@ -1035,6 +1040,7 @@ class TestOperationsNumExprPandas(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        super(TestOperationsNumExprPandas, cls).tearDownClass()
         del cls.engine, cls.parser
 
     def eval(self, *args, **kwargs):
@@ -1337,6 +1343,7 @@ class TestOperationsNumExprPython(TestOperationsNumExprPandas):
 
     @classmethod
     def setUpClass(cls):
+        super(TestOperationsNumExprPython, cls).setUpClass()
         if not _USE_NUMEXPR:
             raise nose.SkipTest("numexpr engine not installed")
         cls.engine = 'numexpr'
@@ -1404,6 +1411,7 @@ class TestOperationsPythonPython(TestOperationsNumExprPython):
 
     @classmethod
     def setUpClass(cls):
+        super(TestOperationsPythonPython, cls).setUpClass()
         cls.engine = cls.parser = 'python'
         cls.arith_ops = expr._arith_ops_syms + expr._cmp_ops_syms
         cls.arith_ops = filter(lambda x: x not in ('in', 'not in'),
@@ -1414,6 +1422,7 @@ class TestOperationsPythonPandas(TestOperationsNumExprPandas):
 
     @classmethod
     def setUpClass(cls):
+        super(TestOperationsPythonPandas, cls).setUpClass()
         cls.engine = 'python'
         cls.parser = 'pandas'
         cls.arith_ops = expr._arith_ops_syms + expr._cmp_ops_syms
