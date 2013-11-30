@@ -61,6 +61,7 @@ API Changes
   - Raise/Warn ``SettingWithCopyError`` (according to the option ``chained_assignment`` in more cases,
     when detecting chained assignment, related (:issue:`5938`)
   - DataFrame.head(0) returns self instead of empty frame (:issue:`5846`)
+  - ``autocorrelation_plot`` now accepts ``**kwargs``. (:issue:`5623`)
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~

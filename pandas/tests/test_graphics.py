@@ -299,6 +299,10 @@ class TestSeriesPlots(tm.TestCase):
         _check_plot_works(autocorrelation_plot, self.ts)
         _check_plot_works(autocorrelation_plot, self.ts.values)
 
+        ax = autocorrelation_plot(self.ts, label='Test')
+        t = ax.get_legend().get_texts()[0].get_text()
+        self.assertEqual(t, 'Test')
+
     @slow
     def test_lag_plot(self):
         from pandas.tools.plotting import lag_plot
