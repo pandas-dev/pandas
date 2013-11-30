@@ -2,9 +2,7 @@ include MANIFEST.in
 include LICENSE
 include RELEASE.md
 include README.rst
-include TODO.rst
 include setup.py
-include setupegg.py
 
 graft doc
 prune doc/build
