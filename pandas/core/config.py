@@ -71,8 +71,28 @@ class OptionError(AttributeError, KeyError):
     checks"""
 
 
+# For user convenience,  we'd like to have the available options described
+# in the docstring. For dev convenience we'd like to generate the docstrings
+# dynamically instead of maintaining them by hand. To this, we use the
+# class below which wraps functions inside a callable, and converts
+# __doc__ into a propery function. The doctsrings below are templates
+# using the py2.6+ advanced formatting syntax to plug in a concise list
+# of options, and option descriptions.
+
+
+def dynamic_doc(doc_template):
+
+    @property
+    def __doc__(self):
+        opts_desc = describe_option('all', _print_desc=False)
+        opts_list = pp_options_list(list(_registered_options.keys()))
+        return doc_template.format(opts_desc=opts_desc,
+                                   opts_list=opts_list)
+    return __doc__
+
 #
 # User API
+
 
 def _get_single_key(pat, silent):
     keys = _select_options(pat)
@@ -92,7 +112,9 @@ def _get_single_key(pat, silent):
     return key
 
 
-def _get_option(pat, silent=False):
+def get_option(pat, silent=False, prefix=True):
+    if prefix:
+        pat = prefix_key(pat)
     key = _get_single_key(pat, silent)
 
     # walk the nested dict
@@ -100,155 +122,7 @@ def _get_option(pat, silent=False):
     return root[k]
 
 
-def _set_single_option(pat, value, silent):
-    key = _get_single_key(pat, silent)
-
-    o = _get_registered_option(key)
-    if o and o.validator:
-        o.validator(value)
-
-    # walk the nested dict
-    root, k = _get_root(key)
-    root[k] = value
-
-    if o.cb:
-        o.cb(key)
-
-
-def _set_multiple_options(args, silent):
-    for k, v in zip(args[::2], args[1::2]):
-        _set_single_option(k, v, silent)
-
-
-def _set_option(*args, **kwargs):
-    # must at least 1 arg deal with constraints later
-    nargs = len(args)
-    if not nargs or nargs % 2 != 0:
-        raise AssertionError("Must provide an even number of non-keyword "
-                             "arguments")
-
-    # must be 0 or 1 kwargs
-    nkwargs = len(kwargs)
-    if nkwargs not in (0, 1):
-        raise AssertionError("The can only be 0 or 1 keyword arguments")
-
-    # if 1 kwarg then it must be silent=True or silent=False
-    if nkwargs:
-        k, = list(kwargs.keys())
-        v, = list(kwargs.values())
-
-        if k != 'silent':
-            raise ValueError("the only allowed keyword argument is 'silent', "
-                             "you passed '{0}'".format(k))
-        if not isinstance(v, bool):
-            raise TypeError("the type of the keyword argument passed must be "
-                            "bool, you passed a {0}".format(v.__class__))
-
-    # default to false
-    silent = kwargs.get('silent', False)
-    _set_multiple_options(args, silent)
-
-
-def _describe_option(pat='', _print_desc=True):
-
-    keys = _select_options(pat)
-    if len(keys) == 0:
-        raise OptionError('No such keys(s)')
-
-    s = u('')
-    for k in keys:  # filter by pat
-        s += _build_option_description(k)
-
-    if _print_desc:
-        print(s)
-    else:
-        return s
-
-
-def _reset_option(pat):
-
-    keys = _select_options(pat)
-
-    if len(keys) == 0:
-        raise OptionError('No such keys(s)')
-
-    if len(keys) > 1 and len(pat) < 4 and pat != 'all':
-        raise ValueError('You must specify at least 4 characters when '
-                         'resetting multiple keys, use the special keyword '
-                         '"all" to reset all the options to their default '
-                         'value')
-
-    for k in keys:
-        _set_option(k, _registered_options[k].defval)
-
-
-def get_default_val(pat):
-    key = _get_single_key(pat, silent=True)
-    return _get_registered_option(key).defval
-
-
-class DictWrapper(object):
-
-    """ provide attribute-style access to a nested dict
-    """
-
-    def __init__(self, d, prefix=""):
-        object.__setattr__(self, "d", d)
-        object.__setattr__(self, "prefix", prefix)
-
-    def __setattr__(self, key, val):
-        prefix = object.__getattribute__(self, "prefix")
-        if prefix:
-            prefix += "."
-        prefix += key
-        # you can't set new keys
-        # can you can't overwrite subtrees
-        if key in self.d and not isinstance(self.d[key], dict):
-            _set_option(prefix, val)
-        else:
-            raise OptionError("You can only set the value of existing options")
-
-    def __getattr__(self, key):
-        prefix = object.__getattribute__(self, "prefix")
-        if prefix:
-            prefix += "."
-        prefix += key
-        v = object.__getattribute__(self, "d")[key]
-        if isinstance(v, dict):
-            return DictWrapper(v, prefix)
-        else:
-            return _get_option(prefix)
-
-    def __dir__(self):
-        return list(self.d.keys())
-
-
-# For user convenience,  we'd like to have the available options described
-# in the docstring. For dev convenience we'd like to generate the docstrings
-# dynamically instead of maintaining them by hand. To this, we use the
-# class below which wraps functions inside a callable, and converts
-# __doc__ into a propery function. The doctsrings below are templates
-# using the py2.6+ advanced formatting syntax to plug in a concise list
-# of options, and option descriptions.
-
-
-class CallableDynamicDoc(object):
-
-    def __init__(self, func, doc_tmpl):
-        self.__doc_tmpl__ = doc_tmpl
-        self.__func__ = func
-
-    def __call__(self, *args, **kwds):
-        return self.__func__(*args, **kwds)
-
-    @property
-    def __doc__(self):
-        opts_desc = _describe_option('all', _print_desc=False)
-        opts_list = pp_options_list(list(_registered_options.keys()))
-        return self.__doc_tmpl__.format(opts_desc=opts_desc,
-                                        opts_list=opts_list)
-
-_get_option_tmpl = """
+get_option.__doc__ = dynamic_doc("""
 get_option(pat) - Retrieves the value of the specified option
 
 Available options:
@@ -271,9 +145,148 @@ Raises
 OptionError if no such option exists
 
 {opts_desc}
-"""
+""")
 
-_set_option_tmpl = """
+
+def prefix_key(key):
+    return key
+
+
+def describe_option(pat='', _print_desc=True):
+    keys = _select_options(prefix_key(pat))
+    if len(keys) == 0:
+        raise OptionError('No such keys(s)')
+
+    s = u('')
+    for k in keys:  # filter by pat
+        s += _build_option_description(k)
+
+    if _print_desc:
+        print(s)
+    else:
+        return s
+
+
+describe_option.__doc__ = dynamic_doc("""
+describe_option(pat,_print_desc=False) Prints the description
+for one or more registered options.
+
+Call with not arguments to get a listing for all registered options.
+
+Available options:
+{opts_list}
+
+Parameters
+----------
+pat - str, a regexp pattern. All matching keys will have their
+      description displayed.
+
+_print_desc - if True (default) the description(s) will be printed
+             to stdout otherwise, the description(s) will be returned
+             as a unicode string (for testing).
+
+Returns
+-------
+None by default, the description(s) as a unicode string if _print_desc
+is False
+
+{opts_desc}
+""")
+
+
+def reset_option(pat):
+
+    keys = _select_options(prefix_key(pat))
+
+    if len(keys) == 0:
+        raise OptionError('No such keys(s)')
+
+    if len(keys) > 1 and len(pat) < 4 and pat != 'all':
+        raise ValueError('You must specify at least 4 characters when '
+                         'resetting multiple keys, use the special keyword '
+                         '"all" to reset all the options to their default '
+                         'value')
+
+    for k in keys:
+        set_option._set_single_option(k, _registered_options[k].defval)
+
+
+reset_option.__doc__ = dynamic_doc("""
+reset_option(pat) - Reset one or more options to their default value.
+
+Pass "all" as argument to reset all options.
+
+Available options:
+{opts_list}
+
+Parameters
+----------
+pat - str/regex  if specified only options matching `prefix`* will be reset
+
+Note: partial matches are supported for convenience, but unless you use the
+full option name (e.g. x.y.z.option_name), your code may break in future
+versions if new options with similar names are introduced.
+
+Returns
+-------
+None
+
+{opts_desc}
+""")
+
+
+def get_default_val(pat, prefix=True):
+    if prefix:
+        prefix_key(pat)
+    key = _get_single_key(pat, silent=True)
+    return _get_registered_option(key).defval
+
+
+class DictWrapper(object):
+
+    """ provide attribute-style access to a nested dict
+    """
+
+    def __init__(self, d, prefix=""):
+        object.__setattr__(self, "d", d)
+        object.__setattr__(self, "prefix", prefix)
+
+    def __setattr__(self, key, val):
+        prefix = object.__getattribute__(self, "prefix")
+        if prefix:
+            prefix += "."
+        prefix += key
+        # you can't set new keys
+        # can you can't overwrite subtrees
+        if key in self.d and not isinstance(self.d[key], dict):
+            set_option(prefix, val)
+        else:
+            raise OptionError("You can only set the value of existing options")
+
+    def __getattr__(self, key):
+        prefix = object.__getattribute__(self, "prefix")
+        if prefix:
+            prefix += "."
+        prefix += key
+        v = object.__getattribute__(self, "d")[key]
+        if isinstance(v, dict):
+            return DictWrapper(v, prefix)
+        else:
+            return get_option(prefix)
+
+    def __dir__(self):
+        return list(self.d.keys())
+
+
+options = DictWrapper(_global_config)
+
+#
+# Functions for use by pandas developers, in addition to User - api
+
+
+class SetOptionMeta(type):
+    # metaclass to allow dynamic docstring on set_option
+    __doc__ = dynamic_doc("""
 set_option(pat,value) - Sets the value of the specified option
 
 Available options:
@@ -298,95 +311,68 @@ Raises
 OptionError if no such option exists
 
 {opts_desc}
-"""
-
-_describe_option_tmpl = """
-describe_option(pat,_print_desc=False) Prints the description
-for one or more registered options.
-
-Call with not arguments to get a listing for all registered options.
-
-Available options:
-{opts_list}
-
-Parameters
-----------
-pat - str, a regexp pattern. All matching keys will have their
-      description displayed.
-
-_print_desc - if True (default) the description(s) will be printed
-             to stdout otherwise, the description(s) will be returned
-             as a unicode string (for testing).
-
-Returns
--------
-None by default, the description(s) as a unicode string if _print_desc
-is False
-
-{opts_desc}
-"""
-
-_reset_option_tmpl = """
-reset_option(pat) - Reset one or more options to their default value.
-
-Pass "all" as argument to reset all options.
-
-Available options:
-{opts_list}
-
-Parameters
-----------
-pat - str/regex  if specified only options matching `prefix`* will be reset
-
-Note: partial matches are supported for convenience, but unless you use the
-full option name (e.g. x.y.z.option_name), your code may break in future
-versions if new options with similar names are introduced.
-
-Returns
--------
-None
-
-{opts_desc}
-"""
-
-# bind the functions with their docstrings into a Callable
-# and use that as the functions exposed in pd.api
-get_option = CallableDynamicDoc(_get_option, _get_option_tmpl)
-set_option = CallableDynamicDoc(_set_option, _set_option_tmpl)
-reset_option = CallableDynamicDoc(_reset_option, _reset_option_tmpl)
-describe_option = CallableDynamicDoc(_describe_option, _describe_option_tmpl)
-options = DictWrapper(_global_config)
-
-#
-# Functions for use by pandas developers, in addition to User - api
+""")
 
 
-class option_context(object):
+@compat.add_metaclass(SetOptionMeta)
+class set_option(object):
+    silent_default = False
 
-    def __init__(self, *args):
+    def __init__(self, *args, **kwargs):
         if not (len(args) % 2 == 0 and len(args) >= 2):
-            raise AssertionError(
-                'Need to invoke as'
-                'option_context(pat, val, [(pat, val), ...)).'
+            raise TypeError(
+                'Need to invoke as '
+                '%s(pat, val, [(pat, val), ...)).' % (self.__class__.__name__)
             )
 
-        ops = list(zip(args[::2], args[1::2]))
+        self.silent = kwargs.pop('silent', self.silent_default)
+
+        if kwargs:
+            raise TypeError("The only allowable keyword argument is 'silent'."
+                            " Got %s." % kwargs)
+
+        if not isinstance(self.silent, bool):
+            raise TypeError("Silent must be either True or False. Got %r." %
+                            self.silent)
+
+        ops = [(prefix_key(pat), val)
+               for pat, val in zip(args[::2], args[1::2])]
+
         undo = []
         for pat, val in ops:
-            undo.append((pat, _get_option(pat, silent=True)))
+            undo.append((pat, get_option(pat, silent=self.silent,
+                                         prefix=False)))
 
         self.undo = undo
-
         for pat, val in ops:
-            _set_option(pat, val, silent=True)
+            self._set_single_option(pat, val, self.silent)
 
     def __enter__(self):
-        pass
+        return self
 
     def __exit__(self, *args):
         if self.undo:
             for pat, val in self.undo:
-                _set_option(pat, val)
+                self._set_single_option(pat, val, self.silent)
+
+    @staticmethod
+    def _set_single_option(pat, value, silent=False):
+        key = _get_single_key(pat, silent)
+
+        o = _get_registered_option(key)
+        if o and o.validator:
+            o.validator(value)
+
+        # walk the nested dict
+        root, k = _get_root(key)
+        root[k] = value
+
+        if o.cb:
+            o.cb(key)
+
+
+class option_context(set_option):
+    silent_default = True
 
 
 def register_option(key, defval, doc='', validator=None, cb=None):
@@ -414,7 +400,7 @@ def register_option(key, defval, doc='', validator=None, cb=None):
     """
     import tokenize
     import keyword
-    key = key.lower()
+    key = prefix_key(key.lower())
 
     if key in _registered_options:
         raise OptionError("Option '%s' has already been registered" % key)
@@ -616,7 +602,7 @@ def _build_option_description(k):
     s = u('%s: ') % k
     if o:
         s += u('[default: %s] [currently: %s]') % (o.defval,
-                                                   _get_option(k, True))
+                                                   get_option(k, True))
 
     if o.doc:
         s += '\n' + '\n    '.join(o.doc.strip().split('\n'))
@@ -696,26 +682,17 @@ def config_prefix(prefix):
     # Note: reset_option relies on set_option, and on key directly
     # it does not fit in to this monkey-patching scheme
 
-    global register_option, get_option, set_option, reset_option
+    global prefix_key
 
-    def wrap(func):
+    def current_prefix_key(key):
+        return '%s.%s' % (prefix, key)
 
-        def inner(key, *args, **kwds):
-            pkey = '%s.%s' % (prefix, key)
-            return func(pkey, *args, **kwds)
+    _prefix_key = prefix_key
+    prefix_key = current_prefix_key
 
-        return inner
-
-    _register_option = register_option
-    _get_option = get_option
-    _set_option = set_option
-    set_option = wrap(set_option)
-    get_option = wrap(get_option)
-    register_option = wrap(register_option)
     yield None
-    set_option = _set_option
-    get_option = _get_option
-    register_option = _register_option
+
+    prefix_key = _prefix_key
 
 
 # These factories and methods are handy for use as the validator

@@ -170,18 +170,17 @@ class TestConfig(unittest.TestCase):
 
 
     def test_set_option_empty_args(self):
-        self.assertRaises(AssertionError, self.cf.set_option)
+        self.assertRaises(TypeError, self.cf.set_option)
 
     def test_set_option_uneven_args(self):
-        self.assertRaises(AssertionError, self.cf.set_option, 'a.b', 2, 'b.c')
-
+        self.assertRaises(TypeError, self.cf.set_option, 'a.b', 2, 'b.c')
 
     def test_set_option_2_kwargs(self):
-        self.assertRaises(AssertionError, self.cf.set_option, 'a.b', 2,
+        self.assertRaises(TypeError, self.cf.set_option, 'a.b', 2,
                           silenadf=2, asdf=2)
 
     def test_set_option_invalid_kwargs_key(self):
-        self.assertRaises(ValueError, self.cf.set_option, 'a.b', 2,
+        self.assertRaises(TypeError, self.cf.set_option, 'a.b', 2,
                           silenadf=2)
 
     def test_set_option_invalid_kwargs_value_type(self):
@@ -189,7 +188,7 @@ class TestConfig(unittest.TestCase):
                           silent=2)
 
     def test_set_option_invalid_single_argument_type(self):
-        self.assertRaises(AssertionError, self.cf.set_option, 2)
+        self.assertRaises(TypeError, self.cf.set_option, 2)
 
     def test_set_option_multiple(self):
         self.cf.register_option('a', 1, 'doc')
@@ -325,7 +324,8 @@ class TestConfig(unittest.TestCase):
             warnings.simplefilter('always')
             self.cf.set_option('d.dep', 'baz')  # should overwrite "d.a"
 
-            self.assertEqual(len(w), 1)  # should have raised one warning
+            # raises 2 warnings because collects for undo as well
+            self.assertEqual(len(w), 2)
             self.assertTrue(
                 'eprecated' in str(w[-1]))  # we get the custom message
 
