@@ -6974,6 +6974,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_frame_equal(tsframe, self.tsframe.fillna(0))
 
         self.assertRaises(TypeError, self.tsframe.replace, nan, inplace=True)
+        self.assertRaises(TypeError, self.tsframe.replace, nan)
 
         # mixed type
         self.mixed_frame['foo'][5:20] = nan
