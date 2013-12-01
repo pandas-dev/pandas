@@ -345,17 +345,20 @@ def ensure_clean(filename=None, return_filelike=False):
             yield f
         finally:
             f.close()
-
     else:
-
         # don't generate tempfile if using a path with directory specified
         if len(os.path.dirname(filename)):
             raise ValueError("Can't pass a qualified name to ensure_clean()")
 
         try:
-            filename = tempfile.mkstemp(suffix=filename)[1]
+            fd, filename = tempfile.mkstemp(suffix=filename)
             yield filename
         finally:
+            try:
+                os.close(fd)
+            except Exception as e:
+                print("Couldn't close file descriptor: %d (file: %s)" %
+                    (fd, filename))
             try:
                 if os.path.exists(filename):
                     os.remove(filename)

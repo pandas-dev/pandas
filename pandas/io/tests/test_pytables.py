@@ -3731,7 +3731,7 @@ class TestHDFStore(tm.TestCase):
 
                 if new_f is None:
                     import tempfile
-                    new_f = tempfile.mkstemp()[1]
+                    fd, new_f = tempfile.mkstemp()
 
                 tstore = store.copy(new_f, keys = keys, propindexes = propindexes, **kwargs)
 
@@ -3757,6 +3757,10 @@ class TestHDFStore(tm.TestCase):
             finally:
                 safe_close(store)
                 safe_close(tstore)
+                try:
+                    os.close(fd)
+                except:
+                    pass
                 safe_remove(new_f)
 
         do_copy()
