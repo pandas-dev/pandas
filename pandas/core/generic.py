@@ -1217,6 +1217,7 @@ class NDFrame(PandasObject):
         # NOTE: This does *not* call __finalize__ and that's an explicit
         # decision that we may revisit in the future.
         self._reset_cache()
+        self._clear_item_cache()
         self._data = result._data
         self._maybe_update_cacher()
 

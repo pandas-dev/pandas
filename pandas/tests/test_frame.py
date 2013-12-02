@@ -6806,6 +6806,13 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_frame_equal(nu_df.drop('X', axis='rows'), nu_df.ix[["Y"], :])
         assert_frame_equal(nu_df.drop(['X', 'Y'], axis=0), nu_df.ix[[], :])
 
+        # inplace cache issue
+        # GH 5628
+        df = pd.DataFrame(np.random.randn(10,3), columns=list('abc'))
+        expected = df[~(df.b>0)]
+        df.drop(labels=df[df.b>0].index, inplace=True)
+        assert_frame_equal(df,expected)
+
     def test_fillna(self):
         self.tsframe['A'][:5] = nan
         self.tsframe['A'][-5:] = nan
