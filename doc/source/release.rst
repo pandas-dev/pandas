@@ -209,7 +209,7 @@ Improvements to existing features
   - ``NDFrame.drop()``, ``NDFrame.dropna()``, and ``.drop_duplicates()`` all
     accept ``inplace`` as a kewyord argument; however, this only means that the
     wrapper is updated inplace, a copy is still made internally.
-    (:issue:`1960`, :issue:`5247`, and related :issue:`2325` [still not
+    (:issue:`1960`, :issue:`5247`, :issue:`5628`, and related :issue:`2325` [still not
     closed])
   - Fixed bug in `tools.plotting.andrews_curvres` so that lines are drawn grouped
     by color as expected.
