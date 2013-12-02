@@ -801,6 +801,8 @@ def wide_to_long(df, stubnames, i, j):
         The name of the id variable.
     j : str
         The name of the subobservation variable.
+    stubend : str
+        Regex to match for the end of the stubs.
 
     Returns
     -------
@@ -821,10 +823,10 @@ def wide_to_long(df, stubnames, i, j):
     ...                   })
     >>> df["id"] = df.index
     >>> df
-      A1970 A1980  B1970  B1980         X
-    0     a     d    2.5    3.2 -1.085631
-    1     b     e    1.2    1.3  0.997345
-    2     c     f    0.7    0.1  0.282978
+    A1970 A1980  B1970  B1980         X  id
+    0     a     d    2.5    3.2 -1.085631   0
+    1     b     e    1.2    1.3  0.997345   1
+    2     c     f    0.7    0.1  0.282978   2
     >>> wide_to_long(df, ["A", "B"], i="id", j="year")
                     X  A    B
     id year
@@ -848,7 +850,12 @@ def wide_to_long(df, stubnames, i, j):
         varnames = get_var_names(df, "^"+stub)
         newdf = melt(df, id_vars=i, value_vars=varnames,
                          value_name=stub, var_name=j)
-        newdf[j] = newdf[j].str.replace(stub, "").astype(int)
+        newdf_j = newdf[j].str.replace(stub, "")
+        try:
+            newdf_j = newdf_j.astype(int)
+        except ValueError:
+            pass
+        newdf[j] = newdf_j
         return newdf
 
     id_vars = get_var_names(df, "^(?!%s)" % "|".join(stubnames))
