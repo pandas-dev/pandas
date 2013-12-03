@@ -2688,6 +2688,14 @@ class Table(Fixed):
         """ the levels attribute is 1 or a list in the case of a multi-index """
         return isinstance(self.levels,list)
 
+    def validate_multiindex(self, obj):
+        """ validate that we can store the multi-index; reset and return the new object """
+        levels = [ l if l is not None else "level_{0}".format(i) for i, l in enumerate(obj.index.names) ]
+        try:
+            return obj.reset_index(), levels
+        except (ValueError):
+            raise ValueError("duplicate names/columns in the multi-index when storing as a table")
+
     @property
     def nrows_expected(self):
         """ based on our axes, compute the expected nrows """
@@ -3701,10 +3709,9 @@ class AppendableMultiSeriesTable(AppendableSeriesTable):
     def write(self, obj, **kwargs):
         """ we are going to write this as a frame table """
         name = obj.name or 'values'
-        cols = list(obj.index.names)
+        obj, self.levels = self.validate_multiindex(obj)
+        cols = list(self.levels)
         cols.append(name)
-        self.levels = list(obj.index.names)
-        obj = obj.reset_index()
         obj.columns = cols
         return super(AppendableMultiSeriesTable, self).write(obj=obj, **kwargs)
 
@@ -3764,6 +3771,7 @@ class AppendableMultiFrameTable(AppendableFrameTable):
     table_type = u('appendable_multiframe')
     obj_type = DataFrame
     ndim = 2
+    _re_levels = re.compile("^level_\d+$")
 
     @property
     def table_type_short(self):
@@ -3774,11 +3782,11 @@ class AppendableMultiFrameTable(AppendableFrameTable):
             data_columns = []
         elif data_columns is True:
             data_columns = obj.columns[:]
-        for n in obj.index.names:
+        obj, self.levels = self.validate_multiindex(obj)
+        for n in self.levels:
             if n not in data_columns:
                 data_columns.insert(0, n)
-        self.levels = obj.index.names
-        return super(AppendableMultiFrameTable, self).write(obj=obj.reset_index(), data_columns=data_columns, **kwargs)
+        return super(AppendableMultiFrameTable, self).write(obj=obj, data_columns=data_columns, **kwargs)
 
     def read(self, columns=None, **kwargs):
         if columns is not None:
@@ -3787,7 +3795,11 @@ class AppendableMultiFrameTable(AppendableFrameTable):
                     columns.insert(0, n)
         df = super(AppendableMultiFrameTable, self).read(
             columns=columns, **kwargs)
-        df.set_index(self.levels, inplace=True)
+        df = df.set_index(self.levels)
+
+        # remove names for 'level_%d'
+        df.index = df.index.set_names([ None if self._re_levels.search(l) else l for l in df.index.names ])
+
         return df
 
 
