@@ -1635,6 +1635,42 @@ class TestIndexing(tm.TestCase):
             df.loc[:,1] = 1
         self.assertRaises(ValueError, f)
 
+        # these work as they don't really change
+        # anything but the index
+        # GH5632
+        expected = DataFrame(columns=['foo'])
+        def f():
+            df = DataFrame()
+            df['foo'] = Series([])
+            return df
+        assert_frame_equal(f(), expected)
+        def f():
+            df = DataFrame()
+            df['foo'] = Series(df.index)
+            return df
+        assert_frame_equal(f(), expected)
+        def f():
+            df = DataFrame()
+            df['foo'] = Series(range(len(df)))
+            return df
+        assert_frame_equal(f(), expected)
+        def f():
+            df = DataFrame()
+            df['foo'] = []
+            return df
+        assert_frame_equal(f(), expected)
+        def f():
+            df = DataFrame()
+            df['foo'] = df.index
+            return df
+        assert_frame_equal(f(), expected)
+        def f():
+            df = DataFrame()
+            df['foo'] = range(len(df))
+            return df
+        assert_frame_equal(f(), expected)
+
+        df = DataFrame()
         df2 = DataFrame()
         df2[1] = Series([1],index=['foo'])
         df.loc[:,1] = Series([1],index=['foo'])
