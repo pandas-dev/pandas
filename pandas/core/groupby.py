@@ -311,10 +311,10 @@ class GroupBy(PandasObject):
 
         return wrapper
 
-    def get_group(self, name, obj=None):
+    def get_group(self, name, obj=None, default=None):
         """
         Constructs NDFrame from group with provided name
-
+        
         Parameters
         ----------
         name : object
@@ -323,15 +323,45 @@ class GroupBy(PandasObject):
             the NDFrame to take the DataFrame out of.  If
             it is None, the object groupby was called on will
             be used
-
+        default : indicies, default None
+            If None, a KeyError will be raised if name isn't
+            in the GroupBy.  Otherwise, default should be a
+            list of indicies into the original obj to take in
+            the event that name isn't in the GroupBy.
+            If [] is provided, an empty object will be returned
+            in the event that the name isn't in the GroupBy.
+        
         Returns
         -------
         group : type of obj
+
+        Example
+        --------
+
+        >>> data = pd.DataFrame({
+        ...     'name' : ['a','a','b','d'],
+        ...     'count' : [3,4,3,2],
+        ... })
+        >>> g = data.groupby('name')
+        >>> g.get_group('a', default = [])['count'].sum()
+        7
+        >>> g.get_group('c', default = [])['count'].sum()
+        0
         """
         if obj is None:
             obj = self.obj
 
-        inds = self.indices[name]
+        if default is not None and not com.is_list_like(default) :
+            raise TypeError('default must be list like')
+
+        try :
+            inds = self.indices[name]
+        except KeyError :
+            if default is None :
+                raise
+            
+            inds = default
+
         return obj.take(inds, axis=self.axis, convert=False)
 
     def __iter__(self):

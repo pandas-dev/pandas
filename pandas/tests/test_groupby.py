@@ -413,6 +413,29 @@ class TestGroupBy(tm.TestCase):
         expected = wp.reindex(major=[x for x in wp.major_axis if x.month == 1])
         assert_panel_equal(gp, expected)
 
+    def test_get_group_default(self):
+        wp = tm.makePanel()
+        grouped = wp.groupby(lambda x: x.month, axis='major')
+
+        gp = grouped.get_group(-1, default=[])
+        expected = wp.take([], axis='major')
+        assert_panel_equal(gp, expected)
+
+    def test_get_group_default_string(self):
+        wp = tm.makePanel()
+        grouped = wp.groupby(lambda x: x.month, axis='major')
+
+        self.assertRaises(TypeError, grouped.get_group, -1, default='string')
+
+    def test_get_group_default_index(self):
+        data = DataFrame({
+            'name' : ['other', 'a', 'a', 'b', 'd'],
+            'count' : [1,3,4,3,2],
+        })
+        g = data.groupby('name')
+        self.assertEqual(g.get_group('a', default = [])['count'].sum(), 7)
+        self.assertEqual(g.get_group('c', default = [0])['count'].sum(), 1)
+
     def test_agg_apply_corner(self):
         # nothing to group, all NA
         grouped = self.ts.groupby(self.ts * np.nan)
