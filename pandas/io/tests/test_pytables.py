@@ -1572,6 +1572,51 @@ class TestHDFStore(tm.TestCase):
             store.put('df1',df,format='table')
             tm.assert_frame_equal(store['df1'],df,check_index_type=True,check_column_type=True)
 
+    def test_store_multiindex(self):
+
+        # validate multi-index names
+        # GH 5527
+        with ensure_clean_store(self.path) as store:
+
+            def make_index(names=None):
+                return MultiIndex.from_tuples([( datetime.datetime(2013,12,d), s, t) for d in range(1,3) for s in range(2) for t in range(3)],
+                                              names=names)
+
+
+            # no names
+            _maybe_remove(store, 'df')
+            df = DataFrame(np.zeros((12,2)), columns=['a','b'], index=make_index())
+            store.append('df',df)
+            tm.assert_frame_equal(store.select('df'),df)
+
+            # partial names
+            _maybe_remove(store, 'df')
+            df = DataFrame(np.zeros((12,2)), columns=['a','b'], index=make_index(['date',None,None]))
+            store.append('df',df)
+            tm.assert_frame_equal(store.select('df'),df)
+
+            # series
+            _maybe_remove(store, 's')
+            s = Series(np.zeros(12), index=make_index(['date',None,None]))
+            store.append('s',s)
+            tm.assert_series_equal(store.select('s'),s)
+
+            # dup with column
+            _maybe_remove(store, 'df')
+            df = DataFrame(np.zeros((12,2)), columns=['a','b'], index=make_index(['date','a','t']))
+            self.assertRaises(ValueError, store.append, 'df',df)
+
+            # dup within level
+            _maybe_remove(store, 'df')
+            df = DataFrame(np.zeros((12,2)), columns=['a','b'], index=make_index(['date','date','date']))
+            self.assertRaises(ValueError, store.append, 'df',df)
+
+            # fully names
+            _maybe_remove(store, 'df')
+            df = DataFrame(np.zeros((12,2)), columns=['a','b'], index=make_index(['date','s','t']))
+            store.append('df',df)
+            tm.assert_frame_equal(store.select('df'),df)
+
     def test_pass_spec_to_storer(self):
 
         df = tm.makeDataFrame()
