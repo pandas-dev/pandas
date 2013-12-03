@@ -59,6 +59,8 @@ New features
   Date is used primarily in astronomy and represents the number of days from
   noon, January 1, 4713 BC.  Because nanoseconds are used to define the time
   in pandas the actual range of dates that you can use is 1678 AD to 2262 AD. (:issue:`4041`)
+- Added error bar support to the ``.plot`` method of ``DataFrame`` and ``Series`` (:issue:`3796`)
+
 
 API Changes
 ~~~~~~~~~~~
@@ -126,9 +128,9 @@ API Changes
     DataFrame returned by ``GroupBy.apply`` (:issue:`6124`).  This facilitates
     ``DataFrame.stack`` operations where the name of the column index is used as
     the name of the inserted column containing the pivoted data.
-	
-- The :func:`pivot_table`/:meth:`DataFrame.pivot_table` and :func:`crosstab` functions 
-  now take arguments ``index`` and ``columns`` instead of ``rows`` and ``cols``.  A 
+
+- The :func:`pivot_table`/:meth:`DataFrame.pivot_table` and :func:`crosstab` functions
+  now take arguments ``index`` and ``columns`` instead of ``rows`` and ``cols``.  A
   ``FutureWarning`` is raised  to alert that the old ``rows`` and ``cols`` arguments
   will not be supported in a future release (:issue:`5505`)
 

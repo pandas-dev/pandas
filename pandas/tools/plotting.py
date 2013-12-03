@@ -831,6 +831,11 @@ class MPLPlot(object):
         self.fig = fig
         self.axes = None
 
+        # parse errorbar input if given
+        for err_dim in 'xy':
+            if err_dim+'err' in kwds:
+                kwds[err_dim+'err'] = self._parse_errorbars(error_dim=err_dim, **kwds)
+
         if not isinstance(secondary_y, (bool, tuple, list, np.ndarray)):
             secondary_y = [secondary_y]
         self.secondary_y = secondary_y
@@ -971,6 +976,11 @@ class MPLPlot(object):
 
             axes = [ax]
 
+        if self.logx:
+            [a.set_xscale('log') for a in axes]
+        if self.logy:
+            [a.set_yscale('log') for a in axes]
+
         self.fig = fig
         self.axes = axes
 
@@ -1090,14 +1100,16 @@ class MPLPlot(object):
                                         'time'))
 
     def _get_plot_function(self):
-        if self.logy:
-            plotf = self.plt.Axes.semilogy
-        elif self.logx:
-            plotf = self.plt.Axes.semilogx
-        elif self.loglog:
-            plotf = self.plt.Axes.loglog
-        else:
+        '''
+        Returns the matplotlib plotting function (plot or errorbar) based on
+        the presence of errorbar keywords.
+        '''
+
+        if ('xerr' not in self.kwds) and \
+        ('yerr' not in self.kwds):
             plotf = self.plt.Axes.plot
+        else:
+            plotf = self.plt.Axes.errorbar
 
         return plotf
 
@@ -1180,6 +1192,78 @@ class MPLPlot(object):
         else:
             return label
 
+    def _parse_errorbars(self, error_dim='y', **kwds):
+        '''
+        Look for error keyword arguments and return the actual errorbar data
+        or return the error DataFrame/dict
+
+        Error bars can be specified in several ways:
+            Series: the user provides a pandas.Series object of the same
+                    length as the data
+            ndarray: provides a np.ndarray of the same length as the data
+            DataFrame/dict: error values are paired with keys matching the
+                    key in the plotted DataFrame
+            str: the name of the column within the plotted DataFrame
+        '''
+
+        err_kwd = kwds.pop(error_dim+'err', None)
+        if err_kwd is None:
+            return None
+
+        from pandas import DataFrame, Series
+
+        def match_labels(data, err):
+            err = err.reindex_axis(data.index)
+            return err
+
+        # key-matched DataFrame
+        if isinstance(err_kwd, DataFrame):
+            err = err_kwd
+            err = match_labels(self.data, err)
+
+        # key-matched dict
+        elif isinstance(err_kwd, dict):
+            err = err_kwd
+
+        # Series of error values
+        elif isinstance(err_kwd, Series):
+            # broadcast error series across data
+            err = match_labels(self.data, err_kwd)
+            err = np.atleast_2d(err)
+            err = np.tile(err, (self.nseries, 1))
+
+        # errors are a column in the dataframe
+        elif isinstance(err_kwd, str):
+            err = np.atleast_2d(self.data[err_kwd].values)
+            self.data = self.data[self.data.columns.drop(err_kwd)]
+            err = np.tile(err, (self.nseries, 1))
+
+        elif isinstance(err_kwd, (tuple, list, np.ndarray)):
+
+            # raw error values
+            err = np.atleast_2d(err_kwd)
+
+            err_shape = err.shape
+
+            # asymmetrical error bars
+            if err.ndim==3:
+                if (err_shape[0] != self.nseries) or \
+                    (err_shape[1] != 2) or \
+                    (err_shape[2] != len(self.data)):
+                    msg = "Asymmetrical error bars should be provided " + \
+                    "with the shape (%u, 2, %u)" % \
+                        (self.nseries, len(self.data))
+                    raise ValueError(msg)
+
+            # broadcast errors to each data series
+            if len(err)==1:
+                err = np.tile(err, (self.nseries, 1))
+
+        else:
+            msg = "No valid %serr detected" % error_dim
+            raise ValueError(msg)
+
+        return err
 
 class KdePlot(MPLPlot):
     def __init__(self, data, bw_method=None, ind=None, **kwargs):
@@ -1191,7 +1275,7 @@ class KdePlot(MPLPlot):
         from scipy.stats import gaussian_kde
         from scipy import __version__ as spv
         from distutils.version import LooseVersion
-        plotf = self._get_plot_function()
+        plotf = self.plt.Axes.plot
         colors = self._get_colors()
         for i, (label, y) in enumerate(self._iter_data()):
             ax = self._get_ax(i)
@@ -1376,8 +1460,9 @@ class LinePlot(MPLPlot):
         # this is slightly deceptive
         if not self.x_compat and self.use_index and self._use_dynamic_x():
             data = self._maybe_convert_index(self.data)
-            self._make_ts_plot(data, **self.kwds)
+            self._make_ts_plot(data)
         else:
+            from pandas.core.frame import DataFrame
             lines = []
             labels = []
             x = self._get_xticks(convert_period=True)
@@ -1391,6 +1476,16 @@ class LinePlot(MPLPlot):
                 kwds = self.kwds.copy()
                 self._maybe_add_color(colors, kwds, style, i)
 
+                for err_kw in ['xerr', 'yerr']:
+                    # user provided label-matched dataframe of errors
+                    if err_kw in kwds:
+                        if isinstance(kwds[err_kw], (DataFrame, dict)):
+                            if label in kwds[err_kw].keys():
+                              kwds[err_kw] = kwds[err_kw][label]
+                            else: del kwds[err_kw]
+                        elif kwds[err_kw] is not None:
+                            kwds[err_kw] = kwds[err_kw][i]
+
                 label = com.pprint_thing(label)  # .encode('utf-8')
 
                 mask = com.isnull(y)
@@ -1399,10 +1494,11 @@ class LinePlot(MPLPlot):
                     y = np.ma.masked_where(mask, y)
 
                 kwds['label'] = label
-                if style is None:
-                    args = (ax, x, y)
-                else:
+                # prevent style kwarg from going to errorbar, where it is unsupported
+                if style is not None and plotf.__name__=='plot':
                     args = (ax, x, y, style)
+                else:
+                    args = (ax, x, y)
 
                 newline = plotf(*args, **kwds)[0]
                 lines.append(newline)
@@ -1422,6 +1518,8 @@ class LinePlot(MPLPlot):
 
     def _make_ts_plot(self, data, **kwargs):
         from pandas.tseries.plotting import tsplot
+        from pandas.core.frame import DataFrame
+
         kwargs = kwargs.copy()
         colors = self._get_colors()
 
@@ -1430,8 +1528,15 @@ class LinePlot(MPLPlot):
         labels = []
 
         def _plot(data, col_num, ax, label, style, **kwds):
-            newlines = tsplot(data, plotf, ax=ax, label=label,
-                                style=style, **kwds)
+
+            if plotf.__name__=='plot':
+                newlines = tsplot(data, plotf, ax=ax, label=label,
+                                    style=style, **kwds)
+            # errorbar function does not support style argument
+            elif plotf.__name__=='errorbar':
+                newlines = tsplot(data, plotf, ax=ax, label=label,
+                                    **kwds)
+
             ax.grid(self.grid)
             lines.append(newlines[0])
 
@@ -1444,18 +1549,32 @@ class LinePlot(MPLPlot):
             ax = self._get_ax(0)  # self.axes[0]
             style = self.style or ''
             label = com.pprint_thing(self.label)
-            kwds = kwargs.copy()
+            kwds = self.kwds.copy()
             self._maybe_add_color(colors, kwds, style, 0)
 
+            if 'yerr' in kwds:
+                kwds['yerr'] = kwds['yerr'][0]
+
             _plot(data, 0, ax, label, self.style, **kwds)
+
         else:
             for i, col in enumerate(data.columns):
                 label = com.pprint_thing(col)
                 ax = self._get_ax(i)
                 style = self._get_style(i, col)
-                kwds = kwargs.copy()
+                kwds = self.kwds.copy()
 
                 self._maybe_add_color(colors, kwds, style, i)
+
+                # key-matched DataFrame of errors
+                if 'yerr' in kwds:
+                    yerr = kwds['yerr']
+                    if isinstance(yerr, (DataFrame, dict)):
+                        if col in yerr.keys():
+                            kwds['yerr'] = yerr[col]
+                        else: del kwds['yerr']
+                    else:
+                        kwds['yerr'] = yerr[i]
 
                 _plot(data[col], i, ax, label, style, **kwds)
 
@@ -1581,6 +1700,7 @@ class BarPlot(MPLPlot):
 
     def _make_plot(self):
         import matplotlib as mpl
+        from pandas import DataFrame, Series
 
         # mpl decided to make their version string unicode across all Python
         # versions for mpl >= 1.3 so we have to call str here for python 2
@@ -1599,9 +1719,24 @@ class BarPlot(MPLPlot):
 
         for i, (label, y) in enumerate(self._iter_data()):
             ax = self._get_ax(i)
-            label = com.pprint_thing(label)
             kwds = self.kwds.copy()
             kwds['color'] = colors[i % ncolors]
+
+            for err_kw in ['xerr', 'yerr']:
+                if err_kw in kwds:
+                    # user provided label-matched dataframe of errors
+                    if isinstance(kwds[err_kw], (DataFrame, dict)):
+                        if label in kwds[err_kw].keys():
+                          kwds[err_kw] = kwds[err_kw][label]
+                        else: del kwds[err_kw]
+                    elif kwds[err_kw] is not None:
+                        kwds[err_kw] = kwds[err_kw][i]
+
+            label = com.pprint_thing(label)
+
+            if (('yerr' in kwds) or ('xerr' in kwds)) \
+                and (kwds.get('ecolor') is None):
+                kwds['ecolor'] = mpl.rcParams['xtick.color']
 
             start = 0
             if self.log:
@@ -1694,6 +1829,9 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
     x : label or position, default None
     y : label or position, default None
         Allows plotting of one column versus another
+    yerr : DataFrame (with matching labels), Series, list-type (tuple, list,
+        ndarray), or str of column name containing y error values
+    xerr : similar functionality as yerr, but for x error values
     subplots : boolean, default False
         Make separate subplots for each time series
     sharex : boolean, default True
@@ -1807,6 +1945,15 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
             label = kwds.pop('label', label)
             ser = frame[y]
             ser.index.name = label
+
+            for kw in ['xerr', 'yerr']:
+                if (kw in kwds) and \
+                (isinstance(kwds[kw], str) or com.is_integer(kwds[kw])):
+                    try:
+                        kwds[kw] = frame[kwds[kw]]
+                    except (IndexError, KeyError, TypeError):
+                        pass
+
             return plot_series(ser, label=label, kind=kind,
                                use_index=use_index,
                                rot=rot, xticks=xticks, yticks=yticks,
@@ -1876,6 +2023,8 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
     -----
     See matplotlib documentation online for more on this subject
     """
+
+    from pandas import DataFrame
     kind = _get_standard_kind(kind.lower().strip())
     if kind == 'line':
         klass = LinePlot
@@ -2610,6 +2759,7 @@ def _maybe_convert_date(x):
             conv_func = conv._to_ordinalf
         x = conv_func(x)
     return x
+
 
 if __name__ == '__main__':
     # import pandas.rpy.common as com
