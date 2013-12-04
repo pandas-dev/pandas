@@ -145,7 +145,8 @@ def check_output(*popenargs, **kwargs):  # shamelessly taken from Python 2.7 sou
     """
     if 'stdout' in kwargs:
         raise ValueError('stdout argument not allowed, it will be overridden.')
-    process = subprocess.Popen(stdout=subprocess.PIPE, *popenargs, **kwargs)
+    process = subprocess.Popen(stdout=subprocess.PIPE,stderr=subprocess.PIPE,
+                               *popenargs, **kwargs)
     output, unused_err = process.communicate()
     retcode = process.poll()
     if retcode:
@@ -160,7 +161,7 @@ def _default_locale_getter():
     try:
         raw_locales = check_output(['locale -a'], shell=True)
     except subprocess.CalledProcessError as e:
-        raise type(e)("%s, the 'locale -a' command cannot be foundon your "
+        raise type(e)("%s, the 'locale -a' command cannot be found on your "
                       "system" % e)
     return raw_locales
 
