@@ -769,7 +769,7 @@ Bug Fixes
   - Fixed segfault on ``isnull(MultiIndex)`` (now raises an error instead)
     (:issue:`5123`, :issue:`5125`)
   - Allow duplicate indices when performing operations that align
-    (:issue:`5185`)
+    (:issue:`5185`, :issue:`5639`)
   - Compound dtypes in a constructor raise ``NotImplementedError``
     (:issue:`5191`)
   - Bug in comparing duplicate frames (:issue:`4421`) related
