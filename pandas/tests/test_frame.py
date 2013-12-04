@@ -3275,6 +3275,15 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         expected = DataFrame([[False,True],[True,False],[False,False],[True,False]],columns=['A','A'])
         assert_frame_equal(result,expected)
 
+        # mixed column selection
+        # GH 5639
+        dfbool = DataFrame({'one' : Series([True, True, False], index=['a', 'b', 'c']),
+                            'two' : Series([False, False, True, False], index=['a', 'b', 'c', 'd']),
+                            'three': Series([False, True, True, True], index=['a', 'b', 'c', 'd'])})
+        expected = pd.concat([dfbool['one'],dfbool['three'],dfbool['one']],axis=1)
+        result = dfbool[['one', 'three', 'one']]
+        check(result,expected)
+
     def test_insert_benchmark(self):
         # from the vb_suite/frame_methods/frame_insert_columns
         N = 10

@@ -250,10 +250,9 @@ class Block(PandasObject):
             else:
 
                 masked_idx = indexer[indexer != -1]
+                new_items = self.items.take(masked_idx)
                 new_values = com.take_nd(self.values, masked_idx, axis=0,
                                          allow_fill=False)
-                new_items = self.items.take(masked_idx)
-
         # fill if needed
         if needs_fill:
             new_values = com.interpolate_2d(new_values, method=method,
@@ -3192,7 +3191,8 @@ class BlockManager(PandasObject):
         else:
 
             # unique
-            if self.axes[0].is_unique:
+            if self.axes[0].is_unique and new_items.is_unique:
+
                 for block in self.blocks:
 
                     newb = block.reindex_items_from(new_items, copy=copy)
@@ -3201,7 +3201,7 @@ class BlockManager(PandasObject):
 
             # non-unique
             else:
-                rl = self._set_ref_locs()
+                rl = self._set_ref_locs(do_refs='force')
                 for i, idx in enumerate(indexer):
                     blk, lidx = rl[idx]
                     item = new_items.take([i])
