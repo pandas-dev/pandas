@@ -231,42 +231,6 @@ class TestStata(tm.TestCase):
             self.assert_(result == expected)
             self.assert_(isinstance(result, unicode))
 
-    def test_read_write_dta11(self):
-        original = DataFrame([(1, 2, 3, 4)],
-                             columns=['good', 'bäd', '8number', 'astringwithmorethan32characters______'])
-        if compat.PY3:
-            formatted = DataFrame([(1, 2, 3, 4)],
-                                  columns=['good', 'b_d', '_8number', 'astringwithmorethan32characters_'])
-        else:
-            formatted = DataFrame([(1, 2, 3, 4)],
-                                  columns=['good', 'b__d', '_8number', 'astringwithmorethan32characters_'])
-        formatted.index.name = 'index'
-
-        with tm.ensure_clean() as path:
-            with warnings.catch_warnings(record=True) as w:
-                original.to_stata(path, None, False)
-                np.testing.assert_equal(
-                    len(w), 1)  # should get a warning for that format.
-
-            written_and_read_again = self.read_dta(path)
-            tm.assert_frame_equal(written_and_read_again.set_index('index'), formatted)
-
-    def test_read_write_dta12(self):
-        original = DataFrame([(1, 2, 3, 4)],
-                             columns=['astringwithmorethan32characters_1', 'astringwithmorethan32characters_2', '+', '-'])
-        formatted = DataFrame([(1, 2, 3, 4)],
-                              columns=['astringwithmorethan32characters_', '_0astringwithmorethan32character', '_', '_1_'])
-        formatted.index.name = 'index'
-
-        with tm.ensure_clean() as path:
-            with warnings.catch_warnings(record=True) as w:
-                original.to_stata(path, None, False)
-                np.testing.assert_equal(
-                    len(w), 1)  # should get a warning for that format.
-
-            written_and_read_again = self.read_dta(path)
-            tm.assert_frame_equal(written_and_read_again.set_index('index'), formatted)
-
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
