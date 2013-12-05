@@ -21,6 +21,7 @@ import pandas.compat as compat
 
 try:  # mpl optional
     import pandas.tseries.converter as conv
+
     conv.register()  # needs to override so set_xlim works with str/number
 except ImportError:
     pass
@@ -30,69 +31,71 @@ except ImportError:
 # to True.
 mpl_stylesheet = {
     'axes.axisbelow': True,
-     'axes.color_cycle': ['#348ABD',
-      '#7A68A6',
-      '#A60628',
-      '#467821',
-      '#CF4457',
-      '#188487',
-      '#E24A33'],
-     'axes.edgecolor': '#bcbcbc',
-     'axes.facecolor': '#eeeeee',
-     'axes.grid': True,
-     'axes.labelcolor': '#555555',
-     'axes.labelsize': 'large',
-     'axes.linewidth': 1.0,
-     'axes.titlesize': 'x-large',
-     'figure.edgecolor': 'white',
-     'figure.facecolor': 'white',
-     'figure.figsize': (6.0, 4.0),
-     'figure.subplot.hspace': 0.5,
-     'font.family': 'monospace',
-     'font.monospace': ['Andale Mono',
-      'Nimbus Mono L',
-      'Courier New',
-      'Courier',
-      'Fixed',
-      'Terminal',
-      'monospace'],
-     'font.size': 10,
-     'interactive': True,
-     'keymap.all_axes': ['a'],
-     'keymap.back': ['left', 'c', 'backspace'],
-     'keymap.forward': ['right', 'v'],
-     'keymap.fullscreen': ['f'],
-     'keymap.grid': ['g'],
-     'keymap.home': ['h', 'r', 'home'],
-     'keymap.pan': ['p'],
-     'keymap.save': ['s'],
-     'keymap.xscale': ['L', 'k'],
-     'keymap.yscale': ['l'],
-     'keymap.zoom': ['o'],
-     'legend.fancybox': True,
-     'lines.antialiased': True,
-     'lines.linewidth': 1.0,
-     'patch.antialiased': True,
-     'patch.edgecolor': '#EEEEEE',
-     'patch.facecolor': '#348ABD',
-     'patch.linewidth': 0.5,
-     'toolbar': 'toolbar2',
-     'xtick.color': '#555555',
-     'xtick.direction': 'in',
-     'xtick.major.pad': 6.0,
-     'xtick.major.size': 0.0,
-     'xtick.minor.pad': 6.0,
-     'xtick.minor.size': 0.0,
-     'ytick.color': '#555555',
-     'ytick.direction': 'in',
-     'ytick.major.pad': 6.0,
-     'ytick.major.size': 0.0,
-     'ytick.minor.pad': 6.0,
-     'ytick.minor.size': 0.0
+    'axes.color_cycle': ['#348ABD',
+                         '#7A68A6',
+                         '#A60628',
+                         '#467821',
+                         '#CF4457',
+                         '#188487',
+                         '#E24A33'],
+    'axes.edgecolor': '#bcbcbc',
+    'axes.facecolor': '#eeeeee',
+    'axes.grid': True,
+    'axes.labelcolor': '#555555',
+    'axes.labelsize': 'large',
+    'axes.linewidth': 1.0,
+    'axes.titlesize': 'x-large',
+    'figure.edgecolor': 'white',
+    'figure.facecolor': 'white',
+    'figure.figsize': (6.0, 4.0),
+    'figure.subplot.hspace': 0.5,
+    'font.family': 'monospace',
+    'font.monospace': ['Andale Mono',
+                       'Nimbus Mono L',
+                       'Courier New',
+                       'Courier',
+                       'Fixed',
+                       'Terminal',
+                       'monospace'],
+    'font.size': 10,
+    'interactive': True,
+    'keymap.all_axes': ['a'],
+    'keymap.back': ['left', 'c', 'backspace'],
+    'keymap.forward': ['right', 'v'],
+    'keymap.fullscreen': ['f'],
+    'keymap.grid': ['g'],
+    'keymap.home': ['h', 'r', 'home'],
+    'keymap.pan': ['p'],
+    'keymap.save': ['s'],
+    'keymap.xscale': ['L', 'k'],
+    'keymap.yscale': ['l'],
+    'keymap.zoom': ['o'],
+    'legend.fancybox': True,
+    'lines.antialiased': True,
+    'lines.linewidth': 1.0,
+    'patch.antialiased': True,
+    'patch.edgecolor': '#EEEEEE',
+    'patch.facecolor': '#348ABD',
+    'patch.linewidth': 0.5,
+    'toolbar': 'toolbar2',
+    'xtick.color': '#555555',
+    'xtick.direction': 'in',
+    'xtick.major.pad': 6.0,
+    'xtick.major.size': 0.0,
+    'xtick.minor.pad': 6.0,
+    'xtick.minor.size': 0.0,
+    'ytick.color': '#555555',
+    'ytick.direction': 'in',
+    'ytick.major.pad': 6.0,
+    'ytick.major.size': 0.0,
+    'ytick.minor.pad': 6.0,
+    'ytick.minor.size': 0.0
 }
+
 
 def _get_standard_kind(kind):
     return {'density': 'kde'}.get(kind, kind)
+
 
 def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
                          color=None):
@@ -101,6 +104,7 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
     if color is None and colormap is not None:
         if isinstance(colormap, compat.string_types):
             import matplotlib.cm as cm
+
             cmap = colormap
             colormap = cm.get_cmap(colormap)
             if colormap is None:
@@ -118,6 +122,7 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
                 colors = list(colors)
         elif color_type == 'random':
             import random
+
             def random_color(column):
                 random.seed(column)
                 return [random.random() for _ in range(3)]
@@ -127,13 +132,14 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
             raise NotImplementedError
 
     if len(colors) != num_colors:
-        multiple = num_colors//len(colors) - 1
+        multiple = num_colors // len(colors) - 1
         mod = num_colors % len(colors)
 
         colors += multiple * colors
         colors += colors[:mod]
 
     return colors
+
 
 class _Options(dict):
     """
@@ -262,6 +268,7 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
                     ax.hist(values, **hist_kwds)
                 elif diagonal in ('kde', 'density'):
                     from scipy.stats import gaussian_kde
+
                     y = values
                     gkde = gaussian_kde(y)
                     ind = np.linspace(y.min(), y.max(), 1000)
@@ -279,9 +286,9 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
 
             _label_axis(ax, kind='y', label=a, position='left')
 
-            if j!= 0:
+            if j != 0:
                 ax.yaxis.set_visible(False)
-            if i != n-1:
+            if i != n - 1:
                 ax.xaxis.set_visible(False)
 
     for ax in axes.flat:
@@ -290,10 +297,11 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
 
     return axes
 
-def _label_axis(ax, kind='x', label='', position='top',
-    ticks=True, rotate=False):
 
+def _label_axis(ax, kind='x', label='', position='top',
+                ticks=True, rotate=False):
     from matplotlib.artist import setp
+
     if kind == 'x':
         ax.set_xlabel(label, visible=True)
         ax.xaxis.set_visible(True)
@@ -310,21 +318,22 @@ def _label_axis(ax, kind='x', label='', position='top',
     return
 
 
-
-
-
 def _gca():
     import matplotlib.pyplot as plt
+
     return plt.gca()
 
 
 def _gcf():
     import matplotlib.pyplot as plt
+
     return plt.gcf()
+
 
 def _get_marker_compat(marker):
     import matplotlib.lines as mlines
     import matplotlib as mpl
+
     if mpl.__version__ < '1.1.0' and marker == '.':
         return 'o'
     if marker not in mlines.lineMarkers:
@@ -450,6 +459,7 @@ def andrews_curves(data, class_column, ax=None, samples=200, colormap=None,
             if len(amplitudes) % 2 != 0:
                 result += amplitudes[-1] * sin(harmonic * x)
             return result
+
         return f
 
     n = len(data)
@@ -685,6 +695,7 @@ def autocorrelation_plot(series, ax=None):
     ax: Matplotlib axis object
     """
     import matplotlib.pyplot as plt
+
     n = len(series)
     data = np.asarray(series)
     if ax is None:
@@ -694,6 +705,7 @@ def autocorrelation_plot(series, ax=None):
 
     def r(h):
         return ((data[:n - h] - mean) * (data[h:] - mean)).sum() / float(n) / c0
+
     x = np.arange(n) + 1
     y = lmap(r, x)
     z95 = 1.959963984540054
@@ -735,6 +747,7 @@ def grouped_hist(data, column=None, by=None, ax=None, bins=50, figsize=None,
     -------
     axes: collection of Matplotlib Axes
     """
+
     def plot_group(group, ax):
         ax.hist(group.dropna().values, bins=bins, **kwargs)
 
@@ -816,6 +829,7 @@ class MPLPlot(object):
 
     def _validate_color_args(self):
         from pandas import DataFrame
+
         if 'color' not in self.kwds and 'colors' in self.kwds:
             warnings.warn(("'colors' is being deprecated. Please use 'color'"
                            "instead of 'colors'"))
@@ -823,13 +837,14 @@ class MPLPlot(object):
             self.kwds['color'] = colors
 
         if ('color' in self.kwds and
-            (isinstance(self.data, Series) or
-             isinstance(self.data, DataFrame) and len(self.data.columns) == 1)):
+                (isinstance(self.data, Series) or
+                         isinstance(self.data, DataFrame) and len(
+                             self.data.columns) == 1)):
             # support series.plot(color='green')
             self.kwds['color'] = [self.kwds['color']]
 
         if ('color' in self.kwds or 'colors' in self.kwds) and \
-                self.colormap is not None:
+                        self.colormap is not None:
             warnings.warn("'color' and 'colormap' cannot be used "
                           "simultaneously. Using 'color'")
 
@@ -843,6 +858,7 @@ class MPLPlot(object):
 
     def _iter_data(self):
         from pandas.core.frame import DataFrame
+
         if isinstance(self.data, (Series, np.ndarray)):
             yield self.label, np.asarray(self.data)
         elif isinstance(self.data, DataFrame):
@@ -1017,6 +1033,7 @@ class MPLPlot(object):
     @cache_readonly
     def plt(self):
         import matplotlib.pyplot as plt
+
         return plt
 
     _need_to_set_index = False
@@ -1099,6 +1116,7 @@ class MPLPlot(object):
 
     def on_right(self, i):
         from pandas.core.frame import DataFrame
+
         if isinstance(self.secondary_y, bool):
             return self.secondary_y
 
@@ -1126,6 +1144,7 @@ class MPLPlot(object):
 
     def _get_colors(self):
         from pandas.core.frame import DataFrame
+
         if isinstance(self.data, DataFrame):
             num_colors = len(self.data.columns)
         else:
@@ -1150,13 +1169,14 @@ class MPLPlot(object):
 class KdePlot(MPLPlot):
     def __init__(self, data, bw_method=None, ind=None, **kwargs):
         MPLPlot.__init__(self, data, **kwargs)
-        self.bw_method=bw_method
-        self.ind=ind
+        self.bw_method = bw_method
+        self.ind = ind
 
     def _make_plot(self):
         from scipy.stats import gaussian_kde
         from scipy import __version__ as spv
         from distutils.version import LooseVersion
+
         plotf = self._get_plot_function()
         colors = self._get_colors()
         for i, (label, y) in enumerate(self._iter_data()):
@@ -1201,12 +1221,13 @@ class KdePlot(MPLPlot):
             for ax in self.axes:
                 ax.legend(loc='best')
 
+
 class ScatterPlot(MPLPlot):
     def __init__(self, data, x, y, **kwargs):
         MPLPlot.__init__(self, data, **kwargs)
         self.kwds.setdefault('c', self.plt.rcParams['patch.facecolor'])
         if x is None or y is None:
-            raise ValueError( 'scatter requires and x and y column')
+            raise ValueError('scatter requires and x and y column')
         if com.is_integer(x) and not self.data.columns.holds_integer():
             x = self.data.columns[x]
         if com.is_integer(y) and not self.data.columns.holds_integer():
@@ -1228,7 +1249,6 @@ class ScatterPlot(MPLPlot):
 
 
 class LinePlot(MPLPlot):
-
     def __init__(self, data, **kwargs):
         self.mark_right = kwargs.pop('mark_right', True)
         MPLPlot.__init__(self, data, **kwargs)
@@ -1238,6 +1258,7 @@ class LinePlot(MPLPlot):
 
     def _index_freq(self):
         from pandas.core.frame import DataFrame
+
         if isinstance(self.data, (Series, DataFrame)):
             freq = getattr(self.data.index, 'freq', None)
             if freq is None:
@@ -1259,9 +1280,11 @@ class LinePlot(MPLPlot):
     def _no_base(self, freq):
         # hack this for 0.10.1, creating more technical debt...sigh
         from pandas.core.frame import DataFrame
+
         if (isinstance(self.data, (Series, DataFrame))
             and isinstance(self.data.index, DatetimeIndex)):
             import pandas.tseries.frequencies as freqmod
+
             base = freqmod.get_freq(freq)
             x = self.data.index
             if (base <= freqmod.FreqGroup.FR_DAY):
@@ -1333,6 +1356,7 @@ class LinePlot(MPLPlot):
 
     def _make_ts_plot(self, data, **kwargs):
         from pandas.tseries.plotting import tsplot
+
         kwargs = kwargs.copy()
         colors = self._get_colors()
 
@@ -1342,7 +1366,7 @@ class LinePlot(MPLPlot):
 
         def _plot(data, col_num, ax, label, style, **kwds):
             newlines = tsplot(data, plotf, ax=ax, label=label,
-                                style=style, **kwds)
+                              style=style, **kwds)
             ax.grid(self.grid)
             lines.append(newlines[0])
 
@@ -1402,6 +1426,7 @@ class LinePlot(MPLPlot):
         # tsplot converts automatically, but don't want to convert index
         # over and over for DataFrames
         from pandas.core.frame import DataFrame
+
         if (isinstance(data.index, DatetimeIndex) and
                 isinstance(data, DataFrame)):
             freq = getattr(data.index, 'freq', None)
@@ -1455,7 +1480,6 @@ class LinePlot(MPLPlot):
 
 
 class BarPlot(MPLPlot):
-
     _default_rot = {'bar': 90, 'barh': 0}
 
     def __init__(self, data, **kwargs):
@@ -1467,7 +1491,7 @@ class BarPlot(MPLPlot):
         else:
             self.tickoffset = 0.375
         self.bar_width = 0.5
-        self.log = kwargs.pop('log',False)
+        self.log = kwargs.pop('log', False)
         MPLPlot.__init__(self, data, **kwargs)
 
     def _args_adjust(self):
@@ -1478,7 +1502,7 @@ class BarPlot(MPLPlot):
     def bar_f(self):
         if self.kind == 'bar':
             def f(ax, x, y, w, start=None, **kwds):
-                return ax.bar(x, y, w, bottom=start,log=self.log, **kwds)
+                return ax.bar(x, y, w, bottom=start, log=self.log, **kwds)
         elif self.kind == 'barh':
             def f(ax, x, y, w, start=None, log=self.log, **kwds):
                 return ax.barh(x, y, w, left=start, **kwds)
@@ -1519,7 +1543,7 @@ class BarPlot(MPLPlot):
                     start = 0 if mpl_le_1_2_1 else None
 
             if self.subplots:
-                rect = bar_f(ax, self.ax_pos, y,  self.bar_width,
+                rect = bar_f(ax, self.ax_pos, y, self.bar_width,
                              start=start, **kwds)
                 ax.set_title(label)
             elif self.stacked:
@@ -1567,8 +1591,8 @@ class BarPlot(MPLPlot):
                 if name is not None:
                     ax.set_ylabel(name)
 
-        # if self.subplots and self.legend:
-        #    self.axes[0].legend(loc='best')
+                    # if self.subplots and self.legend:
+                    #    self.axes[0].legend(loc='best')
 
 
 class BoxPlot(MPLPlot):
@@ -1585,7 +1609,6 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
                xlim=None, ylim=None, logx=False, logy=False, xticks=None,
                yticks=None, kind='line', sort_columns=False, fontsize=None,
                secondary_y=False, **kwds):
-
     """
     Make line, bar, or scatter plots of DataFrame series with the index on the x-axis
     using matplotlib / pylab.
@@ -1664,8 +1687,8 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
         raise ValueError('Invalid chart type given %s' % kind)
 
     if kind == 'scatter':
-        plot_obj = klass(frame,  x=x, y=y, kind=kind, subplots=subplots,
-                         rot=rot,legend=legend, ax=ax, style=style,
+        plot_obj = klass(frame, x=x, y=y, kind=kind, subplots=subplots,
+                         rot=rot, legend=legend, ax=ax, style=style,
                          fontsize=fontsize, use_index=use_index, sharex=sharex,
                          sharey=sharey, xticks=xticks, yticks=yticks,
                          xlim=xlim, ylim=ylim, title=title, grid=grid,
@@ -1695,7 +1718,8 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
 
         else:
             plot_obj = klass(frame, kind=kind, subplots=subplots, rot=rot,
-                             legend=legend, ax=ax, style=style, fontsize=fontsize,
+                             legend=legend, ax=ax, style=style,
+                             fontsize=fontsize,
                              use_index=use_index, sharex=sharex, sharey=sharey,
                              xticks=xticks, yticks=yticks, xlim=xlim, ylim=ylim,
                              title=title, grid=grid, figsize=figsize, logx=logx,
@@ -1775,6 +1799,7 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
     be ignored.
     """
     import matplotlib.pyplot as plt
+
     if ax is None and len(plt.get_fignums()) > 0:
         ax = _gca()
         if ax.get_yaxis().get_ticks_position().strip().lower() == 'right':
@@ -1829,6 +1854,7 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
     ax : matplotlib.axes.AxesSubplot
     """
     from pandas import Series, DataFrame
+
     if isinstance(data, Series):
         data = DataFrame({'x': data})
         column = 'x'
@@ -1838,11 +1864,12 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
         return _get_standard_colors(color=kwds.get('color'), num_colors=1)
 
     def maybe_color_bp(bp):
-        if 'color' not in kwds :
+        if 'color' not in kwds:
             from matplotlib.artist import setp
-            setp(bp['boxes'],color=colors[0],alpha=1)
-            setp(bp['whiskers'],color=colors[0],alpha=1)
-            setp(bp['medians'],color=colors[2],alpha=1)
+
+            setp(bp['boxes'], color=colors[0], alpha=1)
+            setp(bp['whiskers'], color=colors[0], alpha=1)
+            setp(bp['medians'], color=colors[2], alpha=1)
 
     def plot_group(grouped, ax):
         keys, values = zip(*grouped)
@@ -1916,7 +1943,8 @@ def format_date_labels(ax, rot):
         pass
 
 
-def scatter_plot(data, x, y, by=None, ax=None, figsize=None, grid=False, **kwargs):
+def scatter_plot(data, x, y, by=None, ax=None, figsize=None, grid=False,
+                 **kwargs):
     """
     Make a scatter plot from two DataFrame columns
 
@@ -2018,6 +2046,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
         return axes
 
     import matplotlib.pyplot as plt
+
     n = len(data.columns)
 
     if layout is not None:
@@ -2026,7 +2055,9 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
 
         rows, cols = layout
         if rows * cols < n:
-            raise ValueError('Layout of %sx%s is incompatible with %s columns' % (rows, cols, n))
+            raise ValueError(
+                'Layout of %sx%s is incompatible with %s columns' % (
+                rows, cols, n))
     else:
         rows, cols = 1, 1
         while rows * cols < n:
@@ -2100,9 +2131,9 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
         if kwds.get('layout', None) is not None:
             raise ValueError("The 'layout' keyword is not supported when "
                              "'by' is None")
-        # hack until the plotting interface is a bit more unified
+            # hack until the plotting interface is a bit more unified
         fig = kwds.pop('figure', plt.gcf() if plt.get_fignums() else
-                       plt.figure(figsize=figsize))
+        plt.figure(figsize=figsize))
         if (figsize is not None and tuple(figsize) !=
             tuple(fig.get_size_inches())):
             fig.set_size_inches(*figsize, forward=True)
@@ -2194,6 +2225,7 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
             ret[key] = d
     else:
         from pandas.tools.merge import concat
+
         keys, frames = zip(*grouped)
         if grouped.axis == 0:
             df = concat(frames, keys=keys, axis=1)
@@ -2508,7 +2540,7 @@ def _color_list_to_matrix_and_cmap(color_list, ind, row=True):
     colors = set(color_list)
     col_to_value = {col: i for i, col in enumerate(colors)}
 
-#     ind = column_dendrogram_distances['leaves']
+    #     ind = column_dendrogram_distances['leaves']
     matrix = np.array([col_to_value[col] for col in color_list])[ind]
     # Is this row-side or column side?
     if row:
@@ -2519,9 +2551,6 @@ def _color_list_to_matrix_and_cmap(color_list, ind, row=True):
 
     cmap = mpl.colors.ListedColormap(colors)
     return matrix, cmap
-
-
-
 
 
 def heatmap(df,
@@ -2536,7 +2565,7 @@ def heatmap(df,
             figsize=None,
             label_rows=True,
             label_cols=True,
-            vmin = None,
+            vmin=None,
             vmax=None,
 
             #col_labels=None,
@@ -2547,13 +2576,10 @@ def heatmap(df,
             cluster_cols=True,
             cluster_rows=True,
             plot_df=None):
-
-
     """
     @author Olga Botvinnik olga.botvinnik@gmail.com
 
-    This is liberally borrowed (with permission) from http://nbviewer.ipython.org/github/ucsd-scientific-python/user-group/blob/master/presentations/20131016/hierarchical_clustering_heatmaps_gridspec.ipynb
-
+    This is liberally borrowed (with permission) from http://bit.ly/1eWcYWc
 
     @param df: The dataframe you want to cluster on
     @param title: Title of the figure
@@ -2661,8 +2687,8 @@ def heatmap(df,
     col_dendrogram_ax = fig.add_subplot(heatmap_gridspec[0, ncols - 1])
     if cluster_cols:
         col_dendrogram = sch.dendrogram(col_clusters,
-                                                     color_threshold=np.inf,
-                                                     color_list=[almost_black])
+                                        color_threshold=np.inf,
+                                        color_list=[almost_black])
     else:
         col_dendrogram = {'leaves': list(range(df.shape[1]))}
     _clean_axis(col_dendrogram_ax)
@@ -2724,7 +2750,7 @@ def heatmap(df,
             label_rows = True
         else:
             raise AssertionError("Length of 'label_rows' must be the same as "
-                                "df.shape[0]")
+                                 "df.shape[0]")
     elif label_rows:
         yticklabels = df.index
 
@@ -2745,7 +2771,7 @@ def heatmap(df,
             label_cols = True
         else:
             raise AssertionError("Length of 'label_cols' must be the same as "
-                                "df.shape[1]")
+                                 "df.shape[1]")
     elif label_cols:
         xticklabels = df.columns
 
@@ -2766,8 +2792,10 @@ def heatmap(df,
     scale_colorbar_ax = fig.add_subplot(
         heatmap_gridspec[0:(nrows - 1),
         0]) # colorbar for scale in upper left corner
+
+    # note that we could pass the norm explicitly with norm=my_norm
     cb = fig.colorbar(heatmap_ax_pcolormesh,
-                      cax=scale_colorbar_ax) # note that we could pass the norm explicitly with norm=my_norm
+                      cax=scale_colorbar_ax)
     cb.set_label(colorbar_label)
 
     # move ticks to left side of colorbar to avoid problems with tight_layout
@@ -2782,6 +2810,7 @@ def heatmap(df,
     fig.tight_layout()
     return fig, row_dendrogram, col_dendrogram
 
+
 if __name__ == '__main__':
     # import pandas.rpy.common as com
     # sales = com.load_data('sanfrancisco.home.sales', package='nutshell')
@@ -2795,6 +2824,7 @@ if __name__ == '__main__':
 
     import pandas.tools.plotting as plots
     import pandas.core.frame as fr
+
     reload(plots)
     reload(fr)
     from pandas.core.frame import DataFrame
