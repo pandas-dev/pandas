@@ -2678,11 +2678,11 @@ def heatmap(df,
     # TODO: Add optimal leaf ordering for clusters
     # TODO: if color_scale is 'log', should distance also be on np.log(df)?
     # calculate pairwise distances for rows
-    row_pairwise_dists = distance.squareform(distance.pdist(df))
+    row_pairwise_dists = distance.squareform(distance.pdist(np.log10(df)))
     row_clusters = sch.linkage(row_pairwise_dists, method=row_linkage_method)
 
     # calculate pairwise distances for columns
-    col_pairwise_dists = distance.squareform(distance.pdist(df.T))
+    col_pairwise_dists = distance.squareform(distance.pdist(np.log10(df.T)))
     # cluster
     col_clusters = sch.linkage(col_pairwise_dists, method=col_linkage_method)
 
