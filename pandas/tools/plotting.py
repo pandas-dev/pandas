@@ -2726,9 +2726,10 @@ def heatmap(df,
             raise AssertionError("Length of 'label_rows' must be the same as "
                                 "df.shape[0]")
     elif label_rows:
-        yticklabels = df.index[row_dendrogram['leaves']]
+        yticklabels = df.index
 
     if label_rows:
+        yticklabels = yticklabels[row_dendrogram['leaves']]
         heatmap_ax.set_yticks(np.arange(df.shape[0]) + 0.5)
         heatmap_ax.yaxis.set_ticks_position('right')
         heatmap_ax.set_yticklabels(yticklabels, fontsize=ylabel_fontsize)
@@ -2746,9 +2747,10 @@ def heatmap(df,
             raise AssertionError("Length of 'label_cols' must be the same as "
                                 "df.shape[1]")
     elif label_cols:
-        xticklabels = df.columns[col_dendrogram['leaves']]
+        xticklabels = df.columns
 
     if label_cols:
+        xticklabels = xticklabels[col_dendrogram['leaves']]
         heatmap_ax.set_xticks(np.arange(df.shape[1]) + 0.5)
         xticklabels = heatmap_ax.set_xticklabels(xticklabels,
                                                  fontsize=xlabel_fontsize)
