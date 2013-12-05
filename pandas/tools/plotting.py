@@ -2623,7 +2623,7 @@ def heatmap(df,
 
     almost_black = '#262626'
     sch.set_link_color_palette([almost_black])
-    if type(plot_df) is type(None):
+    if plot_df is None:
         plot_df = df
 
     if any(plot_df.index != df.index):
@@ -2761,7 +2761,7 @@ def heatmap(df,
         yticklabels = df.index
 
     if label_rows:
-        yticklabels = yticklabels[row_dendrogram['leaves']]
+        yticklabels = [yticklabels[i] for i in row_dendrogram['leaves']]
         heatmap_ax.set_yticks(np.arange(df.shape[0]) + 0.5)
         heatmap_ax.yaxis.set_ticks_position('right')
         heatmap_ax.set_yticklabels(yticklabels, fontsize=ylabel_fontsize)
@@ -2782,7 +2782,7 @@ def heatmap(df,
         xticklabels = df.columns
 
     if label_cols:
-        xticklabels = xticklabels[col_dendrogram['leaves']]
+        xticklabels = [xticklabels[i] for i in col_dendrogram['leaves']]
         heatmap_ax.set_xticks(np.arange(df.shape[1]) + 0.5)
         xticklabels = heatmap_ax.set_xticklabels(xticklabels,
                                                  fontsize=xlabel_fontsize)
