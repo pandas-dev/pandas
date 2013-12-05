@@ -2678,7 +2678,7 @@ def heatmap(df,
     height = min(df.shape[0] * .75, 40)
     if figsize is None:
         figsize = (width, height)
-    print figsize
+    #print figsize
 
     fig = plt.figure(figsize=figsize)
     heatmap_gridspec = \
