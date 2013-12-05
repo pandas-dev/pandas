@@ -2538,7 +2538,7 @@ def _color_list_to_matrix_and_cmap(color_list, ind, row=True):
     import matplotlib as mpl
 
     colors = set(color_list)
-    col_to_value = {col: i for i, col in enumerate(colors)}
+    col_to_value = dict((col, i) for i, col in enumerate(colors))
 
     #     ind = column_dendrogram_distances['leaves']
     matrix = np.array([col_to_value[col] for col in color_list])[ind]
@@ -2623,7 +2623,7 @@ def heatmap(df,
 
     almost_black = '#262626'
     sch.set_link_color_palette([almost_black])
-    if type(plot_df) is type(None):
+    if isinstance(plot_df) is type(None):
         plot_df = df
 
     if any(plot_df.index != df.index):
