@@ -2756,7 +2756,8 @@ def heatmap(df,
             label_rows = True
         else:
             raise AssertionError("Length of 'label_rows' must be the same as "
-                                 "df.shape[0]")
+                                 "df.shape[0] (len(label_rows)={}, df.shape["
+                                 "0]={})".format(len(label_rows), df.shape[0]))
     elif label_rows:
         yticklabels = df.index
 
@@ -2777,7 +2778,8 @@ def heatmap(df,
             label_cols = True
         else:
             raise AssertionError("Length of 'label_cols' must be the same as "
-                                 "df.shape[1]")
+                                 "df.shape[1] (len(label_cols)={}, df.shape["
+                                 "1]={})".format(len(label_cols), df.shape[1]))
     elif label_cols:
         xticklabels = df.columns
 
