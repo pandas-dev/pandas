@@ -846,9 +846,11 @@ class HTMLFormatter(TableFormatter):
 
         frame = self.frame
         ncols = min(len(self.columns), self.max_cols)
+        nrows = min(len(self.frame), self.max_rows)
+
         truncate = (len(frame) > self.max_rows)
 
-        idx_values = frame.index.format(sparsify=False, adjoin=False,
+        idx_values = frame.index[:nrows].format(sparsify=False, adjoin=False,
                                         names=False)
         idx_values = lzip(*idx_values)
 
@@ -856,8 +858,8 @@ class HTMLFormatter(TableFormatter):
 
             # GH3547
             sentinal = com.sentinal_factory()
-            levels = frame.index.format(sparsify=sentinal, adjoin=False,
-                                        names=False)
+            levels = frame.index[:nrows].format(sparsify=sentinal,
+                                                adjoin=False, names=False)
             # Truncate row names
             if truncate:
                 levels = [lev[:self.max_rows] for lev in levels]

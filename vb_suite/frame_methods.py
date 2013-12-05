@@ -157,7 +157,35 @@ df[1]=range(nrows)
 """
 
 frame_to_html_mixed = Benchmark('df.to_html()', setup,
-                                   start_date=datetime(2010, 6, 1))
+                                   start_date=datetime(2011, 11, 18))
+
+
+# truncated repr_html, single index
+
+setup = common_setup + """
+nrows=10000
+data=randn(nrows,10)
+idx=MultiIndex.from_arrays(np.tile(randn(3,nrows/100),100))
+df=DataFrame(data,index=idx)
+
+"""
+
+frame_html_repr_trunc_mi = Benchmark('df._repr_html_()', setup,
+                                   start_date=datetime(2013, 11, 25))
+
+# truncated repr_html, MultiIndex
+
+setup = common_setup + """
+nrows=10000
+data=randn(nrows,10)
+idx=randn(nrows)
+df=DataFrame(data,index=idx)
+
+"""
+
+frame_html_repr_trunc_si = Benchmark('df._repr_html_()', setup,
+                                   start_date=datetime(2013, 11, 25))
+
 
 # insert many columns
 
