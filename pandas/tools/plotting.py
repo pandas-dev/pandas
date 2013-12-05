@@ -2550,10 +2550,10 @@ def heatmap(df,
 
 
     """
-
     @author Olga Botvinnik olga.botvinnik@gmail.com
 
     This is liberally borrowed (with permission) from http://nbviewer.ipython.org/github/ucsd-scientific-python/user-group/blob/master/presentations/20131016/hierarchical_clustering_heatmaps_gridspec.ipynb
+
 
     @param df: The dataframe you want to cluster on
     @param title: Title of the figure
