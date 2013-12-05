@@ -2643,8 +2643,6 @@ def heatmap(df,
         vmin = max(np.floor(df.dropna(how='all').min().dropna().min()), 1e-10)
         vmax = np.ceil(df.dropna(how='all').max().dropna().max())
         my_norm = mpl.colors.LogNorm(vmin, vmax)
-        print 'vmax', vmax
-        print 'vmin', vmin
     elif divergent:
         abs_max = abs(df.max().max())
         abs_min = abs(df.min().min())
