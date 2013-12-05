@@ -2536,6 +2536,8 @@ def heatmap(df,
             figsize=None,
             label_rows=True,
             label_cols=True,
+            vmin = None,
+            vmax=None,
 
             #col_labels=None,
             #row_labels=None,
@@ -2553,26 +2555,38 @@ def heatmap(df,
 
     This is liberally borrowed (with permission) from http://nbviewer.ipython.org/github/ucsd-scientific-python/user-group/blob/master/presentations/20131016/hierarchical_clustering_heatmaps_gridspec.ipynb
 
-    @param df:
-    @param title:
-    @param colorbar_label:
-    @param col_side_colors:
-    @param row_side_colors:
-    @param color_scale:
-    @param cmap:
-    @param figsize:
+    @param df: The dataframe you want to cluster on
+    @param title: Title of the figure
+    @param colorbar_label: What to colorbar (color scale of the heatmap)
+    @param col_side_colors: Label the columns with a color
+    @param row_side_colors: Label the rows with a color
+    @param color_scale: Either 'linear' or 'log'
+    @param cmap: A matplotlib colormap, default is mpl.cm.Blues_r if data is
+    sequential, or mpl.cm.RdBu_r if data is divergent (has both positive and
+    negative numbers)
+    @param figsize: Size of the figure. The default is a function of the
+    dataframe size.
     @param label_rows: Can be boolean or a list of strings, with exactly the
     length of the number of rows in df.
     @param label_cols: Can be boolean or a list of strings, with exactly the
     length of the number of columns in df.
-    @param col_labels:
-    @param row_labels:
-    @param xlabel_fontsize:
-    @param ylabel_fontsize:
-    @param cluster_cols:
+    @param col_labels: If True, label with df.columns. If False, unlabeled.
+    Else, this can be an iterable to relabel the columns with labels of your own
+    choosing. This is helpful if you have duplicate column names and pandas
+    won't let you reindex it.
+    @param row_labels: If True, label with df.index. If False, unlabeled.
+    Else, this can be an iterable to relabel the row names with labels of your
+    own choosing. This is helpful if you have duplicate index names and pandas
+    won't let you reindex it.
+    @param xlabel_fontsize: Default 12pt
+    @param ylabel_fontsize: Default 10pt
+    @param cluster_cols: Boolean, whether or not to cluster the columns
     @param cluster_rows:
-    @param plot_df:
-    @return: @rtype: @raise TypeError:
+    @param plot_df: The dataframe you want to plot. This can contain NAs and
+    other nasty things.
+    @return: fig, row_dendrogram, col_dendrogram
+    @rtype: matplotlib.figure.Figure, dict, dict
+    @raise TypeError:
     """
     import matplotlib.pyplot as plt
     import matplotlib.gridspec as gridspec
