@@ -2575,9 +2575,10 @@ def heatmap(df,
             ylabel_fontsize=10,
             cluster_cols=True,
             cluster_rows=True,
-            linewidth=0.0001,
+            linewidth=0,
             edgecolor='white',
-            plot_df=None):
+            plot_df=None,
+            colorbar_ticklabels_fontsize=10):
     """
     @author Olga Botvinnik olga.botvinnik@gmail.com
 
@@ -2618,7 +2619,7 @@ def heatmap(df,
     :param vmin: Minimum value to plot on heatmap
     :param vmax: Maximum value to plot on heatmap
     :param linewidth: Linewidth of lines around heatmap box elements
-    (default 0.0001)
+    (default 0)
     :param edgecolor: Color of lines around heatmap box elements (default
     white)
     """
@@ -2651,22 +2652,25 @@ def heatmap(df,
     divergent = df.max().max() > 0 and df.min().min() < 0
 
     if color_scale == 'log':
-        vmin = max(np.floor(df.dropna(how='all').min().dropna().min()), 1e-10)
-        vmax = np.ceil(df.dropna(how='all').max().dropna().max())
+        if vmin is None:
+            vmin = max(np.floor(df.dropna(how='all').min().dropna().min()), 1e-10)
+        if vmax is None:
+            vmax = np.ceil(df.dropna(how='all').max().dropna().max())
         my_norm = mpl.colors.LogNorm(vmin, vmax)
     elif divergent:
         abs_max = abs(df.max().max())
         abs_min = abs(df.min().min())
-        vmax = max(abs_max, abs_min)
-        my_norm = mpl.colors.Normalize(vmin=-vmax, vmax=vmax)
+        vmaxx = max(abs_max, abs_min)
+        my_norm = mpl.colors.Normalize(vmin=-vmaxx, vmax=vmaxx)
     else:
-        my_norm = None
+        my_norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
 
     if cmap is None:
         cmap = mpl.cm.RdBu_r if divergent else mpl.cm.YlGnBu
         cmap.set_bad('white')
 
     # TODO: Add optimal leaf ordering for clusters
+    # TODO: if color_scale is 'log', should distance also be on np.log(df) ?
     # calculate pairwise distances for rows
     row_pairwise_dists = distance.squareform(distance.pdist(df))
     row_clusters = sch.linkage(row_pairwise_dists, method=row_linkage_method)
@@ -2721,7 +2725,7 @@ def heatmap(df,
             row=False)
         column_colorbar_ax_pcolormesh = column_colorbar_ax.pcolormesh(
             col_side_matrix, cmap=col_cmap,
-            edgecolors='white', linewidth=linewidth)
+            edgecolor=edgecolor, linewidth=linewidth)
         column_colorbar_ax.set_xlim(0, col_side_matrix.shape[1])
         _clean_axis(column_colorbar_ax)
 
@@ -2745,7 +2749,7 @@ def heatmap(df,
             ind=row_dendrogram['leaves'],
             row=True)
         row_colorbar_ax.pcolormesh(row_side_matrix, cmap=row_cmap,
-                                   edgecolors='white', linewidth=linewidth)
+                                   edgecolors=edgecolor, linewidth=linewidth)
         row_colorbar_ax.set_ylim(0, row_side_matrix.shape[0])
         _clean_axis(row_colorbar_ax)
 
@@ -2755,7 +2759,7 @@ def heatmap(df,
         heatmap_ax.pcolormesh(plot_df.ix[row_dendrogram['leaves'],
                                          col_dendrogram['leaves']].values,
                               norm=my_norm, cmap=cmap,
-                              edgecolors='white',
+                              edgecolor=edgecolor,
                               lw=linewidth)
 
     heatmap_ax.set_ylim(0, df.shape[0])
@@ -2826,7 +2830,7 @@ def heatmap(df,
     # make colorbar labels smaller
     yticklabels = cb.ax.yaxis.get_ticklabels()
     for t in yticklabels:
-        t.set_fontsize(t.get_fontsize() - 3)
+        t.set_fontsize(colorbar_ticklabels_fontsize)
 
     fig.tight_layout()
     return fig, row_dendrogram, col_dendrogram
