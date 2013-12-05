@@ -2488,6 +2488,285 @@ def _maybe_convert_date(x):
         x = conv_func(x)
     return x
 
+# helper for cleaning up axes by removing ticks, tick labels, frame, etc.
+def _clean_axis(ax):
+    """Remove ticks, tick labels, and frame from axis"""
+    ax.get_xaxis().set_ticks([])
+    ax.get_yaxis().set_ticks([])
+    for sp in ax.spines.values():
+        sp.set_visible(False)
+
+
+def _color_list_to_matrix_and_cmap(color_list, ind, row=True):
+    """
+    For 'heatmap()'
+    This only works for 1-column color lists..
+    TODO: Support multiple color labels on an element in the heatmap
+    """
+    import matplotlib as mpl
+
+    colors = set(color_list)
+    col_to_value = {col: i for i, col in enumerate(colors)}
+
+#     ind = column_dendrogram_distances['leaves']
+    matrix = np.array([col_to_value[col] for col in color_list])[ind]
+    print 'matrix.shape', matrix.shape,
+    print 'len(color_list)', len(color_list)
+    # Is this row-side or column side?
+    if row:
+        new_shape = (len(color_list), 1)
+    else:
+        new_shape = (1, len(color_list))
+    matrix = matrix.reshape(new_shape)
+
+    cmap = mpl.colors.ListedColormap(colors)
+    return matrix, cmap
+
+
+
+
+
+def heatmap(df, title=None, colorbar_label='values',
+            col_side_colors=None, row_side_colors=None,
+            color_scale='linear', cmap=None,
+            row_linkage_method='complete',
+            col_linkage_method='complete',
+            figsize=None,
+            label_rows=True,
+            label_cols=True,
+
+            #col_labels=None,
+            #row_labels=None,
+
+            xlabel_fontsize=12,
+            ylabel_fontsize=10,
+            cluster_cols=True,
+            cluster_rows=True,
+            plot_df=None):
+
+
+    """
+
+    @author Olga Botvinnik olga.botvinnik@gmail.com
+
+    @param df:
+    @param title:
+    @param colorbar_label:
+    @param col_side_colors:
+    @param row_side_colors:
+    @param color_scale:
+    @param cmap:
+    @param figsize:
+    @param label_rows: Can be boolean or a list of strings, with exactly the
+    length of the number of rows in df.
+    @param label_cols: Can be boolean or a list of strings, with exactly the
+    length of the number of columns in df.
+    @param col_labels:
+    @param row_labels:
+    @param xlabel_fontsize:
+    @param ylabel_fontsize:
+    @param cluster_cols:
+    @param cluster_rows:
+    @param plot_df:
+    @return: @rtype: @raise TypeError:
+    """
+    import matplotlib.pyplot as plt
+    import matplotlib.gridspec as gridspec
+    import scipy.spatial.distance as distance
+    import scipy.cluster.hierarchy as sch
+    import matplotlib as mpl
+    from collections import Iterable
+
+    almost_black = '#262626'
+    sch.set_link_color_palette([almost_black])
+    if type(plot_df) is None:
+        plot_df = df
+
+    if any(plot_df.index != df.index):
+        raise TypeError('plot_df must have the exact same indices as df')
+    if any(plot_df.columns != df.columns):
+        raise TypeError('plot_df must have the exact same columns as df')
+        # make norm
+    divergent = df.max().max() > 0 and df.min().min() < 0
+
+    if color_scale == 'log':
+        vmin = max(np.floor(df.dropna(how='all').min().dropna().min()), 1e-10)
+        vmax = np.ceil(df.dropna(how='all').max().dropna().max())
+        my_norm = mpl.colors.LogNorm(vmin, vmax)
+        print 'vmax', vmax
+        print 'vmin', vmin
+    elif divergent:
+        abs_max = abs(df.max().max())
+        abs_min = abs(df.min().min())
+        vmax = max(abs_max, abs_min)
+        my_norm = mpl.colors.Normalize(vmin=-vmax, vmax=vmax)
+    else:
+        my_norm = None
+
+    if cmap is None:
+        cmap = mpl.cm.RdBu_r if divergent else mpl.cm.Blues_r
+        cmap.set_bad('white')
+
+    # calculate pairwise distances for rows
+    row_pairwise_dists = distance.squareform(distance.pdist(df))
+    row_clusters = sch.linkage(row_pairwise_dists, method=row_linkage_method)
+
+    # calculate pairwise distances for columns
+    col_pairwise_dists = distance.squareform(distance.pdist(df.T))
+    # cluster
+    col_clusters = sch.linkage(col_pairwise_dists, method=col_linkage_method)
+
+    # heatmap with row names
+    dendrogram_height_fraction = df.shape[0] * 0.25 / df.shape[0]
+    dendrogram_width_fraction = df.shape[1] * 0.25 / df.shape[1]
+    width_ratios = [dendrogram_width_fraction, 1] \
+        if row_side_colors is None else [dendrogram_width_fraction, 0.05, 1]
+    height_ratios = [dendrogram_height_fraction, 1] \
+        if col_side_colors is None else [dendrogram_height_fraction, 0.05, 1]
+    nrows = 2 if col_side_colors is None else 3
+    ncols = 2 if row_side_colors is None else 3
+
+    print 'width_ratios', width_ratios
+    print 'height_ratios', height_ratios
+
+    width = df.shape[1] * 0.25
+    height = min(df.shape[0] * .75, 40)
+    if figsize is None:
+        figsize = (width, height)
+    print figsize
+
+    fig = plt.figure(figsize=figsize)
+    heatmap_gridspec = \
+        gridspec.GridSpec(nrows, ncols, wspace=0.0, hspace=0.0,
+                          width_ratios=width_ratios,
+                          height_ratios=height_ratios)
+    #     print heatmap_gridspec
+
+    ### col dendrogram ###
+    column_dendrogram_ax = fig.add_subplot(heatmap_gridspec[0, ncols - 1])
+    if cluster_cols:
+        column_dendrogram_distances = sch.dendrogram(col_clusters,
+                                                     color_threshold=np.inf,
+                                                     color_list=[
+                                                         ppl.almost_black])
+    else:
+        column_dendrogram_distances = {'leaves': range(df.shape[1])}
+    _clean_axis(column_dendrogram_ax)
+
+    ### col colorbar ###
+    if col_side_colors is not None:
+        column_colorbar_ax = fig.add_subplot(heatmap_gridspec[1, ncols - 1])
+        col_side_matrix, col_cmap = _color_list_to_matrix_and_cmap(
+            col_side_colors,
+            ind=column_dendrogram_distances['leaves'],
+            row=False)
+        column_colorbar_ax_pcolormesh = column_colorbar_ax.pcolormesh(
+            col_side_matrix, cmap=col_cmap,
+            edgecolors='white', linewidth=0.1)
+        column_colorbar_ax.set_xlim(0, col_side_matrix.shape[1])
+        _clean_axis(column_colorbar_ax)
+
+    ### row dendrogram ###
+    row_dendrogram_ax = fig.add_subplot(heatmap_gridspec[nrows - 1, 0])
+    if cluster_rows:
+        row_dendrogram_distances = \
+            sch.dendrogram(row_clusters,
+                           color_threshold=np.inf,
+                           orientation='right',
+                           color_list=[ppl.almost_black])
+    else:
+        row_dendrogram_distances = {'leaves': range(df.shape[0])}
+    _clean_axis(row_dendrogram_ax)
+
+    ### row colorbar ###
+    if row_side_colors is not None:
+        row_colorbar_ax = fig.add_subplot(heatmap_gridspec[nrows - 1, 1])
+        row_side_matrix, row_cmap = _color_list_to_matrix_and_cmap(
+            row_side_colors,
+            ind=row_dendrogram_distances['leaves'],
+            row=True)
+        row_colorbar_ax_pcolormesh = row_colorbar_ax.pcolormesh(row_side_matrix,
+                                                                cmap=row_cmap,
+                                                                edgecolors='white',
+                                                                linewidth=0.1)
+        row_colorbar_ax.set_ylim(0, row_side_matrix.shape[0])
+        _clean_axis(row_colorbar_ax)
+
+    ### heatmap ####
+    heatmap_ax = fig.add_subplot(heatmap_gridspec[nrows - 1, ncols - 1])
+    heatmap_ax_pcolormesh = \
+        heatmap_ax.pcolormesh(plot_df.ix[row_dendrogram_distances[
+                                             'leaves'],
+                                         column_dendrogram_distances[
+                                             'leaves']].values,
+                              norm=my_norm, cmap=cmap)
+    heatmap_ax.set_ylim(0, df.shape[0])
+    heatmap_ax.set_xlim(0, df.shape[1])
+    _clean_axis(heatmap_ax)
+
+    ## row labels ##
+    if isinstance(label_rows, Iterable):
+        if len(label_rows) == df.shape[0]:
+            yticklabels = label_rows
+            label_rows = True
+        else:
+            raise BaseException("Length of 'label_rows' must be the same as "
+                                "df.shape[0]")
+    elif label_rows:
+        yticklabels = df.index[row_dendrogram_distances['leaves']]
+
+    if label_rows:
+        heatmap_ax.set_yticks(np.arange(df.shape[0]) + 0.5)
+        heatmap_ax.yaxis.set_ticks_position('right')
+        heatmap_ax.set_yticklabels(yticklabels, fontsize=ylabel_fontsize)
+
+    # Add title if there is one:
+    if title is not None:
+        heatmap_ax.set_title(title)
+
+    ## col labels ##
+    if isinstance(label_cols, Iterable):
+        if len(label_cols) == df.shape[0]:
+            xticklabels = label_rows
+            label_cols = True
+        else:
+            raise BaseException("Length of 'label_cols' must be the same as "
+                                "df.shape[1]")
+    elif label_rows:
+        xticklabels = df.columns[column_dendrogram_distances['leaves']]
+
+    if label_cols:
+        heatmap_ax.set_xticks(np.arange(df.shape[1]) + 0.5)
+        xticklabels = heatmap_ax.set_xticklabels(xticklabels,
+                                                 fontsize=xlabel_fontsize)
+        # rotate labels 90 degrees
+        for label in xticklabels:
+            label.set_rotation(90)
+
+    # remove the tick lines
+    for l in heatmap_ax.get_xticklines() + heatmap_ax.get_yticklines():
+        l.set_markersize(0)
+
+    ### scale colorbar ###
+    scale_colorbar_ax = fig.add_subplot(
+        heatmap_gridspec[0:(nrows - 1),
+        0]) # colorbar for scale in upper left corner
+    cb = fig.colorbar(heatmap_ax_pcolormesh,
+                      cax=scale_colorbar_ax) # note that we could pass the norm explicitly with norm=my_norm
+    cb.set_label(colorbar_label)
+    cb.ax.yaxis.set_ticks_position(
+        'left') # move ticks to left side of colorbar to avoid problems with tight_layout
+    cb.ax.yaxis.set_label_position(
+        'left') # move label to left side of colorbar to avoid problems with tight_layout
+    cb.outline.set_linewidth(0)
+    # make colorbar labels smaller
+    yticklabels = cb.ax.yaxis.get_ticklabels()
+    for t in yticklabels:
+        t.set_fontsize(t.get_fontsize() - 3)
+
+    fig.tight_layout()
+    return fig, row_dendrogram_distances, column_dendrogram_distances
+
 if __name__ == '__main__':
     # import pandas.rpy.common as com
     # sales = com.load_data('sanfrancisco.home.sales', package='nutshell')
