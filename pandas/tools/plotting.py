@@ -2623,7 +2623,7 @@ def heatmap(df,
 
     almost_black = '#262626'
     sch.set_link_color_palette([almost_black])
-    if isinstance(plot_df) is type(None):
+    if type(plot_df) is type(None):
         plot_df = df
 
     if any(plot_df.index != df.index):
