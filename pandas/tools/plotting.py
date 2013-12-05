@@ -2555,6 +2555,7 @@ def _color_list_to_matrix_and_cmap(color_list, ind, row=True):
 
 def heatmap(df,
             title=None,
+            title_fontsize=12,
             colorbar_label='values',
             col_side_colors=None,
             row_side_colors=None,
@@ -2578,11 +2579,16 @@ def heatmap(df,
             linewidth=0,
             edgecolor='white',
             plot_df=None,
-            colorbar_ticklabels_fontsize=10):
+            colorbar_ticklabels_fontsize=10,
+            colorbar_loc="upper left"):
     """
     @author Olga Botvinnik olga.botvinnik@gmail.com
 
 
+    :param title_fontsize:
+    :param colorbar_ticklabels_fontsize:
+    :param colorbar_loc: Can be 'upper left' (in the corner), 'right',
+    or 'bottom'
     This is liberally borrowed (with permission) from http://bit.ly/1eWcYWc
 
     :param df: The dataframe you want to cluster on
@@ -2670,7 +2676,7 @@ def heatmap(df,
         cmap.set_bad('white')
 
     # TODO: Add optimal leaf ordering for clusters
-    # TODO: if color_scale is 'log', should distance also be on np.log(df) ?
+    # TODO: if color_scale is 'log', should distance also be on np.log(df)?
     # calculate pairwise distances for rows
     row_pairwise_dists = distance.squareform(distance.pdist(df))
     row_clusters = sch.linkage(row_pairwise_dists, method=row_linkage_method)
@@ -2681,14 +2687,39 @@ def heatmap(df,
     col_clusters = sch.linkage(col_pairwise_dists, method=col_linkage_method)
 
     # heatmap with row names
-    dendrogram_height_fraction = df.shape[0] * 0.25 / df.shape[0]
-    dendrogram_width_fraction = df.shape[1] * 0.25 / df.shape[1]
-    width_ratios = [dendrogram_width_fraction, 1] \
-        if row_side_colors is None else [dendrogram_width_fraction, 0.05, 1]
-    height_ratios = [dendrogram_height_fraction, 1] \
-        if col_side_colors is None else [dendrogram_height_fraction, 0.05, 1]
-    nrows = 2 if col_side_colors is None else 3
-    ncols = 2 if row_side_colors is None else 3
+
+    def get_width_ratios(half_width, side_colors,
+                         colorbar_loc, dimension, side_colors_ratio=0.05):
+        if colorbar_loc not in ('upper left', 'right', 'bottom'):
+            raise AssertionError("{} is not a valid 'colorbar_loc' (valid: "
+                                 "'upper left', 'right', 'bottom')".format(
+                colorbar_loc))
+        if dimension not in ('height', 'width'):
+            raise AssertionError("{} is not a valid 'dimension' (valid: "
+                                 "'height', 'width')".format(
+                dimension))
+
+        ratios = [half_width, half_width]
+        if side_colors:
+            ratios += [side_colors_ratio]
+
+        if (colorbar_loc == 'right' and dimension == 'width') or (
+                    colorbar_loc == 'bottom' and dimension == 'height'):
+            return ratios + [1, 0.05]
+        else:
+            return ratios + [1]
+
+
+    col_dendrogram_half_height = df.shape[0] * 0.1 / df.shape[0]
+    row_dendrogram_half_width = df.shape[1] * 0.1 / df.shape[1]
+    width_ratios = get_width_ratios(row_dendrogram_half_width,
+                                    row_side_colors,
+                                    colorbar_loc, dimension='width')
+    height_ratios = get_width_ratios(col_dendrogram_half_height,
+                                     col_side_colors,
+                                     colorbar_loc, dimension='height')
+    nrows = 3 if col_side_colors is None else 4
+    ncols = 3 if row_side_colors is None else 4
 
     width = df.shape[1] * 0.25
     height = min(df.shape[0] * .75, 40)
@@ -2706,7 +2737,7 @@ def heatmap(df,
     #     print heatmap_gridspec
 
     ### col dendrogram ###
-    col_dendrogram_ax = fig.add_subplot(heatmap_gridspec[0, ncols - 1])
+    col_dendrogram_ax = fig.add_subplot(heatmap_gridspec[1, ncols - 1])
     if cluster_cols:
         col_dendrogram = sch.dendrogram(col_clusters,
                                         color_threshold=np.inf,
@@ -2718,7 +2749,7 @@ def heatmap(df,
     # TODO: Allow for array of color labels
     ### col colorbar ###
     if col_side_colors is not None:
-        column_colorbar_ax = fig.add_subplot(heatmap_gridspec[1, ncols - 1])
+        column_colorbar_ax = fig.add_subplot(heatmap_gridspec[2, ncols - 1])
         col_side_matrix, col_cmap = _color_list_to_matrix_and_cmap(
             col_side_colors,
             ind=col_dendrogram['leaves'],
@@ -2730,7 +2761,7 @@ def heatmap(df,
         _clean_axis(column_colorbar_ax)
 
     ### row dendrogram ###
-    row_dendrogram_ax = fig.add_subplot(heatmap_gridspec[nrows - 1, 0])
+    row_dendrogram_ax = fig.add_subplot(heatmap_gridspec[nrows - 1, 1])
     if cluster_rows:
         row_dendrogram = \
             sch.dendrogram(row_clusters,
@@ -2743,7 +2774,7 @@ def heatmap(df,
 
     ### row colorbar ###
     if row_side_colors is not None:
-        row_colorbar_ax = fig.add_subplot(heatmap_gridspec[nrows - 1, 1])
+        row_colorbar_ax = fig.add_subplot(heatmap_gridspec[nrows - 1, 2])
         row_side_matrix, row_cmap = _color_list_to_matrix_and_cmap(
             row_side_colors,
             ind=row_dendrogram['leaves'],
@@ -2786,7 +2817,7 @@ def heatmap(df,
 
     # Add title if there is one:
     if title is not None:
-        col_dendrogram_ax.set_title(title)
+        col_dendrogram_ax.set_title(title, fontsize=title_fontsize)
 
     ## col labels ##
     if isinstance(label_cols, Iterable):
@@ -2826,6 +2857,10 @@ def heatmap(df,
     # move ticks to left side of colorbar to avoid problems with tight_layout
     cb.ax.yaxis.set_ticks_position('left')
     cb.outline.set_linewidth(0)
+
+    ## Make colorbar narrower
+    #xmin, xmax, ymin, ymax = cb.ax.axis()
+    #cb.ax.set_xlim(xmin, xmax/0.2)
 
     # make colorbar labels smaller
     yticklabels = cb.ax.yaxis.get_ticklabels()
