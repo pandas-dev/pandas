@@ -2631,6 +2631,12 @@ def heatmap(df,
     if any(plot_df.columns != df.columns):
         raise AssertionError('plot_df must have the exact same columns as df')
         # make norm
+
+    # Check if the matrix has values both above and below zero, or only above
+    # or only below zero. If both above and below, then the data is
+    # "divergent" and we will use a colormap with 0 centered at white,
+    # negative values blue, and positive values red. Otherwise, we will use
+    # the YlGnBu colormap.
     divergent = df.max().max() > 0 and df.min().min() < 0
 
     if color_scale == 'log':
@@ -2648,7 +2654,7 @@ def heatmap(df,
         my_norm = None
 
     if cmap is None:
-        cmap = mpl.cm.RdBu_r if divergent else mpl.cm.Blues_r
+        cmap = mpl.cm.RdBu_r if divergent else mpl.cm.YlGnBu
         cmap.set_bad('white')
 
     # calculate pairwise distances for rows
