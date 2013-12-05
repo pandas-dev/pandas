@@ -2575,45 +2575,56 @@ def heatmap(df,
             ylabel_fontsize=10,
             cluster_cols=True,
             cluster_rows=True,
+            linewidth=0.0001,
+            edgecolor='white',
             plot_df=None):
     """
     @author Olga Botvinnik olga.botvinnik@gmail.com
 
+
     This is liberally borrowed (with permission) from http://bit.ly/1eWcYWc
 
-    @param df: The dataframe you want to cluster on
-    @param title: Title of the figure
-    @param colorbar_label: What to colorbar (color scale of the heatmap)
-    @param col_side_colors: Label the columns with a color
-    @param row_side_colors: Label the rows with a color
-    @param color_scale: Either 'linear' or 'log'
-    @param cmap: A matplotlib colormap, default is mpl.cm.Blues_r if data is
+    :param df: The dataframe you want to cluster on
+    :param title: Title of the figure
+    :param colorbar_label: What to colorbar (color scale of the heatmap)
+    :param col_side_colors: Label the columns with a color
+    :param row_side_colors: Label the rows with a color
+    :param color_scale: Either 'linear' or 'log'
+    :param cmap: A matplotlib colormap, default is mpl.cm.Blues_r if data is
     sequential, or mpl.cm.RdBu_r if data is divergent (has both positive and
     negative numbers)
-    @param figsize: Size of the figure. The default is a function of the
+    :param figsize: Size of the figure. The default is a function of the
     dataframe size.
-    @param label_rows: Can be boolean or a list of strings, with exactly the
+    :param label_rows: Can be boolean or a list of strings, with exactly the
     length of the number of rows in df.
-    @param label_cols: Can be boolean or a list of strings, with exactly the
+    :param label_cols: Can be boolean or a list of strings, with exactly the
     length of the number of columns in df.
-    @param col_labels: If True, label with df.columns. If False, unlabeled.
+    :param col_labels: If True, label with df.columns. If False, unlabeled.
     Else, this can be an iterable to relabel the columns with labels of your own
     choosing. This is helpful if you have duplicate column names and pandas
     won't let you reindex it.
-    @param row_labels: If True, label with df.index. If False, unlabeled.
+    :param row_labels: If True, label with df.index. If False, unlabeled.
     Else, this can be an iterable to relabel the row names with labels of your
     own choosing. This is helpful if you have duplicate index names and pandas
     won't let you reindex it.
-    @param xlabel_fontsize: Default 12pt
-    @param ylabel_fontsize: Default 10pt
-    @param cluster_cols: Boolean, whether or not to cluster the columns
-    @param cluster_rows:
-    @param plot_df: The dataframe you want to plot. This can contain NAs and
+    :param xlabel_fontsize: Default 12pt
+    :param ylabel_fontsize: Default 10pt
+    :param cluster_cols: Boolean, whether or not to cluster the columns
+    :param cluster_rows:
+    :param plot_df: The dataframe you want to plot. This can contain NAs and
     other nasty things.
-    @return: fig, row_dendrogram, col_dendrogram
-    @rtype: matplotlib.figure.Figure, dict, dict
-    @raise TypeError:
+        :param row_linkage_method:
+    :param col_linkage_method:
+    :param vmin: Minimum value to plot on heatmap
+    :param vmax: Maximum value to plot on heatmap
+    :param linewidth: Linewidth of lines around heatmap box elements
+    (default 0.0001)
+    :param edgecolor: Color of lines around heatmap box elements (default
+    white)
     """
+    #@return: fig, row_dendrogram, col_dendrogram
+    #@rtype: matplotlib.figure.Figure, dict, dict
+    #@raise TypeError:
     import matplotlib.pyplot as plt
     import matplotlib.gridspec as gridspec
     import scipy.spatial.distance as distance
@@ -2655,6 +2666,7 @@ def heatmap(df,
         cmap = mpl.cm.RdBu_r if divergent else mpl.cm.YlGnBu
         cmap.set_bad('white')
 
+    # TODO: Add optimal leaf ordering for clusters
     # calculate pairwise distances for rows
     row_pairwise_dists = distance.squareform(distance.pdist(df))
     row_clusters = sch.linkage(row_pairwise_dists, method=row_linkage_method)
@@ -2680,6 +2692,8 @@ def heatmap(df,
         figsize = (width, height)
     #print figsize
 
+
+
     fig = plt.figure(figsize=figsize)
     heatmap_gridspec = \
         gridspec.GridSpec(nrows, ncols, wspace=0.0, hspace=0.0,
@@ -2697,6 +2711,7 @@ def heatmap(df,
         col_dendrogram = {'leaves': list(range(df.shape[1]))}
     _clean_axis(col_dendrogram_ax)
 
+    # TODO: Allow for array of color labels
     ### col colorbar ###
     if col_side_colors is not None:
         column_colorbar_ax = fig.add_subplot(heatmap_gridspec[1, ncols - 1])
@@ -2706,7 +2721,7 @@ def heatmap(df,
             row=False)
         column_colorbar_ax_pcolormesh = column_colorbar_ax.pcolormesh(
             col_side_matrix, cmap=col_cmap,
-            edgecolors='white', linewidth=0.1)
+            edgecolors='white', linewidth=linewidth)
         column_colorbar_ax.set_xlim(0, col_side_matrix.shape[1])
         _clean_axis(column_colorbar_ax)
 
@@ -2730,7 +2745,7 @@ def heatmap(df,
             ind=row_dendrogram['leaves'],
             row=True)
         row_colorbar_ax.pcolormesh(row_side_matrix, cmap=row_cmap,
-                                   edgecolors='white', linewidth=0.01)
+                                   edgecolors='white', linewidth=linewidth)
         row_colorbar_ax.set_ylim(0, row_side_matrix.shape[0])
         _clean_axis(row_colorbar_ax)
 
@@ -2741,7 +2756,7 @@ def heatmap(df,
                                          col_dendrogram['leaves']].values,
                               norm=my_norm, cmap=cmap,
                               edgecolors='white',
-                              lw=0.01)
+                              lw=linewidth)
 
     heatmap_ax.set_ylim(0, df.shape[0])
     heatmap_ax.set_xlim(0, df.shape[1])
