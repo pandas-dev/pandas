@@ -2601,9 +2601,9 @@ def heatmap(df,
         plot_df = df
 
     if any(plot_df.index != df.index):
-        raise TypeError('plot_df must have the exact same indices as df')
+        raise AssertionError('plot_df must have the exact same indices as df')
     if any(plot_df.columns != df.columns):
-        raise TypeError('plot_df must have the exact same columns as df')
+        raise AssertionError('plot_df must have the exact same columns as df')
         # make norm
     divergent = df.max().max() > 0 and df.min().min() < 0
 
@@ -2723,7 +2723,7 @@ def heatmap(df,
             yticklabels = label_rows
             label_rows = True
         else:
-            raise BaseException("Length of 'label_rows' must be the same as "
+            raise AssertionError("Length of 'label_rows' must be the same as "
                                 "df.shape[0]")
     elif label_rows:
         yticklabels = df.index[row_dendrogram['leaves']]
@@ -2743,7 +2743,7 @@ def heatmap(df,
             xticklabels = label_cols
             label_cols = True
         else:
-            raise BaseException("Length of 'label_cols' must be the same as "
+            raise AssertionError("Length of 'label_cols' must be the same as "
                                 "df.shape[1]")
     elif label_cols:
         xticklabels = df.columns[col_dendrogram['leaves']]
