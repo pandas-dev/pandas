@@ -2568,10 +2568,6 @@ def heatmap(df,
             label_cols=True,
             vmin=None,
             vmax=None,
-
-            #col_labels=None,
-            #row_labels=None,
-
             xlabel_fontsize=12,
             ylabel_fontsize=10,
             cluster_cols=True,
