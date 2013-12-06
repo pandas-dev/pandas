@@ -2043,7 +2043,7 @@ class Series(generic.NDFrame):
         """
         return False
 
-    @Appender(generic._shared_docs['reindex'] % _shared_doc_kwargs)
+    @Appender(generic._shared_docs['rename'] % _shared_doc_kwargs)
     def rename(self, index=None, **kwargs):
         return super(Series, self).rename(index=index, **kwargs)
 
