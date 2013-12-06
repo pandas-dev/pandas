@@ -2580,7 +2580,8 @@ def heatmap(df,
             edgecolor='white',
             plot_df=None,
             colorbar_ticklabels_fontsize=10,
-            colorbar_loc="upper left"):
+            colorbar_loc="upper left",
+            use_fastcluster=False):
     """
     @author Olga Botvinnik olga.botvinnik@gmail.com
 
@@ -2645,7 +2646,7 @@ def heatmap(df,
     from collections import Iterable
 
 
-    if df.shape[0] > 1000 or df.shape[1] > 1000:
+    if (df.shape[0] > 1000 or df.shape[1] > 1000) or use_fastcluster:
         try:
             import fastcluster
             linkage_function = fastcluster.linkage
