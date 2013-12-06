@@ -1776,7 +1776,7 @@ class TestIndexing(tm.TestCase):
         # work with the chain
         expected = DataFrame([[-5,1],[-6,3]],columns=list('AB'))
         df = DataFrame(np.arange(4).reshape(2,2),columns=list('AB'),dtype='int64')
-        self.assert_(not df._is_copy)
+        self.assert_(not df.is_copy)
 
         df['A'][0] = -5
         df['A'][1] = -6
@@ -1784,11 +1784,11 @@ class TestIndexing(tm.TestCase):
 
         expected = DataFrame([[-5,2],[np.nan,3.]],columns=list('AB'))
         df = DataFrame({ 'A' : Series(range(2),dtype='int64'), 'B' : np.array(np.arange(2,4),dtype=np.float64)})
-        self.assert_(not df._is_copy)
+        self.assert_(not df.is_copy)
         df['A'][0] = -5
         df['A'][1] = np.nan
         assert_frame_equal(df, expected)
-        self.assert_(not df['A']._is_copy)
+        self.assert_(not df['A'].is_copy)
 
         # using a copy (the chain), fails
         df = DataFrame({ 'A' : Series(range(2),dtype='int64'), 'B' : np.array(np.arange(2,4),dtype=np.float64)})
@@ -1800,7 +1800,7 @@ class TestIndexing(tm.TestCase):
         df = DataFrame({'a' : ['one', 'one', 'two',
                                'three', 'two', 'one', 'six'],
                         'c' : Series(range(7),dtype='int64') })
-        self.assert_(not df._is_copy)
+        self.assert_(not df.is_copy)
         expected = DataFrame({'a' : ['one', 'one', 'two',
                                      'three', 'two', 'one', 'six'],
                               'c' : [42,42,2,3,4,42,6]})
@@ -1826,10 +1826,10 @@ class TestIndexing(tm.TestCase):
         with tm.assert_produces_warning(expected_warning=com.SettingWithCopyWarning):
             df.loc[0]['A'] = 111
 
-        # make sure that _is_copy is picked up reconstruction
+        # make sure that is_copy is picked up reconstruction
         # GH5475
         df = DataFrame({"A": [1,2]})
-        self.assert_(df._is_copy is False)
+        self.assert_(df.is_copy is False)
         with tm.ensure_clean('__tmp__pickle') as path:
             df.to_pickle(path)
             df2 = pd.read_pickle(path)
@@ -1854,21 +1854,21 @@ class TestIndexing(tm.TestCase):
 
         # always a copy
         x = df.iloc[[0,1,2]]
-        self.assert_(x._is_copy is True)
+        self.assert_(x.is_copy is True)
         x = df.iloc[[0,1,2,4]]
-        self.assert_(x._is_copy is True)
+        self.assert_(x.is_copy is True)
 
         # explicity copy
         indexer = df.letters.apply(lambda x : len(x) > 10)
         df = df.ix[indexer].copy()
-        self.assert_(df._is_copy is False)
+        self.assert_(df.is_copy is False)
         df['letters'] = df['letters'].apply(str.lower)
 
         # implicity take
         df = random_text(100000)
         indexer = df.letters.apply(lambda x : len(x) > 10)
         df = df.ix[indexer]
-        self.assert_(df._is_copy is True)
+        self.assert_(df.is_copy is True)
         df.loc[:,'letters'] = df['letters'].apply(str.lower)
 
         # this will raise
@@ -1880,7 +1880,7 @@ class TestIndexing(tm.TestCase):
 
         # an identical take, so no copy
         df = DataFrame({'a' : [1]}).dropna()
-        self.assert_(df._is_copy is False)
+        self.assert_(df.is_copy is False)
         df['a'] += 1
 
         pd.set_option('chained_assignment','warn')

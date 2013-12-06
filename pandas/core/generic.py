@@ -77,11 +77,11 @@ class NDFrame(PandasObject):
     axes : list
     copy : boolean, default False
     """
-    _internal_names = ['_data', 'name', '_cacher', '_is_copy', '_subtyp',
+    _internal_names = ['_data', 'name', '_cacher', 'is_copy', '_subtyp',
                        '_index', '_default_kind', '_default_fill_value']
     _internal_names_set = set(_internal_names)
     _metadata = []
-    _is_copy = None
+    is_copy = None
 
     def __init__(self, data, axes=None, copy=False, dtype=None,
                  fastpath=False):
@@ -96,7 +96,7 @@ class NDFrame(PandasObject):
                 for i, ax in enumerate(axes):
                     data = data.reindex_axis(ax, axis=i)
 
-        object.__setattr__(self, '_is_copy', False)
+        object.__setattr__(self, 'is_copy', False)
         object.__setattr__(self, '_data', data)
         object.__setattr__(self, '_item_cache', {})
 
@@ -1016,7 +1016,7 @@ class NDFrame(PandasObject):
 
     def _setitem_copy(self, copy):
         """ set the _is_copy of the iiem """
-        self._is_copy = copy
+        self.is_copy = copy
         return self
 
     def _check_setitem_copy(self, stacklevel=4):
@@ -1024,7 +1024,7 @@ class NDFrame(PandasObject):
 
         If you call this function, be sure to set the stacklevel such that the
         user will see the error *at the level of setting*"""
-        if self._is_copy:
+        if self.is_copy:
             value = config.get_option('mode.chained_assignment')
 
             t = ("A value is trying to be set on a copy of a slice from a "

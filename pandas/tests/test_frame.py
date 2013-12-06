@@ -11125,7 +11125,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self.assert_((dm.xs(2) == 5).all())
 
         # prior to chained assignment (GH5390)
-        # this would raise, but now just rrens a copy (and sets _is_copy)
+        # this would raise, but now just returns a copy (and sets is_copy)
         # TODO (?): deal with mixed-type fiasco?
         # with assertRaisesRegexp(TypeError, 'cannot get view of mixed-type'):
         #    self.mixed_frame.xs(self.mixed_frame.index[2], copy=False)
