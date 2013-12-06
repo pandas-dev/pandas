@@ -289,3 +289,12 @@ df = DataFrame(data)
 frame_isnull  = Benchmark('isnull(df)', setup,
                            start_date=datetime(2012,1,1))
 
+#----------------------------------------------------------------------
+# apply
+
+setup = common_setup + """
+s = Series(np.arange(1028.))
+df = DataFrame({ i:s for i in range(1028) })
+"""
+frame_apply_user_func = Benchmark('df.apply(lambda x: np.corrcoef(x,s)[0,1])', setup,
+                           start_date=datetime(2012,1,1))

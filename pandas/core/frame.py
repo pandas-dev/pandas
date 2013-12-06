@@ -3434,7 +3434,7 @@ class DataFrame(NDFrame):
 
                 if self._is_mixed_type:  # maybe a hack for now
                     raise AssertionError('Must be mixed type DataFrame')
-                values = self.values.ravel()
+                values = self.values
                 dummy = Series(NA, index=self._get_axis(axis),
                                dtype=values.dtype)
 
