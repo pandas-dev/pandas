@@ -339,6 +339,7 @@ def ensure_clean(filename=None, return_filelike=False):
         savefig and other functions which want to append extensions.
     """
     filename = filename or ''
+    fd = None
 
     if return_filelike:
         f = tempfile.TemporaryFile(suffix=filename)
