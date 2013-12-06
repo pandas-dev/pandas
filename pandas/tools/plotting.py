@@ -2585,11 +2585,16 @@ def heatmap(df,
     @author Olga Botvinnik olga.botvinnik@gmail.com
 
 
+    This is liberally borrowed (with permission) from http://bit.ly/1eWcYWc
+    Many thanks to Christopher DeBoever and Mike Lovci for providing heatmap
+    guidance.
+
+
     :param title_fontsize:
     :param colorbar_ticklabels_fontsize:
     :param colorbar_loc: Can be 'upper left' (in the corner), 'right',
     or 'bottom'
-    This is liberally borrowed (with permission) from http://bit.ly/1eWcYWc
+
 
     :param df: The dataframe you want to cluster on
     :param title: Title of the figure
@@ -2639,6 +2644,8 @@ def heatmap(df,
     import matplotlib as mpl
     from collections import Iterable
 
+
+
     almost_black = '#262626'
     sch.set_link_color_palette([almost_black])
     if plot_df is None:
@@ -2679,12 +2686,12 @@ def heatmap(df,
     # TODO: if color_scale is 'log', should distance also be on np.log(df)?
     # calculate pairwise distances for rows
     row_pairwise_dists = distance.squareform(distance.pdist(np.log10(df)))
-    row_clusters = sch.linkage(row_pairwise_dists, method=row_linkage_method)
+    row_linkage = sch.linkage(row_pairwise_dists, method=row_linkage_method)
 
     # calculate pairwise distances for columns
     col_pairwise_dists = distance.squareform(distance.pdist(np.log10(df.T)))
     # cluster
-    col_clusters = sch.linkage(col_pairwise_dists, method=col_linkage_method)
+    col_linkage = sch.linkage(col_pairwise_dists, method=col_linkage_method)
 
     # heatmap with row names
 
@@ -2739,7 +2746,7 @@ def heatmap(df,
     ### col dendrogram ###
     col_dendrogram_ax = fig.add_subplot(heatmap_gridspec[1, ncols - 1])
     if cluster_cols:
-        col_dendrogram = sch.dendrogram(col_clusters,
+        col_dendrogram = sch.dendrogram(col_linkage,
                                         color_threshold=np.inf,
                                         color_list=[almost_black])
     else:
@@ -2764,7 +2771,7 @@ def heatmap(df,
     row_dendrogram_ax = fig.add_subplot(heatmap_gridspec[nrows - 1, 1])
     if cluster_rows:
         row_dendrogram = \
-            sch.dendrogram(row_clusters,
+            sch.dendrogram(row_linkage,
                            color_threshold=np.inf,
                            orientation='right',
                            color_list=[almost_black])
