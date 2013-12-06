@@ -2645,6 +2645,23 @@ def heatmap(df,
     from collections import Iterable
 
 
+    if df.shape[0] > 1000 or df.shape[1] > 1000:
+        try:
+            import fastcluster
+            linkage_function = fastcluster.linkage
+        except ImportError:
+            raise warnings.warn('Module "fastcluster" not found. The '
+                                'dataframe '
+                                'provided has '
+                                'shape {}, and one '
+                                'of the dimensions has greater than 1000 '
+                                'variables. Calculating linkage on such a '
+                                'matrix will take a long time with vanilla '
+                                '"scipy.cluster.hierarchy.linkage", and we '
+                                'suggest fastcluster for such large datasets'\
+            .format(df.shape), RuntimeWarning)
+    else:
+        linkage_function = sch.linkage
 
     almost_black = '#262626'
     sch.set_link_color_palette([almost_black])
@@ -2686,12 +2703,12 @@ def heatmap(df,
     # TODO: if color_scale is 'log', should distance also be on np.log(df)?
     # calculate pairwise distances for rows
     row_pairwise_dists = distance.squareform(distance.pdist(np.log10(df)))
-    row_linkage = sch.linkage(row_pairwise_dists, method=row_linkage_method)
+    row_linkage = linkage_function(row_pairwise_dists, method=row_linkage_method)
 
     # calculate pairwise distances for columns
     col_pairwise_dists = distance.squareform(distance.pdist(np.log10(df.T)))
     # cluster
-    col_linkage = sch.linkage(col_pairwise_dists, method=col_linkage_method)
+    col_linkage = linkage_function(col_pairwise_dists, method=col_linkage_method)
 
     # heatmap with row names
 
