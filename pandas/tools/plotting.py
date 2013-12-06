@@ -2581,7 +2581,8 @@ def heatmap(df,
             plot_df=None,
             colorbar_ticklabels_fontsize=10,
             colorbar_loc="upper left",
-            use_fastcluster=False):
+            use_fastcluster=False,
+            metric='euclidean'):
     """
     @author Olga Botvinnik olga.botvinnik@gmail.com
 
@@ -2705,11 +2706,13 @@ def heatmap(df,
     # calculate pairwise distances for rows
     if color_scale == 'log':
         df = np.log10(df)
-    row_pairwise_dists = distance.squareform(distance.pdist(df))
+    row_pairwise_dists = distance.squareform(distance.pdist(df,
+                                                            metric=metric))
     row_linkage = linkage_function(row_pairwise_dists, method=row_linkage_method)
 
     # calculate pairwise distances for columns
-    col_pairwise_dists = distance.squareform(distance.pdist(df.T))
+    col_pairwise_dists = distance.squareform(distance.pdist(df.T,
+                                                            metric=metric))
     # cluster
     col_linkage = linkage_function(col_pairwise_dists, method=col_linkage_method)
 
