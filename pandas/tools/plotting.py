@@ -2586,7 +2586,6 @@ def heatmap(df,
     """
     @author Olga Botvinnik olga.botvinnik@gmail.com
 
-
     This is liberally borrowed (with permission) from http://bit.ly/1eWcYWc
     Many thanks to Christopher DeBoever and Mike Lovci for providing heatmap
     guidance.
