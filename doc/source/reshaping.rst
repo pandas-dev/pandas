@@ -218,6 +218,20 @@ For instance,
    melt(cheese, id_vars=['first', 'last'])
    melt(cheese, id_vars=['first', 'last'], var_name='quantity')
 
+Another way to transform is to use the ``wide_to_long`` panel data convenience function.
+
+.. ipython:: python
+
+  dft = pd.DataFrame({"A1970" : {0 : "a", 1 : "b", 2 : "c"},
+                      "A1980" : {0 : "d", 1 : "e", 2 : "f"},
+                      "B1970" : {0 : 2.5, 1 : 1.2, 2 : .7},
+                      "B1980" : {0 : 3.2, 1 : 1.3, 2 : .1},
+                      "X"     : dict(zip(range(3), np.random.randn(3)))
+                     })
+  dft["id"] = dft.index
+  df
+  pd.wide_to_long(dft, ["A", "B"], i="id", j="year")
+
 Combining with stats and GroupBy
 --------------------------------
 
