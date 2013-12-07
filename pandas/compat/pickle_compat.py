@@ -3,6 +3,7 @@
 import sys
 import numpy as np
 import pandas
+import copy
 import pickle as pkl
 from pandas import compat
 from pandas.compat import u, string_types
@@ -29,7 +30,7 @@ def load_reduce(self):
     except:
 
         # try to reencode the arguments
-        if self.encoding is not None:
+        if getattr(self,'encoding',None) is not None:
             args = tuple([arg.encode(self.encoding)
                           if isinstance(arg, string_types)
                           else arg for arg in args])
@@ -39,7 +40,7 @@ def load_reduce(self):
             except:
                 pass
 
-        if self.is_verbose:
+        if getattr(self,'is_verbose',None):
             print(sys.exc_info())
             print(func, args)
         raise
@@ -53,6 +54,7 @@ else:
     class Unpickler(pkl.Unpickler):
         pass
 
+Unpickler.dispatch = copy.copy(Unpickler.dispatch)
 Unpickler.dispatch[pkl.REDUCE[0]] = load_reduce
 
 
