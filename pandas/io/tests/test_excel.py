@@ -615,7 +615,7 @@ class ExcelWriterBase(SharedItems):
                                   has_index_names=self.merge_cells
                                   ).astype(np.int64)
             frame.index.names = ['test']
-            tm.assert_frame_equal(frame,recons.astype(bool))
+            tm.assert_frame_equal(frame, recons.astype(bool))
 
         with ensure_clean(self.ext) as path:
 
@@ -714,6 +714,31 @@ class ExcelWriterBase(SharedItems):
 
             tm.assert_frame_equal(tsframe, recons)
             self.assertEquals(recons.index.names, ('time', 'foo'))
+
+    def test_to_excel_multiindex_no_write_index(self):
+        _skip_if_no_xlrd()
+
+        # Test writing and re-reading a MI witout the index. GH 5616.
+
+        # Initial non-MI frame.
+        frame1 = pd.DataFrame({'a': [10, 20], 'b': [30, 40], 'c': [50, 60]})
+
+        # Add a MI.
+        frame2 = frame1.copy()
+        multi_index = pd.MultiIndex.from_tuples([(70, 80), (90, 100)])
+        frame2.index = multi_index
+
+        with ensure_clean(self.ext) as path:
+
+            # Write out to Excel without the index.
+            frame2.to_excel(path, 'test1', index=False)
+
+            # Read it back in.
+            reader = ExcelFile(path)
+            frame3 = reader.parse('test1')
+
+            # Test that it is the same as the initial frame.
+            tm.assert_frame_equal(frame1, frame3)
 
     def test_to_excel_float_format(self):
         _skip_if_no_xlrd()
