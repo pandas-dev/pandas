@@ -10,6 +10,9 @@ Highlights include support for a new index type ``Float64Index``, support for ne
 Several experimental features are added, including new ``eval/query`` methods for expression evaluation, support for ``msgpack`` serialization,
 and an io interface to Google's ``BigQuery``.
 
+The docs also received a new section, :ref:`Comparison with SQL<compare_with_sql>`, which should 
+be useful for those familiar with SQL but still learning pandas.
+
 .. warning::
 
    In 0.13.0 ``Series`` has internally been refactored to no longer sub-class ``ndarray``

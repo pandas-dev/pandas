@@ -305,7 +305,10 @@ better) than other open source implementations (like ``base::merge.data.frame``
 in R). The reason for this is careful algorithmic design and internal layout of
 the data in DataFrame.
 
-See the :ref:`cookbook<cookbook.merge>` for some advanced strategies
+See the :ref:`cookbook<cookbook.merge>` for some advanced strategies.
+
+Users who are familiar with SQL but new to pandas might be interested in a 
+:ref:`comparison with SQL<compare_with_sql.join>`.
 
 pandas provides a single function, ``merge``, as the entry point for all
 standard database join operations between DataFrame objects:
