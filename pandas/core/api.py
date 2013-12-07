@@ -15,7 +15,7 @@ from pandas.core.panel import Panel
 from pandas.core.panel4d import Panel4D
 from pandas.core.groupby import groupby
 from pandas.core.reshape import (pivot_simple as pivot, get_dummies,
-                                 lreshape)
+                                 lreshape, wide_to_long)
 
 WidePanel = Panel
 
