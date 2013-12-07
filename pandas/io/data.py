@@ -469,6 +469,7 @@ def get_data_fred(name, start=dt.datetime(2010, 1, 1),
                 axis=1, join='outer')
     return df
 
+
 def get_data_famafrench(name):
     # path of zip files
     zip_file_url = ('http://mba.tuck.dartmouth.edu/pages/faculty/'

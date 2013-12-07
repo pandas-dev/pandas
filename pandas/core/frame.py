@@ -432,8 +432,9 @@ class DataFrame(NDFrame):
     def _info_repr(self):
         """True if the repr should show the info view."""
         info_repr_option = (get_option("display.large_repr") == "info")
-        return info_repr_option and not \
-                (self._repr_fits_horizontal_() and self._repr_fits_vertical_())
+        return info_repr_option and not (
+            self._repr_fits_horizontal_() and self._repr_fits_vertical_()
+        )
 
     def __unicode__(self):
         """
@@ -486,8 +487,7 @@ class DataFrame(NDFrame):
             return ('<div style="max-height:1000px;'
                     'max-width:1500px;overflow:auto;">\n' +
                     self.to_html(max_rows=max_rows, max_cols=max_cols,
-                                 show_dimensions=True) \
-                    + '\n</div>')
+                                 show_dimensions=True) + '\n</div>')
         else:
             return None
 
@@ -1283,7 +1283,8 @@ class DataFrame(NDFrame):
                                            index_names=index_names,
                                            header=header, index=index,
                                            line_width=line_width,
-                                           max_rows=max_rows, max_cols=max_cols,
+                                           max_rows=max_rows,
+                                           max_cols=max_cols,
                                            show_dimensions=show_dimensions)
         formatter.to_string()
 
@@ -1310,7 +1311,8 @@ class DataFrame(NDFrame):
         escape : boolean, default True
             Convert the characters <, >, and & to HTML-safe sequences.=
         max_rows : int, optional
-            Maximum number of rows to show before truncating. If None, show all.
+            Maximum number of rows to show before truncating. If None, show
+            all.
         max_cols : int, optional
             Maximum number of columns to show before truncating. If None, show
             all.
@@ -1336,7 +1338,8 @@ class DataFrame(NDFrame):
                                            header=header, index=index,
                                            bold_rows=bold_rows,
                                            escape=escape,
-                                           max_rows=max_rows, max_cols=max_cols,
+                                           max_rows=max_rows,
+                                           max_cols=max_cols,
                                            show_dimensions=show_dimensions)
         formatter.to_html(classes=classes)
 
@@ -1904,7 +1907,8 @@ class DataFrame(NDFrame):
 
             if not isinstance(value, Series):
                 raise ValueError('Cannot set a frame with no defined index '
-                                 'and a value that cannot be converted to a Series')
+                                 'and a value that cannot be converted to a '
+                                 'Series')
             self._data.set_axis(1, value.index.copy(), check_axis=False)
 
     def _set_item(self, key, value):
@@ -4597,7 +4601,7 @@ def extract_index(data):
 
 
 def _prep_ndarray(values, copy=True):
-    if not isinstance(values, (np.ndarray,Series)):
+    if not isinstance(values, (np.ndarray, Series)):
         if len(values) == 0:
             return np.empty((0, 0), dtype=object)
 

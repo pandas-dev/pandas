@@ -264,8 +264,8 @@ class DataFrameFormatter(TableFormatter):
     def __init__(self, frame, buf=None, columns=None, col_space=None,
                  header=True, index=True, na_rep='NaN', formatters=None,
                  justify=None, float_format=None, sparsify=None,
-                 index_names=True, line_width=None, max_rows=None, max_cols=None,
-                 show_dimensions=False, **kwds):
+                 index_names=True, line_width=None, max_rows=None,
+                 max_cols=None, show_dimensions=False, **kwds):
         self.frame = frame
         self.buf = buf if buf is not None else StringIO()
         self.show_index_names = index_names
@@ -284,7 +284,8 @@ class DataFrameFormatter(TableFormatter):
         self.line_width = line_width
         self.max_rows = max_rows
         self.max_cols = max_cols
-        self.max_rows_displayed = min(max_rows or len(self.frame),len(self.frame))
+        self.max_rows_displayed = min(max_rows or len(self.frame),
+                                      len(self.frame))
         self.show_dimensions = show_dimensions
 
         if justify is None:
@@ -330,7 +331,8 @@ class DataFrameFormatter(TableFormatter):
                                    *(_strlen(x) for x in cheader))
 
                 fmt_values = _make_fixed_width(fmt_values, self.justify,
-                                   minimum=max_colwidth, truncated=truncate_v)
+                                               minimum=max_colwidth,
+                                               truncated=truncate_v)
 
                 max_len = max(np.max([_strlen(x) for x in fmt_values]),
                               max_colwidth)
@@ -349,8 +351,8 @@ class DataFrameFormatter(TableFormatter):
         if self.index:
             strcols.insert(0, str_index)
         if truncate_h:
-            strcols.append(([''] * len(str_columns[-1])) \
-                            + (['...'] * min(len(self.frame), self.max_rows)) )
+            strcols.append(([''] * len(str_columns[-1]))
+                           + (['...'] * min(len(self.frame), self.max_rows)))
 
         return strcols
 
@@ -382,8 +384,8 @@ class DataFrameFormatter(TableFormatter):
         self.buf.writelines(text)
 
         if self.show_dimensions:
-            self.buf.write("\n\n[%d rows x %d columns]" \
-                            % (len(frame), len(frame.columns)) )
+            self.buf.write("\n\n[%d rows x %d columns]"
+                           % (len(frame), len(frame.columns)))
 
     def _join_multiline(self, *strcols):
         lwidth = self.line_width
@@ -484,10 +486,11 @@ class DataFrameFormatter(TableFormatter):
 
     def _format_col(self, i):
         formatter = self._get_formatter(i)
-        return format_array((self.frame.iloc[:self.max_rows_displayed,i]).get_values(),
-                            formatter, float_format=self.float_format,
-                            na_rep=self.na_rep,
-                            space=self.col_space)
+        return format_array(
+            (self.frame.iloc[:self.max_rows_displayed, i]).get_values(),
+            formatter, float_format=self.float_format, na_rep=self.na_rep,
+            space=self.col_space
+        )
 
     def to_html(self, classes=None):
         """
@@ -679,8 +682,6 @@ class HTMLFormatter(TableFormatter):
                                       'not %s') % type(self.classes))
             _classes.extend(self.classes)
 
-
-
         self.write('<table border="1" class="%s">' % ' '.join(_classes),
                    indent)
 
@@ -698,9 +699,9 @@ class HTMLFormatter(TableFormatter):
 
         self.write('</table>', indent)
         if self.fmt.show_dimensions:
-            by = chr(215) if compat.PY3 else unichr(215) # ×
+            by = chr(215) if compat.PY3 else unichr(215)  # ×
             self.write(u('<p>%d rows %s %d columns</p>') %
-                         (len(frame), by, len(frame.columns)) )
+                       (len(frame), by, len(frame.columns)))
         _put_lines(buf, self.elements)
 
     def _write_header(self, indent):
@@ -783,8 +784,9 @@ class HTMLFormatter(TableFormatter):
                           align=align)
 
         if self.fmt.has_index_names:
-            row = [x if x is not None else '' for x in self.frame.index.names] \
-                            + [''] * min(len(self.columns), self.max_cols)
+            row = [
+                x if x is not None else '' for x in self.frame.index.names
+            ] + [''] * min(len(self.columns), self.max_cols)
             self.write_tr(row, indent, self.indent_delta, header=True)
 
         indent -= self.indent_delta
@@ -851,7 +853,7 @@ class HTMLFormatter(TableFormatter):
         truncate = (len(frame) > self.max_rows)
 
         idx_values = frame.index[:nrows].format(sparsify=False, adjoin=False,
-                                        names=False)
+                                                names=False)
         idx_values = lzip(*idx_values)
 
         if self.fmt.sparsify:

@@ -26,7 +26,7 @@ def parse_all_fields(year_col, month_col, day_col, hour_col, minute_col,
     minute_col = _maybe_cast(minute_col)
     second_col = _maybe_cast(second_col)
     return lib.try_parse_datetime_components(year_col, month_col, day_col,
-                    hour_col, minute_col, second_col)
+                                             hour_col, minute_col, second_col)
 
 
 def generic_parser(parse_func, *cols):

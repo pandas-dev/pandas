@@ -547,8 +547,8 @@ class _OpenpyxlWriter(ExcelWriter):
                             colletter = get_column_letter(col)
                             xcell = wks.cell("%s%s" % (colletter, row))
                             for field in style.__fields__:
-                                xcell.style.__setattr__(field, \
-                                    style.__getattribute__(field))
+                                xcell.style.__setattr__(
+                                    field, style.__getattribute__(field))
 
     @classmethod
     def _convert_to_style(cls, style_dict):
@@ -778,10 +778,10 @@ class _XlsxWriter(ExcelWriter):
         alignment = style_dict.get('alignment')
         if alignment:
             if (alignment.get('horizontal')
-                and alignment['horizontal'] == 'center'):
+                    and alignment['horizontal'] == 'center'):
                 xl_format.set_align('center')
             if (alignment.get('vertical')
-                and alignment['vertical'] == 'top'):
+                    and alignment['vertical'] == 'top'):
                 xl_format.set_align('top')
 
         # Map the cell borders to XlsxWriter border properties.

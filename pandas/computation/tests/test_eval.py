@@ -1022,7 +1022,8 @@ class TestAlignment(object):
 
     def test_performance_warning_for_poor_alignment(self):
         for engine, parser in ENGINES_PARSERS:
-            yield self.check_performance_warning_for_poor_alignment, engine, parser
+            yield (self.check_performance_warning_for_poor_alignment, engine,
+                   parser)
 
 
 #------------------------------------
