@@ -2665,9 +2665,9 @@ def heatmap(df,
     if plot_df is None:
         plot_df = df
 
-    if any(plot_df.index != df.index):
+    if (plot_df.index != df.index).any():
         raise AssertionError('plot_df must have the exact same indices as df')
-    if any(plot_df.columns != df.columns):
+    if (plot_df.columns != df.columns).any():
         raise AssertionError('plot_df must have the exact same columns as df')
         # make norm
 
