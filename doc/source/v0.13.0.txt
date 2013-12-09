@@ -1,7 +1,7 @@
 .. _whatsnew_0130:
 
-v0.13.0 (October ??, 2013)
---------------------------
+v0.13.0 (December ??, 2013)
+---------------------------
 
 This is a major release from 0.12.0 and includes a number of API changes, several new features and
 enhancements along with a large number of bug fixes.
@@ -817,6 +817,7 @@ Experimental
      As of 10/10/13, there is a bug in Google's API preventing result sets
      from being larger than 100,000 rows. A patch is scheduled for the week of
      10/14/13.
+
 .. _whatsnew_0130.refactoring:
 
 Internal Refactoring
@@ -859,6 +860,8 @@ to unify methods and behaviors. Series formerly subclassed directly from
      long work directly, you must pass ``Series.values``, See :ref:`Enhancing Performance<enhancingperf.ndarray>`
 
    - ``Series(0.5)`` would previously return the scalar ``0.5``, instead this will return a 1-element ``Series``
+
+- Pickle compatibility is preserved for pickles created prior to 0.13. These must be unpickled with ``pd.read_pickle``, see :ref:`Pickling<io.pickle>`.
 
 - Refactor of series.py/frame.py/panel.py to move common code to generic.py
 
