@@ -248,7 +248,7 @@ extlinks = {'issue': ('https://github.com/pydata/pandas/issues/%s',
                      'wiki ')}
 
 # remove the docstring of the flags attribute (inherited from numpy ndarray)
-# because these give doc build errors (see GH issue 5331) 
+# because these give doc build errors (see GH issue 5331)
 def remove_flags_docstring(app, what, name, obj, options, lines):
     if what == "attribute" and name.endswith(".flags"):
         del lines[:]

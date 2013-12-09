@@ -1967,9 +1967,16 @@ any pickled pandas object (or any other pickled object) from file:
 
    See: http://docs.python.org/2.7/library/pickle.html
 
+.. warning::
+
+   In 0.13, pickle preserves compatibility with pickles created prior to 0.13. These must
+   be read with ``pd.read_pickle``, rather than the default python ``pickle.load``.
+   See `this question <http://stackoverflow.com/questions/20444593/pandas-compiled-from-source-default-pickle-behavior-changed>`__
+   for a detailed explanation.
+
 .. note::
 
-    These methods were previously ``save`` and ``load``, prior to 0.12.0, and are now deprecated.
+    These methods were previously ``pd.save`` and ``pd.load``, prior to 0.12.0, and are now deprecated.
 
 .. _io.msgpack:
 
