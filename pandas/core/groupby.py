@@ -649,9 +649,9 @@ class GroupBy(PandasObject):
         original = self.obj.index
         gp = self.grouper
         levels = chain((gp.levels[i][gp.labels[i][b]]
-                            for i in range(len(gp.groupings))),
-                        (original.get_level_values(i)[b]
-                            for i in range(original.nlevels)))
+                        for i in range(len(gp.groupings))),
+                       (original.get_level_values(i)[b]
+                        for i in range(original.nlevels)))
         new = MultiIndex.from_arrays(list(levels))
         new.names = gp.names + original.names
         return new
@@ -2161,7 +2161,6 @@ class NDFrameGroupBy(GroupBy):
                 else:
                     key_index = Index(keys, name=key_names[0])
 
-
             # make Nones an empty object
             if com._count_not_none(*values) != len(values):
                 v = None
@@ -2170,14 +2169,20 @@ class NDFrameGroupBy(GroupBy):
                         break
                 if v is None:
                     return DataFrame()
-                values = [ x if x is not None else v._constructor(**v._construct_axes_dict()) for x in values ]
+                values = [
+                    x if x is not None else
+                    v._constructor(**v._construct_axes_dict())
+                    for x in values
+                ]
 
             v = values[0]
 
             if isinstance(v, (np.ndarray, Series)):
                 if isinstance(v, Series):
                     applied_index = self.obj._get_axis(self.axis)
-                    all_indexed_same = _all_indexes_same([x.index for x in values ])
+                    all_indexed_same = _all_indexes_same([
+                        x.index for x in values
+                    ])
                     singular_series = (len(values) == 1 and
                                        applied_index.nlevels == 1)
 

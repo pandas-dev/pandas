@@ -2,6 +2,7 @@
 from pandas import compat, get_option, DataFrame
 from pandas.compat import StringIO
 
+
 def read_clipboard(**kwargs):  # pragma: no cover
     """
     Read text from clipboard and pass to read_table. See read_table for the
@@ -20,7 +21,10 @@ def read_clipboard(**kwargs):  # pragma: no cover
     # try to decode (if needed on PY3)
     if compat.PY3:
         try:
-            text = compat.bytes_to_str(text,encoding=kwargs.get('encoding') or get_option('display.encoding'))
+            text = compat.bytes_to_str(
+                text, encoding=(kwargs.get('encoding') or
+                                get_option('display.encoding'))
+            )
         except:
             pass
     return read_table(StringIO(text), **kwargs)
@@ -58,7 +62,7 @@ def to_clipboard(obj, excel=None, sep=None, **kwargs):  # pragma: no cover
             if sep is None:
                 sep = '\t'
             buf = StringIO()
-            obj.to_csv(buf,sep=sep, **kwargs)
+            obj.to_csv(buf, sep=sep, **kwargs)
             clipboard_set(buf.getvalue())
             return
         except:
@@ -70,4 +74,3 @@ def to_clipboard(obj, excel=None, sep=None, **kwargs):  # pragma: no cover
     else:
         objstr = str(obj)
     clipboard_set(objstr)
-

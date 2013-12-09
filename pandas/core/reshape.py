@@ -786,6 +786,7 @@ def lreshape(data, groups, dropna=True, label=None):
 
     return DataFrame(mdata, columns=id_cols + pivot_cols)
 
+
 def wide_to_long(df, stubnames, i, j):
     """
     Wide panel to long format. Less flexible but more user-friendly than melt.
@@ -848,8 +849,8 @@ def wide_to_long(df, stubnames, i, j):
 
     def melt_stub(df, stub, i, j):
         varnames = get_var_names(df, "^"+stub)
-        newdf = melt(df, id_vars=i, value_vars=varnames,
-                         value_name=stub, var_name=j)
+        newdf = melt(df, id_vars=i, value_vars=varnames, value_name=stub,
+                     var_name=j)
         newdf_j = newdf[j].str.replace(stub, "")
         try:
             newdf_j = newdf_j.astype(int)
@@ -869,6 +870,7 @@ def wide_to_long(df, stubnames, i, j):
         new = melt_stub(df, stub, id_vars, j)
         newdf = newdf.merge(new, how="outer", on=id_vars + [j], copy=False)
     return newdf.set_index([i, j])
+
 
 def convert_dummies(data, cat_variables, prefix_sep='_'):
     """

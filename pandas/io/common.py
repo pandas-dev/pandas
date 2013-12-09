@@ -13,7 +13,8 @@ if compat.PY3:
     _urlopen = urlopen
     from urllib.parse import urlparse as parse_url
     import urllib.parse as compat_parse
-    from urllib.parse import uses_relative, uses_netloc, uses_params, urlencode, urljoin
+    from urllib.parse import (uses_relative, uses_netloc, uses_params,
+                              urlencode, urljoin)
     from urllib.error import URLError
     from http.client import HTTPException
 else:
@@ -72,8 +73,8 @@ def _is_s3_url(url):
 
 
 def maybe_read_encoded_stream(reader, encoding=None):
-    """ read an encoded stream from the reader and transform the bytes to unicode
-        if required based on the encoding
+    """read an encoded stream from the reader and transform the bytes to
+    unicode if required based on the encoding
 
         Parameters
         ----------
@@ -84,7 +85,7 @@ def maybe_read_encoded_stream(reader, encoding=None):
         -------
         a tuple of (a stream of decoded bytes, the encoding which was used)
 
-        """
+    """
 
     if compat.PY3 or encoding is not None:  # pragma: no cover
         if encoding:
@@ -96,6 +97,7 @@ def maybe_read_encoded_stream(reader, encoding=None):
     else:
         encoding = None
     return reader, encoding
+
 
 def get_filepath_or_buffer(filepath_or_buffer, encoding=None):
     """
@@ -114,7 +116,7 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None):
 
     if _is_url(filepath_or_buffer):
         req = _urlopen(str(filepath_or_buffer))
-        return maybe_read_encoded_stream(req,encoding)
+        return maybe_read_encoded_stream(req, encoding)
 
     if _is_s3_url(filepath_or_buffer):
         try:

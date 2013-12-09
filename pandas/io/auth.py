@@ -117,6 +117,7 @@ def init_service(http):
     """
     return gapi.build('analytics', 'v3', http=http)
 
+
 def reset_default_token_store():
     import os
     os.remove(DEFAULT_TOKEN_FILE)
