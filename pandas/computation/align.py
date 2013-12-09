@@ -249,6 +249,9 @@ def _reconstruct_object(typ, obj, axes, dtype):
 
     try:
         ret = ret_value.item()
-    except ValueError:
+    except (ValueError, IndexError):
+        # XXX: we catch IndexError to absorb a
+        # regression in numpy 1.7.0
+        # fixed by numpy/numpy@04b89c63
         ret = ret_value
     return ret
