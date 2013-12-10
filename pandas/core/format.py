@@ -1375,7 +1375,7 @@ class ExcelFormatter(object):
         coloffset = 0
         lnum = 0
 
-        if isinstance(self.df.index, MultiIndex):
+        if self.index and isinstance(self.df.index, MultiIndex):
             coloffset = len(self.df.index[0]) - 1
 
         if self.merge_cells:
@@ -1414,10 +1414,11 @@ class ExcelFormatter(object):
         has_aliases = isinstance(self.header, (tuple, list, np.ndarray))
         if has_aliases or self.header:
             coloffset = 0
+
             if self.index:
                 coloffset = 1
-            if isinstance(self.df.index, MultiIndex):
-                coloffset = len(self.df.index[0])
+                if isinstance(self.df.index, MultiIndex):
+                    coloffset = len(self.df.index[0])
 
             colnames = self.columns
             if has_aliases:
