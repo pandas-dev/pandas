@@ -1434,12 +1434,11 @@ class IndexCol(StringMixin):
             self.values = Index(values, **kwargs)
         except:
 
-            # if the output freq is different that what we recorded, then infer
-            # it
+            # if the output freq is different that what we recorded,
+            # it should be None (see also 'doc example part 2')
             if 'freq' in kwargs:
-                kwargs['freq'] = 'infer'
-            self.values = Index(
-                _maybe_convert(values, self.kind, encoding), **kwargs)
+                kwargs['freq'] = None
+            self.values = Index(values, **kwargs)
 
         # set the timezone if indicated
         # we stored in utc, so reverse to local timezone
