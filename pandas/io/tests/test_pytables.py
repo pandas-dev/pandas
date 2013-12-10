@@ -1327,6 +1327,29 @@ class TestHDFStore(tm.TestCase):
                     df_dc.string == 'foo')]
             tm.assert_frame_equal(result, expected)
 
+        with ensure_clean_store(self.path) as store:
+            # doc example part 2
+            np.random.seed(1234)
+            index = date_range('1/1/2000', periods=8)
+            df_dc = DataFrame(np.random.randn(8, 3), index=index,
+                              columns=['A', 'B', 'C'])
+            df_dc['string'] = 'foo'
+            df_dc.ix[4:6,'string'] = np.nan
+            df_dc.ix[7:9,'string'] = 'bar'
+            df_dc.ix[:,['B','C']] = df_dc.ix[:,['B','C']].abs()
+            df_dc['string2'] = 'cool'
+
+            # on-disk operations
+            store.append('df_dc', df_dc, data_columns = ['B', 'C', 'string', 'string2'])
+
+            result = store.select('df_dc', [ Term('B>0') ])
+            expected = df_dc[df_dc.B>0]
+            tm.assert_frame_equal(result,expected)
+
+            result = store.select('df_dc', ['B > 0', 'C > 0', 'string == "foo"'])
+            expected = df_dc[(df_dc.B > 0) & (df_dc.C > 0) & (df_dc.string == 'foo')]
+            tm.assert_frame_equal(result,expected)
+
     def test_create_table_index(self):
 
         with ensure_clean_store(self.path) as store:

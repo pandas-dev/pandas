@@ -2089,6 +2089,7 @@ dict:
 
 .. ipython:: python
 
+   np.random.seed(1234)
    index = date_range('1/1/2000', periods=8)
    s = Series(randn(5), index=['a', 'b', 'c', 'd', 'e'])
    df = DataFrame(randn(8, 3), index=index,
@@ -2513,6 +2514,7 @@ be data_columns
    df_dc.ix[4:6,'string'] = np.nan
    df_dc.ix[7:9,'string'] = 'bar'
    df_dc['string2'] = 'cool'
+   df_dc.ix[1:3,['B','C']] = 1.0
    df_dc
 
    # on-disk operations
@@ -2520,7 +2522,7 @@ be data_columns
    store.select('df_dc', [ Term('B>0') ])
 
    # getting creative
-   store.select('df_dc', ['B > 0', 'C > 0', 'string == foo'])
+   store.select('df_dc', 'B > 0 & C > 0 & string == foo')
 
    # this is in-memory version of this type of selection
    df_dc[(df_dc.B > 0) & (df_dc.C > 0) & (df_dc.string == 'foo')]
