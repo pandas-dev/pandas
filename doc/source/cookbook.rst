@@ -426,6 +426,9 @@ csv file and creating a store by chunks, with date parsing as well.
 `Groupby on a HDFStore
 <http://stackoverflow.com/questions/15798209/pandas-group-by-query-on-large-data-in-hdfstore>`__
 
+`Counting with a HDFStore
+<http://stackoverflow.com/questions/20497897/converting-dict-of-dicts-into-pandas-dataframe-memory-issues>`__
+
 `Troubleshoot HDFStore exceptions
 <http://stackoverflow.com/questions/15488809/how-to-trouble-shoot-hdfstore-exception-cannot-find-the-correct-atom-type>`__
 
