@@ -322,10 +322,12 @@ class TestGroupBy(tm.TestCase):
         # GH5592
         # inconcistent return type
         df = DataFrame(dict(A = [ 'Tiger', 'Tiger', 'Tiger', 'Lamb', 'Lamb', 'Pony', 'Pony' ],
-                            B = Series(np.arange(7),dtype='int64')))
+                            B = Series(np.arange(7),dtype='int64'),
+                            C = date_range('20130101',periods=7)))
+
         def f(grp):
             return grp.iloc[0]
-        expected = df.groupby('A').first()
+        expected = df.groupby('A').first()[['B']]
         result = df.groupby('A').apply(f)[['B']]
         assert_frame_equal(result,expected)
 
@@ -346,6 +348,27 @@ class TestGroupBy(tm.TestCase):
         e = expected.copy()
         e.loc['Pony'] = np.nan
         assert_frame_equal(result,e)
+
+        # 5592 revisited, with datetimes
+        def f(grp):
+            if grp.name == 'Pony':
+                return None
+            return grp.iloc[0]
+        result = df.groupby('A').apply(f)[['C']]
+        e = df.groupby('A').first()[['C']]
+        e.loc['Pony'] = np.nan
+        assert_frame_equal(result,e)
+
+        # scalar outputs
+        def f(grp):
+            if grp.name == 'Pony':
+                return None
+            return grp.iloc[0].loc['C']
+        result = df.groupby('A').apply(f)
+        e = df.groupby('A').first()['C']
+        e.loc['Pony'] = np.nan
+        e.name = None
+        assert_series_equal(result,e)
 
     def test_agg_regression1(self):
         grouped = self.tsframe.groupby([lambda x: x.year, lambda x: x.month])

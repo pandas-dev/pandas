@@ -18,7 +18,8 @@ from pandas.core.panel import Panel
 from pandas.util.decorators import cache_readonly, Appender
 import pandas.core.algorithms as algos
 import pandas.core.common as com
-from pandas.core.common import _possibly_downcast_to_dtype, isnull, notnull
+from pandas.core.common import(_possibly_downcast_to_dtype, isnull,
+                               notnull, _DATELIKE_DTYPES)
 
 import pandas.lib as lib
 import pandas.algos as _algos
@@ -2169,11 +2170,12 @@ class NDFrameGroupBy(GroupBy):
                         break
                 if v is None:
                     return DataFrame()
-                values = [
-                    x if x is not None else
-                    v._constructor(**v._construct_axes_dict())
-                    for x in values
-                ]
+                elif isinstance(v, NDFrame):
+                    values = [
+                        x if x is not None else
+                        v._constructor(**v._construct_axes_dict())
+                        for x in values
+                        ]
 
             v = values[0]
 
@@ -2235,11 +2237,17 @@ class NDFrameGroupBy(GroupBy):
                     # through to the outer else caluse
                     return Series(values, index=key_index)
 
+                # if we have date/time like in the original, then coerce dates
+                # as we are stacking can easily have object dtypes here
+                cd = True
+                if self.obj.ndim == 2 and self.obj.dtypes.isin(_DATELIKE_DTYPES).any():
+                    cd = 'coerce'
                 return DataFrame(stacked_values, index=index,
-                                 columns=columns).convert_objects()
+                                 columns=columns).convert_objects(convert_dates=cd, convert_numeric=True)
 
             else:
-                return Series(values, index=key_index)
+                return Series(values, index=key_index).convert_objects(
+                    convert_dates='coerce',convert_numeric=True)
         else:
             # Handle cases like BinGrouper
             return self._concat_objects(keys, values,
