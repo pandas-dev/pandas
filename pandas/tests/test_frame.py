@@ -11607,6 +11607,7 @@ starting,ending,measure
         _check_f(data.copy(), f)
 
         # -----Series-----
+        d = data.copy()['c']
 
         # reset_index
         f = lambda x: x.reset_index(inplace=True, drop=True)
@@ -11614,15 +11615,15 @@ starting,ending,measure
 
         # fillna
         f = lambda x: x.fillna(0, inplace=True)
-        _check_f(data.copy()['c'], f)
+        _check_f(d.copy(), f)
 
         # replace
         f = lambda x: x.replace(1, 0, inplace=True)
-        _check_f(data.copy()['c'], f)
+        _check_f(d.copy(), f)
 
         # rename
         f = lambda x: x.rename({1: 'foo'}, inplace=True)
-        _check_f(data.copy()['c'], f)
+        _check_f(d.copy(), f)
 
     def test_isin(self):
         # GH #4211

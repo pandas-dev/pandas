@@ -365,7 +365,7 @@ class TestGroupBy(tm.TestCase):
                 return None
             return grp.iloc[0].loc['C']
         result = df.groupby('A').apply(f)
-        e = df.groupby('A').first()['C']
+        e = df.groupby('A').first()['C'].copy()
         e.loc['Pony'] = np.nan
         e.name = None
         assert_series_equal(result,e)

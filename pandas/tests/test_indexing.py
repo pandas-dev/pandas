@@ -1733,9 +1733,9 @@ class TestIndexing(tm.TestCase):
         df.index = index
 
         # setting via chained assignment
-        df.loc[0]['z'].iloc[0] = 1.
-        result = df.loc[(0,0),'z']
-        self.assert_(result == 1)
+        def f():
+            df.loc[0]['z'].iloc[0] = 1.
+        self.assertRaises(com.SettingWithCopyError, f)
 
         # correct setting
         df.loc[(0,0),'z'] = 2
@@ -1890,6 +1890,20 @@ class TestIndexing(tm.TestCase):
         df = DataFrame({'a' : [1]}).dropna()
         self.assert_(df.is_copy is False)
         df['a'] += 1
+
+        # inplace ops
+        # original from: http://stackoverflow.com/questions/20508968/series-fillna-in-a-multiindex-dataframe-does-not-fill-is-this-a-bug
+        a = [12, 23]
+        b = [123, None]
+        c = [1234, 2345]
+        d = [12345, 23456]
+        tuples = [('eyes', 'left'), ('eyes', 'right'), ('ears', 'left'), ('ears', 'right')]
+        events = {('eyes', 'left'): a, ('eyes', 'right'): b, ('ears', 'left'): c, ('ears', 'right'): d}
+        multiind = MultiIndex.from_tuples(tuples, names=['part', 'side'])
+        zed = DataFrame(events, index=['a', 'b'], columns=multiind)
+        def f():
+            zed['eyes']['right'].fillna(value=555, inplace=True)
+        self.assertRaises(com.SettingWithCopyError, f)
 
         pd.set_option('chained_assignment','warn')
 

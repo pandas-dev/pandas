@@ -1566,11 +1566,14 @@ class DataFrame(NDFrame):
 
                     # a location index by definition
                     i = _maybe_convert_indices(i, len(self._get_axis(axis)))
-                    return self.reindex(i, takeable=True)._setitem_copy(True)
+                    result = self.reindex(i, takeable=True)
+                    copy=True
                 else:
                     new_values, copy = self._data.fast_2d_xs(i, copy=copy)
-                    return Series(new_values, index=self.columns,
-                                  name=self.index[i])._setitem_copy(copy)
+                    result = Series(new_values, index=self.columns,
+                                    name=self.index[i])
+                result.is_copy=copy
+                return result
 
         # icol
         else:
@@ -1680,7 +1683,7 @@ class DataFrame(NDFrame):
             else:
                 new_values = self.values[:, loc]
                 result = DataFrame(new_values, index=self.index,
-                                   columns=result_columns)
+                                   columns=result_columns).__finalize__(self)
             if len(result.columns) == 1:
                 top = result.columns[0]
                 if ((type(top) == str and top == '') or
@@ -1689,6 +1692,7 @@ class DataFrame(NDFrame):
                     if isinstance(result, Series):
                         result = Series(result, index=self.index, name=key)
 
+            result.is_copy=True
             return result
         else:
             return self._get_item_cache(key)
@@ -2136,7 +2140,8 @@ class DataFrame(NDFrame):
 
             new_values, copy = self._data.fast_2d_xs(loc, copy=copy)
             result = Series(new_values, index=self.columns,
-                            name=self.index[loc])._setitem_copy(copy)
+                            name=self.index[loc])
+            result.is_copy=True
 
         else:
             result = self[loc]
@@ -2307,7 +2312,6 @@ class DataFrame(NDFrame):
 
         if inplace:
             frame = self
-
         else:
             frame = self.copy()
 
@@ -2552,8 +2556,8 @@ class DataFrame(NDFrame):
 
         if inplace:
             inds, = (-duplicated).nonzero()
-            self._data = self._data.take(inds)
-            self._clear_item_cache()
+            new_data = self._data.take(inds)
+            self._update_inplace(new_data)
         else:
             return self[-duplicated]
 
@@ -2717,13 +2721,12 @@ class DataFrame(NDFrame):
 
         if inplace:
             if axis == 1:
-                self._data = self._data.reindex_items(
+                new_data = self._data.reindex_items(
                     self._data.items[indexer],
                     copy=False)
             elif axis == 0:
-                self._data = self._data.take(indexer)
-
-            self._clear_item_cache()
+                new_data = self._data.take(indexer)
+            self._update_inplace(new_data)
         else:
             return self.take(indexer, axis=axis, convert=False, is_copy=False)
 
@@ -2763,13 +2766,12 @@ class DataFrame(NDFrame):
 
         if inplace:
             if axis == 1:
-                self._data = self._data.reindex_items(
+                new_data = self._data.reindex_items(
                     self._data.items[indexer],
                     copy=False)
             elif axis == 0:
-                self._data = self._data.take(indexer)
-
-            self._clear_item_cache()
+                new_data = self._data.take(indexer)
+            self._update_inplace(new_data)
         else:
             return self.take(indexer, axis=axis, convert=False, is_copy=False)
 

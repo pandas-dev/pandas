@@ -59,7 +59,7 @@ def _single_replace(self, to_replace, method, inplace, limit):
                        dtype=self.dtype).__finalize__(self)
 
     if inplace:
-        self._data = result._data
+        self._update_inplace(result._data)
         return
 
     return result
@@ -562,9 +562,7 @@ class NDFrame(PandasObject):
             result._clear_item_cache()
 
         if inplace:
-            self._data = result._data
-            self._clear_item_cache()
-
+            self._update_inplace(result._data)
         else:
             return result.__finalize__(self)
 
@@ -994,12 +992,22 @@ class NDFrame(PandasObject):
             if clear, then clear our cache """
         cacher = getattr(self, '_cacher', None)
         if cacher is not None:
-            try:
-                cacher[1]()._maybe_cache_changed(cacher[0], self)
-            except:
+            ref = cacher[1]()
 
-                # our referant is dead
+            # we are trying to reference a dead referant, hence
+            # a copy
+            if ref is None:
                 del self._cacher
+                self.is_copy = True
+                self._check_setitem_copy(stacklevel=5, t='referant')
+            else:
+                try:
+                    ref._maybe_cache_changed(cacher[0], self)
+                except:
+                    pass
+                if ref.is_copy:
+                    self.is_copy = True
+                    self._check_setitem_copy(stacklevel=5, t='referant')
 
         if clear:
             self._clear_item_cache()
@@ -1014,12 +1022,7 @@ class NDFrame(PandasObject):
         self._data.set(key, value)
         self._clear_item_cache()
 
-    def _setitem_copy(self, copy):
-        """ set the _is_copy of the iiem """
-        self.is_copy = copy
-        return self
-
-    def _check_setitem_copy(self, stacklevel=4):
+    def _check_setitem_copy(self, stacklevel=4, t='setting'):
         """ validate if we are doing a settitem on a chained copy.
 
         If you call this function, be sure to set the stacklevel such that the
@@ -1027,9 +1030,13 @@ class NDFrame(PandasObject):
         if self.is_copy:
             value = config.get_option('mode.chained_assignment')
 
-            t = ("A value is trying to be set on a copy of a slice from a "
-                 "DataFrame.\nTry using .loc[row_index,col_indexer] = value "
-                 "instead")
+            if t == 'referant':
+                t = ("A value is trying to be set on a copy of a slice from a "
+                     "DataFrame")
+            else:
+                t = ("A value is trying to be set on a copy of a slice from a "
+                     "DataFrame.\nTry using .loc[row_index,col_indexer] = value "
+                     "instead")
             if value == 'raise':
                 raise SettingWithCopyError(t)
             elif value == 'warn':
@@ -1103,7 +1110,7 @@ class NDFrame(PandasObject):
 
         # maybe set copy if we didn't actually change the index
         if is_copy and not result._get_axis(axis).equals(self._get_axis(axis)):
-            result = result._setitem_copy(is_copy)
+            result.is_copy=is_copy
 
         return result
 
@@ -1218,7 +1225,7 @@ class NDFrame(PandasObject):
         # decision that we may revisit in the future.
         self._reset_cache()
         self._clear_item_cache()
-        self._data = result._data
+        self._data = getattr(result,'_data',result)
         self._maybe_update_cacher()
 
     def add_prefix(self, prefix):
@@ -1910,14 +1917,13 @@ class NDFrame(PandasObject):
                         continue
                     obj = result[k]
                     obj.fillna(v, inplace=True)
-                    obj._maybe_update_cacher()
                 return result
             else:
                 new_data = self._data.fillna(value, inplace=inplace,
                                              downcast=downcast)
 
         if inplace:
-            self._data = new_data
+            self._update_inplace(new_data)
         else:
             return self._constructor(new_data).__finalize__(self)
 
@@ -2165,7 +2171,7 @@ class NDFrame(PandasObject):
         new_data = new_data.convert(copy=not inplace, convert_numeric=False)
 
         if inplace:
-            self._data = new_data
+            self._update_inplace(new_data)
         else:
             return self._constructor(new_data).__finalize__(self)
 
@@ -2272,10 +2278,10 @@ class NDFrame(PandasObject):
 
         if inplace:
             if axis == 1:
-                self._data = new_data
+                self._update_inplace(new_data)
                 self = self.T
             else:
-                self._data = new_data
+                self._update_inplace(new_data)
         else:
             res = self._constructor(new_data).__finalize__(self)
         if axis == 1:
@@ -2856,8 +2862,9 @@ class NDFrame(PandasObject):
         if inplace:
             # we may have different type blocks come out of putmask, so
             # reconstruct the block manager
-            self._data = self._data.putmask(cond, other, align=axis is None,
-                                            inplace=True)
+            new_data = self._data.putmask(cond, other, align=axis is None,
+                                          inplace=True)
+            self._update_inplace(new_data)
 
         else:
             new_data = self._data.where(other, cond, align=axis is None,
