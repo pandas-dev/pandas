@@ -316,6 +316,14 @@ class TestIndexing(tm.TestCase):
     def test_iat_invalid_args(self):
         pass
 
+    def test_repeated_getitem_dups(self):
+        # GH 5678
+        # repeated gettitems on a dup index returing a ndarray
+        df = DataFrame(np.random.random_sample((20,5)), index=['ABCDE'[x%5] for x in range(20)])
+        expected = df.loc['A',0]
+        result = df.loc[:,0].loc['A']
+        assert_series_equal(result,expected)
+
     def test_iloc_getitem_int(self):
 
         # integer

@@ -481,7 +481,10 @@ class Series(generic.NDFrame):
 
     def __getitem__(self, key):
         try:
-            return self.index.get_value(self, key)
+            result = self.index.get_value(self, key)
+            if isinstance(result, np.ndarray):
+                return self._constructor(result,index=[key]*len(result)).__finalize__(self)
+            return result
         except InvalidIndexError:
             pass
         except (KeyError, ValueError):
