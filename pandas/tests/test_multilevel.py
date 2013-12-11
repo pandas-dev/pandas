@@ -1148,7 +1148,17 @@ Thur,Lunch,Yes,51.51,17"""
         # but not if it's mixed-type
         df['foo', 'four'] = 'foo'
         df = df.sortlevel(0, axis=1)
-        df['foo']['one'] = 2
+
+        # this will work, but will raise/warn as its chained assignment
+        def f():
+            df['foo']['one'] = 2
+            return df
+        self.assertRaises(com.SettingWithCopyError, f)
+
+        try:
+            df = f()
+        except:
+            pass
         self.assert_((df['foo', 'one'] == 0).all())
 
     def test_frame_getitem_not_sorted(self):

@@ -1677,6 +1677,7 @@ class DataFrame(NDFrame):
             if self._is_mixed_type:
                 result = self.reindex(columns=new_columns)
                 result.columns = result_columns
+                result.is_copy=True
             else:
                 new_values = self.values[:, loc]
                 result = DataFrame(new_values, index=self.index,
@@ -2307,7 +2308,6 @@ class DataFrame(NDFrame):
 
         if inplace:
             frame = self
-
         else:
             frame = self.copy()
 
@@ -2552,8 +2552,8 @@ class DataFrame(NDFrame):
 
         if inplace:
             inds, = (-duplicated).nonzero()
-            self._data = self._data.take(inds)
-            self._clear_item_cache()
+            new_data = self._data.take(inds)
+            self._update_inplace(new_data)
         else:
             return self[-duplicated]
 
@@ -2717,13 +2717,12 @@ class DataFrame(NDFrame):
 
         if inplace:
             if axis == 1:
-                self._data = self._data.reindex_items(
+                new_data = self._data.reindex_items(
                     self._data.items[indexer],
                     copy=False)
             elif axis == 0:
-                self._data = self._data.take(indexer)
-
-            self._clear_item_cache()
+                new_data = self._data.take(indexer)
+            self._update_inplace(new_data)
         else:
             return self.take(indexer, axis=axis, convert=False, is_copy=False)
 
@@ -2763,13 +2762,12 @@ class DataFrame(NDFrame):
 
         if inplace:
             if axis == 1:
-                self._data = self._data.reindex_items(
+                new_data = self._data.reindex_items(
                     self._data.items[indexer],
                     copy=False)
             elif axis == 0:
-                self._data = self._data.take(indexer)
-
-            self._clear_item_cache()
+                new_data = self._data.take(indexer)
+            self._update_inplace(new_data)
         else:
             return self.take(indexer, axis=axis, convert=False, is_copy=False)
 
