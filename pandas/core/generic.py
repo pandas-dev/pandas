@@ -1022,11 +1022,6 @@ class NDFrame(PandasObject):
         self._data.set(key, value)
         self._clear_item_cache()
 
-    def _setitem_copy(self, copy):
-        """ set the _is_copy of the iiem """
-        self.is_copy = copy
-        return self
-
     def _check_setitem_copy(self, stacklevel=4, t='setting'):
         """ validate if we are doing a settitem on a chained copy.
 
@@ -1115,7 +1110,7 @@ class NDFrame(PandasObject):
 
         # maybe set copy if we didn't actually change the index
         if is_copy and not result._get_axis(axis).equals(self._get_axis(axis)):
-            result = result._setitem_copy(is_copy)
+            result.is_copy=is_copy
 
         return result
 

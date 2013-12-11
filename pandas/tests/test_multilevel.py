@@ -1141,7 +1141,10 @@ Thur,Lunch,Yes,51.51,17"""
         self.assert_(index.lexsort_depth == 0)
 
     def test_frame_getitem_view(self):
-        df = self.frame.T
+        df = self.frame.T.copy()
+
+        # this works because we are modifying the underlying array
+        # really a no-no
         df['foo'].values[:] = 0
         self.assert_((df['foo'].values == 0).all())
 

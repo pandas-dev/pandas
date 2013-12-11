@@ -209,7 +209,7 @@ class _NDFrameIndexer(object):
                     labels = _safe_append_to_index(index, key)
                     self.obj._data = self.obj.reindex_axis(labels, i)._data
                     self.obj._maybe_update_cacher(clear=True)
-                    self.obj._setitem_copy(False)
+                    self.obj.is_copy=False
 
                     if isinstance(labels, MultiIndex):
                         self.obj.sortlevel(inplace=True)
