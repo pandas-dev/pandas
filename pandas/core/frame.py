@@ -1426,10 +1426,12 @@ class DataFrame(NDFrame):
             if len(cols) != len(counts):  # pragma: no cover
                 raise AssertionError('Columns must equal counts (%d != %d)' %
                                      (len(cols), len(counts)))
+            dtypes = self.dtypes
             for col, count in compat.iteritems(counts):
+                dtype = dtypes[col]
                 col = com.pprint_thing(col)
                 lines.append(_put_str(col, space) +
-                             '%d  non-null values' % count)
+                             '%d non-null %s' % (count, dtype))
         else:
             lines.append(self.columns.summary(name='Columns'))
 
