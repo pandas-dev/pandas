@@ -83,6 +83,27 @@ Enhancements
      result
      result.loc[:,:,'ItemA']
 
+- The ``ArrayFormatter``s for ``datetime`` and ``timedelta64`` now intelligently
+  limit precision based on the values in the array (:issue:`3401`)
+  
+  Previously output might look like:
+
+  .. code-block:: python
+   
+        age                 today               diff
+      0 2001-01-01 00:00:00 2013-04-19 00:00:00 4491 days, 00:00:00
+      1 2004-06-01 00:00:00 2013-04-19 00:00:00 3244 days, 00:00:00
+      
+  Now the output looks like:
+
+   .. ipython:: python
+   
+      df = DataFrame([ Timestamp('20010101'),
+                       Timestamp('20040601') ], columns=['age'])
+      df['today'] = Timestamp('20130419')
+      df['diff'] = df['today']-df['age']
+      df
+   
 Experimental
 ~~~~~~~~~~~~
 

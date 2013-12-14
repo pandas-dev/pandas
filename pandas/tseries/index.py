@@ -529,8 +529,16 @@ class DatetimeIndex(Int64Index):
     _na_value = tslib.NaT
     """The expected NA value to use with this index."""
 
+    @cache_readonly
+    def _is_dates_only(self):
+        from pandas.core.format import _is_dates_only
+        return _is_dates_only(self.values)
+
     def __unicode__(self):
-        from pandas.core.format import _format_datetime64
+        from pandas.core.format import _get_format_datetime64
+
+        formatter = _get_format_datetime64(is_dates_only=self._is_dates_only)
+
         values = self.values
 
         freq = None
@@ -539,15 +547,15 @@ class DatetimeIndex(Int64Index):
 
         summary = str(self.__class__)
         if len(self) == 1:
-            first = _format_datetime64(values[0], tz=self.tz)
+            first = formatter(values[0], tz=self.tz)
             summary += '\n[%s]' % first
         elif len(self) == 2:
-            first = _format_datetime64(values[0], tz=self.tz)
-            last = _format_datetime64(values[-1], tz=self.tz)
+            first = formatter(values[0], tz=self.tz)
+            last = formatter(values[-1], tz=self.tz)
             summary += '\n[%s, %s]' % (first, last)
         elif len(self) > 2:
-            first = _format_datetime64(values[0], tz=self.tz)
-            last = _format_datetime64(values[-1], tz=self.tz)
+            first = formatter(values[0], tz=self.tz)
+            last = formatter(values[-1], tz=self.tz)
             summary += '\n[%s, ..., %s]' % (first, last)
 
         tagline = '\nLength: %d, Freq: %s, Timezone: %s'
@@ -630,30 +638,14 @@ class DatetimeIndex(Int64Index):
     def _format_with_header(self, header, **kwargs):
         return header + self._format_native_types(**kwargs)
 
-    def _format_native_types(self, na_rep=u('NaT'), date_format=None, **kwargs):
-        data = list(self)
-
-        # tz formatter or time formatter
-        zero_time = time(0, 0)
-        if date_format is None:
-            for d in data:
-                if d.time() != zero_time or d.tzinfo is not None:
-                    return [u('%s') % x for x in data]
-
-        values = np.array(data, dtype=object)
-        mask = isnull(self.values)
-        values[mask] = na_rep
-
-        imask = -mask
-
-        if date_format is None:
-            date_formatter = lambda x: u('%d-%.2d-%.2d' % (x.year, x.month, x.day))
-        else:
-            date_formatter = lambda x: u(x.strftime(date_format))
-
-        values[imask] = np.array([date_formatter(dt) for dt in values[imask]])
-
-        return values.tolist()
+    def _format_native_types(self, na_rep=u('NaT'),
+                             date_format=None, **kwargs):
+        data = self._get_object_index()
+        from pandas.core.format import Datetime64Formatter
+        return Datetime64Formatter(values=data,
+                                   nat_rep=na_rep,
+                                   date_format=date_format,
+                                   justify='all').get_result()
 
     def isin(self, values):
         """

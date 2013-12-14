@@ -125,6 +125,8 @@ def _is_fixed_offset(tz):
     except AttributeError:
         return True
 
+_zero_time = datetime_time(0, 0)
+
 # Python front end to C extension type _Timestamp
 # This serves as the box for datetime64
 class Timestamp(_Timestamp):
@@ -203,13 +205,17 @@ class Timestamp(_Timestamp):
             pass
         zone = "'%s'" % zone if zone else 'None'
 
-        return "Timestamp('%s', tz=%s)" % (result,zone)
+        return "Timestamp('%s', tz=%s)" % (result, zone)
 
     @property
-    def _repr_base(self):
-        result = '%d-%.2d-%.2d %.2d:%.2d:%.2d' % (self.year, self.month,
-                                                  self.day, self.hour,
-                                                  self.minute, self.second)
+    def _date_repr(self):
+        # Ideal here would be self.strftime("%Y-%m-%d"), but
+        # the datetime strftime() methods require year >= 1900
+        return '%d-%.2d-%.2d' % (self.year, self.month, self.day)
+
+    @property
+    def _time_repr(self):
+        result = '%.2d:%.2d:%.2d' % (self.hour, self.minute, self.second)
 
         if self.nanosecond != 0:
             nanos = self.nanosecond + 1000 * self.microsecond
@@ -218,6 +224,10 @@ class Timestamp(_Timestamp):
             result += '.%.6d' % self.microsecond
 
         return result
+
+    @property
+    def _repr_base(self):
+        return '%s %s' % (self._date_repr, self._time_repr)
 
     @property
     def tz(self):
@@ -338,6 +348,32 @@ class Timestamp(_Timestamp):
                         ts.dts.hour, ts.dts.min, ts.dts.sec,
                         ts.dts.us, ts.tzinfo)
 
+    def isoformat(self, sep='T'):
+        base = super(_Timestamp, self).isoformat(sep=sep)
+        if self.nanosecond == 0:
+            return base
+
+        if self.tzinfo is not None:
+            base1, base2 = base[:-6], base[-6:]
+        else:
+            base1, base2 = base, ""
+
+        if self.microsecond != 0:
+            base1 += "%.3d" % self.nanosecond
+        else:
+            base1 += ".%.9d" % self.nanosecond
+
+        return base1 + base2
+
+    def _has_time_component(self):
+        """
+        Returns if the Timestamp has a time component
+        in addition to the date part
+        """
+        return (self.time() != _zero_time
+                or self.tzinfo is not None
+                or self.nanosecond != 0)
+
 
 _nat_strings = set(['NaT','nat','NAT','nan','NaN','NAN'])
 class NaTType(_NaT):
@@ -353,6 +389,9 @@ class NaTType(_NaT):
         return base
 
     def __repr__(self):
+        return 'NaT'
+
+    def __str__(self):
         return 'NaT'
 
     def __hash__(self):
@@ -1140,8 +1179,21 @@ def array_to_timedelta64(ndarray[object] values, coerce=True):
 
     return result
 
-def repr_timedelta64(object value):
-   """ provide repr for timedelta64 """
+
+def repr_timedelta64(object value, format=None):
+   """
+    provide repr for timedelta64
+
+    Parameters
+    ----------
+    value : timedelta64
+    format : None|"short"|"long"
+
+    Returns
+    -------
+    converted : Timestamp
+
+   """
 
    ivalue = value.view('i8')
 
@@ -1178,18 +1230,23 @@ def repr_timedelta64(object value):
       seconds_pretty = "%02d" % seconds
    else:
       sp = abs(round(1e6*frac))
-      seconds_pretty = "%02d.%06d" % (seconds,sp)
+      seconds_pretty = "%02d.%06d" % (seconds, sp)
 
    if sign < 0:
        sign_pretty = "-"
    else:
        sign_pretty = ""
 
-   if days:
-       return "%s%d days, %02d:%02d:%s" % (sign_pretty, days, hours, minutes,
+   if days or format == 'long':
+       if (hours or minutes or seconds or frac) or format != 'short':
+          return "%s%d days, %02d:%02d:%s" % (sign_pretty, days, hours, minutes,
                                            seconds_pretty)
+       else:
+          return "%s%d days" % (sign_pretty, days)
+
 
    return "%s%02d:%02d:%s" % (sign_pretty, hours, minutes, seconds_pretty)
+
 
 def array_strptime(ndarray[object] values, object fmt, coerce=False):
     cdef:

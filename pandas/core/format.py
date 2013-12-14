@@ -14,11 +14,13 @@ from pandas.util.terminal import get_terminal_size
 from pandas.core.config import get_option, set_option, reset_option
 import pandas.core.common as com
 import pandas.lib as lib
+from pandas.tslib import iNaT
 
 import numpy as np
 
 import itertools
 import csv
+from datetime import time
 
 from pandas.tseries.period import PeriodIndex, DatetimeIndex
 
@@ -1609,7 +1611,7 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
     if digits is None:
         digits = get_option("display.precision")
 
-    fmt_obj = fmt_klass(values, digits, na_rep=na_rep,
+    fmt_obj = fmt_klass(values, digits=digits, na_rep=na_rep,
                         float_format=float_format,
                         formatter=formatter, space=space,
                         justify=justify)
@@ -1704,7 +1706,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
         fmt_values = [_val(x, threshold) for x in self.values]
         return _trim_zeros(fmt_values, self.na_rep)
 
-    def get_result(self):
+    def _format_strings(self):
         if self.formatter is not None:
             fmt_values = [self.formatter(x) for x in self.values]
         else:
@@ -1732,64 +1734,124 @@ class FloatArrayFormatter(GenericArrayFormatter):
                 fmt_str = '%% .%de' % (self.digits - 1)
                 fmt_values = self._format_with(fmt_str)
 
-        return _make_fixed_width(fmt_values, self.justify)
+        return fmt_values
 
 
 class IntArrayFormatter(GenericArrayFormatter):
 
-    def get_result(self):
-        if self.formatter:
-            formatter = self.formatter
-        else:
-            formatter = lambda x: '% d' % x
+    def _format_strings(self):
+        formatter = self.formatter or (lambda x: '% d' % x)
 
         fmt_values = [formatter(x) for x in self.values]
 
-        return _make_fixed_width(fmt_values, self.justify)
+        return fmt_values
 
 
 class Datetime64Formatter(GenericArrayFormatter):
+    def __init__(self, values, nat_rep='NaT', date_format=None, **kwargs):
+        super(Datetime64Formatter, self).__init__(values, **kwargs)
+        self.nat_rep = nat_rep
+        self.date_format = date_format
 
-    def get_result(self):
-        if self.formatter:
-            formatter = self.formatter
-        else:
-            formatter = _format_datetime64
-
-        fmt_values = [formatter(x) for x in self.values]
-        return _make_fixed_width(fmt_values, self.justify)
-
-
-def _format_datetime64(x, tz=None):
-    if isnull(x):
-        return 'NaT'
-
-    stamp = lib.Timestamp(x, tz=tz)
-    return stamp._repr_base
-
-
-class Timedelta64Formatter(Datetime64Formatter):
-
-    def get_result(self):
-        if self.formatter:
-            formatter = self.formatter
-        else:
-
-            formatter = _format_timedelta64
+    def _format_strings(self):
+        formatter = self.formatter or _get_format_datetime64_from_values(
+                                                self.values,
+                                                nat_rep=self.nat_rep,
+                                                date_format=self.date_format)
 
         fmt_values = [formatter(x) for x in self.values]
-        return _make_fixed_width(fmt_values, self.justify)
+
+        return fmt_values
 
 
-def _format_timedelta64(x):
-    if isnull(x):
-        return 'NaT'
+def _format_datetime64(x, tz=None, nat_rep='NaT'):
+    if x is None or lib.checknull(x):
+        return nat_rep
 
-    return lib.repr_timedelta64(x)
+    if tz is not None or not isinstance(x, lib.Timestamp):
+        x = lib.Timestamp(x, tz=tz)
+
+    return str(x)
+
+
+def _format_datetime64_dateonly(x, nat_rep='NaT', date_format=None):
+    if x is None or lib.checknull(x):
+        return nat_rep
+
+    if not isinstance(x, lib.Timestamp):
+        x = lib.Timestamp(x)
+
+    if date_format:
+        return x.strftime(date_format)
+    else:
+        return x._date_repr
+
+
+def _is_dates_only(values):
+    for d in values:
+        if isinstance(d, np.datetime64):
+            d = lib.Timestamp(d)
+
+        if d is not None and not lib.checknull(d) and d._has_time_component():
+            return False
+    return True
+
+
+def _get_format_datetime64(is_dates_only, nat_rep='NaT', date_format=None):
+
+    if is_dates_only:
+        return lambda x, tz=None: _format_datetime64_dateonly(x,
+                                nat_rep=nat_rep,
+                                date_format=date_format)
+    else:
+        return lambda x, tz=None: _format_datetime64(x, tz=tz, nat_rep=nat_rep)
+
+
+def _get_format_datetime64_from_values(values,
+                                       nat_rep='NaT',
+                                       date_format=None):
+    is_dates_only = _is_dates_only(values)
+    return _get_format_datetime64(is_dates_only=is_dates_only,
+                                  nat_rep=nat_rep,
+                                  date_format=date_format)
+
+
+class Timedelta64Formatter(GenericArrayFormatter):
+
+    def _format_strings(self):
+        formatter = self.formatter or _get_format_timedelta64(self.values)
+
+        fmt_values = [formatter(x) for x in self.values]
+
+        return fmt_values
+
+
+def _get_format_timedelta64(values):
+    values_int = values.astype(np.int64)
+
+    consider_values = values_int != iNaT
+
+    one_day_in_nanos = (86400 * 1e9)
+    even_days = np.logical_and(consider_values, values_int % one_day_in_nanos != 0).sum() == 0
+    all_sub_day = np.logical_and(consider_values, np.abs(values_int) >= one_day_in_nanos).sum() == 0
+
+    format_short = even_days or all_sub_day
+    format = "short" if format_short else "long"
+
+    def impl(x):
+        if x is None or lib.checknull(x):
+            return 'NaT'
+        elif format_short and x == 0:
+            return "0 days" if even_days else "00:00:00"
+        else:
+            return lib.repr_timedelta64(x, format=format)
+
+    return impl
 
 
 def _make_fixed_width(strings, justify='right', minimum=None, truncated=False):
-    if len(strings) == 0:
+
+    if len(strings) == 0 or justify == 'all':
         return strings
 
     _strlen = _strlen_func()
