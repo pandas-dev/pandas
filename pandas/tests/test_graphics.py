@@ -28,6 +28,13 @@ def _skip_if_no_scipy():
         raise nose.SkipTest("no scipy")
 
 
+def _skip_if_no_sm():
+    try:
+        import statsmodels.api as sm
+    except ImportError:
+        raise nose.SkipTest("no statsmodels")
+
+
 @tm.mplskip
 class TestSeriesPlots(tm.TestCase):
     def setUp(self):
@@ -60,6 +67,7 @@ class TestSeriesPlots(tm.TestCase):
         _check_plot_works(self.series[:5].plot, kind='barh')
         _check_plot_works(self.series[:10].plot, kind='barh')
         _check_plot_works(Series(randn(10)).plot, kind='bar', color='black')
+        _check_plot_works(Series(randn(10)).plot, kind='cdf')
 
     @slow
     def test_plot_figsize_and_title(self):
@@ -452,6 +460,26 @@ class TestDataFramePlots(tm.TestCase):
 
         # columns.inferred_type == 'mixed'
         # TODO add MultiIndex test
+
+    def test_get_plot_kind(self):
+        from pandas.tools.plotting import (LinePlot, BarPlot, DistributionPlot,
+                                           ScatterPlot, _get_plot_kind)
+        kinds = ['line', 'bar', 'barh', 'scatter']
+        klasses = [LinePlot, BarPlot, BarPlot, ScatterPlot]
+        for kind, kls in zip(kinds, klasses):
+            result = _get_plot_kind(kind)
+            self.assertEqual(result, kls)
+
+        for kind in ['kde', 'cdf']:
+            result = _get_plot_kind(kind)
+            self.assertEqual(result.func, DistributionPlot)
+            self.assertEqual(result.keywords, {'kind': kind})
+
+        with tm.assertRaises(ValueError):
+            _get_plot_kind('scatter', series=True)
+
+        with tm.assertRaises(ValueError):
+            _get_plot_kind('NOT A PLOT KIND')
 
     @slow
     def test_xcompat(self):

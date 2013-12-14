@@ -96,16 +96,18 @@ def _get_standard_kind(kind):
 
 
 def _get_plot_kind(kind, series=False):
-    series_kinds = {'line': LinePlot, 'bar': BarPlot, 'barh': BarPlot,
-                    'kde': KdePlot}
-    frame_kinds = {'line': LinePlot, 'bar': BarPlot, 'barh': BarPlot,
-                   'kde': KdePlot, 'scatter': ScatterPlot}
-    if series:
-        d = series_kinds
-    else:
-        d = frame_kinds
+    from functools import partial
+    plot_kinds = {'kde': partial(DistributionPlot, kind='kde'),
+                  'cdf': partial(DistributionPlot, kind='cdf'),
+                  'bar': BarPlot,
+                  'barh': BarPlot,
+                  'line': LinePlot,
+                  'scatter': ScatterPlot}
+
+    if kind == 'scatter' and series:
+        raise ValueError('Invalid chart type (%s) given for series plot' % kind)
     try:
-        klass = d[kind]
+        klass = plot_kinds[kind]
         return klass
     except KeyError:
         raise ValueError('Invalid chart type given %s' % kind)
@@ -1191,59 +1193,76 @@ class MPLPlot(object):
             return label
 
 
-class KdePlot(MPLPlot):
-    def __init__(self, data, bw_method=None, ind=None, **kwargs):
+class DistributionPlot(MPLPlot):
+    def __init__(self, data, kind, **kwargs):
+        """
+        data : NDFrame
+        kind : str
+            `kde` or `cdf`
+        """
         MPLPlot.__init__(self, data, **kwargs)
-        self.bw_method=bw_method
-        self.ind=ind
+        self.kind = kind
+        self.kde_kwds = {'ind': self.kwds.pop('ind', None),
+                         'bw_method': self.kwds.pop('bw_method', None)}
+        self.plotf = self._get_plot_function()
+        self.colors = self._get_colors()
 
     def _make_plot(self):
-        from scipy.stats import gaussian_kde
-        from scipy import __version__ as spv
-        from distutils.version import LooseVersion
-        plotf = self._get_plot_function()
-        colors = self._get_colors()
+        if self.kind == 'kde':
+            from scipy.stats import gaussian_kde
+            from scipy import __version__ as spv
+            from distutils.version import LooseVersion
+        else:
+            import statsmodels.api as sm
+
         for i, (label, y) in enumerate(self._iter_data()):
             ax = self._get_ax(i)
             style = self._get_style(i, label)
 
             label = com.pprint_thing(label)
+            ind = self.kde_kwds.get('ind')
+            bw_method = self.kde_kwds.get('bw_method')
 
-            if LooseVersion(spv) >= '0.11.0':
-                gkde = gaussian_kde(y, bw_method=self.bw_method)
+            # calculation
+            if self.kind == 'kde':
+                if LooseVersion(spv) >= '0.11.0':
+                    gkde = gaussian_kde(y, bw_method=bw_method)
+                else:
+                    gkde = gaussian_kde(y)
+                    if bw_method is not None:  # Is bw_method always a str?
+                        msg = ('bw_method was added in Scipy 0.11.0.' +
+                               ' Scipy version in use is %s.' % spv)
+                        warnings.warn(msg)
+
+                sample_range = max(y) - min(y)
+                if ind is None:
+                    ind = np.linspace(min(y) - 0.5 * sample_range,
+                                      max(y) + 0.5 * sample_range, 1000)
+                y = gkde.evaluate(ind)
+                ax.set_ylabel("Density")
             else:
-                gkde = gaussian_kde(y)
-                if self.bw_method is not None:
-                    msg = ('bw_method was added in Scipy 0.11.0.' +
-                           ' Scipy version in use is %s.' % spv)
-                    warnings.warn(msg)
+                k = sm.nonparametric.KDEUnivariate(y)
+                k.fit()
+                if ind is None:
+                    ind = k.support
+                y = k.cdf
 
-            sample_range = max(y) - min(y)
-
-            if self.ind is None:
-                ind = np.linspace(min(y) - 0.5 * sample_range,
-                                  max(y) + 0.5 * sample_range, 1000)
-            else:
-                ind = self.ind
-
-            ax.set_ylabel("Density")
-
-            y = gkde.evaluate(ind)
             kwds = self.kwds.copy()
             kwds['label'] = label
-            self._maybe_add_color(colors, kwds, style, i)
+            self._maybe_add_color(self.colors, kwds, style, i)
             if style is None:
                 args = (ax, ind, y)
             else:
                 args = (ax, ind, y, style)
 
-            plotf(*args, **kwds)
+            self.plotf(*args, **kwds)
             ax.grid(self.grid)
 
     def _post_plot_logic(self):
         if self.legend:
             for ax in self.axes:
                 ax.legend(loc='best')
+
 
 class ScatterPlot(MPLPlot):
     def __init__(self, data, x, y, **kwargs):
