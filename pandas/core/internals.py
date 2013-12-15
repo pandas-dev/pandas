@@ -601,8 +601,12 @@ class Block(PandasObject):
                                      "different length than the value")
 
         try:
-            # set and return a block
-            values[indexer] = value
+            # if we are an exact match (ex-broadcasting),
+            # then use the resultant dtype
+            if len(arr_value.shape) and arr_value.shape[0] == values.shape[0] and np.prod(arr_value.shape) == np.prod(values.shape):
+                values = arr_value.reshape(values.shape)
+            else:
+                values[indexer] = value
 
             # coerce and try to infer the dtypes of the result
             if np.isscalar(value):
