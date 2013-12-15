@@ -636,8 +636,8 @@ Bug Fixes
     (causing the original stack trace to be truncated).
   - Fix selection with ``ix/loc`` and non_unique selectors (:issue:`4619`)
   - Fix assignment with iloc/loc involving a dtype change in an existing column
-    (:issue:`4312`) have internal setitem_with_indexer in core/indexing to use
-    Block.setitem
+    (:issue:`4312`, :issue:`5702`) have internal setitem_with_indexer in core/indexing
+    to use Block.setitem
   - Fixed bug where thousands operator was not handled correctly for floating
     point numbers in csv_import (:issue:`4322`)
   - Fix an issue with CacheableOffset not properly being used by many

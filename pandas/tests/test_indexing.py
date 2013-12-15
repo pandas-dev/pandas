@@ -1376,21 +1376,42 @@ class TestIndexing(tm.TestCase):
         expected = gen_expected(df,mask)
         assert_frame_equal(result,expected)
 
-    def test_astype_assignment_with_iloc(self):
+    def test_astype_assignment(self):
 
-        # GH4312
+        # GH4312 (iloc)
         df_orig = DataFrame([['1','2','3','.4',5,6.,'foo']],columns=list('ABCDEFG'))
 
         df = df_orig.copy()
-        df.iloc[:,0:3] = df.iloc[:,0:3].astype(int)
-        result = df.get_dtype_counts().sort_index()
-        expected = Series({ 'int64' : 4, 'float64' : 1, 'object' : 2 }).sort_index()
-        assert_series_equal(result,expected)
+        df.iloc[:,0:2] = df.iloc[:,0:2].astype(int)
+        expected = DataFrame([[1,2,'3','.4',5,6.,'foo']],columns=list('ABCDEFG'))
+        assert_frame_equal(df,expected)
 
         df = df_orig.copy()
-        df.iloc[:,0:3] = df.iloc[:,0:3].convert_objects(convert_numeric=True)
-        result = df.get_dtype_counts().sort_index()
-        expected = Series({ 'int64' : 4, 'float64' : 1, 'object' : 2 }).sort_index()
+        df.iloc[:,0:2] = df.iloc[:,0:2].convert_objects(convert_numeric=True)
+        expected =  DataFrame([[1,2,'3','.4',5,6.,'foo']],columns=list('ABCDEFG'))
+        assert_frame_equal(df,expected)
+
+        # GH5702 (loc)
+        df = df_orig.copy()
+        df.loc[:,'A'] = df.loc[:,'A'].astype(int)
+        expected = DataFrame([[1,'2','3','.4',5,6.,'foo']],columns=list('ABCDEFG'))
+        assert_frame_equal(df,expected)
+
+        df = df_orig.copy()
+        df.loc[:,['B','C']] = df.loc[:,['B','C']].astype(int)
+        expected =  DataFrame([['1',2,3,'.4',5,6.,'foo']],columns=list('ABCDEFG'))
+        assert_frame_equal(df,expected)
+
+        # full replacements / no nans
+        df = DataFrame({'A': [1., 2., 3., 4.]})
+        df.iloc[:, 0] = df['A'].astype(np.int64)
+        expected = DataFrame({'A': [1, 2, 3, 4]})
+        assert_frame_equal(df,expected)
+
+        df = DataFrame({'A': [1., 2., 3., 4.]})
+        df.loc[:, 'A'] = df['A'].astype(np.int64)
+        expected = DataFrame({'A': [1, 2, 3, 4]})
+        assert_frame_equal(df,expected)
 
     def test_astype_assignment_with_dups(self):
 
@@ -1496,7 +1517,7 @@ class TestIndexing(tm.TestCase):
         assert_frame_equal(df,expected)
 
         # mixed dtype frame, overwrite
-        expected = DataFrame(dict({ 'A' : [0,2,4], 'B' : Series([0.,2.,4.]) }))
+        expected = DataFrame(dict({ 'A' : [0,2,4], 'B' : Series([0,2,4]) }))
         df = df_orig.copy()
         df['B'] = df['B'].astype(np.float64)
         df.ix[:,'B'] = df.ix[:,'A']
@@ -1504,14 +1525,14 @@ class TestIndexing(tm.TestCase):
 
         # single dtype frame, partial setting
         expected = df_orig.copy()
-        expected['C'] = df['A'].astype(np.float64)
+        expected['C'] = df['A']
         df = df_orig.copy()
         df.ix[:,'C'] = df.ix[:,'A']
         assert_frame_equal(df,expected)
 
         # mixed frame, partial setting
         expected = df_orig.copy()
-        expected['C'] = df['A'].astype(np.float64)
+        expected['C'] = df['A']
         df = df_orig.copy()
         df.ix[:,'C'] = df.ix[:,'A']
         assert_frame_equal(df,expected)
