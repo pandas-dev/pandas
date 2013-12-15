@@ -822,6 +822,7 @@ Bug Fixes
   - Bug in groupby returning non-consistent types when user function returns a ``None``, (:issue:`5592`)
   - Work around regression in numpy 1.7.0 which erroneously raises IndexError from ``ndarray.item`` (:issue:`5666`)
   - Bug in repeated indexing of object with resultant non-unique index (:issue:`5678`)
+  - Bug in fillna with Series and a passed series/dict (:issue:`5703`)
 
 pandas 0.12.0
 -------------

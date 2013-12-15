@@ -1905,7 +1905,16 @@ class NDFrame(PandasObject):
 
             if len(self._get_axis(axis)) == 0:
                 return self
-            if isinstance(value, (dict, com.ABCSeries)):
+
+            if self.ndim == 1 and value is not None:
+                if isinstance(value, (dict, com.ABCSeries)):
+                    from pandas import Series
+                    value = Series(value)
+
+                new_data = self._data.fillna(value, inplace=inplace,
+                                             downcast=downcast)
+
+            elif isinstance(value, (dict, com.ABCSeries)):
                 if axis == 1:
                     raise NotImplementedError('Currently only can fill '
                                               'with dict/Series column '

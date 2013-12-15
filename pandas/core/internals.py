@@ -664,7 +664,7 @@ class Block(PandasObject):
 
         # if we are passed a scalar None, convert it here
         if not is_list_like(new) and isnull(new):
-            new = np.nan
+            new = self.fill_value
 
         if self._can_hold_element(new):
             new = self._try_cast(new)
@@ -830,7 +830,7 @@ class Block(PandasObject):
             data = data.astype(np.float64)
 
         if fill_value is None:
-            fill_value = np.nan
+            fill_value = self.fill_value
 
         if method in ('krogh', 'piecewise_polynomial', 'pchip'):
             if not index.is_monotonic:
@@ -1196,6 +1196,10 @@ class TimeDeltaBlock(IntBlock):
     _can_hold_na = True
     is_numeric = False
 
+    @property
+    def fill_value(self):
+        return tslib.iNaT
+
     def _try_fill(self, value):
         """ if we are a NaT, return the actual fill value """
         if isinstance(value, type(tslib.NaT)) or isnull(value):
@@ -1531,6 +1535,10 @@ class DatetimeBlock(Block):
         elif isinstance(result, (np.integer, np.datetime64)):
             result = lib.Timestamp(result)
         return result
+
+    @property
+    def fill_value(self):
+        return tslib.iNaT
 
     def _try_fill(self, value):
         """ if we are a NaT, return the actual fill value """
@@ -3183,6 +3191,13 @@ class BlockManager(PandasObject):
         new_axes = [new_items] + self.axes[1:]
 
         # could have so me pathological (MultiIndex) issues here
+        def _valid_blocks(newb):
+            if newb is None:
+                return []
+            if not isinstance(newb, list):
+                newb = [ newb ]
+            return [ b for b in newb if len(b.items) > 0 ]
+
         new_blocks = []
         if indexer is None:
             for blk in self.blocks:
@@ -3190,18 +3205,15 @@ class BlockManager(PandasObject):
                     blk = blk.reindex_items_from(new_items)
                 else:
                     blk.ref_items = new_items
-                if blk is not None:
-                    new_blocks.append(blk)
+                new_blocks.extend(_valid_blocks(blk))
         else:
 
             # unique
             if self.axes[0].is_unique and new_items.is_unique:
 
                 for block in self.blocks:
-
-                    newb = block.reindex_items_from(new_items, copy=copy)
-                    if newb is not None and len(newb.items) > 0:
-                        new_blocks.append(newb)
+                    blk = block.reindex_items_from(new_items, copy=copy)
+                    new_blocks.extend(_valid_blocks(blk))
 
             # non-unique
             else:
