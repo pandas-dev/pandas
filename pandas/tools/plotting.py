@@ -2714,8 +2714,52 @@ def heatmap(df,
 
     # heatmap with row names
 
-    def get_width_ratios(half_width, side_colors,
+    def get_width_ratios(shape, side_colors,
                          colorbar_loc, dimension, side_colors_ratio=0.05):
+        """
+        Figures out the ratio of each subfigure within the larger figure.
+        The dendrograms currently are 2*half_dendrogram, which is a proportion of
+        the dataframe shape. Right now, this only supports the colormap in
+        the upper left. The full figure map looks like:
+
+            0.1  0.1  0.05    1.0
+        0.1  cb              column
+        0.1                  dendrogram
+        0.05                 col colors
+           | r   d     r
+           | o   e     o
+           | w   n     w
+           |     d
+        1.0|     r     c     heatmap
+           |     o     o
+           |     g     l
+           |     r     o
+           |     a     r
+           |     m     s
+
+        The colorbar is half_dendrogram of the whitespace in the corner between
+        the row and column dendrogram. Otherwise, it's too big and its
+        corners touch the heatmap, which I didn't like.
+
+        For example, if there are side_colors, need to provide an extra value
+        in the ratio tuples, with the width side_colors_ratio. But if there
+        aren't any side colors, then the tuple is of size 3 (half_dendrogram,
+        half_dendrogram, 1.0), and if there are then the tuple is of size 4 (
+        half_dendrogram, half_dendrogram, 0.05, 1.0)
+
+        :param side_colors:
+        :type side_colors:
+        :param colorbar_loc:
+        :type colorbar_loc:
+        :param dimension:
+        :type dimension:
+        :param side_colors_ratio:
+        :type side_colors_ratio:
+        :return:
+        :rtype:
+        """
+        i = 0 if dimension == 'height' else 1
+        half_dendrogram = shape[i] * 0.1/shape[i]
         if colorbar_loc not in ('upper left', 'right', 'bottom'):
             raise AssertionError("{} is not a valid 'colorbar_loc' (valid: "
                                  "'upper left', 'right', 'bottom')".format(
@@ -2725,7 +2769,7 @@ def heatmap(df,
                                  "'height', 'width')".format(
                 dimension))
 
-        ratios = [half_width, half_width]
+        ratios = [half_dendrogram, half_dendrogram]
         if side_colors:
             ratios += [side_colors_ratio]
 
@@ -2736,12 +2780,10 @@ def heatmap(df,
             return ratios + [1]
 
 
-    col_dendrogram_half_height = df.shape[0] * 0.1 / df.shape[0]
-    row_dendrogram_half_width = df.shape[1] * 0.1 / df.shape[1]
-    width_ratios = get_width_ratios(row_dendrogram_half_width,
+    width_ratios = get_width_ratios(df.shape,
                                     row_side_colors,
                                     colorbar_loc, dimension='width')
-    height_ratios = get_width_ratios(col_dendrogram_half_height,
+    height_ratios = get_width_ratios(df.shape,
                                      col_side_colors,
                                      colorbar_loc, dimension='height')
     nrows = 3 if col_side_colors is None else 4
