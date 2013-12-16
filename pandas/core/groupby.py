@@ -19,9 +19,11 @@ from pandas.util.decorators import cache_readonly, Appender
 import pandas.core.algorithms as algos
 import pandas.core.common as com
 from pandas.core.common import(_possibly_downcast_to_dtype, isnull,
-                               notnull, _DATELIKE_DTYPES)
+                               notnull, _DATELIKE_DTYPES, is_numeric_dtype,
+                               is_timedelta64_dtype, is_datetime64_dtype)
 
 import pandas.lib as lib
+from pandas.lib import Timestamp
 import pandas.algos as _algos
 import pandas.hashtable as _hash
 
@@ -257,6 +259,16 @@ class GroupBy(PandasObject):
         """ dict {group name -> group indices} """
         return self.grouper.indices
 
+    def _get_index(self, name):
+        """ safe get index """
+        try:
+            return self.indices[name]
+        except:
+            if isinstance(name, Timestamp):
+                name = name.value
+                return self.indices[name]
+            raise
+
     @property
     def name(self):
         if self._selection is None:
@@ -350,7 +362,7 @@ class GroupBy(PandasObject):
         if obj is None:
             obj = self.obj
 
-        inds = self.indices[name]
+        inds = self._get_index(name)
         return obj.take(inds, axis=self.axis, convert=False)
 
     def __iter__(self):
@@ -676,7 +688,7 @@ class GroupBy(PandasObject):
     def _cython_agg_general(self, how, numeric_only=True):
         output = {}
         for name, obj in self._iterate_slices():
-            is_numeric = _is_numeric_dtype(obj.dtype)
+            is_numeric = is_numeric_dtype(obj.dtype)
             if numeric_only and not is_numeric:
                 continue
 
@@ -714,7 +726,7 @@ class GroupBy(PandasObject):
 
                 # since we are masking, make sure that we have a float object
                 values = result
-                if _is_numeric_dtype(values.dtype):
+                if is_numeric_dtype(values.dtype):
                     values = com.ensure_float(values)
 
                 output[name] = self._try_cast(values[mask], result)
@@ -1080,7 +1092,7 @@ class Grouper(object):
                 raise NotImplementedError
             out_shape = (self.ngroups,) + values.shape[1:]
 
-        if _is_numeric_dtype(values.dtype):
+        if is_numeric_dtype(values.dtype):
             values = com.ensure_float(values)
             is_numeric = True
         else:
@@ -1474,6 +1486,15 @@ class Grouping(object):
                     self.grouper = None  # Try for sanity
                     raise AssertionError(errmsg)
 
+        # if we have a date/time-like grouper, make sure that we have Timestamps like
+        if getattr(self.grouper,'dtype',None) is not None:
+            if is_datetime64_dtype(self.grouper):
+                from pandas import to_datetime
+                self.grouper = to_datetime(self.grouper)
+            elif is_timedelta64_dtype(self.grouper):
+                from pandas import to_timedelta
+                self.grouper = to_timedelta(self.grouper)
+
     def __repr__(self):
         return 'Grouping(%s)' % self.name
 
@@ -1821,7 +1842,7 @@ class SeriesGroupBy(GroupBy):
             # need to do a safe put here, as the dtype may be different
             # this needs to be an ndarray
             result = Series(result)
-            result.iloc[self.indices[name]] = res
+            result.iloc[self._get_index(name)] = res
             result = result.values
 
         # downcast if we can (and need)
@@ -1860,7 +1881,7 @@ class SeriesGroupBy(GroupBy):
             return b and notnull(b)
 
         try:
-            indices = [self.indices[name] if true_and_notnull(group) else []
+            indices = [self._get_index(name) if true_and_notnull(group) else []
                        for name, group in self]
         except ValueError:
             raise TypeError("the filter must return a boolean result")
@@ -1921,7 +1942,7 @@ class NDFrameGroupBy(GroupBy):
         for block in data.blocks:
             values = block.values
 
-            is_numeric = _is_numeric_dtype(values.dtype)
+            is_numeric = is_numeric_dtype(values.dtype)
 
             if numeric_only and not is_numeric:
                 continue
@@ -2412,7 +2433,7 @@ class NDFrameGroupBy(GroupBy):
                 res = path(group)
 
             def add_indices():
-                indices.append(self.indices[name])
+                indices.append(self._get_index(name))
 
             # interpret the result of the filter
             if isinstance(res, (bool, np.bool_)):
@@ -2971,12 +2992,6 @@ _cython_table = {
     np.var: 'var',
     np.median: 'median'
 }
-
-
-def _is_numeric_dtype(dt):
-    typ = dt.type
-    return (issubclass(typ, (np.number, np.bool_))
-            and not issubclass(typ, (np.datetime64, np.timedelta64)))
 
 
 def _intercept_function(func):
