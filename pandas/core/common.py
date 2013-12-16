@@ -2009,6 +2009,14 @@ def needs_i8_conversion(arr_or_dtype):
             is_timedelta64_dtype(arr_or_dtype))
 
 
+def is_numeric_dtype(arr_or_dtype):
+    if isinstance(arr_or_dtype, np.dtype):
+        tipo = arr_or_dtype.type
+    else:
+        tipo = arr_or_dtype.dtype.type
+    return (issubclass(tipo, (np.number, np.bool_))
+            and not issubclass(tipo, (np.datetime64, np.timedelta64)))
+
 def is_float_dtype(arr_or_dtype):
     if isinstance(arr_or_dtype, np.dtype):
         tipo = arr_or_dtype.type
