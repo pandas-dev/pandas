@@ -6463,6 +6463,15 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         assert_series_equal(result, expected)
 
+    def test_corrwith_matches_corrcoef(self):
+        df1 = DataFrame(np.arange(10000), columns=['a'])
+        df2 = DataFrame(np.arange(10000)**2, columns=['a'])
+        c1 = df1.corrwith(df2)['a']
+        c2 = np.corrcoef(df1['a'],df2['a'])[0][1]
+
+        assert_almost_equal(c1, c2)
+        self.assert_(c1 < 1)
+
     def test_drop_names(self):
         df = DataFrame([[1, 2, 3],[3, 4, 5],[5, 6, 7]], index=['a', 'b', 'c'],
                        columns=['d', 'e', 'f'])
