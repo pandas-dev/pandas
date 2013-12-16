@@ -2783,6 +2783,12 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         result = s1.fillna(Series({ 0 : 1, 1 : 1},index=[4,5]))
         assert_series_equal(result,s1)
 
+        s1 = Series([0, 1, 2], list('abc'))
+        s2 = Series([0, np.nan, 2], list('bac'))
+        result = s2.fillna(s1)
+        expected = Series([0,0,2.], list('bac'))
+        assert_series_equal(result,expected)
+
     def test_fillna_bug(self):
         x = Series([nan, 1., nan, 3., nan], ['z', 'a', 'b', 'c', 'd'])
         filled = x.fillna(method='ffill')

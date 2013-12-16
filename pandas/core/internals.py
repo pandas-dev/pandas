@@ -3191,13 +3191,6 @@ class BlockManager(PandasObject):
         new_axes = [new_items] + self.axes[1:]
 
         # could have so me pathological (MultiIndex) issues here
-        def _valid_blocks(newb):
-            if newb is None:
-                return []
-            if not isinstance(newb, list):
-                newb = [ newb ]
-            return [ b for b in newb if len(b.items) > 0 ]
-
         new_blocks = []
         if indexer is None:
             for blk in self.blocks:
@@ -3423,7 +3416,11 @@ class SingleBlockManager(BlockManager):
         if fastpath:
             self.axes = [axis]
             if isinstance(block, list):
-                if len(block) != 1:
+
+                # empty block
+                if len(block) == 0:
+                    block = [np.array([])]
+                elif len(block) != 1:
                     raise ValueError('Cannot create SingleBlockManager with '
                                      'more than 1 block')
                 block = block[0]
@@ -3886,6 +3883,13 @@ def _consolidate(blocks, items):
 
     return new_blocks
 
+
+def _valid_blocks(newb):
+    if newb is None:
+        return []
+    if not isinstance(newb, list):
+        newb = [ newb ]
+    return [ b for b in newb if len(b.items) > 0 ]
 
 def _merge_blocks(blocks, items, dtype=None, _can_consolidate=True):
     if len(blocks) == 1:
