@@ -627,6 +627,14 @@ class TestGroupBy(tm.TestCase):
             for idx in gp.index:
                 assert_fp_equal(res.xs(idx), agged[idx])
 
+    def test_transform_bug(self):
+        # GH 5712
+        # transforming on a datetime column
+        df = DataFrame(dict(A = Timestamp('20130101'), B = np.arange(5)))
+        result = df.groupby('A')['B'].transform(lambda x: x.rank(ascending=False))
+        expected = Series(np.arange(5,0,step=-1),name='B')
+        assert_series_equal(result,expected)
+
     def test_transform_multiple(self):
         grouped = self.ts.groupby([lambda x: x.year, lambda x: x.month])
 

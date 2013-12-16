@@ -22,6 +22,7 @@ from pandas.core.common import(_possibly_downcast_to_dtype, isnull,
                                notnull, _DATELIKE_DTYPES)
 
 import pandas.lib as lib
+from pandas.lib import Timestamp
 import pandas.algos as _algos
 import pandas.hashtable as _hash
 
@@ -257,6 +258,12 @@ class GroupBy(PandasObject):
         """ dict {group name -> group indices} """
         return self.grouper.indices
 
+    def _get_index(self, name):
+        """ safe get index """
+        if isinstance(name, Timestamp):
+            name = name.value
+        return self.indices[name]
+
     @property
     def name(self):
         if self._selection is None:
@@ -350,7 +357,7 @@ class GroupBy(PandasObject):
         if obj is None:
             obj = self.obj
 
-        inds = self.indices[name]
+        inds = self._get_index(name)
         return obj.take(inds, axis=self.axis, convert=False)
 
     def __iter__(self):
@@ -1821,7 +1828,7 @@ class SeriesGroupBy(GroupBy):
             # need to do a safe put here, as the dtype may be different
             # this needs to be an ndarray
             result = Series(result)
-            result.iloc[self.indices[name]] = res
+            result.iloc[self._get_index(name)] = res
             result = result.values
 
         # downcast if we can (and need)
@@ -1860,7 +1867,7 @@ class SeriesGroupBy(GroupBy):
             return b and notnull(b)
 
         try:
-            indices = [self.indices[name] if true_and_notnull(group) else []
+            indices = [self._get_index(name) if true_and_notnull(group) else []
                        for name, group in self]
         except ValueError:
             raise TypeError("the filter must return a boolean result")
@@ -2412,7 +2419,7 @@ class NDFrameGroupBy(GroupBy):
                 res = path(group)
 
             def add_indices():
-                indices.append(self.indices[name])
+                indices.append(self._get_index(name))
 
             # interpret the result of the filter
             if isinstance(res, (bool, np.bool_)):
