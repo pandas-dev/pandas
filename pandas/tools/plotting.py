@@ -2622,7 +2622,7 @@ def heatmap(df,
     :param cluster_rows:
     :param plot_df: The dataframe you want to plot. This can contain NAs and
     other nasty things.
-        :param row_linkage_method:
+    :param row_linkage_method:
     :param col_linkage_method:
     :param vmin: Minimum value to plot on heatmap
     :param vmax: Maximum value to plot on heatmap
@@ -2641,6 +2641,7 @@ def heatmap(df,
     import matplotlib as mpl
     from collections import Iterable
 
+    #if cluster
 
     if (df.shape[0] > 1000 or df.shape[1] > 1000) or use_fastcluster:
         try:
@@ -2666,9 +2667,9 @@ def heatmap(df,
         plot_df = df
 
     if (plot_df.index != df.index).any():
-        raise AssertionError('plot_df must have the exact same indices as df')
+        raise ValueError('plot_df must have the exact same indices as df')
     if (plot_df.columns != df.columns).any():
-        raise AssertionError('plot_df must have the exact same columns as df')
+        raise ValueError('plot_df must have the exact same columns as df')
         # make norm
 
     # Check if the matrix has values both above and below zero, or only above
