@@ -2332,11 +2332,11 @@ def _where_compat(mask, arr1, arr2):
     return np.where(mask, arr1, arr2)
 
 
-def sentinal_factory():
-    class Sentinal(object):
+def sentinel_factory():
+    class Sentinel(object):
         pass
 
-    return Sentinal()
+    return Sentinel()
 
 
 def in_interactive_session():
