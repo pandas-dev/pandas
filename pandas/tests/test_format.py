@@ -906,13 +906,19 @@ class TestDataFrameFormatting(tm.TestCase):
         y = df.set_index(['id1', 'id2', 'id3'])
         result = y.to_string()
         expected = u('             value\nid1 id2 id3       \n1a3 NaN 78d    123\n9h4 d67 79d     64')
-        self.assert_(result == expected)
+        self.assertEqual(result, expected)
 
         # index
         y = df.set_index('id2')
         result = y.to_string()
         expected = u('     id1  id3  value\nid2                 \nNaN  1a3  78d    123\nd67  9h4  79d     64')
-        self.assert_(result == expected)
+        self.assertEqual(result, expected)
+
+        # with append (this failed in 0.12)
+        y = df.set_index(['id1', 'id2']).set_index('id3', append=True)
+        result = y.to_string()
+        expected = u('             value\nid1 id2 id3       \n1a3 NaN 78d    123\n9h4 d67 79d     64')
+        self.assertEqual(result, expected)
 
         # all-nan in mi
         df2 = df.copy()
@@ -920,7 +926,7 @@ class TestDataFrameFormatting(tm.TestCase):
         y = df2.set_index('id2')
         result = y.to_string()
         expected = u('     id1  id3  value\nid2                 \nNaN  1a3  78d    123\nNaN  9h4  79d     64')
-        self.assert_(result == expected)
+        self.assertEqual(result, expected)
 
         # partial nan in mi
         df2 = df.copy()
@@ -928,7 +934,7 @@ class TestDataFrameFormatting(tm.TestCase):
         y = df2.set_index(['id2','id3'])
         result = y.to_string()
         expected = u('         id1  value\nid2 id3            \nNaN 78d  1a3    123\n    79d  9h4     64')
-        self.assert_(result == expected)
+        self.assertEqual(result, expected)
 
         df = DataFrame({'id1': {0: np.nan, 1: '9h4'}, 'id2': {0: np.nan, 1: 'd67'},
                         'id3': {0: np.nan, 1: '79d'}, 'value': {0: 123, 1: 64}})
@@ -936,7 +942,7 @@ class TestDataFrameFormatting(tm.TestCase):
         y = df.set_index(['id1','id2','id3'])
         result = y.to_string()
         expected = u('             value\nid1 id2 id3       \nNaN NaN NaN    123\n9h4 d67 79d     64')
-        self.assert_(result == expected)
+        self.assertEqual(result, expected)
 
     def test_to_string(self):
         from pandas import read_table
