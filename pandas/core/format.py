@@ -740,8 +740,8 @@ class HTMLFormatter(TableFormatter):
             template = 'colspan="%d" halign="left"'
 
             # GH3547
-            sentinal = com.sentinal_factory()
-            levels = self.columns.format(sparsify=sentinal, adjoin=False,
+            sentinel = com.sentinel_factory()
+            levels = self.columns.format(sparsify=sentinel, adjoin=False,
                                          names=False)
             # Truncate column names
             if len(levels[0]) > self.max_cols:
@@ -750,7 +750,7 @@ class HTMLFormatter(TableFormatter):
             else:
                 truncated = False
 
-            level_lengths = _get_level_lengths(levels, sentinal)
+            level_lengths = _get_level_lengths(levels, sentinel)
 
             row_levels = self.frame.index.nlevels
 
@@ -859,14 +859,14 @@ class HTMLFormatter(TableFormatter):
         if self.fmt.sparsify:
 
             # GH3547
-            sentinal = com.sentinal_factory()
-            levels = frame.index[:nrows].format(sparsify=sentinal,
+            sentinel = com.sentinel_factory()
+            levels = frame.index[:nrows].format(sparsify=sentinel,
                                                 adjoin=False, names=False)
             # Truncate row names
             if truncate:
                 levels = [lev[:self.max_rows] for lev in levels]
 
-            level_lengths = _get_level_lengths(levels, sentinal)
+            level_lengths = _get_level_lengths(levels, sentinel)
 
             for i in range(min(len(frame), self.max_rows)):
                 row = []
@@ -905,14 +905,14 @@ class HTMLFormatter(TableFormatter):
             self.write_tr(row, indent, self.indent_delta, tags=None)
 
 
-def _get_level_lengths(levels, sentinal=''):
+def _get_level_lengths(levels, sentinel=''):
     from itertools import groupby
 
     def _make_grouper():
         record = {'count': 0}
 
         def grouper(x):
-            if x != sentinal:
+            if x != sentinel:
                 record['count'] += 1
             return record['count']
         return grouper
