@@ -2561,8 +2561,7 @@ def heatmap(df,
             row_side_colors=None,
             color_scale='linear',
             cmap=None,
-            row_linkage_method='average',
-            col_linkage_method='average',
+            linkage_method='average',
             figsize=None,
             label_rows=True,
             label_cols=True,
@@ -2704,13 +2703,13 @@ def heatmap(df,
         df = np.log10(df)
     row_pairwise_dists = distance.squareform(distance.pdist(df,
                                                             metric=metric))
-    row_linkage = linkage_function(row_pairwise_dists, method=row_linkage_method)
+    row_linkage = linkage_function(row_pairwise_dists, method=linkage_method)
 
     # calculate pairwise distances for columns
     col_pairwise_dists = distance.squareform(distance.pdist(df.T,
                                                             metric=metric))
     # cluster
-    col_linkage = linkage_function(col_pairwise_dists, method=col_linkage_method)
+    col_linkage = linkage_function(col_pairwise_dists, method=linkage_method)
 
     # heatmap with row names
 
