@@ -1345,7 +1345,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         s[0:3] = list(range(3))
         expected = Series([0,1,2])
-        assert_series_equal(s, expected)
+        assert_series_equal(s.astype(np.int64), expected, )
 
         # slice with step
         s = Series(list('abcdef'))
