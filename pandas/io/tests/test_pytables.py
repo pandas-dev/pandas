@@ -1350,6 +1350,29 @@ class TestHDFStore(tm.TestCase):
             expected = df_dc[(df_dc.B > 0) & (df_dc.C > 0) & (df_dc.string == 'foo')]
             tm.assert_frame_equal(result,expected)
 
+        with ensure_clean_store(self.path) as store:
+            # panel
+            # GH5717 not handling data_columns
+            np.random.seed(1234)
+            p = tm.makePanel()
+
+            store.append('p1',p)
+            tm.assert_panel_equal(store.select('p1'),p)
+
+            store.append('p2',p,data_columns=True)
+            tm.assert_panel_equal(store.select('p2'),p)
+
+            result = store.select('p2',where='ItemA>0')
+            expected = p.to_frame()
+            expected = expected[expected['ItemA']>0]
+            tm.assert_frame_equal(result.to_frame(),expected)
+
+            result = store.select('p2',where='ItemA>0 & minor_axis=["A","B"]')
+            expected = p.to_frame()
+            expected = expected[expected['ItemA']>0]
+            expected = expected[expected.reset_index(level=['major']).index.isin(['A','B'])]
+            tm.assert_frame_equal(result.to_frame(),expected)
+
     def test_create_table_index(self):
 
         with ensure_clean_store(self.path) as store:

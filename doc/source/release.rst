@@ -550,6 +550,7 @@ Bug Fixes
       (:issue:`4708`)
     - Fixed decoding perf issue on pyt3 (:issue:`5441`)
     - Validate levels in a multi-index before storing (:issue:`5527`)
+    - Correctly handle ``data_columns`` with a Panel (:issue:`5717`)
   - Fixed bug in tslib.tz_convert(vals, tz1, tz2): it could raise IndexError
     exception while trying to access trans[pos + 1] (:issue:`4496`)
   - The ``by`` argument now works correctly with the ``layout`` argument
