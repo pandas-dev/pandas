@@ -1730,6 +1730,14 @@ class TestIndexing(tm.TestCase):
         str(df)
         assert_frame_equal(df,expected)
 
+        # GH5720
+        # don't create rows when empty
+        df = DataFrame({"A": [1, 2, 3], "B": [1.2, 4.2, 5.2]})
+        y = df[df.A > 5]
+        y['New'] = np.nan
+        expected = DataFrame(columns=['A','B','New'])
+        assert_frame_equal(y, expected)
+
     def test_cache_updating(self):
         # GH 4939, make sure to update the cache on setitem
 

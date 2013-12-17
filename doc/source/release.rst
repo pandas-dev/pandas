@@ -246,7 +246,7 @@ API Changes
     (:issue:`4390`)
   - allow ``ix/loc`` for Series/DataFrame/Panel to set on any axis even when
     the single-key is not currently contained in the index for that axis
-    (:issue:`2578`, :issue:`5226`, :issue:`5632`)
+    (:issue:`2578`, :issue:`5226`, :issue:`5632`, :issue:`5720`)
   - Default export for ``to_clipboard`` is now csv with a sep of `\t` for
     compat (:issue:`3368`)
   - ``at`` now will enlarge the object inplace (and return the same)
