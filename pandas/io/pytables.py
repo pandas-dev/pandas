@@ -3446,6 +3446,8 @@ class LegacyTable(Table):
 
                 # the data need to be sorted
                 sorted_values = c.take_data().take(sorter, axis=0)
+                if sorted_values.ndim == 1:
+                    sorted_values = sorted_values.reshape(sorted_values.shape[0],1)
 
                 take_labels = [l.take(sorter) for l in labels]
                 items = Index(c.values)
