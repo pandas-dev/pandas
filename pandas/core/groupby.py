@@ -68,7 +68,7 @@ _common_apply_whitelist = frozenset([
     'shift', 'tshift',
     'ffill', 'bfill',
     'pct_change', 'skew',
-    'corr', 'cov',
+    'corr', 'cov', 'diff',
 ]) | _plotting_methods
 
 _series_apply_whitelist = \
