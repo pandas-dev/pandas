@@ -119,6 +119,8 @@ class DatetimeIndex(Int64Index):
     closed : string or None, default None
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None)
+    name : object
+        Name to be stored in the index
     """
     _join_precedence = 10
 
