@@ -3270,6 +3270,7 @@ class TestGroupBy(tm.TestCase):
             'plot', 'boxplot', 'hist',
             'median', 'dtypes',
             'corrwith', 'corr', 'cov',
+            'diff',
         ])
         s_whitelist = frozenset([
             'last', 'first',
@@ -3290,6 +3291,7 @@ class TestGroupBy(tm.TestCase):
             'median', 'dtype',
             'corr', 'cov',
             'value_counts',
+            'diff',
         ])
 
         for obj, whitelist in zip((df, s),
@@ -3411,7 +3413,7 @@ class TestGroupBy(tm.TestCase):
             'resample', 'cummin', 'fillna', 'cumsum', 'cumcount',
             'all', 'shift', 'skew', 'bfill', 'irow', 'ffill',
             'take', 'tshift', 'pct_change', 'any', 'mad', 'corr', 'corrwith',
-            'cov', 'dtypes',
+            'cov', 'dtypes', 'diff',
         ])
         self.assertEqual(results, expected)
 
