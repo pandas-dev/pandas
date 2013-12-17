@@ -1966,6 +1966,11 @@ class TestDatetimeIndex(tm.TestCase):
                           end='2011-01-01', freq='B')
         self.assertRaises(ValueError, DatetimeIndex, periods=10, freq='D')
 
+    def test_constructor_name(self):
+        idx = DatetimeIndex(start='2000-01-01', periods=1, freq='A',
+                            name='TEST')
+        self.assertEquals(idx.name, 'TEST')
+
     def test_comparisons_coverage(self):
         rng = date_range('1/1/2000', periods=10)
 
