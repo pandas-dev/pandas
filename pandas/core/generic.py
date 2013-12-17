@@ -1830,23 +1830,24 @@ class NDFrame(PandasObject):
             Method to use for filling holes in reindexed Series
             pad / ffill: propagate last valid observation forward to next valid
             backfill / bfill: use NEXT valid observation to fill gap
-        value : scalar or dict
-            Value to use to fill holes (e.g. 0), alternately a dict of values
-            specifying which value to use for each column (columns not in the
-            dict will not be filled). This value cannot be a list.
+        value : scalar, dict, or Series
+            Value to use to fill holes (e.g. 0), alternately a dict/Series of 
+            values specifying which value to use for each index (for a Series) or 
+            column (for a DataFrame). (values not in the dict/Series will not be 
+            filled). This value cannot be a list.
         axis : {0, 1}, default 0
             0: fill column-by-column
             1: fill row-by-row
         inplace : boolean, default False
             If True, fill in place. Note: this will modify any
             other views on this object, (e.g. a no-copy slice for a column in a
-            DataFrame).  Still returns the object.
+            DataFrame).
         limit : int, default None
             Maximum size gap to forward or backward fill
-        downcast : dict, default is None, a dict of item->dtype of what to
-            downcast if possible, or the string 'infer' which will try to
-            downcast to an appropriate equal type (e.g. float64 to int64 if
-            possible)
+        downcast : dict, default is None
+             a dict of item->dtype of what to downcast if possible, 
+            or the string 'infer' which will try to downcast to an appropriate 
+            equal type (e.g. float64 to int64 if possible)
 
         See also
         --------
