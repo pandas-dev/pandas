@@ -4,12 +4,8 @@ All contributions, bug reports, bug fixes, documentation improvements,
 enhancements and ideas are welcome.
 
 The [GitHub "issues" tab](https://github.com/pydata/pandas/issues)
-contains some issues labeled "Good as first PR"; these are
-tasks which do not require deep knowledge of the package. Look those up if you're
+contains some issues labeled "Good as first PR"; Look those up if you're
 looking for a quick way to help out.
-
-Please try and follow these guidelines, as this makes it easier for us to accept
-your contribution or address the issue you're having.
 
 #### Bug Reports
 
@@ -17,28 +13,30 @@ your contribution or address the issue you're having.
   You can have the code formatted nicely by using [GitHub Flavored Markdown](http://github.github.com/github-flavored-markdown/) :
 
         ```python
-    
+
         print("I ♥ pandas!")
 
         ```
 
-  - A [test case](https://github.com/pydata/pandas/tree/master/pandas/tests) may be more helpful.
-  - Specify the pandas (and NumPy) version used. (check `pandas.__version__`
-    and `numpy.__version__`)
-  - Explain what the expected behavior was, and what you saw instead.
-  - If the issue seems to involve some of [pandas' dependencies](https://github.com/pydata/pandas#dependencies)
-    such as
-    [NumPy](http://numpy.org),
-    [matplotlib](http://matplotlib.org/), and
-    [PyTables](http://www.pytables.org/)
-    you should include (the relevant parts of) the output of
+  - Specify the pandas version used and those of it's dependencies. You can simply include   the output of
     [`ci/print_versions.py`](https://github.com/pydata/pandas/blob/master/ci/print_versions.py).
+  - Explain what the expected behavior was, and what you saw instead.
 
 #### Pull Requests
 
-  - **Make sure the test suite passes** for both python2 and python3.
-    You can use `test_fast.sh`, **tox** locally, and/or enable **Travis-CI** on your fork.
-    See "Getting Travis-CI going" below.
+  - **Make sure the test suite passes** on your box, Use the provided `test_*.sh` scripts or tox.
+  - Enable [Travis-Ci](http://travis-ci.org/pydata/pandas). See "Getting Travis-CI going" below.
+  - Use [proper commit messages](http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html):
+    - a subject line with `< 80` chars.
+    - One blank line.
+    - Optionally, a commit message body.
+  - Please reference relevant Github issues in your commit message using `GH1234`
+    or `#1234`. Either style is fine but the '#' style generates nose when your rebase your PR.
+  - `doc/source/release.rst` and `doc/source/vx.y.z.txt` contain an ongoing
+    changelog for each release. Add entries to these files
+    as needed in a separate commit in your PR: document the fix, enhancement,
+    or (unavoidable) breaking change.
+  - Keep style fixes to a separate commit to make your PR more readable.
   - An informal commit message format is in effect for the project. Please try
     and adhere to it. Check `git log` for examples. Here are some common prefixes
     along with general guidelines for when to use them:
@@ -49,69 +47,25 @@ your contribution or address the issue you're having.
       - **BLD**: Updates to the build process/scripts
       - **PERF**: Performance improvement
       - **CLN**: Code cleanup
-  - Commit messages should have:
-    - a subject line with `< 80` chars
-    - one blank line
-    - a commit message body, if there's a need for one
-  - If you are changing any code, you should enable Travis-CI on your fork
-    to make it easier for the team to see that the PR does indeed pass all the tests.
-  - **Backward-compatibility really matters**. Pandas already has a large user base and
-    a lot of existing user code.
-    - Don't break old code if you can avoid it.
-    - If there is a need, explain it in the PR.
-    - Changes to method signatures should be made in a way which doesn't break existing
-      code. For example, you should beware of changes to ordering and naming of keyword
-      arguments.
+  - Maintain backward-compatibility. Pandas has lots of users with lots of existing code. Don't break it.
+    - If you think breakage is required clearly state why as part of the PR.
+    - Be careful when changing method signatures.
     - Add deprecation warnings where needed.
-  - Performance matters. You can use the included `test_perf.sh`
-    script to make sure your PR does not introduce any new performance regressions
-    in the library.
+  - Performance matters. Make sure your PR hasn't introduced perf regressions by using `test_perf.sh`.
   - Docstrings follow the [numpydoc](https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt) format.
+  - When writing tests, use 2.6 compatible `self.assertFoo` methods. Some polyfills such as `assertRaises`
+    can be found in `pandas.util.testing`.
+  - Generally, pandas source files should not contain attributions. You can include a "thanks to..."
+    in the release changelog. The rest is `git blame`/`git log`.
+  - For extra brownie points, you can squash and reorder the commits in your PR using `git rebase -i`.
+    Use your own judgment to decide what history needs to be preserved. If git frightens you, that's OK too.
+  - Use `raise AssertionError` over `assert` unless you want the assertion stripped by `python -o`.
   - **Don't** merge upstream into a branch you're going to submit as a PR.
     This can create all sorts of problems. Use `git rebase` instead. This ensures
     no merge conflicts occur when your code is merged by the core team.
-  - Please reference the GH issue number in your commit message using `GH1234`
-    or `#1234`. Either style is fine.
-  - Use `raise AssertionError` rather then plain `assert` in library code (`assert` is fine
-    for test code). `python -o` strips assertions. Better safe than sorry.
-  - When writing tests, don't use "new" assertion methods added to the `unittest` module
-    in 2.7 since pandas currently supports 2.6. The most common pitfall is:
-
-        with self.assertRaises(ValueError):
-            foo
-
-
-    which fails with Python 2.6. You need to use `assertRaises` from
-    `pandas.util.testing` instead (or use `self.assertRaises(TheException,func,args)`).
-
-  - `doc/source/release.rst` and `doc/source/vx.y.z.txt` contain an ongoing
-    changelog for each release. Add entries to these files
-    as needed in a separate commit in your PR: document the fix, enhancement,
-    or (unavoidable) breaking change.
-  - For extra brownie points, use `git rebase -i` to squash and reorder
-    commits in your PR so that the history makes the most sense. Use your own
-    judgment to decide what history needs to be preserved.
-  - Pandas source code should not -- with some exceptions, such as 3rd party licensed code --
-    generally speaking, include an "Authors" list or attribution to individuals in source code.
-    `RELEASE.rst` details changes and enhancements to the code over time.
-    A "thanks goes to @JohnSmith." as part of the appropriate entry is a suitable way to acknowledge
-    contributions. The rest is `git blame`/`git log`.
-    Feel free to ask the commiter who merges your code to include such an entry
-    or include it directly yourself as part of the PR if you'd like to.
-    **We're always glad to have new contributors join us from the ever-growing pandas community.**
-    You may also be interested in the copyright policy as detailed in the pandas [LICENSE](https://github.com/pydata/pandas/blob/master/LICENSE).
+  - The pandas copyright policy is detailed in the pandas [LICENSE](https://github.com/pydata/pandas/blob/master/LICENSE).
   - On the subject of [PEP8](http://www.python.org/dev/peps/pep-0008/): yes.
-  - On the subject of massive PEP8 fix PRs touching everything, please consider the following:
-    - They create noisy merge conflicts for people working in their own fork.
-    - They make `git blame` less effective.
-    - Different tools / people achieve PEP8 in different styles. This can create
-      "style wars" and churn that produces little real benefit.
-    - If your code changes are intermixed with style fixes, they are harder to review
-      before merging. Keep style fixes in separate commits.
-    - It's fine to clean-up a little around an area you just worked on.
-    - Generally it's a BAD idea to PEP8 on documentation.
-
-    Having said that, if you still feel a PEP8 storm is in order, go for it.
+  - On the subject of a massive PEP8-storm touching everything: not too often (once per release works).
 
 ### Notes on plotting function conventions
 
@@ -137,11 +91,7 @@ Here's a few high-level notes:
 
 See the Green "Good to merge!" banner? that's it.
 
-This is especially important for new contributors, as members of the pandas dev team
-like to know that the test suite passes before considering it for merging.
-Even regular contributors who test religiously on their local box (using tox
-for example) often rely on a PR+travis=green to make double sure everything
-works ok on another system, as occasionally, it doesn't.
+It's important to get travis working as PRs won't generally get merged until travis is green.
 
 #### Steps to enable Travis-CI
 
