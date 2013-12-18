@@ -826,6 +826,7 @@ Bug Fixes
   - Bug in repeated indexing of object with resultant non-unique index (:issue:`5678`)
   - Bug in fillna with Series and a passed series/dict (:issue:`5703`)
   - Bug in groupby transform with a datetime-like grouper (:issue:`5712`)
+  - Bug in multi-index selection in PY3 when using certain keys (:issue:`5725`)
 
 pandas 0.12.0
 -------------

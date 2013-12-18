@@ -253,7 +253,7 @@ class TestIndexing(tm.TestCase):
         # GH5727
         # make sure that indexers are in the _internal_names_set
         n = 1000001
-        arrays = [lrange(n), np.empty(n)]
+        arrays = [lrange(n), lrange(n)]
         index = MultiIndex.from_tuples(lzip(*arrays))
         s = Series(np.zeros(n), index=index)
         str(s)
@@ -838,6 +838,20 @@ class TestIndexing(tm.TestCase):
         expected = df.iloc[:, 1:2].copy()
         expected.columns = expected.columns.droplevel('lvl1')
         assert_frame_equal(result, expected)
+
+    def test_getitem_multiindex(self):
+
+        # GH 5725
+        # the 'A' happens to be a valid Timestamp so the doesn't raise the appropriate
+        # error, only in PY3 of course!
+        index = MultiIndex(levels=[['A', 'B', 'C'], [0, 26, 27, 37, 57, 67, 75, 82]],
+                           labels=[[0, 0, 0, 1, 2, 2, 2, 2, 2, 2], [1, 3, 4, 6, 0, 2, 2, 3, 5, 7]],
+                           names=['tag', 'day'])
+        arr = np.random.randn(len(index),1)
+        df = DataFrame(arr,index=index,columns=['val'])
+        result = df.val['A']
+        expected = Series(arr.ravel()[0:3],name='val',index=Index([26,37,57],name='day'))
+        assert_series_equal(result,expected)
 
     def test_setitem_dtype_upcast(self):
 
