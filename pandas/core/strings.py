@@ -332,8 +332,8 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=False):
     matches : boolean array (if as_indexer=True)
     matches : array of tuples (if as_indexer=False, default but deprecated)
 
-    Note
-    ----
+    Notes
+    -----
     To extract matched groups, which is the deprecated behavior of match, use
     str.extract.
     """
