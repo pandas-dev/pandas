@@ -221,6 +221,7 @@ Improvements to existing features
     MultiIndex and Hierarchical Rows. Set the ``merge_cells`` to ``False`` to
     restore the previous behaviour.  (:issue:`5254`)
   - The FRED DataReader now accepts multiple series (:issue`3413`)
+  - StataWriter adjusts variable names to Stata's limitations (:issue:`5709`)
 
 API Changes
 ~~~~~~~~~~~

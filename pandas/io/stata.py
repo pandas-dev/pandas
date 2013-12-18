@@ -1068,10 +1068,54 @@ class StataWriter(StataParser):
             self._write(typ)
 
         # varlist, length 33*nvar, char array, null terminated
+        converted_names = []
+        duplicate_var_id = 0
+        for j, name in enumerate(self.varlist):
+            orig_name = name
+            # Replaces all characters disallowed in .dta format by their integral representation.
+            for c in name:
+                if (c < 'A' or c > 'Z') and (c < 'a' or c > 'z') and (c < '0' or c > '9') and c != '_':
+                    name = name.replace(c, '_')
+
+            # Variable name may not start with a number
+            if name[0] > '0' and name[0] < '9':
+                name = '_' + name
+
+            name = name[:min(len(name), 32)]
+
+            if not name == orig_name:
+                # check for duplicates
+                while self.varlist.count(name) > 0:
+                    # prepend ascending number to avoid duplicates
+                    name = '_' + str(duplicate_var_id) + name
+                    name = name[:min(len(name), 32)]
+                    duplicate_var_id += 1
+
+                # need to possibly encode the orig name if its unicode
+                try:
+                    orig_name = orig_name.encode('utf-8')
+                except:
+                    pass
+
+                converted_names.append('{0}    ->    {1}'.format(orig_name, name))
+                self.varlist[j] = name
+
         for name in self.varlist:
             name = self._null_terminate(name, True)
             name = _pad_bytes(name[:32], 33)
             self._write(name)
+
+        if converted_names:
+            from warnings import warn
+            warn("""Not all pandas column names were valid Stata variable names.
+                Made the following replacements:
+
+                    {0}
+
+                If this is not what you expect, please make sure you have Stata-compliant
+                column names in your DataFrame (max 32 characters, only alphanumerics and
+                underscores)/
+                """.format('\n    '.join(converted_names)))
 
         # srtlist, 2*(nvar+1), int array, encoded by byteorder
         srtlist = _pad_bytes("", (2*(nvar+1)))
