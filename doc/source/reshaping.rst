@@ -417,3 +417,25 @@ This function is often used along with discretization functions like ``cut``:
 
 
    get_dummies(cut(values, bins))
+
+Factorizing values
+------------------
+
+To encode 1-d values as an enumerated type use ``factorize``:
+
+.. ipython:: python
+
+   x = pd.Series(['A', 'A', np.nan, 'B', 3.14, np.inf])
+   x
+   labels, uniques = pd.factorize(x)
+   labels
+   uniques
+
+Note that ``factorize`` is similar to ``numpy.unique``, but differs in its
+handling of NaN:
+
+.. ipython:: python
+
+   pd.factorize(x, sort=True)
+   np.unique(x, return_inverse=True)[::-1]
+
