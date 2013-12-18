@@ -721,13 +721,13 @@ class NDFrame(PandasObject):
                 # to avoid definitional recursion
                 # e.g. say fill_value needing _data to be
                 # defined
-                for k in self._internal_names:
+                for k in self._internal_names_set:
                     if k in state:
                         v = state[k]
                         object.__setattr__(self, k, v)
 
                 for k, v in state.items():
-                    if k not in self._internal_names:
+                    if k not in self._internal_names_set:
                         object.__setattr__(self, k, v)
 
             else:
@@ -938,15 +938,22 @@ class NDFrame(PandasObject):
     @classmethod
     def _create_indexer(cls, name, indexer):
         """ create an indexer like _name in the class """
-        iname = '_%s' % name
-        setattr(cls, iname, None)
 
-        def _indexer(self):
-            if getattr(self, iname, None) is None:
-                setattr(self, iname, indexer(self, name))
-            return getattr(self, iname)
+        if getattr(cls, name, None) is None:
+            iname = '_%s' % name
+            setattr(cls, iname, None)
 
-        setattr(cls, name, property(_indexer))
+            def _indexer(self):
+                i = getattr(self, iname)
+                if i is None:
+                    i = indexer(self, name)
+                    setattr(self, iname, i)
+                return i
+
+            setattr(cls, name, property(_indexer))
+
+            # add to our internal names set
+            cls._internal_names_set.add(iname)
 
     def get(self, key, default=None):
         """
@@ -1831,9 +1838,9 @@ class NDFrame(PandasObject):
             pad / ffill: propagate last valid observation forward to next valid
             backfill / bfill: use NEXT valid observation to fill gap
         value : scalar, dict, or Series
-            Value to use to fill holes (e.g. 0), alternately a dict/Series of 
-            values specifying which value to use for each index (for a Series) or 
-            column (for a DataFrame). (values not in the dict/Series will not be 
+            Value to use to fill holes (e.g. 0), alternately a dict/Series of
+            values specifying which value to use for each index (for a Series) or
+            column (for a DataFrame). (values not in the dict/Series will not be
             filled). This value cannot be a list.
         axis : {0, 1}, default 0
             0: fill column-by-column
@@ -1845,8 +1852,8 @@ class NDFrame(PandasObject):
         limit : int, default None
             Maximum size gap to forward or backward fill
         downcast : dict, default is None
-             a dict of item->dtype of what to downcast if possible, 
-            or the string 'infer' which will try to downcast to an appropriate 
+             a dict of item->dtype of what to downcast if possible,
+            or the string 'infer' which will try to downcast to an appropriate
             equal type (e.g. float64 to int64 if possible)
 
         See also

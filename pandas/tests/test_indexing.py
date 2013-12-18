@@ -3,7 +3,7 @@ import nose
 import itertools
 import warnings
 
-from pandas.compat import range, lrange, StringIO, lmap, map
+from pandas.compat import range, lrange, lzip, StringIO, lmap, map
 from numpy import random, nan
 from numpy.random import randn
 import numpy as np
@@ -248,6 +248,15 @@ class TestIndexing(tm.TestCase):
 
                         k2 = key2
                         _eq(t, o, a, obj, key1, k2)
+
+    def test_indexer_caching(self):
+        # GH5727
+        # make sure that indexers are in the _internal_names_set
+        n = 1000001
+        arrays = [lrange(n), np.empty(n)]
+        index = MultiIndex.from_tuples(lzip(*arrays))
+        s = Series(np.zeros(n), index=index)
+        str(s)
 
     def test_at_and_iat_get(self):
 
