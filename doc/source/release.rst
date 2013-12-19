@@ -388,6 +388,8 @@ API Changes
     dates are given (:issue:`5242`)
   - ``Timestamp`` now supports ``now/today/utcnow`` class methods
     (:issue:`5339`)
+  - default for `display.max_seq_len` is now 100 rather then `None`. This activates
+    truncated display ("...") of long sequences in various places. (:issue:`3391`)
   - **All** division with ``NDFrame`` - likes is now truedivision, regardless
     of the future import. You can use ``//`` and ``floordiv`` to do integer
     division.
