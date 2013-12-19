@@ -2072,6 +2072,24 @@ a,b,c
 10,11,12\n"""
         tm.assertRaises(Exception, read_csv, StringIO(data), header=0, names=['a', 'b', 'c', 'd'])
 
+    def test_with_prefix(self):
+        # Issue 5732
+        data = """\
+1,2,3
+4,,6
+7,8,9
+10,11,12\n"""
+        result = self.read_csv(StringIO(data), header=None, prefix="abc")
+        tm.assert_equal(list(result.columns), ['abc0', 'abc1', 'abc2'])
+
+        # Test ignore prefix if not inferring headers.
+        result = self.read_csv(StringIO(data), prefix="abc")
+        tm.assert_equal(list(result.columns), ['1', '2', '3'])
+
+        # Test ignore prefix if not inferring headers.
+        result = self.read_csv(StringIO(data), prefix="abc", names=['a', 'b', 'c'])
+        tm.assert_equal(list(result.columns), ['a', 'b', 'c'])
+
 
 class TestPythonParser(ParserTests, tm.TestCase):
     def test_negative_skipfooter_raises(self):
