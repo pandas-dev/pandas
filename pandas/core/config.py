@@ -124,13 +124,13 @@ def _set_option(*args, **kwargs):
     # must at least 1 arg deal with constraints later
     nargs = len(args)
     if not nargs or nargs % 2 != 0:
-        raise AssertionError("Must provide an even number of non-keyword "
+        raise ValueError("Must provide an even number of non-keyword "
                              "arguments")
 
     # must be 0 or 1 kwargs
     nkwargs = len(kwargs)
     if nkwargs not in (0, 1):
-        raise AssertionError("The can only be 0 or 1 keyword arguments")
+        raise ValueError("The can only be 0 or 1 keyword arguments")
 
     # if 1 kwarg then it must be silent=True or silent=False
     if nkwargs:
@@ -365,7 +365,7 @@ class option_context(object):
 
     def __init__(self, *args):
         if not (len(args) % 2 == 0 and len(args) >= 2):
-            raise AssertionError(
+            raise ValueError(
                 'Need to invoke as'
                 'option_context(pat, val, [(pat, val), ...)).'
             )

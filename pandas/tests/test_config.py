@@ -170,14 +170,14 @@ class TestConfig(unittest.TestCase):
 
 
     def test_set_option_empty_args(self):
-        self.assertRaises(AssertionError, self.cf.set_option)
+        self.assertRaises(ValueError, self.cf.set_option)
 
     def test_set_option_uneven_args(self):
-        self.assertRaises(AssertionError, self.cf.set_option, 'a.b', 2, 'b.c')
+        self.assertRaises(ValueError, self.cf.set_option, 'a.b', 2, 'b.c')
 
 
     def test_set_option_2_kwargs(self):
-        self.assertRaises(AssertionError, self.cf.set_option, 'a.b', 2,
+        self.assertRaises(ValueError, self.cf.set_option, 'a.b', 2,
                           silenadf=2, asdf=2)
 
     def test_set_option_invalid_kwargs_key(self):
@@ -189,7 +189,7 @@ class TestConfig(unittest.TestCase):
                           silent=2)
 
     def test_set_option_invalid_single_argument_type(self):
-        self.assertRaises(AssertionError, self.cf.set_option, 2)
+        self.assertRaises(ValueError, self.cf.set_option, 2)
 
     def test_set_option_multiple(self):
         self.cf.register_option('a', 1, 'doc')
