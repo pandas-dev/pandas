@@ -2326,20 +2326,23 @@ else:
 
 def _concat_compat(to_concat, axis=0):
     # filter empty arrays
-    to_concat = [x for x in to_concat if x.shape[axis] > 0]
+    nonempty = [x for x in to_concat if x.shape[axis] > 0]
 
-    # return the empty np array, if nothing to concatenate, #3121
-    if not to_concat:
-        return np.array([], dtype=object)
-
-    is_datetime64 = [x.dtype == _NS_DTYPE for x in to_concat]
-    if all(is_datetime64):
-        # work around NumPy 1.6 bug
-        new_values = np.concatenate([x.view(np.int64) for x in to_concat],
-                                    axis=axis)
-        return new_values.view(_NS_DTYPE)
-    elif any(is_datetime64):
-        to_concat = [_to_pydatetime(x) for x in to_concat]
+    # If all arrays are empty, there's nothing to convert, just short-cut to
+    # the concatenation, #3121.
+    #
+    # Creating an empty array directly is tempting, but the winnings would be
+    # marginal given that it would still require shape & dtype calculation and
+    # np.concatenate which has them both implemented is compiled.
+    if nonempty:
+        is_datetime64 = [x.dtype == _NS_DTYPE for x in nonempty]
+        if all(is_datetime64):
+            # work around NumPy 1.6 bug
+            new_values = np.concatenate([x.view(np.int64) for x in nonempty],
+                                        axis=axis)
+            return new_values.view(_NS_DTYPE)
+        elif any(is_datetime64):
+            to_concat = [_to_pydatetime(x) for x in nonempty]
 
     return np.concatenate(to_concat, axis=axis)
 

@@ -118,6 +118,7 @@ Bug Fixes
   - Bug in rolling skew/kurtosis when passed a Series with bad data (:issue:`5749`)
   - Bug in scipy ``interpolate`` methods with a datetime index (:issue:`5975`)
   - Bug in NaT comparison if a mixed datetime/np.datetime64 with NaT were passed (:issue:`5968`)
+  - Fixed bug with ``pd.concat`` losing dtype information if all inputs are empty (:issue:`5742`)
 
 pandas 0.13.0
 -------------
