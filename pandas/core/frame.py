@@ -1916,10 +1916,11 @@ class DataFrame(NDFrame):
                                      'Series')
                 self._data.set_axis(1, value.index.copy(), check_axis=False)
 
+            # we are a scalar
+            # noop
             else:
-                raise ValueError('Cannot set a frame with no defined index '
-                                 'and a value that cannot be converted to a '
-                                 'Series')
+
+                pass
 
     def _set_item(self, key, value):
         """
