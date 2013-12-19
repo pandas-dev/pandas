@@ -1778,14 +1778,12 @@ class TestIndexing(tm.TestCase):
         # don't create rows when empty
         df = DataFrame({"A": [1, 2, 3], "B": [1.2, 4.2, 5.2]})
         y = df[df.A > 5]
-        def f():
-            y['New'] = np.nan
-        self.assertRaises(ValueError, f)
+        y['New'] = np.nan
+        assert_frame_equal(y,DataFrame(columns=['A','B','New']))
 
         df = DataFrame(columns=['a', 'b', 'c c'])
-        def f():
-            df['d'] = 3
-        self.assertRaises(ValueError, f)
+        df['d'] = 3
+        assert_frame_equal(df,DataFrame(columns=['a','b','c c','d']))
         assert_series_equal(df['c c'],Series(name='c c',dtype=object))
 
         # reindex columns is ok
