@@ -1753,13 +1753,26 @@ class TestIndexing(tm.TestCase):
         str(df)
         assert_frame_equal(df,expected)
 
-        # GH5720
+        # GH5720, GH5744
         # don't create rows when empty
         df = DataFrame({"A": [1, 2, 3], "B": [1.2, 4.2, 5.2]})
         y = df[df.A > 5]
-        y['New'] = np.nan
-        expected = DataFrame(columns=['A','B','New'])
-        assert_frame_equal(y, expected)
+        def f():
+            y['New'] = np.nan
+        self.assertRaises(ValueError, f)
+
+        df = DataFrame(columns=['a', 'b', 'c c'])
+        def f():
+            df['d'] = 3
+        self.assertRaises(ValueError, f)
+        assert_series_equal(df['c c'],Series(name='c c',dtype=object))
+
+        # reindex columns is ok
+        df = DataFrame({"A": [1, 2, 3], "B": [1.2, 4.2, 5.2]})
+        y = df[df.A > 5]
+        result = y.reindex(columns=['A','B','C'])
+        expected = DataFrame(columns=['A','B','C'])
+        assert_frame_equal(result,expected)
 
     def test_cache_updating(self):
         # GH 4939, make sure to update the cache on setitem
