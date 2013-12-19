@@ -65,6 +65,7 @@ Improvements to existing features
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
   - perf improvements in Series datetime/timedelta binary operations (:issue:`5801`)
+  - `option_context` context manager now available as top-level API (:issue:`5752`)
 
 Bug Fixes
 ~~~~~~~~~
