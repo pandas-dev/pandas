@@ -844,14 +844,35 @@ class TestIndexing(tm.TestCase):
         # GH 5725
         # the 'A' happens to be a valid Timestamp so the doesn't raise the appropriate
         # error, only in PY3 of course!
-        index = MultiIndex(levels=[['A', 'B', 'C'], [0, 26, 27, 37, 57, 67, 75, 82]],
+        index = MultiIndex(levels=[['D', 'B', 'C'], [0, 26, 27, 37, 57, 67, 75, 82]],
                            labels=[[0, 0, 0, 1, 2, 2, 2, 2, 2, 2], [1, 3, 4, 6, 0, 2, 2, 3, 5, 7]],
                            names=['tag', 'day'])
         arr = np.random.randn(len(index),1)
         df = DataFrame(arr,index=index,columns=['val'])
+        result = df.val['D']
+        expected = Series(arr.ravel()[0:3],name='val',index=Index([26,37,57],name='day'))
+        assert_series_equal(result,expected)
+
+        def f():
+            df.val['A']
+        self.assertRaises(KeyError, f)
+
+        def f():
+            df.val['X']
+        self.assertRaises(KeyError, f)
+
+        # A is treated as a special Timestamp
+        index = MultiIndex(levels=[['A', 'B', 'C'], [0, 26, 27, 37, 57, 67, 75, 82]],
+                           labels=[[0, 0, 0, 1, 2, 2, 2, 2, 2, 2], [1, 3, 4, 6, 0, 2, 2, 3, 5, 7]],
+                           names=['tag', 'day'])
+        df = DataFrame(arr,index=index,columns=['val'])
         result = df.val['A']
         expected = Series(arr.ravel()[0:3],name='val',index=Index([26,37,57],name='day'))
         assert_series_equal(result,expected)
+
+        def f():
+            df.val['X']
+        self.assertRaises(KeyError, f)
 
     def test_setitem_dtype_upcast(self):
 

@@ -2306,8 +2306,11 @@ class MultiIndex(Index):
                     compat.PY3 and isinstance(key, compat.string_types)):
                 try:
                     return _try_mi(key)
+                except (KeyError):
+                    raise
                 except:
                     pass
+
                 try:
                     return _try_mi(Timestamp(key))
                 except:
