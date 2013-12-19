@@ -197,26 +197,30 @@ QUALIFIER = 'rc1'
 
 FULLVERSION = VERSION
 if not ISRELEASED:
+    import subprocess
     FULLVERSION += '.dev'
-    try:
-        import subprocess
+
+    for cmd in ['git','git.cmd']:
         try:
-            pipe = subprocess.Popen(["git", "describe", "--always"],
-                                    stdout=subprocess.PIPE).stdout
-        except OSError:
-            # msysgit compatibility
-            pipe = subprocess.Popen(
-                ["git.cmd", "describe", "--always"],
-                stdout=subprocess.PIPE).stdout
-        rev = pipe.read().strip()
-        # makes distutils blow up on Python 2.7
-        if sys.version_info[0] >= 3:
-            rev = rev.decode('ascii')
+            pipe = subprocess.Popen([cmd, "describe", "--always"],
+                                stdout=subprocess.PIPE)
+            (so,serr) = pipe.communicate()
+            if pipe.returncode == 0:
+                break
+        except:
+            pass
 
-        FULLVERSION = rev.lstrip('v')
+    if pipe.returncode != 0:
+      warnings.warn("WARNING: Couldn't get git revision, using generic version string")
+    else:
+      rev = so.strip()
+      # makes distutils blow up on Python 2.7
+      if sys.version_info[0] >= 3:
+          rev = rev.decode('ascii')
 
-    except:
-        warnings.warn("WARNING: Couldn't get git revision")
+      # use result og git describe as version string
+      FULLVERSION = rev.lstrip('v')
+
 else:
     FULLVERSION += QUALIFIER
 
