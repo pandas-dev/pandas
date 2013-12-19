@@ -1070,12 +1070,15 @@ class ExcelWriterEngineTests(tm.TestCase):
         except ImportError:
             _skip_if_no_openpyxl()
             writer_klass = _OpenpyxlWriter
-        writer = ExcelWriter('apple.xlsx')
-        tm.assert_isinstance(writer, writer_klass)
+
+        with ensure_clean('.xlsx') as path:
+            writer = ExcelWriter(path)
+            tm.assert_isinstance(writer, writer_klass)
 
         _skip_if_no_xlwt()
-        writer = ExcelWriter('apple.xls')
-        tm.assert_isinstance(writer, _XlwtWriter)
+        with ensure_clean('.xls') as path:
+            writer = ExcelWriter(path)
+            tm.assert_isinstance(writer, _XlwtWriter)
 
     def test_register_writer(self):
         # some awkward mocking to test out dispatch and such actually works
