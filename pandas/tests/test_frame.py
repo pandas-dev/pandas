@@ -12164,6 +12164,47 @@ starting,ending,measure
         self.assertEqual(result['b'].dtype, np.float64)
         self.assertEqual(result['c'].dtype, np.float64)
 
+    def test_empty_frame_dtypes_ftypes(self):
+        empty_df = pd.DataFrame()
+        assert_series_equal(empty_df.dtypes, pd.Series(dtype=np.object))
+        assert_series_equal(empty_df.ftypes, pd.Series(dtype=np.object))
+
+        nocols_df = pd.DataFrame(index=[1,2,3])
+        assert_series_equal(nocols_df.dtypes, pd.Series(dtype=np.object))
+        assert_series_equal(nocols_df.ftypes, pd.Series(dtype=np.object))
+
+        norows_df = pd.DataFrame(columns=list("abc"))
+        assert_series_equal(norows_df.dtypes, pd.Series(np.object, index=list("abc")))
+        assert_series_equal(norows_df.ftypes, pd.Series('object:dense', index=list("abc")))
+
+        norows_int_df = pd.DataFrame(columns=list("abc")).astype(np.int32)
+        assert_series_equal(norows_int_df.dtypes, pd.Series(np.dtype('int32'), index=list("abc")))
+        assert_series_equal(norows_int_df.ftypes, pd.Series('int32:dense', index=list("abc")))
+
+        odict = OrderedDict
+        df = pd.DataFrame(odict([('a', 1), ('b', True), ('c', 1.0)]), index=[1, 2, 3])
+        assert_series_equal(df.dtypes, pd.Series(odict([('a', np.int64),
+                                                        ('b', np.bool),
+                                                        ('c', np.float64)])))
+        assert_series_equal(df.ftypes, pd.Series(odict([('a', 'int64:dense'),
+                                                        ('b', 'bool:dense'),
+                                                        ('c', 'float64:dense')])))
+
+        # same but for empty slice of df
+        assert_series_equal(df[:0].dtypes, pd.Series(odict([('a', np.int),
+                                                            ('b', np.bool),
+                                                            ('c', np.float)])))
+        assert_series_equal(df[:0].ftypes, pd.Series(odict([('a', 'int64:dense'),
+                                                            ('b', 'bool:dense'),
+                                                            ('c', 'float64:dense')])))
+
+def skip_if_no_ne(engine='numexpr'):
+    if engine == 'numexpr':
+        try:
+            import numexpr as ne
+        except ImportError:
+            raise nose.SkipTest("cannot query engine numexpr when numexpr not "
+                                "installed")
 
 
 def skip_if_no_pandas_parser(parser):

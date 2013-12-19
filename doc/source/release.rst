@@ -65,6 +65,7 @@ API Changes
 - ``select_as_multiple`` will always raise a ``KeyError``, when a key or the selector is not found (:issue:`6177`)
 - ``df['col'] = value`` and ``df.loc[:,'col'] = value`` are now completely equivalent;
   previously the ``.loc`` would not necessarily coerce the dtype of the resultant series (:issue:`6149`)
+- ``dtypes`` and ``ftypes`` now return a series with ``dtype=object`` on empty containers (:issue:`5740`)
 
 
 Experimental Features
