@@ -111,6 +111,7 @@ Bug Fixes
   - Bug in ``pd.read_msgpack`` with inferring a ``DateTimeIndex`` frequencey
     incorrectly (:issue:`5947`)
   - Fixed ``to_datetime`` for array with both Tz-aware datetimes and ``NaT``s  (:issue:`5961`)
+  - Bug in rolling skew/kurtosis when passed a Series with bad data (:issue:`5749`)
 
 pandas 0.13.0
 -------------
