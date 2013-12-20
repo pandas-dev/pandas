@@ -32,31 +32,31 @@ IO Tools (Text, CSV, HDF5, ...)
 The Pandas I/O api is a set of top level ``reader`` functions accessed like ``pd.read_csv()`` that generally return a ``pandas``
 object.
 
-    * ``read_csv``
-    * ``read_excel``
-    * ``read_hdf``
-    * ``read_sql``
-    * ``read_json``
-    * ``read_msgpack`` (experimental)
-    * ``read_html``
-    * ``read_gbq`` (experimental)
-    * ``read_stata``
-    * ``read_clipboard``
-    * ``read_pickle``
+    * :ref:`read_csv<io.read_csv_table>`
+    * :ref:`read_excel<io.excel>`
+    * :ref:`read_hdf<io.hdf5>`
+    * :ref:`read_sql<io.sql>`
+    * :ref:`read_json<io.json_reader>`
+    * :ref:`read_msgpack<io.msgpack>` (experimental)
+    * :ref:`read_html<io.read_html>`
+    * :ref:`read_gbq<io.bigquery>` (experimental)
+    * :ref:`read_stata<io.stata_reader>`
+    * :ref:`read_clipboard<io.clipboard>`
+    * :ref:`read_pickle<io.pickle>`
 
 The corresponding ``writer`` functions are object methods that are accessed like ``df.to_csv()``
 
-    * ``to_csv``
-    * ``to_excel``
-    * ``to_hdf``
-    * ``to_sql``
-    * ``to_json``
-    * ``to_msgpack`` (experimental)
-    * ``to_html``
-    * ``to_gbq`` (experimental)
-    * ``to_stata``
-    * ``to_clipboard``
-    * ``to_pickle``
+    * :ref:`to_csv<io.store_in_csv>`
+    * :ref:`to_excel<io.excel>`
+    * :ref:`to_hdf<io.hdf5>`
+    * :ref:`to_sql<io.sql>`
+    * :ref:`to_json<io.json_writer>`
+    * :ref:`to_msgpack<io.msgpack>` (experimental)
+    * :ref:`to_html<io.html>`
+    * :ref:`to_gbq<io.bigquery>` (experimental)
+    * :ref:`to_stata<io.stata_writer>`
+    * :ref:`to_clipboard<io.clipboard>`
+    * :ref:`to_pickle<io.pickle>`
 
 .. _io.read_csv_table:
 
@@ -979,10 +979,10 @@ Specifying ``iterator=True`` will also return the ``TextFileReader`` object:
    os.remove('tmp.sv')
    os.remove('tmp2.sv')
 
+.. _io.store_in_csv:
+
 Writing to CSV format
 ~~~~~~~~~~~~~~~~~~~~~
-
-.. _io.store_in_csv:
 
 The Series and DataFrame objects have an instance method ``to_csv`` which
 allows storing the contents of the object as a comma-separated-values file. The
@@ -1032,13 +1032,14 @@ The Series object also has a ``to_string`` method, but with only the ``buf``,
 ``na_rep``, ``float_format`` arguments. There is also a ``length`` argument
 which, if set to ``True``, will additionally output the length of the Series.
 
+.. _io.json:
 
 JSON
 ----
 
 Read and write ``JSON`` format files and strings.
 
-.. _io.json:
+.. _io.json_writer:
 
 Writing JSON
 ~~~~~~~~~~~~
@@ -1228,6 +1229,8 @@ which can be dealt with by specifying a simple ``default_handler``:
    def my_handler(obj):
       return obj.total_seconds()
    dftd.to_json(default_handler=my_handler)
+
+.. _io.json_reader:
 
 Reading JSON
 ~~~~~~~~~~~~
@@ -1460,6 +1463,8 @@ into a flat table.
 HTML
 ----
 
+.. _io.read_html:
+
 Reading HTML Content
 ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1468,8 +1473,6 @@ Reading HTML Content
    We **highly encourage** you to read the :ref:`HTML parsing gotchas
    <html-gotchas>` regarding the issues surrounding the
    BeautifulSoup4/html5lib/lxml parsers.
-
-.. _io.read_html:
 
 .. versionadded:: 0.12.0
 
@@ -1617,10 +1620,10 @@ succeeds, the function will return*.
    dfs = read_html(url, 'Metcalf Bank', index_col=0, flavor=['lxml', 'bs4'])
 
 
+.. _io.html:
+
 Writing to HTML files
 ~~~~~~~~~~~~~~~~~~~~~~
-
-.. _io.html:
 
 ``DataFrame`` objects have an instance method ``to_html`` which renders the
 contents of the ``DataFrame`` as an HTML table. The function arguments are as

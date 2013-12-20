@@ -1247,7 +1247,7 @@ Time Deltas & Reductions
 
 .. warning::
 
-   A numeric reduction operation for ``timedelta64[ns]`` will return a single-element ``Series`` of
+   A numeric reduction operation for ``timedelta64[ns]`` can return a single-element ``Series`` of
    dtype ``timedelta64[ns]``.
 
 You can do numeric reduction operations on timedeltas.
