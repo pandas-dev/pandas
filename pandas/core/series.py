@@ -317,8 +317,8 @@ class Series(generic.NDFrame):
     def base(self):
         return self.values.base
 
-    def ravel(self):
-        return self.values.ravel()
+    def ravel(self, order='C'):
+        return self.values.ravel(order=order)
 
     def transpose(self):
         """ support for compatiblity """
