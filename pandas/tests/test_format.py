@@ -141,9 +141,8 @@ class TestDataFrameFormatting(tm.TestCase):
     def test_repr_obeys_max_seq_limit(self):
         import pandas.core.common as com
 
-        #unlimited
-        reset_option("display.max_seq_items")
-        self.assertTrue(len(com.pprint_thing(lrange(1000)))> 2000)
+        with option_context("display.max_seq_items",2000):
+            self.assertTrue(len(com.pprint_thing(lrange(1000))) > 1000)
 
         with option_context("display.max_seq_items",5):
             self.assertTrue(len(com.pprint_thing(lrange(1000)))< 100)
