@@ -325,15 +325,16 @@ class DataFrame(NDFrame):
     def _init_ndarray(self, values, index, columns, dtype=None,
                       copy=False):
         if isinstance(values, Series):
-            if columns is None and values.name is not None:
-                columns = [values.name]
+            if columns is None:
+                if values.name is not None:
+                    columns = [values.name]
             if index is None:
                 index = values.index
             else:
                 values = values.reindex(index)
 
             # zero len case (GH #2234)
-            if not len(values) and len(columns):
+            if not len(values) and columns is not None and len(columns):
                 values = np.empty((0, 1), dtype=object)
 
         values = _prep_ndarray(values, copy=copy)

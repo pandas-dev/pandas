@@ -247,7 +247,8 @@ API Changes
     (:issue:`4390`)
   - allow ``ix/loc`` for Series/DataFrame/Panel to set on any axis even when
     the single-key is not currently contained in the index for that axis
-    (:issue:`2578`, :issue:`5226`, :issue:`5632`, :issue:`5720`, :issue:`5744`)
+    (:issue:`2578`, :issue:`5226`, :issue:`5632`, :issue:`5720`,
+     :issue:`5744`, :issue:`5756`)
   - Default export for ``to_clipboard`` is now csv with a sep of `\t` for
     compat (:issue:`3368`)
   - ``at`` now will enlarge the object inplace (and return the same)
@@ -827,6 +828,7 @@ Bug Fixes
   - Bug in fillna with Series and a passed series/dict (:issue:`5703`)
   - Bug in groupby transform with a datetime-like grouper (:issue:`5712`)
   - Bug in multi-index selection in PY3 when using certain keys (:issue:`5725`)
+  - Row-wise concat of differeing dtypes failing in certain cases (:issue:`5754`)
 
 pandas 0.12.0
 -------------
