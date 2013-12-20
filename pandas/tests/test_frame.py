@@ -6154,6 +6154,48 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         expected = df1.copy()
         assert_frame_equal(result, expected)
 
+    def test_append_dtypes(self):
+
+        # GH 5754
+        # row appends of different dtypes (so need to do by-item)
+        # can sometimes infer the correct type
+
+        df1 = DataFrame({ 'bar' : Timestamp('20130101') }, index=lrange(5))
+        df2 = DataFrame()
+        result = df1.append(df2)
+        expected = df1.copy()
+        assert_frame_equal(result, expected)
+
+        df1 = DataFrame({ 'bar' : Timestamp('20130101') }, index=lrange(1))
+        df2 = DataFrame({ 'bar' : 'foo' }, index=lrange(1,2))
+        result = df1.append(df2)
+        expected = DataFrame({ 'bar' : [ Timestamp('20130101'), 'foo' ]})
+        assert_frame_equal(result, expected)
+
+        df1 = DataFrame({ 'bar' : Timestamp('20130101') }, index=lrange(1))
+        df2 = DataFrame({ 'bar' : np.nan }, index=lrange(1,2))
+        result = df1.append(df2)
+        expected = DataFrame({ 'bar' : Series([ Timestamp('20130101'), np.nan ],dtype='M8[ns]') })
+        assert_frame_equal(result, expected)
+
+        df1 = DataFrame({ 'bar' : Timestamp('20130101') }, index=lrange(1))
+        df2 = DataFrame({ 'bar' : np.nan }, index=lrange(1,2), dtype=object)
+        result = df1.append(df2)
+        expected = DataFrame({ 'bar' : Series([ Timestamp('20130101'), np.nan ],dtype='M8[ns]') })
+        assert_frame_equal(result, expected)
+
+        df1 = DataFrame({ 'bar' : np.nan }, index=lrange(1))
+        df2 = DataFrame({ 'bar' : Timestamp('20130101') }, index=lrange(1,2))
+        result = df1.append(df2)
+        expected = DataFrame({ 'bar' : Series([ np.nan, Timestamp('20130101')] ,dtype='M8[ns]') })
+        assert_frame_equal(result, expected)
+
+        df1 = DataFrame({ 'bar' : Timestamp('20130101') }, index=lrange(1))
+        df2 = DataFrame({ 'bar' : 1 }, index=lrange(1,2), dtype=object)
+        result = df1.append(df2)
+        expected = DataFrame({ 'bar' : Series([ Timestamp('20130101'), 1 ]) })
+        assert_frame_equal(result, expected)
+
     def test_asfreq(self):
         offset_monthly = self.tsframe.asfreq(datetools.bmonthEnd)
         rule_monthly = self.tsframe.asfreq('BM')

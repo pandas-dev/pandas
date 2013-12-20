@@ -1139,52 +1139,55 @@ class _Concatenator(object):
 
     def _concat_single_item(self, objs, item):
         # this is called if we don't have consistent dtypes in a row-wise append
-
         all_values = []
-        dtypes = set()
+        dtypes = []
+        alls = set()
 
+        # figure out the resulting dtype of the combination
         for data, orig in zip(objs, self.objs):
+            d = dict([ (t,False) for t in ['object','datetime','timedelta','other'] ])
             if item in orig:
                 values = data.get(item)
                 if hasattr(values,'to_dense'):
                     values = values.to_dense()
-                dtypes.add(values.dtype)
                 all_values.append(values)
+
+                dtype = values.dtype
+
+                if issubclass(dtype.type, (np.object_, np.bool_)):
+                    d['object'] = True
+                    alls.add('object')
+                elif is_datetime64_dtype(dtype):
+                    d['datetime'] = True
+                    alls.add('datetime')
+                elif is_timedelta64_dtype(dtype):
+                    d['timedelta'] = True
+                    alls.add('timedelta')
+                else:
+                    d['other'] = True
+                    alls.add('other')
+
             else:
                 all_values.append(None)
-
-        # figure out the resulting dtype of the combination
-        alls = set()
-        seen = []
-        for dtype in dtypes:
-            d = dict([ (t,False) for t in ['object','datetime','timedelta','other'] ])
-            if issubclass(dtype.type, (np.object_, np.bool_)):
-                d['object'] = True
-                alls.add('object')
-            elif is_datetime64_dtype(dtype):
-                d['datetime'] = True
-                alls.add('datetime')
-            elif is_timedelta64_dtype(dtype):
-                d['timedelta'] = True
-                alls.add('timedelta')
-            else:
                 d['other'] = True
                 alls.add('other')
-            seen.append(d)
+
+            dtypes.append(d)
 
         if 'datetime' in alls or 'timedelta' in alls:
 
             if 'object' in alls or 'other' in alls:
-                for v, s in zip(all_values,seen):
-                    if s.get('datetime') or s.get('timedelta'):
+
+                for v, d in zip(all_values,dtypes):
+                    if d.get('datetime') or d.get('timedelta'):
                         pass
 
                     # if we have all null, then leave a date/time like type
                     # if we have only that type left
-                    elif isnull(v).all():
+                    elif v is None or isnull(v).all():
 
-                        alls.remove('other')
-                        alls.remove('object')
+                        alls.discard('other')
+                        alls.discard('object')
 
         # create the result
         if 'object' in alls:
@@ -1200,7 +1203,7 @@ class _Concatenator(object):
 
         to_concat = []
         for obj, item_values in zip(objs, all_values):
-            if item_values is None:
+            if item_values is None or isnull(item_values).all():
                 shape = obj.shape[1:]
                 missing_arr = np.empty(shape, dtype=empty_dtype)
                 missing_arr.fill(fill_value)
