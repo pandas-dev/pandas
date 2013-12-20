@@ -25,7 +25,6 @@ looking for a quick way to help out.
 #### Pull Requests
 
   - **Make sure the test suite passes** on your box, Use the provided `test_*.sh` scripts or tox.
-  - Enable [Travis-Ci](http://travis-ci.org/pydata/pandas). See "Getting Travis-CI going" below.
   - Use [proper commit messages](http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html):
     - a subject line with `< 80` chars.
     - One blank line.
@@ -70,47 +69,6 @@ looking for a quick way to help out.
 ### Notes on plotting function conventions
 
 https://groups.google.com/forum/#!topic/pystatsmodels/biNlCvJPNNY/discussion
-
-### Getting Travis-CI going
-
-Instructions for getting Travis-CI installed are available [here](http://about.travis-ci.org/docs/user/getting-started/).
-For those users who are new to Travis-CI and [continuous integration](https://en.wikipedia.org/wiki/Continuous_integration) in particular,
-Here's a few high-level notes:
-- Travis-CI is a free service (with premium account upgrades available) that integrates
-  well with GitHub.
-- Enabling Travis-CI on your GitHub fork of a project will cause any *new* commit
-  pushed to the repo to trigger a full build+test on Travis-CI's servers.
-- All the configuration for Travis-CI builds is already specified by `.travis.yml` in the repo.
-  That means all you have to do is enable Travis-CI once, and then just push commits
-  and you'll get full testing across py2/3 with pandas' considerable
-  [test-suite](https://github.com/pydata/pandas/tree/master/pandas/tests).
-- Enabling Travis-CI will attach the test results (red/green) to the Pull-Request
-  page for any PR you submit. For example:
-
-    https://github.com/pydata/pandas/pull/2532,
-
-See the Green "Good to merge!" banner? that's it.
-
-It's important to get travis working as PRs won't generally get merged until travis is green.
-
-#### Steps to enable Travis-CI
-
-- Open https://travis-ci.org/
-- Select "Sign in with GitHub" (Top Navbar)
-- Select \[your username\] -> "Accounts" (Top Navbar)
-- Select 'Sync now' to refresh the list of repos from your GH account.
-- Flip the switch for the repos you want Travis-CI enabled for.
-  "pandas", obviously.
-- Then, pushing a *new* commit to a certain branch on that repo
-  will trigger a build/test for that branch. For example, the branch
-  might be `master` or `PR1234_fix_everything__atomically`, if that's the
-  name of your PR branch.
-
-You can see the build history and current builds for your fork
-at: https://travis-ci.org/(your_GH_username)/pandas.
-
-For example, the builds for the main pandas repo can be seen at:
-https://travis-ci.org/pydata/pandas.
 
 ####More developer docs
 
