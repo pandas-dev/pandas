@@ -3253,6 +3253,10 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         expected = Series(1,index=range(10),dtype='float64')
         #assert_series_equal(result,expected)
 
+        # ravel
+        s = Series(np.random.randn(10))
+        tm.assert_almost_equal(s.ravel(order='F'),s.values.ravel(order='F'))
+
     def test_complexx(self):
 
         # GH4819
