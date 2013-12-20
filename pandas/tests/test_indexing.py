@@ -1793,6 +1793,14 @@ class TestIndexing(tm.TestCase):
         expected = DataFrame(columns=['A','B','C'])
         assert_frame_equal(result,expected)
 
+        # GH 5756
+        # setting with empty Series
+        df = DataFrame(Series())
+        assert_frame_equal(df, DataFrame({ 0 : Series() }))
+
+        df = DataFrame(Series(name='foo'))
+        assert_frame_equal(df, DataFrame({ 'foo' : Series() }))
+
     def test_cache_updating(self):
         # GH 4939, make sure to update the cache on setitem
 
