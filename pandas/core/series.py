@@ -1993,6 +1993,9 @@ class Series(generic.NDFrame):
         convert_dtype : boolean, default True
             Try to find better dtype for elementwise function results. If
             False, leave as dtype=object
+        args : tuple
+            Positional arguments to pass to function in addition to the value
+        Additional keyword arguments will be passed as keywords to the function
 
         See also
         --------
