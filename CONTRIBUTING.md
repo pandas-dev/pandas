@@ -56,12 +56,13 @@ looking for a quick way to help out.
     can be found in `pandas.util.testing`.
   - Generally, pandas source files should not contain attributions. You can include a "thanks to..."
     in the release changelog. The rest is `git blame`/`git log`.
+  - When you start working on a PR, start by creating a new branch pointing at the latest
+    commit on github master.
+  - **Do not** merge upstream into a branch you're going to submit as a PR.
+    Use `git rebase` against the current github master.
   - For extra brownie points, you can squash and reorder the commits in your PR using `git rebase -i`.
     Use your own judgment to decide what history needs to be preserved. If git frightens you, that's OK too.
   - Use `raise AssertionError` over `assert` unless you want the assertion stripped by `python -o`.
-  - **Don't** merge upstream into a branch you're going to submit as a PR.
-    This can create all sorts of problems. Use `git rebase` instead. This ensures
-    no merge conflicts occur when your code is merged by the core team.
   - The pandas copyright policy is detailed in the pandas [LICENSE](https://github.com/pydata/pandas/blob/master/LICENSE).
   - On the subject of [PEP8](http://www.python.org/dev/peps/pep-0008/): yes.
   - On the subject of a massive PEP8-storm touching everything: not too often (once per release works).
