@@ -5,6 +5,8 @@
    :suppress:
 
    from pandas import *
+   import numpy.random as random
+   from numpy import *
    options.display.max_rows=15
 
 Comparison with R / R libraries
@@ -98,12 +100,193 @@ xts
 plyr
 ----
 
+``plyr`` is an R library for the split-apply-combine strategy for data
+analysis. The functions revolve around three data structures in R, ``a``
+for ``arrays``, ``l`` for ``lists``, and ``d`` for ``data.frame``. The
+table below shows how these data structures could be mapped in Python.
+
++------------+-------------------------------+
+| R          | Python                        |
++============+===============================+
+| array      | list                          |
++------------+-------------------------------+
+| lists      | dictionary or list of objects |
++------------+-------------------------------+
+| data.frame | dataframe                     |
++------------+-------------------------------+
+
+|ddply|_
+~~~~~~~~
+
+An expression using a data.frame called ``df`` in R where you want to
+summarize ``x`` by ``month``:
+
+
+
+    .. code-block:: r
+
+       require(plyr)
+       df <- data.frame(
+         x = runif(120, 1, 168),
+         y = runif(120, 7, 334),
+         z = runif(120, 1.7, 20.7),
+         month = rep(c(5,6,7,8),30),
+         week = sample(1:4, 120, TRUE)
+       )
+
+       ddply(df, .(month, week), summarize,
+             mean = round(mean(x), 2),
+             sd = round(sd(x), 2))
+
+In ``pandas`` the equivalent expression, using the
+:meth:`~pandas.DataFrame.groupby` method, would be:
+
+
+
+    .. ipython:: python
+
+       df = DataFrame({
+           'x': random.uniform(1., 168., 120),
+           'y': random.uniform(7., 334., 120),
+           'z': random.uniform(1.7, 20.7, 120),
+           'month': [5,6,7,8]*30,
+           'week': random.randint(1,4, 120)
+       })
+
+       grouped = df.groupby(['month','week'])
+       print grouped['x'].agg([mean, std])
+
+
+For more details and examples see :ref:`the groupby documentation
+<groupby.aggregate>`.
+
 reshape / reshape2
 ------------------
 
+|meltarray|_
+~~~~~~~~~~~~~
+
+An expression using a 3 dimensional array called ``a`` in R where you want to
+melt it into a data.frame:
+
+    .. code-block:: r
+
+       a <- array(c(1:23, NA), c(2,3,4))
+       data.frame(melt(a))
+
+In Python, since ``a`` is a list, you can simply use list comprehension.
+
+    .. ipython:: python
+       a = array(range(1,24)+[NAN]).reshape(2,3,4)
+       DataFrame([tuple(list(x)+[val]) for x, val in ndenumerate(a)])
+
+|meltlist|_
+~~~~~~~~~~~~
+
+An expression using a list called ``a`` in R where you want to melt it
+into a data.frame:
+
+    .. code-block:: r
+
+       a <- as.list(c(1:4, NA))
+       data.frame(melt(a))
+
+In Python, this list would be a list of tuples, so
+:meth:`~pandas.DataFrame` method would convert it to a dataframe as required.
+
+    .. ipython:: python
+
+       a = list(enumerate(range(1,5)+[NAN]))
+       DataFrame(a)
+
+For more details and examples see :ref:`the Into to Data Structures
+documentation <basics.dataframe.from_items>`.
+
+|meltdf|_
+~~~~~~~~~~~~~~~~
+
+An expression using a data.frame called ``cheese`` in R where you want to
+reshape the data.frame:
+
+    .. code-block:: r
+
+       cheese <- data.frame(
+         first = c('John, Mary'),
+         last = c('Doe', 'Bo'),
+         height = c(5.5, 6.0),
+         weight = c(130, 150)
+       )
+       melt(cheese, id=c("first", "last"))
+
+In Python, the :meth:`~pandas.melt` method is the R equivalent:
+
+    .. ipython:: python
+
+       cheese = DataFrame({'first' : ['John', 'Mary'],
+                           'last' : ['Doe', 'Bo'],
+                           'height' : [5.5, 6.0],
+                           'weight' : [130, 150]})
+       melt(cheese, id_vars=['first', 'last'])
+       cheese.set_index(['first', 'last']).stack() # alternative way
+
+For more details and examples see :ref:`the reshaping documentation
+<reshaping.melt>`.
+
+|cast|_
+~~~~~~~
+
+An expression using a data.frame called ``df`` in R to cast into a higher
+dimensional array:
+
+    .. code-block:: r
+
+       df <- data.frame(
+         x = runif(12, 1, 168),
+         y = runif(12, 7, 334),
+         z = runif(12, 1.7, 20.7),
+         month = rep(c(5,6,7),4),
+         week = rep(c(1,2), 6)
+       )
+
+       mdf <- melt(df, id=c("month", "week"))
+       acast(mdf, week ~ month ~ variable, mean)
+
+In Python the best way is to make use of :meth:`~pandas.pivot_table`:
+
+    .. ipython:: python
+
+        df = DataFrame({
+            'x': random.uniform(1., 168., 12),
+            'y': random.uniform(7., 334., 12),
+            'z': random.uniform(1.7, 20.7, 12),
+            'month': [5,6,7]*4,
+            'week': [1,2]*6
+        })
+        mdf = melt(df, id_vars=['month', 'week'])
+        pivot_table(mdf, values='value', rows=['variable','week'],
+                    cols=['month'], aggfunc=mean)
+
+For more details and examples see :ref:`the reshaping documentation
+<reshaping.pivot>`.
 
 .. |with| replace:: ``with``
 .. _with: http://finzi.psych.upenn.edu/R/library/base/html/with.html
 
 .. |subset| replace:: ``subset``
 .. _subset: http://finzi.psych.upenn.edu/R/library/base/html/subset.html
+
+.. |ddply| replace:: ``ddply``
+.. _ddply: http://www.inside-r.org/packages/cran/plyr/docs/ddply
+
+.. |meltarray| replace:: ``melt.array``
+.. _meltarray: http://www.inside-r.org/packages/cran/reshape2/docs/melt.array
+
+.. |meltlist| replace:: ``melt.list``
+.. meltlist: http://www.inside-r.org/packages/cran/reshape2/docs/melt.list
+
+.. |meltdf| replace:: ``melt.data.frame``
+.. meltdf: http://www.inside-r.org/packages/cran/reshape2/docs/melt.data.frame
+
+.. |cast| replace:: ``cast``
+.. cast: http://www.inside-r.org/packages/cran/reshape2/docs/cast
+
