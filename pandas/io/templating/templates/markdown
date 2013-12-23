@@ -1,0 +1,21 @@
+{# jinja2 template #}
+
+{% for r in head %}
+|{%- for c in r -%}
+  {%- if c.type == "heading" and "blank" not in c.class -%}
+    __{{ c.value }}__ |
+  {%- else -%}
+    {{ c.value }} |
+  {%- endif -%}
+{%- endfor %}
+{%- endfor %}
+| {% for c in head[0] %} --- |  {% endfor -%}
+{% for r in body %}
+|{%- for c in r -%}
+  {%- if c.type == "heading" -%}
+    __{{ c.value }}__ |
+  {%- else -%}
+    {{ c.value }} |
+  {%- endif -%}
+{% endfor %}
+{%- endfor %}

@@ -1,0 +1,23 @@
+{#jinja2 template#}
+
+\documentclass[11pt,a4paper]{article}
+\usepackage{booktabs}
+
+\begin{document}
+
+\begin{tabular}{ {% for c in body[0] %}l{% endfor %} }
+
+\toprule
+  {% for r in head %}
+      {% for c in r[:-1] %}{{ c.value }} & {% endfor %} {{ r[-1].value }} \\
+  {%- endfor %}
+
+\midrule
+  {% for r in body %}
+      {% for c in r[:-1] %}{{ c.value }} & {% endfor %} {{ r[-1].value }} \\
+  {%- endfor %}
+\bottomrule
+
+\end{tabular}
+
+\end{document}

@@ -1,0 +1,61 @@
+{#jinja2 template#}
+
+<style type="text/css">
+  #T_{{uuid}} tr {
+    border: none;
+  }
+
+  #T_{{uuid}} {
+    border: none;
+  }
+
+  #T_{{uuid}} th.pandas_blank {
+    border: none;
+  }
+
+  {% for s in style %}
+    #T_{{uuid}} {{s.selector}} {
+    {% for p,val in s.props %}
+      {{p}}: {{val}};
+    {% endfor %}
+    }
+  {% endfor %}
+</style>
+
+
+<table id="T_{{ uuid }}">
+  {% if caption %}
+    <caption>
+      {{ caption }}
+    </caption>
+  {% endif %}
+
+  <thead>
+  {% for r in head %}
+    <tr>
+      {% for c in r %}
+        {% if c.type == "heading" %}
+          <th class="{{ c.class }}">{{ c.value }}</th>
+        {% else %}
+          <td class="{{ c.class }}">{{ c.value }}</td>
+        {% endif %}
+      {% endfor %}
+    </tr>
+  {% endfor %}
+  </thead>
+
+  <tbody>
+  {% for r in body %}
+    <tr>
+      {% for c in r %}
+        {% if c.type == "heading" %}
+          <th class="{{ c.class }}">{{ c.value }}</th>
+        {% else %}
+          <td class="{{ c.class }}">{{ c.value }}</td>
+        {% endif %}
+      {% endfor %}
+    </tr>
+  {% endfor %}
+  </tbody>
+
+</table>
