@@ -5,6 +5,7 @@ import pandas.util.testing as tm
 from pandas.core.index import Index, Int64Index
 from pandas.core.range import RangeIndex
 import pandas.compat as compat
+import nose
 
 lrange = lambda *args: list(range(*args))
 
@@ -56,56 +57,66 @@ class TestRangeIndex(unittest.TestCase):
         # make sure conditions work correctly
         # descending
         r = RangeIndex(10, 5)
-        self.assertEqual(r.start, 5)
-        self.assertEqual(r.stop, 10)
-        # self.assertEqual(r.left, 10)
-        # self.assertEqual(r.right, 5)
+        # start and stopped are what the range would be if you sorted it,
+        # i.e. range(10, 5, -1) is [10, 9, 8, 7, 6]. And range(6, 11) is [6, 7,
+        # 8, 9, 10]
+        self.assertEqual(r.start, 6)
+        self.assertEqual(r.stop, 11)
+        self.assertEqual(r.left, 10)
+        self.assertEqual(r.right, 5)
         self.assertEqual(r.step, -1)
 
         # ascending
         r2 = RangeIndex(5, 10)
         self.assertEqual(r2.start, 5)
         self.assertEqual(r2.stop, 10)
-        # self.assertEqual(r2.left, 5)
-        # self.assertEqual(r2.right, 10)
+        self.assertEqual(r2.left, 5)
+        self.assertEqual(r2.right, 10)
         self.assertEqual(r2.step, 1)
 
         # negative values
         r3 = RangeIndex(-10, -9)
         self.assertEqual(r3.start, -10)
         self.assertEqual(r3.stop, -9)
+        self.assertEqual(r3.left, -10)
+        self.assertEqual(r3.right, -9)
         self.assert_(r3.ascending)
         self.assertEqual(r3.step, 1)
 
         r4 = RangeIndex(-8, -15)
-        self.assertEqual(r4.start, -15)
-        self.assertEqual(r4.stop, -8)
+        self.assertEqual(r4.start, -14)
+        self.assertEqual(r4.stop, -7)
+        self.assertEqual(r4.right, -15)
+        self.assertEqual(r4.left, -8)
         self.assert_(not r4.ascending)
         self.assertEqual(r4.step, -1)
 
     def test_bad_input(self):
-        with tm.assertRaisesRegexp(TypeError, 'Must be integer'):
+        with tm.assertRaisesRegexp(TypeError, 'Need to pass integral values'):
             RangeIndex(0, 1.25)
 
-        with tm.assertRaisesRegexp(TypeError, 'invalid literal'):
+        with tm.assertRaisesRegexp(ValueError, 'invalid literal'):
             RangeIndex(0, 'a')
 
-        with tm.assertRaisesRegexp(TypeError, 'Must be integer'):
+        with tm.assertRaisesRegexp(TypeError, 'Need to pass integral values'):
             RangeIndex('0', '5')
 
 
     def test_contains(self):
 
-        r = RangeIndex(10, 5)
+        r = RangeIndex(9, 4)
         r2 = RangeIndex(5, 10)
         for i in range(5, 10):
-            self.assert_(i in r)
-            self.assert_(i in r2)
+            self.assert_(i in r, i)
+            self.assert_(i in r2, i)
 
     def test_empty(self):
         assert np.array_equal(RangeIndex(5, 5), Index([], dtype='int64'))
 
     def test_asarray(self):
+        # TODO: Remove this SkipTest once Index is not a subclass of ndarray
+        raise nose.SkipTest("This test case cannot work until Index is no "
+                            "longer a subclass of ndarray")
         # __array__
         self.assert_(np.array_equal(np.asarray(RangeIndex(1, 0)),
                                     np.array([1])))

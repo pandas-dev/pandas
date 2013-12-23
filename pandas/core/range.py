@@ -63,12 +63,14 @@ class RangeIndex(Index):
         if left == right:
             raise ValueError("Can't have empty range")
 
+        # TODO: builtin range function only accepts integers, could make more
+        # sense to just do a single isinstance check there. Not sure...
         # want to coerce where possible, but not change value
         l, r = left, right
         left, right = int(left), int(right)
 
         if left != l or right != r:
-            raise ValueError("Need to pass integral values")
+            raise TypeError("Need to pass integral values")
 
         self.left = left
         self.right = right
@@ -78,7 +80,8 @@ class RangeIndex(Index):
             self.start, self.stop = left, right
             self.step = 1
         else:
-            # because non-inclusive
+            # because non-inclusive. want start and stop to be the actual
+            # bounds of the range if the range were ascending.
             # e.g., range(10, 5, -1) == range(6, 11)[::-1]
             self.start, self.stop = right + 1, left + 1
             self.step = -1
@@ -215,10 +218,8 @@ class RangeIndex(Index):
         return self.ascending
 
     def all(self):
-        if self.start <= 0:
-            return False
-        else:
-            return True
+        # False only if it *spans* zero
+        return not (self.start <= 0 and self.stop > 0)
 
     def any(self):
         # if includes any number other than zero than any is True
@@ -226,6 +227,17 @@ class RangeIndex(Index):
 
     def __array__(self):
         return self.values
+
+    # TODO: Probably remove these functions when Index is no longer a subclass of
+    # ndarray [need to override them for now to make them work with np.asarray
+    # and buddies].
+    @property
+    def __array_interface__(self):
+        raise AttributeError("No attribute __array_interface__")
+
+    @property
+    def __array_struct__(self):
+        raise AttributeError("No attribute __array_struct__ [disabled]")
 
     def __or__(self, other):
         return self.union(other)
