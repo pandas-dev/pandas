@@ -2349,5 +2349,47 @@ cdef inline float64_t _median_linear(float64_t* a, int n):
 
     return result
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def groupby_range(range_index, ndarray labels):
+    '''
+    Assigns indices incrementing by step to each index of labels and groups by
+    uniques.
+    '''
+    cdef Py_ssize_t i, length, idx, step
+    cdef dict result = {}
+    cdef list members
+    cdef object key
+    length = len(range_index)
+    if length != len(labels):
+        raise ValueError("len(index) != len(labels)")
+    idx = range_index.start
+    step = range_index.step
+    for i in range(length):
+        key = labels[i]
+        if key in result:
+            result[key].append(idx)
+        else:
+            result[key] = [idx]
+        idx += step
+    return result
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def arrmap_range(range_index, object func):
+    cdef Py_ssize_t i, idx, step, length
+    length = len(range_index)
+    cdef ndarray[object] result = np.empty(length, dtype=np.object_)
+
+    from pandas.lib import maybe_convert_objects
+
+    idx = range_index.start
+    step = range_index.step
+    for i in range(length):
+        result[i] = func(idx)
+        idx += step
+    return maybe_convert_objects(result)
+
+
 include "join.pyx"
 include "generated.pyx"
