@@ -2037,16 +2037,16 @@ a,b,c
 4,5,6
 7,8,9
 10,11,12"""
-        result = self.read_csv(StringIO(data), names=['b', 'c'],
-                               header=None, usecols=[1, 2])
+        result = self.read_csv(StringIO(data), names=['a', 'b'],
+                               header=None, usecols=[0, 1])
 
         expected = self.read_csv(StringIO(data), names=['a', 'b', 'c'],
                                  header=None)
-        expected = expected[['b', 'c']]
+        expected = expected[['a', 'b']]
         tm.assert_frame_equal(result, expected)
 
         result2 = self.read_csv(StringIO(data), names=['a', 'b', 'c'],
-                                header=None, usecols=['b', 'c'])
+                                header=None, usecols=['a', 'b'])
         tm.assert_frame_equal(result2, result)
 
         # length conflict, passed names and usecols disagree
@@ -2071,7 +2071,6 @@ a,b,c
 7,8,9
 10,11,12\n"""
         tm.assertRaises(Exception, read_csv, StringIO(data), header=0, names=['a', 'b', 'c', 'd'])
-
 
 class TestPythonParser(ParserTests, tm.TestCase):
     def test_negative_skipfooter_raises(self):
