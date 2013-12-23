@@ -351,9 +351,9 @@ def test_slice_locs():
     self.assertEquals(idx.slice_locs(5, 10), (3, n))
     self.assertEquals(idx.slice_locs(end=8), (0, 8))
     self.assertEquals(idx.slice_locs(end=9), (0, 9))
+    # monotonic *increasing* indexes allow slice_locs that aren't in the Index
+    self.assertEquals(idx.slice_locs(-5, 50), (0, 11))
 
-    # WHAAA?
-    # idx2 = idx[::-1]
     idx2 = RangeIndex(5, 1)
     self.assertRaises(KeyError, idx2.slice_locs, 8, 2)
     self.assertRaises(KeyError, idx2.slice_locs, 7, 3)
