@@ -456,6 +456,20 @@ class TestIndexing(tm.TestCase):
         result = df.iloc[:,2:3]
         assert_frame_equal(result, expected)
 
+        # GH5771
+        s = Series(0,index=[4,5,6])
+        s.iloc[1:2] += 1
+        expected = Series([0,1,0],index=[4,5,6])
+        assert_series_equal(s, expected)
+
+    def test_loc_setitem(self):
+        # GH 5771
+        # loc with slice and series
+        s = Series(0,index=[4,5,6])
+        s.loc[4:5] += 1
+        expected = Series([1,1,0],index=[4,5,6])
+        assert_series_equal(s, expected)
+
     def test_loc_getitem_int(self):
 
         # int label
