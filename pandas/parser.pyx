@@ -898,6 +898,9 @@ cdef class TextReader:
             if i < self.leading_cols:
                 # Pass through leading columns always
                 name = i
+            elif self.usecols and nused == len(self.usecols):
+                # Once we've gathered all requested columns, stop. GH5766
+                break
             else:
                 name = self._get_column_name(i, nused)
                 if self.has_usecols and not (i in self.usecols or
