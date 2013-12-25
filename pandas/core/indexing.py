@@ -420,7 +420,10 @@ class _NDFrameIndexer(object):
             self.obj._maybe_update_cacher(clear=True)
 
     def _align_series(self, indexer, ser):
-        # indexer to assign Series can be tuple or scalar
+        # indexer to assign Series can be tuple, slice, scalar
+        if isinstance(indexer, slice):
+            indexer = tuple([indexer])
+
         if isinstance(indexer, tuple):
 
             aligners = [not _is_null_slice(idx) for idx in indexer]
