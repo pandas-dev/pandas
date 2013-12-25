@@ -1138,8 +1138,11 @@ cdef class TextReader:
 
     cdef _get_column_name(self, Py_ssize_t i, Py_ssize_t nused):
         if self.has_usecols and self.names is not None:
-            if len(self.names) == len(self.usecols):
+            if len(self.names) == len(self.usecols) and nused < len(self.names):
                 return self.names[nused]
+            # addresses Issue #5766
+            elif nused >= len(self.names):
+                return None
             else:
                 return self.names[i - self.leading_cols]
         else:
