@@ -283,6 +283,7 @@ class TestRangeIndex(unittest.TestCase):
         # TODO: Consider supporting steps
         idx2 = Index([2, 4, 6])
         idx3 = Index([1, 6, 7, 1, 2])
+        idx4 = Index([-4, 3, 6])
 
         r1 = idx1.get_indexer(idx2)
         assert_almost_equal(r1, [1, 3, -1])
@@ -290,14 +291,17 @@ class TestRangeIndex(unittest.TestCase):
         r1 = idx1.get_indexer(idx3)
         assert_almost_equal(r1, np.array([0, -1, -1,  0,  1]))
 
-        r1 = idx1.get_indexer(idx3, method='pad')
-        assert_almost_equal(r1, np.array([0,  3,  3, -1, -1]))
+        assert_almost_equal(idx1.get_indexer(idx4), np.array([-1, 2, -1]))
 
-        rffill1 = idx1.get_indexer(idx3, method='ffill')
+        r1 = idx1.get_indexer(idx4, method='pad')
+        assert_almost_equal(r1, np.array([-1,  2,  3]))
+
+        # synonym
+        rffill1 = idx1.get_indexer(idx4, method='ffill')
         assert_almost_equal(r1, rffill1)
 
-        r1 = idx1.get_indexer(idx3, method='backfill')
-        assert_almost_equal(r1, np.array([0, -1, -1,  0,  1]))
+        r1 = idx1.get_indexer(idx4, method='backfill')
+        assert_almost_equal(r1, np.array([0, 2, -1]))
 
         rbfill1 = idx1.get_indexer(idx3, method='bfill')
         assert_almost_equal(r1, rbfill1)
