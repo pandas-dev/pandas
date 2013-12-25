@@ -2049,6 +2049,16 @@ a,b,c
                                 header=None, usecols=['b', 'c'])
         tm.assert_frame_equal(result2, result)
 
+
+        # 5766
+        result = self.read_csv(StringIO(data), names=['a', 'b'],
+                               header=None, usecols=[0, 1])
+
+        expected = self.read_csv(StringIO(data), names=['a', 'b', 'c'],
+                                 header=None)
+        expected = expected[['a', 'b']]
+        tm.assert_frame_equal(result, expected)
+
         # length conflict, passed names and usecols disagree
         self.assertRaises(ValueError, self.read_csv, StringIO(data),
                           names=['a', 'b'], usecols=[1], header=None)
