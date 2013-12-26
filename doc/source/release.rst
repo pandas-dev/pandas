@@ -416,6 +416,9 @@ API Changes
     copy thru chained assignment is detected, settable via option ``mode.chained_assignment``
   - test the list of ``NA`` values in the csv parser. add ``N/A``, ``#NA`` as independent default
     na values (:issue:`5521`)
+  - The refactoring involving``Series`` deriving from ``NDFrame`` breaks ``rpy2<=2.3.8``. an Issue
+    has been opened against rpy2 and a workaround is detailed in :issue:`5698`. Thanks @JanSchulz.
+
 
 Internal Refactoring
 ~~~~~~~~~~~~~~~~~~~~

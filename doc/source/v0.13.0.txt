@@ -879,6 +879,9 @@ to unify methods and behaviors. Series formerly subclassed directly from
 
    - ``Series(0.5)`` would previously return the scalar ``0.5``, instead this will return a 1-element ``Series``
 
+   - This change breaks ``rpy2<=2.3.8``. an Issue has been opened against rpy2 and a workaround
+     is detailed in :issue:`5698`. Thanks @JanSchulz.
+
 - Pickle compatibility is preserved for pickles created prior to 0.13. These must be unpickled with ``pd.read_pickle``, see :ref:`Pickling<io.pickle>`.
 
 - Refactor of series.py/frame.py/panel.py to move common code to generic.py
