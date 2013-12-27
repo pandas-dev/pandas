@@ -211,7 +211,7 @@ reshape the data.frame:
 .. code-block:: r
 
    cheese <- data.frame(
-     first = c('John, Mary'),
+     first = c('John', 'Mary'),
      last = c('Doe', 'Bo'),
      height = c(5.5, 6.0),
      weight = c(130, 150)
