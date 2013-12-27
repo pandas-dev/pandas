@@ -40,14 +40,17 @@ class AmbiguousIndexError(PandasError, KeyError):
 
 
 _POSSIBLY_CAST_DTYPES = set([np.dtype(t)
-                             for t in ['M8[ns]', 'm8[ns]', 'O', 'int8',
+                             for t in ['M8[ns]', '>M8[ns]', '<M8[ns]',
+                                       'm8[ns]', '>m8[ns]', '<m8[ns]',
+                                       'O', 'int8',
                                        'uint8', 'int16', 'uint16', 'int32',
                                        'uint32', 'int64', 'uint64']])
 
 _NS_DTYPE = np.dtype('M8[ns]')
 _TD_DTYPE = np.dtype('m8[ns]')
 _INT64_DTYPE = np.dtype(np.int64)
-_DATELIKE_DTYPES = set([np.dtype(t) for t in ['M8[ns]', 'm8[ns]']])
+_DATELIKE_DTYPES = set([np.dtype(t) for t in ['M8[ns]', '<M8[ns]', '>M8[ns]',
+                                              'm8[ns]', '<m8[ns]', '>m8[ns]']])
 
 
 # define abstract base classes to enable isinstance type checking on our
@@ -1572,11 +1575,17 @@ def _possibly_cast_to_datetime(value, dtype, coerce=False):
 
             # force the dtype if needed
             if is_datetime64 and dtype != _NS_DTYPE:
-                raise TypeError(
-                    "cannot convert datetimelike to dtype [%s]" % dtype)
+                if dtype.name == 'datetime64[ns]':
+                    dtype = _NS_DTYPE
+                else:
+                    raise TypeError(
+                        "cannot convert datetimelike to dtype [%s]" % dtype)
             elif is_timedelta64 and dtype != _TD_DTYPE:
-                raise TypeError(
-                    "cannot convert timedeltalike to dtype [%s]" % dtype)
+                if dtype.name == 'timedelta64[ns]':
+                    dtype = _TD_DTYPE
+                else:
+                    raise TypeError(
+                        "cannot convert timedeltalike to dtype [%s]" % dtype)
 
             if np.isscalar(value):
                 if value == tslib.iNaT or isnull(value):
