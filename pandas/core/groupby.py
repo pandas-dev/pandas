@@ -65,6 +65,7 @@ _common_apply_whitelist = frozenset([
     'mad',
     'any', 'all',
     'irow', 'take',
+    'idxmax', 'idxmin',
     'shift', 'tshift',
     'ffill', 'bfill',
     'pct_change', 'skew',

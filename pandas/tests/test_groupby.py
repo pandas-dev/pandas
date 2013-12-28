@@ -3264,6 +3264,7 @@ class TestGroupBy(tm.TestCase):
             'mad',
             'any', 'all',
             'irow', 'take',
+            'idxmax', 'idxmin',
             'shift', 'tshift',
             'ffill', 'bfill',
             'pct_change', 'skew',
@@ -3284,6 +3285,7 @@ class TestGroupBy(tm.TestCase):
             'mad',
             'any', 'all',
             'irow', 'take',
+            'idxmax', 'idxmin',
             'shift', 'tshift',
             'ffill', 'bfill',
             'pct_change', 'skew',
@@ -3413,7 +3415,7 @@ class TestGroupBy(tm.TestCase):
             'resample', 'cummin', 'fillna', 'cumsum', 'cumcount',
             'all', 'shift', 'skew', 'bfill', 'irow', 'ffill',
             'take', 'tshift', 'pct_change', 'any', 'mad', 'corr', 'corrwith',
-            'cov', 'dtypes', 'diff',
+            'cov', 'dtypes', 'diff', 'idxmax', 'idxmin'
         ])
         self.assertEqual(results, expected)
 
