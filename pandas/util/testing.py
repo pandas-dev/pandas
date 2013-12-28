@@ -355,6 +355,7 @@ def ensure_clean(filename=None, return_filelike=False):
         try:
             fd, filename = tempfile.mkstemp(suffix=filename)
         except UnicodeEncodeError:
+            import nose
             raise nose.SkipTest('no unicode file names on this system')
 
         try:
