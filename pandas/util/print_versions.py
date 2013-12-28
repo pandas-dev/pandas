@@ -1,4 +1,5 @@
 import os
+import platform
 import sys
 
 
@@ -8,8 +9,12 @@ def show_versions():
     print("Python: %d.%d.%d.%s.%s" % sys.version_info[:])
 
     try:
-        sysname, nodename, release, version, machine = os.uname()
-        print("OS: %s %s %s %s" % (sysname, release, version, machine))
+        sysname, nodename, release, version, machine, processor = platform.uname()
+        print("OS: %s" % (sysname))
+        print("Release: %s" % (release))
+        #print("Version: %s" % (version))
+        #print("Machine: %s" % (machine))
+        print("Processor: %s" % (processor))
         print("byteorder: %s" % sys.byteorder)
         print("LC_ALL: %s" % os.environ.get('LC_ALL', "None"))
         print("LANG: %s" % os.environ.get('LANG', "None"))
