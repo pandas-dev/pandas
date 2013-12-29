@@ -443,6 +443,19 @@ In addition to the top level :func:`~pandas.eval` function you can also
 evaluate an expression in the "context" of a ``DataFrame``.
 
 .. ipython:: python
+   :suppress:
+
+   try:
+      del a
+   except NameError:
+      pass
+
+   try:
+      del b
+   except NameError:
+      pass
+
+.. ipython:: python
 
    df = DataFrame(randn(5, 2), columns=['a', 'b'])
    df.eval('a + b')

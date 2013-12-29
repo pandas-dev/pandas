@@ -1,17 +1,32 @@
 .. _whatsnew_0130:
 
-v0.13.0 (December ??, 2013)
+v0.13.0 (January 1, 2014)
 ---------------------------
 
 This is a major release from 0.12.0 and includes a number of API changes, several new features and
 enhancements along with a large number of bug fixes.
 
-Highlights include support for a new index type ``Float64Index``, support for new methods of interpolation, updated ``timedelta`` operations, and a new string manipulation method ``extract``.
-Several experimental features are added, including new ``eval/query`` methods for expression evaluation, support for ``msgpack`` serialization,
-and an io interface to Google's ``BigQuery``.
+Highlights include:
 
-The docs also received a new section, :ref:`Comparison with SQL<compare_with_sql>`, which should
-be useful for those familiar with SQL but still learning pandas.
+- support for a new index type ``Float64Index``, and other Indexing enhancements
+- ``HDFStore`` has a new string based syntax for query specification
+- support for new methods of interpolation
+- updated ``timedelta`` operations
+- a new string manipulation method ``extract``
+- Nanosecond support for Offsets
+- ``isin`` for DataFrames
+
+Several experimental features are added, including:
+
+- new ``eval/query`` methods for expression evaluation
+- support for ``msgpack`` serialization
+- an i/o interface to Google's ``BigQuery``
+
+Their are several new or updated docs sections including:
+
+- :ref:`Comparison with SQL<compare_with_sql>`, which should be useful for those familiar with SQL but still learning pandas.
+- :ref:`Comparison with R<compare_with_r>`, idiom translations from R to pandas.
+- :ref:`Enhancing Performance<enhancingperf>`, ways to enhance pandas performance with ``eval/query``.
 
 .. warning::
 
