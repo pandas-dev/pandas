@@ -2266,7 +2266,7 @@ class NDFrameGroupBy(GroupBy):
                 # if we have date/time like in the original, then coerce dates
                 # as we are stacking can easily have object dtypes here
                 cd = 'coerce' if self.obj.ndim == 2 and self.obj.dtypes.isin(_DATELIKE_DTYPES).any() else True
-                return result.convert_objects(convert_dates=cd, convert_numeric=True)
+                return result.convert_objects(convert_dates=cd)
 
             else:
                 # only coerce dates if we find at least 1 datetime

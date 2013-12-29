@@ -1527,17 +1527,22 @@ def _possibly_convert_objects(values, convert_dates=True,
                 values, convert_datetime=convert_dates)
 
     # convert to numeric
-    if convert_numeric and values.dtype == np.object_:
-        try:
-            new_values = lib.maybe_convert_numeric(
-                values, set(), coerce_numeric=True)
+    if values.dtype == np.object_:
+        if convert_numeric:
+            try:
+                new_values = lib.maybe_convert_numeric(
+                    values, set(), coerce_numeric=True)
 
-            # if we are all nans then leave me alone
-            if not isnull(new_values).all():
-                values = new_values
+                # if we are all nans then leave me alone
+                if not isnull(new_values).all():
+                    values = new_values
 
-        except:
-            pass
+            except:
+                pass
+        else:
+
+            # soft-conversion
+            values = lib.maybe_convert_objects(values)
 
     return values
 
