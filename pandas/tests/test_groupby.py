@@ -583,8 +583,11 @@ class TestGroupBy(tm.TestCase):
         foo = (self.df.A == 'foo').sum()
         bar = (self.df.A == 'bar').sum()
         K = len(result.columns)
-        assert_almost_equal(result.xs('foo'), [foo] * K)
-        assert_almost_equal(result.xs('bar'), [bar] * K)
+
+        # GH5782
+        # odd comparisons can result here, so cast to make easy
+        assert_almost_equal(result.xs('foo'), np.array([foo] * K).astype('float64'))
+        assert_almost_equal(result.xs('bar'), np.array([bar] * K).astype('float64'))
 
         def aggfun(ser):
             return ser.size
