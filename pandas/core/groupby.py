@@ -2268,8 +2268,12 @@ class NDFrameGroupBy(GroupBy):
                                  columns=columns).convert_objects(convert_dates=cd, convert_numeric=True)
 
             else:
-                return Series(values, index=key_index).convert_objects(
-                    convert_dates='coerce',convert_numeric=True)
+                # only coerce dates if we find at least 1 datetime
+                cd = False
+                if any([ isinstance(v,Timestamp) for v in values ]):
+                    cd = 'coerce'
+                return Series(values, index=key_index).convert_objects(convert_dates=cd)
+
         else:
             # Handle cases like BinGrouper
             return self._concat_objects(keys, values,
