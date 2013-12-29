@@ -22,6 +22,7 @@ from pandas.core.common import(_possibly_downcast_to_dtype, isnull,
                                notnull, _DATELIKE_DTYPES, is_numeric_dtype,
                                is_timedelta64_dtype, is_datetime64_dtype)
 
+from pandas import _np_version_under1p7
 import pandas.lib as lib
 from pandas.lib import Timestamp
 import pandas.algos as _algos
@@ -2243,16 +2244,19 @@ class NDFrameGroupBy(GroupBy):
                 try:
                     if self.axis == 0:
 
-                        stacked_values = np.vstack([np.asarray(x)
-                                                    for x in values])
-                        columns = v.index
-                        index = key_index
+                        # normally use vstack as its faster than concat
+                        # and if we have mi-columns
+                        if not _np_version_under1p7 or isinstance(v.index,MultiIndex):
+                            stacked_values = np.vstack([np.asarray(x) for x in values])
+                            result = DataFrame(stacked_values,index=key_index,columns=v.index)
+                        else:
+                            # GH5788 instead of stacking; concat gets the dtypes correct
+                            from pandas.tools.merge import concat
+                            result = concat(values,keys=key_index,names=key_index.names,
+                                            axis=self.axis).unstack()
                     else:
-                        stacked_values = np.vstack([np.asarray(x)
-                                                    for x in values]).T
-
-                        index = v.index
-                        columns = key_index
+                        stacked_values = np.vstack([np.asarray(x) for x in values])
+                        result = DataFrame(stacked_values.T,index=v.index,columns=key_index)
 
                 except (ValueError, AttributeError):
                     # GH1738: values is list of arrays of unequal lengths fall
@@ -2261,17 +2265,12 @@ class NDFrameGroupBy(GroupBy):
 
                 # if we have date/time like in the original, then coerce dates
                 # as we are stacking can easily have object dtypes here
-                cd = True
-                if self.obj.ndim == 2 and self.obj.dtypes.isin(_DATELIKE_DTYPES).any():
-                    cd = 'coerce'
-                return DataFrame(stacked_values, index=index,
-                                 columns=columns).convert_objects(convert_dates=cd, convert_numeric=True)
+                cd = 'coerce' if self.obj.ndim == 2 and self.obj.dtypes.isin(_DATELIKE_DTYPES).any() else True
+                return result.convert_objects(convert_dates=cd, convert_numeric=True)
 
             else:
                 # only coerce dates if we find at least 1 datetime
-                cd = False
-                if any([ isinstance(v,Timestamp) for v in values ]):
-                    cd = 'coerce'
+                cd = 'coerce' if any([ isinstance(v,Timestamp) for v in values ]) else False
                 return Series(values, index=key_index).convert_objects(convert_dates=cd)
 
         else:
