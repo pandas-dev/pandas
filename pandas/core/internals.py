@@ -3556,12 +3556,14 @@ class SingleBlockManager(BlockManager):
         pass
 
 
-def construction_error(tot_items, block_shape, axes):
+def construction_error(tot_items, block_shape, axes, e=None):
     """ raise a helpful message about our construction """
-    raise ValueError("Shape of passed values is %s, indices imply %s" % (
-        tuple(map(int, [tot_items] + list(block_shape))),
-        tuple(map(int, [len(ax) for ax in axes]))))
-
+    passed = tuple(map(int, [tot_items] + list(block_shape)))
+    implied = tuple(map(int, [len(ax) for ax in axes]))
+    if passed == implied and e is not None:
+        raise e
+    raise ValueError("Shape of passed values is {0}, indices imply {1}".format(
+        passed,implied))
 
 def create_block_manager_from_blocks(blocks, axes):
     try:
@@ -3576,10 +3578,10 @@ def create_block_manager_from_blocks(blocks, axes):
         mgr._consolidate_inplace()
         return mgr
 
-    except (ValueError):
+    except (ValueError) as e:
         blocks = [getattr(b, 'values', b) for b in blocks]
         tot_items = sum(b.shape[0] for b in blocks)
-        construction_error(tot_items, blocks[0].shape[1:], axes)
+        construction_error(tot_items, blocks[0].shape[1:], axes, e)
 
 
 def create_block_manager_from_arrays(arrays, names, axes):
@@ -3588,8 +3590,8 @@ def create_block_manager_from_arrays(arrays, names, axes):
         mgr = BlockManager(blocks, axes)
         mgr._consolidate_inplace()
         return mgr
-    except (ValueError):
-        construction_error(len(arrays), arrays[0].shape[1:], axes)
+    except (ValueError) as e:
+        construction_error(len(arrays), arrays[0].shape[1:], axes, e)
 
 
 def maybe_create_block_in_items_map(im, block):
