@@ -28,7 +28,7 @@ import numpy as np
 import pandas.core.nanops as nanops
 
 import pandas.util.testing as tm
-
+import pandas as pd
 
 def commonSetUp(self):
     self.dateRange = bdate_range('1/1/2005', periods=250)
@@ -480,6 +480,36 @@ class TestGroupBy(tm.TestCase):
     def test_apply_describe_bug(self):
         grouped = self.mframe.groupby(level='first')
         result = grouped.describe()  # it works!
+
+    def test_apply_issues(self):
+        # GH 5788
+
+        s="""2011.05.16,00:00,1.40893
+2011.05.16,01:00,1.40760
+2011.05.16,02:00,1.40750
+2011.05.16,03:00,1.40649
+2011.05.17,02:00,1.40893
+2011.05.17,03:00,1.40760
+2011.05.17,04:00,1.40750
+2011.05.17,05:00,1.40649
+2011.05.18,02:00,1.40893
+2011.05.18,03:00,1.40760
+2011.05.18,04:00,1.40750
+2011.05.18,05:00,1.40649"""
+
+        df = pd.read_csv(StringIO(s), header=None, names=['date', 'time', 'value'], parse_dates=[['date', 'time']])
+        df = df.set_index('date_time')
+
+        expected = df.groupby(df.index.date).idxmax()
+        result = df.groupby(df.index.date).apply(lambda x: x.idxmax())
+        assert_frame_equal(result,expected)
+
+        # GH 5789
+        # don't auto coerce dates
+        df = pd.read_csv(StringIO(s), header=None, names=['date', 'time', 'value'])
+        expected = Series(['00:00','02:00','02:00'],index=['2011.05.16','2011.05.17','2011.05.18'])
+        result = df.groupby('date').apply(lambda x: x['time'][x['value'].idxmax()])
+        assert_series_equal(result,expected)
 
     def test_len(self):
         df = tm.makeTimeDataFrame()
