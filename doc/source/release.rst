@@ -64,6 +64,8 @@ Experimental Features
 Improvements to existing features
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+  - perf improvements in Series datetime/timedelta binary operations (:issue:`5801`)
+
 Bug Fixes
 ~~~~~~~~~
 
