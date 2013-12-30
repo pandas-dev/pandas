@@ -35,6 +35,8 @@ def infer_dtype(object _values):
 
     if isinstance(_values, np.ndarray):
         values = _values
+    elif hasattr(_values,'values'):
+        values = _values.values
     else:
         if not isinstance(_values, list):
             _values = list(_values)
