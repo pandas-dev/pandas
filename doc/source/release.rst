@@ -45,10 +45,33 @@ analysis / manipulation tool available in any language.
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
-pandas 0.13.0
+pandas 0.14.0
 -------------
 
 **Release date:** not-yet-released
+
+New features
+~~~~~~~~~~~~
+
+API Changes
+~~~~~~~~~~~
+
+.. _release.bug_fixes-0.14.0:
+
+Experimental Features
+~~~~~~~~~~~~~~~~~~~~~
+
+Improvements to existing features
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Bug Fixes
+~~~~~~~~~
+
+
+pandas 0.13.0
+-------------
+
+**Release date:** January 3, 2014
 
 New features
 ~~~~~~~~~~~~
