@@ -5171,7 +5171,8 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         ser = Series([0, 1, 2, 3, 4])
         result = ser.replace([0, 1, 2, 3, 4], [4, 3, 2, 1, 0])
         assert_series_equal(result, Series([4, 3, 2, 1, 0]))
-
+        
+        
         # API change from 0.12?
         # GH 5319
         ser = Series([0, np.nan, 2, 3, 4])
@@ -5182,6 +5183,14 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         ser = Series([0, np.nan, 2, 3, 4])
         expected = ser.ffill()
         result = ser.replace(np.nan)
+        assert_series_equal(result, expected)
+
+        #GH 5797
+        ser = Series(date_range('20130101', periods=5))
+        expected = ser.copy()
+        expected.loc[2] = Timestamp('20120101')
+        result = ser.replace({Timestamp('20130103'):
+                              Timestamp('20120101')})
         assert_series_equal(result, expected)
 
     def test_replace_with_single_list(self):
