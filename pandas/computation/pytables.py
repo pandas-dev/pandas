@@ -4,8 +4,8 @@ import ast
 import time
 import warnings
 from functools import partial
-from datetime import datetime
-
+from datetime import datetime, timedelta
+import numpy as np
 import pandas as pd
 from pandas.compat import u, string_types, PY3
 from pandas.core.base import StringMixin
@@ -540,6 +540,18 @@ class Expr(expr.Expr):
             if value is not None:
                 if isinstance(value, Expr):
                     raise TypeError("invalid value passed, must be a string")
+
+                # stringify with quotes these values
+                def convert(v):
+                    if isinstance(v, (datetime,np.datetime64,timedelta,np.timedelta64)) or hasattr(v, 'timetuple'):
+                        return "'{0}'".format(v)
+                    return v
+
+                if isinstance(value, (list,tuple)):
+                    value = [ convert(v) for v in value ]
+                else:
+                    value = convert(value)
+
                 w = "{0}{1}".format(w, value)
 
             warnings.warn("passing multiple values to Expr is deprecated, "
