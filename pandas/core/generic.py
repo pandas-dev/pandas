@@ -1852,7 +1852,7 @@ class NDFrame(PandasObject):
         limit : int, default None
             Maximum size gap to forward or backward fill
         downcast : dict, default is None
-             a dict of item->dtype of what to downcast if possible,
+            a dict of item->dtype of what to downcast if possible,
             or the string 'infer' which will try to downcast to an appropriate
             equal type (e.g. float64 to int64 if possible)
 
