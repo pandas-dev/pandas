@@ -183,7 +183,7 @@ def _get_hist_yahoo(sym, start, end, retry_count, pause):
     Returns a DataFrame.
     """
     start, end = _sanitize_dates(start, end)
-    yahoo_url = 'http://ichart.yahoo.com/table.csv?'
+    yahoo_url = 'http://ichart.finance.yahoo.com/table.csv?'
     url = (yahoo_url + 's=%s' % sym +
            '&a=%s' % (start.month - 1) +
            '&b=%s' % start.day +
