@@ -71,7 +71,7 @@ Improvements to existing features
 
 Bug Fixes
 ~~~~~~~~~
-
+  - Bug in Series replace with timestamp dict (:issue:`5797`)
 
 pandas 0.13.0
 -------------
@@ -861,7 +861,7 @@ Bug Fixes
   - Bug in fillna with Series and a passed series/dict (:issue:`5703`)
   - Bug in groupby transform with a datetime-like grouper (:issue:`5712`)
   - Bug in multi-index selection in PY3 when using certain keys (:issue:`5725`)
-  - Row-wise concat of differeing dtypes failing in certain cases (:issue:`5754`)
+  - Row-wise concat of differing dtypes failing in certain cases (:issue:`5754`)
 
 pandas 0.12.0
 -------------
