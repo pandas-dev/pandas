@@ -2322,7 +2322,7 @@ class BlockManager(PandasObject):
         def comp(s):
             if isnull(s):
                 return isnull(values)
-            return values == s
+            return values == getattr(s, 'asm8', s)
         masks = [comp(s) for i, s in enumerate(src_lst)]
 
         result_blocks = []

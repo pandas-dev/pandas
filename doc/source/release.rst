@@ -560,6 +560,7 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
  - Added an internal ``_update_inplace`` method to facilitate updating
    ``NDFrame`` wrappers on inplace ops (only is for convenience of caller,
    doesn't actually prevent copies). (:issue:`5247`)
+  - Bug in Series replace with timestamp dict (:issue:`5797`)
 
 .. _release.bug_fixes-0.13.0:
 
