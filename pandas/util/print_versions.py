@@ -1,167 +1,96 @@
 import os
 import platform
 import sys
+import struct
 
+def get_sys_info():
+    "Returns system information as a dict"
 
-def show_versions():
-    print("\nINSTALLED VERSIONS")
-    print("------------------")
-    print("Python: %d.%d.%d.%s.%s" % sys.version_info[:])
-
+    # list of tuples over dict because OrderedDict not in 2.6, least
+    # resistance.
+    blob = []
     try:
         sysname, nodename, release, version, machine, processor = platform.uname()
-        print("OS: %s" % (sysname))
-        print("Release: %s" % (release))
-        #print("Version: %s" % (version))
-        #print("Machine: %s" % (machine))
-        print("Processor: %s" % (processor))
-        print("byteorder: %s" % sys.byteorder)
-        print("LC_ALL: %s" % os.environ.get('LC_ALL', "None"))
-        print("LANG: %s" % os.environ.get('LANG', "None"))
+        blob = [
+            ("python", "%d.%d.%d.%s.%s" % sys.version_info[:]),
+            ("python-bits", struct.calcsize("P") * 8),
+            ("OS","%s" % (sysname)),
+            ("OS-release", "%s" % (release)),
+            # ("Version", "%s" % (version)),
+            # ("Machine", "%s" % (machine)),
+            ("processor", "%s" % (processor)),
+            ("byteorder", "%s" % sys.byteorder),
+            ("LC_ALL", "%s" % os.environ.get('LC_ALL', "None")),
+            ("LANG", "%s" % os.environ.get('LANG', "None")),
+
+        ]
     except:
         pass
 
-    print("")
+    return blob
 
-    try:
-        import pandas
-        print("pandas: %s" % pandas.__version__)
-    except:
-        print("pandas: Not installed")
 
-    try:
-        import Cython
-        print("Cython: %s" % Cython.__version__)
-    except:
-        print("Cython: Not installed")
+def show_versions(as_json=False):
+    import imp
+    sys_info = get_sys_info()
 
-    try:
-        import numpy
-        print("Numpy: %s" % numpy.version.version)
-    except:
-        print("Numpy: Not installed")
+    deps = [
+        # (MODULE_NAME, f(mod) -> mod version)
+        ("pandas", lambda mod: mod.__version__),
+        ("Cython", lambda mod: mod.__version__),
+        ("numpy", lambda mod: mod.version.version),
+        ("scipy", lambda mod: mod.version.version),
+        ("statsmodels", lambda mod: mod.__version__),
+        ("patsy", lambda mod: mod.__version__),
+        ("scikits.timeseries", lambda mod: mod.__version__),
+        ("dateutil", lambda mod: mod.__version__),
+        ("pytz", lambda mod: mod.VERSION),
+        ("bottleneck", lambda mod: mod.__version__),
+        ("tables", lambda mod: mod.__version__),
+        ("numexpr", lambda mod: mod.__version__),
+        ("matplotlib", lambda mod: mod.__version__),
+        ("openpyxl", lambda mod: mod.__version__),
+        ("xlrd", lambda mod: mod.__VERSION__),
+        ("xlwt", lambda mod: mod.__VERSION__),
+        ("xlsxwriter", lambda mod: mod.__version__),
+        ("sqlalchemy", lambda mod: mod.__version__),
+        ("lxml", lambda mod: mod.etree.__version__),
+        ("bs4", lambda mod: mod.__version__),
+        ("html5lib", lambda mod: mod.__version__),
+        ("bq", lambda mod: mod._VersionNumber()),
+        ("apiclient", lambda mod: mod.__version__),
+    ]
 
-    try:
-        import scipy
-        print("Scipy: %s" % scipy.version.version)
-    except:
-        print("Scipy: Not installed")
+    deps_blob = list()
+    for (modname, ver_f) in deps:
+        try:
+            mod = imp.load_module(modname, *imp.find_module(modname))
+            ver = ver_f(mod)
+            deps_blob.append((modname, ver))
+        except:
+            deps_blob.append((modname, None))
 
-    try:
-        import statsmodels
-        print("statsmodels: %s" % statsmodels.__version__)
-    except:
-        print("statsmodels: Not installed")
-    try:
-        import patsy
-        print("    patsy: %s" % patsy.__version__)
-    except:
-        print("    patsy: Not installed")
+    if (as_json):
+        # 2.6-safe
+        try:
+            import json
+        except:
+            import simplejson as json
 
-    try:
-        import scikits.timeseries as ts
-        print("scikits.timeseries: %s" % ts.__version__)
-    except:
-        print("scikits.timeseries: Not installed")
+        print(json.dumps(dict(system=dict(sys_info), dependencies=dict(deps_blob)), indent=2))
 
-    try:
-        import dateutil
-        print("dateutil: %s" % dateutil.__version__)
-    except:
-        print("dateutil: Not installed")
+    else:
 
-    try:
-        import pytz
-        print("pytz: %s" % pytz.VERSION)
-    except:
-        print("pytz: Not installed")
+        print("\nINSTALLED VERSIONS")
+        print("------------------")
 
-    try:
-        import bottleneck
-        print("bottleneck: %s" % bottleneck.__version__)
-    except:
-        print("bottleneck: Not installed")
+        for k, stat in sys_info:
+            print("%s: %s" % (k, stat))
 
-    try:
-        import tables
-        print("PyTables: %s" % tables.__version__)
-    except:
-        print("PyTables: Not Installed")
-
-    try:
-        import numexpr
-        print("    numexpr: %s" % numexpr.__version__)
-    except:
-        print("    numexpr: Not Installed")
-
-    try:
-        import matplotlib
-        print("matplotlib: %s" % matplotlib.__version__)
-    except:
-        print("matplotlib: Not installed")
-
-    try:
-        import openpyxl
-        print("openpyxl: %s" % openpyxl.__version__)
-    except:
-        print("openpyxl: Not installed")
-
-    try:
-        import xlrd
-        print("xlrd: %s" % xlrd.__VERSION__)
-    except:
-        print("xlrd: Not installed")
-
-    try:
-        import xlwt
-        print("xlwt: %s" % xlwt.__VERSION__)
-    except:
-        print("xlwt: Not installed")
-
-    try:
-        import xlsxwriter
-        print("xlsxwriter: %s" % xlsxwriter.__version__)
-    except:
-        print("xlsxwriter: Not installed")
-
-    try:
-        import sqlalchemy
-        print("sqlalchemy: %s" % sqlalchemy.__version__)
-    except:
-        print("sqlalchemy: Not installed")
-
-    try:
-        import lxml
-        from lxml import etree
-        print("lxml: %s" % etree.__version__)
-    except:
-        print("lxml: Not installed")
-
-    try:
-        import bs4
-        print("bs4: %s" % bs4.__version__)
-    except:
-        print("bs4: Not installed")
-
-    try:
-        import html5lib
-        print("html5lib: %s" % html5lib.__version__)
-    except:
-        print("html5lib: Not installed")
-
-    try:
-        import bq
-        print("bigquery: %s" % bq._VersionNumber())
-    except:
-        print("bigquery: Not installed")
-
-    try:
-        import apiclient
-        print("apiclient: %s" % apiclient.__version__)
-    except:
-        print("apiclient: Not installed")
-
+        print("")
+        for k, stat in deps_blob:
+            print("%s: %s" % (k, stat))
 
 
 if __name__ == "__main__":
-    show_versions()
+    show_versions(as_json=False)
