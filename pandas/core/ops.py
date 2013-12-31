@@ -736,11 +736,16 @@ def _arith_method_FRAME(op, name, str_rep=None, default_axis='columns',
                 result = np.empty(x.size, dtype=dtype)
                 yrav = y.ravel()
                 mask = notnull(xrav) & notnull(yrav)
-                result[mask] = op(xrav[mask], yrav[mask])
+                xrav = xrav[mask]
+                yrav = yrav[mask]
+                if np.prod(xrav.shape) and np.prod(yrav.shape):
+                    result[mask] = op(xrav, yrav)
             else:
                 result = np.empty(x.size, dtype=x.dtype)
                 mask = notnull(xrav)
-                result[mask] = op(xrav[mask], y)
+                xrav = xrav[mask]
+                if np.prod(xrav.shape):
+                    result[mask] = op(xrav, y)
 
             result, changed = com._maybe_upcast_putmask(result, -mask, np.nan)
             result = result.reshape(x.shape)
