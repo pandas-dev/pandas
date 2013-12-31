@@ -2315,11 +2315,9 @@ class BlockManager(PandasObject):
 
     def replace_list(self, src_lst, dest_lst, inplace=False, regex=False):
         """ do a list replace """
-
         # figure out our mask a-priori to avoid repeated replacements
-        # create a check to be able to handle timestamps
-        values = np.array([getattr(value, 'asm8', value)
-                           for value in self.as_matrix()])
+        values = self.as_matrix()
+
         def comp(s):
             if isnull(s):
                 return isnull(values)
