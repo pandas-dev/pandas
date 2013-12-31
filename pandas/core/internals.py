@@ -2315,14 +2315,13 @@ class BlockManager(PandasObject):
 
     def replace_list(self, src_lst, dest_lst, inplace=False, regex=False):
         """ do a list replace """
-
         # figure out our mask a-priori to avoid repeated replacements
         values = self.as_matrix()
 
         def comp(s):
             if isnull(s):
                 return isnull(values)
-            return values == s
+            return values == getattr(s, 'asm8', s)
         masks = [comp(s) for i, s in enumerate(src_lst)]
 
         result_blocks = []

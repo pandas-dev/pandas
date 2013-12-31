@@ -45,10 +45,35 @@ analysis / manipulation tool available in any language.
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
-pandas 0.13.0
+pandas 0.14.0
 -------------
 
 **Release date:** not-yet-released
+
+New features
+~~~~~~~~~~~~
+
+API Changes
+~~~~~~~~~~~
+
+.. _release.bug_fixes-0.14.0:
+
+Experimental Features
+~~~~~~~~~~~~~~~~~~~~~
+
+Improvements to existing features
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  - perf improvements in Series datetime/timedelta binary operations (:issue:`5801`)
+
+Bug Fixes
+~~~~~~~~~
+
+
+pandas 0.13.0
+-------------
+
+**Release date:** January 3, 2014
 
 New features
 ~~~~~~~~~~~~
@@ -834,6 +859,7 @@ Bug Fixes
   - Bug in groupby transform with a datetime-like grouper (:issue:`5712`)
   - Bug in multi-index selection in PY3 when using certain keys (:issue:`5725`)
   - Row-wise concat of differeing dtypes failing in certain cases (:issue:`5754`)
+  - Bug in Series replace when using a dict of Pandas Timestamps (:issue:`5797`)
 
 pandas 0.12.0
 -------------

@@ -2347,6 +2347,30 @@ class TestHDFStore(tm.TestCase):
             expected = wp.loc[:,wp.major_axis<=Timestamp('20000103'),:]
             assert_panel_equal(result, expected)
 
+        with ensure_clean_store(self.path) as store:
+
+            wp = Panel(np.random.randn(2, 5, 4), items=['Item1', 'Item2'],
+                       major_axis=date_range('1/1/2000', periods=5),
+                       minor_axis=['A', 'B', 'C', 'D'])
+            store.append('wp',wp)
+
+            # stringified datetimes
+            result = store.select('wp', [Term('major_axis','>',datetime.datetime(2000,1,2))])
+            expected = wp.loc[:,wp.major_axis>Timestamp('20000102')]
+            assert_panel_equal(result, expected)
+
+            result = store.select('wp', [Term('major_axis','>',datetime.datetime(2000,1,2,0,0))])
+            expected = wp.loc[:,wp.major_axis>Timestamp('20000102')]
+            assert_panel_equal(result, expected)
+
+            result = store.select('wp', [Term('major_axis','=',[datetime.datetime(2000,1,2,0,0),datetime.datetime(2000,1,3,0,0)])])
+            expected = wp.loc[:,[Timestamp('20000102'),Timestamp('20000103')]]
+            assert_panel_equal(result, expected)
+
+            result = store.select('wp', [Term('minor_axis','=',['A','B'])])
+            expected = wp.loc[:,:,['A','B']]
+            assert_panel_equal(result, expected)
+
     def test_same_name_scoping(self):
 
         with ensure_clean_store(self.path) as store:
