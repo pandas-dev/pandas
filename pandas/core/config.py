@@ -100,54 +100,29 @@ def _get_option(pat, silent=False):
     return root[k]
 
 
-def _set_single_option(pat, value, silent):
-    key = _get_single_key(pat, silent)
-
-    o = _get_registered_option(key)
-    if o and o.validator:
-        o.validator(value)
-
-    # walk the nested dict
-    root, k = _get_root(key)
-    root[k] = value
-
-    if o.cb:
-        o.cb(key)
-
-
-def _set_multiple_options(args, silent):
-    for k, v in zip(args[::2], args[1::2]):
-        _set_single_option(k, v, silent)
-
-
 def _set_option(*args, **kwargs):
     # must at least 1 arg deal with constraints later
     nargs = len(args)
     if not nargs or nargs % 2 != 0:
-        raise AssertionError("Must provide an even number of non-keyword "
+        raise ValueError("Must provide an even number of non-keyword "
                              "arguments")
-
-    # must be 0 or 1 kwargs
-    nkwargs = len(kwargs)
-    if nkwargs not in (0, 1):
-        raise AssertionError("The can only be 0 or 1 keyword arguments")
-
-    # if 1 kwarg then it must be silent=True or silent=False
-    if nkwargs:
-        k, = list(kwargs.keys())
-        v, = list(kwargs.values())
-
-        if k != 'silent':
-            raise ValueError("the only allowed keyword argument is 'silent', "
-                             "you passed '{0}'".format(k))
-        if not isinstance(v, bool):
-            raise TypeError("the type of the keyword argument passed must be "
-                            "bool, you passed a {0}".format(v.__class__))
 
     # default to false
     silent = kwargs.get('silent', False)
-    _set_multiple_options(args, silent)
 
+    for k, v in zip(args[::2], args[1::2]):
+        key = _get_single_key(k, silent)
+
+        o = _get_registered_option(key)
+        if o and o.validator:
+            o.validator(v)
+
+        # walk the nested dict
+        root, k = _get_root(key)
+        root[k] = v
+
+        if o.cb:
+            o.cb(key)
 
 def _describe_option(pat='', _print_desc=True):
 
@@ -365,7 +340,7 @@ class option_context(object):
 
     def __init__(self, *args):
         if not (len(args) % 2 == 0 and len(args) >= 2):
-            raise AssertionError(
+            raise ValueError(
                 'Need to invoke as'
                 'option_context(pat, val, [(pat, val), ...)).'
             )

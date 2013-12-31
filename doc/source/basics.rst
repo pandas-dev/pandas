@@ -1457,6 +1457,21 @@ It's also possible to reset multiple options at once (using a regex):
    reset_option("^display")
 
 
+.. versionadded:: 0.14.0
+
+   Beginning with v0.14.0 the `option_context` context manager has been exposed through
+   the top-level API, allowing you to execute code with given option values. Option values
+   are restored automatically when you exit the `with` block:
+
+.. ipython:: python
+
+   with option_context("display.max_rows",10,"display.max_columns", 5):
+      print get_option("display.max_rows")
+      print get_option("display.max_columns")
+
+   print get_option("display.max_rows")
+   print get_option("display.max_columns")
+
 
 Console Output Formatting
 -------------------------
