@@ -5183,7 +5183,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         expected = ser.ffill()
         result = ser.replace(np.nan)
         assert_series_equal(result, expected)
-                #GH 5797
+        #GH 5797
         ser = Series(date_range('20130101', periods=5))
         expected = ser.copy()
         expected.loc[2] = Timestamp('20120101')
