@@ -5192,6 +5192,8 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         result = ser.replace({Timestamp('20130103'):
                               Timestamp('20120101')})
         assert_series_equal(result, expected)
+        result = ser.replace(Timestamp('20130103'), Timestamp('20120101'))
+        assert_series_equal(result, expected)
 
     def test_replace_with_single_list(self):
         ser = Series([0, 1, 2, 3, 4])
