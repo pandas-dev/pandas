@@ -43,6 +43,8 @@ min_periods : int
 freq : None or string alias / date offset object, default=None
     Frequency to conform to before computing statistic
     time_rule is a legacy alias for freq
+pad_val: Value to use for parts of the window which fall outside the array
+    bounds. (applies only for center=True, currently)
 
 Returns
 -------
@@ -256,7 +258,7 @@ def rolling_corr_pairwise(df, window, min_periods=None):
 
 
 def _rolling_moment(arg, window, func, minp, axis=0, freq=None,
-                    center=False, time_rule=None, **kwargs):
+                    center=False, time_rule=None, pad_val=np.NaN, **kwargs):
     """
     Rolling statistical measure using supplied function. Designed to be
     used with passed-in Cython array-based functions.
@@ -281,19 +283,105 @@ def _rolling_moment(arg, window, func, minp, axis=0, freq=None,
     """
     arg = _conv_timerule(arg, freq, time_rule)
     calc = lambda x: func(x, window, minp=minp, **kwargs)
+    # strips the pandas object into a callback and an ndarray
+    # the callback takes back an ndarray and reconstitutes the
+    # pandas object with the new data
     return_hook, values = _process_data_structure(arg)
     # actually calculate the moment. Faster way to do this?
-    if values.ndim > 1:
-        result = np.apply_along_axis(calc, axis, values)
-    else:
-        result = calc(values)
+    def calc(x,axis):
+        _calc = lambda x: func(x, window, minp=minp, **kwargs)
+        if x.ndim > 1:
+            return np.apply_along_axis(_calc, axis, x)
+        else:
+            return _calc(x)
 
-    rs = return_hook(result)
+    def fwd(x):
+        """
+        reshapes a 1d/2d ndarray into a 2d array so the processing can
+        be done on a fixed case.
+        """
+        v = x.view()
+        if v.ndim > 1:
+            v = v if axis == 1 else v.T
+        else:
+            v = v.reshape((1,len(v)))
+        return v
+
+    def bkwd(x):
+        if arg.ndim > 1:
+            x = x if axis == 1 else x.T
+        else:
+            x = x[0]
+        return x
+
+    def pad(values,nahead,pos="head",window=window,axis=axis,pad_val=pad_val):
+            v = values
+
+            tip = np.empty((v.shape[0],2*nahead+1+nahead+1),dtype=v.dtype)
+            if pos == "head":
+                tip[:,:nahead+1] = pad_val
+                tip[:,nahead+1:] = v[:,:(2*nahead+1)]
+            elif pos == "tail":
+                tip[:,-(nahead+1):] = pad_val
+                tip[:,:-(nahead+1)] = v[:,-(2*nahead+1):]
+            else:
+                raise NotImplementedError()
+
+            return tip
+
+# window = 5 /4
+# print pad(mkdf(10,5).values,window=5)
+# print pad(mkdf(10,5).values,window=5,axis=1)
+# print pad(mkdf(10,5).irow(0).values,window=5)
+    result = calc(values,axis)
     if center:
-        rs = _center_window(rs, window, axis)
-    return rs
+        # GH2953, fixup edges
+        if window > 2:
+            result = _center_window(result, window, axis)
+            result = fwd(result)
+            values = fwd(values)
+            # with the data always in a consistent alignment
+            # we can always apply the func along the same axis=1
+            # and eliminate special cases
 
+            # there's an ambiguity in what constitutes
+            # the "center" when window is even
+            # we Just close ranks with numpy, so a window of len 4 [0..3]
+            # 2 is the "center" slot
 
+            if window % 2 == 0 :
+                nahead = (window-1)//2 or 1
+            else:
+                nahead = (window)//2
+            tip = pad(values,nahead,'head')
+            head =  calc(tip,axis=1)[:,-(nahead+1):][:,:nahead+1]
+
+            tip = pad(values,nahead,'tail')
+            tail =  calc(tip,axis=1)[:,-(nahead+1):][:,:nahead]
+
+            result[:,-(nahead):]  = tail
+            result[:,:nahead+1]  = head
+
+            if minp > 0:
+                ld = minp - nahead-1
+                rd = ld-1 if window % 2 == 0 else ld
+                if ld > 0:
+                    result[:,:ld] = NaN
+                if rd >0:
+                    result[:,-(rd):] = NaN
+
+            result =bkwd(result)
+
+    # rebuild the correct pandas object using the new data
+    return  return_hook(result)
+# TODO: test window=2
+# from pandas.stats import moments as mom
+# print list(mom.rolling_mean(Series(np.ones(10)),3,min_periods=1,pad_val=0,center=True).values)
+# print list(mom.rolling_mean(Series(np.ones(10)),4,min_periods=1,pad_val=0,center=True).values)
+# print list(mom.rolling_mean(Series(np.ones(10)),5,min_periods=1,pad_val=0,center=True).values)
+# mom.rolling_mean(DataFrame(np.ones((3,10))),3,axis=0,min_periods=1,pad_val=0,center=True)
+# mom.rolling_mean(DataFrame(np.ones((3,10))),3,axis=1,min_periods=1,pad_val=0,center=True)
+# mom.rolling_mean(Series(range(25)),3,axis=0,min_periods=1,pad_val=0,center=True)
 def _center_window(rs, window, axis):
     if axis > rs.ndim-1:
         raise ValueError("Requested axis is larger then no. of argument dimensions")
@@ -507,14 +595,13 @@ def _rolling_func(func, desc, check_minp=_use_window):
     @Substitution(desc, _unary_arg, _type_of_input)
     @Appender(_doc_template)
     @wraps(func)
+
     def f(arg, window, min_periods=None, freq=None, center=False,
-          time_rule=None, **kwargs):
-        def call_cython(arg, window, minp, **kwds):
-            minp = check_minp(minp, window)
-            return func(arg, window, minp, **kwds)
-        return _rolling_moment(arg, window, call_cython, min_periods,
+          time_rule=None, pad_val=np.NaN, **kwargs):
+        min_periods = check_minp(min_periods, window)
+        return _rolling_moment(arg, window, func, min_periods,
                                freq=freq, center=center,
-                               time_rule=time_rule, **kwargs)
+                               time_rule=time_rule,pad_val=pad_val, **kwargs)
 
     return f
 

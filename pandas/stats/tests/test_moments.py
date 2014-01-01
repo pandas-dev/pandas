@@ -407,23 +407,30 @@ class TestMoments(tm.TestCase):
             assert_almost_equal(result[-1], static_comp(arr[10:-10]))
 
         if has_center:
+            win = 20
             if has_min_periods:
-                result = func(arr, 20, min_periods=15, center=True)
-                expected = func(arr, 20, min_periods=15)
+                result = func(arr, win, min_periods=15, center=True)
+                expected = func(arr, win, min_periods=15)
             else:
-                result = func(arr, 20, center=True)
-                expected = func(arr, 20)
+                result = func(arr, win, center=True)
+                expected = func(arr, win)
 
             assert_almost_equal(result[1], expected[10])
-            if fill_value is None:
-                self.assert_(np.isnan(result[-9:]).all())
-            else:
-                self.assert_((result[-9:] == 0).all())
+            # fill_Value only specified by rolling_Count
+            # which assumes the old 0 append at end
+            # behavior, no longer true
+
+            # if fill_value is None:
+            #     self.assert_(np.isnan(result[-9:]).all())
+            # else:
+            #     self.assert_((result[-9:] == 0).all())
+
+
             if has_min_periods:
                 self.assert_(np.isnan(expected[23]))
                 self.assert_(np.isnan(result[14]))
-                self.assert_(np.isnan(expected[-5]))
                 self.assert_(np.isnan(result[-14]))
+                self.assert_(np.isnan(expected[-5]))
 
     def _check_structures(self, func, static_comp,
                           has_min_periods=True, has_time_rule=True,
@@ -461,29 +468,87 @@ class TestMoments(tm.TestCase):
             assert_almost_equal(frame_result.xs(last_date),
                                 trunc_frame.apply(static_comp))
 
-        if has_center:
-            if has_min_periods:
-                minp = 10
-                series_xp = func(self.series, 25, min_periods=minp).shift(-12)
-                frame_xp = func(self.frame, 25, min_periods=minp).shift(-12)
 
-                series_rs = func(self.series, 25, min_periods=minp,
-                                 center=True)
-                frame_rs = func(self.frame, 25, min_periods=minp,
-                                center=True)
+    def test_centered_rolling_moment(self):
 
-            else:
-                series_xp = func(self.series, 25).shift(-12)
-                frame_xp = func(self.frame, 25).shift(-12)
+            def participating(i,win):
+                return [x for x in range(i-win//2,i+(win+1)//2)]
 
-                series_rs = func(self.series, 25, center=True)
-                frame_rs = func(self.frame, 25, center=True)
+            # validate
+            self.assertEqual(participating(0,3),[-1,0,1])
+            self.assertEqual(participating(1,3),[0,1,2])
+            self.assertEqual(participating(0,4),[-2,-1,0,1])
+            self.assertEqual(participating(1,4),[-1,0,1,2])
 
-            if fill_value is not None:
-                series_xp = series_xp.fillna(fill_value)
-                frame_xp = frame_xp.fillna(fill_value)
-            assert_series_equal(series_xp, series_rs)
-            assert_frame_equal(frame_xp, frame_rs)
+            def get_v(s,f,i,win,minp,pad_val=np.nan):
+                _is = np.array(participating(i,win))
+                in_range_mask =  np.array([ x>=0 and x< len(s) for x in _is ])
+                def f_(i,data):
+                    # print( data)
+                    vals = np.array( list(data) )
+                    if minp:
+                        return f(vals,win,min_periods=minp)[-1]
+                    else:
+                        return f(vals,win)[-1]
+
+                if all(in_range_mask): # middle
+                    return f_(i,s.take(_is))
+
+                elif minp and sum(in_range_mask) < minp:
+                    return np.NaN
+                    return "minp_nan"
+                else:
+                    lpad = np.sum([_is<0])
+                    rpad = np.sum([_is>= len(s)])
+
+                    _in_is = np.ma.array(_is, mask=~in_range_mask).compressed()
+                    vals = np.array([pad_val] * lpad + list(s.take(_in_is)) + [pad_val]* rpad)
+                    return f_(i,vals)
+                    return "edge"
+
+            def build_series(data,func,win,minp,pad_val=np.nan):
+                return  Series(( [get_v(data,func,i,win,minp,pad_val=pad_val) for i in range(len(data))] ))
+
+            N,K = 20,5
+            for win in range(3,N-1):
+                for minp in range(1,win+1):
+                    func = mom.rolling_mean
+
+                    # self.series = Series(np.ones(N))
+                    self.series = Series(randn(N))
+                    series_xp =build_series(self.series,func,win,minp,pad_val=0)
+
+                    # frame_xp = DataFrame(np.ones((N,K)), copy=True)
+                    self.frame= DataFrame(randn(N,K), copy=True)
+                    f = lambda i: func(self.frame.icol(i), win, min_periods=minp, pad_val=0, center=True)
+                    data =[f(i)  for i in range(len(self.frame.columns))]
+                    frame_xp = DataFrame(np.array(data).T)
+                    series_rs = func(self.series, win, min_periods=minp, pad_val=0, center=True)
+                    frame_rs = func(self.frame, win, min_periods=minp, pad_val=0,center=True)
+
+                    assert_series_equal(series_xp, series_rs)
+                    assert_frame_equal(frame_xp, frame_rs)
+
+            N,K = 20,5
+            minp=None
+            for win in range(3,N-1):
+                    func = mom.rolling_count
+                    # self.series = Series(np.ones(N))
+                    self.series = Series(randn(N))
+                    series_xp =build_series(self.series,func,win,minp)
+
+                    # frame_xp = DataFrame(np.ones((N,K)), copy=True)
+                    self.frame=  DataFrame(randn(N,K), copy=True)
+
+                    f = lambda i: func(self.frame.icol(i), win, center=True)
+                    data =[f(i)  for i in range(len(self.frame.columns))]
+                    frame_xp = DataFrame(np.array(data).T)
+
+                    series_rs = func(self.series, win,center=True)
+                    frame_rs = func(self.frame, win,center=True)
+
+                    assert_series_equal(series_xp, series_rs)
+                    assert_frame_equal(frame_xp, frame_rs)
 
     def test_legacy_time_rule_arg(self):
         # suppress deprecation warnings
@@ -790,6 +855,21 @@ class TestMoments(tm.TestCase):
                                       has_time_rule=has_time_rule,
                                       preserve_nan=preserve_nan)
         self._check_expanding_structures(func)
+
+    def test_rolling_mean_edges(self):
+        # GH2803
+        # actually, covers edge handling more generally
+        def movingaverage(interval, window_size):
+            window = np.ones(int(window_size))/float(window_size)
+            return np.convolve(interval, window, 'same')
+
+        nitems = 25
+        for win in range(1,nitems,1):
+            ser = Series(range(nitems))
+            df = DataFrame(index=range(len(ser)))
+            df['rm'] = mom.rolling_mean(ser, win, center=True, min_periods=1,pad_val=0)
+            df['ma'] = movingaverage(ser, win)
+            tm.assert_almost_equal(df['rm'] , df['ma'])
 
 if __name__ == '__main__':
     import nose
