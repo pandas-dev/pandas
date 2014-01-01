@@ -66,6 +66,7 @@ Improvements to existing features
 
   - perf improvements in Series datetime/timedelta binary operations (:issue:`5801`)
   - `option_context` context manager now available as top-level API (:issue:`5752`)
+  - df.info() view now display dtype info per column (:issue: `5682`)
 
 Bug Fixes
 ~~~~~~~~~
