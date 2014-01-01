@@ -2741,6 +2741,12 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         self.assertRaises(TypeError, s.fillna, [1, 2])
         self.assertRaises(TypeError, s.fillna, (1, 2))
 
+    def test_raise_on_info(self):
+        s = Series(np.random.randn(10))
+        with tm.assertRaises(AttributeError):
+            s.info()
+
+
 # TimeSeries-specific
 
     def test_fillna(self):

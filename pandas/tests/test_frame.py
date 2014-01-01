@@ -6018,6 +6018,21 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                           columns=['a', 'a', 'b', 'b'])
         frame.info(buf=io)
 
+    def test_info_shows_column_dtypes(self):
+        dtypes = ['int64', 'float64', 'datetime64[ns]', 'timedelta64[ns]',
+                  'complex128', 'object', 'bool']
+        data = {}
+        n = 10
+        for i, dtype in enumerate(dtypes):
+            data[i] = np.random.randint(2, size=n).astype(dtype)
+        df = DataFrame(data)
+        buf = StringIO()
+        df.info(buf=buf)
+        res = buf.getvalue()
+        for i, dtype in enumerate(dtypes):
+            name = '%d    %d non-null %s' % (i, n, dtype)
+            assert name in res
+
     def test_dtypes(self):
         self.mixed_frame['bool'] = self.mixed_frame['A'] > 0
         result = self.mixed_frame.dtypes
