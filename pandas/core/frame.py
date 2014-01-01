@@ -3952,7 +3952,7 @@ class DataFrame(NDFrame):
                 counts = notnull(frame.values).sum(1)
                 result = Series(counts, index=frame._get_agg_axis(axis))
             else:
-                result = DataFrame.apply(frame, Series.count, axis=axis)
+                result = notnull(frame).sum(axis=axis)
 
         return result
 

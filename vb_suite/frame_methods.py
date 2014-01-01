@@ -289,6 +289,33 @@ df = DataFrame(data)
 frame_isnull  = Benchmark('isnull(df)', setup,
                            start_date=datetime(2012,1,1))
 
+## dropna
+setup = common_setup + """
+data = np.random.randn(10000, 1000)
+df = DataFrame(data)
+df.ix[50:1000,20:50] = np.nan
+df.ix[2000:3000] = np.nan
+df.ix[:,60:70] = np.nan
+"""
+frame_dropna_axis0_any  = Benchmark('df.dropna(how="any",axis=0)', setup,
+                                     start_date=datetime(2012,1,1))
+frame_dropna_axis0_all  = Benchmark('df.dropna(how="all",axis=0)', setup,
+                                     start_date=datetime(2012,1,1))
+
+setup = common_setup + """
+data = np.random.randn(10000, 1000)
+df = DataFrame(data)
+df.ix[50:1000,20:50] = np.nan
+df.ix[2000:3000] = np.nan
+df.ix[:,60:70] = np.nan
+"""
+frame_dropna_axis1_any  = Benchmark('df.dropna(how="any",axis=1)', setup,
+                                    start_date=datetime(2012,1,1))
+
+frame_dropna_axis1_all  = Benchmark('df.dropna(how="all",axis=1)', setup,
+                                    start_date=datetime(2012,1,1))
+
+
 #----------------------------------------------------------------------
 # apply
 
@@ -298,3 +325,4 @@ df = DataFrame({ i:s for i in range(1028) })
 """
 frame_apply_user_func = Benchmark('df.apply(lambda x: np.corrcoef(x,s)[0,1])', setup,
                            start_date=datetime(2012,1,1))
+
