@@ -10897,6 +10897,19 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                                 ['a', 'mean', 'median', 'mean']])
         assert_frame_equal(rs, xp)
 
+    def test_reset_index_with_datetimeindex_cols(self):
+        # GH5818
+        #
+        df = pd.DataFrame([[1, 2], [3, 4]],
+                          columns=pd.date_range('1/1/2013', '1/2/2013'),
+                          index=['A', 'B'])
+
+        result = df.reset_index()
+        expected = pd.DataFrame([['A', 1, 2], ['B', 3, 4]],
+                          columns=['index', datetime(2013, 1, 1),
+                                   datetime(2013, 1, 2)])
+        assert_frame_equal(result, expected)
+
     #----------------------------------------------------------------------
     # Tests to cope with refactored internals
     def test_as_matrix_numeric_cols(self):
