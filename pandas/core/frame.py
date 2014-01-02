@@ -3954,7 +3954,7 @@ class DataFrame(NDFrame):
             else:
                 result = notnull(frame).sum(axis=axis)
 
-        return result
+        return result.astype('int64')
 
     def _count_level(self, level, axis=0, numeric_only=False):
         if numeric_only:
