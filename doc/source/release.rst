@@ -75,6 +75,7 @@ Improvements to existing features
   - Series.str.contains now has a `regex=False` keyword which can be faster for plain (non-regex) string patterns. (:issue: `5879`)
   - support ``dtypes`` on ``Panel``
   - extend ``Panel.apply`` to allow arbitrary functions (rather than only ufuncs) (:issue:`1148`)
+    allow multiple axes to be used to operate on slabs of a ``Panel``
 
 .. _release.bug_fixes-0.13.1:
 

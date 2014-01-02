@@ -841,7 +841,7 @@ class Panel(NDFrame):
     to_long = deprecate('to_long', to_frame)
     toLong = deprecate('toLong', to_frame)
 
-    def apply(self, func, axis='major', args=(), **kwargs):
+    def apply(self, func, axis='major', **kwargs):
         """
         Applies function along input axis of the Panel
 
@@ -852,9 +852,6 @@ class Panel(NDFrame):
             e.g. if axis = 'items', then the combination of major_axis/minor_axis
             will be passed a Series
         axis : {'major', 'minor', 'items'}
-        args : tuple
-            Positional arguments to pass to function in addition to the
-            array/series
         Additional keyword arguments will be passed as keywords to the function
 
         Examples
@@ -868,24 +865,35 @@ class Panel(NDFrame):
         -------
         result : Pandas Object
         """
-        axis = self._get_axis_number(axis)
-        axis_name = self._get_axis_name(axis)
-        ax = self._get_axis(axis)
-        values = self.values
-        ndim = self.ndim
 
-        if args or kwargs and not isinstance(func, np.ufunc):
-            f = lambda x: func(x, *args, **kwargs)
+        if kwargs and not isinstance(func, np.ufunc):
+            f = lambda x: func(x, **kwargs)
         else:
             f = func
+
+        # 2d-slabs
+        if isinstance(axis, (tuple,list)) and len(axis) == 2:
+            return self._apply_2d(f, axis=axis)
+
+        axis = self._get_axis_number(axis)
 
         # try ufunc like
         if isinstance(f, np.ufunc):
             try:
-                result = np.apply_along_axis(func, axis, values)
+                result = np.apply_along_axis(func, axis, self.values)
                 return self._wrap_result(result, axis=axis)
             except (AttributeError):
                 pass
+
+        # 1d
+        return self._apply_1d(f, axis=axis)
+
+    def _apply_1d(self, func, axis):
+
+        axis_name = self._get_axis_name(axis)
+        ax = self._get_axis(axis)
+        ndim = self.ndim
+        values = self.values
 
         # iter thru the axes
         slice_axis = self._get_axis(axis)
@@ -902,14 +910,14 @@ class Panel(NDFrame):
         points = cartesian_product(planes)
 
         results = []
-        for i in xrange(np.prod(shape)):
+        for i in range(np.prod(shape)):
 
             # construct the object
             pts = tuple([ p[i] for p in points ])
             indexer.put(indlist, slice_indexer)
 
             obj = Series(values[tuple(indexer)],index=slice_axis,name=pts)
-            result = func(obj, *args, **kwargs)
+            result = func(obj)
 
             results.append(result)
 
@@ -940,6 +948,32 @@ class Panel(NDFrame):
             planes = planes[::-1]
         return self._construct_return_type(results,planes)
 
+    def _apply_2d(self, func, axis):
+        """ handle 2-d slices, equiv to iterating over the other axis """
+
+        ndim = self.ndim
+        axis = [ self._get_axis_number(a) for a in axis ]
+
+        # construct slabs, in 2-d this is a DataFrame result
+        indexer_axis = list(range(ndim))
+        for a in axis:
+            indexer_axis.remove(a)
+        indexer_axis = indexer_axis[0]
+
+        slicer = [ slice(None,None) ] * ndim
+        ax = self._get_axis(indexer_axis)
+
+        results = []
+        for i, e in enumerate(ax):
+
+            slicer[indexer_axis] = i
+            sliced = self.iloc[tuple(slicer)]
+
+            obj = func(sliced)
+            results.append((e,obj))
+
+        return self._construct_return_type(dict(results))
+
     def _reduce(self, op, axis=0, skipna=True, numeric_only=None,
                 filter_type=None, **kwds):
         axis_name = self._get_axis_name(axis)
@@ -961,7 +995,7 @@ class Panel(NDFrame):
         # need to assume they are the same
         if ndim is None:
             if isinstance(result,dict):
-                ndim = getattr(result.values()[0],'ndim',None)
+                ndim = getattr(list(compat.itervalues(result))[0],'ndim',None)
 
                 # a saclar result
                 if ndim is None:

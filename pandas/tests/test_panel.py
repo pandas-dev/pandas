@@ -1110,14 +1110,55 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         result = self.panel.apply(lambda x: x.sum(), axis='minor_axis')
         assert_frame_equal(result,expected)
 
-        # pass args
-        result = self.panel.apply(lambda x, y: x.sum() + y, axis='items', args=[5])
-        expected = self.panel.sum(0) + 5
-        assert_frame_equal(result,expected)
-
+        # pass kwargs
         result = self.panel.apply(lambda x, y: x.sum() + y, axis='items', y=5)
         expected = self.panel.sum(0) + 5
         assert_frame_equal(result,expected)
+
+    def test_apply_slabs(self):
+
+        # same shape as original
+        result = self.panel.apply(lambda x: x*2, axis = ['items','major_axis'])
+        expected = (self.panel*2).transpose('minor_axis','major_axis','items')
+        assert_panel_equal(result,expected)
+        result = self.panel.apply(lambda x: x*2, axis = ['major_axis','items'])
+        assert_panel_equal(result,expected)
+
+        result = self.panel.apply(lambda x: x*2, axis = ['items','minor_axis'])
+        expected = (self.panel*2).transpose('major_axis','minor_axis','items')
+        assert_panel_equal(result,expected)
+        result = self.panel.apply(lambda x: x*2, axis = ['minor_axis','items'])
+        assert_panel_equal(result,expected)
+
+        result = self.panel.apply(lambda x: x*2, axis = ['major_axis','minor_axis'])
+        expected = self.panel*2
+        assert_panel_equal(result,expected)
+        result = self.panel.apply(lambda x: x*2, axis = ['minor_axis','major_axis'])
+        assert_panel_equal(result,expected)
+
+        # reductions
+        result = self.panel.apply(lambda x: x.sum(0), axis = ['items','major_axis'])
+        expected = self.panel.sum(1).T
+        assert_frame_equal(result,expected)
+
+        result = self.panel.apply(lambda x: x.sum(1), axis = ['items','major_axis'])
+        expected = self.panel.sum(0)
+        assert_frame_equal(result,expected)
+
+        # transforms
+        f = lambda x: (x-x.mean(1)/x.std(1))
+
+        result = self.panel.apply(f, axis = ['items','major_axis'])
+        expected = Panel(dict([ (ax,f(self.panel.loc[:,:,ax])) for ax in self.panel.minor_axis ]))
+        assert_panel_equal(result,expected)
+
+        result = self.panel.apply(f, axis = ['major_axis','minor_axis'])
+        expected = Panel(dict([ (ax,f(self.panel.loc[ax])) for ax in self.panel.items ]))
+        assert_panel_equal(result,expected)
+
+        result = self.panel.apply(f, axis = ['minor_axis','items'])
+        expected = Panel(dict([ (ax,f(self.panel.loc[:,ax])) for ax in self.panel.major_axis ]))
+        assert_panel_equal(result,expected)
 
     def test_reindex(self):
         ref = self.panel['ItemB']
