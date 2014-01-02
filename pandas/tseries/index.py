@@ -36,7 +36,7 @@ def _utc():
 # -------- some conversion wrapper functions
 
 
-def _field_accessor(name, field):
+def _field_accessor(name, field, docstring=None):
     def f(self):
         values = self.asi8
         if self.tz is not None:
@@ -45,6 +45,7 @@ def _field_accessor(name, field):
                 values = self._local_timestamps()
         return tslib.get_date_field(values, field)
     f.__name__ = name
+    f.__doc__ = docstring
     return property(f)
 
 
@@ -1398,7 +1399,7 @@ class DatetimeIndex(Int64Index):
         return self.offset.freqstr
 
     year = _field_accessor('year', 'Y')
-    month = _field_accessor('month', 'M')
+    month = _field_accessor('month', 'M', "The month as January=1, December=12")
     day = _field_accessor('day', 'D')
     hour = _field_accessor('hour', 'h')
     minute = _field_accessor('minute', 'm')
@@ -1407,7 +1408,8 @@ class DatetimeIndex(Int64Index):
     nanosecond = _field_accessor('nanosecond', 'ns')
     weekofyear = _field_accessor('weekofyear', 'woy')
     week = weekofyear
-    dayofweek = _field_accessor('dayofweek', 'dow')
+    dayofweek = _field_accessor('dayofweek', 'dow', 
+                                "The day of the week with Monday=0, Sunday=6")
     weekday = dayofweek
     dayofyear = _field_accessor('dayofyear', 'doy')
     quarter = _field_accessor('quarter', 'q')
