@@ -1548,9 +1548,11 @@ class DatetimeIndex(Int64Index):
                                     self[loc:].asi8))
             return DatetimeIndex(new_index, freq='infer')
         except (AttributeError, TypeError):
-            # fall back to object index
-            return self.asobject.insert(loc, item)
 
+            # fall back to object index
+            if isinstance(item,compat.string_types):
+                return self.asobject.insert(loc, item)
+            raise TypeError("cannot insert DatetimeIndex with incompatible label")
 
     def delete(self, loc):
         """
@@ -1591,7 +1593,7 @@ class DatetimeIndex(Int64Index):
     def tz_localize(self, tz, infer_dst=False):
         """
         Localize tz-naive DatetimeIndex to given time zone (using pytz)
-       
+
         Parameters
         ----------
         tz : string or pytz.timezone

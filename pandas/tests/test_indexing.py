@@ -1665,14 +1665,12 @@ class TestIndexing(tm.TestCase):
 
         df = tm.makeTimeDataFrame()
 
+        # don't allow not string inserts
         def f():
             df.loc[100.0, :] = df.ix[0]
         self.assertRaises(ValueError, f)
         def f():
             df.loc[100,:] = df.ix[0]
-        self.assertRaises(ValueError, f)
-        def f():
-            df.loc['a',:] = df.ix[0]
         self.assertRaises(ValueError, f)
 
         def f():
@@ -1681,6 +1679,9 @@ class TestIndexing(tm.TestCase):
         def f():
             df.ix[100,:] = df.ix[0]
         self.assertRaises(ValueError, f)
+
+        # allow object conversion here
+        df.loc['a',:] = df.ix[0]
 
     def test_partial_set_empty(self):
 
