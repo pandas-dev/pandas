@@ -968,6 +968,22 @@ c,4,5
 
         self.assert_(np.array_equal(df2.columns, names))
 
+    def test_no_header_prefix(self):
+        data = """1,2,3,4,5
+6,7,8,9,10
+11,12,13,14,15
+"""
+        df_pref = self.read_table(StringIO(data), sep=',', prefix='Field',
+                                  header=None)
+
+        expected = [[1, 2, 3, 4, 5.],
+                    [6, 7, 8, 9, 10],
+                    [11, 12, 13, 14, 15]]
+        tm.assert_almost_equal(df_pref.values, expected)
+
+        self.assert_(np.array_equal(df_pref.columns,
+                                    ['Field0', 'Field1', 'Field2', 'Field3', 'Field4']))
+
     def test_header_with_index_col(self):
         data = """foo,1,2,3
 bar,4,5,6

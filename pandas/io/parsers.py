@@ -980,7 +980,7 @@ class CParserWrapper(ParserBase):
 
         if self.names is None:
             if self.prefix:
-                self.names = ['X%d' % i
+                self.names = ['%s%d' % (self.prefix, i)
                               for i in range(self._reader.table_width)]
             else:
                 self.names = lrange(self._reader.table_width)
@@ -1571,7 +1571,7 @@ class PythonParser(ParserBase):
             num_original_columns = ncols
             if not names:
                 if self.prefix:
-                    columns = [['X%d' % i for i in range(ncols)]]
+                    columns = [['%s%d' % (self.prefix,i) for i in range(ncols)]]
                 else:
                     columns = [lrange(ncols)]
                 columns = self._handle_usecols(columns, columns[0])
