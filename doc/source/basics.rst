@@ -1057,14 +1057,14 @@ You can check whether elements contain a pattern:
 .. ipython:: python
 
    pattern = r'[a-z][0-9]'
-   Series(['1', '2', '3a', '3b', '03c']).contains(pattern)
+   Series(['1', '2', '3a', '3b', '03c']).str.contains(pattern)
 
 or match a pattern:
 
 
 .. ipython:: python
 
-   Series(['1', '2', '3a', '3b', '03c']).match(pattern, as_indexer=True)
+   Series(['1', '2', '3a', '3b', '03c']).str.match(pattern, as_indexer=True)
 
 The distinction between ``match`` and ``contains`` is strictness: ``match`` 
 relies on strict ``re.match``, while ``contains`` relies on ``re.search``.
