@@ -5,7 +5,7 @@ Pandas Ecosystem
 Increasingly, packages are being built on top of pandas to address specific needs
 in data preparation, analysis and visualization.
 This is encouraging because it means pandas is not only helping users to handle
-their data tasks but also that provides a better starting point for developers to
+their data tasks but also that it provides a better starting point for developers to
 build powerful and more focused data tools.
 The creation of libraries that complement pandas' functionality also allows pandas
 development to remain focused around it's original requirements.
