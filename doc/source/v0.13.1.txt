@@ -1,6 +1,6 @@
-.. _whatsnew_0140:
+.. _whatsnew_0131:
 
-v0.14.0 (???)
+v0.13.1 (???)
 -------------
 
 This is a major release from 0.13.0 and includes a number of API changes, several new features and
@@ -18,7 +18,7 @@ API changes
 Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-These were announced changes in 0.13 or prior that are taking effect as of 0.14.0
+These were announced changes in 0.13 or prior that are taking effect as of 0.13.1
 
 Deprecations
 ~~~~~~~~~~~~
@@ -32,9 +32,7 @@ Experimental
 Bug Fixes
 ~~~~~~~~~
 
-  - read_csv/read_table now respects the `prefix` kwarg (:issue:`5732`).
-
-See :ref:`V0.14.0 Bug Fixes<release.bug_fixes-0.14.0>` for an extensive list of bugs that have been fixed in 0.14.0.
+See :ref:`V0.13.1 Bug Fixes<release.bug_fixes-0.13.1>` for an extensive list of bugs that have been fixed in 0.13.1.
 
 See the :ref:`full release notes
 <release>` or issue tracker
