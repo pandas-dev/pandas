@@ -317,6 +317,10 @@ The :ref:`Plotting <visualization>` docs.
 `Annotate a time-series plot #2
 <http://stackoverflow.com/questions/17891493/annotating-points-from-a-pandas-dataframe-in-matplotlib-plot>`__
 
+`Generate Embedded plots in excel files using Pandas, Vincent and xlsxwriter
+<http://pandas-xlsxwriter-charts.readthedocs.org/en/latest/introduction.html>`__
+
+
 Data In/Out
 -----------
 
