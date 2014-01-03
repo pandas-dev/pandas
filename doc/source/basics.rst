@@ -1029,7 +1029,7 @@ with more than one group returns a DataFrame with one column per group.
 
    Series(['a1', 'b2', 'c3']).str.extract('([ab])(\d)')
 
-Elements that do not match return a row of ``NaN``s.
+Elements that do not match return a row filled with ``NaN``.
 Thus, a Series of messy strings can be "converted" into a
 like-indexed Series or DataFrame of cleaned-up or more useful strings,
 without necessitating ``get()`` to access tuples or ``re.match`` objects.
@@ -1051,18 +1051,35 @@ can also be used.
 Testing for Strings that Match or Contain a Pattern
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In previous versions, *extracting* match groups was accomplished by ``match``,
-which returned a not-so-convenient Series of tuples. Starting in version 0.14,
-the default behavior of match will change. It will return a boolean
-indexer, analagous to the method ``contains``.
 
-The distinction between
-``match`` and ``contains`` is strictness: ``match`` relies on
-strict ``re.match`` while ``contains`` relies on ``re.search``.
+You can check whether elements contain a pattern:
 
-In version 0.13, ``match`` performs its old, deprecated behavior by default,
-but the new behavior is availabe through the keyword argument
-``as_indexer=True``.
+.. ipython:: python
+
+   pattern = r'[a-z][0-9]'
+   Series(['1', '2', '3a', '3b', '03c']).contains(pattern)
+
+or match a pattern:
+
+
+.. ipython:: python
+
+   Series(['1', '2', '3a', '3b', '03c']).match(pattern, as_indexer=True)
+
+The distinction between ``match`` and ``contains`` is strictness: ``match`` 
+relies on strict ``re.match``, while ``contains`` relies on ``re.search``.
+
+.. warning::
+
+   In previous versions, ``match`` was for *extracting* groups,
+   returning a not-so-convenient Series of tuples. The new method ``extract``
+   (described in the previous section) is now preferred.
+
+   This old, deprecated behavior of ``match`` is still the default. As
+   demonstrated above, use the new behavior by setting ``as_indexer=True``.
+   In this mode, ``match`` is analagous to ``contains``, returning a boolean
+   Series. The new behavior will become the default behavior in a future 
+   release.
 
 Methods like ``match``, ``contains``, ``startswith``, and ``endswith`` take
  an extra ``na`` arguement so missing values can be considered True or False:

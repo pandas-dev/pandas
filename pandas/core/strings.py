@@ -164,6 +164,11 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan):
 
     Returns
     -------
+    Series of boolean values
+        
+    See Also
+    --------
+    match : analagous, but stricter, relying on re.match instead of re.search
 
     """
     if not case:
@@ -326,11 +331,22 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=False):
     as_indexer : False, by default, gives deprecated behavior better achieved
         using str_extract. True return boolean indexer.
 
+    Returns
+    -------
+    boolean Series 
+        if as_indexer=True
+    Series of tuples
+        if as_indexer=False, default but deprecated
 
     Returns
     -------
-    matches : boolean array (if as_indexer=True)
-    matches : array of tuples (if as_indexer=False, default but deprecated)
+    Series of boolean values
+        
+    See Also
+    --------
+    contains : analagous, but less strict, relying on re.search instead of 
+        re.match
+    extract : now preferred to the deprecated usage of match (as_indexer=False)
 
     Notes
     -----
@@ -385,10 +401,27 @@ def str_extract(arr, pat, flags=0):
     -------
     extracted groups : Series (one group) or DataFrame (multiple groups)
 
+    Examples
+    --------
+    A pattern with one group will return a Series. Non-matches will be NaN.
 
-    Notes
-    -----
-    Compare to the string method match, which returns re.match objects.
+    >>> Series(['a1', 'b2', 'c3']).str.extract('[ab](\d)')
+    0      1
+    1      2
+    2    NaN
+    dtype: object
+
+    A pattern with more than one group will return a DataFrame.
+    
+    >>> Series(['a1', 'b2', 'c3']).str.extract('([ab])(\d)')
+
+    A pattern may contain optional groups.
+    
+    >>> Series(['a1', 'b2', 'c3']).str.extract('([ab])?(\d)')
+
+    Named groups will become column names in the result.
+    
+    >>> Series(['a1', 'b2', 'c3']).str.extract('(?P<letter>[ab])(?P<digit>\d)')
     """
     regex = re.compile(pat, flags=flags)
 
