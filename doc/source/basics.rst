@@ -1457,9 +1457,9 @@ It's also possible to reset multiple options at once (using a regex):
    reset_option("^display")
 
 
-.. versionadded:: 0.14.0
+.. versionadded:: 0.13.1
 
-   Beginning with v0.14.0 the `option_context` context manager has been exposed through
+   Beginning with v0.13.1 the `option_context` context manager has been exposed through
    the top-level API, allowing you to execute code with given option values. Option values
    are restored automatically when you exit the `with` block:
 
