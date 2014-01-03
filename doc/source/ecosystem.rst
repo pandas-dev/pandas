@@ -1,3 +1,5 @@
+.. _ecosystem:
+
 ****************
 Pandas Ecosystem
 ****************
