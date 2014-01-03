@@ -981,6 +981,14 @@ class TestIndexing(tm.TestCase):
         result = df.ix[['A','A','E']]
         assert_frame_equal(result, expected)
 
+        # GH 5835
+        # dups on index and missing values
+        df = DataFrame(np.random.randn(5,5),columns=['A','B','B','B','A'])
+
+        expected = pd.concat([df.ix[:,['A','B']],DataFrame(np.nan,columns=['C'],index=df.index)],axis=1)
+        result = df.ix[:,['A','B','C']]
+        assert_frame_equal(result, expected)
+
     def test_indexing_mixed_frame_bug(self):
 
         # GH3492
