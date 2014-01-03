@@ -107,6 +107,9 @@ _yahoo_codes = {'symbol': 's', 'last': 'l1', 'change_pct': 'p2', 'PE': 'r',
                 'time': 't1', 'short_ratio': 's7'}
 
 
+_YAHOO_QUOTE_URL = 'http://finance.yahoo.com/d/quotes.csv?'
+
+
 def get_quote_yahoo(symbols):
     """
     Get current yahoo quote
@@ -124,8 +127,7 @@ def get_quote_yahoo(symbols):
 
     data = defaultdict(list)
 
-    url_str = 'http://finance.yahoo.com/d/quotes.csv?s=%s&f=%s' % (sym_list,
-                                                                   request)
+    url_str = _YAHOO_QUOTE_URL + 's=%s&f=%s' % (sym_list, request)
 
     with urlopen(url_str) as url:
         lines = url.readlines()
@@ -175,6 +177,9 @@ def _retry_read_url(url, retry_count, pause, name):
                   "return a 200 for url %r" % (retry_count, name, url))
 
 
+_HISTORICAL_YAHOO_URL = 'http://ichart.finance.yahoo.com/table.csv?'
+
+
 def _get_hist_yahoo(sym, start, end, retry_count, pause):
     """
     Get historical data for the given name from yahoo.
@@ -183,8 +188,7 @@ def _get_hist_yahoo(sym, start, end, retry_count, pause):
     Returns a DataFrame.
     """
     start, end = _sanitize_dates(start, end)
-    yahoo_url = 'http://ichart.finance.yahoo.com/table.csv?'
-    url = (yahoo_url + 's=%s' % sym +
+    url = (_HISTORICAL_YAHOO_URL + 's=%s' % sym +
            '&a=%s' % (start.month - 1) +
            '&b=%s' % start.day +
            '&c=%s' % start.year +
@@ -196,6 +200,9 @@ def _get_hist_yahoo(sym, start, end, retry_count, pause):
     return _retry_read_url(url, retry_count, pause, 'Yahoo!')
 
 
+_HISTORICAL_GOOGLE_URL = 'http://www.google.com/finance/historical?'
+
+
 def _get_hist_google(sym, start, end, retry_count, pause):
     """
     Get historical data for the given name from google.
@@ -204,13 +211,13 @@ def _get_hist_google(sym, start, end, retry_count, pause):
     Returns a DataFrame.
     """
     start, end = _sanitize_dates(start, end)
-    google_URL = 'http://www.google.com/finance/historical?'
 
     # www.google.com/finance/historical?q=GOOG&startdate=Jun+9%2C+2011&enddate=Jun+8%2C+2013&output=csv
-    url = google_URL + urlencode({"q": sym,
-                                  "startdate": start.strftime('%b %d, ' '%Y'),
-                                  "enddate": end.strftime('%b %d, %Y'),
-                                  "output": "csv"})
+    url = "%s%s" % (_HISTORICAL_GOOGLE_URL,
+                    urlencode({"q": sym,
+                               "startdate": start.strftime('%b %d, ' '%Y'),
+                               "enddate": end.strftime('%b %d, %Y'),
+                               "output": "csv"}))
     return _retry_read_url(url, retry_count, pause, 'Google')
 
 
@@ -251,6 +258,9 @@ def _calc_return_index(price_df):
     return df
 
 
+_YAHOO_COMPONENTS_URL = 'http://download.finance.yahoo.com/d/quotes.csv?'
+
+
 def get_components_yahoo(idx_sym):
     """
     Returns DataFrame containing list of component information for
@@ -275,8 +285,7 @@ def get_components_yahoo(idx_sym):
     stats = 'snx'
     # URL of form:
     # http://download.finance.yahoo.com/d/quotes.csv?s=@%5EIXIC&f=snxl1d1t1c1ohgv
-    url = ('http://download.finance.yahoo.com/d/quotes.csv?s={0}&f={1}'
-           '&e=.csv&h={2}')
+    url = _YAHOO_COMPONENTS_URL + 's={0}&f={1}&e=.csv&h={2}'
 
     idx_mod = idx_sym.replace('^', '@%5E')
     url_str = url.format(idx_mod, stats, 1)
@@ -430,6 +439,9 @@ def get_data_google(symbols=None, start=None, end=None, retry_count=3,
                           adjust_price, ret_index, chunksize, 'google', name)
 
 
+_FRED_URL = "http://research.stlouisfed.org/fred2/series/"
+
+
 def get_data_fred(name, start=dt.datetime(2010, 1, 1),
                   end=dt.datetime.today()):
     """
@@ -443,14 +455,12 @@ def get_data_fred(name, start=dt.datetime(2010, 1, 1),
     """
     start, end = _sanitize_dates(start, end)
 
-    fred_URL = "http://research.stlouisfed.org/fred2/series/"
-
     if not is_list_like(name):
         names = [name]
     else:
         names = name
 
-    urls = [fred_URL + '%s' % n + '/downloaddata/%s' % n + '.csv' for
+    urls = [_FRED_URL + '%s' % n + '/downloaddata/%s' % n + '.csv' for
             n in names]
 
     def fetch_data(url, name):
@@ -470,11 +480,12 @@ def get_data_fred(name, start=dt.datetime(2010, 1, 1),
     return df
 
 
+_FAMAFRENCH_URL = 'http://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp'
+
+
 def get_data_famafrench(name):
     # path of zip files
-    zip_file_url = ('http://mba.tuck.dartmouth.edu/pages/faculty/'
-                    'ken.french/ftp')
-    zip_file_path = '{0}/{1}.zip'.format(zip_file_url, name)
+    zip_file_path = '{0}/{1}.zip'.format(_FAMAFRENCH_URL, name)
 
     with urlopen(zip_file_path) as url:
         raw = url.read()
@@ -618,10 +629,12 @@ class Options(object):
         return [f(month, year, expiry) for f in (self.get_put_data,
                                                  self.get_call_data)]
 
+    _OPTIONS_BASE_URL = 'http://finance.yahoo.com/q/op?s={sym}'
+
     def _get_option_data(self, month, year, expiry, table_loc, name):
         year, month = self._try_parse_dates(year, month, expiry)
 
-        url = 'http://finance.yahoo.com/q/op?s={sym}'.format(sym=self.symbol)
+        url = self._OPTIONS_BASE_URL.format(sym=self.symbol)
 
         if month and year:  # try to get specified month from yahoo finance
             m1, m2 = _two_char_month(month), month
