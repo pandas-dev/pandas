@@ -32,6 +32,8 @@ Experimental
 Bug Fixes
 ~~~~~~~~~
 
+  - read_csv/read_table now respects the `prefix` kwarg (:issue:`5732`).
+
 See :ref:`V0.14.0 Bug Fixes<release.bug_fixes-0.14.0>` for an extensive list of bugs that have been fixed in 0.14.0.
 
 See the :ref:`full release notes
