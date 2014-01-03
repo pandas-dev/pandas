@@ -130,7 +130,7 @@ See the package overview for more detail about what's in the library.
     sparse
     gotchas
     r_interface
-    related
+    ecosystem
     comparison_with_r
     comparison_with_sql
     api
