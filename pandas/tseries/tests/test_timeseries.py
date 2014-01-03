@@ -2099,6 +2099,13 @@ class TestDatetimeIndex(tm.TestCase):
                              '2000-01-02'])
         self.assert_(result.equals(exp))
 
+        # insertion of non-datetime should coerce to object index
+        result = idx.insert(1, 'inserted')
+        expected = Index([datetime(2000, 1, 4), 'inserted', datetime(2000, 1, 1),
+                          datetime(2000, 1, 2)])
+        self.assert_(not isinstance(result, DatetimeIndex))
+        tm.assert_index_equal(result, expected)
+
         idx = date_range('1/1/2000', periods=3, freq='M')
         result = idx.insert(3, datetime(2000, 4, 30))
         self.assert_(result.freqstr == 'M')

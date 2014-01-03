@@ -73,6 +73,7 @@ Bug Fixes
 ~~~~~~~~~
   - Bug in Series replace with timestamp dict (:issue:`5797`)
   - read_csv/read_table now respects the `prefix` kwarg (:issue:`5732`).
+  - Bug with insert of strings into DatetimeIndex (:issue:`5818`, :issue:`5819`)
 
 pandas 0.13.0
 -------------
