@@ -486,7 +486,8 @@ else:
 
 msgpack_ext = Extension('pandas.msgpack',
                         sources = [srcpath('msgpack',
-                                           suffix=suffix, subdir='')],
+                                   suffix=suffix if suffix == '.pyx' else '.cpp',
+                                   subdir='')],
                         language='c++',
                         include_dirs=common_include,
                         define_macros=macros)
@@ -499,7 +500,7 @@ extensions.append(msgpack_ext)
 if suffix == '.pyx' and 'setuptools' in sys.modules:
     # undo dumb setuptools bug clobbering .pyx sources back to .c
     for ext in extensions:
-        if ext.sources[0].endswith('.c'):
+        if ext.sources[0].endswith(('.c','.cpp')):
             root, _ = os.path.splitext(ext.sources[0])
             ext.sources[0] = root + suffix
 
