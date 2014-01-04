@@ -4259,12 +4259,25 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
     def test_head_tail(self):
         assert_frame_equal(self.frame.head(), self.frame[:5])
         assert_frame_equal(self.frame.tail(), self.frame[-5:])
-
+        assert_frame_equal(self.frame.head(0), self.frame)
+        assert_frame_equal(self.frame.tail(0), self.frame)
+        assert_frame_equal(self.frame.head(-1), self.frame[:-1])
+        assert_frame_equal(self.frame.tail(-1), self.frame[1:])
+        assert_frame_equal(self.frame.head(1), self.frame[:1])
+        assert_frame_equal(self.frame.tail(1), self.frame[-1:])
         # with a float index
         df = self.frame.copy()
         df.index = np.arange(len(self.frame)) + 0.1
         assert_frame_equal(df.head(), df.iloc[:5])
         assert_frame_equal(df.tail(), df.iloc[-5:])
+        assert_frame_equal(df.head(0), df)
+        assert_frame_equal(df.tail(0), df)
+        assert_frame_equal(df.head(-1), df.iloc[:-1])
+        assert_frame_equal(df.tail(-1), df.iloc[1:])
+        #test empty dataframe
+        empty_df = DataFrame()
+        assert_frame_equal(empty_df.tail(), empty_df)
+        assert_frame_equal(empty_df.head(), empty_df)
 
     def test_insert(self):
         df = DataFrame(np.random.randn(5, 3), index=np.arange(5),
