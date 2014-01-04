@@ -3119,6 +3119,9 @@ class BlockManager(PandasObject):
         if not allow_dups and not self.axes[axis].is_unique:
             raise ValueError("cannot reindex from a duplicate axis")
 
+        if not self.is_consolidated():
+            self = self.consolidate()
+
         if axis == 0:
             return self._reindex_indexer_items(new_axis, indexer, fill_value)
 
@@ -3140,38 +3143,62 @@ class BlockManager(PandasObject):
         new_blocks = []
         is_unique = new_items.is_unique
 
-        # keep track of what items aren't found anywhere
-        l = np.arange(len(item_order))
-        mask = np.zeros(len(item_order), dtype=bool)
-        for blk in self.blocks:
-            blk_indexer = blk.items.get_indexer(item_order)
-            selector = blk_indexer != -1
+        # we have duplicates in the items and what we are reindexing
+        if not is_unique and not self.items.is_unique:
 
-            # update with observed items
-            mask |= selector
+            rl = self._set_ref_locs(do_refs='force')
+            for i, idx in enumerate(indexer):
+                item = new_items.take([i])
+                if idx >= 0:
+                    blk, lidx = rl[idx]
+                    blk = make_block(_block_shape(blk.iget(lidx)), item,
+                                     new_items, ndim=self.ndim, fastpath=True,
+                                     placement=[i])
 
-            if not selector.any():
-                continue
-
-            new_block_items = new_items.take(selector.nonzero()[0])
-            new_values = com.take_nd(blk.values, blk_indexer[selector], axis=0,
-                                     allow_fill=False)
-            placement = l[selector] if not is_unique else None
-            new_blocks.append(make_block(new_values,
-                                         new_block_items,
-                                         new_items,
-                                         placement=placement,
-                                         fastpath=True))
-
-        if not mask.all():
-            na_items = new_items[-mask]
-            placement = l[-mask] if not is_unique else None
-            na_block = self._make_na_block(na_items,
-                                           new_items,
-                                           placement=placement,
-                                           fill_value=fill_value)
-            new_blocks.append(na_block)
+                # a missing value
+                else:
+                    blk = self._make_na_block(item,
+                                              new_items,
+                                              placement=[i],
+                                              fill_value=fill_value)
+                new_blocks.append(blk)
             new_blocks = _consolidate(new_blocks, new_items)
+
+
+        # keep track of what items aren't found anywhere
+        else:
+            l = np.arange(len(item_order))
+            mask = np.zeros(len(item_order), dtype=bool)
+
+            for blk in self.blocks:
+                blk_indexer = blk.items.get_indexer(item_order)
+                selector = blk_indexer != -1
+
+                # update with observed items
+                mask |= selector
+
+                if not selector.any():
+                    continue
+
+                new_block_items = new_items.take(selector.nonzero()[0])
+                new_values = com.take_nd(blk.values, blk_indexer[selector], axis=0,
+                                         allow_fill=False)
+                placement = l[selector] if not is_unique else None
+                new_blocks.append(make_block(new_values,
+                                             new_block_items,
+                                         new_items,
+                                             placement=placement,
+                                             fastpath=True))
+
+            if not mask.all():
+                na_items = new_items[-mask]
+                placement = l[-mask] if not is_unique else None
+                na_block = self._make_na_block(na_items,
+                                               new_items,
+                                               placement=placement,
+                                               fill_value=fill_value)
+                new_blocks.append(na_block)
+                new_blocks = _consolidate(new_blocks, new_items)
 
         return self.__class__(new_blocks, new_axes)
 
