@@ -10,10 +10,10 @@ Highlights include:
 
 Several experimental features are added, including:
 
-Their are several new or updated docs sections including:
+There are several new or updated docs sections including:
 
 - :ref:`Tutorials<tutorials>`, a guide to community developed pandas tutorials.
-- :ref:`Pandas Ecosystem<ecosystem>`, a guide to cummity developed pandas projects.
+- :ref:`Pandas Ecosystem<ecosystem>`, a guide to complementary projects built on top of pandas.
 
 API changes
 ~~~~~~~~~~~
