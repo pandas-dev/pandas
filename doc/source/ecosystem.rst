@@ -40,7 +40,7 @@ Based on `"The Grammer of Graphics" <http://www.cs.uic.edu/~wilkinson/TheGrammar
 provides a powerful, declarative and extremely general way to generate bespoke plots of any kind of data.
 It's really quite incredible. Various implementations to other languages are available,
 but a faithful implementation for python users has long been missing. Although still young
-(as of Jan-2014), the `yhat/ggplot <https://github.com/yhat/ggplot>` project has been
+(as of Jan-2014), the `yhat/ggplot <https://github.com/yhat/ggplot>`__ project has been
 progressing quickly in that direction.
 
 
@@ -49,7 +49,7 @@ progressing quickly in that direction.
 
 Although pandas has quite a bit of "just plot it" functionality built-in, visualization and
 in particular statistical graphics is a vast field with a long tradition and lots of ground
-to cover. `The Seaborn project <https://github.com/mwaskom/seaborn>`__ builds on top of pandas
+to cover. The `Seaborn <https://github.com/mwaskom/seaborn>`__ project builds on top of pandas
 and `matplotlib <http://matplotlib.org>`__ to provide easy plotting of data which extends to
 more advanced types of plots then those offered by pandas.
 
