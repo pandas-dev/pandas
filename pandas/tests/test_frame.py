@@ -4392,6 +4392,41 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df = DataFrame({'a': ['a', None, 'b']})
         assert_frame_equal(df + df, DataFrame({'a': ['aa', np.nan, 'bb']}))
 
+    def test_operators_boolean(self):
+
+        # GH 5808
+        # empty frames, non-mixed dtype
+
+        result = DataFrame(index=[1]) & DataFrame(index=[1])
+        assert_frame_equal(result,DataFrame(index=[1]))
+
+        result = DataFrame(index=[1]) | DataFrame(index=[1])
+        assert_frame_equal(result,DataFrame(index=[1]))
+
+        result = DataFrame(index=[1]) & DataFrame(index=[1,2])
+        assert_frame_equal(result,DataFrame(index=[1,2]))
+
+        result = DataFrame(index=[1],columns=['A']) & DataFrame(index=[1],columns=['A'])
+        assert_frame_equal(result,DataFrame(index=[1],columns=['A']))
+
+        result = DataFrame(True,index=[1],columns=['A']) & DataFrame(True,index=[1],columns=['A'])
+        assert_frame_equal(result,DataFrame(True,index=[1],columns=['A']))
+
+        result = DataFrame(True,index=[1],columns=['A']) | DataFrame(True,index=[1],columns=['A'])
+        assert_frame_equal(result,DataFrame(True,index=[1],columns=['A']))
+
+        # boolean ops
+        result = DataFrame(1,index=[1],columns=['A']) | DataFrame(True,index=[1],columns=['A'])
+        assert_frame_equal(result,DataFrame(1,index=[1],columns=['A']))
+
+        def f():
+            DataFrame(1.0,index=[1],columns=['A']) | DataFrame(True,index=[1],columns=['A'])
+        self.assertRaises(TypeError, f)
+
+        def f():
+            DataFrame('foo',index=[1],columns=['A']) | DataFrame(True,index=[1],columns=['A'])
+        self.assertRaises(TypeError, f)
+
     def test_operators_none_as_na(self):
         df = DataFrame({"col1": [2, 5.0, 123, None],
                         "col2": [1, 2, 3, 4]}, dtype=object)

@@ -74,6 +74,7 @@ Bug Fixes
   - Bug in Series replace with timestamp dict (:issue:`5797`)
   - read_csv/read_table now respects the `prefix` kwarg (:issue:`5732`).
   - Bug in selection with missing values via ``.ix`` from a duplicate indexed DataFrame failing (:issue:`5835`)
+  - Fix issue of boolean comparison on empty DataFrames (:issue:`5808`)
 
 pandas 0.13.0
 -------------
