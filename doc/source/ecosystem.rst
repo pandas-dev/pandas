@@ -37,7 +37,7 @@ plots (that in turn, leverages `d3 <http://d3js.org/>`__). It has great support 
 
 Hadley Wickham's `ggplot2 <http://ggplot2.org/>`__ is a foundational exploratory visualization package for the R language.
 Based on `"The Grammer of Graphics" <http://www.cs.uic.edu/~wilkinson/TheGrammarOfGraphics/GOG.html>`__ it
-provides a powerful, declarative and extremely general way to generate plots of arbitrary data.
+provides a powerful, declarative and extremely general way to generate bespoke plots of any kind of data.
 It's really quite incredible. Various implementations to other languages are available,
 but a faithful implementation for python users has long been missing. Although still young
 (as of Jan-2014), the `yhat/ggplot <https://github.com/yhat/ggplot>` project has been
