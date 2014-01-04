@@ -13,6 +13,7 @@ from pandas.tseries.frequencies import to_offset, infer_freq
 from pandas.tseries.tools import to_datetime
 import pandas.tseries.frequencies as fmod
 import pandas.tseries.offsets as offsets
+from pandas.tseries.period import PeriodIndex
 
 import pandas.lib as lib
 
@@ -87,6 +88,10 @@ _dti = DatetimeIndex
 
 
 class TestFrequencyInference(tm.TestCase):
+
+    def test_raise_if_period_index(self):
+        index = PeriodIndex(start="1/1/1990", periods=20, freq="M")
+        self.assertRaises(ValueError, infer_freq, index)
 
     def test_raise_if_too_few(self):
         index = _dti(['12/31/1998', '1/3/1999'])

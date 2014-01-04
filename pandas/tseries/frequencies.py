@@ -358,7 +358,7 @@ def get_offset(name):
     else:
         if name in _rule_aliases:
             name = _rule_aliases[name]
-            
+
     if name not in _offset_map:
         try:
             # generate and cache offset
@@ -625,7 +625,7 @@ def _period_str_to_code(freqstr):
             alias = _period_alias_dict[freqstr]
         except KeyError:
             raise ValueError("Unknown freqstr: %s" % freqstr)
-        
+
         return _period_code_map[alias]
 
 
@@ -647,6 +647,10 @@ def infer_freq(index, warn=True):
     from pandas.tseries.index import DatetimeIndex
 
     if not isinstance(index, DatetimeIndex):
+        from pandas.tseries.period import PeriodIndex
+        if isinstance(index, PeriodIndex):
+            raise ValueError("PeriodIndex given. Check the `freq` attribute "
+                             "instead of using infer_freq.")
         index = DatetimeIndex(index)
 
     inferer = _FrequencyInferer(index, warn=warn)
@@ -850,7 +854,7 @@ class _FrequencyInferer(object):
         weekdays = unique(self.index.weekday)
         if len(weekdays) > 1:
             return None
-        
+
         week_of_months = unique((self.index.day - 1) // 7)
         if len(week_of_months) > 1:
             return None
