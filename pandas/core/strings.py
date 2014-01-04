@@ -333,15 +333,11 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=False):
 
     Returns
     -------
-    boolean Series 
+    Series of boolean values
         if as_indexer=True
     Series of tuples
         if as_indexer=False, default but deprecated
 
-    Returns
-    -------
-    Series of boolean values
-        
     See Also
     --------
     contains : analagous, but less strict, relying on re.search instead of 
@@ -414,14 +410,27 @@ def str_extract(arr, pat, flags=0):
     A pattern with more than one group will return a DataFrame.
     
     >>> Series(['a1', 'b2', 'c3']).str.extract('([ab])(\d)')
+         0    1
+    0    a    1
+    1    b    2
+    2  NaN  NaN
 
     A pattern may contain optional groups.
     
     >>> Series(['a1', 'b2', 'c3']).str.extract('([ab])?(\d)')
+         0  1
+    0    a  1
+    1    b  2
+    2  NaN  3
 
     Named groups will become column names in the result.
     
     >>> Series(['a1', 'b2', 'c3']).str.extract('(?P<letter>[ab])(?P<digit>\d)')
+      letter digit
+    0      a     1
+    1      b     2
+    2    NaN   NaN
+
     """
     regex = re.compile(pat, flags=flags)
 
