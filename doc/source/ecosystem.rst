@@ -29,8 +29,9 @@ Statsmodels leverages pandas objects as the underlying data container for comput
 `Vincent <https://github.com/wrobstory/vincent>`__
 -------
 
-The `Vincent <https://github.com/wrobstory/vincent>`__ project leverages `Vega <https://github.com/trifacta/vega>`__ to create
-plots (that in turn, leverages `d3 <http://d3js.org/>`__). It has great support for pandas data objects.
+The `Vincent <https://github.com/wrobstory/vincent>`__ project leverages `Vega <https://github.com/trifacta/vega>`__
+(that in turn, leverages `d3 <http://d3js.org/>`__) to create plots . It has great support
+for pandas data objects.
 
 `yhat/ggplot <https://github.com/yhat/ggplot>`__
 -----------
