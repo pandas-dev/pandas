@@ -785,6 +785,7 @@ Attributes and underlying data
    Panel.axes
    Panel.ndim
    Panel.shape
+   Panel.dtypes
 
 Conversion
 ~~~~~~~~~~
@@ -1122,7 +1123,7 @@ Indexing, iteration
 ~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: generated/
-   
+
    GroupBy.__iter__
    GroupBy.groups
    GroupBy.indices
@@ -1141,7 +1142,7 @@ Computations / Descriptive Stats
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: generated/
-   
+
    GroupBy.mean
    GroupBy.median
    GroupBy.std
@@ -1155,7 +1156,7 @@ Computations / Descriptive Stats
 
 .. toctree::
    :hidden:
-   
+
    generated/pandas.core.common.isnull
    generated/pandas.core.common.notnull
    generated/pandas.core.reshape.get_dummies
