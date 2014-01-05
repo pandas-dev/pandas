@@ -5548,6 +5548,13 @@ class TestSeriesNonUnique(tm.TestCase):
         # it works! #1807
         Series(Series(["a", "c", "b"]).unique()).sort()
 
+def test_is_view():
+    df = tm.makeDataFrame()
+    view = df['A'].is_view()
+    tm.assert_equal(view, True)
+    ser = tm.makeStringSeries()
+    view = ser.is_view()
+    tm.assert_equal(view, False)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
