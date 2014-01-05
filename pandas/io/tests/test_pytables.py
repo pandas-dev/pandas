@@ -844,8 +844,10 @@ class TestHDFStore(tm.TestCase):
 
     def test_encoding(self):
 
+        if LooseVersion(tables.__version__) < '3.0.0':
+            raise nose.SkipTest('tables version does not support proper encoding')
         if sys.byteorder != 'little':
-            raise nose.SkipTest('system byteorder is not little, skipping test_encoding!')
+            raise nose.SkipTest('system byteorder is not little')
 
         with ensure_clean_store(self.path) as store:
             df = DataFrame(dict(A='foo',B='bar'),index=range(5))
