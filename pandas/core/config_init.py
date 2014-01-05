@@ -11,13 +11,13 @@ module is imported, register them here rather then in the module.
 """
 
 import pandas.core.config as cf
-from pandas.core.config import (is_int, is_bool, is_text, is_float,
+from pandas.core.config import (is_int, is_bool, is_text,
                                 is_instance_factory, is_one_of_factory,
+                                is_all_of_factory, is_even, is_positive,
                                 get_default_val)
 from pandas.core.format import detect_console_encoding
 
 
-#
 # options from the "display" namespace
 
 pc_precision_doc = """
@@ -326,15 +326,12 @@ with cf.config_prefix('display'):
                        validator=is_text)
     cf.register_option('expand_frame_repr', True, pc_expand_repr_doc)
     cf.register_option('chop_threshold', None, pc_chop_threshold_doc)
-    cf.register_option('max_seq_items', 100, pc_max_seq_items,
-                       validator=has_property_factory(_max_seq_items_property,
-                           "value must be an even positive integer greater "
-                           "than or equal to 2"),
+    cf.register_option('max_seq_items', 60, pc_max_seq_items,
+                       validator=is_all_of_factory((is_int, is_even,
+                                                    is_positive)),
                        cb=_max_seq_items_checker)
     cf.register_option('max_edge_items', 3, pc_max_edge_items,
-                       validator=has_property_factory(
-                           lambda x: isinstance(x, int) and x > 0,
-                           "value must be a positive integer"),
+                       validator=is_all_of_factory((is_int, is_positive)),
                        cb=_max_edge_items_checker)
     cf.register_option('mpl_style', None, pc_mpl_style_doc,
                        validator=is_one_of_factory([None, False, 'default']),
