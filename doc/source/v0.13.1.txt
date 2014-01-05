@@ -29,6 +29,8 @@ Deprecations
 Enhancements
 ~~~~~~~~~~~~
 
+Added an ``is_view`` method to Series.
+
 Experimental
 ~~~~~~~~~~~~
 
