@@ -67,8 +67,8 @@ Improvements to existing features
   - perf improvements in Series datetime/timedelta binary operations (:issue:`5801`)
   - `option_context` context manager now available as top-level API (:issue:`5752`)
   - df.info() view now display dtype info per column (:issue: `5682`)
-  - perf improvements in DataFrame ``count/dropna`` for ``axis=1`` (:issue: `5815`)
-  - Added an ``is_view`` method to Series. (:issue: `5853`)
+  - perf improvements in DataFrame ``count/dropna`` for ``axis=1``
+  - Added an ``is_view`` method to Series.
 
 Bug Fixes
 ~~~~~~~~~
