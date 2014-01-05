@@ -68,7 +68,6 @@ Improvements to existing features
   - `option_context` context manager now available as top-level API (:issue:`5752`)
   - df.info() view now display dtype info per column (:issue: `5682`)
   - perf improvements in DataFrame ``count/dropna`` for ``axis=1``
-  - Added an ``is_view`` method to Series.
 
 Bug Fixes
 ~~~~~~~~~
