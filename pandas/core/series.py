@@ -1645,6 +1645,20 @@ class Series(generic.NDFrame):
     #----------------------------------------------------------------------
     # Reindexing, sorting
 
+    def is_view(self):
+        """
+        Return True if series is a view of some other array, False otherwise.
+        """
+        true_base = self.values
+        while true_base.base is not None:
+            true_base = true_base.base
+
+        if (true_base is not None and
+                (true_base.ndim != 1 or true_base.shape != self.shape)):
+            return True
+        return False
+
+
     def sort(self, axis=0, kind='quicksort', order=None, ascending=True):
         """
         Sort values and index labels by value, in place. For compatibility with
@@ -1667,12 +1681,7 @@ class Series(generic.NDFrame):
         sortedSeries = self.order(na_last=True, kind=kind,
                                   ascending=ascending)
 
-        true_base = self.values
-        while true_base.base is not None:
-            true_base = true_base.base
-
-        if (true_base is not None and
-                (true_base.ndim != 1 or true_base.shape != self.shape)):
+        if self.is_view():
             raise TypeError('This Series is a view of some other array, to '
                             'sort in-place you must create a copy')
 
