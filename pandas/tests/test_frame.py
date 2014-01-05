@@ -11927,12 +11927,10 @@ starting,ending,measure
 
 
 def skip_if_no_ne(engine='numexpr'):
-    if engine == 'numexpr':
-        try:
-            import numexpr as ne
-        except ImportError:
-            raise nose.SkipTest("cannot query engine numexpr when numexpr not "
-                                "installed")
+    import pandas.computation.expressions as expr
+    if engine == 'numexpr' and not expr._NUMEXPR_INSTALLED:
+        raise nose.SkipTest("cannot query engine numexpr when numexpr not "
+                            "installed")
 
 
 def skip_if_no_pandas_parser(parser):

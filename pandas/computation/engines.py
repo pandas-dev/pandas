@@ -79,6 +79,10 @@ class NumExprEngine(AbstractEngine):
     has_neg_frac = True
 
     def __init__(self, expr):
+        import pandas.computation.expressions as expr
+        if not expr._NUMEXPR_INSTALLED:
+            raise ValueError("Can't use numexpr engine without compatbile"
+                             " version of numexpr")
         super(NumExprEngine, self).__init__(expr)
 
     def convert(self):
