@@ -29,7 +29,7 @@ Deprecations
 Enhancements
 ~~~~~~~~~~~~
 
- - Added an ``is_view`` method to Series.
+ - Added an ``is_view`` method to Series. (:issue: `5853`)
 
 Experimental
 ~~~~~~~~~~~~
