@@ -9547,7 +9547,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
     def test_frame_column_inplace_sort_exception(self):
         s = self.frame['A']
-        with assertRaisesRegexp(TypeError, "This Series is a view"):
+        with assertRaisesRegexp(ValueError, "This Series is a view"):
             s.sort()
 
         cp = s.copy()

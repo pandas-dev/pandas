@@ -1664,20 +1664,16 @@ class Series(generic.NDFrame):
         --------
         pandas.Series.order
         """
-        sortedSeries = self.order(na_last=True, kind=kind,
-                                  ascending=ascending)
 
-        true_base = self.values
-        while true_base.base is not None:
-            true_base = true_base.base
+        # GH 5856/5863
+        if self._is_cached:
+            raise ValueError("This Series is a view of some other array, to "
+                             "sort in-place you must create a copy")
 
-        if (true_base is not None and
-                (true_base.ndim != 1 or true_base.shape != self.shape)):
-            raise TypeError('This Series is a view of some other array, to '
-                            'sort in-place you must create a copy')
+        result = self.order(na_last=True, kind=kind,
+                            ascending=ascending)
 
-        self._data = sortedSeries._data.copy()
-        self.index = sortedSeries.index
+        self._update_inplace(result)
 
     def sort_index(self, ascending=True):
         """
