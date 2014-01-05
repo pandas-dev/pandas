@@ -80,9 +80,9 @@ class NumExprEngine(AbstractEngine):
 
     def __init__(self, expr):
         import pandas.computation.expressions as expr
-        if not expr._NUMEXPR_INSTALLED:
+        if not expr._USE_NUMEXPR:
             raise ValueError("Can't use numexpr engine without compatbile"
-                             " version of numexpr")
+                             " version of numexpr (or with numexpr disabled)")
         super(NumExprEngine, self).__init__(expr)
 
     def convert(self):
