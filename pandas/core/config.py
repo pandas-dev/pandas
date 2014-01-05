@@ -1,6 +1,6 @@
 """
-The config module holds package-wide configurables and provides
-a uniform API for working with them.
+The config module holds package-wide configurables and provides a uniform API
+for working with them.
 
 Overview
 ========
@@ -46,12 +46,23 @@ Implementation
 - `config_prefix` is a context_manager (for use with the `with` keyword)
   which can save developers some typing, see the docstring.
 
+
+API Notes for Contributors
+==========================
+- When adding a new configuration value, make sure the corresponding validator
+  conforms to the following specifications:
+
+  - When an invalid value is passed, raise a ValueError exception, preferably
+    with a useful error message.
+  - When a valid value is passed, do nothing.
 """
 
 import re
+import warnings
 
 from collections import namedtuple
-import warnings
+
+from pandas.core.common import pprint_thing
 from pandas.compat import map, lmap, u
 import pandas.compat as compat
 
@@ -125,7 +136,7 @@ def _set_option(*args, **kwargs):
     nargs = len(args)
     if not nargs or nargs % 2 != 0:
         raise ValueError("Must provide an even number of non-keyword "
-                             "arguments")
+                         "arguments")
 
     # default to false
     silent = kwargs.get('silent', False)
@@ -143,6 +154,7 @@ def _set_option(*args, **kwargs):
 
         if o.cb:
             o.cb(key)
+
 
 def _describe_option(pat='', _print_desc=True):
 
@@ -716,23 +728,46 @@ def config_prefix(prefix):
 # These factories and methods are handy for use as the validator
 # arg in register_option
 
+def is_value_factory(f, msg):
+    """Check that a value has a particular property, e.g., range, parity.
+
+    Parameters
+    ----------
+    f : callable
+    msg : str
+
+    Returns
+    -------
+    inner : callable
+
+    Examples
+    --------
+    >>> is_odd = is_value_factory(lambda x: x % 2 != 0, 'odd')
+    """
+    def inner(x):
+        if not f(x):
+            raise ValueError('%r must be %s' % (x, msg))
+    return inner
+
+
 def is_type_factory(_type):
     """
 
     Parameters
     ----------
-    `_type` - a type to be compared against (e.g. type(x) == `_type`)
+    _type : type
+        A type to be compared against (e.g. ``type(x) == _type``)
 
     Returns
     -------
-    validator - a function of a single argument x , which returns the
-                True if type(x) is equal to `_type`
-
+    validator : callable
+        A function of a single argument (`x`), which returns ``True`` if
+        `type(x)` is equal to `_type`
     """
 
     def inner(x):
         if type(x) != _type:
-            raise ValueError("Value must have type '%s'" % str(_type))
+            raise ValueError("Value must have type %r" % _type.__name__)
 
     return inner
 
@@ -752,10 +787,9 @@ def is_instance_factory(_type):
     """
     if isinstance(_type, (tuple, list)):
         _type = tuple(_type)
-        from pandas.core.common import pprint_thing
         type_repr = "|".join(map(pprint_thing, _type))
     else:
-        type_repr = "'%s'" % _type
+        type_repr = repr(_type.__name__)
 
     def inner(x):
         if not isinstance(x, _type):
@@ -766,21 +800,47 @@ def is_instance_factory(_type):
 
 def is_one_of_factory(legal_values):
     def inner(x):
-        from pandas.core.common import pprint_thing as pp
-        if not x in legal_values:
-            pp_values = lmap(pp, legal_values)
+        if x not in legal_values:
+            pp_values = lmap(pprint_thing, legal_values)
             raise ValueError("Value must be one of %s"
-                             % pp("|".join(pp_values)))
+                             % pprint_thing("|".join(pp_values)))
 
     return inner
 
 
-def has_property_factory(f, msg):
-    def wrapper(value):
-        if not f(value):
-            raise ValueError(msg)
-    return wrapper
+def is_all_of_factory(funcs):
+    """Return a function that runs a sequence of validators over a value.
 
+    Parameters
+    ----------
+    funcs : sequence of single-argument callables
+
+    Returns
+    -------
+    f : callable
+        Calls each function in the sequence `funcs`.
+
+    Examples
+    --------
+    >>> is_pos_even_int = is_all_of_factory([is_int, is_even, is_gt(1)])
+    >>> is_pos_even_int(2) # Does nothing
+    >>> is_pos_even_int(1) # Raises ValueError("1 is not even")
+
+    Notes
+    -----
+    Each of the callables in `funcs` should conform to the validator API. See
+    the module docstring for details.
+    """
+    def f(x):
+        for func in funcs:
+            func(x)
+    return f
+
+
+# these check that a value has a particular property
+is_even = is_value_factory(lambda x: x % 2 == 0, 'even')
+is_gt = lambda y: is_value_factory(lambda x: x > y, 'greater than %s' % y)
+is_positive = is_gt(0)
 
 # common type validators, for convenience
 # usage: register_option(... , validator = is_int)
