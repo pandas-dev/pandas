@@ -1197,6 +1197,7 @@ def array_strptime(ndarray[object] values, object fmt, coerce=False):
         pandas_datetimestruct dts
         ndarray[int64_t] iresult
         int year, month, day, minute, hour, second, fraction, weekday, julian
+        object val
 
     global _TimeRE_cache, _regex_cache
     with _cache_lock:
@@ -1252,14 +1253,26 @@ def array_strptime(ndarray[object] values, object fmt, coerce=False):
     cdef int parse_code
 
     for i in range(n):
-        found = format_regex.match(values[i])
+        val = values[i]
+        if util.is_string_object(val):
+            if val in _nat_strings:
+                iresult[i] = iNaT
+                continue
+        else:
+            if util._checknull(val) or val is NaT:
+                iresult[i] = iNaT
+                continue
+            else:
+                val = str(val)
+
+        found = format_regex.match(val)
         if not found:
             if coerce:
                 iresult[i] = iNaT
                 continue
             raise ValueError("time data %r does not match format %r" %
                              (values[i], fmt))
-        if len(values[i]) != found.end():
+        if len(val) != found.end():
             if coerce:
                 iresult[i] = iNaT
                 continue
@@ -1402,7 +1415,13 @@ def array_strptime(ndarray[object] values, object fmt, coerce=False):
         dts.us = fraction
 
         iresult[i] = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
-        _check_dts_bounds(&dts)
+        try:
+            _check_dts_bounds(&dts)
+        except ValueError:
+            if coerce:
+                iresult[i] = iNaT
+                continue
+            raise
 
     return result
 

@@ -804,6 +804,31 @@ class TestTimeSeries(tm.TestCase):
         xp = datetime(2001, 1, 1)
         self.assert_(rs, xp)
 
+
+    def test_to_datetime_mixed(self):
+
+        # 5863
+        # passing a string format with embedded np.nan
+
+        ts = Series([np.nan, '2013-04-08 00:00:00.000', '9999-12-31 00:00:00.000'])
+        expected = Series([NaT,Timestamp('20130408'),NaT])
+
+        result = to_datetime(ts, format='%Y-%m-%d %H:%M:%S.%f')
+        assert_series_equal(result, ts)
+
+        # raises if specified
+        self.assertRaises(pd.tslib.OutOfBoundsDatetime, to_datetime, ts, format='%Y-%m-%d %H:%M:%S.%f', errors='raise')
+
+        result = to_datetime(ts, format='%Y-%m-%d %H:%M:%S.%f',coerce=True)
+        expected = Series([NaT,Timestamp('20130408'),NaT])
+        assert_series_equal(result,expected)
+
+        # passing integers
+        ts = Series([np.nan, 20130408, '20130409'])
+        result = to_datetime(ts, format='%Y%m%d')
+        expected = Series([NaT,Timestamp('20130408'),Timestamp('20130409')])
+        assert_series_equal(result,expected)
+
     def test_dayfirst(self):
 
         # GH 3341
