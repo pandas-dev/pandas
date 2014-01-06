@@ -983,8 +983,13 @@ class NDFrame(PandasObject):
             values = self._data.get(item)
             res = self._box_item_values(item, values)
             cache[item] = res
-            res._cacher = (item, weakref.ref(self))
+            res._set_as_cached(item, self)
         return res
+
+    def _set_as_cached(self, item, cacher):
+        """ set the _cacher attribute on the calling object with
+            a weakref to cacher """
+        self._cacher = (item, weakref.ref(cacher))
 
     def _box_item_values(self, key, values):
         raise NotImplementedError
@@ -993,6 +998,12 @@ class NDFrame(PandasObject):
         """ the object has called back to us saying
         maybe it has changed """
         self._data.set(item, value)
+
+    @property
+    def _is_cached(self):
+        """ boolean : return if I am cached """
+        cacher = getattr(self, '_cacher', None)
+        return cacher is not None
 
     def _maybe_update_cacher(self, clear=False):
         """ see if we need to update our parent cacher

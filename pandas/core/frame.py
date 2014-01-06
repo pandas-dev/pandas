@@ -1604,9 +1604,14 @@ class DataFrame(NDFrame):
                 values = self._data.iget(i)
                 if not len(values):
                     values = np.array([np.nan] * len(self.index), dtype=object)
-                return self._constructor_sliced.from_array(
+                result = self._constructor_sliced.from_array(
                     values, index=self.index,
                     name=label, fastpath=True)
+
+                # this is a cached value, mark it so
+                result._set_as_cached(i, self)
+
+                return result
 
     def iget_value(self, i, j):
         return self.iat[i, j]

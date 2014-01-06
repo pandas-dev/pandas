@@ -56,6 +56,9 @@ New features
 API Changes
 ~~~~~~~~~~~
 
+  - ``Series.sort`` will raise a ``ValueError`` (rather than a ``TypeError``) on sorting an
+    object that is a view of another (:issue:`5856`, :issue:`5853`)
+
 .. _release.bug_fixes-0.13.1:
 
 Experimental Features
