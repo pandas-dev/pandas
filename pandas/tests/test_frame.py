@@ -49,6 +49,7 @@ from pandas.core.common import PandasError
 
 import pandas.util.testing as tm
 import pandas.lib as lib
+import pandas.computation as computation
 
 from numpy.testing.decorators import slow
 
@@ -11927,9 +11928,8 @@ starting,ending,measure
 
 
 def skip_if_no_ne(engine='numexpr'):
-    import pandas.computation.expressions as expr
-    if engine == 'numexpr' and not expr._NUMEXPR_INSTALLED:
-        raise nose.SkipTest("cannot query engine numexpr when numexpr not "
+    if engine == 'numexpr' and not computation._NUMEXPR_INSTALLED:
+        raise nose.SkipTest("cannot query engine numexpr when numexpr 2.0 not "
                             "installed")
 
 
