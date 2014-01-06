@@ -78,6 +78,7 @@ Bug Fixes
   - read_csv/read_table now respects the `prefix` kwarg (:issue:`5732`).
   - Bug in selection with missing values via ``.ix`` from a duplicate indexed DataFrame failing (:issue:`5835`)
   - Fix issue of boolean comparison on empty DataFrames (:issue:`5808`)
+  - Bug in isnull handling ``NaT`` in an object array (:issue:`5443`)
 
 pandas 0.13.0
 -------------
