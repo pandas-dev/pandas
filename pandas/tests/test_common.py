@@ -4,7 +4,7 @@ import re
 import nose
 from nose.tools import assert_equal
 import numpy as np
-from pandas.tslib import iNaT
+from pandas.tslib import iNaT, NaT
 
 from pandas import Series, DataFrame, date_range, DatetimeIndex, Timestamp
 from pandas import compat
@@ -113,6 +113,14 @@ def test_isnull_lists():
     result = isnull([u('foo'), u('bar')])
     assert(not result.any())
 
+def test_isnull_nat():
+    result = isnull([NaT])
+    exp = np.array([True])
+    assert(np.array_equal(result, exp))
+
+    result = isnull(np.array([NaT], dtype=object))
+    exp = np.array([True])
+    assert(np.array_equal(result, exp))
 
 def test_isnull_datetime():
     assert (not isnull(datetime.now()))
