@@ -5,6 +5,7 @@ import abc
 
 from pandas import compat
 from pandas.core import common as com
+import pandas.computation as computation
 from pandas.computation.align import _align, _reconstruct_object
 from pandas.computation.ops import UndefinedVariableError
 
@@ -79,10 +80,9 @@ class NumExprEngine(AbstractEngine):
     has_neg_frac = True
 
     def __init__(self, expr):
-        import pandas.computation.expressions
-        if not pandas.computation.expressions._USE_NUMEXPR:
-            raise ValueError("Can't use numexpr engine without compatbile"
-                             " version of numexpr (or with numexpr disabled)")
+        if not computation._USE_NUMEXPR:
+            raise ImportError("Can't use numexpr engine without compatbile"
+                              " version of numexpr (or with numexpr disabled)")
         super(NumExprEngine, self).__init__(expr)
 
     def convert(self):
