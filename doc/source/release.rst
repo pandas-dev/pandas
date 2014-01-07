@@ -79,6 +79,7 @@ Bug Fixes
   - Bug in selection with missing values via ``.ix`` from a duplicate indexed DataFrame failing (:issue:`5835`)
   - Fix issue of boolean comparison on empty DataFrames (:issue:`5808`)
   - Bug in isnull handling ``NaT`` in an object array (:issue:`5443`)
+  - Bug in ``to_datetime`` when passed a ``np.nan`` or integer datelike and a format string (:issue:`5863`)
 
 pandas 0.13.0
 -------------
