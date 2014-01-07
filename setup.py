@@ -200,6 +200,7 @@ if not ISRELEASED:
     import subprocess
     FULLVERSION += '.dev'
 
+    pipe = None
     for cmd in ['git','git.cmd']:
         try:
             pipe = subprocess.Popen([cmd, "describe", "--always"],
@@ -210,7 +211,7 @@ if not ISRELEASED:
         except:
             pass
 
-    if pipe.returncode != 0:
+    if pipe is None or pipe.returncode != 0:
       warnings.warn("WARNING: Couldn't get git revision, using generic version string")
     else:
       rev = so.strip()
@@ -218,7 +219,7 @@ if not ISRELEASED:
       if sys.version_info[0] >= 3:
           rev = rev.decode('ascii')
 
-      # use result og git describe as version string
+      # use result of git describe as version string
       FULLVERSION = rev.lstrip('v')
 
 else:
