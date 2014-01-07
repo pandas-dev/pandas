@@ -18,7 +18,8 @@ looking for a quick way to help out.
 
         ```
 
-  - Include the full version string of pandas and it's dependencies:
+  - Include the full version string of pandas and it's dependencies. In recent (>0.12) versions
+    of pandas you can use a built in function:
 
     ```python
     >>> from pandas.util.print_versions import show_versions
@@ -35,7 +36,7 @@ looking for a quick way to help out.
     - One blank line.
     - Optionally, a commit message body.
   - Please reference relevant Github issues in your commit message using `GH1234`
-    or `#1234`. Either style is fine but the '#' style generates nose when your rebase your PR.
+    or `#1234`. Either style is fine but the '#' style generates noise when your rebase your PR.
   - `doc/source/release.rst` and `doc/source/vx.y.z.txt` contain an ongoing
     changelog for each release. Add entries to these files
     as needed in a separate commit in your PR: document the fix, enhancement,
