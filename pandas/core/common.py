@@ -1102,6 +1102,14 @@ def _possibly_downcast_to_dtype(result, dtype):
                     # hit here
                     if (new_result == result).all():
                         return new_result
+
+        # a datetimelike
+        elif dtype.kind in ['M','m'] and result.dtype.kind in ['i']:
+            try:
+                result = result.astype(dtype)
+            except:
+                pass
+
     except:
         pass
 
