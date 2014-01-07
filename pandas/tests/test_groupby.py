@@ -2672,6 +2672,14 @@ class TestGroupBy(tm.TestCase):
         got_dt = result.dtype
         self.assert_(issubclass(got_dt.type, np.datetime64))
 
+    def test_groupby_max_datetime64(self):
+        # GH 5869
+        # datetimelike dtype conversion from int
+        df = DataFrame(dict(A = Timestamp('20130101'), B = np.arange(5)))
+        expected = df.groupby('A')['A'].apply(lambda x: x.max())
+        result = df.groupby('A')['A'].max()
+        assert_series_equal(result,expected)
+
     def test_groupby_categorical_unequal_len(self):
         import pandas as pd
         #GH3011
