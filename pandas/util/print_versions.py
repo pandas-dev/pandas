@@ -2,19 +2,41 @@ import os
 import platform
 import sys
 import struct
+import subprocess
+
 
 def get_sys_info():
     "Returns system information as a dict"
 
+    # get full commit hash
+    commit = None
+    try:
+        pipe = subprocess.Popen('git log --format="%H" -n 1'.split(" "),
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        so, serr = pipe.communicate()
+    except:
+        pass
+    else:
+        if pipe.returncode == 0:
+            commit = so
+            try:
+                commit = so.decode('utf-8')
+            except ValueError:
+                pass
+            commit = commit.strip().strip('"')
+
     # list of tuples over dict because OrderedDict not in 2.6, least
     # resistance.
     blob = []
+    blob.append(('commit', commit))
+
     try:
-        sysname, nodename, release, version, machine, processor = platform.uname()
-        blob = [
+        sysname, nodename, release, version, machine, processor = platform.uname(
+        )
+        blob.extend([
             ("python", "%d.%d.%d.%s.%s" % sys.version_info[:]),
             ("python-bits", struct.calcsize("P") * 8),
-            ("OS","%s" % (sysname)),
+            ("OS", "%s" % (sysname)),
             ("OS-release", "%s" % (release)),
             # ("Version", "%s" % (version)),
             # ("Machine", "%s" % (machine)),
@@ -23,7 +45,7 @@ def get_sys_info():
             ("LC_ALL", "%s" % os.environ.get('LC_ALL', "None")),
             ("LANG", "%s" % os.environ.get('LANG', "None")),
 
-        ]
+        ])
     except:
         pass
 
@@ -77,7 +99,14 @@ def show_versions(as_json=False):
         except:
             import simplejson as json
 
-        print(json.dumps(dict(system=dict(sys_info), dependencies=dict(deps_blob)), indent=2))
+        j = json.dumps(
+            dict(system=dict(sys_info), dependencies=dict(deps_blob)), indent=2)
+
+        if as_json == True:
+            print(j)
+        else:
+            with open(as_json, "wb") as f:
+                f.write(j)
 
     else:
 
