@@ -18,8 +18,13 @@ looking for a quick way to help out.
 
         ```
 
-  - Specify the pandas version used and those of it's dependencies. You can simply include   the output of
-    [`ci/print_versions.py`](https://github.com/pydata/pandas/blob/master/ci/print_versions.py).
+  - Include the full version string of pandas and it's dependencies:
+
+    ```python
+    >>> from pandas.util.print_versions import show_versions
+    >>> show_versions()
+    ```
+
   - Explain what the expected behavior was, and what you saw instead.
 
 #### Pull Requests

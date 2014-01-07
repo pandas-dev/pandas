@@ -8,26 +8,26 @@ import subprocess
 def get_sys_info():
     "Returns system information as a dict"
 
+    blob = []
+
     # get full commit hash
     commit = None
-    try:
-        pipe = subprocess.Popen('git log --format="%H" -n 1'.split(" "),
-                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        so, serr = pipe.communicate()
-    except:
-        pass
-    else:
-        if pipe.returncode == 0:
-            commit = so
-            try:
-                commit = so.decode('utf-8')
-            except ValueError:
-                pass
-            commit = commit.strip().strip('"')
+    if os.path.isdir(".git") and os.path.isdir("pandas"):
+        try:
+            pipe = subprocess.Popen('git log --format="%H" -n 1'.split(" "),
+                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            so, serr = pipe.communicate()
+        except:
+            pass
+        else:
+            if pipe.returncode == 0:
+                commit = so
+                try:
+                    commit = so.decode('utf-8')
+                except ValueError:
+                    pass
+                commit = commit.strip().strip('"')
 
-    # list of tuples over dict because OrderedDict not in 2.6, least
-    # resistance.
-    blob = []
     blob.append(('commit', commit))
 
     try:
