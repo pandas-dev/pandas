@@ -34,7 +34,7 @@ Base R
 ~~~~~~~~~~~~
 
 In R you may want to split data into subsets and compute the mean for each.
-Using a data.frame called ``df`` and splitting it into groups ``by1`` and 
+Using a data.frame called ``df`` and splitting it into groups ``by1`` and
 ``by2``:
 
 .. code-block:: r
@@ -69,13 +69,13 @@ For more details and examples see :ref:`the groupby documentation
 |tapply|_
 ~~~~~~~~~
 
-``tapply`` is similar to ``aggregate``, but data can be in a ragged array, 
+``tapply`` is similar to ``aggregate``, but data can be in a ragged array,
 since the subclass sizes are possibly irregular. Using a data.frame called
 ``baseball``, and retrieving information based on the array ``team``:
 
 .. code-block:: r
 
-   baseball <- 
+   baseball <-
      data.frame(team = gl(5, 5,
                 labels = paste("Team", LETTERS[1:5])),
                 player = sample(letters, 25),
@@ -122,7 +122,7 @@ index/slice as well as standard boolean indexing:
 
 .. ipython:: python
 
-   df = DataFrame({'a': random.randn(10), 'b': random.randn(10)})
+   df = DataFrame({'a': np.random.randn(10), 'b': np.random.randn(10)})
    df.query('a <= b')
    df[df.a <= df.b]
    df.loc[df.a <= df.b]
@@ -150,7 +150,7 @@ In ``pandas`` the equivalent expression, using the
 
 .. ipython:: python
 
-   df = DataFrame({'a': random.randn(10), 'b': random.randn(10)})
+   df = DataFrame({'a': np.random.randn(10), 'b': np.random.randn(10)})
    df.eval('a + b')
    df.a + df.b  # same as the previous expression
 
@@ -330,7 +330,7 @@ In Python the best way is to make use of :meth:`~pandas.pivot_table`:
    pd.pivot_table(mdf, values='value', rows=['variable','week'],
                     cols=['month'], aggfunc=np.mean)
 
-Similarly for ``dcast`` which uses a data.frame called ``df`` in R to 
+Similarly for ``dcast`` which uses a data.frame called ``df`` in R to
 aggregate information based on ``Animal`` and ``FeedType``:
 
 .. code-block:: r
@@ -341,10 +341,10 @@ aggregate information based on ``Animal`` and ``FeedType``:
      FeedType = c('A', 'B', 'A', 'A', 'B', 'B', 'A'),
      Amount = c(10, 7, 4, 2, 5, 6, 2)
    )
-   
-   dcast(df, Animal ~ FeedType, sum, fill=NaN)   
+
+   dcast(df, Animal ~ FeedType, sum, fill=NaN)
    # Alternative method using base R
-   with(df, tapply(Amount, list(Animal, FeedType), sum)) 
+   with(df, tapply(Amount, list(Animal, FeedType), sum))
 
 Python can approach this in two different ways. Firstly, similar to above
 using :meth:`~pandas.pivot_table`:
@@ -365,7 +365,7 @@ The second approach is to use the :meth:`~pandas.DataFrame.groupby` method:
 .. ipython:: python
 
    df.groupby(['Animal','FeedType'])['Amount'].sum()
-   
+
 For more details and examples see :ref:`the reshaping documentation
 <reshaping.pivot>` or :ref:`the groupby documentation<groupby.split>`.
 

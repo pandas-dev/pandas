@@ -167,6 +167,9 @@ API changes
      dfc.loc[0,'A'] = 11
      dfc
 
+- ``Panel.reindex`` has the following call signature ``Panel.reindex(items=None, major_axis=None, minor_axis=None, **kwargs)``
+   to conform with other ``NDFrame`` objects. See :ref:`Internal Refactoring<whatsnew_0130.refactoring>` for more information.
+
 Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
