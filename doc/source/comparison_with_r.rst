@@ -82,7 +82,7 @@ The :meth:`~pandas.DataFrame.isin` method is similar to R ``%in%`` operator:
 
 .. ipython:: python
 
-   s = pd.Series(np.arange(5),index=np.arange(5)[::-1],dtype=np.float32)
+   s = pd.Series(np.arange(5),dtype=np.float32)
    s.isin([2, 4])
 
 The ``match`` function returns a vector of the positions of matches
