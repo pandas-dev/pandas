@@ -98,7 +98,7 @@ this:
 
 .. ipython:: python
 
-   s = pd.Series(np.arange(5),index=np.arange(5)[::-1],dtype=np.float32)
+   s = pd.Series(np.arange(5),dtype=np.float32)
    s.apply(lambda x: [2, 4].index(x) if x in [2,4] else np.nan)
 
 For more details and examples see :ref:`the reshaping documentation
