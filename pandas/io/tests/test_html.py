@@ -3,7 +3,6 @@ from __future__ import print_function
 import os
 import re
 import warnings
-import unittest
 
 try:
     from importlib import import_module
@@ -21,7 +20,7 @@ from numpy.testing.decorators import slow
 from pandas import (DataFrame, MultiIndex, read_csv, Timestamp, Index,
                     date_range, Series)
 from pandas.compat import map, zip, StringIO, string_types
-from pandas.io.common import URLError, urlopen
+from pandas.io.common import URLError, urlopen, file_path_to_url
 from pandas.io.html import read_html
 
 import pandas.util.testing as tm
@@ -85,9 +84,10 @@ def test_bs4_version_fails():
                          flavor='bs4')
 
 
-class TestReadHtml(unittest.TestCase):
+class TestReadHtml(tm.TestCase):
     @classmethod
     def setUpClass(cls):
+        super(TestReadHtml, cls).setUpClass()
         _skip_if_none_of(('bs4', 'html5lib'))
 
     def read_html(self, *args, **kwargs):
@@ -311,7 +311,7 @@ class TestReadHtml(unittest.TestCase):
     @slow
     def test_file_url(self):
         url = self.banklist_data
-        dfs = self.read_html('file://' + url, 'First', attrs={'id': 'table'})
+        dfs = self.read_html(file_path_to_url(url), 'First', attrs={'id': 'table'})
         tm.assert_isinstance(dfs, list)
         for df in dfs:
             tm.assert_isinstance(df, DataFrame)
@@ -362,7 +362,7 @@ class TestReadHtml(unittest.TestCase):
     @slow
     def test_regex_idempotency(self):
         url = self.banklist_data
-        dfs = self.read_html('file://' + url,
+        dfs = self.read_html(file_path_to_url(url),
                                  match=re.compile(re.compile('Florida')),
                                  attrs={'id': 'table'})
         tm.assert_isinstance(dfs, list)
@@ -582,9 +582,10 @@ class TestReadHtml(unittest.TestCase):
         tm.assert_frame_equal(newdf, res[0])
 
 
-class TestReadHtmlLxml(unittest.TestCase):
+class TestReadHtmlLxml(tm.TestCase):
     @classmethod
     def setUpClass(cls):
+        super(TestReadHtmlLxml, cls).setUpClass()
         _skip_if_no('lxml')
 
     def read_html(self, *args, **kwargs):
@@ -637,9 +638,9 @@ def test_invalid_flavor():
                              flavor='not a* valid**++ flaver')
 
 
-def get_elements_from_url(url, element='table', base_url="file://"):
+def get_elements_from_file(url, element='table'):
     _skip_if_none_of(('bs4', 'html5lib'))
-    url = "".join([base_url, url])
+    url = file_path_to_url(url)
     from bs4 import BeautifulSoup
     with urlopen(url) as f:
         soup = BeautifulSoup(f, features='html5lib')
@@ -651,7 +652,7 @@ def test_bs4_finds_tables():
     filepath = os.path.join(DATA_PATH, "spam.html")
     with warnings.catch_warnings():
         warnings.filterwarnings('ignore')
-        assert get_elements_from_url(filepath, 'table')
+        assert get_elements_from_file(filepath, 'table')
 
 
 def get_lxml_elements(url, element):

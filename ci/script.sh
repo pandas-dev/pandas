@@ -9,5 +9,5 @@ if [ -n "$LOCALE_OVERRIDE" ]; then
     python -c "$pycmd"
 fi
 
-echo nosetests --exe -w /tmp -A "$NOSE_ARGS" pandas --show-skipped
-nosetests --exe -w /tmp -A "$NOSE_ARGS" pandas --show-skipped
+echo nosetests --exe -w /tmp -A "$NOSE_ARGS" pandas --with-xunit --xunit-file=/tmp/nosetests.xml
+nosetests --exe -w /tmp -A "$NOSE_ARGS" pandas --with-xunit --xunit-file=/tmp/nosetests.xml

@@ -1,7 +1,6 @@
 import nose
 import os
 import string
-import unittest
 from distutils.version import LooseVersion
 
 from datetime import datetime, date, timedelta
@@ -30,7 +29,7 @@ def _skip_if_no_scipy():
 
 
 @tm.mplskip
-class TestSeriesPlots(unittest.TestCase):
+class TestSeriesPlots(tm.TestCase):
     def setUp(self):
         import matplotlib as mpl
         self.mpl_le_1_2_1 = str(mpl.__version__) <= LooseVersion('1.2.1')
@@ -351,7 +350,7 @@ class TestSeriesPlots(unittest.TestCase):
 
 
 @tm.mplskip
-class TestDataFramePlots(unittest.TestCase):
+class TestDataFramePlots(tm.TestCase):
     def setUp(self):
         import matplotlib as mpl
         self.mpl_le_1_2_1 = str(mpl.__version__) <= LooseVersion('1.2.1')
@@ -533,6 +532,21 @@ class TestDataFramePlots(unittest.TestCase):
              for label in ax.get_xticklabels()]
             [self.assert_(label.get_visible())
              for label in ax.get_yticklabels()]
+
+    @slow
+    def test_plot_scatter(self):
+        from matplotlib.pylab import close
+        df = DataFrame(randn(6, 4),
+                       index=list(string.ascii_letters[:6]),
+                       columns=['x', 'y', 'z', 'four'])
+
+        _check_plot_works(df.plot, x='x', y='y', kind='scatter')
+        _check_plot_works(df.plot, x=1, y=2, kind='scatter')
+
+        with tm.assertRaises(ValueError):
+            df.plot(x='x', kind='scatter')
+        with tm.assertRaises(ValueError):
+            df.plot(y='y', kind='scatter')
 
     @slow
     def test_plot_bar(self):
@@ -931,7 +945,7 @@ class TestDataFramePlots(unittest.TestCase):
 
 
 @tm.mplskip
-class TestDataFrameGroupByPlots(unittest.TestCase):
+class TestDataFrameGroupByPlots(tm.TestCase):
     def tearDown(self):
         tm.close()
 
@@ -1148,7 +1162,7 @@ def _check_plot_works(f, *args, **kwargs):
         else:
             assert_is_valid_plot_return_object(ret)
 
-        with ensure_clean() as path:
+        with ensure_clean(return_filelike=True) as path:
             plt.savefig(path)
     finally:
         tm.close(fig)

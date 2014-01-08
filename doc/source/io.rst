@@ -20,6 +20,7 @@
    plt.close('all')
 
    from pandas import *
+   options.display.max_rows=15
    import pandas.util.testing as tm
    clipdf = DataFrame({'A':[1,2,3],'B':[4,5,6],'C':['p','q','r']},
                       index=['x','y','z'])
@@ -31,31 +32,31 @@ IO Tools (Text, CSV, HDF5, ...)
 The Pandas I/O api is a set of top level ``reader`` functions accessed like ``pd.read_csv()`` that generally return a ``pandas``
 object.
 
-    * ``read_csv``
-    * ``read_excel``
-    * ``read_hdf``
-    * ``read_sql``
-    * ``read_json``
-    * ``read_msgpack`` (experimental)
-    * ``read_html``
-    * ``read_gbq`` (experimental)
-    * ``read_stata``
-    * ``read_clipboard``
-    * ``read_pickle``
+    * :ref:`read_csv<io.read_csv_table>`
+    * :ref:`read_excel<io.excel>`
+    * :ref:`read_hdf<io.hdf5>`
+    * :ref:`read_sql<io.sql>`
+    * :ref:`read_json<io.json_reader>`
+    * :ref:`read_msgpack<io.msgpack>` (experimental)
+    * :ref:`read_html<io.read_html>`
+    * :ref:`read_gbq<io.bigquery>` (experimental)
+    * :ref:`read_stata<io.stata_reader>`
+    * :ref:`read_clipboard<io.clipboard>`
+    * :ref:`read_pickle<io.pickle>`
 
 The corresponding ``writer`` functions are object methods that are accessed like ``df.to_csv()``
 
-    * ``to_csv``
-    * ``to_excel``
-    * ``to_hdf``
-    * ``to_sql``
-    * ``to_json``
-    * ``to_msgpack`` (experimental)
-    * ``to_html``
-    * ``to_gbq`` (experimental)
-    * ``to_stata``
-    * ``to_clipboard``
-    * ``to_pickle``
+    * :ref:`to_csv<io.store_in_csv>`
+    * :ref:`to_excel<io.excel>`
+    * :ref:`to_hdf<io.hdf5>`
+    * :ref:`to_sql<io.sql>`
+    * :ref:`to_json<io.json_writer>`
+    * :ref:`to_msgpack<io.msgpack>` (experimental)
+    * :ref:`to_html<io.html>`
+    * :ref:`to_gbq<io.bigquery>` (experimental)
+    * :ref:`to_stata<io.stata_writer>`
+    * :ref:`to_clipboard<io.clipboard>`
+    * :ref:`to_pickle<io.pickle>`
 
 .. _io.read_csv_table:
 
@@ -85,11 +86,11 @@ They can take a number of arguments:
     ways to specify the file format
   - ``dtype``: A data type name or a dict of column name to data type. If not
     specified, data types will be inferred.
-  - ``header``: row number to use as the column names, and the start of the
+  - ``header``: row number(s) to use as the column names, and the start of the
     data.  Defaults to 0 if no ``names`` passed, otherwise ``None``. Explicitly
     pass ``header=0`` to be able to replace existing names. The header can be
     a list of integers that specify row locations for a multi-index on the columns
-    E.g. [0,1,3]. Interveaning rows that are not specified will be skipped.
+    E.g. [0,1,3]. Intervening rows that are not specified will be skipped.
     (E.g. 2 in this example are skipped)
   - ``skiprows``: A collection of numbers for rows in the file to skip. Can
     also be an integer to skip the first ``n`` rows
@@ -563,7 +564,7 @@ the corresponding equivalent values will also imply a missing value (in this cas
 ``[5.0,5]`` are recognized as ``NaN``.
 
 To completely override the default values that are recognized as missing, specify ``keep_default_na=False``.
-The default ``NaN`` recognized values are ``['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', 'NA',
+The default ``NaN`` recognized values are ``['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A','N/A', 'NA',
 '#NA', 'NULL', 'NaN', 'nan']``.
 
 .. code-block:: python
@@ -890,6 +891,22 @@ of tupleizing columns, specify ``tupleize_cols=True``.
    print(open('mi.csv').read())
    pd.read_csv('mi.csv',header=[0,1,2,3],index_col=[0,1])
 
+Starting in 0.13.0, ``read_csv`` will be able to interpret a more common format
+of multi-columns indices.
+
+.. ipython:: python
+   :suppress:
+
+   data = ",a,a,a,b,c,c\n,q,r,s,t,u,v\none,1,2,3,4,5,6\ntwo,7,8,9,10,11,12"
+   fh = open('mi2.csv','w')
+   fh.write(data)
+   fh.close()
+
+.. ipython:: python
+
+   print(open('mi2.csv').read())
+   pd.read_csv('mi2.csv',header=[0,1],index_col=0)
+
 Note: If an ``index_col`` is not specified (e.g. you don't have an index, or wrote it
 with ``df.to_csv(..., index=False``), then any ``names`` on the columns index will be *lost*.
 
@@ -898,6 +915,7 @@ with ``df.to_csv(..., index=False``), then any ``names`` on the columns index wi
 
    import os
    os.remove('mi.csv')
+   os.remove('mi2.csv')
 
 .. _io.sniff:
 
@@ -961,10 +979,10 @@ Specifying ``iterator=True`` will also return the ``TextFileReader`` object:
    os.remove('tmp.sv')
    os.remove('tmp2.sv')
 
+.. _io.store_in_csv:
+
 Writing to CSV format
 ~~~~~~~~~~~~~~~~~~~~~
-
-.. _io.store_in_csv:
 
 The Series and DataFrame objects have an instance method ``to_csv`` which
 allows storing the contents of the object as a comma-separated-values file. The
@@ -1014,13 +1032,14 @@ The Series object also has a ``to_string`` method, but with only the ``buf``,
 ``na_rep``, ``float_format`` arguments. There is also a ``length`` argument
 which, if set to ``True``, will additionally output the length of the Series.
 
+.. _io.json:
 
 JSON
 ----
 
-Read and write ``JSON`` format files.
+Read and write ``JSON`` format files and strings.
 
-.. _io.json:
+.. _io.json_writer:
 
 Writing JSON
 ~~~~~~~~~~~~
@@ -1066,12 +1085,77 @@ Note ``NaN``'s, ``NaT``'s and ``None`` will be converted to ``null`` and ``datet
    json = dfj.to_json()
    json
 
+Orient Options
+++++++++++++++
+
+There are a number of different options for the format of the resulting JSON
+file / string. Consider the following DataFrame and Series:
+
+.. ipython:: python
+
+  dfjo = DataFrame(dict(A=range(1, 4), B=range(4, 7), C=range(7, 10)),
+                   columns=list('ABC'), index=list('xyz'))
+  dfjo
+  sjo = Series(dict(x=15, y=16, z=17), name='D')
+  sjo
+
+**Column oriented** (the default for ``DataFrame``) serialises the data as
+nested JSON objects with column labels acting as the primary index:
+
+.. ipython:: python
+
+  dfjo.to_json(orient="columns")
+  # Not available for Series
+
+**Index oriented** (the default for ``Series``) similar to column oriented
+but the index labels are now primary:
+
+.. ipython:: python
+
+  dfjo.to_json(orient="index")
+  sjo.to_json(orient="index")
+
+**Record oriented** serialises the data to a JSON array of column -> value records,
+index labels are not included. This is useful for passing DataFrame data to plotting
+libraries, for example the JavaScript library d3.js:
+
+.. ipython:: python
+
+  dfjo.to_json(orient="records")
+  sjo.to_json(orient="records")
+
+**Value oriented** is a bare-bones option which serialises to nested JSON arrays of
+values only, column and index labels are not included:
+
+.. ipython:: python
+
+  dfjo.to_json(orient="values")
+  # Not available for Series
+
+**Split oriented** serialises to a JSON object containing separate entries for
+values, index and columns. Name is also included for ``Series``:
+
+.. ipython:: python
+
+  dfjo.to_json(orient="split")
+  sjo.to_json(orient="split")
+
+.. note::
+
+  Any orient option that encodes to a JSON object will not preserve the ordering of
+  index and column labels during round-trip serialisation. If you wish to preserve
+  label ordering use the `split` option as it uses ordered containers.
+
+Date Handling
++++++++++++++
+
 Writing in iso date format
 
 .. ipython:: python
 
    dfd = DataFrame(randn(5, 2), columns=list('AB'))
    dfd['date'] = Timestamp('20130101')
+   dfd = dfd.sort_index(1, ascending=False)
    json = dfd.to_json(date_format='iso')
    json
 
@@ -1082,7 +1166,7 @@ Writing in iso date format, with microseconds
    json = dfd.to_json(date_format='iso', date_unit='us')
    json
 
-Actually I prefer epoch timestamps, in seconds
+Epoch timestamps, in seconds
 
 .. ipython:: python
 
@@ -1100,6 +1184,9 @@ Writing to a file, with a date index and a date column
    dfj2.index = date_range('20130101', periods=5)
    dfj2.to_json('test.json')
    open('test.json').read()
+
+Fallback Behavior
++++++++++++++++++
 
 If the JSON serialiser cannot handle the container contents directly it will fallback in the following manner:
 
@@ -1143,6 +1230,8 @@ which can be dealt with by specifying a simple ``default_handler``:
       return obj.total_seconds()
    dftd.to_json(default_handler=my_handler)
 
+.. _io.json_reader:
+
 Reading JSON
 ~~~~~~~~~~~~
 
@@ -1182,7 +1271,7 @@ is ``None``. To explicity force ``Series`` parsing, pass ``typ=series``
 - ``convert_dates`` : a list of columns to parse for dates; If True, then try to parse datelike columns, default is True
 - ``keep_default_dates`` : boolean, default True. If parsing dates, then parse the default datelike columns
 - ``numpy`` : direct decoding to numpy arrays. default is False;
-  Note that the JSON ordering **MUST** be the same for each term if ``numpy=True``
+  Supports numeric data only, although labels may be non-numeric. Also note that the JSON ordering **MUST** be the same for each term if ``numpy=True``
 - ``precise_float`` : boolean, default ``False``. Set to enable usage of higher precision (strtod) function when decoding string to double values. Default (``False``) is to use fast but less precise builtin functionality
 - ``date_unit`` : string, the timestamp unit to detect if converting dates. Default
   None. By default the timestamp precision will be detected, if this is not desired
@@ -1190,6 +1279,13 @@ is ``None``. To explicity force ``Series`` parsing, pass ``typ=series``
   seconds, milliseconds, microseconds or nanoseconds respectively.
 
 The parser will raise one of ``ValueError/TypeError/AssertionError`` if the JSON is not parsable.
+
+If a non-default ``orient`` was used when encoding to JSON be sure to pass the same
+option here so that decoding produces sensible results, see `Orient Options`_ for an
+overview.
+
+Data Conversion
++++++++++++++++
 
 The default of ``convert_axes=True``, ``dtype=True``, and ``convert_dates=True`` will try to parse the axes, and all of the data
 into appropriate types, including dates. If you need to override specific dtypes, pass a dict to ``dtype``. ``convert_axes`` should only
@@ -1209,31 +1305,31 @@ be set to ``False`` if you need to preserve string-like numbers (e.g. '1', '2') 
 
    Thus there are times where you may want to specify specific dtypes via the ``dtype`` keyword argument.
 
-Reading from a JSON string
+Reading from a JSON string:
 
 .. ipython:: python
 
    pd.read_json(json)
 
-Reading from a file
+Reading from a file:
 
 .. ipython:: python
 
    pd.read_json('test.json')
 
-Don't convert any data (but still convert axes and dates)
+Don't convert any data (but still convert axes and dates):
 
 .. ipython:: python
 
    pd.read_json('test.json', dtype=object).dtypes
 
-Specify how I want to convert data
+Specify dtypes for conversion:
 
 .. ipython:: python
 
    pd.read_json('test.json', dtype={'A' : 'float32', 'bools' : 'int8'}).dtypes
 
-I like my string indicies
+Preserve string indicies:
 
 .. ipython:: python
 
@@ -1250,8 +1346,7 @@ I like my string indicies
    sij.index
    sij.columns
 
-My dates have been written in nanoseconds, so they need to be read back in
-nanoseconds
+Dates written in nanoseconds need to be read back in nanoseconds:
 
 .. ipython:: python
 
@@ -1268,6 +1363,65 @@ nanoseconds
    # Or specify that all timestamps are in nanoseconds
    dfju = pd.read_json(json, date_unit='ns')
    dfju
+
+The Numpy Parameter
++++++++++++++++++++
+
+.. note::
+  This supports numeric data only. Index and columns labels may be non-numeric, e.g. strings, dates etc.
+
+If ``numpy=True`` is passed to ``read_json`` an attempt will be made to sniff
+an appropriate dtype during deserialisation and to subsequently decode directly
+to numpy arrays, bypassing the need for intermediate Python objects.
+
+This can provide speedups if you are deserialising a large amount of numeric
+data:
+
+.. ipython:: python
+
+   randfloats = np.random.uniform(-100, 1000, 10000)
+   randfloats.shape = (1000, 10)
+   dffloats = DataFrame(randfloats, columns=list('ABCDEFGHIJ'))
+
+   jsonfloats = dffloats.to_json()
+
+.. ipython:: python
+
+   timeit read_json(jsonfloats)
+
+.. ipython:: python
+
+   timeit read_json(jsonfloats, numpy=True)
+
+The speedup is less noticable for smaller datasets:
+
+.. ipython:: python
+
+   jsonfloats = dffloats.head(100).to_json()
+
+.. ipython:: python
+
+   timeit read_json(jsonfloats)
+
+.. ipython:: python
+
+   timeit read_json(jsonfloats, numpy=True)
+
+.. warning::
+
+   Direct numpy decoding makes a number of assumptions and may fail or produce
+   unexpected output if these assumptions are not satisfied:
+
+    - data is numeric.
+
+    - data is uniform. The dtype is sniffed from the first value decoded.
+      A ``ValueError`` may be raised, or incorrect output may be produced
+      if this condition is not satisfied.
+
+    - labels are ordered. Labels are only read from the first container, it is assumed
+      that each subsequent row / column has been encoded in the same order. This should be satisfied if the
+      data was encoded using ``to_json`` but may not be the case if the JSON
+      is from another source.
 
 .. ipython:: python
    :suppress:
@@ -1309,6 +1463,8 @@ into a flat table.
 HTML
 ----
 
+.. _io.read_html:
+
 Reading HTML Content
 ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1317,8 +1473,6 @@ Reading HTML Content
    We **highly encourage** you to read the :ref:`HTML parsing gotchas
    <html-gotchas>` regarding the issues surrounding the
    BeautifulSoup4/html5lib/lxml parsers.
-
-.. _io.read_html:
 
 .. versionadded:: 0.12.0
 
@@ -1466,10 +1620,10 @@ succeeds, the function will return*.
    dfs = read_html(url, 'Metcalf Bank', index_col=0, flavor=['lxml', 'bs4'])
 
 
+.. _io.html:
+
 Writing to HTML files
 ~~~~~~~~~~~~~~~~~~~~~~
-
-.. _io.html:
 
 ``DataFrame`` objects have an instance method ``to_html`` which renders the
 contents of the ``DataFrame`` as an HTML table. The function arguments are as
@@ -1675,8 +1829,10 @@ written.  For example:
 
    df.to_excel('path_to_file.xlsx', sheet_name='Sheet1')
 
-Files with a ``.xls`` extension will be written using ``xlwt`` and those with
-a ``.xlsx`` extension will be written using ``openpyxl``.
+Files with a ``.xls`` extension will be written using ``xlwt`` and those with a
+``.xlsx`` extension will be written using ``xlsxwriter`` (if available) or
+``openpyxl``.
+
 The Panel class also has a ``to_excel`` instance method,
 which writes each DataFrame in the Panel to a separate sheet.
 
@@ -1688,6 +1844,13 @@ one can pass an :class:`~pandas.io.excel.ExcelWriter`.
    with ExcelWriter('path_to_file.xlsx') as writer:
        df1.to_excel(writer, sheet_name='Sheet1')
        df2.to_excel(writer, sheet_name='Sheet2')
+
+.. note:: Wringing a little more performance out of ``read_excel``
+    Internally, Excel stores all numeric data as floats. Because this can
+    produce unexpected behavior when reading in data, pandas defaults to trying
+    to convert integers to floats if it doesn't lose information (``1.0 -->
+    1``).  You can pass ``convert_float=False`` to disable this behavior, which
+    may give a slight performance improvement.
 
 .. _io.excel.writers:
 
@@ -1701,14 +1864,19 @@ Excel writer engines
 1. the ``engine`` keyword argument
 2. the filename extension (via the default specified in config options)
 
-By default, ``pandas`` uses  `openpyxl <http://packages.python.org/openpyxl/>`__
-for ``.xlsx`` and ``.xlsm`` files and `xlwt <http://www.python-excel.org/>`__
-for ``.xls`` files.  If you have multiple engines installed, you can set the
-default engine through :ref:`setting the config options <basics.working_with_options>`
-``io.excel.xlsx.writer`` and ``io.excel.xls.writer``.
+By default, ``pandas`` uses the `XlsxWriter`_  for ``.xlsx`` and `openpyxl`_
+for ``.xlsm`` files and `xlwt`_ for ``.xls`` files.  If you have multiple
+engines installed, you can set the default engine through :ref:`setting the
+config options <basics.working_with_options>` ``io.excel.xlsx.writer`` and
+``io.excel.xls.writer``. pandas will fall back on `openpyxl`_ for ``.xlsx``
+files if `Xlsxwriter`_ is not available.
 
-For example if the `XlsxWriter <http://xlsxwriter.readthedocs.org>`__
-module is installed you can use it as a xlsx writer engine as follows:
+.. _XlsxWriter: http://xlsxwriter.readthedocs.org
+.. _openpyxl: http://packages.python.org/openpyxl/
+.. _xlwt: http://www.python-excel.org
+
+To specify which writer you want to use, you can pass an engine keyword
+argument to ``to_excel`` and to ``ExcelWriter``.
 
 .. code-block:: python
 
@@ -1802,9 +1970,16 @@ any pickled pandas object (or any other pickled object) from file:
 
    See: http://docs.python.org/2.7/library/pickle.html
 
+.. warning::
+
+   In 0.13, pickle preserves compatibility with pickles created prior to 0.13. These must
+   be read with ``pd.read_pickle``, rather than the default python ``pickle.load``.
+   See `this question <http://stackoverflow.com/questions/20444593/pandas-compiled-from-source-default-pickle-behavior-changed>`__
+   for a detailed explanation.
+
 .. note::
 
-    These methods were previously ``save`` and ``load``, prior to 0.12.0, and are now deprecated.
+    These methods were previously ``pd.save`` and ``pd.load``, prior to 0.12.0, and are now deprecated.
 
 .. _io.msgpack:
 
@@ -1869,6 +2044,21 @@ pandas objects.
    os.remove('foo.msg')
    os.remove('foo2.msg')
 
+Read/Write API
+~~~~~~~~~~~~~~
+
+Msgpacks can also be read from and written to strings.
+
+.. ipython:: python
+
+   df.to_msgpack()
+
+Furthermore you can concatenate the strings to produce a list of the original objects.
+
+.. ipython:: python
+
+  pd.read_msgpack(df.to_msgpack() + s.to_msgpack())
+
 .. _io.hdf5:
 
 HDF5 (PyTables)
@@ -1902,6 +2092,7 @@ dict:
 
 .. ipython:: python
 
+   np.random.seed(1234)
    index = date_range('1/1/2000', periods=8)
    s = Series(randn(5), index=['a', 'b', 'c', 'd', 'e'])
    df = DataFrame(randn(8, 3), index=index,
@@ -2326,6 +2517,7 @@ be data_columns
    df_dc.ix[4:6,'string'] = np.nan
    df_dc.ix[7:9,'string'] = 'bar'
    df_dc['string2'] = 'cool'
+   df_dc.ix[1:3,['B','C']] = 1.0
    df_dc
 
    # on-disk operations
@@ -2333,7 +2525,7 @@ be data_columns
    store.select('df_dc', [ Term('B>0') ])
 
    # getting creative
-   store.select('df_dc', ['B > 0', 'C > 0', 'string == foo'])
+   store.select('df_dc', 'B > 0 & C > 0 & string == foo')
 
    # this is in-memory version of this type of selection
    df_dc[(df_dc.B > 0) & (df_dc.C > 0) & (df_dc.string == 'foo')]
@@ -2423,19 +2615,6 @@ a datetimeindex which are 5.
    c = store.select_column('df_mask','index')
    where = c[DatetimeIndex(c).month==5].index
    store.select('df_mask',where=where)
-
-**Replicating or**
-
-``not`` and ``or`` conditions are unsupported at this time; however,
-``or`` operations are easy to replicate, by repeatedly applying the
-criteria to the table, and then ``concat`` the results.
-
-.. ipython:: python
-
-   crit1 = [ Term('B>0'), Term('C>0'), Term('string=foo') ]
-   crit2 = [ Term('B<0'), Term('C>0'), Term('string=foo') ]
-
-   concat([store.select('df_dc',c) for c in [crit1, crit2]])
 
 **Storer Object**
 
@@ -2595,6 +2774,9 @@ Notes & Caveats
      need to serialize these operations in a single thread in a single
      process. You will corrupt your data otherwise. See the issue
      (:`2397`) for more information.
+   - If you use locks to manage write access between multiple processes, you
+     may want to use :py:func:`~os.fsync` before releasing write locks. For
+     convenience you can use ``store.flush(fsync=True)`` to do this for you.
    - ``PyTables`` only supports fixed-width string columns in
      ``tables``. The sizes of a string based indexing column
      (e.g. *columns* or *minor_axis*) are determined as the maximum size
@@ -2938,7 +3120,7 @@ into BigQuery and pull it into a DataFrame.
 .. code-block:: python
 
    from pandas.io import gbq
-   
+
    # Insert your BigQuery Project ID Here
    # Can be found in the web console, or
    # using the command line tool `bq ls`
@@ -2998,7 +3180,7 @@ To add more rows to this, simply:
 
    To use this module, you will need a BigQuery account. See
    <https://cloud.google.com/products/big-query> for details.
- 
+
    As of 10/10/13, there is a bug in Google's API preventing result sets
    from being larger than 100,000 rows. A patch is scheduled for the week of
    10/14/13.

@@ -1,6 +1,5 @@
 # pylint: disable-msg=W0612,E1101,W0141
 import nose
-import unittest
 
 from numpy.random import randn
 import numpy as np
@@ -21,7 +20,7 @@ import pandas as pd
 import pandas.index as _index
 
 
-class TestMultiLevel(unittest.TestCase):
+class TestMultiLevel(tm.TestCase):
 
     _multiprocess_can_split_ = True
 
@@ -1142,14 +1141,27 @@ Thur,Lunch,Yes,51.51,17"""
         self.assert_(index.lexsort_depth == 0)
 
     def test_frame_getitem_view(self):
-        df = self.frame.T
+        df = self.frame.T.copy()
+
+        # this works because we are modifying the underlying array
+        # really a no-no
         df['foo'].values[:] = 0
         self.assert_((df['foo'].values == 0).all())
 
         # but not if it's mixed-type
         df['foo', 'four'] = 'foo'
         df = df.sortlevel(0, axis=1)
-        df['foo']['one'] = 2
+
+        # this will work, but will raise/warn as its chained assignment
+        def f():
+            df['foo']['one'] = 2
+            return df
+        self.assertRaises(com.SettingWithCopyError, f)
+
+        try:
+            df = f()
+        except:
+            pass
         self.assert_((df['foo', 'one'] == 0).all())
 
     def test_frame_getitem_not_sorted(self):
@@ -1860,9 +1872,6 @@ Thur,Lunch,Yes,51.51,17"""
 
 if __name__ == '__main__':
 
-    # unittest.main()
     import nose
-    # nose.runmodule(argv=[__file__,'-vvs','-x', '--pdb-failure'],
-    #                exit=False)
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

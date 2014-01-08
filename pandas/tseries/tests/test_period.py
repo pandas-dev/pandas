@@ -6,9 +6,7 @@ Parts derived from scikits.timeseries code, original authors:
 
 """
 
-from unittest import TestCase
 from datetime import datetime, date, timedelta
-import unittest
 
 from numpy.ma.testutils import assert_equal
 
@@ -33,11 +31,9 @@ from pandas import compat
 from numpy.testing import assert_array_equal
 
 
-class TestPeriodProperties(TestCase):
+class TestPeriodProperties(tm.TestCase):
     "Test properties such as year, month, weekday, etc...."
     #
-    def __init__(self, *args, **kwds):
-        TestCase.__init__(self, *args, **kwds)
 
     def test_quarterly_negative_ordinals(self):
         p = Period(ordinal=-1, freq='Q-DEC')
@@ -115,6 +111,10 @@ class TestPeriodProperties(TestCase):
 
         # Biz day construction, roll forward if non-weekday
         i1 = Period('3/10/12', freq='B')
+        i2 = Period('3/10/12', freq='D')
+        self.assertEquals(i1, i2.asfreq('B'))
+        i2 = Period('3/11/12', freq='D')
+        self.assertEquals(i1, i2.asfreq('B'))
         i2 = Period('3/12/12', freq='D')
         self.assertEquals(i1, i2.asfreq('B'))
 
@@ -195,7 +195,7 @@ class TestPeriodProperties(TestCase):
 
         self.assertRaises(ValueError, Period, ordinal=200701)
 
-        self.assertRaises(KeyError, Period, '2007-1-1', freq='X')
+        self.assertRaises(ValueError, Period, '2007-1-1', freq='X')
 
     def test_freq_str(self):
         i1 = Period('1982', freq='Min')
@@ -292,7 +292,7 @@ class TestPeriodProperties(TestCase):
             p = Period('2012', freq=f)
             self.assertEquals(p.start_time, xp)
         self.assertEquals(Period('2012', freq='B').start_time,
-                          datetime(2011, 12, 30))
+                          datetime(2012, 1, 2))
         self.assertEquals(Period('2012', freq='W').start_time,
                           datetime(2011, 12, 26))
 
@@ -321,7 +321,7 @@ class TestPeriodProperties(TestCase):
         p = Period('2012', freq='H')
         self.assertEquals(p.end_time, xp)
 
-        xp = _ex(2012, 1, 2)
+        xp = _ex(2012, 1, 3)
         self.assertEquals(Period('2012', freq='B').end_time, xp)
 
         xp = _ex(2012, 1, 2)
@@ -490,11 +490,8 @@ def noWrap(item):
     return item
 
 
-class TestFreqConversion(TestCase):
+class TestFreqConversion(tm.TestCase):
     "Test frequency conversion of date objects"
-
-    def __init__(self, *args, **kwds):
-        TestCase.__init__(self, *args, **kwds)
 
     def test_asfreq_corner(self):
         val = Period(freq='A', year=2007)
@@ -1070,7 +1067,8 @@ class TestFreqConversion(TestCase):
         assert_equal(ival_S.asfreq('S'), ival_S)
 
 
-class TestPeriodIndex(TestCase):
+class TestPeriodIndex(tm.TestCase):
+
     def setUp(self):
         pass
 
@@ -1132,8 +1130,8 @@ class TestPeriodIndex(TestCase):
         self.assert_(idx.equals(exp))
 
     def test_constructor_U(self):
-        # X was used as undefined period
-        self.assertRaises(KeyError, period_range, '2007-1-1', periods=500,
+        # U was used as undefined period
+        self.assertRaises(ValueError, period_range, '2007-1-1', periods=500,
                           freq='X')
 
     def test_constructor_arrays_negative_year(self):
@@ -1668,7 +1666,19 @@ class TestPeriodIndex(TestCase):
     def test_ts_repr(self):
         index = PeriodIndex(freq='A', start='1/1/2001', end='12/31/2010')
         ts = Series(np.random.randn(len(index)), index=index)
-        repr(ts)
+        repr(ts) # ??
+
+        val = period_range('2013Q1', periods=1, freq="Q")
+        expected = "<class 'pandas.tseries.period.PeriodIndex'>\nfreq: Q-DEC\n[2013Q1]\nlength: 1"
+        assert_equal(repr(val), expected)
+
+        val = period_range('2013Q1', periods=2, freq="Q")
+        expected = "<class 'pandas.tseries.period.PeriodIndex'>\nfreq: Q-DEC\n[2013Q1, 2013Q2]\nlength: 2"
+        assert_equal(repr(val), expected)
+
+        val = period_range('2013Q1', periods=3, freq="Q")
+        expected = "<class 'pandas.tseries.period.PeriodIndex'>\nfreq: Q-DEC\n[2013Q1, ..., 2013Q3]\nlength: 3"
+        assert_equal(repr(val), expected)
 
     def test_period_index_unicode(self):
         pi = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
@@ -2152,11 +2162,8 @@ def _permute(obj):
     return obj.take(np.random.permutation(len(obj)))
 
 
-class TestMethods(TestCase):
+class TestMethods(tm.TestCase):
     "Base test class for MaskedArrays."
-
-    def __init__(self, *args, **kwds):
-        TestCase.__init__(self, *args, **kwds)
 
     def test_add(self):
         dt1 = Period(freq='D', year=2008, month=1, day=1)
@@ -2167,7 +2174,7 @@ class TestMethods(TestCase):
         self.assertRaises(TypeError, dt1.__add__, dt2)
 
 
-class TestPeriodRepresentation(unittest.TestCase):
+class TestPeriodRepresentation(tm.TestCase):
     """
     Wish to match NumPy units
     """
@@ -2228,7 +2235,7 @@ class TestPeriodRepresentation(unittest.TestCase):
         repr(period)
 
 
-class TestComparisons(unittest.TestCase):
+class TestComparisons(tm.TestCase):
     def setUp(self):
         self.january1 = Period('2000-01', 'M')
         self.january2 = Period('2000-01', 'M')

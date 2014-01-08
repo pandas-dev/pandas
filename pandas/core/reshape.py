@@ -22,6 +22,7 @@ from pandas.core.index import Index, MultiIndex
 
 
 class _Unstacker(object):
+
     """
     Helper class to unstack data / pivot with multi-level index
 
@@ -57,6 +58,7 @@ class _Unstacker(object):
     -------
     unstacked : DataFrame
     """
+
     def __init__(self, values, index, level=-1, value_columns=None):
         if values.ndim == 1:
             values = values[:, np.newaxis]
@@ -71,12 +73,14 @@ class _Unstacker(object):
 
         levels = index.levels
         labels = index.labels
-        def _make_index(lev,lab):
-            i = lev.__class__(_make_index_array_level(lev.values,lab))
+
+        def _make_index(lev, lab):
+            i = lev.__class__(_make_index_array_level(lev.values, lab))
             i.name = lev.name
             return i
 
-        self.new_index_levels = list([ _make_index(lev,lab) for lev,lab in zip(levels,labels) ])
+        self.new_index_levels = [_make_index(lev, lab)
+                                 for lev, lab in zip(levels, labels)]
         self.new_index_names = list(index.names)
 
         self.removed_name = self.new_index_names.pop(self.level)
@@ -154,7 +158,8 @@ class _Unstacker(object):
             mask = isnull(index)
             if mask.any():
                 l = np.arange(len(index))
-                values, orig_values = np.empty((len(index),values.shape[1])), values
+                values, orig_values = (np.empty((len(index), values.shape[1])),
+                                       values)
                 values.fill(np.nan)
                 values_indexer = com._ensure_int64(l[~mask])
                 for i, j in enumerate(values_indexer):
@@ -218,13 +223,13 @@ class _Unstacker(object):
             new_labels.append(np.tile(np.arange(stride), width))
 
         return MultiIndex(levels=new_levels, labels=new_labels,
-                          names=new_names)
+                          names=new_names, verify_integrity=False)
 
     def get_new_index(self):
         result_labels = []
         for cur in self.sorted_labels[:-1]:
             labels = cur.take(self.compressor)
-            labels = _make_index_array_level(labels,cur)
+            labels = _make_index_array_level(labels, cur)
             result_labels.append(labels)
 
         # construct the new index
@@ -234,30 +239,32 @@ class _Unstacker(object):
         else:
             new_index = MultiIndex(levels=self.new_index_levels,
                                    labels=result_labels,
-                                   names=self.new_index_names)
+                                   names=self.new_index_names,
+                                   verify_integrity=False)
 
         return new_index
 
 
-def _make_index_array_level(lev,lab):
+def _make_index_array_level(lev, lab):
     """ create the combined index array, preserving nans, return an array """
     mask = lab == -1
     if not mask.any():
         return lev
 
     l = np.arange(len(lab))
-    mask_labels  = np.empty(len(mask[mask]),dtype=object)
+    mask_labels = np.empty(len(mask[mask]), dtype=object)
     mask_labels.fill(np.nan)
     mask_indexer = com._ensure_int64(l[mask])
 
     labels = lev
     labels_indexer = com._ensure_int64(l[~mask])
 
-    new_labels = np.empty(tuple([len(lab)]),dtype=object)
+    new_labels = np.empty(tuple([len(lab)]), dtype=object)
     new_labels[labels_indexer] = labels
-    new_labels[mask_indexer]   = mask_labels
+    new_labels[mask_indexer] = mask_labels
 
     return new_labels
+
 
 def _unstack_multiple(data, clocs):
     if len(clocs) == 0:
@@ -286,7 +293,8 @@ def _unstack_multiple(data, clocs):
 
     dummy_index = MultiIndex(levels=rlevels + [obs_ids],
                              labels=rlabels + [comp_ids],
-                             names=rnames + ['__placeholder__'])
+                             names=rnames + ['__placeholder__'],
+                             verify_integrity=False)
 
     if isinstance(data, Series):
         dummy = Series(data.values, index=dummy_index)
@@ -320,7 +328,7 @@ def _unstack_multiple(data, clocs):
             new_labels.append(rec.take(unstcols.labels[-1]))
 
     new_columns = MultiIndex(levels=new_levels, labels=new_labels,
-                             names=new_names)
+                             names=new_names, verify_integrity=False)
 
     if isinstance(unstacked, Series):
         unstacked.index = new_columns
@@ -339,7 +347,8 @@ def pivot(self, index=None, columns=None, values=None):
         return indexed.unstack(columns)
     else:
         indexed = Series(self[values].values,
-                         index=MultiIndex.from_arrays([self[index], self[columns]]))
+                         index=MultiIndex.from_arrays([self[index],
+                                                       self[columns]]))
         return indexed.unstack(columns)
 
 
@@ -505,13 +514,14 @@ def stack(frame, level=-1, dropna=True):
         new_names = list(frame.index.names)
         new_names.append(frame.columns.name)
         new_index = MultiIndex(levels=new_levels, labels=new_labels,
-                               names=new_names)
+                               names=new_names, verify_integrity=False)
     else:
         ilabels = np.arange(N).repeat(K)
         clabels = np.tile(np.arange(K), N).ravel()
         new_index = MultiIndex(levels=[frame.index, frame.columns],
                                labels=[ilabels, clabels],
-                               names=[frame.index.name, frame.columns.name])
+                               names=[frame.index.name, frame.columns.name],
+                               verify_integrity=False)
 
     new_values = frame.values.ravel()
     if dropna:
@@ -537,9 +547,10 @@ def _stack_multi_columns(frame, level=-1, dropna=True):
 
     # tuple list excluding level for grouping columns
     if len(frame.columns.levels) > 2:
-        tuples = list(zip(*[lev.values.take(lab)
-                       for lev, lab in zip(this.columns.levels[:-1],
-                                           this.columns.labels[:-1])]))
+        tuples = list(zip(*[
+            lev.values.take(lab) for lev, lab in
+            zip(this.columns.levels[:-1], this.columns.labels[:-1])
+        ]))
         unique_groups = [key for key, _ in itertools.groupby(tuples)]
         new_names = this.columns.names[:-1]
         new_columns = MultiIndex.from_tuples(unique_groups, names=new_names)
@@ -590,7 +601,7 @@ def _stack_multi_columns(frame, level=-1, dropna=True):
     new_names.append(frame.columns.names[level])
 
     new_index = MultiIndex(levels=new_levels, labels=new_labels,
-                           names=new_names)
+                           names=new_names, verify_integrity=False)
 
     result = DataFrame(new_data, index=new_index, columns=new_columns)
 
@@ -675,7 +686,8 @@ def melt(frame, id_vars=None, value_vars=None,
         frame = frame.copy()
 
     if col_level is not None:  # allow list or other?
-        frame.columns = frame.columns.get_level_values(col_level) #  frame is a copy
+        # frame is a copy
+        frame.columns = frame.columns.get_level_values(col_level)
 
     if var_name is None:
         if isinstance(frame.columns, MultiIndex):
@@ -775,6 +787,91 @@ def lreshape(data, groups, dropna=True, label=None):
     return DataFrame(mdata, columns=id_cols + pivot_cols)
 
 
+def wide_to_long(df, stubnames, i, j):
+    """
+    Wide panel to long format. Less flexible but more user-friendly than melt.
+
+    Parameters
+    ----------
+    df : DataFrame
+        The wide-format DataFrame
+    stubnames : list
+        A list of stub names. The wide format variables are assumed to
+        start with the stub names.
+    i : str
+        The name of the id variable.
+    j : str
+        The name of the subobservation variable.
+    stubend : str
+        Regex to match for the end of the stubs.
+
+    Returns
+    -------
+    DataFrame
+        A DataFrame that contains each stub name as a variable as well as
+        variables for i and j.
+
+    Examples
+    --------
+    >>> import pandas as pd
+    >>> import numpy as np
+    >>> np.random.seed(123)
+    >>> df = pd.DataFrame({"A1970" : {0 : "a", 1 : "b", 2 : "c"},
+    ...                    "A1980" : {0 : "d", 1 : "e", 2 : "f"},
+    ...                    "B1970" : {0 : 2.5, 1 : 1.2, 2 : .7},
+    ...                    "B1980" : {0 : 3.2, 1 : 1.3, 2 : .1},
+    ...                    "X"     : dict(zip(range(3), np.random.randn(3)))
+    ...                   })
+    >>> df["id"] = df.index
+    >>> df
+    A1970 A1980  B1970  B1980         X  id
+    0     a     d    2.5    3.2 -1.085631   0
+    1     b     e    1.2    1.3  0.997345   1
+    2     c     f    0.7    0.1  0.282978   2
+    >>> wide_to_long(df, ["A", "B"], i="id", j="year")
+                    X  A    B
+    id year
+    0  1970 -1.085631  a  2.5
+    1  1970  0.997345  b  1.2
+    2  1970  0.282978  c  0.7
+    0  1980 -1.085631  d  3.2
+    1  1980  0.997345  e  1.3
+    2  1980  0.282978  f  0.1
+
+    Notes
+    -----
+    All extra variables are treated as extra id variables. This simply uses
+    `pandas.melt` under the hood, but is hard-coded to "do the right thing"
+    in a typicaly case.
+    """
+    def get_var_names(df, regex):
+        return df.filter(regex=regex).columns.tolist()
+
+    def melt_stub(df, stub, i, j):
+        varnames = get_var_names(df, "^"+stub)
+        newdf = melt(df, id_vars=i, value_vars=varnames, value_name=stub,
+                     var_name=j)
+        newdf_j = newdf[j].str.replace(stub, "")
+        try:
+            newdf_j = newdf_j.astype(int)
+        except ValueError:
+            pass
+        newdf[j] = newdf_j
+        return newdf
+
+    id_vars = get_var_names(df, "^(?!%s)" % "|".join(stubnames))
+    if i not in id_vars:
+        id_vars += [i]
+
+    stub = stubnames.pop(0)
+    newdf = melt_stub(df, stub, id_vars, j)
+
+    for stub in stubnames:
+        new = melt_stub(df, stub, id_vars, j)
+        newdf = newdf.merge(new, how="outer", on=id_vars + [j], copy=False)
+    return newdf.set_index([i, j])
+
+
 def convert_dummies(data, cat_variables, prefix_sep='_'):
     """
     Compute DataFrame with specified columns converted to dummy variables (0 /
@@ -845,7 +942,8 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False):
     2  0  0    1
 
     """
-    cat = Categorical.from_array(Series(data))  # Series avoids inconsistent NaN handling
+    # Series avoids inconsistent NaN handling
+    cat = Categorical.from_array(Series(data))
     levels = cat.levels
 
     # if all NaN
@@ -954,6 +1052,9 @@ def block2d_to_blocknd(values, items, shape, labels, ref_items=None):
 
 
 def factor_indexer(shape, labels):
-    """ given a tuple of shape and a list of Categorical labels, return the expanded label indexer """
+    """ given a tuple of shape and a list of Categorical labels, return the
+    expanded label indexer
+    """
     mult = np.array(shape)[::-1].cumprod()[::-1]
-    return com._ensure_platform_int(np.sum(np.array(labels).T * np.append(mult, [1]), axis=1).T)
+    return com._ensure_platform_int(
+        np.sum(np.array(labels).T * np.append(mult, [1]), axis=1).T)

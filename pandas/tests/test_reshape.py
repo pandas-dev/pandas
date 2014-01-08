@@ -3,7 +3,6 @@ from copy import deepcopy
 from datetime import datetime, timedelta
 import operator
 import os
-import unittest
 
 import nose
 
@@ -16,14 +15,15 @@ import numpy as np
 from pandas.util.testing import assert_frame_equal
 from numpy.testing import assert_array_equal
 
-from pandas.core.reshape import melt, convert_dummies, lreshape, get_dummies
+from pandas.core.reshape import (melt, convert_dummies, lreshape, get_dummies,
+                                 wide_to_long)
 import pandas.util.testing as tm
 from pandas.compat import StringIO, cPickle, range
 
 _multiprocess_can_split_ = True
 
 
-class TestMelt(unittest.TestCase):
+class TestMelt(tm.TestCase):
 
     def setUp(self):
         self.df = tm.makeTimeDataFrame()[:10]
@@ -148,7 +148,7 @@ class TestMelt(unittest.TestCase):
         self.assertEqual(res.columns.tolist(), ['CAP', 'low', 'value'])
 
 
-class TestGetDummies(unittest.TestCase):
+class TestGetDummies(tm.TestCase):
     def test_basic(self):
         s_list = list('abc')
         s_series = Series(s_list)
@@ -199,7 +199,7 @@ class TestGetDummies(unittest.TestCase):
         exp_just_na = DataFrame(Series(1.0,index=[0]),columns=[nan])
         assert_array_equal(res_just_na.values, exp_just_na.values)
 
-class TestConvertDummies(unittest.TestCase):
+class TestConvertDummies(tm.TestCase):
     def test_convert_dummies(self):
         df = DataFrame({'A': ['foo', 'bar', 'foo', 'bar',
                               'foo', 'bar', 'foo', 'foo'],
@@ -225,7 +225,7 @@ class TestConvertDummies(unittest.TestCase):
         tm.assert_frame_equal(result2, expected2)
 
 
-class TestLreshape(unittest.TestCase):
+class TestLreshape(tm.TestCase):
 
     def test_pairs(self):
         data = {'birthdt': ['08jan2009', '20dec2008', '30dec2008',
@@ -296,6 +296,27 @@ class TestLreshape(unittest.TestCase):
         spec = {'visitdt': ['visitdt%d' % i for i in range(1, 3)],
                 'wt': ['wt%d' % i for i in range(1, 4)]}
         self.assertRaises(ValueError, lreshape, df, spec)
+
+class TestWideToLong(tm.TestCase):
+    def test_simple(self):
+        np.random.seed(123)
+        x = np.random.randn(3)
+        df = pd.DataFrame({"A1970" : {0 : "a", 1 : "b", 2 : "c"},
+                           "A1980" : {0 : "d", 1 : "e", 2 : "f"},
+                           "B1970" : {0 : 2.5, 1 : 1.2, 2 : .7},
+                           "B1980" : {0 : 3.2, 1 : 1.3, 2 : .1},
+                           "X"     : dict(zip(range(3), x))
+                          })
+        df["id"] = df.index
+        exp_data = {"X" : x.tolist() + x.tolist(),
+                    "A" : ['a', 'b', 'c', 'd', 'e', 'f'],
+                    "B" : [2.5, 1.2, 0.7, 3.2, 1.3, 0.1],
+                    "year" : [1970, 1970, 1970, 1980, 1980, 1980],
+                    "id" : [0, 1, 2, 0, 1, 2]}
+        exp_frame = DataFrame(exp_data)
+        exp_frame = exp_frame.set_index(['id', 'year'])[["X", "A", "B"]]
+        long_frame = wide_to_long(df, ["A", "B"], i="id", j="year")
+        tm.assert_frame_equal(long_frame, exp_frame)
 
 
 if __name__ == '__main__':

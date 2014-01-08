@@ -23,6 +23,7 @@ except ImportError:  # pragma: no cover
 
 
 class disallow(object):
+
     def __init__(self, *dtypes):
         super(disallow, self).__init__()
         self.dtypes = tuple(np.dtype(dtype).type for dtype in dtypes)
@@ -44,6 +45,7 @@ class disallow(object):
 
 
 class bottleneck_switch(object):
+
     def __init__(self, zero_value=None, **kwargs):
         self.zero_value = zero_value
         self.kwargs = kwargs
@@ -105,6 +107,7 @@ def _has_infs(result):
         return False
     return np.isinf(result) or np.isneginf(result)
 
+
 def _get_fill_value(dtype, fill_value=None, fill_value_typ=None):
     """ return the correct fill value for the dtype of the values """
     if fill_value is not None:
@@ -127,7 +130,9 @@ def _get_fill_value(dtype, fill_value=None, fill_value_typ=None):
             else:
                 return tslib.iNaT
 
-def _get_values(values, skipna, fill_value=None, fill_value_typ=None, isfinite=False, copy=True):
+
+def _get_values(values, skipna, fill_value=None, fill_value_typ=None,
+                isfinite=False, copy=True):
     """ utility to get the values view, mask, dtype
         if necessary copy and mask using the specified fill_value
         copy = True will force the copy """
@@ -137,11 +142,13 @@ def _get_values(values, skipna, fill_value=None, fill_value_typ=None, isfinite=F
     else:
         mask = isnull(values)
 
-    dtype    = values.dtype
+    dtype = values.dtype
     dtype_ok = _na_ok_dtype(dtype)
 
-    # get our fill value (in case we need to provide an alternative dtype for it)
-    fill_value = _get_fill_value(dtype, fill_value=fill_value, fill_value_typ=fill_value_typ)
+    # get our fill value (in case we need to provide an alternative
+    # dtype for it)
+    fill_value = _get_fill_value(dtype, fill_value=fill_value,
+                                 fill_value_typ=fill_value_typ)
 
     if skipna:
         if copy:
@@ -151,7 +158,8 @@ def _get_values(values, skipna, fill_value=None, fill_value_typ=None, isfinite=F
 
         # promote if needed
         else:
-            values, changed = com._maybe_upcast_putmask(values, mask, fill_value)
+            values, changed = com._maybe_upcast_putmask(values, mask,
+                                                        fill_value)
 
     elif copy:
         values = values.copy()
@@ -159,20 +167,25 @@ def _get_values(values, skipna, fill_value=None, fill_value_typ=None, isfinite=F
     values = _view_if_needed(values)
     return values, mask, dtype
 
+
 def _isfinite(values):
-    if issubclass(values.dtype.type, (np.timedelta64,np.datetime64)):
+    if issubclass(values.dtype.type, (np.timedelta64, np.datetime64)):
         return isnull(values)
     return -np.isfinite(values)
 
+
 def _na_ok_dtype(dtype):
-    return not issubclass(dtype.type, (np.integer, np.datetime64, np.timedelta64))
+    return not issubclass(dtype.type, (np.integer, np.datetime64,
+                                       np.timedelta64))
+
 
 def _view_if_needed(values):
-    if issubclass(values.dtype.type, (np.datetime64,np.timedelta64)):
+    if issubclass(values.dtype.type, (np.datetime64, np.timedelta64)):
         return values.view(np.int64)
     return values
 
-def _wrap_results(result,dtype):
+
+def _wrap_results(result, dtype):
     """ wrap our results if needed """
 
     if issubclass(dtype.type, np.datetime64):
@@ -185,26 +198,29 @@ def _wrap_results(result,dtype):
 
             # this is a scalar timedelta result!
             # we have series convert then take the element (scalar)
-            # as series will do the right thing in py3 (and deal with numpy 1.6.2
-            # bug in that it results dtype of timedelta64[us]
+            # as series will do the right thing in py3 (and deal with numpy
+            # 1.6.2 bug in that it results dtype of timedelta64[us]
             from pandas import Series
 
             # coerce float to results
             if is_float(result):
                 result = int(result)
-            result = Series([result],dtype='timedelta64[ns]')
+            result = Series([result], dtype='timedelta64[ns]')
         else:
             result = result.view(dtype)
 
     return result
 
+
 def nanany(values, axis=None, skipna=True):
     values, mask, dtype = _get_values(values, skipna, False, copy=skipna)
     return values.any(axis)
 
+
 def nanall(values, axis=None, skipna=True):
     values, mask, dtype = _get_values(values, skipna, True, copy=skipna)
     return values.all(axis)
+
 
 @disallow('M8')
 @bottleneck_switch(zero_value=0)
@@ -213,6 +229,7 @@ def nansum(values, axis=None, skipna=True):
     the_sum = values.sum(axis)
     the_sum = _maybe_null_out(the_sum, axis, mask)
     return the_sum
+
 
 @disallow('M8')
 @bottleneck_switch()
@@ -229,7 +246,8 @@ def nanmean(values, axis=None, skipna=True):
     else:
         the_mean = the_sum / count if count > 0 else np.nan
 
-    return  _wrap_results(the_mean,dtype)
+    return _wrap_results(the_mean, dtype)
+
 
 @disallow('M8')
 @bottleneck_switch()
@@ -265,7 +283,7 @@ def nanmedian(values, axis=None, skipna=True):
         return ret
 
     # otherwise return a scalar value
-    return _wrap_results(get_median(values),dtype) if notempty else np.nan
+    return _wrap_results(get_median(values), dtype) if notempty else np.nan
 
 
 @disallow('M8')
@@ -292,7 +310,7 @@ def nanvar(values, axis=None, skipna=True, ddof=1):
 
 @bottleneck_switch()
 def nanmin(values, axis=None, skipna=True):
-    values, mask, dtype = _get_values(values, skipna, fill_value_typ = '+inf')
+    values, mask, dtype = _get_values(values, skipna, fill_value_typ='+inf')
 
     # numpy 1.6.1 workaround in Python 3.x
     if (values.dtype == np.object_ and compat.PY3):
@@ -300,22 +318,28 @@ def nanmin(values, axis=None, skipna=True):
             apply_ax = axis if axis is not None else 0
             result = np.apply_along_axis(builtins.min, apply_ax, values)
         else:
-            result = builtins.min(values)
+            try:
+                result = builtins.min(values)
+            except:
+                result = np.nan
     else:
         if ((axis is not None and values.shape[axis] == 0)
                 or values.size == 0):
-            result = com.ensure_float(values.sum(axis))
-            result.fill(np.nan)
+            try:
+                result = com.ensure_float(values.sum(axis))
+                result.fill(np.nan)
+            except:
+                result = np.nan
         else:
             result = values.min(axis)
 
-    result = _wrap_results(result,dtype)
+    result = _wrap_results(result, dtype)
     return _maybe_null_out(result, axis, mask)
 
 
 @bottleneck_switch()
 def nanmax(values, axis=None, skipna=True):
-    values, mask, dtype = _get_values(values, skipna, fill_value_typ ='-inf')
+    values, mask, dtype = _get_values(values, skipna, fill_value_typ='-inf')
 
     # numpy 1.6.1 workaround in Python 3.x
     if (values.dtype == np.object_ and compat.PY3):
@@ -324,16 +348,22 @@ def nanmax(values, axis=None, skipna=True):
             apply_ax = axis if axis is not None else 0
             result = np.apply_along_axis(builtins.max, apply_ax, values)
         else:
-            result = builtins.max(values)
+            try:
+                result = builtins.max(values)
+            except:
+                result = np.nan
     else:
         if ((axis is not None and values.shape[axis] == 0)
                 or values.size == 0):
-            result = com.ensure_float(values.sum(axis))
-            result.fill(np.nan)
+            try:
+                result = com.ensure_float(values.sum(axis))
+                result.fill(np.nan)
+            except:
+                result = np.nan
         else:
             result = values.max(axis)
 
-    result = _wrap_results(result,dtype)
+    result = _wrap_results(result, dtype)
     return _maybe_null_out(result, axis, mask)
 
 
@@ -341,7 +371,8 @@ def nanargmax(values, axis=None, skipna=True):
     """
     Returns -1 in the NA case
     """
-    values, mask, dtype = _get_values(values, skipna, fill_value_typ = '-inf', isfinite=True)
+    values, mask, dtype = _get_values(values, skipna, fill_value_typ='-inf',
+                                      isfinite=True)
     result = values.argmax(axis)
     result = _maybe_arg_null_out(result, axis, mask, skipna)
     return result
@@ -351,7 +382,8 @@ def nanargmin(values, axis=None, skipna=True):
     """
     Returns -1 in the NA case
     """
-    values, mask, dtype = _get_values(values, skipna, fill_value_typ = '+inf', isfinite=True)
+    values, mask, dtype = _get_values(values, skipna, fill_value_typ='+inf',
+                                      isfinite=True)
     result = values.argmin(axis)
     result = _maybe_arg_null_out(result, axis, mask, skipna)
     return result

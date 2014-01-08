@@ -132,7 +132,11 @@ Data manipulations
 .. autosummary::
    :toctree: generated/
 
+   melt
    pivot_table
+   crosstab
+   cut
+   qcut
    merge
    concat
    get_dummies
@@ -153,6 +157,10 @@ Top-level dealing with datetimes
    :toctree: generated/
 
    to_datetime
+   to_timedelta
+   date_range
+   bdate_range
+   period_range
 
 Top-level evaluation
 ~~~~~~~~~~~~~~~~~~~~
@@ -174,12 +182,16 @@ Standard moving window functions
    rolling_median
    rolling_var
    rolling_std
+   rolling_min
+   rolling_max
    rolling_corr
+   rolling_corr_pairwise
    rolling_cov
    rolling_skew
    rolling_kurt
    rolling_apply
    rolling_quantile
+   rolling_window
 
 Standard expanding window functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -193,7 +205,10 @@ Standard expanding window functions
    expanding_median
    expanding_var
    expanding_std
+   expanding_min
+   expanding_max
    expanding_corr
+   expanding_corr_pairwise
    expanding_cov
    expanding_skew
    expanding_kurt
@@ -253,9 +268,16 @@ Indexing, iteration
    :toctree: generated/
 
    Series.get
+   Series.at
+   Series.iat
    Series.ix
+   Series.loc
+   Series.iloc
    Series.__iter__
    Series.iteritems
+
+For more information on ``.at``, ``.iat``, ``.ix``, ``.loc``, and
+``.iloc``,  see the :ref:`indexing documentation <indexing>`.
 
 Binary operator functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -326,6 +348,7 @@ Computations / Descriptive Stats
    Series.mean
    Series.median
    Series.min
+   Series.mode
    Series.nunique
    Series.pct_change
    Series.prod
@@ -407,8 +430,49 @@ Time series-related
    Series.tz_convert
    Series.tz_localize
 
+String handling
+~~~~~~~~~~~~~~~~~~~
+``Series.str`` can be used to access the values of the series as
+strings and apply several methods to it. Due to implementation
+details the methods show up here as methods of the
+``StringMethods`` class.
+
+.. currentmodule:: pandas.core.strings
+
+.. autosummary::
+   :toctree: generated/
+
+   StringMethods.cat
+   StringMethods.center
+   StringMethods.contains
+   StringMethods.count
+   StringMethods.decode
+   StringMethods.encode
+   StringMethods.endswith
+   StringMethods.extract
+   StringMethods.findall
+   StringMethods.get
+   StringMethods.join
+   StringMethods.len
+   StringMethods.lower
+   StringMethods.lstrip
+   StringMethods.match
+   StringMethods.pad
+   StringMethods.repeat
+   StringMethods.replace
+   StringMethods.rstrip
+   StringMethods.slice
+   StringMethods.slice_replace
+   StringMethods.split
+   StringMethods.startswith
+   StringMethods.strip
+   StringMethods.title
+   StringMethods.upper
+
 Plotting
 ~~~~~~~~
+.. currentmodule:: pandas
+
 .. autosummary::
    :toctree: generated/
 
@@ -425,6 +489,8 @@ Serialization / IO / Conversion
    Series.to_csv
    Series.to_dict
    Series.to_frame
+   Series.to_hdf
+   Series.to_json
    Series.to_sparse
    Series.to_string
    Series.to_clipboard
@@ -476,7 +542,11 @@ Indexing, iteration
    :toctree: generated/
 
    DataFrame.head
+   DataFrame.at
+   DataFrame.iat
    DataFrame.ix
+   DataFrame.loc
+   DataFrame.iloc
    DataFrame.insert
    DataFrame.__iter__
    DataFrame.iteritems
@@ -488,6 +558,10 @@ Indexing, iteration
    DataFrame.xs
    DataFrame.isin
    DataFrame.query
+
+For more information on ``.at``, ``.iat``, ``.ix``, ``.loc``, and
+``.iloc``,  see the :ref:`indexing documentation <indexing>`.
+
 
 Binary operator functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -559,6 +633,7 @@ Computations / Descriptive Stats
    DataFrame.mean
    DataFrame.median
    DataFrame.min
+   DataFrame.mode
    DataFrame.pct_change
    DataFrame.prod
    DataFrame.quantile
@@ -676,6 +751,7 @@ Serialization / IO / Conversion
    DataFrame.to_excel
    DataFrame.to_json
    DataFrame.to_html
+   DataFrame.to_latex
    DataFrame.to_stata
    DataFrame.to_records
    DataFrame.to_sparse
@@ -733,13 +809,20 @@ Indexing, iteration, slicing
 .. autosummary::
    :toctree: generated/
 
+   Panel.at
+   Panel.iat
    Panel.ix
+   Panel.loc
+   Panel.iloc
    Panel.__iter__
    Panel.iteritems
    Panel.pop
    Panel.xs
    Panel.major_xs
    Panel.minor_xs
+
+For more information on ``.at``, ``.iat``, ``.ix``, ``.loc``, and
+``.iloc``,  see the :ref:`indexing documentation <indexing>`.
 
 Binary operator functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -869,6 +952,8 @@ Serialization / IO / Conversion
    Panel.from_dict
    Panel.to_pickle
    Panel.to_excel
+   Panel.to_hdf
+   Panel.to_json
    Panel.to_sparse
    Panel.to_frame
    Panel.to_clipboard
@@ -878,8 +963,9 @@ Serialization / IO / Conversion
 Index
 -----
 
-**Many of these methods or variants thereof are available on the objects that contain an index (Series/Dataframe)
-and those should most likely be used before calling these methods directly.**
+**Many of these methods or variants thereof are available on the objects
+that contain an index (Series/Dataframe) and those should most likely be
+used before calling these methods directly.**
 
 .. autosummary::
    :toctree: generated/
@@ -974,24 +1060,26 @@ DatetimeIndex
 
 Time/Date Components
 ~~~~~~~~~~~~~~~~~~~~
-  * **year**
-  * **month**
-  * **day**
-  * **hour**
-  * **minute**
-  * **second**
-  * **microsecond**
-  * **nanosecond**
 
-  * **weekofyear**
-  * **week**: Same as weekofyear
-  * **dayofweek**: (0=Monday, 6=Sunday)
-  * **weekday**: (0=Monday, 6=Sunday)
-  * **dayofyear**
-  * **quarter**
+.. autosummary::
+   :toctree: generated/
 
-  * **date**: Returns date component of Timestamps
-  * **time**: Returns time component of Timestamps
+   DatetimeIndex.year
+   DatetimeIndex.month
+   DatetimeIndex.day
+   DatetimeIndex.hour
+   DatetimeIndex.minute
+   DatetimeIndex.second
+   DatetimeIndex.microsecond
+   DatetimeIndex.nanosecond
+   DatetimeIndex.date
+   DatetimeIndex.time
+   DatetimeIndex.dayofyear
+   DatetimeIndex.weekofyear
+   DatetimeIndex.week
+   DatetimeIndex.dayofweek
+   DatetimeIndex.weekday
+   DatetimeIndex.quarter
 
 
 Selecting
@@ -1024,9 +1112,45 @@ Conversion
    DatetimeIndex.to_pydatetime
 
 
+GroupBy
+-------
+.. currentmodule:: pandas.core.groupby
+
+GroupBy objects are returned by groupby calls: :func:`pandas.DataFrame.groupby`, :func:`pandas.Series.groupby`, etc.
+
+Indexing, iteration
+~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+   
+   GroupBy.__iter__
+   GroupBy.groups
+   GroupBy.indices
+   GroupBy.get_group
+
+Function application
+~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   GroupBy.apply
+   GroupBy.aggregate
+   GroupBy.transform
+
+Computations / Descriptive Stats
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+   
+   GroupBy.mean
+   GroupBy.median
+   GroupBy.std
+   GroupBy.var
+   GroupBy.ohlc
+
 ..
     HACK - see github issue #4539. To ensure old links remain valid, include
-    here the autosummaries with previous currentmodules as a comment and add 
+    here the autosummaries with previous currentmodules as a comment and add
     them to a hidden toctree (to avoid warnings):
 
 .. toctree::

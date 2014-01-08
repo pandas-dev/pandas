@@ -1127,8 +1127,16 @@ npy_int64 get_period_ordinal(int year, int month, int day,
         {
             goto onError;
         }
-        weeks = days / 7;
-        return (npy_int64)(days - weeks * 2) - BDAY_OFFSET;
+        // calculate the current week assuming sunday as last day of a week
+        weeks = (days - BASE_WEEK_TO_DAY_OFFSET) / DAYS_PER_WEEK;
+        // calculate the current weekday (in range 1 .. 7)
+        delta = (days - BASE_WEEK_TO_DAY_OFFSET) % DAYS_PER_WEEK + 1;
+        // return the number of business days in full weeks plus the business days in the last - possible partial - week
+        return (npy_int64)(weeks * BUSINESS_DAYS_PER_WEEK)
+            + (delta <= BUSINESS_DAYS_PER_WEEK
+                ? delta
+                : BUSINESS_DAYS_PER_WEEK + 1)
+             - BDAY_OFFSET;
     }
 
     if (freq_group == FR_WK)

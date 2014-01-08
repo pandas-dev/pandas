@@ -1,6 +1,5 @@
 # pylint: disable=W0102
 
-import unittest
 import nose
 import numpy as np
 
@@ -88,7 +87,7 @@ def create_singleblockmanager(blocks):
 
     return SingleBlockManager(blocks, [items])
 
-class TestBlock(unittest.TestCase):
+class TestBlock(tm.TestCase):
 
     _multiprocess_can_split_ = True
 
@@ -234,7 +233,7 @@ class TestBlock(unittest.TestCase):
         pass
 
 
-class TestBlockManager(unittest.TestCase):
+class TestBlockManager(tm.TestCase):
 
     _multiprocess_can_split_ = True
 
@@ -488,9 +487,6 @@ class TestBlockManager(unittest.TestCase):
         _check(new_mgr,BoolBlock,['bool'])
         _check(new_mgr,DatetimeBlock,['dt'])
 
-    def test_xs(self):
-        pass
-
     def test_interleave(self):
         pass
 
@@ -589,9 +585,6 @@ class TestBlockManager(unittest.TestCase):
             pass  # this is the expected exception
 
 if __name__ == '__main__':
-    # unittest.main()
     import nose
-    # nose.runmodule(argv=[__file__,'-vvs','-x', '--pdb-failure'],
-    #                exit=False)
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

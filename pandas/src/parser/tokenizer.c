@@ -709,7 +709,6 @@ int tokenize_delimited(parser_t *self, size_t line_limit)
             if (c == '\n') {
                 END_FIELD();
                 END_LINE();
-                /* self->state = START_RECORD; */
             } else if (c == '\r') {
                 END_FIELD();
                 self->state = EAT_CRNL;

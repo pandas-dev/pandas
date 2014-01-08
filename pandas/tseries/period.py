@@ -1082,7 +1082,11 @@ class PeriodIndex(Int64Index):
         output = com.pprint_thing(self.__class__) + '\n'
         output += 'freq: %s\n' % self.freq
         n = len(self)
-        if n:
+        if n == 1:
+            output += '[%s]\n' % (self[0])
+        elif n == 2:
+            output += '[%s, %s]\n' % (self[0], self[-1])
+        elif n:
             output += '[%s, ..., %s]\n' % (self[0], self[-1])
         output += 'length: %d' % n
         return output

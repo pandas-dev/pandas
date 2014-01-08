@@ -27,19 +27,30 @@ class PandasError(Exception):
     pass
 
 
+class SettingWithCopyError(ValueError):
+    pass
+
+
+class SettingWithCopyWarning(Warning):
+    pass
+
+
 class AmbiguousIndexError(PandasError, KeyError):
     pass
 
 
 _POSSIBLY_CAST_DTYPES = set([np.dtype(t)
-                            for t in ['M8[ns]', 'm8[ns]', 'O', 'int8',
-                                      'uint8', 'int16', 'uint16', 'int32',
-                                      'uint32', 'int64', 'uint64']])
+                             for t in ['M8[ns]', '>M8[ns]', '<M8[ns]',
+                                       'm8[ns]', '>m8[ns]', '<m8[ns]',
+                                       'O', 'int8',
+                                       'uint8', 'int16', 'uint16', 'int32',
+                                       'uint32', 'int64', 'uint64']])
 
 _NS_DTYPE = np.dtype('M8[ns]')
 _TD_DTYPE = np.dtype('m8[ns]')
 _INT64_DTYPE = np.dtype(np.int64)
-_DATELIKE_DTYPES = set([np.dtype(t) for t in ['M8[ns]', 'm8[ns]']])
+_DATELIKE_DTYPES = set([np.dtype(t) for t in ['M8[ns]', '<M8[ns]', '>M8[ns]',
+                                              'm8[ns]', '<m8[ns]', '>m8[ns]']])
 
 
 # define abstract base classes to enable isinstance type checking on our
@@ -65,6 +76,7 @@ ABCSparseArray = create_pandas_abc_type("ABCSparseArray", "_subtyp",
 
 
 class _ABCGeneric(type):
+
     def __instancecheck__(cls, inst):
         return hasattr(inst, "_data")
 
@@ -123,7 +135,7 @@ def _isnull_new(obj):
     elif isinstance(obj, (ABCSeries, np.ndarray)):
         return _isnull_ndarraylike(obj)
     elif isinstance(obj, ABCGeneric):
-        return obj.apply(isnull)
+        return obj._constructor(obj._data.apply(lambda x: isnull(x.values)))
     elif isinstance(obj, list) or hasattr(obj, '__array__'):
         return _isnull_ndarraylike(np.asarray(obj))
     else:
@@ -131,8 +143,7 @@ def _isnull_new(obj):
 
 
 def _isnull_old(obj):
-    '''
-    Detect missing values. Treat None, NaN, INF, -INF as null.
+    """Detect missing values. Treat None, NaN, INF, -INF as null.
 
     Parameters
     ----------
@@ -141,7 +152,7 @@ def _isnull_old(obj):
     Returns
     -------
     boolean ndarray or boolean
-    '''
+    """
     if lib.isscalar(obj):
         return lib.checknull_old(obj)
     # hack (for now) because MI registers as ndarray
@@ -150,7 +161,8 @@ def _isnull_old(obj):
     elif isinstance(obj, (ABCSeries, np.ndarray)):
         return _isnull_ndarraylike_old(obj)
     elif isinstance(obj, ABCGeneric):
-        return obj.apply(_isnull_old)
+        return obj._constructor(obj._data.apply(
+            lambda x: _isnull_old(x.values)))
     elif isinstance(obj, list) or hasattr(obj, '__array__'):
         return _isnull_ndarraylike_old(np.asarray(obj))
     else:
@@ -160,7 +172,7 @@ _isnull = _isnull_new
 
 
 def _use_inf_as_null(key):
-    '''Option change callback for null/inf behaviour
+    """Option change callback for null/inf behaviour
     Choose which replacement for numpy.isnan / -numpy.isfinite is used.
 
     Parameters
@@ -177,7 +189,7 @@ def _use_inf_as_null(key):
 
     * http://stackoverflow.com/questions/4859217/
       programmatically-creating-variables-in-python/4859312#4859312
-    '''
+    """
     flag = get_option(key)
     if flag:
         globals()['_isnull'] = _isnull_old
@@ -187,7 +199,7 @@ def _use_inf_as_null(key):
 
 def _isnull_ndarraylike(obj):
 
-    values = getattr(obj,'values',obj)
+    values = getattr(obj, 'values', obj)
     dtype = values.dtype
 
     if dtype.kind in ('O', 'S', 'U'):
@@ -216,7 +228,7 @@ def _isnull_ndarraylike(obj):
 
 
 def _isnull_ndarraylike_old(obj):
-    values = getattr(obj,'values',obj)
+    values = getattr(obj, 'values', obj)
     dtype = values.dtype
 
     if dtype.kind in ('O', 'S', 'U'):
@@ -770,13 +782,15 @@ def diff(arr, n, axis=0):
 
 
 def _coerce_to_dtypes(result, dtypes):
-    """ given a dtypes and a result set, coerce the result elements to the dtypes """
+    """ given a dtypes and a result set, coerce the result elements to the
+    dtypes
+    """
     if len(result) != len(dtypes):
         raise AssertionError("_coerce_to_dtypes requires equal len arrays")
 
     from pandas.tseries.timedeltas import _coerce_scalar_to_timedelta_type
 
-    def conv(r,dtype):
+    def conv(r, dtype):
         try:
             if isnull(r):
                 pass
@@ -795,7 +809,7 @@ def _coerce_to_dtypes(result, dtypes):
 
         return r
 
-    return np.array([ conv(r,dtype) for r, dtype in zip(result,dtypes) ])
+    return np.array([conv(r, dtype) for r, dtype in zip(result, dtypes)])
 
 
 def _infer_dtype_from_scalar(val):
@@ -845,7 +859,9 @@ def _infer_dtype_from_scalar(val):
 
 
 def _maybe_cast_scalar(dtype, value):
-    """ if we a scalar value and are casting to a dtype that needs nan -> NaT conversion """
+    """ if we a scalar value and are casting to a dtype that needs nan -> NaT
+    conversion
+    """
     if np.isscalar(value) and dtype in _DATELIKE_DTYPES and isnull(value):
         return tslib.iNaT
     return value
@@ -877,8 +893,8 @@ def _maybe_promote(dtype, fill_value=np.nan):
                 try:
                     fill_value = lib.Timestamp(fill_value).value
                 except:
-                    # the proper thing to do here would probably be to upcast to
-                    # object (but numpy 1.6.1 doesn't do this properly)
+                    # the proper thing to do here would probably be to upcast
+                    # to object (but numpy 1.6.1 doesn't do this properly)
                     fill_value = tslib.iNaT
             else:
                 fill_value = tslib.iNaT
@@ -915,10 +931,10 @@ def _maybe_promote(dtype, fill_value=np.nan):
 
 def _maybe_upcast_putmask(result, mask, other, dtype=None, change=None):
     """ a safe version of put mask that (potentially upcasts the result
-        return the result
-        if change is not None, then MUTATE the change (and change the dtype)
-        return a changed flag
-        """
+    return the result
+    if change is not None, then MUTATE the change (and change the dtype)
+    return a changed flag
+    """
 
     if mask.any():
 
@@ -950,7 +966,8 @@ def _maybe_upcast_putmask(result, mask, other, dtype=None, change=None):
 
                 # if we are trying to do something unsafe
                 # like put a bigger dtype in a smaller one, use the smaller one
-                if change.dtype.itemsize < r.dtype.itemsize: # pragma: no cover
+                # pragma: no cover
+                if change.dtype.itemsize < r.dtype.itemsize:
                     raise AssertionError(
                         "cannot change dtype of input to smaller size")
                 change.dtype = r.dtype
@@ -959,15 +976,17 @@ def _maybe_upcast_putmask(result, mask, other, dtype=None, change=None):
             return r, True
 
         # we want to decide whether putmask will work
-        # if we have nans in the False portion of our mask then we need to upcast (possibily)
-        # otherwise we DON't want to upcast (e.g. if we are have values, say integers in
-        # the success portion then its ok to not upcast)
+        # if we have nans in the False portion of our mask then we need to
+        # upcast (possibily) otherwise we DON't want to upcast (e.g. if we are
+        # have values, say integers in the success portion then its ok to not
+        # upcast)
         new_dtype, fill_value = _maybe_promote(result.dtype, other)
         if new_dtype != result.dtype:
 
             # we have a scalar or len 0 ndarray
             # and its nan and we are changing some values
-            if np.isscalar(other) or (isinstance(other, np.ndarray) and other.ndim < 1):
+            if (np.isscalar(other) or
+                    (isinstance(other, np.ndarray) and other.ndim < 1)):
                 if isnull(other):
                     return changeit()
 
@@ -986,14 +1005,15 @@ def _maybe_upcast_putmask(result, mask, other, dtype=None, change=None):
 
 
 def _maybe_upcast(values, fill_value=np.nan, dtype=None, copy=False):
-    """ provide explicty type promotion and coercion
+    """ provide explict type promotion and coercion
 
-        Parameters
-        ----------
-        values : the ndarray that we want to maybe upcast
-        fill_value : what we want to fill with
-        dtype : if None, then use the dtype of the values, else coerce to this type
-        copy : if True always make a copy even if no upcast is required """
+    Parameters
+    ----------
+    values : the ndarray that we want to maybe upcast
+    fill_value : what we want to fill with
+    dtype : if None, then use the dtype of the values, else coerce to this type
+    copy : if True always make a copy even if no upcast is required
+    """
 
     if dtype is None:
         dtype = values.dtype
@@ -1017,11 +1037,13 @@ def _possibly_cast_item(obj, item, dtype):
 
 def _possibly_downcast_to_dtype(result, dtype):
     """ try to cast to the specified dtype (e.g. convert back to bool/int
-        or could be an astype of float64->float32 """
+    or could be an astype of float64->float32
+    """
 
     if np.isscalar(result) or not len(result):
         return result
 
+    trans = lambda x: x
     if isinstance(dtype, compat.string_types):
         if dtype == 'infer':
             inferred_type = lib.infer_dtype(_ensure_object(result.ravel()))
@@ -1037,6 +1059,8 @@ def _possibly_downcast_to_dtype(result, dtype):
             # try to upcast here
             elif inferred_type == 'floating':
                 dtype = 'int64'
+                if issubclass(result.dtype.type, np.number):
+                    trans = lambda x: x.round()
 
             else:
                 dtype = 'object'
@@ -1057,22 +1081,25 @@ def _possibly_downcast_to_dtype(result, dtype):
 
             # do a test on the first element, if it fails then we are done
             r = result.ravel()
-            arr = np.array([ r[0] ])
-            if not np.allclose(arr,arr.astype(dtype)):
+            arr = np.array([r[0]])
+            if not np.allclose(arr, trans(arr).astype(dtype)):
                 return result
 
             # a comparable, e.g. a Decimal may slip in here
-            elif not isinstance(r[0], (np.integer,np.floating,np.bool,int,float,bool)):
+            elif not isinstance(r[0], (np.integer, np.floating, np.bool, int,
+                                       float, bool)):
                 return result
 
-            if issubclass(result.dtype.type, (np.object_,np.number)) and notnull(result).all():
-                new_result = result.astype(dtype)
+            if (issubclass(result.dtype.type, (np.object_, np.number)) and
+                    notnull(result).all()):
+                new_result = trans(result).astype(dtype)
                 try:
-                    if np.allclose(new_result,result):
+                    if np.allclose(new_result, result):
                         return new_result
                 except:
 
-                    # comparison of an object dtype with a number type could hit here
+                    # comparison of an object dtype with a number type could
+                    # hit here
                     if (new_result == result).all():
                         return new_result
     except:
@@ -1111,8 +1138,9 @@ def _lcd_dtypes(a_dtype, b_dtype):
 
 def _fill_zeros(result, y, fill):
     """ if we have an integer value (or array in y)
-        and we have 0's, fill them with the fill,
-        return the result """
+    and we have 0's, fill them with the fill,
+    return the result
+    """
 
     if fill is not None:
         if not isinstance(y, np.ndarray):
@@ -1145,7 +1173,6 @@ _backfill_1d_datetime = _interp_wrapper(algos.backfill_inplace_int64,
                                         np.int64)
 _backfill_2d_datetime = _interp_wrapper(algos.backfill_2d_inplace_int64,
                                         np.int64)
-
 
 
 def pad_1d(values, limit=None, mask=None):
@@ -1349,8 +1376,8 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
         new_x = new_x[firstIndex:]
         xvalues = xvalues[firstIndex:]
 
-        result[firstIndex:][invalid] = _interpolate_scipy_wrapper(valid_x,
-            valid_y, new_x, method=method, fill_value=fill_value,
+        result[firstIndex:][invalid] = _interpolate_scipy_wrapper(
+            valid_x, valid_y, new_x, method=method, fill_value=fill_value,
             bounds_error=bounds_error, **kwargs)
         if limit:
             result[violate_limit] = np.nan
@@ -1376,7 +1403,7 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
         'barycentric': interpolate.barycentric_interpolate,
         'krogh': interpolate.krogh_interpolate,
         'piecewise_polynomial': interpolate.piecewise_polynomial_interpolate,
-        }
+    }
 
     try:
         alt_methods['pchip'] = interpolate.pchip_interpolate
@@ -1403,16 +1430,18 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
 
 
 def interpolate_2d(values, method='pad', axis=0, limit=None, fill_value=None):
-    """ perform an actual interpolation of values, values will be make 2-d if needed
-        fills inplace, returns the result """
+    """ perform an actual interpolation of values, values will be make 2-d if
+    needed fills inplace, returns the result
+    """
 
     transf = (lambda x: x) if axis == 0 else (lambda x: x.T)
 
     # reshape a 1 dim if needed
     ndim = values.ndim
     if values.ndim == 1:
-        if axis != 0: # pragma: no cover
-            raise AssertionError("cannot interpolate on a ndim == 1 with axis != 0")
+        if axis != 0:  # pragma: no cover
+            raise AssertionError("cannot interpolate on a ndim == 1 with "
+                                 "axis != 0")
         values = values.reshape(tuple((1,) + values.shape))
 
     if fill_value is None:
@@ -1443,6 +1472,7 @@ def _consensus_name_attr(objs):
 
 _fill_methods = {'pad': pad_1d, 'backfill': backfill_1d}
 
+
 def _get_fill_func(method):
     method = _clean_fill_method(method)
     return _fill_methods[method]
@@ -1470,8 +1500,9 @@ def _values_from_object(o):
     return o
 
 
-def _possibly_convert_objects(values, convert_dates=True, convert_numeric=True):
-    """ if we have an object dtype, try to coerce dates and/or numers """
+def _possibly_convert_objects(values, convert_dates=True,
+                              convert_numeric=True):
+    """ if we have an object dtype, try to coerce dates and/or numbers """
 
     # if we have passed in a list or scalar
     if isinstance(values, (list, tuple)):
@@ -1496,17 +1527,22 @@ def _possibly_convert_objects(values, convert_dates=True, convert_numeric=True):
                 values, convert_datetime=convert_dates)
 
     # convert to numeric
-    if convert_numeric and values.dtype == np.object_:
-        try:
-            new_values = lib.maybe_convert_numeric(
-                values, set(), coerce_numeric=True)
+    if values.dtype == np.object_:
+        if convert_numeric:
+            try:
+                new_values = lib.maybe_convert_numeric(
+                    values, set(), coerce_numeric=True)
 
-            # if we are all nans then leave me alone
-            if not isnull(new_values).all():
-                values = new_values
+                # if we are all nans then leave me alone
+                if not isnull(new_values).all():
+                    values = new_values
 
-        except:
-            pass
+            except:
+                pass
+        else:
+
+            # soft-conversion
+            values = lib.maybe_convert_objects(values)
 
     return values
 
@@ -1529,7 +1565,9 @@ def _possibly_convert_platform(values):
 
 
 def _possibly_cast_to_datetime(value, dtype, coerce=False):
-    """ try to cast the array/value to a datetimelike dtype, converting float nan to iNaT """
+    """ try to cast the array/value to a datetimelike dtype, converting float
+    nan to iNaT
+    """
 
     if dtype is not None:
         if isinstance(dtype, compat.string_types):
@@ -1542,11 +1580,17 @@ def _possibly_cast_to_datetime(value, dtype, coerce=False):
 
             # force the dtype if needed
             if is_datetime64 and dtype != _NS_DTYPE:
-                raise TypeError(
-                    "cannot convert datetimelike to dtype [%s]" % dtype)
+                if dtype.name == 'datetime64[ns]':
+                    dtype = _NS_DTYPE
+                else:
+                    raise TypeError(
+                        "cannot convert datetimelike to dtype [%s]" % dtype)
             elif is_timedelta64 and dtype != _TD_DTYPE:
-                raise TypeError(
-                    "cannot convert timedeltalike to dtype [%s]" % dtype)
+                if dtype.name == 'timedelta64[ns]':
+                    dtype = _TD_DTYPE
+                else:
+                    raise TypeError(
+                        "cannot convert timedeltalike to dtype [%s]" % dtype)
 
             if np.isscalar(value):
                 if value == tslib.iNaT or isnull(value):
@@ -1565,21 +1609,26 @@ def _possibly_cast_to_datetime(value, dtype, coerce=False):
                             from pandas.tseries.tools import to_datetime
                             value = to_datetime(value, coerce=coerce).values
                         elif is_timedelta64:
-                            from pandas.tseries.timedeltas import _possibly_cast_to_timedelta
+                            from pandas.tseries.timedeltas import \
+                                _possibly_cast_to_timedelta
                             value = _possibly_cast_to_timedelta(value)
                     except:
                         pass
 
     else:
 
-        # only do this if we have an array and the dtype of the array is not setup already
-        # we are not an integer/object, so don't bother with this conversion
-        if isinstance(value, np.ndarray) and not (issubclass(value.dtype.type, np.integer) or value.dtype == np.object_):
+        # only do this if we have an array and the dtype of the array is not
+        # setup already we are not an integer/object, so don't bother with this
+        # conversion
+        if (isinstance(value, np.ndarray) and not
+                (issubclass(value.dtype.type, np.integer) or
+                 value.dtype == np.object_)):
             pass
 
         else:
-            # we might have a array (or single object) that is datetime like, and no dtype is passed
-            # don't change the value unless we find a datetime set
+            # we might have a array (or single object) that is datetime like,
+            # and no dtype is passed don't change the value unless we find a
+            # datetime set
             v = value
             if not is_list_like(v):
                 v = [v]
@@ -1591,7 +1640,8 @@ def _possibly_cast_to_datetime(value, dtype, coerce=False):
                     except:
                         pass
                 elif inferred_type in ['timedelta', 'timedelta64']:
-                    from pandas.tseries.timedeltas import _possibly_cast_to_timedelta
+                    from pandas.tseries.timedeltas import \
+                        _possibly_cast_to_timedelta
                     value = _possibly_cast_to_timedelta(value)
 
     return value
@@ -1632,7 +1682,6 @@ def _default_index(n):
 def ensure_float(arr):
     if issubclass(arr.dtype.type, (np.integer, np.bool_)):
         arr = arr.astype(float)
-
     return arr
 
 
@@ -1864,8 +1913,12 @@ def _asarray_tuplesafe(values, dtype=None):
         else:
             # Making a 1D array that safely contains tuples is a bit tricky
             # in numpy, leading to the following
-            result = np.empty(len(values), dtype=object)
-            result[:] = values
+            try:
+                result = np.empty(len(values), dtype=object)
+                result[:] = values
+            except ValueError:
+                # we have a list-of-list
+                result[:] = [tuple(x) for x in values]
 
     return result
 
@@ -1966,8 +2019,17 @@ def is_timedelta64_dtype(arr_or_dtype):
 
 
 def needs_i8_conversion(arr_or_dtype):
-    return is_datetime64_dtype(arr_or_dtype) or is_timedelta64_dtype(arr_or_dtype)
+    return (is_datetime64_dtype(arr_or_dtype) or
+            is_timedelta64_dtype(arr_or_dtype))
 
+
+def is_numeric_dtype(arr_or_dtype):
+    if isinstance(arr_or_dtype, np.dtype):
+        tipo = arr_or_dtype.type
+    else:
+        tipo = arr_or_dtype.dtype.type
+    return (issubclass(tipo, (np.number, np.bool_))
+            and not issubclass(tipo, (np.datetime64, np.timedelta64)))
 
 def is_float_dtype(arr_or_dtype):
     if isinstance(arr_or_dtype, np.dtype):
@@ -1999,7 +2061,8 @@ def is_re_compilable(obj):
 
 
 def is_list_like(arg):
-    return hasattr(arg, '__iter__') and not isinstance(arg, compat.string_and_binary_types)
+    return (hasattr(arg, '__iter__') and
+            not isinstance(arg, compat.string_and_binary_types))
 
 
 def _is_sequence(x):
@@ -2033,8 +2096,8 @@ def _astype_nansafe(arr, dtype, copy=True):
         elif dtype == np.int64:
             return arr.view(dtype)
         elif dtype != _NS_DTYPE:
-            raise TypeError(
-                "cannot astype a datetimelike from [%s] to [%s]" % (arr.dtype, dtype))
+            raise TypeError("cannot astype a datetimelike from [%s] to [%s]" %
+                            (arr.dtype, dtype))
         return arr.astype(_NS_DTYPE)
     elif is_timedelta64_dtype(arr):
         if dtype == np.int64:
@@ -2043,8 +2106,19 @@ def _astype_nansafe(arr, dtype, copy=True):
             return arr.astype(object)
 
         # in py3, timedelta64[ns] are int64
-        elif (compat.PY3 and dtype not in [_INT64_DTYPE,_TD_DTYPE]) or (not compat.PY3 and dtype != _TD_DTYPE):
-            raise TypeError("cannot astype a timedelta from [%s] to [%s]" % (arr.dtype,dtype))
+        elif ((compat.PY3 and dtype not in [_INT64_DTYPE, _TD_DTYPE]) or
+                (not compat.PY3 and dtype != _TD_DTYPE)):
+
+            # allow frequency conversions
+            if dtype.kind == 'm':
+                mask = isnull(arr)
+                result = arr.astype(dtype).astype(np.float64)
+                result[mask] = np.nan
+                return result
+
+            raise TypeError("cannot astype a timedelta from [%s] to [%s]" %
+                            (arr.dtype, dtype))
+
         return arr.astype(_TD_DTYPE)
     elif (np.issubdtype(arr.dtype, np.floating) and
           np.issubdtype(dtype, np.integer)):
@@ -2063,7 +2137,8 @@ def _astype_nansafe(arr, dtype, copy=True):
 
 
 def _clean_fill_method(method):
-    if method is None: return None
+    if method is None:
+        return None
     method = method.lower()
     if method == 'ffill':
         method = 'pad'
@@ -2110,8 +2185,9 @@ class UTF8Recoder:
 
 def _get_handle(path, mode, encoding=None, compression=None):
     """Gets file handle for given path and mode.
-    NOTE: Under Python 3.2, getting a compressed file handle means reading in the entire file,
-    decompressing it and decoding it to ``str`` all at once and then wrapping it in a StringIO.
+    NOTE: Under Python 3.2, getting a compressed file handle means reading in
+    the entire file, decompressing it and decoding it to ``str`` all at once
+    and then wrapping it in a StringIO.
     """
     if compression is not None:
         if encoding is not None and not compat.PY3:
@@ -2278,11 +2354,11 @@ def _where_compat(mask, arr1, arr2):
     return np.where(mask, arr1, arr2)
 
 
-def sentinal_factory():
-    class Sentinal(object):
+def sentinel_factory():
+    class Sentinel(object):
         pass
 
-    return Sentinal()
+    return Sentinel()
 
 
 def in_interactive_session():
@@ -2307,8 +2383,10 @@ def in_qtconsole():
     """
     try:
         ip = get_ipython()
-        front_end = (ip.config.get('KernelApp', {}).get('parent_appname', "") or
-                     ip.config.get('IPKernelApp', {}).get('parent_appname', ""))
+        front_end = (
+            ip.config.get('KernelApp', {}).get('parent_appname', "") or
+            ip.config.get('IPKernelApp', {}).get('parent_appname', "")
+        )
         if 'qtconsole' in front_end.lower():
             return True
     except:
@@ -2322,8 +2400,10 @@ def in_ipnb():
     """
     try:
         ip = get_ipython()
-        front_end = (ip.config.get('KernelApp', {}).get('parent_appname', "") or
-                     ip.config.get('IPKernelApp', {}).get('parent_appname', ""))
+        front_end = (
+            ip.config.get('KernelApp', {}).get('parent_appname', "") or
+            ip.config.get('IPKernelApp', {}).get('parent_appname', "")
+        )
         if 'notebook' in front_end.lower():
             return True
     except:
@@ -2379,7 +2459,7 @@ def _pprint_seq(seq, _nest_lvl=0, **kwds):
 
     bounds length of printed sequence, depending on options
     """
-    if isinstance(seq,set):
+    if isinstance(seq, set):
         fmt = u("set([%s])")
     else:
         fmt = u("[%s]") if hasattr(seq, '__setitem__') else u("(%s)")
@@ -2413,8 +2493,8 @@ def _pprint_dict(seq, _nest_lvl=0, **kwds):
     nitems = get_option("max_seq_items") or len(seq)
 
     for k, v in list(seq.items())[:nitems]:
-        pairs.append(pfmt % (pprint_thing(k,_nest_lvl+1,**kwds),
-                             pprint_thing(v,_nest_lvl+1,**kwds)))
+        pairs.append(pfmt % (pprint_thing(k, _nest_lvl + 1, **kwds),
+                             pprint_thing(v, _nest_lvl + 1, **kwds)))
 
     if nitems < len(seq):
         return fmt % (", ".join(pairs) + ", ...")
@@ -2485,7 +2565,7 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
             get_option("display.pprint_nest_depth"):
         result = _pprint_seq(thing, _nest_lvl, escape_chars=escape_chars,
                              quote_strings=quote_strings)
-    elif isinstance(thing,compat.string_types) and quote_strings:
+    elif isinstance(thing, compat.string_types) and quote_strings:
         if compat.PY3:
             fmt = "'%s'"
         else:
@@ -2519,8 +2599,8 @@ def load(path):  # TODO remove in 0.13
     Load pickled pandas object (or any other pickled object) from the specified
     file path
 
-    Warning: Loading pickled data received from untrusted sources can be unsafe.
-    See: http://docs.python.org/2.7/library/pickle.html
+    Warning: Loading pickled data received from untrusted sources can be
+    unsafe. See: http://docs.python.org/2.7/library/pickle.html
 
     Parameters
     ----------
@@ -2538,7 +2618,7 @@ def load(path):  # TODO remove in 0.13
 
 
 def save(obj, path):  # TODO remove in 0.13
-    '''
+    """
     Pickle (serialize) object to input file path
 
     Parameters
@@ -2546,7 +2626,7 @@ def save(obj, path):  # TODO remove in 0.13
     obj : any object
     path : string
         File path
-    '''
+    """
     import warnings
     warnings.warn("save is deprecated, use obj.to_pickle", FutureWarning)
     from pandas.io.pickle import to_pickle
@@ -2554,8 +2634,8 @@ def save(obj, path):  # TODO remove in 0.13
 
 
 def _maybe_match_name(a, b):
-    a_name = getattr(a,'name',None)
-    b_name = getattr(b,'name',None)
+    a_name = getattr(a, 'name', None)
+    b_name = getattr(b, 'name', None)
     if a_name == b_name:
         return a_name
     return None

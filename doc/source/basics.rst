@@ -9,6 +9,7 @@
    randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
    from pandas.compat import lrange
+   options.display.max_rows=15
 
 ==============================
  Essential Basic Functionality
@@ -378,6 +379,7 @@ optional ``level`` parameter which applies only if the object has a
     ``median``, Arithmetic median of values
     ``min``, Minimum
     ``max``, Maximum
+    ``mode``, Mode
     ``abs``, Absolute Value
     ``prod``, Product of values
     ``std``, Unbiased standard deviation
@@ -473,8 +475,8 @@ value, ``idxmin`` and ``idxmax`` return the first matching index:
 
 .. _basics.discretization:
 
-Value counts (histogramming)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Value counts (histogramming) / Mode
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The ``value_counts`` Series method and top-level function computes a histogram
 of a 1D array of values. It can also be used as a function on regular arrays:
@@ -486,6 +488,16 @@ of a 1D array of values. It can also be used as a function on regular arrays:
    s = Series(data)
    s.value_counts()
    value_counts(data)
+
+Similarly, you can get the most frequently occuring value(s) (the mode) of the values in a Series or DataFrame:
+
+.. ipython:: python
+
+    s5 = Series([1, 1, 3, 3, 3, 5, 5, 7, 7, 7])
+    s5.mode()
+    df5 = DataFrame({"A": np.random.randint(0, 7, size=50),
+                     "B": np.random.randint(-10, 15, size=50)})
+    df5.mode()
 
 
 Discretization and quantiling
@@ -514,6 +526,7 @@ normally distributed data into equal-size quartiles like so:
    value_counts(factor)
 
 We can also pass infinite values to define the bins:
+
 .. ipython:: python
 
    arr = np.random.randn(20)
@@ -544,12 +557,11 @@ will either be of lower dimension or the same dimension.
 about a data set. For example, suppose we wanted to extract the date where the
 maximum value for each column occurred:
 
-
 .. ipython:: python
 
    tsdf = DataFrame(randn(1000, 3), columns=['A', 'B', 'C'],
                     index=date_range('1/1/2000', periods=1000))
-   tsdf.apply(lambda x: x[x.idxmax()])
+   tsdf.apply(lambda x: x.idxmax())
 
 You may also pass additional arguments and keyword arguments to the ``apply``
 method. For instance, consider the following function you would like to apply:
@@ -601,10 +613,16 @@ another array or value), the methods ``applymap`` on DataFrame and analogously
 returning a single value. For example:
 
 .. ipython:: python
+   :suppress:
 
+   df4 = df_orig.copy()
+
+.. ipython:: python
+
+   df4
    f = lambda x: len(str(x))
-   df['one'].map(f)
-   df.applymap(f)
+   df4['one'].map(f)
+   df4.applymap(f)
 
 ``Series.map`` has an additional feature which is that it can be used to easily
 "link" or "map" values defined by a secondary series. This is closely related
@@ -699,13 +717,13 @@ make this simpler:
    :suppress:
 
    df2 = df.reindex(['a', 'b', 'c'], columns=['one', 'two'])
-   df2 = df2 - df2.mean()
+   df3 = df2 - df2.mean()
 
 
 .. ipython:: python
 
-   df
    df2
+   df3
    df.reindex_like(df2)
 
 Reindexing with ``reindex_axis``
@@ -960,6 +978,9 @@ importantly, these methods exclude missing/NA values automatically. These are
 accessed via the Series's ``str`` attribute and generally have names matching
 the equivalent (scalar) build-in string methods:
 
+Splitting and Replacing Strings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 .. ipython:: python
 
    s = Series(['A', 'B', 'C', 'Aaba', 'Baca', np.nan, 'CABA', 'dog', 'cat'])
@@ -990,11 +1011,12 @@ Methods like ``replace`` and ``findall`` take regular expressions, too:
    s3
    s3.str.replace('^.a|dog', 'XX-XX ', case=False)
 
-The method ``match`` returns the groups in a regular expression in one tuple.
-Starting in pandas version 0.13.0, the method ``extract`` is available to
-accomplish this more conveniently.
+Extracting Substrings
+~~~~~~~~~~~~~~~~~~~~~
 
-Extracting a regular expression with one group returns a Series of strings.
+The method ``extract`` (introduced in version 0.13) accepts regular expressions
+with match groups. Extracting a regular expression with one group returns
+a Series of strings.
 
 .. ipython:: python
 
@@ -1016,18 +1038,34 @@ Named groups like
 
 .. ipython:: python
 
-   Series(['a1', 'b2', 'c3']).str.match('(?P<letter>[ab])(?P<digit>\d)')
+   Series(['a1', 'b2', 'c3']).str.extract('(?P<letter>[ab])(?P<digit>\d)')
 
 and optional groups like
 
 .. ipython:: python
 
-   Series(['a1', 'b2', '3']).str.match('(?P<letter>[ab])?(?P<digit>\d)')
+   Series(['a1', 'b2', '3']).str.extract('(?P<letter>[ab])?(?P<digit>\d)')
 
 can also be used.
 
-Methods like ``contains``, ``startswith``, and ``endswith`` takes an extra
-``na`` arguement so missing values can be considered True or False:
+Testing for Strings that Match or Contain a Pattern
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In previous versions, *extracting* match groups was accomplished by ``match``,
+which returned a not-so-convenient Series of tuples. Starting in version 0.14,
+the default behavior of match will change. It will return a boolean
+indexer, analagous to the method ``contains``.
+
+The distinction between
+``match`` and ``contains`` is strictness: ``match`` relies on
+strict ``re.match`` while ``contains`` relies on ``re.search``.
+
+In version 0.13, ``match`` performs its old, deprecated behavior by default,
+but the new behavior is availabe through the keyword argument
+``as_indexer=True``.
+
+Methods like ``match``, ``contains``, ``startswith``, and ``endswith`` take
+ an extra ``na`` arguement so missing values can be considered True or False:
 
 .. ipython:: python
 
@@ -1085,13 +1123,13 @@ determine the sort order:
 
 .. ipython:: python
 
-   df.sort_index(by='two')
+   df1 = DataFrame({'one':[2,1,1,1],'two':[1,3,2,4],'three':[5,4,3,2]})
+   df1.sort_index(by='two')
 
 The ``by`` argument can take a list of column names, e.g.:
 
 .. ipython:: python
 
-   df1 = DataFrame({'one':[2,1,1,1],'two':[1,3,2,4],'three':[5,4,3,2]})
    df1[['one', 'two', 'three']].sort_index(by=['one','two'])
 
 Series has the method ``order`` (analogous to `R's order function

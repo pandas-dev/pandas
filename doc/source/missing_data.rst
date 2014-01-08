@@ -1,6 +1,12 @@
 .. currentmodule:: pandas
 .. _missing_data:
 
+.. ipython:: python
+   :suppress:
+
+   from pandas import *
+   options.display.max_rows=15
+
 *************************
 Working with missing data
 *************************
@@ -87,7 +93,7 @@ Datetimes
 ---------
 
 For datetime64[ns] types, ``NaT`` represents missing values. This is a pseudo-native
-sentinal value that can be represented by numpy in a singular dtype (datetime64[ns]).
+sentinel value that can be represented by numpy in a singular dtype (datetime64[ns]).
 Pandas objects provide intercompatibility between ``NaT`` and ``NaN``.
 
 .. ipython:: python

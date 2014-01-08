@@ -1,17 +1,15 @@
-import unittest
 
 from numpy import nan
 import numpy as np
 from pandas import Index, isnull, Timestamp
 from pandas.util.testing import assert_almost_equal
-import pandas.util.testing as common
+import pandas.util.testing as tm
 from pandas.compat import range, lrange, zip
 import pandas.lib as lib
 import pandas.algos as algos
 from datetime import datetime
 
-
-class TestTseriesUtil(unittest.TestCase):
+class TestTseriesUtil(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def test_combineFunc(self):
@@ -421,7 +419,7 @@ def test_series_bin_grouper():
     assert_almost_equal(counts, exp_counts)
 
 
-class TestBinGroupers(unittest.TestCase):
+class TestBinGroupers(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def setUp(self):
@@ -560,7 +558,7 @@ def test_try_parse_dates():
     assert(np.array_equal(result, expected))
 
 
-class TestTypeInference(unittest.TestCase):
+class TestTypeInference(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def test_length_zero(self):
@@ -653,11 +651,11 @@ class TestTypeInference(unittest.TestCase):
             pass
 
 
-class TestMoments(unittest.TestCase):
+class TestMoments(tm.TestCase):
     pass
 
 
-class TestReducer(unittest.TestCase):
+class TestReducer(tm.TestCase):
 
     def test_int_index(self):
         from pandas.core.series import Series
@@ -685,7 +683,7 @@ class TestReducer(unittest.TestCase):
         assert_almost_equal(result, expected)
 
 
-class TestTsUtil(unittest.TestCase):
+class TestTsUtil(tm.TestCase):
     def test_min_valid(self):
         # Ensure that Timestamp.min is a valid Timestamp
         Timestamp(Timestamp.min)
@@ -700,7 +698,7 @@ class TestTsUtil(unittest.TestCase):
         self.assertEqual(Timestamp(Timestamp.max.to_pydatetime()).value/1000, Timestamp.max.value/1000)
         self.assertEqual(Timestamp(Timestamp.min.to_pydatetime()).value/1000, Timestamp.min.value/1000)
 
-class TestPeriodField(unittest.TestCase):
+class TestPeriodField(tm.TestCase):
 
     def test_get_period_field_raises_on_out_of_range(self):
         from pandas import tslib

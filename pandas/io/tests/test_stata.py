@@ -2,7 +2,6 @@
 
 from datetime import datetime
 import os
-import unittest
 import warnings
 import nose
 
@@ -15,7 +14,11 @@ import pandas.util.testing as tm
 from pandas.util.misc import is_little_endian
 from pandas import compat
 
-class StataTests(unittest.TestCase):
+def skip_if_not_little_endian():
+    if not is_little_endian():
+        raise nose.SkipTest("known failure of test on non-little endian")
+
+class TestStata(tm.TestCase):
 
     def setUp(self):
         # Unit test datasets for dta7 - dta9 (old stata formats 104, 105 and 107) can be downloaded from:
@@ -146,9 +149,7 @@ class StataTests(unittest.TestCase):
         tm.assert_frame_equal(parsed_13, expected)
 
     def test_read_write_dta5(self):
-        if not is_little_endian():
-            raise nose.SkipTest("known failure of test_write_dta5 on "
-                                "non-little endian")
+        skip_if_not_little_endian()
 
         original = DataFrame([(np.nan, np.nan, np.nan, np.nan, np.nan)],
                              columns=['float_miss', 'double_miss', 'byte_miss',
@@ -162,9 +163,7 @@ class StataTests(unittest.TestCase):
                                   original)
 
     def test_write_dta6(self):
-        if not is_little_endian():
-            raise nose.SkipTest("known failure of test_write_dta6 on "
-                                "non-little endian")
+        skip_if_not_little_endian()
 
         original = self.read_csv(self.csv3)
         original.index.name = 'index'
@@ -194,9 +193,7 @@ class StataTests(unittest.TestCase):
         tm.assert_frame_equal(parsed, expected)
 
     def test_read_write_dta10(self):
-        if not is_little_endian():
-            raise nose.SkipTest("known failure of test_write_dta10 on "
-                                "non-little endian")
+        skip_if_not_little_endian()
 
         original = DataFrame(data=[["string", "object", 1, 1.1,
                                     np.datetime64('2003-12-25')]],
@@ -231,6 +228,42 @@ class StataTests(unittest.TestCase):
             expected = raw.kreis1849.str.decode("latin-1")[0]
             self.assert_(result == expected)
             self.assert_(isinstance(result, unicode))
+
+    def test_read_write_dta11(self):
+        skip_if_not_little_endian()
+
+        original = DataFrame([(1, 2, 3, 4)],
+                             columns=['good', compat.u('b\u00E4d'), '8number', 'astringwithmorethan32characters______'])
+        formatted = DataFrame([(1, 2, 3, 4)],
+                              columns=['good', 'b_d', '_8number', 'astringwithmorethan32characters_'])
+        formatted.index.name = 'index'
+
+        with tm.ensure_clean() as path:
+            with warnings.catch_warnings(record=True) as w:
+                original.to_stata(path, None, False)
+                np.testing.assert_equal(
+                    len(w), 1)  # should get a warning for that format.
+
+            written_and_read_again = self.read_dta(path)
+            tm.assert_frame_equal(written_and_read_again.set_index('index'), formatted)
+
+    def test_read_write_dta12(self):
+        skip_if_not_little_endian()
+
+        original = DataFrame([(1, 2, 3, 4)],
+                             columns=['astringwithmorethan32characters_1', 'astringwithmorethan32characters_2', '+', '-'])
+        formatted = DataFrame([(1, 2, 3, 4)],
+                              columns=['astringwithmorethan32characters_', '_0astringwithmorethan32character', '_', '_1_'])
+        formatted.index.name = 'index'
+
+        with tm.ensure_clean() as path:
+            with warnings.catch_warnings(record=True) as w:
+                original.to_stata(path, None, False)
+                np.testing.assert_equal(
+                    len(w), 1)  # should get a warning for that format.
+
+            written_and_read_again = self.read_dta(path)
+            tm.assert_frame_equal(written_and_read_again.set_index('index'), formatted)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

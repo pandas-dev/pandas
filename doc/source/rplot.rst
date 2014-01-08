@@ -7,6 +7,7 @@
    import numpy as np
    np.random.seed(123456)
    from pandas import *
+   options.display.max_rows=15
    import pandas.util.testing as tm
    randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)

@@ -1,8 +1,3 @@
-import pandas.core.config as cf
-from pandas.core.config import (is_int, is_bool, is_text, is_float,
-                                is_instance_factory,is_one_of_factory,get_default_val)
-from pandas.core.format import detect_console_encoding
-
 """
 This module is imported from the pandas package __init__.py file
 in order to ensure that the core.config options registered here will
@@ -15,8 +10,14 @@ module is imported, register them here rather then in the module.
 
 """
 
+import pandas.core.config as cf
+from pandas.core.config import (is_int, is_bool, is_text, is_float,
+                                is_instance_factory, is_one_of_factory,
+                                get_default_val)
+from pandas.core.format import detect_console_encoding
 
-###########################################
+
+#
 # options from the "display" namespace
 
 pc_precision_doc = """
@@ -113,8 +114,8 @@ colheader_justify_doc = """
 
 pc_expand_repr_doc = """
 : boolean
-    Whether to print out the full DataFrame repr for wide DataFrames
-    across multiple lines, `max_columns` is still respected, but the output will
+    Whether to print out the full DataFrame repr for wide DataFrames across
+    multiple lines, `max_columns` is still respected, but the output will
     wrap-around across multiple "pages" if it's width exceeds `display.width`.
 """
 
@@ -124,7 +125,8 @@ pc_line_width_doc = """
 """
 
 pc_line_width_deprecation_warning = """\
-line_width has been deprecated, use display.width instead (currently both are identical)
+line_width has been deprecated, use display.width instead (currently both are
+identical)
 """
 
 pc_height_deprecation_warning = """\
@@ -134,8 +136,8 @@ height has been deprecated.
 pc_width_doc = """
 : int
     Width of the display in characters. In case python/IPython is running in
-    a terminal this can be set to None and pandas will correctly auto-detect the
-    width.
+    a terminal this can be set to None and pandas will correctly auto-detect
+    the width.
     Note that the IPython notebook, IPython qtconsole, or IDLE do not run in a
     terminal and hence it is not possible to correctly detect the width.
 """
@@ -155,8 +157,8 @@ pc_max_seq_items = """
 : int or None
 
     when pretty-printing a long sequence, no more then `max_seq_items`
-    will be printed. If items are ommitted, they will be denoted by the addition
-    of "..." to the resulting string.
+    will be printed. If items are omitted, they will be denoted by the
+    addition of "..." to the resulting string.
 
     If set to None, the number of items to be printed is unlimited.
 """
@@ -164,13 +166,19 @@ pc_max_seq_items = """
 
 pc_max_info_rows_doc = """
 : int or None
-    max_info_rows is the maximum number of rows for which a frame will
-    perform a null check on its columns when repr'ing To a console.
-    The default is 1,000,000 rows. So, if a DataFrame has more
-    1,000,000 rows there will be no null check performed on the
-    columns and thus the representation will take much less time to
-    display in an interactive session. A value of None means always
-    perform a null check when repr'ing.
+    Deprecated.
+"""
+
+pc_max_info_rows_deprecation_warning = """\
+max_info_rows has been deprecated, as reprs no longer use the info view.
+"""
+
+pc_large_repr_doc = """
+: 'truncate'/'info'
+
+    For DataFrames exceeding max_rows/max_cols, the repr (and HTML repr) can
+    show a truncated table (the default from 0.13), or switch to the view from
+    df.info() (the behaviour in earlier versions of pandas).
 """
 
 pc_mpl_style_doc = """
@@ -182,6 +190,8 @@ pc_mpl_style_doc = """
 """
 
 style_backup = dict()
+
+
 def mpl_style_cb(key):
     import sys
     from pandas.tools.plotting import mpl_stylesheet
@@ -190,15 +200,14 @@ def mpl_style_cb(key):
     val = cf.get_option(key)
 
     if 'matplotlib' not in sys.modules.keys():
-        if not(val): # starting up, we get reset to None
+        if not(val):  # starting up, we get reset to None
             return val
         raise Exception("matplotlib has not been imported. aborting")
 
     import matplotlib.pyplot as plt
 
-
     if val == 'default':
-        style_backup = dict([(k,plt.rcParams[k]) for k in mpl_stylesheet])
+        style_backup = dict([(k, plt.rcParams[k]) for k in mpl_stylesheet])
         plt.rcParams.update(mpl_stylesheet)
     elif not val:
         if style_backup:
@@ -217,6 +226,8 @@ with cf.config_prefix('display'):
     cf.register_option('max_colwidth', 50, max_colwidth_doc, validator=is_int)
     cf.register_option('max_columns', 20, pc_max_cols_doc,
                        validator=is_instance_factory([type(None), int]))
+    cf.register_option('large_repr', 'truncate', pc_large_repr_doc,
+                       validator=is_one_of_factory(['truncate', 'info']))
     cf.register_option('max_info_columns', 100, pc_max_info_cols_doc,
                        validator=is_int)
     cf.register_option('colheader_justify', 'right', colheader_justify_doc,
@@ -235,16 +246,17 @@ with cf.config_prefix('display'):
                        validator=is_text)
     cf.register_option('expand_frame_repr', True, pc_expand_repr_doc)
     cf.register_option('chop_threshold', None, pc_chop_threshold_doc)
-    cf.register_option('max_seq_items', None, pc_max_seq_items)
+    cf.register_option('max_seq_items', 100, pc_max_seq_items)
     cf.register_option('mpl_style', None, pc_mpl_style_doc,
                        validator=is_one_of_factory([None, False, 'default']),
                        cb=mpl_style_cb)
     cf.register_option('height', 60, pc_height_doc,
                        validator=is_instance_factory([type(None), int]))
-    cf.register_option('width',80, pc_width_doc,
+    cf.register_option('width', 80, pc_width_doc,
                        validator=is_instance_factory([type(None), int]))
     # redirected to width, make defval identical
-    cf.register_option('line_width', get_default_val('display.width'), pc_line_width_doc)
+    cf.register_option('line_width', get_default_val('display.width'),
+                       pc_line_width_doc)
 
 cf.deprecate_option('display.line_width',
                     msg=pc_line_width_deprecation_warning,
@@ -253,6 +265,9 @@ cf.deprecate_option('display.line_width',
 cf.deprecate_option('display.height',
                     msg=pc_height_deprecation_warning,
                     rkey='display.max_rows')
+
+cf.deprecate_option('display.max_info_rows',
+                    msg=pc_max_info_rows_deprecation_warning)
 
 tc_sim_interactive_doc = """
 : boolean
@@ -281,17 +296,29 @@ with cf.config_prefix('mode'):
                        cb=use_inf_as_null_cb)
 
 
+# user warnings
+chained_assignment = """
+: string
+    Raise an exception, warn, or no action if trying to use chained assignment,
+    The default is warn
+"""
+
+with cf.config_prefix('mode'):
+    cf.register_option('chained_assignment', 'warn', chained_assignment,
+                       validator=is_one_of_factory([None, 'warn', 'raise']))
+
+
 # Set up the io.excel specific configuration.
 writer_engine_doc = """
 : string
-    The default Excel writer engine for '{ext}' files. Available options: '{default}' (the default){others}.
+    The default Excel writer engine for '{ext}' files. Available options:
+    '{default}' (the default){others}.
 """
 
 with cf.config_prefix('io.excel'):
     # going forward, will be additional writers
     for ext, options in [('xls', ['xlwt']),
-                         ('xlsm', ['openpyxl']),
-                         ('xlsx', ['openpyxl'])]:
+                         ('xlsm', ['openpyxl'])]:
         default = options.pop(0)
         if options:
             options = " " + ", ".join(options)
@@ -300,3 +327,18 @@ with cf.config_prefix('io.excel'):
         doc = writer_engine_doc.format(ext=ext, default=default,
                                        others=options)
         cf.register_option(ext + '.writer', default, doc, validator=str)
+
+    def _register_xlsx(engine, other):
+        cf.register_option('xlsx.writer', engine,
+                           writer_engine_doc.format(ext='xlsx',
+                                                    default=engine,
+                                                    others=", '%s'" % other),
+                           validator=str)
+
+    try:
+        # better memory footprint
+        import xlsxwriter
+        _register_xlsx('xlsxwriter', 'openpyxl')
+    except ImportError:
+        # fallback
+        _register_xlsx('openpyxl', 'xlsxwriter')

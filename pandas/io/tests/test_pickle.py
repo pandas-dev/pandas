@@ -5,7 +5,6 @@
 from datetime import datetime, timedelta
 import operator
 import pickle as pkl
-import unittest
 import nose
 import os
 
@@ -24,7 +23,7 @@ def _read_pickle(vf, encoding=None, compat=False):
     with open(vf,'rb') as fh:
         pc.load(fh, encoding=encoding, compat=compat)
 
-class TestPickle(unittest.TestCase):
+class TestPickle(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def setUp(self):
@@ -79,6 +78,9 @@ class TestPickle(unittest.TestCase):
 
     def test_read_pickles_0_12_0(self):
         self.read_pickles('0.12.0')
+
+    def test_read_pickles_0_13_0(self):
+        self.read_pickles('0.13.0')
 
     def test_round_trip_current(self):
 

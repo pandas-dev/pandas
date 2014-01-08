@@ -21,13 +21,14 @@ from pandas.computation.ops import (_cmp_ops_syms, _bool_ops_syms,
                                     _arith_ops_syms, _unary_ops_syms, is_term)
 from pandas.computation.ops import _reductions, _mathops, _LOCAL_TAG
 from pandas.computation.ops import Op, BinOp, UnaryOp, Term, Constant, Div
+from pandas.computation.ops import UndefinedVariableError
 
 
 def _ensure_scope(level=2, global_dict=None, local_dict=None, resolvers=None,
-                  **kwargs):
+                  target=None, **kwargs):
     """Ensure that we are grabbing the correct scope."""
     return Scope(gbls=global_dict, lcls=local_dict, level=level,
-                 resolvers=resolvers)
+                 resolvers=resolvers, target=target)
 
 
 def _check_disjoint_resolver_names(resolver_keys, local_keys, global_keys):
@@ -69,6 +70,7 @@ def _raw_hex_id(obj, pad_size=2):
 
 
 class Scope(StringMixin):
+
     """Object to hold scope, with a few bells to deal with some custom syntax
     added by pandas.
 
@@ -88,13 +90,15 @@ class Scope(StringMixin):
     resolver_keys : frozenset
     """
     __slots__ = ('globals', 'locals', 'resolvers', '_global_resolvers',
-                 'resolver_keys', '_resolver', 'level', 'ntemps')
+                 'resolver_keys', '_resolver', 'level', 'ntemps', 'target')
 
-    def __init__(self, gbls=None, lcls=None, level=1, resolvers=None):
+    def __init__(self, gbls=None, lcls=None, level=1, resolvers=None,
+                 target=None):
         self.level = level
         self.resolvers = tuple(resolvers or [])
         self.globals = dict()
         self.locals = dict()
+        self.target = target
         self.ntemps = 1  # number of temporary variables in this scope
 
         if isinstance(lcls, Scope):
@@ -102,6 +106,8 @@ class Scope(StringMixin):
             self.locals.update(ld.locals.copy())
             self.globals.update(ld.globals.copy())
             self.resolvers += ld.resolvers
+            if ld.target is not None:
+                self.target = ld.target
             self.update(ld.level)
 
         frame = sys._getframe(level)
@@ -119,6 +125,10 @@ class Scope(StringMixin):
         self.globals['True'] = True
         self.globals['False'] = False
 
+        # function defs
+        self.globals['list'] = list
+        self.globals['tuple'] = tuple
+
         res_keys = (list(o.keys()) for o in self.resolvers)
         self.resolver_keys = frozenset(reduce(operator.add, res_keys, []))
         self._global_resolvers = self.resolvers + (self.locals, self.globals)
@@ -129,10 +139,12 @@ class Scope(StringMixin):
             self.resolver_dict.update(dict(o))
 
     def __unicode__(self):
-        return com.pprint_thing("locals: {0}\nglobals: {0}\nresolvers: "
-                                "{0}".format(list(self.locals.keys()),
-                                             list(self.globals.keys()),
-                                             list(self.resolver_keys)))
+        return com.pprint_thing(
+            'locals: {0}\nglobals: {0}\nresolvers: '
+            '{0}\ntarget: {0}'.format(list(self.locals.keys()),
+                                      list(self.globals.keys()),
+                                      list(self.resolver_keys),
+                                      self.target))
 
     def __getitem__(self, key):
         return self.resolve(key, globally=False)
@@ -171,6 +183,8 @@ class Scope(StringMixin):
             while sl >= 0:
                 frame = frame.f_back
                 sl -= 1
+                if frame is None:
+                    break
                 frames.append(frame)
             for f in frames[::-1]:
                 self.locals.update(f.f_locals)
@@ -317,6 +331,7 @@ def _node_not_implemented(node_name, cls):
     """Return a function that raises a NotImplementedError with a passed node
     name.
     """
+
     def f(self, *args, **kwargs):
         raise NotImplementedError("{0!r} nodes are not "
                                   "implemented".format(node_name))
@@ -349,6 +364,7 @@ def _op_maker(op_class, op_symbol):
     -------
     f : callable
     """
+
     def f(self, node, *args, **kwargs):
         """Return a partial function with an Op subclass with an operator
         already passed.
@@ -382,6 +398,7 @@ def add_ops(op_classes):
 @disallow(_unsupported_nodes)
 @add_ops(_op_classes)
 class BaseExprVisitor(ast.NodeVisitor):
+
     """Custom ast walker. Parsers of other engines should subclass this class
     if necessary.
 
@@ -417,6 +434,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         self.engine = engine
         self.parser = parser
         self.preparser = preparser
+        self.assigner = None
 
     def visit(self, node, **kwargs):
         if isinstance(node, string_types):
@@ -493,22 +511,24 @@ class BaseExprVisitor(ast.NodeVisitor):
                                  maybe_eval_in_python=('==', '!=')):
         res = op(lhs, rhs)
 
-        if (res.op in _cmp_ops_syms and
-            lhs.is_datetime or rhs.is_datetime and
-            self.engine != 'pytables'):
-            # all date ops must be done in python bc numexpr doesn't work well
-            # with NaT
-            return self._possibly_eval(res, self.binary_ops)
+        if self.engine != 'pytables':
+            if (res.op in _cmp_ops_syms
+                    and getattr(lhs, 'is_datetime', False)
+                    or getattr(rhs, 'is_datetime', False)):
+                # all date ops must be done in python bc numexpr doesn't work
+                # well with NaT
+                return self._possibly_eval(res, self.binary_ops)
 
         if res.op in eval_in_python:
             # "in"/"not in" ops are always evaluated in python
             return self._possibly_eval(res, eval_in_python)
-        elif (lhs.return_type == object or rhs.return_type == object and
-              self.engine != 'pytables'):
-            # evaluate "==" and "!=" in python if either of our operands has an
-            # object return type
-            return self._possibly_eval(res, eval_in_python +
-                                       maybe_eval_in_python)
+        elif self.engine != 'pytables':
+            if (getattr(lhs, 'return_type', None) == object
+                    or getattr(rhs, 'return_type', None) == object):
+                # evaluate "==" and "!=" in python if either of our operands
+                # has an object return type
+                return self._possibly_eval(res, eval_in_python +
+                                           maybe_eval_in_python)
         return res
 
     def visit_BinOp(self, node, **kwargs):
@@ -575,9 +595,35 @@ class BaseExprVisitor(ast.NodeVisitor):
         return slice(lower, upper, step)
 
     def visit_Assign(self, node, **kwargs):
-        cmpr = ast.Compare(ops=[ast.Eq()], left=node.targets[0],
-                           comparators=[node.value])
-        return self.visit(cmpr)
+        """
+        support a single assignment node, like
+
+        c = a + b
+
+        set the assigner at the top level, must be a Name node which
+        might or might not exist in the resolvers
+
+        """
+
+        if len(node.targets) != 1:
+            raise SyntaxError('can only assign a single expression')
+        if not isinstance(node.targets[0], ast.Name):
+            raise SyntaxError('left hand side of an assignment must be a '
+                              'single name')
+        if self.env.target is None:
+            raise ValueError('cannot assign without a target object')
+
+        try:
+            assigner = self.visit(node.targets[0], **kwargs)
+        except UndefinedVariableError:
+            assigner = node.targets[0].id
+
+        self.assigner = getattr(assigner, 'name', assigner)
+        if self.assigner is None:
+            raise SyntaxError('left hand side of an assignment must be a '
+                              'single resolvable name')
+
+        return self.visit(node.value, **kwargs)
 
     def visit_Attribute(self, node, **kwargs):
         attr = node.attr
@@ -592,13 +638,13 @@ class BaseExprVisitor(ast.NodeVisitor):
                 name = self.env.add_tmp(v)
                 return self.term_type(name, self.env)
             except AttributeError:
-                # something like datetime.datetime where scope is overriden
+                # something like datetime.datetime where scope is overridden
                 if isinstance(value, ast.Name) and value.id == attr:
                     return resolved
 
         raise ValueError("Invalid Attribute context {0}".format(ctx.__name__))
 
-    def visit_Call(self, node, **kwargs):
+    def visit_Call(self, node, side=None, **kwargs):
 
         # this can happen with: datetime.datetime
         if isinstance(node.func, ast.Attribute):
@@ -669,8 +715,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         return reduce(visitor, operands)
 
 
-_python_not_supported = frozenset(['Assign', 'Dict', 'Call', 'BoolOp',
-                                   'In', 'NotIn'])
+_python_not_supported = frozenset(['Dict', 'Call', 'BoolOp', 'In', 'NotIn'])
 _numexpr_supported_calls = frozenset(_reductions + _mathops)
 
 
@@ -678,6 +723,7 @@ _numexpr_supported_calls = frozenset(_reductions + _mathops)
           (_boolop_nodes | frozenset(['BoolOp', 'Attribute', 'In', 'NotIn',
                                       'Tuple'])))
 class PandasExprVisitor(BaseExprVisitor):
+
     def __init__(self, env, engine, parser,
                  preparser=lambda x: _replace_locals(_replace_booleans(x))):
         super(PandasExprVisitor, self).__init__(env, engine, parser, preparser)
@@ -685,12 +731,14 @@ class PandasExprVisitor(BaseExprVisitor):
 
 @disallow(_unsupported_nodes | _python_not_supported | frozenset(['Not']))
 class PythonExprVisitor(BaseExprVisitor):
+
     def __init__(self, env, engine, parser, preparser=lambda x: x):
         super(PythonExprVisitor, self).__init__(env, engine, parser,
                                                 preparser=preparser)
 
 
 class Expr(StringMixin):
+
     """Object encapsulating an expression.
 
     Parameters
@@ -702,6 +750,7 @@ class Expr(StringMixin):
     truediv : bool, optional, default True
     level : int, optional, default 2
     """
+
     def __init__(self, expr, engine='numexpr', parser='pandas', env=None,
                  truediv=True, level=2):
         self.expr = expr
@@ -711,6 +760,10 @@ class Expr(StringMixin):
         self._visitor = _parsers[parser](self.env, self.engine, self.parser)
         self.terms = self.parse()
         self.truediv = truediv
+
+    @property
+    def assigner(self):
+        return getattr(self._visitor, 'assigner', None)
 
     def __call__(self):
         self.env.locals['truediv'] = self.truediv

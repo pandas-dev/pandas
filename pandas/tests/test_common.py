@@ -1,6 +1,5 @@
 from datetime import datetime
 import re
-import unittest
 
 import nose
 from nose.tools import assert_equal
@@ -75,17 +74,28 @@ def test_isnull():
     assert not isnull(np.inf)
     assert not isnull(-np.inf)
 
+    # series
     for s in [tm.makeFloatSeries(),tm.makeStringSeries(),
               tm.makeObjectSeries(),tm.makeTimeSeries(),tm.makePeriodSeries()]:
             assert(isinstance(isnull(s), Series))
 
-    # call on DataFrame
-    df = DataFrame(np.random.randn(10, 5))
-    df['foo'] = 'bar'
-    result = isnull(df)
-    expected = result.apply(isnull)
-    tm.assert_frame_equal(result, expected)
+    # frame
+    for df in [tm.makeTimeDataFrame(),tm.makePeriodFrame(),tm.makeMixedDataFrame()]:
+        result = isnull(df)
+        expected = df.apply(isnull)
+        tm.assert_frame_equal(result, expected)
 
+    # panel
+    for p in [ tm.makePanel(), tm.makePeriodPanel(), tm.add_nans(tm.makePanel()) ]:
+        result = isnull(p)
+        expected = p.apply(isnull)
+        tm.assert_panel_equal(result, expected)
+
+    # panel 4d
+    for p in [ tm.makePanel4D(), tm.add_nans_panel4d(tm.makePanel4D()) ]:
+        result = isnull(p)
+        expected = p.apply(isnull)
+        tm.assert_panel4d_equal(result, expected)
 
 def test_isnull_lists():
     result = isnull([[False]])
@@ -118,6 +128,36 @@ def test_isnull_datetime():
     assert(mask[0])
     assert(not mask[1:].any())
 
+def test_downcast_conv():
+    # test downcasting
+
+    arr = np.array([8.5, 8.6, 8.7, 8.8, 8.9999999999995])
+    result = com._possibly_downcast_to_dtype(arr, 'infer')
+    assert (np.array_equal(result, arr))
+
+    arr = np.array([8., 8., 8., 8., 8.9999999999995])
+    result = com._possibly_downcast_to_dtype(arr, 'infer')
+    expected = np.array([8, 8, 8, 8, 9])
+    assert (np.array_equal(result, expected))
+
+    arr = np.array([8., 8., 8., 8., 9.0000000000005])
+    result = com._possibly_downcast_to_dtype(arr, 'infer')
+    expected = np.array([8, 8, 8, 8, 9])
+    assert (np.array_equal(result, expected))
+
+    # conversions
+
+    expected = np.array([1,2])
+    for dtype in [np.float64,object,np.int64]:
+        arr = np.array([1.0,2.0],dtype=dtype)
+        result = com._possibly_downcast_to_dtype(arr,'infer')
+        tm.assert_almost_equal(result, expected)
+
+    expected = np.array([1.0,2.0,np.nan])
+    for dtype in [np.float64,object]:
+        arr = np.array([1.0,2.0,np.nan],dtype=dtype)
+        result = com._possibly_downcast_to_dtype(arr,'infer')
+        tm.assert_almost_equal(result, expected)
 
 def test_datetimeindex_from_empty_datetime64_array():
     for unit in [ 'ms', 'us', 'ns' ]:
@@ -309,7 +349,7 @@ def test_ensure_int32():
     assert(result.dtype == np.int32)
 
 
-class TestEnsureNumeric(unittest.TestCase):
+class TestEnsureNumeric(tm.TestCase):
     def test_numeric_values(self):
         # Test integer
         self.assertEqual(nanops._ensure_numeric(1), 1, 'Failed for int')
@@ -416,7 +456,7 @@ def test_is_recompilable():
         assert not com.is_re_compilable(f)
 
 
-class TestTake(unittest.TestCase):
+class TestTake(tm.TestCase):
     # standard incompatible fill error
     fill_error = re.compile("Incompatible type for fill_value")
 

@@ -1,6 +1,5 @@
 from pandas.compat import range
 import nose
-import unittest
 
 import numpy as np
 from numpy.testing.decorators import slow
@@ -14,7 +13,7 @@ from pandas.tseries.tools import normalize_date
 from pandas.tseries.util import pivot_annual, isleapyear
 
 
-class TestPivotAnnual(unittest.TestCase):
+class TestPivotAnnual(tm.TestCase):
     """
     New pandas of scikits.timeseries pivot_annual
     """

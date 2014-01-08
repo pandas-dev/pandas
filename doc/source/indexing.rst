@@ -9,6 +9,7 @@
    import random
    np.random.seed(123456)
    from pandas import *
+   options.display.max_rows=15
    import pandas as pd
    randn = np.random.randn
    randint = np.random.randint
@@ -491,7 +492,7 @@ You can also set using these same indexers.
 
 .. ipython:: python
 
-   df.at[6, 0] = 7
+   df.at[dates[-1]+1, 0] = 7
    df
 
 Boolean indexing
@@ -589,14 +590,6 @@ a list of items you want to check for.
    values = {'ids': ['a', 'b'], 'vals': [1, 3]}
 
    df.isin(values)
-
-You can also describe columns using integer location:
-
-.. ipython:: python
-
-   values = {0: ['a', 'b']}
-
-   df.isin(values, iloc=True)
 
 Combine DataFrame's ``isin`` with the ``any()`` and ``all()`` methods to
 quickly select subsets of your data that meet a given criteria.
@@ -1338,23 +1331,33 @@ indexing operation, the result will be a copy. With single label / scalar
 indexing and slicing, e.g. ``df.ix[3:6]`` or ``df.ix[:, 'A']``, a view will be
 returned.
 
-In chained expressions, the order may determine whether a copy is returned or not:
+In chained expressions, the order may determine whether a copy is returned or not.
+If an expression will set values on a copy of a slice, then a ``SettingWithCopy``
+exception will be raised (this raise/warn behavior is new starting in 0.13.0)
+
+You can control the action of a chained assignment via the option ``mode.chained_assignment``,
+which can take the values ``['raise','warn',None]``, where showing a warning is the default.
 
 .. ipython:: python
 
-
    dfb = DataFrame({'a' : ['one', 'one', 'two',
                            'three', 'two', 'one', 'six'],
-                    'b' : ['x', 'y', 'y',
-                           'x', 'y', 'x', 'x'],
-                    'c' : randn(7)})
-
-
-   # goes to copy (will be lost)
-   dfb[dfb.a.str.startswith('o')]['c'] = 42
+                    'c' : np.arange(7)})
 
    # passed via reference (will stay)
    dfb['c'][dfb.a.str.startswith('o')] = 42
+
+This however is operating on a copy and will not work.
+
+::
+
+   >>> pd.set_option('mode.chained_assignment','warn')
+   >>> dfb[dfb.a.str.startswith('o')]['c'] = 42
+   Traceback (most recent call last)
+        ...
+   SettingWithCopyWarning:
+        A value is trying to be set on a copy of a slice from a DataFrame.
+        Try using .loc[row_index,col_indexer] = value instead
 
 A chained assignment can also crop up in setting in a mixed dtype frame.
 
@@ -1367,28 +1370,35 @@ This is the correct access method
 .. ipython:: python
 
    dfc = DataFrame({'A':['aaa','bbb','ccc'],'B':[1,2,3]})
-   dfc_copy = dfc.copy()
-   dfc_copy.loc[0,'A'] = 11
-   dfc_copy
+   dfc.loc[0,'A'] = 11
+   dfc
 
 This *can* work at times, but is not guaranteed, and so should be avoided
 
 .. ipython:: python
 
-   dfc_copy = dfc.copy()
-   dfc_copy['A'][0] = 111
-   dfc_copy
+   dfc = dfc.copy()
+   dfc['A'][0] = 111
+   dfc
 
 This will **not** work at all, and so should be avoided
 
-.. ipython:: python
+::
 
-   dfc_copy = dfc.copy()
-   dfc_copy.loc[0]['A'] = 1111
-   dfc_copy
+   >>> pd.set_option('mode.chained_assignment','raise')
+   >>> dfc.loc[0]['A'] = 1111
+   Traceback (most recent call last)
+        ...
+   SettingWithCopyException:
+        A value is trying to be set on a copy of a slice from a DataFrame.
+        Try using .loc[row_index,col_indexer] = value instead
 
-When assigning values to subsets of your data, thus, make sure to either use the
-pandas access methods or explicitly handle the assignment creating a copy.
+.. warning::
+
+   The chained assignment warnings / exceptions are aiming to inform the user of a possibly invalid
+   assignment. There may be false positives; situations where a chained assignment is inadvertantly
+   reported.
+
 
 Fallback indexing
 -----------------
@@ -1878,6 +1888,8 @@ if you compute the levels and labels yourself, please be careful.
 
 Setting index metadata (``name(s)``, ``levels``, ``labels``)
 ------------------------------------------------------------
+
+.. versionadded:: 0.13.0
 
 .. _indexing.set_metadata:
 

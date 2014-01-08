@@ -66,11 +66,12 @@ _reserved_keys = ['all']  # keys which have a special meaning
 
 
 class OptionError(AttributeError, KeyError):
+
     """Exception for pandas.options, backwards compatible with KeyError
     checks"""
 
 
-##########################################
+#
 # User API
 
 def _get_single_key(pat, silent):
@@ -173,19 +174,24 @@ def _reset_option(pat):
 
     if len(keys) > 1 and len(pat) < 4 and pat != 'all':
         raise ValueError('You must specify at least 4 characters when '
-                         'resetting multiple keys, use the special keyword "all" '
-                         'to reset all the options to their default value')
+                         'resetting multiple keys, use the special keyword '
+                         '"all" to reset all the options to their default '
+                         'value')
 
     for k in keys:
         _set_option(k, _registered_options[k].defval)
 
+
 def get_default_val(pat):
-    key =  _get_single_key(pat, silent=True)
+    key = _get_single_key(pat, silent=True)
     return _get_registered_option(key).defval
 
+
 class DictWrapper(object):
+
     """ provide attribute-style access to a nested dict
     """
+
     def __init__(self, d, prefix=""):
         object.__setattr__(self, "d", d)
         object.__setattr__(self, "prefix", prefix)
@@ -242,7 +248,8 @@ class CallableDynamicDoc(object):
         return self.__doc_tmpl__.format(opts_desc=opts_desc,
                                         opts_list=opts_list)
 
-_get_option_tmpl = """"get_option(pat) - Retrieves the value of the specified option
+_get_option_tmpl = """
+get_option(pat) - Retrieves the value of the specified option
 
 Available options:
 {opts_list}
@@ -266,7 +273,8 @@ OptionError if no such option exists
 {opts_desc}
 """
 
-_set_option_tmpl = """set_option(pat,value) - Sets the value of the specified option
+_set_option_tmpl = """
+set_option(pat,value) - Sets the value of the specified option
 
 Available options:
 {opts_list}
@@ -292,7 +300,8 @@ OptionError if no such option exists
 {opts_desc}
 """
 
-_describe_option_tmpl = """describe_option(pat,_print_desc=False) Prints the description
+_describe_option_tmpl = """
+describe_option(pat,_print_desc=False) Prints the description
 for one or more registered options.
 
 Call with not arguments to get a listing for all registered options.
@@ -317,7 +326,8 @@ is False
 {opts_desc}
 """
 
-_reset_option_tmpl = """reset_option(pat) - Reset one or more options to their default value.
+_reset_option_tmpl = """
+reset_option(pat) - Reset one or more options to their default value.
 
 Pass "all" as argument to reset all options.
 
@@ -347,15 +357,18 @@ reset_option = CallableDynamicDoc(_reset_option, _reset_option_tmpl)
 describe_option = CallableDynamicDoc(_describe_option, _describe_option_tmpl)
 options = DictWrapper(_global_config)
 
-######################################################
+#
 # Functions for use by pandas developers, in addition to User - api
 
 
 class option_context(object):
+
     def __init__(self, *args):
-        if not ( len(args) % 2 == 0 and len(args) >= 2):
-           errmsg =  "Need to invoke as option_context(pat,val,[(pat,val),..))."
-           raise AssertionError(errmsg)
+        if not (len(args) % 2 == 0 and len(args) >= 2):
+            raise AssertionError(
+                'Need to invoke as'
+                'option_context(pat, val, [(pat, val), ...)).'
+            )
 
         ops = list(zip(args[::2], args[1::2]))
         undo = []
@@ -425,20 +438,21 @@ def register_option(key, defval, doc='', validator=None, cb=None):
     for i, p in enumerate(path[:-1]):
         if not isinstance(cursor, dict):
             raise OptionError("Path prefix to option '%s' is already an option"
-                           % '.'.join(path[:i]))
+                              % '.'.join(path[:i]))
         if p not in cursor:
             cursor[p] = {}
         cursor = cursor[p]
 
     if not isinstance(cursor, dict):
         raise OptionError("Path prefix to option '%s' is already an option"
-                       % '.'.join(path[:-1]))
+                          % '.'.join(path[:-1]))
 
     cursor[path[-1]] = defval  # initialize
 
     # save the option metadata
     _registered_options[key] = RegisteredOption(key=key, defval=defval,
-                                                doc=doc, validator=validator, cb=cb)
+                                                doc=doc, validator=validator,
+                                                cb=cb)
 
 
 def deprecate_option(key, msg=None, rkey=None, removal_ver=None):
@@ -484,12 +498,12 @@ def deprecate_option(key, msg=None, rkey=None, removal_ver=None):
 
     if key in _deprecated_options:
         raise OptionError("Option '%s' has already been defined as deprecated."
-                       % key)
+                          % key)
 
     _deprecated_options[key] = DeprecatedOption(key, msg, rkey, removal_ver)
 
 
-################################
+#
 # functions internal to the module
 
 def _select_options(pat):
@@ -498,6 +512,11 @@ def _select_options(pat):
     if pat=="all", returns all registered options
     """
 
+    # short-circuit for exact key
+    if pat in _registered_options:
+        return [pat]
+
+    # else look through all of them
     keys = sorted(_registered_options.keys())
     if pat == 'all':  # reserved key
         return keys
@@ -596,7 +615,8 @@ def _build_option_description(k):
 
     s = u('%s: ') % k
     if o:
-        s += u('[default: %s] [currently: %s]') % (o.defval, _get_option(k, True))
+        s += u('[default: %s] [currently: %s]') % (o.defval,
+                                                   _get_option(k, True))
 
     if o.doc:
         s += '\n' + '\n    '.join(o.doc.strip().split('\n'))
@@ -642,7 +662,7 @@ def pp_options_list(keys, width=80, _print=False):
         return s
 
 
-##############
+#
 # helpers
 
 from contextlib import contextmanager
@@ -748,12 +768,14 @@ def is_instance_factory(_type):
 
     return inner
 
+
 def is_one_of_factory(legal_values):
     def inner(x):
         from pandas.core.common import pprint_thing as pp
         if not x in legal_values:
             pp_values = lmap(pp, legal_values)
-            raise ValueError("Value must be one of %s" % pp("|".join(pp_values)))
+            raise ValueError("Value must be one of %s"
+                             % pp("|".join(pp_values)))
 
     return inner
 

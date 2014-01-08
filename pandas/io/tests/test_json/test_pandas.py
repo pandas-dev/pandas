@@ -2,7 +2,6 @@
 from pandas.compat import range, lrange, StringIO
 from pandas import compat
 import os
-import unittest
 
 import numpy as np
 
@@ -27,7 +26,7 @@ _tsframe = DataFrame(_tsd)
 
 _mixed_frame = _frame.copy()
 
-class TestPandasContainer(unittest.TestCase):
+class TestPandasContainer(tm.TestCase):
 
     def setUp(self):
         self.dirpath = tm.get_data_path()

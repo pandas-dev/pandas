@@ -9,6 +9,7 @@
    import csv
    from pandas import DataFrame
    import pandas as pd
+   pd.options.display.max_rows=15
 
    import numpy as np
    np.random.seed(123456)
@@ -441,18 +442,40 @@ The ``DataFrame.eval`` method (Experimental)
 In addition to the top level :func:`~pandas.eval` function you can also
 evaluate an expression in the "context" of a ``DataFrame``.
 
+.. ipython:: python
+   :suppress:
+
+   try:
+      del a
+   except NameError:
+      pass
+
+   try:
+      del b
+   except NameError:
+      pass
 
 .. ipython:: python
 
    df = DataFrame(randn(5, 2), columns=['a', 'b'])
    df.eval('a + b')
 
-
 Any expression that is a valid :func:`~pandas.eval` expression is also a valid
 ``DataFrame.eval`` expression, with the added benefit that *you don't have to
 prefix the name of the* ``DataFrame`` *to the column you're interested in
 evaluating*.
 
+In addition, you can perform in-line assignment of columns within an expression.
+This can allow for *formulaic evaluation*. Only a signle assignement is permitted.
+It can be a new column name or an existing column name. It must be a string-like.
+
+.. ipython:: python
+
+   df = DataFrame(dict(a = range(5), b = range(5,10)))
+   df.eval('c=a+b')
+   df.eval('d=a+b+c')
+   df.eval('a=1')
+   df
 
 Local Variables
 ~~~~~~~~~~~~~~~

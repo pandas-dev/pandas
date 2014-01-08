@@ -2,7 +2,7 @@
 Expressions
 -----------
 
-Offer fast expression evaluation thru numexpr
+Offer fast expression evaluation through numexpr
 
 """
 
@@ -22,9 +22,10 @@ _evaluate = None
 _where = None
 
 # the set of dtypes that we will allow pass to numexpr
-_ALLOWED_DTYPES = dict(
-    evaluate=set(['int64', 'int32', 'float64', 'float32', 'bool']),
-    where=set(['int64', 'float64', 'bool']))
+_ALLOWED_DTYPES = {
+    'evaluate': set(['int64', 'int32', 'float64', 'float32', 'bool']),
+    'where': set(['int64', 'float64', 'bool'])
+}
 
 # the minimum prod shape that we will use numexpr
 _MIN_ELEMENTS = 10000
@@ -61,6 +62,7 @@ def _evaluate_standard(op, op_str, a, b, raise_on_error=True, **eval_kwargs):
         _store_test_result(False)
     return op(a, b)
 
+
 def _can_use_numexpr(op, op_str, a, b, dtype_check):
     """ return a boolean if we WILL be using numexpr """
     if op_str is not None:
@@ -86,7 +88,8 @@ def _can_use_numexpr(op, op_str, a, b, dtype_check):
     return False
 
 
-def _evaluate_numexpr(op, op_str, a, b, raise_on_error=False, **eval_kwargs):
+def _evaluate_numexpr(op, op_str, a, b, raise_on_error=False, truediv=True,
+                      **eval_kwargs):
     result = None
 
     if _can_use_numexpr(op, op_str, a, b, 'evaluate'):
@@ -96,11 +99,12 @@ def _evaluate_numexpr(op, op_str, a, b, raise_on_error=False, **eval_kwargs):
             result = ne.evaluate('a_value %s b_value' % op_str,
                                  local_dict={'a_value': a_value,
                                              'b_value': b_value},
-                                 casting='safe', **eval_kwargs)
-        except (ValueError) as detail:
+                                 casting='safe', truediv=truediv,
+                                 **eval_kwargs)
+        except ValueError as detail:
             if 'unknown type object' in str(detail):
                 pass
-        except (Exception) as detail:
+        except Exception as detail:
             if raise_on_error:
                 raise
 
@@ -112,9 +116,11 @@ def _evaluate_numexpr(op, op_str, a, b, raise_on_error=False, **eval_kwargs):
 
     return result
 
+
 def _where_standard(cond, a, b, raise_on_error=True):
     return np.where(_values_from_object(cond), _values_from_object(a),
                     _values_from_object(b))
+
 
 def _where_numexpr(cond, a, b, raise_on_error=False):
     result = None
@@ -130,10 +136,10 @@ def _where_numexpr(cond, a, b, raise_on_error=False):
                                              'a_value': a_value,
                                              'b_value': b_value},
                                  casting='safe')
-        except (ValueError) as detail:
+        except ValueError as detail:
             if 'unknown type object' in str(detail):
                 pass
-        except (Exception) as detail:
+        except Exception as detail:
             if raise_on_error:
                 raise TypeError(str(detail))
 
@@ -190,10 +196,10 @@ def where(cond, a, b, raise_on_error=False, use_numexpr=True):
     return _where_standard(cond, a, b, raise_on_error=raise_on_error)
 
 
-def set_test_mode(v = True):
+def set_test_mode(v=True):
     """
-    Keeps track of whether numexpr  was used.  Stores an additional ``True`` for
-    every successful use of evaluate with numexpr since the last
+    Keeps track of whether numexpr  was used.  Stores an additional ``True``
+    for every successful use of evaluate with numexpr since the last
     ``get_test_result``
     """
     global _TEST_MODE, _TEST_RESULT

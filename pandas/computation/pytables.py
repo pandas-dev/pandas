@@ -4,8 +4,8 @@ import ast
 import time
 import warnings
 from functools import partial
-from datetime import datetime
-
+from datetime import datetime, timedelta
+import numpy as np
 import pandas as pd
 from pandas.compat import u, string_types, PY3
 from pandas.core.base import StringMixin
@@ -15,6 +15,7 @@ from pandas.computation.ops import is_term
 from pandas.computation.expr import BaseExprVisitor
 from pandas.computation.common import _ensure_decoded
 from pandas.tseries.timedeltas import _coerce_scalar_to_timedelta_type
+
 
 class Scope(expr.Scope):
     __slots__ = 'globals', 'locals', 'queryables'
@@ -29,6 +30,7 @@ class Scope(expr.Scope):
 
 
 class Term(ops.Term):
+
     def __new__(cls, name, env, side=None, encoding=None):
         klass = Constant if not isinstance(name, string_types) else cls
         supr_new = StringMixin.__new__
@@ -56,6 +58,7 @@ class Term(ops.Term):
 
 
 class Constant(Term):
+
     def __init__(self, value, env, side=None, encoding=None):
         super(Constant, self).__init__(value, env, side=side,
                                        encoding=encoding)
@@ -85,7 +88,7 @@ class BinOp(ops.BinOp):
     def prune(self, klass):
 
         def pr(left, right):
-            """ create and return a new specilized BinOp from myself """
+            """ create and return a new specialized BinOp from myself """
 
             if left is None:
                 return right
@@ -95,7 +98,7 @@ class BinOp(ops.BinOp):
             k = klass
             if isinstance(left, ConditionBinOp):
                 if (isinstance(left, ConditionBinOp) and
-                    isinstance(right, ConditionBinOp)):
+                        isinstance(right, ConditionBinOp)):
                     k = JointConditionBinOp
                 elif isinstance(left, k):
                     return left
@@ -104,7 +107,7 @@ class BinOp(ops.BinOp):
 
             elif isinstance(left, FilterBinOp):
                 if (isinstance(left, FilterBinOp) and
-                    isinstance(right, FilterBinOp)):
+                        isinstance(right, FilterBinOp)):
                     k = JointFilterBinOp
                 elif isinstance(left, k):
                     return left
@@ -177,11 +180,12 @@ class BinOp(ops.BinOp):
             if v.tz is not None:
                 v = v.tz_convert('UTC')
             return TermValue(v, v.value, kind)
-        elif isinstance(v, datetime) or hasattr(v, 'timetuple') or kind == u('date'):
+        elif (isinstance(v, datetime) or hasattr(v, 'timetuple') or
+                kind == u('date')):
             v = time.mktime(v.timetuple())
             return TermValue(v, pd.Timestamp(v), kind)
         elif kind == u('timedelta64') or kind == u('timedelta'):
-            v = _coerce_scalar_to_timedelta_type(v,unit='s').item()
+            v = _coerce_scalar_to_timedelta_type(v, unit='s').item()
             return TermValue(int(v), v, kind)
         elif kind == u('integer'):
             v = int(float(v))
@@ -290,10 +294,11 @@ class ConditionBinOp(BinOp):
 
     def invert(self):
         """ invert the condition """
-        #if self.condition is not None:
+        # if self.condition is not None:
         #    self.condition = "~(%s)" % self.condition
-        #return self
-        raise NotImplementedError("cannot use an invert condition when passing to numexpr")
+        # return self
+        raise NotImplementedError("cannot use an invert condition when "
+                                  "passing to numexpr")
 
     def format(self):
         """ return the actual ne format """
@@ -352,10 +357,10 @@ class UnaryOp(ops.UnaryOp):
         operand = operand.prune(klass)
 
         if operand is not None:
-            if issubclass(klass,ConditionBinOp):
+            if issubclass(klass, ConditionBinOp):
                 if operand.condition is not None:
                     return operand.invert()
-            elif issubclass(klass,FilterBinOp):
+            elif issubclass(klass, FilterBinOp):
                 if operand.filter is not None:
                     return operand.invert()
 
@@ -363,6 +368,7 @@ class UnaryOp(ops.UnaryOp):
 
 
 _op_classes = {'unary': UnaryOp}
+
 
 class ExprVisitor(BaseExprVisitor):
     const_type = Constant
@@ -389,14 +395,26 @@ class ExprVisitor(BaseExprVisitor):
     def visit_Index(self, node, **kwargs):
         return self.visit(node.value).value
 
+    def visit_Assign(self, node, **kwargs):
+        cmpr = ast.Compare(ops=[ast.Eq()], left=node.targets[0],
+                           comparators=[node.value])
+        return self.visit(cmpr)
+
     def visit_Subscript(self, node, **kwargs):
+        # only allow simple suscripts
+
         value = self.visit(node.value)
         slobj = self.visit(node.slice)
+        try:
+            value = value.value
+        except:
+            pass
+
         try:
             return self.const_type(value[slobj], self.env)
         except TypeError:
             raise ValueError("cannot subscript {0!r} with "
-                            "{1!r}".format(value, slobj))
+                             "{1!r}".format(value, slobj))
 
     def visit_Attribute(self, node, **kwargs):
         attr = node.attr
@@ -405,9 +423,16 @@ class ExprVisitor(BaseExprVisitor):
         ctx = node.ctx.__class__
         if ctx == ast.Load:
             # resolve the value
-            resolved = self.visit(value).value
+            resolved = self.visit(value)
+
+            # try to get the value to see if we are another expression
             try:
-                return getattr(resolved, attr)
+                resolved = resolved.value
+            except (AttributeError):
+                pass
+
+            try:
+                return self.term_type(getattr(resolved, attr), self.env)
             except AttributeError:
 
                 # something like datetime.datetime where scope is overriden
@@ -430,7 +455,8 @@ class Expr(expr.Expr):
     Parameters
     ----------
     where : string term expression, Expr, or list-like of Exprs
-    queryables : a "kinds" map (dict of column name -> kind), or None if column is non-indexable
+    queryables : a "kinds" map (dict of column name -> kind), or None if column
+        is non-indexable
     encoding : an encoding that will encode the query terms
 
     Returns
@@ -514,6 +540,18 @@ class Expr(expr.Expr):
             if value is not None:
                 if isinstance(value, Expr):
                     raise TypeError("invalid value passed, must be a string")
+
+                # stringify with quotes these values
+                def convert(v):
+                    if isinstance(v, (datetime,np.datetime64,timedelta,np.timedelta64)) or hasattr(v, 'timetuple'):
+                        return "'{0}'".format(v)
+                    return v
+
+                if isinstance(value, (list,tuple)):
+                    value = [ convert(v) for v in value ]
+                else:
+                    value = convert(value)
+
                 w = "{0}{1}".format(w, value)
 
             warnings.warn("passing multiple values to Expr is deprecated, "
@@ -533,13 +571,13 @@ class Expr(expr.Expr):
         try:
             self.condition = self.terms.prune(ConditionBinOp)
         except AttributeError:
-            raise ValueError(
-                "cannot process expression [{0}], [{1}] is not a valid condition".format(self.expr,self))
+            raise ValueError("cannot process expression [{0}], [{1}] is not a "
+                             "valid condition".format(self.expr, self))
         try:
             self.filter = self.terms.prune(FilterBinOp)
         except AttributeError:
-            raise ValueError(
-                "cannot process expression [{0}], [{1}] is not a valid filter".format(self.expr,self))
+            raise ValueError("cannot process expression [{0}], [{1}] is not a "
+                             "valid filter".format(self.expr, self))
 
         return self.condition, self.filter
 

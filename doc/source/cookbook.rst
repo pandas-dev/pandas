@@ -10,6 +10,7 @@
    import os
    np.random.seed(123456)
    from pandas import *
+   options.display.max_rows=15
    import pandas as pd
    randn = np.random.randn
    randint = np.random.randint
@@ -34,6 +35,9 @@ These are some neat pandas ``idioms``
 
 `How to do if-then-else?
 <http://stackoverflow.com/questions/17128302/python-pandas-idiom-for-if-then-else>`__
+
+`How to do if-then-else #2
+<http://stackoverflow.com/questions/19913659/pandas-conditional-creation-of-a-series-dataframe-column>`__
 
 `How to split a frame with a boolean criterion?
 <http://stackoverflow.com/questions/14957116/how-to-split-a-dataframe-according-to-a-boolean-criterion>`__
@@ -82,6 +86,12 @@ The :ref:`multindexing <indexing.hierarchical>` docs.
 
 `Creating a multi-index from a labeled frame
 <http://stackoverflow.com/questions/14916358/reshaping-dataframes-in-pandas-based-on-column-labels>`__
+
+Arithmetic
+~~~~~~~~~~
+
+`Performing arithmetic with a multi-index that needs broadcastin
+<http://stackoverflow.com/questions/19501510/divide-entire-pandas-multiindex-dataframe-by-dataframe-variable/19502176#19502176>`__
 
 Slicing
 ~~~~~~~
@@ -328,6 +338,9 @@ The :ref:`CSV <io.read_csv_table>` docs
 `Reading a csv chunk-by-chunk
 <http://stackoverflow.com/questions/11622652/large-persistent-dataframe-in-pandas/12193309#12193309>`__
 
+`Reading only certain rows of a csv chunk-by-chunk
+<http://stackoverflow.com/questions/19674212/pandas-data-frame-select-rows-and-clear-memory>`__
+
 `Reading the first few lines of a frame
 <http://stackoverflow.com/questions/15008970/way-to-read-first-few-lines-for-pandas-dataframe>`__
 
@@ -398,6 +411,9 @@ csv file and creating a store by chunks, with date parsing as well.
 `See here
 <http://stackoverflow.com/questions/16110252/need-to-compare-very-large-files-around-1-5gb-in-python/16110391#16110391>`__
 
+`Creating a store chunk-by-chunk from a csv file
+<http://stackoverflow.com/questions/20428355/appending-column-to-frame-of-hdf-file-in-pandas/20428786#20428786>`__
+
 `Appending to a store, while creating a unique index
 <http://stackoverflow.com/questions/16997048/how-does-one-append-large-amounts-of-data-to-a-pandas-hdfstore-and-get-a-natural/16999397#16999397>`__
 
@@ -409,6 +425,9 @@ csv file and creating a store by chunks, with date parsing as well.
 
 `Groupby on a HDFStore
 <http://stackoverflow.com/questions/15798209/pandas-group-by-query-on-large-data-in-hdfstore>`__
+
+`Counting with a HDFStore
+<http://stackoverflow.com/questions/20497897/converting-dict-of-dicts-into-pandas-dataframe-memory-issues>`__
 
 `Troubleshoot HDFStore exceptions
 <http://stackoverflow.com/questions/15488809/how-to-trouble-shoot-hdfstore-exception-cannot-find-the-correct-atom-type>`__

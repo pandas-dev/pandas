@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta, date, time
 
-import unittest
 import nose
 from pandas.compat import lrange, zip
 
@@ -27,7 +26,7 @@ def _skip_if_no_scipy():
 
 
 @tm.mplskip
-class TestTSPlot(unittest.TestCase):
+class TestTSPlot(tm.TestCase):
     def setUp(self):
         freq = ['S', 'T', 'H', 'D', 'W', 'M', 'Q', 'Y']
         idx = [period_range('12/31/1999', freq=x, periods=100) for x in freq]
@@ -943,7 +942,7 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
         except Exception:
             pass
 
-        with ensure_clean() as path:
+        with ensure_clean(return_filelike=True) as path:
             plt.savefig(path)
     finally:
         plt.close(fig)

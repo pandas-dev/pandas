@@ -9,7 +9,7 @@ import numpy as np
 import pandas.tslib as tslib
 from pandas import compat, _np_version_under1p7
 from pandas.core.common import (ABCSeries, is_integer, is_timedelta64_dtype,
-                                _values_from_object, is_list_like)
+                                _values_from_object, is_list_like, isnull)
 
 repr_timedelta = tslib.repr_timedelta64
 repr_timedelta64 = tslib.repr_timedelta64
@@ -58,7 +58,8 @@ def to_timedelta(arg, box=True, unit='ns'):
     elif is_list_like(arg):
         return _convert_listlike(arg, box=box)
 
-    return _convert_listlike([ arg ], box=box)
+    # ...so it must be a scalar value. Return scalar.
+    return _coerce_scalar_to_timedelta_type(arg, unit=unit)
 
 _short_search = re.compile(
     "^\s*(?P<neg>-?)\s*(?P<value>\d*\.?\d*)\s*(?P<unit>d|s|ms|us|ns)?\s*$",re.IGNORECASE)
@@ -83,6 +84,8 @@ def _coerce_scalar_to_timedelta_type(r, unit='ns'):
         r = conv(r)
     elif r == tslib.iNaT:
         return r
+    elif isnull(r):
+        return np.timedelta64('NaT')
     elif isinstance(r, np.timedelta64):
         r = r.astype("m8[{0}]".format(unit.lower()))
     elif is_integer(r):

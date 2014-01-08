@@ -2,7 +2,6 @@
 
 from datetime import datetime, timedelta
 import operator
-import unittest
 import nose
 
 import numpy as np
@@ -317,7 +316,40 @@ class Generic(object):
             except (ValueError):
                 pass
 
-class TestSeries(unittest.TestCase, Generic):
+    def test_head_tail(self):
+        # GH5370
+
+        o = self._construct(shape=10)
+
+        # check all index types
+        for index in [ tm.makeFloatIndex, tm.makeIntIndex,
+                       tm.makeStringIndex, tm.makeUnicodeIndex,
+                       tm.makeDateIndex, tm.makePeriodIndex ]:
+            axis = o._get_axis_name(0)
+            setattr(o,axis,index(len(getattr(o,axis))))
+
+            # Panel + dims
+            try:
+                o.head()
+            except (NotImplementedError):
+                raise nose.SkipTest('not implemented on {0}'.format(o.__class__.__name__))
+
+            self._compare(o.head(), o.iloc[:5])
+            self._compare(o.tail(), o.iloc[-5:])
+
+            # 0-len
+            self._compare(o.head(0), o.iloc[:0])
+            self._compare(o.tail(0), o.iloc[0:])
+
+            # bounded
+            self._compare(o.head(len(o)+1), o)
+            self._compare(o.tail(len(o)+1), o)
+
+            # neg index
+            self._compare(o.head(-3), o.head(7))
+            self._compare(o.tail(-3), o.tail(7))
+
+class TestSeries(tm.TestCase, Generic):
     _typ = Series
     _comparator = lambda self, x, y: assert_series_equal(x,y)
 
@@ -543,7 +575,7 @@ class TestSeries(unittest.TestCase, Generic):
         with tm.assertRaises(ValueError):
             s.interpolate(method='krogh')
 
-class TestDataFrame(unittest.TestCase, Generic):
+class TestDataFrame(tm.TestCase, Generic):
     _typ = DataFrame
     _comparator = lambda self, x, y: assert_frame_equal(x,y)
 
@@ -659,7 +691,7 @@ class TestDataFrame(unittest.TestCase, Generic):
         expected = df.copy()
         expected['A'].iloc[2] = 3
         expected['A'].iloc[5] = 6
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected.astype(np.int64))
 
         result = df.interpolate(method='krogh')
         expectedk = df.copy()
@@ -736,10 +768,40 @@ class TestDataFrame(unittest.TestCase, Generic):
         expected = Series([1, 2, 3, 4, 5, 6, 7])
         assert_series_equal(result, expected)
 
-
-class TestPanel(unittest.TestCase, Generic):
+class TestPanel(tm.TestCase, Generic):
     _typ = Panel
     _comparator = lambda self, x, y: assert_panel_equal(x, y)
+
+
+class TestNDFrame(tm.TestCase):
+    # tests that don't fit elsewhere
+
+    def test_squeeze(self):
+        # noop
+        for s in [ tm.makeFloatSeries(), tm.makeStringSeries(), tm.makeObjectSeries() ]:
+            tm.assert_series_equal(s.squeeze(),s)
+        for df in [ tm.makeTimeDataFrame() ]:
+            tm.assert_frame_equal(df.squeeze(),df)
+        for p in [ tm.makePanel() ]:
+            tm.assert_panel_equal(p.squeeze(),p)
+        for p4d in [ tm.makePanel4D() ]:
+            tm.assert_panel4d_equal(p4d.squeeze(),p4d)
+
+        # squeezing
+        df = tm.makeTimeDataFrame().reindex(columns=['A'])
+        tm.assert_series_equal(df.squeeze(),df['A'])
+
+        p = tm.makePanel().reindex(items=['ItemA'])
+        tm.assert_frame_equal(p.squeeze(),p['ItemA'])
+
+        p = tm.makePanel().reindex(items=['ItemA'],minor_axis=['A'])
+        tm.assert_series_equal(p.squeeze(),p.ix['ItemA',:,'A'])
+
+        p4d = tm.makePanel4D().reindex(labels=['label1'])
+        tm.assert_panel_equal(p4d.squeeze(),p4d['label1'])
+
+        p4d = tm.makePanel4D().reindex(labels=['label1'],items=['ItemA'])
+        tm.assert_frame_equal(p4d.squeeze(),p4d.ix['label1','ItemA'])
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

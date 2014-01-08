@@ -1,5 +1,6 @@
 from pandas.compat import cPickle as pkl, pickle_compat as pc, PY3
 
+
 def to_pickle(obj, path):
     """
     Pickle (serialize) object to input file path
@@ -19,8 +20,8 @@ def read_pickle(path):
     Load pickled pandas object (or any other pickled object) from the specified
     file path
 
-    Warning: Loading pickled data received from untrusted sources can be unsafe.
-    See: http://docs.python.org/2.7/library/pickle.html
+    Warning: Loading pickled data received from untrusted sources can be
+    unsafe. See: http://docs.python.org/2.7/library/pickle.html
 
     Parameters
     ----------
@@ -38,10 +39,10 @@ def read_pickle(path):
         # pass encoding only if its not None as py2 doesn't handle
         # the param
         try:
-            with open(path,'rb') as fh:
+            with open(path, 'rb') as fh:
                 return pc.load(fh, encoding=encoding, compat=False)
         except:
-            with open(path,'rb') as fh:
+            with open(path, 'rb') as fh:
                 return pc.load(fh, encoding=encoding, compat=True)
 
     try:

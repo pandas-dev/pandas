@@ -24,6 +24,7 @@ __all__ = ["read_excel", "ExcelWriter", "ExcelFile"]
 _writer_extensions = ["xlsx", "xls", "xlsm"]
 _writers = {}
 
+
 def register_writer(klass):
     """Adds engine to the excel writer registry. You must use this method to
     integrate with ``to_excel``. Also adds config options for any new
@@ -40,11 +41,13 @@ def register_writer(klass):
                                    engine_name, validator=str)
             _writer_extensions.append(ext)
 
+
 def get_writer(engine_name):
     try:
         return _writers[engine_name]
     except KeyError:
         raise ValueError("No Excel writer '%s'" % engine_name)
+
 
 def read_excel(io, sheetname, **kwds):
     """Read an Excel table into a pandas DataFrame
@@ -80,7 +83,11 @@ def read_excel(io, sheetname, **kwds):
     engine: string, default None
         If io is not a buffer or path, this must be set to identify io.
         Acceptable values are None or xlrd
-        
+    convert_float : boolean, default True
+        convert integral floats to int (i.e., 1.0 --> 1). If False, all numeric
+        data will be read in as floats: Excel stores all numbers as floats
+        internally.
+
     Returns
     -------
     parsed : DataFrame
@@ -90,9 +97,9 @@ def read_excel(io, sheetname, **kwds):
         kwds.pop('kind')
         warn("kind keyword is no longer supported in read_excel and may be "
              "removed in a future version", FutureWarning)
-    
-    engine = kwds.pop('engine', None)   
-        
+
+    engine = kwds.pop('engine', None)
+
     return ExcelFile(io, engine=engine).parse(sheetname=sheetname, **kwds)
 
 
@@ -119,9 +126,9 @@ class ExcelFile(object):
                               "support, current version " + xlrd.__VERSION__)
 
         self.io = io
-        
+
         engine = kwds.pop('engine', None)
-        
+
         if engine is not None and engine != 'xlrd':
             raise ValueError("Unknown engine: %s" % engine)
 
@@ -133,12 +140,13 @@ class ExcelFile(object):
             data = io.read()
             self.book = xlrd.open_workbook(file_contents=data)
         else:
-            raise ValueError('Must explicitly set engine if not passing in buffer or path for io.')            
+            raise ValueError('Must explicitly set engine if not passing in'
+                             ' buffer or path for io.')
 
     def parse(self, sheetname, header=0, skiprows=None, skip_footer=0,
               index_col=None, parse_cols=None, parse_dates=False,
               date_parser=None, na_values=None, thousands=None, chunksize=None,
-              **kwds):
+              convert_float=True, has_index_names=False, **kwds):
         """Read an Excel table into DataFrame
 
         Parameters
@@ -161,21 +169,29 @@ class ExcelFile(object):
               parsed
             * If string then indicates comma separated list of column names and
               column ranges (e.g. "A:E" or "A,C,E:F")
+        parse_dates : boolean, default False
+            Parse date Excel values,
+        date_parser : function default None
+            Date parsing function
         na_values : list-like, default None
             List of additional strings to recognize as NA/NaN
-        keep_default_na : bool, default True
-            If na_values are specified and keep_default_na is False the default
-            NaN values are overridden, otherwise they're appended to
-        verbose : boolean, default False
-            Indicate number of NA values placed in non-numeric columns
+        thousands : str, default None
+            Thousands separator
+        chunksize : int, default None
+            Size of file chunk to read for lazy evaluation.
+        convert_float : boolean, default True
+            convert integral floats to int (i.e., 1.0 --> 1). If False, all
+            numeric data will be read in as floats: Excel stores all numbers as
+            floats internally.
+        has_index_names : boolean, default False
+            True if the cols defined in index_col have an index name and are
+            not in the header
 
         Returns
         -------
         parsed : DataFrame
             DataFrame parsed from the Excel file
         """
-        has_index_names = False  # removed as new argument of API function
-
         skipfooter = kwds.pop('skipfooter', None)
         if skipfooter is not None:
             skip_footer = skipfooter
@@ -187,7 +203,9 @@ class ExcelFile(object):
                                  parse_dates=parse_dates,
                                  date_parser=date_parser, na_values=na_values,
                                  thousands=thousands, chunksize=chunksize,
-                                 skip_footer=skip_footer, **kwds)
+                                 skip_footer=skip_footer,
+                                 convert_float=convert_float,
+                                 **kwds)
 
     def _should_parse(self, i, parse_cols):
 
@@ -225,9 +243,11 @@ class ExcelFile(object):
     def _parse_excel(self, sheetname, header=0, skiprows=None, skip_footer=0,
                      index_col=None, has_index_names=None, parse_cols=None,
                      parse_dates=False, date_parser=None, na_values=None,
-                     thousands=None, chunksize=None, **kwds):
+                     thousands=None, chunksize=None, convert_float=True,
+                     **kwds):
         from xlrd import (xldate_as_tuple, XL_CELL_DATE,
-                          XL_CELL_ERROR, XL_CELL_BOOLEAN)
+                          XL_CELL_ERROR, XL_CELL_BOOLEAN,
+                          XL_CELL_NUMBER)
 
         datemode = self.book.datemode
         if isinstance(sheetname, compat.string_types):
@@ -256,6 +276,13 @@ class ExcelFile(object):
                         value = np.nan
                     elif typ == XL_CELL_BOOLEAN:
                         value = bool(value)
+                    elif convert_float and typ == XL_CELL_NUMBER:
+                        # GH5394 - Excel 'numbers' are always floats
+                        # it's a minimal perf hit and less suprising
+                        val = int(value)
+                        if val == value:
+                            value = val
+
                     row.append(value)
 
             data.append(row)
@@ -291,12 +318,14 @@ class ExcelFile(object):
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
 
+
 def _trim_excel_header(row):
     # trim header row so auto-index inference works
     # xlrd uses '' , openpyxl None
     while len(row) > 0 and (row[0] == '' or row[0] is None):
         row = row[1:]
     return row
+
 
 def _conv_value(val):
     # Convert numpy types to Python types for the Excel writers.
@@ -312,48 +341,7 @@ def _conv_value(val):
     return val
 
 
-class ExcelWriterMeta(abc.ABCMeta):
-    """
-    Metaclass that dynamically chooses the ExcelWriter to use.
-
-    If you directly instantiate a subclass, it skips the engine lookup.
-
-    Defining an ExcelWriter implementation (see abstract methods on ExcelWriter for more...).
-
-    - Mandatory (but not checked at run time):
-      - ``write_cells(self, cells, sheet_name=None, startrow=0, startcol=0)``
-        --> called to write additional DataFrames to disk
-      - ``supported_extensions`` (tuple of supported extensions), used to check
-        that engine supports the given extension.
-      - ``engine`` - string that gives the engine name. Necessary to
-        instantiate class directly and bypass ``ExcelWriterMeta`` engine lookup.
-      - ``save(self)`` --> called to save file to disk
-    - Optional:
-      - ``__init__(self, path, **kwargs)`` --> always called with path as first
-        argument.
-
-    You also need to register the class with ``register_writer()``.
-    """
-
-    def __call__(cls, path, **kwargs):
-        engine = kwargs.pop('engine', None)
-        # if it's not an ExcelWriter baseclass, dont' do anything (you've
-        # probably made an explicit choice here)
-        if not isinstance(getattr(cls, 'engine', None), compat.string_types):
-            if engine is None:
-                ext = os.path.splitext(path)[-1][1:]
-                try:
-                    engine = config.get_option('io.excel.%s.writer' % ext)
-                except KeyError:
-                    error = ValueError("No engine for filetype: '%s'" % ext)
-                    raise error
-            cls = get_writer(engine)
-        writer = cls.__new__(cls, path, **kwargs)
-        writer.__init__(path, **kwargs)
-        return writer
-
-
-@add_metaclass(ExcelWriterMeta)
+@add_metaclass(abc.ABCMeta)
 class ExcelWriter(object):
     """
     Class for writing DataFrame objects into excel sheets, default is to use
@@ -364,14 +352,49 @@ class ExcelWriter(object):
     path : string
         Path to xls or xlsx file.
     engine : string (optional)
-        Engine to use for writing. If None, defaults to ``io.excel.<extension>.writer``.
-        NOTE: can only be passed as a keyword argument.
+        Engine to use for writing. If None, defaults to
+        ``io.excel.<extension>.writer``.  NOTE: can only be passed as a keyword
+        argument.
     """
+    # Defining an ExcelWriter implementation (see abstract methods for more...)
+
+    # - Mandatory
+    #   - ``write_cells(self, cells, sheet_name=None, startrow=0, startcol=0)``
+    #     --> called to write additional DataFrames to disk
+    #   - ``supported_extensions`` (tuple of supported extensions), used to
+    #      check that engine supports the given extension.
+    #   - ``engine`` - string that gives the engine name. Necessary to
+    #     instantiate class directly and bypass ``ExcelWriterMeta`` engine
+    #     lookup.
+    #   - ``save(self)`` --> called to save file to disk
+    # - Mostly mandatory (i.e. should at least exist)
+    #   - book, cur_sheet, path
+
+    # - Optional:
+    #   - ``__init__(self, path, engine=None, **kwargs)`` --> always called
+    #     with path as first argument.
+
+    # You also need to register the class with ``register_writer()``.
+    # Technically, ExcelWriter implementations don't need to subclass
+    # ExcelWriter.
+    def __new__(cls, path, engine=None, **kwargs):
+        # only switch class if generic(ExcelWriter)
+        if cls == ExcelWriter:
+            if engine is None:
+                ext = os.path.splitext(path)[-1][1:]
+                try:
+                    engine = config.get_option('io.excel.%s.writer' % ext)
+                except KeyError:
+                    error = ValueError("No engine for filetype: '%s'" % ext)
+                    raise error
+            cls = get_writer(engine)
+
+        return object.__new__(cls)
+
     # declare external properties you can count on
     book = None
     curr_sheet = None
     path = None
-
 
     @abc.abstractproperty
     def supported_extensions(self):
@@ -407,9 +430,6 @@ class ExcelWriter(object):
         pass
 
     def __init__(self, path, engine=None, **engine_kwargs):
-        # note that subclasses will *never* get anything for engine
-        # included here so that it's visible as part of the public signature.
-
         # validate that this engine can handle the extnesion
         ext = os.path.splitext(path)[-1]
         self.check_extension(ext)
@@ -455,7 +475,7 @@ class _OpenpyxlWriter(ExcelWriter):
     engine = 'openpyxl'
     supported_extensions = ('.xlsx', '.xlsm')
 
-    def __init__(self, path, **engine_kwargs):
+    def __init__(self, path, engine=None, **engine_kwargs):
         # Use the openpyxl module as the Excel writer.
         from openpyxl.workbook import Workbook
 
@@ -490,6 +510,7 @@ class _OpenpyxlWriter(ExcelWriter):
             colletter = get_column_letter(startcol + cell.col + 1)
             xcell = wks.cell("%s%s" % (colletter, startrow + cell.row + 1))
             xcell.value = _conv_value(cell.val)
+            style = None
             if cell.style:
                 style = self._convert_to_style(cell.style)
                 for field in style.__fields__:
@@ -501,8 +522,6 @@ class _OpenpyxlWriter(ExcelWriter):
             elif isinstance(cell.val, datetime.date):
                 xcell.style.number_format.format_code = "YYYY-MM-DD"
 
-            # merging requires openpyxl latest (works on 1.6.1)
-            # todo add version check
             if cell.mergestart is not None and cell.mergeend is not None:
                 cletterstart = get_column_letter(startcol + cell.col + 1)
                 cletterend = get_column_letter(startcol + cell.mergeend + 1)
@@ -511,6 +530,26 @@ class _OpenpyxlWriter(ExcelWriter):
                                                startrow + cell.row + 1,
                                                cletterend,
                                                startrow + cell.mergestart + 1))
+
+                # Excel requires that the format of the first cell in a merged
+                # range is repeated in the rest of the merged range.
+                if style:
+                    first_row = startrow + cell.row + 1
+                    last_row = startrow + cell.mergestart + 1
+                    first_col = startcol + cell.col + 1
+                    last_col = startcol + cell.mergeend + 1
+
+                    for row in range(first_row, last_row + 1):
+                        for col in range(first_col, last_col + 1):
+                            if row == first_row and col == first_col:
+                                # Ignore first cell. It is already handled.
+                                continue
+                            colletter = get_column_letter(col)
+                            xcell = wks.cell("%s%s" % (colletter, row))
+                            for field in style.__fields__:
+                                xcell.style.__setattr__(
+                                    field, style.__getattribute__(field))
+
     @classmethod
     def _convert_to_style(cls, style_dict):
         """
@@ -539,7 +578,7 @@ class _XlwtWriter(ExcelWriter):
     engine = 'xlwt'
     supported_extensions = ('.xls',)
 
-    def __init__(self, path, **engine_kwargs):
+    def __init__(self, path, engine=None, **engine_kwargs):
         # Use the xlwt module as the Excel writer.
         import xlwt
 
@@ -599,7 +638,8 @@ class _XlwtWriter(ExcelWriter):
                           val, style)
 
     @classmethod
-    def _style_to_xlwt(cls, item, firstlevel=True, field_sep=',', line_sep=';'):
+    def _style_to_xlwt(cls, item, firstlevel=True, field_sep=',',
+                       line_sep=';'):
         """helper which recursively generate an xlwt easy style string
         for example:
 
@@ -617,12 +657,12 @@ class _XlwtWriter(ExcelWriter):
         if hasattr(item, 'items'):
             if firstlevel:
                 it = ["%s: %s" % (key, cls._style_to_xlwt(value, False))
-                        for key, value in item.items()]
+                      for key, value in item.items()]
                 out = "%s " % (line_sep).join(it)
                 return out
             else:
                 it = ["%s %s" % (key, cls._style_to_xlwt(value, False))
-                        for key, value in item.items()]
+                      for key, value in item.items()]
                 out = "%s " % (field_sep).join(it)
                 return out
         else:
@@ -659,11 +699,11 @@ class _XlsxWriter(ExcelWriter):
     engine = 'xlsxwriter'
     supported_extensions = ('.xlsx',)
 
-    def __init__(self, path, **engine_kwargs):
+    def __init__(self, path, engine=None, **engine_kwargs):
         # Use the xlsxwriter module as the Excel writer.
         import xlsxwriter
 
-        super(_XlsxWriter, self).__init__(path, **engine_kwargs)
+        super(_XlsxWriter, self).__init__(path, engine=engine, **engine_kwargs)
 
         self.book = xlsxwriter.Workbook(path, **engine_kwargs)
 
@@ -705,8 +745,8 @@ class _XlsxWriter(ExcelWriter):
 
             if cell.mergestart is not None and cell.mergeend is not None:
                 wks.merge_range(startrow + cell.row,
-                                startrow + cell.mergestart,
                                 startcol + cell.col,
+                                startrow + cell.mergestart,
                                 startcol + cell.mergeend,
                                 cell.val, style)
             else:
@@ -733,6 +773,16 @@ class _XlsxWriter(ExcelWriter):
             font = style_dict['font']
             if font.get('bold'):
                 xl_format.set_bold()
+
+        # Map the alignment to XlsxWriter alignment properties.
+        alignment = style_dict.get('alignment')
+        if alignment:
+            if (alignment.get('horizontal')
+                    and alignment['horizontal'] == 'center'):
+                xl_format.set_align('center')
+            if (alignment.get('vertical')
+                    and alignment['vertical'] == 'top'):
+                xl_format.set_align('top')
 
         # Map the cell borders to XlsxWriter border properties.
         if style_dict.get('borders'):

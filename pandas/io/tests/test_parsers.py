@@ -6,7 +6,6 @@ import csv
 import os
 import sys
 import re
-import unittest
 import nose
 import platform
 
@@ -18,7 +17,7 @@ from pandas import DataFrame, Series, Index, MultiIndex, DatetimeIndex
 from pandas.compat import(
     StringIO, BytesIO, PY3, range, long, lrange, lmap, u
 )
-from pandas.io.common import urlopen, URLError
+from pandas.io.common import URLError
 import pandas.io.parsers as parsers
 from pandas.io.parsers import (read_csv, read_table, read_fwf,
                                TextFileReader, TextParser)
@@ -683,6 +682,31 @@ Klosterdruckerei\tKlosterdruckerei <Kempten> (1609-1805)\tHochfurstliche Buchhan
             tm.assert_frame_equal(result6,good_compare)
             tm.assert_frame_equal(result7,good_compare)
 
+    def test_default_na_values(self):
+        _NA_VALUES = set(['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN',
+                          '#N/A','N/A', 'NA', '#NA', 'NULL', 'NaN',
+                          'nan', ''])
+
+        nv = len(_NA_VALUES)
+        def f(i, v):
+            if i == 0:
+                buf = ''
+            elif i > 0:
+                buf = ''.join([','] * i)
+
+            buf = "{0}{1}".format(buf,v)
+
+            if i < nv-1:
+                buf = "{0}{1}".format(buf,''.join([','] * (nv-i-1)))
+
+            return buf
+
+        data = StringIO('\n'.join([ f(i, v) for i, v in enumerate(_NA_VALUES) ]))
+
+        expected = DataFrame(np.nan,columns=range(nv),index=range(nv))
+        df = self.read_csv(data, header=None)
+        tm.assert_frame_equal(df, expected)
+
     def test_custom_na_values(self):
         data = """A,B,C
 ignore,this,row
@@ -760,8 +784,6 @@ ignore,this,row
         data = self.read_csv(StringIO(text), skiprows=[6, 8])
         condensed_data = self.read_csv(StringIO(condensed_text))
         tm.assert_frame_equal(data, condensed_data)
-
-
 
     def test_detect_string_na(self):
         data = """A,B
@@ -1217,31 +1239,112 @@ R_l0_g3,R_l1_g3,R3C0,R3C1,R3C2
 R_l0_g4,R_l1_g4,R4C0,R4C1,R4C2
 """
 
-        # basic test with both engines
-        for engine in ['c','python']:
-            df = read_csv(StringIO(data), header=[0,2,3,4],index_col=[0,1], tupleize_cols=False,
-                          engine=engine)
-            tm.assert_frame_equal(df, expected)
+        df = self.read_csv(StringIO(data), header=[0, 2, 3, 4], index_col=[0, 1], tupleize_cols=False)
+        tm.assert_frame_equal(df, expected)
 
         # skipping lines in the header
-        df = read_csv(StringIO(data), header=[0,2,3,4],index_col=[0,1], tupleize_cols=False)
+        df = self.read_csv(StringIO(data), header=[0, 2, 3, 4], index_col=[0, 1], tupleize_cols=False)
         tm.assert_frame_equal(df, expected)
 
         #### invalid options ####
 
         # no as_recarray
-        self.assertRaises(ValueError, read_csv, StringIO(data), header=[0,1,2,3],
+        self.assertRaises(ValueError, self.read_csv, StringIO(data), header=[0,1,2,3],
                           index_col=[0,1], as_recarray=True, tupleize_cols=False)
 
         # names
-        self.assertRaises(ValueError, read_csv, StringIO(data), header=[0,1,2,3],
+        self.assertRaises(ValueError, self.read_csv, StringIO(data), header=[0,1,2,3],
                           index_col=[0,1], names=['foo','bar'], tupleize_cols=False)
         # usecols
-        self.assertRaises(ValueError, read_csv, StringIO(data), header=[0,1,2,3],
+        self.assertRaises(ValueError, self.read_csv, StringIO(data), header=[0,1,2,3],
                           index_col=[0,1], usecols=['foo','bar'], tupleize_cols=False)
         # non-numeric index_col
-        self.assertRaises(ValueError, read_csv, StringIO(data), header=[0,1,2,3],
+        self.assertRaises(ValueError, self.read_csv, StringIO(data), header=[0,1,2,3],
                           index_col=['foo','bar'], tupleize_cols=False)
+
+    def test_header_multiindex_common_format(self):
+
+        df = DataFrame([[1,2,3,4,5,6],[7,8,9,10,11,12]],
+                       index=['one','two'],
+                       columns=MultiIndex.from_tuples([('a','q'),('a','r'),('a','s'),
+                                                       ('b','t'),('c','u'),('c','v')]))
+
+        # to_csv
+        data = """,a,a,a,b,c,c
+,q,r,s,t,u,v
+,,,,,,
+one,1,2,3,4,5,6
+two,7,8,9,10,11,12"""
+
+        result = self.read_csv(StringIO(data),header=[0,1],index_col=0)
+        tm.assert_frame_equal(df,result)
+
+        # common
+        data = """,a,a,a,b,c,c
+,q,r,s,t,u,v
+one,1,2,3,4,5,6
+two,7,8,9,10,11,12"""
+
+        result = self.read_csv(StringIO(data),header=[0,1],index_col=0)
+        tm.assert_frame_equal(df,result)
+
+        # common, no index_col
+        data = """a,a,a,b,c,c
+q,r,s,t,u,v
+1,2,3,4,5,6
+7,8,9,10,11,12"""
+
+        result = self.read_csv(StringIO(data),header=[0,1],index_col=None)
+        tm.assert_frame_equal(df.reset_index(drop=True),result)
+
+        # malformed case 1
+        expected = DataFrame(np.array([[2,  3,  4,  5,  6],
+                                       [8,  9, 10, 11, 12]], dtype='int64'),
+                             index=Index([1, 7]),
+                             columns=MultiIndex(levels=[[u('a'), u('b'), u('c')], [u('r'), u('s'), u('t'), u('u'), u('v')]],
+                                                labels=[[0, 0, 1, 2, 2], [0, 1, 2, 3, 4]],
+                                                names=[u('a'), u('q')]))
+
+        data = """a,a,a,b,c,c
+q,r,s,t,u,v
+1,2,3,4,5,6
+7,8,9,10,11,12"""
+
+        result = self.read_csv(StringIO(data),header=[0,1],index_col=0)
+        tm.assert_frame_equal(expected,result)
+
+        # malformed case 2
+        expected = DataFrame(np.array([[2,  3,  4,  5,  6],
+                                       [8,  9, 10, 11, 12]], dtype='int64'),
+                             index=Index([1, 7]),
+                             columns=MultiIndex(levels=[[u('a'), u('b'), u('c')], [u('r'), u('s'), u('t'), u('u'), u('v')]],
+                                                labels=[[0, 0, 1, 2, 2], [0, 1, 2, 3, 4]],
+                                                names=[None, u('q')]))
+
+        data = """,a,a,b,c,c
+q,r,s,t,u,v
+1,2,3,4,5,6
+7,8,9,10,11,12"""
+
+        result = self.read_csv(StringIO(data),header=[0,1],index_col=0)
+        tm.assert_frame_equal(expected,result)
+
+        # mi on columns and index (malformed)
+        expected = DataFrame(np.array([[ 3,  4,  5,  6],
+                                       [ 9, 10, 11, 12]], dtype='int64'),
+                             index=MultiIndex(levels=[[1, 7], [2, 8]],
+                                              labels=[[0, 1], [0, 1]]),
+                             columns=MultiIndex(levels=[[u('a'), u('b'), u('c')], [u('s'), u('t'), u('u'), u('v')]],
+                                                labels=[[0, 1, 2, 2], [0, 1, 2, 3]],
+                                                names=[None, u('q')]))
+
+        data = """,a,a,b,c,c
+q,r,s,t,u,v
+1,2,3,4,5,6
+7,8,9,10,11,12"""
+
+        result = self.read_csv(StringIO(data),header=[0,1],index_col=[0, 1])
+        tm.assert_frame_equal(expected,result)
 
     def test_pass_names_with_index(self):
         lines = self.data1.split('\n')
@@ -1825,9 +1928,6 @@ A,B,C
         result = self.read_csv(StringIO(data), header=None, sep=' ')
         self.assertTrue(result[0].dtype == np.float64)
 
-        result = self.read_csv(StringIO(data), header=None, sep='\s+')
-        self.assertTrue(result[0].dtype == np.float64)
-
     def test_int64_min_issues(self):
         # #2599
         data = 'A,B\n0,0\n0,'
@@ -1908,8 +2008,82 @@ A,B,C
             df = self.read_csv(StringIO(data))
         self.assertEqual(df.a.dtype, np.object)
 
+    def test_usecols(self):
+        data = """\
+a,b,c
+1,2,3
+4,5,6
+7,8,9
+10,11,12"""
 
-class TestPythonParser(ParserTests, unittest.TestCase):
+        result = self.read_csv(StringIO(data), usecols=(1, 2))
+        result2 = self.read_csv(StringIO(data), usecols=('b', 'c'))
+        exp = self.read_csv(StringIO(data))
+
+        self.assertEquals(len(result.columns), 2)
+        self.assertTrue((result['b'] == exp['b']).all())
+        self.assertTrue((result['c'] == exp['c']).all())
+
+        tm.assert_frame_equal(result, result2)
+
+        result = self.read_csv(StringIO(data), usecols=[1, 2], header=0,
+                               names=['foo', 'bar'])
+        expected = self.read_csv(StringIO(data), usecols=[1, 2])
+        expected.columns = ['foo', 'bar']
+        tm.assert_frame_equal(result, expected)
+
+        data = """\
+1,2,3
+4,5,6
+7,8,9
+10,11,12"""
+        result = self.read_csv(StringIO(data), names=['b', 'c'],
+                               header=None, usecols=[1, 2])
+
+        expected = self.read_csv(StringIO(data), names=['a', 'b', 'c'],
+                                 header=None)
+        expected = expected[['b', 'c']]
+        tm.assert_frame_equal(result, expected)
+
+        result2 = self.read_csv(StringIO(data), names=['a', 'b', 'c'],
+                                header=None, usecols=['b', 'c'])
+        tm.assert_frame_equal(result2, result)
+
+
+        # 5766
+        result = self.read_csv(StringIO(data), names=['a', 'b'],
+                               header=None, usecols=[0, 1])
+
+        expected = self.read_csv(StringIO(data), names=['a', 'b', 'c'],
+                                 header=None)
+        expected = expected[['a', 'b']]
+        tm.assert_frame_equal(result, expected)
+
+        # length conflict, passed names and usecols disagree
+        self.assertRaises(ValueError, self.read_csv, StringIO(data),
+                          names=['a', 'b'], usecols=[1], header=None)
+
+    def test_integer_overflow_bug(self):
+        # #2601
+        data = "65248E10 11\n55555E55 22\n"
+
+        result = self.read_csv(StringIO(data), header=None, sep=' ')
+        self.assertTrue(result[0].dtype == np.float64)
+
+        result = self.read_csv(StringIO(data), header=None, sep='\s+')
+        self.assertTrue(result[0].dtype == np.float64)
+
+    def test_catch_too_many_names(self):
+        # Issue 5156
+        data = """\
+1,2,3
+4,,6
+7,8,9
+10,11,12\n"""
+        tm.assertRaises(Exception, read_csv, StringIO(data), header=0, names=['a', 'b', 'c', 'd'])
+
+
+class TestPythonParser(ParserTests, tm.TestCase):
     def test_negative_skipfooter_raises(self):
         text = """#foo,a,b,c
 #foo,a,b,c
@@ -2224,7 +2398,7 @@ eight,1,2,3"""
                 tm.assert_series_equal(result, expected)
 
 
-class TestFwfColspaceSniffing(unittest.TestCase):
+class TestFwfColspaceSniffing(tm.TestCase):
     def test_full_file(self):
         # File with all values
         test = '''index                             A    B    C
@@ -2324,7 +2498,7 @@ col1~~~~~col2  col3++++++++++++++++++col4
                                                  header=None, encoding='utf8'))
 
 
-class TestCParserHighMemory(ParserTests, unittest.TestCase):
+class TestCParserHighMemory(ParserTests, tm.TestCase):
 
     def read_csv(self, *args, **kwds):
         kwds = kwds.copy()
@@ -2360,8 +2534,11 @@ class TestCParserHighMemory(ParserTests, unittest.TestCase):
         result = pd.read_csv(s, parse_dates=["Date"], na_filter=False)
         self.assertTrue(result['Date'].isnull()[1])
 
+    def test_usecols(self):
+        raise nose.SkipTest("Usecols is not supported in C High Memory engine.")
 
-class TestCParserLowMemory(ParserTests, unittest.TestCase):
+
+class TestCParserLowMemory(ParserTests, tm.TestCase):
 
     def read_csv(self, *args, **kwds):
         kwds = kwds.copy()
@@ -2405,51 +2582,6 @@ one,two
                                as_recarray=True)
         self.assert_(result['one'].dtype == 'u1')
         self.assert_(result['two'].dtype == 'S1')
-
-    def test_usecols(self):
-        data = """\
-a,b,c
-1,2,3
-4,5,6
-7,8,9
-10,11,12"""
-
-        result = self.read_csv(StringIO(data), usecols=(1, 2))
-        result2 = self.read_csv(StringIO(data), usecols=('b', 'c'))
-        exp = self.read_csv(StringIO(data))
-
-        self.assertEquals(len(result.columns), 2)
-        self.assertTrue((result['b'] == exp['b']).all())
-        self.assertTrue((result['c'] == exp['c']).all())
-
-        tm.assert_frame_equal(result, result2)
-
-        result = self.read_csv(StringIO(data), usecols=[1, 2], header=0,
-                               names=['foo', 'bar'])
-        expected = self.read_csv(StringIO(data), usecols=[1, 2])
-        expected.columns = ['foo', 'bar']
-        tm.assert_frame_equal(result, expected)
-
-        data = """\
-1,2,3
-4,5,6
-7,8,9
-10,11,12"""
-        result = self.read_csv(StringIO(data), names=['a', 'b', 'c'],
-                               header=None, usecols=[1, 2])
-
-        expected = self.read_csv(StringIO(data), names=['a', 'b', 'c'],
-                                 header=None)
-        expected = expected[['b', 'c']]
-        tm.assert_frame_equal(result, expected)
-
-        result2 = self.read_csv(StringIO(data), names=['a', 'b', 'c'],
-                                header=None, usecols=['b', 'c'])
-        tm.assert_frame_equal(result2, result)
-
-        # length conflict, passed names and usecols disagree
-        self.assertRaises(ValueError, self.read_csv, StringIO(data),
-                          names=['a', 'b'], usecols=[1], header=None)
 
     def test_usecols_dtypes(self):
         data = """\
@@ -2496,12 +2628,11 @@ a,b,c
         # #2733
         data = 'a  b  c\n4  apple  bat  5.7\n8  orange  cow  10'
 
-        self.assertRaises(Exception, self.read_csv, StringIO(data),
-                          sep='\s+', usecols=('a', 'b'))
+        df = self.read_csv(StringIO(data), sep='\s+', usecols=('a', 'b'))
 
-        # expected = DataFrame({'a': ['apple', 'orange'],
-        #                       'b': ['bat', 'cow']}, index=[4, 8])
-        # tm.assert_frame_equal(result, expected)
+        expected = DataFrame({'a': ['apple', 'orange'],
+                              'b': ['bat', 'cow']}, index=[4, 8])
+        tm.assert_frame_equal(df, expected)
 
     def test_pure_python_failover(self):
         data = "a,b,c\n1,2,3#ignore this!\n4,5,6#ignorethistoo"
@@ -2734,7 +2865,7 @@ No,No,No"""
                                                                    engine)):
                     read_csv(StringIO(data), engine=engine, **kwargs)
 
-class TestParseSQL(unittest.TestCase):
+class TestParseSQL(tm.TestCase):
 
     def test_convert_sql_column_floats(self):
         arr = np.array([1.5, None, 3, 4.2], dtype=object)

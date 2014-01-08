@@ -192,7 +192,9 @@ class TimeGrouper(CustomGrouper):
         labels = binner = PeriodIndex(start=axis[0], end=axis[-1],
                                       freq=self.freq)
 
-        end_stamps = (labels + 1).asfreq('D', 's').to_timestamp()
+        end_stamps = (labels + 1).asfreq(self.freq, 's').to_timestamp()
+        if axis.tzinfo:
+            end_stamps = end_stamps.tz_localize(axis.tzinfo)
         bins = axis.searchsorted(end_stamps, side='left')
 
         return binner, bins, labels

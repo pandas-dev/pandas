@@ -1,5 +1,4 @@
 from __future__ import print_function
-import unittest
 import sqlite3
 import sys
 
@@ -52,7 +51,7 @@ def _skip_if_no_MySQLdb():
     except ImportError:
         raise nose.SkipTest('MySQLdb not installed, skipping')
 
-class TestSQLite(unittest.TestCase):
+class TestSQLite(tm.TestCase):
 
     def setUp(self):
         self.db = sqlite3.connect(':memory:')
@@ -243,7 +242,7 @@ class TestSQLite(unittest.TestCase):
         tm.assert_frame_equal(result,mono_df)
 
 
-class TestMySQL(unittest.TestCase):
+class TestMySQL(tm.TestCase):
 
     def setUp(self):
         _skip_if_no_MySQLdb()
@@ -487,8 +486,5 @@ class TestMySQL(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    # unittest.main()
-    # nose.runmodule(argv=[__file__,'-vvs','-x', '--pdb-failure'],
-    #                exit=False)
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

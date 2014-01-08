@@ -322,7 +322,6 @@ def _gcf():
     import matplotlib.pyplot as plt
     return plt.gcf()
 
-
 def _get_marker_compat(marker):
     import matplotlib.lines as mlines
     import matplotlib as mpl
@@ -455,13 +454,14 @@ def andrews_curves(data, class_column, ax=None, samples=200, colormap=None,
 
     n = len(data)
     class_col = data[class_column]
+    uniq_class = class_col.drop_duplicates()
     columns = [data[col] for col in data.columns if (col != class_column)]
     x = [-pi + 2.0 * pi * (t / float(samples)) for t in range(samples)]
     used_legends = set([])
 
-    colors = _get_standard_colors(num_colors=n, colormap=colormap,
+    colors = _get_standard_colors(num_colors=len(uniq_class), colormap=colormap,
                                   color_type='random', color=kwds.get('color'))
-
+    col_dict = dict([(klass, col) for klass, col in zip(uniq_class, colors)])
     if ax is None:
         ax = plt.gca(xlim=(-pi, pi))
     for i in range(n):
@@ -472,9 +472,9 @@ def andrews_curves(data, class_column, ax=None, samples=200, colormap=None,
         if com.pprint_thing(class_col[i]) not in used_legends:
             label = com.pprint_thing(class_col[i])
             used_legends.add(label)
-            ax.plot(x, y, color=colors[i], label=label, **kwds)
+            ax.plot(x, y, color=col_dict[class_col[i]], label=label, **kwds)
         else:
-            ax.plot(x, y, color=colors[i], **kwds)
+            ax.plot(x, y, color=col_dict[class_col[i]], **kwds)
 
     ax.legend(loc='upper right')
     ax.grid()
@@ -657,10 +657,10 @@ def lag_plot(series, lag=1, ax=None, **kwds):
     ax: Matplotlib axis object
     """
     import matplotlib.pyplot as plt
-    
+
     # workaround because `c='b'` is hardcoded in matplotlibs scatter method
     kwds.setdefault('c', plt.rcParams['patch.facecolor'])
-    
+
     data = series.values
     y1 = data[:-lag]
     y2 = data[lag:]
@@ -1201,6 +1201,31 @@ class KdePlot(MPLPlot):
             for ax in self.axes:
                 ax.legend(loc='best')
 
+class ScatterPlot(MPLPlot):
+    def __init__(self, data, x, y, **kwargs):
+        MPLPlot.__init__(self, data, **kwargs)
+        self.kwds.setdefault('c', self.plt.rcParams['patch.facecolor'])
+        if x is None or y is None:
+            raise ValueError( 'scatter requires and x and y column')
+        if com.is_integer(x) and not self.data.columns.holds_integer():
+            x = self.data.columns[x]
+        if com.is_integer(y) and not self.data.columns.holds_integer():
+            y = self.data.columns[y]
+        self.x = x
+        self.y = y
+
+
+    def _make_plot(self):
+        x, y, data = self.x, self.y, self.data
+        ax = self.axes[0]
+        ax.scatter(data[x].values, data[y].values, **self.kwds)
+
+    def _post_plot_logic(self):
+        ax = self.axes[0]
+        x, y = self.x, self.y
+        ax.set_ylabel(com.pprint_thing(y))
+        ax.set_xlabel(com.pprint_thing(x))
+
 
 class LinePlot(MPLPlot):
 
@@ -1562,7 +1587,7 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
                secondary_y=False, **kwds):
 
     """
-    Make line or bar plot of DataFrame's series with the index on the x-axis
+    Make line, bar, or scatter plots of DataFrame series with the index on the x-axis
     using matplotlib / pylab.
 
     Parameters
@@ -1593,10 +1618,11 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
     ax : matplotlib axis object, default None
     style : list or dict
         matplotlib line style per column
-    kind : {'line', 'bar', 'barh', 'kde', 'density'}
+    kind : {'line', 'bar', 'barh', 'kde', 'density', 'scatter'}
         bar : vertical bar plot
         barh : horizontal bar plot
         kde/density : Kernel Density Estimation plot
+        scatter: scatter plot
     logx : boolean, default False
         For line plots, use log scaling on x axis
     logy : boolean, default False
@@ -1632,36 +1658,50 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
         klass = BarPlot
     elif kind == 'kde':
         klass = KdePlot
+    elif kind == 'scatter':
+        klass = ScatterPlot
     else:
         raise ValueError('Invalid chart type given %s' % kind)
 
-    if x is not None:
-        if com.is_integer(x) and not frame.columns.holds_integer():
-            x = frame.columns[x]
-        frame = frame.set_index(x)
+    if kind == 'scatter':
+        plot_obj = klass(frame,  x=x, y=y, kind=kind, subplots=subplots,
+                         rot=rot,legend=legend, ax=ax, style=style,
+                         fontsize=fontsize, use_index=use_index, sharex=sharex,
+                         sharey=sharey, xticks=xticks, yticks=yticks,
+                         xlim=xlim, ylim=ylim, title=title, grid=grid,
+                         figsize=figsize, logx=logx, logy=logy,
+                         sort_columns=sort_columns, secondary_y=secondary_y,
+                         **kwds)
+    else:
+        if x is not None:
+            if com.is_integer(x) and not frame.columns.holds_integer():
+                x = frame.columns[x]
+            frame = frame.set_index(x)
 
-    if y is not None:
-        if com.is_integer(y) and not frame.columns.holds_integer():
-            y = frame.columns[y]
-        label = x if x is not None else frame.index.name
-        label = kwds.pop('label', label)
-        ser = frame[y]
-        ser.index.name = label
-        return plot_series(ser, label=label, kind=kind,
-                           use_index=use_index,
-                           rot=rot, xticks=xticks, yticks=yticks,
-                           xlim=xlim, ylim=ylim, ax=ax, style=style,
-                           grid=grid, logx=logx, logy=logy,
-                           secondary_y=secondary_y, title=title,
-                           figsize=figsize, fontsize=fontsize, **kwds)
+        if y is not None:
+            if com.is_integer(y) and not frame.columns.holds_integer():
+                y = frame.columns[y]
+            label = x if x is not None else frame.index.name
+            label = kwds.pop('label', label)
+            ser = frame[y]
+            ser.index.name = label
+            return plot_series(ser, label=label, kind=kind,
+                               use_index=use_index,
+                               rot=rot, xticks=xticks, yticks=yticks,
+                               xlim=xlim, ylim=ylim, ax=ax, style=style,
+                               grid=grid, logx=logx, logy=logy,
+                               secondary_y=secondary_y, title=title,
+                               figsize=figsize, fontsize=fontsize, **kwds)
 
-    plot_obj = klass(frame, kind=kind, subplots=subplots, rot=rot,
-                     legend=legend, ax=ax, style=style, fontsize=fontsize,
-                     use_index=use_index, sharex=sharex, sharey=sharey,
-                     xticks=xticks, yticks=yticks, xlim=xlim, ylim=ylim,
-                     title=title, grid=grid, figsize=figsize, logx=logx,
-                     logy=logy, sort_columns=sort_columns,
-                     secondary_y=secondary_y, **kwds)
+        else:
+            plot_obj = klass(frame, kind=kind, subplots=subplots, rot=rot,
+                             legend=legend, ax=ax, style=style, fontsize=fontsize,
+                             use_index=use_index, sharex=sharex, sharey=sharey,
+                             xticks=xticks, yticks=yticks, xlim=xlim, ylim=ylim,
+                             title=title, grid=grid, figsize=figsize, logx=logx,
+                             logy=logy, sort_columns=sort_columns,
+                             secondary_y=secondary_y, **kwds)
+
     plot_obj.generate()
     plot_obj.draw()
     if subplots:

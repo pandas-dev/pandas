@@ -31,7 +31,9 @@ def _cat_compare_op(op):
 
     return f
 
+
 class Categorical(PandasObject):
+
     """
     Represents a categorical variable in classic R / S-plus fashion
 
@@ -73,6 +75,7 @@ class Categorical(PandasObject):
     array(['a', 'b', 'c', 'a', 'b', 'c'], dtype=object)
     Levels (3): Index(['a', 'b', 'c'], dtype=object)
     """
+
     def __init__(self, labels, levels=None, name=None):
         if levels is None:
             if name is None:
@@ -147,14 +150,14 @@ class Categorical(PandasObject):
                                                   footer=False)
 
         result = '%s\n...\n%s' % (head, tail)
-        #TODO: tidy_repr for footer since there may be a ton of levels?
+        # TODO: tidy_repr for footer since there may be a ton of levels?
         result = '%s\n%s' % (result, self._repr_footer())
 
         return compat.text_type(result)
 
     def _repr_footer(self):
         levheader = 'Levels (%d): ' % len(self.levels)
-        #TODO: should max_line_width respect a setting?
+        # TODO: should max_line_width respect a setting?
         levstring = np.array_repr(self.levels, max_line_width=60)
         indent = ' ' * (levstring.find('[') + len(levheader) + 1)
         lines = levstring.split('\n')
@@ -167,8 +170,8 @@ class Categorical(PandasObject):
 
     def _get_repr(self, name=False, length=True, na_rep='NaN', footer=True):
         formatter = fmt.CategoricalFormatter(self, name=name,
-                                        length=length, na_rep=na_rep,
-                                        footer=footer)
+                                             length=length, na_rep=na_rep,
+                                             footer=footer)
         result = formatter.to_string()
         return compat.text_type(result)
 
@@ -221,12 +224,13 @@ class Categorical(PandasObject):
         """
         Returns a dataframe with frequency and counts by level.
         """
-        #Hack?
+        # Hack?
         from pandas.core.frame import DataFrame
         grouped = DataFrame(self.labels).groupby(0)
         counts = grouped.count().values.squeeze()
-        freqs = counts/float(counts.sum())
-        return DataFrame.from_dict(dict(
-                                    counts=counts,
-                                    freqs=freqs,
-                                    levels=self.levels)).set_index('levels')
+        freqs = counts / float(counts.sum())
+        return DataFrame.from_dict({
+            'counts': counts,
+            'freqs': freqs,
+            'levels': self.levels
+        }).set_index('levels')

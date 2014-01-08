@@ -1,11 +1,10 @@
 import re
-import unittest
 import numpy as np
 import pandas.compat as compat
 from pandas.compat import u
 from pandas.core.base import FrozenList, FrozenNDArray
 from pandas.util.testing import assertRaisesRegexp, assert_isinstance
-
+import pandas.util.testing as tm
 
 class CheckStringMixin(object):
     def test_string_methods_dont_fail(self):
@@ -63,7 +62,7 @@ class CheckImmutable(object):
         self.assertEqual(result, expected)
 
 
-class TestFrozenList(CheckImmutable, CheckStringMixin, unittest.TestCase):
+class TestFrozenList(CheckImmutable, CheckStringMixin, tm.TestCase):
     mutable_methods = ('extend', 'pop', 'remove', 'insert')
     unicode_container = FrozenList([u("\u05d0"), u("\u05d1"), "c"])
 
@@ -89,7 +88,7 @@ class TestFrozenList(CheckImmutable, CheckStringMixin, unittest.TestCase):
         self.check_result(r, self.lst)
 
 
-class TestFrozenNDArray(CheckImmutable, CheckStringMixin, unittest.TestCase):
+class TestFrozenNDArray(CheckImmutable, CheckStringMixin, tm.TestCase):
     mutable_methods = ('put', 'itemset', 'fill')
     unicode_container = FrozenNDArray([u("\u05d0"), u("\u05d1"), "c"])
 

@@ -145,10 +145,11 @@ enum PANDAS_FORMAT
 //#define PRINTMARK() fprintf(stderr, "%s: MARK(%d)\n", __FILE__, __LINE__)
 #define PRINTMARK()
 
-#if (PY_VERSION_HEX < 0x03000000)
-void initObjToJSON(void)
+// import_array() compat
+#if (PY_VERSION_HEX >= 0x03000000)
+void *initObjToJSON(void)
 #else
-int initObjToJSON(void)
+void initObjToJSON(void)
 #endif
 {
   PyObject *mod_pandas;
@@ -176,8 +177,9 @@ int initObjToJSON(void)
     Py_DECREF(mod_tslib);
   }
 
-  /* Initialise numpy API */
+  /* Initialise numpy API and use 2/3 compatible return */
   import_array();
+  return NUMPY_IMPORT_ARRAY_RETVAL;
 }
 
 static void *PyIntToINT32(JSOBJ _obj, JSONTypeContext *tc, void *outValue, size_t *_outLen)

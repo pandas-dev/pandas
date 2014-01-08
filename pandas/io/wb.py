@@ -32,21 +32,22 @@ def download(country=['MX', 'CA', 'US'], indicator=['GDPPCKD', 'GDPPCKN'],
     """
 
     # Are ISO-2 country codes valid?
-    valid_countries = ["AG", "AL", "AM", "AO", "AR", "AT", "AU", "AZ", "BB",
-                       "BD", "BE", "BF", "BG", "BH", "BI", "BJ", "BO", "BR", "BS", "BW",
-                       "BY", "BZ", "CA", "CD", "CF", "CG", "CH", "CI", "CL", "CM", "CN",
-                       "CO", "CR", "CV", "CY", "CZ", "DE", "DK", "DM", "DO", "DZ", "EC",
-                       "EE", "EG", "ER", "ES", "ET", "FI", "FJ", "FR", "GA", "GB", "GE",
-                       "GH", "GM", "GN", "GQ", "GR", "GT", "GW", "GY", "HK", "HN", "HR",
-                       "HT", "HU", "ID", "IE", "IL", "IN", "IR", "IS", "IT", "JM", "JO",
-                       "JP", "KE", "KG", "KH", "KM", "KR", "KW", "KZ", "LA", "LB", "LC",
-                       "LK", "LS", "LT", "LU", "LV", "MA", "MD", "MG", "MK", "ML", "MN",
-                       "MR", "MU", "MW", "MX", "MY", "MZ", "NA", "NE", "NG", "NI", "NL",
-                       "NO", "NP", "NZ", "OM", "PA", "PE", "PG", "PH", "PK", "PL", "PT",
-                       "PY", "RO", "RU", "RW", "SA", "SB", "SC", "SD", "SE", "SG", "SI",
-                       "SK", "SL", "SN", "SR", "SV", "SY", "SZ", "TD", "TG", "TH", "TN",
-                       "TR", "TT", "TW", "TZ", "UA", "UG", "US", "UY", "UZ", "VC", "VE",
-                       "VN", "VU", "YE", "ZA", "ZM", "ZW", "all"]
+    valid_countries = [
+        "AG", "AL", "AM", "AO", "AR", "AT", "AU", "AZ", "BB", "BD", "BE", "BF",
+        "BG", "BH", "BI", "BJ", "BO", "BR", "BS", "BW", "BY", "BZ", "CA", "CD",
+        "CF", "CG", "CH", "CI", "CL", "CM", "CN", "CO", "CR", "CV", "CY", "CZ",
+        "DE", "DK", "DM", "DO", "DZ", "EC", "EE", "EG", "ER", "ES", "ET", "FI",
+        "FJ", "FR", "GA", "GB", "GE", "GH", "GM", "GN", "GQ", "GR", "GT", "GW",
+        "GY", "HK", "HN", "HR", "HT", "HU", "ID", "IE", "IL", "IN", "IR", "IS",
+        "IT", "JM", "JO", "JP", "KE", "KG", "KH", "KM", "KR", "KW", "KZ", "LA",
+        "LB", "LC", "LK", "LS", "LT", "LU", "LV", "MA", "MD", "MG", "MK", "ML",
+        "MN", "MR", "MU", "MW", "MX", "MY", "MZ", "NA", "NE", "NG", "NI", "NL",
+        "NO", "NP", "NZ", "OM", "PA", "PE", "PG", "PH", "PK", "PL", "PT", "PY",
+        "RO", "RU", "RW", "SA", "SB", "SC", "SD", "SE", "SG", "SI", "SK", "SL",
+        "SN", "SR", "SV", "SY", "SZ", "TD", "TG", "TH", "TN", "TR", "TT", "TW",
+        "TZ", "UA", "UG", "US", "UY", "UZ", "VC", "VE", "VN", "VU", "YE", "ZA",
+        "ZM", "ZW", "all"
+    ]
     if type(country) == str:
         country = [country]
     bad_countries = np.setdiff1d(country, valid_countries)
@@ -68,7 +69,8 @@ def download(country=['MX', 'CA', 'US'], indicator=['GDPPCKD', 'GDPPCKN'],
     # Warn
     if len(bad_indicators) > 0:
         print('Failed to obtain indicator(s): %s' % '; '.join(bad_indicators))
-        print('The data may still be available for download at http://data.worldbank.org')
+        print('The data may still be available for download at '
+              'http://data.worldbank.org')
     if len(bad_countries) > 0:
         print('Invalid ISO-2 codes: %s' % ' '.join(bad_countries))
     # Merge WDI series
@@ -84,9 +86,9 @@ def download(country=['MX', 'CA', 'US'], indicator=['GDPPCKD', 'GDPPCKN'],
 def _get_data(indicator="NY.GNS.ICTR.GN.ZS", country='US',
               start=2002, end=2005):
     # Build URL for api call
-    url = "http://api.worldbank.org/countries/" + country + "/indicators/" + \
-        indicator + "?date=" + str(start) + ":" + str(end) + "&per_page=25000" + \
-        "&format=json"
+    url = ("http://api.worldbank.org/countries/" + country + "/indicators/" +
+           indicator + "?date=" + str(start) + ":" + str(end) +
+           "&per_page=25000&format=json")
     # Download
     with urlopen(url) as response:
         data = response.read()

@@ -1,7 +1,6 @@
 from datetime import datetime
 import os
 import operator
-import unittest
 import nose
 
 import numpy as np
@@ -19,7 +18,7 @@ from pandas.util.testing import (assert_panel_equal,
 import pandas.util.testing as tm
 
 
-class TestPanelnd(unittest.TestCase):
+class TestPanelnd(tm.TestCase):
 
     def setUp(self):
         pass

@@ -9,7 +9,6 @@ from __future__ import division
 from datetime import datetime
 from pandas import compat
 from distutils.version import LooseVersion
-import unittest
 import nose
 import numpy as np
 from numpy.testing.decorators import slow
@@ -70,6 +69,7 @@ class TestOLS(BaseTest):
 
     @classmethod
     def setUpClass(cls):
+        super(TestOLS, cls).setUpClass()
         try:
             import matplotlib as mpl
             mpl.use('Agg', warn=False)
@@ -252,7 +252,7 @@ class TestOLS(BaseTest):
         summary = repr(model)
 
 
-class TestOLSMisc(unittest.TestCase):
+class TestOLSMisc(tm.TestCase):
 
     _multiprocess_can_split_ = True
 
@@ -260,7 +260,8 @@ class TestOLSMisc(unittest.TestCase):
     For test coverage with faux data
     '''
     @classmethod
-    def setupClass(cls):
+    def setUpClass(cls):
+        super(TestOLSMisc, cls).setUpClass()
         if not _have_statsmodels:
             raise nose.SkipTest("no statsmodels")
 
@@ -378,6 +379,9 @@ class TestOLSMisc(unittest.TestCase):
         model = ols(y=y, x=x)
         expected = ols(y=y, x={'x': x})
         assert_series_equal(model.beta, expected.beta)
+
+        # GH 5233/5250
+        assert_series_equal(model.y_predict, model.predict(x=x))
 
     def test_various_attributes(self):
         # just make sure everything "works". test correctness elsewhere
@@ -801,7 +805,7 @@ def _period_slice(panelModel, i):
     return slice(L, R)
 
 
-class TestOLSFilter(unittest.TestCase):
+class TestOLSFilter(tm.TestCase):
 
     _multiprocess_can_split_ = True
 

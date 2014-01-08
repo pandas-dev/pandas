@@ -5,6 +5,7 @@
 4. Download JSON secret file and move into same directory as this file
 """
 from datetime import datetime
+import re
 from pandas import compat
 import numpy as np
 from pandas import DataFrame
@@ -47,8 +48,8 @@ profile_id : str
 %s
 """ % _QUERY_PARAMS
 
-_GA_READER_DOC = """Given query parameters, return a DataFrame with all the data
-or an iterator that returns DataFrames containing chunks of the data
+_GA_READER_DOC = """Given query parameters, return a DataFrame with all the
+data or an iterator that returns DataFrames containing chunks of the data
 
 Parameters
 ----------
@@ -88,11 +89,13 @@ redirect : str, optional
     Local host redirect if unspecified
 """
 
+
 def reset_token_store():
     """
     Deletes the default token store
     """
     auth.reset_default_token_store()
+
 
 @Substitution(extras=_AUTH_PARAMS)
 @Appender(_GA_READER_DOC)
@@ -184,9 +187,8 @@ class GDataReader(OAuthDataReader):
         return auth.init_service(http)
 
     def get_account(self, name=None, id=None, **kwargs):
-        """
-        Retrieve an account that matches the name, id, or some account attribute
-        specified in **kwargs
+        """ Retrieve an account that matches the name, id, or some account
+        attribute specified in **kwargs
 
         Parameters
         ----------
@@ -359,7 +361,10 @@ def format_query(ids, metrics, start_date, end_date=None, dimensions=None,
     [_maybe_add_arg(qry, n, d) for n, d in zip(names, lst)]
 
     if isinstance(segment, compat.string_types):
-        _maybe_add_arg(qry, 'segment', segment, 'dynamic::ga')
+        if re.match("^[a-zA-Z0-9\-\_]+$", segment):
+            _maybe_add_arg(qry, 'segment', segment, 'gaid:')
+        else:
+            _maybe_add_arg(qry, 'segment', segment, 'dynamic::ga')
     elif isinstance(segment, int):
         _maybe_add_arg(qry, 'segment', segment, 'gaid:')
     elif segment:
@@ -380,6 +385,7 @@ def _maybe_add_arg(query, field, data, prefix='ga'):
             data = [data]
         data = ','.join(['%s:%s' % (prefix, x) for x in data])
         query[field] = data
+
 
 def _get_match(obj_store, name, id, **kwargs):
     key, val = None, None

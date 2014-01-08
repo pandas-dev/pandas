@@ -95,6 +95,8 @@ def get_freq_code(freqstr):
                 code = _period_str_to_code(freqstr[0])
                 stride = freqstr[1]
             except:
+                if com.is_integer(freqstr[1]):
+                    raise
                 code = _period_str_to_code(freqstr[1])
                 stride = freqstr[0]
             return code, stride
@@ -227,10 +229,10 @@ _rule_aliases = {
     'us': 'U'
 }
 
+#TODO: Can this be killed?
 for _i, _weekday in enumerate(['MON', 'TUE', 'WED', 'THU', 'FRI']):
     for _iweek in range(4):
         _name = 'WOM-%d%s' % (_iweek + 1, _weekday)
-        _offset_map[_name] = offsets.WeekOfMonth(week=_iweek, weekday=_i)
         _rule_aliases[_name.replace('-', '@')] = _name
 
 # Note that _rule_aliases is not 1:1 (d[BA]==d[A@DEC]), and so traversal
@@ -301,7 +303,7 @@ def to_offset(freqstr):
 
 
 # hack to handle WOM-1MON
-opattern = re.compile(r'([\-]?\d*)\s*([A-Za-z]+([\-@]\d*[A-Za-z]+)?)')
+opattern = re.compile(r'([\-]?\d*)\s*([A-Za-z]+([\-@][\dA-Za-z\-]+)?)')
 
 
 def _base_and_stride(freqstr):
@@ -356,16 +358,16 @@ def get_offset(name):
     else:
         if name in _rule_aliases:
             name = _rule_aliases[name]
-    try:
-        if name not in _offset_map:
+            
+    if name not in _offset_map:
+        try:
             # generate and cache offset
             offset = _make_offset(name)
-            _offset_map[name] = offset
-        return _offset_map[name]
-    except (ValueError, TypeError, KeyError):
-        # bad prefix or suffix
-        pass
-    raise ValueError('Bad rule name requested: %s.' % name)
+        except (ValueError, TypeError, KeyError):
+            # bad prefix or suffix
+            raise ValueError('Bad rule name requested: %s.' % name)
+        _offset_map[name] = offset
+    return _offset_map[name]
 
 
 getOffset = get_offset
@@ -400,9 +402,6 @@ def get_legacy_offset_name(offset):
     """
     name = offset.name
     return _legacy_reverse_map.get(name, name)
-
-get_offset_name = get_offset_name
-
 
 def get_standard_freq(freq):
     """
@@ -621,8 +620,12 @@ def _period_str_to_code(freqstr):
     try:
         freqstr = freqstr.upper()
         return _period_code_map[freqstr]
-    except:
-        alias = _period_alias_dict[freqstr]
+    except KeyError:
+        try:
+            alias = _period_alias_dict[freqstr]
+        except KeyError:
+            raise ValueError("Unknown freqstr: %s" % freqstr)
+        
         return _period_code_map[alias]
 
 
@@ -839,16 +842,21 @@ class _FrequencyInferer(object):
                 'ce': 'M', 'be': 'BM'}.get(pos_check)
 
     def _get_wom_rule(self):
-        wdiffs = unique(np.diff(self.index.week))
-        if not lib.ismember(wdiffs, set([4, 5])).all():
-            return None
+#         wdiffs = unique(np.diff(self.index.week))
+        #We also need -47, -49, -48 to catch index spanning year boundary
+#         if not lib.ismember(wdiffs, set([4, 5, -47, -49, -48])).all():
+#             return None
 
         weekdays = unique(self.index.weekday)
         if len(weekdays) > 1:
             return None
+        
+        week_of_months = unique((self.index.day - 1) // 7)
+        if len(week_of_months) > 1:
+            return None
 
         # get which week
-        week = (self.index[0].day - 1) // 7 + 1
+        week = week_of_months[0] + 1
         wd = _weekday_rule_aliases[weekdays[0]]
 
         return 'WOM-%d%s' % (week, wd)

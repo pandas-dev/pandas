@@ -35,7 +35,8 @@ for _f in _lift_random:
 
 NA = np.nan
 
-#### a series-like ndarray ####
+# a series-like ndarray ####
+
 
 class SNDArray(Array):
 
@@ -49,4 +50,3 @@ class SNDArray(Array):
     @property
     def values(self):
         return self.view(Array)
-

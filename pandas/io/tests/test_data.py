@@ -1,6 +1,5 @@
 from __future__ import print_function
 from pandas import compat
-import unittest
 import warnings
 import nose
 from nose.tools import assert_equal
@@ -16,6 +15,10 @@ from pandas.util.testing import (assert_series_equal, assert_produces_warning,
 import pandas.util.testing as tm
 from numpy.testing import assert_array_equal
 
+if compat.PY3:
+    from urllib.error import HTTPError
+else:
+    from urllib2 import HTTPError
 
 def _skip_if_no_lxml():
     try:
@@ -35,15 +38,17 @@ def assert_n_failed_equals_n_null_columns(wngs, obj, cls=SymbolWarning):
     assert msgs.str.contains('|'.join(failed_symbols)).all()
 
 
-class TestGoogle(unittest.TestCase):
+class TestGoogle(tm.TestCase):
     @classmethod
     def setUpClass(cls):
+        super(TestGoogle, cls).setUpClass()
         cls.locales = tm.get_locales(prefix='en_US')
         if not cls.locales:
             raise nose.SkipTest("US English locale not available for testing")
 
     @classmethod
     def tearDownClass(cls):
+        super(TestGoogle, cls).tearDownClass()
         del cls.locales
 
     @network
@@ -105,9 +110,10 @@ class TestGoogle(unittest.TestCase):
                 assert_n_failed_equals_n_null_columns(w, result)
 
 
-class TestYahoo(unittest.TestCase):
+class TestYahoo(tm.TestCase):
     @classmethod
     def setUpClass(cls):
+        super(TestYahoo, cls).setUpClass()
         _skip_if_no_lxml()
 
     @network
@@ -224,9 +230,10 @@ class TestYahoo(unittest.TestCase):
         assert np.issubdtype(pan.values.dtype, np.floating)
 
 
-class TestYahooOptions(unittest.TestCase):
+class TestYahooOptions(tm.TestCase):
     @classmethod
     def setUpClass(cls):
+        super(TestYahooOptions, cls).setUpClass()
         _skip_if_no_lxml()
 
         # aapl has monthlies
@@ -241,6 +248,7 @@ class TestYahooOptions(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        super(TestYahooOptions, cls).tearDownClass()
         del cls.aapl, cls.expiry
 
     @network
@@ -283,9 +291,10 @@ class TestYahooOptions(unittest.TestCase):
             assert len(puts)>1
 
 
-class TestOptionsWarnings(unittest.TestCase):
+class TestOptionsWarnings(tm.TestCase):
     @classmethod
     def setUpClass(cls):
+        super(TestOptionsWarnings, cls).setUpClass()
         _skip_if_no_lxml()
 
         with assert_produces_warning(FutureWarning):
@@ -300,6 +309,7 @@ class TestOptionsWarnings(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        super(TestOptionsWarnings, cls).tearDownClass()
         del cls.aapl, cls.year, cls.month
 
     @network
@@ -342,7 +352,7 @@ class TestOptionsWarnings(unittest.TestCase):
                 warnings.warn("IndexError thrown no tables found")
 
 
-class TestDataReader(unittest.TestCase):
+class TestDataReader(tm.TestCase):
     def test_is_s3_url(self):
         from pandas.io.common import _is_s3_url
         self.assert_(_is_s3_url("s3://pandas/somethingelse.com"))
@@ -372,7 +382,7 @@ class TestDataReader(unittest.TestCase):
             assert isinstance(ff, dict)
 
 
-class TestFred(unittest.TestCase):
+class TestFred(tm.TestCase):
     @network
     def test_fred(self):
         """
@@ -422,6 +432,24 @@ class TestFred(unittest.TestCase):
         name = "NOT A REAL SERIES"
         self.assertRaises(Exception, web.get_data_fred, name)
 
+    @network
+    def test_fred_multi(self):
+        names = ['CPIAUCSL', 'CPALTT01USQ661S', 'CPILFESL']
+        start = datetime(2010, 1, 1)
+        end = datetime(2013, 1, 27)
+
+        received = web.DataReader(names, "fred", start, end).head(1)
+        expected = DataFrame([[217.478, 0.99701529, 220.544]], columns=names,
+                             index=[pd.tslib.Timestamp('2010-01-01 00:00:00')])
+        expected.index.rename('DATE', inplace=True)
+        assert_frame_equal(received, expected, check_less_precise=True)
+
+    @network
+    def test_fred_multi_bad_series(self):
+
+        names = ['NOTAREALSERIES', 'CPIAUCSL', "ALSO FAKE"]
+        with tm.assertRaises(HTTPError):
+            DataReader(names, data_source="fred")
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

@@ -142,6 +142,22 @@ class Timestamp(_Timestamp):
             note: by definition there cannot be any tz info on the ordinal itself """
         return cls(datetime.fromordinal(ordinal),offset=offset,tz=tz)
 
+    @classmethod
+    def now(cls, tz=None):
+        """ compat now with datetime """
+        if isinstance(tz, basestring):
+            tz = pytz.timezone(tz)
+        return cls(datetime.now(tz))
+
+    @classmethod
+    def today(cls):
+        """ compat today with datetime """
+        return cls(datetime.today())
+
+    @classmethod
+    def utcnow(cls):
+        return cls.now('UTC')
+
     def __new__(cls, object ts_input, object offset=None, tz=None, unit=None):
         cdef _TSObject ts
         cdef _Timestamp ts_base
@@ -611,7 +627,8 @@ cdef class _Timestamp(datetime):
         if is_integer_object(other):
             neg_other = -other
             return self + neg_other
-        return super(_Timestamp, self).__sub__(other)
+        # This calling convention is required
+        return datetime.__sub__(self, other)
 
     cpdef _get_field(self, field):
         out = get_date_field(np.array([self.value], dtype=np.int64), field)
@@ -2208,6 +2225,7 @@ cdef inline int64_t _normalized_stamp(pandas_datetimestruct *dts):
     dts.min = 0
     dts.sec = 0
     dts.us = 0
+    dts.ps = 0
     return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, dts)
 
 

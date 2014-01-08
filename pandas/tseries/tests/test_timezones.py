@@ -78,7 +78,7 @@ fixed_off = FixedOffset(-420, '-07:00')
 fixed_off_no_name = FixedOffset(-330, None)
 
 
-class TestTimeZoneSupport(unittest.TestCase):
+class TestTimeZoneSupport(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def setUp(self):
@@ -379,18 +379,18 @@ class TestTimeZoneSupport(unittest.TestCase):
         tz = pytz.timezone('US/Eastern')
         dr = date_range(datetime(2011, 11, 6, 0), periods=5,
                         freq=datetools.Hour())
-        self.assertRaises(pytz.AmbiguousTimeError, dr.tz_localize, 
+        self.assertRaises(pytz.AmbiguousTimeError, dr.tz_localize,
                           tz, infer_dst=True)
-        
+
         # With repeated hours, we can infer the transition
-        dr = date_range(datetime(2011, 11, 6, 0), periods=5, 
+        dr = date_range(datetime(2011, 11, 6, 0), periods=5,
                         freq=datetools.Hour(), tz=tz)
-        di = DatetimeIndex(['11/06/2011 00:00', '11/06/2011 01:00', 
-                            '11/06/2011 01:00', '11/06/2011 02:00', 
+        di = DatetimeIndex(['11/06/2011 00:00', '11/06/2011 01:00',
+                            '11/06/2011 01:00', '11/06/2011 02:00',
                             '11/06/2011 03:00'])
         localized = di.tz_localize(tz, infer_dst=True)
         self.assert_(np.array_equal(dr, localized))
-        
+
         # When there is no dst transition, nothing special happens
         dr = date_range(datetime(2011, 6, 1, 0), periods=10,
                         freq=datetools.Hour())
@@ -686,7 +686,7 @@ class TestTimeZoneSupport(unittest.TestCase):
             self.assert_(idx1.equals(other))
 
 
-class TestTimeZones(unittest.TestCase):
+class TestTimeZones(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def setUp(self):

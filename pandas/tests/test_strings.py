@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, date
 import os
 import operator
 import re
-import unittest
+import warnings
 
 import nose
 
@@ -25,7 +25,7 @@ import pandas.util.testing as tm
 import pandas.core.strings as strings
 
 
-class TestStringMethods(unittest.TestCase):
+class TestStringMethods(tm.TestCase):
 
     _multiprocess_can_split_ = True
 
@@ -392,10 +392,12 @@ class TestStringMethods(unittest.TestCase):
                       u('dddddd')])
         tm.assert_series_equal(result, exp)
 
-    def test_match(self):
+    def test_deprecated_match(self):
+        # Old match behavior, deprecated (but still default) in 0.13
         values = Series(['fooBAD__barBAD', NA, 'foo'])
 
-        result = values.str.match('.*(BAD[_]+).*(BAD)')
+        with tm.assert_produces_warning():
+            result = values.str.match('.*(BAD[_]+).*(BAD)')
         exp = Series([('BAD__', 'BAD'), NA, []])
         tm.assert_series_equal(result, exp)
 
@@ -403,7 +405,8 @@ class TestStringMethods(unittest.TestCase):
         mixed = Series(['aBAD_BAD', NA, 'BAD_b_BAD', True, datetime.today(),
                         'foo', None, 1, 2.])
 
-        rs = Series(mixed).str.match('.*(BAD[_]+).*(BAD)')
+        with tm.assert_produces_warning():
+            rs = Series(mixed).str.match('.*(BAD[_]+).*(BAD)')
         xp = [('BAD_', 'BAD'), NA, ('BAD_', 'BAD'), NA, NA, [], NA, NA, NA]
         tm.assert_isinstance(rs, Series)
         tm.assert_almost_equal(rs, xp)
@@ -411,8 +414,42 @@ class TestStringMethods(unittest.TestCase):
         # unicode
         values = Series([u('fooBAD__barBAD'), NA, u('foo')])
 
-        result = values.str.match('.*(BAD[_]+).*(BAD)')
+        with tm.assert_produces_warning():
+            result = values.str.match('.*(BAD[_]+).*(BAD)')
         exp = Series([(u('BAD__'), u('BAD')), NA, []])
+        tm.assert_series_equal(result, exp)
+
+    def test_match(self):
+        # New match behavior introduced in 0.13
+        values = Series(['fooBAD__barBAD', NA, 'foo'])
+        with tm.assert_produces_warning():
+            result = values.str.match('.*(BAD[_]+).*(BAD)', as_indexer=True)
+        exp = Series([True, NA, False])
+        tm.assert_series_equal(result, exp)
+
+        # If no groups, use new behavior even when as_indexer is False.
+        # (Old behavior is pretty much useless in this case.)
+        values = Series(['fooBAD__barBAD', NA, 'foo'])
+        result = values.str.match('.*BAD[_]+.*BAD', as_indexer=False)
+        exp = Series([True, NA, False])
+        tm.assert_series_equal(result, exp)
+
+        # mixed
+        mixed = Series(['aBAD_BAD', NA, 'BAD_b_BAD', True, datetime.today(),
+                        'foo', None, 1, 2.])
+
+        with tm.assert_produces_warning():
+            rs = Series(mixed).str.match('.*(BAD[_]+).*(BAD)', as_indexer=True)
+        xp = [True, NA, True, NA, NA, False, NA, NA, NA]
+        tm.assert_isinstance(rs, Series)
+        tm.assert_almost_equal(rs, xp)
+
+        # unicode
+        values = Series([u('fooBAD__barBAD'), NA, u('foo')])
+
+        with tm.assert_produces_warning():
+            result = values.str.match('.*(BAD[_]+).*(BAD)', as_indexer=True)
+        exp = Series([True, NA, False])
         tm.assert_series_equal(result, exp)
 
     def test_extract(self):
@@ -442,7 +479,7 @@ class TestStringMethods(unittest.TestCase):
         tm.assert_frame_equal(result, exp)
 
         # no groups
-        s = Series(['A1', 'B2', 'C3']) 
+        s = Series(['A1', 'B2', 'C3'])
         f = lambda: s.str.extract('[ABC][123]')
         self.assertRaises(ValueError, f)
 
@@ -454,7 +491,7 @@ class TestStringMethods(unittest.TestCase):
         result = s.str.extract('(_)')
         exp = Series([NA, NA, NA])
         tm.assert_series_equal(result, exp)
- 
+
         # two groups, no matches
         result = s.str.extract('(_)(_)')
         exp = DataFrame([[NA, NA], [NA, NA], [NA, NA]])
@@ -966,7 +1003,10 @@ class TestStringMethods(unittest.TestCase):
 
         pat = pattern = r'([A-Z0-9._%+-]+)@([A-Z0-9.-]+)\.([A-Z]{2,4})'
 
-        result = data.str.match(pat, flags=re.IGNORECASE)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            result = data.str.match(pat, flags=re.IGNORECASE)
+            assert issubclass(w[-1].category, UserWarning)
         self.assertEquals(result[0], ('dave', 'google', 'com'))
 
         result = data.str.findall(pat, flags=re.IGNORECASE)
@@ -975,7 +1015,10 @@ class TestStringMethods(unittest.TestCase):
         result = data.str.count(pat, flags=re.IGNORECASE)
         self.assertEquals(result[0], 1)
 
-        result = data.str.contains(pat, flags=re.IGNORECASE)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            result = data.str.contains(pat, flags=re.IGNORECASE)
+            assert issubclass(w[-1].category, UserWarning)
         self.assertEquals(result[0], True)
 
     def test_encode_decode(self):

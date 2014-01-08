@@ -11,6 +11,7 @@
    randn = np.random.randn
    randint = np.random.randint
    np.set_printoptions(precision=4, suppress=True)
+   options.display.max_rows=15
    from dateutil.relativedelta import relativedelta
    from pandas.tseries.api import *
    from pandas.tseries.offsets import *
@@ -420,6 +421,7 @@ frequency increment. Specific offset logic like "month", "business day", or
     CDay, "custom business day (experimental)"
     Week, "one week, optionally anchored on a day of the week"
     WeekOfMonth, "the x-th day of the y-th week of each month"
+    LastWeekOfMonth, "the x-th day of the last week of each month"
     MonthEnd, "calendar month end"
     MonthBegin, "calendar month begin"
     BMonthEnd, "business month end"
@@ -428,10 +430,12 @@ frequency increment. Specific offset logic like "month", "business day", or
     QuarterBegin, "calendar quarter begin"
     BQuarterEnd, "business quarter end"
     BQuarterBegin, "business quarter begin"
+    FY5253Quarter, "retail (aka 52-53 week) quarter"
     YearEnd, "calendar year end"
     YearBegin, "calendar year begin"
     BYearEnd, "business year end"
     BYearBegin, "business year begin"
+    FY5253, "retail (aka 52-53 week) year"
     Hour, "one hour"
     Minute, "one minute"
     Second, "one second"
@@ -1113,7 +1117,7 @@ Localization of Timestamps functions just like DatetimeIndex and TimeSeries:
    rng[5].tz_localize('Asia/Shanghai')
 
 
-Operations between TimeSeries in difficult time zones will yield UTC
+Operations between TimeSeries in different time zones will yield UTC
 TimeSeries, aligning the data on the UTC timestamps:
 
 .. ipython:: python
@@ -1244,7 +1248,7 @@ Time Deltas & Reductions
 
 .. warning::
 
-   A numeric reduction operation for ``timedelta64[ns]`` will return a single-element ``Series`` of
+   A numeric reduction operation for ``timedelta64[ns]`` can return a single-element ``Series`` of
    dtype ``timedelta64[ns]``.
 
 You can do numeric reduction operations on timedeltas.
@@ -1283,8 +1287,8 @@ It can also construct Series.
 
 **frequency conversion**
 
-Timedeltas can be converted to other 'frequencies' by dividing by another timedelta.
-These operations yield ``float64`` dtyped Series.
+Timedeltas can be converted to other 'frequencies' by dividing by another timedelta,
+or by astyping to a specific timedelta type. These operations yield ``float64`` dtyped Series.
 
 .. ipython:: python
 
@@ -1295,9 +1299,11 @@ These operations yield ``float64`` dtyped Series.
 
    # to days
    td / np.timedelta64(1,'D')
+   td.astype('timedelta64[D]')
 
    # to seconds
    td / np.timedelta64(1,'s')
+   td.astype('timedelta64[s]')
 
 Dividing or multiplying a ``timedelta64[ns]`` Series by an integer or integer Series
 yields another ``timedelta64[ns]`` dtypes Series.

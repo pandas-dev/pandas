@@ -5,8 +5,8 @@ from pandas.compat import range, lrange, lzip, u, zip
 import operator
 import pickle
 import re
-import unittest
 import nose
+import warnings
 import os
 
 import numpy as np
@@ -19,6 +19,7 @@ from pandas.core.series import Series
 from pandas.util.testing import (assert_almost_equal, assertRaisesRegexp,
                                  assert_copy)
 from pandas import compat
+from pandas.compat import long
 
 import pandas.util.testing as tm
 import pandas.core.config as cf
@@ -32,7 +33,7 @@ from pandas.lib import Timestamp
 from pandas import _np_version_under1p7
 
 
-class TestIndex(unittest.TestCase):
+class TestIndex(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def setUp(self):
@@ -689,7 +690,7 @@ class TestIndex(unittest.TestCase):
                 self.assert_(res is joined)
 
 
-class TestFloat64Index(unittest.TestCase):
+class TestFloat64Index(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def setUp(self):
@@ -782,7 +783,7 @@ class TestFloat64Index(unittest.TestCase):
         self.check_is_index(result)
 
 
-class TestInt64Index(unittest.TestCase):
+class TestInt64Index(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def setUp(self):
@@ -1201,7 +1202,7 @@ class TestInt64Index(unittest.TestCase):
         self.assertEqual(idx.name, idx[1:].name)
 
 
-class TestMultiIndex(unittest.TestCase):
+class TestMultiIndex(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def setUp(self):
@@ -1213,7 +1214,7 @@ class TestMultiIndex(unittest.TestCase):
         self.index_names = ['first', 'second']
         self.index = MultiIndex(levels=[major_axis, minor_axis],
                                 labels=[major_labels, minor_labels],
-                                names=self.index_names)
+                                names=self.index_names, verify_integrity=False)
 
     def test_hash_error(self):
         with tm.assertRaisesRegexp(TypeError,
@@ -1343,7 +1344,7 @@ class TestMultiIndex(unittest.TestCase):
 
         # make sure label setting works too
         labels2 = [[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]]
-        exp_values = np.array([(1, 'a')] * 6, dtype=object)
+        exp_values = np.array([(long(1), 'a')] * 6, dtype=object)
         new_values = mi2.set_labels(labels2).values
         # not inplace shouldn't change
         assert_almost_equal(mi2._tuples, vals2)
@@ -1379,8 +1380,10 @@ class TestMultiIndex(unittest.TestCase):
             columns=['one', 'two', 'three', 'four'],
             index=idx)
         df = df.sortlevel()
+        self.assert_(df.is_copy is False)
         self.assertEqual(df.index.names, ('Name', 'Number'))
         df = df.set_value(('grethe', '4'), 'one', 99.34)
+        self.assert_(df.is_copy is False)
         self.assertEqual(df.index.names, ('Name', 'Number'))
 
     def test_names(self):
@@ -1447,11 +1450,38 @@ class TestMultiIndex(unittest.TestCase):
             MultiIndex(labels=[])
 
     def test_constructor_mismatched_label_levels(self):
-        levels = [np.array([1]), np.array([2]), np.array([3])]
-        labels = ["a"]
+        labels = [np.array([1]), np.array([2]), np.array([3])]
+        levels = ["a"]
         assertRaisesRegexp(ValueError, "Length of levels and labels must be"
                            " the same", MultiIndex, levels=levels,
                            labels=labels)
+        length_error = re.compile('>= length of level')
+        label_error = re.compile(r'Unequal label lengths: \[4, 2\]')
+
+        # important to check that it's looking at the right thing.
+        with tm.assertRaisesRegexp(ValueError, length_error):
+            MultiIndex(levels=[['a'], ['b']], labels=[[0, 1, 2, 3], [0, 3, 4, 1]])
+
+        with tm.assertRaisesRegexp(ValueError, label_error):
+            MultiIndex(levels=[['a'], ['b']], labels=[[0, 0, 0, 0], [0, 0]])
+
+        # external API
+        with tm.assertRaisesRegexp(ValueError, length_error):
+            self.index.copy().set_levels([['a'], ['b']])
+
+        with tm.assertRaisesRegexp(ValueError, label_error):
+            self.index.copy().set_labels([[0, 0, 0, 0], [0, 0]])
+
+        # deprecated properties
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+
+            with tm.assertRaisesRegexp(ValueError, length_error):
+                self.index.copy().levels = [['a'], ['b']]
+
+            with tm.assertRaisesRegexp(ValueError, label_error):
+                self.index.copy().labels = [[0, 0, 0, 0], [0, 0]]
+
 
     def assert_multiindex_copied(self, copy, original):
         # levels shoudl be (at least, shallow copied)
@@ -2433,6 +2463,16 @@ class TestMultiIndex(unittest.TestCase):
         # isnull(MI)
         with tm.assertRaises(NotImplementedError):
             pd.isnull(self.index)
+
+    def test_level_setting_resets_attributes(self):
+        ind = MultiIndex.from_arrays([
+            ['A', 'A', 'B', 'B', 'B'],
+            [1, 2, 1, 2, 3]])
+        assert ind.is_monotonic
+        ind.set_levels([['A', 'B', 'A', 'A', 'B'], [2, 1, 3, -2, 5]],
+                       inplace=True)
+        # if this fails, probably didn't reset the cache correctly.
+        assert not ind.is_monotonic
 
 
 def test_get_combined_index():

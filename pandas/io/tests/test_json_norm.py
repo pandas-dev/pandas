@@ -1,5 +1,4 @@
 import nose
-import unittest
 
 from pandas import DataFrame
 import numpy as np
@@ -15,7 +14,7 @@ def _assert_equal_data(left, right):
     tm.assert_frame_equal(left, right)
 
 
-class TestJSONNormalize(unittest.TestCase):
+class TestJSONNormalize(tm.TestCase):
 
     def setUp(self):
         self.state_data = [
@@ -165,7 +164,7 @@ class TestJSONNormalize(unittest.TestCase):
         tm.assert_frame_equal(result, expected)
 
 
-class TestNestedToRecord(unittest.TestCase):
+class TestNestedToRecord(tm.TestCase):
 
     def test_flat_stays_flat(self):
         recs = [dict(flat1=1,flat2=2),

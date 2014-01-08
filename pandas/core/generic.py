@@ -7,7 +7,8 @@ import pandas.lib as lib
 
 import pandas as pd
 from pandas.core.base import PandasObject
-from pandas.core.index import Index, MultiIndex, _ensure_index, InvalidIndexError
+from pandas.core.index import (Index, MultiIndex, _ensure_index,
+                               InvalidIndexError)
 import pandas.core.indexing as indexing
 from pandas.core.indexing import _maybe_convert_indices
 from pandas.tseries.index import DatetimeIndex
@@ -19,9 +20,11 @@ import pandas.core.datetools as datetools
 from pandas import compat, _np_version_under1p7
 from pandas.compat import map, zip, lrange, string_types, isidentifier
 from pandas.core.common import (isnull, notnull, is_list_like,
-                                _values_from_object, _maybe_promote, ABCSeries)
+                                _values_from_object, _maybe_promote, ABCSeries,
+                                SettingWithCopyError, SettingWithCopyWarning)
 import pandas.core.nanops as nanops
 from pandas.util.decorators import Appender, Substitution
+from pandas.core import config
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
@@ -32,11 +35,16 @@ _shared_doc_kwargs = dict(axes='keywords for axes',
                           args_transpose='axes to permute (int or label for'
                                          ' object)')
 
+
 def is_dictlike(x):
     return isinstance(x, (dict, com.ABCSeries))
 
 
 def _single_replace(self, to_replace, method, inplace, limit):
+    if self.ndim != 1:
+        raise TypeError('cannot replace {0} with method {1} on a {2}'
+                        .format(to_replace, method, type(self).__name__))
+
     orig_dtype = self.dtype
     result = self if inplace else self.copy()
     fill_f = com._get_fill_func(method)
@@ -47,10 +55,11 @@ def _single_replace(self, to_replace, method, inplace, limit):
     if values.dtype == orig_dtype and inplace:
         return
 
-    result = pd.Series(values, index=self.index, dtype=self.dtype).__finalize__(self)
+    result = pd.Series(values, index=self.index,
+                       dtype=self.dtype).__finalize__(self)
 
     if inplace:
-        self._data = result._data
+        self._update_inplace(result._data)
         return
 
     return result
@@ -68,12 +77,14 @@ class NDFrame(PandasObject):
     axes : list
     copy : boolean, default False
     """
-    _internal_names = [
-        '_data', 'name', '_cacher', '_subtyp', '_index', '_default_kind', '_default_fill_value']
+    _internal_names = ['_data', 'name', '_cacher', 'is_copy', '_subtyp',
+                       '_index', '_default_kind', '_default_fill_value']
     _internal_names_set = set(_internal_names)
     _metadata = []
+    is_copy = None
 
-    def __init__(self, data, axes=None, copy=False, dtype=None, fastpath=False):
+    def __init__(self, data, axes=None, copy=False, dtype=None,
+                 fastpath=False):
 
         if not fastpath:
             if dtype is not None:
@@ -85,6 +96,7 @@ class NDFrame(PandasObject):
                 for i, ax in enumerate(axes):
                     data = data.reindex_axis(ax, axis=i)
 
+        object.__setattr__(self, 'is_copy', False)
         object.__setattr__(self, '_data', data)
         object.__setattr__(self, '_item_cache', {})
 
@@ -97,7 +109,8 @@ class NDFrame(PandasObject):
             # a compound dtype
             if dtype.kind == 'V':
                 raise NotImplementedError("compound dtypes are not implemented"
-                                          "in the {0} constructor".format(self.__class__.__name__))
+                                          "in the {0} constructor"
+                                          .format(self.__class__.__name__))
         return dtype
 
     def _init_mgr(self, mgr, axes=None, dtype=None, copy=False):
@@ -132,7 +145,7 @@ class NDFrame(PandasObject):
     def _local_dir(self):
         """ add the string-like attributes from the info_axis """
         return [c for c in self._info_axis
-                if isinstance(c, string_types) and isidentifier(c) ]
+                if isinstance(c, string_types) and isidentifier(c)]
 
     @property
     def _constructor_sliced(self):
@@ -152,7 +165,8 @@ class NDFrame(PandasObject):
             stat_axis_num : the number of axis for the default stats (int)
             aliases : other names for a single axis (dict)
             slicers : how axes slice to others (dict)
-            axes_are_reversed : boolean whether to treat passed axes as reversed (DataFrame)
+            axes_are_reversed : boolean whether to treat passed axes as
+                reversed (DataFrame)
             build_axes : setup the axis properties (default True)
             """
 
@@ -233,8 +247,10 @@ class NDFrame(PandasObject):
             if alias is not None:
                 if a in kwargs:
                     if alias in kwargs:
-                        raise Exception(
-                            "arguments are multually exclusive for [%s,%s]" % (a, alias))
+                        raise TypeError(
+                            "arguments are mutually exclusive for [%s,%s]" %
+                            (a, alias)
+                        )
                     continue
                 if alias in kwargs:
                     kwargs[a] = kwargs.pop(alias)
@@ -246,8 +262,8 @@ class NDFrame(PandasObject):
                     kwargs[a] = args.pop(0)
                 except (IndexError):
                     if require_all:
-                        raise AssertionError(
-                            "not enough arguments specified!")
+                        raise TypeError(
+                            "not enough/duplicate arguments specified!")
 
         axes = dict([(a, kwargs.get(a)) for a in self._AXIS_ORDERS])
         return axes, kwargs
@@ -273,7 +289,8 @@ class NDFrame(PandasObject):
                 return self._AXIS_NUMBERS[axis]
             except:
                 pass
-        raise ValueError('No axis named {0} for object type {1}'.format(axis,type(self)))
+        raise ValueError('No axis named {0} for object type {1}'
+                         .format(axis, type(self)))
 
     def _get_axis_name(self, axis):
         axis = self._AXIS_ALIASES.get(axis, axis)
@@ -285,7 +302,8 @@ class NDFrame(PandasObject):
                 return self._AXIS_NAMES[axis]
             except:
                 pass
-        raise ValueError('No axis named {0} for object type {1}'.format(axis,type(self)))
+        raise ValueError('No axis named {0} for object type {1}'
+                         .format(axis, type(self)))
 
     def _get_axis(self, axis):
         name = self._get_axis_name(axis)
@@ -345,16 +363,19 @@ class NDFrame(PandasObject):
 
     @property
     def shape(self):
+        "tuple of axis dimensions"
         return tuple(len(self._get_axis(a)) for a in self._AXIS_ORDERS)
 
     @property
     def axes(self):
-        """ we do it this way because if we have reversed axes, then
-        the block manager shows then reversed """
+        "index(es) of the NDFrame"
+        # we do it this way because if we have reversed axes, then
+        # the block manager shows then reversed
         return [self._get_axis(a) for a in self._AXIS_ORDERS]
 
     @property
     def ndim(self):
+        "Number of axes / array dimensions"
         return self._data.ndim
 
     def _expand_axes(self, key):
@@ -392,6 +413,7 @@ class NDFrame(PandasObject):
         -------
         y : same as input
         """
+
     @Appender(_shared_docs['transpose'] % _shared_doc_kwargs)
     def transpose(self, *args, **kwargs):
 
@@ -451,7 +473,8 @@ class NDFrame(PandasObject):
     def squeeze(self):
         """ squeeze length 1 dimensions """
         try:
-            return self.ix[tuple([slice(None) if len(a) > 1 else a[0] for a in self.axes])]
+            return self.ix[tuple([slice(None) if len(a) > 1 else a[0]
+                                  for a in self.axes])]
         except:
             return self
 
@@ -499,6 +522,7 @@ class NDFrame(PandasObject):
         -------
         renamed : %(klass)s (new object)
         """
+
     @Appender(_shared_docs['rename'] % dict(axes='axes keywords for this'
                                             ' object', klass='NDFrame'))
     def rename(self, *args, **kwargs):
@@ -523,14 +547,14 @@ class NDFrame(PandasObject):
 
             return f
 
-
         self._consolidate_inplace()
         result = self if inplace else self.copy(deep=copy)
 
         # start in the axis order to eliminate too many copies
         for axis in lrange(self._AXIS_LEN):
             v = axes.get(self._AXIS_NAMES[axis])
-            if v is None: continue
+            if v is None:
+                continue
             f = _get_rename_function(v)
 
             baxis = self._get_block_manager_axis(axis)
@@ -538,9 +562,7 @@ class NDFrame(PandasObject):
             result._clear_item_cache()
 
         if inplace:
-            self._data = result._data
-            self._clear_item_cache()
-
+            self._update_inplace(result._data)
         else:
             return result.__finalize__(self)
 
@@ -565,7 +587,7 @@ class NDFrame(PandasObject):
         renamed : type of caller
         """
         axis = self._get_axis_name(axis)
-        d = { 'copy' : copy, 'inplace' : inplace }
+        d = {'copy': copy, 'inplace': inplace}
         d[axis] = mapper
         return self.rename(**d)
 
@@ -573,7 +595,8 @@ class NDFrame(PandasObject):
     # Comparisons
 
     def _indexed_same(self, other):
-        return all([self._get_axis(a).equals(other._get_axis(a)) for a in self._AXIS_ORDERS])
+        return all([self._get_axis(a).equals(other._get_axis(a))
+                    for a in self._AXIS_ORDERS])
 
     def __neg__(self):
         arr = operator.neg(_values_from_object(self))
@@ -598,11 +621,18 @@ class NDFrame(PandasObject):
 
     # can we get a better explanation of this?
     def keys(self):
-        """ return the info axis names """
+        """Get the 'info axis' (see Indexing for more)
+
+        This is index for Series, columns for DataFrame and major_axis for
+        Panel."""
         return self._info_axis
 
-    # what does info axis actually mean?
     def iteritems(self):
+        """Iterate over (label, values) on info axis
+
+        This is index for Series, columns for DataFrame, major_axis for Panel,
+        and so on.
+        """
         for h in self._info_axis:
             yield h, self[h]
 
@@ -610,8 +640,10 @@ class NDFrame(PandasObject):
     # Now unnecessary. Sidenote: don't want to deprecate this for a while,
     # otherwise libraries that use 2to3 will have issues.
     def iterkv(self, *args, **kwargs):
+        "iteritems alias used to get around 2to3. Deprecated"
         warnings.warn("iterkv is deprecated and will be removed in a future "
-                      "release, use ``iteritems`` instead.", DeprecationWarning)
+                      "release, use ``iteritems`` instead.",
+                      DeprecationWarning)
         return self.iteritems(*args, **kwargs)
 
     def __len__(self):
@@ -624,11 +656,13 @@ class NDFrame(PandasObject):
 
     @property
     def empty(self):
+        "True if NDFrame is entirely empty [no items]"
         return not all(len(self._get_axis(a)) > 0 for a in self._AXIS_ORDERS)
 
     def __nonzero__(self):
         raise ValueError("The truth value of a {0} is ambiguous. "
-                         "Use a.empty, a.bool(), a.item(), a.any() or a.all().".format(self.__class__.__name__))
+                         "Use a.empty, a.bool(), a.item(), a.any() or a.all()."
+                         .format(self.__class__.__name__))
 
     __bool__ = __nonzero__
 
@@ -639,10 +673,11 @@ class NDFrame(PandasObject):
             Raise a ValueError if the PandasObject does not have exactly
             1 element, or that element is not boolean """
         v = self.squeeze()
-        if isinstance(v, (bool,np.bool_)):
+        if isinstance(v, (bool, np.bool_)):
             return bool(v)
         elif np.isscalar(v):
-            raise ValueError("bool cannot act on a non-boolean single element {0}".format(self.__class__.__name__))
+            raise ValueError("bool cannot act on a non-boolean single element "
+                             "{0}".format(self.__class__.__name__))
 
         self.__nonzero__()
 
@@ -664,6 +699,7 @@ class NDFrame(PandasObject):
         return self._constructor(result, **d).__finalize__(self)
 
     def to_dense(self):
+        "Return dense representation of NDFrame (as opposed to sparse)"
         # compat
         return self
 
@@ -685,13 +721,13 @@ class NDFrame(PandasObject):
                 # to avoid definitional recursion
                 # e.g. say fill_value needing _data to be
                 # defined
-                for k in self._internal_names:
+                for k in self._internal_names_set:
                     if k in state:
                         v = state[k]
                         object.__setattr__(self, k, v)
 
                 for k, v in state.items():
-                    if k not in self._internal_names:
+                    if k not in self._internal_names_set:
                         object.__setattr__(self, k, v)
 
             else:
@@ -806,9 +842,9 @@ class NDFrame(PandasObject):
             fixed(f) : Fixed format
                        Fast writing/reading. Not-appendable, nor searchable
             table(t) : Table format
-                       Write as a PyTables Table structure which may perform worse but
-                       allow more flexible operations like searching / selecting subsets
-                       of the data
+                       Write as a PyTables Table structure which may perform
+                       worse but allow more flexible operations like searching
+                       / selecting subsets of the data
         append   : boolean, default False
             For Table formats, append the input data to the existing
         complevel : int, 1-9, default 0
@@ -825,7 +861,7 @@ class NDFrame(PandasObject):
         from pandas.io import pytables
         return pytables.to_hdf(path_or_buf, key, self, **kwargs)
 
-    def to_msgpack(self, path_or_buf, **kwargs):
+    def to_msgpack(self, path_or_buf=None, **kwargs):
         """
         msgpack (serialize) object to input file path
 
@@ -834,11 +870,12 @@ class NDFrame(PandasObject):
 
         Parameters
         ----------
-        path : string File path
-        args : an object or objects to serialize
+        path : string File path, buffer-like, or None
+            if None, return generated string
         append : boolean whether to append to an existing msgpack
-                (default is False)
-        compress : type of compressor (zlib or blosc), default to None (no compression)
+            (default is False)
+        compress : type of compressor (zlib or blosc), default to None (no
+            compression)
         """
 
         from pandas.io import packers
@@ -857,20 +894,33 @@ class NDFrame(PandasObject):
         return to_pickle(self, path)
 
     def save(self, path):  # TODO remove in 0.14
+        "Deprecated. Use to_pickle instead"
         import warnings
         from pandas.io.pickle import to_pickle
         warnings.warn("save is deprecated, use to_pickle", FutureWarning)
         return to_pickle(self, path)
 
     def load(self, path):  # TODO remove in 0.14
+        "Deprecated. Use read_pickle instead."
         import warnings
         from pandas.io.pickle import read_pickle
         warnings.warn("load is deprecated, use pd.read_pickle", FutureWarning)
         return read_pickle(path)
 
-    def to_clipboard(self):
+    def to_clipboard(self, excel=None, sep=None, **kwargs):
         """
         Attempt to write text representation of object to the system clipboard
+        This can be pasted into Excel, for example.
+
+        Parameters
+        ----------
+        excel : boolean, defaults to True
+                if True, use the provided separator, writing in a csv
+                format for allowing easy pasting into excel.
+                if False, write a string representation of the object
+                to the clipboard
+        sep : optional, defaults to tab
+        other keywords are passed to to_csv
 
         Notes
         -----
@@ -880,7 +930,7 @@ class NDFrame(PandasObject):
           - OS X: none
         """
         from pandas.io import clipboard
-        clipboard.to_clipboard(self)
+        clipboard.to_clipboard(self, excel=excel, sep=sep, **kwargs)
 
     #----------------------------------------------------------------------
     # Fancy Indexing
@@ -888,15 +938,22 @@ class NDFrame(PandasObject):
     @classmethod
     def _create_indexer(cls, name, indexer):
         """ create an indexer like _name in the class """
-        iname = '_%s' % name
-        setattr(cls, iname, None)
 
-        def _indexer(self):
-            if getattr(self, iname, None) is None:
-                setattr(self, iname, indexer(self, name))
-            return getattr(self, iname)
+        if getattr(cls, name, None) is None:
+            iname = '_%s' % name
+            setattr(cls, iname, None)
 
-        setattr(cls, name, property(_indexer))
+            def _indexer(self):
+                i = getattr(self, iname)
+                if i is None:
+                    i = indexer(self, name)
+                    setattr(self, iname, i)
+                return i
+
+            setattr(cls, name, property(_indexer))
+
+            # add to our internal names set
+            cls._internal_names_set.add(iname)
 
     def get(self, key, default=None):
         """
@@ -926,7 +983,7 @@ class NDFrame(PandasObject):
             values = self._data.get(item)
             res = self._box_item_values(item, values)
             cache[item] = res
-            res._cacher = (item,weakref.ref(self))
+            res._cacher = (item, weakref.ref(self))
         return res
 
     def _box_item_values(self, key, values):
@@ -940,27 +997,57 @@ class NDFrame(PandasObject):
     def _maybe_update_cacher(self, clear=False):
         """ see if we need to update our parent cacher
             if clear, then clear our cache """
-        cacher = getattr(self,'_cacher',None)
+        cacher = getattr(self, '_cacher', None)
         if cacher is not None:
-            try:
-                cacher[1]()._maybe_cache_changed(cacher[0],self)
-            except:
+            ref = cacher[1]()
 
-                # our referant is dead
+            # we are trying to reference a dead referant, hence
+            # a copy
+            if ref is None:
                 del self._cacher
+                self.is_copy = True
+                self._check_setitem_copy(stacklevel=5, t='referant')
+            else:
+                try:
+                    ref._maybe_cache_changed(cacher[0], self)
+                except:
+                    pass
+                if ref.is_copy:
+                    self.is_copy = True
+                    self._check_setitem_copy(stacklevel=5, t='referant')
 
         if clear:
             self._clear_item_cache()
 
     def _clear_item_cache(self, i=None):
         if i is not None:
-            self._item_cache.pop(i,None)
+            self._item_cache.pop(i, None)
         else:
             self._item_cache.clear()
 
     def _set_item(self, key, value):
         self._data.set(key, value)
         self._clear_item_cache()
+
+    def _check_setitem_copy(self, stacklevel=4, t='setting'):
+        """ validate if we are doing a settitem on a chained copy.
+
+        If you call this function, be sure to set the stacklevel such that the
+        user will see the error *at the level of setting*"""
+        if self.is_copy:
+            value = config.get_option('mode.chained_assignment')
+
+            if t == 'referant':
+                t = ("A value is trying to be set on a copy of a slice from a "
+                     "DataFrame")
+            else:
+                t = ("A value is trying to be set on a copy of a slice from a "
+                     "DataFrame.\nTry using .loc[row_index,col_indexer] = value "
+                     "instead")
+            if value == 'raise':
+                raise SettingWithCopyError(t)
+            elif value == 'warn':
+                warnings.warn(t, SettingWithCopyWarning, stacklevel=stacklevel)
 
     def __delitem__(self, key):
         """
@@ -995,7 +1082,7 @@ class NDFrame(PandasObject):
         except KeyError:
             pass
 
-    def take(self, indices, axis=0, convert=True):
+    def take(self, indices, axis=0, convert=True, is_copy=True):
         """
         Analogous to ndarray.take
 
@@ -1004,6 +1091,7 @@ class NDFrame(PandasObject):
         indices : list / array of ints
         axis : int, default 0
         convert : translate neg to pos indices (default)
+        is_copy : mark the returned frame as a copy
 
         Returns
         -------
@@ -1020,10 +1108,18 @@ class NDFrame(PandasObject):
         if baxis == 0:
             labels = self._get_axis(axis)
             new_items = labels.take(indices)
-            new_data = self._data.reindex_axis(new_items, indexer=indices, axis=0)
+            new_data = self._data.reindex_axis(new_items, indexer=indices,
+                                               axis=baxis)
         else:
             new_data = self._data.take(indices, axis=baxis)
-        return self._constructor(new_data).__finalize__(self)
+
+        result = self._constructor(new_data).__finalize__(self)
+
+        # maybe set copy if we didn't actually change the index
+        if is_copy and not result._get_axis(axis).equals(self._get_axis(axis)):
+            result.is_copy=is_copy
+
+        return result
 
     # TODO: Check if this was clearer in 0.12
     def select(self, crit, axis=0):
@@ -1075,21 +1171,24 @@ class NDFrame(PandasObject):
         d = other._construct_axes_dict(method=method)
         return self.reindex(**d)
 
-    def drop(self, labels, axis=0, level=None):
+    def drop(self, labels, axis=0, level=None, inplace=False, **kwargs):
         """
         Return new object with labels in requested axis removed
 
         Parameters
         ----------
-        labels : array-like
-        axis : int
+        labels : single label or list-like
+        axis : int or axis name
         level : int or name, default None
             For MultiIndex
+        inplace : bool, default False
+            If True, do operation inplace and return None.
 
         Returns
         -------
         dropped : type of caller
         """
+        axis = self._get_axis_number(axis)
         axis_name = self._get_axis_name(axis)
         axis, axis_ = self._get_axis(axis), axis
 
@@ -1100,14 +1199,15 @@ class NDFrame(PandasObject):
                 new_axis = axis.drop(labels, level=level)
             else:
                 new_axis = axis.drop(labels)
-            dropped = self.reindex(**{ axis_name: new_axis })
+            dropped = self.reindex(**{axis_name: new_axis})
             try:
                 dropped.axes[axis_].set_names(axis.names, inplace=True)
             except AttributeError:
                 pass
-            return dropped
+            result = dropped
 
         else:
+            labels = com._index_labels_to_array(labels)
             if level is not None:
                 if not isinstance(axis, MultiIndex):
                     raise AssertionError('axis must be a MultiIndex')
@@ -1119,7 +1219,21 @@ class NDFrame(PandasObject):
             slicer = [slice(None)] * self.ndim
             slicer[self._get_axis_number(axis_name)] = indexer
 
-            return self.ix[tuple(slicer)]
+            result = self.ix[tuple(slicer)]
+
+        if inplace:
+            self._update_inplace(result)
+        else:
+            return result
+
+    def _update_inplace(self, result):
+        "replace self internals with result."
+        # NOTE: This does *not* call __finalize__ and that's an explicit
+        # decision that we may revisit in the future.
+        self._reset_cache()
+        self._clear_item_cache()
+        self._data = getattr(result,'_data',result)
+        self._maybe_update_cacher()
 
     def add_prefix(self, prefix):
         """
@@ -1184,7 +1298,8 @@ class NDFrame(PandasObject):
 
         Parameters
         ----------
-        %(axes)s : array-like, optional (can be specified in order, or as keywords)
+        %(axes)s : array-like, optional (can be specified in order, or as
+            keywords)
             New labels / index to conform to. Preferably an Index object to
             avoid duplicating data
         method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
@@ -1214,6 +1329,7 @@ class NDFrame(PandasObject):
         """
     # TODO: Decide if we care about having different examples for different
     #       kinds
+
     @Appender(_shared_docs['reindex'] % dict(axes="axes", klass="NDFrame"))
     def reindex(self, *args, **kwargs):
 
@@ -1235,18 +1351,21 @@ class NDFrame(PandasObject):
             except:
                 pass
 
-        # if all axes that are requested to reindex are equal, then only copy if indicated
-        # must have index names equal here as well as values
-        if all([ self._get_axis(axis).identical(ax) for axis, ax in axes.items() if ax is not None ]):
+        # if all axes that are requested to reindex are equal, then only copy
+        # if indicated must have index names equal here as well as values
+        if all([self._get_axis(axis).identical(ax)
+                for axis, ax in axes.items() if ax is not None]):
             if copy:
                 return self.copy()
             return self
 
         # perform the reindex on the axes
         return self._reindex_axes(axes, level, limit,
-                                  method, fill_value, copy, takeable=takeable).__finalize__(self)
+                                  method, fill_value, copy,
+                                  takeable=takeable).__finalize__(self)
 
-    def _reindex_axes(self, axes, level, limit, method, fill_value, copy, takeable=False):
+    def _reindex_axes(self, axes, level, limit, method, fill_value, copy,
+                      takeable=False):
         """ perform the reinxed for all the axes """
         obj = self
         for a in self._AXIS_ORDERS:
@@ -1261,35 +1380,42 @@ class NDFrame(PandasObject):
             axis = self._get_axis_number(a)
             ax = self._get_axis(a)
             try:
-                new_index, indexer = ax.reindex(labels, level=level,
-                                                limit=limit, method=method, takeable=takeable)
+                new_index, indexer = ax.reindex(
+                    labels, level=level, limit=limit, method=method,
+                    takeable=takeable)
             except (ValueError):
 
-                # catch trying to reindex a non-monotonic index with a specialized indexer
-                # e.g. pad, so fallback to the regular indexer
-                # this will show up on reindexing a not-naturally ordering series, e.g.
-                # Series([1,2,3,4],index=['a','b','c','d']).reindex(['c','b','g'],method='pad')
-                new_index, indexer = ax.reindex(labels, level=level,
-                                                limit=limit, method=None, takeable=takeable)
+                # catch trying to reindex a non-monotonic index with a
+                # specialized indexer e.g. pad, so fallback to the regular
+                # indexer this will show up on reindexing a not-naturally
+                # ordering series,
+                # e.g.
+                # Series(
+                #     [1,2,3,4], index=['a','b','c','d']
+                # ).reindex(['c','b','g'], method='pad')
+                new_index, indexer = ax.reindex(
+                    labels, level=level, limit=limit, method=None,
+                    takeable=takeable)
 
             obj = obj._reindex_with_indexers(
-                {axis: [new_index, indexer]}, method=method, fill_value=fill_value,
-                limit=limit, copy=copy)
+                {axis: [new_index, indexer]}, method=method,
+                fill_value=fill_value, limit=limit, copy=copy)
 
         return obj
 
     def _needs_reindex_multi(self, axes, method, level):
         """ check if we do need a multi reindex """
-        return (com._count_not_none(*axes.values()) == self._AXIS_LEN) and method is None and level is None and not self._is_mixed_type
+        return ((com._count_not_none(*axes.values()) == self._AXIS_LEN) and
+                method is None and level is None and not self._is_mixed_type)
 
     def _reindex_multi(self, axes, copy, fill_value):
         return NotImplemented
 
     _shared_docs['reindex_axis'] = (
-        """Conform input object to new index with optional filling logic, placing
-        NA/NaN in locations having no value in the previous index. A new object
-        is produced unless the new index is equivalent to the current one and
-        copy=False
+        """Conform input object to new index with optional filling logic,
+        placing NA/NaN in locations having no value in the previous index. A
+        new object is produced unless the new index is equivalent to the
+        current one and copy=False
 
         Parameters
         ----------
@@ -1321,6 +1447,7 @@ class NDFrame(PandasObject):
         -------
         reindexed : %(klass)s
         """)
+
     @Appender(_shared_docs['reindex_axis'] % _shared_doc_kwargs)
     def reindex_axis(self, labels, axis=0, method=None, level=None, copy=True,
                      limit=None, fill_value=np.nan):
@@ -1329,12 +1456,15 @@ class NDFrame(PandasObject):
         axis_name = self._get_axis_name(axis)
         axis_values = self._get_axis(axis_name)
         method = com._clean_fill_method(method)
-        new_index, indexer = axis_values.reindex(labels, method, level,
-                                                 limit=limit, copy_if_needed=True)
-        return self._reindex_with_indexers({axis: [new_index, indexer]}, method=method, fill_value=fill_value,
-                                           limit=limit, copy=copy).__finalize__(self)
+        new_index, indexer = axis_values.reindex(
+            labels, method, level, limit=limit, copy_if_needed=True)
+        return self._reindex_with_indexers(
+            {axis: [new_index, indexer]}, method=method, fill_value=fill_value,
+            limit=limit, copy=copy).__finalize__(self)
 
-    def _reindex_with_indexers(self, reindexers, method=None, fill_value=np.nan, limit=None, copy=False, allow_dups=False):
+    def _reindex_with_indexers(self, reindexers, method=None,
+                               fill_value=np.nan, limit=None, copy=False,
+                               allow_dups=False):
         """ allow_dups indicates an internal call here """
 
         # reindex doing multiple operations on different axes if indiciated
@@ -1357,13 +1487,16 @@ class NDFrame(PandasObject):
                 # TODO: speed up on homogeneous DataFrame objects
                 indexer = com._ensure_int64(indexer)
                 new_data = new_data.reindex_indexer(index, indexer, axis=baxis,
-                                                    fill_value=fill_value, allow_dups=allow_dups)
+                                                    fill_value=fill_value,
+                                                    allow_dups=allow_dups)
 
-            elif baxis == 0 and index is not None and index is not new_data.axes[baxis]:
+            elif (baxis == 0 and index is not None and
+                    index is not new_data.axes[baxis]):
                 new_data = new_data.reindex_items(index, copy=copy,
                                                   fill_value=fill_value)
 
-            elif baxis > 0 and index is not None and index is not new_data.axes[baxis]:
+            elif (baxis > 0 and index is not None and
+                    index is not new_data.axes[baxis]):
                 new_data = new_data.copy(deep=copy)
                 new_data.set_axis(baxis, index)
 
@@ -1407,16 +1540,36 @@ class NDFrame(PandasObject):
         axis_values = self._get_axis(axis_name)
 
         if items is not None:
-            return self.reindex(**{axis_name: [r for r in items if r in axis_values]})
+            return self.reindex(**{axis_name: [r for r in items
+                                               if r in axis_values]})
         elif like:
             matchf = lambda x: (like in x if isinstance(x, string_types)
                                 else like in str(x))
             return self.select(matchf, axis=axis_name)
         elif regex:
             matcher = re.compile(regex)
-            return self.select(lambda x: matcher.search(x) is not None, axis=axis_name)
+            return self.select(lambda x: matcher.search(x) is not None,
+                               axis=axis_name)
         else:
             raise TypeError('Must pass either `items`, `like`, or `regex`')
+
+    def head(self, n=5):
+        """
+        Returns first n rows
+        """
+        l = len(self)
+        if abs(n) > l:
+            n = l if n > 0 else -l
+        return self.iloc[:n]
+
+    def tail(self, n=5):
+        """
+        Returns last n rows
+        """
+        l = len(self)
+        if abs(n) > l:
+            n = l if n > 0 else -l
+        return self.iloc[-n:]
 
     #----------------------------------------------------------------------
     # Attribute access
@@ -1427,9 +1580,10 @@ class NDFrame(PandasObject):
 
         Parameters
         ----------
-        other : the object from which to get the attributes that we are going to propagate
-        method : optional, a passed method name ; possibily to take different types
-                 of propagation actions based on this
+        other : the object from which to get the attributes that we are going
+            to propagate
+        method : optional, a passed method name ; possibly to take different
+            types of propagation actions based on this
 
         """
         for name in self._metadata:
@@ -1437,8 +1591,11 @@ class NDFrame(PandasObject):
         return self
 
     def __getattr__(self, name):
-        """After regular attribute access, try looking up the name of a the info
-        This allows simpler access to columns for interactive use."""
+        """After regular attribute access, try looking up the name of a the
+        info.
+
+        This allows simpler access to columns for interactive use.
+        """
         if name in self._info_axis:
             return self[name]
         raise AttributeError("'%s' object has no attribute '%s'" %
@@ -1513,7 +1670,8 @@ class NDFrame(PandasObject):
         return result
 
     def _get_numeric_data(self):
-        return self._constructor(self._data.get_numeric_data()).__finalize__(self)
+        return self._constructor(
+            self._data.get_numeric_data()).__finalize__(self)
 
     def _get_bool_data(self):
         return self._constructor(self._data.get_bool_data()).__finalize__(self)
@@ -1527,9 +1685,10 @@ class NDFrame(PandasObject):
         are presented in sorted order unless a specific list of columns is
         provided.
 
-        NOTE: the dtype will be a lower-common-denominator dtype (implicit upcasting)
-              that is to say if the dtypes (even of numeric types) are mixed, the one that accomodates all will be chosen
-              use this with care if you are not dealing with the blocks
+        NOTE: the dtype will be a lower-common-denominator dtype (implicit
+              upcasting) that is to say if the dtypes (even of numeric types)
+              are mixed, the one that accommodates all will be chosen use this
+              with care if you are not dealing with the blocks
 
               e.g. if the dtypes are float16,float32         -> float32
                                      float16,float32,float64 -> float64
@@ -1549,6 +1708,7 @@ class NDFrame(PandasObject):
 
     @property
     def values(self):
+        "Numpy representation of NDFrame"
         return self.as_matrix()
 
     @property
@@ -1572,11 +1732,14 @@ class NDFrame(PandasObject):
 
     def as_blocks(self, columns=None):
         """
-        Convert the frame to a dict of dtype -> Constructor Types that each has a homogeneous dtype.
+        Convert the frame to a dict of dtype -> Constructor Types that each has
+        a homogeneous dtype.
+
         are presented in sorted order unless a specific list of columns is
         provided.
 
-        NOTE: the dtypes of the blocks WILL BE PRESERVED HERE (unlike in as_matrix)
+        NOTE: the dtypes of the blocks WILL BE PRESERVED HERE (unlike in
+              as_matrix)
 
         Parameters
         ----------
@@ -1598,6 +1761,7 @@ class NDFrame(PandasObject):
 
     @property
     def blocks(self):
+        "Internal property, property synonym for as_blocks()"
         return self.as_blocks()
 
     def astype(self, dtype, copy=True, raise_on_error=True):
@@ -1637,23 +1801,27 @@ class NDFrame(PandasObject):
             data = data.copy()
         return self._constructor(data).__finalize__(self)
 
-    def convert_objects(self, convert_dates=True, convert_numeric=False, copy=True):
+    def convert_objects(self, convert_dates=True, convert_numeric=False,
+                        copy=True):
         """
         Attempt to infer better dtype for object columns
 
         Parameters
         ----------
-        convert_dates : if True, attempt to soft convert_dates, if 'coerce', force conversion (and non-convertibles get NaT)
-        convert_numeric : if True attempt to coerce to numerbers (including strings), non-convertibles get NaN
+        convert_dates : if True, attempt to soft convert_dates, if 'coerce',
+            force conversion (and non-convertibles get NaT)
+        convert_numeric : if True attempt to coerce to numbers (including
+            strings), non-convertibles get NaN
         copy : Boolean, if True, return copy, default is True
 
         Returns
         -------
         converted : asm as input object
         """
-        return self._constructor(self._data.convert(convert_dates=convert_dates,
-                                                    convert_numeric=convert_numeric,
-                                                    copy=copy)).__finalize__(self)
+        return self._constructor(
+            self._data.convert(convert_dates=convert_dates,
+                               convert_numeric=convert_numeric,
+                               copy=copy)).__finalize__(self)
 
     #----------------------------------------------------------------------
     # Filling NA's
@@ -1669,22 +1837,24 @@ class NDFrame(PandasObject):
             Method to use for filling holes in reindexed Series
             pad / ffill: propagate last valid observation forward to next valid
             backfill / bfill: use NEXT valid observation to fill gap
-        value : scalar or dict
-            Value to use to fill holes (e.g. 0), alternately a dict of values
-            specifying which value to use for each column (columns not in the
-            dict will not be filled). This value cannot be a list.
+        value : scalar, dict, or Series
+            Value to use to fill holes (e.g. 0), alternately a dict/Series of
+            values specifying which value to use for each index (for a Series) or
+            column (for a DataFrame). (values not in the dict/Series will not be
+            filled). This value cannot be a list.
         axis : {0, 1}, default 0
             0: fill column-by-column
             1: fill row-by-row
         inplace : boolean, default False
             If True, fill in place. Note: this will modify any
             other views on this object, (e.g. a no-copy slice for a column in a
-            DataFrame).  Still returns the object.
+            DataFrame).
         limit : int, default None
             Maximum size gap to forward or backward fill
-        downcast : dict, default is None, a dict of item->dtype of what to
-            downcast if possible, or the string 'infer' which will try to
-            downcast to an appropriate equal type (e.g. float64 to int64 if possible)
+        downcast : dict, default is None
+            a dict of item->dtype of what to downcast if possible,
+            or the string 'infer' which will try to downcast to an appropriate
+            equal type (e.g. float64 to int64 if possible)
 
         See also
         --------
@@ -1717,13 +1887,16 @@ class NDFrame(PandasObject):
 
             # > 3d
             if self.ndim > 3:
-                raise NotImplementedError('cannot fillna with a method for > 3dims')
+                raise NotImplementedError(
+                    'Cannot fillna with a method for > 3dims'
+                )
 
             # 3d
             elif self.ndim == 3:
 
                 # fill in 2d chunks
-                result = dict([ (col,s.fillna(method=method, value=value)) for col, s in compat.iteritems(self) ])
+                result = dict([(col, s.fillna(method=method, value=value))
+                               for col, s in compat.iteritems(self)])
                 return self._constructor.from_dict(result).__finalize__(self)
 
             # 2d or less
@@ -1740,7 +1913,16 @@ class NDFrame(PandasObject):
 
             if len(self._get_axis(axis)) == 0:
                 return self
-            if isinstance(value, (dict, com.ABCSeries)):
+
+            if self.ndim == 1 and value is not None:
+                if isinstance(value, (dict, com.ABCSeries)):
+                    from pandas import Series
+                    value = Series(value)
+
+                new_data = self._data.fillna(value, inplace=inplace,
+                                             downcast=downcast)
+
+            elif isinstance(value, (dict, com.ABCSeries)):
                 if axis == 1:
                     raise NotImplementedError('Currently only can fill '
                                               'with dict/Series column '
@@ -1752,22 +1934,23 @@ class NDFrame(PandasObject):
                         continue
                     obj = result[k]
                     obj.fillna(v, inplace=True)
-                    obj._maybe_update_cacher()
                 return result
             else:
                 new_data = self._data.fillna(value, inplace=inplace,
                                              downcast=downcast)
 
         if inplace:
-            self._data = new_data
+            self._update_inplace(new_data)
         else:
             return self._constructor(new_data).__finalize__(self)
 
     def ffill(self, axis=0, inplace=False, limit=None, downcast=None):
+        "Synonym for NDFrame.fillna(method='ffill')"
         return self.fillna(method='ffill', axis=axis, inplace=inplace,
                            limit=limit, downcast=downcast)
 
     def bfill(self, axis=0, inplace=False, limit=None, downcast=None):
+        "Synonym for NDFrame.fillna(method='bfill')"
         return self.fillna(method='bfill', axis=axis, inplace=inplace,
                            limit=limit, downcast=downcast)
 
@@ -1884,6 +2067,11 @@ class NDFrame(PandasObject):
         self._consolidate_inplace()
 
         if value is None:
+            # passing a single value that is scalar like
+            # when value is None (GH5319), for compat
+            if not is_dictlike(to_replace) and not is_dictlike(regex):
+                to_replace = [to_replace]
+
             if isinstance(to_replace, (tuple, list)):
                 return _single_replace(self, to_replace, method, inplace,
                                        limit)
@@ -1951,7 +2139,7 @@ class NDFrame(PandasObject):
                     raise TypeError('Fill value must be scalar, dict, or '
                                     'Series')
 
-            elif com.is_list_like(to_replace): # [NA, ''] -> [0, 'missing']
+            elif com.is_list_like(to_replace):  # [NA, ''] -> [0, 'missing']
                 if com.is_list_like(value):
                     if len(to_replace) != len(value):
                         raise ValueError('Replacement lists must match '
@@ -2000,7 +2188,7 @@ class NDFrame(PandasObject):
         new_data = new_data.convert(copy=not inplace, convert_numeric=False)
 
         if inplace:
-            self._data = new_data
+            self._update_inplace(new_data)
         else:
             return self._constructor(new_data).__finalize__(self)
 
@@ -2107,10 +2295,10 @@ class NDFrame(PandasObject):
 
         if inplace:
             if axis == 1:
-                self._data = new_data
+                self._update_inplace(new_data)
                 self = self.T
             else:
-                self._data = new_data
+                self._update_inplace(new_data)
         else:
             res = self._constructor(new_data).__finalize__(self)
         if axis == 1:
@@ -2124,13 +2312,13 @@ class NDFrame(PandasObject):
         """
         Return a boolean same-sized object indicating if the values are null
         """
-        return self.__class__(isnull(self),**self._construct_axes_dict()).__finalize__(self)
+        return isnull(self).__finalize__(self)
 
     def notnull(self):
+        """Return a boolean same-sized object indicating if the values are
+        not null
         """
-        Return a boolean same-sized object indicating if the values are not null
-        """
-        return self.__class__(notnull(self),**self._construct_axes_dict()).__finalize__(self)
+        return notnull(self).__finalize__(self)
 
     def clip(self, lower=None, upper=None, out=None):
         """
@@ -2220,8 +2408,8 @@ class NDFrame(PandasObject):
         group_keys : boolean, default True
             When calling apply, add group keys to index to identify pieces
         squeeze : boolean, default False
-            reduce the dimensionaility of the return type if possible, otherwise
-            return a consistent type
+            reduce the dimensionaility of the return type if possible,
+            otherwise return a consistent type
 
         Examples
         --------
@@ -2505,7 +2693,8 @@ class NDFrame(PandasObject):
         # series/series compat
         if isinstance(self, ABCSeries) and isinstance(other, ABCSeries):
             if axis:
-                raise ValueError('cannot align series to a series other than axis 0')
+                raise ValueError('cannot align series to a series other than '
+                                 'axis 0')
 
             join_index, lidx, ridx = self.index.join(other.index, how=join,
                                                      level=level,
@@ -2522,8 +2711,8 @@ class NDFrame(PandasObject):
                 join_index = self.index
                 lidx, ridx = None, None
                 if not self.index.equals(other.index):
-                    join_index, lidx, ridx = self.index.join(other.index, how=join,
-                                                             return_indexers=True)
+                    join_index, lidx, ridx = self.index.join(
+                        other.index, how=join, return_indexers=True)
 
                 if lidx is not None:
                     fdata = fdata.reindex_indexer(join_index, lidx, axis=1)
@@ -2532,8 +2721,8 @@ class NDFrame(PandasObject):
                 lidx, ridx = None, None
                 if not self.columns.equals(other.index):
                     join_index, lidx, ridx = \
-                                self.columns.join(other.index, how=join,
-                                                  return_indexers=True)
+                        self.columns.join(other.index, how=join,
+                                          return_indexers=True)
 
                 if lidx is not None:
                     fdata = fdata.reindex_indexer(join_index, lidx, axis=0)
@@ -2554,7 +2743,8 @@ class NDFrame(PandasObject):
                     right_result.fillna(fill_value, method=method,
                                         limit=limit))
         else:
-            return left_result.__finalize__(self), right_result.__finalize__(other)
+            return (left_result.__finalize__(self),
+                    right_result.__finalize__(other))
 
     def where(self, cond, other=np.nan, inplace=False, axis=None, level=None,
               try_cast=False, raise_on_error=True):
@@ -2584,8 +2774,8 @@ class NDFrame(PandasObject):
             cond = cond.reindex(**self._construct_axes_dict())
         else:
             if not hasattr(cond, 'shape'):
-                raise ValueError('where requires an ndarray like object for its '
-                                 'condition')
+                raise ValueError('where requires an ndarray like object for '
+                                 'its condition')
             if cond.shape != self.shape:
                 raise ValueError(
                     'Array conditional must be same shape as self')
@@ -2608,12 +2798,16 @@ class NDFrame(PandasObject):
                                       fill_value=np.nan)
 
                 # if we are NOT aligned, raise as we cannot where index
-                if axis is None and not all([ other._get_axis(i).equals(ax) for i, ax in enumerate(self.axes) ]):
+                if (axis is None and
+                        not all([other._get_axis(i).equals(ax)
+                                 for i, ax in enumerate(self.axes)])):
                     raise InvalidIndexError
 
             # slice me out of the other
             else:
-                raise NotImplemented("cannot align with a higher dimensional NDFrame")
+                raise NotImplemented(
+                    "cannot align with a higher dimensional NDFrame"
+                )
 
         elif is_list_like(other):
 
@@ -2685,11 +2879,14 @@ class NDFrame(PandasObject):
         if inplace:
             # we may have different type blocks come out of putmask, so
             # reconstruct the block manager
-            self._data = self._data.putmask(cond, other, align=axis is None, inplace=True)
+            new_data = self._data.putmask(cond, other, align=axis is None,
+                                          inplace=True)
+            self._update_inplace(new_data)
 
         else:
-            new_data = self._data.where(
-                other, cond, align=axis is None, raise_on_error=raise_on_error, try_cast=try_cast)
+            new_data = self._data.where(other, cond, align=axis is None,
+                                        raise_on_error=raise_on_error,
+                                        try_cast=try_cast)
 
             return self._constructor(new_data).__finalize__(self)
 
@@ -2707,7 +2904,6 @@ class NDFrame(PandasObject):
         wh: same as input
         """
         return self.where(~cond, np.nan)
-
 
     def shift(self, periods=1, freq=None, axis=0, **kwds):
         """
@@ -2777,7 +2973,6 @@ class NDFrame(PandasObject):
             msg = 'Freq was not given and was not set in the index'
             raise ValueError(msg)
 
-
         if periods == 0:
             return self
 
@@ -2802,7 +2997,7 @@ class NDFrame(PandasObject):
 
         return self._constructor(new_data).__finalize__(self)
 
-    def truncate(self, before=None, after=None, copy=True):
+    def truncate(self, before=None, after=None, axis=None, copy=True):
         """Truncates a sorted NDFrame before and/or after some particular
         dates.
 
@@ -2812,28 +3007,39 @@ class NDFrame(PandasObject):
             Truncate before date
         after : date
             Truncate after date
+        axis : the truncation axis, defaults to the stat axis
+        copy : boolean, default is True,
+            return a copy of the truncated section
 
         Returns
         -------
         truncated : type of caller
         """
 
+        if axis is None:
+            axis = self._stat_axis_number
+        axis = self._get_axis_number(axis)
+        ax = self._get_axis(axis)
+
         # if we have a date index, convert to dates, otherwise
         # treat like a slice
-        if self.index.is_all_dates:
+        if ax.is_all_dates:
             from pandas.tseries.tools import to_datetime
             before = to_datetime(before)
             after = to_datetime(after)
 
         if before is not None and after is not None:
             if before > after:
-                raise AssertionError('Truncate: %s must be after %s' %
-                                     (before, after))
+                raise ValueError('Truncate: %s must be after %s' %
+                                 (after, before))
 
-        result = self.ix[before:after]
+        slicer = [slice(None, None)] * self._AXIS_LEN
+        slicer[axis] = slice(before, after)
+        result = self.ix[tuple(slicer)]
 
-        if isinstance(self.index, MultiIndex):
-            result.index = self.index.truncate(before, after)
+        if isinstance(ax, MultiIndex):
+            setattr(result, self._get_axis_name(axis),
+                    ax.truncate(before, after))
 
         if copy:
             result = result.copy()
@@ -2988,8 +3194,11 @@ class NDFrame(PandasObject):
     def _add_numeric_operations(cls):
         """ add the operations to the cls; evaluate the doc strings again """
 
-        axis_descr = "{" + ', '.join([ "{0} ({1})".format(a,i) for i, a in enumerate(cls._AXIS_ORDERS)]) + "}"
-        name = cls._constructor_sliced.__name__ if cls._AXIS_LEN > 1 else 'scalar'
+        axis_descr = "{%s}" % ', '.join([
+            "{0} ({1})".format(a, i) for i, a in enumerate(cls._AXIS_ORDERS)
+        ])
+        name = (cls._constructor_sliced.__name__
+                if cls._AXIS_LEN > 1 else 'scalar')
         _num_doc = """
 
 %(desc)s
@@ -3028,8 +3237,8 @@ Returns
 
             @Substitution(outname=name, desc=desc)
             @Appender(_num_doc)
-            def stat_func(self, axis=None, skipna=None, level=None, numeric_only=None,
-                    **kwargs):
+            def stat_func(self, axis=None, skipna=None, level=None,
+                          numeric_only=None, **kwargs):
                 if skipna is None:
                     skipna = True
                 if axis is None:
@@ -3042,24 +3251,40 @@ Returns
             stat_func.__name__ = name
             return stat_func
 
-        cls.sum = _make_stat_function('sum',"Return the sum of the values for the requested axis", nanops.nansum)
-        cls.mean = _make_stat_function('mean',"Return the mean of the values for the requested axis", nanops.nanmean)
-        cls.skew = _make_stat_function('skew',"Return unbiased skew over requested axis\nNormalized by N-1", nanops.nanskew)
-        cls.kurt = _make_stat_function('kurt',"Return unbiased kurtosis over requested axis\nNormalized by N-1", nanops.nankurt)
+        cls.sum = _make_stat_function(
+            'sum', 'Return the sum of the values for the requested axis',
+            nanops.nansum)
+        cls.mean = _make_stat_function(
+            'mean', 'Return the mean of the values for the requested axis',
+            nanops.nanmean)
+        cls.skew = _make_stat_function(
+            'skew',
+            'Return unbiased skew over requested axis\nNormalized by N-1',
+            nanops.nanskew)
+        cls.kurt = _make_stat_function(
+            'kurt',
+            'Return unbiased kurtosis over requested axis\nNormalized by N-1',
+            nanops.nankurt)
         cls.kurtosis = cls.kurt
-        cls.prod = _make_stat_function('prod',"Return the product of the values for the requested axis", nanops.nanprod)
+        cls.prod = _make_stat_function(
+            'prod', 'Return the product of the values for the requested axis',
+            nanops.nanprod)
         cls.product = cls.prod
-        cls.median = _make_stat_function('median',"Return the median of the values for the requested axis", nanops.nanmedian)
-        cls.max = _make_stat_function('max',"""
+        cls.median = _make_stat_function(
+            'median', 'Return the median of the values for the requested axis',
+            nanops.nanmedian)
+        cls.max = _make_stat_function('max', """
 This method returns the maximum of the values in the object. If you
 want the *index* of the maximum, use ``idxmax``. This is the
 equivalent of the ``numpy.ndarray`` method ``argmax``.""", nanops.nanmax)
-        cls.min = _make_stat_function('min',"""
+        cls.min = _make_stat_function('min', """
 This method returns the minimum of the values in the object. If you
 want the *index* of the minimum, use ``idxmin``. This is the
 equivalent of the ``numpy.ndarray`` method ``argmin``.""", nanops.nanmin)
 
-        @Substitution(outname='mad', desc="Return the mean absolute deviation of the values for the requested axis")
+        @Substitution(outname='mad',
+                      desc="Return the mean absolute deviation of the values "
+                           "for the requested axis")
         @Appender(_num_doc)
         def mad(self,  axis=None, skipna=None, level=None, **kwargs):
             if skipna is None:
@@ -3078,7 +3303,9 @@ equivalent of the ``numpy.ndarray`` method ``argmin``.""", nanops.nanmin)
             return np.abs(demeaned).mean(axis=axis, skipna=skipna)
         cls.mad = mad
 
-        @Substitution(outname='variance',desc="Return unbiased variance over requested axis\nNormalized by N-1")
+        @Substitution(outname='variance',
+                      desc="Return unbiased variance over requested "
+                           "axis\nNormalized by N-1")
         @Appender(_num_doc)
         def var(self, axis=None, skipna=None, level=None, ddof=1, **kwargs):
             if skipna is None:
@@ -3089,10 +3316,13 @@ equivalent of the ``numpy.ndarray`` method ``argmin``.""", nanops.nanmin)
                 return self._agg_by_level('var', axis=axis, level=level,
                                           skipna=skipna, ddof=ddof)
 
-            return self._reduce(nanops.nanvar, axis=axis, skipna=skipna, ddof=ddof)
+            return self._reduce(nanops.nanvar, axis=axis, skipna=skipna,
+                                ddof=ddof)
         cls.var = var
 
-        @Substitution(outname='stdev',desc="Return unbiased standard deviation over requested axis\nNormalized by N-1")
+        @Substitution(outname='stdev',
+                      desc="Return unbiased standard deviation over requested "
+                           "axis\nNormalized by N-1")
         @Appender(_num_doc)
         def std(self, axis=None, skipna=None, level=None, ddof=1, **kwargs):
             if skipna is None:
@@ -3103,12 +3333,14 @@ equivalent of the ``numpy.ndarray`` method ``argmin``.""", nanops.nanmin)
                 return self._agg_by_level('std', axis=axis, level=level,
                                           skipna=skipna, ddof=ddof)
             result = self.var(axis=axis, skipna=skipna, ddof=ddof)
-            if getattr(result,'ndim',0) > 0:
+            if getattr(result, 'ndim', 0) > 0:
                 return result.apply(np.sqrt)
             return np.sqrt(result)
         cls.std = std
 
-        @Substitution(outname='compounded',desc="Return the compound percentage of the values for the requested axis")
+        @Substitution(outname='compounded',
+                      desc="Return the compound percentage of the values for "
+                           "the requested axis")
         @Appender(_num_doc)
         def compound(self, axis=None, skipna=None, level=None, **kwargs):
             if skipna is None:
@@ -3119,15 +3351,17 @@ equivalent of the ``numpy.ndarray`` method ``argmin``.""", nanops.nanmin)
         def _make_cum_function(name, accum_func, mask_a, mask_b):
 
             @Substitution(outname=name)
-            @Appender("Return cumulative {0} over requested axis.".format(name) + _cnum_doc)
-            def func(self, axis=None, dtype=None, out=None, skipna=True, **kwargs):
+            @Appender("Return cumulative {0} over requested axis.".format(name)
+                      + _cnum_doc)
+            def func(self, axis=None, dtype=None, out=None, skipna=True,
+                     **kwargs):
                 if axis is None:
                     axis = self._stat_axis_number
                 else:
                     axis = self._get_axis_number(axis)
 
                 y = _values_from_object(self).copy()
-                if not issubclass(y.dtype.type, (np.integer,np.bool_)):
+                if not issubclass(y.dtype.type, (np.integer, np.bool_)):
                     mask = isnull(self)
                     if skipna:
                         np.putmask(y, mask, mask_a)
@@ -3144,11 +3378,16 @@ equivalent of the ``numpy.ndarray`` method ``argmin``.""", nanops.nanmin)
             func.__name__ = name
             return func
 
-
-        cls.cummin  = _make_cum_function('min', lambda y, axis: np.minimum.accumulate(y, axis), np.inf, np.nan)
-        cls.cumsum  = _make_cum_function('sum',  lambda y, axis: y.cumsum(axis), 0., np.nan)
-        cls.cumprod = _make_cum_function('prod', lambda y, axis: y.cumprod(axis), 1., np.nan)
-        cls.cummax  = _make_cum_function('max',  lambda y, axis: np.maximum.accumulate(y, axis), -np.inf, np.nan)
+        cls.cummin = _make_cum_function(
+            'min', lambda y, axis: np.minimum.accumulate(y, axis),
+            np.inf, np.nan)
+        cls.cumsum = _make_cum_function(
+            'sum', lambda y, axis: y.cumsum(axis), 0., np.nan)
+        cls.cumprod = _make_cum_function(
+            'prod', lambda y, axis: y.cumprod(axis), 1., np.nan)
+        cls.cummax = _make_cum_function(
+            'max', lambda y, axis: np.maximum.accumulate(y, axis),
+            -np.inf, np.nan)
 
 # install the indexerse
 for _name, _indexer in indexing.get_indexers_list():

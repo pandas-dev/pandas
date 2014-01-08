@@ -7,6 +7,7 @@ from pandas.core.frame import DataFrame
 import pandas.compat as compat
 import re
 import pandas.lib as lib
+import warnings
 
 
 def _get_array_list(arr, others):
@@ -115,6 +116,7 @@ def _map(f, arr, na_mask=False, na_value=np.nan):
     else:
         return lib.map_infer(arr, f)
 
+
 def str_title(arr):
     """
     Convert strings to titlecased version
@@ -168,6 +170,10 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan):
         flags |= re.IGNORECASE
 
     regex = re.compile(pat, flags=flags)
+
+    if regex.groups > 0:
+        warnings.warn("This pattern has match groups. To actually get the"
+                      " groups, use str.extract.", UserWarning)
 
     f = lambda x: bool(regex.search(x))
     return _na_map(f, arr, na)
@@ -303,35 +309,70 @@ def str_repeat(arr, repeats):
         return result
 
 
-def str_match(arr, pat, flags=0):
+def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=False):
     """
-    Find groups in each string (from beginning) using passed regular expression
+    Deprecated: Find groups in each string using passed regular expression.
+    If as_indexer=True, determine if each string matches a regular expression.
 
     Parameters
     ----------
     pat : string
-        Pattern or regular expression
+        Character sequence or regular expression
+    case : boolean, default True
+        If True, case sensitive
     flags : int, default 0 (no flags)
         re module flags, e.g. re.IGNORECASE
+    na : default NaN, fill value for missing values.
+    as_indexer : False, by default, gives deprecated behavior better achieved
+        using str_extract. True return boolean indexer.
+
 
     Returns
     -------
-    matches : array
+    matches : boolean array (if as_indexer=True)
+    matches : array of tuples (if as_indexer=False, default but deprecated)
+
+    Notes
+    -----
+    To extract matched groups, which is the deprecated behavior of match, use
+    str.extract.
     """
+
+    if not case:
+        flags |= re.IGNORECASE
+
     regex = re.compile(pat, flags=flags)
 
-    def f(x):
-        m = regex.match(x)
-        if m:
-            return m.groups()
-        else:
-            return []
+    if (not as_indexer) and regex.groups > 0:
+        # Do this first, to make sure it happens even if the re.compile
+        # raises below.
+        warnings.warn("In future versions of pandas, match will change to"
+                      " always return a bool indexer.""", UserWarning)
+
+    if as_indexer and regex.groups > 0:
+        warnings.warn("This pattern has match groups. To actually get the"
+                      " groups, use str.extract.""", UserWarning)
+
+    # If not as_indexer and regex.groups == 0, this returns empty lists
+    # and is basically useless, so we will not warn.
+
+    if (not as_indexer) and regex.groups > 0:
+        def f(x):
+            m = regex.match(x)
+            if m:
+                return m.groups()
+            else:
+                return []
+    else:
+        # This is the new behavior of str_match.
+        f = lambda x: bool(regex.match(x))
 
     return _na_map(f, arr)
 
+
 def str_extract(arr, pat, flags=0):
     """
-    Find groups in each string (from beginning) using passed regular expression
+    Find groups in each string using passed regular expression
 
     Parameters
     ----------
@@ -358,30 +399,32 @@ def str_extract(arr, pat, flags=0):
         def f(x):
             if not isinstance(x, compat.string_types):
                 return None
-            m = regex.match(x)
+            m = regex.search(x)
             if m:
-                return m.groups()[0] # may be None
+                return m.groups()[0]  # may be None
             else:
                 return None
     else:
-        empty_row = Series(regex.groups*[None])
+        empty_row = Series(regex.groups * [None])
+
         def f(x):
             if not isinstance(x, compat.string_types):
                 return empty_row
-            m = regex.match(x)
+            m = regex.search(x)
             if m:
-                return Series(list(m.groups())) # may contain None
+                return Series(list(m.groups()))  # may contain None
             else:
                 return empty_row
     result = arr.apply(f)
     result.replace({None: np.nan}, inplace=True)
     if regex.groups > 1:
-        result = DataFrame(result) # Don't rely on the wrapper; name columns.
+        result = DataFrame(result)  # Don't rely on the wrapper; name columns.
         names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))
         result.columns = [names.get(1 + i, i) for i in range(regex.groups)]
     else:
         result.name = regex.groupindex.get(0)
     return result
+
 
 def str_join(arr, sep):
     """
@@ -668,13 +711,13 @@ def _noarg_wrapper(f):
     return wrapper
 
 
-def _pat_wrapper(f, flags=False, na=False):
+def _pat_wrapper(f, flags=False, na=False, **kwargs):
     def wrapper1(self, pat):
         result = f(self.series, pat)
         return self._wrap_result(result)
 
-    def wrapper2(self, pat, flags=0):
-        result = f(self.series, pat, flags=flags)
+    def wrapper2(self, pat, flags=0, **kwargs):
+        result = f(self.series, pat, flags=flags, **kwargs)
         return self._wrap_result(result)
 
     def wrapper3(self, pat, na=np.nan):
@@ -700,6 +743,7 @@ def copy(source):
 
 
 class StringMethods(object):
+
     """
     Vectorized string functions for Series. NAs stay NA unless handled
     otherwise by a particular method. Patterned after Python's string methods,
@@ -710,6 +754,7 @@ class StringMethods(object):
     >>> s.str.split('_')
     >>> s.str.replace('_', '')
     """
+
     def __init__(self, series):
         self.series = series
 

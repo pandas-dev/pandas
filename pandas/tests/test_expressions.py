@@ -1,7 +1,6 @@
 from __future__ import print_function
 # pylint: disable-msg=W0612,E1101
 
-import unittest
 import nose
 
 from numpy.random import randn
@@ -48,7 +47,7 @@ _mixed_panel = Panel(dict(ItemA=_mixed, ItemB=(_mixed + 3)))
 _mixed2_panel = Panel(dict(ItemA=_mixed2, ItemB=(_mixed2 + 3)))
 
 
-class TestExpressions(unittest.TestCase):
+class TestExpressions(tm.TestCase):
 
     _multiprocess_can_split_ = False
 
@@ -72,23 +71,21 @@ class TestExpressions(unittest.TestCase):
         if not compat.PY3:
             operations.append('div')
         for arith in operations:
-            if test_flex:
-                op = getattr(df, arith)
-            else:
-                op = getattr(operator, arith)
+            operator_name = arith
+            if arith == 'div':
+                operator_name = 'truediv'
+
             if test_flex:
                 op = lambda x, y: getattr(df, arith)(y)
                 op.__name__ = arith
             else:
-                op = getattr(operator, arith)
+                op = getattr(operator, operator_name)
             expr.set_use_numexpr(False)
             expected = op(df, other)
             expr.set_use_numexpr(True)
             result = op(df, other)
             try:
                 if check_dtype:
-                    if arith == 'div':
-                        assert expected.dtype.kind == df.dtype.kind
                     if arith == 'truediv':
                         assert expected.dtype.kind == 'f'
                 assert_func(expected, result)
@@ -103,7 +100,7 @@ class TestExpressions(unittest.TestCase):
                                  assert_series_equal, check_dtype=True)
 
     @nose.tools.nottest
-    def run_binary_test(self, df, other, assert_func, check_dtype=False,
+    def run_binary_test(self, df, other, assert_func,
                         test_flex=False, numexpr_ops=set(['gt', 'lt', 'ge',
                                                           'le', 'eq', 'ne'])):
         """
@@ -127,11 +124,6 @@ class TestExpressions(unittest.TestCase):
             result = op(df, other)
             used_numexpr = expr.get_test_result()
             try:
-                if check_dtype:
-                    if arith == 'div':
-                        assert expected.dtype.kind == result.dtype.kind
-                    if arith == 'truediv':
-                        assert result.dtype.kind == 'f'
                 if arith in numexpr_ops:
                     assert used_numexpr, "Did not use numexpr as expected."
                 else:
@@ -267,8 +259,10 @@ class TestExpressions(unittest.TestCase):
             for f, f2 in [ (self.frame, self.frame2), (self.mixed, self.mixed2) ]:
 
                 for op, op_str in [('add','+'),('sub','-'),('mul','*'),('div','/'),('pow','**')]:
-
-                    op = getattr(operator,op,None)
+                    if op == 'div':
+                        op = getattr(operator, 'truediv', None)
+                    else:
+                        op = getattr(operator, op, None)
                     if op is not None:
                         result   = expr._can_use_numexpr(op, op_str, f, f, 'evaluate')
                         self.assert_(result == (not f._is_mixed_type))
@@ -346,7 +340,6 @@ class TestExpressions(unittest.TestCase):
         testit()
 
 if __name__ == '__main__':
-    # unittest.main()
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

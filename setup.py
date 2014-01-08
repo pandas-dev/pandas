@@ -189,9 +189,9 @@ CLASSIFIERS = [
 ]
 
 MAJOR = 0
-MINOR = 12
+MINOR = 13
 MICRO = 0
-ISRELEASED = False
+ISRELEASED = True
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 QUALIFIER = ''
 
@@ -201,12 +201,12 @@ if not ISRELEASED:
     try:
         import subprocess
         try:
-            pipe = subprocess.Popen(["git", "describe", "HEAD"],
+            pipe = subprocess.Popen(["git", "describe", "--always"],
                                     stdout=subprocess.PIPE).stdout
         except OSError:
             # msysgit compatibility
             pipe = subprocess.Popen(
-                ["git.cmd", "describe", "HEAD"],
+                ["git.cmd", "describe", "--always"],
                 stdout=subprocess.PIPE).stdout
         rev = pipe.read().strip()
         # makes distutils blow up on Python 2.7
@@ -304,7 +304,8 @@ class CheckSDist(sdist):
                  'pandas/index.pyx',
                  'pandas/algos.pyx',
                  'pandas/parser.pyx',
-                 'pandas/src/sparse.pyx']
+                 'pandas/src/sparse.pyx',
+                 'pandas/src/testing.pyx']
 
     def initialize_options(self):
         sdist.initialize_options(self)
@@ -464,6 +465,13 @@ sparse_ext = Extension('pandas._sparse',
 
 extensions.extend([sparse_ext])
 
+testing_ext = Extension('pandas._testing',
+                       sources=[srcpath('testing', suffix=suffix)],
+                       include_dirs=[],
+                       libraries=libraries)
+
+extensions.extend([testing_ext])
+
 #----------------------------------------------------------------------
 # msgpack stuff here
 
@@ -547,6 +555,7 @@ setup(name=DISTNAME,
                                   'tests/data/legacy_pickle/0.10.1/*.pickle',
                                   'tests/data/legacy_pickle/0.11.0/*.pickle',
                                   'tests/data/legacy_pickle/0.12.0/*.pickle',
+                                  'tests/data/legacy_pickle/0.13.0/*.pickle',
                                   'tests/data/*.csv',
                                   'tests/data/*.dta',
                                   'tests/data/*.txt',

@@ -11,6 +11,7 @@ import inspect
 import os
 import subprocess
 import locale
+import unittest
 
 from datetime import datetime
 from functools import wraps, partial
@@ -37,6 +38,8 @@ from pandas import bdate_range
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
 
+from pandas import _testing
+
 from pandas.io.common import urlopen
 
 Index = index.Index
@@ -50,6 +53,23 @@ N = 30
 K = 4
 _RAISE_NETWORK_ERROR_DEFAULT = False
 
+class TestCase(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        pd.set_option('chained_assignment','raise')
+        #print("setting up: {0}".format(cls))
+
+    @classmethod
+    def tearDownClass(cls):
+        #print("tearing down up: {0}".format(cls))
+        pass
+
+# NOTE: don't pass an NDFrame or index to this function - may not handle it
+# well.
+assert_almost_equal = _testing.assert_almost_equal
+
+assert_dict_equal = _testing.assert_dict_equal
 
 def randbool(size=(), p=0.5):
     return rand(*size) <= p
@@ -125,7 +145,8 @@ def check_output(*popenargs, **kwargs):  # shamelessly taken from Python 2.7 sou
     """
     if 'stdout' in kwargs:
         raise ValueError('stdout argument not allowed, it will be overridden.')
-    process = subprocess.Popen(stdout=subprocess.PIPE, *popenargs, **kwargs)
+    process = subprocess.Popen(stdout=subprocess.PIPE,stderr=subprocess.PIPE,
+                               *popenargs, **kwargs)
     output, unused_err = process.communicate()
     retcode = process.poll()
     if retcode:
@@ -140,7 +161,7 @@ def _default_locale_getter():
     try:
         raw_locales = check_output(['locale -a'], shell=True)
     except subprocess.CalledProcessError as e:
-        raise type(e)("%s, the 'locale -a' command cannot be foundon your "
+        raise type(e)("%s, the 'locale -a' command cannot be found on your "
                       "system" % e)
     return raw_locales
 
@@ -170,8 +191,14 @@ def get_locales(prefix=None, normalize=True,
         For example::
 
             locale.setlocale(locale.LC_ALL, locale_string)
+
+    On error will return None (no locale available, e.g. Windows)
+
     """
-    raw_locales = locale_getter()
+    try:
+        raw_locales = locale_getter()
+    except:
+        return None
 
     try:
         raw_locales = str(raw_locales, encoding=pd.options.display.encoding)
@@ -299,19 +326,51 @@ def set_trace():
 
 
 @contextmanager
-def ensure_clean(filename=None):
-    # if we are not passed a filename, generate a temporary
-    if filename is None:
-        filename = tempfile.mkstemp()[1]
+def ensure_clean(filename=None, return_filelike=False):
+    """Gets a temporary path and agrees to remove on close.
 
-    try:
-        yield filename
-    finally:
+    Parameters
+    ----------
+    filename : str (optional)
+        if None, creates a temporary file which is then removed when out of
+        scope. if passed, creates temporary file with filename as ending.
+    return_filelike : bool (default False)
+        if True, returns a file-like which is *always* cleaned. Necessary for
+        savefig and other functions which want to append extensions.
+    """
+    filename = filename or ''
+    fd = None
+
+    if return_filelike:
+        f = tempfile.TemporaryFile(suffix=filename)
         try:
-            os.remove(filename)
-        except:
-            pass
+            yield f
+        finally:
+            f.close()
+    else:
+        # don't generate tempfile if using a path with directory specified
+        if len(os.path.dirname(filename)):
+            raise ValueError("Can't pass a qualified name to ensure_clean()")
 
+        try:
+            fd, filename = tempfile.mkstemp(suffix=filename)
+        except UnicodeEncodeError:
+            import nose
+            raise nose.SkipTest('no unicode file names on this system')
+
+        try:
+            yield filename
+        finally:
+            try:
+                os.close(fd)
+            except Exception as e:
+                print("Couldn't close file descriptor: %d (file: %s)" %
+                    (fd, filename))
+            try:
+                if os.path.exists(filename):
+                    os.remove(filename)
+            except Exception as e:
+                print("Exception on removing file: %s" % e)
 
 def get_data_path(f=''):
     """Return the path of a data file, these are relative to the current test
@@ -374,74 +433,8 @@ def assert_attr_equal(attr, left, right):
 def isiterable(obj):
     return hasattr(obj, '__iter__')
 
-
-# NOTE: don't pass an NDFrame or index to this function - may not handle it
-# well.
-def assert_almost_equal(a, b, check_less_precise=False):
-    if isinstance(a, dict) or isinstance(b, dict):
-        return assert_dict_equal(a, b)
-
-    if isinstance(a, compat.string_types):
-        assert a == b, "%r != %r" % (a, b)
-        return True
-
-    if isiterable(a):
-        np.testing.assert_(isiterable(b))
-        na, nb = len(a), len(b)
-        assert na == nb, "%s != %s" % (na, nb)
-        if isinstance(a, np.ndarray) and isinstance(b, np.ndarray) and\
-           np.array_equal(a, b):
-            return True
-        else:
-            for i in range(na):
-                assert_almost_equal(a[i], b[i], check_less_precise)
-        return True
-
-    err_msg = lambda a, b: 'expected %.5f but got %.5f' % (b, a)
-
-    if isnull(a):
-        np.testing.assert_(isnull(b))
-        return
-
-    if isinstance(a, (bool, float, int, np.float32)):
-        decimal = 5
-
-        # deal with differing dtypes
-        if check_less_precise:
-            dtype_a = np.dtype(type(a))
-            dtype_b = np.dtype(type(b))
-            if dtype_a.kind == 'f' and dtype_b == 'f':
-                if dtype_a.itemsize <= 4 and dtype_b.itemsize <= 4:
-                    decimal = 3
-
-        if np.isinf(a):
-            assert np.isinf(b), err_msg(a, b)
-
-        # case for zero
-        elif abs(a) < 1e-5:
-            np.testing.assert_almost_equal(
-                a, b, decimal=decimal, err_msg=err_msg(a, b), verbose=False)
-        else:
-            np.testing.assert_almost_equal(
-                1, a / b, decimal=decimal, err_msg=err_msg(a, b), verbose=False)
-    else:
-        assert a == b, "%s != %s" % (a, b)
-
-
 def is_sorted(seq):
     return assert_almost_equal(seq, np.sort(np.array(seq)))
-
-
-def assert_dict_equal(a, b, compare_keys=True):
-    a_keys = frozenset(a.keys())
-    b_keys = frozenset(b.keys())
-
-    if compare_keys:
-        assert(a_keys == b_keys)
-
-    for k in a_keys:
-        assert_almost_equal(a[k], b[k])
-
 
 def assert_series_equal(left, right, check_dtype=True,
                         check_index_type=False,
@@ -449,9 +442,9 @@ def assert_series_equal(left, right, check_dtype=True,
                         check_less_precise=False):
     if check_series_type:
         assert_isinstance(left, type(right))
-    assert_almost_equal(left.values, right.values, check_less_precise)
     if check_dtype:
         assert_attr_equal('dtype', left, right)
+    assert_almost_equal(left.values, right.values, check_less_precise)
     if check_less_precise:
         assert_almost_equal(
             left.index.values, right.index.values, check_less_precise)
@@ -567,6 +560,9 @@ def assert_copy(iter1, iter2, **eql_kwargs):
 def getCols(k):
     return string.ascii_uppercase[:k]
 
+def getArangeMat():
+    return np.arange(N * K).reshape((N, K))
+
 
 # make index
 def makeStringIndex(k=10):
@@ -637,22 +633,18 @@ def getTimeSeriesData(nper=None):
     return dict((c, makeTimeSeries(nper)) for c in getCols(K))
 
 
+def getPeriodData(nper=None):
+    return dict((c, makePeriodSeries(nper)) for c in getCols(K))
+
+# make frame
 def makeTimeDataFrame(nper=None):
     data = getTimeSeriesData(nper)
     return DataFrame(data)
 
 
-def getPeriodData(nper=None):
-    return dict((c, makePeriodSeries(nper)) for c in getCols(K))
-
-# make frame
 def makeDataFrame():
     data = getSeriesData()
     return DataFrame(data)
-
-
-def getArangeMat():
-    return np.arange(N * K).reshape((N, K))
 
 
 def getMixedTypeDict():
@@ -667,6 +659,8 @@ def getMixedTypeDict():
 
     return index, data
 
+def makeMixedDataFrame():
+    return DataFrame(getMixedTypeDict()[1])
 
 def makePeriodFrame(nper=None):
     data = getPeriodData(nper)
@@ -863,13 +857,13 @@ def add_nans(panel):
         dm = panel[item]
         for j, col in enumerate(dm.columns):
             dm[col][:i + j] = np.NaN
-
+    return panel
 
 def add_nans_panel4d(panel4d):
     for l, label in enumerate(panel4d.labels):
         panel = panel4d[label]
         add_nans(panel)
-
+    return panel4d
 
 class TestSubDict(dict):
 

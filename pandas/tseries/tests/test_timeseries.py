@@ -2,7 +2,6 @@
 from datetime import datetime, time, timedelta, date
 import sys
 import os
-import unittest
 import operator
 
 from distutils.version import LooseVersion
@@ -51,7 +50,7 @@ def _skip_if_no_pytz():
         raise nose.SkipTest("pytz not installed")
 
 
-class TestTimeSeriesDuplicates(unittest.TestCase):
+class TestTimeSeriesDuplicates(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def setUp(self):
@@ -271,7 +270,7 @@ def assert_range_equal(left, right):
     assert(left.tz == right.tz)
 
 
-class TestTimeSeries(unittest.TestCase):
+class TestTimeSeries(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def test_is_(self):
@@ -1421,6 +1420,11 @@ class TestTimeSeries(unittest.TestCase):
         expected = date_range('1/1/2000', periods=10, freq='D')
         self.assert_(result.equals(expected))
 
+        rng_ns = pd.DatetimeIndex(np.array([1380585623454345752, 1380585612343234312]).astype("datetime64[ns]"))
+        rng_ns_normalized = rng_ns.normalize()
+        expected = pd.DatetimeIndex(np.array([1380585600000000000, 1380585600000000000]).astype("datetime64[ns]"))
+        self.assert_(rng_ns_normalized.equals(expected))
+
         self.assert_(result.is_normalized)
         self.assert_(not rng.is_normalized)
 
@@ -1836,13 +1840,44 @@ class TestTimeSeries(unittest.TestCase):
         # it works!
         pd.concat([df1, df2_obj])
 
+    def test_period_resample(self):
+        # GH3609
+        s = Series(range(100),index=date_range('20130101', freq='s', periods=100), dtype='float')
+        s[10:30] = np.nan
+        expected = Series([34.5, 79.5], index=[Period('2013-01-01 00:00', 'T'), Period('2013-01-01 00:01', 'T')])
+        result = s.to_period().resample('T', kind='period')
+        assert_series_equal(result, expected)
+        result2 = s.resample('T', kind='period')
+        assert_series_equal(result2, expected)
+
+    def test_period_resample_with_local_timezone(self):
+        # GH5430
+        _skip_if_no_pytz()
+        import pytz
+
+        local_timezone = pytz.timezone('America/Los_Angeles')
+
+        start = datetime(year=2013, month=11, day=1, hour=0, minute=0, tzinfo=pytz.utc)
+        # 1 day later
+        end = datetime(year=2013, month=11, day=2, hour=0, minute=0, tzinfo=pytz.utc)
+
+        index = pd.date_range(start, end, freq='H')
+
+        series = pd.Series(1, index=index)
+        series = series.tz_convert(local_timezone)
+        result = series.resample('D', kind='period')
+        # Create the expected series
+        expected_index = (pd.period_range(start=start, end=end, freq='D') - 1)  # Index is moved back a day with the timezone conversion from UTC to Pacific
+        expected = pd.Series(1, index=expected_index)
+        assert_series_equal(result, expected)
+
 
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
     return Series(np.random.randn(len(rng)), index=rng)
 
 
-class TestDatetimeIndex(unittest.TestCase):
+class TestDatetimeIndex(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def test_hash_error(self):
@@ -1930,6 +1965,11 @@ class TestDatetimeIndex(unittest.TestCase):
         self.assertRaises(ValueError, DatetimeIndex,
                           end='2011-01-01', freq='B')
         self.assertRaises(ValueError, DatetimeIndex, periods=10, freq='D')
+
+    def test_constructor_name(self):
+        idx = DatetimeIndex(start='2000-01-01', periods=1, freq='A',
+                            name='TEST')
+        self.assertEquals(idx.name, 'TEST')
 
     def test_comparisons_coverage(self):
         rng = date_range('1/1/2000', periods=10)
@@ -2181,7 +2221,7 @@ class TestDatetimeIndex(unittest.TestCase):
                 df.columns.join(s.index, how=join)
 
 
-class TestDatetime64(unittest.TestCase):
+class TestDatetime64(tm.TestCase):
     """
     Also test supoprt for datetime64[ns] in Series / DataFrame
     """
@@ -2395,7 +2435,7 @@ class TestDatetime64(unittest.TestCase):
         s.ix[datetime(1900, 1, 1):datetime(2100, 1, 1)]
 
 
-class TestSeriesDatetime64(unittest.TestCase):
+class TestSeriesDatetime64(tm.TestCase):
 
     def setUp(self):
         self.series = Series(date_range('1/1/2000', periods=10))
@@ -2514,7 +2554,19 @@ class TestSeriesDatetime64(unittest.TestCase):
         self.assertEquals(result.name, df.index[2])
 
 
-class TestTimestamp(unittest.TestCase):
+class TestTimestamp(tm.TestCase):
+
+    def test_class_ops(self):
+        _skip_if_no_pytz()
+        import pytz
+
+        def compare(x,y):
+            self.assert_(int(Timestamp(x).value/1e9) == int(Timestamp(y).value/1e9))
+
+        compare(Timestamp.now(),datetime.now())
+        compare(Timestamp.now('UTC'),datetime.now(pytz.timezone('UTC')))
+        compare(Timestamp.utcnow(),datetime.utcnow())
+        compare(Timestamp.today(),datetime.today())
 
     def test_basics_nanos(self):
         val = np.int64(946684800000000000).view('M8[ns]')
@@ -2664,7 +2716,7 @@ class TestTimestamp(unittest.TestCase):
         expected = offsets.Minute(5)
         self.assertEquals(result, expected)
 
-        self.assertRaises(KeyError, fmod.get_freq_code, (5, 'baz'))
+        self.assertRaises(ValueError, fmod.get_freq_code, (5, 'baz'))
 
         self.assertRaises(ValueError, fmod.to_offset, '100foo')
 
@@ -2746,7 +2798,7 @@ class TestTimestamp(unittest.TestCase):
             tm.assert_series_equal(result, expected)
 
 
-class TestSlicing(unittest.TestCase):
+class TestSlicing(tm.TestCase):
 
     def test_slice_year(self):
         dti = DatetimeIndex(freq='B', start=datetime(2005, 1, 1), periods=500)
@@ -3031,6 +3083,15 @@ class TestSlicing(unittest.TestCase):
         df = df.applymap(lambda x: x + BDay())
 
         self.assertTrue(df.x1.dtype == 'M8[ns]')
+
+    def test_date_range_fy5252(self):
+        dr = date_range(start="2013-01-01",
+                           periods=2,
+                           freq=offsets.FY5253(startingMonth=1,
+                                               weekday=3,
+                                               variation="nearest"))
+        self.assertEqual(dr[0], Timestamp('2013-01-31'))
+        self.assertEqual(dr[1], Timestamp('2014-01-30'))
 
 
 if __name__ == '__main__':

@@ -2,7 +2,8 @@
 Generic data algorithms. This module is experimental at the moment and not
 intended for public consumption
 """
-
+from __future__ import division
+from warnings import warn
 import numpy as np
 
 import pandas.core.common as com
@@ -152,7 +153,8 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
     return labels, uniques
 
 
-def value_counts(values, sort=True, ascending=False, normalize=False, bins=None):
+def value_counts(values, sort=True, ascending=False, normalize=False,
+                 bins=None):
     """
     Compute a histogram of the counts of non-null values
 
@@ -190,7 +192,7 @@ def value_counts(values, sort=True, ascending=False, normalize=False, bins=None)
         values = com._ensure_int64(values)
         keys, counts = htable.value_count_int64(values)
 
-    elif issubclass(values.dtype.type, (np.datetime64,np.timedelta64)):
+    elif issubclass(values.dtype.type, (np.datetime64, np.timedelta64)):
         dtype = values.dtype
         values = values.view(np.int64)
         keys, counts = htable.value_count_int64(values)
@@ -217,6 +219,41 @@ def value_counts(values, sort=True, ascending=False, normalize=False, bins=None)
 
     if normalize:
         result = result / float(values.size)
+
+    return result
+
+
+def mode(values):
+    """Returns the mode or mode(s) of the passed Series or ndarray (sorted)"""
+    # must sort because hash order isn't necessarily defined.
+    from pandas.core.series import Series
+
+    if isinstance(values, Series):
+        constructor = values._constructor
+        values = values.values
+    else:
+        values = np.asanyarray(values)
+        constructor = Series
+
+    dtype = values.dtype
+    if com.is_integer_dtype(values.dtype):
+        values = com._ensure_int64(values)
+        result = constructor(sorted(htable.mode_int64(values)), dtype=dtype)
+
+    elif issubclass(values.dtype.type, (np.datetime64, np.timedelta64)):
+        dtype = values.dtype
+        values = values.view(np.int64)
+        result = constructor(sorted(htable.mode_int64(values)), dtype=dtype)
+
+    else:
+        mask = com.isnull(values)
+        values = com._ensure_object(values)
+        res = htable.mode_object(values, mask)
+        try:
+            res = sorted(res)
+        except TypeError as e:
+            warn("Unable to sort modes: %s" % e)
+        result = constructor(res, dtype=dtype)
 
     return result
 
@@ -288,7 +325,7 @@ def quantile(x, q, interpolation_method='fraction'):
             return np.nan
 
         idx = at * (len(values) - 1)
-        if (idx % 1 == 0):
+        if idx % 1 == 0:
             score = values[idx]
         else:
             if interpolation_method == 'fraction':

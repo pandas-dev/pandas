@@ -113,7 +113,8 @@ def _convert_expression(expr):
 
 
 def eval(expr, parser='pandas', engine='numexpr', truediv=True,
-         local_dict=None, global_dict=None, resolvers=None, level=2):
+         local_dict=None, global_dict=None, resolvers=None, level=2,
+         target=None):
     """Evaluate a Python expression as a string using various backends.
 
     The following arithmetic operations are supported: ``+``, ``-``, ``*``,
@@ -169,6 +170,8 @@ def eval(expr, parser='pandas', engine='numexpr', truediv=True,
     level : int, optional
         The number of prior stack frames to traverse and add to the current
         scope. Most users will **not** need to change this parameter.
+    target : a target object for assignment, optional, default is None
+        essentially this is a passed in resolver
 
     Returns
     -------
@@ -194,7 +197,7 @@ def eval(expr, parser='pandas', engine='numexpr', truediv=True,
 
     # get our (possibly passed-in) scope
     env = _ensure_scope(global_dict=global_dict, local_dict=local_dict,
-                        resolvers=resolvers, level=level)
+                        resolvers=resolvers, level=level, target=target)
 
     parsed_expr = Expr(expr, engine=engine, parser=parser, env=env,
                        truediv=truediv)
@@ -203,4 +206,10 @@ def eval(expr, parser='pandas', engine='numexpr', truediv=True,
     eng = _engines[engine]
     eng_inst = eng(parsed_expr)
     ret = eng_inst.evaluate()
+
+    # assign if needed
+    if env.target is not None and parsed_expr.assigner is not None:
+        env.target[parsed_expr.assigner] = ret
+        return None
+
     return ret

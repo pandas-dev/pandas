@@ -890,15 +890,12 @@ cdef class Int64Factorizer:
         return labels
 
 
-
-def value_count_int64(ndarray[int64_t] values):
+cdef build_count_table_int64(ndarray[int64_t] values, kh_int64_t *table):
     cdef:
+        int k
         Py_ssize_t i, n = len(values)
-        kh_int64_t *table
         int ret = 0
-        list uniques = []
 
-    table = kh_init_int64()
     kh_resize_int64(table, n)
 
     for i in range(n):
@@ -910,8 +907,17 @@ def value_count_int64(ndarray[int64_t] values):
             k = kh_put_int64(table, val, &ret)
             table.vals[k] = 1
 
-    # for (k = kh_begin(h); k != kh_end(h); ++k)
-    # 	if (kh_exist(h, k)) kh_value(h, k) = 1;
+
+cpdef value_count_int64(ndarray[int64_t] values):
+    cdef:
+        Py_ssize_t i
+        kh_int64_t *table
+        int ret = 0
+        int k
+
+    table = kh_init_int64()
+    build_count_table_int64(values, table)
+
     i = 0
     result_keys = np.empty(table.n_occupied, dtype=np.int64)
     result_counts = np.zeros(table.n_occupied, dtype=np.int64)
@@ -924,15 +930,15 @@ def value_count_int64(ndarray[int64_t] values):
 
     return result_keys, result_counts
 
-def value_count_object(ndarray[object] values,
-                       ndarray[uint8_t, cast=True] mask):
-    cdef:
-        Py_ssize_t i, n = len(values)
-        kh_pymap_t *table
-        int ret = 0
-        list uniques = []
 
-    table = kh_init_pymap()
+cdef build_count_table_object(ndarray[object] values,
+                              ndarray[uint8_t, cast=True] mask,
+                              kh_pymap_t *table):
+    cdef:
+        int k
+        Py_ssize_t i, n = len(values)
+        int ret = 0
+
     kh_resize_pymap(table, n // 10)
 
     for i in range(n):
@@ -947,6 +953,17 @@ def value_count_object(ndarray[object] values,
             k = kh_put_pymap(table, <PyObject*> val, &ret)
             table.vals[k] = 1
 
+
+cpdef value_count_object(ndarray[object] values,
+                       ndarray[uint8_t, cast=True] mask):
+    cdef:
+        Py_ssize_t i = len(values)
+        kh_pymap_t *table
+        int k
+
+    table = kh_init_pymap()
+    build_count_table_object(values, mask, table)
+
     i = 0
     result_keys = np.empty(table.n_occupied, dtype=object)
     result_counts = np.zeros(table.n_occupied, dtype=np.int64)
@@ -959,3 +976,64 @@ def value_count_object(ndarray[object] values,
 
     return result_keys, result_counts
 
+
+def mode_object(ndarray[object] values, ndarray[uint8_t, cast=True] mask):
+    cdef:
+        int count, max_count = 2
+        int j = -1 # so you can do +=
+        int k
+        Py_ssize_t i, n = len(values)
+        kh_pymap_t *table
+        int ret = 0
+
+    table = kh_init_pymap()
+    build_count_table_object(values, mask, table)
+
+    modes = np.empty(table.n_buckets, dtype=np.object_)
+    for k in range(table.n_buckets):
+        if kh_exist_pymap(table, k):
+            count = table.vals[k]
+
+            if count == max_count:
+                j += 1
+            elif count > max_count:
+                max_count = count
+                j = 0
+            else:
+                continue
+            modes[j] = <object> table.keys[k]
+
+    kh_destroy_pymap(table)
+
+    return modes[:j+1]
+
+
+def mode_int64(ndarray[int64_t] values):
+    cdef:
+        int val, max_val = 2
+        int j = -1 # so you can do +=
+        int k
+        kh_int64_t *table
+        list uniques = []
+
+    table = kh_init_int64()
+
+    build_count_table_int64(values, table)
+
+    modes = np.empty(table.n_buckets, dtype=np.int64)
+    for k in range(table.n_buckets):
+        if kh_exist_int64(table, k):
+            val = table.vals[k]
+
+            if val == max_val:
+                j += 1
+            elif val > max_val:
+                max_val = val
+                j = 0
+            else:
+                continue
+            modes[j] = table.keys[k]
+
+    kh_destroy_int64(table)
+
+    return modes[:j+1]

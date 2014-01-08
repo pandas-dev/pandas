@@ -1,14 +1,32 @@
 .. _whatsnew_0130:
 
-v0.13.0 (October ??, 2013)
---------------------------
+v0.13.0 (January 1, 2014)
+---------------------------
 
 This is a major release from 0.12.0 and includes a number of API changes, several new features and
 enhancements along with a large number of bug fixes.
 
-Highlights include support for a new index type ``Float64Index``, support for new methods of interpolation, updated ``timedelta`` operations, and a new string manipulation method ``extract``.
-Several experimental features are added, including new ``eval/query`` methods for expression evaluation, support for ``msgpack`` serialization,
-and an io interface to Google's ``BigQuery``.
+Highlights include:
+
+- support for a new index type ``Float64Index``, and other Indexing enhancements
+- ``HDFStore`` has a new string based syntax for query specification
+- support for new methods of interpolation
+- updated ``timedelta`` operations
+- a new string manipulation method ``extract``
+- Nanosecond support for Offsets
+- ``isin`` for DataFrames
+
+Several experimental features are added, including:
+
+- new ``eval/query`` methods for expression evaluation
+- support for ``msgpack`` serialization
+- an i/o interface to Google's ``BigQuery``
+
+Their are several new or updated docs sections including:
+
+- :ref:`Comparison with SQL<compare_with_sql>`, which should be useful for those familiar with SQL but still learning pandas.
+- :ref:`Comparison with R<compare_with_r>`, idiom translations from R to pandas.
+- :ref:`Enhancing Performance<enhancingperf>`, ways to enhance pandas performance with ``eval/query``.
 
 .. warning::
 
@@ -49,17 +67,53 @@ API changes
       index = index.set_levels([[1, 2, 3, 4], [1, 2, 4, 4]])
 
       # similarly, for names, you can rename the object
-      # but setting names is not deprecated.
+      # but setting names is not deprecated
       index = index.set_names(["bob", "cranberry"])
 
-      # and all methods take an inplace kwarg - but returns None
+      # and all methods take an inplace kwarg - but return None
       index.set_names(["bob", "cranberry"], inplace=True)
+
+- **All** division with ``NDFrame`` objects is now *truedivision*, regardless
+  of the future import. This means that operating on pandas objects will by default
+  use *floating point* division, and return a floating point dtype.
+  You can use ``//`` and ``floordiv`` to do integer division.
+
+  Integer division
+
+  .. code-block:: python
+
+      In [3]: arr = np.array([1, 2, 3, 4])
+
+      In [4]: arr2 = np.array([5, 3, 2, 1])
+
+      In [5]: arr / arr2
+      Out[5]: array([0, 0, 1, 4])
+
+      In [6]: Series(arr) // Series(arr2)
+      Out[6]:
+      0    0
+      1    0
+      2    1
+      3    4
+      dtype: int64
+
+  True Division
+
+  .. code-block:: python
+
+      In [7]: pd.Series(arr) / pd.Series(arr2) # no future import required
+      Out[7]:
+      0    0.200000
+      1    0.666667
+      2    1.500000
+      3    4.000000
+      dtype: float64
 
 - Infer and downcast dtype if ``downcast='infer'`` is passed to ``fillna/ffill/bfill`` (:issue:`4604`)
 - ``__nonzero__`` for all NDFrame objects, will now raise a ``ValueError``, this reverts back to (:issue:`1073`, :issue:`4633`)
   behavior. See :ref:`gotchas<gotchas.truth>` for a more detailed discussion.
 
-  This prevents doing boolean comparision on *entire* pandas objects, which is inherently ambiguous. These all will raise a ``ValueError``.
+  This prevents doing boolean comparison on *entire* pandas objects, which is inherently ambiguous. These all will raise a ``ValueError``.
 
   .. code-block:: python
 
@@ -81,7 +135,37 @@ API changes
   ``SparsePanel``, etc.), now support the entire set of arithmetic operators
   and arithmetic flex methods (add, sub, mul, etc.). ``SparsePanel`` does not
   support ``pow`` or ``mod`` with non-scalars. (:issue:`3765`)
+- ``Series`` and ``DataFrame`` now have a ``mode()`` method to calculate the
+  statistical mode(s) by axis/Series. (:issue:`5367`)
 
+- Chained assignment will now by default warn if the user is assigning to a copy. This can be changed
+  with the option ``mode.chained_assignment``, allowed options are ``raise/warn/None``. See :ref:`the docs<indexing.view_versus_copy>`.
+
+  .. ipython:: python
+
+     dfc = DataFrame({'A':['aaa','bbb','ccc'],'B':[1,2,3]})
+     pd.set_option('chained_assignment','warn')
+
+  The following warning / exception will show if this is attempted.
+
+  .. ipython:: python
+
+     dfc.loc[0]['A'] = 1111
+
+  ::
+
+     Traceback (most recent call last)
+        ...
+     SettingWithCopyWarning:
+        A value is trying to be set on a copy of a slice from a DataFrame.
+        Try using .loc[row_index,col_indexer] = value instead
+
+  Here is the correct method of assignment.
+
+  .. ipython:: python
+
+     dfc.loc[0,'A'] = 11
+     dfc
 
 Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -92,7 +176,10 @@ These were announced changes in 0.12 or prior that are taking effect as of 0.13.
 - Remove deprecated ``set_printoptions/reset_printoptions`` (:issue:`3046`)
 - Remove deprecated ``_verbose_info`` (:issue:`3215`)
 - Remove deprecated ``read_clipboard/to_clipboard/ExcelFile/ExcelWriter`` from ``pandas.io.parsers`` (:issue:`3717`)
+  These are available as functions in the main pandas namespace (e.g. ``pd.read_clipboard``)
 - default for ``tupleize_cols`` is now ``False`` for both ``to_csv`` and ``read_csv``. Fair warning in 0.12 (:issue:`3604`)
+- default for `display.max_seq_len` is now 100 rather then `None`. This activates
+  truncated display ("...") of long sequences in various places. (:issue:`3391`)
 
 Deprecations
 ~~~~~~~~~~~~
@@ -102,12 +189,20 @@ Deprecated in 0.13.0
 - deprecated ``iterkv``, which will be removed in a future release (this was
   an alias of iteritems used to bypass ``2to3``'s changes).
   (:issue:`4384`, :issue:`4375`, :issue:`4372`)
+- deprecated the string method ``match``, whose role is now performed more
+  idiomatically by ``extract``. In a future release, the default behavior
+  of ``match`` will change to become analogous to ``contains``, which returns
+  a boolean indexer. (Their
+  distinction is strictness: ``match`` relies on ``re.match`` while
+  ``contains`` relies on ``re.search``.) In this release, the deprecated
+  behavior is the default, but the new behavior is available through the
+  keyword argument ``as_indexer=True``.
 
 Indexing API Changes
 ~~~~~~~~~~~~~~~~~~~~
 
 Prior to 0.13, it was impossible to use a label indexer (``.loc/.ix``) to set a value that
-was not contained in the index of a particular axis. (:issue:`2578`). See more :ref:`the docs<indexing.basics.partial_setting>`
+was not contained in the index of a particular axis. (:issue:`2578`). See :ref:`the docs<indexing.basics.partial_setting>`
 
 In the ``Series`` case this is effectively an appending operation
 
@@ -251,8 +346,8 @@ HDFStore API Changes
      os.remove(path)
 
 - the ``format`` keyword now replaces the ``table`` keyword; allowed values are ``fixed(f)`` or ``table(t)``
-  the same defaults as prior < 0.13.0 remain, e.g. ``put`` implies ``fixed`` format
-  and ``append`` imples ``table`` format. This default format can be set as an option by setting ``io.hdf.default_format``.
+  the same defaults as prior < 0.13.0 remain, e.g. ``put`` implies ``fixed`` format and ``append`` implies
+  ``table`` format. This default format can be set as an option by setting ``io.hdf.default_format``.
 
   .. ipython:: python
 
@@ -314,10 +409,29 @@ HDFStore API Changes
 - add the keyword ``dropna=True`` to ``append`` to change whether ALL nan rows are not written
   to the store (default is ``True``, ALL nan rows are NOT written), also settable
   via the option ``io.hdf.dropna_table`` (:issue:`4625`)
+- pass thru store creation arguments; can be used to support in-memory stores
+
+DataFrame repr Changes
+~~~~~~~~~~~~~~~~~~~~~~
+
+The HTML and plain text representations of :class:`DataFrame` now show
+a truncated view of the table once it exceeds a certain size, rather
+than switching to the short info view (:issue:`4886`, :issue:`5550`).
+This makes the representation more consistent as small DataFrames get
+larger.
+
+.. image:: _static/df_repr_truncated.png
+   :alt: Truncated HTML representation of a DataFrame
+
+To get the info view, call :meth:`DataFrame.info`. If you prefer the
+info view as the repr for large DataFrames, you can set this by running
+``set_option('display.large_repr', 'info')``.
 
 Enhancements
 ~~~~~~~~~~~~
 
+- ``df.to_clipboard()`` learned a new ``excel`` keyword that let's you
+  paste df data directly into excel (enabled by default). (:issue:`5070`).
 - ``read_html`` now raises a ``URLError`` instead of catching and raising a
   ``ValueError`` (:issue:`4303`, :issue:`4305`)
 - Added a test for ``read_clipboard()`` and ``to_clipboard()`` (:issue:`4282`)
@@ -339,7 +453,7 @@ Enhancements
      get_dummies([1, 2, np.nan], dummy_na=True)
 
 
-- ``timedelta64[ns]`` operations. See :ref:`the docs<timeseries.timedeltas_convert>` for the docs.
+- ``timedelta64[ns]`` operations. See :ref:`the docs<timeseries.timedeltas_convert>`.
 
   .. warning::
 
@@ -357,7 +471,7 @@ Enhancements
      to_timedelta(np.arange(5),unit='d')
 
   A Series of dtype ``timedelta64[ns]`` can now be divided by another
-  ``timedelta64[ns]`` object to yield a ``float64`` dtyped Series. This
+  ``timedelta64[ns]`` object, or astyped to yield a ``float64`` dtyped Series. This
   is frequency conversion. See :ref:`the docs<timeseries.timedeltas_convert>` for the docs.
 
   .. ipython:: python
@@ -370,9 +484,11 @@ Enhancements
 
      # to days
      td / np.timedelta64(1,'D')
+     td.astype('timedelta64[D]')
 
      # to seconds
      td / np.timedelta64(1,'s')
+     td.astype('timedelta64[s]')
 
   Dividing or multiplying a ``timedelta64[ns]`` Series by an integer or integer Series
 
@@ -381,7 +497,7 @@ Enhancements
      td * -1
      td * Series([1,2,3,4])
 
-  Absolute ``DateOffset`` objects can act equivalenty to ``timedeltas``
+  Absolute ``DateOffset`` objects can act equivalently to ``timedeltas``
 
   .. ipython:: python
 
@@ -395,8 +511,7 @@ Enhancements
      td.fillna(0)
      td.fillna(timedelta(days=1,seconds=5))
 
-  You can do numeric reduction operations on timedeltas. Note that these will return
-  a single-element Series.
+  You can do numeric reduction operations on timedeltas.
 
   .. ipython:: python
 
@@ -405,8 +520,8 @@ Enhancements
 
 - ``plot(kind='kde')`` now accepts the optional parameters ``bw_method`` and
   ``ind``, passed to scipy.stats.gaussian_kde() (for scipy >= 0.11.0) to set
-  the bandwidth, and to gkde.evaluate() to specify the indicies at which it
-  is evaluated, respecttively. See scipy docs. (:issue:`4298`)
+  the bandwidth, and to gkde.evaluate() to specify the indices at which it
+  is evaluated, respectively. See scipy docs. (:issue:`4298`)
 
 - DataFrame constructor now accepts a numpy masked record array (:issue:`3478`)
 
@@ -476,7 +591,7 @@ Enhancements
      t = Timestamp('20130101 09:01:02')
      t + pd.datetools.Nano(123)
 
-- A new method, ``isin`` for DataFrames, plays nicely with boolean indexing. See :ref:`the docs<indexing.basics.indexing_isin>` for more.
+- A new method, ``isin`` for DataFrames, which plays nicely with boolean indexing. The argument to ``isin``, what we're comparing the DataFrame to, can be a DataFrame, Series, dict, or array of values. See :ref:`the docs<indexing.basics.indexing_isin>` for more.
 
   To get the rows where any of the conditions are met:
 
@@ -484,7 +599,8 @@ Enhancements
 
      dfi = DataFrame({'A': [1, 2, 3, 4], 'B': ['a', 'b', 'f', 'n']})
      dfi
-     mask = dfi.isin({'A': [1, 2], 'B': ['e', 'f']})
+     other = DataFrame({'A': [1, 3, 3, 7], 'B': ['e', 'f', 'f', 'e']})
+     mask = dfi.isin(other)
      mask
      dfi[mask.any(1)]
 
@@ -500,13 +616,20 @@ Enhancements
 - ``tz_localize`` can infer a fall daylight savings transition based on the structure
   of the unlocalized data (:issue:`4230`), see :ref:`the docs<timeseries.timezone>`
 
-- DatetimeIndex is now in the API documentation, see :ref:`the docs<api.datetimeindex>`
+- ``DatetimeIndex`` is now in the API documentation, see :ref:`the docs<api.datetimeindex>`
 
 - :meth:`~pandas.io.json.json_normalize` is a new method to allow you to create a flat table
   from semi-structured JSON data. See :ref:`the docs<io.json_normalize>` (:issue:`1067`)
 
-
 - Added PySide support for the qtpandas DataFrameModel and DataFrameWidget.
+
+- Python csv parser now supports usecols (:issue:`4335`)
+
+- Frequencies gained several new offsets:
+
+  * ``LastWeekOfMonth`` (:issue:`4637`)
+  * ``FY5253``, and ``FY5253Quarter`` (:issue:`4511`)
+
 
 - DataFrame has a new ``interpolate`` method, similar to Series (:issue:`4434`, :issue:`1892`)
 
@@ -530,6 +653,21 @@ Enhancements
     ser = Series([1, 3, np.nan, np.nan, np.nan, 11])
     ser.interpolate(limit=2)
 
+- Added ``wide_to_long`` panel data convenience function. See :ref:`the docs<reshaping.melt>`.
+
+  .. ipython:: python
+
+    np.random.seed(123)
+    df = pd.DataFrame({"A1970" : {0 : "a", 1 : "b", 2 : "c"},
+                       "A1980" : {0 : "d", 1 : "e", 2 : "f"},
+                       "B1970" : {0 : 2.5, 1 : 1.2, 2 : .7},
+                       "B1980" : {0 : 3.2, 1 : 1.3, 2 : .1},
+                       "X"     : dict(zip(range(3), np.random.randn(3)))
+                      })
+    df["id"] = df.index
+    df
+    wide_to_long(df, ["A", "B"], i="id", j="year")
+
 .. _scipy: http://www.scipy.org
 .. _documentation: http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation
 .. _guide: http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html
@@ -537,6 +675,8 @@ Enhancements
 - ``to_csv`` now takes a ``date_format`` keyword argument that specifies how
   output datetime objects should be formatted. Datetimes encountered in the
   index, columns, and values will all have this formatting applied. (:issue:`4313`)
+- ``DataFrame.plot`` will scatter plot x versus y by passing ``kind='scatter'`` (:issue:`2215`)
+- Added support for Google Analytics v3 API segment IDs that also supports v2 IDs. (:issue:`5271`)
 
 .. _whatsnew_0130.experimental:
 
@@ -651,10 +791,10 @@ Experimental
 - ``pandas.io.gbq`` provides a simple way to extract from, and load data into,
   Google's BigQuery Data Sets by way of pandas DataFrames. BigQuery is a high
   performance SQL-like database service, useful for performing ad-hoc queries
-  against extremely large datasets. :ref:`See the docs<io.gbq>`
+  against extremely large datasets. :ref:`See the docs <io.bigquery>`
 
   .. code-block:: python
-  
+
      from pandas.io import gbq
 
      # A query to select the average monthly temperatures in the
@@ -665,8 +805,8 @@ Experimental
      query = """SELECT station_number as STATION,
      month as MONTH, AVG(mean_temp) as MEAN_TEMP
      FROM publicdata:samples.gsod
-     WHERE YEAR = 2000 
-     GROUP BY STATION, MONTH 
+     WHERE YEAR = 2000
+     GROUP BY STATION, MONTH
      ORDER BY STATION, MONTH ASC"""
 
      # Fetch the result set for this query
@@ -675,7 +815,7 @@ Experimental
      # To find this, see your dashboard:
      # https://code.google.com/apis/console/b/0/?noredirect
      projectid = xxxxxxxxx;
-     
+
      df = gbq.read_gbq(query, project_id = projectid)
 
      # Use pandas to process and reshape the dataset
@@ -684,24 +824,24 @@ Experimental
      df3 = pandas.concat([df2.min(), df2.mean(), df2.max()],
                          axis=1,keys=["Min Tem", "Mean Temp", "Max Temp"])
 
-  The resulting dataframe is:
+  The resulting DataFrame is::
 
-  ```
-             Min Tem  Mean Temp    Max Temp
-  MONTH                                  
-  1     -53.336667  39.827892   89.770968
-  2     -49.837500  43.685219   93.437932
-  3     -77.926087  48.708355   96.099998
-  4     -82.892858  55.070087   97.317240
-  5     -92.378261  61.428117  102.042856
-  6     -77.703334  65.858888  102.900000
-  7     -87.821428  68.169663  106.510714
-  8     -89.431999  68.614215  105.500000
-  9     -86.611112  63.436935  107.142856
-  10    -78.209677  56.880838   92.103333
-  11    -50.125000  48.861228   94.996428
-  12    -50.332258  42.286879   94.396774
-  ```
+     > df3
+                 Min Tem  Mean Temp    Max Temp
+      MONTH
+      1     -53.336667  39.827892   89.770968
+      2     -49.837500  43.685219   93.437932
+      3     -77.926087  48.708355   96.099998
+      4     -82.892858  55.070087   97.317240
+      5     -92.378261  61.428117  102.042856
+      6     -77.703334  65.858888  102.900000
+      7     -87.821428  68.169663  106.510714
+      8     -89.431999  68.614215  105.500000
+      9     -86.611112  63.436935  107.142856
+      10    -78.209677  56.880838   92.103333
+      11    -50.125000  48.861228   94.996428
+      12    -50.332258  42.286879   94.396774
+
   .. warning::
 
      To use this module, you will need a BigQuery account. See
@@ -754,6 +894,11 @@ to unify methods and behaviors. Series formerly subclassed directly from
 
    - ``Series(0.5)`` would previously return the scalar ``0.5``, instead this will return a 1-element ``Series``
 
+   - This change breaks ``rpy2<=2.3.8``. an Issue has been opened against rpy2 and a workaround
+     is detailed in :issue:`5698`. Thanks @JanSchulz.
+
+- Pickle compatibility is preserved for pickles created prior to 0.13. These must be unpickled with ``pd.read_pickle``, see :ref:`Pickling<io.pickle>`.
+
 - Refactor of series.py/frame.py/panel.py to move common code to generic.py
 
   - added ``_setup_axes`` to created generic NDFrame structures
@@ -774,19 +919,12 @@ to unify methods and behaviors. Series formerly subclassed directly from
 
   - ``swapaxes`` on a ``Panel`` with the same axes specified now return a copy
   - support attribute access for setting
-  - filter supports same api as original ``DataFrame`` filter
+  - filter supports the same API as the original ``DataFrame`` filter
 
 - Reindex called with no arguments will now return a copy of the input object
 
-- Series now inherits from ``NDFrame`` rather than directly from ``ndarray``.
-  There are several minor changes that affect the API.
-
-  - numpy functions that do not support the array interface will now
-    return ``ndarrays`` rather than series, e.g. ``np.diff`` and ``np.ones_like``
-  - ``Series(0.5)`` would previously return the scalar ``0.5``, this is no
-    longer supported
-  - ``TimeSeries`` is now an alias for ``Series``. the property ``is_time_series``
-    can be used to distinguish (if desired)
+- ``TimeSeries`` is now an alias for ``Series``. the property ``is_time_series``
+  can be used to distinguish (if desired)
 
 - Refactor of Sparse objects to use BlockManager
 
@@ -802,11 +940,11 @@ to unify methods and behaviors. Series formerly subclassed directly from
   - enable setitem on ``SparseSeries`` for boolean/integer/slices
   - ``SparsePanels`` implementation is unchanged (e.g. not using BlockManager, needs work)
 
-- added ``ftypes`` method to Series/DataFame, similar to ``dtypes``, but indicates
+- added ``ftypes`` method to Series/DataFrame, similar to ``dtypes``, but indicates
   if the underlying is sparse/dense (as well as the dtype)
-- All ``NDFrame`` objects now have a ``_prop_attributes``, which can be used to indcated various
-  values to propogate to a new object from an existing (e.g. name in ``Series`` will follow
-  more automatically now)
+- All ``NDFrame`` objects can now use ``__finalize__()`` to specify various
+  values to propagate to new objects from an existing one (e.g. ``name`` in ``Series`` will
+  follow more automatically now)
 - Internal type checking is now done via a suite of generated classes, allowing ``isinstance(value, klass)``
   without having to directly import the klass, courtesy of @jtratner
 - Bug in Series update where the parent frame is not updating its cache based on
@@ -818,7 +956,7 @@ to unify methods and behaviors. Series formerly subclassed directly from
 - Refactor ``rename`` methods to core/generic.py; fixes ``Series.rename`` for (:issue:`4605`), and adds ``rename``
   with the same signature for ``Panel``
 - Refactor ``clip`` methods to core/generic.py (:issue:`4798`)
-- Refactor of ``_get_numeric_data/_get_bool_data`` to core/generic.py, allowing Series/Panel functionaility
+- Refactor of ``_get_numeric_data/_get_bool_data`` to core/generic.py, allowing Series/Panel functionality
 - ``Series`` (for index) / ``Panel`` (for items) now allow attribute access to its elements  (:issue:`1903`)
 
   .. ipython:: python

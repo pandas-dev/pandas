@@ -10,6 +10,7 @@ from pandas.computation.ops import UndefinedVariableError
 
 
 class AbstractEngine(object):
+
     """Object serving as a base class for all engines."""
 
     __metaclass__ = abc.ABCMeta
@@ -73,6 +74,7 @@ class AbstractEngine(object):
 
 
 class NumExprEngine(AbstractEngine):
+
     """NumExpr engine class"""
     has_neg_frac = True
 
@@ -105,6 +107,7 @@ class NumExprEngine(AbstractEngine):
 
 
 class PythonEngine(AbstractEngine):
+
     """Evaluate an expression in Python space.
 
     Mostly for testing purposes.

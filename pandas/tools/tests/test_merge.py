@@ -1,7 +1,6 @@
 # pylint: disable=E1103
 
 import nose
-import unittest
 
 from datetime import datetime
 from numpy.random import randn
@@ -39,7 +38,7 @@ def get_test_data(ngroups=NGROUPS, n=N):
     return arr
 
 
-class TestMerge(unittest.TestCase):
+class TestMerge(tm.TestCase):
 
     _multiprocess_can_split_ = True
 
@@ -818,7 +817,7 @@ def _check_merge(x, y):
         assert_frame_equal(result, expected, check_names=False)  # TODO check_names on merge?
 
 
-class TestMergeMulti(unittest.TestCase):
+class TestMergeMulti(tm.TestCase):
 
     def setUp(self):
         self.index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
@@ -1082,7 +1081,7 @@ def _join_by_hand(a, b, how='left'):
     return a_re.reindex(columns=result_columns)
 
 
-class TestConcatenate(unittest.TestCase):
+class TestConcatenate(tm.TestCase):
 
     _multiprocess_can_split_ = True
 
@@ -1840,7 +1839,7 @@ class TestConcatenate(unittest.TestCase):
         with tm.assertRaisesRegexp(TypeError, "Cannot concatenate.+"):
             concat([df, df[0]], axis=1)
 
-class TestOrderedMerge(unittest.TestCase):
+class TestOrderedMerge(tm.TestCase):
 
     def setUp(self):
         self.left = DataFrame({'key': ['a', 'c', 'e'],

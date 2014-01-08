@@ -55,9 +55,6 @@ if [ -n "$LOCALE_OVERRIDE" ]; then
     time sudo locale-gen "$LOCALE_OVERRIDE"
 fi
 
-# show-skipped is working at this particular commit
-show_skipped_commit=fa4ff84e53c09247753a155b428c1bf2c69cb6c3
-time pip install git+git://github.com/cpcloud/nose-show-skipped.git@$show_skipped_commit
 time pip install $PIP_ARGS -r ci/requirements-${wheel_box}.txt
 
 # we need these for numpy

@@ -36,6 +36,7 @@ isBusinessDay = BDay().onOffset
 isMonthEnd = MonthEnd().onOffset
 isBMonthEnd = BMonthEnd().onOffset
 
+
 def _resolve_offset(freq, kwds):
     if 'timeRule' in kwds or 'offset' in kwds:
         offset = kwds.get('offset', None)
@@ -54,4 +55,3 @@ def _resolve_offset(freq, kwds):
                       FutureWarning)
 
     return offset
-

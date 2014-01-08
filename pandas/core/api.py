@@ -15,7 +15,7 @@ from pandas.core.panel import Panel
 from pandas.core.panel4d import Panel4D
 from pandas.core.groupby import groupby
 from pandas.core.reshape import (pivot_simple as pivot, get_dummies,
-                                 lreshape)
+                                 lreshape, wide_to_long)
 
 WidePanel = Panel
 
@@ -27,8 +27,8 @@ from pandas.tseries.period import Period, PeriodIndex
 
 # legacy
 from pandas.core.daterange import DateRange  # deprecated
-from pandas.core.common import save, load # deprecated, remove in 0.13
+from pandas.core.common import save, load  # deprecated, remove in 0.13
 import pandas.core.datetools as datetools
 
-from pandas.core.config import get_option, set_option, reset_option,\
-    describe_option, options
+from pandas.core.config import (get_option, set_option, reset_option,
+                                describe_option, options)
