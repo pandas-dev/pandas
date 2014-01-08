@@ -16,6 +16,7 @@ import pandas as pd
 from pandas import (Index, Series, DataFrame, isnull, notnull,
                     bdate_range, date_range, _np_version_under1p7)
 from pandas.core.index import MultiIndex
+from pandas.core.indexing import IndexingError
 from pandas.tseries.index import Timestamp, DatetimeIndex
 import pandas.core.config as cf
 import pandas.lib as lib
@@ -794,6 +795,28 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         s = s[s.isnull()]
         self.assertEqual(s.index.name, 'index_name')
         self.assertEqual(s.dtype, np.int64)
+
+        # GH5877
+        # indexing with empty series
+        s = Series(['A', 'B'])
+        expected = Series(np.nan,index=['C'],dtype=object)
+        result = s[Series(['C'], dtype=object)]
+        assert_series_equal(result, expected)
+
+        s = Series(['A', 'B'])
+        expected = Series(dtype=object)
+        result = s[Series([], dtype=object)]
+        assert_series_equal(result, expected)
+
+        # invalid because of the boolean indexer
+        # that's empty or not-aligned
+        def f():
+            s[Series([], dtype=bool)]
+        self.assertRaises(IndexingError, f)
+
+        def f():
+            s[Series([True], dtype=bool)]
+        self.assertRaises(IndexingError, f)
 
     def test_getitem_generator(self):
         gen = (x > 0 for x in self.series)

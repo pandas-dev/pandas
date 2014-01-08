@@ -81,6 +81,7 @@ Bug Fixes
   - Bug in isnull handling ``NaT`` in an object array (:issue:`5443`)
   - Bug in ``to_datetime`` when passed a ``np.nan`` or integer datelike and a format string (:issue:`5863`)
   - Bug in groupby dtype conversion with datetimelike (:issue:`5869`)
+  - Regresssion in handling of empty Series as indexers to Series  (:issue:`5877`)
 
 pandas 0.13.0
 -------------
