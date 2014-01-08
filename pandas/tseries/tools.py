@@ -297,7 +297,7 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     if parsed is None:
         raise DateParseError("Could not parse %s" % arg)
 
-    return parsed, parsed, reso  # datetime, resolution
+    return parsed, reso  # datetime, resolution
 
 
 def dateutil_parse(timestr, default,
