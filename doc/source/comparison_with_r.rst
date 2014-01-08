@@ -66,6 +66,44 @@ function.
 For more details and examples see :ref:`the groupby documentation
 <groupby.split>`.
 
+|match|_
+~~~~~~~~~~~~
+
+A common way to select data in R is using ``%in%`` which is defined using the
+function ``match``. The operator ``%in%`` is used to return a logical vector
+indicating if there is a match or not:
+
+.. code-block:: r
+
+   s <- 0:4
+   s %in% c(2,4)
+
+The :meth:`~pandas.DataFrame.isin` method is similar to R ``%in%`` operator:
+
+.. ipython:: python
+
+   s = pd.Series(np.arange(5),index=np.arange(5)[::-1],dtype=np.float32)
+   s.isin([2, 4])
+
+The ``match`` function returns a vector of the positions of matches
+of its first argument in its second:
+
+.. code-block:: r
+
+   s <- 0:4
+   match(s, c(2,4))
+
+The :meth:`~pandas.core.groupby.GroupBy.apply` method can be used to replicate
+this:
+
+.. ipython:: python
+
+   s = pd.Series(np.arange(5),index=np.arange(5)[::-1],dtype=np.float32)
+   s.apply(lambda x: [2, 4].index(x) if x in [2,4] else np.nan)
+
+For more details and examples see :ref:`the reshaping documentation
+<indexing.basics.indexing_isin>`.
+
 |tapply|_
 ~~~~~~~~~
 
@@ -371,6 +409,9 @@ For more details and examples see :ref:`the reshaping documentation
 
 .. |aggregate| replace:: ``aggregate``
 .. _aggregate: http://finzi.psych.upenn.edu/R/library/stats/html/aggregate.html
+
+.. |match| replace:: ``match`` / ``%in%``
+.. _match: http://finzi.psych.upenn.edu/R/library/base/html/match.html
 
 .. |tapply| replace:: ``tapply``
 .. _tapply: http://finzi.psych.upenn.edu/R/library/base/html/tapply.html
