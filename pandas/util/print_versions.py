@@ -3,6 +3,7 @@ import platform
 import sys
 import struct
 import subprocess
+import codecs
 
 
 def get_sys_info():
@@ -99,14 +100,13 @@ def show_versions(as_json=False):
         except:
             import simplejson as json
 
-        j = json.dumps(
-            dict(system=dict(sys_info), dependencies=dict(deps_blob)), indent=2)
+        j = dict(system=dict(sys_info), dependencies=dict(deps_blob))
 
         if as_json == True:
             print(j)
         else:
-            with open(as_json, "wb") as f:
-                f.write(j)
+            with codecs.open(as_json, "wb", encoding='utf8') as f:
+                json.dump(j, f, indent=2)
 
     else:
 
@@ -119,6 +119,7 @@ def show_versions(as_json=False):
         print("")
         for k, stat in deps_blob:
             print("%s: %s" % (k, stat))
+
 
 def main():
         # optparse is 2.6-safe
