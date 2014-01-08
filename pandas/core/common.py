@@ -1660,7 +1660,7 @@ def _is_bool_indexer(key):
         if key.dtype == np.object_:
             key = np.asarray(_values_from_object(key))
 
-            if len(key) and not lib.is_bool_array(key):
+            if not lib.is_bool_array(key):
                 if isnull(key).any():
                     raise ValueError('cannot index with vector containing '
                                      'NA / NaN values')
