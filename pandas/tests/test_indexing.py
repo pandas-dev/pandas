@@ -2352,6 +2352,14 @@ class TestIndexing(tm.TestCase):
         #self.assertRaises(TypeError, lambda : s.iloc[2.0:5.0])
         #self.assertRaises(TypeError, lambda : s.iloc[2:5.0])
 
+    def test_set_ix_out_of_bounds_axis_0(self):
+        df = pd.DataFrame(randn(2, 5), index=["row%s" % i for i in range(2)], columns=["col%s" % i for i in range(5)])
+        self.assertRaises(ValueError, df.ix.__setitem__, (2, 0), 100)
+
+    def test_set_ix_out_of_bounds_axis_1(self):
+        df = pd.DataFrame(randn(5, 2), index=["row%s" % i for i in range(5)], columns=["col%s" % i for i in range(2)])
+        self.assertRaises(ValueError, df.ix.__setitem__, (0 , 2), 100)
+
 
 if __name__ == '__main__':
     import nose
