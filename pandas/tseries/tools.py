@@ -79,6 +79,20 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
     Returns
     -------
     ret : datetime if parsing succeeded
+
+    Examples
+    --------
+    Take separate series and convert to datetime
+
+    >>> import pandas as pd
+    >>> i = pd.date_range('20000101',periods=100)
+    >>> df = pd.DataFrame(dict(year = i.year, month = i.month, day = i.day))
+    >>> pd.to_datetime(df.year*10000 + df.month*100 + df.day, format='%Y%m%d')
+
+    Or from strings
+
+    >>> df = df.astype(str)
+    >>> pd.to_datetime(df.day + df.month + df.year, format="%d%m%Y")
     """
     from pandas import Timestamp
     from pandas.core.series import Series
