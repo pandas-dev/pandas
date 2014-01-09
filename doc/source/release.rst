@@ -84,6 +84,7 @@ Bug Fixes
   - Regresssion in handling of empty Series as indexers to Series  (:issue:`5877`)
   - Bug in internal caching, related to (:issue:`5727`)
   - Testing bug in reading json/msgpack from a non-filepath on windows under py3 (:issue:`5874`)
+  - Bug when assigning to .ix[tuple(...)] (:issue:`5896`)
 
 pandas 0.13.0
 -------------
