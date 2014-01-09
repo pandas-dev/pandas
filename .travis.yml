@@ -4,7 +4,7 @@ python:
   - 2.6
 
 matrix:
-  include:
+    include:
     - python: 2.6
       env:
       - NOSE_ARGS="not slow and not network"
