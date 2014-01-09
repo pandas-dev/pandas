@@ -258,6 +258,12 @@ class TestIndexing(tm.TestCase):
         s = Series(np.zeros(n), index=index)
         str(s)
 
+        # setitem
+        expected = Series(np.ones(n), index=index)
+        s = Series(np.zeros(n), index=index)
+        s[s==0] = 1
+        assert_series_equal(s,expected)
+
     def test_at_and_iat_get(self):
 
         def _check(f, func, values = False):

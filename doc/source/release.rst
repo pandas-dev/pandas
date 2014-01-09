@@ -82,6 +82,7 @@ Bug Fixes
   - Bug in ``to_datetime`` when passed a ``np.nan`` or integer datelike and a format string (:issue:`5863`)
   - Bug in groupby dtype conversion with datetimelike (:issue:`5869`)
   - Regresssion in handling of empty Series as indexers to Series  (:issue:`5877`)
+  - Bug in internal caching, related to (:issue:`5727`)
 
 pandas 0.13.0
 -------------

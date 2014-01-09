@@ -77,8 +77,8 @@ class NDFrame(PandasObject):
     axes : list
     copy : boolean, default False
     """
-    _internal_names = ['_data', 'name', '_cacher', 'is_copy', '_subtyp',
-                       '_index', '_default_kind', '_default_fill_value']
+    _internal_names = ['_data', '_cacher', '_item_cache', '_cache',
+                       'is_copy', '_subtyp', '_index', '_default_kind', '_default_fill_value']
     _internal_names_set = set(_internal_names)
     _metadata = []
     is_copy = None
@@ -721,13 +721,14 @@ class NDFrame(PandasObject):
                 # to avoid definitional recursion
                 # e.g. say fill_value needing _data to be
                 # defined
-                for k in self._internal_names_set:
+                meta = set(self._internal_names + self._metadata)
+                for k in list(meta):
                     if k in state:
                         v = state[k]
                         object.__setattr__(self, k, v)
 
                 for k, v in state.items():
-                    if k not in self._internal_names_set:
+                    if k not in meta:
                         object.__setattr__(self, k, v)
 
             else:
@@ -1607,16 +1608,23 @@ class NDFrame(PandasObject):
 
         This allows simpler access to columns for interactive use.
         """
-        if name in self._info_axis:
-            return self[name]
-        raise AttributeError("'%s' object has no attribute '%s'" %
-                             (type(self).__name__, name))
+        if name in self._internal_names_set:
+            return object.__getattribute__(self, name)
+        elif name in self._metadata:
+            return object.__getattribute__(self, name)
+        else:
+            if name in self._info_axis:
+                return self[name]
+            raise AttributeError("'%s' object has no attribute '%s'" %
+                                 (type(self).__name__, name))
 
     def __setattr__(self, name, value):
         """After regular attribute access, try looking up the name of the info
         This allows simpler access to columns for interactive use."""
         if name in self._internal_names_set:
             object.__setattr__(self, name, value)
+        elif name in self._metadata:
+            return object.__setattr__(self, name, value)
         else:
             try:
                 existing = getattr(self, name)
