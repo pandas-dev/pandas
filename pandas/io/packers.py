@@ -147,11 +147,11 @@ def read_msgpack(path_or_buf, iterator=False, **kwargs):
     if isinstance(path_or_buf, compat.string_types):
 
         try:
-            path_exists = os.path.exists(path_or_buf)
-        except (TypeError):
-            path_exists = False
+            exists = os.path.exists(path_or_buf)
+        except (TypeError,ValueError):
+            exists = False
 
-        if path_exists:
+        if exists:
             with open(path_or_buf, 'rb') as fh:
                 return read(fh)
 

@@ -173,7 +173,15 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
 
     filepath_or_buffer, _ = get_filepath_or_buffer(path_or_buf)
     if isinstance(filepath_or_buffer, compat.string_types):
-        if os.path.exists(filepath_or_buffer):
+        try:
+            exists = os.path.exists(filepath_or_buffer)
+
+        # if the filepath is too long will raise here
+        # 5874
+        except (TypeError,ValueError):
+            exists = False
+
+        if exists:
             with open(filepath_or_buffer, 'r') as fh:
                 json = fh.read()
         else:
