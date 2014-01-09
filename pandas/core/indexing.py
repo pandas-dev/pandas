@@ -903,7 +903,8 @@ class _NDFrameIndexer(object):
                     return {'key': obj}
 
                 # a positional
-                if obj >= len(self.obj) and not isinstance(labels, MultiIndex):
+                if (obj >= self.obj.shape[axis] and
+                        not isinstance(labels, MultiIndex)):
                     raise ValueError("cannot set by positional indexing with "
                                      "enlargement")
 
