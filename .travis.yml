@@ -6,16 +6,37 @@ python:
 matrix:
   include:
     - python: 2.6
-      env: NOSE_ARGS="not slow" CLIPBOARD=xclip LOCALE_OVERRIDE="it_IT.UTF-8"
+      env:
+      - NOSE_ARGS="not slow and not network"
+      - CLIPBOARD=xclip
+      - LOCALE_OVERRIDE="it_IT.UTF-8"
+      - secure: "Bx5umgo6WjuGY+5XFa004xjCiX/vq0CyMZ/ETzcs7EIBI1BE/0fIDXOoWhoxbY9HPfdPGlDnDgB9nGqr5wArO2s+BavyKBWg6osZ3dmkfuJPMOWeyCa92EeP+sfKw8e5HSU5MizW9e319wHWOF/xkzdHR7T67Qd5erhv91x4DnQ="
     - python: 2.7
-      env: NOSE_ARGS="slow and not network" LOCALE_OVERRIDE="zh_CN.GB18030" FULL_DEPS=true JOB_TAG=_LOCALE
+      env:
+      - NOSE_ARGS="slow and not network"
+      - LOCALE_OVERRIDE="zh_CN.GB18030"
+      - FULL_DEPS=true
+      - JOB_TAG=_LOCALE
+      - secure: "Bx5umgo6WjuGY+5XFa004xjCiX/vq0CyMZ/ETzcs7EIBI1BE/0fIDXOoWhoxbY9HPfdPGlDnDgB9nGqr5wArO2s+BavyKBWg6osZ3dmkfuJPMOWeyCa92EeP+sfKw8e5HSU5MizW9e319wHWOF/xkzdHR7T67Qd5erhv91x4DnQ="
     - python: 2.7
-      env: NOSE_ARGS="not slow" FULL_DEPS=true CLIPBOARD_GUI=gtk2
+      env:
+      - NOSE_ARGS="not slow"
+      - FULL_DEPS=true
+      - CLIPBOARD_GUI=gtk2
+      - secure: "Bx5umgo6WjuGY+5XFa004xjCiX/vq0CyMZ/ETzcs7EIBI1BE/0fIDXOoWhoxbY9HPfdPGlDnDgB9nGqr5wArO2s+BavyKBWg6osZ3dmkfuJPMOWeyCa92EeP+sfKw8e5HSU5MizW9e319wHWOF/xkzdHR7T67Qd5erhv91x4DnQ="
     - python: 3.2
-      env: NOSE_ARGS="not slow" FULL_DEPS=true CLIPBOARD_GUI=qt4
+      env:
+      - NOSE_ARGS="not slow"
+      - FULL_DEPS=true
+      - CLIPBOARD_GUI=qt4
+      - secure: "Bx5umgo6WjuGY+5XFa004xjCiX/vq0CyMZ/ETzcs7EIBI1BE/0fIDXOoWhoxbY9HPfdPGlDnDgB9nGqr5wArO2s+BavyKBWg6osZ3dmkfuJPMOWeyCa92EeP+sfKw8e5HSU5MizW9e319wHWOF/xkzdHR7T67Qd5erhv91x4DnQ="
     - python: 3.3
-      env: NOSE_ARGS="not slow" FULL_DEPS=true CLIPBOARD=xsel
-  exclude:
+      env:
+      - NOSE_ARGS="not slow"
+      - FULL_DEPS=true
+      - CLIPBOARD=xsel
+      - secure: "Bx5umgo6WjuGY+5XFa004xjCiX/vq0CyMZ/ETzcs7EIBI1BE/0fIDXOoWhoxbY9HPfdPGlDnDgB9nGqr5wArO2s+BavyKBWg6osZ3dmkfuJPMOWeyCa92EeP+sfKw8e5HSU5MizW9e319wHWOF/xkzdHR7T67Qd5erhv91x4DnQ="
+    exclude:
     - python: 2.6
 
 # allow importing from site-packages,
@@ -49,3 +70,5 @@ script:
 after_script:
   - ci/print_versions.py
   - ci/print_skipped.py /tmp/nosetests.xml
+  - ci/print_versions.py -j /tmp/env.json
+  - ci/after_script.sh
