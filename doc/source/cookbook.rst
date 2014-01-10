@@ -224,6 +224,12 @@ Apply
 `Turning embeded lists into a multi-index frame
 <http://stackoverflow.com/questions/17349981/converting-pandas-dataframe-with-categorical-values-into-binary-values>`__
 
+`Rolling apply with a DataFrame returning a Series
+<http://stackoverflow.com/questions/19121854/using-rolling-apply-on-a-dataframe-object>`__
+
+`Rolling apply with a DataFrame returning a Scalar
+<http://stackoverflow.com/questions/21040766/python-pandas-rolling-apply-two-column-input-into-function/21045831#21045831>`__
+
 Timeseries
 ----------
 
