@@ -19,7 +19,7 @@ We'd like to make it easier for users to find these project, if you know of othe
 substantial projects that you feel should be on this list, please let us know.
 
 `Statsmodels <http://statsmodels.sourceforge.net>`__
------------
+----------------------------------------------------
 
 Statsmodels is the prominent python "statistics and econometrics library" and it has
 a long-standing special relationship with pandas. Statsmodels provides powerful statistics,
@@ -27,14 +27,14 @@ econometrics, analysis and modeling functionality that is out of pandas' scope.
 Statsmodels leverages pandas objects as the underlying data container for computation.
 
 `Vincent <https://github.com/wrobstory/vincent>`__
--------
+--------------------------------------------------
 
 The `Vincent <https://github.com/wrobstory/vincent>`__ project leverages `Vega <https://github.com/trifacta/vega>`__
 (that in turn, leverages `d3 <http://d3js.org/>`__) to create plots . It has great support
 for pandas data objects.
 
 `yhat/ggplot <https://github.com/yhat/ggplot>`__
------------
+------------------------------------------------
 
 Hadley Wickham's `ggplot2 <http://ggplot2.org/>`__ is a foundational exploratory visualization package for the R language.
 Based on `"The Grammer of Graphics" <http://www.cs.uic.edu/~wilkinson/TheGrammarOfGraphics/GOG.html>`__ it
@@ -46,7 +46,7 @@ progressing quickly in that direction.
 
 
 `Seaborn <https://github.com/mwaskom/seaborn>`__
--------
+------------------------------------------------
 
 Although pandas has quite a bit of "just plot it" functionality built-in, visualization and
 in particular statistical graphics is a vast field with a long tradition and lots of ground
@@ -56,7 +56,7 @@ more advanced types of plots then those offered by pandas.
 
 
 `Geopandas <https://github.com/kjordahl/geopandas>`__
----------
+------------------------------------------------------
 
 Geopandas extends pandas data objects to include geographic information which support
 geometric operations. If your work entails maps and geographical coordinates, and
