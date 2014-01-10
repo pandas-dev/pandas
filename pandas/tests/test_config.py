@@ -1,9 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import pandas as pd
+import numpy as np
+import pandas.testing.util as tm
 import unittest
 import warnings
 import nose
+from nose.tools import assert_raises
 
 
 class TestConfig(unittest.TestCase):
@@ -39,11 +42,11 @@ class TestConfig(unittest.TestCase):
         self.assertTrue(hasattr(pd, 'describe_option'))
 
     def test_is_one_of_factory(self):
-        v = self.cf.is_one_of_factory([None,12])
+        v = self.cf.is_one_of_factory([None, 12])
 
         v(12)
         v(None)
-        self.assertRaises(ValueError,v,1.1)
+        self.assertRaises(ValueError, v, 1.1)
 
     def test_register_option(self):
         self.cf.register_option('a', 1, 'doc')
@@ -116,7 +119,7 @@ class TestConfig(unittest.TestCase):
         # current value is reported
         self.assertFalse(
             'bar' in self.cf.describe_option('l', _print_desc=False))
-        self.cf.set_option("l","bar")
+        self.cf.set_option("l", "bar")
         self.assertTrue(
             'bar' in self.cf.describe_option('l', _print_desc=False))
 
@@ -167,7 +170,6 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(self.cf.get_option('b.b'), 1.1)
 
         self.assertRaises(KeyError, self.cf.set_option, 'no.such.key', None)
-
 
     def test_set_option_empty_args(self):
         self.assertRaises(ValueError, self.cf.set_option)
@@ -424,3 +426,55 @@ class TestConfig(unittest.TestCase):
         options.c = 1
         self.assertEqual(len(holder), 1)
 
+    def test_is_even(self):
+        even, not_even = 2, 3
+        with tm.assert_raises(ValueError):
+            self.cf.is_even(not_even)
+        self.cf.is_even(even)
+
+    def test_is_positive(self):
+        neg, pos = -1, 1
+        with tm.assert_raises(ValueError):
+            self.cf.is_positive(neg)
+        self.cf.is_positive(pos)
+
+    def test_is_gt(self):
+        gt_one = self.cf.is_gt(1)
+        with tm.assert_raises(ValueError):
+            gt_one(-1)
+            gt_one(1)
+            gt_one(-np.inf)
+        gt_one(2)
+        gt_one(2.0)
+        gt_one(np.inf)
+
+
+def test_failing_option_values_max_edge_items():
+    assert_raises(ValueError, pd.core.config.set_option,
+                  'display.max_edge_items', 0)
+    assert_raises(ValueError, pd.core.config.set_option,
+                  'display.max_edge_items', -1)
+    assert_raises(ValueError, pd.core.config.set_option,
+                  'display.max_edge_items', 1j)
+    assert_raises(ValueError, pd.core.config.set_option,
+                  'display.max_edge_items', 1.0)
+    assert_raises(ValueError, pd.core.config.set_option,
+                  'display.max_edge_items', 'asdf')
+
+
+def test_failing_option_values_max_seq_items():
+    assert_raises(ValueError, pd.core.config.set_option,
+                  'display.max_seq_items', 0)
+    assert_raises(ValueError, pd.core.config.set_option,
+                  'display.max_seq_items', -1)
+    assert_raises(ValueError, pd.core.config.set_option,
+                  'display.max_seq_items', 1j)
+    assert_raises(ValueError, pd.core.config.set_option,
+                  'display.max_seq_items', 1.0)
+    assert_raises(ValueError, pd.core.config.set_option,
+                  'display.max_seq_items', 'asdf')
+    assert_raises(ValueError, pd.core.config.set_option,
+                  'display.max_seq_items', 31)
+
+# fmt.reset_printoptions and fmt.set_printoptions were altered
+# to use core.config, test_format exercises those paths.

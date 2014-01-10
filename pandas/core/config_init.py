@@ -11,13 +11,13 @@ module is imported, register them here rather then in the module.
 """
 
 import pandas.core.config as cf
-from pandas.core.config import (is_int, is_bool, is_text, is_float,
+from pandas.core.config import (is_int, is_bool, is_text,
                                 is_instance_factory, is_one_of_factory,
+                                is_all_of_factory, is_even, is_positive,
                                 get_default_val)
 from pandas.core.format import detect_console_encoding
 
 
-#
 # options from the "display" namespace
 
 pc_precision_doc = """
@@ -154,13 +154,22 @@ pc_chop_threshold_doc = """
 """
 
 pc_max_seq_items = """
-: int or None
+: positive even integer
 
-    when pretty-printing a long sequence, no more then `max_seq_items`
-    will be printed. If items are omitted, they will be denoted by the
-    addition of "..." to the resulting string.
+    when pretty-printing a long sequence, no more then `max_seq_items` will be
+    printed. If items are omitted, they will be denoted by the first and last
+    "max_edge_items". This number must be an even positive integer. The default
+    limit is 100.
+"""
 
-    If set to None, the number of items to be printed is unlimited.
+pc_max_edge_items = """
+: positive integer
+
+    when pretty-printing a long sequence, no more then `max_seq_items` will be
+    printed. If items are omitted, they will be denoted by the first and last
+    "max_edge_items". This value will be overridden by `max_seq_items` if
+    `max_seq_items` is less than `max_edge_items`. The default number of edge
+    items is 3.
 """
 
 
@@ -189,6 +198,40 @@ pc_mpl_style_doc = """
     Setting this to None/False restores the values to their initial value.
 """
 
+
+def _max_seq_items_property(value):
+    is_int = isinstance(value, int)
+    try:
+        gt_0 = value > 0
+    except:
+        gt_0 = False
+
+    try:
+        even = value % 2 == 0
+    except:
+        even = False
+
+    try:
+        max_ee = cf.get_option('max_edge_items')
+    except KeyError:
+        max_ee = 3
+    return is_int and gt_0 and even and value > 2 * max_ee
+
+
+def _max_edge_items_property(value):
+    is_int = isinstance(value, int)
+    try:
+        gt_0 = value > 0
+    except:
+        gt_0 = False
+
+    try:
+        max_si = cf.get_option('max_seq_items')
+    except KeyError:
+        max_si = 100
+    return is_int and gt_0 and 2 * value < max_si
+
+
 style_backup = dict()
 
 
@@ -214,6 +257,43 @@ def mpl_style_cb(key):
             plt.rcParams.update(style_backup)
 
     return val
+
+
+_current_max_edge_items = 3
+
+
+def _max_edge_items_checker(key):
+    global _current_max_edge_items
+
+    mei = cf.get_option(key)
+    msi = cf.get_option('display.max_seq_items')
+    if 2 * mei > msi:
+        cf.set_option(key, _current_max_edge_items)
+        raise ValueError("max_edge_items is {0}, but must be LESS THAN "
+                         "max_seq_items // 2 == {1}, max_seq_items == "
+                         "{2}".format(mei, msi // 2, msi))
+
+    _current_max_edge_items = mei
+    return mei
+
+
+_current_max_seq_items = 100
+
+
+def _max_seq_items_checker(key):
+    global _current_max_seq_items
+
+    msi = cf.get_option(key)
+    mei = cf.get_option('display.max_edge_items')
+    if msi <= 2 * mei:
+        cf.set_option(key, _current_max_seq_items)
+        raise ValueError("max_seq_items is {0}, but must be GREATER THAN "
+                         "2 * max_edge_items == {1},"
+                         " max_edge_items == {2}".format(msi, 2 * mei, mei))
+
+    _current_max_seq_items = msi
+    return msi
+
 
 with cf.config_prefix('display'):
     cf.register_option('precision', 7, pc_precision_doc, validator=is_int)
@@ -246,7 +326,13 @@ with cf.config_prefix('display'):
                        validator=is_text)
     cf.register_option('expand_frame_repr', True, pc_expand_repr_doc)
     cf.register_option('chop_threshold', None, pc_chop_threshold_doc)
-    cf.register_option('max_seq_items', 100, pc_max_seq_items)
+    cf.register_option('max_seq_items', 60, pc_max_seq_items,
+                       validator=is_all_of_factory((is_int, is_even,
+                                                    is_positive)),
+                       cb=_max_seq_items_checker)
+    cf.register_option('max_edge_items', 3, pc_max_edge_items,
+                       validator=is_all_of_factory((is_int, is_positive)),
+                       cb=_max_edge_items_checker)
     cf.register_option('mpl_style', None, pc_mpl_style_doc,
                        validator=is_one_of_factory([None, False, 'default']),
                        cb=mpl_style_cb)

@@ -263,6 +263,8 @@ Improvements to existing features
     restore the previous behaviour.  (:issue:`5254`)
   - The FRED DataReader now accepts multiple series (:issue`3413`)
   - StataWriter adjusts variable names to Stata's limitations (:issue:`5709`)
+  - The option ``display.max_seq_items`` can now only be an even number greater
+    than or equal to 2 (:issue:`3974`)
 
 API Changes
 ~~~~~~~~~~~
@@ -910,6 +912,8 @@ New features
   - Access to historical Google Finance data in pandas.io.data (:issue:`3814`)
   - DataFrame plotting methods can sample column colors from a Matplotlib
     colormap via the ``colormap`` keyword. (:issue:`3860`)
+  - A new option ``display.max_edge_items`` now controls the number of items
+    printed by a sequence (:issue:`3974`)
 
 Improvements to existing features
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

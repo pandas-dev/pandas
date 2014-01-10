@@ -8,7 +8,7 @@ from pandas.tslib import iNaT, NaT
 
 from pandas import Series, DataFrame, date_range, DatetimeIndex, Timestamp
 from pandas import compat
-from pandas.compat import range, long, lrange, lmap, u
+from pandas.compat import range, long, lrange, lmap, u, PY3
 from pandas.core.common import notnull, isnull
 import pandas.core.common as com
 import pandas.util.testing as tm
@@ -424,6 +424,127 @@ def test_ensure_platform_int():
 
     pi = com._ensure_platform_int(x)
     assert(pi.dtype == np.int_)
+
+
+def test_pprint_1d_index_seq_items_LT_edge_items():
+    # test with a specific setting
+    with cf.option_context('display.max_seq_items', 8,
+                           'display.max_edge_items', 2):
+        s = 'Int64Index([0, 1, ..., 8, 9], dtype=int64)'
+        res = repr(tm.makeIntIndex(10))
+        assert_equal(s, res)
+
+        s = 'Int64Index([0, 1, 2], dtype=int64)'
+        res = repr(tm.makeIntIndex(3))
+        assert_equal(s, res)
+
+        s = 'Int64Index([0, 1, 2, 3, 4, 5], dtype=int64)'
+        res = repr(tm.makeIntIndex(6))
+        assert_equal(s, res)
+
+        s = 'Int64Index([0], dtype=int64)'
+        res = repr(tm.makeIntIndex(1))
+        assert_equal(s, res)
+
+        s = 'Int64Index([], dtype=int64)'
+        res = repr(tm.makeIntIndex(0))
+        assert_equal(s, res)
+
+
+def test_pprint_1d_index_seq_items_GT_edge_items():
+    with cf.option_context('display.max_seq_items', 8,
+                           'display.max_edge_items', 2):
+        s = 'Int64Index([0, 1, ..., 8, 9], dtype=int64)'
+        res = repr(tm.makeIntIndex(10))
+        assert_equal(s, res)
+
+        s = 'Int64Index([0, 1, 2], dtype=int64)'
+        res = repr(tm.makeIntIndex(3))
+        assert_equal(s, res)
+
+        s = 'Int64Index([0, 1, 2, 3, 4, 5, 6], dtype=int64)'
+        res = repr(tm.makeIntIndex(7))
+        assert_equal(s, res)
+
+        s = 'Int64Index([0], dtype=int64)'
+        res = repr(tm.makeIntIndex(1))
+        assert_equal(s, res)
+
+        s = 'Int64Index([], dtype=int64)'
+        res = repr(tm.makeIntIndex(0))
+        assert_equal(s, res)
+
+
+def test_pprint_max_seq_and_max_edge_items_1d_index_defaults():
+    # test with the default (unlimited sequence values, 3 edgeitems)
+    s = 'Int64Index([0, 1, 2, 3, 4], dtype=int64)'
+    res = repr(tm.makeIntIndex(5))
+    assert_equal(s, res)
+
+    s = 'Int64Index([0, 1], dtype=int64)'
+    res = repr(tm.makeIntIndex(2))
+    assert_equal(s, res)
+
+    s = 'Int64Index([], dtype=int64)'
+    res = repr(tm.makeIntIndex(0))
+    assert_equal(s, res)
+
+
+def test_1d_max_seq_vs_edge_items_2x():
+    with cf.option_context('display.max_seq_items', 8,
+                           'display.max_edge_items', 2):
+        s = 'Int64Index([0, 1, ..., 8, 9], dtype=int64)'
+        res = repr(tm.makeIntIndex(10))
+        assert_equal(s, res)
+
+        s = 'Int64Index([0, 1, 2], dtype=int64)'
+        res = repr(tm.makeIntIndex(3))
+        assert_equal(s, res)
+
+        s = 'Int64Index([0, 1, 2, 3, 4, 5], dtype=int64)'
+        res = repr(tm.makeIntIndex(6))
+        assert_equal(s, res)
+
+        s = 'Int64Index([0], dtype=int64)'
+        res = repr(tm.makeIntIndex(1))
+        assert_equal(s, res)
+
+        s = 'Int64Index([], dtype=int64)'
+        res = repr(tm.makeIntIndex(0))
+        assert_equal(s, res)
+
+
+def test_multiindex_seq_items_LT_edge_items():
+    with cf.option_context('display.max_seq_items', 8,
+                           'display.max_edge_items', 2):
+        df = tm.makeCustomDataframe(2, 3, c_idx_nlevels=3)
+        mi = df.columns
+        if PY3:
+            s = ("MultiIndex\n"
+                 "[('C_l0_g0', 'C_l1_g0', 'C_l2_g0'), "
+                 "('C_l0_g1', 'C_l1_g1', 'C_l2_g1'), "
+                 "('C_l0_g2', 'C_l1_g2', 'C_l2_g2')]")
+        else:
+            s = ("MultiIndex\n"
+                 "[(u'C_l0_g0', u'C_l1_g0', u'C_l2_g0'), "
+                 "(u'C_l0_g1', u'C_l1_g1', u'C_l2_g1'), "
+                 "(u'C_l0_g2', u'C_l1_g2', u'C_l2_g2')]")
+        res = repr(mi)
+        assert_equal(s, res)
+
+
+def test_multiindex_seq_items_GT_edge_items():
+    with cf.option_context('display.max_seq_items', 8,
+                           'display.max_edge_items', 2):
+        df = tm.makeCustomDataframe(2, 3, c_idx_nlevels=10)
+        mi = df.columns
+        if PY3:
+            s = "MultiIndex\n[('C_l0_g0', 'C_l1_g0', ..., 'C_l8_g0', 'C_l9_g0'), ('C_l0_g1', 'C_l1_g1', ..., 'C_l8_g1', 'C_l9_g1'), ('C_l0_g2', 'C_l1_g2', ..., 'C_l8_g2', 'C_l9_g2')]"
+        else:
+            s = "MultiIndex\n[(u'C_l0_g0', u'C_l1_g0', ..., u'C_l8_g0', u'C_l9_g0'), (u'C_l0_g1', u'C_l1_g1', ..., u'C_l8_g1', u'C_l9_g1'), (u'C_l0_g2', u'C_l1_g2', ..., u'C_l8_g2', u'C_l9_g2')]"
+        res = repr(mi)
+        assert_equal(s, res)
+
 
 # TODO: fix this broken test
 
