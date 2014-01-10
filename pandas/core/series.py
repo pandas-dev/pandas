@@ -2094,21 +2094,8 @@ class Series(generic.NDFrame):
         ----------
         values : list-like
             The sequence of values to test. Passing in a single string will
-            raise a ``TypeError``:
-
-                .. code-block:: python
-
-                   from pandas import Series
-                   s = Series(list('abc'))
-                   s.isin('a')
-
-            Instead, turn a single string into a ``list`` of one element:
-
-                .. code-block:: python
-
-                   from pandas import Series
-                   s = Series(list('abc'))
-                   s.isin(['a'])
+            raise a ``TypeError``. Instead, turn a single string into a 
+            ``list`` of one element.
 
         Returns
         -------
@@ -2122,6 +2109,26 @@ class Series(generic.NDFrame):
         See Also
         --------
         pandas.DataFrame.isin
+
+        Examples
+        --------
+
+        >>> s = pd.Series(list('abc'))
+        >>> s.isin(['a', 'c', 'e'])
+        0     True
+        1    False
+        2     True
+        dtype: bool
+
+        Passing a single string as ``s.isin('a')`` will raise an error. Use
+        a list of one element instead:
+
+        >>> s.isin(['a'])
+        0     True
+        1    False
+        2    False
+        dtype: bool
+
         """
         if not com.is_list_like(values):
             raise TypeError("only list-like objects are allowed to be passed"
