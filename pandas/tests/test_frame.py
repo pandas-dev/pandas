@@ -2791,6 +2791,15 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         expected = DataFrame({ 0 : range(10), 1 : 'a' })
         assert_frame_equal(result, expected, check_dtype=False)
 
+    def test_constructor_generator_count_limit(self):
+        generator_length = 10
+        expected_length = 5
+
+        #only works when data it'a a generator, not a collection
+        gen = ([ i, 'a'] for i in range(generator_length))
+        result = DataFrame(gen, count=expected_length)
+        self.assertEqual(len(result), expected_length)
+
     def test_constructor_list_of_dicts(self):
         data = [OrderedDict([['a', 1.5], ['b', 3], ['c', 4], ['d', 6]]),
                 OrderedDict([['a', 1.5], ['b', 3], ['d', 6]]),
@@ -3819,6 +3828,14 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         generator = list_generator(10)
         result = DataFrame.from_records(generator, columns=columns_names)
         assert_frame_equal(result, expected)
+
+    def test_from_records_generator_count_limit(self):
+        def generator(length):
+            for i in range(length):
+                yield (i, i/2)
+        expected_length = 5
+        df = DataFrame.from_records(generator(10), count=expected_length)
+        self.assertEqual(len(df), expected_length)
 
     def test_from_records_columns_not_modified(self):
         tuples = [(1, 2, 3),
