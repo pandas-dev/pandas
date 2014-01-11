@@ -718,7 +718,7 @@ class DataFrame(NDFrame):
         exclude : sequence, default None
             Columns or fields to exclude
         columns : sequence, default None
-            Column names to use. If the passed data do not have named
+            Column names to use. If the passed data do not have names
             associated with them, this argument provides names for the
             columns. Otherwise this argument indicates the order of the columns
             in the result (any names not found in the data will become all-NA
