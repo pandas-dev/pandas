@@ -20,7 +20,7 @@
 Cookbook
 ********
 
-This is a respository for *short and sweet* examples and links for useful pandas recipes.
+This is a repository for *short and sweet* examples and links for useful pandas recipes.
 We encourage users to add to this documentation.
 
 This is a great *First Pull Request* (to add interesting links and/or put short code inline
@@ -45,8 +45,12 @@ These are some neat pandas ``idioms``
 `How to select from a frame with complex criteria?
 <http://stackoverflow.com/questions/15315452/selecting-with-complex-criteria-from-pandas-dataframe>`__
 
-`Select rows closest to a user defined numer
+`Select rows closest to a user-defined number
 <http://stackoverflow.com/questions/17758023/return-rows-in-a-dataframe-closest-to-a-user-defined-number>`__
+
+`How to reduce a sequence (e.g. of Series) using a binary operator
+<http://stackoverflow.com/questions/21058254/pandas-boolean-operation-in-a-python-list/21058331>`__
+
 
 .. _cookbook.selection:
 
@@ -90,7 +94,7 @@ The :ref:`multindexing <indexing.hierarchical>` docs.
 Arithmetic
 ~~~~~~~~~~
 
-`Performing arithmetic with a multi-index that needs broadcastin
+`Performing arithmetic with a multi-index that needs broadcasting
 <http://stackoverflow.com/questions/19501510/divide-entire-pandas-multiindex-dataframe-by-dataframe-variable/19502176#19502176>`__
 
 Slicing
@@ -221,7 +225,7 @@ The :ref:`Pivot <reshaping.pivot>` docs.
 Apply
 ~~~~~
 
-`Turning embeded lists into a multi-index frame
+`Turning embedded lists into a multi-index frame
 <http://stackoverflow.com/questions/17349981/converting-pandas-dataframe-with-categorical-values-into-binary-values>`__
 
 `Rolling apply with a DataFrame returning a Series
@@ -242,8 +246,8 @@ Timeseries
 `Vectorized Lookup
 <http://stackoverflow.com/questions/13893227/vectorized-look-up-of-values-in-pandas-dataframe>`__
 
-Turn a matrix with hours in columns and days in rows into a continous row sequence in the form of a time series.
-`How to rearrange a python pandas dataframe?
+Turn a matrix with hours in columns and days in rows into a continuous row sequence in the form of a time series.
+`How to rearrange a python pandas DataFrame?
 <http://stackoverflow.com/questions/15432659/how-to-rearrange-a-python-pandas-dataframe>`__
 
 .. _cookbook.resample:
@@ -354,7 +358,7 @@ The :ref:`CSV <io.read_csv_table>` docs
 `Reading the first few lines of a frame
 <http://stackoverflow.com/questions/15008970/way-to-read-first-few-lines-for-pandas-dataframe>`__
 
-Reading a file that is compressed but not by ``gzip/bz2`` (the native compresed formats which ``read_csv`` understands).
+Reading a file that is compressed but not by ``gzip/bz2`` (the native compressed formats which ``read_csv`` understands).
 This example shows a ``WinZipped`` file, but is a general application of opening the file within a context manager and
 using that handle to read.
 `See here
@@ -410,13 +414,13 @@ The :ref:`HDFStores <io.hdf5>` docs
 `Simple Queries with a Timestamp Index
 <http://stackoverflow.com/questions/13926089/selecting-columns-from-pandas-hdfstore-table>`__
 
-`Managing heteregenous data using a linked multiple table hierarchy
+`Managing heterogeneous data using a linked multiple table hierarchy
 <http://github.com/pydata/pandas/issues/3032>`__
 
 `Merging on-disk tables with millions of rows
 <http://stackoverflow.com/questions/14614512/merging-two-tables-with-millions-of-rows-in-python/14617925#14617925>`__
 
-Deduplicating a large store by chunks, essentially a recusive reduction operation. Shows a function for taking in data from
+Deduplicating a large store by chunks, essentially a recursive reduction operation. Shows a function for taking in data from
 csv file and creating a store by chunks, with date parsing as well.
 `See here
 <http://stackoverflow.com/questions/16110252/need-to-compare-very-large-files-around-1-5gb-in-python/16110391#16110391>`__
