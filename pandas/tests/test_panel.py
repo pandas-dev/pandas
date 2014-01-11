@@ -1082,14 +1082,6 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         result = self.panel.reindex(minor=new_minor)
         assert_frame_equal(result['ItemB'], ref.reindex(columns=new_minor))
 
-        result = self.panel.reindex(items=self.panel.items,
-                                    major=self.panel.major_axis,
-                                    minor=self.panel.minor_axis)
-
-        self.assert_(result.items is self.panel.items)
-        self.assert_(result.major_axis is self.panel.major_axis)
-        self.assert_(result.minor_axis is self.panel.minor_axis)
-
         # this ok
         result = self.panel.reindex()
         assert_panel_equal(result,self.panel)
@@ -1109,6 +1101,46 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         result = self.panel.reindex(major=self.panel.major_axis, copy=False)
         assert_panel_equal(result,self.panel)
         self.assert_((result is self.panel) == True)
+
+    def test_reindex_multi(self):
+
+        # with and without copy full reindexing
+        result = self.panel.reindex(items=self.panel.items,
+                                    major=self.panel.major_axis,
+                                    minor=self.panel.minor_axis,
+                                    copy = False)
+
+        self.assert_(result.items is self.panel.items)
+        self.assert_(result.major_axis is self.panel.major_axis)
+        self.assert_(result.minor_axis is self.panel.minor_axis)
+
+        result = self.panel.reindex(items=self.panel.items,
+                                    major=self.panel.major_axis,
+                                    minor=self.panel.minor_axis,
+                                    copy = False)
+        assert_panel_equal(result,self.panel)
+
+        # multi-axis indexing consistency
+        # GH 5900
+        df = DataFrame(np.random.randn(4,3))
+        p = Panel({ 'Item1' : df })
+        expected = Panel({ 'Item1' : df })
+        expected['Item2'] = np.nan
+
+        items = ['Item1','Item2']
+        major_axis = np.arange(4)
+        minor_axis = np.arange(3)
+
+        results = []
+        results.append(p.reindex(items=items, major_axis=major_axis, copy=True))
+        results.append(p.reindex(items=items, major_axis=major_axis, copy=False))
+        results.append(p.reindex(items=items, minor_axis=minor_axis, copy=True))
+        results.append(p.reindex(items=items, minor_axis=minor_axis, copy=False))
+        results.append(p.reindex(items=items, major_axis=major_axis, minor_axis=minor_axis, copy=True))
+        results.append(p.reindex(items=items, major_axis=major_axis, minor_axis=minor_axis, copy=False))
+
+        for i, r in enumerate(results):
+            assert_panel_equal(expected,r)
 
     def test_reindex_like(self):
         # reindex_like
