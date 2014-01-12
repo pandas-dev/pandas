@@ -759,20 +759,16 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
         This is a dictionary of attributes that you can pass to use to identify
         the table in the HTML. These are not checked for validity before being
         passed to lxml or Beautiful Soup. However, these attributes must be
-        valid HTML table attributes to work correctly. For example,
-
-        .. code-block:: python
-
-           attrs = {'id': 'table'}
-
+        valid HTML table attributes to work correctly. For example, ::
+        
+            attrs = {'id': 'table'}
+        
         is a valid attribute dictionary because the 'id' HTML tag attribute is
         a valid HTML attribute for *any* HTML tag as per `this document
-        <http://www.w3.org/TR/html-markup/global-attributes.html>`__.
-
-        .. code-block:: python
-
-           attrs = {'asdf': 'table'}
-
+        <http://www.w3.org/TR/html-markup/global-attributes.html>`__. ::
+        
+            attrs = {'asdf': 'table'}
+        
         is *not* a valid attribute dictionary because 'asdf' is not a valid
         HTML attribute even if it is a valid XML attribute.  Valid HTML 4.01
         table attributes can be found `here
