@@ -86,6 +86,7 @@ Bug Fixes
   - Testing bug in reading json/msgpack from a non-filepath on windows under py3 (:issue:`5874`)
   - Bug when assigning to .ix[tuple(...)] (:issue:`5896`)
   - Bug in fully reindexing a Panel (:issue:`5905`)
+  - Bug in idxmin/max with object dtypes (:issue:`5914`)
 
 pandas 0.13.0
 -------------
