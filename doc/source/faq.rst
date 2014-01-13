@@ -181,17 +181,7 @@ Frequency conversion
 
 Frequency conversion is implemented using the ``resample`` method on TimeSeries
 and DataFrame objects (multiple time series). ``resample`` also works on panels
-(3D). Here is some code that resamples daily data to montly with
-scikits.timeseries:
-
-.. ipython:: python
-
-   import scikits.timeseries as ts
-   data = ts.time_series(np.random.randn(50), start_date='Jan-2000', freq='M')
-   data
-   data.convert('A', func=np.mean)
-
-Here is the equivalent pandas code:
+(3D). Here is some code that resamples daily data to montly:
 
 .. ipython:: python
 
