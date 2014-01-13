@@ -203,7 +203,7 @@ if not ISRELEASED:
     pipe = None
     for cmd in ['git','git.cmd']:
         try:
-            pipe = subprocess.Popen([cmd, "describe", "--always"],
+            pipe = subprocess.Popen([cmd, "describe", "--always", "--match", "v[0-9]*"],
                                 stdout=subprocess.PIPE)
             (so,serr) = pipe.communicate()
             if pipe.returncode == 0:
