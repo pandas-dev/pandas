@@ -317,6 +317,11 @@ class TestBusinessDay(TestBase):
         rs = st + off
         xp = datetime(2011, 12, 26)
         self.assertEqual(rs, xp)
+        
+        off = BDay() * 10
+        rs = datetime(2014, 1, 5) + off # see #5890
+        xp = datetime(2014, 1, 17)
+        self.assertEqual(rs, xp)
 
     def test_apply_corner(self):
         self.assertRaises(TypeError, BDay().apply, BMonthEnd())

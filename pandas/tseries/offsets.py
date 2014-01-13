@@ -397,7 +397,9 @@ class BusinessDay(CacheableOffset, SingleConstructorOffset):
                 if n < 0 and result.weekday() > 4:
                     n += 1
                 n -= 5 * k
-
+                if n == 0 and result.weekday() > 4:
+                    n -= 1
+            
             while n != 0:
                 k = n // abs(n)
                 result = result + timedelta(k)
