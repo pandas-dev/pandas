@@ -64,13 +64,13 @@ Lessons for New Pandas Users
 For more resources, please visit main repository <https://bitbucket.org/hrojas/learn-pandas>`_.
 
 *  | `01 - Lesson: <http://nbviewer.ipython.org/urls/bitbucket.org/hrojas/learn-pandas/raw/master/lessons/01%20-%20Lesson.ipynb>`_
-		Importing libraries  
-		Creating data sets  	
-		Creating data frames  
-		Reading from CSV  	
-		Exporting to CSV  
-		Finding maximums  	
-		Plotting data  
+		* Importing libraries  
+		* Creating data sets  	
+		* Creating data frames  
+		* Reading from CSV  	
+		* Exporting to CSV  
+		* Finding maximums  	
+		* Plotting data  
 *  | `02 - Lesson: <http://nbviewer.ipython.org/urls/bitbucket.org/hrojas/learn-pandas/raw/master/lessons/02%20-%20Lesson.ipynb>`_
 		Reading from TXT  	
 		Exporting to TXT  
