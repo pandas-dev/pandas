@@ -12,6 +12,7 @@
 
 import sys
 import os
+from pandas.compat import u
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -211,8 +212,8 @@ htmlhelp_basename = 'pandas'
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
     ('index', 'pandas.tex',
-     u'pandas: powerful Python data analysis toolkit',
-     u'Wes McKinney\n\& PyData Development Team', 'manual'),
+     u('pandas: powerful Python data analysis toolkit'),
+     u('Wes McKinney\n\& PyData Development Team'), 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
