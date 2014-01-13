@@ -3258,6 +3258,20 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         result = s.idxmax()
         self.assert_(result == 4)
 
+        # Float64Index
+        # GH 5914
+        s = pd.Series([1,2,3],[1.1,2.1,3.1])
+        result = s.idxmax()
+        self.assert_(result == 3.1)
+        result = s.idxmin()
+        self.assert_(result == 1.1)
+
+        s = pd.Series(s.index, s.index)
+        result = s.idxmax()
+        self.assert_(result == 3.1)
+        result = s.idxmin()
+        self.assert_(result == 1.1)
+
     def test_ndarray_compat(self):
 
         # test numpy compat with Series as sub-class of NDFrame
