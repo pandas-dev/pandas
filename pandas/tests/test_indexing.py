@@ -476,6 +476,20 @@ class TestIndexing(tm.TestCase):
         expected = Series([1,1,0],index=[4,5,6])
         assert_series_equal(s, expected)
 
+        # GH 5928
+        # chained indexing assignment
+        df = DataFrame({'a' : [0,1,2] })
+        expected = df.copy()
+        expected.ix[[0,1,2],'a'] = -expected.ix[[0,1,2],'a']
+
+        df['a'].ix[[0,1,2]] = -df['a'].ix[[0,1,2]]
+        assert_frame_equal(df,expected)
+
+        df = DataFrame({'a' : [0,1,2], 'b' :[0,1,2] })
+        df['a'].ix[[0,1,2]] = -df['a'].ix[[0,1,2]].astype('float64') + 0.5
+        expected = DataFrame({'a' : [0.5,-0.5,-1.5], 'b' : [0,1,2] })
+        assert_frame_equal(df,expected)
+
     def test_loc_getitem_int(self):
 
         # int label

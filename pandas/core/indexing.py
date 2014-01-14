@@ -421,7 +421,7 @@ class _NDFrameIndexer(object):
 
     def _align_series(self, indexer, ser):
         # indexer to assign Series can be tuple, slice, scalar
-        if isinstance(indexer, slice):
+        if isinstance(indexer, (slice, np.ndarray, list)):
             indexer = tuple([indexer])
 
         if isinstance(indexer, tuple):
@@ -453,8 +453,12 @@ class _NDFrameIndexer(object):
                     all([com._is_sequence(_) for _ in indexer])):
                 ser = ser.reindex(obj.axes[0][indexer[0].ravel()],
                                   copy=True).values
-                l = len(indexer[1].ravel())
-                ser = np.tile(ser, l).reshape(l, -1).T
+
+                # single indexer
+                if len(indexer) > 1:
+                    l = len(indexer[1].ravel())
+                    ser = np.tile(ser, l).reshape(l, -1).T
+
                 return ser
 
             for i, idx in enumerate(indexer):
