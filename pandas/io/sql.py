@@ -18,10 +18,6 @@ class SQLAlchemyRequired(ImportError):
     pass
 
 
-class LegacyMySQLConnection(Exception):
-    pass
-
-
 class DatabaseError(IOError):
     pass
 
@@ -37,7 +33,7 @@ def _convert_params(sql, params):
     return args
 
 
-def execute(sql, con, cur=None, params=[], engine=None, flavor='sqlite'):
+def execute(sql, con, cur=None, params=[], flavor='sqlite'):
     """
     Execute the given SQL query using the provided connection object.
 
@@ -52,7 +48,8 @@ def execute(sql, con, cur=None, params=[], engine=None, flavor='sqlite'):
     cur: depreciated, cursor is obtained from connection
     params: list or tuple, optional
         List of parameters to pass to execute method.
-    flavor : string {sqlite, mysql} specifying the flavor of SQL to use.
+    flavor : string "sqlite", "mysql"
+        Specifies the flavor of SQL to use.
         Ignored when using SQLAlchemy engine. Required when using DBAPI2 connection.
     Returns
     -------
@@ -63,7 +60,7 @@ def execute(sql, con, cur=None, params=[], engine=None, flavor='sqlite'):
     return pandas_sql.execute(*args)
 
 
-def tquery(sql, con, cur=None, params=[], engine=None, flavor='sqlite'):
+def tquery(sql, con, cur=None, params=[], flavor='sqlite'):
     """
     Returns list of tuples corresponding to each row in given sql
     query.
@@ -81,9 +78,15 @@ def tquery(sql, con, cur=None, params=[], engine=None, flavor='sqlite'):
     cur: depreciated, cursor is obtained from connection
     params: list or tuple, optional
         List of parameters to pass to execute method.
-    flavor : string {sqlite, mysql} specifying the flavor of SQL to use.
+    flavor : string "sqlite", "mysql"
+        Specifies the flavor of SQL to use.
         Ignored when using SQLAlchemy engine. Required when using DBAPI2 connection.
+    Returns
+    -------
+    Results Iterable
     """
+    warnings.warn("tquery is depreciated, and will be removed in future versions", DeprecationWarning)
+
     pandas_sql = pandasSQL_builder(con=con, flavor=flavor)
     args = _convert_params(sql, params)
     return pandas_sql.tquery(*args)
@@ -105,9 +108,14 @@ def uquery(sql, con, cur=None, params=[], engine=None, flavor='sqlite'):
     cur: depreciated, cursor is obtained from connection
     params: list or tuple, optional
         List of parameters to pass to execute method.
-    flavor : string {sqlite, mysql} specifying the flavor of SQL to use.
+    flavor : string "sqlite", "mysql"
+        Specifies the flavor of SQL to use.
         Ignored when using SQLAlchemy engine. Required when using DBAPI2 connection.
+    Returns
+    -------
+    Number of affected rows
     """
+    warnings.warn("uquery is depreciated, and will be removed in future versions", DeprecationWarning)
     pandas_sql = pandasSQL_builder(con=con, flavor=flavor)
     args = _convert_params(sql, params)
     return pandas_sql.uquery(*args)
@@ -123,7 +131,7 @@ def read_sql(sql, con, index_col=None, flavor='sqlite', coerce_float=True, param
     string.
 
     Optionally provide an index_col parameter to use one of the
-    columns as the index. Otherwise will be 0 to len(results) - 1.
+    columns as the index, otherwise default integer index will be used
 
     Parameters
     ----------
@@ -143,11 +151,11 @@ def read_sql(sql, con, index_col=None, flavor='sqlite', coerce_float=True, param
     cur: depreciated, cursor is obtained from connection
     params: list or tuple, optional
         List of parameters to pass to execute method.
-    flavor : string {sqlite, mysql} specifying the flavor of SQL to use.
-        Ignored when using SQLAlchemy engine. Required when using DBAPI2 connection.
 
+    Returns
+    -------
+    DataFrame
     """
-
     pandas_sql = pandasSQL_builder(con=con, flavor=flavor)
     return pandas_sql.read_sql(sql, index_col=index_col, params=params, coerce_float=coerce_float)
 
@@ -174,6 +182,27 @@ def to_sql(frame, name, con, flavor='sqlite', if_exists='fail'):
     pandas_sql.to_sql(frame, name, if_exists=if_exists)
 
 
+def has_table(table_name, con, meta=None, flavor='sqlite'):
+    """
+    Check if DB has named table
+
+    Parameters
+    ----------
+    frame: DataFrame
+    name: name of SQL table
+    con: SQLAlchemy engine or DBAPI2 connection (legacy mode)
+        Using SQLAlchemy makes it possible to use any DB supported by that
+        library.
+        If a DBAPI2 object is given, a supported SQL flavor name must also be provided
+    flavor: {'sqlite', 'mysql'}, default 'sqlite', ignored when using engine
+    Returns
+    -------
+    boolean
+    """
+    pandas_sql = pandasSQL_builder(con=con, flavor=flavor)
+    return pandas_sql.has_table(table_name)
+
+
 # This is an awesome function
 def read_table(table_name, con, meta=None, index_col=None, coerce_float=True):
     """Given a table name and SQLAlchemy engine, return a DataFrame.
@@ -188,7 +217,9 @@ def read_table(table_name, con, meta=None, index_col=None, coerce_float=True):
     coerce_float : boolean, default True
         Attempt to convert values to non-string, non-numeric objects (like
         decimal.Decimal) to floating point. Can result in loss of Precision.
-
+    Returns
+    -------
+    DataFrame
     """
     pandas_sql = PandasSQLWithEngine(con, meta=meta)
     table = pandas_sql.get_table(table_name)
@@ -197,7 +228,7 @@ def read_table(table_name, con, meta=None, index_col=None, coerce_float=True):
         sql_select = table.select()
         return pandas_sql.read_sql(sql_select, index_col=index_col, coerce_float=coerce_float)
     else:
-        raise ValueError("Table %s not found with %s." % table_name, con)
+        raise ValueError("Table %s not found" % table_name, con)
 
 
 def pandasSQL_builder(con, flavor=None, meta=None):
@@ -211,7 +242,7 @@ def pandasSQL_builder(con, flavor=None, meta=None):
         if isinstance(con, sqlalchemy.engine.Engine):
             return PandasSQLWithEngine(con, meta=meta)
         else:
-            warnings.warn("Not a valid SQLAlchemy engine, attempting to use as legacy DBAPI connection")
+            warnings.warn("Not an SQLAlchemy engine, attempting to use as legacy DBAPI connection")
             if flavor is None:
                 raise ValueError("""PandasSQL must be created with an SQLAlchemy engine
                     or a DBAPI2 connection and SQL flavour""")
@@ -496,7 +527,7 @@ class PandasSQLWithCon(PandasSQL):
                                                  index_col=index_col,
                                                  coerce_float=coerce_float)
 
-    def to_sql(self, frame, name, con=None, if_exists='fail'):
+    def to_sql(self, frame, name, if_exists='fail'):
         """
         Write records stored in a DataFrame to a SQL database.
 
@@ -504,7 +535,6 @@ class PandasSQLWithCon(PandasSQL):
         ----------
         frame: DataFrame
         name: name of SQL table
-        con: an open SQL database connection object
         flavor: {'sqlite', 'mysql', 'postgres'}, default 'sqlite'
         if_exists: {'fail', 'replace', 'append'}, default 'fail'
             fail: If table exists, do nothing.
@@ -618,8 +648,8 @@ class PandasSQLWithCon(PandasSQL):
         return _SQL_TYPES[pytype_name][self.flavor]
 
 
-# legacy names
-def get_schema(frame, name, con=None, flavor='sqlite', engine=None):
+# legacy names, with depreciation warnings and copied docs
+def get_schema(frame, name, con, flavor='sqlite'):
     """
     Get the SQL db table schema for the given frame
 
@@ -636,8 +666,21 @@ def get_schema(frame, name, con=None, flavor='sqlite', engine=None):
     return pandas_sql._create_sql_schema()
 
 
+def read_frame(*args, **kwargs):
+    """DEPRECIATED - use read_sql
+    """
+    warnings.warn("read_frame is depreciated, use read_sql", DeprecationWarning)
+    return read_sql(*args, **kwargs)
 
-#TODO: add depreciation warnings
-read_frame = read_sql
-write_frame = to_sql
+
+def write_frame(*args, **kwargs):
+    """DEPRECIATED - use to_sql
+    """
+    warnings.warn("write_frame is depreciated, use to_sql", DeprecationWarning)
+    return to_sql(*args, **kwargs)
+
+
+#Append wrapped function docstrings
+read_frame.__doc__ += read_sql.__doc__
+write_frame.__doc__ += to_sql.__doc__
 
