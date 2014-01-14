@@ -59,7 +59,7 @@ repository <http://github.com/jvns/pandas-cookbook>`_.
 
 
 Lessons for New Pandas Users
----------------  
+----------------------------  
 
 For more resources, please visit main `repository <https://bitbucket.org/hrojas/learn-pandas>`_.
 
