@@ -1961,8 +1961,11 @@ class BlockManager(PandasObject):
             ]
 
         # preserve dtype if possible
-        dtype = self.dtype if self.ndim == 1 else object
-        return self.__class__(np.array([], dtype=dtype), axes)
+        if self.ndim == 1:
+            blocks = np.array([], dtype=self.dtype)
+        else:
+            blocks = []
+        return self.__class__(blocks, axes)
 
     def __nonzero__(self):
         return True
