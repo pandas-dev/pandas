@@ -1856,6 +1856,7 @@ class DataFrame(NDFrame):
                                                    name=items, fastpath=True)
 
     def __setitem__(self, key, value):
+
         # see if we can slice the rows
         indexer = _convert_to_index_sliceable(self, key)
         if indexer is not None:
@@ -1880,6 +1881,7 @@ class DataFrame(NDFrame):
                                  (len(key), len(self.index)))
             key = _check_bool_indexer(self.index, key)
             indexer = key.nonzero()[0]
+            self._check_setitem_copy()
             self.ix._setitem_with_indexer(indexer, value)
         else:
             if isinstance(value, DataFrame):
@@ -1889,6 +1891,7 @@ class DataFrame(NDFrame):
                     self[k1] = value[k2]
             else:
                 indexer = self.ix._convert_to_indexer(key, axis=1)
+                self._check_setitem_copy()
                 self.ix._setitem_with_indexer((slice(None), indexer), value)
 
     def _setitem_frame(self, key, value):

@@ -2061,6 +2061,14 @@ class TestIndexing(tm.TestCase):
         assert_series_equal(s,df.iloc[:,0].order())
         assert_series_equal(s,df[0].order())
 
+        # operating on a copy
+        df = pd.DataFrame({'a': list(range(4)), 'b': list('ab..'), 'c': ['a', 'b', np.nan, 'd']})
+        mask = pd.isnull(df.c)
+
+        def f():
+            df[['c']][mask] = df[['b']][mask]
+        self.assertRaises(com.SettingWithCopyError, f)
+
         pd.set_option('chained_assignment','warn')
 
     def test_float64index_slicing_bug(self):

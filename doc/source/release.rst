@@ -58,8 +58,9 @@ API Changes
 
   - ``Series.sort`` will raise a ``ValueError`` (rather than a ``TypeError``) on sorting an
     object that is a view of another (:issue:`5856`, :issue:`5853`)
-
-.. _release.bug_fixes-0.13.1:
+  - Raise/Warn ``SettingWithCopyError`` (according to the option ``chained_assignment`` in more cases,
+    when detecting chained assignment, related (:issue:`5938`)
+  - DataFrame.head(0) returns self instead of empty frame (:issue:`5846`)
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
@@ -72,7 +73,8 @@ Improvements to existing features
   - df.info() view now display dtype info per column (:issue: `5682`)
   - perf improvements in DataFrame ``count/dropna`` for ``axis=1``
   - Series.str.contains now has a `regex=False` keyword which can be faster for plain (non-regex) string patterns. (:issue: `5879`)
-  - DataFrame.head(0) returns self instead of empty frame (:issue:`5846`)
+
+.. _release.bug_fixes-0.13.1:
 
 Bug Fixes
 ~~~~~~~~~
