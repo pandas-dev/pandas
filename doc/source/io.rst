@@ -1823,7 +1823,7 @@ class. The following two command are equivalent:
     read_excel('path_to_file.xls', 'Sheet1', index_col=None, na_values=['NA'])
 
 The class based approach can be used to read multiple sheets or to introspect
-the sheet names using the ``sheet_names`` attribute. 
+the sheet names using the ``sheet_names`` attribute.
 
 .. note::
 
@@ -3068,13 +3068,48 @@ SQL Queries
 -----------
 
 The :mod:`pandas.io.sql` module provides a collection of query wrappers to both
-facilitate data retrieval and to reduce dependency on DB-specific API. These
-wrappers only support the Python database adapters which respect the `Python
-DB-API <http://www.python.org/dev/peps/pep-0249/>`__. See some
-:ref:`cookbook examples <cookbook.sql>` for some advanced strategies
+facilitate data retrieval and to reduce dependency on DB-specific API. Database abstraction
+is provided by SQLAlchemy if installed, in addition you will need a driver library for
+your database.
 
-For example, suppose you want to query some data with different types from a
-table such as:
+.. versionadded:: 0.14.0
+
+
+If SQLAlchemy is not installed a legacy fallback is provided for sqlite and mysql.
+These legacy modes require Python database adapters which respect the `Python
+DB-API <http://www.python.org/dev/peps/pep-0249/>`__.
+
+See also some :ref:`cookbook examples <cookbook.sql>` for some advanced strategies.
+
+The key functions are:
+:func:`~pandas.io.sql.to_sql`
+:func:`~pandas.io.sql.read_sql`
+:func:`~pandas.io.sql.read_table`
+
+
+
+
+In the following example, we use the `SQlite <http://www.sqlite.org/>`__ SQL database
+engine. You can use a temporary SQLite database where data are stored in
+"memory".
+
+To connect with SQLAlchemy you use the :func:`create_engine` function to create an engine
+object from database URI. You only need to create the engine once per database you are
+connecting to.
+
+For more information on :func:`create_engine` and the URI formatting, see the examples
+below and the SQLAlchemy `documentation <http://docs.sqlalchemy.org/en/rel_0_9/core/engines.html>`__
+
+.. code-block:: python
+
+   from sqlalchemy import create_engine
+   from pandas.io import sql
+   # Create your connection.
+   engine = create_engine('sqlite:///:memory:')
+
+
+Assuming the following data is in a DataFrame "data", we can insert it into
+the database using :func:`~pandas.io.sql.to_sql`.
 
 
 +-----+------------+-------+-------+-------+
@@ -3088,81 +3123,107 @@ table such as:
 +-----+------------+-------+-------+-------+
 
 
-Functions from :mod:`pandas.io.sql` can extract some data into a DataFrame. In
-the following example, we use the `SQlite <http://www.sqlite.org/>`__ SQL database
-engine. You can use a temporary SQLite database where data are stored in
-"memory". Just do:
+.. ipython:: python
+   :suppress:
 
-.. code-block:: python
-
-   import sqlite3
+   from sqlalchemy import create_engine
    from pandas.io import sql
-   # Create your connection.
-   cnx = sqlite3.connect(':memory:')
+   engine = create_engine('sqlite:///:memory:')
 
 .. ipython:: python
    :suppress:
 
-   import sqlite3
-   from pandas.io import sql
-   cnx = sqlite3.connect(':memory:')
+   c = ['id', 'Date', 'Col_1', 'Col_2', 'Col_3']
+   d = [(26, datetime.datetime(2010,10,18), 'X', 27.5, True),
+   (42, datetime.datetime(2010,10,19), 'Y', -12.5, False),
+   (63, datetime.datetime(2010,10,20), 'Z', 5.73, True)]
 
-.. ipython:: python
-   :suppress:
-
-   cu = cnx.cursor()
-   # Create a table named 'data'.
-   cu.execute("""CREATE TABLE data(id integer,
-                                   date date,
-                                   Col_1 string,
-                                   Col_2 float,
-                                   Col_3 bool);""")
-   cu.executemany('INSERT INTO data VALUES (?,?,?,?,?)',
-                  [(26, datetime.datetime(2010,10,18), 'X', 27.5, True),
-                   (42, datetime.datetime(2010,10,19), 'Y', -12.5, False),
-                   (63, datetime.datetime(2010,10,20), 'Z', 5.73, True)])
-
-
-Let ``data`` be the name of your SQL table. With a query and your database
-connection, just use the :func:`~pandas.io.sql.read_sql` function to get the
-query results into a DataFrame:
+   data  = DataFrame(d, columns=c)
 
 .. ipython:: python
 
-   sql.read_sql("SELECT * FROM data;", cnx)
+   sql.to_sql(data, 'data', engine)
+
+You can read from the database simply by
+specifying a table name using the :func:`~pandas.io.sql.read_table` function.
+
+.. ipython:: python
+
+   sql.read_table('data', engine)
 
 You can also specify the name of the column as the DataFrame index:
 
 .. ipython:: python
 
-   sql.read_sql("SELECT * FROM data;", cnx, index_col='id')
-   sql.read_sql("SELECT * FROM data;", cnx, index_col='date')
+   sql.read_table('data', engine, index_col='id')
+
+You can also query using raw SQL in the :func:`~pandas.io.sql.read_sql` function.
+
+.. ipython:: python
+
+  sql.read_sql('SELECT * FROM data', engine)
 
 Of course, you can specify a more "complex" query.
 
 .. ipython:: python
 
-   sql.read_sql("SELECT id, Col_1, Col_2 FROM data WHERE id = 42;", cnx)
-
-.. ipython:: python
-   :suppress:
-
-   cu.close()
-   cnx.close()
+   sql.read_frame("SELECT id, Col_1, Col_2 FROM data WHERE id = 42;", engine)
 
 
 There are a few other available functions:
 
-  - ``tquery`` returns a list of tuples corresponding to each row.
-  - ``uquery`` does the same thing as tquery, but instead of returning results
-    it returns the number of related rows.
-  - ``write_frame`` writes records stored in a DataFrame into the SQL table.
-  - ``has_table`` checks if a given SQLite table exists.
+:func:`~pandas.io.sql.has_table` checks if a given table exists.
 
-.. note::
+:func:`~pandas.io.sql.tquery` returns a list of tuples corresponding to each row.
 
-   For now, writing your DataFrame into a database works only with
-   **SQLite**. Moreover, the **index** will currently be **dropped**.
+:func:`~pandas.io.sql.uquery` does the same thing as tquery, but instead of
+returning results it returns the number of related rows.
+
+In addition, the class :class:`~pandas.io.sql.PandasSQLWithEngine` can be
+instantiated directly for more manual control over the SQL interaction.
+
+Engine connection examples
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+  from sqlalchemy import create_engine
+
+  engine = create_engine('postgresql://scott:tiger@localhost:5432/mydatabase')
+
+  engine = create_engine('mysql+mysqldb://scott:tiger@localhost/foo')
+
+  engine = create_engine('oracle://scott:tiger@127.0.0.1:1521/sidname')
+
+  engine = create_engine('mssql+pyodbc://mydsn')
+
+  # sqlite://<nohostname>/<path>
+  # where <path> is relative:
+  engine = create_engine('sqlite:///foo.db')
+
+  # or absolute, starting with a slash:
+  engine = create_engine('sqlite:////absolute/path/to/foo.db')
+
+
+Legacy
+~~~~~~
+To use the sqlite support without SQLAlchemy, you can create connections like so:
+
+.. code-block:: python
+
+   import sqlite3
+   from pandas.io import sql
+   cnx = sqlite3.connect(':memory:')
+
+And then issue the following queries, remembering to also specify the flavor of SQL
+you are using.
+
+.. code-block:: python
+
+   sql.to_sql(data, 'data', cnx,  flavor='sqlite')
+
+   sql.read_sql("SELECT * FROM data", cnx, flavor='sqlite')
+
 
 .. _io.bigquery:
 
