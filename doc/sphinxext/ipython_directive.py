@@ -320,6 +320,14 @@ class EmbeddedSphinxShell(object):
                 self.IP.run_cell(source_raw, store_history=store_history)
         finally:
             sys.stdout = stdout
+            buflist = self.cout.buflist
+            for i in range(len(buflist)):
+                try:
+                # print(buflist[i])
+                    if not isinstance(buflist[i], unicode):
+                        buflist[i] = buflist[i].decode('utf8','replace')
+                except:
+                    pass
 
     def process_image(self, decorator):
         """
