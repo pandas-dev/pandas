@@ -81,7 +81,7 @@ life easier is missing. In that case you have several options:
    For example, here is an example of adding an ``just_foo_cols()``
    method to the dataframe class:
 
-.. ipython:: python
+::
 
    import pandas as pd
    def just_foo_cols(self):
