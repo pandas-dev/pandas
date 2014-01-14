@@ -167,11 +167,15 @@ class TestStringMethods(tm.TestCase):
         tm.assert_almost_equal(result, exp)
 
     def test_contains(self):
-        values = ['foo', NA, 'fooommm__foo', 'mmm_']
+        values = ['foo', NA, 'fooommm__foo', 'mmm_', 'foommm[_]+bar']
         pat = 'mmm[_]+'
 
         result = strings.str_contains(values, pat)
-        expected = [False, np.nan, True, True]
+        expected = [False, NA, True, True, False]
+        tm.assert_almost_equal(result, expected)
+
+        result = strings.str_contains(values, pat, regex=False)
+        expected = [False, NA, False, False, True]
         tm.assert_almost_equal(result, expected)
 
         values = ['foo', 'xyz', 'fooommm__foo', 'mmm_']
