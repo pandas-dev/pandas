@@ -105,6 +105,8 @@ Bug Fixes
   - Fixed string-representation of ``NaT`` to be "NaT" (:issue:`5708`)
   - Fixed string-representation for Timestamp to show nanoseconds if present (:issue:`5912`)
   - ``pd.match`` not returning passed sentinel
+  - ``Panel.to_frame()`` no longer fails when ``major_axis`` is a
+    ``MultiIndex`` (:issue:`5402`).
 
 pandas 0.13.0
 -------------
