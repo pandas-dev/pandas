@@ -110,6 +110,7 @@ import re
 import sys
 import tempfile
 import ast
+from pandas.compat import zip, range, map, lmap, u, cStringIO as StringIO
 
 # To keep compatibility with various python versions
 try:
@@ -358,6 +359,7 @@ class EmbeddedSphinxShell(object):
         is_doctest = (decorator is not None and \
                      decorator.startswith('@doctest')) or self.is_doctest
         is_suppress = decorator=='@suppress' or self.is_suppress
+        is_okexcept = decorator=='@okexcept' or self.is_okexcept
         is_savefig = decorator is not None and \
                      decorator.startswith('@savefig')
 
@@ -416,6 +418,9 @@ class EmbeddedSphinxShell(object):
             ret.append(output)
         elif is_semicolon: # get spacing right
             ret.append('')
+
+        if not is_okexcept and "Traceback" in output:
+            sys.stdout.write(output)
 
         self.cout.truncate(0)
         return (ret, input_lines, output, is_doctest, decorator, image_file,
@@ -658,6 +663,7 @@ class IPythonDirective(Directive):
                     'suppress' : directives.flag,
                     'verbatim' : directives.flag,
                     'doctest' : directives.flag,
+                    'okexcept': directives.flag
                   }
 
     shell = None
@@ -755,6 +761,7 @@ class IPythonDirective(Directive):
         self.shell.is_suppress = 'suppress' in options
         self.shell.is_doctest = 'doctest' in options
         self.shell.is_verbatim = 'verbatim' in options
+        self.shell.is_okexcept = 'okexcept' in options
 
         # handle pure python code
         if 'python' in self.arguments:
