@@ -474,7 +474,7 @@ class DataFrame(NDFrame):
         # behaves badly when outputting an HTML table
         # that doesn't fit the window, so disable it.
         if com.in_qtconsole():
-            raise ValueError('Disable HTML output in QtConsole')
+            raise NotImplementedError('HTML output is disabled in QtConsole')
 
         if self._info_repr():
             buf = StringIO(u(""))
