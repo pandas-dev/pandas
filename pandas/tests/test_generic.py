@@ -285,7 +285,6 @@ class Generic(object):
         except (AttributeError):
             pass
 
-
         # ---------------------------
         # non-preserving (by default)
         # ---------------------------
@@ -427,6 +426,19 @@ class TestSeries(tm.TestCase, Generic):
 
         result = o.T
         self.check_metadata(o,result)
+
+        # resample
+        ts = Series(np.random.rand(1000),
+                    index=date_range('20130101',periods=1000,freq='s'),
+                    name='foo')
+        result = ts.resample('1T')
+        self.check_metadata(ts,result)
+
+        result = ts.resample('1T',how='min')
+        self.check_metadata(ts,result)
+
+        result = ts.resample('1T',how=lambda x: x.sum())
+        self.check_metadata(ts,result)
 
     def test_interpolate(self):
         ts = Series(np.arange(len(self.ts), dtype=float), self.ts.index)
@@ -767,6 +779,23 @@ class TestDataFrame(tm.TestCase, Generic):
         result = s.interpolate(method='spline', order=1)
         expected = Series([1, 2, 3, 4, 5, 6, 7])
         assert_series_equal(result, expected)
+
+    def test_metadata_propagation_indiv(self):
+
+        # groupby
+        df = DataFrame({'A': ['foo', 'bar', 'foo', 'bar',
+                              'foo', 'bar', 'foo', 'foo'],
+                        'B': ['one', 'one', 'two', 'three',
+                              'two', 'two', 'one', 'three'],
+                        'C': np.random.randn(8),
+                        'D': np.random.randn(8)})
+        result = df.groupby('A').sum()
+        self.check_metadata(df,result)
+
+        # resample
+        df = DataFrame(np.random.randn(1000,2), index=date_range('20130101',periods=1000,freq='s'))
+        result = df.resample('1T')
+        self.check_metadata(df,result)
 
 class TestPanel(tm.TestCase, Generic):
     _typ = Panel
