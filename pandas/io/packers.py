@@ -56,7 +56,7 @@ from pandas.sparse.api import SparseSeries, SparseDataFrame, SparsePanel
 from pandas.sparse.array import BlockIndex, IntIndex
 from pandas.core.generic import NDFrame
 from pandas.core.common import needs_i8_conversion
-from pandas.io.common import get_filepath_or_buffer
+from pandas.io.common import get_filepath_or_buffer, _create_string_file_reader
 from pandas.core.internals import BlockManager, make_block
 import pandas.core.internals as internals
 
@@ -124,7 +124,7 @@ def read_msgpack(path_or_buf, iterator=False, **kwargs):
 
     Parameters
     ----------
-    path_or_buf : string File path, BytesIO like or string
+    path_or_buf : string File path or buffer
     iterator : boolean, if True, return an iterator to the unpacker
                (default is False)
 
@@ -146,26 +146,15 @@ def read_msgpack(path_or_buf, iterator=False, **kwargs):
     # see if we have an actual file
     if isinstance(path_or_buf, compat.string_types):
 
-        try:
-            exists = os.path.exists(path_or_buf)
-        except (TypeError,ValueError):
-            exists = False
-
-        if exists:
-            with open(path_or_buf, 'rb') as fh:
-                return read(fh)
-
-    # treat as a string-like
-    if not hasattr(path_or_buf, 'read'):
-
-        try:
-            fh = compat.BytesIO(path_or_buf)
+        with open(path_or_buf, 'rb') as fh:
             return read(fh)
-        finally:
-            fh.close()
 
-    # a buffer like
-    return read(path_or_buf)
+    elif hasattr(path_or_buf, 'read'):
+        return read(path_or_buf)
+    else:
+        raise ValueError("path_or_buffer must be a file or file-like buffer")
+
+reads_msgpack = _create_string_file_reader(read_msgpack)
 
 dtype_dict = {21: np.dtype('M8[ns]'),
               u('datetime64[ns]'): np.dtype('M8[ns]'),

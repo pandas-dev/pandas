@@ -1,5 +1,5 @@
 from pandas.compat import cPickle as pkl, pickle_compat as pc, PY3
-
+from pandas.io.common import _create_string_file_reader
 
 def to_pickle(obj, path):
     """
@@ -51,3 +51,5 @@ def read_pickle(path):
         if PY3:
             return try_read(path, encoding='latin1')
         raise
+
+reads_pickle= _create_string_file_reader(read_pickle)

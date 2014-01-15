@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas import Series, DataFrame, DatetimeIndex, Timestamp
 import pandas as pd
-read_json = pd.read_json
+from pandas import reads_json
 
 from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
                                  assert_series_equal, network,
@@ -72,13 +72,13 @@ class TestPandasContainer(tm.TestCase):
                        index=['index " 1', 'index / 2'],
                        columns=['a \\ b', 'y / z'])
 
-        assert_frame_equal(df, read_json(df.to_json(orient='split'),
+        assert_frame_equal(df, reads_json(df.to_json(orient='split'),
                                          orient='split'))
-        assert_frame_equal(df, read_json(df.to_json(orient='columns'),
+        assert_frame_equal(df, reads_json(df.to_json(orient='columns'),
                                          orient='columns'))
-        assert_frame_equal(df, read_json(df.to_json(orient='index'),
+        assert_frame_equal(df, reads_json(df.to_json(orient='index'),
                                          orient='index'))
-        df_unser = read_json(df.to_json(orient='records'), orient='records')
+        df_unser = reads_json(df.to_json(orient='records'), orient='records')
         assert_index_equal(df.columns, df_unser.columns)
         np.testing.assert_equal(df.values, df_unser.values)
 
@@ -89,12 +89,12 @@ class TestPandasContainer(tm.TestCase):
         self.assertRaises(ValueError, df.to_json, orient='index')
         self.assertRaises(ValueError, df.to_json, orient='columns')
 
-        assert_frame_equal(df, read_json(df.to_json(orient='split'),
+        assert_frame_equal(df, reads_json(df.to_json(orient='split'),
                                          orient='split'))
-        unser = read_json(df.to_json(orient='records'), orient='records')
+        unser = reads_json(df.to_json(orient='records'), orient='records')
         self.assertTrue(df.columns.equals(unser.columns))
         np.testing.assert_equal(df.values, unser.values)
-        unser = read_json(df.to_json(orient='values'), orient='values')
+        unser = reads_json(df.to_json(orient='values'), orient='values')
         np.testing.assert_equal(df.values, unser.values)
 
     def test_frame_non_unique_columns(self):
@@ -105,18 +105,18 @@ class TestPandasContainer(tm.TestCase):
         self.assertRaises(ValueError, df.to_json, orient='columns')
         self.assertRaises(ValueError, df.to_json, orient='records')
 
-        assert_frame_equal(df, read_json(df.to_json(orient='split'),
+        assert_frame_equal(df, reads_json(df.to_json(orient='split'),
                                          orient='split', dtype=False))
-        unser = read_json(df.to_json(orient='values'), orient='values')
+        unser = reads_json(df.to_json(orient='values'), orient='values')
         np.testing.assert_equal(df.values, unser.values)
 
         # GH4377; duplicate columns not processing correctly
         df = DataFrame([['a','b'],['c','d']], index=[1,2], columns=['x','y'])
-        result = read_json(df.to_json(orient='split'), orient='split')
+        result = reads_json(df.to_json(orient='split'), orient='split')
         assert_frame_equal(result, df)
 
         def _check(df):
-            result = read_json(df.to_json(orient='split'), orient='split',
+            result = reads_json(df.to_json(orient='split'), orient='split',
                                convert_dates=['x'])
             assert_frame_equal(result, df)
 
@@ -133,7 +133,7 @@ class TestPandasContainer(tm.TestCase):
             dfjson = df.to_json(orient=orient)
 
             try:
-                unser = read_json(dfjson, orient=orient, dtype=dtype,
+                unser = reads_json(dfjson, orient=orient, dtype=dtype,
                                   numpy=numpy, convert_axes=convert_axes)
             except Exception as detail:
                 if raise_ok is not None:
@@ -259,20 +259,20 @@ class TestPandasContainer(tm.TestCase):
         _check_orient(df.transpose().transpose(), "index", dtype=False)
 
     def test_frame_from_json_bad_data(self):
-        self.assertRaises(ValueError, read_json, StringIO('{"key":b:a:d}'))
+        self.assertRaises(ValueError, reads_json, StringIO('{"key":b:a:d}'))
 
         # too few indices
         json = StringIO('{"columns":["A","B"],'
                         '"index":["2","3"],'
                         '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}')
-        self.assertRaises(ValueError, read_json, json,
+        self.assertRaises(ValueError, reads_json, json,
                           orient="split")
 
         # too many columns
         json = StringIO('{"columns":["A","B","C"],'
                         '"index":["1","2","3"],'
                         '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}')
-        self.assertRaises(AssertionError, read_json, json,
+        self.assertRaises(AssertionError, reads_json, json,
                           orient="split")
 
         # bad key
@@ -280,41 +280,41 @@ class TestPandasContainer(tm.TestCase):
                         '"index":["2","3"],'
                         '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}')
         with tm.assertRaisesRegexp(ValueError, r"unexpected key\(s\): badkey"):
-            read_json(json, orient="split")
+            reads_json(json, orient="split")
 
     def test_frame_from_json_nones(self):
         df = DataFrame([[1, 2], [4, 5, 6]])
-        unser = read_json(df.to_json())
+        unser = reads_json(df.to_json())
         self.assertTrue(np.isnan(unser[2][0]))
 
         df = DataFrame([['1', '2'], ['4', '5', '6']])
-        unser = read_json(df.to_json())
+        unser = reads_json(df.to_json())
         self.assertTrue(np.isnan(unser[2][0]))
-        unser = read_json(df.to_json(),dtype=False)
+        unser = reads_json(df.to_json(),dtype=False)
         self.assertTrue(unser[2][0] is None)
-        unser = read_json(df.to_json(),convert_axes=False,dtype=False)
+        unser = reads_json(df.to_json(),convert_axes=False,dtype=False)
         self.assertTrue(unser['2']['0'] is None)
 
-        unser = read_json(df.to_json(), numpy=False)
+        unser = reads_json(df.to_json(), numpy=False)
         self.assertTrue(np.isnan(unser[2][0]))
-        unser = read_json(df.to_json(), numpy=False, dtype=False)
+        unser = reads_json(df.to_json(), numpy=False, dtype=False)
         self.assertTrue(unser[2][0] is None)
-        unser = read_json(df.to_json(), numpy=False, convert_axes=False, dtype=False)
+        unser = reads_json(df.to_json(), numpy=False, convert_axes=False, dtype=False)
         self.assertTrue(unser['2']['0'] is None)
 
         # infinities get mapped to nulls which get mapped to NaNs during
         # deserialisation
         df = DataFrame([[1, 2], [4, 5, 6]])
         df[2][0] = np.inf
-        unser = read_json(df.to_json())
+        unser = reads_json(df.to_json())
         self.assertTrue(np.isnan(unser[2][0]))
-        unser = read_json(df.to_json(), dtype=False)
+        unser = reads_json(df.to_json(), dtype=False)
         self.assertTrue(np.isnan(unser[2][0]))
 
         df[2][0] = np.NINF
-        unser = read_json(df.to_json())
+        unser = reads_json(df.to_json())
         self.assertTrue(np.isnan(unser[2][0]))
-        unser = read_json(df.to_json(),dtype=False)
+        unser = reads_json(df.to_json(),dtype=False)
         self.assertTrue(np.isnan(unser[2][0]))
 
     def test_frame_to_json_except(self):
@@ -350,9 +350,9 @@ class TestPandasContainer(tm.TestCase):
 
         self.assertRaises(ValueError, s.to_json, orient='index')
 
-        assert_series_equal(s, read_json(s.to_json(orient='split'),
+        assert_series_equal(s, reads_json(s.to_json(orient='split'),
                             orient='split', typ='series'))
-        unser = read_json(s.to_json(orient='records'),
+        unser = reads_json(s.to_json(orient='records'),
                           orient='records', typ='series')
         np.testing.assert_equal(s.values, unser.values)
 
@@ -360,7 +360,7 @@ class TestPandasContainer(tm.TestCase):
 
         def _check_orient(series, orient, dtype=None, numpy=False):
             series = series.sort_index()
-            unser = read_json(series.to_json(orient=orient),
+            unser = reads_json(series.to_json(orient=orient),
                               typ='series', orient=orient, numpy=numpy,
                               dtype=dtype)
             unser = unser.sort_index()
@@ -410,24 +410,24 @@ class TestPandasContainer(tm.TestCase):
 
     def test_series_from_json_precise_float(self):
         s = Series([4.56, 4.56, 4.56])
-        result = read_json(s.to_json(), typ='series', precise_float=True)
+        result = reads_json(s.to_json(), typ='series', precise_float=True)
         assert_series_equal(result, s)
 
     def test_frame_from_json_precise_float(self):
         df = DataFrame([[4.56, 4.56, 4.56], [4.56, 4.56, 4.56]])
-        result = read_json(df.to_json(), precise_float=True)
+        result = reads_json(df.to_json(), precise_float=True)
         assert_frame_equal(result, df)
 
     def test_typ(self):
 
         s = Series(lrange(6), index=['a','b','c','d','e','f'], dtype='int64')
-        result = read_json(s.to_json(),typ=None)
+        result = reads_json(s.to_json(),typ=None)
         assert_series_equal(result,s)
 
     def test_reconstruction_index(self):
 
         df = DataFrame([[1, 2, 3], [4, 5, 6]])
-        result = read_json(df.to_json())
+        result = reads_json(df.to_json())
 
         # the index is serialized as strings....correct?
         assert_frame_equal(result, df)
@@ -437,18 +437,18 @@ class TestPandasContainer(tm.TestCase):
             for df in [self.frame, self.frame2, self.intframe, self.tsframe,
                        self.mixed_frame]:
                 df.to_json(path)
-                read_json(path)
+                pd.read_json(path)
 
     def test_axis_dates(self):
 
         # frame
         json = self.tsframe.to_json()
-        result = read_json(json)
+        result = reads_json(json)
         assert_frame_equal(result, self.tsframe)
 
         # series
         json = self.ts.to_json()
-        result = read_json(json, typ='series')
+        result = reads_json(json, typ='series')
         assert_series_equal(result, self.ts)
 
     def test_convert_dates(self):
@@ -458,12 +458,12 @@ class TestPandasContainer(tm.TestCase):
         df['date'] = Timestamp('20130101')
 
         json = df.to_json()
-        result = read_json(json)
+        result = reads_json(json)
         assert_frame_equal(result, df)
 
         df['foo'] = 1.
         json = df.to_json(date_unit='ns')
-        result = read_json(json, convert_dates=False)
+        result = reads_json(json, convert_dates=False)
         expected = df.copy()
         expected['date'] = expected['date'].values.view('i8')
         expected['foo'] = expected['foo'].astype('int64')
@@ -472,7 +472,7 @@ class TestPandasContainer(tm.TestCase):
         # series
         ts = Series(Timestamp('20130101'), index=self.ts.index)
         json = ts.to_json()
-        result = read_json(json, typ='series')
+        result = reads_json(json, typ='series')
         assert_series_equal(result, ts)
 
     def test_date_format_frame(self):
@@ -486,7 +486,7 @@ class TestPandasContainer(tm.TestCase):
                 json = df.to_json(date_format='iso', date_unit=date_unit)
             else:
                 json = df.to_json(date_format='iso')
-            result = read_json(json)
+            result = reads_json(json)
             assert_frame_equal(result, df)
 
         test_w_date('20130101 20:43:42.123')
@@ -507,7 +507,7 @@ class TestPandasContainer(tm.TestCase):
                 json = ts.to_json(date_format='iso', date_unit=date_unit)
             else:
                 json = ts.to_json(date_format='iso')
-            result = read_json(json, typ='series')
+            result = reads_json(json, typ='series')
             assert_series_equal(result, ts)
 
         test_w_date('20130101 20:43:42.123')
@@ -531,11 +531,11 @@ class TestPandasContainer(tm.TestCase):
             json = df.to_json(date_format='epoch', date_unit=unit)
 
             # force date unit
-            result = read_json(json, date_unit=unit)
+            result = reads_json(json, date_unit=unit)
             assert_frame_equal(result, df)
 
             # detect date unit
-            result = read_json(json, date_unit=None)
+            result = reads_json(json, date_unit=None)
             assert_frame_equal(result, df)
 
     def test_weird_nested_json(self):
@@ -558,7 +558,7 @@ class TestPandasContainer(tm.TestCase):
           }
         }'''
 
-        read_json(s)
+        reads_json(s)
 
     def test_doc_example(self):
         dfj2 = DataFrame(np.random.randn(5, 2), columns=list('AB'))
@@ -568,19 +568,19 @@ class TestPandasContainer(tm.TestCase):
         dfj2.index = pd.date_range('20130101',periods=5)
 
         json = dfj2.to_json()
-        result = read_json(json,dtype={'ints' : np.int64, 'bools' : np.bool_})
+        result = reads_json(json,dtype={'ints' : np.int64, 'bools' : np.bool_})
         assert_frame_equal(result,result)
 
     def test_misc_example(self):
 
         # parsing unordered input fails
-        result = read_json('[{"a": 1, "b": 2}, {"b":2, "a" :1}]',numpy=True)
+        result = reads_json('[{"a": 1, "b": 2}, {"b":2, "a" :1}]',numpy=True)
         expected = DataFrame([[1,2],[1,2]],columns=['a','b'])
         with tm.assertRaisesRegexp(AssertionError,
                                    '\[index\] left \[.+\], right \[.+\]'):
             assert_frame_equal(result, expected)
 
-        result = read_json('[{"a": 1, "b": 2}, {"b":2, "a" :1}]')
+        result = reads_json('[{"a": 1, "b": 2}, {"b":2, "a" :1}]')
         expected = DataFrame([[1,2],[1,2]],columns=['a','b'])
         assert_frame_equal(result,expected)
 
@@ -590,13 +590,13 @@ class TestPandasContainer(tm.TestCase):
         csv = 'https://raw.github.com/hayd/lahman2012/master/csvs/Teams.csv'
         df = pd.read_csv(csv)
         s = df.to_json()
-        result = pd.read_json(s)
+        result = pd.reads_json(s)
         assert_frame_equal(result.reindex(index=df.index,columns=df.columns),df)
 
     @network
     def test_url(self):
         url = 'https://api.github.com/repos/pydata/pandas/issues?per_page=5'
-        result = read_json(url, convert_dates=True)
+        result = pd.read_json(url, convert_dates=True)
         for c in ['created_at', 'closed_at', 'updated_at']:
             self.assertEqual(result[c].dtype, 'datetime64[ns]')
 
@@ -606,7 +606,7 @@ class TestPandasContainer(tm.TestCase):
         self.assertRaises(OverflowError, frame.to_json)
         expected = DataFrame([str(timedelta(23)), str(timedelta(seconds=5))])
         assert_frame_equal(
-            expected, pd.read_json(frame.to_json(default_handler=str)))
+            expected, pd.reads_json(frame.to_json(default_handler=str)))
 
         def my_handler_raises(obj):
             raise TypeError("raisin")
