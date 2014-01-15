@@ -8,7 +8,6 @@ import pandas as pd
 import pandas.core.algorithms as algos
 import pandas.util.testing as tm
 
-
 class TestMatch(tm.TestCase):
     _multiprocess_can_split_ = True
 
@@ -20,6 +19,19 @@ class TestMatch(tm.TestCase):
         expected = np.array([0, 2, 1, 1, 0, 2, -1, 0])
         self.assert_(np.array_equal(result, expected))
 
+        result = Series(algos.match(to_match, values, np.nan))
+        expected = Series(np.array([0, 2, 1, 1, 0, 2, np.nan, 0]))
+        tm.assert_series_equal(result,expected)
+
+        s = pd.Series(np.arange(5),dtype=np.float32)
+        result = algos.match(s, [2,4])
+        expected = np.array([-1, -1, 0, -1, 1])
+        self.assert_(np.array_equal(result, expected))
+
+        result = Series(algos.match(s, [2,4], np.nan))
+        expected = Series(np.array([np.nan, np.nan, 0, np.nan, 1]))
+        tm.assert_series_equal(result,expected)
+
     def test_strings(self):
         values = ['foo', 'bar', 'baz']
         to_match = ['bar', 'foo', 'qux', 'foo', 'bar', 'baz', 'qux']
@@ -28,6 +40,9 @@ class TestMatch(tm.TestCase):
         expected = np.array([1, 0, -1, 0, 1, 2, -1])
         self.assert_(np.array_equal(result, expected))
 
+        result = Series(algos.match(to_match, values, np.nan))
+        expected = Series(np.array([1, 0, np.nan, 0, 1, 2, np.nan]))
+        tm.assert_series_equal(result,expected)
 
 class TestUnique(tm.TestCase):
     _multiprocess_can_split_ = True
