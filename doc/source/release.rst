@@ -107,6 +107,8 @@ Bug Fixes
   - ``pd.match`` not returning passed sentinel
   - ``Panel.to_frame()`` no longer fails when ``major_axis`` is a
     ``MultiIndex`` (:issue:`5402`).
+  - Bug in ``pd.read_msgpack`` with inferring a ``DateTimeIndex`` frequencey
+    incorrectly (:issue:`5947`)
 
 pandas 0.13.0
 -------------

@@ -372,6 +372,17 @@ class TestNDFrame(TestPackers):
             for i, packed in enumerate(read_msgpack(path, iterator=True)):
                 check_arbitrary(packed, l[i])
 
+    def tests_datetimeindex_freq_issue(self):
+
+        # GH 5947
+        # inferring freq on the datetimeindex
+        df = DataFrame([1, 2, 3], index=date_range('1/1/2013', '1/3/2013'))
+        result = self.encode_decode(df)
+        assert_frame_equal(result, df)
+
+        df = DataFrame([1, 2], index=date_range('1/1/2013', '1/2/2013'))
+        result = self.encode_decode(df)
+        assert_frame_equal(result, df)
 
 class TestSparse(TestPackers):
 
