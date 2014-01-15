@@ -11,6 +11,7 @@
    np.set_printoptions(precision=4, suppress=True)
    set_option('display.precision', 4, 'display.max_columns', 8)
    options.display.max_rows=15
+   import pandas as pd
 
 
 ************************
@@ -487,6 +488,12 @@ In the special case of working with time series data, if the Series is a
 TimeSeries (which it will be automatically if the index contains datetime
 objects), and the DataFrame index also contains dates, the broadcasting will be
 column-wise:
+
+.. ipython:: python
+   :suppress:
+
+   import warnings
+   warnings.filterwarnings("ignore",message='TimeSeries broadcasting',category=FutureWarning)
 
 .. ipython:: python
 
