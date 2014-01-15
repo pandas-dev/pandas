@@ -103,6 +103,7 @@ Bug Fixes
   - Bug in propogating metadata on ``resample`` (:issue:`5862`)
   - Fixed string-representation of ``NaT`` to be "NaT" (:issue:`5708`)
   - Fixed string-representation for Timestamp to show nanoseconds if present (:issue:`5912`)
+  - ``pd.match`` not returning passed sentinel
 
 pandas 0.13.0
 -------------
