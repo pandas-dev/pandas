@@ -995,7 +995,7 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                       format=None, utc=None, coerce=False, unit=None):
     cdef:
         Py_ssize_t i, n = len(values)
-        object val
+        object val, py_dt
         ndarray[int64_t] iresult
         ndarray[object] oresult
         pandas_datetimestruct dts
@@ -1085,10 +1085,7 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                     _check_dts_bounds(&dts)
                 except ValueError:
                     try:
-                        iresult[i] = _pydatetime_to_dts(
-                            parse_datetime_string(val, dayfirst=dayfirst),
-                            &dts
-                        )
+                        py_dt = parse_datetime_string(val, dayfirst=dayfirst)
                     except Exception:
                         if coerce:
                            iresult[i] = iNaT
@@ -1096,7 +1093,8 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                         raise TypeError
 
                     try:
-                        _check_dts_bounds(&dts)
+                        _ts = convert_to_tsobject(py_dt, None, None)
+                        iresult[i] = _ts.value
                     except ValueError:
                         if coerce:
                             iresult[i] = iNaT
