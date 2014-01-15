@@ -217,7 +217,12 @@ def block_parser(part, rgxin, rgxout, fmtin, fmtout):
                 if matchout or nextline.startswith('#'):
                     break
                 elif nextline.startswith(continuation):
-                    inputline += '\n' + nextline[Nc:]
+                    nextline = nextline[Nc:]
+                    if nextline and nextline[0] == ' ':
+                        nextline = nextline[1:]
+
+                    inputline += '\n' +  nextline
+
                 else:
                     rest.append(nextline)
                 i+= 1
@@ -363,10 +368,16 @@ class EmbeddedSphinxShell(object):
         is_savefig = decorator is not None and \
                      decorator.startswith('@savefig')
 
+        # #>>> required for cython magic to work
+        # def _remove_first_space_if_any(line):
+        #     return line[1:] if line.startswith(' ') else line
+
+        # input_lines = lmap(_remove_first_space_if_any, input.split('\n'))
         input_lines = input.split('\n')
+
         if len(input_lines) > 1:
-            if input_lines[-1] != "":
-                input_lines.append('') # make sure there's a blank line
+           if input_lines[-1] != "":
+               input_lines.append('') # make sure there's a blank line
                                        # so splitter buffer gets reset
 
         continuation = '   %s:'%''.join(['.']*(len(str(lineno))+2))
