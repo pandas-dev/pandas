@@ -672,13 +672,15 @@ def lag_plot(series, lag=1, ax=None, **kwds):
     return ax
 
 
-def autocorrelation_plot(series, ax=None):
+def autocorrelation_plot(series, ax=None, **kwds):
     """Autocorrelation plot for time series.
 
     Parameters:
     -----------
     series: Time series
     ax: Matplotlib axis object, optional
+    kwds : keywords
+        Options to pass to matplotlib plotting method
 
     Returns:
     -----------
@@ -705,7 +707,9 @@ def autocorrelation_plot(series, ax=None):
     ax.axhline(y=-z99 / np.sqrt(n), linestyle='--', color='grey')
     ax.set_xlabel("Lag")
     ax.set_ylabel("Autocorrelation")
-    ax.plot(x, y)
+    ax.plot(x, y, **kwds)
+    if 'label' in kwds:
+        ax.legend()
     ax.grid()
     return ax
 
