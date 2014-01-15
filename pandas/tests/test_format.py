@@ -13,15 +13,17 @@ from numpy import nan
 from numpy.random import randn
 import numpy as np
 
-from pandas import DataFrame, Series, Index
+from pandas import DataFrame, Series, Index, _np_version_under1p7, Timestamp
 
 import pandas.core.format as fmt
 import pandas.util.testing as tm
 from pandas.util.terminal import get_terminal_size
 import pandas
+import pandas.tslib as tslib
 import pandas as pd
 from pandas.core.config import (set_option, get_option,
                                 option_context, reset_option)
+from datetime import datetime
 
 _frame = DataFrame(tm.getSeriesData())
 
@@ -55,6 +57,17 @@ def has_expanded_repr(df):
             return True
     return False
 
+def skip_if_np_version_under1p7():
+    if _np_version_under1p7:
+        import nose
+
+        raise nose.SkipTest('numpy >= 1.7 required')
+
+def _skip_if_no_pytz():
+    try:
+        import pytz
+    except ImportError:
+        raise nose.SkipTest("pytz not installed")
 
 class TestDataFrameFormatting(tm.TestCase):
     _multiprocess_can_split_ = True
@@ -770,11 +783,11 @@ class TestDataFrameFormatting(tm.TestCase):
         with option_context('mode.sim_interactive', True):
             col = lambda l, k: [tm.rands(k) for _ in range(l)]
             max_cols = get_option('display.max_columns')
-            df = DataFrame([col(max_cols-1, 25) for _ in range(10)])
+            df = DataFrame([col(max_cols - 1, 25) for _ in range(10)])
             set_option('display.expand_frame_repr', False)
             rep_str = repr(df)
-            print(rep_str)
-            assert "10 rows x %d columns" % (max_cols-1) in rep_str
+
+            assert "10 rows x %d columns" % (max_cols - 1) in rep_str
             set_option('display.expand_frame_repr', True)
             wide_repr = repr(df)
             self.assert_(rep_str != wide_repr)
@@ -1749,7 +1762,7 @@ class TestSeriesFormatting(tm.TestCase):
 
     def test_datetimeindex(self):
 
-        from pandas import date_range, NaT, Timestamp
+        from pandas import date_range, NaT
         index = date_range('20130102',periods=6)
         s = Series(1,index=index)
         result = s.to_string()
@@ -1779,32 +1792,33 @@ class TestSeriesFormatting(tm.TestCase):
         # adding NaTs
         y = s-s.shift(1)
         result = y.to_string()
-        self.assertTrue('1 days, 00:00:00' in result)
+        self.assertTrue('1 days' in result)
+        self.assertTrue('00:00:00' not in result)
         self.assertTrue('NaT' in result)
 
         # with frac seconds
         o = Series([datetime(2012,1,1,microsecond=150)]*3)
         y = s-o
         result = y.to_string()
-        self.assertTrue('-00:00:00.000150' in result)
+        self.assertTrue('-0 days, 00:00:00.000150' in result)
 
         # rounding?
         o = Series([datetime(2012,1,1,1)]*3)
         y = s-o
         result = y.to_string()
-        self.assertTrue('-01:00:00' in result)
+        self.assertTrue('-0 days, 01:00:00' in result)
         self.assertTrue('1 days, 23:00:00' in result)
 
         o = Series([datetime(2012,1,1,1,1)]*3)
         y = s-o
         result = y.to_string()
-        self.assertTrue('-01:01:00' in result)
+        self.assertTrue('-0 days, 01:01:00' in result)
         self.assertTrue('1 days, 22:59:00' in result)
 
         o = Series([datetime(2012,1,1,1,1,microsecond=150)]*3)
         y = s-o
         result = y.to_string()
-        self.assertTrue('-01:01:00.000150' in result)
+        self.assertTrue('-0 days, 01:01:00.000150' in result)
         self.assertTrue('1 days, 22:58:59.999850' in result)
 
         # neg time
@@ -2039,6 +2053,212 @@ class TestFloatArrayFormatter(tm.TestCase):
     def test_misc(self):
         obj = fmt.FloatArrayFormatter(np.array([], dtype=np.float64))
         result = obj.get_result()
+        self.assertTrue(len(result) == 0)
+
+    def test_format(self):
+        obj = fmt.FloatArrayFormatter(np.array([12, 0], dtype=np.float64))
+        result = obj.get_result()
+        self.assertEqual(result[0], " 12")
+        self.assertEqual(result[1], "  0")
+
+
+class TestRepr_timedelta64(tm.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        skip_if_np_version_under1p7()
+
+    def test_legacy(self):
+        delta_1d = pd.to_timedelta(1, unit='D')
+        delta_0d = pd.to_timedelta(0, unit='D')
+        delta_1s = pd.to_timedelta(1, unit='s')
+        delta_500ms = pd.to_timedelta(500, unit='ms')
+
+        self.assertEqual(tslib.repr_timedelta64(delta_1d), "1 days, 00:00:00")
+        self.assertEqual(tslib.repr_timedelta64(-delta_1d), "-1 days, 00:00:00")
+        self.assertEqual(tslib.repr_timedelta64(delta_0d), "00:00:00")
+        self.assertEqual(tslib.repr_timedelta64(delta_1s), "00:00:01")
+        self.assertEqual(tslib.repr_timedelta64(delta_500ms), "00:00:00.500000")
+        self.assertEqual(tslib.repr_timedelta64(delta_1d + delta_1s), "1 days, 00:00:01")
+        self.assertEqual(tslib.repr_timedelta64(delta_1d + delta_500ms), "1 days, 00:00:00.500000")
+
+    def test_short(self):
+        delta_1d = pd.to_timedelta(1, unit='D')
+        delta_0d = pd.to_timedelta(0, unit='D')
+        delta_1s = pd.to_timedelta(1, unit='s')
+        delta_500ms = pd.to_timedelta(500, unit='ms')
+
+        self.assertEqual(tslib.repr_timedelta64(delta_1d, format='short'), "1 days")
+        self.assertEqual(tslib.repr_timedelta64(-delta_1d, format='short'), "-1 days")
+        self.assertEqual(tslib.repr_timedelta64(delta_0d, format='short'), "00:00:00")
+        self.assertEqual(tslib.repr_timedelta64(delta_1s, format='short'), "00:00:01")
+        self.assertEqual(tslib.repr_timedelta64(delta_500ms, format='short'), "00:00:00.500000")
+        self.assertEqual(tslib.repr_timedelta64(delta_1d + delta_1s, format='short'), "1 days, 00:00:01")
+        self.assertEqual(tslib.repr_timedelta64(delta_1d + delta_500ms, format='short'), "1 days, 00:00:00.500000")
+
+    def test_long(self):
+        delta_1d = pd.to_timedelta(1, unit='D')
+        delta_0d = pd.to_timedelta(0, unit='D')
+        delta_1s = pd.to_timedelta(1, unit='s')
+        delta_500ms = pd.to_timedelta(500, unit='ms')
+
+        self.assertEqual(tslib.repr_timedelta64(delta_1d, format='long'), "1 days, 00:00:00")
+        self.assertEqual(tslib.repr_timedelta64(-delta_1d, format='long'), "-1 days, 00:00:00")
+        self.assertEqual(tslib.repr_timedelta64(delta_0d, format='long'), "0 days, 00:00:00")
+        self.assertEqual(tslib.repr_timedelta64(delta_1s, format='long'), "0 days, 00:00:01")
+        self.assertEqual(tslib.repr_timedelta64(delta_500ms, format='long'), "0 days, 00:00:00.500000")
+        self.assertEqual(tslib.repr_timedelta64(delta_1d + delta_1s, format='long'), "1 days, 00:00:01")
+        self.assertEqual(tslib.repr_timedelta64(delta_1d + delta_500ms, format='long'), "1 days, 00:00:00.500000")
+
+
+class TestTimedelta64Formatter(tm.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        skip_if_np_version_under1p7()
+
+    def test_mixed(self):
+        x = pd.to_timedelta(list(range(5)) + [pd.NaT], unit='D')
+        y = pd.to_timedelta(list(range(5)) + [pd.NaT], unit='s')
+        result = fmt.Timedelta64Formatter(x + y).get_result()
+        self.assertEqual(result[0].strip(), "0 days, 00:00:00")
+        self.assertEqual(result[1].strip(), "1 days, 00:00:01")
+
+    def test_mixed_neg(self):
+        x = pd.to_timedelta(list(range(5)) + [pd.NaT], unit='D')
+        y = pd.to_timedelta(list(range(5)) + [pd.NaT], unit='s')
+        result = fmt.Timedelta64Formatter(-(x + y)).get_result()
+        self.assertEqual(result[0].strip(), "0 days, 00:00:00")
+        self.assertEqual(result[1].strip(), "-1 days, 00:00:01")
+
+    def test_days(self):
+        x = pd.to_timedelta(list(range(5)) + [pd.NaT], unit='D')
+        result = fmt.Timedelta64Formatter(x).get_result()
+        self.assertEqual(result[0].strip(), "0 days")
+        self.assertEqual(result[1].strip(), "1 days")
+
+        result = fmt.Timedelta64Formatter(x[1:2]).get_result()
+        self.assertEqual(result[0].strip(), "1 days")
+
+    def test_days_neg(self):
+        x = pd.to_timedelta(list(range(5)) + [pd.NaT], unit='D')
+        result = fmt.Timedelta64Formatter(-x).get_result()
+        self.assertEqual(result[0].strip(), "0 days")
+        self.assertEqual(result[1].strip(), "-1 days")
+
+    def test_subdays(self):
+        y = pd.to_timedelta(list(range(5)) + [pd.NaT], unit='s')
+        result = fmt.Timedelta64Formatter(y).get_result()
+        self.assertEqual(result[0].strip(), "00:00:00")
+        self.assertEqual(result[1].strip(), "00:00:01")
+
+    def test_subdays_neg(self):
+        y = pd.to_timedelta(list(range(5)) + [pd.NaT], unit='s')
+        result = fmt.Timedelta64Formatter(-y).get_result()
+        self.assertEqual(result[0].strip(), "00:00:00")
+        self.assertEqual(result[1].strip(), "-00:00:01")
+
+    def test_zero(self):
+        x = pd.to_timedelta(list(range(1)) + [pd.NaT], unit='D')
+        result = fmt.Timedelta64Formatter(x).get_result()
+        self.assertEqual(result[0].strip(), "0 days")
+
+        x = pd.to_timedelta(list(range(1)), unit='D')
+        result = fmt.Timedelta64Formatter(x).get_result()
+        self.assertEqual(result[0].strip(), "0 days")
+
+
+class TestDatetime64Formatter(tm.TestCase):
+    def test_mixed(self):
+        x = pd.Series([datetime(2013, 1, 1), datetime(2013, 1, 1, 12), pd.NaT])
+        result = fmt.Datetime64Formatter(x).get_result()
+        self.assertEqual(result[0].strip(), "2013-01-01 00:00:00")
+        self.assertEqual(result[1].strip(), "2013-01-01 12:00:00")
+
+    def test_dates(self):
+        x = pd.Series([datetime(2013, 1, 1), datetime(2013, 1, 2), pd.NaT])
+        result = fmt.Datetime64Formatter(x).get_result()
+        self.assertEqual(result[0].strip(), "2013-01-01")
+        self.assertEqual(result[1].strip(), "2013-01-02")
+
+    def test_date_nanos(self):
+        x = pd.Series([Timestamp(200)])
+        result = fmt.Datetime64Formatter(x).get_result()
+        self.assertEqual(result[0].strip(), "1970-01-01 00:00:00.000000200")
+
+
+class TestNaTFormatting(tm.TestCase):
+    def test_repr(self):
+        self.assertEqual(repr(pd.NaT), "NaT")
+
+    def test_str(self):
+        self.assertEqual(str(pd.NaT), "NaT")
+
+
+class TestDatetimeIndexFormat(tm.TestCase):
+    def test_datetime(self):
+        formatted = pd.to_datetime([datetime(2003, 1, 1, 12), pd.NaT]).format()
+        self.assertEqual(formatted[0], "2003-01-01 12:00:00")
+        self.assertEqual(formatted[1], "NaT")
+
+    def test_date(self):
+        formatted = pd.to_datetime([datetime(2003, 1, 1), pd.NaT]).format()
+        self.assertEqual(formatted[0], "2003-01-01")
+        self.assertEqual(formatted[1], "NaT")
+
+    def test_date_tz(self):
+        formatted = pd.to_datetime([datetime(2013,1,1)], utc=True).format()
+        self.assertEqual(formatted[0], "2013-01-01 00:00:00+00:00")
+
+        formatted = pd.to_datetime([datetime(2013,1,1), pd.NaT], utc=True).format()
+        self.assertEqual(formatted[0], "2013-01-01 00:00:00+00:00")
+
+    def test_date_explict_date_format(self):
+        formatted = pd.to_datetime([datetime(2003, 2, 1), pd.NaT]).format(date_format="%m-%d-%Y", na_rep="UT")
+        self.assertEqual(formatted[0], "02-01-2003")
+        self.assertEqual(formatted[1], "UT")
+
+
+class TestDatetimeIndexUnicode(tm.TestCase):
+    def test_dates(self):
+        text = str(pd.to_datetime([datetime(2013,1,1), datetime(2014,1,1)]))
+        self.assertTrue("[2013-01-01," in text)
+        self.assertTrue(", 2014-01-01]" in text)
+
+    def test_mixed(self):
+        text = str(pd.to_datetime([datetime(2013,1,1), datetime(2014,1,1,12), datetime(2014,1,1)]))
+        self.assertTrue("[2013-01-01 00:00:00," in text)
+        self.assertTrue(", 2014-01-01 00:00:00]" in text)
+
+
+class TestStringRepTimestamp(tm.TestCase):
+    def test_no_tz(self):
+        dt_date = datetime(2013, 1, 2)
+        self.assertEqual(str(dt_date), str(Timestamp(dt_date)))
+
+        dt_datetime = datetime(2013, 1, 2, 12, 1, 3)
+        self.assertEqual(str(dt_datetime), str(Timestamp(dt_datetime)))
+
+        dt_datetime_us = datetime(2013, 1, 2, 12, 1, 3, 45)
+        self.assertEqual(str(dt_datetime_us), str(Timestamp(dt_datetime_us)))
+
+        ts_nanos_only = Timestamp(200)
+        self.assertEqual(str(ts_nanos_only), "1970-01-01 00:00:00.000000200")
+
+        ts_nanos_micros = Timestamp(1200)
+        self.assertEqual(str(ts_nanos_micros), "1970-01-01 00:00:00.000001200")
+
+    def test_tz(self):
+        _skip_if_no_pytz()
+
+        import pytz
+
+        dt_date = datetime(2013, 1, 2, tzinfo=pytz.utc)
+        self.assertEqual(str(dt_date), str(Timestamp(dt_date)))
+
+        dt_datetime = datetime(2013, 1, 2, 12, 1, 3, tzinfo=pytz.utc)
+        self.assertEqual(str(dt_datetime), str(Timestamp(dt_datetime)))
+
+        dt_datetime_us = datetime(2013, 1, 2, 12, 1, 3, 45, tzinfo=pytz.utc)
+        self.assertEqual(str(dt_datetime_us), str(Timestamp(dt_datetime_us)))
 
 if __name__ == '__main__':
     import nose

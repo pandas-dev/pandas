@@ -76,6 +76,8 @@ Improvements to existing features
   - support ``dtypes`` on ``Panel``
   - extend ``Panel.apply`` to allow arbitrary functions (rather than only ufuncs) (:issue:`1148`)
     allow multiple axes to be used to operate on slabs of a ``Panel``
+  - The ``ArrayFormatter``s for ``datetime`` and ``timedelta64`` now intelligently
+    limit precision based on the values in the array (:issue:`3401`)
 
 .. _release.bug_fixes-0.13.1:
 
@@ -99,6 +101,8 @@ Bug Fixes
   - Bug in creating an empty DataFrame, copying, then assigning (:issue:`5932`)
   - Bug in DataFrame.tail with empty frame (:issue:`5846`)
   - Bug in propogating metadata on ``resample`` (:issue:`5862`)
+  - Fixed string-representation of ``NaT`` to be "NaT" (:issue:`5708`)
+  - Fixed string-representation for Timestamp to show nanoseconds if present (:issue:`5912`)
 
 pandas 0.13.0
 -------------
