@@ -439,39 +439,26 @@ def str_extract(arr, pat, flags=0):
 
     """
     regex = re.compile(pat, flags=flags)
-
     # just to be safe, check this
     if regex.groups == 0:
         raise ValueError("This pattern contains no groups to capture.")
-    elif regex.groups == 1:
-        def f(x):
-            if not isinstance(x, compat.string_types):
-                return None
-            m = regex.search(x)
-            if m:
-                return m.groups()[0]  # may be None
-            else:
-                return None
+    empty_row = [np.nan]*regex.groups
+    def f(x):
+        if not isinstance(x, compat.string_types):
+            return empty_row
+        m = regex.search(x)
+        if m:
+            return [np.nan if item is None else item for item in m.groups()]
+        else:
+            return empty_row
+    if regex.groups == 1:
+        result = Series([f(val)[0] for val in arr], name=regex.groupindex.get(1))
     else:
-        empty_row = Series(regex.groups * [None])
-
-        def f(x):
-            if not isinstance(x, compat.string_types):
-                return empty_row
-            m = regex.search(x)
-            if m:
-                return Series(list(m.groups()))  # may contain None
-            else:
-                return empty_row
-    result = arr.apply(f)
-    result.replace({None: np.nan}, inplace=True)
-    if regex.groups > 1:
-        result = DataFrame(result)  # Don't rely on the wrapper; name columns.
         names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))
-        result.columns = [names.get(1 + i, i) for i in range(regex.groups)]
-    else:
-        result.name = regex.groupindex.get(0)
+        columns = [names.get(1 + i, i) for i in range(regex.groups)]
+        result = DataFrame([f(val) for val in arr], columns=columns)
     return result
+
 
 
 def str_join(arr, sep):

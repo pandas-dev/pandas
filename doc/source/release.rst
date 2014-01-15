@@ -79,6 +79,7 @@ Improvements to existing features
     allow multiple axes to be used to operate on slabs of a ``Panel``
   - The ``ArrayFormatter``s for ``datetime`` and ``timedelta64`` now intelligently
     limit precision based on the values in the array (:issue:`3401`)
+  - perf improvements to Series.str.extract (:issue:`5944`)
 
 .. _release.bug_fixes-0.13.1:
 
