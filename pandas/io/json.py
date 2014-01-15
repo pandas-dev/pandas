@@ -10,7 +10,7 @@ from pandas.tslib import iNaT
 from pandas.compat import long, u
 from pandas import compat, isnull
 from pandas import Series, DataFrame, to_datetime
-from pandas.io.common import get_filepath_or_buffer
+from pandas.io.common import get_filepath_or_buffer, _create_string_file_reader
 import pandas.core.common as com
 
 loads = _json.loads
@@ -109,7 +109,7 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
 
     Parameters
     ----------
-    filepath_or_buffer : a valid JSON string or file-like
+    path_or_buffer : a valid file-like
         The string could be a URL. Valid URL schemes include http, ftp, s3, and
         file. For file URLs, a host is expected. For instance, a local file
         could be ``file://localhost/path/to/table.json``
@@ -171,25 +171,14 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     result : Series or DataFrame
     """
 
-    filepath_or_buffer, _ = get_filepath_or_buffer(path_or_buf)
-    if isinstance(filepath_or_buffer, compat.string_types):
-        try:
-            exists = os.path.exists(filepath_or_buffer)
-
-        # if the filepath is too long will raise here
-        # 5874
-        except (TypeError,ValueError):
-            exists = False
-
-        if exists:
-            with open(filepath_or_buffer, 'r') as fh:
-                json = fh.read()
-        else:
-            json = filepath_or_buffer
-    elif hasattr(filepath_or_buffer, 'read'):
-        json = filepath_or_buffer.read()
+    path_or_buffer, _ = get_filepath_or_buffer(path_or_buf)
+    if isinstance(path_or_buffer, compat.string_types):
+        with open(path_or_buffer, 'r') as fh:
+            json = fh.read()
+    elif hasattr(path_or_buffer, 'read'):
+        json = path_or_buffer.read()
     else:
-        json = filepath_or_buffer
+        raise ValueError("path_or_buffer must be a file or file-like buffer")
 
     obj = None
     if typ == 'frame':
@@ -206,6 +195,7 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
 
     return obj
 
+reads_json = _create_string_file_reader(read_json)
 
 class Parser(object):
 

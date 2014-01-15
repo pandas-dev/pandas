@@ -16,13 +16,13 @@ from pandas.tests.test_series import assert_series_equal
 from pandas.tests.test_frame import assert_frame_equal
 from pandas.tests.test_panel import assert_panel_equal
 
-import pandas
+import pandas as pd
 from pandas.sparse.tests.test_sparse import assert_sp_series_equal, assert_sp_frame_equal
 from pandas import Timestamp, tslib
 
 nan = np.nan
 
-from pandas.io.packers import to_msgpack, read_msgpack
+from pandas.io.packers import to_msgpack, read_msgpack, reads_msgpack
 
 _multiprocess_can_split_ = False
 
@@ -62,19 +62,19 @@ class TestAPI(TestPackers):
 
         df = DataFrame(np.random.randn(10,2))
         s = df.to_msgpack(None)
-        result = read_msgpack(s)
+        result = reads_msgpack(s)
         tm.assert_frame_equal(result,df)
 
         s = df.to_msgpack()
-        result = read_msgpack(s)
+        result = reads_msgpack(s)
         tm.assert_frame_equal(result,df)
 
         s = df.to_msgpack()
-        result = read_msgpack(compat.BytesIO(s))
+        result = reads_msgpack(compat.BytesIO(s))
         tm.assert_frame_equal(result,df)
 
         s = to_msgpack(None,df)
-        result = read_msgpack(s)
+        result = reads_msgpack(s)
         tm.assert_frame_equal(result, df)
 
         with ensure_clean(self.path) as p:
@@ -90,7 +90,7 @@ class TestAPI(TestPackers):
 
         dfs = [ DataFrame(np.random.randn(10,2)) for i in range(5) ]
         s = to_msgpack(None,*dfs)
-        for i, result in enumerate(read_msgpack(s,iterator=True)):
+        for i, result in enumerate(reads_msgpack(s,iterator=True)):
             tm.assert_frame_equal(result,dfs[i])
 
 class TestNumpy(TestPackers):

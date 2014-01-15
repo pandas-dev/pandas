@@ -15,7 +15,7 @@ import datetime
 import pandas.core.common as com
 from pandas.core.config import get_option
 from pandas.io.date_converters import generic_parser
-from pandas.io.common import get_filepath_or_buffer
+from pandas.io.common import get_filepath_or_buffer, _create_string_file_reader
 
 from pandas.util.decorators import Appender
 
@@ -417,6 +417,7 @@ def _make_parser_function(name, sep=','):
 
 read_csv = _make_parser_function('read_csv', sep=',')
 read_csv = Appender(_read_csv_doc)(read_csv)
+reads_csv = _create_string_file_reader(read_csv)
 
 read_table = _make_parser_function('read_table', sep='\t')
 read_table = Appender(_read_table_doc)(read_table)

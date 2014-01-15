@@ -6,7 +6,7 @@ from contextlib import contextmanager, closing
 
 from pandas.compat import StringIO
 from pandas import compat
-
+from functools import wraps
 
 if compat.PY3:
     from urllib.request import urlopen, pathname2url
@@ -45,6 +45,37 @@ class PerformanceWarning(Warning):
 class DtypeWarning(Warning):
     pass
 
+def _create_string_file_reader(func):
+    """
+    create and return a new function that takes string input and
+    passed to a file-like reader function,
+    e.g. read_json
+
+    Parameters
+    ----------
+    func : the function with a file-like interface
+
+    Returns
+    -------
+    new function that transform input to file-like
+    """
+
+    @wraps(func)
+    def f(path_or_buf, *args, **kwargs):
+        if  not hasattr(path_or_buf,'read'):
+            if isinstance(path_or_buf, compat.string_types):
+                path_or_buf = StringIO(path_or_buf)
+            elif isinstance(path_or_buf, compat.binary_type):
+                path_or_buf = compat.BytesIO(path_or_buf)
+            try:
+                return func(path_or_buf, *args, **kwargs)
+            finally:
+                if not ('iterator' in kwargs or 'chunksize' in kwargs):
+                    path_or_buf.close()
+
+        return func(path_or_buf, *args, **kwargs)
+
+    return f
 
 def _is_url(url):
     """Check to see if a URL has a valid protocol.
