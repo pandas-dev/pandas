@@ -99,7 +99,7 @@ this:
 .. ipython:: python
 
    s = pd.Series(np.arange(5),dtype=np.float32)
-   s.apply(lambda x: [2, 4].index(x) if x in [2,4] else np.nan)
+   Series(pd.match(s,[2,4],np.nan))
 
 For more details and examples see :ref:`the reshaping documentation
 <indexing.basics.indexing_isin>`.
