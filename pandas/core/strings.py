@@ -148,7 +148,7 @@ def str_count(arr, pat, flags=0):
     return _na_map(f, arr)
 
 
-def str_contains(arr, pat, case=True, flags=0, na=np.nan):
+def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
     """
     Check whether given pattern is contained in each string in the array
 
@@ -161,7 +161,9 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan):
     flags : int, default 0 (no flags)
         re module flags, e.g. re.IGNORECASE
     na : default NaN, fill value for missing values.
-
+    regex : bool, default True
+        If True use re.search, otherwise use Python in operator
+        
     Returns
     -------
     Series of boolean values
@@ -171,17 +173,21 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan):
     match : analagous, but stricter, relying on re.match instead of re.search
 
     """
-    if not case:
-        flags |= re.IGNORECASE
+    if regex:
+        if not case:
+            flags |= re.IGNORECASE
 
-    regex = re.compile(pat, flags=flags)
+        regex = re.compile(pat, flags=flags)
 
-    if regex.groups > 0:
-        warnings.warn("This pattern has match groups. To actually get the"
-                      " groups, use str.extract.", UserWarning)
+        if regex.groups > 0:
+            warnings.warn("This pattern has match groups. To actually get the"
+                          " groups, use str.extract.", UserWarning)
 
-    f = lambda x: bool(regex.search(x))
+        f = lambda x: bool(regex.search(x))
+    else:
+        f = lambda x: pat in x
     return _na_map(f, arr, na)
+        
 
 
 def str_startswith(arr, pat, na=np.nan):
@@ -816,11 +822,13 @@ class StringMethods(object):
             g = self.get(i)
 
     def _wrap_result(self, result):
-        assert result.ndim < 3
-        if result.ndim == 1:
+        if not hasattr(result, 'ndim'):
+            return result
+        elif result.ndim == 1:
             return Series(result, index=self.series.index,
                           name=self.series.name)
         else:
+            assert result.ndim < 3
             return DataFrame(result, index=self.series.index)
 
     @copy(str_cat)
@@ -844,11 +852,11 @@ class StringMethods(object):
         return self._wrap_result(result)
 
     @copy(str_contains)
-    def contains(self, pat, case=True, flags=0, na=np.nan):
+    def contains(self, pat, case=True, flags=0, na=np.nan, regex=True):
         result = str_contains(self.series, pat, case=case, flags=flags,
-                              na=na)
+                              na=na, regex=regex)
         return self._wrap_result(result)
-
+            
     @copy(str_replace)
     def replace(self, pat, repl, n=-1, case=True, flags=0):
         result = str_replace(self.series, pat, repl, n=n, case=case,
