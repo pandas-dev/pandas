@@ -17,8 +17,10 @@ from pandas.core.indexing import _maybe_droplevels, _is_list_like
 from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_arrays,
                                    create_block_manager_from_blocks)
+from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame, _shared_docs
+from pandas.tools.util import cartesian_product
 from pandas import compat
 from pandas.util.decorators import deprecate, Appender, Substitution
 import pandas.core.common as com
@@ -333,25 +335,33 @@ class Panel(NDFrame):
             [class_name, dims] + [axis_pretty(a) for a in self._AXIS_ORDERS])
         return output
 
+    def _get_plane_axes_index(self, axis):
+        """
+        Get my plane axes indexes: these are already
+        (as compared with higher level planes),
+        as we are returning a DataFrame axes indexes
+        """
+        axis_name = self._get_axis_name(axis)
+
+        if axis_name == 'major_axis':
+            index = 'minor_axis'
+            columns = 'items'
+        if axis_name == 'minor_axis':
+            index = 'major_axis'
+            columns = 'items'
+        elif axis_name == 'items':
+            index = 'major_axis'
+            columns = 'minor_axis'
+
+        return index, columns
+
     def _get_plane_axes(self, axis):
         """
-        Get my plane axes: these are already
+        Get my plane axes indexes: these are already
         (as compared with higher level planes),
         as we are returning a DataFrame axes
         """
-        axis = self._get_axis_name(axis)
-
-        if axis == 'major_axis':
-            index = self.minor_axis
-            columns = self.items
-        if axis == 'minor_axis':
-            index = self.major_axis
-            columns = self.items
-        elif axis == 'items':
-            index = self.major_axis
-            columns = self.minor_axis
-
-        return index, columns
+        return [ self._get_axis(axi) for axi in self._get_plane_axes_index(axis) ]
 
     fromDict = from_dict
 
@@ -430,6 +440,10 @@ class Panel(NDFrame):
     def as_matrix(self):
         self._consolidate_inplace()
         return self._data.as_matrix()
+
+    @property
+    def dtypes(self):
+        return self.apply(lambda x: x.dtype, axis='items')
 
     #----------------------------------------------------------------------
     # Getting and setting elements
@@ -827,25 +841,138 @@ class Panel(NDFrame):
     to_long = deprecate('to_long', to_frame)
     toLong = deprecate('toLong', to_frame)
 
-    def apply(self, func, axis='major'):
+    def apply(self, func, axis='major', **kwargs):
         """
-        Apply
+        Applies function along input axis of the Panel
 
         Parameters
         ----------
-        func : numpy function
-            Signature should match numpy.{sum, mean, var, std} etc.
+        func : function
+            Function to apply to each combination of 'other' axes
+            e.g. if axis = 'items', then the combination of major_axis/minor_axis
+            will be passed a Series
         axis : {'major', 'minor', 'items'}
-        fill_value : boolean, default True
-            Replace NaN values with specified first
+        Additional keyword arguments will be passed as keywords to the function
+
+        Examples
+        --------
+        >>> p.apply(numpy.sqrt) # returns a Panel
+        >>> p.apply(lambda x: x.sum(), axis=0) # equiv to p.sum(0)
+        >>> p.apply(lambda x: x.sum(), axis=1) # equiv to p.sum(1)
+        >>> p.apply(lambda x: x.sum(), axis=2) # equiv to p.sum(2)
 
         Returns
         -------
-        result : DataFrame or Panel
+        result : Pandas Object
         """
-        i = self._get_axis_number(axis)
-        result = np.apply_along_axis(func, i, self.values)
-        return self._wrap_result(result, axis=axis)
+
+        if kwargs and not isinstance(func, np.ufunc):
+            f = lambda x: func(x, **kwargs)
+        else:
+            f = func
+
+        # 2d-slabs
+        if isinstance(axis, (tuple,list)) and len(axis) == 2:
+            return self._apply_2d(f, axis=axis)
+
+        axis = self._get_axis_number(axis)
+
+        # try ufunc like
+        if isinstance(f, np.ufunc):
+            try:
+                result = np.apply_along_axis(func, axis, self.values)
+                return self._wrap_result(result, axis=axis)
+            except (AttributeError):
+                pass
+
+        # 1d
+        return self._apply_1d(f, axis=axis)
+
+    def _apply_1d(self, func, axis):
+
+        axis_name = self._get_axis_name(axis)
+        ax = self._get_axis(axis)
+        ndim = self.ndim
+        values = self.values
+
+        # iter thru the axes
+        slice_axis = self._get_axis(axis)
+        slice_indexer = [0]*(ndim-1)
+        indexer = np.zeros(ndim, 'O')
+        indlist = list(range(ndim))
+        indlist.remove(axis)
+        indexer[axis] = slice(None, None)
+        indexer.put(indlist, slice_indexer)
+        planes = [ self._get_axis(axi) for axi in indlist ]
+        shape = np.array(self.shape).take(indlist)
+
+        # all the iteration points
+        points = cartesian_product(planes)
+
+        results = []
+        for i in range(np.prod(shape)):
+
+            # construct the object
+            pts = tuple([ p[i] for p in points ])
+            indexer.put(indlist, slice_indexer)
+
+            obj = Series(values[tuple(indexer)],index=slice_axis,name=pts)
+            result = func(obj)
+
+            results.append(result)
+
+            # increment the indexer
+            slice_indexer[-1] += 1
+            n = -1
+            while (slice_indexer[n] >= shape[n]) and (n > (1-ndim)):
+                slice_indexer[n-1] += 1
+                slice_indexer[n] = 0
+                n -= 1
+
+        # empty object
+        if not len(results):
+            return self._constructor(**self._construct_axes_dict())
+
+        # same ndim as current
+        if isinstance(results[0],Series):
+            arr = np.vstack([ r.values for r in results ])
+            arr = arr.T.reshape(tuple([len(slice_axis)] + list(shape)))
+            tranp = np.array([axis]+indlist).argsort()
+            arr = arr.transpose(tuple(list(tranp)))
+            return self._constructor(arr,**self._construct_axes_dict())
+
+        # ndim-1 shape
+        results = np.array(results).reshape(shape)
+        if results.ndim == 2 and axis_name != self._info_axis_name:
+            results = results.T
+            planes = planes[::-1]
+        return self._construct_return_type(results,planes)
+
+    def _apply_2d(self, func, axis):
+        """ handle 2-d slices, equiv to iterating over the other axis """
+
+        ndim = self.ndim
+        axis = [ self._get_axis_number(a) for a in axis ]
+
+        # construct slabs, in 2-d this is a DataFrame result
+        indexer_axis = list(range(ndim))
+        for a in axis:
+            indexer_axis.remove(a)
+        indexer_axis = indexer_axis[0]
+
+        slicer = [ slice(None,None) ] * ndim
+        ax = self._get_axis(indexer_axis)
+
+        results = []
+        for i, e in enumerate(ax):
+
+            slicer[indexer_axis] = i
+            sliced = self.iloc[tuple(slicer)]
+
+            obj = func(sliced)
+            results.append((e,obj))
+
+        return self._construct_return_type(dict(results))
 
     def _reduce(self, op, axis=0, skipna=True, numeric_only=None,
                 filter_type=None, **kwds):
@@ -863,13 +990,33 @@ class Panel(NDFrame):
 
     def _construct_return_type(self, result, axes=None, **kwargs):
         """ return the type for the ndim of the result """
-        ndim = result.ndim
-        if self.ndim == ndim:
+        ndim = getattr(result,'ndim',None)
+
+        # need to assume they are the same
+        if ndim is None:
+            if isinstance(result,dict):
+                ndim = getattr(list(compat.itervalues(result))[0],'ndim',None)
+
+                # a saclar result
+                if ndim is None:
+                    ndim = 0
+
+                # have a dict, so top-level is +1 dim
+                else:
+                    ndim += 1
+
+        # scalar
+        if ndim == 0:
+            return Series(result)
+
+        # same as self
+        elif self.ndim == ndim:
             """ return the construction dictionary for these axes """
             if axes is None:
                 return self._constructor(result)
             return self._constructor(result, **self._construct_axes_dict())
 
+        # sliced
         elif self.ndim == ndim + 1:
             if axes is None:
                 return self._constructor_sliced(result)
@@ -877,7 +1024,7 @@ class Panel(NDFrame):
                 result, **self._extract_axes_for_slice(self, axes))
 
         raise PandasError('invalid _construct_return_type [self->%s] '
-                          '[result->%s]' % (self.ndim, result.ndim))
+                          '[result->%s]' % (self, result))
 
     def _wrap_result(self, result, axis):
         axis = self._get_axis_name(axis)

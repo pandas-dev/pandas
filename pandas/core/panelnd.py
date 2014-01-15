@@ -56,9 +56,10 @@ def create_nd_panel_factory(klass_name, orders, slices, slicer, aliases=None,
         self._init_data(*args, **kwargs)
     klass.__init__ = __init__
 
-    def _get_plane_axes(self, axis):
+    def _get_plane_axes_index(self, axis):
+        """ return the sliced index for this object """
 
-        axis = self._get_axis_name(axis)
+        axis_name = self._get_axis_name(axis)
         index = self._AXIS_ORDERS.index(axis)
 
         planes = []
@@ -67,8 +68,8 @@ def create_nd_panel_factory(klass_name, orders, slices, slicer, aliases=None,
         if index != self._AXIS_LEN:
             planes.extend(self._AXIS_ORDERS[index + 1:])
 
-        return [getattr(self, p) for p in planes]
-    klass._get_plane_axes = _get_plane_axes
+        return planes
+    klass._get_plane_axes_index = _get_plane_axes_index
 
     def _combine(self, other, func, axis=0):
         if isinstance(other, klass):

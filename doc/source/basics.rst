@@ -637,6 +637,81 @@ to :ref:`merging/joining functionality <merging>`:
    s
    s.map(t)
 
+
+.. _basics.apply_panel:
+
+Applying with a Panel
+~~~~~~~~~~~~~~~~~~~~~
+
+Applying with a ``Panel`` will pass a ``Series`` to the applied function. If the applied
+function returns a ``Series``, the result of the application will be a ``Panel``. If the applied function
+reduces to a scalar, the result of the application will be a ``DataFrame``.
+
+.. note::
+
+   Prior to 0.13.1 ``apply`` on a ``Panel`` would only work on ``ufuncs`` (e.g. ``np.sum/np.max``).
+
+.. ipython:: python
+
+   import pandas.util.testing as tm
+   panel = tm.makePanel(5)
+   panel
+   panel['ItemA']
+
+A transformational apply.
+
+.. ipython:: python
+
+   result = panel.apply(lambda x: x*2, axis='items')
+   result
+   result['ItemA']
+
+A reduction operation.
+
+.. ipython:: python
+
+   panel.apply(lambda x: x.dtype, axis='items')
+
+A similar reduction type operation
+
+.. ipython:: python
+
+   panel.apply(lambda x: x.sum(), axis='major_axis')
+
+This last reduction is equivalent to
+
+.. ipython:: python
+
+   panel.sum('major_axis')
+
+A transformation operation that returns a ``Panel``, but is computing
+the z-score across the ``major_axis``.
+
+.. ipython:: python
+
+   result = panel.apply(lambda x: (x-x.mean())/x.std(), axis='major_axis')
+   result
+   result['ItemA']
+
+Apply can also accept multiple axes in the ``axis`` argument. This will pass a
+``DataFrame`` of the cross-section to the applied function.
+
+.. ipython:: python
+
+   f = lambda x: (x-x.mean(1)/x.std(1))
+
+   result = panel.apply(f, axis = ['items','major_axis'])
+   result
+   result.loc[:,:,'ItemA']
+
+This is equivalent to the following
+
+.. ipython:: python
+
+   result = Panel(dict([ (ax,f(panel.loc[:,:,ax])) for ax in panel.minor_axis ]))
+   result
+   result.loc[:,:,'ItemA']
+
 .. _basics.reindexing:
 
 Reindexing and altering labels
@@ -1066,7 +1141,7 @@ or match a pattern:
 
    Series(['1', '2', '3a', '3b', '03c']).str.match(pattern, as_indexer=True)
 
-The distinction between ``match`` and ``contains`` is strictness: ``match`` 
+The distinction between ``match`` and ``contains`` is strictness: ``match``
 relies on strict ``re.match``, while ``contains`` relies on ``re.search``.
 
 .. warning::
@@ -1078,7 +1153,7 @@ relies on strict ``re.match``, while ``contains`` relies on ``re.search``.
    This old, deprecated behavior of ``match`` is still the default. As
    demonstrated above, use the new behavior by setting ``as_indexer=True``.
    In this mode, ``match`` is analagous to ``contains``, returning a boolean
-   Series. The new behavior will become the default behavior in a future 
+   Series. The new behavior will become the default behavior in a future
    release.
 
 Methods like ``match``, ``contains``, ``startswith``, and ``endswith`` take

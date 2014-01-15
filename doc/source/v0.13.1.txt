@@ -29,6 +29,60 @@ Deprecations
 Enhancements
 ~~~~~~~~~~~~
 
+- ``Panel.apply`` will work on non-ufuncs. See :ref:`the docs<basics.apply_panel>`.
+
+  .. ipython:: python
+
+     import pandas.util.testing as tm
+     panel = tm.makePanel(5)
+     panel
+     panel['ItemA']
+
+  Specifying an ``apply`` that operates on a Series (to return a single element)
+
+  .. ipython:: python
+
+     panel.apply(lambda x: x.dtype, axis='items')
+
+  A similar reduction type operation
+
+  .. ipython:: python
+
+     panel.apply(lambda x: x.sum(), axis='major_axis')
+
+  This is equivalent to
+
+  .. ipython:: python
+
+     panel.sum('major_axis')
+
+  A transformation operation that returns a Panel, but is computing
+  the z-score across the major_axis
+
+  .. ipython:: python
+
+     result = panel.apply(lambda x: (x-x.mean())/x.std(), axis='major_axis')
+     result
+     result['ItemA']
+
+- ``Panel.apply`` operating on cross-sectional slabs. (:issue:`1148`)
+
+  .. ipython:: python
+
+     f = lambda x: (x-x.mean(1)/x.std(1))
+
+     result = panel.apply(f, axis = ['items','major_axis'])
+     result
+     result.loc[:,:,'ItemA']
+
+  This is equivalent to the following
+
+  .. ipython:: python
+
+     result = Panel(dict([ (ax,f(panel.loc[:,:,ax])) for ax in panel.minor_axis ]))
+     result
+     result.loc[:,:,'ItemA']
+
 Experimental
 ~~~~~~~~~~~~
 
