@@ -72,6 +72,7 @@ Improvements to existing features
   - df.info() view now display dtype info per column (:issue: `5682`)
   - perf improvements in DataFrame ``count/dropna`` for ``axis=1``
   - Series.str.contains now has a `regex=False` keyword which can be faster for plain (non-regex) string patterns. (:issue: `5879`)
+  - DataFrame.head(0) returns self instead of empty frame (:issue:`5846`)
 
 Bug Fixes
 ~~~~~~~~~
@@ -91,6 +92,7 @@ Bug Fixes
   - Bug in ``BusinessDay`` when adding n days to a date not on offset when n>5 and n%5==0 (:issue:`5890`)
   - Bug in assigning to chained series with a series via ix (:issue:`5928`)
   - Bug in creating an empty DataFrame, copying, then assigning (:issue:`5932`)
+  - Bug in DataFrame.tail with empty frame (:issue:`5846`)
 
 pandas 0.13.0
 -------------

@@ -338,7 +338,7 @@ class Generic(object):
             self._compare(o.tail(), o.iloc[-5:])
 
             # 0-len
-            self._compare(o.head(0), o.iloc[:0])
+            self._compare(o.head(0), o.iloc[:])
             self._compare(o.tail(0), o.iloc[0:])
 
             # bounded
