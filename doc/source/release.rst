@@ -91,6 +91,8 @@ Bug Fixes
   - Bug in ``BusinessDay`` when adding n days to a date not on offset when n>5 and n%5==0 (:issue:`5890`)
   - Bug in assigning to chained series with a series via ix (:issue:`5928`)
   - Bug in creating an empty DataFrame, copying, then assigning (:issue:`5932`)
+  - Bug in DataFrame.tail with empty frame (:issue:`5846`)
+  - DataFrame.head(0) returns self instead of empty frame (:issue:`5846`)
 
 pandas 0.13.0
 -------------

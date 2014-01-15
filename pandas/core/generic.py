@@ -1570,8 +1570,12 @@ class NDFrame(PandasObject):
         Returns first n rows
         """
         l = len(self)
-        if abs(n) > l:
-            n = l if n > 0 else -l
+        if l == 0 or n==0:
+            return self
+        if n > l:
+            n = l
+        elif n < -l:
+            n = -l
         return self.iloc[:n]
 
     def tail(self, n=5):
@@ -1579,8 +1583,12 @@ class NDFrame(PandasObject):
         Returns last n rows
         """
         l = len(self)
-        if abs(n) > l:
-            n = l if n > 0 else -l
+        if l == 0 or n == 0:
+            return self
+        if n > l:
+            n = l
+        elif n < -l:
+            n = -l
         return self.iloc[-n:]
 
     #----------------------------------------------------------------------
