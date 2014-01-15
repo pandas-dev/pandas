@@ -124,7 +124,11 @@ def read_msgpack(path_or_buf, iterator=False, **kwargs):
 
     Parameters
     ----------
-    path_or_buf : string File path, BytesIO like or string
+    path_or_buf : a url, filepath or BytesIO like
+
+                  Note: read_msgpack no longer directly accepts an str/bytes object
+                  as input, If required, wrap it in a BytesIO call.
+
     iterator : boolean, if True, return an iterator to the unpacker
                (default is False)
 
@@ -145,24 +149,8 @@ def read_msgpack(path_or_buf, iterator=False, **kwargs):
 
     # see if we have an actual file
     if isinstance(path_or_buf, compat.string_types):
-
-        try:
-            exists = os.path.exists(path_or_buf)
-        except (TypeError,ValueError):
-            exists = False
-
-        if exists:
-            with open(path_or_buf, 'rb') as fh:
-                return read(fh)
-
-    # treat as a string-like
-    if not hasattr(path_or_buf, 'read'):
-
-        try:
-            fh = compat.BytesIO(path_or_buf)
-            return read(fh)
-        finally:
-            fh.close()
+        if not os.path.exists(path_or_buf):
+            raise ValueError("path_or_buf must be a a url, filepath or BytesIO like.")
 
     # a buffer like
     return read(path_or_buf)

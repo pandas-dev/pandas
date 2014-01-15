@@ -109,10 +109,13 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
 
     Parameters
     ----------
-    filepath_or_buffer : a valid JSON string or file-like
-        The string could be a URL. Valid URL schemes include http, ftp, s3, and
+    path_or_buf : a url, filepath or file-like/StringIO
+        Valid URL schemes include http, ftp, s3, and
         file. For file URLs, a host is expected. For instance, a local file
         could be ``file://localhost/path/to/table.json``
+
+        Note: read_json no longer directly accepts a json string as input,
+              If required, wrap it in a BytesIO/StringIO call.
 
     orient
 
@@ -171,25 +174,17 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     result : Series or DataFrame
     """
 
-    filepath_or_buffer, _ = get_filepath_or_buffer(path_or_buf)
-    if isinstance(filepath_or_buffer, compat.string_types):
-        try:
-            exists = os.path.exists(filepath_or_buffer)
-
-        # if the filepath is too long will raise here
-        # 5874
-        except (TypeError,ValueError):
-            exists = False
-
-        if exists:
-            with open(filepath_or_buffer, 'r') as fh:
+    io, _ = get_filepath_or_buffer(path_or_buf)
+    if isinstance(io, compat.string_types):
+        if os.path.exists(io):
+            with open(io, 'r') as fh:
                 json = fh.read()
         else:
-            json = filepath_or_buffer
-    elif hasattr(filepath_or_buffer, 'read'):
-        json = filepath_or_buffer.read()
+            json = io
+    elif hasattr(io, 'read'):
+        json = io.read()
     else:
-        json = filepath_or_buffer
+        raise ValueError("path_or_buf must be a a url, filepath or file-like/StringIO")
 
     obj = None
     if typ == 'frame':
