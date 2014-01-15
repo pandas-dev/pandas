@@ -54,19 +54,19 @@ class TestPackers(tm.TestCase):
     def encode_decode(self, x, **kwargs):
         with ensure_clean(self.path) as p:
             to_msgpack(p, x, **kwargs)
-            return read_msgpack(p, **kwargs)
+            with open(p, "rb") as f:
+                return read_msgpack(f, **kwargs)
 
 class TestAPI(TestPackers):
 
     def test_string_io(self):
-
         df = DataFrame(np.random.randn(10,2))
         s = df.to_msgpack(None)
-        result = read_msgpack(s)
+        result = read_msgpack(compat.BytesIO(s))
         tm.assert_frame_equal(result,df)
 
         s = df.to_msgpack()
-        result = read_msgpack(s)
+        result = read_msgpack(compat.BytesIO(s))
         tm.assert_frame_equal(result,df)
 
         s = df.to_msgpack()
@@ -74,7 +74,7 @@ class TestAPI(TestPackers):
         tm.assert_frame_equal(result,df)
 
         s = to_msgpack(None,df)
-        result = read_msgpack(s)
+        result = read_msgpack(compat.BytesIO(s))
         tm.assert_frame_equal(result, df)
 
         with ensure_clean(self.path) as p:
@@ -83,7 +83,8 @@ class TestAPI(TestPackers):
             fh = open(p,'wb')
             fh.write(s)
             fh.close()
-            result = read_msgpack(p)
+            with open(p) as f:
+                result = read_msgpack(f)
             tm.assert_frame_equal(result, df)
 
     def test_iterator_with_string_io(self):
