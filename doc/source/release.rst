@@ -95,6 +95,7 @@ Bug Fixes
   - Bug in assigning to chained series with a series via ix (:issue:`5928`)
   - Bug in creating an empty DataFrame, copying, then assigning (:issue:`5932`)
   - Bug in DataFrame.tail with empty frame (:issue:`5846`)
+  - Bug in propogating metadata on ``resample`` (:issue:`5862`)
 
 pandas 0.13.0
 -------------

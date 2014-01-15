@@ -2562,7 +2562,7 @@ class NDFrame(PandasObject):
                               axis=axis, kind=kind, loffset=loffset,
                               fill_method=fill_method, convention=convention,
                               limit=limit, base=base)
-        return sampler.resample(self)
+        return sampler.resample(self).__finalize__(self)
 
     def first(self, offset):
         """
