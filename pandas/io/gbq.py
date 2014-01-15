@@ -13,8 +13,9 @@ from distutils.version import LooseVersion
 import pandas as pd
 import numpy as np
 
-from pandas import DataFrame, concat
 from pandas.core.common import PandasError
+from pandas.core.frame import DataFrame
+from pandas.tools.merge import concat
 
 try:
     import bq
