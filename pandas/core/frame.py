@@ -1419,20 +1419,35 @@ class DataFrame(NDFrame):
             max_cols = get_option(
                 'display.max_info_columns', len(self.columns) + 1)
 
-        if verbose and len(self.columns) <= max_cols:
+        max_rows = get_option('display.max_info_rows', len(self) + 1)
+
+        show_counts = ((len(self.columns) <= max_cols) and
+                         (len(self) < max_rows))
+        if verbose:
             lines.append('Data columns (total %d columns):' %
                          len(self.columns))
             space = max([len(com.pprint_thing(k)) for k in self.columns]) + 4
-            counts = self.count()
-            if len(cols) != len(counts):  # pragma: no cover
-                raise AssertionError('Columns must equal counts (%d != %d)' %
-                                     (len(cols), len(counts)))
+            counts = None
+
+            tmpl = "%s%s"
+            if show_counts:
+                counts = self.count()
+                if len(cols) != len(counts):  # pragma: no cover
+                    raise AssertionError('Columns must equal counts (%d != %d)' %
+                                         (len(cols), len(counts)))
+                tmpl =  "%s non-null %s"
+
             dtypes = self.dtypes
-            for col, count in compat.iteritems(counts):
+            for i, col in enumerate(self.columns):
                 dtype = dtypes[col]
                 col = com.pprint_thing(col)
+
+                count= ""
+                if show_counts:
+                    count = counts[i]
+
                 lines.append(_put_str(col, space) +
-                             '%d non-null %s' % (count, dtype))
+                             tmpl % (count, dtype))
         else:
             lines.append(self.columns.summary(name='Columns'))
 
