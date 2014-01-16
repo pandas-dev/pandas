@@ -741,6 +741,50 @@ class TestMoments(tm.TestCase):
         for i in result.items:
             assert_almost_equal(result[i], rolling_result[i])
 
+    def test_rolling_skew_edge_cases(self):
+
+        all_nan = Series([np.NaN] * 5)
+
+        # yields all NaN (0 variance)
+        d = Series([1] * 5)
+        x = mom.rolling_skew(d, window=5)
+        assert_series_equal(all_nan, x)
+
+        # yields all NaN (window too small)
+        d = Series(np.random.randn(5))
+        x = mom.rolling_skew(d, window=2)
+        assert_series_equal(all_nan, x)
+
+        # yields [NaN, NaN, NaN, 0.177994, 1.548824]
+        d = Series([-1.50837035, -0.1297039 ,  0.19501095,
+                       1.73508164,  0.41941401])
+        expected = Series([np.NaN, np.NaN, np.NaN,
+                              0.177994, 1.548824])
+        x = mom.rolling_skew(d, window=4)
+        assert_series_equal(expected, x)
+
+    def test_rolling_kurt_edge_cases(self):
+
+        all_nan = Series([np.NaN] * 5)
+
+        # yields all NaN (0 variance)
+        d = Series([1] * 5)
+        x = mom.rolling_kurt(d, window=5)
+        assert_series_equal(all_nan, x)
+
+        # yields all NaN (window too small)
+        d = Series(np.random.randn(5))
+        x = mom.rolling_kurt(d, window=3)
+        assert_series_equal(all_nan, x)
+
+        # yields [NaN, NaN, NaN, 1.224307, 2.671499]
+        d = Series([-1.50837035, -0.1297039 ,  0.19501095,
+                    1.73508164,  0.41941401])
+        expected = Series([np.NaN, np.NaN, np.NaN,
+                           1.224307, 2.671499])
+        x = mom.rolling_kurt(d, window=4)
+        assert_series_equal(expected, x)
+
     def _check_expanding_ndarray(self, func, static_comp, has_min_periods=True,
                                  has_time_rule=True, preserve_nan=True):
         result = func(self.arr)
