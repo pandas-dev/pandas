@@ -243,3 +243,29 @@ Benchmark('index.tz_localize("US/Eastern", infer_dst=True)',
           setup, start_date=datetime(2013, 9, 30))
 
 
+#----------------------------------------------------------------------
+# Resampling: fast-path various functions
+
+setup = common_setup + """
+rng = date_range('20130101',periods=100000,freq='50L')
+df = DataFrame(np.random.randn(100000,2),index=rng)
+"""
+
+dataframe_resample_mean_string = \
+    Benchmark("df.resample('1s', how='mean')", setup)
+
+dataframe_resample_mean_numpy = \
+    Benchmark("df.resample('1s', how=np.mean)", setup)
+
+dataframe_resample_min_string = \
+    Benchmark("df.resample('1s', how='min')", setup)
+
+dataframe_resample_min_numpy = \
+    Benchmark("df.resample('1s', how=np.min)", setup)
+
+dataframe_resample_max_string = \
+    Benchmark("df.resample('1s', how='max')", setup)
+
+dataframe_resample_max_numpy = \
+    Benchmark("df.resample('1s', how=np.max)", setup)
+
