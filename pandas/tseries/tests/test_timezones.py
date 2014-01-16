@@ -10,7 +10,7 @@ import pytz
 from pandas import (Index, Series, TimeSeries, DataFrame, isnull,
                     date_range, Timestamp)
 
-from pandas import DatetimeIndex, Int64Index, to_datetime
+from pandas import DatetimeIndex, Int64Index, to_datetime, NaT
 
 from pandas.core.daterange import DateRange
 import pandas.core.datetools as datetools
@@ -670,6 +670,12 @@ class TestTimeZoneSupport(tm.TestCase):
 
         for other in [idx2, idx3, idx4]:
             self.assert_(idx1.equals(other))
+
+    def test_datetimeindex_tz_nat(self):
+        idx = to_datetime([Timestamp("2013-1-1", tz='US/Eastern'), NaT])
+
+        self.assertTrue(isnull(idx[1]))
+        self.assertTrue(idx[0].tzinfo is not None)
 
 
 class TestTimeZones(tm.TestCase):

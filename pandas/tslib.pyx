@@ -933,7 +933,7 @@ def datetime_to_datetime64(ndarray[object] values):
     iresult = result.view('i8')
     for i in range(n):
         val = values[i]
-        if util._checknull(val):
+        if util._checknull(val) or val is NaT:
             iresult[i] = iNaT
         elif PyDateTime_Check(val):
             if val.tzinfo is not None:
