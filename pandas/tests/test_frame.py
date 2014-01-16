@@ -6043,8 +6043,6 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         io = StringIO()
         df = DataFrame(np.random.randn(5, 101))
         df.info(buf=io)
-        rs = io.getvalue()
-        self.assert_(len(rs.splitlines()) == 4)
 
         io = StringIO()
         df.info(buf=io, max_cols=101)
