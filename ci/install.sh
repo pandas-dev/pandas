@@ -96,6 +96,8 @@ fi
 
 
 # build and install pandas
-time python setup.py build_ext install
+time python setup.py sdist
+pip uninstall cython -y
+time pip install $(find dist | grep gz | head -n 1)
 
 true
