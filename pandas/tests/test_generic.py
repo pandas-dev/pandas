@@ -587,6 +587,13 @@ class TestSeries(tm.TestCase, Generic):
         with tm.assertRaises(ValueError):
             s.interpolate(method='krogh')
 
+    def test_interp_datetime64(self):
+        _skip_if_no_scipy()
+        df = Series([1, np.nan, 3], index=date_range('1/1/2000', periods=3))
+        result = df.interpolate(method='nearest')
+        expected = Series([1, 1, 3], index=date_range('1/1/2000', periods=3))
+        assert_series_equal(result, expected)
+
 class TestDataFrame(tm.TestCase, Generic):
     _typ = DataFrame
     _comparator = lambda self, x, y: assert_frame_equal(x,y)

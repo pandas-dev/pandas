@@ -1401,6 +1401,7 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
     """
     try:
         from scipy import interpolate
+        from pandas import DatetimeIndex
     except ImportError:
         raise ImportError('{0} interpolation requires Scipy'.format(method))
 
@@ -1412,6 +1413,10 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
         'krogh': interpolate.krogh_interpolate,
         'piecewise_polynomial': interpolate.piecewise_polynomial_interpolate,
     }
+
+    if hasattr(x, 'asi8'):
+        # GH 5975, scipy.interp1d can't hande datetime64s
+        x, new_x = x.values.view('i8'), new_x.view('i8')
 
     try:
         alt_methods['pchip'] = interpolate.pchip_interpolate
