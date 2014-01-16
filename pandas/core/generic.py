@@ -1748,14 +1748,26 @@ class NDFrame(PandasObject):
         return self.as_matrix()
 
     def get_dtype_counts(self):
-        """ return the counts of dtypes in this frame """
+        """ return the counts of dtypes in this object """
         from pandas import Series
         return Series(self._data.get_dtype_counts())
 
     def get_ftype_counts(self):
-        """ return the counts of ftypes in this frame """
+        """ return the counts of ftypes in this object """
         from pandas import Series
         return Series(self._data.get_ftype_counts())
+
+    @property
+    def dtypes(self):
+        """ return the counts of dtypes in this object """
+        from pandas import Series
+        return Series(self._data.get_dtypes(),index=self._info_axis)
+
+    @property
+    def ftypes(self):
+        """ return the counts of ftypes in this object """
+        from pandas import Series
+        return Series(self._data.get_ftypes(),index=self._info_axis)
 
     def as_blocks(self, columns=None):
         """

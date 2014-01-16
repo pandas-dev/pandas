@@ -2157,21 +2157,43 @@ class BlockManager(PandasObject):
         return self.axes[0]
     items = property(fget=_get_items)
 
-    def get_dtype_counts(self):
-        """ return a dict of the counts of dtypes in BlockManager """
+    def _get_counts(self, f):
+        """ return a dict of the counts of the function in BlockManager """
         self._consolidate_inplace()
         counts = dict()
         for b in self.blocks:
-            counts[b.dtype.name] = counts.get(b.dtype.name, 0) + b.shape[0]
+            v = f(b)
+            counts[v] = counts.get(v, 0) + b.shape[0]
         return counts
 
-    def get_ftype_counts(self):
-        """ return a dict of the counts of dtypes in BlockManager """
+    def _get_types(self, f):
+        """ return a list of the f per item """
         self._consolidate_inplace()
-        counts = dict()
-        for b in self.blocks:
-            counts[b.ftype] = counts.get(b.ftype, 0) + b.shape[0]
-        return counts
+
+        # unique
+        if self.items.is_unique:
+            l = [ None ] * len(self.items)
+            for b in self.blocks:
+                v = f(b)
+                for rl in b.ref_locs:
+                    l[rl] = v
+            return l
+
+        # non-unique
+        ref_locs = self._set_ref_locs()
+        return [ f(ref_locs[i][0]) for i, item in enumerate(self.items) ]
+
+    def get_dtype_counts(self):
+        return self._get_counts(lambda b: b.dtype.name)
+
+    def get_ftype_counts(self):
+        return self._get_counts(lambda b: b.ftype)
+
+    def get_dtypes(self):
+        return self._get_types(lambda b: b.dtype)
+
+    def get_ftypes(self):
+        return self._get_types(lambda b: b.ftype)
 
     def __getstate__(self):
         block_values = [b.values for b in self.blocks]

@@ -1441,14 +1441,6 @@ class DataFrame(NDFrame):
         lines.append('dtypes: %s' % ', '.join(dtypes))
         _put_lines(buf, lines)
 
-    @property
-    def dtypes(self):
-        return self.apply(lambda x: x.dtype, reduce=False)
-
-    @property
-    def ftypes(self):
-        return self.apply(lambda x: x.ftype, reduce=False)
-
     def transpose(self):
         """Transpose index and columns"""
         return super(DataFrame, self).transpose(1, 0)

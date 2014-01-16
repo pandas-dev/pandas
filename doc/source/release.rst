@@ -80,6 +80,7 @@ Improvements to existing features
   - The ``ArrayFormatter``s for ``datetime`` and ``timedelta64`` now intelligently
     limit precision based on the values in the array (:issue:`3401`)
   - perf improvements to Series.str.extract (:issue:`5944`)
+  - perf improvments in ``dtypes/ftypes`` methods (:issue:`5968`)
 
 .. _release.bug_fixes-0.13.1:
 

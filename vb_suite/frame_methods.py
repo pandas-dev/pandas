@@ -326,3 +326,12 @@ df = DataFrame({ i:s for i in range(1028) })
 frame_apply_user_func = Benchmark('df.apply(lambda x: np.corrcoef(x,s)[0,1])', setup,
                            start_date=datetime(2012,1,1))
 
+#----------------------------------------------------------------------
+# dtypes
+
+setup = common_setup + """
+df = DataFrame(np.random.randn(1000,1000))
+"""
+frame_dtypes = Benchmark('df.dtypes', setup,
+                         start_date=datetime(2012,1,1))
+
