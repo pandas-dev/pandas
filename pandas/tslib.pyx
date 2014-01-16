@@ -8,6 +8,7 @@ import numpy as np
 from cpython cimport (
     PyTypeObject,
     PyFloat_Check,
+    PyLong_Check,
     PyObject_RichCompareBool,
     PyObject_RichCompare,
     PyString_Check,
@@ -54,6 +55,9 @@ cdef int64_t NPY_NAT = util.get_nat()
 
 # < numpy 1.7 compat for NaT
 compat_NaT = np.array([NPY_NAT]).astype('m8[ns]').item()
+
+# numpy actual nat object
+np_NaT = np.datetime64('NaT',dtype='M8')
 
 try:
     basestring
@@ -416,6 +420,11 @@ NaT = NaTType()
 iNaT = util.get_nat()
 
 
+cdef inline bint _checknull_with_nat(object val):
+    """ utility to check if a value is a nat or not """
+    return val is None or (
+        PyFloat_Check(val) and val != val) or val is NaT
+
 cdef inline bint _cmp_nat_dt(_NaT lhs, _Timestamp rhs, int op) except -1:
     return _nat_scalar_rules[op]
 
@@ -761,7 +770,7 @@ cdef convert_to_tsobject(object ts, object tz, object unit):
 
     obj = _TSObject()
 
-    if ts is None or ts is NaT:
+    if ts is None or ts is NaT or ts is np_NaT:
         obj.value = NPY_NAT
     elif is_datetime64_object(ts):
         obj.value = _get_datetime64_nanos(ts)
@@ -933,7 +942,7 @@ def datetime_to_datetime64(ndarray[object] values):
     iresult = result.view('i8')
     for i in range(n):
         val = values[i]
-        if util._checknull(val) or val is NaT:
+        if _checknull_with_nat(val):
             iresult[i] = iNaT
         elif PyDateTime_Check(val):
             if val.tzinfo is not None:
@@ -999,7 +1008,7 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
         iresult = result.view('i8')
         for i in range(n):
             val = values[i]
-            if util._checknull(val) or val is NaT:
+            if _checknull_with_nat(val):
                 iresult[i] = iNaT
             elif PyDateTime_Check(val):
                 if val.tzinfo is not None:
@@ -1038,13 +1047,16 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                         continue
                     raise
             elif util.is_datetime64_object(val):
-                try:
-                    iresult[i] = _get_datetime64_nanos(val)
-                except ValueError:
-                    if coerce:
-                        iresult[i] = iNaT
-                        continue
-                    raise
+                if val == np_NaT:
+                    iresult[i] = iNaT
+                else:
+                    try:
+                        iresult[i] = _get_datetime64_nanos(val)
+                    except ValueError:
+                        if coerce:
+                            iresult[i] = iNaT
+                            continue
+                        raise
 
             # if we are coercing, dont' allow integers
             elif util.is_integer_object(val) and not coerce:
@@ -1114,7 +1126,7 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
 
         for i in range(n):
             val = values[i]
-            if util._checknull(val):
+            if _checknull_with_nat(val):
                 oresult[i] = val
             elif util.is_string_object(val):
                 if len(val) == 0:
@@ -1166,7 +1178,7 @@ def array_to_timedelta64(ndarray[object] values, coerce=True):
 
              result[i] = val
 
-        elif util._checknull(val) or val == iNaT or val is NaT:
+        elif _checknull_with_nat(val):
              result[i] = iNaT
 
         else:
@@ -1316,7 +1328,7 @@ def array_strptime(ndarray[object] values, object fmt, coerce=False):
                 iresult[i] = iNaT
                 continue
         else:
-            if util._checknull(val) or val is NaT:
+            if _checknull_with_nat(val):
                 iresult[i] = iNaT
                 continue
             else:

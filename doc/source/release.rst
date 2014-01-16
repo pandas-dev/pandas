@@ -83,6 +83,7 @@ Improvements to existing features
   - pd.show_versions() is now available for convenience when reporting issues.
   - perf improvements to Series.str.extract (:issue:`5944`)
   - perf improvments in ``dtypes/ftypes`` methods (:issue:`5968`)
+  - perf improvments in indexing with object dtypes (:issue:`5968`)
 
 .. _release.bug_fixes-0.13.1:
 
@@ -116,6 +117,7 @@ Bug Fixes
   - Fixed ``to_datetime`` for array with both Tz-aware datetimes and ``NaT``s  (:issue:`5961`)
   - Bug in rolling skew/kurtosis when passed a Series with bad data (:issue:`5749`)
   - Bug in scipy ``interpolate`` methods with a datetime index (:issue: `5975`)
+  - Bug in NaT comparison if a mixed datetime/np.datetime64 with NaT were passed (:issue:`5968`)
 
 pandas 0.13.0
 -------------

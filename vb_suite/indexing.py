@@ -167,3 +167,10 @@ frame_iloc_dups = Benchmark('df2.iloc[idx]', setup,
 
 frame_loc_dups = Benchmark('df2.loc[idx]', setup,
                             start_date=datetime(2013, 1, 1))
+
+setup = common_setup + """
+df = DataFrame(dict( A = [ 'foo'] * 1000000))
+"""
+
+frame_iloc_big = Benchmark('df.iloc[:100,0]', setup,
+                            start_date=datetime(2013, 1, 1))

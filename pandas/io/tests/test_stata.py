@@ -4,9 +4,12 @@ from datetime import datetime
 import os
 import warnings
 import nose
+import sys
+from distutils.version import LooseVersion
 
 import numpy as np
 
+import pandas as pd
 from pandas.core.frame import DataFrame, Series
 from pandas.io.parsers import read_csv
 from pandas.io.stata import read_stata, StataReader
@@ -66,6 +69,9 @@ class TestStata(tm.TestCase):
         tm.assert_frame_equal(parsed_13, expected)
 
     def test_read_dta2(self):
+        if LooseVersion(sys.version) < '2.7':
+            raise nose.SkipTest('datetime interp under 2.6 is faulty')
+
         expected = DataFrame.from_records(
             [
                 (
@@ -89,14 +95,14 @@ class TestStata(tm.TestCase):
                     datetime(2, 1, 1)
                 ),
                 (
-                    np.datetime64('NaT'),
-                    np.datetime64('NaT'),
-                    np.datetime64('NaT'),
-                    np.datetime64('NaT'),
-                    np.datetime64('NaT'),
-                    np.datetime64('NaT'),
-                    np.datetime64('NaT'),
-                    np.datetime64('NaT')
+                    pd.NaT,
+                    pd.NaT,
+                    pd.NaT,
+                    pd.NaT,
+                    pd.NaT,
+                    pd.NaT,
+                    pd.NaT,
+                    pd.NaT,
                 )
             ],
             columns=['datetime_c', 'datetime_big_c', 'date', 'weekly_date',

@@ -829,6 +829,11 @@ class TestTimeSeries(tm.TestCase):
         expected = Series([NaT,Timestamp('20130408'),Timestamp('20130409')])
         assert_series_equal(result,expected)
 
+        # mixed datetime/np.datetime64('NaT')
+        result = Series(to_datetime([dt.datetime(2000,1,1),np.datetime64('NaT')]))
+        expected = Series([dt.datetime(2000,1,1),NaT])
+        assert_series_equal(result, expected)
+
     def test_dayfirst(self):
 
         # GH 3341
