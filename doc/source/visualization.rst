@@ -220,6 +220,11 @@ You can pass an ``ax`` argument to ``Series.plot`` to plot on a particular axis:
    @savefig series_plot_multi.png
    df['D'].plot(ax=axes[1,1]); axes[1,1].set_title('D')
 
+.. ipython:: python
+   :suppress:
+
+    plt.close('all')
+
 
 .. _visualization.other:
 
@@ -360,6 +365,11 @@ columns:
 
    @savefig box_plot_ex3.png
    bp = df.boxplot(column=['Col1','Col2'], by=['X','Y'])
+
+.. ipython:: python
+   :suppress:
+
+    plt.close('all')
 
 .. _visualization.scatter_matrix:
 
@@ -595,3 +605,8 @@ Andrews curves charts:
 
    @savefig andrews_curve_winter.png
    andrews_curves(data, 'Name', colormap='winter')
+
+.. ipython:: python
+   :suppress:
+
+    plt.close('all')
