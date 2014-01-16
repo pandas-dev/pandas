@@ -166,11 +166,9 @@ pc_max_seq_items = """
 
 pc_max_info_rows_doc = """
 : int or None
-    Deprecated.
-"""
-
-pc_max_info_rows_deprecation_warning = """\
-max_info_rows has been deprecated, as reprs no longer use the info view.
+    df.info() will usually show null-counts for each column.
+    For large frames this can be quite slow. max_info_rows and max_info_cols
+    limit this null check only to frames with smaller dimensions then specified.
 """
 
 pc_large_repr_doc = """
@@ -265,9 +263,6 @@ cf.deprecate_option('display.line_width',
 cf.deprecate_option('display.height',
                     msg=pc_height_deprecation_warning,
                     rkey='display.max_rows')
-
-cf.deprecate_option('display.max_info_rows',
-                    msg=pc_max_info_rows_deprecation_warning)
 
 tc_sim_interactive_doc = """
 : boolean

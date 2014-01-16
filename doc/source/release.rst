@@ -72,6 +72,7 @@ Improvements to existing features
   - perf improvements in Series datetime/timedelta binary operations (:issue:`5801`)
   - `option_context` context manager now available as top-level API (:issue:`5752`)
   - df.info() view now display dtype info per column (:issue: `5682`)
+  - df.info() now honors option max_info_rows, disable null counts for large frames (:issue: `5974`)
   - perf improvements in DataFrame ``count/dropna`` for ``axis=1``
   - Series.str.contains now has a `regex=False` keyword which can be faster for plain (non-regex) string patterns. (:issue: `5879`)
   - support ``dtypes`` on ``Panel``
