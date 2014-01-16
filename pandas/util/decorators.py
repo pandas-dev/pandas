@@ -102,7 +102,7 @@ class Appender(object):
         func.__doc__ = func.__doc__ if func.__doc__ else ''
         self.addendum = self.addendum if self.addendum else ''
         docitems = [func.__doc__, self.addendum]
-        func.__doc__ = ''.join(docitems)
+        func.__doc__ = self.join.join(docitems)
         return func
 
 
