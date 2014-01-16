@@ -1444,7 +1444,7 @@ class DataFrame(NDFrame):
 
                 count= ""
                 if show_counts:
-                    count = counts[i]
+                    count = counts.iloc[i]
 
                 lines.append(_put_str(col, space) +
                              tmpl % (count, dtype))
