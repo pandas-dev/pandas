@@ -1889,7 +1889,10 @@ def make_block(values, items, ref_items, klass=None, ndim=None, dtype=None,
 
             if np.prod(values.shape):
                 flat = values.ravel()
-                inferred_type = lib.infer_dtype(flat)
+
+                # try with just the first element; we just need to see if
+                # this is a datetime or not
+                inferred_type = lib.infer_dtype(flat[0:1])
                 if inferred_type in ['datetime', 'datetime64']:
 
                     # we have an object array that has been inferred as
