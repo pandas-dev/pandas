@@ -26,6 +26,11 @@ looking for a quick way to help out.
     >>> show_versions()
     ```
 
+    and in 0.13.1 onwards:
+    ```python
+    >>> pd.show_versions()
+    ```
+
   - Explain what the expected behavior was, and what you saw instead.
 
 #### Pull Requests

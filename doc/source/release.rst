@@ -80,6 +80,7 @@ Improvements to existing features
     allow multiple axes to be used to operate on slabs of a ``Panel``
   - The ``ArrayFormatter``s for ``datetime`` and ``timedelta64`` now intelligently
     limit precision based on the values in the array (:issue:`3401`)
+  - pd.show_versions() is now available for convenience when reporting issues.
   - perf improvements to Series.str.extract (:issue:`5944`)
   - perf improvments in ``dtypes/ftypes`` methods (:issue:`5968`)
 
