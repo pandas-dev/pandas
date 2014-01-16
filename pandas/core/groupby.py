@@ -2994,7 +2994,9 @@ _cython_table = {
     np.prod: 'prod',
     np.std: 'std',
     np.var: 'var',
-    np.median: 'median'
+    np.median: 'median',
+    np.max: 'max',
+    np.min: 'min'
 }
 
 
