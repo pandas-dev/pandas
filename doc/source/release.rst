@@ -117,6 +117,7 @@ Bug Fixes
   - Fixed ``to_datetime`` for array with both Tz-aware datetimes and ``NaT``s  (:issue:`5961`)
   - Bug in rolling skew/kurtosis when passed a Series with bad data (:issue:`5749`)
   - Bug in scipy ``interpolate`` methods with a datetime index (:issue: `5975`)
+  - Bug in NaT comparison if a mixed datetime/np.datetime64 with NaT were passed (:issue:`5968`)
 
 pandas 0.13.0
 -------------

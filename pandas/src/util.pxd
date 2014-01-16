@@ -67,7 +67,7 @@ cdef inline is_array(object o):
 
 cdef inline bint _checknull(object val):
     try:
-        return val is None or (cpython.PyFloat_Check(val) and val != val) 
+        return val is None or (cpython.PyFloat_Check(val) and val != val)
     except ValueError:
         return False
 
