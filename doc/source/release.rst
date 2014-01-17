@@ -75,7 +75,7 @@ Improvements to existing features
   - df.info() now honors option max_info_rows, disable null counts for large frames (:issue:`5974`)
   - perf improvements in DataFrame ``count/dropna`` for ``axis=1``
   - Series.str.contains now has a `regex=False` keyword which can be faster for plain (non-regex) string patterns. (:issue:`5879`)
-  - support ``dtypes`` on ``Panel``
+  - support ``dtypes`` property on ``Series/Panel/Panel4D``
   - extend ``Panel.apply`` to allow arbitrary functions (rather than only ufuncs) (:issue:`1148`)
     allow multiple axes to be used to operate on slabs of a ``Panel``
   - The ``ArrayFormatter``s for ``datetime`` and ``timedelta64`` now intelligently

@@ -6,7 +6,7 @@ import nose
 
 import numpy as np
 
-from pandas import DataFrame, Index, isnull, notnull, pivot, MultiIndex
+from pandas import Series, DataFrame, Index, isnull, notnull, pivot, MultiIndex
 from pandas.core.datetools import bday
 from pandas.core.frame import group_agg
 from pandas.core.panel import Panel
@@ -931,6 +931,12 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
 
     def test_apply(self):
         raise nose.SkipTest("skipping for now")
+
+    def test_dtypes(self):
+
+        result = self.panel4d.dtypes
+        expected = Series(np.dtype('float64'),index=self.panel4d.labels)
+        assert_series_equal(result, expected)
 
     def test_compound(self):
         raise nose.SkipTest("skipping for now")

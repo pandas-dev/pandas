@@ -441,10 +441,6 @@ class Panel(NDFrame):
         self._consolidate_inplace()
         return self._data.as_matrix()
 
-    @property
-    def dtypes(self):
-        return self.apply(lambda x: x.dtype, axis='items')
-
     #----------------------------------------------------------------------
     # Getting and setting elements
 

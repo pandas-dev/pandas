@@ -3620,6 +3620,15 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         self.assertEqual(self.ts.count(), np.isfinite(self.ts).sum())
 
+    def test_dtype(self):
+
+        self.assert_(self.ts.dtype == np.dtype('float64'))
+        self.assert_(self.ts.dtypes == np.dtype('float64'))
+        self.assert_(self.ts.ftype == 'float64:dense')
+        self.assert_(self.ts.ftypes == 'float64:dense')
+        assert_series_equal(self.ts.get_dtype_counts(),Series(1,['float64']))
+        assert_series_equal(self.ts.get_ftype_counts(),Series(1,['float64:dense']))
+
     def test_dot(self):
         a = Series(np.random.randn(4), index=['p', 'q', 'r', 's'])
         b = DataFrame(np.random.randn(3, 4), index=['1', '2', '3'],
