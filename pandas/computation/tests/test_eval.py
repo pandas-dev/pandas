@@ -405,13 +405,13 @@ class TestEvalNumexprPandas(tm.TestCase):
             self.assertRaises(AssertionError, assert_array_equal, result,
                               expected)
         else:
-            assert_array_equal(result, expected)
+            assert_allclose(result, expected)
 
             ex = '(lhs {0} rhs) {0} rhs'.format(arith1)
             result = pd.eval(ex, engine=self.engine, parser=self.parser)
             expected = self.get_expected_pow_result(
                 self.get_expected_pow_result(lhs, rhs), rhs)
-            assert_array_equal(result, expected)
+            assert_allclose(result, expected)
 
     @skip_incompatible_operand
     def check_single_invert_op(self, lhs, cmp1, rhs):
