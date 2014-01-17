@@ -580,8 +580,6 @@ them together on their indexes. The same is true for ``Panel.join``.
    df1
    df1.join([df2, df3])
 
-.. _merging.combine_first:
-
 .. _merging.combine_first.update:
 
 Merging together values within Series or DataFrame columns
