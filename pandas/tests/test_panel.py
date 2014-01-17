@@ -6,7 +6,7 @@ import nose
 
 import numpy as np
 
-from pandas import DataFrame, Index, isnull, notnull, pivot, MultiIndex
+from pandas import Series, DataFrame, Index, isnull, notnull, pivot, MultiIndex
 from pandas.core.datetools import bday
 from pandas.core.frame import group_agg
 from pandas.core.panel import Panel
@@ -1064,8 +1064,8 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
     def test_dtypes(self):
 
         result = self.panel.dtypes
-        expected = DataFrame(np.dtype('float64'),index=self.panel.major_axis,columns=self.panel.minor_axis)
-        assert_frame_equal(result, expected)
+        expected = Series(np.dtype('float64'),index=self.panel.items)
+        assert_series_equal(result, expected)
 
     def test_apply(self):
         # GH1148

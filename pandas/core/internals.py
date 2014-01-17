@@ -3514,6 +3514,9 @@ class SingleBlockManager(BlockManager):
         self._block = self.blocks[0]
         self._values = self._block.values
 
+    def _get_counts(self, f):
+        return { f(self._block) : 1 }
+
     @property
     def shape(self):
         if getattr(self, '_shape', None) is None:
