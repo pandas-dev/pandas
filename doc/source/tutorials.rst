@@ -55,42 +55,42 @@ repository <http://github.com/jvns/pandas-cookbook>`_.
 *  | `Chapter 8:  <http://nbviewer.ipython.org/github/jvns/pandas-cookbook/blob/v0.1/cookbook/Chapter%208%20-%20How%20to%20deal%20with%20timestamps.ipynb>`_
       Parsing Unix timestamps is confusing at first but it turns out
       to be really easy.
-	  
+
 
 
 Lessons for New Pandas Users
-----------------------------  
+----------------------------
 
 For more resources, please visit the main `repository <https://bitbucket.org/hrojas/learn-pandas>`_.
 
-*  | `01 - Lesson: <http://nbviewer.ipython.org/urls/bitbucket.org/hrojas/learn-pandas/raw/master/lessons/01%20-%20Lesson.ipynb>`_  
+*  | `01 - Lesson: <http://nbviewer.ipython.org/urls/bitbucket.org/hrojas/learn-pandas/raw/master/lessons/01%20-%20Lesson.ipynb>`_
 
-    * Importing libraries  
-    * Creating data sets  	
-    * Creating data frames  
-    * Reading from CSV  	
-    * Exporting to CSV  
-    * Finding maximums  	
-    * Plotting data  
+    * Importing libraries
+    * Creating data sets
+    * Creating data frames
+    * Reading from CSV
+    * Exporting to CSV
+    * Finding maximums
+    * Plotting data
 *  | `02 - Lesson: <http://nbviewer.ipython.org/urls/bitbucket.org/hrojas/learn-pandas/raw/master/lessons/02%20-%20Lesson.ipynb>`_
 
-    * Reading from TXT  	
-    * Exporting to TXT  
-    * Selecting top/bottom records  	
-    * Descriptive statistics  	
-    * Grouping/sorting data  
+    * Reading from TXT
+    * Exporting to TXT
+    * Selecting top/bottom records
+    * Descriptive statistics
+    * Grouping/sorting data
 *  | `03 - Lesson: <http://nbviewer.ipython.org/urls/bitbucket.org/hrojas/learn-pandas/raw/master/lessons/03%20-%20Lesson.ipynb>`_
 
-    * Creating functions  	
-    * Reading from EXCEL  
-    * Exporting to EXCEL  
-    * Outliers  	
-    * Lambda functions  	
-    * Slice and dice data  
+    * Creating functions
+    * Reading from EXCEL
+    * Exporting to EXCEL
+    * Outliers
+    * Lambda functions
+    * Slice and dice data
 *  | `04 - Lesson: <http://nbviewer.ipython.org/urls/bitbucket.org/hrojas/learn-pandas/raw/master/lessons/04%20-%20Lesson.ipynb>`_
 
-    * Adding/deleting columns  	
-    * Index operations  
+    * Adding/deleting columns
+    * Index operations
 *  | `05 - Lesson: <http://nbviewer.ipython.org/urls/bitbucket.org/hrojas/learn-pandas/raw/master/lessons/05%20-%20Lesson.ipynb>`_
 
     * Stack/Unstack/Transpose functions
@@ -111,5 +111,4 @@ For more resources, please visit the main `repository <https://bitbucket.org/hro
     * Converting between different kinds of formats
 *  | `11 - Lesson: <http://nbviewer.ipython.org/urls/bitbucket.org/hrojas/learn-pandas/raw/master/lessons/11%20-%20Lesson.ipynb>`_
 
-    * Combining data from various sources	  
-
+    * Combining data from various sources
