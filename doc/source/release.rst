@@ -71,10 +71,10 @@ Improvements to existing features
 
   - perf improvements in Series datetime/timedelta binary operations (:issue:`5801`)
   - `option_context` context manager now available as top-level API (:issue:`5752`)
-  - df.info() view now display dtype info per column (:issue: `5682`)
-  - df.info() now honors option max_info_rows, disable null counts for large frames (:issue: `5974`)
+  - df.info() view now display dtype info per column (:issue:`5682`)
+  - df.info() now honors option max_info_rows, disable null counts for large frames (:issue:`5974`)
   - perf improvements in DataFrame ``count/dropna`` for ``axis=1``
-  - Series.str.contains now has a `regex=False` keyword which can be faster for plain (non-regex) string patterns. (:issue: `5879`)
+  - Series.str.contains now has a `regex=False` keyword which can be faster for plain (non-regex) string patterns. (:issue:`5879`)
   - support ``dtypes`` on ``Panel``
   - extend ``Panel.apply`` to allow arbitrary functions (rather than only ufuncs) (:issue:`1148`)
     allow multiple axes to be used to operate on slabs of a ``Panel``
@@ -114,9 +114,9 @@ Bug Fixes
     ``MultiIndex`` (:issue:`5402`).
   - Bug in ``pd.read_msgpack`` with inferring a ``DateTimeIndex`` frequencey
     incorrectly (:issue:`5947`)
-  - Fixed ``to_datetime`` for array with both Tz-aware datetimes and ``NaT``s  (:issue:`5961`)
+  - Fixed ``to_datetime`` for array with both Tz-aware datetimes and ``NaT``'s  (:issue:`5961`)
   - Bug in rolling skew/kurtosis when passed a Series with bad data (:issue:`5749`)
-  - Bug in scipy ``interpolate`` methods with a datetime index (:issue: `5975`)
+  - Bug in scipy ``interpolate`` methods with a datetime index (:issue:`5975`)
   - Bug in NaT comparison if a mixed datetime/np.datetime64 with NaT were passed (:issue:`5968`)
 
 pandas 0.13.0
