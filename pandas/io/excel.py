@@ -431,8 +431,9 @@ class ExcelWriter(object):
 
     def __init__(self, path, engine=None, **engine_kwargs):
         # validate that this engine can handle the extnesion
-        ext = os.path.splitext(path)[-1]
-        self.check_extension(ext)
+        if not hasattr(path, 'read'):
+            ext = os.path.splitext(path)[-1]
+            self.check_extension(ext)
 
         self.path = path
         self.sheets = {}

@@ -17,6 +17,7 @@ from pandas.io.excel import (
 )
 from pandas.util.testing import ensure_clean
 from pandas.core.config import set_option, get_option
+from pandas.compat import BytesIO
 import pandas.util.testing as tm
 import pandas as pd
 
@@ -409,6 +410,22 @@ class ExcelWriterBase(SharedItems):
                 found_df2 = reader.parse('Data2')
                 tm.assert_frame_equal(found_df, self.frame)
                 tm.assert_frame_equal(found_df2, self.frame2)
+
+    def test_stringio_writer(self):
+        _skip_if_no_xlsxwriter()
+        _skip_if_no_xlrd()
+        
+        path = BytesIO()
+        with ExcelWriter(path, engine='xlsxwriter', **{'options': {'in-memory': True}}) as ew:
+            self.frame.to_excel(ew, 'test1', engine='xlsxwriter')
+            ew.save()
+            path.seek(0)
+            ef = ExcelFile(path)
+            found_df = ef.parse('test1')
+            tm.assert_frame_equal(self.frame, found_df)
+        path.close()
+
+                
 
     def test_roundtrip(self):
         _skip_if_no_xlrd()
