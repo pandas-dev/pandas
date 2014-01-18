@@ -163,7 +163,7 @@ def _possibly_cast_to_timedelta(value, coerce=True):
                     td *= 1000
                 return td
 
-            if td == tslib.compat_NaT:
+            if isnull(td) or td == tslib.compat_NaT or td == tslib.iNaT:
                 return tslib.iNaT
 
             # convert td value to a nanosecond value

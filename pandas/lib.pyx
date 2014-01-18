@@ -14,7 +14,7 @@ from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
                       Py_INCREF, PyTuple_SET_ITEM,
                       PyList_Check, PyFloat_Check,
                       PyString_Check,
-		      PyBytes_Check,
+                      PyBytes_Check,
                       PyTuple_SetItem,
                       PyTuple_New,
                       PyObject_SetAttrString)

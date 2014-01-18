@@ -1641,7 +1641,7 @@ def _possibly_cast_to_datetime(value, dtype, coerce=False):
                         elif is_timedelta64:
                             from pandas.tseries.timedeltas import \
                                 _possibly_cast_to_timedelta
-                            value = _possibly_cast_to_timedelta(value, coerce=True)
+                            value = _possibly_cast_to_timedelta(value, coerce='compat')
                     except:
                         pass
 
@@ -1672,7 +1672,7 @@ def _possibly_cast_to_datetime(value, dtype, coerce=False):
                 elif inferred_type in ['timedelta', 'timedelta64']:
                     from pandas.tseries.timedeltas import \
                         _possibly_cast_to_timedelta
-                    value = _possibly_cast_to_timedelta(value)
+                    value = _possibly_cast_to_timedelta(value, coerce='compat')
 
     return value
 

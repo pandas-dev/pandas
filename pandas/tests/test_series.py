@@ -2253,8 +2253,9 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         td = Series([timedelta(days=1)])
         self.assert_(td.dtype == 'timedelta64[ns]')
 
-        td = Series([timedelta(days=1),timedelta(days=2),np.timedelta64(1,'s')])
-        self.assert_(td.dtype == 'timedelta64[ns]')
+        if not _np_version_under1p7:
+            td = Series([timedelta(days=1),timedelta(days=2),np.timedelta64(1,'s')])
+            self.assert_(td.dtype == 'timedelta64[ns]')
 
         # mixed with NaT
         from pandas import tslib
@@ -2281,8 +2282,9 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         td = Series([pd.NaT, np.timedelta64(300000000)])
         self.assert_(td.dtype == 'timedelta64[ns]')
 
-        td = Series([np.timedelta64(1,'s')])
-        self.assert_(td.dtype == 'timedelta64[ns]')
+        if not _np_version_under1p7:
+            td = Series([np.timedelta64(1,'s')])
+            self.assert_(td.dtype == 'timedelta64[ns]')
 
         # these are frequency conversion astypes
         #for t in ['s', 'D', 'us', 'ms']:
@@ -2878,6 +2880,9 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(ts.bfill(), ts.fillna(method='bfill'))
 
     def test_sub_of_datetime_from_TimeSeries(self):
+        if _np_version_under1p7:
+            raise nose.SkipTest("timedelta broken in np 1.6.1")
+
         from pandas.tseries.timedeltas import _possibly_cast_to_timedelta
         from datetime import datetime
         a = Timestamp(datetime(1993, 0o1, 0o7, 13, 30, 00))

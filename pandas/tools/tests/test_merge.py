@@ -9,7 +9,7 @@ import numpy as np
 import random
 
 from pandas.compat import range, lrange, lzip, zip
-from pandas import compat
+from pandas import compat, _np_version_under1p7
 from pandas.tseries.index import DatetimeIndex
 from pandas.tools.merge import merge, concat, ordered_merge, MergeError
 from pandas.util.testing import (assert_frame_equal, assert_series_equal,
@@ -791,8 +791,16 @@ class TestMerge(tm.TestCase):
         result = df1.append(df2,ignore_index=True)
         assert_frame_equal(result, expected)
 
-        # timedelta64
+    def test_join_append_timedeltas(self):
+
+        import datetime as dt
+        from pandas import NaT
+
+        # timedelta64 issues with join/merge
         # GH 5695
+        if _np_version_under1p7:
+            raise nose.SkipTest("numpy < 1.7")
+
         d = {'d': dt.datetime(2013, 11, 5, 5, 56), 't': dt.timedelta(0, 22500)}
         df = DataFrame(columns=list('dt'))
         df = df.append(d, ignore_index=True)
@@ -1787,6 +1795,11 @@ class TestConcatenate(tm.TestCase):
         self.assert_((result.iloc[10:]['time'] == rng).all())
 
     def test_concat_timedelta64_block(self):
+
+        # not friendly for < 1.7
+        if _np_version_under1p7:
+            raise nose.SkipTest("numpy < 1.7")
+
         from pandas import to_timedelta
 
         rng = to_timedelta(np.arange(10),unit='s')

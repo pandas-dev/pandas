@@ -3177,23 +3177,22 @@ class NDFrame(PandasObject):
         -------
         abs: type of caller
         """
-        obj = np.abs(self)
 
         # suprimo numpy 1.6 hacking
+        # for timedeltas
         if _np_version_under1p7:
+
+            def _convert_timedeltas(x):
+                if x.dtype.kind == 'm':
+                    return np.abs(x.view('i8')).astype(x.dtype)
+                return np.abs(x)
+
             if self.ndim == 1:
-                if obj.dtype == 'm8[us]':
-                    obj = obj.astype('m8[ns]')
+                return _convert_timedeltas(self)
             elif self.ndim == 2:
-                def f(x):
-                    if x.dtype == 'm8[us]':
-                        x = x.astype('m8[ns]')
-                    return x
+                return  self.apply(_convert_timedeltas)
 
-                if 'm8[us]' in obj.dtypes.values:
-                    obj = obj.apply(f)
-
-        return obj
+        return np.abs(self)
 
     def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None,
                    **kwds):

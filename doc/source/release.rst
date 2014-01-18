@@ -62,6 +62,8 @@ API Changes
     when detecting chained assignment, related (:issue:`5938`)
   - DataFrame.head(0) returns self instead of empty frame (:issue:`5846`)
   - ``autocorrelation_plot`` now accepts ``**kwargs``. (:issue:`5623`)
+  - ``convert_objects`` now accepts a ``convert_timedeltas='coerce'`` argument to allow forced dtype conversion of
+    timedeltas (:issue:`5458`,:issue:`5689`)
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
@@ -78,12 +80,13 @@ Improvements to existing features
   - support ``dtypes`` property on ``Series/Panel/Panel4D``
   - extend ``Panel.apply`` to allow arbitrary functions (rather than only ufuncs) (:issue:`1148`)
     allow multiple axes to be used to operate on slabs of a ``Panel``
-  - The ``ArrayFormatter``s for ``datetime`` and ``timedelta64`` now intelligently
+  - The ``ArrayFormatter`` for ``datetime`` and ``timedelta64`` now intelligently
     limit precision based on the values in the array (:issue:`3401`)
   - pd.show_versions() is now available for convenience when reporting issues.
   - perf improvements to Series.str.extract (:issue:`5944`)
   - perf improvments in ``dtypes/ftypes`` methods (:issue:`5968`)
   - perf improvments in indexing with object dtypes (:issue:`5968`)
+  - improved dtype inference for ``timedelta`` like passed to constructors (:issue:`5458`,:issue:`5689`)
 
 .. _release.bug_fixes-0.13.1:
 
@@ -122,6 +125,7 @@ Bug Fixes
   - Recent changes in IPython cause warnings to be emitted when using previous versions
     of pandas in QTConsole, now fixed. If you're using an older version and
     need to supress the warnings, see (:issue:`5922`).
+  - Bug in merging ``timedelta`` dtypes (:issue:`5695`)
 
 pandas 0.13.0
 -------------

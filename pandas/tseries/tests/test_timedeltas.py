@@ -174,6 +174,7 @@ class TestTimedeltas(tm.TestCase):
         self.assert_(result == expected)
 
     def test_to_timedelta_via_apply(self):
+        _skip_if_numpy_not_friendly()
 
         # GH 5458
         expected = Series([np.timedelta64(1,'s')])
