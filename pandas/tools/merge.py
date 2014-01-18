@@ -14,7 +14,7 @@ from pandas.core.series import Series
 from pandas.core.index import (Index, MultiIndex, _get_combined_index,
                                _ensure_index, _get_consensus_names,
                                _all_indexes_same)
-from pandas.core.internals import (IntBlock, BoolBlock, BlockManager,
+from pandas.core.internals import (TimeDeltaBlock, IntBlock, BoolBlock, BlockManager,
                                    make_block, _consolidate)
 from pandas.util.decorators import cache_readonly, Appender, Substitution
 from pandas.core.common import (PandasError, ABCSeries,
@@ -816,7 +816,7 @@ class _JoinUnit(object):
 
 def _may_need_upcasting(blocks):
     for block in blocks:
-        if isinstance(block, (IntBlock, BoolBlock)):
+        if isinstance(block, (IntBlock, BoolBlock)) and not isinstance(block, TimeDeltaBlock):
             return True
     return False
 
@@ -827,7 +827,10 @@ def _upcast_blocks(blocks):
     """
     new_blocks = []
     for block in blocks:
-        if isinstance(block, IntBlock):
+        if isinstance(block, TimeDeltaBlock):
+            # these are int blocks underlying, but are ok
+            newb = block
+        elif isinstance(block, IntBlock):
             newb = make_block(block.values.astype(float), block.items,
                               block.ref_items, placement=block._ref_locs)
         elif isinstance(block, BoolBlock):
