@@ -10,7 +10,8 @@ import numpy as np
 from numpy.testing import assert_array_equal
 
 from pandas.core.api import DataFrame, Panel
-from pandas.computation import expressions as expr
+import pandas.computation as computation
+import pandas.computation.expressions as expr
 from pandas import compat
 
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
@@ -48,7 +49,7 @@ def test_arithmetic_works_with_zero_min_elements():
     expr._MIN_ELEMENTS = original_min
 
 
-if not expr._USE_NUMEXPR:
+if not computation._USE_NUMEXPR:
     try:
         import numexpr
     except ImportError:

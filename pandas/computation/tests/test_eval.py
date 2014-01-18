@@ -16,8 +16,7 @@ from pandas.core import common as com
 from pandas import DataFrame, Series, Panel, date_range
 from pandas.util.testing import makeCustomDataframe as mkdf
 
-from pandas.computation import pytables
-from pandas.computation.expressions import _USE_NUMEXPR
+from pandas.computation import pytables, _USE_NUMEXPR
 from pandas.computation.engines import _engines
 from pandas.computation.expr import PythonExprVisitor, PandasExprVisitor
 from pandas.computation.ops import (_binary_ops_dict, _unary_ops_dict,
