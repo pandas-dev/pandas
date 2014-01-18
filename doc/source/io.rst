@@ -326,7 +326,7 @@ result in byte strings being decoded to unicode in the result:
 
 .. ipython:: python
 
-   data = 'word,length\nTr\xe4umen,7\nGr\xfc\xdfe,5'
+   data = b'word,length\nTr\xc3\xa4umen,7\nGr\xc3\xbc\xc3\x9fe,5'.decode('utf8').encode('latin-1')
    df = pd.read_csv(StringIO(data), encoding='latin-1')
    df
    df['word'][1]
