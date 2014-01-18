@@ -143,6 +143,12 @@ you can pass the ``dayfirst`` flag:
    can't be parsed with the day being first it will be parsed as if
    ``dayfirst`` were False.
 
+.. note::
+   Specifying a ``format`` argument will otentially speed up the conversion
+   considerably, and on version later then 0.13.0, explicitly specifying
+   a format string of '%Y%m%d' takes a faster path still.
+
+
 Invalid Data
 ~~~~~~~~~~~~
 
