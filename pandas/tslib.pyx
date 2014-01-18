@@ -1155,52 +1155,26 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
 
         return oresult
 
-def array_to_timedelta64(ndarray[object] values, coerce=True):
+def array_to_timedelta64(ndarray[object] values, coerce=False):
     """ convert an ndarray to an array of ints that are timedeltas
         force conversion if coerce = True,
-        else return an object array """
+        else will raise if cannot convert """
     cdef:
         Py_ssize_t i, n
-        object val
-        ndarray[int64_t] result
+        ndarray[int64_t] iresult
 
     n = values.shape[0]
-    result = np.empty(n, dtype='i8')
+    result = np.empty(n, dtype='m8[ns]')
+    iresult = result.view('i8')
+
     for i in range(n):
-        val = values[i]
+        result[i] = convert_to_timedelta64(values[i], 'ns', coerce)
+    return iresult
 
-        # in py3 this is already an int, don't convert
-        if is_integer_object(val):
-            result[i] = val
+def convert_to_timedelta(object ts, object unit='ns', coerce=False):
+    return convert_to_timedelta64(ts, unit, coerce)
 
-        elif isinstance(val,timedelta) or isinstance(val,np.timedelta64):
-
-             if isinstance(val, np.timedelta64):
-                 if val.dtype != 'm8[ns]':
-                      val = val.astype('m8[ns]')
-                 val = val.item()
-             else:
-                 val = _delta_to_nanoseconds(np.timedelta64(val).item())
-
-             result[i] = val
-
-        elif _checknull_with_nat(val):
-             result[i] = iNaT
-
-        else:
-
-             # just return, don't convert
-             if not coerce:
-                 return values.copy()
-
-             result[i] = iNaT
-
-    return result
-
-def convert_to_timedelta(object ts, object unit='ns'):
-    return convert_to_timedelta64(ts, unit)
-
-cdef convert_to_timedelta64(object ts, object unit):
+cdef convert_to_timedelta64(object ts, object unit, object coerce):
     """
     Convert an incoming object to a timedelta64 if possible
 
@@ -1209,6 +1183,8 @@ cdef convert_to_timedelta64(object ts, object unit):
         - timedelta64
         - np.int64 (with unit providing a possible modifier)
         - None/NaT
+
+    if coerce, set a non-valid value to NaT
 
     Return a ns based int64
 
@@ -1237,7 +1213,9 @@ cdef convert_to_timedelta64(object ts, object unit):
 
     if _np_version_under1p7:
         if not isinstance(ts, timedelta):
-            raise AssertionError("Invalid type for timedelta scalar: %s" % type(ts))
+            if coerce:
+                return np.timedelta64(iNaT)
+            raise ValueError("Invalid type for timedelta scalar: %s" % type(ts))
         if not PY2:
             # convert to microseconds in timedelta64
             ts = np.timedelta64(int(ts.total_seconds()*1e9 + ts.microseconds*1000))
@@ -1247,7 +1225,9 @@ cdef convert_to_timedelta64(object ts, object unit):
     if isinstance(ts, timedelta):
         ts = np.timedelta64(ts)
     elif not isinstance(ts, np.timedelta64):
-        raise AssertionError("Invalid type for timedelta scalar: %s" % type(ts))
+        if coerce:
+            return np.timedelta64(iNaT)
+        raise ValueError("Invalid type for timedelta scalar: %s" % type(ts))
     return ts.astype('timedelta64[ns]')
 
 def repr_timedelta64(object value, format=None):

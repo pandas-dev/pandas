@@ -1546,7 +1546,7 @@ def _possibly_convert_objects(values, convert_dates=True,
         if convert_timedeltas == 'coerce':
             from pandas.tseries.timedeltas import \
                  _possibly_cast_to_timedelta
-            values = _possibly_cast_to_timedelta(values)
+            values = _possibly_cast_to_timedelta(values, coerce=True)
 
             # if we are all nans then leave me alone
             if not isnull(new_values).all():
@@ -1641,7 +1641,7 @@ def _possibly_cast_to_datetime(value, dtype, coerce=False):
                         elif is_timedelta64:
                             from pandas.tseries.timedeltas import \
                                 _possibly_cast_to_timedelta
-                            value = _possibly_cast_to_timedelta(value)
+                            value = _possibly_cast_to_timedelta(value, coerce=True)
                     except:
                         pass
 
