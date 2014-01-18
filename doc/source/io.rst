@@ -456,12 +456,22 @@ data columns:
                     index_col=0) #index is the nominal column
    df
 
-**Note**: When passing a dict as the `parse_dates` argument, the order of
-the columns prepended is not guaranteed, because `dict` objects do not impose
-an ordering on their keys. On Python 2.7+ you may use `collections.OrderedDict`
-instead of a regular `dict` if this matters to you. Because of this, when using a
-dict for 'parse_dates' in conjunction with the `index_col` argument, it's best to
-specify `index_col` as a column label rather then as an index on the resulting frame.
+.. note::
+   read_csv has a fast_path for parsing datetime strings in iso8601 format,
+   e.g "2000-01-01T00:01:02+00:00" and similar variations. If you can arrange
+   for your data to store datetimes in this format, load times will be
+   significantly faster, ~20x has been observed.
+
+
+.. note::
+
+   When passing a dict as the `parse_dates` argument, the order of
+   the columns prepended is not guaranteed, because `dict` objects do not impose
+   an ordering on their keys. On Python 2.7+ you may use `collections.OrderedDict`
+   instead of a regular `dict` if this matters to you. Because of this, when using a
+   dict for 'parse_dates' in conjunction with the `index_col` argument, it's best to
+   specify `index_col` as a column label rather then as an index on the resulting frame.
+
 
 Date Parsing Functions
 ~~~~~~~~~~~~~~~~~~~~~~

@@ -87,6 +87,7 @@ parse_dates : boolean, list of ints or names, list of lists, or dict
     If [1, 2, 3] -> try parsing columns 1, 2, 3 each as a separate date column.
     If [[1, 3]] -> combine columns 1 and 3 and parse as a single date column.
     {'foo' : [1, 3]} -> parse columns 1, 3 as date and call result 'foo'
+    A fast-path exists for iso8601-formatted dates.
 keep_date_col : boolean, default False
     If True and parse_dates specifies combining multiple columns then
     keep the original columns.

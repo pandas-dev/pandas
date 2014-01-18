@@ -1595,6 +1595,9 @@ Improvements to existing features
   - Add methods ``neg`` and ``inv`` to Series
   - Implement ``kind`` option in ``ExcelFile`` to indicate whether it's an XLS
     or XLSX file (:issue:`2613`)
+  - Documented a fast-path in pd.read_Csv when parsing iso8601 datetime strings
+    yielding as much as a 20x speedup.  (:issue:`5993`)
+
 
 Bug Fixes
 ~~~~~~~~~
