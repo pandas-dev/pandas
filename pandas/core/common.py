@@ -1514,7 +1514,8 @@ def _values_from_object(o):
 
 
 def _possibly_convert_objects(values, convert_dates=True,
-                              convert_numeric=True):
+                              convert_numeric=True,
+                              convert_timedeltas=True):
     """ if we have an object dtype, try to coerce dates and/or numbers """
 
     # if we have passed in a list or scalar
@@ -1538,6 +1539,22 @@ def _possibly_convert_objects(values, convert_dates=True,
         else:
             values = lib.maybe_convert_objects(
                 values, convert_datetime=convert_dates)
+
+    # convert timedeltas
+    if convert_timedeltas and values.dtype == np.object_:
+
+        if convert_timedeltas == 'coerce':
+            from pandas.tseries.timedeltas import \
+                 _possibly_cast_to_timedelta
+            values = _possibly_cast_to_timedelta(values)
+
+            # if we are all nans then leave me alone
+            if not isnull(new_values).all():
+                values = new_values
+
+        else:
+            values = lib.maybe_convert_objects(
+                values, convert_timedelta=convert_timedeltas)
 
     # convert to numeric
     if values.dtype == np.object_:

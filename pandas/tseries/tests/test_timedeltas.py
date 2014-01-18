@@ -165,11 +165,13 @@ class TestTimedeltas(tm.TestCase):
         # single element conversion
         v = timedelta(seconds=1)
         result = to_timedelta(v,box=False)
-        expected = to_timedelta([v])
+        expected = np.timedelta64(timedelta(seconds=1))
+        self.assert_(result == expected)
 
         v = np.timedelta64(timedelta(seconds=1))
         result = to_timedelta(v,box=False)
-        expected = to_timedelta([v])
+        expected = np.timedelta64(timedelta(seconds=1))
+        self.assert_(result == expected)
 
     def test_timedelta_ops(self):
         _skip_if_numpy_not_friendly()

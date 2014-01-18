@@ -3626,7 +3626,7 @@ class DataFrame(NDFrame):
             index = None if other.name is None else [other.name]
             other = other.reindex(self.columns, copy=False)
             other = DataFrame(other.values.reshape((1, len(other))),
-                              index=index, columns=self.columns)
+                              index=index, columns=self.columns).convert_objects()
         elif isinstance(other, list) and not isinstance(other[0], DataFrame):
             other = DataFrame(other)
             if (self.columns.get_indexer(other.columns) >= 0).all():

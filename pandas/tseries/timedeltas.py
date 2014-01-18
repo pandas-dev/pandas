@@ -70,42 +70,16 @@ _nat_search = re.compile(
 _whitespace = re.compile('^\s*$')
 
 def _coerce_scalar_to_timedelta_type(r, unit='ns'):
-    # kludgy here until we have a timedelta scalar
-    # handle the numpy < 1.7 case
-
-    def conv(v):
-        if _np_version_under1p7:
-            return timedelta(microseconds=v/1000.0)
-        return np.timedelta64(v)
+    """ convert strings to timedelta; coerce to np.timedelta64"""
 
     if isinstance(r, compat.string_types):
+
+        # we are already converting to nanoseconds
         converter = _get_string_converter(r, unit=unit)
         r = converter()
-        r = conv(r)
-    elif r == tslib.iNaT:
-        return r
-    elif isnull(r):
-        return np.timedelta64('NaT')
-    elif isinstance(r, np.timedelta64):
-        r = r.astype("m8[{0}]".format(unit.lower()))
-    elif is_integer(r):
-        r = tslib.cast_from_unit(r, unit)
-        r = conv(r)
+        unit='ns'
 
-    if _np_version_under1p7:
-        if not isinstance(r, timedelta):
-            raise AssertionError("Invalid type for timedelta scalar: %s" % type(r))
-        if compat.PY3:
-            # convert to microseconds in timedelta64
-            r = np.timedelta64(int(r.total_seconds()*1e9 + r.microseconds*1000))
-        else:
-            return r
-
-    if isinstance(r, timedelta):
-        r = np.timedelta64(r)
-    elif not isinstance(r, np.timedelta64):
-        raise AssertionError("Invalid type for timedelta scalar: %s" % type(r))
-    return r.astype('timedelta64[ns]')
+    return tslib.convert_to_timedelta(r,unit)
 
 def _get_string_converter(r, unit='ns'):
     """ return a string converter for r to process the timedelta format """

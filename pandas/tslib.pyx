@@ -38,6 +38,12 @@ from pandas.compat import parse_date
 
 from sys import version_info
 
+# numpy compat
+from distutils.version import LooseVersion
+_np_version = np.version.short_version
+_np_version_under1p6 = LooseVersion(_np_version) < '1.6'
+_np_version_under1p7 = LooseVersion(_np_version) < '1.7'
+
 # GH3363
 cdef bint PY2 = version_info[0] == 2
 
@@ -1191,6 +1197,58 @@ def array_to_timedelta64(ndarray[object] values, coerce=True):
 
     return result
 
+def convert_to_timedelta(object ts, object unit='ns'):
+    return convert_to_timedelta64(ts, unit)
+
+cdef convert_to_timedelta64(object ts, object unit):
+    """
+    Convert an incoming object to a timedelta64 if possible
+
+    Handle these types of objects:
+        - timedelta
+        - timedelta64
+        - np.int64 (with unit providing a possible modifier)
+        - None/NaT
+
+    Return a ns based int64
+
+    # kludgy here until we have a timedelta scalar
+    # handle the numpy < 1.7 case
+    """
+    if _checknull_with_nat(ts):
+        ts = np.timedelta64(iNaT)
+    elif util.is_datetime64_object(ts):
+        # only accept a NaT here
+        if ts.astype('int64') == iNaT:
+            ts = np.timedelta64(iNaT)
+    elif isinstance(ts, np.timedelta64):
+        ts = ts.astype("m8[{0}]".format(unit.lower()))
+    elif is_integer_object(ts):
+        if ts == iNaT:
+            ts = np.timedelta64(iNaT)
+        else:
+            if util.is_array(ts):
+                ts = ts.astype('int64').item()
+            ts = cast_from_unit(ts, unit)
+            if _np_version_under1p7:
+                ts = timedelta(microseconds=ts/1000.0)
+            else:
+                ts = np.timedelta64(ts)
+
+    if _np_version_under1p7:
+        if not isinstance(ts, timedelta):
+            raise AssertionError("Invalid type for timedelta scalar: %s" % type(ts))
+        if not PY2:
+            # convert to microseconds in timedelta64
+            ts = np.timedelta64(int(ts.total_seconds()*1e9 + ts.microseconds*1000))
+        else:
+            return ts
+
+    if isinstance(ts, timedelta):
+        ts = np.timedelta64(ts)
+    elif not isinstance(ts, np.timedelta64):
+        raise AssertionError("Invalid type for timedelta scalar: %s" % type(ts))
+    return ts.astype('timedelta64[ns]')
 
 def repr_timedelta64(object value, format=None):
    """
@@ -1206,6 +1264,7 @@ def repr_timedelta64(object value, format=None):
     converted : Timestamp
 
    """
+   cdef object ivalue
 
    ivalue = value.view('i8')
 

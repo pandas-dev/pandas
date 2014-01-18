@@ -2263,6 +2263,16 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
                     for i in range(3)] + [np.nan ], dtype='m8[ns]' )
         self.assert_(td.dtype == 'timedelta64[ns]')
 
+        td = Series([np.timedelta64(300000000), pd.NaT],dtype='m8[ns]')
+        self.assert_(td.dtype == 'timedelta64[ns]')
+
+        # improved inference
+        td = Series([np.timedelta64(300000000), pd.NaT])
+        self.assert_(td.dtype == 'timedelta64[ns]')
+
+        td = Series([pd.NaT, np.timedelta64(300000000)])
+        self.assert_(td.dtype == 'timedelta64[ns]')
+
         # these are frequency conversion astypes
         #for t in ['s', 'D', 'us', 'ms']:
         #    self.assertRaises(TypeError, td.astype, 'm8[%s]' % t)

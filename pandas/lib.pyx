@@ -31,7 +31,7 @@ from datetime import datetime as pydatetime
 # this is our tseries.pxd
 from datetime cimport *
 
-from tslib cimport convert_to_tsobject
+from tslib cimport convert_to_tsobject, convert_to_timedelta64
 import tslib
 from tslib import NaT, Timestamp, repr_timedelta64
 
