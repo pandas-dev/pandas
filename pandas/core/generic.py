@@ -2486,7 +2486,7 @@ class NDFrame(PandasObject):
         method : {'backfill', 'bfill', 'pad', 'ffill', None}
             Method to use for filling holes in reindexed Series
             pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill methdo
+            backfill / bfill: use NEXT valid observation to fill method
         how : {'start', 'end'}, default end
             For PeriodIndex only, see PeriodIndex.asfreq
         normalize : bool, default False
