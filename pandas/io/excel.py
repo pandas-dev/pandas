@@ -18,6 +18,7 @@ from pandas.core.common import pprint_thing
 import pandas.compat as compat
 import pandas.core.common as com
 from warnings import warn
+from StringIO import StringIO
 
 __all__ = ["read_excel", "ExcelWriter", "ExcelFile"]
 
@@ -431,8 +432,9 @@ class ExcelWriter(object):
 
     def __init__(self, path, engine=None, **engine_kwargs):
         # validate that this engine can handle the extnesion
-        ext = os.path.splitext(path)[-1]
-        self.check_extension(ext)
+        if ot isinstance(path, StringIO):
+            ext = os.path.splitext(path)[-1]
+            self.check_extension(ext)
 
         self.path = path
         self.sheets = {}
