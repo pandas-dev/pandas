@@ -5441,6 +5441,15 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         # it works!
         result = np.unique(self.ts)
 
+    def test_concat_empty_series_dtypes(self):
+        self.assertEqual(pd.concat([Series(dtype=np.float64)]).dtype, np.float64)
+        self.assertEqual(pd.concat([Series(dtype=np.int8)]).dtype, np.int8)
+        self.assertEqual(pd.concat([Series(dtype=np.bool_)]).dtype, np.bool_)
+
+        self.assertEqual(pd.concat([Series(dtype=np.bool_),
+                                    Series(dtype=np.int32)]).dtype, np.int32)
+
+
 
 class TestSeriesNonUnique(tm.TestCase):
 

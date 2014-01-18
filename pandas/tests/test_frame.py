@@ -11909,6 +11909,23 @@ starting,ending,measure
 
                 assert_frame_equal(test, nat_frame)
 
+    def test_concat_empty_dataframe_dtypes(self):
+        df = DataFrame(columns=list("abc"))
+        df['a'] = df['a'].astype(np.bool_)
+        df['b'] = df['b'].astype(np.int32)
+        df['c'] = df['c'].astype(np.float64)
+
+        result = pd.concat([df, df])
+        self.assertEqual(result['a'].dtype, np.bool_)
+        self.assertEqual(result['b'].dtype, np.int32)
+        self.assertEqual(result['c'].dtype, np.float64)
+
+        result = pd.concat([df, df.astype(np.float64)])
+        self.assertEqual(result['a'].dtype, np.object_)
+        self.assertEqual(result['b'].dtype, np.float64)
+        self.assertEqual(result['c'].dtype, np.float64)
+
+
 def skip_if_no_ne(engine='numexpr'):
     if engine == 'numexpr':
         try:
