@@ -2,6 +2,7 @@
 Data structure for 1-dimensional cross-sectional and time series data
 """
 from __future__ import division
+from itertools import islice
 
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
@@ -118,11 +119,13 @@ class Series(generic.NDFrame):
     dtype : numpy.dtype or None
         If None, dtype will be inferred
     copy : boolean, default False, copy input data
+    count : int or None, number of values to read from a generator.
+        If None reads the whole generator
     """
     _metadata = ['name']
 
     def __init__(self, data=None, index=None, dtype=None, name=None,
-                 copy=False, fastpath=False):
+                 copy=False, count=None, fastpath=False):
 
         # we are called internally, so short-circuit
         if fastpath:
@@ -192,7 +195,7 @@ class Series(generic.NDFrame):
                     name = data.name
                 data = np.asarray(data)
             elif isinstance(data, types.GeneratorType):
-                data = list(data)
+                data = list(islice(data, count))
             elif isinstance(data, (set, frozenset)):
                 raise TypeError("{0!r} type is unordered"
                                 "".format(data.__class__.__name__))

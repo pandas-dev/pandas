@@ -16,6 +16,7 @@ import sys
 import collections
 import warnings
 import types
+from itertools import islice, chain
 
 from numpy import nan as NA
 import numpy as np
@@ -159,6 +160,8 @@ class DataFrame(NDFrame):
         Data type to force, otherwise infer
     copy : boolean, default False
         Copy data from inputs. Only affects DataFrame / 2d ndarray input
+    count : int or None, when data it's a generator, number of values to
+        read. If None reads the whole generator
 
     Examples
     --------
@@ -185,7 +188,7 @@ class DataFrame(NDFrame):
     _constructor_sliced = Series
 
     def __init__(self, data=None, index=None, columns=None, dtype=None,
-                 copy=False):
+                 copy=False, count=None):
         if data is None:
             data = {}
         if dtype is not None:
@@ -232,7 +235,7 @@ class DataFrame(NDFrame):
                                          copy=copy)
         elif isinstance(data, (list, types.GeneratorType)):
             if isinstance(data, types.GeneratorType):
-                data = list(data)
+                data = list(islice(data, count))
             if len(data) > 0:
                 if index is None and isinstance(data[0], Series):
                     index = _get_names_from_index(data)
@@ -705,7 +708,7 @@ class DataFrame(NDFrame):
 
     @classmethod
     def from_records(cls, data, index=None, exclude=None, columns=None,
-                     coerce_float=False, nrows=None):
+                     coerce_float=False, count=None, nrows=None):
         """
         Convert structured or record ndarray to DataFrame
 
@@ -726,24 +729,29 @@ class DataFrame(NDFrame):
         coerce_float : boolean, default False
             Attempt to convert values to non-string, non-numeric objects (like
             decimal.Decimal) to floating point, useful for SQL result sets
+        count : int or None, number of records to read from a generator.
+            If None reads the whole generator
 
         Returns
         -------
         df : DataFrame
         """
+        #Deprecate undocumented nrows
+        if nrows is not None:
+            warnings.warn("nrows is deprecated, use count",
+                          FutureWarning)
+            count = nrows
+
         # Make a copy of the input columns so we can modify it
         if columns is not None:
             columns = _ensure_index(columns)
 
         if com.is_iterator(data):
-            if nrows == 0:
+            if count == 0:
                 return cls()
 
             try:
-                if compat.PY3:
-                    first_row = next(data)
-                else:
-                    first_row = next(data)
+                first_row = next(data)
             except StopIteration:
                 return cls(index=index, columns=columns)
 
@@ -751,19 +759,8 @@ class DataFrame(NDFrame):
             if hasattr(first_row, 'dtype') and first_row.dtype.names:
                 dtype = first_row.dtype
 
-            values = [first_row]
-
-            # if unknown length iterable (generator)
-            if nrows is None:
-                # consume whole generator
-                values += list(data)
-            else:
-                i = 1
-                for row in data:
-                    values.append(row)
-                    i += 1
-                    if i >= nrows:
-                        break
+            # put the generator in a list
+            values = list(islice(chain([first_row], data), count))
 
             if dtype is not None:
                 data = np.array(values, dtype=dtype)

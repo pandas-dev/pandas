@@ -403,6 +403,14 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         exp.index = lrange(10, 20)
         assert_series_equal(result, exp)
 
+    def test_constructor_generator_count_limit(self):
+        generator_length = 10
+        expected_length = 5
+        gen = (i for i in range(generator_length))
+
+        result = Series(gen, count=expected_length)
+        self.assertEqual(len(result), expected_length)
+
     def test_constructor_categorical(self):
         cat = pd.Categorical([0, 1, 2, 0, 1, 2], ['a', 'b', 'c'])
         res = Series(cat)
