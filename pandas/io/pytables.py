@@ -568,7 +568,10 @@ class HDFStore(StringMixin):
         if self._handle is not None:
             self._handle.flush()
             if fsync:
-                os.fsync(self._handle.fileno())
+                try:
+                    os.fsync(self._handle.fileno())
+                except:
+                    pass
 
     def get(self, key):
         """
