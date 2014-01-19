@@ -461,6 +461,16 @@ class TestSeries(tm.TestCase, Generic):
         # try time interpolation on a non-TimeSeries
         self.assertRaises(ValueError, self.series.interpolate, method='time')
 
+    def test_interp_regression(self):
+
+        ser = Series(np.sort(np.random.uniform(size=100)))
+
+        # interpolate at new_index
+        new_index = ser.index + Index([49.25, 49.5, 49.75, 50.25, 50.5, 50.75])
+        interp_s = ser.reindex(new_index).interpolate(method='pchip')
+        # does not blow up, GH5977
+        interp_s[49:51]
+
     def test_interpolate_corners(self):
         s = Series([np.nan, np.nan])
         assert_series_equal(s.interpolate(), s)
