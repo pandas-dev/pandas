@@ -463,6 +463,7 @@ class TestSeries(tm.TestCase, Generic):
 
     def test_interp_regression(self):
         _skip_if_no_scipy()
+        _skip_if_no_pchip()
 
         ser = Series(np.sort(np.random.uniform(size=100)))
 
