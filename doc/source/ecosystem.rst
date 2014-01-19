@@ -56,8 +56,15 @@ more advanced types of plots then those offered by pandas.
 
 
 `Geopandas <https://github.com/kjordahl/geopandas>`__
-------------------------------------------------------
+-----------------------------------------------------
 
 Geopandas extends pandas data objects to include geographic information which support
 geometric operations. If your work entails maps and geographical coordinates, and
 you love pandas, you should take a close look at Geopandas.
+
+`sklearn-pandas <https://github.com/paulgb/sklearn-pandas>`__
+-------------------------------------------------------------
+
+Use pandas DataFrames in your scikit-learn ML pipeline.
+
+
