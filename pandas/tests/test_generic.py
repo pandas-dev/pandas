@@ -462,6 +462,7 @@ class TestSeries(tm.TestCase, Generic):
         self.assertRaises(ValueError, self.series.interpolate, method='time')
 
     def test_interp_regression(self):
+        _skip_if_no_scipy()
 
         ser = Series(np.sort(np.random.uniform(size=100)))
 
