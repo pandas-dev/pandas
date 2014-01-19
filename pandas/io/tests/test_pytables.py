@@ -226,24 +226,24 @@ class TestHDFStore(tm.TestCase):
             _maybe_remove(store,'df')
             store.append('df',df.iloc[:10],append=True,format='table')
             store.append('df',df.iloc[10:],append=True,format='table')
-            assert_frame_equal(read_hdf(path,'df'),df)
+            assert_frame_equal(store.select('df'),df)
 
             # append to False
             _maybe_remove(store,'df')
             store.append('df',df.iloc[:10],append=False,format='table')
             store.append('df',df.iloc[10:],append=True,format='table')
-            assert_frame_equal(read_hdf(path,'df'),df)
+            assert_frame_equal(store.select('df'),df)
 
             # formats
             _maybe_remove(store,'df')
             store.append('df',df.iloc[:10],append=False,format='table')
             store.append('df',df.iloc[10:],append=True,format='table')
-            assert_frame_equal(read_hdf(path,'df'),df)
+            assert_frame_equal(store.select('df'),df)
 
             _maybe_remove(store,'df')
             store.append('df',df.iloc[:10],append=False,format='table')
             store.append('df',df.iloc[10:],append=True,format=None)
-            assert_frame_equal(read_hdf(path,'df'),df)
+            assert_frame_equal(store.select('df'),df)
 
         with ensure_clean_path(self.path) as path:
 
