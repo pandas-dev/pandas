@@ -70,5 +70,4 @@ script:
 after_script:
   - ci/print_versions.py
   - ci/print_skipped.py /tmp/nosetests.xml
-  - ci/print_versions.py -j /tmp/env.json
   - ci/after_script.sh
