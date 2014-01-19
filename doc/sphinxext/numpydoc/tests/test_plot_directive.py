@@ -1,3 +1,5 @@
 from __future__ import division, absolute_import, print_function
 
-from .numpydoc import setup
+import numpydoc.plot_directive
+
+# No tests at the moment...

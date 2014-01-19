@@ -1,8 +1,6 @@
 -------------------------------------------------------------------------------
     The files
     - numpydoc.py
-    - autosummary.py
-    - autosummary_generate.py
     - docscrape.py
     - docscrape_sphinx.py
     - phantom_import.py
@@ -71,10 +69,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 -------------------------------------------------------------------------------
-    The files
-    - only_directives.py
+    The file
     - plot_directive.py
-    originate from Matplotlib (http://matplotlib.sf.net/) which has
+    originates from Matplotlib (http://matplotlib.sf.net/) which has
     the following license:
 
 Copyright (c) 2002-2008 John D. Hunter; All Rights Reserved.
