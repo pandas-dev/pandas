@@ -432,7 +432,7 @@ class ExcelWriter(object):
 
     def __init__(self, path, engine=None, **engine_kwargs):
         # validate that this engine can handle the extnesion
-        if ot isinstance(path, StringIO):
+        if not isinstance(path, StringIO):
             ext = os.path.splitext(path)[-1]
             self.check_extension(ext)
 
