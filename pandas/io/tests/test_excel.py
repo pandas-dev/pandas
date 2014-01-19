@@ -17,7 +17,7 @@ from pandas.io.excel import (
 )
 from pandas.util.testing import ensure_clean
 from pandas.core.config import set_option, get_option
-from StringIO import StringIO
+from pandas.compat import StringIO
 import pandas.util.testing as tm
 import pandas as pd
 

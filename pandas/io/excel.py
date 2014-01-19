@@ -12,13 +12,12 @@ import numpy as np
 from pandas.io.parsers import TextParser
 from pandas.tseries.period import Period
 from pandas import json
-from pandas.compat import map, zip, reduce, range, lrange, u, add_metaclass
+from pandas.compat import map, zip, reduce, range, lrange, u, add_metaclass, StringIO
 from pandas.core import config
 from pandas.core.common import pprint_thing
 import pandas.compat as compat
 import pandas.core.common as com
 from warnings import warn
-from StringIO import StringIO
 
 __all__ = ["read_excel", "ExcelWriter", "ExcelFile"]
 
@@ -432,7 +431,7 @@ class ExcelWriter(object):
 
     def __init__(self, path, engine=None, **engine_kwargs):
         # validate that this engine can handle the extnesion
-        if not isinstance(path, StringIO):
+        if not hasattr(path, 'read'):
             ext = os.path.splitext(path)[-1]
             self.check_extension(ext)
 
