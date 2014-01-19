@@ -1414,9 +1414,9 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
         'piecewise_polynomial': interpolate.piecewise_polynomial_interpolate,
     }
 
-    if hasattr(x, 'asi8'):
+    if getattr(x, 'is_all_dates', False):
         # GH 5975, scipy.interp1d can't hande datetime64s
-        x, new_x = x.values.view('i8'), new_x.view('i8')
+        x, new_x = x.values.astype('i8'), new_x.astype('i8')
 
     try:
         alt_methods['pchip'] = interpolate.pchip_interpolate
