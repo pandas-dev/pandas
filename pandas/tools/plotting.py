@@ -94,6 +94,23 @@ mpl_stylesheet = {
 def _get_standard_kind(kind):
     return {'density': 'kde'}.get(kind, kind)
 
+
+def _get_plot_kind(kind, series=False):
+    series_kinds = {'line': LinePlot, 'bar': BarPlot, 'barh': BarPlot,
+                    'kde': KdePlot}
+    frame_kinds = {'line': LinePlot, 'bar': BarPlot, 'barh': BarPlot,
+                   'kde': KdePlot, 'scatter': ScatterPlot}
+    if series:
+        d = series_kinds
+    else:
+        d = frame_kinds
+    try:
+        klass = d[kind]
+        return klass
+    except KeyError:
+        raise ValueError('Invalid chart type given %s' % kind)
+
+
 def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
                          color=None):
     import matplotlib.pyplot as plt
@@ -1679,16 +1696,7 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
     ax_or_axes : matplotlib.AxesSubplot or list of them
     """
     kind = _get_standard_kind(kind.lower().strip())
-    if kind == 'line':
-        klass = LinePlot
-    elif kind in ('bar', 'barh'):
-        klass = BarPlot
-    elif kind == 'kde':
-        klass = KdePlot
-    elif kind == 'scatter':
-        klass = ScatterPlot
-    else:
-        raise ValueError('Invalid chart type given %s' % kind)
+    klass = _get_plot_kind(kind)
 
     if kind == 'scatter':
         plot_obj = klass(frame,  x=x, y=y, kind=kind, subplots=subplots,
@@ -1782,15 +1790,7 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
     See matplotlib documentation online for more on this subject
     """
     kind = _get_standard_kind(kind.lower().strip())
-    if kind == 'line':
-        klass = LinePlot
-    elif kind in ('bar', 'barh'):
-        klass = BarPlot
-    elif kind == 'kde':
-        klass = KdePlot
-    else:
-        raise ValueError('Invalid chart type given %s' % kind)
-
+    klass = _get_plot_kind(kind, series=True)
     """
     If no axis is specified, we check whether there are existing figures.
     If so, we get the current axis and check whether yaxis ticks are on the
