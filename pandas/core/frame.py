@@ -3363,7 +3363,7 @@ class DataFrame(NDFrame):
     # Function application
 
     def apply(self, func, axis=0, broadcast=False, raw=False, reduce=True,
-              args=(), **kwds):
+              args=(), is_reduction=None, **kwds):
         """
         Applies function along input axis of DataFrame.
 
@@ -3391,6 +3391,14 @@ class DataFrame(NDFrame):
         args : tuple
             Positional arguments to pass to function in addition to the
             array/series
+        is_reduction : boolean or None, default None
+            If the DataFrame is empty, apply needs to determine whether the
+            return value should be a Series or a DataFrame. If is_reduction is
+            None, func will be called with an empty Series and the return value
+            will be guessed based on the result (or, if an exception is raised,
+            a DataFrame will be returned). If is_reduction is True a Series
+            will always be returned, and if False a DataFrame will always be
+            returned.
         Additional keyword arguments will be passed as keywords to the function
 
         Examples
@@ -3423,12 +3431,12 @@ class DataFrame(NDFrame):
         else:
             if not broadcast:
                 if not all(self.shape):
-                    # How to determine this better?
-                    is_reduction = False
-                    try:
-                        is_reduction = not isinstance(f(_EMPTY_SERIES), Series)
-                    except Exception:
-                        pass
+                    if is_reduction is None:
+                        is_reduction = False
+                        try:
+                            is_reduction = not isinstance(f(_EMPTY_SERIES), Series)
+                        except Exception:
+                            pass
 
                     if is_reduction:
                         return Series(NA, index=self._get_agg_axis(axis))
