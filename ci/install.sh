@@ -37,9 +37,9 @@ pip install wheel
 # comment this line to disable the fetching of wheel files
 base_url=http://cache27diy-cpycloud.rhcloud.com
 wheel_box=${TRAVIS_PYTHON_VERSION}${JOB_TAG}
-PIP_ARGS+=" -I --use-wheel --find-links=$base_url/$wheel_box/"
+PIP_ARGS+=" -I --use-wheel --find-links=$base_url/$wheel_box/ --allow-external --allow-insecure"
 
-# Force virtualenv to accpet system_site_packages
+# Force virtualenv to accept system_site_packages
 rm -f $VIRTUAL_ENV/lib/python$TRAVIS_PYTHON_VERSION/no-global-site-packages.txt
 
 
@@ -49,10 +49,11 @@ if [ -n "$LOCALE_OVERRIDE" ]; then
     time sudo locale-gen "$LOCALE_OVERRIDE"
 fi
 
-time pip install $PIP_ARGS -r ci/requirements-${wheel_box}.txt
 
 # we need these for numpy
 time sudo apt-get $APT_ARGS install libatlas-base-dev gfortran
+
+time pip install $PIP_ARGS -r ci/requirements-${wheel_box}.txt
 
 
 # Need to enable for locale testing. The location of the locale file(s) is
