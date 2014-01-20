@@ -1844,16 +1844,18 @@ class NDFrame(PandasObject):
         return self._constructor(data).__finalize__(self)
 
     def convert_objects(self, convert_dates=True, convert_numeric=False,
-                        copy=True):
+                        convert_timedeltas=True, copy=True):
         """
         Attempt to infer better dtype for object columns
 
         Parameters
         ----------
-        convert_dates : if True, attempt to soft convert_dates, if 'coerce',
+        convert_dates : if True, attempt to soft convert dates, if 'coerce',
             force conversion (and non-convertibles get NaT)
         convert_numeric : if True attempt to coerce to numbers (including
             strings), non-convertibles get NaN
+        convert_timedeltas : if True, attempt to soft convert timedeltas, if 'coerce',
+            force conversion (and non-convertibles get NaT)
         copy : Boolean, if True, return copy, default is True
 
         Returns
@@ -1863,6 +1865,7 @@ class NDFrame(PandasObject):
         return self._constructor(
             self._data.convert(convert_dates=convert_dates,
                                convert_numeric=convert_numeric,
+                               convert_timedeltas=convert_timedeltas,
                                copy=copy)).__finalize__(self)
 
     #----------------------------------------------------------------------
@@ -3174,23 +3177,22 @@ class NDFrame(PandasObject):
         -------
         abs: type of caller
         """
-        obj = np.abs(self)
 
         # suprimo numpy 1.6 hacking
+        # for timedeltas
         if _np_version_under1p7:
+
+            def _convert_timedeltas(x):
+                if x.dtype.kind == 'm':
+                    return np.abs(x.view('i8')).astype(x.dtype)
+                return np.abs(x)
+
             if self.ndim == 1:
-                if obj.dtype == 'm8[us]':
-                    obj = obj.astype('m8[ns]')
+                return _convert_timedeltas(self)
             elif self.ndim == 2:
-                def f(x):
-                    if x.dtype == 'm8[us]':
-                        x = x.astype('m8[ns]')
-                    return x
+                return  self.apply(_convert_timedeltas)
 
-                if 'm8[us]' in obj.dtypes.values:
-                    obj = obj.apply(f)
-
-        return obj
+        return np.abs(self)
 
     def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None,
                    **kwds):

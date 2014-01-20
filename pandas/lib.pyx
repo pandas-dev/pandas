@@ -14,7 +14,7 @@ from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
                       Py_INCREF, PyTuple_SET_ITEM,
                       PyList_Check, PyFloat_Check,
                       PyString_Check,
-		      PyBytes_Check,
+                      PyBytes_Check,
                       PyTuple_SetItem,
                       PyTuple_New,
                       PyObject_SetAttrString)
@@ -31,7 +31,7 @@ from datetime import datetime as pydatetime
 # this is our tseries.pxd
 from datetime cimport *
 
-from tslib cimport convert_to_tsobject
+from tslib cimport convert_to_tsobject, convert_to_timedelta64
 import tslib
 from tslib import NaT, Timestamp, repr_timedelta64
 

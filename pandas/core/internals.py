@@ -1315,8 +1315,8 @@ class ObjectBlock(Block):
         """
         return lib.is_bool_array(self.values.ravel())
 
-    def convert(self, convert_dates=True, convert_numeric=True, copy=True,
-                by_item=True):
+    def convert(self, convert_dates=True, convert_numeric=True, convert_timedeltas=True,
+                copy=True, by_item=True):
         """ attempt to coerce any object types to better types
             return a copy of the block (if copy = True)
             by definition we ARE an ObjectBlock!!!!!
@@ -1334,7 +1334,8 @@ class ObjectBlock(Block):
 
                 values = com._possibly_convert_objects(
                     values.ravel(), convert_dates=convert_dates,
-                    convert_numeric=convert_numeric
+                    convert_numeric=convert_numeric,
+                    convert_timedeltas=convert_timedeltas,
                 ).reshape(values.shape)
                 values = _block_shape(values, ndim=self.ndim)
                 items = self.items.take([i])

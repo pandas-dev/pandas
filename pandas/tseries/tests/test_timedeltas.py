@@ -165,11 +165,24 @@ class TestTimedeltas(tm.TestCase):
         # single element conversion
         v = timedelta(seconds=1)
         result = to_timedelta(v,box=False)
-        expected = to_timedelta([v])
+        expected = np.timedelta64(timedelta(seconds=1))
+        self.assert_(result == expected)
 
         v = np.timedelta64(timedelta(seconds=1))
         result = to_timedelta(v,box=False)
-        expected = to_timedelta([v])
+        expected = np.timedelta64(timedelta(seconds=1))
+        self.assert_(result == expected)
+
+    def test_to_timedelta_via_apply(self):
+        _skip_if_numpy_not_friendly()
+
+        # GH 5458
+        expected = Series([np.timedelta64(1,'s')])
+        result = Series(['00:00:01']).apply(to_timedelta)
+        tm.assert_series_equal(result, expected)
+
+        result = Series([to_timedelta('00:00:01')])
+        tm.assert_series_equal(result, expected)
 
     def test_timedelta_ops(self):
         _skip_if_numpy_not_friendly()

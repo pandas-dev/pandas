@@ -2246,22 +2246,45 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
     def test_constructor_dtype_timedelta64(self):
 
+        # basic
         td = Series([timedelta(days=i) for i in range(3)])
         self.assert_(td.dtype == 'timedelta64[ns]')
 
+        td = Series([timedelta(days=1)])
+        self.assert_(td.dtype == 'timedelta64[ns]')
+
+        if not _np_version_under1p7:
+            td = Series([timedelta(days=1),timedelta(days=2),np.timedelta64(1,'s')])
+            self.assert_(td.dtype == 'timedelta64[ns]')
+
         # mixed with NaT
         from pandas import tslib
-        td = Series([timedelta(days=i)
-                    for i in range(3)] + [tslib.NaT ], dtype='m8[ns]' )
+        td = Series([timedelta(days=1),tslib.NaT ], dtype='m8[ns]' )
         self.assert_(td.dtype == 'timedelta64[ns]')
 
-        td = Series([timedelta(days=i)
-                    for i in range(3)] + [tslib.iNaT ], dtype='m8[ns]' )
+        td = Series([timedelta(days=1),np.nan ], dtype='m8[ns]' )
         self.assert_(td.dtype == 'timedelta64[ns]')
 
-        td = Series([timedelta(days=i)
-                    for i in range(3)] + [np.nan ], dtype='m8[ns]' )
+        td = Series([np.timedelta64(300000000), pd.NaT],dtype='m8[ns]')
         self.assert_(td.dtype == 'timedelta64[ns]')
+
+        # improved inference
+        # GH5689
+        td = Series([np.timedelta64(300000000), pd.NaT])
+        self.assert_(td.dtype == 'timedelta64[ns]')
+
+        td = Series([np.timedelta64(300000000), tslib.iNaT])
+        self.assert_(td.dtype == 'timedelta64[ns]')
+
+        td = Series([np.timedelta64(300000000), np.nan])
+        self.assert_(td.dtype == 'timedelta64[ns]')
+
+        td = Series([pd.NaT, np.timedelta64(300000000)])
+        self.assert_(td.dtype == 'timedelta64[ns]')
+
+        if not _np_version_under1p7:
+            td = Series([np.timedelta64(1,'s')])
+            self.assert_(td.dtype == 'timedelta64[ns]')
 
         # these are frequency conversion astypes
         #for t in ['s', 'D', 'us', 'ms']:
@@ -2270,10 +2293,13 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         # valid astype
         td.astype('int64')
 
-        # this is an invalid casting
-        self.assertRaises(Exception, Series, [timedelta(days=i)
-                          for i in range(3)] + ['foo' ], dtype='m8[ns]' )
+        # invalid casting
         self.assertRaises(TypeError, td.astype, 'int32')
+
+        # this is an invalid casting
+        def f():
+            Series([timedelta(days=1), 'foo'],dtype='m8[ns]')
+        self.assertRaises(Exception, f)
 
         # leave as object here
         td = Series([timedelta(days=i) for i in range(3)] + ['foo'])
@@ -2854,6 +2880,9 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(ts.bfill(), ts.fillna(method='bfill'))
 
     def test_sub_of_datetime_from_TimeSeries(self):
+        if _np_version_under1p7:
+            raise nose.SkipTest("timedelta broken in np 1.6.1")
+
         from pandas.tseries.timedeltas import _possibly_cast_to_timedelta
         from datetime import datetime
         a = Timestamp(datetime(1993, 0o1, 0o7, 13, 30, 00))
