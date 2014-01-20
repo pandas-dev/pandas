@@ -106,7 +106,7 @@ def _get_data(indicator="NY.GNS.ICTR.GN.ZS", country='US',
 def get_countries():
     '''Query information about countries
     '''
-    url = 'http://api.worldbank.org/countries/all?format=json'
+    url = 'http://api.worldbank.org/countries/?per_page=1000&format=json'
     with urlopen(url) as response:
         data = response.read()
     data = json.loads(data)[1]
