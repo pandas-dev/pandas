@@ -866,6 +866,9 @@ class Index(FrozenNDArray):
     def __or__(self, other):
         return self.union(other)
 
+    def __xor__(self, other):
+        return self.sym_diff(other)
+
     def union(self, other):
         """
         Form the union of two Index objects and sorts if possible
@@ -973,16 +976,20 @@ class Index(FrozenNDArray):
         """
         Compute sorted set difference of two Index objects
 
+        Parameters
+        ----------
+        other : Index or array-like
+
+        Returns
+        -------
+        diff : Index
+
         Notes
         -----
         One can do either of these and achieve the same result
 
         >>> index - index2
         >>> index.diff(index2)
-
-        Returns
-        -------
-        diff : Index
         """
 
         if not hasattr(other, '__iter__'):
@@ -999,6 +1006,49 @@ class Index(FrozenNDArray):
 
         theDiff = sorted(set(self) - set(other))
         return Index(theDiff, name=result_name)
+
+    def sym_diff(self, other, result_name=None):
+        """
+        Compute the sorted symmetric_difference of two Index objects.
+
+        Parameters
+        ----------
+
+        other : array-like
+        result_name : str
+
+        Returns
+        -------
+        sym_diff : Index
+
+        Notes
+        -----
+        ``sym_diff`` contains elements that appear in either ``idx1`` or
+        ``idx2`` but not both. Equivalent to the Index created by
+        ``(idx1 - idx2) + (idx2 - idx1)`` with duplicates dropped.
+
+        Examples
+        --------
+        >>> idx1 = Index([1, 2, 3, 4])
+        >>> idx2 = Index([2, 3, 4, 5])
+        >>> idx1.sym_diff(idx2)
+        Int64Index([1, 5], dtype='int64')
+
+        You can also use the ``^`` operator:
+
+        >>> idx1 ^ idx2
+        Int64Index([1, 5], dtype='int64')
+        """
+        if not hasattr(other, '__iter__'):
+            raise TypeError('Input must be iterable!')
+
+        if not isinstance(other, Index):
+            other = Index(other)
+            result_name = result_name or self.name
+
+        the_diff = sorted(set((self - other) + (other - self)))
+        return Index(the_diff, name=result_name)
+
 
     def unique(self):
         """
