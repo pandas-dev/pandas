@@ -12,7 +12,7 @@ import numpy as np
 
 from pandas.core.api import DataFrame
 from pandas.core.base import PandasObject
-
+from pandas.tseries.tools import to_datetime
 
 class SQLAlchemyRequired(ImportError):
     pass
@@ -55,7 +55,7 @@ def execute(sql, con, cur=None, params=[], flavor='sqlite'):
     -------
     Results Iterable
     """
-    pandas_sql = pandasSQL_builder(con=con, flavor=flavor)
+    pandas_sql = pandasSQL_builder(con, flavor=flavor)
     args = _convert_params(sql, params)
     return pandas_sql.execute(*args)
 
@@ -87,7 +87,7 @@ def tquery(sql, con, cur=None, params=[], flavor='sqlite'):
     """
     warnings.warn("tquery is depreciated, and will be removed in future versions", DeprecationWarning)
 
-    pandas_sql = pandasSQL_builder(con=con, flavor=flavor)
+    pandas_sql = pandasSQL_builder(con, flavor=flavor)
     args = _convert_params(sql, params)
     return pandas_sql.tquery(*args)
 
@@ -116,7 +116,7 @@ def uquery(sql, con, cur=None, params=[], engine=None, flavor='sqlite'):
     Number of affected rows
     """
     warnings.warn("uquery is depreciated, and will be removed in future versions", DeprecationWarning)
-    pandas_sql = pandasSQL_builder(con=con, flavor=flavor)
+    pandas_sql = pandasSQL_builder(con, flavor=flavor)
     args = _convert_params(sql, params)
     return pandas_sql.uquery(*args)
 
@@ -125,7 +125,7 @@ def uquery(sql, con, cur=None, params=[], engine=None, flavor='sqlite'):
 # Read and write to DataFrames
 
 
-def read_sql(sql, con, index_col=None, flavor='sqlite', coerce_float=True, params=[]):
+def read_sql(sql, con, index_col=None, flavor='sqlite', coerce_float=True, params=[], parse_dates=[]):
     """
     Returns a DataFrame corresponding to the result set of the query
     string.
@@ -151,13 +151,26 @@ def read_sql(sql, con, index_col=None, flavor='sqlite', coerce_float=True, param
     cur: depreciated, cursor is obtained from connection
     params: list or tuple, optional
         List of parameters to pass to execute method.
-
+    parse_dates: list or dict
+        List of column names to parse as dates
+        Or
+        Dict of {column_name: format string} where format string is
+        strftime compatible in case of parsing string times or is one of
+        (D, s, ns, ms, us) in case of parsing integer timestamps
+        Or
+        Dict of {column_name: arg dict}, where the arg dict corresponds
+        to the keyword arguments of :func:`pandas.tseries.tools.to_datetime`
+        Especially useful with databases without native Datetime support, such as SQLite
     Returns
     -------
     DataFrame
     """
-    pandas_sql = pandasSQL_builder(con=con, flavor=flavor)
-    return pandas_sql.read_sql(sql, index_col=index_col, params=params, coerce_float=coerce_float)
+    pandas_sql = pandasSQL_builder(con, flavor=flavor)
+    return pandas_sql.read_sql(sql,
+                               index_col=index_col,
+                               params=params,
+                               coerce_float=coerce_float,
+                               parse_dates=parse_dates)
 
 
 def to_sql(frame, name, con, flavor='sqlite', if_exists='fail'):
@@ -178,7 +191,7 @@ def to_sql(frame, name, con, flavor='sqlite', if_exists='fail'):
         replace: If table exists, drop it, recreate it, and insert data.
         append: If table exists, insert data. Create if does not exist.
     """
-    pandas_sql = pandasSQL_builder(con=con, flavor=flavor)
+    pandas_sql = pandasSQL_builder(con, flavor=flavor)
     pandas_sql.to_sql(frame, name, if_exists=if_exists)
 
 
@@ -199,12 +212,11 @@ def has_table(table_name, con, meta=None, flavor='sqlite'):
     -------
     boolean
     """
-    pandas_sql = pandasSQL_builder(con=con, flavor=flavor)
+    pandas_sql = pandasSQL_builder(con, flavor=flavor)
     return pandas_sql.has_table(table_name)
 
 
-# This is an awesome function
-def read_table(table_name, con, meta=None, index_col=None, coerce_float=True):
+def read_table(table_name, con, meta=None, index_col=None, coerce_float=True, parse_dates=[], columns=[]):
     """Given a table name and SQLAlchemy engine, return a DataFrame.
     Type convertions will be done automatically
 
@@ -217,16 +229,30 @@ def read_table(table_name, con, meta=None, index_col=None, coerce_float=True):
     coerce_float : boolean, default True
         Attempt to convert values to non-string, non-numeric objects (like
         decimal.Decimal) to floating point. Can result in loss of Precision.
+    parse_dates: list or dict
+        List of column names to parse as dates
+        Or
+        Dict of {column_name: format string} where format string is
+        strftime compatible in case of parsing string times or is one of
+        (D, s, ns, ms, us) in case of parsing integer timestamps
+        Or
+        Dict of {column_name: arg dict}, where the arg dict corresponds
+        to the keyword arguments of :func:`pandas.tseries.tools.to_datetime`
+        Especially useful with databases without native Datetime support, such as SQLite
+    columns: list
+        List of column names to select from sql table
     Returns
     -------
     DataFrame
     """
-    pandas_sql = PandasSQLWithEngine(con, meta=meta)
-    table = pandas_sql.get_table(table_name)
+    pandas_sql = PandasSQLAlchemy(con, meta=meta)
+    table = pandas_sql.read_table(table_name,
+                                  index_col=index_col,
+                                  coerce_float=coerce_float,
+                                  parse_dates=parse_dates)
 
     if table is not None:
-        sql_select = table.select()
-        return pandas_sql.read_sql(sql_select, index_col=index_col, coerce_float=coerce_float)
+        return table
     else:
         raise ValueError("Table %s not found" % table_name, con)
 
@@ -240,21 +266,21 @@ def pandasSQL_builder(con, flavor=None, meta=None):
         import sqlalchemy
 
         if isinstance(con, sqlalchemy.engine.Engine):
-            return PandasSQLWithEngine(con, meta=meta)
+            return PandasSQLAlchemy(con, meta=meta)
         else:
             warnings.warn("Not an SQLAlchemy engine, attempting to use as legacy DBAPI connection")
             if flavor is None:
                 raise ValueError("""PandasSQL must be created with an SQLAlchemy engine
                     or a DBAPI2 connection and SQL flavour""")
             else:
-                return PandasSQLWithCon(con, flavor)
+                return PandasSQLLegacy(con, flavor)
 
     except ImportError:
         warnings.warn("SQLAlchemy not installed, using legacy mode")
         if flavor is None:
             raise SQLAlchemyRequired
         else:
-            return PandasSQLWithCon(con, flavor)
+            return PandasSQLLegacy(con, flavor)
 
 
 class PandasSQL(PandasObject):
@@ -262,16 +288,13 @@ class PandasSQL(PandasObject):
     Subclasses Should define read_sql and to_sql
     """
     def read_sql(self, *args, **kwargs):
-        raise ValueError("PandasSQL must be created with an engine,"
-                         " connection or cursor.")
+        raise ValueError("PandasSQL must be created with an SQLAlchemy engine or connection+sql flavor")
 
     def to_sql(self, *args, **kwargs):
-        raise ValueError("PandasSQL must be created with an engine,"
-                         " connection or cursor.")
+        raise ValueError("PandasSQL must be created with an SQLAlchemy engine or connection+sql flavor")
 
     def _create_sql_schema(self, frame, name, keys):
-        raise ValueError("PandasSQL must be created with an engine,"
-                         " connection or cursor.")
+        raise ValueError("PandasSQL must be created with an SQLAlchemy engine or connection+sql flavor")
 
     def _frame_from_data_and_columns(self, data, columns, index_col=None, coerce_float=True):
         df = DataFrame.from_records(data, columns=columns, coerce_float=coerce_float)
@@ -282,8 +305,40 @@ class PandasSQL(PandasObject):
     def _safe_col_names(self, col_names):
         return [s.replace(' ', '_').strip() for s in col_names]  # may not be safe enough...
 
+    def _parse_date_columns(self, data_frame, parse_dates):
+        """
+        """
+        if parse_dates is True:
+            parse_dates = []
 
-class PandasSQLWithEngine(PandasSQL):
+        if not hasattr(parse_dates, '__iter__'):
+            parse_dates = [parse_dates]
+
+        for col_name in parse_dates:
+            df_col = data_frame[col_name]
+            try:
+                fmt = parse_dates[col_name]
+            except TypeError:
+                fmt = None
+            data_frame[col_name] = self._parse_date_col(df_col, format=fmt)
+
+        return data_frame
+
+    def _parse_date_col(self, col, col_type=None, format=None):
+            if isinstance(format, dict):
+                return to_datetime(col, **format)
+            else:
+                if format in ['D', 's', 'ms', 'us', 'ns']:
+                    return to_datetime(col, coerce=True, unit=format)
+                elif issubclass(col.dtype.type, np.floating) or issubclass(col.dtype.type, np.integer):
+                    #parse dates as timestamp
+                    format = 's' if format is None else format
+                    return to_datetime(col, coerce=True, unit=format)
+                else:
+                    return to_datetime(col, coerce=True, format=format)
+
+
+class PandasSQLAlchemy(PandasSQL):
     """
     This class enables convertion between DataFrame and SQL databases
     using SQLAlchemy to handle DataBase abstraction
@@ -311,15 +366,17 @@ class PandasSQLWithEngine(PandasSQL):
         result = self.execute(*args, **kwargs)
         return result.rowcount
 
-    def read_sql(self, sql, index_col=None, coerce_float=True, params=[]):
+    def read_sql(self, sql, index_col=None, coerce_float=True, parse_dates=[], params=[]):
         args = _convert_params(sql, params)
         result = self.execute(*args)
         data = result.fetchall()
         columns = result.keys()
 
-        return self._frame_from_data_and_columns(data, columns,
-                                                 index_col=index_col,
-                                                 coerce_float=coerce_float)
+        data_frame = self._frame_from_data_and_columns(data, columns,
+                                                       index_col=index_col,
+                                                       coerce_float=coerce_float)
+
+        return self._parse_date_columns(data_frame, parse_dates)
 
     def to_sql(self, frame, name, if_exists='fail'):
         if self.engine.has_table(name):
@@ -338,9 +395,6 @@ class PandasSQLWithEngine(PandasSQL):
     def _write(self, frame, table_name):
         table = self.get_table(table_name)
         ins = table.insert()
-        # TODO: do this in one pass
-        # TODO this should be done globally first (or work out how to pass np
-        # dtypes to sql)
 
         def maybe_asscalar(i):
             try:
@@ -351,7 +405,6 @@ class PandasSQLWithEngine(PandasSQL):
         for t in frame.iterrows():
             self.engine.execute(ins, **dict((k, maybe_asscalar(v))
                                             for k, v in t[1].iteritems()))
-            # TODO more efficient, I'm *sure* this was just working with tuples
 
     def has_table(self, name):
         return self.engine.has_table(name)
@@ -362,12 +415,35 @@ class PandasSQLWithEngine(PandasSQL):
         else:
             return None
 
+    def read_table(self, table_name, index_col=None, coerce_float=True, parse_dates=[], columns=[]):
+        table = self.get_table(table_name)
+
+        if table is not None:
+
+            if columns is not None and len(columns) > 0:
+                from sqlalchemy import select
+                sql_select = select([table.c[n] for n in columns])
+            else:
+                sql_select = table.select()
+
+            result = self.execute(sql_select)
+            data = result.fetchall()
+            columns = result.keys()
+
+            data_frame = self._frame_from_data_and_columns(data, columns,
+                                                           index_col=index_col,
+                                                           coerce_float=coerce_float)
+
+            data_frame = self._harmonize_columns(data_frame, table, parse_dates)
+            return data_frame
+        else:
+            return None
+
     def _drop_table(self, table_name):
         if self.engine.has_table(table_name):
             self.get_table(table_name).drop()
             self.meta.clear()
             self.meta.reflect()
-            #print(table.exists())
 
     def _create_table(self, frame, table_name, keys=None):
         table = self._create_sqlalchemy_table(frame, table_name, keys)
@@ -383,7 +459,7 @@ class PandasSQLWithEngine(PandasSQL):
             keys = []
 
         safe_columns = self._safe_col_names(frame.dtypes.index)
-        column_types = map(self._lookup_type, frame.dtypes)
+        column_types = map(self._lookup_sql_type, frame.dtypes)
 
         columns = [(col_name, col_sqltype, col_name in keys)
                    for col_name, col_sqltype in zip(safe_columns, column_types)]
@@ -392,24 +468,80 @@ class PandasSQLWithEngine(PandasSQL):
 
         return Table(table_name, self.meta, *columns)
 
-    def _lookup_type(self, dtype):
+    def _lookup_sql_type(self, dtype):
         from sqlalchemy.types import Integer, Float, Text, Boolean, DateTime, Date
 
         pytype = dtype.type
 
+        if pytype is date:
+            return Date
+        if issubclass(pytype, np.datetime64) or pytype is datetime:
+            # Caution: np.datetime64 is also a subclass of np.number.
+            return DateTime
         if issubclass(pytype, np.floating):
             return Float
         if issubclass(pytype, np.integer):
             # TODO: Refine integer size.
             return Integer
-        if issubclass(pytype, np.datetime64) or pytype is datetime:
-            # Caution: np.datetime64 is also a subclass of np.number.
-            return DateTime
-        if pytype is date:
-            return Date
         if issubclass(pytype, np.bool_):
             return Boolean
         return Text
+
+    def _lookup_np_type(self, sqltype):
+        from sqlalchemy.types import Integer, Float, Boolean, DateTime, Date
+
+        if isinstance(sqltype, Float):
+            return float
+        if isinstance(sqltype, Integer):
+            # TODO: Refine integer size.
+            return int
+        if isinstance(sqltype, DateTime):
+            # Caution: np.datetime64 is also a subclass of np.number.
+            return datetime
+        if isinstance(sqltype, Date):
+            return date
+        if isinstance(sqltype, Boolean):
+            return bool
+        return object
+
+    def _harmonize_columns(self, data_frame, sql_table, parse_dates=[]):
+        """ Make a data_frame's column type align with an sql_table column types
+            Need to work around limited NA value support.
+            Floats are always fine, ints must always
+            be floats if there are Null values.
+            Booleans are hard because converting bool column with None replaces
+            all Nones with false. Therefore only convert bool if there are no NA
+            values.
+            Datetimes should already be converted
+            to np.datetime if supported, but here we also force conversion
+            if required
+        """
+        for sql_col in sql_table.columns:
+            col_name = sql_col.name
+            try:
+                df_col = data_frame[col_name]
+                col_type = self._lookup_np_type(sql_col.type)  # the type the dataframe column should have
+
+                if col_type is datetime or col_type is date:
+                    if not issubclass(df_col.dtype.type, np.datetime64):
+                        data_frame[col_name] = self._parse_date_col(df_col, col_type)
+
+                elif col_type is float:
+                    # floats support NA, can always convert!
+                    data_frame[col_name].astype(col_type, copy=False)
+
+                elif len(df_col) == df_col.count():
+                    # No NA values, can convert ints and bools
+                    if col_type is int or col_type is bool:
+                        data_frame[col_name].astype(col_type, copy=False)
+            except KeyError:
+                pass  # this column not in results
+
+        data_frame = self._parse_date_columns(data_frame, parse_dates)
+
+        return data_frame
+
+
 
 
 # ---- SQL without SQLAlchemy ---
@@ -469,7 +601,7 @@ _SQL_SYMB = {
 }
 
 
-class PandasSQLWithCon(PandasSQL):
+class PandasSQLLegacy(PandasSQL):
     def __init__(self, con, flavor):
         self.con = con
         if flavor not in ['sqlite', 'mysql', 'postgres']:
@@ -516,16 +648,17 @@ class PandasSQLWithCon(PandasSQL):
         cur = self.execute(*args)
         return cur.rowcount
 
-    def read_sql(self, sql, index_col=None, coerce_float=True, params=[], flavor='sqlite'):
+    def read_sql(self, sql, index_col=None, coerce_float=True, params=[], flavor='sqlite', parse_dates=[]):
         args = _convert_params(sql, params)
         cursor = self.execute(*args)
         columns = [col_desc[0] for col_desc in cursor.description]
         data = self._fetchall_as_list(cursor)
         cursor.close()
 
-        return self._frame_from_data_and_columns(data, columns,
-                                                 index_col=index_col,
-                                                 coerce_float=coerce_float)
+        data_frame = self._frame_from_data_and_columns(data, columns,
+                                                       index_col=index_col,
+                                                       coerce_float=coerce_float)
+        return self._parse_date_columns(data_frame, parse_dates=parse_dates)
 
     def to_sql(self, frame, name, if_exists='fail'):
         """
