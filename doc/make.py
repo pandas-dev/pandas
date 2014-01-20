@@ -103,7 +103,14 @@ def html():
     if os.system('sphinx-build -P -b html -d build/doctrees '
                  'source build/html'):
         raise SystemExit("Building HTML failed.")
-
+    try:
+        print("\nZipping up HTML docs...")
+        # just in case the wonky build box doesn't have zip
+        # don't fail this.
+        os.system('cd build; rm -f html/pandas.zip; zip html/pandas.zip -r -q html/* ')
+        print("\n")
+    except:
+        pass
 
 def latex():
     check_build()
