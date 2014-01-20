@@ -37,9 +37,9 @@ pip install wheel
 # comment this line to disable the fetching of wheel files
 base_url=http://cache27diy-cpycloud.rhcloud.com
 wheel_box=${TRAVIS_PYTHON_VERSION}${JOB_TAG}
-PIP_ARGS+=" -I --use-wheel --find-links=$base_url/$wheel_box/"
+PIP_ARGS+=" -I --use-wheel --find-links=$base_url/$wheel_box/ --allow-external --allow-insecure"
 
-# Force virtualenv to accpet system_site_packages
+# Force virtualenv to accept system_site_packages
 rm -f $VIRTUAL_ENV/lib/python$TRAVIS_PYTHON_VERSION/no-global-site-packages.txt
 
 
