@@ -103,6 +103,7 @@ pip install pandas
 - [Cython](http://www.cython.org): Only necessary to build development version. Version 0.17.1 or higher.
 - [SciPy](http://www.scipy.org): miscellaneous statistical functions
 - [PyTables](http://www.pytables.org): necessary for HDF5-based storage
+- [SQLAlchemy](http://www.sqlalchemy.org): for SQL database support. Version 0.8.1 or higher recommended.
 - [matplotlib](http://matplotlib.sourceforge.net/): for plotting
 - [statsmodels](http://statsmodels.sourceforge.net/)
    - Needed for parts of `pandas.stats`

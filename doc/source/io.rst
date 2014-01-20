@@ -3030,8 +3030,6 @@ The key functions are:
 :func:`~pandas.io.sql.read_table`
 
 
-
-
 In the following example, we use the `SQlite <http://www.sqlite.org/>`__ SQL database
 engine. You can use a temporary SQLite database where data are stored in
 "memory".
@@ -3087,20 +3085,48 @@ the database using :func:`~pandas.io.sql.to_sql`.
    
    sql.to_sql(data, 'data', engine)
 
-You can read from the database simply by 
-specifying a table name using the :func:`~pandas.io.sql.read_table` function.
+
+You can read from the database simply by specifying a table
+name using the :func:`~pandas.io.sql.read_table` function.
+  
+.. note::
+    
+    In order to use read_table, you MUST have the SQLAlchemy optional
+    dependency installed.
 
 .. ipython:: python
    
    sql.read_table('data', engine)
 
-You can also specify the name of the column as the DataFrame index:
+You can also specify the name of the column as the DataFrame index,
+and specify a subset of columns to be read.
 
 .. ipython:: python
 
    sql.read_table('data', engine, index_col='id')
+   sql.read_table('data', engine, columns=['Col_1', 'Col_2'])
+
+And you can explicitly force columns to be parsed as dates:
+
+.. ipython:: python
+
+   sql.read_table('data', engine, parse_dates=['Date'])
+
+If needed you can explicitly specifiy a format string, or a dict of arguments
+to pass to :func:`pandas.tseries.tools.to_datetime`.
+
+.. code-block:: python
+
+   sql.read_table('data', engine, parse_dates={'Date': '%Y-%m-%d'})
+   sql.read_table('data', engine, parse_dates={'Date': {'format': '%Y-%m-%d %H:%M:%S'}})
+
+Querying
+~~~~~~~~
 
 You can also query using raw SQL in the :func:`~pandas.io.sql.read_sql` function.
+In this case you must use valid SQL for your database.
+When using SQLAlchemy, you can also pass SQLAlchemy Expression language constructs,
+which are database-agnostic.
 
 .. ipython:: python
    
@@ -3117,10 +3143,6 @@ There are a few other available functions:
 
 :func:`~pandas.io.sql.has_table` checks if a given table exists.
 
-:func:`~pandas.io.sql.tquery` returns a list of tuples corresponding to each row.
-
-:func:`~pandas.io.sql.uquery` does the same thing as tquery, but instead of 
-returning results it returns the number of related rows.
 
 In addition, the class :class:`~pandas.io.sql.PandasSQLWithEngine` can be 
 instantiated directly for more manual control over the SQL interaction.
