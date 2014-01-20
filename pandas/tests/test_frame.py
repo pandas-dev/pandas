@@ -8978,11 +8978,11 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         rs = xp.apply(lambda x: x['a'], axis=1)
         assert_frame_equal(xp, rs)
 
-        # is_reduction
+        # reduce with an empty DataFrame
         x = []
-        result = self.empty.apply(x.append, axis=1, is_reduction=False)
+        result = self.empty.apply(x.append, axis=1, reduce=False)
         assert_frame_equal(result, self.empty)
-        result = self.empty.apply(x.append, axis=1, is_reduction=True)
+        result = self.empty.apply(x.append, axis=1, reduce=True)
         assert_series_equal(result, Series([]))
         # Ensure that x.append hasn't been called
         self.assertEqual(x, [])

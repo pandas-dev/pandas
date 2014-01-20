@@ -3362,8 +3362,8 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Function application
 
-    def apply(self, func, axis=0, broadcast=False, raw=False, reduce=True,
-              args=(), is_reduction=None, **kwds):
+    def apply(self, func, axis=0, broadcast=False, raw=False, reduce=None,
+              args=(), **kwds):
         """
         Applies function along input axis of DataFrame.
 
@@ -3381,8 +3381,14 @@ class DataFrame(NDFrame):
         broadcast : boolean, default False
             For aggregation functions, return object of same size with values
             propagated
-        reduce : boolean, default True
-            Try to apply reduction procedures
+        reduce : boolean or None, default None
+            Try to apply reduction procedures. If the DataFrame is empty,
+            apply will use reduce to determine whether the result should be a
+            Series or a DataFrame. If reduce is None (the default), apply's
+            return value will be guessed by calling func an empty Series (note:
+            while guessing, exceptions raised by func will be ignored). If
+            reduce is True a Series will always be returned, and if False a
+            DataFrame will always be returned.
         raw : boolean, default False
             If False, convert each row or column into a Series. If raw=True the
             passed function will receive ndarray objects instead. If you are
@@ -3391,14 +3397,6 @@ class DataFrame(NDFrame):
         args : tuple
             Positional arguments to pass to function in addition to the
             array/series
-        is_reduction : boolean or None, default None
-            If the DataFrame is empty, apply needs to determine whether the
-            return value should be a Series or a DataFrame. If is_reduction is
-            None, func will be called with an empty Series and the return value
-            will be guessed based on the result (or, if an exception is raised,
-            a DataFrame will be returned). If is_reduction is True a Series
-            will always be returned, and if False a DataFrame will always be
-            returned.
         Additional keyword arguments will be passed as keywords to the function
 
         Examples
@@ -3431,14 +3429,14 @@ class DataFrame(NDFrame):
         else:
             if not broadcast:
                 if not all(self.shape):
-                    if is_reduction is None:
-                        is_reduction = False
+                    if reduce is None:
+                        reduce = False
                         try:
-                            is_reduction = not isinstance(f(_EMPTY_SERIES), Series)
+                            reduce = not isinstance(f(_EMPTY_SERIES), Series)
                         except Exception:
                             pass
 
-                    if is_reduction:
+                    if reduce:
                         return Series(NA, index=self._get_agg_axis(axis))
                     else:
                         return self.copy()
@@ -3446,6 +3444,8 @@ class DataFrame(NDFrame):
                 if raw and not self._is_mixed_type:
                     return self._apply_raw(f, axis)
                 else:
+                    if reduce is None:
+                        reduce = True
                     return self._apply_standard(f, axis, reduce=reduce)
             else:
                 return self._apply_broadcast(f, axis)
