@@ -67,6 +67,9 @@ API Changes
   - Add ``-NaN`` and ``-nan`` to the default set of NA values
     (:issue:`5952`).  See :ref:`NA Values <io.na_values>`.
   - ``NDFrame`` now has an ``equals`` method. (:issue:`5283`)
+  - ``DataFrame.apply`` will use the ``reduce`` argument to determine whether a
+    ``Series`` or a ``DataFrame`` should be returned when the ``DataFrame`` is
+    empty (:issue:`6007`).
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~

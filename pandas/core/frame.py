@@ -3234,14 +3234,15 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Function application
 
-    def apply(self, func, axis=0, broadcast=False, raw=False, reduce=True,
+    def apply(self, func, axis=0, broadcast=False, raw=False, reduce=None,
               args=(), **kwds):
         """
         Applies function along input axis of DataFrame.
 
         Objects passed to functions are Series objects having index
         either the DataFrame's index (axis=0) or the columns (axis=1).
-        Return type depends on whether passed function aggregates
+        Return type depends on whether passed function aggregates, or the
+        reduce argument if the DataFrame is empty.
 
         Parameters
         ----------
@@ -3253,8 +3254,14 @@ class DataFrame(NDFrame):
         broadcast : boolean, default False
             For aggregation functions, return object of same size with values
             propagated
-        reduce : boolean, default True
-            Try to apply reduction procedures
+        reduce : boolean or None, default None
+            Try to apply reduction procedures. If the DataFrame is empty,
+            apply will use reduce to determine whether the result should be a
+            Series or a DataFrame. If reduce is None (the default), apply's
+            return value will be guessed by calling func an empty Series (note:
+            while guessing, exceptions raised by func will be ignored). If
+            reduce is True a Series will always be returned, and if False a
+            DataFrame will always be returned.
         raw : boolean, default False
             If False, convert each row or column into a Series. If raw=True the
             passed function will receive ndarray objects instead. If you are
@@ -3279,14 +3286,14 @@ class DataFrame(NDFrame):
         -------
         applied : Series or DataFrame
         """
-        if len(self.columns) == 0 and len(self.index) == 0:
-            return self
-
         axis = self._get_axis_number(axis)
         if kwds or args and not isinstance(func, np.ufunc):
             f = lambda x: func(x, *args, **kwds)
         else:
             f = func
+
+        if len(self.columns) == 0 and len(self.index) == 0:
+            return self._apply_empty_result(func, axis, reduce)
 
         if isinstance(f, np.ufunc):
             results = f(self.values)
@@ -3295,24 +3302,29 @@ class DataFrame(NDFrame):
         else:
             if not broadcast:
                 if not all(self.shape):
-                    # How to determine this better?
-                    is_reduction = False
-                    try:
-                        is_reduction = not isinstance(f(_EMPTY_SERIES), Series)
-                    except Exception:
-                        pass
-
-                    if is_reduction:
-                        return Series(NA, index=self._get_agg_axis(axis))
-                    else:
-                        return self.copy()
+                    return self._apply_empty_result(func, axis, reduce)
 
                 if raw and not self._is_mixed_type:
                     return self._apply_raw(f, axis)
                 else:
+                    if reduce is None:
+                        reduce = True
                     return self._apply_standard(f, axis, reduce=reduce)
             else:
                 return self._apply_broadcast(f, axis)
+
+    def _apply_empty_result(self, func, axis, reduce):
+        if reduce is None:
+            reduce = False
+            try:
+                reduce = not isinstance(func(_EMPTY_SERIES), Series)
+            except Exception:
+                pass
+
+        if reduce:
+            return Series(NA, index=self._get_agg_axis(axis))
+        else:
+            return self.copy()
 
     def _apply_raw(self, func, axis):
         try:

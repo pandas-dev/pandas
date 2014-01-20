@@ -42,6 +42,7 @@ API changes
 
 - Add ``-NaN`` and ``-nan`` to the default set of NA values (:issue:`5952`).
   See :ref:`NA Values <io.na_values>`.
+
 - Added the ``NDFrame.equals()`` method to compare if two NDFrames are
   equal have equal axes, dtypes, and values. Added the
   ``array_equivalent`` function to compare if two ndarrays are
@@ -57,6 +58,35 @@ API changes
       import pandas.core.common as com
       com.array_equivalent(np.array([0, np.nan]), np.array([0, np.nan]))
       np.array_equal(np.array([0, np.nan]), np.array([0, np.nan]))
+
+- ``DataFrame.apply`` will use the ``reduce`` argument to determine whether a
+  ``Series`` or a ``DataFrame`` should be returned when the ``DataFrame`` is
+  empty (:issue:`6007`).
+
+  Previously, calling ``DataFrame.apply`` an empty ``DataFrame`` would return
+  either a ``DataFrame`` if there were no columns, or the function being
+  applied would be called with an empty ``Series`` to guess whether a
+  ``Series`` or ``DataFrame`` should be returned:
+
+  .. ipython:: python
+
+     def applied_func(col):
+        print "Apply function being called with:", col
+        return col.sum()
+
+     empty = DataFrame(columns=['a', 'b'])
+     empty.apply(applied_func)
+
+  Now, when ``apply`` is called on an empty ``DataFrame``: if the ``reduce``
+  argument is ``True`` a ``Series`` will returned, if it is ``False`` a
+  ``DataFrame`` will be returned, and if it is ``None`` (the default) the
+  function being applied will be called with an empty series to try and guess
+  the return type.
+
+  .. ipython:: python
+
+     empty.apply(applied_func, reduce=True)
+     empty.apply(applied_func, reduce=False)
 
 Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
