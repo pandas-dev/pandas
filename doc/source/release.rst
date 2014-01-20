@@ -53,6 +53,9 @@ pandas 0.13.1
 New features
 ~~~~~~~~~~~~
 
+  - Added ``date_format`` and ``datetime_format`` attribute to ExcelWriter.
+    (:issue:`4133`)
+
 API Changes
 ~~~~~~~~~~~
 
