@@ -45,7 +45,7 @@ def test_arithmetic_works_with_zero_min_elements():
     expr._MIN_ELEMENTS = 0
     result = df + 1
     expected = DataFrame(range(1, 11))
-    assert tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
     expr._MIN_ELEMENTS = original_min
 
 
