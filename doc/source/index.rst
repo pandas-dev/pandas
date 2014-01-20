@@ -6,6 +6,8 @@ pandas: powerful Python data analysis toolkit
 
 `PDF Version <pandas.pdf>`__
 
+`Zipped HTML <pandas.zip>`__
+
 .. module:: pandas
 
 **Date**: |today| **Version**: |version|
