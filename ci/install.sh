@@ -49,10 +49,11 @@ if [ -n "$LOCALE_OVERRIDE" ]; then
     time sudo locale-gen "$LOCALE_OVERRIDE"
 fi
 
-time pip install $PIP_ARGS -r ci/requirements-${wheel_box}.txt
 
 # we need these for numpy
 time sudo apt-get $APT_ARGS install libatlas-base-dev gfortran
+
+time pip install $PIP_ARGS -r ci/requirements-${wheel_box}.txt
 
 
 # Need to enable for locale testing. The location of the locale file(s) is
