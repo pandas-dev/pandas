@@ -1349,11 +1349,7 @@ class Series(generic.NDFrame):
         -------
         desc : Series
         """
-        try:
-            from collections import Counter
-        except ImportError:  # pragma: no cover
-            # For Python < 2.7, we include a local copy of this:
-            from pandas.util.counter import Counter
+        from pandas.compat import Counter
 
         if self.dtype == object:
             names = ['count', 'unique']
