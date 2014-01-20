@@ -2472,7 +2472,9 @@ class MultiIndex(Index):
 
         Parameters
         ----------
-        arrays : list / sequence
+        arrays : list / sequence of array-likes
+            Each array-like gives one level's value for each data point.
+            len(arrays) is the number of levels.
         sortorder : int or None
             Level of sortedness (must be lexicographically sorted by that
             level)
@@ -2480,6 +2482,15 @@ class MultiIndex(Index):
         Returns
         -------
         index : MultiIndex
+
+        Examples
+        --------
+        >>> arrays = [[1, 1, 2, 2], ['red', 'blue', 'red', 'blue']]
+        >>> MultiIndex.from_arrays(arrays, names=('number', 'color'))
+
+        See Also
+        --------
+        MultiIndex.from_tuples : Convert list of tuples to MultiIndex
         """
         from pandas.core.categorical import Categorical
 
@@ -2504,7 +2515,8 @@ class MultiIndex(Index):
 
         Parameters
         ----------
-        tuples : array-like
+        tuples : list / sequence of tuple-likes
+            Each tuple is the index of one row/column.
         sortorder : int or None
             Level of sortedness (must be lexicographically sorted by that
             level)
@@ -2512,6 +2524,16 @@ class MultiIndex(Index):
         Returns
         -------
         index : MultiIndex
+
+        Examples
+        --------
+        >>> tuples = [(1, u'red'), (1, u'blue'),
+                      (2, u'red'), (2, u'blue')]
+        >>> MultiIndex.from_tuples(tuples, names=('number', 'color'))
+
+        See Also
+        --------
+        MultiIndex.from_arrays : Convert list of arrays to MultiIndex
         """
         if len(tuples) == 0:
             # I think this is right? Not quite sure...

@@ -1638,6 +1638,10 @@ completely analogous way to selecting a column in a regular DataFrame:
    df['bar']['one']
    s['qux']
 
+See :ref:`Cross-section with hierarchical index <indexing.xs>` for how to select
+on a deeper level.
+
+
 Data alignment and using ``reindex``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1674,11 +1678,17 @@ following works as you would expect:
    df.ix['bar']
    df.ix['bar', 'two']
 
-"Partial" slicing also works quite nicely:
+"Partial" slicing also works quite nicely for the topmost level:
 
 .. ipython:: python
 
    df.ix['baz':'foo']
+
+But lower levels cannot be sliced in this way, because the MultiIndex uses
+its multiple index dimensions to slice along one dimension of your object:
+
+.. ipython:: python
+
    df.ix[('baz', 'two'):('qux', 'one')]
    df.ix[('baz', 'two'):'foo']
 
