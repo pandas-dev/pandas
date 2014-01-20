@@ -119,6 +119,9 @@ Bug Fixes
   - Bug in scipy ``interpolate`` methods with a datetime index (:issue:`5975`)
   - Bug in NaT comparison if a mixed datetime/np.datetime64 with NaT were passed (:issue:`5968`)
   - Fixed bug with ``pd.concat`` losing dtype information if all inputs are empty (:issue:`5742`)
+  - Recent changes in IPython cause warnings to be emitted when using previous versions
+    of pandas in QTConsole, now fixed. If you're using an older version and
+    need to supress the warnings, see (:issue:`5922`).
 
 pandas 0.13.0
 -------------
