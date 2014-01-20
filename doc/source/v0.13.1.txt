@@ -103,6 +103,9 @@ Enhancements
   improves parsing perf in many cases. Thanks to @lexual for suggesting and @danbirken
   for rapidly implementing. (:issue:`5490`, :issue:`6021`)
 
+- ``date_format`` and ``datetime_format`` keywords can now be specified when writing to ``excel``
+  files (:issue:`4133`)
+
 - ``MultiIndex.from_product`` convenience function for creating a MultiIndex from
   the cartesian product of a set of iterables (:issue:`6055`):
 
