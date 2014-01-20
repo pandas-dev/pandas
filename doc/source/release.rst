@@ -54,6 +54,7 @@ New features
 ~~~~~~~~~~~~
 
 - Hexagonal bin plots from ``DataFrame.plot`` with ``kind='hexbin'`` (:issue:`5478`)
+- Added the ``sym_diff`` method to ``Index`` (:issue:`5543`)
 
 API Changes
 ~~~~~~~~~~~
