@@ -661,7 +661,6 @@ class TestReducer(tm.TestCase):
         from pandas.core.series import Series
 
         arr = np.random.randn(100, 4)
-
         result = lib.reduce(arr, np.sum, labels=Index(np.arange(4)))
         expected = arr.sum(0)
         assert_almost_equal(result, expected)

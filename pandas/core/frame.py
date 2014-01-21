@@ -3324,16 +3324,16 @@ class DataFrame(NDFrame):
         if reduce:
             try:
 
-                if self._is_mixed_type:  # maybe a hack for now
-                    raise AssertionError('Must be mixed type DataFrame')
-                values = self.values
-                dummy = Series(NA, index=self._get_axis(axis),
+                # can only work with numeric data in the fast path
+                numeric = self._get_numeric_data()
+                values = numeric.values
+                dummy = Series(NA, index=numeric._get_axis(axis),
                                dtype=values.dtype)
 
                 labels = self._get_agg_axis(axis)
                 result = lib.reduce(values, func, axis=axis, dummy=dummy,
                                     labels=labels)
-                return Series(result, index=self._get_agg_axis(axis))
+                return Series(result, index=labels)
             except Exception:
                 pass
 

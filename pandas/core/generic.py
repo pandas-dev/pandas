@@ -78,7 +78,8 @@ class NDFrame(PandasObject):
     copy : boolean, default False
     """
     _internal_names = ['_data', '_cacher', '_item_cache', '_cache',
-                       'is_copy', '_subtyp', '_index', '_default_kind', '_default_fill_value']
+                       'is_copy', '_subtyp', '_index', '_default_kind',
+                       '_default_fill_value','__array_struct__','__array_interface__']
     _internal_names_set = set(_internal_names)
     _metadata = []
     is_copy = None
@@ -697,6 +698,14 @@ class NDFrame(PandasObject):
     def __array_wrap__(self, result):
         d = self._construct_axes_dict(self._AXIS_ORDERS, copy=False)
         return self._constructor(result, **d).__finalize__(self)
+
+    # ideally we would define this to avoid the getattr checks, but
+    # is slower
+    #@property
+    #def __array_interface__(self):
+    #    """ provide numpy array interface method """
+    #    values = self.values
+    #    return dict(typestr=values.dtype.str,shape=values.shape,data=values)
 
     def to_dense(self):
         "Return dense representation of NDFrame (as opposed to sparse)"
