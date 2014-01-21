@@ -468,8 +468,15 @@ class DataFrameFormatter(TableFormatter):
             for i, row in enumerate(zip(*strcols)):
                 if i == nlevels:
                     buf.write('\\midrule\n')  # End of header
-                crow = [(x.replace('_', '\\_')
+                crow = [(x.replace('\\', '\\textbackslash') # escape backslashes first
+                         .replace('_', '\\_')
                          .replace('%', '\\%')
+                         .replace('$', '\\$')
+                         .replace('#', '\\#')
+                         .replace('{', '\\{')
+                         .replace('}', '\\}')
+                         .replace('~', '\\textasciitilde')
+                         .replace('^', '\\textasciicircum')
                          .replace('&', '\\&') if x else '{}') for x in row]
                 buf.write(' & '.join(crow))
                 buf.write(' \\\\\n')

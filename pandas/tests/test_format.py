@@ -1654,6 +1654,30 @@ c  10  11  12  13  14\
 \end{tabular}
 """
         self.assertEqual(withoutindex_result, withoutindex_expected)
+        
+    def test_to_latex_escape_special_chars(self):
+        special_characters = ['&','%','$','#','_',
+                               '{','}','~','^','\\'] 
+        df = DataFrame(data=special_characters)
+        observed = df.to_latex()
+        expected = r"""\begin{tabular}{ll}
+\toprule
+{} &  0 \\
+\midrule
+0 &  \& \\
+1 &  \% \\
+2 &  \$ \\
+3 &  \# \\
+4 &  \_ \\
+5 &  \{ \\
+6 &  \} \\
+7 &  \textasciitilde \\
+8 &  \textasciicircum \\
+9 &  \textbackslash \\
+\bottomrule
+\end{tabular}
+"""
+        self.assertEqual(observed, expected)
 
 class TestSeriesFormatting(tm.TestCase):
     _multiprocess_can_split_ = True
