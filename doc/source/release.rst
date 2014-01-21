@@ -130,6 +130,8 @@ Bug Fixes
     and off-diagonal plots, see (:issue:`5497`).
   - Regression in Series with a multi-index via ix (:issue:`6018`)
   - Bug in Series.xs with a multi-index (:issue:`6018`)
+  - Bug in Series construction of mixed type with datelike and an integer (which should result in
+    object type and not automatic conversion) (:issue:`6028`)
 
 pandas 0.13.0
 -------------

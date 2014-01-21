@@ -1005,7 +1005,7 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
         ndarray[int64_t] iresult
         ndarray[object] oresult
         pandas_datetimestruct dts
-        bint utc_convert = bool(utc)
+        bint utc_convert = bool(utc), seen_integer=0, seen_datetime=0
         _TSObject _ts
         int64_t m = cast_from_unit(None,unit)
 
@@ -1017,6 +1017,7 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
             if _checknull_with_nat(val):
                 iresult[i] = iNaT
             elif PyDateTime_Check(val):
+                seen_datetime=1
                 if val.tzinfo is not None:
                     if utc_convert:
                         _ts = convert_to_tsobject(val, None, unit)
@@ -1047,6 +1048,7 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                 iresult[i] = _date_to_datetime64(val, &dts)
                 try:
                     _check_dts_bounds(&dts)
+                    seen_datetime=1
                 except ValueError:
                     if coerce:
                         iresult[i] = iNaT
@@ -1058,6 +1060,7 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                 else:
                     try:
                         iresult[i] = _get_datetime64_nanos(val)
+                        seen_datetime=1
                     except ValueError:
                         if coerce:
                             iresult[i] = iNaT
@@ -1070,11 +1073,13 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                     iresult[i] = iNaT
                 else:
                     iresult[i] = val*m
+                    seen_integer=1
             elif util.is_float_object(val) and not coerce:
                 if val != val or val == iNaT:
                     iresult[i] = iNaT
                 else:
                     iresult[i] = cast_from_unit(val,unit)
+                    seen_integer=1
             else:
                 try:
                     if len(val) == 0:
@@ -1113,6 +1118,12 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                         iresult[i] = iNaT
                         continue
                     raise
+
+        # don't allow mixed integers and datetime like
+        # higher levels can catch and coerce to object, for
+        # example
+        if seen_integer and seen_datetime:
+            raise ValueError("mixed datetimes and integers in passed array")
 
         return result
     except OutOfBoundsDatetime:

@@ -573,6 +573,11 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         result = Series([datetime(3000,1,1)])
         self.assert_(result[0] == datetime(3000,1,1,0,0))
 
+        # don't mix types
+        result = Series([ Timestamp('20130101'), 1],index=['a','b'])
+        self.assert_(result['a'] == Timestamp('20130101'))
+        self.assert_(result['b'] == 1)
+
     def test_constructor_dict(self):
         d = {'a': 0., 'b': 1., 'c': 2.}
         result = Series(d, index=['b', 'c', 'd', 'a'])
