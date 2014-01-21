@@ -324,7 +324,42 @@ s = Series(np.arange(1028.))
 df = DataFrame({ i:s for i in range(1028) })
 """
 frame_apply_user_func = Benchmark('df.apply(lambda x: np.corrcoef(x,s)[0,1])', setup,
+                           name = 'frame_apply_user_func',
                            start_date=datetime(2012,1,1))
+
+setup = common_setup + """
+df = DataFrame(np.random.randn(1000,100))
+"""
+frame_apply_lambda_mean = Benchmark('df.apply(lambda x: x.sum())', setup,
+                                    name = 'frame_apply_lambda_mean',
+                                    start_date=datetime(2012,1,1))
+setup = common_setup + """
+df = DataFrame(np.random.randn(1000,100))
+"""
+frame_apply_np_mean = Benchmark('df.apply(np.mean)', setup,
+                               name = 'frame_apply_np_mean',
+                               start_date=datetime(2012,1,1))
+
+setup = common_setup + """
+df = DataFrame(np.random.randn(1000,100))
+"""
+frame_apply_pass_thru = Benchmark('df.apply(lambda x: x)', setup,
+                                  name = 'frame_apply_pass_thru',
+                                  start_date=datetime(2012,1,1))
+
+setup = common_setup + """
+df = DataFrame(np.random.randn(1000,100))
+"""
+frame_apply_axis_1 = Benchmark('df.apply(lambda x: x+1,axis=1)', setup,
+                               name = 'frame_apply_axis_1',
+                               start_date=datetime(2012,1,1))
+
+setup = common_setup + """
+df = DataFrame(np.random.randn(1000,3),columns=list('ABC'))
+"""
+frame_apply_ref_by_name = Benchmark('df.apply(lambda x: x["A"] + x["B"],axis=1)', setup,
+                                     name = 'frame_apply_ref_by_name',
+                                     start_date=datetime(2012,1,1))
 
 #----------------------------------------------------------------------
 # dtypes
