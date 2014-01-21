@@ -84,6 +84,11 @@ class Block(PandasObject):
         return self.ndim == 1
 
     @property
+    def is_datelike(self):
+        """ return True if I am a non-datelike """
+        return self.is_datetime or self.is_timedelta
+
+    @property
     def fill_value(self):
         return np.nan
 
@@ -2438,6 +2443,12 @@ class BlockManager(PandasObject):
         # Warning, consolidation needs to get checked upstairs
         self._consolidate_inplace()
         return all([block.is_numeric for block in self.blocks])
+
+    @property
+    def is_datelike_mixed_type(self):
+        # Warning, consolidation needs to get checked upstairs
+        self._consolidate_inplace()
+        return any([block.is_datelike for block in self.blocks])
 
     def get_block_map(self, copy=False, typ=None, columns=None,
                       is_numeric=False, is_bool=False):

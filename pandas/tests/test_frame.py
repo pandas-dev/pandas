@@ -9035,6 +9035,16 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         expected = Series(np.nan, index=[])
         assert_series_equal(result, expected)
 
+        df = DataFrame({'A': ['foo'],
+                        'B': [1.]})
+        result = df.apply(lambda x: x['A'], axis=1)
+        expected = Series(['foo'],index=[0])
+        assert_series_equal(result, expected)
+
+        result = df.apply(lambda x: x['B'], axis=1)
+        expected = Series([1.],index=[0])
+        assert_series_equal(result, expected)
+
     def test_apply_empty_infer_type(self):
         no_cols = DataFrame(index=['a', 'b', 'c'])
         no_index = DataFrame(columns=['a', 'b', 'c'])
@@ -9970,7 +9980,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self._check_stat_op('count', f,
                             has_skipna=False,
                             has_numeric_only=True,
-                            check_dtypes=False)
+                            check_dtype=False,
+                            check_dates=True)
 
         # corner case
         frame = DataFrame()
@@ -9999,10 +10010,9 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
     def test_sum(self):
         self._check_stat_op('sum', np.sum, has_numeric_only=True)
 
-    def test_sum_mixed_numeric(self):
-        raise nose.SkipTest("skipping for now")
-        # mixed types
-        self._check_stat_op('sum', np.sum, frame = self.mixed_float, has_numeric_only=True)
+        # mixed types (with upcasting happening)
+        self._check_stat_op('sum', np.sum, frame=self.mixed_float.astype('float32'),
+                            has_numeric_only=True, check_dtype=False, check_less_precise=True)
 
     def test_stat_operators_attempt_obj_array(self):
         data = {
@@ -10028,7 +10038,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                 assert_series_equal(result, expected)
 
     def test_mean(self):
-        self._check_stat_op('mean', np.mean)
+        self._check_stat_op('mean', np.mean, check_dates=True)
 
     def test_product(self):
         self._check_stat_op('product', np.prod)
@@ -10039,10 +10049,10 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                 return np.nan
             return np.median(x)
 
-        self._check_stat_op('median', wrapper)
+        self._check_stat_op('median', wrapper, check_dates=True)
 
     def test_min(self):
-        self._check_stat_op('min', np.min)
+        self._check_stat_op('min', np.min, check_dates=True)
         self._check_stat_op('min', np.min, frame=self.intframe)
 
     def test_cummin(self):
@@ -10092,7 +10102,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self.assertEqual(np.shape(cummax_xs), np.shape(self.tsframe))
 
     def test_max(self):
-        self._check_stat_op('max', np.max)
+        self._check_stat_op('max', np.max, check_dates=True)
         self._check_stat_op('max', np.max, frame=self.intframe)
 
     def test_mad(self):
@@ -10154,7 +10164,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_series_equal(df.kurt(), df.kurt(level=0).xs('bar'))
 
     def _check_stat_op(self, name, alternative, frame=None, has_skipna=True,
-                       has_numeric_only=False, check_dtypes=True):
+                       has_numeric_only=False, check_dtype=True, check_dates=False,
+                       check_less_precise=False):
         if frame is None:
             frame = self.frame
             # set some NAs
@@ -10163,14 +10174,16 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         f = getattr(frame, name)
 
-        if not ('max' in name or 'min' in name or 'count' in name):
+        if check_dates:
             df = DataFrame({'b': date_range('1/1/2001', periods=2)})
             _f = getattr(df, name)
-            #print(df)
-            self.assertFalse(len(_f()))
+            result = _f()
+            self.assert_(isinstance(result, Series))
 
             df['a'] = lrange(len(df))
-            self.assert_(len(getattr(df, name)()))
+            result = getattr(df, name)()
+            self.assert_(isinstance(result, Series))
+            self.assert_(len(result))
 
         if has_skipna:
             def skipna_wrapper(x):
@@ -10184,21 +10197,27 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
             result0 = f(axis=0, skipna=False)
             result1 = f(axis=1, skipna=False)
-            assert_series_equal(result0, frame.apply(wrapper))
+            assert_series_equal(result0, frame.apply(wrapper),
+                                check_dtype=check_dtype,
+                                check_less_precise=check_less_precise)
             assert_series_equal(result1, frame.apply(wrapper, axis=1),
-                                check_dtype=False)  # HACK: win32
+                                check_dtype=False,
+                                check_less_precise=check_less_precise)  # HACK: win32
         else:
             skipna_wrapper = alternative
             wrapper = alternative
 
         result0 = f(axis=0)
         result1 = f(axis=1)
-        assert_series_equal(result0, frame.apply(skipna_wrapper))
+        assert_series_equal(result0, frame.apply(skipna_wrapper),
+                            check_dtype=check_dtype,
+                            check_less_precise=check_less_precise)
         assert_series_equal(result1, frame.apply(skipna_wrapper, axis=1),
-                            check_dtype=False)
+                            check_dtype=False,
+                            check_less_precise=check_less_precise)
 
         # check dtypes
-        if check_dtypes:
+        if check_dtype:
             lcd_dtype = frame.values.dtype
             self.assert_(lcd_dtype == result0.dtype)
             self.assert_(lcd_dtype == result1.dtype)
@@ -10331,7 +10350,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                 return np.nan
             return np.median(x)
 
-        self._check_stat_op('median', wrapper, frame=self.intframe, check_dtypes=False)
+        self._check_stat_op('median', wrapper, frame=self.intframe,
+                            check_dtype=False, check_dates=True)
 
     def test_quantile(self):
         from pandas.compat.scipy import scoreatpercentile

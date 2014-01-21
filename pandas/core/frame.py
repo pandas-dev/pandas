@@ -24,7 +24,7 @@ import numpy.ma as ma
 from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
                                 _default_index, _maybe_upcast, _is_sequence,
                                 _infer_dtype_from_scalar, _values_from_object,
-                                _DATELIKE_DTYPES, is_list_like)
+                                is_list_like)
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import (_maybe_droplevels,
@@ -1581,7 +1581,7 @@ class DataFrame(NDFrame):
                 else:
                     new_values, copy = self._data.fast_2d_xs(i, copy=copy)
                     result = Series(new_values, index=self.columns,
-                                    name=self.index[i])
+                                    name=self.index[i], dtype=new_values.dtype)
                 result.is_copy=copy
                 return result
 
@@ -3324,10 +3324,9 @@ class DataFrame(NDFrame):
         if reduce:
             try:
 
-                # can only work with numeric data in the fast path
-                numeric = self._get_numeric_data()
-                values = numeric.values
-                dummy = Series(NA, index=numeric._get_axis(axis),
+                # the is the fast-path
+                values = self.values
+                dummy = Series(NA, index=self._get_axis(axis),
                                dtype=values.dtype)
 
                 labels = self._get_agg_axis(axis)
@@ -3393,12 +3392,12 @@ class DataFrame(NDFrame):
                 result = result.T
             result = result.convert_objects(copy=False)
 
-            return result
         else:
-            s = Series(results)
-            s.index = res_index
 
-            return s
+            result = Series(results)
+            result.index = res_index
+
+        return result
 
     def _apply_broadcast(self, func, axis):
         if axis == 0:
@@ -3932,8 +3931,7 @@ class DataFrame(NDFrame):
         labels = self._get_agg_axis(axis)
 
         # exclude timedelta/datetime unless we are uniform types
-        if axis == 1 and self._is_mixed_type and len(set(self.dtypes) &
-                                                     _DATELIKE_DTYPES):
+        if axis == 1 and self._is_mixed_type and self._is_datelike_mixed_type:
             numeric_only = True
 
         if numeric_only is None:
@@ -3945,7 +3943,14 @@ class DataFrame(NDFrame):
                 # try by-column first
                 if filter_type is None and axis == 0:
                     try:
-                        return self.apply(f).iloc[0]
+
+                        # this can end up with a non-reduction
+                        # but not always. if the types are mixed
+                        # with datelike then need to make sure a series
+                        result = self.apply(f,reduce=False)
+                        if result.ndim == self.ndim:
+                            result = result.iloc[0]
+                        return result
                     except:
                         pass
 
