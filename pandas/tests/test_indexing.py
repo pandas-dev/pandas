@@ -848,6 +848,15 @@ class TestIndexing(tm.TestCase):
         expected = Series([2,3],index=[1,2])
         assert_series_equal(result,expected)
 
+        # xs
+        result = s.xs(0,level=0)
+        expected = Series([1],index=[0])
+        assert_series_equal(result,expected)
+
+        result = s.xs(1,level=1)
+        expected = Series([2,3],index=[1,2])
+        assert_series_equal(result,expected)
+
     def test_ix_general(self):
 
         # ix general issues
