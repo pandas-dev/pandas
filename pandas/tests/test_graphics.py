@@ -755,7 +755,7 @@ class TestDataFramePlots(tm.TestCase):
         _check_plot_works(scat, diagonal='kde')
         _check_plot_works(scat, diagonal='density')
         _check_plot_works(scat, diagonal='hist')
-        _check_plot_works(scat, xy_range_extension=.1)
+        _check_plot_works(scat, range_padding=.1)
 
         def scat2(x, y, by=None, ax=None, figsize=None):
             return plt.scatter_plot(df, x, y, by, ax, figsize=None)

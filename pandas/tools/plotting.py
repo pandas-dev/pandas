@@ -201,8 +201,8 @@ plot_params = _Options()
 
 
 def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
-                   diagonal='hist', marker='.', xy_range_extension = .05,
-                   density_kwds=None, hist_kwds=None, **kwds):
+                   diagonal='hist', marker='.', density_kwds=None,
+                   hist_kwds=None, range_padding=0.05, **kwds):
     """
     Draw a matrix of scatter plots.
 
@@ -221,15 +221,15 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
         either Kernel Density Estimation or Histogram
         plot in the diagonal
     marker : str, optional
-        Matplotlib marker type, default '.'
-    xy_range_extension : float, optional
-        relative extension of axis range in x and y
-        with respect to (x_max - x_min) or (y_max - y_min),
-        default .05
+        Matplotlib marker type, default '.'    
     hist_kwds : other plotting keyword arguments
         To be passed to hist function
     density_kwds : other plotting keyword arguments
-        To be passed to kernel density estimate plot    
+        To be passed to kernel density estimate plot
+    range_padding : float, optional
+        relative extension of axis range in x and y
+        with respect to (x_max - x_min) or (y_max - y_min),
+        default 0.05
     kwds : other plotting keyword arguments
         To be passed to scatter function
 
@@ -263,7 +263,7 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
     for a in df.columns:
         values = df[a].values[mask[a].values]
         rmin_, rmax_ = np.min(values), np.max(values)
-        rdelta_ext = (rmax_ - rmin_) * xy_range_extension / 2.
+        rdelta_ext = (rmax_ - rmin_) * range_padding / 2.
         boundaries_list.append((rmin_ - rdelta_ext, rmax_+ rdelta_ext))
 
     for i, a in zip(lrange(n), df.columns):
