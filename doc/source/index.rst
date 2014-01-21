@@ -20,7 +20,7 @@ pandas: powerful Python data analysis toolkit
 
 **Q&A Support:** http://stackoverflow.com/questions/tagged/pandas
 
-**Developer Mailing List:** http://groups.google.com/group/pystatsmodels
+**Developer Mailing List:** http://groups.google.com/group/pydata
 
 **pandas** is a `Python <http://www.python.org>`__ package providing fast,
 flexible, and expressive data structures designed to make working with
