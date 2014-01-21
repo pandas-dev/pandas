@@ -28,7 +28,7 @@ from pandas.core.common import (isnull, notnull, _is_bool_indexer,
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                _ensure_index, _handle_legacy_indexes)
 from pandas.core.indexing import (
-    _SeriesIndexer, _check_bool_indexer, _check_slice_bounds,
+    _check_bool_indexer, _check_slice_bounds,
     _is_index_slice, _maybe_convert_indices)
 from pandas.core import generic
 from pandas.core.internals import SingleBlockManager
@@ -444,11 +444,6 @@ class Series(generic.NDFrame):
             return self.__class__(values)
 
         return values
-
-    def _xs(self, key, axis=0, level=None, copy=True):
-        return self.__getitem__(key)
-
-    xs = _xs
 
     def _ixs(self, i, axis=0):
         """
@@ -2472,10 +2467,6 @@ Series._setup_axes(['index'], info_axis=0, stat_axis=0,
                    aliases={'rows': 0})
 Series._add_numeric_operations()
 _INDEX_TYPES = ndarray, Index, list, tuple
-
-# reinstall the SeriesIndexer
-# defined in indexing.py; pylint: disable=E0203
-Series._create_indexer('ix', _SeriesIndexer)
 
 #------------------------------------------------------------------------------
 # Supplementary functions

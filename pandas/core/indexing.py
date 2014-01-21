@@ -57,7 +57,9 @@ class _NDFrameIndexer(object):
 
     def _get_label(self, label, axis=0):
         # ueber-hack
-        if (isinstance(label, tuple) and
+        if self.ndim == 1:
+            return self.obj[label]
+        elif (isinstance(label, tuple) and
                 isinstance(label[axis], slice)):
 
             raise IndexingError('no slices here')
@@ -1362,46 +1364,6 @@ def _is_index_slice(obj):
     both_none = obj.start is None and obj.stop is None
 
     return not both_none and (_crit(obj.start) and _crit(obj.stop))
-
-
-class _SeriesIndexer(_IXIndexer):
-
-    """
-    Class to support fancy indexing, potentially using labels
-
-    Notes
-    -----
-    Indexing based on labels is INCLUSIVE
-    Slicing uses PYTHON SEMANTICS (endpoint is excluded)
-
-    If Index contains int labels, these will be used rather than the locations,
-    so be very careful (ambiguous).
-
-    Examples
-    --------
-    >>> ts.ix[5:10] # equivalent to ts[5:10]
-    >>> ts.ix[[date1, date2, date3]]
-    >>> ts.ix[date1:date2] = 0
-    """
-
-    def _get_label(self, key, axis=0):
-        return self.obj[key]
-
-    def _get_loc(self, key, axis=0):
-        return self.obj.values[key]
-
-    def _slice(self, indexer, axis=0, typ=None):
-        return self.obj._get_values(indexer)
-
-    def _setitem_with_indexer(self, indexer, value):
-
-        # need to delegate to the super setter
-        if isinstance(indexer, dict):
-            return super(_SeriesIndexer, self)._setitem_with_indexer(indexer,
-                                                                     value)
-
-        # fast access
-        self.obj._set_values(indexer, value)
 
 
 def _check_bool_indexer(ax, key):
