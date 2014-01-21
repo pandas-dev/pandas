@@ -35,18 +35,15 @@ cdef class Reducer:
             self.chunksize = k
             self.increment = k * arr.dtype.itemsize
 
+
         self.f = f
         self.arr = arr
         self.typ = None
         self.labels = labels
-        self.dummy, index = self._check_dummy(dummy)
+        self.dummy, index = self._check_dummy(dummy=dummy)
 
-        if axis == 0:
-             self.labels = index
-             self.index  = labels
-        else:
-             self.labels = labels
-             self.index  = index
+        self.labels = labels
+        self.index  = index
 
     def _check_dummy(self, dummy=None):
         cdef object index
@@ -54,6 +51,10 @@ cdef class Reducer:
         if dummy is None:
             dummy = np.empty(self.chunksize, dtype=self.arr.dtype)
             index = None
+
+            # our ref is stolen later since we are creating this array
+            # in cython, so increment first
+            Py_INCREF(dummy)
         else:
             if dummy.dtype != self.arr.dtype:
                 raise ValueError('Dummy array must be same dtype')
@@ -76,7 +77,8 @@ cdef class Reducer:
             ndarray arr, result, chunk
             Py_ssize_t i, incr
             flatiter it
-            object res, tchunk, name, labels, index, typ
+            object res, name, labels, index
+            object cached_typ = None
 
         arr = self.arr
         chunk = self.dummy
@@ -84,31 +86,39 @@ cdef class Reducer:
         chunk.data = arr.data
         labels = self.labels
         index = self.index
-        typ = self.typ
         incr = self.increment
 
         try:
             for i in range(self.nresults):
-                # need to make sure that we pass an actual object to the function
-                # and not just an ndarray
-                if typ is not None:
-                     try:
-                         if labels is not None:
-                            name = labels[i]
+
+                if labels is not None:
+                    name = util.get_value_at(labels, i)
+                else:
+                    name = None
+
+                # create the cached type
+                # each time just reassign the data
+                if i == 0:
+
+                    if self.typ is not None:
 
                          # recreate with the index if supplied
                          if index is not None:
-                              tchunk = typ(chunk, index=index, name=name, fastpath=True)
+
+                             cached_typ = self.typ(chunk, index=index, name=name)
+
                          else:
-                             tchunk = typ(chunk, name=name)
 
-                     except:
-                         tchunk = chunk
-                         typ = None
+                             # use the passsed typ, sans index
+                             cached_typ = self.typ(chunk, name=name)
+
+                # use the cached_typ if possible
+                if cached_typ is not None:
+                    cached_typ._data._block.values = chunk
+                    cached_typ.name = name
+                    res = self.f(cached_typ)
                 else:
-                     tchunk = chunk
-
-                res = self.f(tchunk)
+                    res = self.f(chunk)
 
                 if hasattr(res,'values'):
                     res = res.values
