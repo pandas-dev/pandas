@@ -3413,14 +3413,14 @@ class DataFrame(NDFrame):
         -------
         applied : Series or DataFrame
         """
-        if len(self.columns) == 0 and len(self.index) == 0:
-            return self
-
         axis = self._get_axis_number(axis)
         if kwds or args and not isinstance(func, np.ufunc):
             f = lambda x: func(x, *args, **kwds)
         else:
             f = func
+
+        if len(self.columns) == 0 and len(self.index) == 0:
+            return self._apply_empty_result(func, axis, reduce)
 
         if isinstance(f, np.ufunc):
             results = f(self.values)
@@ -3429,17 +3429,7 @@ class DataFrame(NDFrame):
         else:
             if not broadcast:
                 if not all(self.shape):
-                    if reduce is None:
-                        reduce = False
-                        try:
-                            reduce = not isinstance(f(_EMPTY_SERIES), Series)
-                        except Exception:
-                            pass
-
-                    if reduce:
-                        return Series(NA, index=self._get_agg_axis(axis))
-                    else:
-                        return self.copy()
+                    return self._apply_empty_result(func, axis, reduce)
 
                 if raw and not self._is_mixed_type:
                     return self._apply_raw(f, axis)
@@ -3449,6 +3439,19 @@ class DataFrame(NDFrame):
                     return self._apply_standard(f, axis, reduce=reduce)
             else:
                 return self._apply_broadcast(f, axis)
+
+    def _apply_empty_result(self, func, axis, reduce):
+        if reduce is None:
+            reduce = False
+            try:
+                reduce = not isinstance(func(_EMPTY_SERIES), Series)
+            except Exception:
+                pass
+
+        if reduce:
+            return Series(NA, index=self._get_agg_axis(axis))
+        else:
+            return self.copy()
 
     def _apply_raw(self, func, axis):
         try:
