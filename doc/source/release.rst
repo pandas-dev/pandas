@@ -87,6 +87,7 @@ Improvements to existing features
   - perf improvments in ``dtypes/ftypes`` methods (:issue:`5968`)
   - perf improvments in indexing with object dtypes (:issue:`5968`)
   - improved dtype inference for ``timedelta`` like passed to constructors (:issue:`5458`,:issue:`5689`)
+  - escape special characters when writing to latex (:issue: `5374`)
 
 .. _release.bug_fixes-0.13.1:
 
