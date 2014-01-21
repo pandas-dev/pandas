@@ -126,6 +126,8 @@ Bug Fixes
     of pandas in QTConsole, now fixed. If you're using an older version and
     need to supress the warnings, see (:issue:`5922`).
   - Bug in merging ``timedelta`` dtypes (:issue:`5695`)
+  - Bug in plotting.scatter_matrix function. Wrong alignment among diagonal 
+    and off-diagonal plots, see (:issue:`5497`).
 
 pandas 0.13.0
 -------------
