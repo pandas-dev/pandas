@@ -1950,6 +1950,29 @@ class TestIndexing(tm.TestCase):
             self.assert_(df.ix[0,'c'] == 0.0)
             self.assert_(df.ix[7,'c'] == 1.0)
 
+    def test_setitem_chained_setfault(self):
+
+        # GH6026
+        # setfaults under numpy 1.7.1 (ok on 1.8)
+        data = ['right', 'left', 'left', 'left', 'right', 'left', 'timeout']
+        mdata = ['right', 'left', 'left', 'left', 'right', 'left', 'none']
+
+        df = DataFrame({'response': np.array(data)})
+        mask = df.response == 'timeout'
+        df.response[mask] = 'none'
+        assert_frame_equal(df, DataFrame({'response': mdata }))
+
+        recarray = np.rec.fromarrays([data], names=['response'])
+        df = DataFrame(recarray)
+        mask = df.response == 'timeout'
+        df.response[mask] = 'none'
+        assert_frame_equal(df, DataFrame({'response': mdata }))
+
+        df = DataFrame({'response': data, 'response1' : data })
+        mask = df.response == 'timeout'
+        df.response[mask] = 'none'
+        assert_frame_equal(df, DataFrame({'response': mdata, 'response1' : data }))
+
     def test_detect_chained_assignment(self):
 
         pd.set_option('chained_assignment','raise')
