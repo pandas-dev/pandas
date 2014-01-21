@@ -623,6 +623,12 @@ class TestIndexing(tm.TestCase):
         self.assert_((result.columns == ['A','B']).all() == True)
         self.assert_((result.index == ['A','B']).all() == True)
 
+        # mixed type
+        result = DataFrame({ 'a' : [Timestamp('20130101')], 'b' : [1] }).iloc[0]
+        expected = Series([ Timestamp('20130101'), 1],index=['a','b'])
+        assert_series_equal(result,expected)
+        self.assert_(result.dtype == object)
+
     def test_loc_setitem_frame(self):
         df = self.frame_labels
 
