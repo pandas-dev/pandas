@@ -832,6 +832,22 @@ class TestIndexing(tm.TestCase):
         xp = mi_int.ix[4]
         assert_frame_equal(rs,xp)
 
+    def test_series_getitem_multiindex(self):
+
+        # GH 6018
+        # series regression getitem with a multi-index
+
+        s = Series([1,2,3])
+        s.index = MultiIndex.from_tuples([(0,0),(1,1), (2,1)])
+
+        result = s[:,0]
+        expected = Series([1],index=[0])
+        assert_series_equal(result,expected)
+
+        result = s.ix[:,1]
+        expected = Series([2,3],index=[1,2])
+        assert_series_equal(result,expected)
+
     def test_ix_general(self):
 
         # ix general issues
