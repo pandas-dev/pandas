@@ -104,6 +104,13 @@ def html():
                  'source build/html'):
         raise SystemExit("Building HTML failed.")
     try:
+        # remove stale file
+        os.system('cd build; rm -f html/pandas.zip;')
+    except:
+        pass
+
+def zip_html():
+    try:
         print("\nZipping up HTML docs...")
         # just in case the wonky build box doesn't have zip
         # don't fail this.
@@ -242,6 +249,7 @@ def _get_config():
 
 funcd = {
     'html': html,
+    'zip_html': zip_html,
     'upload_dev': upload_dev,
     'upload_stable': upload_stable,
     'upload_dev_pdf': upload_dev_pdf,
