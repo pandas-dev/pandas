@@ -233,7 +233,7 @@ the rows, applying our ``integrate_f_typed``, and putting this in the zeros arra
 
    %timeit apply_integrate_f(df['a'].values, df['b'].values, df['N'].values)
 
-We've gone another three times faster! Let's check again where the time is spent:
+We've gotten another big improvement. Let's check again where the time is spent:
 
 .. ipython:: python
 
@@ -282,7 +282,9 @@ advanced cython techniques:
 
    %timeit apply_integrate_f_wrap(df['a'].values, df['b'].values, df['N'].values)
 
-This shaves another third off!
+Even faster, with the caveat that a bug in our cython code (an off-by-one error,
+for example) might cause a segfault because memory access isn't checked.
+
 
 Further topics
 ~~~~~~~~~~~~~~
