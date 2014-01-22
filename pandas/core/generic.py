@@ -2,6 +2,7 @@
 import warnings
 import operator
 import weakref
+import gc
 import numpy as np
 import pandas.lib as lib
 
@@ -97,7 +98,7 @@ class NDFrame(PandasObject):
                 for i, ax in enumerate(axes):
                     data = data.reindex_axis(ax, axis=i)
 
-        object.__setattr__(self, 'is_copy', False)
+        object.__setattr__(self, 'is_copy', None)
         object.__setattr__(self, '_data', data)
         object.__setattr__(self, '_item_cache', {})
 
@@ -994,6 +995,9 @@ class NDFrame(PandasObject):
             res = self._box_item_values(item, values)
             cache[item] = res
             res._set_as_cached(item, self)
+
+            # for a chain
+            res.is_copy = self.is_copy
         return res
 
     def _set_as_cached(self, item, cacher):
@@ -1031,16 +1035,14 @@ class NDFrame(PandasObject):
             # a copy
             if ref is None:
                 del self._cacher
-                self.is_copy = True
-                self._check_setitem_copy(stacklevel=5, t='referant')
             else:
                 try:
                     ref._maybe_cache_changed(cacher[0], self)
                 except:
                     pass
-                if ref.is_copy:
-                    self.is_copy = True
-                    self._check_setitem_copy(stacklevel=5, t='referant')
+
+        # check if we are a copy
+        self._check_setitem_copy(stacklevel=5, t='referant')
 
         if clear:
             self._clear_item_cache()
@@ -1055,13 +1057,35 @@ class NDFrame(PandasObject):
         self._data.set(key, value)
         self._clear_item_cache()
 
+    def _set_is_copy(self, ref=None, copy=True):
+        if not copy:
+            self.is_copy = None
+        else:
+            if ref is not None:
+                self.is_copy = weakref.ref(ref)
+            else:
+                self.is_copy = None
+
     def _check_setitem_copy(self, stacklevel=4, t='setting'):
         """ validate if we are doing a settitem on a chained copy.
 
         If you call this function, be sure to set the stacklevel such that the
         user will see the error *at the level of setting*"""
         if self.is_copy:
+
             value = config.get_option('mode.chained_assignment')
+            if value is None:
+                return
+
+            # see if the copy is not actually refererd; if so, then disolve
+            # the copy weakref
+            try:
+                gc.collect(2)
+                if not gc.get_referents(self.is_copy()):
+                    self.is_copy = None
+                    return
+            except:
+                pass
 
             if t == 'referant':
                 t = ("A value is trying to be set on a copy of a slice from a "
@@ -1143,7 +1167,7 @@ class NDFrame(PandasObject):
 
         # maybe set copy if we didn't actually change the index
         if is_copy and not result._get_axis(axis).equals(self._get_axis(axis)):
-            result.is_copy=is_copy
+            result._set_is_copy(self)
 
         return result
 
@@ -1276,12 +1300,12 @@ class NDFrame(PandasObject):
             new_values, copy = self._data.fast_2d_xs(loc, copy=copy)
             result = Series(new_values, index=self.columns,
                             name=self.index[loc])
-            result.is_copy=True
 
         else:
             result = self[loc]
             result.index = new_index
 
+        result._set_is_copy(self)
         return result
 
     _xs = xs

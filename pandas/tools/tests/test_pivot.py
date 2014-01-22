@@ -174,7 +174,7 @@ class TestPivotTable(tm.TestCase):
             exp = self.data.groupby(rows)[col].mean()
             tm.assert_series_equal(cmarg, exp)
 
-            res.sortlevel(inplace=True)
+            res = res.sortlevel()
             rmarg = res.xs(('All', ''))[:-1]
             exp = self.data.groupby(cols)[col].mean()
             tm.assert_series_equal(rmarg, exp)

@@ -1980,7 +1980,7 @@ class TestIndexing(tm.TestCase):
         # work with the chain
         expected = DataFrame([[-5,1],[-6,3]],columns=list('AB'))
         df = DataFrame(np.arange(4).reshape(2,2),columns=list('AB'),dtype='int64')
-        self.assert_(not df.is_copy)
+        self.assert_(df.is_copy is None)
 
         df['A'][0] = -5
         df['A'][1] = -6
@@ -1988,11 +1988,11 @@ class TestIndexing(tm.TestCase):
 
         expected = DataFrame([[-5,2],[np.nan,3.]],columns=list('AB'))
         df = DataFrame({ 'A' : Series(range(2),dtype='int64'), 'B' : np.array(np.arange(2,4),dtype=np.float64)})
-        self.assert_(not df.is_copy)
+        self.assert_(df.is_copy is None)
         df['A'][0] = -5
         df['A'][1] = np.nan
         assert_frame_equal(df, expected)
-        self.assert_(not df['A'].is_copy)
+        self.assert_(df['A'].is_copy is None)
 
         # using a copy (the chain), fails
         df = DataFrame({ 'A' : Series(range(2),dtype='int64'), 'B' : np.array(np.arange(2,4),dtype=np.float64)})
@@ -2004,7 +2004,7 @@ class TestIndexing(tm.TestCase):
         df = DataFrame({'a' : ['one', 'one', 'two',
                                'three', 'two', 'one', 'six'],
                         'c' : Series(range(7),dtype='int64') })
-        self.assert_(not df.is_copy)
+        self.assert_(df.is_copy is None)
         expected = DataFrame({'a' : ['one', 'one', 'two',
                                      'three', 'two', 'one', 'six'],
                               'c' : [42,42,2,3,4,42,6]})
@@ -2033,7 +2033,7 @@ class TestIndexing(tm.TestCase):
         # make sure that is_copy is picked up reconstruction
         # GH5475
         df = DataFrame({"A": [1,2]})
-        self.assert_(df.is_copy is False)
+        self.assert_(df.is_copy is None)
         with tm.ensure_clean('__tmp__pickle') as path:
             df.to_pickle(path)
             df2 = pd.read_pickle(path)
@@ -2058,25 +2058,34 @@ class TestIndexing(tm.TestCase):
 
         # always a copy
         x = df.iloc[[0,1,2]]
-        self.assert_(x.is_copy is True)
+        self.assert_(x.is_copy is not None)
         x = df.iloc[[0,1,2,4]]
-        self.assert_(x.is_copy is True)
+        self.assert_(x.is_copy is not None)
 
         # explicity copy
         indexer = df.letters.apply(lambda x : len(x) > 10)
         df = df.ix[indexer].copy()
-        self.assert_(df.is_copy is False)
+        self.assert_(df.is_copy is None)
         df['letters'] = df['letters'].apply(str.lower)
 
         # implicity take
         df = random_text(100000)
         indexer = df.letters.apply(lambda x : len(x) > 10)
         df = df.ix[indexer]
-        self.assert_(df.is_copy is True)
+        self.assert_(df.is_copy is not None)
+        df['letters'] = df['letters'].apply(str.lower)
+
+        # implicity take 2
+        df = random_text(100000)
+        indexer = df.letters.apply(lambda x : len(x) > 10)
+        df = df.ix[indexer]
+        self.assert_(df.is_copy is not None)
         df.loc[:,'letters'] = df['letters'].apply(str.lower)
 
-        # this will raise
-        #df['letters'] = df['letters'].apply(str.lower)
+        # should be ok even though its a copy!
+        self.assert_(df.is_copy is  None)
+        df['letters'] = df['letters'].apply(str.lower)
+        self.assert_(df.is_copy is None)
 
         df = random_text(100000)
         indexer = df.letters.apply(lambda x : len(x) > 10)
@@ -2084,7 +2093,7 @@ class TestIndexing(tm.TestCase):
 
         # an identical take, so no copy
         df = DataFrame({'a' : [1]}).dropna()
-        self.assert_(df.is_copy is False)
+        self.assert_(df.is_copy is None)
         df['a'] += 1
 
         # inplace ops
@@ -2123,7 +2132,15 @@ class TestIndexing(tm.TestCase):
             df[['c']][mask] = df[['b']][mask]
         self.assertRaises(com.SettingWithCopyError, f)
 
-        pd.set_option('chained_assignment','warn')
+        # false positives GH6025
+        df = DataFrame ({'column1':['a', 'a', 'a'], 'column2': [4,8,9] })
+        str(df)
+        df['column1'] = df['column1'] + 'b'
+        str(df)
+        df = df [df['column2']!=8]
+        str(df)
+        df['column1'] = df['column1'] + 'c'
+        str(df)
 
     def test_float64index_slicing_bug(self):
         # GH 5557, related to slicing a float index
