@@ -8978,6 +8978,15 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         rs = xp.apply(lambda x: x['a'], axis=1)
         assert_frame_equal(xp, rs)
 
+        # reduce with an empty DataFrame
+        x = []
+        result = self.empty.apply(x.append, axis=1, reduce=False)
+        assert_frame_equal(result, self.empty)
+        result = self.empty.apply(x.append, axis=1, reduce=True)
+        assert_series_equal(result, Series([]))
+        # Ensure that x.append hasn't been called
+        self.assertEqual(x, [])
+
     def test_apply_standard_nonunique(self):
         df = DataFrame(
             [[1, 2, 3], [4, 5, 6], [7, 8, 9]], index=['a', 'a', 'c'])
