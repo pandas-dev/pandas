@@ -4175,6 +4175,15 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self.assertFalse("\r" in repr(df))
         self.assertFalse("a\n" in repr(df))
 
+    def test_repr_dimensions(self):
+        df = DataFrame([[1, 2,], [3, 4]])
+        self.assertTrue("2 rows x 2 columns" in repr(df))
+
+        fmt.set_option('display.show_dimensions', False)
+        self.assertFalse("2 rows x 2 columns" in repr(df))
+
+        fmt.reset_option('^display\.')
+
     @slow
     def test_repr_big(self):
         buf = StringIO()
