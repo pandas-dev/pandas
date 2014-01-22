@@ -50,6 +50,16 @@ Enhancements
       df['diff'] = df['today']-df['age']
       df
 
+- Add ``show_dimensions`` display option for the new DataFrame repr:
+
+   .. ipython:: python
+
+      df = DataFrame([[1, 2], [3, 4]])
+      pd.set_option('show_dimensions', False)
+      df
+
+      pd.set_option('show_dimensions', True)
+
 - ``Panel.apply`` will work on non-ufuncs. See :ref:`the docs<basics.apply_panel>`.
 
   .. ipython:: python
