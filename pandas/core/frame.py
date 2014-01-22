@@ -1070,7 +1070,7 @@ class DataFrame(NDFrame):
     def to_csv(self, path_or_buf, sep=",", na_rep='', float_format=None,
                cols=None, header=True, index=True, index_label=None,
                mode='w', nanRep=None, encoding=None, quoting=None,
-               line_terminator='\n', chunksize=None,
+               quotechar='"', line_terminator='\n', chunksize=None,
                tupleize_cols=False, date_format=None, **kwds):
         r"""Write DataFrame to a comma-separated values (csv) file
 
@@ -1109,6 +1109,8 @@ class DataFrame(NDFrame):
             file
         quoting : optional constant from csv module
             defaults to csv.QUOTE_MINIMAL
+        quotechar : string (length 1), default '"'
+            character used to quote fields
         chunksize : int or None
             rows to write at a time
         tupleize_cols : boolean, default False
@@ -1129,8 +1131,8 @@ class DataFrame(NDFrame):
                                      float_format=float_format, cols=cols,
                                      header=header, index=index,
                                      index_label=index_label, mode=mode,
-                                     chunksize=chunksize, engine=kwds.get(
-                                         "engine"),
+                                     chunksize=chunksize, quotechar=quotechar, 
+                                     engine=kwds.get("engine"),
                                      tupleize_cols=tupleize_cols,
                                      date_format=date_format)
         formatter.save()
