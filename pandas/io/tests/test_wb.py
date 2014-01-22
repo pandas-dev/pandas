@@ -1,12 +1,14 @@
 import nose
+from nose.tools import assert_equal
 
 import pandas
 from pandas.compat import u
 from pandas.util.testing import network
 from pandas.util.testing import assert_frame_equal
 from numpy.testing.decorators import slow
-from pandas.io.wb import search, download
+from pandas.io.wb import search, download, get_countries
 import pandas.util.testing as tm
+
 
 class TestWB(tm.TestCase):
 
@@ -30,7 +32,6 @@ class TestWB(tm.TestCase):
         expected.index = result.index
         assert_frame_equal(result, expected)
 
-
     @slow
     @network
     def test_wdi_download(self):
@@ -42,6 +43,14 @@ class TestWB(tm.TestCase):
                                                                          'GDPPCKN', 'junk'], start=2003, end=2005)
         expected.index = result.index
         assert_frame_equal(result, pandas.DataFrame(expected))
+
+    @slow
+    @network
+    def test_wdi_get_countries(self):
+        raise nose.SkipTest
+
+        result = get_countries()
+        assert_equal(result[-1:].name, 'Zimbabwe')
 
 
 if __name__ == '__main__':
