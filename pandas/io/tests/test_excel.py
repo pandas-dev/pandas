@@ -17,7 +17,7 @@ from pandas.io.excel import (
 )
 from pandas.util.testing import ensure_clean
 from pandas.core.config import set_option, get_option
-from pandas.compat import StringIO
+from pandas.compat import BytesIO
 import pandas.util.testing as tm
 import pandas as pd
 
@@ -415,7 +415,7 @@ class ExcelWriterBase(SharedItems):
         _skip_if_no_xlsxwriter()
         _skip_if_no_xlrd()
         
-        path = StringIO()
+        path = BytesIO()
         with ExcelWriter(path, engine='xlsxwriter', **{'options': {'in-memory': True}}) as ew:
             self.frame.to_excel(ew, 'test1', engine='xlsxwriter')
             ew.save()

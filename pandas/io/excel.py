@@ -12,7 +12,7 @@ import numpy as np
 from pandas.io.parsers import TextParser
 from pandas.tseries.period import Period
 from pandas import json
-from pandas.compat import map, zip, reduce, range, lrange, u, add_metaclass, StringIO
+from pandas.compat import map, zip, reduce, range, lrange, u, add_metaclass
 from pandas.core import config
 from pandas.core.common import pprint_thing
 import pandas.compat as compat
