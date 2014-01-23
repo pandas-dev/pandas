@@ -981,7 +981,7 @@ class NDFrame(PandasObject):
         """
         try:
             return self[key]
-        except KeyError:
+        except (KeyError, ValueError):
             return default
 
     def __getitem__(self, item):

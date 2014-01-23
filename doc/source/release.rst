@@ -139,6 +139,7 @@ Bug Fixes
   - Possible segfault when chained indexing with an object array under numpy 1.7.1 (:issue:`6016`)
   - Bug in setting using fancy indexing a single element with a non-scalar (e.g. a list),
     (:issue:`6043`)
+  - Regression in ``.get(None)`` indexing from 0.12 (:issue:`5652`)
 
 pandas 0.13.0
 -------------

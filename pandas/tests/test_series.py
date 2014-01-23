@@ -724,6 +724,12 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         d = self.ts.index[0] - datetools.bday
         self.assertRaises(KeyError, self.ts.__getitem__, d)
 
+        # None
+        # GH 5652
+        for s in [Series(), Series(index=list('abc'))]:
+            result = s.get(None)
+            self.assert_(result is None)
+
     def test_iget(self):
         s = Series(np.random.randn(10), index=lrange(0, 20, 2))
         for i in range(len(s)):
