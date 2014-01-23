@@ -181,7 +181,7 @@ class TestDataFrameFormatting(tm.TestCase):
                   u("\u03c6")]
         cols = [u("\u03c8")]
         df = DataFrame(data, columns=cols, index=index1)
-        self.assertTrue(type(df.__repr__() == str))  # both py2 / 3
+        self.assertTrue(type(df.__repr__()) == str)  # both py2 / 3
 
     def test_repr_no_backslash(self):
         with option_context('mode.sim_interactive', True):
