@@ -135,6 +135,8 @@ Bug Fixes
   - Bug in Series construction of mixed type with datelike and an integer (which should result in
     object type and not automatic conversion) (:issue:`6028`)
   - Possible segfault when chained indexing with an object array under numpy 1.7.1 (:issue:`6016`)
+  - Bug in setting using fancy indexing a single element with a non-scalar (e.g. a list),
+    (:issue:`6043`)
 
 pandas 0.13.0
 -------------

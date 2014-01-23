@@ -605,10 +605,18 @@ class Block(PandasObject):
                                      "different length than the value")
 
         try:
+            # setting a single element for each dim and with a rhs that could be say a list
+            # GH 6043
+            if arr_value.ndim == 1 and (
+                np.isscalar(indexer) or (isinstance(indexer, tuple) and all([ np.isscalar(idx) for idx in indexer ]))):
+                values[indexer] = value
+
             # if we are an exact match (ex-broadcasting),
             # then use the resultant dtype
-            if len(arr_value.shape) and arr_value.shape[0] == values.shape[0] and np.prod(arr_value.shape) == np.prod(values.shape):
+            elif len(arr_value.shape) and arr_value.shape[0] == values.shape[0] and np.prod(arr_value.shape) == np.prod(values.shape):
                 values = arr_value.reshape(values.shape)
+
+            # set
             else:
                 values[indexer] = value
 

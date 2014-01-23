@@ -1286,6 +1286,48 @@ class TestIndexing(tm.TestCase):
         self.assert_(df.ix['e', 8] == 45)
         self.assert_(df.loc['e', 8] == 45)
 
+    def test_setitem_list(self):
+
+        # GH 6043
+        # ix with a list
+        df = DataFrame(index=[0,1], columns=[0])
+        df.ix[1,0] = [1,2,3]
+        df.ix[1,0] = [1,2]
+
+        result = DataFrame(index=[0,1], columns=[0])
+        result.ix[1,0] = [1,2]
+
+        assert_frame_equal(result,df)
+
+        # ix with an object
+        class TO(object):
+            def __init__(self, value):
+                self.value = value
+            def __str__(self):
+                return "[{0}]".format(self.value)
+            __repr__ = __str__
+            def __eq__(self, other):
+                return self.value == other.value
+            def view(self):
+                return self
+
+        df = DataFrame(index=[0,1], columns=[0])
+        df.ix[1,0] = TO(1)
+        df.ix[1,0] = TO(2)
+
+        result = DataFrame(index=[0,1], columns=[0])
+        result.ix[1,0] = TO(2)
+
+        assert_frame_equal(result,df)
+
+        # remains object dtype even after setting it back
+        df = DataFrame(index=[0,1], columns=[0])
+        df.ix[1,0] = TO(1)
+        df.ix[1,0] = np.nan
+        result = DataFrame(index=[0,1], columns=[0])
+
+        assert_frame_equal(result, df)
+
     def test_iloc_mask(self):
 
         # GH 3631, iloc with a mask (of a series) should raise
