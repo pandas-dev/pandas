@@ -1582,7 +1582,7 @@ class DataFrame(NDFrame):
                     new_values, copy = self._data.fast_2d_xs(i, copy=copy)
                     result = Series(new_values, index=self.columns,
                                     name=self.index[i], dtype=new_values.dtype)
-                result.is_copy=copy
+                result._set_is_copy(self, copy=copy)
                 return result
 
         # icol
@@ -1707,7 +1707,7 @@ class DataFrame(NDFrame):
                     if isinstance(result, Series):
                         result = Series(result, index=self.index, name=key)
 
-            result.is_copy=True
+            result._set_is_copy(self)
             return result
         else:
             return self._get_item_cache(key)
@@ -1878,6 +1878,7 @@ class DataFrame(NDFrame):
             self._set_item(key, value)
 
     def _setitem_slice(self, key, value):
+        self._check_setitem_copy()
         self.ix._setitem_with_indexer(key, value)
 
     def _setitem_array(self, key, value):
@@ -1912,6 +1913,7 @@ class DataFrame(NDFrame):
                 raise TypeError(
                     'Cannot do boolean setting on mixed-type frame')
 
+        self._check_setitem_copy()
         self.where(-key, value, inplace=True)
 
     def _ensure_valid_index(self, value):

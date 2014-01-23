@@ -60,7 +60,7 @@ class Writer(object):
         self.date_unit = date_unit
         self.default_handler = default_handler
 
-        self.is_copy = False
+        self.is_copy = None
         self._format_axes()
 
     def _format_axes(self):

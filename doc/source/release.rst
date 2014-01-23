@@ -59,7 +59,7 @@ API Changes
   - ``Series.sort`` will raise a ``ValueError`` (rather than a ``TypeError``) on sorting an
     object that is a view of another (:issue:`5856`, :issue:`5853`)
   - Raise/Warn ``SettingWithCopyError`` (according to the option ``chained_assignment`` in more cases,
-    when detecting chained assignment, related (:issue:`5938`)
+    when detecting chained assignment, related (:issue:`5938`, :issue:`6025`)
   - DataFrame.head(0) returns self instead of empty frame (:issue:`5846`)
   - ``autocorrelation_plot`` now accepts ``**kwargs``. (:issue:`5623`)
   - ``convert_objects`` now accepts a ``convert_timedeltas='coerce'`` argument to allow forced dtype conversion of
