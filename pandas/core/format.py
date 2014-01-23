@@ -43,11 +43,11 @@ docstring_to_string = """
         string representation of NAN to use, default 'NaN'
     formatters : list or dict of one-parameter functions, optional
         formatter functions to apply to columns' elements by position or name,
-        default None, if the result is a string , it must be a unicode
-        string. List must be of length equal to the number of columns.
+        default None. The result of each function must be a unicode string.
+        List must be of length equal to the number of columns.
     float_format : one-parameter function, optional
-        formatter function to apply to columns' elements if they are floats
-        default None
+        formatter function to apply to columns' elements if they are floats,
+        default None. The result of this function must be a unicode string.
     sparsify : bool, optional
         Set to False for a DataFrame with a hierarchical index to print every
         multiindex key at each row, default True
