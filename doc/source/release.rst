@@ -89,6 +89,7 @@ Improvements to existing features
   - improved dtype inference for ``timedelta`` like passed to constructors (:issue:`5458`,:issue:`5689`)
   - escape special characters when writing to latex (:issue: `5374`)
   - perf improvements in ``DataFrame.apply`` (:issue:`6013`)
+  - ``Dataframe``s ``to_excel`` will now also accept file-like objects as output (:issue: `5992`)
 
 .. _release.bug_fixes-0.13.1:
 
