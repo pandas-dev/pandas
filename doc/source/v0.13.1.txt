@@ -18,6 +18,9 @@ There are several new or updated docs sections including:
 API changes
 ~~~~~~~~~~~
 
+- Add ``-NaN`` and ``-nan`` to the default set of NA values (:issue:`5952`).
+  See :ref:`NA Values <io.na_values>`.
+
 Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

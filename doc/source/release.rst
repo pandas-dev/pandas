@@ -64,6 +64,8 @@ API Changes
   - ``autocorrelation_plot`` now accepts ``**kwargs``. (:issue:`5623`)
   - ``convert_objects`` now accepts a ``convert_timedeltas='coerce'`` argument to allow forced dtype conversion of
     timedeltas (:issue:`5458`,:issue:`5689`)
+  - Add ``-NaN`` and ``-nan`` to the default set of NA values
+    (:issue:`5952`).  See :ref:`NA Values <io.na_values>`.
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
