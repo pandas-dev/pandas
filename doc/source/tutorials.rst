@@ -13,10 +13,6 @@ Pandas own :ref:`10 Minutes to Pandas<10min>`
 
 More complex recipes are in the :ref:`Cookbook<cookbook>`
 
-Tutorials
----------
-
-
 Pandas Cookbook
 ---------------
 
