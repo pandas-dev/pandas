@@ -436,6 +436,7 @@ def isiterable(obj):
 def is_sorted(seq):
     return assert_almost_equal(seq, np.sort(np.array(seq)))
 
+# This could be refactored to use the NDFrame.equals method
 def assert_series_equal(left, right, check_dtype=True,
                         check_index_type=False,
                         check_series_type=False,
@@ -455,7 +456,7 @@ def assert_series_equal(left, right, check_dtype=True,
         assert_attr_equal('dtype', left.index, right.index)
         assert_attr_equal('inferred_type', left.index, right.index)
 
-
+# This could be refactored to use the NDFrame.equals method
 def assert_frame_equal(left, right, check_dtype=True,
                        check_index_type=False,
                        check_column_type=False,

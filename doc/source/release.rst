@@ -66,6 +66,7 @@ API Changes
     timedeltas (:issue:`5458`,:issue:`5689`)
   - Add ``-NaN`` and ``-nan`` to the default set of NA values
     (:issue:`5952`).  See :ref:`NA Values <io.na_values>`.
+  - ``NDFrame`` now has an ``equals`` method. (:issue:`5283`) 
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~

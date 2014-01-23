@@ -1121,13 +1121,24 @@ class Block(PandasObject):
 
         return result_blocks
 
+    def equals(self, other):
+        if self.dtype != other.dtype or self.shape != other.shape: return False
+        return np.array_equal(self.values, other.values)
+
 
 class NumericBlock(Block):
     is_numeric = True
     _can_hold_na = True
 
 
-class FloatBlock(NumericBlock):
+class FloatOrComplexBlock(NumericBlock):
+    def equals(self, other):
+        if self.dtype != other.dtype or self.shape != other.shape: return False
+        left, right = self.values, other.values
+        return ((left == right) | (np.isnan(left) & np.isnan(right))).all()
+
+
+class FloatBlock(FloatOrComplexBlock):
     is_float = True
     _downcast_dtype = 'int64'
 
@@ -1166,8 +1177,7 @@ class FloatBlock(NumericBlock):
         return (issubclass(value.dtype.type, np.floating) and
                 value.dtype == self.dtype)
 
-
-class ComplexBlock(NumericBlock):
+class ComplexBlock(FloatOrComplexBlock):
     is_complex = True
 
     def _can_hold_element(self, element):
@@ -2563,7 +2573,7 @@ class BlockManager(PandasObject):
         return self.combine(blocks)
 
     def combine(self, blocks):
-        """ reutrn a new manager with the blocks """
+        """ return a new manager with the blocks """
         indexer = np.sort(np.concatenate([b.ref_locs for b in blocks]))
         new_items = self.items.take(indexer)
 
@@ -3491,6 +3501,16 @@ class BlockManager(PandasObject):
             raise AssertionError('Some items were not in any block')
         return result
 
+    def equals(self, other):
+        self_axes, other_axes = self.axes, other.axes
+        if len(self_axes) != len(other_axes):
+           return False
+        if not all (ax1.equals(ax2) for ax1, ax2 in zip(self_axes, other_axes)):
+            return False
+        self._consolidate_inplace()
+        other._consolidate_inplace()
+        return all(block.equals(oblock) for block, oblock in
+                   zip(self.blocks, other.blocks))
 
 class SingleBlockManager(BlockManager):
 
@@ -4003,6 +4023,9 @@ def _merge_blocks(blocks, items, dtype=None, _can_consolidate=True):
             if len(set([b.dtype for b in blocks])) != 1:
                 raise AssertionError("_merge_blocks are invalid!")
             dtype = blocks[0].dtype
+
+        if not items.is_unique:
+            blocks = sorted(blocks, key=lambda b: b.ref_locs.tolist())
 
         new_values = _vstack([b.values for b in blocks], dtype)
         new_items = blocks[0].items.append([b.items for b in blocks[1:]])

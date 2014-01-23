@@ -812,7 +812,8 @@ class TestDataFrame(tm.TestCase, Generic):
         self.check_metadata(df,result)
 
         # resample
-        df = DataFrame(np.random.randn(1000,2), index=date_range('20130101',periods=1000,freq='s'))
+        df = DataFrame(np.random.randn(1000,2),
+                       index=date_range('20130101',periods=1000,freq='s'))
         result = df.resample('1T')
         self.check_metadata(df,result)
 
@@ -850,6 +851,80 @@ class TestNDFrame(tm.TestCase):
 
         p4d = tm.makePanel4D().reindex(labels=['label1'],items=['ItemA'])
         tm.assert_frame_equal(p4d.squeeze(),p4d.ix['label1','ItemA'])
+
+    def test_equals(self):
+        s1 = pd.Series([1, 2, 3], index=[0, 2, 1])
+        s2 = s1.copy()
+        self.assert_(s1.equals(s2))
+
+        s1[1] = 99
+        self.assert_(not s1.equals(s2))
+
+        # NaNs compare as equal
+        s1 = pd.Series([1, np.nan, 3, np.nan], index=[0, 2, 1, 3])
+        s2 = s1.copy()
+        self.assert_(s1.equals(s2))
+
+        s2[0] = 9.9
+        self.assert_(not s1.equals(s2))
+        
+        idx = MultiIndex.from_tuples([(0, 'a'), (1, 'b'), (2, 'c')])
+        s1 = Series([1, 2, np.nan], index=idx)
+        s2 = s1.copy()
+        self.assert_(s1.equals(s2))
+
+        # Add object dtype column with nans
+        index = np.random.random(10)
+        df1 = DataFrame(np.random.random(10,), index=index, columns=['floats'])
+        df1['text'] = 'the sky is so blue. we could use more chocolate.'.split()
+        df1['start'] = date_range('2000-1-1', periods=10, freq='T')
+        df1['end'] = date_range('2000-1-1', periods=10, freq='D')
+        df1['diff'] = df1['end'] - df1['start']
+        df1['bool'] = (np.arange(10) % 3 == 0)
+        df1.ix[::2] = nan
+        df2 = df1.copy()
+        self.assert_(df1['text'].equals(df2['text']))
+        self.assert_(df1['start'].equals(df2['start']))
+        self.assert_(df1['end'].equals(df2['end']))
+        self.assert_(df1['diff'].equals(df2['diff']))
+        self.assert_(df1['bool'].equals(df2['bool']))
+        self.assert_(df1.equals(df2))
+        self.assert_(not df1.equals(object))
+
+        # different dtype
+        different = df1.copy()
+        different['floats'] = different['floats'].astype('float32')
+        self.assert_(not df1.equals(different)) 
+
+        # different index
+        different_index = -index
+        different = df2.set_index(different_index)
+        self.assert_(not df1.equals(different))        
+
+        # different columns
+        different = df2.copy()
+        different.columns = df2.columns[::-1]
+        self.assert_(not df1.equals(different))        
+
+        # DatetimeIndex
+        index = pd.date_range('2000-1-1', periods=10, freq='T')
+        df1 = df1.set_index(index)
+        df2 = df1.copy()
+        self.assert_(df1.equals(df2))
+
+        # MultiIndex
+        df3 = df1.set_index(['text'], append=True)
+        df2 = df1.set_index(['text'], append=True)
+        self.assert_(df3.equals(df2))
+
+        df2 = df1.set_index(['floats'], append=True)
+        self.assert_(not df3.equals(df2))
+
+        # NaN in index
+        df3 = df1.set_index(['floats'], append=True)
+        df2 = df1.set_index(['floats'], append=True)
+        self.assert_(df3.equals(df2))
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

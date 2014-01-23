@@ -42,6 +42,21 @@ API changes
 
 - Add ``-NaN`` and ``-nan`` to the default set of NA values (:issue:`5952`).
   See :ref:`NA Values <io.na_values>`.
+- Added the ``NDFrame.equals()`` method to compare if two NDFrames are
+  equal have equal axes, dtypes, and values. Added the
+  ``array_equivalent`` function to compare if two ndarrays are
+  equal. NaNs in identical locations are treated as
+  equal. (:issue:`5283`)
+
+  .. ipython:: python
+
+      df = DataFrame({'col':['foo', 0, np.nan]}).sort()
+      df2 = DataFrame({'col':[np.nan, 0, 'foo']}, index=[2,1,0])
+      df.equals(df)
+
+      import pandas.core.common as com
+      com.array_equivalent(np.array([0, np.nan]), np.array([0, np.nan]))
+      np.array_equal(np.array([0, np.nan]), np.array([0, np.nan]))
 
 Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

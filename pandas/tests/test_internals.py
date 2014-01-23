@@ -584,6 +584,27 @@ class TestBlockManager(tm.TestCase):
         except KeyError:
             pass  # this is the expected exception
 
+    def test_equals(self):
+        # unique items
+        index = Index(list('abcdef'))
+        block1 = make_block(np.arange(12).reshape(3,4), list('abc'), index)
+        block2 = make_block(np.arange(12).reshape(3,4)*10, list('def'), index)
+        block1.ref_items = block2.ref_items = index
+        bm1 = BlockManager([block1, block2], [index, np.arange(block1.shape[1])])
+        bm2 = BlockManager([block2, block1], [index, np.arange(block1.shape[1])])
+        self.assert_(bm1.equals(bm2))
+
+        # non-unique items
+        index = Index(list('aaabbb'))
+        block1 = make_block(np.arange(12).reshape(3,4), list('aaa'), index,
+                            placement=[0,1,2])
+        block2 = make_block(np.arange(12).reshape(3,4)*10, list('bbb'), index,
+                            placement=[3,4,5])
+        block1.ref_items = block2.ref_items = index
+        bm1 = BlockManager([block1, block2], [index, np.arange(block1.shape[1])])
+        bm2 = BlockManager([block2, block1], [index, np.arange(block1.shape[1])])
+        self.assert_(bm1.equals(bm2))
+        
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

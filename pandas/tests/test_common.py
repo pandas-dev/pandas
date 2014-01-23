@@ -5,11 +5,10 @@ import nose
 from nose.tools import assert_equal
 import numpy as np
 from pandas.tslib import iNaT, NaT
-
 from pandas import Series, DataFrame, date_range, DatetimeIndex, Timestamp
 from pandas import compat
 from pandas.compat import range, long, lrange, lmap, u
-from pandas.core.common import notnull, isnull
+from pandas.core.common import notnull, isnull, array_equivalent
 import pandas.core.common as com
 import pandas.util.testing as tm
 import pandas.core.config as cf
@@ -166,6 +165,19 @@ def test_downcast_conv():
         arr = np.array([1.0,2.0,np.nan],dtype=dtype)
         result = com._possibly_downcast_to_dtype(arr,'infer')
         tm.assert_almost_equal(result, expected)
+
+
+def test_array_equivalent():
+    assert array_equivalent(np.array([np.nan, np.nan]), np.array([np.nan, np.nan]))
+    assert array_equivalent(np.array([np.nan, 1, np.nan]), np.array([np.nan, 1, np.nan]))
+    assert array_equivalent(np.array([np.nan, None], dtype='object'),
+                            np.array([np.nan, None], dtype='object'))
+    assert array_equivalent(np.array([np.nan, 1+1j], dtype='complex'),
+                            np.array([np.nan, 1+1j], dtype='complex'))
+    assert not array_equivalent(np.array([np.nan, 1+1j], dtype='complex'),
+                                np.array([np.nan, 1+2j], dtype='complex'))
+    assert not array_equivalent(np.array([np.nan, 1, np.nan]), np.array([np.nan, 2, np.nan]))
+    assert not array_equivalent(np.array(['a', 'b', 'c', 'd']), np.array(['e', 'e']))
 
 def test_datetimeindex_from_empty_datetime64_array():
     for unit in [ 'ms', 'us', 'ns' ]:

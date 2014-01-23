@@ -370,3 +370,36 @@ df = DataFrame(np.random.randn(1000,1000))
 frame_dtypes = Benchmark('df.dtypes', setup,
                          start_date=datetime(2012,1,1))
 
+#----------------------------------------------------------------------
+# equals
+setup = common_setup + """
+def make_pair(name):
+    df = globals()[name]
+    df2 = df.copy()
+    df2.ix[-1,-1] = np.nan
+    return df, df2
+
+def test_equal(name):
+    df, df2 = pairs[name]
+    return df.equals(df)
+
+def test_unequal(name):
+    df, df2 = pairs[name]
+    return df.equals(df2)
+    
+float_df = DataFrame(np.random.randn(1000, 1000))
+object_df = DataFrame([['foo']*1000]*1000)
+nonunique_cols = object_df.copy()
+nonunique_cols.columns = ['A']*len(nonunique_cols.columns)
+
+pairs = dict([(name,make_pair(name))
+         for name in ('float_df', 'object_df', 'nonunique_cols')])
+"""
+frame_float_equal = Benchmark('test_equal("float_df")', setup)
+frame_object_equal = Benchmark('test_equal("object_df")', setup)
+frame_nonunique_equal = Benchmark('test_equal("nonunique_cols")', setup)
+
+frame_float_unequal = Benchmark('test_unequal("float_df")', setup)
+frame_object_unequal = Benchmark('test_unequal("object_df")', setup)
+frame_nonunique_unequal = Benchmark('test_unequal("nonunique_cols")', setup)
+
