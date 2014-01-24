@@ -46,7 +46,7 @@ API changes
   equal have equal axes, dtypes, and values. Added the
   ``array_equivalent`` function to compare if two ndarrays are
   equal. NaNs in identical locations are treated as
-  equal. (:issue:`5283`)
+  equal. (:issue:`5283`) See also :ref:`the docs<basics.equals>` for a motivating example.
 
   .. ipython:: python
 
