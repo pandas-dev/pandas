@@ -2015,6 +2015,18 @@ class TestIndexing(tm.TestCase):
         df.response[mask] = 'none'
         assert_frame_equal(df, DataFrame({'response': mdata, 'response1' : data }))
 
+        # GH 6056
+        expected = DataFrame(dict(A = [np.nan,'bar','bah','foo','bar']))
+        df = DataFrame(dict(A = np.array(['foo','bar','bah','foo','bar'])))
+        df['A'].iloc[0] = np.nan
+        result = df.head()
+        assert_frame_equal(result, expected)
+
+        df = DataFrame(dict(A = np.array(['foo','bar','bah','foo','bar'])))
+        df.A.iloc[0] = np.nan
+        result = df.head()
+        assert_frame_equal(result, expected)
+
     def test_detect_chained_assignment(self):
 
         pd.set_option('chained_assignment','raise')

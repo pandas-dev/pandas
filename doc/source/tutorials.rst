@@ -1,8 +1,8 @@
 .. _tutorials:
 
-****************
-Pandas Tutorials
-****************
+*********
+Tutorials
+*********
 
 This is a guide to many pandas tutorials, geared mainly for new users.
 
