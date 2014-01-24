@@ -18,6 +18,7 @@ from pandas import (Index, Series, TimeSeries, DataFrame,
 from pandas.core.daterange import DateRange
 import pandas.core.datetools as datetools
 import pandas.tseries.offsets as offsets
+import pandas.tseries.tools as tools
 import pandas.tseries.frequencies as fmod
 import pandas as pd
 
@@ -49,6 +50,11 @@ def _skip_if_no_pytz():
     except ImportError:
         raise nose.SkipTest("pytz not installed")
 
+def _skip_if_has_locale():
+    import locale
+    lang, _ = locale.getlocale()
+    if lang is not None:
+        raise nose.SkipTest("Specific locale is set {0}".format(lang))
 
 class TestTimeSeriesDuplicates(tm.TestCase):
     _multiprocess_can_split_ = True
@@ -909,12 +915,8 @@ class TestTimeSeries(tm.TestCase):
         self.assertEquals(result[0], s[0])
 
     def test_to_datetime_with_apply(self):
-
         # this is only locale tested with US/None locales
-        import locale
-        (lang,encoding) = locale.getlocale()
-        if lang is not None:
-            raise nose.SkipTest("format codes cannot work with a locale of {0}".format(lang))
+        _skip_if_has_locale()
 
         # GH 5195
         # with a format and coerce a single item to_datetime fails
@@ -3123,6 +3125,177 @@ class TestSlicing(tm.TestCase):
         self.assertEqual(dr[0], Timestamp('2013-01-31'))
         self.assertEqual(dr[1], Timestamp('2014-01-30'))
 
+
+class TestToDatetimeInferFormat(tm.TestCase):
+    def test_to_datetime_infer_datetime_format_consistent_format(self):
+        time_series = pd.Series(
+            pd.date_range('20000101', periods=50, freq='H')
+        )
+
+        test_formats = [
+            '%m-%d-%Y',
+            '%m/%d/%Y %H:%M:%S.%f',
+            '%Y-%m-%dT%H:%M:%S.%f',
+        ]
+
+        for test_format in test_formats:
+            s_as_dt_strings = time_series.apply(
+                lambda x: x.strftime(test_format)
+            )
+
+            with_format = pd.to_datetime(s_as_dt_strings, format=test_format)
+            no_infer = pd.to_datetime(
+                s_as_dt_strings, infer_datetime_format=False
+            )
+            yes_infer = pd.to_datetime(
+                s_as_dt_strings, infer_datetime_format=True
+            )
+
+            # Whether the format is explicitly passed, it is inferred, or
+            # it is not inferred, the results should all be the same
+            self.assert_(np.array_equal(with_format, no_infer))
+            self.assert_(np.array_equal(no_infer, yes_infer))
+
+    def test_to_datetime_infer_datetime_format_inconsistent_format(self):
+        test_series = pd.Series(
+            np.array([
+                '01/01/2011 00:00:00',
+                '01-02-2011 00:00:00',
+                '2011-01-03T00:00:00',
+        ]))
+
+        # When the format is inconsistent, infer_datetime_format should just
+        # fallback to the default parsing
+        self.assert_(np.array_equal(
+            pd.to_datetime(test_series, infer_datetime_format=False),
+            pd.to_datetime(test_series, infer_datetime_format=True)
+        ))
+
+        test_series = pd.Series(
+            np.array([
+                'Jan/01/2011',
+                'Feb/01/2011',
+                'Mar/01/2011',
+        ]))
+
+        self.assert_(np.array_equal(
+            pd.to_datetime(test_series, infer_datetime_format=False),
+            pd.to_datetime(test_series, infer_datetime_format=True)
+        ))
+
+    def test_to_datetime_infer_datetime_format_series_with_nans(self):
+        test_series = pd.Series(
+            np.array([
+                '01/01/2011 00:00:00',
+                np.nan,
+                '01/03/2011 00:00:00',
+                np.nan,
+        ]))
+
+        self.assert_(np.array_equal(
+            pd.to_datetime(test_series, infer_datetime_format=False),
+            pd.to_datetime(test_series, infer_datetime_format=True)
+        ))
+
+    def test_to_datetime_infer_datetime_format_series_starting_with_nans(self):
+        test_series = pd.Series(
+            np.array([
+                np.nan,
+                np.nan,
+                '01/01/2011 00:00:00',
+                '01/02/2011 00:00:00',
+                '01/03/2011 00:00:00',
+        ]))
+
+        self.assert_(np.array_equal(
+            pd.to_datetime(test_series, infer_datetime_format=False),
+            pd.to_datetime(test_series, infer_datetime_format=True)
+        ))
+
+
+class TestGuessDatetimeFormat(tm.TestCase):
+    def test_guess_datetime_format_with_parseable_formats(self):
+        dt_string_to_format = (
+            ('20111230', '%Y%m%d'),
+            ('2011-12-30', '%Y-%m-%d'),
+            ('30-12-2011', '%d-%m-%Y'),
+            ('2011-12-30 00:00:00', '%Y-%m-%d %H:%M:%S'),
+            ('2011-12-30T00:00:00', '%Y-%m-%dT%H:%M:%S'),
+            ('2011-12-30 00:00:00.000000', '%Y-%m-%d %H:%M:%S.%f'),
+        )
+
+        for dt_string, dt_format in dt_string_to_format:
+            self.assertEquals(
+                tools._guess_datetime_format(dt_string),
+                dt_format
+            )
+
+    def test_guess_datetime_format_with_dayfirst(self):
+        ambiguous_string = '01/01/2011'
+        self.assertEquals(
+            tools._guess_datetime_format(ambiguous_string, dayfirst=True),
+            '%d/%m/%Y'
+        )
+        self.assertEquals(
+            tools._guess_datetime_format(ambiguous_string, dayfirst=False),
+            '%m/%d/%Y'
+        )
+
+    def test_guess_datetime_format_with_locale_specific_formats(self):
+        # The month names will vary depending on the locale, in which
+        # case these wont be parsed properly (dateutil can't parse them)
+        _skip_if_has_locale()
+
+        dt_string_to_format = (
+            ('30/Dec/2011', '%d/%b/%Y'),
+            ('30/December/2011', '%d/%B/%Y'),
+            ('30/Dec/2011 00:00:00', '%d/%b/%Y %H:%M:%S'),
+        )
+
+        for dt_string, dt_format in dt_string_to_format:
+            self.assertEquals(
+                tools._guess_datetime_format(dt_string),
+                dt_format
+            )
+
+    def test_guess_datetime_format_invalid_inputs(self):
+        # A datetime string must include a year, month and a day for it
+        # to be guessable, in addition to being a string that looks like
+        # a datetime
+        invalid_dts = [
+            '2013',
+            '01/2013',
+            '12:00:00',
+            '1/1/1/1',
+            'this_is_not_a_datetime',
+            '51a',
+            9,
+            datetime(2011, 1, 1),
+        ]
+
+        for invalid_dt in invalid_dts:
+            self.assertTrue(tools._guess_datetime_format(invalid_dt) is None)
+
+    def test_guess_datetime_format_for_array(self):
+        expected_format = '%Y-%m-%d %H:%M:%S.%f'
+        dt_string = datetime(2011, 12, 30, 0, 0, 0).strftime(expected_format)
+
+        test_arrays = [
+            np.array([dt_string, dt_string, dt_string], dtype='O'),
+            np.array([np.nan, np.nan, dt_string], dtype='O'),
+            np.array([dt_string, 'random_string'], dtype='O'),
+        ]
+
+        for test_array in test_arrays:
+            self.assertEqual(
+                tools._guess_datetime_format_for_array(test_array),
+                expected_format
+            )
+
+        format_for_string_of_nans = tools._guess_datetime_format_for_array(
+            np.array([np.nan, np.nan, np.nan], dtype='O')
+        )
+        self.assertTrue(format_for_string_of_nans is None)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
