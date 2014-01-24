@@ -98,3 +98,36 @@ stmt = ("data.to_csv('__test__.csv', date_format='%Y%m%d')")
 
 frame_to_csv_date_formatting = Benchmark(stmt, setup,
                                      start_date=datetime(2013, 9, 1))
+
+#----------------------------------------------------------------------
+# infer datetime format
+
+setup = common_setup + """
+rng = date_range('1/1/2000', periods=1000)
+data = '\\n'.join(rng.map(lambda x: x.strftime("%Y-%m-%d %H:%M:%S")))
+"""
+
+stmt = ("read_csv(StringIO(data), header=None, names=['foo'], "
+        "         parse_dates=['foo'], infer_datetime_format=True)")
+
+read_csv_infer_datetime_format_iso8601 = Benchmark(stmt, setup)
+
+setup = common_setup + """
+rng = date_range('1/1/2000', periods=1000)
+data = '\\n'.join(rng.map(lambda x: x.strftime("%Y%m%d")))
+"""
+
+stmt = ("read_csv(StringIO(data), header=None, names=['foo'], "
+        "         parse_dates=['foo'], infer_datetime_format=True)")
+
+read_csv_infer_datetime_format_ymd = Benchmark(stmt, setup)
+
+setup = common_setup + """
+rng = date_range('1/1/2000', periods=1000)
+data = '\\n'.join(rng.map(lambda x: x.strftime("%m/%d/%Y %H:%M:%S.%f")))
+"""
+
+stmt = ("read_csv(StringIO(data), header=None, names=['foo'], "
+        "         parse_dates=['foo'], infer_datetime_format=True)")
+
+read_csv_infer_datetime_format_custom = Benchmark(stmt, setup)

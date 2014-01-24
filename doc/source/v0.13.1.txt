@@ -107,6 +107,20 @@ Enhancements
      result
      result.loc[:,:,'ItemA']
 
+- Added optional `infer_datetime_format` to `read_csv`, `Series.from_csv` and
+  `DataFrame.read_csv` (:issue:`5490`)
+ 
+  If `parse_dates` is enabled and this flag is set, pandas will attempt to
+  infer the format of the datetime strings in the columns, and if it can
+  be inferred, switch to a faster method of parsing them.  In some cases
+  this can increase the parsing speed by ~5-10x.
+
+  .. ipython:: python
+
+     # Try to infer the format for the index column
+     df = pd.read_csv('foo.csv', index_col=0, parse_dates=True,
+                      infer_datetime_format=True)
+
 Experimental
 ~~~~~~~~~~~~
 
