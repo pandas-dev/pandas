@@ -15,6 +15,28 @@ There are several new or updated docs sections including:
 - :ref:`Tutorials<tutorials>`, a guide to community developed pandas tutorials.
 - :ref:`Pandas Ecosystem<ecosystem>`, a guide to complementary projects built on top of pandas.
 
+.. warning::
+
+   0.13.1 fixes a bug that was caused by a combination of having numpy < 1.8, and doing
+   chained assignent on a string-like array. Please review :ref:`the docs<indexing.view_versus_copy>`,
+   chained indexing can have unexpected results and should generally be avoided.
+
+   This would previously segfault:
+
+   .. ipython:: python
+
+      df = DataFrame(dict(A = np.array(['foo','bar','bah','foo','bar'])))
+      df['A'].iloc[0] = np.nan
+      df
+
+   The recommended way to do this type of assignment is:
+
+   .. ipython:: python
+
+      df = DataFrame(dict(A = np.array(['foo','bar','bah','foo','bar'])))
+      df.ix[0,'A'] = np.nan
+      df
+
 API changes
 ~~~~~~~~~~~
 
