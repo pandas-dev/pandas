@@ -277,6 +277,42 @@ def notnull(obj):
     return -res
 
 
+def array_equivalent(left, right):
+    """
+    True if two arrays, left and right, have equal non-NaN elements, and NaNs in
+    corresponding locations.  False otherwise. It is assumed that left and right
+    are NumPy arrays of the same dtype. The behavior of this function
+    (particularly with respect to NaNs) is not defined if the dtypes are
+    different.
+
+    Parameters
+    ----------
+    left, right : array_like
+        Input arrays.
+
+    Returns
+    -------
+    b : bool
+        Returns True if the arrays are equivalent.
+
+    Examples
+    --------
+    >>> array_equivalent([1, 2, nan], np.array([1, 2, nan]))
+    True
+    >>> array_equivalent([1, nan, 2], [1, 2, nan])
+    False
+    """
+    if left.shape != right.shape: return False
+    # NaNs occur only in object arrays, float or complex arrays.
+    if left.dtype == np.object_:
+        # If object array, we need to use pd.isnull
+        return ((left == right) | pd.isnull(left) & pd.isnull(right)).all()
+    elif not issubclass(left.dtype.type, (np.floating, np.complexfloating)):
+        # if not a float or complex array, then there are no NaNs
+        return np.array_equal(left, right)
+    # For float or complex arrays, using np.isnan is faster than pd.isnull
+    return  ((left == right) | (np.isnan(left) & np.isnan(right))).all()
+
 def _iterable_not_string(x):
     return (isinstance(x, collections.Iterable) and
             not isinstance(x, compat.string_types))

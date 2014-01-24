@@ -608,6 +608,15 @@ class NDFrame(PandasObject):
         arr = operator.inv(_values_from_object(self))
         return self._wrap_array(arr, self.axes, copy=False)
 
+    def equals(self, other):
+        """
+        Determines if two NDFrame objects contain the same elements. NaNs in the
+        same location are considered equal.
+        """
+        if not isinstance(other, self._constructor):
+            return False
+        return self._data.equals(other._data)
+            
     #----------------------------------------------------------------------
     # Iteration
 

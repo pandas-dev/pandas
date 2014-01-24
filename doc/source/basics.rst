@@ -215,6 +215,14 @@ These operations produce a pandas object the same type as the left-hand-side inp
 that if of dtype ``bool``. These ``boolean`` objects can be used in indexing operations,
 see :ref:`here<indexing.boolean>`
 
+As of v0.13.1, Series, DataFrames and Panels have an equals method to compare if
+two such objects are equal.
+
+.. ipython:: python
+
+   df.equals(df)
+   df.equals(df2)
+
 .. _basics.reductions:
 
 Boolean Reductions
