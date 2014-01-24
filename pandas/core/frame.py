@@ -3369,7 +3369,8 @@ class DataFrame(NDFrame):
 
         Objects passed to functions are Series objects having index
         either the DataFrame's index (axis=0) or the columns (axis=1).
-        Return type depends on whether passed function aggregates
+        Return type depends on whether passed function aggregates, or the
+        reduce argument if the DataFrame is empty.
 
         Parameters
         ----------

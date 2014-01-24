@@ -8984,6 +8984,13 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_frame_equal(result, self.empty)
         result = self.empty.apply(x.append, axis=1, reduce=True)
         assert_series_equal(result, Series([]))
+
+        empty_with_cols = DataFrame(columns=['a', 'b', 'c'])
+        result = empty_with_cols.apply(x.append, axis=1, reduce=False)
+        assert_frame_equal(result, empty_with_cols)
+        result = empty_with_cols.apply(x.append, axis=1, reduce=True)
+        assert_series_equal(result, Series([]))
+
         # Ensure that x.append hasn't been called
         self.assertEqual(x, [])
 

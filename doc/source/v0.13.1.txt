@@ -18,6 +18,37 @@ There are several new or updated docs sections including:
 API changes
 ~~~~~~~~~~~
 
+- ``DataFrame.apply`` will use the ``reduce`` argument to determine whether a
+  ``Series`` or a ``DataFrame`` should be returned when the ``DataFrame`` is
+  empty (:issue:`6007`).
+
+  Previously, calling ``DataFrame.apply`` an empty ``DataFrame`` would return
+  either a ``DataFrame`` if there were no columns, or the function being
+  applied would be called with an empty ``Series`` to guess whether a
+  ``Series`` or ``DataFrame`` should be returned:
+
+  .. ipython:: python
+
+     def applied_func(col):
+        print "Apply function being called with:", col
+        return col.sum()
+
+     import pandas as pd
+     empty = pd.DataFrame(columns=['a', 'b'])
+     empty.apply(applied_func)
+
+  Now, when ``apply`` is called on an empty ``DataFrame``: if the ``reduce``
+  argument is ``True`` a ``Series`` will returned, if it is ``False`` a
+  ``DataFrame`` will be returned, and if it is ``None`` (the default) the
+  function being applied will be called with an empty series to try and guess
+  the return type.
+
+  .. ipython:: python
+
+     empty.apply(applied_func, reduce=True)
+     empty.apply(applied_func, reduce=False)
+
+
 Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

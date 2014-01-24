@@ -62,6 +62,9 @@ API Changes
     when detecting chained assignment, related (:issue:`5938`)
   - DataFrame.head(0) returns self instead of empty frame (:issue:`5846`)
   - ``autocorrelation_plot`` now accepts ``**kwargs``. (:issue:`5623`)
+  - ``DataFrame.apply`` will use the ``reduce`` argument to determine whether a
+    ``Series`` or a ``DataFrame`` should be returned when the ``DataFrame`` is
+    empty (:issue:`6007`).
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
