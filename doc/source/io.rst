@@ -3048,8 +3048,10 @@ below and the SQLAlchemy `documentation <http://docs.sqlalchemy.org/en/rel_0_9/c
    # Create your connection.
    engine = create_engine('sqlite:///:memory:')
 
+Writing DataFrames
+~~~~~~~~~~~~~~~~~~
 
-Assuming the following data is in a DataFrame "data", we can insert it into 
+Assuming the following data is in a DataFrame ``data``, we can insert it into 
 the database using :func:`~pandas.io.sql.to_sql`.
 
 
@@ -3085,14 +3087,16 @@ the database using :func:`~pandas.io.sql.to_sql`.
    
    sql.to_sql(data, 'data', engine)
 
+Reading Tables
+~~~~~~~~~~~~~~
 
-You can read from the database simply by specifying a table
-name using the :func:`~pandas.io.sql.read_table` function.
-  
+:func:`~pandas.io.sql.read_table` will read a databse table given the
+table name and optionally a subset of columns to read.
+
 .. note::
     
-    In order to use read_table, you MUST have the SQLAlchemy optional
-    dependency installed.
+    In order to use :func:`~pandas.io.sql.read_table`, you **must** have the 
+    SQLAlchemy optional dependency installed.
 
 .. ipython:: python
    
@@ -3120,11 +3124,17 @@ to pass to :func:`pandas.tseries.tools.to_datetime`.
    sql.read_table('data', engine, parse_dates={'Date': '%Y-%m-%d'})
    sql.read_table('data', engine, parse_dates={'Date': {'format': '%Y-%m-%d %H:%M:%S'}})
 
+
+You can check if a table exists using :func:`~pandas.io.sql.has_table`
+
+In addition, the class :class:`~pandas.io.sql.PandasSQLWithEngine` can be 
+instantiated directly for more manual control over the SQL interaction.
+
 Querying
 ~~~~~~~~
 
-You can also query using raw SQL in the :func:`~pandas.io.sql.read_sql` function.
-In this case you must use valid SQL for your database.
+You can query using raw SQL in the :func:`~pandas.io.sql.read_sql` function.
+In this case you must use the SQL variant appropriate for your database.
 When using SQLAlchemy, you can also pass SQLAlchemy Expression language constructs,
 which are database-agnostic.
 
@@ -3139,13 +3149,18 @@ Of course, you can specify a more "complex" query.
    sql.read_frame("SELECT id, Col_1, Col_2 FROM data WHERE id = 42;", engine)
 
 
-There are a few other available functions:
+You can also run a plain query without creating a dataframe with 
+:func:`~pandas.io.sql.execute`. This is useful for queries that don't return values,
+such as INSERT. This is functionally equivalent to calling ``execute`` on the 
+SQLAlchemy engine or db connection object. Again, ou must use the SQL syntax
+variant appropriate for your database.
 
-:func:`~pandas.io.sql.has_table` checks if a given table exists.
+.. code-block:: python
 
+   sql.execute('SELECT * FROM table_name', engine)
 
-In addition, the class :class:`~pandas.io.sql.PandasSQLWithEngine` can be 
-instantiated directly for more manual control over the SQL interaction.
+   sql.execute('INSERT INTO table_name VALUES(?, ?, ?)', engine, params=[('id', 1, 12.2, True)])
+
 
 Engine connection examples
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
