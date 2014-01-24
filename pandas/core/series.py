@@ -2178,7 +2178,7 @@ class Series(generic.NDFrame):
 
     @classmethod
     def from_csv(cls, path, sep=',', parse_dates=True, header=None,
-                 index_col=0, encoding=None):
+                 index_col=0, encoding=None, infer_datetime_format=False):
         """
         Read delimited file into Series
 
@@ -2197,6 +2197,10 @@ class Series(generic.NDFrame):
         encoding : string, optional
             a string representing the encoding to use if the contents are
             non-ascii, for python versions prior to 3
+        infer_datetime_format: boolean, default False
+            If True and `parse_dates` is True for a column, try to infer the
+            datetime format based on the first datetime string. If the format
+            can be inferred, there often will be a large parsing speed-up.
 
         Returns
         -------
@@ -2205,7 +2209,8 @@ class Series(generic.NDFrame):
         from pandas.core.frame import DataFrame
         df = DataFrame.from_csv(path, header=header, index_col=index_col,
                                 sep=sep, parse_dates=parse_dates,
-                                encoding=encoding)
+                                encoding=encoding,
+                                infer_datetime_format=infer_datetime_format)
         result = df.icol(0)
         result.index.name = result.name = None
         return result

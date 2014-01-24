@@ -16,6 +16,7 @@ import pandas.core.common as com
 from pandas.core.config import get_option
 from pandas.io.date_converters import generic_parser
 from pandas.io.common import get_filepath_or_buffer
+from pandas.tseries import tools
 
 from pandas.util.decorators import Appender
 
@@ -143,6 +144,9 @@ error_bad_lines: boolean, default True
 warn_bad_lines: boolean, default True
     If error_bad_lines is False, and warn_bad_lines is True, a warning for each
     "bad line" will be output. (Only valid with C parser).
+infer_datetime_format : boolean, default False
+    If True and parse_dates is enabled for a column, attempt to infer
+    the datetime format to speed up the processing
 
 Returns
 -------
@@ -262,6 +266,7 @@ _parser_defaults = {
     'compression': None,
     'mangle_dupe_cols': True,
     'tupleize_cols': False,
+    'infer_datetime_format': False,
 }
 
 
@@ -349,7 +354,8 @@ def _make_parser_function(name, sep=','):
                  encoding=None,
                  squeeze=False,
                  mangle_dupe_cols=True,
-                 tupleize_cols=False):
+                 tupleize_cols=False,
+                 infer_datetime_format=False):
 
         # Alias sep -> delimiter.
         if delimiter is None:
@@ -408,7 +414,8 @@ def _make_parser_function(name, sep=','):
                     low_memory=low_memory,
                     buffer_lines=buffer_lines,
                     mangle_dupe_cols=mangle_dupe_cols,
-                    tupleize_cols=tupleize_cols)
+                    tupleize_cols=tupleize_cols,
+                    infer_datetime_format=infer_datetime_format)
 
         return _read(filepath_or_buffer, kwds)
 
@@ -665,9 +672,13 @@ class ParserBase(object):
         self.true_values = kwds.get('true_values')
         self.false_values = kwds.get('false_values')
         self.tupleize_cols = kwds.get('tupleize_cols', False)
+        self.infer_datetime_format = kwds.pop('infer_datetime_format', False)
 
-        self._date_conv = _make_date_converter(date_parser=self.date_parser,
-                                               dayfirst=self.dayfirst)
+        self._date_conv = _make_date_converter(
+            date_parser=self.date_parser,
+            dayfirst=self.dayfirst,
+            infer_datetime_format=self.infer_datetime_format
+        )
 
         # validate header options for mi
         self.header = kwds.get('header')
@@ -1178,6 +1189,10 @@ def TextParser(*args, **kwds):
         Encoding to use for UTF when reading/writing (ex. 'utf-8')
     squeeze : boolean, default False
         returns Series if only one column
+    infer_datetime_format: boolean, default False
+        If True and `parse_dates` is True for a column, try to infer the
+        datetime format based on the first datetime string. If the format
+        can be inferred, there often will be a large parsing speed-up.
     """
     kwds['engine'] = 'python'
     return TextFileReader(*args, **kwds)
@@ -1870,13 +1885,19 @@ class PythonParser(ParserBase):
         return self._check_thousands(lines)
 
 
-def _make_date_converter(date_parser=None, dayfirst=False):
+def _make_date_converter(date_parser=None, dayfirst=False,
+                         infer_datetime_format=False):
     def converter(*date_cols):
         if date_parser is None:
             strs = _concat_date_cols(date_cols)
             try:
-                return tslib.array_to_datetime(com._ensure_object(strs),
-                                               utc=None, dayfirst=dayfirst)
+                return tools.to_datetime(
+                    com._ensure_object(strs),
+                    utc=None,
+                    box=False,
+                    dayfirst=dayfirst,
+                    infer_datetime_format=infer_datetime_format
+                )
             except:
                 return lib.try_parse_dates(strs, dayfirst=dayfirst)
         else:
