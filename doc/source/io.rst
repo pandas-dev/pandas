@@ -2574,10 +2574,27 @@ The default is 50,000 rows returned in a chunk.
       for df in read_hdf('store.h5','df', chunsize=3):
           print(df)
 
-Note, that the chunksize keyword applies to the **returned** rows. So if you
-are doing a query, then that set will be subdivided and returned in the
-iterator. Keep in mind that if you do not pass a ``where`` selection criteria
-then the ``nrows`` of the table are considered.
+Note, that the chunksize keyword applies to the **source** rows. So if you
+are doing a query, then the chunksize will subdivide the total rows in the table
+and the query applied, returning an iterator on potentially unequal sized chunks.
+
+Here is a recipe for generating a query and using it to create equal sized return
+chunks.
+
+.. ipython:: python
+
+   dfeq = DataFrame({'number': np.arange(1,11)})
+   dfeq
+
+   store.append('dfeq', dfeq, data_columns=['number'])
+
+   def chunks(l, n):
+        return [l[i:i+n] for i in xrange(0, len(l), n)]
+
+   evens = [2,4,6,8,10]
+   coordinates = store.select_as_coordinates('dfeq','number=evens')
+   for c in chunks(coordinates, 2):
+        print store.select('dfeq',where=c)
 
 Advanced Queries
 ~~~~~~~~~~~~~~~~
