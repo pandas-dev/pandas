@@ -92,6 +92,9 @@ Improvements to existing features
   - improved dtype inference for ``timedelta`` like passed to constructors (:issue:`5458`,:issue:`5689`)
   - escape special characters when writing to latex (:issue: `5374`)
   - perf improvements in ``DataFrame.apply`` (:issue:`6013`)
+  - pd.to_csv and pd.to_datetime learned a new ``infer_datetime_format`` keyword which greatly
+    improves parsing perf in many cases. Thanks to @lexual for suggesting and @danbirken
+    for rapidly implementing. (:issue:`5490`,:issue:`6021`)
 
 .. _release.bug_fixes-0.13.1:
 
