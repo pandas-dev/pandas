@@ -1423,7 +1423,6 @@ def _safe_append_to_index(index, key):
 
         # raise here as this is basically an unsafe operation and we want
         # it to be obvious that you are doing something wrong
-
         raise ValueError("unsafe appending to index of type {0} with a key "
                          "{1}".format(index.__class__.__name__, key))
 

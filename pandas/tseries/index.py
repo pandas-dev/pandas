@@ -1525,6 +1525,8 @@ class DatetimeIndex(Int64Index):
         ----------
         loc : int
         item : object
+            if not either a Python datetime or a numpy integer-like, returned
+            Index dtype will be object rather than datetime.
 
         Returns
         -------
@@ -1532,11 +1534,17 @@ class DatetimeIndex(Int64Index):
         """
         if isinstance(item, datetime):
             item = _to_m8(item, tz=self.tz)
-
-        new_index = np.concatenate((self[:loc].asi8,
+        try:
+            new_index = np.concatenate((self[:loc].asi8,
                                     [item.view(np.int64)],
                                     self[loc:].asi8))
-        return DatetimeIndex(new_index, freq='infer')
+            return DatetimeIndex(new_index, freq='infer')
+        except (AttributeError, TypeError):
+
+            # fall back to object index
+            if isinstance(item,compat.string_types):
+                return self.asobject.insert(loc, item)
+            raise TypeError("cannot insert DatetimeIndex with incompatible label")
 
     def delete(self, loc):
         """
@@ -1577,7 +1585,7 @@ class DatetimeIndex(Int64Index):
     def tz_localize(self, tz, infer_dst=False):
         """
         Localize tz-naive DatetimeIndex to given time zone (using pytz)
-       
+
         Parameters
         ----------
         tz : string or pytz.timezone
