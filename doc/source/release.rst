@@ -140,6 +140,7 @@ Bug Fixes
   - Bug in setting using fancy indexing a single element with a non-scalar (e.g. a list),
     (:issue:`6043`)
   - Regression in ``.get(None)`` indexing from 0.12 (:issue:`5652`)
+  - Subtle ``iloc`` indexing bug, surfaced in (:issue:`6059`)
 
 pandas 0.13.0
 -------------

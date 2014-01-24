@@ -2586,11 +2586,27 @@ class BlockManager(PandasObject):
 
         if axis == 0:
             new_items = new_axes[0]
+
+            # we want to preserver the view of a single-block
             if len(self.blocks) == 1:
+
                 blk = self.blocks[0]
+
+                # see GH 6059
+                ref_locs = blk._ref_locs
+                if ref_locs is not None:
+
+                    # need to preserve the ref_locs and just shift them
+                    indexer = np.ones(len(ref_locs),dtype=bool)
+                    indexer[slobj] = False
+                    indexer = indexer.astype(int).cumsum()[slobj]
+                    ref_locs = ref_locs[slobj]
+                    ref_locs -= indexer
+
                 newb = make_block(blk._slice(slobj), new_items, new_items,
                                   klass=blk.__class__, fastpath=True,
-                                  placement=blk._ref_locs)
+                                  placement=ref_locs)
+
                 new_blocks = [newb]
             else:
                 return self.reindex_items(
