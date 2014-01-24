@@ -247,12 +247,14 @@ def block_parser(part, rgxin, rgxout, fmtin, fmtout):
 class EmbeddedSphinxShell(object):
     """An embedded IPython instance to run inside Sphinx"""
 
-    def __init__(self, exec_lines=None):
+    def __init__(self, exec_lines=None,state=None):
 
         self.cout = StringIO()
 
         if exec_lines is None:
             exec_lines = []
+
+        self.state = state
 
         # Create config object for IPython
         config = Config()
@@ -438,8 +440,20 @@ class EmbeddedSphinxShell(object):
         elif is_semicolon: # get spacing right
             ret.append('')
 
+        # output any exceptions raised during execution to stdout
+        # unless :okexcept: has been specified.
         if not is_okexcept and "Traceback" in output:
+            filename = self.state.document.current_source
+            lineno = self.state.document.current_line
+            try:
+                lineno = int(lineno) -1
+            except:
+                pass
+            s =  "\nException in %s at line %s:\n" % (filename, lineno)
+            sys.stdout.write('\n\n>>>'+'-'*73)
+            sys.stdout.write(s)
             sys.stdout.write(output)
+            sys.stdout.write('<<<' + '-'*73+'\n\n')
 
         self.cout.truncate(0)
         return (ret, input_lines, output, is_doctest, decorator, image_file,
@@ -735,7 +749,7 @@ class IPythonDirective(Directive):
 
             # Must be called after (potentially) importing matplotlib and
             # setting its backend since exec_lines might import pylab.
-            self.shell = EmbeddedSphinxShell(exec_lines)
+            self.shell = EmbeddedSphinxShell(exec_lines, self.state)
 
             # Store IPython directive to enable better error messages
             self.shell.directive = self
