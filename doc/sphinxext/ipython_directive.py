@@ -438,6 +438,8 @@ class EmbeddedSphinxShell(object):
         elif is_semicolon: # get spacing right
             ret.append('')
 
+        # output any exceptions raised during execution to stdout
+        # unless :okexcept: has been specified.
         if not is_okexcept and "Traceback" in output:
             sys.stdout.write(output)
 
