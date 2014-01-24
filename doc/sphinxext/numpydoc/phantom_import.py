@@ -14,19 +14,13 @@ without needing to rebuild the documented module.
 .. [1] http://code.google.com/p/pydocweb
 
 """
-import imp
-import sys
-import compiler
-import types
-import os
-import inspect
-import re
+from __future__ import division, absolute_import, print_function
 
+import imp, sys, compiler, types, os, inspect, re
 
 def setup(app):
     app.connect('builder-inited', initialize)
     app.add_config_value('phantom_import_file', None, True)
-
 
 def initialize(app):
     fn = app.config.phantom_import_file
@@ -37,8 +31,6 @@ def initialize(app):
 #------------------------------------------------------------------------------
 # Creating 'phantom' modules from an XML description
 #------------------------------------------------------------------------------
-
-
 def import_phantom_module(xml_file):
     """
     Insert a fake Python module to sys.modules, based on a XML file.
@@ -56,7 +48,7 @@ def import_phantom_module(xml_file):
     ----------
     xml_file : str
         Name of an XML file to read
-
+    
     """
     import lxml.etree as etree
 
@@ -69,7 +61,7 @@ def import_phantom_module(xml_file):
     # - Base classes come before classes inherited from them
     # - Modules come before their contents
     all_nodes = dict([(n.attrib['id'], n) for n in root])
-
+    
     def _get_bases(node, recurse=False):
         bases = [x.attrib['ref'] for x in node.findall('base')]
         if recurse:
@@ -77,31 +69,26 @@ def import_phantom_module(xml_file):
             while True:
                 try:
                     b = bases[j]
-                except IndexError:
-                    break
+                except IndexError: break
                 if b in all_nodes:
                     bases.extend(_get_bases(all_nodes[b]))
                 j += 1
         return bases
 
     type_index = ['module', 'class', 'callable', 'object']
-
+    
     def base_cmp(a, b):
         x = cmp(type_index.index(a.tag), type_index.index(b.tag))
-        if x != 0:
-            return x
+        if x != 0: return x
 
         if a.tag == 'class' and b.tag == 'class':
             a_bases = _get_bases(a, recurse=True)
             b_bases = _get_bases(b, recurse=True)
             x = cmp(len(a_bases), len(b_bases))
-            if x != 0:
-                return x
-            if a.attrib['id'] in b_bases:
-                return -1
-            if b.attrib['id'] in a_bases:
-                return 1
-
+            if x != 0: return x
+            if a.attrib['id'] in b_bases: return -1
+            if b.attrib['id'] in a_bases: return 1
+        
         return cmp(a.attrib['id'].count('.'), b.attrib['id'].count('.'))
 
     nodes = root.getchildren()
@@ -111,17 +98,14 @@ def import_phantom_module(xml_file):
     for node in nodes:
         name = node.attrib['id']
         doc = (node.text or '').decode('string-escape') + "\n"
-        if doc == "\n":
-            doc = ""
+        if doc == "\n": doc = ""
 
         # create parent, if missing
         parent = name
         while True:
             parent = '.'.join(parent.split('.')[:-1])
-            if not parent:
-                break
-            if parent in object_cache:
-                break
+            if not parent: break
+            if parent in object_cache: break
             obj = imp.new_module(parent)
             object_cache[parent] = obj
             sys.modules[parent] = obj
@@ -147,14 +131,16 @@ def import_phantom_module(xml_file):
                 doc = "%s%s\n\n%s" % (funcname, argspec, doc)
             obj = lambda: 0
             obj.__argspec_is_invalid_ = True
-            obj.func_name = funcname
+            if sys.version_info[0] >= 3:
+                obj.__name__ = funcname
+            else:
+                obj.func_name = funcname
             obj.__name__ = name
             obj.__doc__ = doc
             if inspect.isclass(object_cache[parent]):
                 obj.__objclass__ = object_cache[parent]
         else:
-            class Dummy(object):
-                pass
+            class Dummy(object): pass
             obj = Dummy()
             obj.__name__ = name
             obj.__doc__ = doc
@@ -170,8 +156,7 @@ def import_phantom_module(xml_file):
     # Populate items
     for node in root:
         obj = object_cache.get(node.attrib['id'])
-        if obj is None:
-            continue
+        if obj is None: continue
         for ref in node.findall('ref'):
             if node.tag == 'class':
                 if ref.attrib['ref'].startswith(node.attrib['id'] + '.'):
