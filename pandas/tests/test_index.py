@@ -1561,6 +1561,20 @@ class TestMultiIndex(tm.TestCase):
         result = MultiIndex.from_arrays(arrays)
         self.assertEquals(list(result), list(self.index))
 
+    def test_from_product(self):
+        first = ['foo', 'bar', 'buz']
+        second = ['a', 'b', 'c']
+        names = ['first', 'second']
+        result = MultiIndex.from_product([first, second], names=names)
+
+        tuples = [('foo', 'a'), ('foo', 'b'), ('foo', 'c'),
+                  ('bar', 'a'), ('bar', 'b'), ('bar', 'c'),
+                  ('buz', 'a'), ('buz', 'b'), ('buz', 'c')]
+        expected = MultiIndex.from_tuples(tuples, names=names)
+
+        assert_array_equal(result, expected)
+        self.assertEquals(result.names, names)
+
     def test_append(self):
         result = self.index[:3].append(self.index[3:])
         self.assert_(result.equals(self.index))

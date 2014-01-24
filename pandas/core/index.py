@@ -2491,6 +2491,8 @@ class MultiIndex(Index):
         See Also
         --------
         MultiIndex.from_tuples : Convert list of tuples to MultiIndex
+        MultiIndex.from_product : Make a MultiIndex from cartesian product
+                                  of iterables
         """
         from pandas.core.categorical import Categorical
 
@@ -2534,6 +2536,8 @@ class MultiIndex(Index):
         See Also
         --------
         MultiIndex.from_arrays : Convert list of arrays to MultiIndex
+        MultiIndex.from_product : Make a MultiIndex from cartesian product
+                                  of iterables
         """
         if len(tuples) == 0:
             # I think this is right? Not quite sure...
@@ -2550,6 +2554,45 @@ class MultiIndex(Index):
             arrays = lzip(*tuples)
 
         return MultiIndex.from_arrays(arrays, sortorder=sortorder,
+                                      names=names)
+
+    @classmethod
+    def from_product(cls, iterables, sortorder=None, names=None):
+        """
+        Make a MultiIndex from the cartesian product of multiple iterables
+
+        Parameters
+        ----------
+        iterables : list / sequence of iterables
+            Each iterable has unique labels for each level of the index.
+        sortorder : int or None
+            Level of sortedness (must be lexicographically sorted by that
+            level).
+        names : list / sequence of strings or None
+            Names for the levels in the index.
+
+        Returns
+        -------
+        index : MultiIndex
+
+        Examples
+        --------
+        >>> numbers = [0, 1, 2]
+        >>> colors = [u'green', u'purple']
+        >>> MultiIndex.from_product([numbers, colors],
+                                     names=['number', 'color'])
+        MultiIndex(levels=[[0, 1, 2], [u'green', u'purple']],
+                   labels=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
+                   names=[u'number', u'color'])
+
+        See Also
+        --------
+        MultiIndex.from_arrays : Convert list of arrays to MultiIndex
+        MultiIndex.from_tuples : Convert list of tuples to MultiIndex
+        """
+        from pandas.tools.util import cartesian_product
+        product = cartesian_product(iterables)
+        return MultiIndex.from_arrays(product, sortorder=sortorder,
                                       names=names)
 
     @property
