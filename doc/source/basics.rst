@@ -215,14 +215,6 @@ These operations produce a pandas object the same type as the left-hand-side inp
 that if of dtype ``bool``. These ``boolean`` objects can be used in indexing operations,
 see :ref:`here<indexing.boolean>`
 
-As of v0.13.1, Series, DataFrames and Panels have an equals method to compare if
-two such objects are equal.
-
-.. ipython:: python
-
-   df.equals(df)
-   df.equals(df2)
-
 .. _basics.reductions:
 
 Boolean Reductions
@@ -280,6 +272,35 @@ To evaluate single-element pandas objects in a boolean context, use the method `
        ValueError: The truth value of an array is ambiguous. Use a.empty, a.any() or a.all().
 
 See :ref:`gotchas<gotchas.truth>` for a more detailed discussion.
+
+.. _basics.equals:
+
+Often you may find there is more than one way to compute the same
+result.  As a simple example, consider ``df+df`` and ``df*2``. To test
+that these two computations produce the same result, given the tools
+shown above, you might imagine using ``(df+df == df*2).all()``. But in
+fact, this expression is False:
+
+.. ipython:: python
+
+   df+df == df*2
+   (df+df == df*2).all()
+
+Notice that the boolean DataFrame ``df+df == df*2`` contains some False values!
+That is because NaNs do not compare as equals: 
+
+.. ipython:: python
+
+   np.nan == np.nan
+
+So, as of v0.13.1, NDFrames (such as Series, DataFrames, and Panels)
+have an ``equals`` method for testing equality, with NaNs in corresponding
+locations treated as equal.
+
+.. ipython:: python
+
+   (df+df).equals(df*2)
+
 
 
 Combining overlapping data sets
@@ -497,7 +518,7 @@ of a 1D array of values. It can also be used as a function on regular arrays:
    s.value_counts()
    value_counts(data)
 
-Similarly, you can get the most frequently occuring value(s) (the mode) of the values in a Series or DataFrame:
+Similarly, you can get the most frequently occurring value(s) (the mode) of the values in a Series or DataFrame:
 
 .. ipython:: python
 
@@ -783,7 +804,7 @@ DataFrame's index.
     pre-aligned data**. Adding two unaligned DataFrames internally triggers a
     reindexing step. For exploratory analysis you will hardly notice the
     difference (because ``reindex`` has been heavily optimized), but when CPU
-    cycles matter sprinking a few explicit ``reindex`` calls here and there can
+    cycles matter sprinkling a few explicit ``reindex`` calls here and there can
     have an impact.
 
 .. _basics.reindex_like:
@@ -1013,7 +1034,7 @@ containing the data in each row:
       ...:     print('%s\n%s' % (row_index, row))
       ...:
 
-For instance, a contrived way to transpose the dataframe would be:
+For instance, a contrived way to transpose the DataFrame would be:
 
 .. ipython:: python
 
@@ -1160,12 +1181,12 @@ relies on strict ``re.match``, while ``contains`` relies on ``re.search``.
 
    This old, deprecated behavior of ``match`` is still the default. As
    demonstrated above, use the new behavior by setting ``as_indexer=True``.
-   In this mode, ``match`` is analagous to ``contains``, returning a boolean
+   In this mode, ``match`` is analogous to ``contains``, returning a boolean
    Series. The new behavior will become the default behavior in a future
    release.
 
 Methods like ``match``, ``contains``, ``startswith``, and ``endswith`` take
- an extra ``na`` arguement so missing values can be considered True or False:
+ an extra ``na`` argument so missing values can be considered True or False:
 
 .. ipython:: python
 
@@ -1189,7 +1210,7 @@ Methods like ``match``, ``contains``, ``startswith``, and ``endswith`` take
     ``slice_replace``,Replace slice in each string with passed value
     ``count``,Count occurrences of pattern
     ``startswith``,Equivalent to ``str.startswith(pat)`` for each element
-    ``endswidth``,Equivalent to ``str.endswith(pat)`` for each element
+    ``endswith``,Equivalent to ``str.endswith(pat)`` for each element
     ``findall``,Compute list of all occurrences of pattern/regex for each string
     ``match``,"Call ``re.match`` on each element, returning matched groups as list"
     ``extract``,"Call ``re.match`` on each element, as ``match`` does, but return matched groups as strings for convenience."
@@ -1364,7 +1385,7 @@ from the current type (say ``int`` to ``float``)
    df3.dtypes
 
 The ``values`` attribute on a DataFrame return the *lower-common-denominator* of the dtypes, meaning
-the dtype that can accomodate **ALL** of the types in the resulting homogenous dtyped numpy array. This can
+the dtype that can accommodate **ALL** of the types in the resulting homogenous dtyped numpy array. This can
 force some *upcasting*.
 
 .. ipython:: python
@@ -1376,7 +1397,7 @@ astype
 
 .. _basics.cast:
 
-You can use the ``astype`` method to explicity convert dtypes from one to another. These will by default return a copy,
+You can use the ``astype`` method to explicitly convert dtypes from one to another. These will by default return a copy,
 even if the dtype was unchanged (pass ``copy=False`` to change this behavior). In addition, they will raise an
 exception if the astype operation is invalid.
 
@@ -1411,7 +1432,7 @@ they will be set to ``np.nan``.
    df3.dtypes
 
 To force conversion to ``datetime64[ns]``, pass ``convert_dates='coerce'``.
-This will convert any datetimelike object to dates, forcing other values to ``NaT``.
+This will convert any datetime-like object to dates, forcing other values to ``NaT``.
 This might be useful if you are reading in data which is mostly dates,
 but occasionally has non-dates intermixed and you want to represent as missing.
 
@@ -1598,7 +1619,7 @@ For instance:
 
 
 The ``set_printoptions`` function has a number of options for controlling how
-floating point numbers are formatted (using hte ``precision`` argument) in the
+floating point numbers are formatted (using the ``precision`` argument) in the
 console and . The ``max_rows`` and ``max_columns`` control how many rows and
 columns of DataFrame objects are shown by default. If ``max_columns`` is set to
 0 (the default, in fact), the library will attempt to fit the DataFrame's
