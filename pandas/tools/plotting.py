@@ -1994,7 +1994,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
                xrot=None, ylabelsize=None, yrot=None, ax=None, sharex=False,
                sharey=False, figsize=None, layout=None, **kwds):
     """
-    Draw Histogram the DataFrame's series using matplotlib / pylab.
+    Draw histogram of the DataFrame's series using matplotlib / pylab.
 
     Parameters
     ----------
@@ -2022,6 +2022,8 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
     kwds : other plotting keyword arguments
         To be passed to hist function
     """
+    import matplotlib.pyplot as plt
+
     if column is not None:
         if not isinstance(column, (list, np.ndarray)):
             column = [column]
@@ -2044,7 +2046,6 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
 
         return axes
 
-    import matplotlib.pyplot as plt
     n = len(data.columns)
 
     if layout is not None:
