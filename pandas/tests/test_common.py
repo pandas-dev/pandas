@@ -168,15 +168,18 @@ def test_downcast_conv():
 
 
 def test_array_equivalent():
-    assert array_equivalent(np.array([np.nan, np.nan]), np.array([np.nan, np.nan]))
-    assert array_equivalent(np.array([np.nan, 1, np.nan]), np.array([np.nan, 1, np.nan]))
+    assert array_equivalent(np.array([np.nan, np.nan]),
+                            np.array([np.nan, np.nan]))
+    assert array_equivalent(np.array([np.nan, 1, np.nan]),
+                            np.array([np.nan, 1, np.nan]))
     assert array_equivalent(np.array([np.nan, None], dtype='object'),
                             np.array([np.nan, None], dtype='object'))
     assert array_equivalent(np.array([np.nan, 1+1j], dtype='complex'),
                             np.array([np.nan, 1+1j], dtype='complex'))
     assert not array_equivalent(np.array([np.nan, 1+1j], dtype='complex'),
                                 np.array([np.nan, 1+2j], dtype='complex'))
-    assert not array_equivalent(np.array([np.nan, 1, np.nan]), np.array([np.nan, 2, np.nan]))
+    assert not array_equivalent(np.array([np.nan, 1, np.nan]),
+                                np.array([np.nan, 2, np.nan]))
     assert not array_equivalent(np.array(['a', 'b', 'c', 'd']), np.array(['e', 'e']))
 
 def test_datetimeindex_from_empty_datetime64_array():

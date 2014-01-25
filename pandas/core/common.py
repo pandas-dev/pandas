@@ -287,8 +287,7 @@ def array_equivalent(left, right):
 
     Parameters
     ----------
-    left, right : array_like
-        Input arrays.
+    left, right : ndarrays
 
     Returns
     -------
@@ -297,20 +296,15 @@ def array_equivalent(left, right):
 
     Examples
     --------
-    >>> array_equivalent([1, 2, nan], np.array([1, 2, nan]))
+    >>> array_equivalent(np.array([1, 2, nan]), np.array([1, 2, nan]))
     True
-    >>> array_equivalent([1, nan, 2], [1, 2, nan])
+    >>> array_equivalent(np.array([1, nan, 2]), np.array([1, 2, nan]))
     False
     """
     if left.shape != right.shape: return False
     # NaNs occur only in object arrays, float or complex arrays.
-    if left.dtype == np.object_:
-        # If object array, we need to use pd.isnull
-        return ((left == right) | pd.isnull(left) & pd.isnull(right)).all()
-    elif not issubclass(left.dtype.type, (np.floating, np.complexfloating)):
-        # if not a float or complex array, then there are no NaNs
+    if not issubclass(left.dtype.type, (np.floating, np.complexfloating)):
         return np.array_equal(left, right)
-    # For float or complex arrays, using np.isnan is faster than pd.isnull
     return  ((left == right) | (np.isnan(left) & np.isnan(right))).all()
 
 def _iterable_not_string(x):
