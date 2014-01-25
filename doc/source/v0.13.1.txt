@@ -73,6 +73,16 @@ Enhancements
   improves parsing perf in many cases. Thanks to @lexual for suggesting and @danbirken
   for rapidly implementing. (:issue:`5490`, :issue:`6021`)
 
+- ``MultiIndex.from_product`` convenience function for creating a MultiIndex from
+  the cartesian product of a set of iterables (:issue:`6055`):
+
+  .. ipython:: python
+
+      shades = ['light', 'dark']
+      colors = ['red', 'green', 'blue']
+
+      MultiIndex.from_product([shades, colors], names=['shade', 'color'])
+
 - The ``ArrayFormatter`` for ``datetime`` and ``timedelta64`` now intelligently
   limit precision based on the values in the array (:issue:`3401`)
 
