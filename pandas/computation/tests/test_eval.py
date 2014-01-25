@@ -228,8 +228,8 @@ class TestEvalNumexprPandas(tm.TestCase):
                               local_dict={'lhs': lhs, 'rhs': rhs},
                               engine=self.engine, parser=self.parser)
         elif _bool_and_frame(lhs, rhs):
-            self.assertRaises(TypeError, _eval_single_bin, lhs_new, '&',
-                              rhs_new, self.engine)
+            self.assertRaises(TypeError, _eval_single_bin, lhs, '&',
+                              rhs, self.engine)
             self.assertRaises(TypeError, pd.eval, ex,
                               local_dict={'lhs': lhs, 'rhs': rhs},
                               engine=self.engine, parser=self.parser)
@@ -281,7 +281,7 @@ class TestEvalNumexprPandas(tm.TestCase):
                 ex2 = 'lhs {0} mid and mid {1} rhs'.format(cmp1, cmp2)
                 ex3 = '(lhs {0} mid) & (mid {1} rhs)'.format(cmp1, cmp2)
                 for ex in (ex1, ex2, ex3):
-                    with assertRaises(NotImplementedError):
+                    with tm.assertRaises(NotImplementedError):
                         pd.eval(ex, engine=self.engine, parser=self.parser)
                 return
             if (np.isscalar(right) and not np.isscalar(left) and cmp_op in
