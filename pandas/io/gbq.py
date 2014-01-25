@@ -288,7 +288,7 @@ def _parse_data(client, job, index_col=None, col_order=None):
             kwds['startIndex'] = start_row
         data = client.apiclient.jobs().getQueryResults(**kwds).execute()
         if not data['jobComplete']:
-            raise BigqueryError('Job was not completed, or was invalid')
+            raise bigquery_client.BigqueryError('Job was not completed, or was invalid')
 
         # How many rows are there across all pages?
         # Note: This is presently the only reason we don't just use
