@@ -2,7 +2,6 @@
 from numpy cimport *
 import numpy as np
 
-from pandas.core.array import SNDArray
 from distutils.version import LooseVersion
 
 is_numpy_prior_1_6_2 = LooseVersion(np.__version__) < '1.6.2'
@@ -114,8 +113,8 @@ cdef class Reducer:
 
                 # use the cached_typ if possible
                 if cached_typ is not None:
-                    cached_typ._data._block.values = chunk
-                    cached_typ.name = name
+                    object.__setattr__(cached_typ._data._block, 'values', chunk)
+                    object.__setattr__(cached_typ, 'name', name)
                     res = self.f(cached_typ)
                 else:
                     res = self.f(chunk)
@@ -164,7 +163,7 @@ cdef class SeriesBinGrouper:
         bint passed_dummy
 
     cdef public:
-        object arr, index, dummy_arr, dummy_index, values, f, bins, typ, ityp, name
+        object arr, index, dummy_arr, dummy_index, values, f, bins, typ, name
 
     def __init__(self, object series, object f, object bins, object dummy):
         n = len(series)
@@ -178,7 +177,6 @@ cdef class SeriesBinGrouper:
         self.arr = values
         self.index = series.index
         self.typ = type(series)
-        self.ityp = type(series.index)
         self.name = getattr(series,'name',None)
 
         self.dummy_arr, self.dummy_index = self._check_dummy(dummy)
@@ -210,9 +208,10 @@ cdef class SeriesBinGrouper:
             ndarray[int64_t] counts
             Py_ssize_t i, n, group_size
             object res
-            bint initialized = 0, needs_typ = 1, try_typ = 0
+            bint initialized = 0
             Slider vslider, islider
-            object gin, typ, ityp, name
+            object gin, typ, name
+            object cached_typ = None
 
         counts = np.zeros(self.ngroups, dtype=np.int64)
 
@@ -226,19 +225,12 @@ cdef class SeriesBinGrouper:
 
         group_size = 0
         n = len(self.arr)
-        typ = self.typ
-        ityp = self.ityp
         name = self.name
 
         vslider = Slider(self.arr, self.dummy_arr)
         islider = Slider(self.index, self.dummy_index)
 
         gin = self.dummy_index._engine
-
-        # old numpy issue, need to always create and pass the Series
-        if is_numpy_prior_1_6_2:
-            try_typ = 1
-            needs_typ = 1
 
         try:
             for i in range(self.ngroups):
@@ -247,24 +239,15 @@ cdef class SeriesBinGrouper:
                 islider.set_length(group_size)
                 vslider.set_length(group_size)
 
-                # see if we need to create the object proper
-                if try_typ:
-                    if needs_typ:
-                          res = self.f(typ(vslider.buf, index=islider.buf,
-                                           name=name, fastpath=True))
-                    else:
-                          res = self.f(SNDArray(vslider.buf,islider.buf,name=name))
+                if cached_typ is None:
+                    cached_typ = self.typ(vslider.buf, index=islider.buf,
+                                          name=name)
                 else:
-                     try:
-                          res = self.f(SNDArray(vslider.buf,islider.buf,name=name))
-                          needs_typ = 0
-                     except:
-                          res = self.f(typ(vslider.buf, index=islider.buf,
-                                           name=name, fastpath=True))
-                          needs_typ = 1
+                    object.__setattr__(cached_typ._data._block, 'values', vslider.buf)
+                    object.__setattr__(cached_typ, '_index', islider.buf)
+                    object.__setattr__(cached_typ, 'name', name)
 
-                     try_typ = 1
-
+                res = self.f(cached_typ)
                 res = _extract_result(res)
                 if not initialized:
                     result = self._get_result_array(res)
@@ -309,7 +292,7 @@ cdef class SeriesGrouper:
         bint passed_dummy
 
     cdef public:
-        object arr, index, dummy_arr, dummy_index, f, labels, values, typ, ityp, name
+        object arr, index, dummy_arr, dummy_index, f, labels, values, typ, name
 
     def __init__(self, object series, object f, object labels,
                  Py_ssize_t ngroups, object dummy):
@@ -324,7 +307,6 @@ cdef class SeriesGrouper:
         self.arr = values
         self.index = series.index
         self.typ = type(series)
-        self.ityp = type(series.index)
         self.name = getattr(series,'name',None)
 
         self.dummy_arr, self.dummy_index = self._check_dummy(dummy)
@@ -351,27 +333,21 @@ cdef class SeriesGrouper:
             ndarray[int64_t] labels, counts
             Py_ssize_t i, n, group_size, lab
             object res
-            bint initialized = 0, needs_typ = 1, try_typ = 0
+            bint initialized = 0
             Slider vslider, islider
-            object gin, typ, ityp, name
+            object gin, typ, name
+            object cached_typ = None
 
         labels = self.labels
         counts = np.zeros(self.ngroups, dtype=np.int64)
         group_size = 0
         n = len(self.arr)
-        typ = self.typ
-        ityp = self.ityp
         name = self.name
 
         vslider = Slider(self.arr, self.dummy_arr)
         islider = Slider(self.index, self.dummy_index)
 
         gin = self.dummy_index._engine
-
-        # old numpy issue, need to always create and pass the Series
-        if is_numpy_prior_1_6_2:
-            try_typ = 1
-            needs_typ = 1
 
         try:
             for i in range(n):
@@ -389,27 +365,15 @@ cdef class SeriesGrouper:
                     islider.set_length(group_size)
                     vslider.set_length(group_size)
 
-                    # see if we need to create the object proper
-                    # try on the first go around
-                    if try_typ:
-                        if needs_typ:
-                              res = self.f(typ(vslider.buf, index=islider.buf,
-                                               name=name, fastpath=True))
-                        else:
-                              res = self.f(SNDArray(vslider.buf,islider.buf,name=name))
+                    if cached_typ is None:
+                        cached_typ = self.typ(vslider.buf, index=islider.buf,
+                                              name=name)
                     else:
+                        object.__setattr__(cached_typ._data._block, 'values', vslider.buf)
+                        object.__setattr__(cached_typ, '_index', islider.buf)
+                        object.__setattr__(cached_typ, 'name', name)
 
-                         # try with a numpy array directly
-                         try:
-                              res = self.f(SNDArray(vslider.buf,islider.buf,name=name))
-                              needs_typ = 0
-                         except (Exception), detail:
-                              res = self.f(typ(vslider.buf, index=islider.buf,
-                                               name=name, fastpath=True))
-                              needs_typ = 1
-
-                         try_typ = 1
-
+                    res = self.f(cached_typ)
                     res = _extract_result(res)
                     if not initialized:
                         result = self._get_result_array(res)
