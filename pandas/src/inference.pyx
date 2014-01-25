@@ -56,7 +56,14 @@ def infer_dtype(object _values):
     if n == 0:
         return 'empty'
 
-    val = util.get_value_1d(values, 0)
+    # make contiguous
+    values = values.ravel()
+
+    # try to use a valid value
+    for i in range(n):
+       val = util.get_value_1d(values, i)
+       if not is_null_datetimelike(val):
+           break
 
     if util.is_datetime64_object(val) or val is NaT:
         if is_datetime64_array(values):

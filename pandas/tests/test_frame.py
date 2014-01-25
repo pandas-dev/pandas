@@ -10489,13 +10489,17 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                 [datetime(2000, 1, 2), datetime(2000, 1, 3),
                  datetime(2000, 1, 1)]]
         df = DataFrame(data)
+
+        # check the rank
         expected = DataFrame([[2., nan, 1.],
                               [2., 3., 1.]])
         result = df.rank(1, numeric_only=False)
         assert_frame_equal(result, expected)
 
         # mixed-type frames
-        self.mixed_frame['foo'] = datetime.now()
+        self.mixed_frame['datetime'] = datetime.now()
+        self.mixed_frame['timedelta'] = timedelta(days=1,seconds=1)
+
         result = self.mixed_frame.rank(1)
         expected = self.mixed_frame.rank(1, numeric_only=True)
         assert_frame_equal(result, expected)
@@ -11086,6 +11090,31 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         expected = Series(np.asarray([2.0, 1, datetime(2006, 1, 1),
                                       None], np.object_))
         assert_series_equal(result, expected)
+
+    def test_construction_with_mixed(self):
+        # test construction edge cases with mixed types
+
+        # f7u12, this does not work without extensive workaround
+        data = [[datetime(2001, 1, 5), nan, datetime(2001, 1, 2)],
+                [datetime(2000, 1, 2), datetime(2000, 1, 3),
+                 datetime(2000, 1, 1)]]
+        df = DataFrame(data)
+
+        # check dtypes
+        result = df.get_dtype_counts().order()
+        expected = Series({ 'datetime64[ns]' : 3 })
+
+        # mixed-type frames
+        self.mixed_frame['datetime'] = datetime.now()
+        self.mixed_frame['timedelta'] = timedelta(days=1,seconds=1)
+        self.assert_(self.mixed_frame['datetime'].dtype == 'M8[ns]')
+        self.assert_(self.mixed_frame['timedelta'].dtype == 'm8[ns]')
+        result = self.mixed_frame.get_dtype_counts().order()
+        expected = Series({ 'float64' : 4,
+                            'object' : 1,
+                            'datetime64[ns]' : 1,
+                            'timedelta64[ns]' : 1}).order()
+        assert_series_equal(result,expected)
 
     def test_constructor_frame_copy(self):
         cop = DataFrame(self.frame, copy=True)

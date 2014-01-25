@@ -35,18 +35,3 @@ for _f in _lift_random:
 
 NA = np.nan
 
-# a series-like ndarray ####
-
-
-class SNDArray(Array):
-
-    def __new__(cls, data, index=None, name=None):
-        data = data.view(SNDArray)
-        data.index = index
-        data.name = name
-
-        return data
-
-    @property
-    def values(self):
-        return self.view(Array)
