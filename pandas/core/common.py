@@ -40,7 +40,7 @@ class AmbiguousIndexError(PandasError, KeyError):
     pass
 
 
-_POSSIBLY_CAST_DTYPES = set([np.dtype(t)
+_POSSIBLY_CAST_DTYPES = set([np.dtype(t).name
                              for t in ['M8[ns]', '>M8[ns]', '<M8[ns]',
                                        'm8[ns]', '>m8[ns]', '<m8[ns]',
                                        'O', 'int8',
@@ -1612,7 +1612,7 @@ def _possibly_convert_objects(values, convert_dates=True,
 
 
 def _possibly_castable(arr):
-    return arr.dtype not in _POSSIBLY_CAST_DTYPES
+    return arr.dtype.name not in _POSSIBLY_CAST_DTYPES
 
 
 def _possibly_convert_platform(values):

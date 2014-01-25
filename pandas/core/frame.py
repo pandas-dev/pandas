@@ -4696,9 +4696,14 @@ def _convert_object_array(content, columns, coerce_float=False, dtype=None):
             raise AssertionError('%d columns passed, passed data had %s '
                                  'columns' % (len(columns), len(content)))
 
-    arrays = [lib.maybe_convert_objects(arr, try_float=coerce_float)
-              if dtype != object and dtype != np.object else arr
-              for arr in content]
+    # provide soft conversion of object dtypes
+    def convert(arr):
+        if dtype != object and dtype != np.object:
+            arr = lib.maybe_convert_objects(arr, try_float=coerce_float)
+            arr = com._possibly_cast_to_datetime(arr, dtype)
+        return arr
+
+    arrays = [ convert(arr) for arr in content ]
 
     return arrays, columns
 

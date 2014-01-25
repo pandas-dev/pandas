@@ -14,6 +14,7 @@ from numpy.testing import assert_array_equal
 
 from pandas.core.index import (Index, Float64Index, Int64Index, MultiIndex,
                                InvalidIndexError)
+from pandas.tseries.index import DatetimeIndex
 from pandas.core.frame import DataFrame
 from pandas.core.series import Series
 from pandas.util.testing import (assert_almost_equal, assertRaisesRegexp,
@@ -32,6 +33,9 @@ from pandas.lib import Timestamp
 
 from pandas import _np_version_under1p7
 
+def _skip_if_need_numpy_1_7():
+    if _np_version_under1p7:
+        raise nose.SkipTest('numpy >= 1.7 required')
 
 class TestIndex(tm.TestCase):
     _multiprocess_can_split_ = True
@@ -236,12 +240,7 @@ class TestIndex(tm.TestCase):
         tm.assert_isinstance(self.dateIndex.asof(d), Timestamp)
 
     def test_nanosecond_index_access(self):
-        if _np_version_under1p7:
-            import nose
-
-            raise nose.SkipTest('numpy >= 1.7 required')
-
-        from pandas import Series, Timestamp, DatetimeIndex
+        _skip_if_need_numpy_1_7()
 
         s = Series([Timestamp('20130101')]).values.view('i8')[0]
         r = DatetimeIndex([s + 50 + i for i in range(100)])
@@ -1607,11 +1606,12 @@ class TestMultiIndex(tm.TestCase):
         expected = ['a', np.nan, 1]
         assert_array_equal(values.values, expected)
 
-        arrays = [['a', 'b', 'b'], pd.DatetimeIndex([0, 1, pd.NaT])]
-        index = pd.MultiIndex.from_arrays(arrays)
-        values = index.get_level_values(1)
-        expected = pd.DatetimeIndex([0, 1, pd.NaT])
-        assert_array_equal(values.values, expected.values)
+        if not _np_version_under1p7:
+            arrays = [['a', 'b', 'b'], pd.DatetimeIndex([0, 1, pd.NaT])]
+            index = pd.MultiIndex.from_arrays(arrays)
+            values = index.get_level_values(1)
+            expected = pd.DatetimeIndex([0, 1, pd.NaT])
+            assert_array_equal(values.values, expected.values)
 
         arrays = [[], []]
         index = pd.MultiIndex.from_arrays(arrays)
