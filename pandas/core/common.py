@@ -8,6 +8,7 @@ import numbers
 import codecs
 import csv
 import types
+from datetime import datetime, timedelta
 
 from numpy.lib.format import read_array, write_array
 import numpy as np
@@ -867,10 +868,13 @@ def _infer_dtype_from_scalar(val):
 
         dtype = np.object_
 
-    elif isinstance(val, np.datetime64):
-        # ugly hacklet
+    elif isinstance(val, (np.datetime64, datetime)) and getattr(val,'tz',None) is None:
         val = lib.Timestamp(val).value
         dtype = np.dtype('M8[ns]')
+
+    elif isinstance(val, (np.timedelta64, timedelta)):
+        val = tslib.convert_to_timedelta(val,'ns')
+        dtype = np.dtype('m8[ns]')
 
     elif is_bool(val):
         dtype = np.bool_

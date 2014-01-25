@@ -10495,7 +10495,17 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_frame_equal(result, expected)
 
         # mixed-type frames
-        self.mixed_frame['foo'] = datetime.now()
+        self.mixed_frame['datetime'] = datetime.now()
+        self.mixed_frame['timedelta'] = timedelta(days=1,seconds=1)
+        self.assert_(self.mixed_frame['datetime'].dtype == 'M8[ns]')
+        self.assert_(self.mixed_frame['timedelta'].dtype == 'm8[ns]')
+        result = self.mixed_frame.get_dtype_counts().order()
+        expected = Series({ 'float64' : 4,
+                            'object' : 1,
+                            'datetime64[ns]' : 1,
+                            'timedelta64[ns]' : 1}).order()
+        assert_series_equal(result,expected)
+
         result = self.mixed_frame.rank(1)
         expected = self.mixed_frame.rank(1, numeric_only=True)
         assert_frame_equal(result, expected)
