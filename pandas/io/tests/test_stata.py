@@ -71,6 +71,7 @@ class TestStata(tm.TestCase):
     def test_read_dta2(self):
         if LooseVersion(sys.version) < '2.7':
             raise nose.SkipTest('datetime interp under 2.6 is faulty')
+        skip_if_not_little_endian()
 
         expected = DataFrame.from_records(
             [
