@@ -149,6 +149,7 @@ Bug Fixes
   - Regression in ``.get(None)`` indexing from 0.12 (:issue:`5652`)
   - Subtle ``iloc`` indexing bug, surfaced in (:issue:`6059`)
   - Bug with insert of strings into DatetimeIndex (:issue:`5818`)
+  - Bug in ``HTMLFormatter._write_header`` for column names in unicode (:issue:`6098`)
 
 pandas 0.13.0
 -------------
