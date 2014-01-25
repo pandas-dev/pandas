@@ -351,6 +351,8 @@ def to_gbq(dataframe, destination_table, schema=None, col_order=None,
            if_exists='fail', **kwargs):
     """Write a DataFrame to a Google BigQuery table.
 
+    THIS IS AN EXPERIMENTAL LIBRARY
+
     If the table exists, the DataFrame will be appended. If not, a new table
     will be created, in which case the schema will have to be specified. By
     default, rows will be written in the order they appear in the DataFrame,
@@ -471,6 +473,8 @@ def to_gbq(dataframe, destination_table, schema=None, col_order=None,
 def read_gbq(query, project_id=None, destination_table=None, index_col=None,
              col_order=None, **kwargs):
     """Load data from Google BigQuery.
+
+    THIS IS AN EXPERIMENTAL LIBRARY
 
     The main method a user calls to load data from Google BigQuery into a
     pandas DataFrame. This is a simple wrapper for Google's bq.py and
