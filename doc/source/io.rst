@@ -387,11 +387,6 @@ The simplest case is to just pass in ``parse_dates=True``:
    # These are python datetime objects
    df.index
 
-.. ipython:: python
-   :suppress:
-
-   os.remove('foo.csv')
-
 It is often the case that we may want to store date and time data separately,
 or store various date fields separately. the ``parse_dates`` keyword can be
 used to specify a combination of columns to parse the dates and/or times from.
@@ -503,29 +498,29 @@ a single date rather than the entire array.
 
 Inferring Datetime Format
 ~~~~~~~~~~~~~~~~~~~~~~~~~
-If you have `parse_dates` enabled for some or all of your columns, and your
+If you have ``parse_dates`` enabled for some or all of your columns, and your
 datetime strings are all formatted the same way, you may get a large speed
-up by setting `infer_datetime_format=True`.  If set, pandas will attempt
+up by setting ``infer_datetime_format=True``.  If set, pandas will attempt
 to guess the format of your datetime strings, and then use a faster means
 of parsing the strings.  5-10x parsing speeds have been observed.  Pandas
 will fallback to the usual parsing if either the format cannot be guessed
 or the format that was guessed cannot properly parse the entire column
-of strings.  So in general, `infer_datetime_format` should not have any
+of strings.  So in general, ``infer_datetime_format`` should not have any
 negative consequences if enabled.
 
 Here are some examples of datetime strings that can be guessed (All
 representing December 30th, 2011 at 00:00:00)
 
-"20111230"
-"2011/12/30"
-"20111230 00:00:00"
-"12/30/2011 00:00:00"
-"30/Dec/2011 00:00:00"
-"30/December/2011 00:00:00"
+- "20111230"
+- "2011/12/30"
+- "20111230 00:00:00"
+- "12/30/2011 00:00:00"
+- "30/Dec/2011 00:00:00"
+- "30/December/2011 00:00:00"
 
-`infer_datetime_format` is sensitive to `dayfirst`.  With `dayfirst=True`, it
-will guess "01/12/2011" to be December 1st.  With `dayfirst=False` (default)
-it will guess "01/12/2011" to be January 12th.
+``infer_datetime_format`` is sensitive to ``dayfirst``.  With
+``dayfirst=True``, it will guess "01/12/2011" to be December 1st. With
+``dayfirst=False`` (default) it will guess "01/12/2011" to be January 12th.
 
 .. ipython:: python
 
@@ -533,6 +528,10 @@ it will guess "01/12/2011" to be January 12th.
    df = pd.read_csv('foo.csv', index_col=0, parse_dates=True,
                     infer_datetime_format=True)
 
+.. ipython:: python
+   :suppress:
+
+   os.remove('foo.csv')
 
 International Date Formats
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
