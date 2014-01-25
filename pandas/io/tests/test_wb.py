@@ -1,19 +1,20 @@
 import nose
+from nose.tools import assert_equal
 
 import pandas
 from pandas.compat import u
 from pandas.util.testing import network
 from pandas.util.testing import assert_frame_equal
 from numpy.testing.decorators import slow
-from pandas.io.wb import search, download
+from pandas.io.wb import search, download, get_countries
 import pandas.util.testing as tm
+
 
 class TestWB(tm.TestCase):
 
     @slow
     @network
     def test_wdi_search(self):
-        raise nose.SkipTest
 
         expected = {u('id'): {2634: u('GDPPCKD'),
                               4649: u('NY.GDP.PCAP.KD'),
@@ -30,11 +31,9 @@ class TestWB(tm.TestCase):
         expected.index = result.index
         assert_frame_equal(result, expected)
 
-
     @slow
     @network
     def test_wdi_download(self):
-        raise nose.SkipTest
 
         expected = {'GDPPCKN': {(u('United States'), u('2003')): u('40800.0735367688'), (u('Canada'), u('2004')): u('37857.1261134552'), (u('United States'), u('2005')): u('42714.8594790102'), (u('Canada'), u('2003')): u('37081.4575704003'), (u('United States'), u('2004')): u('41826.1728310667'), (u('Mexico'), u('2003')): u('72720.0691255285'), (u('Mexico'), u('2004')): u('74751.6003347038'), (u('Mexico'), u('2005')): u('76200.2154469437'), (u('Canada'), u('2005')): u('38617.4563629611')}, 'GDPPCKD': {(u('United States'), u('2003')): u('40800.0735367688'), (u('Canada'), u('2004')): u('34397.055116118'), (u('United States'), u('2005')): u('42714.8594790102'), (u('Canada'), u('2003')): u('33692.2812368928'), (u('United States'), u('2004')): u('41826.1728310667'), (u('Mexico'), u('2003')): u('7608.43848670658'), (u('Mexico'), u('2004')): u('7820.99026814334'), (u('Mexico'), u('2005')): u('7972.55364129367'), (u('Canada'), u('2005')): u('35087.8925933298')}}
         expected = pandas.DataFrame(expected)
@@ -42,6 +41,13 @@ class TestWB(tm.TestCase):
                                                                          'GDPPCKN', 'junk'], start=2003, end=2005)
         expected.index = result.index
         assert_frame_equal(result, pandas.DataFrame(expected))
+
+    @slow
+    @network
+    def test_wdi_get_countries(self):
+
+        result = get_countries()
+        assert_equal(result[-1:].name, 'Zimbabwe')
 
 
 if __name__ == '__main__':
