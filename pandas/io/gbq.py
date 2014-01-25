@@ -9,6 +9,7 @@ import logging
 from datetime import datetime
 import pkg_resources
 from distutils.version import LooseVersion
+from pandas.compat import u
 
 import pandas as pd
 import numpy as np
@@ -117,9 +118,8 @@ def _parse_entry(field_value, field_type):
         field_value = np.datetime64(timestamp)
     elif field_type == 'BOOLEAN':
         field_value = field_value == 'true'
-    # Note that results are unicode, so this will
-    # fail for non-ASCII characters.. this probably
-    # functions differently in Python 3
+    elif field_type == 'STRING':
+        field_value = field_value
     else:
         field_value = str(field_value)
     return field_value

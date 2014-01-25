@@ -11,6 +11,7 @@ import pandas.util.testing as tm
 
 from pandas.core.frame import DataFrame
 from pandas.util.testing import with_connectivity_check
+from pandas.compat import u
 from pandas import NaT
 
 
@@ -193,8 +194,27 @@ class TestGbq(tm.TestCase):
                   np.bool(False),
                   np.int('2'),
                   np.float('3.14159'),
-                  'Hello World']
+                  u('Hello World')]
         self.assertEqual(actual_output, sample_output, 'A format conversion failed')
+
+    @with_connectivity_check
+    def test_unicode_string_conversion(self):
+        # Strings from BigQuery Should be converted to UTF-8 properly
+
+        if not os.path.exists(self.bq_token):
+            raise nose.SkipTest('Skipped because authentication information is not available.')
+
+        correct_test_datatype = DataFrame(
+            {'UNICODE_STRING' : [u("\xe9\xfc")]}
+        )
+
+        query = """SELECT '\xc3\xa9\xc3\xbc' as UNICODE_STRING"""
+
+        client = gbq._authenticate()
+        a = gbq.read_gbq(query)
+        tm.assert_frame_equal(a, correct_test_datatype)
+
+
 
     def test_data_small(self):
         # Parsing a fixed page of data should return the proper fixed np.array()
