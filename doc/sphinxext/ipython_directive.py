@@ -111,6 +111,7 @@ import sys
 import tempfile
 import ast
 from pandas.compat import zip, range, map, lmap, u, cStringIO as StringIO
+import warnings
 
 # To keep compatibility with various python versions
 try:
@@ -375,6 +376,7 @@ class EmbeddedSphinxShell(object):
                      decorator.startswith('@doctest')) or self.is_doctest
         is_suppress = decorator=='@suppress' or self.is_suppress
         is_okexcept = decorator=='@okexcept' or self.is_okexcept
+        is_okwarning = decorator=='@okwarning' or self.is_okwarning
         is_savefig = decorator is not None and \
                      decorator.startswith('@savefig')
 
@@ -404,28 +406,30 @@ class EmbeddedSphinxShell(object):
         else:
             store_history = True
 
-        for i, line in enumerate(input_lines):
-            if line.endswith(';'):
-                is_semicolon = True
+        # Note: catch_warnings is not thread safe
+        with warnings.catch_warnings(record=True) as ws:
+            for i, line in enumerate(input_lines):
+                if line.endswith(';'):
+                    is_semicolon = True
 
-            if i == 0:
-                # process the first input line
-                if is_verbatim:
-                    self.process_input_line('')
-                    self.IP.execution_count += 1 # increment it anyway
+                if i == 0:
+                    # process the first input line
+                    if is_verbatim:
+                        self.process_input_line('')
+                        self.IP.execution_count += 1 # increment it anyway
+                    else:
+                        # only submit the line in non-verbatim mode
+                        self.process_input_line(line, store_history=store_history)
+                    formatted_line = '%s %s'%(input_prompt, line)
                 else:
-                    # only submit the line in non-verbatim mode
-                    self.process_input_line(line, store_history=store_history)
-                formatted_line = '%s %s'%(input_prompt, line)
-            else:
-                # process a continuation line
-                if not is_verbatim:
-                    self.process_input_line(line, store_history=store_history)
+                    # process a continuation line
+                    if not is_verbatim:
+                        self.process_input_line(line, store_history=store_history)
 
-                formatted_line = '%s %s'%(continuation, line)
+                    formatted_line = '%s %s'%(continuation, line)
 
-            if not is_suppress:
-                ret.append(formatted_line)
+                if not is_suppress:
+                    ret.append(formatted_line)
 
         if not is_suppress and len(rest.strip()) and is_verbatim:
             # the "rest" is the standard output of the
@@ -440,20 +444,35 @@ class EmbeddedSphinxShell(object):
         elif is_semicolon: # get spacing right
             ret.append('')
 
+        # context information
+        filename = self.state.document.current_source
+        lineno = self.state.document.current_line
+        try:
+            lineno -= 1
+        except:
+            pass
+
         # output any exceptions raised during execution to stdout
         # unless :okexcept: has been specified.
         if not is_okexcept and "Traceback" in output:
-            filename = self.state.document.current_source
-            lineno = self.state.document.current_line
-            try:
-                lineno = int(lineno) -1
-            except:
-                pass
             s =  "\nException in %s at line %s:\n" % (filename, lineno)
             sys.stdout.write('\n\n>>>'+'-'*73)
             sys.stdout.write(s)
             sys.stdout.write(output)
             sys.stdout.write('<<<' + '-'*73+'\n\n')
+
+        # output any warning raised during execution to stdout
+        # unless :okwarning: has been specified.
+        if not is_okwarning:
+            for w in ws:
+                s =  "\nWarning raised in %s at line %s:\n" % (filename, lineno)
+                sys.stdout.write('\n\n>>>'+'-'*73)
+                sys.stdout.write(s)
+                sys.stdout.write('-'*76+'\n')
+                s=warnings.formatwarning(w.message, w.category,
+                                         w.filename, w.lineno, w.line)
+                sys.stdout.write(s)
+                sys.stdout.write('\n<<<' + '-'*73+'\n\n')
 
         self.cout.truncate(0)
         return (ret, input_lines, output, is_doctest, decorator, image_file,
@@ -698,7 +717,8 @@ class IPythonDirective(Directive):
                     'suppress' : directives.flag,
                     'verbatim' : directives.flag,
                     'doctest' : directives.flag,
-                    'okexcept': directives.flag
+                    'okexcept': directives.flag,
+                    'okwarning': directives.flag
                   }
 
     shell = None
@@ -797,6 +817,7 @@ class IPythonDirective(Directive):
         self.shell.is_doctest = 'doctest' in options
         self.shell.is_verbatim = 'verbatim' in options
         self.shell.is_okexcept = 'okexcept' in options
+        self.shell.is_okwarning = 'okwarning' in options
 
         # handle pure python code
         if 'python' in self.arguments:
