@@ -102,6 +102,7 @@ Improvements to existing features
 
 Bug Fixes
 ~~~~~~~~~
+  - Bug in ``io.wb.get_countries`` not including all countries (:issue:`6008`)
   - Bug in Series replace with timestamp dict (:issue:`5797`)
   - read_csv/read_table now respects the `prefix` kwarg (:issue:`5732`).
   - Bug in selection with missing values via ``.ix`` from a duplicate indexed DataFrame failing (:issue:`5835`)
