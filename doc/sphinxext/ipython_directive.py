@@ -447,15 +447,11 @@ class EmbeddedSphinxShell(object):
         # context information
         filename = self.state.document.current_source
         lineno = self.state.document.current_line
-        try:
-            lineno -= 1
-        except:
-            pass
 
         # output any exceptions raised during execution to stdout
         # unless :okexcept: has been specified.
         if not is_okexcept and "Traceback" in output:
-            s =  "\nException in %s at line %s:\n" % (filename, lineno)
+            s =  "\nException in %s at block ending on line %s\n" % (filename, lineno)
             sys.stdout.write('\n\n>>>'+'-'*73)
             sys.stdout.write(s)
             sys.stdout.write(output)
@@ -464,15 +460,16 @@ class EmbeddedSphinxShell(object):
         # output any warning raised during execution to stdout
         # unless :okwarning: has been specified.
         if not is_okwarning:
+            import textwrap
             for w in ws:
-                s =  "\nWarning raised in %s at line %s:\n" % (filename, lineno)
+                s =  "\nWarning in %s at block ending on line %s\n" % (filename, lineno)
                 sys.stdout.write('\n\n>>>'+'-'*73)
                 sys.stdout.write(s)
                 sys.stdout.write('-'*76+'\n')
                 s=warnings.formatwarning(w.message, w.category,
                                          w.filename, w.lineno, w.line)
-                sys.stdout.write(s)
-                sys.stdout.write('\n<<<' + '-'*73+'\n\n')
+                sys.stdout.write('\n'.join(textwrap.wrap(s,80)))
+                sys.stdout.write('\n<<<' + '-'*73+'\n')
 
         self.cout.truncate(0)
         return (ret, input_lines, output, is_doctest, decorator, image_file,
