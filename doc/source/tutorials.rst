@@ -108,3 +108,20 @@ For more resources, please visit the main `repository <https://bitbucket.org/hro
 *  | `11 - Lesson: <http://nbviewer.ipython.org/urls/bitbucket.org/hrojas/learn-pandas/raw/master/lessons/11%20-%20Lesson.ipynb>`_
 
     * Combining data from various sources
+
+
+Excel charts with pandas, vincent and xlsxwriter
+------------------------------------------------
+
+*  `Using Pandas and XlsxWriter to create Excel charts <http://pandas-xlsxwriter-charts.readthedocs.org/>`_
+
+Various Tutorials
+-----------------
+
+* `Wes McKinney's (Pandas BDFL) blog <http://blog.wesmckinney.com/>`_
+* `Statistical analysis made easy in Python with SciPy and pandas DataFrames, by Randal Olson <http://www.randalolson.com/2012/08/06/statistical-analysis-made-easy-in-python/>`_
+* `Statistical Data Analysis in Python, tutorial videos, by Christopher Fonnesbeck from SciPy 2013 <http://conference.scipy.org/scipy2013/tutorial_detail.php?id=109>`_
+* `Financial analysis in python, by Thomas Wiecki <http://nbviewer.ipython.org/github/twiecki/financial-analysis-python-tutorial/blob/master/1.%20Pandas%20Basics.ipynb>`_
+* `Intro to pandas data structures, by Greg Reda <http://www.gregreda.com/2013/10/26/intro-to-pandas-data-structures/>`_
+* `Pandas and Python: Top 10, by Manish Amde <http://manishamde.github.io/blog/2013/03/07/pandas-and-python-top-10/>`_
+* `Pandas Tutorial, by Mikhail Semeniuk <www.bearrelroll.com/2013/05/python-pandas-tutorial>`_
