@@ -66,6 +66,7 @@ perform queries on a table, by passing a list to ``data_columns``
 Retrieving unique values in an indexable or data column.
 
 .. ipython:: python
+   :okwarning:
 
    import warnings
    with warnings.catch_warnings():
