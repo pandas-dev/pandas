@@ -287,7 +287,7 @@ fact, this expression is False:
    (df+df == df*2).all()
 
 Notice that the boolean DataFrame ``df+df == df*2`` contains some False values!
-That is because NaNs do not compare as equals: 
+That is because NaNs do not compare as equals:
 
 .. ipython:: python
 
@@ -727,7 +727,7 @@ Apply can also accept multiple axes in the ``axis`` argument. This will pass a
 
 .. ipython:: python
 
-   f = lambda x: (x-x.mean(1)/x.std(1))
+   f = lambda x: ((x.T-x.mean(1))/x.std(1)).T
 
    result = panel.apply(f, axis = ['items','major_axis'])
    result

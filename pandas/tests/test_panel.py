@@ -1146,11 +1146,13 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         assert_frame_equal(result,expected)
 
         # transforms
-        f = lambda x: (x-x.mean(1)/x.std(1))
+        f = lambda x: ((x.T-x.mean(1))/x.std(1)).T
 
-        result = self.panel.apply(f, axis = ['items','major_axis'])
-        expected = Panel(dict([ (ax,f(self.panel.loc[:,:,ax])) for ax in self.panel.minor_axis ]))
-        assert_panel_equal(result,expected)
+        # make sure that we don't trigger any warnings
+        with tm.assert_produces_warning(False):
+            result = self.panel.apply(f, axis = ['items','major_axis'])
+            expected = Panel(dict([ (ax,f(self.panel.loc[:,:,ax])) for ax in self.panel.minor_axis ]))
+            assert_panel_equal(result,expected)
 
         result = self.panel.apply(f, axis = ['major_axis','minor_axis'])
         expected = Panel(dict([ (ax,f(self.panel.loc[ax])) for ax in self.panel.items ]))
