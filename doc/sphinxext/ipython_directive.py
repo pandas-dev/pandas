@@ -452,24 +452,25 @@ class EmbeddedSphinxShell(object):
         # unless :okexcept: has been specified.
         if not is_okexcept and "Traceback" in output:
             s =  "\nException in %s at block ending on line %s\n" % (filename, lineno)
-            sys.stdout.write('\n\n>>>'+'-'*73)
+            s += "Specify :okexcept: as an option in the ipython:: block to suppress this message\n"
+            sys.stdout.write('\n\n>>>' + ('-' * 73))
             sys.stdout.write(s)
             sys.stdout.write(output)
-            sys.stdout.write('<<<' + '-'*73+'\n\n')
+            sys.stdout.write('<<<' + ('-' * 73) + '\n\n')
 
         # output any warning raised during execution to stdout
         # unless :okwarning: has been specified.
         if not is_okwarning:
-            import textwrap
             for w in ws:
                 s =  "\nWarning in %s at block ending on line %s\n" % (filename, lineno)
-                sys.stdout.write('\n\n>>>'+'-'*73)
+                s += "Specify :okwarning: as an option in the ipython:: block to suppress this message\n"
+                sys.stdout.write('\n\n>>>' + ('-' * 73))
                 sys.stdout.write(s)
-                sys.stdout.write('-'*76+'\n')
+                sys.stdout.write('-' * 76 + '\n')
                 s=warnings.formatwarning(w.message, w.category,
                                          w.filename, w.lineno, w.line)
-                sys.stdout.write('\n'.join(textwrap.wrap(s,80)))
-                sys.stdout.write('\n<<<' + '-'*73+'\n')
+                sys.stdout.write(s)
+                sys.stdout.write('<<<' + ('-' * 73) + '\n')
 
         self.cout.truncate(0)
         return (ret, input_lines, output, is_doctest, decorator, image_file,
