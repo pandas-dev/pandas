@@ -71,7 +71,7 @@ Enhancements
 
 - pd.to_csv and pd.to_datetime learned a new ``infer_datetime_format`` keyword which greatly
   improves parsing perf in many cases. Thanks to @lexual for suggesting and @danbirken
-  for rapidly implementing. (:issue:`5490`,:issue:`6021`)
+  for rapidly implementing. (:issue:`5490`, :issue:`6021`)
 
 - The ``ArrayFormatter`` for ``datetime`` and ``timedelta64`` now intelligently
   limit precision based on the values in the array (:issue:`3401`)
@@ -150,7 +150,7 @@ Enhancements
 
 - Added optional ``infer_datetime_format`` to ``read_csv``, ``Series.from_csv``
   and ``DataFrame.read_csv`` (:issue:`5490`)
- 
+
   If ``parse_dates`` is enabled and this flag is set, pandas will attempt to
   infer the format of the datetime strings in the columns, and if it can
   be inferred, switch to a faster method of parsing them.  In some cases

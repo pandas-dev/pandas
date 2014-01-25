@@ -527,6 +527,7 @@ representing December 30th, 2011 at 00:00:00)
    # Try to infer the format for the index column
    df = pd.read_csv('foo.csv', index_col=0, parse_dates=True,
                     infer_datetime_format=True)
+   df
 
 .. ipython:: python
    :suppress:
