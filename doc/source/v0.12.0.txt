@@ -186,6 +186,7 @@ I/O Enhancements
     You can use ``pd.read_html()`` to read the output from ``DataFrame.to_html()`` like so
 
     .. ipython :: python
+       :okwarning:
 
         df = DataFrame({'a': range(3), 'b': list('abc')})
         print(df)
@@ -252,6 +253,7 @@ I/O Enhancements
     store when iteration is finished. This is only for *tables*
 
     .. ipython:: python
+       :okwarning:
 
          path = 'store_iterator.h5'
          DataFrame(randn(10,2)).to_hdf(path,'df',table=True)

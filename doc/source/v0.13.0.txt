@@ -149,6 +149,7 @@ API changes
   The following warning / exception will show if this is attempted.
 
   .. ipython:: python
+     :okwarning:
 
      dfc.loc[0]['A'] = 1111
 
