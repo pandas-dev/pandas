@@ -134,7 +134,7 @@ Enhancements
 
   .. ipython:: python
 
-     f = lambda x: (x-x.mean(1)/x.std(1))
+     f = lambda x: ((x.T-x.mean(1))/x.std(1)).T
 
      result = panel.apply(f, axis = ['items','major_axis'])
      result
