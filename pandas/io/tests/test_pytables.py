@@ -1295,14 +1295,14 @@ class TestHDFStore(tm.TestCase):
                         'string2=foo'), Term('A>0'), Term('B<0')])
             expected = df_new[(df_new.string == 'foo') & (
                     df_new.string2 == 'foo') & (df_new.A > 0) & (df_new.B < 0)]
-            tm.assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected, check_index_type=False)
 
             # yield an empty frame
             result = store.select('df', [Term('string=foo'), Term(
                         'string2=cool')])
             expected = df_new[(df_new.string == 'foo') & (
                     df_new.string2 == 'cool')]
-            tm.assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected, check_index_type=False)
 
         with ensure_clean_store(self.path) as store:
             # doc example
@@ -1321,13 +1321,13 @@ class TestHDFStore(tm.TestCase):
             result = store.select('df_dc', [Term('B>0')])
 
             expected = df_dc[df_dc.B > 0]
-            tm.assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected, check_index_type=False)
 
             result = store.select(
                 'df_dc', ['B > 0', 'C > 0', 'string == foo'])
             expected = df_dc[(df_dc.B > 0) & (df_dc.C > 0) & (
                     df_dc.string == 'foo')]
-            tm.assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected, check_index_type=False)
 
         with ensure_clean_store(self.path) as store:
             # doc example part 2
