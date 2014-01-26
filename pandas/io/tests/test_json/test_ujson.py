@@ -1,4 +1,6 @@
-﻿from unittest import TestCase
+# -*- coding: utf-8 -*-
+
+from unittest import TestCase
 
 try:
     import json
