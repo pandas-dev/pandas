@@ -12603,6 +12603,7 @@ class TestDataFrameQueryPythonPandas(TestDataFrameQueryNumExprPandas):
         cls.parser = 'pandas'
         cls.frame = _frame.copy()
 
+
 class TestDataFrameQueryPythonPython(TestDataFrameQueryNumExprPython):
 
     @classmethod
@@ -12610,6 +12611,7 @@ class TestDataFrameQueryPythonPython(TestDataFrameQueryNumExprPython):
         super(TestDataFrameQueryPythonPython, cls).setUpClass()
         cls.engine = cls.parser = 'python'
         cls.frame = _frame.copy()
+
 
 PARSERS = 'python', 'pandas'
 ENGINES = 'python', 'numexpr'
@@ -12742,6 +12744,34 @@ class TestDataFrameQueryStrings(object):
         for parser, engine in product(PARSERS, ENGINES):
             yield self.check_object_array_eq_ne, parser, engine
 
+    def check_query_with_nested_strings(self, parser, engine):
+        skip_if_no_ne(engine)
+        skip_if_no_pandas_parser(parser)
+        from pandas.compat import StringIO
+        raw = """id          event          timestamp
+        1   "page 1 load"   1/1/2014 0:00:01
+        1   "page 1 exit"   1/1/2014 0:00:31
+        2   "page 2 load"   1/1/2014 0:01:01
+        2   "page 2 exit"   1/1/2014 0:01:31
+        3   "page 3 load"   1/1/2014 0:02:01
+        3   "page 3 exit"   1/1/2014 0:02:31
+        4   "page 1 load"   2/1/2014 1:00:01
+        4   "page 1 exit"   2/1/2014 1:00:31
+        5   "page 2 load"   2/1/2014 1:01:01
+        5   "page 2 exit"   2/1/2014 1:01:31
+        6   "page 3 load"   2/1/2014 1:02:01
+        6   "page 3 exit"   2/1/2014 1:02:31
+        """
+        df = pd.read_csv(StringIO(raw), sep=r'\s{2,}',
+                         parse_dates=['timestamp'])
+        expected = df[df.event == '"page 1 load"']
+        res = df.query("""'"page 1 load"' in event""", parser=parser,
+                       engine=engine)
+        tm.assert_frame_equal(expected, res)
+
+    def test_query_with_nested_string(self):
+        for parser, engine in product(PARSERS, ENGINES):
+            yield self.check_query_with_nested_strings, parser, engine
 
 class TestDataFrameEvalNumExprPandas(tm.TestCase):
 
@@ -12779,6 +12809,7 @@ class TestDataFrameEvalNumExprPython(TestDataFrameEvalNumExprPandas):
         cls.parser = 'python'
         skip_if_no_ne()
 
+
 class TestDataFrameEvalPythonPandas(TestDataFrameEvalNumExprPandas):
 
     @classmethod
@@ -12787,12 +12818,14 @@ class TestDataFrameEvalPythonPandas(TestDataFrameEvalNumExprPandas):
         cls.engine = 'python'
         cls.parser = 'pandas'
 
+
 class TestDataFrameEvalPythonPython(TestDataFrameEvalNumExprPython):
 
     @classmethod
     def setUpClass(cls):
         super(TestDataFrameEvalPythonPython, cls).tearDownClass()
         cls.engine = cls.parser = 'python'
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
