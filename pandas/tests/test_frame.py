@@ -12015,18 +12015,6 @@ starting,ending,measure
         self.assertEqual(result['c'].dtype, np.float64)
 
 
-def skip_if_no_ne(engine='numexpr'):
-    if engine == 'numexpr':
-        try:
-            import numexpr as ne
-        except ImportError:
-            raise nose.SkipTest("cannot query with engine numexpr when "
-                                "numexpr not installed")
-        else:
-            if ne.__version__ < LooseVersion('2.0'):
-                raise nose.SkipTest("numexpr version too low: "
-                                    "%s" % ne.__version__)
-
 
 def skip_if_no_pandas_parser(parser):
     if parser != 'pandas':
@@ -12035,7 +12023,7 @@ def skip_if_no_pandas_parser(parser):
 
 class TestDataFrameQueryWithMultiIndex(object):
     def check_query_with_named_multiindex(self, parser, engine):
-        skip_if_no_ne(engine)
+        tm.skip_if_no_ne(engine)
         a = tm.choice(['red', 'green'], size=10)
         b = tm.choice(['eggs', 'ham'], size=10)
         index = MultiIndex.from_arrays([a, b], names=['color', 'food'])
@@ -12089,7 +12077,7 @@ class TestDataFrameQueryWithMultiIndex(object):
             yield self.check_query_with_named_multiindex, parser, engine
 
     def check_query_with_unnamed_multiindex(self, parser, engine):
-        skip_if_no_ne(engine)
+        tm.skip_if_no_ne(engine)
         a = tm.choice(['red', 'green'], size=10)
         b = tm.choice(['eggs', 'ham'], size=10)
         index = MultiIndex.from_arrays([a, b])
@@ -12181,7 +12169,7 @@ class TestDataFrameQueryWithMultiIndex(object):
             yield self.check_query_with_unnamed_multiindex, parser, engine
 
     def check_query_with_partially_named_multiindex(self, parser, engine):
-        skip_if_no_ne(engine)
+        tm.skip_if_no_ne(engine)
         a = tm.choice(['red', 'green'], size=10)
         b = np.arange(10)
         index = MultiIndex.from_arrays([a, b])
@@ -12247,7 +12235,7 @@ class TestDataFrameQueryWithMultiIndex(object):
             yield self.check_raise_on_panel_with_multiindex, parser, engine
 
     def check_raise_on_panel_with_multiindex(self, parser, engine):
-        skip_if_no_ne()
+        tm.skip_if_no_ne()
         p = tm.makePanel(7)
         p.items = tm.makeCustomIndex(len(p.items), nlevels=2)
         with tm.assertRaises(NotImplementedError):
@@ -12258,7 +12246,7 @@ class TestDataFrameQueryWithMultiIndex(object):
             yield self.check_raise_on_panel4d_with_multiindex, parser, engine
 
     def check_raise_on_panel4d_with_multiindex(self, parser, engine):
-        skip_if_no_ne()
+        tm.skip_if_no_ne()
         p4d = tm.makePanel4D(7)
         p4d.items = tm.makeCustomIndex(len(p4d.items), nlevels=2)
         with tm.assertRaises(NotImplementedError):
@@ -12272,7 +12260,7 @@ class TestDataFrameQueryNumExprPandas(tm.TestCase):
         super(TestDataFrameQueryNumExprPandas, cls).setUpClass()
         cls.engine = 'numexpr'
         cls.parser = 'pandas'
-        skip_if_no_ne()
+        tm.skip_if_no_ne()
 
     @classmethod
     def tearDownClass(cls):
@@ -12501,7 +12489,7 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         super(TestDataFrameQueryNumExprPython, cls).setUpClass()
         cls.engine = 'numexpr'
         cls.parser = 'python'
-        skip_if_no_ne(cls.engine)
+        tm.skip_if_no_ne(cls.engine)
         cls.frame = _frame.copy()
 
     def test_date_query_method(self):
@@ -12620,7 +12608,7 @@ ENGINES = 'python', 'numexpr'
 
 class TestDataFrameQueryStrings(object):
     def check_str_query_method(self, parser, engine):
-        skip_if_no_ne(engine)
+        tm.skip_if_no_ne(engine)
         df = DataFrame(randn(10, 1), columns=['b'])
         df['strings'] = Series(list('aabbccddee'))
         expect = df[df.strings == 'a']
@@ -12664,7 +12652,7 @@ class TestDataFrameQueryStrings(object):
             yield self.check_str_list_query_method, parser, engine
 
     def check_str_list_query_method(self, parser, engine):
-        skip_if_no_ne(engine)
+        tm.skip_if_no_ne(engine)
         df = DataFrame(randn(10, 1), columns=['b'])
         df['strings'] = Series(list('aabbccddee'))
         expect = df[df.strings.isin(['a', 'b'])]
@@ -12703,7 +12691,7 @@ class TestDataFrameQueryStrings(object):
             assert_frame_equal(res, expect)
 
     def check_query_with_string_columns(self, parser, engine):
-        skip_if_no_ne(engine)
+        tm.skip_if_no_ne(engine)
         df = DataFrame({'a': list('aaaabbbbcccc'),
                         'b': list('aabbccddeeff'),
                         'c': np.random.randint(5, size=12),
@@ -12728,7 +12716,7 @@ class TestDataFrameQueryStrings(object):
             yield self.check_query_with_string_columns, parser, engine
 
     def check_object_array_eq_ne(self, parser, engine):
-        skip_if_no_ne(engine)
+        tm.skip_if_no_ne(engine)
         df = DataFrame({'a': list('aaaabbbbcccc'),
                         'b': list('aabbccddeeff'),
                         'c': np.random.randint(5, size=12),
@@ -12746,7 +12734,7 @@ class TestDataFrameQueryStrings(object):
             yield self.check_object_array_eq_ne, parser, engine
 
     def check_query_with_nested_strings(self, parser, engine):
-        skip_if_no_ne(engine)
+        tm.skip_if_no_ne(engine)
         skip_if_no_pandas_parser(parser)
         from pandas.compat import StringIO
         raw = """id          event          timestamp
@@ -12781,7 +12769,7 @@ class TestDataFrameEvalNumExprPandas(tm.TestCase):
         super(TestDataFrameEvalNumExprPandas, cls).setUpClass()
         cls.engine = 'numexpr'
         cls.parser = 'pandas'
-        skip_if_no_ne()
+        tm.skip_if_no_ne()
 
     def setUp(self):
         self.frame = DataFrame(randn(10, 3), columns=list('abc'))
@@ -12808,7 +12796,7 @@ class TestDataFrameEvalNumExprPython(TestDataFrameEvalNumExprPandas):
         super(TestDataFrameEvalNumExprPython, cls).setUpClass()
         cls.engine = 'numexpr'
         cls.parser = 'python'
-        skip_if_no_ne()
+        tm.skip_if_no_ne(cls.engine)
 
 
 class TestDataFrameEvalPythonPandas(TestDataFrameEvalNumExprPandas):

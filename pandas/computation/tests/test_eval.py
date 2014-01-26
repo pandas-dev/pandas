@@ -18,7 +18,6 @@ from pandas import DataFrame, Series, Panel, date_range
 from pandas.util.testing import makeCustomDataframe as mkdf
 
 from pandas.computation import pytables
-from pandas.computation.expressions import _USE_NUMEXPR
 from pandas.computation.engines import _engines
 from pandas.computation.expr import PythonExprVisitor, PandasExprVisitor
 from pandas.computation.ops import (_binary_ops_dict,
@@ -35,11 +34,6 @@ from pandas.compat import PY3, u
 
 _series_frame_incompatible = _bool_ops_syms
 _scalar_skip = 'in', 'not in'
-
-
-def skip_if_no_ne(engine='numexpr'):
-    if not _USE_NUMEXPR and engine == 'numexpr':
-        raise nose.SkipTest("numexpr engine not installed or disabled")
 
 
 def engine_has_neg_frac(engine):
@@ -110,7 +104,7 @@ class TestEvalNumexprPandas(tm.TestCase):
     @classmethod
     def setUpClass(cls):
         super(TestEvalNumexprPandas, cls).setUpClass()
-        skip_if_no_ne()
+        tm.skip_if_no_ne()
         import numexpr as ne
         cls.ne = ne
         cls.engine = 'numexpr'
@@ -428,7 +422,7 @@ class TestEvalNumexprPandas(tm.TestCase):
             assert_array_equal(expected, result)
 
             for engine in self.current_engines:
-                skip_if_no_ne(engine)
+                tm.skip_if_no_ne(engine)
                 assert_array_equal(result, pd.eval('~elb', engine=engine,
                                                    parser=self.parser))
 
@@ -459,7 +453,7 @@ class TestEvalNumexprPandas(tm.TestCase):
 
             # make sure the other engines work the same as this one
             for engine in self.current_engines:
-                skip_if_no_ne(engine)
+                tm.skip_if_no_ne(engine)
                 ev = pd.eval(ex, engine=self.engine, parser=self.parser)
                 assert_array_equal(ev, result)
 
@@ -711,7 +705,7 @@ class TestEvalNumexprPython(TestEvalNumexprPandas):
     @classmethod
     def setUpClass(cls):
         super(TestEvalNumexprPython, cls).setUpClass()
-        skip_if_no_ne()
+        tm.skip_if_no_ne()
         import numexpr as ne
         cls.ne = ne
         cls.engine = 'numexpr'
@@ -790,7 +784,7 @@ class TestAlignment(object):
     lhs_index_types = index_types + ('s',)  # 'p'
 
     def check_align_nested_unary_op(self, engine, parser):
-        skip_if_no_ne(engine)
+        tm.skip_if_no_ne(engine)
         s = 'df * ~2'
         df = mkdf(5, 3, data_gen_f=f)
         res = pd.eval(s, engine=engine, parser=parser)
@@ -801,7 +795,7 @@ class TestAlignment(object):
             yield self.check_align_nested_unary_op, engine, parser
 
     def check_basic_frame_alignment(self, engine, parser):
-        skip_if_no_ne(engine)
+        tm.skip_if_no_ne(engine)
         args = product(self.lhs_index_types, self.index_types,
                        self.index_types)
         for lr_idx_type, rr_idx_type, c_idx_type in args:
@@ -817,7 +811,7 @@ class TestAlignment(object):
             yield self.check_basic_frame_alignment, engine, parser
 
     def check_frame_comparison(self, engine, parser):
-        skip_if_no_ne(engine)
+        tm.skip_if_no_ne(engine)
         args = product(self.lhs_index_types, repeat=2)
         for r_idx_type, c_idx_type in args:
             df = mkdf(10, 10, data_gen_f=f, r_idx_type=r_idx_type,
@@ -835,7 +829,7 @@ class TestAlignment(object):
             yield self.check_frame_comparison, engine, parser
 
     def check_medium_complex_frame_alignment(self, engine, parser):
-        skip_if_no_ne(engine)
+        tm.skip_if_no_ne(engine)
         args = product(self.lhs_index_types, self.index_types,
                        self.index_types, self.index_types)
 
@@ -852,7 +846,7 @@ class TestAlignment(object):
             yield self.check_medium_complex_frame_alignment, engine, parser
 
     def check_basic_frame_series_alignment(self, engine, parser):
-        skip_if_no_ne(engine)
+        tm.skip_if_no_ne(engine)
 
         def testit(r_idx_type, c_idx_type, index_name):
             df = mkdf(10, 10, data_gen_f=f, r_idx_type=r_idx_type,
@@ -880,7 +874,7 @@ class TestAlignment(object):
             yield self.check_basic_frame_series_alignment, engine, parser
 
     def check_basic_series_frame_alignment(self, engine, parser):
-        skip_if_no_ne(engine)
+        tm.skip_if_no_ne(engine)
 
         def testit(r_idx_type, c_idx_type, index_name):
             df = mkdf(10, 7, data_gen_f=f, r_idx_type=r_idx_type,
@@ -913,7 +907,7 @@ class TestAlignment(object):
             yield self.check_basic_series_frame_alignment, engine, parser
 
     def check_series_frame_commutativity(self, engine, parser):
-        skip_if_no_ne(engine)
+        tm.skip_if_no_ne(engine)
         args = product(self.lhs_index_types, self.index_types, ('+', '*'),
                        ('index', 'columns'))
         for r_idx_type, c_idx_type, op, index_name in args:
@@ -936,7 +930,7 @@ class TestAlignment(object):
             yield self.check_series_frame_commutativity, engine, parser
 
     def check_complex_series_frame_alignment(self, engine, parser):
-        skip_if_no_ne(engine)
+        tm.skip_if_no_ne(engine)
 
         import random
         args = product(self.lhs_index_types, self.index_types,
@@ -980,7 +974,7 @@ class TestAlignment(object):
             yield self.check_complex_series_frame_alignment, engine, parser
 
     def check_performance_warning_for_poor_alignment(self, engine, parser):
-        skip_if_no_ne(engine)
+        tm.skip_if_no_ne(engine)
         df = DataFrame(randn(1000, 10))
         s = Series(randn(10000))
         if engine == 'numexpr':
@@ -1036,7 +1030,7 @@ class TestOperationsNumExprPandas(tm.TestCase):
     @classmethod
     def setUpClass(cls):
         super(TestOperationsNumExprPandas, cls).setUpClass()
-        skip_if_no_ne()
+        tm.skip_if_no_ne()
         cls.engine = 'numexpr'
         cls.parser = 'pandas'
         cls.arith_ops = expr._arith_ops_syms + expr._cmp_ops_syms
@@ -1196,7 +1190,7 @@ class TestOperationsNumExprPandas(tm.TestCase):
                           local_dict={'df': df, 'df2': df2})
 
     def test_assignment_column(self):
-        skip_if_no_ne('numexpr')
+        tm.skip_if_no_ne('numexpr')
         df = DataFrame(np.random.randn(5, 2), columns=list('ab'))
         orig_df = df.copy()
 
@@ -1347,10 +1341,9 @@ class TestOperationsNumExprPython(TestOperationsNumExprPandas):
     @classmethod
     def setUpClass(cls):
         super(TestOperationsNumExprPython, cls).setUpClass()
-        if not _USE_NUMEXPR:
-            raise nose.SkipTest("numexpr engine not installed")
         cls.engine = 'numexpr'
         cls.parser = 'python'
+        tm.skip_if_no_ne(cls.engine)
         cls.arith_ops = expr._arith_ops_syms + expr._cmp_ops_syms
         cls.arith_ops = filter(lambda x: x not in ('in', 'not in'),
                                cls.arith_ops)
@@ -1437,7 +1430,7 @@ _var_s = randn(10)
 class TestScope(object):
 
     def check_global_scope(self, e, engine, parser):
-        skip_if_no_ne(engine)
+        tm.skip_if_no_ne(engine)
         assert_array_equal(_var_s * 2, pd.eval(e, engine=engine,
                                                parser=parser))
 
@@ -1447,7 +1440,7 @@ class TestScope(object):
             yield self.check_global_scope, e, engine, parser
 
     def check_no_new_locals(self, engine, parser):
-        skip_if_no_ne(engine)
+        tm.skip_if_no_ne(engine)
         x = 1
         lcls = locals().copy()
         pd.eval('x + 1', local_dict=lcls, engine=engine, parser=parser)
@@ -1460,7 +1453,7 @@ class TestScope(object):
             yield self.check_no_new_locals, engine, parser
 
     def check_no_new_globals(self, engine, parser):
-        skip_if_no_ne(engine)
+        tm.skip_if_no_ne(engine)
         x = 1
         gbls = globals().copy()
         pd.eval('x + 1', engine=engine, parser=parser)
@@ -1473,21 +1466,21 @@ class TestScope(object):
 
 
 def test_invalid_engine():
-    skip_if_no_ne()
+    tm.skip_if_no_ne()
     assertRaisesRegexp(KeyError, 'Invalid engine \'asdf\' passed',
                        pd.eval, 'x + y', local_dict={'x': 1, 'y': 2},
                        engine='asdf')
 
 
 def test_invalid_parser():
-    skip_if_no_ne()
+    tm.skip_if_no_ne()
     assertRaisesRegexp(KeyError, 'Invalid parser \'asdf\' passed',
                        pd.eval, 'x + y', local_dict={'x': 1, 'y': 2},
                        parser='asdf')
 
 
 def check_is_expr_syntax(engine):
-    skip_if_no_ne(engine)
+    tm.skip_if_no_ne(engine)
     s = 1
     valid1 = 's + 1'
     valid2 = '__y + _xx'
@@ -1496,7 +1489,7 @@ def check_is_expr_syntax(engine):
 
 
 def check_is_expr_names(engine):
-    skip_if_no_ne(engine)
+    tm.skip_if_no_ne(engine)
     r, s = 1, 2
     valid = 's + r'
     invalid = '__y + __x'
@@ -1519,7 +1512,7 @@ _parsers = {'python': PythonExprVisitor, 'pytables': pytables.ExprVisitor,
 
 
 def check_disallowed_nodes(engine, parser):
-    skip_if_no_ne(engine)
+    tm.skip_if_no_ne(engine)
     VisitorClass = _parsers[parser]
     uns_ops = VisitorClass.unsupported_nodes
     inst = VisitorClass('x + 1', engine, parser)
@@ -1534,7 +1527,7 @@ def test_disallowed_nodes():
 
 
 def check_syntax_error_exprs(engine, parser):
-    skip_if_no_ne(engine)
+    tm.skip_if_no_ne(engine)
     e = 's +'
     assert_raises(SyntaxError, pd.eval, e, engine=engine, parser=parser)
 
@@ -1545,7 +1538,7 @@ def test_syntax_error_exprs():
 
 
 def check_name_error_exprs(engine, parser):
-    skip_if_no_ne(engine)
+    tm.skip_if_no_ne(engine)
     e = 's + t'
     assert_raises(NameError, pd.eval, e, engine=engine, parser=parser)
 
