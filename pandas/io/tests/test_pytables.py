@@ -15,6 +15,7 @@ from pandas.io.pytables import (HDFStore, get_store, Term, read_hdf,
                                 IncompatibilityWarning, PerformanceWarning,
                                 AttributeConflictWarning, DuplicateWarning,
                                 PossibleDataLossError, ClosedFileError)
+from pandas.io import pytables as pytables
 import pandas.util.testing as tm
 from pandas.util.testing import (assert_panel4d_equal,
                                  assert_panel_equal,
@@ -3683,53 +3684,66 @@ class TestHDFStore(tm.TestCase):
             self.assert_('CLOSED' in str(store))
             self.assert_(not store.is_open)
 
-            # multiples
-            store1 = HDFStore(path)
-            store2 = HDFStore(path)
+        with ensure_clean_path(self.path) as path:
 
-            self.assert_('CLOSED' not in str(store1))
-            self.assert_('CLOSED' not in str(store2))
-            self.assert_(store1.is_open)
-            self.assert_(store2.is_open)
+            if pytables._table_file_open_policy_is_strict:
 
-            store1.close()
-            self.assert_('CLOSED' in str(store1))
-            self.assert_(not store1.is_open)
-            self.assert_('CLOSED' not in str(store2))
-            self.assert_(store2.is_open)
+                # multiples
+                store1 = HDFStore(path)
+                def f():
+                    HDFStore(path)
+                self.assertRaises(ValueError, f)
+                store1.close()
 
-            store2.close()
-            self.assert_('CLOSED' in str(store1))
-            self.assert_('CLOSED' in str(store2))
-            self.assert_(not store1.is_open)
-            self.assert_(not store2.is_open)
+            else:
 
-            # nested close
-            store = HDFStore(path,mode='w')
-            store.append('df',df)
+                # multiples
+                store1 = HDFStore(path)
+                store2 = HDFStore(path)
 
-            store2 = HDFStore(path)
-            store2.append('df2',df)
-            store2.close()
-            self.assert_('CLOSED' in str(store2))
-            self.assert_(not store2.is_open)
+                self.assert_('CLOSED' not in str(store1))
+                self.assert_('CLOSED' not in str(store2))
+                self.assert_(store1.is_open)
+                self.assert_(store2.is_open)
 
-            store.close()
-            self.assert_('CLOSED' in str(store))
-            self.assert_(not store.is_open)
+                store1.close()
+                self.assert_('CLOSED' in str(store1))
+                self.assert_(not store1.is_open)
+                self.assert_('CLOSED' not in str(store2))
+                self.assert_(store2.is_open)
 
-            # double closing
-            store = HDFStore(path,mode='w')
-            store.append('df', df)
+                store2.close()
+                self.assert_('CLOSED' in str(store1))
+                self.assert_('CLOSED' in str(store2))
+                self.assert_(not store1.is_open)
+                self.assert_(not store2.is_open)
 
-            store2 = HDFStore(path)
-            store.close()
-            self.assert_('CLOSED' in str(store))
-            self.assert_(not store.is_open)
+                # nested close
+                store = HDFStore(path,mode='w')
+                store.append('df',df)
 
-            store2.close()
-            self.assert_('CLOSED' in str(store2))
-            self.assert_(not store2.is_open)
+                store2 = HDFStore(path)
+                store2.append('df2',df)
+                store2.close()
+                self.assert_('CLOSED' in str(store2))
+                self.assert_(not store2.is_open)
+
+                store.close()
+                self.assert_('CLOSED' in str(store))
+                self.assert_(not store.is_open)
+
+                # double closing
+                store = HDFStore(path,mode='w')
+                store.append('df', df)
+
+                store2 = HDFStore(path)
+                store.close()
+                self.assert_('CLOSED' in str(store))
+                self.assert_(not store.is_open)
+
+                store2.close()
+                self.assert_('CLOSED' in str(store2))
+                self.assert_(not store2.is_open)
 
         # ops on a closed store
         with ensure_clean_path(self.path) as path:
