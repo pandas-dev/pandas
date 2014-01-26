@@ -8,10 +8,11 @@ Offer fast expression evaluation through numexpr
 
 import numpy as np
 from pandas.core.common import _values_from_object
+from distutils.version import LooseVersion
 
 try:
     import numexpr as ne
-    _NUMEXPR_INSTALLED = True
+    _NUMEXPR_INSTALLED = ne.__version__ >= LooseVersion('2.0')
 except ImportError:  # pragma: no cover
     _NUMEXPR_INSTALLED = False
 

@@ -22,7 +22,7 @@ from numpy.random import randn, rand
 import numpy as np
 
 import pandas as pd
-from pandas.core.common import isnull, _is_sequence
+from pandas.core.common import _is_sequence
 import pandas.core.index as index
 import pandas.core.series as series
 import pandas.core.frame as frame
@@ -1391,3 +1391,21 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always"):
                                  % expected_warning.__name__)
         assert not extra_warnings, ("Caused unexpected warning(s): %r."
                                     % extra_warnings)
+
+
+def skip_if_no_ne(engine='numexpr'):
+    import nose
+    _USE_NUMEXPR = pd.computation.expressions._USE_NUMEXPR
+
+    if engine == 'numexpr':
+        try:
+            import numexpr as ne
+        except ImportError:
+            raise nose.SkipTest("numexpr not installed")
+
+        if not _USE_NUMEXPR:
+            raise nose.SkipTest("numexpr disabled")
+
+        if ne.__version__ < LooseVersion('2.0'):
+            raise nose.SkipTest("numexpr version too low: "
+                                "%s" % ne.__version__)
