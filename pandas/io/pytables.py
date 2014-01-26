@@ -211,11 +211,12 @@ with config.config_prefix('io.hdf'):
 # oh the troubles to reduce import time
 _table_mod = None
 _table_supports_index = False
-
+_table_file_open_policy_is_strict = False
 
 def _tables():
     global _table_mod
     global _table_supports_index
+    global _table_file_open_policy_is_strict
     if _table_mod is None:
         import tables
         from distutils.version import LooseVersion
@@ -225,8 +226,15 @@ def _tables():
         ver = tables.__version__
         _table_supports_index = LooseVersion(ver) >= '2.3'
 
-    return _table_mod
+        # set the file open policy
+        # return the file open policy; this changes as of pytables 3.1
+        # depending on the HDF5 version
+        try:
+            _table_file_open_policy_is_strict = tables.file._FILE_OPEN_POLICY == 'strict'
+        except:
+            pass
 
+    return _table_mod
 
 @contextmanager
 def get_store(path, **kwargs):
@@ -524,6 +532,22 @@ class HDFStore(StringMixin):
                 self._handle = tables.openFile(self._path, 'r', **kwargs)
             else:
                 raise
+
+        except (ValueError) as e:
+
+            # trap PyTables >= 3.1 FILE_OPEN_POLICY exception
+            # to provide an updated message
+            if 'FILE_OPEN_POLICY' in str(e):
+
+                e = ValueError("PyTables [{version}] no longer supports opening multiple files\n"
+                               "even in read-only mode on this HDF5 version [{hdf_version}]. You can accept this\n"
+                               "and not open the same file multiple times at once,\n"
+                               "upgrade the HDF5 version, or downgrade to PyTables 3.0.0 which allows\n"
+                               "files to be opened multiple times at once\n".format(version=tables.__version__,
+                                                                                    hdf_version=tables.getHDF5Version()))
+
+            raise e
+
         except (Exception) as e:
 
             # trying to read from a non-existant file causes an error which
