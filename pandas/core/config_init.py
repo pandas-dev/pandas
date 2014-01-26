@@ -119,6 +119,11 @@ pc_expand_repr_doc = """
     wrap-around across multiple "pages" if it's width exceeds `display.width`.
 """
 
+pc_show_dimensions_doc = """
+: boolean
+    Whether to print out dimensions at the end of DataFrame repr.
+"""
+
 pc_line_width_doc = """
 : int
     Deprecated.
@@ -162,7 +167,6 @@ pc_max_seq_items = """
 
     If set to None, the number of items to be printed is unlimited.
 """
-
 
 pc_max_info_rows_doc = """
 : int or None
@@ -243,6 +247,7 @@ with cf.config_prefix('display'):
     cf.register_option('encoding', detect_console_encoding(), pc_encoding_doc,
                        validator=is_text)
     cf.register_option('expand_frame_repr', True, pc_expand_repr_doc)
+    cf.register_option('show_dimensions', True, pc_show_dimensions_doc)
     cf.register_option('chop_threshold', None, pc_chop_threshold_doc)
     cf.register_option('max_seq_items', 100, pc_max_seq_items)
     cf.register_option('mpl_style', None, pc_mpl_style_doc,

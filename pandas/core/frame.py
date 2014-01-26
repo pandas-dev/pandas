@@ -451,12 +451,13 @@ class DataFrame(NDFrame):
 
         max_rows = get_option("display.max_rows")
         max_cols = get_option("display.max_columns")
+        show_dimensions = get_option("display.show_dimensions")
         if get_option("display.expand_frame_repr"):
             width, _ = fmt.get_console_size()
         else:
             width = None
         self.to_string(buf=buf, max_rows=max_rows, max_cols=max_cols,
-                       line_width=width, show_dimensions=True)
+                       line_width=width, show_dimensions=show_dimensions)
 
         return buf.getvalue()
 
@@ -485,11 +486,12 @@ class DataFrame(NDFrame):
         if get_option("display.notebook_repr_html"):
             max_rows = get_option("display.max_rows")
             max_cols = get_option("display.max_columns")
+            show_dimensions = get_option("display.show_dimensions")
 
             return ('<div style="max-height:1000px;'
                     'max-width:1500px;overflow:auto;">\n' +
                     self.to_html(max_rows=max_rows, max_cols=max_cols,
-                                 show_dimensions=True) + '\n</div>')
+                                 show_dimensions=show_dimensions) + '\n</div>')
         else:
             return None
 
