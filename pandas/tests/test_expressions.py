@@ -10,7 +10,8 @@ import numpy as np
 from numpy.testing import assert_array_equal
 
 from pandas.core.api import DataFrame, Panel
-from pandas.computation import expressions as expr
+import pandas.computation as computation
+import pandas.computation.expressions as expr
 from pandas import compat
 
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
@@ -19,15 +20,6 @@ from pandas.util.testing import (assert_almost_equal, assert_series_equal,
 import pandas.util.testing as tm
 from numpy.testing.decorators import slow
 
-
-if not expr._USE_NUMEXPR:
-    try:
-        import numexpr
-    except ImportError:
-        msg = "don't have"
-    else:
-        msg = "not using"
-    raise nose.SkipTest("{0} numexpr".format(msg))
 
 _frame  = DataFrame(randn(10000, 4), columns=list('ABCD'), dtype='float64')
 _frame2 = DataFrame(randn(100, 4),   columns = list('ABCD'), dtype='float64')
@@ -45,6 +37,26 @@ _integer2_panel = Panel(dict(ItemA=_integer2,
                              ItemB=(_integer2 + 34).astype('int64')))
 _mixed_panel = Panel(dict(ItemA=_mixed, ItemB=(_mixed + 3)))
 _mixed2_panel = Panel(dict(ItemA=_mixed2, ItemB=(_mixed2 + 3)))
+
+
+def test_arithmetic_works_with_zero_min_elements():
+    df = DataFrame(range(10))
+    original_min = expr._MIN_ELEMENTS
+    expr._MIN_ELEMENTS = 0
+    result = df + 1
+    expected = DataFrame(range(1, 11))
+    tm.assert_frame_equal(result, expected)
+    expr._MIN_ELEMENTS = original_min
+
+
+if not computation._USE_NUMEXPR:
+    try:
+        import numexpr
+    except ImportError:
+        msg = "don't have"
+    else:
+        msg = "not using"
+    raise nose.SkipTest("{0} numexpr".format(msg))
 
 
 class TestExpressions(tm.TestCase):

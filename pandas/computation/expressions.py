@@ -8,16 +8,15 @@ Offer fast expression evaluation through numexpr
 
 import numpy as np
 from pandas.core.common import _values_from_object
-
+import pandas.computation as computation
 try:
     import numexpr as ne
-    _NUMEXPR_INSTALLED = True
-except ImportError:  # pragma: no cover
-    _NUMEXPR_INSTALLED = False
+except ImportError:
+    pass
+
 
 _TEST_MODE = None
 _TEST_RESULT = None
-_USE_NUMEXPR = _NUMEXPR_INSTALLED
 _evaluate = None
 _where = None
 
@@ -33,13 +32,12 @@ _MIN_ELEMENTS = 10000
 
 def set_use_numexpr(v=True):
     # set/unset to use numexpr
-    global _USE_NUMEXPR
-    if _NUMEXPR_INSTALLED:
-        _USE_NUMEXPR = v
+    if computation._NUMEXPR_INSTALLED:
+        computation._USE_NUMEXPR = v
 
     # choose what we are going to do
     global _evaluate, _where
-    if not _USE_NUMEXPR:
+    if not computation._USE_NUMEXPR:
         _evaluate = _evaluate_standard
         _where = _where_standard
     else:
@@ -50,7 +48,7 @@ def set_use_numexpr(v=True):
 def set_numexpr_threads(n=None):
     # if we are using numexpr, set the threads to n
     # otherwise reset
-    if _NUMEXPR_INSTALLED and _USE_NUMEXPR:
+    if computation._NUMEXPR_INSTALLED and computation._USE_NUMEXPR:
         if n is None:
             n = ne.detect_number_of_cores()
         ne.set_num_threads(n)

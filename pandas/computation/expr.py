@@ -16,6 +16,7 @@ from pandas import compat
 from pandas.compat import StringIO, zip, reduce, string_types
 from pandas.core.base import StringMixin
 from pandas.core import common as com
+import pandas.computation as computation
 from pandas.computation.common import NameResolutionError
 from pandas.computation.ops import (_cmp_ops_syms, _bool_ops_syms,
                                     _arith_ops_syms, _unary_ops_syms, is_term)

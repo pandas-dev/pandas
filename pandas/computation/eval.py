@@ -10,6 +10,7 @@ from pandas.core import common as com
 from pandas.compat import string_types
 from pandas.computation.expr import Expr, _parsers, _ensure_scope
 from pandas.computation.engines import _engines
+import pandas.computation as computation
 
 
 def _check_engine(engine):
@@ -33,12 +34,10 @@ def _check_engine(engine):
     # TODO: validate this in a more general way (thinking of future engines
     # that won't necessarily be import-able)
     # Could potentially be done on engine instantiation
-    if engine == 'numexpr':
-        try:
-            import numexpr
-        except ImportError:
-            raise ImportError("'numexpr' not found. Cannot use "
-                              "engine='numexpr' if 'numexpr' is not installed")
+    if engine == 'numexpr' and not computation._USE_NUMEXPR:
+            raise ImportError("'numexpr' not found or disabled. Cannot use "
+                              "engine='numexpr' if 'numexpr' < v2.0 is not "
+                              "installed")
 
 
 def _check_parser(parser):
