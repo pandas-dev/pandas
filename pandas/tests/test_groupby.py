@@ -2348,7 +2348,15 @@ class TestGroupBy(tm.TestCase):
             expected.append(piece.value.rank())
         expected = concat(expected, axis=0)
         expected = expected.reindex(result.index)
+        assert_series_equal(result, expected)
 
+        result = df.groupby(['key1', 'key2']).value.rank(pct=True)
+
+        expected = []
+        for key, piece in df.groupby(['key1', 'key2']):
+            expected.append(piece.value.rank(pct=True))
+        expected = concat(expected, axis=0)
+        expected = expected.reindex(result.index)
         assert_series_equal(result, expected)
 
     def test_dont_clobber_name_column(self):

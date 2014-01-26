@@ -1707,7 +1707,8 @@ class Series(generic.NDFrame):
                 np.argsort(values, kind=kind), index=self.index,
                 dtype='int64').__finalize__(self)
 
-    def rank(self, method='average', na_option='keep', ascending=True):
+    def rank(self, method='average', na_option='keep', ascending=True,
+             pct=False):
         """
         Compute data ranks (1 through n). Equal values are assigned a rank that
         is the average of the ranks of those values
@@ -1723,14 +1724,16 @@ class Series(generic.NDFrame):
             keep: leave NA values where they are
         ascending : boolean, default True
             False for ranks by high (1) to low (N)
-
+        pct : boolean, defeault False
+            Computes percentage rank of data
+            
         Returns
         -------
         ranks : Series
         """
         from pandas.core.algorithms import rank
         ranks = rank(self.values, method=method, na_option=na_option,
-                     ascending=ascending)
+                     ascending=ascending, pct=pct)
         return self._constructor(ranks, index=self.index).__finalize__(self)
 
     def order(self, na_last=True, ascending=True, kind='mergesort'):
