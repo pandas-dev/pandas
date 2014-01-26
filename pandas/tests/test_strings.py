@@ -29,6 +29,11 @@ class TestStringMethods(tm.TestCase):
 
     _multiprocess_can_split_ = True
 
+    def test_api(self):
+
+        # GH 6106
+        self.assert_(Series.str is None)
+
     def test_iter(self):
         # GH3638
         strs = 'google', 'wikimedia', 'wikipedia', 'wikitravel'
