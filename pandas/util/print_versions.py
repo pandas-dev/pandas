@@ -40,7 +40,7 @@ def get_sys_info():
             ("OS", "%s" % (sysname)),
             ("OS-release", "%s" % (release)),
             # ("Version", "%s" % (version)),
-            ("Machine", "%s" % (machine)),
+            ("machine", "%s" % (machine)),
             ("processor", "%s" % (processor)),
             ("byteorder", "%s" % sys.byteorder),
             ("LC_ALL", "%s" % os.environ.get('LC_ALL', "None")),
