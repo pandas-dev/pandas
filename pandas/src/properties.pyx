@@ -22,7 +22,10 @@ cdef class cache_readonly(object):
 
         cache = getattr(obj, '_cache', None)
         if cache is None:
-            cache = obj._cache = {}
+            try:
+                cache = obj._cache = {}
+            except (AttributeError):
+                return
 
         if PyDict_Contains(cache, self.name):
             # not necessary to Py_INCREF
@@ -40,10 +43,13 @@ cdef class cache_readonly(object):
         # Get the cache or set a default one if needed
         cache = getattr(obj, '_cache', None)
         if cache is None:
-            cache = obj._cache = {}
+            try:
+                cache = obj._cache = {}
+            except (AttributeError):
+                return
 
         PyDict_SetItem(cache, self.name, value)
-            
+
 cdef class AxisProperty(object):
     cdef:
         Py_ssize_t axis

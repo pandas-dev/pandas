@@ -79,7 +79,7 @@ class NDFrame(PandasObject):
     copy : boolean, default False
     """
     _internal_names = ['_data', '_cacher', '_item_cache', '_cache',
-                       'is_copy', '_subtyp', '_index', '_default_kind',
+                       'is_copy', 'str', '_subtyp', '_index', '_default_kind',
                        '_default_fill_value','__array_struct__','__array_interface__']
     _internal_names_set = set(_internal_names)
     _metadata = []
@@ -616,7 +616,7 @@ class NDFrame(PandasObject):
         if not isinstance(other, self._constructor):
             return False
         return self._data.equals(other._data)
-            
+
     #----------------------------------------------------------------------
     # Iteration
 
