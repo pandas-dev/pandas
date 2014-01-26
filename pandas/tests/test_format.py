@@ -1428,6 +1428,13 @@ c  10  11  12  13  14\
 
         fmt.reset_option('^display.')
 
+        df = DataFrame([[1, 2], [3, 4]])
+        self.assertTrue('2 rows' in df._repr_html_())
+        fmt.set_option('display.show_dimensions', False)
+        self.assertFalse('2 rows' in df._repr_html_())
+
+        fmt.reset_option('^display.')
+
     def test_repr_html_wide(self):
         row = lambda l, k: [tm.rands(k) for _ in range(l)]
         max_cols = get_option('display.max_columns')

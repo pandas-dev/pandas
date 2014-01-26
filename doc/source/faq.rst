@@ -47,6 +47,7 @@ As of 0.13, these are the relevant options, all under the `display` namespace,
   truncated table or, with this set to 'info', as a short summary view.
 - max_columns (default 20): max dataframe columns to display.
 - max_rows (default 60): max dataframe rows display.
+- show_dimenstions (default True): whether to show number of rows and columns.
 
 Two additional options only apply to displaying DataFrames in terminals,
 not to the HTML view:
