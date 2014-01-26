@@ -971,106 +971,6 @@ def optional_args(decorator):
 _network_error_classes = IOError, httplib.HTTPException
 
 
-@optional_args
-def network(t, raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
-            error_classes=_network_error_classes, num_runs=2):
-    """
-    Label a test as requiring network connection and skip test if it encounters a ``URLError``.
-
-    In some cases it is not possible to assume network presence (e.g. Debian
-    build hosts).
-
-    You can pass an optional ``raise_on_error`` argument to the decorator, in
-    which case it will always raise an error even if it's not a subclass of
-    ``error_classes``.
-
-    Parameters
-    ----------
-    t : callable
-        The test requiring network connectivity.
-    raise_on_error : bool, optional
-        If True, never catches errors.
-    error_classes : tuple, optional
-        error classes to ignore. If not in ``error_classes``, raises the error.
-        defaults to URLError. Be careful about changing the error classes here,
-        it may result in undefined behavior.
-    num_runs : int, optional
-        Number of times to run test. If fails on last try, will raise. Default
-        is 2 runs.
-
-    Returns
-    -------
-    t : callable
-        The decorated test `t`.
-
-    Examples
-    --------
-    A test can be decorated as requiring network like this::
-
-      >>> from pandas.util.testing import network
-      >>> from pandas.io.common import urlopen
-      >>> import nose
-      >>> @network
-      ... def test_network():
-      ...     with urlopen("rabbit://bonanza.com") as f:
-      ...         pass
-      ...
-      >>> try:
-      ...     test_network()
-      ... except nose.SkipTest:
-      ...     print("SKIPPING!")
-      ...
-      SKIPPING!
-
-    Alternatively, you can use set ``raise_on_error`` in order to get
-    the error to bubble up, e.g.::
-
-      >>> @network(raise_on_error=True)
-      ... def test_network():
-      ...     with urlopen("complaint://deadparrot.com") as f:
-      ...         pass
-      ...
-      >>> test_network()
-      Traceback (most recent call last):
-        ...
-      URLError: <urlopen error unknown url type: complaint>
-
-    And use ``nosetests -a '!network'`` to exclude running tests requiring
-    network connectivity. ``_RAISE_NETWORK_ERROR_DEFAULT`` in
-    ``pandas/util/testing.py`` sets the default behavior (currently False).
-    """
-    from nose import SkipTest
-
-    if num_runs < 1:
-        raise ValueError("Must set at least 1 run")
-    t.network = True
-
-    @wraps(t)
-    def network_wrapper(*args, **kwargs):
-        if raise_on_error:
-            return t(*args, **kwargs)
-        else:
-            runs = 0
-
-            for _ in range(num_runs):
-                try:
-                    try:
-                        return t(*args, **kwargs)
-                    except error_classes as e:
-                        raise SkipTest("Skipping test %s" % e)
-                except SkipTest:
-                    raise
-                except Exception as e:
-                    if runs < num_runs - 1:
-                        print("Failed: %r" % e)
-                    else:
-                        raise
-
-                runs += 1
-
-    return network_wrapper
-
-
 def can_connect(url, error_classes=_network_error_classes):
     """Try to connect to the given url. True if succeeds, False if IOError
     raised
@@ -1096,10 +996,9 @@ def can_connect(url, error_classes=_network_error_classes):
 
 
 @optional_args
-def with_connectivity_check(t, url="http://www.google.com",
-                            raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
-                            check_before_test=False,
-                            error_classes=_network_error_classes):
+def network(t, url="http://www.google.com",
+            raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
+            check_before_test=False, error_classes=_network_error_classes):
     """
     Label a test as requiring network connection and, if an error is
     encountered, only raise if it does not find a network connection.
@@ -1138,9 +1037,22 @@ def with_connectivity_check(t, url="http://www.google.com",
     Example
     -------
 
-    In this example, you see how it will raise the error if it can connect to
-    the url::
-        >>> @with_connectivity_check("http://www.yahoo.com")
+    Tests decorated with @network will fail if it's possible to make a network
+    connection to another URL (defaults to google.com)::
+
+      >>> from pandas.util.testing import network
+      >>> from pandas.io.common import urlopen
+      >>> @network
+      ... def test_network():
+      ...     with urlopen("rabbit://bonanza.com"):
+      ...         pass
+      Traceback
+         ...
+      URLError: <urlopen error unknown url type: rabit>
+
+      You can specify alternative URLs::
+
+        >>> @network("http://www.yahoo.com")
         ... def test_something_with_yahoo():
         ...    raise IOError("Failure Message")
         >>> test_something_with_yahoo()
@@ -1148,8 +1060,10 @@ def with_connectivity_check(t, url="http://www.google.com",
             ...
         IOError: Failure Message
 
-    I you set check_before_test, it will check the url first and not run the test on failure::
-        >>> @with_connectivity_check("failing://url.blaher", check_before_test=True)
+    If you set check_before_test, it will check the url first and not run the
+    test on failure::
+
+        >>> @network("failing://url.blaher", check_before_test=True)
         ... def test_something():
         ...     print("I ran!")
         ...     raise ValueError("Failure")
@@ -1157,6 +1071,8 @@ def with_connectivity_check(t, url="http://www.google.com",
         Traceback (most recent call last):
             ...
         SkipTest
+
+    Errors not related to networking will always be raised.
     """
     from nose import SkipTest
     t.network = True
@@ -1176,6 +1092,9 @@ def with_connectivity_check(t, url="http://www.google.com",
                                " and error %s" % e)
 
     return wrapper
+
+
+with_connectivity_check = network
 
 
 class SimpleMock(object):
