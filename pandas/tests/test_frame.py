@@ -11,6 +11,7 @@ import nose
 import functools
 import itertools
 from itertools import product
+from distutils.version import LooseVersion
 
 from pandas.compat import(
     map, zip, range, long, lrange, lmap, lzip,
@@ -12019,8 +12020,12 @@ def skip_if_no_ne(engine='numexpr'):
         try:
             import numexpr as ne
         except ImportError:
-            raise nose.SkipTest("cannot query engine numexpr when numexpr not "
-                                "installed")
+            raise nose.SkipTest("cannot query with engine numexpr when "
+                                "numexpr not installed")
+        else:
+            if ne.__version__ < LooseVersion('2.0'):
+                raise nose.SkipTest("numexpr version too low: "
+                                    "%s" % ne.__version__)
 
 
 def skip_if_no_pandas_parser(parser):

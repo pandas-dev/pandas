@@ -2,6 +2,7 @@
 
 import functools
 from itertools import product
+from distutils.version import LooseVersion
 
 import nose
 from nose.tools import assert_raises, assert_true, assert_false, assert_equal
@@ -20,10 +21,11 @@ from pandas.computation import pytables
 from pandas.computation.expressions import _USE_NUMEXPR
 from pandas.computation.engines import _engines
 from pandas.computation.expr import PythonExprVisitor, PandasExprVisitor
-from pandas.computation.ops import (_binary_ops_dict, _unary_ops_dict,
+from pandas.computation.ops import (_binary_ops_dict,
                                     _special_case_arith_ops_syms,
                                     _arith_ops_syms, _bool_ops_syms)
 from pandas.computation.common import NameResolutionError
+
 import pandas.computation.expr as expr
 import pandas.util.testing as tm
 from pandas.util.testing import (assert_frame_equal, randbool,
@@ -1551,6 +1553,33 @@ def check_name_error_exprs(engine, parser):
 def test_name_error_exprs():
     for engine, parser in ENGINES_PARSERS:
         yield check_name_error_exprs, engine, parser
+
+
+def check_invalid_numexpr_version(engine, parser):
+    def testit():
+        a, b = 1, 2
+        res = pd.eval('a + b', engine=engine, parser=parser)
+        tm.assert_equal(res, 3)
+
+    if engine == 'numexpr':
+        try:
+            import numexpr as ne
+        except ImportError:
+            raise nose.SkipTest("no numexpr")
+        else:
+            if ne.__version__ < LooseVersion('2.0'):
+                with tm.assertRaisesRegexp(ImportError, "'numexpr' version is "
+                                           ".+, must be >= 2.0"):
+                    testit()
+            else:
+                testit()
+    else:
+        testit()
+
+
+def test_invalid_numexpr_version():
+    for engine, parser in ENGINES_PARSERS:
+        yield check_invalid_numexpr_version, engine, parser
 
 
 if __name__ == '__main__':
