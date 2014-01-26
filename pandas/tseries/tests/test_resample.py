@@ -1045,7 +1045,7 @@ class TestResamplePeriodIndex(tm.TestCase):
         tm.assert_almost_equal(result[0], s.mean())
 
     def test_resample_doesnt_truncate(self):
-        """Test for issue #3020"""
+        # Test for issue #3020
         import pandas as pd
         dates = pd.date_range('01-Jan-2014','05-Jan-2014', freq='D')
         series = Series(1, index=dates)

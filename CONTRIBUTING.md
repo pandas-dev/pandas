@@ -63,8 +63,10 @@ looking for a quick way to help out.
     - Add deprecation warnings where needed.
   - Performance matters. Make sure your PR hasn't introduced perf regressions by using `test_perf.sh`.
   - Docstrings follow the [numpydoc](https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt) format.
+  - Write tests.
   - When writing tests, use 2.6 compatible `self.assertFoo` methods. Some polyfills such as `assertRaises`
     can be found in `pandas.util.testing`.
+  - Do not attach doctrings to tests. Make the test itself readable and use comments if needed.
   - Generally, pandas source files should not contain attributions. You can include a "thanks to..."
     in the release changelog. The rest is `git blame`/`git log`.
   - When you start working on a PR, start by creating a new branch pointing at the latest

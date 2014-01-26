@@ -105,10 +105,8 @@ class TestTimeZoneSupport(tm.TestCase):
         self.assertEquals(result, expected)
 
     def test_timestamp_constructed_by_date_and_tz(self):
-        """
-        Fix Issue 2993, Timestamp cannot be constructed by datetime.date
-        and tz correctly
-        """
+        # Fix Issue 2993, Timestamp cannot be constructed by datetime.date
+        # and tz correctly
 
         result = Timestamp(date(2012, 3, 11), tz='US/Eastern')
 
