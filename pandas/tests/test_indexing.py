@@ -647,7 +647,6 @@ class TestIndexing(tm.TestCase):
         assert_frame_equal(result, expected)
 
     def test_iloc_getitem_frame(self):
-        """ originally from test_frame.py"""
         df = DataFrame(np.random.randn(10, 4), index=lrange(0, 20, 2), columns=lrange(0,8,2))
 
         result = df.iloc[2]
@@ -793,7 +792,6 @@ class TestIndexing(tm.TestCase):
         self.assertRaises(ValueError, f)
 
     def test_iloc_setitem_series(self):
-        """ originally from test_series.py """
         df = DataFrame(np.random.randn(10, 4), index=list('abcdefghij'), columns=list('ABCD'))
 
         df.iloc[1,1] = 1

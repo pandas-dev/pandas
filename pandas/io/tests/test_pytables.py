@@ -3200,7 +3200,7 @@ class TestHDFStore(tm.TestCase):
             #                  'frame', [crit1, crit2])
 
     def test_frame_select_complex(self):
-        """ select via complex criteria """
+        # select via complex criteria
 
         df = tm.makeTimeDataFrame()
         df['string'] = 'foo'

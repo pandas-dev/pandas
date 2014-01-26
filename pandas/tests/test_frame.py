@@ -2599,11 +2599,9 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self.assertEqual(False, frame['C'][2])
 
     def test_constructor_mrecarray(self):
-        """
-        Ensure mrecarray produces frame identical to dict of masked arrays
-        from GH3479
+        # Ensure mrecarray produces frame identical to dict of masked arrays
+        # from GH3479
 
-        """
         assert_fr_equal = functools.partial(assert_frame_equal,
                                             check_index_type=True,
                                             check_column_type=True,
@@ -11632,10 +11630,8 @@ starting,ending,measure
         assert_array_equal(df.ending.values, ser_ending.index.values)
 
     def test_tslib_tz_convert_trans_pos_plus_1__bug(self):
-        """
-        Regression test for tslib.tz_convert(vals, tz1, tz2).
-        See https://github.com/pydata/pandas/issues/4496 for details.
-        """
+        # Regression test for tslib.tz_convert(vals, tz1, tz2).
+        # See https://github.com/pydata/pandas/issues/4496 for details.
         idx = pd.date_range(datetime(2011, 3, 26, 23), datetime(2011, 3, 27, 1), freq='1min')
         idx = idx.tz_localize('UTC')
         idx = idx.tz_convert('Europe/Moscow')

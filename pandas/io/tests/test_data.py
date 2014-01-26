@@ -168,8 +168,7 @@ class TestYahoo(tm.TestCase):
 
     @network
     def test_get_components_nasdaq_100(self):
-        """as of 7/12/13 the conditional will test false because the link is
-        invalid"""
+        # as of 7/12/13 the conditional will test false because the link is invalid
         raise nose.SkipTest('unreliable test, receive partial components back for nasdaq_100')
 
         df = web.get_components_yahoo('^NDX') #NASDAQ-100

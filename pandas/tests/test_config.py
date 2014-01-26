@@ -250,7 +250,7 @@ class TestConfig(unittest.TestCase):
 
         # testing warning with catch_warning was only added in 2.6
         if sys.version_info[:2] < (2, 6):
-            raise nose.SkipTest()
+            raise nose.SkipTest("Need py > 2.6")
 
         self.assertTrue(self.cf._is_deprecated('foo'))
         with warnings.catch_warnings(record=True) as w:
