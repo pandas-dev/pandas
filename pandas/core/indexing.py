@@ -1156,6 +1156,11 @@ class _LocIndexer(_LocationIndexer):
                 raise ValueError('Cannot index with multidimensional key')
 
             return self._getitem_iterable(key, axis=axis)
+        elif isinstance(key, tuple) and isinstance(labels, MultiIndex) and \
+            any([isinstance(x,slice) for x in key]):
+            # here we handle a tuple for indexing from an axis
+            # if it wasn't handled previosuly, it must have slices
+            raise NotImplementedError('Not yet implemented axis indexing with tuple containing slices')
         else:
             self._has_valid_type(key, axis)
             return self._get_label(key, axis=axis)
