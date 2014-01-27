@@ -90,10 +90,10 @@ class ExcelReaderTests(SharedItems, tm.TestCase):
         _skip_if_no_openpyxl()
         _skip_if_no_xlrd()
 
-        suffix = ['', 'x']
+        suffix = ['xls', 'xlsx', 'xlsm']
 
         for s in suffix:
-            pth = os.path.join(self.dirpath, 'test.xls%s' % s)
+            pth = os.path.join(self.dirpath, 'test.%s' % s)
             xls = ExcelFile(pth)
             df = xls.parse('Sheet1', index_col=0, parse_dates=True,
                            parse_cols=3)
@@ -109,10 +109,10 @@ class ExcelReaderTests(SharedItems, tm.TestCase):
         _skip_if_no_openpyxl()
         _skip_if_no_xlrd()
 
-        suffix = ['', 'x']
+        suffix = ['xls', 'xlsx', 'xlsm']
 
         for s in suffix:
-            pth = os.path.join(self.dirpath, 'test.xls%s' % s)
+            pth = os.path.join(self.dirpath, 'test.%s' % s)
             xls = ExcelFile(pth)
             df = xls.parse('Sheet1', index_col=0, parse_dates=True,
                            parse_cols=[0, 2, 3])
@@ -129,11 +129,11 @@ class ExcelReaderTests(SharedItems, tm.TestCase):
         _skip_if_no_openpyxl()
         _skip_if_no_xlrd()
 
-        suffix = ['', 'x']
+        suffix = ['xls', 'xlsx', 'xlsm']
 
         for s in suffix:
 
-            pth = os.path.join(self.dirpath, 'test.xls%s' % s)
+            pth = os.path.join(self.dirpath, 'test.%s' % s)
             xls = ExcelFile(pth)
 
             df = xls.parse('Sheet1', index_col=0, parse_dates=True,
@@ -678,26 +678,26 @@ class ExcelWriterBase(SharedItems):
         with ensure_clean(self.ext) as filename1:
             with ensure_clean(self.ext) as filename2:
                 writer1 = ExcelWriter(filename1)
-                writer2 = ExcelWriter(filename2, 
+                writer2 = ExcelWriter(filename2,
                   date_format='DD.MM.YYYY',
                   datetime_format='DD.MM.YYYY HH-MM-SS')
 
                 df.to_excel(writer1, 'test1')
                 df.to_excel(writer2, 'test1')
-                
+
                 writer1.close()
                 writer2.close()
 
                 reader1 = ExcelFile(filename1)
                 reader2 = ExcelFile(filename2)
-                
+
                 rs1 = reader1.parse('test1', index_col=None)
                 rs2 = reader2.parse('test1', index_col=None)
-               
+
                 tm.assert_frame_equal(rs1, rs2)
 
                 # since the reader returns a datetime object for dates, we need
-                # to use df_expected to check the result         
+                # to use df_expected to check the result
                 tm.assert_frame_equal(rs2, df_expected)
 
     def test_to_excel_periodindex(self):
