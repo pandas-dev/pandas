@@ -1155,7 +1155,6 @@ can also be used.
 Testing for Strings that Match or Contain a Pattern
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-
 You can check whether elements contain a pattern:
 
 .. ipython:: python
@@ -1220,6 +1219,21 @@ Methods like ``match``, ``contains``, ``startswith``, and ``endswith`` take
     ``lstrip``,Equivalent to ``str.lstrip``
     ``lower``,Equivalent to ``str.lower``
     ``upper``,Equivalent to ``str.upper``
+
+
+Getting indicator variables from seperated strings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can extract dummy variables from string columns.
+For example if they are seperated by a ``'|'``:
+
+  .. ipython:: python
+
+      s = pd.Series(['a', 'a|b', np.nan, 'a|c'])
+      s.str.get_dummies(sep='|')
+
+See also ``pd.get_dummies``.
+
 
 .. _basics.sorting:
 

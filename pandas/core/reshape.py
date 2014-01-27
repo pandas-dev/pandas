@@ -941,6 +941,8 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False):
     1  0  1    0
     2  0  0    1
 
+    See also ``Series.str.get_dummies``.
+
     """
     # Series avoids inconsistent NaN handling
     cat = Categorical.from_array(Series(data))

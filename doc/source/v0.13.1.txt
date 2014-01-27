@@ -43,6 +43,14 @@ API changes
 - Add ``-NaN`` and ``-nan`` to the default set of NA values (:issue:`5952`).
   See :ref:`NA Values <io.na_values>`.
 
+- Added ``Series.str.get_dummies`` vectorized string method (:issue:`6021`), to extract
+  dummy/indicator variables for seperated string columns:
+
+  .. ipython:: python
+
+      s = Series(['a', 'a|b', np.nan, 'a|c'])
+      s.str.get_dummies(sep='|')
+
 - Added the ``NDFrame.equals()`` method to compare if two NDFrames are
   equal have equal axes, dtypes, and values. Added the
   ``array_equivalent`` function to compare if two ndarrays are
