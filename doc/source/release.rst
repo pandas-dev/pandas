@@ -157,6 +157,8 @@ Bug Fixes
   - Bug with insert of strings into DatetimeIndex (:issue:`5818`)
   - Fixed unicode bug in to_html/HTML repr (:issue:`6098`)
   - Fixed missing arg validation in get_options_data (:issue:`6105`)
+  - Bug in assignment with duplicate columns in a frame where the locations
+    are a slice (e.g. next to each other) (:issue:`6120`)
 
 pandas 0.13.0
 -------------

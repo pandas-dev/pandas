@@ -3229,6 +3229,21 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             result = getattr(df,op)(df)
             check(result,expected)
 
+        # multiple assignments that change dtypes
+        # the location indexer is a slice
+        # GH 6120
+        df = DataFrame(np.random.randn(5,2), columns=['that', 'that'])
+        expected = DataFrame(1.0, index=range(5), columns=['that', 'that'])
+
+        df['that'] = 1.0
+        check(df, expected)
+
+        df = DataFrame(np.random.rand(5,2), columns=['that', 'that'])
+        expected = DataFrame(1, index=range(5), columns=['that', 'that'])
+
+        df['that'] = 1
+        check(df, expected)
+
     def test_column_dups_indexing(self):
 
         def check(result, expected=None):
