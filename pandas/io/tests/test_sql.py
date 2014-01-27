@@ -115,11 +115,16 @@ class PandasSQLTest(unittest.TestCase):
         tm.equalContents(row.values, [5.1, 3.5, 1.4, 0.2, 'Iris-setosa'])
 
     def _load_test1_data(self):
-        test1_csv_file = os.path.join(tm.get_data_path(), 'test1.csv')
+        columns = ['index', 'A', 'B', 'C', 'D']
+        data = [(
+            '2000-01-03 00:00:00', 0.980268513777, 3.68573087906, -0.364216805298, -1.15973806169),
+            ('2000-01-04 00:00:00', 1.04791624281, -
+             0.0412318367011, -0.16181208307, 0.212549316967),
+            ('2000-01-05 00:00:00', 0.498580885705,
+             0.731167677815, -0.537677223318, 1.34627041952),
+            ('2000-01-06 00:00:00', 1.12020151869, 1.56762092543, 0.00364077397681, 0.67525259227)]
 
-        with open(test1_csv_file, 'rU') as test1_csv:
-            dr = csv.DictReader(test1_csv)
-            self.test_frame1 = DataFrame(list(dr))
+        self.test_frame1 = DataFrame(data, columns=columns)
 
     def _load_raw_sql(self):
         self.drop_table('types_test_data')
@@ -209,8 +214,10 @@ class PandasSQLTest(unittest.TestCase):
         self.pandasSQL.to_sql(self.test_frame1, 'test_frame_roundtrip')
         result = self.pandasSQL.read_sql('SELECT * FROM test_frame_roundtrip')
 
-        # HACK!
-        result.index = self.test_frame1.index
+        result.set_index('pandas_index', inplace=True)
+        #result.index.astype(int)
+
+        result.index.name = None
 
         tm.assert_frame_equal(result, self.test_frame1)
 
@@ -324,7 +331,9 @@ class TestSQLApi(PandasSQLTest):
 
         # HACK!
         result.index = self.test_frame1.index
-
+        result.set_index('pandas_index', inplace=True)
+        result.index.astype(int)
+        result.index.name = None
         tm.assert_frame_equal(result, self.test_frame1)
 
     def test_execute_sql(self):
@@ -414,7 +423,7 @@ class TestSQLAlchemy(PandasSQLTest):
             {'one': [1., 2., 3., 4.], 'two': [4., 3., 2., 1.]})
 
         pandasSQL = sql.PandasSQLAlchemy(temp_conn)
-        pandasSQL._create_table(temp_frame, 'temp_frame')
+        pandasSQL.to_sql(temp_frame, 'temp_frame')
 
         self.assertTrue(
             temp_conn.has_table('temp_frame'), 'Table not written to DB')
@@ -426,12 +435,12 @@ class TestSQLAlchemy(PandasSQLTest):
             {'one': [1., 2., 3., 4.], 'two': [4., 3., 2., 1.]})
 
         pandasSQL = sql.PandasSQLAlchemy(temp_conn)
-        pandasSQL._create_table(temp_frame, 'temp_frame')
+        pandasSQL.to_sql(temp_frame, 'temp_frame')
 
         self.assertTrue(
             temp_conn.has_table('temp_frame'), 'Table not written to DB')
 
-        pandasSQL._drop_table('temp_frame')
+        pandasSQL.drop_table('temp_frame')
 
         self.assertFalse(
             temp_conn.has_table('temp_frame'), 'Table not deleted from DB')
@@ -476,7 +485,8 @@ class TestSQLAlchemy(PandasSQLTest):
     def test_default_date_load(self):
         df = sql.read_table("types_test_data", self.conn)
 
-        # IMPORTANT - sqlite has no native date type, so shouldn't parse, but MySQL SHOULD be converted.
+        # IMPORTANT - sqlite has no native date type, so shouldn't parse, but
+        # MySQL SHOULD be converted.
         self.assertFalse(
             issubclass(df.DateCol.dtype.type, np.datetime64), "DateCol loaded with incorrect type")
 
@@ -564,12 +574,12 @@ class TestSQLite(PandasSQLTest):
         temp_frame = DataFrame(
             {'one': [1., 2., 3., 4.], 'two': [4., 3., 2., 1.]})
 
-        self.pandasSQL._create_table(temp_frame, 'drop_test_frame')
+        self.pandasSQL.to_sql(temp_frame, 'drop_test_frame')
 
         self.assertTrue(self.pandasSQL.has_table(
             'drop_test_frame'), 'Table not written to DB')
 
-        self.pandasSQL._drop_table('drop_test_frame')
+        self.pandasSQL.drop_table('drop_test_frame')
 
         self.assertFalse(self.pandasSQL.has_table(
             'drop_test_frame'), 'Table not deleted from DB')
@@ -660,6 +670,7 @@ class TestMySQLAlchemy(TestSQLAlchemy):
         def test_default_date_load(self):
             df = sql.read_table("types_test_data", self.conn)
 
-            # IMPORTANT - sqlite has no native date type, so shouldn't parse, but MySQL SHOULD be converted.
+            # IMPORTANT - sqlite has no native date type, so shouldn't parse,
+            # but MySQL SHOULD be converted.
             self.assertTrue(
                 issubclass(df.DateCol.dtype.type, np.datetime64), "DateCol loaded with incorrect type")
