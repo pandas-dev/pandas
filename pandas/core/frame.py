@@ -3341,10 +3341,16 @@ class DataFrame(NDFrame):
 
     def _apply_standard(self, func, axis, ignore_failures=False, reduce=True):
 
+        # skip if we are mixed datelike and trying reduce across axes
+        # GH6125
+        if reduce and axis==1 and self._is_mixed_type and self._is_datelike_mixed_type:
+            reduce=False
+
         # try to reduce first (by default)
         # this only matters if the reduction in values is of different dtype
         # e.g. if we want to apply to a SparseFrame, then can't directly reduce
         if reduce:
+
             try:
 
                 # the is the fast-path
