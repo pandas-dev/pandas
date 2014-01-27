@@ -61,8 +61,7 @@ class _NDFrameIndexer(object):
             return self.obj[label]
         elif (isinstance(label, tuple) and
                 isinstance(label[axis], slice)):
-
-            raise IndexingError('no slices here')
+            raise IndexingError('no slices here, handle elsewhere')
 
         try:
             return self.obj._xs(label, axis=axis, copy=False)
@@ -677,13 +676,14 @@ class _NDFrameIndexer(object):
         # a bit kludgy
         if isinstance(ax0, MultiIndex):
             try:
+                # fast path for series or for tup devoid of slices
                 return self._get_label(tup, axis=0)
             except TypeError:
                 # slices are unhashable
                 pass
             except Exception as e1:
                 if isinstance(tup[0], (slice, Index)):
-                    raise IndexingError
+                    raise IndexingError("Handle elsewhere")
 
                 # raise the error if we are not sorted
                 if not ax0.is_lexsorted_for_tuple(tup):
@@ -694,7 +694,7 @@ class _NDFrameIndexer(object):
                     raise e1
 
         if len(tup) > self.obj.ndim:
-            raise IndexingError
+            raise IndexingError("Too many indexers. handle elsewhere")
 
         # to avoid wasted computation
         # df.ix[d1:d2, 0] -> columns first (True)
@@ -707,9 +707,9 @@ class _NDFrameIndexer(object):
                 if not _is_list_like(section):
                     return section
 
-                # might have been a MultiIndex
                 elif section.ndim == self.ndim:
-
+                    # we're in the middle of slicing through a MultiIndex
+                    # revise the key wrt to `section` by inserting an _NS
                     new_key = tup[:i] + (_NS,) + tup[i + 1:]
 
                 else:
@@ -725,6 +725,7 @@ class _NDFrameIndexer(object):
                     if len(new_key) == 1:
                         new_key, = new_key
 
+                # This is an elided recursive call to iloc/loc/etc'
                 return getattr(section, self.name)[new_key]
 
         raise IndexingError('not applicable')
