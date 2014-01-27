@@ -1163,6 +1163,14 @@ class TestConcatenate(tm.TestCase):
         self.assertRaises(ValueError, self.frame.append, self.frame,
                           verify_integrity=True)
 
+        # new columns
+        # GH 6129
+        df = DataFrame({'a': {'x': 1, 'y': 2}, 'b': {'x': 3, 'y': 4}})
+        row = Series([5, 6, 7], index=['a', 'b', 'c'], name='z')
+        expected = DataFrame({'a': {'x': 1, 'y': 2, 'z': 5}, 'b': {'x': 3, 'y': 4, 'z': 6}, 'c' : {'z' : 7}})
+        result = df.append(row)
+        assert_frame_equal(result, expected)
+
     def test_append_length0_frame(self):
         df = DataFrame(columns=['A', 'B', 'C'])
         df3 = DataFrame(index=[0, 1], columns=['A', 'B'])
