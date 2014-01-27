@@ -6,7 +6,6 @@ from __future__ import print_function
 from datetime import datetime, date
 import warnings
 from pandas.compat import range, lzip, map, zip, raise_with_traceback
-import pandas.compat as compat
 import numpy as np
 
 
@@ -170,6 +169,7 @@ def read_sql(sql, con, index_col=None, flavor='sqlite', coerce_float=True,
         to the keyword arguments of :func:`pandas.tseries.tools.to_datetime`
         Especially useful with databases without native Datetime support,
         such as SQLite
+
     Returns
     -------
     DataFrame
@@ -182,7 +182,7 @@ def read_sql(sql, con, index_col=None, flavor='sqlite', coerce_float=True,
                                parse_dates=parse_dates)
 
 
-def to_sql(frame, name, con, flavor='sqlite', if_exists='fail'):
+def to_sql(frame, name, con, flavor='sqlite', if_exists='fail', index=True):
     """
     Write records stored in a DataFrame to a SQL database.
 
@@ -194,14 +194,17 @@ def to_sql(frame, name, con, flavor='sqlite', if_exists='fail'):
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
         If a DBAPI2 object is given, a supported SQL flavor must also be provided
-    flavor: {'sqlite', 'mysql', 'postgres'}, default 'sqlite', ignored when using engine
+    flavor: {'sqlite', 'mysql', 'postgres'}, default 'sqlite'
+        ignored when SQLAlchemy engine. Required when using DBAPI2 connection.
     if_exists: {'fail', 'replace', 'append'}, default 'fail'
         fail: If table exists, do nothing.
         replace: If table exists, drop it, recreate it, and insert data.
         append: If table exists, insert data. Create if does not exist.
+    index : boolean, default True
+        Write DataFrame index as an column
     """
     pandas_sql = pandasSQL_builder(con, flavor=flavor)
-    pandas_sql.to_sql(frame, name, if_exists=if_exists)
+    pandas_sql.to_sql(frame, name, if_exists=if_exists, index=index)
 
 
 def has_table(table_name, con, meta=None, flavor='sqlite'):
@@ -295,6 +298,237 @@ def pandasSQL_builder(con, flavor=None, meta=None):
             return PandasSQLLegacy(con, flavor)
 
 
+def _safe_col_name(col_name):
+    return col_name.strip().replace(' ', '_')
+
+
+def _parse_date_column(col, format=None):
+    if isinstance(format, dict):
+        return to_datetime(col, **format)
+    else:
+        if format in ['D', 's', 'ms', 'us', 'ns']:
+            return to_datetime(col, coerce=True, unit=format)
+        elif issubclass(col.dtype.type, np.floating) or issubclass(col.dtype.type, np.integer):
+            # parse dates as timestamp
+            format = 's' if format is None else format
+            return to_datetime(col, coerce=True, unit=format)
+        else:
+            return to_datetime(col, coerce=True, format=format)
+
+
+def _frame_from_data_and_columns(data, columns, index_col=None,
+                                 coerce_float=True):
+    df = DataFrame.from_records(
+        data, columns=columns, coerce_float=coerce_float)
+    if index_col is not None:
+        df.set_index(index_col, inplace=True)
+    return df
+
+
+class PandasSQLTable(PandasObject):
+
+    def __init__(self, name, pandas_sql_engine, frame=None, index=True, if_exists='fail', prefix='pandas'):
+        self.name = name
+        self.pd_sql = pandas_sql_engine
+        self.prefix = prefix
+        self.frame = frame
+        self.index = self._index_name(index)
+
+        if frame is not None:
+            # We want to write a frame
+            if self.pd_sql.has_table(self.name):
+                if if_exists == 'fail':
+                    raise ValueError("Table '%s' already exists." % name)
+                elif if_exists == 'replace':
+                    self.pd_sql.drop_table(self.name)
+                    self.table = self._create_table_statement()
+                    self.create()
+                elif if_exists == 'append':
+                    self.table = self.pd_sql.get_table(self.name)
+                    if self.table is None:
+                        self.table = self._create_table_statement()
+            else:
+                self.table = self._create_table_statement()
+                self.create()
+        else:
+            # no data provided, read-only mode
+            self.table = self.pd_sql.get_table(self.name)
+
+        if self.table is None:
+            raise ValueError("Could not init table '%s'" % name)
+
+    def exists(self):
+        return self.pd_sql.has_table(self.name)
+
+    def sql_schema(self):
+        return str(self.table.compile())
+
+    def create(self):
+        self.table.create()
+
+    def insert_statement(self):
+        return self.table.insert()
+
+    def maybe_asscalar(self, i):
+        try:
+            return np.asscalar(i)
+        except AttributeError:
+            return i
+
+    def insert(self):
+        ins = self.insert_statement()
+
+        for t in self.frame.iterrows():
+            data = dict((k, self.maybe_asscalar(v))
+                        for k, v in t[1].iteritems())
+            if self.index is not None:
+                data[self.index] = self.maybe_asscalar(t[0])
+            self.pd_sql.execute(ins, **data)
+
+    def read(self, coerce_float=True, parse_dates=None, columns=None):
+
+        if columns is not None and len(columns) > 0:
+            from sqlalchemy import select
+            cols = [self.table.c[n] for n in columns]
+            if self.index is not None:
+                cols.insert(0, self.table.c[self.index])
+            sql_select = select(cols)
+        else:
+            sql_select = self.table.select()
+
+        result = self.pd_sql.execute(sql_select)
+        data = result.fetchall()
+        column_names = result.keys()
+
+        self.frame = _frame_from_data_and_columns(data, column_names,
+                                                  index_col=self.index,
+                                                  coerce_float=coerce_float)
+
+        self._harmonize_columns(parse_dates=parse_dates)
+
+        # Assume that if the index was in prefix_index format, we gave it a name
+        # and should return it nameless
+        if self.index == self.prefix + '_index':
+            self.frame.index.name = None
+
+        return self.frame
+
+    def _index_name(self, index):
+        if index is True:
+            if self.frame.index.name is not None:
+                return _safe_col_name(self.frame.index.name)
+            else:
+                return self.prefix + '_index'
+        elif isinstance(index, basestring):
+            return index
+        else:
+            return None
+
+    def _create_table_statement(self):
+        from sqlalchemy import Table, Column
+
+        safe_columns = map(_safe_col_name, self.frame.dtypes.index)
+        column_types = map(self._sqlalchemy_type, self.frame.dtypes)
+
+        columns = [Column(name, typ)
+                   for name, typ in zip(safe_columns, column_types)]
+
+        if self.index is not None:
+            columns.insert(0, Column(self.index,
+                                     self._sqlalchemy_type(
+                                         self.frame.index.dtype),
+                                     index=True))
+
+        return Table(self.name, self.pd_sql.meta, *columns)
+
+    def _harmonize_columns(self, parse_dates=None):
+        """ Make a data_frame's column type align with an sql_table column types
+            Need to work around limited NA value support.
+            Floats are always fine, ints must always
+            be floats if there are Null values.
+            Booleans are hard because converting bool column with None replaces
+            all Nones with false. Therefore only convert bool if there are no NA
+            values.
+            Datetimes should already be converted
+            to np.datetime if supported, but here we also force conversion
+            if required
+        """
+        # handle non-list entries for parse_dates gracefully
+        if parse_dates is True or parse_dates is None or parse_dates is False:
+            parse_dates = []
+
+        if not hasattr(parse_dates, '__iter__'):
+            parse_dates = [parse_dates]
+
+        for sql_col in self.table.columns:
+            col_name = sql_col.name
+            try:
+                df_col = self.frame[col_name]
+                # the type the dataframe column should have
+                col_type = self._numpy_type(sql_col.type)
+
+                if col_type is datetime or col_type is date:
+                    if not issubclass(df_col.dtype.type, np.datetime64):
+                        self.frame[col_name] = _parse_date_column(df_col)
+
+                elif col_type is float:
+                    # floats support NA, can always convert!
+                    self.frame[col_name].astype(col_type, copy=False)
+
+                elif len(df_col) == df_col.count():
+                    # No NA values, can convert ints and bools
+                    if col_type is int or col_type is bool:
+                        self.frame[col_name].astype(col_type, copy=False)
+
+                # Handle date parsing
+                if col_name in parse_dates:
+                    try:
+                        fmt = parse_dates[col_name]
+                    except TypeError:
+                        fmt = None
+                    self.frame[col_name] = _parse_date_column(
+                        df_col, format=fmt)
+
+            except KeyError:
+                pass  # this column not in results
+
+    def _sqlalchemy_type(self, dtype):
+        from sqlalchemy.types import Integer, Float, Text, Boolean, DateTime, Date
+
+        pytype = dtype.type
+
+        if pytype is date:
+            return Date
+        if issubclass(pytype, np.datetime64) or pytype is datetime:
+            # Caution: np.datetime64 is also a subclass of np.number.
+            return DateTime
+        if issubclass(pytype, np.floating):
+            return Float
+        if issubclass(pytype, np.integer):
+            # TODO: Refine integer size.
+            return Integer
+        if issubclass(pytype, np.bool_):
+            return Boolean
+        return Text
+
+    def _numpy_type(self, sqltype):
+        from sqlalchemy.types import Integer, Float, Boolean, DateTime, Date
+
+        if isinstance(sqltype, Float):
+            return float
+        if isinstance(sqltype, Integer):
+            # TODO: Refine integer size.
+            return int
+        if isinstance(sqltype, DateTime):
+            # Caution: np.datetime64 is also a subclass of np.number.
+            return datetime
+        if isinstance(sqltype, Date):
+            return date
+        if isinstance(sqltype, Boolean):
+            return bool
+        return object
+
+
 class PandasSQL(PandasObject):
 
     """
@@ -308,22 +542,6 @@ class PandasSQL(PandasObject):
     def to_sql(self, *args, **kwargs):
         raise ValueError(
             "PandasSQL must be created with an SQLAlchemy engine or connection+sql flavor")
-
-    def _create_sql_schema(self, frame, name, keys):
-        raise ValueError(
-            "PandasSQL must be created with an SQLAlchemy engine or connection+sql flavor")
-
-    def _frame_from_data_and_columns(self, data, columns, index_col=None,
-                                     coerce_float=True):
-        df = DataFrame.from_records(
-            data, columns=columns, coerce_float=coerce_float)
-        if index_col is not None:
-            df.set_index(index_col, inplace=True)
-        return df
-
-    def _safe_col_names(self, col_names):
-        # may not be safe enough...
-        return [s.replace(' ', '_').strip() for s in col_names]
 
     def _parse_date_columns(self, data_frame, parse_dates):
         """ Force non-datetime columns to be read as such.
@@ -342,22 +560,9 @@ class PandasSQL(PandasObject):
                 fmt = parse_dates[col_name]
             except TypeError:
                 fmt = None
-            data_frame[col_name] = self._parse_date_col(df_col, format=fmt)
+            data_frame[col_name] = _parse_date_column(df_col, format=fmt)
 
         return data_frame
-
-    def _parse_date_col(self, col, col_type=None, format=None):
-            if isinstance(format, dict):
-                return to_datetime(col, **format)
-            else:
-                if format in ['D', 's', 'ms', 'us', 'ns']:
-                    return to_datetime(col, coerce=True, unit=format)
-                elif issubclass(col.dtype.type, np.floating) or issubclass(col.dtype.type, np.integer):
-                    # parse dates as timestamp
-                    format = 's' if format is None else format
-                    return to_datetime(col, coerce=True, unit=format)
-                else:
-                    return to_datetime(col, coerce=True, format=format)
 
 
 class PandasSQLAlchemy(PandasSQL):
@@ -381,12 +586,10 @@ class PandasSQLAlchemy(PandasSQL):
         return self.engine.execute(*args, **kwargs)
 
     def tquery(self, *args, **kwargs):
-        """Accepts same args as execute"""
         result = self.execute(*args, **kwargs)
         return result.fetchall()
 
     def uquery(self, *args, **kwargs):
-        """Accepts same args as execute"""
         result = self.execute(*args, **kwargs)
         return result.rowcount
 
@@ -396,40 +599,16 @@ class PandasSQLAlchemy(PandasSQL):
         data = result.fetchall()
         columns = result.keys()
 
-        data_frame = self._frame_from_data_and_columns(data, columns,
-                                                       index_col=index_col,
-                                                       coerce_float=coerce_float)
+        data_frame = _frame_from_data_and_columns(data, columns,
+                                                  index_col=index_col,
+                                                  coerce_float=coerce_float)
 
         return self._parse_date_columns(data_frame, parse_dates)
 
-    def to_sql(self, frame, name, if_exists='fail'):
-        if self.engine.has_table(name):
-            if if_exists == 'fail':
-                raise ValueError("Table '%s' already exists." % name)
-            elif if_exists == 'replace':
-                # TODO: this triggers a full refresh of metadata, could
-                # probably avoid this.
-                self._drop_table(name)
-                self._create_table(frame, name)
-            elif if_exists == 'append':
-                pass  # table exists and will automatically be appended to
-        else:
-            self._create_table(frame, name)
-        self._write(frame, name)
-
-    def _write(self, frame, table_name):
-        table = self.get_table(table_name)
-        ins = table.insert()
-
-        def maybe_asscalar(i):
-            try:
-                return np.asscalar(i)
-            except AttributeError:
-                return i
-
-        for t in frame.iterrows():
-            self.engine.execute(ins, **dict((k, maybe_asscalar(v))
-                                            for k, v in t[1].iteritems()))
+    def to_sql(self, frame, name, if_exists='fail', index=True):
+        table = PandasSQLTable(
+            name, self, frame=frame, index=index, if_exists=if_exists)
+        table.insert()
 
     def has_table(self, name):
         return self.engine.has_table(name)
@@ -442,134 +621,20 @@ class PandasSQLAlchemy(PandasSQL):
 
     def read_table(self, table_name, index_col=None, coerce_float=True,
                    parse_dates=None, columns=None):
-        table = self.get_table(table_name)
 
-        if table is not None:
+        table = PandasSQLTable(table_name, self, index=index_col)
+        return table.read(coerce_float=parse_dates,
+                          parse_dates=parse_dates, columns=columns)
 
-            if columns is not None and len(columns) > 0:
-                from sqlalchemy import select
-                sql_select = select([table.c[n] for n in columns])
-            else:
-                sql_select = table.select()
-
-            result = self.execute(sql_select)
-            data = result.fetchall()
-            columns = result.keys()
-
-            data_frame = self._frame_from_data_and_columns(data, columns,
-                                                           index_col=index_col,
-                                                           coerce_float=coerce_float)
-
-            data_frame = self._harmonize_columns(
-                data_frame, table, parse_dates)
-            return data_frame
-        else:
-            return None
-
-    def _drop_table(self, table_name):
+    def drop_table(self, table_name):
         if self.engine.has_table(table_name):
             self.get_table(table_name).drop()
             self.meta.clear()
             self.meta.reflect()
 
-    def _create_table(self, frame, table_name, keys=None):
-        table = self._create_sqlalchemy_table(frame, table_name, keys)
-        table.create()
-
-    def _create_sql_schema(self, frame, table_name, keys=None):
-        table = self._create_sqlalchemy_table(frame, table_name, keys)
+    def _create_sql_schema(self, frame, table_name):
+        table = PandasSQLTable(table_name, self, frame=frame)
         return str(table.compile())
-
-    def _create_sqlalchemy_table(self, frame, table_name, keys=None):
-        from sqlalchemy import Table, Column
-        if keys is None:
-            keys = []
-
-        safe_columns = self._safe_col_names(frame.dtypes.index)
-        column_types = map(self._lookup_sql_type, frame.dtypes)
-
-        columns = [(col_name, col_sqltype, col_name in keys)
-                   for col_name, col_sqltype in zip(safe_columns, column_types)]
-
-        columns = [Column(name, typ, primary_key=pk)
-                   for name, typ, pk in columns]
-
-        return Table(table_name, self.meta, *columns)
-
-    def _lookup_sql_type(self, dtype):
-        from sqlalchemy.types import Integer, Float, Text, Boolean, DateTime, Date
-
-        pytype = dtype.type
-
-        if pytype is date:
-            return Date
-        if issubclass(pytype, np.datetime64) or pytype is datetime:
-            # Caution: np.datetime64 is also a subclass of np.number.
-            return DateTime
-        if issubclass(pytype, np.floating):
-            return Float
-        if issubclass(pytype, np.integer):
-            # TODO: Refine integer size.
-            return Integer
-        if issubclass(pytype, np.bool_):
-            return Boolean
-        return Text
-
-    def _lookup_np_type(self, sqltype):
-        from sqlalchemy.types import Integer, Float, Boolean, DateTime, Date
-
-        if isinstance(sqltype, Float):
-            return float
-        if isinstance(sqltype, Integer):
-            # TODO: Refine integer size.
-            return int
-        if isinstance(sqltype, DateTime):
-            # Caution: np.datetime64 is also a subclass of np.number.
-            return datetime
-        if isinstance(sqltype, Date):
-            return date
-        if isinstance(sqltype, Boolean):
-            return bool
-        return object
-
-    def _harmonize_columns(self, data_frame, sql_table, parse_dates=None):
-        """ Make a data_frame's column type align with an sql_table column types
-            Need to work around limited NA value support.
-            Floats are always fine, ints must always
-            be floats if there are Null values.
-            Booleans are hard because converting bool column with None replaces
-            all Nones with false. Therefore only convert bool if there are no NA
-            values.
-            Datetimes should already be converted
-            to np.datetime if supported, but here we also force conversion
-            if required
-        """
-        for sql_col in sql_table.columns:
-            col_name = sql_col.name
-            try:
-                df_col = data_frame[col_name]
-                # the type the dataframe column should have
-                col_type = self._lookup_np_type(sql_col.type)
-
-                if col_type is datetime or col_type is date:
-                    if not issubclass(df_col.dtype.type, np.datetime64):
-                        data_frame[col_name] = self._parse_date_col(
-                            df_col, col_type)
-
-                elif col_type is float:
-                    # floats support NA, can always convert!
-                    data_frame[col_name].astype(col_type, copy=False)
-
-                elif len(df_col) == df_col.count():
-                    # No NA values, can convert ints and bools
-                    if col_type is int or col_type is bool:
-                        data_frame[col_name].astype(col_type, copy=False)
-            except KeyError:
-                pass  # this column not in results
-
-        data_frame = self._parse_date_columns(data_frame, parse_dates)
-
-        return data_frame
 
 
 # ---- SQL without SQLAlchemy ---
@@ -618,6 +683,89 @@ _SQL_SYMB = {
 }
 
 
+class PandasSQLTableLegacy(PandasSQLTable):
+    """Patch the PandasSQLTable for legacy support.
+        Instead of a table variable just use the Create Table
+        statement"""
+    def sql_schema(self):
+        return str(self.table)
+
+    def create(self):
+        self.pd_sql.execute(self.table)
+
+    def insert_statement(self):
+        # Replace spaces in DataFrame column names with _.
+        safe_names = [_safe_col_name(n) for n in self.frame.dtypes.index]
+        flv = self.pd_sql.flavor
+        br_l = _SQL_SYMB[flv]['br_l']  # left val quote char
+        br_r = _SQL_SYMB[flv]['br_r']  # right val quote char
+        wld = _SQL_SYMB[flv]['wld']  # wildcard char
+
+        if self.index is not None:
+            safe_names.insert(0, self.index)
+
+        bracketed_names = [br_l + column + br_r for column in safe_names]
+        col_names = ','.join(bracketed_names)
+        wildcards = ','.join([wld] * len(safe_names))
+        insert_statement = 'INSERT INTO %s (%s) VALUES (%s)' % (
+            self.name, col_names, wildcards)
+        return insert_statement
+
+    def insert(self):
+        ins = self.insert_statement()
+        cur = self.pd_sql.con.cursor()
+        for r in self.frame.iterrows():
+            data = [self.maybe_asscalar(v) for v in r[1].values]
+            if self.index is not None:
+                data.insert(0, self.maybe_asscalar(r[0]))
+            print(type(data[2]))
+            print(type(r[0]))
+            cur.execute(ins, tuple(data))
+        cur.close()
+
+    def _create_table_statement(self):
+        "Return a CREATE TABLE statement to suit the contents of a DataFrame."
+
+        # Replace spaces in DataFrame column names with _.
+        safe_columns = [_safe_col_name(n) for n in self.frame.dtypes.index]
+        column_types = [self._sql_type_name(typ) for typ in self.frame.dtypes]
+
+        if self.index is not None:
+            safe_columns.insert(0, self.index)
+            column_types.insert(0, self._sql_type_name(self.frame.index.dtype))
+        flv = self.pd_sql.flavor
+
+        br_l = _SQL_SYMB[flv]['br_l']  # left val quote char
+        br_r = _SQL_SYMB[flv]['br_r']  # right val quote char
+
+        col_template = br_l + '%s' + br_r + ' %s'
+
+        columns = ',\n  '.join(col_template %
+                               x for x in zip(safe_columns, column_types))
+        template = """CREATE TABLE %(name)s (
+                      %(columns)s
+                      );"""
+        create_statement = template % {'name': self.name, 'columns': columns}
+        return create_statement
+
+    def _sql_type_name(self, dtype):
+        pytype = dtype.type
+        pytype_name = "text"
+        if issubclass(pytype, np.floating):
+            pytype_name = "float"
+        elif issubclass(pytype, np.integer):
+            pytype_name = "int"
+        elif issubclass(pytype, np.datetime64) or pytype is datetime:
+            # Caution: np.datetime64 is also a subclass of np.number.
+            pytype_name = "datetime"
+        elif pytype is datetime.date:
+            pytype_name = "date"
+        elif issubclass(pytype, np.bool_):
+            pytype_name = "bool"
+
+        return _SQL_TYPES[pytype_name][self.pd_sql.flavor]
+
+
 class PandasSQLLegacy(PandasSQL):
 
     def __init__(self, con, flavor):
@@ -659,10 +807,6 @@ class PandasSQLLegacy(PandasSQL):
         return result
 
     def uquery(self, *args):
-        """
-        Does the same thing as tquery, but instead of returning results, it
-        returns the number of rows affected.  Good for update queries.
-        """
         cur = self.execute(*args)
         return cur.rowcount
 
@@ -674,12 +818,18 @@ class PandasSQLLegacy(PandasSQL):
         data = self._fetchall_as_list(cursor)
         cursor.close()
 
-        data_frame = self._frame_from_data_and_columns(data, columns,
-                                                       index_col=index_col,
-                                                       coerce_float=coerce_float)
+        data_frame = _frame_from_data_and_columns(data, columns,
+                                                  index_col=index_col,
+                                                  coerce_float=coerce_float)
         return self._parse_date_columns(data_frame, parse_dates=parse_dates)
 
-    def to_sql(self, frame, name, if_exists='fail'):
+    def _fetchall_as_list(self, cur):
+        result = cur.fetchall()
+        if not isinstance(result, list):
+            result = list(result)
+        return result
+
+    def to_sql(self, frame, name, if_exists='fail', index=True):
         """
         Write records stored in a DataFrame to a SQL database.
 
@@ -693,53 +843,9 @@ class PandasSQLLegacy(PandasSQL):
             replace: If table exists, drop it, recreate it, and insert data.
             append: If table exists, insert data. Create if does not exist.
         """
-        if self.has_table(name):
-            if if_exists == 'fail':
-                raise ValueError("Table '%s' already exists." % name)
-            elif if_exists == 'replace':
-                self._drop_table(name)
-                self._create_table(frame, name)
-            elif if_exists == "append":
-                pass  # should just add...
-        else:
-            self._create_table(frame, name)
-
-        self._write(frame, name)
-
-    def _fetchall_as_list(self, cur):
-        '''ensures result of fetchall is a list'''
-        result = cur.fetchall()
-        if not isinstance(result, list):
-            result = list(result)
-        return result
-
-    def _write(self, frame, table_name):
-        # Replace spaces in DataFrame column names with _.
-        safe_names = self._safe_col_names(frame.columns)
-
-        br_l = _SQL_SYMB[self.flavor]['br_l']  # left val quote char
-        br_r = _SQL_SYMB[self.flavor]['br_r']  # right val quote char
-        wld = _SQL_SYMB[self.flavor]['wld']  # wildcard char
-
-        bracketed_names = [br_l + column + br_r for column in safe_names]
-        col_names = ','.join(bracketed_names)
-        wildcards = ','.join([wld] * len(safe_names))
-        insert_query = 'INSERT INTO %s (%s) VALUES (%s)' % (
-            table_name, col_names, wildcards)
-
-        # pandas types are badly handled if there is only 1 col (Issue #3628)
-        if len(frame.columns) != 1:
-            data = [tuple(x) for x in frame.values]
-        else:
-            data = [tuple(x) for x in frame.values.tolist()]
-
-        cur = self.con.cursor()
-        cur.executemany(insert_query, data)
-        cur.close()
-
-    def _create_table(self, frame, name, keys=None):
-        create_sql = self._create_sql_schema(frame, name, keys)
-        self.execute(create_sql)
+        table = PandasSQLTableLegacy(
+            name, self, frame=frame, index=index, if_exists=if_exists)
+        table.insert()
 
     def has_table(self, name):
         flavor_map = {
@@ -747,57 +853,15 @@ class PandasSQLLegacy(PandasSQL):
                        "WHERE type='table' AND name='%s';") % name,
             'mysql': "SHOW TABLES LIKE '%s'" % name}
         query = flavor_map.get(self.flavor)
-        if query is None:
-            raise NotImplementedError
+
         return len(self.tquery(query)) > 0
 
-    def _drop_table(self, name):
-        # Previously this worried about connection tp cursor then closing...
+    def get_table(self, table_name):
+        return None  # not supported in Legacy mode
+
+    def drop_table(self, name):
         drop_sql = "DROP TABLE %s" % name
         self.execute(drop_sql)
-
-    def _create_sql_schema(self, frame, table_name, keys=None):
-        "Return a CREATE TABLE statement to suit the contents of a DataFrame."
-
-        lookup_type = lambda dtype: self._get_sqltype(dtype.type)
-        # Replace spaces in DataFrame column names with _.
-        safe_columns = self._safe_col_names(frame.dtypes.index)
-
-        column_types = lzip(safe_columns, map(lookup_type, frame.dtypes))
-
-        br_l = _SQL_SYMB[self.flavor]['br_l']  # left val quote char
-        br_r = _SQL_SYMB[self.flavor]['br_r']  # right val quote char
-        col_template = br_l + '%s' + br_r + ' %s'
-        columns = ',\n  '.join(col_template % x for x in column_types)
-
-        keystr = ''
-        if keys is not None:
-            if isinstance(keys, compat.string_types):
-                keys = (keys,)
-            keystr = ', PRIMARY KEY (%s)' % ','.join(keys)
-        template = """CREATE TABLE %(name)s (
-                      %(columns)s
-                      %(keystr)s
-                      );"""
-        create_statement = template % {'name': table_name, 'columns': columns,
-                                       'keystr': keystr}
-        return create_statement
-
-    def _get_sqltype(self, pytype):
-        pytype_name = "text"
-        if issubclass(pytype, np.floating):
-            pytype_name = "float"
-        elif issubclass(pytype, np.integer):
-            pytype_name = "int"
-        elif issubclass(pytype, np.datetime64) or pytype is datetime:
-            # Caution: np.datetime64 is also a subclass of np.number.
-            pytype_name = "datetime"
-        elif pytype is datetime.date:
-            pytype_name = "date"
-        elif issubclass(pytype, np.bool_):
-            pytype_name = "bool"
-
-        return _SQL_TYPES[pytype_name][self.flavor]
 
 
 # legacy names, with depreciation warnings and copied docs
