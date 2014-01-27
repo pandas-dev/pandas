@@ -3513,9 +3513,12 @@ class DataFrame(NDFrame):
                                 'ignore_index=True')
 
             index = None if other.name is None else [other.name]
-            other = other.reindex(self.columns, copy=False)
+            combined_columns = self.columns.tolist() + ((self.columns | other.index) - self.columns).tolist()
+            other = other.reindex(combined_columns, copy=False)
             other = DataFrame(other.values.reshape((1, len(other))),
-                              index=index, columns=self.columns).convert_objects()
+                              index=index, columns=combined_columns).convert_objects()
+            if not self.columns.equals(combined_columns):
+                self = self.reindex(columns=combined_columns)
         elif isinstance(other, list) and not isinstance(other[0], DataFrame):
             other = DataFrame(other)
             if (self.columns.get_indexer(other.columns) >= 0).all():
