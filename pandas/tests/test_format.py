@@ -719,6 +719,14 @@ class TestDataFrameFormatting(tm.TestCase):
 </table>"""
         self.assertEquals(result, expected)
 
+    def test_to_html_regression_GH6098(self):
+        df = DataFrame({u('clé1'): [u('a'), u('a'), u('b'), u('b'), u('a')],
+                           u('clé2'): [u('1er'), u('2ème'), u('1er'), u('2ème'), u('1er')],
+                           'données1': np.random.randn(5),
+                           'données2': np.random.randn(5)})
+        # it works
+        df.pivot_table(rows=[u('clé1')], cols=[u('clé2')])._repr_html_()
+
     def test_nonunicode_nonascii_alignment(self):
         df = DataFrame([["aa\xc3\xa4\xc3\xa4", 1], ["bbbb", 2]])
         rep_str = df.to_string()
