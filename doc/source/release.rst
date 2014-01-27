@@ -161,6 +161,8 @@ Bug Fixes
     are a slice (e.g. next to each other) (:issue:`6120`)
   - Bug in propogating _ref_locs during construction of a DataFrame with dups
     index/columns (:issue:`6121`)
+  - Bug in ``DataFrame.apply`` when using mixed datelike reductions (:issue:`6125`)
+
 
 pandas 0.13.0
 -------------
