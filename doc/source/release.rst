@@ -119,6 +119,7 @@ Bug Fixes
   - Regresssion in handling of empty Series as indexers to Series  (:issue:`5877`)
   - Bug in internal caching, related to (:issue:`5727`)
   - Testing bug in reading json/msgpack from a non-filepath on windows under py3 (:issue:`5874`)
+  - Fix performance regression in JSON IO (:issue:`5765`)
   - Bug when assigning to .ix[tuple(...)] (:issue:`5896`)
   - Bug in fully reindexing a Panel (:issue:`5905`)
   - Bug in idxmin/max with object dtypes (:issue:`5914`)
