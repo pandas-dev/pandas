@@ -632,6 +632,10 @@ class Options(object):
     _OPTIONS_BASE_URL = 'http://finance.yahoo.com/q/op?s={sym}'
 
     def _get_option_data(self, month, year, expiry, table_loc, name):
+        if (month is None or year is None) and expiry is None:
+            msg = "You must specify either (`year` and `month`) or `expiry`."
+            raise ValueError(msg)
+
         year, month = self._try_parse_dates(year, month, expiry)
 
         url = self._OPTIONS_BASE_URL.format(sym=self.symbol)

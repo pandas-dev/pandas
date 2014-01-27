@@ -156,6 +156,7 @@ Bug Fixes
   - Subtle ``iloc`` indexing bug, surfaced in (:issue:`6059`)
   - Bug with insert of strings into DatetimeIndex (:issue:`5818`)
   - Fixed unicode bug in to_html/HTML repr (:issue:`6098`)
+  - Fixed missing arg validation in get_options_data (:issue:`6105`)
 
 pandas 0.13.0
 -------------
