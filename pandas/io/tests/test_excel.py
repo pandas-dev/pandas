@@ -663,6 +663,7 @@ class ExcelWriterBase(SharedItems):
 
     # GH4133 - excel output format strings
     def test_excel_date_datetime_format(self):
+        _skip_if_no_xlrd()
         df = DataFrame([[date(2014, 1, 31),
                          date(1999, 9, 24)],
                         [datetime(1998, 5, 26, 23, 33, 4),
