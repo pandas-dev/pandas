@@ -266,6 +266,12 @@ class TestYahooOptions(tm.TestCase):
             assert len(calls)>1
             assert len(puts)>1
 
+    def test_get_options_data(self):
+
+        # regression test GH6105
+        self.assertRaises(ValueError,self.aapl.get_options_data,month=3)
+        self.assertRaises(ValueError,self.aapl.get_options_data,year=1992)
+
     @network
     def test_get_near_stock_price(self):
         try:
