@@ -767,7 +767,7 @@ class HTMLFormatter(TableFormatter):
                                                          levels)):
                 name = self.columns.names[lnum]
                 row = [''] * (row_levels - 1) + ['' if name is None
-                                                 else str(name)]
+                                                 else com.pprint_thing(name)]
 
                 tags = {}
                 j = len(row)
