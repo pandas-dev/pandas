@@ -3,15 +3,15 @@
 v0.13.1 (February ???)
 ----------------------
 
-This is a minor release from 0.13.0 and includes a number of API changes, several new features and
-enhancements along with a large number of bug fixes.
+This is a minor release from 0.13.0 and includes a small number of API changes, several new features,
+enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
+users upgrade to this version.
 
 Highlights include:
 
-Several experimental features are added, including:
-
-There are several new or updated docs sections including:
-
+- ``infer_datetime_format`` keyword to ``read_csv/to_datetime`` to allow speedups for homogeneously formatted datetimes
+- intelligently limited display precision for datetime/timedelta formats
+- enhanced Panel :meth:`~pandas.Panel.apply` method
 - :ref:`Tutorials<tutorials>`, a guide to community developed pandas tutorials.
 - :ref:`Pandas Ecosystem<ecosystem>`, a guide to complementary projects built on top of pandas.
 
@@ -96,12 +96,25 @@ These were announced changes in 0.13 or prior that are taking effect as of 0.13.
 Deprecations
 ~~~~~~~~~~~~
 
+There are no deprecations of prior behavior in 0.13.1
+
 Enhancements
 ~~~~~~~~~~~~
 
 - pd.to_csv and pd.to_datetime learned a new ``infer_datetime_format`` keyword which greatly
   improves parsing perf in many cases. Thanks to @lexual for suggesting and @danbirken
   for rapidly implementing. (:issue:`5490`, :issue:`6021`)
+
+  If ``parse_dates`` is enabled and this flag is set, pandas will attempt to
+  infer the format of the datetime strings in the columns, and if it can
+  be inferred, switch to a faster method of parsing them.  In some cases
+  this can increase the parsing speed by ~5-10x.
+
+  .. code-block:: python
+
+      # Try to infer the format for the index column
+      df = pd.read_csv('foo.csv', index_col=0, parse_dates=True,
+                       infer_datetime_format=True)
 
 - ``date_format`` and ``datetime_format`` keywords can now be specified when writing to ``excel``
   files (:issue:`4133`)
@@ -147,7 +160,7 @@ Enhancements
 
       pd.set_option('show_dimensions', True)
 
-- ``Panel.apply`` will work on non-ufuncs. See :ref:`the docs<basics.apply_panel>`.
+- Panel :meth:`~pandas.Panel.apply` will work on non-ufuncs. See :ref:`the docs<basics.apply_panel>`.
 
   .. ipython:: python
 
@@ -183,7 +196,7 @@ Enhancements
      result
      result['ItemA']
 
-- ``Panel.apply`` operating on cross-sectional slabs. (:issue:`1148`)
+- Panel :meth:`~pandas.Panel.apply` operating on cross-sectional slabs. (:issue:`1148`)
 
   .. ipython:: python
 
@@ -201,22 +214,23 @@ Enhancements
      result
      result.loc[:,:,'ItemA']
 
-- Added optional ``infer_datetime_format`` to ``read_csv``, ``Series.from_csv``
-  and ``DataFrame.read_csv`` (:issue:`5490`)
+Performance
+~~~~~~~~~~~
 
-  If ``parse_dates`` is enabled and this flag is set, pandas will attempt to
-  infer the format of the datetime strings in the columns, and if it can
-  be inferred, switch to a faster method of parsing them.  In some cases
-  this can increase the parsing speed by ~5-10x.
+Performance improvements for 0.13.1
 
-  .. code-block:: python
-
-      # Try to infer the format for the index column
-      df = pd.read_csv('foo.csv', index_col=0, parse_dates=True,
-                       infer_datetime_format=True)
+- Series datetime/timedelta binary operations (:issue:`5801`)
+- DataFrame ``count/dropna`` for ``axis=1``
+- Series.str.contains now has a `regex=False` keyword which can be faster for plain (non-regex) string patterns. (:issue:`5879`)
+- Series.str.extract (:issue:`5944`)
+- ``dtypes/ftypes`` methods (:issue:`5968`)
+- indexing with object dtypes (:issue:`5968`)
+- ``DataFrame.apply`` (:issue:`6013`)
 
 Experimental
 ~~~~~~~~~~~~
+
+There are no experimental changes in 0.13.1
 
 Bug Fixes
 ~~~~~~~~~
