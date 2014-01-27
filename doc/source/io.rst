@@ -1802,28 +1802,32 @@ Not escaped:
 Excel files
 -----------
 
-The ``read_excel`` method can read Excel 2003 (``.xls``) and
+The :func:`~pandas.read_excel` method can read Excel 2003 (``.xls``) and
 Excel 2007 (``.xlsx``) files using the ``xlrd`` Python
 module and use the same parsing code as the above to convert tabular data into
 a DataFrame. See the :ref:`cookbook<cookbook.excel>` for some
 advanced strategies
 
+Besides ``read_excel`` you can also read Excel files using the ``ExcelFile``
+class. The following two command are equivalent:
+
+.. code-block:: python
+
+    # using the ExcelFile class
+    xls = pd.ExcelFile('path_to_file.xls')
+    xls.parse('Sheet1', index_col=None, na_values=['NA'])
+
+    # using the read_excel function
+    read_excel('path_to_file.xls', 'Sheet1', index_col=None, na_values=['NA'])
+
+The class based approach can be used to read multiple sheets or to introspect
+the sheet names using the ``sheet_names`` attribute. 
+
 .. note::
 
-   The prior method of accessing Excel is now deprecated as of 0.12.0,
-   this will work but will be removed in a future version.
-
-      .. code-block:: python
-
-         from pandas.io.parsers import ExcelFile
-         xls = ExcelFile('path_to_file.xls')
-         xls.parse('Sheet1', index_col=None, na_values=['NA'])
-
-   Replaced by
-
-     .. code-block:: python
-
-        read_excel('path_to_file.xls', 'Sheet1', index_col=None, na_values=['NA'])
+   The prior method of accessing ``ExcelFile`` has been moved from
+   ``pandas.io.parsers`` to the top level namespace starting from pandas
+   0.12.0.
 
 .. versionadded:: 0.13
 
