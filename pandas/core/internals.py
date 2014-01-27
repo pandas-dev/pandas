@@ -116,6 +116,25 @@ class Block(PandasObject):
             self._ref_locs = indexer
         return self._ref_locs
 
+    def take_ref_locs(self, indexer):
+        """
+        need to preserve the ref_locs and just shift them
+        return None if ref_locs is None
+
+        see GH6509
+        """
+
+        ref_locs = self._ref_locs
+        if ref_locs is None:
+            return None
+
+        tindexer = np.ones(len(ref_locs),dtype=bool)
+        tindexer[indexer] = False
+        tindexer = tindexer.astype(int).cumsum()[indexer]
+        ref_locs = ref_locs[indexer]
+        ref_locs -= tindexer
+        return ref_locs
+
     def reset_ref_locs(self):
         """ reset the block ref_locs """
         self._ref_locs = np.empty(len(self.items), dtype='int64')
@@ -866,13 +885,20 @@ class Block(PandasObject):
                   ndim=self.ndim, klass=self.__class__, fastpath=True)]
         return self._maybe_downcast(blocks, downcast)
 
-    def take(self, indexer, ref_items, axis=1):
+    def take(self, indexer, ref_items, new_axis, axis=1):
         if axis < 1:
             raise AssertionError('axis must be at least 1, got %d' % axis)
         new_values = com.take_nd(self.values, indexer, axis=axis,
                                  allow_fill=False)
+
+        # need to preserve the ref_locs and just shift them
+        # GH6121
+        ref_locs = None
+        if not new_axis.is_unique:
+            ref_locs = self._ref_locs
+
         return [make_block(new_values, self.items, ref_items, ndim=self.ndim,
-                           klass=self.__class__, fastpath=True)]
+                           klass=self.__class__, placement=ref_locs, fastpath=True)]
 
     def get_values(self, dtype=None):
         return self.values
@@ -1820,7 +1846,7 @@ class SparseBlock(Block):
             new_values[periods:] = fill_value
         return [self.make_block(new_values)]
 
-    def take(self, indexer, ref_items, axis=1):
+    def take(self, indexer, ref_items, new_axis, axis=1):
         """ going to take our items
             along the long dimension"""
         if axis < 1:
@@ -2601,18 +2627,7 @@ class BlockManager(PandasObject):
             if len(self.blocks) == 1:
 
                 blk = self.blocks[0]
-
-                # see GH 6059
-                ref_locs = blk._ref_locs
-                if ref_locs is not None:
-
-                    # need to preserve the ref_locs and just shift them
-                    indexer = np.ones(len(ref_locs),dtype=bool)
-                    indexer[slobj] = False
-                    indexer = indexer.astype(int).cumsum()[slobj]
-                    ref_locs = ref_locs[slobj]
-                    ref_locs -= indexer
-
+                ref_locs = blk.take_ref_locs(slobj)
                 newb = make_block(blk._slice(slobj), new_items, new_items,
                                   klass=blk.__class__, fastpath=True,
                                   placement=ref_locs)
@@ -3371,6 +3386,7 @@ class BlockManager(PandasObject):
         if axis < 1:
             raise AssertionError('axis must be at least 1, got %d' % axis)
 
+        self._consolidate_inplace()
         if isinstance(indexer, list):
             indexer = np.array(indexer)
 
@@ -3388,8 +3404,12 @@ class BlockManager(PandasObject):
             new_index = self.axes[axis].take(indexer)
 
         new_axes[axis] = new_index
-        return self.apply('take', axes=new_axes, indexer=indexer,
-                          ref_items=new_axes[0], axis=axis)
+        return self.apply('take',
+                          axes=new_axes,
+                          indexer=indexer,
+                          ref_items=new_axes[0],
+                          new_axis=new_axes[axis],
+                          axis=axis)
 
     def merge(self, other, lsuffix=None, rsuffix=None):
         if not self._is_indexed_like(other):

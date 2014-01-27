@@ -3303,6 +3303,21 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         result = dfbool[['one', 'three', 'one']]
         check(result,expected)
 
+        # multi-axis dups
+        # GH 6121
+        df = DataFrame(np.arange(25.).reshape(5,5),
+                       index=['a', 'b', 'c', 'd', 'e'],
+                       columns=['A', 'B', 'C', 'D', 'E'])
+        z = df[['A', 'C', 'A']].copy()
+        expected = z.ix[['a', 'c', 'a']]
+
+        df = DataFrame(np.arange(25.).reshape(5,5),
+                       index=['a', 'b', 'c', 'd', 'e'],
+                       columns=['A', 'B', 'C', 'D', 'E'])
+        z = df[['A', 'C', 'A']]
+        result = z.ix[['a', 'c', 'a']]
+        check(result,expected)
+
     def test_insert_benchmark(self):
         # from the vb_suite/frame_methods/frame_insert_columns
         N = 10

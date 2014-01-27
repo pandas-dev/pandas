@@ -159,6 +159,8 @@ Bug Fixes
   - Fixed missing arg validation in get_options_data (:issue:`6105`)
   - Bug in assignment with duplicate columns in a frame where the locations
     are a slice (e.g. next to each other) (:issue:`6120`)
+  - Bug in propogating _ref_locs during construction of a DataFrame with dups
+    index/columns (:issue:`6121`)
 
 pandas 0.13.0
 -------------
