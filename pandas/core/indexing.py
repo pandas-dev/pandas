@@ -688,10 +688,17 @@ class _NDFrameIndexer(object):
                 # raise the error if we are not sorted
                 if not ax0.is_lexsorted_for_tuple(tup):
                     raise e1
-                try:
-                    loc = ax0.get_loc(tup[0])
-                except KeyError:
-                    raise e1
+
+                # GH911 introduced this clause, but the regression test
+                # added for it now passes even without it. Let's rock the boat.
+                # 2014/01/27
+
+                # # should we abort, or keep going?
+                # try:
+                #     loc = ax0.get_loc(tup[0])
+                # except KeyError:
+                #     raise e1
+
 
         if len(tup) > self.obj.ndim:
             raise IndexingError("Too many indexers. handle elsewhere")
