@@ -2969,7 +2969,7 @@ class BlockManager(PandasObject):
                 # we are inserting one by one, so the index can go from unique
                 # to non-unique during the loop, need to have _ref_locs defined
                 # at all times
-                if np.isscalar(item) and com.is_list_like(loc):
+                if np.isscalar(item) and (com.is_list_like(loc) or isinstance(loc, slice)):
 
                     # first delete from all blocks
                     self.delete(item)
