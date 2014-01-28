@@ -1163,7 +1163,7 @@ class _LocIndexer(_LocationIndexer):
             # (None) slices, list of labels or labels
             specs = _tuple_to_mi_locs(labels,key)
             g = _spec_to_array_indices(labels, specs)
-            return self.obj.iloc[list(g)]
+            return self.obj.iloc[g]
         else:
             self._has_valid_type(key, axis)
             return self._get_label(key, axis=axis)
