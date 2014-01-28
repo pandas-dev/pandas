@@ -2568,6 +2568,52 @@ class TestCParserLowMemory(ParserTests, tm.TestCase):
         kwds['buffer_lines'] = 2
         return read_table(*args, **kwds)
 
+    def test_list_of_one_header(self):
+        data = """A,B,C
+1,2,3
+4,5,6
+7,8,9
+"""
+        df = self.read_csv(StringIO(data), header=[0])
+
+        values = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+        expected = DataFrame(values, columns=['A', 'B', 'C'])
+
+        tm.assert_frame_equal(df, expected)
+
+    def test_list_of_multiple_headers(self):
+        data = """A,B,C
+a,b,c
+1,2,3
+4,5,6
+7,8,9
+"""
+        df = self.read_csv(StringIO(data), header=[0,1])
+
+        values = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+        expected_columns = pd.MultiIndex.from_arrays([['A', 'B', 'C'], ['a', 'b', 'c']])
+        expected = DataFrame(values, columns=expected_columns)
+
+        tm.assert_frame_equal(df, expected)
+
+    def test_list_of_multiple_headers_with_duplicated_column_pairs(self):
+        data = """A,A,A,A,A,B,B
+a,b,b,b,c,c,c
+1,2,3,4,5,6,7
+1,2,3,4,5,6,7
+1,2,3,4,5,6,7
+"""
+        df = self.read_csv(StringIO(data), header=[0,1])
+
+        values = [[1, 2, 3, 4, 5, 6, 7], [1, 2, 3, 4, 5, 6, 7], [1, 2, 3, 4, 5, 6, 7]]
+        expected_columns = pd.MultiIndex.from_arrays([
+            ['A', 'A', 'A',   'A',  'A', 'B', 'B'], 
+            ['a', 'b', 'b.1', 'b.2', 'c', 'c', 'c.1']])
+        expected = DataFrame(values, columns=expected_columns)
+
+        tm.assert_frame_equal(df, expected)
+
+
     def test_compact_ints(self):
         data = ('0,1,0,0\n'
                 '1,1,0,0\n'
