@@ -3335,6 +3335,7 @@ class TestGroupBy(tm.TestCase):
             'corr', 'cov',
             'value_counts',
             'diff',
+            'unique', 'nunique',
         ])
 
         for obj, whitelist in zip((df, s),
