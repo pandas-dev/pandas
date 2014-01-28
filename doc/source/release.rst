@@ -165,6 +165,8 @@ Bug Fixes
   - Bug in ``DataFrame.apply`` when using mixed datelike reductions (:issue:`6125`)
   - Bug in ``DataFrame.append`` when appending a row with different columns (:issue:`6129`)
   - Bug in DataFrame construction with recarray and non-ns datetime dtype (:issue:`6140`)
+  - Bug in ``.loc`` setitem indexing with a datafrme on rhs, multiple item setting, and
+    a datetimelike (:issue:`6152`)
 
 pandas 0.13.0
 -------------

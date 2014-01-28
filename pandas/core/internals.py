@@ -10,7 +10,7 @@ from pandas.core.base import PandasObject
 from pandas.core.common import (_possibly_downcast_to_dtype, isnull, notnull,
                                 _NS_DTYPE, _TD_DTYPE, ABCSeries, is_list_like,
                                 ABCSparseSeries, _infer_dtype_from_scalar,
-                                _values_from_object)
+                                _values_from_object, _is_null_datelike_scalar)
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
                                _handle_legacy_indexes)
 from pandas.core.indexing import (_check_slice_bounds, _maybe_convert_indices,
@@ -1275,7 +1275,7 @@ class TimeDeltaBlock(IntBlock):
 
         values = masker(values)
 
-        if isnull(other) or (np.isscalar(other) and other == tslib.iNaT):
+        if _is_null_datelike_scalar(other):
             other = np.nan
         elif isinstance(other, np.timedelta64):
             other = _coerce_scalar_to_timedelta_type(other, unit='s').item()
@@ -1586,7 +1586,7 @@ class DatetimeBlock(Block):
             we are going to compare vs i8, so coerce to integer
             values is always ndarra like, other may not be """
         values = values.view('i8')
-        if isnull(other) or (np.isscalar(other) and other == tslib.iNaT):
+        if _is_null_datelike_scalar(other):
             other = tslib.iNaT
         elif isinstance(other, datetime):
             other = lib.Timestamp(other).asm8.view('i8')
