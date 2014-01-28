@@ -1232,8 +1232,7 @@ For example if they are seperated by a ``'|'``:
       s = pd.Series(['a', 'a|b', np.nan, 'a|c'])
       s.str.get_dummies(sep='|')
 
-See also ``pd.get_dummies``.
-
+See also :func:`~pandas.get_dummies`.
 
 .. _basics.sorting:
 

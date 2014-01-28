@@ -492,7 +492,7 @@ def str_get_dummies(arr, sep='|'):
         tags.update(ts)
     tags = sorted(tags - set([""]))
 
-    dummies = np.empty((len(arr), len(tags)), dtype=int)
+    dummies = np.empty((len(arr), len(tags)), dtype=np.int64)
 
     for i, t in enumerate(tags):
         pat = sep + t + sep

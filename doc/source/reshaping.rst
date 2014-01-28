@@ -418,6 +418,8 @@ This function is often used along with discretization functions like ``cut``:
 
    get_dummies(cut(values, bins))
 
+See also :func:`~pandas.Series.str.get_dummies`.
+
 Factorizing values
 ------------------
 

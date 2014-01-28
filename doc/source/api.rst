@@ -467,6 +467,7 @@ details the methods show up here as methods of the
    StringMethods.strip
    StringMethods.title
    StringMethods.upper
+   StringMethods.get_dummies
 
 Plotting
 ~~~~~~~~
