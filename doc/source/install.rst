@@ -74,8 +74,9 @@ Dependencies
 Recommended Dependencies
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-  * `numexpr <http://code.google.com/p/numexpr/>`__: for accelerating certain numerical operations.
-    ``numexpr`` uses multiple cores as well as smart chunking and caching to achieve large speedups.
+  * `numexpr <http://code.google.com/p/numexpr/>`__, version 2 or higher: for accelerating certain numerical operations.
+    ``numexpr`` uses multiple cores as well as smart chunking and caching to achieve large speedups. Version 2.3 or higher 
+    is highly recommended for NumPy 1.8.0+ users.
 
   * `bottleneck <http://berkeleyanalytics.com/bottleneck>`__: for accelerating certain types of ``nan``
     evaluations. ``bottleneck`` uses specialized cython routines to achieve large speedups.
@@ -134,12 +135,15 @@ Optional Dependencies
          `BeautifulSoup4`_ installed.
        * You are highly encouraged to read :ref:`HTML reading gotchas
          <html-gotchas>`. It explains issues surrounding the installation and
-         usage of the above three libraries
+         usage of the above three libraries.
        * You may need to install an older version of `BeautifulSoup4`_:
            - Versions 4.2.1, 4.1.3 and 4.0.2 have been confirmed for 64 and
              32-bit Ubuntu/Debian
-       * Additionally, if you're using `Anaconda`_ you should definitely
-         read :ref:`the gotchas about HTML parsing libraries <html-gotchas>`
+       * If you're using `Anaconda`_ distribution you may want to make sure that
+         both mandatory and recommended dependencies are up to date (`numpy` and
+         `numexpr` in particular); you may have to manually upgrade them. 
+         Additionally, you should definitely read :ref:`the gotchas about HTML 
+         parsing libraries <html-gotchas>`.
 
     .. note::
 
