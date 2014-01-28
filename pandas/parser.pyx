@@ -460,7 +460,8 @@ cdef class TextReader:
             self.parser_start = 0
             self.header = []
         else:
-            if isinstance(header, list) and len(header):
+            if isinstance(header, list) and len(header) >= 2:
+                # FIXME
                 # need to artifically skip the final line
                 # which is still a header line
                 header = list(header)
@@ -473,6 +474,11 @@ cdef class TextReader:
                 self.has_mi_columns = 1
                 self.header = header
             else:
+                # if the header is a list with length 1
+                #   set the header as the only element in the list
+                if isinstance(header, list) and len(header) == 1:
+                    header = header[0]
+
                 self.parser.header_start = header
                 self.parser.header_end = header
                 self.parser.header = header
@@ -652,6 +658,40 @@ cdef class TextReader:
 
                 data_line = hr + 1
                 header.append(this_header)
+
+            #
+            # Append a seq number for the duplicated columns pairs
+            #
+            # i.e. [['a', 'a', 'a', 'b'], 
+            #       ['A', 'A', 'B', 'C']]
+            #   ==>
+            #      [['a', 'a',   'b', 'b'], 
+            #       ['A', 'A.1', 'B', 'C']]
+            #
+            if self.has_mi_columns:
+
+                # zip the header, so that we can easily find the duplicated pair
+                header = zip(*header)
+
+                counts = {}
+                for i, column in enumerate(header):
+
+                    # Check whether the column is duplicated
+                    count = counts.get(column, 0)
+                    if count > 0:
+                        #
+                        # FIXME
+                        # Since we've added an extra header line (search FIXME in this page)
+                        # Append an incremental seq number to the second-last element
+                        #
+                        tmp_column = list(column)
+                        tmp_column[-2] = '%s.%d' % (tmp_column[-2], count)
+                        header[i] = tuple(tmp_column)
+
+                    counts[column] = count + 1
+
+                # unzip the header
+                header = [list(x) for x in zip(*header)]
 
             if self.names is not None:
                 header = [ self.names ]
