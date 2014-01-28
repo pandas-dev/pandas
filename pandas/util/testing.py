@@ -968,8 +968,17 @@ def optional_args(decorator):
     return wrapper
 
 
-_network_error_classes = IOError, httplib.HTTPException
+_network_errno_vals = (
+    101, # Network is unreachable
+    110, # Connection timed out
+    104, # Connection reset Error
+    54,  # Connection reset by peer
+    )
 
+_network_error_classes = (IOError, httplib.HTTPException)
+
+if sys.version_info[:2] >= (3,3):
+    _network_error_classes += (TimeoutError,)
 
 def can_connect(url, error_classes=_network_error_classes):
     """Try to connect to the given url. True if succeeds, False if IOError
@@ -998,7 +1007,9 @@ def can_connect(url, error_classes=_network_error_classes):
 @optional_args
 def network(t, url="http://www.google.com",
             raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
-            check_before_test=False, error_classes=_network_error_classes):
+            check_before_test=False,
+            error_classes=_network_error_classes,
+            skip_errnos=_network_errno_vals):
     """
     Label a test as requiring network connection and, if an error is
     encountered, only raise if it does not find a network connection.
@@ -1084,7 +1095,12 @@ def network(t, url="http://www.google.com",
                 raise SkipTest
         try:
             return t(*args, **kwargs)
-        except error_classes as e:
+        except Exception as e:
+            errno = getattr(e,'errno',None)
+
+            if not isinstance(e, error_classes) and not errno in skip_errnos:
+                raise
+
             if raise_on_error or can_connect(url, error_classes):
                 raise
             else:
