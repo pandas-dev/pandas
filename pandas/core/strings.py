@@ -472,31 +472,31 @@ def str_get_dummies(arr, sep='|'):
     2  1  0  1
 
     >>> pd.Series(['a|b', np.nan, 'a|c']).str.get_dummies()
-        a   b   c
-    0   1   1   0
-    1 NaN NaN NaN
-    2   1   0   1
+       a  b  c
+    0  1  1  0
+    1  0  0  0
+    2  1  0  1
 
     See also ``pd.get_dummies``.
 
     """
-    def na_setunion(x, y):
-        try:
-            return x.union(y)
-        except TypeError:
-            return x
-
     # TODO remove this hack?
-    arr = sep + arr.fillna('').astype(str) + sep
+    arr = arr.fillna('')
+    try:
+        arr = sep + arr + sep
+    except TypeError:
+        arr = sep + arr.astype(str) + sep
 
-    from functools import reduce
-    tags = sorted(reduce(na_setunion, arr.str.split(sep), set())
-                  - set(['']))
+    tags = set()
+    for ts in arr.str.split(sep):
+        tags.update(ts)
+    tags = sorted(tags - set([""]))
+
     dummies = np.empty((len(arr), len(tags)), dtype=int)
 
     for i, t in enumerate(tags):
         pat = sep + t + sep
-        dummies[:, i] = _na_map(lambda x: pat in x, arr)
+        dummies[:, i] = lib.map_infer(arr.values, lambda x: pat in x)
     return DataFrame(dummies, arr.index, tags)
 
 
