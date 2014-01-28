@@ -14,6 +14,8 @@ Highlights include:
 - enhanced Panel :meth:`~pandas.Panel.apply` method
 - :ref:`Tutorials<tutorials>`, a guide to community developed pandas tutorials.
 - :ref:`Pandas Ecosystem<ecosystem>`, a guide to complementary projects built on top of pandas.
+- :ref:`Contributing<contributing>`, a guide to how to contribute to the pandas codebase and documentation.
+- updated building/ci tools, including a consolidated ci see `here <http://scatterci.github.io/ScatterCI-Pandas/>`__, thanks to @y-p.
 
 .. warning::
 
@@ -234,6 +236,7 @@ Performance improvements for 0.13.1
 - ``dtypes/ftypes`` methods (:issue:`5968`)
 - indexing with object dtypes (:issue:`5968`)
 - ``DataFrame.apply`` (:issue:`6013`)
+- Regression in JSON IO (:issue:`5765`)
 
 Experimental
 ~~~~~~~~~~~~

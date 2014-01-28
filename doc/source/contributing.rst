@@ -1,3 +1,5 @@
+.. _contributing:
+
 **********************
 Contributing to pandas
 **********************
