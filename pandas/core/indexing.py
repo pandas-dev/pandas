@@ -1660,7 +1660,26 @@ def _spec_to_array_indices(ix, specs):
     giant_steps[:-1] = giant_steps[1:]
     giant_steps[-1] = 1
 
-    def _iter(specs, i=0):
+    def _iter_vectorize(specs, i=0):
+        step_size = giant_steps[i]
+        spec=specs[i]
+        if isinstance(spec,tuple):
+            # tuples are 2-tuples of (start,stop) label indices to include
+            valrange = compat.range(*spec)
+        elif isinstance(spec,list):
+           # lists are discrete label indicies to include
+            valrange = spec
+
+        if len(specs)-1 == i:
+            return np.array(valrange)
+        else:
+            tmpl = np.array([v for v in _iter_vectorize(specs,i+1)])
+            res=np.tile(tmpl,(len(valrange),1))
+            steps=(np.array(valrange)*step_size).reshape((len(valrange),1))
+            return (res+steps).flatten()
+
+
+    def _iter_generator(specs, i=0):
         step_size = giant_steps[i]
         spec=specs[i]
         if isinstance(spec,tuple):
@@ -1677,8 +1696,8 @@ def _spec_to_array_indices(ix, specs):
         else:
             for base in valrange:
                 base *= step_size
-                for v in _iter(specs,i+1):
+                for v in _iter_generator(specs,i+1):
                     yield base + v
     # validate
 
-    return _iter(specs)
+    return _iter_vectorize(specs)
