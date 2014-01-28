@@ -4,7 +4,7 @@ xlwt==0.7.5
 numpy==1.8.0
 cython==0.19.1
 bottleneck==0.6.0
-numexpr==2.0.1
+numexpr==2.2.2
 tables==2.3.1
 matplotlib==1.1.1
 openpyxl==1.6.2
