@@ -2,7 +2,10 @@
 
 ![Travis-CI Build Status](https://travis-ci.org/pydata/pandas.png)
 
+[![Scatter-CI Status page](http://scatterci.github.io/ScatterCI-Pandas/images/scatterci48.jpg)](http://scatterci.github.io/ScatterCI-Pandas/)
+
 ## What is it
+
 **pandas** is a Python package providing fast, flexible, and expressive data
 structures designed to make working with "relational" or "labeled" data both
 easy and intuitive. It aims to be the fundamental high-level building block for
