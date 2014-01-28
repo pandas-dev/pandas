@@ -45,6 +45,11 @@ strings_lstrip = Benchmark("many.str.lstrip('matchthis')", setup)
 strings_rstrip = Benchmark("many.str.rstrip('matchthis')", setup)
 strings_get = Benchmark("many.str.get(0)", setup)
 
+setup = setup + """
+make_series(string.uppercase, strlen=10, size=10000).str.join('|')
+"""
+strings_get_dummies = Benchmark("s.str.get_dummies('|')", setup)
+
 setup = common_setup + """
 import pandas.util.testing as testing
 ser = pd.Series(testing.makeUnicodeIndex())

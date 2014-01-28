@@ -366,7 +366,6 @@ class TestStringMethods(tm.TestCase):
         result = values.str.replace("(?<=\w),(?=\w)", ", ", flags=re.UNICODE)
         tm.assert_series_equal(result, exp)
 
-
     def test_repeat(self):
         values = Series(['a', 'b', NA, 'c', NA, 'd'])
 
@@ -465,7 +464,7 @@ class TestStringMethods(tm.TestCase):
         # Contains tests like those in test_match and some others.
 
         values = Series(['fooBAD__barBAD', NA, 'foo'])
-        er = [NA, NA] # empty row
+        er = [NA, NA]  # empty row
 
         result = values.str.extract('.*(BAD[_]+).*(BAD)')
         exp = DataFrame([['BAD__', 'BAD'], er, er])
@@ -548,6 +547,19 @@ class TestStringMethods(tm.TestCase):
         result = Series(['A1', 'B2', 'C']).str.extract('(?P<letter>[ABC])(?P<number>[123])?')
         exp = DataFrame([['A', '1'], ['B', '2'], ['C', NA]], columns=['letter', 'number'])
         tm.assert_frame_equal(result, exp)
+
+    def test_get_dummies(self):
+        s = Series(['a|b', 'a|c', np.nan])
+        result = s.str.get_dummies('|')
+        expected = DataFrame([[1, 1, 0], [1, 0, 1], [0, 0, 0]],
+                             columns=list('abc'))
+        tm.assert_frame_equal(result, expected)
+
+        s = Series(['a;b', 'a', 7])
+        result = s.str.get_dummies(';')
+        expected = DataFrame([[0, 1, 1], [0, 1, 0], [1, 0, 0]],
+                             columns=list('7ab'))
+        tm.assert_frame_equal(result, expected)
 
     def test_join(self):
         values = Series(['a_b_c', 'c_d_e', np.nan, 'f_g_h'])

@@ -187,7 +187,6 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
     else:
         f = lambda x: pat in x
     return _na_map(f, arr, na)
-        
 
 
 def str_startswith(arr, pat, na=np.nan):
@@ -459,6 +458,46 @@ def str_extract(arr, pat, flags=0):
         result = DataFrame([f(val) for val in arr], columns=columns)
     return result
 
+
+def str_get_dummies(arr, sep='|'):
+    """
+    Split each string by sep and return a frame of dummy/indicator variables.
+
+    Examples
+    --------
+    >>> Series(['a|b', 'a', 'a|c']).str.get_dummies()
+       a  b  c
+    0  1  1  0
+    1  1  0  0
+    2  1  0  1
+
+    >>> pd.Series(['a|b', np.nan, 'a|c']).str.get_dummies()
+       a  b  c
+    0  1  1  0
+    1  0  0  0
+    2  1  0  1
+
+    See also ``pd.get_dummies``.
+
+    """
+    # TODO remove this hack?
+    arr = arr.fillna('')
+    try:
+        arr = sep + arr + sep
+    except TypeError:
+        arr = sep + arr.astype(str) + sep
+
+    tags = set()
+    for ts in arr.str.split(sep):
+        tags.update(ts)
+    tags = sorted(tags - set([""]))
+
+    dummies = np.empty((len(arr), len(tags)), dtype=int)
+
+    for i, t in enumerate(tags):
+        pat = sep + t + sep
+        dummies[:, i] = lib.map_infer(arr.values, lambda x: pat in x)
+    return DataFrame(dummies, arr.index, tags)
 
 
 def str_join(arr, sep):
@@ -843,7 +882,7 @@ class StringMethods(object):
         result = str_contains(self.series, pat, case=case, flags=flags,
                               na=na, regex=regex)
         return self._wrap_result(result)
-            
+
     @copy(str_replace)
     def replace(self, pat, repl, n=-1, case=True, flags=0):
         result = str_replace(self.series, pat, repl, n=n, case=case,
@@ -897,6 +936,11 @@ class StringMethods(object):
     @copy(str_rstrip)
     def rstrip(self, to_strip=None):
         result = str_rstrip(self.series, to_strip)
+        return self._wrap_result(result)
+
+    @copy(str_get_dummies)
+    def get_dummies(self, sep='|'):
+        result = str_get_dummies(self.series, sep)
         return self._wrap_result(result)
 
     count = _pat_wrapper(str_count, flags=True)
