@@ -22,6 +22,6 @@ ci/print_versions.py -j /tmp/env.json
 
 # nose ran using "--with-xunit --xunit-file nosetest.xml" and generated /tmp/nosetest.xml
 # Will timeout if server not available, and should not fail the build
-python scatter_cli.py --xunit-file /tmp/nosetests.xml  --log-file /tmp/build.log  --env-file /tmp/env.json --succeed
+python scatter_cli.py --xunit-file /tmp/nosetests.xml  --log-file /tmp/build.log  --env-file /tmp/env.json --build-name "$JOB_NAME" --succeed
 
 true # never fail because bad things happened here

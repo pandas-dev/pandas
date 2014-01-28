@@ -11,6 +11,7 @@ matrix:
       - CLIPBOARD=xclip
       - LOCALE_OVERRIDE="it_IT.UTF-8"
       - secure: "Bx5umgo6WjuGY+5XFa004xjCiX/vq0CyMZ/ETzcs7EIBI1BE/0fIDXOoWhoxbY9HPfdPGlDnDgB9nGqr5wArO2s+BavyKBWg6osZ3dmkfuJPMOWeyCa92EeP+sfKw8e5HSU5MizW9e319wHWOF/xkzdHR7T67Qd5erhv91x4DnQ="
+      - JOB_NAME=26_nslow_nnet # ScatterCI Build name, 20 chars max
     - python: 2.7
       env:
       - NOSE_ARGS="slow and not network"
@@ -18,24 +19,28 @@ matrix:
       - FULL_DEPS=true
       - JOB_TAG=_LOCALE
       - secure: "Bx5umgo6WjuGY+5XFa004xjCiX/vq0CyMZ/ETzcs7EIBI1BE/0fIDXOoWhoxbY9HPfdPGlDnDgB9nGqr5wArO2s+BavyKBWg6osZ3dmkfuJPMOWeyCa92EeP+sfKw8e5HSU5MizW9e319wHWOF/xkzdHR7T67Qd5erhv91x4DnQ="
+      - JOB_NAME=27_slow_nnet_LOCALE # ScatterCI Build name, 20 chars max
     - python: 2.7
       env:
       - NOSE_ARGS="not slow"
       - FULL_DEPS=true
       - CLIPBOARD_GUI=gtk2
       - secure: "Bx5umgo6WjuGY+5XFa004xjCiX/vq0CyMZ/ETzcs7EIBI1BE/0fIDXOoWhoxbY9HPfdPGlDnDgB9nGqr5wArO2s+BavyKBWg6osZ3dmkfuJPMOWeyCa92EeP+sfKw8e5HSU5MizW9e319wHWOF/xkzdHR7T67Qd5erhv91x4DnQ="
+      - JOB_NAME=27_nslow # ScatterCI Build name, 20 chars max
     - python: 3.2
       env:
       - NOSE_ARGS="not slow"
       - FULL_DEPS=true
       - CLIPBOARD_GUI=qt4
       - secure: "Bx5umgo6WjuGY+5XFa004xjCiX/vq0CyMZ/ETzcs7EIBI1BE/0fIDXOoWhoxbY9HPfdPGlDnDgB9nGqr5wArO2s+BavyKBWg6osZ3dmkfuJPMOWeyCa92EeP+sfKw8e5HSU5MizW9e319wHWOF/xkzdHR7T67Qd5erhv91x4DnQ="
+      - JOB_NAME=32_nslow  # ScatterCI Build name, 20 chars max
     - python: 3.3
       env:
       - NOSE_ARGS="not slow"
       - FULL_DEPS=true
       - CLIPBOARD=xsel
       - secure: "Bx5umgo6WjuGY+5XFa004xjCiX/vq0CyMZ/ETzcs7EIBI1BE/0fIDXOoWhoxbY9HPfdPGlDnDgB9nGqr5wArO2s+BavyKBWg6osZ3dmkfuJPMOWeyCa92EeP+sfKw8e5HSU5MizW9e319wHWOF/xkzdHR7T67Qd5erhv91x4DnQ="
+      - JOB_NAME=33_nslow  # ScatterCI Build name, 20 chars max
     exclude:
     - python: 2.6
 
