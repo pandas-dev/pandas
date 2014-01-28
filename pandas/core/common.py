@@ -275,6 +275,10 @@ def notnull(obj):
         return not res
     return -res
 
+def _is_null_datelike_scalar(other):
+    """ test whether the object is a null datelike, e.g. Nat
+    but guard against passing a non-scalar """
+    return (np.isscalar(other) and (isnull(other) or other == tslib.iNaT)) or other is pd.NaT or other is None
 
 def array_equivalent(left, right):
     """

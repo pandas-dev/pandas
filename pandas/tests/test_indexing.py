@@ -646,6 +646,27 @@ class TestIndexing(tm.TestCase):
         result = df.ix[:,1:]
         assert_frame_equal(result, expected)
 
+    def test_loc_setitem_frame_multiples(self):
+
+        # multiple setting
+        df = DataFrame({ 'A' : ['foo','bar','baz'],
+                         'B' : range(3) })
+        df.loc[0:1] = df.loc[1:2]
+        expected = DataFrame({ 'A' : ['bar','baz','baz'],
+                               'B' : [1,2,2] })
+        assert_frame_equal(df, expected)
+
+
+        # multiple setting with frame on rhs (with M8)
+        df = DataFrame({ 'date' : date_range('2000-01-01','2000-01-5'),
+                         'val'  : range(5) })
+        expected = DataFrame({ 'date' : [Timestamp('20000101'),Timestamp('20000102'),Timestamp('20000101'),
+                                         Timestamp('20000102'),Timestamp('20000103')],
+                               'val'  : [0,1,0,1,2] })
+
+        df.loc[2:4] = df.loc[0:2]
+        assert_frame_equal(df, expected)
+
     def test_iloc_getitem_frame(self):
         df = DataFrame(np.random.randn(10, 4), index=lrange(0, 20, 2), columns=lrange(0,8,2))
 
