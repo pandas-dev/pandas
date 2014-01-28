@@ -2160,7 +2160,7 @@ class TestHDFStore(tm.TestCase):
 
     def test_remove_startstop(self):
 
-        with ensure_clean(self.path) as store:
+        with ensure_clean_store(self.path) as store:
             
             wp = tm.makePanel()
 
