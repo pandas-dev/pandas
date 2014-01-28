@@ -10083,6 +10083,15 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         result = df.sort_index(by=('a',1))
         assert_frame_equal(result, expected)
 
+    def test_sortlevel(self):
+        mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list('ABC'))
+        df = DataFrame([[1, 2], [3, 4]], mi)
+        res = df.sortlevel('A', sort_remaining=False)
+        assert_frame_equal(df, res)
+
+        res = df.sortlevel(['A', 'B'], sort_remaining=False)
+        assert_frame_equal(df, res)
+
     def test_sort_datetimes(self):
 
         # GH 3461, argsort / lexsort differences for a datetime column
