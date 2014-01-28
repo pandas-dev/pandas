@@ -60,6 +60,7 @@ API Changes
   indexed. These will be excluded. This will make pandas conform more with pandas/numpy indexing of out-of-bounds
   values. A single indexer that is out-of-bounds and drops the dimensions of the object will still raise
   ``IndexError`` (:issue:`6296`)
+- ``select_as_multiple`` will always raise a ``KeyError``, when a key or the selector is not found (:issue:`6177`)
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
@@ -86,6 +87,9 @@ Bug Fixes
 - Bug in conversion of a string types to a DatetimeIndex with a specified frequency (:issue:`6273`, :issue:`6274`)
 - Bug in ``eval`` where type-promotion failed for large expressions (:issue:`6205`)
 - Bug in interpolate with inplace=True (:issue:`6281`)
+- ``HDFStore.remove`` now handles start and stop (:issue:`6177`)
+- ``HDFStore.select_as_multiple`` handles start and stop the same way as ``select`` (:issue:`6177`)
+- ``HDFStore.select_as_coordinates`` and ``select_column`` works where clauses that result in filters (:issue:`6177`)
 
 pandas 0.13.1
 -------------

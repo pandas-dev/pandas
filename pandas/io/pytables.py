@@ -724,8 +724,9 @@ class HDFStore(StringMixin):
 
         Exceptions
         ----------
-        raise if any of the keys don't refer to tables or if they are not ALL
-        THE SAME DIMENSIONS
+        raises KeyError if keys or selector is not found or keys is empty
+        raises TypeError if keys is not a list or tuple
+        raises ValueError if the tables are not ALL THE SAME DIMENSIONS
         """
 
         # default to single select
@@ -748,12 +749,13 @@ class HDFStore(StringMixin):
 
         # collect the tables
         tbls = [self.get_storer(k) for k in keys]
+        s = self.get_storer(selector)
 
         # validate rows
         nrows = None
-        for t, k in zip(tbls, keys):
+        for t, k in itertools.chain([(s,selector)], zip(tbls, keys)):
             if t is None:
-                raise TypeError("Invalid table [%s]" % k)
+                raise KeyError("Invalid table [%s]" % k)
             if not t.is_table:
                 raise TypeError(
                     "object [%s] is not a table, and cannot be used in all "
@@ -766,22 +768,17 @@ class HDFStore(StringMixin):
                 raise ValueError(
                     "all tables must have exactly the same nrows!")
 
-        # select coordinates from the selector table
-        try:
-            c = self.select_as_coordinates(
-                selector, where, start=start, stop=stop)
-            nrows = len(c)
-        except Exception:
-            raise ValueError("invalid selector [%s]" % selector)
+        # axis is the concentation axes
+        axis = list(set([t.non_index_axes[0][0] for t in tbls]))[0]
 
         def func(_start, _stop):
-
-            # collect the returns objs
-            objs = [t.read(where=c[_start:_stop], columns=columns)
-                    for t in tbls]
-
-            # axis is the concentation axes
-            axis = list(set([t.non_index_axes[0][0] for t in tbls]))[0]
+            if where is not None:
+                c = s.read_coordinates(where=where, start=_start, stop=_stop, **kwargs)
+            else:
+                c = None
+                
+            objs = [t.read(where=c, start=_start, stop=_stop, 
+                           columns=columns, **kwargs) for t in tbls]
 
             # concat and return
             return concat(objs, axis=axis,
@@ -860,7 +857,7 @@ class HDFStore(StringMixin):
             raise KeyError('No object named %s in the file' % key)
 
         # remove the node
-        if where is None:
+        if where is None and start is None and stop is None:
             s.group._f_remove(recursive=True)
 
         # delete from the table
@@ -2139,11 +2136,9 @@ class Fixed(StringMixin):
         raise NotImplementedError(
             "cannot write on an abstract storer: sublcasses should implement")
 
-    def delete(self, where=None, **kwargs):
-        """support fully deleting the node in its entirety (only) - where
-        specification must be None
-        """
-        if where is None:
+    def delete(self, where=None, start=None, stop=None, **kwargs):
+        """ support fully deleting the node in its entirety (only) - where specification must be None """
+        if where is None and start is None and stop is None:
             self._handle.removeNode(self.group, recursive=True)
             return None
 
@@ -3381,9 +3376,15 @@ class Table(Fixed):
         # create the selection
         self.selection = Selection(
             self, where=where, start=start, stop=stop, **kwargs)
-        return Index(self.selection.select_coords())
+        coords = self.selection.select_coords()
+        if self.selection.filter is not None:
+            for field, op, filt in self.selection.filter.format():
+                data = self.read_column(field, start=coords.min(), stop=coords.max()+1)
+                coords = coords[op(data.iloc[coords-coords.min()], filt).values]
 
-    def read_column(self, column, where=None, **kwargs):
+        return Index(coords)
+
+    def read_column(self, column, where=None, start=None, stop=None, **kwargs):
         """return a single column from the table, generally only indexables
         are interesting
         """
@@ -3411,7 +3412,7 @@ class Table(Fixed):
                 # column must be an indexable or a data column
                 c = getattr(self.table.cols, column)
                 a.set_info(self.info)
-                return Series(a.convert(c[:], nan_rep=self.nan_rep,
+                return Series(a.convert(c[start:stop], nan_rep=self.nan_rep,
                                         encoding=self.encoding).take_data())
 
         raise KeyError("column [%s] not found in the table" % column)
@@ -3712,12 +3713,19 @@ class AppendableTable(LegacyTable):
         except Exception as detail:
             raise TypeError("tables cannot write this data -> %s" % detail)
 
-    def delete(self, where=None, **kwargs):
+    def delete(self, where=None, start=None, stop=None, **kwargs):
 
         # delete all rows (and return the nrows)
         if where is None or not len(where):
-            nrows = self.nrows
-            self._handle.removeNode(self.group, recursive=True)
+            if start is None and stop is None:
+                nrows = self.nrows
+                self._handle.removeNode(self.group, recursive=True)
+            else:
+                # pytables<3.0 would remove a single row with stop=None
+                if stop is None:
+                    stop = self.nrows
+                nrows = self.table.removeRows(start=start, stop=stop)
+                self.table.flush()
             return nrows
 
         # infer the data kind
@@ -3726,7 +3734,7 @@ class AppendableTable(LegacyTable):
 
         # create the selection
         table = self.table
-        self.selection = Selection(self, where, **kwargs)
+        self.selection = Selection(self, where, start=start, stop=stop, **kwargs)
         values = self.selection.select_coords()
 
         # delete the rows in reverse order
@@ -4303,13 +4311,25 @@ class Selection(object):
         """
         generate the selection
         """
-        if self.condition is None:
-            return np.arange(self.table.nrows)
+        start, stop = self.start, self.stop
+        nrows = self.table.nrows
+        if start is None:
+            start = 0
+        elif start < 0:
+            start += nrows
+        if self.stop is None:
+            stop = nrows
+        elif stop < 0:
+            stop += nrows
 
-        return self.table.table.getWhereList(self.condition.format(),
-                                             start=self.start, stop=self.stop,
-                                             sort=True)
+        if self.condition is not None:
+            return self.table.table.getWhereList(self.condition.format(),
+                                                 start=start, stop=stop,
+                                                 sort=True)
+        elif self.coordinates is not None:
+            return self.coordinates
 
+        return np.arange(start, stop)
 
 # utilities ###
 

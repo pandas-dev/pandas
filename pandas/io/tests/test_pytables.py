@@ -2195,6 +2195,69 @@ class TestHDFStore(tm.TestCase):
             # self.assertRaises(ValueError, store.remove,
             #                  'wp2', [('column', ['A', 'D'])])
 
+    def test_remove_startstop(self):
+        # GH #4835 and #6177
+
+        with ensure_clean_store(self.path) as store:
+            
+            wp = tm.makePanel()
+
+            # start
+            store.put('wp1', wp, format='t')
+            n = store.remove('wp1', start=32)
+            #assert(n == 120-32)
+            result = store.select('wp1')
+            expected = wp.reindex(major_axis=wp.major_axis[:32//4])
+            assert_panel_equal(result, expected)
+
+            store.put('wp2', wp, format='t')
+            n = store.remove('wp2', start=-32)
+            #assert(n == 32)
+            result = store.select('wp2')
+            expected = wp.reindex(major_axis=wp.major_axis[:-32//4])
+            assert_panel_equal(result, expected)
+
+            # stop
+            store.put('wp3', wp, format='t')
+            n = store.remove('wp3', stop=32)
+            #assert(n == 32)
+            result = store.select('wp3')
+            expected = wp.reindex(major_axis=wp.major_axis[32//4:])
+            assert_panel_equal(result, expected)
+
+            store.put('wp4', wp, format='t')
+            n = store.remove('wp4', stop=-32)
+            #assert(n == 120-32)
+            result = store.select('wp4')
+            expected = wp.reindex(major_axis=wp.major_axis[-32//4:])
+            assert_panel_equal(result, expected)
+
+            # start n stop
+            store.put('wp5', wp, format='t')
+            n = store.remove('wp5', start=16, stop=-16)
+            #assert(n == 120-32)
+            result = store.select('wp5')
+            expected = wp.reindex(major_axis=wp.major_axis[:16//4]+wp.major_axis[-16//4:])
+            assert_panel_equal(result, expected)
+
+            store.put('wp6', wp, format='t')
+            n = store.remove('wp6', start=16, stop=16)
+            #assert(n == 0)
+            result = store.select('wp6')
+            expected = wp.reindex(major_axis=wp.major_axis)
+            assert_panel_equal(result, expected)
+            
+            # with where
+            date = wp.major_axis.take(np.arange(0,30,3))
+            crit = Term('major_axis=date')
+            store.put('wp7', wp, format='t')
+            n = store.remove('wp7', where=[crit], stop=80)
+            #assert(n == 28)
+            result = store.select('wp7')
+            expected = wp.reindex(major_axis=wp.major_axis-wp.major_axis[np.arange(0,20,3)])
+            assert_panel_equal(result, expected)
+            
+
     def test_remove_crit(self):
 
         with ensure_clean_store(self.path) as store:
@@ -3449,6 +3512,25 @@ class TestHDFStore(tm.TestCase):
             result = store.select_column('df3', 'string')
             tm.assert_almost_equal(result.values, df3['string'].values)
 
+            # start/stop
+            result = store.select_column('df3', 'string', start=2)
+            tm.assert_almost_equal(result.values, df3['string'].values[2:])
+
+            result = store.select_column('df3', 'string', start=-2)
+            tm.assert_almost_equal(result.values, df3['string'].values[-2:])
+
+            result = store.select_column('df3', 'string', stop=2)
+            tm.assert_almost_equal(result.values, df3['string'].values[:2])
+
+            result = store.select_column('df3', 'string', stop=-2)
+            tm.assert_almost_equal(result.values, df3['string'].values[:-2])
+
+            result = store.select_column('df3', 'string', start=2, stop=-2)
+            tm.assert_almost_equal(result.values, df3['string'].values[2:-2])
+
+            result = store.select_column('df3', 'string', start=-2, stop=2)
+            tm.assert_almost_equal(result.values, df3['string'].values[-2:2])
+
     def test_coordinates(self):
         df = tm.makeTimeDataFrame()
 
@@ -3519,6 +3601,12 @@ class TestHDFStore(tm.TestCase):
             self.assertRaises(ValueError, store.select, 'df',where=np.arange(len(df)),start=5)
             self.assertRaises(ValueError, store.select, 'df',where=np.arange(len(df)),start=5,stop=10)
 
+            # selection with filter
+            selection = date_range('20000101',periods=500)
+            result = store.select('df', where='index in selection')
+            expected = df[df.index.isin(selection)]
+            tm.assert_frame_equal(result,expected)
+
             # list
             df = DataFrame(np.random.randn(10,2))
             store.append('df2',df)
@@ -3531,6 +3619,11 @@ class TestHDFStore(tm.TestCase):
             where[-2] = False
             result = store.select('df2',where=where)
             expected = df.loc[where]
+            tm.assert_frame_equal(result,expected)
+
+            # start/stop
+            result = store.select('df2', start=5, stop=10)
+            expected = df[5:10]
             tm.assert_frame_equal(result,expected)
 
     def test_append_to_multiple(self):
@@ -3603,11 +3696,11 @@ class TestHDFStore(tm.TestCase):
                               None, where=['A>0', 'B>0'], selector='df1')
             self.assertRaises(Exception, store.select_as_multiple,
                               [None], where=['A>0', 'B>0'], selector='df1')
-            self.assertRaises(TypeError, store.select_as_multiple,
+            self.assertRaises(KeyError, store.select_as_multiple,
                               ['df1','df3'], where=['A>0', 'B>0'], selector='df1')
             self.assertRaises(KeyError, store.select_as_multiple,
                               ['df3'], where=['A>0', 'B>0'], selector='df1')
-            self.assertRaises(ValueError, store.select_as_multiple,
+            self.assertRaises(KeyError, store.select_as_multiple,
                               ['df1','df2'], where=['A>0', 'B>0'], selector='df4')
 
             # default select
