@@ -104,6 +104,7 @@ Improvements to existing features
   - add ability to recognize '%p' format code (am/pm) to date parsers when the specific format
     is supplied (:issue:`5361`)
   - Fix performance regression in JSON IO (:issue:`5765`)
+  - performance regression in Index construction from Series (:issue:`6150`)
 
 .. _release.bug_fixes-0.13.1:
 

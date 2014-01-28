@@ -15,7 +15,7 @@ from pandas.core.base import FrozenList, FrozenNDArray
 from pandas.util.decorators import cache_readonly, deprecate
 from pandas.core.common import isnull
 import pandas.core.common as com
-from pandas.core.common import _values_from_object, is_float, is_integer
+from pandas.core.common import _values_from_object, is_float, is_integer, ABCSeries
 from pandas.core.config import get_option
 
 # simplify
@@ -105,7 +105,7 @@ class Index(FrozenNDArray):
             return subarr
 
         from pandas.tseries.period import PeriodIndex
-        if isinstance(data, np.ndarray):
+        if isinstance(data, (np.ndarray, ABCSeries)):
             if issubclass(data.dtype.type, np.datetime64):
                 from pandas.tseries.index import DatetimeIndex
                 result = DatetimeIndex(data, copy=copy, name=name, **kwargs)
@@ -212,7 +212,7 @@ class Index(FrozenNDArray):
                 cls._scalar_data_error(data)
 
             # other iterable of some kind
-            if not isinstance(data, (list, tuple)):
+            if not isinstance(data, (ABCSeries, list, tuple)):
                 data = list(data)
             data = np.asarray(data)
         return data
@@ -767,7 +767,7 @@ class Index(FrozenNDArray):
         For a sorted index, return the most recent label up to and including
         the passed label. Return NaN if not found
         """
-        if isinstance(label, (Index, np.ndarray)):
+        if isinstance(label, (Index, ABCSeries, np.ndarray)):
             raise TypeError('%s' % type(label))
 
         if label not in self:
@@ -1535,7 +1535,7 @@ class Index(FrozenNDArray):
 
                     # get_loc will return a boolean array for non_uniques
                     # if we are not monotonic
-                    if isinstance(start_slice, np.ndarray):
+                    if isinstance(start_slice, (ABCSeries, np.ndarray)):
                         raise KeyError("cannot peform a slice operation "
                                        "on a non-unique non-monotonic index")
 
