@@ -2536,7 +2536,10 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                 else:
                     subarr = _try_cast(data, True)
         else:
-            subarr = _try_cast(data, True)
+            # don't coerce Index types
+            # e.g. indexes can have different conversions (so don't fast path them)
+            # GH 6140
+            subarr = _try_cast(data, not isinstance(data, Index))
 
         if copy:
             subarr = data.copy()
