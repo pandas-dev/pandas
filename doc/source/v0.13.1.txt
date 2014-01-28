@@ -15,12 +15,12 @@ Highlights include:
 - :ref:`Tutorials<tutorials>`, a guide to community developed pandas tutorials.
 - :ref:`Pandas Ecosystem<ecosystem>`, a guide to complementary projects built on top of pandas.
 - :ref:`Contributing<contributing>`, a guide to how to contribute to the pandas codebase and documentation.
-- updated building/ci tools, including a consolidated ci see `here <http://scatterci.github.io/ScatterCI-Pandas/>`__, thanks to @y-p.
+- Our new CI status page: `ScatterCI <http://scatterci.github.io/pydata/pandas>`__.
 
 .. warning::
 
    0.13.1 fixes a bug that was caused by a combination of having numpy < 1.8, and doing
-   chained assignent on a string-like array. Please review :ref:`the docs<indexing.view_versus_copy>`,
+   chained assignment on a string-like array. Please review :ref:`the docs<indexing.view_versus_copy>`,
    chained indexing can have unexpected results and should generally be avoided.
 
    This would previously segfault:
@@ -46,7 +46,7 @@ API changes
   See :ref:`NA Values <io.na_values>`.
 
 - Added ``Series.str.get_dummies`` vectorized string method (:issue:`6021`), to extract
-  dummy/indicator variables for seperated string columns:
+  dummy/indicator variables for separated string columns:
 
   .. ipython:: python
 

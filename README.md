@@ -2,7 +2,7 @@
 
 ![Travis-CI Build Status](https://travis-ci.org/pydata/pandas.png)
 
-[![Scatter-CI Status page](http://scatterci.github.io/ScatterCI-Pandas/images/scatterci48.jpg)](http://scatterci.github.io/ScatterCI-Pandas/)
+[![Scatter-CI Status page](http://scatterci.github.io/scatterci48.jpg)](http://scatterci.github.io/pydata/pandas)
 
 ## What is it
 
