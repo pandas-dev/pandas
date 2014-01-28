@@ -396,10 +396,9 @@ class TestDataReader(tm.TestCase):
 class TestFred(tm.TestCase):
     @network
     def test_fred(self):
-        """
-        Throws an exception when DataReader can't get a 200 response from
-        FRED.
-        """
+
+        # Throws an exception when DataReader can't get a 200 response from
+        # FRED.
 
         start = datetime(2010, 1, 1)
         end = datetime(2013, 1, 27)
