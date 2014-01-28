@@ -894,15 +894,23 @@ JSOBJ JSON_DecodeObject(JSONObjectDecoder *dec, const char *buffer, size_t cbBuf
 
   ds.dec = dec;
 
-  locale = strdup(setlocale(LC_NUMERIC, NULL));
-  if (!locale)
+  locale = setlocale(LC_NUMERIC, NULL);
+  if (strcmp(locale, "C"))
   {
-    return SetError(&ds, -1, "Could not reserve memory block");
+    locale = strdup(locale);
+    if (!locale)
+    {
+      return SetError(&ds, -1, "Could not reserve memory block");
+    }
+    setlocale(LC_NUMERIC, "C");
+    ret = decode_any (&ds);
+    setlocale(LC_NUMERIC, locale);
+    free(locale);
   }
-  setlocale(LC_NUMERIC, "C");
-  ret = decode_any (&ds);
-  setlocale(LC_NUMERIC, locale);
-  free(locale);
+  else 
+  {
+    ret = decode_any (&ds);
+  }
 
   if (ds.escHeap)
   {

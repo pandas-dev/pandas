@@ -92,3 +92,23 @@ setup = common_setup + """
 
 packers_write_hdf_table = Benchmark("df.to_hdf(f,'df',table=True)", setup, cleanup="remove(f)", start_date=start_date)
 
+#----------------------------------------------------------------------
+# json
+
+setup_int_index = """
+import numpy as np
+df.index = np.arange(50000)
+"""
+
+setup = common_setup + """
+df.to_json(f,orient='split')
+"""
+packers_read_json_date_index = Benchmark("pd.read_json(f, orient='split')", setup, start_date=start_date)
+setup = setup + setup_int_index
+packers_read_json = Benchmark("pd.read_json(f, orient='split')", setup, start_date=start_date)
+
+setup = common_setup + """
+"""
+packers_write_json_date_index = Benchmark("df.to_json(f,orient='split')", setup, cleanup="remove(f)", start_date=start_date)
+setup = setup + setup_int_index
+packers_write_json = Benchmark("df.to_json(f,orient='split')", setup, cleanup="remove(f)", start_date=start_date)
