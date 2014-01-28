@@ -973,6 +973,7 @@ _network_errno_vals = (
     110, # Connection timed out
     104, # Connection reset Error
     54,  # Connection reset by peer
+    60,  # urllib.error.URLError: [Errno 60] Connection timed out
     )
 
 _network_error_classes = (IOError, httplib.HTTPException)
