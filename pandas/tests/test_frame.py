@@ -4,6 +4,7 @@ from __future__ import print_function
 # pylint: disable-msg=W0612,E1101
 from copy import deepcopy
 from datetime import datetime, timedelta, time
+import sys
 import operator
 import re
 import csv
@@ -3956,6 +3957,27 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_array_equal(df.index, Index([], name='id'))
         self.assertEqual(df.index.name, 'id')
 
+    def test_from_records_with_datetimes(self):
+        if sys.version < LooseVersion('2.7'):
+            raise nose.SkipTest('rec arrays dont work properly with py2.6')
+
+        # construction with a null in a recarray
+        # GH 6140
+        expected = DataFrame({ 'EXPIRY'  : [datetime(2005, 3, 1, 0, 0), None ]})
+
+        arrdata = [np.array([datetime(2005, 3, 1, 0, 0), None])]
+        dtypes = [('EXPIRY', '<M8[ns]')]
+        recarray = np.core.records.fromarrays(arrdata, dtype=dtypes)
+        result = DataFrame.from_records(recarray)
+        assert_frame_equal(result,expected)
+
+        # coercion should work too
+        arrdata = [np.array([datetime(2005, 3, 1, 0, 0), None])]
+        dtypes = [('EXPIRY', '<M8[m]')]
+        recarray = np.core.records.fromarrays(arrdata, dtype=dtypes)
+        result = DataFrame.from_records(recarray)
+        assert_frame_equal(result,expected)
+
     def test_to_records_floats(self):
         df = DataFrame(np.random.rand(10, 10))
         df.to_records()
@@ -5138,8 +5160,6 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         #_check_mixed_int(added, dtype = dict(A = 'int32', B = 'float64', C = 'int32', D = 'int64'))
 
         # TimeSeries
-        import sys
-
         buf = StringIO()
         tmp = sys.stderr
         sys.stderr = buf

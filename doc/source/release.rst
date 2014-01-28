@@ -164,6 +164,7 @@ Bug Fixes
     index/columns (:issue:`6121`)
   - Bug in ``DataFrame.apply`` when using mixed datelike reductions (:issue:`6125`)
   - Bug in ``DataFrame.append`` when appending a row with different columns (:issue:`6129`)
+  - Bug in DataFrame construction with recarray and non-ns datetime dtype (:issue:`6140`)
 
 pandas 0.13.0
 -------------

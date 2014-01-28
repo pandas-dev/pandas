@@ -41,9 +41,7 @@ class AmbiguousIndexError(PandasError, KeyError):
 
 
 _POSSIBLY_CAST_DTYPES = set([np.dtype(t).name
-                             for t in ['M8[ns]', '>M8[ns]', '<M8[ns]',
-                                       'm8[ns]', '>m8[ns]', '<m8[ns]',
-                                       'O', 'int8',
+                             for t in ['O', 'int8',
                                        'uint8', 'int16', 'uint16', 'int32',
                                        'uint32', 'int64', 'uint64']])
 
@@ -1612,6 +1610,14 @@ def _possibly_convert_objects(values, convert_dates=True,
 
 
 def _possibly_castable(arr):
+    # return False to force a non-fastpath
+
+    # check datetime64[ns]/timedelta64[ns] are valid
+    # otherwise try to coerce
+    kind = arr.dtype.kind
+    if kind == 'M' or kind == 'm':
+        return arr.dtype in _DATELIKE_DTYPES
+
     return arr.dtype.name not in _POSSIBLY_CAST_DTYPES
 
 
@@ -1681,12 +1687,30 @@ def _possibly_cast_to_datetime(value, dtype, coerce=False):
 
     else:
 
+        is_array = isinstance(value, np.ndarray)
+
+        # catch a datetime/timedelta that is not of ns variety
+        # and no coercion specified
+        if (is_array and value.dtype.kind in ['M','m']):
+            dtype = value.dtype
+
+            if dtype.kind == 'M' and dtype != _NS_DTYPE:
+                try:
+                    value = tslib.array_to_datetime(value)
+                except:
+                    raise
+
+            elif dtype.kind == 'm' and dtype != _TD_DTYPE:
+                from pandas.tseries.timedeltas import \
+                     _possibly_cast_to_timedelta
+                value = _possibly_cast_to_timedelta(value, coerce='compat')
+
         # only do this if we have an array and the dtype of the array is not
         # setup already we are not an integer/object, so don't bother with this
         # conversion
-        if (isinstance(value, np.ndarray) and not
-                (issubclass(value.dtype.type, np.integer) or
-                 value.dtype == np.object_)):
+        elif (is_array and not (
+            issubclass(value.dtype.type, np.integer) or
+            value.dtype == np.object_)):
             pass
 
         else:
