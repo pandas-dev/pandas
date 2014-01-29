@@ -650,19 +650,19 @@ class TestIndexing(tm.TestCase):
 
         # multiple setting
         df = DataFrame({ 'A' : ['foo','bar','baz'],
-                         'B' : range(3) })
+                         'B' : Series(range(3),dtype=np.int64) })
         df.loc[0:1] = df.loc[1:2]
         expected = DataFrame({ 'A' : ['bar','baz','baz'],
-                               'B' : [1,2,2] })
+                               'B' : Series([1,2,2],dtype=np.int64) })
         assert_frame_equal(df, expected)
 
 
         # multiple setting with frame on rhs (with M8)
         df = DataFrame({ 'date' : date_range('2000-01-01','2000-01-5'),
-                         'val'  : range(5) })
+                         'val'  : Series(range(5),dtype=np.int64) })
         expected = DataFrame({ 'date' : [Timestamp('20000101'),Timestamp('20000102'),Timestamp('20000101'),
                                          Timestamp('20000102'),Timestamp('20000103')],
-                               'val'  : [0,1,0,1,2] })
+                               'val'  : Series([0,1,0,1,2],dtype=np.int64) })
 
         df.loc[2:4] = df.loc[0:2]
         assert_frame_equal(df, expected)
