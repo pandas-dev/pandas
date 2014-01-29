@@ -68,11 +68,8 @@ Retrieving unique values in an indexable or data column.
 .. ipython:: python
    :okwarning:
 
-   import warnings
-   with warnings.catch_warnings():
-       warnings.simplefilter('ignore', category=UserWarning)
-       store.unique('df','index')
-       store.unique('df','string')
+   store.unique('df','index')
+   store.unique('df','string')
 
 You can now store ``datetime64`` in data columns
 

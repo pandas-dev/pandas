@@ -490,12 +490,7 @@ objects), and the DataFrame index also contains dates, the broadcasting will be
 column-wise:
 
 .. ipython:: python
-   :suppress:
-
-   import warnings
-   warnings.filterwarnings("ignore",message='TimeSeries broadcasting',category=FutureWarning)
-
-.. ipython:: python
+   :okwarning:
 
    index = date_range('1/1/2000', periods=8)
    df = DataFrame(randn(8, 3), index=index, columns=list('ABC'))
