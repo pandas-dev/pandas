@@ -972,6 +972,7 @@ _network_error_messages = (
     'urlopen error timed out',
     'timeout: timed out',
     'socket.timeout: timed out',
+    'HTTP Error 503: Service Unavailable',
     )
 
 # or this e.errno/e.reason.errno
