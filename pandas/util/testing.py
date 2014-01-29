@@ -1097,7 +1097,9 @@ def network(t, url="http://www.google.com",
         try:
             return t(*args, **kwargs)
         except Exception as e:
-            errno = getattr(e,'errno',None)
+            errno = getattr(e, 'errno', None)
+            if not errno and hasattr(errno, "reason"):
+                errno = getattr(e.reason, 'errno', None)
 
             if not isinstance(e, error_classes):
                 raise
