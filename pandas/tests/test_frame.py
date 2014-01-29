@@ -38,6 +38,7 @@ from pandas import date_range
 import pandas as pd
 from pandas.io.parsers import read_csv
 from pandas.parser import CParserError
+from pandas.util.misc import is_little_endian
 
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
@@ -3961,6 +3962,11 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         if sys.version < LooseVersion('2.7'):
             raise nose.SkipTest('rec arrays dont work properly with py2.6')
 
+        # this may fail on certain platforms because of a numpy issue
+        # related GH6140
+        if not is_little_endian():
+            raise nose.SkipTest("known failure of test on non-little endian")
+
         # construction with a null in a recarray
         # GH 6140
         expected = DataFrame({ 'EXPIRY'  : [datetime(2005, 3, 1, 0, 0), None ]})
@@ -3968,13 +3974,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         arrdata = [np.array([datetime(2005, 3, 1, 0, 0), None])]
         dtypes = [('EXPIRY', '<M8[ns]')]
 
-        # this may fail on certain platforms because of a numpy issue
-        # related GH6140
-        try:
-            recarray = np.core.records.fromarrays(arrdata, dtype=dtypes)
-        except (ValueError):
-            raise nose.SkipTest('rec arrays with datetimes not supported')
-
+        recarray = np.core.records.fromarrays(arrdata, dtype=dtypes)
         result = DataFrame.from_records(recarray)
         assert_frame_equal(result,expected)
 
