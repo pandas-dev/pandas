@@ -92,7 +92,8 @@ def take_2d_axis0_%(name)s_%(dest)s(ndarray[%(c_type_in)s, ndim=2] values,
 
     IF %(can_copy)s:
         cdef:
-            %(c_type_out)s *v, *o
+            %(c_type_out)s *v
+            %(c_type_out)s *o
 
         #GH3130
         if (values.strides[1] == out.strides[1] and
@@ -141,7 +142,8 @@ def take_2d_axis1_%(name)s_%(dest)s(ndarray[%(c_type_in)s, ndim=2] values,
 
     IF %(can_copy)s:
         cdef:
-            %(c_type_out)s *v, *o
+            %(c_type_out)s *v
+            %(c_type_out)s *o
 
         #GH3130
         if (values.strides[0] == out.strides[0] and
