@@ -30,6 +30,7 @@ import numpy as np
 cimport util
 
 import pandas.lib as lib
+from pandas.compat import lzip
 
 import time
 import os
@@ -671,7 +672,7 @@ cdef class TextReader:
             if self.has_mi_columns:
 
                 # zip the header, so that we can easily find the duplicated pair
-                header = zip(*header)
+                header = lzip(*header)
 
                 counts = {}
                 for i, column in enumerate(header):
@@ -691,7 +692,7 @@ cdef class TextReader:
                     counts[column] = count + 1
 
                 # unzip the header
-                header = [list(x) for x in zip(*header)]
+                header = lzip(*header)
 
             if self.names is not None:
                 header = [ self.names ]
