@@ -67,12 +67,14 @@ For more resources, please visit the main `repository <https://bitbucket.org/hro
   * Exporting to CSV
   * Finding maximums
   * Plotting data
+
 *  | `02 - Lesson: <http://nbviewer.ipython.org/urls/bitbucket.org/hrojas/learn-pandas/raw/master/lessons/02%20-%20Lesson.ipynb>`_
   * Reading from TXT
   * Exporting to TXT
   * Selecting top/bottom records
   * Descriptive statistics
   * Grouping/sorting data
+
 *  | `03 - Lesson: <http://nbviewer.ipython.org/urls/bitbucket.org/hrojas/learn-pandas/raw/master/lessons/03%20-%20Lesson.ipynb>`_
   * Creating functions
   * Reading from EXCEL
@@ -80,21 +82,29 @@ For more resources, please visit the main `repository <https://bitbucket.org/hro
   * Outliers
   * Lambda functions
   * Slice and dice data
+
 *  | `04 - Lesson: <http://nbviewer.ipython.org/urls/bitbucket.org/hrojas/learn-pandas/raw/master/lessons/04%20-%20Lesson.ipynb>`_
   * Adding/deleting columns
   * Index operations
+
 *  | `05 - Lesson: <http://nbviewer.ipython.org/urls/bitbucket.org/hrojas/learn-pandas/raw/master/lessons/05%20-%20Lesson.ipynb>`_
   * Stack/Unstack/Transpose functions
+
 *  | `06 - Lesson: <http://nbviewer.ipython.org/urls/bitbucket.org/hrojas/learn-pandas/raw/master/lessons/06%20-%20Lesson.ipynb>`_
   * GroupBy function
+
 *  | `07 - Lesson: <http://nbviewer.ipython.org/urls/bitbucket.org/hrojas/learn-pandas/raw/master/lessons/07%20-%20Lesson.ipynb>`_
   * Ways to calculate outliers
+
 *  | `08 - Lesson: <http://nbviewer.ipython.org/urls/bitbucket.org/hrojas/learn-pandas/raw/master/lessons/08%20-%20Lesson.ipynb>`_
   * Read from Microsoft SQL databases
+
 *  | `09 - Lesson: <http://nbviewer.ipython.org/urls/bitbucket.org/hrojas/learn-pandas/raw/master/lessons/09%20-%20Lesson.ipynb>`_
   * Export to CSV/EXCEL/TXT
+
 *  | `10 - Lesson: <http://nbviewer.ipython.org/urls/bitbucket.org/hrojas/learn-pandas/raw/master/lessons/10%20-%20Lesson.ipynb>`_
   * Converting between different kinds of formats
+
 *  | `11 - Lesson: <http://nbviewer.ipython.org/urls/bitbucket.org/hrojas/learn-pandas/raw/master/lessons/11%20-%20Lesson.ipynb>`_
   * Combining data from various sources
 
