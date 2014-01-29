@@ -3246,9 +3246,9 @@ To add more rows to this, simply:
    To use this module, you will need a BigQuery account. See
    <https://cloud.google.com/products/big-query> for details.
 
-   As of 10/10/13, there is a bug in Google's API preventing result sets
-   from being larger than 100,000 rows. A patch is scheduled for the week of
-   10/14/13.
+   As of 1/28/14, a known bug is present that could possibly cause data duplication in the resultant dataframe. A fix is imminent,
+   but any client changes will not make it into 0.13.1. See:
+   http://stackoverflow.com/questions/20984592/bigquery-results-not-including-page-token/21009144?noredirect=1#comment32090677_21009144
 
 .. _io.stata:
 
