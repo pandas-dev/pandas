@@ -170,6 +170,8 @@ Bug Fixes
     a datetimelike (:issue:`6152`)
   - Fixed a stack overflow bug in ``query``/``eval`` during lexicographic
     string comparisons (:issue:`6155`).
+  - Fixed a bug in ``query`` where the index of a single-element ``Series`` was
+    being thrown away (:issue:`6148`).
 
 pandas 0.13.0
 -------------

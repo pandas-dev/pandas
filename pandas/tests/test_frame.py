@@ -12860,6 +12860,20 @@ class TestDataFrameQueryStrings(object):
         for parser, engine in product(PARSERS, ENGINES):
             yield self.check_query_lex_compare_strings, parser, engine
 
+    def check_query_single_element_booleans(self, parser, engine):
+        tm.skip_if_no_ne(engine)
+        columns = 'bid', 'bidsize', 'ask', 'asksize'
+        data = np.random.randint(2, size=(1, len(columns))).astype(bool)
+        df = DataFrame(data, columns=columns)
+        res = df.query('bid & ask', engine=engine, parser=parser)
+        expected = df[df.bid & df.ask]
+        assert_frame_equal(res, expected)
+
+    def test_query_single_element_booleans(self):
+        for parser, engine in product(PARSERS, ENGINES):
+            yield self.check_query_single_element_booleans, parser, engine
+
+
 class TestDataFrameEvalNumExprPandas(tm.TestCase):
 
     @classmethod
