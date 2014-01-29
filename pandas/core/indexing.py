@@ -394,10 +394,18 @@ class _NDFrameIndexer(object):
                 s = self.obj[item]
                 pi = plane_indexer[0] if lplane_indexer == 1 else plane_indexer
 
-                # set the item, possibly having a dtype change
-                s = s.copy()
-                s._data = s._data.setitem(indexer=pi, value=v)
-                s._maybe_update_cacher(clear=True)
+                # perform the equivalent of a setitem on the info axis
+                # as we have a null slice which means essentially reassign to the columns
+                # of a multi-dim object
+                # GH6149
+                if isinstance(pi, tuple) and all(_is_null_slice(idx) for idx in pi):
+                    s = v
+                else:
+                    # set the item, possibly having a dtype change
+                    s = s.copy()
+                    s._data = s._data.setitem(indexer=pi, value=v)
+                    s._maybe_update_cacher(clear=True)
+
                 self.obj[item] = s
 
             def can_do_equal_len():
