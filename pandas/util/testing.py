@@ -967,7 +967,13 @@ def optional_args(decorator):
 
     return wrapper
 
+# skip tests on exceptions with this message
+_network_error_messages = (
+    'urlopen error timed out',
+    'timeout: timed out'
+    )
 
+# or this e.errno/e.reason.errno
 _network_errno_vals = (
     101, # Network is unreachable
     110, # Connection timed out
@@ -976,6 +982,12 @@ _network_errno_vals = (
     60,  # urllib.error.URLError: [Errno 60] Connection timed out
     )
 
+# Both of the above shouldn't mask reasl issues such as 404's
+# or refused connections (changed DNS).
+# But some tests (test_data yahoo) contact incredibly flakey
+# servers.
+
+# and conditionally raise on these exception types
 _network_error_classes = (IOError, httplib.HTTPException)
 
 if sys.version_info[:2] >= (3,3):
@@ -1010,7 +1022,9 @@ def network(t, url="http://www.google.com",
             raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
             check_before_test=False,
             error_classes=_network_error_classes,
-            skip_errnos=_network_errno_vals):
+            skip_errnos=_network_errno_vals,
+            _skip_on_messages=_network_error_messages,
+            ):
     """
     Label a test as requiring network connection and, if an error is
     encountered, only raise if it does not find a network connection.
@@ -1106,6 +1120,10 @@ def network(t, url="http://www.google.com",
 
             if errno in skip_errnos:
                 raise SkipTest("Skipping test due to known errno"
+                               " and error %s" % e)
+
+            if any([m.lower() in str(e).lower() for m in _skip_on_messages]):
+                raise SkipTest("Skipping test because exception message is known"
                                " and error %s" % e)
 
             if raise_on_error or can_connect(url, error_classes):
