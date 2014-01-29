@@ -19,6 +19,7 @@ doc/source/generated
 doc/source/_static
 doc/source/vbench
 doc/source/vbench.rst
+doc/source/index.rst
 doc/build/html/index.html
 *flymake*
 scikits
