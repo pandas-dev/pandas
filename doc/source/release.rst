@@ -152,6 +152,7 @@ Bug Fixes
   - Possible segfault when chained indexing with an object array under numpy 1.7.1 (:issue:`6026`, :issue:`6056`)
   - Bug in setting using fancy indexing a single element with a non-scalar (e.g. a list),
     (:issue:`6043`)
+  - ``to_sql`` did not respect ``if_exists`` (:issue:`4110` :issue:`4304`)
   - Regression in ``.get(None)`` indexing from 0.12 (:issue:`5652`)
   - Subtle ``iloc`` indexing bug, surfaced in (:issue:`6059`)
   - Bug with insert of strings into DatetimeIndex (:issue:`5818`)

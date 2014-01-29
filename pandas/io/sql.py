@@ -202,7 +202,7 @@ def write_frame(frame, name, con, flavor='sqlite', if_exists='fail', **kwargs):
             if_exists = 'fail'
 
     if if_exists not in ('fail', 'replace', 'append'):
-        raise ValueError, "'%s' is not valid for if_exists" % if_exists
+        raise ValueError("'%s' is not valid for if_exists" % if_exists)
 
     exists = table_exists(name, con, flavor)
     if if_exists == 'fail' and exists:
@@ -212,7 +212,7 @@ def write_frame(frame, name, con, flavor='sqlite', if_exists='fail', **kwargs):
     create = None
     if exists:
         if if_exists == 'fail':
-            raise ValueError, "Table '%s' already exists." % name
+            raise ValueError("Table '%s' already exists." % name)
         elif if_exists == 'replace':
             cur = con.cursor()
             cur.execute("DROP TABLE %s;" % name)
