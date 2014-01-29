@@ -3967,7 +3967,14 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         arrdata = [np.array([datetime(2005, 3, 1, 0, 0), None])]
         dtypes = [('EXPIRY', '<M8[ns]')]
-        recarray = np.core.records.fromarrays(arrdata, dtype=dtypes)
+
+        # this may fail on certain platforms because of a numpy issue
+        # related GH6140
+        try:
+            recarray = np.core.records.fromarrays(arrdata, dtype=dtypes)
+        except (ValueError):
+            raise nose.SkipTest('rec arrays with datetimes not supported')
+
         result = DataFrame.from_records(recarray)
         assert_frame_equal(result,expected)
 
