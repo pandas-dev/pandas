@@ -222,6 +222,8 @@ Improvements to existing features
   using ``DatetimeConverter`` (:issue:`6636`)
 - Performance improvement for  ``DataFrame.shift`` (:issue:`5609`)
 - Performance improvements in timedelta conversions for integer dtypes (:issue:`6754`)
+- Performance improvement for ``DataFrame.from_records`` when reading a
+  specified number of rows from an iterable (:issue:`6700`)
 
 .. _release.bug_fixes-0.14.0:
 
@@ -319,6 +321,8 @@ Bug Fixes
 - Bug in setting a tz-aware index directly via ``.index`` (:issue:`6785`)
 - Bug in expressions.py where numexpr would try to evaluate arithmetic ops
   (:issue:`6762`).
+- Bug in Makefile where it didn't remove Cython generated C files with ``make
+  clean`` (:issue:`6768`)
 
 pandas 0.13.1
 -------------
