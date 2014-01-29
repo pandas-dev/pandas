@@ -168,6 +168,8 @@ Bug Fixes
   - Bug in DataFrame construction with recarray and non-ns datetime dtype (:issue:`6140`)
   - Bug in ``.loc`` setitem indexing with a datafrme on rhs, multiple item setting, and
     a datetimelike (:issue:`6152`)
+  - Fixed a stack overflow bug in ``query``/``eval`` during lexicographic
+    string comparisons (:issue:`6155`).
 
 pandas 0.13.0
 -------------

@@ -508,7 +508,8 @@ class BaseExprVisitor(ast.NodeVisitor):
 
     def _possibly_evaluate_binop(self, op, op_class, lhs, rhs,
                                  eval_in_python=('in', 'not in'),
-                                 maybe_eval_in_python=('==', '!=')):
+                                 maybe_eval_in_python=('==', '!=', '<', '>',
+                                                       '<=', '>=')):
         res = op(lhs, rhs)
 
         if self.engine != 'pytables':

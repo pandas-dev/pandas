@@ -12841,6 +12841,25 @@ class TestDataFrameQueryStrings(object):
         for parser, engine in product(PARSERS, ENGINES):
             yield self.check_query_with_nested_strings, parser, engine
 
+    def check_query_lex_compare_strings(self, parser, engine):
+        tm.skip_if_no_ne(engine=engine)
+        import operator as opr
+
+        a = Series(tm.choice(list('abcde'), 20))
+        b = Series(np.arange(a.size))
+        df = DataFrame({'X': a, 'Y': b})
+
+        ops = {'<': opr.lt, '>': opr.gt, '<=': opr.le, '>=': opr.ge}
+
+        for op, func in ops.items():
+            res = df.query('X %s "d"' % op, engine=engine, parser=parser)
+            expected = df[func(df.X, 'd')]
+            assert_frame_equal(res, expected)
+
+    def test_query_lex_compare_strings(self):
+        for parser, engine in product(PARSERS, ENGINES):
+            yield self.check_query_lex_compare_strings, parser, engine
+
 class TestDataFrameEvalNumExprPandas(tm.TestCase):
 
     @classmethod

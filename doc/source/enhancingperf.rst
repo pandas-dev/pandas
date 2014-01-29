@@ -464,19 +464,20 @@ evaluate an expression in the "context" of a ``DataFrame``.
 
 Any expression that is a valid :func:`~pandas.eval` expression is also a valid
 ``DataFrame.eval`` expression, with the added benefit that *you don't have to
-prefix the name of the* ``DataFrame`` *to the column you're interested in
+prefix the name of the* ``DataFrame`` *to the column(s) you're interested in
 evaluating*.
 
-In addition, you can perform in-line assignment of columns within an expression.
-This can allow for *formulaic evaluation*. Only a signle assignement is permitted.
-It can be a new column name or an existing column name. It must be a string-like.
+In addition, you can perform assignment of columns within an expression.
+This allows for *formulaic evaluation*. Only a single assignment is permitted.
+The assignment target can be a new column name or an existing column name, and
+it must be a valid Python identifier.
 
 .. ipython:: python
 
-   df = DataFrame(dict(a = range(5), b = range(5,10)))
-   df.eval('c=a+b')
-   df.eval('d=a+b+c')
-   df.eval('a=1')
+   df = DataFrame(dict(a=range(5), b=range(5, 10)))
+   df.eval('c = a + b')
+   df.eval('d = a + b + c')
+   df.eval('a = 1')
    df
 
 Local Variables
@@ -616,3 +617,20 @@ different engines.
 
 This plot was created using a ``DataFrame`` with 3 columns each containing
 floating point values generated using ``numpy.random.randn()``.
+
+Technical Minutia
+~~~~~~~~~~~~~~~~~
+- Expressions that would result in an object dtype (including simple
+  variable evaluation) have to be evaluated in Python space. The main reason
+  for this behavior is to maintain backwards compatbility with versions of
+  numpy < 1.7. In those versions of ``numpy`` a call to ``ndarray.astype(str)``
+  will truncate any strings that are more than 60 characters in length. Second,
+  we can't pass ``object`` arrays to ``numexpr`` thus string comparisons must
+  be evaluated in Python space.
+- The upshot is that this *only* applies to object-dtype'd expressions. So,
+  if you have an expression--for example--that's a string comparison
+  ``and``-ed together with another boolean expression that's from a numeric
+  comparison, the numeric comparison will be evaluated by ``numexpr``. In fact,
+  in general, :func:`~pandas.query`/:func:`~pandas.eval` will "pick out" the
+  subexpressions that are ``eval``-able by ``numexpr`` and those that must be
+  evaluated in Python space transparently to the user.
