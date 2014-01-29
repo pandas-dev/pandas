@@ -9,13 +9,13 @@ users upgrade to this version.
 
 Highlights include:
 
-- ``infer_datetime_format`` keyword to ``read_csv/to_datetime`` to allow speedups for homogeneously formatted datetimes
-- intelligently limited display precision for datetime/timedelta formats
-- enhanced Panel :meth:`~pandas.Panel.apply` method
-- :ref:`Tutorials<tutorials>`, a guide to community developed pandas tutorials.
-- :ref:`Pandas Ecosystem<ecosystem>`, a guide to complementary projects built on top of pandas.
-- :ref:`Contributing<contributing>`, a guide to how to contribute to the pandas codebase and documentation.
-- Our new CI status page: `ScatterCI <http://scatterci.github.io/pydata/pandas>`__.
+- Added ``infer_datetime_format`` keyword to ``read_csv/to_datetime`` to allow speedups for homogeneously formatted datetimes
+- Will intelligently limit display precision for datetime/timedelta formats
+- Enhanced Panel :meth:`~pandas.Panel.apply` method
+- Suggested tutorials in new :ref:`Tutorials<tutorials>` section.
+- Our pandas ecosystem is growing, We now feature related project in a new :ref:`Pandas Ecosystem<ecosystem>` section.
+- Much work has been taking place on improving the docs, and a new :ref:`Contributing<contributing>` section has been added.
+- Even though it may only interest devs, we <3 our new CI status page: `ScatterCI <http://scatterci.github.io/pydata/pandas>`__.
 
 .. warning::
 
