@@ -55,6 +55,7 @@ before_install:
   - echo $VIRTUAL_ENV
   - df -h
   - date
+  - uname -a
   - ci/before_install.sh
   - python -V
   # Xvfb stuff for clipboard functionality; see the travis-ci documentation
