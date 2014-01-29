@@ -172,6 +172,8 @@ Bug Fixes
     string comparisons (:issue:`6155`).
   - Fixed a bug in ``query`` where the index of a single-element ``Series`` was
     being thrown away (:issue:`6148`).
+  - Bug in ``HDFStore`` on appending a dataframe with multi-indexed columns to
+    an existing table (:issue:`6167`)
 
 pandas 0.13.0
 -------------
