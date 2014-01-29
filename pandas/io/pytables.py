@@ -3068,9 +3068,9 @@ class Table(Fixed):
 
         axis, axis_labels = self.non_index_axes[0]
         info = self.info.get(axis, dict())
-        if info.get('type') == 'MultiIndex' and data_columns is not None:
+        if info.get('type') == 'MultiIndex' and data_columns:
             raise ValueError("cannot use a multi-index on axis [{0}] with "
-                             "data_columns".format(axis))
+                             "data_columns {1}".format(axis, data_columns))
 
         # evaluate the passed data_columns, True == use all columns
         # take only valide axis labels

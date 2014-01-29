@@ -1613,6 +1613,13 @@ class TestHDFStore(tm.TestCase):
             self.assertRaises(ValueError, store.put, 'df2',df,format='table',data_columns=['A'])
             self.assertRaises(ValueError, store.put, 'df3',df,format='table',data_columns=True)
 
+        # appending multi-column on existing table (see GH 6167)
+        with ensure_clean_store(self.path) as store:
+            store.append('df2', df)
+            store.append('df2', df)
+
+            tm.assert_frame_equal(store['df2'], concat((df,df)))
+
         # non_index_axes name
         df = DataFrame(np.arange(12).reshape(3,4), columns=Index(list('ABCD'),name='foo'))
 
