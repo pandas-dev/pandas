@@ -174,6 +174,7 @@ Bug Fixes
     being thrown away (:issue:`6148`).
   - Bug in ``HDFStore`` on appending a dataframe with multi-indexed columns to
     an existing table (:issue:`6167`)
+  - Consistency with dtypes in setting an empty DataFrame (:issue:`6171`)
 
 pandas 0.13.0
 -------------
