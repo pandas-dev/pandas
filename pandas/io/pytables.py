@@ -40,13 +40,13 @@ import pandas.algos as algos
 import pandas.tslib as tslib
 
 from contextlib import contextmanager
+from distutils.version import LooseVersion
 
 # versioning attribute
 _version = '0.10.1'
 
 # PY3 encoding if we don't specify
 _default_encoding = 'UTF-8'
-
 
 def _ensure_decoded(s):
     """ if we have bytes, decode them to unicde """
@@ -225,7 +225,6 @@ def _tables():
     global _table_file_open_policy_is_strict
     if _table_mod is None:
         import tables
-        from distutils.version import LooseVersion
         _table_mod = tables
 
         # version requirements
@@ -4171,7 +4170,6 @@ def _convert_string_array(data, encoding, itemsize=None):
     data = np.array(data, dtype="S%d" % itemsize)
     return data
 
-
 def _unconvert_string_array(data, nan_rep=None, encoding=None):
     """ deserialize a string array, possibly decoding """
     shape = data.shape
@@ -4181,9 +4179,15 @@ def _unconvert_string_array(data, nan_rep=None, encoding=None):
     # where the passed encoding is actually None)
     encoding = _ensure_encoding(encoding)
     if encoding is not None and len(data):
+
         try:
-            data = data.astype(string_types).astype(object)
-        except:
+            itemsize = lib.max_len_string_array(com._ensure_object(data.ravel()))
+            if compat.PY3:
+                dtype = "U{0}".format(itemsize)
+            else:
+                dtype = "S{0}".format(itemsize)
+            data = data.astype(dtype).astype(object)
+        except (Exception) as e:
             f = np.vectorize(lambda x: x.decode(encoding), otypes=[np.object])
             data = f(data)
 
