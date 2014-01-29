@@ -1099,8 +1099,12 @@ def network(t, url="http://www.google.com",
         except Exception as e:
             errno = getattr(e,'errno',None)
 
-            if not isinstance(e, error_classes) and not errno in skip_errnos:
+            if not isinstance(e, error_classes):
                 raise
+
+            if errno in skip_errnos:
+                raise SkipTest("Skipping test due to known errno"
+                               " and error %s" % e)
 
             if raise_on_error or can_connect(url, error_classes):
                 raise
