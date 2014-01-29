@@ -970,7 +970,8 @@ def optional_args(decorator):
 # skip tests on exceptions with this message
 _network_error_messages = (
     'urlopen error timed out',
-    'timeout: timed out'
+    'timeout: timed out',
+    'socket.timeout: timed out',
     )
 
 # or this e.errno/e.reason.errno
