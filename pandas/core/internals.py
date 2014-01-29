@@ -1421,7 +1421,18 @@ class ObjectBlock(Block):
                     return
             except:
                 pass
-        self.values[loc] = value
+        try:
+            self.values[loc] = value
+        except (ValueError):
+
+            # broadcasting error
+            # see GH6171
+            new_shape = list(value.shape)
+            new_shape[0] = len(self.items)
+            self.values = np.empty(tuple(new_shape),dtype=self.dtype)
+            self.values.fill(np.nan)
+            self.values[loc] = value
+
 
     def _maybe_downcast(self, blocks, downcast=None):
 

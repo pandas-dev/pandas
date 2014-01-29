@@ -1987,6 +1987,23 @@ class TestIndexing(tm.TestCase):
         expected = DataFrame(0,index=[0],columns=['a'])
         assert_frame_equal(df, expected)
 
+        # GH 6171
+        # consistency on empty frames
+        df = DataFrame(columns=['x', 'y'])
+        df['x'] = [1, 2]
+        expected = DataFrame(dict(x = [1,2], y = [np.nan,np.nan]))
+        assert_frame_equal(df, expected, check_dtype=False)
+
+        df = DataFrame(columns=['x', 'y'])
+        df['x'] = ['1', '2']
+        expected = DataFrame(dict(x = ['1','2'], y = [np.nan,np.nan]),dtype=object)
+        assert_frame_equal(df, expected)
+
+        df = DataFrame(columns=['x', 'y'])
+        df.loc[0, 'x'] = 1
+        expected = DataFrame(dict(x = [1], y = [np.nan]))
+        assert_frame_equal(df, expected, check_dtype=False)
+
     def test_cache_updating(self):
         # GH 4939, make sure to update the cache on setitem
 
