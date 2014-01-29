@@ -204,9 +204,6 @@ def _parse_data(client, job, index_col=None, col_order=None):
     pagination API. We are using the most flexible iteration method
     that we could find in the bq.py/bigquery_client.py API's, but
     these have undergone large amounts of change recently.
-
-    We have encountered bugs with this functionality, see:
-    http://stackoverflow.com/questions/19145587/bq-py-not-paging-results
     """
 
     # dtype Map -
