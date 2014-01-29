@@ -8,7 +8,7 @@ import numpy as np
 
 from pandas.core.common import (isnull, _NS_DTYPE, _INT64_DTYPE,
                                 is_list_like,_values_from_object, _maybe_box,
-                                notnull)
+                                notnull, ABCSeries)
 from pandas.core.index import Index, Int64Index, _Identity
 import pandas.compat as compat
 from pandas.compat import u
@@ -52,9 +52,9 @@ def _field_accessor(name, field, docstring=None):
 def _join_i8_wrapper(joinf, with_indexers=True):
     @staticmethod
     def wrapper(left, right):
-        if isinstance(left, np.ndarray):
+        if isinstance(left, (np.ndarray, ABCSeries)):
             left = left.view('i8', type=np.ndarray)
-        if isinstance(right, np.ndarray):
+        if isinstance(right, (np.ndarray, ABCSeries)):
             right = right.view('i8', type=np.ndarray)
         results = joinf(left, right)
         if with_indexers:
@@ -77,7 +77,7 @@ def _dt_index_cmp(opname):
             other = DatetimeIndex(other)
         elif isinstance(other, compat.string_types):
             other = _to_m8(other, tz=self.tz)
-        elif not isinstance(other, np.ndarray):
+        elif not isinstance(other, (np.ndarray, ABCSeries)):
             other = _ensure_datetime64(other)
         result = func(other)
 
@@ -195,7 +195,7 @@ class DatetimeIndex(Int64Index):
                                  tz=tz, normalize=normalize, closed=closed,
                                  infer_dst=infer_dst)
 
-        if not isinstance(data, np.ndarray):
+        if not isinstance(data, (np.ndarray, ABCSeries)):
             if np.isscalar(data):
                 raise ValueError('DatetimeIndex() must be called with a '
                                  'collection of some kind, %s was passed'
@@ -228,6 +228,8 @@ class DatetimeIndex(Int64Index):
                                       yearfirst=yearfirst)
 
         if issubclass(data.dtype.type, np.datetime64):
+            if isinstance(data, ABCSeries):
+                data = data.values
             if isinstance(data, DatetimeIndex):
                 if tz is None:
                     tz = data.tz
@@ -1400,7 +1402,7 @@ class DatetimeIndex(Int64Index):
     nanosecond = _field_accessor('nanosecond', 'ns')
     weekofyear = _field_accessor('weekofyear', 'woy')
     week = weekofyear
-    dayofweek = _field_accessor('dayofweek', 'dow', 
+    dayofweek = _field_accessor('dayofweek', 'dow',
                                 "The day of the week with Monday=0, Sunday=6")
     weekday = dayofweek
     dayofyear = _field_accessor('dayofyear', 'doy')
