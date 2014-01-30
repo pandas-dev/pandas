@@ -275,6 +275,9 @@ See :ref:`gotchas<gotchas.truth>` for a more detailed discussion.
 
 .. _basics.equals:
 
+Comparing if objects are equivalent
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 Often you may find there is more than one way to compute the same
 result.  As a simple example, consider ``df+df`` and ``df*2``. To test
 that these two computations produce the same result, given the tools
@@ -300,7 +303,6 @@ locations treated as equal.
 .. ipython:: python
 
    (df+df).equals(df*2)
-
 
 
 Combining overlapping data sets
@@ -718,7 +720,9 @@ the z-score across the ``major_axis``.
 
 .. ipython:: python
 
-   result = panel.apply(lambda x: (x-x.mean())/x.std(), axis='major_axis')
+   result = panel.apply(
+              lambda x: (x-x.mean())/x.std(),
+              axis='major_axis')
    result
    result['ItemA']
 
@@ -737,7 +741,8 @@ This is equivalent to the following
 
 .. ipython:: python
 
-   result = Panel(dict([ (ax,f(panel.loc[:,:,ax])) for ax in panel.minor_axis ]))
+   result = Panel(dict([ (ax,f(panel.loc[:,:,ax]))
+                           for ax in panel.minor_axis ]))
    result
    result.loc[:,:,'ItemA']
 

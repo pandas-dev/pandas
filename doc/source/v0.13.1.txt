@@ -101,7 +101,7 @@ API changes
 Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-These were announced changes in 0.13 or prior that are taking effect as of 0.13.1
+There are no announced changes in 0.13 or prior that are taking effect as of 0.13.1
 
 Deprecations
 ~~~~~~~~~~~~
@@ -111,7 +111,7 @@ There are no deprecations of prior behavior in 0.13.1
 Enhancements
 ~~~~~~~~~~~~
 
-- pd.to_csv and pd.to_datetime learned a new ``infer_datetime_format`` keyword which greatly
+- ``pd.read_csv`` and ``pd.to_datetime`` learned a new ``infer_datetime_format`` keyword which greatly
   improves parsing perf in many cases. Thanks to @lexual for suggesting and @danbirken
   for rapidly implementing. (:issue:`5490`, :issue:`6021`)
 
@@ -160,7 +160,7 @@ Enhancements
      df['diff'] = df['today']-df['age']
      df
 
-- Add ``show_dimensions`` display option for the new DataFrame repr:
+- Add ``show_dimensions`` display option for the new DataFrame repr to control whether the dimensions print.
 
    .. ipython:: python
 
@@ -202,7 +202,9 @@ Enhancements
 
   .. ipython:: python
 
-     result = panel.apply(lambda x: (x-x.mean())/x.std(), axis='major_axis')
+     result = panel.apply(
+                lambda x: (x-x.mean())/x.std(),
+                axis='major_axis')
      result
      result['ItemA']
 
@@ -220,7 +222,8 @@ Enhancements
 
   .. ipython:: python
 
-     result = Panel(dict([ (ax,f(panel.loc[:,:,ax])) for ax in panel.minor_axis ]))
+     result = Panel(dict([ (ax,f(panel.loc[:,:,ax]))
+                             for ax in panel.minor_axis ]))
      result
      result.loc[:,:,'ItemA']
 
@@ -237,6 +240,7 @@ Performance improvements for 0.13.1
 - indexing with object dtypes (:issue:`5968`)
 - ``DataFrame.apply`` (:issue:`6013`)
 - Regression in JSON IO (:issue:`5765`)
+- Index construction from Series (:issue:`6150`)
 
 Experimental
 ~~~~~~~~~~~~

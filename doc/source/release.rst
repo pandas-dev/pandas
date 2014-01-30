@@ -53,7 +53,7 @@ pandas 0.13.1
 New features
 ~~~~~~~~~~~~
 
-  - Added ``date_format`` and ``datetime_format`` attribute to ExcelWriter.
+  - Added ``date_format`` and ``datetime_format`` attribute to ``ExcelWriter``.
     (:issue:`4133`)
 
 API Changes
@@ -91,14 +91,14 @@ Improvements to existing features
     allow multiple axes to be used to operate on slabs of a ``Panel``
   - The ``ArrayFormatter`` for ``datetime`` and ``timedelta64`` now intelligently
     limit precision based on the values in the array (:issue:`3401`)
-  - pd.show_versions() is now available for convenience when reporting issues.
+  - ``pd.show_versions()`` is now available for convenience when reporting issues.
   - perf improvements to Series.str.extract (:issue:`5944`)
   - perf improvments in ``dtypes/ftypes`` methods (:issue:`5968`)
   - perf improvments in indexing with object dtypes (:issue:`5968`)
-  - improved dtype inference for ``timedelta`` like passed to constructors (:issue:`5458`,:issue:`5689`)
+  - improved dtype inference for ``timedelta`` like passed to constructors (:issue:`5458`, :issue:`5689`)
   - escape special characters when writing to latex (:issue: `5374`)
   - perf improvements in ``DataFrame.apply`` (:issue:`6013`)
-  - pd.to_csv and pd.to_datetime learned a new ``infer_datetime_format`` keyword which greatly
+  - ``pd.read_csv`` and ``pd.to_datetime`` learned a new ``infer_datetime_format`` keyword which greatly
     improves parsing perf in many cases. Thanks to @lexual for suggesting and @danbirken
     for rapidly implementing. (:issue:`5490`,:issue:`6021`)
   - add ability to recognize '%p' format code (am/pm) to date parsers when the specific format
@@ -134,7 +134,7 @@ Bug Fixes
   - ``pd.match`` not returning passed sentinel
   - ``Panel.to_frame()`` no longer fails when ``major_axis`` is a
     ``MultiIndex`` (:issue:`5402`).
-  - Bug in ``pd.read_msgpack`` with inferring a ``DateTimeIndex`` frequencey
+  - Bug in ``pd.read_msgpack`` with inferring a ``DateTimeIndex`` frequency
     incorrectly (:issue:`5947`)
   - Fixed ``to_datetime`` for array with both Tz-aware datetimes and ``NaT``'s  (:issue:`5961`)
   - Bug in rolling skew/kurtosis when passed a Series with bad data (:issue:`5749`)
@@ -169,8 +169,7 @@ Bug Fixes
   - Bug in DataFrame construction with recarray and non-ns datetime dtype (:issue:`6140`)
   - Bug in ``.loc`` setitem indexing with a datafrme on rhs, multiple item setting, and
     a datetimelike (:issue:`6152`)
-  - Fixed a stack overflow bug in ``query``/``eval`` during lexicographic
-    string comparisons (:issue:`6155`).
+  - Fixed a bug in ``query``/``eval`` during lexicographic string comparisons (:issue:`6155`).
   - Fixed a bug in ``query`` where the index of a single-element ``Series`` was
     being thrown away (:issue:`6148`).
   - Bug in ``HDFStore`` on appending a dataframe with multi-indexed columns to
