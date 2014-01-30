@@ -145,6 +145,7 @@ class TestYahoo(tm.TestCase):
 
     @network
     def test_get_quote_stringlist(self):
+        raise nose.SkipTest('unreliable test')
         df = web.get_quote_yahoo(['GOOG', 'AAPL', 'GOOG'])
         assert_series_equal(df.ix[0], df.ix[2])
 
