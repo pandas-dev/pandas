@@ -12,6 +12,7 @@ import os
 import subprocess
 import locale
 import unittest
+import traceback
 
 from datetime import datetime
 from functools import wraps, partial
@@ -978,9 +979,10 @@ def optional_args(decorator):
 
 # skip tests on exceptions with this message
 _network_error_messages = (
-    'urlopen error timed out',
-    'timeout: timed out',
-    'socket.timeout: timed out',
+    # 'urlopen error timed out',
+    # 'timeout: timed out',
+    # 'socket.timeout: timed out',
+    'timed out',
     'HTTP Error 503: Service Unavailable',
     )
 
@@ -1138,7 +1140,12 @@ def network(t, url="http://www.google.com",
                 raise SkipTest("Skipping test due to known errno"
                                " and error %s" % e)
 
-            if any([m.lower() in str(e).lower() for m in _skip_on_messages]):
+            try:
+                e_str = traceback.format_exc(e)
+            except:
+                e_str = str(e)
+
+            if any([m.lower() in e_str.lower() for m in _skip_on_messages]):
                 raise SkipTest("Skipping test because exception message is known"
                                " and error %s" % e)
 
