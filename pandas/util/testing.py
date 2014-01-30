@@ -1143,7 +1143,7 @@ def network(t, url="http://www.google.com",
             try:
                 e_str = traceback.format_exc(e)
             except:
-                e_Str = str(e)
+                e_str = str(e)
 
             if any([m.lower() in e_str.lower() for m in _skip_on_messages]):
                 raise SkipTest("Skipping test because exception message is known"
