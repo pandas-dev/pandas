@@ -227,6 +227,9 @@ Enhancements
      result
      result.loc[:,:,'ItemA']
 
+- df.info() view now display dtype info per column (:issue:`5682`)
+- df.info() now honors option max_info_rows, disable null counts for large frames (:issue:`5974`)
+
 Performance
 ~~~~~~~~~~~
 
