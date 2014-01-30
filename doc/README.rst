@@ -133,6 +133,16 @@ If you want to do a full clean build, do::
     python make.py build
 
 
+Staring with 0.13.1 you can tell ``make.py`` to compile only a single section
+of the docs, greatly reducing the turn-around time for checking your changes.
+
+    python make.py --no-api # omit autosummary and api section
+    python make.py --single indexing # compile the docs with only a single
+                                     # section, that which is in indexing.rst
+
+For comparision, a full doc build may take 10 minutes. a ``-no-api`` build
+may take 3 minutes and a single section may take 15 seconds.
+
 Where to start?
 ---------------
 
