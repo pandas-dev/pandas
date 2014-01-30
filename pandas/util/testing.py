@@ -201,14 +201,23 @@ def get_locales(prefix=None, normalize=True,
         return None
 
     try:
-        raw_locales = str(raw_locales, encoding=pd.options.display.encoding)
+        # raw_locales is "\n" seperated list of locales
+        # it may contain non-decodable parts, so split
+        # extract what we can and then rejoin.
+        locales = raw_locales.split(b'\n')
+        raw_locales = []
+        for x in raw_locales:
+            try:
+                raw_locales.append(str(x, encoding=pd.options.display.encoding))
+            except:
+                pass
     except TypeError:
         pass
 
     if prefix is None:
-        return _valid_locales(raw_locales.splitlines(), normalize)
+        return _valid_locales(raw_locales, normalize)
 
-    found = re.compile('%s.*' % prefix).findall(raw_locales)
+    found = re.compile('%s.*' % prefix).findall('\n'.join(raw_locales))
     return _valid_locales(found, normalize)
 
 
