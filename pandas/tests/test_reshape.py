@@ -119,7 +119,7 @@ class TestMelt(tm.TestCase):
                         var_name=self.var_name, value_name=self.value_name)
         self.assertEqual(result17.columns.tolist(), ['id1', 'id2', 'var', 'val'])
 
-        result18 = melt(df, id_vars=['id1', 'id2'],
+        result18 = melt(self.df, id_vars=['id1', 'id2'],
                         value_vars='A', var_name=self.var_name, value_name=self.value_name)
         self.assertEqual(result18.columns.tolist(), ['id1', 'id2', 'var', 'val'])
 
@@ -127,14 +127,14 @@ class TestMelt(tm.TestCase):
                         value_vars=['A', 'B'], var_name=self.var_name, value_name=self.value_name)
         expected19 = DataFrame({'id1': self.df['id1'].tolist() * 2,
                                 'id2': self.df['id2'].tolist() * 2,
-                                var_name: ['A']*10 + ['B']*10,
-                                value_name: self.df['A'].tolist() + self.df['B'].tolist()},
+                                self.var_name: ['A']*10 + ['B']*10,
+                                self.value_name: self.df['A'].tolist() + self.df['B'].tolist()},
                                columns=['id1', 'id2', self.var_name, self.value_name])
         tm.assert_frame_equal(result19, expected19)
 
-    def test_custom_var_and_value_name(self):
-        self.df.columns.name = 'foo'
-        result20 = melt(self.df)
+        df20 = self.df.copy()
+        df20.columns.name = 'foo'
+        result20 = melt(df20)
         self.assertEqual(result20.columns.tolist(), ['foo', 'value'])
 
     def test_col_level(self):
