@@ -21,6 +21,8 @@ import os
 import shutil
 import sys
 import sphinx
+import argparse
+import jinja2
 
 os.environ['PYTHONPATH'] = '..'
 
@@ -77,7 +79,7 @@ def build_pandas():
         os.system('python setup.py clean')
         os.system('python setup.py build_ext --inplace')
         os.chdir('doc')
-        
+
 def build_prev(ver):
     if os.system('git checkout v%s' % ver) != 1:
         os.chdir('..')
@@ -267,22 +269,77 @@ small_docs = False
 # current_dir = os.getcwd()
 # os.chdir(os.path.dirname(os.path.join(current_dir, __file__)))
 
-if len(sys.argv) > 2:
-    ftype = sys.argv[1]
-    ver = sys.argv[2]
+import argparse
+argparser = argparse.ArgumentParser(description="""
+Pandas documentation builder
+""".strip())
 
-    if ftype == 'build_previous':
-        build_prev(ver)
-    if ftype == 'upload_previous':
-        upload_prev(ver)
-elif len(sys.argv) > 1:
-    for arg in sys.argv[1:]:
-        func = funcd.get(arg)
-        if func is None:
-            raise SystemExit('Do not know how to handle %s; valid args are %s' % (
-                arg, list(funcd.keys())))
-        func()
-else:
-    small_docs = False
-    all()
+# argparser.add_argument('-arg_name', '--arg_name',
+#                    metavar='label for arg help',
+#                    type=str|etc,
+#                    nargs='N|*|?|+|argparse.REMAINDER',
+#                    required=False,
+#                    #choices='abc',
+#                    help='help string',
+#                    action='store|store_true')
+
+# args = argparser.parse_args()
+
+#print args.accumulate(args.integers)
+
+def generate_index(api=True, single=False, **kwds):
+    from jinja2 import Template
+    with open("source/index.rst.template") as f:
+        t = Template(f.read())
+
+    with open("source/index.rst","wb") as f:
+        f.write(t.render(api=api,single=single,**kwds))
+
+import argparse
+argparser = argparse.ArgumentParser(description="Pandas documentation builder",
+                                    epilog="Targets : %s" % funcd.keys())
+
+argparser.add_argument('--no-api',
+                   default=False,
+                   help='Ommit api and autosummary',
+                   action='store_true')
+argparser.add_argument('--single',
+                   metavar='FILENAME',
+                   type=str,
+                   default=False,
+                   help='filename of section to compile, e.g. "indexing"')
+
+def main():
+    args, unknown = argparser.parse_known_args()
+    sys.argv = [sys.argv[0]] + unknown
+    if args.single:
+        args.single = os.path.basename(args.single).split(".rst")[0]
+
+    if 'clean' in unknown:
+        args.single=False
+
+    generate_index(api=not args.no_api and not args.single, single=args.single)
+
+    if len(sys.argv) > 2:
+        ftype = sys.argv[1]
+        ver = sys.argv[2]
+
+        if ftype == 'build_previous':
+            build_prev(ver)
+        if ftype == 'upload_previous':
+            upload_prev(ver)
+    elif len(sys.argv) == 2:
+        for arg in sys.argv[1:]:
+            func = funcd.get(arg)
+            if func is None:
+                raise SystemExit('Do not know how to handle %s; valid args are %s' % (
+                    arg, list(funcd.keys())))
+            func()
+    else:
+        small_docs = False
+        all()
 # os.chdir(current_dir)
+
+if __name__ == '__main__':
+    import sys
+    sys.exit(main())

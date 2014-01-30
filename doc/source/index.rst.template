@@ -109,6 +109,10 @@ See the package overview for more detail about what's in the library.
 .. toctree::
     :maxdepth: 3
 
+    {% if single -%}
+    {{ single }}
+    {% endif -%}
+    {%if not single -%}
     whatsnew
     install
     faq
@@ -136,6 +140,11 @@ See the package overview for more detail about what's in the library.
     ecosystem
     comparison_with_r
     comparison_with_sql
+    {% endif -%}
+    {% if api -%}
     api
+    {% endif -%}
+    {%if not single -%}
     contributing
     release
+    {% endif -%}
