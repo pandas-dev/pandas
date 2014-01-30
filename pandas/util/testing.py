@@ -1116,9 +1116,6 @@ def network(t, url="http://www.google.com",
             if not errno and hasattr(errno, "reason"):
                 errno = getattr(e.reason, 'errno', None)
 
-            if not isinstance(e, error_classes):
-                raise
-
             if errno in skip_errnos:
                 raise SkipTest("Skipping test due to known errno"
                                " and error %s" % e)
@@ -1126,6 +1123,9 @@ def network(t, url="http://www.google.com",
             if any([m.lower() in str(e).lower() for m in _skip_on_messages]):
                 raise SkipTest("Skipping test because exception message is known"
                                " and error %s" % e)
+
+            if not isinstance(e, error_classes):
+                raise
 
             if raise_on_error or can_connect(url, error_classes):
                 raise
