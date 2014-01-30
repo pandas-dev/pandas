@@ -50,12 +50,18 @@ Output Formatting Enhancements
 
      max_info_rows = pd.get_option('max_info_rows')
 
-     df = DataFrame(np.random.randn(10,2))
-     df.iloc[3:6,0] = np.nan
+     df = DataFrame(dict(A = np.random.randn(10),
+                         B = np.random.randn(10),
+                         C = date_range('20130101',periods=10)))
+     df.iloc[3:6,[0,2]] = np.nan
+
+  .. ipython:: python
 
      # set to not display the null counts
      pd.set_option('max_info_rows',0)
      df.info()
+
+  .. ipython:: python
 
      # this is the default (same as in 0.13.0)
      pd.set_option('max_info_rows',max_info_rows)
@@ -70,6 +76,7 @@ Output Formatting Enhancements
       df
 
       pd.set_option('show_dimensions', True)
+      df
 
 - The ``ArrayFormatter`` for ``datetime`` and ``timedelta64`` now intelligently
   limit precision based on the values in the array (:issue:`3401`)
