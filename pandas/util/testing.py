@@ -1052,6 +1052,14 @@ def network(t, url="http://www.google.com",
     error_classes : tuple or Exception
         error classes to ignore. If not in ``error_classes``, raises the error.
         defaults to IOError. Be careful about changing the error classes here.
+    skip_errnos : iterable of int
+        Any exception that has .errno or .reason.erno set to one
+        of these values will be skipped with an appropriate
+        message.
+    _skip_on_messages: iterable of string
+        any exception e for which one of the strings is
+        a substring of str(e) will be skipped with an appropriate
+        message. Intended to supress errors where an errno isn't available.
 
     Notes
     -----
