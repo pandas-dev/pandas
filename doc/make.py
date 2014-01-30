@@ -295,8 +295,31 @@ def generate_index(api=True, single=False, **kwds):
     with open("source/index.rst","wb") as f:
         f.write(t.render(api=api,single=single,**kwds))
 
+import argparse
+argparser = argparse.ArgumentParser(description="Pandas documentation builder",
+                                    epilog="Targets : %s" % funcd.keys())
+
+argparser.add_argument('--no-api',
+                   default=False,
+                   help='Ommit api and autosummary',
+                   action='store_true')
+argparser.add_argument('--single',
+                   metavar='FILENAME',
+                   type=str,
+                   default=False,
+                   help='filename of section to compile, e.g. "indexing"')
+
 def main():
-    generate_index(api=False, single='indexing')
+    args, unknown = argparser.parse_known_args()
+    sys.argv = [sys.argv[0]] + unknown
+    if args.single:
+        args.single = os.path.basename(args.single).split(".rst")[0]
+
+    if 'clean' in unknown:
+        args.single=False
+
+    generate_index(api=not args.no_api and not args.single, single=args.single)
+
     if len(sys.argv) > 2:
         ftype = sys.argv[1]
         ver = sys.argv[2]
