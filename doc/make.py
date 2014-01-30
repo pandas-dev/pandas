@@ -6,8 +6,10 @@ Python script for building documentation.
 To build the docs you must have all optional dependencies for pandas
 installed. See the installation instructions for a list of these.
 
-Note: currently latex builds do not work because of table formats that are not
-supported in the latex generation.
+<del>Note: currently latex builds do not work because of table formats that are not
+supported in the latex generation.</del>
+
+2014-01-30: Latex has some issues but 'latex_forced' works ok for 0.13.0-400 or so
 
 Usage
 -----
@@ -134,7 +136,33 @@ def latex():
 
         # Call the makefile produced by sphinx...
         if os.system('make'):
-            raise SystemExit("Rendering LaTeX failed.")
+            print("Rendering LaTeX failed.")
+            print("You may still be able to get a usable PDF file by going into 'build/latex'")
+            print("and executing 'pdflatex pandas.tex' for the requisite number of passes.")
+            print("Or using the 'latex_forced' target")
+            raise SystemExit
+
+        os.chdir('../..')
+    else:
+        print('latex build has not been tested on windows')
+
+def latex_forced():
+    check_build()
+    if sys.platform != 'win32':
+        # LaTeX format.
+        if os.system('sphinx-build -b latex -d build/doctrees '
+                     'source build/latex'):
+            raise SystemExit("Building LaTeX failed.")
+        # Produce pdf.
+
+        os.chdir('build/latex')
+
+        # Manually call pdflatex, 3 passes should ensure latex fixes up
+        # all the required cross-references and such.
+        os.system('pdflatex -interaction=nonstopmode pandas.tex')
+        os.system('pdflatex -interaction=nonstopmode pandas.tex')
+        os.system('pdflatex -interaction=nonstopmode pandas.tex')
+        raise SystemExit("You should check the file 'build/latex/pandas.pdf' for problems.")
 
         os.chdir('../..')
     else:
@@ -257,6 +285,7 @@ funcd = {
     'upload_dev_pdf': upload_dev_pdf,
     'upload_stable_pdf': upload_stable_pdf,
     'latex': latex,
+    'latex_forced': latex_forced,
     'clean': clean,
     'auto_dev': auto_dev_build,
     'auto_debug': lambda: auto_dev_build(True),
