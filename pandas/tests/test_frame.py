@@ -3974,7 +3974,11 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         arrdata = [np.array([datetime(2005, 3, 1, 0, 0), None])]
         dtypes = [('EXPIRY', '<M8[ns]')]
 
-        recarray = np.core.records.fromarrays(arrdata, dtype=dtypes)
+        try:
+            recarray = np.core.records.fromarrays(arrdata, dtype=dtypes)
+        except (ValueError):
+            raise nose.SkipTest("known failure of numpy rec array creation")
+
         result = DataFrame.from_records(recarray)
         assert_frame_equal(result,expected)
 
