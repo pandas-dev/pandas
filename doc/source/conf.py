@@ -285,6 +285,16 @@ extlinks = {'issue': ('https://github.com/pydata/pandas/issues/%s',
             'wiki': ('https://github.com/pydata/pandas/wiki/%s',
                      'wiki ')}
 
+ipython_exec_lines = [
+    'import numpy as np',
+    'import pandas as pd',
+    # This ensures correct rendering on system with console encoding != utf8
+    # (windows). It forces pandas to encode it's output reprs using utf8
+    # whereever the docs are built. The docs' target is the browser, not
+    # the console, so this is fine.
+    'pd.options.display.encoding="utf8"'
+    ]
+
 # remove the docstring of the flags attribute (inherited from numpy ndarray)
 # because these give doc build errors (see GH issue 5331)
 def remove_flags_docstring(app, what, name, obj, options, lines):
