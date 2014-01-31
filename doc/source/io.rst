@@ -3122,25 +3122,25 @@ engine. You can use a temporary SQLite database where data are stored in
 
 
 Let ``data`` be the name of your SQL table. With a query and your database
-connection, just use the :func:`~pandas.io.sql.read_frame` function to get the
+connection, just use the :func:`~pandas.io.sql.read_sql` function to get the
 query results into a DataFrame:
 
 .. ipython:: python
 
-   sql.read_frame("SELECT * FROM data;", cnx)
+   sql.read_sql("SELECT * FROM data;", cnx)
 
 You can also specify the name of the column as the DataFrame index:
 
 .. ipython:: python
 
-   sql.read_frame("SELECT * FROM data;", cnx, index_col='id')
-   sql.read_frame("SELECT * FROM data;", cnx, index_col='date')
+   sql.read_sql("SELECT * FROM data;", cnx, index_col='id')
+   sql.read_sql("SELECT * FROM data;", cnx, index_col='date')
 
 Of course, you can specify a more "complex" query.
 
 .. ipython:: python
 
-   sql.read_frame("SELECT id, Col_1, Col_2 FROM data WHERE id = 42;", cnx)
+   sql.read_sql("SELECT id, Col_1, Col_2 FROM data WHERE id = 42;", cnx)
 
 .. ipython:: python
    :suppress:
