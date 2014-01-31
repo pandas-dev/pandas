@@ -465,25 +465,25 @@ class TestPeriodProperties(tm.TestCase):
 
     def test_constructor_infer_freq(self):
         p = Period('2007-01-01')
-        self.assert_(p.freq == 'D')
+        self.assertEqual(p.freq, 'D')
 
         p = Period('2007-01-01 07')
-        self.assert_(p.freq == 'H')
+        self.assertEqual(p.freq, 'H')
 
         p = Period('2007-01-01 07:10')
-        self.assert_(p.freq == 'T')
+        self.assertEqual(p.freq, 'T')
 
         p = Period('2007-01-01 07:10:15')
-        self.assert_(p.freq == 'S')
+        self.assertEqual(p.freq, 'S')
 
         p = Period('2007-01-01 07:10:15.123')
-        self.assert_(p.freq == 'L')
+        self.assertEqual(p.freq, 'L')
 
         p = Period('2007-01-01 07:10:15.123000')
-        self.assert_(p.freq == 'L')
+        self.assertEqual(p.freq, 'L')
 
         p = Period('2007-01-01 07:10:15.123400')
-        self.assert_(p.freq == 'U')
+        self.assertEqual(p.freq, 'U')
 
 
 def noWrap(item):
@@ -1368,7 +1368,7 @@ class TestPeriodIndex(tm.TestCase):
         s = Series(randn(10), index=index)
         expected = s[index[0]]
         result = s.iat[0]
-        self.assert_(expected == result)
+        self.assertEqual(expected, result)
 
     def test_frame_setitem(self):
         rng = period_range('1/1/2000', periods=5)
@@ -1772,12 +1772,12 @@ class TestPeriodIndex(tm.TestCase):
         result = ts.asfreq('D', how='end')
         df_result = df.asfreq('D', how='end')
         exp_index = index.asfreq('D', how='end')
-        self.assert_(len(result) == len(ts))
+        self.assertEqual(len(result), len(ts))
         self.assert_(result.index.equals(exp_index))
         self.assert_(df_result.index.equals(exp_index))
 
         result = ts.asfreq('D', how='start')
-        self.assert_(len(result) == len(ts))
+        self.assertEqual(len(result), len(ts))
         self.assert_(result.index.equals(index.asfreq('D', how='start')))
 
     def test_badinput(self):
@@ -1818,7 +1818,7 @@ class TestPeriodIndex(tm.TestCase):
         pi = PeriodIndex(['2Q05', '3Q05', '4Q05', '1Q06', '2Q06'], freq='Q')
         s = Series(np.random.rand(len(pi)), index=pi).cumsum()
         # Todo: fix these accessors!
-        self.assert_(s['05Q4'] == s[2])
+        self.assertEqual(s['05Q4'], s[2])
 
     def test_period_dt64_round_trip(self):
         dti = date_range('1/1/2000', '1/7/2002', freq='B')
@@ -1843,21 +1843,21 @@ class TestPeriodIndex(tm.TestCase):
         for off in offsets:
             rng = date_range('01-Jan-2012', periods=8, freq=off)
             prng = rng.to_period()
-            self.assert_(prng.freq == 'Q-DEC')
+            self.assertEqual(prng.freq, 'Q-DEC')
 
     def test_to_period_annualish(self):
         offsets = ['BA', 'AS', 'BAS']
         for off in offsets:
             rng = date_range('01-Jan-2012', periods=8, freq=off)
             prng = rng.to_period()
-            self.assert_(prng.freq == 'A-DEC')
+            self.assertEqual(prng.freq, 'A-DEC')
 
     def test_to_period_monthish(self):
         offsets = ['MS', 'EOM', 'BM']
         for off in offsets:
             rng = date_range('01-Jan-2012', periods=8, freq=off)
             prng = rng.to_period()
-            self.assert_(prng.freq == 'M')
+            self.assertEqual(prng.freq, 'M')
 
     def test_no_multiples(self):
         self.assertRaises(ValueError, period_range, '1989Q3', periods=10,
@@ -1894,7 +1894,7 @@ class TestPeriodIndex(tm.TestCase):
 
         result = list(index)
         tm.assert_isinstance(result[0], Period)
-        self.assert_(result[0].freq == index.freq)
+        self.assertEqual(result[0].freq, index.freq)
 
     def test_take(self):
         index = PeriodIndex(start='1/1/10', end='12/31/12', freq='D')
@@ -1902,9 +1902,9 @@ class TestPeriodIndex(tm.TestCase):
         taken = index.take([5, 6, 8, 12])
         taken2 = index[[5, 6, 8, 12]]
         tm.assert_isinstance(taken, PeriodIndex)
-        self.assert_(taken.freq == index.freq)
+        self.assertEqual(taken.freq, index.freq)
         tm.assert_isinstance(taken2, PeriodIndex)
-        self.assert_(taken2.freq == index.freq)
+        self.assertEqual(taken2.freq, index.freq)
 
     def test_joins(self):
         index = period_range('1/1/2000', '1/20/2000', freq='D')
@@ -1913,7 +1913,7 @@ class TestPeriodIndex(tm.TestCase):
             joined = index.join(index[:-5], how=kind)
 
             tm.assert_isinstance(joined, PeriodIndex)
-            self.assert_(joined.freq == index.freq)
+            self.assertEqual(joined.freq, index.freq)
 
     def test_join_self(self):
         index = period_range('1/1/2000', '1/20/2000', freq='D')
@@ -2128,7 +2128,7 @@ class TestPeriodIndex(tm.TestCase):
         try:
             idx.get_loc(bad_period)
         except KeyError as inst:
-            self.assert_(inst.args[0] == bad_period)
+            self.assertEqual(inst.args[0], bad_period)
 
     def test_append_concat(self):
         # #1815

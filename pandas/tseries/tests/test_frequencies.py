@@ -99,18 +99,18 @@ class TestFrequencyInference(tm.TestCase):
 
     def test_business_daily(self):
         index = _dti(['12/31/1998', '1/3/1999', '1/4/1999'])
-        self.assert_(infer_freq(index) == 'B')
+        self.assertEqual(infer_freq(index), 'B')
 
     def test_day(self):
         self._check_tick(timedelta(1), 'D')
 
     def test_day_corner(self):
         index = _dti(['1/1/2000', '1/2/2000', '1/3/2000'])
-        self.assert_(infer_freq(index) == 'D')
+        self.assertEqual(infer_freq(index), 'D')
 
     def test_non_datetimeindex(self):
         dates = to_datetime(['1/1/2000', '1/2/2000', '1/3/2000'])
-        self.assert_(infer_freq(dates) == 'D')
+        self.assertEqual(infer_freq(dates), 'D')
 
     def test_hour(self):
         self._check_tick(timedelta(hours=1), 'H')
@@ -141,7 +141,7 @@ class TestFrequencyInference(tm.TestCase):
                 exp_freq = '%d%s' % (i, code)
             else:
                 exp_freq = code
-            self.assert_(infer_freq(index) == exp_freq)
+            self.assertEqual(infer_freq(index), exp_freq)
 
         index = _dti([b + base_delta * 7] +
                      [b + base_delta * j for j in range(3)])
@@ -174,7 +174,7 @@ class TestFrequencyInference(tm.TestCase):
 
     def test_monthly_ambiguous(self):
         rng = _dti(['1/31/2000', '2/29/2000', '3/31/2000'])
-        self.assert_(rng.inferred_freq == 'M')
+        self.assertEqual(rng.inferred_freq, 'M')
 
     def test_business_monthly(self):
         self._check_generated_range('1/1/2000', 'BM')
@@ -196,7 +196,7 @@ class TestFrequencyInference(tm.TestCase):
 
     def test_annual_ambiguous(self):
         rng = _dti(['1/31/2000', '1/31/2001', '1/31/2002'])
-        self.assert_(rng.inferred_freq == 'A-JAN')
+        self.assertEqual(rng.inferred_freq, 'A-JAN')
 
     def _check_generated_range(self, start, freq):
         freq = freq.upper()
@@ -220,7 +220,7 @@ class TestFrequencyInference(tm.TestCase):
         gen = date_range(start, periods=5, freq=freq)
         index = _dti(gen.values)
         if not freq.startswith('Q-'):
-            self.assert_(infer_freq(index) == gen.freqstr)
+            self.assertEqual(infer_freq(index), gen.freqstr)
         else:
             inf_freq = infer_freq(index)
             self.assert_((inf_freq == 'Q-DEC' and
@@ -236,15 +236,15 @@ class TestFrequencyInference(tm.TestCase):
     def test_infer_freq(self):
         rng = period_range('1959Q2', '2009Q3', freq='Q')
         rng = Index(rng.to_timestamp('D', how='e').asobject)
-        self.assert_(rng.inferred_freq == 'Q-DEC')
+        self.assertEqual(rng.inferred_freq, 'Q-DEC')
 
         rng = period_range('1959Q2', '2009Q3', freq='Q-NOV')
         rng = Index(rng.to_timestamp('D', how='e').asobject)
-        self.assert_(rng.inferred_freq == 'Q-NOV')
+        self.assertEqual(rng.inferred_freq, 'Q-NOV')
 
         rng = period_range('1959Q2', '2009Q3', freq='Q-OCT')
         rng = Index(rng.to_timestamp('D', how='e').asobject)
-        self.assert_(rng.inferred_freq == 'Q-OCT')
+        self.assertEqual(rng.inferred_freq, 'Q-OCT')
 
     def test_not_monotonic(self):
         rng = _dti(['1/31/2000', '1/31/2001', '1/31/2002'])
