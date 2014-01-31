@@ -983,6 +983,7 @@ _network_error_messages = (
     # 'timeout: timed out',
     # 'socket.timeout: timed out',
     'timed out',
+    'Server Hangup',
     'HTTP Error 503: Service Unavailable',
     )
 
