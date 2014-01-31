@@ -134,8 +134,10 @@ from IPython.utils.py3compat import PY3
 
 if PY3:
     from io import StringIO
+    text_type = str
 else:
     from StringIO import StringIO
+    text_type = unicode
 
 #-----------------------------------------------------------------------------
 # Globals
@@ -255,8 +257,7 @@ class DecodingStringIO(StringIO, object):
         self.encodings = encodings
 
     def write(self,data):
-        #py 3 compat here
-        if isinstance(data,unicode):
+        if isinstance(data, text_type):
             return super(DecodingStringIO, self).write(data)
         else:
             for enc in self.encodings:
