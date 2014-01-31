@@ -55,6 +55,7 @@ New features
 
   - Added ``date_format`` and ``datetime_format`` attribute to ``ExcelWriter``.
     (:issue:`4133`)
+  - ``DataFrame.to_csv`` now accepts ``quotechar`` parameter (:issue:`6034`)
 
 API Changes
 ~~~~~~~~~~~

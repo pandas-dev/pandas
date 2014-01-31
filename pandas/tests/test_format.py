@@ -1669,10 +1669,10 @@ c  10  11  12  13  14\
 \end{tabular}
 """
         self.assertEqual(withoutindex_result, withoutindex_expected)
-        
+
     def test_to_latex_escape_special_chars(self):
         special_characters = ['&','%','$','#','_',
-                               '{','}','~','^','\\'] 
+                               '{','}','~','^','\\']
         df = DataFrame(data=special_characters)
         observed = df.to_latex()
         expected = r"""\begin{tabular}{ll}
@@ -1693,6 +1693,24 @@ c  10  11  12  13  14\
 \end{tabular}
 """
         self.assertEqual(observed, expected)
+
+    def test_to_csv_quotechar(self):
+        df = DataFrame({'col' : [1,2]})
+        expected = """\
+$$,$col$
+$0$,$1$
+$1$,$2$
+"""
+        from tempfile import NamedTemporaryFile
+        with NamedTemporaryFile() as output:
+            df.to_csv(output.name, quoting=1, quotechar="$") # QUOTE_ALL
+            results = open(output.name).read()
+            self.assertEqual(results, expected)
+
+            df.to_csv(output.name, quoting=1, quotechar="$", engine='python')
+            results = open(output.name).read()
+            self.assertEqual(results, expected)
+
 
 class TestSeriesFormatting(tm.TestCase):
     _multiprocess_can_split_ = True
