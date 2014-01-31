@@ -256,6 +256,8 @@ class DecodingStringIO(StringIO, object):
 
     def write(self,data):
         #py 3 compat here
+        if sys.version > '3':
+            unicode = str
         if isinstance(data,unicode):
             return super(DecodingStringIO, self).write(data)
         else:
