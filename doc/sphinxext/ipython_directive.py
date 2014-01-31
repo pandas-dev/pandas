@@ -99,6 +99,7 @@ Authors
 - Skipper Seabold, refactoring, cleanups, pure python addition
 """
 from __future__ import print_function
+from __future__ import unicode_literals
 
 #-----------------------------------------------------------------------------
 # Imports
@@ -245,12 +246,35 @@ def block_parser(part, rgxin, rgxout, fmtin, fmtout):
     return block
 
 
+class DecodingStringIO(StringIO, object):
+    def __init__(self,buf='',encodings=('utf8',), *args, **kwds):
+        super(DecodingStringIO, self).__init__(buf, *args, **kwds)
+        self.set_encodings(encodings)
+
+    def set_encodings(self, encodings):
+        self.encodings = encodings
+
+    def write(self,data):
+        #py 3 compat here
+        if isinstance(data,unicode):
+            return super(DecodingStringIO, self).write(data)
+        else:
+            for enc in self.encodings:
+                try:
+                    data = data.decode(enc)
+                    return super(DecodingStringIO, self).write(data)
+                except :
+                    pass
+        # default to brute utf8 if no encoding succeded
+            return super(DecodingStringIO, self).write(data.decode('utf8', 'replace'))
+
+
 class EmbeddedSphinxShell(object):
     """An embedded IPython instance to run inside Sphinx"""
 
     def __init__(self, exec_lines=None,state=None):
 
-        self.cout = StringIO()
+        self.cout = DecodingStringIO(u'')
 
         if exec_lines is None:
             exec_lines = []
@@ -323,14 +347,6 @@ class EmbeddedSphinxShell(object):
                 self.IP.run_cell(source_raw, store_history=store_history)
         finally:
             sys.stdout = stdout
-            buflist = self.cout.buflist
-            for i in range(len(buflist)):
-                try:
-                # print(buflist[i])
-                    if not isinstance(buflist[i], unicode):
-                        buflist[i] = buflist[i].decode('utf8','replace')
-                except:
-                    pass
 
     def process_image(self, decorator):
         """
@@ -380,11 +396,12 @@ class EmbeddedSphinxShell(object):
         is_savefig = decorator is not None and \
                      decorator.startswith('@savefig')
 
-        # #>>> required for cython magic to work
-        # def _remove_first_space_if_any(line):
-        #     return line[1:] if line.startswith(' ') else line
+        # set the encodings to be used by DecodingStringIO
+        # to convert the execution output into unicode if
+        # needed. this attrib is set by IpythonDirective.run()
+        # based on the specified block options, defaulting to ['ut
+        self.cout.set_encodings(self.output_encoding)
 
-        # input_lines = lmap(_remove_first_space_if_any, input.split('\n'))
         input_lines = input.split('\n')
 
         if len(input_lines) > 1:
@@ -716,7 +733,8 @@ class IPythonDirective(Directive):
                     'verbatim' : directives.flag,
                     'doctest' : directives.flag,
                     'okexcept': directives.flag,
-                    'okwarning': directives.flag
+                    'okwarning': directives.flag,
+                    'output_encoding': directives.unchanged_required
                   }
 
     shell = None
@@ -816,6 +834,8 @@ class IPythonDirective(Directive):
         self.shell.is_verbatim = 'verbatim' in options
         self.shell.is_okexcept = 'okexcept' in options
         self.shell.is_okwarning = 'okwarning' in options
+
+        self.shell.output_encoding = [options.get('output_encoding', 'utf8')]
 
         # handle pure python code
         if 'python' in self.arguments:
