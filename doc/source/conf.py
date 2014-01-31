@@ -77,7 +77,7 @@ for f in os.listdir(os.path.dirname(__file__)):
 
 if ds:
     print("I'm about to DELETE the following:\n%s\n" % list(sorted(ds)))
-    sys.stdout.write("WARNING: I'd like to delete those to speed up proccesing (yes/no)? ")
+    sys.stdout.write("WARNING: I'd like to delete those to speed up processing (yes/no)? ")
     answer = raw_input()
 
     if answer.lower().strip() in ('y','yes'):
