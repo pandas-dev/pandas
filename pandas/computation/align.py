@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 from pandas import compat
 import pandas.core.common as com
+from pandas.computation.common import _result_type_many
 
 
 def _align_core_single_unary_op(term):
@@ -85,11 +86,11 @@ def _filter_special_cases(f):
         # only scalars or indexes
         if all(isinstance(term.value, pd.Index) or term.isscalar for term in
                terms):
-            return np.result_type(*term_values), None
+            return _result_type_many(*term_values), None
 
         # no pandas objects
         if not _any_pandas_objects(terms):
-            return np.result_type(*term_values), None
+            return _result_type_many(*term_values), None
 
         return f(terms)
     return wrapper
@@ -199,7 +200,7 @@ def _align(terms):
 
     # if all resolved variables are numeric scalars
     if all(term.isscalar for term in terms):
-        return np.result_type(*(term.value for term in terms)).type, None
+        return _result_type_many(*(term.value for term in terms)).type, None
 
     # perform the main alignment
     typ, axes = _align_core(terms)
