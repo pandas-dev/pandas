@@ -175,6 +175,8 @@ Bug Fixes
   - Bug in ``HDFStore`` on appending a dataframe with multi-indexed columns to
     an existing table (:issue:`6167`)
   - Consistency with dtypes in setting an empty DataFrame (:issue:`6171`)
+  - Bug in  selecting on a multi-index ``HDFStore`` even in the prescence of under
+    specificed column spec (:issue:`6169`)
 
 pandas 0.13.0
 -------------

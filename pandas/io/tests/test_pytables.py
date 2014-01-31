@@ -1674,7 +1674,7 @@ class TestHDFStore(tm.TestCase):
             tm.assert_frame_equal(store.select('df'),df)
 
     def test_select_columns_in_where(self):
-        
+
         # GH 6169
         # recreate multi-indexes when columns is passed
         # in the `where` argument
@@ -1687,19 +1687,22 @@ class TestHDFStore(tm.TestCase):
         # With a DataFrame
         df = DataFrame(np.random.randn(10, 3), index=index,
                        columns=['A', 'B', 'C'])
-        
+
         with ensure_clean_store(self.path) as store:
             store.put('df', df, format='table')
-            tm.assert_frame_equal(store.select('df', where="columns=['A']"),df['A'],
-                                  check_index_type=True,check_column_type=True)
-        # With a Serie
+            expected = df[['A']]
+
+            tm.assert_frame_equal(store.select('df', columns=['A']), expected)
+
+            tm.assert_frame_equal(store.select('df', where="columns=['A']"), expected)
+
+        # With a Series
         s = Series(np.random.randn(10), index=index,
                    name='A')
         with ensure_clean_store(self.path) as store:
-            store.put('s', s)
-            tm.assert_frame_equal(store.select('s', where="columns=['A']"),s,
-                                  check_index_type=True,check_column_type=True)
-            
+            store.put('s', s, format='table')
+            tm.assert_series_equal(store.select('s', where="columns=['A']"),s)
+
     def test_pass_spec_to_storer(self):
 
         df = tm.makeDataFrame()

@@ -3289,6 +3289,12 @@ class Table(Fixed):
     def process_axes(self, obj, columns=None):
         """ process axes filters """
 
+        # make sure to include levels if we have them
+        if columns is not None and self.is_multi_index:
+            for n in self.levels:
+                if n not in columns:
+                    columns.insert(0, n)
+
         # reorder by any non_index_axes & limit to the select columns
         for axis, labels in self.non_index_axes:
             obj = _reindex_axis(obj, axis, labels, columns)
@@ -3305,6 +3311,12 @@ class Table(Fixed):
 
                         # see if the field is the name of an axis
                         if field == axis_name:
+
+                            # if we have a multi-index, then need to include
+                            # the levels
+                            if self.is_multi_index:
+                                filt = filt + Index(self.levels)
+
                             takers = op(axis_values, filt)
                             return obj.ix._getitem_axis(takers,
                                                         axis=axis_number)
@@ -3951,30 +3963,17 @@ class AppendableMultiFrameTable(AppendableFrameTable):
         return super(AppendableMultiFrameTable, self).write(
             obj=obj, data_columns=data_columns, **kwargs)
 
-    def read(self, columns=None, **kwargs):
-        if columns is not None:
-            for n in self.levels:
-                if n not in columns:
-                    columns.insert(0, n)
-        df = super(AppendableMultiFrameTable, self).read(
-            columns=columns, **kwargs)
-        try:
-            df = df.set_index(self.levels)
-        except KeyError:
-            if kwargs.get('where') is not None and 'columns' in kwargs.get('where').expr:
-                raise KeyError(
-                "Indexes columns were not retrieved because you passed "
-                "a `where` argument  containing columns specification. "
-                "(see http://github.com/pydata/pandas/issues/6169), try passing "
-                "the columns specification through the `columns` keyword instead"
-                )
+    def read(self, **kwargs):
+
+        df = super(AppendableMultiFrameTable, self).read(**kwargs)
+        df = df.set_index(self.levels)
+
         # remove names for 'level_%d'
         df.index = df.index.set_names([
             None if self._re_levels.search(l) else l for l in df.index.names
         ])
 
         return df
-
 
 class AppendablePanelTable(AppendableTable):
 
