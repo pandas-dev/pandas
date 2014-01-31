@@ -177,6 +177,8 @@ Bug Fixes
   - Consistency with dtypes in setting an empty DataFrame (:issue:`6171`)
   - Bug in  selecting on a multi-index ``HDFStore`` even in the prescence of under
     specificed column spec (:issue:`6169`)
+  - Bug in ``nanops.var`` with ``ddof=1`` and 1 elements would sometimes return ``inf``
+    rather than ``nan`` on some platforms (:issue:`6136`)
 
 pandas 0.13.0
 -------------
