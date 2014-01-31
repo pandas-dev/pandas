@@ -81,7 +81,7 @@ class TestTSPlot(tm.TestCase):
         df = DataFrame({'A': ["x", "y", "z"], 'B': [1,2,3]}, idx)
 
         ax = df.plot() # it works
-        self.assert_(len(ax.get_lines()) == 1) #B was plotted
+        self.assertEqual(len(ax.get_lines()), 1) #B was plotted
         plt.close(plt.gcf())
 
         self.assertRaises(TypeError, df['A'].plot)
@@ -390,7 +390,7 @@ class TestTSPlot(tm.TestCase):
             ax = ser.plot()
             xaxis = ax.get_xaxis()
             rs = xaxis.get_majorticklocs()[0]
-            self.assert_(rs == xp)
+            self.assertEqual(rs, xp)
             vmin, vmax = ax.get_xlim()
             ax.set_xlim(vmin + 0.9, vmax)
             rs = xaxis.get_majorticklocs()[0]
