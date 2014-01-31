@@ -1832,6 +1832,14 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         expected = np.var(self.ts.values, ddof=4)
         assert_almost_equal(result, expected)
 
+        # 1 - element series with ddof=1
+        s = self.ts.iloc[[0]]
+        result = s.var(ddof=1)
+        self.assert_(isnull(result))
+
+        result = s.std(ddof=1)
+        self.assert_(isnull(result))
+
     def test_skew(self):
         _skip_if_no_scipy()
 

@@ -302,14 +302,25 @@ def nanvar(values, axis=None, skipna=True, ddof=1):
     else:
         count = float(values.size - mask.sum())
 
+    d = count-ddof
     if skipna:
         values = values.copy()
         np.putmask(values, mask, 0)
 
+    # always return NaN, never inf
+    if np.isscalar(count):
+        if count <= ddof:
+            count = np.nan
+            d = np.nan
+    else:
+        mask = count <= ddof
+        if mask.any():
+            np.putmask(d, mask, np.nan)
+            np.putmask(count, mask, np.nan)
+
     X = _ensure_numeric(values.sum(axis))
     XX = _ensure_numeric((values ** 2).sum(axis))
-    return np.fabs((XX - X ** 2 / count) / (count - ddof))
-
+    return np.fabs((XX - X ** 2 / count) / d)
 
 @bottleneck_switch()
 def nanmin(values, axis=None, skipna=True):
