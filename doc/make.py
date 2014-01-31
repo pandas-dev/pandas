@@ -321,7 +321,7 @@ def generate_index(api=True, single=False, **kwds):
     with open("source/index.rst.template") as f:
         t = Template(f.read())
 
-    with open("source/index.rst","wb") as f:
+    with open("source/index.rst","w") as f:
         f.write(t.render(api=api,single=single,**kwds))
 
 import argparse
