@@ -151,7 +151,7 @@ class TestDateOffset(TestBase):
         offset2 = DateOffset(days=365)
 
         self.assert_(offset1 != offset2)
-        self.assert_(not (offset1 == offset2))
+        self.assertNotEqual_(offset1, offset2)
 
 
 class TestBusinessDay(TestBase):
@@ -703,7 +703,7 @@ class TestWeekOfMonth(TestBase):
 
         for week, weekday, date, expected in test_cases:
             offset = WeekOfMonth(week=week, weekday=weekday)
-            self.assert_(offset.onOffset(date) == expected)
+            self.assertEqual(offset.onOffset(date), expected)
 
 class TestLastWeekOfMonth(TestBase):
     _offset = LastWeekOfMonth
@@ -722,13 +722,13 @@ class TestLastWeekOfMonth(TestBase):
         offset_sat = LastWeekOfMonth(n=1, weekday=5)
 
         one_day_before = (last_sat + timedelta(days=-1))
-        self.assert_(one_day_before + offset_sat == last_sat)
+        self.assertEqual(one_day_before + offset_sat, last_sat)
 
         one_day_after = (last_sat + timedelta(days=+1))
-        self.assert_(one_day_after + offset_sat == next_sat)
+        self.assertEqual(one_day_after + offset_sat, next_sat)
 
         #Test On that day
-        self.assert_(last_sat + offset_sat == next_sat)
+        self.assertEqual(last_sat + offset_sat, next_sat)
 
         #### Thursday
 
@@ -737,22 +737,22 @@ class TestLastWeekOfMonth(TestBase):
         next_thurs = datetime(2013,2,28)
 
         one_day_before = last_thurs + timedelta(days=-1)
-        self.assert_(one_day_before + offset_thur == last_thurs)
+        self.assertEqual(one_day_before + offset_thur, last_thurs)
 
         one_day_after = last_thurs + timedelta(days=+1)
-        self.assert_(one_day_after + offset_thur == next_thurs)
+        self.assertEqual(one_day_after + offset_thur, next_thurs)
 
         # Test on that day
-        self.assert_(last_thurs + offset_thur == next_thurs)
+        self.assertEqual(last_thurs + offset_thur, next_thurs)
 
         three_before = last_thurs + timedelta(days=-3)
-        self.assert_(three_before + offset_thur == last_thurs)
+        self.assertEqual(three_before + offset_thur, last_thurs)
 
         two_after = last_thurs + timedelta(days=+2)
-        self.assert_(two_after + offset_thur == next_thurs)
+        self.assertEqual(two_after + offset_thur, next_thurs)
 
         offset_sunday = LastWeekOfMonth(n=1, weekday=WeekDay.SUN)
-        self.assert_(datetime(2013,7,31) + offset_sunday == datetime(2013,8,25))
+        self.assertEqual(datetime(2013,7,31) + offset_sunday, datetime(2013,8,25))
 
     def test_onOffset(self):
         test_cases = [
