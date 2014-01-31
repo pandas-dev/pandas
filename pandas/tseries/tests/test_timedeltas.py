@@ -32,21 +32,21 @@ class TestTimedeltas(tm.TestCase):
     def test_numeric_conversions(self):
         _skip_if_numpy_not_friendly()
 
-        self.assert_(ct(0) == np.timedelta64(0,'ns'))
-        self.assert_(ct(10) == np.timedelta64(10,'ns'))
-        self.assert_(ct(10,unit='ns') == np.timedelta64(10,'ns').astype('m8[ns]'))
+        self.assertEqual(ct(0), np.timedelta64(0,'ns'))
+        self.assertEqual(ct(10), np.timedelta64(10,'ns'))
+        self.assertEqual(ct(10,unit='ns'), np.timedelta64(10,'ns').astype('m8[ns]'))
 
-        self.assert_(ct(10,unit='us') == np.timedelta64(10,'us').astype('m8[ns]'))
-        self.assert_(ct(10,unit='ms') == np.timedelta64(10,'ms').astype('m8[ns]'))
-        self.assert_(ct(10,unit='s') == np.timedelta64(10,'s').astype('m8[ns]'))
-        self.assert_(ct(10,unit='d') == np.timedelta64(10,'D').astype('m8[ns]'))
+        self.assertEqual(ct(10,unit='us'), np.timedelta64(10,'us').astype('m8[ns]'))
+        self.assertEqual(ct(10,unit='ms'), np.timedelta64(10,'ms').astype('m8[ns]'))
+        self.assertEqual(ct(10,unit='s'), np.timedelta64(10,'s').astype('m8[ns]'))
+        self.assertEqual(ct(10,unit='d'), np.timedelta64(10,'D').astype('m8[ns]'))
 
     def test_timedelta_conversions(self):
         _skip_if_numpy_not_friendly()
 
-        self.assert_(ct(timedelta(seconds=1)) == np.timedelta64(1,'s').astype('m8[ns]'))
-        self.assert_(ct(timedelta(microseconds=1)) == np.timedelta64(1,'us').astype('m8[ns]'))
-        self.assert_(ct(timedelta(days=1)) == np.timedelta64(1,'D').astype('m8[ns]'))
+        self.assertEqual(ct(timedelta(seconds=1)), np.timedelta64(1,'s').astype('m8[ns]'))
+        self.assertEqual(ct(timedelta(microseconds=1)), np.timedelta64(1,'us').astype('m8[ns]'))
+        self.assertEqual(ct(timedelta(days=1)), np.timedelta64(1,'D').astype('m8[ns]'))
 
     def test_short_format_converters(self):
         _skip_if_numpy_not_friendly()
@@ -54,43 +54,43 @@ class TestTimedeltas(tm.TestCase):
         def conv(v):
             return v.astype('m8[ns]')
 
-        self.assert_(ct('10') == np.timedelta64(10,'ns'))
-        self.assert_(ct('10ns') == np.timedelta64(10,'ns'))
-        self.assert_(ct('100') == np.timedelta64(100,'ns'))
-        self.assert_(ct('100ns') == np.timedelta64(100,'ns'))
+        self.assertEqual(ct('10'), np.timedelta64(10,'ns'))
+        self.assertEqual(ct('10ns'), np.timedelta64(10,'ns'))
+        self.assertEqual(ct('100'), np.timedelta64(100,'ns'))
+        self.assertEqual(ct('100ns'), np.timedelta64(100,'ns'))
 
-        self.assert_(ct('1000') == np.timedelta64(1000,'ns'))
-        self.assert_(ct('1000ns') == np.timedelta64(1000,'ns'))
-        self.assert_(ct('1000NS') == np.timedelta64(1000,'ns'))
+        self.assertEqual(ct('1000'), np.timedelta64(1000,'ns'))
+        self.assertEqual(ct('1000ns'), np.timedelta64(1000,'ns'))
+        self.assertEqual(ct('1000NS'), np.timedelta64(1000,'ns'))
 
-        self.assert_(ct('10us') == np.timedelta64(10000,'ns'))
-        self.assert_(ct('100us') == np.timedelta64(100000,'ns'))
-        self.assert_(ct('1000us') == np.timedelta64(1000000,'ns'))
-        self.assert_(ct('1000Us') == np.timedelta64(1000000,'ns'))
-        self.assert_(ct('1000uS') == np.timedelta64(1000000,'ns'))
+        self.assertEqual(ct('10us'), np.timedelta64(10000,'ns'))
+        self.assertEqual(ct('100us'), np.timedelta64(100000,'ns'))
+        self.assertEqual(ct('1000us'), np.timedelta64(1000000,'ns'))
+        self.assertEqual(ct('1000Us'), np.timedelta64(1000000,'ns'))
+        self.assertEqual(ct('1000uS'), np.timedelta64(1000000,'ns'))
 
-        self.assert_(ct('1ms') == np.timedelta64(1000000,'ns'))
-        self.assert_(ct('10ms') == np.timedelta64(10000000,'ns'))
-        self.assert_(ct('100ms') == np.timedelta64(100000000,'ns'))
-        self.assert_(ct('1000ms') == np.timedelta64(1000000000,'ns'))
+        self.assertEqual(ct('1ms'), np.timedelta64(1000000,'ns'))
+        self.assertEqual(ct('10ms'), np.timedelta64(10000000,'ns'))
+        self.assertEqual(ct('100ms'), np.timedelta64(100000000,'ns'))
+        self.assertEqual(ct('1000ms'), np.timedelta64(1000000000,'ns'))
 
-        self.assert_(ct('-1s') == -np.timedelta64(1000000000,'ns'))
-        self.assert_(ct('1s') == np.timedelta64(1000000000,'ns'))
-        self.assert_(ct('10s') == np.timedelta64(10000000000,'ns'))
-        self.assert_(ct('100s') == np.timedelta64(100000000000,'ns'))
-        self.assert_(ct('1000s') == np.timedelta64(1000000000000,'ns'))
+        self.assertEqual(ct('-1s'), -np.timedelta64(1000000000,'ns'))
+        self.assertEqual(ct('1s'), np.timedelta64(1000000000,'ns'))
+        self.assertEqual(ct('10s'), np.timedelta64(10000000000,'ns'))
+        self.assertEqual(ct('100s'), np.timedelta64(100000000000,'ns'))
+        self.assertEqual(ct('1000s'), np.timedelta64(1000000000000,'ns'))
 
-        self.assert_(ct('1d') == conv(np.timedelta64(1,'D')))
-        self.assert_(ct('-1d') == -conv(np.timedelta64(1,'D')))
-        self.assert_(ct('1D') == conv(np.timedelta64(1,'D')))
-        self.assert_(ct('10D') == conv(np.timedelta64(10,'D')))
-        self.assert_(ct('100D') == conv(np.timedelta64(100,'D')))
-        self.assert_(ct('1000D') == conv(np.timedelta64(1000,'D')))
-        self.assert_(ct('10000D') == conv(np.timedelta64(10000,'D')))
+        self.assertEqual(ct('1d'), conv(np.timedelta64(1,'D')))
+        self.assertEqual(ct('-1d'), -conv(np.timedelta64(1,'D')))
+        self.assertEqual(ct('1D'), conv(np.timedelta64(1,'D')))
+        self.assertEqual(ct('10D'), conv(np.timedelta64(10,'D')))
+        self.assertEqual(ct('100D'), conv(np.timedelta64(100,'D')))
+        self.assertEqual(ct('1000D'), conv(np.timedelta64(1000,'D')))
+        self.assertEqual(ct('10000D'), conv(np.timedelta64(10000,'D')))
 
         # space
-        self.assert_(ct(' 10000D ') == conv(np.timedelta64(10000,'D')))
-        self.assert_(ct(' - 10000D ') == -conv(np.timedelta64(10000,'D')))
+        self.assertEqual(ct(' 10000D '), conv(np.timedelta64(10000,'D')))
+        self.assertEqual(ct(' - 10000D '), -conv(np.timedelta64(10000,'D')))
 
         # invalid
         self.assertRaises(ValueError, ct, '1foo')
@@ -103,18 +103,18 @@ class TestTimedeltas(tm.TestCase):
             return v.astype('m8[ns]')
         d1 = np.timedelta64(1,'D')
 
-        self.assert_(ct('1days') == conv(d1))
-        self.assert_(ct('1days,') == conv(d1))
-        self.assert_(ct('- 1days,') == -conv(d1))
+        self.assertEqual(ct('1days'), conv(d1))
+        self.assertEqual(ct('1days,'), conv(d1))
+        self.assertEqual(ct('- 1days,'), -conv(d1))
 
-        self.assert_(ct('00:00:01') == conv(np.timedelta64(1,'s')))
-        self.assert_(ct('06:00:01') == conv(np.timedelta64(6*3600+1,'s')))
-        self.assert_(ct('06:00:01.0') == conv(np.timedelta64(6*3600+1,'s')))
-        self.assert_(ct('06:00:01.01') == conv(np.timedelta64(1000*(6*3600+1)+10,'ms')))
+        self.assertEqual(ct('00:00:01'), conv(np.timedelta64(1,'s')))
+        self.assertEqual(ct('06:00:01'), conv(np.timedelta64(6*3600+1,'s')))
+        self.assertEqual(ct('06:00:01.0'), conv(np.timedelta64(6*3600+1,'s')))
+        self.assertEqual(ct('06:00:01.01'), conv(np.timedelta64(1000*(6*3600+1)+10,'ms')))
 
-        self.assert_(ct('- 1days, 00:00:01') == -conv(d1+np.timedelta64(1,'s')))
-        self.assert_(ct('1days, 06:00:01') == conv(d1+np.timedelta64(6*3600+1,'s')))
-        self.assert_(ct('1days, 06:00:01.01') == conv(d1+np.timedelta64(1000*(6*3600+1)+10,'ms')))
+        self.assertEqual(ct('- 1days, 00:00:01'), -conv(d1+np.timedelta64(1,'s')))
+        self.assertEqual(ct('1days, 06:00:01'), conv(d1+np.timedelta64(6*3600+1,'s')))
+        self.assertEqual(ct('1days, 06:00:01.01'), conv(d1+np.timedelta64(1000*(6*3600+1)+10,'ms')))
 
         # invalid
         self.assertRaises(ValueError, ct, '- 1days, 00')
@@ -122,8 +122,8 @@ class TestTimedeltas(tm.TestCase):
     def test_nat_converters(self):
         _skip_if_numpy_not_friendly()
 
-        self.assert_(to_timedelta('nat',box=False) == tslib.iNaT)
-        self.assert_(to_timedelta('nan',box=False) == tslib.iNaT)
+        self.assertEqual(to_timedelta('nat',box=False), tslib.iNaT)
+        self.assertEqual(to_timedelta('nan',box=False), tslib.iNaT)
 
     def test_to_timedelta(self):
         _skip_if_numpy_not_friendly()
@@ -132,12 +132,12 @@ class TestTimedeltas(tm.TestCase):
             return v.astype('m8[ns]')
         d1 = np.timedelta64(1,'D')
 
-        self.assert_(to_timedelta('1 days 06:05:01.00003',box=False) == conv(d1+np.timedelta64(6*3600+5*60+1,'s')+np.timedelta64(30,'us')))
-        self.assert_(to_timedelta('15.5us',box=False) == conv(np.timedelta64(15500,'ns')))
+        self.assertEqual(to_timedelta('1 days 06:05:01.00003',box=False), conv(d1+np.timedelta64(6*3600+5*60+1,'s')+np.timedelta64(30,'us')))
+        self.assertEqual(to_timedelta('15.5us',box=False), conv(np.timedelta64(15500,'ns')))
 
         # empty string
         result = to_timedelta('',box=False)
-        self.assert_(result == tslib.iNaT)
+        self.assertEqual(result, tslib.iNaT)
 
         result = to_timedelta(['', ''])
         self.assert_(isnull(result).all())
@@ -150,7 +150,7 @@ class TestTimedeltas(tm.TestCase):
         # ints
         result = np.timedelta64(0,'ns')
         expected = to_timedelta(0,box=False)
-        self.assert_(result == expected)
+        self.assertEqual(result, expected)
 
         # Series
         expected = Series([timedelta(days=1), timedelta(days=1, seconds=1)])
@@ -166,12 +166,12 @@ class TestTimedeltas(tm.TestCase):
         v = timedelta(seconds=1)
         result = to_timedelta(v,box=False)
         expected = np.timedelta64(timedelta(seconds=1))
-        self.assert_(result == expected)
+        self.assertEqual(result, expected)
 
         v = np.timedelta64(timedelta(seconds=1))
         result = to_timedelta(v,box=False)
         expected = np.timedelta64(timedelta(seconds=1))
-        self.assert_(result == expected)
+        self.assertEqual(result, expected)
 
     def test_to_timedelta_via_apply(self):
         _skip_if_numpy_not_friendly()
@@ -221,10 +221,10 @@ class TestTimedeltas(tm.TestCase):
         assert_series_equal(actual, expected)
 
         actual = pd.to_timedelta(np.nan)
-        self.assert_(actual == timedelta_NaT)
+        self.assertEqual(actual, timedelta_NaT)
 
         actual = pd.to_timedelta(pd.NaT)
-        self.assert_(actual == timedelta_NaT)
+        self.assertEqual(actual, timedelta_NaT)
 
     def test_timedelta_ops_with_missing_values(self):
         _skip_if_numpy_not_friendly()
@@ -242,9 +242,9 @@ class TestTimedeltas(tm.TestCase):
         NA = np.nan
 
         actual = scalar1 + scalar1
-        self.assert_(actual == scalar2)
+        self.assertEqual(actual, scalar2)
         actual = scalar2 - scalar1
-        self.assert_(actual == scalar1)
+        self.assertEqual(actual, scalar1)
 
         actual = s1 + s1
         assert_series_equal(actual, s2)
