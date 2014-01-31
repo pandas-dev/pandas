@@ -229,7 +229,7 @@ Another way to transform is to use the ``wide_to_long`` panel data convenience f
                       "X"     : dict(zip(range(3), np.random.randn(3)))
                      })
   dft["id"] = dft.index
-  df
+  dft
   pd.wide_to_long(dft, ["A", "B"], i="id", j="year")
 
 Combining with stats and GroupBy
