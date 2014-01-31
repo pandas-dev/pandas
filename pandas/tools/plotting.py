@@ -1572,8 +1572,11 @@ class BarPlot(MPLPlot):
 
     def _post_plot_logic(self):
         for ax in self.axes:
-            str_index = [com.pprint_thing(key) for key in self.data.index]
-
+            if self.use_index:
+                str_index = [com.pprint_thing(key) for key in self.data.index]
+            else:
+                str_index = [com.pprint_thing(key) for key in
+                             range(self.data.shape[0])]
             name = self._get_index_name()
             if self.kind == 'bar':
                 ax.set_xlim([self.ax_pos[0] - 0.25, self.ax_pos[-1] + 1])

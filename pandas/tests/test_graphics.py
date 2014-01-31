@@ -162,6 +162,14 @@ class TestSeriesPlots(tm.TestCase):
         ax = Series([200, 500]).plot(log=True, kind='bar')
         assert_array_equal(ax.yaxis.get_ticklocs(), expected)
 
+    @slow
+    def test_bar_ignore_index(self):
+        df = Series([1, 2, 3, 4], index=['a', 'b', 'c', 'd'])
+        ax = df.plot(kind='bar', use_index=False)
+        expected = ['0', '1', '2', '3']
+        result = [x.get_text() for x in ax.get_xticklabels()]
+        self.assertEqual(result, expected)
+
     def test_rotation(self):
         df = DataFrame(randn(5, 5))
         ax = df.plot(rot=30)
