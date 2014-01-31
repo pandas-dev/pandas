@@ -809,8 +809,9 @@ class NDFrame(PandasObject):
               - columns : dict like {column -> {index -> value}}
               - values : just the values array
 
-        date_format : type of date conversion, epoch or iso
-            epoch = epoch milliseconds, iso = ISO8601, default is epoch
+        date_format : {'epoch', 'iso'}
+            Type of date conversion. `epoch` = epoch milliseconds,
+            `iso`` = ISO8601, default is epoch.
         double_precision : The number of decimal places to use when encoding
             floating point values, default 10.
         force_ascii : force encoded string to be ASCII, default True.
@@ -845,7 +846,8 @@ class NDFrame(PandasObject):
         Parameters
         ----------
         path_or_buf : the path (string) or buffer to put the store
-        key : string, an indentifier for the group in the store
+        key : string
+            indentifier for the group in the store
         mode : optional, {'a', 'w', 'r', 'r+'}, default 'a'
 
           ``'r'``
@@ -2079,8 +2081,8 @@ class NDFrame(PandasObject):
             column (for a DataFrame). (values not in the dict/Series will not be
             filled). This value cannot be a list.
         axis : {0, 1}, default 0
-            0: fill column-by-column
-            1: fill row-by-row
+            * 0: fill column-by-column
+            * 1: fill row-by-row
         inplace : boolean, default False
             If True, fill in place. Note: this will modify any
             other views on this object, (e.g. a no-copy slice for a column in a
@@ -2440,9 +2442,9 @@ class NDFrame(PandasObject):
                   'polynomial', 'spline' 'piecewise_polynomial', 'pchip'}
 
             * 'linear': ignore the index and treat the values as equally
-               spaced. default
+              spaced. default
             * 'time': interpolation works on daily and higher resolution
-                data to interpolate given length of interval
+              data to interpolate given length of interval
             * 'index': use the actual numerical values of the index
             * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
               'barycentric', 'polynomial' is passed to
@@ -2450,10 +2452,10 @@ class NDFrame(PandasObject):
               'polynomial' and 'spline' requre that you also specify and order
               (int) e.g. df.interpolate(method='polynomial', order=4)
             * 'krogh', 'piecewise_polynomial', 'spline', and 'pchip' are all
-               wrappers around the scipy interpolation methods of similar
-               names. See the scipy documentation for more on their behavior:
-               http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation
-               http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html
+              wrappers around the scipy interpolation methods of similar
+              names. See the scipy documentation for more on their behavior:
+              http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation
+              http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html
 
         axis : {0, 1}, default 0
             * 0: fill column-by-column
@@ -2745,20 +2747,23 @@ class NDFrame(PandasObject):
 
         Parameters
         ----------
-        rule : the offset string or object representing target conversion
-        how : string, method for down- or re-sampling, default to 'mean' for
-              downsampling
+        rule : string
+            the offset string or object representing target conversion
+        how : string
+            method for down- or re-sampling, default to 'mean' for
+            downsampling
         axis : int, optional, default 0
-        fill_method : string, fill_method for upsampling, default None
+        fill_method : string, default None
+            fill_method for upsampling
         closed : {'right', 'left'}
             Which side of bin interval is closed
         label : {'right', 'left'}
             Which bin edge label to label bucket with
         convention : {'start', 'end', 's', 'e'}
-        kind: "period"/"timestamp"
-        loffset: timedelta
+        kind : "period"/"timestamp"
+        loffset : timedelta
             Adjust the resampled time labels
-        limit: int, default None
+        limit : int, default None
             Maximum size gap to when reindexing with fill_method
         base : int, default 0
             For frequencies that evenly subdivide 1 day, the "origin" of the
