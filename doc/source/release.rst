@@ -179,6 +179,7 @@ Bug Fixes
     specificed column spec (:issue:`6169`)
   - Bug in ``nanops.var`` with ``ddof=1`` and 1 elements would sometimes return ``inf``
     rather than ``nan`` on some platforms (:issue:`6136`)
+  - Bug in Series and DataFrame bar plots ignoring the ``use_index`` keyword (:issue:`6209`)
 
 pandas 0.13.0
 -------------
