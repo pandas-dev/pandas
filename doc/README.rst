@@ -77,7 +77,7 @@ Requirements
 ^^^^^^^^^^^^
 
 To build the pandas docs there are some extra requirements: you will need to
-have ``sphinx`` and ``ipython`` installed. `numpydoc 
+have ``sphinx`` and ``ipython`` installed. `numpydoc
 <https://github.com/numpy/numpydoc>`_ is used to parse the docstrings that
 follow the Numpy Docstring Standard (see above), but you don't need to install
 this because a local copy of ``numpydoc`` is included in the pandas source
@@ -89,7 +89,7 @@ installed. This is not needed, but be aware that you will see some error
 messages. Because all the code in the documentation is executed during the doc
 build, the examples using this optional dependencies will generate errors.
 Run ``pd.show_version()`` to get an overview of the installed version of all
-dependencies. 
+dependencies.
 
 .. warning::
 
@@ -135,12 +135,21 @@ If you want to do a full clean build, do::
 
 Staring with 0.13.1 you can tell ``make.py`` to compile only a single section
 of the docs, greatly reducing the turn-around time for checking your changes.
+You will be prompted to delete unrequired `.rst` files, since the last commited
+version can always be restored from git.
 
-    python make.py --no-api # omit autosummary and api section
-    python make.py --single indexing # compile the docs with only a single
-                                     # section, that which is in indexing.rst
+::
 
-For comparision, a full doc build may take 10 minutes. a ``-no-api`` build
+    #omit autosummary and api section
+    python make.py clean
+    python make.py --no-api
+
+    # compile the docs with only a single
+    # section, that which is in indexing.rst
+    python make.py clean
+    python make.py --single indexing
+
+For comparison, a full doc build may take 10 minutes. a ``-no-api`` build
 may take 3 minutes and a single section may take 15 seconds.
 
 Where to start?
