@@ -3958,8 +3958,16 @@ class AppendableMultiFrameTable(AppendableFrameTable):
                     columns.insert(0, n)
         df = super(AppendableMultiFrameTable, self).read(
             columns=columns, **kwargs)
-        df = df.set_index(self.levels)
-
+        try:
+            df = df.set_index(self.levels)
+        except KeyError:
+            if kwargs.get('where') is not None and 'columns' in kwargs.get('where').expr:
+                raise KeyError(
+                "Indexes columns were not retrieved because you passed "
+                "a `where` argument  containing columns specification. "
+                "(see http://github.com/pydata/pandas/issues/6169), try passing "
+                "the columns specification through the `columns` keyword instead"
+                )
         # remove names for 'level_%d'
         df.index = df.index.set_names([
             None if self._re_levels.search(l) else l for l in df.index.names
