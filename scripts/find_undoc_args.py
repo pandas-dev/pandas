@@ -19,7 +19,7 @@ parser.add_argument('-p', '--path', metavar='PATH', type=str, required=False,
 parser.add_argument('-m', '--module', metavar='MODULE', type=str,required=True,
                    help='name of package to import and examine',action='store')
 parser.add_argument('-G', '--github_repo', metavar='REPO', type=str,required=False,
-                   help='github project where the the coe lives, e.g. "pydata/pandas"',
+                   help='github project where the the code lives, e.g. "pydata/pandas"',
                    default=None,action='store')
 
 args = parser.parse_args()
@@ -109,7 +109,7 @@ def main():
     if not args.path:
         args.path=os.path.dirname(module.__file__)
     collect=[cmp_docstring_sig(e) for e in entry_gen(module,module.__name__)]
-    # only include if there are missing arguments in the docstring (less false positives)
+    # only include if there are missing arguments in the docstring (fewer false positives)
     # and there are at least some documented arguments
     collect = [e for e in collect if e.undoc_names and len(e.undoc_names) != e.nsig_names]
     collect.sort(key=lambda x:x.path)
