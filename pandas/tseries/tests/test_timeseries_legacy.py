@@ -113,7 +113,7 @@ class LegacySupport(object):
 
         self.assert_(result.index.equals(ex_index))
         tm.assert_isinstance(result.index.freq, offsets.BDay)
-        self.assert_(len(result) == 0)
+        self.assertEqual(len(result), 0)
 
     def test_arithmetic_interaction(self):
         index = self.frame.index
@@ -167,7 +167,7 @@ class LegacySupport(object):
         rng = read_pickle(filepath)
         tm.assert_isinstance(rng[0], datetime)
         tm.assert_isinstance(rng.offset, offsets.BDay)
-        self.assert_(rng.values.dtype == object)
+        self.assertEqual(rng.values.dtype, object)
 
     def test_setops(self):
         index = self.frame.index
@@ -248,12 +248,12 @@ class LegacySupport(object):
     def test_ms_vs_MS(self):
         left = datetools.get_offset('ms')
         right = datetools.get_offset('MS')
-        self.assert_(left == datetools.Milli())
-        self.assert_(right == datetools.MonthBegin())
+        self.assertEqual(left, datetools.Milli())
+        self.assertEqual(right, datetools.MonthBegin())
 
     def test_rule_aliases(self):
         rule = datetools.to_offset('10us')
-        self.assert_(rule == datetools.Micro(10))
+        self.assertEqual(rule, datetools.Micro(10))
 
 
 class TestLegacyCompat(unittest.TestCase):
