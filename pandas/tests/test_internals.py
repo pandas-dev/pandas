@@ -604,7 +604,7 @@ class TestBlockManager(tm.TestCase):
         bm1 = BlockManager([block1, block2], [index, np.arange(block1.shape[1])])
         bm2 = BlockManager([block2, block1], [index, np.arange(block1.shape[1])])
         self.assert_(bm1.equals(bm2))
-        
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
