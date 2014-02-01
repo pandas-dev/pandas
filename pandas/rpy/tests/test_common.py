@@ -17,6 +17,7 @@ except ImportError:
 
 
 class TestCommon(unittest.TestCase):
+
     def test_convert_list(self):
         obj = r('list(a=1, b=2, c=3)')
 
@@ -141,8 +142,8 @@ class TestCommon(unittest.TestCase):
         """
         for name in (
             'austres', 'co2', 'fdeaths', 'freeny.y', 'JohnsonJohnson',
-            'ldeaths', 'mdeaths', 'nottem', 'presidents', 'sunspot.month', 'sunspots',
-            'UKDriverDeaths', 'UKgas', 'USAccDeaths',
+            'ldeaths', 'mdeaths', 'nottem', 'presidents', 'sunspot.month',
+            'sunspots', 'UKDriverDeaths', 'UKgas', 'USAccDeaths',
             'airmiles', 'discoveries', 'EuStockMarkets',
             'LakeHuron', 'lh', 'lynx', 'nhtemp', 'Nile',
                 'Seatbelts', 'sunspot.year', 'treering', 'uspop'):
@@ -169,20 +170,30 @@ class TestCommon(unittest.TestCase):
                                      2: 'Setosa',
                                      3: 'Setosa',
                                      4: 'Setosa'},
-                              'value': {0: '5.1', 1: '4.9', 2: '4.7', 3: '4.6', 4: '5.0'}})
+                              'value': {0: '5.1', 1: '4.9', 2: '4.7',
+                                        3: '4.6', 4: '5.0'}})
         hec = pd.DataFrame(
             {
-                'Eye': {0: 'Brown', 1: 'Brown', 2: 'Brown', 3: 'Brown', 4: 'Blue'},
-                'Hair': {0: 'Black', 1: 'Brown', 2: 'Red', 3: 'Blond', 4: 'Black'},
-                'Sex': {0: 'Male', 1: 'Male', 2: 'Male', 3: 'Male', 4: 'Male'},
-                'value': {0: '32.0', 1: '53.0', 2: '10.0', 3: '3.0', 4: '11.0'}})
+                'Eye': {0: 'Brown', 1: 'Brown', 2: 'Brown',
+                        3: 'Brown', 4: 'Blue'},
+                'Hair': {0: 'Black', 1: 'Brown', 2: 'Red',
+                         3: 'Blond', 4: 'Black'},
+                'Sex': {0: 'Male', 1: 'Male', 2: 'Male',
+                        3: 'Male', 4: 'Male'},
+                'value': {0: '32.0', 1: '53.0', 2: '10.0',
+                          3: '3.0', 4: '11.0'}})
         titanic = pd.DataFrame(
             {
-                'Age': {0: 'Child', 1: 'Child', 2: 'Child', 3: 'Child', 4: 'Child'},
-                'Class': {0: '1st', 1: '2nd', 2: '3rd', 3: 'Crew', 4: '1st'},
-                'Sex': {0: 'Male', 1: 'Male', 2: 'Male', 3: 'Male', 4: 'Female'},
-                'Survived': {0: 'No', 1: 'No', 2: 'No', 3: 'No', 4: 'No'},
-                'value': {0: '0.0', 1: '0.0', 2: '35.0', 3: '0.0', 4: '0.0'}})
+                'Age': {0: 'Child', 1: 'Child', 2: 'Child',
+                        3: 'Child', 4: 'Child'},
+                'Class': {0: '1st', 1: '2nd', 2: '3rd',
+                          3: 'Crew', 4: '1st'},
+                'Sex': {0: 'Male', 1: 'Male', 2: 'Male',
+                        3: 'Male', 4: 'Female'},
+                'Survived': {0: 'No', 1: 'No', 2: 'No',
+                             3: 'No', 4: 'No'},
+                'value': {0: '0.0', 1: '0.0', 2: '35.0',
+                          3: '0.0', 4: '0.0'}})
         for name, expected in zip(('HairEyeColor', 'Titanic', 'iris3'),
                                  (hec, titanic, iris3)):
             df = com.load_data(name)
