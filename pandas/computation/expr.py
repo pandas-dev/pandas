@@ -631,7 +631,7 @@ class BaseExprVisitor(ast.NodeVisitor):
 
         try:
             assigner = self.visit(node.targets[0], **kwargs)
-        except UndefinedVariableError:
+        except (UndefinedVariableError, KeyError):
             assigner = node.targets[0].id
 
         self.assigner = getattr(assigner, 'name', assigner)
@@ -639,6 +639,7 @@ class BaseExprVisitor(ast.NodeVisitor):
             raise SyntaxError('left hand side of an assignment must be a '
                               'single resolvable name')
 
+        import ipdb; ipdb.set_trace()
         return self.visit(node.value, **kwargs)
 
     def visit_Attribute(self, node, **kwargs):

@@ -4,6 +4,7 @@
 import abc
 
 from pandas import compat
+from pandas.compat import DeepChainMap
 from pandas.core import common as com
 from pandas.computation.align import _align, _reconstruct_object
 from pandas.computation.ops import UndefinedVariableError
@@ -29,9 +30,6 @@ class AbstractEngine(object):
         """
         return com.pprint_thing(self.expr)
 
-    def pre_evaluate(self):
-        self.expr.check_name_clashes()
-
     def evaluate(self):
         """Run the engine on the expression
 
@@ -47,7 +45,6 @@ class AbstractEngine(object):
             self.result_type, self.aligned_axes = _align(self.expr.terms)
 
         # make sure no names in resolvers and locals/globals clash
-        self.pre_evaluate()
         res = self._evaluate()
         return _reconstruct_object(self.result_type, res, self.aligned_axes,
                                    self.expr.terms.return_type)
@@ -87,16 +84,14 @@ class NumExprEngine(AbstractEngine):
     def _evaluate(self):
         import numexpr as ne
 
-        # add the resolvers to locals
-        self.expr.add_resolvers_to_locals()
-
         # convert the expression to a valid numexpr expression
         s = self.convert()
 
         try:
-            return ne.evaluate(s, local_dict=self.expr.env.locals,
-                               global_dict=self.expr.env.globals,
-                               truediv=self.expr.truediv)
+            env = self.expr.env
+            full_scope = DeepChainMap(*(env.resolvers.maps + env.scope.maps))
+            return ne.evaluate(s, local_dict=full_scope,
+                               truediv=env.scope['truediv'])
         except KeyError as e:
             # python 3 compat kludge
             try:
@@ -118,7 +113,6 @@ class PythonEngine(AbstractEngine):
         super(PythonEngine, self).__init__(expr)
 
     def evaluate(self):
-        self.pre_evaluate()
         return self.expr()
 
     def _evaluate(self):
