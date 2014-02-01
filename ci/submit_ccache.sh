@@ -2,6 +2,14 @@
 
 ccache -s
 
+MISSES=$(ccache -s | grep "cache miss" | grep -Po "\d+")
+echo "MISSES: $MISSES"
+
+if [ x"$MISSES" == x"0" ]; then
+    echo "No cache misses detected, skipping upload"
+    exit 0
+fi
+
 if [ "$IRON_TOKEN" ]; then
     rm -rf ~/ccache.7z
 
