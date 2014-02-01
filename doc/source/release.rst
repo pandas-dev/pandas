@@ -180,6 +180,8 @@ Bug Fixes
   - Bug in ``nanops.var`` with ``ddof=1`` and 1 elements would sometimes return ``inf``
     rather than ``nan`` on some platforms (:issue:`6136`)
   - Bug in Series and DataFrame bar plots ignoring the ``use_index`` keyword (:issue:`6209`)
+  - Disabled clipboard tests until release time (run locally with ``nosetests
+    -A disabled`` (:issue:`6048`).
 
 pandas 0.13.0
 -------------

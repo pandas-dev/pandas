@@ -7,7 +7,7 @@ from pandas import DataFrame
 from pandas import read_clipboard
 from pandas import get_option
 from pandas.util import testing as tm
-from pandas.util.testing import makeCustomDataframe as mkdf
+from pandas.util.testing import makeCustomDataframe as mkdf, disabled
 
 
 try:
@@ -16,6 +16,7 @@ except OSError:
     raise nose.SkipTest("no clipboard found")
 
 
+@disabled
 class TestClipboard(tm.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -37,7 +38,7 @@ class TestClipboard(tm.TestCase):
         max_rows = get_option('display.max_rows')
         cls.data['longdf'] = mkdf(max_rows+1, 3, data_gen_f=lambda *args: randint(2),
                                   c_idx_type='s', r_idx_type='i',
-                                  c_idx_names=[None], r_idx_names=[None])  
+                                  c_idx_names=[None], r_idx_names=[None])
         cls.data_types = list(cls.data.keys())
 
     @classmethod
