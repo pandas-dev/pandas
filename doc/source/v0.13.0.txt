@@ -171,6 +171,9 @@ API changes
 - ``Panel.reindex`` has the following call signature ``Panel.reindex(items=None, major_axis=None, minor_axis=None, **kwargs)``
    to conform with other ``NDFrame`` objects. See :ref:`Internal Refactoring<whatsnew_0130.refactoring>` for more information.
 
+- ``Series.argmin`` and ``Series.argmax`` are now aliased to ``Series.idxmin`` and ``Series.idxmax``. These return the *index* of the
+   min or max element respectively. Prior to 0.13.0 these would return the position of the min / max element. (:issue:`6214`)
+
 Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

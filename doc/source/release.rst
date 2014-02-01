@@ -554,7 +554,9 @@ API Changes
     na values (:issue:`5521`)
   - The refactoring involving``Series`` deriving from ``NDFrame`` breaks ``rpy2<=2.3.8``. an Issue
     has been opened against rpy2 and a workaround is detailed in :issue:`5698`. Thanks @JanSchulz.
-
+  - ``Series.argmin`` and ``Series.argmax`` are now aliased to ``Series.idxmin`` and ``Series.idxmax``.
+    These return the *index* of the  min or max element respectively. Prior to 0.13.0 these would return
+    the position of the min / max element (:issue:`6214`)
 
 Internal Refactoring
 ~~~~~~~~~~~~~~~~~~~~
