@@ -8,7 +8,7 @@ if [ "$IRON_TOKEN" ]; then
 
     python ci/ironcache/get.py
     ccache -C
-    ccache -M 60M
+    ccache -M 120M
 
     if [ -f ~/ccache.7z ]; then
         echo "Cache retrieved"
@@ -20,6 +20,17 @@ if [ "$IRON_TOKEN" ]; then
         rm -rf $HOME/ccache.7z
         rm -rf $HOME/ccache
 
+    fi
+
+    # did the last commit change cython files?
+    git show --pretty="format:" --name-only HEAD~5.. --first-parent | grep -P "pyx|pxd"
+
+    if [ "$?" != "0" ]; then
+        # nope, reuse cython files
+        echo "Will reuse cached cython file"
+        touch "$TRAVIS_BUILD_DIR"/pandas/*.c
+        touch "$TRAVIS_BUILD_DIR"/pandas/src/*.c
+        touch "$TRAVIS_BUILD_DIR"/pandas/*.cpp
     fi
 fi
 
