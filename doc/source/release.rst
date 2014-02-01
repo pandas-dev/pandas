@@ -180,6 +180,7 @@ Bug Fixes
   - Bug in ``nanops.var`` with ``ddof=1`` and 1 elements would sometimes return ``inf``
     rather than ``nan`` on some platforms (:issue:`6136`)
   - Bug in Series and DataFrame bar plots ignoring the ``use_index`` keyword (:issue:`6209`)
+  - Bug in groupby with mixed str/int under python3 fixed; ``argsort`` was failing (:issue:`6212`)
 
 pandas 0.13.0
 -------------

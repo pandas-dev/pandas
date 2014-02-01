@@ -10,6 +10,7 @@ import pandas.core.common as com
 import pandas.algos as algos
 import pandas.hashtable as htable
 import pandas.compat as compat
+from pandas.compat import filter, string_types
 
 def match(to_match, values, na_sentinel=-1):
     """
@@ -32,7 +33,7 @@ def match(to_match, values, na_sentinel=-1):
     match : ndarray of integers
     """
     values = com._asarray_tuplesafe(values)
-    if issubclass(values.dtype.type, compat.string_types):
+    if issubclass(values.dtype.type, string_types):
         values = np.array(values, dtype='O')
 
     f = lambda htype, caster: _match_generic(to_match, values, htype, caster)
@@ -143,7 +144,20 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
     uniques = uniques.to_array()
 
     if sort and len(uniques) > 0:
-        sorter = uniques.argsort()
+        try:
+            sorter = uniques.argsort()
+        except:
+            # unorderable in py3 if mixed str/int
+            t = hash_klass(len(uniques))
+            t.map_locations(com._ensure_object(uniques))
+
+            # order ints before strings
+            ordered = np.concatenate([
+                np.sort(np.array([ e for i, e in enumerate(uniques) if f(e) ],dtype=object)) for f in [ lambda x: not isinstance(x,string_types),
+                                                                                                        lambda x: isinstance(x,string_types) ]
+                ])
+            sorter = t.lookup(com._ensure_object(ordered))
+
         reverse_indexer = np.empty(len(sorter), dtype=np.int_)
         reverse_indexer.put(sorter, np.arange(len(sorter)))
 
