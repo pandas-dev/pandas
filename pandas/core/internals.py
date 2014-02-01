@@ -215,6 +215,14 @@ class Block(PandasObject):
     def ftype(self):
         return "%s:%s" % (self.dtype, self._ftype)
 
+    def as_block(self, result):
+        """ if we are not a block, then wrap as a block, must have compatible shape """
+        if not isinstance(result, Block):
+            result = make_block(result,
+                                self.items,
+                                self.ref_items)
+        return result
+
     def merge(self, other):
         if not self.ref_items.equals(other.ref_items):
             raise AssertionError('Merge operands must have same ref_items')
@@ -345,6 +353,10 @@ class Block(PandasObject):
                              ndim=self.ndim,
                              klass=self.__class__,
                              fastpath=True)
+
+    def apply(self, func, **kwargs):
+        """ apply the function to my values; return a block if we are not one """
+        return self.as_block(func(self.values))
 
     def fillna(self, value, inplace=False, downcast=None):
         if not self._can_hold_na:
@@ -2342,38 +2354,32 @@ class BlockManager(PandasObject):
                                  'tot_items: {1}'.format(len(self.items),
                                                          tot_items))
 
-    def apply(self, f, *args, **kwargs):
-        """ iterate over the blocks, collect and create a new block manager
+    def apply(self, f, axes=None, filter=None, do_integrity_check=False, **kwargs):
+        """
+        iterate over the blocks, collect and create a new block manager
 
         Parameters
         ----------
         f : the callable or function name to operate on at the block level
         axes : optional (if not supplied, use self.axes)
         filter : list, if supplied, only call the block if the filter is in
-            the block
+                 the block
+        do_integrity_check : boolean, default False. Do the block manager integrity check
+
+        Returns
+        -------
+        Block Manager (new object)
+
         """
 
-        axes = kwargs.pop('axes', None)
-        filter = kwargs.get('filter')
-        do_integrity_check = kwargs.pop('do_integrity_check', False)
         result_blocks = []
         for blk in self.blocks:
             if filter is not None:
-                kwargs['filter'] = set(kwargs['filter'])
+                kwargs['filter'] = set(filter)
                 if not blk.items.isin(filter).any():
                     result_blocks.append(blk)
                     continue
-            if callable(f):
-                applied = f(blk, *args, **kwargs)
-
-                # if we are no a block, try to coerce
-                if not isinstance(applied, Block):
-                    applied = make_block(applied,
-                                         blk.items,
-                                         blk.ref_items)
-
-            else:
-                applied = getattr(blk, f)(*args, **kwargs)
+            applied = getattr(blk, f)(**kwargs)
 
             if isinstance(applied, list):
                 result_blocks.extend(applied)
@@ -2386,43 +2392,46 @@ class BlockManager(PandasObject):
         bm._consolidate_inplace()
         return bm
 
-    def where(self, *args, **kwargs):
-        return self.apply('where', *args, **kwargs)
+    def isnull(self, **kwargs):
+        return self.apply('apply', **kwargs)
 
-    def eval(self, *args, **kwargs):
-        return self.apply('eval', *args, **kwargs)
+    def where(self, **kwargs):
+        return self.apply('where', **kwargs)
 
-    def setitem(self, *args, **kwargs):
-        return self.apply('setitem', *args, **kwargs)
+    def eval(self, **kwargs):
+        return self.apply('eval', **kwargs)
 
-    def putmask(self, *args, **kwargs):
-        return self.apply('putmask', *args, **kwargs)
+    def setitem(self, **kwargs):
+        return self.apply('setitem', **kwargs)
 
-    def diff(self, *args, **kwargs):
-        return self.apply('diff', *args, **kwargs)
+    def putmask(self, **kwargs):
+        return self.apply('putmask', **kwargs)
 
-    def interpolate(self, *args, **kwargs):
-        return self.apply('interpolate', *args, **kwargs)
+    def diff(self, **kwargs):
+        return self.apply('diff', **kwargs)
 
-    def shift(self, *args, **kwargs):
-        return self.apply('shift', *args, **kwargs)
+    def interpolate(self, **kwargs):
+        return self.apply('interpolate', **kwargs)
 
-    def fillna(self, *args, **kwargs):
-        return self.apply('fillna', *args, **kwargs)
+    def shift(self, **kwargs):
+        return self.apply('shift', **kwargs)
 
-    def downcast(self, *args, **kwargs):
-        return self.apply('downcast', *args, **kwargs)
+    def fillna(self, **kwargs):
+        return self.apply('fillna', **kwargs)
 
-    def astype(self, *args, **kwargs):
-        return self.apply('astype', *args, **kwargs)
+    def downcast(self, **kwargs):
+        return self.apply('downcast', **kwargs)
 
-    def convert(self, *args, **kwargs):
-        return self.apply('convert', *args, **kwargs)
+    def astype(self, dtype, **kwargs):
+        return self.apply('astype', dtype=dtype, **kwargs)
 
-    def replace(self, *args, **kwargs):
-        return self.apply('replace', *args, **kwargs)
+    def convert(self, **kwargs):
+        return self.apply('convert', **kwargs)
 
-    def replace_list(self, src_lst, dest_lst, inplace=False, regex=False):
+    def replace(self, **kwargs):
+        return self.apply('replace', **kwargs)
+
+    def replace_list(self, src_list, dest_list, inplace=False, regex=False):
         """ do a list replace """
 
         # figure out our mask a-priori to avoid repeated replacements
@@ -2432,7 +2441,7 @@ class BlockManager(PandasObject):
             if isnull(s):
                 return isnull(values)
             return values == getattr(s, 'asm8', s)
-        masks = [comp(s) for i, s in enumerate(src_lst)]
+        masks = [comp(s) for i, s in enumerate(src_list)]
 
         result_blocks = []
         for blk in self.blocks:
@@ -2440,7 +2449,7 @@ class BlockManager(PandasObject):
             # its possible to get multiple result blocks here
             # replace ALWAYS will return a list
             rb = [blk if inplace else blk.copy()]
-            for i, (s, d) in enumerate(zip(src_lst, dest_lst)):
+            for i, (s, d) in enumerate(zip(src_list, dest_list)):
                 new_rb = []
                 for b in rb:
                     if b.dtype == np.object_:
@@ -2465,13 +2474,13 @@ class BlockManager(PandasObject):
         bm._consolidate_inplace()
         return bm
 
-    def prepare_for_merge(self, *args, **kwargs):
+    def prepare_for_merge(self, **kwargs):
         """ prepare for merging, return a new block manager with
         Sparse -> Dense
         """
         self._consolidate_inplace()
         if self._has_sparse:
-            return self.apply('prepare_for_merge', *args, **kwargs)
+            return self.apply('prepare_for_merge', **kwargs)
         return self
 
     def post_merge(self, objs, **kwargs):
@@ -3631,6 +3640,18 @@ class SingleBlockManager(BlockManager):
             self._shape = tuple([len(self.axes[0])])
         return self._shape
 
+    def apply(self, f, axes=None, do_integrity_check=False, **kwargs):
+        """
+        fast path for SingleBlock Manager
+
+        ssee also BlockManager.apply
+        """
+        applied = getattr(self._block, f)(**kwargs)
+        bm = self.__class__(applied, axes or self.axes,
+                            do_integrity_check=do_integrity_check)
+        bm._consolidate_inplace()
+        return bm
+
     def reindex(self, new_axis, indexer=None, method=None, fill_value=None,
                 limit=None, copy=True):
         # if we are the same and don't copy, just return
@@ -3687,14 +3708,14 @@ class SingleBlockManager(BlockManager):
     def index(self):
         return self.axes[0]
 
-    def convert(self, *args, **kwargs):
+    def convert(self, **kwargs):
         """ convert the whole block as one """
         kwargs['by_item'] = False
-        return self.apply('convert', *args, **kwargs)
+        return self.apply('convert', **kwargs)
 
     @property
     def dtype(self):
-        return self._block.dtype
+        return self._values.dtype
 
     @property
     def ftype(self):
@@ -3706,7 +3727,7 @@ class SingleBlockManager(BlockManager):
 
     @property
     def itemsize(self):
-        return self._block.itemsize
+        return self._values.itemsize
 
     @property
     def _can_hold_na(self):

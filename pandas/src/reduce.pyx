@@ -55,18 +55,18 @@ cdef class Reducer:
             # in cython, so increment first
             Py_INCREF(dummy)
         else:
-            if dummy.dtype != self.arr.dtype:
-                raise ValueError('Dummy array must be same dtype')
-            if len(dummy) != self.chunksize:
-                raise ValueError('Dummy array must be length %d' %
-                                 self.chunksize)
-
             # we passed a series-like
             if hasattr(dummy,'values'):
 
                 self.typ = type(dummy)
                 index = getattr(dummy,'index',None)
                 dummy = dummy.values
+
+            if dummy.dtype != self.arr.dtype:
+                raise ValueError('Dummy array must be same dtype')
+            if len(dummy) != self.chunksize:
+                raise ValueError('Dummy array must be length %d' %
+                                 self.chunksize)
 
         return dummy, index
 
@@ -193,9 +193,9 @@ cdef class SeriesBinGrouper:
             values = np.empty(0, dtype=self.arr.dtype)
             index = None
         else:
-            if dummy.dtype != self.arr.dtype:
-                raise ValueError('Dummy array must be same dtype')
             values = dummy.values
+            if values.dtype != self.arr.dtype:
+                raise ValueError('Dummy array must be same dtype')
             if not values.flags.contiguous:
                 values = values.copy()
             index = dummy.index
@@ -318,9 +318,9 @@ cdef class SeriesGrouper:
             values = np.empty(0, dtype=self.arr.dtype)
             index  = None
         else:
+            values = dummy.values
             if dummy.dtype != self.arr.dtype:
                 raise ValueError('Dummy array must be same dtype')
-            values = dummy.values
             if not values.flags.contiguous:
                 values = values.copy()
             index  = dummy.index

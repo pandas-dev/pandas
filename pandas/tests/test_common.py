@@ -198,7 +198,7 @@ def test_nan_to_nat_conversions():
     assert(result == iNaT)
 
     s = df['B'].copy()
-    s._data = s._data.setitem(tuple([slice(8,9)]),np.nan)
+    s._data = s._data.setitem(indexer=tuple([slice(8,9)]),value=np.nan)
     assert(isnull(s[8]))
 
     # numpy < 1.7.0 is wrong

@@ -128,7 +128,7 @@ class NDFrame(PandasObject):
         elif dtype is not None:
             # avoid copy if we can
             if len(mgr.blocks) > 1 or mgr.blocks[0].values.dtype != dtype:
-                mgr = mgr.astype(dtype)
+                mgr = mgr.astype(dtype=dtype)
         return mgr
 
     #----------------------------------------------------------------------
@@ -2011,7 +2011,7 @@ class NDFrame(PandasObject):
         """
 
         mgr = self._data.astype(
-            dtype, copy=copy, raise_on_error=raise_on_error)
+            dtype=dtype, copy=copy, raise_on_error=raise_on_error)
         return self._constructor(mgr).__finalize__(self)
 
     def copy(self, deep=True):
@@ -2153,7 +2153,7 @@ class NDFrame(PandasObject):
                     from pandas import Series
                     value = Series(value)
 
-                new_data = self._data.fillna(value, inplace=inplace,
+                new_data = self._data.fillna(value=value, inplace=inplace,
                                              downcast=downcast)
 
             elif isinstance(value, (dict, com.ABCSeries)):
@@ -2170,7 +2170,7 @@ class NDFrame(PandasObject):
                     obj.fillna(v, inplace=True)
                 return result
             else:
-                new_data = self._data.fillna(value, inplace=inplace,
+                new_data = self._data.fillna(value=value, inplace=inplace,
                                              downcast=downcast)
 
         if inplace:
@@ -2355,7 +2355,8 @@ class NDFrame(PandasObject):
                     new_data = self._data
                     for c, src in compat.iteritems(to_replace):
                         if c in value and c in self:
-                            new_data = new_data.replace(src, value[c],
+                            new_data = new_data.replace(to_replace=src,
+                                                        value=value[c],
                                                         filter=[c],
                                                         inplace=inplace,
                                                         regex=regex)
@@ -2365,7 +2366,8 @@ class NDFrame(PandasObject):
                     new_data = self._data
                     for k, src in compat.iteritems(to_replace):
                         if k in self:
-                            new_data = new_data.replace(src, value,
+                            new_data = new_data.replace(to_replace=src,
+                                                        value=value,
                                                         filter=[k],
                                                         inplace=inplace,
                                                         regex=regex)
@@ -2380,13 +2382,16 @@ class NDFrame(PandasObject):
                                          'in length. Expecting %d got %d ' %
                                          (len(to_replace), len(value)))
 
-                    new_data = self._data.replace_list(to_replace, value,
+                    new_data = self._data.replace_list(src_list=to_replace,
+                                                       dest_list=value,
                                                        inplace=inplace,
                                                        regex=regex)
 
                 else:  # [NA, ''] -> 0
-                    new_data = self._data.replace(to_replace, value,
-                                                  inplace=inplace, regex=regex)
+                    new_data = self._data.replace(to_replace=to_replace,
+                                                  value=value,
+                                                  inplace=inplace,
+                                                  regex=regex)
             elif to_replace is None:
                 if not (com.is_re_compilable(regex) or
                         com.is_list_like(regex) or
@@ -2406,13 +2411,14 @@ class NDFrame(PandasObject):
 
                     for k, v in compat.iteritems(value):
                         if k in self:
-                            new_data = new_data.replace(to_replace, v,
+                            new_data = new_data.replace(to_replace=to_replace,
+                                                        value=v,
                                                         filter=[k],
                                                         inplace=inplace,
                                                         regex=regex)
 
                 elif not com.is_list_like(value):  # NA -> 0
-                    new_data = self._data.replace(to_replace, value,
+                    new_data = self._data.replace(to_replace=to_replace, value=value,
                                                   inplace=inplace, regex=regex)
                 else:
                     msg = ('Invalid "to_replace" type: '
@@ -3116,12 +3122,12 @@ class NDFrame(PandasObject):
         if inplace:
             # we may have different type blocks come out of putmask, so
             # reconstruct the block manager
-            new_data = self._data.putmask(cond, other, align=axis is None,
+            new_data = self._data.putmask(mask=cond, new=other, align=axis is None,
                                           inplace=True)
             self._update_inplace(new_data)
 
         else:
-            new_data = self._data.where(other, cond, align=axis is None,
+            new_data = self._data.where(other=other, cond=cond, align=axis is None,
                                         raise_on_error=raise_on_error,
                                         try_cast=try_cast)
 
@@ -3168,7 +3174,7 @@ class NDFrame(PandasObject):
         if freq is None and not len(kwds):
             block_axis = self._get_block_manager_axis(axis)
             indexer = com._shift_indexer(len(self), periods)
-            new_data = self._data.shift(indexer, periods, axis=block_axis)
+            new_data = self._data.shift(indexer=indexer, periods=periods, axis=block_axis)
         else:
             return self.tshift(periods, freq, **kwds)
 
