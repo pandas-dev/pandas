@@ -23,7 +23,6 @@ from pandas.computation.expr import PythonExprVisitor, PandasExprVisitor
 from pandas.computation.ops import (_binary_ops_dict,
                                     _special_case_arith_ops_syms,
                                     _arith_ops_syms, _bool_ops_syms)
-from pandas.computation.common import NameResolutionError
 
 import pandas.computation.expr as expr
 import pandas.util.testing as tm
@@ -1043,6 +1042,7 @@ class TestOperationsNumExprPandas(tm.TestCase):
     def eval(self, *args, **kwargs):
         kwargs['engine'] = self.engine
         kwargs['parser'] = self.parser
+        kwargs['level'] = kwargs.pop('level', 0) + 1
         return pd.eval(*args, **kwargs)
 
     def test_simple_arith_ops(self):
@@ -1114,10 +1114,10 @@ class TestOperationsNumExprPandas(tm.TestCase):
         d = {'s': s}
 
         if PY3:
-            res = self.eval(ex, truediv=False, local_dict=d)
+            res = self.eval(ex, truediv=False)
             assert_array_equal(res, np.array([1.0]))
 
-            res = self.eval(ex, truediv=True, local_dict=d)
+            res = self.eval(ex, truediv=True)
             assert_array_equal(res, np.array([1.0]))
 
             res = self.eval('1 / 2', truediv=True)
@@ -1128,18 +1128,18 @@ class TestOperationsNumExprPandas(tm.TestCase):
             expec = 0.5
             self.assertEqual(res, expec)
 
-            res = self.eval('s / 2', truediv=False, local_dict={'s': s})
+            res = self.eval('s / 2', truediv=False)
             expec = 0.5
             self.assertEqual(res, expec)
 
-            res = self.eval('s / 2', truediv=True, local_dict={'s': s})
+            res = self.eval('s / 2', truediv=True)
             expec = 0.5
             self.assertEqual(res, expec)
         else:
-            res = self.eval(ex, truediv=False, local_dict=d)
+            res = self.eval(ex, truediv=False)
             assert_array_equal(res, np.array([1]))
 
-            res = self.eval(ex, truediv=True, local_dict=d)
+            res = self.eval(ex, truediv=True)
             assert_array_equal(res, np.array([1.0]))
 
             res = self.eval('1 / 2', truediv=True)
@@ -1150,18 +1150,18 @@ class TestOperationsNumExprPandas(tm.TestCase):
             expec = 0
             self.assertEqual(res, expec)
 
-            res = self.eval('s / 2', truediv=False, local_dict={'s': s})
+            res = self.eval('s / 2', truediv=False)
             expec = 0
             self.assertEqual(res, expec)
 
-            res = self.eval('s / 2', truediv=True, local_dict={'s': s})
+            res = self.eval('s / 2', truediv=True)
             expec = 0.5
             self.assertEqual(res, expec)
 
     def test_failing_subscript_with_name_error(self):
         df = DataFrame(np.random.randn(5, 3))
-        self.assertRaises(NameError, self.eval, 'df[x > 2] > 2',
-                          local_dict={'df': df})
+        with tm.assertRaises(NameError):
+            self.eval('df[x > 2] > 2')
 
     def test_lhs_expression_subscript(self):
         df = DataFrame(np.random.randn(5, 3))
@@ -1232,8 +1232,9 @@ class TestOperationsNumExprPandas(tm.TestCase):
 
         def f():
             a = 1
-            df.eval('a=a+b')
-        self.assertRaises(NameResolutionError, f)
+            old_a = df.a.copy()
+            df.eval('a = a + b')
+            assert_frame_equal(old_a + df.b, df.a)
 
         # multiple assignment
         df = orig_df.copy()
@@ -1486,34 +1487,6 @@ def test_invalid_parser():
                        parser='asdf')
 
 
-def check_is_expr_syntax(engine):
-    tm.skip_if_no_ne(engine)
-    s = 1
-    valid1 = 's + 1'
-    valid2 = '__y + _xx'
-    assert_true(expr.isexpr(valid1, check_names=False))
-    assert_true(expr.isexpr(valid2, check_names=False))
-
-
-def check_is_expr_names(engine):
-    tm.skip_if_no_ne(engine)
-    r, s = 1, 2
-    valid = 's + r'
-    invalid = '__y + __x'
-    assert_true(expr.isexpr(valid, check_names=True))
-    assert_false(expr.isexpr(invalid, check_names=True))
-
-
-def test_is_expr_syntax():
-    for engine in _engines:
-        yield check_is_expr_syntax, engine
-
-
-def test_is_expr_names():
-    for engine in _engines:
-        yield check_is_expr_names, engine
-
-
 _parsers = {'python': PythonExprVisitor, 'pytables': pytables.ExprVisitor,
             'pandas': PandasExprVisitor}
 
@@ -1547,7 +1520,8 @@ def test_syntax_error_exprs():
 def check_name_error_exprs(engine, parser):
     tm.skip_if_no_ne(engine)
     e = 's + t'
-    assert_raises(NameError, pd.eval, e, engine=engine, parser=parser)
+    with tm.assertRaises(NameError):
+        pd.eval(e, engine=engine, parser=parser)
 
 
 def test_name_error_exprs():
