@@ -73,7 +73,7 @@ before_script:
 
 script:
   - echo "script"
-  - ci/script.sh
+#  - ci/script.sh
 
 after_script:
   - ci/print_versions.py
