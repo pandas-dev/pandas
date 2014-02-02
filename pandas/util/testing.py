@@ -985,6 +985,7 @@ _network_error_messages = (
     'timed out',
     'Server Hangup',
     'HTTP Error 503: Service Unavailable',
+    '502: Proxy Error',
     )
 
 # or this e.errno/e.reason.errno
