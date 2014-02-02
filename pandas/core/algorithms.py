@@ -156,7 +156,7 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
                 np.sort(np.array([ e for i, e in enumerate(uniques) if f(e) ],dtype=object)) for f in [ lambda x: not isinstance(x,string_types),
                                                                                                         lambda x: isinstance(x,string_types) ]
                 ])
-            sorter = t.lookup(com._ensure_object(ordered))
+            sorter = com._ensure_platform_int(t.lookup(com._ensure_object(ordered)))
 
         reverse_indexer = np.empty(len(sorter), dtype=np.int_)
         reverse_indexer.put(sorter, np.arange(len(sorter)))
