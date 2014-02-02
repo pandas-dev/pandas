@@ -67,6 +67,7 @@ install:
   - echo "install"
   - ci/prep_ccache.sh
   - ci/install.sh
+  - ci/submit_ccache.sh
 
 before_script:
   - mysql -e 'create database pandas_nosetest;'
@@ -79,4 +80,3 @@ after_script:
   - ci/print_versions.py
   - ci/print_skipped.py /tmp/nosetests.xml
   - ci/after_script.sh
-  - ci/submit_ccache.sh
