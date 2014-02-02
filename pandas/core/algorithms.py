@@ -129,6 +129,10 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
 
     Returns
     -------
+    labels : the indexer to the original array
+    uniques : the unique values
+
+    note: an array of Periods will ignore sort as it returns an always sorted PeriodIndex
     """
     from pandas.tseries.period import PeriodIndex
     vals = np.asarray(values)
