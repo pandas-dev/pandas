@@ -8,6 +8,8 @@ def read_clipboard(**kwargs):  # pragma: no cover
     Read text from clipboard and pass to read_table. See read_table for the
     full argument list
 
+    If unspecified, `sep` defaults to '\s+'
+
     Returns
     -------
     parsed : DataFrame
