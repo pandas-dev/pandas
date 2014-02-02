@@ -3,7 +3,7 @@
 .. ipython:: python
    :suppress:
 
-   from StringIO import StringIO
+   from pandas.compat import StringIO
 
 v0.10.0 (December 17, 2012)
 ---------------------------

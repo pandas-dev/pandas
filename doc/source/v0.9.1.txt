@@ -1,5 +1,10 @@
 .. _whatsnew_0901:
 
+.. ipython:: python
+   :suppress:
+
+   from pandas.compat import StringIO
+
 v0.9.1 (November 14, 2012)
 --------------------------
 
@@ -132,7 +137,6 @@ API changes
 
         data = 'A,B,C\n00001,001,5\n00002,002,6'
 
-        from cStringIO import StringIO
         read_csv(StringIO(data), converters={'A' : lambda x: x.strip()})
 
 

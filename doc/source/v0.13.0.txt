@@ -698,7 +698,7 @@ Experimental
 
      nrows, ncols = 20000, 100
      df1, df2, df3, df4 = [DataFrame(randn(nrows, ncols))
-                           for _ in xrange(4)]
+                           for _ in range(4)]
 
   .. ipython:: python
 

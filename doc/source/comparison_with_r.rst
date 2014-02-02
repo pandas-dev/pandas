@@ -279,7 +279,7 @@ In Python, since ``a`` is a list, you can simply use list comprehension.
 
 .. ipython:: python
 
-   a = np.array(range(1,24)+[np.NAN]).reshape(2,3,4)
+   a = np.array(list(range(1,24))+[np.NAN]).reshape(2,3,4)
    DataFrame([tuple(list(x)+[val]) for x, val in np.ndenumerate(a)])
 
 |meltlist|_
@@ -298,7 +298,7 @@ In Python, this list would be a list of tuples, so
 
 .. ipython:: python
 
-   a = list(enumerate(range(1,5)+[np.NAN]))
+   a = list(enumerate(list(range(1,5))+[np.NAN]))
    DataFrame(a)
 
 For more details and examples see :ref:`the Into to Data Structures
