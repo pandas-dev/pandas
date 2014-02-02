@@ -8,7 +8,6 @@ if [ "$IRON_TOKEN" ]; then
 
     python ci/ironcache/get.py
     ccache -C
-    ccache -M 120M
 
     if [ -f ~/ccache.7z ]; then
         echo "Cache retrieved"

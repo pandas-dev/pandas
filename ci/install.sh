@@ -94,11 +94,9 @@ fi
 time python setup.py sdist
 pip uninstall cython -y
 
-cat pandas/version.py
-
 export PATH=/usr/lib/ccache:/usr/lib64/ccache:$PATH
 which gcc
-ccache -z # reset stats
+ccache -z
 time pip install $(find dist | grep gz | head -n 1)
 
 true
