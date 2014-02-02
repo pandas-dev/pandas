@@ -14,11 +14,28 @@ def read_clipboard(**kwargs):  # pragma: no cover
     -------
     parsed : DataFrame
     """
-    if kwargs.get('sep') is None and kwargs.get('delim_whitespace') is None:
-        kwargs['sep'] = '\s+'
     from pandas.util.clipboard import clipboard_get
     from pandas.io.parsers import read_table
     text = clipboard_get()
+
+    # Excel copies into clipboard with \t seperation
+    # inspect no more then the 10 first lines, if they
+    # all contain an equal number (>0) of tabs, infer
+    # that this came from excel and set 'sep' accordingly
+    lines = text[:10000].split('\n')[:-1][:10]
+
+    # Need to remove leading white space, since read_table
+    # accepts:
+    #    a  b
+    # 0  1  2
+    # 1  3  4
+
+    counts = set([x.lstrip().count('\t') for x in lines])
+    if len(lines)>1 and len(counts) == 1 and counts.pop() != 0:
+        kwargs['sep'] = '\t'
+
+    if kwargs.get('sep') is None and kwargs.get('delim_whitespace') is None:
+        kwargs['sep'] = '\s+'
 
     # try to decode (if needed on PY3)
     if compat.PY3:

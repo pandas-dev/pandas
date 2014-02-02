@@ -56,11 +56,15 @@ New features
 API Changes
 ~~~~~~~~~~~
 
+
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
 
 Improvements to existing features
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- pd.read_clipboard will, if 'sep' is unspecified, try to detect data copied from a spreadsheet
+  and parse accordingly. (:issue:`6223`)
 
 .. _release.bug_fixes-0.14.0:
 
