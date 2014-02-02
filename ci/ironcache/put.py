@@ -12,10 +12,15 @@ from iron_cache import *
 
 key='KEY.%s.%s' %(os.environ.get('TRAVIS_REPO_SLUG','unk'),
                    os.environ.get('JOB_NAME','unk'))
+
+key='KEY.%s.%s' %(os.environ.get('TRAVIS_REPO_SLUG','unk'),
+                   os.environ.get('JOB_NAME','unk'))
+print(key)
+
 if sys.version_info[0] > 2:
-    key = sha1(bytes(key,encoding='utf8')).hexdigest()[:8]+'.'
-else:
-    key = sha1(key).hexdigest()[:8]+'.'
+    key = bytes(key,encoding='utf8')
+
+key = sha1(key).hexdigest()[:8]+'.'
 
 os.chdir(os.environ.get('HOME'))
 

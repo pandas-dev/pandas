@@ -8,6 +8,8 @@ env:
   - secure: "TWGKPL4FGtWjCQ427QrSffaQBSCPy1QzPdhtYKAW9AlDo/agdp9RyZRQr8WTlyZ5AOG18X8MDdi0EcpFnyfDNd4thCLyZOntxwltlVV2yNNvnird3XRKUV1F2DD42L64wna04M2KYxpCKhEQ84gEnCH1DGD4g1NnR6fYuEYNSTU="
   - secure: "NvgIWe14pv4SJ5BQhw6J0zIpCTFH4fVpzr9pRzM2tD8yf/3cspX3uyXTt4owiqtjoQ3aQGNnhWtVlmSwlgJrwu7KUaE9IPtlsENYDniAj2oJgejjx02d367pHtMB/9e3+4b2fWUsFNJgWw0ordiIT0p1lzHRdQ9ut4l/Yn/lkJs="
   - secure: "D3ASNRu32pV79lv/Nl0dBm2ldZiTgbb6boOrN0SzIKsQU3yBwedpqX6EI6KjpVg17lGhhhFXGzL2Gz1qjU3/+m6aMvekxHgpfuc0AlEFCEqenWPxIdDDrUkdfJoCvfQQPd5oxChfHgqaEDLjuqHy1ZEgnJ2/L/6dwZ4fUt62hMk="
+  # pandas-docs-bot GH
+  - secure: "PCzUFR8CHmw9lH84p4ygnojdF7Z8U5h7YfY0RyT+5K/aiQ1ZTU3ZkDTPI0/rR5FVMxsEEKEQKMcc5fvqW0PeD7Q2wRmluloKgT9w4EVEJ1ppKf7lITPcvZR2QgVOvjv4AfDtibLHFNiaSjzoqyJVjM4igjOu8WTlF3JfZcmOQjQ="
 
 matrix:
     include:
@@ -30,6 +32,7 @@ matrix:
       - FULL_DEPS=true
       - CLIPBOARD_GUI=gtk2
       - JOB_NAME: "27_nslow" # ScatterCI Build name, 20 chars max
+      - DOC_BUILD=true # if rst files were changed, build docs in parallel with tests
     - python: 3.2
       env:
       - NOSE_ARGS="not slow"
@@ -75,6 +78,7 @@ before_script:
 script:
   - echo "script"
   - ci/script.sh
+  - if [ -f /tmp/doc.log ]; then cat /tmp/doc.log; fi
 
 after_script:
   - ci/print_versions.py
