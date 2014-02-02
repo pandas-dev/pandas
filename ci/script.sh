@@ -12,5 +12,13 @@ if [ -n "$LOCALE_OVERRIDE" ]; then
     cd "$curdir"
 fi
 
+# conditionally build and upload docs to GH/pandas-docs/pandas-docs/travis
+"$TRAVIS_BUILD_DIR"/ci/build_docs.sh 2>&1 > /tmp/doc.log &
+# doc build log will be shown after tests
+
 echo nosetests -v --exe -w /tmp -A "$NOSE_ARGS" pandas --with-xunit --xunit-file=/tmp/nosetests.xml
 nosetests -v --exe -w /tmp -A "$NOSE_ARGS" pandas --with-xunit --xunit-file=/tmp/nosetests.xml
+
+
+# wait until subprocesses finish (build_docs.sh)
+wait

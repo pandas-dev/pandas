@@ -98,5 +98,6 @@ export PATH=/usr/lib/ccache:/usr/lib64/ccache:$PATH
 which gcc
 ccache -z
 time pip install $(find dist | grep gz | head -n 1)
-
+# restore cython
+time pip install $PIP_ARGS  $(cat ci/requirements-${wheel_box}.txt | grep -i cython)
 true
