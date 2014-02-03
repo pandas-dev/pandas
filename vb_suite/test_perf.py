@@ -70,7 +70,7 @@ except Exception:
 class RevParseAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         import subprocess
-        cmd = 'git rev-parse --short {0}'.format(values)
+        cmd = 'git rev-parse --short -verify {0}^{{commit}}'.format(values)
         rev_parse = subprocess.check_output(cmd, shell=True)
         setattr(namespace, self.dest, rev_parse.strip())
 
@@ -157,6 +157,11 @@ parser.add_argument('-S', '--stats',
                     action='store_true',
                     help='when specified with -N, prints the output of describe() per vbench results. '  )
 
+parser.add_argument('--temp-dir',
+                    metavar="PATH",
+                    default=None,
+                    help='Specify temp work dir to use. ccache depends on builds being invoked from consistent directory.'  )
+
 parser.add_argument('-q', '--quiet',
                     default=False,
                     action='store_true',
@@ -192,7 +197,8 @@ def profile_comparative(benchmarks):
     from vbench.db import BenchmarkDB
     from vbench.git import GitRepo
     from suite import BUILD, DB_PATH, PREPARE, dependencies
-    TMP_DIR = tempfile.mkdtemp()
+
+    TMP_DIR = args.temp_dir or tempfile.mkdtemp()
 
     try:
 
@@ -434,6 +440,10 @@ def print_report(df,h_head=None,h_msg="",h_baseline=None,b_msg=""):
 
     stats_footer = "\n"
     if args.stats :
+        try:
+            pd.options.display.expand_frame_repr=False
+        except:
+            pass
         stats_footer += str(df.T.describe().T) + "\n\n"
 
     s+= stats_footer
