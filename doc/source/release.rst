@@ -45,6 +45,28 @@ analysis / manipulation tool available in any language.
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
+pandas 0.14.0
+-------------
+
+**Release date:** (not yet released)
+
+New features
+~~~~~~~~~~~~
+
+API Changes
+~~~~~~~~~~~
+
+Experimental Features
+~~~~~~~~~~~~~~~~~~~~~
+
+Improvements to existing features
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _release.bug_fixes-0.14.0:
+
+Bug Fixes
+~~~~~~~~~
+
 pandas 0.13.1
 -------------
 
@@ -110,6 +132,7 @@ Improvements to existing features
 
 Bug Fixes
 ~~~~~~~~~
+
   - Bug in ``io.wb.get_countries`` not including all countries (:issue:`6008`)
   - Bug in Series replace with timestamp dict (:issue:`5797`)
   - read_csv/read_table now respects the `prefix` kwarg (:issue:`5732`).
