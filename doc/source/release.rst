@@ -48,7 +48,7 @@ analysis / manipulation tool available in any language.
 pandas 0.13.1
 -------------
 
-**Release date:** not-yet-released
+**Release date:** (February 3, 2014)
 
 New features
 ~~~~~~~~~~~~
@@ -118,7 +118,7 @@ Bug Fixes
   - Bug in isnull handling ``NaT`` in an object array (:issue:`5443`)
   - Bug in ``to_datetime`` when passed a ``np.nan`` or integer datelike and a format string (:issue:`5863`)
   - Bug in groupby dtype conversion with datetimelike (:issue:`5869`)
-  - Regresssion in handling of empty Series as indexers to Series  (:issue:`5877`)
+  - Regression in handling of empty Series as indexers to Series  (:issue:`5877`)
   - Bug in internal caching, related to (:issue:`5727`)
   - Testing bug in reading json/msgpack from a non-filepath on windows under py3 (:issue:`5874`)
   - Bug when assigning to .ix[tuple(...)] (:issue:`5896`)
@@ -143,7 +143,7 @@ Bug Fixes
   - Fixed bug with ``pd.concat`` losing dtype information if all inputs are empty (:issue:`5742`)
   - Recent changes in IPython cause warnings to be emitted when using previous versions
     of pandas in QTConsole, now fixed. If you're using an older version and
-    need to supress the warnings, see (:issue:`5922`).
+    need to suppress the warnings, see (:issue:`5922`).
   - Bug in merging ``timedelta`` dtypes (:issue:`5695`)
   - Bug in plotting.scatter_matrix function. Wrong alignment among diagonal
     and off-diagonal plots, see (:issue:`5497`).
@@ -167,7 +167,7 @@ Bug Fixes
   - Bug in ``DataFrame.apply`` when using mixed datelike reductions (:issue:`6125`)
   - Bug in ``DataFrame.append`` when appending a row with different columns (:issue:`6129`)
   - Bug in DataFrame construction with recarray and non-ns datetime dtype (:issue:`6140`)
-  - Bug in ``.loc`` setitem indexing with a datafrme on rhs, multiple item setting, and
+  - Bug in ``.loc`` setitem indexing with a dataframe on rhs, multiple item setting, and
     a datetimelike (:issue:`6152`)
   - Fixed a bug in ``query``/``eval`` during lexicographic string comparisons (:issue:`6155`).
   - Fixed a bug in ``query`` where the index of a single-element ``Series`` was
@@ -175,8 +175,8 @@ Bug Fixes
   - Bug in ``HDFStore`` on appending a dataframe with multi-indexed columns to
     an existing table (:issue:`6167`)
   - Consistency with dtypes in setting an empty DataFrame (:issue:`6171`)
-  - Bug in  selecting on a multi-index ``HDFStore`` even in the prescence of under
-    specificed column spec (:issue:`6169`)
+  - Bug in  selecting on a multi-index ``HDFStore`` even in the presence of under
+    specified column spec (:issue:`6169`)
   - Bug in ``nanops.var`` with ``ddof=1`` and 1 elements would sometimes return ``inf``
     rather than ``nan`` on some platforms (:issue:`6136`)
   - Bug in Series and DataFrame bar plots ignoring the ``use_index`` keyword (:issue:`6209`)
@@ -193,7 +193,7 @@ New features
   - ``plot(kind='kde')`` now accepts the optional parameters ``bw_method`` and
     ``ind``, passed to scipy.stats.gaussian_kde() (for scipy >= 0.11.0) to set
     the bandwidth, and to gkde.evaluate() to specify the indicies at which it
-    is evaluated, respecttively. See scipy docs. (:issue:`4298`)
+    is evaluated, respectively. See scipy docs. (:issue:`4298`)
   - Added ``isin`` method to DataFrame (:issue:`4211`)
   - ``df.to_clipboard()`` learned a new ``excel`` keyword that let's you
     paste df data directly into excel (enabled by default). (:issue:`5070`).
@@ -249,7 +249,7 @@ Improvements to existing features
   - Added a more informative error message when plot arguments contain
     overlapping color and style arguments (:issue:`4402`)
   - Significant table writing performance improvements in ``HDFStore``
-  - JSON date serialisation now performed in low-level C code.
+  - JSON date serialization now performed in low-level C code.
   - JSON support for encoding datetime.time
   - Expanded JSON docs, more info about orient options and the use of the numpy
     param when decoding.
@@ -278,7 +278,7 @@ Improvements to existing features
   - Better/cleaned up exceptions in core/common, io/excel and core/format
     (:issue:`4721`, :issue:`3954`), as well as cleaned up test cases in
     tests/test_frame, tests/test_multilevel (:issue:`4732`).
-  - Performance improvement of timesesies plotting with PeriodIndex and added
+  - Performance improvement of timeseries plotting with PeriodIndex and added
     test to vbench (:issue:`4705` and :issue:`4722`)
   - Add ``axis`` and ``level`` keywords to ``where``, so that the ``other``
     argument can now be an alignable pandas object.

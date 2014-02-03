@@ -1,6 +1,6 @@
 .. _whatsnew_0131:
 
-v0.13.1 (February ???)
+v0.13.1 (February 3, 2014)
 ----------------------
 
 This is a minor release from 0.13.0 and includes a small number of API changes, several new features,
