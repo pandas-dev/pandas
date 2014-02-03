@@ -78,7 +78,7 @@ static struct PyModuleDef moduledef = {
   NULL            /* m_free */
 };
 
-#define PYMODINITFUNC       PyObject *PyInit_json(void)
+#define PYMODINITFUNC       PyMODINIT_FUNC PyInit_json(void)
 #define PYMODULE_CREATE()   PyModule_Create(&moduledef)
 #define MODINITERROR        return NULL
 
