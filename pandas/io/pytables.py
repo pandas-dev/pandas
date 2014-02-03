@@ -30,7 +30,7 @@ from pandas.tseries.timedeltas import _coerce_scalar_to_timedelta_type
 import pandas.core.common as com
 from pandas.tools.merge import concat
 from pandas import compat
-from pandas.compat import u_safe as u, PY3, range, lrange
+from pandas.compat import u_safe as u, PY3, range, lrange, string_types
 from pandas.io.common import PerformanceWarning
 from pandas.core.config import get_option
 from pandas.computation.pytables import Expr, maybe_expression
@@ -273,7 +273,7 @@ def to_hdf(path_or_buf, key, value, mode=None, complevel=None, complib=None,
     else:
         f = lambda store: store.put(key, value, **kwargs)
 
-    if isinstance(path_or_buf, compat.string_types):
+    if isinstance(path_or_buf, string_types):
         with get_store(path_or_buf, mode=mode, complevel=complevel,
                        complib=complib) as store:
             f(store)
@@ -316,7 +316,7 @@ def read_hdf(path_or_buf, key, **kwargs):
     f = lambda store, auto_close: store.select(
         key, auto_close=auto_close, **kwargs)
 
-    if isinstance(path_or_buf, compat.string_types):
+    if isinstance(path_or_buf, string_types):
 
         # can't auto open/close if we are using an iterator
         # so delegate to the iterator
@@ -732,7 +732,7 @@ class HDFStore(StringMixin):
         where = _ensure_term(where)
         if isinstance(keys, (list, tuple)) and len(keys) == 1:
             keys = keys[0]
-        if isinstance(keys, compat.string_types):
+        if isinstance(keys, string_types):
             return self.select(key=keys, where=where, columns=columns,
                                start=start, stop=stop, iterator=iterator,
                                chunksize=chunksize, **kwargs)
@@ -4168,7 +4168,7 @@ def _unconvert_string_array(data, nan_rep=None, encoding=None):
     encoding = _ensure_encoding(encoding)
     if encoding is not None and len(data):
         try:
-            data = data.astype(str).astype(object)
+            data = data.astype(string_types).astype(object)
         except:
             f = np.vectorize(lambda x: x.decode(encoding), otypes=[np.object])
             data = f(data)
