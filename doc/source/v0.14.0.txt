@@ -1,0 +1,47 @@
+.. _whatsnew_0140:
+
+v0.14.0 (May ? , 2014)
+----------------------
+
+This is a major release from 0.13.1 and includes a small number of API changes, several new features,
+enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
+users upgrade to this version.
+
+Highlights include:
+
+-
+
+
+API changes
+~~~~~~~~~~~
+
+Prior Version Deprecations/Changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There are no announced changes in 0.13.1 or prior that are taking effect as of 0.14.0
+
+Deprecations
+~~~~~~~~~~~~
+
+There are no deprecations of prior behavior in 0.14.0
+
+Enhancements
+~~~~~~~~~~~~
+
+Performance
+~~~~~~~~~~~
+
+
+Experimental
+~~~~~~~~~~~~
+
+There are no experimental changes in 0.14.0
+
+Bug Fixes
+~~~~~~~~~
+
+See :ref:`V0.14.0 Bug Fixes<release.bug_fixes-0.14.0>` for an extensive list of bugs that have been fixed in 0.14.0.
+
+See the :ref:`full release notes
+<release>` or issue tracker
+on GitHub for a complete list of all API changes, Enhancements and Bug Fixes.
