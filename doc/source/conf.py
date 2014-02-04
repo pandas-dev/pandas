@@ -13,7 +13,7 @@
 import sys
 import os
 import re
-from pandas.compat import u
+from pandas.compat import u, PY3
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -78,7 +78,10 @@ for f in os.listdir(os.path.dirname(__file__)):
 if ds:
     print("I'm about to DELETE the following:\n%s\n" % list(sorted(ds)))
     sys.stdout.write("WARNING: I'd like to delete those to speed up processing (yes/no)? ")
-    answer = raw_input()
+    if PY3:
+        answer = input()
+    else:
+        answer = raw_input()
 
     if answer.lower().strip() in ('y','yes'):
         for f in ds:
