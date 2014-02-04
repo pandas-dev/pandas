@@ -19,6 +19,9 @@ fi
 echo nosetests -v --exe -w /tmp -A "$NOSE_ARGS" pandas --with-xunit --xunit-file=/tmp/nosetests.xml
 nosetests -v --exe -w /tmp -A "$NOSE_ARGS" pandas --with-xunit --xunit-file=/tmp/nosetests.xml
 
+RET="$?"
 
 # wait until subprocesses finish (build_docs.sh)
 wait
+
+exit "$RET"
