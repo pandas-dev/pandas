@@ -646,6 +646,32 @@ class TestIndexing(tm.TestCase):
         result = df.ix[:,1:]
         assert_frame_equal(result, expected)
 
+        # GH 6254
+        # setting issue
+        df = DataFrame(index=[3, 5, 4], columns=['A'])
+        df.loc[[4, 3, 5], 'A'] = [1, 2, 3]
+        expected = DataFrame(dict(A = Series([1,2,3],index=[4, 3, 5]))).reindex(index=[3,5,4])
+        assert_frame_equal(df, expected)
+
+        # GH 6252
+        # setting with an empty frame
+        keys1 = ['@' + str(i) for i in range(5)]
+        val1 = np.arange(5)
+
+        keys2 = ['@' + str(i) for i in range(4)]
+        val2 = np.arange(4)
+
+        index = list(set(keys1).union(keys2))
+        df = DataFrame(index = index)
+        df['A'] = nan
+        df.loc[keys1, 'A'] = val1
+
+        df['B'] = nan
+        df.loc[keys2, 'B'] = val2
+
+        expected = DataFrame(dict(A = Series(val1,index=keys1), B = Series(val2,index=keys2))).reindex(index=index)
+        assert_frame_equal(df, expected)
+
     def test_loc_setitem_frame_multiples(self):
 
         # multiple setting

@@ -633,7 +633,8 @@ class Block(PandasObject):
             # if we are an exact match (ex-broadcasting),
             # then use the resultant dtype
             elif len(arr_value.shape) and arr_value.shape[0] == values.shape[0] and np.prod(arr_value.shape) == np.prod(values.shape):
-                values = arr_value.reshape(values.shape)
+                values[indexer] = value
+                values = values.astype(arr_value.dtype)
 
             # set
             else:
