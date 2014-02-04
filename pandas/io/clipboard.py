@@ -18,6 +18,17 @@ def read_clipboard(**kwargs):  # pragma: no cover
     from pandas.io.parsers import read_table
     text = clipboard_get()
 
+    # try to decode (if needed on PY3)
+    # Strange. linux py33 doesn't complain, win py33 does
+    if compat.PY3:
+        try:
+            text = compat.bytes_to_str(
+                text, encoding=(kwargs.get('encoding') or
+                                get_option('display.encoding'))
+            )
+        except:
+            pass
+
     # Excel copies into clipboard with \t seperation
     # inspect no more then the 10 first lines, if they
     # all contain an equal number (>0) of tabs, infer
@@ -37,15 +48,6 @@ def read_clipboard(**kwargs):  # pragma: no cover
     if kwargs.get('sep') is None and kwargs.get('delim_whitespace') is None:
         kwargs['sep'] = '\s+'
 
-    # try to decode (if needed on PY3)
-    if compat.PY3:
-        try:
-            text = compat.bytes_to_str(
-                text, encoding=(kwargs.get('encoding') or
-                                get_option('display.encoding'))
-            )
-        except:
-            pass
     return read_table(StringIO(text), **kwargs)
 
 
