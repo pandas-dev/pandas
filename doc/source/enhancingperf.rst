@@ -384,7 +384,7 @@ First let's create 4 decent-sized arrays to play with:
    from numpy.random import randn
    import numpy as np
    nrows, ncols = 20000, 100
-   df1, df2, df3, df4 = [DataFrame(randn(nrows, ncols)) for _ in xrange(4)]
+   df1, df2, df3, df4 = [DataFrame(randn(nrows, ncols)) for _ in range(4)]
 
 
 Now let's compare adding them together using plain ol' Python versus

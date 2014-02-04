@@ -141,7 +141,7 @@ API changes
   .. ipython:: python
 
      def applied_func(col):
-        print "Apply function being called with:", col
+        print("Apply function being called with: ", col)
         return col.sum()
 
      empty = DataFrame(columns=['a', 'b'])

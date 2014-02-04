@@ -7,7 +7,7 @@
 
    import os
    import csv
-   from StringIO import StringIO
+   from pandas.compat import StringIO, BytesIO
    import pandas as pd
    ExcelWriter = pd.ExcelWriter
 
@@ -57,6 +57,11 @@ The corresponding ``writer`` functions are object methods that are accessed like
     * :ref:`to_stata<io.stata_writer>`
     * :ref:`to_clipboard<io.clipboard>`
     * :ref:`to_pickle<io.pickle>`
+
+.. note::
+   For examples that use the ``StringIO`` class, make sure you import it
+   according to your Python version, i.e. ``from StringIO import StringIO`` for
+   Python 2 and ``from io import StringIO`` for Python 3.
 
 .. _io.read_csv_table:
 
@@ -278,7 +283,6 @@ used as the column names:
 
 .. ipython:: python
 
-    from StringIO import StringIO
     data = 'a,b,c\n1,2,3\n4,5,6\n7,8,9'
     print(data)
     pd.read_csv(StringIO(data))
@@ -327,7 +331,7 @@ result in byte strings being decoded to unicode in the result:
 .. ipython:: python
 
    data = b'word,length\nTr\xc3\xa4umen,7\nGr\xc3\xbc\xc3\x9fe,5'.decode('utf8').encode('latin-1')
-   df = pd.read_csv(StringIO(data), encoding='latin-1')
+   df = pd.read_csv(BytesIO(data), encoding='latin-1')
    df
    df['word'][1]
 
@@ -1561,8 +1565,6 @@ You can even pass in an instance of ``StringIO`` if you so desire
 
 .. ipython:: python
 
-   from cStringIO import StringIO
-
    with open(file_path, 'r') as f:
        sio = StringIO(f.read())
 
@@ -2627,7 +2629,7 @@ chunks.
    store.append('dfeq', dfeq, data_columns=['number'])
 
    def chunks(l, n):
-        return [l[i:i+n] for i in xrange(0, len(l), n)]
+        return [l[i:i+n] for i in range(0, len(l), n)]
 
    evens = [2,4,6,8,10]
    coordinates = store.select_as_coordinates('dfeq','number=evens')
