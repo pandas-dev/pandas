@@ -10,6 +10,7 @@ import os
 import sys
 import shutil
 import warnings
+import re
 
 # may need to work around setuptools bug by providing a fake Pyrex
 try:
@@ -196,6 +197,8 @@ VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 QUALIFIER = ''
 
 FULLVERSION = VERSION
+write_version = True
+
 if not ISRELEASED:
     import subprocess
     FULLVERSION += '.dev'
@@ -212,14 +215,26 @@ if not ISRELEASED:
             pass
 
     if pipe is None or pipe.returncode != 0:
-      warnings.warn("WARNING: Couldn't get git revision, using generic version string")
+        # no git, or not in git dir
+        if os.path.exists('pandas/version.py'):
+            warnings.warn("WARNING: Couldn't get git revision, using existing pandas/version.py")
+            write_version = False
+        else:
+            warnings.warn("WARNING: Couldn't get git revision, using generic version string")
     else:
+      # have git, in git dir, but may have used a shallow clone (travis does this)
       rev = so.strip()
       # makes distutils blow up on Python 2.7
       if sys.version_info[0] >= 3:
           rev = rev.decode('ascii')
 
-      # use result of git describe as version string
+      if not rev.startswith('v') and re.match("[a-zA-Z0-9]{7,9}",rev):
+          # partial clone, manually construct version string
+          # this is the format before we started using git-describe
+          # to get an ordering on dev version strings.
+          rev ="v%s.dev-%s" % (VERSION, rev)
+
+      # Strip leading v from tags format "vx.y.z" to get th version string
       FULLVERSION = rev.lstrip('v')
 
 else:
@@ -241,6 +256,8 @@ short_version = '%s'
     finally:
         a.close()
 
+if write_version:
+    write_version_py()
 
 class CleanCommand(Command):
     """Custom distutils command to clean the .so and .pyc files."""
@@ -526,8 +543,6 @@ extensions.append(ujson_ext)
 
 if _have_setuptools:
     setuptools_kwargs["test_suite"] = "nose.collector"
-
-write_version_py()
 
 # The build cache system does string matching below this point.
 # if you change something, be careful.
