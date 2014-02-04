@@ -23,7 +23,7 @@ Indexing and Selecting Data
 The axis labeling information in pandas objects serves many purposes:
 
   - Identifies data (i.e. provides *metadata*) using known indicators,
-    important for for analysis, visualization, and interactive console display
+    important for analysis, visualization, and interactive console display
   - Enables automatic and explicit data alignment
   - Allows intuitive getting and setting of subsets of the data set
 
