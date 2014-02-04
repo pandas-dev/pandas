@@ -90,7 +90,7 @@ class TestResample(tm.TestCase):
         expected = Series([s[0], s[1:6].mean(), s[6:11].mean(), s[11:].mean()],
                           index=date_range('1/1/2000', periods=4, freq='5min'))
         assert_series_equal(result, expected)
-        self.assert_(result.index.name == 'index')
+        self.assertEqual(result.index.name, 'index')
 
         result = s.resample('5min', how='mean', closed='left', label='right')
         expected = Series([s[:5].mean(), s[5:10].mean(), s[10:].mean()],
@@ -158,7 +158,7 @@ class TestResample(tm.TestCase):
         self.assertEquals(result.irow(0), s['1/2/2005'])
         self.assertEquals(result.irow(1), s['1/3/2005'])
         self.assertEquals(result.irow(5), s['1/9/2005'])
-        self.assert_(result.index.name == 'index')
+        self.assertEqual(result.index.name, 'index')
 
     def test_resample_frame_basic(self):
         df = tm.makeTimeDataFrame()
@@ -201,7 +201,7 @@ class TestResample(tm.TestCase):
             loffset=Minute(1))
         assert_series_equal(result, expected)
 
-        self.assert_(result.index.freq == Minute(5))
+        self.assertEqual(result.index.freq, Minute(5))
 
                 # from daily
         dti = DatetimeIndex(
@@ -228,7 +228,7 @@ class TestResample(tm.TestCase):
         self.assertEquals(result[0], s[0])
         self.assertEquals(result[-1], s[-1])
 
-        self.assert_(result.index.name == 'index')
+        self.assertEqual(result.index.name, 'index')
 
     def test_upsample_with_limit(self):
         rng = date_range('1/1/2000', periods=3, freq='5t')
@@ -305,7 +305,7 @@ class TestResample(tm.TestCase):
         result = bs.resample('8H')
         self.assertEquals(len(result), 22)
         tm.assert_isinstance(result.index.freq, offsets.DateOffset)
-        self.assert_(result.index.freq == offsets.Hour(8))
+        self.assertEqual(result.index.freq, offsets.Hour(8))
 
     def test_resample_timestamp_to_period(self):
         ts = _simple_ts('1/1/1990', '1/1/2000')
@@ -491,12 +491,12 @@ class TestResample(tm.TestCase):
         ts = _simple_ts('1/1/2000', '2/1/2000')[:0]
 
         result = ts.resample('A')
-        self.assert_(len(result) == 0)
-        self.assert_(result.index.freqstr == 'A-DEC')
+        self.assertEqual(len(result), 0)
+        self.assertEqual(result.index.freqstr, 'A-DEC')
 
         result = ts.resample('A', kind='period')
-        self.assert_(len(result) == 0)
-        self.assert_(result.index.freqstr == 'A-DEC')
+        self.assertEqual(len(result), 0)
+        self.assertEqual(result.index.freqstr, 'A-DEC')
 
         xp = DataFrame()
         rs = xp.resample('A')
@@ -549,7 +549,7 @@ class TestResample(tm.TestCase):
 
         ts = _simple_ts('2012-04-29 23:00', '2012-04-30 5:00', freq='h')
         resampled = ts.resample('M')
-        self.assert_(len(resampled) == 1)
+        self.assertEqual(len(resampled), 1)
 
     def test_resample_anchored_monthstart(self):
         ts = _simple_ts('1/1/2000', '12/31/2002')
@@ -572,13 +572,13 @@ class TestResample(tm.TestCase):
         len0pts = _simple_pts('2007-01', '2010-05', freq='M')[:0]
         # it works
         result = len0pts.resample('A-DEC')
-        self.assert_(len(result) == 0)
+        self.assertEqual(len(result), 0)
 
         # resample to periods
         ts = _simple_ts('2000-04-28', '2000-04-30 11:00', freq='h')
         result = ts.resample('M', kind='period')
-        self.assert_(len(result) == 1)
-        self.assert_(result.index[0] == Period('2000-04', freq='M'))
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result.index[0], Period('2000-04', freq='M'))
 
     def test_anchored_lowercase_buglet(self):
         dates = date_range('4/16/2012 20:00', periods=50000, freq='s')
@@ -889,7 +889,7 @@ class TestResamplePeriodIndex(tm.TestCase):
         ts = _simple_pts('1/1/2000', '2/1/2000')[:0]
 
         result = ts.resample('A')
-        self.assert_(len(result) == 0)
+        self.assertEqual(len(result), 0)
 
     def test_resample_irregular_sparse(self):
         dr = date_range(start='1/1/2012', freq='5min', periods=1000)

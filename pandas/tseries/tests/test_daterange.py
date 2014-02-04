@@ -364,18 +364,18 @@ class TestDateRange(tm.TestCase):
 
         dr = date_range(start=start, periods=3)
         self.assert_(dr.tz == tz('US/Eastern'))
-        self.assert_(dr[0] == start)
-        self.assert_(dr[2] == end)
+        self.assertEqual(dr[0], start)
+        self.assertEqual(dr[2], end)
 
         dr = date_range(end=end, periods=3)
-        self.assert_(dr.tz == tz('US/Eastern'))
-        self.assert_(dr[0] == start)
-        self.assert_(dr[2] == end)
+        self.assertEqual(dr.tz, tz('US/Eastern'))
+        self.assertEqual(dr[0], start)
+        self.assertEqual(dr[2], end)
 
         dr = date_range(start=start, end=end)
-        self.assert_(dr.tz == tz('US/Eastern'))
-        self.assert_(dr[0] == start)
-        self.assert_(dr[2] == end)
+        self.assertEqual(dr.tz, tz('US/Eastern'))
+        self.assertEqual(dr[0], start)
+        self.assertEqual(dr[2], end)
 
     def test_month_range_union_tz(self):
         _skip_if_no_pytz()
