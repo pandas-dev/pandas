@@ -28,9 +28,12 @@ There are no deprecations of prior behavior in 0.14.0
 Enhancements
 ~~~~~~~~~~~~
 
+- pd.read_clipboard will, if 'sep' is unspecified, try to detect data copied from a spreadsheet
+  and parse accordingly. (:issue:`6223`)
+
+
 Performance
 ~~~~~~~~~~~
-
 
 Experimental
 ~~~~~~~~~~~~
