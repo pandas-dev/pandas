@@ -22,7 +22,7 @@ if [ "$IRON_TOKEN" ]; then
     fi
 
     # did the last commit change cython files?
-    git show --pretty="format:" --name-only HEAD~5.. --first-parent | grep -P "pyx|pxd"
+    git diff HEAD~5 | grep diff | grep -P "pyx|pxd"
 
     if [ "$?" != "0" ]; then
         # nope, reuse cython files
