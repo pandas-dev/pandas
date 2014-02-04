@@ -649,17 +649,17 @@ class TestIndexing(tm.TestCase):
         # GH 6254
         # setting issue
         df = DataFrame(index=[3, 5, 4], columns=['A'])
-        df.loc[[4, 3, 5], 'A'] = [1, 2, 3]
+        df.loc[[4, 3, 5], 'A'] = np.array([1, 2, 3],dtype='int64')
         expected = DataFrame(dict(A = Series([1,2,3],index=[4, 3, 5]))).reindex(index=[3,5,4])
         assert_frame_equal(df, expected)
 
         # GH 6252
         # setting with an empty frame
         keys1 = ['@' + str(i) for i in range(5)]
-        val1 = np.arange(5)
+        val1 = np.arange(5,dtype='int64')
 
         keys2 = ['@' + str(i) for i in range(4)]
-        val2 = np.arange(4)
+        val2 = np.arange(4,dtype='int64')
 
         index = list(set(keys1).union(keys2))
         df = DataFrame(index = index)
