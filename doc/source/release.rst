@@ -72,6 +72,7 @@ Bug Fixes
 ~~~~~~~~~
 
 - Bug in version string gen. for dev versions with shallow clones / install from tarball (:issue:`6127`)
+- Inconsistent tz parsing Timestamp/to_datetime for current year (:issue:`5958`)
 
 pandas 0.13.1
 -------------
