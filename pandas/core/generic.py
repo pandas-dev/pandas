@@ -1262,21 +1262,17 @@ class NDFrame(PandasObject):
             if not copy and not isinstance(loc, slice):
                 raise ValueError('Cannot retrieve view (copy=False)')
 
-            # level = 0
-            loc_is_slice = isinstance(loc, slice)
-            if not loc_is_slice:
-                indexer = [slice(None)] * self.ndim
-                indexer[axis] = loc
-                indexer = tuple(indexer)
-            else:
-                indexer = loc
+            # convert to a label indexer if needed
+            if isinstance(loc, slice):
                 lev_num = labels._get_level_number(level)
                 if labels.levels[lev_num].inferred_type == 'integer':
-                    indexer = self.index[loc]
+                    loc = labels[loc]
 
-            # select on the correct axis
-            if axis == 1 and loc_is_slice:
-                indexer = slice(None), indexer
+            # create the tuple of the indexer
+            indexer = [slice(None)] * self.ndim
+            indexer[axis] = loc
+            indexer = tuple(indexer)
+
             result = self.ix[indexer]
             setattr(result, result._get_axis_name(axis), new_ax)
             return result
