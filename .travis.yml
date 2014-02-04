@@ -78,9 +78,10 @@ before_script:
 script:
   - echo "script"
   - ci/script.sh
-  - if [ -f /tmp/doc.log ]; then cat /tmp/doc.log; fi
+# nothing here, or failed tests won't fail travis
 
 after_script:
+  - if [ -f /tmp/doc.log ]; then cat /tmp/doc.log; fi
   - ci/print_versions.py
   - ci/print_skipped.py /tmp/nosetests.xml
   - ci/after_script.sh
