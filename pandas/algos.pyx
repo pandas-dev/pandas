@@ -1630,7 +1630,8 @@ def roll_generic(ndarray[float64_t, cast=True] input, int win,
                  int minp, object func):
     cdef ndarray[double_t] output, counts, bufarr
     cdef Py_ssize_t i, n
-    cdef float64_t *buf, *oldbuf
+    cdef float64_t *buf
+    cdef float64_t *oldbuf
 
     if not input.flags.c_contiguous:
         input = input.copy('C')
