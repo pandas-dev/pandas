@@ -61,8 +61,7 @@ class _NDFrameIndexer(object):
             return self.obj[label]
         elif (isinstance(label, tuple) and
                 isinstance(label[axis], slice)):
-
-            raise IndexingError('no slices here')
+            raise IndexingError('no slices here, handle elsewhere')
 
         try:
             return self.obj._xs(label, axis=axis, copy=False)
@@ -677,24 +676,32 @@ class _NDFrameIndexer(object):
         # a bit kludgy
         if isinstance(ax0, MultiIndex):
             try:
+                # fast path for series or for tup devoid of slices
                 return self._get_label(tup, axis=0)
             except TypeError:
                 # slices are unhashable
                 pass
             except Exception as e1:
                 if isinstance(tup[0], (slice, Index)):
-                    raise IndexingError
+                    raise IndexingError("Handle elsewhere")
 
                 # raise the error if we are not sorted
                 if not ax0.is_lexsorted_for_tuple(tup):
                     raise e1
-                try:
-                    loc = ax0.get_loc(tup[0])
-                except KeyError:
-                    raise e1
+
+                # GH911 introduced this clause, but the regression test
+                # added for it now passes even without it. Let's rock the boat.
+                # 2014/01/27
+
+                # # should we abort, or keep going?
+                # try:
+                #     loc = ax0.get_loc(tup[0])
+                # except KeyError:
+                #     raise e1
+
 
         if len(tup) > self.obj.ndim:
-            raise IndexingError
+            raise IndexingError("Too many indexers. handle elsewhere")
 
         # to avoid wasted computation
         # df.ix[d1:d2, 0] -> columns first (True)
@@ -707,9 +714,9 @@ class _NDFrameIndexer(object):
                 if not _is_list_like(section):
                     return section
 
-                # might have been a MultiIndex
                 elif section.ndim == self.ndim:
-
+                    # we're in the middle of slicing through a MultiIndex
+                    # revise the key wrt to `section` by inserting an _NS
                     new_key = tup[:i] + (_NS,) + tup[i + 1:]
 
                 else:
@@ -725,6 +732,7 @@ class _NDFrameIndexer(object):
                     if len(new_key) == 1:
                         new_key, = new_key
 
+                # This is an elided recursive call to iloc/loc/etc'
                 return getattr(section, self.name)[new_key]
 
         raise IndexingError('not applicable')
@@ -1148,6 +1156,14 @@ class _LocIndexer(_LocationIndexer):
                 raise ValueError('Cannot index with multidimensional key')
 
             return self._getitem_iterable(key, axis=axis)
+        elif isinstance(key, tuple) and isinstance(labels, MultiIndex) and \
+            any([isinstance(x,slice) for x in key]):
+            # handle per-axis tuple containting label criteria for
+            # each level (or a prefix of levels), may contain
+            # (None) slices, list of labels or labels
+            specs = _tuple_to_mi_locs(labels,key)
+            g = _spec_to_array_indices(labels, specs)
+            return self.obj.iloc[g]
         else:
             self._has_valid_type(key, axis)
             return self._get_label(key, axis=axis)
@@ -1511,3 +1527,177 @@ def _maybe_droplevels(index, key):
             pass
 
     return index
+
+def _tuple_to_mi_locs(ix,tup):
+    """Convert a tuple of slices/label lists/labels to a level-wise spec
+
+    Parameters
+    ----------
+    ix: a sufficiently lexsorted, unique/non-dupe MultIindex.
+    tup: a tuple of slices, labels or lists of labels.
+         slice(None) is acceptable, and the case of len(tup)<ix.nlevels
+         will have labels from trailing levels included.
+
+    Returns
+    -------
+    a list containing ix.nlevels elements of either:
+    - 2-tuple representing a (start,stop) slice
+    or
+    - a list of label positions.
+
+    The positions are relative to the labels of the corresponding level, not to
+    the entire unrolled index.
+
+    Example (This is *not* a doctest):
+    >>> mi = pd.MultiIndex.from_product([['A0', 'A1', 'A2'],['B0', 'B1']])
+    >>> for x in  mi.get_values(): print(x)
+     ('A0', 'B0')
+     ('A0', 'B1')
+     ('A1', 'B0')
+     ('A1', 'B1')
+     ('A2', 'B0')
+     ('A2', 'B1')
+    >>> _tuple_to_mi_locs(mi,(slice('A0','A2'),['B0', 'B1']))
+    [(0, 2), [0, 1]]
+
+    read as:
+    - All labels in position [0,1) in first level
+    - for each of those, all labels at positions 0 or 1.
+
+    The same effective result can be achieved by specifying the None Slice,
+    or omitting it completely. Note the tuple (0,2) has replaced the list [0 1],
+    but the outcome is the same.
+
+    >>> _tuple_to_mi_locs(mi,(slice('A0','A2'),slice(None)))
+    [(0, 2), (0,2)]
+
+    >>> _tuple_to_mi_locs(mi,(slice('A0','A2'),))
+    [(0, 2), (0,2)]
+
+    """
+
+
+    ranges = []
+
+    # ix must be lexsorted to at least as many levels
+    # as there are elements in `tup`
+    assert ix.is_lexsorted_for_tuple(tup)
+    assert ix.is_unique
+    assert isinstance(ix,MultiIndex)
+
+    for i,k in enumerate(tup):
+        level = ix.levels[i]
+
+        if _is_list_like(k):
+                # a collection of labels to include from this level
+            ranges.append([level.get_loc(x) for x in k])
+            continue
+        if k == slice(None):
+            start = 0
+            stop = len(level)
+        elif isinstance(k,slice):
+            start = level.get_loc(k.start)
+            stop = len(level)
+            if k.stop:
+                stop = level.get_loc(k.stop)
+        else:
+            # a single label
+            start = level.get_loc(k)
+            stop = start
+
+        ranges.append((start,stop))
+
+    for i in range(i+1,len(ix.levels)):
+        # omitting trailing dims
+        # means include all values
+        level = ix.levels[i]
+        start = 0
+        stop = len(level)
+        ranges.append((start,stop))
+
+    return ranges
+
+def _spec_to_array_indices(ix, specs):
+    """Convert a tuple of slices/label lists/labels to a level-wise spec
+
+    Parameters
+    ----------
+    ix: a sufficiently lexsorted, unique/non-dupe MultIindex.
+    specs: a list of 2-tuples/list of label positions. Specifically, The
+           output of _tuple_to_mi_locs.
+           len(specs) must matc ix.nlevels.
+
+    Returns
+    -------
+    a generator of row positions relative to ix, corresponding to specs.
+    Suitable for usage with `iloc`.
+
+    Example (This is *not* a doctest):
+    >>> mi = pd.MultiIndex.from_product([['A0', 'A1', 'A2'],['B0', 'B1']])
+    >>> for x in  mi.get_values(): print(x)
+     ('A0', 'B0')
+     ('A0', 'B1')
+     ('A1', 'B0')
+     ('A1', 'B1')
+     ('A2', 'B0')
+     ('A2', 'B1')
+
+    >>> specs = _tuple_to_mi_locs(mi,(slice('A0','A2'),['B0', 'B1']))
+    >>> list(_spec_to_array_indices(mi, specs))
+    [0, 1, 2, 3]
+
+    Which are all the labels having 'A0' to 'A2' (non-inclusive) at level=0
+    and 'B0' or 'B1' at level = 0
+
+    """
+    assert ix.is_lexsorted_for_tuple(specs)
+    assert len(specs) == ix.nlevels
+    assert ix.is_unique
+    assert isinstance(ix,MultiIndex)
+
+    # step size/increment for iteration at each level
+    giant_steps = np.cumprod(ix.levshape[::-1])[::-1]
+    giant_steps[:-1] = giant_steps[1:]
+    giant_steps[-1] = 1
+
+    def _iter_vectorize(specs, i=0):
+        step_size = giant_steps[i]
+        spec=specs[i]
+        if isinstance(spec,tuple):
+            # tuples are 2-tuples of (start,stop) label indices to include
+            valrange = compat.range(*spec)
+        elif isinstance(spec,list):
+           # lists are discrete label indicies to include
+            valrange = spec
+
+        if len(specs)-1 == i:
+            return np.array(valrange)
+        else:
+            tmpl = np.array([v for v in _iter_vectorize(specs,i+1)])
+            res=np.tile(tmpl,(len(valrange),1))
+            steps=(np.array(valrange)*step_size).reshape((len(valrange),1))
+            return (res+steps).flatten()
+
+
+    def _iter_generator(specs, i=0):
+        step_size = giant_steps[i]
+        spec=specs[i]
+        if isinstance(spec,tuple):
+            # tuples are 2-tuples of (start,stop) label indices to include
+            valrange = compat.range(*spec)
+        elif isinstance(spec,list):
+           # lists are discrete label indicies to include
+            valrange = spec
+
+        if len(specs)-1 == i:
+            # base case
+            for v in valrange:
+                yield v
+        else:
+            for base in valrange:
+                base *= step_size
+                for v in _iter_generator(specs,i+1):
+                    yield base + v
+    # validate
+
+    return _iter_vectorize(specs)
