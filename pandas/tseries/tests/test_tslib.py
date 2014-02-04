@@ -189,6 +189,29 @@ class TestArrayToDatetime(tm.TestCase):
             )
         )
 
+    def test_parsing_timezone_offsets(self):
+        # All of these datetime strings with offsets are equivalent
+        # to the same datetime after the timezone offset is added
+        dt_strings = [
+            '01-01-2013 08:00:00+08:00',
+            '2013-01-01T08:00:00.000000000+0800',
+            '2012-12-31T16:00:00.000000000-0800',
+            '12-31-2012 23:00:00-01:00',
+        ]
+
+        expected_output = tslib.array_to_datetime(
+            np.array(['01-01-2013 00:00:00'], dtype=object)
+        )
+
+        for dt_string in dt_strings:
+            self.assert_(
+                np.array_equal(
+                    tslib.array_to_datetime(
+                        np.array([dt_string], dtype=object)
+                    ),
+                    expected_output
+                )
+            )
 
 class TestTimestampNsOperations(tm.TestCase):
     def setUp(self):
