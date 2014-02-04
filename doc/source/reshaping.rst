@@ -436,6 +436,11 @@ To encode 1-d values as an enumerated type use ``factorize``:
 Note that ``factorize`` is similar to ``numpy.unique``, but differs in its
 handling of NaN:
 
+.. note::
+   The following ``numpy.unique`` will fail under Python 3 with a ``TypeError``
+   because of an ordering bug. See also
+   `Here <https://github.com/numpy/numpy/issues/641>`__
+
 .. ipython:: python
 
    pd.factorize(x, sort=True)
