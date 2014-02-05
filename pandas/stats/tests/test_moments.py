@@ -119,13 +119,13 @@ class TestMoments(tm.TestCase):
         # empty
         vals = np.array([])
         rs = mom.rolling_window(vals, 5, 'boxcar', center=True)
-        self.assert_(len(rs) == 0)
+        self.assertEqual(len(rs), 0)
 
         # shorter than window
         vals = np.random.randn(5)
         rs = mom.rolling_window(vals, 10, 'boxcar')
         self.assert_(np.isnan(rs).all())
-        self.assert_(len(rs) == 5)
+        self.assertEqual(len(rs), 5)
 
     def test_cmov_window_frame(self):
         _skip_if_no_scipy()
@@ -570,7 +570,7 @@ class TestMoments(tm.TestCase):
 
         # pass in ints
         result2 = func(np.arange(50), span=10)
-        self.assert_(result2.dtype == np.float_)
+        self.assertEqual(result2.dtype, np.float_)
 
     def _check_ew_structures(self, func):
         series_result = func(self.series, com=10)

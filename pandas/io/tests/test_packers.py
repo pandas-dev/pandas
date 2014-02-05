@@ -194,7 +194,7 @@ class TestBasic(TestPackers):
             '20130101'), Timestamp('20130101', tz='US/Eastern'),
                 Timestamp('201301010501')]:
             i_rec = self.encode_decode(i)
-            self.assert_(i == i_rec)
+            self.assertEqual(i, i_rec)
 
     def test_datetimes(self):
 
@@ -207,7 +207,7 @@ class TestBasic(TestPackers):
             2013, 1, 1), datetime.datetime(2013, 1, 1, 5, 1),
                 datetime.date(2013, 1, 1), np.datetime64(datetime.datetime(2013, 1, 5, 2, 15))]:
             i_rec = self.encode_decode(i)
-            self.assert_(i == i_rec)
+            self.assertEqual(i, i_rec)
 
     def test_timedeltas(self):
 
@@ -215,7 +215,7 @@ class TestBasic(TestPackers):
                   datetime.timedelta(days=1, seconds=10),
                   np.timedelta64(1000000)]:
             i_rec = self.encode_decode(i)
-            self.assert_(i == i_rec)
+            self.assertEqual(i, i_rec)
 
 
 class TestIndex(TestPackers):

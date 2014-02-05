@@ -143,7 +143,7 @@ class TestCut(tm.TestCase):
         arr = np.random.randn(1000)
 
         factor = qcut(arr, 10, labels=False)
-        self.assert_(len(np.unique(factor)) == 10)
+        self.assertEqual(len(np.unique(factor)), 10)
 
     def test_qcut_specify_quantiles(self):
         arr = np.random.randn(100)

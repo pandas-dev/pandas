@@ -1613,7 +1613,7 @@ class TestTimeSeries(tm.TestCase):
 
     def test_set_dataframe_column_ns_dtype(self):
         x = DataFrame([datetime.now(), datetime.now()])
-        self.assert_(x[0].dtype == np.dtype('M8[ns]'))
+        self.assertEqual(x[0].dtype, np.dtype('M8[ns]'))
 
     def test_groupby_count_dateparseerror(self):
         dr = date_range(start='1/1/2012', freq='5min', periods=10)

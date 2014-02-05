@@ -70,7 +70,7 @@ class TestCParser(tm.TestCase):
         data = 'a\nb\na\nb\na'
         reader = TextReader(StringIO(data), header=None)
         result = reader.read()
-        self.assert_(len(set(map(id, result[0]))) == 2)
+        self.assertEqual(len(set(map(id, result[0]))), 2)
 
     def test_skipinitialspace(self):
         data = ('a,   b\n'
@@ -91,7 +91,7 @@ class TestCParser(tm.TestCase):
         reader = TextReader(StringIO(data), header=None)
         result = reader.read()
 
-        self.assert_(result[0].dtype == np.bool_)
+        self.assertEqual(result[0].dtype, np.bool_)
 
     def test_delimit_whitespace(self):
         data = 'a  b\na\t\t "b"\n"a"\t \t b'
@@ -233,25 +233,25 @@ aaaaa,5"""
         reader = _make_reader(dtype='S5,i4')
         result = reader.read()
 
-        self.assert_(result[0].dtype == 'S5')
+        self.assertEqual(result[0].dtype, 'S5')
 
         ex_values = np.array(['a', 'aa', 'aaa', 'aaaa', 'aaaaa'], dtype='S5')
         self.assert_((result[0] == ex_values).all())
-        self.assert_(result[1].dtype == 'i4')
+        self.assertEqual(result[1].dtype, 'i4')
 
         reader = _make_reader(dtype='S4')
         result = reader.read()
-        self.assert_(result[0].dtype == 'S4')
+        self.assertEqual(result[0].dtype, 'S4')
         ex_values = np.array(['a', 'aa', 'aaa', 'aaaa', 'aaaa'], dtype='S4')
         self.assert_((result[0] == ex_values).all())
-        self.assert_(result[1].dtype == 'S4')
+        self.assertEqual(result[1].dtype, 'S4')
 
         reader = _make_reader(dtype='S4', as_recarray=True)
         result = reader.read()
-        self.assert_(result['0'].dtype == 'S4')
+        self.assertEqual(result['0'].dtype, 'S4')
         ex_values = np.array(['a', 'aa', 'aaa', 'aaaa', 'aaaa'], dtype='S4')
         self.assert_((result['0'] == ex_values).all())
-        self.assert_(result['1'].dtype == 'S4')
+        self.assertEqual(result['1'].dtype, 'S4')
 
     def test_pass_dtype(self):
         data = """\
@@ -266,19 +266,19 @@ one,two
 
         reader = _make_reader(dtype={'one': 'u1', 1: 'S1'})
         result = reader.read()
-        self.assert_(result[0].dtype == 'u1')
-        self.assert_(result[1].dtype == 'S1')
+        self.assertEqual(result[0].dtype, 'u1')
+        self.assertEqual(result[1].dtype, 'S1')
 
         reader = _make_reader(dtype={'one': np.uint8, 1: object})
         result = reader.read()
-        self.assert_(result[0].dtype == 'u1')
-        self.assert_(result[1].dtype == 'O')
+        self.assertEqual(result[0].dtype, 'u1')
+        self.assertEqual(result[1].dtype, 'O')
 
         reader = _make_reader(dtype={'one': np.dtype('u1'),
                                      1: np.dtype('O')})
         result = reader.read()
-        self.assert_(result[0].dtype == 'u1')
-        self.assert_(result[1].dtype == 'O')
+        self.assertEqual(result[0].dtype, 'u1')
+        self.assertEqual(result[1].dtype, 'O')
 
     def test_usecols(self):
         data = """\

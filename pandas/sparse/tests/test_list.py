@@ -68,12 +68,12 @@ class TestSparseList(unittest.TestCase):
         splist.append(arr[6:])
 
         consol = splist.consolidate(inplace=False)
-        self.assert_(consol.nchunks == 1)
-        self.assert_(splist.nchunks == 3)
+        self.assertEqual(consol.nchunks, 1)
+        self.assertEqual(splist.nchunks, 3)
         assert_sp_array_equal(consol.to_array(), exp_sparr)
 
         splist.consolidate()
-        self.assert_(splist.nchunks == 1)
+        self.assertEqual(splist.nchunks, 1)
         assert_sp_array_equal(splist.to_array(), exp_sparr)
 
     def test_copy(self):

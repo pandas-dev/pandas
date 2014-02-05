@@ -14,10 +14,10 @@ class TestTools(tm.TestCase):
 
         res = value_range(df)
 
-        self.assert_(res['Minimum'] == -5)
-        self.assert_(res['Maximum'] == 5)
+        self.assertEqual(res['Minimum'], -5)
+        self.assertEqual(res['Maximum'], 5)
 
         df.ix[0, 1] = np.NaN
 
-        self.assert_(res['Minimum'] == -5)
-        self.assert_(res['Maximum'] == 5)
+        self.assertEqual(res['Minimum'], -5)
+        self.assertEqual(res['Maximum'], 5)

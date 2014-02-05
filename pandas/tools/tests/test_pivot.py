@@ -114,7 +114,7 @@ class TestPivotTable(tm.TestCase):
 
         # can convert dtypes
         f = DataFrame({'a' : ['cat', 'bat', 'cat', 'bat'], 'v' : [1,2,3,4], 'i' : ['a','b','a','b']})
-        self.assert_(f.dtypes['v'] == 'int64')
+        self.assertEqual(f.dtypes['v'], 'int64')
 
         z = pivot_table(f, values='v', rows=['a'], cols=['i'], fill_value=0, aggfunc=np.sum)
         result = z.get_dtype_counts()
@@ -123,7 +123,7 @@ class TestPivotTable(tm.TestCase):
 
         # cannot convert dtypes
         f = DataFrame({'a' : ['cat', 'bat', 'cat', 'bat'], 'v' : [1.5,2.5,3.5,4.5], 'i' : ['a','b','a','b']})
-        self.assert_(f.dtypes['v'] == 'float64')
+        self.assertEqual(f.dtypes['v'], 'float64')
 
         z = pivot_table(f, values='v', rows=['a'], cols=['i'], fill_value=0, aggfunc=np.mean)
         result = z.get_dtype_counts()
