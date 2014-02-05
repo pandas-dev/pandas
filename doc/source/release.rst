@@ -75,6 +75,7 @@ Bug Fixes
 - Inconsistent tz parsing Timestamp/to_datetime for current year (:issue:`5958`)
 - Indexing bugs with reordered indexes (:issue:`6252`, :issue:`6254`)
 - Bug in ``.xs`` with a Series multiindex (:issue:`6258`, :issue:`5684`)
+- Bug in conversion of a string types to a DatetimeIndex with a specified frequency (:issue:`6273`)
 
 pandas 0.13.1
 -------------
