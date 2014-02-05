@@ -3236,7 +3236,7 @@ class MultiIndex(Index):
         labels = self.labels[level]
 
         if level > 0 or self.lexsort_depth == 0:
-            return labels == loc
+            return np.array(labels == loc,dtype=bool)
         else:
             # sorted, so can return slice object -> view
             i = labels.searchsorted(loc, side='left')
