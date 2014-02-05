@@ -100,7 +100,7 @@ class TestBlock(tm.TestCase):
 
     def test_constructor(self):
         int32block = get_int_ex(['a'],dtype = np.int32)
-        self.assert_(int32block.dtype == np.int32)
+        self.assertEqual(int32block.dtype, np.int32)
 
     def test_pickle(self):
         import pickle
@@ -119,9 +119,9 @@ class TestBlock(tm.TestCase):
         assert_almost_equal(self.fblock.ref_locs, [0, 2, 4])
 
     def test_attrs(self):
-        self.assert_(self.fblock.shape == self.fblock.values.shape)
-        self.assert_(self.fblock.dtype == self.fblock.values.dtype)
-        self.assert_(len(self.fblock) == len(self.fblock.values))
+        self.assertEqual(self.fblock.shape, self.fblock.values.shape)
+        self.assertEqual(self.fblock.dtype, self.fblock.values.dtype)
+        self.assertEqual(len(self.fblock), len(self.fblock.values))
 
     def test_merge(self):
         avals = randn(2, 10)
@@ -346,17 +346,17 @@ class TestBlockManager(tm.TestCase):
         self.mgr.set('baz', np.zeros(N, dtype=bool))
 
         self.mgr.set('baz', np.repeat('foo', N))
-        self.assert_(self.mgr.get('baz').dtype == np.object_)
+        self.assertEqual(self.mgr.get('baz').dtype, np.object_)
 
         mgr2 = self.mgr.consolidate()
         mgr2.set('baz', np.repeat('foo', N))
-        self.assert_(mgr2.get('baz').dtype == np.object_)
+        self.assertEqual(mgr2.get('baz').dtype, np.object_)
 
         mgr2.set('quux', randn(N).astype(int))
-        self.assert_(mgr2.get('quux').dtype == np.int_)
+        self.assertEqual(mgr2.get('quux').dtype, np.int_)
 
         mgr2.set('quux', randn(N))
-        self.assert_(mgr2.get('quux').dtype == np.float_)
+        self.assertEqual(mgr2.get('quux').dtype, np.float_)
 
     def test_copy(self):
         shallow = self.mgr.copy(deep=False)
@@ -368,17 +368,17 @@ class TestBlockManager(tm.TestCase):
                 if cp_blk.values is blk.values:
                     found = True
                     break
-            self.assert_(found == True)
+            self.assertTrue(found)
 
     def test_sparse(self):
         mgr = create_blockmanager([get_sparse_ex1(),get_sparse_ex2()])
 
         # what to test here?
-        self.assert_(mgr.as_matrix().dtype == np.float64)
+        self.assertEqual(mgr.as_matrix().dtype, np.float64)
 
     def test_sparse_mixed(self):
         mgr = create_blockmanager([get_sparse_ex1(),get_sparse_ex2(),get_float_ex()])
-        self.assert_(len(mgr.blocks) == 3)
+        self.assertEqual(len(mgr.blocks), 3)
         self.assert_(isinstance(mgr,BlockManager))
 
         # what to test here?
@@ -386,25 +386,25 @@ class TestBlockManager(tm.TestCase):
     def test_as_matrix_float(self):
 
         mgr = create_blockmanager([get_float_ex(['c'],np.float32), get_float_ex(['d'],np.float16), get_float_ex(['e'],np.float64)])
-        self.assert_(mgr.as_matrix().dtype == np.float64)
+        self.assertEqual(mgr.as_matrix().dtype, np.float64)
 
         mgr = create_blockmanager([get_float_ex(['c'],np.float32), get_float_ex(['d'],np.float16)])
-        self.assert_(mgr.as_matrix().dtype == np.float32)
+        self.assertEqual(mgr.as_matrix().dtype, np.float32)
 
     def test_as_matrix_int_bool(self):
 
         mgr = create_blockmanager([get_bool_ex(['a']), get_bool_ex(['b'])])
-        self.assert_(mgr.as_matrix().dtype == np.bool_)
+        self.assertEqual(mgr.as_matrix().dtype, np.bool_)
 
         mgr = create_blockmanager([get_int_ex(['a'],np.int64), get_int_ex(['b'],np.int64), get_int_ex(['c'],np.int32), get_int_ex(['d'],np.int16), get_int_ex(['e'],np.uint8) ])
-        self.assert_(mgr.as_matrix().dtype == np.int64)
+        self.assertEqual(mgr.as_matrix().dtype, np.int64)
 
         mgr = create_blockmanager([get_int_ex(['c'],np.int32), get_int_ex(['d'],np.int16), get_int_ex(['e'],np.uint8) ])
-        self.assert_(mgr.as_matrix().dtype == np.int32)
+        self.assertEqual(mgr.as_matrix().dtype, np.int32)
 
     def test_as_matrix_datetime(self):
         mgr = create_blockmanager([get_dt_ex(['h']), get_dt_ex(['g'])])
-        self.assert_(mgr.as_matrix().dtype == 'M8[ns]')
+        self.assertEqual(mgr.as_matrix().dtype, 'M8[ns]')
 
     def test_astype(self):
 
@@ -413,13 +413,13 @@ class TestBlockManager(tm.TestCase):
 
         for t in ['float16','float32','float64','int32','int64']:
             tmgr = mgr.astype(t)
-            self.assert_(tmgr.as_matrix().dtype == np.dtype(t))
+            self.assertEqual(tmgr.as_matrix().dtype, np.dtype(t))
 
         # mixed
         mgr = create_blockmanager([get_obj_ex(['a','b']),get_bool_ex(['c']),get_dt_ex(['d']),get_float_ex(['e'],np.float32), get_float_ex(['f'],np.float16), get_float_ex(['g'],np.float64)])
         for t in ['float16','float32','float64','int32','int64']:
             tmgr = mgr.astype(t, raise_on_error = False).get_numeric_data()
-            self.assert_(tmgr.as_matrix().dtype == np.dtype(t))
+            self.assertEqual(tmgr.as_matrix().dtype, np.dtype(t))
 
     def test_convert(self):
 
@@ -427,7 +427,7 @@ class TestBlockManager(tm.TestCase):
             """ compare the blocks, numeric compare ==, object don't """
             old_blocks = set(old_mgr.blocks)
             new_blocks = set(new_mgr.blocks)
-            self.assert_(len(old_blocks) == len(new_blocks))
+            self.assertEqual(len(old_blocks), len(new_blocks))
 
             # compare non-numeric
             for b in old_blocks:
@@ -436,7 +436,7 @@ class TestBlockManager(tm.TestCase):
                     if (b.values == nb.values).all():
                         found = True
                         break
-                self.assert_(found == True)
+                self.assertTrue(found)
 
             for b in new_blocks:
                 found = False
@@ -444,7 +444,7 @@ class TestBlockManager(tm.TestCase):
                     if (b.values == ob.values).all():
                         found = True
                         break
-                self.assert_(found == True)
+                self.assertTrue(found)
 
         # noops
         mgr = create_blockmanager([get_int_ex(['f']), get_float_ex(['g'])])
@@ -462,7 +462,7 @@ class TestBlockManager(tm.TestCase):
                 if isinstance(b,block_type):
                     for i in list(b.items):
                         items.add(i)
-            self.assert_(items == set(citems))
+            self.assertEqual(items, set(citems))
 
         # convert
         mat = np.empty((N, 3), dtype=object)

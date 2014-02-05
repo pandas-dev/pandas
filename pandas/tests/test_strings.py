@@ -186,7 +186,7 @@ class TestStringMethods(tm.TestCase):
         values = ['foo', 'xyz', 'fooommm__foo', 'mmm_']
         result = strings.str_contains(values, pat)
         expected = [False, False, True, True]
-        self.assert_(result.dtype == np.bool_)
+        self.assertEqual(result.dtype, np.bool_)
         tm.assert_almost_equal(result, expected)
 
         # mixed
@@ -214,7 +214,7 @@ class TestStringMethods(tm.TestCase):
         values = ['foo', 'xyz', 'fooommm__foo', 'mmm_']
         result = strings.str_contains(values, pat)
         expected = [False, False, True, True]
-        self.assert_(result.dtype == np.bool_)
+        self.assertEqual(result.dtype, np.bool_)
         tm.assert_almost_equal(result, expected)
 
         # na

@@ -458,16 +458,16 @@ class CheckIndexing(object):
         # scalar
         self.panel['ItemG'] = 1
         self.panel['ItemE'] = True
-        self.assert_(self.panel['ItemG'].values.dtype == np.int64)
-        self.assert_(self.panel['ItemE'].values.dtype == np.bool_)
+        self.assertEqual(self.panel['ItemG'].values.dtype, np.int64)
+        self.assertEqual(self.panel['ItemE'].values.dtype, np.bool_)
 
         # object dtype
         self.panel['ItemQ'] = 'foo'
-        self.assert_(self.panel['ItemQ'].values.dtype == np.object_)
+        self.assertEqual(self.panel['ItemQ'].values.dtype, np.object_)
 
         # boolean dtype
         self.panel['ItemP'] = self.panel['ItemA'] > 0
-        self.assert_(self.panel['ItemP'].values.dtype == np.bool_)
+        self.assertEqual(self.panel['ItemP'].values.dtype, np.bool_)
 
         self.assertRaises(TypeError, self.panel.__setitem__, 'foo',
                           self.panel.ix[['ItemP']])
@@ -510,8 +510,8 @@ class CheckIndexing(object):
     def test_major_xs_mixed(self):
         self.panel['ItemD'] = 'foo'
         xs = self.panel.major_xs(self.panel.major_axis[0])
-        self.assert_(xs['ItemA'].dtype == np.float64)
-        self.assert_(xs['ItemD'].dtype == np.object_)
+        self.assertEqual(xs['ItemA'].dtype, np.float64)
+        self.assertEqual(xs['ItemD'].dtype, np.object_)
 
     def test_minor_xs(self):
         ref = self.panel['ItemA']
@@ -528,8 +528,8 @@ class CheckIndexing(object):
         self.panel['ItemD'] = 'foo'
 
         xs = self.panel.minor_xs('D')
-        self.assert_(xs['ItemA'].dtype == np.float64)
-        self.assert_(xs['ItemD'].dtype == np.object_)
+        self.assertEqual(xs['ItemA'].dtype, np.float64)
+        self.assertEqual(xs['ItemD'].dtype, np.object_)
 
     def test_xs(self):
         itemA = self.panel.xs('ItemA', axis=0)
@@ -840,7 +840,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         # strings handled prop
         wp = Panel([[['foo', 'foo', 'foo', ],
                      ['foo', 'foo', 'foo']]])
-        self.assert_(wp.values.dtype == np.object_)
+        self.assertEqual(wp.values.dtype, np.object_)
 
         vals = self.panel.values
 
@@ -875,22 +875,22 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
 
     def test_constructor_empty_panel(self):
         empty = Panel()
-        self.assert_(len(empty.items) == 0)
-        self.assert_(len(empty.major_axis) == 0)
-        self.assert_(len(empty.minor_axis) == 0)
+        self.assertEqual(len(empty.items), 0)
+        self.assertEqual(len(empty.major_axis), 0)
+        self.assertEqual(len(empty.minor_axis), 0)
 
     def test_constructor_observe_dtype(self):
         # GH #411
         panel = Panel(items=lrange(3), major_axis=lrange(3),
                       minor_axis=lrange(3), dtype='O')
-        self.assert_(panel.values.dtype == np.object_)
+        self.assertEqual(panel.values.dtype, np.object_)
 
     def test_constructor_dtypes(self):
         # GH #797
 
         def _check_dtype(panel, dtype):
             for i in panel.items:
-                self.assert_(panel[i].values.dtype.name == dtype)
+                self.assertEqual(panel[i].values.dtype.name, dtype)
 
         # only nan holding types allowed here
         for dtype in ['float64','float32','object']:
@@ -1029,8 +1029,8 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
 
         panel = Panel.from_dict(data, orient='minor')
 
-        self.assert_(panel['foo'].values.dtype == np.object_)
-        self.assert_(panel['A'].values.dtype == np.float64)
+        self.assertEqual(panel['foo'].values.dtype, np.object_)
+        self.assertEqual(panel['A'].values.dtype, np.float64)
 
     def test_constructor_error_msgs(self):
 
@@ -1186,7 +1186,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         # this ok
         result = self.panel.reindex()
         assert_panel_equal(result,self.panel)
-        self.assert_((result is self.panel) == False)
+        self.assertFalse(result is self.panel)
 
         # with filling
         smaller_major = self.panel.major_axis[::5]
@@ -1201,7 +1201,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         # don't necessarily copy
         result = self.panel.reindex(major=self.panel.major_axis, copy=False)
         assert_panel_equal(result,self.panel)
-        self.assert_((result is self.panel) == True)
+        self.assertTrue(result is self.panel)
 
     def test_reindex_multi(self):
 

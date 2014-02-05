@@ -92,7 +92,7 @@ class TestIndex(tm.TestCase):
 
     def test_new_axis(self):
         new_index = self.dateIndex[None, :]
-        self.assert_(new_index.ndim == 2)
+        self.assertEqual(new_index.ndim, 2)
         tm.assert_isinstance(new_index, np.ndarray)
 
     def test_copy_and_deepcopy(self):
@@ -133,7 +133,7 @@ class TestIndex(tm.TestCase):
         arr = np.array(self.strIndex)
         index = Index(arr, copy=True, name='name')
         tm.assert_isinstance(index, Index)
-        self.assert_(index.name == 'name')
+        self.assertEqual(index.name, 'name')
         assert_array_equal(arr, index)
         arr[0] = "SOMEBIGLONGSTRING"
         self.assertNotEqual(index[0], "SOMEBIGLONGSTRING")
@@ -156,12 +156,12 @@ class TestIndex(tm.TestCase):
     def test_copy(self):
         i = Index([], name='Foo')
         i_copy = i.copy()
-        self.assert_(i_copy.name == 'Foo')
+        self.assertEqual(i_copy.name, 'Foo')
 
     def test_view(self):
         i = Index([], name='Foo')
         i_view = i.view()
-        self.assert_(i_view.name == 'Foo')
+        self.assertEqual(i_view.name, 'Foo')
 
     def test_astype(self):
         casted = self.intIndex.astype('i8')
@@ -234,7 +234,7 @@ class TestIndex(tm.TestCase):
         self.assert_(np.isnan(self.dateIndex.asof(d - timedelta(1))))
 
         d = self.dateIndex[-1]
-        self.assert_(self.dateIndex.asof(d + timedelta(1)) == d)
+        self.assertEqual(self.dateIndex.asof(d + timedelta(1)), d)
 
         d = self.dateIndex[0].to_datetime()
         tm.assert_isinstance(self.dateIndex.asof(d), Timestamp)
@@ -356,7 +356,7 @@ class TestIndex(tm.TestCase):
         first.name = 'A'
         second.name = 'A'
         union = first.union(second)
-        self.assert_(union.name == 'A')
+        self.assertEqual(union.name, 'A')
 
         second.name = 'B'
         union = first.union(second)
@@ -393,7 +393,7 @@ class TestIndex(tm.TestCase):
         right = Index([1, 2, 3], name='foo')
 
         result = left.append(right)
-        self.assert_(result.name == 'foo')
+        self.assertEqual(result.name, 'foo')
 
         left = Index([], name='foo')
         right = Index([1, 2, 3], name='bar')
@@ -440,7 +440,7 @@ class TestIndex(tm.TestCase):
 
         # with everythin
         result = first.diff(first)
-        self.assert_(len(result) == 0)
+        self.assertEqual(len(result), 0)
         self.assertEqual(result.name, first.name)
 
         # non-iterable input
@@ -511,14 +511,14 @@ class TestIndex(tm.TestCase):
         dates = Index([dt + inc for dt in self.dateIndex], name='something')
 
         formatted = dates.format(name=True)
-        self.assert_(formatted[0] == 'something')
+        self.assertEqual(formatted[0], 'something')
 
     def test_format_datetime_with_time(self):
         t = Index([datetime(2012, 2, 7), datetime(2012, 2, 7, 23)])
 
         result = t.format()
         expected = ['2012-02-07 00:00:00', '2012-02-07 23:00:00']
-        self.assert_(len(result) == 2)
+        self.assertEqual(len(result), 2)
         self.assertEquals(result, expected)
 
     def test_format_none(self):
@@ -579,16 +579,16 @@ class TestIndex(tm.TestCase):
     def test_slice_locs_dup(self):
         idx = Index(['a', 'a', 'b', 'c', 'd', 'd'])
         rs = idx.slice_locs('a', 'd')
-        self.assert_(rs == (0, 6))
+        self.assertEqual(rs, (0, 6))
 
         rs = idx.slice_locs(end='d')
-        self.assert_(rs == (0, 6))
+        self.assertEqual(rs, (0, 6))
 
         rs = idx.slice_locs('a', 'c')
-        self.assert_(rs == (0, 4))
+        self.assertEqual(rs, (0, 4))
 
         rs = idx.slice_locs('b', 'd')
-        self.assert_(rs == (2, 6))
+        self.assertEqual(rs, (2, 6))
 
     def test_drop(self):
         n = len(self.strIndex)
@@ -624,13 +624,13 @@ class TestIndex(tm.TestCase):
         int_idx = idx1.intersection(idx2)
         # needs to be 1d like idx1 and idx2
         expected = idx1[:4]  # pandas.Index(sorted(set(idx1) & set(idx2)))
-        self.assert_(int_idx.ndim == 1)
+        self.assertEqual(int_idx.ndim, 1)
         self.assert_(int_idx.equals(expected))
 
         # union broken
         union_idx = idx1.union(idx2)
         expected = pandas.Index(sorted(set(idx1) | set(idx2)))
-        self.assert_(union_idx.ndim == 1)
+        self.assertEqual(union_idx.ndim, 1)
         self.assert_(union_idx.equals(expected))
 
     def test_is_monotonic_incomparable(self):
@@ -658,8 +658,8 @@ class TestIndex(tm.TestCase):
         # empty, return dtype bool
         idx = Index([])
         result = idx.isin(values)
-        self.assert_(len(result) == 0)
-        self.assert_(result.dtype == np.bool_)
+        self.assertEqual(len(result), 0)
+        self.assertEqual(result.dtype, np.bool_)
 
     def test_boolean_cmp(self):
         values = [1, 2, 3, 4]
@@ -668,7 +668,7 @@ class TestIndex(tm.TestCase):
         res = (idx == values)
 
         self.assert_(res.all())
-        self.assert_(res.dtype == 'bool')
+        self.assertEqual(res.dtype, 'bool')
         self.assert_(not isinstance(res, Index))
 
     def test_get_level_values(self):
@@ -728,15 +728,15 @@ class TestFloat64Index(tm.TestCase):
         self.assert_(isinstance(index, Float64Index))
         index = Float64Index(np.array([1.,2,3,4,5]))
         self.assert_(isinstance(index, Float64Index))
-        self.assert_(index.dtype == object)
+        self.assertEqual(index.dtype, object)
 
         index = Float64Index(np.array([1.,2,3,4,5]),dtype=np.float32)
         self.assert_(isinstance(index, Float64Index))
-        self.assert_(index.dtype == object)
+        self.assertEqual(index.dtype, object)
 
         index = Float64Index(np.array([1,2,3,4,5]),dtype=np.float32)
         self.assert_(isinstance(index, Float64Index))
-        self.assert_(index.dtype == object)
+        self.assertEqual(index.dtype, object)
 
         # nan handling
         result = Float64Index([np.nan, np.nan])
@@ -818,7 +818,7 @@ class TestInt64Index(tm.TestCase):
     def test_constructor_corner(self):
         arr = np.array([1, 2, 3, 4], dtype=object)
         index = Int64Index(arr)
-        self.assert_(index.values.dtype == np.int64)
+        self.assertEqual(index.values.dtype, np.int64)
         self.assert_(index.equals(arr))
 
         # preventing casting
@@ -839,12 +839,12 @@ class TestInt64Index(tm.TestCase):
     def test_copy(self):
         i = Int64Index([], name='Foo')
         i_copy = i.copy()
-        self.assert_(i_copy.name == 'Foo')
+        self.assertEqual(i_copy.name, 'Foo')
 
     def test_view(self):
         i = Int64Index([], name='Foo')
         i_view = i.view()
-        self.assert_(i_view.name == 'Foo')
+        self.assertEqual(i_view.name, 'Foo')
 
     def test_coerce_list(self):
         # coerce things
@@ -856,7 +856,7 @@ class TestInt64Index(tm.TestCase):
         tm.assert_isinstance(arr, Index)
 
     def test_dtype(self):
-        self.assert_(self.index.dtype == np.int64)
+        self.assertEqual(self.index.dtype, np.int64)
 
     def test_is_monotonic(self):
         self.assert_(self.index.is_monotonic)
@@ -1123,7 +1123,7 @@ class TestInt64Index(tm.TestCase):
         i2 = Index(['aa'], dtype=object)
         res = i2.intersection(i1)
 
-        self.assert_(len(res) == 0)
+        self.assertEqual(len(res), 0)
 
     def test_union_noncomparable(self):
         from datetime import datetime, timedelta
@@ -1152,7 +1152,7 @@ class TestInt64Index(tm.TestCase):
 
     def test_prevent_casting(self):
         result = self.index.astype('O')
-        self.assert_(result.dtype == np.object_)
+        self.assertEqual(result.dtype, np.object_)
 
     def test_take_preserve_name(self):
         index = Int64Index([1, 2, 3, 4], name='foo')
@@ -1223,7 +1223,7 @@ class TestMultiIndex(tm.TestCase):
 
     def test_set_names_and_rename(self):
         # so long as these are synonyms, we don't need to test set_names
-        self.assert_(self.index.rename == self.index.set_names)
+        self.assertEqual(self.index.rename, self.index.set_names)
         new_names = [name + "SUFFIX" for name in self.index_names]
         ind = self.index.set_names(new_names)
         self.assertEqual(self.index.names, self.index_names)
@@ -1433,7 +1433,7 @@ class TestMultiIndex(tm.TestCase):
                                   names=['first'])
         tm.assert_isinstance(single_level, Index)
         self.assert_(not isinstance(single_level, MultiIndex))
-        self.assert_(single_level.name == 'first')
+        self.assertEqual(single_level.name, 'first')
 
         single_level = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],
                                   labels=[[0, 1, 2, 3]])
@@ -1644,7 +1644,7 @@ class TestMultiIndex(tm.TestCase):
         result = list(self.index)
         expected = [('foo', 'one'), ('foo', 'two'), ('bar', 'one'),
                     ('baz', 'two'), ('qux', 'one'), ('qux', 'two')]
-        self.assert_(result == expected)
+        self.assertEqual(result, expected)
 
     def test_pickle(self):
         pickled = pickle.dumps(self.index)
@@ -1735,8 +1735,8 @@ class TestMultiIndex(tm.TestCase):
         self.assertEquals(sorted_idx.get_loc('foo'), slice(0, 2))
 
     def test_get_loc(self):
-        self.assert_(self.index.get_loc(('foo', 'two')) == 1)
-        self.assert_(self.index.get_loc(('baz', 'two')) == 3)
+        self.assertEqual(self.index.get_loc(('foo', 'two')), 1)
+        self.assertEqual(self.index.get_loc(('baz', 'two')), 3)
         self.assertRaises(KeyError, self.index.get_loc, ('bar', 'two'))
         self.assertRaises(KeyError, self.index.get_loc, 'quux')
 
@@ -1748,13 +1748,13 @@ class TestMultiIndex(tm.TestCase):
                                    np.array([0, 1, 0, 0, 0, 1, 0, 1]),
                                    np.array([1, 0, 1, 1, 0, 0, 1, 0])])
         self.assertRaises(KeyError, index.get_loc, (1, 1))
-        self.assert_(index.get_loc((2, 0)) == slice(3, 5))
+        self.assertEqual(index.get_loc((2, 0)), slice(3, 5))
 
     def test_get_loc_duplicates(self):
         index = Index([2, 2, 2, 2])
         result = index.get_loc(2)
         expected = slice(0, 4)
-        assert(result == expected)
+        self.assertEqual(result, expected)
         # self.assertRaises(Exception, index.get_loc, 2)
 
         index = Index(['c', 'a', 'a', 'b', 'b'])
@@ -2213,7 +2213,7 @@ class TestMultiIndex(tm.TestCase):
 
         # empty, but non-equal
         result = self.index - self.index.sortlevel(1)[0]
-        self.assert_(len(result) == 0)
+        self.assertEqual(len(result), 0)
 
         # raise Exception called with non-MultiIndex
         result = first.diff(first._tuple_index)
@@ -2352,7 +2352,7 @@ class TestMultiIndex(tm.TestCase):
         # key contained in all levels
         new_index = self.index.insert(0, ('bar', 'two'))
         self.assert_(new_index.equal_levels(self.index))
-        self.assert_(new_index[0] == ('bar', 'two'))
+        self.assertEqual(new_index[0], ('bar', 'two'))
 
         # key not contained in all levels
         new_index = self.index.insert(0, ('abc', 'three'))
@@ -2360,7 +2360,7 @@ class TestMultiIndex(tm.TestCase):
                                     list(self.index.levels[0]) + ['abc']))
         self.assert_(np.array_equal(new_index.levels[1],
                                     list(self.index.levels[1]) + ['three']))
-        self.assert_(new_index[0] == ('abc', 'three'))
+        self.assertEqual(new_index[0], ('abc', 'three'))
 
         # key wrong length
         assertRaisesRegexp(ValueError, "Item must have length equal to number"

@@ -180,7 +180,7 @@ class TestIndexing(tm.TestCase):
 
                 try:
                     if np.isscalar(rs) and np.isscalar(xp):
-                        self.assert_(rs == xp)
+                        self.assertEqual(rs, xp)
                     elif xp.ndim == 1:
                         assert_series_equal(rs,xp)
                     elif xp.ndim == 2:
@@ -326,7 +326,7 @@ class TestIndexing(tm.TestCase):
 
         result = s.at[dates[5]]
         xp     = s.values[5]
-        self.assert_(result == xp)
+        self.assertEqual(result, xp)
 
     def test_iat_invalid_args(self):
         pass
@@ -427,7 +427,7 @@ class TestIndexing(tm.TestCase):
 
         rs = df.iloc[2,2]
         xp = df.values[2,2]
-        self.assert_(rs == xp)
+        self.assertEqual(rs, xp)
 
         # for multiple items
         # GH 5528
@@ -455,7 +455,7 @@ class TestIndexing(tm.TestCase):
 
         df.iloc[1,1] = 1
         result = df.iloc[1,1]
-        self.assert_(result == 1)
+        self.assertEqual(result, 1)
 
         df.iloc[:,2:3] = 0
         expected = df.iloc[:,2:3]
@@ -627,7 +627,7 @@ class TestIndexing(tm.TestCase):
         result = DataFrame({ 'a' : [Timestamp('20130101')], 'b' : [1] }).iloc[0]
         expected = Series([ Timestamp('20130101'), 1],index=['a','b'])
         assert_series_equal(result,expected)
-        self.assert_(result.dtype == object)
+        self.assertEqual(result.dtype, object)
 
     def test_loc_setitem_frame(self):
         df = self.frame_labels
@@ -636,10 +636,10 @@ class TestIndexing(tm.TestCase):
 
         df.loc['a','A'] = 1
         result = df.loc['a','A']
-        self.assert_(result == 1)
+        self.assertEqual(result, 1)
 
         result = df.iloc[0,0]
-        self.assert_(result == 1)
+        self.assertEqual(result, 1)
 
         df.loc[:,'B':'D'] = 0
         expected = df.loc[:,'B':'D']
@@ -676,7 +676,7 @@ class TestIndexing(tm.TestCase):
 
         result = df.iloc[2,2]
         exp = df.ix[4,4]
-        self.assert_(result == exp)
+        self.assertEqual(result, exp)
 
         # slice
         result = df.iloc[4:8]
@@ -723,7 +723,7 @@ class TestIndexing(tm.TestCase):
 
         result = df.iloc[1,1]
         exp = df.ix['b','B']
-        self.assert_(result == exp)
+        self.assertEqual(result, exp)
 
         result = df.iloc[:,2:3]
         expected = df.ix[:,['C']]
@@ -732,7 +732,7 @@ class TestIndexing(tm.TestCase):
         # negative indexing
         result = df.iloc[-1,-1]
         exp = df.ix['j','D']
-        self.assert_(result == exp)
+        self.assertEqual(result, exp)
 
         # out-of-bounds exception
         self.assertRaises(IndexError, df.iloc.__getitem__, tuple([10,5]))
@@ -817,7 +817,7 @@ class TestIndexing(tm.TestCase):
 
         df.iloc[1,1] = 1
         result = df.iloc[1,1]
-        self.assert_(result == 1)
+        self.assertEqual(result, 1)
 
         df.iloc[:,2:3] = 0
         expected = df.iloc[:,2:3]
@@ -829,7 +829,7 @@ class TestIndexing(tm.TestCase):
 
         s.iloc[1] = 1
         result = s.iloc[1]
-        self.assert_(result == 1)
+        self.assertEqual(result, 1)
 
         s.iloc[:4] = 0
         expected = s.iloc[:4]
@@ -859,12 +859,12 @@ class TestIndexing(tm.TestCase):
         # corner column
         rs = mi_int.iloc[2,2]
         xp = mi_int.ix[:,2].ix[2]
-        self.assert_(rs == xp)
+        self.assertEqual(rs, xp)
 
         # this is basically regular indexing
         rs = mi_labels.iloc[2,2]
         xp = mi_labels.ix['j'].ix[:,'j'].ix[0,0]
-        self.assert_(rs == xp)
+        self.assertEqual(rs, xp)
 
     def test_loc_multiindex(self):
 
@@ -1006,7 +1006,7 @@ class TestIndexing(tm.TestCase):
         # GH3216
         df = DataFrame([{"a": 1}, {"a": 3, "b": 2}])
         df['c'] = np.nan
-        self.assert_(df['c'].dtype == np.float64)
+        self.assertEqual(df['c'].dtype, np.float64)
 
         df.ix[0,'c'] = 'foo'
         expected = DataFrame([{"a": 1, "c" : 'foo'}, {"a": 3, "b": 2, "c" : np.nan}])
@@ -1114,7 +1114,7 @@ class TestIndexing(tm.TestCase):
         idx=df['test']=='_'
         temp=df.ix[idx,'a'].apply(lambda x: '-----' if x=='aaa' else x)
         df.ix[idx,'test']=temp
-        self.assert_(df.iloc[0,2] == '-----')
+        self.assertEqual(df.iloc[0,2], '-----')
 
         #if I look at df, then element [0,2] equals '_'. If instead I type df.ix[idx,'test'], I get '-----', finally by typing df.iloc[0,2] I get '_'.
 
@@ -1151,13 +1151,13 @@ class TestIndexing(tm.TestCase):
         # GH 3617
         p = Panel(randn(4, 4, 4))
 
-        self.assert_(p.iloc[:3, :3, :3].shape == (3,3,3))
-        self.assert_(p.iloc[1, :3, :3].shape == (3,3))
-        self.assert_(p.iloc[:3, 1, :3].shape == (3,3))
-        self.assert_(p.iloc[:3, :3, 1].shape == (3,3))
-        self.assert_(p.iloc[1, 1, :3].shape == (3,))
-        self.assert_(p.iloc[1, :3, 1].shape == (3,))
-        self.assert_(p.iloc[:3, 1, 1].shape == (3,))
+        self.assertEqual(p.iloc[:3, :3, :3].shape, (3,3,3))
+        self.assertEqual(p.iloc[1, :3, :3].shape, (3,3))
+        self.assertEqual(p.iloc[:3, 1, :3].shape, (3,3))
+        self.assertEqual(p.iloc[:3, :3, 1].shape, (3,3))
+        self.assertEqual(p.iloc[1, 1, :3].shape, (3,))
+        self.assertEqual(p.iloc[1, :3, 1].shape, (3,))
+        self.assertEqual(p.iloc[:3, 1, 1].shape, (3,))
 
     def test_panel_getitem(self):
         # GH4016, date selection returns a frame when a partial string selection
@@ -1305,7 +1305,7 @@ class TestIndexing(tm.TestCase):
             indexer = i*2
             v = 1000 + i*200
             expected.ix[indexer, 'y'] = v
-            self.assert_(expected.ix[indexer, 'y'] == v)
+            self.assertEqual(expected.ix[indexer, 'y'], v)
 
         df.ix[df.x % 2 == 0, 'y'] = df.ix[df.x % 2 == 0, 'y'] * 100
         assert_frame_equal(df,expected)
@@ -1337,16 +1337,16 @@ class TestIndexing(tm.TestCase):
                        columns=['a', 'b', 8, 'c'],
                        index=['e', 7, 'f', 'g'])
 
-        self.assert_(df.ix['e', 8] == 2)
-        self.assert_(df.loc['e', 8] == 2)
+        self.assertEqual(df.ix['e', 8], 2)
+        self.assertEqual(df.loc['e', 8], 2)
 
         df.ix['e', 8] = 42
-        self.assert_(df.ix['e', 8] == 42)
-        self.assert_(df.loc['e', 8] == 42)
+        self.assertEqual(df.ix['e', 8], 42)
+        self.assertEqual(df.loc['e', 8], 42)
 
         df.loc['e', 8] = 45
-        self.assert_(df.ix['e', 8] == 45)
-        self.assert_(df.loc['e', 8] == 45)
+        self.assertEqual(df.ix['e', 8], 45)
+        self.assertEqual(df.loc['e', 8], 45)
 
     def test_setitem_list(self):
 
@@ -1490,13 +1490,13 @@ class TestIndexing(tm.TestCase):
         df = DataFrame([[1, 1], [1, 1]])
         df.index.name = 'index_name'
         result = df.iloc[[0, 1]].index.name
-        self.assert_(result == 'index_name')
+        self.assertEqual(result, 'index_name')
 
         result = df.ix[[0, 1]].index.name
-        self.assert_(result == 'index_name')
+        self.assertEqual(result, 'index_name')
 
         result = df.loc[[0, 1]].index.name
-        self.assert_(result == 'index_name')
+        self.assertEqual(result, 'index_name')
 
     def test_iloc_non_unique_indexing(self):
 
@@ -2035,7 +2035,7 @@ class TestIndexing(tm.TestCase):
         # correct setting
         df.loc[(0,0),'z'] = 2
         result = df.loc[(0,0),'z']
-        self.assert_(result == 2)
+        self.assertEqual(result, 2)
 
     def test_slice_consolidate_invalidate_item_cache(self):
         # #3970
@@ -2069,8 +2069,8 @@ class TestIndexing(tm.TestCase):
             # set it
             df.ix[7,'c'] = 1
 
-            self.assert_(df.ix[0,'c'] == 0.0)
-            self.assert_(df.ix[7,'c'] == 1.0)
+            self.assertEqual(df.ix[0,'c'], 0.0)
+            self.assertEqual(df.ix[7,'c'], 1.0)
 
     def test_setitem_chained_setfault(self):
 
@@ -2289,10 +2289,10 @@ class TestIndexing(tm.TestCase):
 
         index = Index([1.5, 2, 3, 4.5, 5])
         s = Series(range(5),index=index)
-        self.assert_(s[3] == 2)
-        self.assert_(s.ix[3] == 2)
-        self.assert_(s.loc[3] == 2)
-        self.assert_(s.iloc[3] == 3)
+        self.assertEqual(s[3], 2)
+        self.assertEqual(s.ix[3], 2)
+        self.assertEqual(s.loc[3], 2)
+        self.assertEqual(s.iloc[3], 3)
 
     def test_floating_index(self):
 
@@ -2311,16 +2311,16 @@ class TestIndexing(tm.TestCase):
         result1 = s[5.0]
         result2 = s.loc[5.0]
         result3 = s.ix[5.0]
-        self.assert_(result1 == result2)
-        self.assert_(result1 == result3)
+        self.assertEqual(result1, result2)
+        self.assertEqual(result1, result3)
 
         result1 = s[5]
         result2 = s.loc[5]
         result3 = s.ix[5]
-        self.assert_(result1 == result2)
-        self.assert_(result1 == result3)
+        self.assertEqual(result1, result2)
+        self.assertEqual(result1, result3)
 
-        self.assert_(s[5.0] == s[5])
+        self.assertEqual(s[5.0], s[5])
 
         # value not found (and no fallbacking at all)
 
@@ -2450,11 +2450,11 @@ class TestIndexing(tm.TestCase):
             # this is fallback, so it works
             result5 = s.ix[5]
             result6 = s.ix[5.0]
-            self.assert_(result1 == result2)
-            self.assert_(result1 == result3)
-            self.assert_(result1 == result4)
-            self.assert_(result1 == result5)
-            self.assert_(result1 == result6)
+            self.assertEqual(result1, result2)
+            self.assertEqual(result1, result3)
+            self.assertEqual(result1, result4)
+            self.assertEqual(result1, result5)
+            self.assertEqual(result1, result6)
 
         # all index types except float/int
         for index in [ tm.makeStringIndex, tm.makeUnicodeIndex,
@@ -2470,11 +2470,11 @@ class TestIndexing(tm.TestCase):
         result4 = s[5]
         result5 = s.loc[5]
         result6 = s.ix[5]
-        self.assert_(result1 == result2)
-        self.assert_(result1 == result3)
-        self.assert_(result1 == result4)
-        self.assert_(result1 == result5)
-        self.assert_(result1 == result6)
+        self.assertEqual(result1, result2)
+        self.assertEqual(result1, result3)
+        self.assertEqual(result1, result4)
+        self.assertEqual(result1, result5)
+        self.assertEqual(result1, result6)
 
     def test_slice_indexer(self):
 

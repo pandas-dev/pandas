@@ -867,7 +867,7 @@ Thur,Lunch,Yes,51.51,17"""
 
         stacked = df.stack()
         assert_series_equal(stacked['foo'], df['foo'].stack())
-        self.assert_(stacked['bar'].dtype == np.float_)
+        self.assertEqual(stacked['bar'].dtype, np.float_)
 
     def test_unstack_bug(self):
         df = DataFrame({'state': ['naive', 'naive', 'naive',
@@ -1138,7 +1138,7 @@ Thur,Lunch,Yes,51.51,17"""
                            labels=[[0, 0, 1, 0, 1, 1],
                                    [0, 1, 0, 2, 2, 1]])
         self.assert_(not index.is_lexsorted())
-        self.assert_(index.lexsort_depth == 0)
+        self.assertEqual(index.lexsort_depth, 0)
 
     def test_frame_getitem_view(self):
         df = self.frame.T.copy()
@@ -1381,9 +1381,9 @@ Thur,Lunch,Yes,51.51,17"""
         self.ymd['F'] = 2
 
         unstacked = self.ymd.unstack('month')
-        self.assert_(unstacked['A', 1].dtype == np.float64)
-        self.assert_(unstacked['E', 1].dtype == np.object_)
-        self.assert_(unstacked['F', 1].dtype == np.float64)
+        self.assertEqual(unstacked['A', 1].dtype, np.float64)
+        self.assertEqual(unstacked['E', 1].dtype, np.object_)
+        self.assertEqual(unstacked['F', 1].dtype, np.float64)
 
     def test_unstack_group_index_overflow(self):
         labels = np.tile(np.arange(500), 2)
@@ -1425,7 +1425,7 @@ Thur,Lunch,Yes,51.51,17"""
 
         # in theory should be inserting in a sorted space????
         self.frame.ix[('bar','three'),'B'] = 0
-        self.assert_(self.frame.sortlevel().ix[('bar','three'),'B'] == 0)
+        self.assertEqual(self.frame.sortlevel().ix[('bar','three'),'B'], 0)
 
     #----------------------------------------------------------------------
     # AMBIGUOUS CASES!
@@ -1694,7 +1694,7 @@ Thur,Lunch,Yes,51.51,17"""
         df = DataFrame(np.random.randn(6, 3), index=index)
 
         result = df.drop([(0, 2)])
-        self.assert_(result.index.names == ('one', 'two'))
+        self.assertEqual(result.index.names, ('one', 'two'))
 
     def test_unicode_repr_issues(self):
         levels = [Index([u('a/\u03c3'), u('b/\u03c3'), u('c/\u03c3')]),
