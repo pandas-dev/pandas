@@ -74,7 +74,7 @@ Bug Fixes
 - Bug in version string gen. for dev versions with shallow clones / install from tarball (:issue:`6127`)
 - Inconsistent tz parsing Timestamp/to_datetime for current year (:issue:`5958`)
 - Indexing bugs with reordered indexes (:issue:`6252`, :issue:`6254`)
-- Bug in ``.xs`` with a Series multiindex (:issue:`6258`)
+- Bug in ``.xs`` with a Series multiindex (:issue:`6258`, :issue:`5684`)
 
 pandas 0.13.1
 -------------

@@ -959,6 +959,16 @@ class TestIndexing(tm.TestCase):
         expected = Series([1,1],index=list('AB'))
         assert_series_equal(result,expected)
 
+        # GH5684
+        idx = MultiIndex.from_tuples([('a', 'one'), ('a', 'two'),
+                                      ('b', 'one'), ('b', 'two')])
+        s = Series([1, 2, 3, 4], index=idx)
+        s.index.set_names(['L1', 'L2'], inplace=True)
+        result = s.xs('one', level='L2')
+        expected = Series([1, 3], index=['a', 'b'])
+        expected.index.set_names(['L1'], inplace=True)
+        assert_series_equal(result, expected)
+
     def test_ix_general(self):
 
         # ix general issues
