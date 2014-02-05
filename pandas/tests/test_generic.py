@@ -229,7 +229,7 @@ class Generic(object):
             if y is None:
                 self.assert_(v is None)
             else:
-                self.assert_(v == getattr(y,m,None))
+                self.assertEqual(v, getattr(y,m,None))
 
     def test_metadata_propagation(self):
         # check that the metadata matches up on the resulting ops

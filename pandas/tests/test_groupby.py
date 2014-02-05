@@ -197,9 +197,9 @@ class TestGroupBy(tm.TestCase):
         idx = lrange(10)
         idx.append(9)
         s = Series(data=lrange(11), index=idx, name='IntCol')
-        self.assert_(s.dtype == 'int64')
+        self.assertEqual(s.dtype, 'int64')
         f = s.groupby(level=0).first()
-        self.assert_(f.dtype == 'int64')
+        self.assertEqual(f.dtype, 'int64')
 
     def test_grouper_index_types(self):
         # related GH5375
@@ -954,7 +954,7 @@ class TestGroupBy(tm.TestCase):
 
         # iterate
         for weekday, group in grouped:
-            self.assert_(group.index[0].weekday() == weekday)
+            self.assertEqual(group.index[0].weekday(), weekday)
 
         # groups / group_indices
         groups = grouped.groups
@@ -998,26 +998,26 @@ class TestGroupBy(tm.TestCase):
         grouped = self.df.groupby('A')
 
         result = grouped.mean()
-        self.assert_(result.index.name == 'A')
+        self.assertEqual(result.index.name, 'A')
 
         result = self.df.groupby('A', as_index=False).mean()
-        self.assert_(result.index.name != 'A')
+        self.assertNotEqual(result.index.name, 'A')
 
         result = grouped.agg(np.mean)
-        self.assert_(result.index.name == 'A')
+        self.assertEqual(result.index.name, 'A')
 
         result = grouped.agg({'C': np.mean, 'D': np.std})
-        self.assert_(result.index.name == 'A')
+        self.assertEqual(result.index.name, 'A')
 
         result = grouped['C'].mean()
-        self.assert_(result.index.name == 'A')
+        self.assertEqual(result.index.name, 'A')
         result = grouped['C'].agg(np.mean)
-        self.assert_(result.index.name == 'A')
+        self.assertEqual(result.index.name, 'A')
         result = grouped['C'].agg([np.mean, np.std])
-        self.assert_(result.index.name == 'A')
+        self.assertEqual(result.index.name, 'A')
 
         result = grouped['C'].agg({'foo': np.mean, 'bar': np.std})
-        self.assert_(result.index.name == 'A')
+        self.assertEqual(result.index.name, 'A')
 
     def test_multi_iter(self):
         s = Series(np.arange(6))
@@ -1033,8 +1033,8 @@ class TestGroupBy(tm.TestCase):
                     ('b', '2', s[[3, 5]])]
         for i, ((one, two), three) in enumerate(iterated):
             e1, e2, e3 = expected[i]
-            self.assert_(e1 == one)
-            self.assert_(e2 == two)
+            self.assertEqual(e1, one)
+            self.assertEqual(e2, two)
             assert_series_equal(three, e3)
 
     def test_multi_iter_frame(self):
@@ -1056,8 +1056,8 @@ class TestGroupBy(tm.TestCase):
                     ('b', '2', df.ix[idx[[1]]])]
         for i, ((one, two), three) in enumerate(iterated):
             e1, e2, e3 = expected[i]
-            self.assert_(e1 == one)
-            self.assert_(e2 == two)
+            self.assertEqual(e1, one)
+            self.assertEqual(e2, two)
             assert_frame_equal(three, e3)
 
         # don't iterate through groups with no data
@@ -1567,8 +1567,8 @@ class TestGroupBy(tm.TestCase):
         expected0 = expected0.reindex(frame.index.levels[0])
         expected1 = expected1.reindex(frame.index.levels[1])
 
-        self.assert_(result0.index.name == 'first')
-        self.assert_(result1.index.name == 'second')
+        self.assertEqual(result0.index.name, 'first')
+        self.assertEqual(result1.index.name, 'second')
 
         assert_frame_equal(result0, expected0)
         assert_frame_equal(result1, expected1)
@@ -1622,12 +1622,12 @@ class TestGroupBy(tm.TestCase):
         frame = self.mframe
 
         result = frame.groupby(level=0).count()
-        self.assert_(result.index.name == 'first')
+        self.assertEqual(result.index.name, 'first')
         result = frame.groupby(level=1).count()
-        self.assert_(result.index.name == 'second')
+        self.assertEqual(result.index.name, 'second')
 
         result = frame['A'].groupby(level=0).count()
-        self.assert_(result.index.name == 'first')
+        self.assertEqual(result.index.name, 'first')
 
     def test_groupby_level_mapper(self):
         frame = self.mframe
@@ -2001,7 +2001,7 @@ class TestGroupBy(tm.TestCase):
         grouped = df.groupby('c')
         result = grouped.apply(f)
 
-        self.assert_(result['d'].dtype == np.float64)
+        self.assertEqual(result['d'].dtype, np.float64)
 
         for key, group in grouped:
             res = f(group)
@@ -2084,11 +2084,11 @@ class TestGroupBy(tm.TestCase):
         grouped = s.groupby(labels)
 
         result = grouped.agg(convert_fast)
-        self.assert_(result.dtype == np.object_)
+        self.assertEqual(result.dtype, np.object_)
         tm.assert_isinstance(result[0], Decimal)
 
         result = grouped.agg(convert_force_pure)
-        self.assert_(result.dtype == np.object_)
+        self.assertEqual(result.dtype, np.object_)
         tm.assert_isinstance(result[0], Decimal)
 
     def test_apply_with_mixed_dtype(self):
@@ -2227,7 +2227,7 @@ class TestGroupBy(tm.TestCase):
 
         left = df.groupby(['A', 'B', 'C', 'D']).sum()
         right = df.groupby(['D', 'C', 'B', 'A']).sum()
-        self.assert_(len(left) == len(right))
+        self.assertEqual(len(left), len(right))
 
     def test_int64_overflow(self):
         B = np.concatenate((np.arange(1000), np.arange(1000),
@@ -2257,8 +2257,9 @@ class TestGroupBy(tm.TestCase):
         expected = df.groupby(tups).sum()['values']
 
         for k, v in compat.iteritems(expected):
-            self.assert_(left[k] == right[k[::-1]] == v)
-        self.assert_(len(left) == len(right))
+            self.assertEqual(left[k], right[k[::-1]])
+            self.assertEqual(left[k], v)
+        self.assertEqual(len(left), len(right))
 
     def test_groupby_sort_multi(self):
         df = DataFrame({'a': ['foo', 'bar', 'baz'],
@@ -2550,7 +2551,7 @@ class TestGroupBy(tm.TestCase):
 
         result = self.df.groupby([self.df['A'].values,
                                   self.df['B'].values]).sum()
-        self.assert_(result.index.names == (None, None))
+        self.assertEqual(result.index.names, (None, None))
 
     def test_groupby_categorical(self):
         levels = ['foo', 'bar', 'baz', 'qux']
@@ -2567,7 +2568,7 @@ class TestGroupBy(tm.TestCase):
         expected.index.name = 'myfactor'
 
         assert_frame_equal(result, expected)
-        self.assert_(result.index.name == cats.name)
+        self.assertEqual(result.index.name, cats.name)
 
         grouped = data.groupby(cats)
         desc_result = grouped.describe()
