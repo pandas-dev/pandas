@@ -803,7 +803,7 @@ class TestTake(tm.TestCase):
         self.assert_(np.array_equal(result, expected))
 
         result = com.take_1d(arr, [0, 2, -1])
-        self.assert_(result.dtype == np.object_)
+        self.assertEqual(result.dtype, np.object_)
 
     def test_2d_bool(self):
         arr = np.array([[0, 1, 0],
@@ -819,7 +819,7 @@ class TestTake(tm.TestCase):
         self.assert_(np.array_equal(result, expected))
 
         result = com.take_nd(arr, [0, 2, -1])
-        self.assert_(result.dtype == np.object_)
+        self.assertEqual(result.dtype, np.object_)
 
     def test_2d_float32(self):
         arr = np.random.randn(4, 3).astype(np.float32)

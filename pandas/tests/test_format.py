@@ -290,7 +290,7 @@ class TestDataFrameFormatting(tm.TestCase):
             except:
                 pass
             if not line.startswith('dtype:'):
-                self.assert_(len(line) == line_len)
+                self.assertEqual(len(line), line_len)
 
         # it works even if sys.stdin in None
         _stdin= sys.stdin
@@ -731,7 +731,7 @@ class TestDataFrameFormatting(tm.TestCase):
         df = DataFrame([["aa\xc3\xa4\xc3\xa4", 1], ["bbbb", 2]])
         rep_str = df.to_string()
         lines = rep_str.split('\n')
-        self.assert_(len(lines[1]) == len(lines[2]))
+        self.assertEqual(len(lines[1]), len(lines[2]))
 
     def test_unicode_problem_decoding_as_ascii(self):
         dm = DataFrame({u('c/\u03c3'): Series({'test': np.NaN})})
@@ -915,7 +915,7 @@ class TestDataFrameFormatting(tm.TestCase):
         import re
         str_rep = str(s)
         nmatches = len(re.findall('dtype',str_rep))
-        self.assert_(nmatches == 1)
+        self.assertEqual(nmatches, 1)
 
     def test_index_with_nan(self):
         #  GH 2850

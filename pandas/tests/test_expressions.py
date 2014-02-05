@@ -238,19 +238,19 @@ class TestExpressions(tm.TestCase):
 
         # no op
         result   = expr._can_use_numexpr(operator.add, None, self.frame, self.frame, 'evaluate')
-        self.assert_(result == False)
+        self.assertFalse(result)
 
         # mixed
         result   = expr._can_use_numexpr(operator.add, '+', self.mixed, self.frame, 'evaluate')
-        self.assert_(result == False)
+        self.assertFalse(result)
 
         # min elements
         result   = expr._can_use_numexpr(operator.add, '+', self.frame2, self.frame2, 'evaluate')
-        self.assert_(result == False)
+        self.assertFalse(result)
 
         # ok, we only check on first part of expression
         result   = expr._can_use_numexpr(operator.add, '+', self.frame, self.frame2, 'evaluate')
-        self.assert_(result == True)
+        self.assertTrue(result)
 
     def test_binary_ops(self):
 
@@ -265,14 +265,14 @@ class TestExpressions(tm.TestCase):
                         op = getattr(operator, op, None)
                     if op is not None:
                         result   = expr._can_use_numexpr(op, op_str, f, f, 'evaluate')
-                        self.assert_(result == (not f._is_mixed_type))
+                        self.assertNotEqual(result, f._is_mixed_type)
 
                         result   = expr.evaluate(op, op_str, f, f, use_numexpr=True)
                         expected = expr.evaluate(op, op_str, f, f, use_numexpr=False)
                         assert_array_equal(result,expected.values)
 
                         result   = expr._can_use_numexpr(op, op_str, f2, f2, 'evaluate')
-                        self.assert_(result == False)
+                        self.assertFalse(result)
 
 
         expr.set_use_numexpr(False)
@@ -300,14 +300,14 @@ class TestExpressions(tm.TestCase):
                     op = getattr(operator,op)
 
                     result   = expr._can_use_numexpr(op, op_str, f11, f12, 'evaluate')
-                    self.assert_(result == (not f11._is_mixed_type))
+                    self.assertNotEqual(result, f11._is_mixed_type)
 
                     result   = expr.evaluate(op, op_str, f11, f12, use_numexpr=True)
                     expected = expr.evaluate(op, op_str, f11, f12, use_numexpr=False)
                     assert_array_equal(result,expected.values)
 
                     result   = expr._can_use_numexpr(op, op_str, f21, f22, 'evaluate')
-                    self.assert_(result == False)
+                    self.assertFalse(result)
 
         expr.set_use_numexpr(False)
         testit()
