@@ -5,6 +5,7 @@
    :suppress:
 
    import numpy as np
+   import pandas as pd
    from numpy.random import randn, rand, randint
    np.random.seed(123456)
    from pandas import DataFrame, Series, date_range, options
@@ -30,6 +31,15 @@ We use the standard convention for referencing the matplotlib API:
 .. ipython:: python
 
    import matplotlib.pyplot as plt
+
+The ``display.mpl_style`` option was added in 0.11.0, to produce more appealing plots.
+When set, matplotlib's ``rcParams`` are changed (globally!) to nicer-looking settings.
+All the plots in the documentation are rendered with this option set to the
+'default' style.
+
+.. ipython:: python
+
+   pd.options.display.mpl_style = 'default'
 
 .. _visualization.basic:
 
