@@ -166,6 +166,11 @@ class TestIndex(tm.TestCase):
         df['date'] = ['1-1-1990', '2-1-1990', '3-1-1990', '4-1-1990', '5-1-1990']
         result = DatetimeIndex(df['date'], freq='MS')
 
+        # GH 6274
+        # infer freq of same
+        result = pd.infer_freq(df['date'])
+        self.assertEqual(result,'MS')
+
     def test_index_ctor_infer_periodindex(self):
         from pandas import period_range, PeriodIndex
         xp = period_range('2012-1-1', freq='M', periods=3)
