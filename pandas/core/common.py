@@ -134,7 +134,7 @@ def _isnull_new(obj):
     elif isinstance(obj, (ABCSeries, np.ndarray)):
         return _isnull_ndarraylike(obj)
     elif isinstance(obj, ABCGeneric):
-        return obj._constructor(obj._data.apply(lambda x: isnull(x.values)))
+        return obj._constructor(obj._data.isnull(func=isnull))
     elif isinstance(obj, list) or hasattr(obj, '__array__'):
         return _isnull_ndarraylike(np.asarray(obj))
     else:
@@ -160,8 +160,7 @@ def _isnull_old(obj):
     elif isinstance(obj, (ABCSeries, np.ndarray)):
         return _isnull_ndarraylike_old(obj)
     elif isinstance(obj, ABCGeneric):
-        return obj._constructor(obj._data.apply(
-            lambda x: _isnull_old(x.values)))
+        return obj._constructor(obj._data.isnull(func=_isnull_old))
     elif isinstance(obj, list) or hasattr(obj, '__array__'):
         return _isnull_ndarraylike_old(np.asarray(obj))
     else:
@@ -1540,14 +1539,7 @@ def _maybe_box(indexer, values, obj, key):
     # return the value
     return values
 
-
-def _values_from_object(o):
-    """ return my values or the object if we are say an ndarray """
-    f = getattr(o, 'get_values', None)
-    if f is not None:
-        o = f()
-    return o
-
+_values_from_object = lib.values_from_object
 
 def _possibly_convert_objects(values, convert_dates=True,
                               convert_numeric=True,
@@ -2036,20 +2028,16 @@ def _maybe_make_list(obj):
     return obj
 
 
-def is_bool(obj):
-    return isinstance(obj, (bool, np.bool_))
+is_bool = lib.is_bool
 
 
-def is_integer(obj):
-    return isinstance(obj, (numbers.Integral, np.integer))
+is_integer = lib.is_integer
 
 
-def is_float(obj):
-    return isinstance(obj, (float, np.floating))
+is_float = lib.is_float
 
 
-def is_complex(obj):
-    return isinstance(obj, (numbers.Complex, np.complexfloating))
+is_complex = lib.is_complex
 
 
 def is_iterator(obj):

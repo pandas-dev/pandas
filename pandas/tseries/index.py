@@ -1200,16 +1200,14 @@ class DatetimeIndex(Int64Index):
         Fast lookup of value from 1-dimensional ndarray. Only use this if you
         know what you're doing
         """
-        timestamp = None
-        #if isinstance(key, Timestamp):
-        #    timestamp = key
-        #el
-        if isinstance(key, datetime):
-            # needed to localize naive datetimes
-            timestamp = Timestamp(key, tz=self.tz)
 
-        if timestamp:
-            return self.get_value_maybe_box(series, timestamp)
+        if isinstance(key, datetime):
+
+            # needed to localize naive datetimes
+            if self.tz is not None:
+                key = Timestamp(key, tz=self.tz)
+
+            return self.get_value_maybe_box(series, key)
 
         try:
             return _maybe_box(self, Index.get_value(self, series, key), series, key)

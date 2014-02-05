@@ -3,6 +3,23 @@ from tslib import NaT
 from datetime import datetime, timedelta
 iNaT = util.get_nat()
 
+# core.common import for fast inference checks
+def is_float(object obj):
+    return util.is_float_object(obj)
+
+
+def is_integer(object obj):
+    return util.is_integer_object(obj)
+
+
+def is_bool(object obj):
+    return util.is_bool_object(obj)
+
+
+def is_complex(object obj):
+    return util.is_complex_object(obj)
+
+
 _TYPE_MAP = {
     np.int8: 'integer',
     np.int16: 'integer',

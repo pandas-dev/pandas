@@ -59,6 +59,15 @@ PyDateTime_IMPORT
 import_array()
 import_ufunc()
 
+def values_from_object(object o):
+    """ return my values or the object if we are say an ndarray """
+    cdef f
+
+    f = getattr(o, 'get_values', None)
+    if f is not None:
+        o = f()
+    return o
+
 cpdef map_indices_list(list index):
     '''
     Produce a dict mapping the values of the input array to their respective
