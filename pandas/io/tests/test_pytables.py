@@ -1449,7 +1449,7 @@ class TestHDFStore(tm.TestCase):
                 tables.__version__ = v
                 self.assertRaises(Exception, store.create_table_index, 'f')
 
-            for v in ['2.3.1', '2.3.1b', '2.4dev', '2.4', original]:
+            for v in ['2.3.1', '2.3.1b', '2.4dev', '2.4', '3.0.0', '3.1.0', original]:
                 pytables._table_mod = None
                 pytables._table_supports_index = False
                 tables.__version__ = v
@@ -3731,6 +3731,26 @@ class TestHDFStore(tm.TestCase):
             store.append('df3', tm.makeTimeDataFrame(nper=50))
             self.assertRaises(ValueError, store.select_as_multiple,
                               ['df1','df3'], where=['A>0', 'B>0'], selector='df1')
+
+
+    def test_nan_selection_bug_4858(self):
+
+        # GH 4858; nan selection bug, only works for pytables >= 3.1
+        if LooseVersion(tables.__version__) < '3.1.0':
+            raise nose.SkipTest('tables version does not support fix for nan selection bug: GH 4858')
+
+        with ensure_clean_store(self.path) as store:
+
+            df = DataFrame(dict(cols = range(6), values = range(6)), dtype='float64')
+            df['cols'] = (df['cols']+10).apply(str)
+            df.iloc[0] = np.nan
+
+            expected = DataFrame(dict(cols = ['13.0','14.0','15.0'], values = [3.,4.,5.]), index=[3,4,5])
+
+            # write w/o the index on that particular column
+            store.append('df',df, data_columns=True,index=['cols'])
+            result = store.select('df',where='values>2.0')
+            assert_frame_equal(result,expected)
 
     def test_start_stop(self):
 
