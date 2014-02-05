@@ -254,6 +254,11 @@ class DatetimeIndex(Int64Index):
         else:
             try:
                 subarr = tools.to_datetime(data, box=False)
+
+                # make sure that we have a index/ndarray like (and not a Series)
+                if isinstance(subarr, ABCSeries):
+                    subarr = subarr.values
+
             except ValueError:
                 # tz aware
                 subarr = tools.to_datetime(data, box=False, utc=True)
