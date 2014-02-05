@@ -3249,7 +3249,7 @@ class MultiIndex(Index):
             j = labels.searchsorted(loc, side='right')
             return slice(i, j)
 
-    def get_locs(self, tup):
+    def get_specs(self, tup):
         """Convert a tuple of slices/label lists/labels to a level-wise spec
 
         Parameters
@@ -3322,8 +3322,9 @@ class MultiIndex(Index):
                     stop = level.get_loc(k.stop)
             else:
                 # a single label
-                start = level.get_loc(k)
-                stop = start
+                # make this into a list of a tuple
+                ranges.append([level.get_loc(k)])
+                continue
 
             ranges.append((start,stop))
 
@@ -3337,14 +3338,14 @@ class MultiIndex(Index):
 
         return ranges
 
-    def locs_to_indexer(self, specs):
+    def specs_to_indexer(self, specs):
         """ Take a location specification to an indexer
 
         Parameters
         ----------
         self: a sufficiently lexsorted, unique/non-dupe MultIindex.
         specs: a list of 2-tuples/list of label positions. Specifically, The
-        output of _tuple_to_mi_locs.
+        output of get_specs
         len(specs) must matc ix.nlevels.
 
         Returns
@@ -3362,8 +3363,8 @@ class MultiIndex(Index):
         ('A2', 'B0')
         ('A2', 'B1')
 
-        >>> locs = mi.get_locs((slice('A0','A2'),['B0', 'B1']))
-        >>> list(mi.locs_to_indexer(locs))
+        >>> locs = mi.get_specs((slice('A0','A2'),['B0', 'B1']))
+        >>> list(mi.specs_to_indexer(locs))
         [0, 1, 2, 3]
 
         Which are all the labels having 'A0' to 'A2' (non-inclusive) at level=0
@@ -3393,32 +3394,10 @@ class MultiIndex(Index):
             if len(specs)-1 == i:
                 return np.array(valrange)
             else:
-                tmpl = np.array([v for v in _iter_vectorize(specs,i+1)])
+                tmpl=np.array([v for v in _iter_vectorize(specs,i+1)])
                 res=np.tile(tmpl,(len(valrange),1))
                 steps=(np.array(valrange)*step_size).reshape((len(valrange),1))
                 return (res+steps).flatten()
-
-
-        def _iter_generator(specs, i=0):
-            step_size = giant_steps[i]
-            spec=specs[i]
-            if isinstance(spec,tuple):
-                # tuples are 2-tuples of (start,stop) label indices to include
-                valrange = compat.range(*spec)
-            elif isinstance(spec,list):
-                # lists are discrete label indicies to include
-                valrange = spec
-
-            if len(specs)-1 == i:
-                # base case
-                for v in valrange:
-                    yield v
-                else:
-                    for base in valrange:
-                        base *= step_size
-                        for v in _iter_generator(specs,i+1):
-                            yield base + v
-            # validate
 
         return _iter_vectorize(specs)
 

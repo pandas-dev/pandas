@@ -1062,6 +1062,62 @@ class TestIndexing(tm.TestCase):
         expected.columns = expected.columns.droplevel('lvl1')
         assert_frame_equal(result, expected)
 
+    def test_per_axis_per_level_getitem(self):
+
+        # GH6134
+        # example test case
+        def mklbl(prefix,n):
+            return ["%s%s" % (prefix,i)  for i in range(n)]
+
+        ix = MultiIndex.from_product([mklbl('A',5),mklbl('B',7),mklbl('C',4),mklbl('D',2)])
+        df = DataFrame(np.arange(len(ix.get_values())),index=ix)
+        result = df.loc[(slice('A1','A3'),slice(None), ['C1','C3']),:]
+        expected = df.loc[[ tuple([a,b,c,d]) for a,b,c,d in df.index.values if (a == 'A1' or a == 'A2') and (c == 'C1' or c == 'C3')]]
+        assert_frame_equal(result, expected)
+
+        # test multi-index slicing with per axis and per index controls
+        index = MultiIndex.from_tuples([('A',1),('A',2),('A',3),('B',1)],
+                                       names=['one','two'])
+        columns = MultiIndex.from_tuples([('a','foo'),('a','bar'),('b','hello'),('b','world')],
+                                         names=['lvl0', 'lvl1'])
+
+        df = DataFrame(np.arange(16).reshape(4, 4), index=index, columns=columns)
+        df = df.sortlevel(axis=0).sortlevel(axis=1)
+
+        # identity
+        result = df.loc[(slice(None),slice(None)),:]
+        assert_frame_equal(result, df)
+        result = df.loc[(slice(None),slice(None)),(slice(None),slice(None))]
+        assert_frame_equal(result, df)
+        result = df.loc[:,(slice(None),slice(None))]
+        assert_frame_equal(result, df)
+
+        # index
+        result = df.loc[(slice(None),[1]),:]
+        expected = df.iloc[[0,3]]
+        assert_frame_equal(result, expected)
+
+        result = df.loc[(slice(None),1),:]
+        expected = df.iloc[[0,3]]
+        assert_frame_equal(result, expected)
+
+        # columns
+        result = df.loc[:,(slice(None),['world'])]
+        expected = df.iloc[:,[3]]
+        assert_frame_equal(result, expected)
+
+        # both
+        result = df.loc[(slice(None),1),(slice(None),['world'])]
+        expected = df.iloc[[0,3],[3]]
+        assert_frame_equal(result, expected)
+
+        # ambiguous cases
+        # these can be multiply interpreted
+        # but we can catch this in some cases
+        def f():
+            df.loc[(slice(None),[1])]
+        self.assertRaises(KeyError, f)
+
     def test_getitem_multiindex(self):
 
         # GH 5725
