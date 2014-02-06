@@ -784,6 +784,12 @@ class TestDataFrame(tm.TestCase, Generic):
         with tm.assertRaises(TypeError):
             df.interpolate(axis=1)
 
+    def test_interp_inplace(self):
+        df = DataFrame({'a': [1., 2., np.nan, 4.]})
+        expected = DataFrame({'a': [1, 2, 3, 4]})
+        df['a'].interpolate(inplace=True)
+        assert_frame_equal(df, expected)
+
     def test_no_order(self):
         _skip_if_no_scipy()
         s = Series([0, 1, np.nan, 3])

@@ -2541,9 +2541,9 @@ class NDFrame(PandasObject):
                 self._update_inplace(new_data)
         else:
             res = self._constructor(new_data).__finalize__(self)
-        if axis == 1:
-            res = res.T
-        return res
+            if axis == 1:
+                res = res.T
+            return res
 
     #----------------------------------------------------------------------
     # Action Methods
