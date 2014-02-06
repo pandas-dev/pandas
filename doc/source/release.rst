@@ -66,7 +66,8 @@ API Changes
 - ``df['col'] = value`` and ``df.loc[:,'col'] = value`` are now completely equivalent;
   previously the ``.loc`` would not necessarily coerce the dtype of the resultant series (:issue:`6149`)
 - ``dtypes`` and ``ftypes`` now return a series with ``dtype=object`` on empty containers (:issue:`5740`)
-
+- The ``interpolate`` ``downcast`` keyword default has been changed from ``infer`` to
+  ``None``. This is to preseve the original dtype unless explicitly requested otherwise (:issue:`6290`).
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
@@ -115,12 +116,16 @@ Bug Fixes
 - TimeGrouper has a more compatible API to the rest of the groupers (e.g. ``groups`` was missing) (:issue:`3881`)
 - Bug in ``pd.eval`` when parsing strings with possible tokens like ``'&'``
   (:issue:`6351`)
+<<<<<<< HEAD
 - Bug correctly handle placements of ``-inf`` in Panels when dividing by integer 0 (:issue:`6178`)
 - ``DataFrame.shift`` with ``axis=1`` was raising (:issue:`6371`)
 - Disabled clipboard tests until release time (run locally with ``nosetests -A disabled`` (:issue:`6048`).
 - Bug in ``DataFrame.replace()`` when passing a nested ``dict`` that contained
   keys not in the values to be replaced (:issue:`6342`)
 - Bug in take with duplicate columns not consolidated (:issue:`6240`)
+=======
+- Bug in interpolate changing dtypes (:issue:`6290`)
+>>>>>>> 336b309... BUG: preserve dtypes in interpolate
 
 pandas 0.13.1
 -------------
