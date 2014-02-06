@@ -1348,6 +1348,13 @@ class TestOperationsNumExprPython(TestOperationsNumExprPandas):
         cls.arith_ops = filter(lambda x: x not in ('in', 'not in'),
                                cls.arith_ops)
 
+    def test_check_many_exprs(self):
+        a = 1
+        expr = ' * '.join('a' * 33)
+        expected = 1
+        res = pd.eval(expr, engine=self.engine, parser=self.parser)
+        tm.assert_equal(res, expected)
+
     def test_fails_and(self):
         df = DataFrame(np.random.randn(5, 3))
         self.assertRaises(NotImplementedError, pd.eval, 'df > 2 and df > 3',
@@ -1573,18 +1580,6 @@ def check_invalid_numexpr_version(engine, parser):
 def test_invalid_numexpr_version():
     for engine, parser in ENGINES_PARSERS:
         yield check_invalid_numexpr_version, engine, parser
-
-
-def check_many_exprs(engine, parser):
-    a = 1
-    expr = ' * '.join('a' * 33)
-    expected = 1
-    res = pd.eval(expr, engine=engine, parser=parser)
-    tm.assert_equal(res, expected)
-
-def test_many_exprs():
-    for engine, parser in ENGINES_PARSERS:
-        yield check_many_exprs, engine, parser
 
 
 if __name__ == '__main__':
