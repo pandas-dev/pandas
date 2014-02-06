@@ -141,7 +141,7 @@ def rolling_count(arg, window, freq=None, center=False, time_rule=None):
     center : boolean, default False
         Whether the label should correspond with center of window
     time_rule : Legacy alias for freq
-    
+
     Returns
     -------
     rolling_count : type of caller
@@ -255,8 +255,8 @@ def rolling_corr_pairwise(df, window, min_periods=None):
     return Panel.from_dict(all_results).swapaxes('items', 'major')
 
 
-def _rolling_moment(arg, window, func, minp, axis=0, freq=None,
-                    center=False, time_rule=None, **kwargs):
+def _rolling_moment(arg, window, func, minp, axis=0, freq=None, center=False,
+                    time_rule=None, args=(), kwargs={}, **kwds):
     """
     Rolling statistical measure using supplied function. Designed to be
     used with passed-in Cython array-based functions.
@@ -274,13 +274,18 @@ def _rolling_moment(arg, window, func, minp, axis=0, freq=None,
     center : boolean, default False
         Whether the label should correspond with center of window
     time_rule : Legacy alias for freq
-    
+    args : tuple
+        Passed on to func
+    kwargs : dict
+        Passed on to func
+
     Returns
     -------
     y : type of input
     """
     arg = _conv_timerule(arg, freq, time_rule)
-    calc = lambda x: func(x, window, minp=minp, **kwargs)
+    calc = lambda x: func(x, window, minp=minp, args=args, kwargs=kwargs,
+                          **kwds)
     return_hook, values = _process_data_structure(arg)
     # actually calculate the moment. Faster way to do this?
     if values.ndim > 1:
@@ -551,7 +556,7 @@ def rolling_quantile(arg, window, quantile, min_periods=None, freq=None,
     center : boolean, default False
         Whether the label should correspond with center of window
     time_rule : Legacy alias for freq
-    
+
     Returns
     -------
     y : type of input argument
@@ -565,7 +570,7 @@ def rolling_quantile(arg, window, quantile, min_periods=None, freq=None,
 
 
 def rolling_apply(arg, window, func, min_periods=None, freq=None,
-                  center=False, time_rule=None):
+                  center=False, time_rule=None, args=(), kwargs={}):
     """Generic moving function application
 
     Parameters
@@ -581,16 +586,21 @@ def rolling_apply(arg, window, func, min_periods=None, freq=None,
     center : boolean, default False
         Whether the label should correspond with center of window
     time_rule : Legacy alias for freq
-    
+    args : tuple
+        Passed on to func
+    kwargs : dict
+        Passed on to func
+
     Returns
     -------
     y : type of input argument
     """
-    def call_cython(arg, window, minp):
+    def call_cython(arg, window, minp, args, kwargs):
         minp = _use_window(minp, window)
-        return algos.roll_generic(arg, window, minp, func)
+        return algos.roll_generic(arg, window, minp, func, args, kwargs)
     return _rolling_moment(arg, window, call_cython, min_periods,
-                           freq=freq, center=center, time_rule=time_rule)
+                           freq=freq, center=center, time_rule=time_rule,
+                           args=args, kwargs=kwargs)
 
 
 def rolling_window(arg, window=None, win_type=None, min_periods=None,
@@ -618,7 +628,7 @@ def rolling_window(arg, window=None, win_type=None, min_periods=None,
         If True computes weighted mean, else weighted sum
     time_rule : Legacy alias for freq
     axis : {0, 1}, default 0
-    
+
     Returns
     -------
     y : type of input argument
@@ -744,7 +754,7 @@ def expanding_count(arg, freq=None, center=False, time_rule=None):
     center : boolean, default False
         Whether the label should correspond with center of window
     time_rule : Legacy alias for freq
-    
+
     Returns
     -------
     expanding_count : type of caller
@@ -768,7 +778,7 @@ def expanding_quantile(arg, quantile, min_periods=1, freq=None,
     center : boolean, default False
         Whether the label should correspond with center of window
     time_rule : Legacy alias for freq
-    
+
     Returns
     -------
     y : type of input argument
@@ -818,7 +828,7 @@ def expanding_corr_pairwise(df, min_periods=1):
 
 
 def expanding_apply(arg, func, min_periods=1, freq=None, center=False,
-                    time_rule=None):
+                    time_rule=None, args=(), kwargs={}):
     """Generic expanding function application
 
     Parameters
@@ -833,11 +843,16 @@ def expanding_apply(arg, func, min_periods=1, freq=None, center=False,
     center : boolean, default False
         Whether the label should correspond with center of window
     time_rule : Legacy alias for freq
-    
+    args : tuple
+        Passed on to func
+    kwargs : dict
+        Passed on to func
+
     Returns
     -------
     y : type of input argument
     """
     window = len(arg)
     return rolling_apply(arg, window, func, min_periods=min_periods, freq=freq,
-                         center=center, time_rule=time_rule)
+                         center=center, time_rule=time_rule, args=args,
+                         kwargs=kwargs)
