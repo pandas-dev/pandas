@@ -6,3 +6,4 @@ http://www.crummy.com/software/BeautifulSoup/bs4/download/4.2/beautifulsoup4-4.2
 html5lib==1.0b2
 bigquery==2.0.17
 numexpr==1.4.2
+sqlalchemy==0.8.1
