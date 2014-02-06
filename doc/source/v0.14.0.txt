@@ -29,6 +29,9 @@ API changes
       df.iloc[:,2:3]
       df.iloc[:,1:3]
 
+- The ``DataFrame.interpolate()`` ``downcast`` keyword default has been changed from ``infer`` to
+  ``None``. This is to preseve the original dtype unless explicitly requested otherwise (:issue:`6290`).
+
 MultiIndexing Using Slicers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

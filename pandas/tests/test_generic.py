@@ -459,7 +459,10 @@ class TestSeries(tm.TestCase, Generic):
         self.assert_numpy_array_equal(time_interp, ord_ts)
 
         # try time interpolation on a non-TimeSeries
-        self.assertRaises(ValueError, self.series.interpolate, method='time')
+        # Only raises ValueError if there are NaNs.
+        non_ts = self.series.copy()
+        non_ts[0] = np.NaN
+        self.assertRaises(ValueError, non_ts.interpolate, method='time')
 
     def test_interp_regression(self):
         _skip_if_no_scipy()
@@ -512,7 +515,7 @@ class TestSeries(tm.TestCase, Generic):
     def test_nan_interpolate(self):
         s = Series([0, 1, np.nan, 3])
         result = s.interpolate()
-        expected = Series([0, 1, 2, 3])
+        expected = Series([0., 1., 2., 3.])
         assert_series_equal(result, expected)
 
         _skip_if_no_scipy()
@@ -522,20 +525,20 @@ class TestSeries(tm.TestCase, Generic):
     def test_nan_irregular_index(self):
         s = Series([1, 2, np.nan, 4], index=[1, 3, 5, 9])
         result = s.interpolate()
-        expected = Series([1, 2, 3, 4], index=[1, 3, 5, 9])
+        expected = Series([1., 2., 3., 4.], index=[1, 3, 5, 9])
         assert_series_equal(result, expected)
 
     def test_nan_str_index(self):
         s = Series([0, 1, 2, np.nan], index=list('abcd'))
         result = s.interpolate()
-        expected = Series([0, 1, 2, 2], index=list('abcd'))
+        expected = Series([0., 1., 2., 2.], index=list('abcd'))
         assert_series_equal(result, expected)
 
     def test_interp_quad(self):
         _skip_if_no_scipy()
         sq = Series([1, 4, np.nan, 16], index=[1, 2, 3, 4])
         result = sq.interpolate(method='quadratic')
-        expected = Series([1, 4, 9, 16], index=[1, 2, 3, 4])
+        expected = Series([1., 4., 9., 16.], index=[1, 2, 3, 4])
         assert_series_equal(result, expected)
 
     def test_interp_scipy_basic(self):
@@ -545,17 +548,29 @@ class TestSeries(tm.TestCase, Generic):
         expected = Series([1., 3., 7.5, 12., 18.5, 25.])
         result = s.interpolate(method='slinear')
         assert_series_equal(result, expected)
+
+        result = s.interpolate(method='slinear', donwcast='infer')
+        assert_series_equal(result, expected)
         # nearest
         expected = Series([1, 3, 3, 12, 12, 25])
         result = s.interpolate(method='nearest')
+        assert_series_equal(result, expected.astype('float'))
+
+        result = s.interpolate(method='nearest', downcast='infer')
         assert_series_equal(result, expected)
         # zero
         expected = Series([1, 3, 3, 12, 12, 25])
         result = s.interpolate(method='zero')
+        assert_series_equal(result, expected.astype('float'))
+
+        result = s.interpolate(method='zero', downcast='infer')
         assert_series_equal(result, expected)
         # quadratic
         expected = Series([1, 3., 6.769231, 12., 18.230769, 25.])
         result = s.interpolate(method='quadratic')
+        assert_series_equal(result, expected)
+
+        result = s.interpolate(method='quadratic', downcast='infer')
         assert_series_equal(result, expected)
         # cubic
         expected = Series([1., 3., 6.8, 12., 18.2, 25.])
@@ -585,7 +600,6 @@ class TestSeries(tm.TestCase, Generic):
 
         expected = s.copy()
         expected.loc[2] = 2
-        expected = expected.astype(np.int64)
         result = s.interpolate()
         assert_series_equal(result, expected)
 
@@ -595,7 +609,7 @@ class TestSeries(tm.TestCase, Generic):
 
     def test_interp_nonmono_raise(self):
         _skip_if_no_scipy()
-        s = pd.Series([1, 2, 3], index=[0, 2, 1])
+        s = Series([1, np.nan, 3], index=[0, 2, 1])
         with tm.assertRaises(ValueError):
             s.interpolate(method='krogh')
 
@@ -603,7 +617,7 @@ class TestSeries(tm.TestCase, Generic):
         _skip_if_no_scipy()
         df = Series([1, np.nan, 3], index=date_range('1/1/2000', periods=3))
         result = df.interpolate(method='nearest')
-        expected = Series([1, 1, 3], index=date_range('1/1/2000', periods=3))
+        expected = Series([1., 1., 3.], index=date_range('1/1/2000', periods=3))
         assert_series_equal(result, expected)
 
 class TestDataFrame(tm.TestCase, Generic):
@@ -639,7 +653,7 @@ class TestDataFrame(tm.TestCase, Generic):
     def test_interp_basic(self):
         df = DataFrame({'A': [1, 2, np.nan, 4], 'B': [1, 4, 9, np.nan],
                         'C': [1, 2, 3, 5], 'D': list('abcd')})
-        expected = DataFrame({'A': [1, 2, 3, 4], 'B': [1, 4, 9, 9],
+        expected = DataFrame({'A': [1., 2., 3., 4.], 'B': [1., 4., 9., 9.],
                               'C': [1, 2, 3, 5], 'D': list('abcd')})
         result = df.interpolate()
         assert_frame_equal(result, expected)
@@ -648,8 +662,6 @@ class TestDataFrame(tm.TestCase, Generic):
         expected = df.set_index('C')
         expected.A.loc[3] = 3
         expected.B.loc[5] = 9
-        expected[['A', 'B']] = expected[['A', 'B']].astype(np.int64)
-
         assert_frame_equal(result, expected)
 
     def test_interp_bad_method(self):
@@ -663,8 +675,13 @@ class TestDataFrame(tm.TestCase, Generic):
                         'C': [1, 2, 3, 5], 'D': list('abcd')})
 
         result = df['A'].interpolate()
+        expected = Series([1., 2., 3., 4.])
+        assert_series_equal(result, expected)
+
+        result = df['A'].interpolate(downcast='infer')
         expected = Series([1, 2, 3, 4])
         assert_series_equal(result, expected)
+
 
     def test_interp_nan_idx(self):
         df = DataFrame({'A': [1, 2, np.nan, 4], 'B': [np.nan, 2, 3, 4]})
@@ -722,13 +739,16 @@ class TestDataFrame(tm.TestCase, Generic):
         expected = df.copy()
         expected['A'].iloc[2] = 3
         expected['A'].iloc[5] = 6
+        assert_frame_equal(result, expected)
+
+        result = df.interpolate(method='barycentric', downcast='infer')
         assert_frame_equal(result, expected.astype(np.int64))
 
         result = df.interpolate(method='krogh')
         expectedk = df.copy()
-        expectedk['A'].iloc[2] = 3
-        expectedk['A'].iloc[5] = 6
-        expectedk['A'] = expected['A'].astype(np.int64)
+        # expectedk['A'].iloc[2] = 3
+        # expectedk['A'].iloc[5] = 6
+        expectedk['A'] = expected['A']
         assert_frame_equal(result, expectedk)
 
         _skip_if_no_pchip()
@@ -786,9 +806,32 @@ class TestDataFrame(tm.TestCase, Generic):
 
     def test_interp_inplace(self):
         df = DataFrame({'a': [1., 2., np.nan, 4.]})
-        expected = DataFrame({'a': [1, 2, 3, 4]})
-        df['a'].interpolate(inplace=True)
-        assert_frame_equal(df, expected)
+        expected = DataFrame({'a': [1., 2., 3., 4.]})
+        result = df.copy()
+        result['a'].interpolate(inplace=True)
+        assert_frame_equal(result, expected)
+
+        result = df.copy()
+        result['a'].interpolate(inplace=True, downcast='infer')
+        assert_frame_equal(result, expected.astype('int'))
+
+    def test_interp_ignore_all_good(self):
+        # GH
+        df = DataFrame({'A': [1, 2, np.nan, 4],
+                        'B': [1, 2, 3, 4],
+                        'C': [1., 2., np.nan, 4.],
+                        'D': [1., 2., 3., 4.]})
+        expected = DataFrame({'A': np.array([1, 2, 3, 4], dtype='float'),
+                              'B': np.array([1, 2, 3, 4], dtype='int'),
+                              'C': np.array([1., 2., 3, 4.], dtype='float'),
+                              'D': np.array([1., 2., 3., 4.], dtype='float')})
+
+        result = df.interpolate(downcast=None)
+        assert_frame_equal(result, expected)
+
+        # all good
+        result = df[['B', 'D']].interpolate(downcast=None)
+        assert_frame_equal(result, df[['B', 'D']])
 
     def test_no_order(self):
         _skip_if_no_scipy()
@@ -802,7 +845,7 @@ class TestDataFrame(tm.TestCase, Generic):
         _skip_if_no_scipy()
         s = Series([1, 2, np.nan, 4, 5, np.nan, 7])
         result = s.interpolate(method='spline', order=1)
-        expected = Series([1, 2, 3, 4, 5, 6, 7])
+        expected = Series([1., 2., 3., 4., 5., 6., 7.])
         assert_series_equal(result, expected)
 
     def test_metadata_propagation_indiv(self):
