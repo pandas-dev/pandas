@@ -1244,21 +1244,53 @@ the quarter end:
 Time Zone Handling
 ------------------
 
-Using ``pytz``, pandas provides rich support for working with timestamps in
-different time zones. By default, pandas objects are time zone unaware:
+Pandas provides rich support for working with timestamps in different time zones using ``pytz`` and ``dateutil`` libraries. 
+``dateutil`` support is new [in 0.14.1] and currently only supported for fixed offset and tzfile zones. The default library is ``pytz``.
+Support for ``dateutil`` is provided for compatibility with other applications e.g. if you use ``dateutil`` in other python packages.
+
+By default, pandas objects are time zone unaware:
 
 .. ipython:: python
 
    rng = date_range('3/6/2012 00:00', periods=15, freq='D')
-   print(rng.tz)
+   rng.tz is None
 
 To supply the time zone, you can use the ``tz`` keyword to ``date_range`` and
-other functions:
+other functions. Dateutil time zone strings are distinguished from ``pytz``
+time zones by starting with ``dateutil/``. In ``pytz`` you can find a list of
+common (and less common) time zones using ``from pytz import common_timezones, all_timezones``. 
+``dateutil`` uses the OS timezones so there isn't a fixed list available. For
+common zones, the names are the same as ``pytz``.
+
+.. ipython:: python
+   
+   # pytz
+   rng_utc = date_range('3/6/2012 00:00', periods=10, freq='D', tz='UTC')
+   rng_utc.tz
+
+   # dateutil
+   rng_utc_dateutil = date_range('3/6/2012 00:00', periods=10, freq='D',
+                                 tz='dateutil/UTC')
+   rng_utc_dateutil.tz
+
+You can also construct the timezone explicitly first, which gives you more control over which
+time zone is used:
 
 .. ipython:: python
 
-   rng_utc = date_range('3/6/2012 00:00', periods=10, freq='D', tz='UTC')
-   print(rng_utc.tz)
+   # pytz
+   import pytz
+   tz_pytz = pytz.timezone('UTC')
+   rng_utc = date_range('3/6/2012 00:00', periods=10, freq='D', tz=tz_pytz)
+   rng_utc.tz
+
+   # dateutil
+   import dateutil
+   tz_dateutil = dateutil.tz.gettz('UTC')
+   rng_utc_dateutil = date_range('3/6/2012 00:00', periods=10, freq='D',
+                                 tz=tz_dateutil)
+   rng_utc_dateutil.tz
+
 
 Timestamps, like Python's ``datetime.datetime`` object can be either time zone
 naive or time zone aware. Naive time series and DatetimeIndex objects can be
@@ -1271,12 +1303,18 @@ naive or time zone aware. Naive time series and DatetimeIndex objects can be
    ts_utc = ts.tz_localize('UTC')
    ts_utc
 
+Again, you can explicitly construct the timezone object first.
 You can use the ``tz_convert`` method to convert pandas objects to convert
 tz-aware data to another time zone:
 
 .. ipython:: python
 
    ts_utc.tz_convert('US/Eastern')
+
+.. warning::
+    Be very wary of conversions between libraries as ``pytz`` and ``dateutil``
+    may have different definitions of the time zones. This is more of a problem for
+    unusual timezones than for 'standard' zones like ``US/Eastern``. 
 
 Under the hood, all timestamps are stored in UTC. Scalar values from a
 ``DatetimeIndex`` with a time zone will have their fields (day, hour, minute)

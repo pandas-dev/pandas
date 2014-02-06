@@ -41,6 +41,12 @@ from pandas import _np_version_under1p7
 from numpy.testing.decorators import slow
 
 
+def _skip_if_no_dateutil():
+    try:
+        import dateutil
+    except ImportError:
+        raise nose.SkipTest("dateutil not installed")
+
 def _skip_if_no_pytz():
     try:
         import pytz
@@ -400,6 +406,28 @@ class TestTimeSeries(tm.TestCase):
         self.assertEqual(stamp, dtval)
         self.assertEqual(stamp.tzinfo, dtval.tzinfo)
 
+    def test_timestamp_to_datetime_explicit_pytz(self):
+        _skip_if_no_pytz()
+        import pytz
+        rng = date_range('20090415', '20090519',
+                         tz=pytz.timezone('US/Eastern'))
+
+        stamp = rng[0]
+        dtval = stamp.to_pydatetime()
+        self.assertEquals(stamp, dtval)
+        self.assertEquals(stamp.tzinfo, dtval.tzinfo)
+
+    def test_timestamp_to_datetime_explicit_dateutil(self):
+        _skip_if_no_dateutil()
+        import dateutil
+        rng = date_range('20090415', '20090519',
+                         tz=dateutil.tz.gettz('US/Eastern'))
+
+        stamp = rng[0]
+        dtval = stamp.to_pydatetime()
+        self.assertEquals(stamp, dtval)
+        self.assertEquals(stamp.tzinfo, dtval.tzinfo)
+
     def test_index_convert_to_datetime_array(self):
         _skip_if_no_pytz()
 
@@ -414,6 +442,46 @@ class TestTimeSeries(tm.TestCase):
         rng = date_range('20090415', '20090519')
         rng_eastern = date_range('20090415', '20090519', tz='US/Eastern')
         rng_utc = date_range('20090415', '20090519', tz='utc')
+
+        _check_rng(rng)
+        _check_rng(rng_eastern)
+        _check_rng(rng_utc)
+
+    def test_index_convert_to_datetime_array_explicit_pytz(self):
+        _skip_if_no_pytz()
+        import pytz
+
+        def _check_rng(rng):
+            converted = rng.to_pydatetime()
+            tm.assert_isinstance(converted, np.ndarray)
+            for x, stamp in zip(converted, rng):
+                tm.assert_isinstance(x, datetime)
+                self.assertEquals(x, stamp.to_pydatetime())
+                self.assertEquals(x.tzinfo, stamp.tzinfo)
+
+        rng = date_range('20090415', '20090519')
+        rng_eastern = date_range('20090415', '20090519', tz=pytz.timezone('US/Eastern'))
+        rng_utc = date_range('20090415', '20090519', tz=pytz.utc)
+
+        _check_rng(rng)
+        _check_rng(rng_eastern)
+        _check_rng(rng_utc)
+
+    def test_index_convert_to_datetime_array_explicit_dateutil(self):
+        _skip_if_no_dateutil()
+        import dateutil
+
+        def _check_rng(rng):
+            converted = rng.to_pydatetime()
+            tm.assert_isinstance(converted, np.ndarray)
+            for x, stamp in zip(converted, rng):
+                tm.assert_isinstance(x, datetime)
+                self.assertEquals(x, stamp.to_pydatetime())
+                self.assertEquals(x.tzinfo, stamp.tzinfo)
+
+        rng = date_range('20090415', '20090519')
+        rng_eastern = date_range('20090415', '20090519', tz=dateutil.tz.gettz('US/Eastern'))
+        rng_utc = date_range('20090415', '20090519', tz=dateutil.tz.gettz('UTC'))
 
         _check_rng(rng)
         _check_rng(rng_eastern)
@@ -1430,7 +1498,7 @@ class TestTimeSeries(tm.TestCase):
         self.assertEqual(period[0], Period('2007-01-01 10:11:12.123456Z', 'U'))
         self.assertEqual(period[1], Period('2007-01-01 10:11:13.789123Z', 'U'))
 
-    def test_to_period_tz(self):
+    def test_to_period_tz_pytz(self):
         _skip_if_no_pytz()
         from dateutil.tz import tzlocal
         from pytz import utc as UTC
@@ -1460,6 +1528,68 @@ class TestTimeSeries(tm.TestCase):
 
         self.assertEqual(result, expected)
         self.assertTrue(ts.to_period().equals(xp))
+
+    def test_to_period_tz_explicit_pytz(self):
+        _skip_if_no_pytz()
+        import pytz
+        from dateutil.tz import tzlocal
+
+        xp = date_range('1/1/2000', '4/1/2000').to_period()
+
+        ts = date_range('1/1/2000', '4/1/2000', tz=pytz.timezone('US/Eastern'))
+
+        result = ts.to_period()[0]
+        expected = ts[0].to_period()
+
+        self.assert_(result == expected)
+        self.assert_(ts.to_period().equals(xp))
+
+        ts = date_range('1/1/2000', '4/1/2000', tz=pytz.utc)
+
+        result = ts.to_period()[0]
+        expected = ts[0].to_period()
+
+        self.assert_(result == expected)
+        self.assert_(ts.to_period().equals(xp))
+
+        ts = date_range('1/1/2000', '4/1/2000', tz=tzlocal())
+
+        result = ts.to_period()[0]
+        expected = ts[0].to_period()
+
+        self.assert_(result == expected)
+        self.assert_(ts.to_period().equals(xp))
+
+    def test_to_period_tz_explicit_dateutil(self):
+        _skip_if_no_dateutil()
+        import dateutil
+        from dateutil.tz import tzlocal
+
+        xp = date_range('1/1/2000', '4/1/2000').to_period()
+
+        ts = date_range('1/1/2000', '4/1/2000', tz=dateutil.tz.gettz('US/Eastern'))
+
+        result = ts.to_period()[0]
+        expected = ts[0].to_period()
+
+        self.assert_(result == expected)
+        self.assert_(ts.to_period().equals(xp))
+
+        ts = date_range('1/1/2000', '4/1/2000', tz=dateutil.tz.gettz('UTC'))
+
+        result = ts.to_period()[0]
+        expected = ts[0].to_period()
+
+        self.assert_(result == expected)
+        self.assert_(ts.to_period().equals(xp))
+
+        ts = date_range('1/1/2000', '4/1/2000', tz=tzlocal())
+
+        result = ts.to_period()[0]
+        expected = ts[0].to_period()
+
+        self.assert_(result == expected)
+        self.assert_(ts.to_period().equals(xp))
 
     def test_frame_to_period(self):
         K = 5
@@ -1639,6 +1769,54 @@ class TestTimeSeries(tm.TestCase):
         appended = rng.append(rng2)
         self.assertTrue(appended.equals(rng3))
 
+    def test_append_concat_tz_explicit_pytz(self):
+        # GH 2938
+        _skip_if_no_pytz()
+        from pytz import timezone as timezone
+
+        rng = date_range('5/8/2012 1:45', periods=10, freq='5T',
+                         tz=timezone('US/Eastern'))
+        rng2 = date_range('5/8/2012 2:35', periods=10, freq='5T',
+                         tz=timezone('US/Eastern'))
+        rng3 = date_range('5/8/2012 1:45', periods=20, freq='5T',
+                         tz=timezone('US/Eastern'))
+        ts = Series(np.random.randn(len(rng)), rng)
+        df = DataFrame(np.random.randn(len(rng), 4), index=rng)
+        ts2 = Series(np.random.randn(len(rng2)), rng2)
+        df2 = DataFrame(np.random.randn(len(rng2), 4), index=rng2)
+
+        result = ts.append(ts2)
+        result_df = df.append(df2)
+        self.assert_(result.index.equals(rng3))
+        self.assert_(result_df.index.equals(rng3))
+
+        appended = rng.append(rng2)
+        self.assert_(appended.equals(rng3))
+
+    def test_append_concat_tz_explicit_dateutil(self):
+        # GH 2938
+        _skip_if_no_dateutil()
+        from dateutil.tz import gettz as timezone
+
+        rng = date_range('5/8/2012 1:45', periods=10, freq='5T',
+                         tz=timezone('US/Eastern'))
+        rng2 = date_range('5/8/2012 2:35', periods=10, freq='5T',
+                         tz=timezone('US/Eastern'))
+        rng3 = date_range('5/8/2012 1:45', periods=20, freq='5T',
+                         tz=timezone('US/Eastern'))
+        ts = Series(np.random.randn(len(rng)), rng)
+        df = DataFrame(np.random.randn(len(rng), 4), index=rng)
+        ts2 = Series(np.random.randn(len(rng2)), rng2)
+        df2 = DataFrame(np.random.randn(len(rng2), 4), index=rng2)
+
+        result = ts.append(ts2)
+        result_df = df.append(df2)
+        self.assert_(result.index.equals(rng3))
+        self.assert_(result_df.index.equals(rng3))
+
+        appended = rng.append(rng2)
+        self.assert_(appended.equals(rng3))
+
     def test_set_dataframe_column_ns_dtype(self):
         x = DataFrame([datetime.now(), datetime.now()])
         self.assertEqual(x[0].dtype, np.dtype('M8[ns]'))
@@ -1817,7 +1995,7 @@ class TestTimeSeries(tm.TestCase):
         result2 = s.resample('T', kind='period')
         assert_series_equal(result2, expected)
 
-    def test_period_resample_with_local_timezone(self):
+    def test_period_resample_with_local_timezone_pytz(self):
         # GH5430
         _skip_if_no_pytz()
         import pytz
@@ -1837,6 +2015,28 @@ class TestTimeSeries(tm.TestCase):
         expected_index = (pd.period_range(start=start, end=end, freq='D') - 1)  # Index is moved back a day with the timezone conversion from UTC to Pacific
         expected = pd.Series(1, index=expected_index)
         assert_series_equal(result, expected)
+
+    def test_period_resample_with_local_timezone_dateutil(self):
+        # GH5430
+        _skip_if_no_dateutil()
+        import dateutil
+
+        local_timezone = dateutil.tz.gettz('America/Los_Angeles')
+
+        start = datetime(year=2013, month=11, day=1, hour=0, minute=0, tzinfo=dateutil.tz.gettz('UTC'))
+        # 1 day later
+        end = datetime(year=2013, month=11, day=2, hour=0, minute=0, tzinfo=dateutil.tz.gettz('UTC'))
+
+        index = pd.date_range(start, end, freq='H')
+
+        series = pd.Series(1, index=index)
+        series = series.tz_convert(local_timezone)
+        result = series.resample('D', kind='period')
+        # Create the expected series
+        expected_index = (pd.period_range(start=start, end=end, freq='D') - 1)  # Index is moved back a day with the timezone conversion from UTC to Pacific
+        expected = pd.Series(1, index=expected_index)
+        assert_series_equal(result, expected)
+
 
     def test_pickle(self):
         #GH4606
@@ -2727,15 +2927,27 @@ class TestSeriesDatetime64(tm.TestCase):
 
 class TestTimestamp(tm.TestCase):
 
-    def test_class_ops(self):
+    def test_class_ops_pytz(self):
         _skip_if_no_pytz()
-        import pytz
+        from pytz import timezone
+
+        def compare(x, y):
+            self.assertEqual(int(Timestamp(x).value / 1e9), int(Timestamp(y).value / 1e9))
+
+        compare(Timestamp.now(), datetime.now())
+        compare(Timestamp.now('UTC'), datetime.now(timezone('UTC')))
+        compare(Timestamp.utcnow(), datetime.utcnow())
+        compare(Timestamp.today(), datetime.today())
+
+    def test_class_ops_dateutil(self):
+        _skip_if_no_dateutil()
+        from dateutil.tz import gettz as timezone
 
         def compare(x,y):
             self.assertEqual(int(np.round(Timestamp(x).value/1e9)), int(np.round(Timestamp(y).value/1e9)))
 
         compare(Timestamp.now(),datetime.now())
-        compare(Timestamp.now('UTC'),datetime.now(pytz.timezone('UTC')))
+        compare(Timestamp.now('UTC'), datetime.now(timezone('UTC')))
         compare(Timestamp.utcnow(),datetime.utcnow())
         compare(Timestamp.today(),datetime.today())
 
@@ -2846,6 +3058,53 @@ class TestTimestamp(tm.TestCase):
         # #1404
         a = Timestamp('3/12/2012')
         b = Timestamp('3/12/2012', tz='utc')
+
+        self.assertRaises(Exception, a.__eq__, b)
+        self.assertRaises(Exception, a.__ne__, b)
+        self.assertRaises(Exception, a.__lt__, b)
+        self.assertRaises(Exception, a.__gt__, b)
+        self.assertRaises(Exception, b.__eq__, a)
+        self.assertRaises(Exception, b.__ne__, a)
+        self.assertRaises(Exception, b.__lt__, a)
+        self.assertRaises(Exception, b.__gt__, a)
+
+        if sys.version_info < (3, 3):
+            self.assertRaises(Exception, a.__eq__, b.to_pydatetime())
+            self.assertRaises(Exception, a.to_pydatetime().__eq__, b)
+        else:
+            self.assertFalse(a == b.to_pydatetime())
+            self.assertFalse(a.to_pydatetime() == b)
+
+    def test_cant_compare_tz_naive_w_aware_explicit_pytz(self):
+        _skip_if_no_pytz()
+        from pytz import utc
+        # #1404
+        a = Timestamp('3/12/2012')
+        b = Timestamp('3/12/2012', tz=utc)
+
+        self.assertRaises(Exception, a.__eq__, b)
+        self.assertRaises(Exception, a.__ne__, b)
+        self.assertRaises(Exception, a.__lt__, b)
+        self.assertRaises(Exception, a.__gt__, b)
+        self.assertRaises(Exception, b.__eq__, a)
+        self.assertRaises(Exception, b.__ne__, a)
+        self.assertRaises(Exception, b.__lt__, a)
+        self.assertRaises(Exception, b.__gt__, a)
+
+        if sys.version_info < (3, 3):
+            self.assertRaises(Exception, a.__eq__, b.to_pydatetime())
+            self.assertRaises(Exception, a.to_pydatetime().__eq__, b)
+        else:
+            self.assertFalse(a == b.to_pydatetime())
+            self.assertFalse(a.to_pydatetime() == b)
+
+    def test_cant_compare_tz_naive_w_aware_dateutil(self):
+        _skip_if_no_dateutil()
+        from dateutil.tz import gettz
+        utc = gettz('UTC')
+        # #1404
+        a = Timestamp('3/12/2012')
+        b = Timestamp('3/12/2012', tz=utc)
 
         self.assertRaises(Exception, a.__eq__, b)
         self.assertRaises(Exception, a.__ne__, b)

@@ -1729,11 +1729,23 @@ class DataCol(IndexCol):
             if getattr(rvalues[0], 'tzinfo', None) is not None:
 
                 # if this block has more than one timezone, raise
-                if len(set([r.tzinfo for r in rvalues])) != 1:
-                    raise TypeError(
-                        "too many timezones in this block, create separate "
-                        "data columns"
-                    )
+                try:
+                    # pytz timezones: compare on zone name (to avoid issues with DST being a different zone to STD).
+                    zones = [r.tzinfo.zone for r in rvalues]
+                except:
+                    # dateutil timezones: compare on ==
+                    zones = [r.tzinfo for r in rvalues]
+                    if any(zones[0] != zone_i for zone_i in zones[1:]):
+                        raise TypeError(
+                            "too many timezones in this block, create separate "
+                            "data columns"
+                        )
+                else:
+                    if len(set(zones)) != 1:
+                        raise TypeError(
+                            "too many timezones in this block, create separate "
+                            "data columns"
+                        )
 
                 # convert this column to datetime64[ns] utc, and save the tz
                 index = DatetimeIndex(rvalues)

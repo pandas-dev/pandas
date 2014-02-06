@@ -92,6 +92,13 @@ def _skip_if_no_pytz():
     except ImportError:
         raise nose.SkipTest("pytz not installed")
 
+def _skip_if_no_dateutil():
+    try:
+        import dateutil
+    except ImportError:
+        raise nose.SkipTest("dateutil not installed")
+
+
 class TestDataFrameFormatting(tm.TestCase):
     _multiprocess_can_split_ = True
 
@@ -2922,7 +2929,7 @@ class TestStringRepTimestamp(tm.TestCase):
         ts_nanos_micros = Timestamp(1200)
         self.assertEqual(str(ts_nanos_micros), "1970-01-01 00:00:00.000001200")
 
-    def test_tz(self):
+    def test_tz_pytz(self):
         _skip_if_no_pytz()
 
         import pytz
@@ -2934,6 +2941,20 @@ class TestStringRepTimestamp(tm.TestCase):
         self.assertEqual(str(dt_datetime), str(Timestamp(dt_datetime)))
 
         dt_datetime_us = datetime(2013, 1, 2, 12, 1, 3, 45, tzinfo=pytz.utc)
+        self.assertEqual(str(dt_datetime_us), str(Timestamp(dt_datetime_us)))
+
+    def test_tz_dateutil(self):
+        _skip_if_no_dateutil()
+        import dateutil
+        utc = dateutil.tz.gettz('UTC')
+
+        dt_date = datetime(2013, 1, 2, tzinfo=utc)
+        self.assertEqual(str(dt_date), str(Timestamp(dt_date)))
+
+        dt_datetime = datetime(2013, 1, 2, 12, 1, 3, tzinfo=utc)
+        self.assertEqual(str(dt_datetime), str(Timestamp(dt_datetime)))
+
+        dt_datetime_us = datetime(2013, 1, 2, 12, 1, 3, 45, tzinfo=utc)
         self.assertEqual(str(dt_datetime_us), str(Timestamp(dt_datetime_us)))
 
 if __name__ == '__main__':

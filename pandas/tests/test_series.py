@@ -47,6 +47,12 @@ def _skip_if_no_pytz():
     except ImportError:
         raise nose.SkipTest("pytz not installed")
 
+def _skip_if_no_dateutil():
+    try:
+        import dateutil
+    except ImportError:
+        raise nose.SkipTest("dateutil not installed")
+
 #------------------------------------------------------------------------------
 # Series test cases
 
@@ -4573,7 +4579,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         result["1990-01-02"] = ts[24:48]
         assert_series_equal(result, ts)
 
-    def test_getitem_setitem_datetime_tz(self):
+    def test_getitem_setitem_datetime_tz_pytz(self):
         _skip_if_no_pytz();
         from pytz import timezone as tz
 
@@ -4606,6 +4612,39 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         date = tz('US/Central').localize(datetime(1990, 1, 1, 3))
         result[date] = 0
         result[date] = ts[4]
+        assert_series_equal(result, ts)
+
+
+    def test_getitem_setitem_datetime_tz_dateutil(self):
+        _skip_if_no_dateutil();
+        from dateutil.tz import gettz as tz
+
+        from pandas import date_range
+        N = 50
+        # testing with timezone, GH #2785
+        rng = date_range('1/1/1990', periods=N, freq='H', tz='US/Eastern')
+        ts = Series(np.random.randn(N), index=rng)
+
+        # also test Timestamp tz handling, GH #2789
+        result = ts.copy()
+        result["1990-01-01 09:00:00+00:00"] = 0
+        result["1990-01-01 09:00:00+00:00"] = ts[4]
+        assert_series_equal(result, ts)
+
+        result = ts.copy()
+        result["1990-01-01 03:00:00-06:00"] = 0
+        result["1990-01-01 03:00:00-06:00"] = ts[4]
+        assert_series_equal(result, ts)
+
+        # repeat with datetimes
+        result = ts.copy()
+        result[datetime(1990, 1, 1, 9, tzinfo=tz('UTC'))] = 0
+        result[datetime(1990, 1, 1, 9, tzinfo=tz('UTC'))] = ts[4]
+        assert_series_equal(result, ts)
+
+        result = ts.copy()
+        result[datetime(1990, 1, 1, 3, tzinfo=tz('US/Central'))] = 0
+        result[datetime(1990, 1, 1, 3, tzinfo=tz('US/Central'))] = ts[4]
         assert_series_equal(result, ts)
 
     def test_getitem_setitem_periodindex(self):

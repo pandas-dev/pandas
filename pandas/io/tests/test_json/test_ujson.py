@@ -25,6 +25,7 @@ from numpy.testing import (assert_array_equal,
                            assert_array_almost_equal_nulp,
                            assert_approx_equal)
 import pytz
+import dateutil
 from pandas import DataFrame, Series, Index, NaT, DatetimeIndex
 import pandas.util.testing as tm
 
@@ -361,7 +362,9 @@ class UltraJSONTests(TestCase):
             datetime.time(),
             datetime.time(1, 2, 3),
             datetime.time(10, 12, 15, 343243),
-            datetime.time(10, 12, 15, 343243, pytz.utc)]
+            datetime.time(10, 12, 15, 343243, pytz.utc),
+#             datetime.time(10, 12, 15, 343243, dateutil.tz.gettz('UTC')),  # this segfaults! No idea why.
+            ]
         for test in tests:
             output = ujson.encode(test)
             expected = '"%s"' % test.isoformat()

@@ -605,11 +605,11 @@ cdef inline _to_i8(object val):
             return get_datetime64_value(val)
         elif PyDateTime_Check(val):
             tzinfo = getattr(val, 'tzinfo', None)
-            val = _pydatetime_to_dts(val, &dts)
+            ival = _pydatetime_to_dts(val, &dts)  # Save the original date value so we can get the utcoffset from it.
             if tzinfo is not None and not _is_utc(tzinfo):
                 offset = tslib._get_utcoffset(tzinfo, val)
-                val -= tslib._delta_to_nanoseconds(offset)
-
+                ival -= tslib._delta_to_nanoseconds(offset)
+            return ival
         return val
 
 cdef inline bint _is_utc(object tz):

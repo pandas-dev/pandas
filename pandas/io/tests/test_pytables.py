@@ -1991,7 +1991,7 @@ class TestHDFStore(tm.TestCase):
             # this fails because we have a date in the object block......
             self.assertRaises(TypeError, store.append, 'df_unimplemented', df)
 
-    def test_append_with_timezones(self):
+    def test_append_with_timezones_pytz(self):
 
         from datetime import timedelta
 
@@ -2020,7 +2020,8 @@ class TestHDFStore(tm.TestCase):
             compare(store.select('df_tz',where=Term('A>=df.A[3]')),df[df.A>=df.A[3]])
 
             _maybe_remove(store, 'df_tz')
-            df = DataFrame(dict(A = Timestamp('20130102',tz='US/Eastern'), B = Timestamp('20130103',tz='US/Eastern')),index=range(5))
+            # ensure we include dates in DST and STD time here.
+            df = DataFrame(dict(A = Timestamp('20130102',tz='US/Eastern'), B = Timestamp('20130603',tz='US/Eastern')),index=range(5))
             store.append('df_tz',df)
             result = store['df_tz']
             compare(result,df)
@@ -2056,6 +2057,78 @@ class TestHDFStore(tm.TestCase):
             store.append('df',df)
             result = store.select('df')
             assert_frame_equal(result,df)
+
+    def test_append_with_timezones_dateutil(self):
+
+        from datetime import timedelta
+
+        try:
+            import dateutil
+        except ImportError:
+            raise nose.SkipTest
+
+        def compare(a, b):
+            tm.assert_frame_equal(a, b)
+
+            # compare the zones on each element
+            for c in a.columns:
+                for i in a.index:
+                    a_e = a[c][i]
+                    b_e = b[c][i]
+                    if not (a_e == b_e and a_e.tz == b_e.tz):
+                        raise AssertionError("invalid tz comparsion [%s] [%s]" % (a_e, b_e))
+
+        # as columns
+        with ensure_clean_store(self.path) as store:
+
+            _maybe_remove(store, 'df_tz')
+            df = DataFrame(dict(A=[ Timestamp('20130102 2:00:00', tz=dateutil.tz.gettz('US/Eastern')) + timedelta(hours=1) * i for i in range(5) ]))
+            store.append('df_tz', df, data_columns=['A'])
+            result = store['df_tz']
+            compare(result, df)
+            assert_frame_equal(result, df)
+
+            # select with tz aware
+            compare(store.select('df_tz', where=Term('A>=df.A[3]')), df[df.A >= df.A[3]])
+
+            _maybe_remove(store, 'df_tz')
+            # ensure we include dates in DST and STD time here.
+            df = DataFrame(dict(A=Timestamp('20130102', tz=dateutil.tz.gettz('US/Eastern')), B=Timestamp('20130603', tz=dateutil.tz.gettz('US/Eastern'))), index=range(5))
+            store.append('df_tz', df)
+            result = store['df_tz']
+            compare(result, df)
+            assert_frame_equal(result, df)
+
+            _maybe_remove(store, 'df_tz')
+            df = DataFrame(dict(A=Timestamp('20130102', tz=dateutil.tz.gettz('US/Eastern')), B=Timestamp('20130102', tz=dateutil.tz.gettz('EET'))), index=range(5))
+            self.assertRaises(TypeError, store.append, 'df_tz', df)
+
+            # this is ok
+            _maybe_remove(store, 'df_tz')
+            store.append('df_tz', df, data_columns=['A', 'B'])
+            result = store['df_tz']
+            compare(result, df)
+            assert_frame_equal(result, df)
+
+            # can't append with diff timezone
+            df = DataFrame(dict(A=Timestamp('20130102', tz=dateutil.tz.gettz('US/Eastern')), B=Timestamp('20130102', tz=dateutil.tz.gettz('CET'))), index=range(5))
+            self.assertRaises(ValueError, store.append, 'df_tz', df)
+
+        # as index
+        with ensure_clean_store(self.path) as store:
+
+            # GH 4098 example
+            df = DataFrame(dict(A=Series(lrange(3), index=date_range('2000-1-1', periods=3, freq='H', tz=dateutil.tz.gettz('US/Eastern')))))
+
+            _maybe_remove(store, 'df')
+            store.put('df', df)
+            result = store.select('df')
+            assert_frame_equal(result, df)
+
+            _maybe_remove(store, 'df')
+            store.append('df', df)
+            result = store.select('df')
+            assert_frame_equal(result, df)
 
     def test_store_timezone(self):
         # GH2852
