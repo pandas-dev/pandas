@@ -1575,6 +1575,18 @@ def test_invalid_numexpr_version():
         yield check_invalid_numexpr_version, engine, parser
 
 
+def check_many_exprs(engine, parser):
+    a = 1
+    expr = ' * '.join('a' * 33)
+    expected = 1
+    res = pd.eval(expr, engine=engine, parser=parser)
+    tm.assert_equal(res, expected)
+
+def test_many_exprs():
+    for engine, parser in ENGINES_PARSERS:
+        yield check_many_exprs, engine, parser
+
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

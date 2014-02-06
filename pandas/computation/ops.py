@@ -13,7 +13,7 @@ import pandas as pd
 from pandas.compat import PY3, string_types, text_type
 import pandas.core.common as com
 from pandas.core.base import StringMixin
-from pandas.computation.common import _ensure_decoded
+from pandas.computation.common import _ensure_decoded, _result_type_many
 
 
 _reductions = 'sum', 'prod'
@@ -240,7 +240,7 @@ class Op(StringMixin):
         # clobber types to bool if the op is a boolean operator
         if self.op in (_cmp_ops_syms + _bool_ops_syms):
             return np.bool_
-        return np.result_type(*(term.type for term in com.flatten(self)))
+        return _result_type_many(*(term.type for term in com.flatten(self)))
 
     @property
     def isscalar(self):
