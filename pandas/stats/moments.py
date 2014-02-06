@@ -514,7 +514,7 @@ def _rolling_func(func, desc, check_minp=_use_window):
     @wraps(func)
     def f(arg, window, min_periods=None, freq=None, center=False,
           time_rule=None, **kwargs):
-        def call_cython(arg, window, minp, **kwds):
+        def call_cython(arg, window, minp, args=(), kwargs={}, **kwds):
             minp = check_minp(minp, window)
             return func(arg, window, minp, **kwds)
         return _rolling_moment(arg, window, call_cython, min_periods,
@@ -562,7 +562,7 @@ def rolling_quantile(arg, window, quantile, min_periods=None, freq=None,
     y : type of input argument
     """
 
-    def call_cython(arg, window, minp):
+    def call_cython(arg, window, minp, args=(), kwargs={}):
         minp = _use_window(minp, window)
         return algos.roll_quantile(arg, window, minp, quantile)
     return _rolling_moment(arg, window, call_cython, min_periods,
@@ -713,7 +713,7 @@ def _expanding_func(func, desc, check_minp=_use_window):
           **kwargs):
         window = len(arg)
 
-        def call_cython(arg, window, minp, **kwds):
+        def call_cython(arg, window, minp, args=(), kwargs={}, **kwds):
             minp = check_minp(minp, window)
             return func(arg, window, minp, **kwds)
         return _rolling_moment(arg, window, call_cython, min_periods,
