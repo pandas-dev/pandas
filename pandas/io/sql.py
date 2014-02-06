@@ -23,7 +23,7 @@ class DatabaseError(IOError):
 
 
 #------------------------------------------------------------------------------
-# Helper execution functions
+# Helper functions
 
 def _convert_params(sql, params):
     """convert sql and params args to DBAPI2.0 compliant format"""
@@ -31,6 +31,47 @@ def _convert_params(sql, params):
     if params is not None:
         args += list(params)
     return args
+
+
+def _safe_col_name(col_name):
+    #TODO: probably want to forbid database reserved names, such as "database"
+    return col_name.strip().replace(' ', '_')
+
+
+def _handle_date_column(col, format=None):
+    if isinstance(format, dict):
+        return to_datetime(col, **format)
+    else:
+        if format in ['D', 's', 'ms', 'us', 'ns']:
+            return to_datetime(col, coerce=True, unit=format)
+        elif issubclass(col.dtype.type, np.floating) or issubclass(col.dtype.type, np.integer):
+            # parse dates as timestamp
+            format = 's' if format is None else format
+            return to_datetime(col, coerce=True, unit=format)
+        else:
+            return to_datetime(col, coerce=True, format=format)
+
+
+def _parse_date_columns(data_frame, parse_dates):
+    """ Force non-datetime columns to be read as such.
+        Supports both string formatted and integer timestamp columns
+    """
+    # handle non-list entries for parse_dates gracefully
+    if parse_dates is True or parse_dates is None or parse_dates is False:
+        parse_dates = []
+
+    if not hasattr(parse_dates, '__iter__'):
+        parse_dates = [parse_dates]
+
+    for col_name in parse_dates:
+        df_col = data_frame[col_name]
+        try:
+            fmt = parse_dates[col_name]
+        except TypeError:
+            fmt = None
+        data_frame[col_name] = _handle_date_column(df_col, format=fmt)
+
+    return data_frame
 
 
 def execute(sql, con, cur=None, params=None, flavor='sqlite'):
@@ -44,7 +85,7 @@ def execute(sql, con, cur=None, params=None, flavor='sqlite'):
     con: SQLAlchemy engine or DBAPI2 connection (legacy mode)
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
-        If a DBAPI2 object is given, a supported SQL flavor must also be provided
+        If a DBAPI2 object, a supported SQL flavor must also be provided
     cur: depreciated, cursor is obtained from connection
     params: list or tuple, optional
         List of parameters to pass to execute method.
@@ -283,9 +324,11 @@ def pandasSQL_builder(con, flavor=None, meta=None):
             return PandasSQLAlchemy(con, meta=meta)
         else:
             warnings.warn(
-                "Not an SQLAlchemy engine, attempting to use as legacy DBAPI connection")
+                """Not an SQLAlchemy engine,
+                  attempting to use as legacy DBAPI connection""")
             if flavor is None:
-                raise ValueError("""PandasSQL must be created with an SQLAlchemy engine
+                raise ValueError(
+                    """PandasSQL must be created with an SQLAlchemy engine
                     or a DBAPI2 connection and SQL flavour""")
             else:
                 return PandasSQLLegacy(con, flavor)
@@ -298,36 +341,16 @@ def pandasSQL_builder(con, flavor=None, meta=None):
             return PandasSQLLegacy(con, flavor)
 
 
-def _safe_col_name(col_name):
-    return col_name.strip().replace(' ', '_')
-
-
-def _parse_date_column(col, format=None):
-    if isinstance(format, dict):
-        return to_datetime(col, **format)
-    else:
-        if format in ['D', 's', 'ms', 'us', 'ns']:
-            return to_datetime(col, coerce=True, unit=format)
-        elif issubclass(col.dtype.type, np.floating) or issubclass(col.dtype.type, np.integer):
-            # parse dates as timestamp
-            format = 's' if format is None else format
-            return to_datetime(col, coerce=True, unit=format)
-        else:
-            return to_datetime(col, coerce=True, format=format)
-
-
-def _frame_from_data_and_columns(data, columns, index_col=None,
-                                 coerce_float=True):
-    df = DataFrame.from_records(
-        data, columns=columns, coerce_float=coerce_float)
-    if index_col is not None:
-        df.set_index(index_col, inplace=True)
-    return df
-
-
 class PandasSQLTable(PandasObject):
-
-    def __init__(self, name, pandas_sql_engine, frame=None, index=True, if_exists='fail', prefix='pandas'):
+    """ For mapping Pandas tables to SQL tables.
+        Uses fact that table is reflected by SQLAlchemy to
+        do better type convertions.
+        Also holds various flags needed to avoid having to
+        pass them between functions all the time.
+    """
+    # TODO: support for multiIndex
+    def __init__(self, name, pandas_sql_engine, frame=None, index=True,
+                 if_exists='fail', prefix='pandas'):
         self.name = name
         self.pd_sql = pandas_sql_engine
         self.prefix = prefix
@@ -400,13 +423,15 @@ class PandasSQLTable(PandasObject):
         data = result.fetchall()
         column_names = result.keys()
 
-        self.frame = _frame_from_data_and_columns(data, column_names,
-                                                  index_col=self.index,
-                                                  coerce_float=coerce_float)
+        self.frame = DataFrame.from_records(
+            data, columns=column_names, coerce_float=coerce_float)
 
         self._harmonize_columns(parse_dates=parse_dates)
 
-        # Assume that if the index was in prefix_index format, we gave it a name
+        if self.index is not None:
+            self.frame.set_index(self.index, inplace=True)
+
+        # Assume if the index in prefix_index format, we gave it a name
         # and should return it nameless
         if self.index == self.prefix + '_index':
             self.frame.index.name = None
@@ -442,13 +467,14 @@ class PandasSQLTable(PandasObject):
         return Table(self.name, self.pd_sql.meta, *columns)
 
     def _harmonize_columns(self, parse_dates=None):
-        """ Make a data_frame's column type align with an sql_table column types
+        """ Make a data_frame's column type align with an sql_table
+            column types
             Need to work around limited NA value support.
             Floats are always fine, ints must always
             be floats if there are Null values.
             Booleans are hard because converting bool column with None replaces
-            all Nones with false. Therefore only convert bool if there are no NA
-            values.
+            all Nones with false. Therefore only convert bool if there are no
+            NA values.
             Datetimes should already be converted
             to np.datetime if supported, but here we also force conversion
             if required
@@ -469,7 +495,7 @@ class PandasSQLTable(PandasObject):
 
                 if col_type is datetime or col_type is date:
                     if not issubclass(df_col.dtype.type, np.datetime64):
-                        self.frame[col_name] = _parse_date_column(df_col)
+                        self.frame[col_name] = _handle_date_column(df_col)
 
                 elif col_type is float:
                     # floats support NA, can always convert!
@@ -486,7 +512,7 @@ class PandasSQLTable(PandasObject):
                         fmt = parse_dates[col_name]
                     except TypeError:
                         fmt = None
-                    self.frame[col_name] = _parse_date_column(
+                    self.frame[col_name] = _handle_date_column(
                         df_col, format=fmt)
 
             except KeyError:
@@ -543,27 +569,6 @@ class PandasSQL(PandasObject):
         raise ValueError(
             "PandasSQL must be created with an SQLAlchemy engine or connection+sql flavor")
 
-    def _parse_date_columns(self, data_frame, parse_dates):
-        """ Force non-datetime columns to be read as such.
-            Supports both string formatted and integer timestamp columns
-        """
-        # handle non-list entries for parse_dates gracefully
-        if parse_dates is True or parse_dates is None or parse_dates is False:
-            parse_dates = []
-
-        if not hasattr(parse_dates, '__iter__'):
-            parse_dates = [parse_dates]
-
-        for col_name in parse_dates:
-            df_col = data_frame[col_name]
-            try:
-                fmt = parse_dates[col_name]
-            except TypeError:
-                fmt = None
-            data_frame[col_name] = _parse_date_column(df_col, format=fmt)
-
-        return data_frame
-
 
 class PandasSQLAlchemy(PandasSQL):
 
@@ -593,17 +598,23 @@ class PandasSQLAlchemy(PandasSQL):
         result = self.execute(*args, **kwargs)
         return result.rowcount
 
-    def read_sql(self, sql, index_col=None, coerce_float=True, parse_dates=None, params=None):
+    def read_sql(self, sql, index_col=None, coerce_float=True,
+                 parse_dates=None, params=None):
         args = _convert_params(sql, params)
+
         result = self.execute(*args)
         data = result.fetchall()
         columns = result.keys()
 
-        data_frame = _frame_from_data_and_columns(data, columns,
-                                                  index_col=index_col,
-                                                  coerce_float=coerce_float)
+        data_frame = DataFrame.from_records(
+            data, columns=columns, coerce_float=coerce_float)
 
-        return self._parse_date_columns(data_frame, parse_dates)
+        _parse_date_columns(data_frame, parse_dates)
+
+        if index_col is not None:
+            data_frame.set_index(index_col, inplace=True)
+
+        return data_frame
 
     def to_sql(self, frame, name, if_exists='fail', index=True):
         table = PandasSQLTable(
@@ -818,10 +829,14 @@ class PandasSQLLegacy(PandasSQL):
         data = self._fetchall_as_list(cursor)
         cursor.close()
 
-        data_frame = _frame_from_data_and_columns(data, columns,
-                                                  index_col=index_col,
-                                                  coerce_float=coerce_float)
-        return self._parse_date_columns(data_frame, parse_dates=parse_dates)
+        data_frame = DataFrame.from_records(
+            data, columns=columns, coerce_float=coerce_float)
+
+        _parse_date_columns(data_frame, parse_dates)
+
+        if index_col is not None:
+            data_frame.set_index(index_col, inplace=True)
+        return data_frame
 
     def _fetchall_as_list(self, cur):
         result = cur.fetchall()
