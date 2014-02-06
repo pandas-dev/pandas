@@ -95,6 +95,7 @@ Optional Dependencies
     version. Version 0.17.1 or higher.
   * `SciPy <http://www.scipy.org>`__: miscellaneous statistical functions
   * `PyTables <http://www.pytables.org>`__: necessary for HDF5-based storage
+  * `SQLAlchemy <http://www.sqlalchemy.org>`__: for SQL database support. Version 0.8.1 or higher recommended.
   * `matplotlib <http://matplotlib.sourceforge.net/>`__: for plotting
   * `statsmodels <http://statsmodels.sourceforge.net/>`__
      * Needed for parts of :mod:`pandas.stats`
