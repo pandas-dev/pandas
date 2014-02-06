@@ -215,7 +215,7 @@ class PandasSQLTest(unittest.TestCase):
         result = self.pandasSQL.read_sql('SELECT * FROM test_frame_roundtrip')
 
         result.set_index('pandas_index', inplace=True)
-        #result.index.astype(int)
+        # result.index.astype(int)
 
         result.index.name = None
 
@@ -327,7 +327,9 @@ class TestSQLApi(PandasSQLTest):
         sql.to_sql(self.test_frame1, 'test_frame_roundtrip',
                    con=self.conn, flavor='sqlite')
         result = sql.read_sql(
-            'SELECT * FROM test_frame_roundtrip', con=self.conn, flavor='sqlite')
+            'SELECT * FROM test_frame_roundtrip',
+            con=self.conn,
+            flavor='sqlite')
 
         # HACK!
         result.index = self.test_frame1.index
@@ -355,27 +357,50 @@ class TestSQLApi(PandasSQLTest):
         df = sql.read_sql(
             "SELECT * FROM types_test_data", self.conn, flavor='sqlite')
         self.assertFalse(
-            issubclass(df.DateCol.dtype.type, np.datetime64), "DateCol loaded with incorrect type")
+            issubclass(df.DateCol.dtype.type, np.datetime64),
+            "DateCol loaded with incorrect type")
 
         df = sql.read_sql("SELECT * FROM types_test_data",
                           self.conn, flavor='sqlite', parse_dates=['DateCol'])
         self.assertTrue(
-            issubclass(df.DateCol.dtype.type, np.datetime64), "DateCol loaded with incorrect type")
+            issubclass(df.DateCol.dtype.type, np.datetime64),
+            "DateCol loaded with incorrect type")
 
         df = sql.read_sql("SELECT * FROM types_test_data", self.conn,
-                          flavor='sqlite', parse_dates={'DateCol': '%Y-%m-%d %H:%M:%S'})
+                          flavor='sqlite',
+                          parse_dates={'DateCol': '%Y-%m-%d %H:%M:%S'})
         self.assertTrue(
-            issubclass(df.DateCol.dtype.type, np.datetime64), "DateCol loaded with incorrect type")
+            issubclass(df.DateCol.dtype.type, np.datetime64),
+            "DateCol loaded with incorrect type")
 
         df = sql.read_sql("SELECT * FROM types_test_data",
-                          self.conn, flavor='sqlite', parse_dates=['IntDateCol'])
+                          self.conn, flavor='sqlite',
+                          parse_dates=['IntDateCol'])
+
         self.assertTrue(issubclass(df.IntDateCol.dtype.type, np.datetime64),
                         "IntDateCol loaded with incorrect type")
 
         df = sql.read_sql("SELECT * FROM types_test_data",
-                          self.conn, flavor='sqlite', parse_dates={'IntDateCol': 's'})
+                          self.conn, flavor='sqlite',
+                          parse_dates={'IntDateCol': 's'})
+
         self.assertTrue(issubclass(df.IntDateCol.dtype.type, np.datetime64),
                         "IntDateCol loaded with incorrect type")
+
+    def test_date_and_index(self):
+        """ Test case where same column appears in parse_date and index_col"""
+
+        df = sql.read_sql("SELECT * FROM types_test_data",
+                          self.conn, flavor='sqlite',
+                          parse_dates=['DateCol', 'IntDateCol'],
+                          index_col='DateCol')
+        self.assertTrue(
+            issubclass(df.index.dtype.type, np.datetime64),
+            "DateCol loaded with incorrect type")
+
+        self.assertTrue(
+            issubclass(df.IntDateCol.dtype.type, np.datetime64),
+            "IntDateCol loaded with incorrect type")
 
 
 class TestSQLAlchemy(PandasSQLTest):
