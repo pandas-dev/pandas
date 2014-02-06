@@ -10,8 +10,10 @@ if [ "$IRON_TOKEN" ]; then
     python ci/ironcache/get.py
     ccache -C
 
+    clear_cache=0
     if [ -f ~/ccache.7z ]; then
         echo "Cache retrieved"
+        clear_cache=1
         cd $HOME
         7za e $HOME/ccache.7z
         # ls -l $HOME
@@ -25,13 +27,13 @@ if [ "$IRON_TOKEN" ]; then
     # did the last commit change cython files?
     cd $curdir
 
-    echo "diff from HEAD~5"
-    git diff HEAD~5 --numstat
+    echo "diff from HEAD"
+    git diff HEAD~3 --numstat
 
-    retval=$(git diff HEAD~5 --numstat | grep -P "pyx|pxd"|wc -l)
+    retval=$(git diff HEAD~3 --numstat | grep -P "pyx|pxd"|wc -l)
     echo "number of cython files changed: $retval"
 
-    if [ $retval -eq 0 ]
+    if [ $clear_cache -eq 1 ] && [ $retval -eq 0 ]
     then
         # nope, reuse cython files
         echo "Will reuse cached cython file"
