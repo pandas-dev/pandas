@@ -1627,7 +1627,7 @@ def roll_quantile(ndarray[float64_t, cast=True] input, int win,
     return output
 
 def roll_generic(ndarray[float64_t, cast=True] input, int win,
-                 int minp, object func):
+                 int minp, object func, object args, object kwargs):
     cdef ndarray[double_t] output, counts, bufarr
     cdef Py_ssize_t i, n
     cdef float64_t *buf
@@ -1652,7 +1652,8 @@ def roll_generic(ndarray[float64_t, cast=True] input, int win,
     n = len(input)
     for i from 0 <= i < int_min(win, n):
         if counts[i] >= minp:
-            output[i] = func(input[int_max(i - win + 1, 0) : i + 1])
+            output[i] = func(input[int_max(i - win + 1, 0) : i + 1], *args,
+                             **kwargs)
         else:
             output[i] = NaN
 
@@ -1660,7 +1661,7 @@ def roll_generic(ndarray[float64_t, cast=True] input, int win,
         buf = buf + 1
         bufarr.data = <char*> buf
         if counts[i] >= minp:
-            output[i] = func(bufarr)
+            output[i] = func(bufarr, *args, **kwargs)
         else:
             output[i] = NaN
 

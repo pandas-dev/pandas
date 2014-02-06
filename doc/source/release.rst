@@ -65,6 +65,8 @@ Improvements to existing features
 
 - pd.read_clipboard will, if 'sep' is unspecified, try to detect data copied from a spreadsheet
   and parse accordingly. (:issue:`6223`)
+- pd.expanding_apply and pd.rolling_apply now take args and kwargs that are passed on to
+  the func (:issue:`6289`)
 
 .. _release.bug_fixes-0.14.0:
 

@@ -694,6 +694,21 @@ class TestMoments(tm.TestCase):
                                        freq=freq)
         self._check_expanding(expanding_mean, np.mean)
 
+    def test_expanding_apply_args_kwargs(self):
+        def mean_w_arg(x, const):
+            return np.mean(x) + const
+
+        df = DataFrame(np.random.rand(20, 3))
+
+        expected = mom.expanding_apply(df, np.mean) + 20.
+
+        assert_frame_equal(mom.expanding_apply(df, mean_w_arg, args=(20,)),
+                            expected)
+        assert_frame_equal(mom.expanding_apply(df, mean_w_arg,
+                                               kwargs={'const' : 20}),
+                            expected)
+
+
     def test_expanding_corr(self):
         A = self.series.dropna()
         B = (A + randn(len(A)))[:-5]
