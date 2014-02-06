@@ -3108,11 +3108,7 @@ below and the SQLAlchemy `documentation <http://docs.sqlalchemy.org/en/rel_0_9/c
 Writing DataFrames
 ~~~~~~~~~~~~~~~~~~
 
-<<<<<<< HEAD
-Assuming the following data is in a DataFrame "data", we can insert it into
-=======
 Assuming the following data is in a DataFrame ``data``, we can insert it into
->>>>>>> 6314e6f... ENH #4163 Tweaks to docs, avoid mutable default args, mysql tests
 the database using :func:`~pandas.io.sql.to_sql`.
 
 
@@ -3209,28 +3205,19 @@ Of course, you can specify a more "complex" query.
 You can also run a plain query without creating a dataframe with
 :func:`~pandas.io.sql.execute`. This is useful for queries that don't return values,
 such as INSERT. This is functionally equivalent to calling ``execute`` on the
-SQLAlchemy engine or db connection object. Again, ou must use the SQL syntax
+SQLAlchemy engine or db connection object. Again, you must use the SQL syntax
 variant appropriate for your database.
 
 .. code-block:: python
 
    sql.execute('SELECT * FROM table_name', engine)
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-:func:`~pandas.io.sql.tquery` returns a list of tuples corresponding to each row.
+   sql.execute('INSERT INTO table_name VALUES(?, ?, ?)', engine, params=[('id', 1, 12.2, True)])
 
-:func:`~pandas.io.sql.uquery` does the same thing as tquery, but instead of
-returning results it returns the number of related rows.
-=======
->>>>>>> ac6bf42... ENH #4163 Added more robust type coertion, datetime parsing, and parse date options. Updated optional dependancies
 
 In addition, the class :class:`~pandas.io.sql.PandasSQLWithEngine` can be
 instantiated directly for more manual control over the SQL interaction.
-=======
-   sql.execute('INSERT INTO table_name VALUES(?, ?, ?)', engine, params=[('id', 1, 12.2, True)])
 
->>>>>>> 6314e6f... ENH #4163 Tweaks to docs, avoid mutable default args, mysql tests
 
 Engine connection examples
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
