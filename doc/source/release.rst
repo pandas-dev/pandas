@@ -77,6 +77,7 @@ Bug Fixes
 - Bug in ``.xs`` with a Series multiindex (:issue:`6258`, :issue:`5684`)
 - Bug in conversion of a string types to a DatetimeIndex with a specified frequency (:issue:`6273`, :issue:`6274`)
 - Bug in ``eval`` where type-promotion failed for large expressions (:issue:`6205`)
+- Bug in interpolate with inplace=True (:issue:`6281`)
 
 pandas 0.13.1
 -------------
