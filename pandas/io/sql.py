@@ -5,7 +5,7 @@ retrieval and to reduce dependency on DB-specific API.
 from __future__ import print_function
 from datetime import datetime, date
 import warnings
-from pandas.compat import range, lzip, map, zip, raise_with_traceback
+from pandas.compat import range, lzip, map, zip, raise_with_traceback, basestring
 import numpy as np
 
 
