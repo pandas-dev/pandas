@@ -5,7 +5,7 @@ retrieval and to reduce dependency on DB-specific API.
 from __future__ import print_function
 from datetime import datetime, date
 import warnings
-from pandas.compat import range, lzip, map, zip, raise_with_traceback
+from pandas.compat import lzip, map, zip, raise_with_traceback, string_types
 import numpy as np
 
 
@@ -444,7 +444,7 @@ class PandasSQLTable(PandasObject):
                 return _safe_col_name(self.frame.index.name)
             else:
                 return self.prefix + '_index'
-        elif isinstance(index, basestring):
+        elif isinstance(index, string_types):
             return index
         else:
             return None
