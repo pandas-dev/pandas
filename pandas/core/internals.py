@@ -826,6 +826,12 @@ class Block(PandasObject):
             m = None
 
         if m is not None:
+            # Skip interpolating this block if no NaNs.
+            if (~isnull(self.values)).all():
+                if inplace:
+                    return self
+                else:
+                    return self.copy()
             return self._interpolate(method=m,
                                      index=index,
                                      values=values,
