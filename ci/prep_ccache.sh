@@ -28,7 +28,7 @@ if [ "$IRON_TOKEN" ]; then
     cd $curdir
 
     echo "diff from HEAD"
-    git diff HEAD~3 --numstat
+    echo git diff HEAD~3 --numstat
 
     retval=$(git diff HEAD~3 --numstat | grep -P "pyx|pxd"|wc -l)
     echo "number of cython files changed: $retval"
