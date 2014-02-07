@@ -154,14 +154,11 @@ Performance
 Experimental
 ~~~~~~~~~~~~
 
-``pandas.io.data.Options`` has gained a ``get_all_data method``, and now consistently returns a multi-indexed ``DataFrame`` (:issue:`5602`). See :ref:`the docs<remote_data.yahoo_options>`
-
-  .. ipython:: python
-
-     from pandas.io.data import Options
-     aapl = Options('aapl', 'yahoo')
-     data = aapl.get_all_data()
-     data.iloc[0:5, 0:5]
+- ``io.gbq.read_gbq`` and ``io.gbq.to_gbq`` were refactored to remove the
+  dependency on the Google ``bq.py`` command line client. This submodule 
+  now uses ``httplib2`` and the Google ``apiclient`` and ``oauth2client`` API client 
+  libraries which should be more stable and, therefore, reliable than 
+  ``bq.py`` (:issue:`6937`).  
 
 .. _whatsnew_0141.bug_fixes:
 

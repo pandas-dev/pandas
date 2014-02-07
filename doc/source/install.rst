@@ -112,7 +112,9 @@ Optional Dependencies
     :func:`~pandas.io.clipboard.read_clipboard`. Most package managers on Linux
     distributions will have xclip and/or xsel immediately available for
     installation.
-  * `Google bq Command Line Tool <https://developers.google.com/bigquery/bq-command-line-tool/>`__
+  * Google's `python-gflags` and `google-api-python-client`
+    * Needed for :mod:`~pandas.io.gbq`
+  * `httplib2`
     * Needed for :mod:`~pandas.io.gbq`
   * One of the following combinations of libraries is needed to use the
     top-level :func:`~pandas.io.html.read_html` function:
