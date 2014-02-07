@@ -67,6 +67,8 @@ Improvements to existing features
   and parse accordingly. (:issue:`6223`)
 - pd.expanding_apply and pd.rolling_apply now take args and kwargs that are passed on to
   the func (:issue:`6289`)
+- ``plot(legend='reverse')`` will now reverse the order of legend labels for most plot kinds.
+  (:issue:`6014`)
 
 .. _release.bug_fixes-0.14.0:
 

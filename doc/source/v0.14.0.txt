@@ -30,6 +30,8 @@ Enhancements
 
 - pd.read_clipboard will, if 'sep' is unspecified, try to detect data copied from a spreadsheet
   and parse accordingly. (:issue:`6223`)
+- ``plot(legend='reverse')`` will now reverse the order of legend labels for
+  most plot kinds. (:issue:`6014`)
 
 
 Performance
