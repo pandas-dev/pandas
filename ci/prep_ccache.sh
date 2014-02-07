@@ -27,9 +27,6 @@ if [ "$IRON_TOKEN" ]; then
     # did the last commit change cython files?
     cd $curdir
 
-    echo "diff from HEAD"
-    echo git diff HEAD~3 --numstat
-
     retval=$(git diff HEAD~3 --numstat | grep -P "pyx|pxd"|wc -l)
     echo "number of cython files changed: $retval"
 
