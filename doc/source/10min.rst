@@ -273,25 +273,6 @@ For getting fast access to a scalar (equiv to the prior method)
 
    df.iat[1,1]
 
-There is one signficant departure from standard python/numpy slicing semantics.
-python/numpy allow slicing past the end of an array without an associated
-error.
-
-.. ipython:: python
-
-    # these are allowed in python/numpy.
-    x = list('abcdef')
-    x[4:10]
-    x[8:10]
-
-Pandas will detect this and raise ``IndexError``, rather than return an empty
-structure.
-
-::
-
-    >>> df.iloc[:,8:10]
-    IndexError: out-of-bounds on slice (end)
-
 Boolean Indexing
 ~~~~~~~~~~~~~~~~
 
