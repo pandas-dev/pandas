@@ -2392,7 +2392,7 @@ class TestGroupBy(tm.TestCase):
 
         grouped = x.groupby('test')
         result = grouped.agg({'fl': 'sum', 2: 'size'})
-        self.assert_(result['fl'].dtype == np.float64)
+        self.assertEqual(result['fl'].dtype, np.float64)
 
     def test_handle_dict_return_value(self):
         def f(group):

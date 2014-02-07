@@ -309,7 +309,7 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         self.assert_('X3' not in df)
 
         d = datetime(1999, 1, 27, 19, 0)
-        self.assert_(df.ix[0, 'nominal'] == d)
+        self.assertEqual(df.ix[0, 'nominal'], d)
 
         df = self.read_csv(StringIO(data), header=None,
                            date_parser=func,
@@ -342,7 +342,7 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         self.assert_('X3' not in df)
 
         d = datetime(1999, 1, 27, 19, 0)
-        self.assert_(df.ix[0, 'X1_X2'] == d)
+        self.assertEqual(df.ix[0, 'X1_X2'], d)
 
         df = read_csv(StringIO(data), header=None,
                       parse_dates=[[1, 2], [1, 3]], keep_date_col=True)
@@ -363,7 +363,7 @@ KORD,19990127 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
         df = self.read_csv(StringIO(data), sep=',', header=None,
                            parse_dates=[1], index_col=1)
         d = datetime(1999, 1, 27, 19, 0)
-        self.assert_(df.index[0] == d)
+        self.assertEqual(df.index[0], d)
 
     def test_multiple_date_cols_int_cast(self):
         data = ("KORD,19990127, 19:00:00, 18:56:00, 0.8100\n"
@@ -473,11 +473,11 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
                        index=Index(['hello', 'world', 'foo'], name='message'))
         rs = self.read_csv(StringIO(data), names=names, index_col=['message'])
         tm.assert_frame_equal(xp, rs)
-        self.assert_(xp.index.name == rs.index.name)
+        self.assertEqual(xp.index.name, rs.index.name)
 
         rs = self.read_csv(StringIO(data), names=names, index_col='message')
         tm.assert_frame_equal(xp, rs)
-        self.assert_(xp.index.name == rs.index.name)
+        self.assertEqual(xp.index.name, rs.index.name)
 
     def test_converter_index_col_bug(self):
         # 1835
@@ -488,7 +488,7 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
 
         xp = DataFrame({'B': [2, 4]}, index=Index([1, 3], name='A'))
         tm.assert_frame_equal(rs, xp)
-        self.assert_(rs.index.name == xp.index.name)
+        self.assertEqual(rs.index.name, xp.index.name)
 
     def test_date_parser_int_bug(self):
         # #3071
@@ -640,7 +640,7 @@ Klosterdruckerei\tKlosterdruckerei <Kempten> (1609-1805)\tHochfurstliche Buchhan
 
         good_line_small = bad_line_small + '"'
         df = self.read_table(StringIO(good_line_small), sep='\t')
-        self.assert_(len(df) == 3)
+        self.assertEqual(len(df), 3)
 
     def test_non_string_na_values(self):
         # GH3611, na_values that are not a string are an issue
@@ -1005,10 +1005,10 @@ baz,7,8,9
         df2 = self.read_table(self.csv1, sep=',', index_col=0,
                               parse_dates=True)
         self.assert_(np.array_equal(df.columns, ['A', 'B', 'C', 'D']))
-        self.assert_(df.index.name == 'index')
+        self.assertEqual(df.index.name, 'index')
         self.assert_(isinstance(df.index[0], (datetime, np.datetime64,
                                               Timestamp)))
-        self.assert_(df.values.dtype == np.float64)
+        self.assertEqual(df.values.dtype, np.float64)
         tm.assert_frame_equal(df, df2)
 
     def test_read_csv_no_index_name(self):
@@ -1018,7 +1018,7 @@ baz,7,8,9
         self.assert_(np.array_equal(df.columns, ['A', 'B', 'C', 'D', 'E']))
         self.assert_(isinstance(df.index[0], (datetime, np.datetime64,
                                               Timestamp)))
-        self.assert_(df.ix[:, ['A', 'B', 'C', 'D']].values.dtype == np.float64)
+        self.assertEqual(df.ix[:, ['A', 'B', 'C', 'D']].values.dtype, np.float64)
         tm.assert_frame_equal(df, df2)
 
     def test_read_table_unicode(self):
@@ -1070,7 +1070,7 @@ False,2
 True,3
 """
         data = self.read_csv(StringIO(data))
-        self.assert_(data['A'].dtype == np.bool_)
+        self.assertEqual(data['A'].dtype, np.bool_)
 
         data = """A,B
 YES,1
@@ -1082,7 +1082,7 @@ Yes,3
         data = self.read_csv(StringIO(data),
                              true_values=['yes', 'Yes', 'YES'],
                              false_values=['no', 'NO', 'No'])
-        self.assert_(data['A'].dtype == np.bool_)
+        self.assertEqual(data['A'].dtype, np.bool_)
 
         data = """A,B
 TRUE,1
@@ -1090,7 +1090,7 @@ FALSE,2
 TRUE,3
 """
         data = self.read_csv(StringIO(data))
-        self.assert_(data['A'].dtype == np.bool_)
+        self.assertEqual(data['A'].dtype, np.bool_)
 
         data = """A,B
 foo,bar
@@ -1107,8 +1107,8 @@ bar,foo"""
 3.0,3
 """
         data = self.read_csv(StringIO(data))
-        self.assert_(data['A'].dtype == np.float64)
-        self.assert_(data['B'].dtype == np.int64)
+        self.assertEqual(data['A'].dtype, np.float64)
+        self.assertEqual(data['B'].dtype, np.int64)
 
     def test_infer_index_col(self):
         data = """A,B,C
@@ -1218,7 +1218,7 @@ baz,7,8,9
         reader = self.read_csv(StringIO(data), chunksize=1)
         result = list(reader)
         expected = DataFrame(dict(A = [1,4,7], B = [2,5,8], C = [3,6,9]), index=['foo','bar','baz'])
-        self.assert_(len(result) == 3)
+        self.assertEqual(len(result), 3)
         tm.assert_frame_equal(pd.concat(result), expected)
 
     def test_header_not_first_line(self):
@@ -1513,7 +1513,7 @@ c,4,5,01/03/2009
         f = lambda x: x.strip()
         converter = {0: f}
         df = self.read_csv(StringIO(data), header=None, converters=converter)
-        self.assert_(df[0].dtype == object)
+        self.assertEqual(df[0].dtype, object)
 
     def test_converters_euro_decimal_format(self):
         data = """Id;Number1;Number2;Text1;Text2;Number3
@@ -1523,9 +1523,9 @@ c,4,5,01/03/2009
         f = lambda x: float(x.replace(",", "."))
         converter = {'Number1': f, 'Number2': f, 'Number3': f}
         df2 = self.read_csv(StringIO(data), sep=';', converters=converter)
-        self.assert_(df2['Number1'].dtype == float)
-        self.assert_(df2['Number2'].dtype == float)
-        self.assert_(df2['Number3'].dtype == float)
+        self.assertEqual(df2['Number1'].dtype, float)
+        self.assertEqual(df2['Number2'].dtype, float)
+        self.assertEqual(df2['Number3'].dtype, float)
 
     def test_converter_return_string_bug(self):
         # GH #583
@@ -1536,7 +1536,7 @@ c,4,5,01/03/2009
         f = lambda x: float(x.replace(",", "."))
         converter = {'Number1': f, 'Number2': f, 'Number3': f}
         df2 = self.read_csv(StringIO(data), sep=';', converters=converter)
-        self.assert_(df2['Number1'].dtype == float)
+        self.assertEqual(df2['Number1'].dtype, float)
 
     def test_read_table_buglet_4x_multiindex(self):
         text = """                      A       B       C       D        E
@@ -1659,15 +1659,15 @@ a,b,c,d
         # it works
         result = read_csv(data, index_col=0, parse_dates=True)
         stamp = result.index[0]
-        self.assert_(stamp.minute == 39)
+        self.assertEqual(stamp.minute, 39)
         try:
             self.assert_(result.index.tz is pytz.utc)
         except AssertionError:  # hello Yaroslav
             arr = result.index.to_pydatetime()
             result = tools.to_datetime(arr, utc=True)[0]
-            self.assert_(stamp.minute == result.minute)
-            self.assert_(stamp.hour == result.hour)
-            self.assert_(stamp.day == result.day)
+            self.assertEqual(stamp.minute, result.minute)
+            self.assertEqual(stamp.hour, result.hour)
+            self.assertEqual(stamp.day, result.day)
 
     def test_multiple_date_cols_index(self):
         data = """\
@@ -2364,7 +2364,7 @@ two,1,2,3"""
         try:
             # it works!
             df = self.read_csv(StringIO(text), verbose=True)
-            self.assert_(buf.getvalue() == 'Filled 3 NA values in column a\n')
+            self.assertEqual(buf.getvalue(), 'Filled 3 NA values in column a\n')
         finally:
             sys.stdout = sys.__stdout__
 
@@ -2384,7 +2384,7 @@ eight,1,2,3"""
         try:
             # it works!
             df = self.read_csv(StringIO(text), verbose=True, index_col=0)
-            self.assert_(buf.getvalue() == 'Filled 1 NA values in column a\n')
+            self.assertEqual(buf.getvalue(), 'Filled 1 NA values in column a\n')
         finally:
             sys.stdout = sys.__stdout__
 
@@ -2597,8 +2597,8 @@ one,two
 
         result = self.read_csv(StringIO(data), dtype={'one': 'u1', 1: 'S1'},
                                as_recarray=True)
-        self.assert_(result['one'].dtype == 'u1')
-        self.assert_(result['two'].dtype == 'S1')
+        self.assertEqual(result['one'].dtype, 'u1')
+        self.assertEqual(result['two'].dtype, 'S1')
 
     def test_usecols_dtypes(self):
         data = """\
@@ -2765,9 +2765,9 @@ No,No,No"""
 3;878,158;108013,434;GHI;rez;2,735694704"""
 
         df2 = self.read_csv(StringIO(data), sep=';', decimal=',')
-        self.assert_(df2['Number1'].dtype == float)
-        self.assert_(df2['Number2'].dtype == float)
-        self.assert_(df2['Number3'].dtype == float)
+        self.assertEqual(df2['Number1'].dtype, float)
+        self.assertEqual(df2['Number2'].dtype, float)
+        self.assertEqual(df2['Number3'].dtype, float)
 
     def test_custom_lineterminator(self):
         data = 'a,b,c~1,2,3~4,5,6'

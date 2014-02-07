@@ -385,9 +385,9 @@ class TestHDFStore(tm.TestCase):
             _maybe_remove(store, 'df1')
             store.append('df1', df[:10])
             store.append('df1', df[10:])
-            self.assert_(store.root.a._v_attrs.pandas_version == '0.10.1')
-            self.assert_(store.root.b._v_attrs.pandas_version == '0.10.1')
-            self.assert_(store.root.df1._v_attrs.pandas_version == '0.10.1')
+            self.assertEqual(store.root.a._v_attrs.pandas_version, '0.10.1')
+            self.assertEqual(store.root.b._v_attrs.pandas_version, '0.10.1')
+            self.assertEqual(store.root.df1._v_attrs.pandas_version, '0.10.1')
 
             # write a file and wipe its versioning
             _maybe_remove(store, 'df2')
@@ -412,7 +412,7 @@ class TestHDFStore(tm.TestCase):
 
                 else:
                     store = HDFStore(path,mode=mode)
-                    self.assert_(store._handle.mode == mode)
+                    self.assertEqual(store._handle.mode, mode)
                     store.close()
 
             with ensure_clean_path(self.path) as path:
@@ -425,7 +425,7 @@ class TestHDFStore(tm.TestCase):
                     self.assertRaises(IOError, f)
                 else:
                     with get_store(path,mode=mode) as store:
-                        self.assert_(store._handle.mode == mode)
+                        self.assertEqual(store._handle.mode, mode)
 
             with ensure_clean_path(self.path) as path:
 
@@ -474,7 +474,7 @@ class TestHDFStore(tm.TestCase):
             store.open('r')
             self.assert_(store.is_open)
             self.assertEquals(len(store), 1)
-            self.assert_(store._mode == 'r')
+            self.assertEqual(store._mode, 'r')
             store.close()
             self.assert_(not store.is_open)
 
@@ -482,7 +482,7 @@ class TestHDFStore(tm.TestCase):
             store.open('a')
             self.assert_(store.is_open)
             self.assertEquals(len(store), 1)
-            self.assert_(store._mode == 'a')
+            self.assertEqual(store._mode, 'a')
             store.close()
             self.assert_(not store.is_open)
 
@@ -490,7 +490,7 @@ class TestHDFStore(tm.TestCase):
             store.open('a')
             self.assert_(store.is_open)
             self.assertEquals(len(store), 1)
-            self.assert_(store._mode == 'a')
+            self.assertEqual(store._mode, 'a')
             store.close()
             self.assert_(not store.is_open)
 
@@ -788,7 +788,7 @@ class TestHDFStore(tm.TestCase):
             store.append('ns', ns)
             result = store['ns']
             tm.assert_series_equal(result, ns)
-            self.assert_(result.name == ns.name)
+            self.assertEqual(result.name, ns.name)
 
             # select on the values
             expected = ns[ns>60]
@@ -1113,7 +1113,7 @@ class TestHDFStore(tm.TestCase):
                 dict([(x, "%s_extra" % x) for x in wp.minor_axis]), axis=2)
 
             def check_col(key,name,size):
-                self.assert_(getattr(store.get_storer(key).table.description,name).itemsize == size)
+                self.assertEqual(getattr(store.get_storer(key).table.description,name).itemsize, size)
 
             store.append('s1', wp, min_itemsize=20)
             store.append('s1', wp2)
@@ -1179,7 +1179,7 @@ class TestHDFStore(tm.TestCase):
         with ensure_clean_store(self.path) as store:
 
             def check_col(key,name,size):
-                self.assert_(getattr(store.get_storer(key).table.description,name).itemsize == size)
+                self.assertEqual(getattr(store.get_storer(key).table.description,name).itemsize, size)
 
             df = DataFrame(dict(A = 'foo', B = 'bar'),index=range(10))
 
@@ -1187,20 +1187,20 @@ class TestHDFStore(tm.TestCase):
             _maybe_remove(store, 'df')
             store.append('df', df, min_itemsize={'A' : 200 })
             check_col('df', 'A', 200)
-            self.assert_(store.get_storer('df').data_columns == ['A'])
+            self.assertEqual(store.get_storer('df').data_columns, ['A'])
 
             # a min_itemsize that creates a data_column2
             _maybe_remove(store, 'df')
             store.append('df', df, data_columns = ['B'], min_itemsize={'A' : 200 })
             check_col('df', 'A', 200)
-            self.assert_(store.get_storer('df').data_columns == ['B','A'])
+            self.assertEqual(store.get_storer('df').data_columns, ['B','A'])
 
             # a min_itemsize that creates a data_column2
             _maybe_remove(store, 'df')
             store.append('df', df, data_columns = ['B'], min_itemsize={'values' : 200 })
             check_col('df', 'B', 200)
             check_col('df', 'values_block_0', 200)
-            self.assert_(store.get_storer('df').data_columns == ['B'])
+            self.assertEqual(store.get_storer('df').data_columns, ['B'])
 
             # infer the .typ on subsequent appends
             _maybe_remove(store, 'df')
@@ -1252,7 +1252,7 @@ class TestHDFStore(tm.TestCase):
 
             # using min_itemsize and a data column
             def check_col(key,name,size):
-                self.assert_(getattr(store.get_storer(key).table.description,name).itemsize == size)
+                self.assertEqual(getattr(store.get_storer(key).table.description,name).itemsize, size)
 
         with ensure_clean_store(self.path) as store:
             _maybe_remove(store, 'df')
@@ -1803,7 +1803,7 @@ class TestHDFStore(tm.TestCase):
             # list in column
             df = tm.makeDataFrame()
             df['invalid'] = [['a']] * len(df)
-            self.assert_(df.dtypes['invalid'] == np.object_)
+            self.assertEqual(df.dtypes['invalid'], np.object_)
             self.assertRaises(TypeError, store.append,'df',df)
 
             # multiple invalid columns
@@ -1817,7 +1817,7 @@ class TestHDFStore(tm.TestCase):
             s = s.astype(object)
             s[0:5] = np.nan
             df['invalid'] = s
-            self.assert_(df.dtypes['invalid'] == np.object_)
+            self.assertEqual(df.dtypes['invalid'], np.object_)
             self.assertRaises(TypeError, store.append,'df', df)
 
             # directy ndarray
@@ -3034,14 +3034,14 @@ class TestHDFStore(tm.TestCase):
             result = store.select('df', [Term('B=selector')])
             expected = df[ df.B.isin(selector) ]
             tm.assert_frame_equal(expected, result)
-            self.assert_(len(result) == 100)
+            self.assertEqual(len(result), 100)
 
             # big selector along the index
             selector = Index(df.ts[0:100].values)
             result  = store.select('df', [Term('ts=selector')])
             expected = df[ df.ts.isin(selector.values) ]
             tm.assert_frame_equal(expected, result)
-            self.assert_(len(result) == 100)
+            self.assertEqual(len(result), 100)
 
     def test_select_iterator(self):
 
@@ -3062,7 +3062,7 @@ class TestHDFStore(tm.TestCase):
             results = []
             for s in store.select('df',chunksize=100):
                 results.append(s)
-            self.assert_(len(results) == 5)
+            self.assertEqual(len(results), 5)
             result = concat(results)
             tm.assert_frame_equal(expected, result)
 
@@ -3088,7 +3088,7 @@ class TestHDFStore(tm.TestCase):
             for x in read_hdf(path,'df',chunksize=100):
                 results.append(x)
 
-            self.assert_(len(results) == 5)
+            self.assertEqual(len(results), 5)
             result = concat(results)
             tm.assert_frame_equal(result, df)
             tm.assert_frame_equal(result, read_hdf(path,'df'))
@@ -3175,7 +3175,7 @@ class TestHDFStore(tm.TestCase):
                 df  = DataFrame(dict(A = Series(lrange(3), index=idx)))
                 df.to_hdf(path,'data',mode='w',append=True)
 
-            self.assert_(read_hdf(path,'data').index.name == 'foo')
+            self.assertEqual(read_hdf(path,'data').index.name, 'foo')
 
             with tm.assert_produces_warning(expected_warning=AttributeConflictWarning):
 
@@ -3906,7 +3906,7 @@ class TestHDFStore(tm.TestCase):
                 # check keys
                 if keys is None:
                     keys = store.keys()
-                self.assert_(set(keys) == set(tstore.keys()))
+                self.assertEqual(set(keys), set(tstore.keys()))
 
                 # check indicies & nrows
                 for k in tstore.keys():
@@ -3914,13 +3914,13 @@ class TestHDFStore(tm.TestCase):
                         new_t = tstore.get_storer(k)
                         orig_t = store.get_storer(k)
 
-                        self.assert_(orig_t.nrows == new_t.nrows)
+                        self.assertEqual(orig_t.nrows, new_t.nrows)
 
                         # check propindixes
                         if propindexes:
                             for a in orig_t.axes:
                                 if a.is_indexed:
-                                    self.assert_(new_t[a.name].is_indexed == True)
+                                    self.assertTrue(new_t[a.name].is_indexed)
 
             finally:
                 safe_close(store)
