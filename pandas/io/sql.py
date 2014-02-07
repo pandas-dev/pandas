@@ -80,14 +80,14 @@ def execute(sql, con, cur=None, params=None, flavor='sqlite'):
 
     Parameters
     ----------
-    sql: string
+    sql : string
         Query to be executed
-    con: SQLAlchemy engine or DBAPI2 connection (legacy mode)
+    con : SQLAlchemy engine or DBAPI2 connection (legacy mode)
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
         If a DBAPI2 object, a supported SQL flavor must also be provided
-    cur: depreciated, cursor is obtained from connection
-    params: list or tuple, optional
+    cur : depreciated, cursor is obtained from connection
+    params : list or tuple, optional
         List of parameters to pass to execute method.
     flavor : string "sqlite", "mysql"
         Specifies the flavor of SQL to use.
@@ -178,42 +178,46 @@ def read_sql(sql, con, index_col=None, flavor='sqlite', coerce_float=True,
     Returns a DataFrame corresponding to the result set of the query
     string.
 
-    Optionally provide an index_col parameter to use one of the
-    columns as the index, otherwise default integer index will be used
+    Optionally provide an `index_col` parameter to use one of the
+    columns as the index, otherwise default integer index will be used.
 
     Parameters
     ----------
-    sql: string
+    sql : string
         SQL query to be executed
-    con: SQLAlchemy engine or DBAPI2 connection (legacy mode)
+    con : SQLAlchemy engine or DBAPI2 connection (legacy mode)
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
         If a DBAPI2 object is given, a supported SQL flavor must also be provided
-    index_col: string, optional
+    index_col : string, optional
         column name to use for the returned DataFrame object.
-    flavor : string specifying the flavor of SQL to use. Ignored when using
+    flavor : string, {'sqlite', 'mysql'}
+        The flavor of SQL to use. Ignored when using
         SQLAlchemy engine. Required when using DBAPI2 connection.
     coerce_float : boolean, default True
         Attempt to convert values to non-string, non-numeric objects (like
         decimal.Decimal) to floating point, useful for SQL result sets
-    cur: depreciated, cursor is obtained from connection
-    params: list or tuple, optional
+    cur : depreciated, cursor is obtained from connection
+    params : list or tuple, optional
         List of parameters to pass to execute method.
-    parse_dates: list or dict
-        List of column names to parse as dates
-        Or
-        Dict of {column_name: format string} where format string is
-        strftime compatible in case of parsing string times or is one of
-        (D, s, ns, ms, us) in case of parsing integer timestamps
-        Or
-        Dict of {column_name: arg dict}, where the arg dict corresponds
-        to the keyword arguments of :func:`pandas.tseries.tools.to_datetime`
-        Especially useful with databases without native Datetime support,
-        such as SQLite
+    parse_dates : list or dict
+        - List of column names to parse as dates
+        - Dict of ``{column_name: format string}`` where format string is
+          strftime compatible in case of parsing string times or is one of
+          (D, s, ns, ms, us) in case of parsing integer timestamps
+        - Dict of ``{column_name: arg dict}``, where the arg dict corresponds
+          to the keyword arguments of :func:`pandas.to_datetime`
+          Especially useful with databases without native Datetime support,
+          such as SQLite
 
     Returns
     -------
     DataFrame
+
+    See also
+    --------
+    read_table
+
     """
     pandas_sql = pandasSQL_builder(con, flavor=flavor)
     return pandas_sql.read_sql(sql,
@@ -229,20 +233,22 @@ def to_sql(frame, name, con, flavor='sqlite', if_exists='fail', index=True):
 
     Parameters
     ----------
-    frame: DataFrame
-    name: name of SQL table
-    con: SQLAlchemy engine or DBAPI2 connection (legacy mode)
+    frame : DataFrame
+    name : string
+        Name of SQL table
+    con : SQLAlchemy engine or DBAPI2 connection (legacy mode)
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
         If a DBAPI2 object is given, a supported SQL flavor must also be provided
-    flavor: {'sqlite', 'mysql', 'postgres'}, default 'sqlite'
-        ignored when SQLAlchemy engine. Required when using DBAPI2 connection.
-    if_exists: {'fail', 'replace', 'append'}, default 'fail'
-        fail: If table exists, do nothing.
-        replace: If table exists, drop it, recreate it, and insert data.
-        append: If table exists, insert data. Create if does not exist.
+    flavor : {'sqlite', 'mysql'}, default 'sqlite'
+        The flavor of SQL to use. Ignored when using SQLAlchemy engine.
+        Required when using DBAPI2 connection.
+    if_exists : {'fail', 'replace', 'append'}, default 'fail'
+        - fail: If table exists, do nothing.
+        - replace: If table exists, drop it, recreate it, and insert data.
+        - append: If table exists, insert data. Create if does not exist.
     index : boolean, default True
-        Write DataFrame index as an column
+        Write DataFrame index as a column
     """
     pandas_sql = pandasSQL_builder(con, flavor=flavor)
     pandas_sql.to_sql(frame, name, if_exists=if_exists, index=index)
@@ -250,17 +256,20 @@ def to_sql(frame, name, con, flavor='sqlite', if_exists='fail', index=True):
 
 def has_table(table_name, con, meta=None, flavor='sqlite'):
     """
-    Check if DB has named table
+    Check if DataBase has named table.
 
     Parameters
     ----------
-    frame: DataFrame
-    name: name of SQL table
+    table_name: string
+        Name of SQL table
     con: SQLAlchemy engine or DBAPI2 connection (legacy mode)
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
         If a DBAPI2 object is given, a supported SQL flavor name must also be provided
-    flavor: {'sqlite', 'mysql'}, default 'sqlite', ignored when using engine
+    flavor: {'sqlite', 'mysql'}, default 'sqlite'
+        The flavor of SQL to use. Ignored when using SQLAlchemy engine.
+        Required when using DBAPI2 connection.
+
     Returns
     -------
     boolean
@@ -272,33 +281,42 @@ def has_table(table_name, con, meta=None, flavor='sqlite'):
 def read_table(table_name, con, meta=None, index_col=None, coerce_float=True,
                parse_dates=None, columns=None):
     """Given a table name and SQLAlchemy engine, return a DataFrame.
-    Type convertions will be done automatically
+
+    Type convertions will be done automatically.
 
     Parameters
     ----------
-    table_name: name of SQL table in database
-    con: SQLAlchemy engine. Legacy mode not supported
-    meta: SQLAlchemy meta, optional. If omitted MetaData is reflected from engine
-    index_col: column to set as index, optional
+    table_name : string
+        Name of SQL table in database
+    con : SQLAlchemy engine
+        Legacy mode not supported
+    meta : SQLAlchemy meta, optional
+        If omitted MetaData is reflected from engine
+    index_col : string, optional
+        Column to set as index
     coerce_float : boolean, default True
         Attempt to convert values to non-string, non-numeric objects (like
         decimal.Decimal) to floating point. Can result in loss of Precision.
-    parse_dates: list or dict
-        List of column names to parse as dates
-        Or
-        Dict of {column_name: format string} where format string is
-        strftime compatible in case of parsing string times or is one of
-        (D, s, ns, ms, us) in case of parsing integer timestamps
-        Or
-        Dict of {column_name: arg dict}, where the arg dict corresponds
-        to the keyword arguments of :func:`pandas.tseries.tools.to_datetime`
-        Especially useful with databases without native Datetime support,
-        such as SQLite
-    columns: list
+    parse_dates : list or dict
+        - List of column names to parse as dates
+        - Dict of ``{column_name: format string}`` where format string is
+          strftime compatible in case of parsing string times or is one of
+          (D, s, ns, ms, us) in case of parsing integer timestamps
+        - Dict of ``{column_name: arg dict}``, where the arg dict corresponds
+          to the keyword arguments of :func:`pandas.to_datetime`
+          Especially useful with databases without native Datetime support,
+          such as SQLite
+    columns : list
         List of column names to select from sql table
+
     Returns
     -------
     DataFrame
+
+    See also
+    --------
+    read_sql
+
     """
     pandas_sql = PandasSQLAlchemy(con, meta=meta)
     table = pandas_sql.read_table(table_name,
@@ -342,11 +360,12 @@ def pandasSQL_builder(con, flavor=None, meta=None):
 
 
 class PandasSQLTable(PandasObject):
-    """ For mapping Pandas tables to SQL tables.
-        Uses fact that table is reflected by SQLAlchemy to
-        do better type convertions.
-        Also holds various flags needed to avoid having to
-        pass them between functions all the time.
+    """ 
+    For mapping Pandas tables to SQL tables.
+    Uses fact that table is reflected by SQLAlchemy to
+    do better type convertions.
+    Also holds various flags needed to avoid having to
+    pass them between functions all the time.
     """
     # TODO: support for multiIndex
     def __init__(self, name, pandas_sql_engine, frame=None, index=True,
@@ -556,7 +575,6 @@ class PandasSQLTable(PandasObject):
 
 
 class PandasSQL(PandasObject):
-
     """
     Subclasses Should define read_sql and to_sql
     """
@@ -571,7 +589,6 @@ class PandasSQL(PandasObject):
 
 
 class PandasSQLAlchemy(PandasSQL):
-
     """
     This class enables convertion between DataFrame and SQL databases
     using SQLAlchemy to handle DataBase abstraction
