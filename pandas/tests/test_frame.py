@@ -8835,7 +8835,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         self.assert_('C' not in frame)
         self.assert_('foo' in frame)
-        self.assert_(id(frame['foo']) != c_id)
+        self.assertNotEqual(id(frame['foo']), c_id)
 
     def test_rename_bug(self):
         # GH 5344
@@ -9577,7 +9577,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df.sort_index(inplace=True)
         expected = frame
         assert_frame_equal(df, expected)
-        self.assert_(a_id != id(df['A']))
+        self.assertNotEqual(a_id, id(df['A']))
 
         df = unordered.copy()
         df.sort_index(ascending=False, inplace=True)

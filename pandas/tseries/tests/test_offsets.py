@@ -150,7 +150,6 @@ class TestDateOffset(TestBase):
         offset1 = DateOffset(days=1)
         offset2 = DateOffset(days=365)
 
-        self.assert_(offset1 != offset2)
         self.assertNotEqual(offset1, offset2)
 
 

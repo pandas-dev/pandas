@@ -872,7 +872,7 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
         # this works, but return a copy
         result = self.panel4d.swapaxes('items', 'items')
         assert_panel4d_equal(self.panel4d,result)
-        self.assert_(id(self.panel4d) != id(result))
+        self.assertNotEqual(id(self.panel4d), id(result))
 
     def test_to_frame(self):
         raise nose.SkipTest("skipping for now")

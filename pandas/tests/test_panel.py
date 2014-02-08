@@ -1358,7 +1358,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         # this works, but return a copy
         result = self.panel.swapaxes('items', 'items')
         assert_panel_equal(self.panel,result)
-        self.assert_(id(self.panel) != id(result))
+        self.assertNotEqual(id(self.panel), id(result))
 
     def test_transpose(self):
         result = self.panel.transpose('minor', 'major', 'items')

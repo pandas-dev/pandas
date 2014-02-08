@@ -199,7 +199,7 @@ class TestPeriodProperties(tm.TestCase):
 
     def test_freq_str(self):
         i1 = Period('1982', freq='Min')
-        self.assert_(i1.freq[0] != '1')
+        self.assertNotEqual(i1.freq[0], '1')
 
     def test_repr(self):
         p = Period('Jan-2000')
