@@ -339,6 +339,72 @@ class TestIndexing(tm.TestCase):
         result = df.loc[:,0].loc['A']
         assert_series_equal(result,expected)
 
+    def test_iloc_exceeds_bounds(self):
+
+        # GH6296
+        # iloc should allow indexers that exceed the bounds
+        df = DataFrame(np.random.random_sample((20,5)), columns=list('ABCDE'))
+        expected = df
+        result = df.iloc[:,[0,1,2,3,4,5]]
+        assert_frame_equal(result,expected)
+
+        result = df.iloc[[1,30]]
+        expected = df.iloc[[1]]
+        assert_frame_equal(result,expected)
+
+        result = df.iloc[[1,-30]]
+        expected = df.iloc[[1]]
+        assert_frame_equal(result,expected)
+
+        result = df.iloc[:,4:10]
+        expected = df.iloc[:,4:]
+        assert_frame_equal(result,expected)
+
+        result = df.iloc[:,-4:-10]
+        expected = df.iloc[:,-4:]
+        assert_frame_equal(result,expected)
+
+        result = df.iloc[[100]]
+        expected = DataFrame(columns=df.columns)
+        assert_frame_equal(result,expected)
+
+        # still raise on a single indexer
+        def f():
+            df.iloc[30]
+        self.assertRaises(IndexError, f)
+
+        s = df['A']
+        result = s.iloc[[100]]
+        expected = Series()
+        assert_series_equal(result,expected)
+
+        result = s.iloc[[-100]]
+        expected = Series()
+        assert_series_equal(result,expected)
+
+        # slice
+        result = s.iloc[18:30]
+        expected = s.iloc[18:]
+        assert_series_equal(result,expected)
+
+        # doc example
+        df = DataFrame(np.random.randn(5,2),columns=list('AB'))
+        result = df.iloc[[4,5,6]]
+        expected = df.iloc[[4]]
+        assert_frame_equal(result,expected)
+
+        result = df.iloc[4:6]
+        expected = df.iloc[[4]]
+        assert_frame_equal(result,expected)
+
+        result = df.iloc[:,2:3]
+        expected = DataFrame(index=df.index)
+        assert_frame_equal(result,expected)
+
+        result = df.iloc[:,1:3]
+        expected = df.iloc[:,[1]]
+        assert_frame_equal(result,expected)
+
     def test_iloc_getitem_int(self):
 
         # integer
@@ -441,14 +507,6 @@ class TestIndexing(tm.TestCase):
         rs = df.iloc[[2, 3]]
         xp = df.xs('b',drop_level=False)
         assert_frame_equal(rs,xp)
-
-    def test_iloc_getitem_out_of_bounds(self):
-
-        # out-of-bounds slice
-        self.assertRaises(IndexError, self.frame_ints.iloc.__getitem__, tuple([slice(None),slice(1,5,None)]))
-        self.assertRaises(IndexError, self.frame_ints.iloc.__getitem__, tuple([slice(None),slice(-5,3,None)]))
-        self.assertRaises(IndexError, self.frame_ints.iloc.__getitem__, tuple([slice(1,5,None)]))
-        self.assertRaises(IndexError, self.frame_ints.iloc.__getitem__, tuple([slice(-5,3,None)]))
 
     def test_iloc_setitem(self):
         df = self.frame_ints
@@ -737,12 +795,6 @@ class TestIndexing(tm.TestCase):
         result = df.iloc[s.index]
         expected = df.ix[[2,4,6,8]]
         assert_frame_equal(result, expected)
-
-        # out-of-bounds slice
-        self.assertRaises(IndexError, df.iloc.__getitem__, tuple([slice(None),slice(1,5,None)]))
-        self.assertRaises(IndexError, df.iloc.__getitem__, tuple([slice(None),slice(-5,3,None)]))
-        self.assertRaises(IndexError, df.iloc.__getitem__, tuple([slice(1,11,None)]))
-        self.assertRaises(IndexError, df.iloc.__getitem__, tuple([slice(-11,3,None)]))
 
         # try with labelled frame
         df = DataFrame(np.random.randn(10, 4), index=list('abcdefghij'), columns=list('ABCD'))

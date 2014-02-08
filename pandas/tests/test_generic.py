@@ -873,7 +873,7 @@ class TestNDFrame(tm.TestCase):
 
         s2[0] = 9.9
         self.assert_(not s1.equals(s2))
-        
+
         idx = MultiIndex.from_tuples([(0, 'a'), (1, 'b'), (2, 'c')])
         s1 = Series([1, 2, np.nan], index=idx)
         s2 = s1.copy()
@@ -900,17 +900,17 @@ class TestNDFrame(tm.TestCase):
         # different dtype
         different = df1.copy()
         different['floats'] = different['floats'].astype('float32')
-        self.assert_(not df1.equals(different)) 
+        self.assert_(not df1.equals(different))
 
         # different index
         different_index = -index
         different = df2.set_index(different_index)
-        self.assert_(not df1.equals(different))        
+        self.assert_(not df1.equals(different))
 
         # different columns
         different = df2.copy()
         different.columns = df2.columns[::-1]
-        self.assert_(not df1.equals(different))        
+        self.assert_(not df1.equals(different))
 
         # DatetimeIndex
         index = pd.date_range('2000-1-1', periods=10, freq='T')

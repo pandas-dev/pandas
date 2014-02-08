@@ -73,6 +73,29 @@ class _NDFrameIndexer(object):
         return self.obj._ixs(key, axis=axis)
 
     def _slice(self, obj, axis=0, raise_on_error=False, typ=None):
+
+        # make out-of-bounds into bounds of the object
+        if typ == 'iloc':
+            ax = self.obj._get_axis(axis)
+            l = len(ax)
+            start = obj.start
+            stop = obj.stop
+            step = obj.step
+            if start is not None:
+                # degenerate to return nothing
+                if start >= l:
+                    return self._getitem_axis(tuple(),axis=axis)
+
+                # equiv to a null slice
+                elif start <= -l:
+                    start = None
+            if stop is not None:
+                if stop > l:
+                    stop = None
+                elif stop <= -l:
+                    stop = None
+            obj = slice(start,stop,step)
+
         return self.obj._slice(obj, axis=axis, raise_on_error=raise_on_error,
                                typ=typ)
 
@@ -1188,14 +1211,23 @@ class _iLocIndexer(_LocationIndexer):
             pass
 
         retval = self.obj
+        axis=0
         for i, key in enumerate(tup):
             if i >= self.obj.ndim:
                 raise IndexingError('Too many indexers')
 
             if _is_null_slice(key):
+                axis += 1
                 continue
 
-            retval = getattr(retval, self.name)._getitem_axis(key, axis=i)
+            retval = getattr(retval, self.name)._getitem_axis(key, axis=axis)
+
+            # if the dim was reduced, then pass a lower-dim the next time
+            if retval.ndim<self.ndim:
+                axis -= 1
+
+            # try to get for the next axis
+            axis += 1
 
         return retval
 
@@ -1224,16 +1256,27 @@ class _iLocIndexer(_LocationIndexer):
         # a single integer or a list of integers
         else:
 
+            ax = self.obj._get_axis(axis)
             if _is_list_like(key):
+
+                # coerce the key to not exceed the maximum size of the index
+                arr = np.array(key)
+                l = len(ax)
+                if len(arr) and (arr.max() >= l or arr.min() <= -l):
+                    key = arr[(arr>-l) & (arr<l)]
 
                 # force an actual list
                 key = list(key)
+
             else:
                 key = self._convert_scalar_indexer(key, axis)
 
                 if not com.is_integer(key):
                     raise TypeError("Cannot index by location index with a "
                                     "non-integer key")
+
+                if key > len(ax):
+                    raise IndexError("single indexer is out-of-bounds")
 
             return self._get_loc(key, axis=axis)
 
