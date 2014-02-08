@@ -729,22 +729,7 @@ Examples
 
 Regroup columns of a DataFrame according to their sum, and sum the aggregated ones.
 
-.. ipython::
+.. ipython:: python
    
-   In [2]: dat = {'a':[1,0,0], 'b':[0,1,0], 'c':[1,0,0], 'd':[2,3,4]}
-   
-   In [3]: df = pd.DataFrame(dat)
-   
-   In [4]: df
-   Out[4]: 
-      a  b  c  d
-   0  1  0  1  2
-   1  0  1  0  3
-   2  0  0  0  4
-   
-   In [5]: df.groupby(df.sum(), axis=1).sum()
-   Out[5]: 
-      1  9
-   0  2  2
-   1  1  3
-   2  0  4
+   df = pd.DataFrame({'a':[1,0,0], 'b':[0,1,0], 'c':[1,0,0], 'd':[2,3,4]})
+   df.groupby(df.sum(), axis=1).sum()
