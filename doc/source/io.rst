@@ -1883,6 +1883,15 @@ Files with a ``.xls`` extension will be written using ``xlwt`` and those with a
 ``.xlsx`` extension will be written using ``xlsxwriter`` (if available) or
 ``openpyxl``.
 
+The DataFrame will be written in a way that tries to mimic the REPL output. One
+difference from 0.12.0 is that the ``index_label`` will be placed in the second
+row instead of the first. You can get the previous behaviour by setting the
+``merge_cells`` option in ``to_excel()`` to ``False``:
+
+.. code-block:: python
+
+   df.to_excel('path_to_file.xlsx', index_label='label', merge_cells=False)
+
 The Panel class also has a ``to_excel`` instance method,
 which writes each DataFrame in the Panel to a separate sheet.
 
