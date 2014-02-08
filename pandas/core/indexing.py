@@ -780,6 +780,10 @@ class _NDFrameIndexer(object):
         axis = 0
         for key in tup:
 
+            if _is_null_slice(key):
+                axis += 1
+                continue
+
             obj = getattr(obj, self.name)._getitem_axis(key, axis=axis, validate_iterable=True)
             axis += 1
 
@@ -1211,10 +1215,9 @@ class _LocIndexer(_LocationIndexer):
                 self._has_valid_type(key, axis)
             return self._getitem_iterable(key, axis=axis)
         elif _is_nested_tuple(key, labels):
-            specs = labels.get_specs(key)
-            g = labels.specs_to_indexer(specs)
+            locs = labels.get_locs(key)
             indexer = [ slice(None) ] * self.ndim
-            indexer[axis] = g
+            indexer[axis] = locs
             return self.obj.iloc[tuple(indexer)]
         else:
             self._has_valid_type(key, axis)

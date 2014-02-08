@@ -1078,7 +1078,7 @@ class TestIndexing(tm.TestCase):
         # test multi-index slicing with per axis and per index controls
         index = MultiIndex.from_tuples([('A',1),('A',2),('A',3),('B',1)],
                                        names=['one','two'])
-        columns = MultiIndex.from_tuples([('a','foo'),('a','bar'),('b','hello'),('b','world')],
+        columns = MultiIndex.from_tuples([('a','foo'),('a','bar'),('b','foo'),('b','bah')],
                                          names=['lvl0', 'lvl1'])
 
         df = DataFrame(np.arange(16).reshape(4, 4), index=index, columns=columns)
@@ -1102,13 +1102,23 @@ class TestIndexing(tm.TestCase):
         assert_frame_equal(result, expected)
 
         # columns
-        result = df.loc[:,(slice(None),['world'])]
-        expected = df.iloc[:,[3]]
+        result = df.loc[:,(slice(None),['foo'])]
+        expected = df.iloc[:,[1,3]]
         assert_frame_equal(result, expected)
 
         # both
-        result = df.loc[(slice(None),1),(slice(None),['world'])]
-        expected = df.iloc[[0,3],[3]]
+        result = df.loc[(slice(None),1),(slice(None),['foo'])]
+        expected = df.iloc[[0,3],[1,3]]
+        assert_frame_equal(result, expected)
+
+        result = df.loc['A','a']
+        expected = DataFrame(dict(bar = [1,5,9], foo = [0,4,8]),
+                             index=Index([1,2,3],name='two'),
+                             columns=Index(['bar','foo'],name='lvl1'))
+        assert_frame_equal(result, expected)
+
+        result = df.loc[(slice(None),[1,2]),:]
+        expected = df.iloc[[0,1,3]]
         assert_frame_equal(result, expected)
 
         # ambiguous cases

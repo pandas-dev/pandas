@@ -1,7 +1,7 @@
 # pylint: disable=E1101,E1103,W0232
 import datetime
 from functools import partial
-from pandas.compat import range, zip, lrange, lzip, u
+from pandas.compat import range, zip, lrange, lzip, u, reduce
 from pandas import compat
 import numpy as np
 
@@ -3231,6 +3231,13 @@ class MultiIndex(Index):
                            if key[i] != slice(None, None)]
                 return indexer, _maybe_drop_levels(indexer, ilevels,
                                                    drop_level)
+        elif isinstance(key, slice):
+            # handle a passed slice for this level
+            start = self._get_level_indexer(key.start,level=level)
+            stop  = self._get_level_indexer(key.stop,level=level)
+            step = key.step
+            indexer = slice(start.start,stop.start,step)
+            return indexer, _maybe_drop_levels(indexer, [level], drop_level)
         else:
             indexer = self._get_level_indexer(key, level=level)
             new_index = _maybe_drop_levels(indexer, [level], drop_level)
@@ -3249,157 +3256,61 @@ class MultiIndex(Index):
             j = labels.searchsorted(loc, side='right')
             return slice(i, j)
 
-    def get_specs(self, tup):
-        """Convert a tuple of slices/label lists/labels to a level-wise spec
+    def get_locs(self, tup):
+        """
+        Given a tuple of slices/lists/labels to a level-wise spec
+        produce an indexer to extract those locations
 
         Parameters
         ----------
-        self: a sufficiently lexsorted, unique/non-dupe MultIindex.
-        tup: a tuple of slices, labels or lists of labels.
-        slice(None) is acceptable, and the case of len(tup)<ix.nlevels
-        will have labels from trailing levels included.
+        key : tuple of (slices/list/labels)
 
         Returns
         -------
-        a list containing ix.nlevels elements of either:
-        - 2-tuple representing a (start,stop) slice
-        or
-        - a list of label positions.
-
-        The positions are relative to the labels of the corresponding level, not to
-        the entire unrolled index.
-
-        Example (This is *not* a doctest):
-        >>> mi = pd.MultiIndex.from_product([['A0', 'A1', 'A2'],['B0', 'B1']])
-        >>> for x in  mi.get_values(): print(x)
-        ('A0', 'B0')
-        ('A0', 'B1')
-        ('A1', 'B0')
-        ('A1', 'B1')
-        ('A2', 'B0')
-        ('A2', 'B1')
-        >>> mi.get_specs((slice('A0','A2'),['B0', 'B1']))
-        [(0, 2), [0, 1]]
-
-        read as:
-        - All labels in position [0,1) in first level
-        - for each of those, all labels at positions 0 or 1.
-
-        The same effective result can be achieved by specifying the None Slice,
-        or omitting it completely. Note the tuple (0,2) has replaced the list [0 1],
-        but the outcome is the same.
-
-        >>> mi.get_locs((slice('A0','A2'),slice(None)))
-        [(0, 2), (0,2)]
-
-        >>> mi.get_locs((slice('A0','A2'),))
-        [(0, 2), (0,2)]
-
+        locs : integer list of locations or boolean indexer suitable
+               for passing to iloc
         """
 
-        ranges = []
-
-        # self must be lexsorted to at least as many levels
-        # as there are elements in `tup`
+        # must be lexsorted to at least as many levels
         assert self.is_lexsorted_for_tuple(tup)
         assert self.is_unique
-        assert isinstance(self,MultiIndex)
 
+        def _convert_indexer(r):
+            if isinstance(r, slice):
+                m = np.zeros(len(self),dtype=bool)
+                m[r] = True
+                return m
+            return r
+
+        ranges = []
         for i,k in enumerate(tup):
-            level = self.levels[i]
 
             if com.is_list_like(k):
-                # a collection of labels to include from this level
-                ranges.append([level.get_loc(x) for x in k])
-                continue
-            if k == slice(None):
-                start = 0
-                stop = len(level)
+                # a collection of labels to include from this level (these are or'd)
+                ranges.append(reduce(
+                    np.logical_or,[ _convert_indexer(self._get_level_indexer(x, level=i)
+                                                     ) for x in k ]))
+            elif k == slice(None):
+                # include all from this level
+                pass
             elif isinstance(k,slice):
-                start = level.get_loc(k.start)
-                stop = len(level)
-                if k.stop:
-                    stop = level.get_loc(k.stop)
+                start = self._get_level_indexer(k.start,level=i)
+                stop  = self._get_level_indexer(k.stop,level=i)
+                step = k.step
+                ranges.append(slice(start.start,stop.start,step))
             else:
                 # a single label
-                # make this into a list of a tuple
-                ranges.append([level.get_loc(k)])
-                continue
+                ranges.append(self.get_loc_level(k,level=i,drop_level=False)[0])
 
-            ranges.append((start,stop))
+        # identity
+        if len(ranges) == 0:
+            return slice(0,len(self))
 
-        for i in range(i+1,len(self.levels)):
-            # omitting trailing dims
-            # means include all values
-            level = self.levels[i]
-            start = 0
-            stop = len(level)
-            ranges.append((start,stop))
+        elif len(ranges) == 1:
+            return ranges[0]
 
-        return ranges
-
-    def specs_to_indexer(self, specs):
-        """ Take a location specification to an indexer
-
-        Parameters
-        ----------
-        self: a sufficiently lexsorted, unique/non-dupe MultIindex.
-        specs: a list of 2-tuples/list of label positions. Specifically, The
-        output of get_specs
-        len(specs) must matc ix.nlevels.
-
-        Returns
-        -------
-        a generator of row positions relative to ix, corresponding to specs.
-        Suitable for usage with `iloc`.
-
-        Example (This is *not* a doctest):
-        >>> mi = pd.MultiIndex.from_product([['A0', 'A1', 'A2'],['B0', 'B1']])
-        >>> for x in  mi.get_values(): print(x)
-        ('A0', 'B0')
-        ('A0', 'B1')
-        ('A1', 'B0')
-        ('A1', 'B1')
-        ('A2', 'B0')
-        ('A2', 'B1')
-
-        >>> locs = mi.get_specs((slice('A0','A2'),['B0', 'B1']))
-        >>> list(mi.specs_to_indexer(locs))
-        [0, 1, 2, 3]
-
-        Which are all the labels having 'A0' to 'A2' (non-inclusive) at level=0
-        and 'B0' or 'B1' at level = 0
-
-        """
-        assert self.is_lexsorted_for_tuple(specs)
-        assert len(specs) == self.nlevels
-        assert self.is_unique
-        assert isinstance(self,MultiIndex)
-
-        # step size/increment for iteration at each level
-        giant_steps = np.cumprod(self.levshape[::-1])[::-1]
-        giant_steps[:-1] = giant_steps[1:]
-        giant_steps[-1] = 1
-
-        def _iter_vectorize(specs, i=0):
-            step_size = giant_steps[i]
-            spec=specs[i]
-            if isinstance(spec,tuple):
-                # tuples are 2-tuples of (start,stop) label indices to include
-                valrange = compat.range(*spec)
-            elif isinstance(spec,list):
-                # lists are discrete label indicies to include
-                valrange = spec
-
-            if len(specs)-1 == i:
-                return np.array(valrange)
-            else:
-                tmpl=np.array([v for v in _iter_vectorize(specs,i+1)])
-                res=np.tile(tmpl,(len(valrange),1))
-                steps=(np.array(valrange)*step_size).reshape((len(valrange),1))
-                return (res+steps).flatten()
-
-        return _iter_vectorize(specs)
+        # construct a boolean indexer if we have a slice or boolean indexer
+        return reduce(np.logical_and,[ _convert_indexer(r) for r in ranges ])
 
     def truncate(self, before=None, after=None):
         """
