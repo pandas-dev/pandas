@@ -860,7 +860,7 @@ class HDFStore(StringMixin):
             raise KeyError('No object named %s in the file' % key)
 
         # remove the node
-        if where is None:
+        if where is None and start is None and stop is None:
             s.group._f_remove(recursive=True)
 
         # delete from the table
@@ -2139,11 +2139,9 @@ class Fixed(StringMixin):
         raise NotImplementedError(
             "cannot write on an abstract storer: sublcasses should implement")
 
-    def delete(self, where=None, **kwargs):
-        """support fully deleting the node in its entirety (only) - where
-        specification must be None
-        """
-        if where is None:
+    def delete(self, where=None, start=None, stop=None, **kwargs):
+        """ support fully deleting the node in its entirety (only) - where specification must be None """
+        if where is None and start is None and stop is None:
             self._handle.removeNode(self.group, recursive=True)
             return None
 
@@ -3712,12 +3710,16 @@ class AppendableTable(LegacyTable):
         except Exception as detail:
             raise TypeError("tables cannot write this data -> %s" % detail)
 
-    def delete(self, where=None, **kwargs):
+    def delete(self, where=None, start=None, stop=None, **kwargs):
 
         # delete all rows (and return the nrows)
         if where is None or not len(where):
-            nrows = self.nrows
-            self._handle.removeNode(self.group, recursive=True)
+            if start is None and stop is None:
+                nrows = self.nrows
+                self._handle.removeNode(self.group, recursive=True)
+            else:
+                nrows = self.table.removeRows(start=start, stop=stop)
+                self.table.flush()
             return nrows
 
         # infer the data kind
@@ -3726,7 +3728,7 @@ class AppendableTable(LegacyTable):
 
         # create the selection
         table = self.table
-        self.selection = Selection(self, where, **kwargs)
+        self.selection = Selection(self, where, start=start, stop=stop, **kwargs)
         values = self.selection.select_coords()
 
         # delete the rows in reverse order
@@ -4304,7 +4306,7 @@ class Selection(object):
         generate the selection
         """
         if self.condition is None:
-            return np.arange(self.table.nrows)
+            return np.arange(0, self.table.nrows)[self.start:self.stop]
 
         return self.table.table.getWhereList(self.condition.format(),
                                              start=self.start, stop=self.stop,
