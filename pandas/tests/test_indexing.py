@@ -1072,7 +1072,13 @@ class TestIndexing(tm.TestCase):
         ix = MultiIndex.from_product([mklbl('A',5),mklbl('B',7),mklbl('C',4),mklbl('D',2)])
         df = DataFrame(np.arange(len(ix.get_values())),index=ix)
         result = df.loc[(slice('A1','A3'),slice(None), ['C1','C3']),:]
-        expected = df.loc[[ tuple([a,b,c,d]) for a,b,c,d in df.index.values if (a == 'A1' or a == 'A2') and (c == 'C1' or c == 'C3')]]
+        expected = df.loc[[ tuple([a,b,c,d]) for a,b,c,d in df.index.values if (
+            a == 'A1' or a == 'A2' or a == 'A3') and (c == 'C1' or c == 'C3')]]
+        assert_frame_equal(result, expected)
+
+        expected = df.loc[[ tuple([a,b,c,d]) for a,b,c,d in df.index.values if (
+            a == 'A1' or a == 'A2' or a == 'A3') and (c == 'C1' or c == 'C2' or c == 'C3')]]
+        result = df.loc[(slice('A1','A3'),slice(None), slice('C1','C3')),:]
         assert_frame_equal(result, expected)
 
         # test multi-index slicing with per axis and per index controls
@@ -1121,12 +1127,163 @@ class TestIndexing(tm.TestCase):
         expected = df.iloc[[0,1,3]]
         assert_frame_equal(result, expected)
 
+        # multi-level series
+        s = Series(np.arange(len(ix.get_values())),index=ix)
+        result = s.loc['A1':'A3', :, ['C1','C3']]
+        expected = s.loc[[ tuple([a,b,c,d]) for a,b,c,d in s.index.values if (
+            a == 'A1' or a == 'A2' or a == 'A3') and (c == 'C1' or c == 'C3')]]
+        assert_series_equal(result, expected)
+
+        # boolean indexers
+        result = df.loc[(slice(None),df.loc[:,('a','bar')]>5),:]
+        expected = df.iloc[[2,3]]
+        assert_frame_equal(result, expected)
+
+        def f():
+            df.loc[(slice(None),np.array([True,False])),:]
+        self.assertRaises(ValueError, f)
+
         # ambiguous cases
         # these can be multiply interpreted
         # but we can catch this in some cases
         def f():
             df.loc[(slice(None),[1])]
         self.assertRaises(KeyError, f)
+
+    def test_per_axis_per_level_getitem_doc_examples(self):
+
+        # from indexing.rst / advanced
+        def mklbl(prefix,n):
+            return ["%s%s" % (prefix,i)  for i in range(n)]
+
+        index = MultiIndex.from_product([mklbl('A',4),
+                                         mklbl('B',2),
+                                         mklbl('C',4),
+                                         mklbl('D',2)])
+        columns = MultiIndex.from_tuples([('a','foo'),('a','bar'),
+                                          ('b','foo'),('b','bah')],
+                                         names=['lvl0', 'lvl1'])
+        df = DataFrame(np.arange(len(index)*len(columns)).reshape((len(index),len(columns))),
+                       index=index,
+                       columns=columns)
+        result = df.loc[(slice('A1','A3'),slice(None), ['C1','C3']),:]
+        expected = df.loc[[ tuple([a,b,c,d]) for a,b,c,d in df.index.values if (
+            a == 'A1' or a == 'A2' or a == 'A3') and (c == 'C1' or c == 'C3')]]
+        assert_frame_equal(result, expected)
+
+        result = df.loc[(slice(None),slice(None), ['C1','C3']),:]
+        expected = df.loc[[ tuple([a,b,c,d]) for a,b,c,d in df.index.values if (
+            c == 'C1' or c == 'C3')]]
+        assert_frame_equal(result, expected)
+
+        # not sorted
+        def f():
+            df.loc['A1',(slice(None),'foo')]
+        self.assertRaises(KeyError, f)
+        df = df.sortlevel(axis=1)
+
+        df.loc['A1',(slice(None),'foo')]
+        df.loc[(slice(None),slice(None), ['C1','C3']),(slice(None),'foo')]
+
+    def test_per_axis_per_level_setitem(self):
+
+        # test multi-index slicing with per axis and per index controls
+        index = MultiIndex.from_tuples([('A',1),('A',2),('A',3),('B',1)],
+                                       names=['one','two'])
+        columns = MultiIndex.from_tuples([('a','foo'),('a','bar'),('b','foo'),('b','bah')],
+                                         names=['lvl0', 'lvl1'])
+
+        df_orig = DataFrame(np.arange(16).reshape(4, 4), index=index, columns=columns)
+        df_orig = df_orig.sortlevel(axis=0).sortlevel(axis=1)
+
+        # identity
+        df = df_orig.copy()
+        df.loc[(slice(None),slice(None)),:] = 100
+        expected = df_orig.copy()
+        expected.iloc[:,:] = 100
+        assert_frame_equal(df, expected)
+
+        df = df_orig.copy()
+        df.loc[(slice(None),slice(None)),(slice(None),slice(None))] = 100
+        expected = df_orig.copy()
+        expected.iloc[:,:] = 100
+        assert_frame_equal(df, expected)
+
+        df = df_orig.copy()
+        df.loc[:,(slice(None),slice(None))] = 100
+        expected = df_orig.copy()
+        expected.iloc[:,:] = 100
+        assert_frame_equal(df, expected)
+
+        # index
+        df = df_orig.copy()
+        df.loc[(slice(None),[1]),:] = 100
+        expected = df_orig.copy()
+        expected.iloc[[0,3]] = 100
+        assert_frame_equal(df, expected)
+
+        df = df_orig.copy()
+        df.loc[(slice(None),1),:] = 100
+        expected = df_orig.copy()
+        expected.iloc[[0,3]] = 100
+        assert_frame_equal(df, expected)
+
+        # columns
+        df = df_orig.copy()
+        df.loc[:,(slice(None),['foo'])] = 100
+        expected = df_orig.copy()
+        expected.iloc[:,[1,3]] = 100
+        assert_frame_equal(df, expected)
+
+        # both
+        df = df_orig.copy()
+        df.loc[(slice(None),1),(slice(None),['foo'])] = 100
+        expected = df_orig.copy()
+        expected.iloc[[0,3],[1,3]] = 100
+        assert_frame_equal(df, expected)
+
+        df = df_orig.copy()
+        df.loc['A','a'] = 100
+        expected = df_orig.copy()
+        expected.iloc[0:3,0:2] = 100
+        assert_frame_equal(df, expected)
+
+        # setting with a list-like
+        df = df_orig.copy()
+        df.loc[(slice(None),1),(slice(None),['foo'])] = np.array([[100, 100], [100, 100]],dtype='int64')
+        expected = df_orig.copy()
+        expected.iloc[[0,3],[1,3]] = 100
+        assert_frame_equal(df, expected)
+
+        # not enough values
+        df = df_orig.copy()
+        def f():
+            df.loc[(slice(None),1),(slice(None),['foo'])] = np.array([[100], [100, 100]],dtype='int64')
+        self.assertRaises(ValueError, f)
+        def f():
+            df.loc[(slice(None),1),(slice(None),['foo'])] = np.array([100, 100, 100, 100],dtype='int64')
+        self.assertRaises(ValueError, f)
+
+        # with an alignable rhs
+        df = df_orig.copy()
+        df.loc[(slice(None),1),(slice(None),['foo'])] = df.loc[(slice(None),1),(slice(None),['foo'])] * 5
+        expected = df_orig.copy()
+        expected.iloc[[0,3],[1,3]] = expected.iloc[[0,3],[1,3]] * 5
+        assert_frame_equal(df, expected)
+
+        df = df_orig.copy()
+        df.loc[(slice(None),1),(slice(None),['foo'])] *= df.loc[(slice(None),1),(slice(None),['foo'])]
+        expected = df_orig.copy()
+        expected.iloc[[0,3],[1,3]] *= expected.iloc[[0,3],[1,3]]
+        assert_frame_equal(df, expected)
+
+        rhs = df_orig.loc[(slice(None),1),(slice(None),['foo'])].copy()
+        rhs.loc[:,('c','bah')] = 10
+        df = df_orig.copy()
+        df.loc[(slice(None),1),(slice(None),['foo'])] *= rhs
+        expected = df_orig.copy()
+        expected.iloc[[0,3],[1,3]] *= expected.iloc[[0,3],[1,3]]
+        assert_frame_equal(df, expected)
 
     def test_getitem_multiindex(self):
 

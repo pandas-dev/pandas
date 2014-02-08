@@ -3231,34 +3231,52 @@ class MultiIndex(Index):
                            if key[i] != slice(None, None)]
                 return indexer, _maybe_drop_levels(indexer, ilevels,
                                                    drop_level)
-        elif isinstance(key, slice):
-            # handle a passed slice for this level
-            start = self._get_level_indexer(key.start,level=level)
-            stop  = self._get_level_indexer(key.stop,level=level)
-            step = key.step
-            indexer = slice(start.start,stop.start,step)
-            return indexer, _maybe_drop_levels(indexer, [level], drop_level)
         else:
             indexer = self._get_level_indexer(key, level=level)
-            new_index = _maybe_drop_levels(indexer, [level], drop_level)
-            return indexer, new_index
+            return indexer, _maybe_drop_levels(indexer, [level], drop_level)
 
     def _get_level_indexer(self, key, level=0):
+        # return a boolean indexer or a slice showing where the key is
+        # in the totality of values
+
         level_index = self.levels[level]
-        loc = level_index.get_loc(key)
         labels = self.labels[level]
 
-        if level > 0 or self.lexsort_depth == 0:
-            return np.array(labels == loc,dtype=bool)
+        if isinstance(key, slice):
+            # handle a slice, returnig a slice if we can
+            # otherwise a boolean indexer
+
+            start = level_index.get_loc(key.start)
+            stop  = level_index.get_loc(key.stop)
+            step = key.step
+
+            if level > 0 or self.lexsort_depth == 0:
+                # need to have like semantics here to right
+                # searching as when we are using a slice
+                # so include the stop+1 (so we include stop)
+                m = np.zeros(len(labels),dtype=bool)
+                m[np.in1d(labels,np.arange(start,stop+1,step))] = True
+                return m
+            else:
+                # sorted, so can return slice object -> view
+                i = labels.searchsorted(start, side='left')
+                j = labels.searchsorted(stop, side='right')
+                return slice(i, j, step)
+
         else:
-            # sorted, so can return slice object -> view
-            i = labels.searchsorted(loc, side='left')
-            j = labels.searchsorted(loc, side='right')
-            return slice(i, j)
+
+            loc = level_index.get_loc(key)
+            if level > 0 or self.lexsort_depth == 0:
+                return np.array(labels == loc,dtype=bool)
+            else:
+                # sorted, so can return slice object -> view
+                i = labels.searchsorted(loc, side='left')
+                j = labels.searchsorted(loc, side='right')
+                return slice(i, j)
 
     def get_locs(self, tup):
         """
-        Given a tuple of slices/lists/labels to a level-wise spec
+        Given a tuple of slices/lists/labels/boolean indexer to a level-wise spec
         produce an indexer to extract those locations
 
         Parameters
@@ -3272,8 +3290,11 @@ class MultiIndex(Index):
         """
 
         # must be lexsorted to at least as many levels
-        assert self.is_lexsorted_for_tuple(tup)
-        assert self.is_unique
+        if not self.is_lexsorted_for_tuple(tup):
+            raise KeyError('MultiIndex Slicing requires the index to be fully lexsorted'
+                           ' tuple len ({0}), lexsort depth ({1})'.format(len(tup), self.lexsort_depth))
+        if not self.is_unique:
+            raise ValueError('MultiIndex Slicing requires a unique index')
 
         def _convert_indexer(r):
             if isinstance(r, slice):
@@ -3285,7 +3306,14 @@ class MultiIndex(Index):
         ranges = []
         for i,k in enumerate(tup):
 
-            if com.is_list_like(k):
+            if com._is_bool_indexer(k):
+                # a boolean indexer, must be the same length!
+                k = np.asarray(k)
+                if len(k) != len(self):
+                    raise ValueError("cannot index with a boolean indexer that is"
+                                     " not the same length as the index")
+                ranges.append(k)
+            elif com.is_list_like(k):
                 # a collection of labels to include from this level (these are or'd)
                 ranges.append(reduce(
                     np.logical_or,[ _convert_indexer(self._get_level_indexer(x, level=i)
@@ -3294,10 +3322,8 @@ class MultiIndex(Index):
                 # include all from this level
                 pass
             elif isinstance(k,slice):
-                start = self._get_level_indexer(k.start,level=i)
-                stop  = self._get_level_indexer(k.stop,level=i)
-                step = k.step
-                ranges.append(slice(start.start,stop.start,step))
+                # a slice, include BOTH of the labels
+                ranges.append(self._get_level_indexer(k,level=i))
             else:
                 # a single label
                 ranges.append(self.get_loc_level(k,level=i,drop_level=False)[0])

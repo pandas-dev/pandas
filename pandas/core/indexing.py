@@ -99,6 +99,7 @@ class _NDFrameIndexer(object):
                                typ=typ)
 
     def __setitem__(self, key, value):
+
         # kludgetastic
         ax = self.obj._get_axis(0)
         if isinstance(ax, MultiIndex):
@@ -130,6 +131,11 @@ class _NDFrameIndexer(object):
             if not self._has_valid_type(k, i):
                 raise ValueError("Location based indexing can only have [%s] "
                                  "types" % self._valid_types)
+
+    def _is_nested_tuple_indexer(self, tup):
+        if any([ isinstance(ax, MultiIndex) for ax in self.obj.axes ]):
+            return any([ _is_nested_tuple(tup,ax) for ax in self.obj.axes ])
+        return False
 
     def _convert_tuple(self, key, is_setter=False):
         keyidx = []
@@ -716,9 +722,8 @@ class _NDFrameIndexer(object):
     def _getitem_lowerdim(self, tup):
 
         # we may have a nested tuples indexer here
-        if any([ isinstance(ax, MultiIndex) for ax in self.obj.axes ]):
-            if any([ _is_nested_tuple(tup,ax) for ax in self.obj.axes ]):
-                return self._getitem_nested_tuple(tup)
+        if self._is_nested_tuple_indexer(tup):
+            return self._getitem_nested_tuple(tup)
 
         # we maybe be using a tuple to represent multiple dimensions here
         ax0 = self.obj._get_axis(0)
@@ -772,7 +777,12 @@ class _NDFrameIndexer(object):
         # multi-index dimension, try to see if we have something like
         # a tuple passed to a series with a multi-index
         if len(tup) > self.ndim:
-            return self._handle_lowerdim_multi_index_axis0(tup)
+            result = self._handle_lowerdim_multi_index_axis0(tup)
+            if result is not None:
+                return result
+
+            # this is a series with a multi-index specified a tuple of selectors
+            return self._getitem_axis(tup, axis=0, validate_iterable=True)
 
         # handle the multi-axis by taking sections and reducing
         # this is iterative
@@ -983,6 +993,8 @@ class _NDFrameIndexer(object):
         if isinstance(obj, slice):
             return self._convert_slice_indexer(obj, axis)
 
+        elif _is_nested_tuple(obj, labels):
+            return labels.get_locs(obj)
         elif _is_list_like(obj):
             if com._is_bool_indexer(obj):
                 obj = _check_bool_indexer(labels, obj)
