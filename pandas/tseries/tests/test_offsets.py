@@ -774,7 +774,7 @@ class TestLastWeekOfMonth(TestBase):
 
         for weekday, date, expected in test_cases:
             offset = LastWeekOfMonth(weekday=weekday)
-            self.assert_(offset.onOffset(date) == expected, date)
+            self.assertEqual(offset.onOffset(date), expected, msg=date)
 
 
 class TestBMonthBegin(TestBase):
