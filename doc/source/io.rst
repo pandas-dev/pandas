@@ -3142,12 +3142,14 @@ the database using :func:`~pandas.io.sql.to_sql`.
 .. ipython:: python
    :suppress:
 
+   import datetime
    c = ['id', 'Date', 'Col_1', 'Col_2', 'Col_3']
    d = [(26, datetime.datetime(2010,10,18), 'X', 27.5, True),
    (42, datetime.datetime(2010,10,19), 'Y', -12.5, False),
    (63, datetime.datetime(2010,10,20), 'Z', 5.73, True)]
 
    data  = DataFrame(d, columns=c)
+   sql.to_sql(data, 'data', engine)
 
 Reading Tables
 ~~~~~~~~~~~~~~
