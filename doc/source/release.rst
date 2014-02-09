@@ -90,6 +90,7 @@ Bug Fixes
 - ``HDFStore.remove`` now handles start and stop (:issue:`6177`)
 - ``HDFStore.select_as_multiple`` handles start and stop the same way as ``select`` (:issue:`6177`)
 - ``HDFStore.select_as_coordinates`` and ``select_column`` works where clauses that result in filters (:issue:`6177`)
+- Bug with numpy < 1.7.2 when reading long strings from ``HDFStore`` (:issue:`6166`)
 
 pandas 0.13.1
 -------------

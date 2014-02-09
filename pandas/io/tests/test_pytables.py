@@ -176,6 +176,24 @@ class TestHDFStore(tm.TestCase):
         finally:
             safe_remove(self.path)
 
+    def test_long_strings(self):
+        df = DataFrame({'a': [tm.rands(100) for _ in range(10)]},
+                index=[tm.rands(100) for _ in range(10)])
+
+        with ensure_clean_store(self.path) as store:
+            store.append('df', df, data_columns=['a'])
+            assert_frame_equal(store['df'], df)
+
+        # test with an encoding
+        if LooseVersion(tables.__version__) < '3.0.0':
+            raise nose.SkipTest('tables version does not support proper encoding')
+        if sys.byteorder != 'little':
+            raise nose.SkipTest('system byteorder is not little')
+
+        with ensure_clean_store(self.path) as store:
+            store.append('df', df, data_columns=['a'], encoding='ascii')
+            assert_frame_equal(store['df'], df)
+
     def test_api(self):
 
         # GH4584
@@ -2199,7 +2217,7 @@ class TestHDFStore(tm.TestCase):
         # GH #4835 and #6177
 
         with ensure_clean_store(self.path) as store:
-            
+
             wp = tm.makePanel()
 
             # start
@@ -2246,7 +2264,7 @@ class TestHDFStore(tm.TestCase):
             result = store.select('wp6')
             expected = wp.reindex(major_axis=wp.major_axis)
             assert_panel_equal(result, expected)
-            
+
             # with where
             date = wp.major_axis.take(np.arange(0,30,3))
             crit = Term('major_axis=date')
@@ -2256,7 +2274,7 @@ class TestHDFStore(tm.TestCase):
             result = store.select('wp7')
             expected = wp.reindex(major_axis=wp.major_axis-wp.major_axis[np.arange(0,20,3)])
             assert_panel_equal(result, expected)
-            
+
 
     def test_remove_crit(self):
 
