@@ -36,11 +36,19 @@ SQL_STRINGS = {
                 `PetalLength` DOUBLE,
                 `PetalWidth` DOUBLE,
                 `Name` VARCHAR(200)
+            )""",
+        'postgresql': """CREATE TABLE iris (
+                "SepalLength" DOUBLE PRECISION,
+                "SepalWidth" DOUBLE PRECISION,
+                "PetalLength" DOUBLE PRECISION,
+                "PetalWidth" DOUBLE PRECISION,
+                "Name" VARCHAR(200)
             )"""
     },
     'insert_iris': {
         'sqlite': """INSERT INTO iris VALUES(?, ?, ?, ?, ?)""",
-        'mysql': """INSERT INTO iris VALUES(%s, %s, %s, %s, "%s");"""
+        'mysql': """INSERT INTO iris VALUES(%s, %s, %s, %s, "%s");""",
+        'postgresql': """INSERT INTO iris VALUES(%s, %s, %s, %s, %s);"""
     },
     'create_test_types': {
         'sqlite': """CREATE TABLE types_test_data (
@@ -62,6 +70,16 @@ SQL_STRINGS = {
                     `BoolCol` BOOLEAN,
                     `IntColWithNull` INTEGER,
                     `BoolColWithNull` BOOLEAN
+                )""",
+        'postgresql': """CREATE TABLE types_test_data (
+                    "TextCol" TEXT,
+                    "DateCol" TIMESTAMP,
+                    "IntDateCol" INTEGER,
+                    "FloatCol" DOUBLE PRECISION,
+                    "IntCol" INTEGER,
+                    "BoolCol" BOOLEAN,
+                    "IntColWithNull" INTEGER,
+                    "BoolColWithNull" BOOLEAN
                 )"""
     },
     'insert_test_types': {
@@ -72,6 +90,10 @@ SQL_STRINGS = {
         'mysql': """
                 INSERT INTO types_test_data
                 VALUES("%s", %s, %s, %s, %s, %s, %s, %s)
+                """,
+        'postgresql': """
+                INSERT INTO types_test_data
+                VALUES(%s, %s, %s, %s, %s, %s, %s, %s)
                 """
     }
 }
@@ -504,8 +526,8 @@ class TestSQLAlchemy(PandasSQLTest):
         self.assertTrue(issubclass(df.IntColWithNull.dtype.type, np.floating),
                         "IntColWithNull loaded with incorrect type")
         # Non-native Bool column with NA values stays as float
-        self.assertTrue(
-            issubclass(df.BoolColWithNull.dtype.type, np.floating), "BoolCol loaded with incorrect type")
+        self.assertTrue(issubclass(df.BoolColWithNull.dtype.type, np.floating), 
+                        "BoolColWithNull loaded with incorrect type")
 
     def test_default_date_load(self):
         df = sql.read_table("types_test_data", self.conn)
@@ -698,6 +720,48 @@ class TestMySQLAlchemy(TestSQLAlchemy):
             # but MySQL SHOULD be converted.
             self.assertTrue(
                 issubclass(df.DateCol.dtype.type, np.datetime64), "DateCol loaded with incorrect type")
+
+
+class TestPostgreSQLAlchemy(TestSQLAlchemy):
+    flavor = 'postgresql'
+    
+    def connect(self):
+        return sqlalchemy.create_engine(
+            'postgresql+{driver}://postgres@localhost/pandas_nosetest'.format(driver=self.driver))
+    
+    def setUp(self):
+        if not SQLALCHEMY_INSTALLED:
+            raise nose.SkipTest('SQLAlchemy not installed')
+    
+        try:
+            import psycopg2
+            self.driver = 'psycopg2'
+    
+        except ImportError:
+            raise nose.SkipTest
+    
+        self.conn = self.connect()
+        self.pandasSQL = sql.PandasSQLAlchemy(self.conn)
+    
+        self._load_iris_data()
+        self._load_raw_sql()
+    
+        self._load_test1_data()
+    
+    def tearDown(self):
+        c = self.conn.execute(
+            "SELECT table_name FROM information_schema.tables"
+            " WHERE table_schema = 'public'")
+        for table in c.fetchall():
+            self.conn.execute("DROP TABLE %s" % table[0])
+    
+    def test_default_date_load(self):
+        df = sql.read_table("types_test_data", self.conn)
+    
+        # IMPORTANT - sqlite has no native date type, so shouldn't parse,
+        # but PostgreSQL SHOULD be converted.
+        self.assertTrue(issubclass(df.DateCol.dtype.type, np.datetime64),
+                        "DateCol loaded with incorrect type")
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
