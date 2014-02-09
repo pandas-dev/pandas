@@ -86,7 +86,11 @@ def read_excel(io, sheetname, **kwds):
     convert_float : boolean, default True
         convert integral floats to int (i.e., 1.0 --> 1). If False, all numeric
         data will be read in as floats: Excel stores all numbers as floats
-        internally.
+        internally
+    has_index_names : boolean, default False
+        True if the cols defined in index_col have an index name and are
+        not in the header. Index name will be placed on a separate line below
+        the header.
 
     Returns
     -------
