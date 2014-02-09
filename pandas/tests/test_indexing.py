@@ -1285,6 +1285,28 @@ class TestIndexing(tm.TestCase):
         expected.iloc[[0,3],[1,3]] *= expected.iloc[[0,3],[1,3]]
         assert_frame_equal(df, expected)
 
+    def test_multiindex_setitem(self):
+
+        # GH 3738
+        # setting with a multi-index right hand side
+        arrays = [np.array(['bar', 'bar', 'baz', 'qux', 'qux', 'bar']),
+                  np.array(['one', 'two', 'one', 'one', 'two', 'one']),
+                  np.arange(0, 6, 1)]
+
+        df_orig = pd.DataFrame(np.random.randn(6, 3),
+                               index=arrays,
+                               columns=['A', 'B', 'C']).sort_index()
+
+        expected = df_orig.loc[['bar']]*2
+        df = df_orig.copy()
+        df.loc[['bar']] *= 2
+        assert_frame_equal(df.loc[['bar']],expected)
+
+        # raise because these have differing levels
+        def f():
+            df.loc['bar'] *= 2
+        self.assertRaises(TypeError, f)
+
     def test_getitem_multiindex(self):
 
         # GH 5725

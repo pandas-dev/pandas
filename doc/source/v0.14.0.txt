@@ -56,13 +56,13 @@ See also issues (:issue:`6134`, :issue:`4036`, :issue:`3057`, :issue:`2598`, :is
 
    .. code-block:: python
 
-      df.loc[(slice('A1','A3'),.....,:]
+      df.loc[(slice('A1','A3'),.....),:]
 
    rather than this:
 
    .. code-block:: python
 
-      df.loc[(slice('A1','A3'),.....]
+      df.loc[(slice('A1','A3'),.....)]
 
 .. warning::
 

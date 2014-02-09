@@ -1742,13 +1742,13 @@ As usual, **both sides** of the slicers are included as this is label indexing.
 
    .. code-block:: python
 
-      df.loc[(slice('A1','A3'),.....,:]
+      df.loc[(slice('A1','A3'),.....),:]
 
    rather than this:
 
    .. code-block:: python
 
-      df.loc[(slice('A1','A3'),.....]
+      df.loc[(slice('A1','A3'),.....)]
 
 .. warning::
 

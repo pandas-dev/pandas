@@ -591,7 +591,14 @@ class _NDFrameIndexer(object):
             if df.index.equals(ax):
                 val = df.copy().values
             else:
-                val = df.reindex(ax).values
+
+                # we have a multi-index and are trying to align
+                # with a particular, level GH3738
+                if isinstance(ax, MultiIndex) and isinstance(
+                    df.index, MultiIndex) and ax.nlevels != df.index.nlevels:
+                    raise TypeError("cannot align on a multi-index with out specifying the join levels")
+
+                val = df.reindex(index=ax).values
             return val
 
         elif np.isscalar(indexer) and not is_frame:

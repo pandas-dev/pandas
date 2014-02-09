@@ -95,6 +95,7 @@ Bug Fixes
 - Issue with groupby ``agg`` with a single function and a a mixed-type frame (:issue:`6337`)
 - Bug in ``DataFrame.replace()`` when passing a non- ``bool``
   ``to_replace`` argument (:issue:`6332`)
+- Raise when trying to align on different levels of a multi-index assignment (:issue:`3738`)
 
 pandas 0.13.1
 -------------
