@@ -5,11 +5,8 @@ env:
   # scatterci API key
   - secure: "Bx5umgo6WjuGY+5XFa004xjCiX/vq0CyMZ/ETzcs7EIBI1BE/0fIDXOoWhoxbY9HPfdPGlDnDgB9nGqr5wArO2s+BavyKBWg6osZ3dmkfuJPMOWeyCa92EeP+sfKw8e5HSU5MizW9e319wHWOF/xkzdHR7T67Qd5erhv91x4DnQ="
   # ironcache API key
-  #- secure: "TWGKPL4FGtWjCQ427QrSffaQBSCPy1QzPdhtYKAW9AlDo/agdp9RyZRQr8WTlyZ5AOG18X8MDdi0EcpFnyfDNd4thCLyZOntxwltlVV2yNNvnird3XRKUV1F2DD42L64wna04M2KYxpCKhEQ84gEnCH1DGD4g1NnR6fYuEYNSTU="
-  #- secure: "NvgIWe14pv4SJ5BQhw6J0zIpCTFH4fVpzr9pRzM2tD8yf/3cspX3uyXTt4owiqtjoQ3aQGNnhWtVlmSwlgJrwu7KUaE9IPtlsENYDniAj2oJgejjx02d367pHtMB/9e3+4b2fWUsFNJgWw0ordiIT0p1lzHRdQ9ut4l/Yn/lkJs="
-  #- secure: "D3ASNRu32pV79lv/Nl0dBm2ldZiTgbb6boOrN0SzIKsQU3yBwedpqX6EI6KjpVg17lGhhhFXGzL2Gz1qjU3/+m6aMvekxHgpfuc0AlEFCEqenWPxIdDDrUkdfJoCvfQQPd5oxChfHgqaEDLjuqHy1ZEgnJ2/L/6dwZ4fUt62hMk="
-  - secure: "FC/lZWjYOJEaI9wwTh2+hy22MSefd+cOUwTGGzqZ6cx3RbKg+aAKCGtXprMdB9QwB5Q6uzcef4cCPw0PgNInX2rNzHHvNT5XTlo+f1/xOF0oVRuSou1nWceEVna4rFs1i8+wv3yIUPQU4OLSVjy2SBZPtpaIdv4m8sATfcDbcAc="
-  - secure: "CMH3boVNgtQKUjRONGaQLSVRhNN6kh6a5TEyoRtUey1D3pjPP6v4LGgoFuXCEykx794jv0JPDoyoPXKlaxoDQUymAEp4bneeFGtHLnC/XOpNcKkT+GJH3RtDWtdowcS/sOnp2VCA+fXqDHAO4uXo/XdXjy7xPcp3cGaboae/NoA="
+  - secure: "Ru9AN9JRwPEVWlG2dva/mmQyrQtTSJ9XMR1VqC3cCDmLBSwUvf/o/RpO/CfIjOIiGNFCJrOMs/wOyeb2EwQOtJOkn2Pygz/qN4JgSwdokceJGCkmh3K3F1dVE0VBekkJAYZRO4XAeEYe3r+txqvMqMWelOfOjQ346535MqG9nf4="
+  - secure: "e4eEFn9nDQc3Xa5BWYkzfX37jaWVq89XidVX+rcCNEr5OlOImvveeXnF1IzbRXznH4Sv0YsLwUd8RGUWOmyCvkONq/VJeqCHWtTMyfaCIdqSyhIP9Odz8r9ahch+Y0XFepBey92AJHmlnTh+2GjCDgIiqq4fzglojnp56Vg1ojA="
   # pandas-docs-bot GH
   - secure: "PCzUFR8CHmw9lH84p4ygnojdF7Z8U5h7YfY0RyT+5K/aiQ1ZTU3ZkDTPI0/rR5FVMxsEEKEQKMcc5fvqW0PeD7Q2wRmluloKgT9w4EVEJ1ppKf7lITPcvZR2QgVOvjv4AfDtibLHFNiaSjzoqyJVjM4igjOu8WTlF3JfZcmOQjQ="
 
