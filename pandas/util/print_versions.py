@@ -54,7 +54,7 @@ def get_sys_info():
 
 
 def show_versions(as_json=False):
-    import imp, importlib
+    import imp
     sys_info = get_sys_info()
 
     deps = [
