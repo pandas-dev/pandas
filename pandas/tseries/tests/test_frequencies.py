@@ -19,81 +19,92 @@ import pandas.compat as compat
 from pandas import _np_version_under1p7
 import pandas.util.testing as tm
 
-def test_to_offset_multiple():
-    freqstr = '2h30min'
-    freqstr2 = '2h 30min'
-
-    result = to_offset(freqstr)
-    assert(result == to_offset(freqstr2))
-    expected = offsets.Minute(150)
-    assert(result == expected)
-
-    freqstr = '2h30min15s'
-    result = to_offset(freqstr)
-    expected = offsets.Second(150 * 60 + 15)
-    assert(result == expected)
-
-    freqstr = '2h 60min'
-    result = to_offset(freqstr)
-    expected = offsets.Hour(3)
-    assert(result == expected)
-
-    freqstr = '15l500u'
-    result = to_offset(freqstr)
-    expected = offsets.Micro(15500)
-    assert(result == expected)
-
-    freqstr = '10s75L'
-    result = to_offset(freqstr)
-    expected = offsets.Milli(10075)
-    assert(result == expected)
-
-    if not _np_version_under1p7:
-        freqstr = '2800N'
-        result = to_offset(freqstr)
-        expected = offsets.Nano(2800)
-        assert(result == expected)
-
-    # malformed
-    try:
-        to_offset('2h20m')
-    except ValueError:
-        pass
-    else:
-        assert(False)
-
-
-def test_to_offset_negative():
-    freqstr = '-1S'
-    result = to_offset(freqstr)
-    assert(result.n == -1)
-
-    freqstr = '-5min10s'
-    result = to_offset(freqstr)
-    assert(result.n == -310)
-
-
-def test_to_offset_leading_zero():
-    freqstr = '00H 00T 01S'
-    result = to_offset(freqstr)
-    assert(result.n == 1)
-
-    freqstr = '-00H 03T 14S'
-    result = to_offset(freqstr)
-    assert(result.n == -194)
-
-
-def test_anchored_shortcuts():
-    result = to_offset('W')
-    expected = to_offset('W-SUN')
-    assert(result == expected)
-
-    result = to_offset('Q')
-    expected = to_offset('Q-DEC')
-    assert(result == expected)
-
 
 _dti = DatetimeIndex
+
+
+class TestToOffset(tm.TestCase):
+
+    def test_to_offset_multiple(self):
+        freqstr = '2h30min'
+        freqstr2 = '2h 30min'
+
+        result = to_offset(freqstr)
+        self.assertEqual(result, to_offset(freqstr2))
+        expected = offsets.Minute(150)
+        self.assertEqual(result, expected)
+
+        freqstr = '2h30min15s'
+        result = to_offset(freqstr)
+        expected = offsets.Second(150 * 60 + 15)
+        self.assertEqual(result, expected)
+
+        freqstr = '2h 60min'
+        result = to_offset(freqstr)
+        expected = offsets.Hour(3)
+        self.assertEqual(result, expected)
+
+        freqstr = '15l500u'
+        result = to_offset(freqstr)
+        expected = offsets.Micro(15500)
+        self.assertEqual(result, expected)
+
+        freqstr = '10s75L'
+        result = to_offset(freqstr)
+        expected = offsets.Milli(10075)
+        self.assertEqual(result, expected)
+
+        if not _np_version_under1p7:
+            freqstr = '2800N'
+            result = to_offset(freqstr)
+            expected = offsets.Nano(2800)
+            self.assertEqual(result, expected)
+
+        # malformed
+        self.assertRaises(ValueError, to_offset, '2h20m')
+
+    def test_to_offset_negative(self):
+        freqstr = '-1S'
+        result = to_offset(freqstr)
+        self.assertEqual(result.n, -1)
+
+        freqstr = '-5min10s'
+        result = to_offset(freqstr)
+        self.assertEqual(result.n, -310)
+
+    def test_to_offset_leading_zero(self):
+        freqstr = '00H 00T 01S'
+        result = to_offset(freqstr)
+        self.assertEqual(result.n, 1)
+
+        freqstr = '-00H 03T 14S'
+        result = to_offset(freqstr)
+        self.assertEqual(result.n, -194)
+
+    def test_anchored_shortcuts(self):
+        result = to_offset('W')
+        expected = to_offset('W-SUN')
+        self.assertEqual(result, expected)
+
+        result = to_offset('Q')
+        expected = to_offset('Q-DEC')
+        self.assertEqual(result, expected)
+
+    def test_offset_timedelta_np(self):
+        from pandas import _np_version_under1p7
+        if _np_version_under1p7:
+            raise nose.SkipTest("to_offset with freq timedelta "
+                                "not supported numpy < 1.7")
+
+        nptd = to_offset(np.timedelta64(100, 'ns'))
+        self.assertEqual(nptd, offsets.Nano(100))
+        nptd = to_offset(np.timedelta64(1, 'ms'))
+        self.assertEqual(nptd, offsets.Nano(10 ** 6))
+
+    def test_offset_timedelta_dt(self):
+        dttd = to_offset(timedelta(1))
+        ms = offsets.Day(1).nanos / 1000
+        self.assertEqual(dttd, offsets.Micro(ms))
 
 
 class TestFrequencyInference(tm.TestCase):
@@ -175,7 +186,8 @@ class TestFrequencyInference(tm.TestCase):
 
     def test_week_of_month_fake(self):
         #All of these dates are on same day of week and are 4 or 5 weeks apart
-        index = DatetimeIndex(["2013-08-27","2013-10-01","2013-10-29","2013-11-26"])
+        index = DatetimeIndex(["2013-08-27", "2013-10-01",
+                               "2013-10-29", "2013-11-26"])
         assert infer_freq(index) != 'WOM-4TUE'
 
     def test_monthly(self):

@@ -97,6 +97,7 @@ Enhancements
 
 
 
+- ``pd.date_range`` accepts datetime and numpy timedeltas (:issue:`6307`).
 
 
 

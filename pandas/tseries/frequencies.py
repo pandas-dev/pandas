@@ -1,6 +1,6 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from pandas.compat import range, long, zip
-from pandas import compat
+from pandas import compat, _np_version_under1p7
 import re
 
 import numpy as np
@@ -241,7 +241,7 @@ _legacy_reverse_map = dict((v, k) for k, v in
 
 def to_offset(freqstr):
     """
-    Return DateOffset object from string representation
+    Return DateOffset object from string representation, or timedelta
 
     Examples
     --------
@@ -251,16 +251,27 @@ def to_offset(freqstr):
     if freqstr is None:
         return None
 
-    if isinstance(freqstr, DateOffset):
+    elif isinstance(freqstr, DateOffset):
         return freqstr
 
-    if isinstance(freqstr, tuple):
+    elif isinstance(freqstr, tuple):
         name = freqstr[0]
         stride = freqstr[1]
         if isinstance(stride, compat.string_types):
             name, stride = stride, name
         name, _ = _base_and_stride(name)
         delta = get_offset(name) * stride
+
+    elif isinstance(freqstr, timedelta):
+        from pandas.tseries.offsets import _delta_to_tick
+        return _delta_to_tick(freqstr)
+
+    elif isinstance(freqstr, np.timedelta64):
+        # Note: numpy timedelta can deal with < ns
+        #       however, pandas offsets do not
+        from pandas.tseries.offsets import _np_delta_to_tick
+        return _np_delta_to_tick(freqstr)
+
     else:
         delta = None
         stride_sign = None
@@ -386,6 +397,38 @@ def get_legacy_offset_name(offset):
     """
     name = offset.name
     return _legacy_reverse_map.get(name, name)
+
+
+def _simplify_offset(offset):
+    '''
+    Simplify representation if possible.
+
+    Example
+    -------
+    >>> _simplify_offset(Second(60))
+    <Minute>
+
+    '''
+    from pandas.tseries.offsets import (Nano, Micro, Milli, Second,
+                                        Minute, Hour, Day)
+    if isinstance((Nano, Micro, Milli, Second, Hour,)):
+        ns = offset.nanos
+
+        def higher_offset(ns, unit, unit_ns):
+            units, rem = divmod(ns, unit_ns)
+            if not rem:
+                return unit(units)
+
+        units_in_ns = [(Day, 86400000000000), (Hour, 3600000000000),
+                       (Minute, 60000000000), (Second, 1000000000)
+                       (Milli, 1000000), (Micro, 1000)]
+
+        # None if can't simplify
+        simplified = any(higher_offset(ns, unit, unit_ns)
+                         for unit, unit_ns in units_in_ns)
+
+    return simplified or offset
+
 
 def get_standard_freq(freq):
     """

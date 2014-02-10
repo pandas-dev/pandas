@@ -171,7 +171,23 @@ class TestIndex(tm.TestCase):
         # GH 6274
         # infer freq of same
         result = pd.infer_freq(df['date'])
-        self.assertEqual(result,'MS')
+        self.assertEqual(result, 'MS')
+
+    def test_timedelta_np(self):
+        from pandas import _np_version_under1p7
+        if _np_version_under1p7:
+            raise nose.SkipTest("to_offset with freq timedelta "
+                                "not supported numpy < 1.7")
+
+        nptd = np.timedelta64(1, 's')
+        dti_n = DatetimeIndex(start='2014-02-01', freq=nptd, periods=2)
+        self.assertEqual(dti_n.freq, offsets.Second(1))
+
+    def test_timedelta_dt(self):
+        dttd = timedelta(1)
+        us = offsets.Day(1).nanos / 1000
+        dti_d = DatetimeIndex(start='2014-02-01', freq=dttd, periods=2)
+        self.assertEqual(dti_d.freq, offsets.Micro(us))
 
     def test_constructor_ndarray_like(self):
         # GH 5460#issuecomment-44474502
