@@ -425,29 +425,12 @@ class TestSQLApi(PandasSQLTest):
             "IntDateCol loaded with incorrect type")
 
 
-class TestSQLAlchemy(PandasSQLTest):
-
-    '''
-    Test the sqlalchemy backend against an in-memory sqlite database.
+class _TestSQLAlchemy(PandasSQLTest):
+    """
+    Base class for testing the sqlalchemy backend. Subclasses for specific
+    database types are created below.
     Assume that sqlalchemy takes case of the DB specifics
-    '''
-    flavor = 'sqlite'
-
-    def connect(self):
-        return sqlalchemy.create_engine('sqlite:///:memory:')
-
-    def setUp(self):
-        # Skip this test if SQLAlchemy not available
-        if not SQLALCHEMY_INSTALLED:
-            raise nose.SkipTest('SQLAlchemy not installed')
-
-        self.conn = self.connect()
-        self.pandasSQL = sql.PandasSQLAlchemy(self.conn)
-
-        self._load_iris_data()
-        self._load_raw_sql()
-
-        self._load_test1_data()
+    """
 
     def test_read_sql(self):
         self._read_sql_iris()
@@ -513,20 +496,20 @@ class TestSQLAlchemy(PandasSQLTest):
             ValueError, sql.read_table, "this_doesnt_exist", con=self.conn)
 
     def test_default_type_convertion(self):
-        """ Test default type conversion"""
         df = sql.read_table("types_test_data", self.conn)
-        self.assertTrue(
-            issubclass(df.FloatCol.dtype.type, np.floating), "FloatCol loaded with incorrect type")
-        self.assertTrue(
-            issubclass(df.IntCol.dtype.type, np.integer), "IntCol loaded with incorrect type")
-        self.assertTrue(
-            issubclass(df.BoolCol.dtype.type, np.integer), "BoolCol loaded with incorrect type")
+
+        self.assertTrue(issubclass(df.FloatCol.dtype.type, np.floating),
+                        "FloatCol loaded with incorrect type")
+        self.assertTrue(issubclass(df.IntCol.dtype.type, np.integer),
+                        "IntCol loaded with incorrect type")
+        self.assertTrue(issubclass(df.BoolCol.dtype.type, np.bool_),
+                        "BoolCol loaded with incorrect type")
 
         # Int column with NA values stays as float
         self.assertTrue(issubclass(df.IntColWithNull.dtype.type, np.floating),
                         "IntColWithNull loaded with incorrect type")
-        # Non-native Bool column with NA values stays as float
-        self.assertTrue(issubclass(df.BoolColWithNull.dtype.type, np.floating), 
+        # Bool column with NA values becomes object
+        self.assertTrue(issubclass(df.BoolColWithNull.dtype.type, np.object), 
                         "BoolColWithNull loaded with incorrect type")
 
     def test_default_date_load(self):
@@ -534,11 +517,10 @@ class TestSQLAlchemy(PandasSQLTest):
 
         # IMPORTANT - sqlite has no native date type, so shouldn't parse, but
         # MySQL SHOULD be converted.
-        self.assertFalse(
+        self.assertTrue(
             issubclass(df.DateCol.dtype.type, np.datetime64), "DateCol loaded with incorrect type")
 
     def test_date_parsing(self):
-        """ Test date parsing """
         # No Parsing
         df = sql.read_table("types_test_data", self.conn)
 
@@ -571,6 +553,54 @@ class TestSQLAlchemy(PandasSQLTest):
             "types_test_data", self.conn, parse_dates={'IntDateCol': {'unit': 's'}})
         self.assertTrue(issubclass(df.IntDateCol.dtype.type, np.datetime64),
                         "IntDateCol loaded with incorrect type")
+
+
+class TestSQLAlchemy(_TestSQLAlchemy):
+    """
+    Test the sqlalchemy backend against an in-memory sqlite database.
+    """
+    flavor = 'sqlite'
+
+    def connect(self):
+        return sqlalchemy.create_engine('sqlite:///:memory:')
+
+    def setUp(self):
+        # Skip this test if SQLAlchemy not available
+        if not SQLALCHEMY_INSTALLED:
+            raise nose.SkipTest('SQLAlchemy not installed')
+
+        self.conn = self.connect()
+        self.pandasSQL = sql.PandasSQLAlchemy(self.conn)
+
+        self._load_iris_data()
+        self._load_raw_sql()
+
+        self._load_test1_data()
+
+    def test_default_type_convertion(self):
+        df = sql.read_table("types_test_data", self.conn)
+
+        self.assertTrue(issubclass(df.FloatCol.dtype.type, np.floating),
+                        "FloatCol loaded with incorrect type")
+        self.assertTrue(issubclass(df.IntCol.dtype.type, np.integer),
+                        "IntCol loaded with incorrect type")
+        # sqlite has no boolean type, so integer type is returned
+        self.assertTrue(issubclass(df.BoolCol.dtype.type, np.integer),
+                        "BoolCol loaded with incorrect type")
+
+        # Int column with NA values stays as float
+        self.assertTrue(issubclass(df.IntColWithNull.dtype.type, np.floating),
+                        "IntColWithNull loaded with incorrect type")
+        # Non-native Bool column with NA values stays as float
+        self.assertTrue(issubclass(df.BoolColWithNull.dtype.type, np.floating), 
+                        "BoolColWithNull loaded with incorrect type")
+
+    def test_default_date_load(self):
+        df = sql.read_table("types_test_data", self.conn)
+
+        # IMPORTANT - sqlite has no native date type, so shouldn't parse, but
+        self.assertFalse(issubclass(df.DateCol.dtype.type, np.datetime64), 
+                         "DateCol loaded with incorrect type")
 
 
 # --- Test SQLITE fallback
@@ -682,7 +712,7 @@ class TestMySQL(TestSQLite):
         self.conn.close()
 
 
-class TestMySQLAlchemy(TestSQLAlchemy):
+class TestMySQLAlchemy(_TestSQLAlchemy):
         flavor = 'mysql'
 
         def connect(self):
@@ -713,16 +743,8 @@ class TestMySQLAlchemy(TestSQLAlchemy):
             for table in c.fetchall():
                 self.conn.execute('DROP TABLE %s' % table[0])
 
-        def test_default_date_load(self):
-            df = sql.read_table("types_test_data", self.conn)
 
-            # IMPORTANT - sqlite has no native date type, so shouldn't parse,
-            # but MySQL SHOULD be converted.
-            self.assertTrue(
-                issubclass(df.DateCol.dtype.type, np.datetime64), "DateCol loaded with incorrect type")
-
-
-class TestPostgreSQLAlchemy(TestSQLAlchemy):
+class TestPostgreSQLAlchemy(_TestSQLAlchemy):
     flavor = 'postgresql'
     
     def connect(self):
@@ -754,14 +776,6 @@ class TestPostgreSQLAlchemy(TestSQLAlchemy):
             " WHERE table_schema = 'public'")
         for table in c.fetchall():
             self.conn.execute("DROP TABLE %s" % table[0])
-    
-    def test_default_date_load(self):
-        df = sql.read_table("types_test_data", self.conn)
-    
-        # IMPORTANT - sqlite has no native date type, so shouldn't parse,
-        # but PostgreSQL SHOULD be converted.
-        self.assertTrue(issubclass(df.DateCol.dtype.type, np.datetime64),
-                        "DateCol loaded with incorrect type")
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
