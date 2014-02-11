@@ -73,6 +73,7 @@ install:
 
 before_script:
   - mysql -e 'create database pandas_nosetest;'
+  - psql -c 'create database pandas_nosetest;' -U postgres
 
 script:
   - echo "script"
