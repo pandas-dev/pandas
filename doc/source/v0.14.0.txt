@@ -15,6 +15,20 @@ Highlights include:
 API changes
 ~~~~~~~~~~~
 
+- ``iloc`` will now accept out-of-bounds indexers, e.g. a value that exceeds the length of the object being
+  indexed. These will be excluded. This will make pandas conform more with pandas/numpy indexing of out-of-bounds
+  values. A single indexer that is out-of-bounds and drops the dimensions of the object will still raise
+  ``IndexError`` (:issue:`6296`). This could result in an empty axis (e.g. an empty DataFrame being returned)
+
+  .. ipython:: python
+
+      df = DataFrame(np.random.randn(5,2),columns=list('AB'))
+      df
+      df.iloc[[4,5,6]]
+      df.iloc[4:6]
+      df.iloc[:,2:3]
+      df.iloc[:,1:3]
+
 Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -30,6 +44,8 @@ Enhancements
 
 - pd.read_clipboard will, if 'sep' is unspecified, try to detect data copied from a spreadsheet
   and parse accordingly. (:issue:`6223`)
+- ``plot(legend='reverse')`` will now reverse the order of legend labels for
+  most plot kinds. (:issue:`6014`)
 
 
 Performance

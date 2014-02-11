@@ -317,8 +317,8 @@ class TestMerge(tm.TestCase):
         df1 = DataFrame({'A': 1., 'B': 2, 'C': 'foo', 'D': True},
                         index=np.arange(10),
                         columns=['A', 'B', 'C', 'D'])
-        self.assert_(df1['B'].dtype == np.int64)
-        self.assert_(df1['D'].dtype == np.bool_)
+        self.assertEqual(df1['B'].dtype, np.int64)
+        self.assertEqual(df1['D'].dtype, np.bool_)
 
         df2 = DataFrame({'A': 1., 'B': 2, 'C': 'foo', 'D': True},
                         index=np.arange(0, 10, 2),
@@ -459,9 +459,9 @@ class TestMerge(tm.TestCase):
         a = DataFrame(randn(10, 2), columns=['a', 'b'], dtype = np.float64)
         b = DataFrame(randn(10, 1), columns=['c'], dtype = np.float32)
         joined = a.join(b)
-        self.assert_(joined.dtypes['a'] == 'float64')
-        self.assert_(joined.dtypes['b'] == 'float64')
-        self.assert_(joined.dtypes['c'] == 'float32')
+        self.assertEqual(joined.dtypes['a'], 'float64')
+        self.assertEqual(joined.dtypes['b'], 'float64')
+        self.assertEqual(joined.dtypes['c'], 'float32')
 
         a = np.random.randint(0, 5, 100).astype('int64')
         b = np.random.random(100).astype('float64')
@@ -470,10 +470,10 @@ class TestMerge(tm.TestCase):
         xpdf = DataFrame({'a': a, 'b': b, 'c': c })
         s = DataFrame(np.random.random(5).astype('float32'), columns=['md'])
         rs = df.merge(s, left_on='a', right_index=True)
-        self.assert_(rs.dtypes['a'] == 'int64')
-        self.assert_(rs.dtypes['b'] == 'float64')
-        self.assert_(rs.dtypes['c'] == 'float32')
-        self.assert_(rs.dtypes['md'] == 'float32')
+        self.assertEqual(rs.dtypes['a'], 'int64')
+        self.assertEqual(rs.dtypes['b'], 'float64')
+        self.assertEqual(rs.dtypes['c'], 'float32')
+        self.assertEqual(rs.dtypes['md'], 'float32')
 
         xp = xpdf.merge(s, left_on='a', right_index=True)
         assert_frame_equal(rs, xp)
@@ -1230,7 +1230,7 @@ class TestConcatenate(tm.TestCase):
         df2 = df2.set_index(['A'])
 
         result = df1.append(df2)
-        self.assert_(result.index.name == 'A')
+        self.assertEqual(result.index.name, 'A')
 
     def test_join_many(self):
         df = DataFrame(np.random.randn(10, 6), columns=list('abcdef'))
@@ -1275,8 +1275,8 @@ class TestConcatenate(tm.TestCase):
                                        dtype=bool)})
 
         appended = df1.append(df2, ignore_index=True)
-        self.assert_(appended['A'].dtype == 'f8')
-        self.assert_(appended['B'].dtype == 'O')
+        self.assertEqual(appended['A'].dtype, 'f8')
+        self.assertEqual(appended['B'].dtype, 'O')
 
     def test_concat_with_group_keys(self):
         df = DataFrame(np.random.randn(4, 3))

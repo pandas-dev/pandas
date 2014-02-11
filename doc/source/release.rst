@@ -56,6 +56,11 @@ New features
 API Changes
 ~~~~~~~~~~~
 
+- ``iloc`` will now accept out-of-bounds indexers, e.g. a value that exceeds the length of the object being
+  indexed. These will be excluded. This will make pandas conform more with pandas/numpy indexing of out-of-bounds
+  values. A single indexer that is out-of-bounds and drops the dimensions of the object will still raise
+  ``IndexError`` (:issue:`6296`)
+- ``select_as_multiple`` will always raise a ``KeyError``, when a key or the selector is not found (:issue:`6177`)
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
@@ -65,6 +70,10 @@ Improvements to existing features
 
 - pd.read_clipboard will, if 'sep' is unspecified, try to detect data copied from a spreadsheet
   and parse accordingly. (:issue:`6223`)
+- pd.expanding_apply and pd.rolling_apply now take args and kwargs that are passed on to
+  the func (:issue:`6289`)
+- ``plot(legend='reverse')`` will now reverse the order of legend labels for most plot kinds.
+  (:issue:`6014`)
 
 .. _release.bug_fixes-0.14.0:
 
@@ -77,6 +86,10 @@ Bug Fixes
 - Bug in ``.xs`` with a Series multiindex (:issue:`6258`, :issue:`5684`)
 - Bug in conversion of a string types to a DatetimeIndex with a specified frequency (:issue:`6273`, :issue:`6274`)
 - Bug in ``eval`` where type-promotion failed for large expressions (:issue:`6205`)
+- Bug in interpolate with inplace=True (:issue:`6281`)
+- ``HDFStore.remove`` now handles start and stop (:issue:`6177`)
+- ``HDFStore.select_as_multiple`` handles start and stop the same way as ``select`` (:issue:`6177`)
+- ``HDFStore.select_as_coordinates`` and ``select_column`` works where clauses that result in filters (:issue:`6177`)
 
 pandas 0.13.1
 -------------

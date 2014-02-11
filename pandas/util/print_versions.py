@@ -89,7 +89,11 @@ def show_versions(as_json=False):
     deps_blob = list()
     for (modname, ver_f) in deps:
         try:
-            mod = imp.load_module(modname, *imp.find_module(modname))
+            try:
+                mod = imp.load_module(modname, *imp.find_module(modname))
+            except (ImportError):
+                import importlib
+                mod = importlib.import_module(modname)
             ver = ver_f(mod)
             deps_blob.append((modname, ver))
         except:

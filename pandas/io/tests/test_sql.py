@@ -649,7 +649,6 @@ class TestMySQL(TestSQLite):
         self.pandasSQL = sql.PandasSQLLegacy(self.conn, 'mysql')
 
         self._load_iris_data()
-
         self._load_test1_data()
 
     def tearDown(self):
@@ -699,3 +698,7 @@ class TestMySQLAlchemy(TestSQLAlchemy):
             # but MySQL SHOULD be converted.
             self.assertTrue(
                 issubclass(df.DateCol.dtype.type, np.datetime64), "DateCol loaded with incorrect type")
+
+if __name__ == '__main__':
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
+                   exit=False)

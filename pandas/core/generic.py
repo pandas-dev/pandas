@@ -1756,10 +1756,6 @@ class NDFrame(PandasObject):
         l = len(self)
         if l == 0 or n==0:
             return self
-        if n > l:
-            n = l
-        elif n < -l:
-            n = -l
         return self.iloc[:n]
 
     def tail(self, n=5):
@@ -1769,10 +1765,6 @@ class NDFrame(PandasObject):
         l = len(self)
         if l == 0 or n == 0:
             return self
-        if n > l:
-            n = l
-        elif n < -l:
-            n = -l
         return self.iloc[-n:]
 
     #----------------------------------------------------------------------
@@ -2541,9 +2533,9 @@ class NDFrame(PandasObject):
                 self._update_inplace(new_data)
         else:
             res = self._constructor(new_data).__finalize__(self)
-        if axis == 1:
-            res = res.T
-        return res
+            if axis == 1:
+                res = res.T
+            return res
 
     #----------------------------------------------------------------------
     # Action Methods

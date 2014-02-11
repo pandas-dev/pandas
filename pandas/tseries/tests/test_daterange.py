@@ -265,7 +265,7 @@ class TestDateRange(tm.TestCase):
         expected = rng[10:25]
         self.assert_(the_int.equals(expected))
         tm.assert_isinstance(the_int, DatetimeIndex)
-        self.assert_(the_int.offset == rng.offset)
+        self.assertEqual(the_int.offset, rng.offset)
 
         the_int = rng1.intersection(rng2.view(DatetimeIndex))
         self.assert_(the_int.equals(expected))
@@ -363,7 +363,7 @@ class TestDateRange(tm.TestCase):
         end = datetime(2011, 1, 3, tzinfo=tz('US/Eastern'))
 
         dr = date_range(start=start, periods=3)
-        self.assert_(dr.tz == tz('US/Eastern'))
+        self.assertEqual(dr.tz, tz('US/Eastern'))
         self.assertEqual(dr[0], start)
         self.assertEqual(dr[2], end)
 

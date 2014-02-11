@@ -252,13 +252,13 @@ class TestSparseSeries(tm.TestCase,
         values = np.ones(self.bseries.npoints)
         sp = SparseSeries(values, sparse_index=self.bseries.sp_index)
         sp.sp_values[:5] = 97
-        self.assert_(values[0] == 97)
+        self.assertEqual(values[0], 97)
 
         # but can make it copy!
         sp = SparseSeries(values, sparse_index=self.bseries.sp_index,
                           copy=True)
         sp.sp_values[:5] = 100
-        self.assert_(values[0] == 97)
+        self.assertEqual(values[0], 97)
 
     def test_constructor_scalar(self):
         data = 5
@@ -282,7 +282,7 @@ class TestSparseSeries(tm.TestCase,
         cop = self.bseries.astype(np.float64)
         self.assert_(cop is not self.bseries)
         self.assert_(cop.sp_index is self.bseries.sp_index)
-        self.assert_(cop.dtype == np.float64)
+        self.assertEqual(cop.dtype, np.float64)
 
         cop2 = self.iseries.copy()
 
@@ -291,8 +291,8 @@ class TestSparseSeries(tm.TestCase,
 
         # test that data is copied
         cop[:5] = 97
-        self.assert_(cop.sp_values[0] == 97)
-        self.assert_(self.bseries.sp_values[0] != 97)
+        self.assertEqual(cop.sp_values[0], 97)
+        self.assertNotEqual(self.bseries.sp_values[0], 97)
 
         # correct fill value
         zbcop = self.zbseries.copy()
@@ -376,7 +376,7 @@ class TestSparseSeries(tm.TestCase,
         self.assertEqual(self.btseries[idx], 0)
 
         self.iseries.set_value('foobar', 0)
-        self.assert_(self.iseries.index[-1] == 'foobar')
+        self.assertEqual(self.iseries.index[-1], 'foobar')
         self.assertEqual(self.iseries['foobar'], 0)
 
     def test_getitem_slice(self):
@@ -423,7 +423,7 @@ class TestSparseSeries(tm.TestCase,
 
     def test_setitem(self):
         self.bseries[5] = 7.
-        self.assert_(self.bseries[5] == 7.)
+        self.assertEqual(self.bseries[5], 7.)
 
     def test_setslice(self):
         self.bseries[5:10] = 7.
@@ -779,15 +779,15 @@ class TestSparseDataFrame(tm.TestCase, test_frame.SafeForSparse):
 
     def test_as_matrix(self):
         empty = self.empty.as_matrix()
-        self.assert_(empty.shape == (0, 0))
+        self.assertEqual(empty.shape, (0, 0))
 
         no_cols = SparseDataFrame(index=np.arange(10))
         mat = no_cols.as_matrix()
-        self.assert_(mat.shape == (10, 0))
+        self.assertEqual(mat.shape, (10, 0))
 
         no_index = SparseDataFrame(columns=np.arange(10))
         mat = no_index.as_matrix()
-        self.assert_(mat.shape == (0, 10))
+        self.assertEqual(mat.shape, (0, 10))
 
     def test_copy(self):
         cp = self.frame.copy()
@@ -859,8 +859,8 @@ class TestSparseDataFrame(tm.TestCase, test_frame.SafeForSparse):
 
     def test_constructor_empty(self):
         sp = SparseDataFrame()
-        self.assert_(len(sp.index) == 0)
-        self.assert_(len(sp.columns) == 0)
+        self.assertEqual(len(sp.index), 0)
+        self.assertEqual(len(sp.columns), 0)
 
     def test_constructor_dataframe(self):
         dense = self.frame.to_dense()
@@ -1087,14 +1087,14 @@ class TestSparseDataFrame(tm.TestCase, test_frame.SafeForSparse):
         # ok as the index gets conver to object
         frame = self.frame.copy()
         res = frame.set_value('foobar', 'B', 1.5)
-        self.assert_(res.index.dtype == 'object')
+        self.assertEqual(res.index.dtype, 'object')
 
         res = self.frame
         res.index = res.index.astype(object)
 
         res = self.frame.set_value('foobar', 'B', 1.5)
         self.assert_(res is not self.frame)
-        self.assert_(res.index[-1] == 'foobar')
+        self.assertEqual(res.index[-1], 'foobar')
         self.assertEqual(res.get_value('foobar', 'B'), 1.5)
 
         res2 = res.set_value('foobar', 'qux', 1.5)
@@ -1239,7 +1239,7 @@ class TestSparseDataFrame(tm.TestCase, test_frame.SafeForSparse):
         assert_almost_equal(applied.values, np.sqrt(self.frame.values))
 
         applied = self.fill_frame.apply(np.sqrt)
-        self.assert_(applied['A'].fill_value == np.sqrt(2))
+        self.assertEqual(applied['A'].fill_value, np.sqrt(2))
 
         # agg / broadcast
         broadcasted = self.frame.apply(np.sum, broadcast=True)

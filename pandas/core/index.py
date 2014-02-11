@@ -621,9 +621,15 @@ class Index(FrozenNDArray):
             if com._is_bool_indexer(key):
                 key = np.asarray(key)
 
-            result = arr_idx[key]
-            if result.ndim > 1:
-                return result
+            try:
+                result = arr_idx[key]
+                if result.ndim > 1:
+                    return result
+            except (IndexError):
+                if not len(key):
+                    result = []
+                else:
+                    raise
 
             return Index(result, name=self.name)
 

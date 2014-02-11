@@ -3246,7 +3246,7 @@ class BlockManager(PandasObject):
         pandas-indexer with -1's only.
         """
         # trying to reindex on an axis with duplicates
-        if not allow_dups and not self.axes[axis].is_unique:
+        if not allow_dups and not self.axes[axis].is_unique and len(indexer):
             raise ValueError("cannot reindex from a duplicate axis")
 
         if not self.is_consolidated():

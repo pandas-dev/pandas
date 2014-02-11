@@ -119,13 +119,13 @@ class TestMoments(tm.TestCase):
         # empty
         vals = np.array([])
         rs = mom.rolling_window(vals, 5, 'boxcar', center=True)
-        self.assert_(len(rs) == 0)
+        self.assertEqual(len(rs), 0)
 
         # shorter than window
         vals = np.random.randn(5)
         rs = mom.rolling_window(vals, 10, 'boxcar')
         self.assert_(np.isnan(rs).all())
-        self.assert_(len(rs) == 5)
+        self.assertEqual(len(rs), 5)
 
     def test_cmov_window_frame(self):
         _skip_if_no_scipy()
@@ -570,7 +570,7 @@ class TestMoments(tm.TestCase):
 
         # pass in ints
         result2 = func(np.arange(50), span=10)
-        self.assert_(result2.dtype == np.float_)
+        self.assertEqual(result2.dtype, np.float_)
 
     def _check_ew_structures(self, func):
         series_result = func(self.series, com=10)
@@ -693,6 +693,21 @@ class TestMoments(tm.TestCase):
                                        min_periods=min_periods,
                                        freq=freq)
         self._check_expanding(expanding_mean, np.mean)
+
+    def test_expanding_apply_args_kwargs(self):
+        def mean_w_arg(x, const):
+            return np.mean(x) + const
+
+        df = DataFrame(np.random.rand(20, 3))
+
+        expected = mom.expanding_apply(df, np.mean) + 20.
+
+        assert_frame_equal(mom.expanding_apply(df, mean_w_arg, args=(20,)),
+                            expected)
+        assert_frame_equal(mom.expanding_apply(df, mean_w_arg,
+                                               kwargs={'const' : 20}),
+                            expected)
+
 
     def test_expanding_corr(self):
         A = self.series.dropna()

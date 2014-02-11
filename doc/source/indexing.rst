@@ -77,8 +77,9 @@ of multi-axis indexing.
   See more at :ref:`Selection by Label <indexing.label>`
 
 - ``.iloc`` is strictly integer position based (from ``0`` to ``length-1`` of
-  the axis), will raise ``IndexError`` when the requested indicies are out of
-  bounds. Allowed inputs are:
+  the axis), will raise ``IndexError`` if a single index is requested and it
+  is out-of-bounds, otherwise it will conform the bounds to size of the object.
+  Allowed inputs are:
 
   - An integer e.g. ``5``
   - A list or array of integers ``[4, 3, 0]``
@@ -420,12 +421,19 @@ python/numpy allow slicing past the end of an array without an associated error.
     x[4:10]
     x[8:10]
 
-Pandas will detect this and raise ``IndexError``, rather than return an empty structure.
+- as of v0.14.0, ``iloc`` will now accept out-of-bounds indexers, e.g. a value that exceeds the length of the object being
+  indexed. These will be excluded. This will make pandas conform more with pandas/numpy indexing of out-of-bounds
+  values. A single indexer that is out-of-bounds and drops the dimensions of the object will still raise
+  ``IndexError`` (:issue:`6296`). This could result in an empty axis (e.g. an empty DataFrame being returned)
 
-::
+  .. ipython:: python
 
-    >>> df.iloc[:,3:6]
-    IndexError: out-of-bounds on slice (end)
+      df = DataFrame(np.random.randn(5,2),columns=list('AB'))
+      df
+      df.iloc[[4,5,6]]
+      df.iloc[4:6]
+      df.iloc[:,2:3]
+      df.iloc[:,1:3]
 
 .. _indexing.basics.partial_setting:
 

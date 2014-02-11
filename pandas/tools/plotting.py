@@ -1227,6 +1227,15 @@ class KdePlot(MPLPlot):
         if self.legend:
             for ax in self.axes:
                 ax.legend(loc='best')
+            leg = self.axes[0].get_legend()
+            if leg is not None:
+                lines = leg.get_lines()
+                labels = [x.get_text() for x in leg.get_texts()]
+
+                if self.legend == 'reverse':
+                    lines = reversed(lines)
+                    labels = reversed(labels)
+                ax.legend(lines, labels, loc='best', title=self.legend_title)
 
 class ScatterPlot(MPLPlot):
     def __init__(self, data, x, y, **kwargs):
@@ -1411,6 +1420,9 @@ class LinePlot(MPLPlot):
                 ax.legend(ext_lines, ext_labels, loc='best',
                           title=self.legend_title)
             elif self.legend:
+                if self.legend == 'reverse':
+                    lines = reversed(lines)
+                    labels = reversed(labels)
                 ax.legend(lines, labels, loc='best', title=self.legend_title)
 
     def _get_ax_legend(self, ax):
@@ -1567,6 +1579,9 @@ class BarPlot(MPLPlot):
 
         if self.legend and not self.subplots:
             patches = [r[0] for r in rects]
+            if self.legend == 'reverse':
+                patches = reversed(patches)
+                labels = reversed(labels)
             self.axes[0].legend(patches, labels, loc='best',
                                 title=self.legend_title)
 
@@ -1642,7 +1657,7 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
         Title to use for the plot
     grid : boolean, default None (matlab style default)
         Axis grid lines
-    legend : boolean, default True
+    legend : False/True/'reverse'
         Place legend on axis subplots
 
     ax : matplotlib axis object, default None

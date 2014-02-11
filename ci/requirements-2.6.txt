@@ -7,3 +7,4 @@ html5lib==1.0b2
 bigquery==2.0.17
 sqlalchemy==0.8.1
 numexpr==1.4.2
+sqlalchemy==0.8.1

@@ -1823,7 +1823,7 @@ class. The following two command are equivalent:
     read_excel('path_to_file.xls', 'Sheet1', index_col=None, na_values=['NA'])
 
 The class based approach can be used to read multiple sheets or to introspect
-the sheet names using the ``sheet_names`` attribute. 
+the sheet names using the ``sheet_names`` attribute.
 
 .. note::
 
@@ -1882,6 +1882,15 @@ written.  For example:
 Files with a ``.xls`` extension will be written using ``xlwt`` and those with a
 ``.xlsx`` extension will be written using ``xlsxwriter`` (if available) or
 ``openpyxl``.
+
+The DataFrame will be written in a way that tries to mimic the REPL output. One
+difference from 0.12.0 is that the ``index_label`` will be placed in the second
+row instead of the first. You can get the previous behaviour by setting the
+``merge_cells`` option in ``to_excel()`` to ``False``:
+
+.. code-block:: python
+
+   df.to_excel('path_to_file.xlsx', index_label='label', merge_cells=False)
 
 The Panel class also has a ``to_excel`` instance method,
 which writes each DataFrame in the Panel to a separate sheet.
@@ -3069,7 +3078,7 @@ SQL Queries
 
 The :mod:`pandas.io.sql` module provides a collection of query wrappers to both
 facilitate data retrieval and to reduce dependency on DB-specific API. Database abstraction
-is provided by SQLAlchemy if installed, in addition you will need a driver library for 
+is provided by SQLAlchemy if installed, in addition you will need a driver library for
 your database.
 
 .. versionadded:: 0.14.0
@@ -3077,7 +3086,7 @@ your database.
 
 If SQLAlchemy is not installed a legacy fallback is provided for sqlite and mysql.
 These legacy modes require Python database adapters which respect the `Python
-DB-API <http://www.python.org/dev/peps/pep-0249/>`__. 
+DB-API <http://www.python.org/dev/peps/pep-0249/>`__.
 
 See also some :ref:`cookbook examples <cookbook.sql>` for some advanced strategies.
 
@@ -3100,7 +3109,7 @@ below and the SQLAlchemy `documentation <http://docs.sqlalchemy.org/en/rel_0_9/c
 
 .. code-block:: python
 
-   from sqlalchemy import create_engine   
+   from sqlalchemy import create_engine
    from pandas.io import sql
    # Create your connection.
    engine = create_engine('sqlite:///:memory:')
@@ -3108,7 +3117,7 @@ below and the SQLAlchemy `documentation <http://docs.sqlalchemy.org/en/rel_0_9/c
 Writing DataFrames
 ~~~~~~~~~~~~~~~~~~
 
-Assuming the following data is in a DataFrame ``data``, we can insert it into 
+Assuming the following data is in a DataFrame ``data``, we can insert it into
 the database using :func:`~pandas.io.sql.to_sql`.
 
 
@@ -3126,22 +3135,20 @@ the database using :func:`~pandas.io.sql.to_sql`.
 .. ipython:: python
    :suppress:
 
-   from sqlalchemy import create_engine   
+   from sqlalchemy import create_engine
    from pandas.io import sql
    engine = create_engine('sqlite:///:memory:')
 
 .. ipython:: python
    :suppress:
-   
+
+   import datetime
    c = ['id', 'Date', 'Col_1', 'Col_2', 'Col_3']
    d = [(26, datetime.datetime(2010,10,18), 'X', 27.5, True),
    (42, datetime.datetime(2010,10,19), 'Y', -12.5, False),
    (63, datetime.datetime(2010,10,20), 'Z', 5.73, True)]
 
    data  = DataFrame(d, columns=c)
-
-.. ipython:: python
-   
    sql.to_sql(data, 'data', engine)
 
 Reading Tables
@@ -3151,12 +3158,12 @@ Reading Tables
 table name and optionally a subset of columns to read.
 
 .. note::
-    
-    In order to use :func:`~pandas.io.sql.read_table`, you **must** have the 
+
+    In order to use :func:`~pandas.io.sql.read_table`, you **must** have the
     SQLAlchemy optional dependency installed.
 
 .. ipython:: python
-   
+
    sql.read_table('data', engine)
 
 You can also specify the name of the column as the DataFrame index,
@@ -3184,7 +3191,7 @@ to pass to :func:`pandas.tseries.tools.to_datetime`.
 
 You can check if a table exists using :func:`~pandas.io.sql.has_table`
 
-In addition, the class :class:`~pandas.io.sql.PandasSQLWithEngine` can be 
+In addition, the class :class:`~pandas.io.sql.PandasSQLWithEngine` can be
 instantiated directly for more manual control over the SQL interaction.
 
 Querying
@@ -3196,7 +3203,7 @@ When using SQLAlchemy, you can also pass SQLAlchemy Expression language construc
 which are database-agnostic.
 
 .. ipython:: python
-   
+
   sql.read_sql('SELECT * FROM data', engine)
 
 Of course, you can specify a more "complex" query.
@@ -3206,10 +3213,10 @@ Of course, you can specify a more "complex" query.
    sql.read_frame("SELECT id, Col_1, Col_2 FROM data WHERE id = 42;", engine)
 
 
-You can also run a plain query without creating a dataframe with 
+You can also run a plain query without creating a dataframe with
 :func:`~pandas.io.sql.execute`. This is useful for queries that don't return values,
-such as INSERT. This is functionally equivalent to calling ``execute`` on the 
-SQLAlchemy engine or db connection object. Again, ou must use the SQL syntax
+such as INSERT. This is functionally equivalent to calling ``execute`` on the
+SQLAlchemy engine or db connection object. Again, you must use the SQL syntax
 variant appropriate for your database.
 
 .. code-block:: python
@@ -3219,13 +3226,17 @@ variant appropriate for your database.
    sql.execute('INSERT INTO table_name VALUES(?, ?, ?)', engine, params=[('id', 1, 12.2, True)])
 
 
+In addition, the class :class:`~pandas.io.sql.PandasSQLWithEngine` can be
+instantiated directly for more manual control over the SQL interaction.
+
+
 Engine connection examples
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: python
-  
+
   from sqlalchemy import create_engine
-  
+
   engine = create_engine('postgresql://scott:tiger@localhost:5432/mydatabase')
 
   engine = create_engine('mysql+mysqldb://scott:tiger@localhost/foo')
@@ -3256,7 +3267,7 @@ And then issue the following queries, remembering to also specify the flavor of 
 you are using.
 
 .. code-block:: python
-   
+
    sql.to_sql(data, 'data', cnx,  flavor='sqlite')
 
    sql.read_sql("SELECT * FROM data", cnx, flavor='sqlite')
