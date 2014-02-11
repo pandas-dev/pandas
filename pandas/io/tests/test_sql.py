@@ -426,6 +426,7 @@ class TestSQLApi(PandasSQLTest):
 
 
 class _TestSQLAlchemy(PandasSQLTest):
+
     """
     Base class for testing the sqlalchemy backend. Subclasses for specific
     database types are created below.
@@ -509,7 +510,7 @@ class _TestSQLAlchemy(PandasSQLTest):
         self.assertTrue(issubclass(df.IntColWithNull.dtype.type, np.floating),
                         "IntColWithNull loaded with incorrect type")
         # Bool column with NA values becomes object
-        self.assertTrue(issubclass(df.BoolColWithNull.dtype.type, np.object), 
+        self.assertTrue(issubclass(df.BoolColWithNull.dtype.type, np.object),
                         "BoolColWithNull loaded with incorrect type")
 
     def test_default_date_load(self):
@@ -555,7 +556,8 @@ class _TestSQLAlchemy(PandasSQLTest):
                         "IntDateCol loaded with incorrect type")
 
 
-class TestSQLAlchemy(_TestSQLAlchemy):
+class TestSQLiteAlchemy(_TestSQLAlchemy):
+
     """
     Test the sqlalchemy backend against an in-memory sqlite database.
     """
@@ -592,14 +594,14 @@ class TestSQLAlchemy(_TestSQLAlchemy):
         self.assertTrue(issubclass(df.IntColWithNull.dtype.type, np.floating),
                         "IntColWithNull loaded with incorrect type")
         # Non-native Bool column with NA values stays as float
-        self.assertTrue(issubclass(df.BoolColWithNull.dtype.type, np.floating), 
+        self.assertTrue(issubclass(df.BoolColWithNull.dtype.type, np.floating),
                         "BoolColWithNull loaded with incorrect type")
 
     def test_default_date_load(self):
         df = sql.read_table("types_test_data", self.conn)
 
         # IMPORTANT - sqlite has no native date type, so shouldn't parse, but
-        self.assertFalse(issubclass(df.DateCol.dtype.type, np.datetime64), 
+        self.assertFalse(issubclass(df.DateCol.dtype.type, np.datetime64),
                          "DateCol loaded with incorrect type")
 
 
@@ -746,30 +748,30 @@ class TestMySQLAlchemy(_TestSQLAlchemy):
 
 class TestPostgreSQLAlchemy(_TestSQLAlchemy):
     flavor = 'postgresql'
-    
+
     def connect(self):
         return sqlalchemy.create_engine(
             'postgresql+{driver}://postgres@localhost/pandas_nosetest'.format(driver=self.driver))
-    
+
     def setUp(self):
         if not SQLALCHEMY_INSTALLED:
             raise nose.SkipTest('SQLAlchemy not installed')
-    
+
         try:
             import psycopg2
             self.driver = 'psycopg2'
-    
+
         except ImportError:
             raise nose.SkipTest
-    
+
         self.conn = self.connect()
         self.pandasSQL = sql.PandasSQLAlchemy(self.conn)
-    
+
         self._load_iris_data()
         self._load_raw_sql()
-    
+
         self._load_test1_data()
-    
+
     def tearDown(self):
         c = self.conn.execute(
             "SELECT table_name FROM information_schema.tables"
