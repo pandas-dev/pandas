@@ -3,7 +3,7 @@ Collection of query wrappers / abstractions to both facilitate data
 retrieval and to reduce dependency on DB-specific API.
 """
 from __future__ import print_function
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import warnings
 from pandas.compat import lzip, map, zip, raise_with_traceback, string_types
 import numpy as np
@@ -538,7 +538,7 @@ class PandasSQLTable(PandasObject):
                 pass  # this column not in results
 
     def _sqlalchemy_type(self, dtype):
-        from sqlalchemy.types import Integer, Float, Text, Boolean, DateTime, Date
+        from sqlalchemy.types import Integer, Float, Text, Boolean, DateTime, Date, Interval
 
         pytype = dtype.type
 
@@ -547,6 +547,9 @@ class PandasSQLTable(PandasObject):
         if issubclass(pytype, np.datetime64) or pytype is datetime:
             # Caution: np.datetime64 is also a subclass of np.number.
             return DateTime
+        if issubclass(pytype, np.timedelta64) or pytype is timedelta:
+            # Caution: np.datetime64 is also a subclass of np.number.
+            return Interval
         if issubclass(pytype, np.floating):
             return Float
         if issubclass(pytype, np.integer):
