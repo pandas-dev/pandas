@@ -314,7 +314,7 @@ class StataParser(object):
                     (65530, np.int8)
                 ]
             )
-        self.TYPE_MAP = lrange(251) + list('bhlfd')
+        self.TYPE_MAP = lrange(251) + list('hlqfd')
         self.TYPE_MAP_XML = \
             dict(
                 [
