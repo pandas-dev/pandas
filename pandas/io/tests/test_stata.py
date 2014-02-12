@@ -287,7 +287,6 @@ class TestStata(tm.TestCase):
                                   original)
 
 
-
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
