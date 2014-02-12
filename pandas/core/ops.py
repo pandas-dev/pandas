@@ -476,16 +476,15 @@ def _arith_method_SERIES(op, name, str_rep=None, fill_zeros=None,
             wrap_results = time_converted.wrap_results
 
         if isinstance(rvalues, pd.Series):
-            join_idx, lidx, ridx = left.index.join(rvalues.index, how='outer',
-                                                   return_indexers=True)
-            rindex = rvalues.index
+            rindex = getattr(rvalues,'index',rvalues)
             name = _maybe_match_name(left, rvalues)
             lvalues = getattr(lvalues, 'values', lvalues)
             rvalues = getattr(rvalues, 'values', rvalues)
             if left.index.equals(rindex):
                 index = left.index
             else:
-                index = join_idx
+                index, lidx, ridx = left.index.join(rindex, how='outer',
+                                                       return_indexers=True)
 
                 if lidx is not None:
                     lvalues = com.take_1d(lvalues, lidx)

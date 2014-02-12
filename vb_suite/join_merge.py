@@ -202,3 +202,23 @@ right = DataFrame({'key' : np.arange(10000),
 """
 
 stmt = "ordered_merge(left, right, on='key', left_by='group')"
+
+#----------------------------------------------------------------------
+# outer join of non-unique
+# GH 6329
+
+setup = common_setup + """
+date_index = pd.date_range('01-Jan-2013', '23-Jan-2013', freq='T')
+daily_dates = date_index.to_period('D').to_timestamp('S','S')
+fracofday = date_index.view(np.ndarray) - daily_dates.view(np.ndarray)
+fracofday = fracofday.astype('timedelta64[ns]').astype(np.float64)/864e11
+fracofday = pd.TimeSeries(fracofday, daily_dates)
+index = pd.date_range(date_index.min().to_period('A').to_timestamp('D','S'),
+                      date_index.max().to_period('A').to_timestamp('D','E'),
+                      freq='D')
+temp = pd.TimeSeries(1.0, index)
+"""
+
+join_non_unique_equal = Benchmark('fracofday * temp[fracofday.index]', setup,
+                                   start_date=datetime(2013 1, 1))
+
