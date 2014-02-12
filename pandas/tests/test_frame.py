@@ -1563,24 +1563,24 @@ class CheckIndexing(object):
         # so column is not created
         df = df_orig.copy()
         df.set_value('C', 2, 1.0)
-        self.assert_(list(df.index) == list(df_orig.index) + ['C'])
-        #self.assert_(list(df.columns) == list(df_orig.columns) + [2])
+        self.assertEqual(list(df.index), list(df_orig.index) + ['C'])
+        #self.assertEqual(list(df.columns), list(df_orig.columns) + [2])
 
         df = df_orig.copy()
         df.loc['C', 2] = 1.0
-        self.assert_(list(df.index) == list(df_orig.index) + ['C'])
-        #self.assert_(list(df.columns) == list(df_orig.columns) + [2])
+        self.assertEqual(list(df.index), list(df_orig.index) + ['C'])
+        #self.assertEqual(list(df.columns), list(df_orig.columns) + [2])
 
         # create both new
         df = df_orig.copy()
         df.set_value('C', 'D', 1.0)
-        self.assert_(list(df.index) == list(df_orig.index) + ['C'])
-        self.assert_(list(df.columns) == list(df_orig.columns) + ['D'])
+        self.assertEqual(list(df.index), list(df_orig.index) + ['C'])
+        self.assertEqual(list(df.columns), list(df_orig.columns) + ['D'])
 
         df = df_orig.copy()
         df.loc['C', 'D'] = 1.0
-        self.assert_(list(df.index) == list(df_orig.index) + ['C'])
-        self.assert_(list(df.columns) == list(df_orig.columns) + ['D'])
+        self.assertEqual(list(df.index), list(df_orig.index) + ['C'])
+        self.assertEqual(list(df.columns), list(df_orig.columns) + ['D'])
 
     def test_get_set_value_no_partial_indexing(self):
         # partial w/ MultiIndex raise exception
@@ -8835,7 +8835,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         self.assert_('C' not in frame)
         self.assert_('foo' in frame)
-        self.assert_(id(frame['foo']) != c_id)
+        self.assertNotEqual(id(frame['foo']), c_id)
 
     def test_rename_bug(self):
         # GH 5344
@@ -9577,7 +9577,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df.sort_index(inplace=True)
         expected = frame
         assert_frame_equal(df, expected)
-        self.assert_(a_id != id(df['A']))
+        self.assertNotEqual(a_id, id(df['A']))
 
         df = unordered.copy()
         df.sort_index(ascending=False, inplace=True)

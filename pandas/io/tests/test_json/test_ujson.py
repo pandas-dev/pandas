@@ -387,16 +387,16 @@ class UltraJSONTests(TestCase):
         stamp = Timestamp(val)
 
         roundtrip = ujson.decode(ujson.encode(val, date_unit='s'))
-        self.assert_(roundtrip == stamp.value // 10**9)
+        self.assertEqual(roundtrip, stamp.value // 10**9)
 
         roundtrip = ujson.decode(ujson.encode(val, date_unit='ms'))
-        self.assert_(roundtrip == stamp.value // 10**6)
+        self.assertEqual(roundtrip, stamp.value // 10**6)
 
         roundtrip = ujson.decode(ujson.encode(val, date_unit='us'))
-        self.assert_(roundtrip == stamp.value // 10**3)
+        self.assertEqual(roundtrip, stamp.value // 10**3)
 
         roundtrip = ujson.decode(ujson.encode(val, date_unit='ns'))
-        self.assert_(roundtrip == stamp.value)
+        self.assertEqual(roundtrip, stamp.value)
 
         self.assertRaises(ValueError, ujson.encode, val, date_unit='foo')
 

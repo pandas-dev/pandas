@@ -199,7 +199,7 @@ class TestPeriodProperties(tm.TestCase):
 
     def test_freq_str(self):
         i1 = Period('1982', freq='Min')
-        self.assert_(i1.freq[0] != '1')
+        self.assertNotEqual(i1.freq[0], '1')
 
     def test_repr(self):
         p = Period('Jan-2000')
@@ -1191,19 +1191,19 @@ class TestPeriodIndex(tm.TestCase):
         create_index = lambda: PeriodIndex(freq='A', start='1/1/2001',
                                            end='12/1/2009')
         index = create_index()
-        self.assertTrue(index.is_(index))
-        self.assertFalse(index.is_(create_index()))
-        self.assertTrue(index.is_(index.view()))
-        self.assertTrue(index.is_(index.view().view().view().view().view()))
-        self.assertTrue(index.view().is_(index))
+        self.assertEqual(index.is_(index), True)
+        self.assertEqual(index.is_(create_index()), False)
+        self.assertEqual(index.is_(index.view()), True)
+        self.assertEqual(index.is_(index.view().view().view().view().view()), True)
+        self.assertEqual(index.view().is_(index), True)
         ind2 = index.view()
         index.name = "Apple"
-        self.assertTrue(ind2.is_(index))
-        self.assertFalse(index.is_(index[:]))
-        self.assertFalse(index.is_(index.asfreq('M')))
-        self.assertFalse(index.is_(index.asfreq('A')))
-        self.assertFalse(index.is_(index - 2))
-        self.assertFalse(index.is_(index - 0))
+        self.assertEqual(ind2.is_(index), True)
+        self.assertEqual(index.is_(index[:]), False)
+        self.assertEqual(index.is_(index.asfreq('M')), False)
+        self.assertEqual(index.is_(index.asfreq('A')), False)
+        self.assertEqual(index.is_(index - 2), False)
+        self.assertEqual(index.is_(index - 0), False)
 
     def test_comp_period(self):
         idx = period_range('2007-01', periods=20, freq='M')

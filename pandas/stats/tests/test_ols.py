@@ -294,7 +294,7 @@ class TestOLSMisc(tm.TestCase):
         assert_series_equal(model1.beta, model2.beta)
 
         # TODO: can we infer whether the intercept is there...
-        self.assert_(model1.r2 != model2.r2)
+        self.assertNotEqual(model1.r2, model2.r2)
 
         # rolling
 

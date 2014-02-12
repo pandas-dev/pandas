@@ -3203,7 +3203,8 @@ class TestHDFStore(tm.TestCase):
 
             for attr in ['freq','tz','name']:
                 for idx in ['index','columns']:
-                    self.assert_(getattr(getattr(df,idx),attr,None) == getattr(getattr(result,idx),attr,None))
+                    self.assertEqual(getattr(getattr(df,idx),attr,None),
+                                     getattr(getattr(result,idx),attr,None))
 
 
             # try to append a table with a different frequency
