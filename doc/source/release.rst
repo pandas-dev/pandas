@@ -91,6 +91,7 @@ Bug Fixes
 - ``HDFStore.select_as_multiple`` handles start and stop the same way as ``select`` (:issue:`6177`)
 - ``HDFStore.select_as_coordinates`` and ``select_column`` works where clauses that result in filters (:issue:`6177`)
 - Regression in join of non_unique_indexes (:issue:`6329`)
+- Issue with groupby ``agg`` with a single function and a a mixed-type frame (:issue:`6337`)
 
 pandas 0.13.1
 -------------
