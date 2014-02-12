@@ -280,12 +280,12 @@ class TestStata(tm.TestCase):
         original = DataFrame({'short':s1,'int':s2,'long':s3})
         original.index.name = 'index'
         
-         with tm.ensure_clean() as path:
+        with tm.ensure_clean() as path:
             original.to_stata(path)
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(written_and_read_again.set_index('index'),
                                   original)
-        
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
