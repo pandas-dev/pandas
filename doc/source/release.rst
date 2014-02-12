@@ -90,6 +90,7 @@ Bug Fixes
 - ``HDFStore.remove`` now handles start and stop (:issue:`6177`)
 - ``HDFStore.select_as_multiple`` handles start and stop the same way as ``select`` (:issue:`6177`)
 - ``HDFStore.select_as_coordinates`` and ``select_column`` works where clauses that result in filters (:issue:`6177`)
+- Regression in join of non_unique_indexes (:issue:`6329`)
 
 pandas 0.13.1
 -------------
