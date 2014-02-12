@@ -199,6 +199,10 @@ Bug Fixes
 - ``.names`` attribute of MultiIndexes passed to ``set_index`` are now preserved (:issue:`6459`).
 - Bug in setitem with a duplicate index and an alignable rhs (:issue:`6541`)
 - Bug in setitem with loc on mixed integer Indexes (:issue:`6546`)
+- Bug in ``pd.read_stata`` which would use the wrong data types and missing values (:issue:`6327`)
+- Bug in ``DataFrame.to_stata`` that lead to data loss in certain cases, and could exported using the
+  wrong data types and missing values (:issue:`6335`)
+
 
 pandas 0.13.1
 -------------
