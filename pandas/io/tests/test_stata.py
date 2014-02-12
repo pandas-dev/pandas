@@ -289,6 +289,7 @@ class TestStata(tm.TestCase):
             tm.assert_frame_equal(written_and_read_again.set_index('index'),
                                   formatted)
 
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
