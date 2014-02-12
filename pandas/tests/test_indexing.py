@@ -1152,6 +1152,9 @@ class TestIndexing(tm.TestCase):
 
     def test_per_axis_per_level_getitem_doc_examples(self):
 
+        # test index maker
+        idx = pd.IndexSlice
+
         # from indexing.rst / advanced
         def mklbl(prefix,n):
             return ["%s%s" % (prefix,i)  for i in range(n)]
@@ -1170,10 +1173,14 @@ class TestIndexing(tm.TestCase):
         expected = df.loc[[ tuple([a,b,c,d]) for a,b,c,d in df.index.values if (
             a == 'A1' or a == 'A2' or a == 'A3') and (c == 'C1' or c == 'C3')]]
         assert_frame_equal(result, expected)
+        result = df.loc[idx['A1':'A3',:,['C1','C3']],:]
+        assert_frame_equal(result, expected)
 
         result = df.loc[(slice(None),slice(None), ['C1','C3']),:]
         expected = df.loc[[ tuple([a,b,c,d]) for a,b,c,d in df.index.values if (
             c == 'C1' or c == 'C3')]]
+        assert_frame_equal(result, expected)
+        result = df.loc[idx[:,:,['C1','C3']],:]
         assert_frame_equal(result, expected)
 
         # not sorted
@@ -1186,6 +1193,9 @@ class TestIndexing(tm.TestCase):
         df.loc[(slice(None),slice(None), ['C1','C3']),(slice(None),'foo')]
 
     def test_per_axis_per_level_setitem(self):
+
+        # test index maker
+        idx = pd.IndexSlice
 
         # test multi-index slicing with per axis and per index controls
         index = MultiIndex.from_tuples([('A',1),('A',2),('A',3),('B',1)],
@@ -1238,6 +1248,12 @@ class TestIndexing(tm.TestCase):
         # both
         df = df_orig.copy()
         df.loc[(slice(None),1),(slice(None),['foo'])] = 100
+        expected = df_orig.copy()
+        expected.iloc[[0,3],[1,3]] = 100
+        assert_frame_equal(df, expected)
+
+        df = df_orig.copy()
+        df.loc[idx[:,1],idx[:,['foo']]] = 100
         expected = df_orig.copy()
         expected.iloc[[0,3],[1,3]] = 100
         assert_frame_equal(df, expected)

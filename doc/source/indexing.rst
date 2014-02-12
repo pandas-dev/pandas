@@ -1785,6 +1785,13 @@ axes at the same time.
    dfmi.loc[(slice(None),slice(None), ['C1','C3']),(slice(None),'foo')]
    dfmi.loc[df[('a','foo')]>200,slice(None), ['C1','C3']),(slice(None),'foo')]
 
+You can use a ``pd.IndexSlice`` to shortcut the creation of these slices
+
+.. ipython:: python
+
+   idx = pd.IndexSlice
+   dfmi.loc[idx[:,:,['C1','C3']],idx[:,'foo']]
+
 Furthermore you can *set* the values using these methods
 
 .. ipython:: python

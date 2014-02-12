@@ -12,7 +12,6 @@ import pandas.lib as lib
 
 import numpy as np
 
-
 # the supported indexers
 def get_indexers_list():
 
@@ -27,6 +26,11 @@ def get_indexers_list():
 # "null slice"
 _NS = slice(None, None)
 
+# the public IndexSlicerMaker
+class _IndexSlice(object):
+    def __getitem__(self, arg):
+        return arg
+IndexSlice = _IndexSlice()
 
 class IndexingError(Exception):
     pass
