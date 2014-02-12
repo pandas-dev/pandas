@@ -272,6 +272,20 @@ class TestStata(tm.TestCase):
 
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(written_and_read_again.set_index('index'), formatted)
+            
+   def test_read_write_dta13(self):
+        s1 = Series(2**9,dtype=np.int16)
+        s2 = Series(2**17,dtype=np.int32)
+        s3 = Series(2**33,dtype=np.int64)
+        original = DataFrame({'short':s1,'int':s2,'long':s3})
+        original.index.name = 'index'
+        
+         with tm.ensure_clean() as path:
+            original.to_stata(path)
+            written_and_read_again = self.read_dta(path)
+            tm.assert_frame_equal(written_and_read_again.set_index('index'),
+                                  original)
+        
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
