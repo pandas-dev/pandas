@@ -92,6 +92,8 @@ Bug Fixes
 - ``HDFStore.select_as_coordinates`` and ``select_column`` works where clauses that result in filters (:issue:`6177`)
 - Regression in join of non_unique_indexes (:issue:`6329`)
 - Issue with groupby ``agg`` with a single function and a a mixed-type frame (:issue:`6337`)
+- Bug in ``DataFrame.replace()`` when passing a non- ``bool``
+  ``to_replace`` argument (:issue:`6332`)
 
 pandas 0.13.1
 -------------
