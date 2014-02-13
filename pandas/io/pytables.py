@@ -48,8 +48,6 @@ _version = '0.10.1'
 # PY3 encoding if we don't specify
 _default_encoding = 'UTF-8'
 
-_np_version_under_172 = LooseVersion(np.__version__) < '1.7.2'
-
 def _ensure_decoded(s):
     """ if we have bytes, decode them to unicde """
     if isinstance(s, np.bytes_):
@@ -4176,13 +4174,12 @@ def _unconvert_string_array(data, nan_rep=None, encoding=None):
     # where the passed encoding is actually None)
     encoding = _ensure_encoding(encoding)
     if encoding is not None and len(data):
-        if _np_version_under_172:
-            itemsize = lib.max_len_string_array(data)
-            dtype = "S{0}".format(itemsize)
-        else:
-            dtype = string_types[0]
-
         try:
+            itemsize = lib.max_len_string_array(com._ensure_object(data.ravel()))
+            if compat.PY3:
+                dtype = "U{0}".format(itemsize)
+            else:
+                dtype = "S{0}".format(itemsize)
             data = data.astype(dtype).astype(object)
         except:
             f = np.vectorize(lambda x: x.decode(encoding), otypes=[np.object])
