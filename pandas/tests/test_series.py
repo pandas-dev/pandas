@@ -5349,6 +5349,24 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(r, Series([1.0,2,'a'] +
                                       dr[3:].tolist(),dtype=object))
 
+    def test_replace_bool_with_string_no_op(self):
+        s = Series([True, False, True])
+        result = s.replace('fun', 'in-the-sun')
+        tm.assert_series_equal(s, result)
+
+    def test_replace_bool_with_string(self):
+        # nonexistent elements
+        s = Series([True, False, True])
+        result = s.replace(True, '2u')
+        expected = Series(['2u', False, '2u'])
+        tm.assert_series_equal(expected, result)
+
+    def test_replace_bool_with_bool(self):
+        s = Series([True, False, True])
+        result = s.replace(True, False)
+        expected = Series([False] * len(s))
+        tm.assert_series_equal(expected, result)
+
     def test_asfreq(self):
         ts = Series([0., 1., 2.], index=[datetime(2009, 10, 30),
                                          datetime(2009, 11, 30),
