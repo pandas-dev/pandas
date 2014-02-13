@@ -96,6 +96,7 @@ Bug Fixes
 - Bug in ``DataFrame.replace()`` when passing a non- ``bool``
   ``to_replace`` argument (:issue:`6332`)
 - Raise when trying to align on different levels of a multi-index assignment (:issue:`3738`)
+- Bug in setting complex dtypes via boolean indexing (:issue:`6345`)
 
 pandas 0.13.1
 -------------
