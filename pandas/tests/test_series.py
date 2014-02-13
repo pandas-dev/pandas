@@ -5291,7 +5291,6 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         result = ser.replace(Timestamp('20130103'), Timestamp('20120101'))
         assert_series_equal(result, expected)
 
-
     def test_replace_with_single_list(self):
         ser = Series([0, 1, 2, 3, 4])
         result = ser.replace([1,2,3])
@@ -5306,6 +5305,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         with tm.assertRaises(ValueError):
             s.replace([1,2,3],inplace=True,method='crash_cymbal')
         assert_series_equal(s, ser)
+
 
     def test_replace_mixed_types(self):
         s = Series(np.arange(5),dtype='int64')
@@ -5365,6 +5365,12 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         s = Series([True, False, True])
         result = s.replace(True, False)
         expected = Series([False] * len(s))
+        tm.assert_series_equal(expected, result)
+
+    def test_replace_with_dict_with_bool_keys(self):
+        s = Series([True, False, True])
+        result = s.replace({'asdf': 'asdb', True: 'yes'})
+        expected = Series(['yes', False, 'yes'])
         tm.assert_series_equal(expected, result)
 
     def test_asfreq(self):
