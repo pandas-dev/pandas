@@ -19,6 +19,7 @@ from pandas.core.reshape import (pivot_simple as pivot, get_dummies,
 
 WidePanel = Panel
 
+from pandas.core.indexing import IndexSlice
 from pandas.tseries.offsets import DateOffset
 from pandas.tseries.tools import to_datetime
 from pandas.tseries.index import (DatetimeIndex, Timestamp,

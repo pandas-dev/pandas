@@ -74,6 +74,7 @@ Improvements to existing features
   the func (:issue:`6289`)
 - ``plot(legend='reverse')`` will now reverse the order of legend labels for most plot kinds.
   (:issue:`6014`)
+- Allow multi-index slicers (:issue:`6134`, :issue:`4036`, :issue:`3057`, :issue:`2598`, :issue:`5641`)
 
 .. _release.bug_fixes-0.14.0:
 
@@ -94,6 +95,7 @@ Bug Fixes
 - Issue with groupby ``agg`` with a single function and a a mixed-type frame (:issue:`6337`)
 - Bug in ``DataFrame.replace()`` when passing a non- ``bool``
   ``to_replace`` argument (:issue:`6332`)
+- Raise when trying to align on different levels of a multi-index assignment (:issue:`3738`)
 
 pandas 0.13.1
 -------------

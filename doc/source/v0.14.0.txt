@@ -29,6 +29,113 @@ API changes
       df.iloc[:,2:3]
       df.iloc[:,1:3]
 
+MultiIndexing Using Slicers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In 0.14.0 we added a new way to slice multi-indexed objects.
+You can slice a multi-index by providing multiple indexers.
+
+You can provide any of the selectors as if you are indexing by label, see :ref:`Selection by Label <indexing.label>`,
+including slices, lists of labels, labels, and boolean indexers.
+
+You can use ``slice(None)`` to select all the contents of *that* level. You do not need to specify all the
+*deeper* levels, they will be implied as ``slice(None)``.
+
+As usual, **both sides** of the slicers are included as this is label indexing.
+
+See :ref:`the docs<indexing.mi_slicers>`
+See also issues (:issue:`6134`, :issue:`4036`, :issue:`3057`, :issue:`2598`, :issue:`5641`)
+
+.. warning::
+
+   You should specify all axes in the ``.loc`` specifier, meaning the indexer for the **index** and
+   for the **columns**. Their are some ambiguous cases where the passed indexer could be mis-interpreted
+   as indexing *both* axes, rather than into say the MuliIndex for the rows.
+
+   You should do this:
+
+   .. code-block:: python
+
+      df.loc[(slice('A1','A3'),.....),:]
+
+   rather than this:
+
+   .. code-block:: python
+
+      df.loc[(slice('A1','A3'),.....)]
+
+.. warning::
+
+   You will need to make sure that the selection axes are fully lexsorted!
+
+.. ipython:: python
+
+   def mklbl(prefix,n):
+       return ["%s%s" % (prefix,i)  for i in range(n)]
+
+   index = MultiIndex.from_product([mklbl('A',4),
+                                    mklbl('B',2),
+                                    mklbl('C',4),
+                                    mklbl('D',2)])
+   columns = MultiIndex.from_tuples([('a','foo'),('a','bar'),
+                                     ('b','foo'),('b','bah')],
+                                      names=['lvl0', 'lvl1'])
+   df = DataFrame(np.arange(len(index)*len(columns)).reshape((len(index),len(columns))),
+                  index=index,
+                  columns=columns).sortlevel().sortlevel(axis=1)
+   df
+
+Basic multi-index slicing using slices, lists, and labels.
+
+.. ipython:: python
+
+   df.loc[(slice('A1','A3'),slice(None), ['C1','C3']),:]
+
+You can use a ``pd.IndexSlice`` to shortcut the creation of these slices
+
+.. ipython:: python
+
+   idx = pd.IndexSlice
+   df.loc[idx[:,:,['C1','C3']],idx[:,'foo']]
+
+It is possible to perform quite complicated selections using this method on multiple
+axes at the same time.
+
+.. ipython:: python
+
+   df.loc['A1',(slice(None),'foo')]
+   df.loc[idx[:,:,['C1','C3']],idx[:,'foo']]
+
+Using a boolean indexer you can provide selection related to the *values*.
+
+.. ipython:: python
+
+   mask = df[('a','foo')]>200
+   df.loc[idx[mask,:,['C1','C3']],idx[:,'foo']]
+
+You can also specify the ``axis`` argument to ``.loc`` to interpret the passed
+slicers on a single axis.
+
+.. ipython:: python
+
+   df.loc(axis=0)[:,:,['C1','C3']]
+
+Furthermore you can *set* the values using these methods
+
+.. ipython:: python
+
+   df2 = df.copy()
+   df2.loc(axis=0)[:,:,['C1','C3']] = -10
+   df2
+
+You can use a right-hand-side of an alignable object as well.
+
+.. ipython:: python
+
+   df2 = df.copy()
+   df2.loc[idx[:,:,['C1','C3']],:] = df2*1000
+   df2
+
 Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
