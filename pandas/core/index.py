@@ -9,7 +9,7 @@ import pandas.tslib as tslib
 import pandas.lib as lib
 import pandas.algos as _algos
 import pandas.index as _index
-from pandas.lib import Timestamp
+from pandas.lib import Timestamp, is_datetime_array
 from pandas.core.base import FrozenList, FrozenNDArray
 
 from pandas.util.decorators import cache_readonly, deprecate
@@ -577,7 +577,7 @@ class Index(FrozenNDArray):
 
     @cache_readonly
     def is_all_dates(self):
-        return self.inferred_type == 'datetime'
+        return is_datetime_array(self.values)
 
     def __iter__(self):
         return iter(self.values)

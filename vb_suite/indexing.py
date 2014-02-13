@@ -7,7 +7,7 @@ common_setup = """from pandas_vb_common import *
 """
 
 #----------------------------------------------------------------------
-# Series.__getitem__, get_value
+# Series.__getitem__, get_value, __getitem__(slice)
 
 setup = common_setup + """
 tm.N = 1000
@@ -28,6 +28,15 @@ statement = "s.get_value(idx)"
 bm_df_getitem3 = Benchmark(statement, setup,
                            name='series_get_value',
                            start_date=datetime(2011, 11, 12))
+
+
+setup = common_setup + """
+index = tm.makeStringIndex(1000000)
+s = Series(np.random.rand(1000000), index=index)
+"""
+series_getitem_slice = Benchmark("s[:800000]", setup,
+                                 name="series_getitem_slice")
+
 
 #----------------------------------------------------------------------
 # DataFrame __getitem__
