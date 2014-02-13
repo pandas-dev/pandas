@@ -370,6 +370,26 @@ class TestGroupBy(tm.TestCase):
         e.name = None
         assert_series_equal(result,e)
 
+    def test_agg_api(self):
+
+        # GH 6337
+        # http://stackoverflow.com/questions/21706030/pandas-groupby-agg-function-column-dtype-error
+        # different api for agg when passed custom function with mixed frame
+
+        df = DataFrame({'data1':np.random.randn(5),
+                        'data2':np.random.randn(5),
+                        'key1':['a','a','b','b','a'],
+                        'key2':['one','two','one','two','one']})
+        grouped = df.groupby('key1')
+
+        def peak_to_peak(arr):
+            return arr.max() - arr.min()
+
+        expected = grouped.agg([peak_to_peak])
+        expected.columns=['data1','data2']
+        result = grouped.agg(peak_to_peak)
+        assert_frame_equal(result,expected)
+
     def test_agg_regression1(self):
         grouped = self.tsframe.groupby([lambda x: x.year, lambda x: x.month])
         result = grouped.agg(np.mean)

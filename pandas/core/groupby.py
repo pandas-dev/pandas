@@ -2123,6 +2123,7 @@ class NDFrameGroupBy(GroupBy):
         obj = self._obj_with_exclusions
         result = {}
         cannot_agg = []
+        errors=None
         for item in obj:
             try:
                 data = obj[item]
@@ -2133,10 +2134,18 @@ class NDFrameGroupBy(GroupBy):
             except ValueError:
                 cannot_agg.append(item)
                 continue
+            except TypeError as e:
+                cannot_agg.append(item)
+                errors=e
+                continue
 
         result_columns = obj.columns
         if cannot_agg:
             result_columns = result_columns.drop(cannot_agg)
+
+            # GH6337
+            if not len(result_columns) and errors is not None:
+                raise errors
 
         return DataFrame(result, columns=result_columns)
 
