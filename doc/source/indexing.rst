@@ -1771,19 +1771,11 @@ As usual, **both sides** of the slicers are included as this is label indexing.
                     columns=micolumns).sortlevel().sortlevel(axis=1)
    dfmi
 
+Basic multi-index slicing using slices, lists, and labels.
+
 .. ipython:: python
 
    dfmi.loc[(slice('A1','A3'),slice(None), ['C1','C3']),:]
-   dfmi.loc[(slice(None),slice(None), ['C1','C3']),:]
-
-It is possible to perform quite complicated selections using this method on multiple
-axes at the same time.
-
-.. ipython:: python
-
-   dfmi.loc['A1',(slice(None),'foo')]
-   dfmi.loc[(slice(None),slice(None), ['C1','C3']),(slice(None),'foo')]
-   dfmi.loc[df[('a','foo')]>200,slice(None), ['C1','C3']),(slice(None),'foo')]
 
 You can use a ``pd.IndexSlice`` to shortcut the creation of these slices
 
@@ -1792,20 +1784,42 @@ You can use a ``pd.IndexSlice`` to shortcut the creation of these slices
    idx = pd.IndexSlice
    dfmi.loc[idx[:,:,['C1','C3']],idx[:,'foo']]
 
+It is possible to perform quite complicated selections using this method on multiple
+axes at the same time.
+
+.. ipython:: python
+
+   dfmi.loc['A1',(slice(None),'foo')]
+   dfmi.loc[idx[:,:,['C1','C3']],idx[:,'foo']]
+
+Using a boolean indexer you can provide selection related to the *values*.
+
+.. ipython:: python
+
+   mask = dfmi[('a','foo')]>200
+   dfmi.loc[idx[mask,:,['C1','C3']],idx[:,'foo']]
+
+You can also specify the ``axis`` argument to ``.loc`` to interpret the passed
+slicers on a single axis.
+
+.. ipython:: python
+
+   dfmi.loc(axis=0)[:,:,['C1','C3']]
+
 Furthermore you can *set* the values using these methods
 
 .. ipython:: python
 
    df2 = dfmi.copy()
-   df2.loc[(slice(None),slice(None), ['C1','C3']),:] = -10
+   df2.loc(axis=0)[:,:,['C1','C3']] = -10
    df2
 
-You use a right-hand-side of an alignable object as well.
+You can use a right-hand-side of an alignable object as well.
 
 .. ipython:: python
 
    df2 = dfmi.copy()
-   df2.loc[(slice(None),slice(None), ['C1','C3']),:] = df2*1000
+   df2.loc[idx[:,:,['C1','C3']],:] = df2*1000
    df2
 
 .. _indexing.xs:

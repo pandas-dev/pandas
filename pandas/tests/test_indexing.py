@@ -83,6 +83,9 @@ def _axify(obj, key, axis):
     return k
 
 
+def _mklbl(prefix,n):
+    return ["%s%s" % (prefix,i)  for i in range(n)]
+
 class TestIndexing(tm.TestCase):
 
     _multiprocess_can_split_ = True
@@ -1066,11 +1069,9 @@ class TestIndexing(tm.TestCase):
 
         # GH6134
         # example test case
-        def mklbl(prefix,n):
-            return ["%s%s" % (prefix,i)  for i in range(n)]
-
-        ix = MultiIndex.from_product([mklbl('A',5),mklbl('B',7),mklbl('C',4),mklbl('D',2)])
+        ix = MultiIndex.from_product([_mklbl('A',5),_mklbl('B',7),_mklbl('C',4),_mklbl('D',2)])
         df = DataFrame(np.arange(len(ix.get_values())),index=ix)
+
         result = df.loc[(slice('A1','A3'),slice(None), ['C1','C3']),:]
         expected = df.loc[[ tuple([a,b,c,d]) for a,b,c,d in df.index.values if (
             a == 'A1' or a == 'A2' or a == 'A3') and (c == 'C1' or c == 'C3')]]
@@ -1150,19 +1151,16 @@ class TestIndexing(tm.TestCase):
             df.loc[(slice(None),[1])]
         self.assertRaises(KeyError, f)
 
-    def test_per_axis_per_level_getitem_doc_examples(self):
+    def test_per_axis_per_level_doc_examples(self):
 
         # test index maker
         idx = pd.IndexSlice
 
         # from indexing.rst / advanced
-        def mklbl(prefix,n):
-            return ["%s%s" % (prefix,i)  for i in range(n)]
-
-        index = MultiIndex.from_product([mklbl('A',4),
-                                         mklbl('B',2),
-                                         mklbl('C',4),
-                                         mklbl('D',2)])
+        index = MultiIndex.from_product([_mklbl('A',4),
+                                         _mklbl('B',2),
+                                         _mklbl('C',4),
+                                         _mklbl('D',2)])
         columns = MultiIndex.from_tuples([('a','foo'),('a','bar'),
                                           ('b','foo'),('b','bah')],
                                          names=['lvl0', 'lvl1'])
@@ -1189,8 +1187,59 @@ class TestIndexing(tm.TestCase):
         self.assertRaises(KeyError, f)
         df = df.sortlevel(axis=1)
 
+        # slicing
         df.loc['A1',(slice(None),'foo')]
         df.loc[(slice(None),slice(None), ['C1','C3']),(slice(None),'foo')]
+
+        # setitem
+        df.loc(axis=0)[:,:,['C1','C3']] = -10
+
+    def test_loc_arguments(self):
+
+        index = MultiIndex.from_product([_mklbl('A',4),
+                                         _mklbl('B',2),
+                                         _mklbl('C',4),
+                                         _mklbl('D',2)])
+        columns = MultiIndex.from_tuples([('a','foo'),('a','bar'),
+                                          ('b','foo'),('b','bah')],
+                                         names=['lvl0', 'lvl1'])
+        df = DataFrame(np.arange(len(index)*len(columns)).reshape((len(index),len(columns))),
+                       index=index,
+                       columns=columns).sortlevel().sortlevel(axis=1)
+
+
+        # axis 0
+        result = df.loc(axis=0)['A1':'A3',:,['C1','C3']]
+        expected = df.loc[[ tuple([a,b,c,d]) for a,b,c,d in df.index.values if (
+            a == 'A1' or a == 'A2' or a == 'A3') and (c == 'C1' or c == 'C3')]]
+        assert_frame_equal(result, expected)
+
+        result = df.loc(axis='index')[:,:,['C1','C3']]
+        expected = df.loc[[ tuple([a,b,c,d]) for a,b,c,d in df.index.values if (
+            c == 'C1' or c == 'C3')]]
+        assert_frame_equal(result, expected)
+
+        # axis 1
+        result = df.loc(axis=1)[:,'foo']
+        expected = df.loc[:,(slice(None),'foo')]
+        assert_frame_equal(result, expected)
+
+        result = df.loc(axis='columns')[:,'foo']
+        expected = df.loc[:,(slice(None),'foo')]
+        assert_frame_equal(result, expected)
+
+        # invalid axis
+        def f():
+            df.loc(axis=-1)[:,:,['C1','C3']]
+        self.assertRaises(ValueError, f)
+
+        def f():
+            df.loc(axis=2)[:,:,['C1','C3']]
+        self.assertRaises(ValueError, f)
+
+        def f():
+            df.loc(axis='foo')[:,:,['C1','C3']]
+        self.assertRaises(ValueError, f)
 
     def test_per_axis_per_level_setitem(self):
 
@@ -1209,6 +1258,12 @@ class TestIndexing(tm.TestCase):
         # identity
         df = df_orig.copy()
         df.loc[(slice(None),slice(None)),:] = 100
+        expected = df_orig.copy()
+        expected.iloc[:,:] = 100
+        assert_frame_equal(df, expected)
+
+        df = df_orig.copy()
+        df.loc(axis=0)[:,:] = 100
         expected = df_orig.copy()
         expected.iloc[:,:] = 100
         assert_frame_equal(df, expected)
@@ -1234,6 +1289,12 @@ class TestIndexing(tm.TestCase):
 
         df = df_orig.copy()
         df.loc[(slice(None),1),:] = 100
+        expected = df_orig.copy()
+        expected.iloc[[0,3]] = 100
+        assert_frame_equal(df, expected)
+
+        df = df_orig.copy()
+        df.loc(axis=0)[:,1] = 100
         expected = df_orig.copy()
         expected.iloc[[0,3]] = 100
         assert_frame_equal(df, expected)

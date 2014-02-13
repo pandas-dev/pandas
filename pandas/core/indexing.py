@@ -44,6 +44,16 @@ class _NDFrameIndexer(object):
         self.obj = obj
         self.ndim = obj.ndim
         self.name = name
+        self.axis = None
+
+    def __call__(self, *args, **kwargs):
+        # we need to return a copy of ourselves
+        self = self.__class__(self.obj, self.name)
+
+        # set the passed in values
+        for k, v in compat.iteritems(kwargs):
+            setattr(self,k,v)
+        return self
 
     def __iter__(self):
         raise NotImplementedError('ix is not iterable')
@@ -104,23 +114,28 @@ class _NDFrameIndexer(object):
 
     def __setitem__(self, key, value):
 
-        # kludgetastic
-        ax = self.obj._get_axis(0)
-        if isinstance(ax, MultiIndex):
-            try:
-                indexer = ax.get_loc(key)
-                self._setitem_with_indexer(indexer, value)
-                return
-            except Exception:
-                pass
-
-        if isinstance(key, tuple):
-            if len(key) > self.ndim:
-                raise IndexingError('only tuples of length <= %d supported' %
-                                    self.ndim)
+        if self.axis is not None:
             indexer = self._convert_tuple(key, is_setter=True)
+
         else:
-            indexer = self._convert_to_indexer(key, is_setter=True)
+
+            # kludgetastic
+            ax = self.obj._get_axis(0)
+            if isinstance(ax, MultiIndex):
+                try:
+                    indexer = ax.get_loc(key)
+                    self._setitem_with_indexer(indexer, value)
+                    return
+                except Exception:
+                    pass
+
+            if isinstance(key, tuple):
+                if len(key) > self.ndim:
+                    raise IndexingError('only tuples of length <= %d supported' %
+                                        self.ndim)
+                indexer = self._convert_tuple(key, is_setter=True)
+            else:
+                indexer = self._convert_to_indexer(key, is_setter=True)
 
         self._setitem_with_indexer(indexer, value)
 
@@ -143,9 +158,17 @@ class _NDFrameIndexer(object):
 
     def _convert_tuple(self, key, is_setter=False):
         keyidx = []
-        for i, k in enumerate(key):
-            idx = self._convert_to_indexer(k, axis=i, is_setter=is_setter)
-            keyidx.append(idx)
+        if self.axis is not None:
+            axis = self.obj._get_axis_number(self.axis)
+            for i in range(self.ndim):
+                if i == axis:
+                    keyidx.append(self._convert_to_indexer(key, axis=axis, is_setter=is_setter))
+                else:
+                    keyidx.append(slice(None))
+        else:
+            for i, k in enumerate(key):
+                idx = self._convert_to_indexer(k, axis=i, is_setter=is_setter)
+                keyidx.append(idx)
         return tuple(keyidx)
 
     def _convert_scalar_indexer(self, key, axis):
@@ -731,6 +754,11 @@ class _NDFrameIndexer(object):
         return None
 
     def _getitem_lowerdim(self, tup):
+
+        # we can directly get the axis result since the axis is specified
+        if self.axis is not None:
+            axis = self.obj._get_axis_number(self.axis)
+            return self._getitem_axis(tup, axis=axis, validate_iterable=True)
 
         # we may have a nested tuples indexer here
         if self._is_nested_tuple_indexer(tup):
