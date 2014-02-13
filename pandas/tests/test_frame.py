@@ -7975,7 +7975,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         tm.assert_frame_equal(res2, res3)
         tm.assert_frame_equal(res3, expected)
 
-    def test_replace_doesnt_replace_with_no_regex(self):
+    def test_replace_doesnt_replace_without_regex(self):
         from pandas.compat import StringIO
         raw = """fol T_opp T_Dir T_Enh
         0    1     0     0    vo
@@ -7985,6 +7985,29 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df = read_csv(StringIO(raw), sep=r'\s+')
         res = df.replace({'\D': 1})
         tm.assert_frame_equal(df, res)
+
+    def test_replace_bool_with_string(self):
+        df = DataFrame({'a': [True, False], 'b': list('ab')})
+        result = df.replace(True, 'a')
+        expected = DataFrame({'a': ['a', False], 'b': df.b})
+        tm.assert_frame_equal(result, expected)
+
+    def test_replace_pure_bool_with_string_no_op(self):
+        df = DataFrame(np.random.rand(2, 2) > 0.5)
+        result = df.replace('asdf', 'fdsa')
+        tm.assert_frame_equal(df, result)
+
+    def test_replace_bool_with_bool(self):
+        df = DataFrame(np.random.rand(2, 2) > 0.5)
+        result = df.replace(False, True)
+        expected = DataFrame(np.ones((2, 2), dtype=bool))
+        tm.assert_frame_equal(result, expected)
+
+    def test_replace_with_dict_with_bool_keys(self):
+        df = DataFrame({0: [True, False], 1: [False, True]})
+        result = df.replace({'asdf': 'asdb', True: 'yes'})
+        expected = DataFrame({0: ['yes', False], 1: [False, 'yes']})
+        tm.assert_frame_equal(expected, result)
 
     def test_combine_multiple_frames_dtypes(self):
         from pandas import concat

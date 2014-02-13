@@ -1216,6 +1216,7 @@ class FloatBlock(FloatOrComplexBlock):
         return (issubclass(value.dtype.type, np.floating) and
                 value.dtype == self.dtype)
 
+
 class ComplexBlock(FloatOrComplexBlock):
     is_complex = True
 
@@ -1355,6 +1356,14 @@ class BoolBlock(NumericBlock):
     def should_store(self, value):
         return issubclass(value.dtype.type, np.bool_)
 
+    def replace(self, to_replace, value, inplace=False, filter=None,
+                regex=False):
+        to_replace_values = np.atleast_1d(to_replace)
+        if not np.can_cast(to_replace_values, bool):
+            to_replace = to_replace_values
+        return super(BoolBlock, self).replace(to_replace, value,
+                                              inplace=inplace, filter=filter,
+                                              regex=regex)
 
 class ObjectBlock(Block):
     is_object = True
