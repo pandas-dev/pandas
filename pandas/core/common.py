@@ -347,13 +347,7 @@ def mask_missing(arr, values_to_mask):
         values_to_mask = [values_to_mask]
 
     try:
-        values = np.array(values_to_mask)
-        cant_cast = not np.can_cast(values.dtype, arr.dtype, casting='safe')
-
-        if cant_cast and arr.dtype == np.bool_:
-            values_to_mask = values
-        else:
-            values_to_mask = np.array(values_to_mask, dtype=arr.dtype)
+        values_to_mask = np.array(values_to_mask, dtype=arr.dtype)
     except Exception:
         values_to_mask = np.array(values_to_mask, dtype=object)
 
