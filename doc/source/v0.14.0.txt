@@ -46,7 +46,7 @@ Enhancements
   and parse accordingly. (:issue:`6223`)
 - ``plot(legend='reverse')`` will now reverse the order of legend labels for
   most plot kinds. (:issue:`6014`)
-
+- improve performance of slice indexing on Series with string keys (:issue:`6341`)
 
 Performance
 ~~~~~~~~~~~
