@@ -252,7 +252,19 @@ def _replace_booleans(source):
     """Replace ``&`` with ``and`` and ``|`` with ``or`` so that bitwise
     precedence is changed to boolean precedence.
     """
-    return source.replace('|', ' or ').replace('&', ' and ')
+    res = []
+    g = tokenize.generate_tokens(StringIO(source).readline)
+    for toknum, tokval, _, _, _ in g:
+        if toknum == tokenize.OP:
+            if tokval == '&':
+                res.append((tokenize.NAME, 'and'))
+            elif tokval == '|':
+                res.append((tokenize.NAME, 'or'))
+            else:
+                res.append((toknum, tokval))
+        else:
+            res.append((toknum, tokval))
+    return tokenize.untokenize(res)
 
 
 def _replace_locals(source, local_symbol='@'):
