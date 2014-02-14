@@ -12875,6 +12875,19 @@ class TestDataFrameQueryStrings(object):
         for parser, engine in product(PARSERS, ENGINES):
             yield self.check_query_with_nested_strings, parser, engine
 
+    def check_query_with_nested_special_character(self, parser, engine):
+        skip_if_no_pandas_parser(parser)
+        tm.skip_if_no_ne(engine)
+        df = DataFrame({'a': ['a', 'b', 'test & test'],
+                        'b': [1, 2, 3]})
+        res = df.query('a == "test & test"', parser=parser, engine=engine)
+        expec = df[df.a == 'test & test']
+        tm.assert_frame_equal(res, expec)
+
+    def test_query_with_nested_special_character(self):
+        for parser, engine in product(PARSERS, ENGINES):
+            yield self.check_query_with_nested_special_character, parser, engine
+
     def check_query_lex_compare_strings(self, parser, engine):
         tm.skip_if_no_ne(engine=engine)
         import operator as opr

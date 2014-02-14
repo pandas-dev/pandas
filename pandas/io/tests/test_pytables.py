@@ -2199,7 +2199,7 @@ class TestHDFStore(tm.TestCase):
         # GH #4835 and #6177
 
         with ensure_clean_store(self.path) as store:
-            
+
             wp = tm.makePanel()
 
             # start
@@ -2246,7 +2246,7 @@ class TestHDFStore(tm.TestCase):
             result = store.select('wp6')
             expected = wp.reindex(major_axis=wp.major_axis)
             assert_panel_equal(result, expected)
-            
+
             # with where
             date = wp.major_axis.take(np.arange(0,30,3))
             crit = Term('major_axis=date')
@@ -2256,7 +2256,7 @@ class TestHDFStore(tm.TestCase):
             result = store.select('wp7')
             expected = wp.reindex(major_axis=wp.major_axis-wp.major_axis[np.arange(0,20,3)])
             assert_panel_equal(result, expected)
-            
+
 
     def test_remove_crit(self):
 
@@ -4174,6 +4174,14 @@ class TestHDFStore(tm.TestCase):
                 with tm.assertRaises(ValueError):
                     store.append(name, d)
 
+    def test_query_with_nested_special_character(self):
+        df = DataFrame({'a': ['a', 'a', 'c', 'b', 'test & test', 'c' , 'b', 'e'],
+                        'b': [1, 2, 3, 4, 5, 6, 7, 8]})
+        expected = df[df.a == 'test & test']
+        with ensure_clean_store(self.path) as store:
+            store.append('test', df, format='table', data_columns=True)
+            result = store.select('test', 'a = "test & test"')
+        tm.assert_frame_equal(expected, result)
 
 def _test_sort(obj):
     if isinstance(obj, DataFrame):
