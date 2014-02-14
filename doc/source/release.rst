@@ -97,6 +97,9 @@ Bug Fixes
   ``to_replace`` argument (:issue:`6332`)
 - Raise when trying to align on different levels of a multi-index assignment (:issue:`3738`)
 - Bug in setting complex dtypes via boolean indexing (:issue:`6345`)
+- Bug in TimeGrouper/resample when presented with a non-monotonic DatetimeIndex would return invalid results. (:issue:`4161`)
+- Bug in index name propogation in TimeGrouper/resample (:issue:`4161`)
+- TimeGrouper has a more compatible API to the rest of the groupers (e.g. ``groups`` was missing) (:issue:`3881`)
 
 pandas 0.13.1
 -------------

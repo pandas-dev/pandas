@@ -72,17 +72,12 @@ class TimeGrouper(CustomGrouper):
         self.base = base
 
     def resample(self, obj):
-        axis = obj._get_axis(self.axis)
+        ax = obj._get_axis(self.axis)
 
-        if not axis.is_monotonic:
-            try:
-                obj = obj.sort_index(axis=self.axis)
-            except TypeError:
-                obj = obj.sort_index()
-
-        if isinstance(axis, DatetimeIndex):
+        obj = self._ensure_sortedness(obj)
+        if isinstance(ax, DatetimeIndex):
             rs = self._resample_timestamps(obj)
-        elif isinstance(axis, PeriodIndex):
+        elif isinstance(ax, PeriodIndex):
             offset = to_offset(self.freq)
             if offset.n > 1:
                 if self.kind == 'period':  # pragma: no cover
@@ -95,55 +90,68 @@ class TimeGrouper(CustomGrouper):
             else:
                 obj = obj.to_timestamp(how=self.convention)
                 rs = self._resample_timestamps(obj)
-        elif len(axis) == 0:
+        elif len(ax) == 0:
             return obj
         else:  # pragma: no cover
             raise TypeError('Only valid with DatetimeIndex or PeriodIndex')
 
         rs_axis = rs._get_axis(self.axis)
-        rs_axis.name = axis.name
+        rs_axis.name = ax.name
         return rs
 
     def get_grouper(self, obj):
-        # Only return grouper
-        return self._get_time_grouper(obj)[1]
+        # return a tuple of (binner, grouper, obj)
+        return self._get_time_grouper(obj)
+
+    def _ensure_sortedness(self, obj):
+        # ensure that our object is sorted
+        ax = obj._get_axis(self.axis)
+        if not ax.is_monotonic:
+            try:
+                obj = obj.sort_index(axis=self.axis)
+            except TypeError:
+                obj = obj.sort_index()
+        return obj
 
     def _get_time_grouper(self, obj):
-        axis = obj._get_axis(self.axis)
+        obj = self._ensure_sortedness(obj)
+        ax = obj._get_axis(self.axis)
 
         if self.kind is None or self.kind == 'timestamp':
-            binner, bins, binlabels = self._get_time_bins(axis)
+            binner, bins, binlabels = self._get_time_bins(ax)
         else:
-            binner, bins, binlabels = self._get_time_period_bins(axis)
+            binner, bins, binlabels = self._get_time_period_bins(ax)
 
         grouper = BinGrouper(bins, binlabels)
-        return binner, grouper
+        return binner, grouper, obj
 
-    def _get_time_bins(self, axis):
-        if not isinstance(axis, DatetimeIndex):
+    def _get_time_bins(self, ax):
+        if not isinstance(ax, DatetimeIndex):
             raise TypeError('axis must be a DatetimeIndex, but got '
-                            'an instance of %r' % type(axis).__name__)
+                            'an instance of %r' % type(ax).__name__)
 
-        if len(axis) == 0:
-            binner = labels = DatetimeIndex(data=[], freq=self.freq)
+        if len(ax) == 0:
+            binner = labels = DatetimeIndex(data=[], freq=self.freq, name=ax.name)
             return binner, [], labels
 
-        first, last = _get_range_edges(axis, self.freq, closed=self.closed,
+        first, last = _get_range_edges(ax, self.freq, closed=self.closed,
                                        base=self.base)
-        tz = axis.tz
+        tz = ax.tz
         binner = labels = DatetimeIndex(freq=self.freq,
                                         start=first.replace(tzinfo=None),
-                                        end=last.replace(tzinfo=None), tz=tz)
+                                        end=last.replace(tzinfo=None),
+                                        tz=tz,
+                                        name=ax.name)
 
         # a little hack
         trimmed = False
-        if (len(binner) > 2 and binner[-2] == axis[-1] and
+        if (len(binner) > 2 and binner[-2] == ax[-1] and
                 self.closed == 'right'):
 
             binner = binner[:-1]
             trimmed = True
 
-        ax_values = axis.asi8
+        ax_values = ax.asi8
         binner, bin_edges = self._adjust_bin_edges(binner, ax_values)
 
         # general version, knowing nothing about relative frequencies
@@ -180,22 +188,24 @@ class TimeGrouper(CustomGrouper):
 
         return binner, bin_edges
 
-    def _get_time_period_bins(self, axis):
-        if not isinstance(axis, DatetimeIndex):
+    def _get_time_period_bins(self, ax):
+        if not isinstance(ax, DatetimeIndex):
             raise TypeError('axis must be a DatetimeIndex, but got '
-                            'an instance of %r' % type(axis).__name__)
+                            'an instance of %r' % type(ax).__name__)
 
-        if not len(axis):
-            binner = labels = PeriodIndex(data=[], freq=self.freq)
+        if not len(ax):
+            binner = labels = PeriodIndex(data=[], freq=self.freq, name=ax.name)
             return binner, [], labels
 
-        labels = binner = PeriodIndex(start=axis[0], end=axis[-1],
-                                      freq=self.freq)
+        labels = binner = PeriodIndex(start=ax[0],
+                                      end=ax[-1],
+                                      freq=self.freq,
+                                      name=ax.name)
 
         end_stamps = (labels + 1).asfreq(self.freq, 's').to_timestamp()
-        if axis.tzinfo:
-            end_stamps = end_stamps.tz_localize(axis.tzinfo)
-        bins = axis.searchsorted(end_stamps, side='left')
+        if ax.tzinfo:
+            end_stamps = end_stamps.tz_localize(ax.tzinfo)
+        bins = ax.searchsorted(end_stamps, side='left')
 
         return binner, bins, labels
 
@@ -206,7 +216,7 @@ class TimeGrouper(CustomGrouper):
     def _resample_timestamps(self, obj):
         axlabels = obj._get_axis(self.axis)
 
-        binner, grouper = self._get_time_grouper(obj)
+        binner, grouper, _ = self._get_time_grouper(obj)
 
         # Determine if we're downsampling
         if axlabels.freq is not None or axlabels.inferred_freq is not None:
