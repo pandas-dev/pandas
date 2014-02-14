@@ -212,7 +212,7 @@ class Series(generic.NDFrame):
             # create/copy the manager
             if isinstance(data, SingleBlockManager):
                 if dtype is not None:
-                    data = data.astype(dtype=dtype, raise_on_error=False)
+                    data = data.astype(dtype, raise_on_error=False)
                 elif copy:
                     data = data.copy()
             else:
@@ -281,23 +281,23 @@ class Series(generic.NDFrame):
 
     # ndarray compatibility
     def item(self):
-        return self._data.values.item()
+        return self.values.item()
 
     @property
     def data(self):
-        return self._data.values.data
+        return self.values.data
 
     @property
     def strides(self):
-        return self._data.values.strides
+        return self.values.strides
 
     @property
     def size(self):
-        return self._data.values.size
+        return self.values.size
 
     @property
     def flags(self):
-        return self._data.values.flags
+        return self.values.flags
 
     @property
     def dtype(self):
@@ -694,7 +694,7 @@ class Series(generic.NDFrame):
     def _set_values(self, key, value):
         if isinstance(key, Series):
             key = key.values
-        self._data = self._data.setitem(indexer=key, value=value)
+        self._data = self._data.setitem(key, value)
 
     # help out SparseSeries
     _get_val_at = ndarray.__getitem__
@@ -1643,7 +1643,7 @@ class Series(generic.NDFrame):
         other = other.reindex_like(self)
         mask = notnull(other)
 
-        self._data = self._data.putmask(mask=mask, new=other, inplace=True)
+        self._data = self._data.putmask(mask, other, inplace=True)
         self._maybe_update_cacher()
 
     #----------------------------------------------------------------------

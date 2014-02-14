@@ -2825,14 +2825,14 @@ class DataFrame(NDFrame):
                                       fill_value)
 
         new_data = left._data.eval(
-            func=func, other=right, axes=[left.columns, self.index])
+            func, right, axes=[left.columns, self.index])
         return self._constructor(new_data)
 
     def _combine_const(self, other, func, raise_on_error=True):
         if self.empty:
             return self
 
-        new_data = self._data.eval(func=func, other=other, raise_on_error=raise_on_error)
+        new_data = self._data.eval(func, other, raise_on_error=raise_on_error)
         return self._constructor(new_data)
 
     def _compare_frame_evaluate(self, other, func, str_rep):
@@ -3228,7 +3228,7 @@ class DataFrame(NDFrame):
         -------
         diffed : DataFrame
         """
-        new_data = self._data.diff(n=periods)
+        new_data = self._data.diff(periods)
         return self._constructor(new_data)
 
     #----------------------------------------------------------------------
@@ -4168,7 +4168,7 @@ class DataFrame(NDFrame):
             * min: lowest rank in group
             * max: highest rank in group
             * first: ranks assigned in order they appear in the array
-            * dense: like 'min', but rank always increases by 1 between groups 
+            * dense: like 'min', but rank always increases by 1 between groups
         na_option : {'keep', 'top', 'bottom'}
             * keep: leave NA values where they are
             * top: smallest rank if ascending

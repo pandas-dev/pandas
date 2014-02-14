@@ -3950,52 +3950,6 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         exp = iseries.astype(float).rank()
         assert_series_equal(iranks, exp)
 
-    def test_rank_methods(self):
-
-        ser = Series([0,0,1,2,3])
-
-        ranked_average = ser.rank(method='average')
-        expect_average = Series([ 1.5,  1.5,  3. ,  4. ,  5. ])
-        assert_series_equal(ranked_average, expect_average)
-
-        ranked_min = ser.rank(method='min')
-        expect_min = Series([ 1.,  1.,  3.,  4.,  5.])
-        assert_series_equal(ranked_min, expect_min)
-
-        ranked_max = ser.rank(method='max')
-        expect_max = Series([ 2.,  2.,  3.,  4.,  5.])
-        assert_series_equal(ranked_max, expect_max)
-
-        ranked_first = ser.rank(method='first')
-        expect_first = Series([ 1.,  2.,  3.,  4.,  5.])
-        assert_series_equal(ranked_first, expect_first)
-
-        ranked_dense = ser.rank(method='dense')
-        expect_dense = Series([ 1.,  1.,  2.,  3.,  4.])
-        assert_series_equal(ranked_dense, expect_dense)
-
-        ser = Series([2., 6., 3., 9., 2.])
-
-        ranked_average = ser.rank(method='average')
-        expect_average = Series([ 1.5,  4. ,  3. ,  5. ,  1.5])
-        assert_series_equal(ranked_average, expect_average)
-
-        ranked_min = ser.rank(method='min')
-        expect_min = Series([ 1.,  4.,  3.,  5.,  1.])
-        assert_series_equal(ranked_min, expect_min)
-
-        ranked_max = ser.rank(method='max')
-        expect_max = Series([ 2.,  4.,  3.,  5.,  2.])
-        assert_series_equal(ranked_max, expect_max)
-
-        ranked_first = ser.rank(method='first')
-        expect_first = Series([ 1.,  4.,  3.,  5.,  2.])
-        assert_series_equal(ranked_first, expect_first)
-
-        ranked_dense = ser.rank(method='dense')
-        expect_dense = Series([ 1.,  3.,  2.,  4.,  1.])
-        assert_series_equal(ranked_dense, expect_dense)
-        
     def test_from_csv(self):
 
         with ensure_clean() as path:
@@ -5337,6 +5291,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         result = ser.replace(Timestamp('20130103'), Timestamp('20120101'))
         assert_series_equal(result, expected)
 
+
     def test_replace_with_single_list(self):
         ser = Series([0, 1, 2, 3, 4])
         result = ser.replace([1,2,3])
@@ -5351,7 +5306,6 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         with tm.assertRaises(ValueError):
             s.replace([1,2,3],inplace=True,method='crash_cymbal')
         assert_series_equal(s, ser)
-
 
     def test_replace_mixed_types(self):
         s = Series(np.arange(5),dtype='int64')
@@ -5394,30 +5348,6 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         r = dr.astype(object).replace([dr[0],dr[1],dr[2]], [1.0,2,'a'])
         assert_series_equal(r, Series([1.0,2,'a'] +
                                       dr[3:].tolist(),dtype=object))
-
-    def test_replace_bool_with_string_no_op(self):
-        s = Series([True, False, True])
-        result = s.replace('fun', 'in-the-sun')
-        tm.assert_series_equal(s, result)
-
-    def test_replace_bool_with_string(self):
-        # nonexistent elements
-        s = Series([True, False, True])
-        result = s.replace(True, '2u')
-        expected = Series(['2u', False, '2u'])
-        tm.assert_series_equal(expected, result)
-
-    def test_replace_bool_with_bool(self):
-        s = Series([True, False, True])
-        result = s.replace(True, False)
-        expected = Series([False] * len(s))
-        tm.assert_series_equal(expected, result)
-
-    def test_replace_with_dict_with_bool_keys(self):
-        s = Series([True, False, True])
-        result = s.replace({'asdf': 'asdb', True: 'yes'})
-        expected = Series(['yes', False, 'yes'])
-        tm.assert_series_equal(expected, result)
 
     def test_asfreq(self):
         ts = Series([0., 1., 2.], index=[datetime(2009, 10, 30),

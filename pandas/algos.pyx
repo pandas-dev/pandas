@@ -139,7 +139,7 @@ def rank_1d_float64(object in_arr, ties_method='average', ascending=True,
     """
 
     cdef:
-        Py_ssize_t i, j, n, dups, total_tie_count = 0
+        Py_ssize_t i, j, n, dups = 0, total_tie_count = 0
         ndarray[float64_t] sorted_data, ranks, values
         ndarray[int64_t] argsorted
         float64_t val, nan_value
@@ -216,7 +216,7 @@ def rank_1d_int64(object in_arr, ties_method='average', ascending=True,
     """
 
     cdef:
-        Py_ssize_t i, j, n, dups, total_tie_count = 0
+        Py_ssize_t i, j, n, dups=0, total_tie_count=0
         ndarray[int64_t] sorted_data, values
         ndarray[float64_t] ranks
         ndarray[int64_t] argsorted
@@ -280,7 +280,7 @@ def rank_2d_float64(object in_arr, axis=0, ties_method='average',
     """
 
     cdef:
-        Py_ssize_t i, j, z, k, n, dups, total_tie_count = 0
+        Py_ssize_t i, j, z, k, n, dups = 0, total_tie_count = 0
         ndarray[float64_t, ndim=2] ranks, values
         ndarray[int64_t, ndim=2] argsorted
         float64_t val, nan_value
@@ -325,6 +325,7 @@ def rank_2d_float64(object in_arr, axis=0, ties_method='average',
 
     for i in range(n):
         dups = sum_ranks = 0
+        total_tie_count = 0
         for j in range(k):
             sum_ranks += j + 1
             dups += 1
@@ -349,9 +350,9 @@ def rank_2d_float64(object in_arr, axis=0, ties_method='average',
                     for z in range(j - dups + 1, j + 1):
                         ranks[i, argsorted[i, z]] = 2 * j - z - dups + 2
                 elif tiebreak == TIEBREAK_DENSE:
-                    for j in range(i - dups + 1, i + 1):
-                        ranks[argsorted[j]] = i - dups + 2 - total_tie_count
-                total_tie_count += dups - 1
+                    for z in range(j - dups + 1, j + 1):
+                        ranks[i, argsorted[i, z]] = j - dups + 2 - total_tie_count
+                    total_tie_count += dups - 1
                 sum_ranks = dups = 0
 
     if axis == 0:
@@ -367,13 +368,14 @@ def rank_2d_int64(object in_arr, axis=0, ties_method='average',
     """
 
     cdef:
-        Py_ssize_t i, j, z, k, n, dups, total_tie_count = 0
+        Py_ssize_t i, j, z, k, n, dups = 0, total_tie_count = 0
         ndarray[float64_t, ndim=2] ranks
         ndarray[int64_t, ndim=2] argsorted
         ndarray[int64_t, ndim=2, cast=True] values
         int64_t val
         float64_t sum_ranks = 0
         int tiebreak = 0
+
     tiebreak = tiebreakers[ties_method]
 
     if axis == 0:
@@ -400,6 +402,7 @@ def rank_2d_int64(object in_arr, axis=0, ties_method='average',
 
     for i in range(n):
         dups = sum_ranks = 0
+        total_tie_count = 0
         for j in range(k):
             sum_ranks += j + 1
             dups += 1
@@ -421,8 +424,8 @@ def rank_2d_int64(object in_arr, axis=0, ties_method='average',
                     for z in range(j - dups + 1, j + 1):
                         ranks[i, argsorted[i, z]] = 2 * j - z - dups + 2
                 elif tiebreak == TIEBREAK_DENSE:
-                    for j in range(i - dups + 1, i + 1):
-                        ranks[argsorted[j]] = i - dups + 2 - total_tie_count
+                    for z in range(j - dups + 1, j + 1):
+                        ranks[i, argsorted[i, z]] = j - dups + 2 - total_tie_count
                     total_tie_count += dups - 1
                 sum_ranks = dups = 0
 
@@ -439,7 +442,7 @@ def rank_1d_generic(object in_arr, bint retry=1, ties_method='average',
     """
 
     cdef:
-        Py_ssize_t i, j, n, dups, total_tie_count = 0
+        Py_ssize_t i, j, n, dups = 0, total_tie_count = 0
         ndarray[float64_t] ranks
         ndarray sorted_data, values
         ndarray[int64_t] argsorted
@@ -552,7 +555,7 @@ def rank_2d_generic(object in_arr, axis=0, ties_method='average',
     """
 
     cdef:
-        Py_ssize_t i, j, z, k, n, infs, dups, total_tie_count = 0
+        Py_ssize_t i, j, z, k, n, infs, dups=0,total_tie_count=0
         ndarray[float64_t, ndim=2] ranks
         ndarray[object, ndim=2] values
         ndarray[int64_t, ndim=2] argsorted
@@ -608,6 +611,7 @@ def rank_2d_generic(object in_arr, axis=0, ties_method='average',
 
     for i in range(n):
         dups = sum_ranks = infs = 0
+        total_tie_count = 0
         for j in range(k):
             val = values[i, j]
             if val is nan_value and keep_na:
@@ -630,8 +634,8 @@ def rank_2d_generic(object in_arr, axis=0, ties_method='average',
                     raise ValueError('first not supported for '
                                      'non-numeric data')
                 elif tiebreak == TIEBREAK_DENSE:
-                    for j in range(i - dups + 1, i + 1):
-                        ranks[argsorted[j]] = i - dups + 2 - total_tie_count
+                    for z in range(j - dups + 1, j + 1):
+                        ranks[i, argsorted[i, z]] = j - dups + 2 - total_tie_count
                     total_tie_count += dups - 1
                 sum_ranks = dups = 0
 
