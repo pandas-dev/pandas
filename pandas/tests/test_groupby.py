@@ -2764,6 +2764,64 @@ class TestGroupBy(tm.TestCase):
         grouped = series.groupby(grouper)
         assert next(iter(grouped), None) is None
 
+    def test_groupby_with_timegrouper(self):
+        # GH 4161
+        # TimeGrouper requires a sorted index
+        # also verifies that the resultant index has the correct name
+        import datetime as DT
+        df = DataFrame({
+            'Buyer': 'Carl Carl Carl Carl Joe Carl'.split(),
+            'Quantity': [18,3,5,1,9,3],
+            'Date' : [
+                DT.datetime(2013,9,1,13,0),
+                DT.datetime(2013,9,1,13,5),
+                DT.datetime(2013,10,1,20,0),
+                DT.datetime(2013,10,3,10,0),
+                DT.datetime(2013,12,2,12,0),
+                DT.datetime(2013,9,2,14,0),
+                ]})
+        df = df.set_index(['Date'])
+
+        expected = DataFrame({ 'Quantity' : np.nan },
+                             index=date_range('20130901 13:00:00','20131205 13:00:00',freq='5D',name='Date'))
+        expected.iloc[[0,6,18],0] = np.array([24.,6.,9.],dtype='float64')
+
+        result1 = df.resample('5D',how=sum)
+        assert_frame_equal(result1, expected)
+
+        df_sorted = df.sort_index()
+        result2 = df_sorted.groupby(pd.TimeGrouper(freq='5D')).sum()
+        assert_frame_equal(result2, expected)
+
+        result3 = df.groupby(pd.TimeGrouper(freq='5D')).sum()
+        assert_frame_equal(result3, expected)
+
+    def test_groupby_with_timegrouper_methods(self):
+        # GH 3881
+        # make sure API of timegrouper conforms
+
+        import datetime as DT
+        df = pd.DataFrame({
+            'Branch' : 'A A A A A B'.split(),
+            'Buyer': 'Carl Mark Carl Joe Joe Carl'.split(),
+            'Quantity': [1,3,5,8,9,3],
+            'Date' : [
+                DT.datetime(2013,1,1,13,0),
+                DT.datetime(2013,1,1,13,5),
+                DT.datetime(2013,10,1,20,0),
+                DT.datetime(2013,10,2,10,0),
+                DT.datetime(2013,12,2,12,0),
+                DT.datetime(2013,12,2,14,0),
+                ]})
+
+        df = df.set_index('Date', drop=False)
+        g = df.groupby(pd.TimeGrouper('6M'))
+        self.assertTrue(g.group_keys)
+        self.assertTrue(isinstance(g.grouper,pd.core.groupby.BinGrouper))
+        groups = g.groups
+        self.assertTrue(isinstance(groups,dict))
+        self.assertTrue(len(groups) == 3)
+
     def test_cumcount(self):
         df = DataFrame([['a'], ['a'], ['a'], ['b'], ['a']], columns=['A'])
         g = df.groupby('A')
