@@ -8,7 +8,7 @@ from numpy import nan
 import numpy as np
 import random
 
-from pandas.compat import range, lrange, lzip, zip
+from pandas.compat import range, lrange, lzip, zip, StringIO
 from pandas import compat, _np_version_under1p7
 from pandas.tseries.index import DatetimeIndex
 from pandas.tools.merge import merge, concat, ordered_merge, MergeError
@@ -1024,6 +1024,65 @@ class TestMergeMulti(tm.TestCase):
         # it works!
         result = merge(df1, df2, how='outer')
         self.assertTrue(len(result) == 2000)
+
+    def test_join_multi_levels(self):
+
+        # GH 3662
+        # merge multi-levels
+        from pandas import read_table
+        household = read_table(
+            StringIO(
+"""household_id,male,wealth
+1,0,196087.3
+2,1,316478.7
+3,0,294750
+"""
+                ),
+            sep=',', index_col='household_id'
+            )
+
+        portfolio = read_table(
+            StringIO(
+""""household_id","asset_id","name","share"
+"1","nl0000301109","ABN Amro","1.0"
+"2","nl0000289783","Robeco","0.4"
+"2","gb00b03mlx29","Royal Dutch Shell","0.6"
+"3","gb00b03mlx29","Royal Dutch Shell","0.15"
+"3","lu0197800237","AAB Eastern Europe Equity Fund","0.6"
+"3","nl0000289965","Postbank BioTech Fonds","0.25"
+"4",,,"1.0"
+"""
+                ),
+            sep=',', index_col=['household_id', 'asset_id']
+            )
+
+        result = household.join(portfolio, how='inner')
+        expected = DataFrame(dict(male = [0,1,1,0,0,0],
+                                  wealth = [ 196087.3, 316478.7, 316478.7, 294750.0, 294750.0, 294750.0 ],
+                                  name = ['ABN Amro','Robeco','Royal Dutch Shell','Royal Dutch Shell','AAB Eastern Europe Equity Fund','Postbank BioTech Fonds'],
+                                  share = [1.00,0.40,0.60,0.15,0.60,0.25],
+                                  household_id = [1,2,2,3,3,3],
+                                  asset_id = ['nl0000301109','nl0000289783','gb00b03mlx29','gb00b03mlx29','lu0197800237','nl0000289965']),
+                             ).set_index(['household_id','asset_id']).reindex(columns=['male','wealth','name','share'])
+        assert_frame_equal(result,expected)
+
+        result = household.join(portfolio, how='outer')
+        expected = concat([expected,DataFrame(dict(share = [1.00]),
+                                              index=MultiIndex.from_tuples([(4,np.nan)],
+                                                                           names=['household_id','asset_id']))],
+                          axis=0).reindex(columns=expected.columns)
+        assert_frame_equal(result,expected)
+
+        # invalid cases
+        household.index.name = 'foo'
+        def f():
+            household.join(portfolio, how='inner')
+        self.assertRaises(ValueError, f)
+
+        portfolio2 = portfolio.copy()
+        portfolio2.index.set_names(['household_id','foo'])
+        def f():
+            portfolio2.join(portfolio, how='inner')
 
 def _check_join(left, right, result, join_col, how='left',
                 lsuffix='_x', rsuffix='_y'):
