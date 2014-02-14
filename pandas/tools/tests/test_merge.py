@@ -8,7 +8,7 @@ from numpy import nan
 import numpy as np
 import random
 
-from pandas.compat import range, lrange, lzip, zip
+from pandas.compat import range, lrange, lzip, zip, StringIO
 from pandas import compat, _np_version_under1p7
 from pandas.tseries.index import DatetimeIndex
 from pandas.tools.merge import merge, concat, ordered_merge, MergeError
@@ -16,7 +16,7 @@ from pandas.util.testing import (assert_frame_equal, assert_series_equal,
                                  assert_almost_equal, rands,
                                  makeCustomDataframe as mkdf,
                                  assertRaisesRegexp)
-from pandas import isnull, DataFrame, Index, MultiIndex, Panel, Series, date_range
+from pandas import isnull, DataFrame, Index, MultiIndex, Panel, Series, date_range, read_table
 import pandas.algos as algos
 import pandas.util.testing as tm
 
@@ -1024,6 +1024,98 @@ class TestMergeMulti(tm.TestCase):
         # it works!
         result = merge(df1, df2, how='outer')
         self.assertTrue(len(result) == 2000)
+
+    def test_join_multi_levels(self):
+
+        # GH 3662
+        # merge multi-levels
+
+        household = DataFrame(dict(household_id = [1,2,3],
+                                   male = [0,1,0],
+                                   wealth = [196087.3,316478.7,294750]),
+                              columns = ['household_id','male','wealth']).set_index('household_id')
+        portfolio = DataFrame(dict(household_id = [1,2,2,3,3,3,4],
+                                   asset_id = ["nl0000301109","nl0000289783","gb00b03mlx29","gb00b03mlx29","lu0197800237","nl0000289965",np.nan],
+                                   name = ["ABN Amro","Robeco","Royal Dutch Shell","Royal Dutch Shell","AAB Eastern Europe Equity Fund","Postbank BioTech Fonds",np.nan],
+                                   share = [1.0,0.4,0.6,0.15,0.6,0.25,1.0]),
+                              columns = ['household_id','asset_id','name','share']).set_index(['household_id','asset_id'])
+        result = household.join(portfolio, how='inner')
+        expected = DataFrame(dict(male = [0,1,1,0,0,0],
+                                  wealth = [ 196087.3, 316478.7, 316478.7, 294750.0, 294750.0, 294750.0 ],
+                                  name = ['ABN Amro','Robeco','Royal Dutch Shell','Royal Dutch Shell','AAB Eastern Europe Equity Fund','Postbank BioTech Fonds'],
+                                  share = [1.00,0.40,0.60,0.15,0.60,0.25],
+                                  household_id = [1,2,2,3,3,3],
+                                  asset_id = ['nl0000301109','nl0000289783','gb00b03mlx29','gb00b03mlx29','lu0197800237','nl0000289965']),
+                             ).set_index(['household_id','asset_id']).reindex(columns=['male','wealth','name','share'])
+        assert_frame_equal(result,expected)
+
+        assert_frame_equal(result,expected)
+
+        # equivalency
+        result2 = merge(household.reset_index(),portfolio.reset_index(),on=['household_id'],how='inner').set_index(['household_id','asset_id'])
+        assert_frame_equal(result2,expected)
+
+        result = household.join(portfolio, how='outer')
+        expected = concat([expected,DataFrame(dict(share = [1.00]),
+                                              index=MultiIndex.from_tuples([(4,np.nan)],
+                                                                           names=['household_id','asset_id']))],
+                          axis=0).reindex(columns=expected.columns)
+        assert_frame_equal(result,expected)
+
+        # invalid cases
+        household.index.name = 'foo'
+        def f():
+            household.join(portfolio, how='inner')
+        self.assertRaises(ValueError, f)
+
+        portfolio2 = portfolio.copy()
+        portfolio2.index.set_names(['household_id','foo'])
+        def f():
+            portfolio2.join(portfolio, how='inner')
+        self.assertRaises(ValueError, f)
+
+    def test_join_multi_levels2(self):
+
+        # some more advanced merges
+        # GH6360
+        household = DataFrame(dict(household_id = [1,2,2,3,3,3,4],
+                                   asset_id = ["nl0000301109","nl0000301109","gb00b03mlx29","gb00b03mlx29","lu0197800237","nl0000289965",np.nan],
+                                   share = [1.0,0.4,0.6,0.15,0.6,0.25,1.0]),
+                              columns = ['household_id','asset_id','share']).set_index(['household_id','asset_id'])
+
+        log_return = DataFrame(dict(
+            asset_id = ["gb00b03mlx29", "gb00b03mlx29", "gb00b03mlx29", "lu0197800237", "lu0197800237"],
+            t = [233, 234, 235, 180, 181],
+            log_return = [.09604978, -.06524096, .03532373, .03025441, .036997]
+                )).set_index(["asset_id","t"])
+
+        expected = DataFrame(dict(
+            household_id = [2, 2, 2, 3, 3, 3, 3, 3],
+            asset_id = ["gb00b03mlx29", "gb00b03mlx29", "gb00b03mlx29", "gb00b03mlx29", "gb00b03mlx29", "gb00b03mlx29", "lu0197800237", "lu0197800237"],
+            t = [233, 234, 235, 233, 234, 235, 180, 181],
+            share = [0.6, 0.6, 0.6, 0.15, 0.15, 0.15, 0.6, 0.6],
+            log_return = [.09604978, -.06524096, .03532373, .09604978, -.06524096, .03532373, .03025441, .036997]
+            )).set_index(["household_id", "asset_id", "t"]).reindex(columns=['share','log_return'])
+
+        def f():
+            household.join(log_return, how='inner')
+        self.assertRaises(NotImplementedError, f)
+
+        # this is the equivalency
+        result = merge(household.reset_index(),log_return.reset_index(),on=['asset_id'],how='inner').set_index(['household_id','asset_id','t'])
+        assert_frame_equal(result,expected)
+
+        expected = DataFrame(dict(
+            household_id = [1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4],
+            asset_id = ["nl0000301109", "nl0000289783", "gb00b03mlx29", "gb00b03mlx29", "gb00b03mlx29", "gb00b03mlx29", "gb00b03mlx29", "gb00b03mlx29", "lu0197800237", "lu0197800237", "nl0000289965", None],
+            t = [None, None, 233, 234, 235, 233, 234, 235, 180, 181, None, None],
+            share = [1.0, 0.4, 0.6, 0.6, 0.6, 0.15, 0.15, 0.15, 0.6, 0.6, 0.25, 1.0],
+            log_return = [None, None, .09604978, -.06524096, .03532373, .09604978, -.06524096, .03532373, .03025441, .036997, None, None]
+            )).set_index(["household_id", "asset_id", "t"])
+
+        def f():
+            household.join(log_return, how='outer')
+        self.assertRaises(NotImplementedError, f)
 
 def _check_join(left, right, result, join_col, how='left',
                 lsuffix='_x', rsuffix='_y'):
