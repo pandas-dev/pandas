@@ -451,11 +451,15 @@ def str_extract(arr, pat, flags=0):
         else:
             return empty_row
     if regex.groups == 1:
-        result = Series([f(val)[0] for val in arr], name=regex.groupindex.get(1))
+        result = Series([f(val)[0] for val in arr], 
+                        name=regex.groupindex.get(1),
+                        index=arr.index)
     else:
         names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))
         columns = [names.get(1 + i, i) for i in range(regex.groups)]
-        result = DataFrame([f(val) for val in arr], columns=columns)
+        result = DataFrame([f(val) for val in arr], 
+                           columns=columns, 
+                           index=arr.index)
     return result
 
 
