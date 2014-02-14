@@ -1088,7 +1088,7 @@ class TestIndexing(tm.TestCase):
         columns = MultiIndex.from_tuples([('a','foo'),('a','bar'),('b','foo'),('b','bah')],
                                          names=['lvl0', 'lvl1'])
 
-        df = DataFrame(np.arange(16).reshape(4, 4), index=index, columns=columns)
+        df = DataFrame(np.arange(16,dtype='int64').reshape(4, 4), index=index, columns=columns)
         df = df.sortlevel(axis=0).sortlevel(axis=1)
 
         # identity
@@ -1164,7 +1164,7 @@ class TestIndexing(tm.TestCase):
         columns = MultiIndex.from_tuples([('a','foo'),('a','bar'),
                                           ('b','foo'),('b','bah')],
                                          names=['lvl0', 'lvl1'])
-        df = DataFrame(np.arange(len(index)*len(columns)).reshape((len(index),len(columns))),
+        df = DataFrame(np.arange(len(index)*len(columns),dtype='int64').reshape((len(index),len(columns))),
                        index=index,
                        columns=columns)
         result = df.loc[(slice('A1','A3'),slice(None), ['C1','C3']),:]
@@ -1203,7 +1203,7 @@ class TestIndexing(tm.TestCase):
         columns = MultiIndex.from_tuples([('a','foo'),('a','bar'),
                                           ('b','foo'),('b','bah')],
                                          names=['lvl0', 'lvl1'])
-        df = DataFrame(np.arange(len(index)*len(columns)).reshape((len(index),len(columns))),
+        df = DataFrame(np.arange(len(index)*len(columns),dtype='int64').reshape((len(index),len(columns))),
                        index=index,
                        columns=columns).sortlevel().sortlevel(axis=1)
 
@@ -1252,7 +1252,7 @@ class TestIndexing(tm.TestCase):
         columns = MultiIndex.from_tuples([('a','foo'),('a','bar'),('b','foo'),('b','bah')],
                                          names=['lvl0', 'lvl1'])
 
-        df_orig = DataFrame(np.arange(16).reshape(4, 4), index=index, columns=columns)
+        df_orig = DataFrame(np.arange(16,dtype='int64').reshape(4, 4), index=index, columns=columns)
         df_orig = df_orig.sortlevel(axis=0).sortlevel(axis=1)
 
         # identity
