@@ -23,7 +23,8 @@ class TestRank(tm.TestCase):
                              3.5, 1.5, 8.0, nan, 5.5]),
         'min': np.array([1, 5, 7, 3, nan, 3, 1, 8, nan, 5]),
         'max': np.array([2, 6, 7, 4, nan, 4, 2, 8, nan, 6]),
-        'first': np.array([1, 5, 7, 3, nan, 4, 2, 8, nan, 6])
+        'first': np.array([1, 5, 7, 3, nan, 4, 2, 8, nan, 6]),
+        'dense': np.array([1, 3, 4, 2, nan, 2, 1, 5, nan, 3])
     }
 
     def test_rank_tie_methods(self):
