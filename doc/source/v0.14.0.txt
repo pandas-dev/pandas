@@ -154,6 +154,7 @@ Enhancements
 - ``plot(legend='reverse')`` will now reverse the order of legend labels for
   most plot kinds. (:issue:`6014`)
 - improve performance of slice indexing on Series with string keys (:issue:`6341`)
+- Hexagonal bin plots from ``DataFrame.plot`` with ``kind='hexbin'`` (:issue:`5478`)
 
 Performance
 ~~~~~~~~~~~
