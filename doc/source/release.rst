@@ -101,6 +101,8 @@ Bug Fixes
 - Bug in TimeGrouper/resample when presented with a non-monotonic DatetimeIndex would return invalid results. (:issue:`4161`)
 - Bug in index name propogation in TimeGrouper/resample (:issue:`4161`)
 - TimeGrouper has a more compatible API to the rest of the groupers (e.g. ``groups`` was missing) (:issue:`3881`)
+- Bug in ``pd.eval`` when parsing strings with possible tokens like ``'&'``
+  (:issue:`6351`)
 
 pandas 0.13.1
 -------------
