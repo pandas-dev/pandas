@@ -8736,6 +8736,13 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         result = df.where(pd.notnull(df),DataFrame(1,index=df.index,columns=df.columns))
         assert_frame_equal(result, expected)
 
+    def test_where_complex(self):
+        # GH 6345
+        expected = DataFrame([[1+1j, 2], [np.nan, 4+1j]], columns=['a', 'b'])
+        df = DataFrame([[1+1j, 2], [5+1j, 4+1j]], columns=['a', 'b'])
+        df[df.abs() >= 5] = np.nan
+        assert_frame_equal(df,expected)
+
     def test_mask(self):
         df = DataFrame(np.random.randn(5, 3))
         cond = df > 0
