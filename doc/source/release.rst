@@ -75,6 +75,7 @@ Improvements to existing features
 - ``plot(legend='reverse')`` will now reverse the order of legend labels for most plot kinds.
   (:issue:`6014`)
 - Allow multi-index slicers (:issue:`6134`, :issue:`4036`, :issue:`3057`, :issue:`2598`, :issue:`5641`)
+- improve performance of slice indexing on Series with string keys (:issue:`6341`)
 
 .. _release.bug_fixes-0.14.0:
 
