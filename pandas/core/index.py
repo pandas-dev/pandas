@@ -1265,8 +1265,48 @@ class Index(FrozenNDArray):
         -------
         join_index, (left_indexer, right_indexer)
         """
-        if (level is not None and (isinstance(self, MultiIndex) or
-                                   isinstance(other, MultiIndex))):
+        self_is_mi = isinstance(self, MultiIndex)
+        other_is_mi = isinstance(other, MultiIndex)
+
+        # try to figure out the join level
+        # GH3662
+        if (level is None and (self_is_mi or other_is_mi)):
+
+            # have the same levels/names so a simple join
+            if self.names == other.names:
+                pass
+
+            else:
+
+                # figure out join names
+                self_names = [ n for n in self.names if n is not None ]
+                other_names = [ n for n in other.names if n is not None ]
+                overlap = list(set(self_names) & set(other_names))
+
+                # need at least 1 in common
+                if not len(overlap):
+                    raise ValueError("cannot join with no level specified and no overlapping names")
+
+                if self_is_mi and other_is_mi:
+                    raise ValueError("cannot join between multiple multi-indexes")
+
+                # make the indices into mi's that match
+                if self_is_mi:
+                    level = self.names.index(overlap[0])
+                    result = other._join_level(self, level, how=how,
+                                               return_indexers=return_indexers)
+
+                    # reversed the results (as we reversed the inputs)
+                    if isinstance(result, tuple):
+                        return result[0], result[2], result[1]
+
+                else:
+                    level = other.names.index(overlap[0])
+                    return self._join_level(other, level, how=how,
+                                            return_indexers=return_indexers)
+
+        # join on the level
+        if (level is not None and (self_is_mi or other_is_mi)):
             return self._join_level(other, level, how=how,
                                     return_indexers=return_indexers)
 
