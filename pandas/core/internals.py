@@ -1,5 +1,6 @@
 import itertools
 import re
+import operator
 from datetime import datetime, timedelta
 import copy
 from collections import defaultdict
@@ -2453,7 +2454,8 @@ class BlockManager(PandasObject):
         def comp(s):
             if isnull(s):
                 return isnull(values)
-            return values == getattr(s, 'asm8', s)
+            return _possibly_compare(values, getattr(s, 'asm8', s),
+                                     operator.eq)
         masks = [comp(s) for i, s in enumerate(src_list)]
 
         result_blocks = []
@@ -4153,3 +4155,20 @@ def _possibly_convert_to_indexer(loc):
     elif isinstance(loc, slice):
         loc = lrange(loc.start, loc.stop)
     return loc
+
+
+def _possibly_compare(a, b, op):
+    res = op(a, b)
+    is_a_array = isinstance(a, np.ndarray)
+    is_b_array = isinstance(b, np.ndarray)
+    if np.isscalar(res) and (is_a_array or is_b_array):
+        type_names = [type(a).__name__, type(b).__name__]
+
+        if is_a_array:
+            type_names[0] = 'ndarray(dtype=%s)' % a.dtype
+
+        if is_b_array:
+            type_names[1] = 'ndarray(dtype=%s)' % b.dtype
+
+        raise TypeError("Cannot compare types %r and %r" % tuple(type_names))
+    return res

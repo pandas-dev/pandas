@@ -8005,9 +8005,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
     def test_replace_with_dict_with_bool_keys(self):
         df = DataFrame({0: [True, False], 1: [False, True]})
-        result = df.replace({'asdf': 'asdb', True: 'yes'})
-        expected = DataFrame({0: ['yes', False], 1: [False, 'yes']})
-        tm.assert_frame_equal(expected, result)
+        with tm.assertRaisesRegexp(TypeError, 'Cannot compare types .+'):
+            df.replace({'asdf': 'asdb', True: 'yes'})
 
     def test_combine_multiple_frames_dtypes(self):
         from pandas import concat

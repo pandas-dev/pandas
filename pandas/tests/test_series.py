@@ -5264,7 +5264,11 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         # malformed
         self.assertRaises(ValueError, ser.replace, [1, 2, 3], [np.nan, 0])
-        self.assertRaises(TypeError, ser.replace, range(1, 3), [np.nan, 0])
+
+        # make sure that we aren't just masking a TypeError because bools don't
+        # implement indexing
+        with tm.assertRaisesRegexp(TypeError, 'Cannot compare types .+'):
+            ser.replace([1, 2], [np.nan, 0])
 
         ser = Series([0, 1, 2, 3, 4])
         result = ser.replace([0, 1, 2, 3, 4], [4, 3, 2, 1, 0])
@@ -5369,9 +5373,8 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
     def test_replace_with_dict_with_bool_keys(self):
         s = Series([True, False, True])
-        result = s.replace({'asdf': 'asdb', True: 'yes'})
-        expected = Series(['yes', False, 'yes'])
-        tm.assert_series_equal(expected, result)
+        with tm.assertRaisesRegexp(TypeError, 'Cannot compare types .+'):
+            s.replace({'asdf': 'asdb', True: 'yes'})
 
     def test_asfreq(self):
         ts = Series([0., 1., 2.], index=[datetime(2009, 10, 30),
