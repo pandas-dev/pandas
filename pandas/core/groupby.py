@@ -217,8 +217,6 @@ class GroupBy(PandasObject):
         if isinstance(obj, NDFrame):
             obj._consolidate_inplace()
 
-        self.obj = obj
-        self.axis = obj._get_axis_number(axis)
         self.level = level
 
         if not as_index:
@@ -234,9 +232,11 @@ class GroupBy(PandasObject):
         self.squeeze = squeeze
 
         if grouper is None:
-            grouper, exclusions = _get_grouper(obj, keys, axis=axis,
-                                               level=level, sort=sort)
+            grouper, exclusions, obj = _get_grouper(obj, keys, axis=axis,
+                                                    level=level, sort=sort)
 
+        self.obj = obj
+        self.axis = obj._get_axis_number(axis)
         self.grouper = grouper
         self.exclusions = set(exclusions) if exclusions else set()
 
@@ -1106,6 +1106,7 @@ class Grouper(object):
 
         # will be filled in Cython function
         result = np.empty(out_shape, dtype=values.dtype)
+        result.fill(np.nan)
         counts = np.zeros(self.ngroups, dtype=np.int64)
 
         result = self._aggregate(result, counts, values, how, is_numeric)
@@ -1258,6 +1259,11 @@ class CustomGrouper(object):
     def get_grouper(self, obj):
         raise NotImplementedError
 
+    # delegates
+    @property
+    def groups(self):
+        return self.grouper.groups
+
 
 class BinGrouper(Grouper):
 
@@ -1265,6 +1271,14 @@ class BinGrouper(Grouper):
         self.bins = com._ensure_int64(bins)
         self.binlabels = _ensure_index(binlabels)
         self._filter_empty_groups = filter_empty
+
+    @cache_readonly
+    def groups(self):
+        """ dict {group name -> group labels} """
+
+        # this is mainly for compat
+        # GH 3881
+        return dict(zip(self.binlabels,self.bins))
 
     @property
     def nkeys(self):
@@ -1560,10 +1574,10 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
             key = group_axis
 
     if isinstance(key, CustomGrouper):
-        gpr = key.get_grouper(obj)
-        return gpr, []
+        binner, gpr, obj = key.get_grouper(obj)
+        return gpr, [], obj
     elif isinstance(key, Grouper):
-        return key, []
+        return key, [], obj
 
     if not isinstance(key, (tuple, list)):
         keys = [key]
@@ -1623,7 +1637,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
 
     grouper = Grouper(group_axis, groupings, sort=sort)
 
-    return grouper, exclusions
+    return grouper, exclusions, obj
 
 
 def _is_label_like(val):

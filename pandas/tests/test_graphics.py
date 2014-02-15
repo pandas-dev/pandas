@@ -956,6 +956,65 @@ class TestDataFramePlots(tm.TestCase):
         with tm.assertRaises(ValueError):
             df.plot(kind='aasdf')
 
+    @slow
+    def test_hexbin_basic(self):
+        df = DataFrame({"A": np.random.uniform(size=20),
+                        "B": np.random.uniform(size=20),
+                        "C": np.arange(20) + np.random.uniform(size=20)})
+
+        ax = df.plot(kind='hexbin', x='A', y='B', gridsize=10)
+        # TODO: need better way to test. This just does existence.
+        self.assert_(len(ax.collections) == 1)
+
+    @slow
+    def test_hexbin_with_c(self):
+        df = DataFrame({"A": np.random.uniform(size=20),
+                        "B": np.random.uniform(size=20),
+                        "C": np.arange(20) + np.random.uniform(size=20)})
+
+        ax = df.plot(kind='hexbin', x='A', y='B', C='C')
+        self.assert_(len(ax.collections) == 1)
+
+        ax = df.plot(kind='hexbin', x='A', y='B', C='C',
+                          reduce_C_function=np.std)
+        self.assert_(len(ax.collections) == 1)
+
+    @slow
+    def test_hexbin_cmap(self):
+        df = DataFrame({"A": np.random.uniform(size=20),
+                        "B": np.random.uniform(size=20),
+                        "C": np.arange(20) + np.random.uniform(size=20)})
+
+        # Default to BuGn
+        ax = df.plot(kind='hexbin', x='A', y='B')
+        self.assertEquals(ax.collections[0].cmap.name, 'BuGn')
+
+        cm = 'cubehelix'
+        ax = df.plot(kind='hexbin', x='A', y='B', colormap=cm)
+        self.assertEquals(ax.collections[0].cmap.name, cm)
+
+    @slow
+    def test_no_color_bar(self):
+        df = DataFrame({"A": np.random.uniform(size=20),
+                        "B": np.random.uniform(size=20),
+                        "C": np.arange(20) + np.random.uniform(size=20)})
+
+        ax = df.plot(kind='hexbin', x='A', y='B', colorbar=None)
+        self.assertIs(ax.collections[0].colorbar, None)
+
+    @slow
+    def test_allow_cmap(self):
+        df = DataFrame({"A": np.random.uniform(size=20),
+                        "B": np.random.uniform(size=20),
+                        "C": np.arange(20) + np.random.uniform(size=20)})
+
+        ax = df.plot(kind='hexbin', x='A', y='B', cmap='YlGn')
+        self.assertEquals(ax.collections[0].cmap.name, 'YlGn')
+
+        with tm.assertRaises(TypeError):
+            df.plot(kind='hexbin', x='A', y='B', cmap='YlGn',
+                         colormap='BuGn')
+
 
 @tm.mplskip
 class TestDataFrameGroupByPlots(tm.TestCase):

@@ -53,6 +53,8 @@ pandas 0.14.0
 New features
 ~~~~~~~~~~~~
 
+- Hexagonal bin plots from ``DataFrame.plot`` with ``kind='hexbin'`` (:issue:`5478`)
+
 API Changes
 ~~~~~~~~~~~
 
@@ -75,6 +77,7 @@ Improvements to existing features
 - ``plot(legend='reverse')`` will now reverse the order of legend labels for most plot kinds.
   (:issue:`6014`)
 - Allow multi-index slicers (:issue:`6134`, :issue:`4036`, :issue:`3057`, :issue:`2598`, :issue:`5641`)
+- improve performance of slice indexing on Series with string keys (:issue:`6341`)
 
 .. _release.bug_fixes-0.14.0:
 
@@ -97,6 +100,11 @@ Bug Fixes
   ``to_replace`` argument (:issue:`6332`)
 - Raise when trying to align on different levels of a multi-index assignment (:issue:`3738`)
 - Bug in setting complex dtypes via boolean indexing (:issue:`6345`)
+- Bug in TimeGrouper/resample when presented with a non-monotonic DatetimeIndex would return invalid results. (:issue:`4161`)
+- Bug in index name propogation in TimeGrouper/resample (:issue:`4161`)
+- TimeGrouper has a more compatible API to the rest of the groupers (e.g. ``groups`` was missing) (:issue:`3881`)
+- Bug in ``pd.eval`` when parsing strings with possible tokens like ``'&'``
+  (:issue:`6351`)
 
 pandas 0.13.1
 -------------
