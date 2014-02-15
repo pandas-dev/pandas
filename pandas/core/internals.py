@@ -2829,7 +2829,7 @@ class BlockManager(PandasObject):
 
         return self.__class__(new_blocks, new_axes)
 
-    def fast_2d_xs(self, loc, copy=False):
+    def fast_xs(self, loc, copy=False):
         """
         get a cross sectional for a given location in the
         items ; handle dups
@@ -3757,6 +3757,12 @@ class SingleBlockManager(BlockManager):
     def _consolidate_inplace(self):
         pass
 
+    def fast_xs(self, loc, copy=False):
+        """
+        fast path for getting a cross-section
+        """
+        result = self._block.values[loc]
+        return result, False
 
 def construction_error(tot_items, block_shape, axes, e=None):
     """ raise a helpful message about our construction """

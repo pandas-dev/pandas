@@ -81,6 +81,7 @@ Improvements to existing features
 - Allow multi-index slicers (:issue:`6134`, :issue:`4036`, :issue:`3057`, :issue:`2598`, :issue:`5641`)
 - improve performance of slice indexing on Series with string keys (:issue:`6341`)
 - implement joining a single-level indexed DataFrame on a matching column of a multi-indexed DataFrame (:issue:`3662`)
+- Performance improvement in indexing into a multi-indexed Series (:issue:`5567`)
 
 .. _release.bug_fixes-0.14.0:
 

@@ -91,6 +91,25 @@ indexing_frame_get_value = Benchmark("df.get_value(idx,col)", setup,
                                      name='indexing_frame_get_value',
                                      start_date=datetime(2011, 11, 12))
 
+setup = common_setup + """
+mi = MultiIndex.from_tuples([(x,y) for x in range(1000) for y in range(1000)])
+s =  Series(np.random.randn(1000000), index=mi)
+"""
+
+series_xs_mi_ix = Benchmark("s.ix[999]", setup,
+                            name='series_xs_mi_ix',
+                            start_date=datetime(2013, 1, 1))
+
+setup = common_setup + """
+mi = MultiIndex.from_tuples([(x,y) for x in range(1000) for y in range(1000)])
+s =  Series(np.random.randn(1000000), index=mi)
+df = DataFrame(s)
+"""
+
+frame_xs_mi_ix = Benchmark("df.ix[999]", setup,
+                           name='frame_xs_mi_ix',
+                           start_date=datetime(2013, 1, 1))
+
 #----------------------------------------------------------------------
 # Boolean DataFrame row selection
 

@@ -21,8 +21,8 @@ import pandas.core.datetools as datetools
 from pandas import compat, _np_version_under1p7
 from pandas.compat import map, zip, lrange, string_types, isidentifier
 from pandas.core.common import (isnull, notnull, is_list_like,
-                                _values_from_object, _maybe_promote, ABCSeries,
-                                SettingWithCopyError, SettingWithCopyWarning)
+                                _values_from_object, _maybe_promote, _maybe_box_datetimelike,
+                                ABCSeries, SettingWithCopyError, SettingWithCopyWarning)
 import pandas.core.nanops as nanops
 from pandas.util.decorators import Appender, Substitution
 from pandas.core import config
@@ -1304,7 +1304,12 @@ class NDFrame(PandasObject):
 
         if np.isscalar(loc):
             from pandas import Series
-            new_values, copy = self._data.fast_2d_xs(loc, copy=copy)
+            new_values, copy = self._data.fast_xs(loc, copy=copy)
+
+            # may need to box a datelike-scalar
+            if not is_list_like(new_values):
+                return _maybe_box_datetimelike(new_values)
+
             result = Series(new_values, index=self.columns,
                             name=self.index[loc])
 

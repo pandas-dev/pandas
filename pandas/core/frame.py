@@ -1588,7 +1588,7 @@ class DataFrame(NDFrame):
                     result = self.reindex(i, takeable=True)
                     copy=True
                 else:
-                    new_values, copy = self._data.fast_2d_xs(i, copy=copy)
+                    new_values, copy = self._data.fast_xs(i, copy=copy)
                     result = Series(new_values, index=self.columns,
                                     name=self.index[i], dtype=new_values.dtype)
                 result._set_is_copy(self, copy=copy)

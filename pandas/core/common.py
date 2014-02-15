@@ -1557,6 +1557,16 @@ def _maybe_box(indexer, values, obj, key):
     # return the value
     return values
 
+def _maybe_box_datetimelike(value):
+    # turn a datetime like into a Timestamp/timedelta as needed
+
+    if isinstance(value, np.datetime64):
+        value = tslib.Timestamp(value)
+    elif isinstance(value, np.timedelta64):
+        pass
+
+    return value
+
 _values_from_object = lib.values_from_object
 
 def _possibly_convert_objects(values, convert_dates=True,
