@@ -2071,23 +2071,20 @@ class TestLongPanel(tm.TestCase):
         else:
             aliases = {'div': 'truediv'}
         self.panel = self.panel.to_panel()
-        n = np.random.randint(-50, 50)
-        for op in ops:
-            try:
+
+        for n in [ np.random.randint(-50, -1), np.random.randint(1, 50), 0]:
+            for op in ops:
                 alias = aliases.get(op, op)
                 f = getattr(operator, alias)
-                result = getattr(self.panel, op)(n)
                 exp = f(self.panel, n)
+                result = getattr(self.panel, op)(n)
                 assert_panel_equal(result, exp, check_panel_type=True)
 
                 # rops
                 r_f = lambda x, y: f(y, x)
-                result = getattr(self.panel, 'r' + op)(n)
                 exp = r_f(self.panel, n)
+                result = getattr(self.panel, 'r' + op)(n)
                 assert_panel_equal(result, exp)
-            except:
-                print("Failing operation %r" % op)
-                raise
 
     def test_sort(self):
         def is_sorted(arr):
