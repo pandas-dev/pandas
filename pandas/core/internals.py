@@ -729,7 +729,7 @@ class Block(PandasObject):
             def create_block(v, m, n, item, reshape=True):
                 """ return a new block, try to preserve dtype if possible """
 
-                # n should the length of the mask or a scalar here
+                # n should be the length of the mask or a scalar here
                 if not is_list_like(n):
                     n = np.array([n] * len(m))
 
@@ -742,7 +742,7 @@ class Block(PandasObject):
                     if (nn == nn_at).all():
                         nv = v.copy()
                         nv[mask] = nn_at
-                except:
+                except (ValueError, IndexError, TypeError):
                     pass
 
                 # change the dtype
@@ -751,8 +751,10 @@ class Block(PandasObject):
                     nv = v.astype(dtype)
                     try:
                         nv[m] = n
-                    except:
-                        np.putmask(nv, m, n)
+                    except ValueError:
+                        idx, = np.where(np.squeeze(m))
+                        for mask_index, new_val in zip(idx, n):
+                            nv[mask_index] = new_val
 
                 if reshape:
                     nv = _block_shape(nv)
