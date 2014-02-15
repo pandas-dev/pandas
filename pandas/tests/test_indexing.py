@@ -690,6 +690,52 @@ class TestIndexing(tm.TestCase):
         assert_series_equal(result,expected)
         self.assertEqual(result.dtype, object)
 
+    def test_loc_setitem_consistency(self):
+
+        # GH 6149
+        # coerce similary for setitem and loc when rows have a null-slice
+        expected = DataFrame({ 'date': Series(0,index=range(5),dtype=np.int64),
+                               'val' : Series(range(5),dtype=np.int64) })
+
+        df = DataFrame({ 'date': date_range('2000-01-01','2000-01-5'),
+                         'val' : Series(range(5),dtype=np.int64) })
+        df.loc[:,'date'] = 0
+        assert_frame_equal(df,expected)
+
+        df = DataFrame({ 'date': date_range('2000-01-01','2000-01-5'),
+                         'val' : Series(range(5),dtype=np.int64) })
+        df.loc[:,'date'] = np.array(0,dtype=np.int64)
+        assert_frame_equal(df,expected)
+
+        df = DataFrame({ 'date': date_range('2000-01-01','2000-01-5'),
+                         'val' : Series(range(5),dtype=np.int64) })
+        df.loc[:,'date'] = np.array([0,0,0,0,0],dtype=np.int64)
+        assert_frame_equal(df,expected)
+
+        expected = DataFrame({ 'date': Series('foo',index=range(5)),
+                               'val' : Series(range(5),dtype=np.int64) })
+        df = DataFrame({ 'date': date_range('2000-01-01','2000-01-5'),
+                         'val' : Series(range(5),dtype=np.int64) })
+        df.loc[:,'date'] = 'foo'
+        assert_frame_equal(df,expected)
+
+        expected = DataFrame({ 'date': Series(1.0,index=range(5)),
+                               'val' : Series(range(5),dtype=np.int64) })
+        df = DataFrame({ 'date': date_range('2000-01-01','2000-01-5'),
+                         'val' : Series(range(5),dtype=np.int64) })
+        df.loc[:,'date'] = 1.0
+        assert_frame_equal(df,expected)
+
+        # empty (essentially noops)
+        expected = DataFrame(columns=['x', 'y'])
+        df = DataFrame(columns=['x', 'y'])
+        df.loc[:, 'x'] = 1
+        assert_frame_equal(df,expected)
+
+        df = DataFrame(columns=['x', 'y'])
+        df['x'] = 1
+        assert_frame_equal(df,expected)
+
     def test_loc_setitem_frame(self):
         df = self.frame_labels
 
