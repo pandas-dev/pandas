@@ -454,7 +454,7 @@ def _arith_method_SERIES(op, name, str_rep=None, fill_zeros=None,
 
             result, changed = com._maybe_upcast_putmask(result, -mask, pa.NA)
 
-        result = com._fill_zeros(result, y, fill_zeros)
+        result = com._fill_zeros(result, x, y, name, fill_zeros)
         return result
 
     def wrapper(left, right, name=name):
@@ -749,7 +749,7 @@ def _arith_method_FRAME(op, name, str_rep=None, default_axis='columns',
             result, changed = com._maybe_upcast_putmask(result, -mask, np.nan)
             result = result.reshape(x.shape)
 
-        result = com._fill_zeros(result, y, fill_zeros)
+        result = com._fill_zeros(result, x, y, name, fill_zeros)
 
         return result
 
@@ -913,7 +913,7 @@ def _arith_method_PANEL(op, name, str_rep=None, fill_zeros=None,
             result[mask] = op(x[mask], y)
             result, changed = com._maybe_upcast_putmask(result, -mask, pa.NA)
 
-        result = com._fill_zeros(result, y, fill_zeros)
+        result = com._fill_zeros(result, x, y, name, fill_zeros)
         return result
 
     # work only for scalars

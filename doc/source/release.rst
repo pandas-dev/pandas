@@ -105,6 +105,7 @@ Bug Fixes
 - TimeGrouper has a more compatible API to the rest of the groupers (e.g. ``groups`` was missing) (:issue:`3881`)
 - Bug in ``pd.eval`` when parsing strings with possible tokens like ``'&'``
   (:issue:`6351`)
+- Bug correctly handle placements of ``-inf`` in Panels when dividing by integer 0 (:issue:`6359`)
 
 pandas 0.13.1
 -------------

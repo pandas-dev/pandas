@@ -1396,7 +1396,7 @@ Returns
                 # handles discrepancy between numpy and numexpr on division/mod
                 # by 0 though, given that these are generally (always?)
                 # non-scalars, I'm not sure whether it's worth it at the moment
-                result = com._fill_zeros(result, y, fill_zeros)
+                result = com._fill_zeros(result, x, y, name, fill_zeros)
                 return result
 
             @Substitution(name)

@@ -2212,6 +2212,12 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(result, p['first'].astype('float64'))
         self.assertFalse(np.array_equal(result, p['second'] / p['first']))
 
+        # inf signing
+        s = Series([np.nan,1.,-1.])
+        result = s / 0
+        expected = Series([np.nan,np.inf,-np.inf])
+        assert_series_equal(result, expected)
+
     def test_operators(self):
 
         def _check_op(series, other, op, pos_only=False):
