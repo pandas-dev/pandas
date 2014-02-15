@@ -359,20 +359,18 @@ def mask_missing(arr, values_to_mask):
         if mask is None:
             mask = arr == x
 
-            # if x is a string and mask is not, then we get a scalar
-            # return value, which is not good
-            if not isinstance(mask, np.ndarray):
-                m = mask
-                mask = np.empty(arr.shape, dtype=np.bool)
-                mask.fill(m)
+            # if x is a string and arr is not, then we get False and we must
+            # expand the mask to size arr.shape
+            if np.isscalar(mask):
+                mask = np.zeros(arr.shape, dtype=bool)
         else:
-            mask = mask | (arr == x)
+            mask |= arr == x
 
     if na_mask.any():
         if mask is None:
             mask = isnull(arr)
         else:
-            mask = mask | isnull(arr)
+            mask |= isnull(arr)
 
     return mask
 
