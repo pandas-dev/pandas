@@ -723,3 +723,13 @@ To see the order in which each row appears within its group, use the
    df.groupby('A').cumcount()
 
    df.groupby('A').cumcount(ascending=False)  # kwarg only
+   
+Examples
+~~~~~~~~
+
+Regroup columns of a DataFrame according to their sum, and sum the aggregated ones.
+
+.. ipython:: python
+   
+   df = pd.DataFrame({'a':[1,0,0], 'b':[0,1,0], 'c':[1,0,0], 'd':[2,3,4]})
+   df.groupby(df.sum(), axis=1).sum()
