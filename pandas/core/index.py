@@ -1372,6 +1372,7 @@ class Index(FrozenNDArray):
             raise ValueError("cannot join with no level specified and no overlapping names")
         if len(overlap) > 1:
             raise NotImplementedError("merging with more than one level overlap on a multi-index is not implemented")
+
         jl = overlap[0]
 
         # make the indices into mi's that match
@@ -1392,7 +1393,74 @@ class Index(FrozenNDArray):
             return result
 
         # 2 multi-indexes
-        raise NotImplementedError("merging with both multi-indexes is not implemented")
+        left_values = other.get_level_values(jl)
+        left_joined, left_lidx, left_ridx = self._join_level(left_values, jl, how=how,
+                                                             return_indexers=True)
+        right_values = self.get_level_values(jl)
+        right_joined, right_lidx, right_ridx = other._join_level(right_values, jl, how=how,
+                                                                 return_indexers=True)
+
+        # new levels
+        levels = list(left_joined.levels)
+        levels_names = set([ l.name for l in levels ])
+        levels += [ l for l in right_joined.levels if l.name not in levels_names ]
+
+        # number of reps of labels
+        l = len(left_joined)*len(right_joined)
+
+        # new labels
+        lidx = com._ensure_int64(left_lidx)
+        ridx = com._ensure_int64(right_lidx)
+        labels = []
+        indexers = []
+
+        def _get_labels(joined, name, indexer):
+            ln = joined._get_level_number(name)
+            lev_labels = np.tile(joined.labels[ln],l/len(joined.labels[ln]))
+            rev_indexer = lib.get_reverse_indexer(indexer,l)
+            new_labels = com.take_nd(rev_indexer, lev_labels,
+                                     allow_fill=False)
+            omit_mask = new_labels != -1
+            new_indexer = np.arange(len(lev_labels))[omit_mask]
+
+            return new_labels, new_indexer
+
+        for level in levels:
+
+            name = level.name
+
+            in_left = name in left_joined.names
+            in_right = name in right_joined.names
+
+            if not in_left and in_right:
+                new_labels, new_indexer = _get_labels(right_joined, name, ridx)
+            else:
+                # left or the joined
+                new_labels, new_indexer = _get_labels(left_joined, name, lidx)
+
+            labels.append(new_labels)
+            indexers.append(new_indexer)
+
+        import pdb; pdb.set_trace()
+
+        return MultiIndex(labels=labels,levels=levels), left_lidx, right_ridx
+
+        #sjl = self._get_level_number(jl)
+        #left_indexer = np.array(sorted(list(set(np.arange(len(self.levels)))-set([sjl]))))
+        #ojl = other._get_level_number(jl)
+        #right_indexer = np.array(sorted(list(set(np.arange(len(other.levels)))-set([ojl]))))
+
+        #tuples = []
+        #for left, right in zip(self.take(lidx).values, other.take(ridx).values):
+        #    def _create_tuple(left, right, i):
+        #        t = []
+         #       t.extend(list(np.array(left).take(left_indexer)))
+         #       t.append(left[i])
+         #       t.extend(list(np.array(right).take(right_indexer)))
+         #       return tuple(t)
+
+        #tuples = [ _create_tuple(left, right, sjl)
+        #return MultiIndex.from_tuples(tuples,names=_create_tuple(self.names,other.names,sjl)), lidx, ridx
 
     def _join_non_unique(self, other, how='left', return_indexers=False):
         from pandas.tools.merge import _get_join_indexers

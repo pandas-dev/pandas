@@ -1049,8 +1049,6 @@ class TestMergeMulti(tm.TestCase):
                              ).set_index(['household_id','asset_id']).reindex(columns=['male','wealth','name','share'])
         assert_frame_equal(result,expected)
 
-        assert_frame_equal(result,expected)
-
         # equivalency
         result2 = merge(household.reset_index(),portfolio.reset_index(),on=['household_id'],how='inner').set_index(['household_id','asset_id'])
         assert_frame_equal(result2,expected)
@@ -1097,9 +1095,8 @@ class TestMergeMulti(tm.TestCase):
             log_return = [.09604978, -.06524096, .03532373, .09604978, -.06524096, .03532373, .03025441, .036997]
             )).set_index(["household_id", "asset_id", "t"]).reindex(columns=['share','log_return'])
 
-        def f():
-            household.join(log_return, how='inner')
-        self.assertRaises(NotImplementedError, f)
+        result = household.join(log_return, how='inner')
+        assert_frame_equal(result,expected)
 
         # this is the equivalency
         result = merge(household.reset_index(),log_return.reset_index(),on=['asset_id'],how='inner').set_index(['household_id','asset_id','t'])
@@ -1113,9 +1110,8 @@ class TestMergeMulti(tm.TestCase):
             log_return = [None, None, .09604978, -.06524096, .03532373, .09604978, -.06524096, .03532373, .03025441, .036997, None, None]
             )).set_index(["household_id", "asset_id", "t"])
 
-        def f():
-            household.join(log_return, how='outer')
-        self.assertRaises(NotImplementedError, f)
+        result = household.join(log_return, how='outer')
+        assert_frame_equal(result,expected)
 
 def _check_join(left, right, result, join_col, how='left',
                 lsuffix='_x', rsuffix='_y'):
