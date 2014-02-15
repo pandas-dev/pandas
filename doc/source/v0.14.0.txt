@@ -9,8 +9,8 @@ users upgrade to this version.
 
 Highlights include:
 
--
-
+- MultIndexing Using Slicers
+- Joining a singly-indexed DataFrame with a multi-indexed DataFrame
 
 API changes
 ~~~~~~~~~~~
@@ -155,6 +155,29 @@ Enhancements
   most plot kinds. (:issue:`6014`)
 - improve performance of slice indexing on Series with string keys (:issue:`6341`)
 - Hexagonal bin plots from ``DataFrame.plot`` with ``kind='hexbin'`` (:issue:`5478`)
+- Joining a singly-indexed DataFrame with a multi-indexed DataFrame (:issue:`3662`)
+
+  See :ref:`the docs<merging.join_on_mi>`. Joining multi-index DataFrames on both the left and right is not yet supported ATM.
+
+  .. ipython:: python
+
+     household = DataFrame(dict(household_id = [1,2,3],
+                                male = [0,1,0],
+                                wealth = [196087.3,316478.7,294750]),
+                           columns = ['household_id','male','wealth']
+                          ).set_index('household_id')
+     household
+     portfolio = DataFrame(dict(household_id = [1,2,2,3,3,3,4],
+                                asset_id = ["nl0000301109","nl0000289783","gb00b03mlx29",
+                                            "gb00b03mlx29","lu0197800237","nl0000289965",np.nan],
+                                name = ["ABN Amro","Robeco","Royal Dutch Shell","Royal Dutch Shell",
+                                        "AAB Eastern Europe Equity Fund","Postbank BioTech Fonds",np.nan],
+                                share = [1.0,0.4,0.6,0.15,0.6,0.25,1.0]),
+                           columns = ['household_id','asset_id','name','share']
+                          ).set_index(['household_id','asset_id'])
+     portfolio
+
+     household.join(portfolio, how='inner')
 
 Performance
 ~~~~~~~~~~~
