@@ -27,16 +27,13 @@ import numpy.ma as ma
 from numpy.testing import assert_array_equal
 import numpy.ma.mrecords as mrecords
 
-import pandas as pan
 import pandas.core.nanops as nanops
 import pandas.core.common as com
 import pandas.core.format as fmt
 import pandas.core.datetools as datetools
-from pandas.core.api import (DataFrame, Index, Series, notnull, isnull,
-                             MultiIndex, DatetimeIndex, Timestamp)
-from pandas import date_range
+from pandas import (DataFrame, Index, Series, notnull, isnull,
+                    MultiIndex, DatetimeIndex, Timestamp, date_range, read_csv)
 import pandas as pd
-from pandas.io.parsers import read_csv
 from pandas.parser import CParserError
 from pandas.util.misc import is_little_endian
 
@@ -3740,7 +3737,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
     def test_to_records_dt64(self):
         df = DataFrame([["one", "two", "three"],
                         ["four", "five", "six"]],
-                       index=pan.date_range("2012-01-01", "2012-01-02"))
+                       index=date_range("2012-01-01", "2012-01-02"))
         self.assertEqual(df.to_records()['index'][0], df.index[0])
 
         rs = df.to_records(convert_datetime64=False)
@@ -5883,7 +5880,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         #### this is a bug in read_csv right now ####
         #df_dt.ix[30:50,1:3] = np.nan
 
-        df        = pan.concat([ df_float, df_int, df_bool, df_object, df_dt ], axis=1)
+        df        = pd.concat([ df_float, df_int, df_bool, df_object, df_dt ], axis=1)
 
         # dtype
         dtypes = dict()
@@ -5893,7 +5890,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         with ensure_clean() as filename:
             df.to_csv(filename)
-            rs = pan.read_csv(filename, index_col=0, dtype=dtypes, parse_dates=create_cols('date'))
+            rs = read_csv(filename, index_col=0, dtype=dtypes, parse_dates=create_cols('date'))
             assert_frame_equal(rs, df)
 
     def test_to_csv_dups_cols(self):
@@ -5911,7 +5908,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df_bool   = DataFrame(True,index=df_float.index,columns=lrange(3))
         df_object = DataFrame('foo',index=df_float.index,columns=lrange(3))
         df_dt     = DataFrame(Timestamp('20010101'),index=df_float.index,columns=lrange(3))
-        df        = pan.concat([ df_float, df_int, df_bool, df_object, df_dt ], axis=1, ignore_index=True)
+        df        = pd.concat([ df_float, df_int, df_bool, df_object, df_dt ], axis=1, ignore_index=True)
 
         cols = []
         for i in range(5):
@@ -5955,7 +5952,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         for chunksize in [10000,50000,100000]:
             with ensure_clean() as filename:
                 aa.to_csv(filename,chunksize=chunksize)
-                rs = pan.read_csv(filename,index_col=0)
+                rs = read_csv(filename,index_col=0)
                 assert_frame_equal(rs, aa)
 
     def test_to_csv_bug(self):
@@ -5966,7 +5963,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         with ensure_clean() as path:
             newdf.to_csv(path)
 
-            recons = pan.read_csv(path, index_col=0)
+            recons = read_csv(path, index_col=0)
             assert_frame_equal(recons, newdf, check_names=False)  # don't check_names as t != 1
 
     def test_to_csv_unicode(self):
@@ -5975,11 +5972,11 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         with ensure_clean() as path:
 
             df.to_csv(path, encoding='UTF-8')
-            df2 = pan.read_csv(path, index_col=0, encoding='UTF-8')
+            df2 = read_csv(path, index_col=0, encoding='UTF-8')
             assert_frame_equal(df, df2)
 
             df.to_csv(path, encoding='UTF-8', index=False)
-            df2 = pan.read_csv(path, index_col=None, encoding='UTF-8')
+            df2 = read_csv(path, index_col=None, encoding='UTF-8')
             assert_frame_equal(df, df2)
 
     def test_to_csv_unicode_index_col(self):
@@ -5993,14 +5990,14 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df.to_csv(buf, encoding='UTF-8')
         buf.seek(0)
 
-        df2 = pan.read_csv(buf, index_col=0, encoding='UTF-8')
+        df2 = read_csv(buf, index_col=0, encoding='UTF-8')
         assert_frame_equal(df, df2)
 
     def test_to_csv_stringio(self):
         buf = StringIO()
         self.frame.to_csv(buf)
         buf.seek(0)
-        recons = pan.read_csv(buf, index_col=0)
+        recons = read_csv(buf, index_col=0)
         assert_frame_equal(recons, self.frame, check_names=False)  # TODO to_csv drops column name
 
     def test_to_csv_float_format(self):
@@ -6013,7 +6010,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
             df.to_csv(filename, float_format='%.2f')
 
-            rs = pan.read_csv(filename, index_col=0)
+            rs = read_csv(filename, index_col=0)
             xp = DataFrame([[0.12, 0.23, 0.57],
                             [12.32, 123123.20, 321321.20]],
                            index=['A', 'B'], columns=['X', 'Y', 'Z'])
@@ -6359,7 +6356,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         tm.assert_isinstance(ts.index, DatetimeIndex)
 
     def test_at_time_between_time_datetimeindex(self):
-        index = pan.date_range("2012-01-01", "2012-01-05", freq='30min')
+        index = date_range("2012-01-01", "2012-01-05", freq='30min')
         df = DataFrame(randn(len(index), 5), index=index)
         akey = time(12, 0, 0)
         bkey = slice(time(13, 0, 0), time(14, 0, 0))
@@ -8009,12 +8006,11 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             df.replace({'asdf': 'asdb', True: 'yes'})
 
     def test_combine_multiple_frames_dtypes(self):
-        from pandas import concat
 
         # GH 2759
         A = DataFrame(data=np.ones((10, 2)), columns=['foo', 'bar'], dtype=np.float64)
         B = DataFrame(data=np.ones((10, 2)), dtype=np.float32)
-        results = concat((A, B), axis=1).get_dtype_counts()
+        results = pd.concat((A, B), axis=1).get_dtype_counts()
         expected = Series(dict( float64 = 2, float32 = 2 ))
         assert_series_equal(results,expected)
 
@@ -8993,6 +8989,14 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         assertRaisesRegexp(ValueError, 'does not match PeriodIndex freq',
                            ps.shift, freq='D')
+
+
+        # shift other axis
+        # GH 6371
+        df = DataFrame(np.random.rand(10,5))
+        expected = pd.concat([DataFrame(np.nan,index=df.index,columns=[0]),df.iloc[:,0:-1]],ignore_index=True,axis=1)
+        result = df.shift(1,axis=1)
+        assert_frame_equal(result,expected)
 
     def test_shift_bool(self):
         df = DataFrame({'high': [True, False],
@@ -11339,7 +11343,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df_bool   = DataFrame(True,index=df_float.index,columns=df_float.columns)
         df_object = DataFrame('foo',index=df_float.index,columns=df_float.columns)
         df_dt     = DataFrame(Timestamp('20010101'),index=df_float.index,columns=df_float.columns)
-        df        = pan.concat([ df_float, df_int, df_bool, df_object, df_dt ], axis=1)
+        df        = pd.concat([ df_float, df_int, df_bool, df_object, df_dt ], axis=1)
 
         result = df._data._set_ref_locs()
         self.assertEqual(len(result), len(df.columns))
