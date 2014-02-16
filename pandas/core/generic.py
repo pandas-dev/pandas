@@ -1545,13 +1545,6 @@ class NDFrame(PandasObject):
 
         self._consolidate_inplace()
 
-        # check if we are a multi reindex
-        if self._needs_reindex_multi(axes, method, level):
-            try:
-                return self._reindex_multi(axes, copy, fill_value)
-            except:
-                pass
-
         # if all axes that are requested to reindex are equal, then only copy
         # if indicated must have index names equal here as well as values
         if all([self._get_axis(axis).identical(ax)
@@ -1559,6 +1552,13 @@ class NDFrame(PandasObject):
             if copy:
                 return self.copy()
             return self
+
+        # check if we are a multi reindex
+        if self._needs_reindex_multi(axes, method, level):
+            try:
+                return self._reindex_multi(axes, copy, fill_value)
+            except:
+                pass
 
         # perform the reindex on the axes
         return self._reindex_axes(axes, level, limit,
