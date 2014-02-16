@@ -7,7 +7,6 @@ import sys
 import inspect
 import tokenize
 import datetime
-import struct
 
 from functools import partial
 
@@ -16,225 +15,12 @@ from pandas import compat
 from pandas.compat import StringIO, zip, reduce, string_types
 from pandas.core.base import StringMixin
 from pandas.core import common as com
-from pandas.computation.common import NameResolutionError
 from pandas.computation.ops import (_cmp_ops_syms, _bool_ops_syms,
                                     _arith_ops_syms, _unary_ops_syms, is_term)
 from pandas.computation.ops import _reductions, _mathops, _LOCAL_TAG
 from pandas.computation.ops import Op, BinOp, UnaryOp, Term, Constant, Div
 from pandas.computation.ops import UndefinedVariableError
-
-
-def _ensure_scope(level=2, global_dict=None, local_dict=None, resolvers=None,
-                  target=None, **kwargs):
-    """Ensure that we are grabbing the correct scope."""
-    return Scope(gbls=global_dict, lcls=local_dict, level=level,
-                 resolvers=resolvers, target=target)
-
-
-def _check_disjoint_resolver_names(resolver_keys, local_keys, global_keys):
-    """Make sure that variables in resolvers don't overlap with locals or
-    globals.
-    """
-    res_locals = list(com.intersection(resolver_keys, local_keys))
-    if res_locals:
-        msg = "resolvers and locals overlap on names {0}".format(res_locals)
-        raise NameResolutionError(msg)
-
-    res_globals = list(com.intersection(resolver_keys, global_keys))
-    if res_globals:
-        msg = "resolvers and globals overlap on names {0}".format(res_globals)
-        raise NameResolutionError(msg)
-
-
-def _replacer(x, pad_size):
-    """Replace a number with its padded hexadecimal representation. Used to tag
-    temporary variables with their calling scope's id.
-    """
-    # get the hex repr of the binary char and remove 0x and pad by pad_size
-    # zeros
-    try:
-        hexin = ord(x)
-    except TypeError:
-        # bytes literals masquerade as ints when iterating in py3
-        hexin = x
-
-    return hex(hexin).replace('0x', '').rjust(pad_size, '0')
-
-
-def _raw_hex_id(obj, pad_size=2):
-    """Return the padded hexadecimal id of ``obj``."""
-    # interpret as a pointer since that's what really what id returns
-    packed = struct.pack('@P', id(obj))
-
-    return ''.join(_replacer(x, pad_size) for x in packed)
-
-
-class Scope(StringMixin):
-
-    """Object to hold scope, with a few bells to deal with some custom syntax
-    added by pandas.
-
-    Parameters
-    ----------
-    gbls : dict or None, optional, default None
-    lcls : dict or Scope or None, optional, default None
-    level : int, optional, default 1
-    resolvers : list-like or None, optional, default None
-
-    Attributes
-    ----------
-    globals : dict
-    locals : dict
-    level : int
-    resolvers : tuple
-    resolver_keys : frozenset
-    """
-    __slots__ = ('globals', 'locals', 'resolvers', '_global_resolvers',
-                 'resolver_keys', '_resolver', 'level', 'ntemps', 'target')
-
-    def __init__(self, gbls=None, lcls=None, level=1, resolvers=None,
-                 target=None):
-        self.level = level
-        self.resolvers = tuple(resolvers or [])
-        self.globals = dict()
-        self.locals = dict()
-        self.target = target
-        self.ntemps = 1  # number of temporary variables in this scope
-
-        if isinstance(lcls, Scope):
-            ld, lcls = lcls, dict()
-            self.locals.update(ld.locals.copy())
-            self.globals.update(ld.globals.copy())
-            self.resolvers += ld.resolvers
-            if ld.target is not None:
-                self.target = ld.target
-            self.update(ld.level)
-
-        frame = sys._getframe(level)
-        try:
-            self.globals.update(gbls or frame.f_globals)
-            self.locals.update(lcls or frame.f_locals)
-        finally:
-            del frame
-
-        # add some useful defaults
-        self.globals['Timestamp'] = pd.lib.Timestamp
-        self.globals['datetime'] = datetime
-
-        # SUCH a hack
-        self.globals['True'] = True
-        self.globals['False'] = False
-
-        # function defs
-        self.globals['list'] = list
-        self.globals['tuple'] = tuple
-
-        res_keys = (list(o.keys()) for o in self.resolvers)
-        self.resolver_keys = frozenset(reduce(operator.add, res_keys, []))
-        self._global_resolvers = self.resolvers + (self.locals, self.globals)
-        self._resolver = None
-
-        self.resolver_dict = {}
-        for o in self.resolvers:
-            self.resolver_dict.update(dict(o))
-
-    def __unicode__(self):
-        return com.pprint_thing(
-            'locals: {0}\nglobals: {0}\nresolvers: '
-            '{0}\ntarget: {0}'.format(list(self.locals.keys()),
-                                      list(self.globals.keys()),
-                                      list(self.resolver_keys),
-                                      self.target))
-
-    def __getitem__(self, key):
-        return self.resolve(key, globally=False)
-
-    def resolve(self, key, globally=False):
-        resolvers = self.locals, self.globals
-        if globally:
-            resolvers = self._global_resolvers
-
-        for resolver in resolvers:
-            try:
-                return resolver[key]
-            except KeyError:
-                pass
-
-    def update(self, level=None):
-        """Update the current scope by going back `level` levels.
-
-        Parameters
-        ----------
-        level : int or None, optional, default None
-        """
-        # we are always 2 levels below the caller
-        # plus the caller may be below the env level
-        # in which case we need addtl levels
-        sl = 2
-        if level is not None:
-            sl += level
-
-        # add sl frames to the scope starting with the
-        # most distant and overwritting with more current
-        # makes sure that we can capture variable scope
-        frame = inspect.currentframe()
-        try:
-            frames = []
-            while sl >= 0:
-                frame = frame.f_back
-                sl -= 1
-                if frame is None:
-                    break
-                frames.append(frame)
-            for f in frames[::-1]:
-                self.locals.update(f.f_locals)
-                self.globals.update(f.f_globals)
-        finally:
-            del frame, frames
-
-    def add_tmp(self, value, where='locals'):
-        """Add a temporary variable to the scope.
-
-        Parameters
-        ----------
-        value : object
-            An arbitrary object to be assigned to a temporary variable.
-        where : basestring, optional, default 'locals', {'locals', 'globals'}
-            What scope to add the value to.
-
-        Returns
-        -------
-        name : basestring
-            The name of the temporary variable created.
-        """
-        d = getattr(self, where, None)
-
-        if d is None:
-            raise AttributeError("Cannot add value to non-existent scope "
-                                 "{0!r}".format(where))
-        if not isinstance(d, dict):
-            raise TypeError("Cannot add value to object of type {0!r}, "
-                            "scope must be a dictionary"
-                            "".format(type(d).__name__))
-        name = 'tmp_var_{0}_{1}_{2}'.format(type(value).__name__, self.ntemps,
-                                            _raw_hex_id(self))
-        d[name] = value
-
-        # only increment if the variable gets put in the scope
-        self.ntemps += 1
-        return name
-
-    def remove_tmp(self, name, where='locals'):
-        d = getattr(self, where, None)
-        if d is None:
-            raise AttributeError("Cannot remove value from non-existent scope "
-                                 "{0!r}".format(where))
-        if not isinstance(d, dict):
-            raise TypeError("Cannot remove value from object of type {0!r}, "
-                            "scope must be a dictionary"
-                            "".format(type(d).__name__))
-        del d[name]
-        self.ntemps -= 1
+from pandas.computation.scope import Scope, _ensure_scope
 
 
 def _rewrite_assign(source):
@@ -549,8 +335,8 @@ class BaseExprVisitor(ast.NodeVisitor):
         return self._possibly_evaluate_binop(op, op_class, left, right)
 
     def visit_Div(self, node, **kwargs):
-        return lambda lhs, rhs: Div(lhs, rhs,
-                                    truediv=self.env.locals['truediv'])
+        truediv = self.env.scope['truediv']
+        return lambda lhs, rhs: Div(lhs, rhs, truediv)
 
     def visit_UnaryOp(self, node, **kwargs):
         op = self.visit(node.op)
@@ -631,7 +417,7 @@ class BaseExprVisitor(ast.NodeVisitor):
 
         try:
             assigner = self.visit(node.targets[0], **kwargs)
-        except (UndefinedVariableError, KeyError):
+        except UndefinedVariableError:
             assigner = node.targets[0].id
 
         self.assigner = getattr(assigner, 'name', assigner)
@@ -639,7 +425,6 @@ class BaseExprVisitor(ast.NodeVisitor):
             raise SyntaxError('left hand side of an assignment must be a '
                               'single resolvable name')
 
-        import ipdb; ipdb.set_trace()
         return self.visit(node.value, **kwargs)
 
     def visit_Attribute(self, node, **kwargs):
@@ -769,21 +554,20 @@ class Expr(StringMixin):
     """
 
     def __init__(self, expr, engine='numexpr', parser='pandas', env=None,
-                 truediv=True, level=2):
+                 truediv=True, level=0):
         self.expr = expr
-        self.env = _ensure_scope(level=level, local_dict=env)
+        self.env = env or Scope(level=level + 1)
         self.engine = engine
         self.parser = parser
+        self.env.scope['truediv'] = truediv
         self._visitor = _parsers[parser](self.env, self.engine, self.parser)
         self.terms = self.parse()
-        self.truediv = truediv
 
     @property
     def assigner(self):
         return getattr(self._visitor, 'assigner', None)
 
     def __call__(self):
-        self.env.locals['truediv'] = self.truediv
         return self.terms(self.env)
 
     def __unicode__(self):
@@ -806,35 +590,6 @@ class Expr(StringMixin):
         if is_term(self.terms):
             return frozenset([self.terms.name])
         return frozenset(term.name for term in com.flatten(self.terms))
-
-    def check_name_clashes(self):
-        env = self.env
-        names = self.names
-        res_keys = frozenset(env.resolver_dict.keys()) & names
-        lcl_keys = frozenset(env.locals.keys()) & names
-        gbl_keys = frozenset(env.globals.keys()) & names
-        _check_disjoint_resolver_names(res_keys, lcl_keys, gbl_keys)
-
-    def add_resolvers_to_locals(self):
-        """Add the extra scope (resolvers) to local scope
-
-        Notes
-        -----
-        This should be done after parsing and pre-evaluation, otherwise
-        unnecessary name clashes will occur.
-        """
-        self.env.locals.update(self.env.resolver_dict)
-
-
-def isexpr(s, check_names=True):
-    """Strict checking for a valid expression."""
-    try:
-        Expr(s, env=_ensure_scope() if check_names else None)
-    except SyntaxError:
-        return False
-    except NameError:
-        return not check_names
-    return True
 
 
 _parsers = {'python': PythonExprVisitor, 'pandas': PandasExprVisitor}
