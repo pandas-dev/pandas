@@ -934,19 +934,14 @@ class Block(PandasObject):
         # that, handle boolean etc also
         new_values, fill_value = com._maybe_upcast(new_values)
 
-        # 1-d
-        if self.ndim == 1:
-            if periods > 0:
-                new_values[:periods] = fill_value
-            else:
-                new_values[periods:] = fill_value
-
-        # 2-d
+        axis_indexer = [ slice(None) ] * self.ndim
+        if periods > 0:
+            axis_indexer[axis] = slice(None,periods)
         else:
-            if periods > 0:
-                new_values[:, :periods] = fill_value
-            else:
-                new_values[:, periods:] = fill_value
+            axis_indexer = [ slice(None) ] * self.ndim
+            axis_indexer[axis] = slice(periods,None)
+        new_values[tuple(axis_indexer)] = fill_value
+
         return [make_block(new_values, self.items, self.ref_items,
                            ndim=self.ndim, fastpath=True)]
 

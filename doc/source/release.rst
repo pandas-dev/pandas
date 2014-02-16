@@ -111,6 +111,7 @@ Bug Fixes
 - Bug in ``pd.eval`` when parsing strings with possible tokens like ``'&'``
   (:issue:`6351`)
 - Bug correctly handle placements of ``-inf`` in Panels when dividing by integer 0 (:issue:`6178`)
+- ``DataFrame.shift`` with ``axis=1`` was raising (:issue:`6371`)
 
 pandas 0.13.1
 -------------
