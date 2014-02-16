@@ -7804,6 +7804,27 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         expected.iloc[1,1] = m[1]
         assert_frame_equal(result,expected)
 
+    def test_replace_simple_nested_dict(self):
+        df = DataFrame({'col': range(1, 5)})
+        expected = DataFrame({'col': ['a', 2, 3, 'b']})
+
+        result = df.replace({'col': {1: 'a', 4: 'b'}})
+        tm.assert_frame_equal(expected, result)
+
+        # in this case, should be the same as the not nested version
+        result = df.replace({1: 'a', 4: 'b'})
+        tm.assert_frame_equal(expected, result)
+
+    def test_replace_simple_nested_dict_with_nonexistent_value(self):
+        df = DataFrame({'col': range(1, 5)})
+        expected = DataFrame({'col': ['a', 2, 3, 'b']})
+
+        result = df.replace({-1: '-', 1: 'a', 4: 'b'})
+        tm.assert_frame_equal(expected, result)
+
+        result = df.replace({'col': {-1: '-', 1: 'a', 4: 'b'}})
+        tm.assert_frame_equal(expected, result)
+
     def test_interpolate(self):
         pass
 
@@ -12148,7 +12169,6 @@ class TestDataFrameQueryWithMultiIndex(object):
                      name='color')
 
         # equality
-        #import ipdb; ipdb.set_trace()
         res1 = df.query('color == "red"', parser=parser, engine=engine)
         res2 = df.query('"red" == color', parser=parser, engine=engine)
         exp = df[ind == 'red']

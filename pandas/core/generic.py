@@ -2330,8 +2330,8 @@ class NDFrame(PandasObject):
                 value_dict = {}
 
                 for k, v in items:
-                    to_rep_dict[k] = v.keys()
-                    value_dict[k] = v.values()
+                    to_rep_dict[k] = list(v.keys())
+                    value_dict[k] = list(v.values())
 
                 to_replace, value = to_rep_dict, value_dict
             else:
@@ -2349,7 +2349,6 @@ class NDFrame(PandasObject):
             new_data = self._data
             if is_dictlike(to_replace):
                 if is_dictlike(value):  # {'A' : NA} -> {'A' : 0}
-                    new_data = self._data
                     for c, src in compat.iteritems(to_replace):
                         if c in value and c in self:
                             new_data = new_data.replace(to_replace=src,
@@ -2360,7 +2359,6 @@ class NDFrame(PandasObject):
 
                 # {'A': NA} -> 0
                 elif not com.is_list_like(value):
-                    new_data = self._data
                     for k, src in compat.iteritems(to_replace):
                         if k in self:
                             new_data = new_data.replace(to_replace=src,

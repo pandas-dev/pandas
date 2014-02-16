@@ -113,6 +113,8 @@ Bug Fixes
 - Bug correctly handle placements of ``-inf`` in Panels when dividing by integer 0 (:issue:`6178`)
 - ``DataFrame.shift`` with ``axis=1`` was raising (:issue:`6371`)
 - Disabled clipboard tests until release time (run locally with ``nosetests -A disabled`` (:issue:`6048`).
+- Bug in ``DataFrame.replace()`` when passing a nested ``dict`` that contained
+  keys not in the values to be replaced (:issue:`6342`)
 
 pandas 0.13.1
 -------------
