@@ -147,7 +147,7 @@ class TestBlock(tm.TestCase):
 
     def test_items(self):
         cols = self.fblock.items
-        self.assert_(np.array_equal(cols, ['a', 'c', 'e']))
+        self.assert_numpy_array_equal(cols, ['a', 'c', 'e'])
 
         cols2 = self.fblock.items
         self.assert_(cols is cols2)
@@ -155,8 +155,7 @@ class TestBlock(tm.TestCase):
     def test_assign_ref_items(self):
         new_cols = Index(['foo', 'bar', 'baz', 'quux', 'hi'])
         self.fblock.set_ref_items(new_cols)
-        self.assert_(np.array_equal(self.fblock.items,
-                                    ['foo', 'baz', 'hi']))
+        self.assert_numpy_array_equal(self.fblock.items, ['foo', 'baz', 'hi'])
 
     def test_reindex_index(self):
         pass

@@ -241,7 +241,7 @@ class CheckIndexing(object):
         subindex = self.tsframe.index[indexer]
         subframe = self.tsframe[indexer]
 
-        self.assert_(np.array_equal(subindex, subframe.index))
+        self.assert_numpy_array_equal(subindex, subframe.index)
         with assertRaisesRegexp(ValueError, 'Item wrong length'):
             self.tsframe[indexer[:-1]]
 
@@ -1872,11 +1872,11 @@ class SafeForSparse(object):
     def test_add_prefix_suffix(self):
         with_prefix = self.frame.add_prefix('foo#')
         expected = ['foo#%s' % c for c in self.frame.columns]
-        self.assert_(np.array_equal(with_prefix.columns, expected))
+        self.assert_numpy_array_equal(with_prefix.columns, expected)
 
         with_suffix = self.frame.add_suffix('#foo')
         expected = ['%s#foo' % c for c in self.frame.columns]
-        self.assert_(np.array_equal(with_suffix.columns, expected))
+        self.assert_numpy_array_equal(with_suffix.columns, expected)
 
 
 class TestDataFrame(tm.TestCase, CheckIndexing,
@@ -2236,10 +2236,10 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         index = self.frame.index
 
         df = DataFrame(rec)
-        self.assert_(np.array_equal(df.columns, rec.dtype.names))
+        self.assert_numpy_array_equal(df.columns, rec.dtype.names)
 
         df2 = DataFrame(rec, index=index)
-        self.assert_(np.array_equal(df2.columns, rec.dtype.names))
+        self.assert_numpy_array_equal(df2.columns, rec.dtype.names)
         self.assert_(df2.index.equals(index))
 
         rng = np.arange(len(rec))[::-1]
@@ -2303,7 +2303,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         # Length-one dict micro-optimization
         frame = DataFrame({'A': {'1': 1, '2': 2}})
-        self.assert_(np.array_equal(frame.index, ['1', '2']))
+        self.assert_numpy_array_equal(frame.index, ['1', '2'])
 
         # empty dict plus index
         idx = Index([0, 1, 2])
@@ -2495,14 +2495,14 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         # automatic labeling
         frame = DataFrame(mat)
-        self.assert_(np.array_equal(frame.index, lrange(2)))
-        self.assert_(np.array_equal(frame.columns, lrange(3)))
+        self.assert_numpy_array_equal(frame.index, lrange(2))
+        self.assert_numpy_array_equal(frame.columns, lrange(3))
 
         frame = DataFrame(mat, index=[1, 2])
-        self.assert_(np.array_equal(frame.columns, lrange(3)))
+        self.assert_numpy_array_equal(frame.columns, lrange(3))
 
         frame = DataFrame(mat, columns=['A', 'B', 'C'])
-        self.assert_(np.array_equal(frame.index, lrange(2)))
+        self.assert_numpy_array_equal(frame.index, lrange(2))
 
         # 0-length axis
         frame = DataFrame(empty((0, 3)))
@@ -2995,8 +2995,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         result = DataFrame(self.frame._data, index=index,
                            columns=columns)
-        self.assert_(np.array_equal(result.index, index))
-        self.assert_(np.array_equal(result.columns, columns))
+        self.assert_numpy_array_equal(result.index, index)
+        self.assert_numpy_array_equal(result.columns, columns)
 
     def test_constructor_from_items(self):
         items = [(c, self.frame[c]) for c in self.frame.columns]
@@ -3781,7 +3781,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         index = np.arange(len(arr))[::-1]
         indexed_frame = DataFrame.from_records(arr, index=index)
-        self.assert_(np.array_equal(indexed_frame.index, index))
+        self.assert_numpy_array_equal(indexed_frame.index, index)
 
         # without names, it should go to last ditch
         arr2 = np.zeros((2,3))
@@ -4064,7 +4064,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         # tuples is in the order of the columns
         result = DataFrame.from_records(tuples)
-        self.assert_(np.array_equal(result.columns, lrange(8)))
+        self.assert_numpy_array_equal(result.columns, lrange(8))
 
         # test exclude parameter & we are casting the results here (as we don't have dtype info to recover)
         columns_to_test = [ columns.index('C'), columns.index('E1') ]
@@ -4078,7 +4078,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         # empty case
         result = DataFrame.from_records([], columns=['foo', 'bar', 'baz'])
         self.assertEqual(len(result), 0)
-        self.assert_(np.array_equal(result.columns, ['foo', 'bar', 'baz']))
+        self.assert_numpy_array_equal(result.columns, ['foo', 'bar', 'baz'])
 
         result = DataFrame.from_records([])
         self.assertEqual(len(result), 0)
@@ -4360,11 +4360,11 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                        columns=['c', 'b', 'a'])
 
         df.insert(0, 'foo', df['a'])
-        self.assert_(np.array_equal(df.columns, ['foo', 'c', 'b', 'a']))
+        self.assert_numpy_array_equal(df.columns, ['foo', 'c', 'b', 'a'])
         assert_almost_equal(df['a'], df['foo'])
 
         df.insert(2, 'bar', df['c'])
-        self.assert_(np.array_equal(df.columns, ['foo', 'c', 'bar', 'b', 'a']))
+        self.assert_numpy_array_equal(df.columns, ['foo', 'c', 'bar', 'b', 'a'])
         assert_almost_equal(df['c'], df['bar'])
 
         # diff dtype
@@ -5207,12 +5207,12 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
     def test_combineFunc(self):
         result = self.frame * 2
-        self.assert_(np.array_equal(result.values, self.frame.values * 2))
+        self.assert_numpy_array_equal(result.values, self.frame.values * 2)
 
         # vs mix
         result = self.mixed_float * 2
         for c, s in compat.iteritems(result):
-            self.assert_(np.array_equal(s.values, self.mixed_float[c].values * 2))
+            self.assert_numpy_array_equal(s.values, self.mixed_float[c].values * 2)
         _check_mixed_float(result, dtype = dict(C = None))
 
         result = self.empty * 2
@@ -5228,18 +5228,18 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         def test_comp(func):
             result = func(df1, df2)
-            self.assert_(np.array_equal(result.values,
-                                        func(df1.values, df2.values)))
+            self.assert_numpy_array_equal(result.values,
+                                          func(df1.values, df2.values))
             with assertRaisesRegexp(ValueError, 'Wrong number of dimensions'):
                 func(df1, ndim_5)
 
             result2 = func(self.simple, row)
-            self.assert_(np.array_equal(result2.values,
-                                        func(self.simple.values, row.values)))
+            self.assert_numpy_array_equal(result2.values,
+                                          func(self.simple.values, row.values))
 
             result3 = func(self.frame, 0)
-            self.assert_(np.array_equal(result3.values,
-                                        func(self.frame.values, 0)))
+            self.assert_numpy_array_equal(result3.values,
+                                          func(self.frame.values, 0))
 
 
             with assertRaisesRegexp(ValueError, 'Can only compare '
@@ -6698,8 +6698,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         smaller_frame = frame.dropna()
         assert_series_equal(frame['foo'], original)
         inp_frame1.dropna(inplace=True)
-        self.assert_(np.array_equal(smaller_frame['foo'], mat[5:]))
-        self.assert_(np.array_equal(inp_frame1['foo'], mat[5:]))
+        self.assert_numpy_array_equal(smaller_frame['foo'], mat[5:])
+        self.assert_numpy_array_equal(inp_frame1['foo'], mat[5:])
 
         samesize_frame = frame.dropna(subset=['bar'])
         assert_series_equal(frame['foo'], original)
@@ -8195,7 +8195,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         result = df.pivot(index=1, columns=0, values=2)
         repr(result)
-        self.assert_(np.array_equal(result.columns, ['A', 'B']))
+        self.assert_numpy_array_equal(result.columns, ['A', 'B'])
 
     def test_reindex(self):
         newFrame = self.frame.reindex(self.ts1.index)
@@ -8810,27 +8810,27 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         # gets sorted alphabetical
         df = DataFrame(data)
         renamed = df.rename(index={'foo': 'bar', 'bar': 'foo'})
-        self.assert_(np.array_equal(renamed.index, ['foo', 'bar']))
+        self.assert_numpy_array_equal(renamed.index, ['foo', 'bar'])
 
         renamed = df.rename(index=str.upper)
-        self.assert_(np.array_equal(renamed.index, ['BAR', 'FOO']))
+        self.assert_numpy_array_equal(renamed.index, ['BAR', 'FOO'])
 
         # have to pass something
         self.assertRaises(TypeError, self.frame.rename)
 
         # partial columns
         renamed = self.frame.rename(columns={'C': 'foo', 'D': 'bar'})
-        self.assert_(np.array_equal(renamed.columns, ['A', 'B', 'foo', 'bar']))
+        self.assert_numpy_array_equal(renamed.columns, ['A', 'B', 'foo', 'bar'])
 
         # other axis
         renamed = self.frame.T.rename(index={'C': 'foo', 'D': 'bar'})
-        self.assert_(np.array_equal(renamed.index, ['A', 'B', 'foo', 'bar']))
+        self.assert_numpy_array_equal(renamed.index, ['A', 'B', 'foo', 'bar'])
 
         # index with name
         index = Index(['foo', 'bar'], name='name')
         renamer = DataFrame(data, index=index)
         renamed = renamer.rename(index={'foo': 'bar', 'bar': 'foo'})
-        self.assert_(np.array_equal(renamed.index, ['bar', 'foo']))
+        self.assert_numpy_array_equal(renamed.index, ['bar', 'foo'])
         self.assertEquals(renamed.index.name, renamer.index.name)
 
         # MultiIndex
@@ -8843,8 +8843,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                                  columns={'fizz1': 'fizz3', 'buzz2': 'buzz3'})
         new_index = MultiIndex.from_tuples([('foo3', 'bar1'), ('foo2', 'bar3')])
         new_columns = MultiIndex.from_tuples([('fizz3', 'buzz1'), ('fizz2', 'buzz3')])
-        self.assert_(np.array_equal(renamed.index, new_index))
-        self.assert_(np.array_equal(renamed.columns, new_columns))
+        self.assert_numpy_array_equal(renamed.index, new_index)
+        self.assert_numpy_array_equal(renamed.columns, new_columns)
         self.assertEquals(renamed.index.names, renamer.index.names)
         self.assertEquals(renamed.columns.names, renamer.columns.names)
 
@@ -10055,8 +10055,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                         'd': [None, None, None],
                         'e': [3.14, 0.577, 2.773]})
 
-        self.assert_(np.array_equal(df._get_numeric_data().columns,
-                                    ['a', 'b', 'e']))
+        self.assert_numpy_array_equal(df._get_numeric_data().columns,
+                                      ['a', 'b', 'e'])
 
     def test_is_mixed_type(self):
         self.assert_(not self.frame._is_mixed_type)
@@ -10100,7 +10100,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         })
 
         # Boolean data and integer data is included in .describe() output, string data isn't
-        self.assert_(np.array_equal(df.describe().columns, ['bool_data', 'int_data']))
+        self.assert_numpy_array_equal(df.describe().columns, ['bool_data', 'int_data'])
 
         bool_describe = df.describe()['bool_data']
 
@@ -10995,28 +10995,28 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         stacked.index.names = [None, None]
         deleveled2 = stacked.reset_index()
-        self.assert_(np.array_equal(deleveled['first'],
-                                    deleveled2['level_0']))
-        self.assert_(np.array_equal(deleveled['second'],
-                                    deleveled2['level_1']))
+        self.assert_numpy_array_equal(deleveled['first'],
+                                      deleveled2['level_0'])
+        self.assert_numpy_array_equal(deleveled['second'],
+                                      deleveled2['level_1'])
 
         # default name assigned
         rdf = self.frame.reset_index()
-        self.assert_(np.array_equal(rdf['index'], self.frame.index.values))
+        self.assert_numpy_array_equal(rdf['index'], self.frame.index.values)
 
         # default name assigned, corner case
         df = self.frame.copy()
         df['index'] = 'foo'
         rdf = df.reset_index()
-        self.assert_(np.array_equal(rdf['level_0'], self.frame.index.values))
+        self.assert_numpy_array_equal(rdf['level_0'], self.frame.index.values)
 
         # but this is ok
         self.frame.index.name = 'index'
         deleveled = self.frame.reset_index()
-        self.assert_(np.array_equal(deleveled['index'],
-                                    self.frame.index.values))
-        self.assert_(np.array_equal(deleveled.index,
-                                    np.arange(len(deleveled))))
+        self.assert_numpy_array_equal(deleveled['index'],
+                                      self.frame.index.values)
+        self.assert_numpy_array_equal(deleveled.index,
+                                      np.arange(len(deleveled)))
 
         # preserve column names
         self.frame.columns.name = 'columns'
