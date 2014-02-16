@@ -82,6 +82,7 @@ Improvements to existing features
 - improve performance of slice indexing on Series with string keys (:issue:`6341`)
 - implement joining a single-level indexed DataFrame on a matching column of a multi-indexed DataFrame (:issue:`3662`)
 - Performance improvement in indexing into a multi-indexed Series (:issue:`5567`)
+- Testing statements updated to use specialized asserts (:issue: `6175`)
 
 .. _release.bug_fixes-0.14.0:
 

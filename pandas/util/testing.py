@@ -66,7 +66,7 @@ class TestCase(unittest.TestCase):
         #print("tearing down up: {0}".format(cls))
         pass
     
-    def assert_numpy_array_equals(self, np_array, assert_equal):
+    def assert_numpy_array_equal(self, np_array, assert_equal):
         if np.array_equal(np_array, assert_equal):
 	        return
         raise AssertionError('{0} is not equal to {1}.'.format(np_array, assert_equal))

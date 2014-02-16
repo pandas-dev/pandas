@@ -82,11 +82,11 @@ class TestCategorical(tm.TestCase):
         other = self.factor[np.random.permutation(n)]
         result = self.factor == other
         expected = np.asarray(self.factor) == np.asarray(other)
-        self.assert_(np.array_equal(result, expected))
+        self.assert_numpy_array_equal(result, expected)
 
         result = self.factor == 'd'
         expected = np.repeat(False, len(self.factor))
-        self.assert_(np.array_equal(result, expected))
+        self.assert_numpy_array_equal(result, expected)
 
     def test_na_flags_int_levels(self):
         # #1457
@@ -98,7 +98,7 @@ class TestCategorical(tm.TestCase):
         cat = Categorical(labels, levels)
         repr(cat)
 
-        self.assert_(np.array_equal(com.isnull(cat), labels == -1))
+        self.assert_numpy_array_equal(com.isnull(cat), labels == -1)
 
     def test_levels_none(self):
         factor = Categorical(['a', 'b', 'b', 'a',

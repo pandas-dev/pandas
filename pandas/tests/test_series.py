@@ -798,7 +798,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         result = s[list(mask)]
         expected = s[mask]
         assert_series_equal(result, expected)
-        self.assert_(np.array_equal(result.index, s.index[mask]))
+        self.assert_numpy_array_equal(result.index, s.index[mask])
 
     def test_getitem_boolean_empty(self):
         s = Series([], dtype=np.int64)
@@ -1737,7 +1737,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         self.assert_(getkeys() is self.ts.index)
 
     def test_values(self):
-        self.assert_(np.array_equal(self.ts, self.ts.values))
+        self.assert_numpy_array_equal(self.ts, self.ts.values)
 
     def test_iteritems(self):
         for idx, val in compat.iteritems(self.series):
@@ -1889,8 +1889,8 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         mexpected = np.argsort(s.values, kind='mergesort')
         qexpected = np.argsort(s.values, kind='quicksort')
 
-        self.assert_(np.array_equal(mindexer, mexpected))
-        self.assert_(np.array_equal(qindexer, qexpected))
+        self.assert_numpy_array_equal(mindexer, mexpected)
+        self.assert_numpy_array_equal(qindexer, qexpected)
         self.assert_(not np.array_equal(qindexer, mindexer))
 
     def test_reorder_levels(self):
@@ -1938,24 +1938,24 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         self._check_accum_op('cumprod')
 
     def test_cummin(self):
-        self.assert_(np.array_equal(self.ts.cummin(),
-                                    np.minimum.accumulate(np.array(self.ts))))
+        self.assert_numpy_array_equal(self.ts.cummin(),
+                                      np.minimum.accumulate(np.array(self.ts)))
         ts = self.ts.copy()
         ts[::2] = np.NaN
         result = ts.cummin()[1::2]
         expected = np.minimum.accumulate(ts.valid())
 
-        self.assert_(np.array_equal(result, expected))
+        self.assert_numpy_array_equal(result, expected)
 
     def test_cummax(self):
-        self.assert_(np.array_equal(self.ts.cummax(),
-                                    np.maximum.accumulate(np.array(self.ts))))
+        self.assert_numpy_array_equal(self.ts.cummax(),
+                                      np.maximum.accumulate(np.array(self.ts)))
         ts = self.ts.copy()
         ts[::2] = np.NaN
         result = ts.cummax()[1::2]
         expected = np.maximum.accumulate(ts.valid())
 
-        self.assert_(np.array_equal(result, expected))
+        self.assert_numpy_array_equal(result, expected)
 
     def test_npdiff(self):
         raise nose.SkipTest("skipping due to Series no longer being an "
@@ -2022,7 +2022,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
     def _check_accum_op(self, name):
         func = getattr(np, name)
-        self.assert_(np.array_equal(func(self.ts), func(np.array(self.ts))))
+        self.assert_numpy_array_equal(func(self.ts), func(np.array(self.ts)))
 
         # with missing values
         ts = self.ts.copy()
@@ -2031,7 +2031,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         result = func(ts)[1::2]
         expected = func(np.array(ts.valid()))
 
-        self.assert_(np.array_equal(result, expected))
+        self.assert_numpy_array_equal(result, expected)
 
     def test_round(self):
         # numpy.round doesn't preserve metadata, probably a numpy bug,
@@ -2824,16 +2824,16 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
     def test_fillna(self):
         ts = Series([0., 1., 2., 3., 4.], index=tm.makeDateIndex(5))
 
-        self.assert_(np.array_equal(ts, ts.fillna(method='ffill')))
+        self.assert_numpy_array_equal(ts, ts.fillna(method='ffill'))
 
         ts[2] = np.NaN
 
         self.assert_(
             np.array_equal(ts.fillna(method='ffill'), [0., 1., 1., 3., 4.]))
-        self.assert_(np.array_equal(ts.fillna(method='backfill'),
-                                    [0., 1., 3., 3., 4.]))
+        self.assert_numpy_array_equal(ts.fillna(method='backfill'),
+                                      [0., 1., 3., 3., 4.])
 
-        self.assert_(np.array_equal(ts.fillna(value=5), [0., 1., 5., 3., 4.]))
+        self.assert_numpy_array_equal(ts.fillna(value=5), [0., 1., 5., 3., 4.])
 
         self.assertRaises(ValueError, ts.fillna)
         self.assertRaises(ValueError, self.ts.fillna, value=0, method='ffill')
@@ -3417,7 +3417,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         int_ts = self.ts.astype(int)[:-5]
         added = self.ts + int_ts
         expected = self.ts.values[:-5] + int_ts.values
-        self.assert_(np.array_equal(added[:-5], expected))
+        self.assert_numpy_array_equal(added[:-5], expected)
 
     def test_operators_reverse_object(self):
         # GH 56
@@ -3529,14 +3529,14 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         # nothing used from the input
         combined = series.combine_first(series_copy)
 
-        self.assert_(np.array_equal(combined, series))
+        self.assert_numpy_array_equal(combined, series)
 
         # Holes filled from input
         combined = series_copy.combine_first(series)
         self.assert_(np.isfinite(combined).all())
 
-        self.assert_(np.array_equal(combined[::2], series[::2]))
-        self.assert_(np.array_equal(combined[1::2], series_copy[1::2]))
+        self.assert_numpy_array_equal(combined[::2], series[::2])
+        self.assert_numpy_array_equal(combined[1::2], series_copy[1::2])
 
         # mixed types
         index = tm.makeStringIndex(20)
@@ -3817,25 +3817,25 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         s = Series(np.random.randint(0, 100, size=100))
         result = np.sort(s.unique())
         expected = np.unique(s.values)
-        self.assert_(np.array_equal(result, expected))
+        self.assert_numpy_array_equal(result, expected)
 
         s = Series(np.random.randint(0, 100, size=100).astype(np.int32))
         result = np.sort(s.unique())
         expected = np.unique(s.values)
-        self.assert_(np.array_equal(result, expected))
+        self.assert_numpy_array_equal(result, expected)
 
         # test string arrays for coverage
         strings = np.tile(np.array([tm.rands(10) for _ in range(10)]), 10)
         result = np.sort(nanops.unique1d(strings))
         expected = np.unique(strings)
-        self.assert_(np.array_equal(result, expected))
+        self.assert_numpy_array_equal(result, expected)
 
         # decision about None
 
         s = Series([1, 2, 3, None, None, None], dtype=object)
         result = s.unique()
         expected = np.array([1, 2, 3, None], dtype=object)
-        self.assert_(np.array_equal(result, expected))
+        self.assert_numpy_array_equal(result, expected)
 
     def test_dropna_empty(self):
         s = Series([])
@@ -3882,13 +3882,13 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         ts = self.ts.copy()
         ts.sort()
 
-        self.assert_(np.array_equal(ts, self.ts.order()))
-        self.assert_(np.array_equal(ts.index, self.ts.order().index))
+        self.assert_numpy_array_equal(ts, self.ts.order())
+        self.assert_numpy_array_equal(ts.index, self.ts.order().index)
 
         ts.sort(ascending=False)
-        self.assert_(np.array_equal(ts, self.ts.order(ascending=False)))
-        self.assert_(np.array_equal(ts.index,
-                                    self.ts.order(ascending=False).index))
+        self.assert_numpy_array_equal(ts, self.ts.order(ascending=False))
+        self.assert_numpy_array_equal(ts.index,
+                                      self.ts.order(ascending=False).index)
 
     def test_sort_index(self):
         import random
@@ -3912,11 +3912,11 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         result = ts.order()
         self.assert_(np.isnan(result[-5:]).all())
-        self.assert_(np.array_equal(result[:-5], np.sort(vals[5:])))
+        self.assert_numpy_array_equal(result[:-5], np.sort(vals[5:]))
 
         result = ts.order(na_last=False)
         self.assert_(np.isnan(result[:5]).all())
-        self.assert_(np.array_equal(result[5:], np.sort(vals[5:])))
+        self.assert_numpy_array_equal(result[5:], np.sort(vals[5:]))
 
         # something object-type
         ser = Series(['A', 'B'], [1, 2])
@@ -4031,7 +4031,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_frame_equal(rs, xp)
 
     def test_to_dict(self):
-        self.assert_(np.array_equal(Series(self.ts.to_dict()), self.ts))
+        self.assert_numpy_array_equal(Series(self.ts.to_dict()), self.ts)
 
     def test_to_csv_float_format(self):
 
@@ -4528,7 +4528,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         arr = Series(['1', '2', '3', '4'], dtype=object)
         result = arr.astype(int)
-        self.assert_(np.array_equal(result, np.arange(1, 5)))
+        self.assert_numpy_array_equal(result, np.arange(1, 5))
 
     def test_astype_datetimes(self):
         import pandas.tslib as tslib
@@ -4579,7 +4579,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         # function
         result = self.ts.map(lambda x: x * 2)
-        self.assert_(np.array_equal(result, self.ts * 2))
+        self.assert_numpy_array_equal(result, self.ts * 2)
 
     def test_map_int(self):
         left = Series({'a': 1., 'b': 2., 'c': 3., 'd': 4})
@@ -5053,7 +5053,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         # partial dict
         s = Series(np.arange(4), index=['a', 'b', 'c', 'd'])
         renamed = s.rename({'b': 'foo', 'd': 'bar'})
-        self.assert_(np.array_equal(renamed.index, ['a', 'foo', 'c', 'bar']))
+        self.assert_numpy_array_equal(renamed.index, ['a', 'foo', 'c', 'bar'])
 
         # index with name
         renamer = Series(
@@ -5389,15 +5389,15 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         daily_ts = ts.asfreq('B')
         monthly_ts = daily_ts.asfreq('BM')
-        self.assert_(np.array_equal(monthly_ts, ts))
+        self.assert_numpy_array_equal(monthly_ts, ts)
 
         daily_ts = ts.asfreq('B', method='pad')
         monthly_ts = daily_ts.asfreq('BM')
-        self.assert_(np.array_equal(monthly_ts, ts))
+        self.assert_numpy_array_equal(monthly_ts, ts)
 
         daily_ts = ts.asfreq(datetools.bday)
         monthly_ts = daily_ts.asfreq(datetools.bmonthEnd)
-        self.assert_(np.array_equal(monthly_ts, ts))
+        self.assert_numpy_array_equal(monthly_ts, ts)
 
         result = ts[:0].asfreq('M')
         self.assertEqual(len(result), 0)

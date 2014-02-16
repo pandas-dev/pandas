@@ -34,7 +34,7 @@ class TestTseriesUtil(tm.TestCase):
         filler = algos.backfill_int64(old, new)
 
         expect_filler = [0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, -1]
-        self.assert_(np.array_equal(filler, expect_filler))
+        self.assert_numpy_array_equal(filler, expect_filler)
 
         # corner case
         old = Index([1, 4])
@@ -42,7 +42,7 @@ class TestTseriesUtil(tm.TestCase):
         filler = algos.backfill_int64(old, new)
 
         expect_filler = [-1, -1, -1, -1, -1]
-        self.assert_(np.array_equal(filler, expect_filler))
+        self.assert_numpy_array_equal(filler, expect_filler)
 
     def test_pad(self):
         old = Index([1, 5, 10])
@@ -51,14 +51,14 @@ class TestTseriesUtil(tm.TestCase):
         filler = algos.pad_int64(old, new)
 
         expect_filler = [-1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2]
-        self.assert_(np.array_equal(filler, expect_filler))
+        self.assert_numpy_array_equal(filler, expect_filler)
 
         # corner case
         old = Index([5, 10])
         new = Index(lrange(5))
         filler = algos.pad_int64(old, new)
         expect_filler = [-1, -1, -1, -1, -1]
-        self.assert_(np.array_equal(filler, expect_filler))
+        self.assert_numpy_array_equal(filler, expect_filler)
 
 
 def test_left_join_indexer_unique():
