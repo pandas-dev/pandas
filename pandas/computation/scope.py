@@ -13,18 +13,18 @@ import pandas as pd
 from pandas.compat import DeepChainMap, map
 from pandas.core import common as com
 from pandas.core.base import StringMixin
-from pandas.computation.ops import UndefinedVariableError
+from pandas.computation.ops import UndefinedVariableError, _LOCAL_TAG
 
 
 def _ensure_scope(level, global_dict=None, local_dict=None, resolvers=(),
                   target=None, **kwargs):
     """Ensure that we are grabbing the correct scope."""
-    return Scope(level + 1, gbls=global_dict, lcls=local_dict,
+    return Scope(level + 1, global_dict=global_dict, local_dict=local_dict,
                  resolvers=resolvers, target=target)
 
 
-def _replacer(x, pad_size):
-    """Replace a number with its padded hexadecimal representation. Used to tag
+def _replacer(x):
+    """Replace a number with its hexadecimal representation. Used to tag
     temporary variables with their calling scope's id.
     """
     # get the hex repr of the binary char and remove 0x and pad by pad_size
@@ -35,14 +35,14 @@ def _replacer(x, pad_size):
         # bytes literals masquerade as ints when iterating in py3
         hexin = x
 
-    return hex(hexin).replace('0x', '').rjust(pad_size, '0')
+    return hex(hexin)
 
 
-def _raw_hex_id(obj, pad_size=2):
+def _raw_hex_id(obj):
     """Return the padded hexadecimal id of ``obj``."""
     # interpret as a pointer since that's what really what id returns
     packed = struct.pack('@P', id(obj))
-    return ''.join(_replacer(x, pad_size) for x in packed)
+    return ''.join(map(_replacer, packed))
 
 
 
@@ -56,11 +56,19 @@ _DEFAULT_GLOBALS = {
 }
 
 
-def _is_resolver(x):
-    return isinstance(x, Resolver)
-
-
 def _get_pretty_string(obj):
+    """Return a prettier version of obj
+
+    Parameters
+    ----------
+    obj : object
+        Object to pretty print
+
+    Returns
+    -------
+    s : str
+        Pretty print object repr
+    """
     sio = StringIO()
     pprint.pprint(obj, stream=sio)
     return sio.getvalue()
@@ -69,39 +77,39 @@ def _get_pretty_string(obj):
 class Scope(StringMixin):
 
     """Object to hold scope, with a few bells to deal with some custom syntax
-    added by pandas.
+    and contexts added by pandas.
 
     Parameters
     ----------
-    gbls : dict or None, optional, default None
-    lcls : dict or Scope or None, optional, default None
-    level : int, optional, default 1
+    level : int
+    global_dict : dict or None, optional, default None
+    local_dict : dict or Scope or None, optional, default None
     resolvers : list-like or None, optional, default None
+    target : object
 
     Attributes
     ----------
-    globals : dict
-    locals : dict
     level : int
-    resolvers : tuple
-    resolver_keys : frozenset
+    scope : DeepChainMap
+    target : object
+    temps : dict
     """
-    __slots__ = 'level', 'scope', 'target', 'ntemps'
+    __slots__ = 'level', 'scope', 'target', 'temps'
 
-    def __init__(self, level, gbls=None, lcls=None, resolvers=(), target=None):
+    def __init__(self, level, global_dict=None, local_dict=None, resolvers=(),
+                 target=None):
         self.level = level + 1
 
         # shallow copy because we don't want to keep filling this up with what
         # was there before if there are multiple calls to Scope/_ensure_scope
         self.scope = DeepChainMap(_DEFAULT_GLOBALS.copy())
         self.target = target
-        self.ntemps = 0  # number of temporary variables in this scope
 
-        if isinstance(lcls, Scope):
-            self.scope.update(lcls.scope)
-            if lcls.target is not None:
-                self.target = lcls.target
-            self.update(lcls.level)
+        if isinstance(local_dict, Scope):
+            self.scope.update(local_dict.scope)
+            if local_dict.target is not None:
+                self.target = local_dict.target
+            self.update(local_dict.level)
 
         frame = sys._getframe(self.level)
 
@@ -109,29 +117,38 @@ class Scope(StringMixin):
             # shallow copy here because we don't want to replace what's in
             # scope when we align terms (alignment accesses the underlying
             # numpy array of pandas objects)
-            if not isinstance(lcls, Scope):
-                self.scope = self.scope.new_child((lcls or frame.f_locals).copy())
-            self.scope = self.scope.new_child((gbls or frame.f_globals).copy())
+            if not isinstance(local_dict, Scope):
+                self.scope = self.scope.new_child((local_dict or
+                                                   frame.f_locals).copy())
+            self.scope = self.scope.new_child((global_dict or
+                                               frame.f_globals).copy())
         finally:
             del frame
 
         # assumes that resolvers are going from outermost scope to inner
-        if isinstance(lcls, Scope):
-            resolvers += tuple(lcls.resolvers.maps)
+        if isinstance(local_dict, Scope):
+            resolvers += tuple(local_dict.resolvers.maps)
         self.resolvers = DeepChainMap(*resolvers)
+        self.temps = {}
 
     def __unicode__(self):
         scope_keys = _get_pretty_string(self.scope.keys())
         res_keys = _get_pretty_string(self.resolvers.keys())
-        return 'Scope(scope=%s, resolvers=%s)' % (scope_keys, res_keys)
+        return '%s(scope=%s, resolvers=%s)' % (type(self).__name__, scope_keys,
+                                               res_keys)
 
     @property
     def has_resolvers(self):
-        return bool(self.nresolvers)
+        """Return whether we have any extra scope.
 
-    @property
-    def nresolvers(self):
-        return len(self.resolvers)
+        For example, DataFrames pass Their columns as resolvers during calls to
+        ``DataFrame.eval()`` and ``DataFrame.query()``.
+
+        Returns
+        -------
+        hr : bool
+        """
+        return bool(len(self.resolvers))
 
     def resolve(self, key, is_local):
         """Resolve a variable name in a possibly local context
@@ -163,13 +180,32 @@ class Scope(StringMixin):
             assert not is_local and not self.has_resolvers
             return self.scope[key]
         except KeyError:
-            raise UndefinedVariableError(key)
+            try:
+                # last ditch effort we look in temporaries
+                # these are created when parsing indexing expressions
+                # e.g., df[df > 0]
+                return self.temps[key]
+            except KeyError:
+                raise UndefinedVariableError(key)
 
     def swapkey(self, old_key, new_key, new_value=None):
+        """Replace a variable name, with a potentially new value.
+
+        Parameters
+        ----------
+        old_key : str
+            Current variable name to replace
+        new_key : str
+            New variable name to replace `old_key` with
+        new_value : object
+            Value to be replaced along with the possible renaming
+        """
         if self.has_resolvers:
             maps = self.resolvers.maps + self.scope.maps
         else:
             maps = self.scope.maps
+
+        maps.append(self.temps)
 
         for mapping in maps:
             if old_key in mapping:
@@ -181,6 +217,16 @@ class Scope(StringMixin):
         raise KeyError(old_key)
 
     def _get_vars(self, stack, scopes):
+        """Get specifically scoped variables from a list of stack frames.
+
+        Parameters
+        ----------
+        stack : list
+            A list of stack frames as returned by ``inspect.stack()``
+        scopes : sequence of strings
+            A sequence containing valid stack frame attribute names that
+            evaluate to a dictionary. For example, ('locals', 'globals')
+        """
         variables = itertools.product(scopes, stack)
         for scope, (frame, _, _, _, _, _) in variables:
             try:
@@ -224,17 +270,41 @@ class Scope(StringMixin):
         name : basestring
             The name of the temporary variable created.
         """
-        name = 'tmp_var_{0}_{1}_{2}'.format(type(value).__name__, self.ntemps,
-                                            _raw_hex_id(self))
+        name = '{0}_{1}_{2}'.format(type(value).__name__, self.ntemps,
+                                    _raw_hex_id(self))
 
         # add to inner most scope
-        assert name not in self.scope.maps[0]
-        self.scope.maps[0][name] = value
+        assert name not in self.temps
+        self.temps[name] = value
+        assert name in self.temps
 
         # only increment if the variable gets put in the scope
-        self.ntemps += 1
         return name
 
     def remove_tmp(self, name):
-        del self.scope[name]
-        self.ntemps -= 1
+        """Remove a temporary variable from this scope
+
+        Parameters
+        ----------
+        name : str
+            The name of a temporary to be removed
+        """
+        del self.temps[name]
+
+    @property
+    def ntemps(self):
+        """The number of temporary variables in this scope"""
+        return len(self.temps)
+
+    @property
+    def full_scope(self):
+        """Return the full scope for use with passing to engines transparently
+        as a mapping.
+
+        Returns
+        -------
+        vars : DeepChainMap
+            All variables in this scope.
+        """
+        maps = [self.temps] + self.resolvers.maps + self.scope.maps
+        return DeepChainMap(*maps)

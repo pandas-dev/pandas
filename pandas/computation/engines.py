@@ -4,10 +4,34 @@
 import abc
 
 from pandas import compat
-from pandas.compat import DeepChainMap
+from pandas.compat import DeepChainMap, map
 from pandas.core import common as com
 from pandas.computation.align import _align, _reconstruct_object
-from pandas.computation.ops import UndefinedVariableError
+from pandas.computation.ops import UndefinedVariableError, _mathops, _reductions
+
+
+_ne_builtins = frozenset(_mathops + _reductions)
+
+
+class NumExprClobberingError(NameError):
+    pass
+
+
+def _check_ne_builtin_clash(expr):
+    """Attempt to prevent foot-shooting in a helpful way.
+
+    Parameters
+    ----------
+    terms : Term
+        Terms can contain
+    """
+    names = expr.names
+    overlap = names & _ne_builtins
+
+    if overlap:
+        s = ', '.join(map(repr, overlap))
+        raise NumExprClobberingError('Variables in expression "%s" overlap with '
+                                     'numexpr builtins: (%s)' % (expr, s))
 
 
 class AbstractEngine(object):
@@ -89,9 +113,10 @@ class NumExprEngine(AbstractEngine):
 
         try:
             env = self.expr.env
-            full_scope = DeepChainMap(*(env.resolvers.maps + env.scope.maps))
-            return ne.evaluate(s, local_dict=full_scope,
-                               truediv=env.scope['truediv'])
+            scope = env.full_scope
+            truediv = scope['truediv']
+            _check_ne_builtin_clash(self.expr)
+            return ne.evaluate(s, local_dict=scope, truediv=truediv)
         except KeyError as e:
             # python 3 compat kludge
             try:
@@ -99,6 +124,7 @@ class NumExprEngine(AbstractEngine):
             except AttributeError:
                 msg = compat.text_type(e)
             raise UndefinedVariableError(msg)
+
 
 
 class PythonEngine(AbstractEngine):
