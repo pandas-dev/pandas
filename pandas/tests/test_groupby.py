@@ -1720,7 +1720,7 @@ class TestGroupBy(tm.TestCase):
         result = grouped.apply(len)
         expected = grouped.count()['C']
         self.assert_(result.index.equals(expected.index))
-        self.assert_(np.array_equal(result.values, expected.values))
+        self.assert_numpy_array_equal(result.values, expected.values)
 
     def test_apply_frame_concat_series(self):
         def trans(group):
@@ -2198,17 +2198,17 @@ class TestGroupBy(tm.TestCase):
 
         tm.assert_panel_equal(agged, agged2)
 
-        self.assert_(np.array_equal(agged.items, [0, 1]))
+        self.assert_numpy_array_equal(agged.items, [0, 1])
 
         grouped = self.panel.groupby(lambda x: x.month, axis='major')
         agged = grouped.mean()
 
-        self.assert_(np.array_equal(agged.major_axis, [1, 2]))
+        self.assert_numpy_array_equal(agged.major_axis, [1, 2])
 
         grouped = self.panel.groupby({'A': 0, 'B': 0, 'C': 1, 'D': 1},
                                      axis='minor')
         agged = grouped.mean()
-        self.assert_(np.array_equal(agged.minor_axis, [0, 1]))
+        self.assert_numpy_array_equal(agged.minor_axis, [0, 1])
 
     def test_numpy_groupby(self):
         from pandas.core.groupby import numpy_groupby
@@ -2234,8 +2234,8 @@ class TestGroupBy(tm.TestCase):
         d['label'] = ['l1', 'l2']
         tmp = d.groupby(['group']).mean()
         res_values = np.array([[0., 1.], [0., 1.]])
-        self.assert_(np.array_equal(tmp.columns, ['zeros', 'ones']))
-        self.assert_(np.array_equal(tmp.values, res_values))
+        self.assert_numpy_array_equal(tmp.columns, ['zeros', 'ones'])
+        self.assert_numpy_array_equal(tmp.values, res_values)
 
     def test_int32_overflow(self):
         B = np.concatenate((np.arange(10000), np.arange(10000),
@@ -2290,19 +2290,19 @@ class TestGroupBy(tm.TestCase):
         tups = lmap(tuple, df[['a', 'b', 'c']].values)
         tups = com._asarray_tuplesafe(tups)
         result = df.groupby(['a', 'b', 'c'], sort=True).sum()
-        self.assert_(np.array_equal(result.index.values,
-                                    tups[[1, 2, 0]]))
+        self.assert_numpy_array_equal(result.index.values,
+                                      tups[[1, 2, 0]])
 
         tups = lmap(tuple, df[['c', 'a', 'b']].values)
         tups = com._asarray_tuplesafe(tups)
         result = df.groupby(['c', 'a', 'b'], sort=True).sum()
-        self.assert_(np.array_equal(result.index.values, tups))
+        self.assert_numpy_array_equal(result.index.values, tups)
 
         tups = lmap(tuple, df[['b', 'c', 'a']].values)
         tups = com._asarray_tuplesafe(tups)
         result = df.groupby(['b', 'c', 'a'], sort=True).sum()
-        self.assert_(np.array_equal(result.index.values,
-                                    tups[[2, 1, 0]]))
+        self.assert_numpy_array_equal(result.index.values,
+                                      tups[[2, 1, 0]])
 
         df = DataFrame({'a': [0, 1, 2, 0, 1, 2],
                         'b': [0, 0, 0, 1, 1, 1],
@@ -2452,7 +2452,7 @@ class TestGroupBy(tm.TestCase):
         result = self.df.groupby('A')['C'].agg(funcs)
         exp_cols = ['mean', 'max', 'min']
 
-        self.assert_(np.array_equal(result.columns, exp_cols))
+        self.assert_numpy_array_equal(result.columns, exp_cols)
 
     def test_multiple_functions_tuples_and_non_tuples(self):
         # #1359
@@ -2651,10 +2651,10 @@ class TestGroupBy(tm.TestCase):
         df = DataFrame([[long(1), 'A']], columns=midx)
 
         grouped = df.groupby('to filter').groups
-        self.assert_(np.array_equal(grouped['A'], [0]))
+        self.assert_numpy_array_equal(grouped['A'], [0])
 
         grouped = df.groupby([('to filter', '')]).groups
-        self.assert_(np.array_equal(grouped['A'], [0]))
+        self.assert_numpy_array_equal(grouped['A'], [0])
 
         df = DataFrame([[long(1), 'A'], [long(2), 'B']], columns=midx)
 
