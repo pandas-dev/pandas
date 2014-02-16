@@ -23,7 +23,6 @@ _mathops = ('sin', 'cos', 'exp', 'log', 'expm1', 'log1p', 'pow', 'div', 'sqrt',
 
 
 _LOCAL_TAG = '__pd_eval_local_'
-_TAG_RE = re.compile('^{0}'.format(_LOCAL_TAG))
 
 
 class UndefinedVariableError(NameError):
@@ -32,24 +31,11 @@ class UndefinedVariableError(NameError):
 
     def __init__(self, *args):
         msg = 'name {0!r} is not defined'
-        subbed = _TAG_RE.sub('', args[0])
+        subbed = args[0].replace(_LOCAL_TAG, '')
         if subbed != args[0]:
             subbed = '@' + subbed
             msg = 'local variable {0!r} is not defined'
         super(UndefinedVariableError, self).__init__(msg.format(subbed))
-
-
-def _possibly_update_key(d, value, old_key, new_key=None):
-    if new_key is None:
-        new_key = old_key
-
-    try:
-        del d[old_key]
-    except KeyError:
-        return False
-    else:
-        d[new_key] = value
-        return True
 
 
 class Term(StringMixin):
@@ -65,13 +51,13 @@ class Term(StringMixin):
         self._name = name
         self.env = env
         self.side = side
-        self.local = _TAG_RE.search(text_type(name)) is not None
+        self.is_local = text_type(name).startswith(_LOCAL_TAG)
         self._value = self._resolve_name()
         self.encoding = encoding
 
     @property
     def local_name(self):
-        return _TAG_RE.sub('', self.name)
+        return self.name.replace(_LOCAL_TAG, '')
 
     def __unicode__(self):
         return com.pprint_thing(self.name)
@@ -83,9 +69,8 @@ class Term(StringMixin):
         return self
 
     def _resolve_name(self):
-        env = self.env
         key = self.name
-        res = env.resolve(self.local_name, globally=not self.local)
+        res = self.env.resolve(self.local_name, is_local=self.is_local)
         self.update(res)
 
         if res is None:
@@ -94,8 +79,8 @@ class Term(StringMixin):
             raise UndefinedVariableError(key)
 
         if hasattr(res, 'ndim') and res.ndim > 2:
-            raise NotImplementedError("N-dimensional objects, where N > 2, are"
-                                      " not supported with eval")
+            raise NotImplementedError("N-dimensional objects, where N > 2,"
+                                      " are not supported with eval")
         return res
 
     def update(self, value):
@@ -108,34 +93,14 @@ class Term(StringMixin):
          ('locals', 'key'),
          ('globals', 'key')]
         """
-        env = self.env
         key = self.name
 
         # if it's a variable name (otherwise a constant)
         if isinstance(key, string_types):
-            if self.local:
-                # get it's name WITHOUT the local tag (defined above)
-                local_name = self.local_name
-
-                # search for the local in the above specified order
-                scope_pairs = product([env.locals, env.globals],
-                                      [local_name, key])
-
-                # a[::2] + a[1::2] but iterators
-                scope_iter = chain(islice(scope_pairs, None, None, 2),
-                                   islice(scope_pairs, 1, None, 2))
-                for d, k in scope_iter:
-                    if _possibly_update_key(d, value, k, key):
-                        break
-                else:
-                    raise UndefinedVariableError(key)
-            else:
-                # otherwise we look in resolvers -> locals -> globals
-                for r in (env.resolver_dict, env.locals, env.globals):
-                    if _possibly_update_key(r, value, key):
-                        break
-                else:
-                    raise UndefinedVariableError(key)
+            try:
+                self.env.swapkey(self.local_name, key, new_value=value)
+            except KeyError:
+                raise UndefinedVariableError(key)
 
         self.value = value
 
@@ -374,7 +339,7 @@ class BinOp(Op):
             The result of an evaluated expression.
         """
         # handle truediv
-        if self.op == '/' and env.locals['truediv']:
+        if self.op == '/' and env.scope['truediv']:
             self.func = op.truediv
 
         # recurse over the left/right nodes
@@ -472,7 +437,7 @@ class Div(BinOp):
         regardless of the value of ``truediv``.
     """
 
-    def __init__(self, lhs, rhs, truediv=True, *args, **kwargs):
+    def __init__(self, lhs, rhs, truediv, *args, **kwargs):
         super(Div, self).__init__('/', lhs, rhs, *args, **kwargs)
 
         if truediv or PY3:
