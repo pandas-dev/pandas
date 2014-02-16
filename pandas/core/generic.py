@@ -1369,7 +1369,7 @@ class NDFrame(PandasObject):
         -------
         reindexed : same as input
         """
-        d = other._construct_axes_dict(method=method)
+        d = other._construct_axes_dict(method=method, copy=copy, limit=limit)
         return self.reindex(**d)
 
     def drop(self, labels, axis=0, level=None, inplace=False, **kwargs):
