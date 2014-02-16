@@ -34,8 +34,17 @@ setup = common_setup + """
 index = tm.makeStringIndex(1000000)
 s = Series(np.random.rand(1000000), index=index)
 """
-series_getitem_slice = Benchmark("s[:800000]", setup,
-                                 name="series_getitem_slice")
+series_getitem_pos_slice = Benchmark("s[:800000]", setup,
+                                     name="series_getitem_pos_slice")
+
+
+setup = common_setup + """
+index = tm.makeStringIndex(1000000)
+s = Series(np.random.rand(1000000), index=index)
+lbl = s.index[800000]
+"""
+series_getitem_label_slice = Benchmark("s[:lbl]", setup,
+                                       name="series_getitem_label_slice")
 
 
 #----------------------------------------------------------------------

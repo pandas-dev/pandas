@@ -463,8 +463,7 @@ class Series(generic.NDFrame):
         if raise_on_error:
             _check_slice_bounds(slobj, self.values)
         slobj = self.index._convert_slice_indexer(slobj, typ=typ or 'getitem')
-        return self._constructor(self.values[slobj],
-                                 index=self.index[slobj]).__finalize__(self)
+        return self._get_values(slobj)
 
     def __getitem__(self, key):
         try:
@@ -678,23 +677,6 @@ class Series(generic.NDFrame):
 
     # help out SparseSeries
     _get_val_at = ndarray.__getitem__
-
-    def __getslice__(self, i, j):
-        if i < 0:
-            i = 0
-        if j < 0:
-            j = 0
-        slobj = slice(i, j)
-        return self._slice(slobj)
-
-    def __setslice__(self, i, j, value):
-        """Set slice equal to given value(s)"""
-        if i < 0:
-            i = 0
-        if j < 0:
-            j = 0
-        slobj = slice(i, j)
-        return self.__setitem__(slobj, value)
 
     def repeat(self, reps):
         """
