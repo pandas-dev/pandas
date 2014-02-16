@@ -36,7 +36,7 @@ from pandas.core.internals import (BlockManager,
 from pandas.core.series import Series
 import pandas.computation.expressions as expressions
 from pandas.computation.eval import eval as _eval
-from pandas.computation.expr import _ensure_scope
+from pandas.computation.scope import _ensure_scope
 from pandas.compat.scipy import scoreatpercentile as _quantile
 from pandas.compat import(range, zip, lrange, lmap, lzip, StringIO, u,
                           OrderedDict, raise_with_traceback)
@@ -1803,12 +1803,7 @@ class DataFrame(NDFrame):
         # 2 self.eval
         # 1 self.query
         # 0 self.query caller (implicit)
-        level = kwargs.setdefault('level', 4)
-        if level < 4:
-            raise ValueError("Going up fewer than 4 stack frames will not"
-                             " capture the necessary variable scope for a "
-                             "query expression")
-
+        kwargs['level'] = kwargs.pop('level', 0) + 1
         res = self.eval(expr, **kwargs)
 
         try:
@@ -1852,14 +1847,15 @@ class DataFrame(NDFrame):
         >>> from pandas import DataFrame
         >>> df = DataFrame(randn(10, 2), columns=list('ab'))
         >>> df.eval('a + b')
-        >>> df.eval('c=a + b')
+        >>> df.eval('c = a + b')
         """
         resolvers = kwargs.pop('resolvers', None)
+        kwargs['level'] = kwargs.pop('level', 0) + 1
         if resolvers is None:
-            index_resolvers = self._get_resolvers()
-            resolvers = [self, index_resolvers]
-        kwargs['local_dict'] = _ensure_scope(resolvers=resolvers, **kwargs)
+            index_resolvers = self._get_index_resolvers()
+            resolvers = index_resolvers, dict(self.iteritems())
         kwargs['target'] = self
+        kwargs['resolvers'] = kwargs.get('resolvers', ()) + resolvers
         return _eval(expr, **kwargs)
 
     def _slice(self, slobj, axis=0, raise_on_error=False, typ=None):
