@@ -1002,7 +1002,7 @@ _network_errno_vals = (
     60,  # urllib.error.URLError: [Errno 60] Connection timed out
     )
 
-# Both of the above shouldn't mask reasl issues such as 404's
+# Both of the above shouldn't mask real issues such as 404's
 # or refused connections (changed DNS).
 # But some tests (test_data yahoo) contact incredibly flakey
 # servers.
@@ -1402,3 +1402,8 @@ def skip_if_no_ne(engine='numexpr'):
         if ne.__version__ < LooseVersion('2.0'):
             raise nose.SkipTest("numexpr version too low: "
                                 "%s" % ne.__version__)
+
+
+def disabled(t):
+    t.disabled = True
+    return t
