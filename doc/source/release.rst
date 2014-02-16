@@ -66,6 +66,7 @@ API Changes
 - ``df['col'] = value`` and ``df.loc[:,'col'] = value`` are now completely equivalent;
   previously the ``.loc`` would not necessarily coerce the dtype of the resultant series (:issue:`6149`)
 
+
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -83,6 +84,8 @@ Improvements to existing features
 - implement joining a single-level indexed DataFrame on a matching column of a multi-indexed DataFrame (:issue:`3662`)
 - Performance improvement in indexing into a multi-indexed Series (:issue:`5567`)
 - Testing statements updated to use specialized asserts (:issue: `6175`)
+- ``Series.rank()`` now has a percentage rank option (:issue: `5971`)
+
 
 .. _release.bug_fixes-0.14.0:
 

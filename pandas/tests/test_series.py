@@ -3955,6 +3955,48 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         iranks = iseries.rank()
         exp = iseries.astype(float).rank()
         assert_series_equal(iranks, exp)
+        iseries = Series(np.arange(5)) + 1.0
+        exp = iseries / 5.0
+        iranks = iseries.rank(pct=True)
+
+        assert_series_equal(iranks, exp)
+
+        iseries = Series(np.repeat(1, 100))
+        exp = Series(np.repeat(0.505, 100))
+        iranks = iseries.rank(pct=True)
+        assert_series_equal(iranks, exp)
+
+        iseries[1] = np.nan
+        exp = Series(np.repeat(50.0 / 99.0, 100))
+        exp[1] =  np.nan
+        iranks = iseries.rank(pct=True)
+        assert_series_equal(iranks, exp)
+
+        iseries = Series(np.arange(5)) + 1.0
+        iseries[4] = np.nan
+        exp = iseries / 4.0
+        iranks = iseries.rank(pct=True)
+        assert_series_equal(iranks, exp)
+
+        iseries = Series(np.repeat(np.nan, 100))
+        exp = iseries.copy()
+        iranks = iseries.rank(pct=True)
+        assert_series_equal(iranks, exp)
+
+        iseries = Series(np.arange(5)) + 1
+        iseries[4] = np.nan
+        exp = iseries / 4.0
+        iranks = iseries.rank(pct=True)
+        assert_series_equal(iranks, exp)
+        rng = date_range('1/1/1990', periods=5)
+
+        iseries = Series(np.arange(5), rng) + 1
+        iseries.ix[4] = np.nan
+        exp = iseries / 4.0
+        iranks = iseries.rank(pct=True)
+        assert_series_equal(iranks, exp)
+
+
 
     def test_from_csv(self):
 

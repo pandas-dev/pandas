@@ -47,6 +47,11 @@ groupby_series_simple_cython = \
     Benchmark('simple_series.groupby(key1).sum()', setup,
               start_date=datetime(2011, 3, 1))
 
+
+stmt4 = "df.groupby('key1').rank(pct=True)"
+groupby_series_simple_cython = Benchmark(stmt4, setup,
+                                    start_date=datetime(2014, 1, 16))
+
 #----------------------------------------------------------------------
 # 2d grouping, aggregate many columns
 
