@@ -447,7 +447,7 @@ class TestSeries(tm.TestCase, Generic):
         ts_copy[5:10] = np.NaN
 
         linear_interp = ts_copy.interpolate(method='linear')
-        self.assert_(np.array_equal(linear_interp, ts))
+        self.assert_numpy_array_equal(linear_interp, ts)
 
         ord_ts = Series([d.toordinal() for d in self.ts.index],
                         index=self.ts.index).astype(float)
@@ -456,7 +456,7 @@ class TestSeries(tm.TestCase, Generic):
         ord_ts_copy[5:10] = np.NaN
 
         time_interp = ord_ts_copy.interpolate(method='time')
-        self.assert_(np.array_equal(time_interp, ord_ts))
+        self.assert_numpy_array_equal(time_interp, ord_ts)
 
         # try time interpolation on a non-TimeSeries
         self.assertRaises(ValueError, self.series.interpolate, method='time')

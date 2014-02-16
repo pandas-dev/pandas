@@ -800,7 +800,7 @@ class TestTake(tm.TestCase):
 
         result = com.take_1d(arr, [0, 2, 2, 1])
         expected = arr.take([0, 2, 2, 1])
-        self.assert_(np.array_equal(result, expected))
+        self.assert_numpy_array_equal(result, expected)
 
         result = com.take_1d(arr, [0, 2, -1])
         self.assertEqual(result.dtype, np.object_)
@@ -812,11 +812,11 @@ class TestTake(tm.TestCase):
 
         result = com.take_nd(arr, [0, 2, 2, 1])
         expected = arr.take([0, 2, 2, 1], axis=0)
-        self.assert_(np.array_equal(result, expected))
+        self.assert_numpy_array_equal(result, expected)
 
         result = com.take_nd(arr, [0, 2, 2, 1], axis=1)
         expected = arr.take([0, 2, 2, 1], axis=1)
-        self.assert_(np.array_equal(result, expected))
+        self.assert_numpy_array_equal(result, expected)
 
         result = com.take_nd(arr, [0, 2, -1])
         self.assertEqual(result.dtype, np.object_)

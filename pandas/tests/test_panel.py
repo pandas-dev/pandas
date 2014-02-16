@@ -754,8 +754,8 @@ class CheckIndexing(object):
 
             # versus same index
             result = func(p1, p2)
-            self.assert_(np.array_equal(result.values,
-                                        func(p1.values, p2.values)))
+            self.assert_numpy_array_equal(result.values,
+                                          func(p1.values, p2.values))
 
             # versus non-indexed same objs
             self.assertRaises(Exception, func, p1, tp)
@@ -765,8 +765,8 @@ class CheckIndexing(object):
 
             # versus scalar
             result3 = func(self.panel, 0)
-            self.assert_(np.array_equal(result3.values,
-                                        func(self.panel.values, 0)))
+            self.assert_numpy_array_equal(result3.values,
+                                          func(self.panel.values, 0))
 
         test_comp(operator.eq)
         test_comp(operator.ne)
@@ -2155,7 +2155,7 @@ class TestLongPanel(tm.TestCase):
         transformed = make_axis_dummies(self.panel, 'minor',
                                         transform=mapping.get)
         self.assertEqual(len(transformed.columns), 2)
-        self.assert_(np.array_equal(transformed.columns, ['one', 'two']))
+        self.assert_numpy_array_equal(transformed.columns, ['one', 'two'])
 
         # TODO: test correctness
 
@@ -2165,7 +2165,7 @@ class TestLongPanel(tm.TestCase):
         self.panel['Label'] = self.panel.index.labels[1]
         minor_dummies = make_axis_dummies(self.panel, 'minor')
         dummies = get_dummies(self.panel['Label'])
-        self.assert_(np.array_equal(dummies.values, minor_dummies.values))
+        self.assert_numpy_array_equal(dummies.values, minor_dummies.values)
 
     def test_mean(self):
         means = self.panel.mean(level='minor')
