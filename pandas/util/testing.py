@@ -65,7 +65,7 @@ class TestCase(unittest.TestCase):
     def tearDownClass(cls):
         #print("tearing down up: {0}".format(cls))
         pass
-    
+
     def assert_numpy_array_equal(self, np_array, assert_equal):
         if np.array_equal(np_array, assert_equal):
 	        return
@@ -991,6 +991,9 @@ _network_error_messages = (
     'Server Hangup',
     'HTTP Error 503: Service Unavailable',
     '502: Proxy Error',
+    'HTTP Error 502: internal error',
+    'HTTP Error 502',
+    'HTTP Error 503',
     )
 
 # or this e.errno/e.reason.errno
