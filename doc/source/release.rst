@@ -124,6 +124,7 @@ Bug Fixes
   keys not in the values to be replaced (:issue:`6342`)
 - Bug in take with duplicate columns not consolidated (:issue:`6240`)
 - Bug in interpolate changing dtypes (:issue:`6290`)
+- Bug in Series.get, was using a buggy access method (:issue:`6383`)
 
 pandas 0.13.1
 -------------
