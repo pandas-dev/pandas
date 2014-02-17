@@ -1099,8 +1099,8 @@ class TestSparseDataFrame(tm.TestCase, test_frame.SafeForSparse):
 
         res2 = res.set_value('foobar', 'qux', 1.5)
         self.assert_(res2 is not res)
-        self.assert_(np.array_equal(res2.columns,
-                                    list(self.frame.columns) + ['qux']))
+        self.assert_numpy_array_equal(res2.columns,
+                                      list(self.frame.columns) + ['qux'])
         self.assertEqual(res2.get_value('foobar', 'qux'), 1.5)
 
     def test_fancy_index_misc(self):
@@ -1126,7 +1126,7 @@ class TestSparseDataFrame(tm.TestCase, test_frame.SafeForSparse):
         subindex = self.frame.index[indexer]
         subframe = self.frame[indexer]
 
-        self.assert_(np.array_equal(subindex, subframe.index))
+        self.assert_numpy_array_equal(subindex, subframe.index)
         self.assertRaises(Exception, self.frame.__getitem__, indexer[:-1])
 
     def test_setitem(self):
@@ -1413,8 +1413,8 @@ class TestSparseDataFrame(tm.TestCase, test_frame.SafeForSparse):
 
             from_sparse_lp = spf.stack_sparse_frame(frame)
 
-            self.assert_(np.array_equal(from_dense_lp.values,
-                                        from_sparse_lp.values))
+            self.assert_numpy_array_equal(from_dense_lp.values,
+                                          from_sparse_lp.values)
 
         _check(self.frame)
         _check(self.iframe)
@@ -1624,7 +1624,7 @@ class TestSparsePanel(tm.TestCase,
             slp = panel.to_frame()
             dlp = panel.to_dense().to_frame()
 
-            self.assert_(np.array_equal(slp.values, dlp.values))
+            self.assert_numpy_array_equal(slp.values, dlp.values)
             self.assert_(slp.index.equals(dlp.index))
 
         _compare_with_dense(self.panel)

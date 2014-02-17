@@ -810,9 +810,9 @@ NaN,nan
                     [11, 12, 13, 14, 15]]
         df = self.read_table(StringIO(data), sep=',')
         tm.assert_almost_equal(df.values, expected)
-        self.assert_(np.array_equal(df.columns,
-                                    ['A', 'B', 'C', 'Unnamed: 3',
-                                     'Unnamed: 4']))
+        self.assert_numpy_array_equal(df.columns,
+                                      ['A', 'B', 'C', 'Unnamed: 3',
+                                       'Unnamed: 4'])
 
     def test_string_nas(self):
         data = """A,B,C
@@ -963,11 +963,11 @@ c,4,5
         tm.assert_almost_equal(df.values, expected)
         tm.assert_almost_equal(df.values, df2.values)
 
-        self.assert_(np.array_equal(df_pref.columns,
-                                    ['X0', 'X1', 'X2', 'X3', 'X4']))
-        self.assert_(np.array_equal(df.columns, lrange(5)))
+        self.assert_numpy_array_equal(df_pref.columns,
+                                      ['X0', 'X1', 'X2', 'X3', 'X4'])
+        self.assert_numpy_array_equal(df.columns, lrange(5))
 
-        self.assert_(np.array_equal(df2.columns, names))
+        self.assert_numpy_array_equal(df2.columns, names)
 
     def test_no_header_prefix(self):
         data = """1,2,3,4,5
@@ -982,8 +982,8 @@ c,4,5
                     [11, 12, 13, 14, 15]]
         tm.assert_almost_equal(df_pref.values, expected)
 
-        self.assert_(np.array_equal(df_pref.columns,
-                                    ['Field0', 'Field1', 'Field2', 'Field3', 'Field4']))
+        self.assert_numpy_array_equal(df_pref.columns,
+                                      ['Field0', 'Field1', 'Field2', 'Field3', 'Field4'])
 
     def test_header_with_index_col(self):
         data = """foo,1,2,3
@@ -1004,7 +1004,7 @@ baz,7,8,9
         df = self.read_csv(self.csv1, index_col=0, parse_dates=True)
         df2 = self.read_table(self.csv1, sep=',', index_col=0,
                               parse_dates=True)
-        self.assert_(np.array_equal(df.columns, ['A', 'B', 'C', 'D']))
+        self.assert_numpy_array_equal(df.columns, ['A', 'B', 'C', 'D'])
         self.assertEqual(df.index.name, 'index')
         self.assert_(isinstance(df.index[0], (datetime, np.datetime64,
                                               Timestamp)))
@@ -1015,7 +1015,7 @@ baz,7,8,9
         df = self.read_csv(self.csv2, index_col=0, parse_dates=True)
         df2 = self.read_table(self.csv2, sep=',', index_col=0,
                               parse_dates=True)
-        self.assert_(np.array_equal(df.columns, ['A', 'B', 'C', 'D', 'E']))
+        self.assert_numpy_array_equal(df.columns, ['A', 'B', 'C', 'D', 'E'])
         self.assert_(isinstance(df.index[0], (datetime, np.datetime64,
                                               Timestamp)))
         self.assertEqual(df.ix[:, ['A', 'B', 'C', 'D']].values.dtype, np.float64)

@@ -90,8 +90,8 @@ class TestMerge(tm.TestCase):
         exp_rs = exp_rs.take(exp_ri)
         exp_rs[exp_ri == -1] = -1
 
-        self.assert_(np.array_equal(ls, exp_ls))
-        self.assert_(np.array_equal(rs, exp_rs))
+        self.assert_numpy_array_equal(ls, exp_ls)
+        self.assert_numpy_array_equal(rs, exp_rs)
 
     def test_cython_right_outer_join(self):
         left = a_([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype=np.int64)
@@ -116,8 +116,8 @@ class TestMerge(tm.TestCase):
         exp_rs = exp_rs.take(exp_ri)
         exp_rs[exp_ri == -1] = -1
 
-        self.assert_(np.array_equal(ls, exp_ls))
-        self.assert_(np.array_equal(rs, exp_rs))
+        self.assert_numpy_array_equal(ls, exp_ls)
+        self.assert_numpy_array_equal(rs, exp_rs)
 
     def test_cython_inner_join(self):
         left = a_([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype=np.int64)
@@ -140,8 +140,8 @@ class TestMerge(tm.TestCase):
         exp_rs = exp_rs.take(exp_ri)
         exp_rs[exp_ri == -1] = -1
 
-        self.assert_(np.array_equal(ls, exp_ls))
-        self.assert_(np.array_equal(rs, exp_rs))
+        self.assert_numpy_array_equal(ls, exp_ls)
+        self.assert_numpy_array_equal(rs, exp_rs)
 
     def test_left_outer_join(self):
         joined_key2 = merge(self.df, self.df2, on='key2')
@@ -199,8 +199,8 @@ class TestMerge(tm.TestCase):
         source = self.source
 
         merged = target.join(source, on='C')
-        self.assert_(np.array_equal(merged['MergedA'], target['A']))
-        self.assert_(np.array_equal(merged['MergedD'], target['D']))
+        self.assert_numpy_array_equal(merged['MergedA'], target['A'])
+        self.assert_numpy_array_equal(merged['MergedD'], target['D'])
 
         # join with duplicates (fix regression from DataFrame/Matrix merge)
         df = DataFrame({'key': ['a', 'a', 'b', 'b', 'c']})
@@ -285,8 +285,8 @@ class TestMerge(tm.TestCase):
 
         expected = df.join(df2, on='key')
         expected = expected[expected['value'].notnull()]
-        self.assert_(np.array_equal(joined['key'], expected['key']))
-        self.assert_(np.array_equal(joined['value'], expected['value']))
+        self.assert_numpy_array_equal(joined['key'], expected['key'])
+        self.assert_numpy_array_equal(joined['value'], expected['value'])
         self.assert_(joined.index.equals(expected.index))
 
     def test_join_on_singlekey_list(self):
@@ -612,7 +612,7 @@ class TestMerge(tm.TestCase):
 
         # smoke test
         joined = left.join(right, on='key', sort=False)
-        self.assert_(np.array_equal(joined.index, lrange(4)))
+        self.assert_numpy_array_equal(joined.index, lrange(4))
 
     def test_intelligently_handle_join_key(self):
         # #733, be a bit more 1337 about not returning unconsolidated DataFrame
@@ -651,15 +651,15 @@ class TestMerge(tm.TestCase):
         rkey = np.array([1, 1, 2, 3, 4, 5])
 
         merged = merge(left, right, left_on=lkey, right_on=rkey, how='outer')
-        self.assert_(np.array_equal(merged['key_0'],
-                                    np.array([1, 1, 1, 1, 2, 2, 3, 4, 5])))
+        self.assert_numpy_array_equal(merged['key_0'],
+                                      np.array([1, 1, 1, 1, 2, 2, 3, 4, 5]))
 
         left = DataFrame({'value': lrange(3)})
         right = DataFrame({'rvalue': lrange(6)})
 
         key = np.array([0, 1, 1, 2, 2, 3])
         merged = merge(left, right, left_index=True, right_on=key, how='outer')
-        self.assert_(np.array_equal(merged['key_0'], key))
+        self.assert_numpy_array_equal(merged['key_0'], key)
 
     def test_mixed_type_join_with_suffix(self):
         # GH #916
@@ -1414,7 +1414,7 @@ class TestConcatenate(tm.TestCase):
                         levels=[level],
                         names=['group_key'])
 
-        self.assert_(np.array_equal(result.columns.levels[0], level))
+        self.assert_numpy_array_equal(result.columns.levels[0], level)
         self.assertEqual(result.columns.names[0], 'group_key')
 
     def test_concat_dataframe_keys_bug(self):
@@ -1518,7 +1518,7 @@ class TestConcatenate(tm.TestCase):
                               ('baz', 'one'), ('baz', 'two')],
                         names=['first', 'second'])
         self.assertEqual(result.index.names, ('first', 'second') + (None,))
-        self.assert_(np.array_equal(result.index.levels[0], ['baz', 'foo']))
+        self.assert_numpy_array_equal(result.index.levels[0], ['baz', 'foo'])
 
     def test_concat_keys_levels_no_overlap(self):
         # GH #1406
