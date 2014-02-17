@@ -1669,10 +1669,10 @@ c  10  11  12  13  14\
 \end{tabular}
 """
         self.assertEqual(withoutindex_result, withoutindex_expected)
-        
+
     def test_to_latex_escape_special_chars(self):
         special_characters = ['&','%','$','#','_',
-                               '{','}','~','^','\\'] 
+                               '{','}','~','^','\\']
         df = DataFrame(data=special_characters)
         observed = df.to_latex()
         expected = r"""\begin{tabular}{ll}
@@ -1693,6 +1693,99 @@ c  10  11  12  13  14\
 \end{tabular}
 """
         self.assertEqual(observed, expected)
+
+    def test_to_csv_quotechar(self):
+        df = DataFrame({'col' : [1,2]})
+        expected = """\
+"","col"
+"0","1"
+"1","2"
+"""
+        with tm.ensure_clean('test.csv') as path:
+            df.to_csv(path, quoting=1) # 1=QUOTE_ALL
+            with open(path, 'r') as f:
+                self.assertEqual(f.read(), expected)
+        with tm.ensure_clean('test.csv') as path:
+            df.to_csv(path, quoting=1, engine='python')
+            with open(path, 'r') as f:
+                self.assertEqual(f.read(), expected)
+
+        expected = """\
+$$,$col$
+$0$,$1$
+$1$,$2$
+"""
+        with tm.ensure_clean('test.csv') as path:
+            df.to_csv(path, quoting=1, quotechar="$")
+            with open(path, 'r') as f:
+                self.assertEqual(f.read(), expected)
+        with tm.ensure_clean('test.csv') as path:
+            df.to_csv(path, quoting=1, quotechar="$", engine='python')
+            with open(path, 'r') as f:
+                self.assertEqual(f.read(), expected)
+
+        with tm.ensure_clean('test.csv') as path:
+            with tm.assertRaisesRegexp(TypeError, 'quotechar'):
+                df.to_csv(path, quoting=1, quotechar=None)
+        with tm.ensure_clean('test.csv') as path:
+            with tm.assertRaisesRegexp(TypeError, 'quotechar'):
+                df.to_csv(path, quoting=1, quotechar=None, engine='python')
+
+    def test_to_csv_doublequote(self):
+        df = DataFrame({'col' : ['a"a', '"bb"']})
+        expected = '''\
+"","col"
+"0","a""a"
+"1","""bb"""
+'''
+        with tm.ensure_clean('test.csv') as path:
+            df.to_csv(path, quoting=1, doublequote=True) # QUOTE_ALL
+            with open(path, 'r') as f:
+                self.assertEqual(f.read(), expected)
+        with tm.ensure_clean('test.csv') as path:
+            df.to_csv(path, quoting=1, doublequote=True, engine='python')
+            with open(path, 'r') as f:
+                self.assertEqual(f.read(), expected)
+
+        from _csv import Error
+        with tm.ensure_clean('test.csv') as path:
+            with tm.assertRaisesRegexp(Error, 'escapechar'):
+                df.to_csv(path, doublequote=False) # no escapechar set
+        with tm.ensure_clean('test.csv') as path:
+            with tm.assertRaisesRegexp(Error, 'escapechar'):
+                df.to_csv(path, doublequote=False, engine='python')
+
+    def test_to_csv_escapechar(self):
+        df = DataFrame({'col' : ['a"a', '"bb"']})
+        expected = """\
+"","col"
+"0","a\\"a"
+"1","\\"bb\\""
+"""
+        with tm.ensure_clean('test.csv') as path:   # QUOTE_ALL
+            df.to_csv(path, quoting=1, doublequote=False, escapechar='\\')
+            with open(path, 'r') as f:
+                self.assertEqual(f.read(), expected)
+        with tm.ensure_clean('test.csv') as path:
+            df.to_csv(path, quoting=1, doublequote=False, escapechar='\\',
+                      engine='python')
+            with open(path, 'r') as f:
+                self.assertEqual(f.read(), expected)
+
+        df = DataFrame({'col' : ['a,a', ',bb,']})
+        expected = """\
+,col
+0,a\\,a
+1,\\,bb\\,
+"""
+        with tm.ensure_clean('test.csv') as path:
+            df.to_csv(path, quoting=3, escapechar='\\') # QUOTE_NONE
+            with open(path, 'r') as f:
+                self.assertEqual(f.read(), expected)
+        with tm.ensure_clean('test.csv') as path:
+            df.to_csv(path, quoting=3, escapechar='\\', engine='python')
+            with open(path, 'r') as f:
+                self.assertEqual(f.read(), expected)
 
 class TestSeriesFormatting(tm.TestCase):
     _multiprocess_can_split_ = True
