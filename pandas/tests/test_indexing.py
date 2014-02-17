@@ -2474,14 +2474,14 @@ class TestIndexing(tm.TestCase):
         df = tm.makeDataFrame()
         df['A'] # cache series
         df.ix["Hello Friend"] = df.ix[0]
-        self.assert_("Hello Friend" in df['A'].index)
-        self.assert_("Hello Friend" in df['B'].index)
+        self.assertIn("Hello Friend", df['A'].index)
+        self.assertIn("Hello Friend", df['B'].index)
 
         panel = tm.makePanel()
         panel.ix[0] # get first item into cache
         panel.ix[:, :, 'A+1'] = panel.ix[:, :, 'A'] + 1
-        self.assert_("A+1" in panel.ix[0].columns)
-        self.assert_("A+1" in panel.ix[1].columns)
+        self.assertIn("A+1", panel.ix[0].columns)
+        self.assertIn("A+1", panel.ix[1].columns)
 
         # 5216
         # make sure that we don't try to set a dead cache

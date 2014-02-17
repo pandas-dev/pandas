@@ -119,7 +119,7 @@ class CheckIndexing(object):
         for key, _ in compat.iteritems(self.frame._series):
             self.assert_(self.frame[key] is not None)
 
-        self.assert_('random' not in self.frame)
+        self.assertNotIn('random', self.frame)
         with assertRaisesRegexp(KeyError, 'no item named random'):
             self.frame['random']
 
@@ -399,7 +399,7 @@ class CheckIndexing(object):
         # not sure what else to do here
         series = self.frame['A'][::2]
         self.frame['col5'] = series
-        self.assert_('col5' in self.frame)
+        self.assertIn('col5', self.frame)
         tm.assert_dict_equal(series, self.frame['col5'],
                              compare_keys=False)
 
@@ -551,7 +551,7 @@ class CheckIndexing(object):
                        index=np.arange(3))
         del df['B']
         df['B'] = [1., 2., 3.]
-        self.assert_('B' in df)
+        self.assertIn('B', df)
         self.assertEqual(len(df.columns), 2)
 
         df['A'] = 'beginning'
@@ -2060,7 +2060,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                         'E': np.random.randn(5)})
         with assertRaisesRegexp(ValueError, 'Index has duplicate keys'):
             df.set_index('A', verify_integrity=True, inplace=True)
-        self.assert_('A' in df)
+        self.assertIn('A', df)
 
     def test_set_index_bug(self):
         # GH1590
@@ -2287,7 +2287,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                           columns=['col2', 'col3', 'col4'])
 
         self.assertEqual(len(frame), len(self.ts2))
-        self.assert_('col1' not in frame)
+        self.assertNotIn('col1', frame)
         self.assert_(isnull(frame['col3']).all())
 
         # Corner cases
@@ -3810,7 +3810,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         records = indexed_frame.to_records(index=False)
         self.assertEqual(len(records.dtype.names), 2)
-        self.assert_('index' not in records.dtype.names)
+        self.assertNotIn('index', records.dtype.names)
 
     def test_from_records_nones(self):
         tuples = [(1, 2, None, 3),
@@ -4007,16 +4007,16 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df = DataFrame(np.random.randn(3, 3))
         df.index.name = 'X'
         rs = df.to_records()
-        self.assert_('X' in rs.dtype.fields)
+        self.assertIn('X', rs.dtype.fields)
 
         df = DataFrame(np.random.randn(3, 3))
         rs = df.to_records()
-        self.assert_('index' in rs.dtype.fields)
+        self.assertIn('index', rs.dtype.fields)
 
         df.index = MultiIndex.from_tuples([('a', 'x'), ('a', 'y'), ('b', 'z')])
         df.index.names = ['A', None]
         rs = df.to_records()
-        self.assert_('level_0' in rs.dtype.fields)
+        self.assertIn('level_0', rs.dtype.fields)
 
     def test_join_str_datetime(self):
         str_dates = ['20120209', '20120222']
@@ -4340,7 +4340,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                                       ' the File through the code..')})
 
         result = repr(df)
-        self.assert_('StringCol' in result)
+        self.assertIn('StringCol', result)
 
     def test_head_tail(self):
         assert_frame_equal(self.frame.head(), self.frame[:5])
@@ -4404,17 +4404,17 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
     def test_delitem(self):
         del self.frame['A']
-        self.assert_('A' not in self.frame)
+        self.assertNotIn('A', self.frame)
 
     def test_pop(self):
         self.frame.columns.name = 'baz'
 
         A = self.frame.pop('A')
-        self.assert_('A' not in self.frame)
+        self.assertNotIn('A', self.frame)
 
         self.frame['foo'] = 'bar'
         foo = self.frame.pop('foo')
-        self.assert_('foo' not in self.frame)
+        self.assertNotIn('foo', self.frame)
         # TODO self.assertEqual(self.frame.columns.name, 'baz')
 
     def test_pop_non_unique_cols(self):
@@ -5162,7 +5162,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         for key, s in compat.iteritems(self.frame):
             assert_series_equal(larger_added[key], s + series[key])
-        self.assert_('E' in larger_added)
+        self.assertIn('E', larger_added)
         self.assert_(np.isnan(larger_added['E']).all())
 
         # vs mix (upcast) as needed
@@ -6473,7 +6473,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
     def test_copy(self):
         cop = self.frame.copy()
         cop['E'] = cop['A']
-        self.assert_('E' not in self.frame)
+        self.assertNotIn('E', self.frame)
 
         # copy objects
         copy = self.mixed_frame.copy()
@@ -6614,10 +6614,10 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         dropped = a.corrwith(b, axis=0, drop=True)
         assert_almost_equal(dropped['A'], a['A'].corr(b['A']))
-        self.assert_('B' not in dropped)
+        self.assertNotIn('B', dropped)
 
         dropped = a.corrwith(b, axis=1, drop=True)
-        self.assert_(a.index[-1] not in dropped.index)
+        self.assertNotIn(a.index[-1], dropped.index)
 
         # non time-series data
         index = ['a', 'b', 'c', 'd', 'e']
@@ -8327,7 +8327,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         assert_series_equal(newFrame['B'], self.frame['B'])
         self.assert_(np.isnan(newFrame['E']).all())
-        self.assert_('C' not in newFrame)
+        self.assertNotIn('C', newFrame)
 
         # length zero
         newFrame = self.frame.reindex(columns=[])
@@ -8885,15 +8885,15 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
     def test_rename_inplace(self):
         self.frame.rename(columns={'C': 'foo'})
-        self.assert_('C' in self.frame)
-        self.assert_('foo' not in self.frame)
+        self.assertIn('C', self.frame)
+        self.assertNotIn('foo', self.frame)
 
         c_id = id(self.frame['C'])
         frame = self.frame.copy()
         frame.rename(columns={'C': 'foo'}, inplace=True)
 
-        self.assert_('C' not in frame)
-        self.assert_('foo' in frame)
+        self.assertNotIn('C', frame)
+        self.assertIn('foo', frame)
         self.assertNotEqual(id(frame['foo']), c_id)
 
     def test_rename_bug(self):
@@ -9424,11 +9424,11 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         # items
         filtered = self.frame.filter(['A', 'B', 'E'])
         self.assertEqual(len(filtered.columns), 2)
-        self.assert_('E' not in filtered)
+        self.assertNotIn('E', filtered)
 
         filtered = self.frame.filter(['A', 'B', 'E'], axis='columns')
         self.assertEqual(len(filtered.columns), 2)
-        self.assert_('E' not in filtered)
+        self.assertNotIn('E', filtered)
 
         # other axis
         idx = self.frame.index[0:4]
@@ -9442,7 +9442,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         filtered = fcopy.filter(like='A')
         self.assertEqual(len(filtered.columns), 2)
-        self.assert_('AA' in filtered)
+        self.assertIn('AA', filtered)
 
         # like with ints in column names
         df = DataFrame(0., index=[0, 1, 2], columns=[0, 1, '_A', '_B'])
@@ -9455,7 +9455,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         # objects
         filtered = self.mixed_frame.filter(like='foo')
-        self.assert_('foo' in filtered)
+        self.assertIn('foo', filtered)
 
         # unicode columns, won't ascii-encode
         df = self.frame.rename(columns={'B': u('\u2202')})
@@ -9469,7 +9469,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         # regex
         filtered = fcopy.filter(regex='[A]+')
         self.assertEqual(len(filtered.columns), 2)
-        self.assert_('AA' in filtered)
+        self.assertIn('AA', filtered)
 
         # doesn't have to be at beginning
         df = DataFrame({'aBBa': [1, 2],
@@ -10821,10 +10821,10 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
     def test_reindex_objects(self):
         reindexed = self.mixed_frame.reindex(columns=['foo', 'A', 'B'])
-        self.assert_('foo' in reindexed)
+        self.assertIn('foo', reindexed)
 
         reindexed = self.mixed_frame.reindex(columns=['A', 'B'])
-        self.assert_('foo' not in reindexed)
+        self.assertNotIn('foo', reindexed)
 
     def test_reindex_corner(self):
         index = Index(['a', 'b', 'c'])
@@ -10903,8 +10903,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
     def test_rename_objects(self):
         renamed = self.mixed_frame.rename(columns=str.upper)
-        self.assert_('FOO' in renamed)
-        self.assert_('foo' not in renamed)
+        self.assertIn('FOO', renamed)
+        self.assertNotIn('foo', renamed)
 
     def test_fill_corner(self):
         self.mixed_frame['foo'][5:20] = nan

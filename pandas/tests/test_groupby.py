@@ -2047,14 +2047,14 @@ class TestGroupBy(tm.TestCase):
         result = self.df.groupby(self.df['A']).mean()
         result2 = self.df.groupby(self.df['A'], as_index=False).mean()
         self.assertEquals(result.index.name, 'A')
-        self.assert_('A' in result2)
+        self.assertIn('A', result2)
 
         result = self.df.groupby([self.df['A'], self.df['B']]).mean()
         result2 = self.df.groupby([self.df['A'], self.df['B']],
                                   as_index=False).mean()
         self.assertEquals(result.index.names, ('A', 'B'))
-        self.assert_('A' in result2)
-        self.assert_('B' in result2)
+        self.assertIn('A', result2)
+        self.assertIn('B', result2)
 
     def test_groupby_nonstring_columns(self):
         df = DataFrame([np.arange(10) for x in range(10)])
