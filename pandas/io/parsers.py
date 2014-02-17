@@ -46,7 +46,8 @@ quoting : int or csv.QUOTE_* instance, default None
     Default (None) results in QUOTE_MINIMAL behavior.
 skipinitialspace : boolean, default False
     Skip spaces after delimiter
-escapechar : string
+escapechar : string (length 1), default None
+    One-character string used to escape delimiter when quoting is QUOTE_NONE.
 dtype : Type name or dict of column -> type
     Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
 compression : {'gzip', 'bz2', None}, default None

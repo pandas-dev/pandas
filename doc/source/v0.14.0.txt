@@ -179,6 +179,9 @@ Enhancements
 
      household.join(portfolio, how='inner')
 
+- ``quotechar``, ``doublequote``, and ``escapechar`` can now be specified when
+  using ``DataFrame.to_csv`` (:issue:`5414`, :issue:`4528`)
+
 Performance
 ~~~~~~~~~~~
 

@@ -1070,8 +1070,9 @@ class DataFrame(NDFrame):
     def to_csv(self, path_or_buf, sep=",", na_rep='', float_format=None,
                cols=None, header=True, index=True, index_label=None,
                mode='w', nanRep=None, encoding=None, quoting=None,
-               line_terminator='\n', chunksize=None,
-               tupleize_cols=False, date_format=None, **kwds):
+               quotechar='"', line_terminator='\n', chunksize=None,
+               tupleize_cols=False, date_format=None, doublequote=True,
+               escapechar=None, **kwds):
         r"""Write DataFrame to a comma-separated values (csv) file
 
         Parameters
@@ -1109,13 +1110,19 @@ class DataFrame(NDFrame):
             file
         quoting : optional constant from csv module
             defaults to csv.QUOTE_MINIMAL
+        quotechar : string (length 1), default '"'
+            character used to quote fields
+        doublequote : boolean, default True
+            Control quoting of `quotechar` inside a field
+        escapechar : string (length 1), default None
+            character used to escape `sep` and `quotechar` when appropriate
         chunksize : int or None
             rows to write at a time
         tupleize_cols : boolean, default False
             write multi_index columns as a list of tuples (if True)
             or new (expanded format) if False)
         date_format : string, default None
-            Format string for datetime objects.
+            Format string for datetime objects
         """
         if nanRep is not None:  # pragma: no cover
             warnings.warn("nanRep is deprecated, use na_rep",
@@ -1129,10 +1136,12 @@ class DataFrame(NDFrame):
                                      float_format=float_format, cols=cols,
                                      header=header, index=index,
                                      index_label=index_label, mode=mode,
-                                     chunksize=chunksize, engine=kwds.get(
-                                         "engine"),
+                                     chunksize=chunksize, quotechar=quotechar,
+                                     engine=kwds.get("engine"),
                                      tupleize_cols=tupleize_cols,
-                                     date_format=date_format)
+                                     date_format=date_format,
+                                     doublequote=doublequote,
+                                     escapechar=escapechar)
         formatter.save()
 
     def to_excel(self, excel_writer, sheet_name='Sheet1', na_rep='',

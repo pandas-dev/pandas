@@ -1036,8 +1036,10 @@ The Series and DataFrame objects have an instance method ``to_csv`` which
 allows storing the contents of the object as a comma-separated-values file. The
 function takes a number of arguments. Only the first is required.
 
-  - ``path``: A string path to the file to write
+  - ``path_or_buf``: A string path to the file to write or a StringIO
+  - ``sep`` : Field delimiter for the output file (default ",")
   - ``na_rep``: A string representation of a missing value (default '')
+  - ``float_format``: Format string for floating point numbers
   - ``cols``: Columns to write (default None)
   - ``header``: Whether to write out the column names (default True)
   - ``index``: whether to write row (index) names (default True)
@@ -1045,11 +1047,18 @@ function takes a number of arguments. Only the first is required.
     (default), and `header` and `index` are True, then the index names are
     used. (A sequence should be given if the DataFrame uses MultiIndex).
   - ``mode`` : Python write mode, default 'w'
-  - ``sep`` : Field delimiter for the output file (default ",")
   - ``encoding``: a string representing the encoding to use if the contents are
     non-ascii, for python versions prior to 3
-  - ``tupleize_cols``: boolean, default False, if False, write as a list of tuples,
-    otherwise write in an expanded line format suitable for ``read_csv``
+  - ``line_terminator``: Character sequence denoting line end (default '\\n')
+  - ``quoting``: Set quoting rules as in csv module (default csv.QUOTE_MINIMAL)
+  - ``quotechar``: Character used to quote fields (default '"')
+  - ``doublequote``: Control quoting of ``quotechar`` in fields (default True)
+  - ``escapechar``: Character used to escape ``sep`` and ``quotechar`` when
+    appropriate (default None)
+  - ``chunksize``: Number of rows to write at a time
+  - ``tupleize_cols``: If False (default), write as a list of tuples, otherwise
+    write in an expanded line format suitable for ``read_csv``
+  - ``date_format``: Format string for datetime objects
 
 Writing a formatted string
 ~~~~~~~~~~~~~~~~~~~~~~~~~~

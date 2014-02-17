@@ -947,7 +947,8 @@ class CSVFormatter(object):
                  cols=None, header=True, index=True, index_label=None,
                  mode='w', nanRep=None, encoding=None, quoting=None,
                  line_terminator='\n', chunksize=None, engine=None,
-                 tupleize_cols=False, quotechar='"', date_format=None):
+                 tupleize_cols=False, quotechar='"', date_format=None,
+                 doublequote=True, escapechar=None):
 
         self.engine = engine  # remove for 0.13
         self.obj = obj
@@ -971,6 +972,9 @@ class CSVFormatter(object):
             # prevents crash in _csv
             quotechar = None
         self.quotechar = quotechar
+
+        self.doublequote = doublequote
+        self.escapechar = escapechar
 
         self.line_terminator = line_terminator
 
@@ -1151,6 +1155,8 @@ class CSVFormatter(object):
         try:
             writer_kwargs = dict(lineterminator=self.line_terminator,
                                  delimiter=self.sep, quoting=self.quoting,
+                                 doublequote=self.doublequote,
+                                 escapechar=self.escapechar,
                                  quotechar=self.quotechar)
             if self.encoding is not None:
                 writer_kwargs['encoding'] = self.encoding
