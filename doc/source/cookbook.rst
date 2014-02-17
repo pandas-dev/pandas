@@ -470,6 +470,75 @@ Storing Attributes to a group node
     store.close()
     os.remove('test.h5')
 
+
+.. _cookbook.binary:
+
+Binary Files
+~~~~~~~~~~~~
+
+Pandas readily accepts numpy record arrays, if you need to read in a binary
+file consisting of an array of C structs. For example, given this C program 
+in a file called ``main.c`` compiled with ``gcc main.c -std=gnu99`` on a 
+64-bit machine,
+
+.. code-block:: c
+
+   #include <stdio.h>
+   #include <stdint.h>
+
+   typedef struct _Data
+   {
+       int32_t count;
+       double avg;
+       float scale;
+   } Data;
+
+   int main(int argc, const char *argv[])
+   {
+       size_t n = 10;
+       Data d[n];
+
+       for (int i = 0; i < n; ++i)
+       {
+           d[i].count = i;
+           d[i].avg = i + 1.0;
+           d[i].scale = (float) i + 2.0f;
+       }
+
+       FILE *file = fopen("binary.dat", "wb");
+       fwrite(&d, sizeof(Data), n, file);
+       fclose(file);
+
+       return 0;
+   }
+
+the following Python code will read the binary file ``'binary.dat'`` into a
+pandas ``DataFrame``, where each element of the struct corresponds to a column
+in the frame:
+
+.. code-block:: python
+
+   import numpy as np
+   from pandas import DataFrame
+
+   names = 'count', 'avg', 'scale'
+
+   # note that the offsets are larger than the size of the type because of
+   # struct padding
+   offsets = 0, 8, 16
+   formats = 'i4', 'f8', 'f4'
+   dt = np.dtype({'names': names, 'offsets': offsets, 'formats': formats},
+                 align=True)
+   df = DataFrame(np.fromfile('binary.dat', dt))
+
+.. note::
+
+   The offsets of the structure elements may be different depending on the
+   architecture of the machine on which the file was created. Using a raw
+   binary file format like this for general data storage is not recommended, as
+   it is not cross platform. We recommended either HDF5 or msgpack, both of
+   which are supported by pandas' IO facilities.
+
 Computation
 -----------
 
