@@ -126,6 +126,7 @@ Bug Fixes
 - Bug in interpolate changing dtypes (:issue:`6290`)
 - Bug in Series.get, was using a buggy access method (:issue:`6383`)
 - Bug in hdfstore queries of the form ``where=[('date', '>=', datetime(2013,1,1)), ('date', '<=', datetime(2014,1,1))]`` (:issue:`6313`)
+- Bug in DataFrame.dropna with duplicate indices (:issue:`6355`)
 
 pandas 0.13.1
 -------------
