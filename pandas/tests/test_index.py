@@ -1352,7 +1352,7 @@ class TestMultiIndex(tm.TestCase):
         mi2 = MultiIndex(levels=levels2, labels=labels)
         vals = mi1.values.copy()
         vals2 = mi2.values.copy()
-        self.assert_(mi1._tuples is not None)
+        self.assertIsNotNone(mi1._tuples)
 
         # make sure level setting works
         new_vals = mi1.set_levels(levels2).values

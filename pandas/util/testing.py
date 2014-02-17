@@ -71,6 +71,31 @@ class TestCase(unittest.TestCase):
 	        return
         raise AssertionError('{0} is not equal to {1}.'.format(np_array, assert_equal))
 
+    def assertIs(self, a, b, msg=''):
+        """Checks that 'a' is 'b'"""
+        assert a is b, "%s: %r is not %r" % (msg.format(a,b), a, b)
+
+    def assertIsNot(self, a, b, msg=''):
+        """Checks that 'a' is not 'b'"""
+        assert a is not b, "%s: %r is %r" % (msg.format(a,b), a, b)
+
+    def assertIsNone(self, a, msg=''):
+        """Checks that 'a' is None"""
+        self.assertIs(a, None, msg)
+
+    def assertIsNotNone(self, a, msg=''):
+        """Checks that 'a' is not None"""
+        self.assertIsNot(a, None, msg)
+
+    def assertIn(self, a, b, msg=''):
+        """Checks that 'a' is in 'b'"""
+        assert a in b, "%s: %r is not in %r" % (msg.format(a,b), a, b)
+
+    def assertNotIn(self, a, b, msg=''):
+        """Checks that 'a' is not in 'b'"""
+        assert a not in b, "%s: %r is in %r" % (msg.format(a,b), a, b)
+
+
 # NOTE: don't pass an NDFrame or index to this function - may not handle it
 # well.
 assert_almost_equal = _testing.assert_almost_equal

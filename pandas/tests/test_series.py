@@ -69,8 +69,8 @@ class CheckNameIntegration(object):
         # making a copy
 
         self.ts.index.name = None
-        self.assert_(self.ts.index.name is None)
-        self.assert_(self.ts is self.ts)
+        self.assertIsNone(self.ts.index.name)
+        self.assertIs(self.ts, self.ts)
         cp = self.ts.copy()
         cp.index.name = 'foo'
         print(self.ts.index.name)

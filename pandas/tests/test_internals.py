@@ -142,7 +142,7 @@ class TestBlock(tm.TestCase):
 
     def test_copy(self):
         cop = self.fblock.copy()
-        self.assert_(cop is not self.fblock)
+        self.assertIsNot(cop, self.fblock)
         assert_block_equal(self.fblock, cop)
 
     def test_items(self):
@@ -150,7 +150,7 @@ class TestBlock(tm.TestCase):
         self.assert_numpy_array_equal(cols, ['a', 'c', 'e'])
 
         cols2 = self.fblock.items
-        self.assert_(cols is cols2)
+        self.assertIs(cols, cols2)
 
     def test_assign_ref_items(self):
         new_cols = Index(['foo', 'bar', 'baz', 'quux', 'hi'])
@@ -305,8 +305,8 @@ class TestBlockManager(tm.TestCase):
         self.assertRaises(AssertionError, mgr._set_ref_locs, do_refs=True)
 
     def test_contains(self):
-        self.assert_('a' in self.mgr)
-        self.assert_('baz' not in self.mgr)
+        self.assertIn('a', self.mgr)
+        self.assertNotIn('baz', self.mgr)
 
     def test_pickle(self):
         import pickle
@@ -318,7 +318,7 @@ class TestBlockManager(tm.TestCase):
         assert_frame_equal(DataFrame(self.mgr), DataFrame(mgr2))
 
         # share ref_items
-        self.assert_(mgr2.blocks[0].ref_items is mgr2.blocks[1].ref_items)
+        self.assertIs(mgr2.blocks[0].ref_items, mgr2.blocks[1].ref_items)
 
         # GH2431
         self.assertTrue(hasattr(mgr2, "_is_consolidated"))
