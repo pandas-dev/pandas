@@ -66,7 +66,8 @@ API Changes
 - ``df['col'] = value`` and ``df.loc[:,'col'] = value`` are now completely equivalent;
   previously the ``.loc`` would not necessarily coerce the dtype of the resultant series (:issue:`6149`)
 - ``dtypes`` and ``ftypes`` now return a series with ``dtype=object`` on empty containers (:issue:`5740`)
-
+- The ``interpolate`` ``downcast`` keyword default has been changed from ``infer`` to
+  ``None``. This is to preseve the original dtype unless explicitly requested otherwise (:issue:`6290`).
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
@@ -121,6 +122,7 @@ Bug Fixes
 - Bug in ``DataFrame.replace()`` when passing a nested ``dict`` that contained
   keys not in the values to be replaced (:issue:`6342`)
 - Bug in take with duplicate columns not consolidated (:issue:`6240`)
+- Bug in interpolate changing dtypes (:issue:`6290`)
 
 pandas 0.13.1
 -------------

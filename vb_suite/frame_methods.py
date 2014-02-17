@@ -403,3 +403,29 @@ frame_float_unequal = Benchmark('test_unequal("float_df")', setup)
 frame_object_unequal = Benchmark('test_unequal("object_df")', setup)
 frame_nonunique_unequal = Benchmark('test_unequal("nonunique_cols")', setup)
 
+#-----------------------------------------------------------------------------
+# interpolate
+# this is the worst case, where every column has NaNs.
+setup = common_setup + """
+df = DataFrame(randn(10000, 100))
+df.values[::2] = np.nan
+"""
+
+frame_interpolate = Benchmark('df.interpolate()', setup,
+                               start_date=datetime(2014, 2, 7))
+
+setup = common_setup + """
+df = DataFrame({'A': np.arange(0, 10000),
+                'B': np.random.randint(0, 100, 10000),
+                'C': randn(10000),
+                'D': randn(10000)})
+df.loc[1::5, 'A'] = np.nan
+df.loc[1::5, 'C'] = np.nan
+"""
+
+frame_interpolate_some_good = Benchmark('df.interpolate()', setup,
+                                        start_date=datetime(2014, 2, 7))
+frame_interpolate_some_good_infer = Benchmark('df.interpolate(downcast="infer")',
+                                              setup,
+                                              start_date=datetime(2014, 2, 7))
+

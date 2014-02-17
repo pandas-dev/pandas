@@ -2435,7 +2435,7 @@ class NDFrame(PandasObject):
             return self._constructor(new_data).__finalize__(self)
 
     def interpolate(self, method='linear', axis=0, limit=None, inplace=False,
-                    downcast='infer', **kwargs):
+                    downcast=None, **kwargs):
         """
         Interpolate values according to different methods.
 
@@ -2468,7 +2468,7 @@ class NDFrame(PandasObject):
             Maximum number of consecutive NaNs to fill.
         inplace : bool, default False
             Update the NDFrame in place if possible.
-        downcast : optional, 'infer' or None, defaults to 'infer'
+        downcast : optional, 'infer' or None, defaults to None
             Downcast dtypes if possible.
 
         Returns
@@ -2492,7 +2492,6 @@ class NDFrame(PandasObject):
         dtype: float64
 
         """
-
         if self.ndim > 2:
             raise NotImplementedError("Interpolate has not been implemented "
                                       "on Panel and Panel 4D objects.")
@@ -2534,7 +2533,6 @@ class NDFrame(PandasObject):
                                           inplace=inplace,
                                           downcast=downcast,
                                           **kwargs)
-
         if inplace:
             if axis == 1:
                 self._update_inplace(new_data)
