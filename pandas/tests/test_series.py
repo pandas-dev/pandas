@@ -74,7 +74,7 @@ class CheckNameIntegration(object):
         cp = self.ts.copy()
         cp.index.name = 'foo'
         print(self.ts.index.name)
-        self.assert_(self.ts.index.name is None)
+        self.assertIsNone(self.ts.index.name)
 
     def test_append_preserve_name(self):
         result = self.ts[:5].append(self.ts[5:])
@@ -93,7 +93,7 @@ class CheckNameIntegration(object):
         cp = self.ts.copy()
         cp.name = 'something else'
         result = self.ts + cp
-        self.assert_(result.name is None)
+        self.assertIsNone(result.name)
 
     def test_combine_first_name(self):
         result = self.ts.combine_first(self.ts[:5])
@@ -209,18 +209,18 @@ class CheckNameIntegration(object):
         # test small series
         s = Series([0, 1, 2])
         s.name = "test"
-        self.assert_("Name: test" in repr(s))
+        self.assertIn("Name: test", repr(s))
         s.name = None
-        self.assert_(not "Name:" in repr(s))
+        self.assertNotIn("Name:", repr(s))
         # test big series (diff code path)
         s = Series(lrange(0, 1000))
         s.name = "test"
-        self.assert_("Name: test" in repr(s))
+        self.assertIn("Name: test", repr(s))
         s.name = None
-        self.assert_(not "Name:" in repr(s))
+        self.assertNotIn("Name:", repr(s))
 
         s = Series(index=date_range('20010101', '20020101'), name='test')
-        self.assert_("Name: test" in repr(s))
+        self.assertIn("Name: test", repr(s))
 
     def test_pickle_preserve_name(self):
         unpickled = self._pickle_roundtrip_name(self.ts)
@@ -351,10 +351,10 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         # Mixed type Series
         mixed = Series(['hello', np.NaN], index=[0, 1])
         self.assertEqual(mixed.dtype, np.object_)
-        self.assert_(mixed[1] is np.NaN)
+        self.assertIs(mixed[1], np.NaN)
 
-        self.assert_(not self.empty.is_time_series)
-        self.assert_(not Series({}).is_time_series)
+        self.assertFalse(self.empty.is_time_series)
+        self.assertFalse(Series({}).is_time_series)
 
         self.assertRaises(Exception, Series, np.random.randn(3, 3),
                           index=np.arange(3))
@@ -637,7 +637,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         data = {'a': 0, 'b': 1, 'c': 2, 'd': 3}
 
         series = Series(data)
-        self.assert_(tm.is_sorted(series.index))
+        self.assertTrue(tm.is_sorted(series.index))
 
         data = {'a': 0, 'b': '1', 'c': '2', 'd': datetime.now()}
         series = Series(data)
@@ -728,7 +728,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         # GH 5652
         for s in [Series(), Series(index=list('abc'))]:
             result = s.get(None)
-            self.assert_(result is None)
+            self.assertIsNone(result)
 
     def test_iget(self):
         s = Series(np.random.randn(10), index=lrange(0, 20, 2))
@@ -956,8 +956,8 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         numSliceEnd = self.series[-10:]
         objSlice = self.objSeries[10:20]
 
-        self.assert_(self.series.index[9] not in numSlice.index)
-        self.assert_(self.objSeries.index[9] not in objSlice.index)
+        self.assertNotIn(self.series.index[9], numSlice.index)
+        self.assertNotIn(self.objSeries.index[9], objSlice.index)
 
         self.assertEqual(len(numSlice), len(numSlice.index))
         self.assertEqual(self.series[numSlice.index[0]],
@@ -1075,13 +1075,13 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
     def test_set_value(self):
         idx = self.ts.index[10]
         res = self.ts.set_value(idx, 0)
-        self.assert_(res is self.ts)
+        self.assertIs(res, self.ts)
         self.assertEqual(self.ts[idx], 0)
 
         # equiv
         s = self.series.copy()
         res = s.set_value('foobar', 0)
-        self.assert_(res is s)
+        self.assertIs(res, s)
         self.assertEqual(res.index[-1], 'foobar')
         self.assertEqual(res['foobar'], 0)
 
@@ -1628,12 +1628,12 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         # 0 as name
         ser = Series(np.random.randn(100), name=0)
         rep_str = repr(ser)
-        self.assert_("Name: 0" in rep_str)
+        self.assertIn("Name: 0", rep_str)
 
         # tidy repr
         ser = Series(np.random.randn(1001), name=0)
         rep_str = repr(ser)
-        self.assert_("Name: 0" in rep_str)
+        self.assertIn("Name: 0", rep_str)
 
         ser = Series(["a\n\r\tb"], name=["a\n\r\td"], index=["a\n\r\tf"])
         self.assertFalse("\t" in repr(ser))
@@ -2890,7 +2890,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         try:
             self.ts.fillna(method='ffil')
         except ValueError as inst:
-            self.assert_('ffil' in str(inst))
+            self.assertIn('ffil', str(inst))
 
     def test_ffill(self):
         ts = Series([0., 1., 2., 3., 4.], index=tm.makeDateIndex(5))
@@ -5635,10 +5635,10 @@ class TestSeriesNonUnique(tm.TestCase):
 
         ser.name = 'value'
         df = ser.reset_index()
-        self.assert_('value' in df)
+        self.assertIn('value', df)
 
         df = ser.reset_index(name='value2')
-        self.assert_('value2' in df)
+        self.assertIn('value2', df)
 
         # check inplace
         s = ser.reset_index(drop=True)

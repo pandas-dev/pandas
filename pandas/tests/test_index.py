@@ -431,16 +431,16 @@ class TestIndex(tm.TestCase):
         index = Index(['a', 'b', 'c'])
         index2 = index + 'foo'
 
-        self.assert_('a' not in index2)
-        self.assert_('afoo' in index2)
+        self.assertNotIn('a', index2)
+        self.assertIn('afoo', index2)
 
     def test_iadd_string(self):
         index = pd.Index(['a', 'b', 'c'])
         # doesn't fail test unless there is a check before `+=`
-        self.assert_('a' in index)
+        self.assertIn('a', index)
 
         index += '_x'
-        self.assert_('a_x' in index)
+        self.assertIn('a_x', index)
 
     def test_diff(self):
         first = self.strIndex[5:20]
@@ -505,8 +505,8 @@ class TestIndex(tm.TestCase):
         ind = Index(['{other}%s', "~:{range}:0"], name='A')
         result = ind.summary()
         # shouldn't be formatted accidentally.
-        self.assert_('~:{range}:0' in result)
-        self.assert_('{other}%s' in result)
+        self.assertIn('~:{range}:0', result)
+        self.assertIn('{other}%s', result)
 
     def test_format(self):
         self._check_method_works(Index.format)
@@ -1727,9 +1727,9 @@ class TestMultiIndex(tm.TestCase):
         self.assert_((result.values == self.index.values).all())
 
     def test_contains(self):
-        self.assert_(('foo', 'two') in self.index)
-        self.assert_(('bar', 'two') not in self.index)
-        self.assert_(None not in self.index)
+        self.assertIn(('foo', 'two'), self.index)
+        self.assertNotIn(('bar', 'two'), self.index)
+        self.assertNotIn(None, self.index)
 
     def test_is_all_dates(self):
         self.assert_(not self.index.is_all_dates)
@@ -1938,12 +1938,12 @@ class TestMultiIndex(tm.TestCase):
                            labels=[major_labels, minor_labels])
 
         result = index.truncate(before=1)
-        self.assert_('foo' not in result.levels[0])
-        self.assert_(1 in result.levels[0])
+        self.assertNotIn('foo', result.levels[0])
+        self.assertIn(1, result.levels[0])
 
         result = index.truncate(after=1)
-        self.assert_(2 not in result.levels[0])
-        self.assert_(1 in result.levels[0])
+        self.assertNotIn(2, result.levels[0])
+        self.assertIn(1, result.levels[0])
 
         result = index.truncate(before=1, after=2)
         self.assertEqual(len(result.levels[0]), 2)
@@ -2172,8 +2172,8 @@ class TestMultiIndex(tm.TestCase):
     #     other = Index(['A', 'B', 'C'])
 
     #     result = other.union(self.index)
-    #     self.assert_(('foo', 'one') in result)
-    #     self.assert_('B' in result)
+    #     self.assertIn(('foo', 'one'), result)
+    #     self.assertIn('B', result)
 
     #     result2 = self.index.union(other)
     #     self.assert_(result.equals(result2))

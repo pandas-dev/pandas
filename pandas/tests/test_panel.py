@@ -192,7 +192,7 @@ class SafeForSparse(object):
         self.panel.items = new_items
 
         if hasattr(self.panel, '_item_cache'):
-            self.assert_('ItemA' not in self.panel._item_cache)
+            self.assertNotIn('ItemA', self.panel._item_cache)
         self.assert_(self.panel.items is new_items)
 
         item = self.panel[0]
@@ -409,10 +409,10 @@ class CheckIndexing(object):
         expected = self.panel['ItemA']
         result = self.panel.pop('ItemA')
         assert_frame_equal(expected, result)
-        self.assert_('ItemA' not in self.panel.items)
+        self.assertNotIn('ItemA', self.panel.items)
 
         del self.panel['ItemB']
-        self.assert_('ItemB' not in self.panel.items)
+        self.assertNotIn('ItemB', self.panel.items)
         self.assertRaises(Exception, self.panel.__delitem__, 'ItemB')
 
         values = np.empty((3, 3, 3))
