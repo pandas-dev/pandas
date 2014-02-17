@@ -3399,6 +3399,11 @@ class BlockManager(PandasObject):
                 new_blocks.append(na_block)
                 new_blocks = _consolidate(new_blocks, new_items)
 
+            # consolidate
+            # import for non-unique which creates a block for each item
+            # and they must be consolidated before passing on
+            new_blocks = _consolidate(new_blocks, new_items)
+
         return self.__class__(new_blocks, new_axes)
 
     def _make_na_block(self, items, ref_items, placement=None,
