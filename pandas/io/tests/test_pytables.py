@@ -2481,9 +2481,9 @@ class TestHDFStore(tm.TestCase):
                        major_axis=date_range('1/1/2000', periods=5),
                        minor_axis=['A', 'B', 'C', 'D'])
             store.append('wp',wp)
-
-            result = store.select('wp', [('major_axis>20000102'),
-                                         ('minor_axis', '=', ['A','B']) ])
+            with tm.assert_produces_warning(expected_warning=DeprecationWarning):
+                result = store.select('wp', [('major_axis>20000102'),
+                                             ('minor_axis', '=', ['A','B']) ])
             expected = wp.loc[:,wp.major_axis>Timestamp('20000102'),['A','B']]
             assert_panel_equal(result, expected)
 
@@ -2500,22 +2500,24 @@ class TestHDFStore(tm.TestCase):
             store.append('wp',wp)
 
             # stringified datetimes
-            result = store.select('wp', [('major_axis','>',datetime.datetime(2000,1,2))])
+            with tm.assert_produces_warning(expected_warning=DeprecationWarning):
+                result = store.select('wp', [('major_axis','>',datetime.datetime(2000,1,2))])
             expected = wp.loc[:,wp.major_axis>Timestamp('20000102')]
             assert_panel_equal(result, expected)
-
-            result = store.select('wp', [('major_axis','>',datetime.datetime(2000,1,2,0,0))])
+            with tm.assert_produces_warning(expected_warning=DeprecationWarning):
+                result = store.select('wp', [('major_axis','>',datetime.datetime(2000,1,2,0,0))])
             expected = wp.loc[:,wp.major_axis>Timestamp('20000102')]
             assert_panel_equal(result, expected)
-
-            result = store.select('wp', [('major_axis','=',[datetime.datetime(2000,1,2,0,0),datetime.datetime(2000,1,3,0,0)])])
+            with tm.assert_produces_warning(expected_warning=DeprecationWarning):
+                result = store.select('wp', [('major_axis','=',[datetime.datetime(2000,1,2,0,0),
+                                                                datetime.datetime(2000,1,3,0,0)])])
             expected = wp.loc[:,[Timestamp('20000102'),Timestamp('20000103')]]
             assert_panel_equal(result, expected)
-
-            result = store.select('wp', [('minor_axis','=',['A','B'])])
+            with tm.assert_produces_warning(expected_warning=DeprecationWarning):
+                result = store.select('wp', [('minor_axis','=',['A','B'])])
             expected = wp.loc[:,:,['A','B']]
             assert_panel_equal(result, expected)
-
+            
     def test_same_name_scoping(self):
 
         with ensure_clean_store(self.path) as store:
