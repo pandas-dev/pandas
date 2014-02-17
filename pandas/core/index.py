@@ -10,7 +10,7 @@ import pandas.lib as lib
 import pandas.algos as _algos
 import pandas.index as _index
 from pandas.lib import Timestamp, is_datetime_array
-from pandas.core.base import FrozenList, FrozenNDArray
+from pandas.core.base import FrozenList, FrozenNDArray, IndexOpsMixin
 
 from pandas.util.decorators import cache_readonly, deprecate
 from pandas.core.common import isnull
@@ -57,7 +57,7 @@ def _shouldbe_timestamp(obj):
 _Identity = object
 
 
-class Index(FrozenNDArray):
+class Index(IndexOpsMixin, FrozenNDArray):
 
     """
     Immutable ndarray implementing an ordered, sliceable set. The basic object
@@ -92,6 +92,9 @@ class Index(FrozenNDArray):
     name = None
     asi8 = None
     _comparables = ['name']
+    _allow_index_ops = True
+    _allow_datetime_index_ops = False
+    _allow_period_index_ops = False
 
     _engine_type = _index.ObjectEngine
 

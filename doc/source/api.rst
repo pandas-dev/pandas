@@ -424,10 +424,25 @@ Time series-related
    Series.shift
    Series.first_valid_index
    Series.last_valid_index
-   Series.weekday
    Series.resample
    Series.tz_convert
    Series.tz_localize
+   Series.year
+   Series.month
+   Series.day
+   Series.hour
+   Series.minute
+   Series.second
+   Series.microsecond
+   Series.nanosecond
+   Series.date
+   Series.time
+   Series.dayofyear
+   Series.weekofyear
+   Series.week
+   Series.dayofweek
+   Series.weekday
+   Series.quarter
 
 String handling
 ~~~~~~~~~~~~~~~~~~~
@@ -1129,7 +1144,9 @@ Time/Date Components
    DatetimeIndex.dayofweek
    DatetimeIndex.weekday
    DatetimeIndex.quarter
-
+   DatetimeIndex.tz
+   DatetimeIndex.freq
+   DatetimeIndex.freqstr
 
 Selecting
 ~~~~~~~~~
