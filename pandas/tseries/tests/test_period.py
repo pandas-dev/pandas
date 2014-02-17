@@ -1088,7 +1088,7 @@ class TestPeriodIndex(tm.TestCase):
         idx = period_range('1990', '2009', freq='A')
 
         result = idx.astype('i8')
-        self.assert_(np.array_equal(result, idx.values))
+        self.assert_numpy_array_equal(result, idx.values)
 
     def test_constructor_use_start_freq(self):
         # GH #1118
@@ -1140,8 +1140,8 @@ class TestPeriodIndex(tm.TestCase):
 
         pindex = PeriodIndex(year=years, quarter=quarters)
 
-        self.assert_(np.array_equal(pindex.year, years))
-        self.assert_(np.array_equal(pindex.quarter, quarters))
+        self.assert_numpy_array_equal(pindex.year, years)
+        self.assert_numpy_array_equal(pindex.quarter, quarters)
 
     def test_constructor_invalid_quarters(self):
         self.assertRaises(ValueError, PeriodIndex, year=lrange(2000, 2004),
@@ -1210,7 +1210,7 @@ class TestPeriodIndex(tm.TestCase):
 
         result = idx < idx[10]
         exp = idx.values < idx.values[10]
-        self.assert_(np.array_equal(result, exp))
+        self.assert_numpy_array_equal(result, exp)
 
     def test_getitem_ndim2(self):
         idx = period_range('2007-01', periods=3, freq='M')
@@ -2215,7 +2215,7 @@ class TestPeriodRepresentation(tm.TestCase):
     def _check_freq(self, freq, base_date):
         rng = PeriodIndex(start=base_date, periods=10, freq=freq)
         exp = np.arange(10, dtype=np.int64)
-        self.assert_(np.array_equal(rng.values, exp))
+        self.assert_numpy_array_equal(rng.values, exp)
 
     def test_negone_ordinals(self):
         freqs = ['A', 'M', 'Q', 'D', 'H', 'T', 'S']

@@ -122,10 +122,10 @@ class TestArrayToDatetime(tm.TestCase):
         # These strings don't look like datetimes so they shouldn't be
         # attempted to be converted
         arr = np.array(['-352.737091', '183.575577'], dtype=object)
-        self.assert_(np.array_equal(tslib.array_to_datetime(arr), arr))
+        self.assert_numpy_array_equal(tslib.array_to_datetime(arr), arr)
 
         arr = np.array(['1', '2', '3', '4', '5'], dtype=object)
-        self.assert_(np.array_equal(tslib.array_to_datetime(arr), arr))
+        self.assert_numpy_array_equal(tslib.array_to_datetime(arr), arr)
 
     def test_coercing_dates_outside_of_datetime64_ns_bounds(self):
         invalid_dates = [
@@ -172,7 +172,7 @@ class TestArrayToDatetime(tm.TestCase):
 
         # Without coercing, the presence of any invalid dates prevents
         # any values from being converted
-        self.assert_(np.array_equal(tslib.array_to_datetime(arr), arr))
+        self.assert_numpy_array_equal(tslib.array_to_datetime(arr), arr)
 
         # With coercing, the invalid dates becomes iNaT
         self.assert_(

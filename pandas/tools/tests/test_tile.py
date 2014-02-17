@@ -76,12 +76,12 @@ class TestCut(tm.TestCase):
         result, bins = cut(arr, 4, retbins=True)
         ex_levels = ['(-0.001, 0.25]', '(0.25, 0.5]', '(0.5, 0.75]',
                      '(0.75, 1]']
-        self.assert_(np.array_equal(result.levels, ex_levels))
+        self.assert_numpy_array_equal(result.levels, ex_levels)
 
         result, bins = cut(arr, 4, retbins=True, right=False)
         ex_levels = ['[0, 0.25)', '[0.25, 0.5)', '[0.5, 0.75)',
                      '[0.75, 1.001)']
-        self.assert_(np.array_equal(result.levels, ex_levels))
+        self.assert_numpy_array_equal(result.levels, ex_levels)
 
     def test_cut_pass_series_name_to_factor(self):
         s = Series(np.random.randn(100), name='foo')
@@ -95,7 +95,7 @@ class TestCut(tm.TestCase):
         result = cut(arr, 4, precision=2)
         ex_levels = ['(-0.00072, 0.18]', '(0.18, 0.36]', '(0.36, 0.54]',
                      '(0.54, 0.72]']
-        self.assert_(np.array_equal(result.levels, ex_levels))
+        self.assert_numpy_array_equal(result.levels, ex_levels)
 
     def test_na_handling(self):
         arr = np.arange(0, 0.75, 0.01)
@@ -137,7 +137,7 @@ class TestCut(tm.TestCase):
         assert_almost_equal(bins, ex_bins)
 
         ex_levels = cut(arr, ex_bins, include_lowest=True)
-        self.assert_(np.array_equal(labels, ex_levels))
+        self.assert_numpy_array_equal(labels, ex_levels)
 
     def test_qcut_bounds(self):
         arr = np.random.randn(1000)
@@ -162,7 +162,7 @@ class TestCut(tm.TestCase):
 
         mask = result.labels == -1
         ex_mask = (arr < -1) | (arr > 1)
-        self.assert_(np.array_equal(mask, ex_mask))
+        self.assert_numpy_array_equal(mask, ex_mask)
 
     def test_cut_pass_labels(self):
         arr = [50, 5, 10, 15, 20, 30, 70]
