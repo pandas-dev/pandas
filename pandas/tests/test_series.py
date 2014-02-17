@@ -113,6 +113,28 @@ class CheckNameIntegration(object):
         xp = Series([datetime(2010, 1, 1), '2011'])
         assert_series_equal(rs, xp)
 
+    def test_get(self):
+
+        # GH 6383
+        s = Series(np.array([43, 48, 60, 48, 50, 51, 50, 45, 57, 48, 56,
+                             45, 51, 39, 55, 43, 54, 52, 51, 54]))
+
+        result = s.get(25, 0)
+        expected = 0
+        self.assertEquals(result,expected)
+
+        s = Series(np.array([43, 48, 60, 48, 50, 51, 50, 45, 57, 48, 56,
+                             45, 51, 39, 55, 43, 54, 52, 51, 54]),
+                   index=pd.Float64Index([25.0, 36.0, 49.0, 64.0, 81.0, 100.0,
+                                          121.0, 144.0, 169.0, 196.0, 1225.0,
+                                          1296.0, 1369.0, 1444.0, 1521.0, 1600.0,
+                                          1681.0, 1764.0, 1849.0, 1936.0],
+                                         dtype='object'))
+
+        result = s.get(25, 0)
+        expected = 43
+        self.assertEquals(result,expected)
+
     def test_delitem(self):
 
         # GH 5542
