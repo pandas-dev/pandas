@@ -118,6 +118,7 @@ Bug Fixes
 - Disabled clipboard tests until release time (run locally with ``nosetests -A disabled`` (:issue:`6048`).
 - Bug in ``DataFrame.replace()`` when passing a nested ``dict`` that contained
   keys not in the values to be replaced (:issue:`6342`)
+- Bug in take with duplicate columns not consolidated (:issue:`6240`)
 
 pandas 0.13.1
 -------------
