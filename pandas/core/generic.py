@@ -1947,7 +1947,8 @@ class NDFrame(PandasObject):
     def dtypes(self):
         """ Return the dtypes in this object """
         from pandas import Series
-        return Series(self._data.get_dtypes(),index=self._info_axis)
+        return Series(self._data.get_dtypes(), index=self._info_axis,
+                      dtype=np.object_)
 
     @property
     def ftypes(self):
@@ -1956,7 +1957,8 @@ class NDFrame(PandasObject):
         in this object.
         """
         from pandas import Series
-        return Series(self._data.get_ftypes(),index=self._info_axis)
+        return Series(self._data.get_ftypes(), index=self._info_axis,
+                      dtype=np.object_)
 
     def as_blocks(self, columns=None):
         """
