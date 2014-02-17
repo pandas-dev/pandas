@@ -813,7 +813,7 @@ class TestDataFrame(tm.TestCase, Generic):
 
         result = df.copy()
         result['a'].interpolate(inplace=True, downcast='infer')
-        assert_frame_equal(result, expected.astype('int'))
+        assert_frame_equal(result, expected.astype('int64'))
 
     def test_interp_ignore_all_good(self):
         # GH
@@ -821,10 +821,10 @@ class TestDataFrame(tm.TestCase, Generic):
                         'B': [1, 2, 3, 4],
                         'C': [1., 2., np.nan, 4.],
                         'D': [1., 2., 3., 4.]})
-        expected = DataFrame({'A': np.array([1, 2, 3, 4], dtype='float'),
-                              'B': np.array([1, 2, 3, 4], dtype='int'),
-                              'C': np.array([1., 2., 3, 4.], dtype='float'),
-                              'D': np.array([1., 2., 3., 4.], dtype='float')})
+        expected = DataFrame({'A': np.array([1, 2, 3, 4], dtype='float64'),
+                              'B': np.array([1, 2, 3, 4], dtype='int64'),
+                              'C': np.array([1., 2., 3, 4.], dtype='float64'),
+                              'D': np.array([1., 2., 3., 4.], dtype='float64')})
 
         result = df.interpolate(downcast=None)
         assert_frame_equal(result, expected)
