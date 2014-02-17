@@ -117,7 +117,7 @@ class CheckIndexing(object):
             self.assert_(tm.equalContents(series.index, sl.index))
 
         for key, _ in compat.iteritems(self.frame._series):
-            self.assert_(self.frame[key] is not None)
+            self.assertIsNotNone(self.frame[key])
 
         self.assertNotIn('random', self.frame)
         with assertRaisesRegexp(KeyError, 'no item named random'):
@@ -144,14 +144,14 @@ class CheckIndexing(object):
         b = self.frame.get('B')
         assert_series_equal(b, self.frame['B'])
 
-        self.assert_(self.frame.get('foo') is None)
+        self.assertIsNone(self.frame.get('foo'))
         assert_series_equal(self.frame.get('foo', self.frame['B']),
                             self.frame['B'])
         # None
         # GH 5652
         for df in [DataFrame(), DataFrame(columns=list('AB')), DataFrame(columns=list('AB'),index=range(3)) ]:
             result = df.get(None)
-            self.assert_(result is None)
+            self.assertIsNone(result)
 
     def test_getitem_iterator(self):
         idx = iter(['A', 'B', 'C'])
@@ -614,15 +614,15 @@ class CheckIndexing(object):
 
         dm[0] = np.ones(3)
         self.assertEqual(len(dm.columns), 3)
-        # self.assert_(dm.objects is None)
+        # self.assertIsNone(dm.objects)
 
         dm[1] = coercable_series
         self.assertEqual(len(dm.columns), 3)
-        # self.assert_(dm.objects is None)
+        # self.assertIsNone(dm.objects)
 
         dm[2] = uncoercable_series
         self.assertEqual(len(dm.columns), 3)
-        # self.assert_(dm.objects is not None)
+        # self.assertIsNotNone(dm.objects)
         self.assertEqual(dm[2].dtype, np.object_)
 
     def test_setitem_clear_caches(self):
@@ -1761,7 +1761,7 @@ class SafeForSparse(object):
             ind.name = None
             cp = self.frame.copy()
             getattr(cp, attr).name = 'foo'
-            self.assert_(getattr(self.frame, attr).name is None)
+            self.assertIsNone(getattr(self.frame, attr).name)
 
     def test_getitem_pop_assign_name(self):
         s = self.frame['A']
@@ -2174,7 +2174,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
     def test_constructor_dtype_list_data(self):
         df = DataFrame([[1, '2'],
                         [None, 'a']], dtype=object)
-        self.assert_(df.ix[1, 0] is None)
+        self.assertIsNone(df.ix[1, 0])
         self.assertEqual(df.ix[0, 1], '2')
 
     def test_constructor_list_frames(self):
@@ -3606,7 +3606,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df1 = DataFrame(randn(0, 3))
         df2 = DataFrame(randn(0, 3))
         df1.index.name = 'foo'
-        self.assert_(df2.index.name is None)
+        self.assertIsNone(df2.index.name)
 
     def test_astype(self):
         casted = self.frame.astype(int)

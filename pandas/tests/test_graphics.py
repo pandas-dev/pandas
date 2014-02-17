@@ -524,7 +524,7 @@ class TestDataFramePlots(tm.TestCase):
         axes = df.plot(subplots=True, sharex=True, legend=True)
 
         for ax in axes:
-            self.assert_(ax.get_legend() is not None)
+            self.assertIsNotNone(ax.get_legend())
 
         axes = df.plot(subplots=True, sharex=True)
         for ax in axes[:-2]:
@@ -649,7 +649,7 @@ class TestDataFramePlots(tm.TestCase):
         _check_plot_works(df.plot, kind='kde')
         _check_plot_works(df.plot, kind='kde', subplots=True)
         ax = df.plot(kind='kde')
-        self.assert_(ax.get_legend() is not None)
+        self.assertIsNotNone(ax.get_legend())
         axes = df.plot(kind='kde', logy=True, subplots=True)
         for ax in axes:
             self.assertEqual(ax.get_yscale(), 'log')

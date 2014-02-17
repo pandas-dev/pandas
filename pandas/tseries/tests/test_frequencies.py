@@ -145,11 +145,11 @@ class TestFrequencyInference(tm.TestCase):
 
         index = _dti([b + base_delta * 7] +
                      [b + base_delta * j for j in range(3)])
-        self.assert_(infer_freq(index) is None)
+        self.assertIsNone(infer_freq(index))
 
         index = _dti([b + base_delta * j for j in range(3)] +
                      [b + base_delta * 7])
-        self.assert_(infer_freq(index) is None)
+        self.assertIsNone(infer_freq(index))
 
     def test_weekly(self):
         days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
@@ -249,7 +249,7 @@ class TestFrequencyInference(tm.TestCase):
     def test_not_monotonic(self):
         rng = _dti(['1/31/2000', '1/31/2001', '1/31/2002'])
         rng = rng[::-1]
-        self.assert_(rng.inferred_freq is None)
+        self.assertIsNone(rng.inferred_freq)
 
     def test_non_datetimeindex(self):
         rng = _dti(['1/31/2000', '1/31/2001', '1/31/2002'])

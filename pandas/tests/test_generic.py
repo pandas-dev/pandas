@@ -227,7 +227,7 @@ class Generic(object):
         for m in x._metadata:
             v = getattr(x,m,None)
             if y is None:
-                self.assert_(v is None)
+                self.assertIsNone(v)
             else:
                 self.assertEqual(v, getattr(y,m,None))
 

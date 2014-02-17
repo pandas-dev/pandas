@@ -4030,8 +4030,8 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
             self.series.to_csv(path)
             series = Series.from_csv(path)
-            self.assert_(series.name is None)
-            self.assert_(series.index.name is None)
+            self.assertIsNone(series.name)
+            self.assertIsNone(series.index.name)
             assert_series_equal(self.series, series)
 
             outfile = open(path, 'w')
@@ -5543,12 +5543,12 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         self.assertEqual(index, ts.index[-6])
 
         ts[:] = np.nan
-        self.assert_(ts.last_valid_index() is None)
-        self.assert_(ts.first_valid_index() is None)
+        self.assertIsNone(ts.last_valid_index())
+        self.assertIsNone(ts.first_valid_index())
 
         ser = Series([], index=[])
-        self.assert_(ser.last_valid_index() is None)
-        self.assert_(ser.first_valid_index() is None)
+        self.assertIsNone(ser.last_valid_index())
+        self.assertIsNone(ser.first_valid_index())
 
     def test_mpl_compat_hack(self):
         result = self.ts[:, np.newaxis]

@@ -298,7 +298,7 @@ class TestTimeSeries(tm.TestCase):
         self.assertEquals(v3, Timestamp('6/30/2005'))
 
         # don't carry freq through irregular slicing
-        self.assert_(dti2.freq is None)
+        self.assertIsNone(dti2.freq)
 
     def test_pass_datetimeindex_to_index(self):
         # Bugs in #1396
@@ -318,12 +318,12 @@ class TestTimeSeries(tm.TestCase):
 
         masked = rng[mask]
         expected = rng[10:20]
-        self.assert_(expected.freq is not None)
+        self.assertIsNotNone(expected.freq)
         assert_range_equal(masked, expected)
 
         mask[22] = True
         masked = rng[mask]
-        self.assert_(masked.freq is None)
+        self.assertIsNone(masked.freq)
 
     def test_getitem_median_slice_bug(self):
         index = date_range('20090415', '20090519', freq='2B')
@@ -1151,7 +1151,7 @@ class TestTimeSeries(tm.TestCase):
         rng = date_range('1/1/2000', '1/1/2001')
 
         result = rng.repeat(5)
-        self.assert_(result.freq is None)
+        self.assertIsNone(result.freq)
         self.assertEqual(len(result), 5 * len(rng))
 
     def test_at_time(self):
@@ -1586,7 +1586,7 @@ class TestTimeSeries(tm.TestCase):
         rng1.name = 'foo'
         rng2.name = 'bar'
         self.assertEqual(rng1.append(rng1).name, 'foo')
-        self.assert_(rng1.append(rng2).name is None)
+        self.assertIsNone(rng1.append(rng2).name)
 
     def test_append_concat_tz(self):
         #GH 2938
@@ -2950,7 +2950,7 @@ class TestSlicing(tm.TestCase):
         self.assertEqual(result.freq, rng.freq)
 
         result = rng[:50].union(rng[60:100])
-        self.assert_(result.freq is None)
+        self.assertIsNone(result.freq)
 
         result = rng[:50].intersection(rng[25:75])
         self.assertEqual(result.freqstr, 'D')
