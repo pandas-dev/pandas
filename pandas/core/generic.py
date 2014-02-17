@@ -201,6 +201,7 @@ class NDFrame(PandasObject):
 
             def set_axis(a, i):
                 setattr(cls, a, lib.AxisProperty(i))
+                cls._internal_names_set.add(a)
 
             if axes_are_reversed:
                 m = cls._AXIS_LEN - 1
@@ -391,6 +392,10 @@ class NDFrame(PandasObject):
                 new_axes.append(ax)
 
         return new_axes
+
+    def set_axis(self, axis, labels):
+        """ public verson of axis assignment """
+        setattr(self,self._get_axis_name(axis),labels)
 
     def _set_axis(self, axis, labels):
         self._data.set_axis(axis, labels)
@@ -3288,7 +3293,7 @@ class NDFrame(PandasObject):
 
     def tz_convert(self, tz, axis=0, copy=True):
         """
-        Convert TimeSeries to target time zone. If it is time zone naive, it
+        Convert the axis to target time zone. If it is time zone naive, it
         will be localized to the passed time zone.
 
         Parameters
@@ -3304,24 +3309,18 @@ class NDFrame(PandasObject):
         ax = self._get_axis(axis)
 
         if not hasattr(ax, 'tz_convert'):
-            ax_name = self._get_axis_name(axis)
-            raise TypeError('%s is not a valid DatetimeIndex or PeriodIndex' %
-                            ax_name)
+            if len(ax) > 0:
+                ax_name = self._get_axis_name(axis)
+                raise TypeError('%s is not a valid DatetimeIndex or PeriodIndex' %
+                                ax_name)
+            else:
+                ax = DatetimeIndex([],tz=tz)
+        else:
+            ax = ax.tz_convert(tz)
 
-        new_data = self._data
-        if copy:
-            new_data = new_data.copy()
-
-        new_obj = self._constructor(new_data)
-        new_ax = ax.tz_convert(tz)
-
-        if axis == 0:
-            new_obj._set_axis(1, new_ax)
-        elif axis == 1:
-            new_obj._set_axis(0, new_ax)
-            self._clear_item_cache()
-
-        return new_obj.__finalize__(self)
+        result = self._constructor(self._data, copy=copy)
+        result.set_axis(axis,ax)
+        return result.__finalize__(self)
 
     def tz_localize(self, tz, axis=0, copy=True, infer_dst=False):
         """
@@ -3342,24 +3341,18 @@ class NDFrame(PandasObject):
         ax = self._get_axis(axis)
 
         if not hasattr(ax, 'tz_localize'):
-            ax_name = self._get_axis_name(axis)
-            raise TypeError('%s is not a valid DatetimeIndex or PeriodIndex' %
-                            ax_name)
+            if len(ax) > 0:
+                ax_name = self._get_axis_name(axis)
+                raise TypeError('%s is not a valid DatetimeIndex or PeriodIndex' %
+                                ax_name)
+            else:
+                ax = DatetimeIndex([],tz=tz)
+        else:
+            ax = ax.tz_localize(tz, infer_dst=infer_dst)
 
-        new_data = self._data
-        if copy:
-            new_data = new_data.copy()
-
-        new_obj = self._constructor(new_data)
-        new_ax = ax.tz_localize(tz, infer_dst=infer_dst)
-
-        if axis == 0:
-            new_obj._set_axis(1, new_ax)
-        elif axis == 1:
-            new_obj._set_axis(0, new_ax)
-            self._clear_item_cache()
-
-        return new_obj.__finalize__(self)
+        result = self._constructor(self._data, copy=copy)
+        result.set_axis(axis,ax)
+        return result.__finalize__(self)
 
     #----------------------------------------------------------------------
     # Numeric Methods
