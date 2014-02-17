@@ -1210,6 +1210,12 @@ class Index(FrozenNDArray):
         indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
         return Index(indexer), missing
 
+    def get_indexer_for(self, target, **kwargs):
+        """ guaranteed return of an indexer even when non-unique """
+        if self.is_unique:
+            return self.get_indexer(target, **kwargs)
+        return self.get_indexer_non_unique(target, **kwargs)[0]
+
     def _possibly_promote(self, other):
         # A hack, but it works
         from pandas.tseries.index import DatetimeIndex
