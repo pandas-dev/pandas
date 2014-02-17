@@ -471,6 +471,52 @@ class TestIndex(tm.TestCase):
         # non-iterable input
         assertRaisesRegexp(TypeError, "iterable", first.diff, 0.5)
 
+    def test_symmetric_diff(self):
+        # smoke
+        idx1 = Index([1, 2, 3, 4], name='idx1')
+        idx2 = Index([2, 3, 4, 5])
+        result = idx1.sym_diff(idx2)
+        expected = Index([1, 5])
+        self.assert_(tm.equalContents(result, expected))
+        self.assert_(result.name is None)
+
+        # __xor__ syntax
+        expected = idx1 ^ idx2
+        self.assert_(tm.equalContents(result, expected))
+        self.assert_(result.name is None)
+
+        # multiIndex
+        idx1 = MultiIndex.from_tuples(self.tuples)
+        idx2 = MultiIndex.from_tuples([('foo', 1), ('bar', 3)])
+        result = idx1.sym_diff(idx2)
+        expected = MultiIndex.from_tuples([('bar', 2), ('baz', 3), ('bar', 3)])
+        self.assert_(tm.equalContents(result, expected))
+
+        # nans:
+        idx1 = Index([1, 2, np.nan])
+        idx2 = Index([0, 1, np.nan])
+        result = idx1.sym_diff(idx2)
+        expected = Index([0.0, np.nan, 2.0, np.nan])  # oddness with nans
+        nans = pd.isnull(expected)
+        self.assert_(pd.isnull(result[nans]).all())
+        self.assert_(tm.equalContents(result[~nans], expected[~nans]))
+
+        # other not an Index:
+        idx1 = Index([1, 2, 3, 4], name='idx1')
+        idx2 = np.array([2, 3, 4, 5])
+        expected = Index([1, 5])
+        result = idx1.sym_diff(idx2)
+        self.assert_(tm.equalContents(result, expected))
+        self.assertEquals(result.name, 'idx1')
+
+        result = idx1.sym_diff(idx2, result_name='new_name')
+        self.assert_(tm.equalContents(result, expected))
+        self.assertEquals(result.name, 'new_name')
+
+        # other isn't iterable
+        with tm.assertRaises(TypeError):
+            idx1 - 1
+
     def test_pickle(self):
         def testit(index):
             pickled = pickle.dumps(index)
