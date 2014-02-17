@@ -12191,9 +12191,9 @@ starting,ending,measure
                                                         ('c', 'float64:dense')])))
 
         # same but for empty slice of df
-        assert_series_equal(df[:0].dtypes, pd.Series(odict([('a', np.int),
+        assert_series_equal(df[:0].dtypes, pd.Series(odict([('a', np.int64),
                                                             ('b', np.bool),
-                                                            ('c', np.float)])))
+                                                            ('c', np.float64)])))
         assert_series_equal(df[:0].ftypes, pd.Series(odict([('a', 'int64:dense'),
                                                             ('b', 'bool:dense'),
                                                             ('c', 'float64:dense')])))
