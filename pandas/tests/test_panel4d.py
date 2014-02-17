@@ -171,7 +171,7 @@ class SafeForSparse(object):
         self.panel4d.labels = new_labels
 
         if hasattr(self.panel4d, '_item_cache'):
-            self.assert_('l1' not in self.panel4d._item_cache)
+            self.assertNotIn('l1', self.panel4d._item_cache)
         self.assert_(self.panel4d.labels is new_labels)
 
         self.panel4d.major_axis = new_major
@@ -294,10 +294,10 @@ class CheckIndexing(object):
         expected = self.panel4d['l2']
         result = self.panel4d.pop('l2')
         assert_panel_equal(expected, result)
-        self.assert_('l2' not in self.panel4d.labels)
+        self.assertNotIn('l2', self.panel4d.labels)
 
         del self.panel4d['l3']
-        self.assert_('l3' not in self.panel4d.labels)
+        self.assertNotIn('l3', self.panel4d.labels)
         self.assertRaises(Exception, self.panel4d.__delitem__, 'l3')
 
         values = np.empty((4, 4, 4, 4))

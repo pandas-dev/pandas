@@ -260,15 +260,15 @@ class TestBlockManager(tm.TestCase):
         self.assertEquals(len(self.mgr), len(self.mgr.items))
 
     def test_is_mixed_dtype(self):
-        self.assert_(self.mgr.is_mixed_type)
+        self.assertTrue(self.mgr.is_mixed_type)
 
         mgr = create_blockmanager([get_bool_ex(['a']), get_bool_ex(['b'])])
-        self.assert_(not mgr.is_mixed_type)
+        self.assertFalse(mgr.is_mixed_type)
 
     def test_is_indexed_like(self):
-        self.assert_(self.mgr._is_indexed_like(self.mgr))
+        self.assertTrue(self.mgr._is_indexed_like(self.mgr))
         mgr2 = self.mgr.reindex_axis(np.arange(N - 1), axis=1)
-        self.assert_(not self.mgr._is_indexed_like(mgr2))
+        self.assertFalse(self.mgr._is_indexed_like(mgr2))
 
     def test_block_id_vector_item_dtypes(self):
         expected = [0, 1, 0, 1, 0, 2, 3, 4]
@@ -512,7 +512,7 @@ class TestBlockManager(tm.TestCase):
 
         cons = self.mgr.consolidate()
         self.assertEquals(cons.nblocks, 1)
-        self.assert_(cons.blocks[0].items.equals(cons.items))
+        self.assertTrue(cons.blocks[0].items.equals(cons.items))
 
     def test_reindex_index(self):
         pass
@@ -591,7 +591,7 @@ class TestBlockManager(tm.TestCase):
         block1.ref_items = block2.ref_items = index
         bm1 = BlockManager([block1, block2], [index, np.arange(block1.shape[1])])
         bm2 = BlockManager([block2, block1], [index, np.arange(block1.shape[1])])
-        self.assert_(bm1.equals(bm2))
+        self.assertTrue(bm1.equals(bm2))
 
         # non-unique items
         index = Index(list('aaabbb'))
@@ -602,7 +602,7 @@ class TestBlockManager(tm.TestCase):
         block1.ref_items = block2.ref_items = index
         bm1 = BlockManager([block1, block2], [index, np.arange(block1.shape[1])])
         bm2 = BlockManager([block2, block1], [index, np.arange(block1.shape[1])])
-        self.assert_(bm1.equals(bm2))
+        self.assertTrue(bm1.equals(bm2))
 
 if __name__ == '__main__':
     import nose
