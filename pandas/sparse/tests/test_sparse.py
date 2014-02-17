@@ -360,7 +360,7 @@ class TestSparseSeries(tm.TestCase,
 
     def test_get_get_value(self):
         assert_almost_equal(self.bseries.get(10), self.bseries[10])
-        self.assert_(self.bseries.get(len(self.bseries) + 1) is None)
+        self.assertIsNone(self.bseries.get(len(self.bseries) + 1))
 
         dt = self.btseries.index[10]
         result = self.btseries.get(dt)

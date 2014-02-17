@@ -979,7 +979,7 @@ class TestDataFrameFormatting(tm.TestCase):
 
         buf = StringIO()
         retval = biggie.to_string(buf=buf)
-        self.assert_(retval is None)
+        self.assertIsNone(retval)
         self.assertEqual(buf.getvalue(), s)
 
         tm.assert_isinstance(s, compat.string_types)
@@ -1208,7 +1208,7 @@ c  10  11  12  13  14\
 
         buf = StringIO()
         retval = biggie.to_html(buf=buf)
-        self.assert_(retval is None)
+        self.assertIsNone(retval)
         self.assertEqual(buf.getvalue(), s)
 
         tm.assert_isinstance(s, compat.string_types)
@@ -1574,7 +1574,7 @@ c  10  11  12  13  14\
                    {'parent_appname': 'ipython-qtconsole'}}}
 
         repstr = self.frame._repr_html_()
-        self.assert_(repstr is not None)
+        self.assertIsNotNone(repstr)
 
         fmt.set_option('display.max_rows', 5, 'display.max_columns', 2)
         repstr = self.frame._repr_html_()
@@ -1807,7 +1807,7 @@ class TestSeriesFormatting(tm.TestCase):
         s = self.ts.to_string()
 
         retval = self.ts.to_string(buf=buf)
-        self.assert_(retval is None)
+        self.assertIsNone(retval)
         self.assertEqual(buf.getvalue().strip(), s)
 
         # pass float_format

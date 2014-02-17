@@ -2397,7 +2397,7 @@ class TestGroupBy(tm.TestCase):
         s.name = None
 
         result = s.groupby(self.frame['A']).agg(np.sum)
-        self.assert_(result.name is None)
+        self.assertIsNone(result.name)
 
     def test_wrap_agg_out(self):
         grouped = self.three_group.groupby(['A', 'B'])
@@ -2575,7 +2575,7 @@ class TestGroupBy(tm.TestCase):
         # GH #1291
 
         result = self.df.groupby(self.df['A'].values).sum()
-        self.assert_(result.index.name is None)
+        self.assertIsNone(result.index.name)
 
         result = self.df.groupby([self.df['A'].values,
                                   self.df['B'].values]).sum()

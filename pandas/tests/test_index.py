@@ -71,7 +71,7 @@ class TestIndex(tm.TestCase):
             self.assertEqual(ind.name, original_name)
             res = ind.rename(new_name, inplace=True)
             # should return None
-            self.assert_(res is None)
+            self.assertIsNone(res)
             self.assertEqual(ind.name, new_name)
             self.assertEqual(ind.names, [new_name])
             with assertRaisesRegexp(TypeError, "list-like"):
@@ -385,7 +385,7 @@ class TestIndex(tm.TestCase):
 
         second.name = 'B'
         union = first.union(second)
-        self.assert_(union.name is None)
+        self.assertIsNone(union.name)
 
     def test_add(self):
         firstCat = self.strIndex + self.dateIndex
@@ -424,7 +424,7 @@ class TestIndex(tm.TestCase):
         right = Index([1, 2, 3], name='bar')
 
         result = left.append(right)
-        self.assert_(result.name is None)
+        self.assertIsNone(result.name)
 
     def test_add_string(self):
         # from bug report
@@ -478,12 +478,12 @@ class TestIndex(tm.TestCase):
         result = idx1.sym_diff(idx2)
         expected = Index([1, 5])
         self.assert_(tm.equalContents(result, expected))
-        self.assert_(result.name is None)
+        self.assertIsNone(result.name)
 
         # __xor__ syntax
         expected = idx1 ^ idx2
         self.assert_(tm.equalContents(result, expected))
-        self.assert_(result.name is None)
+        self.assertIsNone(result.name)
 
         # multiIndex
         idx1 = MultiIndex.from_tuples(self.tuples)
@@ -597,7 +597,7 @@ class TestIndex(tm.TestCase):
 
         idx = Index(values)
         idx.format()
-        self.assert_(idx[3] is None)
+        self.assertIsNone(idx[3])
 
     def test_take(self):
         indexer = [4, 3, 0, 2]
@@ -1056,7 +1056,7 @@ class TestInt64Index(tm.TestCase):
 
         tm.assert_isinstance(res, Int64Index)
         self.assert_(res.equals(eres))
-        self.assert_(lidx is None)
+        self.assertIsNone(lidx)
         self.assert_numpy_array_equal(ridx, eridx)
 
         # monotonic
@@ -1066,7 +1066,7 @@ class TestInt64Index(tm.TestCase):
                          dtype=np.int64)
         tm.assert_isinstance(res, Int64Index)
         self.assert_(res.equals(eres))
-        self.assert_(lidx is None)
+        self.assertIsNone(lidx)
         self.assert_numpy_array_equal(ridx, eridx)
 
         # non-unique
@@ -1096,7 +1096,7 @@ class TestInt64Index(tm.TestCase):
         tm.assert_isinstance(other, Int64Index)
         self.assert_(res.equals(eres))
         self.assert_numpy_array_equal(lidx, elidx)
-        self.assert_(ridx is None)
+        self.assertIsNone(ridx)
 
         # monotonic
         res, lidx, ridx = self.index.join(other_mono, how='right',
@@ -1107,7 +1107,7 @@ class TestInt64Index(tm.TestCase):
         tm.assert_isinstance(other, Int64Index)
         self.assert_(res.equals(eres))
         self.assert_numpy_array_equal(lidx, elidx)
-        self.assert_(ridx is None)
+        self.assertIsNone(ridx)
 
         # non-unique
         """
@@ -1303,7 +1303,7 @@ class TestMultiIndex(tm.TestCase):
             ind.set_names(new_names + new_names)
         new_names2 = [name + "SUFFIX2" for name in new_names]
         res = ind.set_names(new_names2, inplace=True)
-        self.assert_(res is None)
+        self.assertIsNone(res)
         self.assertEqual(ind.names, new_names2)
 
     def test_set_levels_and_set_labels(self):
@@ -1333,7 +1333,7 @@ class TestMultiIndex(tm.TestCase):
         # level changing [w/ mutation]
         ind2 = self.index.copy()
         inplace_return = ind2.set_levels(new_levels, inplace=True)
-        self.assert_(inplace_return is None)
+        self.assertIsNone(inplace_return)
         assert_matching(ind2.levels, new_levels)
 
         # label changing [w/o mutation]
@@ -1344,7 +1344,7 @@ class TestMultiIndex(tm.TestCase):
         # label changing [w/ mutation]
         ind2 = self.index.copy()
         inplace_return = ind2.set_labels(new_labels, inplace=True)
-        self.assert_(inplace_return is None)
+        self.assertIsNone(inplace_return)
         assert_matching(ind2.labels, new_labels)
 
     def test_set_levels_labels_names_bad_input(self):
@@ -1450,10 +1450,10 @@ class TestMultiIndex(tm.TestCase):
             columns=['one', 'two', 'three', 'four'],
             index=idx)
         df = df.sortlevel()
-        self.assert_(df.is_copy is None)
+        self.assertIsNone(df.is_copy)
         self.assertEqual(df.index.names, ('Name', 'Number'))
         df = df.set_value(('grethe', '4'), 'one', 99.34)
-        self.assert_(df.is_copy is None)
+        self.assertIsNone(df.is_copy)
         self.assertEqual(df.index.names, ('Name', 'Number'))
 
     def test_names(self):
@@ -1508,7 +1508,7 @@ class TestMultiIndex(tm.TestCase):
 
         single_level = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],
                                   labels=[[0, 1, 2, 3]])
-        self.assert_(single_level.name is None)
+        self.assertIsNone(single_level.name)
 
     def test_constructor_no_levels(self):
         assertRaisesRegexp(ValueError, "non-zero number of levels/labels",
@@ -1850,7 +1850,7 @@ class TestMultiIndex(tm.TestCase):
         loc, new_index = index.get_loc_level((0, 1, 0))
         expected = 1
         self.assertEqual(loc, expected)
-        self.assert_(new_index is None)
+        self.assertIsNone(new_index)
 
         self.assertRaises(KeyError, index.get_loc_level, (2, 2))
 
@@ -2499,7 +2499,7 @@ class TestMultiIndex(tm.TestCase):
 
         result, indexer = self.index.reindex(list(self.index))
         tm.assert_isinstance(result, MultiIndex)
-        self.assert_(indexer is None)
+        self.assertIsNone(indexer)
         self.check_level_names(result, self.index.names)
 
     def test_reindex_level(self):
