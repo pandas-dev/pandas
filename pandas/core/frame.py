@@ -2414,8 +2414,8 @@ class DataFrame(NDFrame):
 
             agg_obj = self
             if subset is not None:
-                agg_axis_name = self._get_axis_name(agg_axis)
-                agg_obj = self.reindex(**{agg_axis_name: subset})
+                ax = self._get_axis(agg_axis)
+                agg_obj = self.take(ax.get_indexer_for(subset),axis=agg_axis)
 
             count = agg_obj.count(axis=agg_axis)
 
