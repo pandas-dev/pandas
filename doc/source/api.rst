@@ -1021,31 +1021,31 @@ used before calling these methods directly.**
 
    Index
 
-Modifying and Computations
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Set Operations
+~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Index.diff
+   Index.intersection
+   Index.union
+
+Comparisons and Metadata
+~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: generated/
 
    Index.copy
-   Index.delete
-   Index.diff
-   Index.drop
    Index.equals
    Index.identical
-   Index.insert
-   Index.order
-   Index.reindex
-   Index.repeat
    Index.set_names
-   Index.unique
 
-Conversion
-~~~~~~~~~~
+Type Conversions
+~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: generated/
 
-   Index.astype
-   Index.tolist
    Index.to_datetime
    Index.to_series
 
@@ -1054,48 +1054,7 @@ Sorting
 .. autosummary::
    :toctree: generated/
 
-   Index.argsort
-   Index.order
    Index.sort
-
-Time-specific operations
-~~~~~~~~~~~~~~~~~~~~~~~~
-.. autosummary::
-   :toctree: generated/
-
-   Index.shift
-
-Combining / joining / merging
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. autosummary::
-   :toctree: generated/
-
-   Index.append
-   Index.intersection
-   Index.join
-   Index.union
-
-Selecting
-~~~~~~~~~
-.. autosummary::
-   :toctree: generated/
-
-   Index.get_indexer
-   Index.get_indexer_non_unique
-   Index.get_level_values
-   Index.get_loc
-   Index.get_value
-   Index.isin
-   Index.slice_indexer
-   Index.slice_locs
-
-Properties
-~~~~~~~~~~
-.. autosummary::
-   :toctree: generated/
-
-   Index.is_monotonic
-   Index.is_numeric
 
 .. _api.datetimeindex:
 
@@ -1106,39 +1065,6 @@ DatetimeIndex
    :toctree: generated/
 
    DatetimeIndex
-
-Time/Date Components
-~~~~~~~~~~~~~~~~~~~~
-
-.. autosummary::
-   :toctree: generated/
-
-   DatetimeIndex.year
-   DatetimeIndex.month
-   DatetimeIndex.day
-   DatetimeIndex.hour
-   DatetimeIndex.minute
-   DatetimeIndex.second
-   DatetimeIndex.microsecond
-   DatetimeIndex.nanosecond
-   DatetimeIndex.date
-   DatetimeIndex.time
-   DatetimeIndex.dayofyear
-   DatetimeIndex.weekofyear
-   DatetimeIndex.week
-   DatetimeIndex.dayofweek
-   DatetimeIndex.weekday
-   DatetimeIndex.quarter
-
-
-Selecting
-~~~~~~~~~
-.. autosummary::
-   :toctree: generated/
-
-   DatetimeIndex.indexer_at_time
-   DatetimeIndex.indexer_between_time
-
 
 Time-specific operations
 ~~~~~~~~~~~~~~~~~~~~~~~~
