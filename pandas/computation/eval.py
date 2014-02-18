@@ -4,8 +4,9 @@
 """
 
 import sys
+import tokenize
 from pandas.core import common as com
-from pandas.computation.expr import Expr, _parsers
+from pandas.computation.expr import Expr, _parsers, tokenize_string
 from pandas.computation.scope import _ensure_scope
 from pandas.compat import DeepChainMap, builtins
 from pandas.computation.engines import _engines
@@ -118,6 +119,24 @@ def _convert_expression(expr):
     return s
 
 
+def _check_for_locals(expr, stack_level, parser):
+    at_top_of_stack = stack_level == 0
+    not_pandas_parser = parser != 'pandas'
+
+    if not_pandas_parser:
+        msg = "The '@' prefix is only supported by the pandas parser"
+    elif at_top_of_stack:
+        msg = ("The '@' prefix is not allowed in "
+               "top-level eval calls, please refer to "
+               "your variables by name without the '@' "
+               "prefix")
+
+    if at_top_of_stack or not_pandas_parser:
+        for toknum, tokval, _, _, _ in tokenize_string(expr):
+            if toknum == tokenize.OP and tokval == '@':
+                raise SyntaxError(msg)
+
+
 def eval(expr, parser='pandas', engine='numexpr', truediv=True,
          local_dict=None, global_dict=None, resolvers=(), level=0,
          target=None):
@@ -200,6 +219,7 @@ def eval(expr, parser='pandas', engine='numexpr', truediv=True,
     _check_engine(engine)
     _check_parser(parser)
     _check_resolvers(resolvers)
+    _check_for_locals(expr, level, parser)
 
     # get our (possibly passed-in) scope
     level += 1

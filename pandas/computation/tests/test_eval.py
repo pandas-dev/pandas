@@ -1556,6 +1556,25 @@ def test_invalid_numexpr_version():
         yield check_invalid_numexpr_version, engine, parser
 
 
+def check_invalid_local_variable_reference(engine, parser):
+    tm.skip_if_no_ne(engine)
+
+    a, b = 1, 2
+    exprs = 'a + @b', '@a + b', '@a + @b'
+    for expr in exprs:
+        if parser != 'pandas':
+            with tm.assertRaisesRegexp(SyntaxError, "The '@' prefix is only"):
+                pd.eval(exprs, engine=engine, parser=parser)
+        else:
+            with tm.assertRaisesRegexp(SyntaxError, "The '@' prefix is not"):
+                pd.eval(exprs, engine=engine, parser=parser)
+
+
+def test_invalid_local_variable_reference():
+    for engine, parser in ENGINES_PARSERS:
+        yield check_invalid_local_variable_reference, engine, parser
+
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

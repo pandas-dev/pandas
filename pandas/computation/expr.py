@@ -23,13 +23,16 @@ from pandas.computation.ops import UndefinedVariableError
 from pandas.computation.scope import Scope, _ensure_scope
 
 
+def tokenize_string(s):
+    return tokenize.generate_tokens(StringIO(s).readline)
+
+
 def _rewrite_assign(source):
     """Rewrite the assignment operator for PyTables expression that want to use
     ``=`` as a substitute for ``==``.
     """
     res = []
-    g = tokenize.generate_tokens(StringIO(source).readline)
-    for toknum, tokval, _, _, _ in g:
+    for toknum, tokval, _, _, _ in tokenize_string(source):
         res.append((toknum, '==' if tokval == '=' else tokval))
     return tokenize.untokenize(res)
 
@@ -39,8 +42,7 @@ def _replace_booleans(source):
     precedence is changed to boolean precedence.
     """
     res = []
-    g = tokenize.generate_tokens(StringIO(source).readline)
-    for toknum, tokval, _, _, _ in g:
+    for toknum, tokval, _, _, _ in tokenize_string(source):
         if toknum == tokenize.OP:
             if tokval == '&':
                 res.append((tokenize.NAME, 'and'))
@@ -54,7 +56,7 @@ def _replace_booleans(source):
 
 
 def _replace_locals(source, local_symbol='@'):
-    """Replace local variables with a syntacticall valid name."""
+    """Replace local variables with a syntactically valid name."""
     return source.replace(local_symbol, _LOCAL_TAG)
 
 
