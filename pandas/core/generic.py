@@ -1312,7 +1312,11 @@ class NDFrame(PandasObject):
             new_values, copy = self._data.fast_xs(loc, copy=copy)
 
             # may need to box a datelike-scalar
-            if not is_list_like(new_values):
+            #
+            # if we encounter an array-like and we only have 1 dim
+            # that means that their are list/ndarrays inside the Series!
+            # so just return them (GH 6394)
+            if not is_list_like(new_values) or self.ndim == 1:
                 return _maybe_box_datetimelike(new_values)
 
             result = Series(new_values, index=self.columns,

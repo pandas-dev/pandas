@@ -135,6 +135,7 @@ Bug Fixes
 - Bug in Series.get, was using a buggy access method (:issue:`6383`)
 - Bug in hdfstore queries of the form ``where=[('date', '>=', datetime(2013,1,1)), ('date', '<=', datetime(2014,1,1))]`` (:issue:`6313`)
 - Bug in DataFrame.dropna with duplicate indices (:issue:`6355`)
+- Regression in chained getitem indexing with embedded list-like from 0.12 (:issue:`6394`)
 
 pandas 0.13.1
 -------------

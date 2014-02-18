@@ -551,6 +551,26 @@ class TestIndexing(tm.TestCase):
         expected = DataFrame({'a' : [0.5,-0.5,-1.5], 'b' : [0,1,2] })
         assert_frame_equal(df,expected)
 
+    def test_chained_getitem_with_lists(self):
+
+        # GH6394
+        # Regression in chained getitem indexing with embedded list-like from 0.12
+        def check(result, expected):
+            self.assert_numpy_array_equal(result,expected)
+            tm.assert_isinstance(result, np.ndarray)
+
+
+        df = DataFrame({'A': 5*[np.zeros(3)], 'B':5*[np.ones(3)]})
+        expected = df['A'].iloc[2]
+        result = df.loc[2,'A']
+        check(result, expected)
+        result2 = df.iloc[2]['A']
+        check(result2, expected)
+        result3 = df['A'].loc[2]
+        check(result3, expected)
+        result4 = df['A'].iloc[2]
+        check(result4, expected)
+
     def test_loc_getitem_int(self):
 
         # int label

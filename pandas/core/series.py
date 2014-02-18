@@ -477,8 +477,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def __getitem__(self, key):
         try:
             result = self.index.get_value(self, key)
-            if isinstance(result, np.ndarray):
-                return self._constructor(result,index=[key]*len(result)).__finalize__(self)
+
+            if not np.isscalar(result):
+                if is_list_like(result) and not isinstance(result, Series):
+
+                    # we need to box if we have a non-unique index here
+                    # otherwise have inline ndarray/lists
+                    if not self.index.is_unique:
+                        result = self._constructor(result,index=[key]*len(result)).__finalize__(self)
+
             return result
         except InvalidIndexError:
             pass
