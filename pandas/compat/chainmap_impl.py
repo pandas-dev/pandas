@@ -1,5 +1,9 @@
 from collections import MutableMapping
-from thread import get_ident
+
+try:
+    from thread import get_ident
+except ImportError:
+    from _thread import get_ident
 
 
 def recursive_repr(fillvalue='...'):
