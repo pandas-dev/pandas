@@ -69,13 +69,15 @@ API Changes
 - ``dtypes`` and ``ftypes`` now return a series with ``dtype=object`` on empty containers (:issue:`5740`)
 - The ``interpolate`` ``downcast`` keyword default has been changed from ``infer`` to
   ``None``. This is to preseve the original dtype unless explicitly requested otherwise (:issue:`6290`).
-- allow a Series to utilize index methods for its index type, e.g. ``Series.year`` is now defined
+- allow a Series to utilize index methods depending on its index type, e.g. ``Series.year`` is now defined
   for a Series with a ``DatetimeIndex`` or a ``PeriodIndex``; trying this on a non-supported Index type will
   now raise a ``TypeError``. (:issue:`4551`, :issue:`4056`, :issue:`5519`)
 
   The following affected:
-  - ``date,time,year,month,day,hour,minute,second,weekofyear``
-  - ``week,dayofweek,dayofyear,quarter,microsecond,nanosecond,qyear``
+  - ``date,time,year,month,day``
+  - ``hour,minute,second,weekofyear``
+  - ``week,dayofweek,dayofyear,quarter``
+  - ``microsecond,nanosecond,qyear``
   - ``min(),max()``
 
 Experimental Features
@@ -94,8 +96,8 @@ Improvements to existing features
 - improve performance of slice indexing on Series with string keys (:issue:`6341`, :issue:`6372`)
 - implement joining a single-level indexed DataFrame on a matching column of a multi-indexed DataFrame (:issue:`3662`)
 - Performance improvement in indexing into a multi-indexed Series (:issue:`5567`)
-- Testing statements updated to use specialized asserts (:issue: `6175`)
-- ``Series.rank()`` now has a percentage rank option (:issue: `5971`)
+- Testing statements updated to use specialized asserts (:issue:`6175`)
+- ``Series.rank()`` now has a percentage rank option (:issue:`5971`)
 - ``quotechar``, ``doublequote``, and ``escapechar`` can now be specified when
   using ``DataFrame.to_csv`` (:issue:`5414`, :issue:`4528`)
 
