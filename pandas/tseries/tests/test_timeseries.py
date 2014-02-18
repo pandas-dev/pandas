@@ -392,7 +392,7 @@ class TestTimeSeries(tm.TestCase):
         data = dict((k, 1) for k in rng)
 
         result = Series(data, index=rng)
-        self.assert_(result.index is rng)
+        self.assertIs(result.index, rng)
 
     def test_series_pad_backfill_limit(self):
         index = np.arange(10)
@@ -866,7 +866,7 @@ class TestTimeSeries(tm.TestCase):
 
         # empty string
         result = to_datetime('')
-        self.assert_(result is NaT)
+        self.assertIs(result, NaT)
 
         result = to_datetime(['', ''])
         self.assert_(isnull(result).all())
@@ -943,7 +943,7 @@ class TestTimeSeries(tm.TestCase):
         for dt in oob_dts:
             self.assertRaises(ValueError, pd.to_datetime, dt, errors='raise')
             self.assertRaises(ValueError, tslib.Timestamp, dt)
-            self.assert_(pd.to_datetime(dt, coerce=True) is NaT)
+            self.assertIs(pd.to_datetime(dt, coerce=True), NaT)
 
     def test_to_datetime_array_of_dt64s(self):
         dts = [
@@ -2131,7 +2131,7 @@ class TestDatetimeIndex(tm.TestCase):
         kinds = 'outer', 'inner', 'left', 'right'
         for kind in kinds:
             joined = index.join(index, how=kind)
-            self.assert_(index is joined)
+            self.assertIs(index, joined)
 
     def assert_index_parameters(self, index):
         assert index.freq == '40960N'
@@ -2351,7 +2351,7 @@ class TestDatetime64(tm.TestCase):
 
         result = dti.union(empty)
         tm.assert_isinstance(result, DatetimeIndex)
-        self.assert_(result is result)
+        self.assertIs(result, result)
 
         result = dti.join(empty)
         tm.assert_isinstance(result, DatetimeIndex)
@@ -2426,16 +2426,16 @@ class TestSeriesDatetime64(tm.TestCase):
 
     def test_set_none_nan(self):
         self.series[3] = None
-        self.assert_(self.series[3] is NaT)
+        self.assertIs(self.series[3], NaT)
 
         self.series[3:5] = None
-        self.assert_(self.series[4] is NaT)
+        self.assertIs(self.series[4], NaT)
 
         self.series[5] = np.nan
-        self.assert_(self.series[5] is NaT)
+        self.assertIs(self.series[5], NaT)
 
         self.series[5:7] = np.nan
-        self.assert_(self.series[6] is NaT)
+        self.assertIs(self.series[6], NaT)
 
     def test_intercept_astype_object(self):
 
@@ -2575,16 +2575,16 @@ class TestTimestamp(tm.TestCase):
 
         # nan
         result = Timestamp(np.nan)
-        self.assert_(result is NaT)
+        self.assertIs(result, NaT)
 
         result = Timestamp(None)
-        self.assert_(result is NaT)
+        self.assertIs(result, NaT)
 
         result = Timestamp(iNaT)
-        self.assert_(result is NaT)
+        self.assertIs(result, NaT)
 
         result = Timestamp(NaT)
-        self.assert_(result is NaT)
+        self.assertIs(result, NaT)
 
     def test_comparison(self):
         # 5-18-2012 00:00:00.000

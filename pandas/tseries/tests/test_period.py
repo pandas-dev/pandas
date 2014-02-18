@@ -1920,7 +1920,7 @@ class TestPeriodIndex(tm.TestCase):
 
         for kind in ['inner', 'outer', 'left', 'right']:
             res = index.join(index, how=kind)
-            self.assert_(index is res)
+            self.assertIs(index, res)
 
     def test_join_does_not_recur(self):
         df = tm.makeCustomDataframe(3, 2, data_gen_f=lambda *args:

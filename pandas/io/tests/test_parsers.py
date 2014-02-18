@@ -1661,7 +1661,7 @@ a,b,c,d
         stamp = result.index[0]
         self.assertEqual(stamp.minute, 39)
         try:
-            self.assert_(result.index.tz is pytz.utc)
+            self.assertIs(result.index.tz, pytz.utc)
         except AssertionError:  # hello Yaroslav
             arr = result.index.to_pydatetime()
             result = tools.to_datetime(arr, utc=True)[0]

@@ -100,7 +100,7 @@ class TestIndex(tm.TestCase):
 
         for func in (copy, deepcopy):
             idx_copy = func(self.strIndex)
-            self.assert_(idx_copy is not self.strIndex)
+            self.assertIsNot(idx_copy, self.strIndex)
             self.assert_(idx_copy.equals(self.strIndex))
 
         new_copy = self.strIndex.copy(deep=True, name="banana")
@@ -255,7 +255,7 @@ class TestIndex(tm.TestCase):
 
     def test_asof(self):
         d = self.dateIndex[0]
-        self.assert_(self.dateIndex.asof(d) is d)
+        self.assertIs(self.dateIndex.asof(d), d)
         self.assert_(np.isnan(self.dateIndex.asof(d - timedelta(1))))
 
         d = self.dateIndex[-1]
@@ -332,7 +332,7 @@ class TestIndex(tm.TestCase):
 
     def test_shift(self):
         shifted = self.dateIndex.shift(0, timedelta(1))
-        self.assert_(shifted is self.dateIndex)
+        self.assertIs(shifted, self.dateIndex)
 
         shifted = self.dateIndex.shift(5, timedelta(1))
         self.assert_numpy_array_equal(shifted, self.dateIndex + timedelta(5))
@@ -352,7 +352,7 @@ class TestIndex(tm.TestCase):
 
         # Corner cases
         inter = first.intersection(first)
-        self.assert_(inter is first)
+        self.assertIs(inter, first)
 
         # non-iterable input
         assertRaisesRegexp(TypeError, "iterable", first.intersection, 0.5)
@@ -366,13 +366,13 @@ class TestIndex(tm.TestCase):
 
         # Corner cases
         union = first.union(first)
-        self.assert_(union is first)
+        self.assertIs(union, first)
 
         union = first.union([])
-        self.assert_(union is first)
+        self.assertIs(union, first)
 
         union = Index([]).union(first)
-        self.assert_(union is first)
+        self.assertIs(union, first)
 
         # non-iterable input
         assertRaisesRegexp(TypeError, "iterable", first.union, 0.5)
@@ -757,7 +757,7 @@ class TestIndex(tm.TestCase):
             for kind in kinds:
                 res = getattr(self, '{0}Index'.format(index_kind))
                 joined = res.join(res, how=kind)
-                self.assert_(res is joined)
+                self.assertIs(res, joined)
 
 
 class TestFloat64Index(tm.TestCase):
@@ -1174,7 +1174,7 @@ class TestInt64Index(tm.TestCase):
         kinds = 'outer', 'inner', 'left', 'right'
         for kind in kinds:
             joined = self.index.join(self.index, how=kind)
-            self.assert_(self.index is joined)
+            self.assertIs(self.index, joined)
 
     def test_intersection(self):
         other = Index([1, 2, 3, 4, 5])
@@ -1561,11 +1561,11 @@ class TestMultiIndex(tm.TestCase):
 
         # labels doesn't matter which way copied
         assert_almost_equal(copy.labels, original.labels)
-        self.assert_(copy.labels is not original.labels)
+        self.assertIsNot(copy.labels, original.labels)
 
         # names doesn't matter which way copied
         self.assertEqual(copy.names, original.names)
-        self.assert_(copy.names is not original.names)
+        self.assertIsNot(copy.names, original.names)
 
         # sort order should be copied
         self.assertEqual(copy.sortorder, original.sortorder)
@@ -2203,10 +2203,10 @@ class TestMultiIndex(tm.TestCase):
 
         # corner case, pass self or empty thing:
         the_union = self.index.union(self.index)
-        self.assert_(the_union is self.index)
+        self.assertIs(the_union, self.index)
 
         the_union = self.index.union(self.index[:0])
-        self.assert_(the_union is self.index)
+        self.assertIs(the_union, self.index)
 
         # won't work in python 3
         # tuples = self.index._tuple_index
@@ -2235,7 +2235,7 @@ class TestMultiIndex(tm.TestCase):
 
         # corner case, pass self
         the_int = self.index.intersection(self.index)
-        self.assert_(the_int is self.index)
+        self.assertIs(the_int, self.index)
 
         # empty intersection: disjoint
         empty = self.index[:2] & self.index[2:]
@@ -2490,7 +2490,7 @@ class TestMultiIndex(tm.TestCase):
         for kind in kinds:
             res = self.index
             joined = res.join(res, how=kind)
-            self.assert_(res is joined)
+            self.assertIs(res, joined)
 
     def test_reindex(self):
         result, indexer = self.index.reindex(list(self.index[:4]))

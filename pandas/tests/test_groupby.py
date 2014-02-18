@@ -546,14 +546,14 @@ class TestGroupBy(tm.TestCase):
     def test_groups(self):
         grouped = self.df.groupby(['A'])
         groups = grouped.groups
-        self.assert_(groups is grouped.groups)  # caching works
+        self.assertIs(groups, grouped.groups)  # caching works
 
         for k, v in compat.iteritems(grouped.groups):
             self.assert_((self.df.ix[v]['A'] == k).all())
 
         grouped = self.df.groupby(['A', 'B'])
         groups = grouped.groups
-        self.assert_(groups is grouped.groups)  # caching works
+        self.assertIs(groups, grouped.groups)  # caching works
         for k, v in compat.iteritems(grouped.groups):
             self.assert_((self.df.ix[v]['A'] == k[0]).all())
             self.assert_((self.df.ix[v]['B'] == k[1]).all())

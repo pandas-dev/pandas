@@ -280,8 +280,8 @@ class TestSparseSeries(tm.TestCase,
 
     def test_copy_astype(self):
         cop = self.bseries.astype(np.float64)
-        self.assert_(cop is not self.bseries)
-        self.assert_(cop.sp_index is self.bseries.sp_index)
+        self.assertIsNot(cop, self.bseries)
+        self.assertIs(cop.sp_index, self.bseries.sp_index)
         self.assertEqual(cop.dtype, np.float64)
 
         cop2 = self.iseries.copy()
@@ -524,7 +524,7 @@ class TestSparseSeries(tm.TestCase,
         # special cases
         same_index = self.bseries.reindex(self.bseries.index)
         assert_sp_series_equal(self.bseries, same_index)
-        self.assert_(same_index is not self.bseries)
+        self.assertIsNot(same_index, self.bseries)
 
         # corner cases
         sp = SparseSeries([], index=[])
@@ -547,7 +547,7 @@ class TestSparseSeries(tm.TestCase,
             first_series = SparseSeries(values, sparse_index=index1,
                                         fill_value=fill_value)
             reindexed = first_series.sparse_reindex(index2)
-            self.assert_(reindexed.sp_index is index2)
+            self.assertIs(reindexed.sp_index, index2)
 
             int_indices1 = index1.to_int_index().indices
             int_indices2 = index2.to_int_index().indices
@@ -699,7 +699,7 @@ class TestSparseSeries(tm.TestCase,
                               index=np.arange(6))
 
         shifted = series.shift(0)
-        self.assert_(shifted is not series)
+        self.assertIsNot(shifted, series)
         assert_sp_series_equal(shifted, series)
 
         f = lambda s: s.shift(1)
@@ -1093,12 +1093,12 @@ class TestSparseDataFrame(tm.TestCase, test_frame.SafeForSparse):
         res.index = res.index.astype(object)
 
         res = self.frame.set_value('foobar', 'B', 1.5)
-        self.assert_(res is not self.frame)
+        self.assertIsNot(res, self.frame)
         self.assertEqual(res.index[-1], 'foobar')
         self.assertEqual(res.get_value('foobar', 'B'), 1.5)
 
         res2 = res.set_value('foobar', 'qux', 1.5)
-        self.assert_(res2 is not res)
+        self.assertIsNot(res2, res)
         self.assert_numpy_array_equal(res2.columns,
                                       list(self.frame.columns) + ['qux'])
         self.assertEqual(res2.get_value('foobar', 'qux'), 1.5)
@@ -1247,7 +1247,7 @@ class TestSparseDataFrame(tm.TestCase, test_frame.SafeForSparse):
         assert_frame_equal(broadcasted.to_dense(),
                            self.frame.to_dense().apply(np.sum, broadcast=True))
 
-        self.assert_(self.empty.apply(np.sqrt) is self.empty)
+        self.assertIs(self.empty.apply(np.sqrt), self.empty)
 
         from pandas.core import nanops
         applied = self.frame.apply(np.sum)
@@ -1656,7 +1656,7 @@ class TestSparsePanel(tm.TestCase,
     def test_set_value(self):
         def _check_loc(item, major, minor, val=1.5):
             res = self.panel.set_value(item, major, minor, val)
-            self.assert_(res is not self.panel)
+            self.assertIsNot(res, self.panel)
             self.assertEquals(res.get_value(item, major, minor), val)
 
         _check_loc('ItemA', self.panel.major_axis[4], self.panel.minor_axis[3])
@@ -1669,7 +1669,7 @@ class TestSparsePanel(tm.TestCase,
         assert_almost_equal(self.panel.items, ['ItemA', 'ItemC', 'ItemD'])
         crackle = self.panel['ItemC']
         pop = self.panel.pop('ItemC')
-        self.assert_(pop is crackle)
+        self.assertIs(pop, crackle)
         assert_almost_equal(self.panel.items, ['ItemA', 'ItemD'])
 
         self.assertRaises(KeyError, self.panel.__delitem__, 'ItemC')

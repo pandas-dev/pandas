@@ -193,17 +193,17 @@ class SafeForSparse(object):
 
         if hasattr(self.panel, '_item_cache'):
             self.assertNotIn('ItemA', self.panel._item_cache)
-        self.assert_(self.panel.items is new_items)
+        self.assertIs(self.panel.items, new_items)
 
         item = self.panel[0]
         self.panel.major_axis = new_major
-        self.assert_(self.panel[0].index is new_major)
-        self.assert_(self.panel.major_axis is new_major)
+        self.assertIs(self.panel[0].index, new_major)
+        self.assertIs(self.panel.major_axis, new_major)
 
         item = self.panel[0]
         self.panel.minor_axis = new_minor
-        self.assert_(self.panel[0].columns is new_minor)
-        self.assert_(self.panel.minor_axis is new_minor)
+        self.assertIs(self.panel[0].columns, new_minor)
+        self.assertIs(self.panel.minor_axis, new_minor)
 
     def test_get_axis_number(self):
         self.assertEqual(self.panel._get_axis_number('items'), 0)
@@ -796,7 +796,7 @@ class CheckIndexing(object):
         # resize
         res = self.panel.set_value('ItemE', 'foo', 'bar', 1.5)
         tm.assert_isinstance(res, Panel)
-        self.assert_(res is not self.panel)
+        self.assertIsNot(res, self.panel)
         self.assertEqual(res.get_value('ItemE', 'foo', 'bar'), 1.5)
 
         res3 = self.panel.set_value('ItemE', 'foobar', 'baz', 5)
@@ -831,10 +831,10 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
     def test_constructor(self):
         # with BlockManager
         wp = Panel(self.panel._data)
-        self.assert_(wp._data is self.panel._data)
+        self.assertIs(wp._data, self.panel._data)
 
         wp = Panel(self.panel._data, copy=True)
-        self.assert_(wp._data is not self.panel._data)
+        self.assertIsNot(wp._data, self.panel._data)
         assert_panel_equal(wp, self.panel)
 
         # strings handled prop
@@ -846,11 +846,11 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
 
         # no copy
         wp = Panel(vals)
-        self.assert_(wp.values is vals)
+        self.assertIs(wp.values, vals)
 
         # copy
         wp = Panel(vals, copy=True)
-        self.assert_(wp.values is not vals)
+        self.assertIsNot(wp.values, vals)
 
     def test_constructor_cast(self):
         zero_filled = self.panel.fillna(0)
@@ -1211,9 +1211,9 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
                                     minor=self.panel.minor_axis,
                                     copy = False)
 
-        self.assert_(result.items is self.panel.items)
-        self.assert_(result.major_axis is self.panel.major_axis)
-        self.assert_(result.minor_axis is self.panel.minor_axis)
+        self.assertIs(result.items, self.panel.items)
+        self.assertIs(result.major_axis, self.panel.major_axis)
+        self.assertIs(result.minor_axis, self.panel.minor_axis)
 
         result = self.panel.reindex(items=self.panel.items,
                                     major=self.panel.major_axis,
@@ -1337,13 +1337,13 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
 
     def test_swapaxes(self):
         result = self.panel.swapaxes('items', 'minor')
-        self.assert_(result.items is self.panel.minor_axis)
+        self.assertIs(result.items, self.panel.minor_axis)
 
         result = self.panel.swapaxes('items', 'major')
-        self.assert_(result.items is self.panel.major_axis)
+        self.assertIs(result.items, self.panel.major_axis)
 
         result = self.panel.swapaxes('major', 'minor')
-        self.assert_(result.major_axis is self.panel.minor_axis)
+        self.assertIs(result.major_axis, self.panel.minor_axis)
 
         panel = self.panel.copy()
         result = panel.swapaxes('major', 'minor')
@@ -1353,7 +1353,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
 
         # this should also work
         result = self.panel.swapaxes(0, 1)
-        self.assert_(result.items is self.panel.major_axis)
+        self.assertIs(result.items, self.panel.major_axis)
 
         # this works, but return a copy
         result = self.panel.swapaxes('items', 'items')
