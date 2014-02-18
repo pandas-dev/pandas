@@ -514,7 +514,7 @@ class TestHDFStore(tm.TestCase):
             if LooseVersion(tables.__version__) >= '3.0.0':
 
                 # the file should not have actually been written
-                self.assert_(os.path.exists(path) is False)
+                self.assertFalse(os.path.exists(path))
 
     def test_flush(self):
 

@@ -1245,11 +1245,11 @@ class TestConcatenate(tm.TestCase):
 
         appended = self.frame.append(empty)
         assert_frame_equal(self.frame, appended)
-        self.assert_(appended is not self.frame)
+        self.assertIsNot(appended, self.frame)
 
         appended = empty.append(self.frame)
         assert_frame_equal(self.frame, appended)
-        self.assert_(appended is not self.frame)
+        self.assertIsNot(appended, self.frame)
 
         # overlap
         self.assertRaises(ValueError, self.frame.append, self.frame,
