@@ -179,15 +179,15 @@ class TestMerge(tm.TestCase):
         joined = merge(self.df, self.df2, on='key2',
                        suffixes=['.foo', '.bar'])
 
-        self.assert_('key1.foo' in joined)
-        self.assert_('key1.bar' in joined)
+        self.assertIn('key1.foo', joined)
+        self.assertIn('key1.bar', joined)
 
     def test_handle_overlap_arbitrary_key(self):
         joined = merge(self.df, self.df2,
                        left_on='key2', right_on='key1',
                        suffixes=['.foo', '.bar'])
-        self.assert_('key1.foo' in joined)
-        self.assert_('key2.bar' in joined)
+        self.assertIn('key1.foo', joined)
+        self.assertIn('key2.bar', joined)
 
     def test_merge_common(self):
         joined = merge(self.df, self.df2)
@@ -269,7 +269,7 @@ class TestMerge(tm.TestCase):
         # nothing to merge
         merged = self.target.join(self.source.reindex([]), on='C')
         for col in self.source:
-            self.assert_(col in merged)
+            self.assertIn(col, merged)
             self.assert_(merged[col].isnull().all())
 
         merged2 = self.target.join(self.source.reindex([]), on='C',
@@ -565,8 +565,8 @@ class TestMerge(tm.TestCase):
         merged = merge(self.left, self.left, on='key')
         exp_len = (self.left['key'].value_counts() ** 2).sum()
         self.assertEqual(len(merged), exp_len)
-        self.assert_('v1_x' in merged)
-        self.assert_('v1_y' in merged)
+        self.assertIn('v1_x', merged)
+        self.assertIn('v1_y', merged)
 
     def test_merge_different_column_key_names(self):
         left = DataFrame({'lkey': ['foo', 'bar', 'baz', 'foo'],
@@ -1222,10 +1222,10 @@ class TestConcatenate(tm.TestCase):
 
         del end_frame['A']
         partial_appended = begin_frame.append(end_frame)
-        self.assert_('A' in partial_appended)
+        self.assertIn('A', partial_appended)
 
         partial_appended = end_frame.append(begin_frame)
-        self.assert_('A' in partial_appended)
+        self.assertIn('A', partial_appended)
 
         # mixed type handling
         appended = self.mixed_frame[:5].append(self.mixed_frame[5:])
