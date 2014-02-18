@@ -2612,11 +2612,14 @@ class DataFrame(NDFrame):
                 if k.ndim == 2:
                     raise ValueError('Cannot sort by duplicate column %s'
                                      % str(by))
-                indexer = k.argsort(kind=kind)
                 if isinstance(ascending, (tuple, list)):
                     ascending = ascending[0]
+
                 if not ascending:
-                    indexer = indexer[::-1]
+                    k = k[::-1]
+                indexer = k.argsort(kind=kind)
+                if not ascending:
+                    indexer = indexer.max() - indexer[::-1]
         elif isinstance(labels, MultiIndex):
             indexer = _lexsort_indexer(labels.labels, orders=ascending)
             indexer = com._ensure_platform_int(indexer)
