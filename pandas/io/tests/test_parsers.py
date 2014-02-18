@@ -302,11 +302,11 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
                            prefix='X',
                            parse_dates={'nominal': [1, 2],
                                         'actual': [1, 3]})
-        self.assert_('nominal' in df)
-        self.assert_('actual' in df)
-        self.assert_('X1' not in df)
-        self.assert_('X2' not in df)
-        self.assert_('X3' not in df)
+        self.assertIn('nominal', df)
+        self.assertIn('actual', df)
+        self.assertNotIn('X1', df)
+        self.assertNotIn('X2', df)
+        self.assertNotIn('X3', df)
 
         d = datetime(1999, 1, 27, 19, 0)
         self.assertEqual(df.ix[0, 'nominal'], d)
@@ -316,12 +316,12 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
                            parse_dates={'nominal': [1, 2],
                                         'actual': [1, 3]},
                            keep_date_col=True)
-        self.assert_('nominal' in df)
-        self.assert_('actual' in df)
+        self.assertIn('nominal', df)
+        self.assertIn('actual', df)
 
-        self.assert_(1 in df)
-        self.assert_(2 in df)
-        self.assert_(3 in df)
+        self.assertIn(1, df)
+        self.assertIn(2, df)
+        self.assertIn(3, df)
 
         data = """\
 KORD,19990127, 19:00:00, 18:56:00, 0.8100, 2.8100, 7.2000, 0.0000, 280.0000
@@ -335,11 +335,11 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
                       prefix='X',
                       parse_dates=[[1, 2], [1, 3]])
 
-        self.assert_('X1_X2' in df)
-        self.assert_('X1_X3' in df)
-        self.assert_('X1' not in df)
-        self.assert_('X2' not in df)
-        self.assert_('X3' not in df)
+        self.assertIn('X1_X2', df)
+        self.assertIn('X1_X3', df)
+        self.assertNotIn('X1', df)
+        self.assertNotIn('X2', df)
+        self.assertNotIn('X3', df)
 
         d = datetime(1999, 1, 27, 19, 0)
         self.assertEqual(df.ix[0, 'X1_X2'], d)
@@ -347,11 +347,11 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         df = read_csv(StringIO(data), header=None,
                       parse_dates=[[1, 2], [1, 3]], keep_date_col=True)
 
-        self.assert_('1_2' in df)
-        self.assert_('1_3' in df)
-        self.assert_(1 in df)
-        self.assert_(2 in df)
-        self.assert_(3 in df)
+        self.assertIn('1_2', df)
+        self.assertIn('1_3', df)
+        self.assertIn(1, df)
+        self.assertIn(2, df)
+        self.assertIn(3, df)
 
         data = '''\
 KORD,19990127 19:00:00, 18:56:00, 0.8100, 2.8100, 7.2000, 0.0000, 280.0000
@@ -378,7 +378,7 @@ KORD,19990127 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
         # it works!
         df = self.read_csv(StringIO(data), header=None, parse_dates=date_spec,
                            date_parser=conv.parse_date_time)
-        self.assert_('nominal' in df)
+        self.assertIn('nominal', df)
 
     def test_multiple_date_col_timestamp_parse(self):
         data = """05/31/2012,15:30:00.029,1306.25,1,E,0,,1306.25
@@ -523,7 +523,7 @@ A,B,C
                 StringIO(data), sep=',', header=1, comment='#')
             self.assert_(False)
         except Exception as inst:
-            self.assert_('Expected 3 fields in line 4, saw 5' in str(inst))
+            self.assertIn('Expected 3 fields in line 4, saw 5', str(inst))
 
         # skip_footer
         data = """ignore
@@ -540,7 +540,7 @@ footer
                 skip_footer=1)
             self.assert_(False)
         except Exception as inst:
-            self.assert_('Expected 3 fields in line 4, saw 5' in str(inst))
+            self.assertIn('Expected 3 fields in line 4, saw 5', str(inst))
 
         # first chunk
         data = """ignore
@@ -558,7 +558,7 @@ skip
             df = it.read(5)
             self.assert_(False)
         except Exception as inst:
-            self.assert_('Expected 3 fields in line 6, saw 5' in str(inst))
+            self.assertIn('Expected 3 fields in line 6, saw 5', str(inst))
 
         # middle chunk
         data = """ignore
@@ -577,7 +577,7 @@ skip
             it.read(2)
             self.assert_(False)
         except Exception as inst:
-            self.assert_('Expected 3 fields in line 6, saw 5' in str(inst))
+            self.assertIn('Expected 3 fields in line 6, saw 5', str(inst))
 
         # last chunk
         data = """ignore
@@ -596,7 +596,7 @@ skip
             it.read()
             self.assert_(False)
         except Exception as inst:
-            self.assert_('Expected 3 fields in line 6, saw 5' in str(inst))
+            self.assertIn('Expected 3 fields in line 6, saw 5', str(inst))
 
     def test_passing_dtype(self):
 
@@ -1698,7 +1698,7 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
 
         chunks = list(reader)
 
-        self.assert_('nominalTime' not in df)
+        self.assertNotIn('nominalTime', df)
 
         tm.assert_frame_equal(chunks[0], df[:2])
         tm.assert_frame_equal(chunks[1], df[2:4])
