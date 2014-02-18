@@ -949,6 +949,12 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         result = s[['foo', 'bar', 'bah', 'bam']]
         assert_series_equal(result, expected)
 
+    def test_getitem_dups(self):
+        s = Series(range(5),index=['A','A','B','C','C'])
+        expected = Series([3,4],index=['C','C'])
+        result = s['C']
+        assert_series_equal(result, expected)
+
     def test_setitem_ambiguous_keyerror(self):
         s = Series(lrange(10), index=lrange(0, 20, 2))
 
@@ -4813,6 +4819,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         result = s.apply(str.split, args=(',',))
         self.assertEqual(result[0], ['foo', 'bar'])
+        tm.assert_isinstance(result[0], list)
 
     def test_align(self):
         def _check_align(a, b, how='left', fill=None):
