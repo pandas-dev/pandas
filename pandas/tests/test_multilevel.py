@@ -1509,7 +1509,7 @@ Thur,Lunch,Yes,51.51,17"""
         exp = self.ymd['A'].copy()
         s[5:] = 0
         exp.values[5:] = 0
-        self.assert_(np.array_equal(s.values, exp.values))
+        self.assert_numpy_array_equal(s.values, exp.values)
 
         result = self.ymd[5:]
         expected = self.ymd.reindex(s.index[5:])

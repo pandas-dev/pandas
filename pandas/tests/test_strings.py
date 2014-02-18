@@ -32,7 +32,7 @@ class TestStringMethods(tm.TestCase):
     def test_api(self):
 
         # GH 6106
-        self.assert_(Series.str is None)
+        self.assertIsNone(Series.str)
 
     def test_iter(self):
         # GH3638
@@ -133,7 +133,7 @@ class TestStringMethods(tm.TestCase):
         # Multiple arrays
         result = strings.str_cat(one, [two], na_rep='NA')
         exp = ['aa', 'aNA', 'bb', 'bd', 'cfoo', 'NANA']
-        self.assert_(np.array_equal(result, exp))
+        self.assert_numpy_array_equal(result, exp)
 
         result = strings.str_cat(one, two)
         exp = ['aa', NA, 'bb', 'bd', 'cfoo', NA]

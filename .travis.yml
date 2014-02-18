@@ -14,33 +14,33 @@ matrix:
     include:
     - python: 2.6
       env:
-      - NOSE_ARGS="not slow and not network"
+      - NOSE_ARGS="not slow and not network and not disabled"
       - CLIPBOARD=xclip
       - LOCALE_OVERRIDE="it_IT.UTF-8"
       - JOB_NAME: "26_nslow_nnet" # ScatterCI Build name, 20 chars max
     - python: 2.7
       env:
-      - NOSE_ARGS="slow and not network"
+      - NOSE_ARGS="slow and not network and not disabled"
       - LOCALE_OVERRIDE="zh_CN.GB18030"
       - FULL_DEPS=true
       - JOB_TAG=_LOCALE
       - JOB_NAME: "27_slow_nnet_LOCALE" # ScatterCI Build name, 20 chars max
     - python: 2.7
       env:
-      - NOSE_ARGS="not slow"
+      - NOSE_ARGS="not slow and not disabled"
       - FULL_DEPS=true
       - CLIPBOARD_GUI=gtk2
       - JOB_NAME: "27_nslow" # ScatterCI Build name, 20 chars max
       - DOC_BUILD=true # if rst files were changed, build docs in parallel with tests
     - python: 3.2
       env:
-      - NOSE_ARGS="not slow"
+      - NOSE_ARGS="not slow and not disabled"
       - FULL_DEPS=true
       - CLIPBOARD_GUI=qt4
       - JOB_NAME: "32_nslow"  # ScatterCI Build name, 20 chars max
     - python: 3.3
       env:
-      - NOSE_ARGS="not slow"
+      - NOSE_ARGS="not slow and not disabled"
       - FULL_DEPS=true
       - CLIPBOARD=xsel
       - JOB_NAME: "33_nslow"  # ScatterCI Build name, 20 chars max
@@ -73,6 +73,7 @@ install:
 
 before_script:
   - mysql -e 'create database pandas_nosetest;'
+  - psql -c 'create database pandas_nosetest;' -U postgres
 
 script:
   - echo "script"

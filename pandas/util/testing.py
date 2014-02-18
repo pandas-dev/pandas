@@ -65,11 +65,40 @@ class TestCase(unittest.TestCase):
     def tearDownClass(cls):
         #print("tearing down up: {0}".format(cls))
         pass
-    
-    def assert_numpy_array_equals(self, np_array, assert_equal):
+
+    def assert_numpy_array_equal(self, np_array, assert_equal):
         if np.array_equal(np_array, assert_equal):
 	        return
         raise AssertionError('{0} is not equal to {1}.'.format(np_array, assert_equal))
+
+    def assertIs(self, first, second, msg=''):
+        """Checks that 'first' is 'second'"""
+        a, b = first, second
+        assert a is b, "%s: %r is not %r" % (msg.format(a,b), a, b)
+
+    def assertIsNot(self, first, second, msg=''):
+        """Checks that 'first' is not 'second'"""
+        a, b = first, second
+        assert a is not b, "%s: %r is %r" % (msg.format(a,b), a, b)
+
+    def assertIsNone(self, expr, msg=''):
+        """Checks that 'expr' is None"""
+        self.assertIs(expr, None, msg)
+
+    def assertIsNotNone(self, expr, msg=''):
+        """Checks that 'expr' is not None"""
+        self.assertIsNot(expr, None, msg)
+
+    def assertIn(self, first, second, msg=''):
+        """Checks that 'first' is in 'second'"""
+        a, b = first, second
+        assert a in b, "%s: %r is not in %r" % (msg.format(a,b), a, b)
+
+    def assertNotIn(self, first, second, msg=''):
+        """Checks that 'first' is not in 'second'"""
+        a, b = first, second
+        assert a not in b, "%s: %r is in %r" % (msg.format(a,b), a, b)
+
 
 # NOTE: don't pass an NDFrame or index to this function - may not handle it
 # well.
@@ -991,6 +1020,9 @@ _network_error_messages = (
     'Server Hangup',
     'HTTP Error 503: Service Unavailable',
     '502: Proxy Error',
+    'HTTP Error 502: internal error',
+    'HTTP Error 502',
+    'HTTP Error 503',
     )
 
 # or this e.errno/e.reason.errno
@@ -1002,7 +1034,7 @@ _network_errno_vals = (
     60,  # urllib.error.URLError: [Errno 60] Connection timed out
     )
 
-# Both of the above shouldn't mask reasl issues such as 404's
+# Both of the above shouldn't mask real issues such as 404's
 # or refused connections (changed DNS).
 # But some tests (test_data yahoo) contact incredibly flakey
 # servers.
@@ -1402,3 +1434,8 @@ def skip_if_no_ne(engine='numexpr'):
         if ne.__version__ < LooseVersion('2.0'):
             raise nose.SkipTest("numexpr version too low: "
                                 "%s" % ne.__version__)
+
+
+def disabled(t):
+    t.disabled = True
+    return t

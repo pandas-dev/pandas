@@ -359,20 +359,18 @@ def mask_missing(arr, values_to_mask):
         if mask is None:
             mask = arr == x
 
-            # if x is a string and mask is not, then we get a scalar
-            # return value, which is not good
-            if not isinstance(mask, np.ndarray):
-                m = mask
-                mask = np.empty(arr.shape, dtype=np.bool)
-                mask.fill(m)
+            # if x is a string and arr is not, then we get False and we must
+            # expand the mask to size arr.shape
+            if np.isscalar(mask):
+                mask = np.zeros(arr.shape, dtype=bool)
         else:
-            mask = mask | (arr == x)
+            mask |= arr == x
 
     if na_mask.any():
         if mask is None:
             mask = isnull(arr)
         else:
-            mask = mask | isnull(arr)
+            mask |= isnull(arr)
 
     return mask
 
@@ -1179,13 +1177,23 @@ def _lcd_dtypes(a_dtype, b_dtype):
     return np.object
 
 
-def _fill_zeros(result, y, fill):
-    """ if we have an integer value (or array in y)
+def _fill_zeros(result, x, y, name, fill):
+    """
+    if this is a reversed op, then flip x,y
+
+    if we have an integer value (or array in y)
     and we have 0's, fill them with the fill,
     return the result
+
+    mask the nan's from x
     """
 
     if fill is not None:
+
+        if name.startswith('r'):
+            x,y = y,x
+
+
         if not isinstance(y, np.ndarray):
             dtype, value = _infer_dtype_from_scalar(y)
             y = pa.empty(result.shape, dtype=dtype)
@@ -1196,8 +1204,18 @@ def _fill_zeros(result, y, fill):
             mask = y.ravel() == 0
             if mask.any():
                 shape = result.shape
-                result, changed = _maybe_upcast_putmask(
-                    result.ravel(), mask, fill)
+                result = result.ravel().astype('float64')
+
+                signs = np.sign(result)
+                nans = np.isnan(x.ravel())
+                np.putmask(result, mask & ~nans, fill)
+
+                # if we have a fill of inf, then sign it
+                # correctly
+                # GH 6178
+                if np.isinf(fill):
+                    np.putmask(result,signs<0 & mask & ~nans,-fill)
+
                 result = result.reshape(shape)
 
     return result
@@ -1538,6 +1556,16 @@ def _maybe_box(indexer, values, obj, key):
 
     # return the value
     return values
+
+def _maybe_box_datetimelike(value):
+    # turn a datetime like into a Timestamp/timedelta as needed
+
+    if isinstance(value, np.datetime64):
+        value = tslib.Timestamp(value)
+    elif isinstance(value, np.timedelta64):
+        pass
+
+    return value
 
 _values_from_object = lib.values_from_object
 

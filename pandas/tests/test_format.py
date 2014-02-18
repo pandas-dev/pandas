@@ -127,15 +127,15 @@ class TestDataFrameFormatting(tm.TestCase):
 
             for line, value in lzip(r.split('\n'), df['B']):
                 if _strlen(value) + 1 > max_len:
-                    self.assert_('...' in line)
+                    self.assertIn('...', line)
                 else:
-                    self.assert_('...' not in line)
+                    self.assertNotIn('...', line)
 
         with option_context("display.max_colwidth", 999999):
-            self.assert_('...' not in repr(df))
+            self.assertNotIn('...', repr(df))
 
         with option_context("display.max_colwidth", max_len + 2):
-            self.assert_('...' not in repr(df))
+            self.assertNotIn('...', repr(df))
 
     def test_repr_chop_threshold(self):
         df = DataFrame([[0.1, 0.5],[0.5, -0.1]])
@@ -831,7 +831,7 @@ class TestDataFrameFormatting(tm.TestCase):
                 self.assert_(len(wider_repr) < len(wide_repr))
 
             for line in wide_repr.splitlines()[1::13]:
-                self.assert_('DataFrame Index' in line)
+                self.assertIn('DataFrame Index', line)
 
         reset_option('display.expand_frame_repr')
 
@@ -855,7 +855,7 @@ class TestDataFrameFormatting(tm.TestCase):
                 self.assert_(len(wider_repr) < len(wide_repr))
 
             for line in wide_repr.splitlines()[1::13]:
-                self.assert_('Level 0 Level 1' in line)
+                self.assertIn('Level 0 Level 1', line)
 
         reset_option('display.expand_frame_repr')
 
@@ -979,7 +979,7 @@ class TestDataFrameFormatting(tm.TestCase):
 
         buf = StringIO()
         retval = biggie.to_string(buf=buf)
-        self.assert_(retval is None)
+        self.assertIsNone(retval)
         self.assertEqual(buf.getvalue(), s)
 
         tm.assert_isinstance(s, compat.string_types)
@@ -1208,7 +1208,7 @@ c  10  11  12  13  14\
 
         buf = StringIO()
         retval = biggie.to_html(buf=buf)
-        self.assert_(retval is None)
+        self.assertIsNone(retval)
         self.assertEqual(buf.getvalue(), s)
 
         tm.assert_isinstance(s, compat.string_types)
@@ -1251,7 +1251,7 @@ c  10  11  12  13  14\
 
     def test_to_html_columns_arg(self):
         result = self.frame.to_html(columns=['A'])
-        self.assert_('<th>B</th>' not in result)
+        self.assertNotIn('<th>B</th>', result)
 
     def test_to_html_multiindex(self):
         columns = pandas.MultiIndex.from_tuples(list(zip(np.arange(2).repeat(2),
@@ -1417,13 +1417,13 @@ c  10  11  12  13  14\
                               index=index)
         result = df.to_html(index=False)
         for i in index:
-            self.assert_(i not in result)
+            self.assertNotIn(i, result)
 
         tuples = [('foo', 'car'), ('foo', 'bike'), ('bar', 'car')]
         df.index = pandas.MultiIndex.from_tuples(tuples)
         result = df.to_html(index=False)
         for i in ['foo', 'bar', 'car', 'bike']:
-            self.assert_(i not in result)
+            self.assertNotIn(i, result)
 
     def test_repr_html(self):
         self.frame._repr_html_()
@@ -1574,11 +1574,11 @@ c  10  11  12  13  14\
                    {'parent_appname': 'ipython-qtconsole'}}}
 
         repstr = self.frame._repr_html_()
-        self.assert_(repstr is not None)
+        self.assertIsNotNone(repstr)
 
         fmt.set_option('display.max_rows', 5, 'display.max_columns', 2)
         repstr = self.frame._repr_html_()
-        self.assert_('class' in repstr)  # info fallback
+        self.assertIn('class', repstr)  # info fallback
 
         fmt.reset_option('^display.')
 
@@ -1669,10 +1669,10 @@ c  10  11  12  13  14\
 \end{tabular}
 """
         self.assertEqual(withoutindex_result, withoutindex_expected)
-        
+
     def test_to_latex_escape_special_chars(self):
         special_characters = ['&','%','$','#','_',
-                               '{','}','~','^','\\'] 
+                               '{','}','~','^','\\']
         df = DataFrame(data=special_characters)
         observed = df.to_latex()
         expected = r"""\begin{tabular}{ll}
@@ -1694,6 +1694,99 @@ c  10  11  12  13  14\
 """
         self.assertEqual(observed, expected)
 
+    def test_to_csv_quotechar(self):
+        df = DataFrame({'col' : [1,2]})
+        expected = """\
+"","col"
+"0","1"
+"1","2"
+"""
+        with tm.ensure_clean('test.csv') as path:
+            df.to_csv(path, quoting=1) # 1=QUOTE_ALL
+            with open(path, 'r') as f:
+                self.assertEqual(f.read(), expected)
+        with tm.ensure_clean('test.csv') as path:
+            df.to_csv(path, quoting=1, engine='python')
+            with open(path, 'r') as f:
+                self.assertEqual(f.read(), expected)
+
+        expected = """\
+$$,$col$
+$0$,$1$
+$1$,$2$
+"""
+        with tm.ensure_clean('test.csv') as path:
+            df.to_csv(path, quoting=1, quotechar="$")
+            with open(path, 'r') as f:
+                self.assertEqual(f.read(), expected)
+        with tm.ensure_clean('test.csv') as path:
+            df.to_csv(path, quoting=1, quotechar="$", engine='python')
+            with open(path, 'r') as f:
+                self.assertEqual(f.read(), expected)
+
+        with tm.ensure_clean('test.csv') as path:
+            with tm.assertRaisesRegexp(TypeError, 'quotechar'):
+                df.to_csv(path, quoting=1, quotechar=None)
+        with tm.ensure_clean('test.csv') as path:
+            with tm.assertRaisesRegexp(TypeError, 'quotechar'):
+                df.to_csv(path, quoting=1, quotechar=None, engine='python')
+
+    def test_to_csv_doublequote(self):
+        df = DataFrame({'col' : ['a"a', '"bb"']})
+        expected = '''\
+"","col"
+"0","a""a"
+"1","""bb"""
+'''
+        with tm.ensure_clean('test.csv') as path:
+            df.to_csv(path, quoting=1, doublequote=True) # QUOTE_ALL
+            with open(path, 'r') as f:
+                self.assertEqual(f.read(), expected)
+        with tm.ensure_clean('test.csv') as path:
+            df.to_csv(path, quoting=1, doublequote=True, engine='python')
+            with open(path, 'r') as f:
+                self.assertEqual(f.read(), expected)
+
+        from _csv import Error
+        with tm.ensure_clean('test.csv') as path:
+            with tm.assertRaisesRegexp(Error, 'escapechar'):
+                df.to_csv(path, doublequote=False) # no escapechar set
+        with tm.ensure_clean('test.csv') as path:
+            with tm.assertRaisesRegexp(Error, 'escapechar'):
+                df.to_csv(path, doublequote=False, engine='python')
+
+    def test_to_csv_escapechar(self):
+        df = DataFrame({'col' : ['a"a', '"bb"']})
+        expected = """\
+"","col"
+"0","a\\"a"
+"1","\\"bb\\""
+"""
+        with tm.ensure_clean('test.csv') as path:   # QUOTE_ALL
+            df.to_csv(path, quoting=1, doublequote=False, escapechar='\\')
+            with open(path, 'r') as f:
+                self.assertEqual(f.read(), expected)
+        with tm.ensure_clean('test.csv') as path:
+            df.to_csv(path, quoting=1, doublequote=False, escapechar='\\',
+                      engine='python')
+            with open(path, 'r') as f:
+                self.assertEqual(f.read(), expected)
+
+        df = DataFrame({'col' : ['a,a', ',bb,']})
+        expected = """\
+,col
+0,a\\,a
+1,\\,bb\\,
+"""
+        with tm.ensure_clean('test.csv') as path:
+            df.to_csv(path, quoting=3, escapechar='\\') # QUOTE_NONE
+            with open(path, 'r') as f:
+                self.assertEqual(f.read(), expected)
+        with tm.ensure_clean('test.csv') as path:
+            df.to_csv(path, quoting=3, escapechar='\\', engine='python')
+            with open(path, 'r') as f:
+                self.assertEqual(f.read(), expected)
+
 class TestSeriesFormatting(tm.TestCase):
     _multiprocess_can_split_ = True
 
@@ -1714,7 +1807,7 @@ class TestSeriesFormatting(tm.TestCase):
         s = self.ts.to_string()
 
         retval = self.ts.to_string(buf=buf)
-        self.assert_(retval is None)
+        self.assertIsNone(retval)
         self.assertEqual(buf.getvalue().strip(), s)
 
         # pass float_format
@@ -1795,9 +1888,9 @@ class TestSeriesFormatting(tm.TestCase):
             if line.startswith('dtype:'):
                 continue
             if _three_digit_exp():
-                self.assert_('+010' in line)
+                self.assertIn('+010', line)
             else:
-                self.assert_('+10' in line)
+                self.assertIn('+10', line)
 
     def test_datetimeindex(self):
 

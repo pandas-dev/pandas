@@ -69,12 +69,12 @@ class CheckNameIntegration(object):
         # making a copy
 
         self.ts.index.name = None
-        self.assert_(self.ts.index.name is None)
-        self.assert_(self.ts is self.ts)
+        self.assertIsNone(self.ts.index.name)
+        self.assertIs(self.ts, self.ts)
         cp = self.ts.copy()
         cp.index.name = 'foo'
         print(self.ts.index.name)
-        self.assert_(self.ts.index.name is None)
+        self.assertIsNone(self.ts.index.name)
 
     def test_append_preserve_name(self):
         result = self.ts[:5].append(self.ts[5:])
@@ -93,7 +93,7 @@ class CheckNameIntegration(object):
         cp = self.ts.copy()
         cp.name = 'something else'
         result = self.ts + cp
-        self.assert_(result.name is None)
+        self.assertIsNone(result.name)
 
     def test_combine_first_name(self):
         result = self.ts.combine_first(self.ts[:5])
@@ -112,6 +112,28 @@ class CheckNameIntegration(object):
         rs = s0.combine_first(s1)
         xp = Series([datetime(2010, 1, 1), '2011'])
         assert_series_equal(rs, xp)
+
+    def test_get(self):
+
+        # GH 6383
+        s = Series(np.array([43, 48, 60, 48, 50, 51, 50, 45, 57, 48, 56,
+                             45, 51, 39, 55, 43, 54, 52, 51, 54]))
+
+        result = s.get(25, 0)
+        expected = 0
+        self.assertEquals(result,expected)
+
+        s = Series(np.array([43, 48, 60, 48, 50, 51, 50, 45, 57, 48, 56,
+                             45, 51, 39, 55, 43, 54, 52, 51, 54]),
+                   index=pd.Float64Index([25.0, 36.0, 49.0, 64.0, 81.0, 100.0,
+                                          121.0, 144.0, 169.0, 196.0, 1225.0,
+                                          1296.0, 1369.0, 1444.0, 1521.0, 1600.0,
+                                          1681.0, 1764.0, 1849.0, 1936.0],
+                                         dtype='object'))
+
+        result = s.get(25, 0)
+        expected = 43
+        self.assertEquals(result,expected)
 
     def test_delitem(self):
 
@@ -209,18 +231,18 @@ class CheckNameIntegration(object):
         # test small series
         s = Series([0, 1, 2])
         s.name = "test"
-        self.assert_("Name: test" in repr(s))
+        self.assertIn("Name: test", repr(s))
         s.name = None
-        self.assert_(not "Name:" in repr(s))
+        self.assertNotIn("Name:", repr(s))
         # test big series (diff code path)
         s = Series(lrange(0, 1000))
         s.name = "test"
-        self.assert_("Name: test" in repr(s))
+        self.assertIn("Name: test", repr(s))
         s.name = None
-        self.assert_(not "Name:" in repr(s))
+        self.assertNotIn("Name:", repr(s))
 
         s = Series(index=date_range('20010101', '20020101'), name='test')
-        self.assert_("Name: test" in repr(s))
+        self.assertIn("Name: test", repr(s))
 
     def test_pickle_preserve_name(self):
         unpickled = self._pickle_roundtrip_name(self.ts)
@@ -351,10 +373,10 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         # Mixed type Series
         mixed = Series(['hello', np.NaN], index=[0, 1])
         self.assertEqual(mixed.dtype, np.object_)
-        self.assert_(mixed[1] is np.NaN)
+        self.assertIs(mixed[1], np.NaN)
 
-        self.assert_(not self.empty.is_time_series)
-        self.assert_(not Series({}).is_time_series)
+        self.assertFalse(self.empty.is_time_series)
+        self.assertFalse(Series({}).is_time_series)
 
         self.assertRaises(Exception, Series, np.random.randn(3, 3),
                           index=np.arange(3))
@@ -637,7 +659,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         data = {'a': 0, 'b': 1, 'c': 2, 'd': 3}
 
         series = Series(data)
-        self.assert_(tm.is_sorted(series.index))
+        self.assertTrue(tm.is_sorted(series.index))
 
         data = {'a': 0, 'b': '1', 'c': '2', 'd': datetime.now()}
         series = Series(data)
@@ -728,7 +750,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         # GH 5652
         for s in [Series(), Series(index=list('abc'))]:
             result = s.get(None)
-            self.assert_(result is None)
+            self.assertIsNone(result)
 
     def test_iget(self):
         s = Series(np.random.randn(10), index=lrange(0, 20, 2))
@@ -798,7 +820,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         result = s[list(mask)]
         expected = s[mask]
         assert_series_equal(result, expected)
-        self.assert_(np.array_equal(result.index, s.index[mask]))
+        self.assert_numpy_array_equal(result.index, s.index[mask])
 
     def test_getitem_boolean_empty(self):
         s = Series([], dtype=np.int64)
@@ -956,8 +978,8 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         numSliceEnd = self.series[-10:]
         objSlice = self.objSeries[10:20]
 
-        self.assert_(self.series.index[9] not in numSlice.index)
-        self.assert_(self.objSeries.index[9] not in objSlice.index)
+        self.assertNotIn(self.series.index[9], numSlice.index)
+        self.assertNotIn(self.objSeries.index[9], objSlice.index)
 
         self.assertEqual(len(numSlice), len(numSlice.index))
         self.assertEqual(self.series[numSlice.index[0]],
@@ -1075,13 +1097,13 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
     def test_set_value(self):
         idx = self.ts.index[10]
         res = self.ts.set_value(idx, 0)
-        self.assert_(res is self.ts)
+        self.assertIs(res, self.ts)
         self.assertEqual(self.ts[idx], 0)
 
         # equiv
         s = self.series.copy()
         res = s.set_value('foobar', 0)
-        self.assert_(res is s)
+        self.assertIs(res, s)
         self.assertEqual(res.index[-1], 'foobar')
         self.assertEqual(res['foobar'], 0)
 
@@ -1628,12 +1650,12 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         # 0 as name
         ser = Series(np.random.randn(100), name=0)
         rep_str = repr(ser)
-        self.assert_("Name: 0" in rep_str)
+        self.assertIn("Name: 0", rep_str)
 
         # tidy repr
         ser = Series(np.random.randn(1001), name=0)
         rep_str = repr(ser)
-        self.assert_("Name: 0" in rep_str)
+        self.assertIn("Name: 0", rep_str)
 
         ser = Series(["a\n\r\tb"], name=["a\n\r\td"], index=["a\n\r\tf"])
         self.assertFalse("\t" in repr(ser))
@@ -1737,7 +1759,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         self.assert_(getkeys() is self.ts.index)
 
     def test_values(self):
-        self.assert_(np.array_equal(self.ts, self.ts.values))
+        self.assert_numpy_array_equal(self.ts, self.ts.values)
 
     def test_iteritems(self):
         for idx, val in compat.iteritems(self.series):
@@ -1889,8 +1911,8 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         mexpected = np.argsort(s.values, kind='mergesort')
         qexpected = np.argsort(s.values, kind='quicksort')
 
-        self.assert_(np.array_equal(mindexer, mexpected))
-        self.assert_(np.array_equal(qindexer, qexpected))
+        self.assert_numpy_array_equal(mindexer, mexpected)
+        self.assert_numpy_array_equal(qindexer, qexpected)
         self.assert_(not np.array_equal(qindexer, mindexer))
 
     def test_reorder_levels(self):
@@ -1938,24 +1960,24 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         self._check_accum_op('cumprod')
 
     def test_cummin(self):
-        self.assert_(np.array_equal(self.ts.cummin(),
-                                    np.minimum.accumulate(np.array(self.ts))))
+        self.assert_numpy_array_equal(self.ts.cummin(),
+                                      np.minimum.accumulate(np.array(self.ts)))
         ts = self.ts.copy()
         ts[::2] = np.NaN
         result = ts.cummin()[1::2]
         expected = np.minimum.accumulate(ts.valid())
 
-        self.assert_(np.array_equal(result, expected))
+        self.assert_numpy_array_equal(result, expected)
 
     def test_cummax(self):
-        self.assert_(np.array_equal(self.ts.cummax(),
-                                    np.maximum.accumulate(np.array(self.ts))))
+        self.assert_numpy_array_equal(self.ts.cummax(),
+                                      np.maximum.accumulate(np.array(self.ts)))
         ts = self.ts.copy()
         ts[::2] = np.NaN
         result = ts.cummax()[1::2]
         expected = np.maximum.accumulate(ts.valid())
 
-        self.assert_(np.array_equal(result, expected))
+        self.assert_numpy_array_equal(result, expected)
 
     def test_npdiff(self):
         raise nose.SkipTest("skipping due to Series no longer being an "
@@ -2022,7 +2044,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
     def _check_accum_op(self, name):
         func = getattr(np, name)
-        self.assert_(np.array_equal(func(self.ts), func(np.array(self.ts))))
+        self.assert_numpy_array_equal(func(self.ts), func(np.array(self.ts)))
 
         # with missing values
         ts = self.ts.copy()
@@ -2031,7 +2053,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         result = func(ts)[1::2]
         expected = func(np.array(ts.valid()))
 
-        self.assert_(np.array_equal(result, expected))
+        self.assert_numpy_array_equal(result, expected)
 
     def test_round(self):
         # numpy.round doesn't preserve metadata, probably a numpy bug,
@@ -2211,6 +2233,12 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         result = p['first'] / p['second']
         assert_series_equal(result, p['first'].astype('float64'))
         self.assertFalse(np.array_equal(result, p['second'] / p['first']))
+
+        # inf signing
+        s = Series([np.nan,1.,-1.])
+        result = s / 0
+        expected = Series([np.nan,np.inf,-np.inf])
+        assert_series_equal(result, expected)
 
     def test_operators(self):
 
@@ -2818,16 +2846,16 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
     def test_fillna(self):
         ts = Series([0., 1., 2., 3., 4.], index=tm.makeDateIndex(5))
 
-        self.assert_(np.array_equal(ts, ts.fillna(method='ffill')))
+        self.assert_numpy_array_equal(ts, ts.fillna(method='ffill'))
 
         ts[2] = np.NaN
 
         self.assert_(
             np.array_equal(ts.fillna(method='ffill'), [0., 1., 1., 3., 4.]))
-        self.assert_(np.array_equal(ts.fillna(method='backfill'),
-                                    [0., 1., 3., 3., 4.]))
+        self.assert_numpy_array_equal(ts.fillna(method='backfill'),
+                                      [0., 1., 3., 3., 4.])
 
-        self.assert_(np.array_equal(ts.fillna(value=5), [0., 1., 5., 3., 4.]))
+        self.assert_numpy_array_equal(ts.fillna(value=5), [0., 1., 5., 3., 4.])
 
         self.assertRaises(ValueError, ts.fillna)
         self.assertRaises(ValueError, self.ts.fillna, value=0, method='ffill')
@@ -2884,7 +2912,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         try:
             self.ts.fillna(method='ffil')
         except ValueError as inst:
-            self.assert_('ffil' in str(inst))
+            self.assertIn('ffil', str(inst))
 
     def test_ffill(self):
         ts = Series([0., 1., 2., 3., 4.], index=tm.makeDateIndex(5))
@@ -3411,7 +3439,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         int_ts = self.ts.astype(int)[:-5]
         added = self.ts + int_ts
         expected = self.ts.values[:-5] + int_ts.values
-        self.assert_(np.array_equal(added[:-5], expected))
+        self.assert_numpy_array_equal(added[:-5], expected)
 
     def test_operators_reverse_object(self):
         # GH 56
@@ -3523,14 +3551,14 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         # nothing used from the input
         combined = series.combine_first(series_copy)
 
-        self.assert_(np.array_equal(combined, series))
+        self.assert_numpy_array_equal(combined, series)
 
         # Holes filled from input
         combined = series_copy.combine_first(series)
         self.assert_(np.isfinite(combined).all())
 
-        self.assert_(np.array_equal(combined[::2], series[::2]))
-        self.assert_(np.array_equal(combined[1::2], series_copy[1::2]))
+        self.assert_numpy_array_equal(combined[::2], series[::2])
+        self.assert_numpy_array_equal(combined[1::2], series_copy[1::2])
 
         # mixed types
         index = tm.makeStringIndex(20)
@@ -3811,25 +3839,25 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         s = Series(np.random.randint(0, 100, size=100))
         result = np.sort(s.unique())
         expected = np.unique(s.values)
-        self.assert_(np.array_equal(result, expected))
+        self.assert_numpy_array_equal(result, expected)
 
         s = Series(np.random.randint(0, 100, size=100).astype(np.int32))
         result = np.sort(s.unique())
         expected = np.unique(s.values)
-        self.assert_(np.array_equal(result, expected))
+        self.assert_numpy_array_equal(result, expected)
 
         # test string arrays for coverage
         strings = np.tile(np.array([tm.rands(10) for _ in range(10)]), 10)
         result = np.sort(nanops.unique1d(strings))
         expected = np.unique(strings)
-        self.assert_(np.array_equal(result, expected))
+        self.assert_numpy_array_equal(result, expected)
 
         # decision about None
 
         s = Series([1, 2, 3, None, None, None], dtype=object)
         result = s.unique()
         expected = np.array([1, 2, 3, None], dtype=object)
-        self.assert_(np.array_equal(result, expected))
+        self.assert_numpy_array_equal(result, expected)
 
     def test_dropna_empty(self):
         s = Series([])
@@ -3876,13 +3904,13 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         ts = self.ts.copy()
         ts.sort()
 
-        self.assert_(np.array_equal(ts, self.ts.order()))
-        self.assert_(np.array_equal(ts.index, self.ts.order().index))
+        self.assert_numpy_array_equal(ts, self.ts.order())
+        self.assert_numpy_array_equal(ts.index, self.ts.order().index)
 
         ts.sort(ascending=False)
-        self.assert_(np.array_equal(ts, self.ts.order(ascending=False)))
-        self.assert_(np.array_equal(ts.index,
-                                    self.ts.order(ascending=False).index))
+        self.assert_numpy_array_equal(ts, self.ts.order(ascending=False))
+        self.assert_numpy_array_equal(ts.index,
+                                      self.ts.order(ascending=False).index)
 
     def test_sort_index(self):
         import random
@@ -3906,11 +3934,11 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         result = ts.order()
         self.assert_(np.isnan(result[-5:]).all())
-        self.assert_(np.array_equal(result[:-5], np.sort(vals[5:])))
+        self.assert_numpy_array_equal(result[:-5], np.sort(vals[5:]))
 
         result = ts.order(na_last=False)
         self.assert_(np.isnan(result[:5]).all())
-        self.assert_(np.array_equal(result[5:], np.sort(vals[5:])))
+        self.assert_numpy_array_equal(result[5:], np.sort(vals[5:]))
 
         # something object-type
         ser = Series(['A', 'B'], [1, 2])
@@ -3949,6 +3977,48 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         iranks = iseries.rank()
         exp = iseries.astype(float).rank()
         assert_series_equal(iranks, exp)
+        iseries = Series(np.arange(5)) + 1.0
+        exp = iseries / 5.0
+        iranks = iseries.rank(pct=True)
+
+        assert_series_equal(iranks, exp)
+
+        iseries = Series(np.repeat(1, 100))
+        exp = Series(np.repeat(0.505, 100))
+        iranks = iseries.rank(pct=True)
+        assert_series_equal(iranks, exp)
+
+        iseries[1] = np.nan
+        exp = Series(np.repeat(50.0 / 99.0, 100))
+        exp[1] =  np.nan
+        iranks = iseries.rank(pct=True)
+        assert_series_equal(iranks, exp)
+
+        iseries = Series(np.arange(5)) + 1.0
+        iseries[4] = np.nan
+        exp = iseries / 4.0
+        iranks = iseries.rank(pct=True)
+        assert_series_equal(iranks, exp)
+
+        iseries = Series(np.repeat(np.nan, 100))
+        exp = iseries.copy()
+        iranks = iseries.rank(pct=True)
+        assert_series_equal(iranks, exp)
+
+        iseries = Series(np.arange(5)) + 1
+        iseries[4] = np.nan
+        exp = iseries / 4.0
+        iranks = iseries.rank(pct=True)
+        assert_series_equal(iranks, exp)
+        rng = date_range('1/1/1990', periods=5)
+
+        iseries = Series(np.arange(5), rng) + 1
+        iseries.ix[4] = np.nan
+        exp = iseries / 4.0
+        iranks = iseries.rank(pct=True)
+        assert_series_equal(iranks, exp)
+
+
 
     def test_from_csv(self):
 
@@ -3960,8 +4030,8 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
             self.series.to_csv(path)
             series = Series.from_csv(path)
-            self.assert_(series.name is None)
-            self.assert_(series.index.name is None)
+            self.assertIsNone(series.name)
+            self.assertIsNone(series.index.name)
             assert_series_equal(self.series, series)
 
             outfile = open(path, 'w')
@@ -4025,7 +4095,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_frame_equal(rs, xp)
 
     def test_to_dict(self):
-        self.assert_(np.array_equal(Series(self.ts.to_dict()), self.ts))
+        self.assert_numpy_array_equal(Series(self.ts.to_dict()), self.ts)
 
     def test_to_csv_float_format(self):
 
@@ -4522,7 +4592,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         arr = Series(['1', '2', '3', '4'], dtype=object)
         result = arr.astype(int)
-        self.assert_(np.array_equal(result, np.arange(1, 5)))
+        self.assert_numpy_array_equal(result, np.arange(1, 5))
 
     def test_astype_datetimes(self):
         import pandas.tslib as tslib
@@ -4573,7 +4643,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         # function
         result = self.ts.map(lambda x: x * 2)
-        self.assert_(np.array_equal(result, self.ts * 2))
+        self.assert_numpy_array_equal(result, self.ts * 2)
 
     def test_map_int(self):
         left = Series({'a': 1., 'b': 2., 'c': 3., 'd': 4})
@@ -5047,7 +5117,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         # partial dict
         s = Series(np.arange(4), index=['a', 'b', 'c', 'd'])
         renamed = s.rename({'b': 'foo', 'd': 'bar'})
-        self.assert_(np.array_equal(renamed.index, ['a', 'foo', 'c', 'bar']))
+        self.assert_numpy_array_equal(renamed.index, ['a', 'foo', 'c', 'bar'])
 
         # index with name
         renamer = Series(
@@ -5264,7 +5334,11 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         # malformed
         self.assertRaises(ValueError, ser.replace, [1, 2, 3], [np.nan, 0])
-        self.assertRaises(TypeError, ser.replace, range(1, 3), [np.nan, 0])
+
+        # make sure that we aren't just masking a TypeError because bools don't
+        # implement indexing
+        with tm.assertRaisesRegexp(TypeError, 'Cannot compare types .+'):
+            ser.replace([1, 2], [np.nan, 0])
 
         ser = Series([0, 1, 2, 3, 4])
         result = ser.replace([0, 1, 2, 3, 4], [4, 3, 2, 1, 0])
@@ -5291,7 +5365,6 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         result = ser.replace(Timestamp('20130103'), Timestamp('20120101'))
         assert_series_equal(result, expected)
 
-
     def test_replace_with_single_list(self):
         ser = Series([0, 1, 2, 3, 4])
         result = ser.replace([1,2,3])
@@ -5306,6 +5379,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         with tm.assertRaises(ValueError):
             s.replace([1,2,3],inplace=True,method='crash_cymbal')
         assert_series_equal(s, ser)
+
 
     def test_replace_mixed_types(self):
         s = Series(np.arange(5),dtype='int64')
@@ -5349,6 +5423,29 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(r, Series([1.0,2,'a'] +
                                       dr[3:].tolist(),dtype=object))
 
+    def test_replace_bool_with_string_no_op(self):
+        s = Series([True, False, True])
+        result = s.replace('fun', 'in-the-sun')
+        tm.assert_series_equal(s, result)
+
+    def test_replace_bool_with_string(self):
+        # nonexistent elements
+        s = Series([True, False, True])
+        result = s.replace(True, '2u')
+        expected = Series(['2u', False, '2u'])
+        tm.assert_series_equal(expected, result)
+
+    def test_replace_bool_with_bool(self):
+        s = Series([True, False, True])
+        result = s.replace(True, False)
+        expected = Series([False] * len(s))
+        tm.assert_series_equal(expected, result)
+
+    def test_replace_with_dict_with_bool_keys(self):
+        s = Series([True, False, True])
+        with tm.assertRaisesRegexp(TypeError, 'Cannot compare types .+'):
+            s.replace({'asdf': 'asdb', True: 'yes'})
+
     def test_asfreq(self):
         ts = Series([0., 1., 2.], index=[datetime(2009, 10, 30),
                                          datetime(2009, 11, 30),
@@ -5356,15 +5453,15 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         daily_ts = ts.asfreq('B')
         monthly_ts = daily_ts.asfreq('BM')
-        self.assert_(np.array_equal(monthly_ts, ts))
+        self.assert_numpy_array_equal(monthly_ts, ts)
 
         daily_ts = ts.asfreq('B', method='pad')
         monthly_ts = daily_ts.asfreq('BM')
-        self.assert_(np.array_equal(monthly_ts, ts))
+        self.assert_numpy_array_equal(monthly_ts, ts)
 
         daily_ts = ts.asfreq(datetools.bday)
         monthly_ts = daily_ts.asfreq(datetools.bmonthEnd)
-        self.assert_(np.array_equal(monthly_ts, ts))
+        self.assert_numpy_array_equal(monthly_ts, ts)
 
         result = ts[:0].asfreq('M')
         self.assertEqual(len(result), 0)
@@ -5446,12 +5543,12 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         self.assertEqual(index, ts.index[-6])
 
         ts[:] = np.nan
-        self.assert_(ts.last_valid_index() is None)
-        self.assert_(ts.first_valid_index() is None)
+        self.assertIsNone(ts.last_valid_index())
+        self.assertIsNone(ts.first_valid_index())
 
         ser = Series([], index=[])
-        self.assert_(ser.last_valid_index() is None)
-        self.assert_(ser.first_valid_index() is None)
+        self.assertIsNone(ser.last_valid_index())
+        self.assertIsNone(ser.first_valid_index())
 
     def test_mpl_compat_hack(self):
         result = self.ts[:, np.newaxis]
@@ -5560,10 +5657,10 @@ class TestSeriesNonUnique(tm.TestCase):
 
         ser.name = 'value'
         df = ser.reset_index()
-        self.assert_('value' in df)
+        self.assertIn('value', df)
 
         df = ser.reset_index(name='value2')
-        self.assert_('value2' in df)
+        self.assertIn('value2', df)
 
         # check inplace
         s = ser.reset_index(drop=True)

@@ -21,8 +21,8 @@ import pandas.core.datetools as datetools
 from pandas import compat, _np_version_under1p7
 from pandas.compat import map, zip, lrange, string_types, isidentifier
 from pandas.core.common import (isnull, notnull, is_list_like,
-                                _values_from_object, _maybe_promote, ABCSeries,
-                                SettingWithCopyError, SettingWithCopyWarning)
+                                _values_from_object, _maybe_promote, _maybe_box_datetimelike,
+                                ABCSeries, SettingWithCopyError, SettingWithCopyWarning)
 import pandas.core.nanops as nanops
 from pandas.util.decorators import Appender, Substitution
 from pandas.core import config
@@ -201,6 +201,7 @@ class NDFrame(PandasObject):
 
             def set_axis(a, i):
                 setattr(cls, a, lib.AxisProperty(i))
+                cls._internal_names_set.add(a)
 
             if axes_are_reversed:
                 m = cls._AXIS_LEN - 1
@@ -391,6 +392,10 @@ class NDFrame(PandasObject):
                 new_axes.append(ax)
 
         return new_axes
+
+    def set_axis(self, axis, labels):
+        """ public verson of axis assignment """
+        setattr(self,self._get_axis_name(axis),labels)
 
     def _set_axis(self, axis, labels):
         self._data.set_axis(axis, labels)
@@ -1304,7 +1309,12 @@ class NDFrame(PandasObject):
 
         if np.isscalar(loc):
             from pandas import Series
-            new_values, copy = self._data.fast_2d_xs(loc, copy=copy)
+            new_values, copy = self._data.fast_xs(loc, copy=copy)
+
+            # may need to box a datelike-scalar
+            if not is_list_like(new_values):
+                return _maybe_box_datetimelike(new_values)
+
             result = Series(new_values, index=self.columns,
                             name=self.index[loc])
 
@@ -1364,7 +1374,7 @@ class NDFrame(PandasObject):
         -------
         reindexed : same as input
         """
-        d = other._construct_axes_dict(method=method)
+        d = other._construct_axes_dict(method=method, copy=copy, limit=limit)
         return self.reindex(**d)
 
     def drop(self, labels, axis=0, level=None, inplace=False, **kwargs):
@@ -1540,13 +1550,6 @@ class NDFrame(PandasObject):
 
         self._consolidate_inplace()
 
-        # check if we are a multi reindex
-        if self._needs_reindex_multi(axes, method, level):
-            try:
-                return self._reindex_multi(axes, copy, fill_value)
-            except:
-                pass
-
         # if all axes that are requested to reindex are equal, then only copy
         # if indicated must have index names equal here as well as values
         if all([self._get_axis(axis).identical(ax)
@@ -1554,6 +1557,13 @@ class NDFrame(PandasObject):
             if copy:
                 return self.copy()
             return self
+
+        # check if we are a multi reindex
+        if self._needs_reindex_multi(axes, method, level):
+            try:
+                return self._reindex_multi(axes, copy, fill_value)
+            except:
+                pass
 
         # perform the reindex on the axes
         return self._reindex_axes(axes, level, limit,
@@ -1942,7 +1952,8 @@ class NDFrame(PandasObject):
     def dtypes(self):
         """ Return the dtypes in this object """
         from pandas import Series
-        return Series(self._data.get_dtypes(),index=self._info_axis)
+        return Series(self._data.get_dtypes(), index=self._info_axis,
+                      dtype=np.object_)
 
     @property
     def ftypes(self):
@@ -1951,7 +1962,8 @@ class NDFrame(PandasObject):
         in this object.
         """
         from pandas import Series
-        return Series(self._data.get_ftypes(),index=self._info_axis)
+        return Series(self._data.get_ftypes(), index=self._info_axis,
+                      dtype=np.object_)
 
     def as_blocks(self, columns=None):
         """
@@ -2325,8 +2337,8 @@ class NDFrame(PandasObject):
                 value_dict = {}
 
                 for k, v in items:
-                    to_rep_dict[k] = v.keys()
-                    value_dict[k] = v.values()
+                    to_rep_dict[k] = list(v.keys())
+                    value_dict[k] = list(v.values())
 
                 to_replace, value = to_rep_dict, value_dict
             else:
@@ -2344,7 +2356,6 @@ class NDFrame(PandasObject):
             new_data = self._data
             if is_dictlike(to_replace):
                 if is_dictlike(value):  # {'A' : NA} -> {'A' : 0}
-                    new_data = self._data
                     for c, src in compat.iteritems(to_replace):
                         if c in value and c in self:
                             new_data = new_data.replace(to_replace=src,
@@ -2355,7 +2366,6 @@ class NDFrame(PandasObject):
 
                 # {'A': NA} -> 0
                 elif not com.is_list_like(value):
-                    new_data = self._data
                     for k, src in compat.iteritems(to_replace):
                         if k in self:
                             new_data = new_data.replace(to_replace=src,
@@ -2425,7 +2435,7 @@ class NDFrame(PandasObject):
             return self._constructor(new_data).__finalize__(self)
 
     def interpolate(self, method='linear', axis=0, limit=None, inplace=False,
-                    downcast='infer', **kwargs):
+                    downcast=None, **kwargs):
         """
         Interpolate values according to different methods.
 
@@ -2458,7 +2468,7 @@ class NDFrame(PandasObject):
             Maximum number of consecutive NaNs to fill.
         inplace : bool, default False
             Update the NDFrame in place if possible.
-        downcast : optional, 'infer' or None, defaults to 'infer'
+        downcast : optional, 'infer' or None, defaults to None
             Downcast dtypes if possible.
 
         Returns
@@ -2482,7 +2492,6 @@ class NDFrame(PandasObject):
         dtype: float64
 
         """
-
         if self.ndim > 2:
             raise NotImplementedError("Interpolate has not been implemented "
                                       "on Panel and Panel 4D objects.")
@@ -2524,7 +2533,6 @@ class NDFrame(PandasObject):
                                           inplace=inplace,
                                           downcast=downcast,
                                           **kwargs)
-
         if inplace:
             if axis == 1:
                 self._update_inplace(new_data)
@@ -3165,7 +3173,7 @@ class NDFrame(PandasObject):
 
         if freq is None and not len(kwds):
             block_axis = self._get_block_manager_axis(axis)
-            indexer = com._shift_indexer(len(self), periods)
+            indexer = com._shift_indexer(len(self._get_axis(axis)), periods)
             new_data = self._data.shift(indexer=indexer, periods=periods, axis=block_axis)
         else:
             return self.tshift(periods, freq, **kwds)
@@ -3283,7 +3291,7 @@ class NDFrame(PandasObject):
 
     def tz_convert(self, tz, axis=0, copy=True):
         """
-        Convert TimeSeries to target time zone. If it is time zone naive, it
+        Convert the axis to target time zone. If it is time zone naive, it
         will be localized to the passed time zone.
 
         Parameters
@@ -3299,24 +3307,18 @@ class NDFrame(PandasObject):
         ax = self._get_axis(axis)
 
         if not hasattr(ax, 'tz_convert'):
-            ax_name = self._get_axis_name(axis)
-            raise TypeError('%s is not a valid DatetimeIndex or PeriodIndex' %
-                            ax_name)
+            if len(ax) > 0:
+                ax_name = self._get_axis_name(axis)
+                raise TypeError('%s is not a valid DatetimeIndex or PeriodIndex' %
+                                ax_name)
+            else:
+                ax = DatetimeIndex([],tz=tz)
+        else:
+            ax = ax.tz_convert(tz)
 
-        new_data = self._data
-        if copy:
-            new_data = new_data.copy()
-
-        new_obj = self._constructor(new_data)
-        new_ax = ax.tz_convert(tz)
-
-        if axis == 0:
-            new_obj._set_axis(1, new_ax)
-        elif axis == 1:
-            new_obj._set_axis(0, new_ax)
-            self._clear_item_cache()
-
-        return new_obj.__finalize__(self)
+        result = self._constructor(self._data, copy=copy)
+        result.set_axis(axis,ax)
+        return result.__finalize__(self)
 
     def tz_localize(self, tz, axis=0, copy=True, infer_dst=False):
         """
@@ -3337,24 +3339,18 @@ class NDFrame(PandasObject):
         ax = self._get_axis(axis)
 
         if not hasattr(ax, 'tz_localize'):
-            ax_name = self._get_axis_name(axis)
-            raise TypeError('%s is not a valid DatetimeIndex or PeriodIndex' %
-                            ax_name)
+            if len(ax) > 0:
+                ax_name = self._get_axis_name(axis)
+                raise TypeError('%s is not a valid DatetimeIndex or PeriodIndex' %
+                                ax_name)
+            else:
+                ax = DatetimeIndex([],tz=tz)
+        else:
+            ax = ax.tz_localize(tz, infer_dst=infer_dst)
 
-        new_data = self._data
-        if copy:
-            new_data = new_data.copy()
-
-        new_obj = self._constructor(new_data)
-        new_ax = ax.tz_localize(tz, infer_dst=infer_dst)
-
-        if axis == 0:
-            new_obj._set_axis(1, new_ax)
-        elif axis == 1:
-            new_obj._set_axis(0, new_ax)
-            self._clear_item_cache()
-
-        return new_obj.__finalize__(self)
+        result = self._constructor(self._data, copy=copy)
+        result.set_axis(axis,ax)
+        return result.__finalize__(self)
 
     #----------------------------------------------------------------------
     # Numeric Methods

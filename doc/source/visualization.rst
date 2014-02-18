@@ -414,6 +414,59 @@ setting `kind='kde'`:
    @savefig kde_plot.png
    ser.plot(kind='kde')
 
+.. _visualization.hexbin
+
+Hexagonal Bin plot
+~~~~~~~~~~~~~~~~~~
+*New in .14* You can create hexagonal bin plots with ``DataFrame.plot`` and
+``kind='hexbin'``.
+Hexbin plots can be a useful alternative to scatter plots if your data are
+too dense to plot each point individually.
+
+.. ipython:: python
+   :suppress:
+
+   plt.figure();
+
+.. ipython:: python
+
+   df = DataFrame(randn(1000, 2), columns=['a', 'b'])
+   df['b'] = df['b'] = df['b'] + np.arange(1000)
+
+   @savefig hexbin_plot.png
+   df.plot(kind='hexbin', x='a', y='b', gridsize=25)
+
+
+A useful keyword argument is ``gridsize``; it controls the number of hexagons
+in the x-direction, and defaults to 100. A larger ``gridsize`` means more, smaller
+bins.
+
+By default, a histogram of the counts around each ``(x, y)`` point is computed.
+You can specify alternative aggregations by passing values to the ``C`` and
+``reduce_C_function`` arguments. ``C`` specifies the value at each ``(x, y)`` point
+and ``reduce_C_function`` is a function of one argument that reduces all the
+values in a bin to a single number (e.g. ``mean``, ``max``, ``sum``, ``std``).  In this
+example the positions are given by columns ``a`` and ``b``, while the value is
+given by column ``z``. The bins are aggregated with numpy's ``max`` function.
+
+.. ipython:: python
+   :suppress:
+
+   plt.figure();
+
+.. ipython:: python
+
+   df = DataFrame(randn(1000, 2), columns=['a', 'b'])
+   df['b'] = df['b'] = df['b'] + np.arange(1000)
+   df['z'] = np.random.uniform(0, 3, 1000)
+
+   @savefig hexbin_plot_agg.png
+   df.plot(kind='hexbin', x='a', y='b', C='z', reduce_C_function=np.max,
+           gridsize=25)
+
+
+See the `matplotlib hexbin documenation <http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.hexbin>`__ for more.
+
 .. _visualization.andrews_curves:
 
 Andrews Curves

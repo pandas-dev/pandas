@@ -83,6 +83,9 @@ def _axify(obj, key, axis):
     return k
 
 
+def _mklbl(prefix,n):
+    return ["%s%s" % (prefix,i)  for i in range(n)]
+
 class TestIndexing(tm.TestCase):
 
     _multiprocess_can_split_ = True
@@ -687,6 +690,52 @@ class TestIndexing(tm.TestCase):
         assert_series_equal(result,expected)
         self.assertEqual(result.dtype, object)
 
+    def test_loc_setitem_consistency(self):
+
+        # GH 6149
+        # coerce similary for setitem and loc when rows have a null-slice
+        expected = DataFrame({ 'date': Series(0,index=range(5),dtype=np.int64),
+                               'val' : Series(range(5),dtype=np.int64) })
+
+        df = DataFrame({ 'date': date_range('2000-01-01','2000-01-5'),
+                         'val' : Series(range(5),dtype=np.int64) })
+        df.loc[:,'date'] = 0
+        assert_frame_equal(df,expected)
+
+        df = DataFrame({ 'date': date_range('2000-01-01','2000-01-5'),
+                         'val' : Series(range(5),dtype=np.int64) })
+        df.loc[:,'date'] = np.array(0,dtype=np.int64)
+        assert_frame_equal(df,expected)
+
+        df = DataFrame({ 'date': date_range('2000-01-01','2000-01-5'),
+                         'val' : Series(range(5),dtype=np.int64) })
+        df.loc[:,'date'] = np.array([0,0,0,0,0],dtype=np.int64)
+        assert_frame_equal(df,expected)
+
+        expected = DataFrame({ 'date': Series('foo',index=range(5)),
+                               'val' : Series(range(5),dtype=np.int64) })
+        df = DataFrame({ 'date': date_range('2000-01-01','2000-01-5'),
+                         'val' : Series(range(5),dtype=np.int64) })
+        df.loc[:,'date'] = 'foo'
+        assert_frame_equal(df,expected)
+
+        expected = DataFrame({ 'date': Series(1.0,index=range(5)),
+                               'val' : Series(range(5),dtype=np.int64) })
+        df = DataFrame({ 'date': date_range('2000-01-01','2000-01-5'),
+                         'val' : Series(range(5),dtype=np.int64) })
+        df.loc[:,'date'] = 1.0
+        assert_frame_equal(df,expected)
+
+        # empty (essentially noops)
+        expected = DataFrame(columns=['x', 'y'])
+        df = DataFrame(columns=['x', 'y'])
+        df.loc[:, 'x'] = 1
+        assert_frame_equal(df,expected)
+
+        df = DataFrame(columns=['x', 'y'])
+        df['x'] = 1
+        assert_frame_equal(df,expected)
+
     def test_loc_setitem_frame(self):
         df = self.frame_labels
 
@@ -1061,6 +1110,325 @@ class TestIndexing(tm.TestCase):
         expected = df.iloc[:, 1:2].copy()
         expected.columns = expected.columns.droplevel('lvl1')
         assert_frame_equal(result, expected)
+
+    def test_per_axis_per_level_getitem(self):
+
+        # GH6134
+        # example test case
+        ix = MultiIndex.from_product([_mklbl('A',5),_mklbl('B',7),_mklbl('C',4),_mklbl('D',2)])
+        df = DataFrame(np.arange(len(ix.get_values())),index=ix)
+
+        result = df.loc[(slice('A1','A3'),slice(None), ['C1','C3']),:]
+        expected = df.loc[[ tuple([a,b,c,d]) for a,b,c,d in df.index.values if (
+            a == 'A1' or a == 'A2' or a == 'A3') and (c == 'C1' or c == 'C3')]]
+        assert_frame_equal(result, expected)
+
+        expected = df.loc[[ tuple([a,b,c,d]) for a,b,c,d in df.index.values if (
+            a == 'A1' or a == 'A2' or a == 'A3') and (c == 'C1' or c == 'C2' or c == 'C3')]]
+        result = df.loc[(slice('A1','A3'),slice(None), slice('C1','C3')),:]
+        assert_frame_equal(result, expected)
+
+        # test multi-index slicing with per axis and per index controls
+        index = MultiIndex.from_tuples([('A',1),('A',2),('A',3),('B',1)],
+                                       names=['one','two'])
+        columns = MultiIndex.from_tuples([('a','foo'),('a','bar'),('b','foo'),('b','bah')],
+                                         names=['lvl0', 'lvl1'])
+
+        df = DataFrame(np.arange(16,dtype='int64').reshape(4, 4), index=index, columns=columns)
+        df = df.sortlevel(axis=0).sortlevel(axis=1)
+
+        # identity
+        result = df.loc[(slice(None),slice(None)),:]
+        assert_frame_equal(result, df)
+        result = df.loc[(slice(None),slice(None)),(slice(None),slice(None))]
+        assert_frame_equal(result, df)
+        result = df.loc[:,(slice(None),slice(None))]
+        assert_frame_equal(result, df)
+
+        # index
+        result = df.loc[(slice(None),[1]),:]
+        expected = df.iloc[[0,3]]
+        assert_frame_equal(result, expected)
+
+        result = df.loc[(slice(None),1),:]
+        expected = df.iloc[[0,3]]
+        assert_frame_equal(result, expected)
+
+        # columns
+        result = df.loc[:,(slice(None),['foo'])]
+        expected = df.iloc[:,[1,3]]
+        assert_frame_equal(result, expected)
+
+        # both
+        result = df.loc[(slice(None),1),(slice(None),['foo'])]
+        expected = df.iloc[[0,3],[1,3]]
+        assert_frame_equal(result, expected)
+
+        result = df.loc['A','a']
+        expected = DataFrame(dict(bar = [1,5,9], foo = [0,4,8]),
+                             index=Index([1,2,3],name='two'),
+                             columns=Index(['bar','foo'],name='lvl1'))
+        assert_frame_equal(result, expected)
+
+        result = df.loc[(slice(None),[1,2]),:]
+        expected = df.iloc[[0,1,3]]
+        assert_frame_equal(result, expected)
+
+        # multi-level series
+        s = Series(np.arange(len(ix.get_values())),index=ix)
+        result = s.loc['A1':'A3', :, ['C1','C3']]
+        expected = s.loc[[ tuple([a,b,c,d]) for a,b,c,d in s.index.values if (
+            a == 'A1' or a == 'A2' or a == 'A3') and (c == 'C1' or c == 'C3')]]
+        assert_series_equal(result, expected)
+
+        # boolean indexers
+        result = df.loc[(slice(None),df.loc[:,('a','bar')]>5),:]
+        expected = df.iloc[[2,3]]
+        assert_frame_equal(result, expected)
+
+        def f():
+            df.loc[(slice(None),np.array([True,False])),:]
+        self.assertRaises(ValueError, f)
+
+        # ambiguous cases
+        # these can be multiply interpreted
+        # but we can catch this in some cases
+        def f():
+            df.loc[(slice(None),[1])]
+        self.assertRaises(KeyError, f)
+
+    def test_per_axis_per_level_doc_examples(self):
+
+        # test index maker
+        idx = pd.IndexSlice
+
+        # from indexing.rst / advanced
+        index = MultiIndex.from_product([_mklbl('A',4),
+                                         _mklbl('B',2),
+                                         _mklbl('C',4),
+                                         _mklbl('D',2)])
+        columns = MultiIndex.from_tuples([('a','foo'),('a','bar'),
+                                          ('b','foo'),('b','bah')],
+                                         names=['lvl0', 'lvl1'])
+        df = DataFrame(np.arange(len(index)*len(columns),dtype='int64').reshape((len(index),len(columns))),
+                       index=index,
+                       columns=columns)
+        result = df.loc[(slice('A1','A3'),slice(None), ['C1','C3']),:]
+        expected = df.loc[[ tuple([a,b,c,d]) for a,b,c,d in df.index.values if (
+            a == 'A1' or a == 'A2' or a == 'A3') and (c == 'C1' or c == 'C3')]]
+        assert_frame_equal(result, expected)
+        result = df.loc[idx['A1':'A3',:,['C1','C3']],:]
+        assert_frame_equal(result, expected)
+
+        result = df.loc[(slice(None),slice(None), ['C1','C3']),:]
+        expected = df.loc[[ tuple([a,b,c,d]) for a,b,c,d in df.index.values if (
+            c == 'C1' or c == 'C3')]]
+        assert_frame_equal(result, expected)
+        result = df.loc[idx[:,:,['C1','C3']],:]
+        assert_frame_equal(result, expected)
+
+        # not sorted
+        def f():
+            df.loc['A1',(slice(None),'foo')]
+        self.assertRaises(KeyError, f)
+        df = df.sortlevel(axis=1)
+
+        # slicing
+        df.loc['A1',(slice(None),'foo')]
+        df.loc[(slice(None),slice(None), ['C1','C3']),(slice(None),'foo')]
+
+        # setitem
+        df.loc(axis=0)[:,:,['C1','C3']] = -10
+
+    def test_loc_arguments(self):
+
+        index = MultiIndex.from_product([_mklbl('A',4),
+                                         _mklbl('B',2),
+                                         _mklbl('C',4),
+                                         _mklbl('D',2)])
+        columns = MultiIndex.from_tuples([('a','foo'),('a','bar'),
+                                          ('b','foo'),('b','bah')],
+                                         names=['lvl0', 'lvl1'])
+        df = DataFrame(np.arange(len(index)*len(columns),dtype='int64').reshape((len(index),len(columns))),
+                       index=index,
+                       columns=columns).sortlevel().sortlevel(axis=1)
+
+
+        # axis 0
+        result = df.loc(axis=0)['A1':'A3',:,['C1','C3']]
+        expected = df.loc[[ tuple([a,b,c,d]) for a,b,c,d in df.index.values if (
+            a == 'A1' or a == 'A2' or a == 'A3') and (c == 'C1' or c == 'C3')]]
+        assert_frame_equal(result, expected)
+
+        result = df.loc(axis='index')[:,:,['C1','C3']]
+        expected = df.loc[[ tuple([a,b,c,d]) for a,b,c,d in df.index.values if (
+            c == 'C1' or c == 'C3')]]
+        assert_frame_equal(result, expected)
+
+        # axis 1
+        result = df.loc(axis=1)[:,'foo']
+        expected = df.loc[:,(slice(None),'foo')]
+        assert_frame_equal(result, expected)
+
+        result = df.loc(axis='columns')[:,'foo']
+        expected = df.loc[:,(slice(None),'foo')]
+        assert_frame_equal(result, expected)
+
+        # invalid axis
+        def f():
+            df.loc(axis=-1)[:,:,['C1','C3']]
+        self.assertRaises(ValueError, f)
+
+        def f():
+            df.loc(axis=2)[:,:,['C1','C3']]
+        self.assertRaises(ValueError, f)
+
+        def f():
+            df.loc(axis='foo')[:,:,['C1','C3']]
+        self.assertRaises(ValueError, f)
+
+    def test_per_axis_per_level_setitem(self):
+
+        # test index maker
+        idx = pd.IndexSlice
+
+        # test multi-index slicing with per axis and per index controls
+        index = MultiIndex.from_tuples([('A',1),('A',2),('A',3),('B',1)],
+                                       names=['one','two'])
+        columns = MultiIndex.from_tuples([('a','foo'),('a','bar'),('b','foo'),('b','bah')],
+                                         names=['lvl0', 'lvl1'])
+
+        df_orig = DataFrame(np.arange(16,dtype='int64').reshape(4, 4), index=index, columns=columns)
+        df_orig = df_orig.sortlevel(axis=0).sortlevel(axis=1)
+
+        # identity
+        df = df_orig.copy()
+        df.loc[(slice(None),slice(None)),:] = 100
+        expected = df_orig.copy()
+        expected.iloc[:,:] = 100
+        assert_frame_equal(df, expected)
+
+        df = df_orig.copy()
+        df.loc(axis=0)[:,:] = 100
+        expected = df_orig.copy()
+        expected.iloc[:,:] = 100
+        assert_frame_equal(df, expected)
+
+        df = df_orig.copy()
+        df.loc[(slice(None),slice(None)),(slice(None),slice(None))] = 100
+        expected = df_orig.copy()
+        expected.iloc[:,:] = 100
+        assert_frame_equal(df, expected)
+
+        df = df_orig.copy()
+        df.loc[:,(slice(None),slice(None))] = 100
+        expected = df_orig.copy()
+        expected.iloc[:,:] = 100
+        assert_frame_equal(df, expected)
+
+        # index
+        df = df_orig.copy()
+        df.loc[(slice(None),[1]),:] = 100
+        expected = df_orig.copy()
+        expected.iloc[[0,3]] = 100
+        assert_frame_equal(df, expected)
+
+        df = df_orig.copy()
+        df.loc[(slice(None),1),:] = 100
+        expected = df_orig.copy()
+        expected.iloc[[0,3]] = 100
+        assert_frame_equal(df, expected)
+
+        df = df_orig.copy()
+        df.loc(axis=0)[:,1] = 100
+        expected = df_orig.copy()
+        expected.iloc[[0,3]] = 100
+        assert_frame_equal(df, expected)
+
+        # columns
+        df = df_orig.copy()
+        df.loc[:,(slice(None),['foo'])] = 100
+        expected = df_orig.copy()
+        expected.iloc[:,[1,3]] = 100
+        assert_frame_equal(df, expected)
+
+        # both
+        df = df_orig.copy()
+        df.loc[(slice(None),1),(slice(None),['foo'])] = 100
+        expected = df_orig.copy()
+        expected.iloc[[0,3],[1,3]] = 100
+        assert_frame_equal(df, expected)
+
+        df = df_orig.copy()
+        df.loc[idx[:,1],idx[:,['foo']]] = 100
+        expected = df_orig.copy()
+        expected.iloc[[0,3],[1,3]] = 100
+        assert_frame_equal(df, expected)
+
+        df = df_orig.copy()
+        df.loc['A','a'] = 100
+        expected = df_orig.copy()
+        expected.iloc[0:3,0:2] = 100
+        assert_frame_equal(df, expected)
+
+        # setting with a list-like
+        df = df_orig.copy()
+        df.loc[(slice(None),1),(slice(None),['foo'])] = np.array([[100, 100], [100, 100]],dtype='int64')
+        expected = df_orig.copy()
+        expected.iloc[[0,3],[1,3]] = 100
+        assert_frame_equal(df, expected)
+
+        # not enough values
+        df = df_orig.copy()
+        def f():
+            df.loc[(slice(None),1),(slice(None),['foo'])] = np.array([[100], [100, 100]],dtype='int64')
+        self.assertRaises(ValueError, f)
+        def f():
+            df.loc[(slice(None),1),(slice(None),['foo'])] = np.array([100, 100, 100, 100],dtype='int64')
+        self.assertRaises(ValueError, f)
+
+        # with an alignable rhs
+        df = df_orig.copy()
+        df.loc[(slice(None),1),(slice(None),['foo'])] = df.loc[(slice(None),1),(slice(None),['foo'])] * 5
+        expected = df_orig.copy()
+        expected.iloc[[0,3],[1,3]] = expected.iloc[[0,3],[1,3]] * 5
+        assert_frame_equal(df, expected)
+
+        df = df_orig.copy()
+        df.loc[(slice(None),1),(slice(None),['foo'])] *= df.loc[(slice(None),1),(slice(None),['foo'])]
+        expected = df_orig.copy()
+        expected.iloc[[0,3],[1,3]] *= expected.iloc[[0,3],[1,3]]
+        assert_frame_equal(df, expected)
+
+        rhs = df_orig.loc[(slice(None),1),(slice(None),['foo'])].copy()
+        rhs.loc[:,('c','bah')] = 10
+        df = df_orig.copy()
+        df.loc[(slice(None),1),(slice(None),['foo'])] *= rhs
+        expected = df_orig.copy()
+        expected.iloc[[0,3],[1,3]] *= expected.iloc[[0,3],[1,3]]
+        assert_frame_equal(df, expected)
+
+    def test_multiindex_setitem(self):
+
+        # GH 3738
+        # setting with a multi-index right hand side
+        arrays = [np.array(['bar', 'bar', 'baz', 'qux', 'qux', 'bar']),
+                  np.array(['one', 'two', 'one', 'one', 'two', 'one']),
+                  np.arange(0, 6, 1)]
+
+        df_orig = pd.DataFrame(np.random.randn(6, 3),
+                               index=arrays,
+                               columns=['A', 'B', 'C']).sort_index()
+
+        expected = df_orig.loc[['bar']]*2
+        df = df_orig.copy()
+        df.loc[['bar']] *= 2
+        assert_frame_equal(df.loc[['bar']],expected)
+
+        # raise because these have differing levels
+        def f():
+            df.loc['bar'] *= 2
+        self.assertRaises(TypeError, f)
 
     def test_getitem_multiindex(self):
 
@@ -2106,14 +2474,14 @@ class TestIndexing(tm.TestCase):
         df = tm.makeDataFrame()
         df['A'] # cache series
         df.ix["Hello Friend"] = df.ix[0]
-        self.assert_("Hello Friend" in df['A'].index)
-        self.assert_("Hello Friend" in df['B'].index)
+        self.assertIn("Hello Friend", df['A'].index)
+        self.assertIn("Hello Friend", df['B'].index)
 
         panel = tm.makePanel()
         panel.ix[0] # get first item into cache
         panel.ix[:, :, 'A+1'] = panel.ix[:, :, 'A'] + 1
-        self.assert_("A+1" in panel.ix[0].columns)
-        self.assert_("A+1" in panel.ix[1].columns)
+        self.assertIn("A+1", panel.ix[0].columns)
+        self.assertIn("A+1", panel.ix[1].columns)
 
         # 5216
         # make sure that we don't try to set a dead cache
@@ -2210,7 +2578,7 @@ class TestIndexing(tm.TestCase):
         # work with the chain
         expected = DataFrame([[-5,1],[-6,3]],columns=list('AB'))
         df = DataFrame(np.arange(4).reshape(2,2),columns=list('AB'),dtype='int64')
-        self.assert_(df.is_copy is None)
+        self.assertIsNone(df.is_copy)
 
         df['A'][0] = -5
         df['A'][1] = -6
@@ -2218,11 +2586,11 @@ class TestIndexing(tm.TestCase):
 
         expected = DataFrame([[-5,2],[np.nan,3.]],columns=list('AB'))
         df = DataFrame({ 'A' : Series(range(2),dtype='int64'), 'B' : np.array(np.arange(2,4),dtype=np.float64)})
-        self.assert_(df.is_copy is None)
+        self.assertIsNone(df.is_copy)
         df['A'][0] = -5
         df['A'][1] = np.nan
         assert_frame_equal(df, expected)
-        self.assert_(df['A'].is_copy is None)
+        self.assertIsNone(df['A'].is_copy)
 
         # using a copy (the chain), fails
         df = DataFrame({ 'A' : Series(range(2),dtype='int64'), 'B' : np.array(np.arange(2,4),dtype=np.float64)})
@@ -2234,7 +2602,7 @@ class TestIndexing(tm.TestCase):
         df = DataFrame({'a' : ['one', 'one', 'two',
                                'three', 'two', 'one', 'six'],
                         'c' : Series(range(7),dtype='int64') })
-        self.assert_(df.is_copy is None)
+        self.assertIsNone(df.is_copy)
         expected = DataFrame({'a' : ['one', 'one', 'two',
                                      'three', 'two', 'one', 'six'],
                               'c' : [42,42,2,3,4,42,6]})
@@ -2263,7 +2631,7 @@ class TestIndexing(tm.TestCase):
         # make sure that is_copy is picked up reconstruction
         # GH5475
         df = DataFrame({"A": [1,2]})
-        self.assert_(df.is_copy is None)
+        self.assertIsNone(df.is_copy)
         with tm.ensure_clean('__tmp__pickle') as path:
             df.to_pickle(path)
             df2 = pd.read_pickle(path)
@@ -2288,34 +2656,34 @@ class TestIndexing(tm.TestCase):
 
         # always a copy
         x = df.iloc[[0,1,2]]
-        self.assert_(x.is_copy is not None)
+        self.assertIsNotNone(x.is_copy)
         x = df.iloc[[0,1,2,4]]
-        self.assert_(x.is_copy is not None)
+        self.assertIsNotNone(x.is_copy)
 
         # explicity copy
         indexer = df.letters.apply(lambda x : len(x) > 10)
         df = df.ix[indexer].copy()
-        self.assert_(df.is_copy is None)
+        self.assertIsNone(df.is_copy)
         df['letters'] = df['letters'].apply(str.lower)
 
         # implicity take
         df = random_text(100000)
         indexer = df.letters.apply(lambda x : len(x) > 10)
         df = df.ix[indexer]
-        self.assert_(df.is_copy is not None)
+        self.assertIsNotNone(df.is_copy)
         df['letters'] = df['letters'].apply(str.lower)
 
         # implicity take 2
         df = random_text(100000)
         indexer = df.letters.apply(lambda x : len(x) > 10)
         df = df.ix[indexer]
-        self.assert_(df.is_copy is not None)
+        self.assertIsNotNone(df.is_copy)
         df.loc[:,'letters'] = df['letters'].apply(str.lower)
 
         # should be ok even though its a copy!
         self.assert_(df.is_copy is  None)
         df['letters'] = df['letters'].apply(str.lower)
-        self.assert_(df.is_copy is None)
+        self.assertIsNone(df.is_copy)
 
         df = random_text(100000)
         indexer = df.letters.apply(lambda x : len(x) > 10)
@@ -2323,7 +2691,7 @@ class TestIndexing(tm.TestCase):
 
         # an identical take, so no copy
         df = DataFrame({'a' : [1]}).dropna()
-        self.assert_(df.is_copy is None)
+        self.assertIsNone(df.is_copy)
         df['a'] += 1
 
         # inplace ops

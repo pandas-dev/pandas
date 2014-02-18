@@ -64,7 +64,7 @@ class SafeForLongAndSparse(object):
             getattr(self.panel, attr).name = None
             cp = self.panel.copy()
             getattr(cp, attr).name = 'foo'
-            self.assert_(getattr(self.panel, attr).name is None)
+            self.assertIsNone(getattr(self.panel, attr).name)
 
     def test_iter(self):
         tm.equalContents(list(self.panel), self.panel.items)
@@ -192,7 +192,7 @@ class SafeForSparse(object):
         self.panel.items = new_items
 
         if hasattr(self.panel, '_item_cache'):
-            self.assert_('ItemA' not in self.panel._item_cache)
+            self.assertNotIn('ItemA', self.panel._item_cache)
         self.assert_(self.panel.items is new_items)
 
         item = self.panel[0]
@@ -409,10 +409,10 @@ class CheckIndexing(object):
         expected = self.panel['ItemA']
         result = self.panel.pop('ItemA')
         assert_frame_equal(expected, result)
-        self.assert_('ItemA' not in self.panel.items)
+        self.assertNotIn('ItemA', self.panel.items)
 
         del self.panel['ItemB']
-        self.assert_('ItemB' not in self.panel.items)
+        self.assertNotIn('ItemB', self.panel.items)
         self.assertRaises(Exception, self.panel.__delitem__, 'ItemB')
 
         values = np.empty((3, 3, 3))
@@ -754,8 +754,8 @@ class CheckIndexing(object):
 
             # versus same index
             result = func(p1, p2)
-            self.assert_(np.array_equal(result.values,
-                                        func(p1.values, p2.values)))
+            self.assert_numpy_array_equal(result.values,
+                                          func(p1.values, p2.values))
 
             # versus non-indexed same objs
             self.assertRaises(Exception, func, p1, tp)
@@ -765,8 +765,8 @@ class CheckIndexing(object):
 
             # versus scalar
             result3 = func(self.panel, 0)
-            self.assert_(np.array_equal(result3.values,
-                                        func(self.panel.values, 0)))
+            self.assert_numpy_array_equal(result3.values,
+                                          func(self.panel.values, 0))
 
         test_comp(operator.eq)
         test_comp(operator.ne)
@@ -2071,23 +2071,20 @@ class TestLongPanel(tm.TestCase):
         else:
             aliases = {'div': 'truediv'}
         self.panel = self.panel.to_panel()
-        n = np.random.randint(-50, 50)
-        for op in ops:
-            try:
+
+        for n in [ np.random.randint(-50, -1), np.random.randint(1, 50), 0]:
+            for op in ops:
                 alias = aliases.get(op, op)
                 f = getattr(operator, alias)
-                result = getattr(self.panel, op)(n)
                 exp = f(self.panel, n)
+                result = getattr(self.panel, op)(n)
                 assert_panel_equal(result, exp, check_panel_type=True)
 
                 # rops
                 r_f = lambda x, y: f(y, x)
-                result = getattr(self.panel, 'r' + op)(n)
                 exp = r_f(self.panel, n)
+                result = getattr(self.panel, 'r' + op)(n)
                 assert_panel_equal(result, exp)
-            except:
-                print("Failing operation %r" % op)
-                raise
 
     def test_sort(self):
         def is_sorted(arr):
@@ -2158,7 +2155,7 @@ class TestLongPanel(tm.TestCase):
         transformed = make_axis_dummies(self.panel, 'minor',
                                         transform=mapping.get)
         self.assertEqual(len(transformed.columns), 2)
-        self.assert_(np.array_equal(transformed.columns, ['one', 'two']))
+        self.assert_numpy_array_equal(transformed.columns, ['one', 'two'])
 
         # TODO: test correctness
 
@@ -2168,7 +2165,7 @@ class TestLongPanel(tm.TestCase):
         self.panel['Label'] = self.panel.index.labels[1]
         minor_dummies = make_axis_dummies(self.panel, 'minor')
         dummies = get_dummies(self.panel['Label'])
-        self.assert_(np.array_equal(dummies.values, minor_dummies.values))
+        self.assert_numpy_array_equal(dummies.values, minor_dummies.values)
 
     def test_mean(self):
         means = self.panel.mean(level='minor')

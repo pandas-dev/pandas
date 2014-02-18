@@ -17,7 +17,7 @@ class TestMatch(tm.TestCase):
 
         result = algos.match(to_match, values)
         expected = np.array([0, 2, 1, 1, 0, 2, -1, 0])
-        self.assert_numpy_array_equals(result, expected)
+        self.assert_numpy_array_equal(result, expected)
 
         result = Series(algos.match(to_match, values, np.nan))
         expected = Series(np.array([0, 2, 1, 1, 0, 2, np.nan, 0]))
@@ -26,7 +26,7 @@ class TestMatch(tm.TestCase):
         s = pd.Series(np.arange(5),dtype=np.float32)
         result = algos.match(s, [2,4])
         expected = np.array([-1, -1, 0, -1, 1])
-        self.assert_numpy_array_equals(result, expected)
+        self.assert_numpy_array_equal(result, expected)
 
         result = Series(algos.match(s, [2,4], np.nan))
         expected = Series(np.array([np.nan, np.nan, 0, np.nan, 1]))
@@ -38,7 +38,7 @@ class TestMatch(tm.TestCase):
 
         result = algos.match(to_match, values)
         expected = np.array([1, 0, -1, 0, 1, 2, -1])
-        self.assert_numpy_array_equals(result, expected)
+        self.assert_numpy_array_equal(result, expected)
 
         result = Series(algos.match(to_match, values, np.nan))
         expected = Series(np.array([1, 0, np.nan, 0, 1, 2, np.nan]))
@@ -51,29 +51,29 @@ class TestFactorize(tm.TestCase):
 
         labels, uniques = algos.factorize(['a', 'b', 'b', 'a',
                                            'a', 'c', 'c', 'c'])
-        # self.assert_numpy_array_equals(labels, np.array([ 0, 1, 1, 0, 0, 2, 2, 2],dtype=np.int64))
-        self.assert_numpy_array_equals(uniques, np.array(['a','b','c'], dtype=object))
+        # self.assert_numpy_array_equal(labels, np.array([ 0, 1, 1, 0, 0, 2, 2, 2],dtype=np.int64))
+        self.assert_numpy_array_equal(uniques, np.array(['a','b','c'], dtype=object))
 
         labels, uniques = algos.factorize(['a', 'b', 'b', 'a',
                                            'a', 'c', 'c', 'c'], sort=True)
-        self.assert_numpy_array_equals(labels, np.array([ 0, 1, 1, 0, 0, 2, 2, 2],dtype=np.int64))
-        self.assert_numpy_array_equals(uniques, np.array(['a','b','c'], dtype=object))
+        self.assert_numpy_array_equal(labels, np.array([ 0, 1, 1, 0, 0, 2, 2, 2],dtype=np.int64))
+        self.assert_numpy_array_equal(uniques, np.array(['a','b','c'], dtype=object))
 
         labels, uniques = algos.factorize(list(reversed(range(5))))
-        self.assert_numpy_array_equals(labels, np.array([0, 1, 2, 3, 4], dtype=np.int64))
-        self.assert_numpy_array_equals(uniques, np.array([ 4, 3, 2, 1, 0],dtype=np.int64))
+        self.assert_numpy_array_equal(labels, np.array([0, 1, 2, 3, 4], dtype=np.int64))
+        self.assert_numpy_array_equal(uniques, np.array([ 4, 3, 2, 1, 0],dtype=np.int64))
 
         labels, uniques = algos.factorize(list(reversed(range(5))), sort=True)
-        self.assert_numpy_array_equals(labels, np.array([ 4, 3, 2, 1, 0],dtype=np.int64))
-        self.assert_numpy_array_equals(uniques, np.array([0, 1, 2, 3, 4], dtype=np.int64))
+        self.assert_numpy_array_equal(labels, np.array([ 4, 3, 2, 1, 0],dtype=np.int64))
+        self.assert_numpy_array_equal(uniques, np.array([0, 1, 2, 3, 4], dtype=np.int64))
 
         labels, uniques = algos.factorize(list(reversed(np.arange(5.))))
-        self.assert_numpy_array_equals(labels, np.array([0., 1., 2., 3., 4.], dtype=np.float64))
-        self.assert_numpy_array_equals(uniques, np.array([ 4, 3, 2, 1, 0],dtype=np.int64))
+        self.assert_numpy_array_equal(labels, np.array([0., 1., 2., 3., 4.], dtype=np.float64))
+        self.assert_numpy_array_equal(uniques, np.array([ 4, 3, 2, 1, 0],dtype=np.int64))
 
         labels, uniques = algos.factorize(list(reversed(np.arange(5.))), sort=True)
-        self.assert_numpy_array_equals(labels, np.array([ 4, 3, 2, 1, 0],dtype=np.int64))
-        self.assert_numpy_array_equals(uniques, np.array([0., 1., 2., 3., 4.], dtype=np.float64))
+        self.assert_numpy_array_equal(labels, np.array([ 4, 3, 2, 1, 0],dtype=np.int64))
+        self.assert_numpy_array_equal(uniques, np.array([0., 1., 2., 3., 4.], dtype=np.float64))
 
     def test_mixed(self):
 
@@ -81,12 +81,12 @@ class TestFactorize(tm.TestCase):
         x = Series(['A', 'A', np.nan, 'B', 3.14, np.inf])
         labels, uniques = algos.factorize(x)
 
-        self.assert_numpy_array_equals(labels, np.array([ 0,  0, -1,  1,  2,  3],dtype=np.int64))
-        self.assert_numpy_array_equals(uniques, np.array(['A', 'B', 3.14, np.inf], dtype=object))
+        self.assert_numpy_array_equal(labels, np.array([ 0,  0, -1,  1,  2,  3],dtype=np.int64))
+        self.assert_numpy_array_equal(uniques, np.array(['A', 'B', 3.14, np.inf], dtype=object))
 
         labels, uniques = algos.factorize(x, sort=True)
-        self.assert_numpy_array_equals(labels, np.array([ 2,  2, -1,  3,  0,  1],dtype=np.int64))
-        self.assert_numpy_array_equals(uniques, np.array([3.14, np.inf, 'A', 'B'], dtype=object))
+        self.assert_numpy_array_equal(labels, np.array([ 2,  2, -1,  3,  0,  1],dtype=np.int64))
+        self.assert_numpy_array_equal(uniques, np.array([3.14, np.inf, 'A', 'B'], dtype=object))
 
     def test_datelike(self):
 
@@ -95,12 +95,12 @@ class TestFactorize(tm.TestCase):
         v2 = pd.Timestamp('20130101')
         x = Series([v1,v1,v1,v2,v2,v1])
         labels, uniques = algos.factorize(x)
-        self.assert_numpy_array_equals(labels, np.array([ 0,0,0,1,1,0],dtype=np.int64))
-        self.assert_numpy_array_equals(uniques, np.array([v1.value,v2.value],dtype='M8[ns]'))
+        self.assert_numpy_array_equal(labels, np.array([ 0,0,0,1,1,0],dtype=np.int64))
+        self.assert_numpy_array_equal(uniques, np.array([v1.value,v2.value],dtype='M8[ns]'))
 
         labels, uniques = algos.factorize(x, sort=True)
-        self.assert_numpy_array_equals(labels, np.array([ 1,1,1,0,0,1],dtype=np.int64))
-        self.assert_numpy_array_equals(uniques, np.array([v2.value,v1.value],dtype='M8[ns]'))
+        self.assert_numpy_array_equal(labels, np.array([ 1,1,1,0,0,1],dtype=np.int64))
+        self.assert_numpy_array_equal(uniques, np.array([v2.value,v1.value],dtype='M8[ns]'))
 
         # period
         v1 = pd.Period('201302',freq='M')
@@ -109,12 +109,12 @@ class TestFactorize(tm.TestCase):
 
         # periods are not 'sorted' as they are converted back into an index
         labels, uniques = algos.factorize(x)
-        self.assert_numpy_array_equals(labels, np.array([ 0,0,0,1,1,0],dtype=np.int64))
-        self.assert_numpy_array_equals(uniques, np.array([v1, v2],dtype=object))
+        self.assert_numpy_array_equal(labels, np.array([ 0,0,0,1,1,0],dtype=np.int64))
+        self.assert_numpy_array_equal(uniques, np.array([v1, v2],dtype=object))
 
         labels, uniques = algos.factorize(x,sort=True)
-        self.assert_numpy_array_equals(labels, np.array([ 0,0,0,1,1,0],dtype=np.int64))
-        self.assert_numpy_array_equals(uniques, np.array([v1, v2],dtype=object))
+        self.assert_numpy_array_equal(labels, np.array([ 0,0,0,1,1,0],dtype=np.int64))
+        self.assert_numpy_array_equal(uniques, np.array([v1, v2],dtype=object))
 
 class TestUnique(tm.TestCase):
     _multiprocess_can_split_ = True

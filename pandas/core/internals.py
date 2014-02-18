@@ -1,5 +1,6 @@
 import itertools
 import re
+import operator
 from datetime import datetime, timedelta
 import copy
 from collections import defaultdict
@@ -728,7 +729,7 @@ class Block(PandasObject):
             def create_block(v, m, n, item, reshape=True):
                 """ return a new block, try to preserve dtype if possible """
 
-                # n should the length of the mask or a scalar here
+                # n should be the length of the mask or a scalar here
                 if not is_list_like(n):
                     n = np.array([n] * len(m))
 
@@ -741,7 +742,7 @@ class Block(PandasObject):
                     if (nn == nn_at).all():
                         nv = v.copy()
                         nv[mask] = nn_at
-                except:
+                except (ValueError, IndexError, TypeError):
                     pass
 
                 # change the dtype
@@ -750,8 +751,10 @@ class Block(PandasObject):
                     nv = v.astype(dtype)
                     try:
                         nv[m] = n
-                    except:
-                        np.putmask(nv, m, n)
+                    except ValueError:
+                        idx, = np.where(np.squeeze(m))
+                        for mask_index, new_val in zip(idx, n):
+                            nv[mask_index] = new_val
 
                 if reshape:
                     nv = _block_shape(nv)
@@ -802,6 +805,15 @@ class Block(PandasObject):
                     values=None, inplace=False, limit=None,
                     fill_value=None, coerce=False, downcast=None, **kwargs):
 
+        def check_int_bool(self, inplace):
+            # Only FloatBlocks will contain NaNs.
+            # timedelta subclasses IntBlock
+            if (self.is_bool or self.is_integer) and not self.is_timedelta:
+                if inplace:
+                    return self
+                else:
+                    return self.copy()
+
         # a fill na type method
         try:
             m = com._clean_fill_method(method)
@@ -809,6 +821,9 @@ class Block(PandasObject):
             m = None
 
         if m is not None:
+            r = check_int_bool(self, inplace)
+            if r is not None:
+                return r
             return self._interpolate_with_fill(method=m,
                                                axis=axis,
                                                inplace=inplace,
@@ -823,6 +838,9 @@ class Block(PandasObject):
             m = None
 
         if m is not None:
+            r = check_int_bool(self, inplace)
+            if r is not None:
+                return r
             return self._interpolate(method=m,
                                      index=index,
                                      values=values,
@@ -933,19 +951,14 @@ class Block(PandasObject):
         # that, handle boolean etc also
         new_values, fill_value = com._maybe_upcast(new_values)
 
-        # 1-d
-        if self.ndim == 1:
-            if periods > 0:
-                new_values[:periods] = fill_value
-            else:
-                new_values[periods:] = fill_value
-
-        # 2-d
+        axis_indexer = [ slice(None) ] * self.ndim
+        if periods > 0:
+            axis_indexer[axis] = slice(None,periods)
         else:
-            if periods > 0:
-                new_values[:, :periods] = fill_value
-            else:
-                new_values[:, periods:] = fill_value
+            axis_indexer = [ slice(None) ] * self.ndim
+            axis_indexer[axis] = slice(periods,None)
+        new_values[tuple(axis_indexer)] = fill_value
+
         return [make_block(new_values, self.items, self.ref_items,
                            ndim=self.ndim, fastpath=True)]
 
@@ -1216,11 +1229,16 @@ class FloatBlock(FloatOrComplexBlock):
         return (issubclass(value.dtype.type, np.floating) and
                 value.dtype == self.dtype)
 
+
 class ComplexBlock(FloatOrComplexBlock):
     is_complex = True
 
     def _can_hold_element(self, element):
-        return isinstance(element, complex)
+        if is_list_like(element):
+            element = np.array(element)
+            return issubclass(element.dtype.type, (np.floating, np.integer, np.complexfloating))
+        return (isinstance(element, (float, int, complex, np.float_, np.int_)) and
+                not isinstance(bool, np.bool_))
 
     def _try_cast(self, element):
         try:
@@ -1355,6 +1373,14 @@ class BoolBlock(NumericBlock):
     def should_store(self, value):
         return issubclass(value.dtype.type, np.bool_)
 
+    def replace(self, to_replace, value, inplace=False, filter=None,
+                regex=False):
+        to_replace_values = np.atleast_1d(to_replace)
+        if not np.can_cast(to_replace_values, bool):
+            to_replace = to_replace_values
+        return super(BoolBlock, self).replace(to_replace, value,
+                                              inplace=inplace, filter=filter,
+                                              regex=regex)
 
 class ObjectBlock(Block):
     is_object = True
@@ -2440,7 +2466,8 @@ class BlockManager(PandasObject):
         def comp(s):
             if isnull(s):
                 return isnull(values)
-            return values == getattr(s, 'asm8', s)
+            return _possibly_compare(values, getattr(s, 'asm8', s),
+                                     operator.eq)
         masks = [comp(s) for i, s in enumerate(src_list)]
 
         result_blocks = []
@@ -2814,7 +2841,7 @@ class BlockManager(PandasObject):
 
         return self.__class__(new_blocks, new_axes)
 
-    def fast_2d_xs(self, loc, copy=False):
+    def fast_xs(self, loc, copy=False):
         """
         get a cross sectional for a given location in the
         items ; handle dups
@@ -3387,6 +3414,11 @@ class BlockManager(PandasObject):
                 new_blocks.append(na_block)
                 new_blocks = _consolidate(new_blocks, new_items)
 
+            # consolidate
+            # import for non-unique which creates a block for each item
+            # and they must be consolidated before passing on
+            new_blocks = _consolidate(new_blocks, new_items)
+
         return self.__class__(new_blocks, new_axes)
 
     def _make_na_block(self, items, ref_items, placement=None,
@@ -3742,6 +3774,12 @@ class SingleBlockManager(BlockManager):
     def _consolidate_inplace(self):
         pass
 
+    def fast_xs(self, loc, copy=False):
+        """
+        fast path for getting a cross-section
+        """
+        result = self._block.values[loc]
+        return result, False
 
 def construction_error(tot_items, block_shape, axes, e=None):
     """ raise a helpful message about our construction """
@@ -4140,3 +4178,20 @@ def _possibly_convert_to_indexer(loc):
     elif isinstance(loc, slice):
         loc = lrange(loc.start, loc.stop)
     return loc
+
+
+def _possibly_compare(a, b, op):
+    res = op(a, b)
+    is_a_array = isinstance(a, np.ndarray)
+    is_b_array = isinstance(b, np.ndarray)
+    if np.isscalar(res) and (is_a_array or is_b_array):
+        type_names = [type(a).__name__, type(b).__name__]
+
+        if is_a_array:
+            type_names[0] = 'ndarray(dtype=%s)' % a.dtype
+
+        if is_b_array:
+            type_names[1] = 'ndarray(dtype=%s)' % b.dtype
+
+        raise TypeError("Cannot compare types %r and %r" % tuple(type_names))
+    return res

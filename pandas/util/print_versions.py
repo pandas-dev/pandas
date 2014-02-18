@@ -78,12 +78,15 @@ def show_versions(as_json=False):
         ("xlrd", lambda mod: mod.__VERSION__),
         ("xlwt", lambda mod: mod.__VERSION__),
         ("xlsxwriter", lambda mod: mod.__version__),
-        ("sqlalchemy", lambda mod: mod.__version__),
         ("lxml", lambda mod: mod.etree.__version__),
         ("bs4", lambda mod: mod.__version__),
         ("html5lib", lambda mod: mod.__version__),
         ("bq", lambda mod: mod._VersionNumber()),
         ("apiclient", lambda mod: mod.__version__),
+        ("rpy2", lambda mod: mod.__version__),
+        ("sqlalchemy", lambda mod: mod.__version__),
+        ("pymysql", lambda mod: mod.__version__),
+        ("psycopg2", lambda mod: mod.__version__),
     ]
 
     deps_blob = list()

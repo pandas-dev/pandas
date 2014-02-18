@@ -427,26 +427,6 @@ class Series(generic.NDFrame):
     def axes(self):
         return [self.index]
 
-    def _maybe_box(self, values):
-        """ genericically box the values """
-
-        if isinstance(values, self.__class__):
-            return values
-        elif not hasattr(values, '__iter__'):
-            v = lib.infer_dtype([values])
-            if v == 'datetime':
-                return lib.Timestamp(v)
-            return values
-
-        v = lib.infer_dtype(values)
-        if v == 'datetime':
-            return lib.map_infer(values, lib.Timestamp)
-
-        if isinstance(values, np.ndarray):
-            return self.__class__(values)
-
-        return values
-
     def _ixs(self, i, axis=0):
         """
         Return the i-th value or values in the Series by location
@@ -483,8 +463,7 @@ class Series(generic.NDFrame):
         if raise_on_error:
             _check_slice_bounds(slobj, self.values)
         slobj = self.index._convert_slice_indexer(slobj, typ=typ or 'getitem')
-        return self._constructor(self.values[slobj],
-                                 index=self.index[slobj]).__finalize__(self)
+        return self._get_values(slobj)
 
     def __getitem__(self, key):
         try:
@@ -699,23 +678,6 @@ class Series(generic.NDFrame):
     # help out SparseSeries
     _get_val_at = ndarray.__getitem__
 
-    def __getslice__(self, i, j):
-        if i < 0:
-            i = 0
-        if j < 0:
-            j = 0
-        slobj = slice(i, j)
-        return self._slice(slobj)
-
-    def __setslice__(self, i, j, value):
-        """Set slice equal to given value(s)"""
-        if i < 0:
-            i = 0
-        if j < 0:
-            j = 0
-        slobj = slice(i, j)
-        return self.__setitem__(slobj, value)
-
     def repeat(self, reps):
         """
         See ndarray.repeat
@@ -739,27 +701,6 @@ class Series(generic.NDFrame):
             return self
 
         return self.values.reshape(shape, **kwargs)
-
-    def get(self, label, default=None):
-        """
-        Returns value occupying requested label, default to specified
-        missing value if not present. Analogous to dict.get
-
-        Parameters
-        ----------
-        label : object
-            Label value looking for
-        default : object, optional
-            Value to return if label not in index
-
-        Returns
-        -------
-        y : scalar
-        """
-        try:
-            return self.get_value(label)
-        except KeyError:
-            return default
 
     iget_value = _ixs
     iget = _ixs
@@ -1745,7 +1686,8 @@ class Series(generic.NDFrame):
                 np.argsort(values, kind=kind), index=self.index,
                 dtype='int64').__finalize__(self)
 
-    def rank(self, method='average', na_option='keep', ascending=True):
+    def rank(self, method='average', na_option='keep', ascending=True,
+             pct=False):
         """
         Compute data ranks (1 through n). Equal values are assigned a rank that
         is the average of the ranks of those values
@@ -1761,6 +1703,8 @@ class Series(generic.NDFrame):
             keep: leave NA values where they are
         ascending : boolean, default True
             False for ranks by high (1) to low (N)
+        pct : boolean, defeault False
+            Computes percentage rank of data
 
         Returns
         -------
@@ -1768,7 +1712,7 @@ class Series(generic.NDFrame):
         """
         from pandas.core.algorithms import rank
         ranks = rank(self.values, method=method, na_option=na_option,
-                     ascending=ascending)
+                     ascending=ascending, pct=pct)
         return self._constructor(ranks, index=self.index).__finalize__(self)
 
     def order(self, na_last=True, ascending=True, kind='mergesort'):
@@ -2357,67 +2301,6 @@ class Series(generic.NDFrame):
     def weekday(self):
         return self._constructor([d.weekday() for d in self.index],
                                  index=self.index).__finalize__(self)
-
-    def tz_convert(self, tz, copy=True):
-        """
-        Convert TimeSeries to target time zone
-
-        Parameters
-        ----------
-        tz : string or pytz.timezone object
-        copy : boolean, default True
-            Also make a copy of the underlying data
-
-        Returns
-        -------
-        converted : TimeSeries
-        """
-        new_index = self.index.tz_convert(tz)
-
-        new_values = self.values
-        if copy:
-            new_values = new_values.copy()
-
-        return self._constructor(new_values,
-                                 index=new_index).__finalize__(self)
-
-    def tz_localize(self, tz, copy=True, infer_dst=False):
-        """
-        Localize tz-naive TimeSeries to target time zone
-        Entries will retain their "naive" value but will be annotated as
-        being relative to the specified tz.
-
-        After localizing the TimeSeries, you may use tz_convert() to
-        get the Datetime values recomputed to a different tz.
-
-        Parameters
-        ----------
-        tz : string or pytz.timezone object
-        copy : boolean, default True
-            Also make a copy of the underlying data
-        infer_dst : boolean, default False
-            Attempt to infer fall dst-transition hours based on order
-
-        Returns
-        -------
-        localized : TimeSeries
-        """
-        from pandas.tseries.index import DatetimeIndex
-
-        if not isinstance(self.index, DatetimeIndex):
-            if len(self.index) > 0:
-                raise Exception('Cannot tz-localize non-time series')
-
-            new_index = DatetimeIndex([], tz=tz)
-        else:
-            new_index = self.index.tz_localize(tz, infer_dst=infer_dst)
-
-        new_values = self.values
-        if copy:
-            new_values = new_values.copy()
-
-        return self._constructor(new_values,
-                                 index=new_index).__finalize__(self)
 
     @cache_readonly
     def str(self):

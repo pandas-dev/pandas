@@ -1480,7 +1480,7 @@ also also skip this
 2 2 2 e f
 """
         df = self.read_table(StringIO(data), sep=' ')
-        self.assert_(df.index.name is None)
+        self.assertIsNone(df.index.name)
 
     def test_converters(self):
         data = """A,B,C,D
@@ -2177,7 +2177,7 @@ c   1   2   3   4
         df = self.read_table(StringIO(data), sep='\s+')
         expected = self.read_csv(StringIO(re.sub('[ ]+', ',', data)),
                                  index_col=0)
-        self.assert_(expected.index.name is None)
+        self.assertIsNone(expected.index.name)
         tm.assert_frame_equal(df, expected)
 
     def test_1000_fwf(self):

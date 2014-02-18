@@ -43,11 +43,11 @@ docstring_to_string = """
         string representation of NAN to use, default 'NaN'
     formatters : list or dict of one-parameter functions, optional
         formatter functions to apply to columns' elements by position or name,
-        default None, if the result is a string , it must be a unicode
-        string. List must be of length equal to the number of columns.
+        default None. The result of each function must be a unicode string.
+        List must be of length equal to the number of columns.
     float_format : one-parameter function, optional
-        formatter function to apply to columns' elements if they are floats
-        default None
+        formatter function to apply to columns' elements if they are floats,
+        default None. The result of this function must be a unicode string.
     sparsify : bool, optional
         Set to False for a DataFrame with a hierarchical index to print every
         multiindex key at each row, default True
@@ -947,7 +947,8 @@ class CSVFormatter(object):
                  cols=None, header=True, index=True, index_label=None,
                  mode='w', nanRep=None, encoding=None, quoting=None,
                  line_terminator='\n', chunksize=None, engine=None,
-                 tupleize_cols=False, quotechar='"', date_format=None):
+                 tupleize_cols=False, quotechar='"', date_format=None,
+                 doublequote=True, escapechar=None):
 
         self.engine = engine  # remove for 0.13
         self.obj = obj
@@ -971,6 +972,9 @@ class CSVFormatter(object):
             # prevents crash in _csv
             quotechar = None
         self.quotechar = quotechar
+
+        self.doublequote = doublequote
+        self.escapechar = escapechar
 
         self.line_terminator = line_terminator
 
@@ -1151,6 +1155,8 @@ class CSVFormatter(object):
         try:
             writer_kwargs = dict(lineterminator=self.line_terminator,
                                  delimiter=self.sep, quoting=self.quoting,
+                                 doublequote=self.doublequote,
+                                 escapechar=self.escapechar,
                                  quotechar=self.quotechar)
             if self.encoding is not None:
                 writer_kwargs['encoding'] = self.encoding

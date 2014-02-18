@@ -1,7 +1,7 @@
 # pylint: disable=E1101,E1103,W0232
 import datetime
 from functools import partial
-from pandas.compat import range, zip, lrange, lzip, u
+from pandas.compat import range, zip, lrange, lzip, u, reduce
 from pandas import compat
 import numpy as np
 
@@ -9,7 +9,7 @@ import pandas.tslib as tslib
 import pandas.lib as lib
 import pandas.algos as _algos
 import pandas.index as _index
-from pandas.lib import Timestamp
+from pandas.lib import Timestamp, is_datetime_array
 from pandas.core.base import FrozenList, FrozenNDArray
 
 from pandas.util.decorators import cache_readonly, deprecate
@@ -577,7 +577,7 @@ class Index(FrozenNDArray):
 
     @cache_readonly
     def is_all_dates(self):
-        return self.inferred_type == 'datetime'
+        return is_datetime_array(self.values)
 
     def __iter__(self):
         return iter(self.values)
@@ -866,6 +866,9 @@ class Index(FrozenNDArray):
     def __or__(self, other):
         return self.union(other)
 
+    def __xor__(self, other):
+        return self.sym_diff(other)
+
     def union(self, other):
         """
         Form the union of two Index objects and sorts if possible
@@ -973,16 +976,20 @@ class Index(FrozenNDArray):
         """
         Compute sorted set difference of two Index objects
 
+        Parameters
+        ----------
+        other : Index or array-like
+
+        Returns
+        -------
+        diff : Index
+
         Notes
         -----
         One can do either of these and achieve the same result
 
         >>> index - index2
         >>> index.diff(index2)
-
-        Returns
-        -------
-        diff : Index
         """
 
         if not hasattr(other, '__iter__'):
@@ -999,6 +1006,49 @@ class Index(FrozenNDArray):
 
         theDiff = sorted(set(self) - set(other))
         return Index(theDiff, name=result_name)
+
+    def sym_diff(self, other, result_name=None):
+        """
+        Compute the sorted symmetric_difference of two Index objects.
+
+        Parameters
+        ----------
+
+        other : array-like
+        result_name : str
+
+        Returns
+        -------
+        sym_diff : Index
+
+        Notes
+        -----
+        ``sym_diff`` contains elements that appear in either ``idx1`` or
+        ``idx2`` but not both. Equivalent to the Index created by
+        ``(idx1 - idx2) + (idx2 - idx1)`` with duplicates dropped.
+
+        Examples
+        --------
+        >>> idx1 = Index([1, 2, 3, 4])
+        >>> idx2 = Index([2, 3, 4, 5])
+        >>> idx1.sym_diff(idx2)
+        Int64Index([1, 5], dtype='int64')
+
+        You can also use the ``^`` operator:
+
+        >>> idx1 ^ idx2
+        Int64Index([1, 5], dtype='int64')
+        """
+        if not hasattr(other, '__iter__'):
+            raise TypeError('Input must be iterable!')
+
+        if not isinstance(other, Index):
+            other = Index(other)
+            result_name = result_name or self.name
+
+        the_diff = sorted(set((self - other) + (other - self)))
+        return Index(the_diff, name=result_name)
+
 
     def unique(self):
         """
@@ -1160,6 +1210,12 @@ class Index(FrozenNDArray):
         indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
         return Index(indexer), missing
 
+    def get_indexer_for(self, target, **kwargs):
+        """ guaranteed return of an indexer even when non-unique """
+        if self.is_unique:
+            return self.get_indexer(target, **kwargs)
+        return self.get_indexer_non_unique(target, **kwargs)[0]
+
     def _possibly_promote(self, other):
         # A hack, but it works
         from pandas.tseries.index import DatetimeIndex
@@ -1265,8 +1321,21 @@ class Index(FrozenNDArray):
         -------
         join_index, (left_indexer, right_indexer)
         """
-        if (level is not None and (isinstance(self, MultiIndex) or
-                                   isinstance(other, MultiIndex))):
+        self_is_mi = isinstance(self, MultiIndex)
+        other_is_mi = isinstance(other, MultiIndex)
+
+        # try to figure out the join level
+        # GH3662
+        if (level is None and (self_is_mi or other_is_mi)):
+
+            # have the same levels/names so a simple join
+            if self.names == other.names:
+                pass
+            else:
+                return self._join_multi(other, how=how, return_indexers=return_indexers)
+
+        # join on the level
+        if (level is not None and (self_is_mi or other_is_mi)):
             return self._join_level(other, level, how=how,
                                     return_indexers=return_indexers)
 
@@ -1343,6 +1412,43 @@ class Index(FrozenNDArray):
             return join_index, lindexer, rindexer
         else:
             return join_index
+
+    def _join_multi(self, other, how, return_indexers=True):
+
+        self_is_mi = isinstance(self, MultiIndex)
+        other_is_mi = isinstance(other, MultiIndex)
+
+        # figure out join names
+        self_names = [ n for n in self.names if n is not None ]
+        other_names = [ n for n in other.names if n is not None ]
+        overlap = list(set(self_names) & set(other_names))
+
+        # need at least 1 in common, but not more than 1
+        if not len(overlap):
+            raise ValueError("cannot join with no level specified and no overlapping names")
+        if len(overlap) > 1:
+            raise NotImplementedError("merging with more than one level overlap on a multi-index is not implemented")
+        jl = overlap[0]
+
+        # make the indices into mi's that match
+        if not (self_is_mi and other_is_mi):
+
+            flip_order = False
+            if self_is_mi:
+                self, other = other, self
+                flip_order = True
+
+            level = other.names.index(jl)
+            result = self._join_level(other, level, how=how,
+                                      return_indexers=return_indexers)
+
+            if flip_order:
+                if isinstance(result, tuple):
+                    return result[0], result[2], result[1]
+            return result
+
+        # 2 multi-indexes
+        raise NotImplementedError("merging with both multi-indexes is not implemented")
 
     def _join_non_unique(self, other, how='left', return_indexers=False):
         from pandas.tools.merge import _get_join_indexers
@@ -3233,21 +3339,110 @@ class MultiIndex(Index):
                                                    drop_level)
         else:
             indexer = self._get_level_indexer(key, level=level)
-            new_index = _maybe_drop_levels(indexer, [level], drop_level)
-            return indexer, new_index
+            return indexer, _maybe_drop_levels(indexer, [level], drop_level)
 
     def _get_level_indexer(self, key, level=0):
+        # return a boolean indexer or a slice showing where the key is
+        # in the totality of values
+
         level_index = self.levels[level]
-        loc = level_index.get_loc(key)
         labels = self.labels[level]
 
-        if level > 0 or self.lexsort_depth == 0:
-            return np.array(labels == loc,dtype=bool)
+        if isinstance(key, slice):
+            # handle a slice, returnig a slice if we can
+            # otherwise a boolean indexer
+
+            start = level_index.get_loc(key.start)
+            stop  = level_index.get_loc(key.stop)
+            step = key.step
+
+            if level > 0 or self.lexsort_depth == 0:
+                # need to have like semantics here to right
+                # searching as when we are using a slice
+                # so include the stop+1 (so we include stop)
+                m = np.zeros(len(labels),dtype=bool)
+                m[np.in1d(labels,np.arange(start,stop+1,step))] = True
+                return m
+            else:
+                # sorted, so can return slice object -> view
+                i = labels.searchsorted(start, side='left')
+                j = labels.searchsorted(stop, side='right')
+                return slice(i, j, step)
+
         else:
-            # sorted, so can return slice object -> view
-            i = labels.searchsorted(loc, side='left')
-            j = labels.searchsorted(loc, side='right')
-            return slice(i, j)
+
+            loc = level_index.get_loc(key)
+            if level > 0 or self.lexsort_depth == 0:
+                return np.array(labels == loc,dtype=bool)
+            else:
+                # sorted, so can return slice object -> view
+                i = labels.searchsorted(loc, side='left')
+                j = labels.searchsorted(loc, side='right')
+                return slice(i, j)
+
+    def get_locs(self, tup):
+        """
+        Given a tuple of slices/lists/labels/boolean indexer to a level-wise spec
+        produce an indexer to extract those locations
+
+        Parameters
+        ----------
+        key : tuple of (slices/list/labels)
+
+        Returns
+        -------
+        locs : integer list of locations or boolean indexer suitable
+               for passing to iloc
+        """
+
+        # must be lexsorted to at least as many levels
+        if not self.is_lexsorted_for_tuple(tup):
+            raise KeyError('MultiIndex Slicing requires the index to be fully lexsorted'
+                           ' tuple len ({0}), lexsort depth ({1})'.format(len(tup), self.lexsort_depth))
+        if not self.is_unique:
+            raise ValueError('MultiIndex Slicing requires a unique index')
+
+        def _convert_indexer(r):
+            if isinstance(r, slice):
+                m = np.zeros(len(self),dtype=bool)
+                m[r] = True
+                return m
+            return r
+
+        ranges = []
+        for i,k in enumerate(tup):
+
+            if com._is_bool_indexer(k):
+                # a boolean indexer, must be the same length!
+                k = np.asarray(k)
+                if len(k) != len(self):
+                    raise ValueError("cannot index with a boolean indexer that is"
+                                     " not the same length as the index")
+                ranges.append(k)
+            elif com.is_list_like(k):
+                # a collection of labels to include from this level (these are or'd)
+                ranges.append(reduce(
+                    np.logical_or,[ _convert_indexer(self._get_level_indexer(x, level=i)
+                                                     ) for x in k ]))
+            elif k == slice(None):
+                # include all from this level
+                pass
+            elif isinstance(k,slice):
+                # a slice, include BOTH of the labels
+                ranges.append(self._get_level_indexer(k,level=i))
+            else:
+                # a single label
+                ranges.append(self.get_loc_level(k,level=i,drop_level=False)[0])
+
+        # identity
+        if len(ranges) == 0:
+            return slice(0,len(self))
+
+        elif len(ranges) == 1:
+            return ranges[0]
+
+        # construct a boolean indexer if we have a slice or boolean indexer
+        return reduce(np.logical_and,[ _convert_indexer(r) for r in ranges ])
 
     def truncate(self, before=None, after=None):
         """

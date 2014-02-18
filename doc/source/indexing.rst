@@ -426,14 +426,14 @@ python/numpy allow slicing past the end of an array without an associated error.
   values. A single indexer that is out-of-bounds and drops the dimensions of the object will still raise
   ``IndexError`` (:issue:`6296`). This could result in an empty axis (e.g. an empty DataFrame being returned)
 
-  .. ipython:: python
+.. ipython:: python
 
-      df = DataFrame(np.random.randn(5,2),columns=list('AB'))
-      df
-      df.iloc[[4,5,6]]
-      df.iloc[4:6]
-      df.iloc[:,2:3]
-      df.iloc[:,1:3]
+   dfl = DataFrame(np.random.randn(5,2),columns=list('AB'))
+   dfl
+   dfl.iloc[[4,5,6]]
+   dfl.iloc[4:6]
+   dfl.iloc[:,2:3]
+   dfl.iloc[:,1:3]
 
 .. _indexing.basics.partial_setting:
 
@@ -1504,6 +1504,18 @@ operators:
    a & b
    a - b
 
+Also available is the ``sym_diff (^)`` operation, which returns elements
+that appear in either ``idx1`` or ``idx2`` but not both. This is
+equivalent to the Index created by ``(idx1 - idx2) + (idx2 - idx1)``,
+with duplicates dropped.
+
+.. ipython:: python
+
+   idx1 = Index([1, 2, 3, 4])
+   idx2 = Index([2, 3, 4, 5])
+   idx1.sym_diff(idx2)
+   idx1 ^ idx2
+
 The ``isin`` method of Index objects
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1684,7 +1696,7 @@ of tuples:
 Advanced indexing with hierarchical index
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Syntactically integrating ``MultiIndex`` in advanced indexing with ``.ix`` is a
+Syntactically integrating ``MultiIndex`` in advanced indexing with ``.loc/.ix`` is a
 bit challenging, but we've made every effort to do so. for example the
 following works as you would expect:
 
@@ -1692,22 +1704,21 @@ following works as you would expect:
 
    df = df.T
    df
-   df.ix['bar']
-   df.ix['bar', 'two']
+   df.loc['bar']
+   df.loc['bar', 'two']
 
-"Partial" slicing also works quite nicely for the topmost level:
-
-.. ipython:: python
-
-   df.ix['baz':'foo']
-
-But lower levels cannot be sliced in this way, because the MultiIndex uses
-its multiple index dimensions to slice along one dimension of your object:
+"Partial" slicing also works quite nicely.
 
 .. ipython:: python
 
-   df.ix[('baz', 'two'):('qux', 'one')]
-   df.ix[('baz', 'two'):'foo']
+   df.loc['baz':'foo']
+
+You can slice with a 'range' of values, by providing a slice of tuples.
+
+.. ipython:: python
+
+   df.loc[('baz', 'two'):('qux', 'one')]
+   df.loc[('baz', 'two'):'foo']
 
 Passing a list of labels or tuples works similar to reindexing:
 
@@ -1715,16 +1726,113 @@ Passing a list of labels or tuples works similar to reindexing:
 
    df.ix[[('bar', 'two'), ('qux', 'one')]]
 
-The following does not work, and it's not clear if it should or not:
+.. _indexing.mi_slicers:
 
-::
+Multiindexing using slicers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-   >>> df.ix[['bar', 'qux']]
+.. versionadded:: 0.14.0
 
-The code for implementing ``.ix`` makes every attempt to "do the right thing"
-but as you use it you may uncover corner cases or unintuitive behavior. If you
-do find something like this, do not hesitate to report the issue or ask on the
-mailing list.
+In 0.14.0 we added a new way to slice multi-indexed objects.
+You can slice a multi-index by providing multiple indexers.
+
+You can provide any of the selectors as if you are indexing by label, see :ref:`Selection by Label <indexing.label>`,
+including slices, lists of labels, labels, and boolean indexers.
+
+You can use ``slice(None)`` to select all the contents of *that* level. You do not need to specify all the
+*deeper* levels, they will be implied as ``slice(None)``.
+
+As usual, **both sides** of the slicers are included as this is label indexing.
+
+.. warning::
+
+   You should specify all axes in the ``.loc`` specifier, meaning the indexer for the **index** and
+   for the **columns**. Their are some ambiguous cases where the passed indexer could be mis-interpreted
+   as indexing *both* axes, rather than into say the MuliIndex for the rows.
+
+   You should do this:
+
+   .. code-block:: python
+
+      df.loc[(slice('A1','A3'),.....),:]
+
+   rather than this:
+
+   .. code-block:: python
+
+      df.loc[(slice('A1','A3'),.....)]
+
+.. warning::
+
+   You will need to make sure that the selection axes are fully lexsorted!
+
+.. ipython:: python
+
+   def mklbl(prefix,n):
+       return ["%s%s" % (prefix,i)  for i in range(n)]
+
+   miindex = MultiIndex.from_product([mklbl('A',4),
+                                      mklbl('B',2),
+                                      mklbl('C',4),
+                                      mklbl('D',2)])
+   micolumns = MultiIndex.from_tuples([('a','foo'),('a','bar'),
+                                       ('b','foo'),('b','bah')],
+                                        names=['lvl0', 'lvl1'])
+   dfmi = DataFrame(np.arange(len(miindex)*len(micolumns)).reshape((len(miindex),len(micolumns))),
+                    index=miindex,
+                    columns=micolumns).sortlevel().sortlevel(axis=1)
+   dfmi
+
+Basic multi-index slicing using slices, lists, and labels.
+
+.. ipython:: python
+
+   dfmi.loc[(slice('A1','A3'),slice(None), ['C1','C3']),:]
+
+You can use a ``pd.IndexSlice`` to shortcut the creation of these slices
+
+.. ipython:: python
+
+   idx = pd.IndexSlice
+   dfmi.loc[idx[:,:,['C1','C3']],idx[:,'foo']]
+
+It is possible to perform quite complicated selections using this method on multiple
+axes at the same time.
+
+.. ipython:: python
+
+   dfmi.loc['A1',(slice(None),'foo')]
+   dfmi.loc[idx[:,:,['C1','C3']],idx[:,'foo']]
+
+Using a boolean indexer you can provide selection related to the *values*.
+
+.. ipython:: python
+
+   mask = dfmi[('a','foo')]>200
+   dfmi.loc[idx[mask,:,['C1','C3']],idx[:,'foo']]
+
+You can also specify the ``axis`` argument to ``.loc`` to interpret the passed
+slicers on a single axis.
+
+.. ipython:: python
+
+   dfmi.loc(axis=0)[:,:,['C1','C3']]
+
+Furthermore you can *set* the values using these methods
+
+.. ipython:: python
+
+   df2 = dfmi.copy()
+   df2.loc(axis=0)[:,:,['C1','C3']] = -10
+   df2
+
+You can use a right-hand-side of an alignable object as well.
+
+.. ipython:: python
+
+   df2 = dfmi.copy()
+   df2.loc[idx[:,:,['C1','C3']],:] = df2*1000
+   df2
 
 .. _indexing.xs:
 
@@ -1738,6 +1846,11 @@ selecting data at a particular level of a MultiIndex easier.
 
     df.xs('one', level='second')
 
+.. ipython:: python
+
+   # using the slicers (new in 0.14.0)
+   df.loc[(slice(None),'one'),:]
+
 You can also select on the columns with :meth:`~pandas.MultiIndex.xs`, by
 providing the axis argument
 
@@ -1746,29 +1859,38 @@ providing the axis argument
    df = df.T
    df.xs('one', level='second', axis=1)
 
+.. ipython:: python
+
+   # using the slicers (new in 0.14.0)
+   df.loc[:,(slice(None),'one')]
+
 :meth:`~pandas.MultiIndex.xs` also allows selection with multiple keys
 
 .. ipython:: python
 
    df.xs(('one', 'bar'), level=('second', 'first'), axis=1)
 
+.. ipython:: python
+
+   # using the slicers (new in 0.14.0)
+   df.loc[:,('bar','one')]
 
 .. versionadded:: 0.13.0
 
 You can pass ``drop_level=False`` to :meth:`~pandas.MultiIndex.xs` to retain
 the level that was selected
 
-.. ipython::
+.. ipython:: python
 
    df.xs('one', level='second', axis=1, drop_level=False)
 
 versus the result with ``drop_level=True`` (the default value)
 
-.. ipython::
+.. ipython:: python
 
    df.xs('one', level='second', axis=1, drop_level=True)
 
-.. ipython::
+.. ipython:: python
    :suppress:
 
    df = df.T

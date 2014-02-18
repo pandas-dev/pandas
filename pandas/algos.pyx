@@ -131,7 +131,7 @@ cdef _take_2d_object(ndarray[object, ndim=2] values,
 
 
 def rank_1d_float64(object in_arr, ties_method='average', ascending=True,
-                    na_option='keep'):
+                    na_option='keep', pct=False):
     """
     Fast NaN-friendly version of scipy.stats.rankdata
     """
@@ -144,6 +144,7 @@ def rank_1d_float64(object in_arr, ties_method='average', ascending=True,
         float64_t sum_ranks = 0
         int tiebreak = 0
         bint keep_na = 0
+        float count = 0.0
     tiebreak = tiebreakers[ties_method]
 
     values = np.asarray(in_arr).copy()
@@ -182,6 +183,7 @@ def rank_1d_float64(object in_arr, ties_method='average', ascending=True,
         if (val == nan_value) and keep_na:
             ranks[argsorted[i]] = nan
             continue
+        count += 1.0
         if i == n - 1 or fabs(sorted_data[i + 1] - val) > FP_ERR:
             if tiebreak == TIEBREAK_AVERAGE:
                 for j in range(i - dups + 1, i + 1):
@@ -199,11 +201,14 @@ def rank_1d_float64(object in_arr, ties_method='average', ascending=True,
                 for j in range(i - dups + 1, i + 1):
                     ranks[argsorted[j]] = 2 * i - j - dups + 2
             sum_ranks = dups = 0
-    return ranks
+    if pct:
+        return ranks / count
+    else:
+        return ranks
 
 
 def rank_1d_int64(object in_arr, ties_method='average', ascending=True,
-                  na_option='keep'):
+                  na_option='keep', pct=False):
     """
     Fast NaN-friendly version of scipy.stats.rankdata
     """
@@ -216,6 +221,7 @@ def rank_1d_int64(object in_arr, ties_method='average', ascending=True,
         int64_t val
         float64_t sum_ranks = 0
         int tiebreak = 0
+        float count = 0.0
     tiebreak = tiebreakers[ties_method]
 
     values = np.asarray(in_arr)
@@ -242,6 +248,7 @@ def rank_1d_int64(object in_arr, ties_method='average', ascending=True,
         sum_ranks += i + 1
         dups += 1
         val = sorted_data[i]
+        count += 1.0
         if i == n - 1 or fabs(sorted_data[i + 1] - val) > 0:
             if tiebreak == TIEBREAK_AVERAGE:
                 for j in range(i - dups + 1, i + 1):
@@ -259,7 +266,10 @@ def rank_1d_int64(object in_arr, ties_method='average', ascending=True,
                 for j in range(i - dups + 1, i + 1):
                     ranks[argsorted[j]] = 2 * i - j - dups + 2
             sum_ranks = dups = 0
-    return ranks
+    if pct:
+        return ranks / count
+    else:
+        return ranks
 
 
 def rank_2d_float64(object in_arr, axis=0, ties_method='average',
@@ -414,7 +424,7 @@ def rank_2d_int64(object in_arr, axis=0, ties_method='average',
 
 
 def rank_1d_generic(object in_arr, bint retry=1, ties_method='average',
-                    ascending=True, na_option='keep'):
+                    ascending=True, na_option='keep', pct=False):
     """
     Fast NaN-friendly version of scipy.stats.rankdata
     """
@@ -428,6 +438,8 @@ def rank_1d_generic(object in_arr, bint retry=1, ties_method='average',
         float64_t sum_ranks = 0
         int tiebreak = 0
         bint keep_na = 0
+        float count = 0.0
+
 
     tiebreak = tiebreakers[ties_method]
 
@@ -469,7 +481,6 @@ def rank_1d_generic(object in_arr, bint retry=1, ties_method='average',
 
     sorted_data = values.take(_as)
     argsorted = _as.astype('i8')
-
     for i in range(n):
         sum_ranks += i + 1
         dups += 1
@@ -479,6 +490,7 @@ def rank_1d_generic(object in_arr, bint retry=1, ties_method='average',
             continue
         if (i == n - 1 or
             are_diff(util.get_value_at(sorted_data, i + 1), val)):
+            count += 1.0
             if tiebreak == TIEBREAK_AVERAGE:
                 for j in range(i - dups + 1, i + 1):
                     ranks[argsorted[j]] = sum_ranks / dups
@@ -491,7 +503,10 @@ def rank_1d_generic(object in_arr, bint retry=1, ties_method='average',
             elif tiebreak == TIEBREAK_FIRST:
                 raise ValueError('first not supported for non-numeric data')
             sum_ranks = dups = 0
-    return ranks
+    if pct:
+        ranks / count
+    else:
+        return ranks
 
 cdef inline are_diff(object left, object right):
     try:

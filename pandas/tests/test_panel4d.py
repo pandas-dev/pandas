@@ -171,7 +171,7 @@ class SafeForSparse(object):
         self.panel4d.labels = new_labels
 
         if hasattr(self.panel4d, '_item_cache'):
-            self.assert_('l1' not in self.panel4d._item_cache)
+            self.assertNotIn('l1', self.panel4d._item_cache)
         self.assert_(self.panel4d.labels is new_labels)
 
         self.panel4d.major_axis = new_major
@@ -294,10 +294,10 @@ class CheckIndexing(object):
         expected = self.panel4d['l2']
         result = self.panel4d.pop('l2')
         assert_panel_equal(expected, result)
-        self.assert_('l2' not in self.panel4d.labels)
+        self.assertNotIn('l2', self.panel4d.labels)
 
         del self.panel4d['l3']
-        self.assert_('l3' not in self.panel4d.labels)
+        self.assertNotIn('l3', self.panel4d.labels)
         self.assertRaises(Exception, self.panel4d.__delitem__, 'l3')
 
         values = np.empty((4, 4, 4, 4))
@@ -375,8 +375,8 @@ class CheckIndexing(object):
 
         def test_comp(func):
             result = func(p1, p2)
-            self.assert_(np.array_equal(result.values,
-                                        func(p1.values, p2.values)))
+            self.assert_numpy_array_equal(result.values,
+                                          func(p1.values, p2.values))
 
             # versus non-indexed same objs
             self.assertRaises(Exception, func, p1, tp)
@@ -385,8 +385,8 @@ class CheckIndexing(object):
             self.assertRaises(Exception, func, p1, p)
 
             result3 = func(self.panel4d, 0)
-            self.assert_(np.array_equal(result3.values,
-                                        func(self.panel4d.values, 0)))
+            self.assert_numpy_array_equal(result3.values,
+                                          func(self.panel4d.values, 0))
 
         test_comp(operator.eq)
         test_comp(operator.ne)

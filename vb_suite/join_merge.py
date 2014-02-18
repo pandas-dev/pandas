@@ -220,5 +220,5 @@ temp = pd.TimeSeries(1.0, index)
 """
 
 join_non_unique_equal = Benchmark('fracofday * temp[fracofday.index]', setup,
-                                   start_date=datetime(2013 1, 1))
+                                   start_date=datetime(2013, 1, 1))
 

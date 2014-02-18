@@ -835,7 +835,14 @@ class MPLPlot(object):
             secondary_y = [secondary_y]
         self.secondary_y = secondary_y
 
-        self.colormap = colormap
+        # ugly TypeError if user passes matplotlib's `cmap` name.
+        # Probably better to accept either.
+        if 'cmap' in kwds and colormap:
+            raise TypeError("Only specify one of `cmap` and `colormap`.")
+        elif 'cmap' in kwds:
+            self.colormap = kwds.pop('cmap')
+        else:
+            self.colormap = colormap
 
         self.kwds = kwds
 
@@ -1263,6 +1270,52 @@ class ScatterPlot(MPLPlot):
         ax.set_xlabel(com.pprint_thing(x))
 
 
+class HexBinPlot(MPLPlot):
+    def __init__(self, data, x, y, C=None, **kwargs):
+        MPLPlot.__init__(self, data, **kwargs)
+
+        if x is None or y is None:
+            raise ValueError('hexbin requires and x and y column')
+        if com.is_integer(x) and not self.data.columns.holds_integer():
+            x = self.data.columns[x]
+        if com.is_integer(y) and not self.data.columns.holds_integer():
+            y = self.data.columns[y]
+
+        if com.is_integer(C) and not self.data.columns.holds_integer():
+            C = self.data.columns[C]
+
+        self.x = x
+        self.y = y
+        self.C = C
+
+    def _make_plot(self):
+        import matplotlib.pyplot as plt
+
+        x, y, data, C = self.x, self.y, self.data, self.C
+        ax = self.axes[0]
+        # pandas uses colormap, matplotlib uses cmap.
+        cmap = self.colormap or 'BuGn'
+        cmap = plt.cm.get_cmap(cmap)
+        cb = self.kwds.pop('colorbar', True)
+
+        if C is None:
+            c_values = None
+        else:
+            c_values = data[C].values
+
+        ax.hexbin(data[x].values, data[y].values, C=c_values, cmap=cmap,
+                  **self.kwds)
+        if cb:
+            img = ax.collections[0]
+            self.fig.colorbar(img, ax=ax)
+
+    def _post_plot_logic(self):
+        ax = self.axes[0]
+        x, y = self.x, self.y
+        ax.set_ylabel(com.pprint_thing(y))
+        ax.set_xlabel(com.pprint_thing(x))
+
+
 class LinePlot(MPLPlot):
 
     def __init__(self, data, **kwargs):
@@ -1663,11 +1716,12 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
     ax : matplotlib axis object, default None
     style : list or dict
         matplotlib line style per column
-    kind : {'line', 'bar', 'barh', 'kde', 'density', 'scatter'}
+    kind : {'line', 'bar', 'barh', 'kde', 'density', 'scatter', 'hexbin'}
         bar : vertical bar plot
         barh : horizontal bar plot
         kde/density : Kernel Density Estimation plot
         scatter: scatter plot
+        hexbin: hexbin plot
     logx : boolean, default False
         For line plots, use log scaling on x axis
     logy : boolean, default False
@@ -1695,6 +1749,17 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
     Returns
     -------
     ax_or_axes : matplotlib.AxesSubplot or list of them
+
+    Notes
+    -----
+
+    If `kind`='hexbin', you can control the size of the bins with the
+    `gridsize` argument. By default, a histogram of the counts around each
+    `(x, y)` point is computed. You can specify alternative aggregations
+    by passing values to the `C` and `reduce_C_function` arguments.
+    `C` specifies the value at each `(x, y)` point and `reduce_C_function`
+    is a function of one argument that reduces all the values in a bin to
+    a single number (e.g. `mean`, `max`, `sum`, `std`).
     """
     kind = _get_standard_kind(kind.lower().strip())
     if kind == 'line':
@@ -1705,6 +1770,8 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
         klass = KdePlot
     elif kind == 'scatter':
         klass = ScatterPlot
+    elif kind == 'hexbin':
+        klass = HexBinPlot
     else:
         raise ValueError('Invalid chart type given %s' % kind)
 
@@ -1717,6 +1784,16 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
                          figsize=figsize, logx=logx, logy=logy,
                          sort_columns=sort_columns, secondary_y=secondary_y,
                          **kwds)
+    elif kind == 'hexbin':
+        C = kwds.pop('C', None)  # remove from kwargs so we can set default
+        plot_obj = klass(frame,  x=x, y=y, kind=kind, subplots=subplots,
+                         rot=rot,legend=legend, ax=ax, style=style,
+                         fontsize=fontsize, use_index=use_index, sharex=sharex,
+                         sharey=sharey, xticks=xticks, yticks=yticks,
+                         xlim=xlim, ylim=ylim, title=title, grid=grid,
+                         figsize=figsize, logx=logx, logy=logy,
+                         sort_columns=sort_columns, secondary_y=secondary_y,
+                         C=C, **kwds)
     else:
         if x is not None:
             if com.is_integer(x) and not frame.columns.holds_integer():

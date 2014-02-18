@@ -777,12 +777,12 @@ class TestHDFStore(tm.TestCase):
             store.append('ss', ss)
             result = store['ss']
             tm.assert_series_equal(result, ss)
-            self.assert_(result.name is None)
+            self.assertIsNone(result.name)
 
             store.append('ts', ts)
             result = store['ts']
             tm.assert_series_equal(result, ts)
-            self.assert_(result.name is None)
+            self.assertIsNone(result.name)
 
             ns.name = 'foo'
             store.append('ns', ns)
@@ -1449,7 +1449,7 @@ class TestHDFStore(tm.TestCase):
                 tables.__version__ = v
                 self.assertRaises(Exception, store.create_table_index, 'f')
 
-            for v in ['2.3.1', '2.3.1b', '2.4dev', '2.4', original]:
+            for v in ['2.3.1', '2.3.1b', '2.4dev', '2.4', '3.0.0', '3.1.0', original]:
                 pytables._table_mod = None
                 pytables._table_supports_index = False
                 tables.__version__ = v
@@ -2199,7 +2199,7 @@ class TestHDFStore(tm.TestCase):
         # GH #4835 and #6177
 
         with ensure_clean_store(self.path) as store:
-            
+
             wp = tm.makePanel()
 
             # start
@@ -2246,7 +2246,7 @@ class TestHDFStore(tm.TestCase):
             result = store.select('wp6')
             expected = wp.reindex(major_axis=wp.major_axis)
             assert_panel_equal(result, expected)
-            
+
             # with where
             date = wp.major_axis.take(np.arange(0,30,3))
             crit = Term('major_axis=date')
@@ -2256,7 +2256,7 @@ class TestHDFStore(tm.TestCase):
             result = store.select('wp7')
             expected = wp.reindex(major_axis=wp.major_axis-wp.major_axis[np.arange(0,20,3)])
             assert_panel_equal(result, expected)
-            
+
 
     def test_remove_crit(self):
 
@@ -2474,6 +2474,50 @@ class TestHDFStore(tm.TestCase):
             expected = wp.loc[:,:,['A','B']]
             assert_panel_equal(result, expected)
 
+    def test_backwards_compat_without_term_object(self):
+        with ensure_clean_store(self.path) as store:
+
+            wp = Panel(np.random.randn(2, 5, 4), items=['Item1', 'Item2'],
+                       major_axis=date_range('1/1/2000', periods=5),
+                       minor_axis=['A', 'B', 'C', 'D'])
+            store.append('wp',wp)
+            with tm.assert_produces_warning(expected_warning=DeprecationWarning):
+                result = store.select('wp', [('major_axis>20000102'),
+                                             ('minor_axis', '=', ['A','B']) ])
+            expected = wp.loc[:,wp.major_axis>Timestamp('20000102'),['A','B']]
+            assert_panel_equal(result, expected)
+
+            store.remove('wp', ('major_axis>20000103'))
+            result = store.select('wp')
+            expected = wp.loc[:,wp.major_axis<=Timestamp('20000103'),:]
+            assert_panel_equal(result, expected)
+
+        with ensure_clean_store(self.path) as store:
+
+            wp = Panel(np.random.randn(2, 5, 4), items=['Item1', 'Item2'],
+                       major_axis=date_range('1/1/2000', periods=5),
+                       minor_axis=['A', 'B', 'C', 'D'])
+            store.append('wp',wp)
+
+            # stringified datetimes
+            with tm.assert_produces_warning(expected_warning=DeprecationWarning):
+                result = store.select('wp', [('major_axis','>',datetime.datetime(2000,1,2))])
+            expected = wp.loc[:,wp.major_axis>Timestamp('20000102')]
+            assert_panel_equal(result, expected)
+            with tm.assert_produces_warning(expected_warning=DeprecationWarning):
+                result = store.select('wp', [('major_axis','>',datetime.datetime(2000,1,2,0,0))])
+            expected = wp.loc[:,wp.major_axis>Timestamp('20000102')]
+            assert_panel_equal(result, expected)
+            with tm.assert_produces_warning(expected_warning=DeprecationWarning):
+                result = store.select('wp', [('major_axis','=',[datetime.datetime(2000,1,2,0,0),
+                                                                datetime.datetime(2000,1,3,0,0)])])
+            expected = wp.loc[:,[Timestamp('20000102'),Timestamp('20000103')]]
+            assert_panel_equal(result, expected)
+            with tm.assert_produces_warning(expected_warning=DeprecationWarning):
+                result = store.select('wp', [('minor_axis','=',['A','B'])])
+            expected = wp.loc[:,:,['A','B']]
+            assert_panel_equal(result, expected)
+            
     def test_same_name_scoping(self):
 
         with ensure_clean_store(self.path) as store:
@@ -3213,7 +3257,7 @@ class TestHDFStore(tm.TestCase):
                                                 index=date_range('2002-1-1',periods=3,freq='D'))))
                 store.append('data',df2)
 
-            self.assert_(store.get_storer('data').info['index']['freq'] is None)
+            self.assertIsNone(store.get_storer('data').info['index']['freq'])
 
             # this is ok
             _maybe_remove(store,'df2')
@@ -3248,7 +3292,7 @@ class TestHDFStore(tm.TestCase):
                 df2 = DataFrame(dict(A = Series(lrange(3), index=idx2)))
                 df2.to_hdf(path,'data',append=True)
 
-            self.assert_(read_hdf(path,'data').index.name is None)
+            self.assertIsNone(read_hdf(path,'data').index.name)
 
     def test_panel_select(self):
 
@@ -3732,6 +3776,26 @@ class TestHDFStore(tm.TestCase):
             self.assertRaises(ValueError, store.select_as_multiple,
                               ['df1','df3'], where=['A>0', 'B>0'], selector='df1')
 
+
+    def test_nan_selection_bug_4858(self):
+
+        # GH 4858; nan selection bug, only works for pytables >= 3.1
+        if LooseVersion(tables.__version__) < '3.1.0':
+            raise nose.SkipTest('tables version does not support fix for nan selection bug: GH 4858')
+
+        with ensure_clean_store(self.path) as store:
+
+            df = DataFrame(dict(cols = range(6), values = range(6)), dtype='float64')
+            df['cols'] = (df['cols']+10).apply(str)
+            df.iloc[0] = np.nan
+
+            expected = DataFrame(dict(cols = ['13.0','14.0','15.0'], values = [3.,4.,5.]), index=[3,4,5])
+
+            # write w/o the index on that particular column
+            store.append('df',df, data_columns=True,index=['cols'])
+            result = store.select('df',where='values>2.0')
+            assert_frame_equal(result,expected)
+
     def test_start_stop(self):
 
         with ensure_clean_store(self.path) as store:
@@ -4154,6 +4218,14 @@ class TestHDFStore(tm.TestCase):
                 with tm.assertRaises(ValueError):
                     store.append(name, d)
 
+    def test_query_with_nested_special_character(self):
+        df = DataFrame({'a': ['a', 'a', 'c', 'b', 'test & test', 'c' , 'b', 'e'],
+                        'b': [1, 2, 3, 4, 5, 6, 7, 8]})
+        expected = df[df.a == 'test & test']
+        with ensure_clean_store(self.path) as store:
+            store.append('test', df, format='table', data_columns=True)
+            result = store.select('test', 'a = "test & test"')
+        tm.assert_frame_equal(expected, result)
 
 def _test_sort(obj):
     if isinstance(obj, DataFrame):

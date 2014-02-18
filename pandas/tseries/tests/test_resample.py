@@ -1100,7 +1100,7 @@ class TestTimeGrouper(tm.TestCase):
         df = DataFrame({'open': 1, 'close': 2}, index=ind)
         tg = TimeGrouper('M')
 
-        grouper = tg.get_grouper(df)
+        _, grouper, _ = tg.get_grouper(df)
 
         # Errors
 
@@ -1118,7 +1118,7 @@ class TestTimeGrouper(tm.TestCase):
                       minor_axis=['A', 'B', 'C', 'D'])
 
         tg = TimeGrouper('M', axis=1)
-        grouper = tg.get_grouper(wp)
+        _, grouper, _ = tg.get_grouper(wp)
         bingrouped = wp.groupby(grouper)
         binagg = bingrouped.mean()
 
