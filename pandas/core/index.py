@@ -1950,8 +1950,14 @@ class Float64Index(Index):
         if self is other:
             return True
 
+        # need to compare nans locations and make sure that they are the same
+        # since nans don't compare equal this is a bit tricky
         try:
-            return np.array_equal(self, other)
+            if not isinstance(other, Float64Index):
+                other = self._constructor(other)
+            if self.dtype != other.dtype or self.shape != other.shape: return False
+            left, right = self.values, other.values
+            return ((left == right) | (isnull(left) & isnull(right))).all()
         except TypeError:
             # e.g. fails in numpy 1.6 with DatetimeIndex #1681
             return False
