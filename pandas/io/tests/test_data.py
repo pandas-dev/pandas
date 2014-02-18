@@ -418,6 +418,8 @@ class TestFred(tm.TestCase):
 
     @network
     def test_fred_parts(self):
+        raise nose.SkipTest('buggy as of 2/18/14; maybe a data revision?')
+
         start = datetime(2010, 1, 1)
         end = datetime(2013, 1, 27)
         df = web.get_data_fred("CPIAUCSL", start, end)
@@ -444,6 +446,8 @@ class TestFred(tm.TestCase):
 
     @network
     def test_fred_multi(self):
+        raise nose.SkipTest('buggy as of 2/18/14; maybe a data revision?')
+
         names = ['CPIAUCSL', 'CPALTT01USQ661S', 'CPILFESL']
         start = datetime(2010, 1, 1)
         end = datetime(2013, 1, 27)
