@@ -107,6 +107,7 @@ Improvements to existing features
 Bug Fixes
 ~~~~~~~~~
 
+- Bug in ``pd.tseries.frequencies.to_offset`` when argument has leading zeroes (:issue:`6391`)
 - Bug in version string gen. for dev versions with shallow clones / install from tarball (:issue:`6127`)
 - Inconsistent tz parsing Timestamp/to_datetime for current year (:issue:`5958`)
 - Indexing bugs with reordered indexes (:issue:`6252`, :issue:`6254`)

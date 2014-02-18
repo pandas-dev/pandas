@@ -72,6 +72,16 @@ def test_to_offset_negative():
     freqstr = '-5min10s'
     result = to_offset(freqstr)
     assert(result.n == -310)
+    
+
+def test_to_offset_leading_zero():
+    freqstr = '00H 00T 01S'
+    result = to_offset(freqstr)
+    assert(result.n == 1)
+
+    freqstr = '-00H 03T 14S'
+    result = to_offset(freqstr)
+    assert(result.n == -194)
 
 
 def test_anchored_shortcuts():
