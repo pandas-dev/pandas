@@ -74,6 +74,7 @@ API Changes
   now raise a ``TypeError``. (:issue:`4551`, :issue:`4056`, :issue:`5519`)
 
   The following affected:
+
   - ``date,time,year,month,day``
   - ``hour,minute,second,weekofyear``
   - ``week,dayofweek,dayofyear,quarter``
