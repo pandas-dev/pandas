@@ -1182,11 +1182,11 @@ class NumericBlock(Block):
 
 
 class FloatOrComplexBlock(NumericBlock):
+
     def equals(self, other):
         if self.dtype != other.dtype or self.shape != other.shape: return False
         left, right = self.values, other.values
         return ((left == right) | (np.isnan(left) & np.isnan(right))).all()
-
 
 class FloatBlock(FloatOrComplexBlock):
     is_float = True
