@@ -2092,6 +2092,33 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         idf = df.set_index('A')
         tm.assert_isinstance(idf.index, DatetimeIndex)
 
+        # don't cast a DatetimeIndex WITH a tz, leave as object
+        # GH 6032
+        i = pd.DatetimeIndex(pd.tseries.tools.to_datetime(['2013-1-1 13:00','2013-1-2 14:00'], errors="raise")).tz_localize('US/Pacific')
+        df = DataFrame(np.random.randn(2,1),columns=['A'])
+
+        expected = Series(i)
+        self.assertTrue(expected.dtype == object)
+        self.assertTrue(i.equals(expected.values.values))
+
+        df['B'] = i
+        result = df['B']
+        assert_series_equal(result, expected)
+
+        result = i.to_series(keep_tz=True)
+        assert_series_equal(result.reset_index(drop=True), expected)
+
+        df['C'] = i.to_series().reset_index(drop=True)
+        result = df['C']
+        comp = DatetimeIndex(expected.values).copy()
+        comp.tz = None
+        self.assert_numpy_array_equal(result.values, comp.values)
+
+        # list of datetimes with a tz
+        df['D'] = i.to_pydatetime()
+        result = df['D']
+        assert_series_equal(result, expected)
+
     def test_set_index_multiindexcolumns(self):
         columns = MultiIndex.from_tuples([('foo', 1), ('foo', 2), ('bar', 1)])
         df = DataFrame(np.random.randn(3, 3), columns=columns)
