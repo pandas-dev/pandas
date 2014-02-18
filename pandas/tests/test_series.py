@@ -1756,7 +1756,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         # HACK: By doing this in two stages, we avoid 2to3 wrapping the call
         # to .keys() in a list()
         getkeys = self.ts.keys
-        self.assert_(getkeys() is self.ts.index)
+        self.assertIs(getkeys(), self.ts.index)
 
     def test_values(self):
         self.assert_numpy_array_equal(self.ts, self.ts.values)
@@ -4916,12 +4916,12 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
     def test_align_sameindex(self):
         a, b = self.ts.align(self.ts, copy=False)
-        self.assert_(a.index is self.ts.index)
-        self.assert_(b.index is self.ts.index)
+        self.assertIs(a.index, self.ts.index)
+        self.assertIs(b.index, self.ts.index)
 
         # a, b = self.ts.align(self.ts, copy=True)
-        # self.assert_(a.index is not self.ts.index)
-        # self.assert_(b.index is not self.ts.index)
+        # self.assertIsNot(a.index, self.ts.index)
+        # self.assertIsNot(b.index, self.ts.index)
 
     def test_reindex(self):
         identity = self.series.reindex(self.series.index)
@@ -5465,7 +5465,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         result = ts[:0].asfreq('M')
         self.assertEqual(len(result), 0)
-        self.assert_(result is not ts)
+        self.assertIsNot(result, ts)
 
     def test_weekday(self):
         # Just run the function

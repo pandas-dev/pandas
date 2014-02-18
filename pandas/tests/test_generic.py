@@ -393,10 +393,10 @@ class TestSeries(tm.TestCase, Generic):
 
         # allow single item via bool method
         s = Series([True])
-        self.assert_(s.bool() is True)
+        self.assertTrue(s.bool())
 
         s = Series([False])
-        self.assert_(s.bool() is False)
+        self.assertFalse(s.bool())
 
         # single item nan to raise
         for s in [ Series([np.nan]), Series([pd.NaT]), Series([True]), Series([False]) ]:
@@ -633,10 +633,10 @@ class TestDataFrame(tm.TestCase, Generic):
 
         # allow single item via bool method
         df = DataFrame([[True]])
-        self.assert_(df.bool() is True)
+        self.assertTrue(df.bool())
 
         df = DataFrame([[False]])
-        self.assert_(df.bool() is False)
+        self.assertFalse(df.bool())
 
         df = DataFrame([[False, False]])
         self.assertRaises(ValueError, lambda : df.bool())

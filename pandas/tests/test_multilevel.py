@@ -157,17 +157,17 @@ class TestMultiLevel(tm.TestCase):
     def test_reindex_preserve_levels(self):
         new_index = self.ymd.index[::10]
         chunk = self.ymd.reindex(new_index)
-        self.assert_(chunk.index is new_index)
+        self.assertIs(chunk.index, new_index)
 
         chunk = self.ymd.ix[new_index]
-        self.assert_(chunk.index is new_index)
+        self.assertIs(chunk.index, new_index)
 
         ymdT = self.ymd.T
         chunk = ymdT.reindex(columns=new_index)
-        self.assert_(chunk.columns is new_index)
+        self.assertIs(chunk.columns, new_index)
 
         chunk = ymdT.ix[:, new_index]
-        self.assert_(chunk.columns is new_index)
+        self.assertIs(chunk.columns, new_index)
 
     def test_sort_index_preserve_levels(self):
         result = self.frame.sort_index()
