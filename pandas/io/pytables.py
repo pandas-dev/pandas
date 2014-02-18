@@ -81,7 +81,7 @@ def _ensure_term(where, scope_level):
         where = [w if not maybe_expression(w) else Term(w, scope_level=level)
                  for w in where if w is not None]
     elif maybe_expression(where):
-        where = Term(where, level)
+        where = Term(where, scope_level=level)
     return where
 
 

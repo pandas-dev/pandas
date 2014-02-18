@@ -12122,7 +12122,6 @@ starting,ending,measure
         expected.iloc[1, 1] = True
         assert_frame_equal(result, expected)
 
-
     def test_isin_against_series(self):
         df = pd.DataFrame({'A': [1, 2, 3, 4], 'B': [2, np.nan, 4, 4]},
                           index=['a', 'b', 'c', 'd'])
@@ -12254,6 +12253,7 @@ starting,ending,measure
         assert_series_equal(df[:0].ftypes, pd.Series(odict([('a', 'int64:dense'),
                                                             ('b', 'bool:dense'),
                                                             ('c', 'float64:dense')])))
+
 
 def skip_if_no_ne(engine='numexpr'):
     if engine == 'numexpr':
@@ -12711,16 +12711,16 @@ class TestDataFrameQueryNumExprPandas(tm.TestCase):
         result = df.query('(@df > 0) & (@df2 > 0)', engine=engine, parser=parser)
         assert_frame_equal(result, expected)
 
-        result = pd.eval('@df[@df > 0 and @df2 > 0]', engine=engine,
+        result = pd.eval('df[df > 0 and df2 > 0]', engine=engine,
                          parser=parser)
         assert_frame_equal(result, expected)
 
-        result = pd.eval('@df[@df > 0 and @df2 > 0 and @df[@df > 0] > 0]',
+        result = pd.eval('df[df > 0 and df2 > 0 and df[df > 0] > 0]',
                          engine=engine, parser=parser)
         expected = df[(df > 0) & (df2 > 0) & (df[df > 0] > 0)]
         assert_frame_equal(result, expected)
 
-        result = pd.eval('@df[(@df>0) & (@df2>0)]', engine=engine, parser=parser)
+        result = pd.eval('df[(df>0) & (df2>0)]', engine=engine, parser=parser)
         expected = df.query('(@df>0) & (@df2>0)', engine=engine, parser=parser)
         assert_frame_equal(result, expected)
 
@@ -12880,6 +12880,7 @@ class TestDataFrameQueryPythonPandas(TestDataFrameQueryNumExprPandas):
         result = df.query('sin > 5', engine=engine, parser=parser)
         tm.assert_frame_equal(expected, result)
 
+
 class TestDataFrameQueryPythonPython(TestDataFrameQueryNumExprPython):
 
     @classmethod
@@ -12899,6 +12900,7 @@ class TestDataFrameQueryPythonPython(TestDataFrameQueryNumExprPython):
         expected = df[df.index > 5]
         result = df.query('sin > 5', engine=engine, parser=parser)
         tm.assert_frame_equal(expected, result)
+
 
 PARSERS = 'python', 'pandas'
 ENGINES = 'python', 'numexpr'

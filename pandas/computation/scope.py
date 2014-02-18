@@ -10,7 +10,7 @@ import itertools
 import pprint
 
 import pandas as pd
-from pandas.compat import DeepChainMap, map
+from pandas.compat import DeepChainMap, map, StringIO
 from pandas.core import common as com
 from pandas.core.base import StringMixin
 from pandas.computation.ops import UndefinedVariableError, _LOCAL_TAG
@@ -117,11 +117,11 @@ class Scope(StringMixin):
             # shallow copy here because we don't want to replace what's in
             # scope when we align terms (alignment accesses the underlying
             # numpy array of pandas objects)
+            self.scope = self.scope.new_child((global_dict or
+                                               frame.f_globals).copy())
             if not isinstance(local_dict, Scope):
                 self.scope = self.scope.new_child((local_dict or
                                                    frame.f_locals).copy())
-            self.scope = self.scope.new_child((global_dict or
-                                               frame.f_globals).copy())
         finally:
             del frame
 
@@ -132,8 +132,8 @@ class Scope(StringMixin):
         self.temps = {}
 
     def __unicode__(self):
-        scope_keys = _get_pretty_string(self.scope.keys())
-        res_keys = _get_pretty_string(self.resolvers.keys())
+        scope_keys = _get_pretty_string(list(self.scope.keys()))
+        res_keys = _get_pretty_string(list(self.resolvers.keys()))
         return '%s(scope=%s, resolvers=%s)' % (type(self).__name__, scope_keys,
                                                res_keys)
 

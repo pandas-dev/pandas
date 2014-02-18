@@ -11,7 +11,7 @@ from pandas.compat import u, string_types, PY3, DeepChainMap
 from pandas.core.base import StringMixin
 import pandas.core.common as com
 from pandas.computation import expr, ops
-from pandas.computation.ops import is_term
+from pandas.computation.ops import is_term, UndefinedVariableError
 from pandas.computation.scope import _ensure_scope
 from pandas.computation.expr import BaseExprVisitor
 from pandas.computation.common import _ensure_decoded
@@ -48,7 +48,10 @@ class Term(ops.Term):
             return self.name
 
         # resolve the rhs (and allow it to be None)
-        return self.env.resolve(self.name, is_local=False)
+        try:
+            return self.env.resolve(self.name, is_local=False)
+        except UndefinedVariableError:
+            return self.name
 
     @property
     def value(self):
