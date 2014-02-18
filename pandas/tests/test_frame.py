@@ -9770,6 +9770,13 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         cp = s.copy()
         cp.sort() # it works!
 
+    def test_stable_descending_sort(self):
+        df = DataFrame([[2, 'first'], [2, 'second'], [1, 'a'], [1, 'b']],
+                       columns=['sort_col', 'order'])
+        sorted = df.sort_index(by='sort_col', kind='mergesort',
+                               ascending=False)
+        assert_frame_equal(df, sorted)
+
     def test_combine_first(self):
         # disjoint
         head, tail = self.frame[:5], self.frame[5:]
