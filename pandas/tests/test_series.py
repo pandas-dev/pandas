@@ -950,8 +950,8 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(result, expected)
 
     def test_getitem_dups(self):
-        s = Series(range(5),index=['A','A','B','C','C'])
-        expected = Series([3,4],index=['C','C'])
+        s = Series(range(5),index=['A','A','B','C','C'],dtype=np.int64)
+        expected = Series([3,4],index=['C','C'],dtype=np.int64)
         result = s['C']
         assert_series_equal(result, expected)
 
