@@ -59,6 +59,7 @@ def create_tempfile(path):
     """ create an unopened named temporary file """
     return os.path.join(tempfile.gettempdir(),path)
 
+
 @contextmanager
 def ensure_clean_store(path, mode='a', complevel=None, complib=None,
               fletcher32=False):
@@ -77,6 +78,7 @@ def ensure_clean_store(path, mode='a', complevel=None, complib=None,
         if mode == 'w' or mode == 'a':
             safe_remove(path)
 
+
 @contextmanager
 def ensure_clean_path(path):
     """
@@ -94,6 +96,7 @@ def ensure_clean_path(path):
     finally:
         for f in filenames:
             safe_remove(f)
+
 
 # set these parameters so we don't have file sharing
 tables.parameters.MAX_NUMEXPR_THREADS = 1
@@ -255,7 +258,6 @@ class TestHDFStore(tm.TestCase):
 
             self.assertRaises(TypeError, df.to_hdf, path,'df',append=True,format='foo')
             self.assertRaises(TypeError, df.to_hdf, path,'df',append=False,format='bar')
-
 
     def test_api_default_format(self):
 
@@ -2257,7 +2259,6 @@ class TestHDFStore(tm.TestCase):
             expected = wp.reindex(major_axis=wp.major_axis-wp.major_axis[np.arange(0,20,3)])
             assert_panel_equal(result, expected)
 
-
     def test_remove_crit(self):
 
         with ensure_clean_store(self.path) as store:
@@ -2517,7 +2518,7 @@ class TestHDFStore(tm.TestCase):
                 result = store.select('wp', [('minor_axis','=',['A','B'])])
             expected = wp.loc[:,:,['A','B']]
             assert_panel_equal(result, expected)
-            
+
     def test_same_name_scoping(self):
 
         with ensure_clean_store(self.path) as store:
@@ -3323,6 +3324,8 @@ class TestHDFStore(tm.TestCase):
             date = df.index[len(df) // 2]
 
             crit1 = Term('index>=date')
+            self.assertEqual(crit1.env.scope['date'], date)
+
             crit2 = ("columns=['A', 'D']")
             crit3 = ('columns=A')
 
@@ -3776,7 +3779,6 @@ class TestHDFStore(tm.TestCase):
             self.assertRaises(ValueError, store.select_as_multiple,
                               ['df1','df3'], where=['A>0', 'B>0'], selector='df1')
 
-
     def test_nan_selection_bug_4858(self):
 
         # GH 4858; nan selection bug, only works for pytables >= 3.1
@@ -4226,6 +4228,7 @@ class TestHDFStore(tm.TestCase):
             store.append('test', df, format='table', data_columns=True)
             result = store.select('test', 'a = "test & test"')
         tm.assert_frame_equal(expected, result)
+
 
 def _test_sort(obj):
     if isinstance(obj, DataFrame):
