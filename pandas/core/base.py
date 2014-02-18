@@ -5,7 +5,6 @@ from pandas import compat
 import numpy as np
 from pandas.core import common as com
 
-
 class StringMixin(object):
 
     """implements string methods so long as object defines a `__unicode__`
@@ -200,3 +199,90 @@ class FrozenNDArray(PandasObject, np.ndarray):
         prepr = com.pprint_thing(self, escape_chars=('\t', '\r', '\n'),
                                  quote_strings=True)
         return "%s(%s, dtype='%s')" % (type(self).__name__, prepr, self.dtype)
+
+
+# facilitate the properties on the wrapped ops
+def _field_accessor(name, docstring=None):
+    op_accessor = '_{0}'.format(name)
+    def f(self):
+        return self._ops_compat(name,op_accessor)
+
+    f.__name__ = name
+    f.__doc__ = docstring
+    return property(f)
+
+class IndexOpsMixin(object):
+    """ common ops mixin to support a unified inteface / docs for Series / Index """
+
+    def _is_allowed_index_op(self, name):
+        if not self._allow_index_ops:
+            raise TypeError("cannot perform an {name} operations on this type {typ}".format(
+                name=name,typ=type(self._get_access_object())))
+
+    def _is_allowed_datetime_index_op(self, name):
+        if not self._allow_datetime_index_ops:
+            raise TypeError("cannot perform an {name} operations on this type {typ}".format(
+                name=name,typ=type(self._get_access_object())))
+
+    def _is_allowed_period_index_op(self, name):
+        if not self._allow_period_index_ops:
+            raise TypeError("cannot perform an {name} operations on this type {typ}".format(
+                name=name,typ=type(self._get_access_object())))
+
+    def _ops_compat(self, name, op_accessor):
+        from pandas.tseries.index import DatetimeIndex
+        from pandas.tseries.period import PeriodIndex
+        obj = self._get_access_object()
+        if isinstance(obj, DatetimeIndex):
+            self._is_allowed_datetime_index_op(name)
+        elif isinstance(obj, PeriodIndex):
+            self._is_allowed_period_index_op(name)
+        try:
+            return self._wrap_access_object(getattr(obj,op_accessor))
+        except AttributeError:
+            raise TypeError("cannot perform an {name} operations on this type {typ}".format(
+                name=name,typ=type(obj)))
+
+    def _get_access_object(self):
+        if isinstance(self, com.ABCSeries):
+            return self.index
+        return self
+
+    def _wrap_access_object(self, obj):
+        # we may need to coerce the input as we don't want non int64 if
+        # we have an integer result
+        if hasattr(obj,'dtype') and com.is_integer_dtype(obj):
+            obj = obj.astype(np.int64)
+
+        if isinstance(self, com.ABCSeries):
+            return self._constructor(obj,index=self.index).__finalize__(self)
+
+        return obj
+
+    def max(self):
+        """ The maximum value of the object """
+        self._is_allowed_index_op('max')
+        return self.values.max()
+
+    def min(self):
+        """ The minimum value of the object """
+        self._is_allowed_index_op('min')
+        return self.values.min()
+
+    date = _field_accessor('date','Returns numpy array of datetime.date. The date part of the Timestamps')
+    time = _field_accessor('time','Returns numpy array of datetime.time. The time part of the Timestamps')
+    year = _field_accessor('year', "The year of the datetime")
+    month = _field_accessor('month', "The month as January=1, December=12")
+    day = _field_accessor('day', "The days of the datetime")
+    hour = _field_accessor('hour', "The hours of the datetime")
+    minute = _field_accessor('minute', "The minutes of the datetime")
+    second = _field_accessor('second', "The seconds of the datetime")
+    microsecond = _field_accessor('microsecond', "The microseconds of the datetime")
+    nanosecond = _field_accessor('nanosecond', "The nanoseconds of the datetime")
+    weekofyear = _field_accessor('weekofyear', "The week ordinal of the year")
+    week = weekofyear
+    dayofweek = _field_accessor('dayofweek', "The day of the week with Monday=0, Sunday=6")
+    weekday = dayofweek
+    dayofyear = _field_accessor('dayofyear', "The ordinal day of the year")
+    quarter = _field_accessor('quarter', "The quarter of the date")
+    qyear = _field_accessor('qyear')

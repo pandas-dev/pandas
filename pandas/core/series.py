@@ -30,7 +30,7 @@ from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
 from pandas.core.indexing import (
     _check_bool_indexer, _check_slice_bounds,
     _is_index_slice, _maybe_convert_indices)
-from pandas.core import generic
+from pandas.core import generic, base
 from pandas.core.internals import SingleBlockManager
 from pandas.core.categorical import Categorical
 from pandas.tseries.index import DatetimeIndex
@@ -91,7 +91,7 @@ def _unbox(func):
 # Series class
 
 
-class Series(generic.NDFrame):
+class Series(base.IndexOpsMixin, generic.NDFrame):
 
     """
     One-dimensional ndarray with axis labels (including time series).
@@ -122,6 +122,15 @@ class Series(generic.NDFrame):
         Copy input data
     """
     _metadata = ['name']
+    _allow_index_ops = True
+
+    @property
+    def _allow_datetime_index_ops(self):
+        return self.index.is_all_dates and isinstance(self.index, DatetimeIndex)
+
+    @property
+    def _allow_period_index_ops(self):
+        return self.index.is_all_dates and isinstance(self.index, PeriodIndex)
 
     def __init__(self, data=None, index=None, dtype=None, name=None,
                  copy=False, fastpath=False):
@@ -2296,11 +2305,6 @@ class Series(generic.NDFrame):
         locs = self.index.asof_locs(where, notnull(values))
         new_values = com.take_1d(values, locs)
         return self._constructor(new_values, index=where).__finalize__(self)
-
-    @property
-    def weekday(self):
-        return self._constructor([d.weekday() for d in self.index],
-                                 index=self.index).__finalize__(self)
 
     @cache_readonly
     def str(self):
