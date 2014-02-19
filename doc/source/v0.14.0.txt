@@ -42,6 +42,7 @@ API changes
   - ``week,dayofweek,dayofyear,quarter``
   - ``microsecond,nanosecond,qyear``
   - ``min(),max()``
+  - ``pd.infer_freq()``
 
   .. ipython:: python
 
