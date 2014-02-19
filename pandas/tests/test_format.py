@@ -1588,11 +1588,12 @@ c  10  11  12  13  14\
         expected = dedent("""
 
             <table border="1" class="dataframe sortable draggable">
-              <tbody>
-                <tr>
-                  <td>Index([], dtype='object')</td>
-                  <td>Empty DataFrame</td>
+              <thead>
+                <tr style="text-align: right;">
+                  <th></th>
                 </tr>
+              </thead>
+              <tbody>
               </tbody>
             </table>
 
