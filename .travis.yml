@@ -47,14 +47,14 @@ matrix:
       - JOB_NAME: "33_nslow"
     - python: 2.7
       env:
-      - NOSE_ARGS="not slow and not disabled"
+      - NOSE_ARGS="not slow and not network and not disabled"
       - JOB_NAME: "27_numpy_dev"
       - JOB_TAG=_NUMPY_DEV
       - NUMPY_BUILD=true # build numpy master from source
     allow_failures:
       - python: 2.7
         env:
-        - NOSE_ARGS="not slow and not disabled"
+        - NOSE_ARGS="not slow and not network and not disabled"
         - JOB_NAME: "27_numpy_dev"
         - JOB_TAG=_NUMPY_DEV
         - NUMPY_BUILD=true # build numpy master from source
