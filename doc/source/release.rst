@@ -54,6 +54,7 @@ New features
 ~~~~~~~~~~~~
 
 - Hexagonal bin plots from ``DataFrame.plot`` with ``kind='hexbin'`` (:issue:`5478`)
+- Added the ``sym_diff`` method to ``Index`` (:issue:`5543`)
 
 API Changes
 ~~~~~~~~~~~
@@ -66,7 +67,19 @@ API Changes
 - ``df['col'] = value`` and ``df.loc[:,'col'] = value`` are now completely equivalent;
   previously the ``.loc`` would not necessarily coerce the dtype of the resultant series (:issue:`6149`)
 - ``dtypes`` and ``ftypes`` now return a series with ``dtype=object`` on empty containers (:issue:`5740`)
+- The ``interpolate`` ``downcast`` keyword default has been changed from ``infer`` to
+  ``None``. This is to preseve the original dtype unless explicitly requested otherwise (:issue:`6290`).
+- allow a Series to utilize index methods depending on its index type, e.g. ``Series.year`` is now defined
+  for a Series with a ``DatetimeIndex`` or a ``PeriodIndex``; trying this on a non-supported Index type will
+  now raise a ``TypeError``. (:issue:`4551`, :issue:`4056`, :issue:`5519`)
 
+  The following affected:
+
+  - ``date,time,year,month,day``
+  - ``hour,minute,second,weekofyear``
+  - ``week,dayofweek,dayofyear,quarter``
+  - ``microsecond,nanosecond,qyear``
+  - ``min(),max()``
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
@@ -84,8 +97,8 @@ Improvements to existing features
 - improve performance of slice indexing on Series with string keys (:issue:`6341`, :issue:`6372`)
 - implement joining a single-level indexed DataFrame on a matching column of a multi-indexed DataFrame (:issue:`3662`)
 - Performance improvement in indexing into a multi-indexed Series (:issue:`5567`)
-- Testing statements updated to use specialized asserts (:issue: `6175`)
-- ``Series.rank()`` now has a percentage rank option (:issue: `5971`)
+- Testing statements updated to use specialized asserts (:issue:`6175`)
+- ``Series.rank()`` now has a percentage rank option (:issue:`5971`)
 - ``quotechar``, ``doublequote``, and ``escapechar`` can now be specified when
   using ``DataFrame.to_csv`` (:issue:`5414`, :issue:`4528`)
 
@@ -94,6 +107,8 @@ Improvements to existing features
 Bug Fixes
 ~~~~~~~~~
 
+- Bug in ``pd.DataFrame.sort_index`` where mergesort wasn't stable when ``ascending=False`` (:issue:`6399`)
+- Bug in ``pd.tseries.frequencies.to_offset`` when argument has leading zeroes (:issue:`6391`)
 - Bug in version string gen. for dev versions with shallow clones / install from tarball (:issue:`6127`)
 - Inconsistent tz parsing Timestamp/to_datetime for current year (:issue:`5958`)
 - Indexing bugs with reordered indexes (:issue:`6252`, :issue:`6254`)
@@ -121,6 +136,12 @@ Bug Fixes
 - Bug in ``DataFrame.replace()`` when passing a nested ``dict`` that contained
   keys not in the values to be replaced (:issue:`6342`)
 - Bug in take with duplicate columns not consolidated (:issue:`6240`)
+- Bug in interpolate changing dtypes (:issue:`6290`)
+- Bug in Series.get, was using a buggy access method (:issue:`6383`)
+- Bug in hdfstore queries of the form ``where=[('date', '>=', datetime(2013,1,1)), ('date', '<=', datetime(2014,1,1))]`` (:issue:`6313`)
+- Bug in DataFrame.dropna with duplicate indices (:issue:`6355`)
+- Regression in chained getitem indexing with embedded list-like from 0.12 (:issue:`6394`)
+- ``Float64Index`` with nans not comparing correctly
 
 pandas 0.13.1
 -------------

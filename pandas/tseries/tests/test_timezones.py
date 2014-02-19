@@ -75,7 +75,7 @@ class TestTimeZoneSupport(tm.TestCase):
         rng_eastern = rng.tz_convert('US/Eastern')
 
         # Values are unmodified
-        self.assert_(np.array_equal(rng.asi8, rng_eastern.asi8))
+        self.assert_numpy_array_equal(rng.asi8, rng_eastern.asi8)
 
         self.assertEqual(rng_eastern.tz, pytz.timezone('US/Eastern'))
 
@@ -89,7 +89,7 @@ class TestTimeZoneSupport(tm.TestCase):
 
         converted = rng.tz_localize('US/Eastern')
         expected_naive = rng + offsets.Hour(5)
-        self.assert_(np.array_equal(converted.asi8, expected_naive.asi8))
+        self.assert_numpy_array_equal(converted.asi8, expected_naive.asi8)
 
         # DST ambiguity, this should fail
         rng = date_range('3/11/2012', '3/12/2012', freq='30T')
@@ -146,10 +146,10 @@ class TestTimeZoneSupport(tm.TestCase):
                                 end='1/1/2005 5:00:30.256', freq='L',
                                 tz='utc')
 
-        self.assert_(np.array_equal(dti2.values, dti_utc.values))
+        self.assert_numpy_array_equal(dti2.values, dti_utc.values)
 
         dti3 = dti2.tz_convert('US/Pacific')
-        self.assert_(np.array_equal(dti3.values, dti_utc.values))
+        self.assert_numpy_array_equal(dti3.values, dti_utc.values)
 
         dti = DatetimeIndex(start='11/6/2011 1:59',
                             end='11/6/2011 2:00', freq='L')
@@ -189,7 +189,7 @@ class TestTimeZoneSupport(tm.TestCase):
         self.assertEquals(stamp, rng[1])
 
         utc_stamp = Timestamp('3/11/2012 05:00', tz='utc')
-        self.assert_(utc_stamp.tzinfo is pytz.utc)
+        self.assertIs(utc_stamp.tzinfo, pytz.utc)
         self.assertEquals(utc_stamp.hour, 5)
 
         stamp = Timestamp('3/11/2012 05:00').tz_localize('utc')
@@ -289,7 +289,7 @@ class TestTimeZoneSupport(tm.TestCase):
         fromdates = DatetimeIndex(strdates, tz='US/Eastern')
 
         self.assertEqual(conv.tz, fromdates.tz)
-        self.assert_(np.array_equal(conv.values, fromdates.values))
+        self.assert_numpy_array_equal(conv.values, fromdates.values)
 
     def test_field_access_localize(self):
         strdates = ['1/1/2012', '3/1/2012', '4/1/2012']
@@ -301,7 +301,7 @@ class TestTimeZoneSupport(tm.TestCase):
                         tz='America/Atikokan')
 
         expected = np.arange(10)
-        self.assert_(np.array_equal(dr.hour, expected))
+        self.assert_numpy_array_equal(dr.hour, expected)
 
     def test_with_tz(self):
         tz = pytz.timezone('US/Central')
@@ -309,7 +309,7 @@ class TestTimeZoneSupport(tm.TestCase):
         # just want it to work
         start = datetime(2011, 3, 12, tzinfo=pytz.utc)
         dr = bdate_range(start, periods=50, freq=datetools.Hour())
-        self.assert_(dr.tz is pytz.utc)
+        self.assertIs(dr.tz, pytz.utc)
 
         # DateRange with naive datetimes
         dr = bdate_range('1/1/2005', '1/1/2009', tz=pytz.utc)
@@ -317,8 +317,8 @@ class TestTimeZoneSupport(tm.TestCase):
 
         # normalized
         central = dr.tz_convert(tz)
-        self.assert_(central.tz is tz)
-        self.assert_(central[0].tz is tz)
+        self.assertIs(central.tz, tz)
+        self.assertIs(central[0].tz, tz)
 
         # datetimes with tzinfo set
         dr = bdate_range(datetime(2005, 1, 1, tzinfo=pytz.utc),
@@ -332,7 +332,7 @@ class TestTimeZoneSupport(tm.TestCase):
         dr = bdate_range('1/1/2009', '1/1/2010')
         dr_utc = bdate_range('1/1/2009', '1/1/2010', tz=pytz.utc)
         localized = dr.tz_localize(pytz.utc)
-        self.assert_(np.array_equal(dr_utc, localized))
+        self.assert_numpy_array_equal(dr_utc, localized)
 
     def test_with_tz_ambiguous_times(self):
         tz = pytz.timezone('US/Eastern')
@@ -373,14 +373,14 @@ class TestTimeZoneSupport(tm.TestCase):
                             '11/06/2011 01:00', '11/06/2011 02:00',
                             '11/06/2011 03:00'])
         localized = di.tz_localize(tz, infer_dst=True)
-        self.assert_(np.array_equal(dr, localized))
+        self.assert_numpy_array_equal(dr, localized)
 
         # When there is no dst transition, nothing special happens
         dr = date_range(datetime(2011, 6, 1, 0), periods=10,
                         freq=datetools.Hour())
         localized = dr.tz_localize(tz)
         localized_infer = dr.tz_localize(tz, infer_dst=True)
-        self.assert_(np.array_equal(localized, localized_infer))
+        self.assert_numpy_array_equal(localized, localized_infer)
 
 
     # test utility methods
@@ -484,9 +484,9 @@ class TestTimeZoneSupport(tm.TestCase):
                           datetime(2000, 1, 2, tzinfo=fixed_off),
                           datetime(2000, 1, 3, tzinfo=fixed_off)])
         result = to_datetime(dates).to_pydatetime()
-        self.assert_(np.array_equal(dates, result))
+        self.assert_numpy_array_equal(dates, result)
         result = to_datetime(dates)._mpl_repr()
-        self.assert_(np.array_equal(dates, result))
+        self.assert_numpy_array_equal(dates, result)
 
     def test_convert_tz_aware_datetime_datetime(self):
         # #1581
@@ -502,15 +502,15 @@ class TestTimeZoneSupport(tm.TestCase):
 
         converted = to_datetime(dates_aware, utc=True)
         ex_vals = [Timestamp(x).value for x in dates_aware]
-        self.assert_(np.array_equal(converted.asi8, ex_vals))
-        self.assert_(converted.tz is pytz.utc)
+        self.assert_numpy_array_equal(converted.asi8, ex_vals)
+        self.assertIs(converted.tz, pytz.utc)
 
     def test_to_datetime_utc(self):
         from dateutil.parser import parse
         arr = np.array([parse('2012-06-13T01:39:00Z')], dtype=object)
 
         result = to_datetime(arr, utc=True)
-        self.assert_(result.tz is pytz.utc)
+        self.assertIs(result.tz, pytz.utc)
 
     def test_to_datetime_tzlocal(self):
         from dateutil.parser import parse
@@ -521,12 +521,12 @@ class TestTimeZoneSupport(tm.TestCase):
         arr = np.array([dt], dtype=object)
 
         result = to_datetime(arr, utc=True)
-        self.assert_(result.tz is pytz.utc)
+        self.assertIs(result.tz, pytz.utc)
 
         rng = date_range('2012-11-03 03:00', '2012-11-05 03:00', tz=tzlocal())
         arr = rng.to_pydatetime()
         result = to_datetime(arr, utc=True)
-        self.assert_(result.tz is pytz.utc)
+        self.assertIs(result.tz, pytz.utc)
 
     def test_frame_no_datetime64_dtype(self):
 
@@ -858,18 +858,18 @@ class TestTimeZones(tm.TestCase):
         ts_moscow = ts.tz_convert('Europe/Moscow')
 
         result = ts + ts_moscow
-        self.assert_(result.index.tz is pytz.utc)
+        self.assertIs(result.index.tz, pytz.utc)
 
         result = ts_moscow + ts
-        self.assert_(result.index.tz is pytz.utc)
+        self.assertIs(result.index.tz, pytz.utc)
 
         df = DataFrame({'a': ts})
         df_moscow = df.tz_convert('Europe/Moscow')
         result = df + df_moscow
-        self.assert_(result.index.tz is pytz.utc)
+        self.assertIs(result.index.tz, pytz.utc)
 
         result = df_moscow + df
-        self.assert_(result.index.tz is pytz.utc)
+        self.assertIs(result.index.tz, pytz.utc)
 
     def test_arith_utc_convert(self):
         rng = date_range('1/1/2011', periods=100, freq='H', tz='utc')

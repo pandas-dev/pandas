@@ -805,6 +805,15 @@ class Block(PandasObject):
                     values=None, inplace=False, limit=None,
                     fill_value=None, coerce=False, downcast=None, **kwargs):
 
+        def check_int_bool(self, inplace):
+            # Only FloatBlocks will contain NaNs.
+            # timedelta subclasses IntBlock
+            if (self.is_bool or self.is_integer) and not self.is_timedelta:
+                if inplace:
+                    return self
+                else:
+                    return self.copy()
+
         # a fill na type method
         try:
             m = com._clean_fill_method(method)
@@ -812,6 +821,9 @@ class Block(PandasObject):
             m = None
 
         if m is not None:
+            r = check_int_bool(self, inplace)
+            if r is not None:
+                return r
             return self._interpolate_with_fill(method=m,
                                                axis=axis,
                                                inplace=inplace,
@@ -826,6 +838,9 @@ class Block(PandasObject):
             m = None
 
         if m is not None:
+            r = check_int_bool(self, inplace)
+            if r is not None:
+                return r
             return self._interpolate(method=m,
                                      index=index,
                                      values=values,
@@ -1167,11 +1182,11 @@ class NumericBlock(Block):
 
 
 class FloatOrComplexBlock(NumericBlock):
+
     def equals(self, other):
         if self.dtype != other.dtype or self.shape != other.shape: return False
         left, right = self.values, other.values
         return ((left == right) | (np.isnan(left) & np.isnan(right))).all()
-
 
 class FloatBlock(FloatOrComplexBlock):
     is_float = True

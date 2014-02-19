@@ -30,7 +30,7 @@ from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
 from pandas.core.indexing import (
     _check_bool_indexer, _check_slice_bounds,
     _is_index_slice, _maybe_convert_indices)
-from pandas.core import generic
+from pandas.core import generic, base
 from pandas.core.internals import SingleBlockManager
 from pandas.core.categorical import Categorical
 from pandas.tseries.index import DatetimeIndex
@@ -91,7 +91,7 @@ def _unbox(func):
 # Series class
 
 
-class Series(generic.NDFrame):
+class Series(base.IndexOpsMixin, generic.NDFrame):
 
     """
     One-dimensional ndarray with axis labels (including time series).
@@ -122,6 +122,15 @@ class Series(generic.NDFrame):
         Copy input data
     """
     _metadata = ['name']
+    _allow_index_ops = True
+
+    @property
+    def _allow_datetime_index_ops(self):
+        return self.index.is_all_dates and isinstance(self.index, DatetimeIndex)
+
+    @property
+    def _allow_period_index_ops(self):
+        return self.index.is_all_dates and isinstance(self.index, PeriodIndex)
 
     def __init__(self, data=None, index=None, dtype=None, name=None,
                  copy=False, fastpath=False):
@@ -468,8 +477,17 @@ class Series(generic.NDFrame):
     def __getitem__(self, key):
         try:
             result = self.index.get_value(self, key)
-            if isinstance(result, np.ndarray):
-                return self._constructor(result,index=[key]*len(result)).__finalize__(self)
+
+            if not np.isscalar(result):
+                if is_list_like(result) and not isinstance(result, Series):
+
+                    # we need to box if we have a non-unique index here
+                    # otherwise have inline ndarray/lists
+                    if not self.index.is_unique:
+                        result = self._constructor(result,
+                                                   index=[key]*len(result)
+                                                   ,dtype=self.dtype).__finalize__(self)
+
             return result
         except InvalidIndexError:
             pass
@@ -701,27 +719,6 @@ class Series(generic.NDFrame):
             return self
 
         return self.values.reshape(shape, **kwargs)
-
-    def get(self, label, default=None):
-        """
-        Returns value occupying requested label, default to specified
-        missing value if not present. Analogous to dict.get
-
-        Parameters
-        ----------
-        label : object
-            Label value looking for
-        default : object, optional
-            Value to return if label not in index
-
-        Returns
-        -------
-        y : scalar
-        """
-        try:
-            return self.get_value(label)
-        except KeyError:
-            return default
 
     iget_value = _ixs
     iget = _ixs
@@ -1726,7 +1723,7 @@ class Series(generic.NDFrame):
             False for ranks by high (1) to low (N)
         pct : boolean, defeault False
             Computes percentage rank of data
-            
+
         Returns
         -------
         ranks : Series
@@ -2317,72 +2314,6 @@ class Series(generic.NDFrame):
         locs = self.index.asof_locs(where, notnull(values))
         new_values = com.take_1d(values, locs)
         return self._constructor(new_values, index=where).__finalize__(self)
-
-    @property
-    def weekday(self):
-        return self._constructor([d.weekday() for d in self.index],
-                                 index=self.index).__finalize__(self)
-
-    def tz_convert(self, tz, copy=True):
-        """
-        Convert TimeSeries to target time zone
-
-        Parameters
-        ----------
-        tz : string or pytz.timezone object
-        copy : boolean, default True
-            Also make a copy of the underlying data
-
-        Returns
-        -------
-        converted : TimeSeries
-        """
-        new_index = self.index.tz_convert(tz)
-
-        new_values = self.values
-        if copy:
-            new_values = new_values.copy()
-
-        return self._constructor(new_values,
-                                 index=new_index).__finalize__(self)
-
-    def tz_localize(self, tz, copy=True, infer_dst=False):
-        """
-        Localize tz-naive TimeSeries to target time zone
-        Entries will retain their "naive" value but will be annotated as
-        being relative to the specified tz.
-
-        After localizing the TimeSeries, you may use tz_convert() to
-        get the Datetime values recomputed to a different tz.
-
-        Parameters
-        ----------
-        tz : string or pytz.timezone object
-        copy : boolean, default True
-            Also make a copy of the underlying data
-        infer_dst : boolean, default False
-            Attempt to infer fall dst-transition hours based on order
-
-        Returns
-        -------
-        localized : TimeSeries
-        """
-        from pandas.tseries.index import DatetimeIndex
-
-        if not isinstance(self.index, DatetimeIndex):
-            if len(self.index) > 0:
-                raise Exception('Cannot tz-localize non-time series')
-
-            new_index = DatetimeIndex([], tz=tz)
-        else:
-            new_index = self.index.tz_localize(tz, infer_dst=infer_dst)
-
-        new_values = self.values
-        if copy:
-            new_values = new_values.copy()
-
-        return self._constructor(new_values,
-                                 index=new_index).__finalize__(self)
 
     @cache_readonly
     def str(self):

@@ -283,11 +283,11 @@ def to_offset(freqstr):
         try:
             for stride, name, _ in opattern.findall(freqstr):
                 offset = get_offset(name)
+                if stride_sign is None:
+                    stride_sign = -1 if stride.startswith('-') else 1
                 if not stride:
                     stride = 1
                 stride = int(stride)
-                if stride_sign is None:
-                    stride_sign = np.sign(stride)
                 offset = offset * int(np.fabs(stride) * stride_sign)
                 if delta is None:
                     delta = offset

@@ -546,14 +546,14 @@ class TestGroupBy(tm.TestCase):
     def test_groups(self):
         grouped = self.df.groupby(['A'])
         groups = grouped.groups
-        self.assert_(groups is grouped.groups)  # caching works
+        self.assertIs(groups, grouped.groups)  # caching works
 
         for k, v in compat.iteritems(grouped.groups):
             self.assert_((self.df.ix[v]['A'] == k).all())
 
         grouped = self.df.groupby(['A', 'B'])
         groups = grouped.groups
-        self.assert_(groups is grouped.groups)  # caching works
+        self.assertIs(groups, grouped.groups)  # caching works
         for k, v in compat.iteritems(grouped.groups):
             self.assert_((self.df.ix[v]['A'] == k[0]).all())
             self.assert_((self.df.ix[v]['B'] == k[1]).all())
@@ -2047,14 +2047,14 @@ class TestGroupBy(tm.TestCase):
         result = self.df.groupby(self.df['A']).mean()
         result2 = self.df.groupby(self.df['A'], as_index=False).mean()
         self.assertEquals(result.index.name, 'A')
-        self.assert_('A' in result2)
+        self.assertIn('A', result2)
 
         result = self.df.groupby([self.df['A'], self.df['B']]).mean()
         result2 = self.df.groupby([self.df['A'], self.df['B']],
                                   as_index=False).mean()
         self.assertEquals(result.index.names, ('A', 'B'))
-        self.assert_('A' in result2)
-        self.assert_('B' in result2)
+        self.assertIn('A', result2)
+        self.assertIn('B', result2)
 
     def test_groupby_nonstring_columns(self):
         df = DataFrame([np.arange(10) for x in range(10)])
@@ -2397,7 +2397,7 @@ class TestGroupBy(tm.TestCase):
         s.name = None
 
         result = s.groupby(self.frame['A']).agg(np.sum)
-        self.assert_(result.name is None)
+        self.assertIsNone(result.name)
 
     def test_wrap_agg_out(self):
         grouped = self.three_group.groupby(['A', 'B'])
@@ -2575,7 +2575,7 @@ class TestGroupBy(tm.TestCase):
         # GH #1291
 
         result = self.df.groupby(self.df['A'].values).sum()
-        self.assert_(result.index.name is None)
+        self.assertIsNone(result.index.name)
 
         result = self.df.groupby([self.df['A'].values,
                                   self.df['B'].values]).sum()

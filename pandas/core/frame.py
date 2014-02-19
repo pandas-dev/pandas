@@ -2414,8 +2414,8 @@ class DataFrame(NDFrame):
 
             agg_obj = self
             if subset is not None:
-                agg_axis_name = self._get_axis_name(agg_axis)
-                agg_obj = self.reindex(**{agg_axis_name: subset})
+                ax = self._get_axis(agg_axis)
+                agg_obj = self.take(ax.get_indexer_for(subset),axis=agg_axis)
 
             count = agg_obj.count(axis=agg_axis)
 
@@ -2612,11 +2612,14 @@ class DataFrame(NDFrame):
                 if k.ndim == 2:
                     raise ValueError('Cannot sort by duplicate column %s'
                                      % str(by))
-                indexer = k.argsort(kind=kind)
                 if isinstance(ascending, (tuple, list)):
                     ascending = ascending[0]
+
                 if not ascending:
-                    indexer = indexer[::-1]
+                    k = k[::-1]
+                indexer = k.argsort(kind=kind)
+                if not ascending:
+                    indexer = indexer.max() - indexer[::-1]
         elif isinstance(labels, MultiIndex):
             indexer = _lexsort_indexer(labels.labels, orders=ascending)
             indexer = com._ensure_platform_int(indexer)

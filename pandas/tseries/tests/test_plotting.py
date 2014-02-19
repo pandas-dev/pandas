@@ -124,7 +124,7 @@ class TestTSPlot(tm.TestCase):
 
     def test_get_datevalue(self):
         from pandas.tseries.converter import get_datevalue
-        self.assert_(get_datevalue(None, 'D') is None)
+        self.assertIsNone(get_datevalue(None, 'D'))
         self.assertEqual(get_datevalue(1987, 'A'), 1987)
         self.assertEqual(get_datevalue(Period(1987, 'A'), 'M'),
                          Period('1987-12', 'M').ordinal)
@@ -245,7 +245,7 @@ class TestTSPlot(tm.TestCase):
         plt.clf()
         ax = fig.add_subplot(211)
         ret = ser.plot()
-        self.assert_(ret is not None)
+        self.assertIsNotNone(ret)
 
         for rs, xp in zip(ax.get_lines()[0].get_xdata(), ser.index):
             self.assertEqual(rs, xp)
@@ -793,7 +793,7 @@ class TestTSPlot(tm.TestCase):
         self.assertEqual(leg.get_texts()[1].get_text(), 'B (right)')
         self.assertEqual(leg.get_texts()[2].get_text(), 'C')
         self.assertEqual(leg.get_texts()[3].get_text(), 'D')
-        self.assert_(ax.right_ax.get_legend() is None)
+        self.assertIsNone(ax.right_ax.get_legend())
         colors = set()
         for line in leg.get_lines():
             colors.add(line.get_color())
@@ -829,7 +829,7 @@ class TestTSPlot(tm.TestCase):
         ax = df.plot(secondary_y=['C', 'D'])
         leg = ax.get_legend()
         self.assertEqual(len(leg.get_lines()), 4)
-        self.assert_(ax.right_ax.get_legend() is None)
+        self.assertIsNone(ax.right_ax.get_legend())
         colors = set()
         for line in leg.get_lines():
             colors.add(line.get_color())
@@ -844,7 +844,7 @@ class TestTSPlot(tm.TestCase):
         ax = df.plot(secondary_y=['A', 'B'])
         leg = ax.get_legend()
         self.assertEqual(len(leg.get_lines()), 4)
-        self.assert_(ax.right_ax.get_legend() is None)
+        self.assertIsNone(ax.right_ax.get_legend())
         colors = set()
         for line in leg.get_lines():
             colors.add(line.get_color())
@@ -857,7 +857,7 @@ class TestTSPlot(tm.TestCase):
         ax = df.plot(secondary_y=['C', 'D'])
         leg = ax.get_legend()
         self.assertEqual(len(leg.get_lines()), 4)
-        self.assert_(ax.right_ax.get_legend() is None)
+        self.assertIsNone(ax.right_ax.get_legend())
         colors = set()
         for line in leg.get_lines():
             colors.add(line.get_color())

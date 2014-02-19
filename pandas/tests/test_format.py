@@ -127,15 +127,15 @@ class TestDataFrameFormatting(tm.TestCase):
 
             for line, value in lzip(r.split('\n'), df['B']):
                 if _strlen(value) + 1 > max_len:
-                    self.assert_('...' in line)
+                    self.assertIn('...', line)
                 else:
-                    self.assert_('...' not in line)
+                    self.assertNotIn('...', line)
 
         with option_context("display.max_colwidth", 999999):
-            self.assert_('...' not in repr(df))
+            self.assertNotIn('...', repr(df))
 
         with option_context("display.max_colwidth", max_len + 2):
-            self.assert_('...' not in repr(df))
+            self.assertNotIn('...', repr(df))
 
     def test_repr_chop_threshold(self):
         df = DataFrame([[0.1, 0.5],[0.5, -0.1]])
@@ -831,7 +831,7 @@ class TestDataFrameFormatting(tm.TestCase):
                 self.assert_(len(wider_repr) < len(wide_repr))
 
             for line in wide_repr.splitlines()[1::13]:
-                self.assert_('DataFrame Index' in line)
+                self.assertIn('DataFrame Index', line)
 
         reset_option('display.expand_frame_repr')
 
@@ -855,7 +855,7 @@ class TestDataFrameFormatting(tm.TestCase):
                 self.assert_(len(wider_repr) < len(wide_repr))
 
             for line in wide_repr.splitlines()[1::13]:
-                self.assert_('Level 0 Level 1' in line)
+                self.assertIn('Level 0 Level 1', line)
 
         reset_option('display.expand_frame_repr')
 
@@ -979,7 +979,7 @@ class TestDataFrameFormatting(tm.TestCase):
 
         buf = StringIO()
         retval = biggie.to_string(buf=buf)
-        self.assert_(retval is None)
+        self.assertIsNone(retval)
         self.assertEqual(buf.getvalue(), s)
 
         tm.assert_isinstance(s, compat.string_types)
@@ -1208,7 +1208,7 @@ c  10  11  12  13  14\
 
         buf = StringIO()
         retval = biggie.to_html(buf=buf)
-        self.assert_(retval is None)
+        self.assertIsNone(retval)
         self.assertEqual(buf.getvalue(), s)
 
         tm.assert_isinstance(s, compat.string_types)
@@ -1251,7 +1251,7 @@ c  10  11  12  13  14\
 
     def test_to_html_columns_arg(self):
         result = self.frame.to_html(columns=['A'])
-        self.assert_('<th>B</th>' not in result)
+        self.assertNotIn('<th>B</th>', result)
 
     def test_to_html_multiindex(self):
         columns = pandas.MultiIndex.from_tuples(list(zip(np.arange(2).repeat(2),
@@ -1417,13 +1417,13 @@ c  10  11  12  13  14\
                               index=index)
         result = df.to_html(index=False)
         for i in index:
-            self.assert_(i not in result)
+            self.assertNotIn(i, result)
 
         tuples = [('foo', 'car'), ('foo', 'bike'), ('bar', 'car')]
         df.index = pandas.MultiIndex.from_tuples(tuples)
         result = df.to_html(index=False)
         for i in ['foo', 'bar', 'car', 'bike']:
-            self.assert_(i not in result)
+            self.assertNotIn(i, result)
 
     def test_repr_html(self):
         self.frame._repr_html_()
@@ -1574,11 +1574,11 @@ c  10  11  12  13  14\
                    {'parent_appname': 'ipython-qtconsole'}}}
 
         repstr = self.frame._repr_html_()
-        self.assert_(repstr is not None)
+        self.assertIsNotNone(repstr)
 
         fmt.set_option('display.max_rows', 5, 'display.max_columns', 2)
         repstr = self.frame._repr_html_()
-        self.assert_('class' in repstr)  # info fallback
+        self.assertIn('class', repstr)  # info fallback
 
         fmt.reset_option('^display.')
 
@@ -1807,7 +1807,7 @@ class TestSeriesFormatting(tm.TestCase):
         s = self.ts.to_string()
 
         retval = self.ts.to_string(buf=buf)
-        self.assert_(retval is None)
+        self.assertIsNone(retval)
         self.assertEqual(buf.getvalue().strip(), s)
 
         # pass float_format
@@ -1888,9 +1888,9 @@ class TestSeriesFormatting(tm.TestCase):
             if line.startswith('dtype:'):
                 continue
             if _three_digit_exp():
-                self.assert_('+010' in line)
+                self.assertIn('+010', line)
             else:
-                self.assert_('+10' in line)
+                self.assertIn('+10', line)
 
     def test_datetimeindex(self):
 

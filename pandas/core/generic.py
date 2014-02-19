@@ -201,6 +201,7 @@ class NDFrame(PandasObject):
 
             def set_axis(a, i):
                 setattr(cls, a, lib.AxisProperty(i))
+                cls._internal_names_set.add(a)
 
             if axes_are_reversed:
                 m = cls._AXIS_LEN - 1
@@ -391,6 +392,10 @@ class NDFrame(PandasObject):
                 new_axes.append(ax)
 
         return new_axes
+
+    def set_axis(self, axis, labels):
+        """ public verson of axis assignment """
+        setattr(self,self._get_axis_name(axis),labels)
 
     def _set_axis(self, axis, labels):
         self._data.set_axis(axis, labels)
@@ -1307,7 +1312,11 @@ class NDFrame(PandasObject):
             new_values, copy = self._data.fast_xs(loc, copy=copy)
 
             # may need to box a datelike-scalar
-            if not is_list_like(new_values):
+            #
+            # if we encounter an array-like and we only have 1 dim
+            # that means that their are list/ndarrays inside the Series!
+            # so just return them (GH 6394)
+            if not is_list_like(new_values) or self.ndim == 1:
                 return _maybe_box_datetimelike(new_values)
 
             result = Series(new_values, index=self.columns,
@@ -2430,7 +2439,7 @@ class NDFrame(PandasObject):
             return self._constructor(new_data).__finalize__(self)
 
     def interpolate(self, method='linear', axis=0, limit=None, inplace=False,
-                    downcast='infer', **kwargs):
+                    downcast=None, **kwargs):
         """
         Interpolate values according to different methods.
 
@@ -2463,7 +2472,7 @@ class NDFrame(PandasObject):
             Maximum number of consecutive NaNs to fill.
         inplace : bool, default False
             Update the NDFrame in place if possible.
-        downcast : optional, 'infer' or None, defaults to 'infer'
+        downcast : optional, 'infer' or None, defaults to None
             Downcast dtypes if possible.
 
         Returns
@@ -2487,7 +2496,6 @@ class NDFrame(PandasObject):
         dtype: float64
 
         """
-
         if self.ndim > 2:
             raise NotImplementedError("Interpolate has not been implemented "
                                       "on Panel and Panel 4D objects.")
@@ -2529,7 +2537,6 @@ class NDFrame(PandasObject):
                                           inplace=inplace,
                                           downcast=downcast,
                                           **kwargs)
-
         if inplace:
             if axis == 1:
                 self._update_inplace(new_data)
@@ -3288,7 +3295,7 @@ class NDFrame(PandasObject):
 
     def tz_convert(self, tz, axis=0, copy=True):
         """
-        Convert TimeSeries to target time zone. If it is time zone naive, it
+        Convert the axis to target time zone. If it is time zone naive, it
         will be localized to the passed time zone.
 
         Parameters
@@ -3304,24 +3311,18 @@ class NDFrame(PandasObject):
         ax = self._get_axis(axis)
 
         if not hasattr(ax, 'tz_convert'):
-            ax_name = self._get_axis_name(axis)
-            raise TypeError('%s is not a valid DatetimeIndex or PeriodIndex' %
-                            ax_name)
+            if len(ax) > 0:
+                ax_name = self._get_axis_name(axis)
+                raise TypeError('%s is not a valid DatetimeIndex or PeriodIndex' %
+                                ax_name)
+            else:
+                ax = DatetimeIndex([],tz=tz)
+        else:
+            ax = ax.tz_convert(tz)
 
-        new_data = self._data
-        if copy:
-            new_data = new_data.copy()
-
-        new_obj = self._constructor(new_data)
-        new_ax = ax.tz_convert(tz)
-
-        if axis == 0:
-            new_obj._set_axis(1, new_ax)
-        elif axis == 1:
-            new_obj._set_axis(0, new_ax)
-            self._clear_item_cache()
-
-        return new_obj.__finalize__(self)
+        result = self._constructor(self._data, copy=copy)
+        result.set_axis(axis,ax)
+        return result.__finalize__(self)
 
     def tz_localize(self, tz, axis=0, copy=True, infer_dst=False):
         """
@@ -3342,24 +3343,18 @@ class NDFrame(PandasObject):
         ax = self._get_axis(axis)
 
         if not hasattr(ax, 'tz_localize'):
-            ax_name = self._get_axis_name(axis)
-            raise TypeError('%s is not a valid DatetimeIndex or PeriodIndex' %
-                            ax_name)
+            if len(ax) > 0:
+                ax_name = self._get_axis_name(axis)
+                raise TypeError('%s is not a valid DatetimeIndex or PeriodIndex' %
+                                ax_name)
+            else:
+                ax = DatetimeIndex([],tz=tz)
+        else:
+            ax = ax.tz_localize(tz, infer_dst=infer_dst)
 
-        new_data = self._data
-        if copy:
-            new_data = new_data.copy()
-
-        new_obj = self._constructor(new_data)
-        new_ax = ax.tz_localize(tz, infer_dst=infer_dst)
-
-        if axis == 0:
-            new_obj._set_axis(1, new_ax)
-        elif axis == 1:
-            new_obj._set_axis(0, new_ax)
-            self._clear_item_cache()
-
-        return new_obj.__finalize__(self)
+        result = self._constructor(self._data, copy=copy)
+        result.set_axis(axis,ax)
+        return result.__finalize__(self)
 
     #----------------------------------------------------------------------
     # Numeric Methods

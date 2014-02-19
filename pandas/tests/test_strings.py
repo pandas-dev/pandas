@@ -32,7 +32,7 @@ class TestStringMethods(tm.TestCase):
     def test_api(self):
 
         # GH 6106
-        self.assert_(Series.str is None)
+        self.assertIsNone(Series.str)
 
     def test_iter(self):
         # GH3638

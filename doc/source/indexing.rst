@@ -1504,6 +1504,18 @@ operators:
    a & b
    a - b
 
+Also available is the ``sym_diff (^)`` operation, which returns elements
+that appear in either ``idx1`` or ``idx2`` but not both. This is
+equivalent to the Index created by ``(idx1 - idx2) + (idx2 - idx1)``,
+with duplicates dropped.
+
+.. ipython:: python
+
+   idx1 = Index([1, 2, 3, 4])
+   idx2 = Index([2, 3, 4, 5])
+   idx1.sym_diff(idx2)
+   idx1 ^ idx2
+
 The ``isin`` method of Index objects
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

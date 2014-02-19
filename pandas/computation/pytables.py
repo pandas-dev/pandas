@@ -488,7 +488,6 @@ class Expr(expr.Expr):
         self.filter = None
         self.terms = None
         self._visitor = None
-
         # capture the environement if needed
         lcls = dict()
         if isinstance(where, Expr):
@@ -497,13 +496,12 @@ class Expr(expr.Expr):
             where = where.expr
 
         elif isinstance(where, (list, tuple)):
-
-            for w in where:
+            for idx, w in enumerate(where):
                 if isinstance(w, Expr):
                     lcls.update(w.env.locals)
                 else:
                     w = self.parse_back_compat(w)
-
+                    where[idx] = w
             where = ' & ' .join(["(%s)" % w for w in where])
 
         self.expr = where
@@ -528,7 +526,16 @@ class Expr(expr.Expr):
             warnings.warn("passing a dict to Expr is deprecated, "
                           "pass the where as a single string",
                           DeprecationWarning)
-
+        if isinstance(w, tuple):
+            if len(w) == 2:
+                w, value = w
+                op = '=='
+            elif len(w) == 3:
+                w, op, value = w
+            warnings.warn("passing a tuple into Expr is deprecated, "
+                          "pass the where as a single string",
+                          DeprecationWarning)
+                
         if op is not None:
             if not isinstance(w, string_types):
                 raise TypeError(

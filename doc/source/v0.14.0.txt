@@ -29,6 +29,27 @@ API changes
       df.iloc[:,2:3]
       df.iloc[:,1:3]
 
+- The ``DataFrame.interpolate()`` ``downcast`` keyword default has been changed from ``infer`` to
+  ``None``. This is to preseve the original dtype unless explicitly requested otherwise (:issue:`6290`).
+- allow a Series to utilize index methods depending on its index type, e.g. ``Series.year`` is now defined
+  for a Series with a ``DatetimeIndex`` or a ``PeriodIndex``; trying this on a non-supported Index type will
+  now raise a ``TypeError``. (:issue:`4551`, :issue:`4056`, :issue:`5519`)
+
+  The following affected:
+
+  - ``date,time,year,month,day``
+  - ``hour,minute,second,weekofyear``
+  - ``week,dayofweek,dayofyear,quarter``
+  - ``microsecond,nanosecond,qyear``
+  - ``min(),max()``
+
+  .. ipython:: python
+
+     s = Series(np.random.randn(5),index=tm.makeDateIndex(5))
+     s
+     s.year
+     s.index.year
+
 MultiIndexing Using Slicers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

@@ -551,6 +551,7 @@ class PeriodIndex(Int64Index):
     >>> idx2 = PeriodIndex(start='2000', end='2010', freq='A')
     """
     _box_scalars = True
+    _allow_period_index_ops = True
 
     __eq__ = _period_index_cmp('__eq__')
     __ne__ = _period_index_cmp('__ne__')
@@ -773,19 +774,19 @@ class PeriodIndex(Int64Index):
     def to_datetime(self, dayfirst=False):
         return self.to_timestamp()
 
-    year = _field_accessor('year', 0)
-    month = _field_accessor('month', 3)
-    day = _field_accessor('day', 4)
-    hour = _field_accessor('hour', 5)
-    minute = _field_accessor('minute', 6)
-    second = _field_accessor('second', 7)
-    weekofyear = _field_accessor('week', 8)
-    week = weekofyear
-    dayofweek = _field_accessor('dayofweek', 10)
-    weekday = dayofweek
-    dayofyear = day_of_year = _field_accessor('dayofyear', 9)
-    quarter = _field_accessor('quarter', 2)
-    qyear = _field_accessor('qyear', 1)
+    _year = _field_accessor('year', 0)
+    _month = _field_accessor('month', 3)
+    _day = _field_accessor('day', 4)
+    _hour = _field_accessor('hour', 5)
+    _minute = _field_accessor('minute', 6)
+    _second = _field_accessor('second', 7)
+    _weekofyear = _field_accessor('week', 8)
+    _week = _weekofyear
+    _dayofweek = _field_accessor('dayofweek', 10)
+    _weekday = _dayofweek
+    _dayofyear = day_of_year = _field_accessor('dayofyear', 9)
+    _quarter = _field_accessor('quarter', 2)
+    _qyear = _field_accessor('qyear', 1)
 
     # Try to run function on index first, and then on elements of index
     # Especially important for group-by functionality

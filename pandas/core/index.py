@@ -10,7 +10,7 @@ import pandas.lib as lib
 import pandas.algos as _algos
 import pandas.index as _index
 from pandas.lib import Timestamp, is_datetime_array
-from pandas.core.base import FrozenList, FrozenNDArray
+from pandas.core.base import FrozenList, FrozenNDArray, IndexOpsMixin
 
 from pandas.util.decorators import cache_readonly, deprecate
 from pandas.core.common import isnull
@@ -57,7 +57,7 @@ def _shouldbe_timestamp(obj):
 _Identity = object
 
 
-class Index(FrozenNDArray):
+class Index(IndexOpsMixin, FrozenNDArray):
 
     """
     Immutable ndarray implementing an ordered, sliceable set. The basic object
@@ -92,6 +92,9 @@ class Index(FrozenNDArray):
     name = None
     asi8 = None
     _comparables = ['name']
+    _allow_index_ops = True
+    _allow_datetime_index_ops = False
+    _allow_period_index_ops = False
 
     _engine_type = _index.ObjectEngine
 
@@ -866,6 +869,9 @@ class Index(FrozenNDArray):
     def __or__(self, other):
         return self.union(other)
 
+    def __xor__(self, other):
+        return self.sym_diff(other)
+
     def union(self, other):
         """
         Form the union of two Index objects and sorts if possible
@@ -973,16 +979,20 @@ class Index(FrozenNDArray):
         """
         Compute sorted set difference of two Index objects
 
+        Parameters
+        ----------
+        other : Index or array-like
+
+        Returns
+        -------
+        diff : Index
+
         Notes
         -----
         One can do either of these and achieve the same result
 
         >>> index - index2
         >>> index.diff(index2)
-
-        Returns
-        -------
-        diff : Index
         """
 
         if not hasattr(other, '__iter__'):
@@ -999,6 +1009,49 @@ class Index(FrozenNDArray):
 
         theDiff = sorted(set(self) - set(other))
         return Index(theDiff, name=result_name)
+
+    def sym_diff(self, other, result_name=None):
+        """
+        Compute the sorted symmetric_difference of two Index objects.
+
+        Parameters
+        ----------
+
+        other : array-like
+        result_name : str
+
+        Returns
+        -------
+        sym_diff : Index
+
+        Notes
+        -----
+        ``sym_diff`` contains elements that appear in either ``idx1`` or
+        ``idx2`` but not both. Equivalent to the Index created by
+        ``(idx1 - idx2) + (idx2 - idx1)`` with duplicates dropped.
+
+        Examples
+        --------
+        >>> idx1 = Index([1, 2, 3, 4])
+        >>> idx2 = Index([2, 3, 4, 5])
+        >>> idx1.sym_diff(idx2)
+        Int64Index([1, 5], dtype='int64')
+
+        You can also use the ``^`` operator:
+
+        >>> idx1 ^ idx2
+        Int64Index([1, 5], dtype='int64')
+        """
+        if not hasattr(other, '__iter__'):
+            raise TypeError('Input must be iterable!')
+
+        if not isinstance(other, Index):
+            other = Index(other)
+            result_name = result_name or self.name
+
+        the_diff = sorted(set((self - other) + (other - self)))
+        return Index(the_diff, name=result_name)
+
 
     def unique(self):
         """
@@ -1159,6 +1212,12 @@ class Index(FrozenNDArray):
 
         indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
         return Index(indexer), missing
+
+    def get_indexer_for(self, target, **kwargs):
+        """ guaranteed return of an indexer even when non-unique """
+        if self.is_unique:
+            return self.get_indexer(target, **kwargs)
+        return self.get_indexer_non_unique(target, **kwargs)[0]
 
     def _possibly_promote(self, other):
         # A hack, but it works
@@ -1891,8 +1950,14 @@ class Float64Index(Index):
         if self is other:
             return True
 
+        # need to compare nans locations and make sure that they are the same
+        # since nans don't compare equal this is a bit tricky
         try:
-            return np.array_equal(self, other)
+            if not isinstance(other, Float64Index):
+                other = self._constructor(other)
+            if self.dtype != other.dtype or self.shape != other.shape: return False
+            left, right = self.values, other.values
+            return ((left == right) | (isnull(left) & isnull(right))).all()
         except TypeError:
             # e.g. fails in numpy 1.6 with DatetimeIndex #1681
             return False

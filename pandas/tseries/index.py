@@ -146,6 +146,7 @@ class DatetimeIndex(Int64Index):
 
     offset = None
     _comparables = ['name','freqstr','tz']
+    _allow_datetime_index_ops = True
 
     def __new__(cls, data=None,
                 freq=None, start=None, end=None, periods=None,
@@ -1382,6 +1383,7 @@ class DatetimeIndex(Int64Index):
     # alias to offset
     @property
     def freq(self):
+        """ return the frequency object if its set, otherwise None """
         return self.offset
 
     @cache_readonly
@@ -1393,26 +1395,27 @@ class DatetimeIndex(Int64Index):
 
     @property
     def freqstr(self):
+        """ return the frequency object as a string if its set, otherwise None """
         return self.offset.freqstr
 
-    year = _field_accessor('year', 'Y')
-    month = _field_accessor('month', 'M', "The month as January=1, December=12")
-    day = _field_accessor('day', 'D')
-    hour = _field_accessor('hour', 'h')
-    minute = _field_accessor('minute', 'm')
-    second = _field_accessor('second', 's')
-    microsecond = _field_accessor('microsecond', 'us')
-    nanosecond = _field_accessor('nanosecond', 'ns')
-    weekofyear = _field_accessor('weekofyear', 'woy')
-    week = weekofyear
-    dayofweek = _field_accessor('dayofweek', 'dow',
-                                "The day of the week with Monday=0, Sunday=6")
-    weekday = dayofweek
-    dayofyear = _field_accessor('dayofyear', 'doy')
-    quarter = _field_accessor('quarter', 'q')
+    _year = _field_accessor('year', 'Y')
+    _month = _field_accessor('month', 'M', "The month as January=1, December=12")
+    _day = _field_accessor('day', 'D')
+    _hour = _field_accessor('hour', 'h')
+    _minute = _field_accessor('minute', 'm')
+    _second = _field_accessor('second', 's')
+    _microsecond = _field_accessor('microsecond', 'us')
+    _nanosecond = _field_accessor('nanosecond', 'ns')
+    _weekofyear = _field_accessor('weekofyear', 'woy')
+    _week = _weekofyear
+    _dayofweek = _field_accessor('dayofweek', 'dow',
+                                 "The day of the week with Monday=0, Sunday=6")
+    _weekday = _dayofweek
+    _dayofyear = _field_accessor('dayofyear', 'doy')
+    _quarter = _field_accessor('quarter', 'q')
 
     @property
-    def time(self):
+    def _time(self):
         """
         Returns numpy array of datetime.time. The time part of the Timestamps.
         """
@@ -1421,7 +1424,7 @@ class DatetimeIndex(Int64Index):
         return _algos.arrmap_object(self.asobject, lambda x: x.time())
 
     @property
-    def date(self):
+    def _date(self):
         """
         Returns numpy array of datetime.date. The date part of the Timestamps.
         """

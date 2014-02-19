@@ -71,7 +71,7 @@ class TestIndex(tm.TestCase):
             self.assertEqual(ind.name, original_name)
             res = ind.rename(new_name, inplace=True)
             # should return None
-            self.assert_(res is None)
+            self.assertIsNone(res)
             self.assertEqual(ind.name, new_name)
             self.assertEqual(ind.names, [new_name])
             with assertRaisesRegexp(TypeError, "list-like"):
@@ -100,7 +100,7 @@ class TestIndex(tm.TestCase):
 
         for func in (copy, deepcopy):
             idx_copy = func(self.strIndex)
-            self.assert_(idx_copy is not self.strIndex)
+            self.assertIsNot(idx_copy, self.strIndex)
             self.assert_(idx_copy.equals(self.strIndex))
 
         new_copy = self.strIndex.copy(deep=True, name="banana")
@@ -255,7 +255,7 @@ class TestIndex(tm.TestCase):
 
     def test_asof(self):
         d = self.dateIndex[0]
-        self.assert_(self.dateIndex.asof(d) is d)
+        self.assertIs(self.dateIndex.asof(d), d)
         self.assert_(np.isnan(self.dateIndex.asof(d - timedelta(1))))
 
         d = self.dateIndex[-1]
@@ -332,7 +332,7 @@ class TestIndex(tm.TestCase):
 
     def test_shift(self):
         shifted = self.dateIndex.shift(0, timedelta(1))
-        self.assert_(shifted is self.dateIndex)
+        self.assertIs(shifted, self.dateIndex)
 
         shifted = self.dateIndex.shift(5, timedelta(1))
         self.assert_numpy_array_equal(shifted, self.dateIndex + timedelta(5))
@@ -352,7 +352,7 @@ class TestIndex(tm.TestCase):
 
         # Corner cases
         inter = first.intersection(first)
-        self.assert_(inter is first)
+        self.assertIs(inter, first)
 
         # non-iterable input
         assertRaisesRegexp(TypeError, "iterable", first.intersection, 0.5)
@@ -366,13 +366,13 @@ class TestIndex(tm.TestCase):
 
         # Corner cases
         union = first.union(first)
-        self.assert_(union is first)
+        self.assertIs(union, first)
 
         union = first.union([])
-        self.assert_(union is first)
+        self.assertIs(union, first)
 
         union = Index([]).union(first)
-        self.assert_(union is first)
+        self.assertIs(union, first)
 
         # non-iterable input
         assertRaisesRegexp(TypeError, "iterable", first.union, 0.5)
@@ -385,7 +385,7 @@ class TestIndex(tm.TestCase):
 
         second.name = 'B'
         union = first.union(second)
-        self.assert_(union.name is None)
+        self.assertIsNone(union.name)
 
     def test_add(self):
         firstCat = self.strIndex + self.dateIndex
@@ -424,23 +424,23 @@ class TestIndex(tm.TestCase):
         right = Index([1, 2, 3], name='bar')
 
         result = left.append(right)
-        self.assert_(result.name is None)
+        self.assertIsNone(result.name)
 
     def test_add_string(self):
         # from bug report
         index = Index(['a', 'b', 'c'])
         index2 = index + 'foo'
 
-        self.assert_('a' not in index2)
-        self.assert_('afoo' in index2)
+        self.assertNotIn('a', index2)
+        self.assertIn('afoo', index2)
 
     def test_iadd_string(self):
         index = pd.Index(['a', 'b', 'c'])
         # doesn't fail test unless there is a check before `+=`
-        self.assert_('a' in index)
+        self.assertIn('a', index)
 
         index += '_x'
-        self.assert_('a_x' in index)
+        self.assertIn('a_x', index)
 
     def test_diff(self):
         first = self.strIndex[5:20]
@@ -470,6 +470,52 @@ class TestIndex(tm.TestCase):
 
         # non-iterable input
         assertRaisesRegexp(TypeError, "iterable", first.diff, 0.5)
+
+    def test_symmetric_diff(self):
+        # smoke
+        idx1 = Index([1, 2, 3, 4], name='idx1')
+        idx2 = Index([2, 3, 4, 5])
+        result = idx1.sym_diff(idx2)
+        expected = Index([1, 5])
+        self.assert_(tm.equalContents(result, expected))
+        self.assertIsNone(result.name)
+
+        # __xor__ syntax
+        expected = idx1 ^ idx2
+        self.assert_(tm.equalContents(result, expected))
+        self.assertIsNone(result.name)
+
+        # multiIndex
+        idx1 = MultiIndex.from_tuples(self.tuples)
+        idx2 = MultiIndex.from_tuples([('foo', 1), ('bar', 3)])
+        result = idx1.sym_diff(idx2)
+        expected = MultiIndex.from_tuples([('bar', 2), ('baz', 3), ('bar', 3)])
+        self.assert_(tm.equalContents(result, expected))
+
+        # nans:
+        idx1 = Index([1, 2, np.nan])
+        idx2 = Index([0, 1, np.nan])
+        result = idx1.sym_diff(idx2)
+        expected = Index([0.0, np.nan, 2.0, np.nan])  # oddness with nans
+        nans = pd.isnull(expected)
+        self.assert_(pd.isnull(result[nans]).all())
+        self.assert_(tm.equalContents(result[~nans], expected[~nans]))
+
+        # other not an Index:
+        idx1 = Index([1, 2, 3, 4], name='idx1')
+        idx2 = np.array([2, 3, 4, 5])
+        expected = Index([1, 5])
+        result = idx1.sym_diff(idx2)
+        self.assert_(tm.equalContents(result, expected))
+        self.assertEquals(result.name, 'idx1')
+
+        result = idx1.sym_diff(idx2, result_name='new_name')
+        self.assert_(tm.equalContents(result, expected))
+        self.assertEquals(result.name, 'new_name')
+
+        # other isn't iterable
+        with tm.assertRaises(TypeError):
+            idx1 - 1
 
     def test_pickle(self):
         def testit(index):
@@ -505,8 +551,8 @@ class TestIndex(tm.TestCase):
         ind = Index(['{other}%s', "~:{range}:0"], name='A')
         result = ind.summary()
         # shouldn't be formatted accidentally.
-        self.assert_('~:{range}:0' in result)
-        self.assert_('{other}%s' in result)
+        self.assertIn('~:{range}:0', result)
+        self.assertIn('{other}%s', result)
 
     def test_format(self):
         self._check_method_works(Index.format)
@@ -551,7 +597,7 @@ class TestIndex(tm.TestCase):
 
         idx = Index(values)
         idx.format()
-        self.assert_(idx[3] is None)
+        self.assertIsNone(idx[3])
 
     def test_take(self):
         indexer = [4, 3, 0, 2]
@@ -711,7 +757,7 @@ class TestIndex(tm.TestCase):
             for kind in kinds:
                 res = getattr(self, '{0}Index'.format(index_kind))
                 joined = res.join(res, how=kind)
-                self.assert_(res is joined)
+                self.assertIs(res, joined)
 
 
 class TestFloat64Index(tm.TestCase):
@@ -806,6 +852,21 @@ class TestFloat64Index(tm.TestCase):
         self.assert_(i.equals(result))
         self.check_is_index(result)
 
+    def test_equals(self):
+
+        i = Float64Index([1.0,2.0])
+        self.assertTrue(i.equals(i))
+        self.assertTrue(i.identical(i))
+
+        i2 = Float64Index([1.0,2.0])
+        self.assertTrue(i.equals(i2))
+
+        i = Float64Index([1.0,np.nan])
+        self.assertTrue(i.equals(i))
+        self.assertTrue(i.identical(i))
+
+        i2 = Float64Index([1.0,np.nan])
+        self.assertTrue(i.equals(i2))
 
 class TestInt64Index(tm.TestCase):
     _multiprocess_can_split_ = True
@@ -1010,7 +1071,7 @@ class TestInt64Index(tm.TestCase):
 
         tm.assert_isinstance(res, Int64Index)
         self.assert_(res.equals(eres))
-        self.assert_(lidx is None)
+        self.assertIsNone(lidx)
         self.assert_numpy_array_equal(ridx, eridx)
 
         # monotonic
@@ -1020,7 +1081,7 @@ class TestInt64Index(tm.TestCase):
                          dtype=np.int64)
         tm.assert_isinstance(res, Int64Index)
         self.assert_(res.equals(eres))
-        self.assert_(lidx is None)
+        self.assertIsNone(lidx)
         self.assert_numpy_array_equal(ridx, eridx)
 
         # non-unique
@@ -1050,7 +1111,7 @@ class TestInt64Index(tm.TestCase):
         tm.assert_isinstance(other, Int64Index)
         self.assert_(res.equals(eres))
         self.assert_numpy_array_equal(lidx, elidx)
-        self.assert_(ridx is None)
+        self.assertIsNone(ridx)
 
         # monotonic
         res, lidx, ridx = self.index.join(other_mono, how='right',
@@ -1061,7 +1122,7 @@ class TestInt64Index(tm.TestCase):
         tm.assert_isinstance(other, Int64Index)
         self.assert_(res.equals(eres))
         self.assert_numpy_array_equal(lidx, elidx)
-        self.assert_(ridx is None)
+        self.assertIsNone(ridx)
 
         # non-unique
         """
@@ -1128,7 +1189,7 @@ class TestInt64Index(tm.TestCase):
         kinds = 'outer', 'inner', 'left', 'right'
         for kind in kinds:
             joined = self.index.join(self.index, how=kind)
-            self.assert_(self.index is joined)
+            self.assertIs(self.index, joined)
 
     def test_intersection(self):
         other = Index([1, 2, 3, 4, 5])
@@ -1257,7 +1318,7 @@ class TestMultiIndex(tm.TestCase):
             ind.set_names(new_names + new_names)
         new_names2 = [name + "SUFFIX2" for name in new_names]
         res = ind.set_names(new_names2, inplace=True)
-        self.assert_(res is None)
+        self.assertIsNone(res)
         self.assertEqual(ind.names, new_names2)
 
     def test_set_levels_and_set_labels(self):
@@ -1287,7 +1348,7 @@ class TestMultiIndex(tm.TestCase):
         # level changing [w/ mutation]
         ind2 = self.index.copy()
         inplace_return = ind2.set_levels(new_levels, inplace=True)
-        self.assert_(inplace_return is None)
+        self.assertIsNone(inplace_return)
         assert_matching(ind2.levels, new_levels)
 
         # label changing [w/o mutation]
@@ -1298,7 +1359,7 @@ class TestMultiIndex(tm.TestCase):
         # label changing [w/ mutation]
         ind2 = self.index.copy()
         inplace_return = ind2.set_labels(new_labels, inplace=True)
-        self.assert_(inplace_return is None)
+        self.assertIsNone(inplace_return)
         assert_matching(ind2.labels, new_labels)
 
     def test_set_levels_labels_names_bad_input(self):
@@ -1404,10 +1465,10 @@ class TestMultiIndex(tm.TestCase):
             columns=['one', 'two', 'three', 'four'],
             index=idx)
         df = df.sortlevel()
-        self.assert_(df.is_copy is None)
+        self.assertIsNone(df.is_copy)
         self.assertEqual(df.index.names, ('Name', 'Number'))
         df = df.set_value(('grethe', '4'), 'one', 99.34)
-        self.assert_(df.is_copy is None)
+        self.assertIsNone(df.is_copy)
         self.assertEqual(df.index.names, ('Name', 'Number'))
 
     def test_names(self):
@@ -1462,7 +1523,7 @@ class TestMultiIndex(tm.TestCase):
 
         single_level = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],
                                   labels=[[0, 1, 2, 3]])
-        self.assert_(single_level.name is None)
+        self.assertIsNone(single_level.name)
 
     def test_constructor_no_levels(self):
         assertRaisesRegexp(ValueError, "non-zero number of levels/labels",
@@ -1515,11 +1576,11 @@ class TestMultiIndex(tm.TestCase):
 
         # labels doesn't matter which way copied
         assert_almost_equal(copy.labels, original.labels)
-        self.assert_(copy.labels is not original.labels)
+        self.assertIsNot(copy.labels, original.labels)
 
         # names doesn't matter which way copied
         self.assertEqual(copy.names, original.names)
-        self.assert_(copy.names is not original.names)
+        self.assertIsNot(copy.names, original.names)
 
         # sort order should be copied
         self.assertEqual(copy.sortorder, original.sortorder)
@@ -1727,9 +1788,9 @@ class TestMultiIndex(tm.TestCase):
         self.assert_((result.values == self.index.values).all())
 
     def test_contains(self):
-        self.assert_(('foo', 'two') in self.index)
-        self.assert_(('bar', 'two') not in self.index)
-        self.assert_(None not in self.index)
+        self.assertIn(('foo', 'two'), self.index)
+        self.assertNotIn(('bar', 'two'), self.index)
+        self.assertNotIn(None, self.index)
 
     def test_is_all_dates(self):
         self.assert_(not self.index.is_all_dates)
@@ -1804,7 +1865,7 @@ class TestMultiIndex(tm.TestCase):
         loc, new_index = index.get_loc_level((0, 1, 0))
         expected = 1
         self.assertEqual(loc, expected)
-        self.assert_(new_index is None)
+        self.assertIsNone(new_index)
 
         self.assertRaises(KeyError, index.get_loc_level, (2, 2))
 
@@ -1938,12 +1999,12 @@ class TestMultiIndex(tm.TestCase):
                            labels=[major_labels, minor_labels])
 
         result = index.truncate(before=1)
-        self.assert_('foo' not in result.levels[0])
-        self.assert_(1 in result.levels[0])
+        self.assertNotIn('foo', result.levels[0])
+        self.assertIn(1, result.levels[0])
 
         result = index.truncate(after=1)
-        self.assert_(2 not in result.levels[0])
-        self.assert_(1 in result.levels[0])
+        self.assertNotIn(2, result.levels[0])
+        self.assertIn(1, result.levels[0])
 
         result = index.truncate(before=1, after=2)
         self.assertEqual(len(result.levels[0]), 2)
@@ -2157,10 +2218,10 @@ class TestMultiIndex(tm.TestCase):
 
         # corner case, pass self or empty thing:
         the_union = self.index.union(self.index)
-        self.assert_(the_union is self.index)
+        self.assertIs(the_union, self.index)
 
         the_union = self.index.union(self.index[:0])
-        self.assert_(the_union is self.index)
+        self.assertIs(the_union, self.index)
 
         # won't work in python 3
         # tuples = self.index._tuple_index
@@ -2172,8 +2233,8 @@ class TestMultiIndex(tm.TestCase):
     #     other = Index(['A', 'B', 'C'])
 
     #     result = other.union(self.index)
-    #     self.assert_(('foo', 'one') in result)
-    #     self.assert_('B' in result)
+    #     self.assertIn(('foo', 'one'), result)
+    #     self.assertIn('B', result)
 
     #     result2 = self.index.union(other)
     #     self.assert_(result.equals(result2))
@@ -2189,7 +2250,7 @@ class TestMultiIndex(tm.TestCase):
 
         # corner case, pass self
         the_int = self.index.intersection(self.index)
-        self.assert_(the_int is self.index)
+        self.assertIs(the_int, self.index)
 
         # empty intersection: disjoint
         empty = self.index[:2] & self.index[2:]
@@ -2444,7 +2505,7 @@ class TestMultiIndex(tm.TestCase):
         for kind in kinds:
             res = self.index
             joined = res.join(res, how=kind)
-            self.assert_(res is joined)
+            self.assertIs(res, joined)
 
     def test_reindex(self):
         result, indexer = self.index.reindex(list(self.index[:4]))
@@ -2453,7 +2514,7 @@ class TestMultiIndex(tm.TestCase):
 
         result, indexer = self.index.reindex(list(self.index))
         tm.assert_isinstance(result, MultiIndex)
-        self.assert_(indexer is None)
+        self.assertIsNone(indexer)
         self.check_level_names(result, self.index.names)
 
     def test_reindex_level(self):

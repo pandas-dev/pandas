@@ -71,28 +71,32 @@ class TestCase(unittest.TestCase):
 	        return
         raise AssertionError('{0} is not equal to {1}.'.format(np_array, assert_equal))
 
-    def assertIs(self, a, b, msg=''):
-        """Checks that 'a' is 'b'"""
+    def assertIs(self, first, second, msg=''):
+        """Checks that 'first' is 'second'"""
+        a, b = first, second
         assert a is b, "%s: %r is not %r" % (msg.format(a,b), a, b)
 
-    def assertIsNot(self, a, b, msg=''):
-        """Checks that 'a' is not 'b'"""
+    def assertIsNot(self, first, second, msg=''):
+        """Checks that 'first' is not 'second'"""
+        a, b = first, second
         assert a is not b, "%s: %r is %r" % (msg.format(a,b), a, b)
 
-    def assertIsNone(self, a, msg=''):
-        """Checks that 'a' is None"""
-        self.assertIs(a, None, msg)
+    def assertIsNone(self, expr, msg=''):
+        """Checks that 'expr' is None"""
+        self.assertIs(expr, None, msg)
 
-    def assertIsNotNone(self, a, msg=''):
-        """Checks that 'a' is not None"""
-        self.assertIsNot(a, None, msg)
+    def assertIsNotNone(self, expr, msg=''):
+        """Checks that 'expr' is not None"""
+        self.assertIsNot(expr, None, msg)
 
-    def assertIn(self, a, b, msg=''):
-        """Checks that 'a' is in 'b'"""
+    def assertIn(self, first, second, msg=''):
+        """Checks that 'first' is in 'second'"""
+        a, b = first, second
         assert a in b, "%s: %r is not in %r" % (msg.format(a,b), a, b)
 
-    def assertNotIn(self, a, b, msg=''):
-        """Checks that 'a' is not in 'b'"""
+    def assertNotIn(self, first, second, msg=''):
+        """Checks that 'first' is not in 'second'"""
+        a, b = first, second
         assert a not in b, "%s: %r is in %r" % (msg.format(a,b), a, b)
 
 

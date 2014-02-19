@@ -42,13 +42,13 @@ class TestGenRangeGeneration(tm.TestCase):
     def test_generate(self):
         rng1 = list(generate_range(START, END, offset=datetools.bday))
         rng2 = list(generate_range(START, END, time_rule='B'))
-        self.assert_(np.array_equal(rng1, rng2))
+        self.assert_numpy_array_equal(rng1, rng2)
 
     def test_generate_cday(self):
         _skip_if_no_cday()
         rng1 = list(generate_range(START, END, offset=datetools.cday))
         rng2 = list(generate_range(START, END, time_rule='C'))
-        self.assert_(np.array_equal(rng1, rng2))
+        self.assert_numpy_array_equal(rng1, rng2)
 
     def test_1(self):
         eq_gen_range(dict(start=datetime(2009, 3, 25), periods=2),
@@ -139,7 +139,7 @@ class TestDateRange(tm.TestCase):
 
     def test_getitem(self):
         smaller = self.rng[:5]
-        self.assert_(np.array_equal(smaller, self.rng.view(np.ndarray)[:5]))
+        self.assert_numpy_array_equal(smaller, self.rng.view(np.ndarray)[:5])
         self.assertEquals(smaller.offset, self.rng.offset)
 
         sliced = self.rng[::5]
@@ -148,7 +148,7 @@ class TestDateRange(tm.TestCase):
         fancy_indexed = self.rng[[4, 3, 2, 1, 0]]
         self.assertEquals(len(fancy_indexed), 5)
         tm.assert_isinstance(fancy_indexed, DatetimeIndex)
-        self.assert_(fancy_indexed.freq is None)
+        self.assertIsNone(fancy_indexed.freq)
 
         # 32-bit vs. 64-bit platforms
         self.assertEquals(self.rng[4], self.rng[np.int_(4)])
@@ -156,7 +156,7 @@ class TestDateRange(tm.TestCase):
     def test_getitem_matplotlib_hackaround(self):
         values = self.rng[:, None]
         expected = self.rng.values[:, None]
-        self.assert_(np.array_equal(values, expected))
+        self.assert_numpy_array_equal(values, expected)
 
     def test_shift(self):
         shifted = self.rng.shift(5)
@@ -179,7 +179,7 @@ class TestDateRange(tm.TestCase):
         pickled = pickle.dumps(self.rng)
         unpickled = pickle.loads(pickled)
 
-        self.assert_(unpickled.offset is not None)
+        self.assertIsNotNone(unpickled.offset)
 
     def test_union(self):
         # overlapping
@@ -204,7 +204,7 @@ class TestDateRange(tm.TestCase):
         tm.assert_isinstance(the_union, DatetimeIndex)
 
         # order does not matter
-        self.assert_(np.array_equal(right.union(left), the_union))
+        self.assert_numpy_array_equal(right.union(left), the_union)
 
         # overlapping, but different offset
         rng = date_range(START, END, freq=datetools.bmonthEnd)
@@ -228,7 +228,7 @@ class TestDateRange(tm.TestCase):
 
         the_join = left.join(right, how='outer')
         tm.assert_isinstance(the_join, DatetimeIndex)
-        self.assert_(the_join.freq is None)
+        self.assertIsNone(the_join.freq)
 
         # non-overlapping, no gap
         left = self.rng[:5]
@@ -242,7 +242,7 @@ class TestDateRange(tm.TestCase):
 
         the_join = self.rng.join(rng, how='outer')
         tm.assert_isinstance(the_join, DatetimeIndex)
-        self.assert_(the_join.freq is None)
+        self.assertIsNone(the_join.freq)
 
     def test_union_not_cacheable(self):
         rng = date_range('1/1/2000', periods=50, freq=datetools.Minute())
@@ -352,7 +352,7 @@ class TestDateRange(tm.TestCase):
 
         start = datetime(2011, 1, 1)
         exp_values = [start + i * offset for i in range(5)]
-        self.assert_(np.array_equal(result, DatetimeIndex(exp_values)))
+        self.assert_numpy_array_equal(result, DatetimeIndex(exp_values))
 
     def test_range_tz(self):
         # GH 2906
@@ -459,7 +459,7 @@ class TestCustomDateRange(tm.TestCase):
 
     def test_getitem(self):
         smaller = self.rng[:5]
-        self.assert_(np.array_equal(smaller, self.rng.view(np.ndarray)[:5]))
+        self.assert_numpy_array_equal(smaller, self.rng.view(np.ndarray)[:5])
         self.assertEquals(smaller.offset, self.rng.offset)
 
         sliced = self.rng[::5]
@@ -468,7 +468,7 @@ class TestCustomDateRange(tm.TestCase):
         fancy_indexed = self.rng[[4, 3, 2, 1, 0]]
         self.assertEquals(len(fancy_indexed), 5)
         tm.assert_isinstance(fancy_indexed, DatetimeIndex)
-        self.assert_(fancy_indexed.freq is None)
+        self.assertIsNone(fancy_indexed.freq)
 
         # 32-bit vs. 64-bit platforms
         self.assertEquals(self.rng[4], self.rng[np.int_(4)])
@@ -476,7 +476,7 @@ class TestCustomDateRange(tm.TestCase):
     def test_getitem_matplotlib_hackaround(self):
         values = self.rng[:, None]
         expected = self.rng.values[:, None]
-        self.assert_(np.array_equal(values, expected))
+        self.assert_numpy_array_equal(values, expected)
 
     def test_shift(self):
         shifted = self.rng.shift(5)
@@ -499,7 +499,7 @@ class TestCustomDateRange(tm.TestCase):
         pickled = pickle.dumps(self.rng)
         unpickled = pickle.loads(pickled)
 
-        self.assert_(unpickled.offset is not None)
+        self.assertIsNotNone(unpickled.offset)
 
     def test_union(self):
         # overlapping
@@ -524,7 +524,7 @@ class TestCustomDateRange(tm.TestCase):
         tm.assert_isinstance(the_union, DatetimeIndex)
 
         # order does not matter
-        self.assert_(np.array_equal(right.union(left), the_union))
+        self.assert_numpy_array_equal(right.union(left), the_union)
 
         # overlapping, but different offset
         rng = date_range(START, END, freq=datetools.bmonthEnd)
@@ -548,7 +548,7 @@ class TestCustomDateRange(tm.TestCase):
 
         the_join = left.join(right, how='outer')
         tm.assert_isinstance(the_join, DatetimeIndex)
-        self.assert_(the_join.freq is None)
+        self.assertIsNone(the_join.freq)
 
         # non-overlapping, no gap
         left = self.rng[:5]
@@ -562,7 +562,7 @@ class TestCustomDateRange(tm.TestCase):
 
         the_join = self.rng.join(rng, how='outer')
         tm.assert_isinstance(the_join, DatetimeIndex)
-        self.assert_(the_join.freq is None)
+        self.assertIsNone(the_join.freq)
 
     def test_intersection_bug(self):
         # GH #771

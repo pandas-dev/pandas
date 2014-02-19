@@ -881,7 +881,7 @@ class TestOLSFilter(tm.TestCase):
         self.tsAssertEqual(exp_rhs2, rhs['x2'])
 
     def tsAssertEqual(self, ts1, ts2):
-        self.assert_(np.array_equal(ts1, ts2))
+        self.assert_numpy_array_equal(ts1, ts2)
 
 
 if __name__ == '__main__':

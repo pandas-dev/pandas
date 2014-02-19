@@ -171,16 +171,16 @@ class SafeForSparse(object):
         self.panel4d.labels = new_labels
 
         if hasattr(self.panel4d, '_item_cache'):
-            self.assert_('l1' not in self.panel4d._item_cache)
-        self.assert_(self.panel4d.labels is new_labels)
+            self.assertNotIn('l1', self.panel4d._item_cache)
+        self.assertIs(self.panel4d.labels, new_labels)
 
         self.panel4d.major_axis = new_major
-        self.assert_(self.panel4d[0].major_axis is new_major)
-        self.assert_(self.panel4d.major_axis is new_major)
+        self.assertIs(self.panel4d[0].major_axis, new_major)
+        self.assertIs(self.panel4d.major_axis, new_major)
 
         self.panel4d.minor_axis = new_minor
-        self.assert_(self.panel4d[0].minor_axis is new_minor)
-        self.assert_(self.panel4d.minor_axis is new_minor)
+        self.assertIs(self.panel4d[0].minor_axis, new_minor)
+        self.assertIs(self.panel4d.minor_axis, new_minor)
 
     def test_get_axis_number(self):
         self.assertEqual(self.panel4d._get_axis_number('labels'), 0)
@@ -294,10 +294,10 @@ class CheckIndexing(object):
         expected = self.panel4d['l2']
         result = self.panel4d.pop('l2')
         assert_panel_equal(expected, result)
-        self.assert_('l2' not in self.panel4d.labels)
+        self.assertNotIn('l2', self.panel4d.labels)
 
         del self.panel4d['l3']
-        self.assert_('l3' not in self.panel4d.labels)
+        self.assertNotIn('l3', self.panel4d.labels)
         self.assertRaises(Exception, self.panel4d.__delitem__, 'l3')
 
         values = np.empty((4, 4, 4, 4))
@@ -535,7 +535,7 @@ class CheckIndexing(object):
         # resize
         res = self.panel4d.set_value('l4', 'ItemE', 'foo', 'bar', 1.5)
         tm.assert_isinstance(res, Panel4D)
-        self.assert_(res is not self.panel4d)
+        self.assertIsNot(res, self.panel4d)
         self.assertEqual(res.get_value('l4', 'ItemE', 'foo', 'bar'), 1.5)
 
         res3 = self.panel4d.set_value('l4', 'ItemE', 'foobar', 'baz', 5)
@@ -558,10 +558,10 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
     def test_constructor(self):
         # with BlockManager
         panel4d = Panel4D(self.panel4d._data)
-        self.assert_(panel4d._data is self.panel4d._data)
+        self.assertIs(panel4d._data, self.panel4d._data)
 
         panel4d = Panel4D(self.panel4d._data, copy=True)
-        self.assert_(panel4d._data is not self.panel4d._data)
+        self.assertIsNot(panel4d._data, self.panel4d._data)
         assert_panel4d_equal(panel4d, self.panel4d)
 
         # strings handled prop
@@ -573,11 +573,11 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
 
         # no copy
         panel4d = Panel4D(vals)
-        self.assert_(panel4d.values is vals)
+        self.assertIs(panel4d.values, vals)
 
         # copy
         panel4d = Panel4D(vals, copy=True)
-        self.assert_(panel4d.values is not vals)
+        self.assertIsNot(panel4d.values, vals)
 
     def test_constructor_cast(self):
         zero_filled = self.panel4d.fillna(0)
@@ -851,23 +851,23 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
 
     def test_swapaxes(self):
         result = self.panel4d.swapaxes('labels', 'items')
-        self.assert_(result.items is self.panel4d.labels)
+        self.assertIs(result.items, self.panel4d.labels)
 
         result = self.panel4d.swapaxes('labels', 'minor')
-        self.assert_(result.labels is self.panel4d.minor_axis)
+        self.assertIs(result.labels, self.panel4d.minor_axis)
 
         result = self.panel4d.swapaxes('items', 'minor')
-        self.assert_(result.items is self.panel4d.minor_axis)
+        self.assertIs(result.items, self.panel4d.minor_axis)
 
         result = self.panel4d.swapaxes('items', 'major')
-        self.assert_(result.items is self.panel4d.major_axis)
+        self.assertIs(result.items, self.panel4d.major_axis)
 
         result = self.panel4d.swapaxes('major', 'minor')
-        self.assert_(result.major_axis is self.panel4d.minor_axis)
+        self.assertIs(result.major_axis, self.panel4d.minor_axis)
 
         # this should also work
         result = self.panel4d.swapaxes(0, 1)
-        self.assert_(result.labels is self.panel4d.items)
+        self.assertIs(result.labels, self.panel4d.items)
 
         # this works, but return a copy
         result = self.panel4d.swapaxes('items', 'items')

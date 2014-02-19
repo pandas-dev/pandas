@@ -82,8 +82,8 @@ class TestCParser(tm.TestCase):
                             header=None)
         result = reader.read()
 
-        self.assert_(np.array_equal(result[0], ['a', 'a', 'a', 'a']))
-        self.assert_(np.array_equal(result[1], ['b', 'b', 'b', 'b']))
+        self.assert_numpy_array_equal(result[0], ['a', 'a', 'a', 'a'])
+        self.assert_numpy_array_equal(result[1], ['b', 'b', 'b', 'b'])
 
     def test_parse_booleans(self):
         data = 'True\nFalse\nTrue\nTrue'
@@ -100,8 +100,8 @@ class TestCParser(tm.TestCase):
                             header=None)
         result = reader.read()
 
-        self.assert_(np.array_equal(result[0], ['a', 'a', 'a']))
-        self.assert_(np.array_equal(result[1], ['b', 'b', 'b']))
+        self.assert_numpy_array_equal(result[0], ['a', 'a', 'a'])
+        self.assert_numpy_array_equal(result[1], ['b', 'b', 'b'])
 
     def test_embedded_newline(self):
         data = 'a\n"hello\nthere"\nthis'
@@ -110,7 +110,7 @@ class TestCParser(tm.TestCase):
         result = reader.read()
 
         expected = ['a', 'hello\nthere', 'this']
-        self.assert_(np.array_equal(result[0], expected))
+        self.assert_numpy_array_equal(result[0], expected)
 
     def test_euro_decimal(self):
         data = '12345,67\n345,678'
