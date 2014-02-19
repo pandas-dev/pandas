@@ -852,6 +852,21 @@ class TestFloat64Index(tm.TestCase):
         self.assert_(i.equals(result))
         self.check_is_index(result)
 
+    def test_equals(self):
+
+        i = Float64Index([1.0,2.0])
+        self.assertTrue(i.equals(i))
+        self.assertTrue(i.identical(i))
+
+        i2 = Float64Index([1.0,2.0])
+        self.assertTrue(i.equals(i2))
+
+        i = Float64Index([1.0,np.nan])
+        self.assertTrue(i.equals(i))
+        self.assertTrue(i.identical(i))
+
+        i2 = Float64Index([1.0,np.nan])
+        self.assertTrue(i.equals(i2))
 
 class TestInt64Index(tm.TestCase):
     _multiprocess_can_split_ = True
