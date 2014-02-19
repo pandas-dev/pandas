@@ -2731,6 +2731,15 @@ class TestGroupBy(tm.TestCase):
         result = df.groupby('A')['A'].max()
         assert_series_equal(result,expected)
 
+    def test_groupby_datetime64_32_bit(self):
+        # GH 6410 / numpy 4328
+        # 32-bit under 1.9-dev indexing issue
+
+        df = DataFrame({"A": range(2), "B": [pd.Timestamp('2000-01-1')]*2})
+        result = df.groupby("A")["B"].transform(min)
+        expected = Series([pd.Timestamp('2000-01-1')]*2)
+        assert_series_equal(result,expected)
+
     def test_groupby_categorical_unequal_len(self):
         import pandas as pd
         #GH3011
