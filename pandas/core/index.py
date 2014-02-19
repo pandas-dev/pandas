@@ -266,13 +266,28 @@ class Index(IndexOpsMixin, FrozenNDArray):
             new_index = new_index.astype(dtype)
         return new_index
 
-    def to_series(self):
+    def to_series(self, keep_tz=False):
         """
-        return a series with both index and values equal to the index keys
+        Create a Series with both index and values equal to the index keys
         useful with map for returning an indexer based on an index
+
+        Parameters
+        ----------
+        keep_tz : optional, defaults False.
+                  applies only to a DatetimeIndex
+
+        Returns
+        -------
+        Series : dtype will be based on the type of the Index values.
         """
+
         import pandas as pd
-        return pd.Series(self.values, index=self, name=self.name)
+        values = self._to_embed(keep_tz)
+        return pd.Series(values, index=self, name=self.name)
+
+    def _to_embed(self, keep_tz=False):
+        """ return an array repr of this object, potentially casting to object """
+        return self.values
 
     def astype(self, dtype):
         return Index(self.values.astype(dtype), name=self.name,

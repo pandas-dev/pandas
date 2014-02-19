@@ -162,7 +162,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 # need to copy to avoid aliasing issues
                 if name is None:
                     name = data.name
-                data = data.values
+
+                data = data._to_embed(keep_tz=True)
                 copy = True
             elif isinstance(data, pa.Array):
                 pass
