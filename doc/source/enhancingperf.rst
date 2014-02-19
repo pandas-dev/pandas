@@ -300,7 +300,7 @@ Expression Evaluation via :func:`~pandas.eval` (Experimental)
 
 .. versionadded:: 0.13
 
-The top-level function :func:`~pandas.eval` implements expression evaluation of
+The top-level function :func:`pandas.eval` implements expression evaluation of
 :class:`~pandas.Series` and :class:`~pandas.DataFrame` objects.
 
 .. note::
@@ -336,11 +336,11 @@ engine in addition to some extensions available only in pandas.
 Supported Syntax
 ~~~~~~~~~~~~~~~~
 
-These operations are supported by :func:`~pandas.eval`:
+These operations are supported by :func:`pandas.eval`:
 
 - Arithmetic operations except for the left shift (``<<``) and right shift
   (``>>``) operators, e.g., ``df + 2 * pi / s ** 4 % 42 - the_golden_ratio``
-- Comparison operations, e.g., ``2 < df < df2``
+- Comparison operations, including chained comparisons, e.g., ``2 < df < df2``
 - Boolean operations, e.g., ``df < df2 and df3 < df4 or not df_bool``
 - ``list`` and ``tuple`` literals, e.g., ``[1, 2]`` or ``(1, 2)``
 - Attribute access, e.g., ``df.a``
@@ -373,9 +373,9 @@ This Python syntax is **not** allowed:
 :func:`~pandas.eval` Examples
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:func:`~pandas.eval` works wonders for expressions containing large arrays
+:func:`pandas.eval` works well with expressions containing large arrays
 
-First let's create 4 decent-sized arrays to play with:
+First let's create a few decent-sized arrays to play with:
 
 .. ipython:: python
 
@@ -441,8 +441,10 @@ Now let's do the same thing but with comparisons:
 The ``DataFrame.eval`` method (Experimental)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In addition to the top level :func:`~pandas.eval` function you can also
-evaluate an expression in the "context" of a ``DataFrame``.
+.. versionadded:: 0.13
+
+In addition to the top level :func:`pandas.eval` function you can also
+evaluate an expression in the "context" of a :class:`~pandas.DataFrame`.
 
 .. ipython:: python
    :suppress:
@@ -462,10 +464,10 @@ evaluate an expression in the "context" of a ``DataFrame``.
    df = DataFrame(randn(5, 2), columns=['a', 'b'])
    df.eval('a + b')
 
-Any expression that is a valid :func:`~pandas.eval` expression is also a valid
-``DataFrame.eval`` expression, with the added benefit that *you don't have to
-prefix the name of the* ``DataFrame`` *to the column(s) you're interested in
-evaluating*.
+Any expression that is a valid :func:`pandas.eval` expression is also a valid
+:meth:`DataFrame.eval` expression, with the added benefit that you don't have to
+prefix the name of the :class:`~pandas.DataFrame` to the column(s) you're
+interested in evaluating.
 
 In addition, you can perform assignment of columns within an expression.
 This allows for *formulaic evaluation*. Only a single assignment is permitted.
@@ -480,55 +482,75 @@ it must be a valid Python identifier.
    df.eval('a = 1')
    df
 
+The equivalent in standard Python would be
+
+.. ipython:: python
+
+   df = DataFrame(dict(a=range(5), b=range(5, 10)))
+   df['c'] = df.a + df.b
+   df['d'] = df.a + df.b + df.c
+   df['a'] = 1
+   df
+
 Local Variables
 ~~~~~~~~~~~~~~~
 
-You can refer to local variables the same way you would in vanilla Python
+In pandas version 0.14 the local variable API has changed. In pandas 0.13.x,
+you could refer to local variables the same way you would in standard Python.
+For example,
 
-.. ipython:: python
+.. code-block:: python
 
    df = DataFrame(randn(5, 2), columns=['a', 'b'])
    newcol = randn(len(df))
    df.eval('b + newcol')
 
-.. note::
+   UndefinedVariableError: name 'newcol' is not defined
 
-   The one exception is when you have a local (or global) with the same name as
-   a column in the ``DataFrame``
+As you can see from the exception generated, this syntax is no longer allowed.
+You must *explicitly reference* any local variable that you want to use in an
+expression by placing the ``@`` character in front of the name. For example,
 
-    .. code-block:: python
+.. ipython:: python
 
-       df = DataFrame(randn(5, 2), columns=['a', 'b'])
-       a = randn(len(df))
-       df.eval('a + b')
-       NameResolutionError: resolvers and locals overlap on names ['a']
+   df = DataFrame(randn(5, 2), columns=list('ab'))
+   newcol = randn(len(df))
+   df.eval('b + @newcol')
+   df.query('b < @newcol')
 
+If you don't prefix the local variable with ``@``, pandas will raise an
+exception telling you the variable is undefined.
 
-   To deal with these conflicts, a special syntax exists for referring
-   variables with the same name as a column
-
-    .. ipython:: python
-       :suppress:
-
-       a = randn(len(df))
-
-    .. ipython:: python
-
-       df.eval('@a + b')
-
-   The same is true for :meth:`~pandas.DataFrame.query`
-
-    .. ipython:: python
-
-       df.query('@a < b')
-
-    .. ipython:: python
-       :suppress:
-
-       del a
+When using :meth:`DataFrame.eval` and :meth:`DataFrame.query`, this allows you
+to have a local variable and a :class:`~pandas.DataFrame` column with the same
+name in an expression.
 
 
-:func:`~pandas.eval` Parsers
+.. ipython:: python
+
+   a = randn()
+   df.query('@a < a')
+   df.loc[a < df.a]  # same as the previous expression
+
+With :func:`pandas.eval` you cannot use the ``@`` prefix *at all*, because it
+isn't defined in that context. ``pandas`` will let you know this if you try to
+use ``@`` in a top-level call to :func:`pandas.eval`. For example,
+
+.. ipython:: python
+   :okexcept:
+
+   a, b = 1, 2
+   pd.eval('@a + b')
+
+In this case, you should simply refer to the variables like you would in
+standard Python.
+
+.. ipython:: python
+
+   pd.eval('a + b')
+
+
+:func:`pandas.eval` Parsers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 There are two different parsers and and two different engines you can use as
@@ -568,7 +590,7 @@ The ``and`` and ``or`` operators here have the same precedence that they would
 in vanilla Python.
 
 
-:func:`~pandas.eval` Backends
+:func:`pandas.eval` Backends
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 There's also the option to make :func:`~pandas.eval` operate identical to plain
@@ -577,12 +599,12 @@ ol' Python.
 .. note::
 
    Using the ``'python'`` engine is generally *not* useful, except for testing
-   other :func:`~pandas.eval` engines against it. You will acheive **no**
-   performance benefits using :func:`~pandas.eval` with ``engine='python'``.
+   other evaluation engines against it. You will acheive **no** performance
+   benefits using :func:`~pandas.eval` with ``engine='python'`` and in fact may
+   incur a performance hit.
 
-You can see this by using :func:`~pandas.eval` with the ``'python'`` engine is
-actually a bit slower (not by much) than evaluating the same expression in
-Python:
+You can see this by using :func:`pandas.eval` with the ``'python'`` engine. It
+is a bit slower (not by much) than evaluating the same expression in Python
 
 .. ipython:: python
 
@@ -593,15 +615,15 @@ Python:
    %timeit pd.eval('df1 + df2 + df3 + df4', engine='python')
 
 
-:func:`~pandas.eval` Performance
+:func:`pandas.eval` Performance
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 :func:`~pandas.eval` is intended to speed up certain kinds of operations. In
 particular, those operations involving complex expressions with large
-``DataFrame``/``Series`` objects should see a significant performance benefit.
-Here is a plot showing the running time of :func:`~pandas.eval` as function of
-the size of the frame involved in the computation. The two lines are two
-different engines.
+:class:`~pandas.DataFrame`/:class:`~pandas.Series` objects should see a
+significant performance benefit.  Here is a plot showing the running time of
+:func:`pandas.eval` as function of the size of the frame involved in the
+computation. The two lines are two different engines.
 
 
 .. image:: _static/eval-perf.png
@@ -618,19 +640,31 @@ different engines.
 This plot was created using a ``DataFrame`` with 3 columns each containing
 floating point values generated using ``numpy.random.randn()``.
 
-Technical Minutia
-~~~~~~~~~~~~~~~~~
-- Expressions that would result in an object dtype (including simple
-  variable evaluation) have to be evaluated in Python space. The main reason
-  for this behavior is to maintain backwards compatbility with versions of
-  numpy < 1.7. In those versions of ``numpy`` a call to ``ndarray.astype(str)``
-  will truncate any strings that are more than 60 characters in length. Second,
-  we can't pass ``object`` arrays to ``numexpr`` thus string comparisons must
-  be evaluated in Python space.
-- The upshot is that this *only* applies to object-dtype'd expressions. So,
-  if you have an expression--for example--that's a string comparison
-  ``and``-ed together with another boolean expression that's from a numeric
-  comparison, the numeric comparison will be evaluated by ``numexpr``. In fact,
-  in general, :func:`~pandas.query`/:func:`~pandas.eval` will "pick out" the
-  subexpressions that are ``eval``-able by ``numexpr`` and those that must be
-  evaluated in Python space transparently to the user.
+Technical Minutia Regarding Expression Evaluation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Expressions that would result in an object dtype or involve datetime operations
+(because of ``NaT``) must be evaluated in Python space. The main reason for
+this behavior is to maintain backwards compatbility with versions of numpy <
+1.7. In those versions of ``numpy`` a call to ``ndarray.astype(str)`` will
+truncate any strings that are more than 60 characters in length. Second, we
+can't pass ``object`` arrays to ``numexpr`` thus string comparisons must be
+evaluated in Python space.
+
+The upshot is that this *only* applies to object-dtype'd expressions. So, if
+you have an expression--for example
+
+.. ipython:: python
+
+   df = DataFrame({'strings': np.repeat(list('cba'), 3),
+                   'nums': np.repeat(range(3), 3)})
+   df
+   df.query('strings == "a" and nums == 1')
+
+the numeric part of the comparison (``nums == 1``) will be evaluated by
+``numexpr``.
+
+In general, :meth:`DataFrame.query`/:func:`pandas.eval` will
+evaluate the subexpressions that *can* be evaluated by ``numexpr`` and those
+that must be evaluated in Python space transparently to the user. This is done
+by inferring the result type of an expression from its arguments and operators.

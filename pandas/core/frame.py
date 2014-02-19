@@ -1738,26 +1738,30 @@ class DataFrame(NDFrame):
     def query(self, expr, **kwargs):
         """Query the columns of a frame with a boolean expression.
 
+        .. versionadded:: 0.13
+
         Parameters
         ----------
         expr : string
-            The query string to evaluate. The result of the evaluation of this
-            expression is first passed to :attr:`~pandas.DataFrame.loc` and if
-            that fails because of a multidimensional key (e.g., a DataFrame)
-            then the result will be passed to
-            :meth:`~pandas.DataFrame.__getitem__`.
+            The query string to evaluate.  You can refer to variables
+            in the environment by prefixing them with an '@' character like
+            ``@a + b``.
         kwargs : dict
-            See the documentation for :func:`~pandas.eval` for complete details
-            on the keyword arguments accepted by
-            :meth:`~pandas.DataFrame.query`.
+            See the documentation for :func:`pandas.eval` for complete details
+            on the keyword arguments accepted by :meth:`DataFrame.query`.
 
         Returns
         -------
-        q : DataFrame or Series
+        q : DataFrame
 
         Notes
         -----
-        This method uses the top-level :func:`~pandas.eval` function to
+        The result of the evaluation of this expression is first passed to
+        :attr:`DataFrame.loc` and if that fails because of a
+        multidimensional key (e.g., a DataFrame) then the result will be passed
+        to :meth:`DataFrame.__getitem__`.
+
+        This method uses the top-level :func:`pandas.eval` function to
         evaluate the passed query.
 
         The :meth:`~pandas.DataFrame.query` method uses a slightly
@@ -1773,12 +1777,12 @@ class DataFrame(NDFrame):
         recommended as it is inefficient compared to using ``numexpr`` as the
         engine.
 
-        The :attr:`~pandas.DataFrame.index` and
-        :attr:`~pandas.DataFrame.columns` attributes of the
-        :class:`~pandas.DataFrame` instance is placed in the namespace by
-        default, which allows you to treat both the index and columns of the
+        The :attr:`DataFrame.index` and
+        :attr:`DataFrame.columns` attributes of the
+        :class:`~pandas.DataFrame` instance are placed in the query namespace
+        by default, which allows you to treat both the index and columns of the
         frame as a column in the frame.
-        The identifier ``index`` is used for this variable, and you can also
+        The identifier ``index`` is used for the frame index; you can also
         use the name of the index to identify it in a query.
 
         For further details and examples see the ``query`` documentation in
@@ -1797,12 +1801,6 @@ class DataFrame(NDFrame):
         >>> df.query('a > b')
         >>> df[df.a > df.b]  # same result as the previous expression
         """
-        # need to go up at least 4 stack frames
-        # 4 expr.Scope
-        # 3 expr._ensure_scope
-        # 2 self.eval
-        # 1 self.query
-        # 0 self.query caller (implicit)
         kwargs['level'] = kwargs.pop('level', 0) + 1
         res = self.eval(expr, **kwargs)
 

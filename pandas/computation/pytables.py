@@ -491,16 +491,16 @@ class Expr(expr.Expr):
         self._visitor = None
 
         # capture the environment if needed
-        local_dict = dict()
+        local_dict = DeepChainMap()
 
         if isinstance(where, Expr):
-            local_dict.update(where.env.scope)
+            local_dict = where.env.scope
             where = where.expr
 
         elif isinstance(where, (list, tuple)):
             for idx, w in enumerate(where):
                 if isinstance(w, Expr):
-                    local_dict.update(w.env.scope)
+                    local_dict = w.env.scope
                 else:
                     w = self.parse_back_compat(w)
                     where[idx] = w
