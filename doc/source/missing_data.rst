@@ -602,7 +602,8 @@ You can also operate on the DataFrame in place
    argument to ``replace`` (``to_replace``) must match the type of the value
    being replaced type. For example,
 
-   .. code-block::
+   .. ipython:: python
+      :okexcept:
 
       s = Series([True, False, True])
       s.replace({'a string': 'new value', True: False})
@@ -612,7 +613,7 @@ You can also operate on the DataFrame in place
 
    However, when replacing a *single* object such as,
 
-   .. code-block::
+   .. ipython:: python
 
       s = Series([True, False, True])
       s.replace('a string', 'another string')
