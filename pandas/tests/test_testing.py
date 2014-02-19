@@ -10,6 +10,7 @@ from pandas import Series
 from pandas.util.testing import (
     assert_almost_equal, assertRaisesRegexp, raise_with_traceback, assert_series_equal
 )
+from pandas.util import testing
 
 # let's get meta.
 
@@ -153,3 +154,11 @@ class TestAssertSeriesEqual(unittest.TestCase):
         # ATM meta data is not checked in assert_series_equal
         # self._assert_not_equal(Series(range(3)),Series(range(3),name='foo'),check_names=True)
 
+
+class TestAssertNumpyArrayEquals(testing.TestCase):
+    
+    def test_equal(self):
+        np_array = np.array([1, 2, 3])
+        equal_array = np.array([1, 2, 3])
+        self.assert_numpy_array_equal(np_array, equal_array)
+        

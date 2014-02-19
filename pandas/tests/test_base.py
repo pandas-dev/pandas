@@ -104,12 +104,12 @@ class TestFrozenNDArray(CheckImmutable, CheckStringMixin, tm.TestCase):
 
     def test_shallow_copying(self):
         original = self.container.copy()
-        assert_isinstance(self.container.view(), FrozenNDArray)
-        self.assertFalse(isinstance(self.container.view(np.ndarray), FrozenNDArray))
+        self.assertIsInstance(self.container.view(), FrozenNDArray)
+        self.assertNotIsInstance(self.container.view(np.ndarray), FrozenNDArray)
         self.assertIsNot(self.container.view(), self.container)
         self.assert_numpy_array_equal(self.container, original)
         # shallow copy should be the same too
-        assert_isinstance(self.container._shallow_copy(), FrozenNDArray)
+        self.assertIsInstance(self.container._shallow_copy(), FrozenNDArray)
         # setting should not be allowed
         def testit(container): container[0] = 16
 
