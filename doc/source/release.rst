@@ -80,6 +80,8 @@ API Changes
   - ``week,dayofweek,dayofyear,quarter``
   - ``microsecond,nanosecond,qyear``
   - ``min(),max()``
+  - ``pd.infer_freq()``
+- ``pd.infer_freq()`` will now raise a ``TypeError`` if given an invalid ``Series/Index`` type (:issue:`6407`)
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~

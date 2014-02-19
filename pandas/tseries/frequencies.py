@@ -13,7 +13,6 @@ import pandas.core.common as com
 import pandas.lib as lib
 import pandas.tslib as tslib
 
-
 class FreqGroup(object):
     FR_ANN = 1000
     FR_QTR = 2000
@@ -637,22 +636,28 @@ def infer_freq(index, warn=True):
     Parameters
     ----------
     index : DatetimeIndex
+            if passed a Series will use the values of the series (NOT THE INDEX)
     warn : boolean, default True
 
     Returns
     -------
     freq : string or None
         None if no discernible frequency
+        TypeError if the index is not datetime-like
     """
-    from pandas.tseries.index import DatetimeIndex
+    import pandas as pd
 
-    if not isinstance(index, DatetimeIndex):
-        from pandas.tseries.period import PeriodIndex
-        if isinstance(index, PeriodIndex):
-            raise ValueError("PeriodIndex given. Check the `freq` attribute "
-                             "instead of using infer_freq.")
-        index = DatetimeIndex(index)
-
+    if isinstance(index, com.ABCSeries):
+        values = index.values
+        if not (com.is_datetime64_dtype(index.values) or values.dtype == object):
+            raise TypeError("cannot infer freq from a non-convertible dtype on a Series of {0}".format(index.dtype))
+        index = values
+    if isinstance(index, pd.PeriodIndex):
+        raise TypeError("PeriodIndex given. Check the `freq` attribute "
+                         "instead of using infer_freq.")
+    if not isinstance(index, pd.DatetimeIndex) and isinstance(index, pd.Index):
+        raise TypeError("cannot infer freq from a non-convertible index type {0}".format(type(index)))
+    index = pd.DatetimeIndex(index)
     inferer = _FrequencyInferer(index, warn=warn)
     return inferer.get_freq()
 
