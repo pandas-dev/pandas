@@ -7,7 +7,7 @@ import nose
 
 import numpy as np
 
-from pandas import Index, DatetimeIndex, Timestamp, date_range, period_range
+from pandas import Index, DatetimeIndex, Timestamp, Series, date_range, period_range
 
 from pandas.tseries.frequencies import to_offset, infer_freq
 from pandas.tseries.tools import to_datetime
@@ -72,7 +72,7 @@ def test_to_offset_negative():
     freqstr = '-5min10s'
     result = to_offset(freqstr)
     assert(result.n == -310)
-    
+
 
 def test_to_offset_leading_zero():
     freqstr = '00H 00T 01S'
@@ -101,7 +101,7 @@ class TestFrequencyInference(tm.TestCase):
 
     def test_raise_if_period_index(self):
         index = PeriodIndex(start="1/1/1990", periods=20, freq="M")
-        self.assertRaises(ValueError, infer_freq, index)
+        self.assertRaises(TypeError, infer_freq, index)
 
     def test_raise_if_too_few(self):
         index = _dti(['12/31/1998', '1/3/1999'])
@@ -268,6 +268,44 @@ class TestFrequencyInference(tm.TestCase):
 
         result = infer_freq(vals)
         self.assertEqual(result, rng.inferred_freq)
+
+    def test_invalid_index_types(self):
+
+        # test all index types
+        for i in [ tm.makeIntIndex(10),
+                   tm.makeFloatIndex(10),
+                   tm.makeStringIndex(10),
+                   tm.makeUnicodeIndex(10),
+                   tm.makePeriodIndex(10) ]:
+            self.assertRaises(TypeError, lambda : infer_freq(i))
+
+    def test_series(self):
+
+        # GH6407
+        # inferring series
+
+        # invalid type of Series
+        for s in [ Series(np.arange(10)),
+                   Series(np.arange(10.))]:
+            self.assertRaises(TypeError, lambda : infer_freq(s))
+
+        # a non-convertible string
+        self.assertRaises(ValueError, lambda : infer_freq(Series(['foo','bar'])))
+
+        # cannot infer on PeriodIndex
+        for freq in [None, 'MS', 'Y']:
+            s = Series(period_range('2013',periods=10,freq=freq))
+            self.assertRaises(TypeError, lambda : infer_freq(s))
+
+        # DateTimeIndex
+        for freq in ['MS', 'L', 'S']:
+            s = Series(date_range('20130101',periods=10,freq=freq))
+            inferred = infer_freq(s)
+            self.assertEqual(inferred,freq)
+
+        s = Series(date_range('20130101','20130110'))
+        inferred = infer_freq(s)
+        self.assertEqual(inferred,'D')
 
 MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP',
           'OCT', 'NOV', 'DEC']
