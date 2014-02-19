@@ -30,7 +30,7 @@ from pandas.tseries.timedeltas import _coerce_scalar_to_timedelta_type
 import pandas.core.common as com
 from pandas.tools.merge import concat
 from pandas import compat
-from pandas.compat import u_safe as u, PY3, range, lrange, string_types
+from pandas.compat import u_safe as u, PY3, range, lrange, string_types, filter
 from pandas.io.common import PerformanceWarning
 from pandas.core.config import get_option
 from pandas.computation.pytables import Expr, maybe_expression
@@ -78,8 +78,13 @@ def _ensure_term(where, scope_level):
     # list
     level = scope_level + 1
     if isinstance(where, (list, tuple)):
-        where = [w if not maybe_expression(w) else Term(w, scope_level=level)
-                 for w in where if w is not None]
+        wlist = []
+        for w in filter(lambda x: x is not None, where):
+            if not maybe_expression(w):
+                wlist.append(w)
+            else:
+                wlist.append(Term(w, scope_level=level))
+        where = wlist
     elif maybe_expression(where):
         where = Term(where, scope_level=level)
     return where

@@ -83,8 +83,25 @@ API Changes
   - ``pd.infer_freq()``
 - ``pd.infer_freq()`` will now raise a ``TypeError`` if given an invalid ``Series/Index`` type (:issue:`6407`)
 
+- Local variable usage has changed in
+  :func:`pandas.eval`/:meth:`DataFrame.eval`/:meth:`DataFrame.query`
+  (:issue:`5987`). For the :class:`~pandas.DataFrame` methods, two things have
+  changed
+
+   - Column names are now given precedence over locals
+   - Local variables must be referred to explicitly. This means that even if
+     you have a local variable that is *not* a column you must still refer to
+     it with the ``'@'`` prefix.
+   - You can have an expression like ``df.query('@a < a')`` with no complaints
+     from ``pandas`` about ambiguity of the name ``a``.
+
+- The top-level :func:`pandas.eval` function does not allow you use the
+  ``'@'`` prefix and provides you with an error message telling you so.
+- ``NameResolutionError`` was removed because it isn't necessary anymore.
+
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
+
 
 Improvements to existing features
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -144,6 +161,8 @@ Bug Fixes
 - Bug in DataFrame.dropna with duplicate indices (:issue:`6355`)
 - Regression in chained getitem indexing with embedded list-like from 0.12 (:issue:`6394`)
 - ``Float64Index`` with nans not comparing correctly
+- ``eval``/``query`` expressions with strings containing the ``@`` character
+  will now work (:issue:`6366`).
 
 pandas 0.13.1
 -------------

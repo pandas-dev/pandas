@@ -3,7 +3,6 @@
 """Top level ``eval`` module.
 """
 
-import sys
 import tokenize
 from pandas.core import common as com
 from pandas.computation.expr import Expr, _parsers, tokenize_string
@@ -127,7 +126,7 @@ def _check_for_locals(expr, stack_level, parser):
         msg = "The '@' prefix is only supported by the pandas parser"
     elif at_top_of_stack:
         msg = ("The '@' prefix is not allowed in "
-               "top-level eval calls, please refer to "
+               "top-level eval calls, \nplease refer to "
                "your variables by name without the '@' "
                "prefix")
 
