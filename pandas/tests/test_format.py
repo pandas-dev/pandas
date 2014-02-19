@@ -1787,6 +1787,12 @@ $1$,$2$
             with open(path, 'r') as f:
                 self.assertEqual(f.read(), expected)
 
+    def test_csv_to_string(self):
+        df = DataFrame({'col' : [1,2]})
+        expected = ',col\n0,1\n1,2\n'
+        self.assertEqual(df.to_csv(), expected)
+        
+
 class TestSeriesFormatting(tm.TestCase):
     _multiprocess_can_split_ = True
 
