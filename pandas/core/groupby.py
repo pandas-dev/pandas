@@ -1849,7 +1849,6 @@ class SeriesGroupBy(GroupBy):
 
         for name, group in self:
 
-            group = com.ensure_float(group)
             object.__setattr__(group, 'name', name)
             res = wrapper(group)
             if hasattr(res, 'values'):
