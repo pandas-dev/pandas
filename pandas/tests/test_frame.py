@@ -2097,17 +2097,23 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         i = pd.DatetimeIndex(pd.tseries.tools.to_datetime(['2013-1-1 13:00','2013-1-2 14:00'], errors="raise")).tz_localize('US/Pacific')
         df = DataFrame(np.random.randn(2,1),columns=['A'])
 
-        expected = Series(i)
-        self.assertTrue(expected.dtype == object)
-        self.assertTrue(i.equals(expected.values.values))
+        expected = Series(np.array([pd.Timestamp('2013-01-01 13:00:00-0800', tz='US/Pacific'),
+                                    pd.Timestamp('2013-01-02 14:00:00-0800', tz='US/Pacific')], dtype="object"))
 
+        # convert index to series
+        result = Series(i)
+        assert_series_equal(result, expected)
+
+        # assignt to frame
         df['B'] = i
         result = df['B']
         assert_series_equal(result, expected)
 
+        # keep the timezone
         result = i.to_series(keep_tz=True)
         assert_series_equal(result.reset_index(drop=True), expected)
 
+        # convert to utc
         df['C'] = i.to_series().reset_index(drop=True)
         result = df['C']
         comp = DatetimeIndex(expected.values).copy()
