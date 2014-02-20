@@ -650,6 +650,28 @@ class TestResample(tm.TestCase):
         # it works!
         df.resample('AS', 'sum')
 
+    def test_resample_consistency(self):
+
+        # GH 6418
+        # resample with bfill / limit / reindex consistency
+
+        i30 = index=pd.date_range('2002-02-02', periods=4, freq='30T')
+        s=pd.Series(np.arange(4.), index=i30)
+        s[2] = np.NaN
+
+        # Upsample by factor 3 with reindex() and resample() methods:
+        i10 = pd.date_range(i30[0], i30[-1], freq='10T')
+
+        s10 = s.reindex(index=i10, method='bfill')
+        s10_2 = s.reindex(index=i10, method='bfill', limit=2)
+        rl = s.reindex_like(s10, method='bfill', limit=2)
+        r10_2 = s.resample('10Min', fill_method='bfill', limit=2)
+        r10 = s.resample('10Min', fill_method='bfill')
+
+        # s10_2, r10, r10_2, rl should all be equal
+        assert_series_equal(s10_2, r10)
+        assert_series_equal(s10_2, r10_2)
+        assert_series_equal(s10_2, rl)
 
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)

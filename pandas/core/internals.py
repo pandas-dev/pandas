@@ -265,7 +265,7 @@ class Block(PandasObject):
             new_ref_items, indexer = self.items.reindex(new_ref_items,
                                                         limit=limit)
 
-        needs_fill = method is not None and limit is None
+        needs_fill = method is not None
         if fill_value is None:
             fill_value = self.fill_value
 
@@ -275,10 +275,13 @@ class Block(PandasObject):
 
         else:
 
-            # single block reindex
+            # single block reindex, filling is already happending
             if self.ndim == 1:
                 new_values = com.take_1d(self.values, indexer,
                                          fill_value=fill_value)
+                block = make_block(new_values, new_items, new_ref_items,
+                                   ndim=self.ndim, fastpath=True)
+                return block
             else:
 
                 masked_idx = indexer[indexer != -1]
@@ -3705,8 +3708,6 @@ class SingleBlockManager(BlockManager):
 
     def reindex_axis0_with_method(self, new_axis, indexer=None, method=None,
                                   fill_value=None, limit=None, copy=True):
-        if method is None:
-            indexer = None
         return self.reindex(new_axis, indexer=indexer, method=method,
                             fill_value=fill_value, limit=limit, copy=copy)
 

@@ -4999,9 +4999,8 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         result = s.reindex(new_index).ffill(downcast='infer')
         assert_series_equal(result, expected)
 
-        # this preserves dtype
-        result = s.reindex(new_index, method='ffill')
-        assert_series_equal(result, expected)
+        # invalid because we can't forward fill on this type of index
+        self.assertRaises(ValueError, lambda : s.reindex(new_index, method='ffill'))
 
         # inferrence of new dtype
         s = Series([True,False,False,True],index=list('abcd'))
