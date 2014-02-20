@@ -948,13 +948,12 @@ class Block(PandasObject):
         # convert integer to float if necessary. need to do a lot more than
         # that, handle boolean etc also
         new_values, fill_value = com._maybe_upcast(self.values)
-        taxis   = self.ndim-1-axis  # axis to use for the transposed case
-        new_values = np.roll(new_values.T,periods,axis=taxis)
+        new_values = np.roll(new_values.T,periods,axis=axis)
         axis_indexer = [ slice(None) ] * self.ndim
         if periods > 0:
-            axis_indexer[taxis] = slice(None,periods)
+            axis_indexer[axis] = slice(None,periods)
         else:
-            axis_indexer[taxis] = slice(periods,None)
+            axis_indexer[axis] = slice(periods,None)
         new_values[tuple(axis_indexer)] = fill_value
 
         return [make_block(new_values.T, self.items, self.ref_items,
