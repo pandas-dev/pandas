@@ -2,13 +2,15 @@
 Collection of query wrappers / abstractions to both facilitate data
 retrieval and to reduce dependency on DB-specific API.
 """
-from __future__ import print_function
-from datetime import datetime, date
+from __future__ import print_function, division
+from datetime import datetime, date, timedelta
+
 import warnings
-from pandas.compat import lzip, map, zip, raise_with_traceback, string_types
+import itertools
 import numpy as np
 
-
+import pandas.core.common as com
+from pandas.compat import lzip, map, zip, raise_with_traceback, string_types
 from pandas.core.api import DataFrame
 from pandas.core.base import PandasObject
 from pandas.tseries.tools import to_datetime
@@ -360,7 +362,7 @@ def pandasSQL_builder(con, flavor=None, meta=None):
 
 
 class PandasSQLTable(PandasObject):
-    """ 
+    """
     For mapping Pandas tables to SQL tables.
     Uses fact that table is reflected by SQLAlchemy to
     do better type convertions.
@@ -419,13 +421,20 @@ class PandasSQLTable(PandasObject):
 
     def insert(self):
         ins = self.insert_statement()
-
-        for t in self.frame.iterrows():
-            data = dict((k, self.maybe_asscalar(v))
-                        for k, v in t[1].iteritems())
-            if self.index is not None:
+        data_list = []
+        # to avoid if check for every row
+        if self.index is not None:
+            for t in self.frame.iterrows():
+                data = dict((k, self.maybe_asscalar(v))
+                            for k, v in t[1].iteritems())
                 data[self.index] = self.maybe_asscalar(t[0])
-            self.pd_sql.execute(ins, **data)
+                data_list.append(data)
+        else:
+            for t in self.frame.iterrows():
+                data = dict((k, self.maybe_asscalar(v))
+                            for k, v in t[1].iteritems())
+                data_list.append(data)
+        self.pd_sql.execute(ins, data_list)
 
     def read(self, coerce_float=True, parse_dates=None, columns=None):
 
@@ -480,7 +489,7 @@ class PandasSQLTable(PandasObject):
         if self.index is not None:
             columns.insert(0, Column(self.index,
                                      self._sqlalchemy_type(
-                                         self.frame.index.dtype),
+                                         self.frame.index),
                                      index=True))
 
         return Table(self.name, self.pd_sql.meta, *columns)
@@ -537,22 +546,25 @@ class PandasSQLTable(PandasObject):
             except KeyError:
                 pass  # this column not in results
 
-    def _sqlalchemy_type(self, dtype):
-        from sqlalchemy.types import Integer, Float, Text, Boolean, DateTime, Date
+    def _sqlalchemy_type(self, arr_or_dtype):
+        from sqlalchemy.types import Integer, Float, Text, Boolean, DateTime, Date, Interval
 
-        pytype = dtype.type
-
-        if pytype is date:
+        if arr_or_dtype is date:
             return Date
-        if issubclass(pytype, np.datetime64) or pytype is datetime:
-            # Caution: np.datetime64 is also a subclass of np.number.
-            return DateTime
-        if issubclass(pytype, np.floating):
+        if com.is_datetime64_dtype(arr_or_dtype):
+            try:
+                tz = arr_or_dtype.tzinfo
+                return DateTime(timezone=True)
+            except:
+                return DateTime
+        if com.is_timedelta64_dtype(arr_or_dtype):
+            return Interval
+        elif com.is_float_dtype(arr_or_dtype):
             return Float
-        if issubclass(pytype, np.integer):
+        elif com.is_integer_dtype(arr_or_dtype):
             # TODO: Refine integer size.
             return Integer
-        if issubclass(pytype, np.bool_):
+        elif com.is_bool(arr_or_dtype):
             return Boolean
         return Text
 
@@ -638,14 +650,18 @@ class PandasSQLAlchemy(PandasSQL):
             name, self, frame=frame, index=index, if_exists=if_exists)
         table.insert()
 
+    @property
+    def tables(self):
+        return self.meta.tables
+
     def has_table(self, name):
-        return self.engine.has_table(name)
+        if self.meta.tables.get(name) is not None:
+            return True
+        else:
+            return False
 
     def get_table(self, table_name):
-        if self.engine.has_table(table_name):
-            return self.meta.tables[table_name]
-        else:
-            return None
+        return self.meta.tables.get(table_name)
 
     def read_table(self, table_name, index_col=None, coerce_float=True,
                    parse_dates=None, columns=None):
@@ -746,8 +762,6 @@ class PandasSQLTableLegacy(PandasSQLTable):
             data = [self.maybe_asscalar(v) for v in r[1].values]
             if self.index is not None:
                 data.insert(0, self.maybe_asscalar(r[0]))
-            print(type(data[2]))
-            print(type(r[0]))
             cur.execute(ins, tuple(data))
         cur.close()
 
