@@ -4977,7 +4977,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
     def test_reindex_pad(self):
 
-        s = Series(np.arange(10))
+        s = Series(np.arange(10),dtype='int64')
         s2 = s[::2]
 
         reindexed = s2.reindex(s.index, method='pad')
@@ -5121,13 +5121,13 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(renamed, renamed2)
 
         # partial dict
-        s = Series(np.arange(4), index=['a', 'b', 'c', 'd'])
+        s = Series(np.arange(4), index=['a', 'b', 'c', 'd'], dtype='int64')
         renamed = s.rename({'b': 'foo', 'd': 'bar'})
         self.assert_numpy_array_equal(renamed.index, ['a', 'foo', 'c', 'bar'])
 
         # index with name
         renamer = Series(
-            np.arange(4), index=Index(['a', 'b', 'c', 'd'], name='name'))
+            np.arange(4), index=Index(['a', 'b', 'c', 'd'], name='name'), dtype='int64')
         renamed = renamer.rename({})
         self.assertEqual(renamed.index.name, renamer.index.name)
 
