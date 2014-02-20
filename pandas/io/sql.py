@@ -4,11 +4,13 @@ retrieval and to reduce dependency on DB-specific API.
 """
 from __future__ import print_function, division
 from datetime import datetime, date, timedelta
+
 import warnings
-from pandas.compat import lzip, map, zip, raise_with_traceback, string_types
+import itertools
 import numpy as np
 
 import pandas.core.common as com
+from pandas.compat import lzip, map, zip, raise_with_traceback, string_types
 from pandas.core.api import DataFrame
 from pandas.core.base import PandasObject
 from pandas.tseries.tools import to_datetime
@@ -432,7 +434,6 @@ class PandasSQLTable(PandasObject):
                 data = dict((k, self.maybe_asscalar(v))
                             for k, v in t[1].iteritems())
                 data_list.append(data)
-                #self.pd_sql.execute(ins, **data)
         self.pd_sql.execute(ins, data_list)
 
     def read(self, coerce_float=True, parse_dates=None, columns=None):
@@ -548,13 +549,6 @@ class PandasSQLTable(PandasObject):
     def _sqlalchemy_type(self, arr_or_dtype):
         from sqlalchemy.types import Integer, Float, Text, Boolean, DateTime, Date, Interval
 
-        if isinstance(arr_or_dtype, np.dtype):
-            tipo = arr_or_dtype
-        elif isinstance(arr_or_dtype, type):
-            tipo = np.dtype(arr_or_dtype)
-        else:
-            tipo = arr_or_dtype.dtype
-
         if arr_or_dtype is date:
             return Date
         if com.is_datetime64_dtype(arr_or_dtype):
@@ -562,16 +556,15 @@ class PandasSQLTable(PandasObject):
                 tz = arr_or_dtype.tzinfo
                 return DateTime(timezone=True)
             except:
-                print('no tzinfo')
                 return DateTime
         if com.is_timedelta64_dtype(arr_or_dtype):
             return Interval
-        if com.is_float_dtype(arr_or_dtype):
+        elif com.is_float_dtype(arr_or_dtype):
             return Float
-        if com.is_integer_dtype(arr_or_dtype):
+        elif com.is_integer_dtype(arr_or_dtype):
             # TODO: Refine integer size.
             return Integer
-        if isinstance(tipo, np.bool_):
+        elif com.is_bool(arr_or_dtype):
             return Boolean
         return Text
 
@@ -769,8 +762,6 @@ class PandasSQLTableLegacy(PandasSQLTable):
             data = [self.maybe_asscalar(v) for v in r[1].values]
             if self.index is not None:
                 data.insert(0, self.maybe_asscalar(r[0]))
-            print(type(data[2]))
-            print(type(r[0]))
             cur.execute(ins, tuple(data))
         cur.close()
 
