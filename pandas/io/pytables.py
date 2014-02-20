@@ -30,7 +30,7 @@ from pandas.tseries.timedeltas import _coerce_scalar_to_timedelta_type
 import pandas.core.common as com
 from pandas.tools.merge import concat
 from pandas import compat
-from pandas.compat import u_safe as u, PY3, range, lrange, string_types
+from pandas.compat import u_safe as u, PY3, range, lrange, string_types, filter
 from pandas.io.common import PerformanceWarning
 from pandas.core.config import get_option
 from pandas.computation.pytables import Expr, maybe_expression
@@ -66,7 +66,7 @@ def _ensure_encoding(encoding):
 Term = Expr
 
 
-def _ensure_term(where):
+def _ensure_term(where, scope_level):
     """
     ensure that the where is a Term or a list of Term
     this makes sure that we are capturing the scope of variables
@@ -76,11 +76,17 @@ def _ensure_term(where):
 
     # only consider list/tuple here as an ndarray is automaticaly a coordinate
     # list
+    level = scope_level + 1
     if isinstance(where, (list, tuple)):
-        where = [w if not maybe_expression(w) else Term(w, scope_level=2)
-                 for w in where if w is not None]
+        wlist = []
+        for w in filter(lambda x: x is not None, where):
+            if not maybe_expression(w):
+                wlist.append(w)
+            else:
+                wlist.append(Term(w, scope_level=level))
+        where = wlist
     elif maybe_expression(where):
-        where = Term(where, scope_level=2)
+        where = Term(where, scope_level=level)
     return where
 
 
@@ -311,7 +317,7 @@ def read_hdf(path_or_buf, key, **kwargs):
 
     # grab the scope
     if 'where' in kwargs:
-        kwargs['where'] = _ensure_term(kwargs['where'])
+        kwargs['where'] = _ensure_term(kwargs['where'], scope_level=1)
 
     f = lambda store, auto_close: store.select(
         key, auto_close=auto_close, **kwargs)
@@ -643,7 +649,7 @@ class HDFStore(StringMixin):
             raise KeyError('No object named %s in the file' % key)
 
         # create the storer and axes
-        where = _ensure_term(where)
+        where = _ensure_term(where, scope_level=1)
         s = self._create_storer(group)
         s.infer_axes()
 
@@ -675,7 +681,7 @@ class HDFStore(StringMixin):
         start : integer (defaults to None), row number to start selection
         stop  : integer (defaults to None), row number to stop selection
         """
-        where = _ensure_term(where)
+        where = _ensure_term(where, scope_level=1)
         return self.get_storer(key).read_coordinates(where=where, start=start,
                                                      stop=stop, **kwargs)
 
@@ -730,7 +736,7 @@ class HDFStore(StringMixin):
         """
 
         # default to single select
-        where = _ensure_term(where)
+        where = _ensure_term(where, scope_level=1)
         if isinstance(keys, (list, tuple)) and len(keys) == 1:
             keys = keys[0]
         if isinstance(keys, string_types):
@@ -776,8 +782,8 @@ class HDFStore(StringMixin):
                 c = s.read_coordinates(where=where, start=_start, stop=_stop, **kwargs)
             else:
                 c = None
-                
-            objs = [t.read(where=c, start=_start, stop=_stop, 
+
+            objs = [t.read(where=c, start=_start, stop=_stop,
                            columns=columns, **kwargs) for t in tbls]
 
             # concat and return
@@ -838,7 +844,7 @@ class HDFStore(StringMixin):
         raises KeyError if key is not a valid store
 
         """
-        where = _ensure_term(where)
+        where = _ensure_term(where, scope_level=1)
         try:
             s = self.get_storer(key)
         except:

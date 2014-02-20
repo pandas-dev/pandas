@@ -54,6 +54,8 @@ except ImportError:
     import pickle as cPickle
     import http.client as httplib
 
+from pandas.compat.chainmap import DeepChainMap
+
 
 if PY3:
     def isidentifier(s):
