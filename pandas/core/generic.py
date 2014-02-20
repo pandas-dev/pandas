@@ -3176,8 +3176,7 @@ class NDFrame(PandasObject):
             return self
 
         if freq is None and not len(kwds):
-            indexer = com._shift_indexer(len(self._get_axis(axis)), periods)
-            new_data = self._data.shift(indexer=indexer, periods=periods, axis=axis)
+            new_data = self._data.shift(periods=periods, axis=axis)
         else:
             return self.tshift(periods, freq, **kwds)
 

@@ -1991,18 +1991,6 @@ def intersection(*seqs):
     return type(seqs[0])(list(result))
 
 
-def _shift_indexer(N, periods):
-    # small reusable utility
-    indexer = np.zeros(N, dtype=int)
-
-    if periods > 0:
-        indexer[periods:] = np.arange(N - periods)
-    else:
-        indexer[:periods] = np.arange(-periods, N)
-
-    return indexer
-
-
 def _asarray_tuplesafe(values, dtype=None):
     from pandas.core.index import Index
 

@@ -943,7 +943,7 @@ class Block(PandasObject):
         return [make_block(new_values, self.items, self.ref_items,
                            ndim=self.ndim, fastpath=True)]
 
-    def shift(self, indexer, periods, axis=0):
+    def shift(self, periods, axis=0):
         """ shift the block by periods, possibly upcast """
         # convert integer to float if necessary. need to do a lot more than
         # that, handle boolean etc also
