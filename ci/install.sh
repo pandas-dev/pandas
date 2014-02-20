@@ -39,19 +39,35 @@ base_url=http://cache27diy-cpycloud.rhcloud.com
 wheel_box=${TRAVIS_PYTHON_VERSION}${JOB_TAG}
 PIP_ARGS+=" -I --use-wheel --find-links=$base_url/$wheel_box/ --allow-external --allow-insecure"
 
-# Force virtualenv to accept system_site_packages
-rm -f $VIRTUAL_ENV/lib/python$TRAVIS_PYTHON_VERSION/no-global-site-packages.txt
-
-
 if [ -n "$LOCALE_OVERRIDE" ]; then
     # make sure the locale is available
     # probably useless, since you would need to relogin
     time sudo locale-gen "$LOCALE_OVERRIDE"
 fi
 
-
 # we need these for numpy
 time sudo apt-get $APT_ARGS install libatlas-base-dev gfortran
+
+if [ -n "$NUMPY_BUILD" ]; then
+    # building numpy
+    curdir=$(pwd)
+    echo "building numpy: $curdir"
+
+    # remove the system installed numpy
+    pip uninstall numpy -y
+
+    # clone & install
+    git clone --branch master https://github.com/numpy/numpy.git numpy
+    cd numpy
+    time sudo python setup.py install
+
+    cd $curdir
+    numpy_version=$(python -c 'import numpy; print(numpy.__version__)')
+    echo "numpy: $numpy_version"
+else
+    # Force virtualenv to accept system_site_packages
+    rm -f $VIRTUAL_ENV/lib/python$TRAVIS_PYTHON_VERSION/no-global-site-packages.txt
+fi
 
 time pip install $PIP_ARGS -r ci/requirements-${wheel_box}.txt
 
@@ -98,6 +114,10 @@ export PATH=/usr/lib/ccache:/usr/lib64/ccache:$PATH
 which gcc
 ccache -z
 time pip install $(find dist | grep gz | head -n 1)
-# restore cython
-time pip install $PIP_ARGS  $(cat ci/requirements-${wheel_box}.txt | grep -i cython)
+
+# restore cython (if not numpy building)
+if [ -z "$NUMPY_BUILD" ]; then
+    time pip install $PIP_ARGS  $(cat ci/requirements-${wheel_box}.txt | grep -i cython)
+fi
+
 true

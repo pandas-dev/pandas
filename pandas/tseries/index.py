@@ -721,6 +721,38 @@ class DatetimeIndex(Int64Index):
             values = self._local_timestamps()
         return tslib.get_time_micros(values)
 
+    def to_series(self, keep_tz=False):
+        """
+        Create a Series with both index and values equal to the index keys
+        useful with map for returning an indexer based on an index
+
+        Parameters
+        ----------
+        keep_tz : optional, defaults False.
+                  return the data keeping the timezone.
+
+                  If keep_tz is True:
+
+                    If the timezone is not set or is UTC, the resulting
+                    Series will have a datetime64[ns] dtype.
+                    Otherwise the Series will have an object dtype.
+
+                  If keep_tz is False:
+
+                    Series will have a datetime64[ns] dtype.
+
+        Returns
+        -------
+        Series
+        """
+        return super(DatetimeIndex, self).to_series(keep_tz=keep_tz)
+
+    def _to_embed(self, keep_tz=False):
+        """ return an array repr of this object, potentially casting to object """
+        if keep_tz and self.tz is not None and str(self.tz) != 'UTC':
+            return self.asobject
+        return self.values
+
     @property
     def asobject(self):
         """

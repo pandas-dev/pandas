@@ -602,17 +602,19 @@ You can also operate on the DataFrame in place
    argument to ``replace`` (``to_replace``) must match the type of the value
    being replaced type. For example,
 
-   .. code-block::
+   .. code-block:: python
 
       s = Series([True, False, True])
-      s.replace({'a string': 'new value', True: False})
+      s.replace({'a string': 'new value', True: False})  # raises
+
+      TypeError: Cannot compare types 'ndarray(dtype=bool)' and 'str'
 
    will raise a ``TypeError`` because one of the ``dict`` keys is not of the
    correct type for replacement.
 
    However, when replacing a *single* object such as,
 
-   .. code-block::
+   .. ipython:: python
 
       s = Series([True, False, True])
       s.replace('a string', 'another string')

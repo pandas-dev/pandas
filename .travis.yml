@@ -11,40 +11,53 @@ env:
   - secure: "PCzUFR8CHmw9lH84p4ygnojdF7Z8U5h7YfY0RyT+5K/aiQ1ZTU3ZkDTPI0/rR5FVMxsEEKEQKMcc5fvqW0PeD7Q2wRmluloKgT9w4EVEJ1ppKf7lITPcvZR2QgVOvjv4AfDtibLHFNiaSjzoqyJVjM4igjOu8WTlF3JfZcmOQjQ="
 
 matrix:
+    fast_finish: true
     include:
     - python: 2.6
       env:
       - NOSE_ARGS="not slow and not network and not disabled"
       - CLIPBOARD=xclip
       - LOCALE_OVERRIDE="it_IT.UTF-8"
-      - JOB_NAME: "26_nslow_nnet" # ScatterCI Build name, 20 chars max
+      - JOB_NAME: "26_nslow_nnet"
     - python: 2.7
       env:
       - NOSE_ARGS="slow and not network and not disabled"
       - LOCALE_OVERRIDE="zh_CN.GB18030"
       - FULL_DEPS=true
       - JOB_TAG=_LOCALE
-      - JOB_NAME: "27_slow_nnet_LOCALE" # ScatterCI Build name, 20 chars max
+      - JOB_NAME: "27_slow_nnet_LOCALE"
     - python: 2.7
       env:
       - NOSE_ARGS="not slow and not disabled"
       - FULL_DEPS=true
       - CLIPBOARD_GUI=gtk2
-      - JOB_NAME: "27_nslow" # ScatterCI Build name, 20 chars max
+      - JOB_NAME: "27_nslow"
       - DOC_BUILD=true # if rst files were changed, build docs in parallel with tests
     - python: 3.2
       env:
       - NOSE_ARGS="not slow and not disabled"
       - FULL_DEPS=true
       - CLIPBOARD_GUI=qt4
-      - JOB_NAME: "32_nslow"  # ScatterCI Build name, 20 chars max
+      - JOB_NAME: "32_nslow"
     - python: 3.3
       env:
       - NOSE_ARGS="not slow and not disabled"
       - FULL_DEPS=true
       - CLIPBOARD=xsel
-      - JOB_NAME: "33_nslow"  # ScatterCI Build name, 20 chars max
-
+      - JOB_NAME: "33_nslow"
+    - python: 2.7
+      env:
+      - NOSE_ARGS="not slow and not network and not disabled"
+      - JOB_NAME: "27_numpy_dev"
+      - JOB_TAG=_NUMPY_DEV
+      - NUMPY_BUILD=true # build numpy master from source
+    allow_failures:
+      - python: 2.7
+        env:
+        - NOSE_ARGS="not slow and not network and not disabled"
+        - JOB_NAME: "27_numpy_dev"
+        - JOB_TAG=_NUMPY_DEV
+        - NUMPY_BUILD=true # build numpy master from source
 
 # allow importing from site-packages,
 # so apt-get python-x works for system pythons

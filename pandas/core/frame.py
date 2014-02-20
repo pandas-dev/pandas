@@ -2033,6 +2033,8 @@ class DataFrame(NDFrame):
                     value = com._asarray_tuplesafe(value)
             elif isinstance(value, PeriodIndex):
                 value = value.asobject
+            elif isinstance(value, DatetimeIndex):
+                value = value._to_embed(keep_tz=True).copy()
             elif value.ndim == 2:
                 value = value.copy().T
             else:
