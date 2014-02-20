@@ -37,16 +37,31 @@ _doc_template = """
 Parameters
 ----------
 %s
-window : Number of observations used for calculating statistic
-min_periods : int
+window : int
+    Size of the moving window. This is the number of observations used for
+    calculating the statistic.
+min_periods : int, default None
     Minimum number of observations in window required to have a value
-freq : None or string alias / date offset object, default=None
-    Frequency to conform to before computing statistic
-    time_rule is a legacy alias for freq
-
+    (otherwise result is NA).
+freq : string or DateOffset object, optional (default None)
+    Frequency to conform the data to before computing the statistic. Specified
+    as a frequency string or DateOffset object. `time_rule` is a legacy alias
+    for `freq`.
+center : boolean, default False
+    Set the labels at the center of the window.
+    
 Returns
 -------
 %s
+
+Notes
+-----
+By default, the result is set to the right edge of the window. This can be
+changed to the center of the window by setting ``center=True``.
+
+The `freq` keyword is used to conform time series data to a specified
+frequency by resampling the data. This is done with the default parameters
+of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
 """
 
 
@@ -97,14 +112,23 @@ _expanding_doc = """
 Parameters
 ----------
 %s
-min_periods : int
+min_periods : int, default None
     Minimum number of observations in window required to have a value
-freq : None or string alias / date offset object, default=None
-    Frequency to conform to before computing statistic
+    (otherwise result is NA).
+freq : string or DateOffset object, optional (default None)
+    Frequency to conform the data to before computing the statistic. Specified
+    as a frequency string or DateOffset object. `time_rule` is a legacy alias
+    for `freq`.
 
 Returns
 -------
 %s
+
+Notes
+-----
+The `freq` keyword is used to conform time series data to a specified
+frequency by resampling the data. This is done with the default parameters
+of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
 """
 
 
@@ -135,16 +159,25 @@ def rolling_count(arg, window, freq=None, center=False, time_rule=None):
     Parameters
     ----------
     arg :  DataFrame or numpy ndarray-like
-    window : Number of observations used for calculating statistic
-    freq : None or string alias / date offset object, default=None
-        Frequency to conform to before computing statistic
+    window : int
+        Size of the moving window. This is the number of observations used for
+        calculating the statistic.
+    freq : string or DateOffset object, optional (default None)
+        Frequency to conform the data to before computing the statistic. Specified
+        as a frequency string or DateOffset object. `time_rule` is a legacy alias
+        for `freq`
     center : boolean, default False
         Whether the label should correspond with center of window
-    time_rule : Legacy alias for freq
 
     Returns
     -------
     rolling_count : type of caller
+
+    Notes
+    -----
+    The `freq` keyword is used to conform time series data to a specified
+    frequency by resampling the data. This is done with the default parameters
+    of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
     """
     arg = _conv_timerule(arg, freq, time_rule)
     window = min(window, len(arg))
@@ -161,7 +194,7 @@ def rolling_count(arg, window, freq=None, center=False, time_rule=None):
     return return_hook(result)
 
 
-@Substitution("Unbiased moving covariance", _binary_arg_flex, _flex_retval)
+@Substitution("Unbiased moving covariance.", _binary_arg_flex, _flex_retval)
 @Appender(_doc_template)
 def rolling_cov(arg1, arg2, window, min_periods=None, freq=None,
                 center=False, time_rule=None):
@@ -178,7 +211,7 @@ def rolling_cov(arg1, arg2, window, min_periods=None, freq=None,
     return rs
 
 
-@Substitution("Moving sample correlation", _binary_arg_flex, _flex_retval)
+@Substitution("Moving sample correlation.", _binary_arg_flex, _flex_retval)
 @Appender(_doc_template)
 def rolling_corr(arg1, arg2, window, min_periods=None, freq=None,
                  center=False, time_rule=None):
@@ -228,13 +261,17 @@ def _flex_binary_moment(arg1, arg2, f):
 def rolling_corr_pairwise(df, window, min_periods=None):
     """
     Computes pairwise rolling correlation matrices as Panel whose items are
-    dates
+    dates.
 
     Parameters
     ----------
     df : DataFrame
     window : int
+        Size of the moving window. This is the number of observations used for
+        calculating the statistic.
     min_periods : int, default None
+        Minimum number of observations in window required to have a value
+        (otherwise result is NA).
 
     Returns
     -------
@@ -523,43 +560,57 @@ def _rolling_func(func, desc, check_minp=_use_window):
 
     return f
 
-rolling_max = _rolling_func(algos.roll_max2, 'Moving maximum')
-rolling_min = _rolling_func(algos.roll_min2, 'Moving minimum')
-rolling_sum = _rolling_func(algos.roll_sum, 'Moving sum')
-rolling_mean = _rolling_func(algos.roll_mean, 'Moving mean')
-rolling_median = _rolling_func(algos.roll_median_cython, 'Moving median')
+rolling_max = _rolling_func(algos.roll_max2, 'Moving maximum.')
+rolling_min = _rolling_func(algos.roll_min2, 'Moving minimum.')
+rolling_sum = _rolling_func(algos.roll_sum, 'Moving sum.')
+rolling_mean = _rolling_func(algos.roll_mean, 'Moving mean.')
+rolling_median = _rolling_func(algos.roll_median_cython, 'Moving median.')
 
 _ts_std = lambda *a, **kw: _zsqrt(algos.roll_var(*a, **kw))
-rolling_std = _rolling_func(_ts_std, 'Unbiased moving standard deviation',
+rolling_std = _rolling_func(_ts_std, 'Unbiased moving standard deviation.',
                             check_minp=_require_min_periods(1))
-rolling_var = _rolling_func(algos.roll_var, 'Unbiased moving variance',
+rolling_var = _rolling_func(algos.roll_var, 'Unbiased moving variance.',
                             check_minp=_require_min_periods(1))
-rolling_skew = _rolling_func(algos.roll_skew, 'Unbiased moving skewness',
+rolling_skew = _rolling_func(algos.roll_skew, 'Unbiased moving skewness.',
                              check_minp=_require_min_periods(3))
-rolling_kurt = _rolling_func(algos.roll_kurt, 'Unbiased moving kurtosis',
+rolling_kurt = _rolling_func(algos.roll_kurt, 'Unbiased moving kurtosis.',
                              check_minp=_require_min_periods(4))
 
 
 def rolling_quantile(arg, window, quantile, min_periods=None, freq=None,
                      center=False, time_rule=None):
-    """Moving quantile
+    """Moving quantile.
 
     Parameters
     ----------
     arg : Series, DataFrame
-    window : Number of observations used for calculating statistic
-    quantile : 0 <= quantile <= 1
-    min_periods : int
+    window : int
+        Size of the moving window. This is the number of observations used for
+        calculating the statistic.
+    quantile : float
+        0 <= quantile <= 1
+    min_periods : int, default None
         Minimum number of observations in window required to have a value
-    freq : None or string alias / date offset object, default=None
-        Frequency to conform to before computing statistic
+        (otherwise result is NA).
+    freq : string or DateOffset object, optional (default None)
+        Frequency to conform the data to before computing the statistic. Specified
+        as a frequency string or DateOffset object. `time_rule` is a legacy alias
+        for `freq`
     center : boolean, default False
         Whether the label should correspond with center of window
-    time_rule : Legacy alias for freq
 
     Returns
     -------
     y : type of input argument
+
+    Notes
+    -----
+    By default, the result is set to the right edge of the window. This can be
+    changed to the center of the window by setting ``center=True``.
+
+    The `freq` keyword is used to conform time series data to a specified
+    frequency by resampling the data. This is done with the default parameters
+    of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
     """
 
     def call_cython(arg, window, minp, args=(), kwargs={}):
@@ -571,21 +622,25 @@ def rolling_quantile(arg, window, quantile, min_periods=None, freq=None,
 
 def rolling_apply(arg, window, func, min_periods=None, freq=None,
                   center=False, time_rule=None, args=(), kwargs={}):
-    """Generic moving function application
+    """Generic moving function application.
 
     Parameters
     ----------
     arg : Series, DataFrame
-    window : Number of observations used for calculating statistic
+    window : int
+        Size of the moving window. This is the number of observations used for
+        calculating the statistic.
     func : function
         Must produce a single value from an ndarray input
-    min_periods : int
+    min_periods : int, default None
         Minimum number of observations in window required to have a value
-    freq : None or string alias / date offset object, default=None
-        Frequency to conform to before computing statistic
+        (otherwise result is NA).
+    freq : string or DateOffset object, optional (default None)
+        Frequency to conform the data to before computing the statistic. Specified
+        as a frequency string or DateOffset object. `time_rule` is a legacy alias
+        for `freq`.
     center : boolean, default False
         Whether the label should correspond with center of window
-    time_rule : Legacy alias for freq
     args : tuple
         Passed on to func
     kwargs : dict
@@ -594,6 +649,15 @@ def rolling_apply(arg, window, func, min_periods=None, freq=None,
     Returns
     -------
     y : type of input argument
+
+    Notes
+    -----
+    By default, the result is set to the right edge of the window. This can be
+    changed to the center of the window by setting ``center=True``.
+
+    The `freq` keyword is used to conform time series data to a specified
+    frequency by resampling the data. This is done with the default parameters
+    of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
     """
     def call_cython(arg, window, minp, args, kwargs):
         minp = _use_window(minp, window)
@@ -618,15 +682,17 @@ def rolling_window(arg, window=None, win_type=None, min_periods=None,
         treated as the window length and win_type is required
     win_type : str, default None
         Window type (see Notes)
-    min_periods : int
-        Minimum number of observations in window required to have a value.
-    freq : None or string alias / date offset object, default=None
-        Frequency to conform to before computing statistic
+    min_periods : int, default None
+        Minimum number of observations in window required to have a value
+        (otherwise result is NA).
+    freq : string or DateOffset object, optional (default None)
+        Frequency to conform the data to before computing the statistic. Specified
+        as a frequency string or DateOffset object. `time_rule` is a legacy alias
+        for `freq`.
     center : boolean, default False
         Whether the label should correspond with center of window
     mean : boolean, default True
         If True computes weighted mean, else weighted sum
-    time_rule : Legacy alias for freq
     axis : {0, 1}, default 0
 
     Returns
@@ -651,6 +717,13 @@ def rolling_window(arg, window=None, win_type=None, min_periods=None,
     * ``gaussian`` (needs std)
     * ``general_gaussian`` (needs power, width)
     * ``slepian`` (needs width).
+    
+    By default, the result is set to the right edge of the window. This can be
+    changed to the center of the window by setting ``center=True``.
+
+    The `freq` keyword is used to conform time series data to a specified
+    frequency by resampling the data. This is done with the default parameters
+    of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
     """
     if isinstance(window, (list, tuple, np.ndarray)):
         if win_type is not None:
@@ -722,23 +795,23 @@ def _expanding_func(func, desc, check_minp=_use_window):
 
     return f
 
-expanding_max = _expanding_func(algos.roll_max2, 'Expanding maximum')
-expanding_min = _expanding_func(algos.roll_min2, 'Expanding minimum')
-expanding_sum = _expanding_func(algos.roll_sum, 'Expanding sum')
-expanding_mean = _expanding_func(algos.roll_mean, 'Expanding mean')
+expanding_max = _expanding_func(algos.roll_max2, 'Expanding maximum.')
+expanding_min = _expanding_func(algos.roll_min2, 'Expanding minimum.')
+expanding_sum = _expanding_func(algos.roll_sum, 'Expanding sum.')
+expanding_mean = _expanding_func(algos.roll_mean, 'Expanding mean.')
 expanding_median = _expanding_func(
-    algos.roll_median_cython, 'Expanding median')
+    algos.roll_median_cython, 'Expanding median.')
 
 expanding_std = _expanding_func(_ts_std,
-                                'Unbiased expanding standard deviation',
+                                'Unbiased expanding standard deviation.',
                                 check_minp=_require_min_periods(2))
-expanding_var = _expanding_func(algos.roll_var, 'Unbiased expanding variance',
+expanding_var = _expanding_func(algos.roll_var, 'Unbiased expanding variance.',
                                 check_minp=_require_min_periods(2))
 expanding_skew = _expanding_func(
-    algos.roll_skew, 'Unbiased expanding skewness',
+    algos.roll_skew, 'Unbiased expanding skewness.',
     check_minp=_require_min_periods(3))
 expanding_kurt = _expanding_func(
-    algos.roll_kurt, 'Unbiased expanding kurtosis',
+    algos.roll_kurt, 'Unbiased expanding kurtosis.',
     check_minp=_require_min_periods(4))
 
 
@@ -749,15 +822,22 @@ def expanding_count(arg, freq=None, center=False, time_rule=None):
     Parameters
     ----------
     arg :  DataFrame or numpy ndarray-like
-    freq : None or string alias / date offset object, default=None
-        Frequency to conform to before computing statistic
+    freq : string or DateOffset object, optional (default None)
+        Frequency to conform the data to before computing the statistic. Specified
+        as a frequency string or DateOffset object. `time_rule` is a legacy alias
+        for `freq`.
     center : boolean, default False
-        Whether the label should correspond with center of window
-    time_rule : Legacy alias for freq
+        Whether the label should correspond with center of window.
 
     Returns
     -------
     expanding_count : type of caller
+
+    Notes
+    -----
+    The `freq` keyword is used to conform time series data to a specified
+    frequency by resampling the data. This is done with the default parameters
+    of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
     """
     return rolling_count(arg, len(arg), freq=freq, center=center,
                          time_rule=time_rule)
@@ -765,29 +845,38 @@ def expanding_count(arg, freq=None, center=False, time_rule=None):
 
 def expanding_quantile(arg, quantile, min_periods=1, freq=None,
                        center=False, time_rule=None):
-    """Expanding quantile
+    """Expanding quantile.
 
     Parameters
     ----------
     arg : Series, DataFrame
-    quantile : 0 <= quantile <= 1
-    min_periods : int
+    quantile : float
+        0 <= quantile <= 1
+    min_periods : int, default None
         Minimum number of observations in window required to have a value
-    freq : None or string alias / date offset object, default=None
-        Frequency to conform to before computing statistic
+        (otherwise result is NA).
+    freq : string or DateOffset object, optional (default None)
+        Frequency to conform the data to before computing the statistic. Specified
+        as a frequency string or DateOffset object. `time_rule` is a legacy alias
+        for `freq`.
     center : boolean, default False
-        Whether the label should correspond with center of window
-    time_rule : Legacy alias for freq
+        Whether the label should correspond with center of window.
 
     Returns
     -------
     y : type of input argument
+
+    Notes
+    -----
+    The `freq` keyword is used to conform time series data to a specified
+    frequency by resampling the data. This is done with the default parameters
+    of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
     """
     return rolling_quantile(arg, len(arg), quantile, min_periods=min_periods,
                             freq=freq, center=center, time_rule=time_rule)
 
 
-@Substitution("Unbiased expanding covariance", _binary_arg_flex, _flex_retval)
+@Substitution("Unbiased expanding covariance.", _binary_arg_flex, _flex_retval)
 @Appender(_expanding_doc)
 def expanding_cov(arg1, arg2, min_periods=1, freq=None, center=False,
                   time_rule=None):
@@ -797,7 +886,7 @@ def expanding_cov(arg1, arg2, min_periods=1, freq=None, center=False,
                        center=center, time_rule=time_rule)
 
 
-@Substitution("Expanding sample correlation", _binary_arg_flex, _flex_retval)
+@Substitution("Expanding sample correlation.", _binary_arg_flex, _flex_retval)
 @Appender(_expanding_doc)
 def expanding_corr(arg1, arg2, min_periods=1, freq=None, center=False,
                    time_rule=None):
@@ -810,12 +899,14 @@ def expanding_corr(arg1, arg2, min_periods=1, freq=None, center=False,
 def expanding_corr_pairwise(df, min_periods=1):
     """
     Computes pairwise expanding correlation matrices as Panel whose items are
-    dates
+    dates.
 
     Parameters
     ----------
     df : DataFrame
     min_periods : int, default 1
+        Minimum number of observations in window required to have a value
+        (otherwise result is NA).
 
     Returns
     -------
@@ -829,20 +920,22 @@ def expanding_corr_pairwise(df, min_periods=1):
 
 def expanding_apply(arg, func, min_periods=1, freq=None, center=False,
                     time_rule=None, args=(), kwargs={}):
-    """Generic expanding function application
+    """Generic expanding function application.
 
     Parameters
     ----------
     arg : Series, DataFrame
     func : function
         Must produce a single value from an ndarray input
-    min_periods : int
+    min_periods : int, default None
         Minimum number of observations in window required to have a value
-    freq : None or string alias / date offset object, default=None
-        Frequency to conform to before computing statistic
+        (otherwise result is NA).
+    freq : string or DateOffset object, optional (default None)
+        Frequency to conform the data to before computing the statistic. Specified
+        as a frequency string or DateOffset object. `time_rule` is a legacy alias
+        for `freq`.
     center : boolean, default False
-        Whether the label should correspond with center of window
-    time_rule : Legacy alias for freq
+        Whether the label should correspond with center of window.
     args : tuple
         Passed on to func
     kwargs : dict
@@ -851,6 +944,12 @@ def expanding_apply(arg, func, min_periods=1, freq=None, center=False,
     Returns
     -------
     y : type of input argument
+    
+    Notes
+    -----
+    The `freq` keyword is used to conform time series data to a specified
+    frequency by resampling the data. This is done with the default parameters
+    of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
     """
     window = len(arg)
     return rolling_apply(arg, window, func, min_periods=min_periods, freq=freq,

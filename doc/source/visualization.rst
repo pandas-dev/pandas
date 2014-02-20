@@ -414,7 +414,7 @@ setting `kind='kde'`:
    @savefig kde_plot.png
    ser.plot(kind='kde')
 
-.. _visualization.hexbin
+.. _visualization.hexbin:
 
 Hexagonal Bin plot
 ~~~~~~~~~~~~~~~~~~
@@ -576,6 +576,11 @@ are what constitutes the bootstrap plot.
 
    @savefig bootstrap_plot.png
    bootstrap_plot(data, size=50, samples=500, color='grey')
+
+.. ipython:: python
+   :suppress:
+
+    plt.close('all')
 
 .. _visualization.radviz:
 
