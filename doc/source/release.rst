@@ -98,6 +98,8 @@ API Changes
 - The top-level :func:`pandas.eval` function does not allow you use the
   ``'@'`` prefix and provides you with an error message telling you so.
 - ``NameResolutionError`` was removed because it isn't necessary anymore.
+- ``concat`` will now concatenate mixed Series and DataFrames using the Series name
+  or numbering columns as needed (:issue:`2385`)
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
@@ -166,6 +168,7 @@ Bug Fixes
 - Bug in ``Series.reindex`` when specifying a ``method`` with some nan values was inconsistent (noted on a resample) (:issue:`6418`)
 - Bug in :meth:`DataFrame.replace` where nested dicts were erroneously
   depending on the order of dictionary keys and values (:issue:`5338`).
+- Perf issue in concatting with empty objects (:issue:`3259`)
 
 pandas 0.13.1
 -------------

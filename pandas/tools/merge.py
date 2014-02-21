@@ -957,7 +957,7 @@ class _Concatenator(object):
             objs = [objs[k] for k in keys]
 
         if keys is None:
-            objs = [obj for obj in objs if obj is not None]
+            objs = [obj for obj in objs if obj is not None ]
         else:
             # #1649
             clean_keys = []
@@ -973,16 +973,43 @@ class _Concatenator(object):
         if len(objs) == 0:
             raise Exception('All objects passed were None')
 
-        # consolidate data
+        # consolidate data & figure out what our result ndim is going to be
+        ndims = set()
         for obj in objs:
-            if isinstance(obj, NDFrame):
-                obj.consolidate(inplace=True)
+            if not isinstance(obj, NDFrame):
+                raise TypeError("cannot concatenate a non-NDFrame object")
+
+            # consolidate
+            obj.consolidate(inplace=True)
+            ndims.add(obj.ndim)
+
+        # get the sample
+        # want the higest ndim that we have, and must be non-empty
+        # unless all objs are empty
+        sample = None
+        if len(ndims) > 1:
+            max_ndim = max(ndims)
+            for obj in objs:
+                if obj.ndim == max_ndim and np.sum(obj.shape):
+                    sample = obj
+                    break
+
+        else:
+            # filter out the empties
+            # if we have not multi-index possibiltes
+            df = DataFrame([ obj.shape for obj in objs ]).sum(1)
+            non_empties = df[df!=0]
+            if len(non_empties) and (keys is None and names is None and levels is None and join_axes is None):
+                objs = [ objs[i] for i in non_empties.index ]
+                sample = objs[0]
+
+        if sample is None:
+            sample = objs[0]
         self.objs = objs
 
-        sample = objs[0]
-
         # Need to flip BlockManager axis in the DataFrame special case
-        if isinstance(sample, DataFrame):
+        self._is_frame = isinstance(sample, DataFrame)
+        if self._is_frame:
             axis = 1 if axis == 0 else 0
 
         self._is_series = isinstance(sample, ABCSeries)
@@ -990,11 +1017,39 @@ class _Concatenator(object):
             raise AssertionError("axis must be between 0 and {0}, "
                                  "input was {1}".format(sample.ndim, axis))
 
+        # if we have mixed ndims, then convert to highest ndim
+        # creating column numbers as needed
+        if len(ndims) > 1:
+            current_column = 0
+            max_ndim = sample.ndim
+            self.objs, objs = [], self.objs
+            for obj in objs:
+
+                ndim = obj.ndim
+                if ndim == max_ndim:
+                    pass
+
+                elif ndim != max_ndim-1:
+                    raise ValueError("cannot concatenate unaligned mixed "
+                                     "dimensional NDFrame objects")
+
+                else:
+                    name = getattr(obj,'name',None)
+                    if ignore_index or name is None:
+                        name = current_column
+                        current_column += 1
+
+                    # doing a row-wise concatenation so need everything
+                    # to line up
+                    if self._is_frame and axis == 1:
+                        name = 0
+                    obj = sample._constructor({ name : obj })
+
+                self.objs.append(obj)
+
         # note: this is the BlockManager axis (since DataFrame is transposed)
         self.axis = axis
-
         self.join_axes = join_axes
-
         self.keys = keys
         self.names = names
         self.levels = levels
