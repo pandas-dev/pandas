@@ -1653,6 +1653,15 @@ class TestConcatenate(tm.TestCase):
 
         tm.assert_frame_equal(concatted, expected)
 
+        # empty as first element with time series
+        # GH3259
+        df = DataFrame(dict(A = range(10000)),index=date_range('20130101',periods=10000,freq='s'))
+        empty = DataFrame()
+        result = concat([df,empty])
+        assert_frame_equal(result, df)
+        result = concat([empty,df])
+        assert_frame_equal(result, df)
+
     def test_panel_join(self):
         panel = tm.makePanel()
         tm.add_nans(panel)
@@ -1966,6 +1975,13 @@ class TestConcatenate(tm.TestCase):
 
         result = concat([s1, s2], axis=1, ignore_index=True)
         self.assertTrue(np.array_equal(result.columns, [0, 1]))
+
+    def test_concat_invalid(self):
+
+        # trying to concat a ndframe with a non-ndframe
+        df1 = mkdf(10, 2)
+        for obj in [1, dict(), [1, 2], (1, 2) ]:
+            self.assertRaises(TypeError, lambda x: concat([ df1, obj ]))
 
     def test_concat_invalid_first_argument(self):
         df1 = mkdf(10, 2)
