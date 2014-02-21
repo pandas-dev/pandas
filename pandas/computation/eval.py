@@ -131,7 +131,7 @@ def _check_for_locals(expr, stack_level, parser):
                "prefix")
 
     if at_top_of_stack or not_pandas_parser:
-        for toknum, tokval, _, _, _ in tokenize_string(expr):
+        for toknum, tokval in tokenize_string(expr):
             if toknum == tokenize.OP and tokval == '@':
                 raise SyntaxError(msg)
 
