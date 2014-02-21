@@ -57,7 +57,13 @@ def _replace_booleans(source):
 
 def _replace_locals(source, local_symbol='@'):
     """Replace local variables with a syntactically valid name."""
-    return source.replace(local_symbol, _LOCAL_TAG)
+    res = []
+    for toknum, tokval, _, _, _ in tokenize_string(source):
+        if toknum == tokenize.OP and tokval == local_symbol:
+            res.append((tokenize.OP, _LOCAL_TAG))
+        else:
+            res.append((toknum, tokval))
+    return tokenize.untokenize(res)
 
 
 def _preparse(source):
