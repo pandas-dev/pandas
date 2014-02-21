@@ -164,6 +164,8 @@ Bug Fixes
 - ``eval``/``query`` expressions with strings containing the ``@`` character
   will now work (:issue:`6366`).
 - Bug in ``Series.reindex`` when specifying a ``method`` with some nan values was inconsistent (noted on a resample) (:issue:`6418`)
+- Bug in :meth:`DataFrame.replace` where nested dicts were erroneously
+  depending on the order of dictionary keys and values (:issue:`5338`).
 
 pandas 0.13.1
 -------------

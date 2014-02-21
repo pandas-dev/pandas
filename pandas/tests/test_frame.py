@@ -8089,6 +8089,19 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         with tm.assertRaisesRegexp(TypeError, 'Cannot compare types .+'):
             df.replace({'asdf': 'asdb', True: 'yes'})
 
+    def test_replace_int_to_int_chain(self):
+        df = DataFrame({'a': lrange(1, 5)})
+        with tm.assertRaisesRegexp(ValueError, "Replacement not allowed .+"):
+            df.replace({'a': dict(zip(range(1, 5), range(2, 6)))})
+
+    def test_replace_str_to_str_chain(self):
+        a = np.arange(1, 5)
+        astr = a.astype(str)
+        bstr = np.arange(2, 6).astype(str)
+        df = DataFrame({'a': astr})
+        with tm.assertRaisesRegexp(ValueError, "Replacement not allowed .+"):
+            df.replace({'a': dict(zip(astr, bstr))})
+
     def test_combine_multiple_frames_dtypes(self):
 
         # GH 2759
