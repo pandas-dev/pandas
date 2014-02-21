@@ -1880,9 +1880,20 @@ class SparseBlock(Block):
         values = self.values if inplace else self.values.copy()
         return [self.make_block(values.get_values(value), fill_value=value)]
 
-    def shift(self, indexer, periods, axis=0):
+    @classmethod
+    def _shift_indexer(cls,N, periods):
+        # small reusable utility
+        indexer = np.zeros(N, dtype=int)
+        
+        if periods > 0:
+            indexer[periods:] = np.arange(N - periods)
+        else:
+            indexer[:periods] = np.arange(-periods, N)
+        return indexer
+        
+    def shift(self, periods, axis=0):
         """ shift the block by periods """
-
+        indexer = self._shift_indexer(len(self.values.T),periods)
         new_values = self.values.to_dense().take(indexer)
         # convert integer to float if necessary. need to do a lot more than
         # that, handle boolean etc also
