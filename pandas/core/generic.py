@@ -2327,8 +2327,12 @@ class NDFrame(PandasObject):
                 value_dict = {}
 
                 for k, v in items:
-                    to_rep_dict[k] = list(v.keys())
-                    value_dict[k] = list(v.values())
+                    keys, values = zip(*v.items())
+                    if set(keys) & set(values):
+                        raise ValueError("Replacement not allowed with "
+                                         "overlapping keys and values")
+                    to_rep_dict[k] = list(keys)
+                    value_dict[k] = list(values)
 
                 to_replace, value = to_rep_dict, value_dict
             else:
