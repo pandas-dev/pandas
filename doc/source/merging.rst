@@ -213,6 +213,33 @@ This is also a valid argument to ``DataFrame.append``:
 
    df1.append(df2, ignore_index=True)
 
+.. _merging.mixed_ndims:
+
+Concatenating with mixed ndims
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can concatenate a mix of Series and DataFrames. The
+Series will be transformed to DataFrames with the column name as
+the name of the Series.
+
+.. ipython:: python
+
+   df1 = DataFrame(randn(6, 4), columns=['A', 'B', 'C', 'D'])
+   s1 = Series(randn(6), name='foo')
+   concat([df1, s1],axis=1)
+
+If unnamed Series are passed they will be numbered consecutively.
+
+.. ipython:: python
+
+   s2 = Series(randn(6))
+   concat([df1, s2, s2, s2],axis=1)
+
+Passing ``ignore_index=True`` will drop all name references.
+
+.. ipython:: python
+
+   concat([df1, s1],axis=1,ignore_index=True)
 
 More concatenating with group keys
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

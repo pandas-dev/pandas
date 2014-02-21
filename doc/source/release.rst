@@ -98,6 +98,8 @@ API Changes
 - The top-level :func:`pandas.eval` function does not allow you use the
   ``'@'`` prefix and provides you with an error message telling you so.
 - ``NameResolutionError`` was removed because it isn't necessary anymore.
+- ``concat`` will now concatenate mixed Series and DataFrames using the Series name
+  or numbering columns as needed (:issue:`2385`)
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~

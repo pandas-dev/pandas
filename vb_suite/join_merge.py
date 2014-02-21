@@ -195,9 +195,9 @@ df = DataFrame(dict(A = range(10000)),index=date_range('20130101',periods=10000,
 empty = DataFrame()
 """
 
-concat_empty_frames1 = Benchmark('concat([df,empty)', setup,
+concat_empty_frames1 = Benchmark('concat([df,empty])', setup,
                                 start_date=datetime(2012, 1, 1))
-concat_empty_frames2 = Benchmark('concat([empty,df)', setup,
+concat_empty_frames2 = Benchmark('concat([empty,df])', setup,
                                 start_date=datetime(2012, 1, 1))
 
 
