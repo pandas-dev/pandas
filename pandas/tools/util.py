@@ -1,3 +1,4 @@
+from pandas.compat import reduce
 from pandas.core.index import Index
 import numpy as np
 
@@ -5,6 +6,7 @@ def match(needles, haystack):
     haystack = Index(haystack)
     needles = Index(needles)
     return haystack.get_indexer(needles)
+
 
 def cartesian_product(X):
     '''
@@ -27,6 +29,17 @@ def cartesian_product(X):
 
     b = cumprodX[-1] / cumprodX
 
-    return [np.tile(np.repeat(x, b[i]), 
+    return [np.tile(np.repeat(x, b[i]),
                     np.product(a[i]))
                for i, x in enumerate(X)]
+
+
+def _compose2(f, g):
+    """Compose 2 callables"""
+    return lambda *args, **kwargs: f(g(*args, **kwargs))
+
+
+def compose(*funcs):
+    """Compose 2 or more callables"""
+    assert len(funcs) > 1, 'At least 2 callables must be passed to compose'
+    return reduce(_compose2, funcs)

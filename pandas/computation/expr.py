@@ -12,9 +12,10 @@ from functools import partial
 
 import pandas as pd
 from pandas import compat
-from pandas.compat import StringIO, zip, reduce, string_types
+from pandas.compat import StringIO, lmap, zip, reduce, string_types
 from pandas.core.base import StringMixin
 from pandas.core import common as com
+from pandas.tools.util import compose
 from pandas.computation.ops import (_cmp_ops_syms, _bool_ops_syms,
                                     _arith_ops_syms, _unary_ops_syms, is_term)
 from pandas.computation.ops import _reductions, _mathops, _LOCAL_TAG
@@ -23,52 +24,113 @@ from pandas.computation.ops import UndefinedVariableError
 from pandas.computation.scope import Scope, _ensure_scope
 
 
-def tokenize_string(s):
-    return tokenize.generate_tokens(StringIO(s).readline)
+def tokenize_string(source):
+    """Tokenize a Python source code string.
 
-
-def _rewrite_assign(source):
-    """Rewrite the assignment operator for PyTables expression that want to use
-    ``=`` as a substitute for ``==``.
+    Parameters
+    ----------
+    source : str
+        A Python source code string
     """
-    res = []
-    for toknum, tokval, _, _, _ in tokenize_string(source):
-        res.append((toknum, '==' if tokval == '=' else tokval))
-    return tokenize.untokenize(res)
+    line_reader = StringIO(source).readline
+    for toknum, tokval, _, _, _ in tokenize.generate_tokens(line_reader):
+        yield toknum, tokval
 
 
-def _replace_booleans(source):
+def _rewrite_assign(tok):
+    """Rewrite the assignment operator for PyTables expressions that use ``=``
+    as a substitute for ``==``.
+
+    Parameters
+    ----------
+    tok : tuple of int, str
+        ints correspond to the all caps constants in the tokenize module
+
+    Returns
+    -------
+    t : tuple of int, str
+        Either the input or token or the replacement values
+    """
+    toknum, tokval = tok
+    return toknum, '==' if tokval == '=' else tokval
+
+
+def _replace_booleans(tok):
     """Replace ``&`` with ``and`` and ``|`` with ``or`` so that bitwise
     precedence is changed to boolean precedence.
+
+    Parameters
+    ----------
+    tok : tuple of int, str
+        ints correspond to the all caps constants in the tokenize module
+
+    Returns
+    -------
+    t : tuple of int, str
+        Either the input or token or the replacement values
     """
-    res = []
-    for toknum, tokval, _, _, _ in tokenize_string(source):
-        if toknum == tokenize.OP:
-            if tokval == '&':
-                res.append((tokenize.NAME, 'and'))
-            elif tokval == '|':
-                res.append((tokenize.NAME, 'or'))
-            else:
-                res.append((toknum, tokval))
-        else:
-            res.append((toknum, tokval))
-    return tokenize.untokenize(res)
+    toknum, tokval = tok
+    if toknum == tokenize.OP:
+        if tokval == '&':
+            return tokenize.NAME, 'and'
+        elif tokval == '|':
+            return tokenize.NAME, 'or'
+        return toknum, tokval
+    return toknum, tokval
 
 
-def _replace_locals(source, local_symbol='@'):
-    """Replace local variables with a syntactically valid name."""
-    res = []
-    for toknum, tokval, _, _, _ in tokenize_string(source):
-        if toknum == tokenize.OP and tokval == local_symbol:
-            res.append((tokenize.OP, _LOCAL_TAG))
-        else:
-            res.append((toknum, tokval))
-    return tokenize.untokenize(res)
+def _replace_locals(tok):
+    """Replace local variables with a syntactically valid name.
+
+    Parameters
+    ----------
+    tok : tuple of int, str
+        ints correspond to the all caps constants in the tokenize module
+
+    Returns
+    -------
+    t : tuple of int, str
+        Either the input or token or the replacement values
+
+    Notes
+    -----
+    This is somewhat of a hack in that we rewrite a string such as ``'@a'`` as
+    ``'__pd_eval_local_a'`` by telling the tokenizer that ``__pd_eval_local_``
+    is a ``tokenize.OP`` and to replace the ``'@'`` symbol with it.
+    """
+    toknum, tokval = tok
+    if toknum == tokenize.OP and tokval == '@':
+        return tokenize.OP, _LOCAL_TAG
+    return toknum, tokval
 
 
-def _preparse(source):
-    """Compose assignment and boolean replacement."""
-    return _replace_booleans(_rewrite_assign(source))
+def _preparse(source, f=compose(_replace_locals, _replace_booleans,
+                                _rewrite_assign)):
+    """Compose a collection of tokenization functions
+
+    Parameters
+    ----------
+    source : str
+        A Python source code string
+    f : callable
+        This takes a tuple of (toknum, tokval) as its argument and returns a
+        tuple with the same structure but possibly different elements. Defaults
+        to the composition of ``_rewrite_assign``, ``_replace_booleans``, and
+        ``_replace_locals``.
+
+    Returns
+    -------
+    s : str
+        Valid Python source code
+
+    Notes
+    -----
+    The `f` parameter can be any callable that takes *and* returns input of the
+    form ``(toknum, tokval)``, where ``toknum`` is one of the constants from
+    the ``tokenize`` module and ``tokval`` is a string.
+    """
+    assert callable(f), 'f must be callable'
+    return tokenize.untokenize(lmap(f, tokenize_string(source)))
 
 
 def _is_type(t):
@@ -535,7 +597,8 @@ _numexpr_supported_calls = frozenset(_reductions + _mathops)
 class PandasExprVisitor(BaseExprVisitor):
 
     def __init__(self, env, engine, parser,
-                 preparser=lambda x: _replace_locals(_replace_booleans(x))):
+                 preparser=partial(_preparse, f=compose(_replace_locals,
+                                                        _replace_booleans))):
         super(PandasExprVisitor, self).__init__(env, engine, parser, preparser)
 
 
