@@ -186,6 +186,21 @@ df = DataFrame(randn(5, 4))
 concat_small_frames = Benchmark('concat([df] * 1000)', setup,
                                 start_date=datetime(2012, 1, 1))
 
+
+#----------------------------------------------------------------------
+# Concat empty
+
+setup = common_setup + """
+df = DataFrame(dict(A = range(10000)),index=date_range('20130101',periods=10000,freq='s'))
+empty = DataFrame()
+"""
+
+concat_empty_frames1 = Benchmark('concat([df,empty)', setup,
+                                start_date=datetime(2012, 1, 1))
+concat_empty_frames2 = Benchmark('concat([empty,df)', setup,
+                                start_date=datetime(2012, 1, 1))
+
+
 #----------------------------------------------------------------------
 # Ordered merge
 

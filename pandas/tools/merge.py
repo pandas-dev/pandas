@@ -957,7 +957,7 @@ class _Concatenator(object):
             objs = [objs[k] for k in keys]
 
         if keys is None:
-            objs = [obj for obj in objs if obj is not None]
+            objs = [obj for obj in objs if obj is not None ]
         else:
             # #1649
             clean_keys = []
@@ -970,16 +970,25 @@ class _Concatenator(object):
             objs = clean_objs
             keys = clean_keys
 
-        if len(objs) == 0:
+        # consolidate data
+        self.objs = []
+        for obj in objs:
+            if not isinstance(obj, NDFrame):
+                raise TypeError("cannot concatenate a non-NDFrame object")
+
+            # skip completely empty
+            if not np.sum(obj.shape):
+                continue
+
+            # consolidate
+            obj.consolidate(inplace=True)
+            self.objs.append(obj)
+
+        if len(self.objs) == 0:
             raise Exception('All objects passed were None')
 
-        # consolidate data
-        for obj in objs:
-            if isinstance(obj, NDFrame):
-                obj.consolidate(inplace=True)
-        self.objs = objs
-
-        sample = objs[0]
+        # need the first as a sample non-empty as a sample
+        sample = next(obj for obj in self.objs if np.prod(obj.shape))
 
         # Need to flip BlockManager axis in the DataFrame special case
         if isinstance(sample, DataFrame):

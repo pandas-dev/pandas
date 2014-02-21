@@ -2209,10 +2209,7 @@ class NDFrameGroupBy(GroupBy):
 
             # make Nones an empty object
             if com._count_not_none(*values) != len(values):
-                v = None
-                for v in values:
-                    if v is not None:
-                        break
+                v = next(v for v in values if v is not None)
                 if v is None:
                     return DataFrame()
                 elif isinstance(v, NDFrame):
