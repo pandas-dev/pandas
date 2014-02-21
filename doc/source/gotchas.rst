@@ -88,6 +88,30 @@ which is almost always what you want anyways.
 
 See :ref:`boolean comparisons<basics.compare>` for more examples.
 
+Using the ``in`` operator
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Using the Python ``in`` operator on a Series tests for membership in the
+index, not membership among the values.
+
+.. ipython::
+
+    s = pd.Series(range(5), index=list('abcde'))
+    2 in s
+    'b' in s
+
+If this behavior is surprising, keep in mind that using ``in`` on a Python 
+dictionary tests keys, not values, and Series are dict-like.
+To test for membership in the values, use the method :func:`~pandas.Series.isin`:
+
+.. ipython::
+
+    s.isin([2])
+    s.isin([2]).any()
+
+For DataFrames, likewise, ``in`` applies to the column axis,
+testing for membership in the list of column names.
+
 ``NaN``, Integer ``NA`` values and ``NA`` type promotions
 ---------------------------------------------------------
 
