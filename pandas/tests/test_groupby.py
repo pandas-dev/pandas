@@ -961,6 +961,7 @@ class TestGroupBy(tm.TestCase):
         assert_frame_equal(stragged, aggregated, check_names=False)
 
         # transform
+        grouped = self.tsframe.head(30).groupby(lambda x: x.weekday())
         transformed = grouped.transform(lambda x: x - x.mean())
         self.assertEqual(len(transformed), 30)
         self.assertEqual(len(transformed.columns), 4)
@@ -2203,7 +2204,7 @@ class TestGroupBy(tm.TestCase):
         grouped = self.panel.groupby(lambda x: x.month, axis='major')
         agged = grouped.mean()
 
-        self.assert_numpy_array_equal(agged.major_axis, [1, 2])
+        self.assert_numpy_array_equal(agged.major_axis, sorted(list(set(self.panel.major_axis.month))))
 
         grouped = self.panel.groupby({'A': 0, 'B': 0, 'C': 1, 'D': 1},
                                      axis='minor')

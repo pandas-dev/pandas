@@ -77,9 +77,9 @@ of multi-axis indexing.
   See more at :ref:`Selection by Label <indexing.label>`
 
 - ``.iloc`` is strictly integer position based (from ``0`` to ``length-1`` of
-  the axis), will raise ``IndexError`` if a single index is requested and it
-  is out-of-bounds, otherwise it will conform the bounds to size of the object.
-  Allowed inputs are:
+  the axis), will raise ``IndexError`` if an indexer is requested and it
+  is out-of-bounds, except *slice* indexers which allow out-of-bounds indexing.
+  (this conforms with python/numpy *slice* semantics). Allowed inputs are:
 
   - An integer e.g. ``5``
   - A list or array of integers ``[4, 3, 0]``
@@ -421,19 +421,28 @@ python/numpy allow slicing past the end of an array without an associated error.
     x[4:10]
     x[8:10]
 
-- as of v0.14.0, ``iloc`` will now accept out-of-bounds indexers, e.g. a value that exceeds the length of the object being
+- as of v0.14.0, ``iloc`` will now accept out-of-bounds indexers for slices, e.g. a value that exceeds the length of the object being
   indexed. These will be excluded. This will make pandas conform more with pandas/numpy indexing of out-of-bounds
-  values. A single indexer that is out-of-bounds and drops the dimensions of the object will still raise
-  ``IndexError`` (:issue:`6296`). This could result in an empty axis (e.g. an empty DataFrame being returned)
+  values. A single indexer / list of indexers that is out-of-bounds will still raise
+  ``IndexError`` (:issue:`6296`, :issue:`6299`). This could result in an empty axis (e.g. an empty DataFrame being returned)
 
 .. ipython:: python
 
    dfl = DataFrame(np.random.randn(5,2),columns=list('AB'))
    dfl
-   dfl.iloc[[4,5,6]]
-   dfl.iloc[4:6]
    dfl.iloc[:,2:3]
    dfl.iloc[:,1:3]
+   dfl.iloc[4:6]
+
+These are out-of-bounds selections
+
+.. code-block:: python
+
+   dfl.iloc[[4,5,6]]
+   IndexError: positional indexers are out-of-bounds
+
+   dfl.iloc[:,4]
+   IndexError: single positional indexer is out-of-bounds
 
 .. _indexing.basics.partial_setting:
 
@@ -911,9 +920,9 @@ You can combine this with other expressions for very succinct queries:
    **expression itself** is evaluated in vanilla Python. For example, in the
    expression
 
-       .. code-block:: python
+   .. code-block:: python
 
-          df.query('a in b + c + d')
+      df.query('a in b + c + d')
 
    ``(b + c + d)`` is evaluated by ``numexpr`` and *then* the ``in``
    operation is evaluated in plain Python. In general, any operations that can

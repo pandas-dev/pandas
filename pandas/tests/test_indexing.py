@@ -348,17 +348,24 @@ class TestIndexing(tm.TestCase):
         # iloc should allow indexers that exceed the bounds
         df = DataFrame(np.random.random_sample((20,5)), columns=list('ABCDE'))
         expected = df
-        result = df.iloc[:,[0,1,2,3,4,5]]
-        assert_frame_equal(result,expected)
 
-        result = df.iloc[[1,30]]
-        expected = df.iloc[[1]]
-        assert_frame_equal(result,expected)
+        # lists of positions should raise IndexErrror!
+        with tm.assertRaisesRegexp(IndexError, 'positional indexers are out-of-bounds'):
+            df.iloc[:,[0,1,2,3,4,5]]
+        self.assertRaises(IndexError, lambda : df.iloc[[1,30]])
+        self.assertRaises(IndexError, lambda : df.iloc[[1,-30]])
+        self.assertRaises(IndexError, lambda : df.iloc[[100]])
 
-        result = df.iloc[[1,-30]]
-        expected = df.iloc[[1]]
-        assert_frame_equal(result,expected)
+        s = df['A']
+        self.assertRaises(IndexError, lambda : s.iloc[[100]])
+        self.assertRaises(IndexError, lambda : s.iloc[[-100]])
 
+        # still raise on a single indexer
+        with tm.assertRaisesRegexp(IndexError, 'single positional indexer is out-of-bounds'):
+            df.iloc[30]
+        self.assertRaises(IndexError, lambda : df.iloc[-30])
+
+        # slices are ok
         result = df.iloc[:,4:10]
         expected = df.iloc[:,4:]
         assert_frame_equal(result,expected)
@@ -367,34 +374,15 @@ class TestIndexing(tm.TestCase):
         expected = df.iloc[:,-4:]
         assert_frame_equal(result,expected)
 
-        result = df.iloc[[100]]
-        expected = DataFrame(columns=df.columns)
-        assert_frame_equal(result,expected)
-
-        # still raise on a single indexer
-        def f():
-            df.iloc[30]
-        self.assertRaises(IndexError, f)
-
-        s = df['A']
-        result = s.iloc[[100]]
-        expected = Series()
-        assert_series_equal(result,expected)
-
-        result = s.iloc[[-100]]
-        expected = Series()
-        assert_series_equal(result,expected)
-
-        # slice
+        # slice bounds exceeding is ok
         result = s.iloc[18:30]
         expected = s.iloc[18:]
         assert_series_equal(result,expected)
 
         # doc example
         df = DataFrame(np.random.randn(5,2),columns=list('AB'))
-        result = df.iloc[[4,5,6]]
-        expected = df.iloc[[4]]
-        assert_frame_equal(result,expected)
+        self.assertRaises(IndexError, lambda : df.iloc[[4,5,6]])
+        self.assertRaises(IndexError, lambda : df.iloc[:,4])
 
         result = df.iloc[4:6]
         expected = df.iloc[[4]]
