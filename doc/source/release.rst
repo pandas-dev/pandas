@@ -3754,7 +3754,7 @@ Improvements to existing features
   aggregation with axis != 0
 
 API Changes
-~~~~~~~~~
+~~~~~~~~~~~
 
 Bug Fixes
 ~~~~~~~~~
