@@ -1376,7 +1376,7 @@ class _iLocIndexer(_LocationIndexer):
                 arr = np.array(key)
                 l = len(ax)
                 if len(arr) and (arr.max() >= l or arr.min() <= -l):
-                    key = arr[(arr>-l) & (arr<l)]
+                    raise IndexError("positional indexers are out-of-bounds")
 
                 # force an actual list
                 key = list(key)
@@ -1389,7 +1389,7 @@ class _iLocIndexer(_LocationIndexer):
                                     "non-integer key")
 
                 if key > len(ax):
-                    raise IndexError("single indexer is out-of-bounds")
+                    raise IndexError("single positional indexer is out-of-bounds")
 
             return self._get_loc(key, axis=axis)
 
