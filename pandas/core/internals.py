@@ -2695,22 +2695,31 @@ class BlockManager(PandasObject):
         return bm
 
     def _slice_blocks(self, slobj, axis):
-        new_blocks = []
+        """
+        slice the blocks using the provided slice object
+        this is only for slicing on axis != 0
+        """
+
+        if axis == 0:
+            raise AssertionError("cannot _slice_blocks on axis=0")
 
         slicer = [slice(None, None) for _ in range(self.ndim)]
         slicer[axis] = slobj
         slicer = tuple(slicer)
+        is_unique = self.axes[0].is_unique
 
-        for block in self.blocks:
-            newb = make_block(block._slice(slicer),
-                              block.items,
-                              block.ref_items,
-                              klass=block.__class__,
-                              fastpath=True,
-                              placement=block._ref_locs)
-            newb.set_ref_locs(block._ref_locs)
-            new_blocks.append(newb)
-        return new_blocks
+        def place(block):
+            if not is_unique:
+                return block._ref_locs
+            return None
+
+        return [ make_block(block._slice(slicer),
+                            block.items,
+                            block.ref_items,
+                            klass=block.__class__,
+                            fastpath=True,
+                            placement=place(block)
+                            ) for block in self.blocks ]
 
     def get_series_dict(self):
         # For DataFrame
