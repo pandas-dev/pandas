@@ -380,21 +380,19 @@ class TestIndexing(tm.TestCase):
         assert_series_equal(result,expected)
 
         # doc example
-        df = DataFrame(np.random.randn(5,2),columns=list('AB'))
-        self.assertRaises(IndexError, lambda : df.iloc[[4,5,6]])
-        self.assertRaises(IndexError, lambda : df.iloc[:,4])
+        def check(result,expected):
+            str(result)
+            result.dtypes
+            assert_frame_equal(result,expected)
 
-        result = df.iloc[4:6]
-        expected = df.iloc[[4]]
-        assert_frame_equal(result,expected)
+        dfl = DataFrame(np.random.randn(5,2),columns=list('AB'))
+        check(dfl.iloc[:,2:3],DataFrame(index=dfl.index))
+        check(dfl.iloc[:,1:3],dfl.iloc[:,[1]])
+        check(dfl.iloc[4:6],dfl.iloc[[4]])
 
-        result = df.iloc[:,2:3]
-        expected = DataFrame(index=df.index)
-        assert_frame_equal(result,expected)
+        self.assertRaises(IndexError, lambda : dfl.iloc[[4,5,6]])
+        self.assertRaises(IndexError, lambda : dfl.iloc[:,4])
 
-        result = df.iloc[:,1:3]
-        expected = df.iloc[:,[1]]
-        assert_frame_equal(result,expected)
 
     def test_iloc_getitem_int(self):
 
