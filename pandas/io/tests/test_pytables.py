@@ -2371,8 +2371,11 @@ class TestHDFStore(tm.TestCase):
 
             wp = tm.makePanel()
             p4d = tm.makePanel4D()
+            wpneg = Panel.fromDict({-1: tm.makeDataFrame(), 0: tm.makeDataFrame(),
+                                    1: tm.makeDataFrame()})
             store.put('wp', wp, table=True)
             store.put('p4d', p4d, table=True)
+            store.put('wpneg', wpneg, table=True)
 
             # panel
             result = store.select('wp', [Term(
@@ -2432,6 +2435,18 @@ class TestHDFStore(tm.TestCase):
 
             for t in terms:
                 store.select('p4d', t)
+
+            with tm.assertRaisesRegexp(TypeError, 'Only named functions are supported'):
+                store.select('wp', Term('major_axis == (lambda x: x)("20130101")'))
+
+            # check USub node parsing
+            res = store.select('wpneg', Term('items == -1'))
+            expected = Panel({-1: wpneg[-1]})
+            tm.assert_panel_equal(res, expected)
+
+            with tm.assertRaisesRegexp(NotImplementedError,
+                                       'Unary addition not supported'):
+                store.select('wpneg', Term('items == +1'))
 
     def test_term_compat(self):
         with ensure_clean_store(self.path) as store:
@@ -3828,6 +3843,10 @@ class TestHDFStore(tm.TestCase):
             crit = Term('columns=df.columns[:75]')
             result = store.select('frame', [crit])
             tm.assert_frame_equal(result, df.ix[:, df.columns[:75]])
+
+            crit = Term('columns=df.columns[:75:2]')
+            result = store.select('frame', [crit])
+            tm.assert_frame_equal(result, df.ix[:, df.columns[:75:2]])
 
     def _check_roundtrip(self, obj, comparator, compression=False, **kwargs):
 

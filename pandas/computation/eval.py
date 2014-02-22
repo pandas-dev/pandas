@@ -69,8 +69,8 @@ def _check_resolvers(resolvers):
         for resolver in resolvers:
             if not hasattr(resolver, '__getitem__'):
                 name = type(resolver).__name__
-                raise AttributeError('Resolver of type {0!r} must implement '
-                                     'the __getitem__ method'.format(name))
+                raise TypeError('Resolver of type %r does not implement '
+                                'the __getitem__ method' % name)
 
 
 def _check_expression(expr):
