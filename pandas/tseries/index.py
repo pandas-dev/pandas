@@ -144,6 +144,7 @@ class DatetimeIndex(Int64Index):
 
     _engine_type = _index.DatetimeEngine
 
+    tz = None
     offset = None
     _comparables = ['name','freqstr','tz']
     _allow_datetime_index_ops = True
