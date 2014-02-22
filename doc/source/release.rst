@@ -105,6 +105,8 @@ API Changes
 - ``NameResolutionError`` was removed because it isn't necessary anymore.
 - ``concat`` will now concatenate mixed Series and DataFrames using the Series name
   or numbering columns as needed (:issue:`2385`)
+- Slicing and advanced/boolean indexing operations on ``Index`` classes will no
+  longer change type of the resulting index (:issue:`6440`).
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~

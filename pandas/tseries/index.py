@@ -1406,8 +1406,6 @@ class DatetimeIndex(Int64Index):
 
             return self._simple_new(result, self.name, new_offset, self.tz)
 
-    _getitem_slice = __getitem__
-
     # Try to run function on index first, and then on elements of index
     # Especially important for group-by functionality
     def map(self, f):

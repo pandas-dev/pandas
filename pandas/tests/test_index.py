@@ -323,6 +323,25 @@ class TestIndex(tm.TestCase):
         for i in sl:
             self.assertEqual(i, sl[sl.get_loc(i)])
 
+    def test_empty_fancy(self):
+        empty_farr = np.array([], dtype=np.float_)
+        empty_iarr = np.array([], dtype=np.int_)
+        empty_barr = np.array([], dtype=np.bool_)
+
+        # pd.DatetimeIndex is excluded, because it overrides getitem and should
+        # be tested separately.
+        for idx in [self.strIndex, self.intIndex, self.floatIndex]:
+            empty_idx = idx.__class__([])
+            values = idx.values
+
+            self.assert_(idx[[]].identical(empty_idx))
+            self.assert_(idx[empty_iarr].identical(empty_idx))
+            self.assert_(idx[empty_barr].identical(empty_idx))
+
+            # np.ndarray only accepts ndarray of int & bool dtypes, so should
+            # Index.
+            self.assertRaises(IndexError, idx.__getitem__, empty_farr)
+
     def test_getitem(self):
         arr = np.array(self.dateIndex)
         exp = self.dateIndex[5]
@@ -761,6 +780,14 @@ class TestIndex(tm.TestCase):
                 res = getattr(self, '{0}Index'.format(index_kind))
                 joined = res.join(res, how=kind)
                 self.assertIs(res, joined)
+
+    def test_indexing_doesnt_change_class(self):
+        idx = Index([1, 2, 3, 'a', 'b', 'c'])
+
+        self.assert_(idx[1:3].identical(
+            pd.Index([2, 3], dtype=np.object_)))
+        self.assert_(idx[[0,1]].identical(
+            pd.Index([1, 2], dtype=np.object_)))
 
 
 class TestFloat64Index(tm.TestCase):
