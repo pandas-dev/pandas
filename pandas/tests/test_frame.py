@@ -12796,6 +12796,16 @@ class TestDataFrameQueryNumExprPandas(tm.TestCase):
         expected = df[df.a == "@c"]
         tm.assert_frame_equal(result, expected)
 
+    def test_query_undefined_local(self):
+        from pandas.computation.ops import UndefinedVariableError
+        engine, parser = self.engine, self.parser
+        skip_if_no_pandas_parser(parser)
+        df = DataFrame(np.random.rand(10, 2), columns=list('ab'))
+        with tm.assertRaisesRegexp(UndefinedVariableError,
+                                   "local variable 'c' is not defined"):
+            df.query('a == @c', engine=engine, parser=parser)
+
+
 class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
 
     @classmethod

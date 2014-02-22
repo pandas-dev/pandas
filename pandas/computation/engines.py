@@ -126,7 +126,6 @@ class NumExprEngine(AbstractEngine):
             raise UndefinedVariableError(msg)
 
 
-
 class PythonEngine(AbstractEngine):
 
     """Evaluate an expression in Python space.

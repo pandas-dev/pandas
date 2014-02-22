@@ -34,40 +34,6 @@ def _zip_axes_from_type(typ, new_axes):
     return axes
 
 
-def _maybe_promote_shape(values, naxes):
-    # test to see if we have an array else leave since must be a number
-    if not isinstance(values, np.ndarray):
-        return values
-
-    ndims = values.ndim
-    if ndims > naxes:
-        raise AssertionError('cannot have more dims than axes, '
-                             '{0} > {1}'.format(ndims, naxes))
-    if ndims == naxes:
-        return values
-
-    ndim, nax = range(ndims), range(naxes)
-
-    axes_slice = [slice(None)] * naxes
-
-    # set difference of numaxes and ndims
-    slices = list(set(nax) - set(ndim))
-
-    if ndims == naxes:
-        if slices:
-            raise AssertionError('slices should be empty if ndims == naxes '
-                                 '{0}'.format(slices))
-    else:
-        if not slices:
-            raise AssertionError('slices should NOT be empty if ndim != naxes '
-                                 '{0}'.format(slices))
-
-    for sl in slices:
-        axes_slice[sl] = np.newaxis
-
-    return values[tuple(axes_slice)]
-
-
 def _any_pandas_objects(terms):
     """Check a sequence of terms for instances of PandasObject."""
     return any(isinstance(term.value, pd.core.generic.PandasObject)
@@ -83,12 +49,7 @@ def _filter_special_cases(f):
 
         term_values = (term.value for term in terms)
 
-        # only scalars or indexes
-        if all(isinstance(term.value, pd.Index) or term.isscalar for term in
-               terms):
-            return _result_type_many(*term_values), None
-
-        # no pandas objects
+        # we don't have any pandas objects
         if not _any_pandas_objects(terms):
             return _result_type_many(*term_values), None
 
@@ -148,42 +109,11 @@ def _align_core(terms):
                     f = partial(ti.reindex_axis, reindexer, axis=axis,
                                 copy=False)
 
-                # need  to fill if we have a bool dtype/array
-                if (isinstance(ti, (np.ndarray, pd.Series))
-                        and ti.dtype == object
-                        and pd.lib.is_bool_array(ti.values)):
-                    r = f(fill_value=True)
-                else:
-                    r = f()
+                terms[i].update(f())
 
-                terms[i].update(r)
-
-        res = _maybe_promote_shape(terms[i].value.T if transpose else
-                                   terms[i].value, naxes)
-        res = res.T if transpose else res
-
-        try:
-            v = res.values
-        except AttributeError:
-            v = res
-        terms[i].update(v)
+        terms[i].update(terms[i].value.values)
 
     return typ, _zip_axes_from_type(typ, axes)
-
-
-def _filter_terms(flat):
-    # numeric literals
-    literals = frozenset(filter(lambda x: isinstance(x, Constant), flat))
-
-    # these are strings which are variable names
-    names = frozenset(flat) - literals
-
-    # literals are not names and names are not literals, so intersection should
-    # be empty
-    if literals & names:
-        raise ValueError('literals cannot be names and names cannot be '
-                         'literals')
-    return names, literals
 
 
 def _align(terms):
@@ -231,10 +161,7 @@ def _reconstruct_object(typ, obj, axes, dtype):
     except AttributeError:
         pass
 
-    try:
-        res_t = np.result_type(obj.dtype, dtype)
-    except AttributeError:
-        res_t = dtype
+    res_t = np.result_type(obj.dtype, dtype)
 
     if (not isinstance(typ, partial) and
             issubclass(typ, pd.core.generic.PandasObject)):
