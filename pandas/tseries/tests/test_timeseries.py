@@ -170,7 +170,7 @@ class TestTimeSeriesDuplicates(tm.TestCase):
 
             pos = n * 3
             timestamp = df.index[pos]
-            self.assert_(timestamp in df.index)
+            self.assertIn(timestamp, df.index)
 
             # it works!
             df.ix[timestamp]
@@ -1034,7 +1034,7 @@ class TestTimeSeries(tm.TestCase):
         try:
             index.get_loc('1/1/2000')
         except KeyError as e:
-            self.assert_('2000' in str(e))
+            self.assertIn('2000', str(e))
 
     def test_reindex_with_datetimes(self):
         rng = date_range('1/1/2000', periods=20)
@@ -1521,7 +1521,7 @@ class TestTimeSeries(tm.TestCase):
         iso8601 = '1850-01-01 01:23:45.012345'
         stamp = Timestamp(iso8601, tz='US/Eastern')
         result = repr(stamp)
-        self.assert_(iso8601 in result)
+        self.assertIn(iso8601, result)
 
     def test_timestamp_from_ordinal(self):
 
@@ -1742,7 +1742,7 @@ class TestTimeSeries(tm.TestCase):
         df = DataFrame(np.random.randn(10, 4), index=rng)
 
         result = df.to_html()
-        self.assert_('2000-01-01' in result)
+        self.assertIn('2000-01-01', result)
 
     def test_to_csv_numpy_16_bug(self):
         frame = DataFrame({'a': date_range('1/1/2000', periods=10)})
@@ -1751,7 +1751,7 @@ class TestTimeSeries(tm.TestCase):
         frame.to_csv(buf)
 
         result = buf.getvalue()
-        self.assert_('2000-01-01' in result)
+        self.assertIn('2000-01-01', result)
 
     def test_series_map_box_timestamps(self):
         # #2689, #2627

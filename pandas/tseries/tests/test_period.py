@@ -53,7 +53,7 @@ class TestPeriodProperties(tm.TestCase):
         for month in MONTHS:
             freq = 'Q-%s' % month
             exp = Period('1989Q3', freq=freq)
-            self.assert_('1989Q3' in str(exp))
+            self.assertIn('1989Q3', str(exp))
             stamp = exp.to_timestamp('D', how='end')
             p = Period(stamp, freq=freq)
             self.assertEquals(p, exp)
@@ -203,10 +203,10 @@ class TestPeriodProperties(tm.TestCase):
 
     def test_repr(self):
         p = Period('Jan-2000')
-        self.assert_('2000-01' in repr(p))
+        self.assertIn('2000-01', repr(p))
 
         p = Period('2000-12-15')
-        self.assert_('2000-12-15' in repr(p))
+        self.assertIn('2000-12-15', repr(p))
 
     def test_millisecond_repr(self):
         p = Period('2000-01-01 12:15:02.123')

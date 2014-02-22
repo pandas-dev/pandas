@@ -1200,15 +1200,15 @@ class TestSparseDataFrame(tm.TestCase, test_frame.SafeForSparse):
         C = self.frame['C']
 
         del self.frame['B']
-        self.assert_('B' not in self.frame)
+        self.assertNotIn('B', self.frame)
         assert_sp_series_equal(self.frame['A'], A)
         assert_sp_series_equal(self.frame['C'], C)
 
         del self.frame['D']
-        self.assert_('D' not in self.frame)
+        self.assertNotIn('D', self.frame)
 
         del self.frame['A']
-        self.assert_('A' not in self.frame)
+        self.assertNotIn('A', self.frame)
 
     def test_set_columns(self):
         self.frame.columns = self.frame.columns
@@ -1372,11 +1372,11 @@ class TestSparseDataFrame(tm.TestCase, test_frame.SafeForSparse):
         # with copy=False
         reindexed = self.frame.reindex(self.frame.index, copy=False)
         reindexed['F'] = reindexed['A']
-        self.assert_('F' in self.frame)
+        self.assertIn('F', self.frame)
 
         reindexed = self.frame.reindex(self.frame.index)
         reindexed['G'] = reindexed['A']
-        self.assert_('G' not in self.frame)
+        self.assertNotIn('G', self.frame)
 
     def test_reindex_fill_value(self):
         rng = bdate_range('20110110', periods=20)
@@ -1702,7 +1702,7 @@ class TestSparsePanel(tm.TestCase,
         # test copying
         cp = self.panel.reindex(self.panel.major_axis, copy=True)
         cp['ItemA']['E'] = cp['ItemA']['A']
-        self.assert_('E' not in self.panel['ItemA'])
+        self.assertNotIn('E', self.panel['ItemA'])
 
     def test_operators(self):
         def _check_ops(panel):

@@ -365,18 +365,18 @@ class TestHDFStore(tm.TestCase):
             store['a'] = tm.makeTimeSeries()
             store['b'] = tm.makeDataFrame()
             store['foo/bar'] = tm.makeDataFrame()
-            self.assert_('a' in store)
-            self.assert_('b' in store)
-            self.assert_('c' not in store)
-            self.assert_('foo/bar' in store)
-            self.assert_('/foo/bar' in store)
-            self.assert_('/foo/b' not in store)
-            self.assert_('bar' not in store)
+            self.assertIn('a', store)
+            self.assertIn('b', store)
+            self.assertNotIn('c', store)
+            self.assertIn('foo/bar', store)
+            self.assertIn('/foo/bar', store)
+            self.assertNotIn('/foo/b', store)
+            self.assertNotIn('bar', store)
 
             # GH 2694
             warnings.filterwarnings('ignore', category=tables.NaturalNameWarning)
             store['node())'] = tm.makeDataFrame()
-            self.assert_('node())' in store)
+            self.assertIn('node())', store)
 
     def test_versioning(self):
 
@@ -3875,10 +3875,10 @@ class TestHDFStore(tm.TestCase):
 
             # single
             store = HDFStore(path)
-            self.assert_('CLOSED' not in str(store))
+            self.assertNotIn('CLOSED', str(store))
             self.assert_(store.is_open)
             store.close()
-            self.assert_('CLOSED' in str(store))
+            self.assertIn('CLOSED', str(store))
             self.assert_(not store.is_open)
 
         with ensure_clean_path(self.path) as path:
@@ -3898,20 +3898,20 @@ class TestHDFStore(tm.TestCase):
                 store1 = HDFStore(path)
                 store2 = HDFStore(path)
 
-                self.assert_('CLOSED' not in str(store1))
-                self.assert_('CLOSED' not in str(store2))
+                self.assertNotIn('CLOSED', str(store1))
+                self.assertNotIn('CLOSED', str(store2))
                 self.assert_(store1.is_open)
                 self.assert_(store2.is_open)
 
                 store1.close()
-                self.assert_('CLOSED' in str(store1))
+                self.assertIn('CLOSED', str(store1))
                 self.assert_(not store1.is_open)
-                self.assert_('CLOSED' not in str(store2))
+                self.assertNotIn('CLOSED', str(store2))
                 self.assert_(store2.is_open)
 
                 store2.close()
-                self.assert_('CLOSED' in str(store1))
-                self.assert_('CLOSED' in str(store2))
+                self.assertIn('CLOSED', str(store1))
+                self.assertIn('CLOSED', str(store2))
                 self.assert_(not store1.is_open)
                 self.assert_(not store2.is_open)
 
@@ -3922,11 +3922,11 @@ class TestHDFStore(tm.TestCase):
                 store2 = HDFStore(path)
                 store2.append('df2',df)
                 store2.close()
-                self.assert_('CLOSED' in str(store2))
+                self.assertIn('CLOSED', str(store2))
                 self.assert_(not store2.is_open)
 
                 store.close()
-                self.assert_('CLOSED' in str(store))
+                self.assertIn('CLOSED', str(store))
                 self.assert_(not store.is_open)
 
                 # double closing
@@ -3935,11 +3935,11 @@ class TestHDFStore(tm.TestCase):
 
                 store2 = HDFStore(path)
                 store.close()
-                self.assert_('CLOSED' in str(store))
+                self.assertIn('CLOSED', str(store))
                 self.assert_(not store.is_open)
 
                 store2.close()
-                self.assert_('CLOSED' in str(store2))
+                self.assertIn('CLOSED', str(store2))
                 self.assert_(not store2.is_open)
 
         # ops on a closed store

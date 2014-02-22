@@ -269,7 +269,7 @@ class TestTimeZoneSupport(tm.TestCase):
         # right tzinfo
         rng = date_range('3/13/2012', '3/14/2012', freq='H', tz='utc')
         rng_eastern = rng.tz_convert('US/Eastern')
-        self.assert_('EDT' in repr(rng_eastern[0].tzinfo))
+        self.assertIn('EDT', repr(rng_eastern[0].tzinfo))
 
     def test_timestamp_tz_convert(self):
         strdates = ['1/1/2012', '3/1/2012', '4/1/2012']
@@ -426,7 +426,7 @@ class TestTimeZoneSupport(tm.TestCase):
         rng_eastern = rng.tz_localize('US/Eastern')
 
         rng_repr = repr(rng_eastern)
-        self.assert_('2010-04-13 00:00:00' in rng_repr)
+        self.assertIn('2010-04-13 00:00:00', rng_repr)
 
     def test_index_astype_asobject_tzinfos(self):
         # #1345

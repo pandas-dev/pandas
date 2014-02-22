@@ -499,10 +499,10 @@ class TestReadHtml(tm.TestCase):
         with open(self.banklist_data, 'r') as f:
             raw_text = f.read()
 
-        self.assert_(gc in raw_text)
+        self.assertIn(gc, raw_text)
         df = self.read_html(self.banklist_data, 'Gold Canyon',
                                 attrs={'id': 'table'})[0]
-        self.assert_(gc in df.to_string())
+        self.assertIn(gc, df.to_string())
 
     def test_different_number_of_rows(self):
         expected = """<table border="1" class="dataframe">

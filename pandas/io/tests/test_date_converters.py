@@ -49,7 +49,7 @@ date, time, a, b
         datecols = {'date_time': [0, 1]}
         df = read_table(StringIO(data), sep=',', header=0,
                         parse_dates=datecols, date_parser=conv.parse_date_time)
-        self.assert_('date_time' in df)
+        self.assertIn('date_time', df)
         self.assertEqual(df.date_time.ix[0], datetime(2001, 1, 5, 10, 0, 0))
 
         data = ("KORD,19990127, 19:00:00, 18:56:00, 0.8100\n"
@@ -73,7 +73,7 @@ date, time, a, b
         df = read_table(StringIO(data), sep=',', header=0,
                         parse_dates=datecols,
                         date_parser=conv.parse_date_fields)
-        self.assert_('ymd' in df)
+        self.assertIn('ymd', df)
         self.assertEqual(df.ymd.ix[0], datetime(2001, 1, 10))
 
     def test_datetime_six_col(self):
@@ -90,7 +90,7 @@ year, month, day, hour, minute, second, a, b
         df = read_table(StringIO(data), sep=',', header=0,
                         parse_dates=datecols,
                         date_parser=conv.parse_all_fields)
-        self.assert_('ymdHMS' in df)
+        self.assertIn('ymdHMS', df)
         self.assertEqual(df.ymdHMS.ix[0], datetime(2001, 1, 5, 10, 0, 0))
 
     def test_datetime_fractional_seconds(self):
@@ -103,7 +103,7 @@ year, month, day, hour, minute, second, a, b
         df = read_table(StringIO(data), sep=',', header=0,
                         parse_dates=datecols,
                         date_parser=conv.parse_all_fields)
-        self.assert_('ymdHMS' in df)
+        self.assertIn('ymdHMS', df)
         self.assertEqual(df.ymdHMS.ix[0], datetime(2001, 1, 5, 10, 0, 0,
                                                    microsecond=123456))
         self.assertEqual(df.ymdHMS.ix[1], datetime(2001, 1, 5, 10, 0, 0,
@@ -116,7 +116,7 @@ year, month, day, hour, minute, second, a, b
         df = read_table(StringIO(data), sep=',', header=0,
                         parse_dates=datecols,
                         date_parser=dateconverter)
-        self.assert_('ym' in df)
+        self.assertIn('ym', df)
         self.assertEqual(df.ym.ix[0], date(2001, 1, 1))
 
 
