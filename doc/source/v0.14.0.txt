@@ -78,6 +78,21 @@ These are out-of-bounds selections
 - ``NameResolutionError`` was removed because it isn't necessary anymore.
 - ``concat`` will now concatenate mixed Series and DataFrames using the Series name
   or numbering columns as needed (:issue:`2385`). See :ref:`the docs <merging.mixed_ndims>`
+- Slicing and advanced/boolean indexing operations on ``Index`` classes will no
+  longer change type of the resulting index (:issue:`6440`)
+
+  .. ipython:: python
+
+     i = pd.Index([1, 2, 3, 'a' , 'b', 'c'])
+     i[[0,1,2]]
+
+  Previously, the above operation would return ``Int64Index``.  If you'd like
+  to do this manually, use :meth:`Index.astype`
+
+  .. ipython:: python
+
+     i[[0,1,2]].astype(np.int_)
+
 
 MultiIndexing Using Slicers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~

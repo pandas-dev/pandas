@@ -3737,7 +3737,7 @@ class SingleBlockManager(BlockManager):
         if raise_on_error:
             _check_slice_bounds(slobj, self.index)
         return self.__class__(self._block._slice(slobj),
-                              self.index._getitem_slice(slobj), fastpath=True)
+                              self.index[slobj], fastpath=True)
 
     def set_axis(self, axis, value, maybe_rename=True, check_axis=True):
         cur_axis, value = self._set_axis(axis, value, check_axis)
