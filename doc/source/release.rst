@@ -169,6 +169,7 @@ Bug Fixes
 - Bug in :meth:`DataFrame.replace` where nested dicts were erroneously
   depending on the order of dictionary keys and values (:issue:`5338`).
 - Perf issue in concatting with empty objects (:issue:`3259`)
+- Clarify sorting of ``sym_diff`` on ``Index``es with ``NaN``s (:isssue:`6444`)
 
 pandas 0.13.1
 -------------
