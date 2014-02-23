@@ -11,6 +11,8 @@ Highlights include:
 
 - MultIndexing Using Slicers
 - Joining a singly-indexed DataFrame with a multi-indexed DataFrame
+- Added a ``to_julian_date`` function to ``TimeStamp`` and ``DatetimeIndex``
+  to convert to the Julian Date used primarily in astronomy. 
 
 API changes
 ~~~~~~~~~~~
