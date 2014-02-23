@@ -186,7 +186,7 @@ class Scope(StringMixin):
                 # e.g., df[df > 0]
                 return self.temps[key]
             except KeyError:
-                raise UndefinedVariableError(key)
+                raise UndefinedVariableError(key, is_local)
 
     def swapkey(self, old_key, new_key, new_value=None):
         """Replace a variable name, with a potentially new value.
@@ -209,12 +209,8 @@ class Scope(StringMixin):
 
         for mapping in maps:
             if old_key in mapping:
-                if new_value is None:
-                    mapping[new_key] = mapping.pop(old_key)
-                else:
-                    mapping[new_key] = new_value
+                mapping[new_key] = new_value
                 return
-        raise KeyError(old_key)
 
     def _get_vars(self, stack, scopes):
         """Get specifically scoped variables from a list of stack frames.

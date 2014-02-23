@@ -29,13 +29,12 @@ class UndefinedVariableError(NameError):
 
     """NameError subclass for local variables."""
 
-    def __init__(self, *args):
-        msg = 'name {0!r} is not defined'
-        subbed = args[0].replace(_LOCAL_TAG, '')
-        if subbed != args[0]:
-            subbed = '@' + subbed
+    def __init__(self, name, is_local):
+        if is_local:
             msg = 'local variable {0!r} is not defined'
-        super(UndefinedVariableError, self).__init__(msg.format(subbed))
+        else:
+            msg = 'name {0!r} is not defined'
+        super(UndefinedVariableError, self).__init__(msg.format(name))
 
 
 class Term(StringMixin):
@@ -73,11 +72,6 @@ class Term(StringMixin):
         res = self.env.resolve(self.local_name, is_local=self.is_local)
         self.update(res)
 
-        if res is None:
-            if not isinstance(key, string_types):
-                return key
-            raise UndefinedVariableError(key)
-
         if hasattr(res, 'ndim') and res.ndim > 2:
             raise NotImplementedError("N-dimensional objects, where N > 2,"
                                       " are not supported with eval")
@@ -97,10 +91,7 @@ class Term(StringMixin):
 
         # if it's a variable name (otherwise a constant)
         if isinstance(key, string_types):
-            try:
-                self.env.swapkey(self.local_name, key, new_value=value)
-            except KeyError:
-                raise UndefinedVariableError(key)
+            self.env.swapkey(self.local_name, key, new_value=value)
 
         self.value = value
 
@@ -156,10 +147,7 @@ class Term(StringMixin):
 
     @property
     def ndim(self):
-        try:
-            return self._value.ndim
-        except AttributeError:
-            return 0
+        return self._value.ndim
 
 
 class Constant(Term):

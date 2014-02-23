@@ -67,10 +67,6 @@ class Constant(Term):
     def _resolve_name(self):
         return self._name
 
-    @property
-    def name(self):
-        return self._value
-
 
 class BinOp(ops.BinOp):
 
@@ -233,9 +229,6 @@ class FilterBinOp(BinOp):
 
     def evaluate(self):
 
-        if not isinstance(self.lhs, string_types):
-            return self
-
         if not self.is_valid:
             raise ValueError("query term is not valid [%s]" % self)
 
@@ -306,9 +299,6 @@ class ConditionBinOp(BinOp):
         return self.condition
 
     def evaluate(self):
-
-        if not isinstance(self.lhs, string_types):
-            return self
 
         if not self.is_valid:
             raise ValueError("query term is not valid [%s]" % self)
@@ -389,9 +379,6 @@ class ExprVisitor(BaseExprVisitor):
             return self.const_type(-self.visit(node.operand).value, self.env)
         elif isinstance(node.op, ast.UAdd):
             raise NotImplementedError('Unary addition not supported')
-
-    def visit_USub(self, node, **kwargs):
-        return self.const_type(-self.visit(node.operand).value, self.env)
 
     def visit_Index(self, node, **kwargs):
         return self.visit(node.value).value

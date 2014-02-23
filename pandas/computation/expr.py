@@ -308,9 +308,6 @@ class BaseExprVisitor(ast.NodeVisitor):
         if isinstance(node, string_types):
             clean = self.preparser(node)
             node = ast.fix_missing_locations(ast.parse(clean))
-        elif not isinstance(node, ast.AST):
-            raise TypeError("Cannot visit objects of type {0!r}"
-                            "".format(node.__class__.__name__))
 
         method = 'visit_' + node.__class__.__name__
         visitor = getattr(self, method)
@@ -533,7 +530,7 @@ class BaseExprVisitor(ast.NodeVisitor):
 
         args = [self.visit(targ).value for targ in node.args]
         if node.starargs is not None:
-            args = args + self.visit(node.starargs).value
+            args += self.visit(node.starargs).value
 
         keywords = {}
         for key in node.keywords:
@@ -650,10 +647,6 @@ class Expr(StringMixin):
     def parse(self):
         """Parse an expression"""
         return self._visitor.visit(self.expr)
-
-    def align(self):
-        """align a set of Terms"""
-        return self.terms.align(self.env)
 
     @property
     def names(self):
