@@ -550,7 +550,6 @@ class TestStringMethods(tm.TestCase):
 
         # GH6348
         # not passing index to the extractor
-        import pdb; pdb.set_trace()
         def check_index(index):
             data = ['A1', 'B2', 'C']
             index = index[:len(data)]
