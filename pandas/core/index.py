@@ -1045,6 +1045,9 @@ class Index(IndexOpsMixin, FrozenNDArray):
         ``idx2`` but not both. Equivalent to the Index created by
         ``(idx1 - idx2) + (idx2 - idx1)`` with duplicates dropped.
 
+        The sorting of a result containing ``NaN``s is not guaranteed
+        across Python versions. See GitHub issue #6444.
+
         Examples
         --------
         >>> idx1 = Index([1, 2, 3, 4])
@@ -1066,7 +1069,6 @@ class Index(IndexOpsMixin, FrozenNDArray):
 
         the_diff = sorted(set((self - other) + (other - self)))
         return Index(the_diff, name=result_name)
-
 
     def unique(self):
         """
