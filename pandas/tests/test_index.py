@@ -493,13 +493,16 @@ class TestIndex(tm.TestCase):
         self.assert_(tm.equalContents(result, expected))
 
         # nans:
-        idx1 = Index([1, 2, np.nan])
+        # GH #6444, sorting of nans. Make sure the number of nans is right
+        # and the correct non-nan values are there. punt on sorting.
+        idx1 = Index([1, 2, 3, np.nan])
         idx2 = Index([0, 1, np.nan])
         result = idx1.sym_diff(idx2)
-        expected = Index([0.0, np.nan, 2.0, np.nan])  # oddness with nans
-        nans = pd.isnull(expected)
-        self.assert_(pd.isnull(result[nans]).all())
-        self.assert_(tm.equalContents(result[~nans], expected[~nans]))
+        # expected = Index([0.0, np.nan, 2.0, 3.0, np.nan])
+        nans = pd.isnull(result)
+        self.assertEqual(nans.sum(), 2)
+        self.assertEqual((~nans).sum(), 3)
+        [self.assertIn(x, result) for x in [0.0, 2.0, 3.0]]
 
         # other not an Index:
         idx1 = Index([1, 2, 3, 4], name='idx1')
