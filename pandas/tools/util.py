@@ -29,7 +29,7 @@ def cartesian_product(X):
 
     b = cumprodX[-1] / cumprodX
 
-    return [np.tile(np.repeat(x, b[i]),
+    return [np.tile(np.repeat(np.asarray(x), b[i]),
                     np.product(a[i]))
                for i, x in enumerate(X)]
 
