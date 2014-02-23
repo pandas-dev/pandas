@@ -547,6 +547,18 @@ class TestStringMethods(tm.TestCase):
         result = Series(['A1', 'B2', 'C']).str.extract('(?P<letter>[ABC])(?P<number>[123])?')
         exp = DataFrame([['A', '1'], ['B', '2'], ['C', NA]], columns=['letter', 'number'])
         tm.assert_frame_equal(result, exp)
+        
+        index = date_range('2014-2-10', '2014-2-12')
+        result = Series(['A1', 'B2', 'c'], index=index).str.extract('(\d)') 
+        exp = Series(['1', '2', NA], index=index)
+        tm.assert_series_equal(result, exp) 
+     
+        index = date_range('2014-2-10', '2014-2-12')
+        result = Series(['A1', 'B2', 'C'], index=index).str.extract('(?P<letter>\D)(?P<number>\d)?') 
+        exp = DataFrame([['A', '1'], ['B', '2'], ['C', NA]], columns=['letter', 'number'], index=index)
+        tm.assert_frame_equal(result, exp) 
+
+
 
         # GH6348
         # not passing index to the extractor
