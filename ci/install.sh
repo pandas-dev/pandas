@@ -57,7 +57,7 @@ if [ -n "$NUMPY_BUILD" ]; then
     pip uninstall numpy -y
 
     # clone & install
-    git clone --branch master https://github.com/numpy/numpy.git numpy
+    git clone --branch $NUMPY_BUILD https://github.com/numpy/numpy.git numpy
     cd numpy
     time sudo python setup.py install
 
