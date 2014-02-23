@@ -547,7 +547,9 @@ class TestStringMethods(tm.TestCase):
         result = Series(['A1', 'B2', 'C']).str.extract('(?P<letter>[ABC])(?P<number>[123])?')
         exp = DataFrame([['A', '1'], ['B', '2'], ['C', NA]], columns=['letter', 'number'])
         tm.assert_frame_equal(result, exp)
-        
+
+        # GH6348
+        # not passing index to the extractor
         def check_index(index):
             data = ['A1', 'B2', 'C']
             index = index[:len(data)]
