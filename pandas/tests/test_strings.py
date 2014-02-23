@@ -548,6 +548,25 @@ class TestStringMethods(tm.TestCase):
         exp = DataFrame([['A', '1'], ['B', '2'], ['C', NA]], columns=['letter', 'number'])
         tm.assert_frame_equal(result, exp)
 
+        # GH6348
+        # not passing index to the extractor
+        import pdb; pdb.set_trace()
+        def check_index(index):
+            data = ['A1', 'B2', 'C']
+            index = index[:len(data)]
+            result = Series(data, index=index).str.extract('(\d)')
+            exp = Series(['1', '2', NA], index=index)
+            tm.assert_series_equal(result, exp)
+
+            result = Series(data, index=index).str.extract('(?P<letter>\D)(?P<number>\d)?')
+            exp = DataFrame([['A', '1'], ['B', '2'], ['C', NA]], columns=['letter', 'number'], index=index)
+            tm.assert_frame_equal(result, exp)
+
+        for index in [ tm.makeStringIndex, tm.makeUnicodeIndex, tm.makeIntIndex,
+                       tm.makeDateIndex, tm.makePeriodIndex ]:
+            check_index(index())
+
+
     def test_get_dummies(self):
         s = Series(['a|b', 'a|c', np.nan])
         result = s.str.get_dummies('|')
