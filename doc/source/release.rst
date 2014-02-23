@@ -170,6 +170,7 @@ Bug Fixes
   depending on the order of dictionary keys and values (:issue:`5338`).
 - Perf issue in concatting with empty objects (:issue:`3259`)
 - Clarify sorting of ``sym_diff`` on ``Index``es with ``NaN``s (:isssue:`6444`)
+- Regression in ``MultiIndex.from_product`` with a ``DatetimeIndex`` as input (:issue:`6439`)
 
 pandas 0.13.1
 -------------

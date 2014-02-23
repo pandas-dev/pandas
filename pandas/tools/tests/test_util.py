@@ -6,6 +6,7 @@ import nose
 import numpy as np
 from numpy.testing import assert_equal
 
+from pandas import date_range, Index
 import pandas.util.testing as tm
 from pandas.tools.util import cartesian_product
 
@@ -21,6 +22,14 @@ class TestCartesianProduct(tm.TestCase):
         result = cartesian_product([x, y])
         expected = [np.array(['A', 'A', 'B', 'B', 'C', 'C']),
                     np.array([ 1, 22,  1, 22,  1, 22])]
+        assert_equal(result, expected)
+
+    def test_datetimeindex(self):
+        # regression test for GitHub issue #6439
+        # make sure that the ordering on datetimeindex is consistent
+        x = date_range('2000-01-01', periods=2)
+        result = [Index(y).day for y in cartesian_product([x, x])]
+        expected = [np.array([1, 1, 2, 2]), np.array([1, 2, 1, 2])]
         assert_equal(result, expected)
 
 
