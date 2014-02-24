@@ -655,8 +655,11 @@ def infer_freq(index, warn=True):
     if isinstance(index, pd.PeriodIndex):
         raise TypeError("PeriodIndex given. Check the `freq` attribute "
                          "instead of using infer_freq.")
-    if not isinstance(index, pd.DatetimeIndex) and isinstance(index, pd.Index):
-        raise TypeError("cannot infer freq from a non-convertible index type {0}".format(type(index)))
+    if isinstance(index, pd.Index) and not isinstance(index, pd.DatetimeIndex):
+        if isinstance(index, (pd.Int64Index, pd.Float64Index)):
+            raise TypeError("cannot infer freq from a non-convertible index type {0}".format(type(index)))
+        index = index.values
+
     index = pd.DatetimeIndex(index)
     inferer = _FrequencyInferer(index, warn=warn)
     return inferer.get_freq()
