@@ -2545,12 +2545,20 @@ class NDFrame(PandasObject):
     def isnull(self):
         """
         Return a boolean same-sized object indicating if the values are null
+
+        See also
+        --------
+        notnull : boolean inverse of isnull
         """
         return isnull(self).__finalize__(self)
 
     def notnull(self):
         """Return a boolean same-sized object indicating if the values are
         not null
+
+        See also
+        --------
+        isnull : boolean inverse of notnull
         """
         return notnull(self).__finalize__(self)
 

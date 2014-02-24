@@ -121,6 +121,10 @@ def isnull(obj):
     isnulled : array-like of bool or bool
         Array or bool indicating whether an object is null or if an array is
         given which of the element is null.
+
+    See also
+    --------
+    pandas.notnull: boolean inverse of pandas.isnull    
     """
     return _isnull(obj)
 
@@ -268,6 +272,10 @@ def notnull(obj):
     isnulled : array-like of bool or bool
         Array or bool indicating whether an object is *not* null or if an array
         is given which of the element is *not* null.
+    
+    See also
+    --------
+    pandas.isnull : boolean inverse of pandas.notnull
     """
     res = isnull(obj)
     if np.isscalar(res):
