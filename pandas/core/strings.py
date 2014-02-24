@@ -163,11 +163,11 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
     na : default NaN, fill value for missing values.
     regex : bool, default True
         If True use re.search, otherwise use Python in operator
-        
+
     Returns
     -------
     Series of boolean values
-        
+
     See Also
     --------
     match : analagous, but stricter, relying on re.match instead of re.search
@@ -345,7 +345,7 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=False):
 
     See Also
     --------
-    contains : analagous, but less strict, relying on re.search instead of 
+    contains : analagous, but less strict, relying on re.search instead of
         re.match
     extract : now preferred to the deprecated usage of match (as_indexer=False)
 
@@ -413,7 +413,7 @@ def str_extract(arr, pat, flags=0):
     dtype: object
 
     A pattern with more than one group will return a DataFrame.
-    
+
     >>> Series(['a1', 'b2', 'c3']).str.extract('([ab])(\d)')
          0    1
     0    a    1
@@ -421,7 +421,7 @@ def str_extract(arr, pat, flags=0):
     2  NaN  NaN
 
     A pattern may contain optional groups.
-    
+
     >>> Series(['a1', 'b2', 'c3']).str.extract('([ab])?(\d)')
          0  1
     0    a  1
@@ -429,7 +429,7 @@ def str_extract(arr, pat, flags=0):
     2  NaN  3
 
     Named groups will become column names in the result.
-    
+
     >>> Series(['a1', 'b2', 'c3']).str.extract('(?P<letter>[ab])(?P<digit>\d)')
       letter digit
     0      a     1
@@ -451,14 +451,14 @@ def str_extract(arr, pat, flags=0):
         else:
             return empty_row
     if regex.groups == 1:
-        result = Series([f(val)[0] for val in arr], 
+        result = Series([f(val)[0] for val in arr],
                         name=regex.groupindex.get(1),
                         index=arr.index)
     else:
         names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))
         columns = [names.get(1 + i, i) for i in range(regex.groups)]
-        result = DataFrame([f(val) for val in arr], 
-                           columns=columns, 
+        result = DataFrame([f(val) for val in arr],
+                           columns=columns,
                            index=arr.index)
     return result
 
@@ -617,7 +617,7 @@ def str_split(arr, pat=None, n=None):
     if pat is None:
         if n is None or n == 0:
             n = -1
-        f = lambda x: x.split()
+        f = lambda x: x.split(pat, n)
     else:
         if len(pat) == 1:
             if n is None or n == 0:

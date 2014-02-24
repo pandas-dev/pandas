@@ -565,7 +565,6 @@ class TestStringMethods(tm.TestCase):
                        tm.makeDateIndex, tm.makePeriodIndex ]:
             check_index(index())
 
-
     def test_get_dummies(self):
         s = Series(['a|b', 'a|c', np.nan])
         result = s.str.get_dummies('|')
@@ -795,6 +794,12 @@ class TestStringMethods(tm.TestCase):
 
         result = s.str.split('asdf', n=-1)
         tm.assert_series_equal(result, xp)
+
+    def test_split_no_pat_with_nonzero_n(self):
+        s = Series(['split once', 'split once too!'])
+        result = s.str.split(n=1)
+        expected = Series({0: ['split', 'once'], 1: ['split', 'once too!']})
+        tm.assert_series_equal(expected, result)
 
     def test_pipe_failures(self):
         # #2119
@@ -1091,6 +1096,7 @@ class TestStringMethods(tm.TestCase):
         exp = decodeBase.map(f)
 
         tm.assert_series_equal(result, exp)
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
