@@ -2240,7 +2240,15 @@ class DataFrame(NDFrame):
 
         to_remove = []
         for col in keys:
-            if isinstance(col, Series):
+            if isinstance(col, MultiIndex):
+                # append all but the last column so we don't have to modify
+                # the end of this loop
+                for n in range(col.nlevels - 1):
+                    arrays.append(col.get_level_values(n))
+
+                level = col.get_level_values(col.nlevels - 1)
+                names.extend(col.names)
+            elif isinstance(col, (Series, Index)):
                 level = col.values
                 names.append(col.name)
             elif isinstance(col, (list, np.ndarray)):
