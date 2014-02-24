@@ -92,6 +92,49 @@ These are out-of-bounds selections
   .. ipython:: python
 
      i[[0,1,2]].astype(np.int_)
+- ``set_index`` no longer converts MultiIndexes to an Index of tuples. For example,
+  the old behavior returned an Index in this case (:issue:`6459`):
+
+  .. ipython:: python
+     :suppress:
+
+     from itertools import product
+     tuples = list(product(('a', 'b'), ('c', 'd')))
+     mi = MultiIndex.from_tuples(tuples)
+     df_multi = DataFrame(np.random.randn(4, 2), index=mi)
+     tuple_ind = pd.Index(tuples)
+
+  .. ipython:: python
+
+     df_multi.index
+
+     @suppress
+     df_multi.index = tuple_ind
+
+     # Old behavior, casted MultiIndex to an Index
+     df_multi.set_index(df_multi.index)
+
+     @suppress
+     df_multi.index = mi
+
+     # New behavior
+     df_multi.set_index(df_multi.index)
+
+  This also applies when passing multiple indices to ``set_index``:
+
+  .. ipython:: python
+
+    @suppress
+    df_multi.index = tuple_ind
+
+    # Old output, 2-level MultiIndex of tuples
+    df_multi.set_index([df_multi.index, df_multi.index])
+
+    @suppress
+    df_multi.index = mi
+
+    # New output, 4-level MultiIndex
+    df_multi.set_index([df_multi.index, df_multi.index])
 
 
 MultiIndexing Using Slicers

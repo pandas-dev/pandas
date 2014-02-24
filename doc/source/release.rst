@@ -107,6 +107,7 @@ API Changes
   or numbering columns as needed (:issue:`2385`)
 - Slicing and advanced/boolean indexing operations on ``Index`` classes will no
   longer change type of the resulting index (:issue:`6440`).
+- ``set_index`` no longer converts MultiIndexes to an Index of tuples (:issue:`6459`).
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
@@ -196,6 +197,7 @@ Bug Fixes
 - Bug in multi-axis indexing using ``.loc`` on non-unique indices (:issue:`6504`)
 - Bug that caused _ref_locs corruption when slice indexing across columns axis of a DataFrame (:issue:`6525`)
 - Regression from 0.13 in the treatmenet of numpy ``datetime64`` non-ns dtypes in Series creation (:issue:`6529`)
+- ``.names`` attribute of MultiIndexes passed to ``set_index`` are now preserved (:issue:`6459`).
 
 pandas 0.13.1
 -------------
