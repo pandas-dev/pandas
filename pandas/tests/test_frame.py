@@ -12280,6 +12280,33 @@ starting,ending,measure
                             pd.Series(odict([('a', np.float_), ('b', np.float_),
                                              ('c', np.float_),])))
 
+    def test_set_index_names(self):
+        df = pd.util.testing.makeDataFrame()
+        df.index.name = 'name'
+
+        self.assertEquals(df.set_index(df.index).index.names, ['name'])
+
+        mi = MultiIndex.from_arrays(df[['A', 'B']].T.values, names=['A', 'B'])
+        mi2 = MultiIndex.from_arrays(df[['A', 'B', 'A', 'B']].T.values,
+                                     names=['A', 'B', 'A', 'B'])
+
+        df = df.set_index(['A', 'B'])
+
+        self.assertEquals(df.set_index(df.index).index.names, ['A', 'B'])
+
+        # Check that set_index isn't converting a MultiIndex into an Index
+        self.assertTrue(isinstance(df.set_index(df.index).index, MultiIndex))
+
+        # Check actual equality
+        tm.assert_index_equal(df.set_index(df.index).index, mi)
+
+        # Check that [MultiIndex, MultiIndex] yields a MultiIndex rather
+        # than a pair of tuples
+        self.assertTrue(isinstance(df.set_index([df.index, df.index]).index, MultiIndex))
+
+        # Check equality
+        tm.assert_index_equal(df.set_index([df.index, df.index]).index, mi2)
+
 
 def skip_if_no_ne(engine='numexpr'):
     if engine == 'numexpr':
