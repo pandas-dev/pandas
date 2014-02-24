@@ -385,13 +385,29 @@ class Timestamp(_Timestamp):
                 or self.nanosecond != 0)
 
     def to_julian_date(self):
+        """
+        Convert TimeStamp to a Julian Date.
+        0 Julian date is noon January 1, 4713 BC.
+        """
         year = self.year
         month = self.month
         day = self.day
         if month <= 2:
             year -= 1
             month += 12
-        return day + np.fix((153*month - 457)/5) + 365*year + np.floor(year / 4) - np.floor(year / 100) + np.floor(year / 400) + 1721118.5 + (self.hour + self.minute/60.0 + self.second/3600.0 + self.microsecond/3600.0/1e+6 + self.nanosecond/3600.0/1e+9)/24.0
+        return (day + 
+                np.fix((153*month - 457)/5) + 
+                365*year + 
+                np.floor(year / 4) - 
+                np.floor(year / 100) + 
+                np.floor(year / 400) + 
+                1721118.5 + 
+                (self.hour + 
+                 self.minute/60.0 + 
+                 self.second/3600.0 + 
+                 self.microsecond/3600.0/1e+6 + 
+                 self.nanosecond/3600.0/1e+9
+                )/24.0)
 
 _nat_strings = set(['NaT','nat','NAT','nan','NaN','NAN'])
 class NaTType(_NaT):
