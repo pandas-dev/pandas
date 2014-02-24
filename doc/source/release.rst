@@ -81,7 +81,8 @@ API Changes
   - ``microsecond,nanosecond,qyear``
   - ``min(),max()``
   - ``pd.infer_freq()``
-- ``pd.infer_freq()`` will now raise a ``TypeError`` if given an invalid ``Series/Index`` type (:issue:`6407`)
+- ``pd.infer_freq()`` will now raise a ``TypeError`` if given an invalid ``Series/Index``
+  type (:issue:`6407`, :issue:`6463`)
 
 - Local variable usage has changed in
   :func:`pandas.eval`/:meth:`DataFrame.eval`/:meth:`DataFrame.query`

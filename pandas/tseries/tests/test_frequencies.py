@@ -274,10 +274,19 @@ class TestFrequencyInference(tm.TestCase):
         # test all index types
         for i in [ tm.makeIntIndex(10),
                    tm.makeFloatIndex(10),
-                   tm.makeStringIndex(10),
-                   tm.makeUnicodeIndex(10),
                    tm.makePeriodIndex(10) ]:
             self.assertRaises(TypeError, lambda : infer_freq(i))
+
+        for i in [ tm.makeStringIndex(10),
+                   tm.makeUnicodeIndex(10) ]:
+            self.assertRaises(ValueError, lambda : infer_freq(i))
+
+    def test_string_datetimelike_compat(self):
+
+        # GH 6463
+        expected = infer_freq(['2004-01', '2004-02', '2004-03', '2004-04'])
+        result = infer_freq(Index(['2004-01', '2004-02', '2004-03', '2004-04']))
+        self.assertEqual(result,expected)
 
     def test_series(self):
 
