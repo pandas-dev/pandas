@@ -231,7 +231,8 @@ def nansum(values, axis=None, skipna=True):
     values, mask, dtype = _get_values(values, skipna, 0)
     the_sum = values.sum(axis)
     the_sum = _maybe_null_out(the_sum, axis, mask)
-    return the_sum
+
+    return _wrap_results(the_sum, dtype)
 
 
 @disallow('M8')

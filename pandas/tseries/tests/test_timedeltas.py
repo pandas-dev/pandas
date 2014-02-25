@@ -207,6 +207,12 @@ class TestTimedeltas(tm.TestCase):
         expected = to_timedelta('00:00:08')
         tm.assert_almost_equal(result, expected)
 
+        # GH 6462
+        # consistency in returned values for sum
+        result = td.sum()[0]
+        expected = to_timedelta('00:01:21')
+        tm.assert_almost_equal(result, expected)
+
     def test_to_timedelta_on_missing_values(self):
         _skip_if_numpy_not_friendly()
 
