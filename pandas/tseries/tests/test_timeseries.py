@@ -3322,7 +3322,7 @@ class TestDateTimeIndexToJulianDate(tm.TestCase):
                         periods=5,
                         freq='D').to_julian_date()
         self.assert_(isinstance(r2, Float64Index))
-        np.testing.assert_array_equal(r1, r2)
+        tm.assert_index_equal(r1, r2)
 
     def test_2000(self):
         r1 = Float64Index([2451601.5,
@@ -3334,7 +3334,7 @@ class TestDateTimeIndexToJulianDate(tm.TestCase):
                         periods=5,
                         freq='D').to_julian_date()
         self.assert_(isinstance(r2, Float64Index))
-        np.testing.assert_array_equal(r1, r2)
+        tm.assert_index_equal(r1, r2)
 
     def test_hour(self):
         r1 = Float64Index([2451601.5,
@@ -3346,7 +3346,7 @@ class TestDateTimeIndexToJulianDate(tm.TestCase):
                         periods=5,
                         freq='H').to_julian_date()
         self.assert_(isinstance(r2, Float64Index))
-        np.testing.assert_array_equal(r1, r2)
+        tm.assert_index_equal(r1, r2)
 
     def test_minute(self):
         r1 = Float64Index([2451601.5,
@@ -3358,7 +3358,7 @@ class TestDateTimeIndexToJulianDate(tm.TestCase):
                         periods=5,
                         freq='T').to_julian_date()
         self.assert_(isinstance(r2, Float64Index))
-        np.testing.assert_array_equal(r1, r2)
+        tm.assert_index_equal(r1, r2)
 
     def test_second(self):
         r1 = Float64Index([2451601.5,
@@ -3370,7 +3370,7 @@ class TestDateTimeIndexToJulianDate(tm.TestCase):
                         periods=5,
                         freq='S').to_julian_date()
         self.assert_(isinstance(r2, Float64Index))
-        np.testing.assert_array_equal(r1, r2)
+        tm.assert_index_equal(r1, r2)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
