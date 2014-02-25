@@ -387,7 +387,7 @@ class TestDataReader(tm.TestCase):
     def test_read_famafrench(self):
         for name in ("F-F_Research_Data_Factors",
                      "F-F_Research_Data_Factors_weekly", "6_Portfolios_2x3",
-                     "F-F_ST_Reversal_Factor"):
+                     "F-F_ST_Reversal_Factor","F-F_Momentum_Factor"):
             ff = DataReader(name, "famafrench")
             assert ff
             assert isinstance(ff, dict)
