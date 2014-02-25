@@ -1,7 +1,15 @@
 from vbench.benchmark import Benchmark
 from datetime import datetime
+try:
+    import pandas.tseries.offsets as offsets
+except:
+    import pandas.core.datetools as offsets
 
 common_setup = """from pandas_vb_common import *
+try:
+    from pandas.tseries.offsets import *
+except:
+    from pandas.core.datetools import *
 """
 
 #----------------------------------------------------------------------
@@ -35,6 +43,21 @@ setup = common_setup + """
 data = dict((i,dict((j,float(j)) for j in xrange(100))) for i in xrange(2000))
 """
 frame_ctor_nested_dict_int64 = Benchmark("DataFrame(data)", setup)
+
+# dynamically generate benchmarks for every offset
+dynamic_benchmarks = {}
+n_steps = [1, 2]
+for offset in offsets.__all__:
+    for n in n_steps:
+        setup = common_setup + """
+df = DataFrame(np.random.randn(1000,10),index=date_range('1/1/1900',periods=1000,freq={}({})))
+d = dict([ (col,df[col]) for col in df.columns ])
+""".format(offset, n)
+        key = 'frame_ctor_dtindex_{}({})'.format(offset, n)
+        dynamic_benchmarks[key] = Benchmark("DataFrame(d)", setup, name=key)
+
+# Have to stuff them in globals() so vbench detects them
+globals().update(dynamic_benchmarks)
 
 # from a mi-series
 setup = common_setup + """
