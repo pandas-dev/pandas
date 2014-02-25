@@ -627,9 +627,9 @@ def makeFloatIndex(k=10):
     return Index(values * (10 ** np.random.randint(0, 9)))
 
 
-def makeDateIndex(k=10):
+def makeDateIndex(k=10, freq='B'):
     dt = datetime(2000, 1, 1)
-    dr = bdate_range(dt, periods=k)
+    dr = bdate_range(dt, periods=k, freq=freq)
     return DatetimeIndex(dr)
 
 
@@ -662,10 +662,10 @@ def getSeriesData():
     return dict((c, Series(randn(N), index=index)) for c in getCols(K))
 
 
-def makeTimeSeries(nper=None):
+def makeTimeSeries(nper=None, freq='B'):
     if nper is None:
         nper = N
-    return Series(randn(nper), index=makeDateIndex(nper))
+    return Series(randn(nper), index=makeDateIndex(nper, freq=freq))
 
 
 def makePeriodSeries(nper=None):
@@ -674,16 +674,16 @@ def makePeriodSeries(nper=None):
     return Series(randn(nper), index=makePeriodIndex(nper))
 
 
-def getTimeSeriesData(nper=None):
-    return dict((c, makeTimeSeries(nper)) for c in getCols(K))
+def getTimeSeriesData(nper=None, freq='B'):
+    return dict((c, makeTimeSeries(nper, freq)) for c in getCols(K))
 
 
 def getPeriodData(nper=None):
     return dict((c, makePeriodSeries(nper)) for c in getCols(K))
 
 # make frame
-def makeTimeDataFrame(nper=None):
-    data = getTimeSeriesData(nper)
+def makeTimeDataFrame(nper=None, freq='B'):
+    data = getTimeSeriesData(nper, freq)
     return DataFrame(data)
 
 
