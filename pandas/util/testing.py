@@ -896,6 +896,72 @@ def makeCustomDataframe(nrows, ncols, c_idx_names=True, r_idx_names=True,
     return DataFrame(data, index, columns, dtype=dtype)
 
 
+def _create_missing_idx(nrows, ncols, density, random_state=None):
+    if random_state is None:
+        random_state = np.random
+    else:
+        random_state = np.random.RandomState(random_state)
+
+    # below is cribbed from scipy.sparse
+    size = int(np.round((1 - density) * nrows * ncols))
+    # generate a few more to ensure unique values
+    min_rows = 5
+    fac = 1.02
+    extra_size = min(size + min_rows, fac * size)
+
+    def _gen_unique_rand(rng, _extra_size):
+        ind = rng.rand(int(_extra_size))
+        return np.unique(np.floor(ind * nrows * ncols))[:size]
+
+    ind = _gen_unique_rand(random_state, extra_size)
+    while ind.size < size:
+        extra_size *= 1.05
+        ind = _gen_unique_rand(random_state, extra_size)
+
+    j = np.floor(ind * 1. / nrows)
+    i = (ind - j * nrows)
+    return i.tolist(), j.tolist()
+
+
+def makeMissingCustomDataframe(nrows, ncols, density=.9, random_state=None,
+                               c_idx_names=True, r_idx_names=True,
+                               c_idx_nlevels=1, r_idx_nlevels=1,
+                               data_gen_f=None,
+                               c_ndupe_l=None, r_ndupe_l=None, dtype=None,
+                               c_idx_type=None, r_idx_type=None):
+    """
+    Parameters
+    ----------
+    Density : float, optional
+        Float in (0, 1) that gives the percentage of non-missing numbers in
+        the DataFrame.
+    random_state : {np.random.RandomState, int}, optional
+        Random number generator or random seed.
+
+    See makeCustomDataframe for descriptions of the rest of the parameters.
+    """
+    df = makeCustomDataframe(nrows, ncols, c_idx_names=c_idx_names,
+                             r_idx_names=r_idx_names,
+                             c_idx_nlevels=c_idx_nlevels,
+                             r_idx_nlevels=r_idx_nlevels,
+                             data_gen_f=data_gen_f,
+                             c_ndupe_l=c_ndupe_l, r_ndupe_l=r_ndupe_l,
+                             dtype=dtype, c_idx_type=c_idx_type,
+                             r_idx_type=r_idx_type)
+
+    i, j = _create_missing_idx(nrows, ncols, density, random_state)
+    df.iloc[i, j] = np.nan
+    return df
+
+
+def makeMissingDataframe(density=.9, random_state=None):
+    df = makeDataFrame()
+    i, j = _create_missing_idx(*df.shape, density=density,
+                               random_state=random_state)
+    df.iloc[i, j] = np.nan
+    return df
+
+
 def add_nans(panel):
     I, J, N = panel.shape
     for i, item in enumerate(panel.items):
