@@ -174,6 +174,7 @@ Bug Fixes
 - Regression in ``MultiIndex.from_product`` with a ``DatetimeIndex`` as input (:issue:`6439`)
 - Bug in ``str.extract`` when passed a non-default index (:issue:`6348`)
 - Bug in ``str.split`` when passed ``pat=None`` and ``n=1`` (:issue:`6466`)
+- Bug in ``io.data.DataReader`` when passed ``"F-F_Momentum_Factor"`` and ``data_source="famafrench"`` (:issue:`6470`)
 
 pandas 0.13.1
 -------------
