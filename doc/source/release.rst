@@ -173,6 +173,7 @@ Bug Fixes
 - Clarify sorting of ``sym_diff`` on ``Index``es with ``NaN``s (:isssue:`6444`)
 - Bug in ``str.split`` when passed ``pat=None`` and ``n=1`` (:issue:`6466`)
 - Bug in ``io.data.DataReader`` when passed ``"F-F_Momentum_Factor"`` and ``data_source="famafrench"`` (:issue:`6460`)
+- Bug in ``sum`` of a ``timedelta64[ns]`` series (:issue:`6462`)
 
 pandas 0.13.1
 -------------
