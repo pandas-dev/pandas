@@ -172,6 +172,7 @@ Bug Fixes
 - Perf issue in concatting with empty objects (:issue:`3259`)
 - Clarify sorting of ``sym_diff`` on ``Index``es with ``NaN``s (:isssue:`6444`)
 - Bug in ``str.split`` when passed ``pat=None`` and ``n=1`` (:issue:`6466`)
+- Bug in ``io.data.DataReader`` when passed ``"F-F_Momentum_Factor"`` and ``data_source="famafrench"`` (:issue:`6460`)
 
 pandas 0.13.1
 -------------
