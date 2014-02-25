@@ -171,6 +171,7 @@ Bug Fixes
   depending on the order of dictionary keys and values (:issue:`5338`).
 - Perf issue in concatting with empty objects (:issue:`3259`)
 - Clarify sorting of ``sym_diff`` on ``Index``es with ``NaN``s (:isssue:`6444`)
+- Bug in ``str.split`` when passed ``pat=None`` and ``n=1`` (:issue:`6466`)
 
 pandas 0.13.1
 -------------
