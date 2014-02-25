@@ -973,6 +973,18 @@ class TestResamplePeriodIndex(tm.TestCase):
         expected = Series([1.5], index=ex_index)
         assert_series_equal(result, expected)
 
+        # GH 6397
+        # comparing an offset that doesn't propogate tz's
+        rng = date_range('1/1/2011', periods=20000, freq='H')
+        rng = rng.tz_localize('EST')
+        ts = DataFrame(index=rng)
+        ts['first']=np.random.randn(len(rng))
+        ts['second']=np.cumsum(np.random.randn(len(rng)))
+        expected = DataFrame({ 'first' : ts.resample('A',how=np.sum)['first'],
+                               'second' : ts.resample('A',how=np.mean)['second'] },columns=['first','second'])
+        result = ts.resample('A', how={'first':np.sum, 'second':np.mean}).reindex(columns=['first','second'])
+        assert_frame_equal(result,expected)
+
     def test_closed_left_corner(self):
         # #1465
         s = Series(np.random.randn(21),

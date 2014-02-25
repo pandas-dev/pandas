@@ -1067,7 +1067,13 @@ class DatetimeIndex(Int64Index):
         left_end = left[-1]
 
         # Only need to "adjoin", not overlap
-        return (right_start == left_end + offset) or right_start in left
+        try:
+            return (right_start == left_end + offset) or right_start in left
+        except (ValueError):
+
+            # if we are comparing an offset that does not propogate timezones
+            # this will raise
+            return False
 
     def _fast_union(self, other):
         if len(other) == 0:
