@@ -494,7 +494,7 @@ def get_data_famafrench(name):
         tmpf.write(raw)
 
         with ZipFile(tmpf, 'r') as zf:
-            data = zf.open(name + '.txt').readlines()
+            data = zf.open(zf.namelist()[0]).readlines()
 
     line_lengths = np.array(lmap(len, data))
     file_edges = np.where(line_lengths == 2)[0]
