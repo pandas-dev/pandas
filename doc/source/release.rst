@@ -173,6 +173,7 @@ Bug Fixes
 - Clarify sorting of ``sym_diff`` on ``Index``es with ``NaN``s (:isssue:`6444`)
 - Regression in ``MultiIndex.from_product`` with a ``DatetimeIndex`` as input (:issue:`6439`)
 - Bug in ``str.extract`` when passed a non-default index (:issue:`6348`)
+- Bug in ``str.split`` when passed ``pat=None`` and ``n=1`` (:issue:`6466`)
 
 pandas 0.13.1
 -------------
