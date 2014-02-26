@@ -291,7 +291,7 @@ class SingleConstructorOffset(DateOffset):
         return cls()
 
 
-class BusinessDay(CacheableOffset, SingleConstructorOffset):
+class BusinessDay(SingleConstructorOffset):
     """
     DateOffset subclass representing possibly n business days
     """
@@ -399,7 +399,7 @@ class BusinessDay(CacheableOffset, SingleConstructorOffset):
                 n -= 5 * k
                 if n == 0 and result.weekday() > 4:
                     n -= 1
-            
+
             while n != 0:
                 k = n // abs(n)
                 result = result + timedelta(k)
@@ -548,7 +548,7 @@ class MonthOffset(SingleConstructorOffset):
             return "%s-%s" % (self.rule_code, _int_to_month[self.n])
 
 
-class MonthEnd(CacheableOffset, MonthOffset):
+class MonthEnd(MonthOffset):
     """DateOffset of one month end"""
 
     def apply(self, other):
@@ -572,7 +572,7 @@ class MonthEnd(CacheableOffset, MonthOffset):
     _prefix = 'M'
 
 
-class MonthBegin(CacheableOffset, MonthOffset):
+class MonthBegin(MonthOffset):
     """DateOffset of one month at beginning"""
 
     def apply(self, other):
@@ -591,7 +591,7 @@ class MonthBegin(CacheableOffset, MonthOffset):
     _prefix = 'MS'
 
 
-class BusinessMonthEnd(CacheableOffset, MonthOffset):
+class BusinessMonthEnd(MonthOffset):
     """DateOffset increments between business EOM dates"""
 
     def isAnchored(self):
@@ -619,7 +619,7 @@ class BusinessMonthEnd(CacheableOffset, MonthOffset):
     _prefix = 'BM'
 
 
-class BusinessMonthBegin(CacheableOffset, MonthOffset):
+class BusinessMonthBegin(MonthOffset):
     """DateOffset of one business month at beginning"""
 
     def apply(self, other):
@@ -654,7 +654,7 @@ class BusinessMonthBegin(CacheableOffset, MonthOffset):
     _prefix = 'BMS'
 
 
-class Week(CacheableOffset, DateOffset):
+class Week(DateOffset):
     """
     Weekly offset
 
@@ -744,7 +744,7 @@ _int_to_weekday = {
 _weekday_to_int = dict((v, k) for k, v in _int_to_weekday.items())
 
 
-class WeekOfMonth(CacheableOffset, DateOffset):
+class WeekOfMonth(DateOffset):
     """
     Describes monthly dates like "the Tuesday of the 2nd week of each month"
 
@@ -830,7 +830,7 @@ class WeekOfMonth(CacheableOffset, DateOffset):
         weekday = _weekday_to_int[suffix[1:]]
         return cls(week=week, weekday=weekday)
 
-class LastWeekOfMonth(CacheableOffset, DateOffset):
+class LastWeekOfMonth(DateOffset):
     """
     Describes monthly dates in last week of month like "the last Tuesday of each month"
 
@@ -940,7 +940,7 @@ class QuarterOffset(DateOffset):
         return '%s-%s' % (self._prefix, _int_to_month[self.startingMonth])
 
 
-class BQuarterEnd(CacheableOffset, QuarterOffset):
+class BQuarterEnd(QuarterOffset):
     """DateOffset increments between business Quarter dates
     startingMonth = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
@@ -999,7 +999,7 @@ _month_to_int = dict((v, k) for k, v in _int_to_month.items())
 
 
 # TODO: This is basically the same as BQuarterEnd
-class BQuarterBegin(CacheableOffset, QuarterOffset):
+class BQuarterBegin(QuarterOffset):
     _outputName = "BusinessQuarterBegin"
     # I suspect this is wrong for *all* of them.
     _default_startingMonth = 3
@@ -1036,7 +1036,7 @@ class BQuarterBegin(CacheableOffset, QuarterOffset):
         return as_timestamp(result)
 
 
-class QuarterEnd(CacheableOffset, QuarterOffset):
+class QuarterEnd(QuarterOffset):
     """DateOffset increments between business Quarter dates
     startingMonth = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
@@ -1077,7 +1077,7 @@ class QuarterEnd(CacheableOffset, QuarterOffset):
         return MonthEnd().onOffset(dt) and modMonth == 0
 
 
-class QuarterBegin(CacheableOffset, QuarterOffset):
+class QuarterBegin(QuarterOffset):
     _outputName = 'QuarterBegin'
     _default_startingMonth = 3
     _from_name_startingMonth = 1
@@ -1129,7 +1129,7 @@ class YearOffset(DateOffset):
         return '%s-%s' % (self._prefix, _int_to_month[self.month])
 
 
-class BYearEnd(CacheableOffset, YearOffset):
+class BYearEnd(YearOffset):
     """DateOffset increments between business EOM dates"""
     _outputName = 'BusinessYearEnd'
     _default_month = 12
@@ -1166,7 +1166,7 @@ class BYearEnd(CacheableOffset, YearOffset):
         return result
 
 
-class BYearBegin(CacheableOffset, YearOffset):
+class BYearBegin(YearOffset):
     """DateOffset increments between business year begin dates"""
     _outputName = 'BusinessYearBegin'
     _default_month = 1
@@ -1198,7 +1198,7 @@ class BYearBegin(CacheableOffset, YearOffset):
         return as_timestamp(datetime(other.year, self.month, first))
 
 
-class YearEnd(CacheableOffset, YearOffset):
+class YearEnd(YearOffset):
     """DateOffset increments between calendar year ends"""
     _default_month = 12
     _prefix = 'A'
@@ -1254,7 +1254,7 @@ class YearEnd(CacheableOffset, YearOffset):
         return self.month == dt.month and dt.day == days_in_month
 
 
-class YearBegin(CacheableOffset, YearOffset):
+class YearBegin(YearOffset):
     """DateOffset increments between calendar year begin dates"""
     _default_month = 1
     _prefix = 'AS'
@@ -1300,7 +1300,7 @@ class YearBegin(CacheableOffset, YearOffset):
         return dt.month == self.month and dt.day == 1
 
 
-class FY5253(CacheableOffset, DateOffset):
+class FY5253(DateOffset):
     """
     Describes 52-53 week fiscal year. This is also known as a 4-4-5 calendar.
 
@@ -1501,7 +1501,7 @@ class FY5253(CacheableOffset, DateOffset):
         return cls(**cls._parse_suffix(*args))
 
 
-class FY5253Quarter(CacheableOffset, DateOffset):
+class FY5253Quarter(DateOffset):
     """
     DateOffset increments between business quarter dates
     for 52-53 week fiscal year (also known as a 4-4-5 calendar).
@@ -1772,7 +1772,7 @@ def _delta_to_nanoseconds(delta):
             + delta.microseconds) * 1000
 
 
-class Day(CacheableOffset, Tick):
+class Day(Tick):
     _inc = timedelta(1)
     _prefix = 'D'
 
