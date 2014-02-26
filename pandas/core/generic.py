@@ -3159,12 +3159,14 @@ class NDFrame(PandasObject):
         periods : int
             Number of periods to move, can be positive or negative
         freq : DateOffset, timedelta, or time rule string, optional
-            Increment to use from datetools module or time rule (e.g. 'EOM')
+            Increment to use from datetools module or time rule (e.g. 'EOM').
+            See Notes.
 
         Notes
         -----
         If freq is specified then the index values are shifted but the data
-        if not realigned
+        is not realigned. That is, use freq if you would like to extend the
+        index when shifting and preserve the original data.
 
         Returns
         -------
