@@ -3400,8 +3400,11 @@ class BlockManager(PandasObject):
             # unique
             if self.axes[0].is_unique and new_items.is_unique:
 
+                # ok to use the global indexer if only 1 block
+                i = indexer if len(self.blocks) == 1 else None
+
                 for block in self.blocks:
-                    blk = block.reindex_items_from(new_items, copy=copy)
+                    blk = block.reindex_items_from(new_items, indexer=i, copy=copy)
                     new_blocks.extend(_valid_blocks(blk))
 
             # non-unique
