@@ -9,7 +9,7 @@ import numpy as np
 from pandas.core.common import (isnull, _NS_DTYPE, _INT64_DTYPE,
                                 is_list_like,_values_from_object, _maybe_box,
                                 notnull, ABCSeries)
-from pandas.core.index import Index, Int64Index, _Identity
+from pandas.core.index import Index, Int64Index, _Identity, Float64Index
 import pandas.compat as compat
 from pandas.compat import u
 from pandas.tseries.frequencies import (
@@ -1759,6 +1759,33 @@ class DatetimeIndex(Int64Index):
             max_stamp = self.asi8.max()
             return Timestamp(max_stamp, tz=self.tz)
 
+    def to_julian_date(self):
+        """
+        Convert DatetimeIndex to Float64Index of Julian Dates.
+        0 Julian date is noon January 1, 4713 BC.
+        http://en.wikipedia.org/wiki/Julian_day
+        """
+
+        # http://mysite.verizon.net/aesir_research/date/jdalg2.htm
+        year = self.year
+        month = self.month
+        day = self.day
+        testarr = month < 3
+        year[testarr] -= 1
+        month[testarr] += 12
+        return Float64Index(day +
+                            np.fix((153*month - 457)/5) +
+                            365*year +
+                            np.floor(year / 4) -
+                            np.floor(year / 100) +
+                            np.floor(year / 400) +
+                            1721118.5 +
+                            (self.hour +
+                             self.minute/60.0 +
+                             self.second/3600.0 +
+                             self.microsecond/3600.0/1e+6 +
+                             self.nanosecond/3600.0/1e+9
+                            )/24.0)
 
 def _generate_regular_range(start, end, periods, offset):
     if isinstance(offset, Tick):

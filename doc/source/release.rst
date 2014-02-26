@@ -55,6 +55,10 @@ New features
 
 - Hexagonal bin plots from ``DataFrame.plot`` with ``kind='hexbin'`` (:issue:`5478`)
 - Added the ``sym_diff`` method to ``Index`` (:issue:`5543`)
+- Added ``to_julian_date`` to ``TimeStamp`` and ``DatetimeIndex``.  The Julian
+  Date is used primarily in astronomy and represents the number of days from
+  noon, January 1, 4713 BC.  Because nanoseconds are used to define the time
+  in PANDAS the actual range of dates that you can use is 1678 AD to 2262 AD.
 
 API Changes
 ~~~~~~~~~~~
