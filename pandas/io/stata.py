@@ -175,25 +175,61 @@ def _datetime_to_stata_elapsed(date, fmt):
         raise ValueError("fmt %s not understood" % fmt)
 
 
+class PossiblePrecisionLoss(Warning):
+    pass
+
+
+precision_loss_doc = """
+Column converted from %s to %s, and some data are outside of the lossless
+conversion range. This may result in a loss of precision in the saved data.
+"""
+
+
 def _cast_to_stata_types(data):
+    """Checks the dtypes of the columns of a pandas DataFrame for
+    compatibility with the data types and ranges supported by Stata, and
+    converts if necessary.
+
+    Parameters
+    ----------
+    data : DataFrame
+        The DataFrame to check and convert
+
+    Notes
+    -----
+    Numeric columns must be one of int8, int16, int32, float32 or float64, with
+    some additional value restrictions on the integer data types.  int8 and
+    int16 columns are checked for violations of the value restrictions and
+    upcast if needed.  int64 data is not usable in Stata, and so it is
+    downcast to int32 whenever the value are in the int32 range, and
+    sidecast to float64 when larger than this range.  If the int64 values
+    are outside of the range of those perfectly representable as float64 values,
+    a warning is raised.
+    """
+    ws = ''
     for col in data:
         dtype = data[col].dtype
-        if dtype==np.int8:
+        if dtype == np.int8:
             if data[col].max() > 100 or data[col].min() < -127:
                 data[col] = data[col].astype(np.int16)
-        elif dtype==np.int16:
+        elif dtype == np.int16:
             if data[col].max() > 32740 or data[col].min() < -32767:
                 data[col] = data[col].astype(np.int32)
-        elif dtype==np.int64:
+        elif dtype == np.int64:
             if data[col].max() <= 2147483620 and data[col].min() >= -2147483647:
                 data[col] = data[col].astype(np.int32)
             else:
                 data[col] = data[col].astype(np.float64)
-                if data[col].max() <= 2*53  or data[col].min() >= -2**53:
-                    from warnings import warn
-                    warn("int64 data out of range for float64, data possibly truncated.")
+                if data[col].max() <= 2 * 53 or data[col].min() >= -2 ** 53:
+                    ws = precision_loss_doc % ('int64', 'float64')
+
+    if ws:
+        import warnings
+
+        warnings.warn(ws, PossiblePrecisionLoss)
 
     return data
+
 
 class StataMissingValue(StringMixin):
     """
