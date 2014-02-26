@@ -316,7 +316,7 @@ class TestBusinessDay(TestBase):
         rs = st + off
         xp = datetime(2011, 12, 26)
         self.assertEqual(rs, xp)
-        
+
         off = BDay() * 10
         rs = datetime(2014, 1, 5) + off # see #5890
         xp = datetime(2014, 1, 17)
@@ -2427,25 +2427,9 @@ def get_all_subclasses(cls):
     return ret
 
 class TestCaching(tm.TestCase):
-    no_simple_ctr = [WeekOfMonth, FY5253,
-                     FY5253Quarter,
-                     LastWeekOfMonth]
 
-    def test_should_cache_month_end(self):
-        self.assertTrue(MonthEnd()._should_cache())
-
-    def test_should_cache_bmonth_end(self):
-        self.assertTrue(BusinessMonthEnd()._should_cache())
-
-    def test_should_cache_week_month(self):
-        self.assertTrue(WeekOfMonth(weekday=1, week=2)._should_cache())
-
-    def test_all_cacheableoffsets(self):
-        for subclass in get_all_subclasses(CacheableOffset):
-            if subclass.__name__[0] == "_" \
-                or subclass in TestCaching.no_simple_ctr:
-                continue
-            self.run_X_index_creation(subclass)
+    # as of GH 6479 (in 0.14.0), offset caching is turned off
+    # as of v0.12.0 only BusinessMonth/Quarter were actually caching
 
     def setUp(self):
         _daterange_cache.clear()
@@ -2462,20 +2446,35 @@ class TestCaching(tm.TestCase):
         DatetimeIndex(start=datetime(2013,1,31), end=datetime(2013,3,31), freq=inst1, normalize=True)
         self.assertTrue(cls() in _daterange_cache, cls)
 
+    def test_should_cache_month_end(self):
+        self.assertFalse(MonthEnd()._should_cache())
+
+    def test_should_cache_bmonth_end(self):
+        self.assertFalse(BusinessMonthEnd()._should_cache())
+
+    def test_should_cache_week_month(self):
+        self.assertFalse(WeekOfMonth(weekday=1, week=2)._should_cache())
+
+    def test_all_cacheableoffsets(self):
+        for subclass in get_all_subclasses(CacheableOffset):
+            if subclass.__name__[0] == "_" \
+                or subclass in TestCaching.no_simple_ctr:
+                continue
+            self.run_X_index_creation(subclass)
+
     def test_month_end_index_creation(self):
         DatetimeIndex(start=datetime(2013,1,31), end=datetime(2013,3,31), freq=MonthEnd(), normalize=True)
-        self.assertTrue(MonthEnd() in _daterange_cache)
+        self.assertFalse(MonthEnd() in _daterange_cache)
 
     def test_bmonth_end_index_creation(self):
         DatetimeIndex(start=datetime(2013,1,31), end=datetime(2013,3,29), freq=BusinessMonthEnd(), normalize=True)
-        self.assertTrue(BusinessMonthEnd() in _daterange_cache)
+        self.assertFalse(BusinessMonthEnd() in _daterange_cache)
 
     def test_week_of_month_index_creation(self):
         inst1 = WeekOfMonth(weekday=1, week=2)
         DatetimeIndex(start=datetime(2013,1,31), end=datetime(2013,3,29), freq=inst1, normalize=True)
         inst2 = WeekOfMonth(weekday=1, week=2)
-        self.assertTrue(inst2 in _daterange_cache)
-
+        self.assertFalse(inst2 in _daterange_cache)
 
 class TestReprNames(tm.TestCase):
     def test_str_for_named_is_name(self):
