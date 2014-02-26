@@ -175,6 +175,26 @@ def _datetime_to_stata_elapsed(date, fmt):
         raise ValueError("fmt %s not understood" % fmt)
 
 
+def _cast_to_stata_types(data):
+    for col in data:
+        dtype = data[col].dtype
+        if dtype==np.int8:
+            if data[col].max() > 100 or data[col].min() < -127:
+                data[col] = data[col].astype(np.int16)
+        elif dtype==np.int16:
+            if data[col].max() > 32740 or data[col].min() < -32767:
+                data[col] = data[col].astype(np.int32)
+        elif dtype==np.int64:
+            if data[col].max() <= 2147483620 and data[col].min() >= -2147483647:
+                data[col] = data[col].astype(np.int32)
+            else:
+                data[col] = data[col].astype(np.float64)
+                if data[col].max() <= 2*53  or data[col].min() >= -2**53:
+                    from warnings import warn
+                    warn("int64 data out of range for float64, data possibly truncated.")
+
+    return data
+
 class StataMissingValue(StringMixin):
     """
     An observation's missing value.
@@ -240,9 +260,9 @@ class StataParser(object):
             dict(
                 lzip(range(1, 245), ['a' + str(i) for i in range(1, 245)]) +
                 [
-                    (251, np.int16),
-                    (252, np.int32),
-                    (253, np.int64),
+                    (251, np.int8),
+                    (252, np.int16),
+                    (253, np.int32),
                     (254, np.float32),
                     (255, np.float64)
                 ]
@@ -253,12 +273,12 @@ class StataParser(object):
                     (32768, np.string_),
                     (65526, np.float64),
                     (65527, np.float32),
-                    (65528, np.int64),
-                    (65529, np.int32),
-                    (65530, np.int16)
+                    (65528, np.int32),
+                    (65529, np.int16),
+                    (65530, np.int8)
                 ]
             )
-        self.TYPE_MAP = lrange(251) + list('hlqfd')
+        self.TYPE_MAP = lrange(251) + list('bhlfd')
         self.TYPE_MAP_XML = \
             dict(
                 [
@@ -855,11 +875,12 @@ def _dtype_to_stata_type(dtype):
     See TYPE_MAP and comments for an explanation. This is also explained in
     the dta spec.
     1 - 244 are strings of this length
-    251 - chr(251) - for int8 and int16, byte
-    252 - chr(252) - for int32, int
-    253 - chr(253) - for int64, long
-    254 - chr(254) - for float32, float
-    255 - chr(255) - double, double
+                         Pandas    Stata
+    251 - chr(251) - for int8      byte
+    252 - chr(252) - for int16     int
+    253 - chr(253) - for int32     long
+    254 - chr(254) - for float32   float
+    255 - chr(255) - for double    double
 
     If there are dates to convert, then dtype will already have the correct
     type inserted.
@@ -878,8 +899,10 @@ def _dtype_to_stata_type(dtype):
     elif dtype == np.int64:
         return chr(253)
     elif dtype == np.int32:
+        return chr(253)
+    elif dtype == np.int16:
         return chr(252)
-    elif dtype == np.int8 or dtype == np.int16:
+    elif dtype == np.int8:
         return chr(251)
     else:  # pragma : no cover
         raise ValueError("Data type %s not currently understood. "
@@ -970,7 +993,7 @@ class StataWriter(StataParser):
         self._file = _open_file_binary_write(
             fname, self._encoding or self._default_encoding
         )
-        self.type_converters = {253: np.long, 252: int}
+        self.type_converters = {253: np.int32, 252: np.int16, 251: np.int8}
 
     def _write(self, to_write):
         """
@@ -990,11 +1013,14 @@ class StataWriter(StataParser):
                 self.data = data
 
             def __iter__(self):
-                for i, row in data.iterrows():
-                    yield row
+                for row in data.itertuples():
+                    # First element is index, so remove
+                    yield row[1:]
 
         if self._write_index:
             data = data.reset_index()
+        # Check columns for compatbaility with stata
+        data = _cast_to_stata_types(data)
         self.datarows = DataFrameRowIter(data)
         self.nobs, self.nvar = data.shape
         self.data = data

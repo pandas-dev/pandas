@@ -128,8 +128,8 @@ class TestStata(tm.TestCase):
         # match stata here
         expected = self.read_csv(self.csv3)
         expected = expected.astype(np.float32)
-        expected['year'] = expected['year'].astype(np.int32)
-        expected['quarter'] = expected['quarter'].astype(np.int16)
+        expected['year'] = expected['year'].astype(np.int16)
+        expected['quarter'] = expected['quarter'].astype(np.int8)
 
         tm.assert_frame_equal(parsed, expected)
         tm.assert_frame_equal(parsed_13, expected)
@@ -175,6 +175,9 @@ class TestStata(tm.TestCase):
 
         original = self.read_csv(self.csv3)
         original.index.name = 'index'
+        original.index = original.index.astype(np.int32)
+        original['year'] = original['year'].astype(np.int32)
+        original['quarter'] = original['quarter'].astype(np.int32)
 
         with tm.ensure_clean() as path:
             original.to_stata(path, None, False)
@@ -209,6 +212,8 @@ class TestStata(tm.TestCase):
                                       'datetime'])
         original["object"] = Series(original["object"], dtype=object)
         original.index.name = 'index'
+        original.index = original.index.astype(np.int32)
+        original['integer'] = original['integer'].astype(np.int32)
 
         with tm.ensure_clean() as path:
             original.to_stata(path, {'datetime': 'tc'}, False)
@@ -245,6 +250,7 @@ class TestStata(tm.TestCase):
         formatted = DataFrame([(1, 2, 3, 4)],
                               columns=['good', 'b_d', '_8number', 'astringwithmorethan32characters_'])
         formatted.index.name = 'index'
+        formatted = formatted.astype(np.int32)
 
         with tm.ensure_clean() as path:
             with warnings.catch_warnings(record=True) as w:
@@ -263,6 +269,7 @@ class TestStata(tm.TestCase):
         formatted = DataFrame([(1, 2, 3, 4)],
                               columns=['astringwithmorethan32characters_', '_0astringwithmorethan32character', '_', '_1_'])
         formatted.index.name = 'index'
+        formatted = formatted.astype(np.int32)
 
         with tm.ensure_clean() as path:
             with warnings.catch_warnings(record=True) as w:
@@ -277,14 +284,17 @@ class TestStata(tm.TestCase):
         s1 = Series(2**9,dtype=np.int16)
         s2 = Series(2**17,dtype=np.int32)
         s3 = Series(2**33,dtype=np.int64)
-        original = DataFrame({'short':s1,'int':s2,'long':s3})
+        original = DataFrame({'int16':s1,'int32':s2,'int64':s3})
         original.index.name = 'index'
+
+        formatted = original
+        formatted['int64'] = formatted['int64'].astype(np.float64)
 
         with tm.ensure_clean() as path:
             original.to_stata(path)
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(written_and_read_again.set_index('index'),
-                                  original)
+                                  formatted)
 
 
 
