@@ -1064,7 +1064,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        level : int, default None
+        level : int or level name, default None
             If the axis is a MultiIndex (hierarchical), count along a
             particular level, collapsing into a smaller Series
 
@@ -1512,7 +1512,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         fill_value : float or object
             Value to substitute for NA/null values. If both Series are NA in a
             location, the result will be NA regardless of the passed fill value
-        level : int or name
+        level : int or level name, default None
             Broadcast across a level, matching Index values on the
             passed MultiIndex level
 
@@ -1802,7 +1802,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        level : int
+        level : int or level name, default None
         ascending : bool, default True
 
         Returns

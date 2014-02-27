@@ -1334,7 +1334,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
         ----------
         other : Index
         how : {'left', 'right', 'inner', 'outer'}
-        level :
+        level : int or level name, default None
         return_indexers : boolean, default False
 
         Returns
@@ -2463,7 +2463,7 @@ class MultiIndex(Index):
 
         Parameters
         ----------
-        level : int
+        level : int or level name
 
         Returns
         -------
@@ -2846,7 +2846,7 @@ class MultiIndex(Index):
         ----------
         labels : array-like
             Must be a list of tuples
-        level : int or name, default None
+        level : int or level name, default None
 
         Returns
         -------
@@ -3242,6 +3242,7 @@ class MultiIndex(Index):
         Parameters
         ----------
         key : label or tuple
+        level : int/level name or list thereof
 
         Returns
         -------
