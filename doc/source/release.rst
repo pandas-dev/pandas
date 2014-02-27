@@ -184,6 +184,11 @@ Bug Fixes
 - Bug in ``sum`` of a ``timedelta64[ns]`` series (:issue:`6462`)
 - Bug in ``resample`` with a timezone and certain offsets (:issue:`6397`)
 - Bug in ``iat/iloc`` with duplicate indices on a Series (:issue:`6493`)
+- Bug in ``read_html`` where nan's were incorrectly being used to indicate
+  missing values in text. Should use the empty string for consistency with the
+  rest of pandas (:issue:`5129`).
+- Bug in ``read_html`` tests where redirected invalid URLs would make one test
+  fail (:issue:`6445`).
 
 pandas 0.13.1
 -------------
