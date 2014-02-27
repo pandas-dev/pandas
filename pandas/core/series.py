@@ -1512,7 +1512,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         fill_value : float or object
             Value to substitute for NA/null values. If both Series are NA in a
             location, the result will be NA regardless of the passed fill value
-        level : int or name
+        level : int or level name, default None
             Broadcast across a level, matching Index values on the
             passed MultiIndex level
 
