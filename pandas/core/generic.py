@@ -1399,7 +1399,7 @@ class NDFrame(PandasObject):
         ----------
         labels : single label or list-like
         axis : int or axis name
-        level : int or name, default None
+        level : int or level name, default None
             For MultiIndex
         inplace : bool, default False
             If True, do operation inplace and return None.
@@ -2869,7 +2869,7 @@ class NDFrame(PandasObject):
         join : {'outer', 'inner', 'left', 'right'}, default 'outer'
         axis : allowed axis of the other object, default None
             Align on index (0), columns (1), or both (None)
-        level : int or name
+        level : int or level name, default None
             Broadcast across a level, matching Index values on the
             passed MultiIndex level
         copy : boolean, default True
