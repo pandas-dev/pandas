@@ -30,6 +30,43 @@ R packages.
 Base R
 ------
 
+Slicing with R's |c|_
+~~~~~~~~~~~~~~~~~~~~~
+
+R makes it easy to access ``data.frame`` columns by name
+
+.. code-block:: r
+
+   df <- data.frame(a=rnorm(5), b=rnorm(5), c=rnorm(5), d=rnorm(5), e=rnorm(5))
+   df[, c("a", "c", "e")]
+
+or by integer location
+
+.. code-block:: r
+
+   df <- data.frame(matrix(rnorm(1000), ncol=100))
+   df[, c(1:10, 25:30, 40, 50:100)]
+
+Selecting multiple columns by name in ``pandas`` is straightforward
+
+.. ipython:: python
+
+   df = DataFrame(np.random.randn(10, 3), columns=list('abc'))
+   df[['a', 'c']]
+   df.loc[:, ['a', 'c']]
+
+Selecting multiple noncontiguous columns by integer location can be achieved
+with a combination of the ``iloc`` indexer attribute and ``numpy.r_``.
+
+.. ipython:: python
+
+   named = list('abcdefg')
+   n = 30
+   columns = named + np.arange(len(named), n).tolist()
+   df = DataFrame(np.random.randn(n, n), columns=columns)
+
+   df.iloc[:, np.r_[:10, 24:30]]
+
 |aggregate|_
 ~~~~~~~~~~~~
 
@@ -406,6 +443,9 @@ The second approach is to use the :meth:`~pandas.DataFrame.groupby` method:
 
 For more details and examples see :ref:`the reshaping documentation
 <reshaping.pivot>` or :ref:`the groupby documentation<groupby.split>`.
+
+.. |c| replace:: ``c``
+.. _c: http://stat.ethz.ch/R-manual/R-patched/library/base/html/c.html
 
 .. |aggregate| replace:: ``aggregate``
 .. _aggregate: http://finzi.psych.upenn.edu/R/library/stats/html/aggregate.html
