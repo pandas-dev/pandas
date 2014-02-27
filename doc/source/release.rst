@@ -181,6 +181,7 @@ Bug Fixes
 - Bug in ``io.data.DataReader`` when passed ``"F-F_Momentum_Factor"`` and ``data_source="famafrench"`` (:issue:`6460`)
 - Bug in ``sum`` of a ``timedelta64[ns]`` series (:issue:`6462`)
 - Bug in ``resample`` with a timezone and certain offsets (:issue:`6397`)
+- Bug in ``iat/iloc`` with duplicate indices on a Series (:issue:`6493`)
 
 pandas 0.13.1
 -------------

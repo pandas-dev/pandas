@@ -409,22 +409,23 @@ class SparseSeries(Series):
         else:
             return default
 
-    def get_value(self, label):
+    def get_value(self, label, takeable=False):
         """
         Retrieve single value at passed index label
 
         Parameters
         ----------
         index : label
+        takeable : interpret the index as indexers, default False
 
         Returns
         -------
         value : scalar value
         """
-        loc = self.index.get_loc(label)
+        loc = label if takeable is True else self.index.get_loc(label)
         return self._get_val_at(loc)
 
-    def set_value(self, label, value):
+    def set_value(self, label, value, takeable=False):
         """
         Quickly set single value at passed label. If label is not contained, a
         new object is created with the label placed at the end of the result
@@ -436,6 +437,7 @@ class SparseSeries(Series):
             Partial indexing with MultiIndex not allowed
         value : object
             Scalar value
+        takeable : interpret the index as indexers, default False
 
         Notes
         -----
@@ -450,7 +452,7 @@ class SparseSeries(Series):
 
         # if the label doesn't exist, we will create a new object here
         # and possibily change the index
-        new_values = values.set_value(label, value)
+        new_values = values.set_value(label, value, takeable=takeable)
         if new_values is not None:
             values = new_values
         new_index = values.index
