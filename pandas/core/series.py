@@ -1802,7 +1802,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        level : int
+        level : int or level name, default None
         ascending : bool, default True
 
         Returns
