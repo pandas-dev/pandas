@@ -1004,6 +1004,7 @@ class NDFrame(PandasObject):
         return self._get_item_cache(item)
 
     def _get_item_cache(self, item):
+        """ return the cached item, item represents a label indexer """
         cache = self._item_cache
         res = cache.get(item)
         if res is None:
@@ -1020,6 +1021,15 @@ class NDFrame(PandasObject):
         """ set the _cacher attribute on the calling object with
             a weakref to cacher """
         self._cacher = (item, weakref.ref(cacher))
+
+    def _iget_item_cache(self, item):
+        """ return the cached item, item represents a positional indexer """
+        ax = self._info_axis
+        if ax.is_unique:
+            lower = self._get_item_cache(ax[item])
+        else:
+            lower = self.take(item, axis=self._info_axis_number, convert=True)
+        return lower
 
     def _box_item_values(self, key, values):
         raise NotImplementedError
@@ -1595,7 +1605,8 @@ class NDFrame(PandasObject):
 
             obj = obj._reindex_with_indexers(
                 {axis: [new_index, indexer]}, method=method,
-                fill_value=fill_value, limit=limit, copy=copy)
+                fill_value=fill_value, limit=limit, copy=copy,
+                allow_dups=takeable)
 
         return obj
 

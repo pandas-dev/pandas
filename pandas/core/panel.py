@@ -444,7 +444,7 @@ class Panel(NDFrame):
     #----------------------------------------------------------------------
     # Getting and setting elements
 
-    def get_value(self, *args):
+    def get_value(self, *args, **kwargs):
         """
         Quickly retrieve single value at (item, major, minor) location
 
@@ -453,6 +453,7 @@ class Panel(NDFrame):
         item : item label (panel item)
         major : major axis label (panel item row)
         minor : minor axis label (panel item column)
+        takeable : interpret the passed labels as indexers, default False
 
         Returns
         -------
@@ -466,12 +467,16 @@ class Panel(NDFrame):
             raise TypeError('There must be an argument for each axis, you gave'
                             ' {0} args, but {1} are required'.format(nargs,
                                                                      nreq))
+        takeable = kwargs.get('takeable')
 
-        # hm, two layers to the onion
-        frame = self._get_item_cache(args[0])
-        return frame.get_value(*args[1:])
+        if takeable is True:
+            lower = self._iget_item_cache(args[0])
+        else:
+            lower = self._get_item_cache(args[0])
 
-    def set_value(self, *args):
+        return lower.get_value(*args[1:], takeable=takeable)
+
+    def set_value(self, *args, **kwargs):
         """
         Quickly set single value at (item, major, minor) location
 
@@ -481,6 +486,7 @@ class Panel(NDFrame):
         major : major axis label (panel item row)
         minor : minor axis label (panel item column)
         value : scalar
+        takeable : interpret the passed labels as indexers, default False
 
         Returns
         -------
@@ -496,10 +502,15 @@ class Panel(NDFrame):
             raise TypeError('There must be an argument for each axis plus the '
                             'value provided, you gave {0} args, but {1} are '
                             'required'.format(nargs, nreq))
+        takeable = kwargs.get('takeable')
 
         try:
-            frame = self._get_item_cache(args[0])
-            frame.set_value(*args[1:])
+            if takeable is True:
+                lower = self._iget_item_cache(args[0])
+            else:
+                lower = self._get_item_cache(args[0])
+
+            lower.set_value(*args[1:], takeable=takeable)
             return self
         except KeyError:
             axes = self._expand_axes(args)
