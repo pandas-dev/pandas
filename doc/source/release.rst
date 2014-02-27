@@ -129,6 +129,7 @@ Improvements to existing features
   using ``DataFrame.to_csv`` (:issue:`5414`, :issue:`4528`)
 - perf improvements in DataFrame construction with certain offsets, by removing faulty caching
   (e.g. MonthEnd,BusinessMonthEnd), (:issue:`6479`)
+- perf improvements in single-dtyped indexing (:issue:`6484`)
 
 .. _release.bug_fixes-0.14.0:
 
