@@ -339,7 +339,7 @@ class TestIndexing(tm.TestCase):
         # GH6493
         # iat/iloc with dups
 
-        s = Series(range(5), index=[1,1,2,2,3])
+        s = Series(range(5), index=[1,1,2,2,3], dtype='int64')
         result = s.iloc[2]
         self.assertEqual(result,2)
         result = s.iat[2]
