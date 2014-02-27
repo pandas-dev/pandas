@@ -127,6 +127,8 @@ Improvements to existing features
 - ``Series.rank()`` now has a percentage rank option (:issue:`5971`)
 - ``quotechar``, ``doublequote``, and ``escapechar`` can now be specified when
   using ``DataFrame.to_csv`` (:issue:`5414`, :issue:`4528`)
+- perf improvements in DataFrame construction with certain offsets, by removing faulty caching
+  (e.g. MonthEnd,BusinessMonthEnd), (:issue:`6479`)
 
 .. _release.bug_fixes-0.14.0:
 

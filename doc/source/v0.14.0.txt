@@ -237,6 +237,9 @@ Enhancements
 Performance
 ~~~~~~~~~~~
 
+- perf improvements in DataFrame construction with certain offsets, by removing faulty caching
+  (e.g. MonthEnd,BusinessMonthEnd), (:issue:`6479`)
+
 Experimental
 ~~~~~~~~~~~~
 
