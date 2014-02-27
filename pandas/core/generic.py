@@ -3454,7 +3454,7 @@ axis : """ + axis_descr + """
 skipna : boolean, default True
     Exclude NA/null values. If an entire row/column is NA, the result
     will be NA
-level : int, default None
+level : int or level name, default None
         If the axis is a MultiIndex (hierarchical), count along a
         particular level, collapsing into a """ + name + """
 numeric_only : boolean, default None
