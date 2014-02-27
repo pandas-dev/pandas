@@ -442,6 +442,7 @@ def print_report(df,h_head=None,h_msg="",h_baseline=None,b_msg=""):
     if args.stats :
         try:
             pd.options.display.expand_frame_repr=False
+            pd.set_option('display.max_rows', None)
         except:
             pass
         stats_footer += str(df.T.describe().T) + "\n\n"
