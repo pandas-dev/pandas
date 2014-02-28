@@ -190,6 +190,7 @@ Bug Fixes
   rest of pandas (:issue:`5129`).
 - Bug in ``read_html`` tests where redirected invalid URLs would make one test
   fail (:issue:`6445`).
+- Bug in multi-axis indexing using ``.loc`` on non-unique indices (:issue:`6504`)
 
 pandas 0.13.1
 -------------

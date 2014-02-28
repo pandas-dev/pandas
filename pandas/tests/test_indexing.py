@@ -1599,6 +1599,21 @@ class TestIndexing(tm.TestCase):
         result = df.ix[:,['A','B','C']]
         assert_frame_equal(result, expected)
 
+        # GH 6504, multi-axis indexing
+        df = DataFrame(np.random.randn(9,2), index=[1,1,1,2,2,2,3,3,3], columns=['a', 'b'])
+
+        expected = df.iloc[0:6]
+        result = df.loc[[1, 2]]
+        assert_frame_equal(result, expected)
+
+        expected = df
+        result = df.loc[:,['a', 'b']]
+        assert_frame_equal(result, expected)
+
+        expected = df.iloc[0:6,:]
+        result = df.loc[[1, 2], ['a', 'b']]
+        assert_frame_equal(result, expected)
+
     def test_indexing_mixed_frame_bug(self):
 
         # GH3492
