@@ -710,6 +710,8 @@ class _NDFrameIndexer(object):
                 return False
             elif com._is_bool_indexer(indexer):
                 return False
+            elif not ax.is_unique:
+                return False
 
         return True
 
