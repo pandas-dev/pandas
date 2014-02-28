@@ -786,7 +786,7 @@ class PandasSQLTableLegacy(PandasSQLTable):
                                x for x in zip(safe_columns, column_types))
         template = """CREATE TABLE %(name)s (
                       %(columns)s
-                      );"""
+                      )"""
         create_statement = template % {'name': self.name, 'columns': columns}
         return create_statement
 
