@@ -631,34 +631,35 @@ class Index(IndexOpsMixin, FrozenNDArray):
         raise TypeError("unhashable type: %r" % type(self).__name__)
 
     def __getitem__(self, key):
-        """Override numpy.ndarray's __getitem__ method to work as desired"""
-        arr_idx = self.view(np.ndarray)
+        """
+        Override numpy.ndarray's __getitem__ method to work as desired.
+
+        This function adds lists and Series as valid boolean indexers
+        (ndarrays only supports ndarray with dtype=bool).
+
+        If resulting ndim != 1, plain ndarray is returned instead of
+        corresponding `Index` subclass.
+
+        """
+        # There's no custom logic to be implemented in __getslice__, so it's
+        # not overloaded intentionally.
+        __getitem__ = super(Index, self).__getitem__
         if np.isscalar(key):
-            return arr_idx[key]
+            return __getitem__(key)
+
+        if isinstance(key, slice):
+            # This case is separated from the conditional above to avoid
+            # pessimization of basic indexing.
+            return __getitem__(key)
+
+        if com._is_bool_indexer(key):
+            return __getitem__(np.asarray(key))
+
+        result = __getitem__(key)
+        if result.ndim > 1:
+            return result.view(np.ndarray)
         else:
-            if com._is_bool_indexer(key):
-                key = np.asarray(key)
-
-            try:
-                result = arr_idx[key]
-                if result.ndim > 1:
-                    return result
-            except (IndexError):
-                if not len(key):
-                    result = []
-                else:
-                    raise
-
-            return Index(result, name=self.name)
-
-    def _getitem_slice(self, key):
-        """ getitem for a bool/sliceable, fallback to standard getitem """
-        try:
-            arr_idx = self.view(np.ndarray)
-            result = arr_idx[key]
-            return self.__class__(result, name=self.name, fastpath=True)
-        except:
-            return self.__getitem__(key)
+            return result
 
     def append(self, other):
         """
@@ -1334,7 +1335,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
         ----------
         other : Index
         how : {'left', 'right', 'inner', 'outer'}
-        level :
+        level : int or level name, default None
         return_indexers : boolean, default False
 
         Returns
@@ -2463,7 +2464,7 @@ class MultiIndex(Index):
 
         Parameters
         ----------
-        level : int
+        level : int or level name
 
         Returns
         -------
@@ -2800,8 +2801,6 @@ class MultiIndex(Index):
 
             return result
 
-    _getitem_slice = __getitem__
-
     def take(self, indexer, axis=None):
         """
         Analogous to ndarray.take
@@ -2846,7 +2845,7 @@ class MultiIndex(Index):
         ----------
         labels : array-like
             Must be a list of tuples
-        level : int or name, default None
+        level : int or level name, default None
 
         Returns
         -------
@@ -3242,6 +3241,7 @@ class MultiIndex(Index):
         Parameters
         ----------
         key : label or tuple
+        level : int/level name or list thereof
 
         Returns
         -------

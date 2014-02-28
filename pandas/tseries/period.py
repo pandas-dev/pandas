@@ -1056,8 +1056,6 @@ class PeriodIndex(Int64Index):
 
             return PeriodIndex(result, name=self.name, freq=self.freq)
 
-    _getitem_slice = __getitem__
-
     def _format_with_header(self, header, **kwargs):
         return header + self._format_native_types(**kwargs)
 

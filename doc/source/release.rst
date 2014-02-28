@@ -105,6 +105,8 @@ API Changes
 - ``NameResolutionError`` was removed because it isn't necessary anymore.
 - ``concat`` will now concatenate mixed Series and DataFrames using the Series name
   or numbering columns as needed (:issue:`2385`)
+- Slicing and advanced/boolean indexing operations on ``Index`` classes will no
+  longer change type of the resulting index (:issue:`6440`).
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
@@ -127,6 +129,9 @@ Improvements to existing features
 - ``Series.rank()`` now has a percentage rank option (:issue:`5971`)
 - ``quotechar``, ``doublequote``, and ``escapechar`` can now be specified when
   using ``DataFrame.to_csv`` (:issue:`5414`, :issue:`4528`)
+- perf improvements in DataFrame construction with certain offsets, by removing faulty caching
+  (e.g. MonthEnd,BusinessMonthEnd), (:issue:`6479`)
+- perf improvements in single-dtyped indexing (:issue:`6484`)
 
 .. _release.bug_fixes-0.14.0:
 
@@ -181,6 +186,12 @@ Bug Fixes
 - Bug in ``io.data.DataReader`` when passed ``"F-F_Momentum_Factor"`` and ``data_source="famafrench"`` (:issue:`6460`)
 - Bug in ``sum`` of a ``timedelta64[ns]`` series (:issue:`6462`)
 - Bug in ``resample`` with a timezone and certain offsets (:issue:`6397`)
+- Bug in ``iat/iloc`` with duplicate indices on a Series (:issue:`6493`)
+- Bug in ``read_html`` where nan's were incorrectly being used to indicate
+  missing values in text. Should use the empty string for consistency with the
+  rest of pandas (:issue:`5129`).
+- Bug in ``read_html`` tests where redirected invalid URLs would make one test
+  fail (:issue:`6445`).
 
 pandas 0.13.1
 -------------

@@ -3402,8 +3402,11 @@ class BlockManager(PandasObject):
             # unique
             if self.axes[0].is_unique and new_items.is_unique:
 
+                # ok to use the global indexer if only 1 block
+                i = indexer if len(self.blocks) == 1 else None
+
                 for block in self.blocks:
-                    blk = block.reindex_items_from(new_items, copy=copy)
+                    blk = block.reindex_items_from(new_items, indexer=i, copy=copy)
                     new_blocks.extend(_valid_blocks(blk))
 
             # non-unique
@@ -3734,7 +3737,7 @@ class SingleBlockManager(BlockManager):
         if raise_on_error:
             _check_slice_bounds(slobj, self.index)
         return self.__class__(self._block._slice(slobj),
-                              self.index._getitem_slice(slobj), fastpath=True)
+                              self.index[slobj], fastpath=True)
 
     def set_axis(self, axis, value, maybe_rename=True, check_axis=True):
         cur_axis, value = self._set_axis(axis, value, check_axis)

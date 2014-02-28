@@ -346,10 +346,15 @@ class SparseDataFrame(DataFrame):
             return self._get_item_cache(key)
 
     @Appender(DataFrame.get_value.__doc__, indents=0)
-    def get_value(self, index, col):
-        return self._get_item_cache(col).get_value(index)
+    def get_value(self, index, col, takeable=False):
+        if takeable is True:
+            series = self._iget_item_cache(col)
+        else:
+            series = self._get_item_cache(col)
 
-    def set_value(self, index, col, value):
+        return series.get_value(index, takeable=takeable)
+
+    def set_value(self, index, col, value, takeable=False):
         """
         Put single value at passed column and index
 
@@ -358,6 +363,7 @@ class SparseDataFrame(DataFrame):
         index : row label
         col : column label
         value : scalar value
+        takeable : interpret the index/col as indexers, default False
 
         Notes
         -----
@@ -369,7 +375,7 @@ class SparseDataFrame(DataFrame):
         -------
         frame : DataFrame
         """
-        dense = self.to_dense().set_value(index, col, value)
+        dense = self.to_dense().set_value(index, col, value, takeable=takeable)
         return dense.to_sparse(kind=self._default_kind,
                                fill_value=self._default_fill_value)
 

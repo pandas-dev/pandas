@@ -334,6 +334,33 @@ class TestIndexing(tm.TestCase):
     def test_iat_invalid_args(self):
         pass
 
+    def test_imethods_with_dups(self):
+
+        # GH6493
+        # iat/iloc with dups
+
+        s = Series(range(5), index=[1,1,2,2,3], dtype='int64')
+        result = s.iloc[2]
+        self.assertEqual(result,2)
+        result = s.iat[2]
+        self.assertEqual(result,2)
+
+        self.assertRaises(IndexError, lambda : s.iat[10])
+        self.assertRaises(IndexError, lambda : s.iat[-10])
+
+        result = s.iloc[[2,3]]
+        expected = Series([2,3],[2,2],dtype='int64')
+        assert_series_equal(result,expected)
+
+        df = s.to_frame()
+        result = df.iloc[2]
+        expected = Series(2,index=[0])
+        assert_series_equal(result,expected)
+
+        result = df.iat[2,0]
+        expected = 2
+        self.assertEqual(result,2)
+
     def test_repeated_getitem_dups(self):
         # GH 5678
         # repeated gettitems on a dup index returing a ndarray

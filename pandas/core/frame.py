@@ -1519,7 +1519,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Getting and setting elements
 
-    def get_value(self, index, col):
+    def get_value(self, index, col, takeable=False):
         """
         Quickly retrieve single value at passed column and index
 
@@ -1527,16 +1527,22 @@ class DataFrame(NDFrame):
         ----------
         index : row label
         col : column label
+        takeable : interpret the index/col as indexers, default False
 
         Returns
         -------
         value : scalar value
         """
+
+        if takeable is True:
+            series = self._iget_item_cache(col)
+            return series.values[index]
+
         series = self._get_item_cache(col)
         engine = self.index._engine
         return engine.get_value(series.values, index)
 
-    def set_value(self, index, col, value):
+    def set_value(self, index, col, value, takeable=False):
         """
         Put single value at passed column and index
 
@@ -1545,6 +1551,7 @@ class DataFrame(NDFrame):
         index : row label
         col : column label
         value : scalar value
+        takeable : interpret the index/col as indexers, default False
 
         Returns
         -------
@@ -1553,6 +1560,10 @@ class DataFrame(NDFrame):
             otherwise a new object
         """
         try:
+            if takeable is True:
+                series = self._iget_item_cache(col)
+                return series.set_value(index, value, takeable=True)
+
             series = self._get_item_cache(col)
             engine = self.index._engine
             engine.set_value(series.values, index, value)
@@ -3839,7 +3850,7 @@ class DataFrame(NDFrame):
         ----------
         axis : {0, 1}
             0 for row-wise, 1 for column-wise
-        level : int, default None
+        level : int or level name, default None
             If the axis is a MultiIndex (hierarchical), count along a
             particular level, collapsing into a DataFrame
         numeric_only : boolean, default False
@@ -3915,7 +3926,7 @@ class DataFrame(NDFrame):
         skipna : boolean, default True
             Exclude NA/null values. If an entire row/column is NA, the result
             will be NA
-        level : int, default None
+        level : int or level name, default None
             If the axis is a MultiIndex (hierarchical), count along a
             particular level, collapsing into a DataFrame
         bool_only : boolean, default None
@@ -3946,7 +3957,7 @@ class DataFrame(NDFrame):
         skipna : boolean, default True
             Exclude NA/null values. If an entire row/column is NA, the result
             will be NA
-        level : int, default None
+        level : int or level name, default None
             If the axis is a MultiIndex (hierarchical), count along a
             particular level, collapsing into a DataFrame
         bool_only : boolean, default None

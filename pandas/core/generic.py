@@ -1004,6 +1004,7 @@ class NDFrame(PandasObject):
         return self._get_item_cache(item)
 
     def _get_item_cache(self, item):
+        """ return the cached item, item represents a label indexer """
         cache = self._item_cache
         res = cache.get(item)
         if res is None:
@@ -1020,6 +1021,15 @@ class NDFrame(PandasObject):
         """ set the _cacher attribute on the calling object with
             a weakref to cacher """
         self._cacher = (item, weakref.ref(cacher))
+
+    def _iget_item_cache(self, item):
+        """ return the cached item, item represents a positional indexer """
+        ax = self._info_axis
+        if ax.is_unique:
+            lower = self._get_item_cache(ax[item])
+        else:
+            lower = self.take(item, axis=self._info_axis_number, convert=True)
+        return lower
 
     def _box_item_values(self, key, values):
         raise NotImplementedError
@@ -1389,7 +1399,7 @@ class NDFrame(PandasObject):
         ----------
         labels : single label or list-like
         axis : int or axis name
-        level : int or name, default None
+        level : int or level name, default None
             For MultiIndex
         inplace : bool, default False
             If True, do operation inplace and return None.
@@ -1595,7 +1605,8 @@ class NDFrame(PandasObject):
 
             obj = obj._reindex_with_indexers(
                 {axis: [new_index, indexer]}, method=method,
-                fill_value=fill_value, limit=limit, copy=copy)
+                fill_value=fill_value, limit=limit, copy=copy,
+                allow_dups=takeable)
 
         return obj
 
@@ -2858,7 +2869,7 @@ class NDFrame(PandasObject):
         join : {'outer', 'inner', 'left', 'right'}, default 'outer'
         axis : allowed axis of the other object, default None
             Align on index (0), columns (1), or both (None)
-        level : int or name
+        level : int or level name, default None
             Broadcast across a level, matching Index values on the
             passed MultiIndex level
         copy : boolean, default True
@@ -3443,7 +3454,7 @@ axis : """ + axis_descr + """
 skipna : boolean, default True
     Exclude NA/null values. If an entire row/column is NA, the result
     will be NA
-level : int, default None
+level : int or level name, default None
         If the axis is a MultiIndex (hierarchical), count along a
         particular level, collapsing into a """ + name + """
 numeric_only : boolean, default None

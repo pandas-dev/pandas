@@ -725,21 +725,24 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     iget = _ixs
     irow = _ixs
 
-    def get_value(self, label):
+    def get_value(self, label, takeable=False):
         """
         Quickly retrieve single value at passed index label
 
         Parameters
         ----------
         index : label
+        takeable : interpret the index as indexers, default False
 
         Returns
         -------
         value : scalar value
         """
+        if takeable is True:
+            return self.values[label]
         return self.index.get_value(self.values, label)
 
-    def set_value(self, label, value):
+    def set_value(self, label, value, takeable=False):
         """
         Quickly set single value at passed label. If label is not contained, a
         new object is created with the label placed at the end of the result
@@ -751,6 +754,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Partial indexing with MultiIndex not allowed
         value : object
             Scalar value
+        takeable : interpret the index as indexers, default False
 
         Returns
         -------
@@ -759,7 +763,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             otherwise a new object
         """
         try:
-            self.index._engine.set_value(self.values, label, value)
+            if takeable:
+                self.values[label] = value
+            else:
+                self.index._engine.set_value(self.values, label, value)
             return self
         except KeyError:
 
@@ -1057,7 +1064,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        level : int, default None
+        level : int or level name, default None
             If the axis is a MultiIndex (hierarchical), count along a
             particular level, collapsing into a smaller Series
 
@@ -1505,7 +1512,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         fill_value : float or object
             Value to substitute for NA/null values. If both Series are NA in a
             location, the result will be NA regardless of the passed fill value
-        level : int or name
+        level : int or level name, default None
             Broadcast across a level, matching Index values on the
             passed MultiIndex level
 
@@ -1795,7 +1802,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        level : int
+        level : int or level name, default None
         ascending : bool, default True
 
         Returns
