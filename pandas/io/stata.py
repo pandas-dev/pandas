@@ -23,7 +23,7 @@ from pandas import compat
 from pandas.compat import long, lrange, lmap, lzip
 from pandas import isnull
 from pandas.io.common import get_filepath_or_buffer
-
+from pandas.tslib import NaT
 
 def read_stata(filepath_or_buffer, convert_dates=True,
                convert_categoricals=True, encoding=None, index=None):
@@ -150,6 +150,11 @@ def _datetime_to_stata_elapsed(date, fmt):
     if not isinstance(date, datetime.datetime):
         raise ValueError("date should be datetime.datetime format")
     stata_epoch = datetime.datetime(1960, 1, 1)
+    # Handle NaTs
+    if date is NaT:
+        # Missing value for dates ('.'), assumed always double
+        # TODO: Should be moved so a const somewhere, and consolidated
+        return struct.unpack('<d', '\x00\x00\x00\x00\x00\x00\xe0\x7f')[0]
     if fmt in ["%tc", "tc"]:
         delta = date - stata_epoch
         return (delta.days * 86400000 + delta.seconds*1000 +
@@ -230,7 +235,7 @@ def _cast_to_stata_types(data):
 
     return data
 
-
+# TODO: Needs test
 class StataMissingValue(StringMixin):
     """
     An observation's missing value.
@@ -252,11 +257,20 @@ class StataMissingValue(StringMixin):
 
     def __init__(self, offset, value):
         self._value = value
-        if type(value) is int or type(value) is long:
-            self._str = value - offset is 1 and \
-                '.' or ('.' + chr(value - offset + 96))
+        value_type = type(value)
+        if value_type in int:
+            loc = value - offset
+        elif value_type in (float, np.float32, np.float64):
+            if value <= np.finfo(np.float32).max:  # float32
+                conv_str, byte_loc, scale = '<f', 1, 8
+            else:
+                conv_str, byte_loc, scale = '<d', 5, 1
+            value_bytes = struct.pack(conv_str, value)
+            loc = (struct.unpack('<b', value_bytes[byte_loc])[0] / scale) + 0
         else:
-            self._str = '.'
+            # Should never be hit
+            loc = 0
+        self._str = loc is 0 and '.' or ('.' + chr(loc + 96))
     string = property(lambda self: self._str,
                       doc="The Stata representation of the missing value: "
                           "'.', '.a'..'.z'")
@@ -328,13 +342,19 @@ class StataParser(object):
         #NOTE: technically, some of these are wrong. there are more numbers
         # that can be represented. it's the 27 ABOVE and BELOW the max listed
         # numeric data type in [U] 12.2.2 of the 11.2 manual
-        self.MISSING_VALUES = \
+        float32_min = '\xff\xff\xff\xfe'
+        float32_max = '\xff\xff\xff\xfe'
+        float64_min = '\xff\xff\xff\xff\xff\xff\xef\xff'
+        float64_max = '\xff\xff\xff\xff\xff\xff\xdf\x7f'
+        self.VALID_RANGE = \
             {
                 'b': (-127, 100),
                 'h': (-32767, 32740),
                 'l': (-2147483647, 2147483620),
-                'f': (-1.701e+38, +1.701e+38),
-                'd': (-1.798e+308, +8.988e+307)
+                'f': (np.float32(struct.unpack('<f', float32_min)[0]),
+                      np.float32(struct.unpack('<f', float32_max)[0])),
+                'd': (np.float64(struct.unpack('<d', float64_min)[0]),
+                      np.float64(struct.unpack('<d', float64_max)[0]))
             }
 
         self.OLD_TYPE_MAPPING = \
@@ -342,6 +362,16 @@ class StataParser(object):
                 'i': 252,
                 'f': 254,
                 'b': 251
+            }
+        # These missing values are the generic '.' in Stata, and are used
+        # to replace nans
+        self.MISSING_VALUES = \
+            {
+                'b': 101,
+                'h': 32741,
+                'l': 2147483621,
+                'f': np.float32(struct.unpack('<f','\x00\x00\x00\x7f')[0]),
+                'd': np.float64(struct.unpack('<d','\x00\x00\x00\x00\x00\x00\xe0\x7f')[0])
             }
 
     def _decode_bytes(self, str, errors=None):
@@ -612,8 +642,8 @@ class StataReader(StataParser):
 
     def _unpack(self, fmt, byt):
         d = struct.unpack(self.byteorder + fmt, byt)[0]
-        if fmt[-1] in self.MISSING_VALUES:
-            nmin, nmax = self.MISSING_VALUES[fmt[-1]]
+        if fmt[-1] in self.VALID_RANGE:
+            nmin, nmax = self.VALID_RANGE[fmt[-1]]
             if d < nmin or d > nmax:
                 if self._missing_values:
                     return StataMissingValue(nmax, d)
@@ -1243,7 +1273,7 @@ class StataWriter(StataParser):
                     self._write(var)
                 else:
                     if isnull(var):  # this only matters for floats
-                        var = MISSING_VALUES[typ]
+                        var = MISSING_VALUES[TYPE_MAP[typ]]
                     self._file.write(struct.pack(byteorder+TYPE_MAP[typ], var))
 
     def _null_terminate(self, s, as_string=False):

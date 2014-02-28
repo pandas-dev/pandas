@@ -43,6 +43,8 @@ class TestStata(tm.TestCase):
         self.dta2_13 = os.path.join(self.dirpath, 'stata2_v13.dta')
         self.dta3_13 = os.path.join(self.dirpath, 'stata3_v13.dta')
         self.dta4_13 = os.path.join(self.dirpath, 'stata4_v13.dta')
+        self.csv14 = os.path.join(self.dirpath, 'stata5.csv')
+        self.dta14 = os.path.join(self.dirpath, 'stata5.dta')
 
     def read_dta(self, file):
         return read_stata(file, convert_dates=True)
@@ -295,6 +297,14 @@ class TestStata(tm.TestCase):
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(written_and_read_again.set_index('index'),
                                   formatted)
+
+    def test_read_write_reread_dat14(self):
+        parsed = self.read_dta(self.dta14)
+        parsed.index.name = 'index'
+        with tm.ensure_clean() as path:
+            parsed.to_stata(path, {'date_td': 'tc'}, write_index=False)
+            written_and_read_again = self.read_dta(path)
+            tm.assert_frame_equal(written_and_read_again.set_index('index'), parsed)
 
 
 

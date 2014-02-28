@@ -1,0 +1,13 @@
+byte_,int_,long_,float_,double_,date_td,string_,string_1
+0,0,0,0,0,,"a","a"
+1,1,1,1,1,,"ab","b"
+-1,-1,-1,-1,-1,,"abc","c"
+100,32740,-2.15e+09,-1.70e+38,-2.0e+307,01jan1970,"abcdefghijklmnop","d"
+-127,-32767,2.15e+09,1.70e+38,8.0e+307,02jan1970,"abcdefghijklmnopqrstuvwxyz","e"
+,0,,,,01jan2014,"ABCDEFGHIJKLMNOPQRSTUVWXYZ","f"
+0,,,,,01jan2114,"1234567890","1"
+,,0,,,31dec2014,"This string has 244 characters, so that ir is the maximum length permitted by Stata. This string has 244 characters, so that ir is the maximum length permitted by Stata. This string has 244 characters, so that ir is the maximum length permitted","2"
+.a,.a,.a,.a,.a,29feb2012,"!","A"
+.z,.z,.z,.z,.z,,"&","Z"
+,,,0,,,"1.23","!"
+,,,,0,,"10jan1970","."
