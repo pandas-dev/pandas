@@ -154,7 +154,7 @@ def _datetime_to_stata_elapsed(date, fmt):
     if date is NaT:
         # Missing value for dates ('.'), assumed always double
         # TODO: Should be moved so a const somewhere, and consolidated
-        return struct.unpack('<d', '\x00\x00\x00\x00\x00\x00\xe0\x7f')[0]
+        return struct.unpack('<d',b'\x00\x00\x00\x00\x00\x00\xe0\x7f')[0]
     if fmt in ["%tc", "tc"]:
         delta = date - stata_epoch
         return (delta.days * 86400000 + delta.seconds*1000 +
@@ -342,10 +342,10 @@ class StataParser(object):
         #NOTE: technically, some of these are wrong. there are more numbers
         # that can be represented. it's the 27 ABOVE and BELOW the max listed
         # numeric data type in [U] 12.2.2 of the 11.2 manual
-        float32_min = '\xff\xff\xff\xfe'
-        float32_max = '\xff\xff\xff\x7e'
-        float64_min = '\xff\xff\xff\xff\xff\xff\xef\xff'
-        float64_max = '\xff\xff\xff\xff\xff\xff\xdf\x7f'
+        float32_min = b'\xff\xff\xff\xfe'
+        float32_max = b'\xff\xff\xff\x7e'
+        float64_min = b'\xff\xff\xff\xff\xff\xff\xef\xff'
+        float64_max = b'\xff\xff\xff\xff\xff\xff\xdf\x7f'
         self.VALID_RANGE = \
             {
                 'b': (-127, 100),
@@ -370,8 +370,8 @@ class StataParser(object):
                 'b': 101,
                 'h': 32741,
                 'l': 2147483621,
-                'f': np.float32(struct.unpack('<f','\x00\x00\x00\x7f')[0]),
-                'd': np.float64(struct.unpack('<d','\x00\x00\x00\x00\x00\x00\xe0\x7f')[0])
+                'f': np.float32(struct.unpack('<f',b'\x00\x00\x00\x7f')[0]),
+                'd': np.float64(struct.unpack('<d',b'\x00\x00\x00\x00\x00\x00\xe0\x7f')[0])
             }
 
     def _decode_bytes(self, str, errors=None):
