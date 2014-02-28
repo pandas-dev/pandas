@@ -343,7 +343,7 @@ class StataParser(object):
         # that can be represented. it's the 27 ABOVE and BELOW the max listed
         # numeric data type in [U] 12.2.2 of the 11.2 manual
         float32_min = '\xff\xff\xff\xfe'
-        float32_max = '\xff\xff\xff\xfe'
+        float32_max = '\xff\xff\xff\x7e'
         float64_min = '\xff\xff\xff\xff\xff\xff\xef\xff'
         float64_max = '\xff\xff\xff\xff\xff\xff\xdf\x7f'
         self.VALID_RANGE = \
