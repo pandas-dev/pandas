@@ -46,3 +46,16 @@ index_int64_union = Benchmark('left.union(right)', setup,
 
 index_int64_intersection = Benchmark('left.intersection(right)', setup,
                                      start_date=datetime(2011, 1, 1))
+
+#----------------------------------------------------------------------
+# string index slicing
+setup = common_setup + """
+idx = tm.makeStringIndex(1000000)
+
+mask = np.arange(1000000) % 3 == 0
+series_mask = Series(mask)
+"""
+index_str_slice_indexer_basic = Benchmark('idx[:-1]', setup)
+index_str_slice_indexer_even = Benchmark('idx[::2]', setup)
+index_str_boolean_indexer = Benchmark('idx[mask]', setup)
+index_str_boolean_series_indexer = Benchmark('idx[series_mask]', setup)
