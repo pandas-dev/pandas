@@ -48,7 +48,7 @@ def read_stata(filepath_or_buffer, convert_dates=True,
 
     return reader.data(convert_dates, convert_categoricals, index)
 
-_date_formats = ["%tc", "%tC", "%td", "%tw", "%tm", "%tq", "%th", "%ty"]
+_date_formats = ["%tc", "%tC", "%td", "%d", "%tw", "%tm", "%tq", "%th", "%ty"]
 
 
 def _stata_elapsed_date_to_datetime(date, fmt):
@@ -109,7 +109,7 @@ def _stata_elapsed_date_to_datetime(date, fmt):
         from warnings import warn
         warn("Encountered %tC format. Leaving in Stata Internal Format.")
         return date
-    elif fmt in ["%td", "td"]:
+    elif fmt in ["%td", "td", "%d", "d"]:
         return stata_epoch + datetime.timedelta(int(date))
     elif fmt in ["%tw", "tw"]:  # does not count leap days - 7 days is a week
         year = datetime.datetime(stata_epoch.year + date // 52, 1, 1)
