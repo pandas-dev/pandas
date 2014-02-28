@@ -301,6 +301,9 @@ class TestStata(tm.TestCase):
     def test_read_write_reread_dat14(self):
         parsed = self.read_dta(self.dta14)
         parsed.index.name = 'index'
+        parsed_10 = self.read_dta(self.dta14_10)
+        parsed_10.index.name = 'index'
+        tm.assert_frame_equal(parsed_10,parsed)
         with tm.ensure_clean() as path:
             parsed.to_stata(path, {'date_td': 'tc'}, write_index=False)
             written_and_read_again = self.read_dta(path)
