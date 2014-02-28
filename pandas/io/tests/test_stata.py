@@ -45,6 +45,7 @@ class TestStata(tm.TestCase):
         self.dta4_13 = os.path.join(self.dirpath, 'stata4_v13.dta')
         self.csv14 = os.path.join(self.dirpath, 'stata5.csv')
         self.dta14 = os.path.join(self.dirpath, 'stata5.dta')
+        self.dta14_10 = os.path.join(self.dirpath, 'stata5_v10.dta')
 
     def read_dta(self, file):
         return read_stata(file, convert_dates=True)
