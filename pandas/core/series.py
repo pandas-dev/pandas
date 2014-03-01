@@ -1720,11 +1720,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        method : {'average', 'min', 'max', 'first'}
+        method : {'average', 'min', 'max', 'first', 'dense'}
             * average: average rank of group
             * min: lowest rank in group
             * max: highest rank in group
             * first: ranks assigned in order they appear in the array
+            * dense: like 'min', but rank always increases by 1 between groups
         na_option : {'keep'}
             keep: leave NA values where they are
         ascending : boolean, default True

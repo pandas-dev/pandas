@@ -12,7 +12,6 @@ from pandas.util.testing import (assert_frame_equal,
                                  assert_almost_equal)
 import pandas.util.testing as tm
 
-
 class TestRank(tm.TestCase):
     _multiprocess_can_split_ = True
     s = Series([1, 3, 4, 2, nan, 2, 1, 5, nan, 3])
@@ -23,7 +22,8 @@ class TestRank(tm.TestCase):
                              3.5, 1.5, 8.0, nan, 5.5]),
         'min': np.array([1, 5, 7, 3, nan, 3, 1, 8, nan, 5]),
         'max': np.array([2, 6, 7, 4, nan, 4, 2, 8, nan, 6]),
-        'first': np.array([1, 5, 7, 3, nan, 4, 2, 8, nan, 6])
+        'first': np.array([1, 5, 7, 3, nan, 4, 2, 8, nan, 6]),
+        'dense': np.array([1, 3, 4, 2, nan, 2, 1, 5, nan, 3]),
     }
 
     def test_rank_tie_methods(self):
@@ -42,6 +42,24 @@ class TestRank(tm.TestCase):
                 continue
             series = s if dtype is None else s.astype(dtype)
             _check(series, results[method], method=method)
+
+    def test_rank_dense_method(self):
+        dtypes = ['O', 'f8', 'i8']
+        in_out = [([1], [1]),
+                  ([2], [1]),
+                  ([0], [1]),
+                  ([2,2], [1,1]),
+                  ([1,2,3], [1,2,3]),
+                  ([4,2,1], [3,2,1],),
+                  ([1,1,5,5,3], [1,1,3,3,2]),
+                  ([-5,-4,-3,-2,-1], [1,2,3,4,5])]
+
+        for ser, exp in in_out:
+            for dtype in dtypes:
+                s = Series(ser).astype(dtype)
+                result = s.rank(method='dense')
+                expected = Series(exp).astype(result.dtype)
+                assert_series_equal(result, expected)
 
     def test_rank_descending(self):
         dtypes = ['O', 'f8', 'i8']

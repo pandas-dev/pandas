@@ -4182,11 +4182,12 @@ class DataFrame(NDFrame):
             Ranks over columns (0) or rows (1)
         numeric_only : boolean, default None
             Include only float, int, boolean data
-        method : {'average', 'min', 'max', 'first'}
+        method : {'average', 'min', 'max', 'first', 'dense'}
             * average: average rank of group
             * min: lowest rank in group
             * max: highest rank in group
             * first: ranks assigned in order they appear in the array
+            * dense: like 'min', but rank always increases by 1 between groups
         na_option : {'keep', 'top', 'bottom'}
             * keep: leave NA values where they are
             * top: smallest rank if ascending
