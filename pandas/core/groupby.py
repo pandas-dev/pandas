@@ -1479,6 +1479,8 @@ class Grouping(object):
     ----------
     index : Index
     grouper :
+    obj :
+    axis :
     name :
     level :
 
@@ -1493,7 +1495,7 @@ class Grouping(object):
       * groups : dict of {group -> label_list}
     """
 
-    def __init__(self, index, grouper=None, name=None, level=None,
+    def __init__(self, index, grouper=None, obj=None, axis=0, name=None, level=None,
                  sort=True):
 
         self.name = name
@@ -1565,6 +1567,30 @@ class Grouping(object):
                 self._group_index = factor.levels
                 if self.name is None:
                     self.name = factor.name
+
+            # a passed TimeGrouper like
+            elif isinstance(self.grouper, CustomGrouper):
+
+                # get the obj to work on
+                if self.grouper.name is not None:
+                    name = self.grouper.name
+                    if name not in obj._info_axis:
+                        raise KeyError("The grouper name {0} is not found".format(name))
+                    ax = Index(obj[name],name=name)
+                else:
+                    ax = obj._get_axis(axis)
+                    if self.grouper.level is not None:
+                        level = self.grouper.level
+                        if isinstance(ax, MultiIndex):
+                            level = ax._get_level_name(level)
+                            ax = Index(ax.get_level_values(level), name=level)
+                        else:
+                            if not (level == 0 or level == ax.name):
+                                raise ValueError("The grouper level {0} is not valid".format(level))
+
+                self.grouper = self.grouper._get_grouper_for_ax(ax)
+                if self.name is None:
+                    self.name = self.grouper.name
 
             # no level passed
             if not isinstance(self.grouper, (Series, np.ndarray)):
@@ -1704,7 +1730,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
             errmsg = "Categorical grouper must have len(grouper) == len(data)"
             raise AssertionError(errmsg)
 
-        ping = Grouping(group_axis, gpr, name=name, level=level, sort=sort)
+        ping = Grouping(group_axis, gpr, obj=obj, axis=axis, name=name, level=level, sort=sort)
         groupings.append(ping)
 
     if len(groupings) == 0:

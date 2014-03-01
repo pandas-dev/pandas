@@ -2031,7 +2031,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             raise ValueError("cannot reindex series on non-zero axis!")
         return self.reindex(index=labels, **kwargs)
 
-    def take(self, indices, axis=0, convert=True):
+    def take(self, indices, axis=0, convert=True, is_copy=False):
         """
         Analogous to ndarray.take, return Series corresponding to requested
         indices

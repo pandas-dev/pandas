@@ -30,6 +30,8 @@ class TimeGrouper(CustomGrouper):
     nperiods : optional, integer
     convention : {'start', 'end', 'e', 's'}
         If axis is PeriodIndex
+    name : referring name, default None
+    level : referering level, default None
 
     Notes
     -----
@@ -39,7 +41,7 @@ class TimeGrouper(CustomGrouper):
     def __init__(self, freq='Min', closed=None, label=None, how='mean',
                  nperiods=None, axis=0,
                  fill_method=None, limit=None, loffset=None, kind=None,
-                 convention=None, base=0):
+                 convention=None, base=0, name=None, level=None):
         self.freq = to_offset(freq)
 
         end_types = set(['M', 'A', 'Q', 'BM', 'BA', 'BQ', 'W'])
@@ -70,6 +72,8 @@ class TimeGrouper(CustomGrouper):
         self.fill_method = fill_method
         self.limit = limit
         self.base = base
+        self.name = name
+        self.level = level
 
     def resample(self, obj):
         ax = obj._get_axis(self.axis)
@@ -103,13 +107,42 @@ class TimeGrouper(CustomGrouper):
         # return a tuple of (binner, grouper, obj)
         return self._get_time_grouper(obj)
 
+    def _get_grouper_for_ax(self, ax):
+        # return an ordering of the transformed group labels,
+        # suitable for multi-grouping, e.g the labels for
+        # the resampled intervals
+
+        indexer = None
+        if not ax.is_monotonic:
+            indexer = ax.argsort(kind='quicksort')
+            ax = ax.take(indexer)
+
+        if self.kind is None or self.kind == 'timestamp':
+            binner, bins, binlabels = self._get_time_bins(ax)
+        else:
+            binner, bins, binlabels = self._get_time_period_bins(ax)
+
+        grp = BinGrouper(bins, binlabels)
+
+        # create the grouper
+        l = []
+        for key, group in grp.get_iterator(ax):
+            l.extend([key]*len(group))
+        grouper = binner.__class__(l,freq=binner.freq,name=binner.name)
+
+        # since we may have had to sort
+        # may need to reorder groups here
+        if indexer is not None:
+            grouper = grouper.take(indexer)
+        return grouper
+
     def _ensure_sortedness(self, obj):
         # ensure that our object is sorted
         ax = obj._get_axis(self.axis)
         if not ax.is_monotonic:
             try:
                 obj = obj.sort_index(axis=self.axis)
-            except TypeError:
+            except:
                 obj = obj.sort_index()
         return obj
 
