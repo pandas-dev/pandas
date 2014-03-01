@@ -127,6 +127,7 @@ Improvements to existing features
 - Performance improvement in indexing into a multi-indexed Series (:issue:`5567`)
 - Testing statements updated to use specialized asserts (:issue:`6175`)
 - ``Series.rank()`` now has a percentage rank option (:issue:`5971`)
+- ``Series.rank()`` and ``DataFrame.rank()`` now accept ``method='dense'`` for ranks without gaps (:issue:`6514`)
 - ``quotechar``, ``doublequote``, and ``escapechar`` can now be specified when
   using ``DataFrame.to_csv`` (:issue:`5414`, :issue:`4528`)
 - perf improvements in DataFrame construction with certain offsets, by removing faulty caching
