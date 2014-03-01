@@ -97,6 +97,7 @@ def _stata_elapsed_date_to_datetime(date, fmt):
     # numpy types and numpy datetime isn't mature enough / we can't rely on
     # pandas version > 0.7.1
     #TODO: IIRC relative delta doesn't play well with np.datetime?
+    #TODO: When pandas supports more than datetime64[ns], this should be improved to use correct range, e.g. datetime[Y] for yearly
     if np.isnan(date):
         return np.datetime64('nat')
 
@@ -154,7 +155,7 @@ def _datetime_to_stata_elapsed(date, fmt):
     if date is NaT:
         # Missing value for dates ('.'), assumed always double
         # TODO: Should be moved so a const somewhere, and consolidated
-        return struct.unpack('<d',b'\x00\x00\x00\x00\x00\x00\xe0\x7f')[0]
+        return struct.unpack('<d', b'\x00\x00\x00\x00\x00\x00\xe0\x7f')[0]
     if fmt in ["%tc", "tc"]:
         delta = date - stata_epoch
         return (delta.days * 86400000 + delta.seconds*1000 +
@@ -235,7 +236,7 @@ def _cast_to_stata_types(data):
 
     return data
 
-# TODO: Needs test
+
 class StataMissingValue(StringMixin):
     """
     An observation's missing value.
@@ -254,7 +255,7 @@ class StataMissingValue(StringMixin):
     -----
     More information: <http://www.stata.com/help.cgi?missing>
     """
-
+    # TODO: Needs test
     def __init__(self, offset, value):
         self._value = value
         value_type = type(value)
@@ -370,8 +371,8 @@ class StataParser(object):
                 'b': 101,
                 'h': 32741,
                 'l': 2147483621,
-                'f': np.float32(struct.unpack('<f',b'\x00\x00\x00\x7f')[0]),
-                'd': np.float64(struct.unpack('<d',b'\x00\x00\x00\x00\x00\x00\xe0\x7f')[0])
+                'f': np.float32(struct.unpack('<f', b'\x00\x00\x00\x7f')[0]),
+                'd': np.float64(struct.unpack('<d', b'\x00\x00\x00\x00\x00\x00\xe0\x7f')[0])
             }
 
     def _decode_bytes(self, str, errors=None):
