@@ -40,7 +40,6 @@ class TestStata(tm.TestCase):
         self.dta3_115 = os.path.join(self.dirpath, 'stata3_115.dta')
         self.dta3_117 = os.path.join(self.dirpath, 'stata3_117.dta')
         self.csv3 = os.path.join(self.dirpath, 'stata3.csv')
-
         self.dta4_113 = os.path.join(self.dirpath, 'stata4_113.dta')
         self.dta4_114 = os.path.join(self.dirpath, 'stata4_114.dta')
         self.dta4_115 = os.path.join(self.dirpath, 'stata4_115.dta')
@@ -57,7 +56,6 @@ class TestStata(tm.TestCase):
         self.csv9 = os.path.join(self.dirpath, 'lbw.csv')
 
         self.dta_encoding = os.path.join(self.dirpath, 'stata1_encoding.dta')
-
         self.csv14 = os.path.join(self.dirpath, 'stata5.csv')
         self.dta14_113 = os.path.join(self.dirpath, 'stata5_113.dta')
         self.dta14_114 = os.path.join(self.dirpath, 'stata5_114.dta')
@@ -321,10 +319,10 @@ class TestStata(tm.TestCase):
             tm.assert_frame_equal(written_and_read_again.set_index('index'), formatted)
             
     def test_read_write_dta13(self):
-        s1 = Series(2**9,dtype=np.int16)
-        s2 = Series(2**17,dtype=np.int32)
-        s3 = Series(2**33,dtype=np.int64)
-        original = DataFrame({'int16':s1,'int32':s2,'int64':s3})
+        s1 = Series(2**9, dtype=np.int16)
+        s2 = Series(2**17, dtype=np.int32)
+        s3 = Series(2**33, dtype=np.int64)
+        original = DataFrame({'int16': s1, 'int32': s2, 'int64': s3})
         original.index.name = 'index'
 
         formatted = original
@@ -375,7 +373,6 @@ class TestStata(tm.TestCase):
         tm.assert_frame_equal(expected, parsed_114)
         tm.assert_frame_equal(parsed_113, parsed_114)
         tm.assert_frame_equal(parsed_114, parsed_115)
-
 
 
 if __name__ == '__main__':
