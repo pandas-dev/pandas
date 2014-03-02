@@ -40,6 +40,7 @@ class TestStata(tm.TestCase):
         self.dta3_115 = os.path.join(self.dirpath, 'stata3_115.dta')
         self.dta3_117 = os.path.join(self.dirpath, 'stata3_117.dta')
         self.csv3 = os.path.join(self.dirpath, 'stata3.csv')
+
         self.dta4_113 = os.path.join(self.dirpath, 'stata4_113.dta')
         self.dta4_114 = os.path.join(self.dirpath, 'stata4_114.dta')
         self.dta4_115 = os.path.join(self.dirpath, 'stata4_115.dta')
@@ -56,6 +57,7 @@ class TestStata(tm.TestCase):
         self.csv9 = os.path.join(self.dirpath, 'lbw.csv')
 
         self.dta_encoding = os.path.join(self.dirpath, 'stata1_encoding.dta')
+
         self.csv14 = os.path.join(self.dirpath, 'stata5.csv')
         self.dta14_113 = os.path.join(self.dirpath, 'stata5_113.dta')
         self.dta14_114 = os.path.join(self.dirpath, 'stata5_114.dta')
@@ -336,11 +338,11 @@ class TestStata(tm.TestCase):
 
     def test_read_write_reread_dta14(self):
         expected = self.read_csv(self.csv14)
-        cols = ['byte_','int_', 'long_','float_','double_']
+        cols = ['byte_', 'int_', 'long_', 'float_', 'double_']
         for col in cols:
             expected[col] = expected[col].convert_objects(convert_numeric=True)
         expected['float_'] = expected['float_'].astype(np.float32)
-        expected['date_td'] = pd.to_datetime(expected['date_td'],coerce=True)
+        expected['date_td'] = pd.to_datetime(expected['date_td'], coerce=True)
 
         parsed_113 = self.read_dta(self.dta14_113)
         parsed_113.index.name = 'index'

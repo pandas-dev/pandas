@@ -194,6 +194,10 @@ Bug Fixes
 - Bug in ``read_html`` tests where redirected invalid URLs would make one test
   fail (:issue:`6445`).
 - Bug in multi-axis indexing using ``.loc`` on non-unique indices (:issue:`6504`)
+- Bug in ``pd.read_stata`` which would use the wrong data types and missing values (:issue:`6327`)
+- Bug in ``DataFrame.to_stata`` that lead to data loss in certain cases (:issue:`6335`)
+- Bug in ``DataFrame.to_stata`` which exported using he wrong data types and missing values (:issue:`6335`)
+
 
 pandas 0.13.1
 -------------
