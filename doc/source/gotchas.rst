@@ -533,7 +533,15 @@ parse HTML tables in the top-level pandas io function ``read_html``.
 Byte-Ordering Issues
 --------------------
 Occasionally you may have to deal with data that were created on a machine with
-a different byte order than the one on which you are running Python. To deal
+a different byte order than the one on which you are running Python. A common symptom of this issue is an error like
+
+.. code-block:: python
+
+    Traceback
+        ...
+    ValueError: Big-endian buffer not supported on little-endian compiler
+
+To deal
 with this issue you should convert the underlying NumPy array to the native
 system byte order *before* passing it to Series/DataFrame/Panel constructors
 using something similar to the following:
