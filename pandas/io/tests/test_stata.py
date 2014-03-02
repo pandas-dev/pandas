@@ -27,36 +27,42 @@ class TestStata(tm.TestCase):
         # Unit test datasets for dta7 - dta9 (old stata formats 104, 105 and 107) can be downloaded from:
         # http://stata-press.com/data/glmext.html
         self.dirpath = tm.get_data_path()
-        self.dta1 = os.path.join(self.dirpath, 'stata1.dta')
-        self.dta2 = os.path.join(self.dirpath, 'stata2.dta')
+        self.dta1_114 = os.path.join(self.dirpath, 'stata1_114.dta')
+        self.dta1_117 = os.path.join(self.dirpath, 'stata1_117.dta')
+
         self.dta2_113 = os.path.join(self.dirpath, 'stata2_113.dta')
         self.dta2_114 = os.path.join(self.dirpath, 'stata2_114.dta')
         self.dta2_115 = os.path.join(self.dirpath, 'stata2_115.dta')
-        self.dta3 = os.path.join(self.dirpath, 'stata3.dta')
+        self.dta2_117 = os.path.join(self.dirpath, 'stata2_117.dta')
+
         self.dta3_113 = os.path.join(self.dirpath, 'stata3_113.dta')
         self.dta3_114 = os.path.join(self.dirpath, 'stata3_114.dta')
         self.dta3_115 = os.path.join(self.dirpath, 'stata3_115.dta')
+        self.dta3_117 = os.path.join(self.dirpath, 'stata3_117.dta')
         self.csv3 = os.path.join(self.dirpath, 'stata3.csv')
-        self.dta4 = os.path.join(self.dirpath, 'stata4.dta')
+
         self.dta4_113 = os.path.join(self.dirpath, 'stata4_113.dta')
         self.dta4_114 = os.path.join(self.dirpath, 'stata4_114.dta')
         self.dta4_115 = os.path.join(self.dirpath, 'stata4_115.dta')
+        self.dta4_117 = os.path.join(self.dirpath, 'stata4_117.dta')
+
         self.dta7 = os.path.join(self.dirpath, 'cancer.dta')
         self.csv7 = os.path.join(self.dirpath, 'cancer.csv')
+
         self.dta8 = os.path.join(self.dirpath, 'tbl19-3.dta')
+
         self.csv8 = os.path.join(self.dirpath, 'tbl19-3.csv')
+
         self.dta9 = os.path.join(self.dirpath, 'lbw.dta')
         self.csv9 = os.path.join(self.dirpath, 'lbw.csv')
+
         self.dta_encoding = os.path.join(self.dirpath, 'stata1_encoding.dta')
-        self.dta1_13 = os.path.join(self.dirpath, 'stata1_v13.dta')
-        self.dta2_13 = os.path.join(self.dirpath, 'stata2_v13.dta')
-        self.dta3_13 = os.path.join(self.dirpath, 'stata3_v13.dta')
-        self.dta4_13 = os.path.join(self.dirpath, 'stata4_v13.dta')
+
         self.csv14 = os.path.join(self.dirpath, 'stata5.csv')
-        self.dta14 = os.path.join(self.dirpath, 'stata5.dta')
         self.dta14_113 = os.path.join(self.dirpath, 'stata5_113.dta')
         self.dta14_114 = os.path.join(self.dirpath, 'stata5_114.dta')
         self.dta14_115 = os.path.join(self.dirpath, 'stata5_115.dta')
+
         self.csv15 = os.path.join(self.dirpath, 'stata6.csv')
         self.dta15_113 = os.path.join(self.dirpath, 'stata6_113.dta')
         self.dta15_114 = os.path.join(self.dirpath, 'stata6_114.dta')
@@ -69,10 +75,10 @@ class TestStata(tm.TestCase):
         return read_csv(file, parse_dates=True)
 
     def test_read_dta1(self):
-        reader = StataReader(self.dta1)
-        parsed = reader.data()
-        reader_13 = StataReader(self.dta1_13)
-        parsed_13 = reader_13.data()
+        reader_114 = StataReader(self.dta1_114)
+        parsed_114 = reader_114.data()
+        reader_117 = StataReader(self.dta1_117)
+        parsed_117 = reader_117.data()
         # Pandas uses np.nan as missing value.
         # Thus, all columns will be of type float, regardless of their name.
         expected = DataFrame([(np.nan, np.nan, np.nan, np.nan, np.nan)],
@@ -83,8 +89,8 @@ class TestStata(tm.TestCase):
         # the casting doesn't fail so need to match stata here
         expected['float_miss'] = expected['float_miss'].astype(np.float32)
 
-        tm.assert_frame_equal(parsed, expected)
-        tm.assert_frame_equal(parsed_13, expected)
+        tm.assert_frame_equal(parsed_114, expected)
+        tm.assert_frame_equal(parsed_117, expected)
 
     def test_read_dta2(self):
         if LooseVersion(sys.version) < '2.7':
@@ -130,28 +136,27 @@ class TestStata(tm.TestCase):
         expected['yearly_date'] = expected['yearly_date'].astype('O')
 
         with warnings.catch_warnings(record=True) as w:
-            parsed = self.read_dta(self.dta2)
-            parsed_13 = self.read_dta(self.dta2_13)
-            # parsed_113 = self.read_dta(self.dta2_113)
-            parsed_114 = self.read_dta(self.dta2_114)  # Redundant
+            parsed_114 = self.read_dta(self.dta2_114)
             parsed_115 = self.read_dta(self.dta2_115)
+            parsed_117 = self.read_dta(self.dta2_117)
+            # 113 is buggy due ot limits date format support in Stata
+            # parsed_113 = self.read_dta(self.dta2_113)
+
             np.testing.assert_equal(
                 len(w), 1)  # should get a warning for that format.
 
         # buggy test because of the NaT comparison on certain platforms
-        tm.assert_frame_equal(parsed, expected)
         # Format 113 test fails since it does not support tc and tC formats
-        #tm.assert_frame_equal(parsed_113, expected)
+        # tm.assert_frame_equal(parsed_113, expected)
         tm.assert_frame_equal(parsed_114, expected)
         tm.assert_frame_equal(parsed_115, expected)
-        tm.assert_frame_equal(parsed_13, expected)
+        tm.assert_frame_equal(parsed_117, expected)
 
     def test_read_dta3(self):
-        parsed = self.read_dta(self.dta3)
         parsed_113 = self.read_dta(self.dta3_113)
         parsed_114 = self.read_dta(self.dta3_114)
         parsed_115 = self.read_dta(self.dta3_115)
-        parsed_13 = self.read_dta(self.dta3_13)
+        parsed_117 = self.read_dta(self.dta3_117)
 
         # match stata here
         expected = self.read_csv(self.csv3)
@@ -159,18 +164,17 @@ class TestStata(tm.TestCase):
         expected['year'] = expected['year'].astype(np.int16)
         expected['quarter'] = expected['quarter'].astype(np.int8)
 
-        tm.assert_frame_equal(parsed, expected)
-        tm.assert_frame_equal(parsed, parsed_113)
-        tm.assert_frame_equal(parsed, parsed_114)
-        tm.assert_frame_equal(parsed, parsed_115)
-        tm.assert_frame_equal(parsed_13, expected)
+        tm.assert_frame_equal(parsed_113, expected)
+        tm.assert_frame_equal(parsed_114, expected)
+        tm.assert_frame_equal(parsed_115, expected)
+        tm.assert_frame_equal(parsed_117, expected)
 
     def test_read_dta4(self):
-        parsed = self.read_dta(self.dta4)
         parsed_113 = self.read_dta(self.dta4_113)
         parsed_114 = self.read_dta(self.dta4_114)
         parsed_115 = self.read_dta(self.dta4_115)
-        parsed_13 = self.read_dta(self.dta4_13)
+        parsed_117 = self.read_dta(self.dta4_117)
+
         expected = DataFrame.from_records(
             [
                 ["one", "ten", "one", "one", "one"],
@@ -187,11 +191,10 @@ class TestStata(tm.TestCase):
             columns=['fully_labeled', 'fully_labeled2', 'incompletely_labeled',
                      'labeled_with_missings', 'float_labelled'])
 
-        tm.assert_frame_equal(parsed, expected)
         tm.assert_frame_equal(parsed_113, expected)
         tm.assert_frame_equal(parsed_114, expected)
         tm.assert_frame_equal(parsed_115, expected)
-        tm.assert_frame_equal(parsed_13, expected)
+        tm.assert_frame_equal(parsed_117, expected)
 
     def test_read_write_dta5(self):
         # skip_if_not_little_endian()
@@ -333,9 +336,14 @@ class TestStata(tm.TestCase):
             tm.assert_frame_equal(written_and_read_again.set_index('index'),
                                   formatted)
 
-    def test_read_write_reread_dat14(self):
-        parsed = self.read_dta(self.dta14)
-        parsed.index.name = 'index'
+    def test_read_write_reread_dta14(self):
+        expected = self.read_csv(self.csv14)
+        cols = ['byte_','int_', 'long_','float_','double_']
+        for col in cols:
+            expected[col] = expected[col].convert_objects(convert_numeric=True)
+        expected['float_'] = expected['float_'].astype(np.float32)
+        expected['date_td'] = pd.to_datetime(expected['date_td'],coerce=True)
+
         parsed_113 = self.read_dta(self.dta14_113)
         parsed_113.index.name = 'index'
         parsed_114 = self.read_dta(self.dta14_114)
@@ -343,14 +351,13 @@ class TestStata(tm.TestCase):
         parsed_115 = self.read_dta(self.dta14_115)
         parsed_115.index.name = 'index'
 
-        tm.assert_frame_equal(parsed_113, parsed)
-        tm.assert_frame_equal(parsed_114, parsed)
-        tm.assert_frame_equal(parsed_115, parsed)
+        tm.assert_frame_equal(parsed_114, parsed_113)
+        tm.assert_frame_equal(parsed_114, parsed_115)
 
         with tm.ensure_clean() as path:
-            parsed.to_stata(path, {'date_td': 'tc'}, write_index=False)
+            parsed_114.to_stata(path, {'date_td': 'td'}, write_index=False)
             written_and_read_again = self.read_dta(path)
-            tm.assert_frame_equal(written_and_read_again.set_index('index'), parsed)
+            tm.assert_frame_equal(written_and_read_again.set_index('index'), parsed_114)
 
     def test_read_write_reread_dta15(self):
         expected = self.read_csv(self.csv15)
