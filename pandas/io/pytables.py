@@ -322,8 +322,7 @@ def read_hdf(path_or_buf, key, **kwargs):
     f = lambda store, auto_close: store.select(
         key, auto_close=auto_close, **kwargs)
 
-    if isinstance(path_or_buf, string_types):
-
+    if isinstance(path_or_buf, string_types) or hasattr(path_or_buf, "read"):
         # can't auto open/close if we are using an iterator
         # so delegate to the iterator
         store = HDFStore(path_or_buf, **kwargs)
