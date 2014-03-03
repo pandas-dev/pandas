@@ -28,7 +28,7 @@ from pandas.core.common import (isnull, notnull, _is_bool_indexer,
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                _ensure_index, _handle_legacy_indexes)
 from pandas.core.indexing import (
-    _check_bool_indexer, _check_slice_bounds,
+    _check_bool_indexer,
     _is_index_slice, _maybe_convert_indices)
 from pandas.core import generic, base
 from pandas.core.internals import SingleBlockManager
@@ -469,9 +469,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _is_mixed_type(self):
         return False
 
-    def _slice(self, slobj, axis=0, raise_on_error=False, typ=None):
-        if raise_on_error:
-            _check_slice_bounds(slobj, self.values)
+    def _slice(self, slobj, axis=0, typ=None):
         slobj = self.index._convert_slice_indexer(slobj, typ=typ or 'getitem')
         return self._get_values(slobj)
 

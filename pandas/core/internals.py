@@ -14,8 +14,7 @@ from pandas.core.common import (_possibly_downcast_to_dtype, isnull, notnull,
                                 _values_from_object, _is_null_datelike_scalar)
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
                                _handle_legacy_indexes)
-from pandas.core.indexing import (_check_slice_bounds, _maybe_convert_indices,
-                                  _length_of_indexer)
+from pandas.core.indexing import (_maybe_convert_indices, _length_of_indexer)
 import pandas.core.common as com
 from pandas.sparse.array import _maybe_to_sparse, SparseArray
 import pandas.lib as lib
@@ -2669,11 +2668,8 @@ class BlockManager(PandasObject):
         new_axes[0] = new_items
         return self.__class__(new_blocks, new_axes, do_integrity_check=False)
 
-    def get_slice(self, slobj, axis=0, raise_on_error=False):
+    def get_slice(self, slobj, axis=0):
         new_axes = list(self.axes)
-
-        if raise_on_error:
-            _check_slice_bounds(slobj, new_axes[axis])
 
         new_axes[axis] = new_axes[axis][slobj]
 
@@ -3739,9 +3735,7 @@ class SingleBlockManager(BlockManager):
         )
         self._values = self._block.values
 
-    def get_slice(self, slobj, raise_on_error=False):
-        if raise_on_error:
-            _check_slice_bounds(slobj, self.index)
+    def get_slice(self, slobj):
         return self.__class__(self._block._slice(slobj),
                               self.index[slobj], fastpath=True)
 
