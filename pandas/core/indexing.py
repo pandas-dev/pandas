@@ -91,32 +91,8 @@ class _NDFrameIndexer(object):
     def _get_loc(self, key, axis=0):
         return self.obj._ixs(key, axis=axis)
 
-    def _slice(self, obj, axis=0, raise_on_error=False, typ=None):
-
-        # make out-of-bounds into bounds of the object
-        if typ == 'iloc':
-            ax = self.obj._get_axis(axis)
-            l = len(ax)
-            start = obj.start
-            stop = obj.stop
-            step = obj.step
-            if start is not None:
-                # degenerate to return nothing
-                if start >= l:
-                    return self._getitem_axis(tuple(),axis=axis)
-
-                # equiv to a null slice
-                elif start <= -l:
-                    start = None
-            if stop is not None:
-                if stop > l:
-                    stop = None
-                elif stop <= -l:
-                    stop = None
-            obj = slice(start,stop,step)
-
-        return self.obj._slice(obj, axis=axis, raise_on_error=raise_on_error,
-                               typ=typ)
+    def _slice(self, obj, axis=0, typ=None):
+        return self.obj._slice(obj, axis=axis, typ=typ)
 
     def __setitem__(self, key, value):
 
@@ -1343,8 +1319,7 @@ class _iLocIndexer(_LocationIndexer):
             return obj
 
         if isinstance(slice_obj, slice):
-            return self._slice(slice_obj, axis=axis, raise_on_error=True,
-                               typ='iloc')
+            return self._slice(slice_obj, axis=axis, typ='iloc')
         else:
             return self.obj.take(slice_obj, axis=axis, convert=False)
 
@@ -1645,18 +1620,6 @@ def _need_slice(obj):
     return (obj.start is not None or
             obj.stop is not None or
             (obj.step is not None and obj.step != 1))
-
-
-def _check_slice_bounds(slobj, values):
-    l = len(values)
-    start = slobj.start
-    if start is not None:
-        if start < -l or start > l - 1:
-            raise IndexError("out-of-bounds on slice (start)")
-    stop = slobj.stop
-    if stop is not None:
-        if stop < -l - 1 or stop > l:
-            raise IndexError("out-of-bounds on slice (end)")
 
 
 def _maybe_droplevels(index, key):

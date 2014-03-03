@@ -187,7 +187,7 @@ class SparsePanel(Panel):
 
         return self.xs(key, axis=axis)
 
-    def _slice(self, slobj, axis=0, raise_on_error=False, typ=None):
+    def _slice(self, slobj, axis=0, typ=None):
         """
         for compat as we don't support Block Manager here
         """

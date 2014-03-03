@@ -108,6 +108,9 @@ API Changes
 - Slicing and advanced/boolean indexing operations on ``Index`` classes will no
   longer change type of the resulting index (:issue:`6440`).
 - ``set_index`` no longer converts MultiIndexes to an Index of tuples (:issue:`6459`).
+- Slicing with negative start, stop & step values handles corner cases better (:issue:`6531`):
+  - ``df.iloc[:-len(df)]`` is now empty
+  - ``df.iloc[len(df)::-1]`` now enumerates all elements in reverse
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
