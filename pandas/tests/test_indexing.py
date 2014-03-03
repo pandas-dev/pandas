@@ -393,17 +393,49 @@ class TestIndexing(tm.TestCase):
         self.assertRaises(IndexError, lambda : df.iloc[-30])
 
         # slices are ok
-        result = df.iloc[:,4:10]
+        result = df.iloc[:,4:10]  # 0 < start < len < stop
         expected = df.iloc[:,4:]
         assert_frame_equal(result,expected)
 
-        result = df.iloc[:,-4:-10]
-        expected = df.iloc[:,-4:]
+        result = df.iloc[:,-4:-10]  # stop < 0 < start < len
+        expected = df.iloc[:,:0]
+        assert_frame_equal(result,expected)
+
+        result = df.iloc[:,10:4:-1]  # 0 < stop < len < start (down)
+        expected = df.iloc[:,:4:-1]
+        assert_frame_equal(result,expected)
+
+        result = df.iloc[:,4:-10:-1]  # stop < 0 < start < len (down)
+        expected = df.iloc[:,4::-1]
+        assert_frame_equal(result,expected)
+
+        result = df.iloc[:,-10:4]  # start < 0 < stop < len
+        expected = df.iloc[:,:4]
+        assert_frame_equal(result,expected)
+
+        result = df.iloc[:,10:4]  # 0 < stop < len < start
+        expected = df.iloc[:,:0]
+        assert_frame_equal(result,expected)
+
+        result = df.iloc[:,-10:-11:-1]  # stop < start < 0 < len (down)
+        expected = df.iloc[:,:0]
+        assert_frame_equal(result,expected)
+
+        result = df.iloc[:,10:11]  # 0 < len < start < stop
+        expected = df.iloc[:,:0]
         assert_frame_equal(result,expected)
 
         # slice bounds exceeding is ok
         result = s.iloc[18:30]
         expected = s.iloc[18:]
+        assert_series_equal(result,expected)
+
+        result = s.iloc[30:]
+        expected = s.iloc[:0]
+        assert_series_equal(result,expected)
+
+        result = s.iloc[30::-1]
+        expected = s.iloc[::-1]
         assert_series_equal(result,expected)
 
         # doc example

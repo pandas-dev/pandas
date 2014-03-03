@@ -1867,11 +1867,6 @@ class DataFrame(NDFrame):
         kwargs['resolvers'] = kwargs.get('resolvers', ()) + resolvers
         return _eval(expr, **kwargs)
 
-    def _slice(self, slobj, axis=0, raise_on_error=False, typ=None):
-        axis = self._get_block_manager_axis(axis)
-        new_data = self._data.get_slice(
-            slobj, axis=axis, raise_on_error=raise_on_error)
-        return self._constructor(new_data)
 
     def _box_item_values(self, key, values):
         items = self.columns[self.columns.get_loc(key)]
