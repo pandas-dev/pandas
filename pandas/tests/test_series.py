@@ -600,6 +600,25 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         self.assertEqual(result['a'], Timestamp('20130101'))
         self.assertEqual(result['b'], 1)
 
+        # GH6529
+        # coerce datetime64 non-ns properly
+        dates = date_range('01-Jan-2015', '01-Dec-2015', freq='M')
+        values2 = dates.view(np.ndarray).astype('datetime64[ns]')
+        expected = Series(values2, dates)
+
+        # numpy < 1.7 is very odd about astyping
+        if not _np_version_under1p7:
+            for dtype in ['s','D','ms','us','ns']:
+                values1 = dates.view(np.ndarray).astype('M8[{0}]'.format(dtype))
+                result = Series(values1, dates)
+                assert_series_equal(result,expected)
+
+        # leave datetime.date alone
+        dates2 = np.array([ d.date() for d in dates.to_pydatetime() ],dtype=object)
+        series1 = Series(dates2, dates)
+        self.assert_numpy_array_equal(series1.values,dates2)
+        self.assertEqual(series1.dtype,object)
+
     def test_constructor_dict(self):
         d = {'a': 0., 'b': 1., 'c': 2.}
         result = Series(d, index=['b', 'c', 'd', 'a'])
