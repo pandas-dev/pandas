@@ -194,6 +194,7 @@ Bug Fixes
 - Bug in ``read_html`` tests where redirected invalid URLs would make one test
   fail (:issue:`6445`).
 - Bug in multi-axis indexing using ``.loc`` on non-unique indices (:issue:`6504`)
+- Bug that caused _ref_locs corruption when slice indexing across columns axis of a DataFrame (:issue:`6525`)
 
 pandas 0.13.1
 -------------
