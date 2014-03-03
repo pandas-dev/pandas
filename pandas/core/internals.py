@@ -133,6 +133,12 @@ class Block(PandasObject):
         tindexer[indexer] = False
         tindexer = tindexer.astype(int).cumsum()[indexer]
         ref_locs = ref_locs[indexer]
+
+        # Make sure the result is a copy, or otherwise self._ref_locs will be
+        # updated.
+        if ref_locs.base is not None:
+            ref_locs = ref_locs.copy()
+
         ref_locs -= tindexer
         return ref_locs
 

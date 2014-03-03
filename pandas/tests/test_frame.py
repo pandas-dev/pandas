@@ -12267,6 +12267,19 @@ starting,ending,measure
                                                             ('b', 'bool:dense'),
                                                             ('c', 'float64:dense')])))
 
+    def test_dtypes_are_correct_after_column_slice(self):
+        # GH6525
+        df = pd.DataFrame(index=range(5), columns=list("abc"), dtype=np.float_)
+        odict = OrderedDict
+        assert_series_equal(df.dtypes,
+                            pd.Series(odict([('a', np.float_), ('b', np.float_),
+                                             ('c', np.float_),])))
+        assert_series_equal(df.iloc[:,2:].dtypes,
+                            pd.Series(odict([('c', np.float_)])))
+        assert_series_equal(df.dtypes,
+                            pd.Series(odict([('a', np.float_), ('b', np.float_),
+                                             ('c', np.float_),])))
+
 
 def skip_if_no_ne(engine='numexpr'):
     if engine == 'numexpr':
