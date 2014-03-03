@@ -124,7 +124,7 @@ def isnull(obj):
 
     See also
     --------
-    pandas.notnull: boolean inverse of pandas.isnull    
+    pandas.notnull: boolean inverse of pandas.isnull
     """
     return _isnull(obj)
 
@@ -272,7 +272,7 @@ def notnull(obj):
     isnulled : array-like of bool or bool
         Array or bool indicating whether an object is *not* null or if an array
         is given which of the element is *not* null.
-    
+
     See also
     --------
     pandas.isnull : boolean inverse of pandas.notnull
@@ -1727,10 +1727,7 @@ def _possibly_cast_to_datetime(value, dtype, coerce=False):
             dtype = value.dtype
 
             if dtype.kind == 'M' and dtype != _NS_DTYPE:
-                try:
-                    value = tslib.array_to_datetime(value)
-                except:
-                    raise
+                value = value.astype(_NS_DTYPE)
 
             elif dtype.kind == 'm' and dtype != _TD_DTYPE:
                 from pandas.tseries.timedeltas import \
