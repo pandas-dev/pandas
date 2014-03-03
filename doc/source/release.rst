@@ -193,6 +193,7 @@ Bug Fixes
   fail (:issue:`6445`).
 - Bug in multi-axis indexing using ``.loc`` on non-unique indices (:issue:`6504`)
 - Bug that caused _ref_locs corruption when slice indexing across columns axis of a DataFrame (:issue:`6525`)
+- Regression from 0.13 in the treatmenet of numpy ``datetime64`` non-ns dtypes in Series creation (:issue:`6529`)
 
 pandas 0.13.1
 -------------
