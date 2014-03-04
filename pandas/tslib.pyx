@@ -700,11 +700,11 @@ cdef class _Timestamp(datetime):
         return result
 
     def __sub__(self, other):
-        if is_integer_object(other):
-            neg_other = -other
-            return self + neg_other
-        # This calling convention is required
-        return datetime.__sub__(self, other)
+        if isinstance(other, datetime):
+            return datetime.__sub__(self, other)
+
+        neg_other = -other
+        return self + neg_other
 
     cpdef _get_field(self, field):
         out = get_date_field(np.array([self.value], dtype=np.int64), field)
