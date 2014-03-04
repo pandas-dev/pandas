@@ -61,8 +61,8 @@ class Block(PandasObject):
             raise ValueError('Wrong number of dimensions')
 
         if len(items) != len(values):
-            raise ValueError('Wrong number of items passed %d, indices imply '
-                             '%d' % (len(items), len(values)))
+            raise ValueError('Wrong number of items passed %d, index implies '
+                             '%d' % (len(values), len(items)))
 
         self.set_ref_locs(placement)
         self.values = values
