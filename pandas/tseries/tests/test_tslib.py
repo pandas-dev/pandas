@@ -7,6 +7,7 @@ import datetime
 
 from pandas.core.api import Timestamp
 from pandas.tslib import period_asfreq, period_ordinal
+from pandas.tseries.index import date_range
 from pandas.tseries.frequencies import get_freq
 from pandas import _np_version_under1p7
 import pandas.util.testing as tm
@@ -302,10 +303,32 @@ class TestTslib(tm.TestCase):
         # Tuesday
         self.assertEqual(11418, period_ordinal(2013, 10, 8, 0, 0, 0, 0, 0, get_freq('B')))
 
-class TestTomeStampOps(tm.TestCase):
+class TestTimestampOps(tm.TestCase):
     def test_timestamp_and_datetime(self):
-        self.assertEqual((Timestamp(datetime.datetime(2013, 10,13)) - datetime.datetime(2013, 10,12)).days, 1)
-        self.assertEqual((datetime.datetime(2013, 10, 12) - Timestamp(datetime.datetime(2013, 10,13))).days, -1)
+        self.assertEqual((Timestamp(datetime.datetime(2013, 10, 13)) - datetime.datetime(2013, 10, 12)).days, 1)
+        self.assertEqual((datetime.datetime(2013, 10, 12) - Timestamp(datetime.datetime(2013, 10, 13))).days, -1)
+
+    def test_addition_subtraction_types(self):
+        # Assert on the types resulting from Timestamp +/- various date/time objects
+        datetime_instance = datetime.datetime(2014, 3, 4)
+        timedelta_instance = datetime.timedelta(seconds=1)
+        # build a timestamp with a frequency, since then it supports addition/subtraction of integers
+        timestamp_instance = date_range(datetime_instance, periods=1, freq='D')[0]
+
+        self.assertEqual(type(timestamp_instance + 1), Timestamp)
+        self.assertEqual(type(timestamp_instance - 1), Timestamp)
+
+        # Timestamp + datetime not supported, though subtraction is supported and yields timedelta
+        self.assertEqual(type(timestamp_instance - datetime_instance), datetime.timedelta)
+
+        self.assertEqual(type(timestamp_instance + timedelta_instance), Timestamp)
+        self.assertEqual(type(timestamp_instance - timedelta_instance), Timestamp)
+
+        if not _np_version_under1p7:
+            # Timestamp +/- datetime64 not supported, so not tested (could possibly assert error raised?)
+            timedelta64_instance = np.timedelta64(1, 'D')
+            self.assertEqual(type(timestamp_instance + timedelta64_instance), Timestamp)
+            self.assertEqual(type(timestamp_instance - timedelta64_instance), Timestamp)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
