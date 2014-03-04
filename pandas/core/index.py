@@ -987,8 +987,13 @@ class Index(IndexOpsMixin, FrozenNDArray):
             except TypeError:
                 pass
 
-        indexer = self.get_indexer(other.values)
-        indexer = indexer.take((indexer != -1).nonzero()[0])
+        try:
+            indexer = self.get_indexer(other.values)
+            indexer = indexer.take((indexer != -1).nonzero()[0])
+        except:
+            # duplicates
+            indexer = self.get_indexer_non_unique(other.values)[0].unique()
+
         return self.take(indexer)
 
     def diff(self, other):
