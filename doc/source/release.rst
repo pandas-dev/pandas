@@ -197,6 +197,7 @@ Bug Fixes
 - Bug that caused _ref_locs corruption when slice indexing across columns axis of a DataFrame (:issue:`6525`)
 - Regression from 0.13 in the treatmenet of numpy ``datetime64`` non-ns dtypes in Series creation (:issue:`6529`)
 - ``.names`` attribute of MultiIndexes passed to ``set_index`` are now preserved (:issue:`6459`).
+- Bug in setitem with a duplicate index and an alignable rhs (:issue:`6541`)
 
 pandas 0.13.1
 -------------
