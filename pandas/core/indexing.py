@@ -441,7 +441,9 @@ class _NDFrameIndexer(object):
                         # align to
                         if item in value:
                             v = value[item]
-                            v = v.reindex(self.obj[item].index & v.index)
+                            i = self.obj[item].index
+                            v = v.reindex(i & v.index)
+
                             setter(item, v.values)
                         else:
                             setter(item, np.nan)
