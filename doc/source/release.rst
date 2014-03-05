@@ -185,7 +185,7 @@ Bug Fixes
 - Bug in :meth:`DataFrame.replace` where nested dicts were erroneously
   depending on the order of dictionary keys and values (:issue:`5338`).
 - Perf issue in concatting with empty objects (:issue:`3259`)
-- Clarify sorting of ``sym_diff`` on ``Index``es with ``NaN``s (:isssue:`6444`)
+- Clarify sorting of ``sym_diff`` on ``Index``es with ``NaN``s (:issue:`6444`)
 - Regression in ``MultiIndex.from_product`` with a ``DatetimeIndex`` as input (:issue:`6439`)
 - Bug in ``str.extract`` when passed a non-default index (:issue:`6348`)
 - Bug in ``str.split`` when passed ``pat=None`` and ``n=1`` (:issue:`6466`)
@@ -207,6 +207,7 @@ Bug Fixes
 - Bug in ``pd.read_stata`` which would use the wrong data types and missing values (:issue:`6327`)
 - Bug in ``DataFrame.to_stata`` that lead to data loss in certain cases, and could exported using the
   wrong data types and missing values (:issue:`6335`)
+- Inconsistent types in Timestamp addition/subtraction (:issue:`6543`)
 
 
 pandas 0.13.1
