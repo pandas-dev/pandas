@@ -207,6 +207,7 @@ Bug Fixes
 - Bug in ``pd.read_stata`` which would use the wrong data types and missing values (:issue:`6327`)
 - Bug in ``DataFrame.to_stata`` that lead to data loss in certain cases, and could exported using the
   wrong data types and missing values (:issue:`6335`)
+- Bug in indexing: empty list lookup caused ``IndexError`` exceptions (:issue:`6536`, :issue:`6551`)
 
 
 pandas 0.13.1

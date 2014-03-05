@@ -1555,6 +1555,10 @@ def _maybe_convert_indices(indices, n):
     """
     if isinstance(indices, list):
         indices = np.array(indices)
+        if len(indices) == 0:
+            # If list is empty, np.array will return float and cause indexing
+            # errors.
+            return np.empty(0, dtype=np.int_)
 
     mask = indices < 0
     if mask.any():
