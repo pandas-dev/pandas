@@ -112,6 +112,16 @@ API Changes
   - ``df.iloc[:-len(df)]`` is now empty
   - ``df.iloc[len(df)::-1]`` now enumerates all elements in reverse
 
+- Better propagation/preservation of Series names when performing groupby
+  operations:
+  - ``SeriesGroupBy.agg`` will ensure that the name attribute of the original
+    series is propagated to the result (:issue:`6265`). 
+  - If the function provided to ``GroupBy.apply`` returns a named series, the
+    name of the series will be kept as the name of the column index of the
+    DataFrame returned by ``GroupBy.apply`` (:issue:`6124`).  This facilitates
+    ``DataFrame.stack`` operations where the name of the column index is used as
+    the name of the inserted column containing the pivoted data.
+
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
 
