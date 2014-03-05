@@ -911,20 +911,10 @@ class _NDFrameIndexer(object):
                 # asarray can be unsafe, NumPy strings are weird
                 keyarr = _asarray_tuplesafe(key)
 
-            if is_integer_dtype(keyarr) and not labels.is_floating():
-                if labels.inferred_type != 'integer':
-                    keyarr = np.where(keyarr < 0,
-                                      len(labels) + keyarr, keyarr)
-
-                if labels.inferred_type == 'mixed-integer':
-                    indexer = labels.get_indexer(keyarr)
-                    if (indexer >= 0).all():
-                        self.obj.take(indexer, axis=axis, convert=True)
-                    else:
-                        return self.obj.take(keyarr, axis=axis)
-                elif not labels.inferred_type == 'integer':
-
-                    return self.obj.take(keyarr, axis=axis)
+            # handle a mixed integer scenario
+            indexer = labels._convert_list_indexer_for_mixed(keyarr, typ=self.name)
+            if indexer is not None:
+                return self.obj.take(indexer, axis=axis)
 
             # this is not the most robust, but...
             if (isinstance(labels, MultiIndex) and
@@ -1064,11 +1054,9 @@ class _NDFrameIndexer(object):
                     objarr = _asarray_tuplesafe(obj)
 
                 # If have integer labels, defer to label-based indexing
-                if is_integer_dtype(objarr) and not is_int_index:
-                    if labels.inferred_type != 'integer':
-                        objarr = np.where(objarr < 0,
-                                          len(labels) + objarr, objarr)
-                    return objarr
+                indexer = labels._convert_list_indexer_for_mixed(objarr, typ=self.name)
+                if indexer is not None:
+                    return indexer
 
                 # this is not the most robust, but...
                 if (isinstance(labels, MultiIndex) and
