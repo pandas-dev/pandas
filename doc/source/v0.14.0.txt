@@ -61,6 +61,24 @@ These are out-of-bounds selections
      s.year
      s.index.year
 
+- More consistent behaviour for some groupby methods:
+   - groupby head and tail now act more like filter rather than an aggregation:
+
+  .. ipython:: python
+
+     df = pd.DataFrame([[1, 2], [1, 4], [5, 6]], columns=['A', 'B'])
+     g = df.groupby('A')
+     g.head(1)  # filters DataFrame
+
+     g.apply(lambda x: x.head(1))  # used to simply fall-through
+
+   - groupby head and tail respect column selection:
+
+  .. ipython:: python
+
+     g[['B']].head(1)
+
+
 - Local variable usage has changed in
   :func:`pandas.eval`/:meth:`DataFrame.eval`/:meth:`DataFrame.query`
   (:issue:`5987`). For the :class:`~pandas.DataFrame` methods, two things have

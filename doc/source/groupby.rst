@@ -707,6 +707,38 @@ can be used as group keys. If so, the order of the levels will be preserved:
 
    data.groupby(factor).mean()
 
+
+Taking the first rows of each group
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Just like for a DataFrame or Series you can call head and tail on a groupby:
+
+.. ipython:: python
+
+   df = DataFrame([[1, 2], [1, 4], [5, 6]], columns=['A', 'B'])
+   df
+
+   g = df.groupby('A')
+   g.head(1)
+
+   g.tail(1)
+
+This shows the first or last n rows from each group.
+
+.. warning::
+
+   Before 0.14.0 this was implemented with a fall-through apply,
+   so the result would incorrectly respect the as_index flag:
+
+   .. code-block:: python
+
+       >>> g.head(1):  # was equivalent to g.apply(lambda x: x.head(1))
+             A  B
+        A
+        1 0  1  2
+        5 2  5  6
+
+
 Enumerate group items
 ~~~~~~~~~~~~~~~~~~~~~
 

@@ -587,7 +587,8 @@ class GroupBy(PandasObject):
         """
         Returns first n rows of each group.
 
-        Essentially equivalent to ``.apply(lambda x: x.head(n))`` except ignores as_index flag.
+        Essentially equivalent to ``.apply(lambda x: x.head(n))``,
+        except ignores as_index flag.
 
         Example
         -------
@@ -614,7 +615,8 @@ class GroupBy(PandasObject):
         """
         Returns last n rows of each group
 
-        Essentially equivalent to ``.apply(lambda x: x.tail(n))``
+        Essentially equivalent to ``.apply(lambda x: x.tail(n))``,
+        except ignores as_index flag.
 
         Example
         -------
