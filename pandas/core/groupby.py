@@ -1786,7 +1786,8 @@ class SeriesGroupBy(GroupBy):
 
     def _wrap_applied_output(self, keys, values, not_indexed_same=False):
         if len(keys) == 0:
-            return Series([])
+            # GH #6265
+            return Series([], name=self.name)
 
         def _get_index():
             if self.grouper.nkeys > 1:
@@ -1808,7 +1809,8 @@ class SeriesGroupBy(GroupBy):
             return self._concat_objects(keys, values,
                                         not_indexed_same=not_indexed_same)
         else:
-            return Series(values, index=_get_index())
+            # GH #6265
+            return Series(values, index=_get_index(), name=self.name)
 
     def _aggregate_named(self, func, *args, **kwargs):
         result = {}
@@ -2265,17 +2267,29 @@ class NDFrameGroupBy(GroupBy):
 
                 try:
                     if self.axis == 0:
+                        # GH6124 if the list of Series have a consistent name,
+                        # then propagate that name to the result.
+                        index = v.index.copy()
+                        if index.name is None:
+                            # Only propagate the series name to the result
+                            # if all series have a consistent name.  If the
+                            # series do not have a consistent name, do
+                            # nothing.
+                            names = set(v.name for v in values)
+                            if len(names) == 1:
+                                index.name = list(names)[0]
 
                         # normally use vstack as its faster than concat
                         # and if we have mi-columns
                         if not _np_version_under1p7 or isinstance(v.index,MultiIndex):
                             stacked_values = np.vstack([np.asarray(x) for x in values])
-                            result = DataFrame(stacked_values,index=key_index,columns=v.index)
+                            result = DataFrame(stacked_values,index=key_index,columns=index)
                         else:
                             # GH5788 instead of stacking; concat gets the dtypes correct
                             from pandas.tools.merge import concat
                             result = concat(values,keys=key_index,names=key_index.names,
                                             axis=self.axis).unstack()
+                            result.columns = index
                     else:
                         stacked_values = np.vstack([np.asarray(x) for x in values])
                         result = DataFrame(stacked_values.T,index=v.index,columns=key_index)

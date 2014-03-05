@@ -2064,6 +2064,41 @@ class TestGroupBy(tm.TestCase):
         self.assertIn('A', result2)
         self.assertIn('B', result2)
 
+    def test_seriesgroupby_name_attr(self):
+        # GH 6265
+        result = self.df.groupby('A')['C']
+        self.assertEquals(result.count().name, 'C')
+        self.assertEquals(result.mean().name, 'C')
+
+        testFunc = lambda x: np.sum(x)*2
+        self.assertEquals(result.agg(testFunc).name, 'C')
+
+    def test_groupby_name_propagation(self):
+        # GH 6124
+        def summarize(df, name=None):
+            return Series({
+                'count': 1,
+                'mean': 2,
+                'omissions': 3,
+            }, name=name)
+
+        def summarize_random_name(df):
+            # Provide a different name for each Series.  In this case, groupby
+            # should not attempt to propagate the Series name since they are
+            # inconsistent.
+            return Series({
+                'count': 1,
+                'mean': 2,
+                'omissions': 3,
+            }, name=df.iloc[0]['A'])
+
+        metrics = self.df.groupby('A').apply(summarize)
+        self.assertEqual(metrics.columns.name, None)
+        metrics = self.df.groupby('A').apply(summarize, 'metrics')
+        self.assertEqual(metrics.columns.name, 'metrics')
+        metrics = self.df.groupby('A').apply(summarize_random_name)
+        self.assertEqual(metrics.columns.name, None)
+
     def test_groupby_nonstring_columns(self):
         df = DataFrame([np.arange(10) for x in range(10)])
         grouped = df.groupby(0)
