@@ -2102,6 +2102,10 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         q = self.ts.quantile(0.9)
         self.assertEqual(q, scoreatpercentile(self.ts.valid(), 90))
 
+        # object dtype
+        q = Series(self.ts,dtype=object).quantile(0.9)
+        self.assertEqual(q, scoreatpercentile(self.ts.valid(), 90))
+
     def test_describe(self):
         _ = self.series.describe()
         _ = self.ts.describe()

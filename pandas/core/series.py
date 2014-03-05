@@ -1287,7 +1287,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if len(valid_values) == 0:
             return pa.NA
         result = _quantile(valid_values, q * 100)
-        if result.dtype == _TD_DTYPE:
+        if not np.isscalar and com.is_timedelta64_dtype(result):
             from pandas.tseries.timedeltas import to_timedelta
             return to_timedelta(result)
 
