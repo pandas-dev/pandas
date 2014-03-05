@@ -1216,7 +1216,7 @@ class DataFrame(NDFrame):
 
     def to_stata(
         self, fname, convert_dates=None, write_index=True, encoding="latin-1",
-            byteorder=None):
+            byteorder=None, time_stamp=None, data_label=None):
         """
         A class for writing Stata binary dta files from array-like objects
 
@@ -1247,7 +1247,8 @@ class DataFrame(NDFrame):
         """
         from pandas.io.stata import StataWriter
         writer = StataWriter(fname, self, convert_dates=convert_dates,
-                             encoding=encoding, byteorder=byteorder)
+                             encoding=encoding, byteorder=byteorder,
+                             time_stamp=time_stamp, data_label=data_label)
         writer.write_file()
 
     def to_sql(self, name, con, flavor='sqlite', if_exists='fail', **kwargs):

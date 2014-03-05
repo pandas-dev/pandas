@@ -147,6 +147,7 @@ Improvements to existing features
 - perf improvements in DataFrame construction with certain offsets, by removing faulty caching
   (e.g. MonthEnd,BusinessMonthEnd), (:issue:`6479`)
 - perf improvements in single-dtyped indexing (:issue:`6484`)
+- ``StataWriter`` and ``DataFrame.to_stata`` accept time stamp and data labels (:issue:`6545`)
 
 .. _release.bug_fixes-0.14.0:
 

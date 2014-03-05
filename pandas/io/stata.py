@@ -375,6 +375,18 @@ class StataParser(object):
                 'd': np.float64(struct.unpack('<d', b'\x00\x00\x00\x00\x00\x00\xe0\x7f')[0])
             }
 
+        # Reserved words cannot be used as variable names
+        self.RESERVED_WORDS = ('aggregate', 'array', 'boolean', 'break',
+                               'byte', 'case', 'catch', 'class', 'colvector',
+                               'complex', 'const', 'continue', 'default',
+                               'delegate', 'delete', 'do', 'double', 'else',
+                               'eltypedef', 'end', 'enum', 'explicit',
+                               'export', 'external', 'float', 'for', 'friend',
+                               'function', 'global', 'goto', 'if', 'inline',
+                               'int', 'local', 'long', 'NULL', 'pragma',
+                               'protected', 'quad', 'rowvector', 'short',
+                               'typedef', 'typename', 'virtual')
+
     def _decode_bytes(self, str, errors=None):
         if compat.PY3 or self._encoding is not None:
             return str.decode(self._encoding, errors)
@@ -449,10 +461,10 @@ class StataReader(StataParser):
                                       self.path_or_buf.read(4))[0]
             self.path_or_buf.read(11)  # </N><label>
             strlen = struct.unpack('b', self.path_or_buf.read(1))[0]
-            self.data_label = self.path_or_buf.read(strlen)
+            self.data_label = self._null_terminate(self.path_or_buf.read(strlen))
             self.path_or_buf.read(19)  # </label><timestamp>
             strlen = struct.unpack('b', self.path_or_buf.read(1))[0]
-            self.time_stamp = self.path_or_buf.read(strlen)
+            self.time_stamp = self._null_terminate(self.path_or_buf.read(strlen))
             self.path_or_buf.read(26)  # </timestamp></header><map>
             self.path_or_buf.read(8)  # 0x0000000000000000
             self.path_or_buf.read(8)  # position of <map>
@@ -543,11 +555,11 @@ class StataReader(StataParser):
             self.nobs = struct.unpack(self.byteorder + 'I',
                                       self.path_or_buf.read(4))[0]
             if self.format_version > 105:
-                self.data_label = self.path_or_buf.read(81)
+                self.data_label = self._null_terminate(self.path_or_buf.read(81))
             else:
-                self.data_label = self.path_or_buf.read(32)
+                self.data_label = self._null_terminate(self.path_or_buf.read(32))
             if self.format_version > 104:
-                self.time_stamp = self.path_or_buf.read(18)
+                self.time_stamp = self._null_terminate(self.path_or_buf.read(18))
 
             # descriptors
             if self.format_version > 108:
@@ -1029,6 +1041,11 @@ class StataWriter(StataParser):
     byteorder : str
         Can be ">", "<", "little", or "big". The default is None which uses
         `sys.byteorder`
+    time_stamp : datetime
+        A date time to use when writing the file.  Can be None, in which
+        case the current time is used.
+    dataset_label : str
+        A label for the data set.  Should be 80 characters or smaller.
 
     Returns
     -------
@@ -1047,10 +1064,13 @@ class StataWriter(StataParser):
     >>> writer.write_file()
     """
     def __init__(self, fname, data, convert_dates=None, write_index=True,
-                 encoding="latin-1", byteorder=None):
+                 encoding="latin-1", byteorder=None, time_stamp=None,
+                 data_label=None):
         super(StataWriter, self).__init__(encoding)
         self._convert_dates = convert_dates
         self._write_index = write_index
+        self._time_stamp = time_stamp
+        self._data_label = data_label
         # attach nobs, nvars, data, varlist, typlist
         self._prepare_pandas(data)
 
@@ -1086,7 +1106,7 @@ class StataWriter(StataParser):
 
         if self._write_index:
             data = data.reset_index()
-        # Check columns for compatbaility with stata
+        # Check columns for compatibility with stata
         data = _cast_to_stata_types(data)
         self.datarows = DataFrameRowIter(data)
         self.nobs, self.nvar = data.shape
@@ -1110,7 +1130,8 @@ class StataWriter(StataParser):
                 self.fmtlist[key] = self._convert_dates[key]
 
     def write_file(self):
-        self._write_header()
+        self._write_header(time_stamp=self._time_stamp,
+                           data_label=self._data_label)
         self._write_descriptors()
         self._write_variable_labels()
         # write 5 zeros for expansion fields
@@ -1147,7 +1168,7 @@ class StataWriter(StataParser):
         # format dd Mon yyyy hh:mm
         if time_stamp is None:
             time_stamp = datetime.datetime.now()
-        elif not isinstance(time_stamp, datetime):
+        elif not isinstance(time_stamp, datetime.datetime):
             raise ValueError("time_stamp should be datetime type")
         self._file.write(
             self._null_terminate(time_stamp.strftime("%d %b %Y %H:%M"))
@@ -1169,7 +1190,9 @@ class StataWriter(StataParser):
             for c in name:
                 if (c < 'A' or c > 'Z') and (c < 'a' or c > 'z') and (c < '0' or c > '9') and c != '_':
                     name = name.replace(c, '_')
-
+            # Variable name must not be a reserved word
+            if name in self.RESERVED_WORDS:
+                    name = '_' + name
             # Variable name may not start with a number
             if name[0] > '0' and name[0] < '9':
                 name = '_' + name
