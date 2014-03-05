@@ -312,6 +312,9 @@ Enhancements
 - ``DataFrame.to_stata`` will now check data for compatibility with Stata data types
   and will upcast when needed.  When it isn't possibly to losslessly upcast, a warning
   is raised (:issue:`6327`)
+- ``DataFrame.to_stata`` and ``StataWriter`` will accept keyword arguments time_stamp
+  and data_label which allow the time stamp and dataset label to be set when creating a
+  file. (:issue:`6545`)
 
 Performance
 ~~~~~~~~~~~
