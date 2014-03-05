@@ -734,3 +734,28 @@ Regroup columns of a DataFrame according to their sum, and sum the aggregated on
    df = pd.DataFrame({'a':[1,0,0], 'b':[0,1,0], 'c':[1,0,0], 'd':[2,3,4]})
    df
    df.groupby(df.sum(), axis=1).sum()
+
+
+Group DataFrame columns, compute a set of metrics and return a named Series.
+The Series name is used as the name for the column index.  This is especially
+useful in conjunction with reshaping operations such as stacking in which the
+column index name will be used as the name of the inserted column:
+
+.. ipython:: python
+
+   df = pd.DataFrame({
+        'a':  [0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2],
+        'b':  [0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1],
+        'c':  [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
+        'd':  [0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1],
+        }) 
+
+   def compute_metrics(x):
+       result = {'b_sum': x['b'].sum(), 'c_mean': x['c'].mean()}
+       return pd.Series(result, name='metrics')
+
+   result = df.groupby('a').apply(compute_metrics)
+
+   result
+
+   result.stack()
