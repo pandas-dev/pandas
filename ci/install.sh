@@ -35,7 +35,8 @@ pip install -I -U setuptools
 pip install wheel
 
 # comment this line to disable the fetching of wheel files
-base_url=http://cache27diy-cpycloud.rhcloud.com
+base_url=http://pandas.pydata.org/pandas-build/dev/wheels
+
 wheel_box=${TRAVIS_PYTHON_VERSION}${JOB_TAG}
 PIP_ARGS+=" -I --use-wheel --find-links=$base_url/$wheel_box/ --allow-external --allow-insecure"
 

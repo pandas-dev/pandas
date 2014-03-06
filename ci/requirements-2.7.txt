@@ -13,7 +13,6 @@ xlrd==0.9.2
 patsy==0.1.0
 html5lib==1.0b2
 lxml==3.2.1
-scikits.timeseries==0.91.3
 scipy==0.10.0
 beautifulsoup4==4.2.1
 statsmodels==0.5.0
