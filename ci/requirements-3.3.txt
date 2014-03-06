@@ -8,6 +8,7 @@ numpy==1.8.0
 cython==0.19.1
 numexpr==2.3
 tables==3.1.0
+bottleneck==0.8.0
 matplotlib==1.2.1
 patsy==0.1.0
 lxml==3.2.1

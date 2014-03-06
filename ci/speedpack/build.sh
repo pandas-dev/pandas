@@ -103,6 +103,12 @@ function generate_wheels() {
 }
 
 
+# generate a single wheel version
+# generate_wheels "/reqf/requirements-3.3.txt"
+# 
+# if vagrant is already up
+# run as vagrant provision
+
 for reqfile in $(ls -1 /reqf/requirements-*.*); do
     generate_wheels "$reqfile"
 done
