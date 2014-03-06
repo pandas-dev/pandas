@@ -587,7 +587,8 @@ class GroupBy(PandasObject):
         """
         Returns first n rows of each group.
 
-        Essentially equivalent to ``.apply(lambda x: x.head(n))``
+        Essentially equivalent to ``.apply(lambda x: x.head(n))``,
+        except ignores as_index flag.
 
         Example
         -------
@@ -599,24 +600,23 @@ class GroupBy(PandasObject):
         0  1  2
         2  5  6
         >>> df.groupby('A').head(1)
-             A  B
-        A
-        1 0  1  2
-        5 2  5  6
+           A  B
+        0  1  2
+        2  5  6
 
         """
+        obj = self._selected_obj
         rng = np.arange(self.grouper._max_groupsize, dtype='int64')
         in_head = self._cumcount_array(rng) < n
-        head = self.obj[in_head]
-        if self.as_index:
-            head.index = self._index_with_as_index(in_head)
+        head = obj[in_head]
         return head
 
     def tail(self, n=5):
         """
         Returns last n rows of each group
 
-        Essentially equivalent to ``.apply(lambda x: x.tail(n))``
+        Essentially equivalent to ``.apply(lambda x: x.tail(n))``,
+        except ignores as_index flag.
 
         Example
         -------
@@ -628,17 +628,15 @@ class GroupBy(PandasObject):
         0  1  2
         2  5  6
         >>> df.groupby('A').head(1)
-             A  B
-        A
-        1 0  1  2
-        5 2  5  6
+           A  B
+        0  1  2
+        2  5  6
 
         """
+        obj = self._selected_obj
         rng = np.arange(0, -self.grouper._max_groupsize, -1, dtype='int64')
         in_tail = self._cumcount_array(rng, ascending=False) > -n
-        tail = self.obj[in_tail]
-        if self.as_index:
-            tail.index = self._index_with_as_index(in_tail)
+        tail = obj[in_tail]
         return tail
 
     def _cumcount_array(self, arr, **kwargs):
@@ -654,6 +652,13 @@ class GroupBy(PandasObject):
                 cumcounts[v] = arr[len(v)-1::-1]
         return cumcounts
 
+    @cache_readonly
+    def _selected_obj(self):
+        if self._selection is None or isinstance(self.obj, Series):
+            return self.obj
+        else:
+            return self.obj[self._selection]
+        
     def _index_with_as_index(self, b):
         """
         Take boolean mask of index to be returned from apply, if as_index=True
