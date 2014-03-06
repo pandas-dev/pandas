@@ -115,7 +115,7 @@ API Changes
 - Better propagation/preservation of Series names when performing groupby
   operations:
   - ``SeriesGroupBy.agg`` will ensure that the name attribute of the original
-    series is propagated to the result (:issue:`6265`). 
+    series is propagated to the result (:issue:`6265`).
   - If the function provided to ``GroupBy.apply`` returns a named series, the
     name of the series will be kept as the name of the column index of the
     DataFrame returned by ``GroupBy.apply`` (:issue:`6124`).  This facilitates
@@ -218,6 +218,7 @@ Bug Fixes
 - Bug in ``DataFrame.to_stata`` that lead to data loss in certain cases, and could exported using the
   wrong data types and missing values (:issue:`6335`)
 - Inconsistent types in Timestamp addition/subtraction (:issue:`6543`)
+- Bug in indexing: empty list lookup caused ``IndexError`` exceptions (:issue:`6536`, :issue:`6551`)
 
 
 pandas 0.13.1
