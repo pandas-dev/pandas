@@ -218,6 +218,7 @@ Bug Fixes
 - Bug in ``DataFrame.to_stata`` that lead to data loss in certain cases, and could exported using the
   wrong data types and missing values (:issue:`6335`)
 - Inconsistent types in Timestamp addition/subtraction (:issue:`6543`)
+- Bug in preserving frequency across Timestamp addition/subtraction (:issue:`4547`)
 - Bug in indexing: empty list lookup caused ``IndexError`` exceptions (:issue:`6536`, :issue:`6551`)
 
 
