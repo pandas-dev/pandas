@@ -330,6 +330,20 @@ class TestTimestampOps(tm.TestCase):
             self.assertEqual(type(timestamp_instance + timedelta64_instance), Timestamp)
             self.assertEqual(type(timestamp_instance - timedelta64_instance), Timestamp)
 
+    def test_addition_subtraction_preserve_frequency(self):
+        timestamp_instance = date_range('2014-03-05', periods=1, freq='D')[0]
+        timedelta_instance = datetime.timedelta(days=1)
+        original_freq = timestamp_instance.freq
+        self.assertEqual((timestamp_instance + 1).freq, original_freq)
+        self.assertEqual((timestamp_instance - 1).freq, original_freq)
+        self.assertEqual((timestamp_instance + timedelta_instance).freq, original_freq)
+        self.assertEqual((timestamp_instance - timedelta_instance).freq, original_freq)
+
+        if not _np_version_under1p7:
+            timedelta64_instance = np.timedelta64(1, 'D')
+            self.assertEqual((timestamp_instance + timedelta64_instance).freq, original_freq)
+            self.assertEqual((timestamp_instance - timedelta64_instance).freq, original_freq)
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
