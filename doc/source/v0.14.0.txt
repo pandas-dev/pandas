@@ -62,7 +62,7 @@ These are out-of-bounds selections
      s.index.year
 
 - More consistent behaviour for some groupby methods:
-   - groupby head and tail now act more like filter rather than an aggregation:
+   - groupby ``head`` and ``tail`` now act more like ``filter`` rather than an aggregation:
 
   .. ipython:: python
 
@@ -78,6 +78,16 @@ These are out-of-bounds selections
 
      g[['B']].head(1)
 
+   - groupby ``nth`` now filters by default, with optional dropna argument to ignore
+     NaN (to replicate the previous behaviour.)
+
+  .. ipython:: python
+
+     DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
+     g = df.groupby('A')
+     g.nth(0)  # can also use negative ints
+
+     g.nth(0, dropna='any')  # similar to old behaviour
 
 - Local variable usage has changed in
   :func:`pandas.eval`/:meth:`DataFrame.eval`/:meth:`DataFrame.query`
