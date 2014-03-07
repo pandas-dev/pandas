@@ -269,6 +269,22 @@ groupby_frame_apply_overhead = Benchmark("df.groupby('key').apply(f)", setup,
 groupby_frame_apply = Benchmark("df.groupby(['key', 'key2']).apply(f)", setup,
                                  start_date=datetime(2011, 10, 1))
 
+
+#----------------------------------------------------------------------
+# DataFrame nth
+
+setup = common_setup + """
+df = pd.DataFrame(np.random.randint(1, 100, (10000, 2)))
+"""
+
+# Not really a fair test as behaviour has changed!
+groupby_frame_nth = Benchmark("df.groupby(0).nth(0)", setup,
+                                start_date=datetime(2014, 3, 1))
+
+groupby_series_nth = Benchmark("df[1].groupby(df[0]).nth(0)", setup,
+                                 start_date=datetime(2014, 3, 1))
+
+
 #----------------------------------------------------------------------
 # Sum booleans #2692
 
