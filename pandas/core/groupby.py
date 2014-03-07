@@ -523,14 +523,74 @@ class GroupBy(PandasObject):
         """
         return self._cython_agg_general('ohlc')
 
-    def nth(self, n):
-        def picker(arr):
-            arr = arr[notnull(arr)]
-            if len(arr) >= n + 1:
-                return arr.iget(n)
+    def nth(self, n, dropna=None):
+        """
+        Take the nth row from each group.
+
+        If dropna, will not show nth non-null row, dropna is either
+        Truthy (if a Series) or 'all', 'any' (if a DataFrame); this is equivalent
+        to calling dropna(how=dropna) before the groupby.
+
+        Examples
+        --------
+        >>> DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
+        >>> g = df.groupby('A')
+        >>> g.nth(0)
+           A   B
+        0  1 NaN
+        2  5   6
+        >>> g.nth(1)
+           A  B
+        1  1  4
+        >>> g.nth(-1)
+           A  B
+        1  1  4
+        2  5  6
+        >>> g.nth(0, dropna='any')
+           B
+        A
+        1  4
+        5  6
+        >>> g.nth(1, dropna='any')  # NaNs denote group exhausted when using dropna
+            B
+        A
+        1 NaN
+        5 NaN
+
+        """
+
+        if not dropna:  # good choice
+            m = self.grouper._max_groupsize
+            if n >= m or n < -m:
+                return self._selected_obj.loc[[]]
+            rng = np.zeros(m, dtype=bool)
+            if n >= 0:
+                rng[n] = True
+                is_nth = self._cumcount_array(rng)
             else:
+                rng[- n - 1] = True
+                is_nth = self._cumcount_array(rng, ascending=False)
+            return self._selected_obj[is_nth]
+
+        if (isinstance(self._selected_obj, DataFrame)
+            and dropna not in ['any', 'all']):
+            # Note: when agg-ing picker doesn't raise this, just returns NaN
+            raise ValueError("For a DataFrame groupby, dropna must be "
+                             "either None, 'any' or 'all', "
+                             "(was passed %s)." % (dropna),)
+
+        # old behaviour, but with all and any support for DataFrames.
+
+        max_len = n if n >= 0 else - 1 - n
+        def picker(x):
+            x = x.dropna(how=dropna)  # Note: how is ignored if Series
+            if len(x) <= max_len:
                 return np.nan
+            else:
+                return x.iloc[n]
+
         return self.agg(picker)
+
 
     def cumcount(self, **kwargs):
         """
@@ -579,8 +639,7 @@ class GroupBy(PandasObject):
         ascending = kwargs.pop('ascending', True)
 
         index = self.obj.index
-        rng = np.arange(self.grouper._max_groupsize, dtype='int64')
-        cumcounts = self._cumcount_array(rng, ascending=ascending)
+        cumcounts = self._cumcount_array(ascending=ascending)
         return Series(cumcounts, index)
 
     def head(self, n=5):
@@ -606,8 +665,7 @@ class GroupBy(PandasObject):
 
         """
         obj = self._selected_obj
-        rng = np.arange(self.grouper._max_groupsize, dtype='int64')
-        in_head = self._cumcount_array(rng) < n
+        in_head = self._cumcount_array() < n
         head = obj[in_head]
         return head
 
@@ -639,11 +697,17 @@ class GroupBy(PandasObject):
         tail = obj[in_tail]
         return tail
 
-    def _cumcount_array(self, arr, **kwargs):
+    def _cumcount_array(self, arr=None, **kwargs):
+        """
+        arr is where cumcount gets it's values from
+        """
         ascending = kwargs.pop('ascending', True)
 
+        if arr is None:
+            arr = np.arange(self.grouper._max_groupsize, dtype='int64')
+
         len_index = len(self.obj.index)
-        cumcounts = np.zeros(len_index, dtype='int64')
+        cumcounts = np.empty(len_index, dtype=arr.dtype)
         if ascending:
             for v in self.indices.values():
                 cumcounts[v] = arr[:len(v)]
