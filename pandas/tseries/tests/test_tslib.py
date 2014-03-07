@@ -13,6 +13,41 @@ from pandas import _np_version_under1p7
 import pandas.util.testing as tm
 
 class TestTimestamp(tm.TestCase):
+    def test_repr(self):
+        date = '2014-03-07'
+        tz = 'US/Eastern'
+        freq = 'M'
+
+        date_only = Timestamp(date)
+        self.assertIn(date, repr(date_only))
+        self.assertNotIn(tz, repr(date_only))
+        self.assertNotIn(freq, repr(date_only))
+        self.assertEqual(date_only, eval(repr(date_only)))
+
+        date_tz = Timestamp(date, tz=tz)
+        self.assertIn(date, repr(date_tz))
+        self.assertIn(tz, repr(date_tz))
+        self.assertNotIn(freq, repr(date_tz))
+        self.assertEqual(date_tz, eval(repr(date_tz)))
+
+        date_freq = Timestamp(date, offset=freq)
+        self.assertIn(date, repr(date_freq))
+        self.assertNotIn(tz, repr(date_freq))
+        self.assertIn(freq, repr(date_freq))
+        self.assertEqual(date_freq, eval(repr(date_freq)))
+
+        date_tz_freq = Timestamp(date, tz=tz, offset=freq)
+        self.assertIn(date, repr(date_tz_freq))
+        self.assertIn(tz, repr(date_tz_freq))
+        self.assertIn(freq, repr(date_tz_freq))
+        self.assertEqual(date_tz_freq, eval(repr(date_tz_freq)))
+
+        # this can cause the tz field to be populated, but it's redundant to information in the datestring
+        date_with_utc_offset = Timestamp('2014-03-13 00:00:00-0400', tz=None)
+        self.assertIn('2014-03-13 00:00:00-0400', repr(date_with_utc_offset))
+        self.assertNotIn('tzoffset', repr(date_with_utc_offset))
+        self.assertEqual(date_with_utc_offset, eval(repr(date_with_utc_offset)))
+
     def test_bounds_with_different_units(self):
         out_of_bounds_dates = (
             '1677-09-21',
