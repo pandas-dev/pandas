@@ -738,6 +738,34 @@ This shows the first or last n rows from each group.
         1 0  1  2
         5 2  5  6
 
+Taking the nth row of each group
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To select from a DataFrame or Series the nth item, use the nth method:
+
+.. ipython:: python
+
+   DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
+   g = df.groupby('A')
+   g.nth(0)
+
+   g.nth(1)
+
+   g.nth(-1)
+
+If you want to select the nth not-null method, use the dropna kwarg. For a DataFrame this should be either 'any' or 'all' just like you would pass to dropna, for a Series this just needs to be truthy. 
+
+.. ipython:: python
+
+   g.nth(0, dropna='any')
+
+   g.nth(1, dropna='any')  # NaNs denote group exhausted when using dropna
+
+   g.B.nth(0, dropna=True)
+
+.. warning::
+
+   Before 0.14.0 this method existed but did not work correctly on DataFrames. The API has changed so that it filters by default, but the old behaviour (for Series) can be achieved by passing dropna. An alternative is to dropna before doing the groupby.
 
 Enumerate group items
 ~~~~~~~~~~~~~~~~~~~~~
