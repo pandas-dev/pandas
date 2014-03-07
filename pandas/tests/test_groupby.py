@@ -3466,6 +3466,44 @@ class TestGroupBy(tm.TestCase):
         expected = ser.take([1, 3, 4])
         assert_series_equal(actual, expected)
 
+    def test_groupby_selection_with_methods(self):
+        # some methods which require DatetimeIndex
+        rng = pd.date_range('2014', periods=len(self.df))
+        self.df.index = rng
+
+        g = self.df.groupby(['A'])[['C']]
+        g_exp = self.df[['C']].groupby(self.df['A'])
+        # TODO check groupby with > 1 col ?
+
+        # methods which are called as .foo()
+        methods = ['count',
+                   'corr',
+                   'cummax', 'cummin', 'cumprod',
+                   'describe', 'rank',
+                   'quantile',
+                   'diff', 'shift',
+                   'all', 'any',
+                   'idxmin', 'idxmax',
+                   'ffill', 'bfill',
+                   'pct_change',
+                   'tshift'
+                   ]
+
+        for m in methods:
+            res = getattr(g, m)()
+            exp = getattr(g_exp, m)()
+            assert_frame_equal(res, exp)  # should always be frames!
+
+        # methods which aren't just .foo()
+        assert_frame_equal(g.fillna(0), g_exp.fillna(0))
+        assert_frame_equal(g.dtypes, g_exp.dtypes)
+        assert_frame_equal(g.apply(lambda x: x.sum()),
+                           g_exp.apply(lambda x: x.sum()))
+
+        assert_frame_equal(g.resample('D'), g_exp.resample('D'))
+
+
+
     def test_groupby_whitelist(self):
         from string import ascii_lowercase
         letters = np.array(list(ascii_lowercase))
