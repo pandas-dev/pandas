@@ -1,6 +1,7 @@
 # pylint: disable=E1101
 
 from datetime import datetime
+import datetime as dt
 import os
 import warnings
 import nose
@@ -248,7 +249,7 @@ class TestStata(tm.TestCase):
 
         original = DataFrame(data=[["string", "object", 1, 1.1,
                                     np.datetime64('2003-12-25')]],
-                             columns=['string', 'object', 'integer', 'float',
+                             columns=['string', 'object', 'integer', 'floating',
                                       'datetime'])
         original["object"] = Series(original["object"], dtype=object)
         original.index.name = 'index'
@@ -304,10 +305,20 @@ class TestStata(tm.TestCase):
     def test_read_write_dta12(self):
         # skip_if_not_little_endian()
 
-        original = DataFrame([(1, 2, 3, 4)],
-                             columns=['astringwithmorethan32characters_1', 'astringwithmorethan32characters_2', '+', '-'])
-        formatted = DataFrame([(1, 2, 3, 4)],
-                              columns=['astringwithmorethan32characters_', '_0astringwithmorethan32character', '_', '_1_'])
+        original = DataFrame([(1, 2, 3, 4, 5, 6)],
+                             columns=['astringwithmorethan32characters_1',
+                                      'astringwithmorethan32characters_2',
+                                      '+',
+                                      '-',
+                                      'short',
+                                      'delete'])
+        formatted = DataFrame([(1, 2, 3, 4, 5, 6)],
+                              columns=['astringwithmorethan32characters_',
+                                       '_0astringwithmorethan32character',
+                                       '_',
+                                       '_1_',
+                                       '_short',
+                                       '_delete'])
         formatted.index.name = 'index'
         formatted = formatted.astype(np.int32)
 
@@ -375,6 +386,17 @@ class TestStata(tm.TestCase):
         tm.assert_frame_equal(expected, parsed_114)
         tm.assert_frame_equal(parsed_113, parsed_114)
         tm.assert_frame_equal(parsed_114, parsed_115)
+
+    def test_timestamp_and_label(self):
+        original = DataFrame([(1,)], columns=['var'])
+        time_stamp = datetime(2000, 2, 29, 14, 21)
+        data_label = 'This is a data file.'
+        with tm.ensure_clean() as path:
+            original.to_stata(path, time_stamp=time_stamp, data_label=data_label)
+            reader = StataReader(path)
+            parsed_time_stamp = dt.datetime.strptime(reader.time_stamp, ('%d %b %Y %H:%M'))
+            assert parsed_time_stamp == time_stamp
+            assert reader.data_label == data_label
 
 
 
