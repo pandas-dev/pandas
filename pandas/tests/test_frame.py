@@ -10427,11 +10427,11 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             df = DataFrame({'b': date_range('1/1/2001', periods=2)})
             _f = getattr(df, name)
             result = _f()
-            self.assert_(isinstance(result, Series))
+            self.assertIsInstance(result, Series)
 
             df['a'] = lrange(len(df))
             result = getattr(df, name)()
-            self.assert_(isinstance(result, Series))
+            self.assertIsInstance(result, Series)
             self.assert_(len(result))
 
         if has_skipna:

@@ -277,11 +277,11 @@ class TestStata(tm.TestCase):
         if compat.PY3:
             expected = raw.kreis1849[0]
             self.assertEqual(result, expected)
-            self.assert_(isinstance(result, compat.string_types))
+            self.assertIsInstance(result, compat.string_types)
         else:
             expected = raw.kreis1849.str.decode("latin-1")[0]
             self.assertEqual(result, expected)
-            self.assert_(isinstance(result, unicode))
+            self.assertIsInstance(result, unicode)
 
     def test_read_write_dta11(self):
         # skip_if_not_little_endian()

@@ -343,7 +343,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         # Pass in scalar is disabled
         scalar = Series(0.5)
-        self.assert_(not isinstance(scalar, float))
+        self.assertNotIsInstance(scalar, float)
 
         # coercion
         self.assertEqual(float(Series([1.])), 1.0)
@@ -1175,10 +1175,10 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
     def test_reshape_2d_return_array(self):
         x = Series(np.random.random(201), name='x')
         result = x.reshape((-1, 1))
-        self.assert_(not isinstance(result, Series))
+        self.assertNotIsInstance(result, Series)
 
         result2 = np.reshape(x, (-1, 1))
-        self.assert_(not isinstance(result, Series))
+        self.assertNotIsInstance(result, Series)
 
         result = x[:, None]
         expected = x.reshape((-1, 1))
@@ -2091,7 +2091,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
     def test_prod_numpy16_bug(self):
         s = Series([1., 1., 1.], index=lrange(3))
         result = s.prod()
-        self.assert_(not isinstance(result, Series))
+        self.assertNotIsInstance(result, Series)
 
     def test_quantile(self):
         from pandas.compat.scipy import scoreatpercentile
@@ -5722,7 +5722,7 @@ class TestSeriesNonUnique(tm.TestCase):
         idx = tm.makeDateIndex(10000)
         ser = Series(np.random.randn(len(idx)), idx.astype(object))
         self.assertTrue(ser.is_time_series)
-        self.assert_(isinstance(ser.index, DatetimeIndex))
+        self.assertIsInstance(ser.index, DatetimeIndex)
 
     def test_replace(self):
         N = 100

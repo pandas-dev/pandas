@@ -75,7 +75,7 @@ class TestMultiLevel(tm.TestCase):
                           index=[np.array(['a', 'a', 'b', 'b']),
                                  np.array(['x', 'y', 'x', 'y'])])
         tm.assert_isinstance(multi.index, MultiIndex)
-        self.assert_(not isinstance(multi.columns, MultiIndex))
+        self.assertNotIsInstance(multi.columns, MultiIndex)
 
         multi = DataFrame(np.random.randn(4, 4),
                           columns=[['a', 'a', 'b', 'b'],

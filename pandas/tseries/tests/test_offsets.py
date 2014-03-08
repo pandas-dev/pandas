@@ -107,7 +107,7 @@ class TestBase(tm.TestCase):
             offset = self._offset(10000)
 
             result = Timestamp('20080101') + offset
-            self.assert_(isinstance(result, datetime))
+            self.assertIsInstance(result, datetime)
         except (OutOfBoundsDatetime):
             raise
         except (ValueError, KeyError):

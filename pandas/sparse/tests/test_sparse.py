@@ -405,7 +405,7 @@ class TestSparseSeries(tm.TestCase,
             def _compare(idx):
                 dense_result = dense.take(idx).values
                 sparse_result = sp.take(idx)
-                self.assert_(isinstance(sparse_result, SparseSeries))
+                self.assertIsInstance(sparse_result, SparseSeries)
                 assert_almost_equal(dense_result, sparse_result.values.values)
 
             _compare([1., 2., 3., 4., 5., 0.])
@@ -652,7 +652,7 @@ class TestSparseSeries(tm.TestCase,
 
         result = self.bseries.dropna()
         expected = self.bseries.to_dense().dropna()
-        self.assert_(not isinstance(result, SparseSeries))
+        self.assertNotIsInstance(result, SparseSeries)
         tm.assert_series_equal(result, expected)
 
     def test_homogenize(self):

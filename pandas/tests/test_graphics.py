@@ -469,13 +469,13 @@ class TestDataFramePlots(tm.TestCase):
         df = tm.makeTimeDataFrame()
         ax = df.plot(x_compat=True)
         lines = ax.get_lines()
-        self.assert_(not isinstance(lines[0].get_xdata(), PeriodIndex))
+        self.assertNotIsInstance(lines[0].get_xdata(), PeriodIndex)
 
         tm.close()
         pd.plot_params['xaxis.compat'] = True
         ax = df.plot()
         lines = ax.get_lines()
-        self.assert_(not isinstance(lines[0].get_xdata(), PeriodIndex))
+        self.assertNotIsInstance(lines[0].get_xdata(), PeriodIndex)
 
         tm.close()
         pd.plot_params['x_compat'] = False
@@ -488,7 +488,7 @@ class TestDataFramePlots(tm.TestCase):
         with pd.plot_params.use('x_compat', True):
             ax = df.plot()
             lines = ax.get_lines()
-            self.assert_(not isinstance(lines[0].get_xdata(), PeriodIndex))
+            self.assertNotIsInstance(lines[0].get_xdata(), PeriodIndex)
 
         tm.close()
         ax = df.plot()
