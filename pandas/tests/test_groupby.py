@@ -3438,6 +3438,13 @@ class TestGroupBy(tm.TestCase):
         actual = grouped_df.pid.transform(len)
         assert_series_equal(actual, expected)
 
+    def test_filter_has_access_to_grouped_cols(self):
+        df = DataFrame([[1, 2], [1, 3], [5, 6]], columns=['A', 'B'])
+        g = df.groupby('A')
+        # previously didn't have access to col A #????
+        filt = g.filter(lambda x: x['A'].sum() == 2)
+        assert_frame_equal(filt, df.iloc[[0, 1]])
+
     def test_index_label_overlaps_location(self):
         # checking we don't have any label/location confusion in the
         # the wake of GH5375
@@ -3486,7 +3493,8 @@ class TestGroupBy(tm.TestCase):
                    'idxmin', 'idxmax',
                    'ffill', 'bfill',
                    'pct_change',
-                   'tshift'
+                   'tshift',
+                   #'ohlc'
                    ]
 
         for m in methods:
@@ -3501,8 +3509,11 @@ class TestGroupBy(tm.TestCase):
                            g_exp.apply(lambda x: x.sum()))
 
         assert_frame_equal(g.resample('D'), g_exp.resample('D'))
+        assert_frame_equal(g.resample('D', how='ohlc'),
+                           g_exp.resample('D', how='ohlc'))
 
-
+        assert_frame_equal(g.filter(lambda x: len(x) == 3),
+                           g_exp.filter(lambda x: len(x) == 3))
 
     def test_groupby_whitelist(self):
         from string import ascii_lowercase
