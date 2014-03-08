@@ -295,7 +295,7 @@ class TestIndex(tm.TestCase):
             index_result = op(index, element)
 
             tm.assert_isinstance(index_result, np.ndarray)
-            self.assert_(not isinstance(index_result, Index))
+            self.assertNotIsInstance(index_result, Index)
             self.assert_numpy_array_equal(arr_result, index_result)
 
         _check(operator.eq)
@@ -762,7 +762,7 @@ class TestIndex(tm.TestCase):
 
         self.assert_(res.all())
         self.assertEqual(res.dtype, 'bool')
-        self.assert_(not isinstance(res, Index))
+        self.assertNotIsInstance(res, Index)
 
     def test_get_level_values(self):
         result = self.strIndex.get_level_values(0)
@@ -808,12 +808,13 @@ class TestFloat64Index(tm.TestCase):
             tm.assert_index_equal(eval(repr(ind)), ind)
 
     def check_is_index(self, i):
-        self.assert_(isinstance(i, Index) and not isinstance(i, Float64Index))
+        self.assertIsInstance(i, Index)
+        self.assertNotIsInstance(i, Float64Index)
 
     def check_coerce(self, a, b, is_float_index=True):
         self.assert_(a.equals(b))
         if is_float_index:
-            self.assert_(isinstance(b, Float64Index))
+            self.assertIsInstance(b, Float64Index)
         else:
             self.check_is_index(b)
 
@@ -821,22 +822,22 @@ class TestFloat64Index(tm.TestCase):
 
         # explicit construction
         index = Float64Index([1,2,3,4,5])
-        self.assert_(isinstance(index, Float64Index))
+        self.assertIsInstance(index, Float64Index)
         self.assert_((index.values == np.array([1,2,3,4,5],dtype='float64')).all())
         index = Float64Index(np.array([1,2,3,4,5]))
-        self.assert_(isinstance(index, Float64Index))
+        self.assertIsInstance(index, Float64Index)
         index = Float64Index([1.,2,3,4,5])
-        self.assert_(isinstance(index, Float64Index))
+        self.assertIsInstance(index, Float64Index)
         index = Float64Index(np.array([1.,2,3,4,5]))
-        self.assert_(isinstance(index, Float64Index))
+        self.assertIsInstance(index, Float64Index)
         self.assertEqual(index.dtype, object)
 
         index = Float64Index(np.array([1.,2,3,4,5]),dtype=np.float32)
-        self.assert_(isinstance(index, Float64Index))
+        self.assertIsInstance(index, Float64Index)
         self.assertEqual(index.dtype, object)
 
         index = Float64Index(np.array([1,2,3,4,5]),dtype=np.float32)
-        self.assert_(isinstance(index, Float64Index))
+        self.assertIsInstance(index, Float64Index)
         self.assertEqual(index.dtype, object)
 
         # nan handling
@@ -1548,7 +1549,7 @@ class TestMultiIndex(tm.TestCase):
                                   labels=[[0, 1, 2, 3]],
                                   names=['first'])
         tm.assert_isinstance(single_level, Index)
-        self.assert_(not isinstance(single_level, MultiIndex))
+        self.assertNotIsInstance(single_level, MultiIndex)
         self.assertEqual(single_level.name, 'first')
 
         single_level = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],

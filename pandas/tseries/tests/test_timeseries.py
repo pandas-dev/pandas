@@ -2042,7 +2042,7 @@ class TestDatetimeIndex(tm.TestCase):
         result = idx.insert(1, 'inserted')
         expected = Index([datetime(2000, 1, 4), 'inserted', datetime(2000, 1, 1),
                           datetime(2000, 1, 2)])
-        self.assert_(not isinstance(result, DatetimeIndex))
+        self.assertNotIsInstance(result, DatetimeIndex)
         tm.assert_index_equal(result, expected)
 
         idx = date_range('1/1/2000', periods=3, freq='M')
@@ -3321,7 +3321,7 @@ class TestDateTimeIndexToJulianDate(tm.TestCase):
         r2 = date_range(start=Timestamp('1710-10-01'),
                         periods=5,
                         freq='D').to_julian_date()
-        self.assert_(isinstance(r2, Float64Index))
+        self.assertIsInstance(r2, Float64Index)
         tm.assert_index_equal(r1, r2)
 
     def test_2000(self):
@@ -3333,7 +3333,7 @@ class TestDateTimeIndexToJulianDate(tm.TestCase):
         r2 = date_range(start=Timestamp('2000-02-27'),
                         periods=5,
                         freq='D').to_julian_date()
-        self.assert_(isinstance(r2, Float64Index))
+        self.assertIsInstance(r2, Float64Index)
         tm.assert_index_equal(r1, r2)
 
     def test_hour(self):
@@ -3345,7 +3345,7 @@ class TestDateTimeIndexToJulianDate(tm.TestCase):
         r2 = date_range(start=Timestamp('2000-02-27'),
                         periods=5,
                         freq='H').to_julian_date()
-        self.assert_(isinstance(r2, Float64Index))
+        self.assertIsInstance(r2, Float64Index)
         tm.assert_index_equal(r1, r2)
 
     def test_minute(self):
@@ -3357,7 +3357,7 @@ class TestDateTimeIndexToJulianDate(tm.TestCase):
         r2 = date_range(start=Timestamp('2000-02-27'),
                         periods=5,
                         freq='T').to_julian_date()
-        self.assert_(isinstance(r2, Float64Index))
+        self.assertIsInstance(r2, Float64Index)
         tm.assert_index_equal(r1, r2)
 
     def test_second(self):
@@ -3369,7 +3369,7 @@ class TestDateTimeIndexToJulianDate(tm.TestCase):
         r2 = date_range(start=Timestamp('2000-02-27'),
                         periods=5,
                         freq='S').to_julian_date()
-        self.assert_(isinstance(r2, Float64Index))
+        self.assertIsInstance(r2, Float64Index)
         tm.assert_index_equal(r1, r2)
 
 if __name__ == '__main__':

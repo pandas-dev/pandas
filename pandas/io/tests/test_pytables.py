@@ -3554,7 +3554,7 @@ class TestHDFStore(tm.TestCase):
             # valid
             result = store.select_column('df', 'index')
             tm.assert_almost_equal(result.values, Series(df.index).values)
-            self.assert_(isinstance(result,Series))
+            self.assertIsInstance(result,Series)
 
             # not a data indexable column
             self.assertRaises(
@@ -3622,7 +3622,7 @@ class TestHDFStore(tm.TestCase):
             result = store.select('df', where=c)
             expected = df.ix[3:4, :]
             tm.assert_frame_equal(result, expected)
-            self.assert_(isinstance(c, Index))
+            self.assertIsInstance(c, Index)
 
             # multiple tables
             _maybe_remove(store, 'df1')

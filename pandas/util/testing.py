@@ -99,6 +99,21 @@ class TestCase(unittest.TestCase):
         a, b = first, second
         assert a not in b, "%s: %r is in %r" % (msg.format(a,b), a, b)
 
+    def assertIsInstance(self, obj, cls, msg=''):
+        """Test that obj is an instance of cls
+        (which can be a class or a tuple of classes,
+        as supported by isinstance())."""
+        assert isinstance(obj, cls), (
+            "%sExpected object to be of type %r, found %r instead" % (
+                msg, cls, type(obj)))
+
+    def assertNotIsInstance(self, obj, cls, msg=''):
+        """Test that obj is not an instance of cls
+        (which can be a class or a tuple of classes,
+        as supported by isinstance())."""
+        assert not isinstance(obj, cls), (
+            "%sExpected object to be of type %r, found %r instead" % (
+                msg, cls, type(obj)))
 
 # NOTE: don't pass an NDFrame or index to this function - may not handle it
 # well.
