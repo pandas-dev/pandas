@@ -11,7 +11,7 @@ import unittest
 import nose
 import pandas.util.testing as tm
 
-class TestBuiltinIterators(unittest.TestCase):
+class TestBuiltinIterators(tm.TestCase):
     def check_result(self, actual, expected, lengths):
         for (iter_res, list_res), exp, length in zip(actual, expected, lengths):
             self.assertNotIsInstance(iter_res, list)
