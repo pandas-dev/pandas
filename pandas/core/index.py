@@ -821,7 +821,8 @@ class Index(IndexOpsMixin, FrozenNDArray):
         """
         return (self.equals(other) and
                 all((getattr(self, c, None) == getattr(other, c, None)
-                     for c in self._comparables)))
+                     for c in self._comparables)) and
+                type(self) == type(other))
 
     def asof(self, label):
         """
