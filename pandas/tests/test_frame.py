@@ -1929,6 +1929,15 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self.simple = DataFrame(arr, columns=['one', 'two', 'three'],
                                 index=['a', 'b', 'c'])
 
+    def test_to_sparse_coersion(self):
+        """ Verify conversion from object to float occurs when possible """
+        from pandas.sparse.api import SparseDataFrame
+        data = np.linspace(82.87, 88.98, 15)
+        frame = DataFrame(data).astype(object)
+        expected = SparseDataFrame(np.linspace(82.87, 88.98, 15))
+        actual = frame.to_sparse()
+        assert_frame_equal(expected, actual)
+
     def test_get_axis(self):
         f = self.frame
         self.assertEquals(f._get_axis_number(0), 0)
