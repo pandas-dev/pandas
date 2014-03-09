@@ -11,10 +11,10 @@ import unittest
 import nose
 import pandas.util.testing as tm
 
-class TestBuiltinIterators(unittest.TestCase):
+class TestBuiltinIterators(tm.TestCase):
     def check_result(self, actual, expected, lengths):
         for (iter_res, list_res), exp, length in zip(actual, expected, lengths):
-            self.assert_(not isinstance(iter_res, list))
+            self.assertNotIsInstance(iter_res, list)
             tm.assert_isinstance(list_res, list)
             iter_res = list(iter_res)
             self.assertEqual(len(list_res), length)

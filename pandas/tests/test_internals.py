@@ -378,7 +378,7 @@ class TestBlockManager(tm.TestCase):
     def test_sparse_mixed(self):
         mgr = create_blockmanager([get_sparse_ex1(),get_sparse_ex2(),get_float_ex()])
         self.assertEqual(len(mgr.blocks), 3)
-        self.assert_(isinstance(mgr,BlockManager))
+        self.assertIsInstance(mgr, BlockManager)
 
         # what to test here?
 

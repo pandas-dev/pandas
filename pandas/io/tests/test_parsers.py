@@ -415,7 +415,7 @@ KORD,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
 KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
 
         df = self.read_csv(StringIO(data), parse_dates={'nominal': [1, 2]})
-        self.assert_(not isinstance(df.nominal[0], compat.string_types))
+        self.assertNotIsInstance(df.nominal[0], compat.string_types)
 
     ts_data = """\
 ID,date,nominalTime,actualTime,A,B,C,D,E
@@ -1006,8 +1006,7 @@ baz,7,8,9
                               parse_dates=True)
         self.assert_numpy_array_equal(df.columns, ['A', 'B', 'C', 'D'])
         self.assertEqual(df.index.name, 'index')
-        self.assert_(isinstance(df.index[0], (datetime, np.datetime64,
-                                              Timestamp)))
+        self.assertIsInstance(df.index[0], (datetime, np.datetime64, Timestamp))
         self.assertEqual(df.values.dtype, np.float64)
         tm.assert_frame_equal(df, df2)
 
@@ -1016,8 +1015,7 @@ baz,7,8,9
         df2 = self.read_table(self.csv2, sep=',', index_col=0,
                               parse_dates=True)
         self.assert_numpy_array_equal(df.columns, ['A', 'B', 'C', 'D', 'E'])
-        self.assert_(isinstance(df.index[0], (datetime, np.datetime64,
-                                              Timestamp)))
+        self.assertIsInstance(df.index[0], (datetime, np.datetime64, Timestamp))
         self.assertEqual(df.ix[:, ['A', 'B', 'C', 'D']].values.dtype, np.float64)
         tm.assert_frame_equal(df, df2)
 
@@ -1441,13 +1439,13 @@ bar,two,12,13,14,15
 20090103,three,c,4,5
 """
         df = self.read_csv(StringIO(data), index_col=[0, 1], parse_dates=True)
-        self.assert_(isinstance(df.index.levels[0][0],
-                     (datetime, np.datetime64, Timestamp)))
+        self.assertIsInstance(df.index.levels[0][0],
+                              (datetime, np.datetime64, Timestamp))
 
         # specify columns out of order!
         df2 = self.read_csv(StringIO(data), index_col=[1, 0], parse_dates=True)
-        self.assert_(isinstance(df2.index.levels[1][0],
-                     (datetime, np.datetime64, Timestamp)))
+        self.assertIsInstance(df2.index.levels[1][0],
+                              (datetime, np.datetime64, Timestamp))
 
     def test_skip_footer(self):
         data = """A,B,C

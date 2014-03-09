@@ -359,7 +359,7 @@ class TestNDFrame(TestPackers):
         l = [self.frame['float'], self.frame['float']
              .A, self.frame['float'].B, None]
         l_rec = self.encode_decode(l)
-        self.assert_(isinstance(l_rec, tuple))
+        self.assertIsInstance(l_rec, tuple)
         check_arbitrary(l, l_rec)
 
     def test_iterator(self):
