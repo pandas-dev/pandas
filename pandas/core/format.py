@@ -943,7 +943,7 @@ def _get_level_lengths(levels, sentinel=''):
 
 class CSVFormatter(object):
 
-    def __init__(self, obj, path_or_buf, sep=",", na_rep='', float_format=None,
+    def __init__(self, obj, path_or_buf=None, sep=",", na_rep='', float_format=None,
                  cols=None, header=True, index=True, index_label=None,
                  mode='w', nanRep=None, encoding=None, quoting=None,
                  line_terminator='\n', chunksize=None, engine=None,
@@ -952,6 +952,9 @@ class CSVFormatter(object):
 
         self.engine = engine  # remove for 0.13
         self.obj = obj
+
+        if path_or_buf is None:
+            path_or_buf = StringIO()
 
         self.path_or_buf = path_or_buf
         self.sep = sep
@@ -1144,7 +1147,7 @@ class CSVFormatter(object):
 
     def save(self):
         # create the writer & save
-        if hasattr(self.path_or_buf, 'read'):
+        if hasattr(self.path_or_buf, 'write'):
             f = self.path_or_buf
             close = False
         else:

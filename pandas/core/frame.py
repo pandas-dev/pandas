@@ -1067,7 +1067,7 @@ class DataFrame(NDFrame):
 
     to_wide = deprecate('to_wide', to_panel)
 
-    def to_csv(self, path_or_buf, sep=",", na_rep='', float_format=None,
+    def to_csv(self, path_or_buf=None, sep=",", na_rep='', float_format=None,
                cols=None, header=True, index=True, index_label=None,
                mode='w', nanRep=None, encoding=None, quoting=None,
                quotechar='"', line_terminator='\n', chunksize=None,
@@ -1077,8 +1077,9 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        path_or_buf : string or file handle / StringIO
-            File path
+        path_or_buf : string or file handle, default None
+            File path or object, if None is provided the result is returned as
+            a string.
         sep : character, default ","
             Field delimiter for the output file.
         na_rep : string, default ''
@@ -1143,6 +1144,9 @@ class DataFrame(NDFrame):
                                      doublequote=doublequote,
                                      escapechar=escapechar)
         formatter.save()
+
+        if path_or_buf is None:
+            return formatter.path_or_buf.getvalue()
 
     def to_excel(self, excel_writer, sheet_name='Sheet1', na_rep='',
                  float_format=None, cols=None, header=True, index=True,
