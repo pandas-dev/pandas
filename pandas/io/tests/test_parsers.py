@@ -873,8 +873,7 @@ c,4,5
 """
         df = self.read_csv(StringIO(data), parse_dates=True)
         expected = self.read_csv(StringIO(data), index_col=0, parse_dates=True)
-        self.assert_(
-            isinstance(df.index[0], (datetime, np.datetime64, Timestamp)))
+        self.assertIsInstance(df.index[0], (datetime, np.datetime64, Timestamp))
         tm.assert_frame_equal(df, expected)
 
     def test_parse_dates_string(self):

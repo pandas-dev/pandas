@@ -2879,8 +2879,8 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         ts[2] = np.NaN
 
-        self.assert_(
-            np.array_equal(ts.fillna(method='ffill'), [0., 1., 1., 3., 4.]))
+        self.assert_numpy_array_equal(ts.fillna(method='ffill'),
+                                      [0., 1., 1., 3., 4.])
         self.assert_numpy_array_equal(ts.fillna(method='backfill'),
                                       [0., 1., 3., 3., 4.])
 
