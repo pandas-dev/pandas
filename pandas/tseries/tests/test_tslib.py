@@ -91,30 +91,26 @@ class TestDatetimeParsingWrappers(tm.TestCase):
 class TestArrayToDatetime(tm.TestCase):
     def test_parsing_valid_dates(self):
         arr = np.array(['01-01-2013', '01-02-2013'], dtype=object)
-        self.assert_(
-            np.array_equal(
-                tslib.array_to_datetime(arr),
-                np.array(
+        self.assert_numpy_array_equal(
+            tslib.array_to_datetime(arr),
+            np.array(
                     [
                         '2013-01-01T00:00:00.000000000-0000',
                         '2013-01-02T00:00:00.000000000-0000'
                     ],
                     dtype='M8[ns]'
-                )
             )
         )
 
         arr = np.array(['Mon Sep 16 2013', 'Tue Sep 17 2013'], dtype=object)
-        self.assert_(
-            np.array_equal(
-                tslib.array_to_datetime(arr),
-                np.array(
+        self.assert_numpy_array_equal(
+            tslib.array_to_datetime(arr),
+            np.array(
                     [
                         '2013-09-16T00:00:00.000000000-0000',
                         '2013-09-17T00:00:00.000000000-0000'
                     ],
                     dtype='M8[ns]'
-                )
             )
         )
 
@@ -155,16 +151,14 @@ class TestArrayToDatetime(tm.TestCase):
             )
 
         arr = np.array(['1/1/1000', '1/1/2000'], dtype=object)
-        self.assert_(
-            np.array_equal(
-                tslib.array_to_datetime(arr, coerce=True),
-                np.array(
+        self.assert_numpy_array_equal(
+            tslib.array_to_datetime(arr, coerce=True),
+            np.array(
                     [
                         tslib.iNaT,
                         '2000-01-01T00:00:00.000000000-0000'
                     ],
                     dtype='M8[ns]'
-                )
             )
         )
 
@@ -176,17 +170,15 @@ class TestArrayToDatetime(tm.TestCase):
         self.assert_numpy_array_equal(tslib.array_to_datetime(arr), arr)
 
         # With coercing, the invalid dates becomes iNaT
-        self.assert_(
-            np.array_equal(
-                tslib.array_to_datetime(arr, coerce=True),
-                np.array(
+        self.assert_numpy_array_equal(
+            tslib.array_to_datetime(arr, coerce=True),
+            np.array(
                     [
                         '2013-01-01T00:00:00.000000000-0000',
                         tslib.iNaT,
                         tslib.iNaT
                     ],
                     dtype='M8[ns]'
-                )
             )
         )
 
@@ -205,13 +197,11 @@ class TestArrayToDatetime(tm.TestCase):
         )
 
         for dt_string in dt_strings:
-            self.assert_(
-                np.array_equal(
-                    tslib.array_to_datetime(
-                        np.array([dt_string], dtype=object)
-                    ),
-                    expected_output
-                )
+            self.assert_numpy_array_equal(
+                tslib.array_to_datetime(
+                    np.array([dt_string], dtype=object)
+                ),
+                expected_output
             )
 
 class TestTimestampNsOperations(tm.TestCase):

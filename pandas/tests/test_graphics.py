@@ -964,7 +964,7 @@ class TestDataFramePlots(tm.TestCase):
 
         ax = df.plot(kind='hexbin', x='A', y='B', gridsize=10)
         # TODO: need better way to test. This just does existence.
-        self.assert_(len(ax.collections) == 1)
+        self.assertEqual(len(ax.collections), 1)
 
     @slow
     def test_hexbin_with_c(self):
@@ -973,11 +973,11 @@ class TestDataFramePlots(tm.TestCase):
                         "C": np.arange(20) + np.random.uniform(size=20)})
 
         ax = df.plot(kind='hexbin', x='A', y='B', C='C')
-        self.assert_(len(ax.collections) == 1)
+        self.assertEqual(len(ax.collections), 1)
 
         ax = df.plot(kind='hexbin', x='A', y='B', C='C',
                           reduce_C_function=np.std)
-        self.assert_(len(ax.collections) == 1)
+        self.assertEqual(len(ax.collections), 1)
 
     @slow
     def test_hexbin_cmap(self):

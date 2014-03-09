@@ -679,8 +679,8 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         deleveled = self.series.reset_index()
         tm.assert_isinstance(deleveled, DataFrame)
-        self.assert_(
-            len(deleveled.columns) == len(self.series.index.levels) + 1)
+        self.assertEqual(len(deleveled.columns),
+                         len(self.series.index.levels) + 1)
 
         deleveled = self.series.reset_index(drop=True)
         tm.assert_isinstance(deleveled, Series)
