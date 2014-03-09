@@ -30,17 +30,42 @@ modules = ['attrs_caching',
            'timedelta',
            'eval']
 
-by_module = {}
-benchmarks = []
 
-for modname in modules:
-    ref = __import__(modname)
-    by_module[modname] = [v for v in ref.__dict__.values()
+def discover_benchmarks(mods, return_as='list'):
+    """
+    Collect available benchmarks from specified modules.
+
+    Arguments
+    ---------
+    mods: list of str
+        List of modules to search in
+    return_as: {'both', 'list', 'dict'}
+        Specifies result type: dict will group benchmarks by module
+    """
+    by_module = {}
+    benchmarks = []
+
+    for modname in mods:
+        ref = __import__(modname)
+        mod_benchmarks = [v for v in ref.__dict__.values()
                           if isinstance(v, Benchmark)]
-    benchmarks.extend(by_module[modname])
 
-for bm in benchmarks:
-    assert(bm.name is not None)
+        for bm in mod_benchmarks:
+            assert bm.name is not None
+
+        by_module[modname] = mod_benchmarks
+        benchmarks.extend(mod_benchmarks)
+
+    if return_as == 'both':
+        return by_module, benchmarks
+    elif return_as == 'list':
+        return benchmarks
+    elif return_as == 'dict':
+        return by_module
+    else:
+        raise ValueError("Incorrect return_as value: %s" % return_as)
+
+by_module, benchmarks = discover_benchmarks(modules, return_as='both')
 
 import getpass
 import sys
