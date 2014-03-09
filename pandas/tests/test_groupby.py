@@ -14,7 +14,7 @@ from pandas.core.groupby import SpecificationError, DataError
 from pandas.core.series import Series
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
                                  assert_series_equal, assert_almost_equal,
-                                 assert_index_equal)
+                                 assert_index_equal, assertRaisesRegexp)
 from pandas.compat import(
     range, long, lrange, StringIO, lmap, lzip, map, zip, builtins, OrderedDict
 )
@@ -29,6 +29,7 @@ import pandas.core.nanops as nanops
 
 import pandas.util.testing as tm
 import pandas as pd
+
 
 def commonSetUp(self):
     self.dateRange = bdate_range('1/1/2005', periods=250)
@@ -72,7 +73,8 @@ class TestGroupBy(tm.TestCase):
                                           'B': ['one', 'one', 'two', 'three',
                                                 'two', 'two', 'one', 'three'],
                                           'C': np.random.randn(8),
-                                          'D': np.array(np.random.randn(8),dtype='float32')})
+                                          'D': np.array(np.random.randn(8),
+                                                        dtype='float32')})
 
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                    ['one', 'two', 'three']],
@@ -114,7 +116,7 @@ class TestGroupBy(tm.TestCase):
 
             assert_series_equal(agged, grouped.agg(np.mean))  # shorthand
             assert_series_equal(agged, grouped.mean())
-            assert_series_equal(grouped.agg(np.sum),grouped.sum())
+            assert_series_equal(grouped.agg(np.sum), grouped.sum())
 
             transformed = grouped.transform(lambda x: x * x.sum())
             self.assertEqual(transformed[7], 12)
@@ -138,9 +140,19 @@ class TestGroupBy(tm.TestCase):
             # corner cases
             self.assertRaises(Exception, grouped.aggregate, lambda x: x * 2)
 
-
-        for dtype in ['int64','int32','float64','float32']:
+        for dtype in ['int64', 'int32', 'float64', 'float32']:
             checkit(dtype)
+
+    def test_select_bad_cols(self):
+        df = DataFrame([[1, 2]], columns=['A', 'B'])
+        g = df.groupby('A')
+        self.assertRaises(KeyError, g.__getitem__, ['C'])  # g[['C']]
+
+        self.assertRaises(KeyError, g.__getitem__, ['A', 'C'])  # g[['A', 'C']]
+        with assertRaisesRegexp(KeyError, '^[^A]+$'):
+            # A should not be referenced as a bad column...
+            # will have to rethink regex if you change message!
+            g[['A', 'C']]
 
     def test_first_last_nth(self):
         # tests for first / last / nth
