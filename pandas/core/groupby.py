@@ -208,6 +208,8 @@ class GroupBy(PandasObject):
         Number of groups
     """
     _apply_whitelist = _common_apply_whitelist
+    _internal_names = ['_cache']
+    _internal_names_set = set(_internal_names)
 
     def __init__(self, obj, keys=None, axis=0, level=None,
                  grouper=None, exclusions=None, selection=None, as_index=True,
@@ -288,10 +290,12 @@ class GroupBy(PandasObject):
         return sorted(set(self.obj._local_dir() + list(self._apply_whitelist)))
 
     def __getattr__(self, attr):
+        if attr in self._internal_names_set:
+            return object.__getattribute__(self, attr)
         if attr in self.obj:
             return self[attr]
 
-        if hasattr(self.obj, attr) and attr != '_cache':
+        if hasattr(self.obj, attr):
             return self._make_wrapper(attr)
 
         raise AttributeError("%r object has no attribute %r" %
@@ -302,18 +306,18 @@ class GroupBy(PandasObject):
 
     def _make_wrapper(self, name):
         if name not in self._apply_whitelist:
-            is_callable = callable(getattr(self.obj, name, None))
+            is_callable = callable(getattr(self._selected_obj, name, None))
             kind = ' callable ' if is_callable else ' '
             msg = ("Cannot access{0}attribute {1!r} of {2!r} objects, try "
                    "using the 'apply' method".format(kind, name,
                                                      type(self).__name__))
             raise AttributeError(msg)
 
-        f = getattr(self.obj, name)
+        f = getattr(self._selected_obj, name)
         if not isinstance(f, types.MethodType):
             return self.apply(lambda self: getattr(self, name))
 
-        f = getattr(type(self.obj), name)
+        f = getattr(type(self._selected_obj), name)
 
         def wrapper(*args, **kwargs):
             # a little trickery for aggregation functions that need an axis
@@ -362,7 +366,7 @@ class GroupBy(PandasObject):
         group : type of obj
         """
         if obj is None:
-            obj = self.obj
+            obj = self._selected_obj
 
         inds = self._get_index(name)
         return obj.take(inds, axis=self.axis, convert=False)
@@ -424,7 +428,8 @@ class GroupBy(PandasObject):
         return self._python_apply_general(f)
 
     def _python_apply_general(self, f):
-        keys, values, mutated = self.grouper.apply(f, self.obj, self.axis)
+        keys, values, mutated = self.grouper.apply(f, self._selected_obj,
+                                                   self.axis)
 
         return self._wrap_applied_output(keys, values,
                                          not_indexed_same=mutated)
@@ -437,7 +442,7 @@ class GroupBy(PandasObject):
         return self.aggregate(func, *args, **kwargs)
 
     def _iterate_slices(self):
-        yield self.name, self.obj
+        yield self.name, self._selected_obj
 
     def transform(self, func, *args, **kwargs):
         raise NotImplementedError
@@ -573,7 +578,7 @@ class GroupBy(PandasObject):
             return self._selected_obj[is_nth]
 
         if (isinstance(self._selected_obj, DataFrame)
-            and dropna not in ['any', 'all']):
+           and dropna not in ['any', 'all']):
             # Note: when agg-ing picker doesn't raise this, just returns NaN
             raise ValueError("For a DataFrame groupby, dropna must be "
                              "either None, 'any' or 'all', "
@@ -582,6 +587,7 @@ class GroupBy(PandasObject):
         # old behaviour, but with all and any support for DataFrames.
 
         max_len = n if n >= 0 else - 1 - n
+
         def picker(x):
             x = x.dropna(how=dropna)  # Note: how is ignored if Series
             if len(x) <= max_len:
@@ -590,7 +596,6 @@ class GroupBy(PandasObject):
                 return x.iloc[n]
 
         return self.agg(picker)
-
 
     def cumcount(self, **kwargs):
         """
@@ -638,7 +643,7 @@ class GroupBy(PandasObject):
         """
         ascending = kwargs.pop('ascending', True)
 
-        index = self.obj.index
+        index = self._selected_obj.index
         cumcounts = self._cumcount_array(ascending=ascending)
         return Series(cumcounts, index)
 
@@ -706,8 +711,9 @@ class GroupBy(PandasObject):
         if arr is None:
             arr = np.arange(self.grouper._max_groupsize, dtype='int64')
 
-        len_index = len(self.obj.index)
+        len_index = len(self._selected_obj.index)
         cumcounts = np.empty(len_index, dtype=arr.dtype)
+
         if ascending:
             for v in self.indices.values():
                 cumcounts[v] = arr[:len(v)]
@@ -722,7 +728,7 @@ class GroupBy(PandasObject):
             return self.obj
         else:
             return self.obj[self._selection]
-        
+
     def _index_with_as_index(self, b):
         """
         Take boolean mask of index to be returned from apply, if as_index=True
@@ -730,7 +736,7 @@ class GroupBy(PandasObject):
         """
         # TODO perf, it feels like this should already be somewhere...
         from itertools import chain
-        original = self.obj.index
+        original = self._selected_obj.index
         gp = self.grouper
         levels = chain((gp.levels[i][gp.labels[i][b]]
                         for i in range(len(gp.groupings))),
@@ -812,7 +818,7 @@ class GroupBy(PandasObject):
 
         if not not_indexed_same:
             result = concat(values, axis=self.axis)
-            ax = self.obj._get_axis(self.axis)
+            ax = self._selected_obj._get_axis(self.axis)
 
             if isinstance(result, Series):
                 result = result.reindex(ax)
@@ -835,14 +841,14 @@ class GroupBy(PandasObject):
         else:
             indices = np.sort(np.concatenate(indices))
         if dropna:
-            filtered = self.obj.take(indices)
+            filtered = self._selected_obj.take(indices)
         else:
-            mask = np.empty(len(self.obj.index), dtype=bool)
+            mask = np.empty(len(self._selected_obj.index), dtype=bool)
             mask.fill(False)
             mask[indices.astype(int)] = True
             # mask fails to broadcast when passed to where; broadcast manually.
-            mask = np.tile(mask, list(self.obj.shape[1:]) + [1]).T
-            filtered = self.obj.where(mask)  # Fill with NaNs.
+            mask = np.tile(mask, list(self._selected_obj.shape[1:]) + [1]).T
+            filtered = self._selected_obj.where(mask)  # Fill with NaNs.
         return filtered
 
 
@@ -1908,7 +1914,7 @@ class SeriesGroupBy(GroupBy):
         -------
         transformed : Series
         """
-        result = self.obj.copy()
+        result = self._selected_obj.copy()
         if hasattr(result, 'values'):
             result = result.values
         dtype = result.dtype
@@ -1933,8 +1939,8 @@ class SeriesGroupBy(GroupBy):
 
         # downcast if we can (and need)
         result = _possibly_downcast_to_dtype(result, dtype)
-        return self.obj.__class__(result, index=self.obj.index,
-                                  name=self.obj.name)
+        return self._selected_obj.__class__(result, index=self._selected_obj.index,
+                                  name=self._selected_obj.name)
 
     def filter(self, func, dropna=True, *args, **kwargs):
         """
@@ -2082,7 +2088,7 @@ class NDFrameGroupBy(GroupBy):
             if self.axis != 0:  # pragma: no cover
                 raise ValueError('Can only pass dict with axis=0')
 
-            obj = self.obj
+            obj = self._selected_obj
 
             if any(isinstance(x, (list, tuple, dict)) for x in arg.values()):
                 new_arg = OrderedDict()
@@ -2095,7 +2101,7 @@ class NDFrameGroupBy(GroupBy):
 
             keys = []
             if self._selection is not None:
-                subset = obj[self._selection]
+                subset = obj
                 if isinstance(subset, DataFrame):
                     raise NotImplementedError
 
@@ -2294,7 +2300,7 @@ class NDFrameGroupBy(GroupBy):
 
             if isinstance(v, (np.ndarray, Series)):
                 if isinstance(v, Series):
-                    applied_index = self.obj._get_axis(self.axis)
+                    applied_index = self._selected_obj._get_axis(self.axis)
                     all_indexed_same = _all_indexes_same([
                         x.index for x in values
                     ])
@@ -2367,7 +2373,11 @@ class NDFrameGroupBy(GroupBy):
 
                 # if we have date/time like in the original, then coerce dates
                 # as we are stacking can easily have object dtypes here
-                cd = 'coerce' if self.obj.ndim == 2 and self.obj.dtypes.isin(_DATELIKE_DTYPES).any() else True
+                if (self._selected_obj.ndim == 2
+                       and self._selected_obj.dtypes.isin(_DATELIKE_DTYPES).any()):
+                    cd = 'coerce'
+                else:
+                    cd = True
                 return result.convert_objects(convert_dates=cd)
 
             else:
@@ -2668,8 +2678,8 @@ class DataFrameGroupBy(NDFrameGroupBy):
         return result.convert_objects()
 
     def _iterate_column_groupbys(self):
-        for i, colname in enumerate(self.obj.columns):
-            yield colname, SeriesGroupBy(self.obj.iloc[:, i],
+        for i, colname in enumerate(self._selected_obj.columns):
+            yield colname, SeriesGroupBy(self._selected_obj.iloc[:, i],
                                          selection=colname,
                                          grouper=self.grouper,
                                          exclusions=self.exclusions)
@@ -2679,7 +2689,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
         return concat(
             (func(col_groupby) for _, col_groupby
              in self._iterate_column_groupbys()),
-            keys=self.obj.columns, axis=1)
+            keys=self._selected_obj.columns, axis=1)
 
     def ohlc(self):
         """
@@ -2701,10 +2711,10 @@ class PanelGroupBy(NDFrameGroupBy):
         if self.axis == 0:
             # kludge
             if self._selection is None:
-                slice_axis = self.obj.items
+                slice_axis = self._selected_obj.items
             else:
                 slice_axis = self._selection_list
-            slicer = lambda x: self.obj[x]
+            slicer = lambda x: self._selected_obj[x]
         else:
             raise NotImplementedError
 
