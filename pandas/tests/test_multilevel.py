@@ -391,6 +391,22 @@ class TestMultiLevel(tm.TestCase):
         assert_series_equal(xs, xs2)
         assert_almost_equal(xs.values, self.frame.values[4])
 
+        # GH 6574
+        # missing values in returned index should be preserrved
+        acc = [
+            ('a','abcde',1),
+            ('b','bbcde',2),
+            ('y','yzcde',25),
+            ('z','xbcde',24),
+            ('z',None,26),
+            ('z','zbcde',25),
+            ('z','ybcde',26),
+            ]
+        df = DataFrame(acc, columns=['a1','a2','cnt']).set_index(['a1','a2'])
+        expected = DataFrame({ 'cnt' : [24,26,25,26] }, index=Index(['xbcde',np.nan,'zbcde','ybcde'],name='a2'))
+        result = df.xs('z',level='a1')
+        assert_frame_equal(result, expected)
+
     def test_xs_partial(self):
         result = self.frame.xs('foo')
         result2 = self.frame.ix['foo']
