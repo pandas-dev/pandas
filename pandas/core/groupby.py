@@ -208,6 +208,8 @@ class GroupBy(PandasObject):
         Number of groups
     """
     _apply_whitelist = _common_apply_whitelist
+    _internal_names = ['_cache']
+    _internal_names_set = set(_internal_names)
 
     def __init__(self, obj, keys=None, axis=0, level=None,
                  grouper=None, exclusions=None, selection=None, as_index=True,
@@ -288,10 +290,12 @@ class GroupBy(PandasObject):
         return sorted(set(self.obj._local_dir() + list(self._apply_whitelist)))
 
     def __getattr__(self, attr):
+        if attr in self._internal_names_set:
+            return object.__getattribute__(self, attr)
         if attr in self.obj:
             return self[attr]
 
-        if hasattr(self.obj, attr) and attr != '_cache':
+        if hasattr(self.obj, attr):
             return self._make_wrapper(attr)
 
         raise AttributeError("%r object has no attribute %r" %
@@ -424,7 +428,8 @@ class GroupBy(PandasObject):
         return self._python_apply_general(f)
 
     def _python_apply_general(self, f):
-        keys, values, mutated = self.grouper.apply(f, self._selected_obj, self.axis)
+        keys, values, mutated = self.grouper.apply(f, self._selected_obj,
+                                                   self.axis)
 
         return self._wrap_applied_output(keys, values,
                                          not_indexed_same=mutated)
