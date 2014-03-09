@@ -250,6 +250,9 @@ Turn a matrix with hours in columns and days in rows into a continuous row seque
 `How to rearrange a python pandas DataFrame?
 <http://stackoverflow.com/questions/15432659/how-to-rearrange-a-python-pandas-dataframe>`__
 
+`Dealing with duplicates when reindexing a timeseries to a specified frequency
+<http://stackoverflow.com/questions/22244383/pandas-df-refill-adding-two-columns-of-different-shape>`__
+
 .. _cookbook.resample:
 
 Resampling
@@ -477,8 +480,8 @@ Binary Files
 ~~~~~~~~~~~~
 
 Pandas readily accepts numpy record arrays, if you need to read in a binary
-file consisting of an array of C structs. For example, given this C program 
-in a file called ``main.c`` compiled with ``gcc main.c -std=gnu99`` on a 
+file consisting of an array of C structs. For example, given this C program
+in a file called ``main.c`` compiled with ``gcc main.c -std=gnu99`` on a
 64-bit machine,
 
 .. code-block:: c
