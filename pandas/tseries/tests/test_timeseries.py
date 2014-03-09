@@ -894,11 +894,9 @@ class TestTimeSeries(tm.TestCase):
 
     def test_to_datetime_unprocessable_input(self):
         # GH 4928
-        self.assert_(
-            np.array_equal(
-                to_datetime([1, '1']),
-                np.array([1, '1'], dtype='O')
-            )
+        self.assert_numpy_array_equal(
+            to_datetime([1, '1']),
+            np.array([1, '1'], dtype='O')
         )
         self.assertRaises(TypeError, to_datetime, [1, '1'], errors='raise')
 
@@ -953,11 +951,9 @@ class TestTimeSeries(tm.TestCase):
 
         # Assuming all datetimes are in bounds, to_datetime() returns
         # an array that is equal to Timestamp() parsing
-        self.assert_(
-            np.array_equal(
-                pd.to_datetime(dts, box=False),
-                np.array([Timestamp(x).asm8 for x in dts])
-            )
+        self.assert_numpy_array_equal(
+            pd.to_datetime(dts, box=False),
+            np.array([Timestamp(x).asm8 for x in dts])
         )
 
         # A list of datetimes where the last one is out of bounds
@@ -971,30 +967,26 @@ class TestTimeSeries(tm.TestCase):
             errors='raise'
         )
 
-        self.assert_(
-            np.array_equal(
-                pd.to_datetime(dts_with_oob, box=False, coerce=True),
-                np.array(
+        self.assert_numpy_array_equal(
+            pd.to_datetime(dts_with_oob, box=False, coerce=True),
+            np.array(
                     [
                         Timestamp(dts_with_oob[0]).asm8,
                         Timestamp(dts_with_oob[1]).asm8,
                         iNaT,
                     ],
                     dtype='M8'
-                )
             )
         )
 
         # With coerce=False and errors='ignore', out of bounds datetime64s
         # are converted to their .item(), which depending on the version of
         # numpy is either a python datetime.datetime or datetime.date
-        self.assert_(
-            np.array_equal(
-                pd.to_datetime(dts_with_oob, box=False, coerce=False),
-                np.array(
+        self.assert_numpy_array_equal(
+            pd.to_datetime(dts_with_oob, box=False, coerce=False),
+            np.array(
                     [dt.item() for dt in dts_with_oob],
                     dtype='O'
-                )
             )
         )
 
