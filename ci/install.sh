@@ -31,8 +31,10 @@ edit_init
 python_major_version="${TRAVIS_PYTHON_VERSION:0:1}"
 [ "$python_major_version" == "2" ] && python_major_version=""
 
-pip install -I -U setuptools
-pip install wheel
+# fix these versions
+pip install -I pip==1.5.1
+pip install -I setuptools==2.2
+pip install wheel==0.22
 
 # comment this line to disable the fetching of wheel files
 base_url=http://pandas.pydata.org/pandas-build/dev/wheels
