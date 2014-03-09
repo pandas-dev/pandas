@@ -2947,7 +2947,13 @@ class MultiIndex(Index):
             new_names.pop(i)
 
         if len(new_levels) == 1:
+
+            # set nan if needed
+            mask = new_labels[0] == -1
             result = new_levels[0].take(new_labels[0])
+            if mask.any():
+                np.putmask(result, mask, np.nan)
+
             result.name = new_names[0]
             return result
         else:
