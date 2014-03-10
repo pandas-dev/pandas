@@ -227,6 +227,8 @@ Bug Fixes
 - Series.quantile raising on an ``object`` dtype (:issue:`6555`)
 - Bug in ``.xs`` with a ``nan`` in level when dropped (:issue:`6574`)
 - Bug in fillna with method = 'bfill/ffill' and ``datetime64[ns]`` dtype (:issue:`6587`)
+- Bug in sql writing with mixed dtypes possibly leading to data loss (:issue:`6509`)
+
 
 pandas 0.13.1
 -------------
