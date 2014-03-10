@@ -34,6 +34,7 @@ cimport cython
 
 from datetime import timedelta, datetime
 from datetime import time as datetime_time
+from dateutil.tz import tzoffset
 from pandas.compat import parse_date
 
 from sys import version_info
@@ -183,6 +184,10 @@ class Timestamp(_Timestamp):
         if ts.value == NPY_NAT:
             return NaT
 
+        if util.is_string_object(offset):
+            from pandas.tseries.frequencies import to_offset
+            offset = to_offset(offset)
+
         # make datetime happy
         ts_base = _Timestamp.__new__(cls, ts.dts.year, ts.dts.month,
                                      ts.dts.day, ts.dts.hour, ts.dts.min,
@@ -196,26 +201,28 @@ class Timestamp(_Timestamp):
         return ts_base
 
     def __repr__(self):
-        result = self._repr_base
+        stamp = self._repr_base
         zone = None
 
         try:
-            result += self.strftime('%z')
+            stamp += self.strftime('%z')
             if self.tzinfo:
                 zone = _get_zone(self.tzinfo)
         except ValueError:
             year2000 = self.replace(year=2000)
-            result += year2000.strftime('%z')
+            stamp += year2000.strftime('%z')
             if self.tzinfo:
                 zone = _get_zone(self.tzinfo)
 
         try:
-            result += zone.strftime(' %%Z')
+            stamp += zone.strftime(' %%Z')
         except:
             pass
-        zone = "'%s'" % zone if zone else 'None'
 
-        return "Timestamp('%s', tz=%s)" % (result, zone)
+        tz = ", tz='{0}'".format(zone) if zone is not None and not isinstance(zone, tzoffset) else ""
+        offset = ", offset='{0}'".format(self.offset.freqstr) if self.offset is not None else ""
+
+        return "Timestamp('{stamp}'{tz}{offset})".format(stamp=stamp, tz=tz, offset=offset)
 
     @property
     def _date_repr(self):

@@ -150,6 +150,7 @@ Improvements to existing features
   (e.g. MonthEnd,BusinessMonthEnd), (:issue:`6479`)
 - perf improvements in single-dtyped indexing (:issue:`6484`)
 - ``StataWriter`` and ``DataFrame.to_stata`` accept time stamp and data labels (:issue:`6545`)
+- offset/freq info now in Timestamp __repr__ (:issue:`4553`)
 
 .. _release.bug_fixes-0.14.0:
 
