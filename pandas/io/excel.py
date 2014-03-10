@@ -597,13 +597,15 @@ class _XlwtWriter(ExcelWriter):
     engine = 'xlwt'
     supported_extensions = ('.xls',)
 
-    def __init__(self, path, engine=None, **engine_kwargs):
+    def __init__(self, path, engine=None, encoding=None, **engine_kwargs):
         # Use the xlwt module as the Excel writer.
         import xlwt
 
         super(_XlwtWriter, self).__init__(path, **engine_kwargs)
 
-        self.book = xlwt.Workbook()
+        if encoding is None:
+            encoding = 'ascii'
+        self.book = xlwt.Workbook(encoding=encoding)
         self.fm_datetime = xlwt.easyxf(num_format_str=self.datetime_format)
         self.fm_date = xlwt.easyxf(num_format_str=self.date_format)
 
@@ -787,13 +789,13 @@ class _XlsxWriter(ExcelWriter):
 
         # Create a XlsxWriter format object.
         xl_format = self.book.add_format()
-        
+
         if num_format_str is not None:
             xl_format.set_num_format(num_format_str)
 
         if style_dict is None:
             return xl_format
-        
+
         # Map the cell font to XlsxWriter font properties.
         if style_dict.get('font'):
             font = style_dict['font']

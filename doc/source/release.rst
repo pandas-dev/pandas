@@ -151,6 +151,7 @@ Improvements to existing features
 - perf improvements in single-dtyped indexing (:issue:`6484`)
 - ``StataWriter`` and ``DataFrame.to_stata`` accept time stamp and data labels (:issue:`6545`)
 - offset/freq info now in Timestamp __repr__ (:issue:`4553`)
+- Support passing ``encoding`` with xlwt (:issue:`3710`)
 
 .. _release.bug_fixes-0.14.0:
 

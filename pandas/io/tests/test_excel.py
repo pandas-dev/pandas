@@ -796,6 +796,20 @@ class ExcelWriterBase(SharedItems):
                             index=['A', 'B'], columns=['X', 'Y', 'Z'])
             tm.assert_frame_equal(rs, xp)
 
+    def test_to_excel_output_encoding(self):
+        _skip_if_no_xlrd()
+        ext = self.ext
+        filename = '__tmp_to_excel_float_format__.' + ext
+        df = DataFrame([[u('\u0192'), u('\u0193'), u('\u0194')],
+                        [u('\u0195'), u('\u0196'), u('\u0197')]],
+                        index=[u('A\u0192'), 'B'], columns=[u('X\u0193'), 'Y', 'Z'])
+
+        with ensure_clean(filename) as filename:
+            df.to_excel(filename, sheet_name = 'TestSheet', encoding='utf8')
+            result = read_excel(filename, 'TestSheet', encoding = 'utf8')
+            tm.assert_frame_equal(result,df)
+
+
     def test_to_excel_unicode_filename(self):
         _skip_if_no_xlrd()
         with ensure_clean(u('\u0192u.') + self.ext) as filename:

@@ -1151,7 +1151,7 @@ class DataFrame(NDFrame):
     def to_excel(self, excel_writer, sheet_name='Sheet1', na_rep='',
                  float_format=None, cols=None, header=True, index=True,
                  index_label=None, startrow=0, startcol=0, engine=None,
-                 merge_cells=True):
+                 merge_cells=True, encoding=None):
         """
         Write DataFrame to a excel sheet
 
@@ -1186,6 +1186,9 @@ class DataFrame(NDFrame):
             ``io.excel.xlsm.writer``.
         merge_cells : boolean, default True
             Write MultiIndex and Hierarchical Rows as merged cells.
+        encoding: string, default None
+            encoding of the resulting excel file. Only necessary for xlwt,
+            other writers support unicode natively.
 
         Notes
         -----
@@ -1200,6 +1203,9 @@ class DataFrame(NDFrame):
         """
         from pandas.io.excel import ExcelWriter
         need_save = False
+        if encoding == None:
+            encoding = 'ascii'
+
         if isinstance(excel_writer, compat.string_types):
             excel_writer = ExcelWriter(excel_writer, engine=engine)
             need_save = True
