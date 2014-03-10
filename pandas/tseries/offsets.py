@@ -453,32 +453,38 @@ class CustomBusinessDay(BusinessDay):
     _prefix = 'C'
 
     def __init__(self, n=1, **kwds):
-        # Check we have the required numpy version
-        from distutils.version import LooseVersion
-
-        if LooseVersion(np.__version__) < '1.7.0':
-            raise NotImplementedError("CustomBusinessDay requires numpy >= "
-                                      "1.7.0. Current version: " +
-                                      np.__version__)
-
         self.n = int(n)
         self.kwds = kwds
         self.offset = kwds.get('offset', timedelta(0))
         self.normalize = kwds.get('normalize', False)
         self.weekmask = kwds.get('weekmask', 'Mon Tue Wed Thu Fri')
-
         holidays = kwds.get('holidays', [])
+
         holidays = [self._to_dt64(dt, dtype='datetime64[D]') for dt in
                     holidays]
         self.holidays = tuple(sorted(holidays))
         self.kwds['holidays'] = self.holidays
+
         self._set_busdaycalendar()
 
     def _set_busdaycalendar(self):
-        holidays = np.array(self.holidays, dtype='datetime64[D]')
-        self.busdaycalendar = np.busdaycalendar(holidays=holidays,
-                                                weekmask=self.weekmask)
+        if self.holidays:
+            kwargs = {'weekmask':self.weekmask,'holidays':self.holidays}
+        else:
+            kwargs = {'weekmask':self.weekmask}
+        try: 
+            self.busdaycalendar = np.busdaycalendar(**kwargs)
+        except: 
+            # Check we have the required numpy version
+            from distutils.version import LooseVersion
 
+            if LooseVersion(np.__version__) < '1.7.0':
+                raise NotImplementedError("CustomBusinessDay requires numpy >= "
+                                          "1.7.0. Current version: " +
+                                          np.__version__)
+            else:
+                raise
+            
     def __getstate__(self):
         """"Return a pickleable state"""
         state = self.__dict__.copy()
@@ -490,52 +496,71 @@ class CustomBusinessDay(BusinessDay):
         self.__dict__ = state
         self._set_busdaycalendar()
 
-    @staticmethod
-    def _to_dt64(dt, dtype='datetime64'):
-        if isinstance(dt, (datetime, compat.string_types)):
-            dt = np.datetime64(dt, dtype=dtype)
-        if isinstance(dt, np.datetime64):
-            dt = dt.astype(dtype)
-        else:
-            raise TypeError('dt must be datestring, datetime or datetime64')
-        return dt
-
     def apply(self, other):
+        if self.n <= 0:
+            roll = 'forward'
+        else:
+            roll = 'backward'
+
+        # Distinguish input cases to enhance performance
         if isinstance(other, datetime):
             dtype = type(other)
+            date_in = other
+            np_dt = np.datetime64(date_in.date())
+
+            np_incr_dt = np.busday_offset(np_dt, self.n, roll=roll,
+                                  busdaycal=self.busdaycalendar)
+
+            dt_date = np_incr_dt.astype(datetime)
+            if not self.normalize:
+                result = datetime.combine(dt_date,date_in.time())
+            else:
+                result = dt_date
+
+            if self.offset:
+                result = result + self.offset
+
+            return result
+
         elif isinstance(other, np.datetime64):
             dtype = other.dtype
+            date_in = other
+            np_day = date_in.astype('datetime64[D]')
+            np_time = date_in - np_day
+
+            np_incr_dt = np.busday_offset(np_day, self.n, roll=roll,
+                                  busdaycal=self.busdaycalendar)
+
+            if not self.normalize:
+                result = np_day_incr + np_time
+            else:
+                result = np_incr_dt
+
+            if self.offset:
+                result = result + self.offset
+
+            return result
+
         elif isinstance(other, (timedelta, Tick)):
             return BDay(self.n, offset=self.offset + other,
                         normalize=self.normalize)
         else:
             raise ApplyTypeError('Only know how to combine trading day with '
                                  'datetime, datetime64 or timedelta.')
-        dt64 = self._to_dt64(other)
 
-        day64 = dt64.astype('datetime64[D]')
-        time = dt64 - day64
-
-        if self.n <= 0:
-            roll = 'forward'
-        else:
-            roll = 'backward'
-
-        result = np.busday_offset(day64, self.n, roll=roll,
-                                  busdaycal=self.busdaycalendar)
-
-        if not self.normalize:
-            result = result + time
-
-        result = result.astype(dtype)
-
-        if self.offset:
-            result = result + self.offset
-
-        return result
+    @staticmethod
+    def _to_dt64(dt, dtype='datetime64'):
+        # Currently
+        # > np.datetime64(dt.datetime(2013,5,1),dtype='datetime64[D]')
+        # numpy.datetime64('2013-05-01T02:00:00.000000+0200')
+        # Thus astype is needed to cast datetime to datetime64[D]
+        dt = np.datetime64(dt)
+        if dt.dtype.name != dtype:
+            dt = dt.astype(dtype)
+        return dt
 
     def onOffset(self, dt):
-        day64 = self._to_dt64(dt).astype('datetime64[D]')
+        day64 = self._to_dt64(dt,'datetime64[D]')
         return np.is_busday(day64, busdaycal=self.busdaycalendar)
 
 
