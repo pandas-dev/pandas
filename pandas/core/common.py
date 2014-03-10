@@ -1244,13 +1244,14 @@ _backfill_2d_datetime = _interp_wrapper(algos.backfill_2d_inplace_int64,
                                         np.int64)
 
 
-def pad_1d(values, limit=None, mask=None):
+def pad_1d(values, limit=None, mask=None, dtype=None):
 
-    dtype = values.dtype.name
+    if dtype is None:
+        dtype = values.dtype
     _method = None
     if is_float_dtype(values):
-        _method = getattr(algos, 'pad_inplace_%s' % dtype, None)
-    elif is_datetime64_dtype(values):
+        _method = getattr(algos, 'pad_inplace_%s' % dtype.name, None)
+    elif dtype in _DATELIKE_DTYPES or is_datetime64_dtype(values):
         _method = _pad_1d_datetime
     elif is_integer_dtype(values):
         values = _ensure_float64(values)
@@ -1259,7 +1260,7 @@ def pad_1d(values, limit=None, mask=None):
         _method = algos.pad_inplace_object
 
     if _method is None:
-        raise ValueError('Invalid dtype for pad_1d [%s]' % dtype)
+        raise ValueError('Invalid dtype for pad_1d [%s]' % dtype.name)
 
     if mask is None:
         mask = isnull(values)
@@ -1268,13 +1269,14 @@ def pad_1d(values, limit=None, mask=None):
     return values
 
 
-def backfill_1d(values, limit=None, mask=None):
+def backfill_1d(values, limit=None, mask=None, dtype=None):
 
-    dtype = values.dtype.name
+    if dtype is None:
+        dtype = values.dtype
     _method = None
     if is_float_dtype(values):
-        _method = getattr(algos, 'backfill_inplace_%s' % dtype, None)
-    elif is_datetime64_dtype(values):
+        _method = getattr(algos, 'backfill_inplace_%s' % dtype.name, None)
+    elif dtype in _DATELIKE_DTYPES or is_datetime64_dtype(values):
         _method = _backfill_1d_datetime
     elif is_integer_dtype(values):
         values = _ensure_float64(values)
@@ -1283,7 +1285,7 @@ def backfill_1d(values, limit=None, mask=None):
         _method = algos.backfill_inplace_object
 
     if _method is None:
-        raise ValueError('Invalid dtype for backfill_1d [%s]' % dtype)
+        raise ValueError('Invalid dtype for backfill_1d [%s]' % dtype.name)
 
     if mask is None:
         mask = isnull(values)
@@ -1293,13 +1295,14 @@ def backfill_1d(values, limit=None, mask=None):
     return values
 
 
-def pad_2d(values, limit=None, mask=None):
+def pad_2d(values, limit=None, mask=None, dtype=None):
 
-    dtype = values.dtype.name
+    if dtype is None:
+        dtype = values.dtype
     _method = None
     if is_float_dtype(values):
-        _method = getattr(algos, 'pad_2d_inplace_%s' % dtype, None)
-    elif is_datetime64_dtype(values):
+        _method = getattr(algos, 'pad_2d_inplace_%s' % dtype.name, None)
+    elif dtype in _DATELIKE_DTYPES or is_datetime64_dtype(values):
         _method = _pad_2d_datetime
     elif is_integer_dtype(values):
         values = _ensure_float64(values)
@@ -1308,7 +1311,7 @@ def pad_2d(values, limit=None, mask=None):
         _method = algos.pad_2d_inplace_object
 
     if _method is None:
-        raise ValueError('Invalid dtype for pad_2d [%s]' % dtype)
+        raise ValueError('Invalid dtype for pad_2d [%s]' % dtype.name)
 
     if mask is None:
         mask = isnull(values)
@@ -1322,13 +1325,14 @@ def pad_2d(values, limit=None, mask=None):
     return values
 
 
-def backfill_2d(values, limit=None, mask=None):
+def backfill_2d(values, limit=None, mask=None, dtype=None):
 
-    dtype = values.dtype.name
+    if dtype is None:
+        dtype = values.dtype
     _method = None
     if is_float_dtype(values):
-        _method = getattr(algos, 'backfill_2d_inplace_%s' % dtype, None)
-    elif is_datetime64_dtype(values):
+        _method = getattr(algos, 'backfill_2d_inplace_%s' % dtype.name, None)
+    elif dtype in _DATELIKE_DTYPES or is_datetime64_dtype(values):
         _method = _backfill_2d_datetime
     elif is_integer_dtype(values):
         values = _ensure_float64(values)
@@ -1337,7 +1341,7 @@ def backfill_2d(values, limit=None, mask=None):
         _method = algos.backfill_2d_inplace_object
 
     if _method is None:
-        raise ValueError('Invalid dtype for backfill_2d [%s]' % dtype)
+        raise ValueError('Invalid dtype for backfill_2d [%s]' % dtype.name)
 
     if mask is None:
         mask = isnull(values)
@@ -1503,7 +1507,7 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
     return new_y
 
 
-def interpolate_2d(values, method='pad', axis=0, limit=None, fill_value=None):
+def interpolate_2d(values, method='pad', axis=0, limit=None, fill_value=None, dtype=None):
     """ perform an actual interpolation of values, values will be make 2-d if
     needed fills inplace, returns the result
     """
@@ -1525,9 +1529,9 @@ def interpolate_2d(values, method='pad', axis=0, limit=None, fill_value=None):
 
     method = _clean_fill_method(method)
     if method == 'pad':
-        values = transf(pad_2d(transf(values), limit=limit, mask=mask))
+        values = transf(pad_2d(transf(values), limit=limit, mask=mask, dtype=dtype))
     else:
-        values = transf(backfill_2d(transf(values), limit=limit, mask=mask))
+        values = transf(backfill_2d(transf(values), limit=limit, mask=mask, dtype=dtype))
 
     # reshape back
     if ndim == 1:

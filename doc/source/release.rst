@@ -225,6 +225,7 @@ Bug Fixes
 - Bug in indexing: empty list lookup caused ``IndexError`` exceptions (:issue:`6536`, :issue:`6551`)
 - Series.quantile raising on an ``object`` dtype (:issue:`6555`)
 - Bug in ``.xs`` with a ``nan`` in level when dropped (:issue:`6574`)
+- Bug in fillna with method = 'bfill/ffill' and ``datetime64[ns]`` dtype (:issue:`6587`)
 
 pandas 0.13.1
 -------------
