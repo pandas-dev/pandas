@@ -2854,6 +2854,14 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
                            Timestamp('20130103 9:01:01')])
         assert_series_equal(result, expected)
 
+        # GH 6587
+        # make sure that we are treating as integer when filling
+        s = Series([pd.NaT, pd.NaT, '2013-08-05 15:30:00.000001'])
+        expected = Series(['2013-08-05 15:30:00.000001', '2013-08-05 15:30:00.000001', '2013-08-05 15:30:00.000001'], dtype='M8[ns]')
+        result = s.fillna(method='backfill')
+        assert_series_equal(result, expected)
+
+
     def test_fillna_int(self):
         s = Series(np.random.randint(-100, 100, 50))
         s.fillna(method='ffill', inplace=True)
