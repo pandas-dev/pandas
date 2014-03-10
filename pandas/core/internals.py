@@ -878,7 +878,12 @@ class Block(PandasObject):
         fill_value = self._try_fill(fill_value)
         values = self.values if inplace else self.values.copy()
         values = self._try_operate(values)
-        values = com.interpolate_2d(values, method, axis, limit, fill_value)
+        values = com.interpolate_2d(values,
+                                    method=method,
+                                    axis=axis,
+                                    limit=limit,
+                                    fill_value=fill_value,
+                                    dtype=self.dtype)
         values = self._try_coerce_result(values)
 
         blocks = [make_block(values, self.items, self.ref_items,
