@@ -7,7 +7,7 @@ import os
 import nose
 import numpy as np
 
-from pandas import DataFrame
+from pandas import DataFrame, Series
 from pandas.compat import range, lrange, iteritems
 #from pandas.core.datetools import format as date_format
 
@@ -553,6 +553,18 @@ class _TestSQLAlchemy(PandasSQLTest):
             "types_test_data", self.conn, parse_dates={'IntDateCol': {'unit': 's'}})
         self.assertTrue(issubclass(df.IntDateCol.dtype.type, np.datetime64),
                         "IntDateCol loaded with incorrect type")
+
+    def test_mixed_dtype_insert(self):
+        # see GH6509
+        s1 = Series(2**25 + 1,dtype=np.int32)
+        s2 = Series(0.0,dtype=np.float32)
+        df = DataFrame({'s1': s1, 's2': s2})
+
+        # write and read again        
+        df.to_sql("test_read_write", self.conn)
+        df2 = sql.read_table("test_read_write", self.conn)
+
+        tm.assert_equal(df['s1'].values, df2['s1'].values)         
 
 
 class TestSQLAlchemy(_TestSQLAlchemy):

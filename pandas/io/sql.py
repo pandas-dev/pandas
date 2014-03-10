@@ -423,16 +423,17 @@ class PandasSQLTable(PandasObject):
         ins = self.insert_statement()
         data_list = []
         # to avoid if check for every row
+        keys = self.frame.columns
         if self.index is not None:
-            for t in self.frame.iterrows():
+            for t in self.frame.itertuples():
                 data = dict((k, self.maybe_asscalar(v))
-                            for k, v in t[1].iteritems())
+                            for k, v in zip(keys, t[1:]))
                 data[self.index] = self.maybe_asscalar(t[0])
                 data_list.append(data)
         else:
-            for t in self.frame.iterrows():
+            for t in self.frame.itertuples():
                 data = dict((k, self.maybe_asscalar(v))
-                            for k, v in t[1].iteritems())
+                            for k, v in zip(keys, t[1:]))
                 data_list.append(data)
         self.pd_sql.execute(ins, data_list)
 
@@ -758,8 +759,8 @@ class PandasSQLTableLegacy(PandasSQLTable):
     def insert(self):
         ins = self.insert_statement()
         cur = self.pd_sql.con.cursor()
-        for r in self.frame.iterrows():
-            data = [self.maybe_asscalar(v) for v in r[1].values]
+        for r in self.frame.itertuples():
+            data = [self.maybe_asscalar(v) for v in r[1:]]
             if self.index is not None:
                 data.insert(0, self.maybe_asscalar(r[0]))
             cur.execute(ins, tuple(data))
