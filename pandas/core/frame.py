@@ -3036,6 +3036,7 @@ class DataFrame(NDFrame):
         else:
             try:
                 old_index = self.index
+                col_order = self.columns
                 self.set_index(on, inplace=True)
                 other.set_index(on, inplace=True)
                 other = other.reindex(index=self.index)
@@ -3078,6 +3079,8 @@ class DataFrame(NDFrame):
             if on is not None:
                 self.reset_index(inplace=True)
                 self.set_index(old_index)
+                self = self[col_order]
+
     #----------------------------------------------------------------------
     # Misc methods
 
