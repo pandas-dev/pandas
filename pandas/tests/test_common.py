@@ -5,7 +5,7 @@ import nose
 from nose.tools import assert_equal
 import numpy as np
 from pandas.tslib import iNaT, NaT
-from pandas import Series, DataFrame, date_range, DatetimeIndex, Timestamp
+from pandas import Series, DataFrame, date_range, DatetimeIndex, Timestamp, Float64Index
 from pandas import compat
 from pandas.compat import range, long, lrange, lmap, u
 from pandas.core.common import notnull, isnull, array_equivalent
@@ -181,7 +181,11 @@ def test_array_equivalent():
     assert not array_equivalent(np.array([np.nan, 1, np.nan]),
                                 np.array([np.nan, 2, np.nan]))
     assert not array_equivalent(np.array(['a', 'b', 'c', 'd']), np.array(['e', 'e']))
-
+    assert array_equivalent(Float64Index([0, np.nan]), Float64Index([0, np.nan]))
+    assert not array_equivalent(Float64Index([0, np.nan]), Float64Index([1, np.nan]))    
+    assert array_equivalent(DatetimeIndex([0, np.nan]), DatetimeIndex([0, np.nan]))    
+    assert not array_equivalent(DatetimeIndex([0, np.nan]), DatetimeIndex([1, np.nan]))
+    
 def test_datetimeindex_from_empty_datetime64_array():
     for unit in [ 'ms', 'us', 'ns' ]:
         idx = DatetimeIndex(np.array([], dtype='datetime64[%s]' % unit))
