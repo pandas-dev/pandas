@@ -973,7 +973,7 @@ def makeMissingCustomDataframe(nrows, ncols, density=.9, random_state=None,
                              r_idx_type=r_idx_type)
 
     i, j = _create_missing_idx(nrows, ncols, density, random_state)
-    df.iloc[i, j] = np.nan
+    df.values[i, j] = np.nan
     return df
 
 
@@ -981,7 +981,7 @@ def makeMissingDataframe(density=.9, random_state=None):
     df = makeDataFrame()
     i, j = _create_missing_idx(*df.shape, density=density,
                                random_state=random_state)
-    df.iloc[i, j] = np.nan
+    df.values[i, j] = np.nan
     return df
 
 
