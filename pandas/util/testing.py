@@ -941,8 +941,8 @@ def _create_missing_idx(nrows, ncols, density, random_state=None):
         extra_size *= 1.05
         ind = _gen_unique_rand(random_state, extra_size)
 
-    j = np.floor(ind * 1. / nrows)
-    i = (ind - j * nrows)
+    j = np.floor(ind * 1. / nrows).astype(int)
+    i = (ind - j * nrows).astype(int)
     return i.tolist(), j.tolist()
 
 
