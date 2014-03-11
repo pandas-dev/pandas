@@ -560,11 +560,11 @@ class _TestSQLAlchemy(PandasSQLTest):
         s2 = Series(0.0,dtype=np.float32)
         df = DataFrame({'s1': s1, 's2': s2})
 
-        # write and read again        
-        df.to_sql("test_read_write", self.conn)
+        # write and read again
+        df.to_sql("test_read_write", self.conn, index=False)
         df2 = sql.read_table("test_read_write", self.conn)
 
-        tm.assert_equal(df['s1'].values, df2['s1'].values)         
+        tm.assert_frame_equal(df, df2, check_dtype=False, check_exact=True)
 
 
 class TestSQLAlchemy(_TestSQLAlchemy):

@@ -499,12 +499,18 @@ def is_sorted(seq):
 def assert_series_equal(left, right, check_dtype=True,
                         check_index_type=False,
                         check_series_type=False,
-                        check_less_precise=False):
+                        check_less_precise=False,
+                        check_exact=False):
     if check_series_type:
         assert_isinstance(left, type(right))
     if check_dtype:
         assert_attr_equal('dtype', left, right)
-    assert_almost_equal(left.values, right.values, check_less_precise)
+    if check_exact:
+        if not np.array_equal(left.values, right.values):
+            raise AssertionError('{0} is not equal to {1}.'.format(left.values,
+                                                                   right.values))
+    else:
+        assert_almost_equal(left.values, right.values, check_less_precise)
     if check_less_precise:
         assert_almost_equal(
             left.index.values, right.index.values, check_less_precise)
@@ -522,7 +528,8 @@ def assert_frame_equal(left, right, check_dtype=True,
                        check_frame_type=False,
                        check_less_precise=False,
                        check_names=True,
-                       by_blocks=False):
+                       by_blocks=False,
+                       check_exact=False):
     if check_frame_type:
         assert_isinstance(left, type(right))
     assert_isinstance(left, DataFrame)
@@ -555,7 +562,8 @@ def assert_frame_equal(left, right, check_dtype=True,
             assert_series_equal(lcol, rcol,
                                 check_dtype=check_dtype,
                                 check_index_type=check_index_type,
-                                check_less_precise=check_less_precise)
+                                check_less_precise=check_less_precise,
+                                check_exact=check_exact)
 
     if check_index_type:
         assert_isinstance(left.index, type(right.index))
