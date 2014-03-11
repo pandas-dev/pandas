@@ -710,6 +710,21 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
     def test_array_finalize(self):
         pass
 
+    def test_pop(self):
+        # GH 6600
+        df = DataFrame({
+            'A': 0,
+            'B': np.arange(5,dtype='int64'),
+            'C': 0,
+            })
+        k = df.iloc[4]
+
+        result = k.pop('B')
+        self.assertEqual(result, 4)
+
+        expected = Series([0,0],index=['A','C'])
+        assert_series_equal(k, expected)
+
     def test_not_hashable(self):
         s_empty = Series()
         s = Series([1])

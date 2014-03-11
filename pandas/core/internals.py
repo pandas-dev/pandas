@@ -3733,11 +3733,21 @@ class SingleBlockManager(BlockManager):
     def _delete_from_block(self, i, item):
         super(SingleBlockManager, self)._delete_from_block(i, item)
 
-        # reset our state
-        self._block = (
-            self.blocks[0] if len(self.blocks) else
-            make_block(np.array([], dtype=self._block.dtype), [], [])
-        )
+        # possibly need to merge split blocks
+        if len(self.blocks) > 1:
+            new_items = Index(list(itertools.chain(*[ b.items for b in self.blocks ])))
+            block = make_block(np.concatenate([ b.values for b in self.blocks ]),
+                               new_items,
+                               new_items,
+                               dtype=self._block.dtype)
+
+        elif len(self.blocks):
+            block = self.blocks[0]
+        else:
+            block = make_block(np.array([], dtype=self._block.dtype), [], [])
+
+        self.blocks = [block]
+        self._block = block
         self._values = self._block.values
 
     def get_slice(self, slobj):
