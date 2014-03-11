@@ -1377,33 +1377,6 @@ class NDFrame(PandasObject):
 
     _xs = xs
 
-    # TODO: Check if this was clearer in 0.12
-    def select(self, crit, axis=0):
-        """
-        Return data corresponding to axis labels matching criteria
-
-        Parameters
-        ----------
-        crit : function
-            To be called on each index (label). Should return True or False
-        axis : int
-
-        Returns
-        -------
-        selection : type of caller
-        """
-        axis = self._get_axis_number(axis)
-        axis_name = self._get_axis_name(axis)
-        axis_values = self._get_axis(axis)
-
-        if len(axis_values) > 0:
-            new_axis = axis_values[
-                np.asarray([bool(crit(label)) for label in axis_values])]
-        else:
-            new_axis = axis_values
-
-        return self.reindex(**{axis_name: new_axis})
-
     def reindex_like(self, other, method=None, copy=True, limit=None):
         """ return an object with matching indicies to myself
 
@@ -1427,55 +1400,32 @@ class NDFrame(PandasObject):
         d = other._construct_axes_dict(method=method, copy=copy, limit=limit)
         return self.reindex(**d)
 
-    def drop(self, labels, axis=0, level=None, inplace=False, **kwargs):
+    def drop(self, labels, axis=0, level=None, inplace=False,
+                   regex=True, **kwargs):
         """
         Return new object with labels in requested axis removed
 
         Parameters
         ----------
-        labels : single label or list-like
+        labels : Either function, regex or list-like
+            Boolean function to be called on each index (label)
+            Regular expression to be tested against each index
+            List of info axis to restrict to
         axis : int or axis name
         level : int or level name, default None
             For MultiIndex
         inplace : bool, default False
             If True, do operation inplace and return None.
+        regex : string or False
+            If a string, which string methods to use for selection,
+            Can be 'match', 'contains', 'search'
 
         Returns
         -------
         dropped : type of caller
+
         """
-        axis = self._get_axis_number(axis)
-        axis_name = self._get_axis_name(axis)
-        axis, axis_ = self._get_axis(axis), axis
-
-        if axis.is_unique:
-            if level is not None:
-                if not isinstance(axis, MultiIndex):
-                    raise AssertionError('axis must be a MultiIndex')
-                new_axis = axis.drop(labels, level=level)
-            else:
-                new_axis = axis.drop(labels)
-            dropped = self.reindex(**{axis_name: new_axis})
-            try:
-                dropped.axes[axis_].set_names(axis.names, inplace=True)
-            except AttributeError:
-                pass
-            result = dropped
-
-        else:
-            labels = com._index_labels_to_array(labels)
-            if level is not None:
-                if not isinstance(axis, MultiIndex):
-                    raise AssertionError('axis must be a MultiIndex')
-                indexer = ~lib.ismember(axis.get_level_values(level),
-                                        set(labels))
-            else:
-                indexer = ~axis.isin(labels)
-
-            slicer = [slice(None)] * self.ndim
-            slicer[self._get_axis_number(axis_name)] = indexer
-
-            result = self.ix[tuple(slicer)]
+        result = self._select(labels, axis, level=level, regex=regex, negate=True)
 
         if inplace:
             self._update_inplace(result)
@@ -1737,44 +1687,109 @@ class NDFrame(PandasObject):
         else:
             return self._constructor(new_data).__finalize__(self)
 
-    def filter(self, items=None, like=None, regex=None, axis=None):
+    def filter(self, labels=None, axis=None, level=None, inplace=False,
+                     regex=True, **kwargs):
         """
         Restrict the info axis to set of items or wildcard
 
         Parameters
         ----------
-        items : list-like
-            List of info axis to restrict to (must not all be present)
-        like : string
-            Keep info axis where "arg in col == True"
-        regex : string (regular expression)
-            Keep info axis with re.search(regex, col) == True
+        labels : Either function, regex or list-like
+            Boolean function to be called on each index (label)
+            Regular expression to be tested against each index
+            List of info axis to restrict to
 
-        Notes
-        -----
-        Arguments are mutually exclusive, but this is not checked for
+        axis : int
+        level : int or level name, default None
+            For MultiIndex
+        inplace : bool, default False
+            If True, do operation inplace and return None.
+        regex : string or False
+            If a string, which string methods to use for selection,
+            Can be 'match', 'contains', 'search'
+
+        TODO actually we can do contains more efficiently without regex
+        using list comprehension, so really these mutually exclusive
+        whether these regex / "kind"... ??
 
         """
-        import re
+        while kwargs:
+            items = kwargs.pop('items', None)
+            if items is not None:
+                return self.filter(items, axis=axis, level=level, inplace=inplace, regex=False)
+            like = kwargs.pop('like', None)
+            if like is not None:
+                return self.filter(like, regex='match', axis=axis, level=level, inplace=inplace)
+            # if you're here you've passed an unknown arg
+            raise TypeError("unknown kwargs passed: %s" % ', '.join(kwargs))
 
+        if labels is None:
+            if isinstance(regex, string_types) and regex != 'match': 
+                 # slight break in old behaviour if regex == 'match'
+                return self.filter(regex, regex='contains', axis=axis,
+                                   level=level, inplace=inplace)
+            raise TypeError("labels argument must not be None")
+
+        result = self._select(labels, axis, level=level, regex=regex)
+
+        if inplace:
+            self._update_inplace(result)
+        else:
+            return result
+
+    def _select(self, labels, axis, level=None, regex=True, negate=False):
         if axis is None:
             axis = self._info_axis_name
-        axis_name = self._get_axis_name(axis)
-        axis_values = self._get_axis(axis_name)
 
-        if items is not None:
-            return self.reindex(**{axis_name: [r for r in items
-                                               if r in axis_values]})
-        elif like:
-            matchf = lambda x: (like in x if isinstance(x, string_types)
-                                else like in str(x))
-            return self.select(matchf, axis=axis_name)
-        elif regex:
-            matcher = re.compile(regex)
-            return self.select(lambda x: matcher.search(x) is not None,
-                               axis=axis_name)
-        else:
-            raise TypeError('Must pass either `items`, `like`, or `regex`')
+        axis_number = self._get_axis_number(axis)
+        axis_values = self._get_axis(axis_number)
+
+        if level is not None:
+            axis_values = axis_values.get_level_values(level)
+
+        if hasattr(labels, '__call__'):
+            msk = axis_values.map(labels).astype(bool)
+
+        elif isinstance(labels, string_types):
+            if level is None:
+                axis_values = axis_values.get_level_values(0)
+
+            if not regex:
+                 msk = axis_values == labels
+            else:
+                from pandas.core.strings import str_contains
+                msk = str_contains(axis_values, labels, na=False)
+
+        elif not hasattr(labels, '__iter__'):
+            msk = axis_values == labels
+
+        else:  # is list-like
+            if isinstance(axis_values, MultiIndex):
+                if isinstance(labels, tuple):
+                    # hack for dropping single col with tuple
+                    labels = [labels]
+                elif level is None:
+                    # use level=0 if None passed, warn?
+                    level = 0
+            msk = axis_values.isin(labels)
+
+        if negate:  # aka drop
+            msk = ~msk
+
+        tuple_indexer = [slice(None)] * self.ndim
+        tuple_indexer[axis_number] = msk
+        try:
+            return self.iloc[tuple(tuple_indexer)]
+        except IndexError:  # can happen with sparse when no _data
+            axis_name = self._get_axis_name(axis_number)
+            return self.reindex(**{axis_name: axis_values[msk]})
+
+    def select(self, crit, axis=0):
+        """
+        depreciated, alias for filter
+        
+        """
+        return self.filter(crit, axis=axis)
 
     def head(self, n=5):
         """

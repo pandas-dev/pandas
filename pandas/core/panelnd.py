@@ -96,7 +96,7 @@ def create_nd_panel_factory(klass_name, orders, slices, slicer, aliases=None,
     klass._combine_with_constructor = _combine_with_constructor
 
     # set as NonImplemented operations which we don't support
-    for f in ['to_frame', 'to_excel', 'to_sparse', 'groupby', 'join', 'filter',
+    for f in ['to_frame', 'to_excel', 'to_sparse', 'groupby', 'join',
               'dropna', 'shift']:
         def func(self, *args, **kwargs):
             raise NotImplementedError

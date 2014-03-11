@@ -1587,11 +1587,11 @@ Thur,Lunch,Yes,51.51,17"""
         index = MultiIndex.from_tuples(tuples)
         df = DataFrame(randn(4, 6), columns=index)
 
-        result = df.drop('a', axis=1)
+        result = df.drop('a', axis=1, level=0)
         expected = df.drop([('a', '', '')], axis=1)
         assert_frame_equal(expected, result)
 
-        result = df.drop(['top'], axis=1)
+        result = df.drop(['top'], axis=1, level=0)
         expected = df.drop([('top', 'OD', 'wx')], axis=1)
         expected = expected.drop([('top', 'OD', 'wy')], axis=1)
         assert_frame_equal(expected, result)
@@ -1601,7 +1601,7 @@ Thur,Lunch,Yes,51.51,17"""
         assert_frame_equal(expected, result)
 
         expected = df.drop([('top', 'OD', 'wy')], axis=1)
-        expected = df.drop('top', axis=1)
+        expected = df.drop('top', axis=1, level=0)
 
         result = df.drop('result1', level=1, axis=1)
         expected = df.drop([('routine1', 'result1', ''),
@@ -1647,7 +1647,7 @@ Thur,Lunch,Yes,51.51,17"""
         self.assertEquals(result.name, 'a')
 
         expected = df1['top']
-        df1 = df1.drop(['top'], axis=1)
+        df1 = df1.drop(['top'], axis=1, level=0)
         result = df2.pop('top')
         assert_frame_equal(expected, result)
         assert_frame_equal(df1, df2)

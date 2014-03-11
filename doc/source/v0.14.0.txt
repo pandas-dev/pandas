@@ -484,6 +484,7 @@ Enhancements
 - ``DataFrame.to_latex`` now takes a longtable keyword, which if True will return a table in a longtable environment. (:issue:`6617`)
 - ``pd.read_clipboard`` will, if 'sep' is unspecified, try to detect data copied from a spreadsheet
   and parse accordingly. (:issue:`6223`)
+- Unify drop and select API, allow drop to take a regex (:issue:`4818`) and drop with a boolean mask (:issue:`6189`)
 - Joining a singly-indexed DataFrame with a multi-indexed DataFrame (:issue:`3662`)
 
   See :ref:`the docs<merging.join_on_mi>`. Joining multi-index DataFrames on both the left and right is not yet supported ATM.
