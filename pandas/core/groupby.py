@@ -2529,7 +2529,7 @@ class NDFrameGroupBy(GroupBy):
 
         indices = []
 
-        obj = self._obj_with_exclusions
+        obj = self._selected_obj
         gen = self.grouper.get_iterator(obj, axis=self.axis)
 
         fast_path, slow_path = self._define_paths(func, *args, **kwargs)
