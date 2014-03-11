@@ -311,11 +311,14 @@ def array_equivalent(left, right):
     >>> array_equivalent(np.array([1, nan, 2]), np.array([1, 2, nan]))
     False
     """
+    left, right = np.asarray(left), np.asarray(right)
     if left.shape != right.shape: return False
     # NaNs occur only in object arrays, float or complex arrays.
+    if issubclass(left.dtype.type, np.object_):
+        return ((left == right) | (pd.isnull(left) & pd.isnull(right))).all()
     if not issubclass(left.dtype.type, (np.floating, np.complexfloating)):
         return np.array_equal(left, right)
-    return  ((left == right) | (np.isnan(left) & np.isnan(right))).all()
+    return ((left == right) | (np.isnan(left) & np.isnan(right))).all()
 
 def _iterable_not_string(x):
     return (isinstance(x, collections.Iterable) and
