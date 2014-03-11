@@ -226,7 +226,7 @@ Bug Fixes
 - Bug in ``.xs`` with a ``nan`` in level when dropped (:issue:`6574`)
 - Bug in fillna with method = 'bfill/ffill' and ``datetime64[ns]`` dtype (:issue:`6587`)
 - Bug in sql writing with mixed dtypes possibly leading to data loss (:issue:`6509`)
-
+- Bug in popping from a Series (:issue:`6600`)
 
 pandas 0.13.1
 -------------
