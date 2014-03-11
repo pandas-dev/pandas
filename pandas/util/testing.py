@@ -941,8 +941,8 @@ def _create_missing_idx(nrows, ncols, density, random_state=None):
         extra_size *= 1.05
         ind = _gen_unique_rand(random_state, extra_size)
 
-    j = np.floor(ind * 1. / nrows)
-    i = (ind - j * nrows)
+    j = np.floor(ind * 1. / nrows).astype(int)
+    i = (ind - j * nrows).astype(int)
     return i.tolist(), j.tolist()
 
 
@@ -973,7 +973,7 @@ def makeMissingCustomDataframe(nrows, ncols, density=.9, random_state=None,
                              r_idx_type=r_idx_type)
 
     i, j = _create_missing_idx(nrows, ncols, density, random_state)
-    df.iloc[i, j] = np.nan
+    df.values[i, j] = np.nan
     return df
 
 
@@ -981,7 +981,7 @@ def makeMissingDataframe(density=.9, random_state=None):
     df = makeDataFrame()
     i, j = _create_missing_idx(*df.shape, density=density,
                                random_state=random_state)
-    df.iloc[i, j] = np.nan
+    df.values[i, j] = np.nan
     return df
 
 
