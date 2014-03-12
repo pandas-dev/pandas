@@ -495,7 +495,7 @@ class _TestSQLAlchemy(PandasSQLTest):
         self.assertRaises(
             ValueError, sql.read_table, "this_doesnt_exist", con=self.conn)
 
-    def test_default_type_convertion(self):
+    def test_default_type_conversion(self):
         df = sql.read_table("types_test_data", self.conn)
 
         self.assertTrue(issubclass(df.FloatCol.dtype.type, np.floating),
@@ -589,7 +589,7 @@ class TestSQLAlchemy(_TestSQLAlchemy):
 
         self._load_test1_data()
 
-    def test_default_type_convertion(self):
+    def test_default_type_conversion(self):
         df = sql.read_table("types_test_data", self.conn)
 
         self.assertTrue(issubclass(df.FloatCol.dtype.type, np.floating),
@@ -754,6 +754,24 @@ class TestMySQLAlchemy(_TestSQLAlchemy):
             c = self.conn.execute('SHOW TABLES')
             for table in c.fetchall():
                 self.conn.execute('DROP TABLE %s' % table[0])
+
+        def test_default_type_conversion(self):
+            df = sql.read_table("types_test_data", self.conn)
+    
+            self.assertTrue(issubclass(df.FloatCol.dtype.type, np.floating),
+                            "FloatCol loaded with incorrect type")
+            self.assertTrue(issubclass(df.IntCol.dtype.type, np.integer),
+                            "IntCol loaded with incorrect type")
+            # MySQL has no real BOOL type (it's an alias for TINYINT) 
+            self.assertTrue(issubclass(df.BoolCol.dtype.type, np.integer),
+                            "BoolCol loaded with incorrect type")
+    
+            # Int column with NA values stays as float
+            self.assertTrue(issubclass(df.IntColWithNull.dtype.type, np.floating),
+                            "IntColWithNull loaded with incorrect type")
+            # Bool column with NA = int column with NA values => becomes float
+            self.assertTrue(issubclass(df.BoolColWithNull.dtype.type, np.floating), 
+                            "BoolColWithNull loaded with incorrect type")
 
 
 class TestPostgreSQLAlchemy(_TestSQLAlchemy):

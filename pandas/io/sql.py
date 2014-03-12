@@ -668,7 +668,7 @@ class PandasSQLAlchemy(PandasSQL):
                    parse_dates=None, columns=None):
 
         table = PandasSQLTable(table_name, self, index=index_col)
-        return table.read(coerce_float=parse_dates,
+        return table.read(coerce_float=coerce_float,
                           parse_dates=parse_dates, columns=columns)
 
     def drop_table(self, table_name):
