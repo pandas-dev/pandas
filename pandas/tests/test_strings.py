@@ -220,7 +220,7 @@ class TestStringMethods(tm.TestCase):
         # na
         values = Series(['om', 'foo',np.nan])
         res = values.str.contains('foo', na="foo")
-        self.assertEqual (res.ix[2], "foo"        )
+        self.assertEqual (res.ix[2], "foo")
 
     def test_startswith(self):
         values = Series(['om', NA, 'foo_nom', 'nom', 'bar_foo', NA, 'foo'])
@@ -459,6 +459,14 @@ class TestStringMethods(tm.TestCase):
             result = values.str.match('.*(BAD[_]+).*(BAD)', as_indexer=True)
         exp = Series([True, NA, False])
         tm.assert_series_equal(result, exp)
+
+        # na GH #6609
+        res = Series(['a', 0, np.nan]).str.match('a', na=False)
+        exp = Series([True, False, False])
+        assert_series_equal(exp, res)
+        res = Series(['a', 0, np.nan]).str.match('a')
+        exp = Series([True, np.nan, np.nan])
+        assert_series_equal(exp, res)
 
     def test_extract(self):
         # Contains tests like those in test_match and some others.
