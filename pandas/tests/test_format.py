@@ -1670,6 +1670,49 @@ c  10  11  12  13  14\
 """
         self.assertEqual(withoutindex_result, withoutindex_expected)
 
+    def test_to_latex_longtable(self):
+        self.frame.to_latex(longtable=True)
+
+        df = DataFrame({'a': [1, 2],
+                        'b': ['b1', 'b2']})
+        withindex_result = df.to_latex(longtable=True)
+        withindex_expected = r"""\begin{longtable}{lrl}
+\toprule
+{} &  a &   b \\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r}{{Continued on next page}} \\
+\midrule
+\endfoot
+
+\bottomrule
+\endlastfoot
+0 &  1 &  b1 \\
+1 &  2 &  b2 \\
+\end{longtable}
+"""
+        self.assertEqual(withindex_result, withindex_expected)
+
+        withoutindex_result = df.to_latex(index=False, longtable=True)
+        withoutindex_expected = r"""\begin{longtable}{rl}
+\toprule
+ a &   b \\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r}{{Continued on next page}} \\
+\midrule
+\endfoot
+
+\bottomrule
+\endlastfoot
+ 1 &  b1 \\
+ 2 &  b2 \\
+\end{longtable}
+"""
+        self.assertEqual(withoutindex_result, withoutindex_expected)
+
     def test_to_latex_escape_special_chars(self):
         special_characters = ['&','%','$','#','_',
                                '{','}','~','^','\\']
@@ -1791,7 +1834,7 @@ $1$,$2$
         df = DataFrame({'col' : [1,2]})
         expected = ',col\n0,1\n1,2\n'
         self.assertEqual(df.to_csv(), expected)
-        
+
 
 class TestSeriesFormatting(tm.TestCase):
     _multiprocess_can_split_ = True
