@@ -49,17 +49,17 @@ def get_writer(engine_name):
         raise ValueError("No Excel writer '%s'" % engine_name)
 
 
-def read_excel(io, sheetname, **kwds):
+def read_excel(io, sheetname=0, **kwds):
     """Read an Excel table into a pandas DataFrame
 
     Parameters
     ----------
     io : string, file-like object or xlrd workbook
         If a string, expected to be a path to xls or xlsx file
-    sheetname : string
-         Name of Excel sheet
+    sheetname : string or int, default 0
+        Name of Excel sheet or the page number of the sheet
     header : int, default 0
-         Row to use for the column labels of the parsed DataFrame
+        Row to use for the column labels of the parsed DataFrame
     skiprows : list-like
         Rows to skip at the beginning (0-indexed)
     skip_footer : int, default 0
@@ -147,7 +147,7 @@ class ExcelFile(object):
             raise ValueError('Must explicitly set engine if not passing in'
                              ' buffer or path for io.')
 
-    def parse(self, sheetname, header=0, skiprows=None, skip_footer=0,
+    def parse(self, sheetname=0, header=0, skiprows=None, skip_footer=0,
               index_col=None, parse_cols=None, parse_dates=False,
               date_parser=None, na_values=None, thousands=None, chunksize=None,
               convert_float=True, has_index_names=False, **kwds):
@@ -200,7 +200,8 @@ class ExcelFile(object):
         if skipfooter is not None:
             skip_footer = skipfooter
 
-        return self._parse_excel(sheetname, header=header, skiprows=skiprows,
+        return self._parse_excel(sheetname=sheetname, header=header,
+                                 skiprows=skiprows,
                                  index_col=index_col,
                                  has_index_names=has_index_names,
                                  parse_cols=parse_cols,
@@ -244,7 +245,7 @@ class ExcelFile(object):
         else:
             return i in parse_cols
 
-    def _parse_excel(self, sheetname, header=0, skiprows=None, skip_footer=0,
+    def _parse_excel(self, sheetname=0, header=0, skiprows=None, skip_footer=0,
                      index_col=None, has_index_names=None, parse_cols=None,
                      parse_dates=False, date_parser=None, na_values=None,
                      thousands=None, chunksize=None, convert_float=True,
