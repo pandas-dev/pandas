@@ -1613,10 +1613,8 @@ class DataFrame(NDFrame):
             else:
                 label = self.index[i]
                 if isinstance(label, Index):
-
                     # a location index by definition
-                    i = _maybe_convert_indices(i, len(self._get_axis(axis)))
-                    result = self.reindex(i, takeable=True)
+                    result = self.take(i, axis=axis)
                     copy=True
                 else:
                     new_values, copy = self._data.fast_xs(i, copy=copy)
@@ -2124,41 +2122,38 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Reindexing and alignment
 
-    def _reindex_axes(self, axes, level, limit, method, fill_value, copy,
-                      takeable=False):
+    def _reindex_axes(self, axes, level, limit, method, fill_value, copy):
         frame = self
 
         columns = axes['columns']
         if columns is not None:
             frame = frame._reindex_columns(columns, copy, level, fill_value,
-                                           limit, takeable=takeable)
+                                           limit)
 
         index = axes['index']
         if index is not None:
             frame = frame._reindex_index(index, method, copy, level,
-                                         fill_value, limit, takeable=takeable)
+                                         fill_value, limit)
 
         return frame
 
     def _reindex_index(self, new_index, method, copy, level, fill_value=NA,
-                       limit=None, takeable=False):
+                       limit=None):
         new_index, indexer = self.index.reindex(new_index, method, level,
                                                 limit=limit,
-                                                copy_if_needed=True,
-                                                takeable=takeable)
+                                                copy_if_needed=True)
         return self._reindex_with_indexers({0: [new_index, indexer]},
                                            copy=copy, fill_value=fill_value,
-                                           allow_dups=takeable)
+                                           allow_dups=False)
 
     def _reindex_columns(self, new_columns, copy, level, fill_value=NA,
-                         limit=None, takeable=False):
+                         limit=None):
         new_columns, indexer = self.columns.reindex(new_columns, level=level,
                                                     limit=limit,
-                                                    copy_if_needed=True,
-                                                    takeable=takeable)
+                                                    copy_if_needed=True)
         return self._reindex_with_indexers({1: [new_columns, indexer]},
                                            copy=copy, fill_value=fill_value,
-                                           allow_dups=takeable)
+                                           allow_dups=False)
 
     def _reindex_multi(self, axes, copy, fill_value):
         """ we are guaranteed non-Nones in the axes! """
@@ -2689,10 +2684,9 @@ class DataFrame(NDFrame):
             ax = 'index' if axis == 0 else 'columns'
 
             if new_axis.is_unique:
-                d = {ax: new_axis}
+                return self.reindex(**{ax: new_axis})
             else:
-                d = {ax: indexer, 'takeable': True}
-            return self.reindex(**d)
+                return self.take(indexer, axis=axis, convert=False)
 
         if inplace:
             if axis == 1:
