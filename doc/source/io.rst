@@ -1820,7 +1820,7 @@ a DataFrame. See the :ref:`cookbook<cookbook.excel>` for some
 advanced strategies
 
 Besides ``read_excel`` you can also read Excel files using the ``ExcelFile``
-class. The following two command are equivalent:
+class. The following two commands are equivalent:
 
 .. code-block:: python
 
@@ -1843,10 +1843,13 @@ the sheet names using the ``sheet_names`` attribute.
 .. versionadded:: 0.13
 
 There are now two ways to read in sheets from an Excel file. You can provide
-either the index of a sheet or its name. If the value provided is an integer
-then it is assumed that the integer refers to the index of a sheet, otherwise
-if a string is passed then it is assumed that the string refers to the name of
-a particular sheet in the file.
+either the index of a sheet or its name to by passing different values for 
+``sheet_name``. 
+
+- Pass a string to refer to the name of a particular sheet in the workbook.
+- Pass an integer to refer to the index of a sheet. Indices follow Python 
+  convention, beginning at 0.
+- The default value is ``sheet_name=0``. This reads the first sheet.
 
 Using the sheet name:
 
@@ -1859,6 +1862,12 @@ Using the sheet index:
 .. code-block:: python
 
    read_excel('path_to_file.xls', 0, index_col=None, na_values=['NA'])
+
+Using all default values:
+
+.. code-block:: python
+
+   read_excel('path_to_file.xls')
 
 It is often the case that users will insert columns to do temporary computations
 in Excel and you may not want to read in those columns. `read_excel` takes
