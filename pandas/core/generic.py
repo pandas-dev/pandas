@@ -565,7 +565,7 @@ class NDFrame(PandasObject):
             f = _get_rename_function(v)
 
             baxis = self._get_block_manager_axis(axis)
-            result._data = result._data.rename(f, axis=baxis, copy=copy)
+            result._data = result._data.rename_axis(f, axis=baxis, copy=copy)
             result._clear_item_cache()
 
         if inplace:
@@ -1217,21 +1217,9 @@ class NDFrame(PandasObject):
         taken : type of caller
         """
 
-        # check/convert indicies here
-        if convert:
-            axis = self._get_axis_number(axis)
-            indices = _maybe_convert_indices(
-                indices, len(self._get_axis(axis)))
-
-        baxis = self._get_block_manager_axis(axis)
-        if baxis == 0:
-            labels = self._get_axis(axis)
-            new_items = labels.take(indices)
-            new_data = self._data.reindex_axis(new_items, indexer=indices,
-                                               axis=baxis)
-        else:
-            new_data = self._data.take(indices, axis=baxis)
-
+        new_data = self._data.take(indices,
+                                   axis=self._get_block_manager_axis(axis),
+                                   convert=True, verify=True)
         result = self._constructor(new_data).__finalize__(self)
 
         # maybe set copy if we didn't actually change the index
@@ -1716,30 +1704,15 @@ class NDFrame(PandasObject):
 
             if index is None:
                 continue
+
             index = _ensure_index(index)
-
-            # reindex the axis
-            if method is not None:
-                new_data = new_data.reindex_axis(
-                    index, indexer=indexer, method=method, axis=baxis,
-                    fill_value=fill_value, limit=limit, copy=copy)
-
-            elif indexer is not None:
-                # TODO: speed up on homogeneous DataFrame objects
+            if indexer is not None:
                 indexer = com._ensure_int64(indexer)
-                new_data = new_data.reindex_indexer(index, indexer, axis=baxis,
-                                                    fill_value=fill_value,
-                                                    allow_dups=allow_dups)
 
-            elif (baxis == 0 and index is not None and
-                    index is not new_data.axes[baxis]):
-                new_data = new_data.reindex_items(index, copy=copy,
-                                                  fill_value=fill_value)
-
-            elif (baxis > 0 and index is not None and
-                    index is not new_data.axes[baxis]):
-                new_data = new_data.copy(deep=copy)
-                new_data.set_axis(baxis, index)
+            # TODO: speed up on homogeneous DataFrame objects
+            new_data = new_data.reindex_indexer(index, indexer, axis=baxis,
+                                                fill_value=fill_value,
+                                                allow_dups=allow_dups)
 
         if copy and new_data is self._data:
             new_data = new_data.copy()

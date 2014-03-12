@@ -1023,7 +1023,7 @@ class TestSparseDataFrame(tm.TestCase, test_frame.SafeForSparse):
         for op in ops:
             _compare_to_dense(frame, frame[::2], frame.to_dense(),
                               frame[::2].to_dense(), op)
-            for s in series:
+            for i, s in enumerate(series):
                 _compare_to_dense(frame, s, frame.to_dense(),
                                   s.to_dense(), op)
                 _compare_to_dense(s, frame, s.to_dense(),
