@@ -1308,7 +1308,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
         return aliases.get(method, method)
 
     def reindex(self, target, method=None, level=None, limit=None,
-                copy_if_needed=False, takeable=False):
+                copy_if_needed=False):
         """
         For Index, simply returns the new index and the results of
         get_indexer. Provided here to enable an interface that is amenable for
@@ -1336,13 +1336,6 @@ class Index(IndexOpsMixin, FrozenNDArray):
                         target = self.copy()
 
             else:
-
-                if takeable:
-                    if method is not None or limit is not None:
-                        raise ValueError("cannot do a takeable reindex with "
-                                         "with a method or limit")
-                    return self[target], target
-
                 if self.is_unique:
                     indexer = self.get_indexer(target, method=method,
                                                limit=limit)
@@ -3113,7 +3106,7 @@ class MultiIndex(Index):
         return com._ensure_platform_int(indexer)
 
     def reindex(self, target, method=None, level=None, limit=None,
-                copy_if_needed=False, takeable=False):
+                copy_if_needed=False):
         """
         Performs any necessary conversion on the input index and calls
         get_indexer. This method is here so MultiIndex and an Index of
@@ -3123,10 +3116,6 @@ class MultiIndex(Index):
         -------
         (new_index, indexer, mask) : (MultiIndex, ndarray, ndarray)
         """
-
-        # a direct takeable
-        if takeable:
-            return self.take(target), target
 
         if level is not None:
             if method is not None:
@@ -3142,14 +3131,8 @@ class MultiIndex(Index):
                     indexer = self.get_indexer(target, method=method,
                                                limit=limit)
                 else:
-                    if takeable:
-                        if method is not None or limit is not None:
-                            raise ValueError("cannot do a takeable reindex "
-                                             "with a method or limit")
-                        return self[target], target
-
                     raise Exception(
-                        "cannot handle a non-takeable non-unique multi-index!")
+                        "cannot handle a non-unique multi-index!")
 
         if not isinstance(target, MultiIndex):
             if indexer is None:

@@ -1546,8 +1546,6 @@ class NDFrame(PandasObject):
             "compatible" value
         limit : int, default None
             Maximum size gap to forward or backward fill
-        takeable : boolean, default False
-            treat the passed as positional values
 
         Examples
         --------
@@ -1570,7 +1568,6 @@ class NDFrame(PandasObject):
         copy = kwargs.get('copy', True)
         limit = kwargs.get('limit')
         fill_value = kwargs.get('fill_value', np.nan)
-        takeable = kwargs.get('takeable', False)
 
         self._consolidate_inplace()
 
@@ -1591,11 +1588,9 @@ class NDFrame(PandasObject):
 
         # perform the reindex on the axes
         return self._reindex_axes(axes, level, limit,
-                                  method, fill_value, copy,
-                                  takeable=takeable).__finalize__(self)
+                                  method, fill_value, copy).__finalize__(self)
 
-    def _reindex_axes(self, axes, level, limit, method, fill_value, copy,
-                      takeable=False):
+    def _reindex_axes(self, axes, level, limit, method, fill_value, copy):
         """ perform the reinxed for all the axes """
         obj = self
         for a in self._AXIS_ORDERS:
@@ -1610,13 +1605,12 @@ class NDFrame(PandasObject):
             axis = self._get_axis_number(a)
             ax = self._get_axis(a)
             new_index, indexer = ax.reindex(
-                labels, level=level, limit=limit, method=method,
-                takeable=takeable)
+                labels, level=level, limit=limit, method=method)
 
             obj = obj._reindex_with_indexers(
                 {axis: [new_index, indexer]}, method=method,
                 fill_value=fill_value, limit=limit, copy=copy,
-                allow_dups=takeable)
+                allow_dups=False)
 
         return obj
 

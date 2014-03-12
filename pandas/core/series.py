@@ -460,8 +460,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             else:
                 label = self.index[i]
                 if isinstance(label, Index):
-                    i = _maybe_convert_indices(i, len(self))
-                    return self.reindex(i, takeable=True)
+                    return self.take(i, axis=axis, convert=True)
                 else:
                     return _index.get_value_at(self, i)
 
