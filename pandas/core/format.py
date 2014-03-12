@@ -423,10 +423,12 @@ class DataFrameFormatter(TableFormatter):
             st = ed
         return '\n\n'.join(str_lst)
 
-    def to_latex(self, force_unicode=None, column_format=None):
+    def to_latex(self, force_unicode=None, column_format=None,
+                 longtable=False):
         """
-        Render a DataFrame to a LaTeX tabular environment output.
+        Render a DataFrame to a LaTeX tabular/longtable environment output.
         """
+        #TODO: column_format is not settable in df.to_latex
         def get_col_type(dtype):
             if issubclass(dtype.type, np.number):
                 return 'r'
@@ -460,14 +462,27 @@ class DataFrameFormatter(TableFormatter):
             raise AssertionError('column_format must be str or unicode, not %s'
                                  % type(column_format))
 
-        def write(buf, frame, column_format, strcols):
-            buf.write('\\begin{tabular}{%s}\n' % column_format)
-            buf.write('\\toprule\n')
+        def write(buf, frame, column_format, strcols, longtable=False):
+            if not longtable:
+                buf.write('\\begin{tabular}{%s}\n' % column_format)
+                buf.write('\\toprule\n')
+            else:
+                buf.write('\\begin{longtable}{%s}\n' % column_format)
+                buf.write('\\toprule\n')
 
             nlevels = frame.index.nlevels
             for i, row in enumerate(zip(*strcols)):
                 if i == nlevels:
                     buf.write('\\midrule\n')  # End of header
+                    if longtable:
+                        buf.write('\\endhead\n')
+                        buf.write('\\midrule\n')
+                        buf.write('\\multicolumn{3}{r}{{Continued on next '
+                                  'page}} \\\\\n')
+                        buf.write('\midrule\n')
+                        buf.write('\endfoot\n\n')
+                        buf.write('\\bottomrule\n')
+                        buf.write('\\endlastfoot\n')
                 crow = [(x.replace('\\', '\\textbackslash') # escape backslashes first
                          .replace('_', '\\_')
                          .replace('%', '\\%')
@@ -481,14 +496,17 @@ class DataFrameFormatter(TableFormatter):
                 buf.write(' & '.join(crow))
                 buf.write(' \\\\\n')
 
-            buf.write('\\bottomrule\n')
-            buf.write('\\end{tabular}\n')
+            if not longtable:
+                buf.write('\\bottomrule\n')
+                buf.write('\\end{tabular}\n')
+            else:
+                buf.write('\\end{longtable}\n')
 
         if hasattr(self.buf, 'write'):
-            write(self.buf, frame, column_format, strcols)
+            write(self.buf, frame, column_format, strcols, longtable)
         elif isinstance(self.buf, compat.string_types):
             with open(self.buf, 'w') as f:
-                write(f, frame, column_format, strcols)
+                write(f, frame, column_format, strcols, longtable)
         else:
             raise TypeError('buf is not a file name and it has no write '
                             'method')
