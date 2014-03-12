@@ -1704,11 +1704,11 @@ class DataCol(IndexCol):
             if self.typ is None:
                 self.typ = getattr(self.description, self.cname, None)
 
-    def set_atom(self, block, existing_col, min_itemsize,
+    def set_atom(self, block, block_items, existing_col, min_itemsize,
                  nan_rep, info, encoding=None, **kwargs):
         """ create and setup my atom from the block b """
 
-        self.values = list(block.items)
+        self.values = list(block_items)
         dtype = block.dtype.name
         rvalues = block.values.ravel()
         inferred_type = lib.infer_dtype(rvalues)
@@ -1763,7 +1763,7 @@ class DataCol(IndexCol):
         # end up here ###
         elif inferred_type == 'string' or dtype == 'object':
             self.set_atom_string(
-                block,
+                block, block_items,
                 existing_col,
                 min_itemsize,
                 nan_rep,
@@ -1776,8 +1776,8 @@ class DataCol(IndexCol):
     def get_atom_string(self, block, itemsize):
         return _tables().StringCol(itemsize=itemsize, shape=block.shape[0])
 
-    def set_atom_string(
-            self, block, existing_col, min_itemsize, nan_rep, encoding):
+    def set_atom_string(self, block, block_items, existing_col, min_itemsize,
+                        nan_rep, encoding):
         # fill nan items with myself, don't disturb the blocks by
         # trying to downcast
         block = block.fillna(nan_rep, downcast=False)[0]
@@ -1789,9 +1789,9 @@ class DataCol(IndexCol):
 
             # we cannot serialize this data, so report an exception on a column
             # by column basis
-            for item in block.items:
+            for i, item in enumerate(block_items):
 
-                col = block.get(item)
+                col = block.iget(i)
                 inferred_type = lib.infer_dtype(col.ravel())
                 if inferred_type != 'string':
                     raise TypeError(
@@ -2649,7 +2649,8 @@ class BlockManagerFixed(GenericFixed):
         for i in range(self.nblocks):
             blk_items = self.read_index('block%d_items' % i)
             values = self.read_array('block%d_values' % i)
-            blk = make_block(values, blk_items, items)
+            blk = make_block(values,
+                             placement=items.get_indexer(blk_items))
             blocks.append(blk)
 
         return self.obj_type(BlockManager(blocks, axes))
@@ -2665,12 +2666,12 @@ class BlockManagerFixed(GenericFixed):
             self.write_index('axis%d' % i, ax)
 
         # Supporting mixed-type DataFrame objects...nontrivial
-        self.attrs.nblocks = nblocks = len(data.blocks)
-        for i in range(nblocks):
-            blk = data.blocks[i]
+        self.attrs.nblocks = len(data.blocks)
+        for i, blk in enumerate(data.blocks):
             # I have no idea why, but writing values before items fixed #2299
-            self.write_array('block%d_values' % i, blk.values, items=blk.items)
-            self.write_index('block%d_items' % i, blk.items)
+            blk_items = data.items.take(blk.ref_locs)
+            self.write_array('block%d_values' % i, blk.values, items=blk_items)
+            self.write_index('block%d_items' % i, blk_items)
 
 
 class FrameFixed(BlockManagerFixed):
@@ -3190,51 +3191,63 @@ class Table(Fixed):
         for a in self.non_index_axes:
             obj = _reindex_axis(obj, a[0], a[1])
 
+        def get_blk_items(mgr, blocks):
+            return [mgr.items.take(blk.ref_locs) for blk in blocks]
+
         # figure out data_columns and get out blocks
         block_obj = self.get_object(obj).consolidate()
         blocks = block_obj._data.blocks
+        blk_items = get_blk_items(block_obj._data, blocks)
         if len(self.non_index_axes):
             axis, axis_labels = self.non_index_axes[0]
             data_columns = self.validate_data_columns(
                 data_columns, min_itemsize)
             if len(data_columns):
-                blocks = block_obj.reindex_axis(
+                mgr = block_obj.reindex_axis(
                     Index(axis_labels) - Index(data_columns),
                     axis=axis
-                )._data.blocks
+                )._data
+
+                blocks = mgr.blocks
+                blk_items = get_blk_items(mgr, blocks)
                 for c in data_columns:
-                    blocks.extend(
-                        block_obj.reindex_axis([c], axis=axis)._data.blocks)
+                    mgr = block_obj.reindex_axis([c], axis=axis)._data
+                    blocks.extend(mgr.blocks)
+                    blk_items.extend(get_blk_items(mgr, mgr.blocks))
 
         # reorder the blocks in the same order as the existing_table if we can
         if existing_table is not None:
-            by_items = dict([(tuple(b.items.tolist()), b) for b in blocks])
+            by_items = dict([(tuple(b_items.tolist()), (b, b_items))
+                             for b, b_items in zip(blocks, blk_items)])
             new_blocks = []
+            new_blk_items = []
             for ea in existing_table.values_axes:
                 items = tuple(ea.values)
                 try:
-                    b = by_items.pop(items)
+                    b, b_items = by_items.pop(items)
                     new_blocks.append(b)
+                    new_blk_items.append(b_items)
                 except:
                     raise ValueError(
                         "cannot match existing table structure for [%s] on "
                         "appending data" % ','.join(com.pprint_thing(item) for
                                                     item in items))
             blocks = new_blocks
+            blk_items = new_blk_items
 
         # add my values
         self.values_axes = []
-        for i, b in enumerate(blocks):
+        for i, (b, b_items) in enumerate(zip(blocks, blk_items)):
 
             # shape of the data column are the indexable axes
             klass = DataCol
             name = None
 
             # we have a data_column
-            if (data_columns and len(b.items) == 1 and
-                    b.items[0] in data_columns):
+            if (data_columns and len(b_items) == 1 and
+                    b_items[0] in data_columns):
                 klass = DataIndexableCol
-                name = b.items[0]
+                name = b_items[0]
                 self.data_columns.append(name)
 
             # make sure that we match up the existing columns
@@ -3252,7 +3265,7 @@ class Table(Fixed):
             try:
                 col = klass.create_for_block(
                     i=i, name=name, version=self.version)
-                col.set_atom(block=b,
+                col.set_atom(block=b, block_items=b_items,
                              existing_col=existing_col,
                              min_itemsize=min_itemsize,
                              nan_rep=nan_rep,
@@ -3268,7 +3281,7 @@ class Table(Fixed):
                 raise Exception(
                     "cannot find the correct atom type -> "
                     "[dtype->%s,items->%s] %s"
-                    % (b.dtype.name, b.items, str(detail))
+                    % (b.dtype.name, b_items, str(detail))
                 )
             j += 1
 
@@ -3490,7 +3503,8 @@ class LegacyTable(Table):
                 take_labels = [l.take(sorter) for l in labels]
                 items = Index(c.values)
                 block = block2d_to_blocknd(
-                    sorted_values, items, tuple(N), take_labels)
+                    values=sorted_values, placement=np.arange(len(items)),
+                    shape=tuple(N), labels=take_labels, ref_items=items)
 
                 # create the object
                 mgr = BlockManager([block], [items] + levels)
@@ -3823,7 +3837,7 @@ class AppendableFrameTable(AppendableTable):
             if values.ndim == 1:
                 values = values.reshape(1, values.shape[0])
 
-            block = make_block(values, cols_, cols_)
+            block = make_block(values, placement=np.arange(len(cols_)))
             mgr = BlockManager([block], [cols_, index_])
             frames.append(DataFrame(mgr))
 

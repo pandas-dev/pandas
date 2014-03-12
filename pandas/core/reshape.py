@@ -447,15 +447,17 @@ def _unstack_frame(obj, level):
         new_blocks = []
         mask_blocks = []
         for blk in obj._data.blocks:
+            blk_items = obj._data.items.take(blk.ref_locs)
             bunstacker = _Unstacker(blk.values.T, obj.index, level=level,
-                                    value_columns=blk.items)
+                                    value_columns=blk_items)
             new_items = bunstacker.get_new_columns()
+            new_placement = new_columns.get_indexer(new_items)
             new_values, mask = bunstacker.get_new_values()
 
-            mblk = make_block(mask.T, new_items, new_columns)
+            mblk = make_block(mask.T, placement=new_placement)
             mask_blocks.append(mblk)
 
-            newb = make_block(new_values.T, new_items, new_columns)
+            newb = make_block(new_values.T, placement=new_placement)
             new_blocks.append(newb)
 
         result = DataFrame(BlockManager(new_blocks, new_axes))
@@ -1071,10 +1073,11 @@ def make_axis_dummies(frame, axis='minor', transform=None):
     return DataFrame(values, columns=items, index=frame.index)
 
 
-def block2d_to_blocknd(values, items, shape, labels, ref_items=None):
+def block2d_to_blocknd(values, placement, shape, labels, ref_items):
     """ pivot to the labels shape """
     from pandas.core.internals import make_block
-    panel_shape = (len(items),) + shape
+
+    panel_shape = (len(placement),) + shape
 
     # TODO: lexsort depth needs to be 2!!
 
@@ -1092,13 +1095,10 @@ def block2d_to_blocknd(values, items, shape, labels, ref_items=None):
         pvalues.fill(fill_value)
 
     values = values
-    for i in range(len(items)):
+    for i in range(len(placement)):
         pvalues[i].flat[mask] = values[:, i]
 
-    if ref_items is None:
-        ref_items = items
-
-    return make_block(pvalues, items, ref_items)
+    return make_block(pvalues, placement=placement)
 
 
 def factor_indexer(shape, labels):

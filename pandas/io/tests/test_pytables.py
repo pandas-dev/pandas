@@ -3504,7 +3504,6 @@ class TestHDFStore(tm.TestCase):
             self.assertRaises(NotImplementedError, store.select, 'df', "columns=['A','B'] & columns=['C']")
 
     def test_string_select(self):
-
         # GH 2973
         with ensure_clean_store(self.path) as store:
 

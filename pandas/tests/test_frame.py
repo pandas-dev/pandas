@@ -106,7 +106,6 @@ class CheckIndexing(object):
 
     def test_getitem(self):
         # slicing
-
         sl = self.frame[:20]
         self.assertEqual(20, len(sl.index))
 
@@ -120,7 +119,7 @@ class CheckIndexing(object):
             self.assertIsNotNone(self.frame[key])
 
         self.assertNotIn('random', self.frame)
-        with assertRaisesRegexp(KeyError, 'no item named random'):
+        with assertRaisesRegexp(KeyError, 'random'):
             self.frame['random']
 
         df = self.frame.copy()
@@ -2723,6 +2722,11 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df = DataFrame({}, columns=['foo', 'bar'])
         self.assertEqual(df.values.dtype, np.object_)
 
+        df = DataFrame({'b': 1}, index=lrange(10), columns=list('abc'),
+                       dtype=int)
+        self.assertEqual(df.values.dtype, np.object_)
+
+
     def test_constructor_scalar_inference(self):
         data = {'int': 1, 'bool': True,
                 'float': 3., 'complex': 4j, 'object': 'foo'}
@@ -3341,7 +3345,6 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_frame_equal(result, expected)
 
     def test_column_dups_indexing(self):
-
         def check(result, expected=None):
             if expected is not None:
                 assert_frame_equal(result,expected)
@@ -7804,11 +7807,11 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         # scalar -> dict
         # to_replace regex, {value: value}
+        expec = DataFrame({'a': mix['a'], 'b': [nan, 'b', '.', '.'], 'c':
+                           mix['c']})
         res = dfmix.replace('a', {'b': nan}, regex=True)
         res2 = dfmix.copy()
         res2.replace('a', {'b': nan}, regex=True, inplace=True)
-        expec = DataFrame({'a': mix['a'], 'b': [nan, 'b', '.', '.'], 'c':
-                           mix['c']})
         assert_frame_equal(res, expec)
         assert_frame_equal(res2, expec)
 
@@ -8645,7 +8648,6 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self.assertRaises(ValueError, df.reindex, index=list(range(len(df))))
 
     def test_align(self):
-
         af, bf = self.frame.align(self.frame)
         self.assertIsNot(af._data, self.frame._data)
 
@@ -9789,7 +9791,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_frame_equal(result, expected)
 
     def test_sort_index(self):
-        frame = DataFrame(np.random.randn(4, 4), index=[1, 2, 3, 4],
+        frame = DataFrame(np.arange(16).reshape(4, 4), index=[1, 2, 3, 4],
                           columns=['A', 'B', 'C', 'D'])
 
         # axis=0
@@ -11820,7 +11822,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df_dt     = DataFrame(Timestamp('20010101'),index=df_float.index,columns=df_float.columns)
         df        = pd.concat([ df_float, df_int, df_bool, df_object, df_dt ], axis=1)
 
-        result = df._data._set_ref_locs()
+        result = df._data._ref_locs
         self.assertEqual(len(result), len(df.columns))
 
         # testing iget

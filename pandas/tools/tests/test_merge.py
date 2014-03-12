@@ -584,6 +584,19 @@ class TestMerge(tm.TestCase):
         assert_almost_equal(merged['value_x'], [2, 3, 1, 1, 4, 4, np.nan])
         assert_almost_equal(merged['value_y'], [6, np.nan, 5, 8, 5, 8, 7])
 
+    def test_merge_copy(self):
+        left = DataFrame({'a': 0, 'b': 1}, index=lrange(10))
+        right = DataFrame({'c': 'foo', 'd': 'bar'}, index=lrange(10))
+
+        merged = merge(left, right, left_index=True,
+                       right_index=True, copy=True)
+
+        merged['a'] = 6
+        self.assert_((left['a'] == 0).all())
+
+        merged['d'] = 'peekaboo'
+        self.assert_((right['d'] == 'bar').all())
+
     def test_merge_nocopy(self):
         left = DataFrame({'a': 0, 'b': 1}, index=lrange(10))
         right = DataFrame({'c': 'foo', 'd': 'bar'}, index=lrange(10))
@@ -1765,11 +1778,14 @@ class TestConcatenate(tm.TestCase):
         p1 = panel.ix[['ItemA', 'ItemB', 'ItemC']]
         p2 = panel.ix[['ItemB', 'ItemC']]
 
+        # Expected index is
+        #
+        # ItemA, ItemB_p1, ItemC_p1, ItemB_p2, ItemC_p2
         joined = p1.join(p2, lsuffix='_p1', rsuffix='_p2')
         p1_suf = p1.ix[['ItemB', 'ItemC']].add_suffix('_p1')
         p2_suf = p2.ix[['ItemB', 'ItemC']].add_suffix('_p2')
         no_overlap = panel.ix[['ItemA']]
-        expected = p1_suf.join(p2_suf).join(no_overlap)
+        expected = no_overlap.join(p1_suf.join(p2_suf))
         tm.assert_panel_equal(joined, expected)
 
     def test_panel_join_many(self):

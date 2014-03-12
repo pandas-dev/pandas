@@ -83,7 +83,6 @@ class TestPickle(tm.TestCase):
         self.read_pickles('0.13.0')
 
     def test_round_trip_current(self):
-
         for typ, dv in self.data.items():
 
             for dt, expected in dv.items():

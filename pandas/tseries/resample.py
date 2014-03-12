@@ -337,7 +337,8 @@ def _take_new_index(obj, indexer, new_index, axis=0):
     elif isinstance(obj, DataFrame):
         if axis == 1:
             raise NotImplementedError
-        return DataFrame(obj._data.take(indexer, new_index=new_index, axis=1))
+        return DataFrame(obj._data.reindex_indexer(
+            new_axis=new_index, indexer=indexer, axis=1))
     else:
         raise NotImplementedError
 
