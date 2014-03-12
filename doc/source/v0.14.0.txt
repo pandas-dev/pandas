@@ -286,6 +286,7 @@ There are no deprecations of prior behavior in 0.14.0
 Enhancements
 ~~~~~~~~~~~~
 
+- ``DataFrame.to_latex`` now takes a longtable keyword, which if True will return a table in a longtable environment. (:issue:`6617`)
 - pd.read_clipboard will, if 'sep' is unspecified, try to detect data copied from a spreadsheet
   and parse accordingly. (:issue:`6223`)
 - ``plot(legend='reverse')`` will now reverse the order of legend labels for
