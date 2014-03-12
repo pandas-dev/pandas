@@ -63,6 +63,7 @@ New features
 API Changes
 ~~~~~~~~~~~
 
+- ``read_excel`` uses 0 as the default sheet (:issue:`6573`)
 - ``iloc`` will now accept out-of-bounds indexers, e.g. a value that exceeds the length of the object being
   indexed. These will be excluded. This will make pandas conform more with pandas/numpy indexing of out-of-bounds
   values. A single indexer that is out-of-bounds and drops the dimensions of the object will still raise

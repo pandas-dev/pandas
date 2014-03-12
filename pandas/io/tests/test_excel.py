@@ -445,6 +445,15 @@ class ExcelWriterBase(SharedItems):
                                 na_values=[88, 88.0])
             tm.assert_frame_equal(self.frame, recons)
 
+            # GH 6573
+            self.frame.to_excel(path, 'Sheet1')
+            recons = read_excel(path, index_col=0)
+            tm.assert_frame_equal(self.frame, recons)
+
+            self.frame.to_excel(path, '0')
+            recons = read_excel(path, index_col=0)
+            tm.assert_frame_equal(self.frame, recons)
+
     def test_mixed(self):
         _skip_if_no_xlrd()
 
