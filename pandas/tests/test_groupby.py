@@ -2991,19 +2991,36 @@ class TestGroupBy(tm.TestCase):
 
         # passing the name
         df = df.reset_index()
-        result = df.groupby([pd.TimeGrouper('1M',name='Date'),'Buyer']).sum()
+        result = df.groupby([pd.Grouper(freq='1M',key='Date'),'Buyer']).sum()
         assert_frame_equal(result,expected)
 
-        self.assertRaises(KeyError, lambda : df.groupby([pd.TimeGrouper('1M',name='foo'),'Buyer']).sum())
+        self.assertRaises(KeyError, lambda : df.groupby([pd.Grouper(freq='1M',key='foo'),'Buyer']).sum())
 
         # passing the level
         df = df.set_index('Date')
-        result = df.groupby([pd.TimeGrouper('1M',level='Date'),'Buyer']).sum()
+        result = df.groupby([pd.Grouper(freq='1M',level='Date'),'Buyer']).sum()
         assert_frame_equal(result,expected)
-        result = df.groupby([pd.TimeGrouper('1M',level=0),'Buyer']).sum()
+        result = df.groupby([pd.Grouper(freq='1M',level=0),'Buyer']).sum()
         assert_frame_equal(result,expected)
 
-        self.assertRaises(ValueError, lambda : df.groupby([pd.TimeGrouper('1M',level='foo'),'Buyer']).sum())
+        self.assertRaises(ValueError, lambda : df.groupby([pd.Grouper(freq='1M',level='foo'),'Buyer']).sum())
+
+        # multi names
+        df = df.copy()
+        df['Date'] = df.index + pd.offsets.MonthEnd(2)
+        result = df.groupby([pd.Grouper(freq='1M',key='Date'),'Buyer']).sum()
+        expected = DataFrame({
+            'Buyer': 'Carl Joe Mark'.split(),
+            'Quantity': [10,18,3],
+            'Date' : [
+                DT.datetime(2013,11,30,0,0),
+                DT.datetime(2013,11,30,0,0),
+                DT.datetime(2013,11,30,0,0),
+                ]}).set_index(['Date','Buyer'])
+        assert_frame_equal(result,expected)
+
+        # error as we have both a level and a name!
+        self.assertRaises(ValueError, lambda : df.groupby([pd.Grouper(freq='1M',key='Date',level='Date'),'Buyer']).sum())
 
     def test_cumcount(self):
         df = DataFrame([['a'], ['a'], ['a'], ['b'], ['a']], columns=['A'])

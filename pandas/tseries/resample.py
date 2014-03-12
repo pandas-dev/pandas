@@ -2,7 +2,7 @@ from datetime import timedelta
 
 import numpy as np
 
-from pandas.core.groupby import BinGrouper, CustomGrouper
+from pandas.core.groupby import BinGrouper, Grouper
 from pandas.tseries.frequencies import to_offset, is_subperiod, is_superperiod
 from pandas.tseries.index import DatetimeIndex, date_range
 from pandas.tseries.offsets import DateOffset, Tick, _delta_to_nanoseconds
@@ -18,7 +18,7 @@ import pandas.lib as lib
 _DEFAULT_METHOD = 'mean'
 
 
-class TimeGrouper(CustomGrouper):
+class TimeGrouper(Grouper):
     """
     Custom groupby class for time-interval grouping
 
@@ -30,8 +30,6 @@ class TimeGrouper(CustomGrouper):
     nperiods : optional, integer
     convention : {'start', 'end', 'e', 's'}
         If axis is PeriodIndex
-    name : referring name, default None
-    level : referering level, default None
 
     Notes
     -----
@@ -41,11 +39,11 @@ class TimeGrouper(CustomGrouper):
     def __init__(self, freq='Min', closed=None, label=None, how='mean',
                  nperiods=None, axis=0,
                  fill_method=None, limit=None, loffset=None, kind=None,
-                 convention=None, base=0, name=None, level=None):
-        self.freq = to_offset(freq)
+                 convention=None, base=0, **kwargs):
+        freq = to_offset(freq)
 
         end_types = set(['M', 'A', 'Q', 'BM', 'BA', 'BQ', 'W'])
-        rule = self.freq.rule_code
+        rule = freq.rule_code
         if (rule in end_types or
                 ('-' in rule and rule[:rule.find('-')] in end_types)):
             if closed is None:
@@ -66,14 +64,13 @@ class TimeGrouper(CustomGrouper):
         self.convention = convention or 'E'
         self.convention = self.convention.lower()
 
-        self.axis = axis
         self.loffset = loffset
         self.how = how
         self.fill_method = fill_method
         self.limit = limit
         self.base = base
-        self.name = name
-        self.level = level
+
+        super(TimeGrouper, self).__init__(freq=freq, axis=axis, **kwargs)
 
     def resample(self, obj):
         ax = obj._get_axis(self.axis)
