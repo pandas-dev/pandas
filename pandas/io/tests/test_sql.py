@@ -373,6 +373,19 @@ class TestSQLApi(PandasSQLTest):
         row = iris_results[0]
         tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, 'Iris-setosa'])
 
+    def test_has_table(self):
+        sql.to_sql(self.test_frame1, 'test_frame_has_table', self.conn, flavor='sqlite')
+
+        self.assertTrue(
+            sql.has_table('test_frame_has_table', self.conn, flavor='sqlite'),
+            "Table not found with has_table but exists")
+
+        self.drop_table('test_frame_has_table')
+
+        self.assertFalse(
+            sql.has_table('test_frame_has_table', self.conn, flavor='sqlite'),
+            "Table found with has_table but does not exist")
+
     def test_date_parsing(self):
         """ Test date parsing in read_sql """
         # No Parsing
@@ -474,6 +487,22 @@ class _TestSQLAlchemy(PandasSQLTest):
 
         self.assertFalse(
             temp_conn.has_table('temp_frame'), 'Table not deleted from DB')
+
+    def test_has_table(self):
+        temp_frame = DataFrame(
+            {'one': [1., 2., 3., 4.], 'two': [4., 3., 2., 1.]})
+
+        self.pandasSQL.to_sql(temp_frame, 'test_frame_has_table')
+
+        self.assertTrue(
+            self.pandasSQL.has_table('test_frame_has_table'),
+            "Table not found with has_table but exists")
+
+        self.drop_table('test_frame_has_table')
+
+        self.assertFalse(
+            self.pandasSQL.has_table('test_frame_has_table'),
+            "Table found with has_table but does not exist")
 
     def test_roundtrip(self):
         self._roundtrip()
