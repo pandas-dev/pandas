@@ -70,14 +70,17 @@ class TimeGrouper(Grouper):
         self.limit = limit
         self.base = base
 
+        # by definition we always sort
+        kwargs['sort'] = True
+
         super(TimeGrouper, self).__init__(freq=freq, axis=axis, **kwargs)
 
     def resample(self, obj):
-        ax = obj._get_axis(self.axis)
+        self.set_grouper(obj)
+        ax = self.grouper
 
-        obj = self._ensure_sortedness(obj)
         if isinstance(ax, DatetimeIndex):
-            rs = self._resample_timestamps(obj)
+            rs = self._resample_timestamps()
         elif isinstance(ax, PeriodIndex):
             offset = to_offset(self.freq)
             if offset.n > 1:
@@ -87,12 +90,13 @@ class TimeGrouper(Grouper):
                 self.kind = 'timestamp'
 
             if self.kind is None or self.kind == 'period':
-                rs = self._resample_periods(obj)
+                rs = self._resample_periods()
             else:
-                obj = obj.to_timestamp(how=self.convention)
-                rs = self._resample_timestamps(obj)
+                obj = self.obj.to_timestamp(how=self.convention)
+                self.set_grouper(obj)
+                rs = self._resample_timestamps()
         elif len(ax) == 0:
-            return obj
+            return self.obj
         else:  # pragma: no cover
             raise TypeError('Only valid with DatetimeIndex or PeriodIndex')
 
@@ -101,59 +105,41 @@ class TimeGrouper(Grouper):
         return rs
 
     def get_grouper(self, obj):
-        # return a tuple of (binner, grouper, obj)
-        return self._get_time_grouper(obj)
+        self.set_grouper(obj)
+        return self.get_binner_for_resample()
 
-    def _get_grouper_for_ax(self, ax):
+    def get_binner_for_resample(self):
+        # create the BinGrouper
+        # assume that self.set_grouper(obj) has already been called
+
+        ax = self.ax
+        if self.kind is None or self.kind == 'timestamp':
+            self.binner, bins, binlabels = self._get_time_bins(ax)
+        else:
+            self.binner, bins, binlabels = self._get_time_period_bins(ax)
+
+        self.grouper = BinGrouper(bins, binlabels)
+        return self.binner, self.grouper, self.obj
+
+    def get_binner_for_grouping(self, obj):
         # return an ordering of the transformed group labels,
         # suitable for multi-grouping, e.g the labels for
         # the resampled intervals
-
-        indexer = None
-        if not ax.is_monotonic:
-            indexer = ax.argsort(kind='quicksort')
-            ax = ax.take(indexer)
-
-        if self.kind is None or self.kind == 'timestamp':
-            binner, bins, binlabels = self._get_time_bins(ax)
-        else:
-            binner, bins, binlabels = self._get_time_period_bins(ax)
-
-        grp = BinGrouper(bins, binlabels)
+        ax = self.set_grouper(obj)
+        self.get_binner_for_resample()
 
         # create the grouper
+        binner = self.binner
         l = []
-        for key, group in grp.get_iterator(ax):
+        for key, group in self.grouper.get_iterator(ax):
             l.extend([key]*len(group))
         grouper = binner.__class__(l,freq=binner.freq,name=binner.name)
 
         # since we may have had to sort
         # may need to reorder groups here
-        if indexer is not None:
-            grouper = grouper.take(indexer)
+        if self.indexer is not None:
+            grouper = grouper.take(self.indexer)
         return grouper
-
-    def _ensure_sortedness(self, obj):
-        # ensure that our object is sorted
-        ax = obj._get_axis(self.axis)
-        if not ax.is_monotonic:
-            try:
-                obj = obj.sort_index(axis=self.axis)
-            except:
-                obj = obj.sort_index()
-        return obj
-
-    def _get_time_grouper(self, obj):
-        obj = self._ensure_sortedness(obj)
-        ax = obj._get_axis(self.axis)
-
-        if self.kind is None or self.kind == 'timestamp':
-            binner, bins, binlabels = self._get_time_bins(ax)
-        else:
-            binner, bins, binlabels = self._get_time_period_bins(ax)
-
-        grouper = BinGrouper(bins, binlabels)
-        return binner, grouper, obj
 
     def _get_time_bins(self, ax):
         if not isinstance(ax, DatetimeIndex):
@@ -243,10 +229,14 @@ class TimeGrouper(Grouper):
     def _agg_method(self):
         return self.how if self.how else _DEFAULT_METHOD
 
-    def _resample_timestamps(self, obj):
-        axlabels = obj._get_axis(self.axis)
+    def _resample_timestamps(self):
+        # assumes set_grouper(obj) already called
+        axlabels = self.ax
 
-        binner, grouper, _ = self._get_time_grouper(obj)
+        self.get_binner_for_resample()
+        grouper = self.grouper
+        binner = self.binner
+        obj = self.obj
 
         # Determine if we're downsampling
         if axlabels.freq is not None or axlabels.inferred_freq is not None:
@@ -286,8 +276,10 @@ class TimeGrouper(Grouper):
 
         return result
 
-    def _resample_periods(self, obj):
-        axlabels = obj._get_axis(self.axis)
+    def _resample_periods(self):
+        # assumes set_grouper(obj) already called
+        axlabels = self.ax
+        obj = self.obj
 
         if len(axlabels) == 0:
             new_index = PeriodIndex(data=[], freq=self.freq)

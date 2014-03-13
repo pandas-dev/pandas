@@ -170,12 +170,21 @@ class Grouper(object):
         return super(Grouper, cls).__new__(cls)
 
     def __init__(self, key=None, level=None, freq=None, axis=None, sort=True):
-        self.key = key
-        self.level = level
-        self.freq = freq
-        self.axis = axis
-        self.sort = sort
-        self.grouper = None
+        self.key=key
+        self.level=level
+        self.freq=freq
+        self.axis=axis
+        self.sort=sort
+
+        self.grouper=None
+        self.obj=None
+        self.indexer=None
+        self.binner=None
+        self.grouper=None
+
+    @property
+    def ax(self):
+        return self.grouper
 
     def get_grouper(self, obj):
 
@@ -189,20 +198,17 @@ class Grouper(object):
         a tuple of binner, grouper, obj (possibly sorted)
         """
 
-        # default is to not use a binner
-        return None, self.get_grouper_for_ax(obj), obj
+        self.set_grouper(obj)
+        return self.binner, self.grouper, self.obj
 
-    def get_grouper_for_ax(self, obj):
+    def set_grouper(self, obj):
         """
-        given an object and the specifcations, return a grouper for this particular specification
+        given an object and the specifcations, setup the internal grouper for this particular specification
 
         Parameters
         ----------
         obj : the subject object
 
-        Returns
-        -------
-        grouper : an index mapping, or a BinGrouper like object
         """
 
         if self.key is not None and self.level is not None:
@@ -236,10 +242,18 @@ class Grouper(object):
                     if not (level == 0 or level == ax.name):
                         raise ValueError("The grouper level {0} is not valid".format(level))
 
-        return self._get_grouper_for_ax(ax)
+            # possibly sort
+            if not ax.is_monotonic:
+                indexer = self.indexer = ax.argsort(kind='quicksort')
+                ax = ax.take(indexer)
+                obj = obj.take(indexer, axis=self.axis, convert=False, is_copy=False)
 
-    def _get_grouper_for_ax(self, ax):
-        return ax
+        self.obj = obj
+        self.grouper = ax
+        return self.grouper
+
+    def get_binner_for_grouping(self, obj):
+        raise NotImplementedError
 
     @property
     def groups(self):
@@ -1572,7 +1586,6 @@ class Grouping(object):
     index : Index
     grouper :
     obj :
-    axis :
     name :
     level :
 
@@ -1670,9 +1683,11 @@ class Grouping(object):
             # a passed Grouper like
             elif isinstance(self.grouper, Grouper):
 
-                self.grouper = self.grouper.get_grouper_for_ax(obj)
+                # get the new grouper
+                grouper = self.grouper.get_binner_for_grouping(obj)
+                self.grouper = grouper
                 if self.name is None:
-                    self.name = self.grouper.name
+                    self.name = grouper.name
 
             # no level passed
             if not isinstance(self.grouper, (Series, np.ndarray)):
@@ -1742,8 +1757,28 @@ class Grouping(object):
 
 
 def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
+    """
+    create and return a BaseGrouper, which is an internal
+    mapping of how to create the grouper indexers.
+    This may be composed of multiple Grouping objects, indicating
+    multiple groupers
+
+    Groupers are ultimately index mappings. They can originate as:
+    index mappings, keys to columns, functions, or Groupers
+
+    Groupers enable local references to axis,level,sort, while
+    the passed in axis, level, and sort are 'global'.
+
+    This routine tries to figure of what the passing in references
+    are and then creates a Grouping for each one, combined into
+    a BaseGrouper.
+
+    """
+
     group_axis = obj._get_axis(axis)
 
+    # validate thatthe passed level is compatible with the passed
+    # axis of the object
     if level is not None:
         if not isinstance(group_axis, MultiIndex):
             if isinstance(level, compat.string_types):
@@ -1756,9 +1791,12 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
             level = None
             key = group_axis
 
+    # a passed in Grouper, directly convert
     if isinstance(key, Grouper):
-        binner, gpr, obj = key.get_grouper(obj)
-        return gpr, [], obj
+        binner, grouper, obj = key.get_grouper(obj)
+        return grouper, [], obj
+
+    # already have a BaseGrouper, just return it
     elif isinstance(key, BaseGrouper):
         return key, [], obj
 

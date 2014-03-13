@@ -2933,6 +2933,7 @@ class TestGroupBy(tm.TestCase):
                 DT.datetime(2013,12,31,0,0),
                 DT.datetime(2013,12,31,0,0),
                 ]}).set_index(['Date','Buyer'])
+
         result = df.groupby([pd.Grouper(freq='A'),'Buyer']).sum()
         assert_frame_equal(result,expected)
 
@@ -3021,6 +3022,24 @@ class TestGroupBy(tm.TestCase):
 
         # error as we have both a level and a name!
         self.assertRaises(ValueError, lambda : df.groupby([pd.Grouper(freq='1M',key='Date',level='Date'),'Buyer']).sum())
+
+
+        # single groupers
+        expected = DataFrame({ 'Quantity' : [31],
+                               'Date' : [DT.datetime(2013,10,31,0,0)] }).set_index('Date')
+        result = df.groupby(pd.Grouper(freq='1M')).sum()
+        assert_frame_equal(result, expected)
+
+        result = df.groupby([pd.Grouper(freq='1M')]).sum()
+        assert_frame_equal(result, expected)
+
+        expected = DataFrame({ 'Quantity' : [31],
+                               'Date' : [DT.datetime(2013,11,30,0,0)] }).set_index('Date')
+        result = df.groupby(pd.Grouper(freq='1M',key='Date')).sum()
+        assert_frame_equal(result, expected)
+
+        result = df.groupby([pd.Grouper(freq='1M',key='Date')]).sum()
+        assert_frame_equal(result, expected)
 
     def test_cumcount(self):
         df = DataFrame([['a'], ['a'], ['a'], ['b'], ['a']], columns=['A'])

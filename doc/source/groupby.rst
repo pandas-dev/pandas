@@ -754,6 +754,8 @@ that could be potential groupers.
    df.groupby([pd.Grouper(freq='6M',level='Date'),'Buyer']).sum()
 
 
+.. _groupby.nth:
+
 Taking the first rows of each group
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -833,6 +835,9 @@ To see the order in which each row appears within its group, use the
 Examples
 --------
 
+Regrouping by factor
+~~~~~~~~~~~~~~~~~~~~
+
 Regroup columns of a DataFrame according to their sum, and sum the aggregated ones.
 
 .. ipython:: python
@@ -841,6 +846,9 @@ Regroup columns of a DataFrame according to their sum, and sum the aggregated on
    df
    df.groupby(df.sum(), axis=1).sum()
 
+
+Returning a Series to propogate names
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Group DataFrame columns, compute a set of metrics and return a named Series.
 The Series name is used as the name for the column index.  This is especially
