@@ -593,6 +593,7 @@ cdef class TextReader:
             char *errors = "strict"
 
         header = []
+        is_duplicated = False
 
         if self.parser.header_start >= 0:
 
@@ -640,6 +641,9 @@ cdef class TextReader:
                     count = counts.get(name, 0)
                     if count > 0 and self.mangle_dupe_cols and not self.has_mi_columns:
                         this_header.append('%s.%d' % (name, count))
+
+                        # for warning later
+                        is_duplicated = True
                     else:
                         this_header.append(name)
                     counts[name] = count + 1
@@ -688,6 +692,9 @@ cdef class TextReader:
                         tmp_column = list(column)
                         tmp_column[-2] = '%s.%d' % (tmp_column[-2], count)
                         header[i] = tuple(tmp_column)
+
+                        # for warning later
+                        is_duplicated = True
 
                     counts[column] = count + 1
 
@@ -750,6 +757,9 @@ cdef class TextReader:
             # oh boy, #2442, #2981
             elif self.allow_leading_cols and passed_count < field_count:
                 self.leading_cols = field_count - passed_count
+
+        if self.mangle_dupe_cols and is_duplicated:
+            warnings.warn('Duplicated columns have been mangled', DtypeWarning)
 
         return header, field_count
 
