@@ -705,11 +705,14 @@ class TestMySQL(TestSQLite):
         try:
             import pymysql
             self.driver = pymysql
-
         except ImportError:
-            raise nose.SkipTest
+            raise nose.SkipTest('pymysql not installed')
 
-        self.conn = self.connect()
+        try:
+            self.conn = self.connect()
+        except self.driver.err.OperationalError:
+            raise nose.SkipTest("Can't connect to MySQL server")
+
         self.pandasSQL = sql.PandasSQLLegacy(self.conn, 'mysql')
 
         self._load_iris_data()
@@ -725,53 +728,55 @@ class TestMySQL(TestSQLite):
 
 
 class TestMySQLAlchemy(_TestSQLAlchemy):
-        flavor = 'mysql'
+    flavor = 'mysql'
 
-        def connect(self):
-            return sqlalchemy.create_engine(
-                'mysql+{driver}://root@localhost/pandas_nosetest'.format(driver=self.driver))
+    def connect(self):
+        return sqlalchemy.create_engine(
+            'mysql+{driver}://root@localhost/pandas_nosetest'.format(driver=self.driver))
 
-        def setUp(self):
-            if not SQLALCHEMY_INSTALLED:
-                raise nose.SkipTest('SQLAlchemy not installed')
+    def setUp(self):
+        if not SQLALCHEMY_INSTALLED:
+            raise nose.SkipTest('SQLAlchemy not installed')
 
-            try:
-                import pymysql
-                self.driver = 'pymysql'
+        try:
+            import pymysql
+            self.driver = 'pymysql'
+        except ImportError:
+            raise nose.SkipTest('pymysql not installed')
 
-            except ImportError:
-                raise nose.SkipTest
-
+        try:
             self.conn = self.connect()
             self.pandasSQL = sql.PandasSQLAlchemy(self.conn)
+        except sqlalchemy.exc.OperationalError:
+            raise nose.SkipTest("Can't connect to MySQL server")
 
-            self._load_iris_data()
-            self._load_raw_sql()
+        self._load_iris_data()
+        self._load_raw_sql()
 
-            self._load_test1_data()
+        self._load_test1_data()
 
-        def tearDown(self):
-            c = self.conn.execute('SHOW TABLES')
-            for table in c.fetchall():
-                self.conn.execute('DROP TABLE %s' % table[0])
+    def tearDown(self):
+        c = self.conn.execute('SHOW TABLES')
+        for table in c.fetchall():
+            self.conn.execute('DROP TABLE %s' % table[0])
 
-        def test_default_type_conversion(self):
-            df = sql.read_table("types_test_data", self.conn)
-    
-            self.assertTrue(issubclass(df.FloatCol.dtype.type, np.floating),
-                            "FloatCol loaded with incorrect type")
-            self.assertTrue(issubclass(df.IntCol.dtype.type, np.integer),
-                            "IntCol loaded with incorrect type")
-            # MySQL has no real BOOL type (it's an alias for TINYINT) 
-            self.assertTrue(issubclass(df.BoolCol.dtype.type, np.integer),
-                            "BoolCol loaded with incorrect type")
-    
-            # Int column with NA values stays as float
-            self.assertTrue(issubclass(df.IntColWithNull.dtype.type, np.floating),
-                            "IntColWithNull loaded with incorrect type")
-            # Bool column with NA = int column with NA values => becomes float
-            self.assertTrue(issubclass(df.BoolColWithNull.dtype.type, np.floating), 
-                            "BoolColWithNull loaded with incorrect type")
+    def test_default_type_conversion(self):
+        df = sql.read_table("types_test_data", self.conn)
+
+        self.assertTrue(issubclass(df.FloatCol.dtype.type, np.floating),
+                        "FloatCol loaded with incorrect type")
+        self.assertTrue(issubclass(df.IntCol.dtype.type, np.integer),
+                        "IntCol loaded with incorrect type")
+        # MySQL has no real BOOL type (it's an alias for TINYINT) 
+        self.assertTrue(issubclass(df.BoolCol.dtype.type, np.integer),
+                        "BoolCol loaded with incorrect type")
+
+        # Int column with NA values stays as float
+        self.assertTrue(issubclass(df.IntColWithNull.dtype.type, np.floating),
+                        "IntColWithNull loaded with incorrect type")
+        # Bool column with NA = int column with NA values => becomes float
+        self.assertTrue(issubclass(df.BoolColWithNull.dtype.type, np.floating), 
+                        "BoolColWithNull loaded with incorrect type")
 
 
 class TestPostgreSQLAlchemy(_TestSQLAlchemy):
@@ -780,26 +785,28 @@ class TestPostgreSQLAlchemy(_TestSQLAlchemy):
     def connect(self):
         return sqlalchemy.create_engine(
             'postgresql+{driver}://postgres@localhost/pandas_nosetest'.format(driver=self.driver))
-    
+
     def setUp(self):
         if not SQLALCHEMY_INSTALLED:
             raise nose.SkipTest('SQLAlchemy not installed')
-    
+
         try:
             import psycopg2
             self.driver = 'psycopg2'
-    
         except ImportError:
-            raise nose.SkipTest
-    
-        self.conn = self.connect()
-        self.pandasSQL = sql.PandasSQLAlchemy(self.conn)
-    
+            raise nose.SkipTest('psycopg2 not installed')
+
+        try:
+            self.conn = self.connect()
+            self.pandasSQL = sql.PandasSQLAlchemy(self.conn)
+        except sqlalchemy.exc.OperationalError:
+            raise nose.SkipTest("Can't connect to PostgreSQL server")
+
         self._load_iris_data()
         self._load_raw_sql()
-    
+
         self._load_test1_data()
-    
+
     def tearDown(self):
         c = self.conn.execute(
             "SELECT table_name FROM information_schema.tables"
