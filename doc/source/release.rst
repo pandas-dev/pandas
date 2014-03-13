@@ -232,7 +232,7 @@ Bug Fixes
 - Bug in sql writing with mixed dtypes possibly leading to data loss (:issue:`6509`)
 - Bug in popping from a Series (:issue:`6600`)
 - Bug in ``iloc`` indexing when positional indexer matched Int64Index of corresponding axis no reordering happened (:issue:`6612`)
-
+- Bug in ``fillna`` with ``limit`` and ``value`` specified
 
 pandas 0.13.1
 -------------

@@ -2941,6 +2941,16 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         expected = Series([0,0,2.], list('bac'))
         assert_series_equal(result,expected)
 
+        # limit
+        s = Series(np.nan,index=[0,1,2])
+        result = s.fillna(999,limit=1)
+        expected = Series([999,np.nan,np.nan],index=[0,1,2])
+        assert_series_equal(result,expected)
+
+        result = s.fillna(999,limit=2)
+        expected = Series([999,999,np.nan],index=[0,1,2])
+        assert_series_equal(result,expected)
+
     def test_fillna_bug(self):
         x = Series([nan, 1., nan, 3., nan], ['z', 'a', 'b', 'c', 'd'])
         filled = x.fillna(method='ffill')
