@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 from pandas.core.frame import DataFrame, Series
 from pandas.io.parsers import read_csv
-from pandas.io.stata import read_stata, StataReader
+from pandas.io.stata import read_stata, StataReader, InvalidColumnName
 import pandas.util.testing as tm
 from pandas.util.misc import is_little_endian
 from pandas import compat
@@ -332,10 +332,10 @@ class TestStata(tm.TestCase):
             tm.assert_frame_equal(written_and_read_again.set_index('index'), formatted)
             
     def test_read_write_dta13(self):
-        s1 = Series(2**9,dtype=np.int16)
-        s2 = Series(2**17,dtype=np.int32)
-        s3 = Series(2**33,dtype=np.int64)
-        original = DataFrame({'int16':s1,'int32':s2,'int64':s3})
+        s1 = Series(2**9, dtype=np.int16)
+        s2 = Series(2**17, dtype=np.int32)
+        s3 = Series(2**33, dtype=np.int64)
+        original = DataFrame({'int16': s1, 'int32': s2, 'int64': s3})
         original.index.name = 'index'
 
         formatted = original
@@ -398,6 +398,22 @@ class TestStata(tm.TestCase):
             assert parsed_time_stamp == time_stamp
             assert reader.data_label == data_label
 
+    def test_numeric_column_names(self):
+        original = DataFrame(np.reshape(np.arange(25.0), (5, 5)))
+        original.index.name = 'index'
+        with tm.ensure_clean() as path:
+            # should get a warning for that format.
+            with warnings.catch_warnings(record=True) as w:
+                tm.assert_produces_warning(original.to_stata(path), InvalidColumnName)
+            # should produce a single warning
+            np.testing.assert_equal(len(w), 1)
+
+            written_and_read_again = self.read_dta(path)
+            written_and_read_again = written_and_read_again.set_index('index')
+            columns = list(written_and_read_again.columns)
+            convert_col_name = lambda x: int(x[1])
+            written_and_read_again.columns = map(convert_col_name, columns)
+            tm.assert_frame_equal(original, written_and_read_again)
 
 
 if __name__ == '__main__':

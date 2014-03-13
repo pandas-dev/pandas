@@ -20,7 +20,7 @@ from pandas.core.series import Series
 from pandas.core.categorical import Categorical
 import datetime
 from pandas import compat
-from pandas.compat import long, lrange, lmap, lzip
+from pandas.compat import long, lrange, lmap, lzip, text_type, string_types
 from pandas import isnull
 from pandas.io.common import get_filepath_or_buffer
 from pandas.tslib import NaT
@@ -190,6 +190,21 @@ Column converted from %s to %s, and some data are outside of the lossless
 conversion range. This may result in a loss of precision in the saved data.
 """
 
+
+class InvalidColumnName(Warning):
+    pass
+
+
+invalid_name_doc = """
+Not all pandas column names were valid Stata variable names.
+The following replacements have been made:
+
+    {0}
+
+If this is not what you expect, please make sure you have Stata-compliant
+column names in your DataFrame (strings only, max 32 characters, only alphanumerics and
+underscores, no Stata reserved words)
+"""
 
 def _cast_to_stata_types(data):
     """Checks the dtypes of the columns of a pandas DataFrame for
@@ -942,7 +957,7 @@ def _maybe_convert_to_int_keys(convert_dates, varlist):
         else:
             if not isinstance(key, int):
                 raise ValueError(
-                    "convery_dates key is not in varlist and is not an int"
+                    "convert_dates key is not in varlist and is not an int"
                 )
             new_dict.update({key: convert_dates[key]})
     return new_dict
@@ -1092,6 +1107,78 @@ class StataWriter(StataParser):
         else:
             self._file.write(to_write)
 
+
+    def _check_column_names(self, data):
+        """Checks column names to ensure that they are valid Stata column names.
+        This includes checks for:
+            * Non-string names
+            * Stata keywords
+            * Variables that start with numbers
+            * Variables with names that are too long
+
+        When an illegal variable name is detected, it is converted, and if dates
+        are exported, the variable name is propogated to the date conversion
+        dictionary
+        """
+        converted_names = []
+        columns = list(data.columns)
+        original_columns = columns[:]
+
+        duplicate_var_id = 0
+        for j, name in enumerate(columns):
+            orig_name = name
+            if not isinstance(name, string_types):
+                name = text_type(name)
+
+            for c in name:
+                if (c < 'A' or c > 'Z') and (c < 'a' or c > 'z') and \
+                        (c < '0' or c > '9') and c != '_':
+                    name = name.replace(c, '_')
+
+            # Variable name must not be a reserved word
+            if name in self.RESERVED_WORDS:
+                name = '_' + name
+
+            # Variable name may not start with a number
+            if name[0] >= '0' and name[0] <= '9':
+                name = '_' + name
+
+            name = name[:min(len(name), 32)]
+
+            if not name == orig_name:
+                # check for duplicates
+                while columns.count(name) > 0:
+                    # prepend ascending number to avoid duplicates
+                    name = '_' + str(duplicate_var_id) + name
+                    name = name[:min(len(name), 32)]
+                    duplicate_var_id += 1
+
+                # need to possibly encode the orig name if its unicode
+                try:
+                    orig_name = orig_name.encode('utf-8')
+                except:
+                    pass
+                converted_names.append('{0}   ->   {1}'.format(orig_name, name))
+
+            columns[j] = name
+
+        data.columns = columns
+
+        # Check date conversion, and fix key if needed
+        if self._convert_dates:
+            for c, o in zip(columns, original_columns):
+                if c != o:
+                    self._convert_dates[c] = self._convert_dates[o]
+                    del self._convert_dates[o]
+
+        if converted_names:
+            import warnings
+
+            ws = invalid_name_doc.format('\n    '.join(converted_names))
+            warnings.warn(ws, InvalidColumnName)
+
+        return data
+
     def _prepare_pandas(self, data):
         #NOTE: we might need a different API / class for pandas objects so
         # we can set different semantics - handle this with a PR to pandas.io
@@ -1108,6 +1195,8 @@ class StataWriter(StataParser):
             data = data.reset_index()
         # Check columns for compatibility with stata
         data = _cast_to_stata_types(data)
+        # Ensure column names are strings
+        data = self._check_column_names(data)
         self.datarows = DataFrameRowIter(data)
         self.nobs, self.nvar = data.shape
         self.data = data
@@ -1181,57 +1270,12 @@ class StataWriter(StataParser):
         for typ in self.typlist:
             self._write(typ)
 
-        # varlist, length 33*nvar, char array, null terminated
-        converted_names = []
-        duplicate_var_id = 0
-        for j, name in enumerate(self.varlist):
-            orig_name = name
-            # Replaces all characters disallowed in .dta format by their integral representation.
-            for c in name:
-                if (c < 'A' or c > 'Z') and (c < 'a' or c > 'z') and (c < '0' or c > '9') and c != '_':
-                    name = name.replace(c, '_')
-            # Variable name must not be a reserved word
-            if name in self.RESERVED_WORDS:
-                    name = '_' + name
-            # Variable name may not start with a number
-            if name[0] > '0' and name[0] < '9':
-                name = '_' + name
-
-            name = name[:min(len(name), 32)]
-
-            if not name == orig_name:
-                # check for duplicates
-                while self.varlist.count(name) > 0:
-                    # prepend ascending number to avoid duplicates
-                    name = '_' + str(duplicate_var_id) + name
-                    name = name[:min(len(name), 32)]
-                    duplicate_var_id += 1
-
-                # need to possibly encode the orig name if its unicode
-                try:
-                    orig_name = orig_name.encode('utf-8')
-                except:
-                    pass
-
-                converted_names.append('{0}    ->    {1}'.format(orig_name, name))
-                self.varlist[j] = name
-
+        # varlist names are checked by _check_column_names
+        # varlist, requires null terminated
         for name in self.varlist:
             name = self._null_terminate(name, True)
             name = _pad_bytes(name[:32], 33)
             self._write(name)
-
-        if converted_names:
-            from warnings import warn
-            warn("""Not all pandas column names were valid Stata variable names.
-                Made the following replacements:
-
-                    {0}
-
-                If this is not what you expect, please make sure you have Stata-compliant
-                column names in your DataFrame (max 32 characters, only alphanumerics and
-                underscores)/
-                """.format('\n    '.join(converted_names)))
 
         # srtlist, 2*(nvar+1), int array, encoded by byteorder
         srtlist = _pad_bytes("", (2*(nvar+1)))
