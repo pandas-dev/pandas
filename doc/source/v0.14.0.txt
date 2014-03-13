@@ -90,6 +90,8 @@ These are out-of-bounds selections
 
      g.nth(0, dropna='any')  # similar to old behaviour
 
+- Allow specification of a more complex groupby via ``pd.Groupby``, See :ref:`the docs <groupby.specify>`. (:issue:`3794`)
+
 - Local variable usage has changed in
   :func:`pandas.eval`/:meth:`DataFrame.eval`/:meth:`DataFrame.query`
   (:issue:`5987`). For the :class:`~pandas.DataFrame` methods, two things have

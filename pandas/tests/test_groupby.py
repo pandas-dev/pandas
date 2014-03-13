@@ -2933,7 +2933,7 @@ class TestGroupBy(tm.TestCase):
                 DT.datetime(2013,12,31,0,0),
                 DT.datetime(2013,12,31,0,0),
                 ]}).set_index(['Date','Buyer'])
-        result = df.groupby([pd.TimeGrouper('A'),'Buyer']).sum()
+        result = df.groupby([pd.Grouper(freq='A'),'Buyer']).sum()
         assert_frame_equal(result,expected)
 
         expected = DataFrame({
@@ -2946,7 +2946,7 @@ class TestGroupBy(tm.TestCase):
                 DT.datetime(2013,7,1,0,0),
                 ]}).set_index(['Date','Buyer'])
 
-        result = df.groupby([pd.TimeGrouper('6MS'),'Buyer']).sum()
+        result = df.groupby([pd.Grouper(freq='6MS'),'Buyer']).sum()
         assert_frame_equal(result,expected)
 
         df = DataFrame({
@@ -2975,10 +2975,10 @@ class TestGroupBy(tm.TestCase):
                 DT.datetime(2013,10,2,0,0),
                 ]}).set_index(['Date','Buyer'])
 
-        result = df.groupby([pd.TimeGrouper('1D'),'Buyer']).sum()
+        result = df.groupby([pd.Grouper(freq='1D'),'Buyer']).sum()
         assert_frame_equal(result,expected)
 
-        result = df.groupby([pd.TimeGrouper('1M'),'Buyer']).sum()
+        result = df.groupby([pd.Grouper(freq='1M'),'Buyer']).sum()
         expected = DataFrame({
             'Buyer': 'Carl Joe Mark'.split(),
             'Quantity': [10,18,3],

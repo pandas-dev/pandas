@@ -125,6 +125,8 @@ API Changes
     ``DataFrame.stack`` operations where the name of the column index is used as
     the name of the inserted column containing the pivoted data.
 
+- Allow specification of a more complex groupby, via ``pd.Groupby`` (:issue:`3794`)
+
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
 
