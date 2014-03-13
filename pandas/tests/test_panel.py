@@ -1322,6 +1322,11 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         self.assertRaises(TypeError, self.panel.fillna, [1, 2])
         self.assertRaises(TypeError, self.panel.fillna, (1, 2))
 
+        # limit not implemented when only value is specified
+        p = Panel(np.random.randn(3,4,5))
+        p.iloc[0:2,0:2,0:2] = np.nan
+        self.assertRaises(NotImplementedError, lambda : p.fillna(999,limit=1))
+
     def test_ffill_bfill(self):
         assert_panel_equal(self.panel.ffill(),
                            self.panel.fillna(method='ffill'))

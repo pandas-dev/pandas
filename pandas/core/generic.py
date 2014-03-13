@@ -2162,7 +2162,9 @@ class NDFrame(PandasObject):
                     from pandas import Series
                     value = Series(value)
 
-                new_data = self._data.fillna(value=value, inplace=inplace,
+                new_data = self._data.fillna(value=value,
+                                             limit=limit,
+                                             inplace=inplace,
                                              downcast=downcast)
 
             elif isinstance(value, (dict, com.ABCSeries)):
@@ -2176,10 +2178,12 @@ class NDFrame(PandasObject):
                     if k not in result:
                         continue
                     obj = result[k]
-                    obj.fillna(v, inplace=True)
+                    obj.fillna(v, limit=limit, inplace=True)
                 return result
             else:
-                new_data = self._data.fillna(value=value, inplace=inplace,
+                new_data = self._data.fillna(value=value,
+                                             limit=limit,
+                                             inplace=inplace,
                                              downcast=downcast)
 
         if inplace:

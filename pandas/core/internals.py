@@ -367,7 +367,7 @@ class Block(PandasObject):
         """ apply the function to my values; return a block if we are not one """
         return self.as_block(func(self.values))
 
-    def fillna(self, value, inplace=False, downcast=None):
+    def fillna(self, value, limit=None, inplace=False, downcast=None):
         if not self._can_hold_na:
             if inplace:
                 return [self]
@@ -375,6 +375,11 @@ class Block(PandasObject):
                 return [self.copy()]
 
         mask = com.isnull(self.values)
+        if limit is not None:
+            if self.ndim > 2:
+                raise NotImplementedError
+            mask[mask.cumsum(self.ndim-1)>limit]=False
+
         value = self._try_fill(value)
         blocks = self.putmask(mask, value, inplace=inplace)
         return self._maybe_downcast(blocks, downcast)
@@ -1680,11 +1685,18 @@ class DatetimeBlock(Block):
             value = tslib.iNaT
         return value
 
-    def fillna(self, value, inplace=False, downcast=None):
+    def fillna(self, value, limit=None,
+               inplace=False, downcast=None):
+
         # straight putmask here
         values = self.values if inplace else self.values.copy()
         mask = com.isnull(self.values)
         value = self._try_fill(value)
+        if limit is not None:
+            if self.ndim > 2:
+                raise NotImplementedError
+            mask[mask.cumsum(self.ndim-1)>limit]=False
+
         np.putmask(values, mask, value)
         return [self if inplace else
                 make_block(values, self.items, self.ref_items, fastpath=True)]
@@ -1889,8 +1901,10 @@ class SparseBlock(Block):
             self.values.to_dense(), method, axis, limit, fill_value)
         return self.make_block(values, self.items, self.ref_items)
 
-    def fillna(self, value, inplace=False, downcast=None):
+    def fillna(self, value, limit=None, inplace=False, downcast=None):
         # we may need to upcast our fill to match our dtype
+        if limit is not None:
+            raise NotImplementedError
         if issubclass(self.dtype.type, np.floating):
             value = float(value)
         values = self.values if inplace else self.values.copy()
