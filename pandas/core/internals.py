@@ -967,7 +967,7 @@ class Block(PandasObject):
             axis_indexer[axis] = slice(None,periods)
         else:
             axis_indexer[axis] = slice(periods,None)
-        new_values.T[tuple(axis_indexer)] = fill_value
+        new_values[tuple(axis_indexer)] = fill_value
 
         return [make_block(new_values.T, self.items, self.ref_items,
                            ndim=self.ndim, fastpath=True)]
