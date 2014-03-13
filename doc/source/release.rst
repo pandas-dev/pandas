@@ -233,6 +233,7 @@ Bug Fixes
 - Bug in popping from a Series (:issue:`6600`)
 - Bug in ``iloc`` indexing when positional indexer matched Int64Index of corresponding axis no reordering happened (:issue:`6612`)
 - Bug in ``fillna`` with ``limit`` and ``value`` specified
+- Bug in ``DataFrame.to_stata`` when columns have non-string names (:issue:`4558`)
 
 pandas 0.13.1
 -------------
