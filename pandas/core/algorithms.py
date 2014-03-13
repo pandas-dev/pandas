@@ -173,7 +173,7 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
 
 
 def value_counts(values, sort=True, ascending=False, normalize=False,
-                 bins=None, dropna=True):
+                 bins=None, dropna=True, base=None):
     """
     Compute a histogram of the counts of non-null values.
 
@@ -191,6 +191,8 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
         convenience for pd.cut, only works with numeric data
     dropna : boolean, default True
         Don't include counts of NaN
+    base : list-like, optional
+        Unique values to count against
 
     Returns
     -------
@@ -245,6 +247,7 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
             counts = np.insert(counts, 0, mask.sum())
 
     result = Series(counts, index=com._values_from_object(keys))
+
     if bins is not None:
         # TODO: This next line should be more efficient
         result = result.reindex(np.arange(len(cat.categories)), fill_value=0)
@@ -253,10 +256,11 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
         else:
             result.index = cat.categories
 
+    if base is not None:
+        result = result.reindex(base, fill_value=0)
+
     if sort:
-        result.sort()
-        if not ascending:
-            result = result[::-1]
+        result.sort(ascending=ascending)
 
     if normalize:
         result = result / float(values.size)
