@@ -3810,6 +3810,21 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         exp4n = Series({0.998: 0.5, 1.5: 0.25, 2.0: 0.0, 2.5: 0.25}, index=[0.998, 2.5, 1.5, 2.0])
         assert_series_equal(res4n, exp4n)
 
+        # base
+        x = Series([1, 3, 3, 3, 2, 2, 7])
+        y = Series([3, 2, 5])
+        res = x.value_counts(base=y, sort=False)
+        exp = Series([3, 2, 0], y)
+        assert_series_equal(res, exp)
+        
+        res = x.value_counts(base=y, sort=True)
+        assert_series_equal(res, exp.reindex([3, 2, 5]))
+
+        res = x.value_counts(base=y, sort=True, normalize=True)
+        exp = Series([0.42857142857142855, 0.2857142857142857, 0.0], [3, 2, 5])
+        # Note: this *doesn't* sum to 1 (intentionally)
+        assert_series_equal(res, exp)
+
         # handle NA's properly
         s[5:7] = np.nan
         hist = s.value_counts()

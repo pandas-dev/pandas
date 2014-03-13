@@ -1093,7 +1093,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return notnull(_values_from_object(self)).sum()
 
     def value_counts(self, normalize=False, sort=True, ascending=False,
-                     bins=None):
+                     bins=None, base=None):
         """
         Returns Series containing counts of unique values. The resulting Series
         will be in descending order so that the first element is the most
@@ -1111,6 +1111,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         bins : integer, optional
             Rather than count values, group them into half-open bins,
             a convenience for pd.cut, only works with numeric data
+        base : list-like, optional
+            Unique values to count against
 
         Returns
         -------
@@ -1118,7 +1120,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         from pandas.core.algorithms import value_counts
         return value_counts(self.values, sort=sort, ascending=ascending,
-                            normalize=normalize, bins=bins)
+                            normalize=normalize, bins=bins, base=base)
 
     def mode(self):
         """Returns the mode(s) of the dataset.

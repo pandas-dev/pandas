@@ -161,7 +161,7 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
 
 
 def value_counts(values, sort=True, ascending=False, normalize=False,
-                 bins=None):
+                 bins=None, base=None):
     """
     Compute a histogram of the counts of non-null values
 
@@ -177,6 +177,8 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
     bins : integer, optional
         Rather than count values, group them into half-open bins,
         convenience for pd.cut, only works with numeric data
+    base : list-like, optional
+        Unique values to count against
 
     Returns
     -------
@@ -205,24 +207,25 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
         keys, counts = htable.value_count_int64(values)
 
         # convert the keys back to the dtype we came in
-        keys = Series(keys, dtype=dtype)
+        keys = keys.astype(dtype)
 
     else:
         mask = com.isnull(values)
         values = com._ensure_object(values)
         keys, counts = htable.value_count_object(values, mask)
 
-    result = Series(counts, index=com._values_from_object(keys))
+    result = Series(counts, index=keys)
 
     if bins is not None:
         # TODO: This next line should be more efficient
         result = result.reindex(np.arange(len(cat.levels)), fill_value=0)
         result.index = bins[:-1]
 
+    if base is not None:
+        result = result.reindex(base, fill_value=0)
+
     if sort:
-        result.sort()
-        if not ascending:
-            result = result[::-1]
+        result.sort(ascending=ascending)
 
     if normalize:
         result = result / float(values.size)

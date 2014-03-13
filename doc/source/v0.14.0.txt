@@ -317,6 +317,12 @@ Enhancements
 
 - ``quotechar``, ``doublequote``, and ``escapechar`` can now be specified when
   using ``DataFrame.to_csv`` (:issue:`5414`, :issue:`4528`)
+- ``value_counts`` accepts a base argument:
+
+  ..ipython::python
+
+     Series(list('aaabbc')).value_counts(base=list('acd'))
+
 - Added a ``to_julian_date`` function to ``TimeStamp`` and ``DatetimeIndex``
   to convert to the Julian Date used primarily in astronomy. (:issue:`4041`)
 - ``DataFrame.to_stata`` will now check data for compatibility with Stata data types
