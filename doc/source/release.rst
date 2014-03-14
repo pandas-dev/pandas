@@ -188,6 +188,7 @@ Bug Fixes
 - Disabled clipboard tests until release time (run locally with ``nosetests -A disabled`` (:issue:`6048`).
 - Bug in ``DataFrame.replace()`` when passing a nested ``dict`` that contained
   keys not in the values to be replaced (:issue:`6342`)
+- ``str.match`` ignored the na flag (:issue:`6609`).
 - Bug in take with duplicate columns not consolidated (:issue:`6240`)
 - Bug in interpolate changing dtypes (:issue:`6290`)
 - Bug in Series.get, was using a buggy access method (:issue:`6383`)

@@ -364,11 +364,11 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=False):
         # Do this first, to make sure it happens even if the re.compile
         # raises below.
         warnings.warn("In future versions of pandas, match will change to"
-                      " always return a bool indexer.""", UserWarning)
+                      " always return a bool indexer.", UserWarning)
 
     if as_indexer and regex.groups > 0:
         warnings.warn("This pattern has match groups. To actually get the"
-                      " groups, use str.extract.""", UserWarning)
+                      " groups, use str.extract.", UserWarning)
 
     # If not as_indexer and regex.groups == 0, this returns empty lists
     # and is basically useless, so we will not warn.
@@ -384,7 +384,7 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=False):
         # This is the new behavior of str_match.
         f = lambda x: bool(regex.match(x))
 
-    return _na_map(f, arr)
+    return _na_map(f, arr, na)
 
 
 def str_extract(arr, pat, flags=0):
@@ -887,6 +887,12 @@ class StringMethods(object):
                               na=na, regex=regex)
         return self._wrap_result(result)
 
+    @copy(str_match)
+    def match(self, pat, case=True, flags=0, na=np.nan, as_indexer=False):
+        result = str_match(self.series, pat, case=case, flags=flags,
+                              na=na, as_indexer=as_indexer)
+        return self._wrap_result(result)
+
     @copy(str_replace)
     def replace(self, pat, repl, n=-1, case=True, flags=0):
         result = str_replace(self.series, pat, repl, n=n, case=case,
@@ -951,7 +957,6 @@ class StringMethods(object):
     startswith = _pat_wrapper(str_startswith, na=True)
     endswith = _pat_wrapper(str_endswith, na=True)
     findall = _pat_wrapper(str_findall, flags=True)
-    match = _pat_wrapper(str_match, flags=True)
     extract = _pat_wrapper(str_extract, flags=True)
 
     len = _noarg_wrapper(str_len)
