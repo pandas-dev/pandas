@@ -712,17 +712,9 @@ class HTMLFormatter(TableFormatter):
         self.write('<table border="1" class="%s">' % ' '.join(_classes),
                    indent)
 
-        if len(frame.columns) == 0 or len(frame.index) == 0:
-            self.write('<tbody>', indent + self.indent_delta)
-            self.write_tr([repr(frame.index),
-                           'Empty %s' % type(frame).__name__],
-                          indent + (2 * self.indent_delta),
-                          self.indent_delta)
-            self.write('</tbody>', indent + self.indent_delta)
-        else:
-            indent += self.indent_delta
-            indent = self._write_header(indent)
-            indent = self._write_body(indent)
+        indent += self.indent_delta
+        indent = self._write_header(indent)
+        indent = self._write_body(indent)
 
         self.write('</table>', indent)
         if self.fmt.show_dimensions:

@@ -74,6 +74,7 @@ API Changes
 - ``dtypes`` and ``ftypes`` now return a series with ``dtype=object`` on empty containers (:issue:`5740`)
 - ``df.to_csv`` will now return a string of the CSV data if neither a target path nor a buffer is provided
   (:issue:`6061`)
+- ``df.to_html`` will now print out the header of an empty dataframe (:issue:`6062`)
 - The ``interpolate`` ``downcast`` keyword default has been changed from ``infer`` to
   ``None``. This is to preseve the original dtype unless explicitly requested otherwise (:issue:`6290`).
 - allow a Series to utilize index methods depending on its index type, e.g. ``Series.year`` is now defined
