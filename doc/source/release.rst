@@ -125,6 +125,9 @@ API Changes
     ``DataFrame.stack`` operations where the name of the column index is used as
     the name of the inserted column containing the pivoted data.
 
+- A tuple passed to ``DataFame.sort_index`` will be interpreted as the levels of
+  the index, rather than requiring a list of tuple (:issue:`4370`)
+
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
 

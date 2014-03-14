@@ -9797,6 +9797,17 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             # multi-column 'by' is separate codepath
             df.sort_index(by=['a', 'b'])
 
+        # with multi-index
+        # GH4370
+        df = DataFrame(np.random.randn(4,2),columns=MultiIndex.from_tuples([('a',0),('a',1)]))
+        with assertRaisesRegexp(ValueError, 'levels'):
+            df.sort_index(by='a')
+
+        # convert tuples to a list of tuples
+        expected = df.sort_index(by=[('a',1)])
+        result = df.sort_index(by=('a',1))
+        assert_frame_equal(result, expected)
+
     def test_sort_datetimes(self):
 
         # GH 3461, argsort / lexsort differences for a datetime column
