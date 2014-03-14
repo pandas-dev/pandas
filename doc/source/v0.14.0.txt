@@ -327,6 +327,7 @@ Enhancements
 - ``DataFrame.to_stata`` and ``StataWriter`` will accept keyword arguments time_stamp
   and data_label which allow the time stamp and dataset label to be set when creating a
   file. (:issue:`6545`)
+- ``pandas.io.gbq`` now handles reading unicode strings properly. (:issue:`5940`)
 
 Performance
 ~~~~~~~~~~~
