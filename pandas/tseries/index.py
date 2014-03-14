@@ -1421,6 +1421,9 @@ class DatetimeIndex(Int64Index):
     @property
     def freq(self):
         """ return the frequency object if its set, otherwise None """
+        offset = self.offset
+        if offset is None:
+            _ = self.inferred_freq
         return self.offset
 
     @cache_readonly
