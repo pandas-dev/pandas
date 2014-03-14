@@ -125,6 +125,11 @@ API Changes
     DataFrame returned by ``GroupBy.apply`` (:issue:`6124`).  This facilitates
     ``DataFrame.stack`` operations where the name of the column index is used as
     the name of the inserted column containing the pivoted data.
+	
+- The :func:`pivot_table`/:meth:`DataFrame.pivot_table` and :func:`crosstab` functions 
+  now take arguments ``index`` and ``columns`` instead of ``rows`` and ``cols``.  A 
+  ``FutureWarning`` is raised  to alert that the old ``rows`` and ``cols`` arguments
+  will not be supported in a future release (:issue:`5505`)
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~

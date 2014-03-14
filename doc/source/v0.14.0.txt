@@ -167,6 +167,11 @@ These are out-of-bounds selections
     # New output, 4-level MultiIndex
     df_multi.set_index([df_multi.index, df_multi.index])
 
+- The :func:`pivot_table`/:meth:`DataFrame.pivot_table` and :func:`crosstab` functions 
+  now take arguments ``index`` and ``columns`` instead of ``rows`` and ``cols``.  A 
+  ``FutureWarning`` is raised  to alert that the old ``rows`` and ``cols`` arguments
+  will not be supported in a future release (:issue:`5505`)
+
 
 MultiIndexing Using Slicers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
