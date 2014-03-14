@@ -114,6 +114,23 @@ class TestMultiLevel(tm.TestCase):
         expected = self.ymd.groupby(level='month').transform(np.sum).T
         assert_frame_equal(result, expected)
 
+        # GH 4088
+        arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
+                  ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
+        tuples = lzip(*arrays)
+        index = MultiIndex.from_tuples(tuples, names=['first', 'second'])
+        df = DataFrame({"a":list("abcdefgh"), "b":list("abcdefgh")}, index=index)
+        order = ["baz", "bar", "foo", "qux"]
+
+        arrays = [['baz', 'baz', 'bar', 'bar', 'foo', 'foo', 'qux', 'qux'],
+                  ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
+        tuples = lzip(*arrays)
+        index = MultiIndex.from_tuples(tuples, names=['first', 'second'])
+        expected = DataFrame({"a":list("cdabefgh"), "b":list("cdabefgh")}, index=index)
+
+        result = df.reindex(order, level=0)
+        assert_frame_equal(result, expected)
+
     def test_binops_level(self):
         def _check_op(opname):
             op = getattr(DataFrame, opname)
