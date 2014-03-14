@@ -1426,7 +1426,9 @@ class DatetimeIndex(Int64Index):
     @cache_readonly
     def inferred_freq(self):
         try:
-            return infer_freq(self)
+            freq = infer_freq(self)
+            self.offset = to_offset(freq)
+            return freq
         except ValueError:
             return None
 

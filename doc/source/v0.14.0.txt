@@ -330,6 +330,7 @@ Enhancements
   and data_label which allow the time stamp and dataset label to be set when creating a
   file. (:issue:`6545`)
 - ``pandas.io.gbq`` now handles reading unicode strings properly. (:issue:`5940`)
+- If it is possible to infer the frequency, viewing the ``inferred_freq`` property of a DatetimeIndex now sets the offset and freq property as a side effect.
 
 Performance
 ~~~~~~~~~~~
