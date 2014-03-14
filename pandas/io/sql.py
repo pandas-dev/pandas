@@ -229,7 +229,8 @@ def read_sql(sql, con, index_col=None, flavor='sqlite', coerce_float=True,
                                parse_dates=parse_dates)
 
 
-def to_sql(frame, name, con, flavor='sqlite', if_exists='fail', index=True):
+def to_sql(frame, name, con, flavor='sqlite', if_exists='fail', index=True,
+           index_label=None):
     """
     Write records stored in a DataFrame to a SQL database.
 
@@ -251,6 +252,11 @@ def to_sql(frame, name, con, flavor='sqlite', if_exists='fail', index=True):
         - append: If table exists, insert data. Create if does not exist.
     index : boolean, default True
         Write DataFrame index as a column
+    index_label : string or sequence, default None
+        Column label for index column(s). If None is given (default) and
+        `index` is True, then the index names are used.
+        A sequence should be given if the DataFrame uses MultiIndex.
+
     """
     pandas_sql = pandasSQL_builder(con, flavor=flavor)
 
@@ -259,7 +265,8 @@ def to_sql(frame, name, con, flavor='sqlite', if_exists='fail', index=True):
     elif not isinstance(frame, DataFrame):
         raise NotImplementedError
 
-    pandas_sql.to_sql(frame, name, if_exists=if_exists, index=index)
+    pandas_sql.to_sql(frame, name, if_exists=if_exists, index=index,
+                      index_label=index_label)
 
 
 def has_table(table_name, con, meta=None, flavor='sqlite'):
@@ -377,12 +384,12 @@ class PandasSQLTable(PandasObject):
     """
     # TODO: support for multiIndex
     def __init__(self, name, pandas_sql_engine, frame=None, index=True,
-                 if_exists='fail', prefix='pandas'):
+                 if_exists='fail', prefix='pandas', index_label=None):
         self.name = name
         self.pd_sql = pandas_sql_engine
         self.prefix = prefix
         self.frame = frame
-        self.index = self._index_name(index)
+        self.index = self._index_name(index, index_label)
 
         if frame is not None:
             # We want to write a frame
@@ -473,9 +480,11 @@ class PandasSQLTable(PandasObject):
 
         return self.frame
 
-    def _index_name(self, index):
+    def _index_name(self, index, index_label):
         if index is True:
-            if self.frame.index.name is not None:
+            if index_label is not None:
+                return _safe_col_name(index_label)
+            elif self.frame.index.name is not None:
                 return _safe_col_name(self.frame.index.name)
             else:
                 return self.prefix + '_index'
@@ -652,9 +661,11 @@ class PandasSQLAlchemy(PandasSQL):
 
         return data_frame
 
-    def to_sql(self, frame, name, if_exists='fail', index=True):
+    def to_sql(self, frame, name, if_exists='fail', index=True,
+               index_label=None):
         table = PandasSQLTable(
-            name, self, frame=frame, index=index, if_exists=if_exists)
+            name, self, frame=frame, index=index, if_exists=if_exists,
+            index_label=index_label)
         table.insert()
 
     @property
@@ -882,7 +893,8 @@ class PandasSQLLegacy(PandasSQL):
             result = list(result)
         return result
 
-    def to_sql(self, frame, name, if_exists='fail', index=True):
+    def to_sql(self, frame, name, if_exists='fail', index=True,
+               index_label=None):
         """
         Write records stored in a DataFrame to a SQL database.
 
@@ -895,6 +907,7 @@ class PandasSQLLegacy(PandasSQL):
             fail: If table exists, do nothing.
             replace: If table exists, drop it, recreate it, and insert data.
             append: If table exists, insert data. Create if does not exist.
+        index_label : ignored (only used in sqlalchemy mode)
         """
         table = PandasSQLTableLegacy(
             name, self, frame=frame, index=index, if_exists=if_exists)
