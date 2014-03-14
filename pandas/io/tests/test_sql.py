@@ -255,7 +255,7 @@ class PandasSQLTest(unittest.TestCase):
         tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, 'Iris-setosa'])
 
 
-class TestSQLApi(PandasSQLTest):
+class _TestSQLApi(PandasSQLTest):
 
     """Test the public API as it would be used
     directly, including legacy names
@@ -268,12 +268,6 @@ class TestSQLApi(PandasSQLTest):
 
     """
     flavor = 'sqlite'
-
-    def connect(self):
-        if SQLALCHEMY_INSTALLED:
-            return sqlalchemy.create_engine('sqlite:///:memory:')
-        else:
-            return sqlite3.connect(':memory:')
 
     def setUp(self):
         self.conn = self.connect()
@@ -435,6 +429,56 @@ class TestSQLApi(PandasSQLTest):
         self.assertTrue(
             issubclass(df.IntDateCol.dtype.type, np.datetime64),
             "IntDateCol loaded with incorrect type")
+
+class TestSQLApi(_TestSQLApi):
+    """Test the public API as it would be used directly
+    """
+    flavor = 'sqlite'
+
+    def connect(self):
+        if SQLALCHEMY_INSTALLED:
+            return sqlalchemy.create_engine('sqlite:///:memory:')
+        else:
+            raise nose.SkipTest('SQLAlchemy not installed')
+
+    def test_to_sql_index_label(self):
+        temp_frame = DataFrame({'col1': range(4)})
+        
+        # no index name, defaults to 'pandas_index'
+        sql.to_sql(temp_frame, 'test_index_label', self.conn)
+        frame = sql.read_table('test_index_label', self.conn)
+        self.assertEqual(frame.columns[0], 'pandas_index')
+
+        # specifying index_label
+        sql.to_sql(temp_frame, 'test_index_label', self.conn,
+                   if_exists='replace', index_label='other_label')
+        frame = sql.read_table('test_index_label', self.conn)
+        self.assertEqual(frame.columns[0], 'other_label',
+                         "Specified index_label not written to database")
+
+        # using the index name
+        temp_frame.index.name = 'index'
+        sql.to_sql(temp_frame, 'test_index_label', self.conn,
+                   if_exists='replace')
+        frame = sql.read_table('test_index_label', self.conn)
+        self.assertEqual(frame.columns[0], 'index',
+                         "Index name not written to database")
+
+        # has index name, but specifying index_label
+        sql.to_sql(temp_frame, 'test_index_label', self.conn,
+                   if_exists='replace', index_label='other_label')
+        frame = sql.read_table('test_index_label', self.conn)
+        self.assertEqual(frame.columns[0], 'other_label',
+                         "Specified index_label not written to database")
+
+
+class TestSQLLegacyApi(_TestSQLApi):
+    """Test the public legacy API
+    """
+    flavor = 'sqlite'
+
+    def connect(self):
+        return sqlite3.connect(':memory:')
 
 
 class _TestSQLAlchemy(PandasSQLTest):
