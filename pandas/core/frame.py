@@ -2530,7 +2530,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Sorting
 
-    def sort(self, columns=None, column=None, axis=0, ascending=True,
+    def sort(self, columns=None, axis=0, ascending=True,
              inplace=False):
         """
         Sort DataFrame either by labels (along either axis) or by the values in
@@ -2539,8 +2539,9 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         columns : object
-            Column name(s) in frame. Accepts a column name or a list or tuple
-            for a nested sort.
+            Column name(s) in frame. Accepts a column name or a list
+            for a nested sort. A tuple will be interpreted as the
+            levels of a multi-index.
         ascending : boolean or list, default True
             Sort ascending vs. descending. Specify list for multiple sort
             orders
@@ -2557,9 +2558,6 @@ class DataFrame(NDFrame):
         -------
         sorted : DataFrame
         """
-        if column is not None:  # pragma: no cover
-            warnings.warn("column is deprecated, use columns", FutureWarning)
-            columns = column
         return self.sort_index(by=columns, axis=axis, ascending=ascending,
                                inplace=inplace)
 
