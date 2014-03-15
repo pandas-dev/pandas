@@ -1672,14 +1672,19 @@ class BarPlot(MPLPlot):
     def __init__(self, data, **kwargs):
         self.mark_right = kwargs.pop('mark_right', True)
         self.stacked = kwargs.pop('stacked', False)
-        self.ax_pos = np.arange(len(data)) + 0.25
-        if self.stacked:
-            self.tickoffset = 0.25
-        else:
-            self.tickoffset = 0.375
-        self.bar_width = 0.5
+
+        self.bar_width = kwargs.pop('width', 0.5)        
+        pos = kwargs.pop('position', 0.5)
+        self.ax_pos = np.arange(len(data)) + self.bar_width * pos
+
         self.log = kwargs.pop('log',False)
         MPLPlot.__init__(self, data, **kwargs)
+
+        if self.stacked or self.subplots:
+            self.tickoffset = self.bar_width * pos 
+        else:
+            K = self.nseries
+            self.tickoffset = self.bar_width * pos + self.bar_width / K
 
     def _args_adjust(self):
         if self.rot is None:
@@ -1757,7 +1762,8 @@ class BarPlot(MPLPlot):
                 pos_prior = pos_prior + np.where(mask, y, 0)
                 neg_prior = neg_prior + np.where(mask, 0, y)
             else:
-                rect = bar_f(ax, self.ax_pos + i * 0.75 / K, y, 0.75 / K,
+                w = self.bar_width / K
+                rect = bar_f(ax, self.ax_pos + (i + 1) * w, y, w,
                              start=start, label=label, **kwds)
             rects.append(rect)
             if self.mark_right:
@@ -1881,6 +1887,9 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
     colormap : str or matplotlib colormap object, default None
         Colormap to select colors from. If string, load colormap with that name
         from matplotlib.
+    position : float
+        Specify relative alignments for bar plot layout.
+        From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5 (center)
     kwds : keywords
         Options to pass to matplotlib plotting method
 
@@ -2016,6 +2025,9 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
     secondary_y : boolean or sequence of ints, default False
         If True then y-axis will be on the right
     figsize : a tuple (width, height) in inches
+    position : float
+        Specify relative alignments for bar plot layout.
+        From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5 (center)
     kwds : keywords
         Options to pass to matplotlib plotting method
 

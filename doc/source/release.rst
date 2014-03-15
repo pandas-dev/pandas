@@ -140,6 +140,9 @@ API Changes
   the index, rather than requiring a list of tuple (:issue:`4370`)
 
 - Fix a bug where invalid eval/query operations would blow the stack (:issue:`5198`)
+- Following keywords are now acceptable for :meth:`DataFrame.plot(kind='bar')` and :meth:`DataFrame.plot(kind='barh')`.
+  - `width`: Specify the bar width. In previous versions, static value 0.5 was passed to matplotlib and it cannot be overwritten.
+  - `position`: Specify relative alignments for bar plot layout. From 0 (left/bottom-end) to 1(right/top-end). Default is 0.5 (center). (:issue:`6604`)
 
 Deprecations
 ~~~~~~~~~~~~
