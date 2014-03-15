@@ -1426,12 +1426,24 @@ class Index(IndexOpsMixin, FrozenNDArray):
             else:
                 return self._join_non_unique(other, how=how,
                                              return_indexers=return_indexers)
-        elif self.is_monotonic and other.is_monotonic:
-            try:
-                return self._join_monotonic(other, how=how,
-                                            return_indexers=return_indexers)
-            except TypeError:
-                pass
+        elif self.is_monotonic:
+            if other.is_monotonic:
+                try:
+                    return self._join_monotonic(other, how=how,
+                                                return_indexers=return_indexers)
+                except TypeError:
+                    pass
+            else:
+
+                # we have a reordering of left by right
+                if how == 'right':
+                    join_index = self
+
+                    if return_indexers:
+                        lindexer = other.get_indexer(self)
+                        return join_index, lindexer, None
+                    else:
+                        return join_index
 
         if how == 'left':
             join_index = self
@@ -1516,8 +1528,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
         """
         The join method *only* affects the level of the resulting
         MultiIndex. Otherwise it just exactly aligns the Index data to the
-        labels of the level in the MultiIndex. The order of the data indexed by
-        the MultiIndex will not be changed (currently)
+        labels of the level in the MultiIndex.
         """
         if isinstance(self, MultiIndex) and isinstance(other, MultiIndex):
             raise TypeError('Join on level between two MultiIndex objects '
@@ -1556,7 +1567,12 @@ class Index(IndexOpsMixin, FrozenNDArray):
 
             join_index = MultiIndex(levels=new_levels, labels=new_labels,
                                     names=left.names, verify_integrity=False)
-            left_indexer = np.arange(len(left))[new_lev_labels != -1]
+
+            # if we have a reordering of the lindexer, use it
+            left_indexer = np.arange(len(left))[omit_mask]
+            lindexer = Int64Index(left_lev_indexer[left_lev_indexer != -1])
+            if not lindexer.is_monotonic:
+                left_indexer = new_lev_labels.argsort()
         else:
             join_index = left
             left_indexer = None
