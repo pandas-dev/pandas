@@ -309,6 +309,11 @@ class TestSeriesPlots(tm.TestCase):
         with tm.assertRaises(TypeError):
             s.plot(yerr=s_err)
 
+    def test_table(self):
+        _check_plot_works(self.series.plot, table=True)
+        _check_plot_works(self.series.plot, table=self.series)
+
+
 @tm.mplskip
 class TestDataFramePlots(tm.TestCase):
     def setUp(self):
@@ -1334,6 +1339,18 @@ class TestDataFramePlots(tm.TestCase):
             df.plot(yerr=err.T)
 
         tm.close()
+
+    def test_table(self):
+        df = DataFrame(np.random.rand(10, 3),
+                       index=list(string.ascii_letters[:10]))
+        _check_plot_works(df.plot, table=True)
+        _check_plot_works(df.plot, table=df)
+
+        ax = df.plot()
+        self.assert_(len(ax.tables) == 0)
+        plotting.table(ax, df.T)
+        self.assert_(len(ax.tables) == 1)
+
 
 @tm.mplskip
 class TestDataFrameGroupByPlots(tm.TestCase):

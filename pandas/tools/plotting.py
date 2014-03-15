@@ -793,7 +793,8 @@ class MPLPlot(object):
                  ax=None, fig=None, title=None, xlim=None, ylim=None,
                  xticks=None, yticks=None,
                  sort_columns=False, fontsize=None,
-                 secondary_y=False, colormap=None, **kwds):
+                 secondary_y=False, colormap=None,
+                 table=False, **kwds):
 
         self.data = data
         self.by = by
@@ -848,6 +849,8 @@ class MPLPlot(object):
             self.colormap = kwds.pop('cmap')
         else:
             self.colormap = colormap
+
+        self.table = table
 
         self.kwds = kwds
 
@@ -915,6 +918,7 @@ class MPLPlot(object):
         self._compute_plot_data()
         self._setup_subplots()
         self._make_plot()
+        self._add_table()
         self._post_plot_logic()
         self._adorn_subplots()
 
@@ -1004,6 +1008,21 @@ class MPLPlot(object):
 
     def _make_plot(self):
         raise NotImplementedError
+
+    def _add_table(self):
+        if self.table is False:
+            return
+        elif self.table is True:
+            from pandas.core.frame import DataFrame
+            if isinstance(self.data, Series):
+                data = DataFrame(self.data, columns=[self.data.name])
+            elif isinstance(self.data, DataFrame):
+                data = self.data
+            data = data.transpose()
+        else:
+            data = self.table    
+        ax = self._get_ax(0) 
+        table(ax, data)
 
     def _post_plot_logic(self):
         pass
@@ -1663,7 +1682,6 @@ class LinePlot(MPLPlot):
         if self.subplots and self.legend:
             for ax in self.axes:
                 ax.legend(loc='best')
-
 
 class BarPlot(MPLPlot):
 
@@ -2592,6 +2610,47 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
     fig.suptitle('Boxplot grouped by %s' % byline)
 
     return fig, axes
+
+
+def table(ax, data, rowLabels=None, colLabels=None,
+          **kwargs):
+
+    """
+    Helper function to convert DataFrame and Series to matplotlib.table
+
+    Parameters
+    ----------
+    `ax`: Matplotlib axes object
+    `data`: DataFrame or Series
+        data for table contents
+    `kwargs`: keywords, optional
+        keyword arguments which passed to matplotlib.table.table.
+        If `rowLabels` or `colLabels` is not specified, data index or column name will be used.
+
+    Returns
+    -------
+    matplotlib table object
+    """
+    from pandas import DataFrame
+    if isinstance(data, Series):
+        data = DataFrame(data, columns=[data.name])
+    elif isinstance(data, DataFrame):
+        pass
+    else:
+        raise ValueError('Input data must be dataframe or series')
+
+    if rowLabels is None:
+        rowLabels = data.index
+
+    if colLabels is None:
+        colLabels = data.columns
+
+    cellText = data.values
+
+    import matplotlib.table
+    table = matplotlib.table.table(ax, cellText=cellText,
+        rowLabels=rowLabels, colLabels=colLabels, **kwargs)
+    return table
 
 
 def _get_layout(nplots):
