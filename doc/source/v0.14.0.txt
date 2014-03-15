@@ -11,7 +11,7 @@ Highlights include:
 
 - MultIndexing Using Slicers
 - Joining a singly-indexed DataFrame with a multi-indexed DataFrame
-- More flexible groupby specifications
+- More consistency in groupby results and more flexible groupby specifications
 
 API changes
 ~~~~~~~~~~~
@@ -66,7 +66,8 @@ These are out-of-bounds selections
      s.index.year
 
 - More consistent behaviour for some groupby methods:
-   - groupby ``head`` and ``tail`` now act more like ``filter`` rather than an aggregation:
+
+  groupby ``head`` and ``tail`` now act more like ``filter`` rather than an aggregation:
 
   .. ipython:: python
 
@@ -76,14 +77,14 @@ These are out-of-bounds selections
 
      g.apply(lambda x: x.head(1))  # used to simply fall-through
 
-   - groupby head and tail respect column selection:
+  groupby head and tail respect column selection:
 
   .. ipython:: python
 
      g[['B']].head(1)
 
-   - groupby ``nth`` now filters by default, with optional dropna argument to ignore
-     NaN (to replicate the previous behaviour.), See :ref:`the docs <groupby.nth>`.
+  groupby ``nth`` now filters by default, with optional dropna argument to ignore
+  NaN (to replicate the previous behaviour.), See :ref:`the docs <groupby.nth>`.
 
   .. ipython:: python
 
@@ -101,12 +102,12 @@ These are out-of-bounds selections
   (:issue:`5987`). For the :class:`~pandas.DataFrame` methods, two things have
   changed
 
-   - Column names are now given precedence over locals
-   - Local variables must be referred to explicitly. This means that even if
-     you have a local variable that is *not* a column you must still refer to
-     it with the ``'@'`` prefix.
-   - You can have an expression like ``df.query('@a < a')`` with no complaints
-     from ``pandas`` about ambiguity of the name ``a``.
+  - Column names are now given precedence over locals
+  - Local variables must be referred to explicitly. This means that even if
+    you have a local variable that is *not* a column you must still refer to
+    it with the ``'@'`` prefix.
+  - You can have an expression like ``df.query('@a < a')`` with no complaints
+    from ``pandas`` about ambiguity of the name ``a``.
 
 - The top-level :func:`pandas.eval` function does not allow you use the
   ``'@'`` prefix and provides you with an error message telling you so.
@@ -172,8 +173,8 @@ These are out-of-bounds selections
     # New output, 4-level MultiIndex
     df_multi.set_index([df_multi.index, df_multi.index])
 
-- The :func:`pivot_table`/:meth:`DataFrame.pivot_table` and :func:`crosstab` functions 
-  now take arguments ``index`` and ``columns`` instead of ``rows`` and ``cols``.  A 
+- The :func:`pivot_table`/:meth:`DataFrame.pivot_table` and :func:`crosstab` functions
+  now take arguments ``index`` and ``columns`` instead of ``rows`` and ``cols``.  A
   ``FutureWarning`` is raised  to alert that the old ``rows`` and ``cols`` arguments
   will not be supported in a future release (:issue:`5505`)
 
