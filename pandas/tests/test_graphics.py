@@ -14,7 +14,7 @@ from pandas.core.config import set_option
 
 import numpy as np
 from numpy import random
-from numpy.random import randn
+from numpy.random import rand, randn
 
 from numpy.testing import assert_array_equal
 from numpy.testing.decorators import slow
@@ -54,9 +54,10 @@ class TestSeriesPlots(tm.TestCase):
         _check_plot_works(self.ts.plot, style='.', logx=True)
         _check_plot_works(self.ts.plot, style='.', loglog=True)
         _check_plot_works(self.ts[:10].plot, kind='bar')
+        _check_plot_works(self.ts.plot, kind='area', stacked=False)
         _check_plot_works(self.iseries.plot)
 
-        for kind in plotting._common_kinds:
+        for kind in ['line', 'bar', 'barh', 'kde']:
             _check_plot_works(self.series[:5].plot, kind=kind)
 
         _check_plot_works(self.series[:10].plot, kind='barh')
@@ -74,6 +75,33 @@ class TestSeriesPlots(tm.TestCase):
         self.assertEqual(ax.title.get_text(), 'Test')
         assert_array_equal(np.round(ax.figure.get_size_inches()),
                            np.array((16., 8.)))
+
+    def test_ts_area_lim(self):
+        ax = self.ts.plot(kind='area', stacked=False)
+        xmin, xmax = ax.get_xlim()
+        lines = ax.get_lines()
+        self.assertEqual(xmin, lines[0].get_data(orig=False)[0][0])       
+        self.assertEqual(xmax, lines[0].get_data(orig=False)[0][-1])
+
+    def test_line_area_nan_series(self):
+        values = [1, 2, np.nan, 3]
+        s = Series(values)
+        ts = Series(values, index=tm.makeDateIndex(k=4))
+
+        for d in [s, ts]:
+            ax = _check_plot_works(d.plot)
+            masked = ax.lines[0].get_ydata()
+            # remove nan for comparison purpose
+            self.assert_numpy_array_equal(np.delete(masked.data, 2), np.array([1, 2, 3]))
+            self.assert_numpy_array_equal(masked.mask, np.array([False, False, True, False]))
+
+            expected = np.array([1, 2, 0, 3])
+            ax = _check_plot_works(d.plot, stacked=True)
+            self.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected)
+            ax = _check_plot_works(d.plot, kind='area')
+            self.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected)
+            ax = _check_plot_works(d.plot, kind='area', stacked=False)
+            self.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected)
 
     @slow
     def test_bar_log(self):
@@ -500,7 +528,7 @@ class TestDataFramePlots(tm.TestCase):
         df = DataFrame(np.random.rand(10, 3),
                        index=list(string.ascii_letters[:10]))
 
-        for kind in ['bar', 'barh', 'line']:
+        for kind in ['bar', 'barh', 'line', 'area']:
             axes = df.plot(kind=kind, subplots=True, sharex=True, legend=True)
 
             for ax, column in zip(axes, df.columns):
@@ -528,6 +556,104 @@ class TestDataFramePlots(tm.TestCase):
             axes = df.plot(kind=kind, subplots=True, legend=False)
             for ax in axes:
                 self.assertTrue(ax.get_legend() is None)
+
+    def test_negative_log(self):
+        df = - DataFrame(rand(6, 4),
+                       index=list(string.ascii_letters[:6]),
+                       columns=['x', 'y', 'z', 'four'])
+
+        with tm.assertRaises(ValueError):
+            df.plot(kind='area', logy=True)
+        with tm.assertRaises(ValueError):
+            df.plot(kind='area', loglog=True)
+
+    def _compare_stacked_y_cood(self, normal_lines, stacked_lines):
+        base = np.zeros(len(normal_lines[0].get_data()[1]))
+        for nl, sl in zip(normal_lines, stacked_lines):
+            base += nl.get_data()[1] # get y coodinates
+            sy = sl.get_data()[1]
+            self.assert_numpy_array_equal(base, sy)
+
+    def test_line_area_stacked(self):
+        with tm.RNGContext(42):
+            df = DataFrame(rand(6, 4),
+                           columns=['w', 'x', 'y', 'z'])
+            neg_df = - df
+            # each column has either positive or negative value
+            sep_df = DataFrame({'w': rand(6), 'x': rand(6),
+                                'y': - rand(6), 'z': - rand(6)})
+            # each column has positive-negative mixed value
+            mixed_df = DataFrame(randn(6, 4), index=list(string.ascii_letters[:6]),
+                                 columns=['w', 'x', 'y', 'z'])
+
+            for kind in ['line', 'area']:
+                ax1 = _check_plot_works(df.plot, kind=kind, stacked=False)
+                ax2 = _check_plot_works(df.plot, kind=kind, stacked=True)
+                self._compare_stacked_y_cood(ax1.lines, ax2.lines)
+
+                ax1 = _check_plot_works(neg_df.plot, kind=kind, stacked=False)
+                ax2 = _check_plot_works(neg_df.plot, kind=kind, stacked=True)
+                self._compare_stacked_y_cood(ax1.lines, ax2.lines)
+
+                ax1 = _check_plot_works(sep_df.plot, kind=kind, stacked=False)
+                ax2 = _check_plot_works(sep_df.plot, kind=kind, stacked=True)
+                self._compare_stacked_y_cood(ax1.lines[:2], ax2.lines[:2])
+                self._compare_stacked_y_cood(ax1.lines[2:], ax2.lines[2:])
+
+                _check_plot_works(mixed_df.plot, stacked=False)
+                with tm.assertRaises(ValueError):
+                    mixed_df.plot(stacked=True)
+
+                _check_plot_works(df.plot, kind=kind, logx=True, stacked=True)
+
+    def test_line_area_nan_df(self):
+        values1 = [1, 2, np.nan, 3]
+        values2 = [3, np.nan, 2, 1]
+        df = DataFrame({'a': values1, 'b': values2})
+        tdf = DataFrame({'a': values1, 'b': values2}, index=tm.makeDateIndex(k=4))
+
+        for d in [df, tdf]:
+            ax = _check_plot_works(d.plot)
+            masked1 = ax.lines[0].get_ydata()
+            masked2 = ax.lines[1].get_ydata()
+            # remove nan for comparison purpose
+            self.assert_numpy_array_equal(np.delete(masked1.data, 2), np.array([1, 2, 3]))
+            self.assert_numpy_array_equal(np.delete(masked2.data, 1), np.array([3, 2, 1]))
+            self.assert_numpy_array_equal(masked1.mask, np.array([False, False, True, False]))
+            self.assert_numpy_array_equal(masked2.mask, np.array([False, True, False, False]))
+
+            expected1 = np.array([1, 2, 0, 3])
+            expected2 = np.array([3, 0, 2, 1])
+
+            ax = _check_plot_works(d.plot, stacked=True)
+            self.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected1)
+            self.assert_numpy_array_equal(ax.lines[1].get_ydata(), expected1 + expected2)
+
+            ax = _check_plot_works(d.plot, kind='area')
+            self.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected1)
+            self.assert_numpy_array_equal(ax.lines[1].get_ydata(), expected1 + expected2)
+
+            ax = _check_plot_works(d.plot, kind='area', stacked=False)
+            self.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected1)
+            self.assert_numpy_array_equal(ax.lines[1].get_ydata(), expected2)
+
+    def test_area_lim(self):
+        df = DataFrame(rand(6, 4),
+                       columns=['x', 'y', 'z', 'four'])
+
+        neg_df = - df
+        for stacked in [True, False]:
+            ax = _check_plot_works(df.plot, kind='area', stacked=stacked)
+            xmin, xmax = ax.get_xlim()
+            ymin, ymax = ax.get_ylim()
+            lines = ax.get_lines()
+            self.assertEqual(xmin, lines[0].get_data()[0][0])        
+            self.assertEqual(xmax, lines[0].get_data()[0][-1]) 
+            self.assertEqual(ymin, 0) 
+
+            ax = _check_plot_works(neg_df.plot, kind='area', stacked=stacked)
+            ymin, ymax = ax.get_ylim()
+            self.assertEqual(ymax, 0) 
 
     @slow
     def test_bar_colors(self):
@@ -1077,11 +1203,11 @@ class TestDataFramePlots(tm.TestCase):
 
     @slow
     def test_df_legend_labels(self):
-        kinds = 'line', 'bar', 'barh', 'kde', 'density'
-        df = DataFrame(randn(3, 3), columns=['a', 'b', 'c'])
-        df2 = DataFrame(randn(3, 3), columns=['d', 'e', 'f'])
-        df3 = DataFrame(randn(3, 3), columns=['g', 'h', 'i'])
-        df4 = DataFrame(randn(3, 3), columns=['j', 'k', 'l'])
+        kinds = 'line', 'bar', 'barh', 'kde', 'density', 'area'
+        df = DataFrame(rand(3, 3), columns=['a', 'b', 'c'])
+        df2 = DataFrame(rand(3, 3), columns=['d', 'e', 'f'])
+        df3 = DataFrame(rand(3, 3), columns=['g', 'h', 'i'])
+        df4 = DataFrame(rand(3, 3), columns=['j', 'k', 'l'])
 
         for kind in kinds:
             ax = df.plot(kind=kind, legend=True)
@@ -1170,6 +1296,22 @@ class TestDataFramePlots(tm.TestCase):
             for i, l in enumerate(ax.get_lines()[:len(markers)]):
                 self.assertEqual(l.get_marker(), markers[i])
 
+    def check_line_colors(self, colors, lines):
+        for i, l in enumerate(lines):
+            xp = colors[i]
+            rs = l.get_color()
+            self.assertEqual(xp, rs)
+            
+    def check_collection_colors(self, colors, cols):
+        from matplotlib.colors import ColorConverter
+        conv = ColorConverter()
+        for i, c in enumerate(cols):
+            xp = colors[i]
+            xp = conv.to_rgba(xp)
+            rs = c.get_facecolor()[0]
+            for x, y in zip(xp, rs):
+                self.assertEqual(x, y)
+
     @slow
     def test_line_colors(self):
         import matplotlib.pyplot as plt
@@ -1177,16 +1319,10 @@ class TestDataFramePlots(tm.TestCase):
         from matplotlib import cm
 
         custom_colors = 'rgcby'
-
         df = DataFrame(randn(5, 5))
 
         ax = df.plot(color=custom_colors)
-
-        lines = ax.get_lines()
-        for i, l in enumerate(lines):
-            xp = custom_colors[i]
-            rs = l.get_color()
-            self.assertEqual(xp, rs)
+        self.check_line_colors(custom_colors, ax.get_lines())
 
         tmp = sys.stderr
         sys.stderr = StringIO()
@@ -1194,7 +1330,7 @@ class TestDataFramePlots(tm.TestCase):
             tm.close()
             ax2 = df.plot(colors=custom_colors)
             lines2 = ax2.get_lines()
-            for l1, l2 in zip(lines, lines2):
+            for l1, l2 in zip(ax.get_lines(), lines2):
                 self.assertEqual(l1.get_color(), l2.get_color())
         finally:
             sys.stderr = tmp
@@ -1204,29 +1340,44 @@ class TestDataFramePlots(tm.TestCase):
         ax = df.plot(colormap='jet')
 
         rgba_colors = lmap(cm.jet, np.linspace(0, 1, len(df)))
-
-        lines = ax.get_lines()
-        for i, l in enumerate(lines):
-            xp = rgba_colors[i]
-            rs = l.get_color()
-            self.assertEqual(xp, rs)
+        self.check_line_colors(rgba_colors, ax.get_lines())
 
         tm.close()
 
         ax = df.plot(colormap=cm.jet)
 
         rgba_colors = lmap(cm.jet, np.linspace(0, 1, len(df)))
-
-        lines = ax.get_lines()
-        for i, l in enumerate(lines):
-            xp = rgba_colors[i]
-            rs = l.get_color()
-            self.assertEqual(xp, rs)
+        self.check_line_colors(rgba_colors, ax.get_lines())
 
         # make color a list if plotting one column frame
         # handles cases like df.plot(color='DodgerBlue')
         tm.close()
         df.ix[:, [0]].plot(color='DodgerBlue')
+
+    @slow
+    def test_area_colors(self):
+        from matplotlib import cm
+        from matplotlib.collections import PolyCollection
+
+        custom_colors = 'rgcby'
+        df = DataFrame(rand(5, 5))
+
+        ax = df.plot(kind='area', color=custom_colors)
+        self.check_line_colors(custom_colors, ax.get_lines())
+        poly = [o for o in ax.get_children() if isinstance(o, PolyCollection)]
+        self.check_collection_colors(custom_colors, poly)
+
+        ax = df.plot(kind='area', colormap='jet')
+        rgba_colors = lmap(cm.jet, np.linspace(0, 1, len(df)))
+        self.check_line_colors(rgba_colors, ax.get_lines())
+        poly = [o for o in ax.get_children() if isinstance(o, PolyCollection)]
+        self.check_collection_colors(rgba_colors, poly)
+
+        ax = df.plot(kind='area', colormap=cm.jet)
+        rgba_colors = lmap(cm.jet, np.linspace(0, 1, len(df)))
+        self.check_line_colors(rgba_colors, ax.get_lines())
+        poly = [o for o in ax.get_children() if isinstance(o, PolyCollection)]
+        self.check_collection_colors(rgba_colors, poly)
 
     def test_default_color_cycle(self):
         import matplotlib.pyplot as plt
@@ -1265,6 +1416,15 @@ class TestDataFramePlots(tm.TestCase):
             df = DataFrame(randn(10, 2), dtype=object)
             df[np.random.rand(df.shape[0]) > 0.5] = 'a'
             for kind in plotting._common_kinds:
+                with tm.assertRaises(TypeError):
+                    df.plot(kind=kind)
+
+        with tm.RNGContext(42):
+            # area plot doesn't support positive/negative mixed data
+            kinds = ['area']
+            df = DataFrame(rand(10, 2), dtype=object)
+            df[np.random.rand(df.shape[0]) > 0.5] = 'a'
+            for kind in kinds:
                 with tm.assertRaises(TypeError):
                     df.plot(kind=kind)
 
@@ -1671,6 +1831,7 @@ def _check_plot_works(f, *args, **kwargs):
             plt.savefig(path)
     finally:
         tm.close(fig)
+    return ret
 
 
 def curpath():
