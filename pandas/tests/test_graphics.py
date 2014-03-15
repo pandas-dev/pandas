@@ -72,87 +72,6 @@ class TestSeriesPlots(tm.TestCase):
                            np.array((16., 8.)))
 
     @slow
-    def test_bar_colors(self):
-        import matplotlib.pyplot as plt
-        import matplotlib.colors as colors
-
-        default_colors = plt.rcParams.get('axes.color_cycle')
-        custom_colors = 'rgcby'
-
-        df = DataFrame(randn(5, 5))
-        ax = df.plot(kind='bar')
-
-        rects = ax.patches
-
-        conv = colors.colorConverter
-        for i, rect in enumerate(rects[::5]):
-            xp = conv.to_rgba(default_colors[i % len(default_colors)])
-            rs = rect.get_facecolor()
-            self.assertEqual(xp, rs)
-
-        tm.close()
-
-        ax = df.plot(kind='bar', color=custom_colors)
-
-        rects = ax.patches
-
-        conv = colors.colorConverter
-        for i, rect in enumerate(rects[::5]):
-            xp = conv.to_rgba(custom_colors[i])
-            rs = rect.get_facecolor()
-            self.assertEqual(xp, rs)
-
-        tm.close()
-        from matplotlib import cm
-
-        # Test str -> colormap functionality
-        ax = df.plot(kind='bar', colormap='jet')
-
-        rects = ax.patches
-
-        rgba_colors = lmap(cm.jet, np.linspace(0, 1, 5))
-        for i, rect in enumerate(rects[::5]):
-            xp = rgba_colors[i]
-            rs = rect.get_facecolor()
-            self.assertEqual(xp, rs)
-
-        tm.close()
-
-        # Test colormap functionality
-        ax = df.plot(kind='bar', colormap=cm.jet)
-
-        rects = ax.patches
-
-        rgba_colors = lmap(cm.jet, np.linspace(0, 1, 5))
-        for i, rect in enumerate(rects[::5]):
-            xp = rgba_colors[i]
-            rs = rect.get_facecolor()
-            self.assertEqual(xp, rs)
-
-        tm.close()
-        df.ix[:, [0]].plot(kind='bar', color='DodgerBlue')
-
-    @slow
-    def test_bar_linewidth(self):
-        df = DataFrame(randn(5, 5))
-
-        # regular
-        ax = df.plot(kind='bar', linewidth=2)
-        for r in ax.patches:
-            self.assertEqual(r.get_linewidth(), 2)
-
-        # stacked
-        ax = df.plot(kind='bar', stacked=True, linewidth=2)
-        for r in ax.patches:
-            self.assertEqual(r.get_linewidth(), 2)
-
-        # subplots
-        axes = df.plot(kind='bar', linewidth=2, subplots=True)
-        for ax in axes:
-            for r in ax.patches:
-                self.assertEqual(r.get_linewidth(), 2)
-
-    @slow
     def test_bar_log(self):
         expected = np.array([1., 10., 100., 1000.])
 
@@ -546,6 +465,170 @@ class TestDataFramePlots(tm.TestCase):
              for label in ax.get_yticklabels()]
 
     @slow
+    def test_bar_colors(self):
+        import matplotlib.pyplot as plt
+        import matplotlib.colors as colors
+
+        default_colors = plt.rcParams.get('axes.color_cycle')
+        custom_colors = 'rgcby'
+
+        df = DataFrame(randn(5, 5))
+        ax = df.plot(kind='bar')
+
+        rects = ax.patches
+
+        conv = colors.colorConverter
+        for i, rect in enumerate(rects[::5]):
+            xp = conv.to_rgba(default_colors[i % len(default_colors)])
+            rs = rect.get_facecolor()
+            self.assertEqual(xp, rs)
+
+        tm.close()
+
+        ax = df.plot(kind='bar', color=custom_colors)
+
+        rects = ax.patches
+
+        conv = colors.colorConverter
+        for i, rect in enumerate(rects[::5]):
+            xp = conv.to_rgba(custom_colors[i])
+            rs = rect.get_facecolor()
+            self.assertEqual(xp, rs)
+
+        tm.close()
+        from matplotlib import cm
+
+        # Test str -> colormap functionality
+        ax = df.plot(kind='bar', colormap='jet')
+
+        rects = ax.patches
+
+        rgba_colors = lmap(cm.jet, np.linspace(0, 1, 5))
+        for i, rect in enumerate(rects[::5]):
+            xp = rgba_colors[i]
+            rs = rect.get_facecolor()
+            self.assertEqual(xp, rs)
+
+        tm.close()
+
+        # Test colormap functionality
+        ax = df.plot(kind='bar', colormap=cm.jet)
+
+        rects = ax.patches
+
+        rgba_colors = lmap(cm.jet, np.linspace(0, 1, 5))
+        for i, rect in enumerate(rects[::5]):
+            xp = rgba_colors[i]
+            rs = rect.get_facecolor()
+            self.assertEqual(xp, rs)
+
+        tm.close()
+        df.ix[:, [0]].plot(kind='bar', color='DodgerBlue')
+
+    @slow
+    def test_bar_linewidth(self):
+        df = DataFrame(randn(5, 5))
+
+        # regular
+        ax = df.plot(kind='bar', linewidth=2)
+        for r in ax.patches:
+            self.assertEqual(r.get_linewidth(), 2)
+
+        # stacked
+        ax = df.plot(kind='bar', stacked=True, linewidth=2)
+        for r in ax.patches:
+            self.assertEqual(r.get_linewidth(), 2)
+
+        # subplots
+        axes = df.plot(kind='bar', linewidth=2, subplots=True)
+        for ax in axes:
+            for r in ax.patches:
+                self.assertEqual(r.get_linewidth(), 2)
+
+    @slow
+    def test_bar_barwidth(self):
+        df = DataFrame(randn(5, 5))
+        
+        width = 0.9
+        
+        # regular
+        ax = df.plot(kind='bar', width=width)
+        for r in ax.patches:
+            self.assertEqual(r.get_width(), width / len(df.columns))
+
+        # stacked
+        ax = df.plot(kind='bar', stacked=True, width=width)
+        for r in ax.patches:
+            self.assertEqual(r.get_width(), width)
+
+        # horizontal regular
+        ax = df.plot(kind='barh', width=width)
+        for r in ax.patches:
+            self.assertEqual(r.get_height(), width / len(df.columns))
+
+        # horizontal stacked
+        ax = df.plot(kind='barh', stacked=True, width=width)
+        for r in ax.patches:
+            self.assertEqual(r.get_height(), width)
+
+        # subplots
+        axes = df.plot(kind='bar', width=width, subplots=True)
+        for ax in axes:
+            for r in ax.patches:
+                self.assertEqual(r.get_width(), width)
+
+        # horizontal subplots
+        axes = df.plot(kind='barh', width=width, subplots=True)
+        for ax in axes:
+            for r in ax.patches:
+                self.assertEqual(r.get_height(), width)
+
+    @slow
+    def test_bar_barwidth_position(self):
+        df = DataFrame(randn(5, 5))
+
+        width = 0.9
+        position = 0.2
+        
+        # regular
+        ax = df.plot(kind='bar', width=width, position=position)
+        p = ax.patches[0]
+        self.assertEqual(ax.xaxis.get_ticklocs()[0],
+                         p.get_x() + p.get_width() * position * len(df.columns))
+
+        # stacked
+        ax = df.plot(kind='bar', stacked=True, width=width, position=position)
+        p = ax.patches[0]
+        self.assertEqual(ax.xaxis.get_ticklocs()[0],
+                         p.get_x() + p.get_width() * position)
+
+        # horizontal regular
+        ax = df.plot(kind='barh', width=width, position=position)
+        p = ax.patches[0]
+        self.assertEqual(ax.yaxis.get_ticklocs()[0],
+                         p.get_y() + p.get_height() * position * len(df.columns))
+
+        # horizontal stacked
+        ax = df.plot(kind='barh', stacked=True, width=width, position=position)
+        p = ax.patches[0]
+        self.assertEqual(ax.yaxis.get_ticklocs()[0],
+                         p.get_y() + p.get_height() * position)
+
+        # subplots
+        axes = df.plot(kind='bar', width=width, position=position, subplots=True)
+        for ax in axes:
+            p = ax.patches[0]
+            self.assertEqual(ax.xaxis.get_ticklocs()[0],
+                             p.get_x() + p.get_width() * position)
+
+        # horizontal subplots
+        axes = df.plot(kind='barh', width=width, position=position, subplots=True)
+        for ax in axes:
+            p = ax.patches[0]
+            self.assertEqual(ax.yaxis.get_ticklocs()[0],
+                             p.get_y() + p.get_height() * position)
+
+    @slow
     def test_plot_scatter(self):
         from matplotlib.pylab import close
         df = DataFrame(randn(6, 4),
@@ -587,11 +670,61 @@ class TestDataFramePlots(tm.TestCase):
         self.assertEqual(ax.xaxis.get_ticklocs()[0],
                          ax.patches[0].get_x() + ax.patches[0].get_width() / 2)
 
+        ax = df.plot(kind='bar', stacked='True', width=0.9, grid=True)
+        self.assertEqual(ax.xaxis.get_ticklocs()[0],
+                         ax.patches[0].get_x() + ax.patches[0].get_width() / 2)
+
+        ax = df.plot(kind='barh', stacked='True', grid=True)
+        self.assertEqual(ax.yaxis.get_ticklocs()[0],
+                         ax.patches[0].get_y() + ax.patches[0].get_height() / 2)
+
+        ax = df.plot(kind='barh', stacked='True', width=0.9, grid=True)
+        self.assertEqual(ax.yaxis.get_ticklocs()[0],
+                         ax.patches[0].get_y() + ax.patches[0].get_height() / 2)
+
     def test_bar_center(self):
         df = DataFrame({'A': [3] * 5, 'B': lrange(5)}, index=lrange(5))
         ax = df.plot(kind='bar', grid=True)
         self.assertEqual(ax.xaxis.get_ticklocs()[0],
                          ax.patches[0].get_x() + ax.patches[0].get_width())
+        
+        ax = df.plot(kind='bar', width=0.9, grid=True)
+        self.assertEqual(ax.xaxis.get_ticklocs()[0],
+                         ax.patches[0].get_x() + ax.patches[0].get_width())
+
+        ax = df.plot(kind='barh', grid=True)
+        self.assertEqual(ax.yaxis.get_ticklocs()[0],
+                         ax.patches[0].get_y() + ax.patches[0].get_height())
+        
+        ax = df.plot(kind='barh', width=0.9, grid=True)
+        self.assertEqual(ax.yaxis.get_ticklocs()[0],
+                         ax.patches[0].get_y() + ax.patches[0].get_height())
+
+    def test_bar_subplots_center(self):
+        df = DataFrame({'A': [3] * 5, 'B': lrange(5)}, index=lrange(5))
+        axes = df.plot(kind='bar', grid=True, subplots=True)
+        for ax in axes:
+            for r in ax.patches:
+                self.assertEqual(ax.xaxis.get_ticklocs()[0],
+                         ax.patches[0].get_x() + ax.patches[0].get_width() / 2)
+
+        axes = df.plot(kind='bar', width=0.9, grid=True, subplots=True)
+        for ax in axes:
+            for r in ax.patches:
+                self.assertEqual(ax.xaxis.get_ticklocs()[0],
+                         ax.patches[0].get_x() + ax.patches[0].get_width() / 2)
+
+        axes = df.plot(kind='barh', grid=True, subplots=True)
+        for ax in axes:
+            for r in ax.patches:
+                self.assertEqual(ax.yaxis.get_ticklocs()[0],
+                         ax.patches[0].get_y() + ax.patches[0].get_height() / 2)
+
+        axes = df.plot(kind='barh', width=0.9, grid=True, subplots=True)
+        for ax in axes:
+            for r in ax.patches:
+                self.assertEqual(ax.yaxis.get_ticklocs()[0],
+                         ax.patches[0].get_y() + ax.patches[0].get_height() / 2)
 
     @slow
     def test_bar_log_no_subplots(self):
