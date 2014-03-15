@@ -883,7 +883,10 @@ class Index(IndexOpsMixin, FrozenNDArray):
         """
         See docstring for ndarray.argsort
         """
-        return self.view(np.ndarray).argsort(*args, **kwargs)
+        result = self.asi8
+        if result is None:
+            result = self.view(np.ndarray)
+        return result.argsort(*args, **kwargs)
 
     def __add__(self, other):
         if isinstance(other, Index):
