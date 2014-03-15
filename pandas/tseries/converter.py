@@ -144,7 +144,10 @@ def _dt_to_float_ordinal(dt):
     preserving hours, minutes, seconds and microseconds.  Return value
     is a :func:`float`.
     """
-    base = dates.date2num(dt)
+    if isinstance(dt, np.ndarray) and com.is_datetime64_ns_dtype(dt):
+        base = dates.epoch2num(dt.astype(np.int64) / 1.0E9)
+    else:
+        base = dates.date2num(dt)
     return base
 
 
