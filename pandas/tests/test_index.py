@@ -48,8 +48,6 @@ class TestIndex(tm.TestCase):
             intIndex = tm.makeIntIndex(100),
             floatIndex = tm.makeFloatIndex(100),
             empty = Index([]),
-            #tuples = Index(lzip(['foo', 'bar', 'baz'], [1, 2, 3])),
-            # TODO: revert to call to Index
             tuples = MultiIndex.from_tuples(lzip(['foo', 'bar', 'baz'],
                                                  [1, 2, 3]))
         )
@@ -995,7 +993,7 @@ class TestInt64Index(tm.TestCase):
 
     def test_identical(self):
         i = Index(self.index.copy())
-        self.assert_(i.identical(self.index))
+        self.assertTrue(i.identical(self.index))
 
         same_values_different_type = Index(i, dtype=object)
         self.assertFalse(i.identical(same_values_different_type))
@@ -1003,10 +1001,11 @@ class TestInt64Index(tm.TestCase):
         i = self.index.copy(dtype=object)
         i = i.rename('foo')
         same_values = Index(i, dtype=object)
-        self.assert_(same_values.identical(self.index.copy(dtype=object)))
+        self.assertTrue(same_values.identical(self.index.copy(dtype=object)))
 
         self.assertFalse(i.identical(self.index))
-        self.assert_(Index(same_values, name='foo', dtype=object).identical(i))
+        self.assertTrue(Index(same_values, name='foo', dtype=object
+                              ).identical(i))
 
         self.assertFalse(
             self.index.copy(dtype=object)
@@ -2226,6 +2225,7 @@ class TestMultiIndex(tm.TestCase):
         mi4 = Index(mi.tolist(), names=mi.names, tupleize_cols=False)
         self.assert_(mi.identical(mi3))
         self.assert_(not mi.identical(mi4))
+        self.assert_(mi.equals(mi4))
 
     def test_is_(self):
         mi = MultiIndex.from_tuples(lzip(range(10), range(10)))

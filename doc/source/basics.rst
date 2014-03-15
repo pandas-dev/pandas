@@ -761,46 +761,6 @@ This is equivalent to the following
 
 .. _basics.reindexing:
 
-Indexes and MultiIndexes
-------------------------
-
-Data Structures in Pandas are organized and labelled via the use of indexes.
-See :ref:`Indexing Basics <indexing.basics>`. for important details about how
-indexes work.
-
-As a quick summary, an index allows us to label a row, column, or in the
-case of a panel, other dimension(s) in our data set.  For example:
-
-.. ipython:: python
-
-    idx = Index(['first line', 'second line', 'third line'], name='my labels')
-    type(idx)
-    s
-
-    s = Series([1, 2, 3], index=idx)
-    s
-
-    s.index.identical(idx)
-
-
-There are several different types of indexes.  One useful type is a 
-``MultiIndex``.  A ``MultiIndex`` allows nested labels.
-
-.. ipython:: python
-
-    mi = Index([('1', 'a'), ('1', 'b'),
-                ('2', 'a'), ('2', 'b')], names=['group', 'subgroup'])
-    type(mi)
-    mi
-
-    s = Series([1, 2, 3, 4], index=mi)
-    s
-
-    s.index.identical(mi)
-
-For specific details on index operations, refer to
-:ref:`Indexing Basics <indexing.basics>`.
-
 
 Reindexing and altering labels
 ------------------------------

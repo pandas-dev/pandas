@@ -1600,28 +1600,16 @@ demo different ways to initialize MultiIndexes.
 
 .. ipython:: python
 
-    arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
+   arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
              ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
-    tuples = list(zip(*arrays))
-    tuples
+   tuples = list(zip(*arrays))
+   tuples
 
-    index = Index(tuples, names=['first', 'second'])
-    type(index)
+   multi_index = MultiIndex.from_tuples(tuples, names=['first', 'second'])
+   multi_index
 
-    multi_index = MultiIndex.from_tuples(tuples, names=['first', 'second'])
-    type(multi_index)
-
-    index.identical(multi_index)
-
-
-    index2 = Index(tuples, names=['first', 'second'],
-                   tupleize_cols=False)
-    type(index2)
-    index2.identical(multi_index)
-
-
-    s = Series(randn(8), index=index)
-    s
+   s = Series(randn(8), index=index)
+   s
 
 When you want every pairing of the elements in two iterables, it can be easier
 to use the ``MultiIndex.from_product`` function:
