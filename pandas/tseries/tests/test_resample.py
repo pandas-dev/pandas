@@ -1137,7 +1137,6 @@ class TestTimeGrouper(tm.TestCase):
         _, grouper, _ = tg.get_grouper(df)
 
         # Errors
-
         grouped = df.groupby(grouper, group_keys=False)
         f = lambda df: df['close'] / df['open']
 

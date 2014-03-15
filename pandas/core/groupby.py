@@ -139,6 +139,125 @@ def _last_compat(x, axis=0):
     else:
         return _last(x)
 
+class Grouper(object):
+    """
+    A Grouper allows the user to specify a groupby instruction
+
+    Parameters
+    ----------
+    key : groupby key, default None
+    level : name, int level number, default None
+    freq : string / freqency object, default None
+    sort : boolean, whether to sort the resulting labels, default True
+
+    Returns
+    -------
+    A specification for a groupby instruction
+
+    Examples
+    --------
+    df.groupby(Group(key='A')) : syntatic sugar for df.groupby('A')
+    df.groupby(Group(key='date',freq='60s')) : specify a resample on the column 'date'
+    df.groupby(Group(level='date',freq='60s',axis=1)) :
+       specify a resample on the level 'date' on the columns axis with a frequency of 60s
+
+    """
+
+    def __new__(cls, *args, **kwargs):
+        if kwargs.get('freq') is not None:
+            from pandas.tseries.resample import TimeGrouper
+            cls = TimeGrouper
+        return super(Grouper, cls).__new__(cls)
+
+    def __init__(self, key=None, level=None, freq=None, axis=None, sort=True):
+        self.key=key
+        self.level=level
+        self.freq=freq
+        self.axis=axis
+        self.sort=sort
+
+        self.grouper=None
+        self.obj=None
+        self.indexer=None
+        self.binner=None
+        self.grouper=None
+
+    @property
+    def ax(self):
+        return self.grouper
+
+    def get_grouper(self, obj):
+
+        """
+        Parameters
+        ----------
+        obj : the subject object
+
+        Returns
+        -------
+        a tuple of binner, grouper, obj (possibly sorted)
+        """
+
+        self.set_grouper(obj)
+        return self.binner, self.grouper, self.obj
+
+    def set_grouper(self, obj):
+        """
+        given an object and the specifcations, setup the internal grouper for this particular specification
+
+        Parameters
+        ----------
+        obj : the subject object
+
+        """
+
+        if self.key is not None and self.level is not None:
+            raise ValueError("The Grouper cannot specify both a key and a level!")
+
+        # the key must be a valid info item
+        if self.key is not None:
+            key = self.key
+            if key not in obj._info_axis:
+                raise KeyError("The grouper name {0} is not found".format(key))
+            ax = Index(obj[key],name=key)
+
+        else:
+            ax = obj._get_axis(self.axis)
+            if self.level is not None:
+                level = self.level
+
+                # if a level is given it must be a mi level or
+                # equivalent to the axis name
+                if isinstance(ax, MultiIndex):
+
+                    if isinstance(level, compat.string_types):
+                        if obj.index.name != level:
+                            raise ValueError('level name %s is not the name of the '
+                                             'index' % level)
+                    elif level > 0:
+                        raise ValueError('level > 0 only valid with MultiIndex')
+                    ax = Index(ax.get_level_values(level), name=level)
+
+                else:
+                    if not (level == 0 or level == ax.name):
+                        raise ValueError("The grouper level {0} is not valid".format(level))
+
+            # possibly sort
+            if not ax.is_monotonic:
+                indexer = self.indexer = ax.argsort(kind='quicksort')
+                ax = ax.take(indexer)
+                obj = obj.take(indexer, axis=self.axis, convert=False, is_copy=False)
+
+        self.obj = obj
+        self.grouper = ax
+        return self.grouper
+
+    def get_binner_for_grouping(self, obj):
+        raise NotImplementedError
+
+    @property
+    def groups(self):
+        return self.grouper.groups
 
 class GroupBy(PandasObject):
 
@@ -882,10 +1001,9 @@ def _is_indexed_like(obj, axes):
     return False
 
 
-class Grouper(object):
-
+class BaseGrouper(object):
     """
-
+    This is an internal Grouper class, which actually holds the generated groups
     """
 
     def __init__(self, axis, groupings, sort=True, group_keys=True):
@@ -1328,19 +1446,7 @@ def generate_bins_generic(values, binner, closed):
 
     return bins
 
-
-class CustomGrouper(object):
-
-    def get_grouper(self, obj):
-        raise NotImplementedError
-
-    # delegates
-    @property
-    def groups(self):
-        return self.grouper.groups
-
-
-class BinGrouper(Grouper):
+class BinGrouper(BaseGrouper):
 
     def __init__(self, bins, binlabels, filter_empty=False):
         self.bins = com._ensure_int64(bins)
@@ -1479,6 +1585,7 @@ class Grouping(object):
     ----------
     index : Index
     grouper :
+    obj :
     name :
     level :
 
@@ -1493,7 +1600,7 @@ class Grouping(object):
       * groups : dict of {group -> label_list}
     """
 
-    def __init__(self, index, grouper=None, name=None, level=None,
+    def __init__(self, index, grouper=None, obj=None, name=None, level=None,
                  sort=True):
 
         self.name = name
@@ -1512,6 +1619,10 @@ class Grouping(object):
         # pre-computed
         self._was_factor = False
         self._should_compress = True
+
+        # we have a single grouper which may be a myriad of things, some of which are
+        # dependent on the passing in level
+        #
 
         if level is not None:
             if not isinstance(level, int):
@@ -1554,7 +1665,10 @@ class Grouping(object):
         else:
             if isinstance(self.grouper, (list, tuple)):
                 self.grouper = com._asarray_tuplesafe(self.grouper)
+
+            # a passed Categorical
             elif isinstance(self.grouper, Categorical):
+
                 factor = self.grouper
                 self._was_factor = True
 
@@ -1565,6 +1679,15 @@ class Grouping(object):
                 self._group_index = factor.levels
                 if self.name is None:
                     self.name = factor.name
+
+            # a passed Grouper like
+            elif isinstance(self.grouper, Grouper):
+
+                # get the new grouper
+                grouper = self.grouper.get_binner_for_grouping(obj)
+                self.grouper = grouper
+                if self.name is None:
+                    self.name = grouper.name
 
             # no level passed
             if not isinstance(self.grouper, (Series, np.ndarray)):
@@ -1634,8 +1757,28 @@ class Grouping(object):
 
 
 def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
+    """
+    create and return a BaseGrouper, which is an internal
+    mapping of how to create the grouper indexers.
+    This may be composed of multiple Grouping objects, indicating
+    multiple groupers
+
+    Groupers are ultimately index mappings. They can originate as:
+    index mappings, keys to columns, functions, or Groupers
+
+    Groupers enable local references to axis,level,sort, while
+    the passed in axis, level, and sort are 'global'.
+
+    This routine tries to figure of what the passing in references
+    are and then creates a Grouping for each one, combined into
+    a BaseGrouper.
+
+    """
+
     group_axis = obj._get_axis(axis)
 
+    # validate thatthe passed level is compatible with the passed
+    # axis of the object
     if level is not None:
         if not isinstance(group_axis, MultiIndex):
             if isinstance(level, compat.string_types):
@@ -1648,10 +1791,13 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
             level = None
             key = group_axis
 
-    if isinstance(key, CustomGrouper):
-        binner, gpr, obj = key.get_grouper(obj)
-        return gpr, [], obj
-    elif isinstance(key, Grouper):
+    # a passed in Grouper, directly convert
+    if isinstance(key, Grouper):
+        binner, grouper, obj = key.get_grouper(obj)
+        return grouper, [], obj
+
+    # already have a BaseGrouper, just return it
+    elif isinstance(key, BaseGrouper):
         return key, [], obj
 
     if not isinstance(key, (tuple, list)):
@@ -1704,13 +1850,14 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
             errmsg = "Categorical grouper must have len(grouper) == len(data)"
             raise AssertionError(errmsg)
 
-        ping = Grouping(group_axis, gpr, name=name, level=level, sort=sort)
+        ping = Grouping(group_axis, gpr, obj=obj, name=name, level=level, sort=sort)
         groupings.append(ping)
 
     if len(groupings) == 0:
         raise ValueError('No group keys passed!')
 
-    grouper = Grouper(group_axis, groupings, sort=sort)
+    # create the internals grouper
+    grouper = BaseGrouper(group_axis, groupings, sort=sort)
 
     return grouper, exclusions, obj
 

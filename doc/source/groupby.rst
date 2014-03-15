@@ -707,6 +707,54 @@ can be used as group keys. If so, the order of the levels will be preserved:
 
    data.groupby(factor).mean()
 
+.. _groupby.specify:
+
+Grouping with a Grouper specification
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Your may need to specify a bit more data to properly group. You can
+use the ``pd.Grouper`` to provide this local control.
+
+.. ipython:: python
+
+   import datetime as DT
+
+   df = DataFrame({
+          'Branch' : 'A A A A A A A B'.split(),
+          'Buyer': 'Carl Mark Carl Carl Joe Joe Joe Carl'.split(),
+          'Quantity': [1,3,5,1,8,1,9,3],
+          'Date' : [
+                DT.datetime(2013,1,1,13,0),
+                DT.datetime(2013,1,1,13,5),
+                DT.datetime(2013,10,1,20,0),
+                DT.datetime(2013,10,2,10,0),
+                DT.datetime(2013,10,1,20,0),
+                DT.datetime(2013,10,2,10,0),
+                DT.datetime(2013,12,2,12,0),
+                DT.datetime(2013,12,2,14,0),
+                ]})
+
+   df
+
+Groupby a specific column with the desired frequency. This is like resampling.
+
+.. ipython:: python
+
+   df.groupby([pd.Grouper(freq='1M',key='Date'),'Buyer']).sum()
+
+You have an ambiguous specification in that you have a named index and a column
+that could be potential groupers.
+
+.. ipython:: python
+
+   df = df.set_index('Date')
+   df['Date'] = df.index + pd.offsets.MonthEnd(2)
+   df.groupby([pd.Grouper(freq='6M',key='Date'),'Buyer']).sum()
+
+   df.groupby([pd.Grouper(freq='6M',level='Date'),'Buyer']).sum()
+
+
+.. _groupby.nth:
 
 Taking the first rows of each group
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -753,7 +801,7 @@ To select from a DataFrame or Series the nth item, use the nth method:
 
    g.nth(-1)
 
-If you want to select the nth not-null method, use the dropna kwarg. For a DataFrame this should be either 'any' or 'all' just like you would pass to dropna, for a Series this just needs to be truthy. 
+If you want to select the nth not-null method, use the dropna kwarg. For a DataFrame this should be either 'any' or 'all' just like you would pass to dropna, for a Series this just needs to be truthy.
 
 .. ipython:: python
 
@@ -787,6 +835,9 @@ To see the order in which each row appears within its group, use the
 Examples
 --------
 
+Regrouping by factor
+~~~~~~~~~~~~~~~~~~~~
+
 Regroup columns of a DataFrame according to their sum, and sum the aggregated ones.
 
 .. ipython:: python
@@ -795,6 +846,9 @@ Regroup columns of a DataFrame according to their sum, and sum the aggregated on
    df
    df.groupby(df.sum(), axis=1).sum()
 
+
+Returning a Series to propogate names
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Group DataFrame columns, compute a set of metrics and return a named Series.
 The Series name is used as the name for the column index.  This is especially
@@ -808,7 +862,7 @@ column index name will be used as the name of the inserted column:
         'b':  [0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1],
         'c':  [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
         'd':  [0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1],
-        }) 
+        })
 
    def compute_metrics(x):
        result = {'b_sum': x['b'].sum(), 'c_mean': x['c'].mean()}

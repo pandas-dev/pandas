@@ -11,6 +11,7 @@ Highlights include:
 
 - MultIndexing Using Slicers
 - Joining a singly-indexed DataFrame with a multi-indexed DataFrame
+- More flexible groupby specifications
 
 API changes
 ~~~~~~~~~~~
@@ -82,7 +83,7 @@ These are out-of-bounds selections
      g[['B']].head(1)
 
    - groupby ``nth`` now filters by default, with optional dropna argument to ignore
-     NaN (to replicate the previous behaviour.)
+     NaN (to replicate the previous behaviour.), See :ref:`the docs <groupby.nth>`.
 
   .. ipython:: python
 
@@ -91,6 +92,9 @@ These are out-of-bounds selections
      g.nth(0)  # can also use negative ints
 
      g.nth(0, dropna='any')  # similar to old behaviour
+
+- Allow specification of a more complex groupby via ``pd.Groupby``, such as grouping
+  by a Time and a string field simultaneously. See :ref:`the docs <groupby.specify>`. (:issue:`3794`)
 
 - Local variable usage has changed in
   :func:`pandas.eval`/:meth:`DataFrame.eval`/:meth:`DataFrame.query`
@@ -123,6 +127,7 @@ These are out-of-bounds selections
   .. ipython:: python
 
      i[[0,1,2]].astype(np.int_)
+
 - ``set_index`` no longer converts MultiIndexes to an Index of tuples. For example,
   the old behavior returned an Index in this case (:issue:`6459`):
 
