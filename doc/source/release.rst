@@ -133,6 +133,17 @@ API Changes
 
 - Allow specification of a more complex groupby, via ``pd.Groupby`` (:issue:`3794`)
 
+- A tuple passed to ``DataFame.sort_index`` will be interpreted as the levels of
+  the index, rather than requiring a list of tuple (:issue:`4370`)
+
+Deprecations
+~~~~~~~~~~~~
+
+Prior Version Deprecations/Changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Remove ``column`` keyword from ``DataFrame.sort`` (:issue:`4370`)
+
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
 

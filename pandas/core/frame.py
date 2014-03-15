@@ -2530,7 +2530,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Sorting
 
-    def sort(self, columns=None, column=None, axis=0, ascending=True,
+    def sort(self, columns=None, axis=0, ascending=True,
              inplace=False):
         """
         Sort DataFrame either by labels (along either axis) or by the values in
@@ -2539,8 +2539,9 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         columns : object
-            Column name(s) in frame. Accepts a column name or a list or tuple
-            for a nested sort.
+            Column name(s) in frame. Accepts a column name or a list
+            for a nested sort. A tuple will be interpreted as the
+            levels of a multi-index.
         ascending : boolean or list, default True
             Sort ascending vs. descending. Specify list for multiple sort
             orders
@@ -2557,9 +2558,6 @@ class DataFrame(NDFrame):
         -------
         sorted : DataFrame
         """
-        if column is not None:  # pragma: no cover
-            warnings.warn("column is deprecated, use columns", FutureWarning)
-            columns = column
         return self.sort_index(by=columns, axis=axis, ascending=ascending,
                                inplace=inplace)
 
@@ -2574,8 +2572,9 @@ class DataFrame(NDFrame):
         axis : {0, 1}
             Sort index/rows versus columns
         by : object
-            Column name(s) in frame. Accepts a column name or a list or tuple
-            for a nested sort.
+            Column name(s) in frame. Accepts a column name or a list
+            for a nested sort. A tuple will be interpreted as the
+            levels of a multi-index.
         ascending : boolean or list, default True
             Sort ascending vs. descending. Specify list for multiple sort
             orders
@@ -2602,7 +2601,7 @@ class DataFrame(NDFrame):
             if axis != 0:
                 raise ValueError('When sorting by column, axis must be 0 '
                                  '(rows)')
-            if not isinstance(by, (tuple, list)):
+            if not isinstance(by, list):
                 by = [by]
             if com._is_sequence(ascending) and len(by) != len(ascending):
                 raise ValueError('Length of ascending (%d) != length of by'
@@ -2629,6 +2628,13 @@ class DataFrame(NDFrame):
                 by = by[0]
                 k = self[by].values
                 if k.ndim == 2:
+
+                    # try to be helpful
+                    if isinstance(self.columns, MultiIndex):
+                        raise ValueError('Cannot sort by column %s in a multi-index'
+                                         '  you need to explicity provide all the levels'
+                                         % str(by))
+
                     raise ValueError('Cannot sort by duplicate column %s'
                                      % str(by))
                 if isinstance(ascending, (tuple, list)):

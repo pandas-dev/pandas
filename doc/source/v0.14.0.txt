@@ -288,7 +288,9 @@ You can use a right-hand-side of an alignable object as well.
 Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-There are no announced changes in 0.13.1 or prior that are taking effect as of 0.14.0
+Therse are prior version deprecations that are taking effect as of 0.14.0.
+
+- Remove ``column`` keyword from ``DataFrame.sort`` (:issue:`4370`)
 
 Deprecations
 ~~~~~~~~~~~~

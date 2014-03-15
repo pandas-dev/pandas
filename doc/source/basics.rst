@@ -1287,9 +1287,18 @@ Some other sorting notes / nuances:
   * ``Series.sort`` sorts a Series by value in-place. This is to provide
     compatibility with NumPy methods which expect the ``ndarray.sort``
     behavior.
-  * ``DataFrame.sort`` takes a ``column`` argument instead of ``by``. This
-    method will likely be deprecated in a future release in favor of just using
-    ``sort_index``.
+
+Sorting by a multi-index column
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You must be explicit about sorting when the column is a multi-index, and fully specify
+all levels to ``by``.
+
+.. ipython:: python
+
+   df1.columns = MultiIndex.from_tuples([('a','one'),('a','two'),('b','three')])
+   df1.sort_index(by=('a','two'))
+
 
 Copying
 -------
