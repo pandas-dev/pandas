@@ -23,6 +23,13 @@ Enhancements
 
 
 
+- ``drop`` function can now accept ``errors`` keyword to suppress ValueError raised when any of label does not exist in the target data. (:issue:`6736`)
+
+  .. ipython:: python
+
+    df = DataFrame(np.random.randn(3, 3), columns=['A', 'B', 'C'])
+    df.drop(['A', 'X'], axis=1, errors='ignore')
+
 
 .. _whatsnew_0161.api:
 

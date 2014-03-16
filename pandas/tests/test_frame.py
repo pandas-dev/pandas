@@ -7409,6 +7409,26 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             self.assertEqual(obj.columns.name, 'second')
         self.assertEqual(list(df.columns), ['d', 'e', 'f'])
 
+        self.assertRaises(ValueError, df.drop, ['g'])
+        self.assertRaises(ValueError, df.drop, ['g'], 1)
+
+        # errors = 'ignore'
+        dropped = df.drop(['g'], errors='ignore')
+        expected = Index(['a', 'b', 'c'])
+        self.assert_index_equal(dropped.index, expected)
+
+        dropped = df.drop(['b', 'g'], errors='ignore')
+        expected = Index(['a', 'c'])
+        self.assert_index_equal(dropped.index, expected)
+
+        dropped = df.drop(['g'], axis=1, errors='ignore')
+        expected = Index(['d', 'e', 'f'])
+        self.assert_index_equal(dropped.columns, expected)
+
+        dropped = df.drop(['d', 'g'], axis=1, errors='ignore')
+        expected = Index(['e', 'f'])
+        self.assert_index_equal(dropped.columns, expected)
+
     def test_dropEmptyRows(self):
         N = len(self.frame.index)
         mat = randn(N)
@@ -7786,6 +7806,19 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                            simple[[]])
         assert_frame_equal(simple.drop([0, 1, 3], axis=0), simple.ix[[2], :])
         assert_frame_equal(simple.drop([0, 3], axis='index'), simple.ix[[1, 2], :])
+
+        self.assertRaises(ValueError, simple.drop, 5)
+        self.assertRaises(ValueError, simple.drop, 'C', 1)
+        self.assertRaises(ValueError, simple.drop, [1, 5])
+        self.assertRaises(ValueError, simple.drop, ['A', 'C'], 1)
+
+        # errors = 'ignore'
+        assert_frame_equal(simple.drop(5, errors='ignore'), simple)
+        assert_frame_equal(simple.drop([0, 5], errors='ignore'),
+                           simple.ix[[1, 2, 3], :])
+        assert_frame_equal(simple.drop('C', axis=1, errors='ignore'), simple)
+        assert_frame_equal(simple.drop(['A', 'C'], axis=1, errors='ignore'),
+                           simple[['B']])
 
         #non-unique - wheee!
         nu_df = DataFrame(lzip(range(3), range(-3, 1), list('abc')),
