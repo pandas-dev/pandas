@@ -571,7 +571,7 @@ We can produce pivot tables from this data very easily:
 
 .. ipython:: python
 
-   pd.pivot_table(df, values='D', rows=['A', 'B'], cols=['C'])
+   pd.pivot_table(df, values='D', index=['A', 'B'], columns=['C'])
 
 
 Time Series
