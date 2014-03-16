@@ -377,6 +377,11 @@ class BaseExprVisitor(ast.NodeVisitor):
                                                        '<=', '>=')):
         res = op(lhs, rhs)
 
+        if res.has_invalid_return_type:
+            raise TypeError("unsupported operand type(s) for {0}:"
+                            " '{1}' and '{2}'".format(res.op, lhs.type,
+                                                      rhs.type))
+
         if self.engine != 'pytables':
             if (res.op in _cmp_ops_syms
                     and getattr(lhs, 'is_datetime', False)

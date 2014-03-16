@@ -136,6 +136,8 @@ API Changes
 - A tuple passed to ``DataFame.sort_index`` will be interpreted as the levels of
   the index, rather than requiring a list of tuple (:issue:`4370`)
 
+- Fix a bug where invalid eval/query operations would blow the stack (:issue:`5198`)
+
 Deprecations
 ~~~~~~~~~~~~
 
