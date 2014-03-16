@@ -118,6 +118,7 @@ API Changes
 
 - Better propagation/preservation of Series names when performing groupby
   operations:
+
   - ``SeriesGroupBy.agg`` will ensure that the name attribute of the original
     series is propagated to the result (:issue:`6265`).
   - If the function provided to ``GroupBy.apply`` returns a named series, the
@@ -221,7 +222,7 @@ Bug Fixes
 - Bug in :meth:`DataFrame.replace` where nested dicts were erroneously
   depending on the order of dictionary keys and values (:issue:`5338`).
 - Perf issue in concatting with empty objects (:issue:`3259`)
-- Clarify sorting of ``sym_diff`` on ``Index``es with ``NaN``s (:issue:`6444`)
+- Clarify sorting of ``sym_diff`` on ``Index`` objects with ``NaN`` values (:issue:`6444`)
 - Regression in ``MultiIndex.from_product`` with a ``DatetimeIndex`` as input (:issue:`6439`)
 - Bug in ``str.extract`` when passed a non-default index (:issue:`6348`)
 - Bug in ``str.split`` when passed ``pat=None`` and ``n=1`` (:issue:`6466`)
