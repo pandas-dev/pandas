@@ -1984,6 +1984,15 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         expected = Panel({"One": df})
         check_drop('Two', 0, ['items'], expected)
 
+        self.assertRaises(ValueError, panel.drop, 'Three')
+
+        # errors = 'ignore'
+        dropped = panel.drop('Three', errors='ignore')
+        assert_panel_equal(dropped, panel)
+        dropped = panel.drop(['Two', 'Three'], errors='ignore')
+        expected = Panel({"One": df})
+        assert_panel_equal(dropped, expected)
+
         # Major
         exp_df = DataFrame({"A": [2], "B": [4]}, index=[1])
         expected = Panel({"One": exp_df, "Two": exp_df})

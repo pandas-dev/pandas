@@ -1036,20 +1036,43 @@ class TestIndex(Base, tm.TestCase):
     def test_drop(self):
         n = len(self.strIndex)
 
-        dropped = self.strIndex.drop(self.strIndex[lrange(5, 10)])
+        drop = self.strIndex[lrange(5, 10)]
+        dropped = self.strIndex.drop(drop)
         expected = self.strIndex[lrange(5) + lrange(10, n)]
         self.assertTrue(dropped.equals(expected))
 
         self.assertRaises(ValueError, self.strIndex.drop, ['foo', 'bar'])
+        self.assertRaises(ValueError, self.strIndex.drop, ['1', 'bar'])
+
+        # errors='ignore'
+        mixed = drop.tolist() + ['foo']
+        dropped = self.strIndex.drop(mixed, errors='ignore')
+        expected = self.strIndex[lrange(5) + lrange(10, n)]
+        self.assert_index_equal(dropped, expected)
+
+        dropped = self.strIndex.drop(['foo', 'bar'], errors='ignore')
+        expected = self.strIndex[lrange(n)]
+        self.assert_index_equal(dropped, expected)
 
         dropped = self.strIndex.drop(self.strIndex[0])
         expected = self.strIndex[1:]
-        self.assertTrue(dropped.equals(expected))
+        self.assert_index_equal(dropped, expected)
 
         ser = Index([1, 2, 3])
         dropped = ser.drop(1)
         expected = Index([2, 3])
-        self.assertTrue(dropped.equals(expected))
+        self.assert_index_equal(dropped, expected)
+
+        # errors='ignore'
+        self.assertRaises(ValueError, ser.drop, [3, 4])
+
+        dropped = ser.drop(4, errors='ignore')
+        expected = Index([1, 2, 3])
+        self.assert_index_equal(dropped, expected)
+
+        dropped = ser.drop([3, 4, 5], errors='ignore')
+        expected = Index([1, 2])
+        self.assert_index_equal(dropped, expected)
 
     def test_tuple_union_bug(self):
         import pandas
@@ -3529,21 +3552,50 @@ class TestMultiIndex(Base, tm.TestCase):
         dropped2 = self.index.drop(index)
 
         expected = self.index[[0, 2, 3, 5]]
-        self.assertTrue(dropped.equals(expected))
-        self.assertTrue(dropped2.equals(expected))
+        self.assert_index_equal(dropped, expected)
+        self.assert_index_equal(dropped2, expected)
 
         dropped = self.index.drop(['bar'])
         expected = self.index[[0, 1, 3, 4, 5]]
-        self.assertTrue(dropped.equals(expected))
+        self.assert_index_equal(dropped, expected)
+
+        dropped = self.index.drop('foo')
+        expected = self.index[[2, 3, 4, 5]]
+        self.assert_index_equal(dropped, expected)
 
         index = MultiIndex.from_tuples([('bar', 'two')])
         self.assertRaises(KeyError, self.index.drop, [('bar', 'two')])
         self.assertRaises(KeyError, self.index.drop, index)
+        self.assertRaises(KeyError, self.index.drop, ['foo', 'two'])
+
+        # partially correct argument
+        mixed_index = MultiIndex.from_tuples([('qux', 'one'), ('bar', 'two')])
+        self.assertRaises(KeyError, self.index.drop, mixed_index)
+
+        # error='ignore'
+        dropped = self.index.drop(index, errors='ignore')
+        expected = self.index[[0, 1, 2, 3, 4, 5]]
+        self.assert_index_equal(dropped, expected)
+
+        dropped = self.index.drop(mixed_index, errors='ignore')
+        expected = self.index[[0, 1, 2, 3, 5]]
+        self.assert_index_equal(dropped, expected)
+
+        dropped = self.index.drop(['foo', 'two'], errors='ignore')
+        expected = self.index[[2, 3, 4, 5]]
+        self.assert_index_equal(dropped, expected)
 
         # mixed partial / full drop
         dropped = self.index.drop(['foo', ('qux', 'one')])
         expected = self.index[[2, 3, 5]]
-        self.assertTrue(dropped.equals(expected))
+        self.assert_index_equal(dropped, expected)
+
+        # mixed partial / full drop / error='ignore'
+        mixed_index = ['foo', ('qux', 'one'), 'two']
+        self.assertRaises(KeyError, self.index.drop, mixed_index)
+        dropped = self.index.drop(mixed_index, errors='ignore')
+        expected = self.index[[2, 3, 5]]
+        self.assert_index_equal(dropped, expected)
 
     def test_droplevel_with_names(self):
         index = self.index[self.index.get_loc('foo')]
