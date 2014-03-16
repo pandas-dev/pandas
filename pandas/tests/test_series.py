@@ -1954,6 +1954,14 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         self.assertRaises(ValueError, s.drop, 'bc')
         self.assertRaises(ValueError, s.drop, ('a',))
 
+        # errors='ignore'
+        s = Series(range(3),index=list('abc'))
+        result = s.drop('bc', errors='ignore')
+        assert_series_equal(result, s)
+        result = s.drop(['a', 'd'], errors='ignore')
+        expected = s.ix[1:]
+        assert_series_equal(result, expected)
+
         # bad axis
         self.assertRaises(ValueError, s.drop, 'one', axis='columns')
 
