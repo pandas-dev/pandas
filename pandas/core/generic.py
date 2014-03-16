@@ -908,6 +908,33 @@ class NDFrame(PandasObject):
         from pandas.io import packers
         return packers.to_msgpack(path_or_buf, self, **kwargs)
 
+    def to_sql(self, name, con, flavor='sqlite', if_exists='fail', index=True):
+        """
+        Write records stored in a DataFrame to a SQL database.
+
+        Parameters
+        ----------
+        name : string
+            Name of SQL table
+        con : SQLAlchemy engine or DBAPI2 connection (legacy mode)
+            Using SQLAlchemy makes it possible to use any DB supported by that
+            library.
+            If a DBAPI2 object is given, a supported SQL flavor must also be provided
+        flavor : {'sqlite', 'mysql'}, default 'sqlite'
+            The flavor of SQL to use. Ignored when using SQLAlchemy engine.
+            Required when using DBAPI2 connection.
+        if_exists : {'fail', 'replace', 'append'}, default 'fail'
+            - fail: If table exists, do nothing.
+            - replace: If table exists, drop it, recreate it, and insert data.
+            - append: If table exists, insert data. Create if does not exist.
+        index : boolean, default True
+            Write DataFrame index as a column
+
+        """
+        from pandas.io import sql
+        sql.to_sql(
+            self, name, con, flavor=flavor, if_exists=if_exists, index=index)
+
     def to_pickle(self, path):
         """
         Pickle (serialize) object to input file path

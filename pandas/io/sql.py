@@ -11,7 +11,7 @@ import numpy as np
 
 import pandas.core.common as com
 from pandas.compat import lzip, map, zip, raise_with_traceback, string_types
-from pandas.core.api import DataFrame
+from pandas.core.api import DataFrame, Series
 from pandas.core.base import PandasObject
 from pandas.tseries.tools import to_datetime
 
@@ -253,6 +253,12 @@ def to_sql(frame, name, con, flavor='sqlite', if_exists='fail', index=True):
         Write DataFrame index as a column
     """
     pandas_sql = pandasSQL_builder(con, flavor=flavor)
+
+    if isinstance(frame, Series):
+        frame = frame.to_frame()
+    elif not isinstance(frame, DataFrame):
+        raise NotImplementedError
+
     pandas_sql.to_sql(frame, name, if_exists=if_exists, index=index)
 
 
