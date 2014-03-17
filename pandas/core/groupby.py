@@ -141,14 +141,26 @@ def _last_compat(x, axis=0):
 
 class Grouper(object):
     """
-    A Grouper allows the user to specify a groupby instruction
+    A Grouper allows the user to specify a groupby instruction for a target object
+
+    This specification will select a column via the key parameter, or if the level and/or
+    axis parameters are given, a level of the index of the target object.
+
+    These are local specifications and will override 'global' settings, that is the parameters
+    axis and level which are passed to the groupby itself.
 
     Parameters
     ----------
-    key : groupby key, default None
-    level : name, int level number, default None
-    freq : string / freqency object, default None
-    sort : boolean, whether to sort the resulting labels, default True
+    key : string, defaults to None
+        groupby key, which selects the grouping column of the target
+    level : name/number, defaults to None
+        the level for the target index
+    freq : string / freqency object, defaults to None
+        This will groupby the specified frequency if the target selection (via key or level) is
+        a datetime-like object
+    axis : number/name of the axis, defaults to None
+    sort : boolean, default to False
+        whether to sort the resulting labels
 
     Returns
     -------
@@ -156,10 +168,10 @@ class Grouper(object):
 
     Examples
     --------
-    df.groupby(Group(key='A')) : syntatic sugar for df.groupby('A')
-    df.groupby(Group(key='date',freq='60s')) : specify a resample on the column 'date'
-    df.groupby(Group(level='date',freq='60s',axis=1)) :
-       specify a resample on the level 'date' on the columns axis with a frequency of 60s
+    >>> df.groupby(Grouper(key='A')) : syntatic sugar for df.groupby('A')
+    >>> df.groupby(Grouper(key='date',freq='60s')) : specify a resample on the column 'date'
+    >>> df.groupby(Grouper(level='date',freq='60s',axis=1)) :
+        specify a resample on the level 'date' on the columns axis with a frequency of 60s
 
     """
 
@@ -186,7 +198,7 @@ class Grouper(object):
     def ax(self):
         return self.grouper
 
-    def get_grouper(self, obj):
+    def _get_grouper(self, obj):
 
         """
         Parameters
@@ -198,10 +210,10 @@ class Grouper(object):
         a tuple of binner, grouper, obj (possibly sorted)
         """
 
-        self.set_grouper(obj)
+        self._set_grouper(obj)
         return self.binner, self.grouper, self.obj
 
-    def set_grouper(self, obj, sort=False):
+    def _set_grouper(self, obj, sort=False):
         """
         given an object and the specifcations, setup the internal grouper for this particular specification
 
@@ -252,7 +264,7 @@ class Grouper(object):
         self.grouper = ax
         return self.grouper
 
-    def get_binner_for_grouping(self, obj):
+    def _get_binner_for_grouping(self, obj):
         raise NotImplementedError
 
     @property
@@ -1685,7 +1697,7 @@ class Grouping(object):
             elif isinstance(self.grouper, Grouper):
 
                 # get the new grouper
-                grouper = self.grouper.get_binner_for_grouping(self.obj)
+                grouper = self.grouper._get_binner_for_grouping(self.obj)
                 self.obj = self.grouper.obj
                 self.grouper = grouper
                 if self.name is None:
@@ -1795,7 +1807,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
 
     # a passed in Grouper, directly convert
     if isinstance(key, Grouper):
-        binner, grouper, obj = key.get_grouper(obj)
+        binner, grouper, obj = key._get_grouper(obj)
         return grouper, [], obj
 
     # already have a BaseGrouper, just return it

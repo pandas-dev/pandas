@@ -132,7 +132,7 @@ API Changes
   ``FutureWarning`` is raised  to alert that the old ``rows`` and ``cols`` arguments
   will not be supported in a future release (:issue:`5505`)
 
-- Allow specification of a more complex groupby, via ``pd.Groupby`` (:issue:`3794`)
+- Allow specification of a more complex groupby, via ``pd.Grouper`` (:issue:`3794`)
 
 - A tuple passed to ``DataFame.sort_index`` will be interpreted as the levels of
   the index, rather than requiring a list of tuple (:issue:`4370`)

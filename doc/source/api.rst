@@ -1193,6 +1193,7 @@ Indexing, iteration
    GroupBy.groups
    GroupBy.indices
    GroupBy.get_group
+   Grouper
 
 Function application
 ~~~~~~~~~~~~~~~~~~~~
