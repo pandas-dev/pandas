@@ -16,6 +16,7 @@ import pandas.lib as lib
 import pandas.core.common as com
 from pandas.core.index import Index
 
+from pandas import Series
 from pandas.tseries.index import date_range
 import pandas.tseries.tools as tools
 import pandas.tseries.frequencies as frequencies
@@ -144,8 +145,8 @@ def _dt_to_float_ordinal(dt):
     preserving hours, minutes, seconds and microseconds.  Return value
     is a :func:`float`.
     """
-    if isinstance(dt, np.ndarray) and com.is_datetime64_ns_dtype(dt):
-        base = dates.epoch2num(dt.astype(np.int64) / 1.0E9)
+    if isinstance(dt, (np.ndarray, Series)) and com.is_datetime64_ns_dtype(dt):
+        base = dates.epoch2num(dt.asi8 / 1.0E9)
     else:
         base = dates.date2num(dt)
     return base

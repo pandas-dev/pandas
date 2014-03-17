@@ -159,6 +159,8 @@ Improvements to existing features
 - ``StataWriter`` and ``DataFrame.to_stata`` accept time stamp and data labels (:issue:`6545`)
 - offset/freq info now in Timestamp __repr__ (:issue:`4553`)
 - Support passing ``encoding`` with xlwt (:issue:`3710`)
+- Performance improvement when converting ``DatetimeIndex`` to floating ordinals 
+  using ``DatetimeConverter`` (:issue:`6636`)
 
 .. _release.bug_fixes-0.14.0:
 
