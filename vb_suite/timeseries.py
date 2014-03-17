@@ -288,6 +288,7 @@ import pandas as pd
 
 date = dt.datetime(2011,1,1)
 cday = pd.offsets.CustomBusinessDay()
+cme = pd.offsets.CustomBusinessMonthEnd()
 """
 timeseries_custom_bday_incr = \
     Benchmark("date + cday",setup)
@@ -295,3 +296,10 @@ timeseries_custom_bday_incr = \
 # Increment by n
 timeseries_custom_bday_incr_n = \
     Benchmark("date + 10 * cday",setup)
+
+# Increment custom business month
+timeseries_custom_bmonthend_incr = \
+    Benchmark("date + cme",setup)
+
+timeseries_custom_bmonthend_incr_n = \
+    Benchmark("date + 10 * cme",setup)
