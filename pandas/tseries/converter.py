@@ -16,7 +16,7 @@ import pandas.lib as lib
 import pandas.core.common as com
 from pandas.core.index import Index
 
-from pandas import Series
+from pandas.core.series import Series
 from pandas.tseries.index import date_range
 import pandas.tseries.tools as tools
 import pandas.tseries.frequencies as frequencies
