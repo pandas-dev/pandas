@@ -13243,6 +13243,16 @@ class TestDataFrameEvalNumExprPandas(tm.TestCase):
         expect = self.frame.a[self.frame.a < 1] + self.frame.b
         assert_series_equal(res, expect)
 
+    def test_invalid_type_for_operator_raises(self):
+        df = DataFrame({'a': [1, 2], 'b': ['c', 'd']})
+        ops = '+', '-', '*', '/'
+        for op in ops:
+            with tm.assertRaisesRegexp(TypeError,
+                                       "unsupported operand type\(s\) for "
+                                       ".+: '.+' and '.+'"):
+                df.eval('a {0} b'.format(op), engine=self.engine,
+                        parser=self.parser)
+
 
 class TestDataFrameEvalNumExprPython(TestDataFrameEvalNumExprPandas):
 

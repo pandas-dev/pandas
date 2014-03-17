@@ -169,7 +169,7 @@ _bool_op_map = {'not': '~', 'and': '&', 'or': '|'}
 
 class Op(StringMixin):
 
-    """Hold an operator of unknown arity
+    """Hold an operator of arbitrary arity
     """
 
     def __init__(self, op, operands, *args, **kwargs):
@@ -194,6 +194,16 @@ class Op(StringMixin):
         if self.op in (_cmp_ops_syms + _bool_ops_syms):
             return np.bool_
         return _result_type_many(*(term.type for term in com.flatten(self)))
+
+    @property
+    def has_invalid_return_type(self):
+        types = self.operand_types
+        obj_dtype_set = frozenset([np.dtype('object')])
+        return self.return_type == object and types - obj_dtype_set
+
+    @property
+    def operand_types(self):
+        return frozenset(term.type for term in com.flatten(self))
 
     @property
     def isscalar(self):
@@ -412,6 +422,10 @@ class BinOp(Op):
             raise NotImplementedError("cannot evaluate scalar only bool ops")
 
 
+def isnumeric(dtype):
+    return issubclass(np.dtype(dtype).type, np.number)
+
+
 class Div(BinOp):
 
     """Div operator to special case casting.
@@ -427,6 +441,12 @@ class Div(BinOp):
 
     def __init__(self, lhs, rhs, truediv, *args, **kwargs):
         super(Div, self).__init__('/', lhs, rhs, *args, **kwargs)
+
+        if not isnumeric(lhs.return_type) or not isnumeric(rhs.return_type):
+            raise TypeError("unsupported operand type(s) for {0}:"
+                            " '{1}' and '{2}'".format(self.op,
+                                                      lhs.return_type,
+                                                      rhs.return_type))
 
         if truediv or PY3:
             _cast_inplace(com.flatten(self), np.float_)
