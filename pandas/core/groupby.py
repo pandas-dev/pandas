@@ -169,7 +169,7 @@ class Grouper(object):
             cls = TimeGrouper
         return super(Grouper, cls).__new__(cls)
 
-    def __init__(self, key=None, level=None, freq=None, axis=None, sort=True):
+    def __init__(self, key=None, level=None, freq=None, axis=None, sort=False):
         self.key=key
         self.level=level
         self.freq=freq
@@ -201,7 +201,7 @@ class Grouper(object):
         self.set_grouper(obj)
         return self.binner, self.grouper, self.obj
 
-    def set_grouper(self, obj):
+    def set_grouper(self, obj, sort=False):
         """
         given an object and the specifcations, setup the internal grouper for this particular specification
 
@@ -243,7 +243,7 @@ class Grouper(object):
                         raise ValueError("The grouper level {0} is not valid".format(level))
 
             # possibly sort
-            if not ax.is_monotonic:
+            if (self.sort or sort) and not ax.is_monotonic:
                 indexer = self.indexer = ax.argsort(kind='quicksort')
                 ax = ax.take(indexer)
                 obj = obj.take(indexer, axis=self.axis, convert=False, is_copy=False)
@@ -1608,6 +1608,7 @@ class Grouping(object):
         self.grouper = _convert_grouper(index, grouper)
         self.index = index
         self.sort = sort
+        self.obj = obj
 
         # right place for this?
         if isinstance(grouper, (Series, Index)) and name is None:
@@ -1684,7 +1685,8 @@ class Grouping(object):
             elif isinstance(self.grouper, Grouper):
 
                 # get the new grouper
-                grouper = self.grouper.get_binner_for_grouping(obj)
+                grouper = self.grouper.get_binner_for_grouping(self.obj)
+                self.obj = self.grouper.obj
                 self.grouper = grouper
                 if self.name is None:
                     self.name = grouper.name

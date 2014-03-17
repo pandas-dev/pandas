@@ -70,13 +70,13 @@ class TimeGrouper(Grouper):
         self.limit = limit
         self.base = base
 
-        # by definition we always sort
+        # always sort time groupers
         kwargs['sort'] = True
 
         super(TimeGrouper, self).__init__(freq=freq, axis=axis, **kwargs)
 
     def resample(self, obj):
-        self.set_grouper(obj)
+        self.set_grouper(obj, sort=True)
         ax = self.grouper
 
         if isinstance(ax, DatetimeIndex):
