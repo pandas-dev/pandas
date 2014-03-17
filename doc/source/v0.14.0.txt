@@ -94,7 +94,7 @@ These are out-of-bounds selections
 
      g.nth(0, dropna='any')  # similar to old behaviour
 
-- Allow specification of a more complex groupby via ``pd.Groupby``, such as grouping
+- Allow specification of a more complex groupby via ``pd.Grouper``, such as grouping
   by a Time and a string field simultaneously. See :ref:`the docs <groupby.specify>`. (:issue:`3794`)
 
 - Local variable usage has changed in
