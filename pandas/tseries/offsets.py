@@ -1,3 +1,4 @@
+import sys
 from datetime import date, datetime, timedelta
 from pandas.compat import range
 from pandas import compat
@@ -16,6 +17,7 @@ from pandas import _np_version_under1p7
 import functools
 
 __all__ = ['Day', 'BusinessDay', 'BDay', 'CustomBusinessDay', 'CDay',
+           'CBMonthEnd','CBMonthBegin',
            'MonthBegin', 'BMonthBegin', 'MonthEnd', 'BMonthEnd',
            'YearBegin', 'BYearBegin', 'YearEnd', 'BYearEnd',
            'QuarterBegin', 'BQuarterBegin', 'QuarterEnd', 'BQuarterEnd',
@@ -702,6 +704,132 @@ class BusinessMonthBegin(MonthOffset):
 
     _prefix = 'BMS'
 
+
+
+class CustomBusinessMonthEnd(MonthOffset):
+    """
+    **EXPERIMENTAL** DateOffset of one custom business month
+
+    .. warning:: EXPERIMENTAL
+
+        This class is not officially supported and the API is likely to change
+        in future versions. Use this at your own risk.
+
+    Parameters
+    ----------
+    n : int, default 1
+    offset : timedelta, default timedelta(0)
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range
+    weekmask : str, Default 'Mon Tue Wed Thu Fri'
+        weekmask of valid business days, passed to ``numpy.busdaycalendar``
+    holidays : list
+        list/array of dates to exclude from the set of valid business days,
+        passed to ``numpy.busdaycalendar``
+    """
+
+    _cacheable = False
+    _prefix = 'CBM'
+    def __init__(self, n=1, **kwds):
+        self.n = int(n)
+        self.kwds = kwds
+        self.offset = kwds.get('offset', timedelta(0))
+        self.normalize = kwds.get('normalize', False)
+        self.weekmask = kwds.get('weekmask', 'Mon Tue Wed Thu Fri')
+        holidays = kwds.get('holidays', [])
+        self.cbday = CustomBusinessDay(n=self.n,**kwds)
+        self.m_offset = MonthEnd()
+
+    @apply_nat
+    def apply(self,other):
+        n = self.n
+        dt_in = other
+        # First move to month offset
+        cur_mend = self.m_offset.rollforward(dt_in)
+        # Find this custom month offset
+        cur_cmend = self.cbday.rollback(cur_mend)
+        
+        # handle zero case. arbitrarily rollforward
+        if n == 0 and dt_in != cur_cmend:
+            n += 1
+
+        if dt_in < cur_cmend and n >= 1:
+            n -= 1
+        elif dt_in > cur_cmend and n <= -1:
+            n += 1
+ 
+        new = cur_mend + n * MonthEnd()
+        result = self.cbday.rollback(new)
+        return as_timestamp(result)
+        
+    def __repr__(self):
+        if sys.version_info.major < 3:
+            return BusinessDay.__repr__.__func__(self)
+        else:
+            return BusinessDay.__repr__(self)
+
+class CustomBusinessMonthBegin(MonthOffset):
+    """
+    **EXPERIMENTAL** DateOffset of one custom business month
+
+    .. warning:: EXPERIMENTAL
+
+        This class is not officially supported and the API is likely to change
+        in future versions. Use this at your own risk.
+
+    Parameters
+    ----------
+    n : int, default 1
+    offset : timedelta, default timedelta(0)
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range
+    weekmask : str, Default 'Mon Tue Wed Thu Fri'
+        weekmask of valid business days, passed to ``numpy.busdaycalendar``
+    holidays : list
+        list/array of dates to exclude from the set of valid business days,
+        passed to ``numpy.busdaycalendar``
+    """
+
+    _cacheable = False
+    _prefix = 'CBMS'
+    def __init__(self, n=1, **kwds):
+        self.n = int(n)
+        self.kwds = kwds
+        self.offset = kwds.get('offset', timedelta(0))
+        self.normalize = kwds.get('normalize', False)
+        self.weekmask = kwds.get('weekmask', 'Mon Tue Wed Thu Fri')
+        holidays = kwds.get('holidays', [])
+        self.cbday = CustomBusinessDay(n=self.n,**kwds)
+        self.m_offset = MonthBegin()
+
+    @apply_nat
+    def apply(self,other):
+        n = self.n
+        dt_in = other
+        # First move to month offset
+        cur_mbegin = self.m_offset.rollback(dt_in)
+        # Find this custom month offset
+        cur_cmbegin = self.cbday.rollforward(cur_mbegin)
+
+        # handle zero case. arbitrarily rollforward
+        if n == 0 and dt_in != cur_cmbegin:
+            n += 1
+
+        if dt_in > cur_cmbegin and n <= -1:
+            n += 1
+        elif dt_in < cur_cmbegin and n >= 1:
+            n -= 1
+ 
+        new = cur_mbegin + n * MonthBegin()
+        result = self.cbday.rollforward(new)
+        return as_timestamp(result)
+
+        
+    def __repr__(self):
+        if sys.version_info.major < 3:
+            return BusinessDay.__repr__.__func__(self)
+        else:
+            return BusinessDay.__repr__(self)
 
 class Week(DateOffset):
     """
@@ -1906,6 +2034,8 @@ class Nano(Tick):
 BDay = BusinessDay
 BMonthEnd = BusinessMonthEnd
 BMonthBegin = BusinessMonthBegin
+CBMonthEnd = CustomBusinessMonthEnd
+CBMonthBegin = CustomBusinessMonthBegin
 CDay = CustomBusinessDay
 
 
@@ -1988,28 +2118,30 @@ def generate_range(start=None, end=None, periods=None,
         cur = next_date
 
 prefix_mapping = dict((offset._prefix, offset) for offset in [
-    YearBegin,           # 'AS'
-    YearEnd,             # 'A'
-    BYearBegin,          # 'BAS'
-    BYearEnd,            # 'BA'
-    BusinessDay,         # 'B'
-    BusinessMonthBegin,  # 'BMS'
-    BusinessMonthEnd,    # 'BM'
-    BQuarterEnd,         # 'BQ'
-    BQuarterBegin,       # 'BQS'
-    CustomBusinessDay,   # 'C'
-    MonthEnd,            # 'M'
-    MonthBegin,          # 'MS'
-    Week,                # 'W'
-    Second,              # 'S'
-    Minute,              # 'T'
-    Micro,               # 'U'
-    QuarterEnd,          # 'Q'
-    QuarterBegin,        # 'QS'
-    Milli,               # 'L'
-    Hour,                # 'H'
-    Day,                 # 'D'
-    WeekOfMonth,         # 'WOM'
+    YearBegin,                # 'AS'
+    YearEnd,                  # 'A'
+    BYearBegin,               # 'BAS'
+    BYearEnd,                 # 'BA'
+    BusinessDay,              # 'B'
+    BusinessMonthBegin,       # 'BMS'
+    BusinessMonthEnd,         # 'BM'
+    BQuarterEnd,              # 'BQ'
+    BQuarterBegin,            # 'BQS'
+    CustomBusinessDay,        # 'C'
+    CustomBusinessMonthEnd,   # 'CBM'
+    CustomBusinessMonthBegin, # 'CBMS'
+    MonthEnd,                 # 'M'
+    MonthBegin,               # 'MS'
+    Week,                     # 'W'
+    Second,                   # 'S'
+    Minute,                   # 'T'
+    Micro,                    # 'U'
+    QuarterEnd,               # 'Q'
+    QuarterBegin,             # 'QS'
+    Milli,                    # 'L'
+    Hour,                     # 'H'
+    Day,                      # 'D'
+    WeekOfMonth,              # 'WOM'
     FY5253,
     FY5253Quarter,
 ])
