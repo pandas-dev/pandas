@@ -707,11 +707,12 @@ cdef class _Timestamp(datetime):
         return result
 
     def __sub__(self, other):
-        if isinstance(other, datetime):
-            return datetime.__sub__(self, other)
+        if is_timedelta64_object(other) or is_integer_object(other) \
+                or isinstance(other, timedelta) or hasattr(other, 'delta'):
+            neg_other = -other
+            return self + neg_other
 
-        neg_other = -other
-        return self + neg_other
+        return datetime.__sub__(self, other)
 
     cpdef _get_field(self, field):
         out = get_date_field(np.array([self.value], dtype=np.int64), field)
