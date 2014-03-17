@@ -198,7 +198,7 @@ class Grouper(object):
     def ax(self):
         return self.grouper
 
-    def get_grouper(self, obj):
+    def _get_grouper(self, obj):
 
         """
         Parameters
@@ -210,10 +210,10 @@ class Grouper(object):
         a tuple of binner, grouper, obj (possibly sorted)
         """
 
-        self.set_grouper(obj)
+        self._set_grouper(obj)
         return self.binner, self.grouper, self.obj
 
-    def set_grouper(self, obj, sort=False):
+    def _set_grouper(self, obj, sort=False):
         """
         given an object and the specifcations, setup the internal grouper for this particular specification
 
@@ -264,7 +264,7 @@ class Grouper(object):
         self.grouper = ax
         return self.grouper
 
-    def get_binner_for_grouping(self, obj):
+    def _get_binner_for_grouping(self, obj):
         raise NotImplementedError
 
     @property
@@ -1697,7 +1697,7 @@ class Grouping(object):
             elif isinstance(self.grouper, Grouper):
 
                 # get the new grouper
-                grouper = self.grouper.get_binner_for_grouping(self.obj)
+                grouper = self.grouper._get_binner_for_grouping(self.obj)
                 self.obj = self.grouper.obj
                 self.grouper = grouper
                 if self.name is None:
@@ -1807,7 +1807,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
 
     # a passed in Grouper, directly convert
     if isinstance(key, Grouper):
-        binner, grouper, obj = key.get_grouper(obj)
+        binner, grouper, obj = key._get_grouper(obj)
         return grouper, [], obj
 
     # already have a BaseGrouper, just return it

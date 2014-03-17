@@ -76,7 +76,7 @@ class TimeGrouper(Grouper):
         super(TimeGrouper, self).__init__(freq=freq, axis=axis, **kwargs)
 
     def resample(self, obj):
-        self.set_grouper(obj, sort=True)
+        self._set_grouper(obj, sort=True)
         ax = self.grouper
 
         if isinstance(ax, DatetimeIndex):
@@ -93,7 +93,7 @@ class TimeGrouper(Grouper):
                 rs = self._resample_periods()
             else:
                 obj = self.obj.to_timestamp(how=self.convention)
-                self.set_grouper(obj)
+                self._set_grouper(obj)
                 rs = self._resample_timestamps()
         elif len(ax) == 0:
             return self.obj
@@ -104,11 +104,11 @@ class TimeGrouper(Grouper):
         rs_axis.name = ax.name
         return rs
 
-    def get_grouper(self, obj):
-        self.set_grouper(obj)
-        return self.get_binner_for_resample()
+    def _get_grouper(self, obj):
+        self._set_grouper(obj)
+        return self._get_binner_for_resample()
 
-    def get_binner_for_resample(self):
+    def _get_binner_for_resample(self):
         # create the BinGrouper
         # assume that self.set_grouper(obj) has already been called
 
@@ -121,12 +121,12 @@ class TimeGrouper(Grouper):
         self.grouper = BinGrouper(bins, binlabels)
         return self.binner, self.grouper, self.obj
 
-    def get_binner_for_grouping(self, obj):
+    def _get_binner_for_grouping(self, obj):
         # return an ordering of the transformed group labels,
         # suitable for multi-grouping, e.g the labels for
         # the resampled intervals
-        ax = self.set_grouper(obj)
-        self.get_binner_for_resample()
+        ax = self._set_grouper(obj)
+        self._get_binner_for_resample()
 
         # create the grouper
         binner = self.binner
@@ -233,7 +233,7 @@ class TimeGrouper(Grouper):
         # assumes set_grouper(obj) already called
         axlabels = self.ax
 
-        self.get_binner_for_resample()
+        self._get_binner_for_resample()
         grouper = self.grouper
         binner = self.binner
         obj = self.obj
