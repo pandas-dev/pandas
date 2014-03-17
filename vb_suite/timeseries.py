@@ -269,3 +269,15 @@ dataframe_resample_max_string = \
 dataframe_resample_max_numpy = \
     Benchmark("df.resample('1s', how=np.max)", setup)
 
+
+#----------------------------------------------------------------------
+# DatetimeConverter
+
+setup = common_setup + """
+from pandas.tseries.converter import DatetimeConverter
+"""
+
+datetimeindex_converter = \
+    Benchmark('DatetimeConverter.convert(rng, None, None)', 
+              setup, start_date=datetime(2013, 1, 1))
+
