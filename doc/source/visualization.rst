@@ -381,6 +381,40 @@ columns:
 
     plt.close('all')
 
+.. _visualization.errorbars:
+
+Plotting With Error Bars
+~~~~~~~~~~~~~~~~~~~~~~~~
+Plotting with error bars is now supported in the ``.plot`` method of ``DataFrame`` and ``Series`` objects.
+
+x and y errorbars are supported and be supplied using the ``xerr`` and ``yerr`` keyword arguments to ``.plot()`` The error values can be specified using a variety of formats.
+
+- As a ``DataFrame`` or ``dict`` of errors with column names matching the ``columns`` attribute of the plotting ``DataFrame`` or matching the ``name`` attribute of the ``Series``
+- As a ``str`` indicating which of the columns of plotting ``DataFrame`` contain the error values
+- As raw values (``list``, ``tuple``, or ``np.ndarray``). Must be the same length as the plotting ``DataFrame``/``Series``
+
+Asymmetrical error bars are also supported, however raw error values must be provided in this case. For a ``M`` length ``Series``, a ``Mx2`` array should be provided indicating lower and upper (or left and right) errors. For a ``MxN`` ``DataFrame``, asymmetrical errors should be in a ``Mx2xN`` array.
+
+Here is an example of one way to easily plot group means with standard deviations from the raw data.
+
+.. ipython:: python
+
+   # Generate the data
+   ix3 = pd.MultiIndex.from_arrays([['a', 'a', 'a', 'a', 'b', 'b', 'b', 'b'], ['foo', 'foo', 'bar', 'bar', 'foo', 'foo', 'bar', 'bar']], names=['letter', 'word'])
+   df3 = pd.DataFrame({'data1': [3, 2, 4, 3, 2, 4, 3, 2], 'data2': [6, 5, 7, 5, 4, 5, 6, 5]}, index=ix3)
+
+   # Group by index labels and take the means and standard deviations for each group
+   gp3 = df3.groupby(level=('letter', 'word'))
+   means = gp3.mean()
+   errors = gp3.std()
+   means
+   errors
+
+   # Plot
+   fig, ax = plt.subplots()
+   @savefig errorbar_example.png
+   means.plot(yerr=errors, ax=ax, kind='bar')
+
 .. _visualization.scatter_matrix:
 
 Scatter plot matrix

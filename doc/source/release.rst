@@ -59,6 +59,8 @@ New features
   Date is used primarily in astronomy and represents the number of days from
   noon, January 1, 4713 BC.  Because nanoseconds are used to define the time
   in pandas the actual range of dates that you can use is 1678 AD to 2262 AD. (:issue:`4041`)
+- Added error bar support to the ``.plot`` method of ``DataFrame`` and ``Series`` (:issue:`3796`)
+
 
 API Changes
 ~~~~~~~~~~~
