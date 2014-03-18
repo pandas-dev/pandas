@@ -126,9 +126,9 @@ API Changes
     DataFrame returned by ``GroupBy.apply`` (:issue:`6124`).  This facilitates
     ``DataFrame.stack`` operations where the name of the column index is used as
     the name of the inserted column containing the pivoted data.
-	
-- The :func:`pivot_table`/:meth:`DataFrame.pivot_table` and :func:`crosstab` functions 
-  now take arguments ``index`` and ``columns`` instead of ``rows`` and ``cols``.  A 
+
+- The :func:`pivot_table`/:meth:`DataFrame.pivot_table` and :func:`crosstab` functions
+  now take arguments ``index`` and ``columns`` instead of ``rows`` and ``cols``.  A
   ``FutureWarning`` is raised  to alert that the old ``rows`` and ``cols`` arguments
   will not be supported in a future release (:issue:`5505`)
 
@@ -175,7 +175,7 @@ Improvements to existing features
 - ``StataWriter`` and ``DataFrame.to_stata`` accept time stamp and data labels (:issue:`6545`)
 - offset/freq info now in Timestamp __repr__ (:issue:`4553`)
 - Support passing ``encoding`` with xlwt (:issue:`3710`)
-- Performance improvement when converting ``DatetimeIndex`` to floating ordinals 
+- Performance improvement when converting ``DatetimeIndex`` to floating ordinals
   using ``DatetimeConverter`` (:issue:`6636`)
 
 .. _release.bug_fixes-0.14.0:
@@ -259,6 +259,7 @@ Bug Fixes
 - Bug in ``iloc`` indexing when positional indexer matched Int64Index of corresponding axis no reordering happened (:issue:`6612`)
 - Bug in ``fillna`` with ``limit`` and ``value`` specified
 - Bug in ``DataFrame.to_stata`` when columns have non-string names (:issue:`4558`)
+- Bug in compat with ``np.compress``, surfaced in (:issue:`6658`)
 
 pandas 0.13.1
 -------------

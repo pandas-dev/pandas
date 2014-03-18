@@ -342,6 +342,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def ravel(self, order='C'):
         return self.values.ravel(order=order)
 
+    def compress(self, condition, axis=0, out=None, **kwargs):
+        # 1-d compat with numpy
+        return self[condition]
+
     def transpose(self):
         """ support for compatiblity """
         return self

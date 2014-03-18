@@ -3436,6 +3436,15 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         s = Series(np.random.randn(10))
         tm.assert_almost_equal(s.ravel(order='F'),s.values.ravel(order='F'))
 
+        # compress
+        # GH 6658
+        s = Series([0,1.,-1],index=list('abc'))
+        result = np.compress(s>0,s)
+        assert_series_equal(result, Series([1.],index=['b']))
+
+        result = np.compress(s<-1,s)
+        assert_series_equal(result, Series([],dtype='float64'))
+
     def test_complexx(self):
 
         # GH4819
