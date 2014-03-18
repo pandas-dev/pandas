@@ -7,3 +7,5 @@ html5lib==1.0b2
 bigquery==2.0.17
 numexpr==1.4.2
 sqlalchemy==0.8.1
+scipy==0.11.0
+statsmodels==0.4.3
