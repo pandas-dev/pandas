@@ -281,3 +281,17 @@ datetimeindex_converter = \
     Benchmark('DatetimeConverter.convert(rng, None, None)', 
               setup, start_date=datetime(2013, 1, 1))
 
+# Adding custom business day
+setup = common_setup + """
+import datetime as dt
+import pandas as pd
+
+date = dt.datetime(2011,1,1)
+cday = pd.offsets.CustomBusinessDay()
+"""
+timeseries_custom_bday_incr = \
+    Benchmark("date + cday",setup)
+
+# Increment by n
+timeseries_custom_bday_incr_n = \
+    Benchmark("date + 10 * cday",setup)
