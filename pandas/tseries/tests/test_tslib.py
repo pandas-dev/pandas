@@ -5,12 +5,13 @@ import numpy as np
 from pandas import tslib
 import datetime
 
-from pandas.core.api import Timestamp
+from pandas.core.api import Timestamp, Series
 from pandas.tslib import period_asfreq, period_ordinal
 from pandas.tseries.index import date_range
 from pandas.tseries.frequencies import get_freq
 from pandas import _np_version_under1p7
 import pandas.util.testing as tm
+from pandas.util.testing import assert_series_equal
 
 class TestTimestamp(tm.TestCase):
     def test_repr(self):
@@ -332,6 +333,15 @@ class TestTimestampOps(tm.TestCase):
     def test_timestamp_and_datetime(self):
         self.assertEqual((Timestamp(datetime.datetime(2013, 10, 13)) - datetime.datetime(2013, 10, 12)).days, 1)
         self.assertEqual((datetime.datetime(2013, 10, 12) - Timestamp(datetime.datetime(2013, 10, 13))).days, -1)
+
+    def test_timestamp_and_series(self):
+        timestamp_series = Series(date_range('2014-03-17', periods=2, freq='D', tz='US/Eastern'))
+        first_timestamp = timestamp_series[0]
+
+        if not _np_version_under1p7:
+            delta_series = Series([np.timedelta64(0, 'D'), np.timedelta64(1, 'D')])
+            assert_series_equal(timestamp_series - first_timestamp, delta_series)
+            assert_series_equal(first_timestamp - timestamp_series, -delta_series)
 
     def test_addition_subtraction_types(self):
         # Assert on the types resulting from Timestamp +/- various date/time objects
