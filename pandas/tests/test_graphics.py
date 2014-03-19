@@ -1106,6 +1106,7 @@ class TestDataFramePlots(tm.TestCase):
 
     @slow
     def test_partially_invalid_plot_data(self):
+        np.random.seed(42)
         kinds = 'line', 'bar', 'barh', 'kde', 'density'
         df = DataFrame(randn(10, 2), dtype=object)
         df[np.random.rand(df.shape[0]) > 0.5] = 'a'
