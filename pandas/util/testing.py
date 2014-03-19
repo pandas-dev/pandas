@@ -1528,3 +1528,33 @@ def skip_if_no_ne(engine='numexpr'):
 def disabled(t):
     t.disabled = True
     return t
+
+
+class RNGContext(object):
+    """
+    Context manager to set the numpy random number generator speed. Returns
+    to the original value upon exiting the context manager.
+
+    Parameters
+    ----------
+    seed : int
+        Seed for numpy.random.seed
+
+    Examples
+    --------
+
+    with RNGContext(42):
+        np.random.randn()
+    """
+
+    def __init__(self, seed):
+        self.seed = seed
+
+    def __enter__(self):
+
+        self.start_state = np.random.get_state()
+        np.random.seed(self.seed)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+
+        np.random.set_state(self.start_state)
