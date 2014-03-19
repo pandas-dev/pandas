@@ -1106,13 +1106,13 @@ class TestDataFramePlots(tm.TestCase):
 
     @slow
     def test_partially_invalid_plot_data(self):
-        np.random.seed(42)
-        kinds = 'line', 'bar', 'barh', 'kde', 'density'
-        df = DataFrame(randn(10, 2), dtype=object)
-        df[np.random.rand(df.shape[0]) > 0.5] = 'a'
-        for kind in kinds:
-            with tm.assertRaises(TypeError):
-                df.plot(kind=kind)
+        with tm.RNGContext(42):
+            kinds = 'line', 'bar', 'barh', 'kde', 'density'
+            df = DataFrame(randn(10, 2), dtype=object)
+            df[np.random.rand(df.shape[0]) > 0.5] = 'a'
+            for kind in kinds:
+                with tm.assertRaises(TypeError):
+                    df.plot(kind=kind)
 
     def test_invalid_kind(self):
         df = DataFrame(randn(10, 2))

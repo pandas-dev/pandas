@@ -8,7 +8,8 @@ import numpy as np
 import sys
 from pandas import Series
 from pandas.util.testing import (
-    assert_almost_equal, assertRaisesRegexp, raise_with_traceback, assert_series_equal
+    assert_almost_equal, assertRaisesRegexp, raise_with_traceback, assert_series_equal,
+    RNGContext
 )
 
 # let's get meta.
@@ -153,3 +154,14 @@ class TestAssertSeriesEqual(unittest.TestCase):
         # ATM meta data is not checked in assert_series_equal
         # self._assert_not_equal(Series(range(3)),Series(range(3),name='foo'),check_names=True)
 
+
+class TestRNGContext(unittest.TestCase):
+
+    def test_RNGContext(self):
+        expected0 = 1.764052345967664
+        expected1 = 1.6243453636632417
+
+        with RNGContext(0):
+            with RNGContext(1):
+                self.assertEqual(np.random.randn(), expected1)
+            self.assertEqual(np.random.randn(), expected0)
