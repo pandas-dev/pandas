@@ -264,6 +264,7 @@ Improvements to existing features
 - :ref:`Holidays and holiday calendars<timeseries.holiday>` are now available and can be used with CustomBusinessDay (:issue:`6719`)
 - ``Float64Index`` is now backed by a ``float64`` dtype ndarray instead of an
   ``object`` dtype array (:issue:`6471`).
+- Add option to turn off escaping in ``DataFrame.to_latex`` (:issue:`6472`)
 
 .. _release.bug_fixes-0.14.0:
 
