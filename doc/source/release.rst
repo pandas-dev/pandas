@@ -182,7 +182,8 @@ Improvements to existing features
 - Support passing ``encoding`` with xlwt (:issue:`3710`)
 - Performance improvement when converting ``DatetimeIndex`` to floating ordinals
   using ``DatetimeConverter`` (:issue:`6636`)
-
+- Performance improvement for  ``DataFrame.shift`` (:issue: `5609`)
+  
 .. _release.bug_fixes-0.14.0:
 
 Bug Fixes
