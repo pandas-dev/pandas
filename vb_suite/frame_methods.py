@@ -429,3 +429,16 @@ frame_interpolate_some_good_infer = Benchmark('df.interpolate(downcast="infer")'
                                               setup,
                                               start_date=datetime(2014, 2, 7))
 
+
+#-------------------------------------------------------------------------
+# frame shift speedup issue-5609
+
+setup = common_setup + """
+df = pd.DataFrame(np.random.rand(10000,500))
+"""
+frame_shift_axis0 = Benchmark('df.shift(1,axis=0)', setup,
+                    name = 'frame_shift_axis_0',
+                    start_date=datetime(2014,1,1))
+frame_shift_axis1 = Benchmark('df.shift(1,axis=1)', setup,
+                    name = 'frame_shift_axis_1',
+                    start_date=datetime(2014,1,1))

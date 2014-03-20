@@ -961,23 +961,20 @@ class Block(PandasObject):
         return [make_block(new_values, self.items, self.ref_items,
                            ndim=self.ndim, fastpath=True)]
 
-    def shift(self, indexer, periods, axis=0):
+    def shift(self, periods, axis=0):
         """ shift the block by periods, possibly upcast """
-
-        new_values = self.values.take(indexer, axis=axis)
         # convert integer to float if necessary. need to do a lot more than
         # that, handle boolean etc also
-        new_values, fill_value = com._maybe_upcast(new_values)
-
+        new_values, fill_value = com._maybe_upcast(self.values)
+        new_values = np.roll(new_values.T,periods,axis=axis)
         axis_indexer = [ slice(None) ] * self.ndim
         if periods > 0:
             axis_indexer[axis] = slice(None,periods)
         else:
-            axis_indexer = [ slice(None) ] * self.ndim
             axis_indexer[axis] = slice(periods,None)
         new_values[tuple(axis_indexer)] = fill_value
 
-        return [make_block(new_values, self.items, self.ref_items,
+        return [make_block(new_values.T, self.items, self.ref_items,
                            ndim=self.ndim, fastpath=True)]
 
     def eval(self, func, other, raise_on_error=True, try_cast=False):
@@ -1910,9 +1907,15 @@ class SparseBlock(Block):
         values = self.values if inplace else self.values.copy()
         return [self.make_block(values.get_values(value), fill_value=value)]
 
-    def shift(self, indexer, periods, axis=0):
+        
+    def shift(self, periods, axis=0):
         """ shift the block by periods """
-
+        N = len(self.values.T)
+        indexer = np.zeros(N, dtype=int)
+        if periods > 0:
+            indexer[periods:] = np.arange(N - periods)
+        else:
+            indexer[:periods] = np.arange(-periods, N)
         new_values = self.values.to_dense().take(indexer)
         # convert integer to float if necessary. need to do a lot more than
         # that, handle boolean etc also
