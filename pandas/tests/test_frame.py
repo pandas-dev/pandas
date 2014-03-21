@@ -5407,6 +5407,13 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             self.tsframe.to_csv(path, nanRep='foo')
             recons = read_csv(path,index_col=0,parse_dates=[0],na_values=['foo'])
             assert_frame_equal(self.tsframe, recons)
+        
+        with tm.assert_produces_warning(FutureWarning):
+            self.frame.to_csv(path, cols=['A', 'B'])
+
+        with tm.assert_produces_warning(False):
+            self.frame.to_csv(path, columns=['A', 'B'])
+            
 
     def test_to_csv_from_csv(self):
 
@@ -5416,7 +5423,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
              self.frame['A'][:5] = nan
 
              self.frame.to_csv(path)
-             self.frame.to_csv(path, cols=['A', 'B'])
+             self.frame.to_csv(path, columns=['A', 'B'])
              self.frame.to_csv(path, header=False)
              self.frame.to_csv(path, index=False)
 
@@ -5490,9 +5497,9 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         def _check_df(df,cols=None):
             with ensure_clean() as path:
-                df.to_csv(path,cols = cols,engine='python')
+                df.to_csv(path,columns = cols,engine='python')
                 rs_p = pd.read_csv(path,index_col=0)
-                df.to_csv(path,cols = cols,chunksize=chunksize)
+                df.to_csv(path,columns = cols,chunksize=chunksize)
                 rs_c = pd.read_csv(path,index_col=0)
 
             if cols:
@@ -5518,7 +5525,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         import pandas as pd
         def _check_df(df,cols=None):
             with ensure_clean() as path:
-                df.to_csv(path,cols = cols,chunksize=chunksize)
+                df.to_csv(path,columns = cols,chunksize=chunksize)
                 rs_c = pd.read_csv(path,index_col=0)
 
                 # we wrote them in a different order
@@ -5775,7 +5782,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         with ensure_clean(pname) as path:
 
              frame.to_csv(path, header=False)
-             frame.to_csv(path, cols=['A', 'B'])
+             frame.to_csv(path, columns=['A', 'B'])
 
              # round trip
              frame.to_csv(path)
@@ -5893,7 +5900,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
             # write with cols
             with assertRaisesRegexp(TypeError, 'cannot specify cols with a MultiIndex'):
-                df.to_csv(path, tupleize_cols=False, cols=['foo', 'bar'])
+                df.to_csv(path, tupleize_cols=False, columns=['foo', 'bar'])
 
         with ensure_clean(pname) as path:
             # empty

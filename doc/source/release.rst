@@ -134,6 +134,11 @@ API Changes
   ``FutureWarning`` is raised  to alert that the old ``rows`` and ``cols`` arguments
   will not be supported in a future release (:issue:`5505`)
 
+- The :meth:`DataFrame.to_csv` and :meth:`DataFrame.to_excel` functions
+  now takes argument ``columns`` instead of ``cols``.  A
+  ``FutureWarning`` is raised  to alert that the old ``cols`` arguments
+  will not be supported in a future release (:issue:`6645`)
+
 - Allow specification of a more complex groupby, via ``pd.Grouper`` (:issue:`3794`)
 
 - A tuple passed to ``DataFame.sort_index`` will be interpreted as the levels of
