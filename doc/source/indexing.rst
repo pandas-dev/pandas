@@ -784,6 +784,29 @@ If instead you don't want to or cannot name your index, you can use the name
    del old_index
 
 
+.. note::
+
+   If the name of your index overlaps with a column name, the column name is
+   given precedence. For example,
+
+   .. ipython:: python
+
+      df = DataFrame({'a': randint(5, size=5)})
+      df.index.name = 'a'
+      df.query('a > 2') # uses the column 'a', not the index
+
+   You can still use the index in a query expression by using the special
+   identifier 'index':
+
+   .. ipython:: python
+
+      df.query('index > 2')
+
+   If for some reason you have a column named ``index``, then you can refer to
+   the index as ``ilevel_0`` as well, but at this point you should consider
+   renaming your columns to something less ambiguous.
+
+
 :class:`~pandas.MultiIndex` :meth:`~pandas.DataFrame.query` Syntax
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

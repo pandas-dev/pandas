@@ -1855,7 +1855,7 @@ class DataFrame(NDFrame):
         kwargs['level'] = kwargs.pop('level', 0) + 1
         if resolvers is None:
             index_resolvers = self._get_index_resolvers()
-            resolvers = index_resolvers, dict(self.iteritems())
+            resolvers = dict(self.iteritems()), index_resolvers
         kwargs['target'] = self
         kwargs['resolvers'] = kwargs.get('resolvers', ()) + resolvers
         return _eval(expr, **kwargs)
