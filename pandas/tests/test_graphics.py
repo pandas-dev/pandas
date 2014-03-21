@@ -490,29 +490,34 @@ class TestDataFramePlots(tm.TestCase):
         df = DataFrame(np.random.rand(10, 3),
                        index=list(string.ascii_letters[:10]))
 
-        axes = df.plot(subplots=True, sharex=True, legend=True)
+        for kind in ['bar', 'barh', 'line']:
+            axes = df.plot(kind=kind, subplots=True, sharex=True, legend=True)
 
-        for ax in axes:
-            self.assertIsNotNone(ax.get_legend())
+            for ax, column in zip(axes, df.columns):
+                self._check_legend_labels(ax, [column])
 
-        axes = df.plot(subplots=True, sharex=True)
-        for ax in axes[:-2]:
-            [self.assert_(not label.get_visible())
-             for label in ax.get_xticklabels()]
+            axes = df.plot(kind=kind, subplots=True, sharex=True)
+            for ax in axes[:-2]:
+                [self.assert_(not label.get_visible())
+                 for label in ax.get_xticklabels()]
+                [self.assert_(label.get_visible())
+                 for label in ax.get_yticklabels()]
+
             [self.assert_(label.get_visible())
-             for label in ax.get_yticklabels()]
-
-        [self.assert_(label.get_visible())
-         for label in axes[-1].get_xticklabels()]
-        [self.assert_(label.get_visible())
-         for label in axes[-1].get_yticklabels()]
-
-        axes = df.plot(subplots=True, sharex=False)
-        for ax in axes:
+             for label in axes[-1].get_xticklabels()]
             [self.assert_(label.get_visible())
-             for label in ax.get_xticklabels()]
-            [self.assert_(label.get_visible())
-             for label in ax.get_yticklabels()]
+             for label in axes[-1].get_yticklabels()]
+
+            axes = df.plot(kind=kind, subplots=True, sharex=False)
+            for ax in axes:
+                [self.assert_(label.get_visible())
+                 for label in ax.get_xticklabels()]
+                [self.assert_(label.get_visible())
+                 for label in ax.get_yticklabels()]
+
+            axes = df.plot(kind=kind, subplots=True, legend=False)
+            for ax in axes:
+                self.assertTrue(ax.get_legend() is None)
 
     @slow
     def test_bar_colors(self):
@@ -873,7 +878,7 @@ class TestDataFramePlots(tm.TestCase):
         _check_plot_works(df.plot, kind='kde')
         _check_plot_works(df.plot, kind='kde', subplots=True)
         ax = df.plot(kind='kde')
-        self.assertIsNotNone(ax.get_legend())
+        self._check_legend_labels(ax, df.columns)
         axes = df.plot(kind='kde', logy=True, subplots=True)
         for ax in axes:
             self.assertEqual(ax.get_yscale(), 'log')
@@ -1046,6 +1051,64 @@ class TestDataFramePlots(tm.TestCase):
         df = DataFrame(randn(100, 4)).cumsum()
         _check_plot_works(df.plot, legend=True)
 
+    def _check_legend_labels(self, ax, labels):
+        import pandas.core.common as com
+        labels = [com.pprint_thing(l) for l in labels]
+        self.assertTrue(ax.get_legend() is not None)
+        legend_labels = [t.get_text() for t in ax.get_legend().get_texts()]
+        self.assertEqual(labels, legend_labels)
+
+    @slow
+    def test_df_legend_labels(self):
+        kinds = 'line', 'bar', 'barh', 'kde', 'density'
+        df = DataFrame(randn(3, 3), columns=['a', 'b', 'c'])
+        df2 = DataFrame(randn(3, 3), columns=['d', 'e', 'f'])
+        df3 = DataFrame(randn(3, 3), columns=['g', 'h', 'i'])
+        df4 = DataFrame(randn(3, 3), columns=['j', 'k', 'l'])
+
+        for kind in kinds:
+            ax = df.plot(kind=kind, legend=True)
+            self._check_legend_labels(ax, df.columns)
+
+            ax = df2.plot(kind=kind, legend=False, ax=ax)
+            self._check_legend_labels(ax, df.columns)
+
+            ax = df3.plot(kind=kind, legend=True, ax=ax)
+            self._check_legend_labels(ax, df.columns + df3.columns)
+
+            ax = df4.plot(kind=kind, legend='reverse', ax=ax)
+            expected = list(df.columns + df3.columns) + list(reversed(df4.columns))
+            self._check_legend_labels(ax, expected)
+
+        # Secondary Y
+        ax = df.plot(legend=True, secondary_y='b')
+        self._check_legend_labels(ax, ['a', 'b (right)', 'c'])
+        ax = df2.plot(legend=False, ax=ax)
+        self._check_legend_labels(ax, ['a', 'b (right)', 'c'])
+        ax = df3.plot(kind='bar', legend=True, secondary_y='h', ax=ax)
+        self._check_legend_labels(ax, ['a', 'b (right)', 'c', 'g', 'h (right)', 'i'])
+
+        # Time Series
+        ind = date_range('1/1/2014', periods=3)
+        df = DataFrame(randn(3, 3), columns=['a', 'b', 'c'], index=ind)
+        df2 = DataFrame(randn(3, 3), columns=['d', 'e', 'f'], index=ind)
+        df3 = DataFrame(randn(3, 3), columns=['g', 'h', 'i'], index=ind)
+        ax = df.plot(legend=True, secondary_y='b')
+        self._check_legend_labels(ax, ['a', 'b (right)', 'c'])
+        ax = df2.plot(legend=False, ax=ax)
+        self._check_legend_labels(ax, ['a', 'b (right)', 'c'])
+        ax = df3.plot(legend=True, ax=ax)
+        self._check_legend_labels(ax, ['a', 'b (right)', 'c', 'g', 'h', 'i'])
+
+        # scatter
+        ax = df.plot(kind='scatter', x='a', y='b', label='data1')
+        self._check_legend_labels(ax, ['data1'])
+        ax = df2.plot(kind='scatter', x='d', y='e', legend=False,
+                        label='data2', ax=ax)
+        self._check_legend_labels(ax, ['data1'])
+        ax = df3.plot(kind='scatter', x='g', y='h', label='data3', ax=ax)
+        self._check_legend_labels(ax, ['data1', 'data3'])
+
     def test_legend_name(self):
         multi = DataFrame(randn(4, 4),
                           columns=[np.array(['a', 'a', 'b', 'b']),
@@ -1055,6 +1118,20 @@ class TestDataFramePlots(tm.TestCase):
         ax = multi.plot()
         leg_title = ax.legend_.get_title()
         self.assertEqual(leg_title.get_text(), 'group,individual')
+
+        df = DataFrame(randn(5, 5))
+        ax = df.plot(legend=True, ax=ax)
+        leg_title = ax.legend_.get_title()
+        self.assertEqual(leg_title.get_text(), 'group,individual')
+
+        df.columns.name = 'new'
+        ax = df.plot(legend=False, ax=ax)
+        leg_title = ax.legend_.get_title()
+        self.assertEqual(leg_title.get_text(), 'group,individual')
+
+        ax = df.plot(legend=True, ax=ax)
+        leg_title = ax.legend_.get_title()
+        self.assertEqual(leg_title.get_text(), 'new')
 
     def _check_plot_fails(self, f, *args, **kwargs):
         with tm.assertRaises(Exception):
