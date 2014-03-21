@@ -456,10 +456,12 @@ class SparseDataFrame(DataFrame):
                                  default_fill_value=new_fill_value,
                                  fill_value=new_fill_value).__finalize__(self)
 
-    def _combine_match_index(self, other, func, fill_value=None):
+    def _combine_match_index(self, other, func, level=None, fill_value=None):
         new_data = {}
 
         if fill_value is not None:
+            raise NotImplementedError
+        if level is not None:
             raise NotImplementedError
 
         new_index = self.index.union(other.index)
@@ -486,13 +488,15 @@ class SparseDataFrame(DataFrame):
                                  default_fill_value=fill_value,
                                  fill_value=self.default_fill_value).__finalize__(self)
 
-    def _combine_match_columns(self, other, func, fill_value):
+    def _combine_match_columns(self, other, func, level=None, fill_value=None):
         # patched version of DataFrame._combine_match_columns to account for
         # NumPy circumventing __rsub__ with float64 types, e.g.: 3.0 - series,
         # where 3.0 is numpy.float64 and series is a SparseSeries. Still
         # possible for this to happen, which is bothersome
 
         if fill_value is not None:
+            raise NotImplementedError
+        if level is not None:
             raise NotImplementedError
 
         new_data = {}

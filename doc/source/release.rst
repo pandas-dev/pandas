@@ -268,6 +268,7 @@ Bug Fixes
 - Bug in ``fillna`` with ``limit`` and ``value`` specified
 - Bug in ``DataFrame.to_stata`` when columns have non-string names (:issue:`4558`)
 - Bug in compat with ``np.compress``, surfaced in (:issue:`6658`)
+- Bug in binary operations with a rhs of a Series not aligning (:issue:`6681`)
 
 pandas 0.13.1
 -------------

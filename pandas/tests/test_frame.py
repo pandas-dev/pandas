@@ -4941,6 +4941,38 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         with assertRaisesRegexp(NotImplementedError, 'fill_value'):
             self.frame.add(self.frame.irow(0), axis='index', fill_value=3)
 
+    def test_binary_ops_align(self):
+
+        # test aligning binary ops
+
+        # GH 6681
+        index=MultiIndex.from_product([list('abc'),
+                                       ['one','two','three'],
+                                       [1,2,3]],
+                                      names=['first','second','third'])
+
+        df = DataFrame(np.arange(27*3).reshape(27,3),
+                       index=index,
+                       columns=['value1','value2','value3']).sortlevel()
+
+        idx = pd.IndexSlice
+        for op in ['add','sub','mul','div','truediv']:
+            opa = getattr(operator,op,None)
+            if opa is None:
+                continue
+
+            x = Series([ 1.0, 10.0, 100.0], [1,2,3])
+            result = getattr(df,op)(x,level='third',axis=0)
+
+            expected = pd.concat([ opa(df.loc[idx[:,:,i],:],v) for i, v in x.iteritems() ]).sortlevel()
+            assert_frame_equal(result, expected)
+
+            x = Series([ 1.0, 10.0], ['two','three'])
+            result = getattr(df,op)(x,level='second',axis=0)
+
+            expected = pd.concat([ opa(df.loc[idx[:,i],:],v) for i, v in x.iteritems() ]).reindex_like(df).sortlevel()
+            assert_frame_equal(result, expected)
+
     def test_arith_mixed(self):
 
         left = DataFrame({'A': ['a', 'b', 'c'],

@@ -2996,23 +2996,30 @@ class NDFrame(PandasObject):
 
         else:
 
+            # for join compat if we have an unnamed index, but
+            # are specifying a level join
+            other_index = other.index
+            if level is not None and other.index.name is None:
+                other_index = other_index.set_names([level])
+
             # one has > 1 ndim
             fdata = self._data
             if axis == 0:
                 join_index = self.index
                 lidx, ridx = None, None
-                if not self.index.equals(other.index):
+                if not self.index.equals(other_index):
                     join_index, lidx, ridx = self.index.join(
-                        other.index, how=join, return_indexers=True)
+                        other_index, how=join, return_indexers=True)
 
                 if lidx is not None:
                     fdata = fdata.reindex_indexer(join_index, lidx, axis=1)
+
             elif axis == 1:
                 join_index = self.columns
                 lidx, ridx = None, None
-                if not self.columns.equals(other.index):
+                if not self.columns.equals(other_index):
                     join_index, lidx, ridx = \
-                        self.columns.join(other.index, how=join,
+                        self.columns.join(other_index, how=join,
                                           return_indexers=True)
 
                 if lidx is not None:
@@ -3024,7 +3031,11 @@ class NDFrame(PandasObject):
                 fdata = fdata.copy()
 
             left_result = DataFrame(fdata)
-            right_result = other if ridx is None else other.reindex(join_index)
+
+            if ridx is None:
+                right_result = other
+            else:
+                right_result = other.reindex(join_index, level=level)
 
         # fill
         fill_na = notnull(fill_value) or (method is not None)
