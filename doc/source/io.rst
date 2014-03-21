@@ -1843,11 +1843,11 @@ the sheet names using the ``sheet_names`` attribute.
 .. versionadded:: 0.13
 
 There are now two ways to read in sheets from an Excel file. You can provide
-either the index of a sheet or its name to by passing different values for 
-``sheet_name``. 
+either the index of a sheet or its name to by passing different values for
+``sheet_name``.
 
 - Pass a string to refer to the name of a particular sheet in the workbook.
-- Pass an integer to refer to the index of a sheet. Indices follow Python 
+- Pass an integer to refer to the index of a sheet. Indices follow Python
   convention, beginning at 0.
 - The default value is ``sheet_name=0``. This reads the first sheet.
 

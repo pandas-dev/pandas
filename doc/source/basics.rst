@@ -140,10 +140,9 @@ either match on the *index* or *columns* via the **axis** keyword:
 
 .. ipython:: python
 
-   d = {'one' : Series(randn(3), index=['a', 'b', 'c']),
-        'two' : Series(randn(4), index=['a', 'b', 'c', 'd']),
-        'three' : Series(randn(3), index=['b', 'c', 'd'])}
-   df = df_orig = DataFrame(d)
+   df = DataFrame({'one' : Series(randn(3), index=['a', 'b', 'c']),
+                   'two' : Series(randn(4), index=['a', 'b', 'c', 'd']),
+                   'three' : Series(randn(3), index=['b', 'c', 'd'])})
    df
    row = df.ix[1]
    column = df['two']
@@ -153,6 +152,20 @@ either match on the *index* or *columns* via the **axis** keyword:
 
    df.sub(column, axis='index')
    df.sub(column, axis=0)
+
+.. ipython:: python
+   :suppress:
+
+   df_orig = df
+
+Furthermore you can align a level of a multi-indexed DataFrame with a Series.
+
+.. ipython:: python
+
+   dfmi = df.copy()
+   dfmi.index = MultiIndex.from_tuples([(1,'a'),(1,'b'),(1,'c'),(2,'a')],
+                                       names=['first','second'])
+   dfmi.sub(column, axis=0, level='second')
 
 With Panel, describing the matching behavior is a bit more difficult, so
 the arithmetic methods instead (and perhaps confusingly?) give you the option

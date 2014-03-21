@@ -2801,12 +2801,12 @@ class DataFrame(NDFrame):
         if axis is not None:
             axis = self._get_axis_name(axis)
             if axis == 'index':
-                return self._combine_match_index(other, func, fill_value)
+                return self._combine_match_index(other, func, level=level, fill_value=fill_value)
             else:
-                return self._combine_match_columns(other, func, fill_value)
-        return self._combine_series_infer(other, func, fill_value)
+                return self._combine_match_columns(other, func, level=level, fill_value=fill_value)
+        return self._combine_series_infer(other, func, level=level, fill_value=fill_value)
 
-    def _combine_series_infer(self, other, func, fill_value=None):
+    def _combine_series_infer(self, other, func, level=None, fill_value=None):
         if len(other) == 0:
             return self * NA
 
@@ -2822,12 +2822,12 @@ class DataFrame(NDFrame):
                            "DataFrame.<op> to explicitly broadcast arithmetic "
                            "operations along the index"),
                           FutureWarning)
-            return self._combine_match_index(other, func, fill_value)
+            return self._combine_match_index(other, func, level=level, fill_value=fill_value)
         else:
-            return self._combine_match_columns(other, func, fill_value)
+            return self._combine_match_columns(other, func, level=level, fill_value=fill_value)
 
-    def _combine_match_index(self, other, func, fill_value=None):
-        left, right = self.align(other, join='outer', axis=0, copy=False)
+    def _combine_match_index(self, other, func, level=None, fill_value=None):
+        left, right = self.align(other, join='outer', axis=0, level=level, copy=False)
         if fill_value is not None:
             raise NotImplementedError("fill_value %r not supported." %
                                       fill_value)
@@ -2835,8 +2835,8 @@ class DataFrame(NDFrame):
                                  index=left.index,
                                  columns=self.columns, copy=False)
 
-    def _combine_match_columns(self, other, func, fill_value=None):
-        left, right = self.align(other, join='outer', axis=1, copy=False)
+    def _combine_match_columns(self, other, func, level=None, fill_value=None):
+        left, right = self.align(other, join='outer', axis=1, level=level, copy=False)
         if fill_value is not None:
             raise NotImplementedError("fill_value %r not supported" %
                                       fill_value)
