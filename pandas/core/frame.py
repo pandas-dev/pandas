@@ -16,6 +16,7 @@ import sys
 import collections
 import warnings
 import types
+import random
 
 from numpy import nan as NA
 import numpy as np
@@ -3835,6 +3836,66 @@ class DataFrame(NDFrame):
 
         return self._constructor(lmap(list, zip(*destat)),
                                  index=destat_columns, columns=numdata.columns)
+
+    def train_test_split(self, test_rate=0.25, random_state=None):
+        """Split pandas DataFrame into random train and test subsets
+        Parameters
+        ----------
+        * df : pandas DataFrame
+    
+        test_rate : float or None (default is None)
+            If float, should be between 0.0 and 1.0 and represent the
+            proportion of the dataset to include in the test split. 
+            If train size is also None, test size is set to 0.25.
+    
+        random_state : int or RandomState
+            Pseudo-random number generator state used for random sampling. use random.seed
+    
+        Returns
+        -------
+        splitting : list of DataFrame, length=2
+            List containing train-test split of input Dataframe.
+    
+        Examples
+        --------
+        >>> import numpy as np
+        >>> import pandas as pd
+        >>> a = range(10)
+        >>> b = range(10)
+        >>> df = pd.DataFrame({'a' : a, 'b' : b})
+        >>> df_train, df_test = df.train_test_split()
+        >>> a_train
+           a  b
+        1  1  1
+        8  8  8
+    
+        [2 rows x 2 columns]
+        >>> b_train
+           a  b
+        0  0  0
+        2  2  2
+        3  3  3
+        4  4  4
+        5  5  5
+        6  6  6
+        7  7  7
+        9  9  9
+    
+        [8 rows x 2 columns]
+        """
+        
+        if test_rate is None:
+            test_rate = 0.25
+    
+        test_size = int(len(self) * test_rate)
+        
+        if random_state:
+            random.seed(random_state)
+        test_index = random.sample(self.index, test_size)
+        df_train = self.ix[test_index]
+        df_test = self.ix[[i for i in self.index if i not in test_index]]
+        splitting = [df_train, df_test]
+        return splitting
 
     #----------------------------------------------------------------------
     # ndarray-like stats methods
