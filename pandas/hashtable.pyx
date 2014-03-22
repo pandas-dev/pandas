@@ -418,6 +418,17 @@ cdef class Int64HashTable: #(HashTable):
             k = kh_put_int64(self.table, key, &ret)
             self.table.vals[k] = <Py_ssize_t> values[i]
 
+    def map_const(self, ndarray[int64_t] keys, int64_t value):
+        cdef:
+            Py_ssize_t i, n = len(keys)
+            int ret = 0
+            int64_t key
+            khiter_t k
+
+        for key in keys:
+            k = kh_put_int64(self.table, key, &ret)
+            self.table.vals[k] = <Py_ssize_t> value
+
     def map_locations(self, ndarray[int64_t] values):
         cdef:
             Py_ssize_t i, n = len(values)
@@ -430,7 +441,7 @@ cdef class Int64HashTable: #(HashTable):
             k = kh_put_int64(self.table, val, &ret)
             self.table.vals[k] = i
 
-    def lookup(self, ndarray[int64_t] values):
+    def lookup(self, ndarray[int64_t] values, int64_t missing = -1):
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
@@ -444,7 +455,21 @@ cdef class Int64HashTable: #(HashTable):
             if k != self.table.n_buckets:
                 locs[i] = self.table.vals[k]
             else:
-                locs[i] = -1
+                locs[i] = missing
+
+        return locs
+
+    def lookup_contains(self, ndarray[int64_t] values):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            int ret = 0
+            int64_t val
+            khiter_t k
+            cnp.ndarray[cnp.uint8_t, ndim=1, cast=True] locs = np.empty(n, dtype=np.bool)
+
+        for i, val in enumerate(values):
+            k = kh_get_int64(self.table, val)
+            locs[i] = k != self.table.n_buckets
 
         return locs
 
