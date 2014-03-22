@@ -24,7 +24,7 @@ from numpy import random, nan
 from numpy.random import randn
 import numpy as np
 import numpy.ma as ma
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_
 import numpy.ma.mrecords as mrecords
 
 import pandas.core.nanops as nanops
@@ -10027,6 +10027,43 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                               [1.5, nan, 3],
                               [1.5, nan, 7.]])
         assert_frame_equal(df, expected)
+
+    def test_update_on(self):
+        df = DataFrame([[np.nan, 'A'],
+                        [np.nan, 'A'],
+                        [np.nan, 'A'],
+                        [1.5, 'B'],
+                        [2.2, 'C'],
+                        [3.1, 'C'],
+                        [1.2, 'B']], columns=['number', 'name'])
+
+        df2 = DataFrame([[3.5, 'A']], columns=['number', 'name'])
+
+        expected = DataFrame([[3.5, 'A'],
+                              [3.5, 'A'],
+                              [3.5, 'A'],
+                              [1.5, 'B'],
+                              [2.2, 'C'],
+                              [3.1, 'C'],
+                              [1.2, 'B']], columns=['number', 'name'])
+        df.update(df2, on='name')
+        assert_frame_equal(df, expected)
+
+        df = DataFrame([[np.nan, 'A'],
+                [np.nan, 'A'],
+                [np.nan, 'A'],
+                [1.5, 'B'],
+                [2.2, 'C'],
+                [3.1, 'C'],
+                [1.2, 'B']], columns=['number', 'name'])
+
+        df2 = DataFrame([[3.5, 'A'], [2.5, 'A']],
+                        columns=['number', 'name'])
+
+        assertRaises(ValueError, df.update, df2, on='name')
+
+        ## and the index should be reset
+        assert_(df.index.equals(pd.Index(range(7))))
 
     def test_update_dtypes(self):
 

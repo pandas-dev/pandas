@@ -3012,10 +3012,9 @@ class DataFrame(NDFrame):
         return self.combine(other, combiner, overwrite=False)
 
     def update(self, other, join='left', overwrite=True, filter_func=None,
-               raise_conflict=False):
+               raise_conflict=False, on=None):
         """
-        Modify DataFrame in place using non-NA values from passed
-        DataFrame. Aligns on indices
+        Modify DataFrame in place using non-NA values from passed DataFrame.
 
         Parameters
         ----------
@@ -3029,6 +3028,10 @@ class DataFrame(NDFrame):
         raise_conflict : boolean
             If True, will raise an error if the DataFrame and other both
             contain data in the same place.
+        on : label or list, optional
+            Identify the column to should match up observations in other and
+            self. If None, other.reindex_like(self) is called so the index
+            must match to get a meaningful result.
         """
         # TODO: Support other joins
         if join != 'left':  # pragma: no cover
@@ -3037,31 +3040,55 @@ class DataFrame(NDFrame):
         if not isinstance(other, DataFrame):
             other = DataFrame(other)
 
-        other = other.reindex_like(self)
+        if on is None:
+            other = other.reindex(index=self.index)
+        else:
+            try:
+                old_index = self.index
+                col_order = self.columns
+                self.set_index(on, inplace=True)
+                other.set_index(on, inplace=True)
+                other = other.reindex(index=self.index)
+            except Exception, err:
+                self.reset_index(inplace=True)
+                self.set_index(old_index)
+                raise(err)
 
-        for col in self.columns:
-            this = self[col].values
-            that = other[col].values
-            if filter_func is not None:
-                mask = -filter_func(this) | isnull(that)
-            else:
-                if raise_conflict:
-                    mask_this = notnull(that)
-                    mask_that = notnull(this)
-                    if any(mask_this & mask_that):
-                        raise ValueError("Data overlaps.")
-
-                if overwrite:
-                    mask = isnull(that)
-
-                    # don't overwrite columns unecessarily
-                    if mask.all():
-                        continue
+        try:
+            for col in other.columns:
+                if col not in self:  # don't update what doesn't exist
+                    continue
+                this = self[col].values
+                that = other[col].values
+                if filter_func is not None:
+                    mask = -filter_func(this) | isnull(that)
                 else:
-                    mask = notnull(this)
+                    if raise_conflict:
+                        mask_this = notnull(that)
+                        mask_that = notnull(this)
+                        if any(mask_this & mask_that):
+                            raise ValueError("Data overlaps.")
 
-            self[col] = expressions.where(
-                mask, this, that, raise_on_error=True)
+                    if overwrite:
+                        mask = isnull(that)
+
+                        # don't overwrite columns unecessarily
+                        if mask.all():
+                            continue
+                    else:
+                        mask = notnull(this)
+
+                self[col] = expressions.where(
+                    mask, this, that, raise_on_error=True)
+
+        except Exception, err:
+            raise(err)
+
+        finally:
+            if on is not None:
+                self.reset_index(inplace=True)
+                self.set_index(old_index)
+                self = self[col_order]
 
     #----------------------------------------------------------------------
     # Misc methods
