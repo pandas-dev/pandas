@@ -140,10 +140,16 @@ API Changes
   the index, rather than requiring a list of tuple (:issue:`4370`)
 
 - Fix a bug where invalid eval/query operations would blow the stack (:issue:`5198`)
+
 - Following keywords are now acceptable for :meth:`DataFrame.plot(kind='bar')` and :meth:`DataFrame.plot(kind='barh')`.
-  - `width`: Specify the bar width. In previous versions, static value 0.5 was passed to matplotlib and it cannot be overwritten.
+
+  - `width`: Specify the bar width. In previous versions, static value 0.5 was passed to matplotlib and it cannot be overwritten. (:issue:`6604`)
+  
+  - `align`: Specify the bar alignment. Default is `center` (different from matplotlib). In previous versions, pandas passes `align='edge'` to matplotlib and adjust the location to `center` by itself, and it results `align` keyword is not applied as expected. (:issue:`4525`)
+  
   - `position`: Specify relative alignments for bar plot layout. From 0 (left/bottom-end) to 1(right/top-end). Default is 0.5 (center). (:issue:`6604`)
-  - Define and document the order of column vs index names in query/eval
+  
+- Define and document the order of column vs index names in query/eval
     (:issue:`6676`)
 
 Deprecations
