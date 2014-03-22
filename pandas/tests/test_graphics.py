@@ -615,47 +615,12 @@ class TestDataFramePlots(tm.TestCase):
     @slow
     def test_bar_barwidth_position(self):
         df = DataFrame(randn(5, 5))
-
-        width = 0.9
-        position = 0.2
-        
-        # regular
-        ax = df.plot(kind='bar', width=width, position=position)
-        p = ax.patches[0]
-        self.assertEqual(ax.xaxis.get_ticklocs()[0],
-                         p.get_x() + p.get_width() * position * len(df.columns))
-
-        # stacked
-        ax = df.plot(kind='bar', stacked=True, width=width, position=position)
-        p = ax.patches[0]
-        self.assertEqual(ax.xaxis.get_ticklocs()[0],
-                         p.get_x() + p.get_width() * position)
-
-        # horizontal regular
-        ax = df.plot(kind='barh', width=width, position=position)
-        p = ax.patches[0]
-        self.assertEqual(ax.yaxis.get_ticklocs()[0],
-                         p.get_y() + p.get_height() * position * len(df.columns))
-
-        # horizontal stacked
-        ax = df.plot(kind='barh', stacked=True, width=width, position=position)
-        p = ax.patches[0]
-        self.assertEqual(ax.yaxis.get_ticklocs()[0],
-                         p.get_y() + p.get_height() * position)
-
-        # subplots
-        axes = df.plot(kind='bar', width=width, position=position, subplots=True)
-        for ax in axes:
-            p = ax.patches[0]
-            self.assertEqual(ax.xaxis.get_ticklocs()[0],
-                             p.get_x() + p.get_width() * position)
-
-        # horizontal subplots
-        axes = df.plot(kind='barh', width=width, position=position, subplots=True)
-        for ax in axes:
-            p = ax.patches[0]
-            self.assertEqual(ax.yaxis.get_ticklocs()[0],
-                             p.get_y() + p.get_height() * position)
+        self._check_bar_alignment(df, kind='bar', stacked=False, width=0.9, position=0.2)
+        self._check_bar_alignment(df, kind='bar', stacked=True, width=0.9, position=0.2)
+        self._check_bar_alignment(df, kind='barh', stacked=False, width=0.9, position=0.2)
+        self._check_bar_alignment(df, kind='barh', stacked=True, width=0.9, position=0.2)
+        self._check_bar_alignment(df, kind='bar', subplots=True, width=0.9, position=0.2)
+        self._check_bar_alignment(df, kind='barh', subplots=True, width=0.9, position=0.2)
 
     @slow
     def test_plot_scatter(self):
@@ -692,68 +657,144 @@ class TestDataFramePlots(tm.TestCase):
         df = DataFrame({'a': [0, 1], 'b': [1, 0]})
         _check_plot_works(df.plot, kind='bar')
 
+    def _check_bar_alignment(self, df, kind='bar', stacked=False,
+                             subplots=False, align='center',
+                             width=0.5, position=0.5):
+
+        axes = df.plot(kind=kind, stacked=stacked, subplots=subplots,
+                       align=align, width=width, position=position,
+                       grid=True)
+
+        tick_pos = np.arange(len(df)) 
+
+        if not isinstance(axes, np.ndarray):
+            axes = [axes]
+
+        for ax in axes:
+            if kind == 'bar':
+                axis = ax.xaxis
+                ax_min, ax_max = ax.get_xlim()
+            elif kind == 'barh':
+                axis = ax.yaxis
+                ax_min, ax_max = ax.get_ylim()
+            else:
+                raise ValueError
+
+            p = ax.patches[0]
+            if kind == 'bar' and (stacked is True or subplots is True):
+                edge = p.get_x()
+                center = edge + p.get_width() * position
+                tickoffset = width * position
+            elif kind == 'bar' and stacked is False:
+                center = p.get_x() + p.get_width() * len(df.columns) * position
+                edge = p.get_x()
+                if align == 'edge':
+                    tickoffset = width * (position - 0.5) + p.get_width() * 1.5
+                else:
+                    tickoffset = width * position + p.get_width()
+            elif kind == 'barh' and (stacked is True or subplots is True):
+                center = p.get_y() + p.get_height() * position
+                edge = p.get_y()
+                tickoffset = width * position
+            elif kind == 'barh' and stacked is False:
+                center = p.get_y() + p.get_height() * len(df.columns) * position
+                edge = p.get_y()
+                if align == 'edge':
+                    tickoffset = width * (position - 0.5) + p.get_height() * 1.5
+                else:
+                    tickoffset = width * position + p.get_height()
+            else:
+                raise ValueError
+
+            # Check the ticks locates on integer
+            self.assertTrue((axis.get_ticklocs() == np.arange(len(df))).all())
+
+            if align == 'center':
+                # Check whether the bar locates on center
+                self.assertAlmostEqual(axis.get_ticklocs()[0], center)
+            elif align == 'edge':
+                # Check whether the bar's edge starts from the tick
+                self.assertAlmostEqual(axis.get_ticklocs()[0], edge)
+            else:
+                raise ValueError
+
+            # Check starting point and axes limit margin
+            self.assertEqual(ax_min, tick_pos[0] - tickoffset - 0.25)
+            self.assertEqual(ax_max, tick_pos[-1] - tickoffset + 1)
+            # Check tick locations and axes limit margin
+            t_min = axis.get_ticklocs()[0] - tickoffset
+            t_max = axis.get_ticklocs()[-1] - tickoffset
+            self.assertAlmostEqual(ax_min, t_min - 0.25)
+            self.assertAlmostEqual(ax_max, t_max + 1.0)
+        return axes
+
+    @slow
     def test_bar_stacked_center(self):
         # GH2157
         df = DataFrame({'A': [3] * 5, 'B': lrange(5)}, index=lrange(5))
-        ax = df.plot(kind='bar', stacked='True', grid=True)
-        self.assertEqual(ax.xaxis.get_ticklocs()[0],
-                         ax.patches[0].get_x() + ax.patches[0].get_width() / 2)
+        axes = self._check_bar_alignment(df, kind='bar', stacked=True)
+        # Check the axes has the same drawing range before fixing # GH4525
+        self.assertEqual(axes[0].get_xlim(), (-0.5, 4.75))
 
-        ax = df.plot(kind='bar', stacked='True', width=0.9, grid=True)
-        self.assertEqual(ax.xaxis.get_ticklocs()[0],
-                         ax.patches[0].get_x() + ax.patches[0].get_width() / 2)
+        self._check_bar_alignment(df, kind='bar', stacked=True, width=0.9)
 
-        ax = df.plot(kind='barh', stacked='True', grid=True)
-        self.assertEqual(ax.yaxis.get_ticklocs()[0],
-                         ax.patches[0].get_y() + ax.patches[0].get_height() / 2)
+        axes = self._check_bar_alignment(df, kind='barh', stacked=True)
+        self.assertEqual(axes[0].get_ylim(), (-0.5, 4.75))
 
-        ax = df.plot(kind='barh', stacked='True', width=0.9, grid=True)
-        self.assertEqual(ax.yaxis.get_ticklocs()[0],
-                         ax.patches[0].get_y() + ax.patches[0].get_height() / 2)
+        self._check_bar_alignment(df, kind='barh', stacked=True, width=0.9)
 
+    @slow
     def test_bar_center(self):
         df = DataFrame({'A': [3] * 5, 'B': lrange(5)}, index=lrange(5))
-        ax = df.plot(kind='bar', grid=True)
-        self.assertEqual(ax.xaxis.get_ticklocs()[0],
-                         ax.patches[0].get_x() + ax.patches[0].get_width())
-        
-        ax = df.plot(kind='bar', width=0.9, grid=True)
-        self.assertEqual(ax.xaxis.get_ticklocs()[0],
-                         ax.patches[0].get_x() + ax.patches[0].get_width())
+        axes = self._check_bar_alignment(df, kind='bar', stacked=False)
+        self.assertEqual(axes[0].get_xlim(), (-0.75, 4.5))
 
-        ax = df.plot(kind='barh', grid=True)
-        self.assertEqual(ax.yaxis.get_ticklocs()[0],
-                         ax.patches[0].get_y() + ax.patches[0].get_height())
-        
-        ax = df.plot(kind='barh', width=0.9, grid=True)
-        self.assertEqual(ax.yaxis.get_ticklocs()[0],
-                         ax.patches[0].get_y() + ax.patches[0].get_height())
+        self._check_bar_alignment(df, kind='bar', stacked=False, width=0.9)
 
+        axes = self._check_bar_alignment(df, kind='barh', stacked=False)
+        self.assertEqual(axes[0].get_ylim(), (-0.75, 4.5))
+
+        self._check_bar_alignment(df, kind='barh', stacked=False, width=0.9)
+
+    @slow
     def test_bar_subplots_center(self):
         df = DataFrame({'A': [3] * 5, 'B': lrange(5)}, index=lrange(5))
-        axes = df.plot(kind='bar', grid=True, subplots=True)
+        axes = self._check_bar_alignment(df, kind='bar', subplots=True)
         for ax in axes:
-            for r in ax.patches:
-                self.assertEqual(ax.xaxis.get_ticklocs()[0],
-                         ax.patches[0].get_x() + ax.patches[0].get_width() / 2)
+            self.assertEqual(ax.get_xlim(), (-0.5, 4.75))
 
-        axes = df.plot(kind='bar', width=0.9, grid=True, subplots=True)
+        self._check_bar_alignment(df, kind='bar', subplots=True, width=0.9)
+        
+        axes = self._check_bar_alignment(df, kind='barh', subplots=True)
         for ax in axes:
-            for r in ax.patches:
-                self.assertEqual(ax.xaxis.get_ticklocs()[0],
-                         ax.patches[0].get_x() + ax.patches[0].get_width() / 2)
+            self.assertEqual(ax.get_ylim(), (-0.5, 4.75))
 
-        axes = df.plot(kind='barh', grid=True, subplots=True)
-        for ax in axes:
-            for r in ax.patches:
-                self.assertEqual(ax.yaxis.get_ticklocs()[0],
-                         ax.patches[0].get_y() + ax.patches[0].get_height() / 2)
+        self._check_bar_alignment(df, kind='barh', subplots=True, width=0.9)
 
-        axes = df.plot(kind='barh', width=0.9, grid=True, subplots=True)
-        for ax in axes:
-            for r in ax.patches:
-                self.assertEqual(ax.yaxis.get_ticklocs()[0],
-                         ax.patches[0].get_y() + ax.patches[0].get_height() / 2)
+    @slow
+    def test_bar_edge(self):
+        df = DataFrame({'A': [3] * 5, 'B': lrange(5)}, index=lrange(5))
+
+        self._check_bar_alignment(df, kind='bar', stacked=True, align='edge')
+        self._check_bar_alignment(df, kind='bar', stacked=True,
+                                  width=0.9, align='edge')
+        self._check_bar_alignment(df, kind='barh', stacked=True, align='edge')
+        self._check_bar_alignment(df, kind='barh', stacked=True,
+                                  width=0.9, align='edge')
+
+        self._check_bar_alignment(df, kind='bar', stacked=False, align='edge')
+        self._check_bar_alignment(df, kind='bar', stacked=False,
+                                  width=0.9, align='edge')
+        self._check_bar_alignment(df, kind='barh', stacked=False, align='edge')
+        self._check_bar_alignment(df, kind='barh', stacked=False,
+                                  width=0.9, align='edge')
+
+        self._check_bar_alignment(df, kind='bar', subplots=True, align='edge')
+        self._check_bar_alignment(df, kind='bar', subplots=True,
+                                  width=0.9, align='edge')
+        self._check_bar_alignment(df, kind='barh', subplots=True, align='edge')
+        self._check_bar_alignment(df, kind='barh', subplots=True,
+                                  width=0.9, align='edge')
 
     @slow
     def test_bar_log_no_subplots(self):

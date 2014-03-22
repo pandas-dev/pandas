@@ -1673,18 +1673,26 @@ class BarPlot(MPLPlot):
         self.mark_right = kwargs.pop('mark_right', True)
         self.stacked = kwargs.pop('stacked', False)
 
-        self.bar_width = kwargs.pop('width', 0.5)        
+        self.bar_width = kwargs.pop('width', 0.5)
         pos = kwargs.pop('position', 0.5)
-        self.ax_pos = np.arange(len(data)) + self.bar_width * pos
 
+        kwargs['align'] = kwargs.pop('align', 'center')
+        self.tick_pos = np.arange(len(data))
+ 
         self.log = kwargs.pop('log',False)
         MPLPlot.__init__(self, data, **kwargs)
 
         if self.stacked or self.subplots:
-            self.tickoffset = self.bar_width * pos 
+            self.tickoffset = self.bar_width * pos
+        elif kwargs['align'] == 'edge':
+            K = self.nseries
+            w = self.bar_width / K
+            self.tickoffset = self.bar_width * (pos - 0.5) + w * 1.5
         else:
             K = self.nseries
-            self.tickoffset = self.bar_width * pos + self.bar_width / K
+            w = self.bar_width / K
+            self.tickoffset = self.bar_width * pos + w
+        self.ax_pos = self.tick_pos - self.tickoffset
 
     def _args_adjust(self):
         if self.rot is None:
@@ -1751,19 +1759,21 @@ class BarPlot(MPLPlot):
                     start = 0 if mpl_le_1_2_1 else None
 
             if self.subplots:
-                rect = bar_f(ax, self.ax_pos, y,  self.bar_width,
+                w = self.bar_width / 2
+                rect = bar_f(ax, self.ax_pos + w, y,  self.bar_width,
                              start=start, **kwds)
                 ax.set_title(label)
             elif self.stacked:
                 mask = y > 0
                 start = np.where(mask, pos_prior, neg_prior)
-                rect = bar_f(ax, self.ax_pos, y, self.bar_width, start=start,
-                             label=label, **kwds)
+                w = self.bar_width / 2
+                rect = bar_f(ax, self.ax_pos + w, y, self.bar_width,
+                             start=start, label=label, **kwds)
                 pos_prior = pos_prior + np.where(mask, y, 0)
                 neg_prior = neg_prior + np.where(mask, 0, y)
             else:
                 w = self.bar_width / K
-                rect = bar_f(ax, self.ax_pos + (i + 1) * w, y, w,
+                rect = bar_f(ax, self.ax_pos + (i + 1.5) * w, y, w,
                              start=start, label=label, **kwds)
             rects.append(rect)
             if self.mark_right:
@@ -1789,22 +1799,24 @@ class BarPlot(MPLPlot):
             name = self._get_index_name()
             if self.kind == 'bar':
                 ax.set_xlim([self.ax_pos[0] - 0.25, self.ax_pos[-1] + 1])
-                ax.set_xticks(self.ax_pos + self.tickoffset)
+                ax.set_xticks(self.tick_pos)
                 ax.set_xticklabels(str_index, rotation=self.rot,
                                    fontsize=self.fontsize)
                 if not self.log: # GH3254+
                     ax.axhline(0, color='k', linestyle='--')
                 if name is not None:
                     ax.set_xlabel(name)
-            else:
+            elif self.kind == 'barh':
                 # horizontal bars
                 ax.set_ylim([self.ax_pos[0] - 0.25, self.ax_pos[-1] + 1])
-                ax.set_yticks(self.ax_pos + self.tickoffset)
+                ax.set_yticks(self.tick_pos)
                 ax.set_yticklabels(str_index, rotation=self.rot,
                                    fontsize=self.fontsize)
                 ax.axvline(0, color='k', linestyle='--')
                 if name is not None:
                     ax.set_ylabel(name)
+            else:
+                raise NotImplementedError(self.kind)
 
         # if self.subplots and self.legend:
         #    self.axes[0].legend(loc='best')
