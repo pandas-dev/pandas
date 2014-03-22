@@ -2864,7 +2864,8 @@ class TestGroupBy(tm.TestCase):
         df = df.set_index(['Date'])
 
         expected = DataFrame({ 'Quantity' : np.nan },
-                             index=date_range('20130901 13:00:00','20131205 13:00:00',freq='5D',name='Date'))
+                             index=date_range('20130901 13:00:00','20131205 13:00:00',
+                                              freq='5D',name='Date',closed='left'))
         expected.iloc[[0,6,18],0] = np.array([24.,6.,9.],dtype='float64')
 
         result1 = df.resample('5D',how=sum)

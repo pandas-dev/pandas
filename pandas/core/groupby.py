@@ -1486,25 +1486,20 @@ class BinGrouper(BaseGrouper):
         Generator yielding sequence of (name, subsetted object)
         for each group
         """
-        if axis == 0:
-            start = 0
-            for edge, label in zip(self.bins, self.binlabels):
-                yield label, data[start:edge]
-                start = edge
-
-            if start < len(data):
-                yield self.binlabels[-1], data[start:]
+        if isinstance(data, NDFrame):
+            slicer = lambda start,edge: data._slice(slice(start,edge),axis=axis)
+            length = len(data.axes[axis])
         else:
-            start = 0
-            for edge, label in zip(self.bins, self.binlabels):
-                inds = lrange(start, edge)
-                yield label, data.take(inds, axis=axis)
-                start = edge
+            slicer = lambda start,edge: data[slice(start,edge)]
+            length = len(data)
 
-            n = len(data.axes[axis])
-            if start < n:
-                inds = lrange(start, n)
-                yield self.binlabels[-1], data.take(inds, axis=axis)
+        start = 0
+        for edge, label in zip(self.bins, self.binlabels):
+            yield label, slicer(start,edge)
+            start = edge
+
+        if start < length:
+            yield self.binlabels[-1], slicer(start,None)
 
     def apply(self, f, data, axis=0):
         result_keys = []

@@ -185,6 +185,12 @@ class TimeGrouper(Grouper):
             elif not trimmed:
                 labels = labels[:-1]
 
+        # if we end up with more labels than bins
+        # adjust the labels
+        # GH4076
+        if len(bins) < len(labels):
+            labels = labels[:len(bins)]
+
         return binner, bins, labels
 
     def _adjust_bin_edges(self, binner, ax_values):

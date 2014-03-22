@@ -185,7 +185,7 @@ Improvements to existing features
 - Performance improvement when converting ``DatetimeIndex`` to floating ordinals
   using ``DatetimeConverter`` (:issue:`6636`)
 - Performance improvement for  ``DataFrame.shift`` (:issue: `5609`)
-  
+
 .. _release.bug_fixes-0.14.0:
 
 Bug Fixes
@@ -270,6 +270,7 @@ Bug Fixes
 - Bug in compat with ``np.compress``, surfaced in (:issue:`6658`)
 - Bug in binary operations with a rhs of a Series not aligning (:issue:`6681`)
 - Bug in ``DataFrame.to_stata`` which incorrectly handles nan values and ignores 'with_index' keyword argument (:issue:`6685`)
+- Bug in resample with extra bins when using an evenly divisible frequency (:issue:`4076`)
 
 pandas 0.13.1
 -------------
