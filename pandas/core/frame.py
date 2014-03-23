@@ -41,7 +41,8 @@ from pandas.compat.scipy import scoreatpercentile as _quantile
 from pandas.compat import(range, zip, lrange, lmap, lzip, StringIO, u,
                           OrderedDict, raise_with_traceback)
 from pandas import compat
-from pandas.util.decorators import deprecate, Appender, Substitution
+from pandas.util.decorators import deprecate, Appender, Substitution, \
+    deprecate_kwarg
 
 from pandas.tseries.period import PeriodIndex
 from pandas.tseries.index import DatetimeIndex
@@ -1067,8 +1068,9 @@ class DataFrame(NDFrame):
 
     to_wide = deprecate('to_wide', to_panel)
 
+    @deprecate_kwarg(old_arg_name='cols', new_arg_name='columns')
     def to_csv(self, path_or_buf=None, sep=",", na_rep='', float_format=None,
-               cols=None, header=True, index=True, index_label=None,
+               columns=None, header=True, index=True, index_label=None,
                mode='w', nanRep=None, encoding=None, quoting=None,
                quotechar='"', line_terminator='\n', chunksize=None,
                tupleize_cols=False, date_format=None, doublequote=True,
@@ -1086,7 +1088,7 @@ class DataFrame(NDFrame):
             Missing data representation
         float_format : string, default None
             Format string for floating point numbers
-        cols : sequence, optional
+        columns : sequence, optional
             Columns to write
         header : boolean or list of string, default True
             Write out column names. If a list of string is given it is assumed
@@ -1124,6 +1126,7 @@ class DataFrame(NDFrame):
             or new (expanded format) if False)
         date_format : string, default None
             Format string for datetime objects
+        cols : kwarg only alias of columns [deprecated]
         """
         if nanRep is not None:  # pragma: no cover
             warnings.warn("nanRep is deprecated, use na_rep",
@@ -1134,7 +1137,7 @@ class DataFrame(NDFrame):
                                      line_terminator=line_terminator,
                                      sep=sep, encoding=encoding,
                                      quoting=quoting, na_rep=na_rep,
-                                     float_format=float_format, cols=cols,
+                                     float_format=float_format, cols=columns,
                                      header=header, index=index,
                                      index_label=index_label, mode=mode,
                                      chunksize=chunksize, quotechar=quotechar,
@@ -1148,8 +1151,9 @@ class DataFrame(NDFrame):
         if path_or_buf is None:
             return formatter.path_or_buf.getvalue()
 
+    @deprecate_kwarg(old_arg_name='cols', new_arg_name='columns')
     def to_excel(self, excel_writer, sheet_name='Sheet1', na_rep='',
-                 float_format=None, cols=None, header=True, index=True,
+                 float_format=None, columns=None, header=True, index=True,
                  index_label=None, startrow=0, startcol=0, engine=None,
                  merge_cells=True, encoding=None):
         """
@@ -1189,6 +1193,7 @@ class DataFrame(NDFrame):
         encoding: string, default None
             encoding of the resulting excel file. Only necessary for xlwt,
             other writers support unicode natively.
+        cols : kwarg only alias of columns [deprecated]
 
         Notes
         -----
@@ -1202,6 +1207,7 @@ class DataFrame(NDFrame):
         >>> writer.save()
         """
         from pandas.io.excel import ExcelWriter
+        
         need_save = False
         if encoding == None:
             encoding = 'ascii'
@@ -1212,7 +1218,7 @@ class DataFrame(NDFrame):
 
         formatter = fmt.ExcelFormatter(self,
                                        na_rep=na_rep,
-                                       cols=cols,
+                                       cols=columns,
                                        header=header,
                                        float_format=float_format,
                                        index=index,
@@ -2439,27 +2445,28 @@ class DataFrame(NDFrame):
         else:
             return result
 
-    def drop_duplicates(self, cols=None, take_last=False, inplace=False):
+    @deprecate_kwarg(old_arg_name='cols', new_arg_name='subset')
+    def drop_duplicates(self, subset=None, take_last=False, inplace=False):
         """
         Return DataFrame with duplicate rows removed, optionally only
         considering certain columns
 
         Parameters
         ----------
-        cols : column label or sequence of labels, optional
+        subset : column label or sequence of labels, optional
             Only consider certain columns for identifying duplicates, by
             default use all of the columns
         take_last : boolean, default False
             Take the last observed row in a row. Defaults to the first row
         inplace : boolean, default False
             Whether to drop duplicates in place or to return a copy
+        cols : kwargs only argument of subset [deprecated]
 
         Returns
         -------
         deduplicated : DataFrame
         """
-
-        duplicated = self.duplicated(cols, take_last=take_last)
+        duplicated = self.duplicated(subset, take_last=take_last)
 
         if inplace:
             inds, = (-duplicated).nonzero()
@@ -2468,18 +2475,20 @@ class DataFrame(NDFrame):
         else:
             return self[-duplicated]
 
-    def duplicated(self, cols=None, take_last=False):
+    @deprecate_kwarg(old_arg_name='cols', new_arg_name='subset')
+    def duplicated(self, subset=None, take_last=False):
         """
         Return boolean Series denoting duplicate rows, optionally only
         considering certain columns
 
         Parameters
         ----------
-        cols : column label or sequence of labels, optional
+        subset : column label or sequence of labels, optional
             Only consider certain columns for identifying duplicates, by
             default use all of the columns
         take_last : boolean, default False
             Take the last observed row in a row. Defaults to the first row
+        cols : kwargs only argument of subset [deprecated]
 
         Returns
         -------
@@ -2491,19 +2500,19 @@ class DataFrame(NDFrame):
                 return x.view(np.int64)
             return x
 
-        if cols is None:
+        if subset is None:
             values = list(_m8_to_i8(self.values.T))
         else:
-            if np.iterable(cols) and not isinstance(cols, compat.string_types):
-                if isinstance(cols, tuple):
-                    if cols in self.columns:
-                        values = [self[cols].values]
+            if np.iterable(subset) and not isinstance(subset, compat.string_types):
+                if isinstance(subset, tuple):
+                    if subset in self.columns:
+                        values = [self[subset].values]
                     else:
-                        values = [_m8_to_i8(self[x].values) for x in cols]
+                        values = [_m8_to_i8(self[x].values) for x in subset]
                 else:
-                    values = [_m8_to_i8(self[x].values) for x in cols]
+                    values = [_m8_to_i8(self[x].values) for x in subset]
             else:
-                values = [self[cols].values]
+                values = [self[subset].values]
 
         keys = lib.fast_zip_fillna(values)
         duplicated = lib.duplicated(keys, take_last=take_last)

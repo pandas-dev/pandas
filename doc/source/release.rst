@@ -129,11 +129,6 @@ API Changes
     ``DataFrame.stack`` operations where the name of the column index is used as
     the name of the inserted column containing the pivoted data.
 
-- The :func:`pivot_table`/:meth:`DataFrame.pivot_table` and :func:`crosstab` functions
-  now take arguments ``index`` and ``columns`` instead of ``rows`` and ``cols``.  A
-  ``FutureWarning`` is raised  to alert that the old ``rows`` and ``cols`` arguments
-  will not be supported in a future release (:issue:`5505`)
-
 - Allow specification of a more complex groupby, via ``pd.Grouper`` (:issue:`3794`)
 
 - A tuple passed to ``DataFame.sort_index`` will be interpreted as the levels of
@@ -148,6 +143,21 @@ API Changes
 
 Deprecations
 ~~~~~~~~~~~~
+
+- The :func:`pivot_table`/:meth:`DataFrame.pivot_table` and :func:`crosstab` functions
+  now take arguments ``index`` and ``columns`` instead of ``rows`` and ``cols``.  A
+  ``FutureWarning`` is raised  to alert that the old ``rows`` and ``cols`` arguments
+  will not be supported in a future release (:issue:`5505`)
+
+- The :meth:`DataFrame.drop_duplicates` and :meth:`DataFrame.duplicated` methods
+  now take argument ``subset`` instead of ``cols`` to better align with
+  :meth:`DataFrame.dropna`.  A ``FutureWarning`` is raised  to alert that the old
+  ``cols`` arguments will not be supported in a future release (:issue:`6680`)
+
+- The :meth:`DataFrame.to_csv` and :meth:`DataFrame.to_excel` functions
+  now takes argument ``columns`` instead of ``cols``.  A
+  ``FutureWarning`` is raised  to alert that the old ``cols`` arguments
+  will not be supported in a future release (:issue:`6645`)
 
 Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -430,7 +430,7 @@ class TestCrosstab(tm.TestCase):
 
         df = DataFrame({'foo': a, 'bar': b, 'baz': c, 'values': values})
 
-        expected = df.pivot_table('values', index=['foo', 'bar'], cols='baz',
+        expected = df.pivot_table('values', index=['foo', 'bar'], columns='baz',
                                   aggfunc=np.sum)
         tm.assert_frame_equal(table, expected)
 

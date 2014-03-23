@@ -7,13 +7,15 @@ from pandas.core.index import MultiIndex
 from pandas.tools.merge import concat
 from pandas.tools.util import cartesian_product
 from pandas.compat import range, lrange, zip
+from pandas.util.decorators import deprecate_kwarg
 from pandas import compat
 import pandas.core.common as com
 import numpy as np
 
-
+@deprecate_kwarg(old_arg_name='cols', new_arg_name='columns')
+@deprecate_kwarg(old_arg_name='rows', new_arg_name='index')
 def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
-                fill_value=None, margins=False, dropna=True, **kwarg):
+                fill_value=None, margins=False, dropna=True):
     """
     Create a spreadsheet-style pivot table as a DataFrame. The levels in the
     pivot table will be stored in MultiIndex objects (hierarchical indexes) on
@@ -67,28 +69,6 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
     -------
     table : DataFrame
     """
-    # Parse old-style keyword arguments
-    rows = kwarg.pop('rows', None)
-    if rows is not None:
-        warnings.warn("rows is deprecated, use index", FutureWarning)
-        if index is None:
-            index = rows
-        else:
-            msg = "Can only specify either 'rows' or 'index'"
-            raise TypeError(msg)
-
-    cols = kwarg.pop('cols', None)
-    if cols is not None:
-        warnings.warn("cols is deprecated, use columns", FutureWarning)
-        if columns is None:
-            columns = cols
-        else:
-            msg = "Can only specify either 'cols' or 'columns'"
-            raise TypeError(msg)
-    
-    if kwarg:
-        raise TypeError("Unexpected argument(s): %s" % kwarg.keys())
-    
     index = _convert_by(index)
     columns = _convert_by(columns)
 
@@ -324,9 +304,10 @@ def _convert_by(by):
         by = list(by)
     return by
 
-
+@deprecate_kwarg(old_arg_name='cols', new_arg_name='columns')
+@deprecate_kwarg(old_arg_name='rows', new_arg_name='index')
 def crosstab(index, columns, values=None, rownames=None, colnames=None,
-             aggfunc=None, margins=False, dropna=True, **kwarg):
+             aggfunc=None, margins=False, dropna=True):
     """
     Compute a simple cross-tabulation of two (or more) factors. By default
     computes a frequency table of the factors unless an array of values and an
@@ -381,27 +362,6 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     -------
     crosstab : DataFrame
     """
-    # Parse old-style keyword arguments
-    rows = kwarg.pop('rows', None)
-    if rows is not None:
-        warnings.warn("rows is deprecated, use index", FutureWarning)
-        if index is None:
-            index = rows
-        else:
-            msg = "Can only specify either 'rows' or 'index'"
-            raise TypeError(msg)
-
-    cols = kwarg.pop('cols', None)
-    if cols is not None:
-        warnings.warn("cols is deprecated, use columns", FutureWarning)
-        if columns is None:
-            columns = cols
-        else:
-            msg = "Can only specify either 'cols' or 'columns'"
-            raise TypeError(msg)
-
-    if kwarg:
-        raise TypeError("Unexpected argument(s): %s" % kwarg.keys())
 
     index = com._maybe_make_list(index)
     columns = com._maybe_make_list(columns)
