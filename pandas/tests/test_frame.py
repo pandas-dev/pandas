@@ -5439,6 +5439,13 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             self.tsframe.to_csv(path, nanRep='foo')
             recons = read_csv(path,index_col=0,parse_dates=[0],na_values=['foo'])
             assert_frame_equal(self.tsframe, recons)
+        
+        with tm.assert_produces_warning(FutureWarning):
+            self.frame.to_csv(path, cols=['A', 'B'])
+
+        with tm.assert_produces_warning(False):
+            self.frame.to_csv(path, columns=['A', 'B'])
+            
 
     def test_to_csv_from_csv(self):
 
@@ -5448,7 +5455,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
              self.frame['A'][:5] = nan
 
              self.frame.to_csv(path)
-             self.frame.to_csv(path, cols=['A', 'B'])
+             self.frame.to_csv(path, columns=['A', 'B'])
              self.frame.to_csv(path, header=False)
              self.frame.to_csv(path, index=False)
 
@@ -5522,9 +5529,9 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         def _check_df(df,cols=None):
             with ensure_clean() as path:
-                df.to_csv(path,cols = cols,engine='python')
+                df.to_csv(path,columns = cols,engine='python')
                 rs_p = pd.read_csv(path,index_col=0)
-                df.to_csv(path,cols = cols,chunksize=chunksize)
+                df.to_csv(path,columns = cols,chunksize=chunksize)
                 rs_c = pd.read_csv(path,index_col=0)
 
             if cols:
@@ -5550,7 +5557,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         import pandas as pd
         def _check_df(df,cols=None):
             with ensure_clean() as path:
-                df.to_csv(path,cols = cols,chunksize=chunksize)
+                df.to_csv(path,columns = cols,chunksize=chunksize)
                 rs_c = pd.read_csv(path,index_col=0)
 
                 # we wrote them in a different order
@@ -5807,7 +5814,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         with ensure_clean(pname) as path:
 
              frame.to_csv(path, header=False)
-             frame.to_csv(path, cols=['A', 'B'])
+             frame.to_csv(path, columns=['A', 'B'])
 
              # round trip
              frame.to_csv(path)
@@ -5925,7 +5932,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
             # write with cols
             with assertRaisesRegexp(TypeError, 'cannot specify cols with a MultiIndex'):
-                df.to_csv(path, tupleize_cols=False, cols=['foo', 'bar'])
+                df.to_csv(path, tupleize_cols=False, columns=['foo', 'bar'])
 
         with ensure_clean(pname) as path:
             # empty
@@ -6937,6 +6944,32 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         expected = df2.drop_duplicates(['AAA', 'B'], take_last=True)
         assert_frame_equal(result, expected)
 
+    def test_drop_duplicates_deprecated_warning(self):
+        df = DataFrame({'AAA': ['foo', 'bar', 'foo', 'bar',
+                                'foo', 'bar', 'bar', 'foo'],
+                        'B': ['one', 'one', 'two', 'two',
+                              'two', 'two', 'one', 'two'],
+                        'C': [1, 1, 2, 2, 2, 2, 1, 2],
+                        'D': lrange(8)})
+        expected = df[:2]
+
+        # Raises warning
+        with tm.assert_produces_warning(False):
+            result = df.drop_duplicates(subset='AAA')
+        assert_frame_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.drop_duplicates(cols='AAA')
+        assert_frame_equal(result, expected)
+
+        # Does not allow both subset and cols
+        self.assertRaises(TypeError, df.drop_duplicates,
+                          kwargs={'cols': 'AAA', 'subset': 'B'})
+
+        # Does not allow unknown kwargs
+        self.assertRaises(TypeError, df.drop_duplicates,
+                          kwargs={'subset': 'AAA', 'bad_arg': True})
+
     def test_drop_duplicates_tuple(self):
         df = DataFrame({('AA', 'AB'): ['foo', 'bar', 'foo', 'bar',
                                        'foo', 'bar', 'bar', 'foo'],
@@ -7061,6 +7094,29 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         expected = orig2.drop_duplicates(['A', 'B'], take_last=True)
         result = df2
         assert_frame_equal(result, expected)
+
+    def test_duplicated_deprecated_warning(self):
+        df = DataFrame({'AAA': ['foo', 'bar', 'foo', 'bar',
+                                'foo', 'bar', 'bar', 'foo'],
+                        'B': ['one', 'one', 'two', 'two',
+                              'two', 'two', 'one', 'two'],
+                        'C': [1, 1, 2, 2, 2, 2, 1, 2],
+                        'D': lrange(8)})
+
+        # Raises warning
+        with tm.assert_produces_warning(False):
+            result = df.duplicated(subset='AAA')
+
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.duplicated(cols='AAA')
+
+        # Does not allow both subset and cols
+        self.assertRaises(TypeError, df.duplicated,
+                          kwargs={'cols': 'AAA', 'subset': 'B'})
+
+        # Does not allow unknown kwargs
+        self.assertRaises(TypeError, df.duplicated,
+                          kwargs={'subset': 'AAA', 'bad_arg': True})
 
     def test_drop_col_still_multiindex(self):
         arrays = [['a', 'b', 'c', 'top'],

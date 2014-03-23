@@ -171,7 +171,7 @@ In ``pandas`` we may use :meth:`~pandas.pivot_table` method to handle this:
       'player': random.sample(list(string.ascii_lowercase),25),
       'batting avg': np.random.uniform(.200, .400, 25)
       })
-   baseball.pivot_table(values='batting avg', cols='team', aggfunc=np.max)
+   baseball.pivot_table(values='batting avg', columns='team', aggfunc=np.max)
 
 For more details and examples see :ref:`the reshaping documentation
 <reshaping.pivot>`.
@@ -402,8 +402,8 @@ In Python the best way is to make use of :meth:`~pandas.pivot_table`:
         'week': [1,2]*6
    })
    mdf = pd.melt(df, id_vars=['month', 'week'])
-   pd.pivot_table(mdf, values='value', rows=['variable','week'],
-                    cols=['month'], aggfunc=np.mean)
+   pd.pivot_table(mdf, values='value', index=['variable','week'],
+                    columns=['month'], aggfunc=np.mean)
 
 Similarly for ``dcast`` which uses a data.frame called ``df`` in R to
 aggregate information based on ``Animal`` and ``FeedType``:
@@ -433,7 +433,7 @@ using :meth:`~pandas.pivot_table`:
        'Amount': [10, 7, 4, 2, 5, 6, 2],
    })
 
-   df.pivot_table(values='Amount', rows='Animal', cols='FeedType', aggfunc='sum')
+   df.pivot_table(values='Amount', index='Animal', columns='FeedType', aggfunc='sum')
 
 The second approach is to use the :meth:`~pandas.DataFrame.groupby` method:
 

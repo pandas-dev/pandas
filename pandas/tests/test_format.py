@@ -725,7 +725,7 @@ class TestDataFrameFormatting(tm.TestCase):
                            'données1': np.random.randn(5),
                            'données2': np.random.randn(5)})
         # it works
-        df.pivot_table(rows=[u('clé1')], cols=[u('clé2')])._repr_html_()
+        df.pivot_table(index=[u('clé1')], columns=[u('clé2')])._repr_html_()
 
     def test_nonunicode_nonascii_alignment(self):
         df = DataFrame([["aa\xc3\xa4\xc3\xa4", 1], ["bbbb", 2]])
