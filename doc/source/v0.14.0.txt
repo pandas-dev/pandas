@@ -178,6 +178,11 @@ These are out-of-bounds selections
   ``FutureWarning`` is raised  to alert that the old ``rows`` and ``cols`` arguments
   will not be supported in a future release (:issue:`5505`)
 
+- The :meth:`DataFrame.to_csv` and :meth:`DataFrame.to_excel` functions
+  now takes argument ``columns`` instead of ``cols``.  A
+  ``FutureWarning`` is raised  to alert that the old ``cols`` arguments
+  will not be supported in a future release (:issue:`6645`)
+
 - Following keywords are now acceptable for :meth:`DataFrame.plot(kind='bar')` and :meth:`DataFrame.plot(kind='barh')`.
   - `width`: Specify the bar width. In previous versions, static value 0.5 was passed to matplotlib and it cannot be overwritten.
   - `position`: Specify relative alignments for bar plot layout. From 0 (left/bottom-end) to 1(right/top-end). Default is 0.5 (center). (:issue:`6604`)

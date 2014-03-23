@@ -1068,7 +1068,7 @@ class DataFrame(NDFrame):
     to_wide = deprecate('to_wide', to_panel)
 
     def to_csv(self, path_or_buf=None, sep=",", na_rep='', float_format=None,
-               cols=None, header=True, index=True, index_label=None,
+               columns=None, header=True, index=True, index_label=None,
                mode='w', nanRep=None, encoding=None, quoting=None,
                quotechar='"', line_terminator='\n', chunksize=None,
                tupleize_cols=False, date_format=None, doublequote=True,
@@ -1086,7 +1086,7 @@ class DataFrame(NDFrame):
             Missing data representation
         float_format : string, default None
             Format string for floating point numbers
-        cols : sequence, optional
+        columns : sequence, optional
             Columns to write
         header : boolean or list of string, default True
             Write out column names. If a list of string is given it is assumed
@@ -1124,17 +1124,29 @@ class DataFrame(NDFrame):
             or new (expanded format) if False)
         date_format : string, default None
             Format string for datetime objects
+        cols : kwarg only alias of columns [deprecated]
         """
         if nanRep is not None:  # pragma: no cover
             warnings.warn("nanRep is deprecated, use na_rep",
                           FutureWarning)
             na_rep = nanRep
 
+        # Parse old-style keyword argument
+        cols = kwds.pop('cols', None)
+        if cols is not None:
+            warnings.warn("cols is deprecated, use columns", FutureWarning)
+            if columns is None:
+                columns = cols
+            else:
+                msg = "Can only specify either 'columns' or 'cols'"
+                raise TypeError(msg)
+
+
         formatter = fmt.CSVFormatter(self, path_or_buf,
                                      line_terminator=line_terminator,
                                      sep=sep, encoding=encoding,
                                      quoting=quoting, na_rep=na_rep,
-                                     float_format=float_format, cols=cols,
+                                     float_format=float_format, cols=columns,
                                      header=header, index=index,
                                      index_label=index_label, mode=mode,
                                      chunksize=chunksize, quotechar=quotechar,
@@ -1149,9 +1161,9 @@ class DataFrame(NDFrame):
             return formatter.path_or_buf.getvalue()
 
     def to_excel(self, excel_writer, sheet_name='Sheet1', na_rep='',
-                 float_format=None, cols=None, header=True, index=True,
+                 float_format=None, columns=None, header=True, index=True,
                  index_label=None, startrow=0, startcol=0, engine=None,
-                 merge_cells=True, encoding=None):
+                 merge_cells=True, encoding=None, **kwds):
         """
         Write DataFrame to a excel sheet
 
@@ -1189,6 +1201,7 @@ class DataFrame(NDFrame):
         encoding: string, default None
             encoding of the resulting excel file. Only necessary for xlwt,
             other writers support unicode natively.
+        cols : kwarg only alias of columns [deprecated]
 
         Notes
         -----
@@ -1202,6 +1215,17 @@ class DataFrame(NDFrame):
         >>> writer.save()
         """
         from pandas.io.excel import ExcelWriter
+
+        # Parse old-style keyword argument
+        cols = kwds.pop('cols', None)
+        if cols is not None:
+            warnings.warn("cols is deprecated, use columns", FutureWarning)
+            if columns is None:
+                columns = cols
+            else:
+                msg = "Can only specify either 'columns' or 'cols'"
+                raise TypeError(msg)        
+        
         need_save = False
         if encoding == None:
             encoding = 'ascii'
@@ -1212,7 +1236,7 @@ class DataFrame(NDFrame):
 
         formatter = fmt.ExcelFormatter(self,
                                        na_rep=na_rep,
-                                       cols=cols,
+                                       cols=columns,
                                        header=header,
                                        float_format=float_format,
                                        index=index,
