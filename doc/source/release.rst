@@ -269,6 +269,7 @@ Bug Fixes
 - Bug in ``DataFrame.to_stata`` when columns have non-string names (:issue:`4558`)
 - Bug in compat with ``np.compress``, surfaced in (:issue:`6658`)
 - Bug in binary operations with a rhs of a Series not aligning (:issue:`6681`)
+- Bug in ``DataFrame.to_stata`` which incorrectly handles nan values and ignores 'with_index' keyword argument (:issue:`6685`)
 
 pandas 0.13.1
 -------------

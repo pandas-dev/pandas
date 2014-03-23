@@ -990,8 +990,6 @@ def _dtype_to_stata_type(dtype):
         return chr(255)
     elif dtype == np.float32:
         return chr(254)
-    elif dtype == np.int64:
-        return chr(253)
     elif dtype == np.int32:
         return chr(253)
     elif dtype == np.int16:
@@ -1024,8 +1022,6 @@ def _dtype_to_default_stata_fmt(dtype):
     elif dtype == np.float64:
         return "%10.0g"
     elif dtype == np.float32:
-        return "%9.0g"
-    elif dtype == np.int64:
         return "%9.0g"
     elif dtype == np.int32:
         return "%12.0g"
@@ -1107,6 +1103,21 @@ class StataWriter(StataParser):
         else:
             self._file.write(to_write)
 
+
+    def _replace_nans(self, data):
+        # return data
+        """Checks floating point data columns for nans, and replaces these with
+        the generic Stata for missing value (.)"""
+        for c in data:
+            dtype = data[c].dtype
+            if dtype in (np.float32, np.float64):
+                if dtype == np.float32:
+                    replacement = self.MISSING_VALUES['f']
+                else:
+                    replacement = self.MISSING_VALUES['d']
+                data[c] = data[c].fillna(replacement)
+
+        return data
 
     def _check_column_names(self, data):
         """Checks column names to ensure that they are valid Stata column names.
@@ -1197,6 +1208,8 @@ class StataWriter(StataParser):
         data = _cast_to_stata_types(data)
         # Ensure column names are strings
         data = self._check_column_names(data)
+        # Replace NaNs with Stata missing values
+        data = self._replace_nans(data)
         self.datarows = DataFrameRowIter(data)
         self.nobs, self.nvar = data.shape
         self.data = data
@@ -1340,8 +1353,6 @@ class StataWriter(StataParser):
                         var = _pad_bytes(var, typ)
                     self._write(var)
                 else:
-                    if isnull(var):  # this only matters for floats
-                        var = MISSING_VALUES[TYPE_MAP[typ]]
                     self._file.write(struct.pack(byteorder+TYPE_MAP[typ], var))
 
     def _null_terminate(self, s, as_string=False):

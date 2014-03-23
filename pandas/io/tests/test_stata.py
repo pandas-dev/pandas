@@ -13,7 +13,8 @@ import numpy as np
 import pandas as pd
 from pandas.core.frame import DataFrame, Series
 from pandas.io.parsers import read_csv
-from pandas.io.stata import read_stata, StataReader, InvalidColumnName
+from pandas.io.stata import (read_stata, StataReader, InvalidColumnName,
+    PossiblePrecisionLoss)
 import pandas.util.testing as tm
 from pandas.util.misc import is_little_endian
 from pandas import compat
@@ -142,8 +143,7 @@ class TestStata(tm.TestCase):
             parsed_117 = self.read_dta(self.dta2_117)
             # 113 is buggy due ot limits date format support in Stata
             # parsed_113 = self.read_dta(self.dta2_113)
-
-            np.testing.assert_equal(
+            tm.assert_equal(
                 len(w), 1)  # should get a warning for that format.
 
         # buggy test because of the NaT comparison on certain platforms
@@ -206,7 +206,7 @@ class TestStata(tm.TestCase):
         original.index.name = 'index'
 
         with tm.ensure_clean() as path:
-            original.to_stata(path, None, False)
+            original.to_stata(path, None)
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(written_and_read_again.set_index('index'),
                                   original)
@@ -221,7 +221,7 @@ class TestStata(tm.TestCase):
         original['quarter'] = original['quarter'].astype(np.int32)
 
         with tm.ensure_clean() as path:
-            original.to_stata(path, None, False)
+            original.to_stata(path, None)
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(written_and_read_again.set_index('index'),
                                   original)
@@ -257,7 +257,7 @@ class TestStata(tm.TestCase):
         original['integer'] = original['integer'].astype(np.int32)
 
         with tm.ensure_clean() as path:
-            original.to_stata(path, {'datetime': 'tc'}, False)
+            original.to_stata(path, {'datetime': 'tc'})
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(written_and_read_again.set_index('index'),
                                   original)
@@ -295,9 +295,9 @@ class TestStata(tm.TestCase):
 
         with tm.ensure_clean() as path:
             with warnings.catch_warnings(record=True) as w:
-                original.to_stata(path, None, False)
-                np.testing.assert_equal(
-                    len(w), 1)  # should get a warning for that format.
+                original.to_stata(path, None)
+                # should get a warning for that format.
+            tm.assert_equal(len(w), 1)
 
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(written_and_read_again.set_index('index'), formatted)
@@ -324,13 +324,12 @@ class TestStata(tm.TestCase):
 
         with tm.ensure_clean() as path:
             with warnings.catch_warnings(record=True) as w:
-                original.to_stata(path, None, False)
-                np.testing.assert_equal(
-                    len(w), 1)  # should get a warning for that format.
+                original.to_stata(path, None)
+                tm.assert_equal(len(w), 1)  # should get a warning for that format.
 
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(written_and_read_again.set_index('index'), formatted)
-            
+
     def test_read_write_dta13(self):
         s1 = Series(2**9, dtype=np.int16)
         s2 = Series(2**17, dtype=np.int32)
@@ -366,7 +365,7 @@ class TestStata(tm.TestCase):
         tm.assert_frame_equal(parsed_114, parsed_115)
 
         with tm.ensure_clean() as path:
-            parsed_114.to_stata(path, {'date_td': 'td'}, write_index=False)
+            parsed_114.to_stata(path, {'date_td': 'td'})
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(written_and_read_again.set_index('index'), parsed_114)
 
@@ -406,7 +405,7 @@ class TestStata(tm.TestCase):
             with warnings.catch_warnings(record=True) as w:
                 tm.assert_produces_warning(original.to_stata(path), InvalidColumnName)
             # should produce a single warning
-            np.testing.assert_equal(len(w), 1)
+            tm.assert_equal(len(w), 1)
 
             written_and_read_again = self.read_dta(path)
             written_and_read_again = written_and_read_again.set_index('index')
@@ -415,7 +414,102 @@ class TestStata(tm.TestCase):
             written_and_read_again.columns = map(convert_col_name, columns)
             tm.assert_frame_equal(original, written_and_read_again)
 
+    def test_nan_to_missing_value(self):
+        s1 = Series(np.arange(4.0), dtype=np.float32)
+        s2 = Series(np.arange(4.0), dtype=np.float64)
+        s1[::2] = np.nan
+        s2[1::2] = np.nan
+        original = DataFrame({'s1': s1, 's2': s2})
+        original.index.name = 'index'
+        with tm.ensure_clean() as path:
+            original.to_stata(path)
+            written_and_read_again = self.read_dta(path)
+            written_and_read_again = written_and_read_again.set_index('index')
+            tm.assert_frame_equal(written_and_read_again, original)
+
+    def test_no_index(self):
+        columns = ['x', 'y']
+        original = DataFrame(np.reshape(np.arange(10.0), (5, 2)),
+                             columns=columns)
+        original.index.name = 'index_not_written'
+        with tm.ensure_clean() as path:
+            original.to_stata(path, write_index=False)
+            written_and_read_again = self.read_dta(path)
+            tm.assertRaises(KeyError,
+                            lambda: written_and_read_again['index_not_written'])
+
+    def test_string_no_dates(self):
+        s1 = Series(['a', 'A longer string'])
+        s2 = Series([1.0, 2.0], dtype=np.float64)
+        original = DataFrame({'s1': s1, 's2': s2})
+        original.index.name = 'index'
+        with tm.ensure_clean() as path:
+            original.to_stata(path)
+            written_and_read_again = self.read_dta(path)
+            tm.assert_frame_equal(written_and_read_again.set_index('index'),
+                                  original)
+
+    def test_large_value_conversion(self):
+        s0 = Series([1, 99], dtype=np.int8)
+        s1 = Series([1, 127], dtype=np.int8)
+        s2 = Series([1, 2 ** 15 - 1], dtype=np.int16)
+        s3 = Series([1, 2 ** 63 - 1], dtype=np.int64)
+        original = DataFrame({'s0': s0, 's1': s1, 's2': s2, 's3': s3})
+        original.index.name = 'index'
+        with tm.ensure_clean() as path:
+            with warnings.catch_warnings(record=True) as w:
+                tm.assert_produces_warning(original.to_stata(path),
+                                           PossiblePrecisionLoss)
+            # should produce a single warning
+            tm.assert_equal(len(w), 1)
+
+            written_and_read_again = self.read_dta(path)
+            modified = original.copy()
+            modified['s1'] = Series(modified['s1'], dtype=np.int16)
+            modified['s2'] = Series(modified['s2'], dtype=np.int32)
+            modified['s3'] = Series(modified['s3'], dtype=np.float64)
+            tm.assert_frame_equal(written_and_read_again.set_index('index'),
+                                  modified)
+
+    def test_dates_invalid_column(self):
+        original = DataFrame([datetime(2006, 11, 19, 23, 13, 20)])
+        original.index.name = 'index'
+        with tm.ensure_clean() as path:
+            with warnings.catch_warnings(record=True) as w:
+                tm.assert_produces_warning(original.to_stata(path, {0: 'tc'}),
+                                           InvalidColumnName)
+            tm.assert_equal(len(w), 1)
+
+            written_and_read_again = self.read_dta(path)
+            modified = original.copy()
+            modified.columns = ['_0']
+            tm.assert_frame_equal(written_and_read_again.set_index('index'),
+                                  modified)
+
+    def test_date_export_formats(self):
+        columns = ['tc', 'td', 'tw', 'tm', 'tq', 'th', 'ty']
+        conversions = dict(((c, c) for c in columns))
+        data = [datetime(2006, 11, 20, 23, 13, 20)] * len(columns)
+        original = DataFrame([data], columns=columns)
+        original.index.name = 'index'
+        expected_values = [datetime(2006, 11, 20, 23, 13, 20),  # Time
+                           datetime(2006, 11, 20),  # Day
+                           datetime(2006, 11, 19),  # Week
+                           datetime(2006, 11, 1),  # Month
+                           datetime(2006, 10, 1),  # Quarter year
+                           datetime(2006, 7, 1),  # Half year
+                           datetime(2006, 1, 1)]  # Year
+
+        expected = DataFrame([expected_values], columns=columns)
+        expected.index.name = 'index'
+        with tm.ensure_clean() as path:
+            original.to_stata(path, conversions)
+            written_and_read_again = self.read_dta(path)
+            tm.assert_frame_equal(written_and_read_again.set_index('index'),
+                                  expected)
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
+

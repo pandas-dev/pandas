@@ -1258,7 +1258,8 @@ class DataFrame(NDFrame):
         from pandas.io.stata import StataWriter
         writer = StataWriter(fname, self, convert_dates=convert_dates,
                              encoding=encoding, byteorder=byteorder,
-                             time_stamp=time_stamp, data_label=data_label)
+                             time_stamp=time_stamp, data_label=data_label,
+                             write_index=write_index)
         writer.write_file()
 
     @Appender(fmt.docstring_to_string, indents=1)
