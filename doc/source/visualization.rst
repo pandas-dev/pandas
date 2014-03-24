@@ -651,9 +651,18 @@ be colored differently.
 Colormaps
 ~~~~~~~~~
 
-A potential issue when plotting a large number of columns is that it can be difficult to distinguish some series due to repetition in the default colors. To remedy this, DataFrame plotting supports the use of the ``colormap=`` argument, which accepts either a Matplotlib `colormap <http://matplotlib.org/api/cm_api.html>`__ or a string that is a name of a colormap registered with Matplotlib. A visualization of the default matplotlib colormaps is available `here <http://wiki.scipy.org/Cookbook/Matplotlib/Show_colormaps>`__.
+A potential issue when plotting a large number of columns is that it can be 
+difficult to distinguish some series due to repetition in the default colors. To
+remedy this, DataFrame plotting supports the use of the ``colormap=`` argument, 
+which accepts either a Matplotlib `colormap <http://matplotlib.org/api/cm_api.html>`__ 
+or a string that is a name of a colormap registered with Matplotlib. A 
+visualization of the default matplotlib colormaps is available `here 
+<http://wiki.scipy.org/Cookbook/Matplotlib/Show_colormaps>`__.
 
-As matplotlib does not directly support colormaps for line-based plots, the colors are selected based on an even spacing determined by the number of columns in the DataFrame. There is no consideration made for background color, so some colormaps will produce lines that are not easily visible.
+As matplotlib does not directly support colormaps for line-based plots, the 
+colors are selected based on an even spacing determined by the number of columns
+in the DataFrame. There is no consideration made for background color, so some 
+colormaps will produce lines that are not easily visible.
 
 To use the jet colormap, we can simply pass ``'jet'`` to ``colormap=``
 
@@ -708,7 +717,42 @@ Andrews curves charts:
    @savefig andrews_curve_winter.png
    andrews_curves(data, 'Name', colormap='winter')
 
+Plotting directly with matplotlib
+---------------------------------
+
+In some situations it may still be preferable or necessary to prepare plots 
+directly with matplotlib, for instance when a certain type of plot or 
+customization is not (yet) supported by pandas. Series and DataFrame objects  
+behave like arrays and can therefore be passed directly to matplotlib functions 
+without explicit casts.
+
+Pandas also automatically registers formatters and locators that recognize date 
+indices, thereby extending date and time support to practically all plot types 
+available in matplotlib. Although this formatting does not provide the same 
+level of refinement you would get when plotting via pandas, it can be faster 
+when plotting a large number of points.
+
+.. note::
+
+    The speed up for large data sets only applies to pandas 0.14.0 and later.
+
+
+.. ipython:: python
+
+   price = Series(randn(150).cumsum(), 
+                  index=date_range('2000-1-1', periods=150, freq='B'))
+   ma = pd.rolling_mean(price, 20)
+   mstd = pd.rolling_std(price, 20)
+
+   plt.figure()
+
+   plt.plot(price.index, price, 'k')
+   plt.plot(ma.index, ma, 'b')
+   @savefig bollinger.png
+   plt.fill_between(mstd.index, ma-2*mstd, ma+2*mstd, color='b', alpha=0.2)
+
 .. ipython:: python
    :suppress:
 
     plt.close('all')
+
