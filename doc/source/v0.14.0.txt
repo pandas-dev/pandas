@@ -537,6 +537,8 @@ Enhancements
                 columns=Grouper(freq='M', key='PayDay'),
                 values='Quantity', aggfunc=np.sum)
 
+- str.wrap implemented (:issue:`6999`)
+
 Performance
 ~~~~~~~~~~~
 

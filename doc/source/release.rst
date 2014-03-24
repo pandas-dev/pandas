@@ -299,6 +299,7 @@ Improvements to existing features
 - Refactor Block classes removing `Block.items` attributes to avoid duplication
   in item handling (:issue:`6745`, :issue:`6988`).
 - Improve performance in certain reindexing operations by optimizing ``take_2d`` (:issue:`6749`)
+- Arrays of strings can be wrapped to a specified width (``str.wrap``) (:issue:`6999`)
 
 .. _release.bug_fixes-0.14.0:
 

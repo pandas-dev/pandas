@@ -947,7 +947,31 @@ class TestStringMethods(tm.TestCase):
         assert_series_equal(rs, xp)
 
     def test_wrap(self):
-        pass
+        # test values are: two words less than width, two words equal to width,
+        # two words greater than width, one word less than width, one word
+        # equal to width, one word greater than width, multiple tokens with trailing
+        # whitespace equal to width
+        values = Series([u('hello world'), u('hello world!'),
+                         u('hello world!!'), u('abcdefabcde'),
+                         u('abcdefabcdef'), u('abcdefabcdefa'),
+                         u('ab ab ab ab '), u('ab ab ab ab a'),
+                         u('\t')])
+
+        # expected values
+        xp = Series([u('hello world'), u('hello world!'),
+                     u('hello\nworld!!'), u('abcdefabcde'),
+                     u('abcdefabcdef'), u('abcdefabcdef\na'),
+                     u('ab ab ab ab'), u('ab ab ab ab\na'),
+                     u('')])
+
+        rs = values.str.wrap(12, break_long_words=True)
+        assert_series_equal(rs, xp)
+
+        # test with pre and post whitespace (non-unicode), NaN, and non-ascii Unicode
+        values = Series(['  pre  ', np.nan, u('\xac\u20ac\U00008000 abadcafe')])
+        xp = Series(['  pre', NA, u('\xac\u20ac\U00008000 ab\nadcafe')])
+        rs = values.str.wrap(6)
+        assert_series_equal(rs, xp)
 
     def test_get(self):
         values = Series(['a_b_c', 'c_d_e', np.nan, 'f_g_h'])
