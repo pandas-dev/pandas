@@ -948,6 +948,11 @@ class StringMethods(object):
         result = str_rstrip(self.series, to_strip)
         return self._wrap_result(result)
 
+    @copy(str_wrap)
+    def wrap(self, width=80):
+        result = str_wrap(self.series, width=width)
+        return self._wrap_result(result)
+
     @copy(str_get_dummies)
     def get_dummies(self, sep='|'):
         result = str_get_dummies(self.series, sep)
