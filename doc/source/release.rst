@@ -278,6 +278,7 @@ Improvements to existing features
 - Support passing ``encoding`` with xlwt (:issue:`3710`)
 - Performance improvement when converting ``DatetimeIndex`` to floating ordinals
   using ``DatetimeConverter`` (:issue:`6636`)
+- Arrays of strings can be wrapped to a specified width (:issue:`6705`)
 - Performance improvement for  ``DataFrame.shift`` (:issue:`5609`)
 - Performance improvements in timedelta conversions for integer dtypes (:issue:`6754`)
 - Performance improvement for ``DataFrame.from_records`` when reading a
