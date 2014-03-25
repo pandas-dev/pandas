@@ -396,6 +396,14 @@ class ExcelWriterBase(SharedItems):
 
             self.assertRaises(xlrd.XLRDError, xl.parse, '0')
 
+    def test_excel_deprecated_options(self):
+        with ensure_clean(self.ext) as path:
+            with tm.assert_produces_warning(FutureWarning):
+                self.frame.to_excel(path, 'test1', cols=['A', 'B'])
+    
+            with tm.assert_produces_warning(False):
+                self.frame.to_excel(path, 'test1', columns=['A', 'B'])
+
     def test_excelwriter_contextmanager(self):
         _skip_if_no_xlrd()
 
@@ -417,7 +425,7 @@ class ExcelWriterBase(SharedItems):
             self.frame['A'][:5] = nan
 
             self.frame.to_excel(path, 'test1')
-            self.frame.to_excel(path, 'test1', cols=['A', 'B'])
+            self.frame.to_excel(path, 'test1', columns=['A', 'B'])
             self.frame.to_excel(path, 'test1', header=False)
             self.frame.to_excel(path, 'test1', index=False)
 
@@ -479,7 +487,7 @@ class ExcelWriterBase(SharedItems):
         with ensure_clean(self.ext) as path:
             self.frame['A'][:5] = nan
             self.frame.to_excel(path, 'test1')
-            self.frame.to_excel(path, 'test1', cols=['A', 'B'])
+            self.frame.to_excel(path, 'test1', columns=['A', 'B'])
             self.frame.to_excel(path, 'test1', header=False)
             self.frame.to_excel(path, 'test1', index=False)
 
@@ -537,7 +545,7 @@ class ExcelWriterBase(SharedItems):
             self.frame['A'][:5] = nan
 
             self.frame.to_excel(path, 'test1')
-            self.frame.to_excel(path, 'test1', cols=['A', 'B'])
+            self.frame.to_excel(path, 'test1', columns=['A', 'B'])
             self.frame.to_excel(path, 'test1', header=False)
             self.frame.to_excel(path, 'test1', index=False)
 
@@ -562,7 +570,7 @@ class ExcelWriterBase(SharedItems):
             self.frame['A'][:5] = nan
 
             self.frame.to_excel(path, 'test1')
-            self.frame.to_excel(path, 'test1', cols=['A', 'B'])
+            self.frame.to_excel(path, 'test1', columns=['A', 'B'])
             self.frame.to_excel(path, 'test1', header=False)
             self.frame.to_excel(path, 'test1', index=False)
 
@@ -583,7 +591,7 @@ class ExcelWriterBase(SharedItems):
             self.frame['A'][:5] = nan
 
             self.frame.to_excel(path, 'test1')
-            self.frame.to_excel(path, 'test1', cols=['A', 'B'])
+            self.frame.to_excel(path, 'test1', columns=['A', 'B'])
             self.frame.to_excel(path, 'test1', header=False)
             self.frame.to_excel(path, 'test1', index=False)
 
@@ -630,7 +638,7 @@ class ExcelWriterBase(SharedItems):
 
             self.frame.to_excel(path,
                                 'test1',
-                                cols=['A', 'B', 'C', 'D'],
+                                columns=['A', 'B', 'C', 'D'],
                                 index=False, merge_cells=self.merge_cells)
             # take 'A' and 'B' as indexes (same row as cols 'C', 'D')
             df = self.frame.copy()
@@ -733,7 +741,7 @@ class ExcelWriterBase(SharedItems):
 
         with ensure_clean(self.ext) as path:
             frame.to_excel(path, 'test1', header=False)
-            frame.to_excel(path, 'test1', cols=['A', 'B'])
+            frame.to_excel(path, 'test1', columns=['A', 'B'])
 
             # round trip
             frame.to_excel(path, 'test1', merge_cells=self.merge_cells)
@@ -1020,7 +1028,7 @@ class ExcelWriterBase(SharedItems):
         with ensure_clean(self.ext) as path:
             write_frame = DataFrame({'A': [1, 1, 1],
                                      'B': [2, 2, 2]})
-            write_frame.to_excel(path, 'test1', cols=['B', 'A'])
+            write_frame.to_excel(path, 'test1', columns=['B', 'A'])
 
             read_frame = read_excel(path, 'test1', header=0)
 

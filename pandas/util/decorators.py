@@ -2,6 +2,7 @@ from pandas.compat import StringIO, callable
 from pandas.lib import cache_readonly
 import sys
 import warnings
+from functools import wraps
 
 
 def deprecate(name, alternative, alt_name=None):
@@ -12,6 +13,54 @@ def deprecate(name, alternative, alt_name=None):
                       FutureWarning)
         return alternative(*args, **kwargs)
     return wrapper
+
+
+def deprecate_kwarg(old_arg_name, new_arg_name):
+    """Decorator to deprecate a keyword argument of a function
+
+    Parameters
+    ----------
+    old_arg_name : str
+        Name of argument in function to deprecate
+    new_arg_name : str
+        Name of prefered argument in function
+
+    Examples
+    --------
+    The following deprecates 'cols', using 'columns' instead
+
+    >>> @deprecate_kwarg(old_arg_name='cols', new_arg_name='columns')
+    ... def f(columns=''):
+    ...     print columns
+    ...
+    >>> f(columns='should work ok')
+    should work ok
+    >>> f(cols='should raise warning')
+    FutureWarning: cols is deprecated, use columns instead
+      warnings.warn(msg, FutureWarning)
+    should raise warning
+    >>> f(cols='should error', columns="can't pass do both")
+    TypeError: Can only specify 'cols' or 'columns', not both
+
+    """
+    def _deprecate_kwarg(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            old_arg_value = kwargs.pop(old_arg_name, None)
+            if old_arg_value is not None:
+                msg = "%s is deprecated, use %s instead" % \
+                      (old_arg_name, new_arg_name)
+                warnings.warn(msg, FutureWarning)
+                if kwargs.get(new_arg_name, None) is not None:
+                    msg = "Can only specify '%s' or '%s', not both" % \
+                      (old_arg_name, new_arg_name)
+                    raise TypeError(msg)
+                else:
+                    kwargs[new_arg_name] = old_arg_value
+            return func(*args, **kwargs)
+        return wrapper
+    return _deprecate_kwarg
+
 
 # Substitution and Appender are derived from matplotlib.docstring (1.1.0)
 # module http://matplotlib.sourceforge.net/users/license.html

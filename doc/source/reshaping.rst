@@ -283,9 +283,9 @@ We can produce pivot tables from this data very easily:
 
 .. ipython:: python
 
-   pivot_table(df, values='D', rows=['A', 'B'], cols=['C'])
-   pivot_table(df, values='D', rows=['B'], cols=['A', 'C'], aggfunc=np.sum)
-   pivot_table(df, values=['D','E'], rows=['B'], cols=['A', 'C'], aggfunc=np.sum)
+   pivot_table(df, values='D', index=['A', 'B'], columns=['C'])
+   pivot_table(df, values='D', index=['B'], columns=['A', 'C'], aggfunc=np.sum)
+   pivot_table(df, values=['D','E'], index=['B'], columns=['A', 'C'], aggfunc=np.sum)
 
 The result object is a DataFrame having potentially hierarchical indexes on the
 rows and columns. If the ``values`` column name is not given, the pivot table
@@ -294,14 +294,14 @@ hierarchy in the columns:
 
 .. ipython:: python
 
-   pivot_table(df, rows=['A', 'B'], cols=['C'])
+   pivot_table(df, index=['A', 'B'], columns=['C'])
 
 You can render a nice output of the table omitting the missing values by
 calling ``to_string`` if you wish:
 
 .. ipython:: python
 
-   table = pivot_table(df, rows=['A', 'B'], cols=['C'])
+   table = pivot_table(df, index=['A', 'B'], columns=['C'])
    print(table.to_string(na_rep=''))
 
 Note that ``pivot_table`` is also available as an instance method on DataFrame.
@@ -315,8 +315,8 @@ unless an array of values and an aggregation function are passed.
 
 It takes a number of arguments
 
-- ``rows``: array-like, values to group by in the rows
-- ``cols``: array-like, values to group by in the columns
+- ``index``: array-like, values to group by in the rows
+- ``columns``: array-like, values to group by in the columns
 - ``values``: array-like, optional, array of values to aggregate according to
   the factors
 - ``aggfunc``: function, optional, If no values array is passed, computes a
@@ -350,7 +350,7 @@ rows and columns:
 
 .. ipython:: python
 
-   df.pivot_table(rows=['A', 'B'], cols='C', margins=True, aggfunc=np.std)
+   df.pivot_table(index=['A', 'B'], columns='C', margins=True, aggfunc=np.std)
 
 .. _reshaping.tile:
 
