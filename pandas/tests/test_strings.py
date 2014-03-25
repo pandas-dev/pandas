@@ -959,7 +959,7 @@ class TestStringMethods(tm.TestCase):
                      u('ab ab ab ab'), u('ab ab ab ab\na'),
                      u('')])
 
-        rs = values.str.wrap(values)
+        rs = values.str.wrap(width=12)
         assert_series_equal(rs, xp)
 
     def test_get(self):
