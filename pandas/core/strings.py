@@ -730,7 +730,30 @@ def str_wrap(arr, width=80):
     -------
     wrapped : array
     """
-    raise NotImplementedError
+    def wrap_str(s):
+        """Returns a string with lines wrapped (newlines inserted) at max(len(word), width)"""
+        words = unicode(s).split()
+        if not words:
+            return u''
+        else:
+            lines = []
+            line = u''
+
+            for word in words:
+                if not line:  # line is empty
+                    line = word
+                else:
+                    if len(line) + 1 + len(word) < width:  # word plus space will not exceed limit
+                        line = line + u' ' + word
+                    else:  # limit exceeded
+                        lines.append(line)  # store previous line
+                        line = word  # set new line to the word
+
+            if line:  # remaining from loop
+                lines.append(line)
+            return u'\n'.join(lines)
+
+    return _na_map(wrap_str, arr)
 
 
 def str_get(arr, i):
