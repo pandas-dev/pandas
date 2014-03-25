@@ -12,10 +12,11 @@ from __future__ import division
 # pylint: disable=E1101,E1103
 # pylint: disable=W0212,W0231,W0703,W0622
 
-import sys
 import collections
-import warnings
+import itertools
+import sys
 import types
+import warnings
 
 from numpy import nan as NA
 import numpy as np
@@ -756,17 +757,10 @@ class DataFrame(NDFrame):
 
             values = [first_row]
 
-            # if unknown length iterable (generator)
             if nrows is None:
-                # consume whole generator
-                values += list(data)
+                values += data
             else:
-                i = 1
-                for row in data:
-                    values.append(row)
-                    i += 1
-                    if i >= nrows:
-                        break
+                values.extend(itertools.islice(data, nrows - 1))
 
             if dtype is not None:
                 data = np.array(values, dtype=dtype)
