@@ -1223,6 +1223,7 @@ Methods like ``match``, ``contains``, ``startswith``, and ``endswith`` take
     ``repeat``,Duplicate values (``s.str.repeat(3)`` equivalent to ``x * 3``)
     ``pad``,"Add whitespace to left, right, or both sides of strings"
     ``center``,Equivalent to ``pad(side='both')``
+    ``wrap``,Split long strings into lines with length less than a given width
     ``slice``,Slice each string in the Series
     ``slice_replace``,Replace slice in each string with passed value
     ``count``,Count occurrences of pattern
