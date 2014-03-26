@@ -720,6 +720,24 @@ def str_wrap(arr, **kwargs):
     Same keyword parameters as textwrap.TextWrapper
     width : int, optional
         Maximum line-width (default: 70)
+    expand_tabs: bool, optional
+        If true, tab characters will be expanded to spaces (default: False)
+    replace_whitespace: bool, optional
+        If true, each whitespace character (as defined by string.whitespace) remaining
+        after tab expansion will be replaced by a single space (default: True)
+    drop_whitespace: bool, optional
+        If true, whitespace that, after wrapping, happens to end up at the beginning
+        or end of a line is dropped (default: True)
+    break_long_words: bool, optional
+        If true, then words longer than width will be broken in order to ensure that
+        no lines are longer than width. If it is false, long words will not be broken,
+        and some lines may be longer than width. (default: True)
+    break_on_hyphens: bool, optional
+        If true, wrapping will occur preferably on whitespace and right after hyphens
+        in compound words, as it is customary in English. If false, only whitespaces
+        will be considered as potentially good places for line breaks, but you need
+        to set break_long_words to false if you want truly insecable words.
+        (default: False)
 
     Returns
     -------
@@ -732,8 +750,14 @@ def str_wrap(arr, **kwargs):
     replace_whitespace=True, drop_whitespace=True, break_long_words=False, and
     break_on_hyphens=False. Since R's stringr str_wrap treats the line width as an exclusive
     value, the instance is configured with width=user-supplied width - 1.
+
+    Examples
+    --------
+
+    >>> str_wrap(Series([u'line to be wrapped', u'another line to be wrapped']), width=12)
+    Series([u'line to be\nwrapped', u'another\nline to be\nwrapped'])
     """
-    textwrap_args = {'width': 79, 'expand_tabs': False, 'replace_whitespace': True,
+    textwrap_args = {'width': 69, 'expand_tabs': False, 'replace_whitespace': True,
                     'drop_whitespace': True, 'break_long_words': False,
                     'break_on_hyphens': False}
 
