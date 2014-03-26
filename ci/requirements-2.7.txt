@@ -1,7 +1,7 @@
 python-dateutil==2.1
 pytz==2013b
 xlwt==0.7.5
-numpy==1.8.0
+numpy==1.8.1
 cython==0.19.1
 bottleneck==0.6.0
 numexpr==2.2.2
@@ -11,12 +11,12 @@ openpyxl==1.6.2
 xlsxwriter==0.4.6
 xlrd==0.9.2
 patsy==0.1.0
+sqlalchemy==0.8.1
+pymysql==0.6.1
+psycopg2==2.5.2
 html5lib==1.0b2
 lxml==3.2.1
 scipy==0.10.0
 beautifulsoup4==4.2.1
 statsmodels==0.5.0
 bigquery==2.0.17
-sqlalchemy==0.8.1
-pymysql==0.6.1
-psycopg2==2.5.2
