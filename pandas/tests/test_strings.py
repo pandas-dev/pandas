@@ -967,6 +967,12 @@ class TestStringMethods(tm.TestCase):
         rs = values.str.wrap(width=12)
         assert_series_equal(rs, xp)
 
+        # test with pre and post whitespace (non-unicode) and NaN
+        values = Series(['  pre  ', np.nan])
+        xp = Series(['  pre', NA])
+        rs = values.str.wrap(width=6)
+        assert_series_equal(rs, xp)
+
     def test_get(self):
         values = Series(['a_b_c', 'c_d_e', np.nan, 'f_g_h'])
 
