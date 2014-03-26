@@ -174,8 +174,14 @@ These are out-of-bounds selections
     df_multi.set_index([df_multi.index, df_multi.index])
 
 - Following keywords are now acceptable for :meth:`DataFrame.plot(kind='bar')` and :meth:`DataFrame.plot(kind='barh')`.
-  - `width`: Specify the bar width. In previous versions, static value 0.5 was passed to matplotlib and it cannot be overwritten.
+
+  - `width`: Specify the bar width. In previous versions, static value 0.5 was passed to matplotlib and it cannot be overwritten. (:issue:`6604`)
+
+  - `align`: Specify the bar alignment. Default is `center` (different from matplotlib). In previous versions, pandas passes `align='edge'` to matplotlib and adjust the location to `center` by itself, and it results `align` keyword is not applied as expected. (:issue:`4525`)
+
   - `position`: Specify relative alignments for bar plot layout. From 0 (left/bottom-end) to 1(right/top-end). Default is 0.5 (center). (:issue:`6604`)
+
+   Because of the default `align` value changes, coordinates of bar plots are now located on integer values (0.0, 1.0, 2.0 ...). This is intended to make bar plot be located on the same coodinates as line plot. However, bar plot may differs unexpectedly when you manually adjust the bar location or drawing area, such as using `set_xlim`, `set_ylim`, etc. In this cases, please modify your script to meet with new coordinates. 
 
 
 MultiIndexing Using Slicers
