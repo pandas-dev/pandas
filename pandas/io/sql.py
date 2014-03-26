@@ -31,7 +31,10 @@ def _convert_params(sql, params):
     """convert sql and params args to DBAPI2.0 compliant format"""
     args = [sql]
     if params is not None:
-        args += list(params)
+        if hasattr(params, 'keys'):  # test if params is a mapping
+            args += [params]
+        else:
+            args += [list(params)]
     return args
 
 
@@ -200,7 +203,7 @@ def read_sql(sql, con, index_col=None, flavor='sqlite', coerce_float=True,
         Attempt to convert values to non-string, non-numeric objects (like
         decimal.Decimal) to floating point, useful for SQL result sets
     cur : depreciated, cursor is obtained from connection
-    params : list or tuple, optional
+    params : list, tuple or dict, optional
         List of parameters to pass to execute method.
     parse_dates : list or dict
         - List of column names to parse as dates
