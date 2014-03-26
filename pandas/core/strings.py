@@ -8,6 +8,7 @@ import pandas.compat as compat
 import re
 import pandas.lib as lib
 import warnings
+import textwrap
 
 
 def _get_array_list(arr, others):
@@ -710,43 +711,40 @@ def str_rstrip(arr, to_strip=None):
     return _na_map(lambda x: x.rstrip(to_strip), arr)
 
 
-def str_wrap(arr, width=80):
+def str_wrap(arr, **kwargs):
     """
     Wrap long strings to be formatted in paragraphs
 
     Parameters
     ----------
-    width : int
-        Maximum line-width
+    Same keyword parameters as textwrap.TextWrapper
+    width : int, optional
+        Maximum line-width (default: 70)
 
     Returns
     -------
     wrapped : array
+
+    Notes
+    -----
+    Internally, this method uses a textwrap.TextWrapper instance configured to match R's stringr
+    library str_wrap function. Unless overwritten using kwargs, the instance has expand_tabs=False,
+    replace_whitespace=True, drop_whitespace=True, break_long_words=False, and
+    break_on_hyphens=False. Since R's stringr str_wrap treats the line width as an exclusive
+    value, the instance is configured with width=user-supplied width - 1.
     """
-    def wrap_str(s):
-        """Returns a string with lines wrapped (newlines inserted) at max(len(word), width)"""
-        words = unicode(s).split()
-        if not words:
-            return u''
-        else:
-            lines = []
-            line = u''
+    textwrap_args = {'width': 79, 'expand_tabs': False, 'replace_whitespace': True,
+                    'drop_whitespace': True, 'break_long_words': False,
+                    'break_on_hyphens': False}
 
-            for word in words:
-                if not line:  # line is empty
-                    line = word
-                else:
-                    if len(line) + 1 + len(word) < width:  # word plus space will not exceed limit
-                        line = line + u' ' + word
-                    else:  # limit exceeded
-                        lines.append(line)  # store previous line
-                        line = word  # set new line to the word
+    textwrap_args.update(kwargs)
 
-            if line:  # remaining from loop
-                lines.append(line)
-            return u'\n'.join(lines)
+    if 'width' in kwargs:
+        textwrap_args['width'] -= 1  # change width to 'exclusive' width
 
-    return _na_map(wrap_str, arr)
+    tw = textwrap.TextWrapper(**textwrap_args)
+
+    return _na_map(lambda s: u'\n'.join(tw.wrap(s)), arr)
 
 
 def str_get(arr, i):
@@ -972,8 +970,8 @@ class StringMethods(object):
         return self._wrap_result(result)
 
     @copy(str_wrap)
-    def wrap(self, width=80):
-        result = str_wrap(self.series, width=width)
+    def wrap(self, **kwargs):
+        result = str_wrap(self.series, **kwargs)
         return self._wrap_result(result)
 
     @copy(str_get_dummies)
