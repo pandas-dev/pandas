@@ -51,12 +51,6 @@ matrix:
       - JOB_NAME: "27_numpy_master"
       - JOB_TAG=_NUMPY_DEV_master
       - NUMPY_BUILD=master
-    - python: 2.7
-      env:
-      - NOSE_ARGS="not slow and not network and not disabled"
-      - JOB_NAME: "27_numpy_1.8.x"
-      - JOB_TAG=_NUMPY_DEV_1_8_x
-      - NUMPY_BUILD=maintenance/1.8.x
     allow_failures:
       - python: 2.7
         env:
@@ -64,12 +58,6 @@ matrix:
         - JOB_NAME: "27_numpy_master"
         - JOB_TAG=_NUMPY_DEV_master
         - NUMPY_BUILD=master
-      - python: 2.7
-        env:
-        - NOSE_ARGS="not slow and not network and not disabled"
-        - JOB_NAME: "27_numpy_1.8.x"
-        - JOB_TAG=_NUMPY_DEV_1_8_x
-        - NUMPY_BUILD=maintenance/1.8.x
 
 # allow importing from site-packages,
 # so apt-get python-x works for system pythons
