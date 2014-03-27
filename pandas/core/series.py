@@ -1743,24 +1743,32 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                      ascending=ascending, pct=pct)
         return self._constructor(ranks, index=self.index).__finalize__(self)
 
-    def order(self, na_last=True, ascending=True, kind='mergesort'):
+    def order(self, na_last=None, ascending=True, kind='mergesort', na_position='last'):
         """
         Sorts Series object, by value, maintaining index-value link
 
         Parameters
         ----------
-        na_last : boolean (optional, default=True)
+        na_last : boolean (optional, default=True) (DEPRECATED; use na_position)
             Put NaN's at beginning or end
         ascending : boolean, default True
             Sort ascending. Passing False sorts descending
         kind : {'mergesort', 'quicksort', 'heapsort'}, default 'mergesort'
             Choice of sorting algorithm. See np.sort for more
             information. 'mergesort' is the only stable algorithm
+        na_position : {'first', 'last'} (optional, default='last')
+            'first' puts NaNs at the beginning
+            'last' puts NaNs at the end
 
         Returns
         -------
         y : Series
         """
+        if na_last is not None:
+            warnings.warn(("na_last is deprecated. Please use na_position instead"),
+                          FutureWarning)
+            na_position = 'last' if na_last else 'first'
+            
         def _try_kind_sort(arr):
             # easier to ask forgiveness than permission
             try:
@@ -1784,15 +1792,16 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if not ascending:
             argsorted = argsorted[::-1]
 
-        if na_last:
+        if na_position == 'last':
             n = good.sum()
             sortedIdx[:n] = idx[good][argsorted]
             sortedIdx[n:] = idx[bad]
-        else:
+        elif na_position == 'first':
             n = bad.sum()
             sortedIdx[n:] = idx[good][argsorted]
             sortedIdx[:n] = idx[bad]
-
+        else:
+            raise ValueError('invalid na_position: {!r}'.format(na_position))
         return self._constructor(arr[sortedIdx], index=self.index[sortedIdx])\
                    .__finalize__(self)
 

@@ -13,7 +13,7 @@ from pandas.lib import Timestamp, is_datetime_array
 from pandas.core.base import FrozenList, FrozenNDArray, IndexOpsMixin
 
 from pandas.util.decorators import cache_readonly, deprecate
-from pandas.core.common import isnull
+from pandas.core.common import isnull, array_equivalent
 import pandas.core.common as com
 from pandas.core.common import _values_from_object, is_float, is_integer, ABCSeries
 from pandas.core.config import get_option
@@ -800,7 +800,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
         if type(other) != Index:
             return other.equals(self)
 
-        return np.array_equal(self, other)
+        return array_equivalent(self, other)
 
     def identical(self, other):
         """Similar to equals, but check that other comparable attributes are
@@ -1872,7 +1872,7 @@ class Int64Index(Index):
         #     return False
 
         try:
-            return np.array_equal(self, other)
+            return array_equivalent(self, other)
         except TypeError:
             # e.g. fails in numpy 1.6 with DatetimeIndex #1681
             return False
@@ -3533,7 +3533,7 @@ class MultiIndex(Index):
             return True
 
         if not isinstance(other, MultiIndex):
-            return np.array_equal(self.values, _ensure_index(other))
+            return array_equivalent(self.values, _ensure_index(other))
 
         if self.nlevels != other.nlevels:
             return False
@@ -3546,7 +3546,7 @@ class MultiIndex(Index):
                                   allow_fill=False)
             ovalues = com.take_nd(other.levels[i].values, other.labels[i],
                                   allow_fill=False)
-            if not np.array_equal(svalues, ovalues):
+            if not array_equivalent(svalues, ovalues):
                 return False
 
         return True

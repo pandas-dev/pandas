@@ -10,7 +10,8 @@ from pandas import date_range,bdate_range, Timestamp
 from pandas.core.index import Index, MultiIndex, Int64Index
 from pandas.core.common import rands
 from pandas.core.api import Categorical, DataFrame
-from pandas.core.groupby import SpecificationError, DataError
+from pandas.core.groupby import (SpecificationError, DataError,
+                                 _nargsort, _lexsort_indexer)
 from pandas.core.series import Series
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
                                  assert_series_equal, assert_almost_equal,
@@ -29,6 +30,7 @@ import pandas.core.nanops as nanops
 
 import pandas.util.testing as tm
 import pandas as pd
+from numpy.testing import assert_equal
 
 def commonSetUp(self):
     self.dateRange = bdate_range('1/1/2005', periods=250)
@@ -3830,6 +3832,97 @@ class TestGroupBy(tm.TestCase):
             'cov', 'dtypes', 'diff', 'idxmax', 'idxmin'
         ])
         self.assertEqual(results, expected)
+
+    def test_lexsort_indexer(self):
+        keys = [[nan]*5 + list(range(100)) + [nan]*5]
+        # orders=True, na_position='last'
+        result = _lexsort_indexer(keys, orders=True, na_position='last')
+        expected = list(range(5, 105)) + list(range(5)) + list(range(105, 110))
+        assert_equal(result, expected)
+        
+        # orders=True, na_position='first'
+        result = _lexsort_indexer(keys, orders=True, na_position='first')
+        expected = list(range(5)) + list(range(105, 110)) + list(range(5, 105))
+        assert_equal(result, expected)
+        
+        # orders=False, na_position='last'
+        result = _lexsort_indexer(keys, orders=False, na_position='last')
+        expected = list(range(104, 4, -1)) + list(range(5)) + list(range(105, 110)) 
+        assert_equal(result, expected)
+        
+        # orders=False, na_position='first'
+        result = _lexsort_indexer(keys, orders=False, na_position='first')
+        expected = list(range(5)) + list(range(105, 110)) + list(range(104, 4, -1)) 
+        assert_equal(result, expected)
+
+    def test_nargsort(self):
+        # np.argsort(items) places NaNs last
+        items = [nan]*5 + list(range(100)) + [nan]*5
+        # np.argsort(items2) may not place NaNs first
+        items2 = np.array(items, dtype='O')
+
+        try:
+            # GH 2785; due to a regression in NumPy1.6.2
+            np.argsort(np.array([[1, 2], [1, 3], [1, 2]], dtype='i'))
+            np.argsort(items2, kind='mergesort') 
+        except TypeError as err:
+            raise nose.SkipTest('requested sort not available for type')
+
+        # mergesort is the most difficult to get right because we want it to be stable.
+
+        # According to numpy/core/tests/test_multiarray, """The number
+        # of sorted items must be greater than ~50 to check the actual algorithm
+        # because quick and merge sort fall over to insertion sort for small
+        # arrays."""
+
+        
+        # mergesort, ascending=True, na_position='last'
+        result = _nargsort(
+            items, kind='mergesort', ascending=True, na_position='last')
+        expected = list(range(5, 105)) + list(range(5)) + list(range(105, 110))
+        assert_equal(result, expected)
+
+        # mergesort, ascending=True, na_position='first'
+        result = _nargsort(
+            items, kind='mergesort', ascending=True, na_position='first')
+        expected = list(range(5)) + list(range(105, 110)) + list(range(5, 105))
+        assert_equal(result, expected)
+
+        # mergesort, ascending=False, na_position='last'
+        result = _nargsort(
+            items, kind='mergesort', ascending=False, na_position='last')
+        expected = list(range(104, 4, -1)) + list(range(5)) + list(range(105, 110))
+        assert_equal(result, expected)
+
+        # mergesort, ascending=False, na_position='first'
+        result = _nargsort(
+            items, kind='mergesort', ascending=False, na_position='first')
+        expected = list(range(5)) + list(range(105, 110)) + list(range(104, 4, -1))
+        assert_equal(result, expected)
+
+        # mergesort, ascending=True, na_position='last'
+        result = _nargsort(
+            items2, kind='mergesort', ascending=True, na_position='last')
+        expected = list(range(5, 105)) + list(range(5)) + list(range(105, 110))
+        assert_equal(result, expected)
+
+        # mergesort, ascending=True, na_position='first'
+        result = _nargsort(
+            items2, kind='mergesort', ascending=True, na_position='first')
+        expected = list(range(5)) + list(range(105, 110)) + list(range(5, 105))
+        assert_equal(result, expected)
+
+        # mergesort, ascending=False, na_position='last'
+        result = _nargsort(
+            items2, kind='mergesort', ascending=False, na_position='last')
+        expected = list(range(104, 4, -1)) + list(range(5)) + list(range(105, 110))
+        assert_equal(result, expected)
+
+        # mergesort, ascending=False, na_position='first'
+        result = _nargsort(
+            items2, kind='mergesort', ascending=False, na_position='first')
+        expected = list(range(5)) + list(range(105, 110)) + list(range(104, 4, -1))
+        assert_equal(result, expected)
 
 def assert_fp_equal(a, b):
     assert (np.abs(a - b) < 1e-12).all()
