@@ -7,6 +7,7 @@ from pandas.tseries.tools import to_datetime
 
 # import after tools, dateutil check
 from dateutil.relativedelta import relativedelta, weekday
+from dateutil.easter import easter
 import pandas.tslib as tslib
 from pandas.tslib import Timestamp, OutOfBoundsDatetime
 
@@ -17,7 +18,7 @@ __all__ = ['Day', 'BusinessDay', 'BDay', 'CustomBusinessDay', 'CDay',
            'YearBegin', 'BYearBegin', 'YearEnd', 'BYearEnd',
            'QuarterBegin', 'BQuarterBegin', 'QuarterEnd', 'BQuarterEnd',
            'LastWeekOfMonth', 'FY5253Quarter', 'FY5253',
-           'Week', 'WeekOfMonth',
+           'Week', 'WeekOfMonth', 'Easter',
            'Hour', 'Minute', 'Second', 'Milli', 'Micro', 'Nano']
 
 # convert to/from datetime/timestamp to allow invalid Timestamp ranges to pass thru
@@ -447,6 +448,8 @@ class CustomBusinessDay(BusinessDay):
     holidays : list
         list/array of dates to exclude from the set of valid business days,
         passed to ``numpy.busdaycalendar``
+    calendar : HolidayCalendar instance
+        instance of AbstractHolidayCalendar that provide the list of holidays
     """
 
     _cacheable = False
@@ -458,8 +461,11 @@ class CustomBusinessDay(BusinessDay):
         self.offset = kwds.get('offset', timedelta(0))
         self.normalize = kwds.get('normalize', False)
         self.weekmask = kwds.get('weekmask', 'Mon Tue Wed Thu Fri')
-        holidays = kwds.get('holidays', [])
-
+        
+        if 'calendar' in kwds:
+            holidays = kwds['calendar'].holidays()
+        else:
+            holidays = kwds.get('holidays', [])
         holidays = [self._to_dt64(dt, dtype='datetime64[D]') for dt in
                     holidays]
         self.holidays = tuple(sorted(holidays))
@@ -1677,7 +1683,40 @@ class FY5253Quarter(DateOffset):
         return cls(**dict(FY5253._parse_suffix(*args[:-1]),
                           qtr_with_extra_week=int(args[-1])))
 
-
+class Easter(DateOffset):
+    '''
+    DateOffset for the Easter holiday using
+    logic defined in dateutil.  Right now uses
+    the revised method which is valid in years
+    1583-4099.
+    '''
+    def __init__(self, n=1, **kwds):
+        super(Easter, self).__init__(n, **kwds)
+        
+    def apply(self, other):
+        
+        currentEaster = easter(other.year)
+        currentEaster = datetime(currentEaster.year, currentEaster.month, currentEaster.day)
+        
+        # NOTE: easter returns a datetime.date so we have to convert to type of other
+        if other >= currentEaster:
+            new = easter(other.year + self.n)
+        elif other < currentEaster:
+            new = easter(other.year + self.n - 1)
+        else:
+            new = other
+        
+        # FIXME: There has to be a better way to do this, but I don't know what it is
+        if isinstance(other, Timestamp):
+            return as_timestamp(new)
+        elif isinstance(other, datetime):
+            return datetime(new.year, new.month, new.day)
+        else:
+            return new
+                
+    @classmethod
+    def onOffset(cls, dt):
+        return date(dt.year, dt.month, dt.day) == easter(dt.year)
 #----------------------------------------------------------------------
 # Ticks
 

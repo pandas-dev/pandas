@@ -325,7 +325,7 @@ Asymmetrical error bars are also supported, however raw error values must be pro
 Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Therse are prior version deprecations that are taking effect as of 0.14.0.
+There are prior version deprecations that are taking effect as of 0.14.0.
 
 - Remove ``column`` keyword from ``DataFrame.sort`` (:issue:`4370`)
 
@@ -391,6 +391,8 @@ Enhancements
   and data_label which allow the time stamp and dataset label to be set when creating a
   file. (:issue:`6545`)
 - ``pandas.io.gbq`` now handles reading unicode strings properly. (:issue:`5940`)
+- Improve performance of ``CustomBusinessDay`` (:issue:`6584`)
+- :ref:`Holidays and holiday calendars<timeseries.holiday>` are now available and can be used with CustomBusinessDay (:issue:`6719`)
 
 Performance
 ~~~~~~~~~~~

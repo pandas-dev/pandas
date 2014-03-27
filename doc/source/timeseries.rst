@@ -546,6 +546,17 @@ calendars which account for local holidays and local weekend conventions.
     print(dts)
     print(Series(dts.weekday, dts).map(Series('Mon Tue Wed Thu Fri Sat Sun'.split())))
 
+As of v0.14 holiday calendars can be used to provide the list of holidays.  See the
+:ref:`holiday calendar<timeseries.holiday>` section for more information.
+
+.. ipython:: python
+
+    from pandas.tseries.holiday import USFederalHolidayCalendar
+    bday_us = CustomBusinessDay(calendar=USFederalHolidayCalendar())
+    dt = datetime(2014, 1, 17) #Friday before MLK Day
+    print(dt + bday_us) #Tuesday after MLK Day
+
+
 .. note::
 
     The frequency string 'C' is used to indicate that a CustomBusinessDay
@@ -711,6 +722,73 @@ As you can see, legacy quarterly and annual frequencies are business quarter
 and business year ends. Please also note the legacy time rule for milliseconds
 ``ms`` versus the new offset alias for month start ``MS``. This means that
 offset alias parsing is case sensitive.
+
+.. _timeseries.holiday:
+
+Holidays / Holiday Calendars
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Holidays and calendars provide a simple way to define holiday rules to be used
+with ``CustomBusinessDay`` or in other analysis that requires a predefined
+set of holidays.  The ``AbstractHolidayCalendar`` class provides all the necessary
+methods to return a list of holidays and only ``rules`` need to be defined
+in a specific holiday calendar class.  Further, ``start_date`` and ``end_date``
+class attributes determine over what date range holidays are generated.  These
+should be overwritten on the ``AbstractHolidayCalendar`` class to have the range
+apply to all calendar subclasses.  ``USFederalHolidayCalendar`` is the 
+only calendar that exists and primarily serves as an example for developing 
+other calendars.
+
+For holidays that occur on fixed dates (e.g., US Memorial Day or July 4th) an
+observance rule determines when that holiday is observed if it falls on a weekend
+or some other non-observed day.  Defined observance rules are:
+
+.. csv-table::
+    :header: "Rule", "Description"
+    :widths: 15, 70
+
+    "nearest_workday", "move Saturday to Friday and Sunday to Monday"
+    "sunday_to_monday", "move Sunday to following Monday"
+    "next_monday_or_tuesday", "move Saturday to Monday and Sunday/Monday to Tuesday"
+    "previous_friday", move Saturday and Sunday to previous Friday"
+    "next_monday", "move Saturday and Sunday to following Monday"
+
+An example of how holidays and holiday calendars are defined:
+
+.. ipython:: python
+
+    from pandas.tseries.holiday import Holiday, USMemorialDay,\
+        AbstractHolidayCalendar, nearest_workday, MO
+    class ExampleCalendar(AbstractHolidayCalendar):
+        rules = [
+            USMemorialDay,
+            Holiday('July 4th', month=7, day=4, observance=nearest_workday),
+            Holiday('Columbus Day', month=10, day=1,
+                offset=DateOffset(weekday=MO(2))), #same as 2*Week(weekday=2)
+            ]
+    cal = ExampleCalendar()
+    datetime(2012, 5, 25) + CustomBusinessDay(calendar=cal)
+    cal.holidays(datetime(2012, 1, 1), datetime(2012, 12, 31))#holiday list
+    AbstractHolidayCalendar.start_date #default start date of range
+    AbstractHolidayCalendar.end_date #default end date of range
+    AbstractHolidayCalendar.start_date = datetime(2012, 1, 1)#or Timestamp
+    AbstractHolidayCalendar.end_date = datetime(2012, 12, 31)#or Timestamp
+    cal.holidays()
+
+Every calendar class is accessible by name using the ``get_calendar`` function
+which returns a holiday class instance.  Any imported calendar class will
+automatically be available by this function.  Also, ``HolidayCalendarFactory``
+provides an easy interface to create calendars that are combinations of calendars
+or calendars with additional rules.
+
+.. ipython:: python
+
+    from pandas.tseries.holiday import get_calendar, HolidayCalendarFactory,\
+        USLaborDay
+    cal = get_calendar('ExampleCalendar')
+    cal.rules
+    new_cal = HolidayCalendarFactory('NewExampleCalendar', cal, USLaborDay)
+    new_cal.rules
 
 .. _timeseries.advanced_datetime:
 
