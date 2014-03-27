@@ -835,20 +835,23 @@ cdef class Factorizer:
         return self.count
 
     def factorize(self, ndarray[object] values, sort=False, na_sentinel=-1):
+        """
+        Factorize values with nans replaced by na_sentinel
+        >>> factorize(np.array([1,2,np.nan], dtype='O'), na_sentinel=20)
+        array([ 0,  1, 20])
+        """
         labels = self.table.get_labels(values, self.uniques,
                                        self.count, na_sentinel)
-
+        mask = (labels == na_sentinel)
         # sort on
         if sort:
             if labels.dtype != np.int_:
                 labels = labels.astype(np.int_)
-
             sorter = self.uniques.to_array().argsort()
             reverse_indexer = np.empty(len(sorter), dtype=np.int_)
             reverse_indexer.put(sorter, np.arange(len(sorter)))
-
-            labels = reverse_indexer.take(labels)
-
+            labels = reverse_indexer.take(labels, mode='clip')
+            labels[mask] = na_sentinel
         self.count = len(self.uniques)
         return labels
 
