@@ -2522,7 +2522,7 @@ class DataFrame(NDFrame):
     # Sorting
 
     def sort(self, columns=None, axis=0, ascending=True,
-             inplace=False):
+             inplace=False, kind='quicksort', na_position='last'):
         """
         Sort DataFrame either by labels (along either axis) or by the values in
         column(s)
@@ -2540,6 +2540,11 @@ class DataFrame(NDFrame):
             Sort index/rows versus columns
         inplace : boolean, default False
             Sort the DataFrame without creating a new instance
+        kind : {'quicksort', 'mergesort', 'heapsort'}, optional
+            This option is only applied when sorting on a single column or label.
+        na_position : {'first', 'last'} (optional, default='last')
+            'first' puts NaNs at the beginning
+            'last' puts NaNs at the end
 
         Examples
         --------
@@ -2550,10 +2555,10 @@ class DataFrame(NDFrame):
         sorted : DataFrame
         """
         return self.sort_index(by=columns, axis=axis, ascending=ascending,
-                               inplace=inplace)
+                               inplace=inplace, kind=kind, na_position=na_position)
 
     def sort_index(self, axis=0, by=None, ascending=True, inplace=False,
-                   kind='quicksort'):
+                   kind='quicksort', na_position='last'):
         """
         Sort DataFrame either by labels (along either axis) or by the values in
         a column
@@ -2571,6 +2576,11 @@ class DataFrame(NDFrame):
             orders
         inplace : boolean, default False
             Sort the DataFrame without creating a new instance
+        na_position : {'first', 'last'} (optional, default='last')
+            'first' puts NaNs at the beginning
+            'last' puts NaNs at the end
+        kind : {'quicksort', 'mergesort', 'heapsort'}, optional
+            This option is only applied when sorting on a single column or label.
 
         Examples
         --------
@@ -2580,8 +2590,8 @@ class DataFrame(NDFrame):
         -------
         sorted : DataFrame
         """
-        from pandas.core.groupby import _lexsort_indexer
-
+        
+        from pandas.core.groupby import _lexsort_indexer, _nargsort
         axis = self._get_axis_number(axis)
         if axis not in [0, 1]:  # pragma: no cover
             raise AssertionError('Axis must be 0 or 1, got %s' % str(axis))
@@ -2597,23 +2607,19 @@ class DataFrame(NDFrame):
             if com._is_sequence(ascending) and len(by) != len(ascending):
                 raise ValueError('Length of ascending (%d) != length of by'
                                  ' (%d)' % (len(ascending), len(by)))
-
             if len(by) > 1:
-                keys = []
-                for x in by:
-                    k = self[x].values
-                    if k.ndim == 2:
-                        raise ValueError('Cannot sort by duplicate column %s'
-                                         % str(x))
-                    keys.append(k)
-
                 def trans(v):
                     if com.needs_i8_conversion(v):
                         return v.view('i8')
                     return v
-
-                keys = [trans(self[x].values) for x in by]
-                indexer = _lexsort_indexer(keys, orders=ascending)
+                keys = []
+                for x in by:
+                    k = self[x].values
+                    if k.ndim == 2:
+                        raise ValueError('Cannot sort by duplicate column %s' % str(x))
+                    keys.append(trans(k))
+                indexer = _lexsort_indexer(keys, orders=ascending,
+                                           na_position=na_position)
                 indexer = com._ensure_platform_int(indexer)
             else:
                 by = by[0]
@@ -2630,20 +2636,17 @@ class DataFrame(NDFrame):
                                      % str(by))
                 if isinstance(ascending, (tuple, list)):
                     ascending = ascending[0]
+                indexer = _nargsort(k, kind=kind, ascending=ascending,
+                                    na_position=na_position)
 
-                if not ascending:
-                    k = k[::-1]
-                indexer = k.argsort(kind=kind)
-                if not ascending:
-                    indexer = indexer.max() - indexer[::-1]
         elif isinstance(labels, MultiIndex):
-            indexer = _lexsort_indexer(labels.labels, orders=ascending)
+            indexer = _lexsort_indexer(labels.labels, orders=ascending,
+                                       na_position=na_position)
             indexer = com._ensure_platform_int(indexer)
         else:
-            indexer = labels.argsort(kind=kind)
-            if not ascending:
-                indexer = indexer[::-1]
-
+            indexer = _nargsort(labels, kind=kind, ascending=ascending,
+                                na_position=na_position)
+            
         if inplace:
             if axis == 1:
                 new_data = self._data.reindex_items(

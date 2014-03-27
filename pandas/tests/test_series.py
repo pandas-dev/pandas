@@ -4007,7 +4007,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         self.assert_(np.isnan(result[-5:]).all())
         self.assert_numpy_array_equal(result[:-5], np.sort(vals[5:]))
 
-        result = ts.order(na_last=False)
+        result = ts.order(na_position='first')
         self.assert_(np.isnan(result[:5]).all())
         self.assert_numpy_array_equal(result[5:], np.sort(vals[5:]))
 
@@ -4020,7 +4020,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         ordered = ts.order(ascending=False)
         expected = np.sort(ts.valid().values)[::-1]
         assert_almost_equal(expected, ordered.valid().values)
-        ordered = ts.order(ascending=False, na_last=False)
+        ordered = ts.order(ascending=False, na_position='first')
         assert_almost_equal(expected, ordered.valid().values)
 
     def test_rank(self):

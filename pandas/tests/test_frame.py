@@ -9770,6 +9770,121 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         with assertRaisesRegexp(ValueError, msg):
             frame.sort_index(by=['A', 'B'], axis=0, ascending=[True] * 5)
 
+    def test_sort_nan(self):
+        # GH3917
+        nan = np.nan
+        df = DataFrame({'A': [1, 2, nan, 1, 6, 8, 4],
+                        'B': [9, nan, 5, 2, 5, 4, 5]})
+
+        # sort one column only
+        expected = DataFrame(
+            {'A': [nan, 1, 1, 2, 4, 6, 8],
+             'B': [5, 9, 2, nan, 5, 5, 4]},
+            index=[2, 0, 3, 1, 6, 4, 5])
+        sorted_df = df.sort(['A'], na_position='first')
+        assert_frame_equal(sorted_df, expected)
+
+        expected = DataFrame(
+            {'A': [nan, 8, 6, 4, 2, 1, 1],
+             'B': [5, 4, 5, 5, nan, 9, 2]},
+            index=[2, 5, 4, 6, 1, 0, 3])
+        sorted_df = df.sort(['A'], na_position='first', ascending=False)
+        assert_frame_equal(sorted_df, expected)
+
+        # na_position='last', order
+        expected = DataFrame(
+            {'A': [1, 1, 2, 4, 6, 8, nan],
+             'B': [2, 9, nan, 5, 5, 4, 5]},
+            index=[3, 0, 1, 6, 4, 5, 2])
+        sorted_df = df.sort(['A','B'])
+        assert_frame_equal(sorted_df, expected)
+
+        # na_position='first', order
+        expected = DataFrame(
+            {'A': [nan, 1, 1, 2, 4, 6, 8],
+             'B': [5, 2, 9, nan, 5, 5, 4]},
+            index=[2, 3, 0, 1, 6, 4, 5])
+        sorted_df = df.sort(['A','B'], na_position='first')
+        assert_frame_equal(sorted_df, expected)
+
+        # na_position='first', not order
+        expected = DataFrame(
+            {'A': [nan, 1, 1, 2, 4, 6, 8],
+             'B': [5, 9, 2, nan, 5, 5, 4]},
+            index=[2, 0, 3, 1, 6, 4, 5])
+        sorted_df = df.sort(['A','B'], ascending=[1,0], na_position='first')
+        assert_frame_equal(sorted_df, expected)
+
+        # na_position='last', not order
+        expected = DataFrame(
+            {'A': [8, 6, 4, 2, 1, 1, nan],
+             'B': [4, 5, 5, nan, 2, 9, 5]},
+            index=[5, 4, 6, 1, 3, 0, 2])
+        sorted_df = df.sort(['A','B'], ascending=[0,1], na_position='last')
+        assert_frame_equal(sorted_df, expected)
+
+        # Test DataFrame with nan label
+        df = DataFrame({'A': [1, 2, nan, 1, 6, 8, 4],
+                        'B': [9, nan, 5, 2, 5, 4, 5]},
+                       index = [1, 2, 3, 4, 5, 6, nan])
+        
+        # NaN label, ascending=True, na_position='last'
+        sorted_df = df.sort(kind='quicksort', ascending=True, na_position='last')
+        expected = DataFrame({'A': [1, 2, nan, 1, 6, 8, 4],
+                              'B': [9, nan, 5, 2, 5, 4, 5]},
+                             index = [1, 2, 3, 4, 5, 6, nan])
+        assert_frame_equal(sorted_df, expected)
+
+        # NaN label, ascending=True, na_position='first'
+        sorted_df = df.sort(na_position='first')
+        expected = DataFrame({'A': [4, 1, 2, nan, 1, 6, 8],
+                              'B': [5, 9, nan, 5, 2, 5, 4]},
+                             index = [nan, 1, 2, 3, 4, 5, 6])
+        assert_frame_equal(sorted_df, expected)
+
+        # NaN label, ascending=False, na_position='last'
+        sorted_df = df.sort(kind='quicksort', ascending=False)
+        expected = DataFrame({'A': [8, 6, 1, nan, 2,   1, 4],
+                              'B': [4, 5, 2, 5,   nan, 9, 5]},
+                             index = [6, 5, 4, 3, 2, 1, nan])
+        assert_frame_equal(sorted_df, expected)
+
+        # NaN label, ascending=False, na_position='first'
+        sorted_df = df.sort(kind='quicksort', ascending=False, na_position='first')
+        expected = DataFrame({'A': [4, 8, 6, 1, nan, 2,   1],
+                              'B': [5, 4, 5, 2, 5,   nan, 9]},
+                             index = [nan, 6, 5, 4, 3, 2, 1])
+        assert_frame_equal(sorted_df, expected)
+
+    def test_stable_descending_sort(self):
+        # GH #6399
+        df = DataFrame([[2, 'first'], [2, 'second'], [1, 'a'], [1, 'b']],
+                       columns=['sort_col', 'order'])
+        sorted_df = df.sort_index(by='sort_col', kind='mergesort',
+                               ascending=False)
+        assert_frame_equal(df, sorted_df)
+
+    def test_stable_descending_multicolumn_sort(self):
+        nan = np.nan
+        df = DataFrame({'A': [1, 2, nan, 1, 6, 8, 4],
+                        'B': [9, nan, 5, 2, 5, 4, 5]})
+        # test stable mergesort
+        expected = DataFrame(
+            {'A': [nan, 8, 6, 4, 2, 1, 1],
+             'B': [5, 4, 5, 5, nan, 2, 9]},
+            index=[2, 5, 4, 6, 1, 3, 0])
+        sorted_df = df.sort(['A','B'], ascending=[0,1], na_position='first',
+                            kind='mergesort')
+        assert_frame_equal(sorted_df, expected)
+
+        expected = DataFrame(
+            {'A': [nan, 8, 6, 4, 2, 1, 1],
+             'B': [5, 4, 5, 5, nan, 9, 2]},
+            index=[2, 5, 4, 6, 1, 0, 3])
+        sorted_df = df.sort(['A','B'], ascending=[0,0], na_position='first',
+                            kind='mergesort')
+        assert_frame_equal(sorted_df, expected)
+        
     def test_sort_index_multicolumn(self):
         import random
         A = np.arange(5).repeat(20)
@@ -9925,13 +10040,6 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         cp = s.copy()
         cp.sort() # it works!
-
-    def test_stable_descending_sort(self):
-        df = DataFrame([[2, 'first'], [2, 'second'], [1, 'a'], [1, 'b']],
-                       columns=['sort_col', 'order'])
-        sorted = df.sort_index(by='sort_col', kind='mergesort',
-                               ascending=False)
-        assert_frame_equal(df, sorted)
 
     def test_combine_first(self):
         # disjoint

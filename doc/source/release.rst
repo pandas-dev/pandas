@@ -147,6 +147,8 @@ API Changes
 - Define and document the order of column vs index names in query/eval
     (:issue:`6676`)
 
+- ``DataFrame.sort`` now places NaNs at the beginning or end of the sort according to the ``na_position`` parameter. (:issue:`3917`)
+
 Deprecations
 ~~~~~~~~~~~~
 

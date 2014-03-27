@@ -1286,14 +1286,14 @@ The ``by`` argument can take a list of column names, e.g.:
 
 Series has the method ``order`` (analogous to `R's order function
 <http://stat.ethz.ch/R-manual/R-patched/library/base/html/order.html>`__) which
-sorts by value, with special treatment of NA values via the ``na_last``
+sorts by value, with special treatment of NA values via the ``na_position``
 argument:
 
 .. ipython:: python
 
    s[2] = np.nan
    s.order()
-   s.order(na_last=False)
+   s.order(na_position='first')
 
 Some other sorting notes / nuances:
 

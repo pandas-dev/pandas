@@ -316,9 +316,9 @@ def array_equivalent(left, right):
     # NaNs occur only in object arrays, float or complex arrays.
     if issubclass(left.dtype.type, np.object_):
         return ((left == right) | (pd.isnull(left) & pd.isnull(right))).all()
-    if not issubclass(left.dtype.type, (np.floating, np.complexfloating)):
-        return np.array_equal(left, right)
-    return ((left == right) | (np.isnan(left) & np.isnan(right))).all()
+    if issubclass(left.dtype.type, (np.floating, np.complexfloating)):
+        return ((left == right) | (np.isnan(left) & np.isnan(right))).all()
+    return np.array_equal(left, right)
 
 def _iterable_not_string(x):
     return (isinstance(x, collections.Iterable) and
