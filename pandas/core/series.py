@@ -1642,8 +1642,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             raise ValueError("This Series is a view of some other array, to "
                              "sort in-place you must create a copy")
 
-        result = self.order(na_last=True, kind=kind,
-                            ascending=ascending)
+        result = self.order(kind=kind,
+                            ascending=ascending,
+                            na_position='last')
 
         self._update_inplace(result)
 
@@ -1768,7 +1769,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             warnings.warn(("na_last is deprecated. Please use na_position instead"),
                           FutureWarning)
             na_position = 'last' if na_last else 'first'
-            
+
         def _try_kind_sort(arr):
             # easier to ask forgiveness than permission
             try:
