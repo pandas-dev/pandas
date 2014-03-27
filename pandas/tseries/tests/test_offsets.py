@@ -11,7 +11,7 @@ from pandas.core.datetools import (
     bday, BDay, cday, CDay, BQuarterEnd, BMonthEnd, BYearEnd, MonthEnd,
     MonthBegin, BYearBegin, QuarterBegin, BQuarterBegin, BMonthBegin,
     DateOffset, Week, YearBegin, YearEnd, Hour, Minute, Second, Day, Micro,
-    Milli, Nano,
+    Milli, Nano, Easter, 
     WeekOfMonth, format, ole2datetime, QuarterEnd, to_datetime, normalize_date,
     get_offset, get_offset_name, get_standard_freq)
 
@@ -26,6 +26,7 @@ from pandas.util.testing import assertRaisesRegexp
 import pandas.util.testing as tm
 from pandas.tseries.offsets import BusinessMonthEnd, CacheableOffset, \
     LastWeekOfMonth, FY5253, FY5253Quarter, WeekDay
+from pandas.tseries.holiday import USFederalHolidayCalendar
 
 from pandas import _np_version_under1p7
 
@@ -557,6 +558,10 @@ class TestCustomBusinessDay(TestBase):
         xp_egypt = datetime(2013, 5, 5)
         self.assertEqual(xp_egypt, dt + 2 * bday_egypt)
 
+    def test_calendar(self):
+        calendar = USFederalHolidayCalendar()
+        dt = datetime(2014, 1, 17)
+        assertEq(CDay(calendar=calendar), dt, datetime(2014, 1, 21))
 
 def assertOnOffset(offset, date, expected):
     actual = offset.onOffset(date)
@@ -2178,6 +2183,8 @@ def assertEq(offset, base, expected):
                              "\nAt Date: %s" %
                             (expected, actual, offset, base))
 
+def test_Easter():
+    assertEq(Easter(), datetime(2010, 1, 1), datetime(2010, 4, 4))
 
 def test_Hour():
     assertEq(Hour(), datetime(2010, 1, 1), datetime(2010, 1, 1, 1))
