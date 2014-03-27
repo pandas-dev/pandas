@@ -754,12 +754,12 @@ def str_wrap(arr, **kwargs):
     Examples
     --------
 
-    >>> str_wrap(Series([u'line to be wrapped', u'another line to be wrapped']), width=12)
-    Series([u'line to be\nwrapped', u'another\nline to be\nwrapped'])
+    >>> str_wrap(Series(['line to be wrapped', 'another line to be wrapped']), width=12)
+    Series(['line to be\nwrapped', 'another\nline to be\nwrapped'])
     """
     textwrap_args = {'width': 69, 'expand_tabs': False, 'replace_whitespace': True,
-                    'drop_whitespace': True, 'break_long_words': False,
-                    'break_on_hyphens': False}
+                     'drop_whitespace': True, 'break_long_words': False,
+                     'break_on_hyphens': False}
 
     textwrap_args.update(kwargs)
 
@@ -768,7 +768,7 @@ def str_wrap(arr, **kwargs):
 
     tw = textwrap.TextWrapper(**textwrap_args)
 
-    return _na_map(lambda s: u'\n'.join(tw.wrap(s)), arr)
+    return _na_map(lambda s: '\n'.join(tw.wrap(s)), arr)
 
 
 def str_get(arr, i):
