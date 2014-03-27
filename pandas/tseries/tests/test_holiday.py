@@ -45,7 +45,7 @@ class TestHoliday(tm.TestCase):
                        datetime(2019, 5, 27),
                        datetime(2020, 5, 25),
                        ]
-        self.assertEqual(holidays, holidayList)
+        self.assertEqual(list(holidays), holidayList)
         
     def test_usthanksgivingday(self):
         holidays = USThanksgivingDay.dates(self.start_date, self.end_date)
@@ -61,4 +61,4 @@ class TestHoliday(tm.TestCase):
                        datetime(2019, 11, 28),
                        datetime(2020, 11, 26),
                        ]
-        self.assertEqual(holidays, holidayList)
+        self.assertEqual(list(holidays), holidayList)
