@@ -1946,6 +1946,29 @@ class TestGroupBy(tm.TestCase):
         expected = self.df.groupby('A').sum()
         assert_frame_equal(result, expected, check_names=False)  # Note: no names when grouping by value
 
+    def test_agg_consistency(self):
+        # agg with ([]) and () not consistent
+        # GH 6715
+
+        def P1(a):
+            try:
+                return np.percentile(a.dropna(), q=1)
+            except:
+                return np.nan
+
+        import datetime as dt
+        df = DataFrame({'col1':[1,2,3,4],
+                        'col2':[10,25,26,31],
+                        'date':[dt.date(2013,2,10),dt.date(2013,2,10),dt.date(2013,2,11),dt.date(2013,2,11)]})
+
+        g = df.groupby('date')
+
+        expected = g.agg([P1])
+        expected.columns = expected.columns.levels[0]
+
+        result = g.agg(P1)
+        assert_frame_equal(result, expected)
+
     def test_apply_typecast_fail(self):
         df = DataFrame({'d': [1., 1., 1., 2., 2., 2.],
                         'c': np.tile(['a', 'b', 'c'], 2),
