@@ -976,9 +976,9 @@ class MPLPlot(object):
 
             axes = [ax]
 
-        if self.logx:
+        if self.logx or self.loglog:
             [a.set_xscale('log') for a in axes]
-        if self.logy:
+        if self.logy or self.loglog:
             [a.set_yscale('log') for a in axes]
 
         self.fig = fig
@@ -1879,9 +1879,11 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
         scatter: scatter plot
         hexbin: hexbin plot
     logx : boolean, default False
-        For line plots, use log scaling on x axis
+        Use log scaling on x axis
     logy : boolean, default False
-        For line plots, use log scaling on y axis
+        Use log scaling on y axis
+    loglog : boolean, default False
+        Use log scaling on both x and y axes
     xticks : sequence
         Values to use for the xticks
     yticks : sequence
@@ -2031,9 +2033,11 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
     grid : matplotlib grid
     legend: matplotlib legend
     logx : boolean, default False
-        For line plots, use log scaling on x axis
+        Use log scaling on x axis
     logy : boolean, default False
-        For line plots, use log scaling on y axis
+        Use log scaling on y axis
+    loglog : boolean, default False
+        Use log scaling on both x and y axes
     secondary_y : boolean or sequence of ints, default False
         If True then y-axis will be on the right
     figsize : a tuple (width, height) in inches

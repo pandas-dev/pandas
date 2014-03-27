@@ -410,6 +410,22 @@ class TestDataFramePlots(tm.TestCase):
         # TODO add MultiIndex test
 
     @slow
+    def test_logscales(self):
+        df = DataFrame({'a': np.arange(100)},
+                       index=np.arange(100))
+        ax = df.plot(logy=True)
+        self.assertEqual(ax.xaxis.get_scale(), 'linear')
+        self.assertEqual(ax.yaxis.get_scale(), 'log')
+
+        ax = df.plot(logx=True)
+        self.assertEqual(ax.xaxis.get_scale(), 'log')
+        self.assertEqual(ax.yaxis.get_scale(), 'linear')
+
+        ax = df.plot(loglog=True)
+        self.assertEqual(ax.xaxis.get_scale(), 'log')
+        self.assertEqual(ax.yaxis.get_scale(), 'log')
+
+    @slow
     def test_xcompat(self):
         import pandas as pd
         import matplotlib.pyplot as plt
@@ -1229,6 +1245,7 @@ class TestDataFramePlots(tm.TestCase):
         # check line plots
         _check_plot_works(df.plot, yerr=df_err, logy=True)
         _check_plot_works(df.plot, yerr=df_err, logx=True, logy=True)
+        _check_plot_works(df.plot, yerr=df_err, loglog=True)
 
         kinds = ['line', 'bar', 'barh']
         for kind in kinds:
