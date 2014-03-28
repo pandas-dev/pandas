@@ -10933,12 +10933,24 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
     def test_rank2(self):
         from datetime import datetime
+        df = DataFrame([[1, 3, 2], [1, 2, 3]])
+        expected = DataFrame([[1.0, 3.0, 2.0], [1, 2, 3]]) / 3.0
+        result = df.rank(1, pct=True)
+        assert_frame_equal(result, expected)
+        
+        df = DataFrame([[1, 3, 2], [1, 2, 3]])
+        expected = df.rank(0) / 2.0
+        result = df.rank(0, pct=True)
+        assert_frame_equal(result, expected)
+
+
 
         df = DataFrame([['b', 'c', 'a'], ['a', 'c', 'b']])
         expected = DataFrame([[2.0, 3.0, 1.0], [1, 3, 2]])
         result = df.rank(1, numeric_only=False)
         assert_frame_equal(result, expected)
 
+        
         expected = DataFrame([[2.0, 1.5, 1.0], [1, 1.5, 2]])
         result = df.rank(0, numeric_only=False)
         assert_frame_equal(result, expected)

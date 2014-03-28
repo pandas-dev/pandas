@@ -4182,7 +4182,7 @@ class DataFrame(NDFrame):
         return data.apply(f, axis=axis)
 
     def rank(self, axis=0, numeric_only=None, method='average',
-             na_option='keep', ascending=True):
+             na_option='keep', ascending=True, pct=False):
         """
         Compute numerical data ranks (1 through n) along axis. Equal values are
         assigned a rank that is the average of the ranks of those values
@@ -4205,6 +4205,8 @@ class DataFrame(NDFrame):
             * bottom: smallest rank if descending
         ascending : boolean, default True
             False for ranks by high (1) to low (N)
+        pct : boolean, default False
+            Computes percentage rank of data
 
         Returns
         -------
@@ -4214,18 +4216,18 @@ class DataFrame(NDFrame):
         if numeric_only is None:
             try:
                 ranks = algos.rank(self.values, axis=axis, method=method,
-                                   ascending=ascending, na_option=na_option)
+                                   ascending=ascending, na_option=na_option,
+                                   pct=pct)
                 return self._constructor(ranks, index=self.index,
                                          columns=self.columns)
             except TypeError:
                 numeric_only = True
-
         if numeric_only:
             data = self._get_numeric_data()
         else:
             data = self
         ranks = algos.rank(data.values, axis=axis, method=method,
-                           ascending=ascending, na_option=na_option)
+                           ascending=ascending, na_option=na_option, pct=pct)
         return self._constructor(ranks, index=data.index, columns=data.columns)
 
     def to_timestamp(self, freq=None, how='start', axis=0, copy=True):
