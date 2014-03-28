@@ -1081,9 +1081,12 @@ class BaseGrouper(object):
             try:
                 values, mutated = splitter.fast_apply(f, group_keys)
                 return group_keys, values, mutated
-            except Exception:
+            except (lib.InvalidApply):
                 # we detect a mutation of some kind
                 # so take slow path
+                pass
+            except (Exception) as e:
+                # raise this error to the caller
                 pass
 
         result_values = []
@@ -2295,7 +2298,15 @@ class NDFrameGroupBy(GroupBy):
             if self.grouper.nkeys > 1:
                 return self._python_agg_general(arg, *args, **kwargs)
             else:
-                result = self._aggregate_generic(arg, *args, **kwargs)
+
+                # try to treat as if we are passing a list
+                try:
+                    assert not args and not kwargs
+                    result = self._aggregate_multiple_funcs([arg])
+                    result.columns = Index(result.columns.levels[0],
+                                           name=self._selected_obj.columns.name)
+                except:
+                    result = self._aggregate_generic(arg, *args, **kwargs)
 
         if not self.as_index:
             if isinstance(result.index, MultiIndex):

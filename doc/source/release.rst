@@ -139,11 +139,11 @@ API Changes
 - Following keywords are now acceptable for :meth:`DataFrame.plot(kind='bar')` and :meth:`DataFrame.plot(kind='barh')`.
 
   - `width`: Specify the bar width. In previous versions, static value 0.5 was passed to matplotlib and it cannot be overwritten. (:issue:`6604`)
-  
+
   - `align`: Specify the bar alignment. Default is `center` (different from matplotlib). In previous versions, pandas passes `align='edge'` to matplotlib and adjust the location to `center` by itself, and it results `align` keyword is not applied as expected. (:issue:`4525`)
-  
+
   - `position`: Specify relative alignments for bar plot layout. From 0 (left/bottom-end) to 1(right/top-end). Default is 0.5 (center). (:issue:`6604`)
-  
+
 - Define and document the order of column vs index names in query/eval
     (:issue:`6676`)
 
@@ -289,6 +289,7 @@ Bug Fixes
 - Bug in binary operations with a rhs of a Series not aligning (:issue:`6681`)
 - Bug in ``DataFrame.to_stata`` which incorrectly handles nan values and ignores 'with_index' keyword argument (:issue:`6685`)
 - Bug in resample with extra bins when using an evenly divisible frequency (:issue:`4076`)
+- Bug in consistency of groupby aggregation when passing a custom function (:issue:`6715`)
 
 pandas 0.13.1
 -------------
