@@ -2317,6 +2317,13 @@ class MultiIndex(Index):
     names = property(
         fset=_set_names, fget=_get_names, doc="Names of levels in MultiIndex")
 
+    def _reference_duplicate_name(self, name):
+        """
+        Returns True if the name refered to in self.names is duplicated.
+        """
+        # count the times name equals an element in self.names.
+        return np.sum(name == np.asarray(self.names)) > 1
+
     def _format_native_types(self, **kwargs):
         return self.tolist()
 

@@ -1534,6 +1534,13 @@ class TestMultiIndex(tm.TestCase):
         level_names = [level.name for level in index.levels]
         self.assertEqual(ind_names, level_names)
 
+    def test_reference_duplicate_name(self):
+        idx = MultiIndex.from_tuples([('a', 'b'), ('c', 'd')], names=['x', 'x'])
+        self.assertTrue(idx._reference_duplicate_name('x'))
+
+        idx = MultiIndex.from_tuples([('a', 'b'), ('c', 'd')], names=['x', 'y'])
+        self.assertFalse(idx._reference_duplicate_name('x'))
+
     def test_astype(self):
         expected = self.index.copy()
         actual = self.index.astype('O')

@@ -11387,6 +11387,16 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         expected = Series({'float64' : 2, 'object' : 2})
         assert_series_equal(result, expected)
 
+    def test_unstack_non_unique_index_names(self):
+        idx = MultiIndex.from_tuples([('a', 'b'), ('c', 'd')],
+                                     names=['c1', 'c1'])
+        df = DataFrame([1, 2], index=idx)
+        with tm.assertRaises(ValueError):
+            df.unstack('c1')
+
+        with tm.assertRaises(ValueError):
+            df.T.stack('c1')
+
     def test_reset_index(self):
         stacked = self.frame.stack()[::2]
         stacked = DataFrame({'foo': stacked, 'bar': stacked})

@@ -69,6 +69,12 @@ class _Unstacker(object):
             raise ValueError('must pass column labels for multi-column data')
 
         self.index = index
+        if isinstance(self.index, MultiIndex):
+            if index._reference_duplicate_name(level):
+                msg = ("Ambiguous reference to {0}. The index "
+                       "names are not unique.".format(level))
+                raise ValueError(msg)
+
         self.level = self.index._get_level_number(level)
 
         levels = index.levels
@@ -497,6 +503,12 @@ def stack(frame, level=-1, dropna=True):
     stacked : Series
     """
     N, K = frame.shape
+    if isinstance(frame.columns, MultiIndex):
+        if frame.columns._reference_duplicate_name(level):
+            msg = ("Ambiguous reference to {0}. The column "
+                   "names are not unique.".format(level))
+            raise ValueError(msg)
+
     if isinstance(level, int) and level < 0:
         level += frame.columns.nlevels
 
