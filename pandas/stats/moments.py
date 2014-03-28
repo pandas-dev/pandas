@@ -291,11 +291,14 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
         return _flex_binary_moment(arg2, arg1, f)
 
 
-@Substitution("Pairwise moving sample correlation", _pairwise_arg,
+@Substitution("Deprecated. Use rolling_corr(..., pairwise=True) instead.\n\n"
+              "Pairwise moving sample correlation", _pairwise_arg,
               _roll_kw, _pairwise_retval, _roll_notes)
 @Appender(_doc_template)
 def rolling_corr_pairwise(df1, df2=None, window=None, min_periods=None,
                           freq=None, center=False, time_rule=None):
+    import warnings
+    warnings.warn("rolling_corr_pairwise is deprecated, use rolling_corr(..., pairwise=True)", FutureWarning)
     return rolling_corr(df1, df2, window=window, min_periods=min_periods,
                         freq=freq, center=center, time_rule=time_rule,
                         pairwise=True)
@@ -944,11 +947,14 @@ def expanding_corr(arg1, arg2=None, min_periods=1, freq=None, center=False,
                         pairwise=pairwise)
 
 
-@Substitution("Pairwise expanding sample correlation", _pairwise_arg,
+@Substitution("Deprecated. Use expanding_corr(..., pairwise=True) instead.\n\n"
+              "Pairwise expanding sample correlation", _pairwise_arg,
               _expanding_kw, _pairwise_retval, "")
 @Appender(_doc_template)
 def expanding_corr_pairwise(df1, df2=None, min_periods=1, freq=None,
                             center=False, time_rule=None):
+    import warnings
+    warnings.warn("expanding_corr_pairwise is deprecated, use expanding_corr(..., pairwise=True)", FutureWarning)
     return expanding_corr(df1, df2, min_periods=min_periods,
                           freq=freq, center=center, time_rule=time_rule,
                           pairwise=True)
