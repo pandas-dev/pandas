@@ -5439,13 +5439,13 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             self.tsframe.to_csv(path, nanRep='foo')
             recons = read_csv(path,index_col=0,parse_dates=[0],na_values=['foo'])
             assert_frame_equal(self.tsframe, recons)
-        
+
         with tm.assert_produces_warning(FutureWarning):
             self.frame.to_csv(path, cols=['A', 'B'])
 
         with tm.assert_produces_warning(False):
             self.frame.to_csv(path, columns=['A', 'B'])
-            
+
 
     def test_to_csv_from_csv(self):
 
@@ -9194,6 +9194,12 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         result = df.shift(1,axis=1)
         assert_frame_equal(result,expected)
 
+        # shift named axis
+        df = DataFrame(np.random.rand(10,5))
+        expected = pd.concat([DataFrame(np.nan,index=df.index,columns=[0]),df.iloc[:,0:-1]],ignore_index=True,axis=1)
+        result = df.shift(1,axis='columns')
+        assert_frame_equal(result,expected)
+
     def test_shift_bool(self):
         df = DataFrame({'high': [True, False],
                         'low': [False, False]})
@@ -9827,7 +9833,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df = DataFrame({'A': [1, 2, nan, 1, 6, 8, 4],
                         'B': [9, nan, 5, 2, 5, 4, 5]},
                        index = [1, 2, 3, 4, 5, 6, nan])
-        
+
         # NaN label, ascending=True, na_position='last'
         sorted_df = df.sort(kind='quicksort', ascending=True, na_position='last')
         expected = DataFrame({'A': [1, 2, nan, 1, 6, 8, 4],
@@ -9884,7 +9890,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         sorted_df = df.sort(['A','B'], ascending=[0,0], na_position='first',
                             kind='mergesort')
         assert_frame_equal(sorted_df, expected)
-        
+
     def test_sort_index_multicolumn(self):
         import random
         A = np.arange(5).repeat(20)
