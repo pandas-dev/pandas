@@ -908,7 +908,8 @@ class NDFrame(PandasObject):
         from pandas.io import packers
         return packers.to_msgpack(path_or_buf, self, **kwargs)
 
-    def to_sql(self, name, con, flavor='sqlite', if_exists='fail', index=True):
+    def to_sql(self, name, con, flavor='sqlite', if_exists='fail', index=True,
+               index_label=None):
         """
         Write records stored in a DataFrame to a SQL database.
 
@@ -928,12 +929,17 @@ class NDFrame(PandasObject):
             - replace: If table exists, drop it, recreate it, and insert data.
             - append: If table exists, insert data. Create if does not exist.
         index : boolean, default True
-            Write DataFrame index as a column
+            Write DataFrame index as a column.
+        index_label : string or sequence, default None
+            Column label for index column(s). If None is given (default) and
+            `index` is True, then the index names are used.
+            A sequence should be given if the DataFrame uses MultiIndex.
 
         """
         from pandas.io import sql
         sql.to_sql(
-            self, name, con, flavor=flavor, if_exists=if_exists, index=index)
+            self, name, con, flavor=flavor, if_exists=if_exists, index=index,
+            index_label=index_label)
 
     def to_pickle(self, path):
         """
