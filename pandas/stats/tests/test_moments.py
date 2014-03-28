@@ -586,6 +586,9 @@ class TestMoments(tm.TestCase):
         result = mom.rolling_cov(A, B, 50, min_periods=25)
         assert_almost_equal(result[-1], np.cov(A[-50:], B[-50:])[0, 1])
 
+    def test_rolling_cov_pairwise(self):
+        self._check_pairwise_moment(mom.rolling_cov, 10, min_periods=5)
+
     def test_rolling_corr(self):
         A = self.series
         B = A + randn(len(A))
@@ -603,12 +606,14 @@ class TestMoments(tm.TestCase):
         assert_almost_equal(result[-1], a.corr(b))
 
     def test_rolling_corr_pairwise(self):
-        panel = mom.rolling_corr_pairwise(self.frame, 10, min_periods=5)
+        self._check_pairwise_moment(mom.rolling_corr, 10, min_periods=5)
 
-        correl = panel.ix[:, 1, 5]
-        exp = mom.rolling_corr(self.frame[1], self.frame[5],
-                               10, min_periods=5)
-        tm.assert_series_equal(correl, exp)
+    def _check_pairwise_moment(self, func, *args, **kwargs):
+        panel = func(self.frame, *args, **kwargs)
+
+        actual = panel.ix[:, 1, 5]
+        expected = func(self.frame[1], self.frame[5], *args, **kwargs)
+        tm.assert_series_equal(actual, expected)
 
     def test_flex_binary_moment(self):
         # GH3155
@@ -666,8 +671,14 @@ class TestMoments(tm.TestCase):
     def test_ewmcov(self):
         self._check_binary_ew(mom.ewmcov)
 
+    def test_ewmcov_pairwise(self):
+        self._check_pairwise_moment(mom.ewmcov, span=10, min_periods=5)
+
     def test_ewmcorr(self):
         self._check_binary_ew(mom.ewmcorr)
+
+    def test_ewmcorr_pairwise(self):
+        self._check_pairwise_moment(mom.ewmcorr, span=10, min_periods=5)
 
     def _check_binary_ew(self, func):
         A = Series(randn(50), index=np.arange(50))
@@ -746,12 +757,20 @@ class TestMoments(tm.TestCase):
     def test_expanding_max(self):
         self._check_expanding(mom.expanding_max, np.max, preserve_nan=False)
 
-    def test_expanding_corr_pairwise(self):
-        result = mom.expanding_corr_pairwise(self.frame)
+    def test_expanding_cov_pairwise(self):
+        result = mom.expanding_cov(self.frame)
 
-        rolling_result = mom.rolling_corr_pairwise(self.frame,
-                                                   len(self.frame),
-                                                   min_periods=1)
+        rolling_result = mom.rolling_cov(self.frame, len(self.frame),
+                                         min_periods=1)
+
+        for i in result.items:
+            assert_almost_equal(result[i], rolling_result[i])
+
+    def test_expanding_corr_pairwise(self):
+        result = mom.expanding_corr(self.frame)
+
+        rolling_result = mom.rolling_corr(self.frame, len(self.frame),
+                                          min_periods=1)
 
         for i in result.items:
             assert_almost_equal(result[i], rolling_result[i])
