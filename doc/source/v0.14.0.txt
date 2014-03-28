@@ -206,7 +206,8 @@ API changes
 - ``Panel.shift`` now uses ``NDFrame.shift``. It no longer drops the ``nan`` data and retains its original shape.  (:issue:`4867`)
 
 - Added ``nunique`` and ``value_counts`` functions to ``Index`` for counting unique elements. (:issue:`6734`)
-
+- ``stack`` and ``unstack`` now raise a ``ValueError`` when the ``level`` keyword refers
+  to a non-unique item in the ``Index`` (previously raised a ``KeyError``).
 
 .. _whatsnew_0140.sql:
 
