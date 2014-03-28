@@ -283,7 +283,7 @@ def rank_1d_int64(object in_arr, ties_method='average', ascending=True,
 
 
 def rank_2d_float64(object in_arr, axis=0, ties_method='average',
-                    ascending=True, na_option='keep'):
+                    ascending=True, na_option='keep', pct=False):
     """
     Fast NaN-friendly version of scipy.stats.rankdata
     """
@@ -296,6 +296,7 @@ def rank_2d_float64(object in_arr, axis=0, ties_method='average',
         float64_t sum_ranks = 0
         int tiebreak = 0
         bint keep_na = 0
+        float count = 0.0
 
     tiebreak = tiebreakers[ties_method]
 
@@ -335,6 +336,7 @@ def rank_2d_float64(object in_arr, axis=0, ties_method='average',
     for i in range(n):
         dups = sum_ranks = 0
         total_tie_count = 0
+        count = 0.0
         for j in range(k):
             sum_ranks += j + 1
             dups += 1
@@ -342,6 +344,7 @@ def rank_2d_float64(object in_arr, axis=0, ties_method='average',
             if val == nan_value and keep_na:
                 ranks[i, argsorted[i, j]] = nan
                 continue
+            count += 1.0
             if j == k - 1 or fabs(values[i, j + 1] - val) > FP_ERR:
                 if tiebreak == TIEBREAK_AVERAGE:
                     for z in range(j - dups + 1, j + 1):
@@ -363,7 +366,8 @@ def rank_2d_float64(object in_arr, axis=0, ties_method='average',
                     for z in range(j - dups + 1, j + 1):
                         ranks[i, argsorted[i, z]] = total_tie_count
                 sum_ranks = dups = 0
-
+        if pct:
+            ranks[i, :] /= count
     if axis == 0:
         return ranks.T
     else:
@@ -371,7 +375,7 @@ def rank_2d_float64(object in_arr, axis=0, ties_method='average',
 
 
 def rank_2d_int64(object in_arr, axis=0, ties_method='average',
-                    ascending=True, na_option='keep'):
+                    ascending=True, na_option='keep', pct=False):
     """
     Fast NaN-friendly version of scipy.stats.rankdata
     """
@@ -384,6 +388,7 @@ def rank_2d_int64(object in_arr, axis=0, ties_method='average',
         int64_t val
         float64_t sum_ranks = 0
         int tiebreak = 0
+        float count = 0.0
     tiebreak = tiebreakers[ties_method]
 
     if axis == 0:
@@ -411,10 +416,12 @@ def rank_2d_int64(object in_arr, axis=0, ties_method='average',
     for i in range(n):
         dups = sum_ranks = 0
         total_tie_count = 0
+        count = 0.0
         for j in range(k):
             sum_ranks += j + 1
             dups += 1
             val = values[i, j]
+            count += 1.0
             if j == k - 1 or fabs(values[i, j + 1] - val) > FP_ERR:
                 if tiebreak == TIEBREAK_AVERAGE:
                     for z in range(j - dups + 1, j + 1):
@@ -436,7 +443,8 @@ def rank_2d_int64(object in_arr, axis=0, ties_method='average',
                     for z in range(j - dups + 1, j + 1):
                         ranks[i, argsorted[i, z]] = total_tie_count
                 sum_ranks = dups = 0
-
+        if pct:
+            ranks[i, :] /= count
     if axis == 0:
         return ranks.T
     else:
@@ -528,7 +536,7 @@ def rank_1d_generic(object in_arr, bint retry=1, ties_method='average',
                     ranks[argsorted[j]] = total_tie_count
             sum_ranks = dups = 0
     if pct:
-        ranks / count
+        return ranks / count
     else:
         return ranks
 
@@ -562,7 +570,7 @@ class NegInfinity(object):
     __cmp__ = _return_true
 
 def rank_2d_generic(object in_arr, axis=0, ties_method='average',
-                    ascending=True, na_option='keep'):
+                    ascending=True, na_option='keep', pct=False):
     """
     Fast NaN-friendly version of scipy.stats.rankdata
     """
@@ -577,6 +585,7 @@ def rank_2d_generic(object in_arr, axis=0, ties_method='average',
         float64_t sum_ranks = 0
         int tiebreak = 0
         bint keep_na = 0
+        float count = 0.0
 
     tiebreak = tiebreakers[ties_method]
 
@@ -611,7 +620,8 @@ def rank_2d_generic(object in_arr, axis=0, ties_method='average',
         for i in range(len(values)):
             ranks[i] = rank_1d_generic(in_arr[i],
                                        ties_method=ties_method,
-                                       ascending=ascending)
+                                       ascending=ascending,
+                                       pct=pct)
         if axis == 0:
             return ranks.T
         else:
@@ -626,12 +636,14 @@ def rank_2d_generic(object in_arr, axis=0, ties_method='average',
     for i in range(n):
         dups = sum_ranks = infs = 0
         total_tie_count = 0
+        count = 0.0
         for j in range(k):
             val = values[i, j]
             if val is nan_value and keep_na:
                 ranks[i, argsorted[i, j]] = nan
                 infs += 1
                 continue
+            count += 1.0
             sum_ranks += (j - infs) + 1
             dups += 1
             if j == k - 1 or are_diff(values[i, j + 1], val):
@@ -652,7 +664,8 @@ def rank_2d_generic(object in_arr, axis=0, ties_method='average',
                     for z in range(j - dups + 1, j + 1):
                         ranks[i, argsorted[i, z]] = total_tie_count
                 sum_ranks = dups = 0
-
+        if pct:
+            ranks[i, :] /= count
     if axis == 0:
         return ranks.T
     else:
