@@ -460,7 +460,9 @@ class _TestSQLApi(PandasSQLTest):
             issubclass(df.IntDateCol.dtype.type, np.datetime64),
             "IntDateCol loaded with incorrect type")
 
+
 class TestSQLApi(_TestSQLApi):
+
     """Test the public API as it would be used directly
     """
     flavor = 'sqlite'
@@ -501,8 +503,18 @@ class TestSQLApi(_TestSQLApi):
         self.assertEqual(frame.columns[0], 'other_label',
                          "Specified index_label not written to database")
 
+    def test_read_table_columns(self):
+        # test columns argument in read_table
+        sql.to_sql(self.test_frame1, 'test_frame', self.conn)
+
+        cols = ['A', 'B']
+        result = sql.read_table('test_frame', self.conn, columns=cols)
+        self.assertEqual(result.columns.tolist(), cols,
+                         "Columns not correctly selected")
+
 
 class TestSQLLegacyApi(_TestSQLApi):
+
     """Test the public legacy API
     """
     flavor = 'sqlite'

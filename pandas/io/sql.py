@@ -340,7 +340,8 @@ def read_table(table_name, con, meta=None, index_col=None, coerce_float=True,
     table = pandas_sql.read_table(table_name,
                                   index_col=index_col,
                                   coerce_float=coerce_float,
-                                  parse_dates=parse_dates)
+                                  parse_dates=parse_dates,
+                                  columns=columns)
 
     if table is not None:
         return table
