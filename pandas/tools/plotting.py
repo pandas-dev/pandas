@@ -793,7 +793,7 @@ class MPLPlot(object):
                  ax=None, fig=None, title=None, xlim=None, ylim=None,
                  xticks=None, yticks=None,
                  sort_columns=False, fontsize=None,
-                 secondary_y=False, colormap=None, **kwds):
+                 secondary_y=False, colormap=None,layout=None,**kwds):
 
         self.data = data
         self.by = by
@@ -803,6 +803,7 @@ class MPLPlot(object):
         self.sort_columns = sort_columns
 
         self.subplots = subplots
+        self.layout = layout
         self.sharex = sharex
         self.sharey = sharey
         self.figsize = figsize
@@ -985,7 +986,18 @@ class MPLPlot(object):
         self.axes = axes
 
     def _get_layout(self):
-        return (len(self.data.columns), 1)
+        n = len(self.data.columns)
+        if self.layout is not None:
+            if not isinstance(self.layout, (tuple, list)) or len(self.layout) != 2:
+                raise ValueError('Layout must be a tuple of (rows, columns)')
+
+            rows, cols = self.layout
+            if rows * cols < n:
+                raise ValueError('Layout of %sx%s is incompatible with %s columns' % (rows, cols, n))
+            return self.layout
+        else : 
+            return (n, 1)
+        
 
     def _compute_plot_data(self):
         numeric_data = self.data.convert_objects()._get_numeric_data()
