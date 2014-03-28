@@ -1732,7 +1732,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             keep: leave NA values where they are
         ascending : boolean, default True
             False for ranks by high (1) to low (N)
-        pct : boolean, defeault False
+        pct : boolean, default False
             Computes percentage rank of data
 
         Returns
