@@ -3232,6 +3232,7 @@ class NDFrame(PandasObject):
         if periods == 0:
             return self
 
+        axis = self._get_axis_number(axis)
         if freq is None and not len(kwds):
             new_data = self._data.shift(periods=periods, axis=axis)
         else:
