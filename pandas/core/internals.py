@@ -1907,7 +1907,7 @@ class SparseBlock(Block):
         values = self.values if inplace else self.values.copy()
         return [self.make_block(values.get_values(value), fill_value=value)]
 
-        
+
     def shift(self, periods, axis=0):
         """ shift the block by periods """
         N = len(self.values.T)
@@ -2674,18 +2674,17 @@ class BlockManager(PandasObject):
         if len(blocks) == 0:
             return self.make_empty()
 
-        return self.combine(blocks)
+        return self.combine(blocks, copy=copy)
 
-    def combine(self, blocks):
+    def combine(self, blocks, copy=True):
         """ return a new manager with the blocks """
         indexer = np.sort(np.concatenate([b.ref_locs for b in blocks]))
         new_items = self.items.take(indexer)
 
         new_blocks = []
         for b in blocks:
-            b = b.copy(deep=False)
-            b.ref_items = new_items
-            new_blocks.append(b)
+            b = b.reindex_items_from(new_items, copy=copy)
+            new_blocks.extend(_valid_blocks(b))
         new_axes = list(self.axes)
         new_axes[0] = new_items
         return self.__class__(new_blocks, new_axes, do_integrity_check=False)

@@ -10424,6 +10424,16 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         expected = df.ix[:, []]
         assert_frame_equal(result, expected)
 
+        df = DataFrame.from_dict({'a':[1,2], 'b':['foo','bar'],'c':[np.pi,np.e]})
+        result = df._get_numeric_data()
+        expected = DataFrame.from_dict({'a':[1,2], 'c':[np.pi,np.e]})
+        assert_frame_equal(result, expected)
+
+        df = result.copy()
+        result = df._get_numeric_data()
+        expected = df
+        assert_frame_equal(result, expected)
+
     def test_bool_describe_in_mixed_frame(self):
         df = DataFrame({
             'string_data': ['a', 'b', 'c', 'd', 'e'],
@@ -10937,7 +10947,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         expected = DataFrame([[1.0, 3.0, 2.0], [1, 2, 3]]) / 3.0
         result = df.rank(1, pct=True)
         assert_frame_equal(result, expected)
-        
+
         df = DataFrame([[1, 3, 2], [1, 2, 3]])
         expected = df.rank(0) / 2.0
         result = df.rank(0, pct=True)
@@ -10950,7 +10960,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         result = df.rank(1, numeric_only=False)
         assert_frame_equal(result, expected)
 
-        
+
         expected = DataFrame([[2.0, 1.5, 1.0], [1, 1.5, 2]])
         result = df.rank(0, numeric_only=False)
         assert_frame_equal(result, expected)
