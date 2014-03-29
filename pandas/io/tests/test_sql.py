@@ -549,6 +549,25 @@ class TestSQLApi(_TestSQLApi):
         self.assertEqual(result.columns.tolist(), cols,
                          "Columns not correctly selected")
 
+    def test_read_table_index_col(self):
+        # test columns argument in read_table
+        sql.to_sql(self.test_frame1, 'test_frame', self.conn)
+
+        result = sql.read_table('test_frame', self.conn, index_col="index")
+        self.assertEqual(result.index.names, ["index"],
+                         "index_col not correctly set")
+
+        result = sql.read_table('test_frame', self.conn, index_col=["A", "B"])
+        self.assertEqual(result.index.names, ["A", "B"],
+                         "index_col not correctly set")
+
+        result = sql.read_table('test_frame', self.conn, index_col=["A", "B"],
+                                columns=["C", "D"])
+        self.assertEqual(result.index.names, ["A", "B"],
+                         "index_col not correctly set")
+        self.assertEqual(result.columns.tolist(), ["C", "D"],
+                         "columns not set correctly whith index_col")
+
 
 class TestSQLLegacyApi(_TestSQLApi):
 

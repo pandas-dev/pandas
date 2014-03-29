@@ -310,8 +310,8 @@ def read_table(table_name, con, meta=None, index_col=None, coerce_float=True,
         Legacy mode not supported
     meta : SQLAlchemy meta, optional
         If omitted MetaData is reflected from engine
-    index_col : string, optional
-        Column to set as index
+    index_col : string or sequence of strings, optional
+        Column(s) to set as index.
     coerce_float : boolean, default True
         Attempt to convert values to non-string, non-numeric objects (like
         decimal.Decimal) to floating point. Can result in loss of Precision.
@@ -324,7 +324,7 @@ def read_table(table_name, con, meta=None, index_col=None, coerce_float=True,
           to the keyword arguments of :func:`pandas.to_datetime`
           Especially useful with databases without native Datetime support,
           such as SQLite
-    columns : list
+    columns : list, optional
         List of column names to select from sql table
 
     Returns
@@ -466,7 +466,7 @@ class PandasSQLTable(PandasObject):
             from sqlalchemy import select
             cols = [self.table.c[n] for n in columns]
             if self.index is not None:
-                cols.insert(0, self.table.c[self.index])
+                [cols.insert(0, self.table.c[idx]) for idx in self.index[::-1]]
             sql_select = select(cols)
         else:
             sql_select = self.table.select()
@@ -483,14 +483,10 @@ class PandasSQLTable(PandasObject):
         if self.index is not None:
             self.frame.set_index(self.index, inplace=True)
 
-        # Assume if the index in prefix_index format, we gave it a name
-        # and should return it nameless
-        if self.index == self.prefix + '_index':
-            self.frame.index.name = None
-
         return self.frame
 
     def _index_name(self, index, index_label):
+        # for writing: index=True to include index in sql table
         if index is True:
             nlevels = self.frame.index.nlevels
             # if index_label is specified, set this as index name(s)
@@ -510,7 +506,10 @@ class PandasSQLTable(PandasObject):
                 return [l if l is not None else "level_{0}".format(i)
                         for i, l in enumerate(self.frame.index.names)]
 
+        # for reading: index=(list of) string to specify column to set as index
         elif isinstance(index, string_types):
+            return [index]
+        elif isinstance(index, list):
             return index
         else:
             return None
