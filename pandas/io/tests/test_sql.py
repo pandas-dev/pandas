@@ -7,7 +7,7 @@ import os
 import nose
 import numpy as np
 
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, MultiIndex
 from pandas.compat import range, lrange, iteritems
 #from pandas.core.datetools import format as date_format
 
@@ -266,7 +266,7 @@ class PandasSQLTest(unittest.TestCase):
         self.pandasSQL.to_sql(self.test_frame1, 'test_frame_roundtrip')
         result = self.pandasSQL.read_sql('SELECT * FROM test_frame_roundtrip')
 
-        result.set_index('pandas_index', inplace=True)
+        result.set_index('level_0', inplace=True)
         # result.index.astype(int)
 
         result.index.name = None
@@ -391,7 +391,7 @@ class _TestSQLApi(PandasSQLTest):
 
         # HACK!
         result.index = self.test_frame1.index
-        result.set_index('pandas_index', inplace=True)
+        result.set_index('level_0', inplace=True)
         result.index.astype(int)
         result.index.name = None
         tm.assert_frame_equal(result, self.test_frame1)
@@ -476,10 +476,10 @@ class TestSQLApi(_TestSQLApi):
     def test_to_sql_index_label(self):
         temp_frame = DataFrame({'col1': range(4)})
 
-        # no index name, defaults to 'pandas_index'
+        # no index name, defaults to 'index'
         sql.to_sql(temp_frame, 'test_index_label', self.conn)
         frame = sql.read_table('test_index_label', self.conn)
-        self.assertEqual(frame.columns[0], 'pandas_index')
+        self.assertEqual(frame.columns[0], 'index')
 
         # specifying index_label
         sql.to_sql(temp_frame, 'test_index_label', self.conn,
@@ -489,11 +489,11 @@ class TestSQLApi(_TestSQLApi):
                          "Specified index_label not written to database")
 
         # using the index name
-        temp_frame.index.name = 'index'
+        temp_frame.index.name = 'index_name'
         sql.to_sql(temp_frame, 'test_index_label', self.conn,
                    if_exists='replace')
         frame = sql.read_table('test_index_label', self.conn)
-        self.assertEqual(frame.columns[0], 'index',
+        self.assertEqual(frame.columns[0], 'index_name',
                          "Index name not written to database")
 
         # has index name, but specifying index_label
@@ -502,6 +502,43 @@ class TestSQLApi(_TestSQLApi):
         frame = sql.read_table('test_index_label', self.conn)
         self.assertEqual(frame.columns[0], 'other_label',
                          "Specified index_label not written to database")
+
+    def test_to_sql_index_label_multiindex(self):
+        temp_frame = DataFrame({'col1': range(4)},
+            index=MultiIndex.from_product([('A0', 'A1'), ('B0', 'B1')]))
+        
+        # no index name, defaults to 'level_0' and 'level_1'
+        sql.to_sql(temp_frame, 'test_index_label', self.conn)
+        frame = sql.read_table('test_index_label', self.conn)
+        self.assertEqual(frame.columns[0], 'level_0')
+        self.assertEqual(frame.columns[1], 'level_1')
+
+        # specifying index_label
+        sql.to_sql(temp_frame, 'test_index_label', self.conn,
+                   if_exists='replace', index_label=['A', 'B'])
+        frame = sql.read_table('test_index_label', self.conn)
+        self.assertEqual(frame.columns[:2].tolist(), ['A', 'B'],
+                         "Specified index_labels not written to database")
+
+        # using the index name
+        temp_frame.index.names = ['A', 'B']
+        sql.to_sql(temp_frame, 'test_index_label', self.conn,
+                   if_exists='replace')
+        frame = sql.read_table('test_index_label', self.conn)
+        self.assertEqual(frame.columns[:2].tolist(), ['A', 'B'],
+                         "Index names not written to database")
+
+        # has index name, but specifying index_label
+        sql.to_sql(temp_frame, 'test_index_label', self.conn,
+                   if_exists='replace', index_label=['C', 'D'])
+        frame = sql.read_table('test_index_label', self.conn)
+        self.assertEqual(frame.columns[:2].tolist(), ['C', 'D'],
+                         "Specified index_labels not written to database")
+
+        # wrong length of index_label
+        self.assertRaises(ValueError, sql.to_sql, temp_frame,
+                          'test_index_label', self.conn, if_exists='replace',
+                          index_label='C')
 
     def test_read_table_columns(self):
         # test columns argument in read_table
@@ -565,6 +602,23 @@ class TestSQLLegacyApi(_TestSQLApi):
             conn.close()
 
         tm.assert_frame_equal(self.test_frame2, result)
+
+    def test_roundtrip(self):
+        # this test otherwise fails, Legacy mode still uses 'pandas_index'
+        # as default index column label
+        sql.to_sql(self.test_frame1, 'test_frame_roundtrip',
+                   con=self.conn, flavor='sqlite')
+        result = sql.read_sql(
+            'SELECT * FROM test_frame_roundtrip',
+            con=self.conn,
+            flavor='sqlite')
+
+        # HACK!
+        result.index = self.test_frame1.index
+        result.set_index('pandas_index', inplace=True)
+        result.index.astype(int)
+        result.index.name = None
+        tm.assert_frame_equal(result, self.test_frame1)
 
 
 class _TestSQLAlchemy(PandasSQLTest):
@@ -787,6 +841,16 @@ class TestSQLite(PandasSQLTest):
         self._load_iris_data()
 
         self._load_test1_data()
+
+    def _roundtrip(self):
+        # overwrite parent function (level_0 -> pandas_index in legacy mode)
+        self.drop_table('test_frame_roundtrip')
+        self.pandasSQL.to_sql(self.test_frame1, 'test_frame_roundtrip')
+        result = self.pandasSQL.read_sql('SELECT * FROM test_frame_roundtrip')
+        result.set_index('pandas_index', inplace=True)
+        result.index.name = None
+
+        tm.assert_frame_equal(result, self.test_frame1)
 
     def test_invalid_flavor(self):
         self.assertRaises(

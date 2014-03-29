@@ -439,19 +439,25 @@ class PandasSQLTable(PandasObject):
     def insert(self):
         ins = self.insert_statement()
         data_list = []
-        # to avoid if check for every row
-        keys = self.frame.columns
+
         if self.index is not None:
-            for t in self.frame.itertuples():
-                data = dict((k, self.maybe_asscalar(v))
-                            for k, v in zip(keys, t[1:]))
-                data[self.index] = self.maybe_asscalar(t[0])
-                data_list.append(data)
+            temp = self.frame.copy()
+            temp.index.names = self.index
+            try:
+                temp.reset_index(inplace=True)
+            except ValueError as err:
+                raise ValueError(
+                    "duplicate name in index/columns: {0}".format(err))
         else:
-            for t in self.frame.itertuples():
-                data = dict((k, self.maybe_asscalar(v))
-                            for k, v in zip(keys, t[1:]))
-                data_list.append(data)
+            temp = self.frame
+
+        keys = temp.columns
+
+        for t in temp.itertuples():
+            data = dict((k, self.maybe_asscalar(v))
+                        for k, v in zip(keys, t[1:]))
+            data_list.append(data)
+
         self.pd_sql.execute(ins, data_list)
 
     def read(self, coerce_float=True, parse_dates=None, columns=None):
@@ -486,12 +492,24 @@ class PandasSQLTable(PandasObject):
 
     def _index_name(self, index, index_label):
         if index is True:
+            nlevels = self.frame.index.nlevels
+            # if index_label is specified, set this as index name(s)
             if index_label is not None:
-                return _safe_col_name(index_label)
-            elif self.frame.index.name is not None:
-                return _safe_col_name(self.frame.index.name)
+                if not isinstance(index_label, list):
+                    index_label = [index_label]
+                if len(index_label) != nlevels:
+                    raise ValueError(
+                        "Length of 'index_label' should match number of "
+                        "levels, which is {0}".format(nlevels))
+                else:
+                    return index_label
+            # return the used column labels for the index columns
+            if nlevels == 1 and 'index' not in self.frame.columns and self.frame.index.name is None:
+                return ['index']
             else:
-                return self.prefix + '_index'
+                return [l if l is not None else "level_{0}".format(i)
+                        for i, l in enumerate(self.frame.index.names)]
+
         elif isinstance(index, string_types):
             return index
         else:
@@ -507,10 +525,10 @@ class PandasSQLTable(PandasObject):
                    for name, typ in zip(safe_columns, column_types)]
 
         if self.index is not None:
-            columns.insert(0, Column(self.index,
-                                     self._sqlalchemy_type(
-                                         self.frame.index),
-                                     index=True))
+            for i, idx_label in enumerate(self.index[::-1]):
+                idx_type = self._sqlalchemy_type(
+                    self.frame.index.get_level_values(i))
+                columns.insert(0, Column(idx_label, idx_type, index=True))
 
         return Table(self.name, self.pd_sql.meta, *columns)
 
@@ -787,6 +805,17 @@ class PandasSQLTableLegacy(PandasSQLTable):
             cur.execute(ins, tuple(data))
         cur.close()
         self.pd_sql.con.commit()
+
+    def _index_name(self, index, index_label):
+        if index is True:
+            if self.frame.index.name is not None:
+                return _safe_col_name(self.frame.index.name)
+            else:
+                return 'pandas_index'
+        elif isinstance(index, string_types):
+            return index
+        else:
+            return None
 
     def _create_table_statement(self):
         "Return a CREATE TABLE statement to suit the contents of a DataFrame."
