@@ -166,6 +166,12 @@ def test_downcast_conv():
         result = com._possibly_downcast_to_dtype(arr,'infer')
         tm.assert_almost_equal(result, expected)
 
+    # empties
+    for dtype in [np.int32,np.float64,np.float32,np.bool_,np.int64,object]:
+        arr = np.array([],dtype=dtype)
+        result = com._possibly_downcast_to_dtype(arr,'int64')
+        tm.assert_almost_equal(result, np.array([],dtype=np.int64))
+        assert result.dtype == np.int64
 
 def test_array_equivalent():
     assert array_equivalent(np.array([np.nan, np.nan]),
@@ -182,10 +188,10 @@ def test_array_equivalent():
                                 np.array([np.nan, 2, np.nan]))
     assert not array_equivalent(np.array(['a', 'b', 'c', 'd']), np.array(['e', 'e']))
     assert array_equivalent(Float64Index([0, np.nan]), Float64Index([0, np.nan]))
-    assert not array_equivalent(Float64Index([0, np.nan]), Float64Index([1, np.nan]))    
-    assert array_equivalent(DatetimeIndex([0, np.nan]), DatetimeIndex([0, np.nan]))    
+    assert not array_equivalent(Float64Index([0, np.nan]), Float64Index([1, np.nan]))
+    assert array_equivalent(DatetimeIndex([0, np.nan]), DatetimeIndex([0, np.nan]))
     assert not array_equivalent(DatetimeIndex([0, np.nan]), DatetimeIndex([1, np.nan]))
-    
+
 def test_datetimeindex_from_empty_datetime64_array():
     for unit in [ 'ms', 'us', 'ns' ]:
         idx = DatetimeIndex(np.array([], dtype='datetime64[%s]' % unit))
