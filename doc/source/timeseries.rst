@@ -546,6 +546,17 @@ calendars which account for local holidays and local weekend conventions.
     print(dts)
     print(Series(dts.weekday, dts).map(Series('Mon Tue Wed Thu Fri Sat Sun'.split())))
 
+As of v0.14 holiday calendars can be used to provide the list of holidays.  See the
+:ref:`holiday calendar<timeseries.holiday>` section for more information.
+
+.. ipython:: python
+
+    from pandas.tseries.holiday import USFederalHolidayCalendar
+    bday_us = CustomBusinessDay(calendar=USFederalHolidayCalendar())
+    dt = datetime(2014, 1, 17) #Friday before MLK Day
+    print(dt + bday_us) #Tuesday after MLK Day
+     
+
 .. note::
 
     The frequency string 'C' is used to indicate that a CustomBusinessDay
@@ -711,6 +722,42 @@ As you can see, legacy quarterly and annual frequencies are business quarter
 and business year ends. Please also note the legacy time rule for milliseconds
 ``ms`` versus the new offset alias for month start ``MS``. This means that
 offset alias parsing is case sensitive.
+
+.. _timeseries.holiday:
+
+Holidays / Holiday Calendars
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Holidays and calendars provide a simple way to define holiday rules to be used
+with ``CustomBusinessDay`` or in other analysis that requires a predefined
+set of holidays.  The ``AbstractHolidayCalendar`` class provides all the necessary methods
+to return a list of holidays and only the ``_rule_table`` needs to be defined
+in a specific holiday calendar class.
+
+Moreover, there are several observance functions that define how a fixed-date 
+holiday is observed.  For example, if Christmas falls on a weekend
+is may be observed on Friday if it falls on Saturday and Monday if it falls on 
+Sunday (``tseries.offsets.holiday.Nearest``) or only if it falls on Sunday
+is will be observed on Monday (``tseries.offsets.holiday.Sunday``).  Other rules
+can easily be specified.
+
+.. ipython:: python
+
+    from pandas.tseries.holiday import Holiday, USMemorialDay,\
+        AbstractHolidayCalendar, Nearest, MO
+    class ExampleCalendar(AbstractHolidayCalendar):
+        _rule_table = [
+            USMemorialDay,
+            Holiday('July 4th', month=7, day=4, observance=Nearest),
+            Holiday('Columbus Day', month=10, day=1, 
+                offset=DateOffset(weekday=MO(2))),
+            ]
+    cal = ExampleCalendar()
+    cal.holidays(datetime(2012, 1, 1), datetime(2012, 12, 31)) #holiday list
+    datetime(2012, 5, 25) + CustomBusinessDay(calendar=cal) #holiday arithmetic
+
+There are several defined US holidays in ``pandas.tseries.holiday`` along with
+several common holidays calendars.
 
 .. _timeseries.advanced_datetime:
 
