@@ -281,6 +281,7 @@ Bug Fixes
 - Bug in ``DataFrame.to_stata`` which incorrectly handles nan values and ignores 'with_index' keyword argument (:issue:`6685`)
 - Bug in resample with extra bins when using an evenly divisible frequency (:issue:`4076`)
 - Bug in consistency of groupby aggregation when passing a custom function (:issue:`6715`)
+- Bug in resample when ``how=None`` resample freq is the same as the axis frequency (:issue:`5955`)
 
 pandas 0.13.1
 -------------

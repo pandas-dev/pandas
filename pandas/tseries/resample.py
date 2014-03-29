@@ -246,7 +246,9 @@ class TimeGrouper(Grouper):
 
         # Determine if we're downsampling
         if axlabels.freq is not None or axlabels.inferred_freq is not None:
+
             if len(grouper.binlabels) < len(axlabels) or self.how is not None:
+                # downsample
                 grouped = obj.groupby(grouper, axis=self.axis)
                 result = grouped.aggregate(self._agg_method)
             else:
@@ -259,8 +261,15 @@ class TimeGrouper(Grouper):
                 else:
                     res_index = binner[:-1]
 
-                result = obj.reindex(res_index, method=self.fill_method,
-                                     limit=self.limit)
+                # if we have the same frequency as our axis, then we are equal sampling
+                # even if how is None
+                if self.fill_method is None and self.limit is None and to_offset(
+                    axlabels.inferred_freq) == self.freq:
+                    result = obj.copy()
+                    result.index = res_index
+                else:
+                    result = obj.reindex(res_index, method=self.fill_method,
+                                         limit=self.limit)
         else:
             # Irregular data, have to use groupby
             grouped = obj.groupby(grouper, axis=self.axis)
