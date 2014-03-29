@@ -91,6 +91,7 @@ API Changes
   - ``microsecond,nanosecond,qyear``
   - ``min(),max()``
   - ``pd.infer_freq()``
+
 - ``pd.infer_freq()`` will now raise a ``TypeError`` if given an invalid ``Series/Index``
   type (:issue:`6407`, :issue:`6463`)
 
@@ -99,12 +100,12 @@ API Changes
   (:issue:`5987`). For the :class:`~pandas.DataFrame` methods, two things have
   changed
 
-   - Column names are now given precedence over locals
-   - Local variables must be referred to explicitly. This means that even if
-     you have a local variable that is *not* a column you must still refer to
-     it with the ``'@'`` prefix.
-   - You can have an expression like ``df.query('@a < a')`` with no complaints
-     from ``pandas`` about ambiguity of the name ``a``.
+  - Column names are now given precedence over locals
+  - Local variables must be referred to explicitly. This means that even if
+    you have a local variable that is *not* a column you must still refer to
+    it with the ``'@'`` prefix.
+  - You can have an expression like ``df.query('@a < a')`` with no complaints
+    from ``pandas`` about ambiguity of the name ``a``.
 
 - The top-level :func:`pandas.eval` function does not allow you use the
   ``'@'`` prefix and provides you with an error message telling you so.
@@ -115,6 +116,7 @@ API Changes
   longer change type of the resulting index (:issue:`6440`).
 - ``set_index`` no longer converts MultiIndexes to an Index of tuples (:issue:`6459`).
 - Slicing with negative start, stop & step values handles corner cases better (:issue:`6531`):
+
   - ``df.iloc[:-len(df)]`` is now empty
   - ``df.iloc[len(df)::-1]`` now enumerates all elements in reverse
 
@@ -136,16 +138,15 @@ API Changes
 
 - Fix a bug where invalid eval/query operations would blow the stack (:issue:`5198`)
 
-- Following keywords are now acceptable for :meth:`DataFrame.plot(kind='bar')` and :meth:`DataFrame.plot(kind='barh')`.
+- Following keywords are now acceptable for :meth:`DataFrame.plot` with ``kind='bar'`` and ``kind='barh'``:
 
   - `width`: Specify the bar width. In previous versions, static value 0.5 was passed to matplotlib and it cannot be overwritten. (:issue:`6604`)
 
   - `align`: Specify the bar alignment. Default is `center` (different from matplotlib). In previous versions, pandas passes `align='edge'` to matplotlib and adjust the location to `center` by itself, and it results `align` keyword is not applied as expected. (:issue:`4525`)
 
-  - `position`: Specify relative alignments for bar plot layout. From 0 (left/bottom-end) to 1(right/top-end). Default is 0.5 (center). (:issue:`6604`)
+  - `position`: Specify relative alignments for bar plot layout. From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5 (center). (:issue:`6604`)
 
-- Define and document the order of column vs index names in query/eval
-    (:issue:`6676`)
+- Define and document the order of column vs index names in query/eval (:issue:`6676`)
 
 - ``DataFrame.sort`` now places NaNs at the beginning or end of the sort according to the ``na_position`` parameter. (:issue:`3917`)
 
