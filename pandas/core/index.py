@@ -1059,7 +1059,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
 
     def sym_diff(self, other, result_name=None):
         """
-        Compute the sorted symmetric_difference of two Index objects.
+        Compute the sorted symmetric difference of two Index objects.
 
         Parameters
         ----------
@@ -1077,7 +1077,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
         ``idx2`` but not both. Equivalent to the Index created by
         ``(idx1 - idx2) + (idx2 - idx1)`` with duplicates dropped.
 
-        The sorting of a result containing ``NaN``s is not guaranteed
+        The sorting of a result containing ``NaN`` values is not guaranteed
         across Python versions. See GitHub issue #6444.
 
         Examples
