@@ -2237,6 +2237,14 @@ class TestGroupBy(tm.TestCase):
         result = g[['v1','v2']].mean()
         assert_frame_equal(result,expected)
 
+
+    def test_groupby_dtype_inference_empty(self):
+        # GH 6733
+        df = DataFrame({'x': [], 'range': np.arange(0)})
+        result = df.groupby('x').first()
+        expected = DataFrame({'range' : Series([],index=Index([],name='x'),dtype='int64') })
+        assert_frame_equal(result,expected,by_blocks=True)
+
     def test_groupby_list_infer_array_like(self):
         result = self.df.groupby(list(self.df['A'])).mean()
         expected = self.df.groupby(self.df['A']).mean()
@@ -3862,20 +3870,20 @@ class TestGroupBy(tm.TestCase):
         result = _lexsort_indexer(keys, orders=True, na_position='last')
         expected = list(range(5, 105)) + list(range(5)) + list(range(105, 110))
         assert_equal(result, expected)
-        
+
         # orders=True, na_position='first'
         result = _lexsort_indexer(keys, orders=True, na_position='first')
         expected = list(range(5)) + list(range(105, 110)) + list(range(5, 105))
         assert_equal(result, expected)
-        
+
         # orders=False, na_position='last'
         result = _lexsort_indexer(keys, orders=False, na_position='last')
-        expected = list(range(104, 4, -1)) + list(range(5)) + list(range(105, 110)) 
+        expected = list(range(104, 4, -1)) + list(range(5)) + list(range(105, 110))
         assert_equal(result, expected)
-        
+
         # orders=False, na_position='first'
         result = _lexsort_indexer(keys, orders=False, na_position='first')
-        expected = list(range(5)) + list(range(105, 110)) + list(range(104, 4, -1)) 
+        expected = list(range(5)) + list(range(105, 110)) + list(range(104, 4, -1))
         assert_equal(result, expected)
 
     def test_nargsort(self):
@@ -3887,7 +3895,7 @@ class TestGroupBy(tm.TestCase):
         try:
             # GH 2785; due to a regression in NumPy1.6.2
             np.argsort(np.array([[1, 2], [1, 3], [1, 2]], dtype='i'))
-            np.argsort(items2, kind='mergesort') 
+            np.argsort(items2, kind='mergesort')
         except TypeError as err:
             raise nose.SkipTest('requested sort not available for type')
 
@@ -3898,7 +3906,7 @@ class TestGroupBy(tm.TestCase):
         # because quick and merge sort fall over to insertion sort for small
         # arrays."""
 
-        
+
         # mergesort, ascending=True, na_position='last'
         result = _nargsort(
             items, kind='mergesort', ascending=True, na_position='last')
