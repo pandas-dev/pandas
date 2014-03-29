@@ -1084,7 +1084,7 @@ def _possibly_downcast_to_dtype(result, dtype):
     or could be an astype of float64->float32
     """
 
-    if np.isscalar(result) or not len(result):
+    if np.isscalar(result):
         return result
 
     trans = lambda x: x
@@ -1114,14 +1114,18 @@ def _possibly_downcast_to_dtype(result, dtype):
 
     try:
 
-        # don't allow upcasts here
+        # don't allow upcasts here (except if empty)
         if dtype.kind == result.dtype.kind:
-            if result.dtype.itemsize <= dtype.itemsize:
+            if result.dtype.itemsize <= dtype.itemsize and np.prod(result.shape):
                 return result
 
         if issubclass(dtype.type, np.floating):
             return result.astype(dtype)
         elif dtype == np.bool_ or issubclass(dtype.type, np.integer):
+
+            # if we don't have any elements, just astype it
+            if not np.prod(result.shape):
+                return trans(result).astype(dtype)
 
             # do a test on the first element, if it fails then we are done
             r = result.ravel()
