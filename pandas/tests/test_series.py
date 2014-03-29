@@ -3805,84 +3805,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         self.assertRaises(ValueError, a.dot, b.T)
 
     def test_value_counts_nunique(self):
-        s = Series(['a', 'b', 'b', 'b', 'b', 'a', 'c', 'd', 'd', 'a'])
-        hist = s.value_counts()
-        expected = Series([4, 3, 2, 1], index=['b', 'a', 'd', 'c'])
-        assert_series_equal(hist, expected)
-
-        # don't sort, have to sort after the fact as not sorting is platform-dep
-        hist = s.value_counts(sort=False)
-        hist.sort()
-        expected = Series([3, 1, 4, 2], index=list('acbd'))
-        expected.sort()
-        assert_series_equal(hist, expected)
-
-        # sort ascending
-        hist = s.value_counts(ascending=True)
-        expected = Series([1, 2, 3, 4], index=list('cdab'))
-        assert_series_equal(hist, expected)
-
-        # relative histogram.
-        hist = s.value_counts(normalize=True)
-        expected = Series([.4, .3, .2, .1], index=['b', 'a', 'd', 'c'])
-        assert_series_equal(hist, expected)
-
-        self.assertEquals(s.nunique(), 4)
-
-        # bins
-        self.assertRaises(TypeError, lambda bins: s.value_counts(bins=bins), 1)
-
-        s1 = Series([1, 1, 2, 3])
-        res1 = s1.value_counts(bins=1)
-        exp1 = Series({0.998: 4})
-        assert_series_equal(res1, exp1)
-        res1n = s1.value_counts(bins=1, normalize=True)
-        exp1n = Series({0.998: 1.0})
-        assert_series_equal(res1n, exp1n)
-
-        res4 = s1.value_counts(bins=4)
-        exp4 = Series({0.998: 2, 1.5: 1, 2.0: 0, 2.5: 1}, index=[0.998, 2.5, 1.5, 2.0])
-        assert_series_equal(res4, exp4)
-        res4n = s1.value_counts(bins=4, normalize=True)
-        exp4n = Series({0.998: 0.5, 1.5: 0.25, 2.0: 0.0, 2.5: 0.25}, index=[0.998, 2.5, 1.5, 2.0])
-        assert_series_equal(res4n, exp4n)
-
-        # handle NA's properly
-        s[5:7] = np.nan
-        hist = s.value_counts()
-        expected = s.dropna().value_counts()
-        assert_series_equal(hist, expected)
-
-        s = Series({})
-        hist = s.value_counts()
-        expected = Series([], dtype=np.int64)
-        assert_series_equal(hist, expected)
-
-        # GH 3002, datetime64[ns]
-        import pandas as pd
-        f = StringIO(
-            "xxyyzz20100101PIE\nxxyyzz20100101GUM\nxxyyww20090101EGG\nfoofoo20080909PIE")
-        df = pd.read_fwf(f, widths=[6, 8, 3], names=[
-                         "person_id", "dt", "food"], parse_dates=["dt"])
-        s = df.dt.copy()
-        result = s.value_counts()
-        self.assertEqual(result.index.dtype, 'datetime64[ns]')
-
-        # with NaT
-        s = s.append(Series({4: pd.NaT}))
-        result = s.value_counts()
-        self.assertEqual(result.index.dtype, 'datetime64[ns]')
-
-        # timedelta64[ns]
-        from datetime import timedelta
-        td = df.dt - df.dt + timedelta(1)
-        td2 = timedelta(1) + (df.dt - df.dt)
-        result = td.value_counts()
-        result2 = td2.value_counts()
-        #self.assertEqual(result.index.dtype, 'timedelta64[ns]')
-        self.assertEqual(result.index.dtype, 'int64')
-        self.assertEqual(result2.index.dtype, 'int64')
-
+        
         # basics.rst doc example
         series = Series(np.random.randn(500))
         series[20:500] = np.nan
@@ -3909,25 +3832,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         result = s.unique()
         self.assertEqual(len(result), 2)
 
-        # integers
-        s = Series(np.random.randint(0, 100, size=100))
-        result = np.sort(s.unique())
-        expected = np.unique(s.values)
-        self.assert_numpy_array_equal(result, expected)
-
-        s = Series(np.random.randint(0, 100, size=100).astype(np.int32))
-        result = np.sort(s.unique())
-        expected = np.unique(s.values)
-        self.assert_numpy_array_equal(result, expected)
-
-        # test string arrays for coverage
-        strings = np.tile(np.array([tm.rands(10) for _ in range(10)]), 10)
-        result = np.sort(nanops.unique1d(strings))
-        expected = np.unique(strings)
-        self.assert_numpy_array_equal(result, expected)
-
         # decision about None
-
         s = Series([1, 2, 3, None, None, None], dtype=object)
         result = s.unique()
         expected = np.array([1, 2, 3, None], dtype=object)

@@ -1487,6 +1487,17 @@ class TestPeriodIndex(tm.TestCase):
         expected = ts[idx == 2007]
         assert_series_equal(result, expected)
 
+    def test_index_unique(self):
+        idx = PeriodIndex([2000, 2007, 2007, 2009, 2009], freq='A-JUN')
+        expected = PeriodIndex([2000, 2007, 2009], freq='A-JUN')
+        self.assert_numpy_array_equal(idx.unique(), expected.values)
+        self.assertEqual(idx.nunique(), 3)
+
+        idx = PeriodIndex([2000, 2007, 2007, 2009, 2007], freq='A-JUN', tz='US/Eastern')
+        expected = PeriodIndex([2000, 2007, 2009], freq='A-JUN', tz='US/Eastern')
+        self.assert_numpy_array_equal(idx.unique(), expected.values)
+        self.assertEqual(idx.nunique(), 3)
+
     def test_constructor(self):
         pi = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
         assert_equal(len(pi), 9)

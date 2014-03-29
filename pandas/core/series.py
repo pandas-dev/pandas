@@ -1091,34 +1091,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         return notnull(_values_from_object(self)).sum()
 
-    def value_counts(self, normalize=False, sort=True, ascending=False,
-                     bins=None):
-        """
-        Returns Series containing counts of unique values. The resulting Series
-        will be in descending order so that the first element is the most
-        frequently-occurring element. Excludes NA values
-
-        Parameters
-        ----------
-        normalize : boolean, default False
-            If True then the Series returned will contain the relative
-            frequencies of the unique values.
-        sort : boolean, default True
-            Sort by values
-        ascending : boolean, default False
-            Sort in ascending order
-        bins : integer, optional
-            Rather than count values, group them into half-open bins,
-            a convenience for pd.cut, only works with numeric data
-
-        Returns
-        -------
-        counts : Series
-        """
-        from pandas.core.algorithms import value_counts
-        return value_counts(self.values, sort=sort, ascending=ascending,
-                            normalize=normalize, bins=bins)
-
     def mode(self):
         """Returns the mode(s) of the dataset.
 
@@ -1138,27 +1110,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # TODO: Add option for bins like value_counts()
         from pandas.core.algorithms import mode
         return mode(self)
-
-    def unique(self):
-        """
-        Return array of unique values in the Series. Significantly faster than
-        numpy.unique
-
-        Returns
-        -------
-        uniques : ndarray
-        """
-        return nanops.unique1d(self.values)
-
-    def nunique(self):
-        """
-        Return count of unique elements in the Series
-
-        Returns
-        -------
-        nunique : int
-        """
-        return len(self.value_counts())
 
     def drop_duplicates(self, take_last=False, inplace=False):
         """

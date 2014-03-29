@@ -162,6 +162,8 @@ API Changes
   customizable by the ``inf_rep`` keyword argument (Excel has no native inf
   representation) (:issue:`6782`)
 
+- Added ``nunique`` and ``value_counts`` functions to ``Index`` for counting unique elements. (:issue:`6734`)
+
 Deprecations
 ~~~~~~~~~~~~
 

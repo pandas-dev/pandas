@@ -348,7 +348,6 @@ Computations / Descriptive Stats
    Series.median
    Series.min
    Series.mode
-   Series.nunique
    Series.pct_change
    Series.prod
    Series.quantile
@@ -356,8 +355,9 @@ Computations / Descriptive Stats
    Series.skew
    Series.std
    Series.sum
-   Series.unique
    Series.var
+   Series.unique
+   Series.nunique
    Series.value_counts
 
 Reindexing / Selection / Label manipulation
@@ -1053,6 +1053,8 @@ Modifying and Computations
    Index.repeat
    Index.set_names
    Index.unique
+   Index.nunique
+   Index.value_counts
 
 Conversion
 ~~~~~~~~~~
