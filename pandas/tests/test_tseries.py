@@ -275,8 +275,16 @@ def test_duplicated_with_nas():
     expected = [False, False, False, True, False, True]
     assert(np.array_equal(result, expected))
 
-    result = lib.duplicated(keys, take_last=True)
+    result = lib.duplicated(keys, keep='first')
+    expected = [False, False, False, True, False, True]
+    assert(np.array_equal(result, expected))
+
+    result = lib.duplicated(keys, keep='last')
     expected = [True, False, True, False, False, False]
+    assert(np.array_equal(result, expected))
+
+    result = lib.duplicated(keys, keep=False)
+    expected = [True, False, True, True, False, True]
     assert(np.array_equal(result, expected))
 
     keys = np.empty(8, dtype=object)
@@ -289,8 +297,12 @@ def test_duplicated_with_nas():
     expected = falses + trues
     assert(np.array_equal(result, expected))
 
-    result = lib.duplicated(keys, take_last=True)
+    result = lib.duplicated(keys, keep='last')
     expected = trues + falses
+    assert(np.array_equal(result, expected))
+
+    result = lib.duplicated(keys, keep=False)
+    expected = trues + trues
     assert(np.array_equal(result, expected))
 
 

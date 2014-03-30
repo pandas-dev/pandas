@@ -16,7 +16,7 @@ import pandas.index as _index
 from pandas.lib import Timestamp, Timedelta, is_datetime_array
 from pandas.core.base import PandasObject, FrozenList, FrozenNDArray, IndexOpsMixin, _shared_docs, PandasDelegate
 from pandas.util.decorators import (Appender, Substitution, cache_readonly,
-                                    deprecate)
+                                    deprecate, deprecate_kwarg)
 import pandas.core.common as com
 from pandas.core.common import (isnull, array_equivalent, is_dtype_equal, is_object_dtype,
                                 _values_from_object, is_float, is_integer, is_iterator, is_categorical_dtype,
@@ -2623,13 +2623,15 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = indexer[~mask]
         return self.delete(indexer)
 
+    @deprecate_kwarg('take_last', 'keep', mapping={True: 'last', False: 'first'})
     @Appender(_shared_docs['drop_duplicates'] % _index_doc_kwargs)
-    def drop_duplicates(self, take_last=False):
-        return super(Index, self).drop_duplicates(take_last=take_last)
+    def drop_duplicates(self, keep='first'):
+        return super(Index, self).drop_duplicates(keep=keep)
 
+    @deprecate_kwarg('take_last', 'keep', mapping={True: 'last', False: 'first'})
     @Appender(_shared_docs['duplicated'] % _index_doc_kwargs)
-    def duplicated(self, take_last=False):
-        return super(Index, self).duplicated(take_last=take_last)
+    def duplicated(self, keep='first'):
+        return super(Index, self).duplicated(keep=keep)
 
     def _evaluate_with_timedelta_like(self, other, op, opstr):
         raise TypeError("can only perform ops with timedelta like values")
@@ -3056,10 +3058,11 @@ class CategoricalIndex(Index, PandasDelegate):
     def is_unique(self):
         return not self.duplicated().any()
 
+    @deprecate_kwarg('take_last', 'keep', mapping={True: 'last', False: 'first'})
     @Appender(_shared_docs['duplicated'] % _index_doc_kwargs)
-    def duplicated(self, take_last=False):
+    def duplicated(self, keep='first'):
         from pandas.hashtable import duplicated_int64
-        return duplicated_int64(self.codes.astype('i8'), take_last)
+        return duplicated_int64(self.codes.astype('i8'), keep)
 
     def get_loc(self, key, method=None):
         """
@@ -4219,15 +4222,16 @@ class MultiIndex(Index):
     def is_unique(self):
         return not self.duplicated().any()
 
+    @deprecate_kwarg('take_last', 'keep', mapping={True: 'last', False: 'first'})
     @Appender(_shared_docs['duplicated'] % _index_doc_kwargs)
-    def duplicated(self, take_last=False):
+    def duplicated(self, keep='first'):
         from pandas.core.groupby import get_group_index
         from pandas.hashtable import duplicated_int64
 
         shape = map(len, self.levels)
         ids = get_group_index(self.labels, shape, sort=False, xnull=False)
 
-        return duplicated_int64(ids, take_last)
+        return duplicated_int64(ids, keep)
 
     def get_value(self, series, key):
         # somewhat broken encapsulation
