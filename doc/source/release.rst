@@ -106,10 +106,10 @@ API Changes
     it with the ``'@'`` prefix.
   - You can have an expression like ``df.query('@a < a')`` with no complaints
     from ``pandas`` about ambiguity of the name ``a``.
+  - The top-level :func:`pandas.eval` function does not allow you use the
+    ``'@'`` prefix and provides you with an error message telling you so.
+  - ``NameResolutionError`` was removed because it isn't necessary anymore.
 
-- The top-level :func:`pandas.eval` function does not allow you use the
-  ``'@'`` prefix and provides you with an error message telling you so.
-- ``NameResolutionError`` was removed because it isn't necessary anymore.
 - ``concat`` will now concatenate mixed Series and DataFrames using the Series name
   or numbering columns as needed (:issue:`2385`)
 - Slicing and advanced/boolean indexing operations on ``Index`` classes will no
@@ -194,7 +194,7 @@ Improvements to existing features
 - Support passing ``encoding`` with xlwt (:issue:`3710`)
 - Performance improvement when converting ``DatetimeIndex`` to floating ordinals
   using ``DatetimeConverter`` (:issue:`6636`)
-- Performance improvement for  ``DataFrame.shift`` (:issue: `5609`)
+- Performance improvement for  ``DataFrame.shift`` (:issue:`5609`)
 
 .. _release.bug_fixes-0.14.0:
 
