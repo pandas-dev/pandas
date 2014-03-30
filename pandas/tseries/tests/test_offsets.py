@@ -99,7 +99,7 @@ class TestBase(tm.TestCase):
 
     def test_apply_out_of_range(self):
         if self._offset is None:
-            raise nose.SkipTest("_offset not defined")
+            raise nose.SkipTest("_offset not defined to test out-of-range")
 
         # try to create an out-of-bounds result timestamp; if we can't create the offset
         # skip
@@ -112,6 +112,17 @@ class TestBase(tm.TestCase):
             raise
         except (ValueError, KeyError):
             raise nose.SkipTest("cannot create out_of_range offset")
+
+    def test_return_type(self):
+
+        # make sure that we are returning a Timestamp
+        try:
+            offset = self._offset(1)
+        except:
+            raise nose.SkipTest("_offset not defined to test return_type")
+
+        result = Timestamp('20080101') + offset
+        self.assertIsInstance(result, Timestamp)
 
 class TestDateOffset(TestBase):
     _multiprocess_can_split_ = True

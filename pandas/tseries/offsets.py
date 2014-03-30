@@ -472,9 +472,9 @@ class CustomBusinessDay(BusinessDay):
             kwargs = {'weekmask':self.weekmask,'holidays':self.holidays}
         else:
             kwargs = {'weekmask':self.weekmask}
-        try: 
+        try:
             self.busdaycalendar = np.busdaycalendar(**kwargs)
-        except: 
+        except:
             # Check we have the required numpy version
             from distutils.version import LooseVersion
 
@@ -484,9 +484,9 @@ class CustomBusinessDay(BusinessDay):
                                           np.__version__)
             else:
                 raise
-            
+
     def __getstate__(self):
-        """"Return a pickleable state"""
+        """Return a pickleable state"""
         state = self.__dict__.copy()
         del state['busdaycalendar']
         return state
@@ -520,7 +520,7 @@ class CustomBusinessDay(BusinessDay):
             if self.offset:
                 result = result + self.offset
 
-            return result
+            return as_timestamp(result)
 
         elif isinstance(other, np.datetime64):
             dtype = other.dtype
@@ -539,7 +539,7 @@ class CustomBusinessDay(BusinessDay):
             if self.offset:
                 result = result + self.offset
 
-            return result
+            return as_timestamp(result)
 
         elif isinstance(other, (timedelta, Tick)):
             return BDay(self.n, offset=self.offset + other,
@@ -639,7 +639,7 @@ class BusinessMonthEnd(MonthOffset):
 
         if other.weekday() > 4:
             other = other - BDay()
-        return other
+        return as_timestamp(other)
 
     _prefix = 'BM'
 
@@ -706,7 +706,7 @@ class Week(DateOffset):
 
     def apply(self, other):
         if self.weekday is None:
-            return as_datetime(other) + self.n * self._inc
+            return as_timestamp(as_datetime(other) + self.n * self._inc)
 
         if self.n > 0:
             k = self.n
@@ -998,7 +998,7 @@ class BQuarterEnd(QuarterOffset):
         if other.weekday() > 4:
             other = other - BDay()
 
-        return other
+        return as_timestamp(other)
 
     def onOffset(self, dt):
         modMonth = (dt.month - self.startingMonth) % 3
@@ -1188,7 +1188,7 @@ class BYearEnd(YearOffset):
         if result.weekday() > 4:
             result = result - BDay()
 
-        return result
+        return as_timestamp(result)
 
 
 class BYearBegin(YearOffset):
