@@ -8,6 +8,7 @@ import pandas.compat as compat
 import re
 import pandas.lib as lib
 import warnings
+import textwrap
 
 
 def _get_array_list(arr, others):
@@ -710,20 +711,64 @@ def str_rstrip(arr, to_strip=None):
     return _na_map(lambda x: x.rstrip(to_strip), arr)
 
 
-def str_wrap(arr, width=80):
+def str_wrap(arr, **kwargs):
     """
     Wrap long strings to be formatted in paragraphs
 
     Parameters
     ----------
-    width : int
-        Maximum line-width
+    Same keyword parameters as textwrap.TextWrapper
+    width : int, optional
+        Maximum line-width (default: 70)
+    expand_tabs: bool, optional
+        If true, tab characters will be expanded to spaces (default: False)
+    replace_whitespace: bool, optional
+        If true, each whitespace character (as defined by string.whitespace) remaining
+        after tab expansion will be replaced by a single space (default: True)
+    drop_whitespace: bool, optional
+        If true, whitespace that, after wrapping, happens to end up at the beginning
+        or end of a line is dropped (default: True)
+    break_long_words: bool, optional
+        If true, then words longer than width will be broken in order to ensure that
+        no lines are longer than width. If it is false, long words will not be broken,
+        and some lines may be longer than width. (default: True)
+    break_on_hyphens: bool, optional
+        If true, wrapping will occur preferably on whitespace and right after hyphens
+        in compound words, as it is customary in English. If false, only whitespaces
+        will be considered as potentially good places for line breaks, but you need
+        to set break_long_words to false if you want truly insecable words.
+        (default: False)
 
     Returns
     -------
     wrapped : array
+
+    Notes
+    -----
+    Internally, this method uses a textwrap.TextWrapper instance configured to match R's stringr
+    library str_wrap function. Unless overwritten using kwargs, the instance has expand_tabs=False,
+    replace_whitespace=True, drop_whitespace=True, break_long_words=False, and
+    break_on_hyphens=False. Since R's stringr str_wrap treats the line width as an exclusive
+    value, the instance is configured with width=user-supplied width - 1.
+
+    Examples
+    --------
+
+    >>> str_wrap(Series(['line to be wrapped', 'another line to be wrapped']), width=12)
+    Series(['line to be\nwrapped', 'another\nline to be\nwrapped'])
     """
-    raise NotImplementedError
+    textwrap_args = {'width': 69, 'expand_tabs': False, 'replace_whitespace': True,
+                     'drop_whitespace': True, 'break_long_words': False,
+                     'break_on_hyphens': False}
+
+    textwrap_args.update(kwargs)
+
+    if 'width' in kwargs:
+        textwrap_args['width'] -= 1  # change width to 'exclusive' width
+
+    tw = textwrap.TextWrapper(**textwrap_args)
+
+    return _na_map(lambda s: '\n'.join(tw.wrap(s)), arr)
 
 
 def str_get(arr, i):
@@ -946,6 +991,11 @@ class StringMethods(object):
     @copy(str_rstrip)
     def rstrip(self, to_strip=None):
         result = str_rstrip(self.series, to_strip)
+        return self._wrap_result(result)
+
+    @copy(str_wrap)
+    def wrap(self, **kwargs):
+        result = str_wrap(self.series, **kwargs)
         return self._wrap_result(result)
 
     @copy(str_get_dummies)
