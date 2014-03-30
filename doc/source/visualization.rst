@@ -261,7 +261,7 @@ bar plot:
 .. ipython:: python
    :suppress:
 
-   plt.figure();
+   plt.figure()
 
 .. ipython:: python
 
@@ -275,7 +275,7 @@ To produce a stacked bar plot, pass ``stacked=True``:
 .. ipython:: python
    :suppress:
 
-   plt.figure();
+   plt.figure()
 
 .. ipython:: python
 
@@ -287,7 +287,7 @@ To get horizontal bar plots, pass ``kind='barh'``:
 .. ipython:: python
    :suppress:
 
-   plt.figure();
+   plt.figure()
 
 .. ipython:: python
 
@@ -320,7 +320,7 @@ New since 0.10.0, the ``by`` keyword can be specified to plot grouped histograms
 .. ipython:: python
    :suppress:
 
-   plt.figure();
+   plt.figure()
 
 .. ipython:: python
 
@@ -434,12 +434,12 @@ Scatter plot matrix
 .. _visualization.kde:
 
 *New in 0.8.0* You can create density plots using the Series/DataFrame.plot and
-setting `kind='kde'`:
+setting ``kind='kde'``:
 
 .. ipython:: python
    :suppress:
 
-   plt.figure();
+   plt.figure()
 
 .. ipython:: python
 
@@ -460,7 +460,7 @@ too dense to plot each point individually.
 .. ipython:: python
    :suppress:
 
-   plt.figure();
+   plt.figure()
 
 .. ipython:: python
 
@@ -486,7 +486,7 @@ given by column ``z``. The bins are aggregated with numpy's ``max`` function.
 .. ipython:: python
    :suppress:
 
-   plt.figure();
+   plt.figure()
 
 .. ipython:: python
 
