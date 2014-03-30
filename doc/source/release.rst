@@ -152,6 +152,7 @@ API Changes
 
 - all offset operations now return ``Timestamp`` types (rather than datetime), Business/Week frequencies were incorrect (:issue:`4069`)
 
+
 Deprecations
 ~~~~~~~~~~~~
 
@@ -297,6 +298,7 @@ Bug Fixes
 - Bug in resample when ``how=None`` resample freq is the same as the axis frequency (:issue:`5955`)
 - Bug in downcasting inference with empty arrays (:issue:`6733`)
 - Bug in ``obj.blocks`` on sparse containers dropping all but the last items of same for dtype (:issue:`6748`)
+- Bug in unpickling ``NaT (NaTType)`` (:issue:`4606`)
 
 pandas 0.13.1
 -------------
