@@ -155,6 +155,8 @@ API Changes
 
 - ``DataFrame.sort`` now places NaNs at the beginning or end of the sort according to the ``na_position`` parameter. (:issue:`3917`)
 
+- all offset operations now return ``Timestamp`` types (rather than datetime), Business/Week frequencies were incorrect (:issue:`4069`)
+
 Deprecations
 ~~~~~~~~~~~~
 
