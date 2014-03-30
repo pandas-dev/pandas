@@ -95,6 +95,24 @@ SQL_STRINGS = {
                 INSERT INTO types_test_data
                 VALUES(%s, %s, %s, %s, %s, %s, %s, %s)
                 """
+    },
+    'read_parameters': {
+        'sqlite': "SELECT * FROM iris WHERE Name=? AND SepalLength=?",
+        'mysql': 'SELECT * FROM iris WHERE `Name`="%s" AND `SepalLength`=%s',
+        'postgresql': 'SELECT * FROM iris WHERE "Name"=%s AND "SepalLength"=%s'
+    },
+    'read_named_parameters': {
+        'sqlite': """
+                SELECT * FROM iris WHERE Name=:name AND SepalLength=:length
+                """,
+        'mysql': """
+                SELECT * FROM iris WHERE
+                `Name`="%(name)s" AND `SepalLength`=%(length)s
+                """,
+        'postgresql': """
+                SELECT * FROM iris WHERE
+                "Name"=%(name)s AND "SepalLength"=%(length)s
+                """
     }
 }
 
@@ -166,6 +184,18 @@ class PandasSQLTest(unittest.TestCase):
 
     def _read_sql_iris(self):
         iris_frame = self.pandasSQL.read_sql("SELECT * FROM iris")
+        self._check_iris_loaded_frame(iris_frame)
+
+    def _read_sql_iris_parameter(self):
+        query = SQL_STRINGS['read_parameters'][self.flavor]
+        params = ['Iris-setosa', 5.1]
+        iris_frame = self.pandasSQL.read_sql(query, params=params)
+        self._check_iris_loaded_frame(iris_frame)
+
+    def _read_sql_iris_named_parameter(self):
+        query = SQL_STRINGS['read_named_parameters'][self.flavor]
+        params = {'name': 'Iris-setosa', 'length': 5.1}
+        iris_frame = self.pandasSQL.read_sql(query, params=params)
         self._check_iris_loaded_frame(iris_frame)
 
     def _to_sql(self):
@@ -491,6 +521,12 @@ class _TestSQLAlchemy(PandasSQLTest):
     def test_read_sql(self):
         self._read_sql_iris()
 
+    def test_read_sql_parameter(self):
+        self._read_sql_iris_parameter()
+
+    def test_read_sql_named_parameter(self):
+        self._read_sql_iris_named_parameter()
+
     def test_to_sql(self):
         self._to_sql()
 
@@ -702,6 +738,12 @@ class TestSQLite(PandasSQLTest):
 
     def test_read_sql(self):
         self._read_sql_iris()
+
+    def test_read_sql_parameter(self):
+        self._read_sql_iris_parameter()
+
+    def test_read_sql_named_parameter(self):
+        self._read_sql_iris_named_parameter()
 
     def test_to_sql(self):
         self._to_sql()
