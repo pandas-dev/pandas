@@ -2240,7 +2240,7 @@ class TestGroupBy(tm.TestCase):
 
     def test_groupby_dtype_inference_empty(self):
         # GH 6733
-        df = DataFrame({'x': [], 'range': np.arange(0)})
+        df = DataFrame({'x': [], 'range': np.arange(0,dtype='int64')})
         result = df.groupby('x').first()
         expected = DataFrame({'range' : Series([],index=Index([],name='x'),dtype='int64') })
         assert_frame_equal(result,expected,by_blocks=True)
