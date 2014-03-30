@@ -187,6 +187,21 @@ class TestValueCounts(tm.TestCase):
 
         self.assertRaises(TypeError, lambda s: algos.value_counts(s, bins=1), ['1', 1])
 
+    def test_value_counts_base(self):
+        x = [1, 3, 3, 3, 2, 2, 7]
+        y = [3, 2, 5]
+        res = algos.value_counts(x, base=y, sort=False)
+        exp = Series([3, 2, 0], y)
+        tm.assert_series_equal(res, exp)
+        
+        res = algos.value_counts(x, base=y, sort=True)
+        tm.assert_series_equal(res, exp.reindex([3, 2, 5]))
+
+        res = algos.value_counts(x, base=y, sort=False, normalize=True)
+        exp = Series([0.42857142857142855, 0.2857142857142857, 0.0], [3, 2, 5])
+        # Note: this *doesnt* sum to 1 (intentionally)
+        tm.assert_series_equal(res, exp)
+
 
 def test_quantile():
     s = Series(np.random.randn(100))
