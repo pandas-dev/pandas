@@ -2866,8 +2866,9 @@ class DataFrame(NDFrame):
         else:
             return result
 
+    @deprecate_kwarg('take_last', 'keep', mapping={True: 'last', False: 'first'})
     @deprecate_kwarg(old_arg_name='cols', new_arg_name='subset')
-    def drop_duplicates(self, subset=None, take_last=False, inplace=False):
+    def drop_duplicates(self, subset=None, keep='first', inplace=False):
         """
         Return DataFrame with duplicate rows removed, optionally only
         considering certain columns
@@ -2877,8 +2878,11 @@ class DataFrame(NDFrame):
         subset : column label or sequence of labels, optional
             Only consider certain columns for identifying duplicates, by
             default use all of the columns
-        take_last : boolean, default False
-            Take the last observed row in a row. Defaults to the first row
+        keep : {'first', 'last', False}, default 'first'
+            - ``first`` : Drop duplicates except for the first occurrence.
+            - ``last`` : Drop duplicates except for the last occurrence.
+            - False : Drop all duplicates.
+        take_last : deprecated
         inplace : boolean, default False
             Whether to drop duplicates in place or to return a copy
         cols : kwargs only argument of subset [deprecated]
@@ -2887,7 +2891,7 @@ class DataFrame(NDFrame):
         -------
         deduplicated : DataFrame
         """
-        duplicated = self.duplicated(subset, take_last=take_last)
+        duplicated = self.duplicated(subset, keep=keep)
 
         if inplace:
             inds, = (-duplicated).nonzero()
@@ -2896,8 +2900,9 @@ class DataFrame(NDFrame):
         else:
             return self[-duplicated]
 
+    @deprecate_kwarg('take_last', 'keep', mapping={True: 'last', False: 'first'})
     @deprecate_kwarg(old_arg_name='cols', new_arg_name='subset')
-    def duplicated(self, subset=None, take_last=False):
+    def duplicated(self, subset=None, keep='first'):
         """
         Return boolean Series denoting duplicate rows, optionally only
         considering certain columns
@@ -2907,9 +2912,13 @@ class DataFrame(NDFrame):
         subset : column label or sequence of labels, optional
             Only consider certain columns for identifying duplicates, by
             default use all of the columns
-        take_last : boolean, default False
-            For a set of distinct duplicate rows, flag all but the last row as
-            duplicated. Default is for all but the first row to be flagged
+        keep : {'first', 'last', False}, default 'first'
+            - ``first`` : Mark duplicates as ``True`` except for the
+              first occurrence.
+            - ``last`` : Mark duplicates as ``True`` except for the
+              last occurrence.
+            - False : Mark all duplicates as ``True``.
+        take_last : deprecated
         cols : kwargs only argument of subset [deprecated]
 
         Returns
@@ -2935,7 +2944,7 @@ class DataFrame(NDFrame):
         labels, shape = map(list, zip( * map(f, vals)))
 
         ids = get_group_index(labels, shape, sort=False, xnull=False)
-        return Series(duplicated_int64(ids, take_last), index=self.index)
+        return Series(duplicated_int64(ids, keep), index=self.index)
 
     #----------------------------------------------------------------------
     # Sorting

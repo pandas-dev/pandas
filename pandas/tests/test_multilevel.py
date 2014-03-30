@@ -2136,6 +2136,21 @@ Thur,Lunch,Yes,51.51,17"""
         tm.assert_index_equal(idx.drop_duplicates(), expected)
 
         expected = np.array([True, False, False, False, False, False])
+        duplicated = idx.duplicated(keep='last')
+        tm.assert_numpy_array_equal(duplicated, expected)
+        self.assertTrue(duplicated.dtype == bool)
+        expected = MultiIndex.from_arrays(([2, 3, 1, 2 ,3], [1, 1, 1, 2, 2]))
+        tm.assert_index_equal(idx.drop_duplicates(keep='last'), expected)
+
+        expected = np.array([True, False, False, True, False, False])
+        duplicated = idx.duplicated(keep=False)
+        tm.assert_numpy_array_equal(duplicated, expected)
+        self.assertTrue(duplicated.dtype == bool)
+        expected = MultiIndex.from_arrays(([2, 3, 2 ,3], [1, 1, 2, 2]))
+        tm.assert_index_equal(idx.drop_duplicates(keep=False), expected)
+
+        # deprecate take_last
+        expected = np.array([True, False, False, False, False, False])
         duplicated = idx.duplicated(take_last=True)
         tm.assert_numpy_array_equal(duplicated, expected)
         self.assertTrue(duplicated.dtype == bool)
