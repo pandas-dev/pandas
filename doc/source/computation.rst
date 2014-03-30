@@ -115,7 +115,7 @@ All of these are currently computed using pairwise complete observations.
 .. note::
 
     Please see the :ref:`caveats <computation.covariance.caveats>` associated
-    with this method of calculating correlation matrices in the 
+    with this method of calculating correlation matrices in the
     :ref:`covariance section <computation.covariance>`.
 
 .. ipython:: python
@@ -228,7 +228,6 @@ otherwise they can be found in :mod:`pandas.stats.moments`.
     ``rolling_apply``, Generic apply
     ``rolling_cov``, Unbiased covariance (binary)
     ``rolling_corr``, Correlation (binary)
-    ``rolling_corr_pairwise``, Pairwise correlation of DataFrame columns
     ``rolling_window``, Moving window function
 
 Generally these methods all have the same interface. The binary operators
@@ -392,7 +391,7 @@ can even be omitted:
    correls[df.index[-50]]
 
 .. note::
-    
+
     Prior to version 0.14 this was available through ``rolling_corr_pairwise``
     which is now simply syntactic sugar for calling ``rolling_corr(...,
     pairwise=True)`` and deprecated. This is likely to be removed in a future
@@ -445,7 +444,6 @@ Like the ``rolling_`` functions, the following methods are included in the
     ``expanding_apply``, Generic apply
     ``expanding_cov``, Unbiased covariance (binary)
     ``expanding_corr``, Correlation (binary)
-    ``expanding_corr_pairwise``, Pairwise correlation of DataFrame columns
 
 Aside from not having a ``window`` parameter, these functions have the same
 interfaces as their ``rolling_`` counterpart. Like above, the parameters they
@@ -511,7 +509,7 @@ directly, it's easier to think about either the **span**, **center of mass
     \end{cases}
 
 .. note::
-  
+
   the equation above is sometimes written in the form
 
   .. math::
@@ -524,7 +522,7 @@ You can pass one of the three to these functions but not more. **Span**
 corresponds to what is commonly called a "20-day EW moving average" for
 example. **Center of mass** has a more physical interpretation. For example,
 **span** = 20 corresponds to **com** = 9.5. **Halflife** is the period of
-time for the exponential weight to reduce to one half. Here is the list of 
+time for the exponential weight to reduce to one half. Here is the list of
 functions available:
 
 .. csv-table::

@@ -18,7 +18,7 @@ API changes
 
 - ``read_excel`` uses 0 as the default sheet (:issue:`6573`)
 - ``iloc`` will now accept out-of-bounds indexers for slices, e.g. a value that exceeds the length of the object being
-  indexed. These will be excluded. This will make pandas conform more with pandas/numpy indexing of out-of-bounds
+  indexed. These will be excluded. This will make pandas conform more with python/numpy indexing of out-of-bounds
   values. A single indexer / list of indexers that is out-of-bounds will still raise
   ``IndexError`` (:issue:`6296`, :issue:`6299`). This could result in an empty axis (e.g. an empty DataFrame being returned)
 
@@ -108,10 +108,10 @@ API changes
     it with the ``'@'`` prefix.
   - You can have an expression like ``df.query('@a < a')`` with no complaints
     from ``pandas`` about ambiguity of the name ``a``.
+  - The top-level :func:`pandas.eval` function does not allow you use the
+    ``'@'`` prefix and provides you with an error message telling you so.
+  - ``NameResolutionError`` was removed because it isn't necessary anymore.
 
-- The top-level :func:`pandas.eval` function does not allow you use the
-  ``'@'`` prefix and provides you with an error message telling you so.
-- ``NameResolutionError`` was removed because it isn't necessary anymore.
 - ``concat`` will now concatenate mixed Series and DataFrames using the Series name
   or numbering columns as needed (:issue:`2385`). See :ref:`the docs <merging.mixed_ndims>`
 - Slicing and advanced/boolean indexing operations on ``Index`` classes will no
@@ -181,7 +181,7 @@ API changes
 
   - `position`: Specify relative alignments for bar plot layout. From 0 (left/bottom-end) to 1(right/top-end). Default is 0.5 (center). (:issue:`6604`)
 
-  Because of the default `align` value changes, coordinates of bar plots are now located on integer values (0.0, 1.0, 2.0 ...). This is intended to make bar plot be located on the same coodinates as line plot. However, bar plot may differs unexpectedly when you manually adjust the bar location or drawing area, such as using `set_xlim`, `set_ylim`, etc. In this cases, please modify your script to meet with new coordinates. 
+  Because of the default `align` value changes, coordinates of bar plots are now located on integer values (0.0, 1.0, 2.0 ...). This is intended to make bar plot be located on the same coodinates as line plot. However, bar plot may differs unexpectedly when you manually adjust the bar location or drawing area, such as using `set_xlim`, `set_ylim`, etc. In this cases, please modify your script to meet with new coordinates.
 
 - ``pairwise`` keyword was added to the statistical moment functions
   ``rolling_cov``, ``rolling_corr``, ``ewmcov``, ``ewmcorr``,
@@ -191,7 +191,7 @@ API changes
   <stats.moments.corr_pairwise>` in the docs.
 
   .. ipython:: python
-  
+
     df = DataFrame(np.random.randn(10,4),columns=list('ABCD'))
     covs = rolling_cov(df[['A','B','C']], df[['B','C','D']], 5, pairwise=True)
     covs[df.index[-1]]
@@ -347,11 +347,10 @@ Enhancements
 ~~~~~~~~~~~~
 
 - ``DataFrame.to_latex`` now takes a longtable keyword, which if True will return a table in a longtable environment. (:issue:`6617`)
-- pd.read_clipboard will, if 'sep' is unspecified, try to detect data copied from a spreadsheet
+- ``pd.read_clipboard`` will, if 'sep' is unspecified, try to detect data copied from a spreadsheet
   and parse accordingly. (:issue:`6223`)
 - ``plot(legend='reverse')`` will now reverse the order of legend labels for
   most plot kinds. (:issue:`6014`)
-- improve performance of slice indexing on Series with string keys (:issue:`6341`, :issue:`6372`)
 - Hexagonal bin plots from ``DataFrame.plot`` with ``kind='hexbin'`` (:issue:`5478`)
 - Joining a singly-indexed DataFrame with a multi-indexed DataFrame (:issue:`3662`)
 
@@ -388,13 +387,14 @@ Enhancements
   and data_label which allow the time stamp and dataset label to be set when creating a
   file. (:issue:`6545`)
 - ``pandas.io.gbq`` now handles reading unicode strings properly. (:issue:`5940`)
-- Improve performance of ``CustomBusinessDay`` (:issue:`6584`)
 
 Performance
 ~~~~~~~~~~~
 
 - perf improvements in DataFrame construction with certain offsets, by removing faulty caching
   (e.g. MonthEnd,BusinessMonthEnd), (:issue:`6479`)
+- Improve performance of ``CustomBusinessDay`` (:issue:`6584`)
+- improve performance of slice indexing on Series with string keys (:issue:`6341`, :issue:`6372`)
 
 Experimental
 ~~~~~~~~~~~~
