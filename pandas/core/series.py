@@ -46,7 +46,7 @@ import pandas.core.common as com
 import pandas.core.datetools as datetools
 import pandas.core.format as fmt
 import pandas.core.nanops as nanops
-from pandas.util.decorators import Appender, cache_readonly
+from pandas.util.decorators import Appender, cache_readonly, deprecate_kwarg
 
 import pandas.lib as lib
 import pandas.tslib as tslib
@@ -1155,14 +1155,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         from pandas.core.algorithms import mode
         return mode(self)
 
+    @deprecate_kwarg('take_last', 'keep', mapping={True: 'last', False: 'first'})
     @Appender(base._shared_docs['drop_duplicates'] % _shared_doc_kwargs)
-    def drop_duplicates(self, take_last=False, inplace=False):
-        return super(Series, self).drop_duplicates(take_last=take_last,
-                                                   inplace=inplace)
+    def drop_duplicates(self, keep='first', inplace=False):
+        return super(Series, self).drop_duplicates(keep=keep, inplace=inplace)
 
+    @deprecate_kwarg('take_last', 'keep', mapping={True: 'last', False: 'first'})
     @Appender(base._shared_docs['duplicated'] % _shared_doc_kwargs)
-    def duplicated(self, take_last=False):
-        return super(Series, self).duplicated(take_last=take_last)
+    def duplicated(self, keep='first'):
+        return super(Series, self).duplicated(keep=keep)
 
     def idxmin(self, axis=None, out=None, skipna=True):
         """
