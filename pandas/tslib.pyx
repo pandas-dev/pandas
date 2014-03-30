@@ -444,6 +444,9 @@ class NaTType(_NaT):
     def toordinal(self):
         return -1
 
+    def __reduce__(self):
+        return (__nat_unpickle, (None, ))
+
 fields = ['year', 'quarter', 'month', 'day', 'hour',
           'minute', 'second', 'microsecond', 'nanosecond',
           'week', 'dayofyear']
@@ -451,6 +454,9 @@ for field in fields:
     prop = property(fget=lambda self: -1)
     setattr(NaTType, field, prop)
 
+def __nat_unpickle(*args):
+    # return constant defined in the module
+    return NaT
 
 NaT = NaTType()
 

@@ -1802,6 +1802,21 @@ class TestTimeSeries(tm.TestCase):
         expected = pd.Series(1, index=expected_index)
         assert_series_equal(result, expected)
 
+    def test_pickle(self):
+        #GH4606
+        from pandas.compat import cPickle
+        import pickle
+
+        for pick in [pickle, cPickle]:
+            p = pick.loads(pick.dumps(NaT))
+            self.assertTrue(p is NaT)
+
+            idx = pd.to_datetime(['2013-01-01', NaT, '2014-01-06'])
+            idx_p = pick.loads(pick.dumps(idx))
+            self.assertTrue(idx_p[0] == idx[0])
+            self.assertTrue(idx_p[1] is NaT)
+            self.assertTrue(idx_p[2] == idx[2])
+
 
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
