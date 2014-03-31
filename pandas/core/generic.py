@@ -2003,7 +2003,7 @@ class NDFrame(PandasObject):
         return Series(self._data.get_ftypes(), index=self._info_axis,
                       dtype=np.object_)
 
-    def as_blocks(self, columns=None):
+    def as_blocks(self):
         """
         Convert the frame to a dict of dtype -> Constructor Types that each has
         a homogeneous dtype.
@@ -2025,12 +2025,18 @@ class NDFrame(PandasObject):
         """
         self._consolidate_inplace()
 
-        bd = dict()
+        bd = {}
         for b in self._data.blocks:
-            b = b.reindex_items_from(columns or b.items)
-            bd[str(b.dtype)] = self._constructor(
-                BlockManager([b], [b.items, self.index])).__finalize__(self)
-        return bd
+            bd.setdefault(str(b.dtype), []).append(b)
+
+        result = {}
+        for dtype, blocks in bd.items():
+            # Must combine even after consolidation, because there may be
+            # sparse items which are never consolidated into one block.
+            combined = self._data.combine(blocks, copy=True)
+            result[dtype] = self._constructor(combined).__finalize__(self)
+
+        return result
 
     @property
     def blocks(self):
