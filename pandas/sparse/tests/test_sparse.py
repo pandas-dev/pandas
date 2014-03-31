@@ -1515,6 +1515,14 @@ class TestSparseDataFrame(tm.TestCase, test_frame.SafeForSparse):
 
         self.assertEqual(len(r2.sp_values), len(r1.sp_values))
 
+    def test_as_blocks(self):
+        df = SparseDataFrame({'A': [1.1, 3.3], 'B': [nan, -3.9]},
+                             dtype='float64')
+
+        df_blocks = df.blocks
+        self.assertEqual(list(df_blocks.keys()), ['float64'])
+        assert_frame_equal(df_blocks['float64'], df)
+
 
 def _dense_series_compare(s, f):
     result = f(s)
