@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# coding: utf-8
+
 import nose
 import os
 import string
@@ -26,7 +29,6 @@ def _skip_if_no_scipy():
         import scipy
     except ImportError:
         raise nose.SkipTest("no scipy")
-
 
 @tm.mplskip
 class TestSeriesPlots(tm.TestCase):
@@ -315,24 +317,36 @@ class TestSeriesPlots(tm.TestCase):
     @slow
     def test_errorbar_plot(self):
 
-        s = Series(np.arange(10))
+        s = Series(np.arange(10), name='x')
         s_err = np.random.randn(10)
-
+        d_err =  DataFrame(randn(10, 2), index=s.index, columns=['x', 'y'])
         # test line and bar plots
         kinds = ['line', 'bar']
         for kind in kinds:
-            _check_plot_works(s.plot, yerr=Series(s_err), kind=kind)
-            _check_plot_works(s.plot, yerr=s_err, kind=kind)
-            _check_plot_works(s.plot, yerr=s_err.tolist(), kind=kind)
+            ax = _check_plot_works(s.plot, yerr=Series(s_err), kind=kind)
+            _check_has_errorbars(self, ax, xerr=0, yerr=1)
+            ax = _check_plot_works(s.plot, yerr=s_err, kind=kind)
+            _check_has_errorbars(self, ax, xerr=0, yerr=1)
+            ax = _check_plot_works(s.plot, yerr=s_err.tolist(), kind=kind)
+            _check_has_errorbars(self, ax, xerr=0, yerr=1)
+            ax = _check_plot_works(s.plot, yerr=d_err, kind=kind)
+            _check_has_errorbars(self, ax, xerr=0, yerr=1)
+            ax = _check_plot_works(s.plot, xerr=0.2, yerr=0.2, kind=kind)
+            _check_has_errorbars(self, ax, xerr=1, yerr=1)
 
-        _check_plot_works(s.plot, xerr=s_err)
+        ax = _check_plot_works(s.plot, xerr=s_err)
+        _check_has_errorbars(self, ax, xerr=1, yerr=0)
 
         # test time series plotting
         ix = date_range('1/1/2000', '1/1/2001', freq='M')
-        ts = Series(np.arange(12), index=ix)
+        ts = Series(np.arange(12), index=ix, name='x')
         ts_err = Series(np.random.randn(12), index=ix)
+        td_err =  DataFrame(randn(12, 2), index=ix, columns=['x', 'y'])
 
-        _check_plot_works(ts.plot, yerr=ts_err)
+        ax = _check_plot_works(ts.plot, yerr=ts_err)
+        _check_has_errorbars(self, ax, xerr=0, yerr=1)
+        ax = _check_plot_works(ts.plot, yerr=td_err)
+        _check_has_errorbars(self, ax, xerr=0, yerr=1)
 
         # check incorrect lengths and types
         with tm.assertRaises(ValueError):
@@ -1505,27 +1519,51 @@ class TestDataFramePlots(tm.TestCase):
         df_err = DataFrame(d_err)
 
         # check line plots
-        _check_plot_works(df.plot, yerr=df_err, logy=True)
-        _check_plot_works(df.plot, yerr=df_err, logx=True, logy=True)
-        _check_plot_works(df.plot, yerr=df_err, loglog=True)
+        ax = _check_plot_works(df.plot, yerr=df_err, logy=True)
+        _check_has_errorbars(self, ax, xerr=0, yerr=2)
+        ax = _check_plot_works(df.plot, yerr=df_err, logx=True, logy=True)
+        _check_has_errorbars(self, ax, xerr=0, yerr=2)
+        ax = _check_plot_works(df.plot, yerr=df_err, loglog=True)
+        _check_has_errorbars(self, ax, xerr=0, yerr=2)
 
         kinds = ['line', 'bar', 'barh']
         for kind in kinds:
-            _check_plot_works(df.plot, yerr=df_err['x'], kind=kind)
-            _check_plot_works(df.plot, yerr=d_err, kind=kind)
-            _check_plot_works(df.plot, yerr=df_err, xerr=df_err, kind=kind)
-            _check_plot_works(df.plot, yerr=df_err['x'], xerr=df_err['x'], kind=kind)
-            _check_plot_works(df.plot, yerr=df_err, xerr=df_err, subplots=True, kind=kind)
+            ax = _check_plot_works(df.plot, yerr=df_err['x'], kind=kind)
+            _check_has_errorbars(self, ax, xerr=0, yerr=2)
+            ax = _check_plot_works(df.plot, yerr=d_err, kind=kind)
+            _check_has_errorbars(self, ax, xerr=0, yerr=2)
+            ax = _check_plot_works(df.plot, yerr=df_err, xerr=df_err, kind=kind)
+            _check_has_errorbars(self, ax, xerr=2, yerr=2)
+            ax = _check_plot_works(df.plot, yerr=df_err['x'], xerr=df_err['x'], kind=kind)
+            _check_has_errorbars(self, ax, xerr=2, yerr=2)
+            ax = _check_plot_works(df.plot, xerr=0.2, yerr=0.2, kind=kind)
+            _check_has_errorbars(self, ax, xerr=2, yerr=2)
+            axes = _check_plot_works(df.plot, yerr=df_err, xerr=df_err, subplots=True, kind=kind)
+            for ax in axes:
+                _check_has_errorbars(self, ax, xerr=1, yerr=1)
 
-        _check_plot_works((df+1).plot, yerr=df_err, xerr=df_err, kind='bar', log=True)
+        ax = _check_plot_works((df+1).plot, yerr=df_err, xerr=df_err, kind='bar', log=True)
+        _check_has_errorbars(self, ax, xerr=2, yerr=2)
 
         # yerr is raw error values
-        _check_plot_works(df['y'].plot, yerr=np.ones(12)*0.4)
-        _check_plot_works(df.plot, yerr=np.ones((2, 12))*0.4)
+        ax = _check_plot_works(df['y'].plot, yerr=np.ones(12)*0.4)
+        _check_has_errorbars(self, ax, xerr=0, yerr=1)
+        ax = _check_plot_works(df.plot, yerr=np.ones((2, 12))*0.4)
+        _check_has_errorbars(self, ax, xerr=0, yerr=2)
+
+        # yerr is iterator
+        import itertools
+        ax = _check_plot_works(df.plot, yerr=itertools.repeat(0.1, len(df)))
+        _check_has_errorbars(self, ax, xerr=0, yerr=2)
 
         # yerr is column name
-        df['yerr'] = np.ones(12)*0.2
-        _check_plot_works(df.plot, y='y', x='x', yerr='yerr')
+        for yerr in ['yerr', u('誤差')]:
+            s_df = df.copy()
+            s_df[yerr] = np.ones(12)*0.2
+            ax = _check_plot_works(s_df.plot, yerr=yerr)
+            _check_has_errorbars(self, ax, xerr=0, yerr=2)
+            ax = _check_plot_works(s_df.plot, y='y', x='x', yerr=yerr)
+            _check_has_errorbars(self, ax, xerr=0, yerr=1)
 
         with tm.assertRaises(ValueError):
             df.plot(yerr=np.random.randn(11))
@@ -1539,8 +1577,10 @@ class TestDataFramePlots(tm.TestCase):
         # test with integer column names
         df = DataFrame(np.random.randn(10, 2))
         df_err = DataFrame(np.random.randn(10, 2))
-        _check_plot_works(df.plot, yerr=df_err)
-        _check_plot_works(df.plot, y=0, yerr=1)
+        ax = _check_plot_works(df.plot, yerr=df_err)
+        _check_has_errorbars(self, ax, xerr=0, yerr=2)
+        ax = _check_plot_works(df.plot, y=0, yerr=1)
+        _check_has_errorbars(self, ax, xerr=0, yerr=1)
 
     @slow
     def test_errorbar_with_partial_columns(self):
@@ -1548,12 +1588,22 @@ class TestDataFramePlots(tm.TestCase):
         df_err = DataFrame(np.random.randn(10, 2), columns=[0, 2])
         kinds = ['line', 'bar']
         for kind in kinds:
-            _check_plot_works(df.plot, yerr=df_err, kind=kind)
+            ax = _check_plot_works(df.plot, yerr=df_err, kind=kind)
+            _check_has_errorbars(self, ax, xerr=0, yerr=2)
 
         ix = date_range('1/1/2000', periods=10, freq='M')
         df.set_index(ix, inplace=True)
         df_err.set_index(ix, inplace=True)
-        _check_plot_works(df.plot, yerr=df_err, kind='line')
+        ax = _check_plot_works(df.plot, yerr=df_err, kind='line')
+        _check_has_errorbars(self, ax, xerr=0, yerr=2)
+
+        d = {'x': np.arange(12), 'y': np.arange(12, 0, -1)}
+        df = DataFrame(d)
+        d_err = {'x': np.ones(12)*0.2, 'z': np.ones(12)*0.4}
+        df_err = DataFrame(d_err)
+        for err in [d_err, df_err]:
+            ax = _check_plot_works(df.plot, yerr=err)
+            _check_has_errorbars(self, ax, xerr=0, yerr=1)            
 
     @slow
     def test_errorbar_timeseries(self):
@@ -1568,13 +1618,19 @@ class TestDataFramePlots(tm.TestCase):
 
         kinds = ['line', 'bar', 'barh']
         for kind in kinds:
-            _check_plot_works(tdf.plot, yerr=tdf_err, kind=kind)
-            _check_plot_works(tdf.plot, yerr=d_err, kind=kind)
-            _check_plot_works(tdf.plot, y='y', kind=kind)
-            _check_plot_works(tdf.plot, y='y', yerr='x', kind=kind)
-            _check_plot_works(tdf.plot, yerr=tdf_err, kind=kind)
-            _check_plot_works(tdf.plot, kind=kind, subplots=True)
-
+            ax = _check_plot_works(tdf.plot, yerr=tdf_err, kind=kind)
+            _check_has_errorbars(self, ax, xerr=0, yerr=2)
+            ax = _check_plot_works(tdf.plot, yerr=d_err, kind=kind)
+            _check_has_errorbars(self, ax, xerr=0, yerr=2)
+            ax = _check_plot_works(tdf.plot, y='y', yerr=tdf_err['x'], kind=kind)
+            _check_has_errorbars(self, ax, xerr=0, yerr=1)
+            ax = _check_plot_works(tdf.plot, y='y', yerr='x', kind=kind)
+            _check_has_errorbars(self, ax, xerr=0, yerr=1)
+            ax = _check_plot_works(tdf.plot, yerr=tdf_err, kind=kind)
+            _check_has_errorbars(self, ax, xerr=0, yerr=2)
+            axes = _check_plot_works(tdf.plot, kind=kind, yerr=tdf_err, subplots=True)
+            for ax in axes:
+                _check_has_errorbars(self, ax, xerr=0, yerr=1)
 
     def test_errorbar_asymmetrical(self):
 
@@ -1607,6 +1663,21 @@ class TestDataFramePlots(tm.TestCase):
         self.assert_(len(ax.tables) == 0)
         plotting.table(ax, df.T)
         self.assert_(len(ax.tables) == 1)
+
+    def test_errorbar_scatter(self):
+        df = DataFrame(np.random.randn(5, 2), index=range(5), columns=['x', 'y'])
+        df_err = DataFrame(np.random.randn(5, 2) / 5,
+                           index=range(5), columns=['x', 'y'])
+            
+        ax = _check_plot_works(df.plot, kind='scatter', x='x', y='y')
+        _check_has_errorbars(self, ax, xerr=0, yerr=0)
+        ax = _check_plot_works(df.plot, kind='scatter', x='x', y='y', xerr=df_err)
+        _check_has_errorbars(self, ax, xerr=1, yerr=0)
+        ax = _check_plot_works(df.plot, kind='scatter', x='x', y='y', yerr=df_err)
+        _check_has_errorbars(self, ax, xerr=0, yerr=1)
+        ax = _check_plot_works(df.plot, kind='scatter', x='x', y='y',
+                               xerr=df_err, yerr=df_err)
+        _check_has_errorbars(self, ax, xerr=1, yerr=1)
 
 
 @tm.mplskip
@@ -1803,8 +1874,24 @@ def assert_is_valid_plot_return_object(objs):
                  ''.format(objs.__class__.__name__))
 
 
+def _check_has_errorbars(t, ax, xerr=0, yerr=0):
+    containers = ax.containers
+    xerr_count = 0
+    yerr_count = 0
+    for c in containers:
+        has_xerr = getattr(c, 'has_xerr', False)
+        has_yerr = getattr(c, 'has_yerr', False)
+        if has_xerr:
+            xerr_count += 1
+        if has_yerr:
+            yerr_count += 1
+    t.assertEqual(xerr, xerr_count)
+    t.assertEqual(yerr, yerr_count)
+
+
 def _check_plot_works(f, *args, **kwargs):
     import matplotlib.pyplot as plt
+    ret = None
 
     try:
         try:

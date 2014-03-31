@@ -394,9 +394,12 @@ x and y errorbars are supported and be supplied using the ``xerr`` and ``yerr`` 
 
 - As a ``DataFrame`` or ``dict`` of errors with column names matching the ``columns`` attribute of the plotting ``DataFrame`` or matching the ``name`` attribute of the ``Series``
 - As a ``str`` indicating which of the columns of plotting ``DataFrame`` contain the error values
-- As raw values (``list``, ``tuple``, or ``np.ndarray``). Must be the same length as the plotting ``DataFrame``/``Series``
+- As list-like raw values (``list``, ``tuple``, or ``np.ndarray``). Must be the same length as the plotting ``DataFrame``/``Series``
+- As float. The error value will be applied to all data.
 
 Asymmetrical error bars are also supported, however raw error values must be provided in this case. For a ``M`` length ``Series``, a ``Mx2`` array should be provided indicating lower and upper (or left and right) errors. For a ``MxN`` ``DataFrame``, asymmetrical errors should be in a ``Mx2xN`` array.
+
+**Note**: Plotting ``xerr`` is not supported in time series.
 
 Here is an example of one way to easily plot group means with standard deviations from the raw data.
 
