@@ -748,8 +748,10 @@ def str_wrap(arr, **kwargs):
     Internally, this method uses a textwrap.TextWrapper instance configured to match R's stringr
     library str_wrap function. Unless overwritten using kwargs, the instance has expand_tabs=False,
     replace_whitespace=True, drop_whitespace=True, break_long_words=False, and
-    break_on_hyphens=False. Since R's stringr str_wrap treats the line width as an exclusive
-    value, the instance is configured with width=user-supplied width - 1.
+    break_on_hyphens=False. R's stringr function treats width as exclusive (less than width) while
+    Python's textwrap module treats width as inclusive (less than or equal to width). str_wrap follows
+    Python's textwrap module and uses the inclusive definition. When adapting R code, add 1 to
+    the width.
 
     Examples
     --------
@@ -762,9 +764,6 @@ def str_wrap(arr, **kwargs):
                      'break_on_hyphens': False}
 
     textwrap_args.update(kwargs)
-
-    if 'width' in kwargs:
-        textwrap_args['width'] -= 1  # change width to 'exclusive' width
 
     tw = textwrap.TextWrapper(**textwrap_args)
 
