@@ -675,6 +675,17 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan,
                     # to crash when trying to cast it to dtype)
                     dtype, fill_value = arr.dtype, arr.dtype.type()
 
+    flip_order = False
+    if arr.ndim == 2:
+        if arr.flags.f_contiguous:
+            flip_order = True
+
+    if flip_order:
+        arr = arr.T
+        axis = arr.ndim - axis - 1
+        if out is not None:
+            out = out.T
+
     # at this point, it's guaranteed that dtype can hold both the arr values
     # and the fill_value
     if out is None:
@@ -692,7 +703,11 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan,
 
     func = _get_take_nd_function(arr.ndim, arr.dtype, out.dtype,
                                  axis=axis, mask_info=mask_info)
+
     func(arr, indexer, out, fill_value)
+
+    if flip_order:
+        out = out.T
     return out
 
 
