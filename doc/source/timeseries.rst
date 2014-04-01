@@ -730,8 +730,8 @@ Holidays / Holiday Calendars
 
 Holidays and calendars provide a simple way to define holiday rules to be used
 with ``CustomBusinessDay`` or in other analysis that requires a predefined
-set of holidays.  The ``AbstractHolidayCalendar`` class provides all the necessary methods
-to return a list of holidays and only the ``_rule_table`` needs to be defined
+set of holidays.  The ``AbstractHolidayCalendar`` class provides all the necessary 
+methods to return a list of holidays and only ``rules`` need to be defined
 in a specific holiday calendar class.
 
 Moreover, there are several observance functions that define how a fixed-date 
@@ -746,15 +746,30 @@ can easily be specified.
     from pandas.tseries.holiday import Holiday, USMemorialDay,\
         AbstractHolidayCalendar, Nearest, MO
     class ExampleCalendar(AbstractHolidayCalendar):
-        _rule_table = [
+        rules = [
             USMemorialDay,
             Holiday('July 4th', month=7, day=4, observance=Nearest),
             Holiday('Columbus Day', month=10, day=1, 
-                offset=DateOffset(weekday=MO(2))),
+                offset=DateOffset(weekday=MO(2))), #This could be 2*Week(weekday=2)
             ]
     cal = ExampleCalendar()
     cal.holidays(datetime(2012, 1, 1), datetime(2012, 12, 31)) #holiday list
     datetime(2012, 5, 25) + CustomBusinessDay(calendar=cal) #holiday arithmetic
+
+Every calendar class is accessible by name using the ``get_calendar`` function
+which returns a holiday class instance.  Any imported calendar class will
+automatically be available by this function.  Also, ``HolidayCalendarFactory``
+provides an easy interface to create calendars that are combinations of calendars
+or calendars with additional rules.
+
+.. ipython:: python
+
+    from pandas.tseries.holiday import get_calendar, HolidayCalendarFactory,\
+        USLaborDay
+    cal = get_calendar('ExampleCalendar')
+    cal.rules
+    new_cal = HolidayCalendarFactory('NewExampleCalendar', cal, USLaborDay)
+    new_cal.rules
 
 There are several defined US holidays in ``pandas.tseries.holiday`` along with
 several common holidays calendars.

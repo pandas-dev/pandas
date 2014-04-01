@@ -56,9 +56,19 @@ class Holiday(object):
         self.observance = observance
     
     def __repr__(self):
-        #FIXME: This should handle observance rules as well
-        return 'Holiday %s (%s, %s, %s)' % (self.name, self.month, self.day, 
-                                            self.offset)
+        info = ''
+        if self.year is not None:
+            info += 'year=%s, ' % self.year
+        info += 'month=%s, day=%s, ' % (self.month, self.day)
+        
+        if self.offset is not None:
+            info += 'offset=%s' % self.offset
+            
+        if self.observance is not None:
+            info += 'observance=%s' % self.observance
+        
+        repr = 'Holiday: %s (%s)' % (self.name, info)
+        return repr
     
     def dates(self, start_date, end_date):
         
@@ -109,29 +119,57 @@ class Holiday(object):
             
         return dates
 
+holiday_calendars = {}
+def register(cls):
+    try:
+        name = cls.name
+    except:
+        name = cls.__name__
+    holiday_calendars[name] = cls
+    
+def get_calendar(name):
+    '''
+    Return an instance of a calendar based on its name.
+    
+    Parameters
+    ----------
+    name : str
+        Calendar name to return an instance of
+    '''
+    return holiday_calendars[name]()
+
+class HolidayMetaClass(type):
+    def __new__(cls, clsname, bases, attrs):
+        calendar_class = super(HolidayMetaClass, cls).__new__(cls, clsname, bases, attrs)
+        register(calendar_class)
+        return calendar_class
+
 class AbstractHolidayCalendar(object):
     '''
     Abstract interface to create holidays following certain rules.
     '''
-    _rule_table = []
+    __metaclass__ = HolidayMetaClass
+    rules = []
     
-    def __init__(self, rules=None):
+    def __init__(self, name=None, rules=None):
         '''
         Initializes holiday object with a given set a rules.  Normally
         classes just have the rules defined within them.
         
         Parameters
         ----------
+        name : str 
+            Name of the holiday calendar, defaults to class name
         rules : array of Holiday objects
             A set of rules used to create the holidays.
         '''
         super(AbstractHolidayCalendar, self).__init__()
-        if rules is not None:
-            self._rule_table = rules
+        if name is None:
+            name = self.__class__.__name__
+        self.name = name
         
-    @property
-    def holiday_rules(self):
-        return self._rule_table
+        if rules is not None:
+            self.rules = rules
 
     def holidays(self, start=None, end=None, return_names=False):
         '''
@@ -156,15 +194,15 @@ class AbstractHolidayCalendar(object):
         if end is None:
             end = datetime(2030, 12, 31)
             
-        if self.holiday_rules is None:
+        if self.rules is None:
             raise Exception('Holiday Calendar %s does not have any '\
-                            'rules specified' % self.calendarName)
+                            'rules specified' % self.name)
         
         if return_names:
             holidays = None
         else:
             holidays    = []
-        for rule in self.holiday_rules:
+        for rule in self.rules:
             if return_names:
                 rule_holidays = rule.dates_with_name(start, end)
                 if holidays is None:
@@ -179,10 +217,57 @@ class AbstractHolidayCalendar(object):
         else:
             return DatetimeIndex(holidays).order(False)
 
+    @staticmethod
+    def merge_class(base, other):
+        '''
+        Merge holiday calendars together.  The base calendar
+        will take precedence to other. The merge will be done
+        based on each holiday's name.
+        
+        Parameters
+        ----------
+        base : AbstractHolidayCalendar instance of array of Holiday objects
+        other : AbstractHolidayCalendar instance or array of Holiday objects
+        '''
+        if isinstance(other, AbstractHolidayCalendar):
+            other = other.rules
+        if not isinstance(other, list):
+            other = [other]
+        other_holidays = {holiday.name: holiday for holiday in other}
+            
+        if isinstance(base, AbstractHolidayCalendar):
+            base = base.rules
+        if not isinstance(base, list):
+            base = [base]
+        base_holidays = {holiday.name: holiday for holiday in base}
+        
+        other_holidays.update(base_holidays)
+        return other_holidays.values()
+
+    def merge(self, other, inplace=False):
+        '''
+        Merge holiday calendars together.  The caller's class
+        rules take precedence.  The merge will be done
+        based on each holiday's name.
+        
+        Parameters
+        ----------
+        other : holiday calendar
+        inplace : bool (default=False)
+            If True set rule_table to holidays, else return array of Holidays
+        '''
+        holidays    =   self.merge_class(self, other)
+        if inplace:
+            self.rules = holidays
+        else:
+            return holidays
+
 USMemorialDay     = Holiday('MemorialDay', month=5, day=24, 
                             offset=DateOffset(weekday=MO(1)))
 USLaborDay        = Holiday('Labor Day', month=9, day=1, 
                             offset=DateOffset(weekday=MO(1)))
+USColumbusDay     = Holiday('Columbus Day', month=10, day=1,
+                            offset=DateOffset(weekday=MO(2)))
 USThanksgivingDay = Holiday('Thanksgiving', month=11, day=1, 
                             offset=DateOffset(weekday=TH(4)))
 USMartinLutherKingJr = Holiday('Dr. Martin Luther King Jr.', month=1, day=1, 
@@ -191,23 +276,29 @@ USPresidentsDay      = Holiday('President''s Day', month=2, day=1,
                                offset=DateOffset(weekday=MO(3)))
 
 class USFederalHolidayCalendar(AbstractHolidayCalendar):
-    
-    _rule_table = [ 
+    '''
+    US Federal Government Holiday Calendar based on rules specified
+    by: https://www.opm.gov/policy-data-oversight/snow-dismissal-procedures/federal-holidays/
+    '''
+    rules = [ 
         Holiday('New Years Day', month=1,  day=1,  observance=Nearest), 
         USMartinLutherKingJr,
         USPresidentsDay,
         USMemorialDay,
         Holiday('July 4th', month=7,  day=4,  observance=Nearest),
-        USLaborDay, 
-        Holiday('Columbus Day', month=10, day=1,  offset=DateOffset(weekday=MO(2))),
+        USLaborDay,
+        USColumbusDay,
         Holiday('Veterans Day', month=11, day=11, observance=Nearest),
         USThanksgivingDay,
         Holiday('Christmas', month=12, day=25, observance=Nearest)
         ]
 
 class NERCHolidayCalendar(AbstractHolidayCalendar):
-    
-    _rule_table = [
+    '''
+    North American Electric Reliability Corporation holiday rules:
+    http://www.nerc.com/comm/OC/RS%20Agendas%20Highlights%20and%20Minutes%20DL/Additional_Off-peak_Days.pdf
+    '''
+    rules = [
         Holiday('New Years Day', month=1, day=1, observance=Sunday),
         USMemorialDay,
         Holiday('July 4th', month=7,  day=4, observance=Sunday),
@@ -215,3 +306,8 @@ class NERCHolidayCalendar(AbstractHolidayCalendar):
         USThanksgivingDay,
         Holiday('Christmas', month=12, day=25, observance=Sunday)
         ]
+    
+def HolidayCalendarFactory(name, base, other, base_class=AbstractHolidayCalendar):
+    rules = AbstractHolidayCalendar.merge_class(base, other)
+    calendar_class = type(name, (base_class,), {"rules": rules, "name": name})
+    return calendar_class
