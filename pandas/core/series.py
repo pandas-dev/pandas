@@ -959,7 +959,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Lazily iterate over (index, value) tuples
         """
-        return lzip(iter(self.index), iter(self))
+        return zip(iter(self.index), iter(self))
 
     if compat.PY3:  # pragma: no cover
         items = iteritems
