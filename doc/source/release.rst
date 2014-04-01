@@ -198,6 +198,7 @@ Improvements to existing features
 - Performance improvement when converting ``DatetimeIndex`` to floating ordinals
   using ``DatetimeConverter`` (:issue:`6636`)
 - Performance improvement for  ``DataFrame.shift`` (:issue:`5609`)
+- Performance improvements in timedelta conversions for integer dtypes (:issue:`6754`)
 
 .. _release.bug_fixes-0.14.0:
 

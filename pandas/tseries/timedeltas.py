@@ -8,7 +8,7 @@ from datetime import timedelta
 import numpy as np
 import pandas.tslib as tslib
 from pandas import compat, _np_version_under1p7
-from pandas.core.common import (ABCSeries, is_integer, is_timedelta64_dtype,
+from pandas.core.common import (ABCSeries, is_integer, is_integer_dtype, is_timedelta64_dtype,
                                 _values_from_object, is_list_like, isnull)
 
 repr_timedelta = tslib.repr_timedelta64
@@ -23,7 +23,7 @@ def to_timedelta(arg, box=True, unit='ns'):
     arg : string, timedelta, array of strings (with possible NAs)
     box : boolean, default True
         If True returns a Series of the results, if False returns ndarray of values
-    unit : unit of the arg (D,s,ms,us,ns) denote the unit, which is an integer/float number
+    unit : unit of the arg (D,h,m,s,ms,us,ns) denote the unit, which is an integer/float number
 
     Returns
     -------
@@ -32,18 +32,22 @@ def to_timedelta(arg, box=True, unit='ns'):
     if _np_version_under1p7:
         raise ValueError("to_timedelta is not support for numpy < 1.7")
 
-    def _convert_listlike(arg, box):
+    def _convert_listlike(arg, box, unit):
 
         if isinstance(arg, (list,tuple)):
             arg = np.array(arg, dtype='O')
 
         if is_timedelta64_dtype(arg):
-            if box:
-                from pandas import Series
-                return Series(arg,dtype='m8[ns]')
-            return arg
+            value = arg.astype('timedelta64[ns]')
+        elif is_integer_dtype(arg):
+            # these are shortcutable
+            value = arg.astype('timedelta64[{0}]'.format(unit)).astype('timedelta64[ns]')
+        else:
+            try:
+                value = tslib.array_to_timedelta64(_ensure_object(arg),unit=unit)
+            except:
+                value = np.array([ _coerce_scalar_to_timedelta_type(r, unit=unit) for r in arg ])
 
-        value = np.array([ _coerce_scalar_to_timedelta_type(r, unit=unit) for r in arg ])
         if box:
             from pandas import Series
             value = Series(value,dtype='m8[ns]')
@@ -53,10 +57,10 @@ def to_timedelta(arg, box=True, unit='ns'):
         return arg
     elif isinstance(arg, ABCSeries):
         from pandas import Series
-        values = _convert_listlike(arg.values, box=False)
+        values = _convert_listlike(arg.values, box=False, unit=unit)
         return Series(values, index=arg.index, name=arg.name, dtype='m8[ns]')
     elif is_list_like(arg):
-        return _convert_listlike(arg, box=box)
+        return _convert_listlike(arg, box=box, unit=unit)
 
     # ...so it must be a scalar value. Return scalar.
     return _coerce_scalar_to_timedelta_type(arg, unit=unit)
@@ -139,7 +143,7 @@ def _get_string_converter(r, unit='ns'):
         return convert
 
     # no converter
-    raise ValueError("cannot create timedelta string converter")
+    raise ValueError("cannot create timedelta string converter for [{0}]".format(r))
 
 def _possibly_cast_to_timedelta(value, coerce=True):
     """ try to cast to timedelta64, if already a timedeltalike, then make

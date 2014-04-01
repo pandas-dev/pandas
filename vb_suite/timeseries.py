@@ -278,7 +278,7 @@ from pandas.tseries.converter import DatetimeConverter
 """
 
 datetimeindex_converter = \
-    Benchmark('DatetimeConverter.convert(rng, None, None)', 
+    Benchmark('DatetimeConverter.convert(rng, None, None)',
               setup, start_date=datetime(2013, 1, 1))
 
 # Adding custom business day
