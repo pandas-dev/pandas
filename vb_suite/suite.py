@@ -26,6 +26,7 @@ modules = ['attrs_caching',
            'reshape',
            'stat_ops',
            'timeseries',
+           'timedelta',
            'eval']
 
 by_module = {}
