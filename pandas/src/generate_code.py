@@ -143,34 +143,12 @@ def take_2d_axis1_%(name)s_%(dest)s(ndarray[%(c_type_in)s, ndim=2] values,
 
     fv = fill_value
 
-    IF %(can_copy)s:
-        cdef:
-            %(c_type_out)s *v
-            %(c_type_out)s *o
-
-        #GH3130
-        if (values.strides[0] == out.strides[0] and
-            values.strides[0] == sizeof(%(c_type_out)s) and
-            sizeof(%(c_type_out)s) * n >= 256):
-
-            for j from 0 <= j < k:
-                idx = indexer[j]
-                if idx == -1:
-                    for i from 0 <= i < n:
-                        out[i, j] = fv
-                else:
-                    v = &values[0, idx]
-                    o = &out[0, j]
-                    memmove(o, v, <size_t>(sizeof(%(c_type_out)s) * n))
-            return
-
-    for j from 0 <= j < k:
-        idx = indexer[j]
-        if idx == -1:
-            for i from 0 <= i < n:
+    for i from 0 <= i < n:
+        for j from 0 <= j < k:
+            idx = indexer[j]
+            if idx == -1:
                 out[i, j] = fv
-        else:
-            for i from 0 <= i < n:
+            else:
                 out[i, j] = %(preval)svalues[i, idx]%(postval)s
 
 """
