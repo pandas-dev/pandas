@@ -547,7 +547,14 @@ class GroupBy(PandasObject):
 
         Notes
         -----
-        See online documentation for full exposition on how to use apply
+        See online documentation for full exposition on how to use apply.
+
+        In the current implementation apply calls func twice on the
+        first group to decide whether it can take a fast or slow code
+        path. This can lead to unexpected behavior if func has
+        side-effects, as they will take effect twice for the first
+        group.
+        
 
         See also
         --------

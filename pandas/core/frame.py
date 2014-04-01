@@ -3302,6 +3302,14 @@ class DataFrame(NDFrame):
             array/series
         Additional keyword arguments will be passed as keywords to the function
 
+        Notes
+        -----
+        In the current implementation apply calls func twice on the
+        first column/row to decide whether it can take a fast or slow
+        code path. This can lead to unexpected behavior if func has
+        side-effects, as they will take effect twice for the first
+        column/row.
+        
         Examples
         --------
         >>> df.apply(numpy.sqrt) # returns DataFrame
