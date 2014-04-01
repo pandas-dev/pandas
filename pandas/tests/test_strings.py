@@ -959,7 +959,7 @@ class TestStringMethods(tm.TestCase):
                      u('ab ab ab ab'), u('ab ab ab ab\na'),
                      u('')])
 
-        rs = values.str.wrap(width=12)
+        rs = values.str.wrap(width=11)
         assert_series_equal(rs, xp)
 
         # test with pre and post whitespace (non-unicode) and NaN
