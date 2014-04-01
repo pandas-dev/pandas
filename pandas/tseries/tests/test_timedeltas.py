@@ -173,6 +173,36 @@ class TestTimedeltas(tm.TestCase):
         expected = np.timedelta64(timedelta(seconds=1))
         self.assertEqual(result, expected)
 
+        # arrays of various dtypes
+        arr = np.array([1]*5,dtype='int64')
+        result = to_timedelta(arr,unit='s')
+        expected = Series([ np.timedelta64(1,'s') ]*5)
+        tm.assert_series_equal(result, expected)
+
+        arr = np.array([1]*5,dtype='int64')
+        result = to_timedelta(arr,unit='m')
+        expected = Series([ np.timedelta64(1,'m') ]*5)
+        tm.assert_series_equal(result, expected)
+
+        arr = np.array([1]*5,dtype='int64')
+        result = to_timedelta(arr,unit='h')
+        expected = Series([ np.timedelta64(1,'h') ]*5)
+        tm.assert_series_equal(result, expected)
+
+        arr = np.array([1]*5,dtype='timedelta64[s]')
+        result = to_timedelta(arr)
+        expected = Series([ np.timedelta64(1,'s') ]*5)
+        tm.assert_series_equal(result, expected)
+
+        arr = np.array([1]*5,dtype='timedelta64[D]')
+        result = to_timedelta(arr)
+        expected = Series([ np.timedelta64(1,'D') ]*5)
+        tm.assert_series_equal(result, expected)
+
+        # these will error
+        self.assertRaises(ValueError, lambda : to_timedelta(['1h']))
+        self.assertRaises(ValueError, lambda : to_timedelta(['1m']))
+
     def test_to_timedelta_via_apply(self):
         _skip_if_numpy_not_friendly()
 

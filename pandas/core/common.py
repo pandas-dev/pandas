@@ -2130,6 +2130,16 @@ def is_timedelta64_dtype(arr_or_dtype):
     return issubclass(tipo, np.timedelta64)
 
 
+def is_timedelta64_ns_dtype(arr_or_dtype):
+    if isinstance(arr_or_dtype, np.dtype):
+        tipo = arr_or_dtype.type
+    elif isinstance(arr_or_dtype, type):
+        tipo = np.dtype(arr_or_dtype).type
+    else:
+        tipo = arr_or_dtype.dtype.type
+    return tipo == _TD_DTYPE
+
+
 def needs_i8_conversion(arr_or_dtype):
     return (is_datetime64_dtype(arr_or_dtype) or
             is_timedelta64_dtype(arr_or_dtype))
