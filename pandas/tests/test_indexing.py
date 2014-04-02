@@ -483,6 +483,19 @@ class TestIndexing(tm.TestCase):
         # no dups in panel (bug?)
         self.check_result('list int (dups)', 'iloc', [0,1,1,3], 'ix', { 0 : [0,2,2,6], 1 : [0,3,3,9] }, objs = ['series','frame'], typs = ['ints'])
 
+        # GH 6766
+        df1 = DataFrame([{'A':None, 'B':1},{'A':2, 'B':2}])
+        df2 = DataFrame([{'A':3, 'B':3},{'A':4, 'B':4}])
+        df = concat([df1, df2], axis=1)
+
+        # cross-sectional indexing
+        result = df.iloc[0,0]
+        self.assertTrue(isnull(result))
+
+        result = df.iloc[0,:]
+        expected = Series([np.nan,1,3,3],index=['A','B','A','B'])
+        assert_series_equal(result,expected)
+
     def test_iloc_getitem_array(self):
 
         # array like
