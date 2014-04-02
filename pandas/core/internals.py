@@ -674,7 +674,8 @@ class Block(PandasObject):
             values = self._try_coerce_result(values)
             values = self._try_cast_result(values, dtype)
             return [make_block(transf(values), self.items, self.ref_items,
-                               ndim=self.ndim, fastpath=True)]
+                               ndim=self.ndim, placement=self._ref_locs,
+                               fastpath=True)]
         except (ValueError, TypeError) as detail:
             raise
         except Exception as detail:
@@ -2902,7 +2903,10 @@ class BlockManager(PandasObject):
 
         # non-unique (GH4726)
         if not items.is_unique:
-            return self._interleave(items).ravel(), True
+            result = self._interleave(items)
+            if self.ndim == 2:
+                result = result.T
+            return result[loc], True
 
         # unique
         dtype = _interleaved_dtype(self.blocks)
