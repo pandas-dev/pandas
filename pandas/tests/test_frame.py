@@ -7857,6 +7857,15 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_frame_equal(res, expec)
         self.assertEqual(res.a.dtype, np.object_)
 
+    def test_replace_regex_metachar(self):
+        metachars = '[]', '()', '\d', '\w', '\s'
+
+        for metachar in metachars:
+            df = DataFrame({'a': [metachar, 'else']})
+            result = df.replace({'a': {metachar: 'paren'}})
+            expected = DataFrame({'a': ['paren', 'else']})
+            tm.assert_frame_equal(result, expected)
+
     def test_replace(self):
         self.tsframe['A'][:5] = nan
         self.tsframe['A'][-5:] = nan
