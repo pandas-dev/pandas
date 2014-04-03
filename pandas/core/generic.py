@@ -2093,7 +2093,9 @@ class NDFrame(PandasObject):
             strings), non-convertibles get NaN
         convert_timedeltas : if True, attempt to soft convert timedeltas, if 'coerce',
             force conversion (and non-convertibles get NaT)
-        copy : Boolean, if True, return copy, default is True
+        copy : Boolean, if True, return copy even if no copy is necessary 
+            (e.g. no conversion was done), default is True.
+            It is meant for internal use, not to be confused with `inplace` kw.
 
         Returns
         -------
