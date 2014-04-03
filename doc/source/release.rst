@@ -161,6 +161,8 @@ API Changes
 - ``to_excel`` now converts ``np.inf`` into a string representation,
   customizable by the ``inf_rep`` keyword argument (Excel has no native inf
   representation) (:issue:`6782`)
+- Arithmetic ops are now disallowed when passed two bool dtype Series or
+  DataFrames (:issue:`6762`).
 
 - Added ``nunique`` and ``value_counts`` functions to ``Index`` for counting unique elements. (:issue:`6734`)
 
@@ -186,28 +188,6 @@ Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Remove ``column`` keyword from ``DataFrame.sort`` (:issue:`4370`)
-
-- Remove ``precision`` keyword from :func:`set_eng_float_format` (:issue:`6641`)
-
-- Remove ``force_unicode`` keyword from :meth:`DataFrame.to_string`,
-  :meth:`DataFrame.to_latex`, and :meth:`DataFrame.to_html`; these function
-  encode in unicode by default (:issue:`6641`)
-
-- Remove ``nanRep`` keyword from :meth:`DataFrame.to_csv` and
-  :meth:`DataFrame.to_string` (:issue:`6641`)
-
-- Remove ``unique`` keyword from :meth:`HDFStore.select_column` (:issue:`6641`)
-
-- Remove ``inferTimeRule`` keyword from :func:`Timestamp.offset` (:issue:`6641`)
-
-- Remove ``name`` keyword from :func:`get_data_yahoo` and
-  :func:`get_data_google` (:issue:`6641`)
-
-- Remove ``offset`` keyword from :class:`DatetimeIndex` constructor
-  (:issue:`6641`)
-
-- Remove ``time_rule`` from several rolling-moment statistical functions, such
-  as :func:`rolling_sum` (:issue:`6641`)
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
@@ -336,6 +316,9 @@ Bug Fixes
 - Bug in ``DataFrame.replace()`` where regex metacharacters were being treated
   as regexs even when ``regex=False`` (:issue:`6777`).
 - Bug in timedelta ops on 32-bit platforms (:issue:`6808`)
+- Bug in setting a tz-aware index directly via ``.index`` (:issue:`6785`)
+- Bug in expressions.py where numexpr would try to evaluate arithmetic ops
+  (:issue:`6762`).
 
 pandas 0.13.1
 -------------
