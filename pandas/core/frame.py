@@ -124,11 +124,11 @@ Examples
 
 >>> merge(A, B, left_on='lkey', right_on='rkey', how='outer')
    lkey  value_x  rkey  value_y
-0  bar   2        bar   6
-1  bar   2        bar   8
-2  baz   3        NaN   NaN
-3  foo   1        foo   5
-4  foo   4        foo   5
+0  foo   1        foo   5
+1  foo   4        foo   5
+2  bar   2        bar   6
+3  bar   2        bar   8
+4  baz   3        NaN   NaN
 5  NaN   NaN      qux   7
 
 Returns
