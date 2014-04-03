@@ -305,6 +305,7 @@ Bug Fixes
 - Bug in downcasting inference with empty arrays (:issue:`6733`)
 - Bug in ``obj.blocks`` on sparse containers dropping all but the last items of same for dtype (:issue:`6748`)
 - Bug in unpickling ``NaT (NaTType)`` (:issue:`4606`)
+- Bug in setting a tz-aware index directly via ``.index`` (:issue:`6785`)
 
 pandas 0.13.1
 -------------
