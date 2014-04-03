@@ -1040,6 +1040,10 @@ class _NDFrameIndexer(object):
                     level = 0
                     _, indexer = labels.reindex(objarr, level=level)
 
+                    # take all
+                    if indexer is None:
+                        indexer = np.arange(len(labels))
+
                     check = labels.levels[0].get_indexer(objarr)
                 else:
                     level = None
