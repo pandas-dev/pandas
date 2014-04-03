@@ -1,6 +1,6 @@
 # pandas: powerful Python data analysis toolkit
 
-![Travis-CI Build Status](https://travis-ci.org/pydata/pandas.png)
+![Travis-CI Build Status](https://travis-ci.org/pydata/pandas.svg)
 
 [![Scatter-CI Status page](http://scatterci.github.io/scatterci48.jpg)](http://scatterci.github.io/pydata/pandas)
 
