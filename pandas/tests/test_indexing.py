@@ -1128,6 +1128,17 @@ class TestIndexing(tm.TestCase):
         xp = mi_int.ix[4]
         assert_frame_equal(rs,xp)
 
+        # GH6788
+        # multi-index indexer is None (meaning take all)
+        attributes = ['Attribute' + str(i) for i in range(1)]
+        attribute_values = ['Value' + str(i) for i in range(5)]
+
+        index = MultiIndex.from_product([attributes,attribute_values])
+        df = 0.1 * np.random.randn(10, 1 * 5) + 0.5
+        df = DataFrame(df, columns=index)
+        result = df[attributes]
+        assert_frame_equal(result, df)
+
     def test_series_getitem_multiindex(self):
 
         # GH 6018
