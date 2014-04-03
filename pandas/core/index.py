@@ -154,7 +154,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
                 if (inferred.startswith('datetime') or
                         tslib.is_timestamp_array(subarr)):
                     from pandas.tseries.index import DatetimeIndex
-                    return DatetimeIndex(data, copy=copy, name=name, **kwargs)
+                    return DatetimeIndex(subarr, copy=copy, name=name, **kwargs)
                 elif inferred == 'period':
                     return PeriodIndex(subarr, name=name, **kwargs)
 

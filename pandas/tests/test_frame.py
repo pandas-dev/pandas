@@ -2125,6 +2125,15 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         result = df['D']
         assert_series_equal(result, expected)
 
+        # GH 6785
+        # set the index manually
+        import pytz
+        df = DataFrame([{'ts':datetime(2014, 4, 1, tzinfo=pytz.utc), 'foo':1}])
+        expected = df.set_index('ts')
+        df.index = df['ts']
+        df.pop('ts')
+        assert_frame_equal(df, expected)
+
     def test_set_index_multiindexcolumns(self):
         columns = MultiIndex.from_tuples([('foo', 1), ('foo', 2), ('bar', 1)])
         df = DataFrame(np.random.randn(3, 3), columns=columns)
