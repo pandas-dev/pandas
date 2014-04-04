@@ -1808,8 +1808,8 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         for idx, val in compat.iteritems(self.ts):
             self.assertEqual(val, self.ts[idx])
 
-        # assert is lazy (genrators don't define __getslice__, lists do)
-        self.assertFalse(hasattr(self.series.iteritems(), '__getslice__'))
+        # assert is lazy (genrators don't define reverse, lists do)
+        self.assertFalse(hasattr(self.series.iteritems(), 'reverse'))
 
     def test_sum(self):
         self._check_stat_op('sum', np.sum)
