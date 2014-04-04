@@ -302,6 +302,8 @@ Bug Fixes
 - Bug in ``obj.blocks`` on sparse containers dropping all but the last items of same for dtype (:issue:`6748`)
 - Bug in unpickling ``NaT (NaTType)`` (:issue:`4606`)
 - Bug in setting a tz-aware index directly via ``.index`` (:issue:`6785`)
+- StataWriter replaces missing values in string columns by empty string (:issue:`6802`)
+
 
 pandas 0.13.1
 -------------
