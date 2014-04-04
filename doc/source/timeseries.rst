@@ -732,6 +732,7 @@ Holidays and calendars provide a simple way to define holiday rules to be used
 with ``CustomBusinessDay`` or in other analysis that requires a predefined
 set of holidays.  The ``AbstractHolidayCalendar`` class provides all the necessary 
 methods to return a list of holidays and only ``rules`` need to be defined
+<<<<<<< HEAD
 in a specific holiday calendar class.  ``USFederalHolidayCalendar`` is the only
 calendar that exists and primarily serves as an example for developing
 other holiday calendars.
@@ -751,10 +752,21 @@ or some other non-observed day.  Defined observance rules are:
     "next_monday", "move Saturday and Sunday to following Monday"
 
 An example of how holidays and holiday calendars are defined:
+=======
+in a specific holiday calendar class.
+
+Moreover, there are several observance functions that define how a fixed-date 
+holiday is observed.  For example, if Christmas falls on a weekend
+is may be observed on Friday if it falls on Saturday and Monday if it falls on 
+Sunday (``tseries.offsets.holiday.Nearest``) or only if it falls on Sunday
+is will be observed on Monday (``tseries.offsets.holiday.Sunday``).  Other rules
+can easily be specified.
+>>>>>>> FETCH_HEAD
 
 .. ipython:: python
 
     from pandas.tseries.holiday import Holiday, USMemorialDay,\
+<<<<<<< HEAD
         AbstractHolidayCalendar, nearest_workday, MO
     class ExampleCalendar(AbstractHolidayCalendar):
         rules = [
@@ -766,6 +778,19 @@ An example of how holidays and holiday calendars are defined:
     cal = ExampleCalendar()
     cal.holidays(datetime(2012, 1, 1), datetime(2012, 12, 31)) #holiday list
     datetime(2012, 5, 25) + CustomBusinessDay(calendar=cal)
+=======
+        AbstractHolidayCalendar, Nearest, MO
+    class ExampleCalendar(AbstractHolidayCalendar):
+        rules = [
+            USMemorialDay,
+            Holiday('July 4th', month=7, day=4, observance=Nearest),
+            Holiday('Columbus Day', month=10, day=1, 
+                offset=DateOffset(weekday=MO(2))), #This could be 2*Week(weekday=2)
+            ]
+    cal = ExampleCalendar()
+    cal.holidays(datetime(2012, 1, 1), datetime(2012, 12, 31)) #holiday list
+    datetime(2012, 5, 25) + CustomBusinessDay(calendar=cal) #holiday arithmetic
+>>>>>>> FETCH_HEAD
 
 Every calendar class is accessible by name using the ``get_calendar`` function
 which returns a holiday class instance.  Any imported calendar class will
@@ -782,6 +807,12 @@ or calendars with additional rules.
     new_cal = HolidayCalendarFactory('NewExampleCalendar', cal, USLaborDay)
     new_cal.rules
 
+<<<<<<< HEAD
+=======
+There are several defined US holidays in ``pandas.tseries.holiday`` along with
+several common holidays calendars.
+
+>>>>>>> FETCH_HEAD
 .. _timeseries.advanced_datetime:
 
 Time series-related instance methods
