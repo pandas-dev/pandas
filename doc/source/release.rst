@@ -156,7 +156,8 @@ API Changes
 - ``DataFrame.sort`` now places NaNs at the beginning or end of the sort according to the ``na_position`` parameter. (:issue:`3917`)
 
 - all offset operations now return ``Timestamp`` types (rather than datetime), Business/Week frequencies were incorrect (:issue:`4069`)
-
+- ``Series.iteritems()`` is now lazy (returns an iterator rather than a list). This was the documented behavior prior to 0.14. (:issue:`6760`)
+- ``Panel.shift`` now uses ``NDFrame.shift``. It no longer drops the ``nan`` data and retains its original shape.  (:issue:`4867`)
 
 Deprecations
 ~~~~~~~~~~~~
@@ -305,8 +306,7 @@ Bug Fixes
 - Bug in downcasting inference with empty arrays (:issue:`6733`)
 - Bug in ``obj.blocks`` on sparse containers dropping all but the last items of same for dtype (:issue:`6748`)
 - Bug in unpickling ``NaT (NaTType)`` (:issue:`4606`)
-- Bug in ``DataFrame.replace()`` where regex metacharacters were being treated
-  as regexs even when ``regex=False`` (:issue:`6777`).
+- Bug in setting a tz-aware index directly via ``.index`` (:issue:`6785`)
 
 pandas 0.13.1
 -------------
