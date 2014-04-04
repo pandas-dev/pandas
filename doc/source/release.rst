@@ -156,6 +156,8 @@ API Changes
 - ``to_excel`` now converts ``np.inf`` into a string representation,
   customizable by the ``inf_rep`` keyword argument (Excel has no native inf
   representation) (:issue:`6782`)
+- Arithmetic ops are now disallowed when passed two bool dtype Series or
+  DataFrames (:issue:`6762`).
 
 Deprecations
 ~~~~~~~~~~~~
@@ -307,6 +309,9 @@ Bug Fixes
 - Bug in ``DataFrame.replace()`` where regex metacharacters were being treated
   as regexs even when ``regex=False`` (:issue:`6777`).
 - Bug in timedelta ops on 32-bit platforms (:issue:`6808`)
+- Bug in setting a tz-aware index directly via ``.index`` (:issue:`6785`)
+- Bug in expressions.py where numexpr would try to evaluate arithmetic ops
+  (:issue:`6762`).
 
 pandas 0.13.1
 -------------

@@ -154,6 +154,13 @@ def _where_numexpr(cond, a, b, raise_on_error=False):
 set_use_numexpr(True)
 
 
+def _bool_arith_check(op_str, a, b, not_allowed=('+', '*', '-', '/',
+                                                 '//', '**')):
+    if op_str in not_allowed and a.dtype == bool and b.dtype == bool:
+        raise NotImplementedError("operator %r not implemented for bool "
+                                  "dtypes" % op_str)
+
+
 def evaluate(op, op_str, a, b, raise_on_error=False, use_numexpr=True,
              **eval_kwargs):
     """ evaluate and return the expression of the op on a and b
@@ -170,7 +177,7 @@ def evaluate(op, op_str, a, b, raise_on_error=False, use_numexpr=True,
                          return the results
         use_numexpr : whether to try to use numexpr (default True)
         """
-
+    _bool_arith_check(op_str, a, b)
     if use_numexpr:
         return _evaluate(op, op_str, a, b, raise_on_error=raise_on_error,
                          **eval_kwargs)
