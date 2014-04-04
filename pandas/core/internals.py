@@ -1555,7 +1555,7 @@ class ObjectBlock(Block):
     def _replace_single(self, to_replace, value, inplace=False, filter=None,
                         regex=False):
         # to_replace is regex compilable
-        to_rep_re = com.is_re_compilable(to_replace)
+        to_rep_re = regex and com.is_re_compilable(to_replace)
 
         # regex is regex compilable
         regex_re = com.is_re_compilable(regex)
