@@ -10476,6 +10476,18 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_almost_equal(bool_describe['mean'], 0.4)
         assert_almost_equal(bool_describe['50%'], 0)
 
+    def test_reduce_mixed_frame(self):
+        # GH 6806
+        df = DataFrame({
+            'bool_data': [True, True, False, False, False],
+            'int_data': [10, 20, 30, 40, 50],
+            'string_data': ['a', 'b', 'c', 'd', 'e'],
+        })
+        df.reindex(columns=['bool_data', 'int_data', 'string_data'])
+        test = df.sum(axis=0)
+        assert_almost_equal(test.values, [2, 150, 'abcde'])
+        assert_series_equal(test, df.T.sum(axis=1))
+
     def test_count(self):
         f = lambda s: notnull(s).sum()
         self._check_stat_op('count', f,

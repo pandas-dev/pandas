@@ -840,6 +840,9 @@ def _coerce_to_dtypes(result, dtypes):
             elif dtype == _TD_DTYPE:
                 r = _coerce_scalar_to_timedelta_type(r)
             elif dtype == np.bool_:
+                # messy. non 0/1 integers do not get converted.
+                if is_integer(r) and r not in [0,1]:
+                    return int(r)
                 r = bool(r)
             elif dtype.kind == 'f':
                 r = float(r)
@@ -850,7 +853,7 @@ def _coerce_to_dtypes(result, dtypes):
 
         return r
 
-    return np.array([conv(r, dtype) for r, dtype in zip(result, dtypes)])
+    return [conv(r, dtype) for r, dtype in zip(result, dtypes)]
 
 
 def _infer_dtype_from_scalar(val):
