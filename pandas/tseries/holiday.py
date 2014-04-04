@@ -296,51 +296,6 @@ class AbstractHolidayCalendar(object):
         else:
             return holidays
 
-    @staticmethod
-    def merge_class(base, other):
-        '''
-        Merge holiday calendars together.  The base calendar
-        will take precedence to other. The merge will be done
-        based on each holiday's name.
-        
-        Parameters
-        ----------
-        base : AbstractHolidayCalendar instance of array of Holiday objects
-        other : AbstractHolidayCalendar instance or array of Holiday objects
-        '''
-        if isinstance(other, AbstractHolidayCalendar):
-            other = other.rules
-        if not isinstance(other, list):
-            other = [other]
-        other_holidays = {holiday.name: holiday for holiday in other}
-            
-        if isinstance(base, AbstractHolidayCalendar):
-            base = base.rules
-        if not isinstance(base, list):
-            base = [base]
-        base_holidays = {holiday.name: holiday for holiday in base}
-        
-        other_holidays.update(base_holidays)
-        return other_holidays.values()
-
-    def merge(self, other, inplace=False):
-        '''
-        Merge holiday calendars together.  The caller's class
-        rules take precedence.  The merge will be done
-        based on each holiday's name.
-        
-        Parameters
-        ----------
-        other : holiday calendar
-        inplace : bool (default=False)
-            If True set rule_table to holidays, else return array of Holidays
-        '''
-        holidays    =   self.merge_class(self, other)
-        if inplace:
-            self.rules = holidays
-        else:
-            return holidays
-
 USMemorialDay     = Holiday('MemorialDay', month=5, day=24, 
                             offset=DateOffset(weekday=MO(1)))
 USLaborDay        = Holiday('Labor Day', month=9, day=1, 
