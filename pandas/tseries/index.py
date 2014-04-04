@@ -14,7 +14,7 @@ import pandas.compat as compat
 from pandas.compat import u
 from pandas.tseries.frequencies import (
     infer_freq, to_offset, get_period_alias,
-    Resolution, get_reso_string, get_offset)
+    Resolution, get_reso_string, get_offset, infer_freqstr)
 from pandas.tseries.offsets import DateOffset, generate_range, Tick, CDay
 from pandas.tseries.tools import parse_time_string, normalize_date
 from pandas.util.decorators import cache_readonly
@@ -1428,10 +1428,10 @@ class DatetimeIndex(Int64Index):
             return None
 
     @cache_readonly
-    def inferred_freq_offset(self):
-        if self.inferred_freq is not None:
-            return get_offset(self.inferred_freq)
-        else:
+    def inferred_freqstr(self):
+        try:
+            return infer_freqstr(self)
+        except ValueError:
             return None
 
     @property

@@ -193,6 +193,8 @@ API Changes
   as its already the index
 - ``DataFrame.plot`` and ``Series.plot`` now supports area plot with specifying ``kind='area'`` (:issue:`6656`)
 - Line plot can be stacked by ``stacked=True``. (:issue:`6656`)
+- ``Panel.shift`` now uses ``NDFrame.shift``. It no longer drops the ``nan`` data and retains its original shape.  (:issue:`4867`)
+- ``pd.infer_freq`` and ``DatetimeIndex.inferred_freq`` now return a DateOffset subclass rather than a string.  (:issue:`5082`)
 
 Deprecations
 ~~~~~~~~~~~~

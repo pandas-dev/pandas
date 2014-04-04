@@ -663,7 +663,7 @@ def infer_freq(index, warn=True):
 
     Returns
     -------
-    freq : string or None
+    freq : DateOffset object or None
         None if no discernible frequency
         TypeError if the index is not datetime-like
     """
@@ -684,7 +684,28 @@ def infer_freq(index, warn=True):
 
     index = pd.DatetimeIndex(index)
     inferer = _FrequencyInferer(index, warn=warn)
-    return inferer.get_freq()
+    return to_offset(inferer.get_freq())
+
+
+def infer_freqstr(index, warn=True):
+    """
+    Infer the most likely frequency given the input index. If the frequency is
+    uncertain, a warning will be printed
+
+    Parameters
+    ----------
+    index : DatetimeIndex
+            if passed a Series will use the values of the series (NOT THE INDEX)
+    warn : boolean, default True
+
+    Returns
+    -------
+    freq : string or None
+        None if no discernible frequency
+        TypeError if the index is not datetime-like
+    """
+    return infer_freq(index, warn).freqstr
+
 
 _ONE_MICRO = long(1000)
 _ONE_MILLI = _ONE_MICRO * 1000
