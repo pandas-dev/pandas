@@ -4769,6 +4769,22 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             self.assertRaises(TypeError, self.frame.__gt__, 'foo')
             self.assertRaises(TypeError, self.frame.__ne__, 'foo')
 
+    def test_bool_ops_raise_on_arithmetic(self):
+        df = DataFrame({'a': np.random.rand(10) > 0.5,
+                        'b': np.random.rand(10) > 0.5})
+        df2 = DataFrame({'a': np.random.rand(10) > 0.5,
+                         'b': np.random.rand(10) > 0.5})
+        ops = 'add', 'mul', 'sub', 'div', 'truediv', 'floordiv', 'pow'
+        names = '+', '*', '-', '/', '/', '//', '**'
+        msg = 'operator %r not implemented for bool dtypes'
+        for op, name in zip(ops, names):
+            if not compat.PY3 or op != 'div':
+                with tm.assertRaisesRegexp(NotImplementedError,
+                                           re.escape(msg % name)):
+                    f = getattr(operator, op)
+                    f(df, df2)
+                    f(df.a, df.b)
+
     def test_constructor_lists_to_object_dtype(self):
         # from #1074
         d = DataFrame({'a': [np.nan, False]})
