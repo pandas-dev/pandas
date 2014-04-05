@@ -524,6 +524,10 @@ class NDFrame(PandasObject):
         inplace : boolean, default False
             Whether to return a new %(klass)s. If True then value of copy is
             ignored.
+        errors : {'ignore', 'raise'}, default 'raise'
+            If 'raise', ValueError is raised when any of label in the dict doesn't exist in target axis.
+            Also, errors raised by passed function is not suppressed.
+            If 'ignore', suppress errors and rename only labels which doesn't trigger errors.
 
         Returns
         -------
@@ -538,19 +542,46 @@ class NDFrame(PandasObject):
         copy = kwargs.get('copy', True)
         inplace = kwargs.get('inplace', False)
 
+        # default should be 'raise' in future version
+        errors = kwargs.get('errors', None)        
+        # errors = kwargs.get('errors', 'raise')
+
         if (com._count_not_none(*axes.values()) == 0):
             raise TypeError('must pass an index to rename')
 
         # renamer function if passed a dict
-        def _get_rename_function(mapper):
+        def _get_rename_function(mapper, axis):
             if isinstance(mapper, (dict, ABCSeries)):
+                if errors != 'ignore':
+                    # once cast a view to list for python 3
+                    labels = np.array(list(mapper.keys()))
+                    axis = self._get_axis(axis)
+                    indexer = axis.get_indexer(labels)
+                    mask = indexer == -1
+                    if mask.any():
+                        msg = 'labels %s not contained in axis' % labels[mask]
+
+                        if errors is None:
+                            # should be removed in future version
+                            warnings.warn("%s will results in ValueError in the future."
+                                "Use 'errors' keyword to suppress/force error" % msg,
+                                FutureWarning)
+                        else:
+                            raise ValueError(msg)
+
                 def f(x):
                     if x in mapper:
                         return mapper[x]
                     else:
                         return x
             else:
-                f = mapper
+                def f(x):
+                    try:
+                        return mapper(x)
+                    except Exception:
+                        if errors != 'ignore':
+                            raise
+                        return x
 
             return f
 
@@ -562,7 +593,8 @@ class NDFrame(PandasObject):
             v = axes.get(self._AXIS_NAMES[axis])
             if v is None:
                 continue
-            f = _get_rename_function(v)
+
+            f = _get_rename_function(v, axis)
 
             baxis = self._get_block_manager_axis(axis)
             result._data = result._data.rename(f, axis=baxis, copy=copy)

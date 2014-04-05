@@ -9049,14 +9049,52 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         index = MultiIndex.from_tuples(tuples_index, names=['foo', 'bar'])
         columns = MultiIndex.from_tuples(tuples_columns, names=['fizz', 'buzz'])
         renamer = DataFrame([(0,0),(1,1)], index=index, columns=columns)
+
+        with tm.assert_produces_warning():
+            # should raise ValueError in future version
+            renamed = renamer.rename(index={'foo1': 'foo3', 'bar2': 'bar3'},
+                                     columns={'fizz1': 'fizz3', 'buzz2': 'buzz3'})
+            new_index = MultiIndex.from_tuples([('foo3', 'bar1'), ('foo2', 'bar3')])
+            new_columns = MultiIndex.from_tuples([('fizz3', 'buzz1'), ('fizz2', 'buzz3')])
+            self.assert_numpy_array_equal(renamed.index, new_index)
+            self.assert_numpy_array_equal(renamed.columns, new_columns)
+            self.assertEquals(renamed.index.names, renamer.index.names)
+            self.assertEquals(renamed.columns.names, renamer.columns.names)
+
+        self.assertRaises(ValueError, renamer.rename, index={'foo1': 'foo3', 'bar2': 'bar3'},
+                                     columns={'fizz1': 'fizz3', 'buzz2': 'buzz3'}, errors='raise')
+
         renamed = renamer.rename(index={'foo1': 'foo3', 'bar2': 'bar3'},
-                                 columns={'fizz1': 'fizz3', 'buzz2': 'buzz3'})
+                                 columns={'fizz1': 'fizz3', 'buzz2': 'buzz3'}, errors='ignore')
         new_index = MultiIndex.from_tuples([('foo3', 'bar1'), ('foo2', 'bar3')])
         new_columns = MultiIndex.from_tuples([('fizz3', 'buzz1'), ('fizz2', 'buzz3')])
         self.assert_numpy_array_equal(renamed.index, new_index)
         self.assert_numpy_array_equal(renamed.columns, new_columns)
         self.assertEquals(renamed.index.names, renamer.index.names)
         self.assertEquals(renamed.columns.names, renamer.columns.names)
+
+        # error handling
+        data = {1: {'A': 0, 'B': 1}, '2': {'C':1, 'D': 2}}
+        df = DataFrame(data)
+
+        # errors = default
+        with tm.assert_produces_warning():
+            # should raise ValueError in future version
+            renamed = df.rename(columns={'1': 'One', '2': 'Two'})
+            self.assertEqual(renamed.columns.tolist(), [1, 'Two'])
+        self.assertRaises(TypeError, df.rename, columns=lambda x: x + 1)
+
+        # errors = raise
+        self.assertRaises(ValueError, df.rename,
+                          columns={'1': 'One', '2': 'Two'}, errors='raise')
+        self.assertRaises(TypeError, df.rename, columns=lambda x: x + 1, errors='raise')
+
+        # errors = ignore
+        renamed = df.rename(columns={'1': 'One', '2': 'Two'}, errors='ignore')
+        self.assertEqual(renamed.columns.tolist(), [1, 'Two'])
+
+        renamed = df.rename(columns=lambda x: x + 1, errors='ignore')
+        self.assertEqual(renamed.columns.tolist(), [2, '2'])
 
     def test_rename_nocopy(self):
         renamed = self.frame.rename(columns={'C': 'foo'}, copy=False)

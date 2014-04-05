@@ -154,6 +154,8 @@ API Changes
 - ``Series.iteritems()`` is now lazy (returns an iterator rather than a list). This was the documented behavior prior to 0.14. (:issue:`6760`)
 - ``Panel.shift`` now uses ``NDFrame.shift``. It no longer drops the ``nan`` data and retains its original shape.  (:issue:`4867`)
 
+- ``rename`` function can now accept ``errors`` keyword to suppress error raised by a passed function, or raise ValueError when any of label in a passed dict is not found in the target axis.
+
 Deprecations
 ~~~~~~~~~~~~
 
