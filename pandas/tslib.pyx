@@ -690,19 +690,19 @@ cdef class _Timestamp(datetime):
                         dts.us, ts.tzinfo)
 
     def __add__(self, other):
-        cdef Py_ssize_t other_int
+        cdef int64_t other_int
 
         if is_timedelta64_object(other):
-            other_int = other.astype('timedelta64[ns]').astype(int)
+            other_int = other.astype('timedelta64[ns]').view('i8')
             return Timestamp(self.value + other_int, tz=self.tzinfo, offset=self.offset)
 
-        if is_integer_object(other):
+        elif is_integer_object(other):
             if self.offset is None:
                 raise ValueError("Cannot add integral value to Timestamp "
                                  "without offset.")
             return Timestamp((self.offset * other).apply(self), offset=self.offset)
 
-        if isinstance(other, timedelta) or hasattr(other, 'delta'):
+        elif isinstance(other, timedelta) or hasattr(other, 'delta'):
             nanos = _delta_to_nanoseconds(other)
             return Timestamp(self.value + nanos, tz=self.tzinfo, offset=self.offset)
 

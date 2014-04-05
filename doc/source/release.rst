@@ -303,6 +303,7 @@ Bug Fixes
 - Bug in unpickling ``NaT (NaTType)`` (:issue:`4606`)
 - Bug in ``DataFrame.replace()`` where regex metacharacters were being treated
   as regexs even when ``regex=False`` (:issue:`6777`).
+- Bug in timedelta ops on 32-bit platforms (:issue:`6808`)
 
 pandas 0.13.1
 -------------

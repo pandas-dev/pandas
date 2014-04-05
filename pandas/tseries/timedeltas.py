@@ -68,7 +68,7 @@ def to_timedelta(arg, box=True, unit='ns'):
 _short_search = re.compile(
     "^\s*(?P<neg>-?)\s*(?P<value>\d*\.?\d*)\s*(?P<unit>d|s|ms|us|ns)?\s*$",re.IGNORECASE)
 _full_search = re.compile(
-    "^\s*(?P<neg>-?)\s*(?P<days>\d+)?\s*(days|d)?,?\s*(?P<time>\d{2}:\d{2}:\d{2})?(?P<frac>\.\d+)?\s*$",re.IGNORECASE)
+    "^\s*(?P<neg>-?)\s*(?P<days>\d+)?\s*(days|d|day)?,?\s*(?P<time>\d{2}:\d{2}:\d{2})?(?P<frac>\.\d+)?\s*$",re.IGNORECASE)
 _nat_search = re.compile(
     "^\s*(nat|nan)\s*$",re.IGNORECASE)
 _whitespace = re.compile('^\s*$')
