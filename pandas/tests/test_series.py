@@ -2149,6 +2149,17 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         q = Series(self.ts,dtype=object).quantile(0.9)
         self.assertEqual(q, percentile(self.ts.valid(), 90))
 
+        # datetime64[ns] dtype
+        dts = self.ts.index.to_series()
+        q = dts.quantile(.2)
+        self.assertEqual(q, Timestamp('2000-01-10 19:12:00'))
+
+        if not _np_version_under1p7:
+            # timedelta64[ns] dtype
+            tds = dts.diff()
+            q = tds.quantile(.25)
+            self.assertEqual(q, pd.to_timedelta('24:00:00'))
+
     def test_describe(self):
         _ = self.series.describe()
         _ = self.ts.describe()

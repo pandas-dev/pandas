@@ -1235,10 +1235,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         valid_values = self.dropna().values
         if len(valid_values) == 0:
             return pa.NA
-        result = _quantile(valid_values, q * 100)
-        if not np.isscalar and com.is_timedelta64_dtype(result):
-            from pandas.tseries.timedeltas import to_timedelta
-            return to_timedelta(result)
+        if com.is_datetime64_dtype(self):
+            values = _values_from_object(self).view('i8')
+            result = lib.Timestamp(_quantile(values, q * 100))
+        else:
+            result = _quantile(valid_values, q * 100)
 
         return result
 
