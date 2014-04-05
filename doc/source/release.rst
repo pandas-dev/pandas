@@ -172,6 +172,10 @@ API Changes
   (and numpy defaults)
 - add ``inplace`` keyword to ``Series.order/sort`` to make them inverses (:issue:`6859`)
 
+- Replace ``pandas.compat.scipy.scoreatpercentile`` with ``numpy.percentile`` (:issue:`6810`)
+- ``.quantile`` on a ``datetime[ns]`` series now returns ``Timestamp`` instead
+  of ``np.datetime64`` objects (:issue:`6810`)
+
 Deprecations
 ~~~~~~~~~~~~
 
