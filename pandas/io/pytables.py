@@ -30,7 +30,8 @@ from pandas.tseries.timedeltas import _coerce_scalar_to_timedelta_type
 import pandas.core.common as com
 from pandas.tools.merge import concat
 from pandas import compat
-from pandas.compat import u_safe as u, PY3, range, lrange, string_types, filter
+from pandas.compat import(u_safe as u, PY3, range, lrange, string_types, filter,
+                          StringIO)
 from pandas.io.common import PerformanceWarning
 from pandas.core.config import get_option
 from pandas.computation.pytables import Expr, maybe_expression
@@ -271,9 +272,18 @@ def get_store(path, **kwargs):
 
 # interface to/from ###
 
-def to_hdf(path_or_buf, key, value, mode=None, complevel=None, complib=None,
-           append=None, **kwargs):
+def to_hdf(path_or_buf=None, key=None, value=None, mode=None, complevel=None,
+           complib=None, append=None, **kwargs):
     """ store this object, close it if we opened it """
+    do_return = False
+    if path_or_buf is None:
+        do_return = True
+        path_or_buf = StringIO()
+    if key is None:
+        raise TypeError("You must pass a key")
+    if value is None:
+        raise TypeError("You must pass a value")
+
     if append:
         f = lambda store: store.append(key, value, **kwargs)
     else:
@@ -283,6 +293,18 @@ def to_hdf(path_or_buf, key, value, mode=None, complevel=None, complib=None,
         with get_store(path_or_buf, mode=mode, complevel=complevel,
                        complib=complib) as store:
             f(store)
+    elif hasattr(path_or_buf, "write"):
+        image = path_or_buf.read() if hasattr(path_or_buf, "read") else ""
+        with get_store("data.h5", mode=mode, complevel=complevel,
+                       complib=complib, driver="H5FD_CORE",
+                       driver_core_backing_store=0,
+                       driver_core_image=image) as store:
+            f(store)
+            image = store._handle.get_file_image()
+            if do_return:
+                return image
+            else:
+                path_or_buf.write(store._handle.get_file_image())
     else:
         f(path_or_buf)
 
@@ -322,11 +344,21 @@ def read_hdf(path_or_buf, key, **kwargs):
     f = lambda store, auto_close: store.select(
         key, auto_close=auto_close, **kwargs)
 
-    if isinstance(path_or_buf, string_types):
-
+    if isinstance(path_or_buf, string_types) or hasattr(path_or_buf, "read"):
         # can't auto open/close if we are using an iterator
         # so delegate to the iterator
-        store = HDFStore(path_or_buf, **kwargs)
+
+        if isinstance(path_or_buf, string_types):
+            store = HDFStore(path_or_buf, **kwargs)
+        else:
+            store = HDFStore(
+                        "data.h5",
+                        mode="r",
+                        driver="H5FD_CORE",
+                        driver_core_backing_store=0,
+                        driver_core_image=path_or_buf.read(),
+                        **kwargs
+                    )
         try:
             return f(store, True)
         except:

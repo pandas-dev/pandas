@@ -845,7 +845,7 @@ class NDFrame(PandasObject):
             date_unit=date_unit,
             default_handler=default_handler)
 
-    def to_hdf(self, path_or_buf, key, **kwargs):
+    def to_hdf(self, path_or_buf=None, key=None, **kwargs):
         """ activate the HDFStore
 
         Parameters
