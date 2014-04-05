@@ -243,6 +243,39 @@ class TestTimedeltas(tm.TestCase):
         expected = to_timedelta('00:01:21')
         tm.assert_almost_equal(result, expected)
 
+    def test_timedelta_ops_scalar(self):
+
+        # GH 6808
+        base = pd.to_datetime('20130101 09:01:12.123456')
+        expected_add = pd.to_datetime('20130101 09:01:22.123456')
+        expected_sub = pd.to_datetime('20130101 09:01:02.123456')
+
+        for offset in [pd.to_timedelta(10,unit='s'),
+                       timedelta(seconds=10),
+                       np.timedelta64(10,'s'),
+                       np.timedelta64(10000000000,'ns'),
+                       pd.offsets.Second(10)]:
+            result = base + offset
+            self.assertEquals(result, expected_add)
+
+            result = base - offset
+            self.assertEquals(result, expected_sub)
+
+        base = pd.to_datetime('20130102 09:01:12.123456')
+        expected_add = pd.to_datetime('20130103 09:01:22.123456')
+        expected_sub = pd.to_datetime('20130101 09:01:02.123456')
+
+        for offset in [pd.to_timedelta('1 day, 00:00:10'),
+                       pd.to_timedelta('1 days, 00:00:10'),
+                       timedelta(days=1,seconds=10),
+                       np.timedelta64(1,'D')+np.timedelta64(10,'s'),
+                       pd.offsets.Day()+pd.offsets.Second(10)]:
+            result = base + offset
+            self.assertEquals(result, expected_add)
+
+            result = base - offset
+            self.assertEquals(result, expected_sub)
+
     def test_to_timedelta_on_missing_values(self):
         _skip_if_numpy_not_friendly()
 
