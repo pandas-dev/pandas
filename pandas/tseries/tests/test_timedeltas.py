@@ -240,7 +240,7 @@ class TestTimedeltas(tm.TestCase):
 
         result = td.quantile(.1)
         # This properly returned a scalar.
-        expected = to_timedelta('00:00:02.6')
+        expected = np.timedelta64(2599999999,'ns')
         tm.assert_almost_equal(result, expected)
 
         result = td.median()[0]

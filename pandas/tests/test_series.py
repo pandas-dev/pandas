@@ -2137,17 +2137,17 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         self.assertNotIsInstance(result, Series)
 
     def test_quantile(self):
-        from pandas.compat.scipy import scoreatpercentile
+        from numpy import percentile
 
         q = self.ts.quantile(0.1)
-        self.assertEqual(q, scoreatpercentile(self.ts.valid(), 10))
+        self.assertEqual(q, percentile(self.ts.valid(), 10))
 
         q = self.ts.quantile(0.9)
-        self.assertEqual(q, scoreatpercentile(self.ts.valid(), 90))
+        self.assertEqual(q, percentile(self.ts.valid(), 90))
 
         # object dtype
         q = Series(self.ts,dtype=object).quantile(0.9)
-        self.assertEqual(q, scoreatpercentile(self.ts.valid(), 90))
+        self.assertEqual(q, percentile(self.ts.valid(), 90))
 
     def test_describe(self):
         _ = self.series.describe()
