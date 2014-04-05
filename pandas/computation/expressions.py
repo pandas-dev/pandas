@@ -154,9 +154,16 @@ def _where_numexpr(cond, a, b, raise_on_error=False):
 set_use_numexpr(True)
 
 
-def _bool_arith_check(op_str, a, b, not_allowed=('+', '*', '-', '/',
-                                                 '//', '**')):
-    if op_str in not_allowed and a.dtype == bool and b.dtype == bool:
+def _has_bool_dtype(x):
+    try:
+        return x.dtype == bool
+    except AttributeError:
+        return 'bool' in x.blocks
+
+
+def _bool_arith_check(op_str, a, b, not_allowed=frozenset(('+', '*', '-', '/',
+                                                           '//', '**'))):
+    if op_str in not_allowed and _has_bool_dtype(a) and _has_bool_dtype(b):
         raise NotImplementedError("operator %r not implemented for bool "
                                   "dtypes" % op_str)
 
