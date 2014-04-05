@@ -4761,13 +4761,13 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         _check_unary_op(operator.neg)
 
     def test_logical_typeerror(self):
-        if compat.PY3:
-            pass
-        else:
+        if not compat.PY3:
             self.assertRaises(TypeError, self.frame.__eq__, 'foo')
             self.assertRaises(TypeError, self.frame.__lt__, 'foo')
             self.assertRaises(TypeError, self.frame.__gt__, 'foo')
             self.assertRaises(TypeError, self.frame.__ne__, 'foo')
+        else:
+            raise nose.SkipTest('test_logical_typeerror not tested on PY3')
 
     def test_constructor_lists_to_object_dtype(self):
         # from #1074

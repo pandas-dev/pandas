@@ -2,6 +2,7 @@ from __future__ import print_function
 # pylint: disable-msg=W0612,E1101
 
 import nose
+import re
 
 from numpy.random import randn
 
@@ -338,6 +339,24 @@ class TestExpressions(tm.TestCase):
         testit()
         expr.set_numexpr_threads()
         testit()
+
+    def test_bool_ops_raise_on_arithmetic(self):
+        df = DataFrame({'a': np.random.rand(10) > 0.5,
+                        'b': np.random.rand(10) > 0.5})
+        names = 'add', 'mul', 'sub', 'div', 'truediv', 'floordiv', 'pow'
+        ops = '+', '*', '-', '/', '/', '//', '**'
+        msg = 'operator %r not implemented for bool dtypes'
+        for op, name in zip(ops, names):
+            if not compat.PY3 or name != 'div':
+                f = getattr(operator, name)
+                err_msg = re.escape(msg % op)
+
+                with tm.assertRaisesRegexp(NotImplementedError, err_msg):
+                    f(df, df)
+
+                with tm.assertRaisesRegexp(NotImplementedError, err_msg):
+                    f(df.a, df.b)
+
 
 if __name__ == '__main__':
     import nose
