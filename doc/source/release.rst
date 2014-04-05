@@ -449,6 +449,7 @@ Bug Fixes
 - Moved ``Panel.shift`` to ``NDFrame.slice_shift`` and fixed to respect multiple dtypes. (:issue:`6959`)
 - Bug in enabling ``subplots=True`` in ``DataFrame.plot`` only has single column raises ``TypeError``, and ``Series.plot`` raises ``AttributeError`` (:issue:`6951`)
 - Bug in ``DataFrame.plot`` draws unnecessary axes when enabling ``subplots`` and ``kind=scatter`` (:issue:`6951`)
+- Bug in ``read_csv`` from a filesystem with non-utf-8 encoding (:issue:`6807`)
 
 pandas 0.13.1
 -------------
