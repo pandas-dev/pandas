@@ -881,7 +881,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                                str(self.dtype.name))
 
     def to_string(self, buf=None, na_rep='NaN', float_format=None,
-                  nanRep=None, length=False, dtype=False, name=False):
+                  length=False, dtype=False, name=False):
         """
         Render a string representation of the Series
 
@@ -905,10 +905,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -------
         formatted : string (if not buffer passed)
         """
-
-        if nanRep is not None:  # pragma: no cover
-            warnings.warn("nanRep is deprecated, use na_rep", FutureWarning)
-            na_rep = nanRep
 
         the_repr = self._get_repr(float_format=float_format, na_rep=na_rep,
                                   length=length, dtype=dtype, name=name)

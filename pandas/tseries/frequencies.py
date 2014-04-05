@@ -239,21 +239,6 @@ for _i, _weekday in enumerate(['MON', 'TUE', 'WED', 'THU', 'FRI']):
 _legacy_reverse_map = dict((v, k) for k, v in
                            reversed(sorted(compat.iteritems(_rule_aliases))))
 
-
-def inferTimeRule(index):
-    from pandas.tseries.index import DatetimeIndex
-    import warnings
-    warnings.warn("This method is deprecated, use infer_freq or inferred_freq"
-                  " attribute of DatetimeIndex", FutureWarning)
-
-    freq = DatetimeIndex(index).inferred_freq
-    if freq is None:
-        raise Exception('Unable to infer time rule')
-
-    offset = to_offset(freq)
-    return get_legacy_offset_name(offset)
-
-
 def to_offset(freqstr):
     """
     Return DateOffset object from string representation

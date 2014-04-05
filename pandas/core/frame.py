@@ -1065,7 +1065,7 @@ class DataFrame(NDFrame):
     @deprecate_kwarg(old_arg_name='cols', new_arg_name='columns')
     def to_csv(self, path_or_buf=None, sep=",", na_rep='', float_format=None,
                columns=None, header=True, index=True, index_label=None,
-               mode='w', nanRep=None, encoding=None, quoting=None,
+               mode='w', encoding=None, quoting=None,
                quotechar='"', line_terminator='\n', chunksize=None,
                tupleize_cols=False, date_format=None, doublequote=True,
                escapechar=None, **kwds):
@@ -1122,10 +1122,6 @@ class DataFrame(NDFrame):
             Format string for datetime objects
         cols : kwarg only alias of columns [deprecated]
         """
-        if nanRep is not None:  # pragma: no cover
-            warnings.warn("nanRep is deprecated, use na_rep",
-                          FutureWarning)
-            na_rep = nanRep
 
         formatter = fmt.CSVFormatter(self, path_or_buf,
                                      line_terminator=line_terminator,
@@ -1269,21 +1265,12 @@ class DataFrame(NDFrame):
     @Appender(fmt.docstring_to_string, indents=1)
     def to_string(self, buf=None, columns=None, col_space=None, colSpace=None,
                   header=True, index=True, na_rep='NaN', formatters=None,
-                  float_format=None, sparsify=None, nanRep=None,
-                  index_names=True, justify=None, force_unicode=None,
-                  line_width=None, max_rows=None, max_cols=None,
+                  float_format=None, sparsify=None, index_names=True,
+                  justify=None, line_width=None, max_rows=None, max_cols=None,
                   show_dimensions=False):
         """
         Render a DataFrame to a console-friendly tabular output.
         """
-        if force_unicode is not None:  # pragma: no cover
-            warnings.warn("force_unicode is deprecated, it will have no "
-                          "effect", FutureWarning)
-
-        if nanRep is not None:  # pragma: no cover
-            warnings.warn("nanRep is deprecated, use na_rep",
-                          FutureWarning)
-            na_rep = nanRep
 
         if colSpace is not None:  # pragma: no cover
             warnings.warn("colSpace is deprecated, use col_space",
@@ -1312,9 +1299,8 @@ class DataFrame(NDFrame):
     def to_html(self, buf=None, columns=None, col_space=None, colSpace=None,
                 header=True, index=True, na_rep='NaN', formatters=None,
                 float_format=None, sparsify=None, index_names=True,
-                justify=None, force_unicode=None, bold_rows=True,
-                classes=None, escape=True, max_rows=None, max_cols=None,
-                show_dimensions=False):
+                justify=None, bold_rows=True, classes=None, escape=True,
+                max_rows=None, max_cols=None, show_dimensions=False):
         """
         Render a DataFrame as an HTML table.
 
@@ -1334,10 +1320,6 @@ class DataFrame(NDFrame):
             all.
 
         """
-
-        if force_unicode is not None:  # pragma: no cover
-            warnings.warn("force_unicode is deprecated, it will have no "
-                          "effect", FutureWarning)
 
         if colSpace is not None:  # pragma: no cover
             warnings.warn("colSpace is deprecated, use col_space",
@@ -1366,7 +1348,7 @@ class DataFrame(NDFrame):
     def to_latex(self, buf=None, columns=None, col_space=None, colSpace=None,
                  header=True, index=True, na_rep='NaN', formatters=None,
                  float_format=None, sparsify=None, index_names=True,
-                 bold_rows=True, force_unicode=None, longtable=False):
+                 bold_rows=True, longtable=False):
         """
         Render a DataFrame to a tabular environment table. You can splice
         this into a LaTeX document. Requires \\usepackage(booktabs}.
@@ -1380,10 +1362,6 @@ class DataFrame(NDFrame):
             a \\usepackage{longtable} to your LaTeX preamble.
 
         """
-
-        if force_unicode is not None:  # pragma: no cover
-            warnings.warn("force_unicode is deprecated, it will have no "
-                          "effect", FutureWarning)
 
         if colSpace is not None:  # pragma: no cover
             warnings.warn("colSpace is deprecated, use col_space",
