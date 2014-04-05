@@ -153,6 +153,9 @@ API Changes
 - all offset operations now return ``Timestamp`` types (rather than datetime), Business/Week frequencies were incorrect (:issue:`4069`)
 - ``Series.iteritems()`` is now lazy (returns an iterator rather than a list). This was the documented behavior prior to 0.14. (:issue:`6760`)
 - ``Panel.shift`` now uses ``NDFrame.shift``. It no longer drops the ``nan`` data and retains its original shape.  (:issue:`4867`)
+- ``to_excel`` now converts ``np.inf`` into a string representation,
+  customizable by the ``inf_rep`` keyword argument (Excel has no native inf
+  representation) (:issue:`6782`)
 
 Deprecations
 ~~~~~~~~~~~~
