@@ -1862,21 +1862,21 @@ class TestPeriodIndex(tm.TestCase):
         for off in offsets:
             rng = date_range('01-Jan-2012', periods=8, freq=off)
             prng = rng.to_period()
-            self.assertEqual(prng.freq, 'Q-DEC')
+            self.assertEqual(prng.freqstr, 'Q-DEC')
 
     def test_to_period_annualish(self):
         offsets = ['BA', 'AS', 'BAS']
         for off in offsets:
             rng = date_range('01-Jan-2012', periods=8, freq=off)
             prng = rng.to_period()
-            self.assertEqual(prng.freq, 'A-DEC')
+            self.assertEqual(prng.freqstr, 'A-DEC')
 
     def test_to_period_monthish(self):
         offsets = ['MS', 'EOM', 'BM']
         for off in offsets:
             rng = date_range('01-Jan-2012', periods=8, freq=off)
             prng = rng.to_period()
-            self.assertEqual(prng.freq, 'M')
+            self.assertEqual(prng.freqstr, 'M')
 
     def test_no_multiples(self):
         self.assertRaises(ValueError, period_range, '1989Q3', periods=10,

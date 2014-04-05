@@ -295,7 +295,7 @@ class TimeGrouper(Grouper):
     def _resample_periods(self):
         # assumes set_grouper(obj) already called
         axlabels = self.ax
-        source_freq = axlabels.freq_obj
+        source_freq = axlabels.freq
         obj = self.obj
 
         if len(axlabels) == 0:

@@ -676,7 +676,7 @@ class TestTSPlot(tm.TestCase):
         low.plot()
         ax = high.plot()
         for l in ax.get_lines():
-            self.assertEqual(PeriodIndex(data=l.get_xdata()).freq, 'T')
+            self.assertEqual(PeriodIndex(data=l.get_xdata()).freqstr, 'T')
 
     def test_mixed_freq_irreg_period(self):
         ts = tm.makeTimeSeries()
@@ -695,7 +695,7 @@ class TestTSPlot(tm.TestCase):
         high.plot()
         ax = low.plot()
         for l in ax.get_lines():
-            self.assert_(PeriodIndex(data=l.get_xdata()).freq.startswith('W'))
+            self.assert_(PeriodIndex(data=l.get_xdata()).freqstr.startswith('W'))
 
     @slow
     def test_from_weekly_resampling(self):
@@ -706,7 +706,7 @@ class TestTSPlot(tm.TestCase):
         low.plot()
         ax = high.plot()
         for l in ax.get_lines():
-            self.assert_(PeriodIndex(data=l.get_xdata()).freq.startswith('W'))
+            self.assert_(PeriodIndex(data=l.get_xdata()).freqstr.startswith('W'))
 
     @slow
     def test_irreg_dtypes(self):
