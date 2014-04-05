@@ -4761,29 +4761,13 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         _check_unary_op(operator.neg)
 
     def test_logical_typeerror(self):
-        if compat.PY3:
-            pass
-        else:
+        if not compat.PY3:
             self.assertRaises(TypeError, self.frame.__eq__, 'foo')
             self.assertRaises(TypeError, self.frame.__lt__, 'foo')
             self.assertRaises(TypeError, self.frame.__gt__, 'foo')
             self.assertRaises(TypeError, self.frame.__ne__, 'foo')
-
-    def test_bool_ops_raise_on_arithmetic(self):
-        df = DataFrame({'a': np.random.rand(10) > 0.5,
-                        'b': np.random.rand(10) > 0.5})
-        df2 = DataFrame({'a': np.random.rand(10) > 0.5,
-                         'b': np.random.rand(10) > 0.5})
-        ops = 'add', 'mul', 'sub', 'div', 'truediv', 'floordiv', 'pow'
-        names = '+', '*', '-', '/', '/', '//', '**'
-        msg = 'operator %r not implemented for bool dtypes'
-        for op, name in zip(ops, names):
-            if not compat.PY3 or op != 'div':
-                with tm.assertRaisesRegexp(NotImplementedError,
-                                           re.escape(msg % name)):
-                    f = getattr(operator, op)
-                    f(df, df2)
-                    f(df.a, df.b)
+        else:
+            raise nose.SkipTest('test_logical_typeerror not tested on PY3')
 
     def test_constructor_lists_to_object_dtype(self):
         # from #1074
