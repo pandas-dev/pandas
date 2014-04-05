@@ -538,6 +538,16 @@ class ExcelWriterBase(SharedItems):
                 recons = reader.parse('test1').astype(np_type)
                 tm.assert_frame_equal(frame, recons)
 
+    def test_inf_roundtrip(self):
+        _skip_if_no_xlrd()
+
+        frame = DataFrame([(1, np.inf), (2, 3), (5, -np.inf)])
+        with ensure_clean(self.ext) as path:
+            frame.to_excel(path, 'test1')
+            reader = ExcelFile(path)
+            recons = reader.parse('test1')
+            tm.assert_frame_equal(frame, recons)
+
     def test_sheets(self):
         _skip_if_no_xlrd()
 

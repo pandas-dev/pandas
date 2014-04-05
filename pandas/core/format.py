@@ -1369,10 +1369,14 @@ class ExcelFormatter(object):
             sequence should be given if the DataFrame uses MultiIndex.
     merge_cells : boolean, default False
             Format MultiIndex and Hierarchical Rows as merged cells.
+    inf_rep : string, default `'inf'`
+        representation for np.inf values (which aren't representable in Excel)
+        A `'-'` sign will be added in front of -inf.
     """
 
     def __init__(self, df, na_rep='', float_format=None, cols=None,
-                 header=True, index=True, index_label=None, merge_cells=False):
+                 header=True, index=True, index_label=None, merge_cells=False,
+                 inf_rep='inf'):
         self.df = df
         self.rowcounter = 0
         self.na_rep = na_rep
@@ -1384,12 +1388,18 @@ class ExcelFormatter(object):
         self.index_label = index_label
         self.header = header
         self.merge_cells = merge_cells
+        self.inf_rep = inf_rep
 
     def _format_value(self, val):
         if lib.checknull(val):
             val = self.na_rep
-        if self.float_format is not None and com.is_float(val):
-            val = float(self.float_format % val)
+        elif com.is_float(val):
+            if np.isposinf(val):
+                val = '-%s' % self.inf_rep
+            elif np.isneginf(val):
+                val = self.inf_rep
+            elif self.float_format is not None:
+                val = float(self.float_format % val)
         return val
 
     def _format_header_mi(self):

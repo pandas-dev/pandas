@@ -1155,7 +1155,7 @@ class DataFrame(NDFrame):
     def to_excel(self, excel_writer, sheet_name='Sheet1', na_rep='',
                  float_format=None, columns=None, header=True, index=True,
                  index_label=None, startrow=0, startcol=0, engine=None,
-                 merge_cells=True, encoding=None):
+                 merge_cells=True, encoding=None, inf_rep='inf'):
         """
         Write DataFrame to a excel sheet
 
@@ -1194,6 +1194,9 @@ class DataFrame(NDFrame):
             encoding of the resulting excel file. Only necessary for xlwt,
             other writers support unicode natively.
         cols : kwarg only alias of columns [deprecated]
+        inf_rep : string, default 'inf'
+            Representation for infinity (there is no native representation for
+            infinity in Excel)
 
         Notes
         -----
@@ -1207,7 +1210,7 @@ class DataFrame(NDFrame):
         >>> writer.save()
         """
         from pandas.io.excel import ExcelWriter
-        
+
         need_save = False
         if encoding == None:
             encoding = 'ascii'
@@ -1223,7 +1226,8 @@ class DataFrame(NDFrame):
                                        float_format=float_format,
                                        index=index,
                                        index_label=index_label,
-                                       merge_cells=merge_cells)
+                                       merge_cells=merge_cells,
+                                       inf_rep=inf_rep)
         formatted_cells = formatter.get_formatted_cells()
         excel_writer.write_cells(formatted_cells, sheet_name,
                                  startrow=startrow, startcol=startcol)
