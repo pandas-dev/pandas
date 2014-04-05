@@ -10915,13 +10915,13 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                             check_dtype=False, check_dates=True)
 
     def test_quantile(self):
-        from pandas.compat.scipy import scoreatpercentile
+        from numpy import percentile
 
         q = self.tsframe.quantile(0.1, axis=0)
-        self.assertEqual(q['A'], scoreatpercentile(self.tsframe['A'], 10))
+        self.assertEqual(q['A'], percentile(self.tsframe['A'], 10))
         q = self.tsframe.quantile(0.9, axis=1)
         q = self.intframe.quantile(0.1)
-        self.assertEqual(q['A'], scoreatpercentile(self.intframe['A'], 10))
+        self.assertEqual(q['A'], percentile(self.intframe['A'], 10))
 
         # test degenerate case
         q = DataFrame({'x': [], 'y': []}).quantile(0.1, axis=0)

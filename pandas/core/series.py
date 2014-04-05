@@ -52,7 +52,7 @@ import pandas.lib as lib
 import pandas.tslib as tslib
 import pandas.index as _index
 
-from pandas.compat.scipy import scoreatpercentile as _quantile
+from numpy import percentile as _quantile
 from pandas.core.config import get_option
 
 __all__ = ['Series']
