@@ -276,6 +276,7 @@ Improvements to existing features
 - Add option to turn off escaping in ``DataFrame.to_latex`` (:issue:`6472`)
 - Added ``how`` option to rolling-moment functions to dictate how to handle resampling; :func:``rolling_max`` defaults to max,
   :func:``rolling_min`` defaults to min, and all others default to mean (:issue:`6297`)
+- ``pd.stats.moments.rolling_var`` now uses Welford's method for increased numerical stability (:issue:`6817`)
 
 .. _release.bug_fixes-0.14.0:
 

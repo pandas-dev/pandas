@@ -751,7 +751,7 @@ def rolling_window(arg, window=None, win_type=None, min_periods=None,
     * ``gaussian`` (needs std)
     * ``general_gaussian`` (needs power, width)
     * ``slepian`` (needs width).
-    
+
     By default, the result is set to the right edge of the window. This can be
     changed to the center of the window by setting ``center=True``.
 
@@ -978,7 +978,7 @@ def expanding_apply(arg, func, min_periods=1, freq=None, center=False,
     Returns
     -------
     y : type of input argument
-    
+
     Notes
     -----
     The `freq` keyword is used to conform time series data to a specified

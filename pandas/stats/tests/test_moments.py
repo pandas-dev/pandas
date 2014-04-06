@@ -295,7 +295,8 @@ class TestMoments(tm.TestCase):
 
     def test_rolling_var(self):
         self._check_moment_func(mom.rolling_var,
-                                lambda x: np.var(x, ddof=1))
+                                lambda x: np.var(x, ddof=1),
+                                test_stable=True)
         self._check_moment_func(functools.partial(mom.rolling_var, ddof=0),
                                 lambda x: np.var(x, ddof=0))
 
@@ -349,13 +350,15 @@ class TestMoments(tm.TestCase):
                            has_center=True,
                            has_time_rule=True,
                            preserve_nan=True,
-                           fill_value=None):
+                           fill_value=None,
+                           test_stable=False):
 
         self._check_ndarray(func, static_comp, window=window,
                             has_min_periods=has_min_periods,
                             preserve_nan=preserve_nan,
                             has_center=has_center,
-                            fill_value=fill_value)
+                            fill_value=fill_value,
+                            test_stable=test_stable)
 
         self._check_structures(func, static_comp,
                                has_min_periods=has_min_periods,
@@ -367,7 +370,8 @@ class TestMoments(tm.TestCase):
                        has_min_periods=True,
                        preserve_nan=True,
                        has_center=True,
-                       fill_value=None):
+                       fill_value=None,
+                       test_stable=False):
 
         result = func(self.arr, window)
         assert_almost_equal(result[-1],
@@ -424,6 +428,12 @@ class TestMoments(tm.TestCase):
                 self.assert_(np.isnan(result[14]))
                 self.assert_(np.isnan(expected[-5]))
                 self.assert_(np.isnan(result[-14]))
+
+        if test_stable:
+            result = func(self.arr + 1e9, window)
+            assert_almost_equal(result[-1],
+                                static_comp(self.arr[-50:] + 1e9))
+
 
     def _check_structures(self, func, static_comp,
                           has_min_periods=True, has_time_rule=True,
