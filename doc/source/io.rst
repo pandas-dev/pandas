@@ -2287,6 +2287,8 @@ other sessions.  In addition, delete & query type operations are
 supported. This format is specified by ``format='table'`` or ``format='t'``
 to ``append`` or ``put`` or ``to_hdf``
 
+.. versionadded:: 0.13
+
 This format can be set as an option as well ``pd.set_option('io.hdf.default_format','table')`` to
 enable ``put/append/to_hdf`` to by default store in the ``table`` format.
 
