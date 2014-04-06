@@ -3888,26 +3888,6 @@ def _sanitize_and_check(indexes):
         return indexes, 'array'
 
 
-def _handle_legacy_indexes(indexes):
-    from pandas.core.daterange import DateRange
-    from pandas.tseries.index import DatetimeIndex
-
-    converted = []
-    for index in indexes:
-        if isinstance(index, DateRange):
-            if len(index) == 0:
-                kwds = dict(data=[], freq=index.offset, tz=index.tzinfo)
-            else:
-                kwds = dict(start=index[0], end=index[-1],
-                            freq=index.offset, tz=index.tzinfo)
-
-            index = DatetimeIndex(**kwds)
-
-        converted.append(index)
-
-    return converted
-
-
 def _get_consensus_names(indexes):
 
     # find the non-none names, need to tupleify to make

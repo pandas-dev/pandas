@@ -7,7 +7,7 @@ try:
     from pandas import date_range
 except ImportError:
     def date_range(start=None, end=None, periods=None, freq=None):
-        return DateRange(start, end, periods=periods, offset=freq)
+        return DatetimeIndex(start, end, periods=periods, offset=freq)
 
 """
 

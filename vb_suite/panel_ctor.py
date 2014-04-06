@@ -11,7 +11,7 @@ START_DATE = datetime(2011, 6, 1)
 
 setup_same_index = common_setup + """
 # create 100 dataframes with the same index
-dr = np.asarray(DateRange(datetime(1990,1,1), datetime(2012,1,1)))
+dr = np.asarray(DatetimeIndex(datetime(1990,1,1), datetime(2012,1,1)))
 data_frames = {}
 for x in xrange(100):
    df = DataFrame({"a": [0]*len(dr), "b": [1]*len(dr),
@@ -27,7 +27,7 @@ panel_from_dict_same_index = \
 setup_equiv_indexes = common_setup + """
 data_frames = {}
 for x in xrange(100):
-   dr = np.asarray(DateRange(datetime(1990,1,1), datetime(2012,1,1)))
+   dr = np.asarray(DatetimeIndex(datetime(1990,1,1), datetime(2012,1,1)))
    df = DataFrame({"a": [0]*len(dr), "b": [1]*len(dr),
                    "c": [2]*len(dr)}, index=dr)
    data_frames[x] = df

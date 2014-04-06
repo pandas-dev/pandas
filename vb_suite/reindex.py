@@ -18,7 +18,7 @@ frame_reindex_columns = Benchmark(statement, setup)
 #----------------------------------------------------------------------
 
 setup = common_setup + """
-rng = DateRange('1/1/1970', periods=10000, offset=datetools.Minute())
+rng = DatetimeIndex('1/1/1970', periods=10000, offset=datetools.Minute())
 df = DataFrame(np.random.rand(10000, 10), index=rng,
                columns=range(10))
 df['foo'] = 'bar'
