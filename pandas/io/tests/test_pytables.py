@@ -179,6 +179,17 @@ class TestHDFStore(tm.TestCase):
         finally:
             safe_remove(self.path)
 
+    def test_long_strings(self):
+        df = DataFrame({'a': [tm.rands(100) for _ in range(10)]}, 
+                index=[tm.rands(100) for _ in range(10)])
+
+        with ensure_clean_store(self.path) as store:
+            store.append('df', df, data_columns=['a'])
+
+            result = store.select('df')
+            assert_frame_equal(df, result)
+
+
     def test_api(self):
 
         # GH4584
