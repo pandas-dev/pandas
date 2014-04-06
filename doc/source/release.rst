@@ -297,7 +297,7 @@ Improvements to existing features
 - Improved performance of compatible pickles (:issue:`6899`)
 - Refactor Block classes removing `Block.items` attributes to avoid duplication
   in item handling (:issue:`6745`, :issue:`6988`).
-- Arrays of strings can be wrapped to a specified width (str.wrap)
+- Arrays of strings can be wrapped to a specified width (``str.wrap``) (:issue:`6705`)
 
 .. _release.bug_fixes-0.14.0:
 
