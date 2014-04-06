@@ -624,17 +624,15 @@ class DatetimeIndex(Int64Index):
         if isinstance(delta, (Tick, timedelta)):
             inc = offsets._delta_to_nanoseconds(delta)
             new_values = (self.asi8 + inc).view(_NS_DTYPE)
-            tz = 'UTC' if self.tz is not None else None
-            result = DatetimeIndex(new_values, tz=tz, freq='infer')
-            utc = _utc()
-            if self.tz is not None and self.tz is not utc:
-                result = result.tz_convert(self.tz)
         elif isinstance(delta, np.timedelta64):
             new_values = self.to_series() + delta
-            result = DatetimeIndex(new_values, tz=self.tz, freq='infer')
         else:
             new_values = self.astype('O') + delta
-            result = DatetimeIndex(new_values, tz=self.tz, freq='infer')
+        tz = 'UTC' if self.tz is not None else None
+        result = DatetimeIndex(new_values, tz=tz, freq='infer')
+        utc = _utc()
+        if self.tz is not None and self.tz is not utc:
+            result = result.tz_convert(self.tz)
         return result
 
     def __contains__(self, key):

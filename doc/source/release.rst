@@ -315,7 +315,6 @@ Bug Fixes
   as regexs even when ``regex=False`` (:issue:`6777`).
 - Bug in timedelta ops on 32-bit platforms (:issue:`6808`)
 - Bug in setting a tz-aware index directly via ``.index`` (:issue:`6785`)
-<<<<<<< HEAD
 - Bug in expressions.py where numexpr would try to evaluate arithmetic ops
   (:issue:`6762`).
 - Bug in Makefile where it didn't remove Cython generated C files with ``make
@@ -324,6 +323,7 @@ Bug Fixes
 - Bug in ``DataFrame._reduce`` where non bool-like (0/1) integers were being
   coverted into bools. (:issue:`6806`)
 - Regression from 0.13 with ``fillna`` and a Series on datetime-like (:issue:`6344`)
+- Bug in adding np.timedelta64 to DatetimeIndex with tz outputs incorrect result (:issue:`6818`)
 
 pandas 0.13.1
 -------------
