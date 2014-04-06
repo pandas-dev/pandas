@@ -906,7 +906,9 @@ def wide_to_long(df, stubnames, i, j):
 
 
 def convert_dummies(data, cat_variables, prefix_sep='_'):
-    """Compute DataFrame with specified columns converted to dummy variables (0
+    """Compute DataFrame with specified columns converted to dummy variables
+    (0.
+
     / 1). Result columns will be prefixed with the column name, then the level
     name, e.g. 'A_foo' for column A and level foo.
 

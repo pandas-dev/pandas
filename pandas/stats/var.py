@@ -323,7 +323,10 @@ BIC:                            %(bic).3f
 
     def _forecast_cov_beta_raw(self, n):
         """Returns the covariance of the beta errors for the forecast at 1, 2,
-        ..., n timesteps."""
+
+        ..., n timesteps.
+
+        """
         p = self._p
 
         values = self._data.values

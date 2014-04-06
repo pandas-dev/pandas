@@ -868,7 +868,8 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
            keys=None, levels=None, names=None, verify_integrity=False):
     """Concatenate pandas objects along a particular axis with optional set
     logic along the other axes. Can also add a layer of hierarchical indexing
-    on the concatenation axis, which may be useful if the labels are the same
+    on the concatenation axis, which may be useful if the labels are the same.
+
     (or overlapping) on the passed axis number.
 
     Parameters
