@@ -290,6 +290,7 @@ Bug Fixes
 - Bug in ``pd.read_stata`` which would use the wrong data types and missing values (:issue:`6327`)
 - Bug in ``DataFrame.to_stata`` that lead to data loss in certain cases, and could exported using the
   wrong data types and missing values (:issue:`6335`)
+- StataWriter replaces missing values in string columns by empty string (:issue:`6802`)
 - Inconsistent types in Timestamp addition/subtraction (:issue:`6543`)
 - Bug in preserving frequency across Timestamp addition/subtraction (:issue:`4547`)
 - Bug in indexing: empty list lookup caused ``IndexError`` exceptions (:issue:`6536`, :issue:`6551`)
@@ -314,6 +315,7 @@ Bug Fixes
   as regexs even when ``regex=False`` (:issue:`6777`).
 - Bug in timedelta ops on 32-bit platforms (:issue:`6808`)
 - Bug in setting a tz-aware index directly via ``.index`` (:issue:`6785`)
+<<<<<<< HEAD
 - Bug in expressions.py where numexpr would try to evaluate arithmetic ops
   (:issue:`6762`).
 - Bug in Makefile where it didn't remove Cython generated C files with ``make
