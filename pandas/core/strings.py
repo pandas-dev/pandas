@@ -711,15 +711,15 @@ def str_rstrip(arr, to_strip=None):
     return _na_map(lambda x: x.rstrip(to_strip), arr)
 
 
-def str_wrap(arr, **kwargs):
+def str_wrap(arr, width, **kwargs):
     """
     Wrap long strings to be formatted in paragraphs
 
     Parameters
     ----------
     Same keyword parameters as textwrap.TextWrapper
-    width : int, optional
-        Maximum line-width (default: 70)
+    width : int
+        Maximum line-width
     expand_tabs: bool, optional
         If true, tab characters will be expanded to spaces (default: False)
     replace_whitespace: bool, optional
@@ -759,7 +759,7 @@ def str_wrap(arr, **kwargs):
     >>> str_wrap(Series(['line to be wrapped', 'another line to be wrapped']), width=12)
     Series(['line to be\nwrapped', 'another\nline to be\nwrapped'])
     """
-    textwrap_args = {'width': 69, 'expand_tabs': False, 'replace_whitespace': True,
+    textwrap_args = {'width': width, 'expand_tabs': False, 'replace_whitespace': True,
                      'drop_whitespace': True, 'break_long_words': False,
                      'break_on_hyphens': False}
 
@@ -993,8 +993,8 @@ class StringMethods(object):
         return self._wrap_result(result)
 
     @copy(str_wrap)
-    def wrap(self, **kwargs):
-        result = str_wrap(self.series, **kwargs)
+    def wrap(self, width, **kwargs):
+        result = str_wrap(self.series, width, **kwargs)
         return self._wrap_result(result)
 
     @copy(str_get_dummies)
