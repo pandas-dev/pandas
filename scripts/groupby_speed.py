@@ -1,12 +1,12 @@
 from __future__ import print_function
 from pandas import *
 
-rng = DateRange('1/3/2011', '11/30/2011', offset=datetools.Minute())
+rng = DatetimeIndex('1/3/2011', '11/30/2011', offset=datetools.Minute())
 
 df = DataFrame(np.random.randn(len(rng), 5), index=rng,
                columns=list('OHLCV'))
 
-rng5 = DateRange('1/3/2011', '11/30/2011', offset=datetools.Minute(5))
+rng5 = DatetimeIndex('1/3/2011', '11/30/2011', offset=datetools.Minute(5))
 gp = rng5.asof
 grouped = df.groupby(gp)
 

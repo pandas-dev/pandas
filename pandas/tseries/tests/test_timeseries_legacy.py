@@ -13,7 +13,6 @@ from pandas import (Index, Series, TimeSeries, DataFrame,
                     isnull, date_range, Timestamp, DatetimeIndex,
                     Int64Index, to_datetime, bdate_range)
 
-from pandas.core.daterange import DateRange
 import pandas.core.datetools as datetools
 import pandas.tseries.offsets as offsets
 import pandas.tseries.frequencies as fmod
@@ -254,25 +253,6 @@ class LegacySupport(object):
     def test_rule_aliases(self):
         rule = datetools.to_offset('10us')
         self.assertEqual(rule, datetools.Micro(10))
-
-
-class TestLegacyCompat(unittest.TestCase):
-
-    def setUp(self):
-        # suppress deprecation warnings
-        sys.stderr = StringIO()
-
-    def test_time_rule(self):
-        result = DateRange('1/1/2000', '1/30/2000', time_rule='WEEKDAY')
-        result2 = DateRange('1/1/2000', '1/30/2000', timeRule='WEEKDAY')
-        expected = date_range('1/1/2000', '1/30/2000', freq='B')
-
-        self.assert_(result.equals(expected))
-        self.assert_(result2.equals(expected))
-
-    def tearDown(self):
-        sys.stderr = sys.__stderr__
-
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
