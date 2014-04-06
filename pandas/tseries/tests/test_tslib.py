@@ -269,6 +269,47 @@ class TestTimestampNsOperations(tm.TestCase):
         self.timestamp = Timestamp('2013-05-01 07:15:45.123456789')
         self.assertEqual(self.timestamp.value, 1367392545123456000)
 
+    def test_nat_arithmetic(self):
+        # GH 6873
+        nat = tslib.NaT
+        t = Timestamp('2014-01-01')
+        dt = datetime.datetime(2014, 1, 1)
+        delta = datetime.timedelta(3600)
+
+        # Timestamp / datetime
+        for (left, right) in [(nat, nat), (nat, t), (dt, nat)]:
+            # NaT + Timestamp-like should raise TypeError
+            with tm.assertRaises(TypeError):
+                left + right
+            with tm.assertRaises(TypeError):
+                right + left
+
+            # NaT - Timestamp-like (or inverse) returns NaT
+            self.assert_((left - right) is tslib.NaT)
+            self.assert_((right - left) is tslib.NaT)
+
+        # timedelta-like 
+        # offsets are tested in test_offsets.py
+        for (left, right) in [(nat, delta)]:
+            # NaT + timedelta-like returns NaT
+            self.assert_((left + right) is tslib.NaT)
+            # timedelta-like + NaT should raise TypeError
+            with tm.assertRaises(TypeError):
+                right + left
+
+            self.assert_((left - right) is tslib.NaT)
+            with tm.assertRaises(TypeError):
+                right - left
+
+        if _np_version_under1p7:
+            self.assertEqual(nat + np.timedelta64(1, 'h'), tslib.NaT)
+            with tm.assertRaises(TypeError):
+                np.timedelta64(1, 'h') + nat
+
+            self.assertEqual(nat - np.timedelta64(1, 'h'), tslib.NaT)
+            with tm.assertRaises(TypeError):
+                np.timedelta64(1, 'h') - nat
+
 
 class TestTslib(tm.TestCase):
 

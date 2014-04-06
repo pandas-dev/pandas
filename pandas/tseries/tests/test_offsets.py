@@ -5,6 +5,7 @@ from pandas import compat
 import nose
 from nose.tools import assert_raises
 
+
 import numpy as np
 
 from pandas.core.datetools import (
@@ -20,7 +21,7 @@ from pandas.tseries.index import _to_m8, DatetimeIndex, _daterange_cache
 from pandas.tseries.tools import parse_time_string
 import pandas.tseries.offsets as offsets
 
-from pandas.tslib import monthrange, OutOfBoundsDatetime
+from pandas.tslib import monthrange, OutOfBoundsDatetime, NaT
 from pandas.lib import Timestamp
 from pandas.util.testing import assertRaisesRegexp
 import pandas.util.testing as tm
@@ -98,14 +99,33 @@ def test_to_m8():
 class TestBase(tm.TestCase):
     _offset = None
 
+    offset_types = [getattr(offsets, o) for o in offsets.__all__]
+    skip_np_u1p7 = [offsets.CustomBusinessDay, offsets.CDay, offsets.Nano]
+
+    def _get_offset(self, klass, value=1):
+        # create instance from offset class
+        if klass is FY5253 or klass is FY5253Quarter:
+            klass = klass(n=value, startingMonth=1, weekday=1,
+                            qtr_with_extra_week=1, variation='last')
+        elif klass is WeekOfMonth or klass is LastWeekOfMonth:
+            klass = LastWeekOfMonth(n=value, weekday=5)
+        else:
+            try:
+                klass = klass(value)
+            except:
+                klass = klass()
+        return klass
+
     def test_apply_out_of_range(self):
         if self._offset is None:
             raise nose.SkipTest("_offset not defined to test out-of-range")
+        if self._offset in self.skip_np_u1p7:
+            raise nose.SkipTest('numpy >= 1.7 required')
 
         # try to create an out-of-bounds result timestamp; if we can't create the offset
         # skip
         try:
-            offset = self._offset(10000)
+            offset = self._get_offset(self._offset, value=10000)
 
             result = Timestamp('20080101') + offset
             self.assertIsInstance(result, datetime)
@@ -114,16 +134,27 @@ class TestBase(tm.TestCase):
         except (ValueError, KeyError):
             raise nose.SkipTest("cannot create out_of_range offset")
 
+
+class TestOps(TestBase):
+
     def test_return_type(self):
+        for offset in self.offset_types:
+            if _np_version_under1p7 and offset in self.skip_np_u1p7:
+                continue
 
-        # make sure that we are returning a Timestamp
-        try:
-            offset = self._offset(1)
-        except:
-            raise nose.SkipTest("_offset not defined to test return_type")
+            offset = self._get_offset(offset)
 
-        result = Timestamp('20080101') + offset
-        self.assertIsInstance(result, Timestamp)
+            # make sure that we are returning a Timestamp
+            result = Timestamp('20080101') + offset
+            self.assertIsInstance(result, Timestamp)
+
+            # make sure that we are returning NaT
+            self.assert_(NaT + offset is NaT)
+            self.assert_(offset + NaT is NaT)
+
+            self.assert_(NaT - offset is NaT)
+            self.assert_((-offset).apply(NaT) is NaT)
+
 
 class TestDateOffset(TestBase):
     _multiprocess_can_split_ = True

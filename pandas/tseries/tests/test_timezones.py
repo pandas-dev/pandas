@@ -975,6 +975,41 @@ class TestTimeZones(tm.TestCase):
             offset = dates + timedelta(hours=5)
             self.assert_(offset.equals(expected))
             
+    def test_nat(self):
+        # GH 5546
+        dates = [NaT]
+        idx = DatetimeIndex(dates)
+        idx = idx.tz_localize('US/Pacific')
+        self.assert_(idx.equals(DatetimeIndex(dates, tz='US/Pacific')))
+        idx = idx.tz_convert('US/Eastern')
+        self.assert_(idx.equals(DatetimeIndex(dates, tz='US/Eastern')))
+        idx = idx.tz_convert('UTC')
+        self.assert_(idx.equals(DatetimeIndex(dates, tz='UTC')))
+
+        dates = ['2010-12-01 00:00', '2010-12-02 00:00', NaT]
+        idx = DatetimeIndex(dates)
+        idx = idx.tz_localize('US/Pacific')
+        self.assert_(idx.equals(DatetimeIndex(dates, tz='US/Pacific')))
+        idx = idx.tz_convert('US/Eastern')
+        expected = ['2010-12-01 03:00', '2010-12-02 03:00', NaT]
+        self.assert_(idx.equals(DatetimeIndex(expected, tz='US/Eastern')))
+
+        idx = idx + offsets.Hour(5)
+        expected = ['2010-12-01 08:00', '2010-12-02 08:00', NaT]
+        self.assert_(idx.equals(DatetimeIndex(expected, tz='US/Eastern')))
+        idx = idx.tz_convert('US/Pacific')
+        expected = ['2010-12-01 05:00', '2010-12-02 05:00', NaT]
+        self.assert_(idx.equals(DatetimeIndex(expected, tz='US/Pacific')))
+
+        if not _np_version_under1p7:
+            idx = idx + np.timedelta64(3, 'h')
+            expected = ['2010-12-01 08:00', '2010-12-02 08:00', NaT]
+            self.assert_(idx.equals(DatetimeIndex(expected, tz='US/Pacific')))
+
+            idx = idx.tz_convert('US/Eastern')
+            expected = ['2010-12-01 11:00', '2010-12-02 11:00', NaT]
+            self.assert_(idx.equals(DatetimeIndex(expected, tz='US/Eastern')))
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
