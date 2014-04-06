@@ -31,6 +31,7 @@ from pandas.compat import range, lrange, zip, cPickle as pickle
 from pandas.core.datetools import BDay
 import pandas.core.common as com
 
+from pandas import _np_version_under1p7
 
 def _skip_if_no_pytz():
     try:
@@ -960,6 +961,21 @@ class TestTimeZones(tm.TestCase):
         dates = date_range('2012-11-01', periods=3, tz='US/Pacific')
         offset = dates + offsets.Hour(5)
         self.assertEqual(dates[0] + offsets.Hour(5), offset[0])
+
+        # GH 6818
+        for tz in ['UTC', 'US/Pacific', 'Asia/Tokyo']:
+            dates = date_range('2010-11-01 00:00', periods=3, tz=tz, freq='H')
+            expected = DatetimeIndex(['2010-11-01 05:00', '2010-11-01 06:00',
+                                      '2010-11-01 07:00'], freq='H', tz=tz)
+
+            offset = dates + offsets.Hour(5)
+            self.assert_(offset.equals(expected))
+            if not _np_version_under1p7:
+                offset = dates + np.timedelta64(5, 'h')
+                self.assert_(offset.equals(expected))
+            offset = dates + timedelta(hours=5)
+            self.assert_(offset.equals(expected))
+            
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
