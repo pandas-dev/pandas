@@ -15,7 +15,6 @@ from pandas import (Index, Series, TimeSeries, DataFrame,
                     isnull, date_range, Timestamp, Period, DatetimeIndex,
                     Int64Index, to_datetime, bdate_range, Float64Index)
 
-from pandas.core.daterange import DateRange
 import pandas.core.datetools as datetools
 import pandas.tseries.offsets as offsets
 import pandas.tseries.tools as tools

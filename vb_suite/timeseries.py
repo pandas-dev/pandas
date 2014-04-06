@@ -8,9 +8,9 @@ N = 100000
 try:
     rng = date_range('1/1/2000', periods=N, freq='min')
 except NameError:
-    rng = DateRange('1/1/2000', periods=N, offset=datetools.Minute())
+    rng = DatetimeIndex('1/1/2000', periods=N, offset=datetools.Minute())
     def date_range(start=None, end=None, periods=None, freq=None):
-        return DateRange(start, end, periods=periods, offset=freq)
+        return DatetimeIndex(start, end, periods=periods, offset=freq)
 
 if hasattr(Series, 'convert'):
     Series.resample = Series.convert
