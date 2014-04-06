@@ -195,7 +195,7 @@ Improvements to existing features
 - Performance improvement when converting ``DatetimeIndex`` to floating ordinals
   using ``DatetimeConverter`` (:issue:`6636`)
 - Performance improvement for  ``DataFrame.shift`` (:issue: `5609`)
-- Arrays of strings can be wrapped to a specified width (str.wrap)
+- Arrays of strings can be wrapped to a specified width (``str.wrap``) (:issue:`6705`)
 
 .. _release.bug_fixes-0.14.0:
 
