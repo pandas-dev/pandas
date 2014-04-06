@@ -1970,6 +1970,18 @@ class TestGroupBy(tm.TestCase):
         for key, group in grouped:
             self.assertEquals(result[key], len(group))
 
+    def test_count(self):
+        df = pd.DataFrame([[1, 2], [1, nan], [3, nan]], columns=['A', 'B'])
+        count_as = df.groupby('A').count()
+        count_not_as = df.groupby('A', as_index=False).count()
+
+        res = pd.DataFrame([[1, 1], [3, 0]], columns=['A', 'B'])
+        assert_frame_equal(count_not_as, res)
+        assert_frame_equal(count_as, res.set_index('A'))
+
+        count_B = df.groupby('A')['B'].count()
+        assert_series_equal(count_B, res['B'])
+
     def test_grouping_ndarray(self):
         grouped = self.df.groupby(self.df['A'].values)
 
