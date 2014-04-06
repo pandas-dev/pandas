@@ -2093,7 +2093,7 @@ class NDFrame(PandasObject):
             strings), non-convertibles get NaN
         convert_timedeltas : if True, attempt to soft convert timedeltas, if 'coerce',
             force conversion (and non-convertibles get NaT)
-        copy : Boolean, if True, return copy even if no copy is necessary 
+        copy : Boolean, if True, return copy even if no copy is necessary
             (e.g. no conversion was done), default is True.
             It is meant for internal use, not to be confused with `inplace` kw.
 
@@ -2410,13 +2410,14 @@ class NDFrame(PandasObject):
             new_data = self._data
             if is_dictlike(to_replace):
                 if is_dictlike(value):  # {'A' : NA} -> {'A' : 0}
+                    res = self if inplace else self.copy()
                     for c, src in compat.iteritems(to_replace):
                         if c in value and c in self:
-                            new_data = new_data.replace(to_replace=src,
-                                                        value=value[c],
-                                                        filter=[c],
-                                                        inplace=inplace,
-                                                        regex=regex)
+                            res[c] = res[c].replace(to_replace=src,
+                                                    value=value[c],
+                                                    inplace=False,
+                                                    regex=regex)
+                    return None if inplace else res
 
                 # {'A': NA} -> 0
                 elif not com.is_list_like(value):
@@ -2428,7 +2429,7 @@ class NDFrame(PandasObject):
                                                         inplace=inplace,
                                                         regex=regex)
                 else:
-                    raise TypeError('Fill value must be scalar, dict, or '
+                    raise TypeError('value argument must be scalar, dict, or '
                                     'Series')
 
             elif com.is_list_like(to_replace):  # [NA, ''] -> [0, 'missing']

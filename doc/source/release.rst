@@ -339,6 +339,8 @@ Bug Fixes
   coverted into bools. (:issue:`6806`)
 - Regression from 0.13 with ``fillna`` and a Series on datetime-like (:issue:`6344`)
 - Bug in adding np.timedelta64 to DatetimeIndex with tz outputs incorrect result (:issue:`6818`)
+- Bug in ``DataFrame.replace()`` where changing a dtype through replacement
+  would only replace the first occurrence of a value (:issue:`6689`)
 
 pandas 0.13.1
 -------------
