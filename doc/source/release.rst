@@ -217,6 +217,8 @@ Improvements to existing features
   using ``DatetimeConverter`` (:issue:`6636`)
 - Performance improvement for  ``DataFrame.shift`` (:issue:`5609`)
 - Performance improvements in timedelta conversions for integer dtypes (:issue:`6754`)
+- Performance improvement for ``DataFrame.from_records`` when reading a
+  specified number of rows from an iterable (:issue:`6700`)
 
 .. _release.bug_fixes-0.14.0:
 

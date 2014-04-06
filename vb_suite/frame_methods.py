@@ -440,6 +440,7 @@ df = DataFrame(np.random.rand(10000,500))
 frame_shift_axis0 = Benchmark('df.shift(1,axis=0)', setup,
                     start_date=datetime(2014,1,1))
 frame_shift_axis1 = Benchmark('df.shift(1,axis=1)', setup,
+<<<<<<< HEAD
                     start_date=datetime(2014,1,1))
 
 #
@@ -452,3 +453,26 @@ frame_shift_c_order_axis0 = Benchmark('df.shift(1,axis=0)', setup,
                     start_date=datetime(2014,1,1))
 frame_shift_c_order_axis1 = Benchmark('df.shift(1,axis=1)', setup,
                     start_date=datetime(2014,1,1))
+=======
+                    name = 'frame_shift_axis_1',
+                    start_date=datetime(2014,1,1))
+
+
+#-----------------------------------------------------------------------------
+# from_records issue-6700
+
+setup = common_setup + """
+def get_data(n=100000):
+    return ((x, x*20, x*100) for x in xrange(n))
+"""
+
+frame_from_records_generator = Benchmark('df = DataFrame.from_records(get_data())',
+                                setup,
+                                name='frame_from_records_generator',
+                                start_date=datetime(2013,10,04))  # issue-4911
+
+frame_from_records_generator_nrows = Benchmark('df = DataFrame.from_records(get_data(), nrows=1000)',
+                                setup,
+                                name='frame_from_records_generator_nrows',
+                                start_date=datetime(2013,10,04))  # issue-4911
+>>>>>>> 8aee1cd8b8a711021f70fe62ecc3f548aa6e89c4
