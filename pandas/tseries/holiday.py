@@ -1,4 +1,5 @@
-from pandas import DateOffset, date_range, Series
+from pandas import DateOffset, DatetimeIndex, Series, Timestamp
+from pandas.compat import add_metaclass
 from datetime import datetime, timedelta
 from dateutil.relativedelta import MO, TU, WE, TH, FR, SA, SU
 
@@ -99,17 +100,24 @@ class Holiday(object):
             False will only return dates.
         '''
         if self.year is not None:
-            return datetime(self.year, self.month, self.day)
+            dt = Timestamp(datetime(self.year, self.month, self.day))
+            if return_name:
+                return Series(self.name, index=[dt])
+            else:
+                return [dt]
         
         if self.start_date is not None:
             start_date = self.start_date
             
         if self.end_date is not None:
             end_date = self.end_date
+            
+        start_date = Timestamp(start_date)
+        end_date   = Timestamp(end_date)
         
         year_offset = DateOffset(years=1)   
-        base_date = datetime(start_date.year, self.month, self.day)
-        dates = date_range(base_date, end_date, freq=year_offset)
+        base_date = Timestamp(datetime(start_date.year, self.month, self.day))
+        dates = DatetimeIndex(start=base_date, end=end_date, freq=year_offset)
         holiday_dates = list(self._apply_rule(dates))
         if return_name:
             return Series(self.name, index=holiday_dates)
@@ -173,14 +181,15 @@ class HolidayCalendarMetaClass(type):
         register(calendar_class)
         return calendar_class
 
+@add_metaclass(HolidayCalendarMetaClass)
 class AbstractHolidayCalendar(object):
     '''
     Abstract interface to create holidays following certain rules.
     '''
     __metaclass__ = HolidayCalendarMetaClass
     rules = []
-    _holiday_start_date = datetime(1970, 1, 1)
-    _holiday_end_date   = datetime(2030, 12, 31)
+    start_date = Timestamp(datetime(1970, 1, 1))
+    end_date   = Timestamp(datetime(2030, 12, 31))
     _holiday_cache = None
     
     def __init__(self, name=None, rules=None):
@@ -203,7 +212,7 @@ class AbstractHolidayCalendar(object):
         if rules is not None:
             self.rules = rules
 
-    def holidays(self, start=_holiday_start_date, end=_holiday_end_date, return_name=False):
+    def holidays(self, start=None, end=None, return_name=False):
         '''
         Returns a curve with holidays between start_date and end_date
         
@@ -222,6 +231,15 @@ class AbstractHolidayCalendar(object):
         if self.rules is None:
             raise Exception('Holiday Calendar %s does not have any '\
                             'rules specified' % self.name)
+
+        if start is None:
+            start = AbstractHolidayCalendar.start_date
+        
+        if end is None:
+            end = AbstractHolidayCalendar.end_date
+            
+        start = Timestamp(start)
+        end   = Timestamp(end)
 
         holidays = None
         # If we don't have a cache or the dates are outside the prior cache, we get them again
@@ -260,23 +278,29 @@ class AbstractHolidayCalendar(object):
         
         Parameters
         ----------
-        base : AbstractHolidayCalendar instance of array of Holiday objects
-        other : AbstractHolidayCalendar instance or array of Holiday objects
+        base : AbstractHolidayCalendar instance/subclass or array of Holiday objects
+        other : AbstractHolidayCalendar instance/subclass or array of Holiday objects
         '''
-        if isinstance(other, AbstractHolidayCalendar):
+        try:
             other = other.rules
+        except:
+            pass
+
         if not isinstance(other, list):
             other = [other]
         other_holidays = dict((holiday.name, holiday) for holiday in other)
-            
-        if isinstance(base, AbstractHolidayCalendar):
+        
+        try:
             base = base.rules
+        except:
+            pass
+
         if not isinstance(base, list):
             base = [base]
         base_holidays = dict((holiday.name, holiday) for holiday in base)
         
         other_holidays.update(base_holidays)
-        return other_holidays.values()
+        return list(other_holidays.values())
 
     def merge(self, other, inplace=False):
         '''

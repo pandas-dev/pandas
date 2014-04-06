@@ -4,17 +4,14 @@ import pandas.util.testing as tm
 from pandas.tseries.holiday import (
     USFederalHolidayCalendar, USMemorialDay, USThanksgivingDay,
     nearest_workday, next_monday_or_tuesday, next_monday,
-    previous_friday, sunday_to_monday)
+    previous_friday, sunday_to_monday, Holiday, DateOffset, 
+    MO, Timestamp, AbstractHolidayCalendar, get_calendar,
+    HolidayCalendarFactory)
 
 class TestCalendar(tm.TestCase):
     
-    def test_calendar(self):
-
-        calendar = USFederalHolidayCalendar()
-        holidays = calendar.holidays(datetime(2012, 1, 1), 
-                                     datetime(2012, 12, 31))
-        
-        holidayList = [
+    def setUp(self):
+        self.holiday_list = [
                        datetime(2012, 1, 2),
                        datetime(2012, 1, 16),
                        datetime(2012, 2, 20),
@@ -25,10 +22,29 @@ class TestCalendar(tm.TestCase):
                        datetime(2012, 11, 12),
                        datetime(2012, 11, 22),
                        datetime(2012, 12, 25)]
+        self.start_date = datetime(2012, 1, 1)
+        self.end_date = datetime(2012, 12, 31)
+    
+    def test_calendar(self):
+
+        calendar = USFederalHolidayCalendar()
+        holidays = calendar.holidays(self.start_date,
+                                     self.end_date)
+        
+        holidays_1 = calendar.holidays(
+                        self.start_date.strftime('%Y-%m-%d'),
+                        self.end_date.strftime('%Y-%m-%d'))
+        holidays_2 = calendar.holidays(
+                        Timestamp(self.start_date),
+                        Timestamp(self.end_date))
         
         self.assertEqual(list(holidays.to_pydatetime()), 
-                         holidayList)
-        
+                         self.holiday_list)
+        self.assertEqual(list(holidays_1.to_pydatetime()),
+                         self.holiday_list)
+        self.assertEqual(list(holidays_2.to_pydatetime()),
+                         self.holiday_list)
+    
 class TestHoliday(tm.TestCase):
     
     def setUp(self):
@@ -67,7 +83,55 @@ class TestHoliday(tm.TestCase):
                        datetime(2019, 11, 28),
                        datetime(2020, 11, 26),
                        ]
+        
         self.assertEqual(list(holidays), holidayList)
+        
+    def test_argument_types(self):
+        holidays = USThanksgivingDay.dates(self.start_date,
+                                           self.end_date)
+        
+        holidays_1 = USThanksgivingDay.dates(
+                        self.start_date.strftime('%Y-%m-%d'),
+                        self.end_date.strftime('%Y-%m-%d'))
+        
+        holidays_2 = USThanksgivingDay.dates(
+                        Timestamp(self.start_date),
+                        Timestamp(self.end_date))
+        
+        self.assertEqual(holidays, holidays_1)
+        self.assertEqual(holidays, holidays_2)
+    
+    def test_special_holidays(self):
+        base_date = [datetime(2012, 5, 28)]
+        holiday_1 = Holiday('One-Time', year=2012, month=5, day=28)
+        holiday_2 = Holiday('Range', month=5, day=28, 
+                            start_date=datetime(2012, 1, 1), 
+                            end_date=datetime(2012, 12, 31), 
+                            offset=DateOffset(weekday=MO(1)))
+        
+        self.assertEqual(base_date, 
+                         holiday_1.dates(self.start_date, self.end_date))
+        self.assertEqual(base_date, 
+                         holiday_2.dates(self.start_date, self.end_date))
+        
+    def test_get_calendar(self):
+        class TestCalendar(AbstractHolidayCalendar):
+            rules = []
+
+        calendar = get_calendar('TestCalendar')
+        self.assertEqual(TestCalendar, calendar.__class__)
+        
+    def test_factory(self):
+        class_1 = HolidayCalendarFactory('MemorialDay', AbstractHolidayCalendar,
+                                         USMemorialDay)
+        class_2 = HolidayCalendarFactory('Thansksgiving', AbstractHolidayCalendar,
+                                         USThanksgivingDay)
+        class_3 = HolidayCalendarFactory('Combined', class_1, class_2)
+        
+        self.assertEqual(len(class_1.rules), 1)
+        self.assertEqual(len(class_2.rules), 1)
+        self.assertEqual(len(class_3.rules), 2)
+        
         
 class TestObservanceRules(tm.TestCase):
     

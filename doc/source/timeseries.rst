@@ -732,9 +732,12 @@ Holidays and calendars provide a simple way to define holiday rules to be used
 with ``CustomBusinessDay`` or in other analysis that requires a predefined
 set of holidays.  The ``AbstractHolidayCalendar`` class provides all the necessary 
 methods to return a list of holidays and only ``rules`` need to be defined
-in a specific holiday calendar class.  ``USFederalHolidayCalendar`` is the only
-calendar that exists and primarily serves as an example for developing
-other holiday calendars.
+in a specific holiday calendar class.  Further, ``start_date`` and ``end_date``
+class attributes determine over what date range holidays are generated.  These
+should be overwritten on the ``AbstractHolidayCalendar`` class to have the range
+apply to all calendar subclasses.  ``USFederalHolidayCalendar`` is the 
+only calendar that exists and primarily serves as an example for developing 
+other calendars.
 
 For holidays that occur on fixed dates (e.g., US Memorial Day or July 4th) an 
 observance rule determines when that holiday is observed if it falls on a weekend
@@ -764,8 +767,13 @@ An example of how holidays and holiday calendars are defined:
                 offset=DateOffset(weekday=MO(2))), #same as 2*Week(weekday=2)
             ]
     cal = ExampleCalendar()
-    cal.holidays(datetime(2012, 1, 1), datetime(2012, 12, 31)) #holiday list
     datetime(2012, 5, 25) + CustomBusinessDay(calendar=cal)
+    cal.holidays(datetime(2012, 1, 1), datetime(2012, 12, 31))#holiday list
+    AbstractHolidayCalendar.start_date #default start date of range
+    AbstractHolidayCalendar.end_date #default end date of range
+    AbstractHolidayCalendar.start_date = datetime(2012, 1, 1)#or Timestamp
+    AbstractHolidayCalendar.end_date = datetime(2012, 12, 31)#or Timestamp
+    cal.holidays()
 
 Every calendar class is accessible by name using the ``get_calendar`` function
 which returns a holiday class instance.  Any imported calendar class will
