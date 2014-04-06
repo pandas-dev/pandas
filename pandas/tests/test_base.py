@@ -216,7 +216,7 @@ class TestIndexOps(Ops):
             else:
                 o = klass(np.repeat(values, range(1, len(o) + 1)))                
 
-            expected_s = Series(range(10, 0, -1), index=values[::-1])
+            expected_s = Series(range(10, 0, -1), index=values[::-1], dtype='int64')
             tm.assert_series_equal(o.value_counts(), expected_s)
 
             if isinstance(o, DatetimeIndex):
@@ -253,7 +253,7 @@ class TestIndexOps(Ops):
                     expected_s = Series(list(range(10, 2, -1)) + [3], index=values[9:0:-1])
                 else:
                     # nan is excluded
-                    expected_s = Series(range(10, 2, -1), index=values[9:1:-1])
+                    expected_s = Series(range(10, 2, -1), index=values[9:1:-1], dtype='int64')
 
                 tm.assert_series_equal(o.value_counts(), expected_s)
 
