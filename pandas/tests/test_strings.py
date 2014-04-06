@@ -967,9 +967,9 @@ class TestStringMethods(tm.TestCase):
         rs = values.str.wrap(width=11)
         assert_series_equal(rs, xp)
 
-        # test with pre and post whitespace (non-unicode) and NaN
-        values = Series(['  pre  ', np.nan])
-        xp = Series(['  pre', NA])
+        # test with pre and post whitespace (non-unicode), NaN, and non-ascii Unicode
+        values = Series(['  pre  ', np.nan, u('\xac\u20ac\U00008000 abadcafe')])
+        xp = Series(['  pre', NA, u('\xac\u20ac\U00008000\nabadcafe')])
         rs = values.str.wrap(width=6)
         assert_series_equal(rs, xp)
 
