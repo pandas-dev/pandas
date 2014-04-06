@@ -182,7 +182,7 @@ class TestSeriesPlots(tm.TestCase):
     def test_hist_by_no_extra_plots(self):
         import matplotlib.pyplot as plt
         n = 10
-        df = DataFrame({'gender': tm.choice(['Male', 'Female'], size=n),
+        df = DataFrame({'gender': ['Male'] * 5 + ['Female'] * 5,
                         'height': random.normal(66, 4, size=n)})
         axes = df.height.hist(by=df.gender)
         self.assertEqual(len(plt.get_fignums()), 1)
@@ -593,9 +593,9 @@ class TestDataFramePlots(tm.TestCase):
     @slow
     def test_bar_barwidth(self):
         df = DataFrame(randn(5, 5))
-        
+
         width = 0.9
-        
+
         # regular
         ax = df.plot(kind='bar', width=width)
         for r in ax.patches:
@@ -681,7 +681,7 @@ class TestDataFramePlots(tm.TestCase):
                        align=align, width=width, position=position,
                        grid=True)
 
-        tick_pos = np.arange(len(df)) 
+        tick_pos = np.arange(len(df))
 
         if not isinstance(axes, np.ndarray):
             axes = [axes]
@@ -780,7 +780,7 @@ class TestDataFramePlots(tm.TestCase):
             self.assertEqual(ax.get_xlim(), (-0.5, 4.75))
 
         self._check_bar_alignment(df, kind='bar', subplots=True, width=0.9)
-        
+
         axes = self._check_bar_alignment(df, kind='barh', subplots=True)
         for ax in axes:
             self.assertEqual(ax.get_ylim(), (-0.5, 4.75))
