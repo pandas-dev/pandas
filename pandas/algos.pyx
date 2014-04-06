@@ -1122,7 +1122,10 @@ def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1):
 # Rolling variance
 
 def roll_var(ndarray[double_t] input, int win, int minp, int ddof=1):
-    cdef double val, prev, sum_x = 0, sum_xx = 0, nobs = 0
+    """
+    Numerically stable implementation using Welford's method.
+    """
+    cdef double val, prev, mean_x = 0, ssqdm_x = 0, nobs = 0, delta
     cdef Py_ssize_t i
     cdef Py_ssize_t N = len(input)
 
@@ -1130,47 +1133,70 @@ def roll_var(ndarray[double_t] input, int win, int minp, int ddof=1):
 
     minp = _check_minp(win, minp, N)
 
-    for i from 0 <= i < minp - 1:
+    for i from 0 <= i < win:
         val = input[i]
 
         # Not NaN
         if val == val:
             nobs += 1
-            sum_x += val
-            sum_xx += val * val
-
-        output[i] = NaN
-
-    for i from minp - 1 <= i < N:
-        val = input[i]
-
-        if val == val:
-            nobs += 1
-            sum_x += val
-            sum_xx += val * val
-
-        if i > win - 1:
-            prev = input[i - win]
-            if prev == prev:
-                sum_x -= prev
-                sum_xx -= prev * prev
-                nobs -= 1
+            delta = (val - mean_x)
+            mean_x += delta / nobs
+            ssqdm_x += delta * (val - mean_x)
 
         if nobs >= minp:
-            # pathological case
+            #pathological case
             if nobs == 1:
-                output[i] = 0
-                continue
-
-            val = (nobs * sum_xx - sum_x * sum_x) / (nobs * (nobs - ddof))
-            if val < 0:
                 val = 0
-
-            output[i] = val
+            else:
+                val = ssqdm_x / (nobs - ddof)
+                if val < 0:
+                    val = 0
         else:
-            output[i] = NaN
+            val = NaN
+
+        output[i] = val
+
+    for i from win <= i < N:
+        val = input[i]
+        prev = input[i - win]
+
+        if val == val:
+            if prev == prev:
+                delta = val - prev
+                prev -= mean_x
+                mean_x += delta / nobs
+                val -= mean_x
+                ssqdm_x += (val + prev) * delta
+            else:
+                nobs += 1
+                delta = (val - mean_x)
+                mean_x += delta / nobs
+                ssqdm_x += delta * (val - mean_x)
+        elif prev == prev:
+            nobs -= 1
+            if nobs:
+                delta = (prev - mean_x)
+                mean_x -= delta  / nobs
+                ssqdm_x -= delta * (prev - mean_x)
+            else:
+                mean_x = 0
+                ssqdm_x = 0
+
+        if nobs >= minp:
+            #pathological case
+            if nobs == 1:
+                val = 0
+            else:
+                val = ssqdm_x / (nobs - ddof)
+                if val < 0:
+                    val = 0
+        else:
+            val = NaN
+
+        output[i] = val
 
     return output
+
 
 #-------------------------------------------------------------------------------
 # Rolling skewness
