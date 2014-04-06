@@ -717,7 +717,8 @@ cdef class _Timestamp(datetime):
                 or isinstance(other, timedelta) or hasattr(other, 'delta'):
             neg_other = -other
             return self + neg_other
-
+        elif other is NaT:
+            return NaT
         return datetime.__sub__(self, other)
 
     cpdef _get_field(self, field):
@@ -761,6 +762,26 @@ cdef class _NaT(_Timestamp):
                 raise TypeError('Cannot compare type %r with type %r' %
                                 (type(self).__name__, type(other).__name__))
         return PyObject_RichCompare(other, self, _reverse_ops[op])
+
+    def __add__(self, other):
+        try:
+            result = _Timestamp.__add__(self, other)
+            if result is NotImplemented:
+                return result
+        except (OverflowError, OutOfBoundsDatetime):
+            pass
+        return NaT
+
+    def __sub__(self, other):
+        if type(self) is datetime:
+            other, self = self, other
+        try:
+            result = _Timestamp.__sub__(self, other)
+            if result is NotImplemented:
+                return result
+        except (OverflowError, OutOfBoundsDatetime):
+            pass
+        return NaT
 
 
 def _delta_to_nanoseconds(delta):
@@ -1764,10 +1785,13 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
 
     for i in range(n):
         v = utc_dates[i]
-        if (pos + 1) < trans_len and v >= trans[pos + 1]:
-            pos += 1
-            offset = deltas[pos]
-        result[i] = v + offset
+        if vals[i] == NPY_NAT:
+            result[i] = vals[i]
+        else:
+            if (pos + 1) < trans_len and v >= trans[pos + 1]:
+                pos += 1
+                offset = deltas[pos]
+            result[i] = v + offset
 
     return result
 
@@ -1780,6 +1804,9 @@ def tz_convert_single(int64_t val, object tz1, object tz2):
 
     if not have_pytz:
         import pytz
+
+    if val == NPY_NAT:
+        return val
 
     # Convert to UTC
     if _is_tzlocal(tz1):
@@ -2006,7 +2033,9 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, bint infer_dst=False):
     for i in range(n):
         left = result_a[i]
         right = result_b[i]
-        if left != NPY_NAT and right != NPY_NAT:
+        if vals[i] == NPY_NAT:
+            result[i] = vals[i]
+        elif left != NPY_NAT and right != NPY_NAT:
             if left == right:
                 result[i] = left
             else:

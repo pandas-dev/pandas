@@ -13,6 +13,8 @@ from pandas.tslib import Timestamp, OutOfBoundsDatetime
 
 from pandas import _np_version_under1p7
 
+import functools
+
 __all__ = ['Day', 'BusinessDay', 'BDay', 'CustomBusinessDay', 'CDay',
            'MonthBegin', 'BMonthBegin', 'MonthEnd', 'BMonthEnd',
            'YearBegin', 'BYearBegin', 'YearEnd', 'BYearEnd',
@@ -34,6 +36,15 @@ def as_datetime(obj):
     if f is not None:
         obj = f()
     return obj
+
+def apply_nat(func):
+    @functools.wraps(func)
+    def wrapper(self, other):
+        if other is tslib.NaT:
+            return tslib.NaT
+        else:
+            return func(self, other)
+    return wrapper
 
 #----------------------------------------------------------------------
 # DateOffset
@@ -102,6 +113,7 @@ class DateOffset(object):
         else:
             self._offset = timedelta(1)
 
+    @apply_nat
     def apply(self, other):
         other = as_datetime(other)
         if len(self.kwds) > 0:
@@ -382,6 +394,7 @@ class BusinessDay(SingleConstructorOffset):
     def isAnchored(self):
         return (self.n == 1)
 
+    @apply_nat
     def apply(self, other):
         if isinstance(other, datetime):
             n = self.n
@@ -502,6 +515,7 @@ class CustomBusinessDay(BusinessDay):
         self.__dict__ = state
         self._set_busdaycalendar()
 
+    @apply_nat
     def apply(self, other):
         if self.n <= 0:
             roll = 'forward'
@@ -582,6 +596,7 @@ class MonthOffset(SingleConstructorOffset):
 class MonthEnd(MonthOffset):
     """DateOffset of one month end"""
 
+    @apply_nat
     def apply(self, other):
         other = datetime(other.year, other.month, other.day,
                          tzinfo=other.tzinfo)
@@ -606,6 +621,7 @@ class MonthEnd(MonthOffset):
 class MonthBegin(MonthOffset):
     """DateOffset of one month at beginning"""
 
+    @apply_nat
     def apply(self, other):
         n = self.n
 
@@ -628,6 +644,7 @@ class BusinessMonthEnd(MonthOffset):
     def isAnchored(self):
         return (self.n == 1)
 
+    @apply_nat
     def apply(self, other):
         other = datetime(other.year, other.month, other.day)
 
@@ -653,6 +670,7 @@ class BusinessMonthEnd(MonthOffset):
 class BusinessMonthBegin(MonthOffset):
     """DateOffset of one business month at beginning"""
 
+    @apply_nat
     def apply(self, other):
         n = self.n
 
@@ -710,6 +728,7 @@ class Week(DateOffset):
     def isAnchored(self):
         return (self.n == 1 and self.weekday is not None)
 
+    @apply_nat
     def apply(self, other):
         if self.weekday is None:
             return as_timestamp(as_datetime(other) + self.n * self._inc)
@@ -811,6 +830,7 @@ class WeekOfMonth(DateOffset):
 
         self.kwds = kwds
 
+    @apply_nat
     def apply(self, other):
         offsetOfMonth = self.getOffsetOfMonth(other)
 
@@ -890,6 +910,7 @@ class LastWeekOfMonth(DateOffset):
 
         self.kwds = kwds
 
+    @apply_nat
     def apply(self, other):
         offsetOfMonth = self.getOffsetOfMonth(other)
 
@@ -983,6 +1004,7 @@ class BQuarterEnd(QuarterOffset):
     _from_name_startingMonth = 12
     _prefix = 'BQ'
 
+    @apply_nat
     def apply(self, other):
         n = self.n
 
@@ -1037,6 +1059,7 @@ class BQuarterBegin(QuarterOffset):
     _from_name_startingMonth = 1
     _prefix = 'BQS'
 
+    @apply_nat
     def apply(self, other):
         n = self.n
         other = as_datetime(other)
@@ -1086,6 +1109,7 @@ class QuarterEnd(QuarterOffset):
     def isAnchored(self):
         return (self.n == 1 and self.startingMonth is not None)
 
+    @apply_nat
     def apply(self, other):
         n = self.n
         other = as_datetime(other)
@@ -1117,6 +1141,7 @@ class QuarterBegin(QuarterOffset):
     def isAnchored(self):
         return (self.n == 1 and self.startingMonth is not None)
 
+    @apply_nat
     def apply(self, other):
         n = self.n
         other = as_datetime(other)
@@ -1166,6 +1191,7 @@ class BYearEnd(YearOffset):
     _default_month = 12
     _prefix = 'BA'
 
+    @apply_nat
     def apply(self, other):
         n = self.n
         other = as_datetime(other)
@@ -1203,6 +1229,7 @@ class BYearBegin(YearOffset):
     _default_month = 1
     _prefix = 'BAS'
 
+    @apply_nat
     def apply(self, other):
         n = self.n
         other = as_datetime(other)
@@ -1234,6 +1261,7 @@ class YearEnd(YearOffset):
     _default_month = 12
     _prefix = 'A'
 
+    @apply_nat
     def apply(self, other):
         def _increment(date):
             if date.month == self.month:
@@ -1290,6 +1318,7 @@ class YearBegin(YearOffset):
     _default_month = 1
     _prefix = 'AS'
 
+    @apply_nat
     def apply(self, other):
         def _increment(date):
             year = date.year
@@ -1410,6 +1439,7 @@ class FY5253(DateOffset):
         else:
             return year_end == dt
 
+    @apply_nat
     def apply(self, other):
         n = self.n
         prev_year = self.get_year_end(
@@ -1596,6 +1626,7 @@ class FY5253Quarter(DateOffset):
     def isAnchored(self):
         return self.n == 1 and self._offset.isAnchored()
 
+    @apply_nat
     def apply(self, other):
         other = as_datetime(other)
         n = self.n
@@ -1693,6 +1724,7 @@ class Easter(DateOffset):
     def __init__(self, n=1, **kwds):
         super(Easter, self).__init__(n, **kwds)
         
+    @apply_nat
     def apply(self, other):
         
         currentEaster = easter(other.year)
@@ -1786,6 +1818,7 @@ class Tick(SingleConstructorOffset):
     def nanos(self):
         return _delta_to_nanoseconds(self.delta)
 
+    @apply_nat
     def apply(self, other):
         if type(other) == date:
             other = datetime(other.year, other.month, other.day)
