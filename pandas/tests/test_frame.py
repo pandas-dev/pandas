@@ -7221,6 +7221,18 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         result = df.fillna(999,limit=1)
         assert_frame_equal(result, expected)
 
+        # with datelike
+        # GH 6344
+        df = DataFrame({
+            'Date':[pd.NaT, Timestamp("2014-1-1")],
+            'Date2':[ Timestamp("2013-1-1"), pd.NaT]
+            })
+
+        expected = df.copy()
+        expected['Date'] = expected['Date'].fillna(df.ix[0,'Date2'])
+        result = df.fillna(value={'Date':df['Date2']})
+        assert_frame_equal(result, expected)
+
     def test_fillna_dtype_conversion(self):
         # make sure that fillna on an empty frame works
         df = DataFrame(index=["A","B","C"], columns = [1,2,3,4,5])
