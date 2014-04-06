@@ -959,13 +959,13 @@ class TestStringMethods(tm.TestCase):
                      u('ab ab ab ab'), u('ab ab ab ab\na'),
                      u('')])
 
-        rs = values.str.wrap(width=11)
+        rs = values.str.wrap(11)
         assert_series_equal(rs, xp)
 
         # test with pre and post whitespace (non-unicode), NaN, and non-ascii Unicode
         values = Series(['  pre  ', np.nan, u('\xac\u20ac\U00008000 abadcafe')])
         xp = Series(['  pre', NA, u('\xac\u20ac\U00008000\nabadcafe')])
-        rs = values.str.wrap(width=6)
+        rs = values.str.wrap(6)
         assert_series_equal(rs, xp)
 
     def test_get(self):
