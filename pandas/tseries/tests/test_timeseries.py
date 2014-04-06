@@ -77,7 +77,11 @@ class TestTimeSeriesDuplicates(tm.TestCase):
 
     def test_index_unique(self):
         uniques = self.dups.index.unique()
+        expected = DatetimeIndex([datetime(2000, 1, 2), datetime(2000, 1, 3),
+                                  datetime(2000, 1, 4), datetime(2000, 1, 5)])
         self.assertEqual(uniques.dtype, 'M8[ns]')  # sanity
+        self.assert_(uniques.equals(expected))
+        self.assertEqual(self.dups.index.nunique(), 4)
 
         # #2563
         self.assertTrue(isinstance(uniques, DatetimeIndex))
@@ -85,8 +89,21 @@ class TestTimeSeriesDuplicates(tm.TestCase):
         dups_local = self.dups.index.tz_localize('US/Eastern')
         dups_local.name = 'foo'
         result = dups_local.unique()
+        expected = DatetimeIndex(expected, tz='US/Eastern')
         self.assertTrue(result.tz is not None)
         self.assertEquals(result.name, 'foo')
+        self.assert_(result.equals(expected))
+
+        # NaT
+        arr = [ 1370745748 + t for t in range(20) ] + [iNaT]
+        idx = DatetimeIndex(arr * 3)
+        self.assert_(idx.unique().equals(DatetimeIndex(arr)))
+        self.assertEqual(idx.nunique(), 21)
+
+        arr = [ Timestamp('2013-06-09 02:42:28') + timedelta(seconds=t) for t in range(20) ] + [NaT]
+        idx = DatetimeIndex(arr * 3)
+        self.assert_(idx.unique().equals(DatetimeIndex(arr)))
+        self.assertEqual(idx.nunique(), 21)
 
     def test_index_dupes_contains(self):
         d = datetime(2011, 12, 5, 20, 30)

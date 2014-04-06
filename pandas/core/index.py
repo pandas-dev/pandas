@@ -1102,18 +1102,6 @@ class Index(IndexOpsMixin, FrozenNDArray):
         the_diff = sorted(set((self - other) + (other - self)))
         return Index(the_diff, name=result_name)
 
-    def unique(self):
-        """
-        Return array of unique values in the Index. Significantly faster than
-        numpy.unique
-
-        Returns
-        -------
-        uniques : ndarray
-        """
-        from pandas.core.nanops import unique1d
-        return unique1d(self.values)
-
     def get_loc(self, key):
         """
         Get integer location for requested label

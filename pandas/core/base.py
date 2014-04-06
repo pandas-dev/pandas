@@ -269,6 +269,56 @@ class IndexOpsMixin(object):
         self._is_allowed_index_op('min')
         return self.values.min()
 
+    def value_counts(self, normalize=False, sort=True, ascending=False,
+                     bins=None):
+        """
+        Returns object containing counts of unique values. The resulting object
+        will be in descending order so that the first element is the most
+        frequently-occurring element. Excludes NA values.
+
+        Parameters
+        ----------
+        normalize : boolean, default False
+            If True then the object returned will contain the relative
+            frequencies of the unique values.
+        sort : boolean, default True
+            Sort by values
+        ascending : boolean, default False
+            Sort in ascending order
+        bins : integer, optional
+            Rather than count values, group them into half-open bins,
+            a convenience for pd.cut, only works with numeric data
+
+        Returns
+        -------
+        counts : Series
+        """
+        from pandas.core.algorithms import value_counts
+        return value_counts(self.values, sort=sort, ascending=ascending,
+                            normalize=normalize, bins=bins)
+
+    def unique(self):
+        """
+        Return array of unique values in the object. Significantly faster than
+        numpy.unique. Includes NA values.
+
+        Returns
+        -------
+        uniques : ndarray
+        """
+        from pandas.core.nanops import unique1d
+        return unique1d(self.values)
+
+    def nunique(self):
+        """
+        Return count of unique elements in the object. Excludes NA values.
+
+        Returns
+        -------
+        nunique : int
+        """
+        return len(self.value_counts())
+
     date = _field_accessor('date','Returns numpy array of datetime.date. The date part of the Timestamps')
     time = _field_accessor('time','Returns numpy array of datetime.time. The time part of the Timestamps')
     year = _field_accessor('year', "The year of the datetime")

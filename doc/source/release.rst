@@ -159,6 +159,8 @@ API Changes
 - Arithmetic ops are now disallowed when passed two bool dtype Series or
   DataFrames (:issue:`6762`).
 
+- Added ``nunique`` and ``value_counts`` functions to ``Index`` for counting unique elements. (:issue:`6734`)
+
 Deprecations
 ~~~~~~~~~~~~
 
