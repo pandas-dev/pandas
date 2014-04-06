@@ -374,7 +374,7 @@ class Block(PandasObject):
             else:
                 return [self.copy()]
 
-        mask = com.isnull(self.values)
+        mask = isnull(self.values)
         if limit is not None:
             if self.ndim > 2:
                 raise NotImplementedError
@@ -1306,7 +1306,7 @@ class TimeDeltaBlock(IntBlock):
 
     def _try_fill(self, value):
         """ if we are a NaT, return the actual fill value """
-        if isinstance(value, type(tslib.NaT)) or isnull(value):
+        if isinstance(value, type(tslib.NaT)) or np.array(isnull(value)).all():
             value = tslib.iNaT
         elif isinstance(value, np.timedelta64):
             pass
@@ -1688,7 +1688,7 @@ class DatetimeBlock(Block):
 
     def _try_fill(self, value):
         """ if we are a NaT, return the actual fill value """
-        if isinstance(value, type(tslib.NaT)) or isnull(value):
+        if isinstance(value, type(tslib.NaT)) or np.array(isnull(value)).all():
             value = tslib.iNaT
         return value
 
@@ -1697,7 +1697,7 @@ class DatetimeBlock(Block):
 
         # straight putmask here
         values = self.values if inplace else self.values.copy()
-        mask = com.isnull(self.values)
+        mask = isnull(self.values)
         value = self._try_fill(value)
         if limit is not None:
             if self.ndim > 2:

@@ -325,6 +325,7 @@ Bug Fixes
   clean`` (:issue:`6768`)
 - Bug in ``DataFrame._reduce`` where non bool-like (0/1) integers were being
   coverted into bools. (:issue:`6806`)
+- Regression from 0.13 with ``fillna`` and a Series on datetime-like (:issue:`6344`)
 
 pandas 0.13.1
 -------------
