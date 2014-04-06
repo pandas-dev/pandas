@@ -316,6 +316,8 @@ Bug Fixes
 - Bug in setting a tz-aware index directly via ``.index`` (:issue:`6785`)
 - Bug in expressions.py where numexpr would try to evaluate arithmetic ops
   (:issue:`6762`).
+- Bug in Makefile where it didn't remove Cython generated C files with ``make
+  clean`` (:issue:`6768`)
 
 pandas 0.13.1
 -------------

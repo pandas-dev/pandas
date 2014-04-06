@@ -280,7 +280,7 @@ class CleanCommand(Command):
                                'ultrajsondec.c',
                                ]
 
-        for root, dirs, files in list(os.walk('pandas')):
+        for root, dirs, files in os.walk('pandas'):
             for f in files:
                 if f in self._clean_exclude:
                     continue
@@ -297,7 +297,7 @@ class CleanCommand(Command):
                 if d == '__pycache__':
                     self._clean_trees.append(pjoin(root, d))
 
-        for d in ('build',):
+        for d in ('build', 'dist'):
             if os.path.exists(d):
                 self._clean_trees.append(d)
 
