@@ -221,7 +221,7 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
         either Kernel Density Estimation or Histogram
         plot in the diagonal
     marker : str, optional
-        Matplotlib marker type, default '.'    
+        Matplotlib marker type, default '.'
     hist_kwds : other plotting keyword arguments
         To be passed to hist function
     density_kwds : other plotting keyword arguments
@@ -1678,7 +1678,7 @@ class BarPlot(MPLPlot):
 
         kwargs['align'] = kwargs.pop('align', 'center')
         self.tick_pos = np.arange(len(data))
- 
+
         self.log = kwargs.pop('log',False)
         MPLPlot.__init__(self, data, **kwargs)
 
