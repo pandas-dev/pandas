@@ -318,6 +318,7 @@ Bug Fixes
   (:issue:`6762`).
 - Bug in Makefile where it didn't remove Cython generated C files with ``make
   clean`` (:issue:`6768`)
+- Bug with numpy < 1.7.2 when reading long strings from ``HDFStore`` (:issue:`6166`)
 
 pandas 0.13.1
 -------------
