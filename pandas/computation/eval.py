@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
-"""Top level ``eval`` module.
-"""
+"""Top level ``eval`` module."""
 
 import tokenize
 from pandas.core import common as com
@@ -25,6 +24,7 @@ def _check_engine(engine):
       * If an invalid engine is passed
     ImportError
       * If numexpr was requested but doesn't exist
+
     """
     if engine not in _engines:
         raise KeyError('Invalid engine {0!r} passed, valid engines are'
@@ -58,6 +58,7 @@ def _check_parser(parser):
     ------
     KeyError
       * If an invalid parser is passed
+
     """
     if parser not in _parsers:
         raise KeyError('Invalid parser {0!r} passed, valid parsers are'
@@ -74,7 +75,7 @@ def _check_resolvers(resolvers):
 
 
 def _check_expression(expr):
-    """Make sure an expression is not an empty string
+    """Make sure an expression is not an empty string.
 
     Parameters
     ----------
@@ -85,6 +86,7 @@ def _check_expression(expr):
     ------
     ValueError
       * If expr is an empty string
+
     """
     if not expr:
         raise ValueError("expr cannot be an empty string")
@@ -112,6 +114,7 @@ def _convert_expression(expr):
     ------
     ValueError
       * If the expression is empty.
+
     """
     s = com.pprint_thing(expr)
     _check_expression(s)
@@ -213,6 +216,7 @@ def eval(expr, parser='pandas', engine='numexpr', truediv=True,
     --------
     pandas.DataFrame.query
     pandas.DataFrame.eval
+
     """
     expr = _convert_expression(expr)
     _check_engine(engine)

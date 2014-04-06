@@ -412,9 +412,7 @@ def _adjust_dates_anchored(first, last, offset, closed='right', base=0):
 
 
 def asfreq(obj, freq, method=None, how=None, normalize=False):
-    """
-    Utility frequency conversion method for Series/DataFrame
-    """
+    """Utility frequency conversion method for Series/DataFrame."""
     if isinstance(obj.index, PeriodIndex):
         if method is not None:
             raise NotImplementedError

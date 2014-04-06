@@ -4,9 +4,7 @@ from pandas.core.index import Index
 
 
 class Interval(object):
-    """
-    Represents an interval of time defined by two timestamps
-    """
+    """Represents an interval of time defined by two timestamps."""
 
     def __init__(self, start, end):
         self.start = start
@@ -14,9 +12,8 @@ class Interval(object):
 
 
 class PeriodInterval(object):
-    """
-    Represents an interval of time defined by two Period objects (time ordinals)
-    """
+    """Represents an interval of time defined by two Period objects (time
+    ordinals)"""
 
     def __init__(self, start, end):
         self.start = start
@@ -24,9 +21,7 @@ class PeriodInterval(object):
 
 
 class IntervalIndex(Index):
-    """
-
-    """
+    """"""
     def __new__(self, starts, ends):
         pass
 

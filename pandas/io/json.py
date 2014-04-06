@@ -90,7 +90,7 @@ class FrameWriter(Writer):
     _default_orient = 'columns'
 
     def _format_axes(self):
-        """ try to axes if they are datelike """
+        """try to axes if they are datelike."""
         if not self.obj.index.is_unique and self.orient in (
                 'index', 'columns'):
             raise ValueError("DataFrame index must be unique for orient="
@@ -104,8 +104,7 @@ class FrameWriter(Writer):
 def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
               convert_axes=True, convert_dates=True, keep_default_dates=True,
               numpy=False, precise_float=False, date_unit=None):
-    """
-    Convert a JSON string to pandas object
+    """Convert a JSON string to pandas object.
 
     Parameters
     ----------
@@ -169,6 +168,7 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     Returns
     -------
     result : Series or DataFrame
+
     """
 
     filepath_or_buffer, _ = get_filepath_or_buffer(path_or_buf)
@@ -273,7 +273,7 @@ class Parser(object):
         return self.obj
 
     def _convert_axes(self):
-        """ try to convert axes """
+        """try to convert axes."""
         for axis in self.obj._AXIS_NUMBERS.keys():
             new_axis, result = self._try_convert_data(
                 axis, self.obj._get_axis(axis), use_dtypes=False,
@@ -286,7 +286,7 @@ class Parser(object):
 
     def _try_convert_data(self, name, data, use_dtypes=True,
                           convert_dates=True):
-        """ try to parse a ndarray like into a column by inferring dtype """
+        """try to parse a ndarray like into a column by inferring dtype."""
 
         # don't try to coerce, unless a force conversion
         if use_dtypes:
@@ -359,10 +359,9 @@ class Parser(object):
         return data, result
 
     def _try_convert_to_date(self, data):
-        """ try to parse a ndarray like into a date column
-            try to coerce object in epoch/iso formats and
-            integer/float in epcoh formats, return a boolean if parsing
-            was successful """
+        """try to parse a ndarray like into a date column try to coerce object
+        in epoch/iso formats and integer/float in epcoh formats, return a
+        boolean if parsing was successful."""
 
         # no conversion on empty
         if not len(data):
@@ -496,7 +495,7 @@ class FrameParser(Parser):
                 loads(json, precise_float=self.precise_float), dtype=None)
 
     def _process_converter(self, f, filt=None):
-        """ take a conversion function and possibly recreate the frame """
+        """take a conversion function and possibly recreate the frame."""
 
         if filt is None:
             filt = lambda col, c: True
@@ -538,7 +537,7 @@ class FrameParser(Parser):
         convert_dates = set(convert_dates)
 
         def is_ok(col):
-            """ return if this col is ok to try for a date parse """
+            """return if this col is ok to try for a date parse."""
             if not isinstance(col, compat.string_types):
                 return False
 
@@ -560,7 +559,7 @@ class FrameParser(Parser):
 # JSON normalization routines
 
 def nested_to_record(ds, prefix="", level=0):
-    """a simplified json_normalize
+    """a simplified json_normalize.
 
     converts a nested dict into a flat dict ("record"), unlike json_normalize,
     it does not attempt to extract a subset of the data.
@@ -583,6 +582,7 @@ def nested_to_record(ds, prefix="", level=0):
      'nested.d': 2,
      'nested.e.c': 1,
      'nested.e.d': 2}
+
     """
     singleton = False
     if isinstance(ds, dict):

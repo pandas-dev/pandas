@@ -56,7 +56,7 @@ def safe_close(store):
 
 
 def create_tempfile(path):
-    """ create an unopened named temporary file """
+    """create an unopened named temporary file."""
     return os.path.join(tempfile.gettempdir(),path)
 
 
@@ -81,11 +81,9 @@ def ensure_clean_store(path, mode='a', complevel=None, complib=None,
 
 @contextmanager
 def ensure_clean_path(path):
-    """
-    return essentially a named temporary file that is not opened
-    and deleted on existing; if path is a list, then create and
-    return list of filenames
-    """
+    """return essentially a named temporary file that is not opened and deleted
+    on existing; if path is a list, then create and return list of
+    filenames."""
     try:
         if isinstance(path, list):
             filenames = [ create_tempfile(p) for p in path ]
@@ -104,8 +102,8 @@ tables.parameters.MAX_BLOSC_THREADS   = 1
 tables.parameters.MAX_THREADS   = 1
 
 def _maybe_remove(store, key):
-    """For tests using tables, try removing the table to be sure there is
-    no content from previous tests using the same table name."""
+    """For tests using tables, try removing the table to be sure there is no
+    content from previous tests using the same table name."""
     try:
         store.remove(key)
     except:
@@ -113,7 +111,7 @@ def _maybe_remove(store, key):
 
 
 def compat_assert_produces_warning(w,f):
-    """ don't produce a warning under PY3 """
+    """don't produce a warning under PY3."""
     if compat.PY3:
         f()
     else:
@@ -1055,7 +1053,7 @@ class TestHDFStore(tm.TestCase):
             self.assertRaises(ValueError, store.append, 'df', df)
 
     def test_ndim_indexables(self):
-        """ test using ndim tables in new ways"""
+        """test using ndim tables in new ways."""
 
         with ensure_clean_store(self.path) as store:
 

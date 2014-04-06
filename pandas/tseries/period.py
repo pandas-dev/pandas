@@ -42,8 +42,7 @@ def _field_accessor(name, alias):
 
 
 class Period(PandasObject):
-    """
-    Represents an period of time
+    """Represents an period of time.
 
     Parameters
     ----------
@@ -59,6 +58,7 @@ class Period(PandasObject):
     hour : int, default 0
     minute : int, default 0
     second : int, default 0
+
     """
     __slots__ = ['freq', 'ordinal']
     _comparables = ['name','freqstr']
@@ -182,9 +182,8 @@ class Period(PandasObject):
     __ge__ = _comp_method(operator.ge, '__ge__')
 
     def asfreq(self, freq, how='E'):
-        """
-        Convert Period to desired frequency, either at the start or end of the
-        interval
+        """Convert Period to desired frequency, either at the start or end of
+        the interval.
 
         Parameters
         ----------
@@ -195,6 +194,7 @@ class Period(PandasObject):
         Returns
         -------
         resampled : Period
+
         """
         how = _validate_end_alias(how)
         base1, mult1 = _gfc(self.freq)
@@ -218,9 +218,8 @@ class Period(PandasObject):
         return Timestamp(ordinal)
 
     def to_timestamp(self, freq=None, how='start', tz=None):
-        """
-        Return the Timestamp representation of the Period at the target
-        frequency at the specified end (how) of the Period
+        """Return the Timestamp representation of the Period at the target
+        frequency at the specified end (how) of the Period.
 
         Parameters
         ----------
@@ -234,6 +233,7 @@ class Period(PandasObject):
         Returns
         -------
         Timestamp
+
         """
         how = _validate_end_alias(how)
 
@@ -277,11 +277,11 @@ class Period(PandasObject):
         return "Period('%s', '%s')" % (formatted, freqstr)
 
     def __unicode__(self):
-        """
-        Return a string representation for a particular DataFrame
+        """Return a string representation for a particular DataFrame.
 
         Invoked by unicode(df) in py2 only. Yields a Unicode String in both
         py2/py3.
+
         """
         base, mult = _gfc(self.freq)
         formatted = tslib.period_format(self.ordinal, base)
@@ -729,9 +729,7 @@ class PeriodIndex(Int64Index):
 
     @property
     def is_full(self):
-        """
-        Returns True if there are any missing periods from start to end
-        """
+        """Returns True if there are any missing periods from start to end."""
         if len(self) == 0:
             return True
         if not self.is_monotonic:
@@ -740,9 +738,7 @@ class PeriodIndex(Int64Index):
         return ((values[1:] - values[:-1]) < 2).all()
 
     def factorize(self):
-        """
-        Specialized factorize that boxes uniques
-        """
+        """Specialized factorize that boxes uniques."""
         from pandas.core.algorithms import factorize
         labels, uniques = factorize(self.values)
         uniques = PeriodIndex(ordinal=uniques, freq=self.freq)
@@ -810,23 +806,18 @@ class PeriodIndex(Int64Index):
         return self._get_object_array()
 
     def equals(self, other):
-        """
-        Determines if two Index objects contain the same elements.
-        """
+        """Determines if two Index objects contain the same elements."""
         if self.is_(other):
             return True
 
         return np.array_equal(self.asi8, other.asi8)
 
     def tolist(self):
-        """
-        Return a list of Period objects
-        """
+        """Return a list of Period objects."""
         return self._get_object_array().tolist()
 
     def to_timestamp(self, freq=None, how='start'):
-        """
-        Cast to DatetimeIndex
+        """Cast to DatetimeIndex.
 
         Parameters
         ----------
@@ -838,6 +829,7 @@ class PeriodIndex(Int64Index):
         Returns
         -------
         DatetimeIndex
+
         """
         how = _validate_end_alias(how)
 
@@ -852,8 +844,7 @@ class PeriodIndex(Int64Index):
         return DatetimeIndex(new_data, freq='infer', name=self.name)
 
     def shift(self, n):
-        """
-        Specialized shift which produces an PeriodIndex
+        """Specialized shift which produces an PeriodIndex.
 
         Parameters
         ----------
@@ -864,6 +855,7 @@ class PeriodIndex(Int64Index):
         Returns
         -------
         shifted : PeriodIndex
+
         """
         if n == 0:
             return self
@@ -922,12 +914,12 @@ class PeriodIndex(Int64Index):
             return _maybe_box(self, self._engine.get_value(s, key), series, key)
 
     def get_loc(self, key):
-        """
-        Get integer location for requested label
+        """Get integer location for requested label.
 
         Returns
         -------
         loc : int
+
         """
         try:
             return self._engine.get_loc(key)
@@ -1003,9 +995,7 @@ class PeriodIndex(Int64Index):
         return slice(left, right)
 
     def join(self, other, how='left', level=None, return_indexers=False):
-        """
-        See Index.join
-        """
+        """See Index.join."""
         self._assert_can_do_setop(other)
 
         result = Int64Index.join(self, other, how=how, level=level,
@@ -1037,7 +1027,7 @@ class PeriodIndex(Int64Index):
         return rawarr
 
     def __getitem__(self, key):
-        """Override numpy.ndarray's __getitem__ method to work as desired"""
+        """Override numpy.ndarray's __getitem__ method to work as desired."""
         arr_idx = self.view(np.ndarray)
         if np.isscalar(key):
             val = arr_idx[key]
@@ -1110,9 +1100,7 @@ class PeriodIndex(Int64Index):
         return self.__bytes__()
 
     def take(self, indices, axis=None):
-        """
-        Analogous to ndarray.take
-        """
+        """Analogous to ndarray.take."""
         indices = com._ensure_platform_int(indices)
         taken = self.values.take(indices, axis=axis)
         taken = taken.view(PeriodIndex)
@@ -1121,8 +1109,7 @@ class PeriodIndex(Int64Index):
         return taken
 
     def append(self, other):
-        """
-        Append a collection of Index options together
+        """Append a collection of Index options together.
 
         Parameters
         ----------
@@ -1131,6 +1118,7 @@ class PeriodIndex(Int64Index):
         Returns
         -------
         appended : Index
+
         """
         name = self.name
         to_concat = [self]
@@ -1160,14 +1148,14 @@ class PeriodIndex(Int64Index):
         return Index(com._concat_compat(to_concat), name=name)
 
     def __reduce__(self):
-        """Necessary for making this object picklable"""
+        """Necessary for making this object picklable."""
         object_state = list(np.ndarray.__reduce__(self))
         subclass_state = (self.name, self.freq)
         object_state[2] = (object_state[2], subclass_state)
         return tuple(object_state)
 
     def __setstate__(self, state):
-        """Necessary for making this object picklable"""
+        """Necessary for making this object picklable."""
         if len(state) == 2:
             nd_state, own_state = state
             np.ndarray.__setstate__(self, nd_state)
@@ -1313,10 +1301,8 @@ def pnow(freq=None):
 
 
 def period_range(start=None, end=None, periods=None, freq='D', name=None):
-    """
-    Return a fixed frequency datetime index, with day (calendar) as the default
-    frequency
-
+    """Return a fixed frequency datetime index, with day (calendar) as the
+    default frequency.
 
     Parameters
     ----------
@@ -1332,6 +1318,7 @@ def period_range(start=None, end=None, periods=None, freq='D', name=None):
     Returns
     -------
     prng : PeriodIndex
+
     """
     return PeriodIndex(start=start, end=end, periods=periods,
                        freq=freq, name=name)

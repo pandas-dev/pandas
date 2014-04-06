@@ -1,5 +1,4 @@
-"""Core eval alignment algorithms
-"""
+"""Core eval alignment algorithms."""
 
 import warnings
 from functools import partial, wraps
@@ -117,7 +116,7 @@ def _align_core(terms):
 
 
 def _align(terms):
-    """Align a set of terms"""
+    """Align a set of terms."""
     try:
         # flatten the parse tree (a nested list, really)
         terms = list(com.flatten(terms))
@@ -138,7 +137,8 @@ def _align(terms):
 
 
 def _reconstruct_object(typ, obj, axes, dtype):
-    """Reconstruct an object given its type, raw value, and possibly empty
+    """Reconstruct an object given its type, raw value, and possibly empty.
+
     (None) axes.
 
     Parameters
@@ -155,6 +155,7 @@ def _reconstruct_object(typ, obj, axes, dtype):
     ret : typ
         An object of type ``typ`` with the value `obj` and possible axes
         `axes`.
+
     """
     try:
         typ = typ.type

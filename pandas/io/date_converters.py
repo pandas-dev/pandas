@@ -1,4 +1,5 @@
-"""This module is designed for community supported date conversion functions"""
+"""This module is designed for community supported date conversion
+functions."""
 from pandas.compat import range, map
 import numpy as np
 import pandas.lib as lib

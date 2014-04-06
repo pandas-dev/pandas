@@ -1,4 +1,4 @@
-"""Tests for cases where the user seeks to obtain packed msgpack objects"""
+"""Tests for cases where the user seeks to obtain packed msgpack objects."""
 
 from pandas import compat
 from pandas.msgpack import Unpacker, packb

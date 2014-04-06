@@ -37,9 +37,7 @@ def load_data(name, package=None, convert=True):
 
 
 def _rclass(obj):
-    """
-    Return R class name for input object
-    """
+    """Return R class name for input object."""
     return r['class'](obj)[0]
 
 
@@ -48,9 +46,7 @@ def _is_null(obj):
 
 
 def _convert_list(obj):
-    """
-    Convert named Vector to dict, factors to list
-    """
+    """Convert named Vector to dict, factors to list."""
     try:
         values = [convert_robj(x) for x in obj]
         keys = r['names'](obj)
@@ -64,9 +60,7 @@ def _convert_list(obj):
 
 
 def _convert_array(obj):
-    """
-    Convert Array to DataFrame
-    """
+    """Convert Array to DataFrame."""
     def _list(item):
         try:
             return list(item)
@@ -225,9 +219,8 @@ def convert_robj(obj, use_pandas=True):
 
 
 def convert_to_r_posixct(obj):
-    """
-    Convert DatetimeIndex or np.datetime array to R POSIXct using
-    m8[s] format.
+    """Convert DatetimeIndex or np.datetime array to R POSIXct using m8[s]
+    format.
 
     Parameters
     ----------
@@ -280,8 +273,7 @@ NA_TYPES = {np.float64: robj.NA_Real,
 
 
 def convert_to_r_dataframe(df, strings_as_factors=False):
-    """
-    Convert a pandas DataFrame to a R data.frame.
+    """Convert a pandas DataFrame to a R data.frame.
 
     Parameters
     ----------
@@ -329,8 +321,7 @@ def convert_to_r_dataframe(df, strings_as_factors=False):
 
 def convert_to_r_matrix(df, strings_as_factors=False):
 
-    """
-    Convert a pandas DataFrame to a R matrix.
+    """Convert a pandas DataFrame to a R matrix.
 
     Parameters
     ----------

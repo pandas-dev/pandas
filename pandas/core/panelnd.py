@@ -57,7 +57,7 @@ def create_nd_panel_factory(klass_name, orders, slices, slicer, aliases=None,
     klass.__init__ = __init__
 
     def _get_plane_axes_index(self, axis):
-        """ return the sliced index for this object """
+        """return the sliced index for this object."""
 
         axis_name = self._get_axis_name(axis)
         index = self._AXIS_ORDERS.index(axis)

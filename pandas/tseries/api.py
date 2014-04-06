@@ -1,6 +1,4 @@
-"""
-
-"""
+""""""
 
 
 from pandas.tseries.index import DatetimeIndex, date_range, bdate_range

@@ -251,8 +251,7 @@ class TableFormatter(object):
 
 class DataFrameFormatter(TableFormatter):
 
-    """
-    Render a DataFrame
+    """Render a DataFrame.
 
     self.to_string() : console-friendly tabular output
     self.to_html()   : html table
@@ -304,9 +303,7 @@ class DataFrameFormatter(TableFormatter):
             self.columns = frame.columns
 
     def _to_str_columns(self):
-        """
-        Render a DataFrame to a list of columns (as lists of strings).
-        """
+        """Render a DataFrame to a list of columns (as lists of strings)."""
 
         # may include levels names also
         str_index = self._get_formatted_index()
@@ -425,9 +422,8 @@ class DataFrameFormatter(TableFormatter):
 
     def to_latex(self, force_unicode=None, column_format=None,
                  longtable=False):
-        """
-        Render a DataFrame to a LaTeX tabular/longtable environment output.
-        """
+        """Render a DataFrame to a LaTeX tabular/longtable environment
+        output."""
         #TODO: column_format is not settable in df.to_latex
         def get_col_type(dtype):
             if issubclass(dtype.type, np.number):
@@ -520,9 +516,7 @@ class DataFrameFormatter(TableFormatter):
         )
 
     def to_html(self, classes=None):
-        """
-        Render a DataFrame to a html table.
-        """
+        """Render a DataFrame to a html table."""
         html_renderer = HTMLFormatter(self, classes=classes,
                                       max_rows=self.max_rows,
                                       max_cols=self.max_cols)
@@ -1347,8 +1341,7 @@ header_style = {"font": {"bold": True},
 
 class ExcelFormatter(object):
 
-    """
-    Class for formatting a DataFrame to a list of ExcelCells,
+    """Class for formatting a DataFrame to a list of ExcelCells,
 
     Parameters
     ----------
@@ -1372,6 +1365,7 @@ class ExcelFormatter(object):
     inf_rep : string, default `'inf'`
         representation for np.inf values (which aren't representable in Excel)
         A `'-'` sign will be added in front of -inf.
+
     """
 
     def __init__(self, df, na_rep='', float_format=None, cols=None,
@@ -1713,9 +1707,7 @@ class GenericArrayFormatter(object):
 
 class FloatArrayFormatter(GenericArrayFormatter):
 
-    """
-
-    """
+    """"""
 
     def __init__(self, *args, **kwargs):
         GenericArrayFormatter.__init__(self, *args, **kwargs)
@@ -1924,9 +1916,7 @@ def _make_fixed_width(strings, justify='right', minimum=None, truncated=False):
 
 
 def _trim_zeros(str_floats, na_rep='NaN'):
-    """
-    Trims zeros and decimal points.
-    """
+    """Trims zeros and decimal points."""
     trimmed = str_floats
 
     def _cond(values):
@@ -1976,9 +1966,10 @@ _initial_defencoding = None
 
 
 def detect_console_encoding():
-    """
-    Try to find the most capable encoding supported by the console.
+    """Try to find the most capable encoding supported by the console.
+
     slighly modified from the way IPython handles the same issue.
+
     """
     import locale
     global _initial_defencoding
@@ -2048,10 +2039,10 @@ def get_console_size():
 
 class EngFormatter(object):
 
-    """
-    Formats float values according to engineering format.
+    """Formats float values according to engineering format.
 
     Based on matplotlib.ticker.EngFormatter
+
     """
 
     # The SI engineering prefixes
@@ -2140,12 +2131,12 @@ class EngFormatter(object):
 
 
 def set_eng_float_format(precision=None, accuracy=3, use_eng_prefix=False):
-    """
-    Alter default behavior on how float is formatted in DataFrame.
-    Format float in engineering format. By accuracy, we mean the number of
-    decimal digits after the floating point.
+    """Alter default behavior on how float is formatted in DataFrame. Format
+    float in engineering format. By accuracy, we mean the number of decimal
+    digits after the floating point.
 
     See also EngFormatter.
+
     """
     if precision is not None:  # pragma: no cover
         import warnings

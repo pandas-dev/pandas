@@ -1,6 +1,4 @@
-"""
-Quantilization functions and related stuff
-"""
+"""Quantilization functions and related stuff."""
 
 from pandas.core.api import DataFrame, Series
 from pandas.core.categorical import Categorical

@@ -29,10 +29,8 @@ _verbose = False
 
 
 def _generate_indices(f, values=False):
-    """ generate the indicies
-          if values is True , use the axis values
-                    is False, use the range
-                    """
+    """generate the indicies if values is True , use the axis values is False,
+    use the range."""
 
     axes = f.axes
     if values:
@@ -41,7 +39,7 @@ def _generate_indices(f, values=False):
     return itertools.product(*axes)
 
 def _get_value(f, i, values=False):
-    """ return the value for the location i """
+    """return the value for the location i."""
 
     # check agains values
     if values:
@@ -55,7 +53,7 @@ def _get_value(f, i, values=False):
     return f.ix[i]
 
 def _get_result(obj, method, key, axis):
-    """ return the result for this obj with this key and this axis """
+    """return the result for this obj with this key and this axis."""
 
     if isinstance(key, dict):
         key = key[axis]
@@ -154,7 +152,7 @@ class TestIndexing(tm.TestCase):
 
 
         def _eq(t, o, a, obj, k1, k2):
-            """ compare equal for these 2 keys """
+            """compare equal for these 2 keys."""
 
             if a is not None and a > obj.ndim-1:
                 return

@@ -1,5 +1,4 @@
-"""Operator classes for eval.
-"""
+"""Operator classes for eval."""
 
 import re
 import operator as op
@@ -169,8 +168,7 @@ _bool_op_map = {'not': '~', 'and': '&', 'or': '|'}
 
 class Op(StringMixin):
 
-    """Hold an operator of arbitrary arity
-    """
+    """Hold an operator of arbitrary arity."""
 
     def __init__(self, op, operands, *args, **kwargs):
         self.op = _bool_op_map.get(op, op)
@@ -221,8 +219,7 @@ class Op(StringMixin):
 
 def _in(x, y):
     """Compute the vectorized membership of ``x in y`` if possible, otherwise
-    use Python.
-    """
+    use Python."""
     try:
         return x.isin(y)
     except AttributeError:
@@ -236,8 +233,7 @@ def _in(x, y):
 
 def _not_in(x, y):
     """Compute the vectorized membership of ``x not in y`` if possible,
-    otherwise use Python.
-    """
+    otherwise use Python."""
     try:
         return ~x.isin(y)
     except AttributeError:
@@ -282,6 +278,7 @@ def _cast_inplace(terms, dtype):
         The expression that should cast.
     dtype : str or numpy.dtype
         The dtype to cast to.
+
     """
     dt = np.dtype(dtype)
     for term in terms:
@@ -298,13 +295,14 @@ def is_term(obj):
 
 class BinOp(Op):
 
-    """Hold a binary operator and its operands
+    """Hold a binary operator and its operands.
 
     Parameters
     ----------
     op : str
     left : Term or Op
     right : Term or Op
+
     """
 
     def __init__(self, op, lhs, rhs, **kwargs):
@@ -335,6 +333,7 @@ class BinOp(Op):
         -------
         object
             The result of an evaluated expression.
+
         """
         # handle truediv
         if self.op == '/' and env.scope['truediv']:
@@ -384,8 +383,7 @@ class BinOp(Op):
         return term_type(name, env=env)
 
     def convert_values(self):
-        """Convert datetimes to a comparable value in an expression.
-        """
+        """Convert datetimes to a comparable value in an expression."""
         def stringify(value):
             if self.encoding is not None:
                 encoder = partial(com.pprint_thing_encoded,
@@ -437,6 +435,7 @@ class Div(BinOp):
     truediv : bool
         Whether or not to use true division. With Python 3 this happens
         regardless of the value of ``truediv``.
+
     """
 
     def __init__(self, lhs, rhs, truediv, *args, **kwargs):
@@ -459,7 +458,7 @@ _unary_ops_dict = dict(zip(_unary_ops_syms, _unary_ops_funcs))
 
 class UnaryOp(Op):
 
-    """Hold a unary operator and its operands
+    """Hold a unary operator and its operands.
 
     Parameters
     ----------
@@ -472,6 +471,7 @@ class UnaryOp(Op):
     ------
     ValueError
         * If no function associated with the passed operator token is found.
+
     """
 
     def __init__(self, op, operand):

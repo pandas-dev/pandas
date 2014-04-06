@@ -2727,9 +2727,7 @@ class TestGroupBy(tm.TestCase):
             periods), 'low': np.arange(periods)}, index=ind)
 
         def agg_before(hour, func, fix=False):
-            """
-                Run an aggregate func on the subset of data.
-            """
+            """Run an aggregate func on the subset of data."""
             def _func(data):
                 d = data.select(lambda x: x.hour < 11).dropna()
                 if fix:

@@ -100,9 +100,7 @@ class Foo(object):
 
 
 class RVAR(object):
-    """
-    Estimates VAR model using R vars package and rpy
-    """
+    """Estimates VAR model using R vars package and rpy."""
 
     def __init__(self, data, p=1, type='both'):
         self.rdata = data

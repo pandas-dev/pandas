@@ -10,8 +10,7 @@ import pandas.core.datetools as datetools
 
 class DateRange(Index):
 
-    """Deprecated
-    """
+    """Deprecated."""
 
     offset = tzinfo = None
 
@@ -33,7 +32,7 @@ class DateRange(Index):
                              tzinfo=tzinfo, name=name, **kwds)
 
     def __setstate__(self, aug_state):
-        """Necessary for making this object picklable"""
+        """Necessary for making this object picklable."""
         index_state = aug_state[:1]
         offset = aug_state[1]
 

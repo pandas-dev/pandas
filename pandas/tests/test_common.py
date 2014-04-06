@@ -272,7 +272,7 @@ def test_iterpairs():
 
 def test_split_ranges():
     def _bin(x, width):
-        "return int(x) as a base2 string of given width"
+        """return int(x) as a base2 string of given width."""
         return ''.join(str((x >> i) & 1) for i in range(width - 1, -1, -1))
 
     def test_locs(mask):

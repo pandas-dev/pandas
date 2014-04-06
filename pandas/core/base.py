@@ -1,6 +1,4 @@
-"""
-Base and utility classes for pandas objects.
-"""
+"""Base and utility classes for pandas objects."""
 from pandas import compat
 import numpy as np
 from pandas.core import common as com
@@ -11,6 +9,7 @@ class StringMixin(object):
     method.
 
     Handles Python2/3 compatibility transparently.
+
     """
     # side note - this could be made into a metaclass if more than one
     #             object needs
@@ -22,11 +21,11 @@ class StringMixin(object):
         raise NotImplementedError
 
     def __str__(self):
-        """
-        Return a string representation for a particular Object
+        """Return a string representation for a particular Object.
 
         Invoked by str(df) in both py2/py3.
         Yields Bytestring in Py2, Unicode String in py3.
+
         """
 
         if compat.PY3:
@@ -34,11 +33,11 @@ class StringMixin(object):
         return self.__bytes__()
 
     def __bytes__(self):
-        """
-        Return a string representation for a particular object.
+        """Return a string representation for a particular object.
 
         Invoked by bytes(obj) in py3 only.
         Yields a bytestring in both py2/py3.
+
         """
         from pandas.core.config import get_option
 
@@ -46,17 +45,17 @@ class StringMixin(object):
         return self.__unicode__().encode(encoding, 'replace')
 
     def __repr__(self):
-        """
-        Return a string representation for a particular object.
+        """Return a string representation for a particular object.
 
         Yields Bytestring in Py2, Unicode String in py3.
+
         """
         return str(self)
 
 
 class PandasObject(StringMixin):
 
-    """baseclass for various pandas objects"""
+    """baseclass for various pandas objects."""
 
     @property
     def _constructor(self):
@@ -64,29 +63,29 @@ class PandasObject(StringMixin):
         return self.__class__
 
     def __unicode__(self):
-        """
-        Return a string representation for a particular object.
+        """Return a string representation for a particular object.
 
         Invoked by unicode(obj) in py2 only. Yields a Unicode String in both
         py2/py3.
+
         """
         # Should be overwritten by base classes
         return object.__repr__(self)
 
     def _local_dir(self):
-        """ provide addtional __dir__ for this object """
+        """provide addtional __dir__ for this object."""
         return []
 
     def __dir__(self):
-        """
-        Provide method name lookup and completion
-        Only provide 'public' methods
-        """
+        """Provide method name lookup and completion Only provide 'public'
+        methods."""
         return list(sorted(list(set(dir(type(self)) + self._local_dir()))))
 
     def _reset_cache(self, key=None):
-        """
-        Reset cached properties. If ``key`` is passed, only clears that key.
+        """Reset cached properties.
+
+        If ``key`` is passed, only clears that key.
+
         """
         if getattr(self, '_cache', None) is None:
             return
@@ -190,11 +189,11 @@ class FrozenNDArray(PandasObject, np.ndarray):
         return arr
 
     def __unicode__(self):
-        """
-        Return a string representation for this object.
+        """Return a string representation for this object.
 
         Invoked by unicode(df) in py2 only. Yields a Unicode String in both
         py2/py3.
+
         """
         prepr = com.pprint_thing(self, escape_chars=('\t', '\r', '\n'),
                                  quote_strings=True)
@@ -212,7 +211,8 @@ def _field_accessor(name, docstring=None):
     return property(f)
 
 class IndexOpsMixin(object):
-    """ common ops mixin to support a unified inteface / docs for Series / Index """
+    """common ops mixin to support a unified inteface / docs for Series /
+    Index."""
 
     def _is_allowed_index_op(self, name):
         if not self._allow_index_ops:
@@ -260,12 +260,12 @@ class IndexOpsMixin(object):
         return obj
 
     def max(self):
-        """ The maximum value of the object """
+        """The maximum value of the object."""
         self._is_allowed_index_op('max')
         return self.values.max()
 
     def min(self):
-        """ The minimum value of the object """
+        """The minimum value of the object."""
         self._is_allowed_index_op('min')
         return self.values.min()
 
@@ -298,24 +298,24 @@ class IndexOpsMixin(object):
                             normalize=normalize, bins=bins)
 
     def unique(self):
-        """
-        Return array of unique values in the object. Significantly faster than
-        numpy.unique. Includes NA values.
+        """Return array of unique values in the object. Significantly faster
+        than numpy.unique. Includes NA values.
 
         Returns
         -------
         uniques : ndarray
+
         """
         from pandas.core.nanops import unique1d
         return unique1d(self.values)
 
     def nunique(self):
-        """
-        Return count of unique elements in the object. Excludes NA values.
+        """Return count of unique elements in the object. Excludes NA values.
 
         Returns
         -------
         nunique : int
+
         """
         return len(self.value_counts())
 

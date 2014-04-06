@@ -16,7 +16,7 @@ def deprecate(name, alternative, alt_name=None):
 
 
 def deprecate_kwarg(old_arg_name, new_arg_name):
-    """Decorator to deprecate a keyword argument of a function
+    """Decorator to deprecate a keyword argument of a function.
 
     Parameters
     ----------
@@ -67,8 +67,7 @@ def deprecate_kwarg(old_arg_name, new_arg_name):
 
 
 class Substitution(object):
-    """
-    A decorator to take a function's docstring and perform string
+    """A decorator to take a function's docstring and perform string
     substitution on it.
 
     This decorator should be robust even if func.__doc__ is None
@@ -93,6 +92,7 @@ class Substitution(object):
     @sub_first_last_names
     def some_function(x):
         "%s %s wrote the Raven"
+
     """
     def __init__(self, *args, **kwargs):
         if (args and kwargs):
@@ -105,7 +105,7 @@ class Substitution(object):
         return func
 
     def update(self, *args, **kwargs):
-        "Assume self.params is a dict and update it with supplied args"
+        """Assume self.params is a dict and update it with supplied args."""
         self.params.update(*args, **kwargs)
 
     @classmethod
@@ -122,9 +122,8 @@ class Substitution(object):
 
 
 class Appender(object):
-    """
-    A function decorator that will append an addendum to the docstring
-    of the target function.
+    """A function decorator that will append an addendum to the docstring of
+    the target function.
 
     This decorator should be robust even if func.__doc__ is None
     (for example, if -OO was passed to the interpreter).
@@ -139,6 +138,7 @@ class Appender(object):
     def my_dog(has='fleas'):
         "This docstring will have a copyright below"
         pass
+
     """
     def __init__(self, addendum, join='', indents=0):
         if indents > 0:
@@ -174,13 +174,13 @@ def suppress_stdout(f):
 
 
 class KnownFailureTest(Exception):
-    '''Raise this exception to mark a test as a known failing test.'''
+    """Raise this exception to mark a test as a known failing test."""
     pass
 
 
 def knownfailureif(fail_condition, msg=None):
-    """
-    Make function raise KnownFailureTest exception if given condition is true.
+    """Make function raise KnownFailureTest exception if given condition is
+    true.
 
     If the condition is a callable, it is used at runtime to dynamically
     make the decision. This is useful for tests that may require costly

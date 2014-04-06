@@ -7,7 +7,7 @@ import codecs
 
 
 def get_sys_info():
-    "Returns system information as a dict"
+    """Returns system information as a dict."""
 
     blob = []
 

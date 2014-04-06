@@ -68,7 +68,7 @@ _reserved_keys = ['all']  # keys which have a special meaning
 class OptionError(AttributeError, KeyError):
 
     """Exception for pandas.options, backwards compatible with KeyError
-    checks"""
+    checks."""
 
 
 #
@@ -485,6 +485,7 @@ def _select_options(pat):
     """returns a list of keys matching `pat`
 
     if pat=="all", returns all registered options
+
     """
 
     # short-circuit for exact key
@@ -508,19 +509,19 @@ def _get_root(key):
 
 
 def _is_deprecated(key):
-    """ Returns True if the given option has been deprecated """
+    """Returns True if the given option has been deprecated."""
 
     key = key.lower()
     return key in _deprecated_options
 
 
 def _get_deprecated_option(key):
-    """
-    Retrieves the metadata for a deprecated option, if `key` is deprecated.
+    """Retrieves the metadata for a deprecated option, if `key` is deprecated.
 
     Returns
     -------
     DeprecatedOption (namedtuple) if key is deprecated, None otherwise
+
     """
 
     try:
@@ -532,20 +533,21 @@ def _get_deprecated_option(key):
 
 
 def _get_registered_option(key):
-    """
-    Retrieves the option metadata if `key` is a registered option.
+    """Retrieves the option metadata if `key` is a registered option.
 
     Returns
     -------
     RegisteredOption (namedtuple) if key is deprecated, None otherwise
+
     """
     return _registered_options.get(key)
 
 
 def _translate_key(key):
-    """
-    if key id deprecated and a replacement key defined, will return the
+    """if key id deprecated and a replacement key defined, will return the.
+
     replacement key, otherwise returns `key` as - is
+
     """
 
     d = _get_deprecated_option(key)
@@ -556,12 +558,12 @@ def _translate_key(key):
 
 
 def _warn_if_deprecated(key):
-    """
-    Checks if `key` is a deprecated option and if so, prints a warning.
+    """Checks if `key` is a deprecated option and if so, prints a warning.
 
     Returns
     -------
     bool - True if `key` is deprecated, False otherwise.
+
     """
 
     d = _get_deprecated_option(key)
@@ -583,7 +585,7 @@ def _warn_if_deprecated(key):
 
 
 def _build_option_description(k):
-    """ Builds a formatted description of a registered option and prints it """
+    """Builds a formatted description of a registered option and prints it."""
 
     o = _get_registered_option(k)
     d = _get_deprecated_option(k)
@@ -608,7 +610,7 @@ def _build_option_description(k):
 
 
 def pp_options_list(keys, width=80, _print=False):
-    """ Builds a concise listing of available options, grouped by prefix """
+    """Builds a concise listing of available options, grouped by prefix."""
 
     from textwrap import wrap
     from itertools import groupby
@@ -645,7 +647,7 @@ from contextlib import contextmanager
 
 @contextmanager
 def config_prefix(prefix):
-    """contextmanager for multiple invocations of API  with a common prefix
+    """contextmanager for multiple invocations of API  with a common prefix.
 
     supported API functions: (register / get / set )__option
 
@@ -666,6 +668,7 @@ def config_prefix(prefix):
 
     will register options "display.font.color", "display.font.size", set the
     value of "display.font.size"... and so on.
+
     """
 
     # Note: reset_option relies on set_option, and on key directly
@@ -697,16 +700,14 @@ def config_prefix(prefix):
 # arg in register_option
 
 def is_type_factory(_type):
-    """
+    """Parameters.
 
-    Parameters
-    ----------
     `_type` - a type to be compared against (e.g. type(x) == `_type`)
 
-    Returns
-    -------
-    validator - a function of a single argument x , which returns the
-                True if type(x) is equal to `_type`
+        Returns
+        -------
+        validator - a function of a single argument x , which returns the
+                    True if type(x) is equal to `_type`
 
     """
 
@@ -718,16 +719,14 @@ def is_type_factory(_type):
 
 
 def is_instance_factory(_type):
-    """
+    """Parameters.
 
-    Parameters
-    ----------
     `_type` - the type to be checked against
 
-    Returns
-    -------
-    validator - a function of a single argument x , which returns the
-                True if x is an instance of `_type`
+        Returns
+        -------
+        validator - a function of a single argument x , which returns the
+                    True if x is an instance of `_type`
 
     """
     if isinstance(_type, (tuple, list)):

@@ -32,7 +32,7 @@ from numpy.testing import assert_array_equal
 
 
 class TestPeriodProperties(tm.TestCase):
-    "Test properties such as year, month, weekday, etc...."
+    """Test properties such as year, month, weekday, etc...."""
     #
 
     def test_quarterly_negative_ordinals(self):
@@ -491,7 +491,7 @@ def noWrap(item):
 
 
 class TestFreqConversion(tm.TestCase):
-    "Test frequency conversion of date objects"
+    """Test frequency conversion of date objects."""
 
     def test_asfreq_corner(self):
         val = Period(freq='A', year=2007)
@@ -2174,7 +2174,7 @@ def _permute(obj):
 
 
 class TestMethods(tm.TestCase):
-    "Base test class for MaskedArrays."
+    """Base test class for MaskedArrays."""
 
     def test_add(self):
         dt1 = Period(freq='D', year=2008, month=1, day=1)
@@ -2186,9 +2186,7 @@ class TestMethods(tm.TestCase):
 
 
 class TestPeriodRepresentation(tm.TestCase):
-    """
-    Wish to match NumPy units
-    """
+    """Wish to match NumPy units."""
 
     def test_annual(self):
         self._check_freq('A', 1970)

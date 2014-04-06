@@ -1,6 +1,7 @@
-"""
-Data structures for sparse float data. Life is made simpler by dealing only
-with float64 data
+"""Data structures for sparse float data.
+
+Life is made simpler by dealing only with float64 data
+
 """
 
 # pylint: disable=E1101,E1103,W0231
@@ -42,8 +43,7 @@ class SparsePanelAxis(object):
 
 class SparsePanel(Panel):
 
-    """
-    Sparse version of Panel
+    """Sparse version of Panel.
 
     Parameters
     ----------
@@ -60,6 +60,7 @@ class SparsePanel(Panel):
 
     Notes
     -----
+
     """
     ndim = 3
     _typ = 'panel'
@@ -120,18 +121,16 @@ class SparsePanel(Panel):
 
     @classmethod
     def from_dict(cls, data):
-        """
-        Analogous to Panel.from_dict
-        """
+        """Analogous to Panel.from_dict."""
         return SparsePanel(data)
 
     def to_dense(self):
-        """
-        Convert SparsePanel to (dense) Panel
+        """Convert SparsePanel to (dense) Panel.
 
         Returns
         -------
         dense : Panel
+
         """
         return Panel(self.values, self.items, self.major_axis,
                      self.minor_axis)
@@ -188,9 +187,7 @@ class SparsePanel(Panel):
         return self.xs(key, axis=axis)
 
     def _slice(self, slobj, axis=0, typ=None):
-        """
-        for compat as we don't support Block Manager here
-        """
+        """for compat as we don't support Block Manager here."""
         axis = self._get_axis_name(axis)
         index = self._get_axis(axis)
 
@@ -215,8 +212,7 @@ class SparsePanel(Panel):
             self._items = Index(list(self.items) + [key])
 
     def set_value(self, item, major, minor, value):
-        """
-        Quickly set single value at (item, major, minor) location
+        """Quickly set single value at (item, major, minor) location.
 
         Parameters
         ----------
@@ -233,6 +229,7 @@ class SparsePanel(Panel):
         Returns
         -------
         panel : SparsePanel
+
         """
         dense = self.to_dense().set_value(item, major, minor, value)
         return dense.to_sparse(kind=self.default_kind,
@@ -262,12 +259,12 @@ class SparsePanel(Panel):
         self._frames = frames
 
     def copy(self, deep=True):
-        """
-        Make a copy of the sparse panel
+        """Make a copy of the sparse panel.
 
         Returns
         -------
         copy : SparsePanel
+
         """
 
         d = self._construct_axes_dict()
@@ -282,12 +279,12 @@ class SparsePanel(Panel):
         return SparsePanel(new_data, **d)
 
     def to_frame(self, filter_observations=True):
-        """
-        Convert SparsePanel to (dense) DataFrame
+        """Convert SparsePanel to (dense) DataFrame.
 
         Returns
         -------
         frame : DataFrame
+
         """
         if not filter_observations:
             raise TypeError('filter_observations=False not supported for '
@@ -337,8 +334,7 @@ class SparsePanel(Panel):
 
     def reindex(self, major=None, items=None, minor=None, major_axis=None,
                 minor_axis=None, copy=False):
-        """
-        Conform / reshape panel axis labels to new input labels
+        """Conform / reshape panel axis labels to new input labels.
 
         Parameters
         ----------
@@ -351,6 +347,7 @@ class SparsePanel(Panel):
         Returns
         -------
         reindexed : SparsePanel
+
         """
         major = com._mut_exclusive(major=major, major_axis=major_axis)
         minor = com._mut_exclusive(minor=minor, minor_axis=minor_axis)
@@ -452,8 +449,7 @@ class SparsePanel(Panel):
                            default_kind=self.default_kind)
 
     def major_xs(self, key):
-        """
-        Return slice of panel along major axis
+        """Return slice of panel along major axis.
 
         Parameters
         ----------
@@ -464,13 +460,13 @@ class SparsePanel(Panel):
         -------
         y : DataFrame
             index -> minor axis, columns -> items
+
         """
         slices = dict((k, v.xs(key)) for k, v in compat.iteritems(self))
         return DataFrame(slices, index=self.minor_axis, columns=self.items)
 
     def minor_xs(self, key):
-        """
-        Return slice of panel along minor axis
+        """Return slice of panel along minor axis.
 
         Parameters
         ----------
@@ -481,6 +477,7 @@ class SparsePanel(Panel):
         -------
         y : SparseDataFrame
             index -> major axis, columns -> items
+
         """
         slices = dict((k, v[key]) for k, v in compat.iteritems(self))
         return SparseDataFrame(slices, index=self.major_axis,
@@ -495,7 +492,7 @@ class SparsePanel(Panel):
         return self.__pow__(val)
 
     def mod(self, val, *args, **kwargs):
-        """wrapper around `__mod__` (only works for scalar values"""
+        """wrapper around `__mod__` (only works for scalar values."""
         return self.__mod__(val)
 
 # Sparse objects opt out of numexpr

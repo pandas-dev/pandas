@@ -27,8 +27,7 @@ from pandas.tseries.converter import (PeriodConverter, TimeSeries_DateLocator,
 
 
 def tsplot(series, plotf, **kwargs):
-    """
-    Plots a Series on the given Matplotlib axes or the current axes
+    """Plots a Series on the given Matplotlib axes or the current axes.
 
     Parameters
     ----------

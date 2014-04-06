@@ -7,7 +7,8 @@ except ImportError:
 
 
 def recursive_repr(fillvalue='...'):
-    'Decorator to make a repr function return fillvalue for a recursive call'
+    """Decorator to make a repr function return fillvalue for a recursive
+    call."""
 
     def decorating_function(user_function):
         repr_running = set()
@@ -33,8 +34,8 @@ def recursive_repr(fillvalue='...'):
 
 
 class ChainMap(MutableMapping):
-    ''' A ChainMap groups multiple dicts (or other mappings) together
-    to create a single, updateable view.
+    """A ChainMap groups multiple dicts (or other mappings) together to create
+    a single, updateable view.
 
     The underlying mappings are stored in a list.  That list is public and can
     accessed or updated using the *maps* attribute.  There is no other state.
@@ -43,7 +44,7 @@ class ChainMap(MutableMapping):
     In contrast, writes, updates, and deletions only operate on the first
     mapping.
 
-    '''
+    """
 
     def __init__(self, *maps):
         '''Initialize a ChainMap by setting *maps* to the given mappings.
@@ -85,7 +86,7 @@ class ChainMap(MutableMapping):
 
     @classmethod
     def fromkeys(cls, iterable, *args):
-        'Create a ChainMap with a single dict created from the iterable.'
+        """Create a ChainMap with a single dict created from the iterable."""
         return cls(dict.fromkeys(iterable, *args))
 
     def copy(self):
@@ -95,10 +96,11 @@ class ChainMap(MutableMapping):
     __copy__ = copy
 
     def new_child(self, m=None):                # like Django's Context.push()
-        '''
-        New ChainMap with a new map followed by all previous maps. If no
-        map is provided, an empty dict is used.
-        '''
+        """New ChainMap with a new map followed by all previous maps.
+
+        If no map is provided, an empty dict is used.
+
+        """
         if m is None:
             m = {}
         return self.__class__(m, *self.maps)
@@ -118,7 +120,11 @@ class ChainMap(MutableMapping):
             raise KeyError('Key not found in the first mapping: {!r}'.format(key))
 
     def popitem(self):
-        'Remove and return an item pair from maps[0]. Raise KeyError is maps[0] is empty.'
+        """Remove and return an item pair from maps[0].
+
+        Raise KeyError is maps[0] is empty.
+
+        """
         try:
             return self.maps[0].popitem()
         except KeyError:

@@ -9,8 +9,7 @@ import pandas.core.nanops as nanops
 
 
 def pivot_annual(series, freq=None):
-    """
-    Group a series by years, taking leap years into account.
+    """Group a series by years, taking leap years into account.
 
     The output has as many rows as distinct years in the original series,
     and as many columns as the length of a leap year in the units corresponding
@@ -37,6 +36,7 @@ def pivot_annual(series, freq=None):
     Returns
     -------
     annual : DataFrame
+
     """
     index = series.index
     year = index.year
@@ -82,13 +82,13 @@ def pivot_annual(series, freq=None):
 
 
 def isleapyear(year):
-    """
-    Returns true if year is a leap year.
+    """Returns true if year is a leap year.
 
     Parameters
     ----------
     year : integer / sequence
         A given (list of) year(s).
+
     """
     year = np.asarray(year)
     return np.logical_or(year % 400 == 0,

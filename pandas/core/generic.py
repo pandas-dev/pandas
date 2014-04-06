@@ -103,7 +103,7 @@ class NDFrame(PandasObject):
         object.__setattr__(self, '_item_cache', {})
 
     def _validate_dtype(self, dtype):
-        """ validate the passed dtype """
+        """validate the passed dtype."""
 
         if dtype is not None:
             dtype = np.dtype(dtype)
@@ -116,7 +116,7 @@ class NDFrame(PandasObject):
         return dtype
 
     def _init_mgr(self, mgr, axes=None, dtype=None, copy=False):
-        """ passed a manager and a axes dict """
+        """passed a manager and a axes dict."""
         for a, axe in axes.items():
             if axe is not None:
                 mgr = mgr.reindex_axis(
@@ -160,17 +160,18 @@ class NDFrame(PandasObject):
     def _setup_axes(
         cls, axes, info_axis=None, stat_axis=None, aliases=None, slicers=None,
             axes_are_reversed=False, build_axes=True, ns=None):
-        """ provide axes setup for the major PandasObjects
+        """provide axes setup for the major PandasObjects.
 
-            axes : the names of the axes in order (lowest to highest)
-            info_axis_num : the axis of the selector dimension (int)
-            stat_axis_num : the number of axis for the default stats (int)
-            aliases : other names for a single axis (dict)
-            slicers : how axes slice to others (dict)
-            axes_are_reversed : boolean whether to treat passed axes as
-                reversed (DataFrame)
-            build_axes : setup the axis properties (default True)
-            """
+        axes : the names of the axes in order (lowest to highest)
+        info_axis_num : the axis of the selector dimension (int)
+        stat_axis_num : the number of axis for the default stats (int)
+        aliases : other names for a single axis (dict)
+        slicers : how axes slice to others (dict)
+        axes_are_reversed : boolean whether to treat passed axes as
+            reversed (DataFrame)
+        build_axes : setup the axis properties (default True)
+
+        """
 
         cls._AXIS_ORDERS = axes
         cls._AXIS_NUMBERS = dict((a, i) for i, a in enumerate(axes))
@@ -217,29 +218,29 @@ class NDFrame(PandasObject):
                 setattr(cls, k, v)
 
     def _construct_axes_dict(self, axes=None, **kwargs):
-        """ return an axes dictionary for myself """
+        """return an axes dictionary for myself."""
         d = dict([(a, self._get_axis(a)) for a in (axes or self._AXIS_ORDERS)])
         d.update(kwargs)
         return d
 
     @staticmethod
     def _construct_axes_dict_from(self, axes, **kwargs):
-        """ return an axes dictionary for the passed axes """
+        """return an axes dictionary for the passed axes."""
         d = dict([(a, ax) for a, ax in zip(self._AXIS_ORDERS, axes)])
         d.update(kwargs)
         return d
 
     def _construct_axes_dict_for_slice(self, axes=None, **kwargs):
-        """ return an axes dictionary for myself """
+        """return an axes dictionary for myself."""
         d = dict([(self._AXIS_SLICEMAP[a], self._get_axis(a))
                  for a in (axes or self._AXIS_ORDERS)])
         d.update(kwargs)
         return d
 
     def _construct_axes_from_arguments(self, args, kwargs, require_all=False):
-        """ construct and returns axes if supplied in args/kwargs
-            if require_all, raise if all axis arguments are not supplied
-            return a tuple of (axes, kwargs) """
+        """construct and returns axes if supplied in args/kwargs if
+        require_all, raise if all axis arguments are not supplied return a
+        tuple of (axes, kwargs)"""
 
         # construct the args
         args = list(args)
@@ -313,7 +314,7 @@ class NDFrame(PandasObject):
         return getattr(self, name)
 
     def _get_block_manager_axis(self, axis):
-        """ map the axis to the block_manager axis """
+        """map the axis to the block_manager axis."""
         axis = self._get_axis_number(axis)
         if self._AXIS_REVERSED:
             m = self._AXIS_LEN - 1
@@ -366,19 +367,19 @@ class NDFrame(PandasObject):
 
     @property
     def shape(self):
-        "tuple of axis dimensions"
+        """tuple of axis dimensions."""
         return tuple(len(self._get_axis(a)) for a in self._AXIS_ORDERS)
 
     @property
     def axes(self):
-        "index(es) of the NDFrame"
+        """index(es) of the NDFrame."""
         # we do it this way because if we have reversed axes, then
         # the block manager shows then reversed
         return [self._get_axis(a) for a in self._AXIS_ORDERS]
 
     @property
     def ndim(self):
-        "Number of axes / array dimensions"
+        """Number of axes / array dimensions."""
         return self._data.ndim
 
     def _expand_axes(self, key):
@@ -394,7 +395,7 @@ class NDFrame(PandasObject):
         return new_axes
 
     def set_axis(self, axis, labels):
-        """ public verson of axis assignment """
+        """public verson of axis assignment."""
         setattr(self,self._get_axis_name(axis),labels)
 
     def _set_axis(self, axis, labels):
@@ -444,12 +445,12 @@ class NDFrame(PandasObject):
         return self._constructor(new_values, **new_axes).__finalize__(self)
 
     def swapaxes(self, axis1, axis2, copy=True):
-        """
-        Interchange axes and swap values axes appropriately
+        """Interchange axes and swap values axes appropriately.
 
         Returns
         -------
         y : same as input
+
         """
         i = self._get_axis_number(axis1)
         j = self._get_axis_number(axis2)
@@ -470,15 +471,17 @@ class NDFrame(PandasObject):
         return self._constructor(new_values, *new_axes).__finalize__(self)
 
     def pop(self, item):
-        """
-        Return item and drop from frame. Raise KeyError if not found.
+        """Return item and drop from frame.
+
+        Raise KeyError if not found.
+
         """
         result = self[item]
         del self[item]
         return result
 
     def squeeze(self):
-        """ squeeze length 1 dimensions """
+        """squeeze length 1 dimensions."""
         try:
             return self.ix[tuple([slice(None) if len(a) > 1 else a[0]
                                   for a in self.axes])]
@@ -486,8 +489,7 @@ class NDFrame(PandasObject):
             return self
 
     def swaplevel(self, i, j, axis=0):
-        """
-        Swap levels i and j in a MultiIndex on a particular axis
+        """Swap levels i and j in a MultiIndex on a particular axis.
 
         Parameters
         ----------
@@ -497,6 +499,7 @@ class NDFrame(PandasObject):
         Returns
         -------
         swapped : type of caller (new object)
+
         """
         axis = self._get_axis_number(axis)
         result = self.copy()
@@ -614,9 +617,10 @@ class NDFrame(PandasObject):
         return self._wrap_array(arr, self.axes, copy=False)
 
     def equals(self, other):
-        """
-        Determines if two NDFrame objects contain the same elements. NaNs in the
-        same location are considered equal.
+        """Determines if two NDFrame objects contain the same elements.
+
+        NaNs in the same location are considered equal.
+
         """
         if not isinstance(other, self._constructor):
             return False
@@ -630,24 +634,25 @@ class NDFrame(PandasObject):
                         ' hashed'.format(self.__class__.__name__))
 
     def __iter__(self):
-        """
-        Iterate over infor axis
-        """
+        """Iterate over infor axis."""
         return iter(self._info_axis)
 
     # can we get a better explanation of this?
     def keys(self):
         """Get the 'info axis' (see Indexing for more)
 
-        This is index for Series, columns for DataFrame and major_axis for
-        Panel."""
+        This is index for Series, columns for DataFrame and major_axis
+        for Panel.
+
+        """
         return self._info_axis
 
     def iteritems(self):
-        """Iterate over (label, values) on info axis
+        """Iterate over (label, values) on info axis.
 
-        This is index for Series, columns for DataFrame, major_axis for Panel,
-        and so on.
+        This is index for Series, columns for DataFrame, major_axis for
+        Panel, and so on.
+
         """
         for h in self._info_axis:
             yield h, self[h]
@@ -663,16 +668,16 @@ class NDFrame(PandasObject):
         return self.iteritems(*args, **kwargs)
 
     def __len__(self):
-        """Returns length of info axis """
+        """Returns length of info axis."""
         return len(self._info_axis)
 
     def __contains__(self, key):
-        """True if the key is in the info axis """
+        """True if the key is in the info axis."""
         return key in self._info_axis
 
     @property
     def empty(self):
-        "True if NDFrame is entirely empty [no items]"
+        """True if NDFrame is entirely empty [no items]"""
         return not all(len(self._get_axis(a)) > 0 for a in self._AXIS_ORDERS)
 
     def __nonzero__(self):
@@ -683,11 +688,13 @@ class NDFrame(PandasObject):
     __bool__ = __nonzero__
 
     def bool(self):
-        """ Return the bool of a single element PandasObject
-            This must be a boolean scalar value, either True or False
+        """Return the bool of a single element PandasObject This must be a
+        boolean scalar value, either True or False.
 
-            Raise a ValueError if the PandasObject does not have exactly
-            1 element, or that element is not boolean """
+        Raise a ValueError if the PandasObject does not have exactly 1
+        element, or that element is not boolean
+
+        """
         v = self.squeeze()
         if isinstance(v, (bool, np.bool_)):
             return bool(v)
@@ -723,7 +730,7 @@ class NDFrame(PandasObject):
     #    return dict(typestr=values.dtype.str,shape=values.shape,data=values)
 
     def to_dense(self):
-        "Return dense representation of NDFrame (as opposed to sparse)"
+        """Return dense representation of NDFrame (as opposed to sparse)"""
         # compat
         return self
 
@@ -781,8 +788,7 @@ class NDFrame(PandasObject):
     def to_json(self, path_or_buf=None, orient=None, date_format='epoch',
                 double_precision=10, force_ascii=True, date_unit='ms',
                 default_handler=None):
-        """
-        Convert the object to a JSON string.
+        """Convert the object to a JSON string.
 
         Note NaN's and None will be converted to null and datetime objects
         will be converted to UNIX timestamps.
@@ -846,7 +852,7 @@ class NDFrame(PandasObject):
             default_handler=default_handler)
 
     def to_hdf(self, path_or_buf, key, **kwargs):
-        """ activate the HDFStore
+        """activate the HDFStore.
 
         Parameters
         ----------
@@ -889,8 +895,7 @@ class NDFrame(PandasObject):
         return pytables.to_hdf(path_or_buf, key, self, **kwargs)
 
     def to_msgpack(self, path_or_buf=None, **kwargs):
-        """
-        msgpack (serialize) object to input file path
+        """msgpack (serialize) object to input file path.
 
         THIS IS AN EXPERIMENTAL LIBRARY and the storage format
         may not be stable until a future release.
@@ -903,6 +908,7 @@ class NDFrame(PandasObject):
             (default is False)
         compress : type of compressor (zlib or blosc), default to None (no
             compression)
+
         """
 
         from pandas.io import packers
@@ -910,8 +916,7 @@ class NDFrame(PandasObject):
 
     def to_sql(self, name, con, flavor='sqlite', if_exists='fail', index=True,
                index_label=None):
-        """
-        Write records stored in a DataFrame to a SQL database.
+        """Write records stored in a DataFrame to a SQL database.
 
         Parameters
         ----------
@@ -942,35 +947,42 @@ class NDFrame(PandasObject):
             index_label=index_label)
 
     def to_pickle(self, path):
-        """
-        Pickle (serialize) object to input file path
+        """Pickle (serialize) object to input file path.
 
         Parameters
         ----------
         path : string
             File path
+
         """
         from pandas.io.pickle import to_pickle
         return to_pickle(self, path)
 
     def save(self, path):  # TODO remove in 0.14
-        "Deprecated. Use to_pickle instead"
+        """Deprecated.
+
+        Use to_pickle instead
+
+        """
         import warnings
         from pandas.io.pickle import to_pickle
         warnings.warn("save is deprecated, use to_pickle", FutureWarning)
         return to_pickle(self, path)
 
     def load(self, path):  # TODO remove in 0.14
-        "Deprecated. Use read_pickle instead."
+        """Deprecated.
+
+        Use read_pickle instead.
+
+        """
         import warnings
         from pandas.io.pickle import read_pickle
         warnings.warn("load is deprecated, use pd.read_pickle", FutureWarning)
         return read_pickle(path)
 
     def to_clipboard(self, excel=None, sep=None, **kwargs):
-        """
-        Attempt to write text representation of object to the system clipboard
-        This can be pasted into Excel, for example.
+        """Attempt to write text representation of object to the system
+        clipboard This can be pasted into Excel, for example.
 
         Parameters
         ----------
@@ -988,6 +1000,7 @@ class NDFrame(PandasObject):
           - Linux: xclip, or xsel (with gtk or PyQt4 modules)
           - Windows: none
           - OS X: none
+
         """
         from pandas.io import clipboard
         clipboard.to_clipboard(self, excel=excel, sep=sep, **kwargs)
@@ -997,7 +1010,7 @@ class NDFrame(PandasObject):
 
     @classmethod
     def _create_indexer(cls, name, indexer):
-        """ create an indexer like _name in the class """
+        """create an indexer like _name in the class."""
 
         if getattr(cls, name, None) is None:
             iname = '_%s' % name
@@ -1016,9 +1029,8 @@ class NDFrame(PandasObject):
             cls._internal_names_set.add(iname)
 
     def get(self, key, default=None):
-        """
-        Get item from object for given key (DataFrame column, Panel slice,
-        etc.). Returns default value if not found
+        """Get item from object for given key (DataFrame column, Panel slice,
+        etc.). Returns default value if not found.
 
         Parameters
         ----------
@@ -1027,6 +1039,7 @@ class NDFrame(PandasObject):
         Returns
         -------
         value : type of items contained in object
+
         """
         try:
             return self[key]
@@ -1037,7 +1050,7 @@ class NDFrame(PandasObject):
         return self._get_item_cache(item)
 
     def _get_item_cache(self, item):
-        """ return the cached item, item represents a label indexer """
+        """return the cached item, item represents a label indexer."""
         cache = self._item_cache
         res = cache.get(item)
         if res is None:
@@ -1051,12 +1064,12 @@ class NDFrame(PandasObject):
         return res
 
     def _set_as_cached(self, item, cacher):
-        """ set the _cacher attribute on the calling object with
-            a weakref to cacher """
+        """set the _cacher attribute on the calling object with a weakref to
+        cacher."""
         self._cacher = (item, weakref.ref(cacher))
 
     def _iget_item_cache(self, item):
-        """ return the cached item, item represents a positional indexer """
+        """return the cached item, item represents a positional indexer."""
         ax = self._info_axis
         if ax.is_unique:
             lower = self._get_item_cache(ax[item])
@@ -1068,12 +1081,11 @@ class NDFrame(PandasObject):
         raise NotImplementedError
 
     def _maybe_cache_changed(self, item, value):
-        """
-        the object has called back to us saying
-        maybe it has changed
+        """the object has called back to us saying maybe it has changed.
 
         numpy < 1.8 has an issue with object arrays and aliasing
         GH6026
+
         """
         self._data.set(item, value, check=pd._np_version_under1p8)
 
@@ -1084,8 +1096,8 @@ class NDFrame(PandasObject):
         return cacher is not None
 
     def _maybe_update_cacher(self, clear=False):
-        """ see if we need to update our parent cacher
-            if clear, then clear our cache """
+        """see if we need to update our parent cacher if clear, then clear our
+        cache."""
         cacher = getattr(self, '_cacher', None)
         if cacher is not None:
             ref = cacher[1]()
@@ -1113,10 +1125,10 @@ class NDFrame(PandasObject):
             self._item_cache.clear()
 
     def _slice(self, slobj, axis=0, typ=None):
-        """
-        Construct a slice of this container.
+        """Construct a slice of this container.
 
-        typ parameter is maintained for compatibility with Series slicing.
+        typ parameter is maintained for compatibility with Series
+        slicing.
 
         """
         axis = self._get_block_manager_axis(axis)
@@ -1136,10 +1148,12 @@ class NDFrame(PandasObject):
                 self.is_copy = None
 
     def _check_setitem_copy(self, stacklevel=4, t='setting'):
-        """ validate if we are doing a settitem on a chained copy.
+        """validate if we are doing a settitem on a chained copy.
 
         If you call this function, be sure to set the stacklevel such that the
-        user will see the error *at the level of setting*"""
+        user will see the error *at the level of setting*
+
+        """
         if self.is_copy:
 
             value = config.get_option('mode.chained_assignment')
@@ -1169,9 +1183,7 @@ class NDFrame(PandasObject):
                 warnings.warn(t, SettingWithCopyWarning, stacklevel=stacklevel)
 
     def __delitem__(self, key):
-        """
-        Delete item
-        """
+        """Delete item."""
         deleted = False
 
         maybe_shortcut = False
@@ -1202,8 +1214,7 @@ class NDFrame(PandasObject):
             pass
 
     def take(self, indices, axis=0, convert=True, is_copy=True):
-        """
-        Analogous to ndarray.take
+        """Analogous to ndarray.take.
 
         Parameters
         ----------
@@ -1215,6 +1226,7 @@ class NDFrame(PandasObject):
         Returns
         -------
         taken : type of caller
+
         """
 
         # check/convert indicies here
@@ -1386,8 +1398,7 @@ class NDFrame(PandasObject):
 
     # TODO: Check if this was clearer in 0.12
     def select(self, crit, axis=0):
-        """
-        Return data corresponding to axis labels matching criteria
+        """Return data corresponding to axis labels matching criteria.
 
         Parameters
         ----------
@@ -1398,6 +1409,7 @@ class NDFrame(PandasObject):
         Returns
         -------
         selection : type of caller
+
         """
         axis = self._get_axis_number(axis)
         axis_name = self._get_axis_name(axis)
@@ -1412,7 +1424,7 @@ class NDFrame(PandasObject):
         return self.reindex(**{axis_name: new_axis})
 
     def reindex_like(self, other, method=None, copy=True, limit=None):
-        """ return an object with matching indicies to myself
+        """return an object with matching indicies to myself.
 
         Parameters
         ----------
@@ -1430,13 +1442,13 @@ class NDFrame(PandasObject):
         Returns
         -------
         reindexed : same as input
+
         """
         d = other._construct_axes_dict(method=method, copy=copy, limit=limit)
         return self.reindex(**d)
 
     def drop(self, labels, axis=0, level=None, inplace=False, **kwargs):
-        """
-        Return new object with labels in requested axis removed
+        """Return new object with labels in requested axis removed.
 
         Parameters
         ----------
@@ -1450,6 +1462,7 @@ class NDFrame(PandasObject):
         Returns
         -------
         dropped : type of caller
+
         """
         axis = self._get_axis_number(axis)
         axis_name = self._get_axis_name(axis)
@@ -1490,7 +1503,7 @@ class NDFrame(PandasObject):
             return result
 
     def _update_inplace(self, result):
-        "replace self internals with result."
+        """replace self internals with result."""
         # NOTE: This does *not* call __finalize__ and that's an explicit
         # decision that we may revisit in the future.
         self._reset_cache()
@@ -1499,8 +1512,7 @@ class NDFrame(PandasObject):
         self._maybe_update_cacher()
 
     def add_prefix(self, prefix):
-        """
-        Concatenate prefix string with panel items names.
+        """Concatenate prefix string with panel items names.
 
         Parameters
         ----------
@@ -1509,13 +1521,13 @@ class NDFrame(PandasObject):
         Returns
         -------
         with_prefix : type of caller
+
         """
         new_data = self._data.add_prefix(prefix)
         return self._constructor(new_data).__finalize__(self)
 
     def add_suffix(self, suffix):
-        """
-        Concatenate suffix string with panel items names
+        """Concatenate suffix string with panel items names.
 
         Parameters
         ----------
@@ -1524,13 +1536,13 @@ class NDFrame(PandasObject):
         Returns
         -------
         with_suffix : type of caller
+
         """
         new_data = self._data.add_suffix(suffix)
         return self._constructor(new_data).__finalize__(self)
 
     def sort_index(self, axis=0, ascending=True):
-        """
-        Sort object by labels (along an axis)
+        """Sort object by labels (along an axis)
 
         Parameters
         ----------
@@ -1542,6 +1554,7 @@ class NDFrame(PandasObject):
         Returns
         -------
         sorted_obj : type of caller
+
         """
         axis = self._get_axis_number(axis)
         axis_name = self._get_axis_name(axis)
@@ -1624,7 +1637,7 @@ class NDFrame(PandasObject):
                                   method, fill_value, copy).__finalize__(self)
 
     def _reindex_axes(self, axes, level, limit, method, fill_value, copy):
-        """ perform the reinxed for all the axes """
+        """perform the reinxed for all the axes."""
         obj = self
         for a in self._AXIS_ORDERS:
             labels = axes[a]
@@ -1648,7 +1661,7 @@ class NDFrame(PandasObject):
         return obj
 
     def _needs_reindex_multi(self, axes, method, level):
-        """ check if we do need a multi reindex """
+        """check if we do need a multi reindex."""
         return ((com._count_not_none(*axes.values()) == self._AXIS_LEN) and
                 method is None and level is None and not self._is_mixed_type)
 
@@ -1709,7 +1722,7 @@ class NDFrame(PandasObject):
     def _reindex_with_indexers(self, reindexers, method=None,
                                fill_value=np.nan, limit=None, copy=False,
                                allow_dups=False):
-        """ allow_dups indicates an internal call here """
+        """allow_dups indicates an internal call here."""
 
         # reindex doing multiple operations on different axes if indiciated
         new_data = self._data
@@ -1759,8 +1772,7 @@ class NDFrame(PandasObject):
             return self._constructor(new_data).__finalize__(self)
 
     def filter(self, items=None, like=None, regex=None, axis=None):
-        """
-        Restrict the info axis to set of items or wildcard
+        """Restrict the info axis to set of items or wildcard.
 
         Parameters
         ----------
@@ -1798,18 +1810,14 @@ class NDFrame(PandasObject):
             raise TypeError('Must pass either `items`, `like`, or `regex`')
 
     def head(self, n=5):
-        """
-        Returns first n rows
-        """
+        """Returns first n rows."""
         l = len(self)
         if l == 0 or n==0:
             return self
         return self.iloc[:n]
 
     def tail(self, n=5):
-        """
-        Returns last n rows
-        """
+        """Returns last n rows."""
         l = len(self)
         if l == 0 or n == 0:
             return self
@@ -1819,8 +1827,7 @@ class NDFrame(PandasObject):
     # Attribute access
 
     def __finalize__(self, other, method=None, **kwargs):
-        """
-        propagate metadata from other to self
+        """propagate metadata from other to self.
 
         Parameters
         ----------
@@ -1839,6 +1846,7 @@ class NDFrame(PandasObject):
         info.
 
         This allows simpler access to columns for interactive use.
+
         """
         if name in self._internal_names_set:
             return object.__getattribute__(self, name)
@@ -1880,10 +1888,9 @@ class NDFrame(PandasObject):
         self._data = self._protect_consolidate(f)
 
     def consolidate(self, inplace=False):
-        """
-        Compute NDFrame with "consolidated" internals (data of each dtype
+        """Compute NDFrame with "consolidated" internals (data of each dtype
         grouped together in a single ndarray). Mainly an internal API function,
-        but available here to the savvy user
+        but available here to the savvy user.
 
         Parameters
         ----------
@@ -1893,6 +1900,7 @@ class NDFrame(PandasObject):
         Returns
         -------
         consolidated : type of caller
+
         """
         if inplace:
             self._consolidate_inplace()
@@ -1964,7 +1972,7 @@ class NDFrame(PandasObject):
 
     @property
     def values(self):
-        "Numpy representation of NDFrame"
+        """Numpy representation of NDFrame."""
         return self.as_matrix()
 
     @property
@@ -1973,32 +1981,30 @@ class NDFrame(PandasObject):
         return self.as_matrix()
 
     def get_values(self):
-        """ same as values (but handles sparseness conversions) """
+        """same as values (but handles sparseness conversions)"""
         return self.as_matrix()
 
     def get_dtype_counts(self):
-        """ Return the counts of dtypes in this object """
+        """Return the counts of dtypes in this object."""
         from pandas import Series
         return Series(self._data.get_dtype_counts())
 
     def get_ftype_counts(self):
-        """ Return the counts of ftypes in this object """
+        """Return the counts of ftypes in this object."""
         from pandas import Series
         return Series(self._data.get_ftype_counts())
 
     @property
     def dtypes(self):
-        """ Return the dtypes in this object """
+        """Return the dtypes in this object."""
         from pandas import Series
         return Series(self._data.get_dtypes(), index=self._info_axis,
                       dtype=np.object_)
 
     @property
     def ftypes(self):
-        """
-        Return the ftypes (indication of sparse/dense and dtype)
-        in this object.
-        """
+        """Return the ftypes (indication of sparse/dense and dtype) in this
+        object."""
         from pandas import Series
         return Series(self._data.get_ftypes(), index=self._info_axis,
                       dtype=np.object_)
@@ -2040,7 +2046,7 @@ class NDFrame(PandasObject):
 
     @property
     def blocks(self):
-        "Internal property, property synonym for as_blocks()"
+        """Internal property, property synonym for as_blocks()"""
         return self.as_blocks()
 
     def astype(self, dtype, copy=True, raise_on_error=True):
@@ -2063,8 +2069,7 @@ class NDFrame(PandasObject):
         return self._constructor(mgr).__finalize__(self)
 
     def copy(self, deep=True):
-        """
-        Make a copy of this object
+        """Make a copy of this object.
 
         Parameters
         ----------
@@ -2074,6 +2079,7 @@ class NDFrame(PandasObject):
         Returns
         -------
         copy : type of caller
+
         """
         data = self._data
         if deep:
@@ -2082,8 +2088,7 @@ class NDFrame(PandasObject):
 
     def convert_objects(self, convert_dates=True, convert_numeric=False,
                         convert_timedeltas=True, copy=True):
-        """
-        Attempt to infer better dtype for object columns
+        """Attempt to infer better dtype for object columns.
 
         Parameters
         ----------
@@ -2093,13 +2098,14 @@ class NDFrame(PandasObject):
             strings), non-convertibles get NaN
         convert_timedeltas : if True, attempt to soft convert timedeltas, if 'coerce',
             force conversion (and non-convertibles get NaT)
-        copy : Boolean, if True, return copy even if no copy is necessary 
+        copy : Boolean, if True, return copy even if no copy is necessary
             (e.g. no conversion was done), default is True.
             It is meant for internal use, not to be confused with `inplace` kw.
 
         Returns
         -------
         converted : asm as input object
+
         """
         return self._constructor(
             self._data.convert(convert_dates=convert_dates,
@@ -2112,8 +2118,7 @@ class NDFrame(PandasObject):
 
     def fillna(self, value=None, method=None, axis=0, inplace=False,
                limit=None, downcast=None):
-        """
-        Fill NA/NaN values using the specified method
+        """Fill NA/NaN values using the specified method.
 
         Parameters
         ----------
@@ -2147,6 +2152,7 @@ class NDFrame(PandasObject):
         Returns
         -------
         filled : same type as caller
+
         """
         if isinstance(value, (list, tuple)):
             raise TypeError('"value" parameter must be a scalar or dict, but '
@@ -2244,8 +2250,7 @@ class NDFrame(PandasObject):
 
     def replace(self, to_replace=None, value=None, inplace=False, limit=None,
                 regex=False, method='pad', axis=None):
-        """
-        Replace values given in 'to_replace' with 'value'.
+        """Replace values given in 'to_replace' with 'value'.
 
         Parameters
         ----------
@@ -2490,8 +2495,7 @@ class NDFrame(PandasObject):
 
     def interpolate(self, method='linear', axis=0, limit=None, inplace=False,
                     downcast=None, **kwargs):
-        """
-        Interpolate values according to different methods.
+        """Interpolate values according to different methods.
 
         Parameters
         ----------
@@ -2623,8 +2627,7 @@ class NDFrame(PandasObject):
         return notnull(self).__finalize__(self)
 
     def clip(self, lower=None, upper=None, out=None):
-        """
-        Trim values at input threshold(s)
+        """Trim values at input threshold(s)
 
         Parameters
         ----------
@@ -2634,6 +2637,7 @@ class NDFrame(PandasObject):
         Returns
         -------
         clipped : Series
+
         """
         if out is not None:  # pragma: no cover
             raise Exception('out argument is not supported yet')
@@ -2651,8 +2655,7 @@ class NDFrame(PandasObject):
         return result
 
     def clip_upper(self, threshold):
-        """
-        Return copy of input with values above given value truncated
+        """Return copy of input with values above given value truncated.
 
         See also
         --------
@@ -2661,6 +2664,7 @@ class NDFrame(PandasObject):
         Returns
         -------
         clipped : same type as input
+
         """
         if isnull(threshold):
             raise ValueError("Cannot use an NA value as a clip threshold")
@@ -2668,8 +2672,7 @@ class NDFrame(PandasObject):
         return self.where((self <= threshold) | isnull(self), threshold)
 
     def clip_lower(self, threshold):
-        """
-        Return copy of the input with values below given value truncated
+        """Return copy of the input with values below given value truncated.
 
         See also
         --------
@@ -2678,6 +2681,7 @@ class NDFrame(PandasObject):
         Returns
         -------
         clipped : same type as input
+
         """
         if isnull(threshold):
             raise ValueError("Cannot use an NA value as a clip threshold")
@@ -2686,9 +2690,8 @@ class NDFrame(PandasObject):
 
     def groupby(self, by=None, axis=0, level=None, as_index=True, sort=True,
                 group_keys=True, squeeze=False):
-        """
-        Group series using mapper (dict or key function, apply given function
-        to group, return result as series) or by a series of columns
+        """Group series using mapper (dict or key function, apply given
+        function to group, return result as series) or by a series of columns.
 
         Parameters
         ----------
@@ -2736,9 +2739,9 @@ class NDFrame(PandasObject):
                        sort=sort, group_keys=group_keys, squeeze=squeeze)
 
     def asfreq(self, freq, method=None, how=None, normalize=False):
-        """
-        Convert all TimeSeries inside to specified frequency using DateOffset
-        objects. Optionally provide fill method to pad/backfill missing values.
+        """Convert all TimeSeries inside to specified frequency using
+        DateOffset objects. Optionally provide fill method to pad/backfill
+        missing values.
 
         Parameters
         ----------
@@ -2755,6 +2758,7 @@ class NDFrame(PandasObject):
         Returns
         -------
         converted : type of caller
+
         """
         from pandas.tseries.resample import asfreq
         return asfreq(self, freq, method=method, how=how,
@@ -2843,9 +2847,8 @@ class NDFrame(PandasObject):
         return sampler.resample(self).__finalize__(self)
 
     def first(self, offset):
-        """
-        Convenience method for subsetting initial periods of time series data
-        based on a date offset
+        """Convenience method for subsetting initial periods of time series
+        data based on a date offset.
 
         Parameters
         ----------
@@ -2858,6 +2861,7 @@ class NDFrame(PandasObject):
         Returns
         -------
         subset : type of caller
+
         """
         from pandas.tseries.frequencies import to_offset
         if not isinstance(self.index, DatetimeIndex):
@@ -2877,9 +2881,8 @@ class NDFrame(PandasObject):
         return self.ix[:end]
 
     def last(self, offset):
-        """
-        Convenience method for subsetting final periods of time series data
-        based on a date offset
+        """Convenience method for subsetting final periods of time series data
+        based on a date offset.
 
         Parameters
         ----------
@@ -2892,6 +2895,7 @@ class NDFrame(PandasObject):
         Returns
         -------
         subset : type of caller
+
         """
         from pandas.tseries.frequencies import to_offset
         if not isinstance(self.index, DatetimeIndex):
@@ -2908,9 +2912,8 @@ class NDFrame(PandasObject):
 
     def align(self, other, join='outer', axis=None, level=None, copy=True,
               fill_value=None, method=None, limit=None, fill_axis=0):
-        """
-        Align two object on their axes with the
-        specified join method for each axis Index
+        """Align two object on their axes with the specified join method for
+        each axis Index.
 
         Parameters
         ----------
@@ -2936,6 +2939,7 @@ class NDFrame(PandasObject):
         -------
         (left, right) : (type of input, type of other)
             Aligned objects
+
         """
         from pandas import DataFrame, Series
         method = com._clean_fill_method(method)
@@ -3064,8 +3068,7 @@ class NDFrame(PandasObject):
 
     def where(self, cond, other=np.nan, inplace=False, axis=None, level=None,
               try_cast=False, raise_on_error=True):
-        """
-        Return an object of same shape as self and whose corresponding
+        """Return an object of same shape as self and whose corresponding
         entries are from self where cond is True and otherwise are from other.
 
         Parameters
@@ -3085,6 +3088,7 @@ class NDFrame(PandasObject):
         Returns
         -------
         wh : same type as caller
+
         """
         if isinstance(cond, NDFrame):
             cond = cond.reindex(**self._construct_axes_dict())
@@ -3207,9 +3211,8 @@ class NDFrame(PandasObject):
             return self._constructor(new_data).__finalize__(self)
 
     def mask(self, cond):
-        """
-        Returns copy whose values are replaced with nan if the
-        inverted condition is True
+        """Returns copy whose values are replaced with nan if the inverted
+        condition is True.
 
         Parameters
         ----------
@@ -3218,12 +3221,12 @@ class NDFrame(PandasObject):
         Returns
         -------
         wh: same as input
+
         """
         return self.where(~cond, np.nan)
 
     def shift(self, periods=1, freq=None, axis=0, **kwds):
-        """
-        Shift index by desired number of periods with an optional time freq
+        """Shift index by desired number of periods with an optional time freq.
 
         Parameters
         ----------
@@ -3242,6 +3245,7 @@ class NDFrame(PandasObject):
         Returns
         -------
         shifted : same type as caller
+
         """
         if periods == 0:
             return self
@@ -3255,8 +3259,7 @@ class NDFrame(PandasObject):
         return self._constructor(new_data).__finalize__(self)
 
     def tshift(self, periods=1, freq=None, axis=0, **kwds):
-        """
-        Shift the time index, using the index's frequency if available
+        """Shift the time index, using the index's frequency if available.
 
         Parameters
         ----------
@@ -3276,6 +3279,7 @@ class NDFrame(PandasObject):
         Returns
         -------
         shifted : NDFrame
+
         """
         from pandas.core.datetools import _resolve_offset
 
@@ -3331,6 +3335,7 @@ class NDFrame(PandasObject):
         Returns
         -------
         truncated : type of caller
+
         """
 
         if axis is None:
@@ -3364,8 +3369,7 @@ class NDFrame(PandasObject):
         return result
 
     def tz_convert(self, tz, axis=0, copy=True):
-        """
-        Convert the axis to target time zone. If it is time zone naive, it
+        """Convert the axis to target time zone. If it is time zone naive, it
         will be localized to the passed time zone.
 
         Parameters
@@ -3376,6 +3380,7 @@ class NDFrame(PandasObject):
 
         Returns
         -------
+
         """
         axis = self._get_axis_number(axis)
         ax = self._get_axis(axis)
@@ -3429,13 +3434,13 @@ class NDFrame(PandasObject):
     #----------------------------------------------------------------------
     # Numeric Methods
     def abs(self):
-        """
-        Return an object with absolute value taken. Only applicable to objects
-        that are all numeric
+        """Return an object with absolute value taken. Only applicable to
+        objects that are all numeric.
 
         Returns
         -------
         abs: type of caller
+
         """
 
         # suprimo numpy 1.6 hacking
@@ -3456,8 +3461,7 @@ class NDFrame(PandasObject):
 
     def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None,
                    **kwds):
-        """
-        Percent change over given number of periods
+        """Percent change over given number of periods.
 
         Parameters
         ----------
@@ -3473,6 +3477,7 @@ class NDFrame(PandasObject):
         Returns
         -------
         chg : same type as caller
+
         """
         # TODO: Not sure if above is correct - need someone to confirm.
         if fill_method is None:
@@ -3496,7 +3501,7 @@ class NDFrame(PandasObject):
 
     @classmethod
     def _add_numeric_operations(cls):
-        """ add the operations to the cls; evaluate the doc strings again """
+        """add the operations to the cls; evaluate the doc strings again."""
 
         axis_descr = "{%s}" % ', '.join([
             "{0} ({1})".format(a, i) for i, a in enumerate(cls._AXIS_ORDERS)

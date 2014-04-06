@@ -64,11 +64,8 @@ def process_flags(flags=[]):
 
 
 def get_flow(secret, scope, redirect):
-    """
-    Retrieve an authentication flow object based on the given
-    configuration in the secret file name, the authentication scope,
-    and a redirect URN
-    """
+    """Retrieve an authentication flow object based on the given configuration
+    in the secret file name, the authentication scope, and a redirect URN."""
     key = (secret, scope, redirect)
     flow = FLOWS.get(key, None)
     if flow is None:
@@ -83,22 +80,22 @@ def get_flow(secret, scope, redirect):
 
 
 def make_token_store(fpath=None):
-    """create token storage from give file name"""
+    """create token storage from give file name."""
     if fpath is None:
         fpath = DEFAULT_TOKEN_FILE
     return auth_file.Storage(fpath)
 
 
 def authenticate(flow, storage=None):
-    """
-    Try to retrieve a valid set of credentials from the token store if possible
-    Otherwise use the given authentication flow to obtain new credentials
-    and return an authenticated http object
+    """Try to retrieve a valid set of credentials from the token store if
+    possible Otherwise use the given authentication flow to obtain new
+    credentials and return an authenticated http object.
 
     Parameters
     ----------
     flow : authentication workflow
     storage: token storage, default None
+
     """
     http = httplib2.Http()
 
@@ -112,9 +109,7 @@ def authenticate(flow, storage=None):
 
 
 def init_service(http):
-    """
-    Use the given http object to build the analytics service object
-    """
+    """Use the given http object to build the analytics service object."""
     return gapi.build('analytics', 'v3', http=http)
 
 

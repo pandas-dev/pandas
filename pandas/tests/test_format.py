@@ -1604,10 +1604,8 @@ c  10  11  12  13  14\
         self.assertEqual(result, expected)
 
     def test_pprint_pathological_object(self):
-        """
-        if the test fails, the stack will overflow and nose crash,
-        but it won't hang.
-        """
+        """if the test fails, the stack will overflow and nose crash, but it
+        won't hang."""
         class A:
             def __getitem__(self, key):
                 return 3 # obviously simplified

@@ -2,8 +2,7 @@ from pandas.core.series import Series
 
 
 def value_range(df):
-    """
-    Return the minimum and maximum of a dataframe in a series object
+    """Return the minimum and maximum of a dataframe in a series object.
 
     Parameters
     ----------

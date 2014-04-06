@@ -1,6 +1,7 @@
-"""
-Data structures for sparse float data. Life is made simpler by dealing only
-with float64 data
+"""Data structures for sparse float data.
+
+Life is made simpler by dealing only with float64 data
+
 """
 
 # pylint: disable=E1101,E1103,W0231
@@ -35,12 +36,12 @@ from pandas.util.decorators import Appender
 
 def _arith_method(op, name, str_rep=None, default_axis=None, fill_zeros=None,
                                  **eval_kwargs):
-    """
-    Wrapper function for Series arithmetic operations, to avoid
-    code duplication.
+    """Wrapper function for Series arithmetic operations, to avoid code
+    duplication.
 
-    str_rep, default_axis, fill_zeros and eval_kwargs are not used, but are present
-    for compatibility.
+    str_rep, default_axis, fill_zeros and eval_kwargs are not used, but
+    are present for compatibility.
+
     """
 
     def wrapper(self, other):
@@ -84,7 +85,7 @@ def _sparse_series_op(left, right, op, name):
 
 class SparseSeries(Series):
 
-    """Data structure for labeled, sparse floating point data
+    """Data structure for labeled, sparse floating point data.
 
     Parameters
     ----------
@@ -100,6 +101,7 @@ class SparseSeries(Series):
     SparseSeries objects are immutable via the typical Python means. If you
     must change values, convert to dense, make your changes, then convert back
     to sparse
+
     """
     _subtyp = 'sparse_series'
 
@@ -210,11 +212,11 @@ class SparseSeries(Series):
 
     @property
     def values(self):
-        """ return the array """
+        """return the array."""
         return self._data._values
 
     def get_values(self):
-        """ same as values """
+        """same as values."""
         return self._data._values.to_dense().view()
 
     @property
@@ -243,9 +245,7 @@ class SparseSeries(Series):
 
     @classmethod
     def from_array(cls, arr, index=None, name=None, copy=False, fill_value=None, fastpath=False):
-        """
-        Simplified alternate constructor
-        """
+        """Simplified alternate constructor."""
         return cls(arr, index=index, name=name, copy=copy, fill_value=fill_value, fastpath=fastpath)
 
     @property
@@ -260,7 +260,7 @@ class SparseSeries(Series):
             return 'integer'
 
     def as_sparse_array(self, kind=None, fill_value=None, copy=False):
-        """ return my self as a sparse array, do not copy by default """
+        """return my self as a sparse array, do not copy by default."""
 
         if fill_value is None:
             fill_value = self.fill_value
@@ -282,9 +282,7 @@ class SparseSeries(Series):
         return rep
 
     def __array_wrap__(self, result):
-        """
-        Gets called prior to a ufunc (and after)
-        """
+        """Gets called prior to a ufunc (and after)"""
         return self._constructor(result,
                                  index=self.index,
                                  sparse_index=self.sp_index,
@@ -292,10 +290,8 @@ class SparseSeries(Series):
                                  copy=False).__finalize__(self)
 
     def __array_finalize__(self, obj):
-        """
-        Gets called after any ufunc or other array operations, necessary
-        to pass on the index.
-        """
+        """Gets called after any ufunc or other array operations, necessary to
+        pass on the index."""
         self.name = getattr(obj, 'name', None)
         self.fill_value = getattr(obj, 'fill_value', None)
 
@@ -333,7 +329,7 @@ class SparseSeries(Series):
         self.name = name
 
     def __iter__(self):
-        """ forward to the array """
+        """forward to the array."""
         return iter(self.values)
 
     def _set_subtyp(self, is_all_dates):
@@ -343,13 +339,11 @@ class SparseSeries(Series):
             object.__setattr__(self, '_subtyp', 'sparse_series')
 
     def _get_val_at(self, loc):
-        """ forward to the array """
+        """forward to the array."""
         return self.block.values._get_val_at(loc)
 
     def __getitem__(self, key):
-        """
-
-        """
+        """"""
         try:
             return self._get_val_at(self.index.get_loc(key))
 
@@ -374,13 +368,13 @@ class SparseSeries(Series):
         return self.set_value(key, value)
 
     def abs(self):
-        """
-        Return an object with absolute value taken. Only applicable to objects
-        that are all numeric
+        """Return an object with absolute value taken. Only applicable to
+        objects that are all numeric.
 
         Returns
         -------
         abs: type of caller
+
         """
         res_sp_values = np.abs(self.sp_values)
         return self._constructor(res_sp_values, index=self.index,
@@ -388,9 +382,8 @@ class SparseSeries(Series):
                                  fill_value=self.fill_value)
 
     def get(self, label, default=None):
-        """
-        Returns value occupying requested label, default to specified
-        missing value if not present. Analogous to dict.get
+        """Returns value occupying requested label, default to specified
+        missing value if not present. Analogous to dict.get.
 
         Parameters
         ----------
@@ -402,6 +395,7 @@ class SparseSeries(Series):
         Returns
         -------
         y : scalar
+
         """
         if label in self.index:
             loc = self.index.get_loc(label)
@@ -410,8 +404,7 @@ class SparseSeries(Series):
             return default
 
     def get_value(self, label, takeable=False):
-        """
-        Retrieve single value at passed index label
+        """Retrieve single value at passed index label.
 
         Parameters
         ----------
@@ -421,15 +414,15 @@ class SparseSeries(Series):
         Returns
         -------
         value : scalar value
+
         """
         loc = label if takeable is True else self.index.get_loc(label)
         return self._get_val_at(loc)
 
     def set_value(self, label, value, takeable=False):
-        """
-        Quickly set single value at passed label. If label is not contained, a
-        new object is created with the label placed at the end of the result
-        index
+        """Quickly set single value at passed label. If label is not contained,
+        a new object is created with the label placed at the end of the result
+        index.
 
         Parameters
         ----------
@@ -447,6 +440,7 @@ class SparseSeries(Series):
         Returns
         -------
         series : SparseSeries
+
         """
         values = self.to_dense()
 
@@ -477,9 +471,7 @@ class SparseSeries(Series):
         self._data = SingleBlockManager(values, self.index)
 
     def to_dense(self, sparse_only=False):
-        """
-        Convert SparseSeries to (dense) Series
-        """
+        """Convert SparseSeries to (dense) Series."""
         if sparse_only:
             int_index = self.sp_index.to_int_index()
             index = self.index.take(int_index.indices)
@@ -493,9 +485,10 @@ class SparseSeries(Series):
         return r
 
     def copy(self, deep=True):
-        """
-        Make a copy of the SparseSeries. Only the actual sparse values need to
-        be copied
+        """Make a copy of the SparseSeries.
+
+        Only the actual sparse values need to be copied
+
         """
         new_data = self._data
         if deep:
@@ -506,14 +499,14 @@ class SparseSeries(Series):
                                  fill_value=self.fill_value).__finalize__(self)
 
     def reindex(self, index=None, method=None, copy=True, limit=None):
-        """
-        Conform SparseSeries to new Index
+        """Conform SparseSeries to new Index.
 
         See Series.reindex docstring for general behavior
 
         Returns
         -------
         reindexed : SparseSeries
+
         """
         new_index = _ensure_index(index)
 
@@ -526,8 +519,7 @@ class SparseSeries(Series):
                                  index=new_index).__finalize__(self)
 
     def sparse_reindex(self, new_index):
-        """
-        Conform sparse values to new SparseIndex
+        """Conform sparse values to new SparseIndex.
 
         Parameters
         ----------
@@ -536,6 +528,7 @@ class SparseSeries(Series):
         Returns
         -------
         reindexed : SparseSeries
+
         """
         if not isinstance(new_index, splib.SparseIndex):
             raise TypeError('new index must be a SparseIndex')
@@ -559,12 +552,12 @@ class SparseSeries(Series):
         return self._constructor(new_values, index=new_index).__finalize__(self)
 
     def cumsum(self, axis=0, dtype=None, out=None):
-        """
-        Cumulative sum of values. Preserves locations of NaN values
+        """Cumulative sum of values. Preserves locations of NaN values.
 
         Returns
         -------
         cumsum : Series or SparseSeries
+
         """
         new_array = SparseArray.cumsum(self.values)
         if isinstance(new_array, SparseArray):
@@ -572,8 +565,10 @@ class SparseSeries(Series):
         return Series(new_array, index=self.index).__finalize__(self)
 
     def dropna(self, axis=0, inplace=False, **kwargs):
-        """
-        Analogous to Series.dropna. If fill_value=NaN, returns a dense Series
+        """Analogous to Series.dropna.
+
+        If fill_value=NaN, returns a dense Series
+
         """
         # TODO: make more efficient
         axis = self._get_axis_number(axis or 0)
@@ -588,9 +583,7 @@ class SparseSeries(Series):
             return dense_valid.to_sparse(fill_value=self.fill_value)
 
     def shift(self, periods, freq=None, **kwds):
-        """
-        Analogous to Series.shift
-        """
+        """Analogous to Series.shift."""
         from pandas.core.datetools import _resolve_offset
 
         offset = _resolve_offset(freq, kwds)
@@ -627,9 +620,8 @@ class SparseSeries(Series):
                                  fill_value=self.fill_value).__finalize__(self)
 
     def combine_first(self, other):
-        """
-        Combine Series values, choosing the calling Series's values
-        first. Result index will be the union of the two indexes
+        """Combine Series values, choosing the calling Series's values first.
+        Result index will be the union of the two indexes.
 
         Parameters
         ----------
@@ -638,6 +630,7 @@ class SparseSeries(Series):
         Returns
         -------
         y : Series
+
         """
         if isinstance(other, SparseSeries):
             other = other.to_dense()

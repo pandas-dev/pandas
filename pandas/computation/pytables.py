@@ -1,4 +1,4 @@
-""" manage PyTables query interface via Expressions """
+"""manage PyTables query interface via Expressions."""
 
 import ast
 import time
@@ -85,7 +85,7 @@ class BinOp(ops.BinOp):
     def prune(self, klass):
 
         def pr(left, right):
-            """ create and return a new specialized BinOp from myself """
+            """create and return a new specialized BinOp from myself."""
 
             if left is None:
                 return right
@@ -128,7 +128,7 @@ class BinOp(ops.BinOp):
         return res
 
     def conform(self, rhs):
-        """ inplace conform rhs """
+        """inplace conform rhs."""
         if not com.is_list_like(rhs):
             rhs = [rhs]
         if hasattr(self.rhs, 'ravel'):
@@ -137,28 +137,28 @@ class BinOp(ops.BinOp):
 
     @property
     def is_valid(self):
-        """ return True if this is a valid field """
+        """return True if this is a valid field."""
         return self.lhs in self.queryables
 
     @property
     def is_in_table(self):
-        """ return True if this is a valid column name for generation (e.g. an
-        actual column in the table) """
+        """return True if this is a valid column name for generation (e.g. an
+        actual column in the table)"""
         return self.queryables.get(self.lhs) is not None
 
     @property
     def kind(self):
-        """ the kind of my field """
+        """the kind of my field."""
         return self.queryables.get(self.lhs)
 
     def generate(self, v):
-        """ create and return the op string for this TermValue """
+        """create and return the op string for this TermValue."""
         val = v.tostring(self.encoding)
         return "(%s %s %s)" % (self.lhs, self.op, val)
 
     def convert_value(self, v):
-        """ convert the expression that is in the term to something that is
-        accepted by pytables """
+        """convert the expression that is in the term to something that is
+        accepted by pytables."""
 
         def stringify(value):
             if self.encoding is not None:
@@ -216,7 +216,7 @@ class FilterBinOp(BinOp):
                                 "[{1}]".format(self.filter[0], self.filter[1]))
 
     def invert(self):
-        """ invert the filter """
+        """invert the filter."""
         if self.filter is not None:
             f = list(self.filter)
             f[1] = self.generate_filter_op(invert=True)
@@ -224,7 +224,7 @@ class FilterBinOp(BinOp):
         return self
 
     def format(self):
-        """ return the actual filter format """
+        """return the actual filter format."""
         return [self.filter]
 
     def evaluate(self):
@@ -287,7 +287,7 @@ class ConditionBinOp(BinOp):
         return com.pprint_thing("[Condition : [{0}]]".format(self.condition))
 
     def invert(self):
-        """ invert the condition """
+        """invert the condition."""
         # if self.condition is not None:
         #    self.condition = "~(%s)" % self.condition
         # return self
@@ -295,7 +295,7 @@ class ConditionBinOp(BinOp):
                                   "passing to numexpr")
 
     def format(self):
-        """ return the actual ne format """
+        """return the actual ne format."""
         return self.condition
 
     def evaluate(self):
@@ -438,7 +438,7 @@ class ExprVisitor(BaseExprVisitor):
 
 class Expr(expr.Expr):
 
-    """ hold a pytables like expression, comprised of possibly multiple 'terms'
+    """hold a pytables like expression, comprised of possibly multiple 'terms'.
 
     Parameters
     ----------
@@ -463,6 +463,7 @@ class Expr(expr.Expr):
     '(index>df.index[3] & index<=df.index[6]) | string="bar"'
     "ts>=Timestamp('2012-02-01')"
     "major_axis>=20130101"
+
     """
 
     def __init__(self, where, op=None, value=None, queryables=None,
@@ -504,7 +505,7 @@ class Expr(expr.Expr):
             self.terms = self.parse()
 
     def parse_back_compat(self, w, op=None, value=None):
-        """ allow backward compatibility for passed arguments """
+        """allow backward compatibility for passed arguments."""
 
         if isinstance(w, dict):
             w, op, value = w.get('field'), w.get('op'), w.get('value')
@@ -561,7 +562,7 @@ class Expr(expr.Expr):
         return com.pprint_thing(self.expr)
 
     def evaluate(self):
-        """ create and return the numexpr condition and filter """
+        """create and return the numexpr condition and filter."""
 
         try:
             self.condition = self.terms.prune(ConditionBinOp)
@@ -579,7 +580,7 @@ class Expr(expr.Expr):
 
 class TermValue(object):
 
-    """ hold a term value the we use to construct a condition/filter """
+    """hold a term value the we use to construct a condition/filter."""
 
     def __init__(self, value, converted, kind):
         self.value = value
@@ -587,8 +588,7 @@ class TermValue(object):
         self.kind = kind
 
     def tostring(self, encoding):
-        """ quote the string if not encoded
-            else encode and return """
+        """quote the string if not encoded else encode and return."""
         if self.kind == u('string'):
             if encoding is not None:
                 return self.converted

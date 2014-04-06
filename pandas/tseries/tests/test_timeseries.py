@@ -2192,9 +2192,7 @@ class TestDatetimeIndex(tm.TestCase):
 
 
 class TestDatetime64(tm.TestCase):
-    """
-    Also test supoprt for datetime64[ns] in Series / DataFrame
-    """
+    """Also test supoprt for datetime64[ns] in Series / DataFrame."""
 
     def setUp(self):
         dti = DatetimeIndex(start=datetime(2005, 1, 1),

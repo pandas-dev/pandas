@@ -14,9 +14,7 @@ from pandas.tseries.util import pivot_annual, isleapyear
 
 
 class TestPivotAnnual(tm.TestCase):
-    """
-    New pandas of scikits.timeseries pivot_annual
-    """
+    """New pandas of scikits.timeseries pivot_annual."""
     def test_daily(self):
         rng = date_range('1/1/2000', '12/31/2004', freq='D')
         ts = Series(np.random.randn(len(rng)), index=rng)

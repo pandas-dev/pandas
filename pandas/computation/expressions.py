@@ -1,6 +1,4 @@
-"""
-Expressions
------------
+"""Expressions.
 
 Offer fast expression evaluation through numexpr
 
@@ -58,14 +56,14 @@ def set_numexpr_threads(n=None):
 
 
 def _evaluate_standard(op, op_str, a, b, raise_on_error=True, **eval_kwargs):
-    """ standard evaluation """
+    """standard evaluation."""
     if _TEST_MODE:
         _store_test_result(False)
     return op(a, b)
 
 
 def _can_use_numexpr(op, op_str, a, b, dtype_check):
-    """ return a boolean if we WILL be using numexpr """
+    """return a boolean if we WILL be using numexpr."""
     if op_str is not None:
 
         # required min elements (otherwise we are adding overhead)
@@ -170,20 +168,21 @@ def _bool_arith_check(op_str, a, b, not_allowed=frozenset(('+', '*', '-', '/',
 
 def evaluate(op, op_str, a, b, raise_on_error=False, use_numexpr=True,
              **eval_kwargs):
-    """ evaluate and return the expression of the op on a and b
+    """evaluate and return the expression of the op on a and b.
 
-        Parameters
-        ----------
+    Parameters
+    ----------
 
-        op :    the actual operand
-        op_str: the string version of the op
-        a :     left operand
-        b :     right operand
-        raise_on_error : pass the error to the higher level if indicated
-                         (default is False), otherwise evaluate the op with and
-                         return the results
-        use_numexpr : whether to try to use numexpr (default True)
-        """
+    op :    the actual operand
+    op_str: the string version of the op
+    a :     left operand
+    b :     right operand
+    raise_on_error : pass the error to the higher level if indicated
+                     (default is False), otherwise evaluate the op with and
+                     return the results
+    use_numexpr : whether to try to use numexpr (default True)
+
+    """
     _bool_arith_check(op_str, a, b)
     if use_numexpr:
         return _evaluate(op, op_str, a, b, raise_on_error=raise_on_error,
@@ -192,19 +191,20 @@ def evaluate(op, op_str, a, b, raise_on_error=False, use_numexpr=True,
 
 
 def where(cond, a, b, raise_on_error=False, use_numexpr=True):
-    """ evaluate the where condition cond on a and b
+    """evaluate the where condition cond on a and b.
 
-        Parameters
-        ----------
+    Parameters
+    ----------
 
-        cond : a boolean array
-        a :    return if cond is True
-        b :    return if cond is False
-        raise_on_error : pass the error to the higher level if indicated
-                         (default is False), otherwise evaluate the op with and
-                         return the results
-        use_numexpr : whether to try to use numexpr (default True)
-        """
+    cond : a boolean array
+    a :    return if cond is True
+    b :    return if cond is False
+    raise_on_error : pass the error to the higher level if indicated
+                     (default is False), otherwise evaluate the op with and
+                     return the results
+    use_numexpr : whether to try to use numexpr (default True)
+
+    """
 
     if use_numexpr:
         return _where(cond, a, b, raise_on_error=raise_on_error)
@@ -212,10 +212,11 @@ def where(cond, a, b, raise_on_error=False, use_numexpr=True):
 
 
 def set_test_mode(v=True):
-    """
-    Keeps track of whether numexpr  was used.  Stores an additional ``True``
-    for every successful use of evaluate with numexpr since the last
-    ``get_test_result``
+    """Keeps track of whether numexpr  was used.
+
+    Stores an additional ``True`` for every successful use of evaluate
+    with numexpr since the last ``get_test_result``
+
     """
     global _TEST_MODE, _TEST_RESULT
     _TEST_MODE = v
@@ -229,7 +230,7 @@ def _store_test_result(used_numexpr):
 
 
 def get_test_result():
-    """get test result and reset test_results"""
+    """get test result and reset test_results."""
     global _TEST_RESULT
     res = _TEST_RESULT
     _TEST_RESULT = []

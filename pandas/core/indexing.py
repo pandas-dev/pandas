@@ -125,7 +125,7 @@ class _NDFrameIndexer(object):
         raise NotImplementedError()
 
     def _has_valid_tuple(self, key):
-        """ check the key for valid keys across my indexer """
+        """check the key for valid keys across my indexer."""
         for i, k in enumerate(key):
             if i >= self.obj.ndim:
                 raise IndexingError('Too many indexers')
@@ -168,8 +168,8 @@ class _NDFrameIndexer(object):
         return True
 
     def _has_valid_positional_setitem_indexer(self, indexer):
-        """ validate that an positional indexer cannot enlarge its target
-            will raise if needed, does not modify the indexer externally """
+        """validate that an positional indexer cannot enlarge its target will
+        raise if needed, does not modify the indexer externally."""
         if isinstance(indexer, dict):
             raise IndexError("{0} cannot enlarge its target object"
                              .format(self.name))
@@ -391,7 +391,7 @@ class _NDFrameIndexer(object):
                 self.obj[item] = s
 
             def can_do_equal_len():
-                """ return True if we have an equal len settable """
+                """return True if we have an equal len settable."""
                 if not len(labels) == 1:
                     return False
 
@@ -694,9 +694,8 @@ class _NDFrameIndexer(object):
         return True
 
     def _multi_take(self, tup):
-        """ create the reindex map for our objects, raise the _exception if we
-        can't create the indexer
-        """
+        """create the reindex map for our objects, raise the _exception if we
+        can't create the indexer."""
         try:
             o = self.obj
             d = dict([
@@ -962,9 +961,8 @@ class _NDFrameIndexer(object):
                 return result
 
     def _convert_to_indexer(self, obj, axis=0, is_setter=False):
-        """
-        Convert indexing key into something we can use to do actual fancy
-        indexing on an ndarray
+        """Convert indexing key into something we can use to do actual fancy
+        indexing on an ndarray.
 
         Examples
         ix[:5] -> slice(0, 5)
@@ -975,6 +973,7 @@ class _NDFrameIndexer(object):
         "In the face of ambiguity, refuse the temptation to guess."
         raise AmbiguousIndexError with integer labels?
         - No, prefer label-based indexing
+
         """
         labels = self.obj._get_axis(axis)
 
@@ -1097,7 +1096,7 @@ class _NDFrameIndexer(object):
 
 class _IXIndexer(_NDFrameIndexer):
 
-    """ A primarily location based indexer, with integer fallback """
+    """A primarily location based indexer, with integer fallback."""
 
     def _has_valid_type(self, key, axis):
         ax = self.obj._get_axis(axis)
@@ -1140,7 +1139,7 @@ class _LocationIndexer(_NDFrameIndexer):
                 raise self._exception(detail)
 
     def _get_slice_axis(self, slice_obj, axis=0):
-        """ this is pretty simple as we just have to deal with labels """
+        """this is pretty simple as we just have to deal with labels."""
         obj = self.obj
         if not _need_slice(slice_obj):
             return obj
@@ -1157,7 +1156,7 @@ class _LocationIndexer(_NDFrameIndexer):
 
 class _LocIndexer(_LocationIndexer):
 
-    """ purely label based location based indexing """
+    """purely label based location based indexing."""
     _valid_types = ("labels (MUST BE IN THE INDEX), slices of labels (BOTH "
                     "endpoints included! Can be slices of integers if the "
                     "index is integers), listlike of labels, boolean")
@@ -1263,7 +1262,7 @@ class _LocIndexer(_LocationIndexer):
 
 class _iLocIndexer(_LocationIndexer):
 
-    """ purely integer based location based indexing """
+    """purely integer based location based indexing."""
     _valid_types = ("integer, integer slice (START point is INCLUDED, END "
                     "point is EXCLUDED), listlike of integers, boolean array")
     _exception = IndexError
@@ -1365,7 +1364,7 @@ class _iLocIndexer(_LocationIndexer):
             return self._get_loc(key, axis=axis)
 
     def _convert_to_indexer(self, obj, axis=0, is_setter=False):
-        """ much simpler as we only have to deal with our valid types """
+        """much simpler as we only have to deal with our valid types."""
         if self._has_valid_type(obj, axis):
             return obj
 
@@ -1375,7 +1374,7 @@ class _iLocIndexer(_LocationIndexer):
 
 class _ScalarAccessIndexer(_NDFrameIndexer):
 
-    """ access scalars quickly """
+    """access scalars quickly."""
 
     def _convert_key(self, key):
         return list(key)
@@ -1405,20 +1404,20 @@ class _ScalarAccessIndexer(_NDFrameIndexer):
 
 class _AtIndexer(_ScalarAccessIndexer):
 
-    """ label based scalar accessor """
+    """label based scalar accessor."""
     _takeable = False
 
 
 class _iAtIndexer(_ScalarAccessIndexer):
 
-    """ integer based scalar accessor """
+    """integer based scalar accessor."""
     _takeable = True
 
     def _has_valid_setitem_indexer(self, indexer):
         self._has_valid_positional_setitem_indexer(indexer)
 
     def _convert_key(self, key):
-        """ require  integer args (and convert to label arguments) """
+        """require  integer args (and convert to label arguments)"""
         for a, i in zip(self.obj.axes, key):
             if not com.is_integer(i):
                 raise ValueError("iAt based indexing can only have integer "
@@ -1458,8 +1457,8 @@ def _length_of_indexer(indexer, target=None):
 
 
 def _convert_to_index_sliceable(obj, key):
-    """if we are index sliceable, then return my slicer, otherwise return None
-    """
+    """if we are index sliceable, then return my slicer, otherwise return
+    None."""
     idx = obj.index
     if isinstance(key, slice):
         return idx._convert_slice_indexer(key, typ='getitem')
@@ -1517,8 +1516,8 @@ def _check_bool_indexer(ax, key):
 
 
 def _convert_missing_indexer(indexer):
-    """ reverse convert a missing indexer, which is a dict
-        return the scalar indexer and a boolean indicating if we converted """
+    """reverse convert a missing indexer, which is a dict return the scalar
+    indexer and a boolean indicating if we converted."""
 
     if isinstance(indexer, dict):
 
@@ -1533,7 +1532,7 @@ def _convert_missing_indexer(indexer):
 
 
 def _convert_from_missing_indexer_tuple(indexer, axes):
-    """ create a filtered indexer that doesn't have any missing indexers """
+    """create a filtered indexer that doesn't have any missing indexers."""
     def get_indexer(_i, _idx):
         return (axes[_i].get_loc(_idx['key'])
                 if isinstance(_idx, dict) else _idx)
@@ -1541,8 +1540,8 @@ def _convert_from_missing_indexer_tuple(indexer, axes):
 
 
 def _safe_append_to_index(index, key):
-    """ a safe append to an index, if incorrect type, then catch and recreate
-    """
+    """a safe append to an index, if incorrect type, then catch and
+    recreate."""
     try:
         return index.insert(len(index), key)
     except:

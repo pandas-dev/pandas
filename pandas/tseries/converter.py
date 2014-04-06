@@ -245,7 +245,7 @@ class PandasAutoDateFormatter(dates.AutoDateFormatter):
 class PandasAutoDateLocator(dates.AutoDateLocator):
 
     def get_locator(self, dmin, dmax):
-        'Pick the best locator based on a distance.'
+        """Pick the best locator based on a distance."""
         delta = relativedelta(dmax, dmin)
 
         num_days = ((delta.years * 12.0) + delta.months * 31.0) + delta.days
@@ -348,9 +348,7 @@ class MilliSecondLocator(dates.DateLocator):
         return self._interval
 
     def autoscale(self):
-        """
-        Set the view limits to include the data range.
-        """
+        """Set the view limits to include the data range."""
         dmin, dmax = self.datalim_to_dt()
         if dmin > dmax:
             dmax, dmin = dmin, dmax
@@ -405,9 +403,7 @@ def _from_ordinal(x, tz=None):
 
 
 def _get_default_annual_spacing(nyears):
-    """
-    Returns a default spacing between consecutive ticks for annual data.
-    """
+    """Returns a default spacing between consecutive ticks for annual data."""
     if nyears < 11:
         (min_spacing, maj_spacing) = (1, 1)
     elif nyears < 20:
@@ -427,8 +423,7 @@ def _get_default_annual_spacing(nyears):
 
 
 def period_break(dates, period):
-    """
-    Returns the indices where the given period changes.
+    """Returns the indices where the given period changes.
 
     Parameters
     ----------
@@ -436,6 +431,7 @@ def period_break(dates, period):
         Array of intervals to monitor.
     period : string
         Name of the period to monitor.
+
     """
     current = getattr(dates, period)
     previous = getattr(dates - 1, period)
@@ -443,12 +439,12 @@ def period_break(dates, period):
 
 
 def has_level_label(label_flags, vmin):
-    """
-    Returns true if the ``label_flags`` indicate there is at least one label
+    """Returns true if the ``label_flags`` indicate there is at least one label
     for this level.
 
-    if the minimum view limit is not an exact integer, then the first tick
-    label won't be shown, so we must adjust for that.
+    if the minimum view limit is not an exact integer, then the first
+    tick label won't be shown, so we must adjust for that.
+
     """
     if label_flags.size == 0 or (label_flags.size == 1 and
                                  label_flags[0] == 0 and
@@ -871,7 +867,7 @@ class TimeSeries_DateLocator(Locator):
         self.finder = get_finder(freq)
 
     def _get_default_locs(self, vmin, vmax):
-        "Returns the default locations of ticks."
+        """Returns the default locations of ticks."""
 
         if self.plot_obj.date_axis_info is None:
             self.plot_obj.date_axis_info = self.finder(vmin, vmax, self.freq)
@@ -883,7 +879,7 @@ class TimeSeries_DateLocator(Locator):
         return np.compress(locator['maj'], locator['val'])
 
     def __call__(self):
-        'Return the locations of the ticks.'
+        """Return the locations of the ticks."""
         # axis calls Locator.set_axis inside set_m<xxxx>_formatter
         vi = tuple(self.axis.get_view_interval())
         if vi != self.plot_obj.view_interval:
@@ -902,10 +898,8 @@ class TimeSeries_DateLocator(Locator):
         return locs
 
     def autoscale(self):
-        """
-        Sets the view limits to the nearest multiples of base that contain the
-        data.
-        """
+        """Sets the view limits to the nearest multiples of base that contain
+        the data."""
         # requires matplotlib >= 0.98.0
         (vmin, vmax) = self.axis.get_data_interval()
 
@@ -951,7 +945,7 @@ class TimeSeries_DateFormatter(Formatter):
         self.finder = get_finder(freq)
 
     def _set_default_format(self, vmin, vmax):
-        "Returns the default ticks spacing."
+        """Returns the default ticks spacing."""
 
         if self.plot_obj.date_axis_info is None:
             self.plot_obj.date_axis_info = self.finder(vmin, vmax, self.freq)
@@ -966,7 +960,7 @@ class TimeSeries_DateFormatter(Formatter):
         return self.formatdict
 
     def set_locs(self, locs):
-        'Sets the locations of the ticks'
+        """Sets the locations of the ticks."""
         # don't actually use the locs. This is just needed to work with
         # matplotlib. Force to use vmin, vmax
         self.locs = locs

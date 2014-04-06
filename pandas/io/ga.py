@@ -91,9 +91,7 @@ redirect : str, optional
 
 
 def reset_token_store():
-    """
-    Deletes the default token store
-    """
+    """Deletes the default token store."""
     auth.reset_default_token_store()
 
 
@@ -108,29 +106,25 @@ def read_ga(metrics, dimensions, start_date, **kwargs):
 
 
 class OAuthDataReader(object):
-    """
-    Abstract class for handling OAuth2 authentication using the Google
-    oauth2client library
-    """
+    """Abstract class for handling OAuth2 authentication using the Google
+    oauth2client library."""
     def __init__(self, scope, token_file_name, redirect):
-        """
-        Parameters
-        ----------
+        """Parameters.
+
         scope : str
-            Designates the authentication scope
-        token_file_name : str
-            Location of cache for authenticated tokens
-        redirect : str
-            Redirect URL
+                    Designates the authentication scope
+                token_file_name : str
+                    Location of cache for authenticated tokens
+                redirect : str
+                    Redirect URL
+
         """
         self.scope = scope
         self.token_store = auth.make_token_store(token_file_name)
         self.redirect_url = redirect
 
     def authenticate(self, secrets):
-        """
-        Run the authentication process and return an authorized
-        http object
+        """Run the authentication process and return an authorized http object.
 
         Parameters
         ----------
@@ -141,13 +135,13 @@ class OAuthDataReader(object):
         -----
         See google documention for format of secrets file
         %s
+
         """ % DOC_URL
         flow = self._create_flow(secrets)
         return auth.authenticate(flow, self.token_store)
 
     def _create_flow(self, secrets):
-        """
-        Create an authentication flow based on the secrets file
+        """Create an authentication flow based on the secrets file.
 
         Parameters
         ----------
@@ -158,15 +152,14 @@ class OAuthDataReader(object):
         -----
         See google documentation for format of secrets file
         %s
+
         """ % DOC_URL
         return auth.get_flow(secrets, self.scope, self.redirect_url)
 
 
 class GDataReader(OAuthDataReader):
-    """
-    Abstract class for reading data from google APIs using OAuth2
-    Subclasses must implement create_query method
-    """
+    """Abstract class for reading data from google APIs using OAuth2 Subclasses
+    must implement create_query method."""
     def __init__(self, scope=auth.DEFAULT_SCOPE,
                  token_file_name=auth.DEFAULT_TOKEN_FILE,
                  redirect=NO_CALLBACK, secrets=auth.DEFAULT_SECRETS):
@@ -175,14 +168,12 @@ class GDataReader(OAuthDataReader):
 
     @property
     def service(self):
-        """The authenticated request service object"""
+        """The authenticated request service object."""
         return self._service
 
     def _init_service(self, secrets):
-        """
-        Build an authenticated google api request service using the given
-        secrets file
-        """
+        """Build an authenticated google api request service using the given
+        secrets file."""
         http = self.authenticate(secrets)
         return auth.init_service(http)
 
@@ -199,15 +190,15 @@ class GDataReader(OAuthDataReader):
         return _get_match(accounts, name, id, **kwargs)
 
     def get_web_property(self, account_id=None, name=None, id=None, **kwargs):
-        """
-        Retrieve a web property given and account and property name, id, or
-        custom attribute
+        """Retrieve a web property given and account and property name, id, or
+        custom attribute.
 
         Parameters
         ----------
         account_id : str, optional
         name : str, optional
         id : str, optional
+
         """
         prop_store = self.service.management().webproperties()
         kwds = {}
@@ -219,8 +210,7 @@ class GDataReader(OAuthDataReader):
     def get_profile(self, account_id=None, web_property_id=None, name=None,
                     id=None, **kwargs):
 
-        """
-        Retrieve the right profile for the given account, web property, and
+        """Retrieve the right profile for the given account, web property, and
         profile attribute (name, id, or arbitrary parameter in kwargs)
 
         Parameters
@@ -229,6 +219,7 @@ class GDataReader(OAuthDataReader):
         web_property_id : str, optional
         name : str, optional
         id : str, optional
+
         """
         profile_store = self.service.management().profiles()
         kwds = {}

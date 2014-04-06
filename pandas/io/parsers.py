@@ -1,6 +1,5 @@
-"""
-Module contains tools for processing files into DataFrames or other objects
-"""
+"""Module contains tools for processing files into DataFrames or other
+objects."""
 from __future__ import print_function
 from pandas.compat import range, lrange, StringIO, lzip, zip, string_types, map
 from pandas import compat
@@ -197,7 +196,7 @@ fields if it is not spaces (e.g., '~').
 
 
 def _read(filepath_or_buffer, kwds):
-    "Generic reader of line files."
+    """Generic reader of line files."""
     encoding = kwds.get('encoding', None)
     skipfooter = kwds.pop('skipfooter', None)
     if skipfooter is not None:
@@ -462,11 +461,7 @@ _NA_VALUES = set([
 
 
 class TextFileReader(object):
-    """
-
-    Passed dialect overrides any of the related parser options
-
-    """
+    """Passed dialect overrides any of the related parser options."""
 
     def __init__(self, f, engine='python', **kwds):
 
@@ -949,9 +944,7 @@ class ParserBase(object):
 
 
 class CParserWrapper(ParserBase):
-    """
-
-    """
+    """"""
 
     def __init__(self, src, **kwds):
         self.kwds = kwds
@@ -1151,10 +1144,9 @@ class CParserWrapper(ParserBase):
 
 
 def TextParser(*args, **kwds):
-    """
-    Converts lists of lists/tuples into DataFrames with proper type inference
-    and optional (e.g. string to datetime) conversion. Also enables iterating
-    lazily over chunks of large files
+    """Converts lists of lists/tuples into DataFrames with proper type
+    inference and optional (e.g. string to datetime) conversion. Also enables
+    iterating lazily over chunks of large files.
 
     Parameters
     ----------
@@ -1193,6 +1185,7 @@ def TextParser(*args, **kwds):
         If True and `parse_dates` is True for a column, try to infer the
         datetime format based on the first datetime string. If the format
         can be inferred, there often will be a large parsing speed-up.
+
     """
     kwds['engine'] = 'python'
     return TextFileReader(*args, **kwds)
@@ -1240,10 +1233,10 @@ def _wrap_compressed(f, compression, encoding=None):
 class PythonParser(ParserBase):
 
     def __init__(self, f, **kwds):
-        """
-        Workhorse function for processing nested list into DataFrame
+        """Workhorse function for processing nested list into DataFrame.
 
         Should be replaced by np.genfromtxt eventually?
+
         """
         ParserBase.__init__(self, kwds)
 
@@ -1609,10 +1602,10 @@ class PythonParser(ParserBase):
         return columns, num_original_columns
 
     def _handle_usecols(self, columns, usecols_key):
-        """
-        Sets self._col_indices
+        """Sets self._col_indices.
 
         usecols_key is used if there are string usecols.
+
         """
         if self.usecols is not None:
             if any([isinstance(u, string_types) for u in self.usecols]):
@@ -1634,9 +1627,7 @@ class PythonParser(ParserBase):
         return columns
 
     def _buffered_line(self):
-        """
-        Return a line from buffer, filling buffer if required.
-        """
+        """Return a line from buffer, filling buffer if required."""
         if len(self.buf) > 0:
             return self.buf[0]
         else:
@@ -2089,7 +2080,7 @@ def _floatify_na_values(na_values):
 
 
 def _stringify_na_values(na_values):
-    """ return a stringified and numeric for these values """
+    """return a stringified and numeric for these values."""
     result = []
     for x in na_values:
         result.append(str(x))

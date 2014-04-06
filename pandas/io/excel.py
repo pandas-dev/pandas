@@ -1,6 +1,4 @@
-"""
-Module parse to/from Excel
-"""
+"""Module parse to/from Excel."""
 
 #----------------------------------------------------------------------
 # ExcelFile class
@@ -26,9 +24,13 @@ _writers = {}
 
 
 def register_writer(klass):
-    """Adds engine to the excel writer registry. You must use this method to
-    integrate with ``to_excel``. Also adds config options for any new
-    ``supported_extensions`` defined on the writer."""
+    """Adds engine to the excel writer registry.
+
+    You must use this method to integrate with ``to_excel``. Also adds
+    config options for any new ``supported_extensions`` defined on the
+    writer.
+
+    """
     if not compat.callable(klass):
         raise ValueError("Can only register callables as engines")
     engine_name = klass.engine
@@ -50,7 +52,7 @@ def get_writer(engine_name):
 
 
 def read_excel(io, sheetname=0, **kwds):
-    """Read an Excel table into a pandas DataFrame
+    """Read an Excel table into a pandas DataFrame.
 
     Parameters
     ----------
@@ -96,6 +98,7 @@ def read_excel(io, sheetname=0, **kwds):
     -------
     parsed : DataFrame
         DataFrame from the passed in Excel file
+
     """
     if 'kind' in kwds:
         kwds.pop('kind')
@@ -108,9 +111,8 @@ def read_excel(io, sheetname=0, **kwds):
 
 
 class ExcelFile(object):
-    """
-    Class for parsing tabular excel sheets into DataFrame objects.
-    Uses xlrd. See ExcelFile.parse for more documentation
+    """Class for parsing tabular excel sheets into DataFrame objects. Uses
+    xlrd. See ExcelFile.parse for more documentation.
 
     Parameters
     ----------
@@ -119,6 +121,7 @@ class ExcelFile(object):
     engine: string, default None
         If io is not a buffer or path, this must be set to identify io.
         Acceptable values are None or xlrd
+
     """
     def __init__(self, io, **kwds):
 
@@ -151,7 +154,7 @@ class ExcelFile(object):
               index_col=None, parse_cols=None, parse_dates=False,
               date_parser=None, na_values=None, thousands=None, chunksize=None,
               convert_float=True, has_index_names=False, **kwds):
-        """Read an Excel table into DataFrame
+        """Read an Excel table into DataFrame.
 
         Parameters
         ----------
@@ -195,6 +198,7 @@ class ExcelFile(object):
         -------
         parsed : DataFrame
             DataFrame parsed from the Excel file
+
         """
         skipfooter = kwds.pop('skipfooter', None)
         if skipfooter is not None:
@@ -313,7 +317,7 @@ class ExcelFile(object):
         return self.book.sheet_names()
 
     def close(self):
-        """close io if necessary"""
+        """close io if necessary."""
         if hasattr(self.io, 'close'):
             self.io.close()
 
@@ -348,8 +352,7 @@ def _conv_value(val):
 
 @add_metaclass(abc.ABCMeta)
 class ExcelWriter(object):
-    """
-    Class for writing DataFrame objects into excel sheets, default is to use
+    """Class for writing DataFrame objects into excel sheets, default is to use
     xlwt for xls, openpyxl for xlsx.  See DataFrame.to_excel for typical usage.
 
     Parameters
@@ -365,6 +368,7 @@ class ExcelWriter(object):
     datetime_format : string, default None
         Format string for datetime objects written into Excel files
         (e.g. 'YYYY-MM-DD HH:MM:SS')
+
     """
     # Defining an ExcelWriter implementation (see abstract methods for more...)
 
@@ -408,18 +412,17 @@ class ExcelWriter(object):
 
     @abc.abstractproperty
     def supported_extensions(self):
-        "extensions that writer engine supports"
+        """extensions that writer engine supports."""
         pass
 
     @abc.abstractproperty
     def engine(self):
-        "name of engine"
+        """name of engine."""
         pass
 
     @abc.abstractmethod
     def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0):
-        """
-        Write given formated cells into Excel an excel sheet
+        """Write given formated cells into Excel an excel sheet.
 
         Parameters
         ----------
@@ -429,14 +432,13 @@ class ExcelWriter(object):
             Name of Excel sheet, if None, then use self.cur_sheet
         startrow: upper left cell row to dump data frame
         startcol: upper left cell column to dump data frame
+
         """
         pass
 
     @abc.abstractmethod
     def save(self):
-        """
-        Save workbook to disk.
-        """
+        """Save workbook to disk."""
         pass
 
     def __init__(self, path, engine=None,
@@ -469,7 +471,11 @@ class ExcelWriter(object):
     @classmethod
     def check_extension(cls, ext):
         """checks that path's extension against the Writer's supported
-        extensions.  If it isn't supported, raises UnsupportedFiletypeError."""
+        extensions.
+
+        If it isn't supported, raises UnsupportedFiletypeError.
+
+        """
         if ext.startswith('.'):
             ext = ext[1:]
         if not any(ext in extension for extension in cls.supported_extensions):
@@ -508,9 +514,7 @@ class _OpenpyxlWriter(ExcelWriter):
             self.book.remove_sheet(self.book.worksheets[0])
 
     def save(self):
-        """
-        Save workbook to disk.
-        """
+        """Save workbook to disk."""
         return self.book.save(self.path)
 
     def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0):
@@ -572,11 +576,10 @@ class _OpenpyxlWriter(ExcelWriter):
 
     @classmethod
     def _convert_to_style(cls, style_dict):
-        """
-        converts a style_dict to an openpyxl style object
-        Parameters
-        ----------
+        """converts a style_dict to an openpyxl style object Parameters.
+
         style_dict: style dictionary to convert
+
         """
 
         from openpyxl.style import Style
@@ -611,9 +614,7 @@ class _XlwtWriter(ExcelWriter):
         self.fm_date = xlwt.easyxf(num_format_str=self.date_format)
 
     def save(self):
-        """
-        Save workbook to disk.
-        """
+        """Save workbook to disk."""
         return self.book.save(self.path)
 
     def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0):
@@ -695,12 +696,11 @@ class _XlwtWriter(ExcelWriter):
 
     @classmethod
     def _convert_to_style(cls, style_dict, num_format_str=None):
-        """
-        converts a style_dict to an xlwt style object
-        Parameters
-        ----------
+        """converts a style_dict to an xlwt style object Parameters.
+
         style_dict: style dictionary to convert
-        num_format_str: optional number format string
+                num_format_str: optional number format string
+
         """
         import xlwt
 
@@ -733,9 +733,7 @@ class _XlsxWriter(ExcelWriter):
         self.book = xlsxwriter.Workbook(path, **engine_kwargs)
 
     def save(self):
-        """
-        Save workbook to disk.
-        """
+        """Save workbook to disk."""
         return self.book.close()
 
     def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0):
@@ -780,12 +778,11 @@ class _XlsxWriter(ExcelWriter):
                           cell.val, style)
 
     def _convert_to_style(self, style_dict, num_format_str=None):
-        """
-        converts a style_dict to an xlsxwriter format object
-        Parameters
-        ----------
+        """converts a style_dict to an xlsxwriter format object Parameters.
+
         style_dict: style dictionary to convert
-        num_format_str: optional number format string
+                num_format_str: optional number format string
+
         """
 
         # Create a XlsxWriter format object.

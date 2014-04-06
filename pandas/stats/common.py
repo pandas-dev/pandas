@@ -30,9 +30,7 @@ def _get_window_type(window_type):
     return final_type
 
 def banner(text, width=80):
-    """
-
-    """
+    """"""
     toFill = width - len(text)
 
     left = toFill // 2

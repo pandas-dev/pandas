@@ -104,10 +104,12 @@ class TestExpressions(tm.TestCase):
     def run_binary_test(self, df, other, assert_func,
                         test_flex=False, numexpr_ops=set(['gt', 'lt', 'ge',
                                                           'le', 'eq', 'ne'])):
-        """
-        tests solely that the result is the same whether or not numexpr is
-        enabled.  Need to test whether the function does the correct thing
+        """tests solely that the result is the same whether or not numexpr is
+        enabled.
+
+        Need to test whether the function does the correct thing
         elsewhere.
+
         """
         expr._MIN_ELEMENTS = 0
         expr.set_test_mode(True)

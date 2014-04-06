@@ -1,6 +1,4 @@
-"""
-timedelta support tools
-"""
+"""timedelta support tools."""
 
 import re
 from datetime import timedelta
@@ -15,8 +13,7 @@ repr_timedelta = tslib.repr_timedelta64
 repr_timedelta64 = tslib.repr_timedelta64
 
 def to_timedelta(arg, box=True, unit='ns'):
-    """
-    Convert argument to timedelta
+    """Convert argument to timedelta.
 
     Parameters
     ----------
@@ -28,6 +25,7 @@ def to_timedelta(arg, box=True, unit='ns'):
     Returns
     -------
     ret : timedelta64/arrays of timedelta64 if parsing succeeded
+
     """
     if _np_version_under1p7:
         raise ValueError("to_timedelta is not support for numpy < 1.7")
@@ -74,7 +72,7 @@ _nat_search = re.compile(
 _whitespace = re.compile('^\s*$')
 
 def _coerce_scalar_to_timedelta_type(r, unit='ns'):
-    """ convert strings to timedelta; coerce to np.timedelta64"""
+    """convert strings to timedelta; coerce to np.timedelta64."""
 
     if isinstance(r, compat.string_types):
 
@@ -86,7 +84,7 @@ def _coerce_scalar_to_timedelta_type(r, unit='ns'):
     return tslib.convert_to_timedelta(r,unit)
 
 def _get_string_converter(r, unit='ns'):
-    """ return a string converter for r to process the timedelta format """
+    """return a string converter for r to process the timedelta format."""
 
     # treat as a nan
     if _whitespace.search(r):
