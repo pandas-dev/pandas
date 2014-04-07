@@ -415,6 +415,48 @@ Here is an example of one way to easily plot group means with standard deviation
    @savefig errorbar_example.png
    means.plot(yerr=errors, ax=ax, kind='bar')
 
+Plotting With Table
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 0.14
+
+Plotting with matplotlib table is now supported in the ``DataFrame.plot`` and ``Series.plot`` by a ``table`` keyword. The ``table`` keyword can accept ``bool``, ``DataFrame`` or ``Series``. The simple way to draw a table is to specify ``table=True``. Data will be transposed to meet matplotlib's default layout.
+
+.. ipython:: python
+
+   fig, ax = plt.subplots(1, 1)
+   df = DataFrame(rand(5, 3), columns=['a', 'b', 'c'])
+   ax.get_xaxis().set_visible(False)   # Hide Ticks
+
+   @savefig line_plot_table_true.png
+   df.plot(table=True, ax=ax)
+
+Also, you can pass different ``DataFrame`` or ``Series`` for ``table`` keyword. The data will be drawn as displayed in print method (not transposed automatically). If required, it should be transposed manually as below example.
+
+.. ipython:: python
+
+   fig, ax = plt.subplots(1, 1)
+   ax.get_xaxis().set_visible(False)   # Hide Ticks
+   @savefig line_plot_table_data.png
+   df.plot(table=np.round(df.T, 2), ax=ax)
+
+
+Finally, there is a helper function ``pandas.tools.plotting.table`` to create a table from ``DataFrame`` and ``Series``, and add it to an ``matplotlib.Axes``. This function can accept keywords which matplotlib table has.
+
+.. ipython:: python
+
+   from pandas.tools.plotting import table
+   fig, ax = plt.subplots(1, 1)
+
+   table(ax, np.round(df.describe(), 2), 
+         loc='upper right', colWidths=[0.2, 0.2, 0.2])
+
+   @savefig line_plot_table_describe.png
+   df.plot(ax=ax, ylim=(0, 2), legend=None)
+
+**Note**: You can get table instances on the axes using ``axes.tables`` property for further decorations. See the `matplotlib table documenation <http://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes.table>`__ for more.
+
+
 .. _visualization.scatter_matrix:
 
 Scatter plot matrix
