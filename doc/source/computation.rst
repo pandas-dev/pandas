@@ -97,8 +97,7 @@ in order to have a valid result.
 Correlation
 ~~~~~~~~~~~
 
-Several methods for computing correlations are provided. Several kinds of
-correlation methods are provided:
+Several methods for computing correlations are provided:
 
 .. csv-table::
     :header: "Method name", "Description"
