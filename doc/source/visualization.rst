@@ -427,6 +427,7 @@ Plotting with matplotlib table is now supported in the ``DataFrame.plot`` and ``
    fig, ax = plt.subplots(1, 1)
    df = DataFrame(rand(5, 3), columns=['a', 'b', 'c'])
    ax.get_xaxis().set_visible(False)   # Hide Ticks
+   ax.set_position(pos=[.125, .4, .5, .5])
 
    @savefig line_plot_table_true.png
    df.plot(table=True, ax=ax)
