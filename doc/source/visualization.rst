@@ -427,10 +427,18 @@ Plotting with matplotlib table is now supported in the ``DataFrame.plot`` and ``
    fig, ax = plt.subplots(1, 1)
    df = DataFrame(rand(5, 3), columns=['a', 'b', 'c'])
    ax.get_xaxis().set_visible(False)   # Hide Ticks
-   ax.set_position(pos=[.125, .4, .5, .5])
 
    @savefig line_plot_table_true.png
+
+   msgs = []
    df.plot(table=True, ax=ax)
+   msgs.append("<<<DEBUGGING TABLE>>>")
+   msgs.append("<<< fig size: {}".format(fig.get_size_inches()))
+   msgs.append("<<< fig extent: {}".format(fig.get_window_extent()))
+   msgs.append("<<< ax position: {}".format(ax.get_position()))
+   msgs.append("<<< ax extent: {}".format(ax.get_window_extent()))
+   msgs.append("<<< tab clip: {}".format(ax.tables[0].get_clip_box()))
+   raise Exception('\n'.join(msgs))
 
 Also, you can pass different ``DataFrame`` or ``Series`` for ``table`` keyword. The data will be drawn as displayed in print method (not transposed automatically). If required, it should be transposed manually as below example.
 
@@ -438,6 +446,7 @@ Also, you can pass different ``DataFrame`` or ``Series`` for ``table`` keyword. 
 
    fig, ax = plt.subplots(1, 1)
    ax.get_xaxis().set_visible(False)   # Hide Ticks
+   ax.set_position(pos=[.125, .4, .5, .5])
    @savefig line_plot_table_data.png
    df.plot(table=np.round(df.T, 2), ax=ax)
 
