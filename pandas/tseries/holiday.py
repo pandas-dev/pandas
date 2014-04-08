@@ -225,13 +225,6 @@ class AbstractHolidayCalendar(object):
         -------
             DatetimeIndex of holidays
         """
-        #FIXME: Where should the default limits exist?
-        if start is None:
-            start = datetime(1970, 1, 1)
-
-        if end is None:
-            end = datetime(2030, 12, 31)
-
         if self.rules is None:
             raise Exception('Holiday Calendar %s does not have any '\
                             'rules specified' % self.name)
