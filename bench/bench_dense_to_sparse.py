@@ -2,7 +2,7 @@ from pandas import *
 
 K = 100
 N = 100000
-rng = DateRange('1/1/2000', periods=N, offset=datetools.Minute())
+rng = DatetimeIndex('1/1/2000', periods=N, offset=datetools.Minute())
 
 rng2 = np.asarray(rng).astype('M8[us]').astype('i8')
 

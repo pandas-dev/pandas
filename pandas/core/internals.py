@@ -12,8 +12,7 @@ from pandas.core.common import (_possibly_downcast_to_dtype, isnull, notnull,
                                 _NS_DTYPE, _TD_DTYPE, ABCSeries, is_list_like,
                                 ABCSparseSeries, _infer_dtype_from_scalar,
                                 _values_from_object, _is_null_datelike_scalar)
-from pandas.core.index import (Index, MultiIndex, _ensure_index,
-                               _handle_legacy_indexes)
+from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import (_maybe_convert_indices, _length_of_indexer)
 import pandas.core.common as com
 from pandas.sparse.array import _maybe_to_sparse, SparseArray
@@ -2369,7 +2368,6 @@ class BlockManager(PandasObject):
         ax_arrays, bvalues, bitems = state[:3]
 
         self.axes = [_ensure_index(ax) for ax in ax_arrays]
-        self.axes = _handle_legacy_indexes(self.axes)
 
         blocks = []
         for values, items in zip(bvalues, bitems):

@@ -9,7 +9,7 @@ N = 1000000
 try:
     rng = date_range('1/1/2000', periods=N, freq='min')
 except NameError:
-    rng = DateRange('1/1/2000', periods=N, offset=datetools.Minute())
+    rng = DatetimeIndex('1/1/2000', periods=N, offset=datetools.Minute())
     date_range = DateRange
 
 ts = Series(np.random.randn(N), index=rng)

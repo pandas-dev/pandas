@@ -6,7 +6,7 @@ import numpy as np
 import la
 import pandas
 from pandas.compat import range
-from pandas import datetools, DateRange
+from pandas import datetools, DatetimeIndex
 
 
 def timeit(f, iterations):
@@ -23,7 +23,7 @@ def rountrip_archive(N, K=50, iterations=10):
     arr = np.random.randn(N, K)
     # lar = la.larry(arr)
     dma = pandas.DataFrame(arr,
-                           DateRange('1/1/2000', periods=N,
+                           DatetimeIndex('1/1/2000', periods=N,
                                      offset=datetools.Minute()))
     dma[201] = 'bar'
 

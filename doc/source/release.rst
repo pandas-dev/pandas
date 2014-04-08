@@ -193,6 +193,8 @@ Deprecations
 Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+- Remove :class:`DateRange` in favor of :class:`DatetimeIndex` (:issue:`6816`)
+
 - Remove ``column`` keyword from ``DataFrame.sort`` (:issue:`4370`)
 
 Experimental Features

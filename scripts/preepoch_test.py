@@ -7,7 +7,7 @@ def panda_test():
     # generate some data
     data = np.random.rand(50, 5)
     # generate some dates
-    dates = DateRange('1/1/1969', periods=50)
+    dates = DatetimeIndex('1/1/1969', periods=50)
     # generate column headings
     cols = ['A', 'B', 'C', 'D', 'E']
 

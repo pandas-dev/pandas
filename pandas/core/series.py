@@ -26,7 +26,7 @@ from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _ensure_object, SettingWithCopyError)
 
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
-                               _ensure_index, _handle_legacy_indexes)
+                               _ensure_index)
 from pandas.core.indexing import (
     _check_bool_indexer,
     _is_index_slice, _maybe_convert_indices)
@@ -426,7 +426,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             index, name = own_state[0], None
             if len(own_state) > 1:
                 name = own_state[1]
-            index = _handle_legacy_indexes([index])[0]
 
             # recreate
             self._data = SingleBlockManager(data, index, fastpath=True)

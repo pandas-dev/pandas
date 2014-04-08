@@ -28,7 +28,6 @@ from pandas.tseries.index import (DatetimeIndex, Timestamp,
 from pandas.tseries.period import Period, PeriodIndex
 
 # legacy
-from pandas.core.daterange import DateRange  # deprecated
 from pandas.core.common import save, load  # deprecated, remove in 0.13
 import pandas.core.datetools as datetools
 
