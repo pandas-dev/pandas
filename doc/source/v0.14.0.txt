@@ -7,11 +7,25 @@ This is a major release from 0.13.1 and includes a small number of API changes, 
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
 users upgrade to this version.
 
-Highlights include:
+- Highlights include:
 
-- MultIndexing Using Slicers
-- Joining a singly-indexed DataFrame with a multi-indexed DataFrame
-- More consistency in groupby results and more flexible groupby specifications
+  - SQL interfaces updated to use ``sqlalchemy``, See :ref:`Here<whatsnew_0140.sql>`.
+  - MultiIndexing Using Slicers, See :ref:`Here<whatsnew_0140.slicers>`.
+  - Ability to join a singly-indexed DataFrame with a multi-indexed DataFrame, see :ref:`Here <merging.join_on_mi>`
+  - More consistency in groupby results and more flexible groupby specifications, see :ref:`Here <groupby.specify>`
+  - Holiday calendars are now supported in ``CustomBusinessDay``, see :ref:`Here <timeseries.holiday>`
+  - Updated plotting options, See :ref:`Here<whatsnew_0140.plotting>`.
+  - Performance doc section on I/O operations, See :ref:`Here <io.perf>`
+
+- :ref:`Other Enhancements <whatsnew_0140.enhancements>`
+
+- :ref:`API Changes <whatsnew_0140.api>`
+
+- :ref:`Deprecations <whatsnew_0140.deprecations>`
+
+- :ref:`Bug Fixes <release.bug_fixes-0.14.0>`
+
+.. _whatsnew_0140.api:
 
 API changes
 ~~~~~~~~~~~
@@ -173,16 +187,6 @@ API changes
     # New output, 4-level MultiIndex
     df_multi.set_index([df_multi.index, df_multi.index])
 
-- Following keywords are now acceptable for :meth:`DataFrame.plot(kind='bar')` and :meth:`DataFrame.plot(kind='barh')`.
-
-  - `width`: Specify the bar width. In previous versions, static value 0.5 was passed to matplotlib and it cannot be overwritten. (:issue:`6604`)
-
-  - `align`: Specify the bar alignment. Default is `center` (different from matplotlib). In previous versions, pandas passes `align='edge'` to matplotlib and adjust the location to `center` by itself, and it results `align` keyword is not applied as expected. (:issue:`4525`)
-
-  - `position`: Specify relative alignments for bar plot layout. From 0 (left/bottom-end) to 1(right/top-end). Default is 0.5 (center). (:issue:`6604`)
-
-  Because of the default `align` value changes, coordinates of bar plots are now located on integer values (0.0, 1.0, 2.0 ...). This is intended to make bar plot be located on the same coodinates as line plot. However, bar plot may differs unexpectedly when you manually adjust the bar location or drawing area, such as using `set_xlim`, `set_ylim`, etc. In this cases, please modify your script to meet with new coordinates.
-
 - ``pairwise`` keyword was added to the statistical moment functions
   ``rolling_cov``, ``rolling_corr``, ``ewmcov``, ``ewmcorr``,
   ``expanding_cov``, ``expanding_corr`` to allow the calculation of moving
@@ -201,16 +205,13 @@ API changes
 
 - Added ``nunique`` and ``value_counts`` functions to ``Index`` for counting unique elements. (:issue:`6734`)
 
-- ``DataFrame.plot`` and ``Series.plot`` now support a ``table`` keyword for plotting ``matplotlib.Table``. The ``table`` kewyword can receive the following values. 
-  
-  - ``False``: Do nothing (default).
 
-  - ``True``: Draw a table using the ``DataFrame`` or ``Series`` called ``plot`` method. Data will be transposed to meet matplotlib's default layout.
-  
-  - ``DataFrame`` or ``Series``: Draw matplotlib.table using the passed data. The data will be drawn as displayed in print method (not transposed automatically).
+.. _whatsnew_0140.sql:
 
-  Also, helper function ``pandas.tools.plotting.table`` is added to create a table from ``DataFrame`` and ``Series``, and add it to an ``matplotlib.Axes``.
+SQL
+~~~
 
+.. _whatsnew_0140.slicers:
 
 MultiIndexing Using Slicers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -319,19 +320,29 @@ You can use a right-hand-side of an alignable object as well.
    df2.loc[idx[:,:,['C1','C3']],:] = df2*1000
    df2
 
-Plotting With Errorbars
-~~~~~~~~~~~~~~~~~~~~~~~
+.. _whatsnew_0140.plotting:
 
-Plotting with error bars is now supported in the ``.plot`` method of ``DataFrame`` and ``Series`` objects (:issue:`3796`).
+Plotting
+~~~~~~~~
 
-x and y errorbars are supported and can be supplied using the ``xerr`` and ``yerr`` keyword arguments to ``.plot()`` The error values can be specified using a variety of formats.
+- Hexagonal bin plots from ``DataFrame.plot`` with ``kind='hexbin'`` (:issue:`5478`), See :ref:`the docs<visualization.hexbin>`.
 
-- As a ``DataFrame`` or ``dict`` of errors with one or more of the column names (or dictionary keys) matching one or more of the column names of the plotting ``DataFrame`` or matching the ``name`` attribute of the ``Series``
-- As a ``str`` indicating which of the columns of plotting ``DataFrame`` contain the error values
-- As raw values (``list``, ``tuple``, or ``np.ndarray``). Must be the same length as the plotting ``DataFrame``/``Series``
+- Plotting with Error Bars is now supported in the ``.plot`` method of ``DataFrame`` and ``Series`` objects (:issue:`3796`), See :ref:`the docs<visualization.errorbars>`.
 
-Asymmetrical error bars are also supported, however raw error values must be provided in this case. For a ``M`` length ``Series``, a ``Mx2`` array should be provided indicating lower and upper (or left and right) errors. For a ``MxN`` ``DataFrame``, asymmetrical errors should be in a ``Mx2xN`` array.
+- ``DataFrame.plot`` and ``Series.plot`` now support a ``table`` keyword for plotting ``matplotlib.Table``, See :ref:`the docs<visualization.table>`.
 
+- ``plot(legend='reverse')`` will now reverse the order of legend labels for
+  most plot kinds. (:issue:`6014`)
+
+- Following keywords are now acceptable for :meth:`DataFrame.plot(kind='bar')` and :meth:`DataFrame.plot(kind='barh')`.
+
+  - `width`: Specify the bar width. In previous versions, static value 0.5 was passed to matplotlib and it cannot be overwritten. (:issue:`6604`)
+
+  - `align`: Specify the bar alignment. Default is `center` (different from matplotlib). In previous versions, pandas passes `align='edge'` to matplotlib and adjust the location to `center` by itself, and it results `align` keyword is not applied as expected. (:issue:`4525`)
+
+  - `position`: Specify relative alignments for bar plot layout. From 0 (left/bottom-end) to 1(right/top-end). Default is 0.5 (center). (:issue:`6604`)
+
+  Because of the default `align` value changes, coordinates of bar plots are now located on integer values (0.0, 1.0, 2.0 ...). This is intended to make bar plot be located on the same coodinates as line plot. However, bar plot may differs unexpectedly when you manually adjust the bar location or drawing area, such as using `set_xlim`, `set_ylim`, etc. In this cases, please modify your script to meet with new coordinates.
 
 Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -339,6 +350,8 @@ Prior Version Deprecations/Changes
 There are prior version deprecations that are taking effect as of 0.14.0.
 
 - Remove ``column`` keyword from ``DataFrame.sort`` (:issue:`4370`)
+
+.. _whatsnew_0140.deprecations:
 
 Deprecations
 ~~~~~~~~~~~~
@@ -358,15 +371,14 @@ Deprecations
   ``FutureWarning`` is raised  to alert that the old ``cols`` arguments
   will not be supported in a future release (:issue:`6645`)
 
+.. _whatsnew_0140.enhancements:
+
 Enhancements
 ~~~~~~~~~~~~
 
 - ``DataFrame.to_latex`` now takes a longtable keyword, which if True will return a table in a longtable environment. (:issue:`6617`)
 - ``pd.read_clipboard`` will, if 'sep' is unspecified, try to detect data copied from a spreadsheet
   and parse accordingly. (:issue:`6223`)
-- ``plot(legend='reverse')`` will now reverse the order of legend labels for
-  most plot kinds. (:issue:`6014`)
-- Hexagonal bin plots from ``DataFrame.plot`` with ``kind='hexbin'`` (:issue:`5478`)
 - Joining a singly-indexed DataFrame with a multi-indexed DataFrame (:issue:`3662`)
 
   See :ref:`the docs<merging.join_on_mi>`. Joining multi-index DataFrames on both the left and right is not yet supported ATM.
@@ -403,7 +415,7 @@ Enhancements
   file. (:issue:`6545`)
 - ``pandas.io.gbq`` now handles reading unicode strings properly. (:issue:`5940`)
 - Improve performance of ``CustomBusinessDay`` (:issue:`6584`)
-- :ref:`Holidays and holiday calendars<timeseries.holiday>` are now available and can be used with CustomBusinessDay (:issue:`6719`)
+- :ref:`Holidays Calendars<timeseries.holiday>` are now available and can be used with CustomBusinessDay (:issue:`6719`)
 
 Performance
 ~~~~~~~~~~~

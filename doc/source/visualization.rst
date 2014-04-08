@@ -385,6 +385,9 @@ columns:
 
 Plotting With Error Bars
 ~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 0.14
+
 Plotting with error bars is now supported in the ``.plot`` method of ``DataFrame`` and ``Series`` objects.
 
 x and y errorbars are supported and be supplied using the ``xerr`` and ``yerr`` keyword arguments to ``.plot()`` The error values can be specified using a variety of formats.
@@ -414,6 +417,8 @@ Here is an example of one way to easily plot group means with standard deviation
    fig, ax = plt.subplots()
    @savefig errorbar_example.png
    means.plot(yerr=errors, ax=ax, kind='bar')
+
+.. _visualization.table:
 
 Plotting With Table
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -448,7 +453,7 @@ Finally, there is a helper function ``pandas.tools.plotting.table`` to create a 
    from pandas.tools.plotting import table
    fig, ax = plt.subplots(1, 1)
 
-   table(ax, np.round(df.describe(), 2), 
+   table(ax, np.round(df.describe(), 2),
          loc='upper right', colWidths=[0.2, 0.2, 0.2])
 
    @savefig line_plot_table_describe.png
@@ -494,7 +499,10 @@ setting ``kind='kde'``:
 
 Hexagonal Bin plot
 ~~~~~~~~~~~~~~~~~~
-*New in .14* You can create hexagonal bin plots with ``DataFrame.plot`` and
+
+.. versionadded:: 0.14
+
+You can create hexagonal bin plots with ``DataFrame.plot`` and
 ``kind='hexbin'``.
 Hexbin plots can be a useful alternative to scatter plots if your data are
 too dense to plot each point individually.
@@ -693,17 +701,17 @@ be colored differently.
 Colormaps
 ~~~~~~~~~
 
-A potential issue when plotting a large number of columns is that it can be 
+A potential issue when plotting a large number of columns is that it can be
 difficult to distinguish some series due to repetition in the default colors. To
-remedy this, DataFrame plotting supports the use of the ``colormap=`` argument, 
-which accepts either a Matplotlib `colormap <http://matplotlib.org/api/cm_api.html>`__ 
-or a string that is a name of a colormap registered with Matplotlib. A 
-visualization of the default matplotlib colormaps is available `here 
+remedy this, DataFrame plotting supports the use of the ``colormap=`` argument,
+which accepts either a Matplotlib `colormap <http://matplotlib.org/api/cm_api.html>`__
+or a string that is a name of a colormap registered with Matplotlib. A
+visualization of the default matplotlib colormaps is available `here
 <http://wiki.scipy.org/Cookbook/Matplotlib/Show_colormaps>`__.
 
-As matplotlib does not directly support colormaps for line-based plots, the 
+As matplotlib does not directly support colormaps for line-based plots, the
 colors are selected based on an even spacing determined by the number of columns
-in the DataFrame. There is no consideration made for background color, so some 
+in the DataFrame. There is no consideration made for background color, so some
 colormaps will produce lines that are not easily visible.
 
 To use the jet colormap, we can simply pass ``'jet'`` to ``colormap=``
@@ -762,16 +770,16 @@ Andrews curves charts:
 Plotting directly with matplotlib
 ---------------------------------
 
-In some situations it may still be preferable or necessary to prepare plots 
-directly with matplotlib, for instance when a certain type of plot or 
-customization is not (yet) supported by pandas. Series and DataFrame objects  
-behave like arrays and can therefore be passed directly to matplotlib functions 
+In some situations it may still be preferable or necessary to prepare plots
+directly with matplotlib, for instance when a certain type of plot or
+customization is not (yet) supported by pandas. Series and DataFrame objects
+behave like arrays and can therefore be passed directly to matplotlib functions
 without explicit casts.
 
-Pandas also automatically registers formatters and locators that recognize date 
-indices, thereby extending date and time support to practically all plot types 
-available in matplotlib. Although this formatting does not provide the same 
-level of refinement you would get when plotting via pandas, it can be faster 
+Pandas also automatically registers formatters and locators that recognize date
+indices, thereby extending date and time support to practically all plot types
+available in matplotlib. Although this formatting does not provide the same
+level of refinement you would get when plotting via pandas, it can be faster
 when plotting a large number of points.
 
 .. note::
@@ -781,7 +789,7 @@ when plotting a large number of points.
 
 .. ipython:: python
 
-   price = Series(randn(150).cumsum(), 
+   price = Series(randn(150).cumsum(),
                   index=date_range('2000-1-1', periods=150, freq='B'))
    ma = pd.rolling_mean(price, 20)
    mstd = pd.rolling_std(price, 20)
