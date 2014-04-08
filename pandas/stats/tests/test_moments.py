@@ -485,27 +485,6 @@ class TestMoments(tm.TestCase):
             assert_series_equal(series_xp, series_rs)
             assert_frame_equal(frame_xp, frame_rs)
 
-    def test_legacy_time_rule_arg(self):
-        # suppress deprecation warnings
-        sys.stderr = StringIO()
-
-        rng = bdate_range('1/1/2000', periods=20)
-        ts = Series(np.random.randn(20), index=rng)
-        ts = ts.take(np.random.permutation(len(ts))[:12]).sort_index()
-
-        try:
-            result = mom.rolling_mean(ts, 1, min_periods=1, freq='B')
-            expected = mom.rolling_mean(ts, 1, min_periods=1,
-                                        time_rule='WEEKDAY')
-            tm.assert_series_equal(result, expected)
-
-            result = mom.ewma(ts, span=5, freq='B')
-            expected = mom.ewma(ts, span=5, time_rule='WEEKDAY')
-            tm.assert_series_equal(result, expected)
-
-        finally:
-            sys.stderr = sys.__stderr__
-
     def test_ewma(self):
         self._check_ew(mom.ewma)
 

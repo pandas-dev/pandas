@@ -54,8 +54,7 @@ min_periods : int, default None
     (otherwise result is NA).
 freq : string or DateOffset object, optional (default None)
     Frequency to conform the data to before computing the statistic. Specified
-    as a frequency string or DateOffset object. `time_rule` is a legacy alias
-    for `freq`.
+    as a frequency string or DateOffset object.
 center : boolean, default False
     Set the labels at the center of the window.
 """
@@ -83,7 +82,6 @@ min_periods : int, default 0
     beginning)
 freq : None or string alias / date offset object, default=None
     Frequency to conform to before computing statistic
-    time_rule is a legacy alias for freq
 adjust : boolean, default True
     Divide by decaying adjustment factor in beginning periods to account for
     imbalance in relative weightings (viewing EWMA as a moving average)
@@ -109,8 +107,7 @@ _expanding_kw = """min_periods : int, default None
     (otherwise result is NA).
 freq : string or DateOffset object, optional (default None)
     Frequency to conform the data to before computing the statistic. Specified
-    as a frequency string or DateOffset object. `time_rule` is a legacy alias
-    for `freq`.
+    as a frequency string or DateOffset object.
 """
 
 
@@ -151,7 +148,7 @@ _bias_kw = r"""bias : boolean, default False
 """
 
 
-def rolling_count(arg, window, freq=None, center=False, time_rule=None):
+def rolling_count(arg, window, freq=None, center=False):
     """
     Rolling count of number of non-NaN observations inside provided window.
 
@@ -163,8 +160,7 @@ def rolling_count(arg, window, freq=None, center=False, time_rule=None):
         calculating the statistic.
     freq : string or DateOffset object, optional (default None)
         Frequency to conform the data to before computing the statistic. Specified
-        as a frequency string or DateOffset object. `time_rule` is a legacy alias
-        for `freq`
+        as a frequency string or DateOffset object.
     center : boolean, default False
         Whether the label should correspond with center of window
 
@@ -178,7 +174,7 @@ def rolling_count(arg, window, freq=None, center=False, time_rule=None):
     frequency by resampling the data. This is done with the default parameters
     of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
     """
-    arg = _conv_timerule(arg, freq, time_rule)
+    arg = _conv_timerule(arg, freq)
     window = min(window, len(arg))
 
     return_hook, values = _process_data_structure(arg, kill_inf=False)
@@ -197,7 +193,7 @@ def rolling_count(arg, window, freq=None, center=False, time_rule=None):
               _roll_kw+_pairwise_kw, _flex_retval, _roll_notes)
 @Appender(_doc_template)
 def rolling_cov(arg1, arg2=None, window=None, min_periods=None, freq=None,
-                center=False, time_rule=None, pairwise=None):
+                center=False, pairwise=None):
     if window is None and isinstance(arg2, (int, float)):
         window = arg2
         arg2 = arg1
@@ -205,8 +201,8 @@ def rolling_cov(arg1, arg2=None, window=None, min_periods=None, freq=None,
     elif arg2 is None:
         arg2 = arg1
         pairwise = True if pairwise is None else pairwise  # only default unset
-    arg1 = _conv_timerule(arg1, freq, time_rule)
-    arg2 = _conv_timerule(arg2, freq, time_rule)
+    arg1 = _conv_timerule(arg1, freq)
+    arg2 = _conv_timerule(arg2, freq)
     window = min(window, len(arg1), len(arg2))
 
     def _get_cov(X, Y):
@@ -222,7 +218,7 @@ def rolling_cov(arg1, arg2=None, window=None, min_periods=None, freq=None,
               _roll_kw+_pairwise_kw, _flex_retval, _roll_notes)
 @Appender(_doc_template)
 def rolling_corr(arg1, arg2=None, window=None, min_periods=None, freq=None,
-                 center=False, time_rule=None, pairwise=None):
+                 center=False, pairwise=None):
     if window is None and isinstance(arg2, (int, float)):
         window = arg2
         arg2 = arg1
@@ -230,17 +226,17 @@ def rolling_corr(arg1, arg2=None, window=None, min_periods=None, freq=None,
     elif arg2 is None:
         arg2 = arg1
         pairwise = True if pairwise is None else pairwise  # only default unset
-    arg1 = _conv_timerule(arg1, freq, time_rule)
-    arg2 = _conv_timerule(arg2, freq, time_rule)
+    arg1 = _conv_timerule(arg1, freq)
+    arg2 = _conv_timerule(arg2, freq)
     window = min(window, len(arg1), len(arg2))
 
     def _get_corr(a, b):
         num = rolling_cov(a, b, window, min_periods, freq=freq,
-                          center=center, time_rule=time_rule)
+                          center=center)
         den = (rolling_std(a, window, min_periods, freq=freq,
-                           center=center, time_rule=time_rule) *
+                           center=center) *
                rolling_std(b, window, min_periods, freq=freq,
-                           center=center, time_rule=time_rule))
+                           center=center))
         return num / den
     return _flex_binary_moment(arg1, arg2, _get_corr, pairwise=bool(pairwise))
 
@@ -296,16 +292,16 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
               _roll_kw, _pairwise_retval, _roll_notes)
 @Appender(_doc_template)
 def rolling_corr_pairwise(df1, df2=None, window=None, min_periods=None,
-                          freq=None, center=False, time_rule=None):
+                          freq=None, center=False):
     import warnings
     warnings.warn("rolling_corr_pairwise is deprecated, use rolling_corr(..., pairwise=True)", FutureWarning)
     return rolling_corr(df1, df2, window=window, min_periods=min_periods,
-                        freq=freq, center=center, time_rule=time_rule,
+                        freq=freq, center=center,
                         pairwise=True)
 
 
 def _rolling_moment(arg, window, func, minp, axis=0, freq=None, center=False,
-                    time_rule=None, args=(), kwargs={}, **kwds):
+                    args=(), kwargs={}, **kwds):
     """
     Rolling statistical measure using supplied function. Designed to be
     used with passed-in Cython array-based functions.
@@ -322,7 +318,6 @@ def _rolling_moment(arg, window, func, minp, axis=0, freq=None, center=False,
         Frequency to conform to before computing statistic
     center : boolean, default False
         Whether the label should correspond with center of window
-    time_rule : Legacy alias for freq
     args : tuple
         Passed on to func
     kwargs : dict
@@ -332,7 +327,7 @@ def _rolling_moment(arg, window, func, minp, axis=0, freq=None, center=False,
     -------
     y : type of input
     """
-    arg = _conv_timerule(arg, freq, time_rule)
+    arg = _conv_timerule(arg, freq)
     calc = lambda x: func(x, window, minp=minp, args=args, kwargs=kwargs,
                           **kwds)
     return_hook, values = _process_data_structure(arg)
@@ -417,10 +412,10 @@ def _get_center_of_mass(com, span, halflife):
 @Substitution("Exponentially-weighted moving average", _unary_arg, _ewm_kw,
               _type_of_input_retval, _ewm_notes)
 @Appender(_doc_template)
-def ewma(arg, com=None, span=None, halflife=None, min_periods=0, freq=None, time_rule=None,
+def ewma(arg, com=None, span=None, halflife=None, min_periods=0, freq=None,
          adjust=True):
     com = _get_center_of_mass(com, span, halflife)
-    arg = _conv_timerule(arg, freq, time_rule)
+    arg = _conv_timerule(arg, freq)
 
     def _ewma(v):
         result = algos.ewma(v, com, int(adjust))
@@ -442,9 +437,9 @@ def _first_valid_index(arr):
               _ewm_kw+_bias_kw, _type_of_input_retval, _ewm_notes)
 @Appender(_doc_template)
 def ewmvar(arg, com=None, span=None, halflife=None, min_periods=0, bias=False,
-           freq=None, time_rule=None):
+           freq=None):
     com = _get_center_of_mass(com, span, halflife)
-    arg = _conv_timerule(arg, freq, time_rule)
+    arg = _conv_timerule(arg, freq)
     moment2nd = ewma(arg * arg, com=com, min_periods=min_periods)
     moment1st = ewma(arg, com=com, min_periods=min_periods)
 
@@ -458,9 +453,8 @@ def ewmvar(arg, com=None, span=None, halflife=None, min_periods=0, bias=False,
 @Substitution("Exponentially-weighted moving std", _unary_arg,
               _ewm_kw+_bias_kw, _type_of_input_retval, _ewm_notes)
 @Appender(_doc_template)
-def ewmstd(arg, com=None, span=None, halflife=None, min_periods=0, bias=False,
-           time_rule=None):
-    result = ewmvar(arg, com=com, span=span, halflife=halflife, time_rule=time_rule,
+def ewmstd(arg, com=None, span=None, halflife=None, min_periods=0, bias=False):
+    result = ewmvar(arg, com=com, span=span, halflife=halflife,
                     min_periods=min_periods, bias=bias)
     return _zsqrt(result)
 
@@ -470,8 +464,8 @@ ewmvol = ewmstd
 @Substitution("Exponentially-weighted moving covariance", _binary_arg_flex,
               _ewm_kw+_pairwise_kw, _type_of_input_retval, _ewm_notes)
 @Appender(_doc_template)
-def ewmcov(arg1, arg2=None, com=None, span=None, halflife=None, min_periods=0, bias=False,
-           freq=None, time_rule=None, pairwise=None):
+def ewmcov(arg1, arg2=None, com=None, span=None, halflife=None, min_periods=0,
+           bias=False, freq=None, pairwise=None):
     if arg2 is None:
         arg2 = arg1
         pairwise = True if pairwise is None else pairwise
@@ -479,8 +473,8 @@ def ewmcov(arg1, arg2=None, com=None, span=None, halflife=None, min_periods=0, b
         com = arg2
         arg2 = arg1
         pairwise = True if pairwise is None else pairwise
-    arg1 = _conv_timerule(arg1, freq, time_rule)
-    arg2 = _conv_timerule(arg2, freq, time_rule)
+    arg1 = _conv_timerule(arg1, freq)
+    arg2 = _conv_timerule(arg2, freq)
 
     def _get_ewmcov(X, Y):
         mean = lambda x: ewma(x, com=com, span=span, halflife=halflife, min_periods=min_periods)
@@ -498,7 +492,7 @@ def ewmcov(arg1, arg2=None, com=None, span=None, halflife=None, min_periods=0, b
               _ewm_kw+_pairwise_kw, _type_of_input_retval, _ewm_notes)
 @Appender(_doc_template)
 def ewmcorr(arg1, arg2=None, com=None, span=None, halflife=None, min_periods=0,
-            freq=None, time_rule=None, pairwise=None):
+            freq=None, pairwise=None):
     if arg2 is None:
         arg2 = arg1
         pairwise = True if pairwise is None else pairwise
@@ -506,8 +500,8 @@ def ewmcorr(arg1, arg2=None, com=None, span=None, halflife=None, min_periods=0,
         com = arg2
         arg2 = arg1
         pairwise = True if pairwise is None else pairwise
-    arg1 = _conv_timerule(arg1, freq, time_rule)
-    arg2 = _conv_timerule(arg2, freq, time_rule)
+    arg1 = _conv_timerule(arg1, freq)
+    arg2 = _conv_timerule(arg2, freq)
 
     def _get_ewmcorr(X, Y):
         mean = lambda x: ewma(x, com=com, span=span, halflife=halflife, min_periods=min_periods)
@@ -547,13 +541,7 @@ def _prep_binary(arg1, arg2):
 # Python interface to Cython functions
 
 
-def _conv_timerule(arg, freq, time_rule):
-    if time_rule is not None:
-        import warnings
-        warnings.warn("time_rule argument is deprecated, replace with freq",
-                      FutureWarning)
-
-        freq = time_rule
+def _conv_timerule(arg, freq):
 
     types = (DataFrame, Series)
     if freq is not None and isinstance(arg, types):
@@ -584,13 +572,12 @@ def _rolling_func(func, desc, check_minp=_use_window):
     @Appender(_doc_template)
     @wraps(func)
     def f(arg, window, min_periods=None, freq=None, center=False,
-          time_rule=None, **kwargs):
+          **kwargs):
         def call_cython(arg, window, minp, args=(), kwargs={}, **kwds):
             minp = check_minp(minp, window)
             return func(arg, window, minp, **kwds)
-        return _rolling_moment(arg, window, call_cython, min_periods,
-                               freq=freq, center=center,
-                               time_rule=time_rule, **kwargs)
+        return _rolling_moment(arg, window, call_cython, min_periods, freq=freq,
+                               center=center, **kwargs)
 
     return f
 
@@ -612,7 +599,7 @@ rolling_kurt = _rolling_func(algos.roll_kurt, 'Unbiased moving kurtosis.',
 
 
 def rolling_quantile(arg, window, quantile, min_periods=None, freq=None,
-                     center=False, time_rule=None):
+                     center=False):
     """Moving quantile.
 
     Parameters
@@ -628,8 +615,7 @@ def rolling_quantile(arg, window, quantile, min_periods=None, freq=None,
         (otherwise result is NA).
     freq : string or DateOffset object, optional (default None)
         Frequency to conform the data to before computing the statistic. Specified
-        as a frequency string or DateOffset object. `time_rule` is a legacy alias
-        for `freq`
+        as a frequency string or DateOffset object.
     center : boolean, default False
         Whether the label should correspond with center of window
 
@@ -650,12 +636,12 @@ def rolling_quantile(arg, window, quantile, min_periods=None, freq=None,
     def call_cython(arg, window, minp, args=(), kwargs={}):
         minp = _use_window(minp, window)
         return algos.roll_quantile(arg, window, minp, quantile)
-    return _rolling_moment(arg, window, call_cython, min_periods,
-                           freq=freq, center=center, time_rule=time_rule)
+    return _rolling_moment(arg, window, call_cython, min_periods, freq=freq,
+                           center=center)
 
 
 def rolling_apply(arg, window, func, min_periods=None, freq=None,
-                  center=False, time_rule=None, args=(), kwargs={}):
+                  center=False, args=(), kwargs={}):
     """Generic moving function application.
 
     Parameters
@@ -671,8 +657,7 @@ def rolling_apply(arg, window, func, min_periods=None, freq=None,
         (otherwise result is NA).
     freq : string or DateOffset object, optional (default None)
         Frequency to conform the data to before computing the statistic. Specified
-        as a frequency string or DateOffset object. `time_rule` is a legacy alias
-        for `freq`.
+        as a frequency string or DateOffset object.
     center : boolean, default False
         Whether the label should correspond with center of window
     args : tuple
@@ -696,13 +681,12 @@ def rolling_apply(arg, window, func, min_periods=None, freq=None,
     def call_cython(arg, window, minp, args, kwargs):
         minp = _use_window(minp, window)
         return algos.roll_generic(arg, window, minp, func, args, kwargs)
-    return _rolling_moment(arg, window, call_cython, min_periods,
-                           freq=freq, center=center, time_rule=time_rule,
-                           args=args, kwargs=kwargs)
+    return _rolling_moment(arg, window, call_cython, min_periods, freq=freq,
+                           center=center, args=args, kwargs=kwargs)
 
 
 def rolling_window(arg, window=None, win_type=None, min_periods=None,
-                   freq=None, center=False, mean=True, time_rule=None,
+                   freq=None, center=False, mean=True,
                    axis=0, **kwargs):
     """
     Applies a moving window of type ``window_type`` and size ``window``
@@ -721,8 +705,7 @@ def rolling_window(arg, window=None, win_type=None, min_periods=None,
         (otherwise result is NA).
     freq : string or DateOffset object, optional (default None)
         Frequency to conform the data to before computing the statistic. Specified
-        as a frequency string or DateOffset object. `time_rule` is a legacy alias
-        for `freq`.
+        as a frequency string or DateOffset object.
     center : boolean, default False
         Whether the label should correspond with center of window
     mean : boolean, default True
@@ -778,7 +761,7 @@ def rolling_window(arg, window=None, win_type=None, min_periods=None,
 
     minp = _use_window(min_periods, len(window))
 
-    arg = _conv_timerule(arg, freq, time_rule)
+    arg = _conv_timerule(arg, freq)
     return_hook, values = _process_data_structure(arg)
 
     f = lambda x: algos.roll_window(x, window, minp, avg=mean)
@@ -816,16 +799,14 @@ def _expanding_func(func, desc, check_minp=_use_window):
     @Substitution(desc, _unary_arg, _expanding_kw, _type_of_input_retval, "")
     @Appender(_doc_template)
     @wraps(func)
-    def f(arg, min_periods=1, freq=None, center=False, time_rule=None,
-          **kwargs):
+    def f(arg, min_periods=1, freq=None, center=False, **kwargs):
         window = len(arg)
 
         def call_cython(arg, window, minp, args=(), kwargs={}, **kwds):
             minp = check_minp(minp, window)
             return func(arg, window, minp, **kwds)
-        return _rolling_moment(arg, window, call_cython, min_periods,
-                               freq=freq, center=center,
-                               time_rule=time_rule, **kwargs)
+        return _rolling_moment(arg, window, call_cython, min_periods, freq=freq,
+                               center=center, **kwargs)
 
     return f
 
@@ -849,7 +830,7 @@ expanding_kurt = _expanding_func(
     check_minp=_require_min_periods(4))
 
 
-def expanding_count(arg, freq=None, center=False, time_rule=None):
+def expanding_count(arg, freq=None, center=False):
     """
     Expanding count of number of non-NaN observations.
 
@@ -858,8 +839,7 @@ def expanding_count(arg, freq=None, center=False, time_rule=None):
     arg :  DataFrame or numpy ndarray-like
     freq : string or DateOffset object, optional (default None)
         Frequency to conform the data to before computing the statistic. Specified
-        as a frequency string or DateOffset object. `time_rule` is a legacy alias
-        for `freq`.
+        as a frequency string or DateOffset object.
     center : boolean, default False
         Whether the label should correspond with center of window.
 
@@ -873,12 +853,11 @@ def expanding_count(arg, freq=None, center=False, time_rule=None):
     frequency by resampling the data. This is done with the default parameters
     of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
     """
-    return rolling_count(arg, len(arg), freq=freq, center=center,
-                         time_rule=time_rule)
+    return rolling_count(arg, len(arg), freq=freq, center=center)
 
 
 def expanding_quantile(arg, quantile, min_periods=1, freq=None,
-                       center=False, time_rule=None):
+                       center=False):
     """Expanding quantile.
 
     Parameters
@@ -891,8 +870,7 @@ def expanding_quantile(arg, quantile, min_periods=1, freq=None,
         (otherwise result is NA).
     freq : string or DateOffset object, optional (default None)
         Frequency to conform the data to before computing the statistic. Specified
-        as a frequency string or DateOffset object. `time_rule` is a legacy alias
-        for `freq`.
+        as a frequency string or DateOffset object.
     center : boolean, default False
         Whether the label should correspond with center of window.
 
@@ -907,14 +885,14 @@ def expanding_quantile(arg, quantile, min_periods=1, freq=None,
     of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
     """
     return rolling_quantile(arg, len(arg), quantile, min_periods=min_periods,
-                            freq=freq, center=center, time_rule=time_rule)
+                            freq=freq, center=center)
 
 
 @Substitution("Unbiased expanding covariance.", _binary_arg_flex,
               _expanding_kw+_pairwise_kw, _flex_retval, "")
 @Appender(_doc_template)
 def expanding_cov(arg1, arg2=None, min_periods=1, freq=None, center=False,
-                  time_rule=None, pairwise=None):
+                  pairwise=None):
     if arg2 is None:
         arg2 = arg1
         pairwise = True if pairwise is None else pairwise
@@ -925,14 +903,14 @@ def expanding_cov(arg1, arg2=None, min_periods=1, freq=None, center=False,
     window = max(len(arg1), len(arg2))
     return rolling_cov(arg1, arg2, window,
                        min_periods=min_periods, freq=freq,
-                       center=center, time_rule=time_rule, pairwise=pairwise)
+                       center=center, pairwise=pairwise)
 
 
 @Substitution("Expanding sample correlation.", _binary_arg_flex,
               _expanding_kw+_pairwise_kw, _flex_retval, "")
 @Appender(_doc_template)
 def expanding_corr(arg1, arg2=None, min_periods=1, freq=None, center=False,
-                   time_rule=None, pairwise=None):
+                   pairwise=None):
     if arg2 is None:
         arg2 = arg1
         pairwise = True if pairwise is None else pairwise
@@ -943,8 +921,7 @@ def expanding_corr(arg1, arg2=None, min_periods=1, freq=None, center=False,
     window = max(len(arg1), len(arg2))
     return rolling_corr(arg1, arg2, window,
                         min_periods=min_periods,
-                        freq=freq, center=center, time_rule=time_rule,
-                        pairwise=pairwise)
+                        freq=freq, center=center, pairwise=pairwise)
 
 
 @Substitution("Deprecated. Use expanding_corr(..., pairwise=True) instead.\n\n"
@@ -952,16 +929,15 @@ def expanding_corr(arg1, arg2=None, min_periods=1, freq=None, center=False,
               _expanding_kw, _pairwise_retval, "")
 @Appender(_doc_template)
 def expanding_corr_pairwise(df1, df2=None, min_periods=1, freq=None,
-                            center=False, time_rule=None):
+                            center=False):
     import warnings
     warnings.warn("expanding_corr_pairwise is deprecated, use expanding_corr(..., pairwise=True)", FutureWarning)
     return expanding_corr(df1, df2, min_periods=min_periods,
-                          freq=freq, center=center, time_rule=time_rule,
-                          pairwise=True)
+                          freq=freq, center=center, pairwise=True)
 
 
 def expanding_apply(arg, func, min_periods=1, freq=None, center=False,
-                    time_rule=None, args=(), kwargs={}):
+                    args=(), kwargs={}):
     """Generic expanding function application.
 
     Parameters
@@ -974,8 +950,7 @@ def expanding_apply(arg, func, min_periods=1, freq=None, center=False,
         (otherwise result is NA).
     freq : string or DateOffset object, optional (default None)
         Frequency to conform the data to before computing the statistic. Specified
-        as a frequency string or DateOffset object. `time_rule` is a legacy alias
-        for `freq`.
+        as a frequency string or DateOffset object.
     center : boolean, default False
         Whether the label should correspond with center of window.
     args : tuple
@@ -995,5 +970,4 @@ def expanding_apply(arg, func, min_periods=1, freq=None, center=False,
     """
     window = len(arg)
     return rolling_apply(arg, window, func, min_periods=min_periods, freq=freq,
-                         center=center, time_rule=time_rule, args=args,
-                         kwargs=kwargs)
+                         center=center, args=args, kwargs=kwargs)
