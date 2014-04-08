@@ -158,10 +158,6 @@ class DatetimeIndex(Int64Index):
         dayfirst = kwds.pop('dayfirst', None)
         yearfirst = kwds.pop('yearfirst', None)
         infer_dst = kwds.pop('infer_dst', False)
-        warn = False
-        if 'offset' in kwds and kwds['offset']:
-            freq = kwds['offset']
-            warn = True
 
         freq_infer = False
         if not isinstance(freq, DateOffset):
@@ -173,14 +169,6 @@ class DatetimeIndex(Int64Index):
                 freq_infer = True
                 freq = None
 
-        if warn:
-            import warnings
-            warnings.warn("parameter 'offset' is deprecated, "
-                          "please use 'freq' instead",
-                          FutureWarning)
-
-        offset = freq
-
         if periods is not None:
             if com.is_float(periods):
                 periods = int(periods)
@@ -188,12 +176,12 @@ class DatetimeIndex(Int64Index):
                 raise ValueError('Periods must be a number, got %s' %
                                  str(periods))
 
-        if data is None and offset is None:
+        if data is None and freq is None:
             raise ValueError("Must provide freq argument if no data is "
                              "supplied")
 
         if data is None:
-            return cls._generate(start, end, periods, name, offset,
+            return cls._generate(start, end, periods, name, freq,
                                  tz=tz, normalize=normalize, closed=closed,
                                  infer_dst=infer_dst)
 
@@ -211,11 +199,11 @@ class DatetimeIndex(Int64Index):
 
             # try a few ways to make it datetime64
             if lib.is_string_array(data):
-                data = _str_to_dt_array(data, offset, dayfirst=dayfirst,
+                data = _str_to_dt_array(data, freq, dayfirst=dayfirst,
                                         yearfirst=yearfirst)
             else:
                 data = tools.to_datetime(data, errors='raise')
-                data.offset = offset
+                data.offset = freq
                 if isinstance(data, DatetimeIndex):
                     if name is not None:
                         data.name = name
@@ -226,7 +214,7 @@ class DatetimeIndex(Int64Index):
                     return data
 
         if issubclass(data.dtype.type, compat.string_types):
-            data = _str_to_dt_array(data, offset, dayfirst=dayfirst,
+            data = _str_to_dt_array(data, freq, dayfirst=dayfirst,
                                       yearfirst=yearfirst)
 
         if issubclass(data.dtype.type, np.datetime64):
@@ -238,8 +226,8 @@ class DatetimeIndex(Int64Index):
 
                 subarr = data.values
 
-                if offset is None:
-                    offset = data.offset
+                if freq is None:
+                    freq = data.offset
                     verify_integrity = False
             else:
                 if data.dtype != _NS_DTYPE:
@@ -287,13 +275,13 @@ class DatetimeIndex(Int64Index):
 
         subarr = subarr.view(cls)
         subarr.name = name
-        subarr.offset = offset
+        subarr.offset = freq
         subarr.tz = tz
 
         if verify_integrity and len(subarr) > 0:
-            if offset is not None and not freq_infer:
+            if freq is not None and not freq_infer:
                 inferred = subarr.inferred_freq
-                if inferred != offset.freqstr:
+                if inferred != freq.freqstr:
                     raise ValueError('Dates do not conform to passed '
                                      'frequency')
 

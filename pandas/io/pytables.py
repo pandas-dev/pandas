@@ -684,13 +684,6 @@ class HDFStore(StringMixin):
         return self.get_storer(key).read_coordinates(where=where, start=start,
                                                      stop=stop, **kwargs)
 
-    def unique(self, key, column, **kwargs):
-        warnings.warn("unique(key,column) is deprecated\n"
-                      "use select_column(key,column).unique() instead",
-                      FutureWarning)
-        return self.get_storer(key).read_column(column=column,
-                                                **kwargs).unique()
-
     def select_column(self, key, column, **kwargs):
         """
         return a single column from the table. This is generally only useful to

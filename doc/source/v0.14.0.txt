@@ -21,6 +21,8 @@ users upgrade to this version.
 
 - :ref:`API Changes <whatsnew_0140.api>`
 
+- :ref:`Prior Deprecations <whatsnew_0140.prior_deprecations>`
+
 - :ref:`Deprecations <whatsnew_0140.deprecations>`
 
 - :ref:`Bug Fixes <release.bug_fixes-0.14.0>`
@@ -344,12 +346,36 @@ Plotting
 
   Because of the default `align` value changes, coordinates of bar plots are now located on integer values (0.0, 1.0, 2.0 ...). This is intended to make bar plot be located on the same coodinates as line plot. However, bar plot may differs unexpectedly when you manually adjust the bar location or drawing area, such as using `set_xlim`, `set_ylim`, etc. In this cases, please modify your script to meet with new coordinates.
 
+.. _whatsnew_0140.prior_deprecations:
+
 Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 There are prior version deprecations that are taking effect as of 0.14.0.
 
 - Remove ``column`` keyword from ``DataFrame.sort`` (:issue:`4370`)
+
+- Remove ``precision`` keyword from :func:`set_eng_float_format` (:issue:`6641`)
+
+- Remove ``force_unicode`` keyword from :meth:`DataFrame.to_string`,
+  :meth:`DataFrame.to_latex`, and :meth:`DataFrame.to_html`; these function
+  encode in unicode by default (:issue:`6641`)
+
+- Remove ``nanRep`` keyword from :meth:`DataFrame.to_csv` and
+  :meth:`DataFrame.to_string` (:issue:`6641`)
+
+- Remove ``unique`` keyword from :meth:`HDFStore.select_column` (:issue:`6641`)
+
+- Remove ``inferTimeRule`` keyword from :func:`Timestamp.offset` (:issue:`6641`)
+
+- Remove ``name`` keyword from :func:`get_data_yahoo` and
+  :func:`get_data_google` (:issue:`6641`)
+
+- Remove ``offset`` keyword from :class:`DatetimeIndex` constructor
+  (:issue:`6641`)
+
+- Remove ``time_rule`` from several rolling-moment statistical functions, such
+  as :func:`rolling_sum` (:issue:`6641`)
 
 .. _whatsnew_0140.deprecations:
 
@@ -414,13 +440,12 @@ Enhancements
   and data_label which allow the time stamp and dataset label to be set when creating a
   file. (:issue:`6545`)
 - ``pandas.io.gbq`` now handles reading unicode strings properly. (:issue:`5940`)
-- Improve performance of ``CustomBusinessDay`` (:issue:`6584`)
 - :ref:`Holidays Calendars<timeseries.holiday>` are now available and can be used with CustomBusinessDay (:issue:`6719`)
 
 Performance
 ~~~~~~~~~~~
 
-- perf improvements in DataFrame construction with certain offsets, by removing faulty caching
+- Improve performance of DataFrame construction with certain offsets, by removing faulty caching
   (e.g. MonthEnd,BusinessMonthEnd), (:issue:`6479`)
 - Improve performance of ``CustomBusinessDay`` (:issue:`6584`)
 - improve performance of slice indexing on Series with string keys (:issue:`6341`, :issue:`6372`)

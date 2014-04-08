@@ -358,15 +358,10 @@ class DataFrameFormatter(TableFormatter):
 
         return strcols
 
-    def to_string(self, force_unicode=None):
+    def to_string(self):
         """
         Render a DataFrame to a console-friendly tabular output.
         """
-        import warnings
-        if force_unicode is not None:  # pragma: no cover
-            warnings.warn(
-                "force_unicode is deprecated, it will have no effect",
-                FutureWarning)
 
         frame = self.frame
 
@@ -423,8 +418,7 @@ class DataFrameFormatter(TableFormatter):
             st = ed
         return '\n\n'.join(str_lst)
 
-    def to_latex(self, force_unicode=None, column_format=None,
-                 longtable=False):
+    def to_latex(self, column_format=None, longtable=False):
         """
         Render a DataFrame to a LaTeX tabular/longtable environment output.
         """
@@ -434,12 +428,6 @@ class DataFrameFormatter(TableFormatter):
                 return 'r'
             else:
                 return 'l'
-
-        import warnings
-        if force_unicode is not None:  # pragma: no cover
-            warnings.warn(
-                "force_unicode is deprecated, it will have no effect",
-                FutureWarning)
 
         frame = self.frame
 
@@ -2139,7 +2127,7 @@ class EngFormatter(object):
         return formatted  # .strip()
 
 
-def set_eng_float_format(precision=None, accuracy=3, use_eng_prefix=False):
+def set_eng_float_format(accuracy=3, use_eng_prefix=False):
     """
     Alter default behavior on how float is formatted in DataFrame.
     Format float in engineering format. By accuracy, we mean the number of
@@ -2147,11 +2135,6 @@ def set_eng_float_format(precision=None, accuracy=3, use_eng_prefix=False):
 
     See also EngFormatter.
     """
-    if precision is not None:  # pragma: no cover
-        import warnings
-        warnings.warn("'precision' parameter in set_eng_float_format is "
-                      "being renamed to 'accuracy'", FutureWarning)
-        accuracy = precision
 
     set_option("display.float_format", EngFormatter(accuracy, use_eng_prefix))
     set_option("display.column_space", max(12, accuracy + 9))
