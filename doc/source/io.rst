@@ -3442,6 +3442,16 @@ Performance Considerations
 
 This is an informal comparison of various IO methods, using pandas 0.13.1.
 
+.. code-block:: python
+
+   In [3]: df = DataFrame(randn(1000000,2),columns=list('AB'))
+   <class 'pandas.core.frame.DataFrame'>
+   Int64Index: 1000000 entries, 0 to 999999
+   Data columns (total 2 columns):
+   A    1000000  non-null values
+   B    1000000  non-null values
+   dtypes: float64(2)
+
 
 Writing
 
@@ -3453,8 +3463,14 @@ Writing
    In [15]: %timeit test_hdf_fixed_write(df)
    1 loops, best of 3: 237 ms per loop
 
+   In [26]: %timeit test_hdf_fixed_write_compress(df)
+   1 loops, best of 3: 245 ms per loop
+
    In [16]: %timeit test_hdf_table_write(df)
    1 loops, best of 3: 901 ms per loop
+
+   In [27]: %timeit test_hdf_table_write_compress(df)
+   1 loops, best of 3: 952 ms per loop
 
    In [17]: %timeit test_csv_write(df)
    1 loops, best of 3: 3.44 s per loop
@@ -3469,11 +3485,28 @@ Reading
    In [19]: %timeit test_hdf_fixed_read()
    10 loops, best of 3: 19.1 ms per loop
 
+   In [28]: %timeit test_hdf_fixed_read_compress()
+   10 loops, best of 3: 36.3 ms per loop
+
    In [20]: %timeit test_hdf_table_read()
    10 loops, best of 3: 39 ms per loop
 
+   In [29]: %timeit test_hdf_table_read_compress()
+   10 loops, best of 3: 60.6 ms per loop
+
    In [22]: %timeit test_csv_read()
    1 loops, best of 3: 620 ms per loop
+
+Space on disk (in bytes)
+
+.. code-block:: python
+
+    25843712 Apr  8 14:11 test.sql
+    24007368 Apr  8 14:11 test_fixed.hdf
+    15580682 Apr  8 14:11 test_fixed_compress.hdf
+    24458444 Apr  8 14:11 test_table.hdf
+    16797283 Apr  8 14:11 test_table_compress.hdf
+    46152810 Apr  8 14:11 test.csv
 
 And here's the code
 
@@ -3483,13 +3516,7 @@ And here's the code
    import os
    from pandas.io import sql
 
-   In [3]: df = DataFrame(randn(1000000,2),columns=list('AB'))
-   <class 'pandas.core.frame.DataFrame'>
-   Int64Index: 1000000 entries, 0 to 999999
-   Data columns (total 2 columns):
-   A    1000000  non-null values
-   B    1000000  non-null values
-   dtypes: float64(2)
+   df = DataFrame(randn(1000000,2),columns=list('AB'))
 
    def test_sql_write(df):
        if os.path.exists('test.sql'):
@@ -3509,15 +3536,27 @@ And here's the code
    def test_hdf_fixed_read():
        pd.read_hdf('test_fixed.hdf','test')
 
+   def test_hdf_fixed_write_compress(df):
+       df.to_hdf('test_fixed_compress.hdf','test',mode='w',complib='blosc')
+
+   def test_hdf_fixed_read_compress():
+       pd.read_hdf('test_fixed_compress.hdf','test')
+
    def test_hdf_table_write(df):
        df.to_hdf('test_table.hdf','test',mode='w',format='table')
 
    def test_hdf_table_read():
        pd.read_hdf('test_table.hdf','test')
 
-   def test_csv_read():
-       pd.read_csv('test.csv',index_col=0)
+   def test_hdf_table_write_compress(df):
+       df.to_hdf('test_table_compress.hdf','test',mode='w',complib='blosc',format='table')
+
+   def test_hdf_table_read_compress():
+       pd.read_hdf('test_table_compress.hdf','test')
 
    def test_csv_write(df):
        df.to_csv('test.csv',mode='w')
+
+   def test_csv_read():
+       pd.read_csv('test.csv',index_col=0)
 
