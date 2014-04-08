@@ -198,9 +198,29 @@ Deprecations
 Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Remove :class:`DateRange` in favor of :class:`DatetimeIndex` (:issue:`6816`)
-
 - Remove ``column`` keyword from ``DataFrame.sort`` (:issue:`4370`)
+
+- Remove ``precision`` keyword from :func:`set_eng_float_format` (:issue:`6641`)
+
+- Remove ``force_unicode`` keyword from :meth:`DataFrame.to_string`,
+  :meth:`DataFrame.to_latex`, and :meth:`DataFrame.to_html`; these function
+  encode in unicode by default (:issue:`6641`)
+
+- Remove ``nanRep`` keyword from :meth:`DataFrame.to_csv` and
+  :meth:`DataFrame.to_string` (:issue:`6641`)
+
+- Remove ``unique`` keyword from :meth:`HDFStore.select_column` (:issue:`6641`)
+
+- Remove ``inferTimeRule`` keyword from :func:`Timestamp.offset` (:issue:`6641`)
+
+- Remove ``name`` keyword from :func:`get_data_yahoo` and
+  :func:`get_data_google` (:issue:`6641`)
+
+- Remove ``offset`` keyword from :class:`DatetimeIndex` constructor
+  (:issue:`6641`)
+
+- Remove ``time_rule`` from several rolling-moment statistical functions, such
+  as :func:`rolling_sum` (:issue:`6641`)
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
@@ -309,6 +329,7 @@ Bug Fixes
 - Bug in ``pd.read_stata`` which would use the wrong data types and missing values (:issue:`6327`)
 - Bug in ``DataFrame.to_stata`` that lead to data loss in certain cases, and could exported using the
   wrong data types and missing values (:issue:`6335`)
+- StataWriter replaces missing values in string columns by empty string (:issue:`6802`)
 - Inconsistent types in Timestamp addition/subtraction (:issue:`6543`)
 - Bug in preserving frequency across Timestamp addition/subtraction (:issue:`4547`)
 - Bug in indexing: empty list lookup caused ``IndexError`` exceptions (:issue:`6536`, :issue:`6551`)
@@ -337,12 +358,11 @@ Bug Fixes
   (:issue:`6762`).
 - Bug in Makefile where it didn't remove Cython generated C files with ``make
   clean`` (:issue:`6768`)
+- Bug with numpy < 1.7.2 when reading long strings from ``HDFStore`` (:issue:`6166`)
 - Bug in ``DataFrame._reduce`` where non bool-like (0/1) integers were being
   coverted into bools. (:issue:`6806`)
 - Regression from 0.13 with ``fillna`` and a Series on datetime-like (:issue:`6344`)
 - Bug in adding np.timedelta64 to DatetimeIndex with tz outputs incorrect result (:issue:`6818`)
-- Bug in ``DataFrame.replace()`` where changing a dtype through replacement
-  would only replace the first occurrence of a value (:issue:`6689`)
 
 pandas 0.13.1
 -------------
