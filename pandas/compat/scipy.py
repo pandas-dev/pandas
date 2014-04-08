@@ -65,7 +65,7 @@ def scoreatpercentile(a, per, limit=(), interpolation_method='fraction'):
 
     idx = per / 100. * (values.shape[0] - 1)
     if idx % 1 == 0:
-        score = values[idx]
+        score = values[int(idx)]
     else:
         if interpolation_method == 'fraction':
             score = _interpolate(values[int(idx)], values[int(idx) + 1],
