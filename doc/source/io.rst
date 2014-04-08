@@ -58,6 +58,8 @@ The corresponding ``writer`` functions are object methods that are accessed like
     * :ref:`to_clipboard<io.clipboard>`
     * :ref:`to_pickle<io.pickle>`
 
+:ref:`Here <io.perf>` is an informal performance comparison for some of these IO methods.
+
 .. note::
    For examples that use the ``StringIO`` class, make sure you import it
    according to your Python version, i.e. ``from StringIO import StringIO`` for
@@ -3432,3 +3434,90 @@ Alternatively, the function :func:`~pandas.io.stata.read_stata` can be used
 
    import os
    os.remove('stata.dta')
+
+.. _io.perf:
+
+Performance Considerations
+--------------------------
+
+This is an informal comparison of various IO methods, using pandas 0.13.1.
+
+
+Writing
+
+.. code-block:: python
+
+   In [14]: %timeit test_sql_write(df)
+   1 loops, best of 3: 6.24 s per loop
+
+   In [15]: %timeit test_hdf_fixed_write(df)
+   1 loops, best of 3: 237 ms per loop
+
+   In [16]: %timeit test_hdf_table_write(df)
+   1 loops, best of 3: 901 ms per loop
+
+   In [17]: %timeit test_csv_write(df)
+   1 loops, best of 3: 3.44 s per loop
+
+Reading
+
+.. code-block:: python
+
+   In [18]: %timeit test_sql_read()
+   1 loops, best of 3: 766 ms per loop
+
+   In [19]: %timeit test_hdf_fixed_read()
+   10 loops, best of 3: 19.1 ms per loop
+
+   In [20]: %timeit test_hdf_table_read()
+   10 loops, best of 3: 39 ms per loop
+
+   In [22]: %timeit test_csv_read()
+   1 loops, best of 3: 620 ms per loop
+
+And here's the code
+
+.. code-block:: python
+
+   import sqlite3
+   import os
+   from pandas.io import sql
+
+   In [3]: df = DataFrame(randn(1000000,2),columns=list('AB'))
+   <class 'pandas.core.frame.DataFrame'>
+   Int64Index: 1000000 entries, 0 to 999999
+   Data columns (total 2 columns):
+   A    1000000  non-null values
+   B    1000000  non-null values
+   dtypes: float64(2)
+
+   def test_sql_write(df):
+       if os.path.exists('test.sql'):
+           os.remove('test.sql')
+       sql_db = sqlite3.connect('test.sql')
+       sql.write_frame(df, name='test_table', con=sql_db)
+       sql_db.close()
+
+   def test_sql_read():
+       sql_db = sqlite3.connect('test.sql')
+       sql.read_frame("select * from test_table", sql_db)
+       sql_db.close()
+
+   def test_hdf_fixed_write(df):
+       df.to_hdf('test_fixed.hdf','test',mode='w')
+
+   def test_hdf_fixed_read():
+       pd.read_hdf('test_fixed.hdf','test')
+
+   def test_hdf_table_write(df):
+       df.to_hdf('test_table.hdf','test',mode='w',format='table')
+
+   def test_hdf_table_read():
+       pd.read_hdf('test_table.hdf','test')
+
+   def test_csv_read():
+       pd.read_csv('test.csv',index_col=0)
+
+   def test_csv_write(df):
+       df.to_csv('test.csv',mode='w')
+
