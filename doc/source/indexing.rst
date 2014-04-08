@@ -1365,13 +1365,63 @@ Of course if you need integer based selection, then use ``iloc``
 Returning a view versus a copy
 ------------------------------
 
-The rules about when a view on the data is returned are entirely dependent on
-NumPy. Whenever an array of labels or a boolean vector are involved in the
-indexing operation, the result will be a copy. With single label / scalar
-indexing and slicing, e.g. ``df.ix[3:6]`` or ``df.ix[:, 'A']``, a view will be
-returned.
+When setting values in a pandas object, care must be taken to avoid what is called
+``chained indexing``. Here is an example.
 
-In chained expressions, the order may determine whether a copy is returned or not.
+.. ipython:: python
+
+   dfmi = DataFrame([list('abcd'),
+                     list('efgh'),
+                     list('ijkl'),
+                     list('mnop')],
+                    columns=MultiIndex.from_product([['one','two'],
+                                                     ['first','second']]))
+   dfmi
+
+Compare these two access methods:
+
+.. ipython:: python
+
+   dfmi['one']['second']
+
+.. ipython:: python
+
+   dfmi.loc[:,('one','second')]
+
+These both yield the same results, so which should you use? It is instructive to understand the order
+of operations on these and why method 2 (``.loc``) is much preferred over method 1 (chained ``[]``)
+
+``dfmi['one']`` selects the first level of the columns and returns a data frame that is singly-indexed.
+Then another python operation ``dfmi_with_one['second']`` selects the series indexed by ``'second'`` happens.
+This is indicated by the variable ``dfmi_with_one`` because pandas sees these operations as separate events.
+e.g. separate calls to ``__getitem__``, so it has to treat them as linear operations, they happen one after another.
+
+Contrast this to ``df.loc[:,('one','second')]`` which passes a nested tuple of ``(slice(None),('one','second'))`` to a single call to
+``__getitem__``. This allows pandas to deal with this as a single entity. Furthermore this order of operations *can* be significantly
+faster, and allows one to index *both* axes if so desired.
+
+Why does the assignment when using chained indexing fail!
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+So, why does this show the ``SettingWithCopy`` warning / and possibly not work when you do chained indexing and assignement:
+
+.. code-block:: python
+
+   dfmi['one']['second'] = value
+
+Since the chained indexing is 2 calls, it is possible that either call may return a **copy** of the data because of the way it is sliced.
+Thus when setting, you are actually setting a **copy**, and not the original frame data. It is impossible for pandas to figure this out because their are 2 separate python operations that are not connected.
+
+The ``SettingWithCopy`` warning is a 'heuristic' to detect this (meaning it tends to catch most cases but is simply a lightweight check). Figuring this out for real is way complicated.
+
+The ``.loc`` operation is a single python operation, and thus can select a slice (which still may be a copy), but allows pandas to assign that slice back into the frame after it is modified, thus setting the values as you would think.
+
+The reason for having the ``SettingWithCopy`` warning is this. Sometimes when you slice an array you will simply get a view back, which means you can set it no problem. However, even a single dtyped array can generate a copy if it is sliced in a particular way. A multi-dtyped DataFrame (meaning it has say ``float`` and ``object`` data), will almost always yield a copy. Whether a view is created is dependent on the memory layout of the array.
+
+Evaluation order matters
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Furthermore, in chained expressions, the order may determine whether a copy is returned or not.
 If an expression will set values on a copy of a slice, then a ``SettingWithCopy``
 exception will be raised (this raise/warn behavior is new starting in 0.13.0)
 
