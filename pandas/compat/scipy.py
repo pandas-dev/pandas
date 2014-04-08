@@ -1,6 +1,5 @@
-"""
-Shipping functions from SciPy to reduce dependency on having SciPy installed
-"""
+"""Shipping functions from SciPy to reduce dependency on having SciPy
+installed."""
 
 from pandas.compat import range, lrange
 import numpy as np
@@ -89,8 +88,7 @@ def _interpolate(a, b, fraction):
 
 
 def rankdata(a):
-    """
-    Ranks the data, dealing with ties appropriately.
+    """Ranks the data, dealing with ties appropriately.
 
     Equal values are assigned a rank that is the average of the ranks that
     would have been otherwise assigned to all of the values within that set.
@@ -131,8 +129,7 @@ def rankdata(a):
 
 
 def fastsort(a):
-    """
-    Sort an array and provide the argsort.
+    """Sort an array and provide the argsort.
 
     Parameters
     ----------

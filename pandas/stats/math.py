@@ -9,10 +9,8 @@ import numpy.linalg as linalg
 
 
 def rank(X, cond=1.0e-12):
-    """
-    Return the rank of a matrix X based on its generalized inverse,
-    not the SVD.
-    """
+    """Return the rank of a matrix X based on its generalized inverse, not the
+    SVD."""
     X = np.asarray(X)
     if len(X.shape) == 2:
         import scipy.linalg as SL

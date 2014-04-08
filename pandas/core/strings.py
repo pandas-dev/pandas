@@ -20,8 +20,7 @@ def _get_array_list(arr, others):
 
 
 def str_cat(arr, others=None, sep=None, na_rep=None):
-    """
-    Concatenate arrays of strings with given separator
+    """Concatenate arrays of strings with given separator.
 
     Parameters
     ----------
@@ -34,6 +33,7 @@ def str_cat(arr, others=None, sep=None, na_rep=None):
     Returns
     -------
     concat : array
+
     """
     if sep is None:
         sep = ''
@@ -118,19 +118,18 @@ def _map(f, arr, na_mask=False, na_value=np.nan):
 
 
 def str_title(arr):
-    """
-    Convert strings to titlecased version
+    """Convert strings to titlecased version.
 
     Returns
     -------
     titled : array
+
     """
     return _na_map(lambda x: x.title(), arr)
 
 
 def str_count(arr, pat, flags=0):
-    """
-    Count occurrences of pattern in each string
+    """Count occurrences of pattern in each string.
 
     Parameters
     ----------
@@ -142,6 +141,7 @@ def str_count(arr, pat, flags=0):
     Returns
     -------
     counts : arrays
+
     """
     regex = re.compile(pat, flags=flags)
     f = lambda x: len(regex.findall(x))
@@ -149,8 +149,7 @@ def str_count(arr, pat, flags=0):
 
 
 def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
-    """
-    Check whether given pattern is contained in each string in the array
+    """Check whether given pattern is contained in each string in the array.
 
     Parameters
     ----------
@@ -190,9 +189,8 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
 
 
 def str_startswith(arr, pat, na=np.nan):
-    """
-    Return boolean array indicating whether each string starts with passed
-    pattern
+    """Return boolean array indicating whether each string starts with passed
+    pattern.
 
     Parameters
     ----------
@@ -203,15 +201,15 @@ def str_startswith(arr, pat, na=np.nan):
     Returns
     -------
     startswith : array (boolean)
+
     """
     f = lambda x: x.startswith(pat)
     return _na_map(f, arr, na)
 
 
 def str_endswith(arr, pat, na=np.nan):
-    """
-    Return boolean array indicating whether each string ends with passed
-    pattern
+    """Return boolean array indicating whether each string ends with passed
+    pattern.
 
     Parameters
     ----------
@@ -222,36 +220,36 @@ def str_endswith(arr, pat, na=np.nan):
     Returns
     -------
     endswith : array (boolean)
+
     """
     f = lambda x: x.endswith(pat)
     return _na_map(f, arr, na)
 
 
 def str_lower(arr):
-    """
-    Convert strings in array to lowercase
+    """Convert strings in array to lowercase.
 
     Returns
     -------
     lowercase : array
+
     """
     return _na_map(lambda x: x.lower(), arr)
 
 
 def str_upper(arr):
-    """
-    Convert strings in array to uppercase
+    """Convert strings in array to uppercase.
 
     Returns
     -------
     uppercase : array
+
     """
     return _na_map(lambda x: x.upper(), arr)
 
 
 def str_replace(arr, pat, repl, n=-1, case=True, flags=0):
-    """
-    Replace
+    """Replace.
 
     Parameters
     ----------
@@ -269,6 +267,7 @@ def str_replace(arr, pat, repl, n=-1, case=True, flags=0):
     Returns
     -------
     replaced : array
+
     """
     use_re = not case or len(pat) > 1 or flags
 
@@ -287,8 +286,7 @@ def str_replace(arr, pat, repl, n=-1, case=True, flags=0):
 
 
 def str_repeat(arr, repeats):
-    """
-    Duplicate each string in the array by indicated number of times
+    """Duplicate each string in the array by indicated number of times.
 
     Parameters
     ----------
@@ -298,6 +296,7 @@ def str_repeat(arr, repeats):
     Returns
     -------
     repeated : array
+
     """
     if np.isscalar(repeats):
         def rep(x):
@@ -388,8 +387,7 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=False):
 
 
 def str_extract(arr, pat, flags=0):
-    """
-    Find groups in each string using passed regular expression
+    """Find groups in each string using passed regular expression.
 
     Parameters
     ----------
@@ -464,8 +462,8 @@ def str_extract(arr, pat, flags=0):
 
 
 def str_get_dummies(arr, sep='|'):
-    """
-    Split each string by sep and return a frame of dummy/indicator variables.
+    """Split each string by sep and return a frame of dummy/indicator
+    variables.
 
     Examples
     --------
@@ -505,8 +503,7 @@ def str_get_dummies(arr, sep='|'):
 
 
 def str_join(arr, sep):
-    """
-    Join lists contained as elements in array, a la str.join
+    """Join lists contained as elements in array, a la str.join.
 
     Parameters
     ----------
@@ -516,24 +513,24 @@ def str_join(arr, sep):
     Returns
     -------
     joined : array
+
     """
     return _na_map(sep.join, arr)
 
 
 def str_len(arr):
-    """
-    Compute length of each string in array.
+    """Compute length of each string in array.
 
     Returns
     -------
     lengths : array
+
     """
     return _na_map(len, arr)
 
 
 def str_findall(arr, pat, flags=0):
-    """
-    Find all occurrences of pattern or regular expression
+    """Find all occurrences of pattern or regular expression.
 
     Parameters
     ----------
@@ -545,14 +542,14 @@ def str_findall(arr, pat, flags=0):
     Returns
     -------
     matches : array
+
     """
     regex = re.compile(pat, flags=flags)
     return _na_map(regex.findall, arr)
 
 
 def str_pad(arr, width, side='left'):
-    """
-    Pad strings with whitespace
+    """Pad strings with whitespace.
 
     Parameters
     ----------
@@ -565,6 +562,7 @@ def str_pad(arr, width, side='left'):
     Returns
     -------
     padded : array
+
     """
     if side == 'left':
         f = lambda x: x.rjust(width)
@@ -579,8 +577,8 @@ def str_pad(arr, width, side='left'):
 
 
 def str_center(arr, width):
-    """
-    "Center" strings, filling left and right side with additional whitespace
+    """"Center" strings, filling left and right side with additional
+    whitespace.
 
     Parameters
     ----------
@@ -591,14 +589,14 @@ def str_center(arr, width):
     Returns
     -------
     centered : array
+
     """
     return str_pad(arr, width, side='both')
 
 
 def str_split(arr, pat=None, n=None):
-    """
-    Split each string (a la re.split) in array by given pattern, propagating NA
-    values
+    """Split each string (a la re.split) in array by given pattern, propagating
+    NA values.
 
     Parameters
     ----------
@@ -613,6 +611,7 @@ def str_split(arr, pat=None, n=None):
     Returns
     -------
     split : array
+
     """
     if pat is None:
         if n is None or n == 0:
@@ -633,8 +632,7 @@ def str_split(arr, pat=None, n=None):
 
 
 def str_slice(arr, start=None, stop=None, step=1):
-    """
-    Slice substrings from each element in array
+    """Slice substrings from each element in array.
 
     Parameters
     ----------
@@ -644,6 +642,7 @@ def str_slice(arr, start=None, stop=None, step=1):
     Returns
     -------
     sliced : array
+
     """
     obj = slice(start, stop, step)
     f = lambda x: x[obj]
@@ -651,21 +650,18 @@ def str_slice(arr, start=None, stop=None, step=1):
 
 
 def str_slice_replace(arr, start=None, stop=None, repl=None):
-    """
-
-    Parameters
-    ----------
+    """Parameters.
 
     Returns
-    -------
-    replaced : array
+        -------
+        replaced : array
+
     """
     raise NotImplementedError
 
 
 def str_strip(arr, to_strip=None):
-    """
-    Strip whitespace (including newlines) from each string in the array
+    """Strip whitespace (including newlines) from each string in the array.
 
     Parameters
     ----------
@@ -674,14 +670,14 @@ def str_strip(arr, to_strip=None):
     Returns
     -------
     stripped : array
+
     """
     return _na_map(lambda x: x.strip(to_strip), arr)
 
 
 def str_lstrip(arr, to_strip=None):
-    """
-    Strip whitespace (including newlines) from left side of each string in the
-    array
+    """Strip whitespace (including newlines) from left side of each string in
+    the array.
 
     Parameters
     ----------
@@ -690,14 +686,14 @@ def str_lstrip(arr, to_strip=None):
     Returns
     -------
     stripped : array
+
     """
     return _na_map(lambda x: x.lstrip(to_strip), arr)
 
 
 def str_rstrip(arr, to_strip=None):
-    """
-    Strip whitespace (including newlines) from right side of each string in the
-    array
+    """Strip whitespace (including newlines) from right side of each string in
+    the array.
 
     Parameters
     ----------
@@ -706,13 +702,13 @@ def str_rstrip(arr, to_strip=None):
     Returns
     -------
     stripped : array
+
     """
     return _na_map(lambda x: x.rstrip(to_strip), arr)
 
 
 def str_wrap(arr, width=80):
-    """
-    Wrap long strings to be formatted in paragraphs
+    """Wrap long strings to be formatted in paragraphs.
 
     Parameters
     ----------
@@ -722,13 +718,14 @@ def str_wrap(arr, width=80):
     Returns
     -------
     wrapped : array
+
     """
     raise NotImplementedError
 
 
 def str_get(arr, i):
-    """
-    Extract element from lists, tuples, or strings in each element in the array
+    """Extract element from lists, tuples, or strings in each element in the
+    array.
 
     Parameters
     ----------
@@ -738,14 +735,14 @@ def str_get(arr, i):
     Returns
     -------
     items : array
+
     """
     f = lambda x: x[i] if len(x) > i else np.nan
     return _na_map(f, arr)
 
 
 def str_decode(arr, encoding, errors="strict"):
-    """
-    Decode character string to unicode using indicated encoding
+    """Decode character string to unicode using indicated encoding.
 
     Parameters
     ----------
@@ -755,14 +752,14 @@ def str_decode(arr, encoding, errors="strict"):
     Returns
     -------
     decoded : array
+
     """
     f = lambda x: x.decode(encoding, errors)
     return _na_map(f, arr)
 
 
 def str_encode(arr, encoding, errors="strict"):
-    """
-    Encode character string to some other encoding using indicated encoding
+    """Encode character string to some other encoding using indicated encoding.
 
     Parameters
     ----------
@@ -772,6 +769,7 @@ def str_encode(arr, encoding, errors="strict"):
     Returns
     -------
     encoded : array
+
     """
     f = lambda x: x.encode(encoding, errors)
     return _na_map(f, arr)
@@ -812,7 +810,7 @@ def _pat_wrapper(f, flags=False, na=False, **kwargs):
 
 
 def copy(source):
-    "Copy a docstring from another source function (if present)"
+    """Copy a docstring from another source function (if present)"""
     def do_copy(target):
         if source.__doc__:
             target.__doc__ = source.__doc__
@@ -822,8 +820,7 @@ def copy(source):
 
 class StringMethods(object):
 
-    """
-    Vectorized string functions for Series. NAs stay NA unless handled
+    """Vectorized string functions for Series. NAs stay NA unless handled
     otherwise by a particular method. Patterned after Python's string methods,
     with some inspiration from R's stringr package.
 
@@ -831,6 +828,7 @@ class StringMethods(object):
     --------
     >>> s.str.split('_')
     >>> s.str.replace('_', '')
+
     """
 
     def __init__(self, series):

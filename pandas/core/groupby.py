@@ -140,8 +140,8 @@ def _last_compat(x, axis=0):
         return _last(x)
 
 class Grouper(object):
-    """
-    A Grouper allows the user to specify a groupby instruction for a target object
+    """A Grouper allows the user to specify a groupby instruction for a target
+    object.
 
     This specification will select a column via the key parameter, or if the level and/or
     axis parameters are given, a level of the index of the target object.
@@ -207,22 +207,22 @@ class Grouper(object):
 
     def _get_grouper(self, obj):
 
-        """
-        Parameters
-        ----------
+        """Parameters.
+
         obj : the subject object
 
-        Returns
-        -------
-        a tuple of binner, grouper, obj (possibly sorted)
+                Returns
+                -------
+                a tuple of binner, grouper, obj (possibly sorted)
+
         """
 
         self._set_grouper(obj)
         return self.binner, self.grouper, self.obj
 
     def _set_grouper(self, obj, sort=False):
-        """
-        given an object and the specifcations, setup the internal grouper for this particular specification
+        """given an object and the specifcations, setup the internal grouper
+        for this particular specification.
 
         Parameters
         ----------
@@ -280,8 +280,7 @@ class Grouper(object):
 
 class GroupBy(PandasObject):
 
-    """
-    Class for grouping and aggregating relational data. See aggregate,
+    """Class for grouping and aggregating relational data. See aggregate,
     transform, and apply functions on this object.
 
     It's easiest to use obj.groupby(...) to use GroupBy, but you can also do:
@@ -344,6 +343,7 @@ class GroupBy(PandasObject):
         {group name -> group labels}
     len(grouped) : int
         Number of groups
+
     """
     _apply_whitelist = _common_apply_whitelist
     _internal_names = ['_cache']
@@ -402,7 +402,7 @@ class GroupBy(PandasObject):
         return self.grouper.indices
 
     def _get_index(self, name):
-        """ safe get index """
+        """safe get index."""
         try:
             return self.indices[name]
         except:
@@ -487,8 +487,7 @@ class GroupBy(PandasObject):
         return wrapper
 
     def get_group(self, name, obj=None):
-        """
-        Constructs NDFrame from group with provided name
+        """Constructs NDFrame from group with provided name.
 
         Parameters
         ----------
@@ -502,6 +501,7 @@ class GroupBy(PandasObject):
         Returns
         -------
         group : type of obj
+
         """
         if obj is None:
             obj = self._selected_obj
@@ -510,13 +510,13 @@ class GroupBy(PandasObject):
         return obj.take(inds, axis=self.axis, convert=False)
 
     def __iter__(self):
-        """
-        Groupby iterator
+        """Groupby iterator.
 
         Returns
         -------
         Generator yielding sequence of (name, subsetted object)
         for each group
+
         """
         return self.grouper.get_iterator(self.obj, axis=self.axis)
 
@@ -593,10 +593,10 @@ class GroupBy(PandasObject):
         raise NotImplementedError
 
     def mean(self):
-        """
-        Compute mean of groups, excluding missing values
+        """Compute mean of groups, excluding missing values.
 
         For multiple groupings, the result index will be a MultiIndex
+
         """
         try:
             return self._cython_agg_general('mean')
@@ -607,10 +607,10 @@ class GroupBy(PandasObject):
             return self._python_agg_general(f)
 
     def median(self):
-        """
-        Compute median of groups, excluding missing values
+        """Compute median of groups, excluding missing values.
 
         For multiple groupings, the result index will be a MultiIndex
+
         """
         try:
             return self._cython_agg_general('median')
@@ -625,10 +625,10 @@ class GroupBy(PandasObject):
             return self._python_agg_general(f)
 
     def std(self, ddof=1):
-        """
-        Compute standard deviation of groups, excluding missing values
+        """Compute standard deviation of groups, excluding missing values.
 
         For multiple groupings, the result index will be a MultiIndex
+
         """
         # todo, implement at cython level?
         if ddof == 1:
@@ -638,10 +638,10 @@ class GroupBy(PandasObject):
             return self._python_agg_general(f)
 
     def var(self, ddof=1):
-        """
-        Compute variance of groups, excluding missing values
+        """Compute variance of groups, excluding missing values.
 
         For multiple groupings, the result index will be a MultiIndex
+
         """
         if ddof == 1:
             return self._cython_agg_general('var')
@@ -650,9 +650,7 @@ class GroupBy(PandasObject):
             return self._python_agg_general(f)
 
     def size(self):
-        """
-        Compute group sizes
-        """
+        """Compute group sizes."""
         return self.grouper.size()
 
     sum = _groupby_function('sum', 'add', np.sum)
@@ -665,8 +663,7 @@ class GroupBy(PandasObject):
                              _convert=True)
 
     def ohlc(self):
-        """
-        Compute sum of values, excluding missing values
+        """Compute sum of values, excluding missing values.
 
         For multiple groupings, the result index will be a MultiIndex
 
@@ -674,8 +671,7 @@ class GroupBy(PandasObject):
         return self._cython_agg_general('ohlc')
 
     def nth(self, n, dropna=None):
-        """
-        Take the nth row from each group.
+        """Take the nth row from each group.
 
         If dropna, will not show nth non-null row, dropna is either
         Truthy (if a Series) or 'all', 'any' (if a DataFrame); this is equivalent
@@ -793,8 +789,7 @@ class GroupBy(PandasObject):
         return Series(cumcounts, index)
 
     def head(self, n=5):
-        """
-        Returns first n rows of each group.
+        """Returns first n rows of each group.
 
         Essentially equivalent to ``.apply(lambda x: x.head(n))``,
         except ignores as_index flag.
@@ -820,8 +815,7 @@ class GroupBy(PandasObject):
         return head
 
     def tail(self, n=5):
-        """
-        Returns last n rows of each group
+        """Returns last n rows of each group.
 
         Essentially equivalent to ``.apply(lambda x: x.tail(n))``,
         except ignores as_index flag.
@@ -848,9 +842,7 @@ class GroupBy(PandasObject):
         return tail
 
     def _cumcount_array(self, arr=None, **kwargs):
-        """
-        arr is where cumcount gets it's values from
-        """
+        """arr is where cumcount gets it's values from."""
         ascending = kwargs.pop('ascending', True)
 
         if arr is None:
@@ -1028,9 +1020,8 @@ def _is_indexed_like(obj, axes):
 
 
 class BaseGrouper(object):
-    """
-    This is an internal Grouper class, which actually holds the generated groups
-    """
+    """This is an internal Grouper class, which actually holds the generated
+    groups."""
 
     def __init__(self, axis, groupings, sort=True, group_keys=True):
         self.axis = axis
@@ -1051,13 +1042,13 @@ class BaseGrouper(object):
         return len(self.groupings)
 
     def get_iterator(self, data, axis=0):
-        """
-        Groupby iterator
+        """Groupby iterator.
 
         Returns
         -------
         Generator yielding sequence of (name, subsetted object)
         for each group
+
         """
         splitter = self._get_splitter(data, axis=axis)
         keys = self._get_group_keys()
@@ -1132,10 +1123,7 @@ class BaseGrouper(object):
         return [ping.name for ping in self.groupings]
 
     def size(self):
-        """
-        Compute group sizes
-
-        """
+        """Compute group sizes."""
         # TODO: better impl
         labels, _, ngroups = self.group_info
         bin_counts = algos.value_counts(labels, sort=False)
@@ -1145,10 +1133,7 @@ class BaseGrouper(object):
 
     @cache_readonly
     def _max_groupsize(self):
-        '''
-        Compute size of largest group
-
-        '''
+        """Compute size of largest group."""
         # For many items in each group this is much faster than
         # self.size().max(), in worst case marginally slower
         if self.indices:
@@ -1425,9 +1410,8 @@ class BaseGrouper(object):
 
 
 def generate_bins_generic(values, binner, closed):
-    """
-    Generate bin edge offsets and bin labels for one array using another array
-    which has bin edge values. Both arrays must be sorted.
+    """Generate bin edge offsets and bin labels for one array using another
+    array which has bin edge values. Both arrays must be sorted.
 
     Parameters
     ----------
@@ -1442,6 +1426,7 @@ def generate_bins_generic(values, binner, closed):
     bins : array of offsets (into 'values' argument) of bins.
         Zero and last edge are excluded in result, so for instance the first
         bin is values[0:bin[0]] and the last is values[bin[-1]:]
+
     """
     lenidx = len(values)
     lenbin = len(binner)
@@ -1495,13 +1480,13 @@ class BinGrouper(BaseGrouper):
         return 1
 
     def get_iterator(self, data, axis=0):
-        """
-        Groupby iterator
+        """Groupby iterator.
 
         Returns
         -------
         Generator yielding sequence of (name, subsetted object)
         for each group
+
         """
         if isinstance(data, NDFrame):
             slicer = lambda start,edge: data._slice(slice(start,edge),axis=axis)
@@ -1602,8 +1587,7 @@ class BinGrouper(BaseGrouper):
 
 class Grouping(object):
 
-    """
-    Holds the grouping information for a single key
+    """Holds the grouping information for a single key.
 
     Parameters
     ----------
@@ -1622,6 +1606,7 @@ class Grouping(object):
       * counts : array of group counts
       * group_index : unique groups
       * groups : dict of {group -> label_list}
+
     """
 
     def __init__(self, index, grouper=None, obj=None, name=None, level=None,
@@ -1783,11 +1768,9 @@ class Grouping(object):
 
 
 def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
-    """
-    create and return a BaseGrouper, which is an internal
-    mapping of how to create the grouper indexers.
-    This may be composed of multiple Grouping objects, indicating
-    multiple groupers
+    """create and return a BaseGrouper, which is an internal mapping of how to
+    create the grouper indexers. This may be composed of multiple Grouping
+    objects, indicating multiple groupers.
 
     Groupers are ultimately index mappings. They can originate as:
     index mappings, keys to columns, functions, or Groupers
@@ -1912,10 +1895,9 @@ class SeriesGroupBy(GroupBy):
     _apply_whitelist = _series_apply_whitelist
 
     def aggregate(self, func_or_funcs, *args, **kwargs):
-        """
-        Apply aggregation function or functions to groups, yielding most likely
-        Series but in some cases DataFrame depending on the output of the
-        aggregation function
+        """Apply aggregation function or functions to groups, yielding most
+        likely Series but in some cases DataFrame depending on the output of
+        the aggregation function.
 
         Parameters
         ----------
@@ -1961,6 +1943,7 @@ class SeriesGroupBy(GroupBy):
         Returns
         -------
         Series or DataFrame
+
         """
         if isinstance(func_or_funcs, compat.string_types):
             return getattr(self, func_or_funcs)(*args, **kwargs)
@@ -2116,9 +2099,8 @@ class SeriesGroupBy(GroupBy):
                                   name=self._selected_obj.name)
 
     def filter(self, func, dropna=True, *args, **kwargs):
-        """
-        Return a copy of a Series excluding elements from groups that
-        do not satisfy the boolean criterion specified by func.
+        """Return a copy of a Series excluding elements from groups that do not
+        satisfy the boolean criterion specified by func.
 
         Parameters
         ----------
@@ -2134,6 +2116,7 @@ class SeriesGroupBy(GroupBy):
         Returns
         -------
         filtered : Series
+
         """
         if isinstance(func, compat.string_types):
             wrapper = lambda x: getattr(x, func)(*args, **kwargs)
@@ -2685,9 +2668,8 @@ class NDFrameGroupBy(GroupBy):
         return DataFrame(output, index=obj.index, columns=columns)
 
     def filter(self, func, dropna=True, *args, **kwargs):
-        """
-        Return a copy of a DataFrame excluding elements from groups that
-        do not satisfy the boolean criterion specified by func.
+        """Return a copy of a DataFrame excluding elements from groups that do
+        not satisfy the boolean criterion specified by func.
 
         Parameters
         ----------
@@ -2705,6 +2687,7 @@ class NDFrameGroupBy(GroupBy):
         --------
         >>> grouped = df.groupby(lambda x: mapping[x])
         >>> grouped.filter(lambda x: x['A'].sum() + x['B'].sum() > 0)
+
         """
         from pandas.tools.merge import concat
 
@@ -2873,10 +2856,10 @@ class DataFrameGroupBy(NDFrameGroupBy):
             keys=self._selected_obj.columns, axis=1)
 
     def ohlc(self):
-        """
-        Compute sum of values, excluding missing values
+        """Compute sum of values, excluding missing values.
 
         For multiple groupings, the result index will be a MultiIndex
+
         """
         return self._apply_to_column_groupbys(
             lambda x: x._cython_agg_general('ohlc'))
@@ -3094,11 +3077,9 @@ def get_splitter(data, *args, **kwargs):
 
 
 def get_group_index(label_list, shape):
-    """
-    For the particular label_list, gets the offsets into the hypothetical list
-    representing the totally ordered cartesian product of all possible label
-    combinations.
-    """
+    """For the particular label_list, gets the offsets into the hypothetical
+    list representing the totally ordered cartesian product of all possible
+    label combinations."""
     if len(label_list) == 1:
         return label_list[0]
 
@@ -3232,8 +3213,10 @@ def _nargsort(items, kind='quicksort', ascending=True, na_position='last'):
 
 class _KeyMapper(object):
 
-    """
-    Ease my suffering. Map compressed group id -> key tuple
+    """Ease my suffering.
+
+    Map compressed group id -> key tuple
+
     """
 
     def __init__(self, comp_ids, ngroups, labels, levels):
@@ -3275,10 +3258,12 @@ def _get_indices_dict(label_list, keys):
 
 
 def _compress_group_index(group_index, sort=True):
-    """
-    Group_index is offsets into cartesian product of all possible labels. This
-    space can be huge, so this function compresses it, by computing offsets
+    """Group_index is offsets into cartesian product of all possible labels.
+    This space can be huge, so this function compresses it, by computing
+    offsets.
+
     (comp_ids) into the list of unique labels (obs_group_ids).
+
     """
 
     table = _hash.Int64HashTable(min(1000000, len(group_index)))

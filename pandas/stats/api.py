@@ -1,6 +1,4 @@
-"""
-Common namespace of statistical functions
-"""
+"""Common namespace of statistical functions."""
 
 # pylint: disable-msg=W0611,W0614,W0401
 

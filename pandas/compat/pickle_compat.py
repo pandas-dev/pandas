@@ -59,7 +59,7 @@ Unpickler.dispatch[pkl.REDUCE[0]] = load_reduce
 
 
 def load(fh, encoding=None, compat=False, is_verbose=False):
-    """load a pickle, with a provided encoding
+    """load a pickle, with a provided encoding.
 
     if compat is True:
        fake the old class hierarchy
@@ -71,6 +71,7 @@ def load(fh, encoding=None, compat=False, is_verbose=False):
     encoding: an optional encoding
     compat: provide Series compatibility mode, boolean, default False
     is_verbose: show exception output
+
     """
 
     try:

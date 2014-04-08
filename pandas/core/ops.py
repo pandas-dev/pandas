@@ -1,7 +1,7 @@
-"""
-Arithmetic operations for PandasObjects
+"""Arithmetic operations for PandasObjects.
 
 This is not a public API.
+
 """
 # necessary to enforce truediv in Python 2.X
 from __future__ import division
@@ -136,8 +136,7 @@ def add_special_arithmetic_methods(cls, arith_method=None, radd_func=None,
                                    comp_method=None, bool_method=None,
                                    use_numexpr=True, force=False, select=None,
                                    exclude=None):
-    """
-    Adds the full suite of special arithmetic methods (``__add__``,
+    """Adds the full suite of special arithmetic methods (``__add__``,
     ``__sub__``, etc.) to the class.
 
     Parameters
@@ -158,6 +157,7 @@ def add_special_arithmetic_methods(cls, arith_method=None, radd_func=None,
         if passed, only sets functions with names in select
     exclude : iterable of strings (optional)
         if passed, will not set functions with names in exclude
+
     """
     radd_func = radd_func or operator.add
     # in frame, special methods have default_axis = None, comp methods use
@@ -186,9 +186,8 @@ def add_flex_arithmetic_methods(cls, flex_arith_method, radd_func=None,
                                 flex_comp_method=None, flex_bool_method=None,
                                 use_numexpr=True, force=False, select=None,
                                 exclude=None):
-    """
-    Adds the full suite of flex arithmetic methods (``pow``, ``mul``, ``add``)
-    to the class.
+    """Adds the full suite of flex arithmetic methods (``pow``, ``mul``,
+    ``add``) to the class.
 
     Parameters
     ----------
@@ -209,6 +208,7 @@ def add_flex_arithmetic_methods(cls, flex_arith_method, radd_func=None,
         if passed, only sets functions with names in select
     exclude : iterable of strings (optional)
         if passed, will not set functions with names in exclude
+
     """
     radd_func = radd_func or (lambda x, y: operator.add(y, x))
     # in frame, default axis is 'columns', doesn't matter for series and panel
@@ -231,10 +231,11 @@ def add_flex_arithmetic_methods(cls, flex_arith_method, radd_func=None,
 
 class _TimeOp(object):
 
-    """
-    Wrapper around Series datetime/time/timedelta arithmetic operations.
-    Generally, you should use classmethod ``maybe_convert_for_time_op`` as an
-    entry point.
+    """Wrapper around Series datetime/time/timedelta arithmetic operations.
+
+    Generally, you should use classmethod ``maybe_convert_for_time_op``
+    as an entry point.
+
     """
     fill_value = tslib.iNaT
     wrap_results = staticmethod(lambda x: x)
@@ -307,7 +308,7 @@ class _TimeOp(object):
                             'or a timedelta')
 
     def _convert_to_array(self, values, name=None, other=None):
-        """converts values to ndarray"""
+        """converts values to ndarray."""
         from pandas.tseries.timedeltas import _possibly_cast_to_timedelta
 
         coerce = 'compat' if pd._np_version_under1p7 else True
@@ -411,13 +412,15 @@ class _TimeOp(object):
 
     @classmethod
     def maybe_convert_for_time_op(cls, left, right, name):
-        """
-        if ``left`` and ``right`` are appropriate for datetime arithmetic with
-        operation ``name``, processes them and returns a ``_TimeOp`` object
-        that stores all the required values.  Otherwise, it will generate
-        either a ``NotImplementedError`` or ``None``, indicating that the
-        operation is unsupported for datetimes (e.g., an unsupported r_op) or
-        that the data is not the right type for time ops.
+        """if ``left`` and ``right`` are appropriate for datetime arithmetic
+        with operation ``name``, processes them and returns a ``_TimeOp``
+        object that stores all the required values.
+
+        Otherwise, it will generate either a ``NotImplementedError`` or
+        ``None``, indicating that the operation is unsupported for
+        datetimes (e.g., an unsupported r_op) or that the data is not
+        the right type for time ops.
+
         """
         # decide if we can do it
         is_timedelta_lhs = com.is_timedelta64_dtype(left)
@@ -433,10 +436,8 @@ class _TimeOp(object):
 
 def _arith_method_SERIES(op, name, str_rep=None, fill_zeros=None,
                          default_axis=None, **eval_kwargs):
-    """
-    Wrapper function for Series arithmetic operations, to avoid
-    code duplication.
-    """
+    """Wrapper function for Series arithmetic operations, to avoid code
+    duplication."""
     def na_op(x, y):
         try:
             result = expressions.evaluate(op, str_rep, x, y,
@@ -507,10 +508,8 @@ def _arith_method_SERIES(op, name, str_rep=None, fill_zeros=None,
 
 
 def _comp_method_SERIES(op, name, str_rep=None, masker=False):
-    """
-    Wrapper function for Series arithmetic operations, to avoid
-    code duplication.
-    """
+    """Wrapper function for Series arithmetic operations, to avoid code
+    duplication."""
     def na_op(x, y):
         if x.dtype == np.object_:
             if isinstance(y, list):
@@ -579,10 +578,8 @@ def _comp_method_SERIES(op, name, str_rep=None, masker=False):
 
 
 def _bool_method_SERIES(op, name, str_rep=None):
-    """
-    Wrapper function for Series arithmetic operations, to avoid
-    code duplication.
-    """
+    """Wrapper function for Series arithmetic operations, to avoid code
+    duplication."""
     def na_op(x, y):
         try:
             result = op(x, y)

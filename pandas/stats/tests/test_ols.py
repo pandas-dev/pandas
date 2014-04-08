@@ -1,6 +1,4 @@
-"""
-Unit test suite for OLS and PanelOLS classes
-"""
+"""Unit test suite for OLS and PanelOLS classes."""
 
 # pylint: disable-msg=W0212
 

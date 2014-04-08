@@ -1,6 +1,8 @@
-"""
-Generic data algorithms. This module is experimental at the moment and not
-intended for public consumption
+"""Generic data algorithms.
+
+This module is experimental at the moment and not intended for public
+consumption
+
 """
 from __future__ import division
 from warnings import warn
@@ -13,8 +15,7 @@ import pandas.compat as compat
 from pandas.compat import filter, string_types
 
 def match(to_match, values, na_sentinel=-1):
-    """
-    Compute locations of to_match into values
+    """Compute locations of to_match into values.
 
     Parameters
     ----------
@@ -31,6 +32,7 @@ def match(to_match, values, na_sentinel=-1):
     Returns
     -------
     match : ndarray of integers
+
     """
     values = com._asarray_tuplesafe(values)
     if issubclass(values.dtype.type, string_types):
@@ -50,9 +52,8 @@ def match(to_match, values, na_sentinel=-1):
 
 
 def unique(values):
-    """
-    Compute unique values (not necessarily sorted) efficiently from input array
-    of values
+    """Compute unique values (not necessarily sorted) efficiently from input
+    array of values.
 
     Parameters
     ----------
@@ -61,6 +62,7 @@ def unique(values):
     Returns
     -------
     uniques
+
     """
     values = com._asarray_tuplesafe(values)
     f = lambda htype, caster: _unique_generic(values, htype, caster)
@@ -95,8 +97,7 @@ def _unique_generic(values, table_type, type_caster):
 
 
 def factorize(values, sort=False, order=None, na_sentinel=-1):
-    """
-    Encode input values as an enumerated type or categorical variable
+    """Encode input values as an enumerated type or categorical variable.
 
     Parameters
     ----------
@@ -114,6 +115,7 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
     uniques : the unique values
 
     note: an array of Periods will ignore sort as it returns an always sorted PeriodIndex
+
     """
     from pandas.tseries.period import PeriodIndex
     vals = np.asarray(values)
@@ -267,9 +269,7 @@ def mode(values):
 
 def rank(values, axis=0, method='average', na_option='keep',
          ascending=True, pct=False):
-    """
-
-    """
+    """"""
     if values.ndim == 1:
         f, values = _get_data_algo(values, _rank1d_functions)
         ranks = f(values, ties_method=method, ascending=ascending,
@@ -390,9 +390,7 @@ def _get_data_algo(values, func_map):
 
 
 def group_position(*args):
-    """
-    Get group position
-    """
+    """Get group position."""
     from collections import defaultdict
     table = defaultdict(int)
 

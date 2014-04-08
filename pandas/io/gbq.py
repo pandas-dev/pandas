@@ -1,6 +1,4 @@
-"""
-Pandas module to interface with Google BigQuery.
-"""
+"""Pandas module to interface with Google BigQuery."""
 import os
 import sys
 import tempfile
@@ -42,59 +40,46 @@ logger = logging.getLogger('pandas.io.gbq')
 
 
 class SchemaMissing(PandasError, IOError):
-    """
-    Raised when attempting to write a DataFrame to
-    a new table in Google BigQuery without specifying
-    a schema describing the DataFrame.
-    """
+    """Raised when attempting to write a DataFrame to a new table in Google
+    BigQuery without specifying a schema describing the DataFrame."""
     pass
 
 
 class InvalidSchema(PandasError, IOError):
-    """
-    Raised when attempting to write a DataFrame to
-    Google BigQuery with an invalid table schema.
-    """
+    """Raised when attempting to write a DataFrame to Google BigQuery with an
+    invalid table schema."""
     pass
 
 
 class TableExistsFail(PandasError, IOError):
-    """
-    Raised when attempting to write a DataFrame to
-    an existing Google BigQuery table without specifying
-    that a replace/update action be taken.
-    """
+    """Raised when attempting to write a DataFrame to an existing Google
+    BigQuery table without specifying that a replace/update action be taken."""
     pass
 
 
 class InvalidColumnOrder(PandasError, IOError):
-    """
-    Raised when the provided column order for output
-    results DataFrame does not match the schema
-    returned by BigQuery.
-    """
+    """Raised when the provided column order for output results DataFrame does
+    not match the schema returned by BigQuery."""
     pass
 
 
 def _authenticate():
-    """
-    For testing, we abstract the authentication to BigQuery API.
-    Presently this is implemented using the bq.py Client.Get()
-    method. Any exceptions raised are considered fatal, so we
-    do not process them.
+    """For testing, we abstract the authentication to BigQuery API. Presently
+    this is implemented using the bq.py Client.Get() method. Any exceptions
+    raised are considered fatal, so we do not process them.
 
     Returns
     -------
     BigqueryClient : Configured connection to Google BigQuery
+
     """
     return bq.Client.Get()
 
 
 def _parse_entry(field_value, field_type):
-    """
-    Given a value and the corresponding BigQuery data type,
-    perform any operations needed and return in a format
-    appropriate for a numpy record dictionary
+    """Given a value and the corresponding BigQuery data type, perform any
+    operations needed and return in a format appropriate for a numpy record
+    dictionary.
 
     Parameters
     ----------
@@ -106,6 +91,7 @@ def _parse_entry(field_value, field_type):
     -------
     field_value : object or primitive of type corresponding
                   to field_type
+
     """
 
     # Avoid any casting problems
@@ -126,10 +112,9 @@ def _parse_entry(field_value, field_type):
 
 
 def _parse_page(raw_page, col_names, col_types, col_dtypes):
-    """
-    Given a list of rows produced by the client.apiclient.tabledata().list(),
-    build a numpy array with proper dtypes and column names as specified
-    by the arguments.
+    """Given a list of rows produced by the
+    client.apiclient.tabledata().list(), build a numpy array with proper dtypes
+    and column names as specified by the arguments.
 
     Parameters
     ----------
@@ -145,6 +130,7 @@ def _parse_page(raw_page, col_names, col_types, col_dtypes):
     -------
     page_array : numpy record array corresponding
         to the page data
+
     """
 
     # Should be at most 100,000 per the API, but this could
@@ -168,12 +154,10 @@ def _parse_page(raw_page, col_names, col_types, col_dtypes):
 
 
 def _parse_data(client, job, index_col=None, col_order=None):
-    """
-    Iterate through the query results and piece together the
-    final DataFrame. Builds a DataFrame for each page of
-    results, then concatenates them together when finished.
-    To save memory, we use numpy record arrays to build these
-    DataFrames.
+    """Iterate through the query results and piece together the final
+    DataFrame. Builds a DataFrame for each page of results, then concatenates
+    them together when finished. To save memory, we use numpy record arrays to
+    build these DataFrames.
 
     Parameters
     ----------
@@ -204,6 +188,7 @@ def _parse_data(client, job, index_col=None, col_order=None):
     pagination API. We are using the most flexible iteration method
     that we could find in the bq.py/bigquery_client.py API's, but
     these have undergone large amounts of change recently.
+
     """
 
     # dtype Map -
@@ -383,6 +368,7 @@ def to_gbq(dataframe, destination_table, schema=None, col_order=None,
         parameter is set to 'fail' (the default)
     InvalidSchema :
         Raised if the 'schema' parameter does not match the provided DataFrame
+
     """
 
     if not _BQ_INSTALLED:

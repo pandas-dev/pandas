@@ -1,6 +1,4 @@
-"""
-SparseArray data structure
-"""
+"""SparseArray data structure."""
 from __future__ import division
 # pylint: disable=E1101,E1103,W0231
 
@@ -21,10 +19,8 @@ import pandas.core.ops as ops
 
 def _arith_method(op, name, str_rep=None, default_axis=None,
                               fill_zeros=None, **eval_kwargs):
-    """
-    Wrapper function for Series arithmetic operations, to avoid
-    code duplication.
-    """
+    """Wrapper function for Series arithmetic operations, to avoid code
+    duplication."""
     def wrapper(self, other):
         if isinstance(other, np.ndarray):
             if len(self) != len(other):
@@ -96,22 +92,23 @@ def _sparse_fillop(this, other, name):
 
 class SparseArray(PandasObject, np.ndarray):
 
-    """Data structure for labeled, sparse floating point data
+    """Data structure for labeled, sparse floating point data.
 
-Parameters
-----------
-data : {array-like, Series, SparseSeries, dict}
-kind : {'block', 'integer'}
-fill_value : float
-    Defaults to NaN (code for missing)
-sparse_index : {BlockIndex, IntIndex}, optional
-    Only if you have one. Mainly used internally
+    Parameters
+    ----------
+    data : {array-like, Series, SparseSeries, dict}
+    kind : {'block', 'integer'}
+    fill_value : float
+        Defaults to NaN (code for missing)
+    sparse_index : {BlockIndex, IntIndex}, optional
+        Only if you have one. Mainly used internally
 
-Notes
------
-SparseArray objects are immutable via the typical Python means. If you
-must change values, convert to dense, make your changes, then convert back
-to sparse
+    Notes
+    -----
+    SparseArray objects are immutable via the typical Python means. If you
+    must change values, convert to dense, make your changes, then convert back
+    to sparse
+
     """
     __array_priority__ = 15
     _typ = 'array'
@@ -189,22 +186,20 @@ to sparse
             return 'integer'
 
     def __array_finalize__(self, obj):
-        """
-        Gets called after any ufunc or other array operations, necessary
-        to pass on the index.
-        """
+        """Gets called after any ufunc or other array operations, necessary to
+        pass on the index."""
         self.sp_index = getattr(obj, 'sp_index', None)
         self.fill_value = getattr(obj, 'fill_value', None)
 
     def __reduce__(self):
-        """Necessary for making this object picklable"""
+        """Necessary for making this object picklable."""
         object_state = list(ndarray.__reduce__(self))
         subclass_state = self.fill_value, self.sp_index
         object_state[2] = (object_state[2], subclass_state)
         return tuple(object_state)
 
     def __setstate__(self, state):
-        """Necessary for making this object picklable"""
+        """Necessary for making this object picklable."""
         nd_state, own_state = state
         ndarray.__setstate__(self, nd_state)
 
@@ -239,9 +234,7 @@ to sparse
 
     @property
     def values(self):
-        """
-        Dense values
-        """
+        """Dense values."""
         output = np.empty(len(self), dtype=np.float64)
         int_index = self.sp_index.to_int_index()
         output.fill(self.fill_value)
@@ -254,13 +247,11 @@ to sparse
         return self.view(np.ndarray)
 
     def get_values(self, fill=None):
-        """ return a dense representation """
+        """return a dense representation."""
         return self.to_dense(fill=fill)
 
     def to_dense(self, fill=None):
-        """
-        Convert SparseSeries to (dense) Series
-        """
+        """Convert SparseSeries to (dense) Series."""
         values = self.values
 
         # fill the nans
@@ -277,9 +268,7 @@ to sparse
         raise StopIteration
 
     def __getitem__(self, key):
-        """
-
-        """
+        """"""
         if com.is_integer(key):
             return self._get_val_at(key)
         else:
@@ -369,18 +358,17 @@ to sparse
             "SparseArray does not support item assignment via slices")
 
     def astype(self, dtype=None):
-        """
-
-        """
+        """"""
         dtype = np.dtype(dtype)
         if dtype is not None and dtype not in (np.float_, float):
             raise TypeError('Can only support floating point data for now')
         return self.copy()
 
     def copy(self, deep=True):
-        """
-        Make a copy of the SparseSeries. Only the actual sparse values need to
-        be copied
+        """Make a copy of the SparseSeries.
+
+        Only the actual sparse values need to be copied
+
         """
         if deep:
             values = self.sp_values.copy()
@@ -434,14 +422,14 @@ to sparse
             return sp_sum + self.fill_value * nsparse
 
     def cumsum(self, axis=0, dtype=None, out=None):
-        """
-        Cumulative sum of values. Preserves locations of NaN values
+        """Cumulative sum of values. Preserves locations of NaN values.
 
         Extra parameters are to preserve ndarray interface.
 
         Returns
         -------
         cumsum : Series
+
         """
         if com.notnull(self.fill_value):
             return self.to_dense().cumsum()
@@ -470,7 +458,7 @@ to sparse
 
 
 def _maybe_to_dense(obj):
-    """ try to convert to dense """
+    """try to convert to dense."""
     if hasattr(obj, 'to_dense'):
         return obj.to_dense()
     return obj
@@ -486,8 +474,7 @@ def _maybe_to_sparse(array):
 
 
 def make_sparse(arr, kind='block', fill_value=nan):
-    """
-    Convert ndarray to sparse format
+    """Convert ndarray to sparse format.
 
     Parameters
     ----------
@@ -498,6 +485,7 @@ def make_sparse(arr, kind='block', fill_value=nan):
     Returns
     -------
     (sparse_values, index) : (ndarray, SparseIndex)
+
     """
     if hasattr(arr, 'values'):
         arr = arr.values

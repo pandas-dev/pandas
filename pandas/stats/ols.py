@@ -1,6 +1,4 @@
-"""
-Ordinary least squares regression
-"""
+"""Ordinary least squares regression."""
 
 # pylint: disable-msg=W0201
 
@@ -24,8 +22,7 @@ _FP_ERR = 1e-8
 
 
 class OLS(StringMixin):
-    """
-    Runs a full sample ordinary least squares regression.
+    """Runs a full sample ordinary least squares regression.
 
     Parameters
     ----------
@@ -75,8 +72,7 @@ class OLS(StringMixin):
                                  self._x.get_values()).fit()
 
     def _prepare_data(self):
-        """
-        Cleans the input for single OLS.
+        """Cleans the input for single OLS.
 
         Parameters
         ----------
@@ -89,6 +85,7 @@ class OLS(StringMixin):
         -------
         Series, DataFrame
             Cleaned lhs and rhs
+
         """
         (filt_lhs, filt_rhs, filt_weights,
          pre_filt_rhs, index, valid) = _filter_data(self._y_orig, self._x_orig,
@@ -145,6 +142,7 @@ class OLS(StringMixin):
         """Returns the degrees of freedom.
 
         This equals the rank of the X matrix.
+
         """
         return self._df_raw
 
@@ -208,7 +206,7 @@ class OLS(StringMixin):
 
     def f_test(self, hypothesis):
         """Runs the F test, given a joint hypothesis.  The hypothesis is
-        represented by a collection of equations, in the form
+        represented by a collection of equations, in the form.
 
         A*x_1+B*x_2=C
 
@@ -222,6 +220,7 @@ class OLS(StringMixin):
         o = ols(...)
         o.f_test('1*x1+2*x2=0,1*x3=0')
         o.f_test(['1*x1+2*x2=0','1*x3=0'])
+
         """
 
         x_names = self._x.columns
@@ -344,9 +343,7 @@ class OLS(StringMixin):
 
     @cache_readonly
     def _var_beta_raw(self):
-        """
-        Returns the raw covariance of beta.
-        """
+        """Returns the raw covariance of beta."""
         x = self._x.values
         y = self._y.values
 
@@ -384,7 +381,11 @@ class OLS(StringMixin):
 
     @cache_readonly
     def y_fitted(self):
-        """Returns the fitted y values.  This equals BX."""
+        """Returns the fitted y values.
+
+        This equals BX.
+
+        """
         if self._weights is None:
             index = self._x_filtered.index
             orig_index = index
@@ -404,31 +405,33 @@ class OLS(StringMixin):
     def y_predict(self):
         """Returns the predicted y values.
 
-        For in-sample, this is same as y_fitted."""
+        For in-sample, this is same as y_fitted.
+
+        """
         return self.y_fitted
 
     def predict(self, beta=None, x=None, fill_value=None,
                 fill_method=None, axis=0):
-        """
-        Parameters
-        ----------
+        """Parameters.
+
         beta : Series
-        x : Series or DataFrame
-        fill_value : scalar or dict, default None
-        fill_method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
-        axis : {0, 1}, default 0
-            See DataFrame.fillna for more details
+                x : Series or DataFrame
+                fill_value : scalar or dict, default None
+                fill_method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
+                axis : {0, 1}, default 0
+                    See DataFrame.fillna for more details
 
-        Notes
-        -----
-        1. If both fill_value and fill_method are None then NaNs are dropped
-        (this is the default behavior)
-        2. An intercept will be automatically added to the new_y_values if
-           the model was fitted using an intercept
+                Notes
+                -----
+                1. If both fill_value and fill_method are None then NaNs are dropped
+                (this is the default behavior)
+                2. An intercept will be automatically added to the new_y_values if
+                   the model was fitted using an intercept
 
-        Returns
-        -------
-        Series of predicted values
+                Returns
+                -------
+                Series of predicted values
+
         """
         if beta is None and x is None:
             return self.y_predict
@@ -520,9 +523,7 @@ class OLS(StringMixin):
 
     @cache_readonly
     def summary(self):
-        """
-        This returns the formatted result of the OLS computation
-        """
+        """This returns the formatted result of the OLS computation."""
         template = """
 %(bannerTop)s
 
@@ -599,8 +600,7 @@ Degrees of Freedom: model %(df_model)d, resid %(df_resid)d
 
 
 class MovingOLS(OLS):
-    """
-    Runs a rolling/expanding simple OLS.
+    """Runs a rolling/expanding simple OLS.
 
     Parameters
     ----------
@@ -1263,8 +1263,7 @@ def _safe_update(d, other):
 
 
 def _filter_data(lhs, rhs, weights=None):
-    """
-    Cleans the input for single OLS.
+    """Cleans the input for single OLS.
 
     Parameters
     ----------
@@ -1279,6 +1278,7 @@ def _filter_data(lhs, rhs, weights=None):
     -------
     Series, DataFrame
         Cleaned lhs and rhs
+
     """
     if not isinstance(lhs, Series):
         if len(lhs) != len(rhs):
@@ -1313,10 +1313,8 @@ def _filter_data(lhs, rhs, weights=None):
 
 
 def _combine_rhs(rhs):
-    """
-    Glue input X variables together while checking for potential
-    duplicates
-    """
+    """Glue input X variables together while checking for potential
+    duplicates."""
     series = {}
 
     if isinstance(rhs, Series):

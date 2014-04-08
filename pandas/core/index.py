@@ -27,10 +27,8 @@ __all__ = ['Index']
 
 
 def _indexOp(opname):
-    """
-    Wrapper function for index comparison operations, to avoid
-    code duplication.
-    """
+    """Wrapper function for index comparison operations, to avoid code
+    duplication."""
 
     def wrapper(self, other):
         func = getattr(self.view(np.ndarray), opname)
@@ -59,9 +57,8 @@ _Identity = object
 
 class Index(IndexOpsMixin, FrozenNDArray):
 
-    """
-    Immutable ndarray implementing an ordered, sliceable set. The basic object
-    storing axis labels for all pandas objects
+    """Immutable ndarray implementing an ordered, sliceable set. The basic
+    object storing axis labels for all pandas objects.
 
     Parameters
     ----------
@@ -75,6 +72,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
     Notes
     -----
     An Index instance can **only** contain hashable objects
+
     """
     # To hand over control to subclasses
     _join_precedence = 1
@@ -164,8 +162,8 @@ class Index(IndexOpsMixin, FrozenNDArray):
         return subarr
 
     def is_(self, other):
-        """
-        More flexible, faster check like ``is`` but that works through views
+        """More flexible, faster check like ``is`` but that works through
+        views.
 
         Note: this is *not* the same as ``Index.identical()``, which checks
         that metadata is also the same.
@@ -178,12 +176,13 @@ class Index(IndexOpsMixin, FrozenNDArray):
         Returns
         -------
         True if both have same underlying data, False otherwise : bool
+
         """
         # use something other than None to be clearer
         return self._id is getattr(other, '_id', Ellipsis)
 
     def _reset_identity(self):
-        """Initializes or resets ``_id`` attribute with new object"""
+        """Initializes or resets ``_id`` attribute with new object."""
         self._id = _Identity()
 
     def view(self, *args, **kwargs):
@@ -207,8 +206,12 @@ class Index(IndexOpsMixin, FrozenNDArray):
 
     @classmethod
     def _coerce_to_ndarray(cls, data):
-        """coerces data to ndarray, raises on scalar data. Converts other
-        iterables to list first and then to array. Does not touch ndarrays."""
+        """coerces data to ndarray, raises on scalar data.
+
+        Converts other iterables to list first and then to array. Does
+        not touch ndarrays.
+
+        """
 
         if not isinstance(data, np.ndarray):
             if np.isscalar(data):
@@ -232,8 +235,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
         return self.view()
 
     def copy(self, names=None, name=None, dtype=None, deep=False):
-        """
-        Make a copy of this object.  Name and dtype sets those attributes on
+        """Make a copy of this object.  Name and dtype sets those attributes on
         the new object.
 
         Parameters
@@ -249,6 +251,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
         -----
         In most cases, there should be no functional difference from using
         ``deep``, but if ``deep`` is passed it will attempt to deepcopy.
+
         """
         if names is not None and name is not None:
             raise TypeError("Can only provide one of `names` and `name`")
@@ -267,9 +270,8 @@ class Index(IndexOpsMixin, FrozenNDArray):
         return new_index
 
     def to_series(self, keep_tz=False):
-        """
-        Create a Series with both index and values equal to the index keys
-        useful with map for returning an indexer based on an index
+        """Create a Series with both index and values equal to the index keys
+        useful with map for returning an indexer based on an index.
 
         Parameters
         ----------
@@ -279,6 +281,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
         Returns
         -------
         Series : dtype will be based on the type of the Index values.
+
         """
 
         import pandas as pd
@@ -286,7 +289,8 @@ class Index(IndexOpsMixin, FrozenNDArray):
         return pd.Series(values, index=self, name=self.name)
 
     def _to_embed(self, keep_tz=False):
-        """ return an array repr of this object, potentially casting to object """
+        """return an array repr of this object, potentially casting to
+        object."""
         return self.values
 
     def astype(self, dtype):
@@ -294,10 +298,8 @@ class Index(IndexOpsMixin, FrozenNDArray):
                      dtype=dtype)
 
     def to_datetime(self, dayfirst=False):
-        """
-        For an Index containing strings or datetime.datetime objects, attempt
-        conversion to DatetimeIndex
-        """
+        """For an Index containing strings or datetime.datetime objects,
+        attempt conversion to DatetimeIndex."""
         from pandas.tseries.index import DatetimeIndex
         if self.inferred_type == 'string':
             from dateutil.parser import parse
@@ -311,9 +313,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
         return True
 
     def tolist(self):
-        """
-        Overridden version of ndarray.tolist
-        """
+        """Overridden version of ndarray.tolist."""
         return list(self.values)
 
     @cache_readonly
@@ -338,8 +338,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
     names = property(fset=_set_names, fget=_get_names)
 
     def set_names(self, names, inplace=False):
-        """
-        Set new names on index. Defaults to returning new index.
+        """Set new names on index. Defaults to returning new index.
 
         Parameters
         ----------
@@ -351,6 +350,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
         Returns
         -------
         new index (of same type and class...etc) [if inplace, returns None]
+
         """
         if not com.is_list_like(names):
             raise TypeError("Must pass list-like as `names`.")
@@ -363,8 +363,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
             return idx
 
     def rename(self, name, inplace=False):
-        """
-        Set new names on index. Defaults to returning new index.
+        """Set new names on index. Defaults to returning new index.
 
         Parameters
         ----------
@@ -376,6 +375,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
         Returns
         -------
         new index (of same type and class...etc) [if inplace, returns None]
+
         """
         return self.set_names([name], inplace=inplace)
 
@@ -465,8 +465,8 @@ class Index(IndexOpsMixin, FrozenNDArray):
         return key
 
     def _validate_slicer(self, key, f):
-        """ validate and raise if needed on a slice indexers according to the
-        passed in function """
+        """validate and raise if needed on a slice indexers according to the
+        passed in function."""
 
         if not f(key.start):
             self._convert_indexer_error(key.start, 'slice start value')
@@ -476,19 +476,23 @@ class Index(IndexOpsMixin, FrozenNDArray):
             self._convert_indexer_error(key.step, 'slice step value')
 
     def _convert_slice_indexer_iloc(self, key):
-        """ convert a slice indexer for iloc only """
+        """convert a slice indexer for iloc only."""
         self._validate_slicer(key, lambda v: v is None or is_integer(v))
         return key
 
     def _convert_slice_indexer_getitem(self, key, is_index_slice=False):
-        """ called from the getitem slicers, determine how to treat the key
-            whether positional or not """
+        """called from the getitem slicers, determine how to treat the key
+        whether positional or not."""
         if self.is_integer() or is_index_slice:
             return key
         return self._convert_slice_indexer(key)
 
     def _convert_slice_indexer(self, key, typ=None):
-        """ convert a slice indexer. disallow floats in the start/stop/step """
+        """convert a slice indexer.
+
+        disallow floats in the start/stop/step
+
+        """
 
         # validate slicers
         def validate(v):
@@ -552,13 +556,19 @@ class Index(IndexOpsMixin, FrozenNDArray):
         return indexer
 
     def _convert_list_indexer(self, key, typ=None):
-        """ convert a list indexer. these should be locations """
+        """convert a list indexer.
+
+        these should be locations
+
+        """
         return key
 
     def _convert_list_indexer_for_mixed(self, keyarr, typ=None):
-        """ passed a key that is tuplesafe that is integer based
-            and we have a mixed index (e.g. number/labels). figure out
-            the indexer. return None if we can't help
+        """passed a key that is tuplesafe that is integer based and we have a
+        mixed index (e.g. number/labels).
+
+        figure out the indexer. return None if we can't help
+
         """
         if com.is_integer_dtype(keyarr) and not self.is_floating():
             if self.inferred_type != 'integer':
@@ -624,14 +634,14 @@ class Index(IndexOpsMixin, FrozenNDArray):
         return iter(self.values)
 
     def __reduce__(self):
-        """Necessary for making this object picklable"""
+        """Necessary for making this object picklable."""
         object_state = list(np.ndarray.__reduce__(self))
         subclass_state = self.name,
         object_state[2] = (object_state[2], subclass_state)
         return tuple(object_state)
 
     def __setstate__(self, state):
-        """Necessary for making this object picklable"""
+        """Necessary for making this object picklable."""
         if len(state) == 2:
             nd_state, own_state = state
             np.ndarray.__setstate__(self, nd_state)
@@ -654,8 +664,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
         raise TypeError("unhashable type: %r" % type(self).__name__)
 
     def __getitem__(self, key):
-        """
-        Override numpy.ndarray's __getitem__ method to work as desired.
+        """Override numpy.ndarray's __getitem__ method to work as desired.
 
         This function adds lists and Series as valid boolean indexers
         (ndarrays only supports ndarray with dtype=bool).
@@ -685,8 +694,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
             return result
 
     def append(self, other):
-        """
-        Append a collection of Index options together
+        """Append a collection of Index options together.
 
         Parameters
         ----------
@@ -695,6 +703,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
         Returns
         -------
         appended : Index
+
         """
         name = self.name
         to_concat = [self]
@@ -728,17 +737,13 @@ class Index(IndexOpsMixin, FrozenNDArray):
         return indexes
 
     def take(self, indexer, axis=0):
-        """
-        Analogous to ndarray.take
-        """
+        """Analogous to ndarray.take."""
         indexer = com._ensure_platform_int(indexer)
         taken = self.view(np.ndarray).take(indexer)
         return self._constructor(taken, name=self.name)
 
     def format(self, name=False, formatter=None, **kwargs):
-        """
-        Render a string representation of the Index
-        """
+        """Render a string representation of the Index."""
         header = []
         if name:
             header.append(com.pprint_thing(self.name,
@@ -774,23 +779,21 @@ class Index(IndexOpsMixin, FrozenNDArray):
         return header + result
 
     def to_native_types(self, slicer=None, **kwargs):
-        """ slice and dice then format """
+        """slice and dice then format."""
         values = self
         if slicer is not None:
             values = values[slicer]
         return values._format_native_types(**kwargs)
 
     def _format_native_types(self, na_rep='', **kwargs):
-        """ actually format my specific types """
+        """actually format my specific types."""
         mask = isnull(self)
         values = np.array(self, dtype=object, copy=True)
         values[mask] = na_rep
         return values.tolist()
 
     def equals(self, other):
-        """
-        Determines if two Index objects contain the same elements.
-        """
+        """Determines if two Index objects contain the same elements."""
         if self.is_(other):
             return True
 
@@ -804,16 +807,17 @@ class Index(IndexOpsMixin, FrozenNDArray):
 
     def identical(self, other):
         """Similar to equals, but check that other comparable attributes are
-        also equal
-        """
+        also equal."""
         return (self.equals(other) and
                 all((getattr(self, c, None) == getattr(other, c, None)
                      for c in self._comparables)))
 
     def asof(self, label):
-        """
-        For a sorted index, return the most recent label up to and including
-        the passed label. Return NaN if not found
+        """For a sorted index, return the most recent label up to and including
+        the passed label.
+
+        Return NaN if not found
+
         """
         if isinstance(label, (Index, ABCSeries, np.ndarray)):
             raise TypeError('%s' % type(label))
@@ -846,9 +850,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
         return result
 
     def order(self, return_indexer=False, ascending=True):
-        """
-        Return sorted copy of Index
-        """
+        """Return sorted copy of Index."""
         _as = self.argsort()
         if not ascending:
             _as = _as[::-1]
@@ -864,13 +866,13 @@ class Index(IndexOpsMixin, FrozenNDArray):
         raise TypeError('Cannot sort an %r object' % self.__class__.__name__)
 
     def shift(self, periods=1, freq=None):
-        """
-        Shift Index containing datetime objects by input number of periods and
-        DateOffset
+        """Shift Index containing datetime objects by input number of periods
+        and DateOffset.
 
         Returns
         -------
         shifted : Index
+
         """
         if periods == 0:
             # OK because immutable
@@ -880,9 +882,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
         return Index([idx + offset for idx in self], name=self.name)
 
     def argsort(self, *args, **kwargs):
-        """
-        See docstring for ndarray.argsort
-        """
+        """See docstring for ndarray.argsort."""
         result = self.asi8
         if result is None:
             result = self.view(np.ndarray)
@@ -915,8 +915,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
         return self.sym_diff(other)
 
     def union(self, other):
-        """
-        Form the union of two Index objects and sorts if possible
+        """Form the union of two Index objects and sorts if possible.
 
         Parameters
         ----------
@@ -925,6 +924,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
         Returns
         -------
         union : Index
+
         """
         if not hasattr(other, '__iter__'):
             raise TypeError('Input must be iterable.')
@@ -979,9 +979,8 @@ class Index(IndexOpsMixin, FrozenNDArray):
         return type(self)(data=result, name=name)
 
     def intersection(self, other):
-        """
-        Form the intersection of two Index objects. Sortedness of the result is
-        not guaranteed
+        """Form the intersection of two Index objects. Sortedness of the result
+        is not guaranteed.
 
         Parameters
         ----------
@@ -990,6 +989,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
         Returns
         -------
         intersection : Index
+
         """
         if not hasattr(other, '__iter__'):
             raise TypeError('Input must be iterable!')
@@ -1023,8 +1023,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
         return self.take(indexer)
 
     def diff(self, other):
-        """
-        Compute sorted set difference of two Index objects
+        """Compute sorted set difference of two Index objects.
 
         Parameters
         ----------
@@ -1040,6 +1039,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
 
         >>> index - index2
         >>> index.diff(index2)
+
         """
 
         if not hasattr(other, '__iter__'):
@@ -1058,8 +1058,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
         return Index(theDiff, name=result_name)
 
     def sym_diff(self, other, result_name=None):
-        """
-        Compute the sorted symmetric difference of two Index objects.
+        """Compute the sorted symmetric difference of two Index objects.
 
         Parameters
         ----------
@@ -1091,6 +1090,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
 
         >>> idx1 ^ idx2
         Int64Index([1, 5], dtype='int64')
+
         """
         if not hasattr(other, '__iter__'):
             raise TypeError('Input must be iterable!')
@@ -1103,12 +1103,12 @@ class Index(IndexOpsMixin, FrozenNDArray):
         return Index(the_diff, name=result_name)
 
     def get_loc(self, key):
-        """
-        Get integer location for requested label
+        """Get integer location for requested label.
 
         Returns
         -------
         loc : int if unique index, possibly slice or mask if not
+
         """
         return self._engine.get_loc(_values_from_object(key))
 
@@ -1157,9 +1157,8 @@ class Index(IndexOpsMixin, FrozenNDArray):
             _values_from_object(arr), _values_from_object(key), value)
 
     def get_level_values(self, level):
-        """
-        Return vector of label values for requested level, equal to the length
-        of the index
+        """Return vector of label values for requested level, equal to the
+        length of the index.
 
         Parameters
         ----------
@@ -1168,17 +1167,17 @@ class Index(IndexOpsMixin, FrozenNDArray):
         Returns
         -------
         values : ndarray
+
         """
         # checks that level number is actually just 1
         self._get_level_number(level)
         return self
 
     def get_indexer(self, target, method=None, limit=None):
-        """
-        Compute indexer and mask for new index given the current index. The
+        """Compute indexer and mask for new index given the current index. The
         indexer should be then used as an input to ndarray.take to align the
         current data to the new index. The mask determines whether labels are
-        found or not in the current index
+        found or not in the current index.
 
         Parameters
         ----------
@@ -1199,6 +1198,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
         Returns
         -------
         indexer : ndarray
+
         """
         method = self._get_method(method)
         target = _ensure_index(target)
@@ -1270,9 +1270,8 @@ class Index(IndexOpsMixin, FrozenNDArray):
         return self._arrmap(self.values, mapper)
 
     def isin(self, values):
-        """
-        Compute boolean array of whether each index value is found in the
-        passed set of values
+        """Compute boolean array of whether each index value is found in the
+        passed set of values.
 
         Parameters
         ----------
@@ -1281,6 +1280,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
         Returns
         -------
         is_contained : ndarray (boolean dtype)
+
         """
         value_set = set(values)
         return lib.ismember(self._array_values(), value_set)
@@ -1300,14 +1300,14 @@ class Index(IndexOpsMixin, FrozenNDArray):
 
     def reindex(self, target, method=None, level=None, limit=None,
                 copy_if_needed=False):
-        """
-        For Index, simply returns the new index and the results of
+        """For Index, simply returns the new index and the results of
         get_indexer. Provided here to enable an interface that is amenable for
         subclasses of Index whose internals are different (like MultiIndex)
 
         Returns
         -------
         (new_index, indexer, mask) : tuple
+
         """
         target = _ensure_index(target)
         if level is not None:
@@ -1339,8 +1339,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
         return target, indexer
 
     def join(self, other, how='left', level=None, return_indexers=False):
-        """
-        Internal API method. Compute join_index and indexers to conform data
+        """Internal API method. Compute join_index and indexers to conform data
         structures to the new index.
 
         Parameters
@@ -1353,6 +1352,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
         Returns
         -------
         join_index, (left_indexer, right_indexer)
+
         """
         self_is_mi = isinstance(self, MultiIndex)
         other_is_mi = isinstance(other, MultiIndex)
@@ -1615,9 +1615,8 @@ class Index(IndexOpsMixin, FrozenNDArray):
         return Index(joined, name=name)
 
     def slice_indexer(self, start=None, end=None, step=None):
-        """
-        For an ordered Index, compute the slice indexer for input labels and
-        step
+        """For an ordered Index, compute the slice indexer for input labels and
+        step.
 
         Parameters
         ----------
@@ -1634,6 +1633,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
         Notes
         -----
         This function assumes that the data is sorted, so use at your own peril
+
         """
         start_slice, end_slice = self.slice_locs(start, end)
 
@@ -1650,8 +1650,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
         return Index(start_slice) & Index(end_slice)
 
     def slice_locs(self, start=None, end=None):
-        """
-        For an ordered Index, compute the slice locations for input labels
+        """For an ordered Index, compute the slice locations for input labels.
 
         Parameters
         ----------
@@ -1667,6 +1666,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
         Notes
         -----
         This function assumes that the data is sorted, so use at your own peril
+
         """
 
         is_unique = self.is_unique
@@ -1720,19 +1720,18 @@ class Index(IndexOpsMixin, FrozenNDArray):
         return start_slice, end_slice
 
     def delete(self, loc):
-        """
-        Make new Index with passed location deleted
+        """Make new Index with passed location deleted.
 
         Returns
         -------
         new_index : Index
+
         """
         arr = np.delete(self.values, loc)
         return Index(arr)
 
     def insert(self, loc, item):
-        """
-        Make new Index inserting new item at location
+        """Make new Index inserting new item at location.
 
         Parameters
         ----------
@@ -1742,6 +1741,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
         Returns
         -------
         new_index : Index
+
         """
         index = np.asarray(self)
         # because numpy is fussy with tuples
@@ -1750,8 +1750,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
         return Index(new_index, name=self.name)
 
     def drop(self, labels):
-        """
-        Make new Index with passed list of labels deleted
+        """Make new Index with passed list of labels deleted.
 
         Parameters
         ----------
@@ -1760,6 +1759,7 @@ class Index(IndexOpsMixin, FrozenNDArray):
         Returns
         -------
         dropped : Index
+
         """
         labels = com._index_labels_to_array(labels)
         indexer = self.get_indexer(labels)
@@ -1771,12 +1771,11 @@ class Index(IndexOpsMixin, FrozenNDArray):
 
 class Int64Index(Index):
 
-    """
-    Immutable ndarray implementing an ordered, sliceable set. The basic object
-    storing axis labels for all pandas objects. Int64Index is a special case
-    of `Index` with purely integer labels. This is the default index type used
-    by the DataFrame and Series ctors when no explicit index is provided by the
-    user.
+    """Immutable ndarray implementing an ordered, sliceable set. The basic
+    object storing axis labels for all pandas objects. Int64Index is a special
+    case of `Index` with purely integer labels. This is the default index type
+    used by the DataFrame and Series ctors when no explicit index is provided
+    by the user.
 
     Parameters
     ----------
@@ -1790,6 +1789,7 @@ class Int64Index(Index):
     Notes
     -----
     An Index instance can **only** contain hashable objects
+
     """
 
     _groupby = _algos.groupby_int64
@@ -1844,15 +1844,11 @@ class Int64Index(Index):
 
     @property
     def is_all_dates(self):
-        """
-        Checks that all the labels are datetime objects
-        """
+        """Checks that all the labels are datetime objects."""
         return False
 
     def equals(self, other):
-        """
-        Determines if two Index objects contain the same elements.
-        """
+        """Determines if two Index objects contain the same elements."""
         if self.is_(other):
             return True
 
@@ -1872,10 +1868,9 @@ class Int64Index(Index):
 
 class Float64Index(Index):
 
-    """
-    Immutable ndarray implementing an ordered, sliceable set. The basic object
-    storing axis labels for all pandas objects. Float64Index is a special case
-    of `Index` with purely floating point labels.
+    """Immutable ndarray implementing an ordered, sliceable set. The basic
+    object storing axis labels for all pandas objects. Float64Index is a
+    special case of `Index` with purely floating point labels.
 
     Parameters
     ----------
@@ -1889,6 +1884,7 @@ class Float64Index(Index):
     Notes
     -----
     An Index instance can **only** contain hashable objects
+
     """
 
     # when this is not longer object dtype this can be changed
@@ -1941,8 +1937,8 @@ class Float64Index(Index):
         return key
 
     def _convert_slice_indexer(self, key, typ=None):
-        """ convert a slice indexer, by definition these are labels
-            unless we are iloc """
+        """convert a slice indexer, by definition these are labels unless we
+        are iloc."""
         if typ == 'iloc':
             return self._convert_slice_indexer_iloc(key)
         elif typ == 'getitem':
@@ -1956,7 +1952,7 @@ class Float64Index(Index):
         return self.slice_indexer(key.start, key.stop, key.step)
 
     def get_value(self, series, key):
-        """ we always want to get an index value, never a value """
+        """we always want to get an index value, never a value."""
         if not np.isscalar(key):
             raise InvalidIndexError
 
@@ -1974,9 +1970,7 @@ class Float64Index(Index):
         return Series(new_values, index=new_index, name=series.name)
 
     def equals(self, other):
-        """
-        Determines if two Index objects contain the same elements.
-        """
+        """Determines if two Index objects contain the same elements."""
         if self is other:
             return True
 
@@ -2056,7 +2050,7 @@ class MultiIndex(Index):
 
     def _verify_integrity(self):
         """Raises ValueError if length of levels and labels don't match or any
-        label would exceed level bounds"""
+        label would exceed level bounds."""
         # NOTE: Currently does not check, among other things, that cached
         # nlevels matches nor that sortorder matches actually sortorder.
         labels, levels = self.labels, self.levels
@@ -2100,9 +2094,7 @@ class MultiIndex(Index):
             self._verify_integrity()
 
     def set_levels(self, levels, inplace=False, verify_integrity=True):
-        """
-        Set new levels on MultiIndex. Defaults to returning
-        new index.
+        """Set new levels on MultiIndex. Defaults to returning new index.
 
         Parameters
         ----------
@@ -2116,6 +2108,7 @@ class MultiIndex(Index):
         Returns
         -------
         new index (of same type and class...etc)
+
         """
         if not com.is_list_like(levels) or not com.is_list_like(levels[0]):
             raise TypeError("Levels must be list of lists-like")
@@ -2152,9 +2145,7 @@ class MultiIndex(Index):
             self._verify_integrity()
 
     def set_labels(self, labels, inplace=False, verify_integrity=True):
-        """
-        Set new labels on MultiIndex. Defaults to returning
-        new index.
+        """Set new labels on MultiIndex. Defaults to returning new index.
 
         Parameters
         ----------
@@ -2168,6 +2159,7 @@ class MultiIndex(Index):
         Returns
         -------
         new index (of same type and class...etc)
+
         """
         if not com.is_list_like(labels) or not com.is_list_like(labels[0]):
             raise TypeError("Labels must be list of lists-like")
@@ -2189,8 +2181,7 @@ class MultiIndex(Index):
 
     def copy(self, names=None, dtype=None, levels=None, labels=None,
              deep=False):
-        """
-        Make a copy of this object. Names, dtype, levels and labels can be
+        """Make a copy of this object. Names, dtype, levels and labels can be
         passed and will be set on new copy.
 
         Parameters
@@ -2209,6 +2200,7 @@ class MultiIndex(Index):
         In most cases, there should be no functional difference from using
         ``deep``, but if ``deep`` is passed it will attempt to deepcopy.
         This could be potentially expensive on large MultiIndex objects.
+
         """
         new_index = np.ndarray.copy(self)
         if deep:
@@ -2227,10 +2219,8 @@ class MultiIndex(Index):
         return new_index
 
     def __array_finalize__(self, obj):
-        """
-        Update custom MultiIndex attributes when a new array is created by
-        numpy, e.g. when calling ndarray.view()
-        """
+        """Update custom MultiIndex attributes when a new array is created by
+        numpy, e.g. when calling ndarray.view()"""
         # overriden if a view
         self._reset_identity()
         if not isinstance(obj, type(self)):
@@ -2272,11 +2262,11 @@ class MultiIndex(Index):
         return res
 
     def __unicode__(self):
-        """
-        Return a string representation for a particular Index
+        """Return a string representation for a particular Index.
 
         Invoked by unicode(df) in py2 only. Yields a Unicode String in both
         py2/py3.
+
         """
         rows = self.format(names=True)
         max_rows = get_option('display.max_rows')
@@ -2291,7 +2281,11 @@ class MultiIndex(Index):
         return len(self.labels[0])
 
     def _convert_slice_indexer(self, key, typ=None):
-        """ convert a slice indexer. disallow floats in the start/stop/step """
+        """convert a slice indexer.
+
+        disallow floats in the start/stop/step
+
+        """
 
         if typ == 'iloc':
             return self._convert_slice_indexer_iloc(key)
@@ -2395,9 +2389,7 @@ class MultiIndex(Index):
 
     @property
     def has_duplicates(self):
-        """
-        Return True if there are no unique groups
-        """
+        """Return True if there are no unique groups."""
         # has duplicates
         shape = [len(lev) for lev in self.levels]
         group_index = np.zeros(len(self), dtype='i8')
@@ -2470,9 +2462,8 @@ class MultiIndex(Index):
             raise InvalidIndexError(key)
 
     def get_level_values(self, level):
-        """
-        Return vector of label values for requested level, equal to the length
-        of the index
+        """Return vector of label values for requested level, equal to the
+        length of the index.
 
         Parameters
         ----------
@@ -2481,6 +2472,7 @@ class MultiIndex(Index):
         Returns
         -------
         values : ndarray
+
         """
         num = self._get_level_number(level)
         unique_vals = self.levels[num]  # .values
@@ -2548,9 +2540,8 @@ class MultiIndex(Index):
             return result_levels
 
     def to_hierarchical(self, n_repeat, n_shuffle=1):
-        """
-        Return a MultiIndex reshaped to conform to the
-        shapes given by n_repeat and n_shuffle.
+        """Return a MultiIndex reshaped to conform to the shapes given by
+        n_repeat and n_shuffle.
 
         Useful to replicate and rearrange a MultiIndex for combination
         with another Index with n_repeat items.
@@ -2577,6 +2568,7 @@ class MultiIndex(Index):
         MultiIndex(levels=[[1, 2], [u'one', u'two']],
                    labels=[[0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
                            [0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1]])
+
         """
         levels = self.levels
         labels = [np.repeat(x, n_repeat) for x in self.labels]
@@ -2590,15 +2582,11 @@ class MultiIndex(Index):
         return False
 
     def is_lexsorted(self):
-        """
-        Return True if the labels are lexicographically sorted
-        """
+        """Return True if the labels are lexicographically sorted."""
         return self.lexsort_depth == self.nlevels
 
     def is_lexsorted_for_tuple(self, tup):
-        """
-        Return True if we are correctly lexsorted given the passed tuple
-        """
+        """Return True if we are correctly lexsorted given the passed tuple."""
         return len(tup) <= self.lexsort_depth
 
     @cache_readonly
@@ -2618,8 +2606,7 @@ class MultiIndex(Index):
 
     @classmethod
     def from_arrays(cls, arrays, sortorder=None, names=None):
-        """
-        Convert arrays to MultiIndex
+        """Convert arrays to MultiIndex.
 
         Parameters
         ----------
@@ -2644,6 +2631,7 @@ class MultiIndex(Index):
         MultiIndex.from_tuples : Convert list of tuples to MultiIndex
         MultiIndex.from_product : Make a MultiIndex from cartesian product
                                   of iterables
+
         """
         from pandas.core.categorical import Categorical
 
@@ -2663,8 +2651,7 @@ class MultiIndex(Index):
 
     @classmethod
     def from_tuples(cls, tuples, sortorder=None, names=None):
-        """
-        Convert list of tuples to MultiIndex
+        """Convert list of tuples to MultiIndex.
 
         Parameters
         ----------
@@ -2689,6 +2676,7 @@ class MultiIndex(Index):
         MultiIndex.from_arrays : Convert list of arrays to MultiIndex
         MultiIndex.from_product : Make a MultiIndex from cartesian product
                                   of iterables
+
         """
         if len(tuples) == 0:
             # I think this is right? Not quite sure...
@@ -2709,8 +2697,7 @@ class MultiIndex(Index):
 
     @classmethod
     def from_product(cls, iterables, sortorder=None, names=None):
-        """
-        Make a MultiIndex from the cartesian product of multiple iterables
+        """Make a MultiIndex from the cartesian product of multiple iterables.
 
         Parameters
         ----------
@@ -2740,6 +2727,7 @@ class MultiIndex(Index):
         --------
         MultiIndex.from_arrays : Convert list of arrays to MultiIndex
         MultiIndex.from_tuples : Convert list of tuples to MultiIndex
+
         """
         from pandas.tools.util import cartesian_product
         product = cartesian_product(iterables)
@@ -2764,7 +2752,7 @@ class MultiIndex(Index):
             return False
 
     def __reduce__(self):
-        """Necessary for making this object picklable"""
+        """Necessary for making this object picklable."""
         object_state = list(np.ndarray.__reduce__(self))
         subclass_state = ([lev.view(np.ndarray) for lev in self.levels],
                           [label.view(np.ndarray) for label in self.labels],
@@ -2773,7 +2761,7 @@ class MultiIndex(Index):
         return tuple(object_state)
 
     def __setstate__(self, state):
-        """Necessary for making this object picklable"""
+        """Necessary for making this object picklable."""
         nd_state, own_state = state
         np.ndarray.__setstate__(self, nd_state)
         levels, labels, sortorder, names = own_state
@@ -2814,17 +2802,14 @@ class MultiIndex(Index):
             return result
 
     def take(self, indexer, axis=None):
-        """
-        Analogous to ndarray.take
-        """
+        """Analogous to ndarray.take."""
         indexer = com._ensure_platform_int(indexer)
         new_labels = [lab.take(indexer) for lab in self.labels]
         return MultiIndex(levels=self.levels, labels=new_labels,
                           names=self.names, verify_integrity=False)
 
     def append(self, other):
-        """
-        Append a collection of Index options together
+        """Append a collection of Index options together.
 
         Parameters
         ----------
@@ -2833,6 +2818,7 @@ class MultiIndex(Index):
         Returns
         -------
         appended : Index
+
         """
         if not isinstance(other, (list, tuple)):
             other = [other]
@@ -2850,8 +2836,7 @@ class MultiIndex(Index):
         return self.values.argsort()
 
     def drop(self, labels, level=None):
-        """
-        Make new MultiIndex with passed list of labels deleted
+        """Make new MultiIndex with passed list of labels deleted.
 
         Parameters
         ----------
@@ -2862,6 +2847,7 @@ class MultiIndex(Index):
         Returns
         -------
         dropped : MultiIndex
+
         """
         if level is not None:
             return self._drop_from_level(labels, level)
@@ -2899,8 +2885,7 @@ class MultiIndex(Index):
         return self[mask]
 
     def droplevel(self, level=0):
-        """
-        Return Index with requested level removed. If MultiIndex has only 2
+        """Return Index with requested level removed. If MultiIndex has only 2
         levels, the result will be of Index type not MultiIndex.
 
         Parameters
@@ -2914,6 +2899,7 @@ class MultiIndex(Index):
         Returns
         -------
         index : Index or MultiIndex
+
         """
         levels = level
         if not isinstance(levels, (tuple, list)):
@@ -2945,8 +2931,7 @@ class MultiIndex(Index):
                               names=new_names, verify_integrity=False)
 
     def swaplevel(self, i, j):
-        """
-        Swap level i with level j. Do not change the ordering of anything
+        """Swap level i with level j. Do not change the ordering of anything.
 
         Parameters
         ----------
@@ -2956,6 +2941,7 @@ class MultiIndex(Index):
         Returns
         -------
         swapped : MultiIndex
+
         """
         new_levels = list(self.levels)
         new_labels = list(self.labels)
@@ -2972,11 +2958,12 @@ class MultiIndex(Index):
                           names=new_names, verify_integrity=False)
 
     def reorder_levels(self, order):
-        """
-        Rearrange levels using input order. May not drop or duplicate levels
+        """Rearrange levels using input order. May not drop or duplicate
+        levels.
 
         Parameters
         ----------
+
         """
         order = [self._get_level_number(i) for i in order]
         if len(order) != self.nlevels:
@@ -2994,8 +2981,7 @@ class MultiIndex(Index):
         return self.__getitem__(slice(i, j))
 
     def sortlevel(self, level=0, ascending=True):
-        """
-        Sort MultiIndex at the requested level. The result will respect the
+        """Sort MultiIndex at the requested level. The result will respect the
         original ordering of the associated factor at that level.
 
         Parameters
@@ -3008,6 +2994,7 @@ class MultiIndex(Index):
         Returns
         -------
         sorted_index : MultiIndex
+
         """
         from pandas.core.groupby import _indexer_from_factorized
 
@@ -3035,11 +3022,10 @@ class MultiIndex(Index):
         return new_index, indexer
 
     def get_indexer(self, target, method=None, limit=None):
-        """
-        Compute indexer and mask for new index given the current index. The
+        """Compute indexer and mask for new index given the current index. The
         indexer should be then used as an input to ndarray.take to align the
         current data to the new index. The mask determines whether labels are
-        found or not in the current index
+        found or not in the current index.
 
         Parameters
         ----------
@@ -3061,6 +3047,7 @@ class MultiIndex(Index):
         Returns
         -------
         (indexer, mask) : (ndarray, ndarray)
+
         """
         method = self._get_method(method)
 
@@ -3138,12 +3125,12 @@ class MultiIndex(Index):
 
     @cache_readonly
     def _tuple_index(self):
-        """
-        Convert MultiIndex to an Index of tuples
+        """Convert MultiIndex to an Index of tuples.
 
         Returns
         -------
         index : Index
+
         """
         return Index(self.values)
 
@@ -3216,8 +3203,7 @@ class MultiIndex(Index):
                 return start + section.searchsorted(idx, side=side)
 
     def get_loc(self, key):
-        """
-        Get integer location slice for requested label or tuple
+        """Get integer location slice for requested label or tuple.
 
         Parameters
         ----------
@@ -3226,6 +3212,7 @@ class MultiIndex(Index):
         Returns
         -------
         loc : int or slice object
+
         """
         if isinstance(key, tuple):
             if len(key) == self.nlevels:
@@ -3243,8 +3230,7 @@ class MultiIndex(Index):
             return self._get_level_indexer(key, level=0)
 
     def get_loc_level(self, key, level=0, drop_level=True):
-        """
-        Get integer location slice for requested label or tuple
+        """Get integer location slice for requested label or tuple.
 
         Parameters
         ----------
@@ -3254,6 +3240,7 @@ class MultiIndex(Index):
         Returns
         -------
         loc : int or slice object
+
         """
         def _maybe_drop_levels(indexer, levels, drop_level):
             if not drop_level:
@@ -3479,8 +3466,7 @@ class MultiIndex(Index):
         return reduce(np.logical_and,[ _convert_indexer(r) for r in ranges ])
 
     def truncate(self, before=None, after=None):
-        """
-        Slice index between two labels / tuples, return new MultiIndex
+        """Slice index between two labels / tuples, return new MultiIndex.
 
         Parameters
         ----------
@@ -3492,6 +3478,7 @@ class MultiIndex(Index):
         Returns
         -------
         truncated : MultiIndex
+
         """
         if after and before and after < before:
             raise ValueError('after < before')
@@ -3509,13 +3496,15 @@ class MultiIndex(Index):
                           verify_integrity=False)
 
     def equals(self, other):
-        """
-        Determines if two MultiIndex objects have the same labeling information
+        """Determines if two MultiIndex objects have the same labeling
+        information.
+
         (the levels themselves do not necessarily have to be the same)
 
         See also
         --------
         equal_levels
+
         """
         if self.is_(other):
             return True
@@ -3540,10 +3529,8 @@ class MultiIndex(Index):
         return True
 
     def equal_levels(self, other):
-        """
-        Return True if the levels of both MultiIndex objects are the same
-
-        """
+        """Return True if the levels of both MultiIndex objects are the
+        same."""
         if self.nlevels != other.nlevels:
             return False
 
@@ -3553,8 +3540,7 @@ class MultiIndex(Index):
         return True
 
     def union(self, other):
-        """
-        Form the union of two MultiIndex objects, sorting if possible
+        """Form the union of two MultiIndex objects, sorting if possible.
 
         Parameters
         ----------
@@ -3563,6 +3549,7 @@ class MultiIndex(Index):
         Returns
         -------
         Index
+
         """
         self._assert_can_do_setop(other)
 
@@ -3576,8 +3563,8 @@ class MultiIndex(Index):
                                       names=result_names)
 
     def intersection(self, other):
-        """
-        Form the intersection of two MultiIndex objects, sorting if possible
+        """Form the intersection of two MultiIndex objects, sorting if
+        possible.
 
         Parameters
         ----------
@@ -3586,6 +3573,7 @@ class MultiIndex(Index):
         Returns
         -------
         Index
+
         """
         self._assert_can_do_setop(other)
 
@@ -3606,12 +3594,12 @@ class MultiIndex(Index):
                                           names=result_names)
 
     def diff(self, other):
-        """
-        Compute sorted set difference of two MultiIndex objects
+        """Compute sorted set difference of two MultiIndex objects.
 
         Returns
         -------
         diff : MultiIndex
+
         """
         self._assert_can_do_setop(other)
 
@@ -3652,8 +3640,7 @@ class MultiIndex(Index):
         return self._shallow_copy()
 
     def insert(self, loc, item):
-        """
-        Make new MultiIndex inserting new item at location
+        """Make new MultiIndex inserting new item at location.
 
         Parameters
         ----------
@@ -3664,6 +3651,7 @@ class MultiIndex(Index):
         Returns
         -------
         new_index : Index
+
         """
         # Pad the key with empty strings if lower levels of the key
         # aren't specified:
@@ -3692,12 +3680,12 @@ class MultiIndex(Index):
                           names=self.names, verify_integrity=False)
 
     def delete(self, loc):
-        """
-        Make new index with passed location deleted
+        """Make new index with passed location deleted.
 
         Returns
         -------
         new_index : MultiIndex
+
         """
         new_labels = [np.delete(lab, loc) for lab in self.labels]
         return MultiIndex(levels=self.levels, labels=new_labels,
@@ -3709,10 +3697,8 @@ class MultiIndex(Index):
 
     @property
     def _bounds(self):
-        """
-        Return or compute and return slice points for level 0, assuming
-        sortedness
-        """
+        """Return or compute and return slice points for level 0, assuming
+        sortedness."""
         if self.__bounds is None:
             inds = np.arange(len(self.levels[0]))
             self.__bounds = self.labels[0].searchsorted(inds)
@@ -3849,9 +3835,7 @@ def _union_indexes(indexes):
 
 
 def _trim_front(strings):
-    """
-    Trims zeros and decimal points
-    """
+    """Trims zeros and decimal points."""
     trimmed = strings
     while len(strings) > 0 and all([x[0] == ' ' for x in trimmed]):
         trimmed = [x[1:] for x in trimmed]

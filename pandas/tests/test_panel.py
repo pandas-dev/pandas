@@ -2000,9 +2000,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
 
 
 class TestLongPanel(tm.TestCase):
-    """
-    LongPanel no longer exists, but...
-    """
+    """LongPanel no longer exists, but..."""
     _multiprocess_can_split_ = True
 
     def setUp(self):

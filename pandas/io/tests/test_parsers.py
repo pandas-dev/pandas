@@ -39,9 +39,7 @@ from pandas.parser import OverflowError
 
 
 class ParserTests(object):
-    """
-    Want to be able to test either C+Cython or Python+Cython parsers
-    """
+    """Want to be able to test either C+Cython or Python+Cython parsers."""
     data1 = """index,A,B,C,D
 foo,2,3,4,5
 bar,7,8,9,10

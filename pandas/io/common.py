@@ -1,4 +1,4 @@
-"""Common IO api utilities"""
+"""Common IO api utilities."""
 
 import sys
 import zipfile
@@ -57,6 +57,7 @@ def _is_url(url):
     -------
     isurl : bool
         If `url` has a valid protocol return True otherwise False.
+
     """
     try:
         return parse_url(url).scheme in _VALID_URLS
@@ -65,7 +66,7 @@ def _is_url(url):
 
 
 def _is_s3_url(url):
-    """Check for an s3 url"""
+    """Check for an s3 url."""
     try:
         return parse_url(url).scheme == 's3'
     except:
@@ -74,16 +75,16 @@ def _is_s3_url(url):
 
 def maybe_read_encoded_stream(reader, encoding=None):
     """read an encoded stream from the reader and transform the bytes to
-    unicode if required based on the encoding
+    unicode if required based on the encoding.
 
-        Parameters
-        ----------
-        reader : a streamable file-like object
-        encoding : optional, the encoding to attempt to read
+    Parameters
+    ----------
+    reader : a streamable file-like object
+    encoding : optional, the encoding to attempt to read
 
-        Returns
-        -------
-        a tuple of (a stream of decoded bytes, the encoding which was used)
+    Returns
+    -------
+    a tuple of (a stream of decoded bytes, the encoding which was used)
 
     """
 
@@ -100,8 +101,7 @@ def maybe_read_encoded_stream(reader, encoding=None):
 
 
 def get_filepath_or_buffer(filepath_or_buffer, encoding=None):
-    """
-    If the filepath_or_buffer is a url, translate and return the buffer
+    """If the filepath_or_buffer is a url, translate and return the buffer
     passthru otherwise.
 
     Parameters
@@ -112,6 +112,7 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None):
     Returns
     -------
     a filepath_or_buffer, the encoding
+
     """
 
     if _is_url(filepath_or_buffer):
@@ -137,8 +138,7 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None):
 
 
 def file_path_to_url(path):
-    """
-    converts an absolute native path to a FILE URL.
+    """converts an absolute native path to a FILE URL.
 
     Parameters
     ----------
@@ -147,6 +147,7 @@ def file_path_to_url(path):
     Returns
     -------
     a valid FILE URL
+
     """
     return urljoin('file:', pathname2url(path))
 

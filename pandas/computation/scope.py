@@ -1,5 +1,4 @@
-"""Module for scope operations
-"""
+"""Module for scope operations."""
 
 import sys
 import operator
@@ -24,8 +23,10 @@ def _ensure_scope(level, global_dict=None, local_dict=None, resolvers=(),
 
 
 def _replacer(x):
-    """Replace a number with its hexadecimal representation. Used to tag
-    temporary variables with their calling scope's id.
+    """Replace a number with its hexadecimal representation.
+
+    Used to tag temporary variables with their calling scope's id.
+
     """
     # get the hex repr of the binary char and remove 0x and pad by pad_size
     # zeros
@@ -57,7 +58,7 @@ _DEFAULT_GLOBALS = {
 
 
 def _get_pretty_string(obj):
-    """Return a prettier version of obj
+    """Return a prettier version of obj.
 
     Parameters
     ----------
@@ -68,6 +69,7 @@ def _get_pretty_string(obj):
     -------
     s : str
         Pretty print object repr
+
     """
     sio = StringIO()
     pprint.pprint(obj, stream=sio)
@@ -93,6 +95,7 @@ class Scope(StringMixin):
     scope : DeepChainMap
     target : object
     temps : dict
+
     """
     __slots__ = 'level', 'scope', 'target', 'temps'
 
@@ -147,11 +150,12 @@ class Scope(StringMixin):
         Returns
         -------
         hr : bool
+
         """
         return bool(len(self.resolvers))
 
     def resolve(self, key, is_local):
-        """Resolve a variable name in a possibly local context
+        """Resolve a variable name in a possibly local context.
 
         Parameters
         ----------
@@ -165,6 +169,7 @@ class Scope(StringMixin):
         -------
         value : object
             The value of a particular variable
+
         """
         try:
             # only look for locals in outer scope
@@ -199,6 +204,7 @@ class Scope(StringMixin):
             New variable name to replace `old_key` with
         new_value : object
             Value to be replaced along with the possible renaming
+
         """
         if self.has_resolvers:
             maps = self.resolvers.maps + self.scope.maps
@@ -222,6 +228,7 @@ class Scope(StringMixin):
         scopes : sequence of strings
             A sequence containing valid stack frame attribute names that
             evaluate to a dictionary. For example, ('locals', 'globals')
+
         """
         variables = itertools.product(scopes, stack)
         for scope, (frame, _, _, _, _, _) in variables:
@@ -240,6 +247,7 @@ class Scope(StringMixin):
         Parameters
         ----------
         level : int or None, optional, default None
+
         """
         sl = level + 1
 
@@ -265,6 +273,7 @@ class Scope(StringMixin):
         -------
         name : basestring
             The name of the temporary variable created.
+
         """
         name = '{0}_{1}_{2}'.format(type(value).__name__, self.ntemps,
                                     _raw_hex_id(self))
@@ -278,18 +287,19 @@ class Scope(StringMixin):
         return name
 
     def remove_tmp(self, name):
-        """Remove a temporary variable from this scope
+        """Remove a temporary variable from this scope.
 
         Parameters
         ----------
         name : str
             The name of a temporary to be removed
+
         """
         del self.temps[name]
 
     @property
     def ntemps(self):
-        """The number of temporary variables in this scope"""
+        """The number of temporary variables in this scope."""
         return len(self.temps)
 
     @property
@@ -301,6 +311,7 @@ class Scope(StringMixin):
         -------
         vars : DeepChainMap
             All variables in this scope.
+
         """
         maps = [self.temps] + self.resolvers.maps + self.scope.maps
         return DeepChainMap(*maps)

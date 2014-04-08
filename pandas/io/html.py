@@ -66,6 +66,7 @@ def _remove_whitespace(s, regex=_RE_WHITESPACE):
     -------
     subd : str or unicode
         `s` with all extra whitespace replaced with a single space.
+
     """
     return regex.sub(' ', s.strip())
 
@@ -87,6 +88,7 @@ def _get_skiprows(skiprows):
     -------
     it : iterable
         A proper iterator to use to skip rows of a DataFrame.
+
     """
     if isinstance(skiprows, slice):
         return lrange(skiprows.start or 0, skiprows.stop, skiprows.step or 1)
@@ -108,6 +110,7 @@ def _read(io):
     Returns
     -------
     raw_text : str
+
     """
     if _is_url(io):
         with urlopen(io) as url:
@@ -164,6 +167,7 @@ class _HtmlFrameParser(object):
         * :func:`_parse_tfoot`
     See each method's respective documentation for details on their
     functionality.
+
     """
     def __init__(self, io, match, attrs):
         self.io = io
@@ -193,6 +197,7 @@ class _HtmlFrameParser(object):
         Returns
         -------
         data : list of list of strings
+
         """
         data = [[_remove_whitespace(self._text_getter(col)) for col in
                  self._parse_td(row)] for row in rows]
@@ -210,6 +215,7 @@ class _HtmlFrameParser(object):
         -------
         text : str or unicode
             The text from an individual DOM node.
+
         """
         raise NotImplementedError
 
@@ -224,6 +230,7 @@ class _HtmlFrameParser(object):
         -------
         columns : list of node-like
             These are the elements of each row, i.e., the columns.
+
         """
         raise NotImplementedError
 
@@ -251,6 +258,7 @@ class _HtmlFrameParser(object):
         -------
         tables : list of node-like
             A list of <table> elements to be parsed into raw data.
+
         """
         raise NotImplementedError
 
@@ -266,6 +274,7 @@ class _HtmlFrameParser(object):
         -------
         rows : list of node-like
             A list row elements of a table, usually <tr> or <th> elements.
+
         """
         raise NotImplementedError
 
@@ -281,6 +290,7 @@ class _HtmlFrameParser(object):
         -------
         thead : node-like
             A <thead>...</thead> element.
+
         """
         raise NotImplementedError
 
@@ -296,6 +306,7 @@ class _HtmlFrameParser(object):
         -------
         tbody : node-like
             A <tbody>...</tbody> element.
+
         """
         raise NotImplementedError
 
@@ -311,6 +322,7 @@ class _HtmlFrameParser(object):
         -------
         tfoot : node-like
             A <tfoot>...</tfoot> element.
+
         """
         raise NotImplementedError
 
@@ -365,6 +377,7 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
     -----
     Documentation strings for this class are in the base class
     :class:`pandas.io.html._HtmlFrameParser`.
+
     """
     def __init__(self, *args, **kwargs):
         super(_BeautifulSoupHtml5LibFrameParser, self).__init__(*args,
@@ -438,6 +451,7 @@ def _build_xpath_expr(attrs):
     -------
     expr : unicode
         An XPath expression that checks for the given HTML attributes.
+
     """
     # give class attribute as class_ because class is a python keyword
     if 'class_' in attrs:
@@ -467,6 +481,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
     -----
     Documentation strings for this class are in the base class
     :class:`_HtmlFrameParser`.
+
     """
     def __init__(self, *args, **kwargs):
         super(_LxmlFrameParser, self).__init__(*args, **kwargs)
@@ -501,20 +516,20 @@ class _LxmlFrameParser(_HtmlFrameParser):
         return tables
 
     def _build_doc(self):
-        """
-        Raises
-        ------
+        """Raises.
+
         ValueError
-            * If a URL that lxml cannot parse is passed.
+                    * If a URL that lxml cannot parse is passed.
 
-        Exception
-            * Any other ``Exception`` thrown. For example, trying to parse a
-              URL that is syntactically correct on a machine with no internet
-              connection will fail.
+                Exception
+                    * Any other ``Exception`` thrown. For example, trying to parse a
+                      URL that is syntactically correct on a machine with no internet
+                      connection will fail.
 
-        See Also
-        --------
-        pandas.io.html._HtmlFrameParser._build_doc
+                See Also
+                --------
+                pandas.io.html._HtmlFrameParser._build_doc
+
         """
         from lxml.html import parse, fromstring, HTMLParser
         from lxml.etree import XMLSyntaxError
@@ -634,6 +649,7 @@ def _parser_dispatch(flavor):
         * If `flavor` is not a valid backend.
     ImportError
         * If you do not have the requested `flavor`
+
     """
     valid_parsers = list(_valid_parsers.keys())
     if flavor not in valid_parsers:

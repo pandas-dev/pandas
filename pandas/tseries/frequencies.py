@@ -72,13 +72,11 @@ def get_freq(freq):
 
 
 def get_freq_code(freqstr):
-    """
-
-    Parameters
-    ----------
+    """Parameters.
 
     Returns
-    -------
+        -------
+
     """
     if isinstance(freqstr, DateOffset):
         freqstr = (get_offset_name(freqstr), freqstr.n)
@@ -255,13 +253,13 @@ def inferTimeRule(index):
 
 
 def to_offset(freqstr):
-    """
-    Return DateOffset object from string representation
+    """Return DateOffset object from string representation.
 
     Examples
     --------
     >>> to_offset('5Min')
     Minute(5)
+
     """
     if freqstr is None:
         return None
@@ -306,12 +304,12 @@ opattern = re.compile(r'([\-]?\d*)\s*([A-Za-z]+([\-@][\dA-Za-z\-]+)?)')
 
 
 def _base_and_stride(freqstr):
-    """
-    Return base freq and stride info from string representation
+    """Return base freq and stride info from string representation.
 
     Examples
     --------
     _freq_and_stride('5Min') -> 'Min', 5
+
     """
     groups = opattern.match(freqstr)
 
@@ -340,12 +338,12 @@ _dont_uppercase = ['MS', 'ms']
 
 
 def get_offset(name):
-    """
-    Return DateOffset object associated with rule name
+    """Return DateOffset object associated with rule name.
 
     Examples
     --------
     get_offset('EOM') --> BMonthEnd(1)
+
     """
     if name not in _dont_uppercase:
         name = name.upper()
@@ -373,12 +371,12 @@ getOffset = get_offset
 
 
 def get_offset_name(offset):
-    """
-    Return rule name associated with a DateOffset object
+    """Return rule name associated with a DateOffset object.
 
     Examples
     --------
     get_offset_name(BMonthEnd(1)) --> 'EOM'
+
     """
     if offset is None:
         raise ValueError("Offset can't be none!")
@@ -403,9 +401,7 @@ def get_legacy_offset_name(offset):
     return _legacy_reverse_map.get(name, name)
 
 def get_standard_freq(freq):
-    """
-    Return the standardized frequency string
-    """
+    """Return the standardized frequency string."""
     if freq is None:
         return None
 
@@ -484,10 +480,8 @@ _period_code_map.update({
 
 
 def _period_alias_dictionary():
-    """
-    Build freq alias dictionary to support freqs from original c_dates.c file
-    of the scikits.timeseries library.
-    """
+    """Build freq alias dictionary to support freqs from original c_dates.c
+    file of the scikits.timeseries library."""
     alias_dict = {}
 
     M_aliases = ["M", "MTH", "MONTH", "MONTHLY"]
@@ -629,9 +623,8 @@ def _period_str_to_code(freqstr):
 
 
 def infer_freq(index, warn=True):
-    """
-    Infer the most likely frequency given the input index. If the frequency is
-    uncertain, a warning will be printed
+    """Infer the most likely frequency given the input index. If the frequency
+    is uncertain, a warning will be printed.
 
     Parameters
     ----------
@@ -644,6 +637,7 @@ def infer_freq(index, warn=True):
     freq : string or None
         None if no discernible frequency
         TypeError if the index is not datetime-like
+
     """
     import pandas as pd
 
@@ -673,9 +667,7 @@ _ONE_DAY = 24 * _ONE_HOUR
 
 
 class _FrequencyInferer(object):
-    """
-    Not sure if I can avoid the state machine here
-    """
+    """Not sure if I can avoid the state machine here."""
 
     def __init__(self, index, warn=True):
         self.index = index
@@ -884,9 +876,8 @@ def _maybe_add_count(base, count):
 
 
 def is_subperiod(source, target):
-    """
-    Returns True if downsampling is possible between source and target
-    frequencies
+    """Returns True if downsampling is possible between source and target
+    frequencies.
 
     Parameters
     ----------
@@ -898,6 +889,7 @@ def is_subperiod(source, target):
     Returns
     -------
     is_subperiod : boolean
+
     """
     if isinstance(source, offsets.DateOffset):
         source = source.rule_code
@@ -933,9 +925,8 @@ def is_subperiod(source, target):
 
 
 def is_superperiod(source, target):
-    """
-    Returns True if upsampling is possible between source and target
-    frequencies
+    """Returns True if upsampling is possible between source and target
+    frequencies.
 
     Parameters
     ----------
@@ -947,6 +938,7 @@ def is_superperiod(source, target):
     Returns
     -------
     is_superperiod : boolean
+
     """
     if isinstance(source, offsets.DateOffset):
         source = source.rule_code

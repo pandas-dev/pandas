@@ -1,6 +1,4 @@
-"""
-Linear regression objects for panel data
-"""
+"""Linear regression objects for panel data."""
 
 # pylint: disable-msg=W0231
 # pylint: disable-msg=E1101,E1103
@@ -27,6 +25,7 @@ class PanelOLS(OLS):
     """Implements panel OLS.
 
     See ols function docs
+
     """
     _panel_model = True
 
@@ -61,7 +60,7 @@ class PanelOLS(OLS):
             print(msg)
 
     def _prepare_data(self):
-        """Cleans and stacks input data into DataFrame objects
+        """Cleans and stacks input data into DataFrame objects.
 
         If time effects is True, then we turn off intercepts and omit an item
         from every (entity and x) fixed effect.
@@ -71,6 +70,7 @@ class PanelOLS(OLS):
            - Else, we omit an item from every fixed effect except one of them.
 
         The categorical variables will get dropped from x.
+
         """
         (x, x_filtered, y, weights, cat_mapping) = self._filter_data()
 
@@ -117,9 +117,7 @@ class PanelOLS(OLS):
         return x, x_regressor, x_filtered, y, y_regressor
 
     def _filter_data(self):
-        """
-
-        """
+        """"""
         data = self._x_orig
         cat_mapping = {}
 
@@ -199,12 +197,12 @@ class PanelOLS(OLS):
         return x_converted, cat_mapping
 
     def _add_dummies(self, panel, mapping):
-        """
-        Add entity and / or categorical dummies to input X DataFrame
+        """Add entity and / or categorical dummies to input X DataFrame.
 
         Returns
         -------
         DataFrame
+
         """
         panel = self._add_entity_effects(panel)
         panel = self._add_categorical_dummies(panel, mapping)
@@ -212,12 +210,12 @@ class PanelOLS(OLS):
         return panel
 
     def _add_entity_effects(self, panel):
-        """
-        Add entity dummies to panel
+        """Add entity dummies to panel.
 
         Returns
         -------
         DataFrame
+
         """
         from pandas.core.reshape import make_axis_dummies
 
@@ -248,12 +246,12 @@ class PanelOLS(OLS):
         return panel
 
     def _add_categorical_dummies(self, panel, cat_mappings):
-        """
-        Add categorical dummies to panel
+        """Add categorical dummies to panel.
 
         Returns
         -------
         DataFrame
+
         """
         if not self._x_effects:
             return panel
@@ -297,11 +295,8 @@ class PanelOLS(OLS):
 
     @property
     def _use_all_dummies(self):
-        """
-        In the case of using an intercept or including time fixed
-        effects, completely partitioning the sample would make the X
-        not full rank.
-        """
+        """In the case of using an intercept or including time fixed effects,
+        completely partitioning the sample would make the X not full rank."""
         return (not self._intercept and not self._time_effects)
 
     @cache_readonly
@@ -469,8 +464,7 @@ def _is_numeric(df):
 
 
 def add_intercept(panel, name='intercept'):
-    """
-    Add column of ones to input panel
+    """Add column of ones to input panel.
 
     Parameters
     ----------
@@ -480,6 +474,7 @@ def add_intercept(panel, name='intercept'):
     Returns
     -------
     New object (same type as input)
+
     """
     panel = panel.copy()
     panel[name] = 1.
@@ -491,6 +486,7 @@ class MovingPanelOLS(MovingOLS, PanelOLS):
     """Implements rolling/expanding panel OLS.
 
     See ols function docs
+
     """
     _panel_model = True
 
@@ -541,9 +537,8 @@ class MovingPanelOLS(MovingOLS, PanelOLS):
         return self._unstack_y(self._y_predict_raw)
 
     def lagged_y_predict(self, lag=1):
-        """
-        Compute forecast Y value lagging coefficient by input number
-        of time periods
+        """Compute forecast Y value lagging coefficient by input number of time
+        periods.
 
         Parameters
         ----------
@@ -552,6 +547,7 @@ class MovingPanelOLS(MovingOLS, PanelOLS):
         Returns
         -------
         DataFrame
+
         """
         x = self._x.values
         betas = self._beta_matrix(lag=lag)

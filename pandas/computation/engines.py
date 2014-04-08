@@ -51,11 +51,12 @@ class AbstractEngine(object):
         """Convert an expression for evaluation.
 
         Defaults to return the expression as a string.
+
         """
         return com.pprint_thing(self.expr)
 
     def evaluate(self):
-        """Run the engine on the expression
+        """Run the engine on the expression.
 
         This method performs alignment which is necessary no matter what engine
         is being used, thus its implementation is in the base class.
@@ -64,6 +65,7 @@ class AbstractEngine(object):
         -------
         obj : object
             The result of the passed expression.
+
         """
         if not self._is_aligned:
             self.result_type, self.aligned_axes = _align(self.expr.terms)
@@ -90,13 +92,14 @@ class AbstractEngine(object):
         Notes
         -----
         Must be implemented by subclasses.
+
         """
         pass
 
 
 class NumExprEngine(AbstractEngine):
 
-    """NumExpr engine class"""
+    """NumExpr engine class."""
     has_neg_frac = True
 
     def __init__(self, expr):
@@ -131,6 +134,7 @@ class PythonEngine(AbstractEngine):
     """Evaluate an expression in Python space.
 
     Mostly for testing purposes.
+
     """
     has_neg_frac = False
 

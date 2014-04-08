@@ -10,16 +10,12 @@ from pandas.compat import range, zip
 #
 
 class Scale:
-    """
-    Base class for mapping between graphical and data attributes.
-    """
+    """Base class for mapping between graphical and data attributes."""
     pass
 
 class ScaleGradient(Scale):
-    """
-    A mapping between a data attribute value and a
-    point in colour space between two specified colours.
-    """
+    """A mapping between a data attribute value and a point in colour space
+    between two specified colours."""
     def __init__(self, column, colour1, colour2):
         """Initialize ScaleGradient instance.
 
@@ -28,6 +24,7 @@ class ScaleGradient(Scale):
         column: string, pandas DataFrame column name
         colour1: tuple, 3 element tuple with float values representing an RGB colour
         colour2: tuple, 3 element tuple with float values representing an RGB colour
+
         """
         self.column = column
         self.colour1 = colour1
@@ -45,6 +42,7 @@ class ScaleGradient(Scale):
         Returns:
         --------
         A three element tuple representing an RGB somewhere between colour1 and colour2
+
         """
         x = data[self.column].iget(index)
         a = min(data[self.column])
@@ -57,10 +55,8 @@ class ScaleGradient(Scale):
                 b1 + (b2 - b1) * x_scaled)
 
 class ScaleGradient2(Scale):
-    """
-    Create a mapping between a data attribute value and a
-    point in colour space in a line of three specified colours.
-    """
+    """Create a mapping between a data attribute value and a point in colour
+    space in a line of three specified colours."""
     def __init__(self, column, colour1, colour2, colour3):
         """Initialize ScaleGradient2 instance.
 
@@ -70,6 +66,7 @@ class ScaleGradient2(Scale):
         colour1: tuple, 3 element tuple with float values representing an RGB colour
         colour2: tuple, 3 element tuple with float values representing an RGB colour
         colour3: tuple, 3 element tuple with float values representing an RGB colour
+
         """
         self.column = column
         self.colour1 = colour1
@@ -89,6 +86,7 @@ class ScaleGradient2(Scale):
         --------
         A three element tuple representing an RGB somewhere along the line
         of colour1, colour2 and colour3
+
         """
         x = data[self.column].iget(index)
         a = min(data[self.column])
@@ -109,10 +107,8 @@ class ScaleGradient2(Scale):
                     b2 + (b3 - b2) * x_scaled)
 
 class ScaleSize(Scale):
-    """
-    Provide a mapping between a DataFrame column and matplotlib
-    scatter plot shape size.
-    """
+    """Provide a mapping between a DataFrame column and matplotlib scatter plot
+    shape size."""
     def __init__(self, column, min_size=5.0, max_size=100.0, transform=lambda x: x):
         """Initialize ScaleSize instance.
 
@@ -122,6 +118,7 @@ class ScaleSize(Scale):
         min_size: float, minimum point size
         max_size: float, maximum point size
         transform: a one argument function of form float -> float (e.g. lambda x: log(x))
+
         """
         self.column = column
         self.min_size = min_size
@@ -136,6 +133,7 @@ class ScaleSize(Scale):
         -----------
         data: pandas DataFrame
         index: pandas DataFrame row index
+
         """
         x = data[self.column].iget(index)
         a = float(min(data[self.column]))
@@ -144,16 +142,15 @@ class ScaleSize(Scale):
             (self.max_size - self.min_size))
 
 class ScaleShape(Scale):
-    """
-    Provides a mapping between matplotlib marker shapes
-    and attribute values.
-    """
+    """Provides a mapping between matplotlib marker shapes and attribute
+    values."""
     def __init__(self, column):
         """Initialize ScaleShape instance.
 
         Parameters:
         -----------
         column: string, pandas DataFrame column name
+
         """
         self.column = column
         self.shapes = ['o', '+', 's', '*', '^', '<', '>', 'v', '|', 'x']
@@ -171,6 +168,7 @@ class ScaleShape(Scale):
         Returns:
         --------
         a matplotlib marker identifier
+
         """
         values = sorted(list(set(data[self.column])))
         if len(values) > len(self.shapes):
@@ -179,34 +177,35 @@ class ScaleShape(Scale):
         return self.shapes[values.index(x)]
 
 class ScaleRandomColour(Scale):
-    """
-    Maps a random colour to a DataFrame attribute.
-    """
+    """Maps a random colour to a DataFrame attribute."""
     def __init__(self, column):
         """Initialize ScaleRandomColour instance.
 
         Parameters:
         -----------
         column: string, pandas DataFrame column name
+
         """
         self.column = column
         self.categorical = True
 
     def __call__(self, data, index):
-        """Return a tuple of three floats, representing
-        an RGB colour.
+        """Return a tuple of three floats, representing an RGB colour.
 
         Parameters:
         -----------
         data: pandas DataFrame
         index: pandas DataFrame row index
+
         """
         random.seed(data[self.column].iget(index))
         return [random.random() for _ in range(3)]
 
 class ScaleConstant(Scale):
-    """
-    Constant returning scale. Usually used automatically.
+    """Constant returning scale.
+
+    Usually used automatically.
+
     """
     def __init__(self, value):
         """Initialize ScaleConstant instance.
@@ -214,6 +213,7 @@ class ScaleConstant(Scale):
         Parameters:
         -----------
         value: any Python value to be returned when called
+
         """
         self.value = value
         self.categorical = False
@@ -229,6 +229,7 @@ class ScaleConstant(Scale):
         Returns:
         --------
         A constant value specified during initialisation
+
         """
         return self.value
 
@@ -243,6 +244,7 @@ def default_aes(x=None, y=None):
     Returns:
     --------
     a dictionary with aesthetics bindings
+
     """
     return {
         'x' : x,
@@ -268,6 +270,7 @@ def make_aes(x=None, y=None, size=None, colour=None, shape=None, alpha=None):
     Returns:
     --------
     a dictionary with aesthetics bindings
+
     """
     if not hasattr(size, '__call__') and size is not None:
         size = ScaleConstant(size)
@@ -303,9 +306,7 @@ def make_aes(x=None, y=None, size=None, colour=None, shape=None, alpha=None):
     }
 
 class Layer:
-    """
-    Layer object representing a single plot layer.
-    """
+    """Layer object representing a single plot layer."""
     def __init__(self, data=None, **kwds):
         """Initialize layer object.
 
@@ -313,6 +314,7 @@ class Layer:
         -----------
         data: pandas DataFrame instance
         aes: aesthetics dictionary with bindings
+
         """
         self.data = data
         self.aes = make_aes(**kwds)
@@ -329,13 +331,14 @@ class Layer:
         Returns:
         --------
         a tuple with the same figure and axis instances
+
         """
         return fig, ax
 
 class GeomPoint(Layer):
     def work(self, fig=None, ax=None):
-        """Render the layer on a matplotlib axis.
-        You can specify either a figure or an axis to draw on.
+        """Render the layer on a matplotlib axis. You can specify either a
+        figure or an axis to draw on.
 
         Parameters:
         -----------
@@ -345,6 +348,7 @@ class GeomPoint(Layer):
         Returns:
         --------
         fig, ax: matplotlib figure and axis objects
+
         """
         if ax is None:
             if fig is None:
@@ -379,9 +383,7 @@ class GeomPoint(Layer):
         return fig, ax
 
 class GeomPolyFit(Layer):
-    """
-    Draw a polynomial fit of specified degree.
-    """
+    """Draw a polynomial fit of specified degree."""
     def __init__(self, degree, lw=2.0, colour='grey'):
         """Initialize GeomPolyFit object.
 
@@ -390,6 +392,7 @@ class GeomPolyFit(Layer):
         degree: an integer, polynomial degree
         lw: line width
         colour: matplotlib colour
+
         """
         self.degree = degree
         self.lw = lw
@@ -397,7 +400,7 @@ class GeomPolyFit(Layer):
         Layer.__init__(self)
 
     def work(self, fig=None, ax=None):
-        """Draw the polynomial fit on matplotlib figure or axis
+        """Draw the polynomial fit on matplotlib figure or axis.
 
         Parameters:
         -----------
@@ -407,6 +410,7 @@ class GeomPolyFit(Layer):
         Returns:
         --------
         a tuple with figure and axis objects
+
         """
         if ax is None:
             if fig is None:
@@ -426,9 +430,7 @@ class GeomPolyFit(Layer):
         return fig, ax
 
 class GeomScatter(Layer):
-    """
-    An efficient scatter plot, use this instead of GeomPoint for speed.
-    """
+    """An efficient scatter plot, use this instead of GeomPoint for speed."""
     def __init__(self, marker='o', colour='lightblue', alpha=1.0):
         """Initialize GeomScatter instance.
 
@@ -437,6 +439,7 @@ class GeomScatter(Layer):
         marker: matplotlib marker string
         colour: matplotlib colour
         alpha: matplotlib alpha
+
         """
         self.marker = marker
         self.colour = colour
@@ -444,7 +447,7 @@ class GeomScatter(Layer):
         Layer.__init__(self)
 
     def work(self, fig=None, ax=None):
-        """Draw a scatter plot on matplotlib figure or axis
+        """Draw a scatter plot on matplotlib figure or axis.
 
         Parameters:
         -----------
@@ -454,6 +457,7 @@ class GeomScatter(Layer):
         Returns:
         --------
         a tuple with figure and axis objects
+
         """
         if ax is None:
             if fig is None:
@@ -466,9 +470,7 @@ class GeomScatter(Layer):
         return fig, ax
 
 class GeomHistogram(Layer):
-    """
-    An efficient histogram, use this instead of GeomBar for speed.
-    """
+    """An efficient histogram, use this instead of GeomBar for speed."""
     def __init__(self, bins=10, colour='lightblue'):
         """Initialize GeomHistogram instance.
 
@@ -476,13 +478,14 @@ class GeomHistogram(Layer):
         -----------
         bins: integer, number of histogram bins
         colour: matplotlib colour
+
         """
         self.bins = bins
         self.colour = colour
         Layer.__init__(self)
 
     def work(self, fig=None, ax=None):
-        """Draw a histogram on matplotlib figure or axis
+        """Draw a histogram on matplotlib figure or axis.
 
         Parameters:
         -----------
@@ -492,6 +495,7 @@ class GeomHistogram(Layer):
         Returns:
         --------
         a tuple with figure and axis objects
+
         """
         if ax is None:
             if fig is None:
@@ -504,12 +508,10 @@ class GeomHistogram(Layer):
         return fig, ax
 
 class GeomDensity(Layer):
-    """
-    A kernel density estimation plot.
-    """
+    """A kernel density estimation plot."""
     def work(self, fig=None, ax=None):
-        """Draw a one dimensional kernel density plot.
-        You can specify either a figure or an axis to draw on.
+        """Draw a one dimensional kernel density plot. You can specify either a
+        figure or an axis to draw on.
 
         Parameters:
         -----------
@@ -519,6 +521,7 @@ class GeomDensity(Layer):
         Returns:
         --------
         fig, ax: matplotlib figure and axis objects
+
         """
         if ax is None:
             if fig is None:
@@ -534,8 +537,8 @@ class GeomDensity(Layer):
 
 class GeomDensity2D(Layer):
     def work(self, fig=None, ax=None):
-        """Draw a two dimensional kernel density plot.
-        You can specify either a figure or an axis to draw on.
+        """Draw a two dimensional kernel density plot. You can specify either a
+        figure or an axis to draw on.
 
         Parameters:
         -----------
@@ -545,6 +548,7 @@ class GeomDensity2D(Layer):
         Returns:
         --------
         fig, ax: matplotlib figure and axis objects
+
         """
         if ax is None:
             if fig is None:
@@ -574,6 +578,7 @@ class TrellisGrid(Layer):
         Parameters:
         -----------
         by: column names to group by
+
         """
         if len(by) != 2:
             raise ValueError("You must give a list of length 2 to group by")
@@ -582,8 +587,8 @@ class TrellisGrid(Layer):
         self.by = by
 
     def trellis(self, layers):
-        """Create a trellis structure for a list of layers.
-        Each layer will be cloned with different data in to a two dimensional grid.
+        """Create a trellis structure for a list of layers. Each layer will be
+        cloned with different data in to a two dimensional grid.
 
         Parameters:
         -----------
@@ -592,6 +597,7 @@ class TrellisGrid(Layer):
         Returns:
         --------
         trellised_layers: Clones of each layer in the list arranged in a trellised latice
+
         """
         trellised_layers = []
         for layer in layers:
@@ -645,6 +651,7 @@ def dictionary_union(dict1, dict2):
     --------
     A union of the dictionaries. It assumes that values
     with the same keys are identical.
+
     """
     keys1 = list(dict1.keys())
     keys2 = list(dict2.keys())
@@ -656,14 +663,15 @@ def dictionary_union(dict1, dict2):
     return result
 
 def merge_aes(layer1, layer2):
-    """Merges the aesthetics dictionaries for the two layers.
-    Look up sequence_layers function. Which layer is first and which
-    one is second is important.
+    """Merges the aesthetics dictionaries for the two layers. Look up
+    sequence_layers function. Which layer is first and which one is second is
+    important.
 
     Parameters:
     -----------
     layer1: Layer object
     layer2: Layer object
+
     """
     for key in layer2.aes.keys():
         if layer2.aes[key] is None:
@@ -686,11 +694,13 @@ def sequence_layers(layers):
     return layers
 
 def sequence_grids(layer_grids):
-    """Go through the list of layer girds and perform the same thing as sequence_layers.
+    """Go through the list of layer girds and perform the same thing as
+    sequence_layers.
 
     Parameters:
     -----------
     layer_grids: a list of two dimensional layer grids
+
     """
     for grid1, grid2 in zip(layer_grids[:-1], layer_grids[1:]):
         for row1, row2 in zip(grid1, grid2):
@@ -701,7 +711,8 @@ def sequence_grids(layer_grids):
     return layer_grids
 
 def work_grid(grid, fig):
-    """Take a two dimensional grid, add subplots to a figure for each cell and do layer work.
+    """Take a two dimensional grid, add subplots to a figure for each cell and
+    do layer work.
 
     Parameters:
     -----------
@@ -711,6 +722,7 @@ def work_grid(grid, fig):
     Returns:
     --------
     axes: a two dimensional list of matplotlib axes
+
     """
     nrows = len(grid)
     ncols = len(grid[0])
@@ -722,8 +734,8 @@ def work_grid(grid, fig):
     return axes
 
 def adjust_subplots(fig, axes, trellis, layers):
-    """Adjust the subtplots on matplotlib figure with the
-    fact that we have a trellis plot in mind.
+    """Adjust the subtplots on matplotlib figure with the fact that we have a
+    trellis plot in mind.
 
     Parameters:
     -----------
@@ -731,6 +743,7 @@ def adjust_subplots(fig, axes, trellis, layers):
     axes: a two dimensional grid of matplotlib axes
     trellis: TrellisGrid object
     layers: last grid of layers in the plot
+
     """
     # Flatten the axes grid
     axes = [ax for row in axes for ax in row]
@@ -795,8 +808,10 @@ def adjust_subplots(fig, axes, trellis, layers):
     fig.subplots_adjust(wspace=0.05, hspace=0.2)
 
 class RPlot:
-    """
-    The main plot object. Add layers to an instance of this object to create a plot.
+    """The main plot object.
+
+    Add layers to an instance of this object to create a plot.
+
     """
     def __init__(self, data, x=None, y=None):
         """Initialize RPlot instance.
@@ -806,6 +821,7 @@ class RPlot:
         data: pandas DataFrame instance
         x: string, DataFrame column name
         y: string, DataFrame column name
+
         """
         self.layers = [Layer(data, **default_aes(x=x, y=y))]
         trellised = False
@@ -816,6 +832,7 @@ class RPlot:
         Parameters:
         -----------
         layer: Layer instance
+
         """
         if not isinstance(layer, Layer):
             raise TypeError("The operand on the right side of + must be a Layer instance")
@@ -827,6 +844,7 @@ class RPlot:
         Parameters:
         -----------
         fig: matplotlib figure
+
         """
         import matplotlib.pyplot as plt
         if fig is None:

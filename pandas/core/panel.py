@@ -39,9 +39,7 @@ _shared_doc_kwargs['args_transpose'] = ("three positional arguments: each one"
 
 
 def _ensure_like_indices(time, panels):
-    """
-    Makes sure that time and panels are conformable
-    """
+    """Makes sure that time and panels are conformable."""
     n_time = len(time)
     n_panel = len(panels)
     u_panels = np.unique(panels)  # this sorts!
@@ -134,10 +132,8 @@ class Panel(NDFrame):
                         minor_axis=minor_axis, copy=copy, dtype=dtype)
 
     def _init_data(self, data, copy, dtype, **kwargs):
-        """
-        Generate ND initialization; axes are passed
-        as required objects to __init__
-        """
+        """Generate ND initialization; axes are passed as required objects to
+        __init__"""
         if data is None:
             data = {}
         if dtype is not None:
@@ -210,8 +206,7 @@ class Panel(NDFrame):
 
     @classmethod
     def from_dict(cls, data, intersect=False, orient='items', dtype=None):
-        """
-        Construct Panel from dict of DataFrame objects
+        """Construct Panel from dict of DataFrame objects.
 
         Parameters
         ----------
@@ -230,6 +225,7 @@ class Panel(NDFrame):
         Returns
         -------
         Panel
+
         """
         orient = orient.lower()
         if orient == 'minor':
@@ -309,11 +305,11 @@ class Panel(NDFrame):
     # Magic methods
 
     def __unicode__(self):
-        """
-        Return a string representation for a particular Panel
+        """Return a string representation for a particular Panel.
 
         Invoked by unicode(df) in py2 only.
         Yields a Unicode String in both py2/py3.
+
         """
 
         class_name = str(self.__class__)
@@ -366,8 +362,7 @@ class Panel(NDFrame):
     fromDict = from_dict
 
     def to_sparse(self, fill_value=None, kind='block'):
-        """
-        Convert to SparsePanel
+        """Convert to SparsePanel.
 
         Parameters
         ----------
@@ -377,6 +372,7 @@ class Panel(NDFrame):
         Returns
         -------
         y : SparseDataFrame
+
         """
         from pandas.core.sparse import SparsePanel
         frames = dict(compat.iteritems(self))
@@ -387,8 +383,7 @@ class Panel(NDFrame):
                            default_fill_value=fill_value)
 
     def to_excel(self, path, na_rep='', engine=None, **kwargs):
-        """
-        Write each DataFrame in Panel to a separate excel sheet
+        """Write each DataFrame in Panel to a separate excel sheet.
 
         Parameters
         ----------
@@ -423,6 +418,7 @@ class Panel(NDFrame):
         -----
         Keyword arguments (and na_rep) are passed to the ``to_excel`` method
         for each DataFrame written.
+
         """
         from pandas.io.excel import ExcelWriter
 
@@ -445,8 +441,7 @@ class Panel(NDFrame):
     # Getting and setting elements
 
     def get_value(self, *args, **kwargs):
-        """
-        Quickly retrieve single value at (item, major, minor) location
+        """Quickly retrieve single value at (item, major, minor) location.
 
         Parameters
         ----------
@@ -458,6 +453,7 @@ class Panel(NDFrame):
         Returns
         -------
         value : scalar value
+
         """
         nargs = len(args)
         nreq = self._AXIS_LEN
@@ -477,8 +473,7 @@ class Panel(NDFrame):
         return lower.get_value(*args[1:], takeable=takeable)
 
     def set_value(self, *args, **kwargs):
-        """
-        Quickly set single value at (item, major, minor) location
+        """Quickly set single value at (item, major, minor) location.
 
         Parameters
         ----------
@@ -493,6 +488,7 @@ class Panel(NDFrame):
         panel : Panel
             If label combo is contained, will be reference to calling Panel,
             otherwise a new object
+
         """
         # require an arg for each axis and the value
         nargs = len(args)
@@ -562,7 +558,7 @@ class Panel(NDFrame):
         NDFrame._set_item(self, key, mat)
 
     def _unpickle_panel_compat(self, state):  # pragma: no cover
-        "Unpickle the panel"
+        """Unpickle the panel."""
         _unpickle = com._unpickle_array
         vals, items, major, minor = state
 
@@ -574,8 +570,7 @@ class Panel(NDFrame):
         self._data = wp._data
 
     def conform(self, frame, axis='items'):
-        """
-        Conform input DataFrame to align with chosen axis pair.
+        """Conform input DataFrame to align with chosen axis pair.
 
         Parameters
         ----------
@@ -589,6 +584,7 @@ class Panel(NDFrame):
         Returns
         -------
         DataFrame
+
         """
         axes = self._get_plane_axes(axis)
         return frame.reindex(**self._extract_axes_for_slice(self, axes))
@@ -600,12 +596,11 @@ class Panel(NDFrame):
         raise NotImplementedError
 
     def _needs_reindex_multi(self, axes, method, level):
-        """ don't allow a multi reindex on Panel or above ndim """
+        """don't allow a multi reindex on Panel or above ndim."""
         return False
 
     def dropna(self, axis=0, how='any', inplace=False, **kwargs):
-        """
-        Drop 2D from panel, holding passed axis constant
+        """Drop 2D from panel, holding passed axis constant.
 
         Parameters
         ----------
@@ -621,6 +616,7 @@ class Panel(NDFrame):
         Returns
         -------
         dropped : Panel
+
         """
         axis = self._get_axis_number(axis)
 
@@ -689,8 +685,7 @@ class Panel(NDFrame):
         return self._constructor(result_values, items, major, minor)
 
     def major_xs(self, key, copy=True):
-        """
-        Return slice of panel along major axis
+        """Return slice of panel along major axis.
 
         Parameters
         ----------
@@ -703,12 +698,12 @@ class Panel(NDFrame):
         -------
         y : DataFrame
             index -> minor axis, columns -> items
+
         """
         return self.xs(key, axis=self._AXIS_LEN - 2, copy=copy)
 
     def minor_xs(self, key, copy=True):
-        """
-        Return slice of panel along minor axis
+        """Return slice of panel along minor axis.
 
         Parameters
         ----------
@@ -721,12 +716,12 @@ class Panel(NDFrame):
         -------
         y : DataFrame
             index -> major axis, columns -> items
+
         """
         return self.xs(key, axis=self._AXIS_LEN - 1, copy=copy)
 
     def xs(self, key, axis=1, copy=True):
-        """
-        Return slice of panel along selected axis
+        """Return slice of panel along selected axis.
 
         Parameters
         ----------
@@ -739,6 +734,7 @@ class Panel(NDFrame):
         Returns
         -------
         y : ndim(self)-1
+
         """
         axis = self._get_axis_number(axis)
         if axis == 0:
@@ -778,8 +774,7 @@ class Panel(NDFrame):
         return self._construct_return_type(new_data)
 
     def groupby(self, function, axis='major'):
-        """
-        Group data on given axis, returning GroupBy object
+        """Group data on given axis, returning GroupBy object.
 
         Parameters
         ----------
@@ -790,16 +785,16 @@ class Panel(NDFrame):
         Returns
         -------
         grouped : PanelGroupBy
+
         """
         from pandas.core.groupby import PanelGroupBy
         axis = self._get_axis_number(axis)
         return PanelGroupBy(self, function, axis=axis)
 
     def to_frame(self, filter_observations=True):
-        """
-        Transform wide format into long (stacked) format as DataFrame whose
-        columns are the Panel's items and whose index is a MultiIndex formed
-        of the Panel's major and minor axes.
+        """Transform wide format into long (stacked) format as DataFrame whose
+        columns are the Panel's items and whose index is a MultiIndex formed of
+        the Panel's major and minor axes.
 
         Parameters
         ----------
@@ -810,6 +805,7 @@ class Panel(NDFrame):
         Returns
         -------
         y : DataFrame
+
         """
         _, N, K = self.shape
 
@@ -872,8 +868,7 @@ class Panel(NDFrame):
     toLong = deprecate('toLong', to_frame)
 
     def apply(self, func, axis='major', **kwargs):
-        """
-        Applies function along input axis of the Panel
+        """Applies function along input axis of the Panel.
 
         Parameters
         ----------
@@ -894,6 +889,7 @@ class Panel(NDFrame):
         Returns
         -------
         result : Pandas Object
+
         """
 
         if kwargs and not isinstance(func, np.ufunc):
@@ -1019,7 +1015,7 @@ class Panel(NDFrame):
         return self._construct_return_type(result, axes)
 
     def _construct_return_type(self, result, axes=None, **kwargs):
-        """ return the type for the ndim of the result """
+        """return the type for the ndim of the result."""
         ndim = getattr(result,'ndim',None)
 
         # need to assume they are the same
@@ -1041,7 +1037,7 @@ class Panel(NDFrame):
 
         # same as self
         elif self.ndim == ndim:
-            """ return the construction dictionary for these axes """
+            """return the construction dictionary for these axes."""
             if axes is None:
                 return self._constructor(result)
             return self._constructor(result, **self._construct_axes_dict())
@@ -1095,8 +1091,7 @@ class Panel(NDFrame):
         return super(Panel, self).transpose(*args, **kwargs)
 
     def count(self, axis='major'):
-        """
-        Return number of observations over requested axis.
+        """Return number of observations over requested axis.
 
         Parameters
         ----------
@@ -1105,6 +1100,7 @@ class Panel(NDFrame):
         Returns
         -------
         count : DataFrame
+
         """
         i = self._get_axis_number(axis)
 
@@ -1115,8 +1111,7 @@ class Panel(NDFrame):
         return self._wrap_result(result, axis)
 
     def shift(self, lags, freq=None, axis='major'):
-        """
-        Shift major or minor axis by specified number of leads/lags. 
+        """Shift major or minor axis by specified number of leads/lags.
 
         Parameters
         ----------
@@ -1126,6 +1121,7 @@ class Panel(NDFrame):
         Returns
         -------
         shifted : Panel
+
         """
         if freq:
             return self.tshift(lags, freq, axis=axis)
@@ -1139,8 +1135,7 @@ class Panel(NDFrame):
         return super(Panel, self).tshift(periods, freq, axis, **kwds)
 
     def join(self, other, how='left', lsuffix='', rsuffix=''):
-        """
-        Join items with other Panel either on major and minor axes column
+        """Join items with other Panel either on major and minor axes column.
 
         Parameters
         ----------
@@ -1161,6 +1156,7 @@ class Panel(NDFrame):
         Returns
         -------
         joined : Panel
+
         """
         from pandas.tools.merge import concat
 
@@ -1235,13 +1231,13 @@ class Panel(NDFrame):
     # miscellaneous data creation
     @staticmethod
     def _extract_axes(self, data, axes, **kwargs):
-        """ return a list of the axis indicies """
+        """return a list of the axis indicies."""
         return [self._extract_axis(self, data, axis=i, **kwargs) for i, a
                 in enumerate(axes)]
 
     @staticmethod
     def _extract_axes_for_slice(self, axes):
-        """ return the slice dictionary for these axes """
+        """return the slice dictionary for these axes."""
         return dict([(self._AXIS_SLICEMAP[i], a)
                      for i, a in zip(self._AXIS_ORDERS[self._AXIS_LEN -
                                                        len(axes):], axes)])
@@ -1349,7 +1345,7 @@ class Panel(NDFrame):
 
     @classmethod
     def _add_aggregate_operations(cls, use_numexpr=True):
-        """ add the operations to the cls; evaluate the doc strings again """
+        """add the operations to the cls; evaluate the doc strings again."""
 
         # doc strings substitors
         _agg_doc = """

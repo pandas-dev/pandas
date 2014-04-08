@@ -109,7 +109,7 @@ def _has_infs(result):
 
 
 def _get_fill_value(dtype, fill_value=None, fill_value_typ=None):
-    """ return the correct fill value for the dtype of the values """
+    """return the correct fill value for the dtype of the values."""
     if fill_value is not None:
         return fill_value
     if _na_ok_dtype(dtype):
@@ -189,7 +189,7 @@ def _view_if_needed(values):
 
 
 def _wrap_results(result, dtype):
-    """ wrap our results if needed """
+    """wrap our results if needed."""
 
     if issubclass(dtype.type, np.datetime64):
         if not isinstance(result, np.ndarray):

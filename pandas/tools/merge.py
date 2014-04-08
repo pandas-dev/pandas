@@ -152,10 +152,8 @@ def ordered_merge(left, right, on=None, left_by=None, right_by=None,
 # TODO: transformations??
 # TODO: only copy DataFrames when modification necessary
 class _MergeOperation(object):
-    """
-    Perform a database (SQL) merge operation between two DataFrame objects
-    using either columns as keys or their row indexes
-    """
+    """Perform a database (SQL) merge operation between two DataFrame objects
+    using either columns as keys or their row indexes."""
 
     def __init__(self, left, right, how='inner', on=None,
                  left_on=None, right_on=None, axis=1,
@@ -275,9 +273,7 @@ class _MergeOperation(object):
         return join_index, left_indexer, right_indexer
 
     def _get_merge_data(self):
-        """
-        Handles overlapping column names etc.
-        """
+        """Handles overlapping column names etc."""
         ldata, rdata = self.left._data, self.right._data
         lsuf, rsuf = self.suffixes
         ldata, rdata = ldata._maybe_rename_join(rdata, lsuf, rsuf,
@@ -423,13 +419,10 @@ class _MergeOperation(object):
 
 
 def _get_join_indexers(left_keys, right_keys, sort=False, how='inner'):
-    """
-
-    Parameters
-    ----------
+    """Parameters.
 
     Returns
-    -------
+        -------
 
     """
     if len(left_keys) != len(right_keys):
@@ -640,11 +633,11 @@ def _sort_labels(uniques, left, right):
 
 
 class _BlockJoinOperation(object):
-    """
-    BlockJoinOperation made generic for N DataFrames
+    """BlockJoinOperation made generic for N DataFrames.
 
-    Object responsible for orchestrating efficient join operation between two
-    BlockManager data structures
+    Object responsible for orchestrating efficient join operation
+    between two BlockManager data structures
+
     """
     def __init__(self, data_list, join_index, indexers, axis=1, copy=True):
         if axis <= 0:  # pragma: no cover
@@ -685,10 +678,10 @@ class _BlockJoinOperation(object):
         return blockmaps
 
     def get_result(self):
-        """
-        Returns
-        -------
+        """Returns.
+
         merged : BlockManager
+
         """
         blockmaps = self._prepare_blocks()
         kinds = _get_merge_block_kinds(blockmaps)
@@ -781,9 +774,7 @@ class _BlockJoinOperation(object):
 
 
 class _JoinUnit(object):
-    """
-    Blocks plus indexer
-    """
+    """Blocks plus indexer."""
 
     def __init__(self, blocks, indexer):
         self.blocks = blocks
@@ -822,9 +813,7 @@ def _may_need_upcasting(blocks):
 
 
 def _upcast_blocks(blocks):
-    """
-    Upcast and consolidate if necessary
-    """
+    """Upcast and consolidate if necessary."""
     new_blocks = []
     for block in blocks:
         if isinstance(block, TimeDeltaBlock):
@@ -877,11 +866,11 @@ def _get_block_dtype(blocks):
 
 def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
            keys=None, levels=None, names=None, verify_integrity=False):
-    """
-    Concatenate pandas objects along a particular axis with optional set logic
-    along the other axes. Can also add a layer of hierarchical indexing on the
-    concatenation axis, which may be useful if the labels are the same (or
-    overlapping) on the passed axis number
+    """Concatenate pandas objects along a particular axis with optional set
+    logic along the other axes. Can also add a layer of hierarchical indexing
+    on the concatenation axis, which may be useful if the labels are the same.
+
+    (or overlapping) on the passed axis number.
 
     Parameters
     ----------
@@ -922,6 +911,7 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     Returns
     -------
     concatenated : type of objects
+
     """
     op = _Concatenator(objs, axis=axis, join_axes=join_axes,
                        ignore_index=ignore_index, join=join,
@@ -931,9 +921,7 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
 
 
 class _Concatenator(object):
-    """
-    Orchestrates a concatenation operation for BlockManagers
-    """
+    """Orchestrates a concatenation operation for BlockManagers."""
 
     def __init__(self, objs, axis=0, join='outer', join_axes=None,
                  keys=None, levels=None, names=None,

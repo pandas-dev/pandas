@@ -203,8 +203,7 @@ class Categorical(PandasObject):
             return Categorical(self.labels[key], self.levels)
 
     def equals(self, other):
-        """
-        Returns True if categorical arrays are equal
+        """Returns True if categorical arrays are equal.
 
         Parameters
         ----------
@@ -213,6 +212,7 @@ class Categorical(PandasObject):
         Returns
         -------
         are_equal : boolean
+
         """
         if not isinstance(other, Categorical):
             return False
@@ -221,9 +221,7 @@ class Categorical(PandasObject):
                 np.array_equal(self.labels, other.labels))
 
     def describe(self):
-        """
-        Returns a dataframe with frequency and counts by level.
-        """
+        """Returns a dataframe with frequency and counts by level."""
         # Hack?
         from pandas.core.frame import DataFrame
         grouped = DataFrame(self.labels).groupby(0)

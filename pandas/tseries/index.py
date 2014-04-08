@@ -95,10 +95,9 @@ def _ensure_datetime64(other):
 _midnight = time(0, 0)
 
 class DatetimeIndex(Int64Index):
-    """
-    Immutable ndarray of datetime64 data, represented internally as int64, and
-    which can be boxed to Timestamp objects that are subclasses of datetime and
-    carry metadata such as frequency information.
+    """Immutable ndarray of datetime64 data, represented internally as int64,
+    and which can be boxed to Timestamp objects that are subclasses of datetime
+    and carry metadata such as frequency information.
 
     Parameters
     ----------
@@ -122,6 +121,7 @@ class DatetimeIndex(Int64Index):
         the 'left', 'right', or both sides (None)
     name : object
         Name to be stored in the index
+
     """
     _join_precedence = 10
 
@@ -461,9 +461,7 @@ class DatetimeIndex(Int64Index):
 
     @property
     def tzinfo(self):
-        """
-        Alias for tz attribute
-        """
+        """Alias for tz attribute."""
         return self.tz
 
     @classmethod
@@ -573,14 +571,14 @@ class DatetimeIndex(Int64Index):
         return summary
 
     def __reduce__(self):
-        """Necessary for making this object picklable"""
+        """Necessary for making this object picklable."""
         object_state = list(np.ndarray.__reduce__(self))
         subclass_state = self.name, self.offset, self.tz
         object_state[2] = (object_state[2], subclass_state)
         return tuple(object_state)
 
     def __setstate__(self, state):
-        """Necessary for making this object picklable"""
+        """Necessary for making this object picklable."""
         if len(state) == 2:
             nd_state, own_state = state
             self.name = own_state[0]
@@ -655,9 +653,8 @@ class DatetimeIndex(Int64Index):
                                    justify='all').get_result()
 
     def isin(self, values):
-        """
-        Compute boolean array of whether each index value is found in the
-        passed set of values
+        """Compute boolean array of whether each index value is found in the
+        passed set of values.
 
         Parameters
         ----------
@@ -666,6 +663,7 @@ class DatetimeIndex(Int64Index):
         Returns
         -------
         is_contained : ndarray (boolean dtype)
+
         """
         if not isinstance(values, DatetimeIndex):
             try:
@@ -721,9 +719,8 @@ class DatetimeIndex(Int64Index):
         return tslib.get_time_micros(values)
 
     def to_series(self, keep_tz=False):
-        """
-        Create a Series with both index and values equal to the index keys
-        useful with map for returning an indexer based on an index
+        """Create a Series with both index and values equal to the index keys
+        useful with map for returning an indexer based on an index.
 
         Parameters
         ----------
@@ -743,29 +740,27 @@ class DatetimeIndex(Int64Index):
         Returns
         -------
         Series
+
         """
         return super(DatetimeIndex, self).to_series(keep_tz=keep_tz)
 
     def _to_embed(self, keep_tz=False):
-        """ return an array repr of this object, potentially casting to object """
+        """return an array repr of this object, potentially casting to
+        object."""
         if keep_tz and self.tz is not None and str(self.tz) != 'UTC':
             return self.asobject.values
         return self.values
 
     @property
     def asobject(self):
-        """
-        Convert to Index of datetime objects
-        """
+        """Convert to Index of datetime objects."""
         if isnull(self).any():
             msg = 'DatetimeIndex with NaT cannot be converted to object'
             raise ValueError(msg)
         return self._get_object_index()
 
     def tolist(self):
-        """
-        See ndarray.tolist
-        """
+        """See ndarray.tolist."""
         return list(self.asobject)
 
     def _get_object_index(self):
@@ -774,19 +769,17 @@ class DatetimeIndex(Int64Index):
         return Index(boxed_values, dtype=object)
 
     def to_pydatetime(self):
-        """
-        Return DatetimeIndex as object ndarray of datetime.datetime objects
+        """Return DatetimeIndex as object ndarray of datetime.datetime objects.
 
         Returns
         -------
         datetimes : ndarray
+
         """
         return tslib.ints_to_pydatetime(self.asi8, tz=self.tz)
 
     def to_period(self, freq=None):
-        """
-        Cast to PeriodIndex at a particular frequency
-        """
+        """Cast to PeriodIndex at a particular frequency."""
         from pandas.tseries.period import PeriodIndex
 
         if self.freq is None and freq is None:
@@ -799,9 +792,7 @@ class DatetimeIndex(Int64Index):
         return PeriodIndex(self.values, freq=freq, tz=self.tz)
 
     def order(self, return_indexer=False, ascending=True):
-        """
-        Return sorted copy of Index
-        """
+        """Return sorted copy of Index."""
         if return_indexer:
             _as = self.argsort()
             if not ascending:
@@ -816,10 +807,7 @@ class DatetimeIndex(Int64Index):
                                     self.tz)
 
     def snap(self, freq='S'):
-        """
-        Snap time stamps to nearest occurring frequency
-
-        """
+        """Snap time stamps to nearest occurring frequency."""
         # Superdumb, punting on any optimizing
         freq = to_offset(freq)
 
@@ -840,8 +828,7 @@ class DatetimeIndex(Int64Index):
         return DatetimeIndex(snapped, freq=freq, verify_integrity=False)
 
     def shift(self, n, freq=None):
-        """
-        Specialized shift which produces a DatetimeIndex
+        """Specialized shift which produces a DatetimeIndex.
 
         Parameters
         ----------
@@ -852,6 +839,7 @@ class DatetimeIndex(Int64Index):
         Returns
         -------
         shifted : DatetimeIndex
+
         """
         if freq is not None and freq != self.offset:
             if isinstance(freq, compat.string_types):
@@ -874,16 +862,12 @@ class DatetimeIndex(Int64Index):
                              name=self.name, tz=self.tz)
 
     def repeat(self, repeats, axis=None):
-        """
-        Analogous to ndarray.repeat
-        """
+        """Analogous to ndarray.repeat."""
         return DatetimeIndex(self.values.repeat(repeats),
                              name=self.name)
 
     def take(self, indices, axis=0):
-        """
-        Analogous to ndarray.take
-        """
+        """Analogous to ndarray.take."""
         maybe_slice = lib.maybe_indices_to_slice(com._ensure_int64(indices))
         if isinstance(maybe_slice, slice):
             return self[maybe_slice]
@@ -892,22 +876,20 @@ class DatetimeIndex(Int64Index):
         return self._simple_new(taken, self.name, None, self.tz)
 
     def unique(self):
-        """
-        Index.unique with handling for DatetimeIndex metadata
+        """Index.unique with handling for DatetimeIndex metadata.
 
         Returns
         -------
         result : DatetimeIndex
+
         """
         result = Int64Index.unique(self)
         return DatetimeIndex._simple_new(result, tz=self.tz,
                                          name=self.name)
 
     def union(self, other):
-        """
-        Specialized union for DatetimeIndex objects. If combine
-        overlapping ranges with the same DateOffset, will be much
-        faster than Index.union
+        """Specialized union for DatetimeIndex objects. If combine overlapping
+        ranges with the same DateOffset, will be much faster than Index.union.
 
         Parameters
         ----------
@@ -916,6 +898,7 @@ class DatetimeIndex(Int64Index):
         Returns
         -------
         y : Index or DatetimeIndex
+
         """
         if not isinstance(other, DatetimeIndex):
             try:
@@ -936,9 +919,7 @@ class DatetimeIndex(Int64Index):
             return result
 
     def union_many(self, others):
-        """
-        A bit of a hack to accelerate unioning a collection of indexes
-        """
+        """A bit of a hack to accelerate unioning a collection of indexes."""
         this = self
 
         for other in others:
@@ -967,8 +948,7 @@ class DatetimeIndex(Int64Index):
         return this
 
     def append(self, other):
-        """
-        Append a collection of Index options together
+        """Append a collection of Index options together.
 
         Parameters
         ----------
@@ -977,6 +957,7 @@ class DatetimeIndex(Int64Index):
         Returns
         -------
         appended : Index
+
         """
         name = self.name
         to_concat = [self]
@@ -997,9 +978,7 @@ class DatetimeIndex(Int64Index):
         return factory(to_concat)
 
     def join(self, other, how='left', level=None, return_indexers=False):
-        """
-        See Index.join
-        """
+        """See Index.join."""
         if (not isinstance(other, DatetimeIndex) and len(other) > 0 and
             other.inferred_type not in ('floating', 'mixed-integer',
                                         'mixed-integer-float', 'mixed')):
@@ -1113,9 +1092,8 @@ class DatetimeIndex(Int64Index):
         self._reset_identity()
 
     def intersection(self, other):
-        """
-        Specialized intersection for DatetimeIndex objects. May be much faster
-        than Index.intersection
+        """Specialized intersection for DatetimeIndex objects. May be much
+        faster than Index.intersection.
 
         Parameters
         ----------
@@ -1124,6 +1102,7 @@ class DatetimeIndex(Int64Index):
         Returns
         -------
         y : Index or DatetimeIndex
+
         """
         if not isinstance(other, DatetimeIndex):
             try:
@@ -1280,12 +1259,12 @@ class DatetimeIndex(Int64Index):
         return _maybe_box(self, values, series, key)
 
     def get_loc(self, key):
-        """
-        Get integer location for requested label
+        """Get integer location for requested label.
 
         Returns
         -------
         loc : int
+
         """
         if isinstance(key, datetime):
             # needed to localize naive datetimes
@@ -1318,9 +1297,7 @@ class DatetimeIndex(Int64Index):
         return loc
 
     def slice_indexer(self, start=None, end=None, step=None):
-        """
-        Index.slice_indexer, customized to handle time slicing
-        """
+        """Index.slice_indexer, customized to handle time slicing."""
         if isinstance(start, time) and isinstance(end, time):
             if step is not None and step != 1:
                 raise ValueError('Must have step size of 1 with time slices')
@@ -1381,7 +1358,7 @@ class DatetimeIndex(Int64Index):
         return Index.slice_locs(self, start, end)
 
     def __getitem__(self, key):
-        """Override numpy.ndarray's __getitem__ method to work as desired"""
+        """Override numpy.ndarray's __getitem__ method to work as desired."""
         arr_idx = self.view(np.ndarray)
         if np.isscalar(key):
             val = arr_idx[key]
@@ -1418,7 +1395,7 @@ class DatetimeIndex(Int64Index):
     # alias to offset
     @property
     def freq(self):
-        """ return the frequency object if its set, otherwise None """
+        """return the frequency object if its set, otherwise None."""
         return self.offset
 
     @cache_readonly
@@ -1430,7 +1407,8 @@ class DatetimeIndex(Int64Index):
 
     @property
     def freqstr(self):
-        """ return the frequency object as a string if its set, otherwise None """
+        """return the frequency object as a string if its set, otherwise
+        None."""
         return self.offset.freqstr
 
     _year = _field_accessor('year', 'Y')
@@ -1451,8 +1429,10 @@ class DatetimeIndex(Int64Index):
 
     @property
     def _time(self):
-        """
-        Returns numpy array of datetime.time. The time part of the Timestamps.
+        """Returns numpy array of datetime.time.
+
+        The time part of the Timestamps.
+
         """
         # can't call self.map() which tries to treat func as ufunc
         # and causes recursion warnings on python 2.6
@@ -1460,19 +1440,21 @@ class DatetimeIndex(Int64Index):
 
     @property
     def _date(self):
-        """
-        Returns numpy array of datetime.date. The date part of the Timestamps.
+        """Returns numpy array of datetime.date.
+
+        The date part of the Timestamps.
+
         """
         return _algos.arrmap_object(self.asobject, lambda x: x.date())
 
 
     def normalize(self):
-        """
-        Return DatetimeIndex with times to midnight. Length is unaltered
+        """Return DatetimeIndex with times to midnight. Length is unaltered.
 
         Returns
         -------
         normalized : DatetimeIndex
+
         """
         new_values = tslib.date_normalize(self.asi8, self.tz)
         return DatetimeIndex(new_values, freq='infer', name=self.name,
@@ -1515,16 +1497,12 @@ class DatetimeIndex(Int64Index):
 
     @cache_readonly
     def is_normalized(self):
-        """
-        Returns True if all of the dates are at midnight ("no time")
-        """
+        """Returns True if all of the dates are at midnight ("no time")"""
         return tslib.dates_normalized(self.asi8, self.tz)
 
     @cache_readonly
     def resolution(self):
-        """
-        Returns day, hour, minute, second, or microsecond
-        """
+        """Returns day, hour, minute, second, or microsecond."""
         reso = self._resolution
         return get_reso_string(reso)
 
@@ -1533,9 +1511,7 @@ class DatetimeIndex(Int64Index):
         return tslib.resolution(self.asi8, self.tz)
 
     def equals(self, other):
-        """
-        Determines if two Index objects contain the same elements.
-        """
+        """Determines if two Index objects contain the same elements."""
         if self.is_(other):
             return True
 
@@ -1561,8 +1537,7 @@ class DatetimeIndex(Int64Index):
         return same_zone and np.array_equal(self.asi8, other.asi8)
 
     def insert(self, loc, item):
-        """
-        Make new Index inserting new item at location
+        """Make new Index inserting new item at location.
 
         Parameters
         ----------
@@ -1574,6 +1549,7 @@ class DatetimeIndex(Int64Index):
         Returns
         -------
         new_index : Index
+
         """
         if isinstance(item, datetime):
             item = _to_m8(item, tz=self.tz)
@@ -1590,12 +1566,12 @@ class DatetimeIndex(Int64Index):
             raise TypeError("cannot insert DatetimeIndex with incompatible label")
 
     def delete(self, loc):
-        """
-        Make new DatetimeIndex with passed location deleted
+        """Make new DatetimeIndex with passed location deleted.
 
         Returns
         -------
         new_index : DatetimeIndex
+
         """
         arr = np.delete(self.values, loc)
         return DatetimeIndex(arr, tz=self.tz)
@@ -1608,12 +1584,12 @@ class DatetimeIndex(Int64Index):
         return result
 
     def tz_convert(self, tz):
-        """
-        Convert DatetimeIndex from one time zone to another (using pytz)
+        """Convert DatetimeIndex from one time zone to another (using pytz)
 
         Returns
         -------
         normalized : DatetimeIndex
+
         """
         tz = tools._maybe_get_tz(tz)
 
@@ -1736,9 +1712,7 @@ class DatetimeIndex(Int64Index):
         return mask.nonzero()[0]
 
     def min(self, axis=None):
-        """
-        Overridden ndarray.min to return a Timestamp
-        """
+        """Overridden ndarray.min to return a Timestamp."""
         if self.is_monotonic:
             return self[0]
         else:
@@ -1746,9 +1720,7 @@ class DatetimeIndex(Int64Index):
             return Timestamp(min_stamp, tz=self.tz)
 
     def max(self, axis=None):
-        """
-        Overridden ndarray.max to return a Timestamp
-        """
+        """Overridden ndarray.max to return a Timestamp."""
         if self.is_monotonic:
             return self[-1]
         else:
@@ -1756,10 +1728,11 @@ class DatetimeIndex(Int64Index):
             return Timestamp(max_stamp, tz=self.tz)
 
     def to_julian_date(self):
-        """
-        Convert DatetimeIndex to Float64Index of Julian Dates.
+        """Convert DatetimeIndex to Float64Index of Julian Dates.
+
         0 Julian date is noon January 1, 4713 BC.
         http://en.wikipedia.org/wiki/Julian_day
+
         """
 
         # http://mysite.verizon.net/aesir_research/date/jdalg2.htm
@@ -1824,9 +1797,8 @@ def _generate_regular_range(start, end, periods, offset):
 
 def date_range(start=None, end=None, periods=None, freq='D', tz=None,
                normalize=False, name=None, closed=None):
-    """
-    Return a fixed frequency datetime index, with day (calendar) as the default
-    frequency
+    """Return a fixed frequency datetime index, with day (calendar) as the
+    default frequency.
 
     Parameters
     ----------
@@ -1856,6 +1828,7 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
     Returns
     -------
     rng : DatetimeIndex
+
     """
     return DatetimeIndex(start=start, end=end, periods=periods,
                          freq=freq, tz=tz, normalize=normalize, name=name,
@@ -1864,9 +1837,8 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
 
 def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
                 normalize=True, name=None, closed=None):
-    """
-    Return a fixed frequency datetime index, with business day as the default
-    frequency
+    """Return a fixed frequency datetime index, with business day as the
+    default frequency.
 
     Parameters
     ----------
@@ -1896,6 +1868,7 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
     Returns
     -------
     rng : DatetimeIndex
+
     """
 
     return DatetimeIndex(start=start, end=end, periods=periods,

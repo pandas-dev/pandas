@@ -1,18 +1,18 @@
-""" io on the clipboard """
+"""io on the clipboard."""
 from pandas import compat, get_option, DataFrame
 from pandas.compat import StringIO
 
 
 def read_clipboard(**kwargs):  # pragma: no cover
-    """
-    Read text from clipboard and pass to read_table. See read_table for the
-    full argument list
+    """Read text from clipboard and pass to read_table. See read_table for the
+    full argument list.
 
     If unspecified, `sep` defaults to '\s+'
 
     Returns
     -------
     parsed : DataFrame
+
     """
     from pandas.util.clipboard import clipboard_get
     from pandas.io.parsers import read_table
@@ -52,8 +52,7 @@ def read_clipboard(**kwargs):  # pragma: no cover
 
 
 def to_clipboard(obj, excel=None, sep=None, **kwargs):  # pragma: no cover
-    """
-    Attempt to write text representation of object to the system clipboard
+    """Attempt to write text representation of object to the system clipboard
     The clipboard can be then pasted into Excel for example.
 
     Parameters
@@ -73,6 +72,7 @@ def to_clipboard(obj, excel=None, sep=None, **kwargs):  # pragma: no cover
       - Linux: xclip, or xsel (with gtk or PyQt4 modules)
       - Windows:
       - OS X:
+
     """
     from pandas.util.clipboard import clipboard_set
     if excel is None:

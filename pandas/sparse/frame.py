@@ -1,6 +1,7 @@
-"""
-Data structures for sparse float data. Life is made simpler by dealing only
-with float64 data
+"""Data structures for sparse float data.
+
+Life is made simpler by dealing only with float64 data
+
 """
 from __future__ import division
 # pylint: disable=E1101,E1103,W0231,E0202
@@ -30,9 +31,8 @@ import pandas.core.ops as ops
 
 class SparseDataFrame(DataFrame):
 
-    """
-    DataFrame containing sparse floating point data in the form of SparseSeries
-    objects
+    """DataFrame containing sparse floating point data in the form of
+    SparseSeries objects.
 
     Parameters
     ----------
@@ -45,6 +45,7 @@ class SparseDataFrame(DataFrame):
     default_fill_value : float
         Default fill_value for converting Series to SparseSeries. Will not
         override SparseSeries passed in
+
     """
     _constructor_sliced = SparseSeries
     _subtyp = 'sparse_frame'
@@ -216,7 +217,7 @@ class SparseDataFrame(DataFrame):
                     _default_kind=self._default_kind)
 
     def _unpickle_sparse_frame_compat(self, state):
-        """ original pickle format """
+        """original pickle format."""
         series, cols, idx, fv, kind = state
 
         if not isinstance(cols, Index):  # pragma: no cover
@@ -239,12 +240,12 @@ class SparseDataFrame(DataFrame):
         self._default_kind = kind
 
     def to_dense(self):
-        """
-        Convert to dense DataFrame
+        """Convert to dense DataFrame.
 
         Returns
         -------
         df : DataFrame
+
         """
         data = dict((k, v.to_dense()) for k, v in compat.iteritems(self))
         return DataFrame(data, index=self.index)
@@ -253,9 +254,7 @@ class SparseDataFrame(DataFrame):
         raise NotImplementedError
 
     def copy(self, deep=True):
-        """
-        Make a copy of this SparseDataFrame
-        """
+        """Make a copy of this SparseDataFrame."""
         result = super(SparseDataFrame, self).copy(deep=deep)
         result._default_fill_value = self._default_fill_value
         result._default_kind = self._default_kind
@@ -334,9 +333,7 @@ class SparseDataFrame(DataFrame):
         return clean
 
     def __getitem__(self, key):
-        """
-        Retrieve column or slice from DataFrame
-        """
+        """Retrieve column or slice from DataFrame."""
         if isinstance(key, slice):
             date_rng = self.index[key]
             return self.reindex(date_rng)
@@ -355,8 +352,7 @@ class SparseDataFrame(DataFrame):
         return series.get_value(index, takeable=takeable)
 
     def set_value(self, index, col, value, takeable=False):
-        """
-        Put single value at passed column and index
+        """Put single value at passed column and index.
 
         Parameters
         ----------
@@ -374,6 +370,7 @@ class SparseDataFrame(DataFrame):
         Returns
         -------
         frame : DataFrame
+
         """
         dense = self.to_dense().set_value(index, col, value, takeable=takeable)
         return dense.to_sparse(kind=self._default_kind,
@@ -656,9 +653,7 @@ class SparseDataFrame(DataFrame):
         return this, other
 
     def transpose(self):
-        """
-        Returns a DataFrame with the rows/columns switched.
-        """
+        """Returns a DataFrame with the rows/columns switched."""
         return SparseDataFrame(self.values.T, index=self.columns,
                                columns=self.index,
                                default_fill_value=self._default_fill_value,
@@ -670,8 +665,7 @@ class SparseDataFrame(DataFrame):
         return self.apply(lambda x: x.count(), axis=axis)
 
     def cumsum(self, axis=0):
-        """
-        Return SparseDataFrame of cumulative sums over requested axis.
+        """Return SparseDataFrame of cumulative sums over requested axis.
 
         Parameters
         ----------
@@ -681,12 +675,12 @@ class SparseDataFrame(DataFrame):
         Returns
         -------
         y : SparseDataFrame
+
         """
         return self.apply(lambda x: x.cumsum(), axis=axis)
 
     def apply(self, func, axis=0, broadcast=False, reduce=False):
-        """
-        Analogous to DataFrame.apply, for SparseDataFrame
+        """Analogous to DataFrame.apply, for SparseDataFrame.
 
         Parameters
         ----------
@@ -700,6 +694,7 @@ class SparseDataFrame(DataFrame):
         Returns
         -------
         applied : Series or SparseDataFrame
+
         """
         if not len(self.columns):
             return self
@@ -722,10 +717,9 @@ class SparseDataFrame(DataFrame):
                 return self._apply_broadcast(func, axis)
 
     def applymap(self, func):
-        """
-        Apply a function to a DataFrame that is intended to operate
+        """Apply a function to a DataFrame that is intended to operate
         elementwise, i.e. like doing map(func, series) for each series in the
-        DataFrame
+        DataFrame.
 
         Parameters
         ----------
@@ -735,11 +729,13 @@ class SparseDataFrame(DataFrame):
         Returns
         -------
         applied : DataFrame
+
         """
         return self.apply(lambda x: lmap(func, x))
 
 def dict_to_manager(sdict, columns, index):
-    """ create and return the block manager from a dict of series, columns, index """
+    """create and return the block manager from a dict of series, columns,
+    index."""
 
     # from BlockManager perspective
     axes = [_ensure_index(columns), _ensure_index(index)]
@@ -748,9 +744,7 @@ def dict_to_manager(sdict, columns, index):
 
 
 def stack_sparse_frame(frame):
-    """
-    Only makes sense when fill_value is NaN
-    """
+    """Only makes sense when fill_value is NaN."""
     lengths = [s.sp_index.npoints for _, s in compat.iteritems(frame)]
     nobs = sum(lengths)
 
@@ -782,9 +776,8 @@ def stack_sparse_frame(frame):
 
 
 def homogenize(series_dict):
-    """
-    Conform a set of SparseSeries (with NaN fill_value) to a common SparseIndex
-    corresponding to the locations where they all have data
+    """Conform a set of SparseSeries (with NaN fill_value) to a common
+    SparseIndex corresponding to the locations where they all have data.
 
     Parameters
     ----------
@@ -798,6 +791,7 @@ def homogenize(series_dict):
     Returns
     -------
     homogenized : dict of SparseSeries
+
     """
     index = None
 

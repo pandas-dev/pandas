@@ -1,7 +1,7 @@
-""" various miscellaneous utilities """
+"""various miscellaneous utilities."""
 
 def is_little_endian():
-    """ am I little endian """
+    """am I little endian."""
     import sys
     return sys.byteorder == 'little'
 

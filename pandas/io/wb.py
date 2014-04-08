@@ -9,8 +9,7 @@ import numpy as np
 
 def download(country=['MX', 'CA', 'US'], indicator=['GDPPCKD', 'GDPPCKN'],
              start=2003, end=2005):
-    """
-    Download data series from the World Bank's World Development Indicators
+    """Download data series from the World Bank's World Development Indicators.
 
     Parameters
     ----------
@@ -29,6 +28,7 @@ def download(country=['MX', 'CA', 'US'], indicator=['GDPPCKD', 'GDPPCKN'],
     -------
 
     ``pandas`` DataFrame with columns: country, iso2c, year, indicator value.
+
     """
 
     # Are ISO-2 country codes valid?
@@ -104,8 +104,7 @@ def _get_data(indicator="NY.GNS.ICTR.GN.ZS", country='US',
 
 
 def get_countries():
-    '''Query information about countries
-    '''
+    """Query information about countries."""
     url = 'http://api.worldbank.org/countries/?per_page=1000&format=json'
     with urlopen(url) as response:
         data = response.read()
@@ -120,8 +119,7 @@ def get_countries():
 
 
 def get_indicators():
-    '''Download information about all World Bank data series
-    '''
+    """Download information about all World Bank data series."""
     url = 'http://api.worldbank.org/indicators?per_page=50000&format=json'
     with urlopen(url) as response:
         data = response.read()
@@ -151,8 +149,7 @@ _cached_series = None
 
 
 def search(string='gdp.*capi', field='name', case=False):
-    """
-    Search available data series from the world bank
+    """Search available data series from the world bank.
 
     Parameters
     ----------
@@ -181,6 +178,7 @@ def search(string='gdp.*capi', field='name', case=False):
     note:
     sourceNote:
     topics:
+
     """
     # Create cached list of series if it does not exist
     global _cached_series

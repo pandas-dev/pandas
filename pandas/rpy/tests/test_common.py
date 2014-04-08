@@ -1,6 +1,4 @@
-"""
-Testing that functions from rpy work as expected
-"""
+"""Testing that functions from rpy work as expected."""
 
 import pandas as pd
 import numpy as np
@@ -135,9 +133,10 @@ class TestCommon(unittest.TestCase):
             assert np.array_equal(df.columns, labels)
 
     def test_timeseries(self):
-        """
-        Test that the series has an informative index.
+        """Test that the series has an informative index.
+
         Unfortunately the code currently does not build a DateTimeIndex
+
         """
         for name in (
             'austres', 'co2', 'fdeaths', 'freeny.y', 'JohnsonJohnson',

@@ -1,6 +1,4 @@
-"""
-Isolate pandas's exposure to NumPy
-"""
+"""Isolate pandas's exposure to NumPy."""
 
 import numpy as np
 

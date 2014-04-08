@@ -1,6 +1,4 @@
-"""
-compat
-======
+"""compat.
 
 Cross-compatible functions for Python 2 and 3.
 
@@ -26,6 +24,7 @@ Python 2.6 compatibility:
 
 Other items:
 * OrderedDefaultDict
+
 """
 # pylint disable=W0611
 import functools
@@ -119,10 +118,11 @@ else:
 
 
 def iteritems(obj, **kwargs):
-    """replacement for six's iteritems for Python2/3 compat
-       uses 'iteritems' if available and otherwise uses 'items'.
+    """replacement for six's iteritems for Python2/3 compat uses 'iteritems' if
+    available and otherwise uses 'items'.
 
-       Passes kwargs to method.
+    Passes kwargs to method.
+
     """
     func = getattr(obj, "iteritems", None)
     if not func:
@@ -161,6 +161,7 @@ def bind_method(cls, name, func):
     Returns
     -------
     None
+
     """
     # only python 2 has bound/unbound method issue
     if not PY3:
@@ -248,7 +249,7 @@ except ImportError:
 
 class _OrderedDict(dict):
 
-    """Dictionary that remembers insertion order"""
+    """Dictionary that remembers insertion order."""
     # An inherited dict maps keys to values.
     # The inherited dict provides __getitem__, __len__, __contains__, and get.
     # The remaining methods are order-aware.
@@ -262,9 +263,12 @@ class _OrderedDict(dict):
     # KEY].
 
     def __init__(self, *args, **kwds):
-        """Initialize an ordered dictionary. Signature is the same as for
-        regular dictionaries, but keyword arguments are not recommended
-        because their insertion order is arbitrary.
+        """Initialize an ordered dictionary.
+
+        Signature is the same as for regular dictionaries, but keyword
+        arguments are not recommended because their insertion order is
+        arbitrary.
+
         """
         if len(args) > 1:
             raise TypeError('expected at most 1 arguments, got %d' % len(args))
@@ -446,7 +450,7 @@ class _OrderedDict(dict):
             del _repr_running[call_key]
 
     def __reduce__(self):
-        """Return state information for pickling"""
+        """Return state information for pickling."""
         items = [[k, self[k]] for k in self]
         inst_dict = vars(self).copy()
         for k in vars(OrderedDict()):
@@ -509,9 +513,9 @@ except ImportError:
 
 class _Counter(dict):
 
-    """Dict subclass for counting hashable objects.  Sometimes called a bag
-    or multiset.  Elements are stored as dictionary keys and their counts
-    are stored as dictionary values.
+    """Dict subclass for counting hashable objects.  Sometimes called a bag or
+    multiset.  Elements are stored as dictionary keys and their counts are
+    stored as dictionary values.
 
     >>> Counter('zyzygy')
     Counter({'y': 3, 'z': 2, 'g': 1})
@@ -598,14 +602,13 @@ class _Counter(dict):
             self.update(kwds)
 
     def copy(self):
-        """Like dict.copy() but returns a Counter instance instead of a dict.
-        """
+        """Like dict.copy() but returns a Counter instance instead of a
+        dict."""
         return Counter(self)
 
     def __delitem__(self, elem):
         """Like dict.__delitem__() but does not raise KeyError for missing
-        values.
-        """
+        values."""
         if elem in self:
             dict.__delitem__(self, elem)
 

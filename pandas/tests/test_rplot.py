@@ -24,6 +24,7 @@ def between(a, b, x):
     Returns:
     --------
     True if x is between a and b, False otherwise
+
     """
     if a < b:
         return x >= a and x <= b
@@ -33,9 +34,7 @@ def between(a, b, x):
 
 @tm.mplskip
 class TestUtilityFunctions(tm.TestCase):
-    """
-    Tests for RPlot utility functions.
-    """
+    """Tests for RPlot utility functions."""
     def setUp(self):
         path = os.path.join(curpath(), 'data/iris.csv')
         self.data = read_csv(path, sep=',')

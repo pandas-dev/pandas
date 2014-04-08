@@ -49,8 +49,7 @@ class CacheableOffset(object):
 
 
 class DateOffset(object):
-    """
-    Standard kind of date increment used for a date range.
+    """Standard kind of date increment used for a date range.
 
     Works exactly like relativedelta in terms of the keyword args you
     pass in, use of the keyword n is discouraged-- you would be better
@@ -90,6 +89,7 @@ class DateOffset(object):
     date + BDay(0) == BDay.rollforward(date)
 
     Since 0 is a bit weird, we suggest avoiding its use.
+
     """
     _cacheable = False
     _normalize_cache = True
@@ -230,7 +230,7 @@ class DateOffset(object):
         return self.__class__(-self.n, **self.kwds)
 
     def rollback(self, dt):
-        """Roll provided date backward to next offset only if not on offset"""
+        """Roll provided date backward to next offset only if not on offset."""
         if type(dt) == date:
             dt = datetime(dt.year, dt.month, dt.day)
 
@@ -239,7 +239,7 @@ class DateOffset(object):
         return dt
 
     def rollforward(self, dt):
-        """Roll provided date forward to next offset only if not on offset"""
+        """Roll provided date forward to next offset only if not on offset."""
         if type(dt) == date:
             dt = datetime(dt.year, dt.month, dt.day)
 
@@ -293,9 +293,7 @@ class SingleConstructorOffset(DateOffset):
 
 
 class BusinessDay(SingleConstructorOffset):
-    """
-    DateOffset subclass representing possibly n business days
-    """
+    """DateOffset subclass representing possibly n business days."""
     _prefix = 'B'
 
     def __init__(self, n=1, **kwds):
@@ -492,13 +490,13 @@ class CustomBusinessDay(BusinessDay):
                 raise
 
     def __getstate__(self):
-        """Return a pickleable state"""
+        """Return a pickleable state."""
         state = self.__dict__.copy()
         del state['busdaycalendar']
         return state
 
     def __setstate__(self, state):
-        """Reconstruct an instance from a pickled state"""
+        """Reconstruct an instance from a pickled state."""
         self.__dict__ = state
         self._set_busdaycalendar()
 
@@ -580,7 +578,7 @@ class MonthOffset(SingleConstructorOffset):
 
 
 class MonthEnd(MonthOffset):
-    """DateOffset of one month end"""
+    """DateOffset of one month end."""
 
     def apply(self, other):
         other = datetime(other.year, other.month, other.day,
@@ -604,7 +602,7 @@ class MonthEnd(MonthOffset):
 
 
 class MonthBegin(MonthOffset):
-    """DateOffset of one month at beginning"""
+    """DateOffset of one month at beginning."""
 
     def apply(self, other):
         n = self.n
@@ -623,7 +621,7 @@ class MonthBegin(MonthOffset):
 
 
 class BusinessMonthEnd(MonthOffset):
-    """DateOffset increments between business EOM dates"""
+    """DateOffset increments between business EOM dates."""
 
     def isAnchored(self):
         return (self.n == 1)
@@ -651,7 +649,7 @@ class BusinessMonthEnd(MonthOffset):
 
 
 class BusinessMonthBegin(MonthOffset):
-    """DateOffset of one business month at beginning"""
+    """DateOffset of one business month at beginning."""
 
     def apply(self, other):
         n = self.n
@@ -686,13 +684,13 @@ class BusinessMonthBegin(MonthOffset):
 
 
 class Week(DateOffset):
-    """
-    Weekly offset
+    """Weekly offset.
 
     Parameters
     ----------
     weekday : int, default None
         Always generate specific day of week. 0 for Monday
+
     """
 
     def __init__(self, n=1, **kwds):
@@ -776,8 +774,8 @@ _weekday_to_int = dict((v, k) for k, v in _int_to_weekday.items())
 
 
 class WeekOfMonth(DateOffset):
-    """
-    Describes monthly dates like "the Tuesday of the 2nd week of each month"
+    """Describes monthly dates like "the Tuesday of the 2nd week of each
+    month".
 
     Parameters
     ----------
@@ -792,6 +790,7 @@ class WeekOfMonth(DateOffset):
         4: Fridays
         5: Saturdays
         6: Sundays
+
     """
 
     def __init__(self, n=1, **kwds):
@@ -862,8 +861,8 @@ class WeekOfMonth(DateOffset):
         return cls(week=week, weekday=weekday)
 
 class LastWeekOfMonth(DateOffset):
-    """
-    Describes monthly dates in last week of month like "the last Tuesday of each month"
+    """Describes monthly dates in last week of month like "the last Tuesday of
+    each month".
 
     Parameters
     ----------
@@ -876,6 +875,7 @@ class LastWeekOfMonth(DateOffset):
         4: Fridays
         5: Saturdays
         6: Sundays
+
     """
     def __init__(self, n=1, **kwds):
         self.n = n
@@ -1138,7 +1138,7 @@ class QuarterBegin(QuarterOffset):
 
 
 class YearOffset(DateOffset):
-    """DateOffset that just needs a month"""
+    """DateOffset that just needs a month."""
 
     def __init__(self, n=1, **kwds):
         self.month = kwds.get('month', self._default_month)
@@ -1161,7 +1161,7 @@ class YearOffset(DateOffset):
 
 
 class BYearEnd(YearOffset):
-    """DateOffset increments between business EOM dates"""
+    """DateOffset increments between business EOM dates."""
     _outputName = 'BusinessYearEnd'
     _default_month = 12
     _prefix = 'BA'
@@ -1198,7 +1198,7 @@ class BYearEnd(YearOffset):
 
 
 class BYearBegin(YearOffset):
-    """DateOffset increments between business year begin dates"""
+    """DateOffset increments between business year begin dates."""
     _outputName = 'BusinessYearBegin'
     _default_month = 1
     _prefix = 'BAS'
@@ -1230,7 +1230,7 @@ class BYearBegin(YearOffset):
 
 
 class YearEnd(YearOffset):
-    """DateOffset increments between calendar year ends"""
+    """DateOffset increments between calendar year ends."""
     _default_month = 12
     _prefix = 'A'
 
@@ -1286,7 +1286,7 @@ class YearEnd(YearOffset):
 
 
 class YearBegin(YearOffset):
-    """DateOffset increments between calendar year begin dates"""
+    """DateOffset increments between calendar year begin dates."""
     _default_month = 1
     _prefix = 'AS'
 
@@ -1877,10 +1877,11 @@ CDay = CustomBusinessDay
 
 
 def _get_firstbday(wkday):
-    """
-    wkday is the result of monthrange(year, month)
+    """wkday is the result of monthrange(year, month)
 
-    If it's a saturday or sunday, increment first business day to reflect this
+    If it's a saturday or sunday, increment first business day to
+    reflect this
+
     """
     first = 1
     if wkday == 5:  # on Saturday
@@ -1892,10 +1893,9 @@ def _get_firstbday(wkday):
 
 def generate_range(start=None, end=None, periods=None,
                    offset=BDay(), time_rule=None):
-    """
-    Generates a sequence of dates corresponding to the specified time
-    offset. Similar to dateutil.rrule except uses pandas DateOffset
-    objects to represent time increments
+    """Generates a sequence of dates corresponding to the specified time
+    offset. Similar to dateutil.rrule except uses pandas DateOffset objects to
+    represent time increments.
 
     Parameters
     ----------
@@ -1987,9 +1987,12 @@ if not _np_version_under1p7:
 
 
 def _make_offset(key):
-    """Gets offset based on key. KeyError if prefix is bad, ValueError if
-    suffix is bad. All handled by `get_offset` in tseries/frequencies. Not
-    public."""
+    """Gets offset based on key.
+
+    KeyError if prefix is bad, ValueError if suffix is bad. All handled
+    by `get_offset` in tseries/frequencies. Not public.
+
+    """
     if key is None:
         return None
     split = key.replace('@', '-').split('-')

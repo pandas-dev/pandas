@@ -1,5 +1,4 @@
-"""
-Module contains tools for processing Stata files into DataFrames
+"""Module contains tools for processing Stata files into DataFrames.
 
 The StataReader below was originally written by Joe Presbrey as part of PyDTA.
 It has been extended and improved by Skipper Seabold from the Statsmodels
@@ -8,6 +7,7 @@ an once again improved version.
 
 You can find more information on http://presbrey.mit.edu/PyDTA and
 http://statsmodels.sourceforge.net/devel/
+
 """
 # TODO: Fix this module so it can use cross-compatible zip, map, and range
 import numpy as np
@@ -27,8 +27,7 @@ from pandas.tslib import NaT
 
 def read_stata(filepath_or_buffer, convert_dates=True,
                convert_categoricals=True, encoding=None, index=None):
-    """
-    Read Stata file into DataFrame
+    """Read Stata file into DataFrame.
 
     Parameters
     ----------
@@ -43,6 +42,7 @@ def read_stata(filepath_or_buffer, convert_dates=True,
         support unicode. None defaults to cp1252.
     index : identifier of index column
         identifier of column that should be used as index of the DataFrame
+
     """
     reader = StataReader(filepath_or_buffer, encoding)
 
@@ -207,9 +207,9 @@ underscores, no Stata reserved words)
 """
 
 def _cast_to_stata_types(data):
-    """Checks the dtypes of the columns of a pandas DataFrame for
-    compatibility with the data types and ranges supported by Stata, and
-    converts if necessary.
+    """Checks the dtypes of the columns of a pandas DataFrame for compatibility
+    with the data types and ranges supported by Stata, and converts if
+    necessary.
 
     Parameters
     ----------
@@ -226,6 +226,7 @@ def _cast_to_stata_types(data):
     sidecast to float64 when larger than this range.  If the int64 values
     are outside of the range of those perfectly representable as float64 values,
     a warning is raised.
+
     """
     ws = ''
     for col in data:
@@ -253,8 +254,7 @@ def _cast_to_stata_types(data):
 
 
 class StataMissingValue(StringMixin):
-    """
-    An observation's missing value.
+    """An observation's missing value.
 
     Parameters
     -----------
@@ -269,6 +269,7 @@ class StataMissingValue(StringMixin):
     Notes
     -----
     More information: <http://www.stata.com/help.cgi?missing>
+
     """
     # TODO: Needs test
     def __init__(self, offset, value):
@@ -721,9 +722,7 @@ class StataReader(StataParser):
             )
 
     def _dataset(self):
-        """
-        Returns a Python generator object for iterating over the dataset.
-
+        """Returns a Python generator object for iterating over the dataset.
 
         Parameters
         ----------
@@ -738,6 +737,7 @@ class StataReader(StataParser):
         If missing_values is True during instantiation of StataReader then
         observations with _StataMissingValue(s) are not filtered and should
         be handled by your applcation.
+
         """
 
         self.path_or_buf.seek(self.data_location)
@@ -812,8 +812,8 @@ class StataReader(StataParser):
             self.path_or_buf.read(1)  # zero-termination
 
     def data(self, convert_dates=True, convert_categoricals=True, index=None):
-        """
-        Reads observations from Stata file, converting them into a dataframe
+        """Reads observations from Stata file, converting them into a
+        dataframe.
 
         Parameters
         ----------
@@ -828,6 +828,7 @@ class StataReader(StataParser):
         Returns
         -------
         y : DataFrame instance
+
         """
         if self._data_read:
             raise Exception("Data has already been read.")
@@ -887,19 +888,17 @@ class StataReader(StataParser):
         return data
 
     def data_label(self):
-        """Returns data label of Stata file"""
+        """Returns data label of Stata file."""
         return self.data_label
 
     def variable_labels(self):
         """Returns variable labels as a dict, associating each variable name
-        with corresponding label
-        """
+        with corresponding label."""
         return dict(zip(self.varlist, self.vlblist))
 
     def value_labels(self):
         """Returns a dict, associating each variable name a dict, associating
-        each value its corresponding label
-        """
+        each value its corresponding label."""
         if not self._value_labels_read:
             self._read_value_labels()
 
@@ -923,23 +922,22 @@ def _set_endianness(endianness):
 
 
 def _pad_bytes(name, length):
-    """
-    Takes a char string and pads it wih null bytes until it's length chars
-    """
+    """Takes a char string and pads it wih null bytes until it's length
+    chars."""
     return name + "\x00" * (length - len(name))
 
 
 def _default_names(nvar):
-    """
-    Returns default Stata names v1, v2, ... vnvar
+    """Returns default Stata names v1, v2, ...
+
+    vnvar
+
     """
     return ["v%d" % i for i in range(1, nvar+1)]
 
 
 def _convert_datetime_to_stata_type(fmt):
-    """
-    Converts from one of the stata date formats to a type in TYPE_MAP
-    """
+    """Converts from one of the stata date formats to a type in TYPE_MAP."""
     if fmt in ["tc", "%tc", "td", "%td", "tw", "%tw", "tm", "%tm", "tq",
                "%tq", "th", "%th", "ty", "%ty"]:
         return np.float64  # Stata expects doubles for SIFs
@@ -964,10 +962,10 @@ def _maybe_convert_to_int_keys(convert_dates, varlist):
 
 
 def _dtype_to_stata_type(dtype):
-    """
-    Converts dtype types to stata types. Returns the byte of the given ordinal.
-    See TYPE_MAP and comments for an explanation. This is also explained in
-    the dta spec.
+    """Converts dtype types to stata types. Returns the byte of the given
+    ordinal. See TYPE_MAP and comments for an explanation. This is also
+    explained in the dta spec.
+
     1 - 244 are strings of this length
                          Pandas    Stata
     251 - chr(251) - for int8      byte
@@ -978,6 +976,7 @@ def _dtype_to_stata_type(dtype):
 
     If there are dates to convert, then dtype will already have the correct
     type inserted.
+
     """
     #TODO: expand to handle datetime to integer conversion
     if dtype.type == np.string_:
@@ -1002,9 +1001,8 @@ def _dtype_to_stata_type(dtype):
 
 
 def _dtype_to_default_stata_fmt(dtype):
-    """
-    Maps numpy dtype to stata's default format for this type. Not terribly
-    important since users can change this in Stata. Semantics are
+    """Maps numpy dtype to stata's default format for this type. Not terribly
+    important since users can change this in Stata. Semantics are.
 
     string  -> "%DDs" where DD is the length of the string
     float64 -> "%10.0g"
@@ -1013,6 +1011,7 @@ def _dtype_to_default_stata_fmt(dtype):
     int32   -> "%12.0g"
     int16   -> "%8.0g"
     int8    -> "%8.0g"
+
     """
     #TODO: expand this to handle a default datetime format?
     if dtype.type == np.string_:
@@ -1094,9 +1093,7 @@ class StataWriter(StataParser):
         self.type_converters = {253: np.int32, 252: np.int16, 251: np.int8}
 
     def _write(self, to_write):
-        """
-        Helper to call encode before writing to file for Python 3 compat.
-        """
+        """Helper to call encode before writing to file for Python 3 compat."""
         if compat.PY3:
             self._file.write(to_write.encode(self._encoding or
                                              self._default_encoding))

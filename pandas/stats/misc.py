@@ -12,8 +12,7 @@ def zscore(series):
 
 
 def correl_ts(frame1, frame2):
-    """
-    Pairwise correlation of columns of two DataFrame objects
+    """Pairwise correlation of columns of two DataFrame objects.
 
     Parameters
     ----------
@@ -21,6 +20,7 @@ def correl_ts(frame1, frame2):
     Returns
     -------
     y : Series
+
     """
     results = {}
     for col, series in compat.iteritems(frame1):
@@ -99,8 +99,7 @@ def percentileRank(frame, column=None, kind='mean'):
 
 
 def bucket(series, k, by=None):
-    """
-    Produce DataFrame representing quantiles of a Series
+    """Produce DataFrame representing quantiles of a Series.
 
     Parameters
     ----------
@@ -113,6 +112,7 @@ def bucket(series, k, by=None):
     Returns
     -------
     DataFrame
+
     """
     if by is None:
         by = series
@@ -138,8 +138,7 @@ def _split_quantile(arr, k):
 
 
 def bucketcat(series, cats):
-    """
-    Produce DataFrame representing quantiles of a Series
+    """Produce DataFrame representing quantiles of a Series.
 
     Parameters
     ----------
@@ -150,6 +149,7 @@ def bucketcat(series, cats):
     Returns
     -------
     DataFrame
+
     """
     if not isinstance(series, Series):
         series = Series(series, index=np.arange(len(series)))
@@ -169,8 +169,7 @@ def bucketcat(series, cats):
 
 
 def bucketpanel(series, bins=None, by=None, cat=None):
-    """
-    Bucket data by two Series to create summary panel
+    """Bucket data by two Series to create summary panel.
 
     Parameters
     ----------
@@ -185,6 +184,7 @@ def bucketpanel(series, bins=None, by=None, cat=None):
     Returns
     -------
     DataFrame
+
     """
     use_by = by is not None
     use_cat = cat is not None

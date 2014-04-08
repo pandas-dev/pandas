@@ -136,11 +136,12 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
     return colors
 
 class _Options(dict):
-    """
-    Stores pandas plotting options.
-    Allows for parameter aliasing so you can just use parameter names that are
-    the same as the plot function parameters, but is stored in a canonical
-    format that makes it easy to breakdown into groups later
+    """Stores pandas plotting options.
+
+    Allows for parameter aliasing so you can just use parameter names
+    that are the same as the plot function parameters, but is stored in
+    a canonical format that makes it easy to breakdown into groups later
+
     """
 
     # alias so the names are same as plotting method parameter names
@@ -171,12 +172,12 @@ class _Options(dict):
         return super(_Options, self).__contains__(key)
 
     def reset(self):
-        """
-        Reset the option store to its initial state
+        """Reset the option store to its initial state.
 
         Returns
         -------
         None
+
         """
         self.__init__()
 
@@ -185,9 +186,10 @@ class _Options(dict):
 
     @contextmanager
     def use(self, key, value):
-        """
-        Temporarily set a parameter value using the with statement.
+        """Temporarily set a parameter value using the with statement.
+
         Aliasing allowed.
+
         """
         old_value = self[key]
         try:
@@ -203,8 +205,7 @@ plot_params = _Options()
 def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
                    diagonal='hist', marker='.', density_kwds=None,
                    hist_kwds=None, range_padding=0.05, **kwds):
-    """
-    Draw a matrix of scatter plots.
+    """Draw a matrix of scatter plots.
 
     Parameters
     ----------
@@ -237,6 +238,7 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
     --------
     >>> df = DataFrame(np.random.randn(1000, 4), columns=['A','B','C','D'])
     >>> scatter_matrix(df, alpha=0.2)
+
     """
     import matplotlib.pyplot as plt
     from matplotlib.artist import setp
@@ -519,6 +521,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
     Returns:
     --------
     fig: matplotlib figure
+
     """
     import random
     import matplotlib.pyplot as plt
@@ -602,6 +605,7 @@ def parallel_coordinates(data, class_column, cols=None, ax=None, colors=None,
     >>> df = read_csv('https://raw.github.com/pydata/pandas/master/pandas/tests/data/iris.csv')
     >>> parallel_coordinates(df, 'Name', colors=('#556270', '#4ECDC4', '#C7F464'))
     >>> plt.show()
+
     """
     import matplotlib.pyplot as plt
 
@@ -678,6 +682,7 @@ def lag_plot(series, lag=1, ax=None, **kwds):
     Returns:
     --------
     ax: Matplotlib axis object
+
     """
     import matplotlib.pyplot as plt
 
@@ -708,6 +713,7 @@ def autocorrelation_plot(series, ax=None, **kwds):
     Returns:
     -----------
     ax: Matplotlib axis object
+
     """
     import matplotlib.pyplot as plt
     n = len(series)
@@ -740,8 +746,7 @@ def autocorrelation_plot(series, ax=None, **kwds):
 def grouped_hist(data, column=None, by=None, ax=None, bins=50, figsize=None,
                  layout=None, sharex=False, sharey=False, rot=90, grid=True,
                  **kwargs):
-    """
-    Grouped histogram
+    """Grouped histogram.
 
     Parameters
     ----------
@@ -761,6 +766,7 @@ def grouped_hist(data, column=None, by=None, ax=None, bins=50, figsize=None,
     Returns
     -------
     axes: collection of Matplotlib Axes
+
     """
     def plot_group(group, ax):
         ax.hist(group.dropna().values, bins=bins, **kwargs)
@@ -774,8 +780,7 @@ def grouped_hist(data, column=None, by=None, ax=None, bins=50, figsize=None,
 
 
 class MPLPlot(object):
-    """
-    Base class for assembling a pandas plot using matplotlib
+    """Base class for assembling a pandas plot using matplotlib.
 
     Parameters
     ----------
@@ -1094,11 +1099,13 @@ class MPLPlot(object):
                 self.data = self.data.reindex(index=index.order())
                 x = self.data.index.to_timestamp()._mpl_repr()
             elif index.is_numeric():
-                """
-                Matplotlib supports numeric values or datetime objects as
-                xaxis values. Taking LBYL approach here, by the time
-                matplotlib raises exception when using non numeric/datetime
-                values for xaxis, several actions are already taken by plt.
+                """Matplotlib supports numeric values or datetime objects as
+                xaxis values.
+
+                Taking LBYL approach here, by the time matplotlib raises
+                exception when using non numeric/datetime values for
+                xaxis, several actions are already taken by plt.
+
                 """
                 x = index._mpl_repr()
             elif is_datetype:
@@ -1119,10 +1126,8 @@ class MPLPlot(object):
                                         'time'))
 
     def _get_plot_function(self):
-        '''
-        Returns the matplotlib plotting function (plot or errorbar) based on
-        the presence of errorbar keywords.
-        '''
+        """Returns the matplotlib plotting function (plot or errorbar) based on
+        the presence of errorbar keywords."""
 
         if ('xerr' not in self.kwds) and \
         ('yerr' not in self.kwds):
@@ -1212,9 +1217,8 @@ class MPLPlot(object):
             return label
 
     def _parse_errorbars(self, error_dim='y', **kwds):
-        '''
-        Look for error keyword arguments and return the actual errorbar data
-        or return the error DataFrame/dict
+        """Look for error keyword arguments and return the actual errorbar data
+        or return the error DataFrame/dict.
 
         Error bars can be specified in several ways:
             Series: the user provides a pandas.Series object of the same
@@ -1223,7 +1227,8 @@ class MPLPlot(object):
             DataFrame/dict: error values are paired with keys matching the
                     key in the plotted DataFrame
             str: the name of the column within the plotted DataFrame
-        '''
+
+        """
 
         err_kwd = kwds.pop(error_dim+'err', None)
         if err_kwd is None:
@@ -2122,9 +2127,8 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
 
 def boxplot(data, column=None, by=None, ax=None, fontsize=None,
             rot=0, grid=True, figsize=None, **kwds):
-    """
-    Make a box plot from DataFrame column optionally grouped by some columns or
-    other inputs
+    """Make a box plot from DataFrame column optionally grouped by some columns
+    or other inputs.
 
     Parameters
     ----------
@@ -2144,6 +2148,7 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
     Returns
     -------
     ax : matplotlib.axes.AxesSubplot
+
     """
     from pandas import Series, DataFrame
     if isinstance(data, Series):
@@ -2234,8 +2239,7 @@ def format_date_labels(ax, rot):
 
 
 def scatter_plot(data, x, y, by=None, ax=None, figsize=None, grid=False, **kwargs):
-    """
-    Make a scatter plot from two DataFrame columns
+    """Make a scatter plot from two DataFrame columns.
 
     Parameters
     ----------
@@ -2251,6 +2255,7 @@ def scatter_plot(data, x, y, by=None, ax=None, figsize=None, grid=False, **kwarg
     Returns
     -------
     fig : matplotlib.Figure
+
     """
     import matplotlib.pyplot as plt
 
@@ -2283,8 +2288,7 @@ def scatter_plot(data, x, y, by=None, ax=None, figsize=None, grid=False, **kwarg
 def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
                xrot=None, ylabelsize=None, yrot=None, ax=None, sharex=False,
                sharey=False, figsize=None, layout=None, **kwds):
-    """
-    Draw histogram of the DataFrame's series using matplotlib / pylab.
+    """Draw histogram of the DataFrame's series using matplotlib / pylab.
 
     Parameters
     ----------
@@ -2311,6 +2315,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
     layout: (optional) a tuple (rows, columns) for the layout of the histograms
     kwds : other plotting keyword arguments
         To be passed to hist function
+
     """
     import matplotlib.pyplot as plt
 
@@ -2383,8 +2388,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
 
 def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
                 xrot=None, ylabelsize=None, yrot=None, figsize=None, **kwds):
-    """
-    Draw histogram of the input series using matplotlib
+    """Draw histogram of the input series using matplotlib.
 
     Parameters
     ----------
@@ -2458,8 +2462,7 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
 
 def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
                           rot=0, grid=True, figsize=None, **kwds):
-    """
-    Make box plots from DataFrameGroupBy data.
+    """Make box plots from DataFrameGroupBy data.
 
     Parameters
     ----------
@@ -2497,6 +2500,7 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
     >>>
     >>> grouped = df.unstack(level='lvl1').groupby(level=0, axis=1)
     >>> boxplot_frame_groupby(grouped, subplots=False)
+
     """
     if subplots is True:
         nrows, ncols = _get_layout(len(grouped))
@@ -2750,6 +2754,7 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
 
     # Four polar axes
     plt.subplots(2, 2, subplot_kw=dict(polar=True))
+
     """
     import matplotlib.pyplot as plt
     from pandas.core.frame import DataFrame

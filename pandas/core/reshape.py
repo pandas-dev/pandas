@@ -246,7 +246,7 @@ class _Unstacker(object):
 
 
 def _make_index_array_level(lev, lab):
-    """ create the combined index array, preserving nans, return an array """
+    """create the combined index array, preserving nans, return an array."""
     mask = lab == -1
     if not mask.any():
         return lev
@@ -339,9 +339,7 @@ def _unstack_multiple(data, clocs):
 
 
 def pivot(self, index=None, columns=None, values=None):
-    """
-    See DataFrame.pivot
-    """
+    """See DataFrame.pivot."""
     if values is None:
         indexed = self.set_index([index, columns])
         return indexed.unstack(columns)
@@ -353,9 +351,8 @@ def pivot(self, index=None, columns=None, values=None):
 
 
 def pivot_simple(index, columns, values):
-    """
-    Produce 'pivot' table based on 3 columns of this DataFrame.
-    Uses unique values from index / columns and fills with values.
+    """Produce 'pivot' table based on 3 columns of this DataFrame. Uses unique
+    values from index / columns and fills with values.
 
     Parameters
     ----------
@@ -373,6 +370,7 @@ def pivot_simple(index, columns, values):
     Returns
     -------
     DataFrame
+
     """
     if (len(index) != len(columns)) or (len(columns) != len(values)):
         raise AssertionError('Length of index, columns, and values must be the'
@@ -388,9 +386,8 @@ def pivot_simple(index, columns, values):
 
 
 def _slow_pivot(index, columns, values):
-    """
-    Produce 'pivot' table based on 3 columns of this DataFrame.
-    Uses unique values from index / columns and fills with values.
+    """Produce 'pivot' table based on 3 columns of this DataFrame. Uses unique
+    values from index / columns and fills with values.
 
     Parameters
     ----------
@@ -402,6 +399,7 @@ def _slow_pivot(index, columns, values):
         Column name to use for populating new frame's values
 
     Could benefit from some Cython here.
+
     """
     tree = {}
     for i, (idx, col) in enumerate(zip(index, columns)):
@@ -615,9 +613,8 @@ def _stack_multi_columns(frame, level=-1, dropna=True):
 
 def melt(frame, id_vars=None, value_vars=None,
          var_name=None, value_name='value', col_level=None):
-    """
-    "Unpivots" a DataFrame from wide format to long format, optionally leaving
-    identifier variables set.
+    """"Unpivots" a DataFrame from wide format to long format, optionally
+    leaving identifier variables set.
 
     This function is useful to massage a DataFrame into a format where one
     or more columns are identifier variables (`id_vars`), while all other
@@ -909,10 +906,12 @@ def wide_to_long(df, stubnames, i, j):
 
 
 def convert_dummies(data, cat_variables, prefix_sep='_'):
-    """
-    Compute DataFrame with specified columns converted to dummy variables (0 /
-    1). Result columns will be prefixed with the column name, then the level
-    name, e.g. 'A_foo' for column A and level foo
+    """Compute DataFrame with specified columns converted to dummy variables.
+
+    (0.
+
+    / 1). Result columns will be prefixed with the column name, then the level
+    name, e.g. 'A_foo' for column A and level foo.
 
     Parameters
     ----------
@@ -925,6 +924,7 @@ def convert_dummies(data, cat_variables, prefix_sep='_'):
     Returns
     -------
     dummies : DataFrame
+
     """
     result = data.drop(cat_variables, axis=1)
     for variable in cat_variables:
@@ -935,8 +935,7 @@ def convert_dummies(data, cat_variables, prefix_sep='_'):
 
 
 def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False):
-    """
-    Convert categorical variable into dummy/indicator variables
+    """Convert categorical variable into dummy/indicator variables.
 
     Parameters
     ----------
@@ -1060,7 +1059,7 @@ def make_axis_dummies(frame, axis='minor', transform=None):
 
 
 def block2d_to_blocknd(values, items, shape, labels, ref_items=None):
-    """ pivot to the labels shape """
+    """pivot to the labels shape."""
     from pandas.core.internals import make_block
     panel_shape = (len(items),) + shape
 
@@ -1090,9 +1089,8 @@ def block2d_to_blocknd(values, items, shape, labels, ref_items=None):
 
 
 def factor_indexer(shape, labels):
-    """ given a tuple of shape and a list of Categorical labels, return the
-    expanded label indexer
-    """
+    """given a tuple of shape and a list of Categorical labels, return the
+    expanded label indexer."""
     mult = np.array(shape)[::-1].cumprod()[::-1]
     return com._ensure_platform_int(
         np.sum(np.array(labels).T * np.append(mult, [1]), axis=1).T)

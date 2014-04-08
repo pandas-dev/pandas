@@ -8,14 +8,14 @@ import pandas._sparse as splib
 
 class SparseList(PandasObject):
 
-    """
-    Data structure for accumulating data to be converted into a
-    SparseArray. Has similar API to the standard Python list
+    """Data structure for accumulating data to be converted into a SparseArray.
+    Has similar API to the standard Python list.
 
     Parameters
     ----------
     data : scalar or array-like
     fill_value : scalar, default NaN
+
     """
 
     def __init__(self, data=None, fill_value=np.nan):
@@ -57,8 +57,7 @@ class SparseList(PandasObject):
         return self.nchunks == 1
 
     def consolidate(self, inplace=True):
-        """
-        Internally consolidate chunks of data
+        """Internally consolidate chunks of data.
 
         Parameters
         ----------
@@ -70,6 +69,7 @@ class SparseList(PandasObject):
         splist : SparseList
             If inplace=False, new object, otherwise reference to existing
             object
+
         """
         if not inplace:
             result = self.copy()
@@ -90,24 +90,24 @@ class SparseList(PandasObject):
         self._chunks = [new_arr]
 
     def copy(self):
-        """
-        Return copy of the list
+        """Return copy of the list.
 
         Returns
         -------
         new_list : SparseList
+
         """
         new_splist = SparseList(fill_value=self.fill_value)
         new_splist._chunks = list(self._chunks)
         return new_splist
 
     def to_array(self):
-        """
-        Return SparseArray from data stored in the SparseList
+        """Return SparseArray from data stored in the SparseList.
 
         Returns
         -------
         sparr : SparseArray
+
         """
         self.consolidate(inplace=True)
         return self._chunks[0]

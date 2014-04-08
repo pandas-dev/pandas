@@ -1,6 +1,4 @@
-"""
-Testing that functions from compat work as expected
-"""
+"""Testing that functions from compat work as expected."""
 
 from pandas.compat import (
     range, zip, map, filter,

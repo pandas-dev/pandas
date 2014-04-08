@@ -51,7 +51,7 @@ def _create_sp_frame():
     return SparseDataFrame(data, index=dates)
 
 def create_data():
-    """ create the pickle data """
+    """create the pickle data."""
 
     import numpy as np
     import pandas

@@ -1,6 +1,4 @@
-"""
-Misc tools for implementing data structures
-"""
+"""Misc tools for implementing data structures."""
 
 import re
 import collections
@@ -100,6 +98,7 @@ def bind_method(cls, name, func):
     Returns
     -------
     None
+
     """
     # only python 2 has bound/unbound method issue
     if not compat.PY3:
@@ -125,6 +124,7 @@ def isnull(obj):
     See also
     --------
     pandas.notnull: boolean inverse of pandas.isnull
+
     """
     return _isnull(obj)
 
@@ -340,6 +340,7 @@ def flatten(l):
     Returns
     -------
     flattened : generator
+
     """
     for el in l:
         if _iterable_not_string(el):
@@ -350,10 +351,8 @@ def flatten(l):
 
 
 def mask_missing(arr, values_to_mask):
-    """
-    Return a masking array of same size/shape as arr
-    with entries equaling any member of values_to_mask set to True
-    """
+    """Return a masking array of same size/shape as arr with entries equaling
+    any member of values_to_mask set to True."""
     if not isinstance(values_to_mask, (list, np.ndarray)):
         values_to_mask = [values_to_mask]
 
@@ -609,8 +608,7 @@ def _get_take_nd_function(ndim, arr_dtype, out_dtype, axis=0, mask_info=None):
 
 def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan,
             mask_info=None, allow_fill=True):
-    """
-    Specialized Cython take which sets NaN values in one pass
+    """Specialized Cython take which sets NaN values in one pass.
 
     Parameters
     ----------
@@ -635,6 +633,7 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan,
         If False, indexer is assumed to contain no -1 values so no filling
         will be done.  This short-circuits computation of a mask.  Result is
         undefined if allow_fill == False and -1 is present in indexer.
+
     """
     if indexer is None:
         indexer = np.arange(arr.shape[axis], dtype=np.int64)
@@ -691,9 +690,7 @@ take_1d = take_nd
 
 def take_2d_multi(arr, indexer, out=None, fill_value=np.nan,
                   mask_info=None, allow_fill=True):
-    """
-    Specialized Cython take which sets NaN values in one pass
-    """
+    """Specialized Cython take which sets NaN values in one pass."""
     if indexer is None or (indexer[0] is None and indexer[1] is None):
         row_idx = np.arange(arr.shape[0], dtype=np.int64)
         col_idx = np.arange(arr.shape[1], dtype=np.int64)
@@ -823,9 +820,8 @@ def diff(arr, n, axis=0):
 
 
 def _coerce_to_dtypes(result, dtypes):
-    """ given a dtypes and a result set, coerce the result elements to the
-    dtypes
-    """
+    """given a dtypes and a result set, coerce the result elements to the
+    dtypes."""
     if len(result) != len(dtypes):
         raise AssertionError("_coerce_to_dtypes requires equal len arrays")
 
@@ -857,8 +853,8 @@ def _coerce_to_dtypes(result, dtypes):
 
 
 def _infer_dtype_from_scalar(val):
-    """ interpret the dtype from a scalar, upcast floats and ints
-        return the new value and the dtype """
+    """interpret the dtype from a scalar, upcast floats and ints return the new
+    value and the dtype."""
 
     dtype = np.object_
 
@@ -977,11 +973,9 @@ def _maybe_promote(dtype, fill_value=np.nan):
 
 
 def _maybe_upcast_putmask(result, mask, other, dtype=None, change=None):
-    """ a safe version of put mask that (potentially upcasts the result
-    return the result
-    if change is not None, then MUTATE the change (and change the dtype)
-    return a changed flag
-    """
+    """a safe version of put mask that (potentially upcasts the result return
+    the result if change is not None, then MUTATE the change (and change the
+    dtype) return a changed flag."""
 
     if mask.any():
 
@@ -1052,7 +1046,7 @@ def _maybe_upcast_putmask(result, mask, other, dtype=None, change=None):
 
 
 def _maybe_upcast(values, fill_value=np.nan, dtype=None, copy=False):
-    """ provide explict type promotion and coercion
+    """provide explict type promotion and coercion.
 
     Parameters
     ----------
@@ -1060,6 +1054,7 @@ def _maybe_upcast(values, fill_value=np.nan, dtype=None, copy=False):
     fill_value : what we want to fill with
     dtype : if None, then use the dtype of the values, else coerce to this type
     copy : if True always make a copy even if no upcast is required
+
     """
 
     if dtype is None:
@@ -1168,7 +1163,7 @@ def _possibly_downcast_to_dtype(result, dtype):
 
 
 def _lcd_dtypes(a_dtype, b_dtype):
-    """ return the lcd dtype to hold these types """
+    """return the lcd dtype to hold these types."""
 
     if is_datetime64_dtype(a_dtype) or is_datetime64_dtype(b_dtype):
         return _NS_DTYPE
@@ -1196,14 +1191,14 @@ def _lcd_dtypes(a_dtype, b_dtype):
 
 
 def _fill_zeros(result, x, y, name, fill):
-    """
-    if this is a reversed op, then flip x,y
+    """if this is a reversed op, then flip x,y.
 
     if we have an integer value (or array in y)
     and we have 0's, fill them with the fill,
     return the result
 
     mask the nan's from x
+
     """
 
     if fill is not None:
@@ -1406,7 +1401,7 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
         method = 'values'
 
     def _interp_limit(invalid, limit):
-        """mask off values that won't be filled since they exceed the limit"""
+        """mask off values that won't be filled since they exceed the limit."""
         all_nans = np.where(invalid)[0]
         violate = [invalid[x:x + limit + 1] for x in all_nans]
         violate = np.array([x.all() & (x.size > limit) for x in violate])
@@ -1469,10 +1464,11 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
 
 def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
                                bounds_error=False, order=None, **kwargs):
-    """
-    passed off to scipy.interpolate.interp1d. method is scipy's kind.
-    Returns an array interpolated at new_x.  Add any new methods to
-    the list in _clean_interp_method
+    """passed off to scipy.interpolate.interp1d.
+
+    method is scipy's kind. Returns an array interpolated at new_x.  Add
+    any new methods to the list in _clean_interp_method
+
     """
     try:
         from scipy import interpolate
@@ -1594,7 +1590,7 @@ _values_from_object = lib.values_from_object
 def _possibly_convert_objects(values, convert_dates=True,
                               convert_numeric=True,
                               convert_timedeltas=True):
-    """ if we have an object dtype, try to coerce dates and/or numbers """
+    """if we have an object dtype, try to coerce dates and/or numbers."""
 
     # if we have passed in a list or scalar
     if isinstance(values, (list, tuple)):
@@ -1668,7 +1664,7 @@ def _possibly_castable(arr):
 
 
 def _possibly_convert_platform(values):
-    """ try to do platform conversion, allow ndarray or list here """
+    """try to do platform conversion, allow ndarray or list here."""
 
     if isinstance(values, (list, tuple)):
         values = lib.list_to_object_array(values)
@@ -1681,9 +1677,8 @@ def _possibly_convert_platform(values):
 
 
 def _possibly_cast_to_datetime(value, dtype, coerce=False):
-    """ try to cast the array/value to a datetimelike dtype, converting float
-    nan to iNaT
-    """
+    """try to cast the array/value to a datetimelike dtype, converting float
+    nan to iNaT."""
 
     if dtype is not None:
         if isinstance(dtype, compat.string_types):
@@ -1866,9 +1861,10 @@ def rands(n):
 
 
 def adjoin(space, *lists):
-    """
-    Glues together two sets of strings using the amount of space requested.
+    """Glues together two sets of strings using the amount of space requested.
+
     The idea is to prettify.
+
     """
     out_lines = []
     newLists = []
@@ -1898,10 +1894,9 @@ def _join_unicode(lines, sep=''):
 
 
 def iterpairs(seq):
-    """
-    Parameters
-    ----------
-    seq: sequence
+    """Parameters.
+
+seq: sequence
 
     Returns
     -------
@@ -1911,6 +1906,7 @@ def iterpairs(seq):
     --------
     >>> iterpairs([1, 2, 3, 4])
     [(1, 2), (2, 3), (3, 4)
+
     """
     # input may not be sliceable
     seq_it = iter(seq)
@@ -1921,10 +1917,11 @@ def iterpairs(seq):
 
 
 def split_ranges(mask):
-    """ Generates tuples of ranges which cover all True value in mask
+    """Generates tuples of ranges which cover all True value in mask.
 
     >>> list(split_ranges([1,0,0,1,0]))
     [(0, 1), (3, 4)]
+
     """
     ranges = [(0, len(mask))]
 
@@ -1961,11 +1958,11 @@ def _long_prod(vals):
 
 class groupby(dict):
 
-    """
-    A simple groupby different from the one in itertools.
+    """A simple groupby different from the one in itertools.
 
-    Does not require the sequence elements to be sorted by keys,
-    however it is slower.
+    Does not require the sequence elements to be sorted by keys, however
+    it is slower.
+
     """
 
     def __init__(self, seq, key=lambda x: x):
@@ -1981,10 +1978,8 @@ class groupby(dict):
 
 
 def map_indices_py(arr):
-    """
-    Returns a dictionary with (element, index) pairs for each element in the
-    given array/list
-    """
+    """Returns a dictionary with (element, index) pairs for each element in the
+    given array/list."""
     return dict([(x, i) for i, x in enumerate(arr)])
 
 
@@ -2210,8 +2205,8 @@ _ensure_object = algos.ensure_object
 
 
 def _astype_nansafe(arr, dtype, copy=True):
-    """ return a view if copy is False, but
-        need to be very careful as the result shape could change! """
+    """return a view if copy is False, but need to be very careful as the
+    result shape could change!"""
     if not isinstance(dtype, np.dtype):
         dtype = np.dtype(dtype)
 
@@ -2310,9 +2305,11 @@ class UTF8Recoder:
 
 def _get_handle(path, mode, encoding=None, compression=None):
     """Gets file handle for given path and mode.
+
     NOTE: Under Python 3.2, getting a compressed file handle means reading in
     the entire file, decompressing it and decoding it to ``str`` all at once
     and then wrapping it in a StringIO.
+
     """
     if compression is not None:
         if encoding is not None and not compat.PY3:
@@ -2359,12 +2356,12 @@ if compat.PY3:  # pragma: no cover
 else:
     class UnicodeReader:
 
-        """
-        A CSV reader which will iterate over lines in the CSV file "f",
+        """A CSV reader which will iterate over lines in the CSV file "f",
         which is encoded in the given encoding.
 
-        On Python 3, this is replaced (below) by csv.reader, which handles
-        unicode.
+        On Python 3, this is replaced (below) by csv.reader, which
+        handles unicode.
+
         """
 
         def __init__(self, f, dialect=csv.excel, encoding="utf-8", **kwds):
@@ -2383,10 +2380,8 @@ else:
 
     class UnicodeWriter:
 
-        """
-        A CSV writer which will write rows to CSV file "f",
-        which is encoded in the given encoding.
-        """
+        """A CSV writer which will write rows to CSV file "f", which is encoded
+        in the given encoding."""
 
         def __init__(self, f, dialect=csv.excel, encoding="utf-8", **kwds):
             # Redirect output to a queue
@@ -2490,9 +2485,10 @@ def sentinel_factory():
 
 
 def in_interactive_session():
-    """ check if we're running in an interactive shell
+    """check if we're running in an interactive shell.
 
     returns True if running under python/ipython interactive shell
+
     """
     def check_main():
         import __main__ as main
@@ -2506,9 +2502,7 @@ def in_interactive_session():
 
 
 def in_qtconsole():
-    """
-    check if we're inside an IPython qtconsole
-    """
+    """check if we're inside an IPython qtconsole."""
     try:
         ip = get_ipython()
         front_end = (
@@ -2523,9 +2517,7 @@ def in_qtconsole():
 
 
 def in_ipnb():
-    """
-    check if we're inside an IPython Notebook
-    """
+    """check if we're inside an IPython Notebook."""
     try:
         ip = get_ipython()
         front_end = (
@@ -2540,9 +2532,7 @@ def in_ipnb():
 
 
 def in_ipython_frontend():
-    """
-    check if we're inside an an IPython zmq frontend
-    """
+    """check if we're inside an an IPython zmq frontend."""
     try:
         ip = get_ipython()
         return 'zmq' in str(type(ip)).lower()
@@ -2581,11 +2571,11 @@ def in_ipython_frontend():
 
 
 def _pprint_seq(seq, _nest_lvl=0, **kwds):
-    """
-    internal. pprinter for iterables. you should probably use pprint_thing()
+    """internal. pprinter for iterables. you should probably use pprint_thing()
     rather then calling this directly.
 
     bounds length of printed sequence, depending on options
+
     """
     if isinstance(seq, set):
         fmt = u("set([%s])")
@@ -2609,9 +2599,11 @@ def _pprint_seq(seq, _nest_lvl=0, **kwds):
 
 
 def _pprint_dict(seq, _nest_lvl=0, **kwds):
-    """
-    internal. pprinter for iterables. you should probably use pprint_thing()
+    """internal.
+
+    pprinter for iterables. you should probably use pprint_thing()
     rather then calling this directly.
+
     """
     fmt = u("{%s}")
     pairs = []
@@ -2632,9 +2624,8 @@ def _pprint_dict(seq, _nest_lvl=0, **kwds):
 
 def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
                  quote_strings=False):
-    """
-    This function is the sanctioned way of converting objects
-    to a unicode representation.
+    """This function is the sanctioned way of converting objects to a unicode
+    representation.
 
     properly handles nested sequences containing unicode strings
     (unicode(object) does not)
@@ -2723,9 +2714,8 @@ def console_encode(object, **kwds):
 
 
 def load(path):  # TODO remove in 0.13
-    """
-    Load pickled pandas object (or any other pickled object) from the specified
-    file path
+    """Load pickled pandas object (or any other pickled object) from the
+    specified file path.
 
     Warning: Loading pickled data received from untrusted sources can be
     unsafe. See: http://docs.python.org/2.7/library/pickle.html
@@ -2738,6 +2728,7 @@ def load(path):  # TODO remove in 0.13
     Returns
     -------
     unpickled : type of object stored in file
+
     """
     import warnings
     warnings.warn("load is deprecated, use read_pickle", FutureWarning)
@@ -2746,14 +2737,14 @@ def load(path):  # TODO remove in 0.13
 
 
 def save(obj, path):  # TODO remove in 0.13
-    """
-    Pickle (serialize) object to input file path
+    """Pickle (serialize) object to input file path.
 
     Parameters
     ----------
     obj : any object
     path : string
         File path
+
     """
     import warnings
     warnings.warn("save is deprecated, use obj.to_pickle", FutureWarning)

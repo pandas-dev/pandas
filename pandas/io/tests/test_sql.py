@@ -119,9 +119,8 @@ SQL_STRINGS = {
 
 class PandasSQLTest(unittest.TestCase):
 
-    """Base class with common private methods for
-    SQLAlchemy and fallback cases.
-    """
+    """Base class with common private methods for SQLAlchemy and fallback
+    cases."""
 
     def drop_table(self, table_name):
         self._get_exec().execute("DROP TABLE IF EXISTS %s" % table_name)
@@ -287,8 +286,8 @@ class PandasSQLTest(unittest.TestCase):
 
 class _TestSQLApi(PandasSQLTest):
 
-    """Test the public API as it would be used
-    directly, including legacy names
+    """Test the public API as it would be used directly, including legacy
+    names.
 
     Notes:
     flavor can always be passed even in SQLAlchemy mode,
@@ -311,7 +310,7 @@ class _TestSQLApi(PandasSQLTest):
         self._check_iris_loaded_frame(iris_frame)
 
     def test_legacy_read_frame(self):
-        """Test legacy name read_frame"""
+        """Test legacy name read_frame."""
         iris_frame = sql.read_frame(
             "SELECT * FROM iris", self.conn, flavor='sqlite')
         self._check_iris_loaded_frame(iris_frame)
@@ -375,7 +374,11 @@ class _TestSQLApi(PandasSQLTest):
 
     def test_legacy_write_frame(self):
         """Test legacy write frame name.
-        Assume that functionality is already tested above so just do quick check that it basically works"""
+
+        Assume that functionality is already tested above so just do
+        quick check that it basically works
+
+        """
         sql.write_frame(
             self.test_frame1, 'test_frame_legacy', self.conn, flavor='sqlite')
         self.assertTrue(
@@ -410,7 +413,7 @@ class _TestSQLApi(PandasSQLTest):
         tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, 'Iris-setosa'])
 
     def test_date_parsing(self):
-        """ Test date parsing in read_sql """
+        """Test date parsing in read_sql."""
         # No Parsing
         df = sql.read_sql(
             "SELECT * FROM types_test_data", self.conn, flavor='sqlite')
@@ -446,7 +449,7 @@ class _TestSQLApi(PandasSQLTest):
                         "IntDateCol loaded with incorrect type")
 
     def test_date_and_index(self):
-        """ Test case where same column appears in parse_date and index_col"""
+        """Test case where same column appears in parse_date and index_col."""
 
         df = sql.read_sql("SELECT * FROM types_test_data",
                           self.conn, flavor='sqlite',
@@ -461,8 +464,7 @@ class _TestSQLApi(PandasSQLTest):
             "IntDateCol loaded with incorrect type")
 
 class TestSQLApi(_TestSQLApi):
-    """Test the public API as it would be used directly
-    """
+    """Test the public API as it would be used directly."""
     flavor = 'sqlite'
 
     def connect(self):
@@ -503,8 +505,7 @@ class TestSQLApi(_TestSQLApi):
 
 
 class TestSQLLegacyApi(_TestSQLApi):
-    """Test the public legacy API
-    """
+    """Test the public legacy API."""
     flavor = 'sqlite'
 
     def connect(self):
@@ -512,10 +513,11 @@ class TestSQLLegacyApi(_TestSQLApi):
 
 
 class _TestSQLAlchemy(PandasSQLTest):
-    """
-    Base class for testing the sqlalchemy backend. Subclasses for specific
-    database types are created below.
-    Assume that sqlalchemy takes case of the DB specifics
+    """Base class for testing the sqlalchemy backend.
+
+    Subclasses for specific database types are created below. Assume
+    that sqlalchemy takes case of the DB specifics
+
     """
 
     def test_read_sql(self):

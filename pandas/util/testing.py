@@ -72,45 +72,51 @@ class TestCase(unittest.TestCase):
         raise AssertionError('{0} is not equal to {1}.'.format(np_array, assert_equal))
 
     def assertIs(self, first, second, msg=''):
-        """Checks that 'first' is 'second'"""
+        """Checks that 'first' is 'second'."""
         a, b = first, second
         assert a is b, "%s: %r is not %r" % (msg.format(a,b), a, b)
 
     def assertIsNot(self, first, second, msg=''):
-        """Checks that 'first' is not 'second'"""
+        """Checks that 'first' is not 'second'."""
         a, b = first, second
         assert a is not b, "%s: %r is %r" % (msg.format(a,b), a, b)
 
     def assertIsNone(self, expr, msg=''):
-        """Checks that 'expr' is None"""
+        """Checks that 'expr' is None."""
         self.assertIs(expr, None, msg)
 
     def assertIsNotNone(self, expr, msg=''):
-        """Checks that 'expr' is not None"""
+        """Checks that 'expr' is not None."""
         self.assertIsNot(expr, None, msg)
 
     def assertIn(self, first, second, msg=''):
-        """Checks that 'first' is in 'second'"""
+        """Checks that 'first' is in 'second'."""
         a, b = first, second
         assert a in b, "%s: %r is not in %r" % (msg.format(a,b), a, b)
 
     def assertNotIn(self, first, second, msg=''):
-        """Checks that 'first' is not in 'second'"""
+        """Checks that 'first' is not in 'second'."""
         a, b = first, second
         assert a not in b, "%s: %r is in %r" % (msg.format(a,b), a, b)
 
     def assertIsInstance(self, obj, cls, msg=''):
-        """Test that obj is an instance of cls
-        (which can be a class or a tuple of classes,
-        as supported by isinstance())."""
+        """Test that obj is an instance of cls.
+
+        (which can be a class or a tuple of classes, as supported by
+        isinstance()).
+
+        """
         assert isinstance(obj, cls), (
             "%sExpected object to be of type %r, found %r instead" % (
                 msg, cls, type(obj)))
 
     def assertNotIsInstance(self, obj, cls, msg=''):
-        """Test that obj is not an instance of cls
-        (which can be a class or a tuple of classes,
-        as supported by isinstance())."""
+        """Test that obj is not an instance of cls.
+
+        (which can be a class or a tuple of classes, as supported by
+        isinstance()).
+
+        """
         assert not isinstance(obj, cls), (
             "%sExpected object to be of type %r, found %r instead" % (
                 msg, cls, type(obj)))
@@ -137,7 +143,7 @@ def randu(n):
 
 
 def choice(x, size=10):
-    """sample with replacement; uniform over the input"""
+    """sample with replacement; uniform over the input."""
     try:
         return np.random.choice(x, size=size)
     except AttributeError:
@@ -155,7 +161,7 @@ def close(fignum=None):
 
 
 def mplskip(cls):
-    """Skip a TestCase instance if matplotlib isn't installed"""
+    """Skip a TestCase instance if matplotlib isn't installed."""
 
     @classmethod
     def setUpClass(cls):
@@ -287,6 +293,7 @@ def set_locale(new_locale, lc_var=locale.LC_ALL):
     This is useful when you want to run a particular block of code under a
     particular locale, without globally setting the locale. This probably isn't
     thread-safe.
+
     """
     current_locale = locale.getlocale()
 
@@ -318,6 +325,7 @@ def _can_set_locale(lc):
     -------
     isvalid : bool
         Whether the passed locale can be set
+
     """
     try:
         with set_locale(lc):
@@ -343,6 +351,7 @@ def _valid_locales(locales, normalize):
     -------
     valid_locales : list
         A list of valid locales.
+
     """
     if normalize:
         normalizer = lambda x: locale.normalize(x.strip())
@@ -396,6 +405,7 @@ def ensure_clean(filename=None, return_filelike=False):
     return_filelike : bool (default False)
         if True, returns a file-like which is *always* cleaned. Necessary for
         savefig and other functions which want to append extensions.
+
     """
     filename = filename or ''
     fd = None
@@ -433,8 +443,7 @@ def ensure_clean(filename=None, return_filelike=False):
 
 def get_data_path(f=''):
     """Return the path of a data file, these are relative to the current test
-    directory.
-    """
+    directory."""
     # get our callers file
     _, filename, _, _, _, _ = inspect.getouterframes(inspect.currentframe())[1]
     base_dir = os.path.abspath(os.path.dirname(filename))
@@ -445,21 +454,21 @@ def get_data_path(f=''):
 
 
 def equalContents(arr1, arr2):
-    """Checks if the set of unique elements of arr1 and arr2 are equivalent.
-    """
+    """Checks if the set of unique elements of arr1 and arr2 are equivalent."""
     return frozenset(arr1) == frozenset(arr2)
 
 
 def assert_isinstance(obj, class_type_or_tuple, msg=''):
-    """asserts that obj is an instance of class_type_or_tuple"""
+    """asserts that obj is an instance of class_type_or_tuple."""
     assert isinstance(obj, class_type_or_tuple), (
         "%sExpected object to be of type %r, found %r instead" % (
             msg, class_type_or_tuple, type(obj)))
 
 
 def assert_equal(a, b, msg=""):
-    """asserts that a equals b, like nose's assert_equal, but allows custom message to start.
-    Passes a and b to format string as well. So you can use '{0}' and '{1}' to display a and b.
+    """asserts that a equals b, like nose's assert_equal, but allows custom
+    message to start. Passes a and b to format string as well. So you can use
+    '{0}' and '{1}' to display a and b.
 
     Examples
     --------
@@ -468,6 +477,7 @@ def assert_equal(a, b, msg=""):
     Traceback (most recent call last):
         ...
     AssertionError: 5.2 was really a dead parrot: 5.2 != 1.2
+
     """
     assert a == b, "%s: %r != %r" % (msg.format(a,b), a, b)
 
@@ -483,7 +493,11 @@ def assert_index_equal(left, right):
 
 
 def assert_attr_equal(attr, left, right):
-    """checks attributes are equal. Both objects must have attribute."""
+    """checks attributes are equal.
+
+    Both objects must have attribute.
+
+    """
     left_attr = getattr(left, attr)
     right_attr = getattr(right, attr)
     assert_equal(left_attr,right_attr,"attr is not equal [{0}]" .format(attr))
@@ -754,7 +768,7 @@ def makePanel4D(nper=None):
 
 def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
                     idx_type=None):
-    """Create an index/multindex with given dimensions, levels, names, etc'
+    """Create an index/multindex with given dimensions, levels, names, etc'.
 
     nentries - number of entries in index
     nlevels - number of levels (> 1 produces multindex)
@@ -773,6 +787,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
        "dt" create a datetime index.
 
         if unspecified, string labels will be generated.
+
     """
 
     if ndupe_l is None:
@@ -952,16 +967,16 @@ def makeMissingCustomDataframe(nrows, ncols, density=.9, random_state=None,
                                data_gen_f=None,
                                c_ndupe_l=None, r_ndupe_l=None, dtype=None,
                                c_idx_type=None, r_idx_type=None):
-    """
-    Parameters
-    ----------
-    Density : float, optional
-        Float in (0, 1) that gives the percentage of non-missing numbers in
-        the DataFrame.
-    random_state : {np.random.RandomState, int}, optional
-        Random number generator or random seed.
+    """Parameters.
 
-    See makeCustomDataframe for descriptions of the rest of the parameters.
+    Density : float, optional
+            Float in (0, 1) that gives the percentage of non-missing numbers in
+            the DataFrame.
+        random_state : {np.random.RandomState, int}, optional
+            Random number generator or random seed.
+
+        See makeCustomDataframe for descriptions of the rest of the parameters.
+
     """
     df = makeCustomDataframe(nrows, ncols, c_idx_names=c_idx_names,
                              r_idx_names=r_idx_names,
@@ -1058,12 +1073,13 @@ def package_check(pkg_name, version=None, app='pandas', checker=LooseVersion,
 
 
 def skip_if_no_package(*args, **kwargs):
-    """Raise SkipTest if package_check fails
+    """Raise SkipTest if package_check fails.
 
     Parameters
     ----------
     *args Positional parameters passed to `package_check`
     *kwargs Keyword parameters passed to `package_check`
+
     """
     from nose import SkipTest
     package_check(exc_failed_import=SkipTest,
@@ -1136,7 +1152,7 @@ if sys.version_info[:2] >= (3,3):
 
 def can_connect(url, error_classes=_network_error_classes):
     """Try to connect to the given url. True if succeeds, False if IOError
-    raised
+    raised.
 
     Parameters
     ----------
@@ -1148,6 +1164,7 @@ def can_connect(url, error_classes=_network_error_classes):
     connectable : bool
         Return True if no IOError (unable to connect) or URLError (bad url) was
         raised
+
     """
     try:
         with urlopen(url):
@@ -1166,8 +1183,7 @@ def network(t, url="http://www.google.com",
             skip_errnos=_network_errno_vals,
             _skip_on_messages=_network_error_messages,
             ):
-    """
-    Label a test as requiring network connection and, if an error is
+    """Label a test as requiring network connection and, if an error is
     encountered, only raise if it does not find a network connection.
 
     In comparison to ``network``, this assumes an added contract to your test:
@@ -1248,6 +1264,7 @@ def network(t, url="http://www.google.com",
         SkipTest
 
     Errors not related to networking will always be raised.
+
     """
     from nose import SkipTest
     t.network = True
@@ -1294,8 +1311,7 @@ with_connectivity_check = network
 
 class SimpleMock(object):
 
-    """
-    Poor man's mocking object
+    """Poor man's mocking object.
 
     Note: only works for new-style classes, assumes  __getattribute__ exists.
 
@@ -1306,6 +1322,7 @@ class SimpleMock(object):
     True
     >>> a.attr1 == "fizz" and a.attr2 == "buzz"
     True
+
     """
 
     def __init__(self, obj, *args, **kwds):
@@ -1325,8 +1342,7 @@ class SimpleMock(object):
 
 @contextmanager
 def stdin_encoding(encoding=None):
-    """
-    Context manager for running bits of code while emulating an arbitrary
+    """Context manager for running bits of code while emulating an arbitrary
     stdin encoding.
 
     >>> import sys
@@ -1346,7 +1362,7 @@ def stdin_encoding(encoding=None):
 
 
 def assertRaises(_exception, _callable=None, *args, **kwargs):
-    """assertRaises that is usable as context manager or in a with statement
+    """assertRaises that is usable as context manager or in a with statement.
 
     Exceptions that don't match the given Exception type fall through::
 
@@ -1374,6 +1390,7 @@ def assertRaises(_exception, _callable=None, *args, **kwargs):
     function, just like the normal assertRaises
 
     >>> assertRaises(TypeError, ",".join, [1, 3, 5]);
+
     """
     manager = _AssertRaisesContextmanager(exception=_exception)
     # don't return anything if used in function form
@@ -1429,7 +1446,8 @@ item assignment"
 
 
 class _AssertRaisesContextmanager(object):
-    """handles the behind the scenes work for assertRaises and assertRaisesRegexp"""
+    """handles the behind the scenes work for assertRaises and
+    assertRaisesRegexp."""
     def __init__(self, exception, regexp=None, *args, **kwargs):
         self.exception = exception
         if regexp is not None and not hasattr(regexp, "search"):
@@ -1531,8 +1549,7 @@ def disabled(t):
 
 
 class RNGContext(object):
-    """
-    Context manager to set the numpy random number generator speed. Returns
+    """Context manager to set the numpy random number generator speed. Returns
     to the original value upon exiting the context manager.
 
     Parameters
@@ -1545,6 +1562,7 @@ class RNGContext(object):
 
     with RNGContext(42):
         np.random.randn()
+
     """
 
     def __init__(self, seed):

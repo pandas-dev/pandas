@@ -952,7 +952,7 @@ Thur,Lunch,Yes,51.51,17"""
         assert_frame_equal(unstacked, expected.ix[:, unstacked.columns])
 
     def test_stack_multiple_bug(self):
-        """ bug when some uniques are not present in the data #3170"""
+        """bug when some uniques are not present in the data #3170."""
         id_col = ([1] * 3) + ([2] * 3)
         name = (['a'] * 3) + (['b'] * 3)
         date = pd.to_datetime(['2013-01-03', '2013-01-04', '2013-01-05'] * 2)

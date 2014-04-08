@@ -31,6 +31,7 @@ def tokenize_string(source):
     ----------
     source : str
         A Python source code string
+
     """
     line_reader = StringIO(source).readline
     for toknum, tokval, _, _, _ in tokenize.generate_tokens(line_reader):
@@ -68,6 +69,7 @@ def _replace_booleans(tok):
     -------
     t : tuple of int, str
         Either the input or token or the replacement values
+
     """
     toknum, tokval = tok
     if toknum == tokenize.OP:
@@ -97,6 +99,7 @@ def _replace_locals(tok):
     This is somewhat of a hack in that we rewrite a string such as ``'@a'`` as
     ``'__pd_eval_local_a'`` by telling the tokenizer that ``__pd_eval_local_``
     is a ``tokenize.OP`` and to replace the ``'@'`` symbol with it.
+
     """
     toknum, tokval = tok
     if toknum == tokenize.OP and tokval == '@':
@@ -106,7 +109,7 @@ def _replace_locals(tok):
 
 def _preparse(source, f=compose(_replace_locals, _replace_booleans,
                                 _rewrite_assign)):
-    """Compose a collection of tokenization functions
+    """Compose a collection of tokenization functions.
 
     Parameters
     ----------
@@ -128,6 +131,7 @@ def _preparse(source, f=compose(_replace_locals, _replace_booleans,
     The `f` parameter can be any callable that takes *and* returns input of the
     form ``(toknum, tokval)``, where ``toknum`` is one of the constants from
     the ``tokenize`` module and ``tokval`` is a string.
+
     """
     assert callable(f), 'f must be callable'
     return tokenize.untokenize(lmap(f, tokenize_string(source)))
@@ -197,8 +201,7 @@ assert not _unsupported_nodes & _base_supported_nodes, _msg
 
 def _node_not_implemented(node_name, cls):
     """Return a function that raises a NotImplementedError with a passed node
-    name.
-    """
+    name."""
 
     def f(self, *args, **kwargs):
         raise NotImplementedError("{0!r} nodes are not "
@@ -213,6 +216,7 @@ def disallow(nodes):
     Returns
     -------
     disallowed : callable
+
     """
     def disallowed(cls):
         cls.unsupported_nodes = ()
@@ -231,6 +235,7 @@ def _op_maker(op_class, op_symbol):
     Returns
     -------
     f : callable
+
     """
 
     def f(self, node, *args, **kwargs):
@@ -240,6 +245,7 @@ def _op_maker(op_class, op_symbol):
         Returns
         -------
         f : callable
+
         """
         return partial(op_class, op_symbol, *args, **kwargs)
     return f
@@ -276,6 +282,7 @@ class BaseExprVisitor(ast.NodeVisitor):
     engine : str
     parser : str
     preparser : callable
+
     """
     const_type = Constant
     term_type = Term
@@ -435,7 +442,7 @@ class BaseExprVisitor(ast.NodeVisitor):
     visit_Tuple = visit_List
 
     def visit_Index(self, node, **kwargs):
-        """ df.index[4] """
+        """df.index[4]"""
         return self.visit(node.value)
 
     def visit_Subscript(self, node, **kwargs):
@@ -455,7 +462,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         return self.term_type(name, env=self.env)
 
     def visit_Slice(self, node, **kwargs):
-        """ df.index[slice(4,6)] """
+        """df.index[slice(4,6)]"""
         lower = node.lower
         if lower is not None:
             lower = self.visit(lower).value
@@ -469,8 +476,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         return slice(lower, upper, step)
 
     def visit_Assign(self, node, **kwargs):
-        """
-        support a single assignment node, like
+        """support a single assignment node, like.
 
         c = a + b
 
@@ -624,6 +630,7 @@ class Expr(StringMixin):
     env : Scope, optional, default None
     truediv : bool, optional, default True
     level : int, optional, default 2
+
     """
 
     def __init__(self, expr, engine='numexpr', parser='pandas', env=None,
@@ -650,12 +657,12 @@ class Expr(StringMixin):
         return len(self.expr)
 
     def parse(self):
-        """Parse an expression"""
+        """Parse an expression."""
         return self._visitor.visit(self.expr)
 
     @property
     def names(self):
-        """Get the names in an expression"""
+        """Get the names in an expression."""
         if is_term(self.terms):
             return frozenset([self.terms.name])
         return frozenset(term.name for term in com.flatten(self.terms))

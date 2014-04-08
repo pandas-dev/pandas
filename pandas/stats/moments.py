@@ -1,7 +1,5 @@
-"""
-Provides rolling statistical moments and related descriptive
-statistics implemented in Cython
-"""
+"""Provides rolling statistical moments and related descriptive statistics
+implemented in Cython."""
 from __future__ import division
 
 from functools import wraps
@@ -645,6 +643,7 @@ def rolling_quantile(arg, window, quantile, min_periods=None, freq=None,
     The `freq` keyword is used to conform time series data to a specified
     frequency by resampling the data. This is done with the default parameters
     of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
+
     """
 
     def call_cython(arg, window, minp, args=(), kwargs={}):
@@ -692,6 +691,7 @@ def rolling_apply(arg, window, func, min_periods=None, freq=None,
     The `freq` keyword is used to conform time series data to a specified
     frequency by resampling the data. This is done with the default parameters
     of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
+
     """
     def call_cython(arg, window, minp, args, kwargs):
         minp = _use_window(minp, window)
@@ -704,9 +704,8 @@ def rolling_apply(arg, window, func, min_periods=None, freq=None,
 def rolling_window(arg, window=None, win_type=None, min_periods=None,
                    freq=None, center=False, mean=True, time_rule=None,
                    axis=0, **kwargs):
-    """
-    Applies a moving window of type ``window_type`` and size ``window``
-    on the data.
+    """Applies a moving window of type ``window_type`` and size ``window`` on
+    the data.
 
     Parameters
     ----------
@@ -751,13 +750,14 @@ def rolling_window(arg, window=None, win_type=None, min_periods=None,
     * ``gaussian`` (needs std)
     * ``general_gaussian`` (needs power, width)
     * ``slepian`` (needs width).
-    
+
     By default, the result is set to the right edge of the window. This can be
     changed to the center of the window by setting ``center=True``.
 
     The `freq` keyword is used to conform time series data to a specified
     frequency by resampling the data. This is done with the default parameters
     of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
+
     """
     if isinstance(window, (list, tuple, np.ndarray)):
         if win_type is not None:
@@ -905,6 +905,7 @@ def expanding_quantile(arg, quantile, min_periods=1, freq=None,
     The `freq` keyword is used to conform time series data to a specified
     frequency by resampling the data. This is done with the default parameters
     of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
+
     """
     return rolling_quantile(arg, len(arg), quantile, min_periods=min_periods,
                             freq=freq, center=center, time_rule=time_rule)
@@ -986,12 +987,13 @@ def expanding_apply(arg, func, min_periods=1, freq=None, center=False,
     Returns
     -------
     y : type of input argument
-    
+
     Notes
     -----
     The `freq` keyword is used to conform time series data to a specified
     frequency by resampling the data. This is done with the default parameters
     of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
+
     """
     window = len(arg)
     return rolling_apply(arg, window, func, min_periods=min_periods, freq=freq,

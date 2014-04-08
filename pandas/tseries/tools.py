@@ -68,8 +68,7 @@ def _maybe_get_tz(tz):
 def _guess_datetime_format(dt_str, dayfirst=False,
                            dt_str_parse=compat.parse_date,
                            dt_str_split=_DATEUTIL_LEXER_SPLIT):
-    """
-    Guess the datetime format of a given datetime string.
+    """Guess the datetime format of a given datetime string.
 
     Parameters
     ----------
@@ -89,6 +88,7 @@ def _guess_datetime_format(dt_str, dayfirst=False,
     Returns
     -------
     ret : datetime formatt string (for `strftime` or `strptime`)
+
     """
     if dt_str_parse is None or dt_str_split is None:
         return None
@@ -185,8 +185,7 @@ def _guess_datetime_format_for_array(arr, **kwargs):
 def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
                 format=None, coerce=False, unit='ns',
                 infer_datetime_format=False):
-    """
-    Convert argument to datetime
+    """Convert argument to datetime.
 
     Parameters
     ----------
@@ -228,6 +227,7 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
 
     >>> df = df.astype(str)
     >>> pd.to_datetime(df.day + df.month + df.year, format="%d%m%Y")
+
     """
     from pandas import Timestamp
     from pandas.core.series import Series
@@ -370,8 +370,7 @@ has_time = re.compile('(.+)([\s]|T)+(.+)')
 
 
 def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
-    """
-    Try hard to parse datetime string, leveraging dateutil plus some extra
+    """Try hard to parse datetime string, leveraging dateutil plus some extra
     goodies like quarter recognition.
 
     Parameters
@@ -387,6 +386,7 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     Returns
     -------
     datetime, datetime/dateutil.parser._result, str
+
     """
     from pandas.core.config import get_option
     from pandas.tseries.offsets import DateOffset
@@ -477,7 +477,7 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
 def dateutil_parse(timestr, default,
                    ignoretz=False, tzinfos=None,
                    **kwargs):
-    """ lifted from dateutil to get resolution"""
+    """lifted from dateutil to get resolution."""
     from dateutil import tz
     import time
     fobj = StringIO(str(timestr))
@@ -574,7 +574,7 @@ OLE_TIME_ZERO = datetime(1899, 12, 30, 0, 0, 0)
 
 
 def ole2datetime(oledt):
-    """function for converting excel date to normal date format"""
+    """function for converting excel date to normal date format."""
     val = float(oledt)
 
     # Excel has a bug where it thinks the date 2/29/1900 exists

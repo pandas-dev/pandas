@@ -1,6 +1,4 @@
-"""
-C/Cython ascii file parser tests
-"""
+"""C/Cython ascii file parser tests."""
 
 from pandas.compat import StringIO, BytesIO, map
 from datetime import datetime

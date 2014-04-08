@@ -1,8 +1,4 @@
-"""
-Module contains tools for collecting data from various remote sources
-
-
-"""
+"""Module contains tools for collecting data from various remote sources."""
 import warnings
 import tempfile
 import datetime as dt
@@ -33,8 +29,7 @@ class RemoteDataError(PandasError, IOError):
 
 def DataReader(name, data_source=None, start=None, end=None,
                retry_count=3, pause=0.001):
-    """
-    Imports data from a number of online sources.
+    """Imports data from a number of online sources.
 
     Currently supports Yahoo! Finance, Google Finance, St. Louis FED (FRED)
     and Kenneth French's data library.
@@ -68,6 +63,7 @@ def DataReader(name, data_source=None, start=None, end=None,
     ff = DataReader("F-F_Research_Data_Factors_weekly", "famafrench")
     ff = DataReader("6_Portfolios_2x3", "famafrench")
     ff = DataReader("F-F_ST_Reversal_Factor", "famafrench")
+
     """
     start, end = _sanitize_dates(start, end)
 
@@ -97,9 +93,7 @@ def _sanitize_dates(start, end):
 
 
 def _in_chunks(seq, size):
-    """
-    Return sequence in 'chunks' of size defined by size
-    """
+    """Return sequence in 'chunks' of size defined by size."""
     return (seq[pos:pos + size] for pos in range(0, len(seq), size))
 
 
@@ -111,10 +105,10 @@ _YAHOO_QUOTE_URL = 'http://finance.yahoo.com/d/quotes.csv?'
 
 
 def get_quote_yahoo(symbols):
-    """
-    Get current yahoo quote
+    """Get current yahoo quote.
 
     Returns a DataFrame
+
     """
     if isinstance(symbols, compat.string_types):
         sym_list = symbols
@@ -181,11 +175,11 @@ _HISTORICAL_YAHOO_URL = 'http://ichart.finance.yahoo.com/table.csv?'
 
 
 def _get_hist_yahoo(sym, start, end, retry_count, pause):
-    """
-    Get historical data for the given name from yahoo.
-    Date format is datetime
+    """Get historical data for the given name from yahoo. Date format is
+    datetime.
 
     Returns a DataFrame.
+
     """
     start, end = _sanitize_dates(start, end)
     url = (_HISTORICAL_YAHOO_URL + 's=%s' % sym +
@@ -204,11 +198,11 @@ _HISTORICAL_GOOGLE_URL = 'http://www.google.com/finance/historical?'
 
 
 def _get_hist_google(sym, start, end, retry_count, pause):
-    """
-    Get historical data for the given name from google.
-    Date format is datetime
+    """Get historical data for the given name from google. Date format is
+    datetime.
 
     Returns a DataFrame.
+
     """
     start, end = _sanitize_dates(start, end)
 
@@ -222,9 +216,11 @@ def _get_hist_google(sym, start, end, retry_count, pause):
 
 
 def _adjust_prices(hist_data, price_list=None):
-    """
-    Return modifed DataFrame or Panel with adjusted prices based on
-    'Adj Close' price. Adds 'Adj_Ratio' column.
+    """Return modifed DataFrame or Panel with adjusted prices based on 'Adj
+    Close' price.
+
+    Adds 'Adj_Ratio' column.
+
     """
     if price_list is None:
         price_list = 'Open', 'High', 'Low', 'Close'
@@ -239,9 +235,10 @@ def _adjust_prices(hist_data, price_list=None):
 
 
 def _calc_return_index(price_df):
-    """
-    Return a returns index from a input price df or series. Initial value
+    """Return a returns index from a input price df or series. Initial value.
+
     (typically NaN) is set to 1.
+
     """
     df = price_df.pct_change().add(1).cumprod()
     mask = df.ix[1].notnull() & df.ix[0].isnull()
@@ -262,9 +259,9 @@ _YAHOO_COMPONENTS_URL = 'http://download.finance.yahoo.com/d/quotes.csv?'
 
 
 def get_components_yahoo(idx_sym):
-    """
-    Returns DataFrame containing list of component information for
-    index represented in idx_sym from yahoo. Includes component symbol
+    """Returns DataFrame containing list of component information for index
+    represented in idx_sym from yahoo. Includes component symbol.
+
     (ticker), exchange, and name.
 
     Parameters
@@ -281,6 +278,7 @@ def get_components_yahoo(idx_sym):
     Returns
     -------
     idx_df : DataFrame
+
     """
     stats = 'snx'
     # URL of form:
@@ -368,10 +366,9 @@ def _get_data_from(symbols, start, end, retry_count, pause, adjust_price,
 def get_data_yahoo(symbols=None, start=None, end=None, retry_count=3,
                    pause=0.001, adjust_price=False, ret_index=False,
                    chunksize=25, name=None):
-    """
-    Returns DataFrame/Panel of historical stock prices from symbols, over date
-    range, start to end. To avoid being penalized by Yahoo! Finance servers,
-    pauses between downloading 'chunks' of symbols can be specified.
+    """Returns DataFrame/Panel of historical stock prices from symbols, over
+    date range, start to end. To avoid being penalized by Yahoo! Finance
+    servers, pauses between downloading 'chunks' of symbols can be specified.
 
     Parameters
     ----------
@@ -400,6 +397,7 @@ def get_data_yahoo(symbols=None, start=None, end=None, retry_count=3,
     Returns
     -------
     hist_data : DataFrame (str) or Panel (array-like object, DataFrame)
+
     """
     return _get_data_from(symbols, start, end, retry_count, pause,
                           adjust_price, ret_index, chunksize, 'yahoo', name)
@@ -408,10 +406,9 @@ def get_data_yahoo(symbols=None, start=None, end=None, retry_count=3,
 def get_data_google(symbols=None, start=None, end=None, retry_count=3,
                     pause=0.001, adjust_price=False, ret_index=False,
                     chunksize=25, name=None):
-    """
-    Returns DataFrame/Panel of historical stock prices from symbols, over date
-    range, start to end. To avoid being penalized by Google Finance servers,
-    pauses between downloading 'chunks' of symbols can be specified.
+    """Returns DataFrame/Panel of historical stock prices from symbols, over
+    date range, start to end. To avoid being penalized by Google Finance
+    servers, pauses between downloading 'chunks' of symbols can be specified.
 
     Parameters
     ----------
@@ -434,6 +431,7 @@ def get_data_google(symbols=None, start=None, end=None, retry_count=3,
     Returns
     -------
     hist_data : DataFrame (str) or Panel (array-like object, DataFrame)
+
     """
     return _get_data_from(symbols, start, end, retry_count, pause,
                           adjust_price, ret_index, chunksize, 'google', name)
@@ -444,14 +442,14 @@ _FRED_URL = "http://research.stlouisfed.org/fred2/series/"
 
 def get_data_fred(name, start=dt.datetime(2010, 1, 1),
                   end=dt.datetime.today()):
-    """
-    Get data for the given name from the St. Louis FED (FRED).
-    Date format is datetime
+    """Get data for the given name from the St. Louis FED (FRED). Date format
+    is datetime.
 
     Returns a DataFrame.
 
     If multiple names are passed for "series" then the index of the
     DataFrame is the outer join of the indicies of each series.
+
     """
     start, end = _sanitize_dates(start, end)
 
@@ -543,8 +541,7 @@ def _two_char_month(s):
 
 
 class Options(object):
-    """
-    This class fetches call/put data for a given stock/expiry month.
+    """This class fetches call/put data for a given stock/expiry month.
 
     It is instantiated with a string representing the ticker symbol.
 
@@ -581,7 +578,7 @@ class Options(object):
 
     """
     def __init__(self, symbol, data_source=None):
-        """ Instantiates options_data with a ticker saved as symbol """
+        """Instantiates options_data with a ticker saved as symbol."""
         self.symbol = symbol.upper()
         if data_source is None:
             warnings.warn("Options(symbol) is deprecated, use Options(symbol,"
@@ -591,9 +588,8 @@ class Options(object):
             raise NotImplementedError("currently only yahoo supported")
 
     def get_options_data(self, month=None, year=None, expiry=None):
-        """
-        Gets call/put data for the stock with the expiration data in the
-        given month and year
+        """Gets call/put data for the stock with the expiration data in the
+        given month and year.
 
         Parameters
         ----------
@@ -625,6 +621,7 @@ class Options(object):
         putsMMYY where MM and YY are, repsectively, two digit
         representations of the month and year for the expiry of the
         options.
+
         """
         return [f(month, year, expiry) for f in (self.get_put_data,
                                                  self.get_call_data)]
@@ -680,9 +677,8 @@ class Options(object):
         return option_data
 
     def get_call_data(self, month=None, year=None, expiry=None):
-        """
-        Gets call/put data for the stock with the expiration data in the
-        given month and year
+        """Gets call/put data for the stock with the expiration data in the
+        given month and year.
 
         Parameters
         ----------
@@ -709,13 +705,13 @@ class Options(object):
         or year, the ivar will be named callsMMYY where MM and YY are,
         repsectively, two digit representations of the month and year
         for the expiry of the options.
+
         """
         return self._get_option_data(month, year, expiry, 9, 'calls')
 
     def get_put_data(self, month=None, year=None, expiry=None):
-        """
-        Gets put data for the stock with the expiration data in the
-        given month and year
+        """Gets put data for the stock with the expiration data in the given
+        month and year.
 
         Parameters
         ----------
@@ -744,14 +740,14 @@ class Options(object):
         or year, the ivar will be named putsMMYY where MM and YY are,
         repsectively, two digit representations of the month and year
         for the expiry of the options.
+
         """
         return self._get_option_data(month, year, expiry, 13, 'puts')
 
     def get_near_stock_price(self, above_below=2, call=True, put=False,
                              month=None, year=None, expiry=None):
-        """
-        Cuts the data frame opt_df that is passed in to only take
-        options that are near the current stock price.
+        """Cuts the data frame opt_df that is passed in to only take options
+        that are near the current stock price.
 
         Parameters
         ----------
@@ -776,6 +772,7 @@ class Options(object):
             The resultant DataFrame chopped down to be 2 * above_below + 1 rows
             desired. If there isn't data as far out as the user has asked for
             then
+
         """
         year, month = self._try_parse_dates(year, month, expiry)
         price = float(get_quote_yahoo([self.symbol])['last'])
@@ -817,9 +814,8 @@ class Options(object):
 
     def get_forward_data(self, months, call=True, put=False, near=False,
                          above_below=2):
-        """
-        Gets either call, put, or both data for months starting in the current
-        month and going out in the future a specified amount of time.
+        """Gets either call, put, or both data for months starting in the
+        current month and going out in the future a specified amount of time.
 
         Parameters
         ----------
@@ -844,6 +840,7 @@ class Options(object):
         Returns
         -------
         data : dict of str, DataFrame
+
         """
         warnings.warn("get_forward_data() is deprecated", FutureWarning)
         in_months = lrange(CUR_MONTH, CUR_MONTH + months + 1)

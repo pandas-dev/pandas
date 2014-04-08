@@ -1,7 +1,5 @@
-"""
-Msgpack serializer support for reading and writing pandas data structures
-to disk
-"""
+"""Msgpack serializer support for reading and writing pandas data structures to
+disk."""
 
 # portions of msgpack_numpy package, by Lev Givon were incorporated
 # into this module (and tests_packers.py)
@@ -75,8 +73,7 @@ compressor = None
 
 
 def to_msgpack(path_or_buf, *args, **kwargs):
-    """
-    msgpack (serialize) object to input file path
+    """msgpack (serialize) object to input file path.
 
     THIS IS AN EXPERIMENTAL LIBRARY and the storage format
     may not be stable until a future release.
@@ -90,6 +87,7 @@ def to_msgpack(path_or_buf, *args, **kwargs):
              (default is False)
     compress : type of compressor (zlib or blosc), default to None (no
                compression)
+
     """
     global compressor
     compressor = kwargs.pop('compress', None)
@@ -115,9 +113,7 @@ def to_msgpack(path_or_buf, *args, **kwargs):
 
 
 def read_msgpack(path_or_buf, iterator=False, **kwargs):
-    """
-    Load msgpack pandas object from the specified
-    file path
+    """Load msgpack pandas object from the specified file path.
 
     THIS IS AN EXPERIMENTAL LIBRARY and the storage format
     may not be stable until a future release.
@@ -190,16 +186,14 @@ if hasattr(np, 'float128'):
 
 
 def c2f(r, i, ctype_name):
-    """
-    Convert strings to complex number instance with specified numpy type.
-    """
+    """Convert strings to complex number instance with specified numpy type."""
 
     ftype = c2f_dict[ctype_name]
     return np.typeDict[ctype_name](ftype(r) + 1j * ftype(i))
 
 
 def convert(values):
-    """ convert the numpy values to a list """
+    """convert the numpy values to a list."""
 
     dtype = values.dtype
     if needs_i8_conversion(dtype):
@@ -259,9 +253,7 @@ def unconvert(values, dtype, compress=None):
 
 
 def encode(obj):
-    """
-    Data encoder
-    """
+    """Data encoder."""
 
     tobj = type(obj)
     if isinstance(obj, Index):
@@ -435,9 +427,7 @@ def encode(obj):
 
 
 def decode(obj):
-    """
-    Decoder for deserializing numpy data types.
-    """
+    """Decoder for deserializing numpy data types."""
 
     typ = obj.get('typ')
     if typ is None:
@@ -542,9 +532,7 @@ def decode(obj):
 
 def pack(o, default=encode,
          encoding='latin1', unicode_errors='strict', use_single_float=False):
-    """
-    Pack an object and return the packed bytes.
-    """
+    """Pack an object and return the packed bytes."""
 
     return Packer(default=default, encoding=encoding,
                   unicode_errors=unicode_errors,
@@ -597,8 +585,7 @@ class Unpacker(_Unpacker):
 
 class Iterator(object):
 
-    """ manage the unpacking iteration,
-        close the file on completion """
+    """manage the unpacking iteration, close the file on completion."""
 
     def __init__(self, path, **kwargs):
         self.path = path
