@@ -240,7 +240,11 @@ accept the following arguments:
     or :ref:`DateOffset <timeseries.offsets>` to pre-conform the data to.
     Note that prior to pandas v0.8.0, a keyword argument ``time_rule`` was used
     instead of ``freq`` that referred to the legacy time rule constants
-
+  - ``how``: optionally specify method for down or re-sampling.  Default is
+    is min for ``rolling_min``, max for ``rolling_max``, median for
+   ``rolling_median``, and mean for all other rolling functions.  See
+   :meth:`DataFrame.resample`'s how argument for more information.
+	
 These functions can be applied to ndarrays or Series objects:
 
 .. ipython:: python
