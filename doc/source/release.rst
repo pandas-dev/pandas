@@ -211,12 +211,10 @@ Prior Version Deprecations/Changes
 - Remove ``inferTimeRule`` keyword from :func:`Timestamp.offset` (:issue:`391`)
 
 - Remove ``name`` keyword from :func:`get_data_yahoo` and
-  :func:`get_data_google` (`commit b921d1a
-<https://github.com/pydata/pandas/commit/b921d1a2>`__)
+  :func:`get_data_google` ( `commit b921d1a <https://github.com/pydata/pandas/commit/b921d1a2>`__ )
 
 - Remove ``offset`` keyword from :class:`DatetimeIndex` constructor
-  (`commit 3136390
-<https://github.com/pydata/pandas/commit/3136390>`__)
+  ( `commit 3136390 <https://github.com/pydata/pandas/commit/3136390>`__ )
 
 - Remove ``time_rule`` from several rolling-moment statistical functions, such
   as :func:`rolling_sum` (:issue:`1042`)
