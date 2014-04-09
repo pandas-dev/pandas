@@ -302,12 +302,12 @@ class TestFrequencyInference(tm.TestCase):
         self.assertRaises(ValueError, lambda : infer_freq(Series(['foo','bar'])))
 
         # cannot infer on PeriodIndex
-        for freq in [None, 'MS', 'Y']:
+        for freq in [None, 'L', 'Y']:
             s = Series(period_range('2013',periods=10,freq=freq))
             self.assertRaises(TypeError, lambda : infer_freq(s))
 
         # DateTimeIndex
-        for freq in ['MS', 'L', 'S']:
+        for freq in ['M', 'L', 'S']:
             s = Series(date_range('20130101',periods=10,freq=freq))
             inferred = infer_freq(s)
             self.assertEqual(inferred,freq)
