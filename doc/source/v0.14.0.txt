@@ -373,6 +373,27 @@ Deprecations
   ``FutureWarning`` is raised  to alert that the old ``cols`` arguments
   will not be supported in a future release (:issue:`6645`)
 
+- Indexers will warn ``FutureWarning`` when used with a scalar indexer and
+  a non-floating point Index (:issue:`4892`)
+
+  .. code-block:: python
+
+     # non-floating point indexes can only be indexed by integers / labels
+     In [1]: Series(1,np.arange(5))[3.0]
+             pandas/core/index.py:469: FutureWarning: scalar indexers for index type Int64Index should be integers and not floating point
+     Out[1]: 1
+
+     In [5]: Series(1,np.arange(5)).iloc[3.0]
+             pandas/core/index.py:469: FutureWarning: scalar indexers for index type Int64Index should be integers and not floating point
+     Out[5]: 1
+
+     # these are Float64Indexes, so integer or floating point is acceptable
+     In [3]: Series(1,np.arange(5.))[3]
+     Out[3]: 1
+
+     In [4]: Series(1,np.arange(5.))[3.0]
+     Out[4]: 1
+
 .. _whatsnew_0140.enhancements:
 
 Enhancements

@@ -355,6 +355,8 @@ cdef class Int64Engine(IndexEngine):
         hash(val)
         if util.is_bool_object(val):
             raise KeyError(val)
+        elif util.is_float_object(val):
+            raise KeyError(val)
 
     cdef _maybe_get_bool_indexer(self, object val):
         cdef:

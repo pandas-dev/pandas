@@ -94,6 +94,7 @@ class TestIndexing(tm.TestCase):
     _typs = set(['ints','labels','mixed','ts','floats','empty'])
 
     def setUp(self):
+
         import warnings
         warnings.filterwarnings(action='ignore', category=FutureWarning)
 
@@ -3211,6 +3212,64 @@ class TestIndexing(tm.TestCase):
         df = mkdf(5, 2)
         assert_frame_equal(df.ix[:,[]], df.iloc[:, :0])  # vertical empty
         assert_frame_equal(df.ix[[],:], df.iloc[:0, :])  # horizontal empty
+
+    def test_deprecate_float_indexers(self):
+
+        # GH 4892
+        # deprecate allowing float indexers that are equal to ints to be used
+        # as indexers in non-float indices
+
+        import warnings
+        warnings.filterwarnings(action='error', category=FutureWarning)
+
+        for index in [ tm.makeStringIndex, tm.makeUnicodeIndex,
+                       tm.makeDateIndex, tm.makePeriodIndex ]:
+
+            i = index(5)
+            s = Series(np.arange(len(i)),index=i)
+            self.assertRaises(FutureWarning, lambda :
+                              s.iloc[3.0])
+            self.assertRaises(FutureWarning, lambda :
+                              s[3.0])
+
+            # this is ok!
+            s[3]
+
+        # ints
+        i = index(5)
+        s = Series(np.arange(len(i)))
+        self.assertRaises(FutureWarning, lambda :
+                          s.iloc[3.0])
+
+        # on some arch's this doesn't provide a warning (and thus raise)
+        # and some it does
+        try:
+            s[3.0]
+        except:
+            pass
+
+        # floats: these are all ok!
+        i = np.arange(5.)
+        s = Series(np.arange(len(i)),index=i)
+        with tm.assert_produces_warning(False):
+            s[3.0]
+
+        with tm.assert_produces_warning(False):
+            s[3]
+
+        with tm.assert_produces_warning(False):
+            s.iloc[3.0]
+
+        with tm.assert_produces_warning(False):
+            s.iloc[3]
+
+        with tm.assert_produces_warning(False):
+            s.loc[3.0]
+
+        with tm.assert_produces_warning(False):
+            s.loc[3]
+
+        warnings.filterwarnings(action='ignore', category=FutureWarning)
 
 if __name__ == '__main__':
     import nose

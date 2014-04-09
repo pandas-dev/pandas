@@ -1,6 +1,7 @@
 # pylint: disable=E1101,E1103,W0232
 import datetime
 from functools import partial
+import warnings
 from pandas.compat import range, zip, lrange, lzip, u, reduce
 from pandas import compat
 import numpy as np
@@ -468,11 +469,19 @@ class Index(IndexOpsMixin, FrozenNDArray):
             return ikey
 
         if typ == 'iloc':
-            if not (is_integer(key) or is_float(key)):
-                self._convert_indexer_error(key, 'label')
-            return to_int()
+            if is_integer(key):
+                return key
+            elif is_float(key):
+                if not self.is_floating():
+                    warnings.warn("scalar indexers for index type {0} should be integers and not floating point".format(
+                        type(self).__name__),FutureWarning)
+                return to_int()
+            return self._convert_indexer_error(key, 'label')
 
         if is_float(key):
+            if not self.is_floating():
+                warnings.warn("scalar indexers for index type {0} should be integers and not floating point".format(
+                    type(self).__name__),FutureWarning)
             return to_int()
 
         return key
