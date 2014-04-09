@@ -1563,7 +1563,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     #----------------------------------------------------------------------
     # Reindexing, sorting
 
-    def sort(self, axis=0, kind='quicksort', order=None, ascending=True):
+    def sort(self, axis=0, ascending=True, kind='quicksort', na_position='last'):
         """
         Sort values and index labels by value, in place. For compatibility with
         ndarray API. No return value
@@ -1571,12 +1571,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Parameters
         ----------
         axis : int (can only be zero)
+        ascending : boolean, default True
+            Sort ascending. Passing False sorts descending
         kind : {'mergesort', 'quicksort', 'heapsort'}, default 'quicksort'
             Choice of sorting algorithm. See np.sort for more
             information. 'mergesort' is the only stable algorithm
-        order : ignored
-        ascending : boolean, default True
-            Sort ascending. Passing False sorts descending
+        na_position : {'first', 'last'} (optional, default='last')
+            'first' puts NaNs at the beginning
+            'last' puts NaNs at the end
 
         See Also
         --------
@@ -1588,9 +1590,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             raise ValueError("This Series is a view of some other array, to "
                              "sort in-place you must create a copy")
 
-        result = self.order(kind=kind,
-                            ascending=ascending,
-                            na_position='last')
+        result = self.order(ascending=ascending,
+                            kind=kind,
+                            na_position=na_position)
 
         self._update_inplace(result)
 
@@ -1690,7 +1692,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                      ascending=ascending, pct=pct)
         return self._constructor(ranks, index=self.index).__finalize__(self)
 
-    def order(self, na_last=None, ascending=True, kind='mergesort', na_position='last'):
+    def order(self, na_last=None, ascending=True, kind='quicksort', na_position='last'):
         """
         Sorts Series object, by value, maintaining index-value link
 
@@ -1700,7 +1702,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Put NaN's at beginning or end
         ascending : boolean, default True
             Sort ascending. Passing False sorts descending
-        kind : {'mergesort', 'quicksort', 'heapsort'}, default 'mergesort'
+        kind : {'mergesort', 'quicksort', 'heapsort'}, default 'quicksort'
             Choice of sorting algorithm. See np.sort for more
             information. 'mergesort' is the only stable algorithm
         na_position : {'first', 'last'} (optional, default='last')
