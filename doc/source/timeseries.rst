@@ -541,10 +541,10 @@ calendars which account for local holidays and local weekend conventions.
     holidays = ['2012-05-01', datetime(2013, 5, 1), np.datetime64('2014-05-01')]
     bday_egypt = CustomBusinessDay(holidays=holidays, weekmask=weekmask_egypt)
     dt = datetime(2013, 4, 30)
-    print(dt + 2 * bday_egypt)
+    dt + 2 * bday_egypt
     dts = date_range(dt, periods=5, freq=bday_egypt).to_series()
-    print(dts)
-    print(Series(dts.weekday, dts).map(Series('Mon Tue Wed Thu Fri Sat Sun'.split())))
+    dts
+    Series(dts.weekday, dts).map(Series('Mon Tue Wed Thu Fri Sat Sun'.split()))
 
 As of v0.14 holiday calendars can be used to provide the list of holidays.  See the
 :ref:`holiday calendar<timeseries.holiday>` section for more information.
@@ -553,8 +553,10 @@ As of v0.14 holiday calendars can be used to provide the list of holidays.  See 
 
     from pandas.tseries.holiday import USFederalHolidayCalendar
     bday_us = CustomBusinessDay(calendar=USFederalHolidayCalendar())
-    dt = datetime(2014, 1, 17) #Friday before MLK Day
-    print(dt + bday_us) #Tuesday after MLK Day
+    # Friday before MLK Day
+    dt = datetime(2014, 1, 17)
+    # Tuesday after MLK Day (Monday is skipped because it's a holiday)
+    dt + bday_us
 
 
 .. note::
@@ -767,12 +769,36 @@ An example of how holidays and holiday calendars are defined:
                 offset=DateOffset(weekday=MO(2))), #same as 2*Week(weekday=2)
             ]
     cal = ExampleCalendar()
-    datetime(2012, 5, 25) + CustomBusinessDay(calendar=cal)
-    cal.holidays(datetime(2012, 1, 1), datetime(2012, 12, 31))#holiday list
-    AbstractHolidayCalendar.start_date #default start date of range
-    AbstractHolidayCalendar.end_date #default end date of range
-    AbstractHolidayCalendar.start_date = datetime(2012, 1, 1)#or Timestamp
-    AbstractHolidayCalendar.end_date = datetime(2012, 12, 31)#or Timestamp
+    cal.holidays(datetime(2012, 1, 1), datetime(2012, 12, 31))
+
+Using this calendar, creating an index or doing offset arithmetic skips weekends 
+and holidays (i.e., Memorial Day/July 4th).
+
+.. ipython:: python
+
+    DatetimeIndex(start='7/1/2012', end='7/10/2012', 
+        freq=CDay(calendar=cal)).to_pydatetime()
+    offset = CustomBusinessDay(calendar=cal)
+    datetime(2012, 5, 25) + offset
+    datetime(2012, 7, 3) + offset
+    datetime(2012, 7, 3) + 2 * offset
+    datetime(2012, 7, 6) + offset
+
+Ranges are defined by the ``start_date`` and ``end_date`` class attributes
+of ``AbstractHolidayCalendar``.  The defaults are below.
+
+.. ipython:: python
+    
+    AbstractHolidayCalendar.start_date
+    AbstractHolidayCalendar.end_date
+
+These dates can be overwritten by setting the attributes as 
+datetime/Timestamp/string.
+
+.. ipython:: python
+
+    AbstractHolidayCalendar.start_date = datetime(2012, 1, 1)
+    AbstractHolidayCalendar.end_date = datetime(2012, 12, 31)
     cal.holidays()
 
 Every calendar class is accessible by name using the ``get_calendar`` function
