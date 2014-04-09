@@ -86,7 +86,7 @@ API Changes
   for a Series with a ``DatetimeIndex`` or a ``PeriodIndex``; trying this on a non-supported Index type will
   now raise a ``TypeError``. (:issue:`4551`, :issue:`4056`, :issue:`5519`)
 
-  The following affected:
+  The following are affected:
 
   - ``date,time,year,month,day``
   - ``hour,minute,second,weekofyear``
@@ -135,26 +135,20 @@ API Changes
     the name of the inserted column containing the pivoted data.
 
 - Allow specification of a more complex groupby, via ``pd.Grouper`` (:issue:`3794`)
-
 - A tuple passed to ``DataFame.sort_index`` will be interpreted as the levels of
   the index, rather than requiring a list of tuple (:issue:`4370`)
-
 - Fix a bug where invalid eval/query operations would blow the stack (:issue:`5198`)
-
 - Following keywords are now acceptable for :meth:`DataFrame.plot` with ``kind='bar'`` and ``kind='barh'``:
 
   - `width`: Specify the bar width. In previous versions, static value 0.5 was passed to matplotlib and it cannot be overwritten. (:issue:`6604`)
-
-  - `align`: Specify the bar alignment. Default is `center` (different from matplotlib). In previous versions, pandas passes `align='edge'` to matplotlib and adjust the location to `center` by itself, and it results `align` keyword is not applied as expected. (:issue:`4525`)
-
+  - `align`: Specify the bar alignment. Default is `center` (different from matplotlib). In previous versions, pandas passes `align='edge'` to
+    matplotlib and adjust the location to `center` by itself, and it results `align` keyword is not applied as expected. (:issue:`4525`)
   - `position`: Specify relative alignments for bar plot layout. From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5 (center). (:issue:`6604`)
 
 - Define and document the order of column vs index names in query/eval (:issue:`6676`)
-
 - ``DataFrame.sort`` now places NaNs at the beginning or end of the sort according to the ``na_position`` parameter. (:issue:`3917`)
 - ``stack`` and ``unstack`` now raise a ``ValueError`` when the ``level`` keyword refers
   to a non-unique item in the ``Index`` (previously raised a ``KeyError``). (:issue:`6738`)
-
 - all offset operations now return ``Timestamp`` types (rather than datetime), Business/Week frequencies were incorrect (:issue:`4069`)
 - ``Series.iteritems()`` is now lazy (returns an iterator rather than a list). This was the documented behavior prior to 0.14. (:issue:`6760`)
 - ``Panel.shift`` now uses ``NDFrame.shift``. It no longer drops the ``nan`` data and retains its original shape.  (:issue:`4867`)
@@ -163,19 +157,19 @@ API Changes
   representation) (:issue:`6782`)
 - Arithmetic ops are now disallowed when passed two bool dtype Series or
   DataFrames (:issue:`6762`).
-
 - Added ``nunique`` and ``value_counts`` functions to ``Index`` for counting unique elements. (:issue:`6734`)
 
 - ``DataFrame.plot`` and ``Series.plot`` now support a ``table`` keyword for plotting ``matplotlib.Table``. The ``table`` kewyword can receive the following values.
 
   - ``False``: Do nothing (default).
-
   - ``True``: Draw a table using the ``DataFrame`` or ``Series`` called ``plot`` method. Data will be transposed to meet matplotlib's default layout.
-
   - ``DataFrame`` or ``Series``: Draw matplotlib.table using the passed data. The data will be drawn as displayed in print method (not transposed automatically).
-
   Also, helper function ``pandas.tools.plotting.table`` is added to create a table from ``DataFrame`` and ``Series``, and add it to an ``matplotlib.Axes``.
 
+- drop unused order argument from ``Series.sort``; args now in the same orders as ``Series.order``;
+  add ``na_position`` arg to conform to ``Series.order`` (:issue:`6847`)
+- default sorting algorithm for ``Series.order`` is not ``quicksort``, to conform with ``Series.sort``
+  (and numpy defaults)
 
 Deprecations
 ~~~~~~~~~~~~
