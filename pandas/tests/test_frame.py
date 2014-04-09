@@ -181,12 +181,12 @@ class CheckIndexing(object):
         # tuples
         df = DataFrame(randn(8, 3),
                        columns=Index([('foo', 'bar'), ('baz', 'qux'),
-                                      ('peek', 'aboo')], name='sth'))
+                                      ('peek', 'aboo')], name=['sth', 'sth2']))
 
         result = df[[('foo', 'bar'), ('baz', 'qux')]]
         expected = df.ix[:, :2]
         assert_frame_equal(result, expected)
-        self.assertEqual(result.columns.name, 'sth')
+        self.assertEqual(result.columns.names, ['sth', 'sth2'])
 
     def test_setitem_list(self):
 
@@ -2499,6 +2499,31 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         expected = DataFrame(dict((k, list(v)) for k, v in compat.iteritems(data)))
         assert_frame_equal(result, expected, check_dtype=False)
 
+    def test_constructor_dict_multiindex(self):
+        check = lambda result, expected: tm.assert_frame_equal(
+            result, expected, check_dtype=True, check_index_type=True,
+            check_column_type=True, check_names=True)
+        d = {('a', 'a'): {('i', 'i'): 0, ('i', 'j'): 1, ('j', 'i'): 2},
+             ('b', 'a'): {('i', 'i'): 6, ('i', 'j'): 5, ('j', 'i'): 4},
+             ('b', 'c'): {('i', 'i'): 7, ('i', 'j'): 8, ('j', 'i'): 9}}
+        _d = sorted(d.items())
+        df = DataFrame(d)
+        expected = DataFrame(
+            [x[1] for x in _d],
+            index=MultiIndex.from_tuples([x[0] for x in _d])).T
+        expected.index = MultiIndex.from_tuples(expected.index)
+        check(df, expected)
+
+        d['z'] = {'y': 123., ('i', 'i'): 111, ('i', 'j'): 111, ('j', 'i'): 111}
+        _d.insert(0, ('z', d['z']))
+        expected = DataFrame(
+            [x[1] for x in _d],
+            index=Index([x[0] for x in _d], tupleize_cols=False)).T
+        expected.index = Index(expected.index, tupleize_cols=False)
+        df = DataFrame(d)
+        df = df.reindex(columns=expected.columns, index=expected.index)
+        check(df, expected)
+
     def _check_basic_constructor(self, empty):
         "mat: 2d matrix with shpae (3, 2) to input. empty - makes sized objects"
         mat = empty((2, 3), dtype=float)
@@ -2922,8 +2947,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
     def test_constructor_ragged(self):
         data = {'A': randn(10),
                 'B': randn(8)}
-        assertRaisesRegexp(ValueError, 'arrays must all be same length',
-                           DataFrame, data)
+        with assertRaisesRegexp(ValueError, 'arrays must all be same length'):
+            DataFrame(data)
 
     def test_constructor_scalar(self):
         idx = Index(lrange(3))
@@ -12105,7 +12130,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         IndexType = namedtuple("IndexType", ["a", "b"])
         idx1 = IndexType("foo", "bar")
         idx2 = IndexType("baz", "bof")
-        index = Index([idx1, idx2], name="composite_index")
+        index = Index([idx1, idx2],
+                      name="composite_index", tupleize_cols=False)
         df = DataFrame([(1, 2), (3, 4)], index=index, columns=["A", "B"])
         self.assertEqual(df.ix[IndexType("foo", "bar")]["A"], 1)
 
