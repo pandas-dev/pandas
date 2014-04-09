@@ -378,17 +378,17 @@ Deprecations
 Enhancements
 ~~~~~~~~~~~~
 
-- DataFrame and Series will create MultiIndex if passed a list of tuples
+- DataFrame and Series will create a MultiIndex object if passed a tuples dict (:issue:`4187`)
 
   .. ipython:: python
 
      Series({('a', 'b'): 1, ('a', 'a'): 0,
-                    ('a', 'c'): 2, ('b', 'a'): 3, ('b', 'b'): 4})
-     pandas.DataFrame({('a', 'b'): {('A', 'B'): 1, ('A', 'C'): 2},
-                       ('a', 'a'): {('A', 'C'): 3, ('A', 'B'): 4},
-                       ('a', 'c'): {('A', 'B'): 5, ('A', 'C'): 6},
-                       ('b', 'a'): {('A', 'C'): 7, ('A', 'B'): 8},
-                       ('b', 'b'): {('A', 'D'): 9, ('A', 'B'): 10}})
+             ('a', 'c'): 2, ('b', 'a'): 3, ('b', 'b'): 4})
+     DataFrame({('a', 'b'): {('A', 'B'): 1, ('A', 'C'): 2},
+                ('a', 'a'): {('A', 'C'): 3, ('A', 'B'): 4},
+                ('a', 'c'): {('A', 'B'): 5, ('A', 'C'): 6},
+                ('b', 'a'): {('A', 'C'): 7, ('A', 'B'): 8},
+                ('b', 'b'): {('A', 'D'): 9, ('A', 'B'): 10}})
 
 - ``DataFrame.to_latex`` now takes a longtable keyword, which if True will return a table in a longtable environment. (:issue:`6617`)
 - ``pd.read_clipboard`` will, if 'sep' is unspecified, try to detect data copied from a spreadsheet
