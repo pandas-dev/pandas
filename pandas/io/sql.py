@@ -176,14 +176,66 @@ def uquery(sql, con, cur=None, params=None, engine=None, flavor='sqlite'):
 #------------------------------------------------------------------------------
 # Read and write to DataFrames
 
+def read_sql_table(table_name, con, meta=None, index_col=None,
+                   coerce_float=True, parse_dates=None, columns=None):
+    """Read SQL database table into a DataFrame.
 
-def read_sql(sql, con, index_col=None, flavor='sqlite', coerce_float=True,
-             params=None, parse_dates=None):
+    Given a table name and an SQLAlchemy engine, returns a DataFrame.
+    This function does not support DBAPI connections.
+
+    Parameters
+    ----------
+    table_name : string
+        Name of SQL table in database
+    con : SQLAlchemy engine
+        Legacy mode not supported
+    meta : SQLAlchemy meta, optional
+        If omitted MetaData is reflected from engine
+    index_col : string, optional
+        Column to set as index
+    coerce_float : boolean, default True
+        Attempt to convert values to non-string, non-numeric objects (like
+        decimal.Decimal) to floating point. Can result in loss of Precision.
+    parse_dates : list or dict
+        - List of column names to parse as dates
+        - Dict of ``{column_name: format string}`` where format string is
+          strftime compatible in case of parsing string times or is one of
+          (D, s, ns, ms, us) in case of parsing integer timestamps
+        - Dict of ``{column_name: arg dict}``, where the arg dict corresponds
+          to the keyword arguments of :func:`pandas.to_datetime`
+          Especially useful with databases without native Datetime support,
+          such as SQLite
+    columns : list
+        List of column names to select from sql table
+
+    Returns
+    -------
+    DataFrame
+
+    See also
+    --------
+    read_sql_query : Read SQL query into a DataFrame.
+    read_sql
+    
+
     """
-    Returns a DataFrame corresponding to the result set of the query
-    string.
+    pandas_sql = PandasSQLAlchemy(con, meta=meta)
+    table = pandas_sql.read_table(
+        table_name, index_col=index_col, coerce_float=coerce_float,
+        parse_dates=parse_dates, columns=columns)
 
-    Optionally provide an `index_col` parameter to use one of the
+    if table is not None:
+        return table
+    else:
+        raise ValueError("Table %s not found" % table_name, con)
+
+
+def read_sql_query(sql, con, index_col=None, flavor='sqlite',
+                   coerce_float=True, params=None, parse_dates=None):
+    """Read SQL query into a DataFrame.
+
+    Returns a DataFrame corresponding to the result set of the query
+    string. Optionally provide an `index_col` parameter to use one of the
     columns as the index, otherwise default integer index will be used.
 
     Parameters
@@ -221,15 +273,83 @@ def read_sql(sql, con, index_col=None, flavor='sqlite', coerce_float=True,
 
     See also
     --------
-    read_table
+    read_sql_table : Read SQL database table into a DataFrame
+    read_sql
 
     """
     pandas_sql = pandasSQL_builder(con, flavor=flavor)
-    return pandas_sql.read_sql(sql,
-                               index_col=index_col,
-                               params=params,
-                               coerce_float=coerce_float,
-                               parse_dates=parse_dates)
+    return pandas_sql.read_sql(
+        sql, index_col=index_col, params=params, coerce_float=coerce_float,
+        parse_dates=parse_dates)
+
+
+def read_sql(sql, con, index_col=None, flavor='sqlite', coerce_float=True,
+             params=None, parse_dates=None, columns=None):
+    """
+    Read SQL query or database table into a DataFrame.
+
+    Parameters
+    ----------
+    sql : string
+        SQL query to be executed or database table name.
+    con : SQLAlchemy engine or DBAPI2 connection (legacy mode)
+        Using SQLAlchemy makes it possible to use any DB supported by that
+        library.
+        If a DBAPI2 object is given, a supported SQL flavor must also be provided
+    index_col : string, optional
+        column name to use for the returned DataFrame object.
+    flavor : string, {'sqlite', 'mysql'}
+        The flavor of SQL to use. Ignored when using
+        SQLAlchemy engine. Required when using DBAPI2 connection.
+    coerce_float : boolean, default True
+        Attempt to convert values to non-string, non-numeric objects (like
+        decimal.Decimal) to floating point, useful for SQL result sets
+    cur : depreciated, cursor is obtained from connection
+    params : list, tuple or dict, optional
+        List of parameters to pass to execute method.
+    parse_dates : list or dict
+        - List of column names to parse as dates
+        - Dict of ``{column_name: format string}`` where format string is
+          strftime compatible in case of parsing string times or is one of
+          (D, s, ns, ms, us) in case of parsing integer timestamps
+        - Dict of ``{column_name: arg dict}``, where the arg dict corresponds
+          to the keyword arguments of :func:`pandas.to_datetime`
+          Especially useful with databases without native Datetime support,
+          such as SQLite
+    columns : list
+        List of column names to select from sql table
+
+    Returns
+    -------
+    DataFrame
+
+    Notes
+    -----
+    This function is a convenience wrapper around ``read_sql_table`` and
+    ``read_sql_query`` (and for backward compatibility) and will delegate 
+    to the specific function depending on the provided input (database 
+    table name or sql query).
+
+    See also
+    --------
+    read_sql_table : Read SQL database table into a DataFrame
+    read_sql_query : Read SQL query into a DataFrame
+
+    """
+    pandas_sql = pandasSQL_builder(con, flavor=flavor)
+
+    if pandas_sql.has_table(sql):
+        if isinstance(pandas_sql, PandasSQLLegacy):
+            raise ValueError("Reading a table with read_sql is not supported "
+                             "for a DBAPI2 connection. Use an SQLAlchemy "
+                             "engine or specify an sql query")
+        return pandas_sql.read_table(
+            sql, index_col=index_col, coerce_float=coerce_float,
+            parse_dates=parse_dates, columns=columns)
+    else:
+        return pandas_sql.read_sql(
+            sql, index_col=index_col, params=params, coerce_float=coerce_float,
+            parse_dates=parse_dates)
 
 
 def to_sql(frame, name, con, flavor='sqlite', if_exists='fail', index=True,
@@ -294,59 +414,6 @@ def has_table(table_name, con, meta=None, flavor='sqlite'):
     """
     pandas_sql = pandasSQL_builder(con, flavor=flavor)
     return pandas_sql.has_table(table_name)
-
-
-def read_table(table_name, con, meta=None, index_col=None, coerce_float=True,
-               parse_dates=None, columns=None):
-    """Given a table name and SQLAlchemy engine, return a DataFrame.
-
-    Type convertions will be done automatically.
-
-    Parameters
-    ----------
-    table_name : string
-        Name of SQL table in database
-    con : SQLAlchemy engine
-        Legacy mode not supported
-    meta : SQLAlchemy meta, optional
-        If omitted MetaData is reflected from engine
-    index_col : string or sequence of strings, optional
-        Column(s) to set as index.
-    coerce_float : boolean, default True
-        Attempt to convert values to non-string, non-numeric objects (like
-        decimal.Decimal) to floating point. Can result in loss of Precision.
-    parse_dates : list or dict
-        - List of column names to parse as dates
-        - Dict of ``{column_name: format string}`` where format string is
-          strftime compatible in case of parsing string times or is one of
-          (D, s, ns, ms, us) in case of parsing integer timestamps
-        - Dict of ``{column_name: arg dict}``, where the arg dict corresponds
-          to the keyword arguments of :func:`pandas.to_datetime`
-          Especially useful with databases without native Datetime support,
-          such as SQLite
-    columns : list, optional
-        List of column names to select from sql table
-
-    Returns
-    -------
-    DataFrame
-
-    See also
-    --------
-    read_sql
-
-    """
-    pandas_sql = PandasSQLAlchemy(con, meta=meta)
-    table = pandas_sql.read_table(table_name,
-                                  index_col=index_col,
-                                  coerce_float=coerce_float,
-                                  parse_dates=parse_dates,
-                                  columns=columns)
-
-    if table is not None:
-        return table
-    else:
-        raise ValueError("Table %s not found" % table_name, con)
 
 
 def pandasSQL_builder(con, flavor=None, meta=None):
@@ -667,6 +734,13 @@ class PandasSQLAlchemy(PandasSQL):
         result = self.execute(*args, **kwargs)
         return result.rowcount
 
+    def read_table(self, table_name, index_col=None, coerce_float=True,
+                   parse_dates=None, columns=None):
+
+        table = PandasSQLTable(table_name, self, index=index_col)
+        return table.read(coerce_float=coerce_float,
+                          parse_dates=parse_dates, columns=columns)
+
     def read_sql(self, sql, index_col=None, coerce_float=True,
                  parse_dates=None, params=None):
         args = _convert_params(sql, params)
@@ -704,13 +778,6 @@ class PandasSQLAlchemy(PandasSQL):
 
     def get_table(self, table_name):
         return self.meta.tables.get(table_name)
-
-    def read_table(self, table_name, index_col=None, coerce_float=True,
-                   parse_dates=None, columns=None):
-
-        table = PandasSQLTable(table_name, self, index=index_col)
-        return table.read(coerce_float=coerce_float,
-                          parse_dates=parse_dates, columns=columns)
 
     def drop_table(self, table_name):
         if self.engine.has_table(table_name):

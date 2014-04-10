@@ -78,16 +78,10 @@ SQL
 
 .. autosummary::
    :toctree: generated/
-
+    
+   read_sql_table
+   read_sql_query
    read_sql
-
-.. currentmodule:: pandas.io.sql
-
-.. autosummary::
-   :toctree: generated/
-
-   read_frame
-   write_frame
 
 Google BigQuery
 ~~~~~~~~~~~~~~~
