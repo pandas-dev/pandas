@@ -1655,8 +1655,8 @@ demo different ways to initialize MultiIndexes.
    tuples = list(zip(*arrays))
    tuples
 
-   multi_index = MultiIndex.from_tuples(tuples, names=['first', 'second'])
-   multi_index
+   index = MultiIndex.from_tuples(tuples, names=['first', 'second'])
+   index
 
    s = Series(randn(8), index=index)
    s
