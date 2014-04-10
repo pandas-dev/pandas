@@ -1563,39 +1563,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     #----------------------------------------------------------------------
     # Reindexing, sorting
 
-    def sort(self, axis=0, ascending=True, kind='quicksort', na_position='last'):
-        """
-        Sort values and index labels by value, in place. For compatibility with
-        ndarray API. No return value
-
-        Parameters
-        ----------
-        axis : int (can only be zero)
-        ascending : boolean, default True
-            Sort ascending. Passing False sorts descending
-        kind : {'mergesort', 'quicksort', 'heapsort'}, default 'quicksort'
-            Choice of sorting algorithm. See np.sort for more
-            information. 'mergesort' is the only stable algorithm
-        na_position : {'first', 'last'} (optional, default='last')
-            'first' puts NaNs at the beginning
-            'last' puts NaNs at the end
-
-        See Also
-        --------
-        Series.order
-        """
-
-        # GH 5856/5863
-        if self._is_cached:
-            raise ValueError("This Series is a view of some other array, to "
-                             "sort in-place you must create a copy")
-
-        result = self.order(ascending=ascending,
-                            kind=kind,
-                            na_position=na_position)
-
-        self._update_inplace(result)
-
     def sort_index(self, ascending=True):
         """
         Sort object by labels (along an axis)
@@ -1692,9 +1659,38 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                      ascending=ascending, pct=pct)
         return self._constructor(ranks, index=self.index).__finalize__(self)
 
-    def order(self, na_last=None, ascending=True, kind='quicksort', na_position='last'):
+    def sort(self, axis=0, ascending=True, kind='quicksort', na_position='last', inplace=True):
         """
-        Sorts Series object, by value, maintaining index-value link
+        Sort values and index labels by value. This is an inplace sort by default.
+        Series.order is the equivalent but returns a new Series.
+
+        Parameters
+        ----------
+        axis : int (can only be zero)
+        ascending : boolean, default True
+            Sort ascending. Passing False sorts descending
+        kind : {'mergesort', 'quicksort', 'heapsort'}, default 'quicksort'
+            Choice of sorting algorithm. See np.sort for more
+            information. 'mergesort' is the only stable algorithm
+        na_position : {'first', 'last'} (optional, default='last')
+            'first' puts NaNs at the beginning
+            'last' puts NaNs at the end
+        inplace : boolean, default True
+            Do operation in place.
+
+        See Also
+        --------
+        Series.order
+        """
+        return self.order(ascending=ascending,
+                          kind=kind,
+                          na_position=na_position,
+                          inplace=inplace)
+
+    def order(self, na_last=None, ascending=True, kind='quicksort', na_position='last', inplace=False):
+        """
+        Sorts Series object, by value, maintaining index-value link.
+        This will return a new Series by default. Series.sort is the equivalent but as an inplace method.
 
         Parameters
         ----------
@@ -1708,6 +1704,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         na_position : {'first', 'last'} (optional, default='last')
             'first' puts NaNs at the beginning
             'last' puts NaNs at the end
+        inplace : boolean, default False
+            Do operation in place.
 
         Returns
         -------
@@ -1717,6 +1715,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         --------
         Series.sort
         """
+
+        # GH 5856/5853
+        if inplace and self._is_cached:
+            raise ValueError("This Series is a view of some other array, to "
+                             "sort in-place you must create a copy")
+
         if na_last is not None:
             warnings.warn(("na_last is deprecated. Please use na_position instead"),
                           FutureWarning)
@@ -1755,8 +1759,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             sortedIdx[:n] = idx[bad]
         else:
             raise ValueError('invalid na_position: {!r}'.format(na_position))
-        return self._constructor(arr[sortedIdx], index=self.index[sortedIdx])\
-                   .__finalize__(self)
+
+        result = self._constructor(arr[sortedIdx], index=self.index[sortedIdx])
+
+        if inplace:
+            self._update_inplace(result)
+        else:
+            return result.__finalize__(self)
 
     def sortlevel(self, level=0, ascending=True):
         """
