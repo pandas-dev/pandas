@@ -566,6 +566,19 @@ class TestSQLApi(_TestSQLApi):
         self.assertEqual(result.columns.tolist(), ["C", "D"],
                          "columns not set correctly whith index_col")
 
+    def test_read_sql_delegate(self):
+        iris_frame1 = sql.read_sql_query(
+            "SELECT * FROM iris", self.conn)
+        iris_frame2 = sql.read_sql(
+            "SELECT * FROM iris", self.conn)
+        tm.assert_frame_equal(iris_frame1, iris_frame2,
+                              "read_sql and read_sql_query have not the same"
+                              " result with a query")
+        
+        iris_frame1 = sql.read_sql_table('iris', self.conn)
+        iris_frame2 = sql.read_sql('iris', self.conn)
+        tm.assert_frame_equal(iris_frame1, iris_frame2)
+
 
 class TestSQLLegacyApi(_TestSQLApi):
 
@@ -619,6 +632,18 @@ class TestSQLLegacyApi(_TestSQLApi):
             conn.close()
 
         tm.assert_frame_equal(self.test_frame2, result)
+
+    def test_read_sql_delegate(self):
+        iris_frame1 = sql.read_sql_query(
+            "SELECT * FROM iris", self.conn, flavor=self.flavor)
+        iris_frame2 = sql.read_sql(
+            "SELECT * FROM iris", self.conn, flavor=self.flavor)
+        tm.assert_frame_equal(iris_frame1, iris_frame2,
+                              "read_sql and read_sql_query have not the same"
+                              " result with a query")
+        
+        self.assertRaises(ValueError, sql.read_sql, 'iris', self.conn,
+                          flavor=self.flavor)
 
 
 class _TestSQLAlchemy(PandasSQLTest):
