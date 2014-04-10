@@ -67,7 +67,7 @@ Retrieving unique values in an indexable or data column.
 
 .. code-block:: python
 
-   # not that these are deprecated as of 0.14.0
+   # note that this is deprecated as of 0.14.0
    # can be replicated by: store.select_column('df','index').unique()
    store.unique('df','index')
    store.unique('df','string')
