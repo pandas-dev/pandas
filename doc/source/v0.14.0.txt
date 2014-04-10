@@ -213,6 +213,25 @@ API changes
 - default sorting algorithm for ``Series.order`` is not ``quicksort``, to conform with ``Series.sort``
   (and numpy defaults)
 - add ``inplace`` keyword to ``Series.order/sort`` to make them inverses (:issue:`6859`)
+- align on Series comparison operations (e.g. ``x == y``), (:issue:`1134`)
+
+  This is a reordered comparison
+
+  .. ipython:: python
+
+     s1 = Series(index=["A", "B", "C"], data=[1,2,3])
+     s1
+     s2 = Series(index=["C", "B", "A"], data=[3,2,1])
+     s2
+     s1 == s2
+
+  In the following example, 'A' is missing so it will always compare False (as it has a ``nan`` value)
+
+  .. ipython:: python
+
+     s3 = Series(index=["C", "B"], data=[3,2])
+     s3
+     s1 == s3
 
 .. _whatsnew_0140.sql:
 

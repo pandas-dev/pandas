@@ -171,6 +171,7 @@ API Changes
 - default sorting algorithm for ``Series.order`` is not ``quicksort``, to conform with ``Series.sort``
   (and numpy defaults)
 - add ``inplace`` keyword to ``Series.order/sort`` to make them inverses (:issue:`6859`)
+- align on Series comparison operations (e.g. ``x == y``), (:issue:`1134`)
 
 Deprecations
 ~~~~~~~~~~~~
