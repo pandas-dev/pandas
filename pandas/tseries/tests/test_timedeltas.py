@@ -199,6 +199,17 @@ class TestTimedeltas(tm.TestCase):
         expected = Series([ np.timedelta64(1,'D') ]*5)
         tm.assert_series_equal(result, expected)
 
+        # validate all units
+        # GH 6855
+        for unit in ['Y','M','W','D','y','w','d']:
+            result = to_timedelta(np.arange(5),unit=unit)
+            expected = Series([ np.timedelta64(i,unit.upper()) for i in np.arange(5).tolist() ])
+            tm.assert_series_equal(result, expected)
+        for unit in ['h','m','s','ms','us','ns','H','S','MS','US','NS']:
+            result = to_timedelta(np.arange(5),unit=unit)
+            expected = Series([ np.timedelta64(i,unit.lower()) for i in np.arange(5).tolist() ])
+            tm.assert_series_equal(result, expected)
+
         # these will error
         self.assertRaises(ValueError, lambda : to_timedelta(['1h']))
         self.assertRaises(ValueError, lambda : to_timedelta(['1m']))
