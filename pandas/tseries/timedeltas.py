@@ -40,6 +40,8 @@ def to_timedelta(arg, box=True, unit='ns'):
         if is_timedelta64_dtype(arg):
             value = arg.astype('timedelta64[ns]')
         elif is_integer_dtype(arg):
+            unit = _validate_timedelta_unit(unit)
+
             # these are shortcutable
             value = arg.astype('timedelta64[{0}]'.format(unit)).astype('timedelta64[ns]')
         else:
@@ -64,6 +66,15 @@ def to_timedelta(arg, box=True, unit='ns'):
 
     # ...so it must be a scalar value. Return scalar.
     return _coerce_scalar_to_timedelta_type(arg, unit=unit)
+
+def _validate_timedelta_unit(arg):
+    """ provide validation / translation for timedelta short units """
+
+    if re.search("Y|W|D",arg,re.IGNORECASE) or arg == 'M':
+        return arg.upper()
+    elif re.search("h|m|s|ms|us|ns",arg,re.IGNORECASE):
+        return arg.lower()
+    raise ValueError("invalid timedelta unit {0} provided".format(arg))
 
 _short_search = re.compile(
     "^\s*(?P<neg>-?)\s*(?P<value>\d*\.?\d*)\s*(?P<unit>d|s|ms|us|ns)?\s*$",re.IGNORECASE)
