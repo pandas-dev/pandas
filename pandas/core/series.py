@@ -828,7 +828,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         width, height = get_terminal_size()
         max_rows = (height if get_option("display.max_rows") == 0
                     else get_option("display.max_rows"))
-        if len(self.index) > (max_rows or 1000):
+        if max_rows and len(self.index) > max_rows:
             result = self._tidy_repr(min(30, max_rows - 4))
         elif len(self.index) > 0:
             result = self._get_repr(print_header=True,
