@@ -422,6 +422,7 @@ class DataFrameFormatter(TableFormatter):
         """
         Render a DataFrame to a LaTeX tabular/longtable environment output.
         """
+        self.escape = self.kwds.get('escape', True)
         #TODO: column_format is not settable in df.to_latex
         def get_col_type(dtype):
             if issubclass(dtype.type, np.number):
@@ -471,16 +472,19 @@ class DataFrameFormatter(TableFormatter):
                         buf.write('\endfoot\n\n')
                         buf.write('\\bottomrule\n')
                         buf.write('\\endlastfoot\n')
-                crow = [(x.replace('\\', '\\textbackslash') # escape backslashes first
-                         .replace('_', '\\_')
-                         .replace('%', '\\%')
-                         .replace('$', '\\$')
-                         .replace('#', '\\#')
-                         .replace('{', '\\{')
-                         .replace('}', '\\}')
-                         .replace('~', '\\textasciitilde')
-                         .replace('^', '\\textasciicircum')
-                         .replace('&', '\\&') if x else '{}') for x in row]
+                if self.escape:
+                  crow = [(x.replace('\\', '\\textbackslash') # escape backslashes first
+                           .replace('_', '\\_')
+                           .replace('%', '\\%')
+                           .replace('$', '\\$')
+                           .replace('#', '\\#')
+                           .replace('{', '\\{')
+                           .replace('}', '\\}')
+                           .replace('~', '\\textasciitilde')
+                           .replace('^', '\\textasciicircum')
+                           .replace('&', '\\&') if x else '{}') for x in row]
+                else:
+                  crow = [x if x else '{}' for x in row]
                 buf.write(' & '.join(crow))
                 buf.write(' \\\\\n')
 

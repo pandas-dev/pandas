@@ -1348,7 +1348,7 @@ class DataFrame(NDFrame):
     def to_latex(self, buf=None, columns=None, col_space=None, colSpace=None,
                  header=True, index=True, na_rep='NaN', formatters=None,
                  float_format=None, sparsify=None, index_names=True,
-                 bold_rows=True, longtable=False):
+                 bold_rows=True, longtable=False, escape=True):
         """
         Render a DataFrame to a tabular environment table. You can splice
         this into a LaTeX document. Requires \\usepackage(booktabs}.
@@ -1360,6 +1360,9 @@ class DataFrame(NDFrame):
         longtable : boolean, default False
             Use a longtable environment instead of tabular. Requires adding
             a \\usepackage{longtable} to your LaTeX preamble.
+        escape : boolean, default True
+            When set to False prevents from escaping latex special
+            characters in column names.
 
         """
 
@@ -1375,7 +1378,8 @@ class DataFrame(NDFrame):
                                            float_format=float_format,
                                            bold_rows=bold_rows,
                                            sparsify=sparsify,
-                                           index_names=index_names)
+                                           index_names=index_names,
+                                           escape=escape)
         formatter.to_latex(longtable=longtable)
 
         if buf is None:

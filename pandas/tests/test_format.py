@@ -1671,6 +1671,40 @@ c  10  11  12  13  14\
 """
         self.assertEqual(withoutindex_result, withoutindex_expected)
 
+    def test_to_latex_escape(self):
+        a = 'a'
+        b = 'b'
+
+        test_dict = {u('co^l1')  : {a: "a",
+                                    b: "b"},
+                     u('co$e^x$'): {a: "a",
+                                    b: "b"}}
+
+        unescaped_result = pd.DataFrame(test_dict).to_latex(escape=False)
+        escaped_result   = pd.DataFrame(test_dict).to_latex() # default: escape=True
+
+        unescaped_expected = r'''\begin{tabular}{lll}
+\toprule
+{} & co$e^x$ & co^l1 \\
+\midrule
+a &       a &     a \\
+b &       b &     b \\
+\bottomrule
+\end{tabular}
+'''
+
+        escaped_expected = r'''\begin{tabular}{lll}
+\toprule
+{} & co\$e\textasciicircumx\$ & co\textasciicircuml1 \\
+\midrule
+a &       a &     a \\
+b &       b &     b \\
+\bottomrule
+\end{tabular}
+'''
+        self.assertEqual(unescaped_result, unescaped_expected)
+        self.assertEqual(escaped_result, escaped_expected)
+
     def test_to_latex_longtable(self):
         self.frame.to_latex(longtable=True)
 
