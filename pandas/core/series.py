@@ -1712,6 +1712,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Returns
         -------
         y : Series
+
+        See Also
+        --------
+        Series.sort
         """
         if na_last is not None:
             warnings.warn(("na_last is deprecated. Please use na_position instead"),
