@@ -3967,27 +3967,23 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
                   Series(pd.to_datetime(['2003', '2002', '2001', '2002', '2005']))]
 
         for s in s_list:
-            if s.dtype == object:
-                s2 = s.astype(float)
-            else:
-                s2 = s
 
-            assert_series_equal(s.nsmallest(2), s2.iloc[[2, 1]])
-            assert_series_equal(s.nsmallest(2, take_last=True), s2.iloc[[2, 3]])
+            assert_series_equal(s.nsmallest(2), s.iloc[[2, 1]])
+            assert_series_equal(s.nsmallest(2, take_last=True), s.iloc[[2, 3]])
 
-            assert_series_equal(s.nlargest(3), s2.iloc[[4, 0, 1]])
-            assert_series_equal(s.nlargest(3, take_last=True), s2.iloc[[4, 0, 3]])
+            assert_series_equal(s.nlargest(3), s.iloc[[4, 0, 1]])
+            assert_series_equal(s.nlargest(3, take_last=True), s.iloc[[4, 0, 3]])
 
-            empty = s2.iloc[0:0]
+            empty = s.iloc[0:0]
             assert_series_equal(s.nsmallest(0), empty)
             assert_series_equal(s.nsmallest(-1), empty)
             assert_series_equal(s.nlargest(0), empty)
             assert_series_equal(s.nlargest(-1), empty)
 
-            assert_series_equal(s.nsmallest(len(s)), s2.order())
-            assert_series_equal(s.nsmallest(len(s) + 1), s2.order())
-            assert_series_equal(s.nlargest(len(s)), s2.iloc[[4, 0, 1, 3, 2]])
-            assert_series_equal(s.nlargest(len(s) + 1), s2.iloc[[4, 0, 1, 3, 2]])
+            assert_series_equal(s.nsmallest(len(s)), s.order())
+            assert_series_equal(s.nsmallest(len(s) + 1), s.order())
+            assert_series_equal(s.nlargest(len(s)), s.iloc[[4, 0, 1, 3, 2]])
+            assert_series_equal(s.nlargest(len(s) + 1), s.iloc[[4, 0, 1, 3, 2]])
 
         s = Series([3., np.nan, 1, 2, 5])
         assert_series_equal(s.nlargest(), s.iloc[[4, 0, 3, 2]])

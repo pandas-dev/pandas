@@ -1785,7 +1785,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if dropped.dtype == object:
             try:
                 dropped = dropped.astype(float)
-            except:
+            except (NotImplementedError, TypeError):
                 return dropped.order(ascending=False).head(n)
 
         inds = nlargest(dropped.values, n, take_last)
@@ -1805,14 +1805,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         dropped = self.dropna()
 
         from pandas.tools.util import nsmallest
+        try:
+            inds = nsmallest(dropped.values, n, take_last)
+        except NotImplementedError:
+            return dropped.order().head(n)
 
-        if dropped.dtype == object:
-            try:
-                dropped = dropped.astype(float)
-            except:
-                return dropped.order().head(n)
-
-        inds = nsmallest(dropped.values, n, take_last)
         if len(inds) == 0:
             # TODO remove this special case
             return dropped[[]]

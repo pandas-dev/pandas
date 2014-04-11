@@ -61,10 +61,8 @@ def nsmallest(arr, n=5, take_last=False):
         n = len(arr)
 
     if arr.dtype == object:
-        try:
-            arr = arr.astype(float)
-        except:
-            raise TypeError("An object array must convert to float.")
+        # just sort and take n
+        return arr.argsort(kind='mergesort')[:n]
 
     if com.needs_i8_conversion(arr):
         dtype = 'i8'
