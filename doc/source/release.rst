@@ -189,6 +189,9 @@ Deprecations
   ``FutureWarning`` is raised  to alert that the old ``cols`` arguments
   will not be supported in a future release (:issue:`6645`)
 
+- Indexers will warn ``FutureWarning`` when used with a scalar indexer and
+  a non-floating point Index (:issue:`4892`)
+
 Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
