@@ -17,7 +17,8 @@ from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
                                  assert_series_equal, assert_almost_equal,
                                  assert_index_equal)
 from pandas.compat import(
-    range, long, lrange, StringIO, lmap, lzip, map, zip, builtins, OrderedDict
+    range, long, lrange, StringIO, lmap, lzip, map,
+    zip, builtins, OrderedDict
 )
 from pandas import compat
 from pandas.core.panel import Panel
@@ -478,6 +479,36 @@ class TestGroupBy(tm.TestCase):
         gp = grouped.get_group(1)
         expected = wp.reindex(major=[x for x in wp.major_axis if x.month == 1])
         assert_panel_equal(gp, expected)
+
+
+        # GH 5267
+        # be datelike friendly
+        df = DataFrame({'DATE' : pd.to_datetime(['10-Oct-2013', '10-Oct-2013', '10-Oct-2013',
+                                                 '11-Oct-2013', '11-Oct-2013', '11-Oct-2013']),
+                        'label' : ['foo','foo','bar','foo','foo','bar'],
+                        'VAL' : [1,2,3,4,5,6]})
+
+        g = df.groupby('DATE')
+        key = list(g.groups)[0]
+        result1 = g.get_group(key)
+        result2 = g.get_group(Timestamp(key).to_datetime())
+        result3 = g.get_group(str(Timestamp(key)))
+        assert_frame_equal(result1,result2)
+        assert_frame_equal(result1,result3)
+
+        g = df.groupby(['DATE','label'])
+
+        key = list(g.groups)[0]
+        result1 = g.get_group(key)
+        result2 = g.get_group((Timestamp(key[0]).to_datetime(),key[1]))
+        result3 = g.get_group((str(Timestamp(key[0])),key[1]))
+        assert_frame_equal(result1,result2)
+        assert_frame_equal(result1,result3)
+
+        # must pass a same-length tuple with multiple keys
+        self.assertRaises(ValueError, lambda : g.get_group('foo'))
+        self.assertRaises(ValueError, lambda : g.get_group(('foo')))
+        self.assertRaises(ValueError, lambda : g.get_group(('foo','bar','baz')))
 
     def test_agg_apply_corner(self):
         # nothing to group, all NA
