@@ -365,6 +365,7 @@ Bug Fixes
   would only replace the first occurrence of a value (:issue:`6689`)
 - Better error message when passing a frequency of 'MS' in ``Period`` construction (GH5332)
 - Bug in `Series.__unicode__` when `max_rows` is `None` and the Series has more than 1000 rows. (:issue:`6863`)
+- Bug in ``groupby.get_group`` where a datetlike wasn't always accepted (:issue:`5267`)
 
 pandas 0.13.1
 -------------
