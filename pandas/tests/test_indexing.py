@@ -2849,14 +2849,6 @@ class TestIndexing(tm.TestCase):
             zed['eyes']['right'].fillna(value=555, inplace=True)
         self.assertRaises(com.SettingWithCopyError, f)
 
-        # GH 5856/5863
-        # Series.sort operating on a view
-        df = DataFrame(np.random.randn(10,4))
-        s = df.iloc[:,0]
-        def f():
-            s.sort()
-        self.assertRaises(ValueError, f)
-
         df = DataFrame(np.random.randn(10,4))
         s = df.iloc[:,0]
         s = s.order()

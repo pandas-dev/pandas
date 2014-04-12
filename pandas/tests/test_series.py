@@ -3830,7 +3830,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         self.assertRaises(ValueError, a.dot, b.T)
 
     def test_value_counts_nunique(self):
-        
+
         # basics.rst doc example
         series = Series(np.random.randn(500))
         series[20:500] = np.nan
@@ -3915,6 +3915,28 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         self.assert_numpy_array_equal(ts, self.ts.order(ascending=False))
         self.assert_numpy_array_equal(ts.index,
                                       self.ts.order(ascending=False).index)
+
+        # GH 5856/5853
+        # Series.sort operating on a view
+        df = DataFrame(np.random.randn(10,4))
+        s = df.iloc[:,0]
+        def f():
+            s.sort()
+        self.assertRaises(ValueError, f)
+
+        # test order/sort inplace
+        # GH6859
+        ts1 = self.ts.copy()
+        ts1.sort(ascending=False)
+        ts2 = self.ts.copy()
+        ts2.order(ascending=False,inplace=True)
+        assert_series_equal(ts1,ts2)
+
+        ts1 = self.ts.copy()
+        ts1 = ts1.sort(ascending=False,inplace=False)
+        ts2 = self.ts.copy()
+        ts2 = ts.order(ascending=False)
+        assert_series_equal(ts1,ts2)
 
     def test_sort_index(self):
         import random

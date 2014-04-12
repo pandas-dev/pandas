@@ -170,6 +170,7 @@ API Changes
   add ``na_position`` arg to conform to ``Series.order`` (:issue:`6847`)
 - default sorting algorithm for ``Series.order`` is not ``quicksort``, to conform with ``Series.sort``
   (and numpy defaults)
+- add ``inplace`` keyword to ``Series.order/sort`` to make them inverses (:issue:`6859`)
 
 Deprecations
 ~~~~~~~~~~~~
