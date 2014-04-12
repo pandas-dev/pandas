@@ -887,25 +887,31 @@ class MPLPlot(object):
                                  " use one or the other or pass 'style' "
                                  "without a color symbol")
 
-    def _iter_data(self):
-        from pandas.core.frame import DataFrame
-        if isinstance(self.data, (Series, np.ndarray)):
-            yield self.label, np.asarray(self.data)
-        elif isinstance(self.data, DataFrame):
-            df = self.data
+    def _iter_data(self, data=None, keep_index=False):
+        if data is None:
+            data = self.data
 
-            if self.sort_columns:
-                columns = com._try_sort(df.columns)
+        from pandas.core.frame import DataFrame
+        if isinstance(data, (Series, np.ndarray)):
+            if keep_index is True:
+                yield self.label, data
             else:
-                columns = df.columns
+                yield self.label, np.asarray(data)
+        elif isinstance(data, DataFrame):
+            if self.sort_columns:
+                columns = com._try_sort(data.columns)
+            else:
+                columns = data.columns
 
             for col in columns:
                 # # is this right?
                 # empty = df[col].count() == 0
                 # values = df[col].values if not empty else np.zeros(len(df))
 
-                values = df[col].values
-                yield col, values
+                if keep_index is True:
+                    yield col, data[col]
+                else:
+                    yield col, data[col].values
 
     @property
     def nseries(self):
@@ -1593,38 +1599,26 @@ class LinePlot(MPLPlot):
 
             self._add_legend_handle(newlines[0], label, index=col_num)
 
-        if isinstance(data, Series):
-            ax = self._get_ax(0)  # self.axes[0]
-            style = self.style or ''
-            label = com.pprint_thing(self.label)
+        it = self._iter_data(data=data, keep_index=True)
+        for i, (label, y) in enumerate(it):
+            ax = self._get_ax(i)
+            style = self._get_style(i, label)
             kwds = self.kwds.copy()
-            self._maybe_add_color(colors, kwds, style, 0)
 
+            self._maybe_add_color(colors, kwds, style, i)
+
+            # key-matched DataFrame of errors
             if 'yerr' in kwds:
-                kwds['yerr'] = kwds['yerr'][0]
+                yerr = kwds['yerr']
+                if isinstance(yerr, (DataFrame, dict)):
+                    if label in yerr.keys():
+                        kwds['yerr'] = yerr[label]
+                    else: del kwds['yerr']
+                else:
+                    kwds['yerr'] = yerr[i]
 
-            _plot(data, 0, ax, label, self.style, **kwds)
-
-        else:
-            for i, col in enumerate(data.columns):
-                label = com.pprint_thing(col)
-                ax = self._get_ax(i)
-                style = self._get_style(i, col)
-                kwds = self.kwds.copy()
-
-                self._maybe_add_color(colors, kwds, style, i)
-
-                # key-matched DataFrame of errors
-                if 'yerr' in kwds:
-                    yerr = kwds['yerr']
-                    if isinstance(yerr, (DataFrame, dict)):
-                        if col in yerr.keys():
-                            kwds['yerr'] = yerr[col]
-                        else: del kwds['yerr']
-                    else:
-                        kwds['yerr'] = yerr[i]
-
-                _plot(data[col], i, ax, label, style, **kwds)
+            label = com.pprint_thing(label)
+            _plot(y, i, ax, label, style, **kwds)
 
     def _maybe_convert_index(self, data):
         # tsplot converts automatically, but don't want to convert index
@@ -1828,6 +1822,16 @@ class BoxPlot(MPLPlot):
 class HistPlot(MPLPlot):
     pass
 
+# kinds supported by both dataframe and series
+_common_kinds = ['line', 'bar', 'barh', 'kde', 'density']
+# kinds supported by dataframe
+_dataframe_kinds = ['scatter', 'hexbin']
+_all_kinds = _common_kinds + _dataframe_kinds
+
+_plot_klass = {'line': LinePlot, 'bar': BarPlot, 'barh': BarPlot, 
+               'kde': KdePlot, 
+               'scatter': ScatterPlot, 'hexbin': HexBinPlot}
+
 
 def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
                sharey=False, use_index=True, figsize=None, grid=None,
@@ -1921,21 +1925,14 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
     is a function of one argument that reduces all the values in a bin to
     a single number (e.g. `mean`, `max`, `sum`, `std`).
     """
+
     kind = _get_standard_kind(kind.lower().strip())
-    if kind == 'line':
-        klass = LinePlot
-    elif kind in ('bar', 'barh'):
-        klass = BarPlot
-    elif kind == 'kde':
-        klass = KdePlot
-    elif kind == 'scatter':
-        klass = ScatterPlot
-    elif kind == 'hexbin':
-        klass = HexBinPlot
+    if kind in _dataframe_kinds or kind in _common_kinds:
+        klass = _plot_klass[kind]
     else:
         raise ValueError('Invalid chart type given %s' % kind)
 
-    if kind == 'scatter':
+    if kind in _dataframe_kinds:
         plot_obj = klass(frame,  x=x, y=y, kind=kind, subplots=subplots,
                          rot=rot,legend=legend, ax=ax, style=style,
                          fontsize=fontsize, use_index=use_index, sharex=sharex,
@@ -1944,16 +1941,6 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
                          figsize=figsize, logx=logx, logy=logy,
                          sort_columns=sort_columns, secondary_y=secondary_y,
                          **kwds)
-    elif kind == 'hexbin':
-        C = kwds.pop('C', None)  # remove from kwargs so we can set default
-        plot_obj = klass(frame,  x=x, y=y, kind=kind, subplots=subplots,
-                         rot=rot,legend=legend, ax=ax, style=style,
-                         fontsize=fontsize, use_index=use_index, sharex=sharex,
-                         sharey=sharey, xticks=xticks, yticks=yticks,
-                         xlim=xlim, ylim=ylim, title=title, grid=grid,
-                         figsize=figsize, logx=logx, logy=logy,
-                         sort_columns=sort_columns, secondary_y=secondary_y,
-                         C=C, **kwds)
     else:
         if x is not None:
             if com.is_integer(x) and not frame.columns.holds_integer():
@@ -2051,14 +2038,9 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
     See matplotlib documentation online for more on this subject
     """
 
-    from pandas import DataFrame
     kind = _get_standard_kind(kind.lower().strip())
-    if kind == 'line':
-        klass = LinePlot
-    elif kind in ('bar', 'barh'):
-        klass = BarPlot
-    elif kind == 'kde':
-        klass = KdePlot
+    if kind in _common_kinds:
+        klass = _plot_klass[kind]
     else:
         raise ValueError('Invalid chart type given %s' % kind)
 
