@@ -76,7 +76,7 @@ _ewm_kw = r"""com : float. optional
 span : float, optional
     Specify decay in terms of span, :math:`\alpha = 2 / (span + 1)`
 halflife : float, optional
-    Specify decay in terms of halflife, :math: `\alpha = 1 - exp(log(0.5) / halflife)`
+    Specify decay in terms of halflife, :math:`\alpha = 1 - exp(log(0.5) / halflife)`
 min_periods : int, default 0
     Number of observations in sample to require (only affects
     beginning)
@@ -87,16 +87,16 @@ adjust : boolean, default True
     imbalance in relative weightings (viewing EWMA as a moving average)
 """
 
-_ewm_notes = """
+_ewm_notes = r"""
 Notes
 -----
 Either center of mass or span must be specified
 
-EWMA is sometimes specified using a "span" parameter s, we have have that the
+EWMA is sometimes specified using a "span" parameter `s`, we have that the
 decay parameter :math:`\alpha` is related to the span as
 :math:`\alpha = 2 / (s + 1) = 1 / (1 + c)`
 
-where c is the center of mass. Given a span, the associated center of mass is
+where `c` is the center of mass. Given a span, the associated center of mass is
 :math:`c = (s - 1) / 2`
 
 So a "20-day EWMA" would have center 9.5.
