@@ -364,7 +364,7 @@ class _TestSQLApi(PandasSQLTest):
     def test_to_sql_series(self):
         s = Series(np.arange(5, dtype='int64'), name='series')
         sql.to_sql(s, "test_series", self.conn, flavor='sqlite', index=False)
-        s2 = sql.read_sql("SELECT * FROM test_series", self.conn, 
+        s2 = sql.read_sql("SELECT * FROM test_series", self.conn,
                           flavor='sqlite')
         tm.assert_frame_equal(s.to_frame(), s2)
 
@@ -473,7 +473,7 @@ class TestSQLApi(_TestSQLApi):
 
     def test_to_sql_index_label(self):
         temp_frame = DataFrame({'col1': range(4)})
-        
+
         # no index name, defaults to 'pandas_index'
         sql.to_sql(temp_frame, 'test_index_label', self.conn)
         frame = sql.read_table('test_index_label', self.conn)
@@ -507,8 +507,52 @@ class TestSQLLegacyApi(_TestSQLApi):
     """
     flavor = 'sqlite'
 
-    def connect(self):
-        return sqlite3.connect(':memory:')
+    def connect(self, database=":memory:"):
+        return sqlite3.connect(database)
+
+    def _load_test2_data(self):
+        columns = ['index', 'A', 'B']
+        data = [(
+            '2000-01-03 00:00:00', 2 ** 31 - 1, -1.987670),
+            ('2000-01-04 00:00:00', -29, -0.0412318367011),
+            ('2000-01-05 00:00:00', 20000, 0.731167677815),
+            ('2000-01-06 00:00:00', -290867, 1.56762092543)]
+
+        self.test_frame2 = DataFrame(data, columns=columns)
+
+    def test_sql_open_close(self):
+        """
+        Test if the IO in the database still work if the connection
+        is closed between the writing and reading (as in many real
+        situations).
+        """
+
+        self._load_test2_data()
+
+        with tm.ensure_clean() as name:
+
+            conn = self.connect(name)
+
+            sql.to_sql(
+                self.test_frame2,
+                "test_frame2_legacy",
+                conn,
+                flavor="sqlite",
+                index=False,
+            )
+
+            conn.close()
+            conn = self.connect(name)
+
+            result = sql.read_sql(
+                "SELECT * FROM test_frame2_legacy;",
+                conn,
+                flavor="sqlite",
+            )
+
+            conn.close()
+
+        tm.assert_frame_equal(self.test_frame2, result)
 
 
 class _TestSQLAlchemy(PandasSQLTest):
@@ -601,7 +645,7 @@ class _TestSQLAlchemy(PandasSQLTest):
         self.assertTrue(issubclass(df.IntColWithNull.dtype.type, np.floating),
                         "IntColWithNull loaded with incorrect type")
         # Bool column with NA values becomes object
-        self.assertTrue(issubclass(df.BoolColWithNull.dtype.type, np.object), 
+        self.assertTrue(issubclass(df.BoolColWithNull.dtype.type, np.object),
                         "BoolColWithNull loaded with incorrect type")
 
     def test_default_date_load(self):
@@ -696,14 +740,14 @@ class TestSQLAlchemy(_TestSQLAlchemy):
         self.assertTrue(issubclass(df.IntColWithNull.dtype.type, np.floating),
                         "IntColWithNull loaded with incorrect type")
         # Non-native Bool column with NA values stays as float
-        self.assertTrue(issubclass(df.BoolColWithNull.dtype.type, np.floating), 
+        self.assertTrue(issubclass(df.BoolColWithNull.dtype.type, np.floating),
                         "BoolColWithNull loaded with incorrect type")
 
     def test_default_date_load(self):
         df = sql.read_table("types_test_data", self.conn)
 
         # IMPORTANT - sqlite has no native date type, so shouldn't parse, but
-        self.assertFalse(issubclass(df.DateCol.dtype.type, np.datetime64), 
+        self.assertFalse(issubclass(df.DateCol.dtype.type, np.datetime64),
                          "DateCol loaded with incorrect type")
 
 
@@ -865,7 +909,7 @@ class TestMySQLAlchemy(_TestSQLAlchemy):
                         "FloatCol loaded with incorrect type")
         self.assertTrue(issubclass(df.IntCol.dtype.type, np.integer),
                         "IntCol loaded with incorrect type")
-        # MySQL has no real BOOL type (it's an alias for TINYINT) 
+        # MySQL has no real BOOL type (it's an alias for TINYINT)
         self.assertTrue(issubclass(df.BoolCol.dtype.type, np.integer),
                         "BoolCol loaded with incorrect type")
 
@@ -873,13 +917,13 @@ class TestMySQLAlchemy(_TestSQLAlchemy):
         self.assertTrue(issubclass(df.IntColWithNull.dtype.type, np.floating),
                         "IntColWithNull loaded with incorrect type")
         # Bool column with NA = int column with NA values => becomes float
-        self.assertTrue(issubclass(df.BoolColWithNull.dtype.type, np.floating), 
+        self.assertTrue(issubclass(df.BoolColWithNull.dtype.type, np.floating),
                         "BoolColWithNull loaded with incorrect type")
 
 
 class TestPostgreSQLAlchemy(_TestSQLAlchemy):
     flavor = 'postgresql'
-    
+
     def connect(self):
         return sqlalchemy.create_engine(
             'postgresql+{driver}://postgres@localhost/pandas_nosetest'.format(driver=self.driver))
