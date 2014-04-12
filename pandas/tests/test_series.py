@@ -2379,6 +2379,12 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(result1,expected)
         assert_series_equal(result2,expected)
 
+        s1 = Series([10,20,30,40,50,60],index=[6,7,8,9,10,15],name='series')
+        s2 = Series([10,20,30,40,50,60],index=[6,7,8,9,10,15])
+        result = s1 == s2
+        expected = Series(True,index=[6,7,8,9,10,15])
+        assert_series_equal(result,expected)
+
     def test_operators_empty_int_corner(self):
         s1 = Series([], [], dtype=np.int32)
         s2 = Series({'x': 0.})

@@ -511,15 +511,15 @@ def assert_series_equal(left, right, check_dtype=True,
                                                                    right.values))
     else:
         assert_almost_equal(left.values, right.values, check_less_precise)
-    if check_less_precise:
-        assert_almost_equal(
-            left.index.values, right.index.values, check_less_precise)
-    else:
-        assert_index_equal(left.index, right.index)
     if check_index_type:
-        assert_isinstance(left.index, type(right.index))
-        assert_attr_equal('dtype', left.index, right.index)
-        assert_attr_equal('inferred_type', left.index, right.index)
+        if check_less_precise:
+            assert_almost_equal(
+                left.index.values, right.index.values, check_less_precise)
+        else:
+            assert_index_equal(left.index, right.index)
+            assert_isinstance(left.index, type(right.index))
+            assert_attr_equal('dtype', left.index, right.index)
+            assert_attr_equal('inferred_type', left.index, right.index)
 
 # This could be refactored to use the NDFrame.equals method
 def assert_frame_equal(left, right, check_dtype=True,
