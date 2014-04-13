@@ -1251,16 +1251,17 @@ class MPLPlot(object):
 
         return style or None
 
-    def _get_colors(self):
+    def _get_colors(self, num_colors=None, color_kwds='color'):
         from pandas.core.frame import DataFrame
-        if isinstance(self.data, DataFrame):
-            num_colors = len(self.data.columns)
-        else:
-            num_colors = 1
+        if num_colors is None:
+            if isinstance(self.data, DataFrame):
+                num_colors = len(self.data.columns)
+            else:
+                num_colors = 1
 
         return _get_standard_colors(num_colors=num_colors,
                                     colormap=self.colormap,
-                                    color=self.kwds.get('color'))
+                                    color=self.kwds.get(color_kwds))
 
     def _maybe_add_color(self, colors, kwds, style, i):
         has_color = 'color' in kwds or self.colormap is not None
@@ -1939,6 +1940,63 @@ class BarPlot(MPLPlot):
         #    self.axes[0].legend(loc='best')
 
 
+class PiePlot(MPLPlot):
+
+    def __init__(self, data, kind=None, **kwargs):
+        data = data.fillna(value=0)
+        if (data < 0).any().any():
+            raise ValueError("{0} doesn't allow negative values".format(kind))
+        MPLPlot.__init__(self, data, kind=kind, **kwargs)
+
+    def _args_adjust(self):
+        self.grid = False
+        self.logy = False
+        self.logx = False
+        self.loglog = False
+    
+    def _get_layout(self):
+        from pandas import DataFrame
+        if isinstance(self.data, DataFrame):
+            return (1, len(self.data.columns))
+        else:
+            return (1, 1)
+
+    def _validate_color_args(self):
+        pass
+
+    def _make_plot(self):
+        self.kwds.setdefault('colors', self._get_colors(num_colors=len(self.data),
+                                                        color_kwds='colors'))
+
+        for i, (label, y) in enumerate(self._iter_data()):
+            ax = self._get_ax(i)
+            if label is not None:
+                label = com.pprint_thing(label)
+                ax.set_ylabel(label)
+
+            kwds = self.kwds.copy()
+
+            idx = [com.pprint_thing(v) for v in self.data.index]
+            labels = kwds.pop('labels', idx)
+            # labels is used for each wedge's labels
+            results = ax.pie(y, labels=labels, **kwds)
+
+            if kwds.get('autopct', None) is not None:
+                patches, texts, autotexts = results
+            else:
+                patches, texts = results
+                autotexts = []
+
+            if self.fontsize is not None:
+                for t in texts + autotexts:
+                    t.set_fontsize(self.fontsize)
+
+            # leglabels is used for legend labels
+            leglabels = labels if labels is not None else idx
+            for p, l in zip(patches, leglabels):
+                self._add_legend_handle(p, l)
+
+
 class BoxPlot(MPLPlot):
     pass
 
@@ -1950,12 +2008,14 @@ class HistPlot(MPLPlot):
 _common_kinds = ['line', 'bar', 'barh', 'kde', 'density', 'area']
 # kinds supported by dataframe
 _dataframe_kinds = ['scatter', 'hexbin']
-_all_kinds = _common_kinds + _dataframe_kinds
+# kinds supported only by series or dataframe single column
+_series_kinds = ['pie']
+_all_kinds = _common_kinds + _dataframe_kinds + _series_kinds
 
 _plot_klass = {'line': LinePlot, 'bar': BarPlot, 'barh': BarPlot, 
                'kde': KdePlot, 
                'scatter': ScatterPlot, 'hexbin': HexBinPlot,
-               'area': AreaPlot}
+               'area': AreaPlot, 'pie': PiePlot}
 
 
 def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
@@ -2054,7 +2114,7 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
     """
 
     kind = _get_standard_kind(kind.lower().strip())
-    if kind in _dataframe_kinds or kind in _common_kinds:
+    if kind in _all_kinds:
         klass = _plot_klass[kind]
     else:
         raise ValueError('Invalid chart type given %s' % kind)
@@ -2067,6 +2127,24 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
                          xlim=xlim, ylim=ylim, title=title, grid=grid,
                          figsize=figsize, logx=logx, logy=logy,
                          sort_columns=sort_columns, secondary_y=secondary_y,
+                         **kwds)
+    elif kind in _series_kinds:
+        if y is None and subplots is False:
+            msg = "{0} requires either y column or 'subplots=True'"
+            raise ValueError(msg.format(kind)) 
+        elif y is not None:
+            if com.is_integer(y) and not frame.columns.holds_integer():
+                y = frame.columns[y]
+            frame = frame[y]  # converted to series actually
+            frame.index.name = y
+
+        plot_obj = klass(frame,  kind=kind, subplots=subplots,
+                         rot=rot,legend=legend, ax=ax, style=style,
+                         fontsize=fontsize, use_index=use_index, sharex=sharex,
+                         sharey=sharey, xticks=xticks, yticks=yticks,
+                         xlim=xlim, ylim=ylim, title=title, grid=grid,
+                         figsize=figsize, 
+                         sort_columns=sort_columns, 
                          **kwds)
     else:
         if x is not None:
@@ -2168,7 +2246,7 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
     """
 
     kind = _get_standard_kind(kind.lower().strip())
-    if kind in _common_kinds:
+    if kind in _common_kinds or kind in _series_kinds:
         klass = _plot_klass[kind]
     else:
         raise ValueError('Invalid chart type given %s' % kind)

@@ -58,6 +58,7 @@ New features
   ``DataFrame(dict)`` and ``Series(dict)`` create ``MultiIndex``
   columns and index where applicable (:issue:`4187`)
 - Hexagonal bin plots from ``DataFrame.plot`` with ``kind='hexbin'`` (:issue:`5478`)
+- Pie plots from ``Series.plot`` and ``DataFrame.plot`` with ``kind='pie'`` (:issue:`6976`)
 - Added the ``sym_diff`` method to ``Index`` (:issue:`5543`)
 - Added ``to_julian_date`` to ``TimeStamp`` and ``DatetimeIndex``.  The Julian
   Date is used primarily in astronomy and represents the number of days from
