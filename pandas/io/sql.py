@@ -785,6 +785,7 @@ class PandasSQLTableLegacy(PandasSQLTable):
                 data.insert(0, self.maybe_asscalar(r[0]))
             cur.execute(ins, tuple(data))
         cur.close()
+        self.pd_sql.con.commit()
 
     def _create_table_statement(self):
         "Return a CREATE TABLE statement to suit the contents of a DataFrame."
