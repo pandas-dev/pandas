@@ -611,7 +611,10 @@ class DatetimeIndex(Int64Index):
     def _add_delta(self, delta):
         if isinstance(delta, (Tick, timedelta)):
             inc = offsets._delta_to_nanoseconds(delta)
+            mask = self.asi8 == tslib.iNaT
             new_values = (self.asi8 + inc).view(_NS_DTYPE)
+            new_values[mask] = tslib.iNaT
+            new_values = new_values.view(_NS_DTYPE)
         elif isinstance(delta, np.timedelta64):
             new_values = self.to_series() + delta
         else:
