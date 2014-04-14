@@ -13,6 +13,7 @@ from pandas.tseries.index import date_range, bdate_range
 from pandas.tseries.offsets import DateOffset
 from pandas.tseries.period import period_range, Period, PeriodIndex
 from pandas.tseries.resample import DatetimeIndex
+from pandas.tseries.frequencies import get_period_alias
 
 from pandas.util.testing import assert_series_equal, ensure_clean
 import pandas.util.testing as tm
@@ -97,7 +98,7 @@ class TestTSPlot(tm.TestCase):
         f = lambda *args, **kwds: tsplot(s, plt.Axes.plot, *args, **kwds)
 
         for s in self.period_ser:
-            _check_plot_works(f, s.index.freq, ax=ax, series=s)
+            _check_plot_works(f, s.index.freq, ax=ax, series=s, is_period=True)
 
         for s in self.datetime_ser:
             _check_plot_works(f, s.index.freq.rule_code, ax=ax, series=s)
@@ -149,7 +150,7 @@ class TestTSPlot(tm.TestCase):
     @slow
     def test_line_plot_period_series(self):
         for s in self.period_ser:
-            _check_plot_works(s.plot, s.index.freq)
+            _check_plot_works(s.plot, s.index.freq, is_period=True)
 
     @slow
     def test_line_plot_datetime_series(self):
@@ -159,7 +160,7 @@ class TestTSPlot(tm.TestCase):
     @slow
     def test_line_plot_period_frame(self):
         for df in self.period_df:
-            _check_plot_works(df.plot, df.index.freq)
+            _check_plot_works(df.plot, df.index.freq, is_period=True)
 
     @slow
     def test_line_plot_datetime_frame(self):
@@ -924,7 +925,7 @@ class TestTSPlot(tm.TestCase):
                            line2.get_xydata()[:, 0])
 
 
-def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
+def _check_plot_works(f, freq=None, series=None, is_period=False, *args, **kwargs):
     import matplotlib.pyplot as plt
 
     fig = plt.gcf()
@@ -944,10 +945,16 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
             if isinstance(dfreq, DateOffset):
                 dfreq = dfreq.rule_code
             if orig_axfreq is None:
-                assert ax.freq == dfreq
+                if is_period:
+                    assert get_period_alias(ax.freq) == get_period_alias(dfreq)
+                else:
+                    assert ax.freq == dfreq
 
         if freq is not None and orig_axfreq is None:
-            assert ax.freq == freq
+                if is_period:
+                    assert get_period_alias(ax.freq) == get_period_alias(freq)
+                else:
+                    assert ax.freq == freq
 
         ax = fig.add_subplot(212)
         try:

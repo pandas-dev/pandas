@@ -193,8 +193,6 @@ API Changes
   as its already the index
 - ``DataFrame.plot`` and ``Series.plot`` now supports area plot with specifying ``kind='area'`` (:issue:`6656`)
 - Line plot can be stacked by ``stacked=True``. (:issue:`6656`)
-- ``Panel.shift`` now uses ``NDFrame.shift``. It no longer drops the ``nan`` data and retains its original shape.  (:issue:`4867`)
-- ``pd.infer_freq`` and ``DatetimeIndex.inferred_freq`` now return a DateOffset subclass rather than a string.  (:issue:`5082`)
 
 Deprecations
 ~~~~~~~~~~~~
@@ -465,11 +463,8 @@ Bug Fixes
 - Bug causing UnicodeEncodeError when get_dummies called with unicode values and a prefix (:issue:`6885`)
 - Bug in timeseries-with-frequency plot cursor display (:issue:`5453`)
 - Bug surfaced in groupby.plot when using a ``Float64Index`` (:issue:`7025`)
-<<<<<<< HEAD
 - Stopped tests from failing if options data isn't able to be downloaded from Yahoo (:issue:`7034`)
-=======
-- Bug in not correctly treading 'QS', 'BQS', 'BQ' as frquency aliases (:issue:`5028`).
->>>>>>> ENH: Extends the number of Periods supported by allowing for Python defined Periods. Periods now hold reference to Offset rather than just freqstr (GH5148).
+- Bug in not correctly treating 'QS', 'BQS', 'BQ', 'Y' as frquency aliases (:issue:`5028`).
 
 pandas 0.13.1
 -------------

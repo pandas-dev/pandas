@@ -64,7 +64,9 @@ class _NonCythonPeriod(object):
     """
     This class represents the base class for Offsets for which Period logic is
     not implemented in Cython. This allows fully Python defined Offsets with
-    Period support
+    Period support.
+    All subclasses are expected to implement get_start_dt, get_end_dt,
+    period_format, get_period_ordinal, is_superperiod and is_subperiod.
     """
 
     def get_start_dt(self, ordinal):

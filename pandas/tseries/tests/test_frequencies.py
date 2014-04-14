@@ -327,6 +327,11 @@ def test_is_superperiod_subperiod():
     assert(fmod.is_superperiod(offsets.Hour(), offsets.Minute()))
     assert(fmod.is_subperiod(offsets.Minute(), offsets.Hour()))
 
+
+def test_get_period_alias_yearly():
+    assert fmod.get_period_alias('Y') == fmod.get_period_alias('A')
+
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

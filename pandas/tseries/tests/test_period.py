@@ -1699,6 +1699,11 @@ class TestPeriodIndex(tm.TestCase):
         expected = "<class 'pandas.tseries.period.PeriodIndex'>\nfreq: Q-DEC\n[2013Q1, ..., 2013Q3]\nlength: 3"
         assert_equal(repr(val), expected)
 
+    def test_period_weeklies(self):
+        p1 = Period('2006-12-31', 'W')
+        p2 = Period('2006-12-31', '1w')
+        assert_equal(p1.freq, p2.freq)
+
     def test_period_index_unicode(self):
         pi = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
         assert_equal(len(pi), 9)
@@ -2628,6 +2633,12 @@ class TestFY5253QuarterPeriods(tm.TestCase):
         self.assertEquals(str(resampled.index[-1]), '2013Q2')
         self.assertEquals(resampled["A"][0], 1)
         self.assertEquals(resampled["A"][1], 2)
+
+    def test_freq_to_period(self):
+        r = pd.date_range('01-Jan-2012', periods=8, freq='QS')
+        x = r.to_period()
+        self.assert_("freq='Q-DEC'" in str(x))
+        self.assert_("freq: Q-DEC" in repr(x))
 
 if __name__ == '__main__':
     import nose

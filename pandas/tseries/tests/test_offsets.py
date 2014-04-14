@@ -2725,24 +2725,24 @@ class TestOffsetAliases(tm.TestCase):
                 self.assertEqual(alias, get_offset(alias).rule_code)
                 self.assertEqual(alias, (get_offset(alias) * 5).rule_code)
 
-    #GH5028
     def test_offset_map(self):
+        #GH5028
         for name, offset in compat.iteritems(_offset_map):
             if name == 'C' and cday is None:
                 continue
             self.assertEqual(name, None if offset is None else offset.rule_code)
-    
-    #GH5028
+
     def test_many_to_one_mapping(self):
-        offsets =  [
+        #GH5028
+        offsets = [
             QuarterBegin(startingMonth=1),
             BQuarterBegin(startingMonth=1),
             BQuarterEnd(startingMonth=12),
                    ]
-         
+
         for offset in offsets:
             self.assertEqual(get_offset_name(offset), offset.rule_code)
-            
+
     def test_aliased_offset_equality(self):
         self.assertEqual(get_offset("Q"), get_offset("Q"))
         self.assertEqual(get_offset("Q"), get_offset("Q-DEC"))

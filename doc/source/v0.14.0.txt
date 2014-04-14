@@ -234,7 +234,6 @@ API changes
     covs[df.index[-1]]
 
 - ``Series.iteritems()`` is now lazy (returns an iterator rather than a list). This was the documented behavior prior to 0.14. (:issue:`6760`)
-- ``Panel.shift`` now uses ``NDFrame.shift``. It no longer drops the ``nan`` data and retains its original shape.  (:issue:`4867`)
 - ``pd.infer_freq`` and ``DatetimeIndex.inferred_freq`` now return a DateOffset subclass rather than a string.  (:issue:`5082`)
 - Added ``nunique`` and ``value_counts`` functions to ``Index`` for counting unique elements. (:issue:`6734`)
 - ``stack`` and ``unstack`` now raise a ``ValueError`` when the ``level`` keyword refers

@@ -793,7 +793,7 @@ class DatetimeIndex(Int64Index):
             raise ValueError(msg)
 
         if freq is None: # No reason no convert to str; keep w/e freq is
-            freq = self.freq #get_period_alias(self.freqstr)
+            freq = self.freq
 
         return PeriodIndex(self.values, freq=freq, tz=self.tz)
 

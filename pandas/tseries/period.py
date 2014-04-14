@@ -74,7 +74,7 @@ class Period(PandasObject):
     second : int, default 0
     """
     __slots__ = ['freq', 'ordinal']
-    _comparables = ['name', 'freqstr']
+    _comparables = ['name','freqstr']
 
     def __init__(self, value=None, freq=None, ordinal=None,
                  year=None, month=1, quarter=None, day=1,
@@ -107,7 +107,7 @@ class Period(PandasObject):
             other = value
             if freq is None \
                 or freq == other.freq \
-                or _gfc(freq, as_periodstr=True) == _gfc(other.freq, as_periodstr=True):
+                or _gfc(freq, as_periodstr=True) == _gfc(other.freq, as_periodstr=True):#TODO: use freqstr?
                 self.ordinal = other.ordinal
                 freq = other.freq
             else:
@@ -131,9 +131,14 @@ class Period(PandasObject):
         else:
             msg = "Value must be Period, string, integer, or datetime"
             raise ValueError(msg)
+        
+        _check_freq_mult(freq)
+        
+        #TODO: Fix this
+        if not isinstance(freq, DateOffset):
+            freq = _freq_mod._get_freq_str(_gfc(freq)[0])
 
         self.freq = freq
-        _check_freq_mult(freq)
 
         if self.ordinal is None:
             if isinstance(freq, _NonCythonPeriod):
@@ -149,9 +154,12 @@ class Period(PandasObject):
     def freqstr(self):
         return _freq_mod.get_standard_period_freq(self.freq)
 
+    def _same_freq(self, other):
+        return other.freq == self.freq or other.freqstr == self.freqstr
+
     def __eq__(self, other):
         if isinstance(other, Period):
-            if other.freq != self.freq:
+            if not self._same_freq(other):
                 raise ValueError("Cannot compare non-conforming periods")
             return (self.ordinal == other.ordinal
                     and _gfc(self.freq) == _gfc(other.freq))
@@ -294,7 +302,7 @@ class Period(PandasObject):
         if isinstance(self.freq, _NonCythonPeriod):
             return self.freq.period_format(self.ordinal, fmt=fmt)
         
-        base, mult = _gfc(self.freq)
+        base, mult = _gfc(self.freq, as_periodstr=True)
         return tslib.period_format(self.ordinal, base, fmt=fmt)
 
     def __repr__(self):
@@ -496,19 +504,15 @@ def _get_ordinals(data, freq):
         return lib.map_infer(data, f)
 
 
-def dt64arr_to_periodarr_impl(data, freq, tz):
-    base, _ = _gfc(freq, as_periodstr=True)
-    return tslib.dt64arr_to_periodarr(data.view('i8'), base, tz)
-
-
 def dt64arr_to_periodarr(data, freq, tz):
     if data.dtype != np.dtype('M8[ns]'):
         raise ValueError('Wrong dtype: %s' % data.dtype)
 
     if isinstance(freq, _NonCythonPeriod):
         return freq.dt64arr_to_periodarr(data, tz)
-
-    return dt64arr_to_periodarr_impl(data, freq, tz)
+    else:
+        base, _ = _gfc(freq, as_periodstr=True)
+        return tslib.dt64arr_to_periodarr(data.view('i8'), base, tz)
 
 # --- Period index sketch
 
@@ -520,12 +524,12 @@ def _period_index_cmp(opname):
     def wrapper(self, other):
         if isinstance(other, Period):
             func = getattr(self.values, opname)
-            if other.freq != self.freq:
+            if not other._same_freq(self):
                 raise AssertionError("Frequencies must be equal")
 
             result = func(other.ordinal)
         elif isinstance(other, PeriodIndex):
-            if other.freq != self.freq:
+            if not other._same_freq(self):
                 raise AssertionError("Frequencies must be equal")
             return getattr(self.values, opname)(other.values)
         else:
@@ -633,6 +637,9 @@ class PeriodIndex(Int64Index):
     @cache_readonly
     def freqstr(self):
         return _freq_mod.get_standard_period_freq(self.freq)
+
+    def _same_freq(self, other):
+        return other.freq == self.freq or other.freqstr == self.freqstr
 
     @classmethod
     def _generate_range(cls, start, end, periods, freq, fields):
@@ -1129,7 +1136,7 @@ class PeriodIndex(Int64Index):
 
     def __repr__(self):
         output = com.pprint_thing(self.__class__) + '\n'
-        output += 'freq: %s\n' % self.freq
+        output += 'freq: %s\n' % self.freqstr
         n = len(self)
         if n == 1:
             output += '[%s]\n' % (self[0])
@@ -1146,7 +1153,7 @@ class PeriodIndex(Int64Index):
         prefix = '' if compat.PY3 else 'u'
         mapper = "{0}'{{0}}'".format(prefix)
         output += '[{0}]'.format(', '.join(map(mapper.format, self)))
-        output += ", freq='{0}'".format(self.freq)
+        output += ", freq='{0}'".format(self.freqstr)
         output += ')'
         return output
 

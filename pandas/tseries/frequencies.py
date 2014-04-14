@@ -163,6 +163,7 @@ _offset_to_period_map = {
     'H': 'H',
     'Q': 'Q',
     'A': 'A',
+    'Y': 'A',
     'W': 'W',
     'M': 'M'
 }
@@ -979,6 +980,8 @@ def is_subperiod(source, target):
         return source_raw.is_subperiod(target_raw)
     elif isinstance(target_raw, offsets._NonCythonPeriod):
         return target_raw.is_superperiod(source_raw)
+    else:
+        return False
 
 
 def is_superperiod(source, target):
@@ -1038,6 +1041,8 @@ def is_superperiod(source, target):
         return source_raw.is_superperiod(target_raw)
     elif isinstance(target_raw, offsets._NonCythonPeriod):
         return target_raw.is_subperiod(source_raw)
+    else:
+        return False
 
 
 def _get_rule_month(source, default='DEC'):
