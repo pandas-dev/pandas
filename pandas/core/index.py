@@ -16,7 +16,8 @@ from pandas.core.base import FrozenList, FrozenNDArray, IndexOpsMixin
 from pandas.util.decorators import cache_readonly, deprecate
 from pandas.core.common import isnull, array_equivalent
 import pandas.core.common as com
-from pandas.core.common import _values_from_object, is_float, is_integer, ABCSeries
+from pandas.core.common import (_values_from_object, is_float, is_integer,
+                                ABCSeries)
 from pandas.core.config import get_option
 
 # simplify
@@ -25,6 +26,13 @@ default_pprint = lambda x: com.pprint_thing(x, escape_chars=('\t', '\r', '\n'),
 
 
 __all__ = ['Index']
+
+
+def _try_get_item(x):
+    try:
+        return x.item()
+    except AttributeError:
+        return x
 
 
 def _indexOp(opname):
@@ -1911,11 +1919,17 @@ class Float64Index(Index):
 
     Notes
     -----
-    An Index instance can **only** contain hashable objects
+    An Float64Index instance can **only** contain hashable objects
     """
 
     # when this is not longer object dtype this can be changed
-    #_engine_type = _index.Float64Engine
+    _engine_type = _index.Float64Engine
+    _groupby = _algos.groupby_float64
+    _arrmap = _algos.arrmap_float64
+    _left_indexer_unique = _algos.left_join_indexer_unique_float64
+    _left_indexer = _algos.left_join_indexer_float64
+    _inner_indexer = _algos.inner_join_indexer_float64
+    _outer_indexer = _algos.outer_join_indexer_float64
 
     def __new__(cls, data, dtype=None, copy=False, name=None, fastpath=False):
 
@@ -1938,9 +1952,9 @@ class Float64Index(Index):
             raise TypeError('Unsafe NumPy casting, you must '
                             'explicitly cast')
 
-        # coerce to object for storage
-        if not subarr.dtype == np.object_:
-            subarr = subarr.astype(object)
+        # coerce to float64 for storage
+        if subarr.dtype != np.float64:
+            subarr = subarr.astype(np.float64)
 
         subarr = subarr.view(cls)
         subarr.name = name
@@ -1951,13 +1965,12 @@ class Float64Index(Index):
         return 'floating'
 
     def astype(self, dtype):
-        if np.dtype(dtype) != np.object_:
-            raise TypeError('Setting %s dtype to anything other than object '
-                            'is not supported' % self.__class__)
-        return Index(self.values, name=self.name, dtype=object)
+        if np.dtype(dtype) not in (np.object, np.float64):
+            raise TypeError('Setting %s dtype to anything other than '
+                            'float64 or object is not supported' % self.__class__)
+        return Index(self.values, name=self.name, dtype=dtype)
 
     def _convert_scalar_indexer(self, key, typ=None):
-
         if typ == 'iloc':
             return super(Float64Index, self)._convert_scalar_indexer(key,
                                                                      typ=typ)
@@ -1968,8 +1981,6 @@ class Float64Index(Index):
             unless we are iloc """
         if typ == 'iloc':
             return self._convert_slice_indexer_iloc(key)
-        elif typ == 'getitem':
-            pass
 
         # allow floats here
         self._validate_slicer(
@@ -2008,13 +2019,75 @@ class Float64Index(Index):
         try:
             if not isinstance(other, Float64Index):
                 other = self._constructor(other)
-            if self.dtype != other.dtype or self.shape != other.shape: return False
+            if self.dtype != other.dtype or self.shape != other.shape:
+                return False
             left, right = self.values, other.values
-            return ((left == right) | (isnull(left) & isnull(right))).all()
+            return ((left == right) | (self._isnan & other._isnan)).all()
         except TypeError:
             # e.g. fails in numpy 1.6 with DatetimeIndex #1681
             return False
 
+    def __contains__(self, other):
+        if super(Float64Index, self).__contains__(other):
+            return True
+
+        try:
+            # if other is a sequence this throws a ValueError
+            return np.isnan(other) and self._hasnans
+        except ValueError:
+            try:
+                return len(other) <= 1 and _try_get_item(other) in self
+            except TypeError:
+                return False
+
+    def get_loc(self, key):
+        if np.isnan(key):
+            try:
+                return self._nan_idxs.item()
+            except ValueError:
+                return self._nan_idxs
+        return super(Float64Index, self).get_loc(key)
+
+    @property
+    def is_all_dates(self):
+        """
+        Checks that all the labels are datetime objects
+        """
+        return False
+
+    @cache_readonly
+    def _nan_idxs(self):
+        w, = self._isnan.nonzero()
+        return w
+
+    @cache_readonly
+    def _isnan(self):
+        return np.isnan(self.values)
+
+    @cache_readonly
+    def _hasnans(self):
+        return self._isnan.any()
+
+    @cache_readonly
+    def is_unique(self):
+        return super(Float64Index, self).is_unique and self._nan_idxs.size < 2
+
+    def isin(self, values):
+        """
+        Compute boolean array of whether each index value is found in the
+        passed set of values
+
+        Parameters
+        ----------
+        values : set or sequence of values
+
+        Returns
+        -------
+        is_contained : ndarray (boolean dtype)
+        """
+        value_set = set(values)
+        return lib.ismember_nans(self._array_values(), value_set,
+                                 self._hasnans)
 
 class MultiIndex(Index):
 

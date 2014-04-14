@@ -1843,7 +1843,6 @@ class DataFrame(NDFrame):
         kwargs['resolvers'] = kwargs.get('resolvers', ()) + resolvers
         return _eval(expr, **kwargs)
 
-
     def _box_item_values(self, key, values):
         items = self.columns[self.columns.get_loc(key)]
         if values.ndim == 2:
@@ -2566,7 +2565,7 @@ class DataFrame(NDFrame):
         -------
         sorted : DataFrame
         """
-        
+
         from pandas.core.groupby import _lexsort_indexer, _nargsort
         axis = self._get_axis_number(axis)
         if axis not in [0, 1]:  # pragma: no cover
@@ -2622,7 +2621,7 @@ class DataFrame(NDFrame):
         else:
             indexer = _nargsort(labels, kind=kind, ascending=ascending,
                                 na_position=na_position)
-            
+
         if inplace:
             if axis == 1:
                 new_data = self._data.reindex_items(
@@ -3285,7 +3284,7 @@ class DataFrame(NDFrame):
         code path. This can lead to unexpected behavior if func has
         side-effects, as they will take effect twice for the first
         column/row.
-        
+
         Examples
         --------
         >>> df.apply(numpy.sqrt) # returns DataFrame
