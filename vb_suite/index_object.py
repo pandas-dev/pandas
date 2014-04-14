@@ -59,3 +59,49 @@ index_str_slice_indexer_basic = Benchmark('idx[:-1]', setup)
 index_str_slice_indexer_even = Benchmark('idx[::2]', setup)
 index_str_boolean_indexer = Benchmark('idx[mask]', setup)
 index_str_boolean_series_indexer = Benchmark('idx[series_mask]', setup)
+
+#----------------------------------------------------------------------
+# float64 index
+#----------------------------------------------------------------------
+# construction
+setup = common_setup + """
+baseidx = np.arange(1e6)
+"""
+
+index_float64_construct = Benchmark('Index(baseidx)', setup,
+                                    name='index_float64_construct',
+                                    start_date=datetime(2014, 4, 13))
+
+setup = common_setup + """
+idx = tm.makeFloatIndex(1000000)
+
+mask = np.arange(idx.size) % 3 == 0
+series_mask = Series(mask)
+"""
+#----------------------------------------------------------------------
+# getting
+index_float64_get = Benchmark('idx[1]', setup, name='index_float64_get',
+                              start_date=datetime(2014, 4, 13))
+
+
+#----------------------------------------------------------------------
+# slicing
+index_float64_slice_indexer_basic = Benchmark('idx[:-1]', setup,
+                                              name='index_float64_slice_indexer_basic',
+                                              start_date=datetime(2014, 4, 13))
+index_float64_slice_indexer_even = Benchmark('idx[::2]', setup,
+                                             name='index_float64_slice_indexer_even',
+                                             start_date=datetime(2014, 4, 13))
+index_float64_boolean_indexer = Benchmark('idx[mask]', setup,
+                                          name='index_float64_boolean_indexer',
+                                          start_date=datetime(2014, 4, 13))
+index_float64_boolean_series_indexer = Benchmark('idx[series_mask]', setup,
+                                                 name='index_float64_boolean_series_indexer',
+                                                 start_date=datetime(2014, 4, 13))
+
+#----------------------------------------------------------------------
+# arith ops
+index_float64_mul = Benchmark('idx * 2', setup, name='index_float64_mul',
+                              start_date=datetime(2014, 4, 13))
+index_float64_div = Benchmark('idx / 2', setup, name='index_float64_div',
+                              start_date=datetime(2014, 4, 13))

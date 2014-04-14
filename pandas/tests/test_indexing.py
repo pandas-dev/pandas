@@ -4,23 +4,20 @@ import itertools
 import warnings
 
 from pandas.compat import range, lrange, lzip, StringIO, lmap, map
-from numpy import random, nan
+from numpy import nan
 from numpy.random import randn
 import numpy as np
-from numpy.testing import assert_array_equal
 
 import pandas as pd
 import pandas.core.common as com
-from pandas.core.api import (DataFrame, Index, Series, Panel, notnull, isnull,
-                             MultiIndex, DatetimeIndex, Float64Index, Timestamp)
+from pandas.core.api import (DataFrame, Index, Series, Panel, isnull,
+                             MultiIndex, Float64Index, Timestamp)
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal, assert_panel_equal)
-from pandas import compat, concat
+from pandas import concat
 
 import pandas.util.testing as tm
-import pandas.lib as lib
 from pandas import date_range
-from numpy.testing.decorators import slow
 
 _verbose = False
 
@@ -1201,17 +1198,23 @@ class TestIndexing(tm.TestCase):
         # ix general issues
 
         # GH 2817
-        data={'amount': {0: 700, 1: 600, 2: 222, 3: 333, 4: 444},
-              'col': {0: 3.5, 1: 3.5, 2: 4.0, 3: 4.0, 4: 4.0},
-              'year': {0: 2012, 1: 2011, 2: 2012, 3: 2012, 4: 2012}}
-        df = DataFrame(data).set_index(keys=['col','year'])
+        data = {'amount': {0: 700, 1: 600, 2: 222, 3: 333, 4: 444},
+                'col': {0: 3.5, 1: 3.5, 2: 4.0, 3: 4.0, 4: 4.0},
+                'year': {0: 2012, 1: 2011, 2: 2012, 3: 2012, 4: 2012}}
+        df = DataFrame(data).set_index(keys=['col', 'year'])
+        key = 4.0, 2012
 
         # this should raise correct error
-        self.assertRaises(KeyError, df.ix.__getitem__, tuple([4.0,2012]))
+        with tm.assertRaises(KeyError):
+            df.ix[key]
 
         # this is ok
         df.sortlevel(inplace=True)
-        df.ix[(4.0,2012)]
+        res = df.ix[key]
+        index = MultiIndex.from_arrays([[4] * 3, [2012] * 3],
+                                       names=['col', 'year'])
+        expected = DataFrame({'amount': [222, 333, 444]}, index=index)
+        tm.assert_frame_equal(res, expected)
 
     def test_ix_weird_slicing(self):
         ## http://stackoverflow.com/q/17056560/1240268

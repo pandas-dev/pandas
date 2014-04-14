@@ -1261,6 +1261,15 @@ numpy array.  For instance,
 Float64Index
 ------------
 
+.. note::
+
+   As of 0.14.0, ``Float64Index`` is backed by a native ``float64`` dtype
+   array. Prior to 0.14.0, ``Float64Index`` was backed by an ``object`` dtype
+   array. Using a ``float64`` dtype in the backend speeds up arithmetic
+   operations by about 30x and boolean indexing operations on the
+   ``Float64Index`` itself are about 2x as fast.
+
+
 .. versionadded:: 0.13.0
 
 By default a ``Float64Index`` will be automatically created when passing floating, or mixed-integer-floating values in index creation.

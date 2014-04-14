@@ -398,6 +398,9 @@ cdef class Float64Engine(IndexEngine):
     cdef _make_hash_table(self, n):
         return _hash.Float64HashTable(n)
 
+    cdef _get_index_values(self):
+        return algos.ensure_float64(self.vgetter())
+
     def _call_monotonic(self, values):
         return algos.is_monotonic_float64(values)
 

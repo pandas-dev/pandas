@@ -468,6 +468,8 @@ Enhancements
   file. (:issue:`6545`)
 - ``pandas.io.gbq`` now handles reading unicode strings properly. (:issue:`5940`)
 - :ref:`Holidays Calendars<timeseries.holiday>` are now available and can be used with CustomBusinessDay (:issue:`6719`)
+- ``Float64Index`` is now backed by a ``float64`` dtype ndarray instead of an
+  ``object`` dtype array (:issue:`6471`).
 
 Performance
 ~~~~~~~~~~~
