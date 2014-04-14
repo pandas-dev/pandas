@@ -1084,7 +1084,8 @@ class GroupBy(PandasObject):
         output = {}
         for name, obj in self._iterate_slices():
             is_numeric = is_numeric_dtype(obj.dtype)
-            if numeric_only and not is_numeric:
+            is_timdelta64 = is_timedelta64_dtype(obj.dtype)
+            if numeric_only and not (is_numeric or is_timdelta64):
                 continue
 
             try:
@@ -2567,8 +2568,12 @@ class NDFrameGroupBy(GroupBy):
             data = data.get_numeric_data(copy=False)
 
         for block in data.blocks:
-
             values = block._try_operate(block.values)
+            is_numeric = is_numeric_dtype(values.dtype)
+            is_timedelta64 = is_timedelta64_dtype(values.dtype)
+
+            if numeric_only and not (is_numeric or is_timedelta64):
+                continue
 
             if block.is_numeric:
                 values = _algos.ensure_float64(values)

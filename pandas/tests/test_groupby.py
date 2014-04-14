@@ -4365,6 +4365,19 @@ class TestGroupBy(tm.TestCase):
         expected = ser.take([1, 3, 4])
         assert_series_equal(actual, expected)
 
+    def test_groupby_methods_on_timedelta64(self):
+        df = self.df.copy().iloc[:4]
+        df['E'] = pd.to_timedelta(['00:00:01', '00:00:02', '00:00:03', '00:00:04'])
+        # DataFrameGroupBy
+        actual = df.groupby('A').mean()['E']
+        expected = pd.to_timedelta(Series(['00:00:03', '00:00:02'], index=['bar', 'foo'], name='E'))
+        assert_series_equal(actual, expected)
+
+        ser = df['E']
+        # SeriesGroupBy
+        actual = ser.groupby(df['A']).mean()
+        assert_series_equal(actual, expected)
+
     def test_groupby_selection_with_methods(self):
         # some methods which require DatetimeIndex
         rng = pd.date_range('2014', periods=len(self.df))
