@@ -92,6 +92,22 @@ cpdef map_indices_list(list index):
 
 from libc.stdlib cimport malloc, free
 
+
+def ismember_nans(float64_t[:] arr, set values, bint hasnans):
+    cdef:
+        Py_ssize_t i, n
+        ndarray[uint8_t] result
+        float64_t val
+
+    n = len(arr)
+    result = np.empty(n, dtype=np.uint8)
+    for i in range(n):
+        val = arr[i]
+        result[i] = val in values or hasnans and isnan(val)
+
+    return result.view(np.bool_)
+
+
 def ismember(ndarray arr, set values):
     '''
     Checks whether
@@ -114,10 +130,7 @@ def ismember(ndarray arr, set values):
     result = np.empty(n, dtype=np.uint8)
     for i in range(n):
         val = util.get_value_at(arr, i)
-        if val in values:
-            result[i] = 1
-        else:
-            result[i] = 0
+        result[i] = val in values
 
     return result.view(np.bool_)
 

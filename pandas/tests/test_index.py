@@ -37,6 +37,7 @@ def _skip_if_need_numpy_1_7():
     if _np_version_under1p7:
         raise nose.SkipTest('numpy >= 1.7 required')
 
+
 class TestIndex(tm.TestCase):
     _multiprocess_can_split_ = True
 
@@ -835,15 +836,15 @@ class TestFloat64Index(tm.TestCase):
         self.assertIsInstance(index, Float64Index)
         index = Float64Index(np.array([1.,2,3,4,5]))
         self.assertIsInstance(index, Float64Index)
-        self.assertEqual(index.dtype, object)
+        self.assertEqual(index.dtype, float)
 
         index = Float64Index(np.array([1.,2,3,4,5]),dtype=np.float32)
         self.assertIsInstance(index, Float64Index)
-        self.assertEqual(index.dtype, object)
+        self.assertEqual(index.dtype, np.float64)
 
         index = Float64Index(np.array([1,2,3,4,5]),dtype=np.float32)
         self.assertIsInstance(index, Float64Index)
-        self.assertEqual(index.dtype, object)
+        self.assertEqual(index.dtype, np.float64)
 
         # nan handling
         result = Float64Index([np.nan, np.nan])
@@ -903,6 +904,15 @@ class TestFloat64Index(tm.TestCase):
 
         i2 = Float64Index([1.0,np.nan])
         self.assertTrue(i.equals(i2))
+
+    def test_contains_nans(self):
+        i = Float64Index([1.0, 2.0, np.nan])
+        self.assertTrue(np.nan in i)
+
+    def test_contains_not_nans(self):
+        i = Float64Index([1.0, 2.0, np.nan])
+        self.assertTrue(1.0 in i)
+
 
 class TestInt64Index(tm.TestCase):
     _multiprocess_can_split_ = True

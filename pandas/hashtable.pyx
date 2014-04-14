@@ -145,10 +145,6 @@ cdef class HashTable:
 cdef class StringHashTable(HashTable):
     cdef kh_str_t *table
 
-    # def __init__(self, size_hint=1):
-    #     if size_hint is not None:
-    #         kh_resize_str(self.table, size_hint)
-
     def __cinit__(self, int size_hint=1):
         self.table = kh_init_str()
         if size_hint is not None:
@@ -539,8 +535,6 @@ cdef class Int64HashTable: #(HashTable):
 
 
 cdef class Float64HashTable(HashTable):
-    # cdef kh_float64_t *table
-
     def __cinit__(self, size_hint=1):
         self.table = kh_init_float64()
         if size_hint is not None:
@@ -549,8 +543,33 @@ cdef class Float64HashTable(HashTable):
     def __len__(self):
         return self.table.size
 
+    cpdef get_item(self, float64_t val):
+        cdef khiter_t k
+        k = kh_get_float64(self.table, val)
+        if k != self.table.n_buckets:
+            return self.table.vals[k]
+        else:
+            raise KeyError(val)
+
+    cpdef set_item(self, float64_t key, Py_ssize_t val):
+        cdef:
+            khiter_t k
+            int ret = 0
+
+        k = kh_put_float64(self.table, key, &ret)
+        self.table.keys[k] = key
+        if kh_exist_float64(self.table, k):
+            self.table.vals[k] = val
+        else:
+            raise KeyError(key)
+
     def __dealloc__(self):
         kh_destroy_float64(self.table)
+
+    def __contains__(self, object key):
+        cdef khiter_t k
+        k = kh_get_float64(self.table, key)
+        return k != self.table.n_buckets
 
     def factorize(self, ndarray[float64_t] values):
         uniques = Float64Vector()

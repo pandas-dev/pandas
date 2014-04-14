@@ -261,6 +261,8 @@ Improvements to existing features
 - Performance improvement for ``DataFrame.from_records`` when reading a
   specified number of rows from an iterable (:issue:`6700`)
 - :ref:`Holidays and holiday calendars<timeseries.holiday>` are now available and can be used with CustomBusinessDay (:issue:`6719`)
+- ``Float64Index`` is now backed by a ``float64`` dtype ndarray instead of an
+  ``object`` dtype array (:issue:`6471`).
 
 .. _release.bug_fixes-0.14.0:
 
