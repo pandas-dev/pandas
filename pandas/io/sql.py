@@ -436,10 +436,7 @@ class PandasSQLTable(PandasObject):
         except AttributeError:
             return i
 
-    def insert(self):
-        ins = self.insert_statement()
-        data_list = []
-
+    def insert_data(self):
         if self.index is not None:
             temp = self.frame.copy()
             temp.index.names = self.index
@@ -451,6 +448,12 @@ class PandasSQLTable(PandasObject):
         else:
             temp = self.frame
 
+        return temp
+
+    def insert(self):
+        ins = self.insert_statement()
+        data_list = []
+        temp = self.insert_data()
         keys = temp.columns
 
         for t in temp.itertuples():
@@ -785,7 +788,7 @@ class PandasSQLTableLegacy(PandasSQLTable):
         wld = _SQL_SYMB[flv]['wld']  # wildcard char
 
         if self.index is not None:
-            safe_names.insert(0, self.index)
+            [safe_names.insert(0, idx) for idx in self.index[::-1]]
 
         bracketed_names = [br_l + column + br_r for column in safe_names]
         col_names = ','.join(bracketed_names)
@@ -796,25 +799,17 @@ class PandasSQLTableLegacy(PandasSQLTable):
 
     def insert(self):
         ins = self.insert_statement()
+        temp = self.insert_data()
+        data_list = []
+
+        for t in temp.itertuples():
+            data = tuple((self.maybe_asscalar(v) for v in t[1:]))
+            data_list.append(data)
+
         cur = self.pd_sql.con.cursor()
-        for r in self.frame.itertuples():
-            data = [self.maybe_asscalar(v) for v in r[1:]]
-            if self.index is not None:
-                data.insert(0, self.maybe_asscalar(r[0]))
-            cur.execute(ins, tuple(data))
+        cur.executemany(ins, data_list)
         cur.close()
         self.pd_sql.con.commit()
-
-    def _index_name(self, index, index_label):
-        if index is True:
-            if self.frame.index.name is not None:
-                return _safe_col_name(self.frame.index.name)
-            else:
-                return 'pandas_index'
-        elif isinstance(index, string_types):
-            return index
-        else:
-            return None
 
     def _create_table_statement(self):
         "Return a CREATE TABLE statement to suit the contents of a DataFrame."
@@ -824,8 +819,10 @@ class PandasSQLTableLegacy(PandasSQLTable):
         column_types = [self._sql_type_name(typ) for typ in self.frame.dtypes]
 
         if self.index is not None:
-            safe_columns.insert(0, self.index)
-            column_types.insert(0, self._sql_type_name(self.frame.index.dtype))
+            for i, idx_label in enumerate(self.index[::-1]):
+                safe_columns.insert(0, idx_label)
+                column_types.insert(0, self._sql_type_name(self.frame.index.get_level_values(i).dtype))
+
         flv = self.pd_sql.flavor
 
         br_l = _SQL_SYMB[flv]['br_l']  # left val quote char
@@ -935,15 +932,16 @@ class PandasSQLLegacy(PandasSQL):
         ----------
         frame: DataFrame
         name: name of SQL table
-        flavor: {'sqlite', 'mysql', 'postgres'}, default 'sqlite'
+        flavor: {'sqlite', 'mysql'}, default 'sqlite'
         if_exists: {'fail', 'replace', 'append'}, default 'fail'
             fail: If table exists, do nothing.
             replace: If table exists, drop it, recreate it, and insert data.
             append: If table exists, insert data. Create if does not exist.
-        index_label : ignored (only used in sqlalchemy mode)
+        
         """
         table = PandasSQLTableLegacy(
-            name, self, frame=frame, index=index, if_exists=if_exists)
+            name, self, frame=frame, index=index, if_exists=if_exists,
+            index_label=index_label)
         table.insert()
 
     def has_table(self, name):
@@ -991,13 +989,47 @@ def read_frame(*args, **kwargs):
     return read_sql(*args, **kwargs)
 
 
-def write_frame(*args, **kwargs):
+def write_frame(frame, name, con, flavor='sqlite', if_exists='fail', **kwargs):
     """DEPRECIATED - use to_sql
+
+    Write records stored in a DataFrame to a SQL database.
+
+    Parameters
+    ----------
+    frame : DataFrame
+    name : string
+    con : DBAPI2 connection
+    flavor : {'sqlite', 'mysql'}, default 'sqlite'
+        The flavor of SQL to use.
+    if_exists : {'fail', 'replace', 'append'}, default 'fail'
+        - fail: If table exists, do nothing.
+        - replace: If table exists, drop it, recreate it, and insert data.
+        - append: If table exists, insert data. Create if does not exist.
+    index : boolean, default False
+        Write DataFrame index as a column
+
+    Notes
+    -----
+    This function is deprecated in favor of ``to_sql``. There are however
+    two differences:
+
+    - With ``to_sql`` the index is written to the sql database by default. To
+      keep the behaviour this function you need to specify ``index=False``.
+    - The new ``to_sql`` function supports sqlalchemy engines to work with
+      different sql flavors.
+
+    See also
+    --------
+    pandas.DataFrame.to_sql
+
     """
     warnings.warn("write_frame is depreciated, use to_sql", DeprecationWarning)
-    return to_sql(*args, **kwargs)
+
+    # for backwards compatibility, set index=False when not specified
+    index = kwargs.pop('index', False)
+    return to_sql(frame, name, con, flavor=flavor, if_exists=if_exists,
+                  index=index, **kwargs)
 
 
 # Append wrapped function docstrings
 read_frame.__doc__ += read_sql.__doc__
-write_frame.__doc__ += to_sql.__doc__
