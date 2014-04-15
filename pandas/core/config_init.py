@@ -183,8 +183,17 @@ pc_large_repr_doc = """
     df.info() (the behaviour in earlier versions of pandas).
 """
 
+pc_info_verbose_doc = """
+: boolean
+
+    Relevant when `large_repr` set to `info`. Dictates whether a df
+    will be displayed as df.info(verbose=True) or
+    df.info(verbose=False). When `False`, columns are displayed in a
+    summary line, instead of listing all columns. 
+"""
+
 pc_mpl_style_doc = """
-: bool
+: boolean
 
     Setting this to 'default' will modify the rcParams used by matplotlib
     to give plots a more pleasing visual style by default.
@@ -230,6 +239,8 @@ with cf.config_prefix('display'):
                        validator=is_instance_factory([type(None), int]))
     cf.register_option('large_repr', 'truncate', pc_large_repr_doc,
                        validator=is_one_of_factory(['truncate', 'info']))
+    cf.register_option('info_verbose', True, pc_info_verbose_doc, 
+                       validator=is_bool)
     cf.register_option('max_info_columns', 100, pc_max_info_cols_doc,
                        validator=is_int)
     cf.register_option('colheader_justify', 'right', colheader_justify_doc,

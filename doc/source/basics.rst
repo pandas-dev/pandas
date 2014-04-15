@@ -1666,3 +1666,22 @@ columns of DataFrame objects are shown by default. If ``max_columns`` is set to
 0 (the default, in fact), the library will attempt to fit the DataFrame's
 string representation into the current terminal width, and defaulting to the
 summary view otherwise.
+
+Two options allow for controlling which elements of a DataFrame are
+printed. Depending on the size of the DataFrame it might be more
+convenient to print a summary representation only.
+
+.. ipython:: python
+
+    df_lrge = DataFrame(columns=['a','b','c'],
+              index=DatetimeIndex(start='19900101',end='20000101',freq='BM'))
+    # The default display for a DataFrame is 'truncate'
+    options.display.large_repr
+    # This prints all elements of the df up to max_rows/max_columns.
+    df_lrge
+    # To get a more concise representation of the df
+    options.display.large_repr = 'info'
+    df_lrge
+    # Further reduce summary view to one line for all columns
+    options.display.info_verbose = False
+    df_lrge

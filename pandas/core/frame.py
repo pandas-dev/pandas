@@ -447,8 +447,12 @@ class DataFrame(NDFrame):
         py2/py3.
         """
         buf = StringIO(u(""))
-        if self._info_repr():
-            self.info(buf=buf)
+        info_verbose = get_option("display.info_verbose")
+        if self._info_repr() and info_verbose:
+            self.info(buf=buf,verbose=True)
+            return buf.getvalue()
+        elif self._info_repr() and not info_verbose:
+            self.info(buf=buf,verbose=False)
             return buf.getvalue()
 
         max_rows = get_option("display.max_rows")
@@ -480,9 +484,14 @@ class DataFrame(NDFrame):
             # 'HTML output is disabled in QtConsole'
             return None
 
-        if self._info_repr():
+        info_verbose = get_option("display.info_verbose")
+        if self._info_repr() and info_verbose:
             buf = StringIO(u(""))
-            self.info(buf=buf)
+            self.info(buf=buf,verbose=True)
+            return '<pre>' + buf.getvalue() + '</pre>'
+        elif self._info_repr() and not info_verbose:
+            buf = StringIO(u(""))
+            self.info(buf=buf,verbose=False)
             return '<pre>' + buf.getvalue() + '</pre>'
 
         if get_option("display.notebook_repr_html"):
