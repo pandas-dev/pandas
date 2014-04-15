@@ -92,7 +92,8 @@ They can take a number of arguments:
   - ``dialect``: string or :class:`python:csv.Dialect` instance to expose more
     ways to specify the file format
   - ``dtype``: A data type name or a dict of column name to data type. If not
-    specified, data types will be inferred.
+    specified, data types will be inferred. (Unsupported with
+    ``engine='python'``)
   - ``header``: row number(s) to use as the column names, and the start of the
     data.  Defaults to 0 if no ``names`` passed, otherwise ``None``. Explicitly
     pass ``header=0`` to be able to replace existing names. The header can be
@@ -154,6 +155,7 @@ They can take a number of arguments:
     pieces. Will cause an ``TextFileReader`` object to be returned. More on this
     below in the section on :ref:`iterating and chunking <io.chunking>`
   - ``skip_footer``: number of lines to skip at bottom of file (default 0)
+    (Unsupported with ``engine='c'``)
   - ``converters``: a dictionary of functions for converting values in certain
     columns, where keys are either integers or column labels
   - ``encoding``: a string representing the encoding to use for decoding
@@ -274,6 +276,11 @@ individual columns:
     df['a'][0]
     df = pd.read_csv(StringIO(data), dtype={'b': object, 'c': np.float64})
     df.dtypes
+
+.. note::
+    The ``dtype`` option is currently only supported by the C engine.
+    Specifying ``dtype`` with ``engine`` other than 'c' raises a
+    ``ValueError``.
 
 .. _io.headers:
 
@@ -1028,6 +1035,22 @@ Specifying ``iterator=True`` will also return the ``TextFileReader`` object:
 
    os.remove('tmp.sv')
    os.remove('tmp2.sv')
+
+Specifying the parser engine
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Under the hood pandas uses a fast and efficient parser implemented in C as well
+as a python implementation which is currently more feature-complete. Where
+possible pandas uses the C parser (specified as ``engine='c'``), but may fall
+back to python if C-unsupported options are specified. Currently, C-unsupported
+options include:
+
+- ``sep`` other than a single character (e.g. regex separators)
+- ``skip_footer``
+- ``sep=None`` with ``delim_whitespace=False``
+
+Specifying any of the above options will produce a ``ParserWarning`` unless the
+python engine is selected explicitly using ``engine='python'``.
 
 .. _io.store_in_csv:
 

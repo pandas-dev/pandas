@@ -6,6 +6,7 @@ from pandas.compat import range, lrange, StringIO, lzip, zip, string_types, map
 from pandas import compat
 import re
 import csv
+import warnings
 
 import numpy as np
 
@@ -24,6 +25,8 @@ import pandas.lib as lib
 import pandas.tslib as tslib
 import pandas.parser as _parser
 
+class ParserWarning(Warning):
+    pass
 
 _parser_params = """Also supports optionally iterating or breaking of the file
 into chunks.
@@ -50,6 +53,7 @@ escapechar : string (length 1), default None
     One-character string used to escape delimiter when quoting is QUOTE_NONE.
 dtype : Type name or dict of column -> type
     Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
+    (Unsupported with engine='python')
 compression : {'gzip', 'bz2', None}, default None
     For on-the-fly decompression of on-disk data
 dialect : string or csv.Dialect instance, default None
@@ -113,7 +117,7 @@ iterator : boolean, default False
 chunksize : int, default None
     Return TextFileReader object for iteration
 skipfooter : int, default 0
-    Number of line at bottom of file to skip
+    Number of lines at bottom of file to skip (Unsupported with engine='c')
 converters : dict. optional
     Dict of functions for converting values in certain columns. Keys can either
     be integers or column labels
@@ -125,24 +129,24 @@ encoding : string, default None
     Encoding to use for UTF when reading/writing (ex. 'utf-8')
 squeeze : boolean, default False
     If the parsed data only contains one column then return a Series
-na_filter: boolean, default True
+na_filter : boolean, default True
     Detect missing value markers (empty strings and the value of na_values). In
     data without any NAs, passing na_filter=False can improve the performance
     of reading a large file
 usecols : array-like
     Return a subset of the columns.
     Results in much faster parsing time and lower memory usage.
-mangle_dupe_cols: boolean, default True
+mangle_dupe_cols : boolean, default True
     Duplicate columns will be specified as 'X.0'...'X.N', rather than 'X'...'X'
-tupleize_cols: boolean, default False
+tupleize_cols : boolean, default False
     Leave a list of tuples on columns as is (default is to convert to
     a Multi Index on the columns)
-error_bad_lines: boolean, default True
+error_bad_lines : boolean, default True
     Lines with too many fields (e.g. a csv line with too many commas) will by
     default cause an exception to be raised, and no DataFrame will be returned.
     If False, then these "bad lines" will dropped from the DataFrame that is
-    returned. (Only valid with C parser).
-warn_bad_lines: boolean, default True
+    returned. (Only valid with C parser)
+warn_bad_lines : boolean, default True
     If error_bad_lines is False, and warn_bad_lines is True, a warning for each
     "bad line" will be output. (Only valid with C parser).
 infer_datetime_format : boolean, default False
@@ -154,25 +158,30 @@ Returns
 result : DataFrame or TextParser
 """
 
-_csv_sep = """sep : string, default ','
+_csv_params = """sep : string, default ','
     Delimiter to use. If sep is None, will try to automatically determine
     this. Regular expressions are accepted.
-"""
+engine : {'c', 'python'}
+    Parser engine to use. The C engine is faster while the python engine is
+    currently more feature-complete."""
 
-_table_sep = """sep : string, default \\t (tab-stop)
-    Delimiter to use. Regular expressions are accepted."""
+_table_params = """sep : string, default \\t (tab-stop)
+    Delimiter to use. Regular expressions are accepted.
+engine : {'c', 'python'}
+    Parser engine to use. The C engine is faster while the python engine is
+    currently more feature-complete."""
 
 _read_csv_doc = """
 Read CSV (comma-separated) file into DataFrame
 
 %s
-""" % (_parser_params % _csv_sep)
+""" % (_parser_params % _csv_params)
 
 _read_table_doc = """
 Read general delimited file into DataFrame
 
 %s
-""" % (_parser_params % _table_sep)
+""" % (_parser_params % _table_params)
 
 _fwf_widths = """\
 colspecs : list of pairs (int, int) or 'infer'. optional
@@ -297,6 +306,8 @@ _python_unsupported = set(_c_parser_defaults.keys())
 
 def _make_parser_function(name, sep=','):
 
+    default_sep = sep
+
     def parser_f(filepath_or_buffer,
                  sep=sep,
                  dialect=None,
@@ -325,7 +336,7 @@ def _make_parser_function(name, sep=','):
                  dtype=None,
                  usecols=None,
 
-                 engine='c',
+                 engine=None,
                  delim_whitespace=False,
                  as_recarray=False,
                  na_filter=True,
@@ -362,10 +373,21 @@ def _make_parser_function(name, sep=','):
         if delimiter is None:
             delimiter = sep
 
+        if delim_whitespace and delimiter is not default_sep:
+            raise ValueError("Specified a delimiter with both sep and"\
+                    " delim_whitespace=True; you can only specify one.")
+
+        if engine is not None:
+            engine_specified = True
+        else:
+            engine = 'c'
+            engine_specified = False
+
         kwds = dict(delimiter=delimiter,
                     engine=engine,
                     dialect=dialect,
                     compression=compression,
+                    engine_specified=engine_specified,
 
                     doublequote=doublequote,
                     escapechar=escapechar,
@@ -468,9 +490,17 @@ class TextFileReader(object):
 
     """
 
-    def __init__(self, f, engine='python', **kwds):
+    def __init__(self, f, engine=None, **kwds):
 
         self.f = f
+
+        if engine is not None:
+            engine_specified = True
+        else:
+            engine = 'python'
+            engine_specified = False
+
+        self._engine_specified = kwds.get('engine_specified', engine_specified)
 
         if kwds.get('dialect') is not None:
             dialect = kwds['dialect']
@@ -530,21 +560,36 @@ class TextFileReader(object):
     def _clean_options(self, options, engine):
         result = options.copy()
 
+        engine_specified = self._engine_specified
+        fallback_reason = None
+
         sep = options['delimiter']
         delim_whitespace = options['delim_whitespace']
-
-        if sep is None and not delim_whitespace:
-            if engine == 'c':
-                engine = 'python'
-        elif sep is not None and len(sep) > 1:
-            # wait until regex engine integrated
-            if engine not in ('python', 'python-fwf'):
-                engine = 'python'
 
         # C engine not supported yet
         if engine == 'c':
             if options['skip_footer'] > 0:
+                fallback_reason = "the 'c' engine does not support"\
+                                  " skip_footer"
                 engine = 'python'
+
+        if sep is None and not delim_whitespace:
+            if engine == 'c':
+                fallback_reason = "the 'c' engine does not support"\
+                                  " sep=None with delim_whitespace=False"
+                engine = 'python'
+        elif sep is not None and len(sep) > 1:
+            if engine == 'c' and sep == '\s+':
+                result['delim_whitespace'] = True
+                del result['delimiter']
+            elif engine not in ('python', 'python-fwf'):
+                # wait until regex engine integrated
+                fallback_reason = "the 'c' engine does not support"\
+                                  " regex separators"
+                engine = 'python'
+
+        if fallback_reason and engine_specified:
+            raise ValueError(fallback_reason)
 
         if engine == 'c':
             for arg in _c_unsupported:
@@ -552,7 +597,22 @@ class TextFileReader(object):
 
         if 'python' in engine:
             for arg in _python_unsupported:
+                if fallback_reason and result[arg] != _c_parser_defaults[arg]:
+                    msg = ("Falling back to the 'python' engine because"
+                           " {reason}, but this causes {option!r} to be"
+                           " ignored as it is not supported by the 'python'"
+                           " engine.").format(reason=fallback_reason, option=arg)
+                    if arg == 'dtype':
+                        msg += " (Note the 'converters' option provides"\
+                               " similar functionality.)"
+                    raise ValueError(msg)
                 del result[arg]
+
+        if fallback_reason:
+            warnings.warn(("Falling back to the 'python' engine because"
+                           " {0}; you can avoid this warning by specifying"
+                           " engine='python'.").format(fallback_reason),
+                          ParserWarning)
 
         index_col = options['index_col']
         names = options['names']
