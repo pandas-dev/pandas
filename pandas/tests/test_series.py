@@ -4047,13 +4047,19 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         exp = iseries / 4.0
         iranks = iseries.rank(pct=True)
         assert_series_equal(iranks, exp)
-        rng = date_range('1/1/1990', periods=5)
 
+        rng = date_range('1/1/1990', periods=5)
         iseries = Series(np.arange(5), rng) + 1
         iseries.ix[4] = np.nan
         exp = iseries / 4.0
         iranks = iseries.rank(pct=True)
         assert_series_equal(iranks, exp)
+
+        iseries = Series([1e-50, 1e-100, 1e-20, 1e-2, 1e-20+1e-30, 1e-1])
+        exp = Series([2, 1, 3.5, 5, 3.5, 6])
+        iranks = iseries.rank()
+        assert_series_equal(iranks, exp)
+
 
 
 
