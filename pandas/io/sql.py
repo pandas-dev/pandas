@@ -989,13 +989,47 @@ def read_frame(*args, **kwargs):
     return read_sql(*args, **kwargs)
 
 
-def write_frame(*args, **kwargs):
+def write_frame(frame, name, con, flavor='sqlite', if_exists='fail', **kwargs):
     """DEPRECIATED - use to_sql
+
+    Write records stored in a DataFrame to a SQL database.
+
+    Parameters
+    ----------
+    frame : DataFrame
+    name : string
+    con : DBAPI2 connection
+    flavor : {'sqlite', 'mysql'}, default 'sqlite'
+        The flavor of SQL to use.
+    if_exists : {'fail', 'replace', 'append'}, default 'fail'
+        - fail: If table exists, do nothing.
+        - replace: If table exists, drop it, recreate it, and insert data.
+        - append: If table exists, insert data. Create if does not exist.
+    index : boolean, default False
+        Write DataFrame index as a column
+
+    Notes
+    -----
+    This function is deprecated in favor of ``to_sql``. There are however
+    two differences:
+
+    - With ``to_sql`` the index is written to the sql database by default. To
+      keep the behaviour this function you need to specify ``index=False``.
+    - The new ``to_sql`` function supports sqlalchemy engines to work with
+      different sql flavors.
+
+    See also
+    --------
+    pandas.DataFrame.to_sql
+
     """
     warnings.warn("write_frame is depreciated, use to_sql", DeprecationWarning)
-    return to_sql(*args, **kwargs)
+
+    # for backwards compatibility, set index=False when not specified
+    index = kwargs.pop('index', False)
+    return to_sql(frame, name, con, flavor=flavor, if_exists=if_exists,
+                  index=index, **kwargs)
 
 
 # Append wrapped function docstrings
 read_frame.__doc__ += read_sql.__doc__
-write_frame.__doc__ += to_sql.__doc__
