@@ -198,7 +198,6 @@ def rank_1d_float64(object in_arr, ties_method='average', ascending=True,
             continue
         count += 1.0
         if i == n - 1 or float64_are_diff(sorted_data[i + 1], val):
-        # if i == n - 1 or fabs(sorted_data[i + 1] - val) > REL_TOL * fabs(val):
             if tiebreak == TIEBREAK_AVERAGE:
                 for j in range(i - dups + 1, i + 1):
                     ranks[argsorted[j]] = sum_ranks / dups
@@ -358,8 +357,6 @@ def rank_2d_float64(object in_arr, axis=0, ties_method='average',
                 continue
             count += 1.0
             if j == k - 1 or float64_are_diff(values[i, j + 1], val):
-            # if j == k - 1 or fabs(values[i, j + 1] - val) > fabs(val) * REL_TOL:
-            # if j == k - 1 or fabs(values[i, j + 1] - val) > FP_ERR:
                 if tiebreak == TIEBREAK_AVERAGE:
                     for z in range(j - dups + 1, j + 1):
                         ranks[i, argsorted[i, z]] = sum_ranks / dups
