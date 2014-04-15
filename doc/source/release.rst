@@ -402,6 +402,7 @@ Bug Fixes
 - Bug in `DataFrame.plot` and `Series.plot` legend behave inconsistently when plotting to the same axes repeatedly (:issue:`6678`)
 - Internal tests for patching ``__finalize__`` / bug in merge not finalizing (:issue:`6923`, :issue:`6927`)
 - accept ``TextFileReader`` in ``concat``, which was affecting a common user idiom (:issue:`6583`)
+- Bug in ``Series.rank`` and ``DataFrame.rank`` that caused small floats (<1e-13) to all receive the same rank (:issue:`6886`)
 
 pandas 0.13.1
 -------------

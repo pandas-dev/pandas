@@ -4047,14 +4047,35 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         exp = iseries / 4.0
         iranks = iseries.rank(pct=True)
         assert_series_equal(iranks, exp)
-        rng = date_range('1/1/1990', periods=5)
 
+        rng = date_range('1/1/1990', periods=5)
         iseries = Series(np.arange(5), rng) + 1
         iseries.ix[4] = np.nan
         exp = iseries / 4.0
         iranks = iseries.rank(pct=True)
         assert_series_equal(iranks, exp)
 
+        iseries = Series([1e-50, 1e-100, 1e-20, 1e-2, 1e-20+1e-30, 1e-1])
+        exp = Series([2, 1, 3.5, 5, 3.5, 6])
+        iranks = iseries.rank()
+        assert_series_equal(iranks, exp)
+
+        values = np.array([-50, -1, -1e-20, -1e-25, -1e-50, 0, 1e-40, 1e-20, 1e-10, 2, 40], dtype='float64')
+        random_order = np.random.permutation(len(values))
+        iseries = Series(values[random_order])
+        exp = Series(random_order + 1.0, dtype='float64')
+        iranks = iseries.rank()
+        assert_series_equal(iranks, exp)
+
+    def test_rank_inf(self):
+        raise nose.SkipTest('DataFrame.rank does not currently rank np.inf and -np.inf properly')
+
+        values = np.array([-np.inf, -50, -1, -1e-20, -1e-25, -1e-50, 0, 1e-40, 1e-20, 1e-10, 2, 40, np.inf], dtype='float64')
+        random_order = np.random.permutation(len(values))
+        iseries = Series(values[random_order])
+        exp = Series(random_order + 1.0, dtype='float64')
+        iranks = iseries.rank()
+        assert_series_equal(iranks, exp)
 
 
     def test_from_csv(self):
