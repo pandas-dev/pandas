@@ -1162,7 +1162,6 @@ int tokenize_whitespace(parser_t *self, size_t line_limit)
                 self->state = EAT_CRNL;
                 break;
             } else if (IS_WHITESPACE(c)) {
-                END_FIELD();
                 self->state = EAT_WHITESPACE;
                 break;
             } else {
@@ -1319,10 +1318,14 @@ int tokenize_whitespace(parser_t *self, size_t line_limit)
                 /* self->state = START_RECORD; */
             } else if (IS_WHITESPACE(c)){
                 // Handle \r-delimited files
-                END_LINE_AND_FIELD_STATE(EAT_WHITESPACE);
+                END_LINE_STATE(EAT_WHITESPACE);
             } else {
-                PUSH_CHAR(c);
-                END_LINE_STATE(IN_FIELD);
+                /* XXX
+                 * first character of a new record--need to back up and reread
+                 * to handle properly...
+                 */
+                i--; buf--; /* back up one character (HACK!) */
+                END_LINE_STATE(START_RECORD);
             }
             break;
 

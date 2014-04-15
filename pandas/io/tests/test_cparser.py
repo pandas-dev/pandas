@@ -323,6 +323,9 @@ a,b,c
         data = 'A  B  C\r  2  3\r4  5  6'
         _test(data, delim_whitespace=True)
 
+        data = 'A B C\r2 3\r4 5 6'
+        _test(data, delim_whitespace=True)
+
     def test_empty_field_eof(self):
         data = 'a,b,c\n1,2,3\n4,,'
 
