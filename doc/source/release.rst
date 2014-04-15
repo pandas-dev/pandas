@@ -418,6 +418,7 @@ Bug Fixes
   parser when no options are ignored (:issue:`6607`)
 - Bug in C parser with leading whitespace (:issue:`3374`)
 - Bug in C parser with ``delim_whitespace=True`` and ``\r``-delimited lines
+- Bug in ``Series.rank`` and ``DataFrame.rank`` that caused small floats (<1e-13) to all receive the same rank (:issue:`6886`)
 
 pandas 0.13.1
 -------------

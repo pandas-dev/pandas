@@ -11031,6 +11031,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         exp = df.astype(float).rank(1)
         assert_frame_equal(result, exp)
 
+
     def test_rank2(self):
         from datetime import datetime
         df = DataFrame([[1, 3, 2], [1, 2, 3]])
@@ -11084,6 +11085,11 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         expected = self.mixed_frame.rank(1, numeric_only=True)
         assert_frame_equal(result, expected)
 
+        df = DataFrame({"a":[1e-20, -5, 1e-20+1e-40, 10, 1e60, 1e80, 1e-30]})
+        exp = DataFrame({"a":[ 3.5,  1. ,  3.5,  5. ,  6. ,  7. ,  2. ]})
+        assert_frame_equal(df.rank(), exp)
+
+        
     def test_rank_na_option(self):
         from pandas.compat.scipy import rankdata
 
