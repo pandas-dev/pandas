@@ -556,6 +556,11 @@ class TestStringMethods(tm.TestCase):
         exp = DataFrame([['A', '1'], ['B', '2'], ['C', NA]], columns=['letter', 'number'])
         tm.assert_frame_equal(result, exp)
 
+        # single group renames series properly
+        s = Series(['A1', 'A2'])
+        result = s.str.extract(r'(?P<uno>A)\d')
+        tm.assert_equal(result.name, 'uno')
+
         # GH6348
         # not passing index to the extractor
         def check_index(index):

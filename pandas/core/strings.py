@@ -388,6 +388,13 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=False):
     return _na_map(f, arr, na)
 
 
+def _get_single_group_name(rx):
+    try:
+        return list(rx.groupindex.keys()).pop()
+    except IndexError:
+        return None
+
+
 def str_extract(arr, pat, flags=0):
     """
     Find groups in each string using passed regular expression
@@ -453,7 +460,7 @@ def str_extract(arr, pat, flags=0):
             return empty_row
     if regex.groups == 1:
         result = Series([f(val)[0] for val in arr],
-                        name=regex.groupindex.get(1),
+                        name=_get_single_group_name(regex),
                         index=arr.index)
     else:
         names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))
