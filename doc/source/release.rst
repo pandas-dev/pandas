@@ -374,6 +374,8 @@ Bug Fixes
 - Bug in ``groupby.get_group`` where a datetlike wasn't always accepted (:issue:`5267`)
 - Bug in ``DatetimeIndex.tz_localize`` and ``DatetimeIndex.tz_convert`` affects to NaT (:issue:`5546`)
 - Bug in arithmetic operations affecting to NaT (:issue:`6873`)
+- Bug in ``Series.str.extract`` where the resulting ``Series`` from a single
+  group match wasn't renamed to the group name
 
 pandas 0.13.1
 -------------
