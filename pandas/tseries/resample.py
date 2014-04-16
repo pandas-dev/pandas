@@ -138,7 +138,8 @@ class TimeGrouper(Grouper):
         # since we may have had to sort
         # may need to reorder groups here
         if self.indexer is not None:
-            grouper = grouper.take(self.indexer)
+            indexer = self.indexer.argsort(kind='quicksort')
+            grouper = grouper.take(indexer)
         return grouper
 
     def _get_time_bins(self, ax):
@@ -161,7 +162,7 @@ class TimeGrouper(Grouper):
 
         # a little hack
         trimmed = False
-        if (len(binner) > 2 and binner[-2] == ax[-1] and
+        if (len(binner) > 2 and binner[-2] == ax.max() and
                 self.closed == 'right'):
 
             binner = binner[:-1]
@@ -204,7 +205,7 @@ class TimeGrouper(Grouper):
                 bin_edges = bin_edges + day_nanos - 1
 
             # intraday values on last day
-            if bin_edges[-2] > ax_values[-1]:
+            if bin_edges[-2] > ax_values.max():
                 bin_edges = bin_edges[:-1]
                 binner = binner[:-1]
 
@@ -320,8 +321,8 @@ class TimeGrouper(Grouper):
             # Get the fill indexer
             indexer = memb.get_indexer(new_index, method=self.fill_method,
                                        limit=self.limit)
-
             return _take_new_index(obj, indexer, new_index, axis=self.axis)
+
         else:
             raise ValueError('Frequency %s cannot be resampled to %s'
                              % (axlabels.freq, self.freq))
@@ -352,7 +353,7 @@ def _get_range_edges(axis, offset, closed='left', base=0):
             return _adjust_dates_anchored(axis[0], axis[-1], offset,
                                           closed=closed, base=base)
 
-    first, last = axis[0], axis[-1]
+    first, last = axis.min(), axis.max()
     if not isinstance(offset, Tick):  # and first.time() != last.time():
         # hack!
         first = tools.normalize_date(first)
