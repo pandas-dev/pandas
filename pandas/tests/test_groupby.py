@@ -1907,17 +1907,17 @@ class TestGroupBy(tm.TestCase):
         self.assert_(result.columns.equals(df.columns[:-1]))
 
     def test_pass_args_kwargs(self):
-        from pandas.compat.scipy import scoreatpercentile
+        from numpy import percentile
 
-        def f(x, q=None):
-            return scoreatpercentile(x, q)
-        g = lambda x: scoreatpercentile(x, 80)
+        def f(x, q=None, axis=0):
+            return percentile(x, q, axis=axis)
+        g = lambda x: percentile(x, 80, axis=0)
 
         # Series
         ts_grouped = self.ts.groupby(lambda x: x.month)
-        agg_result = ts_grouped.agg(scoreatpercentile, 80)
-        apply_result = ts_grouped.apply(scoreatpercentile, 80)
-        trans_result = ts_grouped.transform(scoreatpercentile, 80)
+        agg_result = ts_grouped.agg(percentile, 80, axis=0)
+        apply_result = ts_grouped.apply(percentile, 80, axis=0)
+        trans_result = ts_grouped.transform(percentile, 80, axis=0)
 
         agg_expected = ts_grouped.quantile(.8)
         trans_expected = ts_grouped.transform(g)
@@ -1935,7 +1935,7 @@ class TestGroupBy(tm.TestCase):
 
         # DataFrame
         df_grouped = self.tsframe.groupby(lambda x: x.month)
-        agg_result = df_grouped.agg(scoreatpercentile, 80)
+        agg_result = df_grouped.agg(percentile, 80, axis=0)
         apply_result = df_grouped.apply(DataFrame.quantile, .8)
         expected = df_grouped.quantile(.8)
         assert_frame_equal(apply_result, expected)
