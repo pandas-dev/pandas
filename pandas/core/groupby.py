@@ -263,11 +263,11 @@ class Grouper(object):
                     if not (level == 0 or level == ax.name):
                         raise ValueError("The grouper level {0} is not valid".format(level))
 
-            # possibly sort
-            if (self.sort or sort) and not ax.is_monotonic:
-                indexer = self.indexer = ax.argsort(kind='quicksort')
-                ax = ax.take(indexer)
-                obj = obj.take(indexer, axis=self.axis, convert=False, is_copy=False)
+        # possibly sort
+        if (self.sort or sort) and not ax.is_monotonic:
+            indexer = self.indexer = ax.argsort(kind='quicksort')
+            ax = ax.take(indexer)
+            obj = obj.take(indexer, axis=self.axis, convert=False, is_copy=False)
 
         self.obj = obj
         self.grouper = ax
