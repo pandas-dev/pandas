@@ -55,7 +55,7 @@ eval_frame_mult_one_thread = \
               start_date=datetime(2013, 7, 26))
 
 eval_frame_mult_python = \
-    Benchmark("pdl.eval('df * df2 * df3 * df4', engine='python')",
+    Benchmark("pd.eval('df * df2 * df3 * df4', engine='python')",
               common_setup,
               name='eval_frame_mult_python', start_date=datetime(2013, 7, 21))
 
@@ -102,7 +102,7 @@ eval_frame_chained_cmp_one_thread = \
               name='eval_frame_chained_cmp_one_thread',
               start_date=datetime(2013, 7, 26))
 
-setup = common_setup
+# setup = common_setup
 eval_frame_chained_cmp_python = \
     Benchmark("pd.eval('df < df2 < df3 < df4', engine='python')",
               common_setup, name='eval_frame_chained_cmp_python',

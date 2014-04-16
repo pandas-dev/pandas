@@ -356,7 +356,7 @@ def encode(obj):
             return {'typ': 'block_manager',
                     'klass': obj.__class__.__name__,
                     'axes': data.axes,
-                    'blocks': [{'items': data.items.take(b.ref_locs),
+                    'blocks': [{'items': data.items.take(b.mgr_locs),
                                 'values': convert(b.values),
                                 'shape': b.values.shape,
                                 'dtype': b.dtype.num,

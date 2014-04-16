@@ -11822,8 +11822,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df_dt     = DataFrame(Timestamp('20010101'),index=df_float.index,columns=df_float.columns)
         df        = pd.concat([ df_float, df_int, df_bool, df_object, df_dt ], axis=1)
 
-        result = df._data._ref_locs
-        self.assertEqual(len(result), len(df.columns))
+        self.assertEqual(len(df._data._blknos), len(df.columns))
+        self.assertEqual(len(df._data._blklocs), len(df.columns))
 
         # testing iget
         for i in range(len(df.columns)):

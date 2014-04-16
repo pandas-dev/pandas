@@ -2243,7 +2243,7 @@ class NDFrameGroupBy(GroupBy):
             # see if we can cast the block back to the original dtype
             result = block._try_cast_result(result)
 
-            newb = make_block(result, placement=block.ref_locs)
+            newb = make_block(result, placement=block.mgr_locs)
             new_blocks.append(newb)
 
         if len(new_blocks) == 0:

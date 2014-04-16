@@ -2669,7 +2669,7 @@ class BlockManagerFixed(GenericFixed):
         self.attrs.nblocks = len(data.blocks)
         for i, blk in enumerate(data.blocks):
             # I have no idea why, but writing values before items fixed #2299
-            blk_items = data.items.take(blk.ref_locs)
+            blk_items = data.items.take(blk.mgr_locs)
             self.write_array('block%d_values' % i, blk.values, items=blk_items)
             self.write_index('block%d_items' % i, blk_items)
 
@@ -3192,7 +3192,7 @@ class Table(Fixed):
             obj = _reindex_axis(obj, a[0], a[1])
 
         def get_blk_items(mgr, blocks):
-            return [mgr.items.take(blk.ref_locs) for blk in blocks]
+            return [mgr.items.take(blk.mgr_locs) for blk in blocks]
 
         # figure out data_columns and get out blocks
         block_obj = self.get_object(obj).consolidate()
@@ -3208,7 +3208,7 @@ class Table(Fixed):
                     axis=axis
                 )._data
 
-                blocks = mgr.blocks
+                blocks = list(mgr.blocks)
                 blk_items = get_blk_items(mgr, blocks)
                 for c in data_columns:
                     mgr = block_obj.reindex_axis([c], axis=axis)._data
