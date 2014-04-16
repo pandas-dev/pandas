@@ -447,7 +447,7 @@ def _unstack_frame(obj, level):
         new_blocks = []
         mask_blocks = []
         for blk in obj._data.blocks:
-            blk_items = obj._data.items.take(blk.ref_locs)
+            blk_items = obj._data.items[blk.mgr_locs.indexer]
             bunstacker = _Unstacker(blk.values.T, obj.index, level=level,
                                     value_columns=blk_items)
             new_items = bunstacker.get_new_columns()

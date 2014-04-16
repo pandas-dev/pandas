@@ -1292,7 +1292,7 @@ class CSVFormatter(object):
                                   float_format=self.float_format,
                                   date_format=self.date_format)
 
-            for col_loc, col in zip(b.ref_locs, d):
+            for col_loc, col in zip(b.mgr_locs, d):
                 # self.data is a preallocated list
                 self.data[col_loc] = col
 

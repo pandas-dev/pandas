@@ -1015,7 +1015,7 @@ class TestIndexing(tm.TestCase):
         columns = list(range(0,8,2))
         df = DataFrame(arr,index=index,columns=columns)
 
-        df._data.blocks[0].ref_locs
+        df._data.blocks[0].mgr_locs
         result = df.iloc[1:5,2:4]
         str(result)
         result.dtypes

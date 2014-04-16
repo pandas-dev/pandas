@@ -1045,7 +1045,7 @@ class DataFrame(NDFrame):
         for block in selfsorted._data.blocks:
             newb = block2d_to_blocknd(
                 values=block.values.T,
-                placement=block.ref_locs, shape=shape,
+                placement=block.mgr_locs, shape=shape,
                 labels=[major_labels, minor_labels],
                 ref_items=selfsorted.columns)
             new_blocks.append(newb)

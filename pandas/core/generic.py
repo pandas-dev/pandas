@@ -1689,7 +1689,7 @@ class NDFrame(PandasObject):
             labels, method, level, limit=limit, copy_if_needed=True)
         return self._reindex_with_indexers(
             {axis: [new_index, indexer]}, method=method, fill_value=fill_value,
-            limit=limit, copy=copy).__finalize__(self)
+            limit=limit, copy=copy)
 
     def _reindex_with_indexers(self, reindexers, method=None,
                                fill_value=np.nan, limit=None, copy=False,
@@ -1712,7 +1712,8 @@ class NDFrame(PandasObject):
             # TODO: speed up on homogeneous DataFrame objects
             new_data = new_data.reindex_indexer(index, indexer, axis=baxis,
                                                 fill_value=fill_value,
-                                                allow_dups=allow_dups)
+                                                allow_dups=allow_dups,
+                                                copy=copy)
 
         if copy and new_data is self._data:
             new_data = new_data.copy()
