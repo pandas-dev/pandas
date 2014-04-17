@@ -1116,7 +1116,7 @@ class Panel(NDFrame):
 
     def shift(self, lags, freq=None, axis='major'):
         """
-        Shift major or minor axis by specified number of leads/lags. 
+        Shift major or minor axis by specified number of leads/lags.
 
         Parameters
         ----------
