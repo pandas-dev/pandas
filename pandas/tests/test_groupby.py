@@ -41,6 +41,12 @@ def _skip_if_mpl_not_installed():
     except ImportError:
         raise nose.SkipTest("matplotlib not installed")
 
+
+def _skip_if_np_version_under1p7():
+    if _np_version_under1p7:
+        raise nose.SkipTest("numpy version 1.7 has throughly broken timedelta")
+
+
 def commonSetUp(self):
     self.dateRange = bdate_range('1/1/2005', periods=250)
     self.stringIndex = Index([rands(8).upper() for x in range(250)])
@@ -607,21 +613,24 @@ class TestGroupBy(tm.TestCase):
         if not _np_version_under1p7:
             df1 = df.copy()
             df1['D'] = pd.to_timedelta(['00:00:01', '00:00:02', '00:00:03',
-                                       '00:00:04', '00:00:05', '00:00:06', '00:00:07'])
+                                        '00:00:04', '00:00:05', '00:00:06',
+                                        '00:00:07'])
             result = df1.groupby('A').apply(f)[['D']]
             e = df1.groupby('A').first()[['D']]
             e.loc['Pony'] = np.nan
+            print(type(result))
+            print(type(e))
             assert_frame_equal(result, e)
 
             def f(grp):
                 if grp.name == 'Pony':
                     return None
                 return grp.iloc[0].loc['D']
-            result = df1.groupby('A').apply(f)
+            result = df1.groupby('A').apply(f)['D']
             e = df1.groupby('A').first()['D'].copy()
             e.loc['Pony'] = np.nan
             e.name = None
-            assert_series_equal(result,e)
+            assert_series_equal(result, e)
 
     def test_agg_api(self):
 
@@ -4386,6 +4395,7 @@ class TestGroupBy(tm.TestCase):
         assert_series_equal(actual, expected)
 
     def test_groupby_methods_on_timedelta64(self):
+        _skip_if_np_version_under1p7()
         df = self.df.copy().iloc[:4]
         df['E'] = pd.to_timedelta(['00:00:01', '00:00:02', '00:00:03', '00:00:04'])
         # DataFrameGroupBy
