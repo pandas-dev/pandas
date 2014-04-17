@@ -17,3 +17,12 @@ panel_shift = Benchmark('panel.shift(1)', setup,
 
 panel_shift_minor = Benchmark('panel.shift(1, axis=minor)', setup,
                                start_date=datetime(2012, 1, 12))
+
+panel_pct_change_major = Benchmark('panel.pct_change(1, axis="major")', setup,
+                                   start_date=datetime(2014, 4, 19))
+
+panel_pct_change_minor = Benchmark('panel.pct_change(1, axis="minor")', setup,
+                                   start_date=datetime(2014, 4, 19))
+
+panel_pct_change_items = Benchmark('panel.pct_change(1, axis="items")', setup,
+                                   start_date=datetime(2014, 4, 19))

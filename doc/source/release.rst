@@ -63,7 +63,7 @@ New features
   noon, January 1, 4713 BC.  Because nanoseconds are used to define the time
   in pandas the actual range of dates that you can use is 1678 AD to 2262 AD. (:issue:`4041`)
 - Added error bar support to the ``.plot`` method of ``DataFrame`` and ``Series`` (:issue:`3796`)
-
+- Implemented ``Panel.pct_change`` (:issue:`6904`)
 
 API Changes
 ~~~~~~~~~~~

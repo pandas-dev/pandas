@@ -26,9 +26,9 @@ Statistical functions
 Percent Change
 ~~~~~~~~~~~~~~
 
-Both ``Series`` and ``DataFrame`` has a method ``pct_change`` to compute the
+``Series``, ``DataFrame``, and ``Panel`` all have a method ``pct_change`` to compute the
 percent change over a given number of periods (using ``fill_method`` to fill
-NA/null values).
+NA/null values *before* computing the percent change).
 
 .. ipython:: python
 
