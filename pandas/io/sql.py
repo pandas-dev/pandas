@@ -7,6 +7,7 @@ from datetime import datetime, date, timedelta
 
 import warnings
 import itertools
+import re
 import numpy as np
 
 import pandas.core.common as com
@@ -36,11 +37,6 @@ def _convert_params(sql, params):
         else:
             args += [list(params)]
     return args
-
-
-def _safe_col_name(col_name):
-    #TODO: probably want to forbid database reserved names, such as "database"
-    return col_name.strip().replace(' ', '_')
 
 
 def _handle_date_column(col, format=None):
@@ -587,11 +583,11 @@ class PandasSQLTable(PandasObject):
     def _create_table_statement(self):
         from sqlalchemy import Table, Column
 
-        safe_columns = map(_safe_col_name, self.frame.dtypes.index)
+        columns = list(map(str, self.frame.columns))
         column_types = map(self._sqlalchemy_type, self.frame.dtypes)
 
         columns = [Column(name, typ)
-                   for name, typ in zip(safe_columns, column_types)]
+                   for name, typ in zip(columns, column_types)]
 
         if self.index is not None:
             for i, idx_label in enumerate(self.index[::-1]):
@@ -836,6 +832,11 @@ _SQL_SYMB = {
 }
 
 
+_SAFE_NAMES_WARNING = ("The spaces in these column names will not be changed."
+                       "In pandas versions < 0.14, spaces were converted to "
+                       "underscores.")
+
+
 class PandasSQLTableLegacy(PandasSQLTable):
     """Patch the PandasSQLTable for legacy support.
         Instead of a table variable just use the Create Table
@@ -847,19 +848,18 @@ class PandasSQLTableLegacy(PandasSQLTable):
         self.pd_sql.execute(self.table)
 
     def insert_statement(self):
-        # Replace spaces in DataFrame column names with _.
-        safe_names = [_safe_col_name(n) for n in self.frame.dtypes.index]
+        names = list(map(str, self.frame.columns))
         flv = self.pd_sql.flavor
         br_l = _SQL_SYMB[flv]['br_l']  # left val quote char
         br_r = _SQL_SYMB[flv]['br_r']  # right val quote char
         wld = _SQL_SYMB[flv]['wld']  # wildcard char
 
         if self.index is not None:
-            [safe_names.insert(0, idx) for idx in self.index[::-1]]
+            [names.insert(0, idx) for idx in self.index[::-1]]
 
-        bracketed_names = [br_l + column + br_r for column in safe_names]
+        bracketed_names = [br_l + column + br_r for column in names]
         col_names = ','.join(bracketed_names)
-        wildcards = ','.join([wld] * len(safe_names))
+        wildcards = ','.join([wld] * len(names))
         insert_statement = 'INSERT INTO %s (%s) VALUES (%s)' % (
             self.name, col_names, wildcards)
         return insert_statement
@@ -881,13 +881,15 @@ class PandasSQLTableLegacy(PandasSQLTable):
     def _create_table_statement(self):
         "Return a CREATE TABLE statement to suit the contents of a DataFrame."
 
-        # Replace spaces in DataFrame column names with _.
-        safe_columns = [_safe_col_name(n) for n in self.frame.dtypes.index]
+        columns = list(map(str, self.frame.columns))
+        pat = re.compile('\s+')
+        if any(map(pat.search, columns)):
+            warnings.warn(_SAFE_NAMES_WARNING)
         column_types = [self._sql_type_name(typ) for typ in self.frame.dtypes]
 
         if self.index is not None:
             for i, idx_label in enumerate(self.index[::-1]):
-                safe_columns.insert(0, idx_label)
+                columns.insert(0, idx_label)
                 column_types.insert(0, self._sql_type_name(self.frame.index.get_level_values(i).dtype))
 
         flv = self.pd_sql.flavor
@@ -898,7 +900,7 @@ class PandasSQLTableLegacy(PandasSQLTable):
         col_template = br_l + '%s' + br_r + ' %s'
 
         columns = ',\n  '.join(col_template %
-                               x for x in zip(safe_columns, column_types))
+                               x for x in zip(columns, column_types))
         template = """CREATE TABLE %(name)s (
                       %(columns)s
                       )"""
