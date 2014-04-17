@@ -2474,6 +2474,37 @@ The right-hand side of the sub-expression (after a comparsion operator) can be:
    - lists, e.g. ``"['A','B']"``
    - variables that are defined in the local names space, e.g. ``date``
 
+.. note::
+
+   Passing a string to a query by interpolating it into the query
+   expression is not recommended. Simply assign the string of interest to a
+   variable and use that variable in an expression. For example, do this
+
+   .. code-block:: python
+
+      string = "HolyMoly'"
+      store.select('df', 'index == string')
+
+   instead of this
+
+   .. code-block:: python
+
+      string = "HolyMoly'"
+      store.select('df',  'index == %s' % string)
+
+    The latter will **not** work and will raise a ``SyntaxError``.Note that
+    there's a single quote followed by a double quote in the ``string``
+    variable.
+
+    If you *must* interpolate, use the ``'%r'`` format specifier
+
+    .. code-block:: python
+
+       store.select('df', 'index == %r' % string)
+
+    which will quote ``string``.
+
+
 Here are some examples:
 
 .. ipython:: python
