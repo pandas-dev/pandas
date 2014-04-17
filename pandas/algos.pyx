@@ -133,15 +133,17 @@ cdef _take_2d_object(ndarray[object, ndim=2] values,
     return result
 
 
-cdef inline float64_are_diff(float64_t left, float64_t right):
-    if right == np.inf or right == -np.inf:
+cdef inline bint float64_are_diff(float64_t left, float64_t right):
+    cdef double abs_diff, allowed
+    if right == MAXfloat64 or right == -MAXfloat64:
         if left == right:
             return False
         else:
             return True
     else:
-        return fabs(left - right) > REL_TOL * fabs(right)
-
+        abs_diff = fabs(left - right)
+        allowed = REL_TOL * fabs(right)
+        return abs_diff > allowed
 
 def rank_1d_float64(object in_arr, ties_method='average', ascending=True,
                     na_option='keep', pct=False):
