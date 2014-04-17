@@ -550,6 +550,11 @@ class _TestSQLApi(PandasSQLTest):
                           'test_index_label', self.conn, if_exists='replace',
                           index_label='C')
 
+    def test_integer_col_names(self):
+        df = DataFrame([[1, 2], [3, 4]], columns=[0, 1])
+        sql.to_sql(df, "test_frame_integer_col_names", self.conn,
+                   if_exists='replace')
+
 
 class TestSQLApi(_TestSQLApi):
     """
@@ -661,9 +666,18 @@ class TestSQLLegacyApi(_TestSQLApi):
         self.assertRaises(ValueError, sql.read_sql, 'iris', self.conn,
                           flavor=self.flavor)
 
+    def test_safe_names_warning(self):
+        # GH 6798
+        df = DataFrame([[1, 2], [3, 4]], columns=['a', 'b '])  # has a space
+        # warns on create table with spaces in names
+        with tm.assert_produces_warning():
+            sql.to_sql(df, "test_frame3_legacy", self.conn,
+                       flavor="sqlite", index=False)
+
 
 #------------------------------------------------------------------------------
 #--- Database flavor specific tests
+
 
 class _TestSQLAlchemy(PandasSQLTest):
     """
