@@ -447,12 +447,8 @@ class DataFrame(NDFrame):
         py2/py3.
         """
         buf = StringIO(u(""))
-        info_verbose = get_option("display.info_verbose")
-        if self._info_repr() and info_verbose:
-            self.info(buf=buf,verbose=True)
-            return buf.getvalue()
-        elif self._info_repr() and not info_verbose:
-            self.info(buf=buf,verbose=False)
+        if self._info_repr():
+            self.info(buf=buf)
             return buf.getvalue()
 
         max_rows = get_option("display.max_rows")
@@ -484,14 +480,9 @@ class DataFrame(NDFrame):
             # 'HTML output is disabled in QtConsole'
             return None
 
-        info_verbose = get_option("display.info_verbose")
-        if self._info_repr() and info_verbose:
+        if self._info_repr():
             buf = StringIO(u(""))
-            self.info(buf=buf,verbose=True)
-            return '<pre>' + buf.getvalue() + '</pre>'
-        elif self._info_repr() and not info_verbose:
-            buf = StringIO(u(""))
-            self.info(buf=buf,verbose=False)
+            self.info(buf=buf)
             return '<pre>' + buf.getvalue() + '</pre>'
 
         if get_option("display.notebook_repr_html"):
@@ -1390,19 +1381,22 @@ class DataFrame(NDFrame):
         if buf is None:
             return formatter.buf.getvalue()
 
-    def info(self, verbose=True, buf=None, max_cols=None):
+    def info(self, verbose=None, buf=None, max_cols=None):
         """
         Concise summary of a DataFrame.
 
         Parameters
         ----------
-        verbose : boolean, default True
+        verbose : boolean, default None
             If False, don't print column count summary
         buf : writable buffer, defaults to sys.stdout
         max_cols : int, default None
             Determines whether full summary or short summary is printed
         """
         from pandas.core.format import _put_lines
+
+        if verbose is None:
+            verbose = get_option("display.info_verbose")
 
         if buf is None:  # pragma: no cover
             buf = sys.stdout
