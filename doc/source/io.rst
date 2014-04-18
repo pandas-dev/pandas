@@ -3144,11 +3144,22 @@ DB-API <http://www.python.org/dev/peps/pep-0249/>`__.
 See also some :ref:`cookbook examples <cookbook.sql>` for some advanced strategies.
 
 The key functions are:
-:func:`~pandas.io.sql.to_sql`
-:func:`~pandas.io.sql.read_sql`
-:func:`~pandas.io.sql.read_table`
 
+.. autosummary::
+    :toctree: generated/
+    
+    read_sql_table
+    read_sql_query
+    read_sql
+    DataFrame.to_sql
 
+.. note::
+
+    The function :func:`~pandas.read_sql` is a convenience wrapper around
+    :func:`~pandas.read_sql_table` and :func:`~pandas.read_sql_query` (and for
+    backward compatibility) and will delegate to specific function depending on
+    the provided input (database table name or sql query).
+    
 In the following example, we use the `SQlite <http://www.sqlite.org/>`__ SQL database
 engine. You can use a temporary SQLite database where data are stored in
 "memory".
@@ -3160,7 +3171,7 @@ connecting to.
 For more information on :func:`create_engine` and the URI formatting, see the examples
 below and the SQLAlchemy `documentation <http://docs.sqlalchemy.org/en/rel_0_9/core/engines.html>`__
 
-.. code-block:: python
+.. ipython:: python
 
    from sqlalchemy import create_engine
    from pandas.io import sql
@@ -3171,8 +3182,7 @@ Writing DataFrames
 ~~~~~~~~~~~~~~~~~~
 
 Assuming the following data is in a DataFrame ``data``, we can insert it into
-the database using :func:`~pandas.io.sql.to_sql`.
-
+the database using :func:`~pandas.DataFrame.to_sql`.
 
 +-----+------------+-------+-------+-------+
 | id  |    Date    | Col_1 | Col_2 | Col_3 |
@@ -3188,13 +3198,6 @@ the database using :func:`~pandas.io.sql.to_sql`.
 .. ipython:: python
    :suppress:
 
-   from sqlalchemy import create_engine
-   from pandas.io import sql
-   engine = create_engine('sqlite:///:memory:')
-
-.. ipython:: python
-   :suppress:
-
    import datetime
    c = ['id', 'Date', 'Col_1', 'Col_2', 'Col_3']
    d = [(26, datetime.datetime(2010,10,18), 'X', 27.5, True),
@@ -3202,44 +3205,47 @@ the database using :func:`~pandas.io.sql.to_sql`.
    (63, datetime.datetime(2010,10,20), 'Z', 5.73, True)]
 
    data  = DataFrame(d, columns=c)
-   sql.to_sql(data, 'data', engine)
+
+.. ipython:: python
+
+    data.to_sql('data', engine)
 
 Reading Tables
 ~~~~~~~~~~~~~~
 
-:func:`~pandas.io.sql.read_table` will read a databse table given the
+:func:`~pandas.read_sql_table` will read a database table given the
 table name and optionally a subset of columns to read.
 
 .. note::
 
-    In order to use :func:`~pandas.io.sql.read_table`, you **must** have the
+    In order to use :func:`~pandas.read_sql_table`, you **must** have the
     SQLAlchemy optional dependency installed.
 
 .. ipython:: python
 
-   sql.read_table('data', engine)
+   pd.read_sql_table('data', engine)
 
 You can also specify the name of the column as the DataFrame index,
 and specify a subset of columns to be read.
 
 .. ipython:: python
 
-   sql.read_table('data', engine, index_col='id')
-   sql.read_table('data', engine, columns=['Col_1', 'Col_2'])
+   pd.read_sql_table('data', engine, index_col='id')
+   pd.read_sql_table('data', engine, columns=['Col_1', 'Col_2'])
 
 And you can explicitly force columns to be parsed as dates:
 
 .. ipython:: python
 
-   sql.read_table('data', engine, parse_dates=['Date'])
+   pd.read_sql_table('data', engine, parse_dates=['Date'])
 
 If needed you can explicitly specifiy a format string, or a dict of arguments
-to pass to :func:`pandas.tseries.tools.to_datetime`.
+to pass to :func:`pandas.to_datetime`:
 
 .. code-block:: python
 
-   sql.read_table('data', engine, parse_dates={'Date': '%Y-%m-%d'})
-   sql.read_table('data', engine, parse_dates={'Date': {'format': '%Y-%m-%d %H:%M:%S'}})
+   pd.read_sql_table('data', engine, parse_dates={'Date': '%Y-%m-%d'})
+   pd.read_sql_table('data', engine, parse_dates={'Date': {'format': '%Y-%m-%d %H:%M:%S'}})
 
 
 You can check if a table exists using :func:`~pandas.io.sql.has_table`
@@ -3250,20 +3256,20 @@ instantiated directly for more manual control over the SQL interaction.
 Querying
 ~~~~~~~~
 
-You can query using raw SQL in the :func:`~pandas.io.sql.read_sql` function.
+You can query using raw SQL in the :func:`~pandas.read_sql_query` function.
 In this case you must use the SQL variant appropriate for your database.
 When using SQLAlchemy, you can also pass SQLAlchemy Expression language constructs,
 which are database-agnostic.
 
 .. ipython:: python
 
-  sql.read_sql('SELECT * FROM data', engine)
+   pd.read_sql_query('SELECT * FROM data', engine)
 
 Of course, you can specify a more "complex" query.
 
 .. ipython:: python
 
-   sql.read_frame("SELECT id, Col_1, Col_2 FROM data WHERE id = 42;", engine)
+   pd.read_sql_query("SELECT id, Col_1, Col_2 FROM data WHERE id = 42;", engine)
 
 
 You can also run a plain query without creating a dataframe with
@@ -3321,7 +3327,7 @@ you are using.
 
 .. code-block:: python
 
-   sql.to_sql(data, 'data', cnx,  flavor='sqlite')
+   data.to_sql('data', cnx,  flavor='sqlite')
 
    sql.read_sql("SELECT * FROM data", cnx, flavor='sqlite')
 
